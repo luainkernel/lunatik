@@ -37,8 +37,12 @@
 #endif
 
 
+#ifndef _KERNEL
 #define tonumber(o,n) \
 	(ttisfloat(o) ? (*(n) = fltvalue(o), 1) : luaV_tonumber_(o,n))
+#else /* _KERNEL */
+#define tonumber       tointeger
+#endif /* _KERNEL */
 
 #define tointeger(o,i) \
     (ttisinteger(o) ? (*(i) = ivalue(o), 1) : luaV_tointeger(o,i,LUA_FLOORN2I))

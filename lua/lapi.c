@@ -11,7 +11,9 @@
 
 
 #include <stdarg.h>
+#ifndef _KERNEL
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -342,6 +344,7 @@ LUA_API size_t lua_stringtonumber (lua_State *L, const char *s) {
 }
 
 
+#ifndef _KERNEL
 LUA_API lua_Number lua_tonumberx (lua_State *L, int idx, int *pisnum) {
   lua_Number n;
   const TValue *o = index2addr(L, idx);
@@ -351,6 +354,7 @@ LUA_API lua_Number lua_tonumberx (lua_State *L, int idx, int *pisnum) {
   if (pisnum) *pisnum = isnum;
   return n;
 }
+#endif /* _KERNEL */
 
 
 LUA_API lua_Integer lua_tointegerx (lua_State *L, int idx, int *pisnum) {
@@ -455,12 +459,14 @@ LUA_API void lua_pushnil (lua_State *L) {
 }
 
 
+#ifndef _KERNEL
 LUA_API void lua_pushnumber (lua_State *L, lua_Number n) {
   lua_lock(L);
   setfltvalue(L->top, n);
   api_incr_top(L);
   lua_unlock(L);
 }
+#endif /* _KERNEL */
 
 
 LUA_API void lua_pushinteger (lua_State *L, lua_Integer n) {

@@ -8,8 +8,10 @@
 #define llimits_h
 
 
+#ifndef _KERNEL
 #include <limits.h>
 #include <stddef.h>
+#endif /* _KERNEL */
 
 
 #include "lua.h"
@@ -65,8 +67,10 @@ typedef unsigned char lu_byte;
 typedef LUAI_USER_ALIGNMENT_T L_Umaxalign;
 #else
 typedef union {
+#ifndef _KERNEL
   lua_Number n;
   double u;
+#endif /* _KERNEL */
   void *s;
   lua_Integer i;
   long l;
@@ -76,7 +80,9 @@ typedef union {
 
 
 /* types of 'usual argument conversions' for lua_Number and lua_Integer */
+#ifndef _KERNEL
 typedef LUAI_UACNUMBER l_uacNumber;
+#endif /* _KERNEL */
 typedef LUAI_UACINT l_uacInt;
 
 

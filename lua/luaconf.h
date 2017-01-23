@@ -8,8 +8,13 @@
 #ifndef luaconf_h
 #define luaconf_h
 
+#ifndef _KERNEL
 #include <limits.h>
 #include <stddef.h>
+#else /* _KERNEL */
+#include <machine/limits.h>
+#include <sys/systm.h>
+#endif /* _KERNEL */
 
 
 /*
@@ -414,6 +419,7 @@
 ** ===================================================================
 */
 
+#ifndef _KERNEL
 /*
 @@ LUA_NUMBER is the floating-point type used by Lua.
 @@ LUAI_UACNUMBER is the result of a 'default argument promotion'
@@ -503,6 +509,7 @@
 #error "numeric float type not defined"
 
 #endif					/* } */
+#endif /*_KERNEL */
 
 
 
@@ -775,9 +782,71 @@
 ** without modifying the main part of the file.
 */
 
+#ifdef __NetBSD__
 
+#define LUA_STRFTIMEOPTIONS "aAbBcCdDeFgGhHIjklmMnprRsStTuUvVwWxXyYzZ%"
 
+/* Integer types */
+#undef LUA_INTEGER
+#undef LUA_INTEGER_FRMLEN
+#undef LUA_UNSIGNED
+#undef LUA_MAXUNSIGNED
+#undef LUA_MAXINTEGER
+#undef LUA_MININTEGER
 
+#define LUA_INTEGER		intmax_t
+#define LUA_INTEGER_FRMLEN	"j"
+#define LUA_UNSIGNED		uintmax_t
+#define LUA_MAXUNSIGNED		UINTMAX_MAX
+#define LUA_MAXINTEGER		INTMAX_MAX
+#define LUA_MININTEGER		INTMAX_MIN
+
+/* Path */
+#undef LUA_ROOT
+#undef LUA_PATH_DEFAULT
+#undef LUA_CPATH_DEFAULT
+
+#define LUA_ROOT	"/usr/"
+#define LUA_PATH_DEFAULT  \
+		LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
+		LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua"
+#define LUA_CPATH_DEFAULT \
+		LUA_CDIR"?.so;" LUA_CDIR"loadall.so"
+
+#ifndef _KERNEL
+
+#include <stdint.h>
+
+#else /* _KERNEL */
+
+#define LUA_NUMBER		LUA_INTEGER
+#define LUA_NUMBER_FMT		LUA_INTEGER_FMT
+
+#define l_mathlim(n)		(0)
+#define l_randomizePivot()	(~0)
+
+/* setjmp.h */
+#define LUAI_THROW(L,c)		longjmp(&((c)->b))
+#define LUAI_TRY(L,c,a)		if (setjmp(&((c)->b)) == 0) { a }
+#define luai_jmpbuf		label_t
+
+/* time.h */
+#include <sys/time.h>
+#define time(p)			(time_uptime)
+
+/* stdio.h */
+#define lua_writestring(s,l)	printf("%s", (s))
+#define lua_writeline()		printf("\n")
+
+/* string.h */
+#define strcoll strcmp
+
+/* stdlib.h */
+#define abort()			panic("Lua has aborted!")
+
+#endif /* _KERNEL */
+
+#endif /* __NetBSD__ */
 
 #endif
 

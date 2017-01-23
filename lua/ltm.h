@@ -26,8 +26,10 @@ typedef enum {
   TM_SUB,
   TM_MUL,
   TM_MOD,
+#ifndef _KERNEL
   TM_POW,
   TM_DIV,
+#endif /* _KERNEL */
   TM_IDIV,
   TM_BAND,
   TM_BOR,

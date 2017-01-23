@@ -10,8 +10,10 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <math.h>
 #include <stdlib.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -47,9 +49,11 @@ static int tonumeral(const expdesc *e, TValue *v) {
     case VKINT:
       if (v) setivalue(v, e->u.ival);
       return 1;
+#ifndef _KERNEL
     case VKFLT:
       if (v) setfltvalue(v, e->u.nval);
       return 1;
+#endif /* _KERNEL */
     default: return 0;
   }
 }
@@ -475,6 +479,8 @@ int luaK_intK (FuncState *fs, lua_Integer n) {
   return addk(fs, &k, &o);
 }
 
+
+#ifndef _KERNEL
 /*
 ** Add a float to list of constants and return its index.
 */
@@ -483,6 +489,7 @@ static int luaK_numberK (FuncState *fs, lua_Number r) {
   setfltvalue(&o, r);
   return addk(fs, &o, &o);  /* use number itself as key */
 }
+#endif /* _KERNEL */
 
 
 /*
@@ -607,10 +614,12 @@ static void discharge2reg (FuncState *fs, expdesc *e, int reg) {
       luaK_codek(fs, reg, e->u.info);
       break;
     }
+#ifndef _KERNEL
     case VKFLT: {
       luaK_codek(fs, reg, luaK_numberK(fs, e->u.nval));
       break;
     }
+#endif /* _KERNEL */
     case VKINT: {
       luaK_codek(fs, reg, luaK_intK(fs, e->u.ival));
       break;
@@ -762,7 +771,9 @@ int luaK_exp2RK (FuncState *fs, expdesc *e) {
     case VFALSE: e->u.info = boolK(fs, 0); goto vk;
     case VNIL: e->u.info = nilK(fs); goto vk;
     case VKINT: e->u.info = luaK_intK(fs, e->u.ival); goto vk;
+#ifndef _KERNEL
     case VKFLT: e->u.info = luaK_numberK(fs, e->u.nval); goto vk;
+#endif /* _KERNEL */
     case VK:
      vk:
       e->k = VK;
@@ -863,7 +874,11 @@ void luaK_goiftrue (FuncState *fs, expdesc *e) {
       pc = e->u.info;  /* save jump position */
       break;
     }
+#ifndef _KERNEL
     case VK: case VKFLT: case VKINT: case VTRUE: {
+#else /* _KERNEL */
+    case VK: case VKINT: case VTRUE: {
+#endif /* _KERNEL */
       pc = NO_JUMP;  /* always true; do nothing */
       break;
     }
@@ -914,7 +929,11 @@ static void codenot (FuncState *fs, expdesc *e) {
       e->k = VTRUE;  /* true == not nil == not false */
       break;
     }
+#ifndef _KERNEL
     case VK: case VKFLT: case VKINT: case VTRUE: {
+#else /* _KERNEL */
+    case VK: case VKINT: case VTRUE: {
+#endif /* _KERNEL */
       e->k = VFALSE;  /* false == not "x" == not 0.5 == not 1 == not true */
       break;
     }
@@ -964,7 +983,11 @@ static int validop (int op, TValue *v1, TValue *v2) {
       lua_Integer i;
       return (tointeger(v1, &i) && tointeger(v2, &i));
     }
+#ifndef _KERNEL
     case LUA_OPDIV: case LUA_OPIDIV: case LUA_OPMOD:  /* division by 0 */
+#else /* _KERNEL */
+    case LUA_OPIDIV: case LUA_OPMOD:  /* division by 0 */
+#endif /* _KERNEL */
       return (nvalue(v2) != 0);
     default: return 1;  /* everything else is valid */
   }
@@ -986,11 +1009,15 @@ static int constfolding (FuncState *fs, int op, expdesc *e1,
     e1->u.ival = ivalue(&res);
   }
   else {  /* folds neither NaN nor 0.0 (to avoid problems with -0.0) */
+#ifndef _KERNEL
     lua_Number n = fltvalue(&res);
     if (luai_numisnan(n) || n == 0)
       return 0;
     e1->k = VKFLT;
     e1->u.nval = n;
+#else /* _KERNEL */
+    return 0;  /* if it is not integer, we must fail */
+#endif /* _KERNEL */
   }
   return 1;
 }
@@ -1098,8 +1125,13 @@ void luaK_infix (FuncState *fs, BinOpr op, expdesc *v) {
       break;
     }
     case OPR_ADD: case OPR_SUB:
+#ifndef _KERNEL
     case OPR_MUL: case OPR_DIV: case OPR_IDIV:
     case OPR_MOD: case OPR_POW:
+#else /* _KERNEL */
+    case OPR_MUL: case OPR_IDIV:
+    case OPR_MOD:
+#endif /* _KERNEL */
     case OPR_BAND: case OPR_BOR: case OPR_BXOR:
     case OPR_SHL: case OPR_SHR: {
       if (!tonumeral(v, NULL))
@@ -1153,8 +1185,13 @@ void luaK_posfix (FuncState *fs, BinOpr op,
       }
       break;
     }
+#ifndef _KERNEL
     case OPR_ADD: case OPR_SUB: case OPR_MUL: case OPR_DIV:
     case OPR_IDIV: case OPR_MOD: case OPR_POW:
+#else /* _KERNEL */
+    case OPR_ADD: case OPR_SUB: case OPR_MUL:
+    case OPR_IDIV: case OPR_MOD:
+#endif /* _KERNEL */
     case OPR_BAND: case OPR_BOR: case OPR_BXOR:
     case OPR_SHL: case OPR_SHR: {
       if (!constfolding(fs, op + LUA_OPADD, e1, e2))

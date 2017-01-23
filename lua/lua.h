@@ -10,7 +10,9 @@
 #define lua_h
 
 #include <stdarg.h>
+#ifndef _KERNEL
 #include <stddef.h>
+#endif /* _KERNEL */
 
 
 #include "luaconf.h"
@@ -19,11 +21,21 @@
 #define LUA_VERSION_MAJOR	"5"
 #define LUA_VERSION_MINOR	"3"
 #define LUA_VERSION_NUM		503
+#ifndef _KERNEL
 #define LUA_VERSION_RELEASE	"4"
+#else /* _KERNEL */
+#define LUA_VERSION_RELEASE	"4 (kernel)"
+#endif /* _KERNEL */
 
 #define LUA_VERSION	"Lua " LUA_VERSION_MAJOR "." LUA_VERSION_MINOR
 #define LUA_RELEASE	LUA_VERSION "." LUA_VERSION_RELEASE
+#ifndef _KERNEL
 #define LUA_COPYRIGHT	LUA_RELEASE "  Copyright (C) 1994-2017 Lua.org, PUC-Rio"
+#else /* _KERNEL */
+#define LUA_COPYRIGHT	LUA_RELEASE \
+	"  Copyright (c) 2016-2016, Lourival Vieira Neto <lneto@NetBSD.org>." \
+	"  Copyright (C) 1994-2016 Lua.org, PUC-Rio"
+#endif /* _KERNEL */
 #define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
 
 
@@ -178,7 +190,11 @@ LUA_API int             (lua_isuserdata) (lua_State *L, int idx);
 LUA_API int             (lua_type) (lua_State *L, int idx);
 LUA_API const char     *(lua_typename) (lua_State *L, int tp);
 
+#ifndef _KERNEL
 LUA_API lua_Number      (lua_tonumberx) (lua_State *L, int idx, int *isnum);
+#else /* _KERNEL */
+#define lua_tonumberx	(lua_Integer) lua_tointegerx
+#endif /* _KERNEL */
 LUA_API lua_Integer     (lua_tointegerx) (lua_State *L, int idx, int *isnum);
 LUA_API int             (lua_toboolean) (lua_State *L, int idx);
 LUA_API const char     *(lua_tolstring) (lua_State *L, int idx, size_t *len);
@@ -197,6 +213,7 @@ LUA_API const void     *(lua_topointer) (lua_State *L, int idx);
 #define LUA_OPSUB	1
 #define LUA_OPMUL	2
 #define LUA_OPMOD	3
+#ifndef _KERNEL
 #define LUA_OPPOW	4
 #define LUA_OPDIV	5
 #define LUA_OPIDIV	6
@@ -207,6 +224,16 @@ LUA_API const void     *(lua_topointer) (lua_State *L, int idx);
 #define LUA_OPSHR	11
 #define LUA_OPUNM	12
 #define LUA_OPBNOT	13
+#else /* _KERNEL */
+#define LUA_OPIDIV	4
+#define LUA_OPBAND	5
+#define LUA_OPBOR	6
+#define LUA_OPBXOR	7
+#define LUA_OPSHL	8
+#define LUA_OPSHR	9
+#define LUA_OPUNM	10
+#define LUA_OPBNOT	11
+#endif /* _KERNEL */
 
 LUA_API void  (lua_arith) (lua_State *L, int op);
 
@@ -222,7 +249,11 @@ LUA_API int   (lua_compare) (lua_State *L, int idx1, int idx2, int op);
 ** push functions (C -> stack)
 */
 LUA_API void        (lua_pushnil) (lua_State *L);
+#ifndef _KERNEL
 LUA_API void        (lua_pushnumber) (lua_State *L, lua_Number n);
+#else /* _KERNEL */
+#define lua_pushnumber(L, n)	lua_pushinteger(L, (lua_Integer)(n))
+#endif /* _KERNEL */
 LUA_API void        (lua_pushinteger) (lua_State *L, lua_Integer n);
 LUA_API const char *(lua_pushlstring) (lua_State *L, const char *s, size_t len);
 LUA_API const char *(lua_pushstring) (lua_State *L, const char *s);
@@ -460,6 +491,9 @@ struct lua_Debug {
 
 
 /******************************************************************************
+#ifdef _KERNEL
+* Copyright (c) 2016-2016, Lourival Vieira Neto <lneto@NetBSD.org>.
+#endif
 * Copyright (C) 1994-2017 Lua.org, PUC-Rio.
 *
 * Permission is hereby granted, free of charge, to any person obtaining

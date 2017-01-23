@@ -10,12 +10,14 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <locale.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -100,6 +102,7 @@ static lua_Integer intarith (lua_State *L, int op, lua_Integer v1,
 }
 
 
+#ifndef _KERNEL
 static lua_Number numarith (lua_State *L, int op, lua_Number v1,
                                                   lua_Number v2) {
   switch (op) {
@@ -118,6 +121,7 @@ static lua_Number numarith (lua_State *L, int op, lua_Number v1,
     default: lua_assert(0); return 0;
   }
 }
+#endif /* _KERNEL */
 
 
 void luaO_arith (lua_State *L, int op, const TValue *p1, const TValue *p2,
@@ -133,6 +137,7 @@ void luaO_arith (lua_State *L, int op, const TValue *p1, const TValue *p2,
       }
       else break;  /* go to the end */
     }
+#ifndef _KERNEL
     case LUA_OPDIV: case LUA_OPPOW: {  /* operate only on floats */
       lua_Number n1; lua_Number n2;
       if (tonumber(p1, &n1) && tonumber(p2, &n2)) {
@@ -141,7 +146,9 @@ void luaO_arith (lua_State *L, int op, const TValue *p1, const TValue *p2,
       }
       else break;  /* go to the end */
     }
+#endif /* _KERNEL */
     default: {  /* other operations */
+#ifndef _KERNEL
       lua_Number n1; lua_Number n2;
       if (ttisinteger(p1) && ttisinteger(p2)) {
         setivalue(res, intarith(L, op, ivalue(p1), ivalue(p2)));
@@ -151,6 +158,13 @@ void luaO_arith (lua_State *L, int op, const TValue *p1, const TValue *p2,
         setfltvalue(res, numarith(L, op, n1, n2));
         return;
       }
+#else /* _KERNEL */
+      lua_Integer i1; lua_Integer i2;
+      if (tointeger(p1, &i1) && tointeger(p2, &i2)) {
+        setivalue(res, intarith(L, op, i1, i2));
+        return;
+      }
+#endif /* _KERNEL */
       else break;  /* go to the end */
     }
   }
@@ -174,6 +188,7 @@ static int isneg (const char **s) {
 
 
 
+#ifndef _KERNEL
 /*
 ** {==================================================================
 ** Lua's implementation for 'lua_strx2number'
@@ -291,6 +306,7 @@ static const char *l_str2d (const char *s, lua_Number *result) {
   }
   return endptr;
 }
+#endif /* _KERNEL */
 
 
 #define MAXBY10		cast(lua_Unsigned, LUA_MAXINTEGER / 10)
@@ -329,14 +345,20 @@ static const char *l_str2int (const char *s, lua_Integer *result) {
 
 
 size_t luaO_str2num (const char *s, TValue *o) {
+#ifndef _KERNEL
   lua_Integer i; lua_Number n;
+#else /* _KERNEL */
+  lua_Integer i;
+#endif /* _KERNEL */
   const char *e;
   if ((e = l_str2int(s, &i)) != NULL) {  /* try as an integer */
     setivalue(o, i);
   }
+#ifndef _KERNEL
   else if ((e = l_str2d(s, &n)) != NULL) {  /* else try as a float */
     setfltvalue(o, n);
   }
+#endif /* _KERNEL */
   else
     return 0;  /* conversion failed */
   return (e - s) + 1;  /* success; return string size */
@@ -372,6 +394,7 @@ void luaO_tostring (lua_State *L, StkId obj) {
   char buff[MAXNUMBER2STR];
   size_t len;
   lua_assert(ttisnumber(obj));
+#ifndef _KERNEL
   if (ttisinteger(obj))
     len = lua_integer2str(buff, sizeof(buff), ivalue(obj));
   else {
@@ -383,6 +406,10 @@ void luaO_tostring (lua_State *L, StkId obj) {
     }
 #endif
   }
+#else /* _KERNEL */
+  lua_assert(ttisinteger(obj));
+  len = lua_integer2str(buff, sizeof(buff), ivalue(obj));
+#endif /* _KERNEL */
   setsvalue2s(L, obj, luaS_newlstr(L, buff, len));
 }
 
@@ -424,10 +451,12 @@ const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
       }
       case 'I': {  /* a 'lua_Integer' */
         setivalue(L->top, cast(lua_Integer, va_arg(argp, l_uacInt)));
+#ifndef _KERNEL
         goto top2str;
       }
       case 'f': {  /* a 'lua_Number' */
         setfltvalue(L->top, cast_num(va_arg(argp, l_uacNumber)));
+#endif /* _KERNEL */
       top2str:  /* convert the top element to a string */
         luaD_inctop(L);
         luaO_tostring(L, L->top - 1);

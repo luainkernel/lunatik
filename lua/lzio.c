@@ -10,7 +10,9 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 

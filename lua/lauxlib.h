@@ -9,8 +9,10 @@
 #define lauxlib_h
 
 
+#ifndef _KERNEL
 #include <stddef.h>
 #include <stdio.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -51,9 +53,14 @@ LUALIB_API const char *(luaL_optlstring) (lua_State *L, int arg,
 LUALIB_API lua_Number (luaL_checknumber) (lua_State *L, int arg);
 LUALIB_API lua_Number (luaL_optnumber) (lua_State *L, int arg, lua_Number def);
 
+#ifndef _KERNEL
 LUALIB_API lua_Integer (luaL_checkinteger) (lua_State *L, int arg);
 LUALIB_API lua_Integer (luaL_optinteger) (lua_State *L, int arg,
                                           lua_Integer def);
+#else /* _KERNEL */
+#define luaL_checkinteger		luaL_checknumber
+#define luaL_optinteger(L,a,d)	luaL_optnumber(L, (a), (lua_Number)(d))
+#endif /* _KERNEL */
 
 LUALIB_API void (luaL_checkstack) (lua_State *L, int sz, const char *msg);
 LUALIB_API void (luaL_checktype) (lua_State *L, int arg, int t);
@@ -70,8 +77,10 @@ LUALIB_API int (luaL_error) (lua_State *L, const char *fmt, ...);
 LUALIB_API int (luaL_checkoption) (lua_State *L, int arg, const char *def,
                                    const char *const lst[]);
 
+#ifndef _KERNEL
 LUALIB_API int (luaL_fileresult) (lua_State *L, int stat, const char *fname);
 LUALIB_API int (luaL_execresult) (lua_State *L, int stat);
+#endif /* _KERNEL */
 
 /* predefined references */
 #define LUA_NOREF       (-2)
@@ -80,10 +89,12 @@ LUALIB_API int (luaL_execresult) (lua_State *L, int stat);
 LUALIB_API int (luaL_ref) (lua_State *L, int t);
 LUALIB_API void (luaL_unref) (lua_State *L, int t, int ref);
 
+#ifndef _KERNEL
 LUALIB_API int (luaL_loadfilex) (lua_State *L, const char *filename,
                                                const char *mode);
 
 #define luaL_loadfile(L,f)	luaL_loadfilex(L,f,NULL)
+#endif /* _KERNEL */
 
 LUALIB_API int (luaL_loadbufferx) (lua_State *L, const char *buff, size_t sz,
                                    const char *name, const char *mode);
@@ -126,8 +137,10 @@ LUALIB_API void (luaL_requiref) (lua_State *L, const char *modname,
 
 #define luaL_typename(L,i)	lua_typename(L, lua_type(L,(i)))
 
+#ifndef _KERNEL
 #define luaL_dofile(L, fn) \
 	(luaL_loadfile(L, fn) || lua_pcall(L, 0, LUA_MULTRET, 0))
+#endif /* _KERNEL */
 
 #define luaL_dostring(L, s) \
 	(luaL_loadstring(L, s) || lua_pcall(L, 0, LUA_MULTRET, 0))
@@ -175,6 +188,7 @@ LUALIB_API char *(luaL_buffinitsize) (lua_State *L, luaL_Buffer *B, size_t sz);
 
 
 
+#ifndef _KERNEL
 /*
 ** {======================================================
 ** File handles for IO library
@@ -196,6 +210,7 @@ typedef struct luaL_Stream {
 } luaL_Stream;
 
 /* }====================================================== */
+#endif /* _KERNEL */
 
 
 
@@ -212,6 +227,7 @@ LUALIB_API void (luaL_openlib) (lua_State *L, const char *libname,
 #endif
 
 
+#ifndef _KERNEL
 /*
 ** {==================================================================
 ** "Abstraction Layer" for basic report of messages and errors
@@ -235,6 +251,7 @@ LUALIB_API void (luaL_openlib) (lua_State *L, const char *libname,
 #endif
 
 /* }================================================================== */
+#endif /* _KERNEL */
 
 
 /*
