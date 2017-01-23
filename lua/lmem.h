@@ -8,7 +8,9 @@
 #define lmem_h
 
 
+#ifndef _KERNEL
 #include <stddef.h>
+#endif /* _KERNEL */
 
 #include "llimits.h"
 #include "lua.h"

@@ -10,7 +10,9 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <stddef.h>
+#endif /* _KERNEL */
 
 #include "lopcodes.h"
 
@@ -35,8 +37,10 @@ LUAI_DDEF const char *const luaP_opnames[NUM_OPCODES+1] = {
   "SUB",
   "MUL",
   "MOD",
+#ifndef _KERNEL
   "POW",
   "DIV",
+#endif /* _KERNEL */
   "IDIV",
   "BAND",
   "BOR",
@@ -90,8 +94,10 @@ LUAI_DDEF const lu_byte luaP_opmodes[NUM_OPCODES] = {
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_SUB */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_MUL */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_MOD */
+#ifndef _KERNEL
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_POW */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_DIV */
+#endif /* _KERNEL */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_IDIV */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_BAND */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_BOR */

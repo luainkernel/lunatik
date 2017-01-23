@@ -8,6 +8,7 @@
 #define lprefix_h
 
 
+#ifndef _KERNEL
 /*
 ** Allows POSIX/XSI stuff
 */
@@ -28,6 +29,7 @@
 #endif
 
 #endif				/* } */
+#endif /* _KERNEL */
 
 
 /*

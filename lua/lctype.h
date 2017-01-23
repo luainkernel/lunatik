@@ -31,7 +31,9 @@
 
 #if !LUA_USE_CTYPE	/* { */
 
+#ifndef _KERNEL
 #include <limits.h>
+#endif /* _KERNEL */
 
 #include "llimits.h"
 

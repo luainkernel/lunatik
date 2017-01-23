@@ -10,7 +10,9 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -38,8 +40,13 @@ void luaT_init (lua_State *L) {
   static const char *const luaT_eventname[] = {  /* ORDER TM */
     "__index", "__newindex",
     "__gc", "__mode", "__len", "__eq",
+#ifndef _KERNEL
     "__add", "__sub", "__mul", "__mod", "__pow",
     "__div", "__idiv",
+#else /* _KERNEL */
+    "__add", "__sub", "__mul", "__mod",
+    "__idiv",
+#endif /* _KERNEL */
     "__band", "__bor", "__bxor", "__shl", "__shr",
     "__unm", "__bnot", "__lt", "__le",
     "__concat", "__call"

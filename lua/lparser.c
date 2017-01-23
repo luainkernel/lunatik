@@ -10,7 +10,9 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -932,11 +934,13 @@ static void simpleexp (LexState *ls, expdesc *v) {
   /* simpleexp -> FLT | INT | STRING | NIL | TRUE | FALSE | ... |
                   constructor | FUNCTION body | suffixedexp */
   switch (ls->t.token) {
+#ifndef _KERNEL
     case TK_FLT: {
       init_exp(v, VKFLT, 0);
       v->u.nval = ls->t.seminfo.r;
       break;
     }
+#endif /* _KERNEL */
     case TK_INT: {
       init_exp(v, VKINT, 0);
       v->u.ival = ls->t.seminfo.i;
@@ -1000,8 +1004,12 @@ static BinOpr getbinopr (int op) {
     case '-': return OPR_SUB;
     case '*': return OPR_MUL;
     case '%': return OPR_MOD;
+#ifndef _KERNEL
     case '^': return OPR_POW;
     case '/': return OPR_DIV;
+#else /* _KERNEL */
+    case '/': return OPR_IDIV;
+#endif /* _KERNEL */
     case TK_IDIV: return OPR_IDIV;
     case '&': return OPR_BAND;
     case '|': return OPR_BOR;
@@ -1028,8 +1036,12 @@ static const struct {
 } priority[] = {  /* ORDER OPR */
    {10, 10}, {10, 10},           /* '+' '-' */
    {11, 11}, {11, 11},           /* '*' '%' */
+#ifndef _KERNEL
    {14, 13},                  /* '^' (right associative) */
    {11, 11}, {11, 11},           /* '/' '//' */
+#else /* _KERNEL */
+   {11, 11},                  /* '//' */
+#endif /* _KERNEL */
    {6, 6}, {4, 4}, {5, 5},   /* '&' '|' '~' */
    {7, 7}, {7, 7},           /* '<<' '>>' */
    {9, 8},                   /* '..' (right associative) */

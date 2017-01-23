@@ -190,8 +190,10 @@ OP_ADD,/*	A B C	R(A) := RK(B) + RK(C)				*/
 OP_SUB,/*	A B C	R(A) := RK(B) - RK(C)				*/
 OP_MUL,/*	A B C	R(A) := RK(B) * RK(C)				*/
 OP_MOD,/*	A B C	R(A) := RK(B) % RK(C)				*/
+#ifndef _KERNEL
 OP_POW,/*	A B C	R(A) := RK(B) ^ RK(C)				*/
 OP_DIV,/*	A B C	R(A) := RK(B) / RK(C)				*/
+#endif /* _KERNEL */
 OP_IDIV,/*	A B C	R(A) := RK(B) // RK(C)				*/
 OP_BAND,/*	A B C	R(A) := RK(B) & RK(C)				*/
 OP_BOR,/*	A B C	R(A) := RK(B) | RK(C)				*/

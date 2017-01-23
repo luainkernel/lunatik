@@ -11,8 +11,10 @@
 
 
 #include <stdarg.h>
+#ifndef _KERNEL
 #include <stddef.h>
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -514,7 +516,11 @@ static const char *funcnamefromcode (lua_State *L, CallInfo *ci,
       tm = TM_NEWINDEX;
       break;
     case OP_ADD: case OP_SUB: case OP_MUL: case OP_MOD:
+#ifndef _KERNEL
     case OP_POW: case OP_DIV: case OP_IDIV: case OP_BAND:
+#else /* _KERNEL */
+    case OP_IDIV: case OP_BAND:
+#endif /* _KERNEL */
     case OP_BOR: case OP_BXOR: case OP_SHL: case OP_SHR: {
       int offset = cast_int(GET_OPCODE(i)) - cast_int(OP_ADD);  /* ORDER OP */
       tm = cast(TMS, offset + cast_int(TM_ADD));  /* ORDER TM */
