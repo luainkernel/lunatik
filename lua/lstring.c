@@ -1,5 +1,5 @@
 /*
-** $Id: lstring.c,v 2.56 2015/11/23 11:32:51 roberto Exp $
+** Id: lstring.c,v 2.56 2015/11/23 11:32:51 roberto Exp 
 ** String table (keeps all strings handled by Lua)
 ** See Copyright Notice in lua.h
 */
@@ -10,7 +10,9 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 

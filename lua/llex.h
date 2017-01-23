@@ -33,7 +33,11 @@ enum RESERVED {
   TK_IDIV, TK_CONCAT, TK_DOTS, TK_EQ, TK_GE, TK_LE, TK_NE,
   TK_SHL, TK_SHR,
   TK_DBCOLON, TK_EOS,
+#ifndef _KERNEL
   TK_FLT, TK_INT, TK_NAME, TK_STRING
+#else /* _KERNEL */
+  TK_INT, TK_NAME, TK_STRING
+#endif /* _KERNEL */
 };
 
 /* number of reserved words */

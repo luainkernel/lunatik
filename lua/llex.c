@@ -10,8 +10,10 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <locale.h>
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -97,7 +99,11 @@ const char *luaX_token2str (LexState *ls, int token) {
 static const char *txtToken (LexState *ls, int token) {
   switch (token) {
     case TK_NAME: case TK_STRING:
+#ifndef _KERNEL
     case TK_FLT: case TK_INT:
+#else /* _KERNEL */
+    case TK_INT:
+#endif /* _KERNEL */
       save(ls, '\0');
       return luaO_pushfstring(ls->L, "'%s'", luaZ_buffer(ls->buff));
     default:
@@ -206,6 +212,7 @@ static int check_next2 (LexState *ls, const char *set) {
 }
 
 
+#ifndef _KERNEL
 /* LUA_NUMBER */
 /*
 ** this function is quite liberal in what it accepts, as 'luaO_str2num'
@@ -242,6 +249,28 @@ static int read_numeral (LexState *ls, SemInfo *seminfo) {
   }
 }
 
+#else /* _KERNEL */
+
+static int read_numeral (LexState *ls, SemInfo *seminfo) {
+  TValue obj;
+  int first = ls->current;
+  lua_assert(lisdigit(ls->current));
+  save_and_next(ls);
+  if (first == '0')
+    check_next2(ls, "xX");  /* hexadecimal? */
+  for (;;) {
+    if (lisxdigit(ls->current))
+      save_and_next(ls);
+    else break;
+  }
+  save(ls, '\0');
+  if (luaO_str2num(luaZ_buffer(ls->buff), &obj) == 0)  /* format error? */
+    lexerror(ls, "malformed number", TK_INT);
+  lua_assert(ttisinteger(&obj));
+  seminfo->i = ivalue(&obj);
+  return TK_INT;
+}
+#endif /* _KERNEL */
 
 /*
 ** skip a sequence '[=*[' or ']=*]'; if sequence is well formed, return
@@ -510,8 +539,12 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             return TK_DOTS;   /* '...' */
           else return TK_CONCAT;   /* '..' */
         }
+#ifndef _KERNEL
         else if (!lisdigit(ls->current)) return '.';
         else return read_numeral(ls, seminfo);
+#else /* _KERNEL */
+        else return '.';
+#endif /* _KERNEL */
       }
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9': {

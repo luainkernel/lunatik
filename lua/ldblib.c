@@ -10,9 +10,11 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -399,6 +401,7 @@ static int db_gethook (lua_State *L) {
 }
 
 
+#ifndef _KERNEL
 static int db_debug (lua_State *L) {
   for (;;) {
     char buffer[250];
@@ -412,6 +415,7 @@ static int db_debug (lua_State *L) {
     lua_settop(L, 0);  /* remove eventual returns */
   }
 }
+#endif /* _KERNEL */
 
 
 static int db_traceback (lua_State *L) {
@@ -429,7 +433,9 @@ static int db_traceback (lua_State *L) {
 
 
 static const luaL_Reg dblib[] = {
+#ifndef _KERNEL
   {"debug", db_debug},
+#endif /* _KERNEL */
   {"getuservalue", db_getuservalue},
   {"gethook", db_gethook},
   {"getinfo", db_getinfo},

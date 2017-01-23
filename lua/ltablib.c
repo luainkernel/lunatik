@@ -1,5 +1,5 @@
 /*
-** $Id: ltablib.c,v 1.93 2016/02/25 19:41:54 roberto Exp $
+** Id: ltablib.c,v 1.93 2016/02/25 19:41:54 roberto Exp 
 ** Library for Table Manipulation
 ** See Copyright Notice in lua.h
 */
@@ -10,9 +10,11 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <limits.h>
 #include <stddef.h>
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 

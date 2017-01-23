@@ -55,7 +55,9 @@
 
 
 /* Variant tags for numbers */
+#ifndef _KERNEL
 #define LUA_TNUMFLT	(LUA_TNUMBER | (0 << 4))  /* float numbers */
+#endif /* _KERNEL */
 #define LUA_TNUMINT	(LUA_TNUMBER | (1 << 4))  /* integer numbers */
 
 
@@ -103,7 +105,9 @@ typedef union Value {
   int b;           /* booleans */
   lua_CFunction f; /* light C functions */
   lua_Integer i;   /* integer numbers */
+#ifndef _KERNEL
   lua_Number n;    /* float numbers */
+#endif /* _KERNEL */
 } Value;
 
 
@@ -140,7 +144,9 @@ typedef struct lua_TValue {
 #define checktag(o,t)		(rttype(o) == (t))
 #define checktype(o,t)		(ttnov(o) == (t))
 #define ttisnumber(o)		checktype((o), LUA_TNUMBER)
+#ifndef _KERNEL
 #define ttisfloat(o)		checktag((o), LUA_TNUMFLT)
+#endif /* _KERNEL */
 #define ttisinteger(o)		checktag((o), LUA_TNUMINT)
 #define ttisnil(o)		checktag((o), LUA_TNIL)
 #define ttisboolean(o)		checktag((o), LUA_TBOOLEAN)
@@ -161,9 +167,13 @@ typedef struct lua_TValue {
 
 /* Macros to access values */
 #define ivalue(o)	check_exp(ttisinteger(o), val_(o).i)
+#ifndef _KERNEL
 #define fltvalue(o)	check_exp(ttisfloat(o), val_(o).n)
 #define nvalue(o)	check_exp(ttisnumber(o), \
 	(ttisinteger(o) ? cast_num(ivalue(o)) : fltvalue(o)))
+#else /* _KERNEL */
+#define nvalue(o)	check_exp(ttisnumber(o), cast_num(ivalue(o)))
+#endif /* _KERNEL */
 #define gcvalue(o)	check_exp(iscollectable(o), val_(o).gc)
 #define pvalue(o)	check_exp(ttislightuserdata(o), val_(o).p)
 #define tsvalue(o)	check_exp(ttisstring(o), gco2ts(val_(o).gc))
@@ -195,8 +205,10 @@ typedef struct lua_TValue {
 /* Macros to set values */
 #define settt_(o,t)	((o)->tt_=(t))
 
+#ifndef _KERNEL
 #define setfltvalue(obj,x) \
   { TValue *io=(obj); val_(io).n=(x); settt_(io, LUA_TNUMFLT); }
+#endif /* _KERNEL */
 
 #define chgfltvalue(obj,x) \
   { TValue *io=(obj); lua_assert(ttisfloat(io)); val_(io).n=(x); }

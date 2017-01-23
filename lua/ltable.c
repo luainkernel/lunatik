@@ -23,8 +23,10 @@
 ** Hence even when the load factor reaches 100%, performance remains good.
 */
 
+#ifndef _KERNEL
 #include <math.h>
 #include <limits.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -82,6 +84,7 @@ static const Node dummynode_ = {
 };
 
 
+#ifndef _KERNEL
 /*
 ** Hash for floating-point numbers.
 ** The main computation should be just
@@ -110,6 +113,7 @@ static int l_hashfloat (lua_Number n) {
   }
 }
 #endif
+#endif /* _KERNEL */
 
 
 /*
@@ -120,8 +124,10 @@ static Node *mainposition (const Table *t, const TValue *key) {
   switch (ttype(key)) {
     case LUA_TNUMINT:
       return hashint(t, ivalue(key));
+#ifndef _KERNEL
     case LUA_TNUMFLT:
       return hashmod(t, l_hashfloat(fltvalue(key)));
+#endif /* _KERNEL */
     case LUA_TSHRSTR:
       return hashstr(t, tsvalue(key));
     case LUA_TLNGSTR:
@@ -441,8 +447,11 @@ static Node *getfreepos (Table *t) {
 */
 TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
   Node *mp;
+#ifndef _KERNEL
   TValue aux;
+#endif /* _KERNEL */
   if (ttisnil(key)) luaG_runerror(L, "table index is nil");
+#ifndef _KERNEL
   else if (ttisfloat(key)) {
     lua_Integer k;
     if (luaV_tointeger(key, &k, 0)) {  /* index is int? */
@@ -452,6 +461,7 @@ TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
     else if (luai_numisnan(fltvalue(key)))
       luaG_runerror(L, "table index is NaN");
   }
+#endif /* _KERNEL */
   mp = mainposition(t, key);
   if (!ttisnil(gval(mp)) || isdummy(mp)) {  /* main position is taken? */
     Node *othern;
@@ -572,12 +582,14 @@ const TValue *luaH_get (Table *t, const TValue *key) {
     case LUA_TSHRSTR: return luaH_getshortstr(t, tsvalue(key));
     case LUA_TNUMINT: return luaH_getint(t, ivalue(key));
     case LUA_TNIL: return luaO_nilobject;
+#ifndef _KERNEL
     case LUA_TNUMFLT: {
       lua_Integer k;
       if (luaV_tointeger(key, &k, 0)) /* index is int? */
         return luaH_getint(t, k);  /* use specialized version */
       /* else... */
     }  /* FALLTHROUGH */
+#endif /* _KERNEL */
     default:
       return getgeneric(t, key);
   }

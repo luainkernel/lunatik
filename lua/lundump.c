@@ -10,7 +10,9 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -132,9 +134,11 @@ static void LoadConstants (LoadState *S, Proto *f) {
     case LUA_TBOOLEAN:
       setbvalue(o, LoadByte(S));
       break;
+#ifndef _KERNEL
     case LUA_TNUMFLT:
       setfltvalue(o, LoadNumber(S));
       break;
+#endif /* _KERNEL */
     case LUA_TNUMINT:
       setivalue(o, LoadInteger(S));
       break;

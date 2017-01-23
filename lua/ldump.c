@@ -10,7 +10,9 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <stddef.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -108,9 +110,11 @@ static void DumpConstants (const Proto *f, DumpState *D) {
     case LUA_TBOOLEAN:
       DumpByte(bvalue(o), D);
       break;
+#ifndef _KERNEL
     case LUA_TNUMFLT:
       DumpNumber(fltvalue(o), D);
       break;
+#endif /* _KERNEL */
     case LUA_TNUMINT:
       DumpInteger(ivalue(o), D);
       break;
