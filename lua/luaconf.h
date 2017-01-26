@@ -11,9 +11,11 @@
 #ifndef _KERNEL
 #include <limits.h>
 #include <stddef.h>
-#else /* _KERNEL */
-#include <machine/limits.h>
-#include <sys/systm.h>
+#elif defined(__linux__)
+#include <linux/kernel.h>
+#undef INT_MAX /* typecast breaks CPP at 112 */
+#define INT_MAX		(~0U>>1)
+#include <linux/ctype.h>
 #endif /* _KERNEL */
 
 
@@ -782,9 +784,8 @@
 ** without modifying the main part of the file.
 */
 
-#ifdef __NetBSD__
-
-#define LUA_STRFTIMEOPTIONS "aAbBcCdDeFgGhHIjklmMnprRsStTuUvVwWxXyYzZ%"
+#ifdef _KERNEL
+#ifdef __linux__
 
 /* Integer types */
 #undef LUA_INTEGER
@@ -794,30 +795,21 @@
 #undef LUA_MAXINTEGER
 #undef LUA_MININTEGER
 
-#define LUA_INTEGER		intmax_t
-#define LUA_INTEGER_FRMLEN	"j"
-#define LUA_UNSIGNED		uintmax_t
-#define LUA_MAXUNSIGNED		UINTMAX_MAX
-#define LUA_MAXINTEGER		INTMAX_MAX
-#define LUA_MININTEGER		INTMAX_MIN
-
-/* Path */
-#undef LUA_ROOT
-#undef LUA_PATH_DEFAULT
-#undef LUA_CPATH_DEFAULT
-
-#define LUA_ROOT	"/usr/"
-#define LUA_PATH_DEFAULT  \
-		LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
-		LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua"
-#define LUA_CPATH_DEFAULT \
-		LUA_CDIR"?.so;" LUA_CDIR"loadall.so"
-
-#ifndef _KERNEL
-
-#include <stdint.h>
-
-#else /* _KERNEL */
+#ifdef __LP64__
+#define LUA_INTEGER		long long
+#define LUA_INTEGER_FRMLEN	"ll"
+#define LUA_UNSIGNED	        unsigned long long
+#define LUA_MAXUNSIGNED		ULLONG_MAX
+#define LUA_MAXINTEGER		LLONG_MAX
+#define LUA_MININTEGER		LLONG_MIN
+#else
+#define LUA_INTEGER		long
+#define LUA_INTEGER_FRMLEN	"l"
+#define LUA_UNSIGNED	        unsigned long
+#define LUA_MAXUNSIGNED		ULONG_MAX
+#define LUA_MAXINTEGER		LONG_MAX
+#define LUA_MININTEGER		LONG_MIN
+#endif /* __LP64__ */
 
 #define LUA_NUMBER		LUA_INTEGER
 #define LUA_NUMBER_FMT		LUA_INTEGER_FMT
@@ -826,27 +818,64 @@
 #define l_randomizePivot()	(~0)
 
 /* setjmp.h */
+struct __jmp_buf {
+  unsigned long long val[14];
+};
+typedef struct __jmp_buf luai_jmpbuf[1];
+extern int setjmp(luai_jmpbuf);
+extern void longjmp(luai_jmpbuf);
 #define LUAI_THROW(L,c)		longjmp(&((c)->b))
 #define LUAI_TRY(L,c,a)		if (setjmp(&((c)->b)) == 0) { a }
-#define luai_jmpbuf		label_t
 
 /* time.h */
-#include <sys/time.h>
-#define time(p)			(time_uptime)
+#include <linux/time.h>
+#include <linux/ktime.h>
+static inline int time(void *p)
+{
+  struct timespec t;
+  ((void) p);
+  getboottime(&t);
+  return t.tv_sec;
+}
+#define luai_makeseed()	        cast(unsigned int, time(NULL))
 
 /* stdio.h */
-#define lua_writestring(s,l)	printf("%s", (s))
-#define lua_writeline()		printf("\n")
+#include <linux/printk.h>
+#define lua_writestring(s,l)	printk("%s", (s))
+#define lua_writeline()		printk("\n")
+#define lua_writestringerror	printk
 
 /* string.h */
-#define strcoll strcmp
+#include <linux/string.h>
+#define strcoll                 strcmp
 
 /* stdlib.h */
+#include <linux/slab.h>
+
+#if defined(llex_c) || defined(lstate_c) || defined(lcode_c) || \
+        defined(ldebug_c) || defined(lparser_c)
+#undef current
+#endif
+
 #define abort()			panic("Lua has aborted!")
+#define free 			kfree
+#define realloc(a, b) 		krealloc(a, b, GFP_KERNEL)
+
+/* signal.h */
+#define l_signalT	lu_byte
+
+#ifdef __mips__
+/* limits.h */
+#define UCHAR_MAX	(255)
+#define CHAR_BIT	(8)
+
+#undef LUAL_BUFFERSIZE /* stack shouldn't be greater than 2048 */
+#define LUAL_BUFFERSIZE		(1024)
+#endif /* __mips__ */
+
+#endif /* __linux__ */
 
 #endif /* _KERNEL */
-
-#endif /* __NetBSD__ */
 
 #endif
 

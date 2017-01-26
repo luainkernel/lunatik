@@ -33,6 +33,7 @@
 #define LUA_COPYRIGHT	LUA_RELEASE "  Copyright (C) 1994-2017 Lua.org, PUC-Rio"
 #else /* _KERNEL */
 #define LUA_COPYRIGHT	LUA_RELEASE \
+	"  Copyright (c) 2017, CUJO LLC." \
 	"  Copyright (c) 2016-2017, Lourival Vieira Neto <lneto@NetBSD.org>." \
 	"  Copyright (C) 1994-2017 Lua.org, PUC-Rio"
 #endif /* _KERNEL */
@@ -249,7 +250,11 @@ LUA_API int   (lua_compare) (lua_State *L, int idx1, int idx2, int op);
 ** push functions (C -> stack)
 */
 LUA_API void        (lua_pushnil) (lua_State *L);
+#ifndef _KERNEL
 LUA_API void        (lua_pushnumber) (lua_State *L, lua_Number n);
+#else /* _KERNEL */
+#define lua_pushnumber(L, n)	lua_pushinteger(L, (lua_Integer)(n))
+#endif /* _KERNEL */
 LUA_API void        (lua_pushinteger) (lua_State *L, lua_Integer n);
 LUA_API const char *(lua_pushlstring) (lua_State *L, const char *s, size_t len);
 LUA_API const char *(lua_pushstring) (lua_State *L, const char *s);
@@ -488,6 +493,7 @@ struct lua_Debug {
 
 /******************************************************************************
 #ifdef _KERNEL
+* Copyright (c) 2017, CUJO LLC.
 * Copyright (c) 2016-2017, Lourival Vieira Neto <lneto@NetBSD.org>.
 #endif
 * Copyright (C) 1994-2017 Lua.org, PUC-Rio.
