@@ -1,6 +1,7 @@
 /*	$NetBSD: regdef.h,v 1.13 2015/06/07 06:07:49 matt Exp $	*/
 
 /*
+ * Copyright (c) 2017 CUJO LLC. All rights reserved.
  * Copyright (c) 1992, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -38,7 +39,9 @@
 #ifndef _MIPS_REGDEF_H
 #define _MIPS_REGDEF_H
 
+#ifndef _CUJO
 #include <machine/cdefs.h>	/* for API selection */
+#endif /* _CUJO */
 
 #define zero	$0	/* always zero */
 #define AT	$at	/* assembler temporary */

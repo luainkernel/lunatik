@@ -1,6 +1,7 @@
 /*	$NetBSD: asm.h,v 1.53 2016/11/11 16:41:32 maya Exp $	*/
 
 /*
+ * Copyright (c) 2017 CUJO LLC. All rights reserved.
  * Copyright (c) 1992, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -54,8 +55,12 @@
 #ifndef _MIPS_ASM_H
 #define	_MIPS_ASM_H
 
+#ifndef _CUJO
 #include <sys/cdefs.h>		/* for API selection */
 #include <mips/regdef.h>
+#else
+#include "regdef.h"
+#endif /* _CUJO */
 
 /*
  * Define -pg profile entry code.
