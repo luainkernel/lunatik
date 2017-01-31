@@ -50,8 +50,6 @@
  *	@(#)locore.s	8.5 (Berkeley) 1/4/94
  */
 
-#define _CUJO
-#define __mips_n64
 #define _C_LABEL(x) x
 
 #include "asm.h"
