@@ -829,8 +829,10 @@ LUALIB_API const char *luaL_tolstring (lua_State *L, int idx, size_t *len) {
       case LUA_TNUMBER: {
         if (lua_isinteger(L, idx))
           lua_pushfstring(L, "%I", (LUAI_UACINT)lua_tointeger(L, idx));
+#ifndef _KERNEL
         else
           lua_pushfstring(L, "%f", (LUAI_UACNUMBER)lua_tonumber(L, idx));
+#endif /* _KERNEL */
         break;
       }
       case LUA_TSTRING:
@@ -1057,7 +1059,12 @@ LUALIB_API void luaL_checkversion_ (lua_State *L, lua_Number ver, size_t sz) {
   if (v != lua_version(NULL))
     luaL_error(L, "multiple Lua VMs detected");
   else if (*v != ver)
+#ifndef _KERNEL
     luaL_error(L, "version mismatch: app. needs %f, Lua core provides %f",
+#else
+    luaL_error(L, "version mismatch: app. needs "LUA_NUMBER_FMT
+		  ", Lua core provides "LUA_NUMBER_FMT,
+#endif /* _KERNEL */
                   (LUAI_UACNUMBER)ver, (LUAI_UACNUMBER)*v);
 }
 
