@@ -835,7 +835,7 @@ static inline int time(void *p)
 {
   struct timespec t;
   ((void) p);
-  getboottime(&t);
+  getnstimeofday(&t);
   return t.tv_sec;
 }
 #define luai_makeseed()	        cast(unsigned int, time(NULL))
