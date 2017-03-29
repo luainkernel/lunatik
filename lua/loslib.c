@@ -10,11 +10,13 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <errno.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -138,6 +140,7 @@ static time_t l_checktime (lua_State *L, int arg) {
 
 
 
+#ifndef _KERNEL
 static int os_execute (lua_State *L) {
   const char *cmd = luaL_optstring(L, 1, NULL);
   int stat = system(cmd);
@@ -184,6 +187,7 @@ static int os_clock (lua_State *L) {
   lua_pushnumber(L, ((lua_Number)clock())/(lua_Number)CLOCKS_PER_SEC);
   return 1;
 }
+#endif /* _KERNEL */
 
 
 /*
@@ -219,7 +223,9 @@ static void setallfields (lua_State *L, struct tm *stm) {
   setfield(L, "year", stm->tm_year + 1900);
   setfield(L, "wday", stm->tm_wday + 1);
   setfield(L, "yday", stm->tm_yday + 1);
+#ifndef _KERNEL
   setboolfield(L, "isdst", stm->tm_isdst);
+#endif /* _KERNEL */
 }
 
 
@@ -257,6 +263,7 @@ static int getfield (lua_State *L, const char *key, int d, int delta) {
 }
 
 
+#ifndef _KERNEL
 static const char *checkoption (lua_State *L, const char *conv,
                                 ptrdiff_t convlen, char *buff) {
   const char *option = LUA_STRFTIMEOPTIONS;
@@ -319,12 +326,14 @@ static int os_date (lua_State *L) {
   }
   return 1;
 }
+#endif /* _KERNEL */
 
 
 static int os_time (lua_State *L) {
   time_t t;
   if (lua_isnoneornil(L, 1))  /* called without args? */
     t = time(NULL);  /* get current time */
+#ifndef _KERNEL
   else {
     struct tm ts;
     luaL_checktype(L, 1, LUA_TTABLE);
@@ -339,6 +348,7 @@ static int os_time (lua_State *L) {
     t = mktime(&ts);
     setallfields(L, &ts);  /* update fields with normalized values */
   }
+#endif /* _KERNEL */
   if (t != (time_t)(l_timet)t || t == (time_t)(-1))
     luaL_error(L, "time result cannot be represented in this installation");
   l_pushtime(L, t);
@@ -346,6 +356,7 @@ static int os_time (lua_State *L) {
 }
 
 
+#ifndef _KERNEL
 static int os_difftime (lua_State *L) {
   time_t t1 = l_checktime(L, 1);
   time_t t2 = l_checktime(L, 2);
@@ -379,9 +390,11 @@ static int os_exit (lua_State *L) {
   if (L) exit(status);  /* 'if' to avoid warnings for unreachable 'return' */
   return 0;
 }
+#endif /* _KERNEL */
 
 
 static const luaL_Reg syslib[] = {
+#ifndef _KERNEL
   {"clock",     os_clock},
   {"date",      os_date},
   {"difftime",  os_difftime},
@@ -391,8 +404,11 @@ static const luaL_Reg syslib[] = {
   {"remove",    os_remove},
   {"rename",    os_rename},
   {"setlocale", os_setlocale},
+#endif /* _KERNEL */
   {"time",      os_time},
+#ifndef _KERNEL
   {"tmpname",   os_tmpname},
+#endif /* _KERNEL */
   {NULL, NULL}
 };
 
