@@ -53,9 +53,7 @@ static const luaL_Reg loadedlibs[] = {
 #endif /* _KERNEL */
   {LUA_OSLIBNAME, luaopen_os},
   {LUA_STRLIBNAME, luaopen_string},
-#ifndef _KERNEL
   {LUA_MATHLIBNAME, luaopen_math},
-#endif /* _KERNEL */
   {LUA_UTF8LIBNAME, luaopen_utf8},
   {LUA_DBLIBNAME, luaopen_debug},
 #if defined(LUA_COMPAT_BITLIB)

@@ -818,6 +818,11 @@
 #define l_mathlim(n)		(0)
 #define l_randomizePivot()	(~0)
 
+/* math.h */
+#include <linux/random.h>
+#define l_rand()		prandom_u32()
+#define l_srand(x)		prandom_seed(x)
+
 /* setjmp.h */
 struct __jmp_buf {
   unsigned long long val[14];
