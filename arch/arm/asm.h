@@ -1,6 +1,7 @@
 /*	$NetBSD: asm.h,v 1.26 2014/01/29 00:42:15 matt Exp $	*/
 
 /*
+ * Copyright (c) 2017 CUJO LLC. All rights reserved.
  * Copyright (c) 1990 The Regents of the University of California.
  * All rights reserved.
  *
@@ -37,7 +38,11 @@
 #ifndef _ARM_ASM_H_
 #define _ARM_ASM_H_
 
+#ifndef _CUJO
 #include <arm/cdefs.h>
+#else
+#include "cdefs.h"
+#endif
 
 	.syntax		unified
 
