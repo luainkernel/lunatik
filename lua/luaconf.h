@@ -830,8 +830,8 @@ struct __jmp_buf {
 typedef struct __jmp_buf luai_jmpbuf[1];
 extern int setjmp(luai_jmpbuf);
 extern void longjmp(luai_jmpbuf);
-#define LUAI_THROW(L,c)		longjmp(&((c)->b))
-#define LUAI_TRY(L,c,a)		if (setjmp(&((c)->b)) == 0) { a }
+#define LUAI_THROW(L,c)		longjmp(((c)->b))
+#define LUAI_TRY(L,c,a)		if (setjmp(((c)->b)) == 0) { a }
 
 /* time.h */
 #include <linux/time.h>
