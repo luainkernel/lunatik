@@ -585,8 +585,13 @@ lua_Integer luaV_div (lua_State *L, lua_Integer m, lua_Integer n) {
     return intop(-, 0, m);   /* n==-1; avoid overflow with 0x80000...//-1 */
   }
   else {
+#ifndef _KERNEL
     lua_Integer q = m / n;  /* perform C division */
     if ((m ^ n) < 0 && m % n != 0)  /* 'm/n' would be negative non-integer? */
+#else
+    lua_Integer q = lunatik_idiv(m, n);  /* perform C division */
+    if ((m ^ n) < 0 && lunatik_imod(m, n) != 0)  /* 'm/n' would be negative non-integer? */
+#endif /* _KERNEL */
       q -= 1;  /* correct result for different rounding */
     return q;
   }
@@ -605,7 +610,11 @@ lua_Integer luaV_mod (lua_State *L, lua_Integer m, lua_Integer n) {
     return 0;   /* m % -1 == 0; avoid overflow with 0x80000...%-1 */
   }
   else {
+#ifndef _KERNEL
     lua_Integer r = m % n;
+#else
+    lua_Integer r = lunatik_imod(m, n);
+#endif /* _KERNEL */
     if (r != 0 && (m ^ n) < 0)  /* 'm/n' would be non-integer negative? */
       r += n;  /* correct result for different rounding */
     return r;

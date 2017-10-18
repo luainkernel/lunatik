@@ -127,7 +127,11 @@ static int str_rep (lua_State *L) {
   lua_Integer n = luaL_checkinteger(L, 2);
   const char *sep = luaL_optlstring(L, 3, "", &lsep);
   if (n <= 0) lua_pushliteral(L, "");
+#ifndef _KERNEL
   else if (l + lsep < l || l + lsep > MAXSIZE / n)  /* may overflow? */
+#else
+  else if (l + lsep < l || l + lsep > lunatik_idiv(MAXSIZE, n))  /* may overflow? */
+#endif /* _KERNEL */
     return luaL_error(L, "resulting string too large");
   else {
     size_t totallen = (size_t)n * l + (size_t)(n - 1) * lsep;
