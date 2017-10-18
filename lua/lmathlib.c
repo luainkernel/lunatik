@@ -281,7 +281,7 @@ static int math_random (lua_State *L) {
 #ifndef _KERNEL
   r *= (double)(up - low) + 1.0;
 #else
-  r = r % (up - low);
+  r = lunatik_imod(r, (up - low));
 #endif /* _KERNEL */
   lua_pushinteger(L, (lua_Integer)r + low);
   return 1;
