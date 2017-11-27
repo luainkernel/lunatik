@@ -9,3 +9,4 @@ obj-y += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	 lua/ltablib.o lua/lutf8lib.o lua/loslib.o lua/lmathlib.o lua/linit.o
 
 obj-y += arch/$(ARCH)/
+obj-y += util/
