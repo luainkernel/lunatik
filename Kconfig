@@ -1,0 +1,2 @@
+config LUNATIK
+    tristate "Lunatik"
