@@ -1,6 +1,6 @@
-Instructions
+Instructions: How to load and run a module
 
-Install the linux headers for your running kernel
+Install the linux headers for your running kernel.
 To see which kernel you're running, type:
 $ uname -r
 or $ mhwd-kernel -li

@@ -1,9 +1,3 @@
-/*
-ask: unsure about rcu_read and spin locks in modify function
-    unsure about where to put locks, while passing through the list or while acessing it?
-    send void* arguments to funtions
-*/
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
