@@ -1,6 +1,8 @@
 EXTRA_CFLAGS += -D_KERNEL
 
-obj-y += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
+obj-$(CONFIG_LUNATIK) +=lunatik.o
+
+lunatik-objs := lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
          lua/ldump.o lua/lfunc.o lua/lgc.o lua/llex.o lua/lmem.o \
 	 lua/lobject.o lua/lopcodes.o lua/lparser.o lua/lstate.o \
          lua/lstring.o lua/ltable.o lua/ltm.o \
@@ -8,4 +10,4 @@ obj-y += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
          lua/lbitlib.o lua/lcorolib.o lua/ldblib.o lua/lstrlib.o \
 	 lua/ltablib.o lua/lutf8lib.o lua/loslib.o lua/lmathlib.o lua/linit.o
 
-obj-y += arch/$(ARCH)
+lunatik-objs += arch/$(ARCH)/setjmp.o
