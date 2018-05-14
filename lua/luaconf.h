@@ -863,7 +863,6 @@ static inline int time(void *p)
 #undef current
 #endif
 
-#define abort()			panic("Lua has aborted!")
 #define free 			kfree
 #define realloc(a, b) 		krealloc(a, b, GFP_KERNEL)
 
