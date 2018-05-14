@@ -108,6 +108,19 @@ static void seterrorobj (lua_State *L, int errcode, StkId oldtop) {
   L->top = oldtop + 1;
 }
 
+/*
+** linux/kernel.h may have defined panic as tiny_panic and that would make the
+** build fail on the g->panic(L) below. Undefine panic to prevent that.
+*/
+#ifdef _KERNEL
+static void abort(void) {
+  panic("Lua has aborted!");
+}
+
+#ifdef panic
+#undef panic
+#endif /* panic */
+#endif /* _KERNEL */
 
 l_noret luaD_throw (lua_State *L, int errcode) {
   if (L->errorJmp) {  /* thread has an error handler? */
