@@ -874,14 +874,12 @@ static inline void *realloc(const void *p, size_t new_size)
 /* signal.h */
 #define l_signalT	lu_byte
 
-#ifdef __mips__
 /* limits.h */
 #define UCHAR_MAX	(255)
 #define CHAR_BIT	(8)
 
 #undef LUAL_BUFFERSIZE /* stack shouldn't be greater than 2048 */
 #define LUAL_BUFFERSIZE		(1024)
-#endif /* __mips__ */
 
 #endif /* __linux__ */
 
