@@ -1,4 +1,5 @@
 EXTRA_CFLAGS += -D_KERNEL
+EXTRA_CFLAGS += -I$(src)
 
 obj-$(CONFIG_LUNATIK) +=lunatik.o
 
@@ -11,3 +12,5 @@ lunatik-objs := lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	 lua/ltablib.o lua/lutf8lib.o lua/loslib.o lua/lmathlib.o lua/linit.o
 
 lunatik-objs += arch/$(ARCH)/setjmp.o
+
+lunatik-${CONFIG_LUNATIK_POC} += poc-driver/luadev.o
