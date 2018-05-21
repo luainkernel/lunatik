@@ -12,4 +12,6 @@ lunatik-objs := lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 
 lunatik-objs += arch/$(ARCH)/setjmp.o
 
+lunatik-objs += socket/socket.o socket/enums.o
+
 lunatik-${CONFIG_LUNATIK_POC} += poc-driver/luadev.o
