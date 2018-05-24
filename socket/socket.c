@@ -255,5 +255,5 @@ int luaopen_libsocket(lua_State *L)
     /* Register the object.func functions into the table that is at the top of the
      * stack. */
     luaL_newlib(L, libluasocket_funtions);
-    return 0;
+    return 1;
 }
