@@ -22,6 +22,7 @@ lua_Integer luaL_optfieldinteger(lua_State *L, int idx, const char *k, int def)
     lua_Integer d;
     lua_getfield(L, idx, k);
     d = lua_tointegerx(L, -1, &isnum);
+    lua_pop(L, 1);
     if (!isnum)
     {
         return def;
@@ -166,30 +167,55 @@ int luasocket_connect(lua_State *L)
 }
 int luasocket_sendmsg(lua_State *L)
 {
+    int i;
     int err;
+    int size;
     struct msghdr msg;
+    struct kvec vec;
     struct sockaddr_in addr;
     sock_t s = *(sock_t *)luaL_checkudata(L, 1, LUA_SOCKET);
+    char *buffer;
 
     luaL_checktype(L, 2, LUA_TTABLE);
+    luaL_checktype(L, 3, LUA_TTABLE);
+
+    size = luaL_len(L, 3);
+    luaL_argcheck(L, size > 0, 3, "data can not be empty");
+
     memset(&msg, 0, sizeof(msg));
     msg.msg_flags = luaL_optfieldinteger(L, 2, "flags", 0);
 
-    // if (lua_getfield(L, 2, "name") == LUA_TTABLE)
-    // {
-    //     addr.sin_family = s->sk->sk_family;
-    //     addr.sin_port = htons((u_short)port);
-    //     addr.sin_addr.s_addr = inet_addr(ip);
-
-    //     msg.msg_name = &addr;
-    //     msg.msg_namelen = sizeof(addr);
-    // }
-
-    if ((err = sock_sendmsg(s, &msg)) < 0)
+    if (lua_getfield(L, 2, "name") == LUA_TTABLE)
     {
-        luaL_error(L, "Socket connect error: %d", err);
+        addr.sin_family = s->sk->sk_family;
+        addr.sin_port = htons((u_short)luaL_optfieldinteger(L, -1, "port", 0));
+        if (lua_getfield(L, -1, "addr") == LUA_TSTRING)
+        {
+            addr.sin_addr.s_addr = inet_addr(lua_tostring(L, -1));
+        }
+        lua_pop(L, 1);
+
+        msg.msg_name = &addr;
+        msg.msg_namelen = sizeof(addr);
+    }
+    lua_pop(L, 1);
+
+    buffer = kmalloc(size, GFP_KERNEL);
+    if (buffer == NULL)
+        luaL_error(L, "Buffer alloc fail.");
+    for (i = 0; i < size; i++)
+    {
+        lua_rawgeti(L, 2, i + 1);
+        buffer[i] = lua_tointeger(L, -1);
     }
 
+    vec.iov_base = buffer;
+    vec.iov_len = size;
+
+    if ((err = kernel_sendmsg(s, &msg,&vec, 1, size)) < 0)
+    {
+        luaL_error(L, "Socket sendmsg error: %d", err);
+    }
     return 0;
 }
 
@@ -205,7 +231,12 @@ static const struct luaL_Reg libluasocket_methods[] = {
     {NULL, NULL} /* sentinel */
 };
 
-int luaopen_libluaudp(lua_State *L)
+static const struct luaL_Reg libluasocket_funtions[] = {
+    {"new", luasocket},
+    {NULL, NULL} /* sentinel */
+};
+
+int luaopen_libsocket(lua_State *L)
 {
     luaL_newmetatable(L, LUA_SOCKET);
     /* Duplicate the metatable on the stack (We know have 2). */
@@ -221,7 +252,8 @@ int luaopen_libluaudp(lua_State *L)
     /* Set the methods to the metatable that should be accessed via object:func */
     luaL_setfuncs(L, libluasocket_methods, 0);
 
-    lua_pushcfunction(L, luasocket);
-    lua_setglobal(L, "socket");
+    /* Register the object.func functions into the table that is at the top of the
+     * stack. */
+    luaL_newlib(L, libluasocket_funtions);
     return 0;
 }
