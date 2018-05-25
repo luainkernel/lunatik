@@ -14,4 +14,4 @@ lunatik-objs += arch/$(ARCH)/setjmp.o
 
 lunatik-objs += socket/socket.o socket/enums.o
 
-lunatik-${CONFIG_LUNATIK_POC} += poc-driver/luadev.o
+lunatik-${CONFIG_LUNATIK_POC} += poc-driver/luadrv.o
