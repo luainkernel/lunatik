@@ -1,4 +1,5 @@
-EXTRA_CFLAGS += -D_KERNEL
+ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+subdir-ccflags-y := -D_KERNEL -I${ROOT_DIR}/lua
 
 obj-$(CONFIG_LUNATIK) +=lunatik.o
 

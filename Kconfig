@@ -1,2 +1,3 @@
 config LUNATIK
     tristate "Lunatik"
+    default m
