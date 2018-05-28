@@ -1,5 +1,4 @@
-EXTRA_CFLAGS += -D_KERNEL
-EXTRA_CFLAGS += -I$(src)
+subdir-ccflags-y := -D_KERNEL -I$(src)
 
 obj-$(CONFIG_LUNATIK) +=lunatik.o
 
