@@ -1,6 +1,6 @@
-#include "../lua/lauxlib.h"
-#include "../lua/lua.h"
-#include "../lua/lualib.h"
+#include <lua/lauxlib.h>
+#include <lua/lua.h>
+#include <lua/lualib.h>
 
 #include <linux/errno.h>
 #include <linux/in.h>
@@ -13,10 +13,11 @@
 #include "enums.h"
 
 #define LUA_SOCKET "luasocket"
+#define LUA_SOCKET_MAXBUFFER 4096
 
 typedef struct socket *sock_t;
 
-lua_Integer luaL_optfieldinteger(lua_State *L, int idx, const char *k, int def)
+lua_Integer lua_optfieldinteger(lua_State *L, int idx, const char *k, int def)
 {
 	int isnum;
 	lua_Integer d;
@@ -156,12 +157,12 @@ int luasocket_sendmsg(lua_State *L)
 	luaL_argcheck(L, size > 0, 3, "data can not be empty");
 
 	memset(&msg, 0, sizeof(msg));
-	msg.msg_flags = luaL_optfieldinteger(L, 2, "flags", 0);
+	msg.msg_flags = lua_optfieldinteger(L, 2, "flags", 0);
 
 	if (lua_getfield(L, 2, "name") == LUA_TTABLE) {
 		addr.sin_family = s->sk->sk_family;
 		addr.sin_port =
-		    htons((u_short) luaL_optfieldinteger(L, -1, "port", 0));
+		    htons((u_short) lua_optfieldinteger(L, -1, "port", 0));
 
 		if (lua_getfield(L, -1, "addr") == LUA_TSTRING)
 			addr.sin_addr.s_addr = inet_addr(lua_tostring(L, -1));
@@ -179,6 +180,7 @@ int luasocket_sendmsg(lua_State *L)
 	for (i = 0; i < size; i++) {
 		lua_rawgeti(L, 2, i + 1);
 		buffer[i] = lua_tointeger(L, -1);
+		lua_pop(L, 1);
 	}
 
 	vec.iov_base = buffer;
@@ -189,6 +191,91 @@ int luasocket_sendmsg(lua_State *L)
 		luaL_error(L, "Socket sendmsg error: %d", err);
 	}
 	kfree(buffer);
+	lua_pushinteger(L, err);
+
+	return 1;
+}
+int luasocket_recvmsg(lua_State *L)
+{
+	int i;
+	int err;
+	int size = 0;
+	struct msghdr msg;
+	struct kvec vec;
+	struct sockaddr_in addr;
+	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
+	char *buffer = NULL;
+	unsigned int flags = luaL_optnumber(L, 3, 0);
+
+	luaL_checktype(L, 2, LUA_TTABLE);
+
+	// read msghdr
+	memset(&msg, 0, sizeof(msg));
+
+	if (lua_getfield(L, 2, "name") == LUA_TTABLE) {
+		addr.sin_family = s->sk->sk_family;
+		addr.sin_port =
+		    htons((u_short) lua_optfieldinteger(L, -1, "port", 0));
+
+		if (lua_getfield(L, -1, "addr") == LUA_TSTRING)
+			addr.sin_addr.s_addr = inet_addr(lua_tostring(L, -1));
+
+		lua_pop(L, 1);
+
+		msg.msg_name = &addr;
+		msg.msg_namelen = sizeof(addr);
+	}
+	lua_pop(L, 1);
+
+	if (lua_getfield(L, 2, "iov_len") == LUA_TNUMBER) {
+		size = lua_tointeger(L, -1);
+		luaL_argcheck(
+		    L, size > 0 && size <= LUA_SOCKET_MAXBUFFER, 2,
+		    "size must be positive number and less than maximum size");
+		buffer = kmalloc(size, GFP_KERNEL);
+		if (buffer == NULL)
+			luaL_error(L, "Buffer alloc fail.");
+
+		vec.iov_base = buffer;
+		vec.iov_len = size;
+	} else
+		luaL_argerror(L, 2, "'iov_len' can not be empty");
+	lua_pop(L, 1);
+
+	if ((err = kernel_recvmsg(s, &msg, &vec, 1, size, flags)) < 0) {
+		kfree(buffer);
+		luaL_error(L, "Socket sendmsg error: %d", err);
+	}
+
+	size = err;
+	lua_createtable(L, size, 0);
+	for (i = 0; i < size; i++) {
+		lua_pushinteger(L, buffer[i]);
+		lua_rawseti(L, -2, i + 1);
+	}
+	kfree(buffer);
+
+	// write back msghdr
+	lua_pushinteger(L, vec.iov_len);
+	lua_setfield(L, 2, "iov_len");
+	lua_pushinteger(L, msg.msg_flags);
+	lua_setfield(L, 2, "flags");
+	lua_createtable(L, 0, 2);
+	lua_pushstring(L, inet_ntoa(addr.sin_addr));
+	lua_setfield(L, -2, "addr");
+	lua_pushinteger(L, ntohs(addr.sin_port));
+	lua_setfield(L, -2, "port");
+	lua_setfield(L, 2, "name");
+	lua_pushvalue(L, 2);
+
+	return 2;
+}
+
+int luasocket_close(lua_State *L)
+{
+	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
+
+	sock_release(s);
 
 	return 0;
 }
@@ -199,9 +286,9 @@ static const struct luaL_Reg libluasocket_methods[] = {
     {"accept", luasocket_accept},
     {"connect", luasocket_connect},
     {"sendmsg", luasocket_sendmsg},
-    // {"write", luaudp_write},
-    // {"close", luaudp_close},
-    // {"__gc", luaudp_close},
+    {"recvmsg", luasocket_recvmsg},
+    {"close", luasocket_close},
+    {"__gc", luasocket_close},
     {NULL, NULL} /* sentinel */
 };
 
