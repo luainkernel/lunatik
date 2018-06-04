@@ -39,7 +39,7 @@ static const char *inet_ntoa(struct in_addr ina)
 		ucp[3] & 0xff);
 	return buf;
 }
-static unsigned int inet_addr(const char *str)
+static uint32_t inet_addr(const char *str)
 {
 	int a, b, c, d;
 	char arr[4];
@@ -48,7 +48,7 @@ static unsigned int inet_addr(const char *str)
 	arr[1] = b;
 	arr[2] = c;
 	arr[3] = d;
-	return *(unsigned int *) arr;
+	return *(uint32_t *) arr;
 }
 
 int luasocket(lua_State *L)
