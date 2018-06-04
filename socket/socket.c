@@ -10,6 +10,10 @@
 #include <linux/unistd.h>
 #include <net/sock.h>
 
+#ifdef LUANTICK_DATA
+#include <luadata.h>
+#endif
+
 #include "enums.h"
 
 #define LUA_SOCKET "luasocket"
@@ -143,18 +147,27 @@ int luasocket_sendmsg(lua_State *L)
 {
 	int i;
 	int err;
-	int size;
+	size_t size;
 	struct msghdr msg;
 	struct kvec vec;
 	struct sockaddr_in addr;
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
-	char *buffer;
+	char *buffer = NULL;
 
 	luaL_checktype(L, 2, LUA_TTABLE);
-	luaL_checktype(L, 3, LUA_TTABLE);
 
-	size = luaL_len(L, 3);
-	luaL_argcheck(L, size > 0, 3, "data can not be empty");
+	if (lua_istable(L, 3))
+	{
+		size = luaL_len(L, 3);
+		luaL_argcheck(L, size > 0, 3, "data can not be empty");
+	}
+#ifdef LUANTICK_DATA
+	else if ((buffer = ldata_topointer(L,3,&size)) == NULL)
+		luaL_argerror(L, 3, "data must be a table or luadata obejct");
+#else
+	else
+		luaL_argerror(L, 3, "data must be a table");
+#endif
 
 	memset(&msg, 0, sizeof(msg));
 	msg.msg_flags = lua_optfieldinteger(L, 2, "flags", 0);
@@ -174,20 +187,24 @@ int luasocket_sendmsg(lua_State *L)
 	}
 	lua_pop(L, 1);
 
-	buffer = kmalloc(size, GFP_KERNEL);
-	if (buffer == NULL)
-		luaL_error(L, "Buffer alloc fail.");
-	for (i = 0; i < size; i++) {
-		lua_rawgeti(L, 2, i + 1);
-		buffer[i] = lua_tointeger(L, -1);
-		lua_pop(L, 1);
+	if (lua_istable(L, 3))
+	{
+		buffer = kmalloc(size, GFP_KERNEL);
+		if (buffer == NULL)
+			luaL_error(L, "Buffer alloc fail.");
+		for (i = 0; i < size; i++) {
+			lua_rawgeti(L, 2, i + 1);
+			buffer[i] = lua_tointeger(L, -1);
+			lua_pop(L, 1);
+		}
 	}
 
 	vec.iov_base = buffer;
 	vec.iov_len = size;
 
 	if ((err = kernel_sendmsg(s, &msg, &vec, 1, size)) < 0) {
-		kfree(buffer);
+		if (lua_istable(L, 3))
+			kfree(buffer);
 		luaL_error(L, "Socket sendmsg error: %d", err);
 	}
 	kfree(buffer);
@@ -199,15 +216,24 @@ int luasocket_recvmsg(lua_State *L)
 {
 	int i;
 	int err;
-	int size = 0;
+	size_t size = 0;
+	unsigned int flags;
 	struct msghdr msg;
 	struct kvec vec;
 	struct sockaddr_in addr;
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 	char *buffer = NULL;
-	unsigned int flags = luaL_optnumber(L, 3, 0);
 
 	luaL_checktype(L, 2, LUA_TTABLE);
+
+#ifdef LUANTICK_DATA
+	if ((buffer = ldata_topointer(L, 3, &size)) == NULL)
+		flags = luaL_optnumber(L, 3, 0);
+	else
+		flags = luaL_optnumber(L, 4, 0);
+#else
+	flags = luaL_optnumber(L, 3, 0);
+#endif
 
 	// read msghdr
 	memset(&msg, 0, sizeof(msg));
@@ -227,33 +253,43 @@ int luasocket_recvmsg(lua_State *L)
 	}
 	lua_pop(L, 1);
 
-	if (lua_getfield(L, 2, "iov_len") == LUA_TNUMBER) {
-		size = lua_tointeger(L, -1);
-		luaL_argcheck(
-		    L, size > 0 && size <= LUA_SOCKET_MAXBUFFER, 2,
-		    "size must be positive number and less than maximum size");
-		buffer = kmalloc(size, GFP_KERNEL);
-		if (buffer == NULL)
-			luaL_error(L, "Buffer alloc fail.");
+	if (buffer == NULL)
+	{
+		if (lua_getfield(L, 2, "iov_len") == LUA_TNUMBER) {
+			size = lua_tointeger(L, -1);
+			luaL_argcheck(
+				L, size > 0 && size <= LUA_SOCKET_MAXBUFFER, 2,
+				"size must be positive number and less than maximum size");
+			buffer = kmalloc(size, GFP_KERNEL);
+			if (buffer == NULL)
+				luaL_error(L, "Buffer alloc fail.");
+		} 
+		else
+			luaL_argerror(L, 2, "'iov_len' can not be empty");
+		lua_pop(L, 1);
+	}
 
-		vec.iov_base = buffer;
-		vec.iov_len = size;
-	} else
-		luaL_argerror(L, 2, "'iov_len' can not be empty");
-	lua_pop(L, 1);
+	vec.iov_base = buffer;
+	vec.iov_len = size;
 
 	if ((err = kernel_recvmsg(s, &msg, &vec, 1, size, flags)) < 0) {
-		kfree(buffer);
-		luaL_error(L, "Socket sendmsg error: %d", err);
+		if (!lua_isuserdata(L, 3))
+			kfree(buffer);
+		luaL_error(L, "Socket recvmsg error: %d", err);
 	}
 
-	size = err;
-	lua_createtable(L, size, 0);
-	for (i = 0; i < size; i++) {
-		lua_pushinteger(L, buffer[i]);
-		lua_rawseti(L, -2, i + 1);
+	if (!lua_isuserdata(L, 3))
+	{
+		size = err;
+		lua_createtable(L, size, 0);
+		for (i = 0; i < size; i++) {
+			lua_pushinteger(L, buffer[i]);
+			lua_rawseti(L, -2, i + 1);
+		}
+		kfree(buffer);
 	}
-	kfree(buffer);
+	else
+		lua_pushvalue(L, 3);
 
 	// write back msghdr
 	lua_pushinteger(L, vec.iov_len);
@@ -298,6 +334,10 @@ static const struct luaL_Reg libluasocket_funtions[] = {
 
 int luaopen_libsocket(lua_State *L)
 {
+#ifdef LUANTICK_DATA
+	luaL_requiref(L, "data", luaopen_data, 1);
+#endif
+
 	luaL_newmetatable(L, LUA_SOCKET);
 	/* Duplicate the metatable on the stack (We know have 2). */
 	lua_pushvalue(L, -1);
