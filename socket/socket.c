@@ -307,6 +307,42 @@ int luasocket_recvmsg(lua_State *L)
 	return 2;
 }
 
+int luasocket_getsockname(lua_State *L)
+{
+	int err;
+	int addrlen;
+	struct sockaddr_in addr;
+	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
+
+	if ((err = kernel_getsockname(s, (struct sockaddr *) &addr, &addrlen)) < 0)
+		luaL_error(L, "Socket getsockname error: %d", err);
+
+	WARN_ON(addr.sin_family != AF_INET);
+
+	lua_pushstring(L, inet_ntoa(addr.sin_addr));
+	lua_pushinteger(L, ntohs(addr.sin_port));
+
+	return 2;
+}
+
+int luasocket_getpeername(lua_State *L)
+{
+	int err;
+	int addrlen;
+	struct sockaddr_in addr;
+	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
+
+	if ((err = kernel_getpeername(s, (struct sockaddr *) &addr, &addrlen)) < 0)
+		luaL_error(L, "Socket getpeername error: %d", err);
+
+	WARN_ON(addr.sin_family!=AF_INET);
+	
+	lua_pushstring(L, inet_ntoa(addr.sin_addr));
+	lua_pushinteger(L, ntohs(addr.sin_port));
+
+	return 2;
+}
+
 int luasocket_close(lua_State *L)
 {
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
@@ -323,6 +359,8 @@ static const struct luaL_Reg libluasocket_methods[] = {
     {"connect", luasocket_connect},
     {"sendmsg", luasocket_sendmsg},
     {"recvmsg", luasocket_recvmsg},
+    {"getsockname", luasocket_getsockname},
+    {"getpeername", luasocket_getpeername},
     {"close", luasocket_close},
     {"__gc", luasocket_close},
     {NULL, NULL} /* sentinel */
