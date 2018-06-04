@@ -12,9 +12,8 @@ int socket_tofamily(lua_State *L, int n)
     case 'i':
         return AF_INET;
     default:
-        luaL_argerror(L, n, "invalid family name");
+        return luaL_argerror(L, n, "invalid family name");
     }
-    return -EINVAL;
 }
 int socket_totype(lua_State *L, int n)
 {
@@ -26,7 +25,6 @@ int socket_totype(lua_State *L, int n)
     case 'u':
         return SOCK_DGRAM;
     default:
-        luaL_argerror(L, n, "invalid family name");
+        return luaL_argerror(L, n, "invalid family name");
     }
-    return -EINVAL;
 }
