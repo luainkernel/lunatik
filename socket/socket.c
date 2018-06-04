@@ -156,13 +156,12 @@ int luasocket_sendmsg(lua_State *L)
 
 	luaL_checktype(L, 2, LUA_TTABLE);
 
-	if (lua_istable(L, 3))
-	{
+	if (lua_istable(L, 3)) {
 		size = luaL_len(L, 3);
 		luaL_argcheck(L, size > 0, 3, "data can not be empty");
 	}
 #ifdef LUANTICK_DATA
-	else if ((buffer = ldata_topointer(L,3,&size)) == NULL)
+	else if ((buffer = ldata_topointer(L, 3, &size)) == NULL)
 		luaL_argerror(L, 3, "data must be a table or luadata obejct");
 #else
 	else
@@ -187,8 +186,7 @@ int luasocket_sendmsg(lua_State *L)
 	}
 	lua_pop(L, 1);
 
-	if (lua_istable(L, 3))
-	{
+	if (lua_istable(L, 3)) {
 		buffer = kmalloc(size, GFP_KERNEL);
 		if (buffer == NULL)
 			luaL_error(L, "Buffer alloc fail.");
@@ -253,18 +251,17 @@ int luasocket_recvmsg(lua_State *L)
 	}
 	lua_pop(L, 1);
 
-	if (buffer == NULL)
-	{
+	if (buffer == NULL) {
 		if (lua_getfield(L, 2, "iov_len") == LUA_TNUMBER) {
 			size = lua_tointeger(L, -1);
 			luaL_argcheck(
-				L, size > 0 && size <= LUA_SOCKET_MAXBUFFER, 2,
-				"size must be positive number and less than maximum size");
+			    L, size > 0 && size <= LUA_SOCKET_MAXBUFFER, 2,
+			    "size must be positive number and less than "
+			    "maximum size");
 			buffer = kmalloc(size, GFP_KERNEL);
 			if (buffer == NULL)
 				luaL_error(L, "Buffer alloc fail.");
-		} 
-		else
+		} else
 			luaL_argerror(L, 2, "'iov_len' can not be empty");
 		lua_pop(L, 1);
 	}
@@ -278,8 +275,7 @@ int luasocket_recvmsg(lua_State *L)
 		luaL_error(L, "Socket recvmsg error: %d", err);
 	}
 
-	if (!lua_isuserdata(L, 3))
-	{
+	if (!lua_isuserdata(L, 3)) {
 		size = err;
 		lua_createtable(L, size, 0);
 		for (i = 0; i < size; i++) {
@@ -287,8 +283,7 @@ int luasocket_recvmsg(lua_State *L)
 			lua_rawseti(L, -2, i + 1);
 		}
 		kfree(buffer);
-	}
-	else
+	} else
 		lua_pushvalue(L, 3);
 
 	// write back msghdr
@@ -314,7 +309,8 @@ int luasocket_getsockname(lua_State *L)
 	struct sockaddr_in addr;
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 
-	if ((err = kernel_getsockname(s, (struct sockaddr *) &addr, &addrlen)) < 0)
+	if ((err = kernel_getsockname(s, (struct sockaddr *) &addr, &addrlen)) <
+	    0)
 		luaL_error(L, "Socket getsockname error: %d", err);
 
 	WARN_ON(addr.sin_family != AF_INET);
@@ -332,11 +328,12 @@ int luasocket_getpeername(lua_State *L)
 	struct sockaddr_in addr;
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 
-	if ((err = kernel_getpeername(s, (struct sockaddr *) &addr, &addrlen)) < 0)
+	if ((err = kernel_getpeername(s, (struct sockaddr *) &addr, &addrlen)) <
+	    0)
 		luaL_error(L, "Socket getpeername error: %d", err);
 
-	WARN_ON(addr.sin_family!=AF_INET);
-	
+	WARN_ON(addr.sin_family != AF_INET);
+
 	lua_pushstring(L, inet_ntoa(addr.sin_addr));
 	lua_pushinteger(L, ntohs(addr.sin_port));
 
