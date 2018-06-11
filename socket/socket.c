@@ -271,20 +271,24 @@ int luasocket_recvmsg(lua_State *L)
 	} else
 		lua_pushvalue(L, 3);
 
+	// return size
+	lua_pushinteger(L, err);
+
 	// write back msghdr
 	lua_pushinteger(L, vec.iov_len);
 	lua_setfield(L, 2, "iov_len");
 	lua_pushinteger(L, msg.msg_flags);
 	lua_setfield(L, 2, "flags");
 	lua_createtable(L, 0, 2);
-	lua_pushstring(L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
+	lua_pushstring(
+	    L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
 	lua_setfield(L, -2, "addr");
 	lua_pushinteger(L, ntohs(addr.sin_port));
 	lua_setfield(L, -2, "port");
 	lua_setfield(L, 2, "name");
 	lua_pushvalue(L, 2);
 
-	return 2;
+	return 3;
 }
 
 int luasocket_getsockname(lua_State *L)
@@ -301,7 +305,8 @@ int luasocket_getsockname(lua_State *L)
 
 	WARN_ON(addr.sin_family != AF_INET);
 
-	lua_pushstring(L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
+	lua_pushstring(
+	    L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
 	lua_pushinteger(L, ntohs(addr.sin_port));
 
 	return 2;
@@ -321,10 +326,47 @@ int luasocket_getpeername(lua_State *L)
 
 	WARN_ON(addr.sin_family != AF_INET);
 
-	lua_pushstring(L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
+	lua_pushstring(
+	    L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
 	lua_pushinteger(L, ntohs(addr.sin_port));
 
 	return 2;
+}
+
+int luasocket_getsockopt(lua_State *L)
+{
+	int err;
+	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
+	int level = socket_tolevel(L, 2);
+	int option = socket_tooption(L, 3, level);
+	int optval;
+	int optlen = sizeof optval;
+
+	// TODO: add more optval support
+	if ((err = kernel_getsockopt(s, level, option, (char *) &optval,
+				     &optlen)) < 0)
+		luaL_error(L, "Socket getsockopt error: %d", err);
+
+
+	lua_pushinteger(L, optval);
+
+	return 1;
+}
+
+int luasocket_setsockopt(lua_State *L)
+{
+	int err;
+	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
+	int level = socket_tolevel(L, 2);
+	int option = socket_tooption(L, 3, level);
+	int optval = luaL_checkinteger(L, 4);
+
+	// TODO: add more optval support
+	if ((err = kernel_setsockopt(s, level, option, (char *) &optval,
+				     sizeof optval)) < 0)
+		luaL_error(L, "Socket setsockopt error: %d", err);
+
+	return 0;
 }
 
 int luasocket_close(lua_State *L)
@@ -345,6 +387,8 @@ static const struct luaL_Reg libluasocket_methods[] = {
     {"recvmsg", luasocket_recvmsg},
     {"getsockname", luasocket_getsockname},
     {"getpeername", luasocket_getpeername},
+    {"getsockopt", luasocket_getsockopt},
+    {"setsockopt", luasocket_setsockopt},
     {"close", luasocket_close},
     {"__gc", luasocket_close},
     {NULL, NULL} /* sentinel */

@@ -7,4 +7,6 @@
 
 int socket_tofamily(lua_State *L, int n);
 int socket_totype(lua_State *L, int n);
+int socket_tolevel(lua_State *L, int n);
+int socket_tooption(lua_State *L, int n, int level);
 #endif
