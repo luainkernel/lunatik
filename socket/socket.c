@@ -21,6 +21,9 @@
 
 typedef struct socket *sock_t;
 
+extern const char *inet_ntop(int af, const void *src, char *dst, int size);
+extern int inet_pton(int af, const char *src, void *dst);
+
 lua_Integer lua_optfieldinteger(lua_State *L, int idx, const char *k, int def)
 {
 	int isnum;
@@ -32,27 +35,6 @@ lua_Integer lua_optfieldinteger(lua_State *L, int idx, const char *k, int def)
 		return def;
 
 	return d;
-}
-
-static const char *inet_ntoa(struct in_addr ina)
-{
-	static char buf[4 * sizeof "123"];
-	unsigned char *ucp = (unsigned char *) &ina;
-
-	sprintf(buf, "%d.%d.%d.%d", ucp[0] & 0xff, ucp[1] & 0xff, ucp[2] & 0xff,
-		ucp[3] & 0xff);
-	return buf;
-}
-static uint32_t inet_addr(const char *str)
-{
-	int a, b, c, d;
-	char arr[4];
-	sscanf(str, "%d.%d.%d.%d", &a, &b, &c, &d);
-	arr[0] = a;
-	arr[1] = b;
-	arr[2] = c;
-	arr[3] = d;
-	return *(uint32_t *) arr;
 }
 
 int luasocket(lua_State *L)
@@ -84,7 +66,7 @@ int luasocket_bind(lua_State *L)
 
 	addr.sin_family = s->sk->sk_family;
 	addr.sin_port = htons((u_short) port);
-	addr.sin_addr.s_addr = inet_addr(ip);
+	inet_pton(s->sk->sk_family, ip, &addr.sin_addr.s_addr);
 
 	if ((err = kernel_bind(s, (struct sockaddr *) &addr, sizeof(addr))) < 0)
 		luaL_error(L, "Socket bind error: %d", err);
@@ -135,7 +117,7 @@ int luasocket_connect(lua_State *L)
 
 	addr.sin_family = s->sk->sk_family;
 	addr.sin_port = htons((u_short) port);
-	addr.sin_addr.s_addr = inet_addr(ip);
+	inet_pton(s->sk->sk_family, ip, &addr.sin_addr.s_addr);
 
 	if ((err = kernel_connect(s, (struct sockaddr *) &addr, sizeof(addr),
 				  flags)) < 0)
@@ -177,7 +159,8 @@ int luasocket_sendmsg(lua_State *L)
 		    htons((u_short) lua_optfieldinteger(L, -1, "port", 0));
 
 		if (lua_getfield(L, -1, "addr") == LUA_TSTRING)
-			addr.sin_addr.s_addr = inet_addr(lua_tostring(L, -1));
+			inet_pton(s->sk->sk_family, lua_tostring(L, -1),
+				  &addr.sin_addr.s_addr);
 
 		lua_pop(L, 1);
 
@@ -219,6 +202,7 @@ int luasocket_recvmsg(lua_State *L)
 	struct msghdr msg;
 	struct kvec vec;
 	struct sockaddr_in addr;
+	char tmp[sizeof "255.255.255.255"];
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 	char *buffer = NULL;
 
@@ -242,7 +226,8 @@ int luasocket_recvmsg(lua_State *L)
 		    htons((u_short) lua_optfieldinteger(L, -1, "port", 0));
 
 		if (lua_getfield(L, -1, "addr") == LUA_TSTRING)
-			addr.sin_addr.s_addr = inet_addr(lua_tostring(L, -1));
+			inet_pton(s->sk->sk_family, lua_tostring(L, -1),
+				  &addr.sin_addr.s_addr);
 
 		lua_pop(L, 1);
 
@@ -292,7 +277,7 @@ int luasocket_recvmsg(lua_State *L)
 	lua_pushinteger(L, msg.msg_flags);
 	lua_setfield(L, 2, "flags");
 	lua_createtable(L, 0, 2);
-	lua_pushstring(L, inet_ntoa(addr.sin_addr));
+	lua_pushstring(L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
 	lua_setfield(L, -2, "addr");
 	lua_pushinteger(L, ntohs(addr.sin_port));
 	lua_setfield(L, -2, "port");
@@ -307,6 +292,7 @@ int luasocket_getsockname(lua_State *L)
 	int err;
 	int addrlen;
 	struct sockaddr_in addr;
+	char tmp[sizeof "255.255.255.255"];
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 
 	if ((err = kernel_getsockname(s, (struct sockaddr *) &addr, &addrlen)) <
@@ -315,7 +301,7 @@ int luasocket_getsockname(lua_State *L)
 
 	WARN_ON(addr.sin_family != AF_INET);
 
-	lua_pushstring(L, inet_ntoa(addr.sin_addr));
+	lua_pushstring(L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
 	lua_pushinteger(L, ntohs(addr.sin_port));
 
 	return 2;
@@ -326,6 +312,7 @@ int luasocket_getpeername(lua_State *L)
 	int err;
 	int addrlen;
 	struct sockaddr_in addr;
+	char tmp[sizeof "255.255.255.255"];
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 
 	if ((err = kernel_getpeername(s, (struct sockaddr *) &addr, &addrlen)) <
@@ -334,7 +321,7 @@ int luasocket_getpeername(lua_State *L)
 
 	WARN_ON(addr.sin_family != AF_INET);
 
-	lua_pushstring(L, inet_ntoa(addr.sin_addr));
+	lua_pushstring(L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
 	lua_pushinteger(L, ntohs(addr.sin_port));
 
 	return 2;
