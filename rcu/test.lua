@@ -1,20 +1,43 @@
-rcu.add("hello", "hello123")
-assert(rcu.search("hello") == "hello123")
-rcu.replace("hello", "123hello")
-assert(rcu.search("hello") == "123hello")
+print("begin")
 
-assert(rcu.search("non existant key") == nil)
+rcu["q"] = "vv"
+assert(rcu["q"] == "vv")
+rcu["q"] = nil
+assert(rcu["q"] == nil)
 
-rcu.add("helloo", "hello1234")
-rcu.replace("helloo", "1234hello")
-assert(rcu.search("helloo") == "1234hello")
+
+rcu["q"] = "dd"
+rcu["q"] = "rr"
+rcu["q"] = "tt"
+assert(rcu["q"] == "tt")
+rcu["q"] = nil
+assert(rcu["q"] == nil)
+
+
+rcu["a"] = "aa"
+rcu["b"] = "bb"
+rcu["c"] = "cc"
+
+rcu["b"] = "bbbb"
+rcu["a"] = "aaaa"
+
+rcu["d"] = "dd"
+
+assert(rcu["a"] == "aaaa")
+assert(rcu["c"] == "cc")
+assert(rcu["b"] == "bbbb")
+assert(rcu["d"] == "dd")
 
 rcu.for_each()
 
-rcu.delete("hello")
-assert(rcu.search("hello") == nil)
+rcu["a"] = nil
+rcu["b"] = nil
+rcu["c"] = nil
+rcu["d"] = nil
 
-rcu.delete("helloo")
-assert(rcu.search("helloo") == nil)
+assert(rcu["a"] == nil)
+assert(rcu["c"] == nil)
+assert(rcu["b"] == nil)
+assert(rcu["d"] == nil)
 
-rcu.for_each()
+print("end")
