@@ -143,10 +143,11 @@ int luasocket_sendmsg(lua_State *L)
 	if (lua_istable(L, 3)) {
 		size = luaL_len(L, 3);
 		luaL_argcheck(L, size > 0, 3, "data can not be empty");
-	} else if ((buffer = ldata_topointer(L, 3, &size)) == NULL &&
-		   IS_ENABLED(CONFIG_LUADATA))
-		luaL_argerror(L, 3, "data must be a table or luadata obejct");
-	else
+	} else if (IS_ENABLED(CONFIG_LUADATA)) {
+		if ((buffer = ldata_topointer(L, 3, &size)) == NULL)
+			luaL_argerror(L, 3,
+				      "data must be a table or luadata obejct");
+	} else
 		luaL_argerror(L, 3, "data must be a table");
 
 	memset(&msg, 0, sizeof(msg));

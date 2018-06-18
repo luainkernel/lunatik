@@ -4,3 +4,6 @@
 [submodule "luadata"]
 	path = luadata
 	url = git@github.com:luainkernel/luadata.git
+[submodule "luaproc"]
+	path = luaproc
+	url = https://github.com/luainkernel/luaproc
