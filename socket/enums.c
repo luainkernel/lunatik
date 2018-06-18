@@ -45,7 +45,7 @@ int socket_tolevel(lua_State *L, int n)
 	}
 }
 
-static int socket_option(lua_State *L, const char *str)
+static int socket_option(lua_State *L, int n, const char *str)
 {
 	switch (*str) {
 	case 'b':
@@ -57,7 +57,7 @@ static int socket_option(lua_State *L, const char *str)
 		case 't':
 			return SO_DONTROUTE;
 		default:
-			return luaL_error(L, "invalid option name");
+			return luaL_argerror(L, n, "invalid option name");
 		}
 	case 'e':
 		return SO_ERROR;
@@ -82,7 +82,7 @@ static int socket_option(lua_State *L, const char *str)
 		case 'p':
 			return SO_REUSEPORT;
 		default:
-			return luaL_error(L, "invalid option name");
+			return luaL_argerror(L, n, "invalid option name");
 		}
 	case 's':
 		switch (str[1]) {
@@ -91,12 +91,12 @@ static int socket_option(lua_State *L, const char *str)
 		case 'f':
 			return SO_SNDBUFFORCE;
 		default:
-			return luaL_error(L, "invalid option name");
+			return luaL_argerror(L, n, "invalid option name");
 		}
 	case 't':
 		return SO_TYPE;
 	default:
-		return luaL_error(L, "invalid option name");
+		return luaL_argerror(L, n, "invalid option name");
 	}
 }
 
@@ -105,7 +105,7 @@ int socket_tooption(lua_State *L, int n, int level)
 	const char *str = luaL_checkstring(L, n);
 	switch (level) {
 	case SOL_SOCKET:
-		return socket_option(L, str);
+		return socket_option(L, n, str);
 	default:
 		return luaL_argerror(L, n, "invalid option name");
 	}

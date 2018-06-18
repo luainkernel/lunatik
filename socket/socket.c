@@ -10,9 +10,9 @@
 #include <linux/unistd.h>
 #include <net/sock.h>
 
-#ifdef LUANTICK_DATA
+#ifdef CONFIG_LUADATA
 #include <luadata.h>
-#endif
+#endif /* CONFIG_LUADATA */
 
 #include "enums.h"
 
@@ -24,10 +24,12 @@ typedef struct socket *sock_t;
 extern const char *inet_ntop(int af, const void *src, char *dst, int size);
 extern int inet_pton(int af, const char *src, void *dst);
 
-lua_Integer lua_optfieldinteger(lua_State *L, int idx, const char *k, int def)
+lua_Integer socket_optfieldinteger(lua_State *L, int idx, const char *k,
+				   int def)
 {
 	int isnum;
 	lua_Integer d;
+
 	lua_getfield(L, idx, k);
 	d = lua_tointegerx(L, -1, &isnum);
 	lua_pop(L, 1);
@@ -141,22 +143,19 @@ int luasocket_sendmsg(lua_State *L)
 	if (lua_istable(L, 3)) {
 		size = luaL_len(L, 3);
 		luaL_argcheck(L, size > 0, 3, "data can not be empty");
-	}
-#ifdef LUANTICK_DATA
-	else if ((buffer = ldata_topointer(L, 3, &size)) == NULL)
+	} else if ((buffer = ldata_topointer(L, 3, &size)) == NULL &&
+		   IS_ENABLED(CONFIG_LUADATA))
 		luaL_argerror(L, 3, "data must be a table or luadata obejct");
-#else
 	else
 		luaL_argerror(L, 3, "data must be a table");
-#endif
 
 	memset(&msg, 0, sizeof(msg));
-	msg.msg_flags = lua_optfieldinteger(L, 2, "flags", 0);
+	msg.msg_flags = socket_optfieldinteger(L, 2, "flags", 0);
 
 	if (lua_getfield(L, 2, "name") == LUA_TTABLE) {
 		addr.sin_family = s->sk->sk_family;
 		addr.sin_port =
-		    htons((u_short) lua_optfieldinteger(L, -1, "port", 0));
+		    htons((u_short) socket_optfieldinteger(L, -1, "port", 0));
 
 		if (lua_getfield(L, -1, "addr") == LUA_TSTRING)
 			inet_pton(s->sk->sk_family, lua_tostring(L, -1),
@@ -208,14 +207,13 @@ int luasocket_recvmsg(lua_State *L)
 
 	luaL_checktype(L, 2, LUA_TTABLE);
 
-#ifdef LUANTICK_DATA
-	if ((buffer = ldata_topointer(L, 3, &size)) == NULL)
+	if (IS_ENABLED(CONFIG_LUADATA)) {
+		if ((buffer = ldata_topointer(L, 3, &size)) == NULL)
+			flags = luaL_optnumber(L, 3, 0);
+		else
+			flags = luaL_optnumber(L, 4, 0);
+	} else
 		flags = luaL_optnumber(L, 3, 0);
-	else
-		flags = luaL_optnumber(L, 4, 0);
-#else
-	flags = luaL_optnumber(L, 3, 0);
-#endif
 
 	// read msghdr
 	memset(&msg, 0, sizeof(msg));
@@ -223,7 +221,7 @@ int luasocket_recvmsg(lua_State *L)
 	if (lua_getfield(L, 2, "name") == LUA_TTABLE) {
 		addr.sin_family = s->sk->sk_family;
 		addr.sin_port =
-		    htons((u_short) lua_optfieldinteger(L, -1, "port", 0));
+		    htons((u_short) socket_optfieldinteger(L, -1, "port", 0));
 
 		if (lua_getfield(L, -1, "addr") == LUA_TSTRING)
 			inet_pton(s->sk->sk_family, lua_tostring(L, -1),
@@ -303,7 +301,7 @@ int luasocket_getsockname(lua_State *L)
 	    0)
 		luaL_error(L, "Socket getsockname error: %d", err);
 
-	WARN_ON(addr.sin_family != AF_INET);
+	BUG_ON(addr.sin_family != AF_INET);
 
 	lua_pushstring(
 	    L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
@@ -324,7 +322,7 @@ int luasocket_getpeername(lua_State *L)
 	    0)
 		luaL_error(L, "Socket getpeername error: %d", err);
 
-	WARN_ON(addr.sin_family != AF_INET);
+	BUG_ON(addr.sin_family != AF_INET);
 
 	lua_pushstring(
 	    L, inet_ntop(addr.sin_family, &addr.sin_addr, tmp, sizeof tmp));
@@ -346,7 +344,6 @@ int luasocket_getsockopt(lua_State *L)
 	if ((err = kernel_getsockopt(s, level, option, (char *) &optval,
 				     &optlen)) < 0)
 		luaL_error(L, "Socket getsockopt error: %d", err);
-
 
 	lua_pushinteger(L, optval);
 
@@ -400,9 +397,8 @@ static const struct luaL_Reg libluasocket_funtions[] = {
 
 int luaopen_libsocket(lua_State *L)
 {
-#ifdef LUANTICK_DATA
-	luaL_requiref(L, "data", luaopen_data, 1);
-#endif
+	if (IS_ENABLED(CONFIG_LUADATA))
+		luaL_requiref(L, "data", luaopen_data, 1);
 
 	luaL_newmetatable(L, LUA_SOCKET);
 	/* Duplicate the metatable on the stack (We know have 2). */

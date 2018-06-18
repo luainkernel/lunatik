@@ -6,7 +6,7 @@ config LUNATIK_POC
     depends on LUNATIK
     default y
 
-config LUNATIK_DATA
+config LUADATA
     bool "Use luadata lib"
     depends on LUNATIK
     default y
