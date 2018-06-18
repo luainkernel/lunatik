@@ -14,10 +14,10 @@ lunatik-objs += arch/$(ARCH)/setjmp.o
 
 lunatik-objs += socket/socket.o socket/enums.o socket/inet_ntop.o socket/inet_pton.o
 
-subdir-ccflags-${CONFIG_LUNATIK_DATA} += -I$(src)/luadata -I$(src)/lua -D'CHAR_BIT=(8)' \
-	-D'MIN=min' -D'MAX=max' -D'UCHAR_MAX=(255)' -D'UINT64_MAX=(U64_MAX)' -DLUANTICK_DATA
+subdir-ccflags-${CONFIG_LUADATA} += -I$(src)/luadata -I$(src)/lua -D'CHAR_BIT=(8)' \
+	-D'MIN=min' -D'MAX=max' -D'UCHAR_MAX=(255)' -D'UINT64_MAX=(U64_MAX)'
 
-lunatik-${CONFIG_LUNATIK_DATA} += luadata/binary.o luadata/data.o luadata/handle.o \
+lunatik-${CONFIG_LUADATA} += luadata/binary.o luadata/data.o luadata/handle.o \
 	luadata/layout.o luadata/luadata.o luadata/luautil.o
 
 lunatik-${CONFIG_LUNATIK_POC} += poc-driver/luadrv.o
