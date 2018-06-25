@@ -366,8 +366,6 @@ int luasocket_recv(lua_State *L)
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 	char *buffer = NULL;
 
-	luaL_checktype(L, 2, LUA_TTABLE);
-
 	if (IS_ENABLED(CONFIG_LUADATA)) {
 		buffer = ldata_topointer(L, 2, &size);
 		luaL_argcheck(L, buffer != NULL, 2, "BUffer invaild");
