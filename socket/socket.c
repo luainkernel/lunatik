@@ -60,15 +60,23 @@ int luasocket_bind(lua_State *L)
 	int err;
 	struct sockaddr_in addr;
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
-	const char *ip = luaL_checkstring(L, 2);
+	int ip;
+	const int ip_type = lua_type(L, 2);
 	const int port = luaL_checkinteger(L, 3);
 
-	if (port <= 0 || port > 65535)
-		luaL_argerror(L, 2, "Port number out of range");
+	if (ip_type == LUA_TNUMBER)
+		ip = htonl((u_long) lua_tonumber(L, 2));
+	else if (ip_type == LUA_TSTRING)
+		inet_pton(s->sk->sk_family, lua_tostring(L, 2), &ip);
+	else
+		luaL_argerror(L, 2, "IP must be number or port");
+
+	luaL_argcheck(L, port > 0 && port <= 65535, 2,
+		      "Port number out of range");
 
 	addr.sin_family = s->sk->sk_family;
 	addr.sin_port = htons((u_short) port);
-	inet_pton(s->sk->sk_family, ip, &addr.sin_addr.s_addr);
+	addr.sin_addr.s_addr = ip;
 
 	if ((err = kernel_bind(s, (struct sockaddr *) &addr, sizeof(addr))) < 0)
 		luaL_error(L, "Socket bind error: %d", err);
@@ -110,16 +118,24 @@ int luasocket_connect(lua_State *L)
 	int err;
 	struct sockaddr_in addr;
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
-	const char *ip = luaL_checkstring(L, 2);
+	int ip;
+	const int ip_type = lua_type(L, 2);
 	const int port = luaL_checkinteger(L, 3);
 	const int flags = luaL_optinteger(L, 4, 0);
 
-	if (port <= 0 || port > 65535)
-		luaL_argerror(L, 2, "Port number out of range");
+	if (ip_type == LUA_TNUMBER)
+		ip = htonl((u_long) lua_tonumber(L, 2));
+	else if (ip_type == LUA_TSTRING)
+		inet_pton(s->sk->sk_family, lua_tostring(L, 2), &ip);
+	else
+		luaL_argerror(L, 2, "IP must be number or port");
+
+	luaL_argcheck(L, port > 0 && port <= 65535, 2,
+		      "Port number out of range");
 
 	addr.sin_family = s->sk->sk_family;
 	addr.sin_port = htons((u_short) port);
-	inet_pton(s->sk->sk_family, ip, &addr.sin_addr.s_addr);
+	addr.sin_addr.s_addr = ip;
 
 	if ((err = kernel_connect(s, (struct sockaddr *) &addr, sizeof(addr),
 				  flags)) < 0)
