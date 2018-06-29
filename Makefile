@@ -1,4 +1,4 @@
-EXTRA_CFLAGS += -D_KERNEL
+EXTRA_CFLAGS += -D_KERNEL -D_CONFIG_FULL_PANIC
 
 obj-y += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
          lua/ldump.o lua/lfunc.o lua/lgc.o lua/llex.o lua/lmem.o \
