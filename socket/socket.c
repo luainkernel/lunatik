@@ -8,6 +8,7 @@
 #include <linux/socket.h>
 #include <linux/string.h>
 #include <linux/unistd.h>
+#include <linux/version.h>
 #include <net/sock.h>
 
 #ifdef CONFIG_LUADATA
@@ -18,6 +19,19 @@
 
 #define LUA_SOCKET "luasocket"
 #define LUA_SOCKET_MAXBUFFER 4096
+
+#define __GETNAME_CHANGED (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0))
+#if __GETNAME_CHANGED
+#define __luasocket_getpeername(socket, addr, addrlen)                         \
+	(*(addrlen) = kernel_getpeername((s), (addr)))
+#define __luasocket_getsockname(socket, addr, addrlen)                         \
+	(*(addrlen) = kernel_getsockname((s), (addr)))
+#else
+#define __luasocket_getpeername(socket, addr, addrlen)                         \
+	kernel_getpeername((s), (addr), (addrlen))
+#define __luasocket_getsockname(socket, addr, addrlen)                         \
+	kernel_getsockname((s), (addr), (addrlen))
+#endif /* __GETNAME_CHANGED */
 
 typedef struct socket *sock_t;
 
@@ -420,8 +434,8 @@ int luasocket_getsockname(lua_State *L)
 	char tmp[sizeof "255.255.255.255"];
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 
-	if ((err = kernel_getsockname(s, (struct sockaddr *) &addr, &addrlen)) <
-	    0)
+	if ((err = __luasocket_getsockname(s, (struct sockaddr *) &addr,
+					   &addrlen)) < 0)
 		luaL_error(L, "Socket getsockname error: %d", err);
 
 	BUG_ON(addr.sin_family != AF_INET);
@@ -441,8 +455,8 @@ int luasocket_getpeername(lua_State *L)
 	char tmp[sizeof "255.255.255.255"];
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 
-	if ((err = kernel_getpeername(s, (struct sockaddr *) &addr, &addrlen)) <
-	    0)
+	if ((err = __luasocket_getpeername(s, (struct sockaddr *) &addr,
+					   &addrlen)) < 0)
 		luaL_error(L, "Socket getpeername error: %d", err);
 
 	BUG_ON(addr.sin_family != AF_INET);
