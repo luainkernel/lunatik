@@ -347,7 +347,7 @@ int luasocket_send(lua_State *L)
 	vec.iov_len = size;
 
 	if ((err = kernel_sendmsg(s, &msg, &vec, 1, size)) < 0) {
-		if (lua_istable(L, 3))
+		if (lua_istable(L, 2))
 			kfree(buffer);
 		luaL_error(L, "Socket sendmsg error: %d", err);
 	}
@@ -368,7 +368,7 @@ int luasocket_recv(lua_State *L)
 
 	if (IS_ENABLED(CONFIG_LUADATA)) {
 		buffer = ldata_topointer(L, 2, &size);
-		luaL_argcheck(L, buffer != NULL, 2, "BUffer invaild");
+		luaL_argcheck(L, buffer != NULL, 2, "Buffer invaild");
 	} else {
 		size = lua_tointeger(L, 2);
 		luaL_argcheck(L, size > 0 && size <= LUA_SOCKET_MAXBUFFER, 2,
@@ -390,12 +390,12 @@ int luasocket_recv(lua_State *L)
 	vec.iov_len = size;
 
 	if ((err = kernel_recvmsg(s, &msg, &vec, 1, size, 0)) < 0) {
-		if (!lua_isuserdata(L, 3))
+		if (lua_istable(L, 2))
 			kfree(buffer);
 		luaL_error(L, "Socket recvmsg error: %d", err);
 	}
 
-	if (!lua_isuserdata(L, 3)) {
+	if (lua_istable(L, 2)) {
 		size = err;
 		lua_createtable(L, size, 0);
 		for (i = 0; i < size; i++) {
@@ -404,7 +404,7 @@ int luasocket_recv(lua_State *L)
 		}
 		kfree(buffer);
 	} else
-		lua_pushvalue(L, 3);
+		lua_pushvalue(L, 2);
 
 	// return size
 	lua_pushinteger(L, err);
