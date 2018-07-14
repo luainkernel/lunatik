@@ -53,15 +53,20 @@ lua_Integer socket_optfieldinteger(lua_State *L, int idx, const char *k,
 	return d;
 }
 
+inline void socket_error(lua_State *L, int err)
+{
+	lua_pushinteger(L, err);
+	lua_error(L);
+}
+
 int luasocket(lua_State *L)
 {
 	int err;
 	sock_t sock;
 
-	err = sock_create(socket_tofamily(L, 1), socket_totype(L, 2), 0, &sock);
-
-	if (err < 0)
-		luaL_error(L, "Socket creation error %d", err);
+	if ((err = sock_create(socket_tofamily(L, 1), socket_totype(L, 2), 0,
+			       &sock)) < 0)
+		socket_error(L, err);
 
 	*((sock_t *) lua_newuserdata(L, sizeof(sock_t))) = sock;
 	luaL_getmetatable(L, LUA_SOCKET);
@@ -93,7 +98,7 @@ int luasocket_bind(lua_State *L)
 	addr.sin_addr.s_addr = ip;
 
 	if ((err = kernel_bind(s, (struct sockaddr *) &addr, sizeof(addr))) < 0)
-		luaL_error(L, "Socket bind error: %d", err);
+		socket_error(L, err);
 
 	return 0;
 }
@@ -107,7 +112,7 @@ int luasocket_listen(lua_State *L)
 		luaL_argerror(L, 2, "Backlog number out of range");
 
 	if ((err = kernel_listen(s, backlog)) < 0)
-		luaL_error(L, "Socket listen error: %d", err);
+		socket_error(L, err);
 
 	return 0;
 }
@@ -115,11 +120,11 @@ int luasocket_accept(lua_State *L)
 {
 	int err;
 	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
-	const int flags = luaL_optnumber(L, 2, 0);
+	const int flags = socket_toflags(L, 2);
 	sock_t newsock;
 
 	if ((err = kernel_accept(s, &newsock, flags)) < 0)
-		luaL_error(L, "Socket accept error: %d", err);
+		socket_error(L, err);
 
 	*((sock_t *) lua_newuserdata(L, sizeof(sock_t))) = newsock;
 	luaL_getmetatable(L, LUA_SOCKET);
@@ -153,7 +158,7 @@ int luasocket_connect(lua_State *L)
 
 	if ((err = kernel_connect(s, (struct sockaddr *) &addr, sizeof(addr),
 				  flags)) < 0)
-		luaL_error(L, "Socket connect error: %d", err);
+		socket_error(L, err);
 
 	return 0;
 }
@@ -213,12 +218,12 @@ int luasocket_sendmsg(lua_State *L)
 	vec.iov_base = buffer;
 	vec.iov_len = size;
 
-	if ((err = kernel_sendmsg(s, &msg, &vec, 1, size)) < 0) {
-		if (lua_istable(L, 3))
-			kfree(buffer);
-		luaL_error(L, "Socket sendmsg error: %d", err);
-	}
-	kfree(buffer);
+	err = kernel_sendmsg(s, &msg, &vec, 1, size);
+	if (lua_istable(L, 3))
+		kfree(buffer);
+	if (err < 0)
+		socket_error(L, err);
+
 	lua_pushinteger(L, err);
 
 	return 1;
@@ -240,11 +245,11 @@ int luasocket_recvmsg(lua_State *L)
 
 	if (IS_ENABLED(CONFIG_LUADATA)) {
 		if ((buffer = ldata_topointer(L, 3, &size)) == NULL)
-			flags = luaL_optnumber(L, 3, 0);
+			flags = socket_toflags(L, 3);
 		else
-			flags = luaL_optnumber(L, 4, 0);
+			flags = socket_toflags(L, 4);
 	} else
-		flags = luaL_optnumber(L, 3, 0);
+		flags = socket_toflags(L, 3);
 
 	// read msghdr
 	memset(&msg, 0, sizeof(msg));
@@ -286,11 +291,11 @@ int luasocket_recvmsg(lua_State *L)
 	if ((err = kernel_recvmsg(s, &msg, &vec, 1, size, flags)) < 0) {
 		if (!lua_isuserdata(L, 3))
 			kfree(buffer);
-		luaL_error(L, "Socket recvmsg error: %d", err);
+		socket_error(L, err);
 	}
+	size = err;
 
 	if (!lua_isuserdata(L, 3)) {
-		size = err;
 		lua_createtable(L, size, 0);
 		for (i = 0; i < size; i++) {
 			lua_pushinteger(L, buffer[i]);
@@ -301,7 +306,7 @@ int luasocket_recvmsg(lua_State *L)
 		lua_pushvalue(L, 3);
 
 	// return size
-	lua_pushinteger(L, err);
+	lua_pushinteger(L, size);
 
 	// write back msghdr
 	lua_pushinteger(L, vec.iov_len);
@@ -360,12 +365,12 @@ int luasocket_send(lua_State *L)
 	vec.iov_base = buffer;
 	vec.iov_len = size;
 
-	if ((err = kernel_sendmsg(s, &msg, &vec, 1, size)) < 0) {
-		if (lua_istable(L, 2))
-			kfree(buffer);
-		luaL_error(L, "Socket sendmsg error: %d", err);
-	}
-	kfree(buffer);
+	err = kernel_sendmsg(s, &msg, &vec, 1, size);
+	if (lua_istable(L, 3))
+		kfree(buffer);
+	if (err < 0)
+		socket_error(L, err);
+
 	lua_pushinteger(L, err);
 
 	return 1;
@@ -406,7 +411,7 @@ int luasocket_recv(lua_State *L)
 	if ((err = kernel_recvmsg(s, &msg, &vec, 1, size, 0)) < 0) {
 		if (lua_istable(L, 2))
 			kfree(buffer);
-		luaL_error(L, "Socket recvmsg error: %d", err);
+		socket_error(L, err);
 	}
 
 	if (lua_istable(L, 2)) {
@@ -436,7 +441,7 @@ int luasocket_getsockname(lua_State *L)
 
 	if ((err = __luasocket_getsockname(s, (struct sockaddr *) &addr,
 					   &addrlen)) < 0)
-		luaL_error(L, "Socket getsockname error: %d", err);
+		socket_error(L, err);
 
 	BUG_ON(addr.sin_family != AF_INET);
 
@@ -457,7 +462,7 @@ int luasocket_getpeername(lua_State *L)
 
 	if ((err = __luasocket_getpeername(s, (struct sockaddr *) &addr,
 					   &addrlen)) < 0)
-		luaL_error(L, "Socket getpeername error: %d", err);
+		socket_error(L, err);
 
 	BUG_ON(addr.sin_family != AF_INET);
 
@@ -480,7 +485,7 @@ int luasocket_getsockopt(lua_State *L)
 	// TODO: add more optval support
 	if ((err = kernel_getsockopt(s, level, option, (char *) &optval,
 				     &optlen)) < 0)
-		luaL_error(L, "Socket getsockopt error: %d", err);
+		socket_error(L, err);
 
 	lua_pushinteger(L, optval);
 
@@ -498,7 +503,7 @@ int luasocket_setsockopt(lua_State *L)
 	// TODO: add more optval support
 	if ((err = kernel_setsockopt(s, level, option, (char *) &optval,
 				     sizeof optval)) < 0)
-		luaL_error(L, "Socket setsockopt error: %d", err);
+		socket_error(L, err);
 
 	return 0;
 }

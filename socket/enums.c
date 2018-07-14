@@ -110,3 +110,94 @@ int socket_tooption(lua_State *L, int n, int level)
 		return luaL_argerror(L, n, "invalid option name");
 	}
 }
+
+int socket_toflags(lua_State *L, int n)
+{
+	size_t i, size;
+	int flags = 0;
+	const char *str;
+
+	if (lua_isnumber(L, n))
+		return n;
+
+	if (lua_isnoneornil(L, n))
+		return 0;
+
+	str = luaL_checklstring(L, n, &size);
+	// \#define MSG_(\w)(\w+)\W+(\w+)
+	// case '$1' /*$1$2*/: flags|=$3; break;
+	for (i = 0; i < size; i++) {
+		switch (str[i]) {
+		// case 'O' /*OOB*/:
+		// 	flags |= 1;
+		// 	break;
+		// case 'P' /*PEEK*/:
+		// 	flags |= 2;
+		// 	break;
+		// case 'D' /*DONTROUTE*/:
+		// 	flags |= 4;
+		// 	break;
+		// case 'T' /*TRYHARD*/:
+		// 	flags |= 4;
+		// 	break; /* Synonym for MSG_DONTROUTE for DECnet */
+		// case 'C' /*CTRUNC*/:
+		// 	flags |= 8;
+		// 	break;
+		// case 'P' /*PROBE*/:
+		// 	flags |= 0x10;
+		// 	break; /* Do not send. Only probe path f.e. for MTU */
+		// case 'T' /*TRUNC*/:
+		// 	flags |= 0x20;
+		// 	break;
+		case 'D' /*DONTWAIT*/:
+			flags |= 0x40;
+			break; /* Nonblocking io		 */
+		// case 'E' /*EOR*/:
+		// 	flags |= 0x80;
+		// 	break; /* End of record */
+		// case 'W' /*WAITALL*/:
+		// 	flags |= 0x100;
+		// 	break; /* Wait for a full request */
+		// case 'F' /*FIN*/:
+		// 	flags |= 0x200;
+		// 	break;
+		// case 'S' /*SYN*/:
+		// 	flags |= 0x400;
+		// 	break;
+		// case 'C' /*CONFIRM*/:
+		// 	flags |= 0x800;
+		// 	break; /* Confirm path validity */
+		// case 'R' /*RST*/:
+		// 	flags |= 0x1000;
+		// 	break;
+		// case 'E' /*ERRQUEUE*/:
+		// 	flags |= 0x2000;
+		// 	break; /* Fetch message from error queue */
+		// case 'N' /*NOSIGNAL*/:
+		// 	flags |= 0x4000;
+		// 	break; /* Do not generate SIGPIPE */
+		// case 'M' /*MORE*/:
+		// 	flags |= 0x8000;
+		// 	break; /* Sender will send more */
+		// case 'W' /*WAITFORONE*/:
+		// 	flags |= 0x10000;
+		// 	break; /* recvmmsg(): block until 1+ packets avail */
+		// case 'S' /*SENDPAGE_NOTLAST*/:
+		// 	flags |= 0x20000;
+		// 	break; /* sendpage() internal : not the last page */
+		// case 'B' /*BATCH*/:
+		// 	flags |= 0x40000;
+		// 	break; /* sendmmsg(): more messages coming */
+		// case 'E' /*EOF*/:
+		// 	flags |= MSG_FIN;
+		// 	break;
+		// case 'N' /*NO_SHARED_FRAGS*/:
+		// 	flags |= 0x80000;
+		// 	break; /* sendpage() internal : page frags are not
+		// 		  shared */
+		default:
+			luaL_argerror(L, n, "invalid flags name");
+		}
+	}
+	return flags;
+}

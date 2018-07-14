@@ -1,4 +1,4 @@
-subdir-ccflags-y := -D_KERNEL -I$(src)
+subdir-ccflags-y := -D_KERNEL -I$(src) -g
 
 obj-$(CONFIG_LUNATIK) +=lunatik.o
 
@@ -17,7 +17,7 @@ lunatik-objs += socket/socket.o socket/enums.o socket/inet_ntop.o socket/inet_pt
 # LUADATA
 
 subdir-ccflags-${CONFIG_LUADATA} += -I$(src)/luadata -I$(src)/lua -D'CHAR_BIT=(8)' \
-	-D'MIN=min' -D'MAX=max' -D'UCHAR_MAX=(255)' -D'UINT64_MAX=(U64_MAX)'
+	-D'MIN=min' -D'MAX=max' -D'UCHAR_MAX=(255)' -D'UINT64_MAX=(U64_MAX)' -DCONFIG_LUADATA
 
 lunatik-${CONFIG_LUADATA} += luadata/binary.o luadata/data.o luadata/handle.o \
 	luadata/layout.o luadata/luadata.o luadata/luautil.o
