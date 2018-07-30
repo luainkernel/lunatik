@@ -1,24 +1,10 @@
-#include <lua/lauxlib.h>
-#include <lua/lua.h>
-#include <lua/lualib.h>
-
-#include <linux/errno.h>
-#include <linux/in.h>
-#include <linux/inet.h>
-#include <linux/socket.h>
-#include <linux/string.h>
-#include <linux/unistd.h>
-#include <linux/version.h>
-#include <net/sock.h>
+#include "socket.h"
 
 #ifdef CONFIG_LUADATA
 #include <luadata.h>
 #endif /* CONFIG_LUADATA */
 
 #include "enums.h"
-
-#define LUA_SOCKET "luasocket"
-#define LUA_SOCKET_MAXBUFFER 4096
 
 #define __GETNAME_CHANGED (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0))
 #if __GETNAME_CHANGED
@@ -32,11 +18,6 @@
 #define __luasocket_getsockname(socket, addr, addrlen)                         \
 	kernel_getsockname((s), (addr), (addrlen))
 #endif /* __GETNAME_CHANGED */
-
-typedef struct socket *sock_t;
-
-extern const char *inet_ntop(int af, const void *src, char *dst, int size);
-extern int inet_pton(int af, const char *src, void *dst);
 
 lua_Integer socket_optfieldinteger(lua_State *L, int idx, const char *k,
 				   int def)
@@ -536,7 +517,7 @@ static const struct luaL_Reg libluasocket_methods[] = {
 };
 
 static const struct luaL_Reg libluasocket_funtions[] = {
-    {"new", luasocket}, {NULL, NULL} /* sentinel */
+    {"new", luasocket}, {"poll", lpoll}, {NULL, NULL} /* sentinel */
 };
 
 int luaopen_libsocket(lua_State *L)
@@ -559,6 +540,8 @@ int luaopen_libsocket(lua_State *L)
 	 * object:func
 	 */
 	luaL_setfuncs(L, libluasocket_methods, 0);
+
+	luaopen_lpoll(L);
 
 	/* Register the object.func functions into the table that is at the top
 	 * of the stack. */
