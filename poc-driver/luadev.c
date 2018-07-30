@@ -6,6 +6,7 @@
 #include <linux/device.h>
 #include <linux/cdev.h>
 #include <linux/uaccess.h>
+#include <linux/kthread.h>
 
 #include <lua/lua.h>
 #include <lua/lualib.h>
@@ -20,14 +21,24 @@ MODULE_LICENSE("GPL");
 
 #define raise_err(msg) pr_warn("[lua] %s - %s\n", __func__, msg);
 
-static DEFINE_MUTEX(mtx);
+static DEFINE_MUTEX(dev_mtx);
 
 static int major;
-static lua_State *L;
-bool hasreturn = 0; /* does the lua state have anything for us? */
 static struct device *luadev;
 static struct class *luaclass;
 static struct cdev luacdev;
+
+#define NSTATES 4
+
+struct lua_exec {
+    int id;
+    lua_State *L;
+    char *script;    
+    struct task_struct *kthread;
+    struct mutex lock; 
+};
+
+static struct lua_exec lua_states[NSTATES];
 
 static int dev_open(struct inode*, struct file*);
 static int dev_release(struct inode*, struct file*);
@@ -44,26 +55,21 @@ static struct file_operations fops =
 
 static int __init luadrv_init(void)
 {
-    L = luaL_newstate();
-    if (L == NULL) {
-		raise_err("no memory");
-		return -ENOMEM;
-    }
+    int i;
     
-    luaL_openlibs(L);
-    luaL_requiref(L, "rcu", luaopen_rcu, 1);
-
     major = register_chrdev(0, DEVICE_NAME, &fops);
     if (major < 0) {
         raise_err("major number failed");
         return -ECANCELED;
     }
+    
     luaclass = class_create(THIS_MODULE, CLASS_NAME);
     if (IS_ERR(luaclass)) {
         unregister_chrdev(major, DEVICE_NAME);
         raise_err("class failed");
         return PTR_ERR(luaclass);
     }
+    
     luadev = device_create(luaclass, NULL, MKDEV(major, 1),
             NULL, "%s", DEVICE_NAME);
     if (IS_ERR(luadev)) {
@@ -72,7 +78,22 @@ static int __init luadrv_init(void)
         unregister_chrdev(major, DEVICE_NAME);
         raise_err("device failed");
         return PTR_ERR(luaclass);
+    }    
+    
+    for (i = 0; i < NSTATES; i++) {
+        lua_states[i].id = i;        
+        lua_states[i].L = luaL_newstate();
+        
+        if (lua_states[i].L == NULL ) {
+	    	raise_err("no memory");
+	    	return -ENOMEM;
+        }
+        
+        luaL_openlibs(lua_states[i].L);
+        luaL_requiref(lua_states[i].L, "rcu", luaopen_rcu, 1);
+        mutex_init(&lua_states[i].lock);
     }
+    
     pr_err("major - %d / minor - 1\n", major);
     return 0;
 }
@@ -89,28 +110,23 @@ static int dev_open(struct inode *i, struct file *f)
 static ssize_t dev_read(struct file *f, char *buf, size_t len, loff_t *off)
 {
     const char *msg = "Nothing yet.\n";
-
-    mutex_lock(&mtx);
-    if (hasreturn) {
-        msg = lua_tostring(L, -1);
-        hasreturn = false;
-    }
+    
+    mutex_lock(&dev_mtx);
     if (copy_to_user(buf, msg, len) < 0) {
         raise_err("copy to user failed");
-        mutex_unlock(&mtx);
+        mutex_unlock(&dev_mtx);
         return -ECANCELED;
     }
-    mutex_unlock(&mtx);
+    mutex_unlock(&dev_mtx);
     return strlen(msg) < len ? strlen(msg) : len;
 }
 
-static int flushL(void)
+static int flush(lua_State *L)
 {
     lua_close(L);
     L = luaL_newstate();
     if (L == NULL) {
         raise_err("flushL failed, giving up");
-        mutex_unlock(&mtx);
         return 1;
     }
     
@@ -119,13 +135,33 @@ static int flushL(void)
     return 0;
 }
 
+static int thread_fn(void *arg)
+{
+    struct lua_exec *lua = arg;    
+    set_current_state(TASK_INTERRUPTIBLE);
+    
+    printk("running thread %d", lua->id);
+    if (luaL_dostring(lua->L, lua->script)) {
+        printk("script error, flushing the state");
+        raise_err(lua_tostring(lua->L, -1));
+        flush(lua->L);
+        mutex_unlock(&lua->lock);
+        return -ECANCELED;
+    }    
+    kfree(lua->script);
+    mutex_unlock(&lua->lock);
+        
+    printk("thread %d finished", lua->id);
+    return 0;
+}
+
 static ssize_t dev_write(struct file *f, const char *buf, size_t len,
         loff_t* off)
 {
+    int i;
     char *script = NULL;
-    int idx = lua_gettop(L);
 
-    mutex_lock(&mtx);
+    mutex_lock(&dev_mtx);
     script = kmalloc(len, GFP_KERNEL);
     if (script == NULL) {
         raise_err("no memory");
@@ -133,33 +169,27 @@ static ssize_t dev_write(struct file *f, const char *buf, size_t len,
     }
     if (copy_from_user(script, buf, len) < 0) {
         raise_err("copy from user failed");
-        mutex_unlock(&mtx);
+        mutex_unlock(&dev_mtx);
         return -ECANCELED;
     }
     script[len-1] = '\0';
-    if (luaL_dostring(L, script)) {
-        printk("script error, flushing the state");
-        raise_err(lua_tostring(L, -1));
-        if (flushL()) {
-            return -ECANCELED;
+    
+    for (i = 0; i < NSTATES; i++) {
+        if (mutex_trylock(&lua_states[i].lock)) {
+            lua_states[i].script = script;
+            lua_states[i].kthread = kthread_run(thread_fn, &lua_states[i], "load2state");
+            mutex_unlock(&dev_mtx);
+            return len;
         }
-        mutex_unlock(&mtx);
-        return -ECANCELED;
     }
-    kfree(script);
-    hasreturn = lua_gettop(L) > idx ? true : false;
-    mutex_unlock(&mtx);
-    return len;
+    
+    raise_err("all lua states are busy");
+    mutex_unlock(&dev_mtx);
+    return -EBUSY;
 }
 
 static int dev_release(struct inode *i, struct file *f)
 {
-    mutex_lock(&mtx);
-//    if (flushL()) {
-//        return -ECANCELED;
-//    }
-    hasreturn = false;
-    mutex_unlock(&mtx);
     return 0;
 }
 

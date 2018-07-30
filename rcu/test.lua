@@ -1,43 +1,54 @@
-print("begin")
+-- helper function
+local str2table = function(str)
+    local tab = {}
+    for i = 1, #str do
+        tab[i] = string.sub(str, i, i)
+    end
+    return tab
+end    
 
-rcu["q"] = "vv"
-assert(rcu["q"] == "vv")
-rcu["q"] = nil
-assert(rcu["q"] == nil)
+s1 = "abcdefghijkl"
+tab = str2table(s1)
 
+for i = 1, #tab do
+    c = tab[i]
+    rcu[c] = c..c
+    assert(rcu[c] == c..c)
 
-rcu["q"] = "dd"
-rcu["q"] = "rr"
-rcu["q"] = "tt"
-assert(rcu["q"] == "tt")
-rcu["q"] = nil
-assert(rcu["q"] == nil)
+    rcu[c] = true
+    assert(rcu[c] == true)
+    
+    rcu[c] = i
+    assert(rcu[c] == i)
 
+    rcu[c] = rcu[c] + 1
+    assert(rcu[c] == (i+1))
 
-rcu["a"] = "aa"
-rcu["b"] = "bb"
-rcu["c"] = "cc"
+    rcu[c] = nil
+    assert(rcu[c] == nil)
+    
+    rcu[c] = c..c..c
+    assert(rcu[c] == c..c..c)
+    
+    rcu[c] = nil
+    assert(rcu[c] == nil)
 
-rcu["b"] = "bbbb"
-rcu["a"] = "aaaa"
+    rcu[c] = i + 1
+    assert(rcu[c] == (i+1))
+    
+    rcu[c] = false 
+    assert(rcu[c] == false)
+    
+    rcu[c] = c..c
+    assert(rcu[c] == c..c)
+    
+    rcu[c] = c..c..c
+    assert(rcu[c] == c..c..c)
+    
+    rcu[c] = i
+    assert(rcu[c] == i)
+end
 
-rcu["d"] = "dd"
-
-assert(rcu["a"] == "aaaa")
-assert(rcu["c"] == "cc")
-assert(rcu["b"] == "bbbb")
-assert(rcu["d"] == "dd")
-
-rcu.for_each()
-
-rcu["a"] = nil
-rcu["b"] = nil
-rcu["c"] = nil
-rcu["d"] = nil
-
-assert(rcu["a"] == nil)
-assert(rcu["c"] == nil)
-assert(rcu["b"] == nil)
-assert(rcu["d"] == nil)
-
-print("end")
+rcu.for_each(print)      
+   
+print("end test")
