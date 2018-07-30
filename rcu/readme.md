@@ -8,7 +8,7 @@ This project idea is a binding of RCU for use in Lunatik, thus allowing synchron
 
 **Installation:**
 
-Lunatik is presented as an in-tree kernel module, meaning we'll have to compile our own custom kernel with lunatik alongside it. This instructions are based on the Debian distro and it is the environment I've used during the gsoc 2018 period.
+Lunatik is presented as an in-tree kernel module, meaning we'll have to compile our own custom kernel with Lunatik alongside it. This instructions are based on the Debian distro and it is the environment I've used during the gsoc 2018 period.
 
 First, you'll need to install the linux headers for your running kernel. These files are needed to develop kernel modules. To see which kernel you're running, type:
 ```bash
@@ -32,17 +32,17 @@ $ sudo tar -xf linux-source-xx.tar.xz
 
 You should now have a directory /usr/src/linux-source-xx.
 
-Now, we have to add the lunatik files to the kernel source. Download the lunatik source files (https://github.com/luainkernel/lunatik) and copy it to the linux source drivers directory, located in /usr/src/linux-source-xx/drivers.
+Now, we have to add the Lunatik files to the kernel source. Download the Lunatik source files (https://github.com/luainkernel/lunatik) and copy it to the linux source drivers directory, located in /usr/src/linux-source-xx/drivers.
 
 Edit the Kconfig file located in the drivers directory and add "source lunatik/Kconfig" at the end of it.
 In that same directory, also edit the makefile and add "obj-$(CONFIG_LUNATIK) += lunatik/" at the end.
 
 Go back to /usr/src/linux-source-xx and run $ sudo make menuconfig
-A gui will appear with various kernel configurations. Go to device drivers options and at the end of that list, find lunatik and enable it with module support.
+A gui will appear with various kernel configurations. Go to device drivers options and at the end of that list, find Lunatik and enable it with module support.
 Also go to "Processor type and features", then "Preemption Model" and choose preemptible Kernel.
 A preemptible kernel will allow for multiple lua scripts to execute and interact with the rcu hash table concurrently.
 
-With lunatik now enabled, we now have to compile the entire kernel. Fortunately, debian offers us a simple and quick approach.
+With Lunatik now enabled, we now have to compile the entire kernel. Fortunately, debian offers us a simple and quick approach.
 ```bash
 $ make -j4 bindeb-pkg ARCH=x86_64
 ```
@@ -54,8 +54,7 @@ The result will be a file named linux-image-xx.deb. Install it as a normal packa
 $ dpkg -i linux-image-xx.deb
 ```
 
-Now lunatik can be used as a normal module.
-Use 
+Now Lunatik can be used as a normal module. Use 
 ```bash 
 $ sudo modprobe -v lunatik
 ``` 
@@ -70,13 +69,13 @@ To see if it's currently running, type:
 $ lsmod | grep lunatik
 ```
 
-Since it's a kernel module, lunatik will not print messages to a normal terminal. To see them, use either dmesg or journalctl to have access to the kernel and driver messages.
+Since it's a kernel module, Lunatik will not print messages to a normal terminal. To see them, use either dmesg or journalctl to have access to the kernel and driver messages.
 ```bash
 $ sudo dmesg
 $ sudo journalctl -k
 ```
 
-When lunatik is loaded, a new driver is also loaded, called luadrv and located in /dev/luadrv. This driver expects lua scripts to execute them in kernel space. If your file is in user space, you can redirect it using
+When Lunatik is loaded, a new driver is also loaded, called luadrv and located in /dev/luadrv. This driver expects lua scripts to execute them in kernel space. If your file is in user space, you can redirect it using
 ```bash
 $ cat script.lua > /dev/luadrv
 ```
