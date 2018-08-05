@@ -410,9 +410,14 @@ int luasocket_setsockopt(lua_State *L)
 
 int luasocket_close(lua_State *L)
 {
-	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
+	sock_t *s = (sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
 
-	sock_release(s);
+	if (*s == NULL)
+		return 0;
+
+	sock_release(*s);
+
+	*s = NULL;
 
 	return 0;
 }
