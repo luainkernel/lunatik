@@ -1,4 +1,5 @@
 #include "socket.h"
+#include <net/sock.h>
 
 #define lpt_len(num)                                                           \
 	(sizeof(struct lpoll_table) + (num) * sizeof(struct lpoll_entry))

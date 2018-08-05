@@ -1,4 +1,5 @@
 #include "socket.h"
+#include <net/sock.h>
 
 #ifdef CONFIG_LUADATA
 #include <luadata.h>
@@ -308,106 +309,24 @@ int luasocket_recvmsg(lua_State *L)
 
 int luasocket_send(lua_State *L)
 {
-	int i;
-	int err;
-	size_t size;
-	struct msghdr msg;
-	struct kvec vec;
-	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
-	char *buffer = NULL;
+	// insert empty msghdr
+	lua_newtable(L);
+	lua_insert(L, 2);
 
-	if (lua_istable(L, 2)) {
-		size = luaL_len(L, 2);
-		luaL_argcheck(L, size > 0, 2, "data can not be empty");
-	} else if (IS_ENABLED(CONFIG_LUADATA)) {
-		if ((buffer = ldata_topointer(L, 2, &size)) == NULL)
-			luaL_argerror(L, 2,
-				      "data must be a table or luadata obejct");
-	} else
-		luaL_argerror(L, 2, "data must be a table");
-
-	msg.msg_name = NULL;
-	msg.msg_control = NULL;
-	msg.msg_controllen = 0;
-	msg.msg_namelen = 0;
-	msg.msg_flags = 0;
-
-	if (lua_istable(L, 2)) {
-		buffer = kmalloc(size, GFP_KERNEL);
-		if (buffer == NULL)
-			luaL_error(L, "Buffer alloc fail.");
-		for (i = 0; i < size; i++) {
-			lua_rawgeti(L, 2, i + 1);
-			buffer[i] = lua_tointeger(L, -1);
-			lua_pop(L, 1);
-		}
-	}
-
-	vec.iov_base = buffer;
-	vec.iov_len = size;
-
-	err = kernel_sendmsg(s, &msg, &vec, 1, size);
-	if (lua_istable(L, 3))
-		kfree(buffer);
-	if (err < 0)
-		socket_error(L, err);
-
-	lua_pushinteger(L, err);
+	luasocket_sendmsg(L);
 
 	return 1;
 }
 int luasocket_recv(lua_State *L)
 {
-	int i;
-	int err;
-	size_t size = 0;
-	struct msghdr msg;
-	struct kvec vec;
-	sock_t s = *(sock_t *) luaL_checkudata(L, 1, LUA_SOCKET);
-	char *buffer = NULL;
+	// insert empty msghdr
+	lua_newtable(L);
+	lua_insert(L, 2);
 
-	if (IS_ENABLED(CONFIG_LUADATA)) {
-		buffer = ldata_topointer(L, 2, &size);
-		luaL_argcheck(L, buffer != NULL, 2, "Buffer invaild");
-	} else {
-		size = lua_tointeger(L, 2);
-		luaL_argcheck(L, size > 0 && size <= LUA_SOCKET_MAXBUFFER, 2,
-			      "size must be positive number and less than "
-			      "maximum size");
-		buffer = kmalloc(size, GFP_KERNEL);
-		if (buffer == NULL)
-			luaL_error(L, "Buffer alloc fail.");
-	}
+	luasocket_recvmsg(L);
 
-	msg.msg_control = NULL;
-	msg.msg_controllen = 0;
-	msg.msg_name = NULL;
-	msg.msg_namelen = 0;
-	msg.msg_iocb = NULL;
-	msg.msg_flags = 0;
-
-	vec.iov_base = buffer;
-	vec.iov_len = size;
-
-	if ((err = kernel_recvmsg(s, &msg, &vec, 1, size, 0)) < 0) {
-		if (lua_istable(L, 2))
-			kfree(buffer);
-		socket_error(L, err);
-	}
-
-	if (lua_istable(L, 2)) {
-		size = err;
-		lua_createtable(L, size, 0);
-		for (i = 0; i < size; i++) {
-			lua_pushinteger(L, buffer[i]);
-			lua_rawseti(L, -2, i + 1);
-		}
-		kfree(buffer);
-	} else
-		lua_pushvalue(L, 2);
-
-	// return size
-	lua_pushinteger(L, err);
+	// pop unused msghdr result
+	lua_pop(L, 1);
 
 	return 2;
 }

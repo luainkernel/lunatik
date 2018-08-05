@@ -13,7 +13,6 @@
 #include <linux/unistd.h>
 #include <linux/version.h>
 #include <linux/wait.h>
-#include <net/sock.h>
 
 #define LUA_SOCKET "luasocket"
 #define LUA_SOCKET_MAXBUFFER 4096
@@ -27,4 +26,5 @@ extern int inet_pton(int af, const char *src, void *dst);
 
 extern int lpoll(lua_State *L);
 extern int luaopen_lpoll(lua_State *L);
+extern int luaopen_libsocket(lua_State *L);
 #endif
