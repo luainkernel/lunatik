@@ -3,153 +3,242 @@
 <!-- TOC -->
 
 - [Lunatik Socket Library Documention](#lunatik-socket-library-documention)
-    - [`socket.new()`](#socketnew)
-        - [Syntax](#syntax)
-        - [Parameters](#parameters)
-        - [Returns](#returns)
-        - [Example](#example)
-    - [`socket:bind()`](#socketbind)
-        - [Syntax](#syntax-1)
-        - [Parameters](#parameters-1)
-        - [Returns](#returns-1)
-        - [Example](#example-1)
-    - [`socket:listen()`](#socketlisten)
-        - [Syntax](#syntax-2)
-        - [Parameters](#parameters-2)
-        - [Returns](#returns-2)
-        - [Example](#example-2)
-    - [`socket:accept()`](#socketaccept)
-        - [Syntax](#syntax-3)
-        - [Parameters](#parameters-3)
-        - [Returns](#returns-3)
-        - [Example](#example-3)
-    - [`socket:connect()`](#socketconnect)
-        - [Syntax](#syntax-4)
-        - [Parameters](#parameters-4)
-        - [Returns](#returns-4)
-        - [Example](#example-4)
-    - [`socket:recvmsg()`](#socketrecvmsg)
-        - [Syntax](#syntax-5)
-        - [Parameters](#parameters-5)
-        - [Returns](#returns-5)
-        - [Example](#example-5)
-    - [`socket:sendmsg()`](#socketsendmsg)
-        - [Syntax](#syntax-6)
-        - [Parameters](#parameters-6)
-        - [Returns](#returns-6)
-        - [Example](#example-6)
-    - [`socket:recv()`](#socketrecv)
-        - [Syntax](#syntax-7)
-        - [Parameters](#parameters-7)
-        - [Returns](#returns-7)
-        - [Example](#example-7)
-    - [`socket:send()`](#socketsend)
-        - [Syntax](#syntax-8)
-        - [Parameters](#parameters-8)
-        - [Returns](#returns-8)
-        - [Example](#example-8)
-    - [`socket:close()`](#socketclose)
-        - [Syntax](#syntax-9)
-        - [Parameters](#parameters-9)
-        - [Returns](#returns-9)
-        - [Example](#example-9)
-    - [`socket:getsockname()`](#socketgetsockname)
-        - [Syntax](#syntax-10)
-        - [Parameters](#parameters-10)
-        - [Returns](#returns-10)
-        - [Example](#example-10)
-    - [`socket:getpeername()`](#socketgetpeername)
-        - [Syntax](#syntax-11)
-        - [Parameters](#parameters-11)
-        - [Returns](#returns-11)
-        - [Example](#example-11)
-    - [`socket:getsockopt()`](#socketgetsockopt)
-        - [Syntax](#syntax-12)
-        - [Parameters](#parameters-12)
-        - [Returns](#returns-12)
-        - [Example](#example-12)
-    - [`socket:setsockopt()`](#socketsetsockopt)
-        - [Syntax](#syntax-13)
-        - [Parameters](#parameters-13)
-        - [Returns](#returns-13)
-        - [Example](#example-13)
-    - [`socket.poll()`](#socketpoll)
-        - [Syntax](#syntax-14)
-        - [Parameters](#parameters-14)
-        - [Returns](#returns-14)
-        - [Example](#example-14)
-    - [`lpoll:select()`](#lpollselect)
-        - [Syntax](#syntax-15)
-        - [Parameters](#parameters-15)
-        - [Returns](#returns-15)
-        - [Example](#example-15)
+    - [Introduction](#introduction)
+        - [Compile](#compile)
+    - [SOCKSv4 Demo](#socksv4-demo)
+    - [Benchmark](#benchmark)
+        - [Environment](#environment)
+        - [Method](#method)
+        - [Result](#result)
+    - [Socket API](#socket-api)
+        - [`socket.new()`](#socketnew)
+            - [Syntax](#syntax)
+            - [Parameters](#parameters)
+            - [Returns](#returns)
+            - [Example](#example)
+        - [`socket:bind()`](#socketbind)
+            - [Syntax](#syntax-1)
+            - [Parameters](#parameters-1)
+            - [Returns](#returns-1)
+            - [Example](#example-1)
+        - [`socket:listen()`](#socketlisten)
+            - [Syntax](#syntax-2)
+            - [Parameters](#parameters-2)
+            - [Returns](#returns-2)
+            - [Example](#example-2)
+        - [`socket:accept()`](#socketaccept)
+            - [Syntax](#syntax-3)
+            - [Parameters](#parameters-3)
+            - [Returns](#returns-3)
+            - [Example](#example-3)
+        - [`socket:connect()`](#socketconnect)
+            - [Syntax](#syntax-4)
+            - [Parameters](#parameters-4)
+            - [Returns](#returns-4)
+            - [Example](#example-4)
+        - [`socket:recvmsg()`](#socketrecvmsg)
+            - [Syntax](#syntax-5)
+            - [Parameters](#parameters-5)
+            - [Returns](#returns-5)
+            - [Example](#example-5)
+        - [`socket:sendmsg()`](#socketsendmsg)
+            - [Syntax](#syntax-6)
+            - [Parameters](#parameters-6)
+            - [Returns](#returns-6)
+            - [Example](#example-6)
+        - [`socket:recv()`](#socketrecv)
+            - [Syntax](#syntax-7)
+            - [Parameters](#parameters-7)
+            - [Returns](#returns-7)
+            - [Example](#example-7)
+        - [`socket:send()`](#socketsend)
+            - [Syntax](#syntax-8)
+            - [Parameters](#parameters-8)
+            - [Returns](#returns-8)
+            - [Example](#example-8)
+        - [`socket:close()`](#socketclose)
+            - [Syntax](#syntax-9)
+            - [Parameters](#parameters-9)
+            - [Returns](#returns-9)
+            - [Example](#example-9)
+        - [`socket:getsockname()`](#socketgetsockname)
+            - [Syntax](#syntax-10)
+            - [Parameters](#parameters-10)
+            - [Returns](#returns-10)
+            - [Example](#example-10)
+        - [`socket:getpeername()`](#socketgetpeername)
+            - [Syntax](#syntax-11)
+            - [Parameters](#parameters-11)
+            - [Returns](#returns-11)
+            - [Example](#example-11)
+        - [`socket:getsockopt()`](#socketgetsockopt)
+            - [Syntax](#syntax-12)
+            - [Parameters](#parameters-12)
+            - [Returns](#returns-12)
+            - [Example](#example-12)
+        - [`socket:setsockopt()`](#socketsetsockopt)
+            - [Syntax](#syntax-13)
+            - [Parameters](#parameters-13)
+            - [Returns](#returns-13)
+            - [Example](#example-13)
+    - [Poll API](#poll-api)
+        - [`socket.poll()`](#socketpoll)
+            - [Syntax](#syntax-14)
+            - [Parameters](#parameters-14)
+            - [Returns](#returns-14)
+            - [Example](#example-14)
+        - [`lpoll:select()`](#lpollselect)
+            - [Syntax](#syntax-15)
+            - [Parameters](#parameters-15)
+            - [Returns](#returns-15)
+            - [Example](#example-15)
 
 <!-- /TOC -->
 
-## `socket.new()`
+## Introduction
+
+The Lunatik socket library is developed by Chengzhi Tan (@tcz717). It provides most frequently used APIs that available for `IPv4`, `TCP` and `UDP`. I/O multiplex API, `poll` is also included in this library. The testcase file is `socket/examples/test.lua`.
+
+### Compile
+
+Complie the kernel module:
+
+```shell
+make -C /lib/modules/$(uname -r)/build M=LUNATIC_ROOT_PATH modules ARCH=x86_64
+```
+
+Compile with `luadata` and `poc driver` enabled:
+
+```shell
+make -C /lib/modules/$(uname -r)/build M=LUNATIC_ROOT_PATH modules ARCH=x86_64 CONFIG_LUADATA=y CONFIG_LUNATIK_POC=y
+```
+
+Or see the [wiki](https://github.com/luainkernel/lunatik/wiki/How-to-compile-and-debug-lunatik) to use BuildRoot.
+
+## SOCKSv4 Demo
+
+This demo shows how to run a SOCKSv4 proxy server in kernel. After the lunatik module loaded, type `cat proxy.lua > /dev/luadrv`. Then the server will start to listen SOCKSv4 request at 8080 port. (The path of the demo file is `socket/examples/proxy.lua`)
+
+## Benchmark
+
+The speed of the proxy demo is tested.
+
+### Environment
+
+Server: `qemu` x86_64 emulator running Linux 4.17.0
+
+Client: the host of `qemu`, Ubuntu 18.04/Linux 4.15.0
+
+### Method
+
+Use proxy to download two file [5MB](http://ipv4.download.thinkbroadband.com/5MB.zip) and [100MB](http://ipv4.download.thinkbroadband.com/100MB.zip):
+
+```shell
+# the server of tsocks is set to localhost:8080
+tsocks wget http://ipv4.download.thinkbroadband.com/100MB.zip
+```
+
+### Result
+
+5MB:
+
+- Raw (no proxy):
+
+    Speed=5.67MB/s    Time=0.9s
+
+- Lunatik (`cat poll.lua > /dev/luadrv`):
+
+    Speed=1.42MB/s    Time=3.8s
+
+- SSH (`ssh -N -D 8080 localhost`):
+
+    Speed=2.38MB/s    Time=2.1s
+
+100MB:
+
+- Raw (no proxy):
+
+    Speed=12.8MB/s    Time=7.0s
+
+- Lunatik (`cat poll.lua > /dev/luadrv`):
+
+    Speed=1.44MB/s    Time=71s
+
+- SSH (`ssh -N -D 8080 localhost`):
+
+    Speed=3.31MB/s    Time=34s
+
+||Raw|Lunatik|SSH|
+|-|-|-|-|
+|[5MB.zip](http://ipv4.download.thinkbroadband.com/5MB.zip)|5.67MB/s|1.42MB/s|2.38MB/s|
+|[100MB.zip](http://ipv4.download.thinkbroadband.com/100MB.zip)|12.8MB/s|1.44MB/s|3.31MB/s|
+
+## Socket API
+
+### `socket.new()`
 
 Create a new socket.
 
-### Syntax
+#### Syntax
 
 `socket.new()`
 
-### Parameters
+#### Parameters
 
 - `family` string value `inet` or `i`
 - `type` string value `tcp`, `udp`, `t` or `u`
 
-### Returns
+#### Returns
 
 - `luasocket` sub module
 
-### Example
+#### Example
 
 ```lua
 sock = socket.new('i', 't')
 ```
 
-## `socket:bind()`
+### `socket:bind()`
 
 Bind a socket to a specific address. When bind fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket.sock:bind(ip, port)`
 
-### Parameters
+#### Parameters
 
 - `addr` string or integer - address
 - `port` integer - port number
 
-### Returns
+#### Returns
 
 - `nil`
 
-### Example
+#### Example
 
 ```lua
 sock = socket.new('i', 't')
 sock:bind("127.0.0.1", 6666)
 ```
 
-## `socket:listen()`
+### `socket:listen()`
 
 Start listening new connection. When listen fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket.sock:listen(backlog)`
 
-### Parameters
+#### Parameters
 
 - `backlog` integer
 
-### Returns
+#### Returns
 
 - `nil`
 
-### Example
+#### Example
 
 ```lua
 sock = socket.new('i', 't')
@@ -157,23 +246,23 @@ sock:bind("127.0.0.1", 6666)
 sock:listen(10)
 ```
 
-## `socket:accept()`
+### `socket:accept()`
 
 Accept an established connection. When accept fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket.sock:accept([flags])`
 
-### Parameters
+#### Parameters
 
 - `nil`
 
-### Returns
+#### Returns
 
 - `luasocket` - the new client socket
 
-### Example
+#### Example
 
 ```lua
 sock = socket.new('i', 't')
@@ -182,40 +271,40 @@ sock:listen(10)
 client = sock:accept()
 ```
 
-## `socket:connect()`
+### `socket:connect()`
 
 Connect to specific socket. When connect fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket.sock:connect(ip, port [, flags])`
 
-### Parameters
+#### Parameters
 
 - `ip` string or integer - address
 - `port` integer - port number
 - `flags` integer, default 0
 
-### Returns
+#### Returns
 
 - `nil`
 
-### Example
+#### Example
 
 ```lua
 sock = socket.new('i', 't')
 sock:connect("127.0.0.1", 8888)
 ```
 
-## `socket:recvmsg()`
+### `socket:recvmsg()`
 
 Receive a message. When recvmsg fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket:recvmsg(msghdr[, buffer][, flags])`
 
-### Parameters
+#### Parameters
 
 - `msghdr` table - represent `struct msghdr`. For example,
 
@@ -230,13 +319,13 @@ Receive a message. When recvmsg fails, this function will raise an error with an
 
 - `flags` string - like `D` means `MSG_DONTWAIT`
 
-### Returns
+#### Returns
 
 - `data` - a table or a data object
 - `size` - the length of data
 - `msghdr` - the message header of data
 
-### Example
+#### Example
 
 ```lua
 local d, size, header = sock:recvmsg({iov_len = 5})
@@ -245,15 +334,15 @@ local buf = data.new(3)
 sock:recvmsg({}, buf)
 ```
 
-## `socket:sendmsg()`
+### `socket:sendmsg()`
 
 Write a socket. When sendmsg fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket:sendmsg(msghdr[, data])`
 
-### Parameters
+#### Parameters
 
 - `msghdr` table - represent `struct msghdr`. For example,
 
@@ -266,11 +355,11 @@ Write a socket. When sendmsg fails, this function will raise an error with an er
 
 - `data` a table or a data object
 
-### Returns
+#### Returns
 
 - `size` - the length of data
 
-### Example
+#### Example
 
 ```lua
 local size = sock:sendmsg({}, {1, 2, 3})
@@ -279,26 +368,26 @@ local buf = data.new(3)
 sock:sendmsg({}, buf)
 ```
 
-## `socket:recv()`
+### `socket:recv()`
 
 Receive a message. When recvmsg fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket:recv(buffer | size)`
 
-### Parameters
+#### Parameters
 
 - `buffer` when `CONFIG_LUADATA` is enabled, a data object can be passed to receive data
 
 - `size` integer - length, can not be used with buffer together
 
-### Returns
+#### Returns
 
 - `data` - a table or a data object
 - `size` - the length of data
 
-### Example
+#### Example
 
 ```lua
 local d, size, header = sock:recv(5)
@@ -307,23 +396,23 @@ local buf = data.new(3)
 sock:recv({buf)
 ```
 
-## `socket:send()`
+### `socket:send()`
 
 Write a socket. When sendmsg fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket:sendmsg(data)`
 
-### Parameters
+#### Parameters
 
 - `data` a table or a data object
 
-### Returns
+#### Returns
 
 - `size` - the length of data
 
-### Example
+#### Example
 
 ```lua
 local size = sock:send{1, 2, 3}
@@ -332,23 +421,23 @@ local buf = data.new(3)
 sock:send(buf)
 ```
 
-## `socket:close()`
+### `socket:close()`
 
 Release socket. When `sock_release` fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket:close()`
 
-### Parameters
+#### Parameters
 
 - `nil`
 
-### Returns
+#### Returns
 
 - `nil`
 
-### Example
+#### Example
 
 ```lua
 sock = socket.new('i', 't')
@@ -356,70 +445,70 @@ sock:connect("127.0.0.1", 8888)
 sock:close()
 ```
 
-## `socket:getsockname()`
+### `socket:getsockname()`
 
 Get local name. When `kernel_getsockname` fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket:gethostname()`
 
-### Parameters
+#### Parameters
 
 - `nil`
 
-### Returns
+#### Returns
 
 - string - ip
 - integer - port
 
-### Example
+#### Example
 
 ```lua
 ip, port = sock:getsockname()
 ```
 
-## `socket:getpeername()`
+### `socket:getpeername()`
 
 Get remote name. When `kernel_getpeername` fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket:getpeername()`
 
-### Parameters
+#### Parameters
 
 - `nil`
 
-### Returns
+#### Returns
 
 - string - ip
 - integer - port
 
-### Example
+#### Example
 
 ```lua
 ip, port = sock:getpeername()
 ```
 
-## `socket:getsockopt()`
+### `socket:getsockopt()`
 
 Get the socket option. When `kernel_getsockopt` fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket.sock:getsockopt(level, optname)`
 
-### Parameters
+#### Parameters
 
 - `level` string in `socket.level`
 - `optname` string in `socket.optname`
 
-### Returns
+#### Returns
 
 - `val` array - it's mean depends on the option
 
-### Example
+#### Example
 
 ```lua
 sock = socket.new('i', 't')
@@ -427,25 +516,25 @@ sock:connect("127.0.0.1", 8888)
 recv_buf = sock:setsockopt('s', 'r')
 ```
 
-## `socket:setsockopt()`
+### `socket:setsockopt()`
 
 Set the socket option. When `kernel_setsockopt` fails, this function will raise an error with an error code.
 
-### Syntax
+#### Syntax
 
 `socket.sock:setsockopt(level, optname, val)`
 
-### Parameters
+#### Parameters
 
 - `level` string
 - `optname` string
 - `val` integer
 
-### Returns
+#### Returns
 
 - `nil`
 
-### Example
+#### Example
 
 ```lua
 sock = socket.new('i', 't')
@@ -453,23 +542,25 @@ sock:connect("127.0.0.1", 8888)
 sock:setsockopt('s', 'r', 1000)
 ```
 
-## `socket.poll()`
+## Poll API
+
+### `socket.poll()`
 
 Create a `lpoll` object, which repesents a set of sockets.
 
-### Syntax
+#### Syntax
 
 `socket.poll(socks)`
 
-### Parameters
+#### Parameters
 
 - `socks` a table of sockets
 
-### Returns
+#### Returns
 
 - `lpoll` obejct
 
-### Example
+#### Example
 
 ```lua
 local server = socket.new("i", "t")
@@ -484,23 +575,23 @@ local remote = server:accept()
 local poll = socket.poll{remote, client}
 ```
 
-## `lpoll:select()`
+### `lpoll:select()`
 
 I/O multiplexing function, indicating some events happening. This function may block until a socket receives some data.
 
-### Syntax
+#### Syntax
 
 `lpoll:select()`
 
-### Parameters
+#### Parameters
 
 - `nil`
 
-### Returns
+#### Returns
 
 - `luasocket` obejct - a socket with data available
 
-### Example
+#### Example
 
 ```lua
 local server = socket.new("i", "t")
