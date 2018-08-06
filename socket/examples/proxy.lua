@@ -31,7 +31,7 @@ function Client:handle()
     print("start handle " .. self.addr .. ":" .. self.port)
     local _, size = self.client_socket:recv(self.buf)
 
-    assert(size > REQUEST_MIN)
+    assert(size >= REQUEST_MIN)
     print("received size: " .. size)
 
     local req_size = nil
@@ -68,42 +68,45 @@ function Client:handle()
     print("establish connection ok")
     self:response(Command.granted, req.dstport, req.dstip)
     self.target_socket = sock
-    pcall(
+    state, err =
+        pcall(
         -- only support request/response mode
         function()
             if req_size and req_size < size then
                 size = sock:send(self.buf:segment(req_size, size - req_size))
                 print("tail request size: " .. size)
             end
+            local poll = socket.poll {self.client_socket, self.target_socket}
             while true do
-                state, err, size = pcall(self.client_socket.recvmsg, self.client_socket, {}, self.buf, "D")
-                if state then
-                    if size == 0 then
-                        print("client disconnected")
-                        return
+                local idx = poll:select()
+                print("select" .. idx)
+                if idx == 0 then
+                    state, err, size = pcall(self.client_socket.recvmsg, self.client_socket, {}, self.buf)
+                    if state then
+                        if size == 0 then
+                            print("client disconnected")
+                            return
+                        end
+                        self.target_socket:send(self.buf:segment(0, size))
+                        print("forward to target: " .. size)
                     end
-                    self.target_socket:send(self.buf:segment(0, size))
-                    print("forward to target: " .. size)
-                elseif err ~= -11 then -- -EAGAIN
-                    print("recv err: " .. err)
-                    return else print('client again '..err)
-                end
-
-                state, err, size = pcall(self.client_socket.recvmsg, self.target_socket, {}, self.buf, "D")
-                if state then
-                    if size == 0 then
-                        print("target disconnected")
-                        return
+                else
+                    state, err, size = pcall(self.client_socket.recvmsg, self.target_socket, {}, self.buf)
+                    if state then
+                        if size == 0 then
+                            print("target disconnected")
+                            return
+                        end
+                        self.client_socket:send(self.buf:segment(0, size))
+                        print("forward to client: " .. size)
                     end
-                    self.client_socket:send(self.buf:segment(0, size))
-                    print("forward to client: " .. size)
-                elseif err ~= -11 then -- -EAGAIN
-                    print("recv err: " .. err)
-                    return else print('target again '..err)
                 end
             end
         end
     )
+    if not state then
+        print("loop error: " .. err)
+    end
     print("stop handle")
     sock:close()
     self.client_socket:close()
@@ -122,7 +125,9 @@ local server = socket.new("i", "t")
 server:bind("0.0.0.0", PORT)
 server:listen(5)
 
-print("SOCKv4 start")
-client = Client:new(server:accept())
-client:handle()
+print("SOCKSv4 start")
+while true do
+    client = Client:new(server:accept())
+    client:handle()
+end
 server:close()

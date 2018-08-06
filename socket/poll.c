@@ -110,9 +110,23 @@ remove_wait:
 	return 1;
 }
 
+int lpoll_dispose(lua_State *L)
+{
+	lpoll_t *lpt = (lpoll_t *) luaL_checkudata(L, 1, LUA_POLL);
+
+	if (*lpt == NULL)
+		return 0;
+
+	kfree(*lpt);
+
+	*lpt = NULL;
+
+	return 0;
+}
+
 static const struct luaL_Reg liblpoll_methods[] = {
     {"select", lpoll_select},
-    // {"__gc", luasocket_close},
+    {"__gc", lpoll_dispose},
     {NULL, NULL} /* sentinel */
 };
 
