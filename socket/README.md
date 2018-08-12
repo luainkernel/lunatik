@@ -125,53 +125,61 @@ The speed of the proxy demo is tested.
 
 ### Environment
 
-Server: `qemu` x86_64 emulator running Linux 4.17.0
+- Server: `qemu` x86_64 virtual machine running Linux 4.17.0
 
-Client: the host of `qemu`, Ubuntu 18.04/Linux 4.15.0
+- Client: the host of `qemu`, Ubuntu 18.04/Linux 4.15.0
+
+The proxy server is running inside a QEMU virtual machine, which can access the Internet via NAT and forwards 8080 port on the host. After the proxy starts, the client on the host will use the proxy to download a fake zip file from a remote server.
 
 ### Method
 
-Use proxy to download two file [5MB](http://ipv4.download.thinkbroadband.com/5MB.zip) and [100MB](http://ipv4.download.thinkbroadband.com/100MB.zip):
+Use proxy to download two file [5MB](http://ipv4.download.thinkbroadband.com/5MB.zip) and [100MB](http://ipv4.download.thinkbroadband.com/100MB.zip) (The average ping is 96.904ms):
 
-```shell
+```bash
 # the server of tsocks is set to localhost:8080
-tsocks wget http://ipv4.download.thinkbroadband.com/100MB.zip
+
+# test for no proxy:
+wget -O /dev/null http://ipv4.download.thinkbroadband.com/5MB.zip -o raw-5mb
+wget -O /dev/null http://ipv4.download.thinkbroadband.com/100MB.zip -o raw-100mb
+
+# test for user-space c language proxy
+# server side: ./socks4server (https://github.com/tclin914/Socks4Server)
+tsocks wget -O /dev/null http://ipv4.download.thinkbroadband.com/5MB.zip -o user-5mb
+tsocks wget -O /dev/null http://ipv4.download.thinkbroadband.com/100MB.zip -o user-100mb
+
+# test for ssh dynamic forward proxy
+# server side: ssh -N -D 0.0.0.0:8080 localhost
+tsocks wget -O /dev/null http://ipv4.download.thinkbroadband.com/5MB.zip -o ssh-5mb
+tsocks wget -O /dev/null http://ipv4.download.thinkbroadband.com/100MB.zip -o ssh-100mb
+
+# test for lunatik proxy
+# server side: cat proxy.lua > /dev/luadrv
+tsocks wget -O /dev/null http://ipv4.download.thinkbroadband.com/5MB.zip -o lunatik-5mb
+tsocks wget -O /dev/null http://ipv4.download.thinkbroadband.com/100MB.zip -o lunatik-100mb
+
+# collect result
+grep "[0-9.]\+ [KM]*B/s" *mb -o
 ```
 
 ### Result
 
-5MB:
+- lunatik-100mb:8.64 MB/s
+- lunatik-5mb:4.60 MB/s
+- raw-100mb:14.1 MB/s
+- raw-5mb:5.08 MB/s
+- ssh-100mb:3.12 MB/s
+- ssh-5mb:2.72 MB/s
+- user-100mb:10.6 MB/s
+- user-5mb:4.88 MB/s
 
-- Raw (no proxy):
+||Raw|User space|Lunatik|SSH|
+|-|-|-|-|-|
+|[5MB.zip](http://ipv4.download.thinkbroadband.com/5MB.zip)|5.08 MB/s|4.88 MB/s|4.60 MB/s|2.72 MB/s|
+|[100MB.zip](http://ipv4.download.thinkbroadband.com/100MB.zip)|14.1 MB/s|10.6 MB/s|8.64 MB/s|3.12 MB/s|
 
-    Speed=5.67MB/s    Time=0.9s
+The flame graph of the lunatik proxy:
 
-- Lunatik (`cat poll.lua > /dev/luadrv`):
-
-    Speed=1.42MB/s    Time=3.8s
-
-- SSH (`ssh -N -D 8080 localhost`):
-
-    Speed=2.38MB/s    Time=2.1s
-
-100MB:
-
-- Raw (no proxy):
-
-    Speed=12.8MB/s    Time=7.0s
-
-- Lunatik (`cat poll.lua > /dev/luadrv`):
-
-    Speed=1.44MB/s    Time=71s
-
-- SSH (`ssh -N -D 8080 localhost`):
-
-    Speed=3.31MB/s    Time=34s
-
-||Raw|Lunatik|SSH|
-|-|-|-|-|
-|[5MB.zip](http://ipv4.download.thinkbroadband.com/5MB.zip)|5.67MB/s|1.42MB/s|2.38MB/s|
-|[100MB.zip](http://ipv4.download.thinkbroadband.com/100MB.zip)|12.8MB/s|1.44MB/s|3.31MB/s|
+![Flame graph](./benchmarks/proxy-flame.svg)
 
 ## Socket API
 

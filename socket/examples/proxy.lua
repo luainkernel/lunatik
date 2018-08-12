@@ -21,7 +21,7 @@ function Client:new(socket, buf_size)
     o = {}
     setmetatable(o, {__index = self})
     self.client_socket = socket
-    self.buf = data.new(buf_size or 1024)
+    self.buf = data.new(buf_size or 4096)
     self.addr, self.port = socket:getpeername()
     return o
 end
@@ -79,7 +79,7 @@ function Client:handle()
             local poll = socket.poll {self.client_socket, self.target_socket}
             while true do
                 local idx = poll:select()
-                print("select" .. idx)
+                -- print("select" .. idx)
                 if idx == 0 then
                     state, err, size = pcall(self.client_socket.recvmsg, self.client_socket, {}, self.buf)
                     if state then
@@ -88,7 +88,7 @@ function Client:handle()
                             return
                         end
                         self.target_socket:send(self.buf:segment(0, size))
-                        print("forward to target: " .. size)
+                        -- print("forward to target: " .. size)
                     end
                 else
                     state, err, size = pcall(self.client_socket.recvmsg, self.target_socket, {}, self.buf)
@@ -98,7 +98,7 @@ function Client:handle()
                             return
                         end
                         self.client_socket:send(self.buf:segment(0, size))
-                        print("forward to client: " .. size)
+                        -- print("forward to client: " .. size)
                     end
                 end
             end
