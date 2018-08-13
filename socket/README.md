@@ -10,6 +10,7 @@
         - [Environment](#environment)
         - [Method](#method)
         - [Result](#result)
+        - [Flame Graph](#flame-graph)
     - [Socket API](#socket-api)
         - [`socket.new()`](#socketnew)
             - [Syntax](#syntax)
@@ -177,9 +178,33 @@ grep "[0-9.]\+ [KM]*B/s" *mb -o
 |[5MB.zip](http://ipv4.download.thinkbroadband.com/5MB.zip)|5.08 MB/s|4.88 MB/s|4.60 MB/s|2.72 MB/s|
 |[100MB.zip](http://ipv4.download.thinkbroadband.com/100MB.zip)|14.1 MB/s|10.6 MB/s|8.64 MB/s|3.12 MB/s|
 
+### Flame Graph
+
+Flame graphs are a visualization of profiled software, allowing the most frequent code-paths to be identified quickly and accurately.
+
+The x-axis shows the stack profile population, sorted alphabetically (it is not the passage of time), and the y-axis shows stack depth, counting from zero at the bottom. Each rectangle represents a stack frame. The wider a frame is is, the more often it was present in the stacks. The top edge shows what is on-CPU, and beneath it is its ancestry. The colors are usually not significant, picked randomly to differentiate frames.
+
+Determining why CPUs are busy is a routine task for performance analysis, which often involves profiling stack traces. Profiling by sampling at a fixed rate is a coarse but effective way to see which code-paths are hot (busy on-CPU). It usually works by creating a timed interrupt that collects the current program counter, function address, or entire stack back trace, and translates these to something human readable when printing a summary report.
+
 The flame graph of the lunatik proxy:
 
 ![Flame graph](./benchmarks/proxy-flame.svg)
+
+How to:
+
+```bash
+# On the guest system
+# Linux pref tool is required
+perf record --call-graph dwarf -a cat proxy.lua > /dev/luadrv
+cp /proc/kallsysm ./ # make pseudo-file a real file
+
+# On the host system, scp the perf.data and kallsysm from the guest, then
+git clone https://github.com/brendangregg/FlameGraph
+perf script --kallsyms kallsyms -c cat |\
+    ./FlameGraph/stackcollapse-perf.pl | \
+    ./FlameGraph/flamegraph.pl --title "Lunatik Proxy" --fontsize 10 \
+    > proxy-flame.svg
+```
 
 ## Socket API
 
