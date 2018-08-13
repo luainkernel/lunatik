@@ -98,11 +98,11 @@
 
 ## Introduction
 
-The Lunatik socket library is developed by Chengzhi Tan (@tcz717). It provides most frequently used APIs that available for `IPv4`, `TCP` and `UDP`. I/O multiplex API, `poll` is also included in this library. The testcase file is `socket/examples/test.lua`.
+The Lunatik socket library is developed by Chengzhi Tan (@tcz717). It provides most frequently used APIs available for `IPv4`, `TCP` and `UDP`. I/O multiplex API, `poll` is also included in this library. The testcase file is `socket/examples/test.lua`.
 
 ### Compile
 
-Complie the kernel module:
+Complie:
 
 ```shell
 make -C /lib/modules/$(uname -r)/build M=LUNATIC_ROOT_PATH modules ARCH=x86_64
@@ -118,7 +118,7 @@ Or see the [wiki](https://github.com/luainkernel/lunatik/wiki/How-to-compile-and
 
 ## SOCKSv4 Demo
 
-This demo shows how to run a SOCKSv4 proxy server in kernel. After the lunatik module loaded, type `cat proxy.lua > /dev/luadrv`. Then the server will start to listen SOCKSv4 request at 8080 port. (The path of the demo file is `socket/examples/proxy.lua`)
+This demo shows how to run a SOCKSv4 proxy server in kernel. After the lunatik module is loaded, type `cat proxy.lua > /dev/luadrv`. Then the server will start to listen SOCKSv4 request at 8080 port. (The path of the demo file is `socket/examples/proxy.lua`)
 
 ## Benchmark
 
