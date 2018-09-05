@@ -13,6 +13,7 @@
 #include <stddef.h>
 #elif defined(__linux__)
 #include <linux/kernel.h>
+#include <linux/version.h>
 #undef INT_MAX /* typecast breaks CPP at 112 */
 #define INT_MAX		(~0U>>1)
 #include <linux/ctype.h>
@@ -811,8 +812,13 @@
 
 /* math.h */
 #include <linux/random.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
 #define l_rand()		prandom_u32()
 #define l_srand(x)		prandom_seed(x)
+#else
+#define l_rand()		random32()
+#define l_srand(x)		srandom32(x)
+#endif
 
 /* setjmp.h */
 struct __jmp_buf {
