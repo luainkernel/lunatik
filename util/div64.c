@@ -27,13 +27,12 @@ __udivmodti4(tu_int a, tu_int b, tu_int* rem)
 {
     const unsigned n_udword_bits = sizeof(du_int) * CHAR_BIT;
     const unsigned n_utword_bits = sizeof(tu_int) * CHAR_BIT;
-    utwords n;
-    n.all = a;
-    utwords d;
-    d.all = b;
+    utwords n = { .all = a };
+    utwords d = { .all = b };
     utwords q;
     utwords r;
     unsigned sr;
+    su_int carry;
     /* special cases, X is unknown, K != 0 */
     if (n.s.high == 0)
     {
@@ -210,9 +209,10 @@ __udivmodti4(tu_int a, tu_int b, tu_int* rem)
      * r.all = n.all >> sr;
      * 1 <= sr <= n_utword_bits - 1
      */
-    su_int carry = 0;
+    carry = 0;
     for (; sr > 0; --sr)
     {
+        ti_int s;
         /* r:q = ((r:q)  << 1) | carry */
         r.s.high = (r.s.high << 1) | (r.s.low  >> (n_udword_bits - 1));
         r.s.low  = (r.s.low  << 1) | (q.s.high >> (n_udword_bits - 1));
@@ -225,7 +225,7 @@ __udivmodti4(tu_int a, tu_int b, tu_int* rem)
          *      carry = 1;
          * }
          */
-        const ti_int s = (ti_int)(d.all - r.all - 1) >> (n_utword_bits - 1);
+        s = (ti_int)(d.all - r.all - 1) >> (n_utword_bits - 1);
         carry = s & 1;
         r.all -= d.all & s;
     }
