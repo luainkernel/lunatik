@@ -7,6 +7,8 @@
 # setjmp/longjmp for the i386 and x86-64 architectures
 #
 
+#ifdef CONFIG_X86_32
+
 #
 # The jmp_buf is assumed to contain the following, in order:
 #	%ebx
@@ -60,6 +62,8 @@ longjmp:
 
 	.size longjmp,.-longjmp
 
+#elif defined(CONFIG_X86_64)
+
 #
 # The jmp_buf is assumed to contain the following, in order:
 #	%rbx
@@ -108,3 +112,9 @@ longjmp:
 	jmp *56(%rdi)
 
 	.size longjmp,.-longjmp
+
+#else
+
+#error Must define either CONFIG_X86_32 or CONFIG_X86_64 when building for x86!
+
+#endif
