@@ -855,12 +855,7 @@ static inline int time(void *p)
 #endif
 
 #define free 			kfree
-#include <linux/hardirq.h>
-static inline void *realloc(const void *p, size_t new_size)
-{
-	gfp_t flag = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
-	return krealloc(p, new_size, flag);
-}
+#define realloc(a, b) 		krealloc(a, b, GFP_ATOMIC)
 
 /* signal.h */
 #define l_signalT	lu_byte
