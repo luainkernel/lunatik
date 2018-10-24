@@ -99,7 +99,7 @@
 	.ascii msg;							\
 	.popsection
 
-#elif defined(__arm__)
+#elif defined(__arm__) && !defined(_CUJO)
 
 #include <arm/asm.h>
 
