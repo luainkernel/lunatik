@@ -29,6 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _CUJO
 #include <aarch64/asm.h>
 #include "assym.h"
 
@@ -311,6 +312,11 @@ ENTRY(cpu_set_onfault)
 	str	x0, [x2, #L_MD_ONFAULT] /* l_md.md_onfault = fb */
 	mov	x0, #0
 END(cpu_set_onfault)
+#endif
+
+#ifdef _CUJO
+#include "asm.h"
+#endif
 
 /*
  * setjmp(9)
