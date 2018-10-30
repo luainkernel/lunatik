@@ -9,11 +9,10 @@
 #define int_lib_h
 
 #ifndef __LP64__
+#include <linux/bitops.h>
 #include <linux/compiler.h>
 #include <linux/math64.h>
 #include <linux/version.h>
-#include <asm-generic/bitops/ffs.h>
-#include <asm-generic/bitops/fls.h>
 
 #define CRT_HAS_128BIT
 
