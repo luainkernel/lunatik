@@ -854,12 +854,6 @@ static inline int time(void *p)
 
 /* stdlib.h */
 #include <linux/slab.h>
-
-#if defined(llex_c) || defined(lstate_c) || defined(lcode_c) || \
-        defined(ldebug_c) || defined(lparser_c)
-#undef current
-#endif
-
 #define free 			kfree
 #define realloc(a, b) 		krealloc(a, b, GFP_ATOMIC)
 
@@ -886,6 +880,11 @@ s64 __modti3(s64 a, s64 b);
 #define lunatik_imod(n, m)	((n) % (m))
 #endif /* __LP64__ */
 
+/* keep this as the last ifdef to prevent incorrect undefs on linux's headers */
+#if defined(llex_c) || defined(lstate_c) || defined(lcode_c) || \
+        defined(ldebug_c) || defined(lparser_c)
+#undef current
+#endif
 #endif /* __linux__ */
 
 #endif /* _KERNEL */
