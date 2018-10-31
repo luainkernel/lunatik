@@ -39,9 +39,9 @@
 #ifndef _MIPS_REGDEF_H
 #define _MIPS_REGDEF_H
 
-#ifndef _CUJO
+#ifndef _LUNATIK
 #include <machine/cdefs.h>	/* for API selection */
-#endif /* _CUJO */
+#endif /* _LUNATIK */
 
 #define zero	$0	/* always zero */
 #define AT	$at	/* assembler temporary */

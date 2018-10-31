@@ -55,12 +55,12 @@
 #ifndef _MIPS_ASM_H
 #define	_MIPS_ASM_H
 
-#ifndef _CUJO
+#ifndef _LUNATIK
 #include <sys/cdefs.h>		/* for API selection */
 #include <mips/regdef.h>
 #else
 #include "regdef.h"
-#endif /* _CUJO */
+#endif /* _LUNATIK */
 
 /*
  * Define -pg profile entry code.

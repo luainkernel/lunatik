@@ -38,7 +38,7 @@
 #ifndef _ARM_ASM_H_
 #define _ARM_ASM_H_
 
-#ifndef _CUJO
+#ifndef _LUNATIK
 #include <arm/cdefs.h>
 #else
 #include "cdefs.h"
