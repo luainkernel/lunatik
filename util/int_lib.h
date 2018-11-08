@@ -1,8 +1,3 @@
-/*
- * This file is Confidential Information of Cujo LLC.
- * Copyright (c) 2018 CUJO LLC. All rights reserved.
- */
-
 /* mock file to compile LLVM's modti3 and udivmodti4 in Linux kernel */
 
 #ifndef int_lib_h
