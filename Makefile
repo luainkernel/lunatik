@@ -32,6 +32,7 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	 lua/lundump.o lua/lvm.o lua/lzio.o lua/lauxlib.o lua/lbaselib.o \
 	 lua/lbitlib.o lua/lcorolib.o lua/ldblib.o lua/lstrlib.o \
 	 lua/ltablib.o lua/lutf8lib.o lua/loslib.o lua/lmathlib.o lua/linit.o \
+	 lua/loadlib.o \
 	 arch/$(ARCH)/setjmp.o util/modti3.o lunatik_core.o
 
 ifeq ($(shell [ "${VERSION}${PATCHLEVEL}" -lt "312" ] && echo y),y)
