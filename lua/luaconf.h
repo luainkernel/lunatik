@@ -786,8 +786,16 @@
 */
 
 #ifdef _KERNEL
-#ifdef __linux__
 
+#ifdef LUA_COMPAT_MODULE
+#undef LUA_COMPAT_MODULE
+#endif
+
+#ifdef LUA_COMPAT_LOADERS
+#undef LUA_COMPAT_LOADERS
+#endif
+
+#ifdef __linux__
 /* Integer types */
 #undef LUA_INTEGER
 #undef LUA_INTEGER_FRMLEN
