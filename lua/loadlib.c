@@ -14,9 +14,11 @@
 #include "lprefix.h"
 
 
+#ifndef _KERNEL
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif /* _KERNEL */
 
 #include "lua.h"
 
@@ -250,6 +252,7 @@ static lua_CFunction lsys_sym (lua_State *L, void *lib, const char *sym) {
 #endif				/* } */
 
 
+#ifndef _KERNEL
 /*
 ** {==================================================================
 ** Set Paths
@@ -309,6 +312,7 @@ static void setpath (lua_State *L, const char *fieldname,
 }
 
 /* }================================================================== */
+#endif /* _KERNEL */
 
 
 /*
@@ -413,6 +417,7 @@ static int ll_loadlib (lua_State *L) {
 */
 
 
+#ifndef _KERNEL
 static int readable (const char *filename) {
   FILE *f = fopen(filename, "r");  /* try to open file */
   if (f == NULL) return 0;  /* open failed */
@@ -555,6 +560,7 @@ static int searcher_Croot (lua_State *L) {
   lua_pushstring(L, filename);  /* will be 2nd argument to module */
   return 2;
 }
+#endif /* _KERNEL */
 
 
 static int searcher_preload (lua_State *L) {
@@ -707,14 +713,18 @@ static int ll_seeall (lua_State *L) {
 
 static const luaL_Reg pk_funcs[] = {
   {"loadlib", ll_loadlib},
+#ifndef _KERNEL
   {"searchpath", ll_searchpath},
 #if defined(LUA_COMPAT_MODULE)
   {"seeall", ll_seeall},
 #endif
+#endif /* _KERNEL */
   /* placeholders */
   {"preload", NULL},
+#ifndef _KERNEL
   {"cpath", NULL},
   {"path", NULL},
+#endif /* _KERNEL */
   {"searchers", NULL},
   {"loaded", NULL},
   {NULL, NULL}
@@ -732,7 +742,11 @@ static const luaL_Reg ll_funcs[] = {
 
 static void createsearcherstable (lua_State *L) {
   static const lua_CFunction searchers[] =
+#ifndef _KERNEL
     {searcher_preload, searcher_Lua, searcher_C, searcher_Croot, NULL};
+#else
+    {searcher_preload, NULL};
+#endif /* _KERNEL */
   int i;
   /* create 'searchers' table */
   lua_createtable(L, sizeof(searchers)/sizeof(searchers[0]) - 1, 0);
@@ -768,9 +782,11 @@ LUAMOD_API int luaopen_package (lua_State *L) {
   createclibstable(L);
   luaL_newlib(L, pk_funcs);  /* create 'package' table */
   createsearcherstable(L);
+#ifndef _KERNEL
   /* set paths */
   setpath(L, "path", LUA_PATH_VAR, LUA_PATH_DEFAULT);
   setpath(L, "cpath", LUA_CPATH_VAR, LUA_CPATH_DEFAULT);
+#endif /* _KERNEL */
   /* store config information */
   lua_pushliteral(L, LUA_DIRSEP "\n" LUA_PATH_SEP "\n" LUA_PATH_MARK "\n"
                      LUA_EXEC_DIR "\n" LUA_IGMARK "\n");

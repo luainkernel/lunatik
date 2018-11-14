@@ -43,9 +43,7 @@
 */
 static const luaL_Reg loadedlibs[] = {
   {"_G", luaopen_base},
-#ifndef _KERNEL
   {LUA_LOADLIBNAME, luaopen_package},
-#endif /* _KERNEL */
   {LUA_COLIBNAME, luaopen_coroutine},
   {LUA_TABLIBNAME, luaopen_table},
 #ifndef _KERNEL
