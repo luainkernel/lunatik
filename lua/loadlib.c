@@ -213,6 +213,41 @@ static lua_CFunction lsys_sym (lua_State *L, void *lib, const char *sym) {
   return f;
 }
 
+#elif defined(_KERNEL) && defined(__linux__)
+/*
+** {========================================================
+** This is an implementation of loadlib for the Linux kernel.
+** =========================================================
+*/
+
+#include <linux/module.h>
+
+static void lsys_unloadlib (void *lib) {
+  symbol_put_addr(lib);
+}
+
+static void *lsys_load (lua_State *L, const char *path, int seeglb) {
+  (void)(seeglb);  /* not used */
+  void *lib = __symbol_get(path);
+  if (lib == NULL)
+    lua_pushfstring(L, "%s not found in kernel symbol table", path);
+  return lib;
+}
+
+static lua_CFunction lsys_sym (lua_State *L, void *lib, const char *sym) {
+  (void)(L); (void)(sym);  /* not used */
+  return (lua_CFunction)lib;
+}
+
+static int lookforfunc (lua_State *, const char *, const char *);
+static int checkload (lua_State *, int, const char *);
+
+static int searcher_C (lua_State *L) {
+  const char *name = luaL_checkstring(L, 1);
+  const char *sym = lua_pushfstring(L, LUA_POF"%s", name);
+  return checkload(L, (lookforfunc(L, sym, sym) == 0), name);
+}
+
 /* }====================================================== */
 
 
@@ -410,6 +445,7 @@ static int ll_loadlib (lua_State *L) {
 
 
 
+#ifndef _KERNEL
 /*
 ** {======================================================
 ** 'require' function
@@ -417,7 +453,6 @@ static int ll_loadlib (lua_State *L) {
 */
 
 
-#ifndef _KERNEL
 static int readable (const char *filename) {
   FILE *f = fopen(filename, "r");  /* try to open file */
   if (f == NULL) return 0;  /* open failed */
@@ -484,6 +519,7 @@ static const char *findfile (lua_State *L, const char *name,
     luaL_error(L, "'package.%s' must be a string", pname);
   return searchpath(L, name, path, ".", dirsep);
 }
+#endif /* _KERNEL */
 
 
 static int checkload (lua_State *L, int stat, const char *filename) {
@@ -497,6 +533,7 @@ static int checkload (lua_State *L, int stat, const char *filename) {
 }
 
 
+#ifndef _KERNEL
 static int searcher_Lua (lua_State *L) {
   const char *filename;
   const char *name = luaL_checkstring(L, 1);
@@ -744,8 +781,8 @@ static void createsearcherstable (lua_State *L) {
   static const lua_CFunction searchers[] =
 #ifndef _KERNEL
     {searcher_preload, searcher_Lua, searcher_C, searcher_Croot, NULL};
-#else
-    {searcher_preload, NULL};
+#elif defined(__linux__)
+    {searcher_preload, searcher_C, NULL};
 #endif /* _KERNEL */
   int i;
   /* create 'searchers' table */
