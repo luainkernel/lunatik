@@ -1,4 +1,5 @@
 ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -D_CONFIG_FULL_PANIC
+asflags-y += -D_LUNATIK -D_KERNEL
 
 ifeq ($(ARCH), $(filter $(ARCH),i386 x86))
 	AFLAGS_setjmp.o := -D_REGPARM
