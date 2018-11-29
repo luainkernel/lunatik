@@ -29,7 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CUJO
+#ifndef _LUNATIK
 #include <aarch64/asm.h>
 #include "assym.h"
 
@@ -314,7 +314,7 @@ ENTRY(cpu_set_onfault)
 END(cpu_set_onfault)
 #endif
 
-#ifdef _CUJO
+#ifdef _LUNATIK
 #include "asm.h"
 #endif
 
