@@ -36,6 +36,6 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	 lua/loadlib.o \
 	 arch/$(ARCH)/setjmp.o util/modti3.o lunatik_core.o
 
-ifeq ($(shell [ "${VERSION}${PATCHLEVEL}" -lt "312" ] && echo y),y)
+ifeq ($(shell [ "${VERSION}" -lt "4" ] && [ "${VERSION}${PATCHLEVEL}" -lt "312" ] && echo y),y)
 	lunatik-objs += util/div64.o
 endif
