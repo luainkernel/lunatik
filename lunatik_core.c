@@ -175,5 +175,5 @@ static void __exit modexit(void)
 
 module_init(modinit);
 module_exit(modexit);
-MODULE_LICENSE("MIT");
+MODULE_LICENSE("Dual MIT/GPL");
 #endif /* __linux__ */
