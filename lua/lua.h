@@ -493,7 +493,7 @@ struct lua_Debug {
 
 /******************************************************************************
 #ifdef _KERNEL
-* Copyright (c) 2017, CUJO LLC.
+* Copyright (c) 2017-2018, CUJO LLC.
 * Copyright (c) 2016-2016, Lourival Vieira Neto <lneto@NetBSD.org>.
 #endif
 * Copyright (C) 1994-2017 Lua.org, PUC-Rio.
