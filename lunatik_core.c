@@ -156,6 +156,7 @@ EXPORT_SYMBOL(luaL_newstate);
 EXPORT_SYMBOL(luaL_checkversion_);
 EXPORT_SYMBOL(luaL_openlibs);
 EXPORT_SYMBOL(luaopen_base);
+EXPORT_SYMBOL(luaopen_package);
 EXPORT_SYMBOL(luaopen_coroutine);
 EXPORT_SYMBOL(luaopen_debug);
 EXPORT_SYMBOL(luaopen_math);
