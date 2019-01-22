@@ -141,6 +141,7 @@ typedef LUAI_UACINT l_uacInt;
 /*
 ** non-return type
 */
+#ifndef _KERNEL
 #if defined(__GNUC__)
 #define l_noret		void __attribute__((noreturn))
 #elif defined(_MSC_VER) && _MSC_VER >= 1200
@@ -148,6 +149,9 @@ typedef LUAI_UACINT l_uacInt;
 #else
 #define l_noret		void
 #endif
+#else
+#define l_noret		void
+#endif /* _KERNEL */
 
 
 
