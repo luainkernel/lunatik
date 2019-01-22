@@ -68,11 +68,13 @@
 #define l_timet			lua_Integer
 #define l_pushtime(L,t)		lua_pushinteger(L,(lua_Integer)(t))
 
+#ifndef _KERNEL
 static time_t l_checktime (lua_State *L, int arg) {
   lua_Integer t = luaL_checkinteger(L, arg);
   luaL_argcheck(L, (time_t)t == t, arg, "time out-of-bounds");
   return (time_t)t;
 }
+#endif
 
 #endif				/* } */
 
@@ -187,7 +189,6 @@ static int os_clock (lua_State *L) {
   lua_pushnumber(L, ((lua_Number)clock())/(lua_Number)CLOCKS_PER_SEC);
   return 1;
 }
-#endif /* _KERNEL */
 
 
 /*
@@ -223,9 +224,7 @@ static void setallfields (lua_State *L, struct tm *stm) {
   setfield(L, "year", stm->tm_year + 1900);
   setfield(L, "wday", stm->tm_wday + 1);
   setfield(L, "yday", stm->tm_yday + 1);
-#ifndef _KERNEL
   setboolfield(L, "isdst", stm->tm_isdst);
-#endif /* _KERNEL */
 }
 
 
@@ -263,7 +262,6 @@ static int getfield (lua_State *L, const char *key, int d, int delta) {
 }
 
 
-#ifndef _KERNEL
 static const char *checkoption (lua_State *L, const char *conv,
                                 ptrdiff_t convlen, char *buff) {
   const char *option = LUA_STRFTIMEOPTIONS;
