@@ -227,8 +227,8 @@ static void lsys_unloadlib (void *lib) {
 }
 
 static void *lsys_load (lua_State *L, const char *path, int seeglb) {
-  (void)(seeglb);  /* not used */
   void *lib = __symbol_get(path);
+  (void)(seeglb);  /* not used */
   if (lib == NULL)
     lua_pushfstring(L, "%s not found in kernel symbol table", path);
   return lib;
