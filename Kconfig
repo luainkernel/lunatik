@@ -1,2 +1,17 @@
 config LUNATIK
     tristate "Lunatik"
+
+config LUNATIK_POC
+    bool "Use poc driver"
+    depends on LUNATIK
+    default y
+
+config LUADATA
+    bool "Use luadata lib"
+    depends on LUNATIK
+    default y
+
+config LUAPROC
+    bool "Use luaproc lib"
+    depends on LUNATIK
+    default y
