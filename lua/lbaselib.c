@@ -185,7 +185,11 @@ static int luaB_collectgarbage (lua_State *L) {
   switch (o) {
     case LUA_GCCOUNT: {
       int b = lua_gc(L, LUA_GCCOUNTB, 0);
+#ifndef _KERNEL
       lua_pushnumber(L, (lua_Number)res + ((lua_Number)b/1024));
+#else
+      lua_pushinteger(L, (res << 10) + b);
+#endif
       return 1;
     }
     case LUA_GCSTEP: case LUA_GCISRUNNING: {
