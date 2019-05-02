@@ -872,8 +872,8 @@ static inline int time(void *p)
 #define UCHAR_MAX	(255)
 #define CHAR_BIT	(8)
 
-#undef LUAL_BUFFERSIZE /* stack shouldn't be greater than 2048 */
-#define LUAL_BUFFERSIZE		(1024)
+#undef LUAL_BUFFERSIZE
+#define LUAL_BUFFERSIZE		(64)
 
 #ifndef __LP64__
 #include <asm/div64.h>
