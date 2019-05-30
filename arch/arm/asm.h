@@ -1,7 +1,7 @@
 /*	$NetBSD: asm.h,v 1.26 2014/01/29 00:42:15 matt Exp $	*/
 
 /*
- * Copyright (c) 2017 CUJO LLC. All rights reserved.
+ * Copyright (c) 2017-2019 CUJO LLC.
  * Copyright (c) 1990 The Regents of the University of California.
  * All rights reserved.
  *

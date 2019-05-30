@@ -1,7 +1,7 @@
 /*	$NetBSD: locore.S,v 1.36 2014/04/11 16:34:29 matt Exp $	*/
 
 /*
- * Copyright (c) 2017 CUJO LLC. All rights reserved.
+ * Copyright (c) 2017-2019 CUJO LLC.
  * Copyright (C) 1994-1997 Mark Brinicombe
  * Copyright (C) 1994 Brini
  * All rights reserved.

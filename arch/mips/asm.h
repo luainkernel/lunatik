@@ -1,7 +1,7 @@
 /*	$NetBSD: asm.h,v 1.53 2016/11/11 16:41:32 maya Exp $	*/
 
 /*
- * Copyright (c) 2017 CUJO LLC. All rights reserved.
+ * Copyright (c) 2017-2019 CUJO LLC.
  * Copyright (c) 1992, 1993
  *	The Regents of the University of California.  All rights reserved.
  *

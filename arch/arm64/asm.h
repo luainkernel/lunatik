@@ -1,6 +1,7 @@
 /* $NetBSD: asm.h,v 1.1 2014/08/10 05:47:37 matt Exp $ */
 
 /*-
+ * Copyright (c) 2017-2019 CUJO LLC.
  * Copyright (c) 2014 The NetBSD Foundation, Inc.
  * All rights reserved.
  *

@@ -1,7 +1,7 @@
 /*	$NetBSD: regdef.h,v 1.13 2015/06/07 06:07:49 matt Exp $	*/
 
 /*
- * Copyright (c) 2017 CUJO LLC. All rights reserved.
+ * Copyright (c) 2017-2019 CUJO LLC.
  * Copyright (c) 1992, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
