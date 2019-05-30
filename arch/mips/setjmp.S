@@ -1,7 +1,7 @@
 /*	$NetBSD: locore.S,v 1.208 2016/11/09 11:50:09 maya Exp $	*/
 
 /*
- * Copyright (c) 2017 CUJO LLC. All rights reserved.
+ * Copyright (c) 2017-2019 CUJO LLC.
  * Copyright (c) 1992, 1993
  *	The Regents of the University of California.  All rights reserved.
  *

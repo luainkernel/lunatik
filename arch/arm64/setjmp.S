@@ -1,6 +1,7 @@
 /* $NetBSD: locore.S,v 1.4 2017/08/25 22:23:59 nisimura Exp $ */
 
 /*-
+ * Copyright (c) 2017-2019 CUJO LLC.
  * Copyright (c) 2014 The NetBSD Foundation, Inc.
  * All rights reserved.
  *

@@ -33,9 +33,9 @@
 #define LUA_COPYRIGHT	LUA_RELEASE "  Copyright (C) 1994-2017 Lua.org, PUC-Rio"
 #else /* _KERNEL */
 #define LUA_COPYRIGHT	LUA_RELEASE \
-	"  Copyright (c) 2017-2018, CUJO LLC." \
-	"  Copyright (c) 2016-2016, Lourival Vieira Neto <lneto@NetBSD.org>." \
-	"  Copyright (C) 1994-2016 Lua.org, PUC-Rio"
+	"  Copyright (c) 2017-2019 CUJO LLC." \
+	"  Copyright (c) 2016-2016 Lourival Vieira Neto <lneto@NetBSD.org>." \
+	"  Copyright (C) 1994-2017 Lua.org, PUC-Rio"
 #endif /* _KERNEL */
 #define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
 
@@ -493,8 +493,8 @@ struct lua_Debug {
 
 /******************************************************************************
 #ifdef _KERNEL
-* Copyright (c) 2017-2018, CUJO LLC.
-* Copyright (c) 2016-2016, Lourival Vieira Neto <lneto@NetBSD.org>.
+* Copyright (c) 2017-2019 CUJO LLC.
+* Copyright (c) 2016-2016 Lourival Vieira Neto <lneto@NetBSD.org>.
 #endif
 * Copyright (C) 1994-2017 Lua.org, PUC-Rio.
 *
