@@ -221,13 +221,14 @@ static lua_CFunction lsys_sym (lua_State *L, void *lib, const char *sym) {
 */
 
 #include <linux/module.h>
+#include <linux/kallsyms.h>
 
 static void lsys_unloadlib (void *lib) {
   symbol_put_addr(lib);
 }
 
 static void *lsys_load (lua_State *L, const char *path, int seeglb) {
-  void *lib = __symbol_get(path);
+  void *lib = (void *) kallsyms_lookup_name(path)
   (void)(seeglb);  /* not used */
   if (lib == NULL)
     lua_pushfstring(L, "%s not found in kernel symbol table", path);
