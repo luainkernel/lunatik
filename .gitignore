@@ -1,0 +1,4 @@
+*.[ao]
+*.[ao].cmd
+modules.builtin
+modules.order
