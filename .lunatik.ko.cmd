@@ -1,1 +1,0 @@
-cmd_/home/matheus/gsoc/lunatik/lunatik.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000 -T ./scripts/module-common.lds --build-id  -o /home/matheus/gsoc/lunatik/lunatik.ko /home/matheus/gsoc/lunatik/lunatik.o /home/matheus/gsoc/lunatik/lunatik.mod.o ;  true
