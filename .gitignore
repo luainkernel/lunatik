@@ -2,3 +2,9 @@
 *.[ao].cmd
 modules.builtin
 modules.order
+.lunatik.ko.cmd
+.lunatik.mod.cmd
+Module.symvers
+*.mod
+*.ko
+lunatik.mod.c
