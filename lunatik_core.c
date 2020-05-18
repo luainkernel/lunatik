@@ -26,6 +26,7 @@
 #include "lua/lua.h"
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
+#include "states.h"
 
 EXPORT_SYMBOL(lua_checkstack);
 EXPORT_SYMBOL(lua_xmove);
@@ -164,6 +165,8 @@ EXPORT_SYMBOL(luaopen_os);
 EXPORT_SYMBOL(luaopen_string);
 EXPORT_SYMBOL(luaopen_table);
 EXPORT_SYMBOL(luaopen_utf8);
+EXPORT_SYMBOL(klua_createstate);
+EXPORT_SYMBOL(klua_liststates);
 
 static int __init modinit(void)
 {

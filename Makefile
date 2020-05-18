@@ -42,7 +42,7 @@ endif
 
 # Altered from here
 
-lunatik-objs += lsm/states.o
+lunatik-objs += states.o
 
 K_SRC ?= $(shell uname -r)
 

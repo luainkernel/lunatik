@@ -8,3 +8,4 @@ Module.symvers
 *.mod
 *.ko
 lunatik.mod.c
+/tests
