@@ -47,10 +47,15 @@ int klua_createstate(const char *name){
 
 	if(get_state(name) != NULL){
 		printk(KERN_INFO "klua: State %s already exists\n", name);
-		return 1;
+		return STATE_CREATION_ERROR;
 	}
 
 	kls = kmalloc(sizeof(struct klua_state), GFP_ATOMIC);
+
+	if(kls == NULL){
+		printk(KERN_INFO "klua: Failed to allocated memory for state %s\n", name);
+		return STATE_CREATION_ERROR;
+	}
 
 	kls->L = luaL_newstate();
 	strcpy(kls->name, name);
@@ -62,7 +67,7 @@ int klua_createstate(const char *name){
 	hash_add(states_table, &(kls->node), hash_func(name));
 	states_counter++;
 
-	return 1;
+	return STATE_CREATION_SUCCESS;
 }
 
 void klua_liststates(void){
@@ -74,25 +79,21 @@ void klua_liststates(void){
 }
 
 int klua_deletestate(const char *name){
-	__u32 key;
 	struct klua_state *curr;
-	__u32 smaller;
+	
+	curr = get_state(name);
 
-
-	key = hash_func(name);
-
-	hash_for_each_possible(states_table, curr, node, key){
-		smaller = strlen(name) < strlen(curr->name) ? strlen(name) : strlen(curr->name);
-
-		if (!strncmp(curr->name, name, smaller)){
-			printk(KERN_INFO "klua: Deleting the following state: %s\n", curr->name);
-			lua_close(curr->L);
-			hash_del(&(curr->node));
-			states_counter--;
-		}
+	if(curr == NULL){
+		printk(KERN_INFO "klua: State %s not found\n", name);
+		return STATE_DELETION_ERROR;
 	}
 
-	return 1;
+	printk(KERN_INFO "klua: Deleting the following state: %s\n", curr->name);
+	lua_close(curr->L);
+	hash_del(&(curr->node));
+	states_counter--;
+
+	return STATE_DELETION_SUCCESS;
 }
 
 int klua_execute(const char *name, const char *code){
