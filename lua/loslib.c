@@ -328,8 +328,8 @@ static int os_date (lua_State *L) {
 
 
 static int os_time (lua_State *L) {
-#ifndef _KERNEL
   time_t t;
+#ifndef _KERNEL
   if (lua_isnoneornil(L, 1))  /* called without args? */
     t = time(NULL);  /* get current time */
   else {
@@ -351,12 +351,11 @@ static int os_time (lua_State *L) {
   l_pushtime(L, t);
   return 1;
 #else
-  struct timespec ts;
   lua_Integer res;
 
-  getnstimeofday(&ts);
-  lua_pushinteger(L, (lua_Integer)ts.tv_sec);
-  res = ts.tv_sec * NSEC_PER_SEC + ts.tv_nsec;
+  luai_time(t);
+  lua_pushinteger(L, (lua_Integer)t.tv_sec);
+  res = t.tv_sec * NSEC_PER_SEC + t.tv_nsec;
   lua_pushinteger(L, res);
 
   return 2;
