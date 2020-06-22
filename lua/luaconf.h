@@ -842,18 +842,18 @@ extern void longjmp(luai_jmpbuf);
 #include <linux/ktime.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,6,0)
 #include <linux/time.h>
-typedef struct timespec time_t;
+typedef struct timespec lunatik_time_t;
 #define luai_time(t)		getnstimeofday(&t)
 #elif defined(LUA_32BITS)
 #error "kernel versions >= 5.6.0 do not support 32-bit time values"
 #else
-typedef struct timespec64 time_t;
+typedef struct timespec64 lunatik_time_t;
 #define luai_time(t)		ktime_get_real_ts64(&t)
 #endif
 
 static inline int time(void *p)
 {
-  time_t t;
+  lunatik_time_t t;
   ((void) p);
   luai_time(t);
   return t.tv_sec;
