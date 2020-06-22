@@ -328,8 +328,8 @@ static int os_date (lua_State *L) {
 
 
 static int os_time (lua_State *L) {
-  time_t t;
 #ifndef _KERNEL
+  time_t t;
   if (lua_isnoneornil(L, 1))  /* called without args? */
     t = time(NULL);  /* get current time */
   else {
@@ -351,6 +351,7 @@ static int os_time (lua_State *L) {
   l_pushtime(L, t);
   return 1;
 #else
+  lunatik_time_t t;
   lua_Integer res;
 
   luai_time(t);
