@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2020  Matheus Rodrigues <matheussr61@gmail.com>
  * Copyright (C) 2017-2019  CUJO LLC
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,48 +17,46 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef NFLUA_STATES_H
-#define NFLUA_STATES_H
+#ifndef LUNATIK_STATES_H
+#define LUNATIK_STATES_H
 
-#include "kpi_compat.h"
+#include "lua/lua.h"
 
-#include <lua.h>
+#define LUNATIK_NAME_MAXSIZE 64
+#define LUNATIK_MIN_ALLOC_BYTES (32 * 1024UL)
+#define LUNATIK_HASH_BUCKETS 32
 
-#define NFLUA_NAME_MAXSIZE 64
-
-struct xt_lua_net;
-
-struct nflua_state {
-	struct hlist_node node;
-	lua_State *L;
-	struct xt_lua_net *xt_lua;
-	spinlock_t lock;
-	kpi_refcount_t users;
-	u32 dseqnum;
-	size_t maxalloc;
-	size_t curralloc;
-	unsigned char name[NFLUA_NAME_MAXSIZE];
+struct lunatik_session {
+	struct hlist_head states_table[LUNATIK_HASH_BUCKETS];
+	spinlock_t statestable_lock;
+	spinlock_t rfcnt_lock;
+	atomic_t states_count;
 };
 
+typedef struct lunatik_state {
+	struct hlist_node node;
+	lua_State *L;
+	spinlock_t lock;
+	refcount_t users;
+	size_t maxalloc;
+	size_t curralloc;
+	unsigned char name[LUNATIK_NAME_MAXSIZE];
+} lunatik_State;
+
+#ifndef LUNATIK_UNUSED
 typedef int (*nflua_state_cb)(struct nflua_state *s, unsigned short *total);
+#endif /*LUNATIK_UNUSED*/
 
-struct nflua_state *nflua_state_create(struct xt_lua_net *xt_lua,
-        size_t maxalloc, const char *name);
+lunatik_State *lunatik_newstate(size_t maxalloc, const char *name);
+int lunatik_close(const char *name);
+lunatik_State *lunatik_statelookup(const char *name);
 
-int nflua_state_destroy(struct xt_lua_net *xt_lua, const char *name);
-
-struct nflua_state *nflua_state_lookup(struct xt_lua_net *xt_lua,
-        const char *name);
-
+#ifndef LUNATIK_UNUSED
 int nflua_state_list(struct xt_lua_net *xt_lua, nflua_state_cb cb,
 	unsigned short *total);
+#endif /*LUNATIK_UNUSED*/
 
-void nflua_state_destroy_all(struct xt_lua_net *xt_lua);
+bool lunatik_stateget(lunatik_State *s);
+void lunatik_stateput(lunatik_State *s);
 
-bool nflua_state_get(struct nflua_state *s);
-void nflua_state_put(struct nflua_state *s);
-
-void nflua_states_init(struct xt_lua_net *xt_lua);
-void nflua_states_exit(struct xt_lua_net *xt_lua);
-
-#endif /* NFLUA_STATES_H */
+#endif /* LUNATIK_STATES_H */

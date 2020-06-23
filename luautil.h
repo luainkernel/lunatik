@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2020	Matheus Rodrigues <matheussr61@gmail.com>
  * Copyright (C) 2017-2019  CUJO LLC
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,8 +20,10 @@
 #ifndef _LUA_UTIL_H
 #define _LUA_UTIL_H
 
-#include <lua.h>
-#include <lauxlib.h>
+#include "lua/lua.h"
+#include "lua/lauxlib.h"
+
+#ifndef LUNATIK_UNUSED
 
 typedef const struct {} luaU_id[1];
 
@@ -59,11 +62,13 @@ static inline void *luaU_getregval(lua_State *L, luaU_id id)
 
 	return v;
 }
+#endif /*LUNATIK_UNUSED*/
 
 #define luaU_setenv(L, env, st) { \
 	st **penv = (st **)lua_getextraspace(L); \
 	*penv = env; }
 
+#ifndef LUNATIK_UNUSED
 #define luaU_getenv(L, st)	(*((st **)lua_getextraspace(L)))
 
 static inline int luaU_pusherr(lua_State *L, const char *err)
@@ -79,3 +84,4 @@ static inline int luaU_pusherr(lua_State *L, const char *err)
 int luaU_pcall(lua_State *L, int nargs, int nresults);
 
 #endif /* _LUA_UTIL_H */
+#endif /* LUNATIK_UNUSED */

@@ -1,4 +1,5 @@
 /*
+* Copyright (c) 2020 Matheus Rodrigues <matheussr61@gmail.com>
 * Copyright (c) 2017-2019 CUJO LLC.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
@@ -26,6 +27,8 @@
 #include "lua/lua.h"
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
+
+#include "states.h"
 
 EXPORT_SYMBOL(lua_checkstack);
 EXPORT_SYMBOL(lua_xmove);
@@ -165,13 +168,24 @@ EXPORT_SYMBOL(luaopen_string);
 EXPORT_SYMBOL(luaopen_table);
 EXPORT_SYMBOL(luaopen_utf8);
 
+EXPORT_SYMBOL(lunatik_newstate);
+EXPORT_SYMBOL(lunatik_close);
+EXPORT_SYMBOL(lunatik_statelookup);
+EXPORT_SYMBOL(lunatik_stateget);
+EXPORT_SYMBOL(lunatik_stateput);
+
+extern void lunatik_statesinit(void);
+extern void lunatik_closeall(void);
+
 static int __init modinit(void)
 {
-        return 0;
+	lunatik_statesinit();
+	return 0;
 }
 
 static void __exit modexit(void)
 {
+	lunatik_closeall();
 }
 
 module_init(modinit);
