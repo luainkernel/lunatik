@@ -59,4 +59,8 @@ int nflua_state_list(struct xt_lua_net *xt_lua, nflua_state_cb cb,
 bool lunatik_stateget(lunatik_State *s);
 void lunatik_stateput(lunatik_State *s);
 
+lunatik_State *lunatik_netnewstate(struct lunatik_session *session, size_t maxalloc, const char *name);
+int lunatik_netclose(struct lunatik_session *session, const char *name);
+lunatik_State *lunatik_netstatelookup(struct lunatik_session *session, const char *name);
+
 #endif /* LUNATIK_STATES_H */

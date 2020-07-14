@@ -23,6 +23,9 @@
 */
 #ifdef __linux__
 #include <linux/module.h>
+#include <net/net_namespace.h>
+#include <net/netns/generic.h>
+#include <linux/hashtable.h>
 
 #include "lua/lua.h"
 #include "lua/lauxlib.h"
@@ -174,18 +177,76 @@ EXPORT_SYMBOL(lunatik_statelookup);
 EXPORT_SYMBOL(lunatik_stateget);
 EXPORT_SYMBOL(lunatik_stateput);
 
+EXPORT_SYMBOL(lunatik_netnewstate);
+EXPORT_SYMBOL(lunatik_netclose);
+EXPORT_SYMBOL(lunatik_netstatelookup);
+
 extern void lunatik_statesinit(void);
 extern void lunatik_closeall(void);
+extern void state_destroy(lunatik_State *s);
+
+static int lunatik_netid __read_mostly;
+
+struct lunatik_session *klua_pernet(struct net *net)
+{
+	return (struct lunatik_session *)net_generic(net,lunatik_netid);
+}
+
+static int __net_init lunatik_sessioninit(struct net *net)
+{
+	struct lunatik_session *session = klua_pernet(net);
+
+	atomic_set(&(session->states_count), 0);
+	spin_lock_init(&(session->statestable_lock));
+	spin_lock_init(&(session->rfcnt_lock));
+	hash_init(session->states_table);
+
+	return 0;
+}
+
+static void __net_exit lunatik_sessionend(struct net *net)
+{
+	struct lunatik_session *session;
+	lunatik_State *s;
+	struct hlist_node *tmp;
+	int bkt;
+
+	session = klua_pernet(net);
+
+	spin_lock_bh(&(session->statestable_lock));
+
+	hash_for_each_safe(session->states_table, bkt, tmp, s, node) {
+		state_destroy(s);
+	}
+
+	spin_unlock_bh(&(session->statestable_lock));
+}
+
+static struct pernet_operations klua_net_ops = {
+	.init = lunatik_sessioninit,
+	.exit = lunatik_sessionend,
+	.id   = &lunatik_netid,
+	.size = sizeof(struct lunatik_session),
+};
 
 static int __init modinit(void)
 {
+	int ret;
+
 	lunatik_statesinit();
+
+	if ((ret = register_pernet_subsys(&klua_net_ops))) {
+		pr_err("Failed to register pernet operations\n");
+		return ret;
+	}
+
 	return 0;
 }
 
 static void __exit modexit(void)
 {
 	lunatik_closeall();
+	unregister_pernet_subsys(&klua_net_ops);
 }
 
 module_init(modinit);

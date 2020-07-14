@@ -54,7 +54,7 @@ lunatik_State *lunatik_statelookup(const char *name)
 	return NULL;
 }
 
-static void state_destroy(lunatik_State *s)
+void state_destroy(lunatik_State *s)
 {
 	hash_del_rcu(&s->node);
 	atomic_dec(&(session.states_count));
@@ -256,4 +256,98 @@ void lunatik_statesinit(void)
 	spin_lock_init(&(session.statestable_lock));
 	spin_lock_init(&(session.rfcnt_lock));
 	hash_init(session.states_table);
+}
+
+lunatik_State *lunatik_netstatelookup(struct lunatik_session *session, const char *name)
+{
+
+	lunatik_State *state;
+	int key;
+	if (session == NULL)
+		return NULL;
+
+	key = name_hash(session,name);
+
+	hash_for_each_possible_rcu(session->states_table, state, node, key) {
+		if (!strncmp(state->name, name, LUNATIK_NAME_MAXSIZE))
+			return state;
+	}
+	return NULL;
+}
+
+lunatik_State *lunatik_netnewstate(struct lunatik_session *session, size_t maxalloc, const char *name)
+{
+
+	lunatik_State *s = lunatik_netstatelookup(session, name);
+	int namelen = strnlen(name, LUNATIK_NAME_MAXSIZE);
+
+	pr_debug("creating state: %.*s maxalloc: %zd\n", namelen, name,
+		maxalloc);
+
+	if (s != NULL) {
+		pr_err("state already exists: %.*s\n", namelen, name);
+		return NULL;
+	}
+
+	if (atomic_read(&(session->states_count)) >= LUNATIK_HASH_BUCKETS) {
+		pr_err("could not allocate id for state %.*s\n", namelen, name);
+		pr_err("max states limit reached or out of memory\n");
+		return NULL;
+	}
+
+	if (maxalloc < LUNATIK_MIN_ALLOC_BYTES) {
+		pr_err("maxalloc %zu should be greater then MIN_ALLOC %zu\n",
+		    maxalloc, LUNATIK_MIN_ALLOC_BYTES);
+		return NULL;
+	}
+
+	if ((s = kzalloc(sizeof(lunatik_State), GFP_ATOMIC)) == NULL) {
+		pr_err("could not allocate nflua state\n");
+		return NULL;
+	}
+
+	spin_lock_init(&s->lock);
+	s->maxalloc  = maxalloc;
+	s->curralloc = 0;
+	memcpy(&(s->name), name, namelen);
+
+	if (state_init(s)) {
+		pr_err("could not allocate a new lua state\n");
+		kfree(s);
+		return NULL;
+	}
+
+	spin_lock_bh(&(session->statestable_lock));
+	hash_add_rcu(session->states_table, &(s->node), name_hash(session,name));
+	refcount_inc(&(s->users));
+	atomic_inc(&(session->states_count));
+	spin_unlock_bh(&(session->statestable_lock));
+
+	pr_debug("new state created: %.*s\n", namelen, name);
+	return s;
+}
+
+int lunatik_netclose(struct lunatik_session *session, const char *name)
+{
+	lunatik_State *s = lunatik_netstatelookup(session,name);
+
+	if (s == NULL || refcount_read(&s->users) > 1)
+		return -1;
+
+	spin_lock_bh(&(session->statestable_lock));
+
+	hash_del_rcu(&s->node);
+	atomic_dec(&(session->states_count));
+
+	spin_lock_bh(&s->lock);
+	if (s->L != NULL) {
+		lua_close(s->L);
+		s->L = NULL;
+	}
+	spin_unlock_bh(&s->lock);
+	lunatik_stateput(s);
+
+	spin_unlock_bh(&(session->statestable_lock));
+
+	return 0;
 }
