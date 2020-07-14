@@ -187,14 +187,14 @@ extern void state_destroy(lunatik_State *s);
 
 static int lunatik_netid __read_mostly;
 
-struct lunatik_session *klua_pernet(struct net *net)
+struct lunatik_session *lunatik_pernet(struct net *net)
 {
 	return (struct lunatik_session *)net_generic(net,lunatik_netid);
 }
 
 static int __net_init lunatik_sessioninit(struct net *net)
 {
-	struct lunatik_session *session = klua_pernet(net);
+	struct lunatik_session *session = lunatik_pernet(net);
 
 	atomic_set(&(session->states_count), 0);
 	spin_lock_init(&(session->statestable_lock));
@@ -211,7 +211,7 @@ static void __net_exit lunatik_sessionend(struct net *net)
 	struct hlist_node *tmp;
 	int bkt;
 
-	session = klua_pernet(net);
+	session = lunatik_pernet(net);
 
 	spin_lock_bh(&(session->statestable_lock));
 
@@ -222,7 +222,7 @@ static void __net_exit lunatik_sessionend(struct net *net)
 	spin_unlock_bh(&(session->statestable_lock));
 }
 
-static struct pernet_operations klua_net_ops = {
+static struct pernet_operations lunatik_net_ops = {
 	.init = lunatik_sessioninit,
 	.exit = lunatik_sessionend,
 	.id   = &lunatik_netid,
@@ -235,7 +235,7 @@ static int __init modinit(void)
 
 	lunatik_statesinit();
 
-	if ((ret = register_pernet_subsys(&klua_net_ops))) {
+	if ((ret = register_pernet_subsys(&lunatik_net_ops))) {
 		pr_err("Failed to register pernet operations\n");
 		return ret;
 	}
@@ -246,7 +246,7 @@ static int __init modinit(void)
 static void __exit modexit(void)
 {
 	lunatik_closeall();
-	unregister_pernet_subsys(&klua_net_ops);
+	unregister_pernet_subsys(&lunatik_net_ops);
 }
 
 module_init(modinit);
