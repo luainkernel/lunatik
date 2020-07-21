@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Matheus Rodrigues <matheussr61@gmail.com>
  * Copyright (C) 2017-2019  CUJO LLC
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,37 +17,50 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef NFLUA_H
-#define NFLUA_H
+#ifndef LUNATIK_H
+#define LUNATIK_H
 
 #include <sys/user.h>
 #include <stdint.h>
-#include <netlink_common.h>
+#include <netlink/genl/genl.h>
+#include "../netlink_common.h"
+#include "../lunatik_conf.h"
 
-enum nflua_control_state {
-    NFLUA_LINK_READY,
-    NFLUA_SENDING_REQUEST,
-    NFLUA_PENDING_REPLY,
-    NFLUA_RECEIVING_REPLY,
-    NFLUA_PROTOCOL_OUTOFSYNC,
-    NFLUA_SOCKET_CLOSED,
+enum callback_result {
+    CB_SUCCESS,
+    CB_ERROR,
 };
 
-struct nflua_response {
-    uint32_t type;
-    uint32_t count;
-    uint32_t total_size;
+enum session_status {
+    SESSION_FREE,
+    SESSION_RECEIVING,
+    SESSION_INIT_LIST,
 };
 
-struct nflua_control {
+struct lunatik_state {
+    struct lunatik_session *session;
+    uint32_t maxalloc;
+    uint32_t curralloc;
+    char name[LUNATIK_NAME_MAXSIZE];
+};
+
+struct states_list {
+    struct lunatik_state *states;
+    size_t list_size;
+    unsigned int tail;
+};
+
+struct lunatik_session {
+    struct nl_sock *sock;
+    struct states_list states_list;
+    enum session_status status;
+    enum callback_result cb_result;
+    int family;
     int fd;
     uint32_t pid;
-    uint32_t seqnum;
-    int currfrag;
-    enum nflua_control_state state;
-    uint8_t buffer[NFLUA_PAYLOAD_MAXSIZE];
 };
 
+#ifndef _UNUSED
 struct nflua_data {
     int fd;
     uint32_t pid;
@@ -54,40 +68,32 @@ struct nflua_data {
     char state[NFLUA_NAME_MAXSIZE];
     char buffer[NFLUA_PAYLOAD_MAXSIZE];
 };
+#endif /* _UNUSED */
 
-static inline int nflua_control_getsock(const struct nflua_control *ctrl)
+static inline int lunatikS_getfd(const struct lunatik_session *session)
 {
-    return ctrl->fd;
+    return session->fd;
 }
 
-static inline int nflua_control_getstate(const struct nflua_control *ctrl)
+static inline int lunatikS_isopen(const struct lunatik_session *session)
 {
-    return ctrl->state;
+    return session->fd >= 0;
 }
 
-static inline int nflua_control_getpid(const struct nflua_control *ctrl)
-{
-    return ctrl->pid;
-}
+int lunatikS_init(struct lunatik_session *session);
 
-static inline int nflua_control_is_open(const struct nflua_control *ctrl)
-{
-    return ctrl->fd >= 0;
-}
+void lunatikS_end(struct lunatik_session *session);
 
-int nflua_control_init(struct nflua_control *ctrl, uint32_t pid);
+int lunatikS_create(struct lunatik_session *session, struct lunatik_state *s);
 
-void nflua_control_close(struct nflua_control *ctrl);
+int lunatikS_destroy(struct lunatik_session *session, const char *name);
 
-int nflua_control_create(struct nflua_control *ctrl, struct nflua_nl_state *);
+int lunatikS_dostring(struct lunatik_session *session, const char *state_name,
+    const char *script, const char *script_name, size_t total_code_size);
 
-int nflua_control_destroy(struct nflua_control *ctrl, const char *name);
+int lunatikS_list(struct lunatik_session *session);
 
-int nflua_control_execute(struct nflua_control *ctrl, const char *name,
-        const char *scriptname, const char *payload, size_t total);
-
-int nflua_control_list(struct nflua_control *ctrl);
-
+#ifndef _UNUSED
 int nflua_control_receive(struct nflua_control *ctrl,
         struct nflua_response *nr, char *buffer);
 
@@ -114,5 +120,5 @@ int nflua_data_send(struct nflua_data *dch, const char *name,
         const char *payload, size_t len);
 
 int nflua_data_receive(struct nflua_data *dch, char *state, char *buffer);
-
-#endif /* NFLUA_H */
+#endif /* _UNUSED */
+#endif /* LUNATIK_H */

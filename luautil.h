@@ -77,11 +77,11 @@ static inline int luaU_pusherr(lua_State *L, const char *err)
 	lua_pushstring(L, err);
 	return 2;
 }
+#endif /* _LUA_UTIL_H */
 
 #define luaU_dostring(L, b, s, n) \
 	(luaL_loadbufferx(L, b, s, n, "t") || luaU_pcall(L, 0, 0))
 
 int luaU_pcall(lua_State *L, int nargs, int nresults);
 
-#endif /* _LUA_UTIL_H */
 #endif /* LUNATIK_UNUSED */

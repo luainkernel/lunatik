@@ -34,7 +34,7 @@
 #define LUNATIK_SETPAUSE	100
 #endif /* LUNATIK_SETPAUSE */
 
-static struct lunatik_session session;
+static struct lunatik_instance instance;
 
 static inline int name_hash(void *salt, const char *name)
 {
@@ -45,9 +45,9 @@ static inline int name_hash(void *salt, const char *name)
 lunatik_State *lunatik_statelookup(const char *name)
 {
 	lunatik_State *state;
-	int key = name_hash(&session, name);
+	int key = name_hash(&instance, name);
 
-	hash_for_each_possible_rcu(session.states_table, state, node, key) {
+	hash_for_each_possible_rcu(instance.states_table, state, node, key) {
 		if (!strncmp(state->name, name, LUNATIK_NAME_MAXSIZE))
 			return state;
 	}
@@ -57,7 +57,7 @@ lunatik_State *lunatik_statelookup(const char *name)
 void state_destroy(lunatik_State *s)
 {
 	hash_del_rcu(&s->node);
-	atomic_dec(&(session.states_count));
+	atomic_dec(&(instance.states_count));
 
 	spin_lock_bh(&s->lock);
 	if (s->L != NULL) {
@@ -131,7 +131,7 @@ lunatik_State *lunatik_newstate(size_t maxalloc, const char *name)
 		return NULL;
 	}
 
-	if (atomic_read(&(session.states_count)) >= LUNATIK_HASH_BUCKETS) {
+	if (atomic_read(&(instance.states_count)) >= LUNATIK_HASH_BUCKETS) {
 		pr_err("could not allocate id for state %.*s\n", namelen, name);
 		pr_err("max states limit reached or out of memory\n");
 		return NULL;
@@ -162,11 +162,11 @@ lunatik_State *lunatik_newstate(size_t maxalloc, const char *name)
 		return NULL;
 	}
 
-	spin_lock_bh(&(session.statestable_lock));
-	hash_add_rcu(session.states_table, &(s->node), name_hash(&session, name));
+	spin_lock_bh(&(instance.statestable_lock));
+	hash_add_rcu(instance.states_table, &(s->node), name_hash(&instance, name));
 	refcount_inc(&s->users);
-	atomic_inc(&(session.states_count));
-	spin_unlock_bh(&(session.statestable_lock));
+	atomic_inc(&(instance.states_count));
+	spin_unlock_bh(&(instance.statestable_lock));
 
 	pr_debug("new state created: %.*s\n", namelen, name);
 	return s;
@@ -179,9 +179,9 @@ int lunatik_close(const char *name)
 	if (s == NULL || refcount_read(&s->users) > 1)
 		return -1;
 
-	spin_lock_bh(&(session.statestable_lock));
+	spin_lock_bh(&(instance.statestable_lock));
 	state_destroy(s);
-	spin_unlock_bh(&(session.statestable_lock));
+	spin_unlock_bh(&(instance.statestable_lock));
 
 	return 0;
 }
@@ -218,11 +218,11 @@ void lunatik_closeall(void)
 	lunatik_State *s;
 	int bkt;
 
-	spin_lock_bh(&(session.statestable_lock));
-	hash_for_each_safe (session.states_table, bkt, tmp, s, node) {
+	spin_lock_bh(&(instance.statestable_lock));
+	hash_for_each_safe (instance.states_table, bkt, tmp, s, node) {
 		state_destroy(s);
 	}
-	spin_unlock_bh(&(session.statestable_lock));
+	spin_unlock_bh(&(instance.statestable_lock));
 }
 
 inline bool lunatik_stateget(lunatik_State *s)
@@ -233,7 +233,7 @@ inline bool lunatik_stateget(lunatik_State *s)
 void lunatik_stateput(lunatik_State *s)
 {
 	refcount_t *users = &s->users;
-	spinlock_t *refcnt_lock = &(session.rfcnt_lock);
+	spinlock_t *refcnt_lock = &(instance.rfcnt_lock);
 
 	if (WARN_ON(s == NULL))
 		return;
@@ -252,33 +252,33 @@ out:
 
 void lunatik_statesinit(void)
 {
-	atomic_set(&(session.states_count), 0);
-	spin_lock_init(&(session.statestable_lock));
-	spin_lock_init(&(session.rfcnt_lock));
-	hash_init(session.states_table);
+	atomic_set(&(instance.states_count), 0);
+	spin_lock_init(&(instance.statestable_lock));
+	spin_lock_init(&(instance.rfcnt_lock));
+	hash_init(instance.states_table);
 }
 
-lunatik_State *lunatik_netstatelookup(struct lunatik_session *session, const char *name)
+lunatik_State *lunatik_netstatelookup(struct lunatik_instance *instance, const char *name)
 {
 
 	lunatik_State *state;
 	int key;
-	if (session == NULL)
+	if (instance == NULL)
 		return NULL;
 
-	key = name_hash(session,name);
+	key = name_hash(instance,name);
 
-	hash_for_each_possible_rcu(session->states_table, state, node, key) {
+	hash_for_each_possible_rcu(instance->states_table, state, node, key) {
 		if (!strncmp(state->name, name, LUNATIK_NAME_MAXSIZE))
 			return state;
 	}
 	return NULL;
 }
 
-lunatik_State *lunatik_netnewstate(struct lunatik_session *session, size_t maxalloc, const char *name)
+lunatik_State *lunatik_netnewstate(struct lunatik_instance *instance, size_t maxalloc, const char *name)
 {
 
-	lunatik_State *s = lunatik_netstatelookup(session, name);
+	lunatik_State *s = lunatik_netstatelookup(instance, name);
 	int namelen = strnlen(name, LUNATIK_NAME_MAXSIZE);
 
 	pr_debug("creating state: %.*s maxalloc: %zd\n", namelen, name,
@@ -289,7 +289,7 @@ lunatik_State *lunatik_netnewstate(struct lunatik_session *session, size_t maxal
 		return NULL;
 	}
 
-	if (atomic_read(&(session->states_count)) >= LUNATIK_HASH_BUCKETS) {
+	if (atomic_read(&(instance->states_count)) >= LUNATIK_HASH_BUCKETS) {
 		pr_err("could not allocate id for state %.*s\n", namelen, name);
 		pr_err("max states limit reached or out of memory\n");
 		return NULL;
@@ -317,27 +317,27 @@ lunatik_State *lunatik_netnewstate(struct lunatik_session *session, size_t maxal
 		return NULL;
 	}
 
-	spin_lock_bh(&(session->statestable_lock));
-	hash_add_rcu(session->states_table, &(s->node), name_hash(session,name));
+	spin_lock_bh(&(instance->statestable_lock));
+	hash_add_rcu(instance->states_table, &(s->node), name_hash(instance,name));
 	refcount_inc(&(s->users));
-	atomic_inc(&(session->states_count));
-	spin_unlock_bh(&(session->statestable_lock));
+	atomic_inc(&(instance->states_count));
+	spin_unlock_bh(&(instance->statestable_lock));
 
 	pr_debug("new state created: %.*s\n", namelen, name);
 	return s;
 }
 
-int lunatik_netclose(struct lunatik_session *session, const char *name)
+int lunatik_netclose(struct lunatik_instance *instance, const char *name)
 {
-	lunatik_State *s = lunatik_netstatelookup(session,name);
+	lunatik_State *s = lunatik_netstatelookup(instance,name);
 
 	if (s == NULL || refcount_read(&s->users) > 1)
 		return -1;
 
-	spin_lock_bh(&(session->statestable_lock));
+	spin_lock_bh(&(instance->statestable_lock));
 
 	hash_del_rcu(&s->node);
-	atomic_dec(&(session->states_count));
+	atomic_dec(&(instance->states_count));
 
 	spin_lock_bh(&s->lock);
 	if (s->L != NULL) {
@@ -347,7 +347,7 @@ int lunatik_netclose(struct lunatik_session *session, const char *name)
 	spin_unlock_bh(&s->lock);
 	lunatik_stateput(s);
 
-	spin_unlock_bh(&(session->statestable_lock));
+	spin_unlock_bh(&(instance->statestable_lock));
 
 	return 0;
 }

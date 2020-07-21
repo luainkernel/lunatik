@@ -32,6 +32,7 @@
 #include "lua/lualib.h"
 
 #include "states.h"
+#include "netlink_common.h"
 
 EXPORT_SYMBOL(lua_checkstack);
 EXPORT_SYMBOL(lua_xmove);
@@ -181,63 +182,79 @@ EXPORT_SYMBOL(lunatik_netnewstate);
 EXPORT_SYMBOL(lunatik_netclose);
 EXPORT_SYMBOL(lunatik_netstatelookup);
 
+struct send_message;
+extern struct genl_family lunatik_family;
 extern void lunatik_statesinit(void);
 extern void lunatik_closeall(void);
 extern void state_destroy(lunatik_State *s);
 
 static int lunatik_netid __read_mostly;
 
-struct lunatik_session *lunatik_pernet(struct net *net)
+struct lunatik_instance *lunatik_pernet(struct net *net)
 {
-	return (struct lunatik_session *)net_generic(net,lunatik_netid);
+	return (struct lunatik_instance *)net_generic(net,lunatik_netid);
 }
 
-static int __net_init lunatik_sessioninit(struct net *net)
+static int __net_init lunatik_instancenew(struct net *net)
 {
-	struct lunatik_session *session = lunatik_pernet(net);
+	struct lunatik_instance *instance = lunatik_pernet(net);
 
-	atomic_set(&(session->states_count), 0);
-	spin_lock_init(&(session->statestable_lock));
-	spin_lock_init(&(session->rfcnt_lock));
-	hash_init(session->states_table);
+	atomic_set(&(instance->states_count), 0);
+	spin_lock_init(&(instance->statestable_lock));
+	spin_lock_init(&(instance->rfcnt_lock));
+	spin_lock_init(&(instance->sendmessage_lock));
+	hash_init(instance->states_table);
+	instance->reply_buffer = kmalloc(sizeof(struct reply_buffer), GFP_KERNEL);
+
+	if (instance->reply_buffer == NULL) {
+		pr_err("Failed to allocate memory to reply buffer\n");
+		BUG();
+	}
 
 	return 0;
 }
 
-static void __net_exit lunatik_sessionend(struct net *net)
+static void __net_exit lunatik_instanceclose(struct net *net)
 {
-	struct lunatik_session *session;
+	struct lunatik_instance *instance;
 	lunatik_State *s;
 	struct hlist_node *tmp;
 	int bkt;
 
-	session = lunatik_pernet(net);
+	instance = lunatik_pernet(net);
 
-	spin_lock_bh(&(session->statestable_lock));
+	spin_lock_bh(&(instance->statestable_lock));
 
-	hash_for_each_safe(session->states_table, bkt, tmp, s, node) {
+	hash_for_each_safe(instance->states_table, bkt, tmp, s, node) {
 		state_destroy(s);
 	}
 
-	spin_unlock_bh(&(session->statestable_lock));
+	spin_unlock_bh(&(instance->statestable_lock));
+
+	kfree(instance->reply_buffer);
 }
 
 static struct pernet_operations lunatik_net_ops = {
-	.init = lunatik_sessioninit,
-	.exit = lunatik_sessionend,
+	.init = lunatik_instancenew,
+	.exit = lunatik_instanceclose,
 	.id   = &lunatik_netid,
-	.size = sizeof(struct lunatik_session),
+	.size = sizeof(struct lunatik_instance),
 };
 
 static int __init modinit(void)
 {
-	int ret;
+	int err;
 
 	lunatik_statesinit();
 
-	if ((ret = register_pernet_subsys(&lunatik_net_ops))) {
+	if ((err = register_pernet_subsys(&lunatik_net_ops))) {
 		pr_err("Failed to register pernet operations\n");
-		return ret;
+		return err;
+	}
+
+	if ((err = genl_register_family(&lunatik_family))) {
+		pr_err("Failed to register generic netlink family\n");
+		return err;
 	}
 
 	return 0;
@@ -247,6 +264,7 @@ static void __exit modexit(void)
 {
 	lunatik_closeall();
 	unregister_pernet_subsys(&lunatik_net_ops);
+	genl_unregister_family(&lunatik_family);
 }
 
 module_init(modinit);

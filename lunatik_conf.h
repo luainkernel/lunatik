@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Matheus Rodrigues <matheussr61@gmail.com>
  * Copyright (C) 2017-2019  CUJO LLC
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,15 +17,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef _NFLUA_CONF_H
-#define _NFLUA_CONF_H
+#ifndef LUNATIK_CONF_H
+#define LUNATIK_CONF_H
 
-#ifndef NETLINK_NFLUA
-#define NETLINK_NFLUA      31     /* NFLua netlink protocol family */
-#endif /* NETLINK_NFLUA */
+#define LUNATIK_NAME_MAXSIZE 64     /* Max length of Lua state name  */
 
-#define NFLUA_NAME_MAXSIZE 64     /* Max length of Lua state name  */
+#define LUNATIK_SCRIPTNAME_MAXSIZE 255   /* Max length of Lua state name  */
 
-#define NFLUA_SCRIPTNAME_MAXSIZE 255   /* Max length of Lua state name  */
+#define LUNATIK_MIN_ALLOC_BYTES (32 * 1024UL)
 
-#endif /* _NFLUA_CONF_H */
+#define LUNATIK_HASH_BUCKETS 32
+
+#endif /* LUNATIK_CONF_H */
