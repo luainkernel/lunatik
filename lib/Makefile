@@ -1,4 +1,4 @@
-#
+# Copyright (c) 2020 Matheus Rodrigues <matheussr61@gmail.com>
 # Copyright (C) 2017-2019  CUJO LLC
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,11 +17,11 @@
 #
 
 CC = gcc
-CFLAGS = -fPIC -Wall -Wextra -O2 -g -I../src
-LDFLAGS = -shared
+CFLAGS = -fPIC -Wall -Wextra -O2 -g -I/usr/include/lua5.3/ -I/usr/include/libnl3 -D_UNUSED
+LDFLAGS = -shared -lnl-genl-3 -lnl-3 -llua5.3
 RM = rm -f
 
-LIBS = libnflua.so
+LIBS = lunatik.so
 OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
 DEPS = $(OBJS:.o=.d)
 
@@ -32,7 +32,7 @@ all: $(LIBS)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -MMD -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 -include $(DEPS)
 
