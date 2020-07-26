@@ -182,7 +182,6 @@ EXPORT_SYMBOL(lunatik_netnewstate);
 EXPORT_SYMBOL(lunatik_netclose);
 EXPORT_SYMBOL(lunatik_netstatelookup);
 
-struct send_message;
 extern struct genl_family lunatik_family;
 extern void lunatik_statesinit(void);
 extern void lunatik_closeall(void);
@@ -202,15 +201,8 @@ static int __net_init lunatik_instancenew(struct net *net)
 	atomic_set(&(instance->states_count), 0);
 	spin_lock_init(&(instance->statestable_lock));
 	spin_lock_init(&(instance->rfcnt_lock));
-	spin_lock_init(&(instance->sendmessage_lock));
 	hash_init(instance->states_table);
-	instance->reply_buffer = kmalloc(sizeof(struct reply_buffer), GFP_KERNEL);
-
-	if (instance->reply_buffer == NULL) {
-		pr_err("Failed to allocate memory to reply buffer\n");
-		BUG();
-	}
-
+	(instance->reply_buffer).status = RB_INIT;
 	return 0;
 }
 
@@ -230,8 +222,6 @@ static void __net_exit lunatik_instanceclose(struct net *net)
 	}
 
 	spin_unlock_bh(&(instance->statestable_lock));
-
-	kfree(instance->reply_buffer);
 }
 
 static struct pernet_operations lunatik_net_ops = {

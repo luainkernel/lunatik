@@ -29,6 +29,7 @@
 enum callback_result {
     CB_SUCCESS,
     CB_ERROR,
+    CB_LIST_EMPTY,
 };
 
 enum session_status {
@@ -37,7 +38,7 @@ enum session_status {
     SESSION_INIT_LIST,
 };
 
-struct lunatik_state {
+struct lunatik_nl_state {
     struct lunatik_session *session;
     uint32_t maxalloc;
     uint32_t curralloc;
@@ -45,14 +46,19 @@ struct lunatik_state {
 };
 
 struct states_list {
-    struct lunatik_state *states;
+    struct lunatik_nl_state *states;
     size_t list_size;
-    unsigned int tail;
+};
+
+struct received_buffer {
+	char *buffer;
+	int cursor;
 };
 
 struct lunatik_session {
     struct nl_sock *sock;
     struct states_list states_list;
+    struct received_buffer recv_buffer;
     enum session_status status;
     enum callback_result cb_result;
     int family;
@@ -84,7 +90,7 @@ int lunatikS_init(struct lunatik_session *session);
 
 void lunatikS_end(struct lunatik_session *session);
 
-int lunatikS_create(struct lunatik_session *session, struct lunatik_state *s);
+int lunatikS_create(struct lunatik_session *session, struct lunatik_nl_state *s);
 
 int lunatikS_destroy(struct lunatik_session *session, const char *name);
 

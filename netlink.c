@@ -32,6 +32,14 @@
 #include "states.h"
 #include "netlink_common.h"
 
+
+
+struct lunatik_nl_state {
+	char name[LUNATIK_NAME_MAXSIZE];
+	size_t maxalloc;
+	size_t curralloc;
+};
+
 extern struct lunatik_instance *lunatik_pernet(struct net *net);
 
 static int lunatikN_newstate(struct sk_buff *buff, struct genl_info *info);
@@ -42,13 +50,13 @@ static int lunatikN_list(struct sk_buff *buff, struct genl_info *info);
 struct nla_policy lunatik_policy[ATTRS_COUNT] = {
 	[STATE_NAME]  = { .type = NLA_STRING },
 	[CODE]		  = { .type = NLA_STRING },
-	[SCRIPT_NAME] = { .type = NLA_STRING},
-	[MAX_ALLOC]   = { .type = NLA_U32 },
+	[SCRIPT_NAME] = { .type = NLA_STRING },
+	[STATES_LIST] = { .type = NLA_STRING },
 	[SCRIPT_SIZE] = { .type = NLA_U32 },
-	[STATES_COUNT]= { .type = NLA_U32},	
+	[MAX_ALLOC]	  = { .type = NLA_U32 },
 	[FLAGS] 	  = { .type = NLA_U8 },
 	[OP_SUCESS]   = { .type = NLA_U8 },
-	[OP_ERROR]	  = { .type = NLA_U8},
+	[OP_ERROR]	  = { .type = NLA_U8 },
 };
 
 static const struct genl_ops l_ops[] = {
@@ -99,28 +107,22 @@ struct genl_family lunatik_family = {
 	.n_ops   = ARRAY_SIZE(l_ops),
 };
 
-static int fill_reply_buffer(struct reply_buffer *message, struct lunatik_instance *instance)
+static void fill_states_list(char *buffer, struct lunatik_instance *instance)
 {
 	struct lunatik_state *state;
 	int bucket;
-	int states_count = atomic_read(&(instance->states_count));
 	int counter = 0;
+	int states_count = atomic_read(&instance->states_count);
 
-	message->states_list = kmalloc(states_count * sizeof(lunatik_State), GFP_KERNEL);
-
-	if (message->states_list == NULL) {
-		pr_err("Failed to allocate memory to hold states list\n");
-		return -ENOMEM;
-	}
-
-	message->list_size = states_count;
-	message->curr_pos_to_send = 0;
 	hash_for_each_rcu(instance->states_table, bucket, state, node) {
-		message->states_list[counter] = *(state);
+		buffer += sprintf(buffer, "%s#", state->name);
+		buffer += sprintf(buffer, "%ld#", state->curralloc);
+		if (counter == states_count - 1)
+			buffer += sprintf(buffer, "%ld", state->maxalloc);
+		else
+			buffer += sprintf(buffer, "%ld#", state->maxalloc);
 		counter++;
 	}
-
-	return 0;
 }
 
 static int send_done_msg(int command, struct genl_info *info)
@@ -151,71 +153,6 @@ static int send_done_msg(int command, struct genl_info *info)
 	return 0;
 }
 
-static int send_states_count(struct lunatik_instance *instance, struct genl_info *info)
-{
-	void *msg_head;
-	struct sk_buff *obuff;
-	int err = -1;
-
-	if ((obuff = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL)) == NULL) {
-		pr_err("Failed allocating message to an reply\n");
-		return -ENOMEM;
-	}
-
-	if ((msg_head = genlmsg_put_reply(obuff, info, &lunatik_family, 0, LIST_STATES)) == NULL) {
-		pr_err("Failed to put generic netlink header\n");
-		return err;
-	}
-
-	nla_put_u8(obuff, FLAGS, LUNATIK_INIT);
-	nla_put_u32(obuff, STATES_COUNT, atomic_read(&instance->states_count));
-
-	genlmsg_end(obuff, msg_head);
-
-	if (genlmsg_reply(obuff, info) < 0) {
-		pr_err("Failed to send message to user space\n");
-		return err;
-	}
-
-	return 0;
-}
-
-static int send_state(lunatik_State *state, struct genl_info *info)
-{
-	struct sk_buff *obuff;
-	void *msg_head;
-	int err = -1;
-
-	if ((obuff = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL)) == NULL) {
-		pr_err("Failed allocating message to an reply\n");
-		return err;
-	}
-
-	if ((msg_head = genlmsg_put_reply(obuff, info, &lunatik_family, 0, LIST_STATES)) == NULL) {
-		pr_err("Failed to put generic netlink header\n");
-		return err;
-	}
-
-	if (nla_put_string(obuff, STATE_NAME, state->name)   ||
-		nla_put_u32(obuff, MAX_ALLOC, state->maxalloc)	 ||
-		nla_put_u32(obuff, CURR_ALLOC, state->curralloc) 
-		) {
-		pr_err("Failed to put attributes on socket buffer\n");
-		return err;
-	}
-
-	genlmsg_end(obuff, msg_head);
-
-	if (genlmsg_reply(obuff, info) < 0) {
-		pr_err("Failed to send message to user space\n");
-		return err;
-	}
-
-	pr_debug("Message sent to user space\n");
-
-	return 0;
-}
-
 static void reply_with(int reply, int command, struct genl_info *info)
 {
 	struct sk_buff *obuff;
@@ -232,6 +169,46 @@ static void reply_with(int reply, int command, struct genl_info *info)
 	}
 
 	if (nla_put_u8(obuff, reply, 1)) {
+		pr_err("Failed to put attributes on socket buffer\n");
+		return;
+	}
+
+	genlmsg_end(obuff, msg_head);
+
+	if (genlmsg_reply(obuff, info) < 0) {
+		pr_err("Failed to send message to user space\n");
+		return;
+	}
+
+	pr_debug("Message sent to user space\n");
+}
+
+static void send_states_list(char *buffer, int amount, int flags, struct genl_info *info)
+{
+	struct sk_buff *obuff;
+	void *msg_head;
+
+	if ((obuff = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL)) == NULL) {
+		pr_err("Failed allocating message to an reply\n");
+		return;
+	}
+
+	if ((msg_head = genlmsg_put_reply(obuff, info, &lunatik_family, 0, LIST_STATES)) == NULL) {
+		pr_err("Failed to put generic netlink header\n");
+		return;
+	}
+
+	if (flags & LUNATIK_INIT) {
+		if (nla_put_u32(obuff, STATES_COUNT, amount)) {
+			pr_err("Failed to put attributes on socket buffer\n");
+			return;
+		}
+	} else if (nla_put_string(obuff, STATES_LIST, buffer)) {
+		pr_err("Failed to put attributes on socket buffer\n");
+		return;
+	}
+
+	if (nla_put_u8(obuff, FLAGS, flags)) {
 		pr_err("Failed to put attributes on socket buffer\n");
 		return;
 	}
@@ -354,39 +331,103 @@ static int lunatikN_close(struct sk_buff *buff, struct genl_info *info)
 	return 0;
 }
 
+static void send_init_information(int parts, int states_count, struct genl_info *info)
+{
+	struct sk_buff *obuff;
+	void *msg_head;
+
+	if ((obuff = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL)) == NULL) {
+		pr_err("Failed allocating message to an reply\n");
+		return;
+	}
+
+	if ((msg_head = genlmsg_put_reply(obuff, info, &lunatik_family, 0, LIST_STATES)) == NULL) {
+		pr_err("Failed to put generic netlink header\n");
+		return;
+	}
+
+	if (nla_put_u32(obuff, STATES_COUNT, states_count) || nla_put_u32(obuff, PARTS, parts)) {
+		pr_err("Failed to put attributes on socket buffer\n");
+		return;
+	}
+
+	if (nla_put_u8(obuff, FLAGS, LUNATIK_INIT)) {
+		pr_err("Failed to put attributes on socket buffer\n");
+		return;
+	}
+
+	genlmsg_end(obuff, msg_head);
+
+	if (genlmsg_reply(obuff, info) < 0) {
+		pr_err("Failed to send message to user space\n");
+		return;
+	}
+
+	pr_debug("Message sent to user space\n");
+}
+
 static int lunatikN_list(struct sk_buff *buff, struct genl_info *info)
 {
 	struct lunatik_instance *instance;
-	struct reply_buffer *reply;
-	lunatik_State currstate;
+	struct reply_buffer *reply_buffer;
+	int states_count;
+	char *fragment;
 	u8 flags;
 
 	pr_debug("Received a LIST_STATES command\n");
 
 	instance = lunatik_pernet(genl_info_net(info));
 	flags = *((u8 *)nla_data(info->attrs[FLAGS]));
-	reply = instance->reply_buffer;
+	states_count = atomic_read(&instance->states_count);
+	reply_buffer = &instance->reply_buffer;
 
-	if (flags & LUNATIK_INIT) {
-		spin_lock(&(instance->sendmessage_lock));
-		fill_reply_buffer(reply, instance); // TODO Check error and reply if an error occur
-		send_states_count(instance, info);
-		goto out;
-	}
-
-	if (reply->curr_pos_to_send == reply->list_size) {
-		send_done_msg(LIST_STATES, info);
-		kfree(reply->states_list);
-		spin_unlock(&(instance->sendmessage_lock));
-		goto out;
-	}
-
-	currstate = reply->states_list[reply->curr_pos_to_send++];
-	if (send_state(&currstate, info)) {
-		pr_err("Failed to send state information to user space\n");
+	if ((fragment = kmalloc(LUNATIK_FRAGMENT_SIZE, GFP_KERNEL)) == NULL) {
+		pr_err("Failed to allocate memory to fragment\n");
 		return 0;
 	}
 
+	if (states_count == 0){
+		reply_with(STATES_LIST_EMPTY, LIST_STATES, info);
+		goto out;
+	}
+
+	if (reply_buffer->status == RB_INIT) {
+		reply_buffer->buffer = kmalloc(states_count * (sizeof(struct lunatik_nl_state) + DELIMITER), GFP_KERNEL);
+
+		if (reply_buffer->buffer == NULL) {
+			pr_err("Failed to allocate memory to message buffer\n");
+			return 0;
+		}
+
+		fill_states_list(reply_buffer->buffer, instance);
+		reply_buffer->curr_pos_to_send = 0;
+
+		reply_buffer->parts = ((strlen(reply_buffer->buffer) % LUNATIK_FRAGMENT_SIZE) == 0) ?
+							  (strlen(reply_buffer->buffer) / LUNATIK_FRAGMENT_SIZE) :
+							  (strlen(reply_buffer->buffer) / LUNATIK_FRAGMENT_SIZE) + 1;
+		send_init_information(reply_buffer->parts, states_count,info);
+		reply_buffer->status = RB_SENDING;
+		goto out;
+	}
+
+	if (reply_buffer->curr_pos_to_send == reply_buffer->parts - 1) {
+		strncpy(fragment, reply_buffer->buffer + ((reply_buffer->parts - 1) * LUNATIK_FRAGMENT_SIZE), LUNATIK_FRAGMENT_SIZE);
+		send_states_list(fragment, states_count, LUNATIK_DONE, info);
+		goto reset_reply_buffer;
+	} else {
+		strncpy(fragment, reply_buffer->buffer + (reply_buffer->curr_pos_to_send * LUNATIK_FRAGMENT_SIZE), LUNATIK_FRAGMENT_SIZE);
+		send_states_list(fragment, states_count, LUNATIK_MULTI, info);
+		reply_buffer->curr_pos_to_send++;
+	}
+
 out:
+	kfree(fragment);
+	return 0;
+
+reset_reply_buffer:
+	reply_buffer->parts = 0;
+	reply_buffer->status = RB_INIT;
+	reply_buffer->curr_pos_to_send = 0;
+	kfree(fragment);
 	return 0;
 }
