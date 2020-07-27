@@ -367,7 +367,8 @@ static int response_handler(struct nl_msg *msg, void *arg)
 		if (attrs_tb[STATES_LIST_EMPTY]) {
 			session->states_list.list_size = 0;
 			session->states_list.states = NULL;
-			return 0;
+			session->cb_result = CB_LIST_EMPTY;
+			return NL_OK;
 		}
 
 		if (attrs_tb[FLAGS]) {
@@ -393,7 +394,7 @@ static int response_handler(struct nl_msg *msg, void *arg)
 		}
 
 		if (err)
-			session->cb_result = OP_ERROR;
+			session->cb_result = CB_ERROR;
 
 		break;
 	default:
