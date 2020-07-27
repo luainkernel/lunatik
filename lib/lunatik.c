@@ -107,7 +107,7 @@ static int send_fragment(struct lunatik_session *session, const char *original_s
 
 	NLA_PUT_U8(msg, FLAGS, flags);
 
-	
+
 	if ((err = nl_send_auto(session->sock, msg)) < 0) {
 		printf("Failed to send fragment\n %s\n", nl_geterror(err));
 		nlmsg_free(msg);
@@ -293,7 +293,7 @@ static int init_recv_buffer(struct lunatik_session *session, struct nlattr **att
 {
 	struct received_buffer *recv_buffer;
 	int parts;
-	
+
 	recv_buffer = &session->recv_buffer;
 
 	if (attrs[PARTS]) {
