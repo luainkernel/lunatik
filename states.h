@@ -46,18 +46,9 @@ typedef struct lunatik_state {
 	unsigned char name[LUNATIK_NAME_MAXSIZE];
 } lunatik_State;
 
-#ifndef LUNATIK_UNUSED
-typedef int (*nflua_state_cb)(struct nflua_state *s, unsigned short *total);
-#endif /*LUNATIK_UNUSED*/
-
 lunatik_State *lunatik_newstate(size_t maxalloc, const char *name);
 int lunatik_close(const char *name);
 lunatik_State *lunatik_statelookup(const char *name);
-
-#ifndef LUNATIK_UNUSED
-int nflua_state_list(struct xt_lua_net *xt_lua, nflua_state_cb cb,
-	unsigned short *total);
-#endif /*LUNATIK_UNUSED*/
 
 bool lunatik_stateget(lunatik_State *s);
 void lunatik_stateput(lunatik_State *s);
@@ -67,3 +58,4 @@ int lunatik_netclose(struct lunatik_instance *instance, const char *name);
 lunatik_State *lunatik_netstatelookup(struct lunatik_instance *instance, const char *name);
 
 #endif /* LUNATIK_STATES_H */
+
