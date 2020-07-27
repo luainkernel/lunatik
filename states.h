@@ -36,7 +36,8 @@ struct lunatik_instance {
 typedef struct lunatik_state {
 	struct hlist_node node;
 	lua_State *L;
-	luaL_Buffer *buffer;
+	char *code_buffer;
+	int buffer_offset;
 	spinlock_t lock;
 	refcount_t users;
 	size_t maxalloc;
