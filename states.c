@@ -186,32 +186,6 @@ int lunatik_close(const char *name)
 	return 0;
 }
 
-#ifndef LUNATIK_UNUSED
-int lunatik_state_list(struct xt_lua_net *xt_lua, nflua_state_cb cb,
-	unsigned short *total)
-{
-	struct hlist_head *head;
-	struct nflua_state *s;
-	int i, ret = 0;
-
-	spin_lock_bh(&xt_lua->state_lock);
-
-	*total = atomic_read(&xt_lua->state_count);
-
-	for (i = 0; i < XT_LUA_HASH_BUCKETS; i++) {
-		head = &xt_lua->state_table[i];
-		kpi_hlist_for_each_entry_rcu(s, head, node) {
-			if ((ret = cb(s, total)) != 0)
-				goto out;
-		}
-	}
-
-out:
-	spin_unlock_bh(&xt_lua->state_lock);
-	return ret;
-}
-#endif
-
 void lunatik_closeall(void)
 {
 	struct hlist_node *tmp;
@@ -237,14 +211,14 @@ void lunatik_stateput(lunatik_State *s)
 
 	if (WARN_ON(s == NULL))
 		return;
-	
+
 	if (refcount_dec_not_one(users))
 		return;
 
 	spin_lock_bh(refcnt_lock);
 	if (!refcount_dec_and_test(users))
 		goto out;
-	
+
 	kfree(s);
 out:
 	spin_unlock_bh(refcnt_lock);
@@ -351,3 +325,4 @@ int lunatik_netclose(struct lunatik_instance *instance, const char *name)
 
 	return 0;
 }
+
