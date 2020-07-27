@@ -58,4 +58,3 @@ int lunatik_netclose(struct lunatik_instance *instance, const char *name);
 lunatik_State *lunatik_netstatelookup(struct lunatik_instance *instance, const char *name);
 
 #endif /* LUNATIK_STATES_H */
-

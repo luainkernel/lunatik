@@ -31,7 +31,7 @@
 extern int luaopen_memory(lua_State *L);
 #endif /*_UNUSED*/
 
-#define DEFAULT_MAXALLOC_BYTES	(32 * 1024) 
+#define DEFAULT_MAXALLOC_BYTES	(32 * 1024)
 
 static int pusherrmsg(lua_State *L, const char *msg)
 {
@@ -82,7 +82,7 @@ static int lsession_open(lua_State *L)
 static int lsession_gc(lua_State *L)
 {
 	struct lunatik_session *session = luaL_checkudata(L, 1, "lunatik.session");
-	if (lunatikS_isopen(session)) lunatikS_end(session);
+	if (lunatikS_isopen(session)) lunatikS_close(session);
 	return 0;
 }
 
@@ -102,10 +102,10 @@ static struct lunatik_nl_state *getnlstate(lua_State *L)
 	return s;
 }
 
-static int lsession_end(lua_State *L)
+static int lsession_close(lua_State *L)
 {
 	struct lunatik_session *session = getsession(L);
-	lunatikS_end(session);
+	lunatikS_close(session);
 	lua_pushboolean(L, true);
 	return 1;
 }
@@ -117,7 +117,7 @@ static int lsession_getfd(lua_State *L)
 	return 1;
 }
 
-static int lsession_create(lua_State *L)
+static int lsession_newstate(lua_State *L)
 {
 	struct lunatik_session *session = getsession(L);
 	size_t len;
@@ -132,7 +132,7 @@ static int lsession_create(lua_State *L)
 	state->maxalloc = maxalloc;
 	state->session = session;
 
-	if (lunatikS_create(session, state)) {
+	if (lunatikS_newstate(session, state)) {
 		pusherrmsg(L, "Failed to create the state\n");
 		return 2;
 	}
@@ -145,7 +145,7 @@ static int lsession_create(lua_State *L)
 static int lstate_close(lua_State *L)
 {
 	struct lunatik_nl_state *s = getnlstate(L);
-	if (lunatikS_destroy(s->session, s->name)){
+	if (lunatikS_closestate(s->session, s->name)){
 		lua_pushboolean(L, false);
 		return 1;
 	}
@@ -235,7 +235,7 @@ static void buildlist(lua_State *L, struct lunatik_nl_state *states, size_t n)
 	}
 }
 #ifndef _UNUSED
-static int ldata_open(lua_State *L)	
+static int ldata_open(lua_State *L)
 {
 	int ret;
 	uint32_t pid = generatepid(L, 1);
@@ -320,9 +320,9 @@ static int ldata_receive(lua_State *L)
 #endif /* _UNUSED */
 
 static const luaL_Reg session_mt[] = {
-	{"down", lsession_end},
+	{"close", lsession_close},
 	{"getfd", lsession_getfd},
-	{"new", lsession_create},
+	{"new", lsession_newstate},
 	{"list", lsession_list},
 	{"__gc", lsession_gc},
 	{NULL, NULL}
