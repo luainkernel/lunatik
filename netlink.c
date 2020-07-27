@@ -152,7 +152,7 @@ static void reply_with(int reply, int command, struct genl_info *info)
 	pr_debug("Message sent to user space\n");
 }
 
-static void send_states_list(char *buffer, int amount, int flags, struct genl_info *info)
+static void send_states_list(char *buffer, int flags, struct genl_info *info)
 {
 	struct sk_buff *obuff;
 	void *msg_head;
@@ -167,12 +167,7 @@ static void send_states_list(char *buffer, int amount, int flags, struct genl_in
 		return;
 	}
 
-	if (flags & LUNATIK_INIT) {
-		if (nla_put_u32(obuff, STATES_COUNT, amount)) {
-			pr_err("Failed to put attributes on socket buffer\n");
-			return;
-		}
-	} else if (nla_put_string(obuff, STATES_LIST, buffer)) {
+	if (nla_put_string(obuff, STATES_LIST, buffer)) {
 		pr_err("Failed to put attributes on socket buffer\n");
 		return;
 	}
@@ -350,12 +345,46 @@ static void send_init_information(int parts, int states_count, struct genl_info 
 	pr_debug("Message sent to user space\n");
 }
 
+static int init_replybuffer(struct lunatik_instance *instance, size_t size)
+{
+	struct reply_buffer *reply_buffer = &instance->reply_buffer;
+	reply_buffer->buffer = kmalloc(size * (sizeof(struct lunatik_nl_state) + DELIMITER), GFP_KERNEL);
+
+	if (reply_buffer->buffer == NULL) {
+		pr_err("Failed to allocate memory to message buffer\n");
+		return -1;
+	}
+
+	fill_states_list(reply_buffer->buffer, instance);
+	reply_buffer->curr_pos_to_send = 0;
+
+	reply_buffer->parts = ((strlen(reply_buffer->buffer) % LUNATIK_FRAGMENT_SIZE) == 0) ?
+						  (strlen(reply_buffer->buffer) / LUNATIK_FRAGMENT_SIZE) :
+						  (strlen(reply_buffer->buffer) / LUNATIK_FRAGMENT_SIZE) + 1;
+	reply_buffer->status = RB_SENDING;
+	return 0;
+}
+
+static void send_lastfragment(char *fragment, struct reply_buffer *reply_buffer, struct genl_info *info)
+{
+	strncpy(fragment, reply_buffer->buffer + ((reply_buffer->parts - 1) * LUNATIK_FRAGMENT_SIZE), LUNATIK_FRAGMENT_SIZE);
+	send_states_list(fragment, LUNATIK_DONE, info);
+}
+
+static void send_fragment(char *fragment, struct reply_buffer *reply_buffer, struct genl_info *info)
+{
+	strncpy(fragment, reply_buffer->buffer + (reply_buffer->curr_pos_to_send * LUNATIK_FRAGMENT_SIZE), LUNATIK_FRAGMENT_SIZE);
+	send_states_list(fragment, LUNATIK_MULTI, info);
+	reply_buffer->curr_pos_to_send++;
+}
+
 static int lunatikN_list(struct sk_buff *buff, struct genl_info *info)
 {
 	struct lunatik_instance *instance;
 	struct reply_buffer *reply_buffer;
 	int states_count;
 	char *fragment;
+	int err = 0;
 	u8 flags;
 
 	pr_debug("Received a LIST_STATES command\n");
@@ -376,32 +405,19 @@ static int lunatikN_list(struct sk_buff *buff, struct genl_info *info)
 	}
 
 	if (reply_buffer->status == RB_INIT) {
-		reply_buffer->buffer = kmalloc(states_count * (sizeof(struct lunatik_nl_state) + DELIMITER), GFP_KERNEL);
-
-		if (reply_buffer->buffer == NULL) {
-			pr_err("Failed to allocate memory to message buffer\n");
-			return 0;
-		}
-
-		fill_states_list(reply_buffer->buffer, instance);
-		reply_buffer->curr_pos_to_send = 0;
-
-		reply_buffer->parts = ((strlen(reply_buffer->buffer) % LUNATIK_FRAGMENT_SIZE) == 0) ?
-							  (strlen(reply_buffer->buffer) / LUNATIK_FRAGMENT_SIZE) :
-							  (strlen(reply_buffer->buffer) / LUNATIK_FRAGMENT_SIZE) + 1;
-		send_init_information(reply_buffer->parts, states_count,info);
-		reply_buffer->status = RB_SENDING;
+		err = init_replybuffer(instance, states_count);
+		if (err)
+			reply_with(OP_ERROR, LIST_STATES, info);
+		else
+			send_init_information(reply_buffer->parts, states_count, info);
 		goto out;
 	}
 
 	if (reply_buffer->curr_pos_to_send == reply_buffer->parts - 1) {
-		strncpy(fragment, reply_buffer->buffer + ((reply_buffer->parts - 1) * LUNATIK_FRAGMENT_SIZE), LUNATIK_FRAGMENT_SIZE);
-		send_states_list(fragment, states_count, LUNATIK_DONE, info);
+		send_lastfragment(fragment, reply_buffer, info);
 		goto reset_reply_buffer;
 	} else {
-		strncpy(fragment, reply_buffer->buffer + (reply_buffer->curr_pos_to_send * LUNATIK_FRAGMENT_SIZE), LUNATIK_FRAGMENT_SIZE);
-		send_states_list(fragment, states_count, LUNATIK_MULTI, info);
-		reply_buffer->curr_pos_to_send++;
+		send_fragment(fragment, reply_buffer, info);
 	}
 
 out:
