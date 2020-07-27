@@ -325,4 +325,3 @@ int lunatik_netclose(struct lunatik_instance *instance, const char *name)
 
 	return 0;
 }
-

@@ -88,11 +88,11 @@ static inline int lunatikS_isopen(const struct lunatik_session *session)
 
 int lunatikS_init(struct lunatik_session *session);
 
-void lunatikS_end(struct lunatik_session *session);
+void lunatikS_close(struct lunatik_session *session);
 
-int lunatikS_create(struct lunatik_session *session, struct lunatik_nl_state *s);
+int lunatikS_newstate(struct lunatik_session *session, struct lunatik_nl_state *s);
 
-int lunatikS_destroy(struct lunatik_session *session, const char *name);
+int lunatikS_closestate(struct lunatik_session *session, const char *name);
 
 int lunatikS_dostring(struct lunatik_session *session, const char *state_name,
     const char *script, const char *script_name, size_t total_code_size);

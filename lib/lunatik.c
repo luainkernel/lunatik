@@ -140,7 +140,7 @@ static int receive_op_result(struct lunatik_session *session){
 	return 0;
 }
 
-int lunatikS_create(struct lunatik_session *session, struct lunatik_nl_state *cmd)
+int lunatikS_newstate(struct lunatik_session *session, struct lunatik_nl_state *cmd)
 {
 	struct nl_msg *msg;
 	int ret = -1;
@@ -163,7 +163,7 @@ nla_put_failure:
 	return ret;
 }
 
-int lunatikS_destroy(struct lunatik_session *session, const char *name)
+int lunatikS_closestate(struct lunatik_session *session, const char *name)
 {
 	struct nl_msg *msg;
 	int ret = -1;
@@ -425,7 +425,7 @@ int lunatikS_init(struct lunatik_session *session)
 	return 0;
 }
 
-void lunatikS_end(struct lunatik_session *session)
+void lunatikS_close(struct lunatik_session *session)
 {
 	if (session != NULL){
 		nl_socket_free(session->sock);

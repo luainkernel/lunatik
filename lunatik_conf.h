@@ -22,7 +22,7 @@
 
 #define LUNATIK_NAME_MAXSIZE 64     /* Max length of Lua state name  */
 
-#define LUNATIK_SCRIPTNAME_MAXSIZE 255   /* Max length of Lua state name  */
+#define LUNATIK_SCRIPTNAME_MAXSIZE 255   /* Max length of script name  */
 
 #define LUNATIK_MIN_ALLOC_BYTES (32 * 1024UL)
 
