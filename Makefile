@@ -1,4 +1,5 @@
-ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -D_CONFIG_FULL_PANIC -DLUNATIK_UNUSED
+ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -D_CONFIG_FULL_PANIC -DLUNATIK_UNUSED \
+							-I$(src)/lua
 asflags-y += -D_LUNATIK -D_KERNEL
 
 ifeq ($(ARCH), $(filter $(ARCH),i386 x86))
@@ -35,8 +36,10 @@ lua-objs = lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	lua/ltablib.o lua/lutf8lib.o lua/loslib.o lua/lmathlib.o lua/linit.o \
 	lua/loadlib.o luautil.o
 
+lua_memory-objs = deps/lua-memory/src/lmemlib.o deps/lua-memory/src/lmemmod.o
+
 lunatik-objs += $(lua-objs) \
-	arch/$(ARCH)/setjmp.o util/modti3.o lunatik_core.o states.o netlink.o
+	arch/$(ARCH)/setjmp.o util/modti3.o lunatik_core.o states.o netlink.o $(lua_memory-objs)
 
 ifeq ($(shell [ "${VERSION}" -lt "4" ] && [ "${VERSION}${PATCHLEVEL}" -lt "312" ] && echo y),y)
 	lunatik-objs += util/div64.o
