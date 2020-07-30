@@ -283,7 +283,7 @@ static int lunatikN_dostring(struct sk_buff *buff, struct genl_info *info)
 	}
 
 	if (flags & LUNATIK_DONE){
-		add_fragtostate(fragment, s);
+		strcpy(s->code_buffer, fragment);
 		script_name = nla_data(info->attrs[SCRIPT_NAME]);
 		err = dostring(s->code_buffer, s, script_name);
 		err ? reply_with(OP_ERROR, EXECUTE_CODE, info) : reply_with(OP_SUCESS, EXECUTE_CODE, info);
