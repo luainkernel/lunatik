@@ -464,7 +464,7 @@ reset_reply_buffer:
 
 static int init_data(struct lunatik_data *data, char *buffer, size_t size)
 {
-	if ((data->buffer = kmalloc(sizeof(size), GFP_KERNEL)) == NULL) {
+	if ((data->buffer = kmalloc(size, GFP_KERNEL)) == NULL) {
 		pr_err("Failed to allocate memory to data buffer\n");
 		return -1;
 	}
