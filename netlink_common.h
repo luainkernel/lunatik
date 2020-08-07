@@ -6,7 +6,7 @@ extern struct genl_family lunatik_family;
 #include <net/genetlink.h>
 #endif
 
-#define LUNATIK_FRAGMENT_SIZE (20) // TODO Find, a size more precise
+#define LUNATIK_FRAGMENT_SIZE (3000) // TODO Find, a size more precise
 #define DELIMITER 3 //How many delimiters will be necessary in each part of the message
 
 /*Lunatik generic netlink protocol flags*/
@@ -22,6 +22,8 @@ enum lunatik_operations {
 	EXECUTE_CODE,
 	DESTROY_STATE,
 	LIST_STATES,
+	DATA,
+	DATA_INIT
 };
 
 enum lunatik_attrs {
@@ -37,6 +39,8 @@ enum lunatik_attrs {
 	STATES_LIST_EMPTY,
 	OP_SUCESS,
 	OP_ERROR,
+	LUNATIK_DATA,
+	LUNATIK_DATA_LEN,
 	ATTRS_COUNT
 #define ATTRS_MAX (ATTRS_COUNT - 1)
 };
