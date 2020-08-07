@@ -19,7 +19,7 @@
 CC = gcc
 CFLAGS = -fPIC -Wall -Wextra -O2 -g -I/usr/include/lua5.3/ -I/usr/include/libnl3 -D_UNUSED \
 					-I$(src)../deps/lua-memory/src
-LDFLAGS = -shared -lnl-genl-3 -lnl-3 -llua5.3 -L../deps/lua-memory/src -l:memory.so
+LDFLAGS = -shared -lnl-genl-3 -lnl-3 -llua5.3 -L../deps/lua-memory/src -lluamemlib
 RM = rm -f
 
 LIBS = lunatik.so

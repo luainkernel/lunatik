@@ -35,11 +35,13 @@
 #endif /* LUNATIK_SETPAUSE */
 
 extern int luaopen_memory(lua_State *);
+extern int luaopen_netlink(lua_State *L);
 
 static struct lunatik_instance instance;
 
 static const luaL_Reg libs[] = {
 	{"memory", luaopen_memory},
+	{"netlink", luaopen_netlink},
 	{NULL, NULL}
 };
 
