@@ -24,6 +24,7 @@
 
 #include <lauxlib.h>
 #include <lua.h>
+#include <lmemlib.h>
 
 #include "lunatik.h"
 
@@ -282,19 +283,24 @@ static int ldata_getpid(lua_State *L)
 	lua_pushinteger(L, nflua_data_getpid(dch));
 	return 1;
 }
+#endif /* _UNUSED */
 
-static int ldata_send(lua_State *L)
+static int lstate_datasend(lua_State *L)
 {
-	struct nflua_data *dch = getdata(L);
-	const char *name = luaL_checkstring(L, 2);
+	struct lunatik_nl_state *state = getnlstate(L);
 	size_t size;
-	const char *buffer = luamem_checkmemory(L, 3, &size);
+	int err;
+	const char *buffer = luamem_checkmemory(L, 2, &size);
 
-	if (buffer == NULL) luaL_argerror(L, 3, "expected non NULL memory object");
+	if (buffer == NULL) luaL_argerror(L, 2, "expected non NULL memory object");
 
-	return pushioresult(L, nflua_data_send(dch, name, buffer, size));
+	err = lunatik_datasend(state, buffer, size);
+	err ? lua_pushnil(L) : lua_pushboolean(L, true);
+
+	return 1;
 }
 
+#ifndef _UNUSED
 static int ldata_receive(lua_State *L)
 {
 	struct nflua_data *dch = getdata(L);
@@ -333,6 +339,7 @@ static const luaL_Reg state_mt[] = {
 	{"getname", lstate_getname},
 	{"getmaxalloc", lstate_getmaxalloc},
 	{"close", lstate_close},
+	{"send", lstate_datasend},
 	{NULL, NULL}
 };
 
@@ -341,8 +348,6 @@ static const luaL_Reg data_mt[] = {
 	{"close", ldata_close},
 	{"getfd", ldata_getfd},
 	{"getpid", ldata_getpid},
-	{"send", ldata_send},
-	{"receive", ldata_receive},
 	{"__gc", ldata_gc},
 	{NULL, NULL}
 };

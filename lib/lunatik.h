@@ -35,7 +35,6 @@ enum callback_result {
 enum session_status {
     SESSION_FREE,
     SESSION_RECEIVING,
-    SESSION_INIT_LIST,
 };
 
 struct lunatik_nl_state {
@@ -56,13 +55,15 @@ struct received_buffer {
 };
 
 struct lunatik_session {
-    struct nl_sock *sock;
+    struct nl_sock *control_sock;
+    struct nl_sock *data_sock;
     struct states_list states_list;
     struct received_buffer recv_buffer;
     enum session_status status;
     enum callback_result cb_result;
     int family;
-    int fd;
+    int control_fd;
+    int data_fd;
     uint32_t pid;
 };
 
@@ -78,12 +79,12 @@ struct nflua_data {
 
 static inline int lunatikS_getfd(const struct lunatik_session *session)
 {
-    return session->fd;
+    return session->control_fd;
 }
 
 static inline int lunatikS_isopen(const struct lunatik_session *session)
 {
-    return session->fd >= 0;
+    return session->control_fd >= 0;
 }
 
 int lunatikS_init(struct lunatik_session *session);
@@ -121,10 +122,12 @@ static inline int nflua_data_is_open(const struct nflua_data *dch)
 int nflua_data_init(struct nflua_data *dch, uint32_t pid);
 
 void nflua_data_close(struct nflua_data *dch);
+#endif /* _UNUSED */
 
-int nflua_data_send(struct nflua_data *dch, const char *name,
+int lunatik_datasend(struct lunatik_nl_state *state,
         const char *payload, size_t len);
 
+#ifndef _UNUSED
 int nflua_data_receive(struct nflua_data *dch, char *state, char *buffer);
 #endif /* _UNUSED */
 #endif /* LUNATIK_H */

@@ -1,5 +1,5 @@
 ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -D_CONFIG_FULL_PANIC -DLUNATIK_UNUSED \
-							-I$(src)/lua
+							-I$(src)/lua -I$(src)/deps/lua-memory/src
 asflags-y += -D_LUNATIK -D_KERNEL
 
 ifeq ($(ARCH), $(filter $(ARCH),i386 x86))
