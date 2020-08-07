@@ -1,5 +1,8 @@
 #ifndef NETLINK_H
+#define NETLINK_H
 #include <net/genetlink.h>
+
+#include "states.h"
 
 extern struct genl_family lunatik_family;
 

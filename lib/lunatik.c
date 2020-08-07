@@ -107,7 +107,6 @@ static int send_fragment(struct lunatik_session *session, const char *original_s
 
 	NLA_PUT_U8(msg, FLAGS, flags);
 
-
 	if ((err = nl_send_auto(session->control_sock, msg)) < 0) {
 		printf("Failed to send fragment\n %s\n", nl_geterror(err));
 		nlmsg_free(msg);
@@ -140,7 +139,7 @@ static int receive_op_result(struct lunatik_session *session){
 	return 0;
 }
 
-static int init_data_socket(struct lunatik_session *session, char *name)
+static int init_recv_datasocket(struct lunatik_session *session)
 {
 	struct nl_msg *msg;
 	int err = -1;
@@ -150,20 +149,14 @@ static int init_data_socket(struct lunatik_session *session, char *name)
 		goto error;
 	}
 
-	NLA_PUT_STRING(msg, STATE_NAME, name);
-
-	if ((err = nl_send_auto(session->data_sock, msg)) < 0) {
+	if ((err = nl_send_auto(session->recv_datasock, msg)) < 0) {
 		printf("Failed sending message to kernel\n");
 		goto error;
 	}
 
-	nl_wait_for_ack(session->data_sock);
-
 	nlmsg_free(msg);
 	return 0;
 
-nla_put_failure:
-	printf("Failed to put attributes on DATA_INIT message\n");
 error:
 	nlmsg_free(msg);
 	return err;
@@ -185,10 +178,7 @@ int lunatikS_newstate(struct lunatik_session *session, struct lunatik_nl_state *
 		return ret;
 	}
 
-	if (init_data_socket(session, cmd->name) || receive_op_result(session))
-		return -1;
-
-	return 0;
+	return receive_op_result(session);
 
 nla_put_failure:
 	printf("Failed to put attributes on message\n");
@@ -375,7 +365,6 @@ static int response_handler(struct nl_msg *msg, void *arg)
 	uint8_t flags = 0;
 	int err = 0;
 
-
 	if (nla_parse(attrs_tb, ATTRS_COUNT, genlmsg_attrdata(gnlh, 0),
               genlmsg_attrlen(gnlh, 0), NULL))
 	{
@@ -387,6 +376,7 @@ static int response_handler(struct nl_msg *msg, void *arg)
 	{
 	case CREATE_STATE:
 	case DESTROY_STATE:
+	case DATA:
 	case EXECUTE_CODE:
 		if (attrs_tb[OP_SUCESS] && nla_get_u8(attrs_tb[OP_SUCESS])) {
 			session->cb_result = CB_SUCCESS;
@@ -438,6 +428,27 @@ static int response_handler(struct nl_msg *msg, void *arg)
 
 static int data_handler(struct nl_msg *msg, void *arg)
 {
+	struct nlmsghdr *nh = nlmsg_hdr(msg);
+	struct genlmsghdr *gnlh = genlmsg_hdr(nh);
+	struct lunatik_session *session = (struct lunatik_session *) arg;
+	struct data_buffer *data_buffer = &session->data_buffer;
+	struct nlattr *attrs_tb[ATTRS_COUNT + 1];
+
+	if (nla_parse(attrs_tb, ATTRS_COUNT, genlmsg_attrdata(gnlh, 0),
+              genlmsg_attrlen(gnlh, 0), NULL))
+	{
+		printf("Error parsing attributes\n");
+		session->cb_result = CB_ERROR;
+		return NL_OK;
+	}
+
+	if (attrs_tb[LUNATIK_DATA] && attrs_tb[LUNATIK_DATA_LEN] && attrs_tb[STATE_NAME]) {
+		strcpy(data_buffer->buffer, nla_get_string(attrs_tb[LUNATIK_DATA]));
+		strcpy(data_buffer->state_name, nla_get_string(attrs_tb[STATE_NAME]));
+		data_buffer->size = nla_get_u32(attrs_tb[LUNATIK_DATA_LEN]);
+	} else {
+		printf("Some attributes are missing\n");
+	}
 	return NL_OK;
 }
 
@@ -469,16 +480,27 @@ int lunatikS_init(struct lunatik_session *session)
 		return err;
 	}
 
-	if ((err = init_socket(&session->data_sock, session))) {
-		printf("Failed to initialize data socket\n");
-		nl_socket_free(session->data_sock);
+	if ((err = init_socket(&session->send_datasock, session))) {
+		printf("Failed to initialize send data socket\n");
+		nl_socket_free(session->send_datasock);
+		return err;
+	}
+
+	if ((err = init_socket(&session->recv_datasock, session))) {
+		printf("Failed to initialize recv data socket\n");
+		nl_socket_free(session->recv_datasock);
 		return err;
 	}
 
 	nl_socket_modify_cb(session->control_sock, NL_CB_MSG_IN, NL_CB_CUSTOM, response_handler, session);
-	nl_socket_modify_cb(session->data_sock, NL_CB_MSG_IN, NL_CB_CUSTOM, data_handler, session);
+	nl_socket_modify_cb(session->send_datasock, NL_CB_MSG_IN, NL_CB_CUSTOM, response_handler, session);
+	nl_socket_modify_cb(session->recv_datasock, NL_CB_MSG_IN, NL_CB_CUSTOM, data_handler, session);
+	nl_socket_disable_seq_check(session->recv_datasock);
+	nl_socket_disable_auto_ack(session->recv_datasock);
 	session->control_fd = nl_socket_get_fd(session->control_sock);
-	session->data_fd = nl_socket_get_fd(session->data_sock);
+	session->data_fd = nl_socket_get_fd(session->recv_datasock);
+
+	init_recv_datasocket(session);
 
 	return 0;
 }
@@ -487,7 +509,8 @@ void lunatikS_close(struct lunatik_session *session)
 {
 	if (session != NULL){
 		nl_socket_free(session->control_sock);
-		nl_socket_free(session->data_sock);
+		nl_socket_free(session->send_datasock);
+		nl_socket_free(session->recv_datasock);
 		session->control_fd = -1;
 		session->data_fd = -1;
 	}
@@ -506,14 +529,14 @@ int lunatik_datasend(struct lunatik_nl_state *state, const char *payload, size_t
 	NLA_PUT_STRING(msg, STATE_NAME, state->name);
 	NLA_PUT_U32(msg, LUNATIK_DATA_LEN, len);
 
-	if ((err = nl_send_auto(session->data_sock, msg)) < 0) {
+	if ((err = nl_send_auto(session->send_datasock, msg)) < 0) {
 		printf("Failed sending message to kernel\n");
 		nlmsg_free(msg);
 		return err;
 	}
 
-	nl_recvmsgs_default(session->data_sock);
-	nl_wait_for_ack(session->data_sock);
+	nl_recvmsgs_default(session->send_datasock);
+	nl_wait_for_ack(session->send_datasock);
 	nlmsg_free(msg);
 
 	return 0;
@@ -524,3 +547,37 @@ nla_put_failure:
 	return -1;
 }
 
+int init_data_buffer(struct data_buffer *data_buffer, size_t size)
+{
+	if ((data_buffer->buffer = malloc(size)) == NULL) {
+		printf("Failed to allocate memory to data buffer\n");
+		return -1;
+	}
+	memset(data_buffer->buffer, 0, size);
+	data_buffer->size = size;
+	return 0;
+}
+
+int release_data_buffer(struct data_buffer *data_buffer)
+{
+	free(data_buffer->buffer);
+	data_buffer->size = 0;
+	memset(data_buffer->state_name, 0, LUNATIK_NAME_MAXSIZE);
+	return 0;
+}
+
+int lunatikS_receive(struct lunatik_session *session, char *state, char *buffer)
+{
+	struct data_buffer *data_buffer = &session->data_buffer;
+	int received_data;
+
+	init_data_buffer(data_buffer, LUNATIK_FRAGMENT_SIZE);
+	nl_recvmsgs_default(session->recv_datasock);
+
+	memcpy(buffer, data_buffer->buffer, data_buffer->size);
+	strcpy(state, data_buffer->state_name);
+	received_data = data_buffer->size;
+
+	release_data_buffer(data_buffer);
+	return received_data;
+}

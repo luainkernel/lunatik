@@ -52,16 +52,16 @@ static int lunatikN_datainit(struct sk_buff *buff, struct genl_info *info);
 
 struct nla_policy lunatik_policy[ATTRS_COUNT] = {
 	[STATE_NAME]  = { .type = NLA_STRING },
-	[CODE]		    = { .type = NLA_STRING },
+	[CODE]		= { .type = NLA_STRING },
 	[SCRIPT_NAME] = { .type = NLA_STRING },
 	[STATES_LIST] = { .type = NLA_STRING },
 	[LUNATIK_DATA]= { .type = NLA_STRING },
 	[LUNATIK_DATA_LEN] = { .type = NLA_U32},
 	[SCRIPT_SIZE] = { .type = NLA_U32 },
-	[MAX_ALLOC]	 = { .type = NLA_U32 },
-	[FLAGS] 	    = { .type = NLA_U8 },
+	[MAX_ALLOC]   = { .type = NLA_U32 },
+	[FLAGS] 	  = { .type = NLA_U8 },
 	[OP_SUCESS]   = { .type = NLA_U8 },
-	[OP_ERROR]	  = { .type = NLA_U8 },
+	[OP_ERROR]	= { .type = NLA_U8 },
 };
 
 static const struct genl_ops l_ops[] = {
@@ -217,18 +217,21 @@ static int lunatikN_newstate(struct sk_buff *buff, struct genl_info *info)
 	struct lunatik_state *s;
 	char *state_name;
 	u32 *max_alloc;
-	u32 pid;
 
 	pr_debug("Received a CREATE_STATE message\n");
 
 	instance = lunatik_pernet(genl_info_net(info));
 	state_name = (char *)nla_data(info->attrs[STATE_NAME]);
 	max_alloc = (u32 *)nla_data(info->attrs[MAX_ALLOC]);
-	pid = info->snd_portid;
 
 	s = lunatik_netnewstate(instance, *max_alloc, state_name);
 
-	s == NULL ? reply_with(OP_ERROR, CREATE_STATE, info) : reply_with(OP_SUCESS, CREATE_STATE, info);
+	if (s == NULL) {
+		reply_with(OP_ERROR, CREATE_STATE, info);
+	} else {
+		s->instance = *instance;
+		reply_with(OP_SUCESS, CREATE_STATE, info);
+	}
 
 	return 0;
 }
@@ -255,6 +258,7 @@ static void add_fragtostate(char *fragment, lunatik_State *s)
 static int dostring(char *code, lunatik_State *s, const char *script_name)
 {
 	int err = 0;
+	int base;
 	spin_lock_bh(&s->lock);
 
 	if (!lunatik_stateget(s)) {
@@ -263,11 +267,13 @@ static int dostring(char *code, lunatik_State *s, const char *script_name)
 		goto out;
 	}
 
+	base = lua_gettop(s->L);
 	if ((err = luaU_dostring(s->L, code, s->scriptsize, script_name))) {
 		pr_err("%s\n", lua_tostring(s->L, -1));
 	}
 
 	lunatik_stateput(s);
+	lua_settop(s->L, base);
 
 out:
 	kfree(s->code_buffer);
@@ -299,7 +305,7 @@ static int lunatikN_dostring(struct sk_buff *buff, struct genl_info *info)
 	}
 
 	if (flags & LUNATIK_INIT) {
-    init_codebuffer(s, info);
+		init_codebuffer(s, info);
 	}
 
 	if (flags & LUNATIK_MULTI) {
@@ -478,6 +484,7 @@ static int lunatikN_data(struct sk_buff *buff, struct genl_info *info)
 	char *state_name;
 	u32 payload_len;
 	int err = 0;
+	int base;
 
 	instance = lunatik_pernet(genl_info_net(info));
 	state_name = nla_data(info->attrs[STATE_NAME]);
@@ -501,6 +508,7 @@ static int lunatikN_data(struct sk_buff *buff, struct genl_info *info)
 
 	spin_lock_bh(&state->lock);
 
+	base = lua_gettop(state->L);
 	lua_pushcfunction(state->L, handle_data);
 	lua_pushlightuserdata(state->L, &data);
 	if (luaU_pcall(state->L, 1, 0)) {
@@ -511,6 +519,7 @@ static int lunatikN_data(struct sk_buff *buff, struct genl_info *info)
 
 unlock:
 	spin_unlock_bh(&state->lock);
+	lua_settop(state->L, base);
 	lunatik_stateput(state);
 
 	err ? reply_with(OP_ERROR, DATA, info) : reply_with(OP_SUCESS, DATA, info);
@@ -525,18 +534,50 @@ error:
 static int lunatikN_datainit(struct sk_buff *buff, struct genl_info *info)
 {
 	struct lunatik_instance *instance;
-	char *name;
-	lunatik_State *state;
 
 	instance = lunatik_pernet(genl_info_net(info));
-	name = nla_data(info->attrs[STATE_NAME]);
-	state = lunatik_netstatelookup(instance, name);
-	state->genl_info = *info;
+	instance->usr_info = *info;
 
 	return 0;
 }
 
-/* Note: Most of the functions below are copied from NFLua: https://github.com/cujoai/nflua
+int lunatikN_send_data(lunatik_State *s, const char *payload, size_t size)
+{
+	struct lunatik_instance instance;
+	struct sk_buff *obuff;
+	void *msg_head;
+
+	if ((obuff = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL)) == NULL) {
+		pr_err("Failed allocating message to an reply\n");
+		return 0;
+	}
+
+	instance = s->instance;
+
+	if ((msg_head = genlmsg_put_reply(obuff, &(instance.usr_info), &lunatik_family, 0, DATA)) == NULL) {
+		pr_err("Failed to put generic netlink header\n");
+		return 0;
+	}
+
+	if (nla_put_string(obuff, LUNATIK_DATA, payload) ||
+		nla_put_string(obuff, STATE_NAME, s->name) ||
+		nla_put_u32(obuff, LUNATIK_DATA_LEN, size)) {
+		pr_err("Failed to put attributes on socket buffer\n");
+		return 0;
+	}
+
+	genlmsg_end(obuff, msg_head);
+
+	if (genlmsg_reply(obuff, &(instance.usr_info)) < 0) {
+		pr_err("Failed to send message to user space\n");
+		return 0;
+	}
+
+	pr_debug("Message sent to user space\n");
+	return 0;
+}
+
+/* Note: Most of the function below is copied from NFLua: https://github.com/cujoai/nflua
  * Copyright (C) 2017-2019  CUJO LLC
  *
  * This program is free software; you can redistribute it and/or modify

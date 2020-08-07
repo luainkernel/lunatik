@@ -22,24 +22,23 @@
 #include <lmemlib.h>
 
 #include "luautil.h"
-#include "netlink.h"
 #include "states.h"
+
+extern int lunatikN_send_data(lunatik_State *state, const char *payload, size_t size);
 
 static int luanetlink_send(lua_State *L)
 {
-	struct nflua_state *s = luaU_getenv(L, struct nflua_state);
-	int pid = luaL_checkinteger(L, 1);
-	int group = luaL_optinteger(L, 2, 0);
+	lunatik_State *s = luaU_getenv(L, lunatik_State);
 	const char *payload;
 	size_t size;
 	int err;
 
 	if (s == NULL)
-		return luaL_error(L, "invalid nflua_state");
+		return luaL_error(L, "invalid lunatik_State");
 
-	payload = luamem_checkstring(L, 3, &size);
+	payload = luamem_checkstring(L, 1, &size);
 
-	if ((err = nflua_nl_send_data(s, pid, group, payload, size)) < 0)
+	if ((err = lunatikN_send_data(s, payload, size)) < 0)
 		return luaL_error(L, "failed to send message. Return code %d", err);
 
 	lua_pushinteger(L, (lua_Integer)size);

@@ -300,11 +300,10 @@ static int lstate_datasend(lua_State *L)
 	return 1;
 }
 
-#ifndef _UNUSED
-static int ldata_receive(lua_State *L)
+static int lsession_datareceive(lua_State *L)
 {
-	struct nflua_data *dch = getdata(L);
-	char state[NFLUA_NAME_MAXSIZE] = {0};
+	struct lunatik_session *session = getsession(L);
+	char state[LUNATIK_NAME_MAXSIZE] = {0};
 	size_t size, offset;
 	int recv;
 	char *buffer = luamem_checkmemory(L, 2, &size);
@@ -312,10 +311,10 @@ static int ldata_receive(lua_State *L)
 	if (buffer == NULL) luaL_argerror(L, 2, "expected non NULL memory object");
 
 	offset = luaL_checkinteger(L, 3);
-	if (offset >= size || size - offset < NFLUA_DATA_MAXSIZE)
-		luaL_argerror(L, 3, "not enough space in buffer");
+	if (offset >= size || size - offset < LUNATIK_FRAGMENT_SIZE)
+		luaL_argerror(L, 2, "not enough space in buffer");
 
-	recv = nflua_data_receive(dch, state, buffer + offset);
+	recv = lunatikS_receive(session, state, buffer);
 	if (recv < 0) return pusherrno(L, recv);
 
 	lua_pushinteger(L, recv);
@@ -323,13 +322,13 @@ static int ldata_receive(lua_State *L)
 
 	return 2;
 }
-#endif /* _UNUSED */
 
 static const luaL_Reg session_mt[] = {
 	{"close", lsession_close},
 	{"getfd", lsession_getfd},
 	{"new", lsession_newstate},
 	{"list", lsession_list},
+	{"receive", lsession_datareceive},
 	{"__gc", lsession_gc},
 	{NULL, NULL}
 };

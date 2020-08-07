@@ -68,9 +68,10 @@ static inline void *luaU_getregval(lua_State *L, luaU_id id)
 	st **penv = (st **)lua_getextraspace(L); \
 	*penv = env; }
 
-#ifndef LUNATIK_UNUSED
+
 #define luaU_getenv(L, st)	(*((st **)lua_getextraspace(L)))
 
+#ifndef LUNATIK_UNUSED
 static inline int luaU_pusherr(lua_State *L, const char *err)
 {
 	lua_pushnil(L);

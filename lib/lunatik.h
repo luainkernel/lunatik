@@ -54,11 +54,19 @@ struct received_buffer {
 	int cursor;
 };
 
+struct data_buffer {
+    char *buffer;
+    char state_name[LUNATIK_NAME_MAXSIZE];
+    int size;
+};
+
 struct lunatik_session {
     struct nl_sock *control_sock;
-    struct nl_sock *data_sock;
+    struct nl_sock *send_datasock;
+    struct nl_sock *recv_datasock;
     struct states_list states_list;
     struct received_buffer recv_buffer;
+    struct data_buffer data_buffer;
     enum session_status status;
     enum callback_result cb_result;
     int family;
@@ -100,10 +108,9 @@ int lunatikS_dostring(struct lunatik_session *session, const char *state_name,
 
 int lunatikS_list(struct lunatik_session *session);
 
-#ifndef _UNUSED
-int nflua_control_receive(struct nflua_control *ctrl,
-        struct nflua_response *nr, char *buffer);
+int lunatikS_receive(struct lunatik_session *session, char *state, char *buffer);
 
+#ifndef _UNUSED
 static inline int nflua_data_getsock(const struct nflua_data *dch)
 {
     return dch->fd;

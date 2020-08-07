@@ -39,7 +39,8 @@ lua-objs = lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 lua_memory-objs = deps/lua-memory/src/lmemlib.o deps/lua-memory/src/lmemmod.o
 
 lunatik-objs += $(lua-objs) \
-	arch/$(ARCH)/setjmp.o util/modti3.o lunatik_core.o states.o netlink.o $(lua_memory-objs)
+	arch/$(ARCH)/setjmp.o util/modti3.o lunatik_core.o states.o netlink.o $(lua_memory-objs) \
+	luanetlink.o
 
 ifeq ($(shell [ "${VERSION}" -lt "4" ] && [ "${VERSION}${PATCHLEVEL}" -lt "312" ] && echo y),y)
 	lunatik-objs += util/div64.o
