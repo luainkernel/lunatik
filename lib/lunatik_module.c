@@ -34,6 +34,9 @@ extern int luaopen_memory(lua_State *L);
 
 #define DEFAULT_MAXALLOC_BYTES	(32 * 1024)
 
+extern int init_socket(struct nl_sock **socket);
+extern int init_recv_datasocket_on_kernel(struct lunatik_nl_state *state);
+
 static int pusherrmsg(lua_State *L, const char *msg)
 {
 	lua_pushnil(L);
@@ -145,9 +148,9 @@ static int lsession_newstate(lua_State *L)
 
 static int lstate_close(lua_State *L)
 {
-	struct lunatik_nl_state *s = getnlstate(L);
-	if (lunatikS_closestate(s->session, s->name)){
-		lua_pushboolean(L, false);
+	struct lunatik_nl_state *state = getnlstate(L);
+	if (lunatikS_closestate(state)){
+		lua_pushnil(L);
 		return 1;
 	}
 
@@ -285,6 +288,19 @@ static int ldata_getpid(lua_State *L)
 }
 #endif /* _UNUSED */
 
+static int lstate_initdata(lua_State *L)
+{
+	struct lunatik_nl_state *state = getnlstate(L);
+
+	if (lunatikS_initdata(state)) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	lua_pushboolean(L, true);
+	return 1;
+}
+
 static int lstate_datasend(lua_State *L)
 {
 	struct lunatik_nl_state *state = getnlstate(L);
@@ -302,8 +318,7 @@ static int lstate_datasend(lua_State *L)
 
 static int lsession_datareceive(lua_State *L)
 {
-	struct lunatik_session *session = getsession(L);
-	char state[LUNATIK_NAME_MAXSIZE] = {0};
+	struct lunatik_nl_state *state = getnlstate(L);
 	size_t size, offset;
 	int recv;
 	char *buffer = luamem_checkmemory(L, 2, &size);
@@ -314,11 +329,11 @@ static int lsession_datareceive(lua_State *L)
 	if (offset >= size || size - offset < LUNATIK_FRAGMENT_SIZE)
 		luaL_argerror(L, 2, "not enough space in buffer");
 
-	recv = lunatikS_receive(session, state, buffer);
+	recv = lunatikS_receive(state, buffer);
 	if (recv < 0) return pusherrno(L, recv);
 
 	lua_pushinteger(L, recv);
-	lua_pushstring(L, state);
+	lua_pushstring(L, state->name);
 
 	return 2;
 }
@@ -339,6 +354,7 @@ static const luaL_Reg state_mt[] = {
 	{"getmaxalloc", lstate_getmaxalloc},
 	{"close", lstate_close},
 	{"send", lstate_datasend},
+	{"initdata", lstate_initdata},
 	{NULL, NULL}
 };
 

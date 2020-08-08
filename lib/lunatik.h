@@ -29,6 +29,7 @@
 enum callback_result {
     CB_SUCCESS,
     CB_ERROR,
+    CB_EMPTY_RESULT,
     CB_LIST_EMPTY,
 };
 
@@ -37,8 +38,17 @@ enum session_status {
     SESSION_RECEIVING,
 };
 
+struct data_buffer {
+    char *buffer;
+    char state_name[LUNATIK_NAME_MAXSIZE];
+    int size;
+};
+
 struct lunatik_nl_state {
     struct lunatik_session *session;
+    struct nl_sock *send_datasock;
+    struct nl_sock *recv_datasock;
+    struct data_buffer data_buffer;
     uint32_t maxalloc;
     uint32_t curralloc;
     char name[LUNATIK_NAME_MAXSIZE];
@@ -54,19 +64,10 @@ struct received_buffer {
 	int cursor;
 };
 
-struct data_buffer {
-    char *buffer;
-    char state_name[LUNATIK_NAME_MAXSIZE];
-    int size;
-};
-
 struct lunatik_session {
     struct nl_sock *control_sock;
-    struct nl_sock *send_datasock;
-    struct nl_sock *recv_datasock;
     struct states_list states_list;
     struct received_buffer recv_buffer;
-    struct data_buffer data_buffer;
     enum session_status status;
     enum callback_result cb_result;
     int family;
@@ -101,14 +102,16 @@ void lunatikS_close(struct lunatik_session *session);
 
 int lunatikS_newstate(struct lunatik_session *session, struct lunatik_nl_state *s);
 
-int lunatikS_closestate(struct lunatik_session *session, const char *name);
+int lunatikS_closestate(struct lunatik_nl_state *state);
 
 int lunatikS_dostring(struct lunatik_session *session, const char *state_name,
     const char *script, const char *script_name, size_t total_code_size);
 
 int lunatikS_list(struct lunatik_session *session);
 
-int lunatikS_receive(struct lunatik_session *session, char *state, char *buffer);
+int lunatikS_receive(struct lunatik_nl_state *state, char *buffer);
+
+int lunatikS_initdata(struct lunatik_nl_state *state);
 
 #ifndef _UNUSED
 static inline int nflua_data_getsock(const struct nflua_data *dch)
