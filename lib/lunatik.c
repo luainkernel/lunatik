@@ -32,7 +32,9 @@
 
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 
-static struct nl_msg *prepare_message(struct lunatik_session *session, int command, int flags)
+static int lunatik_family;
+
+static struct nl_msg *prepare_message(int command, int flags)
 {
 	struct nl_msg *msg;
 
@@ -41,7 +43,7 @@ static struct nl_msg *prepare_message(struct lunatik_session *session, int comma
 		return NULL;
 	}
 
-	if ((genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, session->family,
+	if ((genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, lunatik_family,
 					0, 0, command, LUNATIK_NLVERSION)) == NULL) {
 		printf("Failed to put generic netlink message header\n");
 		return NULL;
@@ -56,12 +58,12 @@ nla_put_failure:
 	return NULL;
 }
 
-static int send_simple_msg(struct lunatik_session *session, int command, int flags)
+static int send_simple_control_msg(struct lunatik_session *session, int command, int flags)
 {
 	struct nl_msg *msg;
 	int err = -1;
 
-	if ((msg = prepare_message(session, command, flags)) == NULL) {
+	if ((msg = prepare_message(command, flags)) == NULL) {
 		printf("Error preparing message\n");
 		goto error;
 	}
@@ -85,7 +87,7 @@ static int send_fragment(struct lunatik_session *session, const char *original_s
 	struct nl_msg *msg;
 	char *fragment;
 	int err = -1;
-	if ((msg = prepare_message(session, EXECUTE_CODE, 0)) == NULL){
+	if ((msg = prepare_message(EXECUTE_CODE, 0)) == NULL){
 		nlmsg_free(msg);
 		return err;
 	}
@@ -133,26 +135,30 @@ static int receive_op_result(struct lunatik_session *session){
 
 	nl_wait_for_ack(session->control_sock);
 
-	if (session->cb_result == CB_ERROR)
+	if (session->cb_result == CB_ERROR){
+		session->cb_result = CB_EMPTY_RESULT;
 		return -1;
+	}
 
 	return 0;
 }
 
-static int init_recv_datasocket(struct lunatik_session *session)
+int init_recv_datasocket_on_kernel(struct lunatik_nl_state *state)
 {
 	struct nl_msg *msg;
 	int err = -1;
 
-	if ((msg = prepare_message(session, DATA_INIT, 0)) == NULL) {
+	if ((msg = prepare_message(DATA_INIT, 0)) == NULL) {
 		printf("Error preparing message\n");
 		goto error;
 	}
 
-	if ((err = nl_send_auto(session->recv_datasock, msg)) < 0) {
+	if ((err = nl_send_auto(state->recv_datasock, msg)) < 0) {
 		printf("Failed sending message to kernel\n");
 		goto error;
 	}
+
+	//TODO Receive a response from kernel
 
 	nlmsg_free(msg);
 	return 0;
@@ -167,7 +173,7 @@ int lunatikS_newstate(struct lunatik_session *session, struct lunatik_nl_state *
 	struct nl_msg *msg;
 	int ret = -1;
 
-	if ((msg = prepare_message(session, CREATE_STATE, 0)) == NULL)
+	if ((msg = prepare_message(CREATE_STATE, 0)) == NULL)
 		return ret;
 
 	NLA_PUT_STRING(msg, STATE_NAME, cmd->name);
@@ -185,20 +191,26 @@ nla_put_failure:
 	return ret;
 }
 
-int lunatikS_closestate(struct lunatik_session *session, const char *name)
+int lunatikS_closestate(struct lunatik_nl_state *state)
 {
+	struct lunatik_session *session;
 	struct nl_msg *msg;
 	int ret = -1;
 
-	if ((msg = prepare_message(session, DESTROY_STATE, 0)) == NULL)
+	session = state->session;
+
+	if ((msg = prepare_message(DESTROY_STATE, 0)) == NULL)
 		return ret;
 
-	NLA_PUT_STRING(msg, STATE_NAME, name);
+	NLA_PUT_STRING(msg, STATE_NAME, state->name);
 
 	if ((ret = nl_send_auto(session->control_sock, msg)) < 0) {
 		printf("Failed to send destroy message:\n %s\n", nl_geterror(ret));
 		return ret;
 	}
+
+	nl_socket_free(state->send_datasock);
+	nl_socket_free(state->recv_datasock);
 
 	return receive_op_result(session);
 
@@ -246,7 +258,7 @@ int lunatikS_list(struct lunatik_session *session)
 {
 	int err = -1;
 
-	if ((err = send_simple_msg(session, LIST_STATES, 0)))
+	if ((err = send_simple_control_msg(session, LIST_STATES, 0)))
 		return err;
 
 	nl_recvmsgs_default(session->control_sock);
@@ -256,7 +268,7 @@ int lunatikS_list(struct lunatik_session *session)
 		return -1;
 
 	while (session->status == SESSION_RECEIVING) {
-		send_simple_msg(session, LIST_STATES, 0);
+		send_simple_control_msg(session, LIST_STATES, 0);
 		nl_recvmsgs_default(session->control_sock);
 		nl_wait_for_ack(session->control_sock);
 	}
@@ -428,6 +440,7 @@ static int response_handler(struct nl_msg *msg, void *arg)
 
 static int data_handler(struct nl_msg *msg, void *arg)
 {
+#ifndef _UNUSED // TODO Handle with messages received
 	struct nlmsghdr *nh = nlmsg_hdr(msg);
 	struct genlmsghdr *gnlh = genlmsg_hdr(nh);
 	struct lunatik_session *session = (struct lunatik_session *) arg;
@@ -449,10 +462,11 @@ static int data_handler(struct nl_msg *msg, void *arg)
 	} else {
 		printf("Some attributes are missing\n");
 	}
+#endif
 	return NL_OK;
 }
 
-int init_socket(struct nl_sock **socket, struct lunatik_session *session)
+int init_socket(struct nl_sock **socket)
 {
 	int err = -1;
 	if ((*socket = nl_socket_alloc()) == NULL)
@@ -461,8 +475,8 @@ int init_socket(struct nl_sock **socket, struct lunatik_session *session)
 	if ((err = genl_connect(*socket)))
 		return err;
 
-	if ((session->family = genl_ctrl_resolve(*socket, LUNATIK_FAMILY)) < 0)
-		return session->family;
+	if ((lunatik_family = genl_ctrl_resolve(*socket, LUNATIK_FAMILY)) < 0)
+		return lunatik_family;
 
 	return 0;
 }
@@ -474,33 +488,14 @@ int lunatikS_init(struct lunatik_session *session)
 	if (session == NULL)
 		return -EINVAL;
 
-	if ((err = init_socket(&session->control_sock, session))) {
+	if ((err = init_socket(&session->control_sock))) {
 		printf("Failed to initialize control socket\n");
 		nl_socket_free(session->control_sock);
 		return err;
 	}
 
-	if ((err = init_socket(&session->send_datasock, session))) {
-		printf("Failed to initialize send data socket\n");
-		nl_socket_free(session->send_datasock);
-		return err;
-	}
-
-	if ((err = init_socket(&session->recv_datasock, session))) {
-		printf("Failed to initialize recv data socket\n");
-		nl_socket_free(session->recv_datasock);
-		return err;
-	}
-
 	nl_socket_modify_cb(session->control_sock, NL_CB_MSG_IN, NL_CB_CUSTOM, response_handler, session);
-	nl_socket_modify_cb(session->send_datasock, NL_CB_MSG_IN, NL_CB_CUSTOM, response_handler, session);
-	nl_socket_modify_cb(session->recv_datasock, NL_CB_MSG_IN, NL_CB_CUSTOM, data_handler, session);
-	nl_socket_disable_seq_check(session->recv_datasock);
-	nl_socket_disable_auto_ack(session->recv_datasock);
 	session->control_fd = nl_socket_get_fd(session->control_sock);
-	session->data_fd = nl_socket_get_fd(session->recv_datasock);
-
-	init_recv_datasocket(session);
 
 	return 0;
 }
@@ -509,17 +504,13 @@ void lunatikS_close(struct lunatik_session *session)
 {
 	if (session != NULL){
 		nl_socket_free(session->control_sock);
-		nl_socket_free(session->send_datasock);
-		nl_socket_free(session->recv_datasock);
 		session->control_fd = -1;
-		session->data_fd = -1;
 	}
 }
 
 int lunatik_datasend(struct lunatik_nl_state *state, const char *payload, size_t len)
 {
-	struct nl_msg *msg = prepare_message(state->session, DATA, 0);
-	struct lunatik_session *session = state->session;
+	struct nl_msg *msg = prepare_message(DATA, 0);
 	int err = 0;
 
 	if (msg == NULL)
@@ -529,14 +520,14 @@ int lunatik_datasend(struct lunatik_nl_state *state, const char *payload, size_t
 	NLA_PUT_STRING(msg, STATE_NAME, state->name);
 	NLA_PUT_U32(msg, LUNATIK_DATA_LEN, len);
 
-	if ((err = nl_send_auto(session->send_datasock, msg)) < 0) {
+	if ((err = nl_send_auto(state->send_datasock, msg)) < 0) {
 		printf("Failed sending message to kernel\n");
 		nlmsg_free(msg);
 		return err;
 	}
 
-	nl_recvmsgs_default(session->send_datasock);
-	nl_wait_for_ack(session->send_datasock);
+	nl_recvmsgs_default(state->send_datasock);
+	nl_wait_for_ack(state->send_datasock);
 	nlmsg_free(msg);
 
 	return 0;
@@ -566,13 +557,13 @@ int release_data_buffer(struct data_buffer *data_buffer)
 	return 0;
 }
 
-int lunatikS_receive(struct lunatik_session *session, char *state, char *buffer)
+int lunatikS_receive(struct lunatik_nl_state *state, char *buffer)
 {
-	struct data_buffer *data_buffer = &session->data_buffer;
+	struct data_buffer *data_buffer = &state->data_buffer;
 	int received_data;
 
 	init_data_buffer(data_buffer, LUNATIK_FRAGMENT_SIZE);
-	nl_recvmsgs_default(session->recv_datasock);
+	nl_recvmsgs_default(state->recv_datasock);
 
 	memcpy(buffer, data_buffer->buffer, data_buffer->size);
 	strcpy(state, data_buffer->state_name);
@@ -580,4 +571,32 @@ int lunatikS_receive(struct lunatik_session *session, char *state, char *buffer)
 
 	release_data_buffer(data_buffer);
 	return received_data;
+}
+
+int lunatikS_initdata(struct lunatik_nl_state *state)
+{
+	int ret = 0;
+
+	if ((ret = init_socket(&state->send_datasock))) {
+		printf("Failed to initialize the send socket\n");
+		nl_socket_free(state->send_datasock);
+		return ret;
+	}
+
+	if ((ret = init_socket(&state->recv_datasock))) {
+		printf("Failed to initialize the recv socket\n");
+		nl_socket_free(state->recv_datasock);
+		return ret;
+	}
+
+	if ((ret = init_recv_datasocket_on_kernel(state))) {
+		printf("Failed to initialize receive socket on kernel\n");
+		nl_socket_free(state->recv_datasock);
+		return ret;
+	}
+
+	nl_socket_modify_cb(state->send_datasock, NL_CB_MSG_IN, NL_CB_CUSTOM, response_handler, NULL);
+	nl_socket_modify_cb(state->recv_datasock, NL_CB_MSG_IN, NL_CB_CUSTOM, data_handler, state);
+
+	return 0;
 }
