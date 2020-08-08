@@ -49,6 +49,7 @@ struct lunatik_nl_state {
     struct nl_sock *send_datasock;
     struct nl_sock *recv_datasock;
     struct data_buffer data_buffer;
+    enum callback_result cb_result;
     uint32_t maxalloc;
     uint32_t curralloc;
     char name[LUNATIK_NAME_MAXSIZE];

@@ -176,11 +176,11 @@ static int lstate_dostring(lua_State *L)
 	if (status)
 		goto error;
 
-	lua_pushnil(L);
+	lua_pushboolean(L, true);
 	return 1;
 
 error:
-	lua_pushboolean(L, true);
+	lua_pushnil(L);
 	return 1;
 }
 

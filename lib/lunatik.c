@@ -368,6 +368,30 @@ static int append_recv_buffer(struct lunatik_session *session, struct nlattr **a
 	return 0;
 }
 
+static int send_data_cb_handler(struct nl_msg *msg, void *arg)
+{
+	struct nlmsghdr *nh = nlmsg_hdr(msg);
+	struct genlmsghdr *gnlh = genlmsg_hdr(nh);
+	struct nlattr * attrs_tb[ATTRS_COUNT + 1];
+	struct lunatik_nl_state *state = (struct lunatik_nl_state *)arg;
+
+	if (nla_parse(attrs_tb, ATTRS_COUNT, genlmsg_attrdata(gnlh, 0),
+              genlmsg_attrlen(gnlh, 0), NULL))
+	{
+		printf("Error parsing attributes\n");
+		state->cb_result = CB_ERROR;
+		return NL_OK;
+	}
+
+	if (attrs_tb[OP_SUCESS] && nla_get_u8(attrs_tb[OP_SUCESS])) {
+		state->cb_result = CB_SUCCESS;
+	} else if (attrs_tb[OP_ERROR] && nla_get_u8(attrs_tb[OP_ERROR])) {
+		state->cb_result = CB_ERROR;
+	}
+
+	return NL_OK;
+}
+
 static int response_handler(struct nl_msg *msg, void *arg)
 {
 	struct nlmsghdr *nh = nlmsg_hdr(msg);
@@ -388,7 +412,6 @@ static int response_handler(struct nl_msg *msg, void *arg)
 	{
 	case CREATE_STATE:
 	case DESTROY_STATE:
-	case DATA:
 	case EXECUTE_CODE:
 		if (attrs_tb[OP_SUCESS] && nla_get_u8(attrs_tb[OP_SUCESS])) {
 			session->cb_result = CB_SUCCESS;
@@ -516,6 +539,11 @@ int lunatik_datasend(struct lunatik_nl_state *state, const char *payload, size_t
 	if (msg == NULL)
 		return -1;
 
+	if (state->send_datasock == NULL) {
+		printf("There is no socket available to send a message from this state, did you initialize the data for this state?\n");
+		return -1;
+	}
+
 	NLA_PUT_STRING(msg, LUNATIK_DATA, payload);
 	NLA_PUT_STRING(msg, STATE_NAME, state->name);
 	NLA_PUT_U32(msg, LUNATIK_DATA_LEN, len);
@@ -529,6 +557,11 @@ int lunatik_datasend(struct lunatik_nl_state *state, const char *payload, size_t
 	nl_recvmsgs_default(state->send_datasock);
 	nl_wait_for_ack(state->send_datasock);
 	nlmsg_free(msg);
+
+	if (state->cb_result == CB_ERROR) {
+		state->cb_result = CB_EMPTY_RESULT;
+		return -1;
+	}
 
 	return 0;
 
@@ -595,7 +628,7 @@ int lunatikS_initdata(struct lunatik_nl_state *state)
 		return ret;
 	}
 
-	nl_socket_modify_cb(state->send_datasock, NL_CB_MSG_IN, NL_CB_CUSTOM, response_handler, NULL);
+	nl_socket_modify_cb(state->send_datasock, NL_CB_MSG_IN, NL_CB_CUSTOM, send_data_cb_handler, state);
 	nl_socket_modify_cb(state->recv_datasock, NL_CB_MSG_IN, NL_CB_CUSTOM, data_handler, state);
 
 	return 0;
