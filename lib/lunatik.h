@@ -40,7 +40,6 @@ enum session_status {
 
 struct data_buffer {
     char *buffer;
-    char state_name[LUNATIK_NAME_MAXSIZE];
     int size;
 };
 
@@ -110,7 +109,7 @@ int lunatikS_dostring(struct lunatik_session *session, const char *state_name,
 
 int lunatikS_list(struct lunatik_session *session);
 
-int lunatikS_receive(struct lunatik_nl_state *state, char *buffer);
+int lunatikS_receive(struct lunatik_nl_state *state);
 
 int lunatikS_initdata(struct lunatik_nl_state *state);
 

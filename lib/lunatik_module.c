@@ -141,6 +141,11 @@ static int lsession_newstate(lua_State *L)
 		return 2;
 	}
 
+	if (lunatikS_initdata(state)) {
+		lua_pushnil(L);
+		return 1;
+	}
+
 	luaL_setmetatable(L, "states.control");
 
 	return 1;
@@ -288,19 +293,6 @@ static int ldata_getpid(lua_State *L)
 }
 #endif /* _UNUSED */
 
-static int lstate_initdata(lua_State *L)
-{
-	struct lunatik_nl_state *state = getnlstate(L);
-
-	if (lunatikS_initdata(state)) {
-		lua_pushnil(L);
-		return 1;
-	}
-
-	lua_pushboolean(L, true);
-	return 1;
-}
-
 static int lstate_datasend(lua_State *L)
 {
 	struct lunatik_nl_state *state = getnlstate(L);
@@ -316,26 +308,26 @@ static int lstate_datasend(lua_State *L)
 	return 1;
 }
 
-static int lsession_datareceive(lua_State *L)
+extern void release_data_buffer(struct data_buffer *data_buffer);
+
+static int lstate_datareceive(lua_State *L)
 {
 	struct lunatik_nl_state *state = getnlstate(L);
-	size_t size, offset;
-	int recv;
-	char *buffer = luamem_checkmemory(L, 2, &size);
+	char *memory;
 
-	if (buffer == NULL) luaL_argerror(L, 2, "expected non NULL memory object");
+	if (lunatikS_receive(state))
+		goto error;
 
-	offset = luaL_checkinteger(L, 3);
-	if (offset >= size || size - offset < LUNATIK_FRAGMENT_SIZE)
-		luaL_argerror(L, 2, "not enough space in buffer");
+	memory = luamem_newalloc(L, state->data_buffer.size);
+	memcpy(memory, state->data_buffer.buffer, state->data_buffer.size);
 
-	recv = lunatikS_receive(state, buffer);
-	if (recv < 0) return pusherrno(L, recv);
+	release_data_buffer(&state->data_buffer);
 
-	lua_pushinteger(L, recv);
-	lua_pushstring(L, state->name);
+	return 1;
 
-	return 2;
+error:
+	lua_pushnil(L);
+	return 1;
 }
 
 static const luaL_Reg session_mt[] = {
@@ -343,7 +335,6 @@ static const luaL_Reg session_mt[] = {
 	{"getfd", lsession_getfd},
 	{"new", lsession_newstate},
 	{"list", lsession_list},
-	{"receive", lsession_datareceive},
 	{"__gc", lsession_gc},
 	{NULL, NULL}
 };
@@ -354,7 +345,7 @@ static const luaL_Reg state_mt[] = {
 	{"getmaxalloc", lstate_getmaxalloc},
 	{"close", lstate_close},
 	{"send", lstate_datasend},
-	{"initdata", lstate_initdata},
+	{"receive", lstate_datareceive},
 	{NULL, NULL}
 };
 
