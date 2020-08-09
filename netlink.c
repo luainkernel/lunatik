@@ -534,16 +534,27 @@ error:
 static int lunatikN_datainit(struct sk_buff *buff, struct genl_info *info)
 {
 	struct lunatik_instance *instance;
+	lunatik_State *state;
+	char *name;
 
 	instance = lunatik_pernet(genl_info_net(info));
-	instance->usr_info = *info;
+	name = nla_data(info->attrs[STATE_NAME]);
+
+	if ((state = lunatik_netstatelookup(instance, name)) == NULL) {
+		pr_err("Failed to find the state %s\n", name);
+		reply_with(OP_ERROR, DATA_INIT, info);
+		return 0;
+	}
+
+	state->usr_state_info = *info;
+
+	reply_with(OP_SUCESS, DATA_INIT, info);
 
 	return 0;
 }
 
-int lunatikN_send_data(lunatik_State *s, const char *payload, size_t size)
+int lunatikN_send_data(lunatik_State *state, const char *payload, size_t size)
 {
-	struct lunatik_instance instance;
 	struct sk_buff *obuff;
 	void *msg_head;
 
@@ -552,15 +563,12 @@ int lunatikN_send_data(lunatik_State *s, const char *payload, size_t size)
 		return 0;
 	}
 
-	instance = s->instance;
-
-	if ((msg_head = genlmsg_put_reply(obuff, &(instance.usr_info), &lunatik_family, 0, DATA)) == NULL) {
+	if ((msg_head = genlmsg_put_reply(obuff, &state->usr_state_info, &lunatik_family, 0, DATA)) == NULL) {
 		pr_err("Failed to put generic netlink header\n");
 		return 0;
 	}
 
 	if (nla_put_string(obuff, LUNATIK_DATA, payload) ||
-		nla_put_string(obuff, STATE_NAME, s->name) ||
 		nla_put_u32(obuff, LUNATIK_DATA_LEN, size)) {
 		pr_err("Failed to put attributes on socket buffer\n");
 		return 0;
@@ -568,7 +576,7 @@ int lunatikN_send_data(lunatik_State *s, const char *payload, size_t size)
 
 	genlmsg_end(obuff, msg_head);
 
-	if (genlmsg_reply(obuff, &(instance.usr_info)) < 0) {
+	if (genlmsg_reply(obuff, &state->usr_state_info) < 0) {
 		pr_err("Failed to send message to user space\n");
 		return 0;
 	}
