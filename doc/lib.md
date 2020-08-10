@@ -25,7 +25,7 @@ local lunatik = require'lunatik'
 local session = lunatik.session()
 ```
 
-Now you can use the variable session to do all operations related to control API. These operations you be showed next.
+Now you can use the variable `session` to do all operations related to control API. These operations will be showed next.
 
 #### `session:new(name [, maxalloc])`
 
@@ -47,7 +47,7 @@ As mentioned at [`session:new`](#sessionnewname--maxalloc) function, when you ca
 local mystate = session:new'somename'
 ```
 
-This code will create a state named `somename` on kernel and store the userdata to perform all operations related to the state `somename` on the variable `mystate`.  From now on, it will be used `mystate` to explain all operations that can be done at some state.
+This code will create a state named `somename` on kernel and store the userdata to perform all operations related to the state `somename` on the variable `mystate`.  From now on, it will be used `mystate` to explain all operations that can be done at that state.
 
 #### `mystate:dostring(code [, codename])`
 
@@ -68,13 +68,13 @@ Sends a [memory](https://github.com/luainkernel/lua-memory/blob/master/doc/manua
 In order to receive this memory on the kernel side you must to define a global function called `receive_callback` with one parameter which represents the memory which was sent from the user space. For example:
 
 ```lua
-function receive_callbakc(mem)
+function receive_callback(mem)
 	-- Here I can do whatever I want with mem
 end
 ```
 
 This callback will be called every time that a memory is received by the kernel. It's important to say that the module `memory` from lua memory is loaded by default in this version of Lunatik, thus you can do all supported operations with memory that Lua Memory offers.
 
-#### `session:receive(buffer)`
+#### `mystate:receive()`
 
-Receives from some state the memory sent by it and stores this memory at memory buffer `buffer`. This function returns two values `recv` and `state`, representing the amount of bytes received and the state which sent the data respectively.
+Receives from the state represented by `mystate` the data sent from kernel and return a [memory](https://github.com/luainkernel/lua-memory/blob/master/doc/manual.md#writable-byte-sequences) to manipulate the data sent by kernel. If no data is available to be received, this function blocks until receive some data.
