@@ -422,20 +422,6 @@ static int get_state_handler(struct lunatik_session *session, struct nlattr **at
 	session->state_holder.curralloc = nla_get_u32(attrs_tb[CURR_ALLOC]);
 	session->state_holder.maxalloc  = nla_get_u32(attrs_tb[MAX_ALLOC]);
 	session->state_holder.session   = session;
-	
-	if (init_socket(&(session->state_holder.recv_datasock))) {
-		printf("Failed to initialize recv data socket\n");
-		nl_socket_free(session->state_holder.recv_datasock);
-		return -1;
-	}
-	
-	if (init_socket(&(session->state_holder.send_datasock))) {
-		printf("Failed to initialize send data socket\n");
-		nl_socket_free(session->state_holder.send_datasock);
-		return -1;
-	}
-	
-	init_recv_datasocket_on_kernel(&session->state_holder);
 
 	return 0;
 }
@@ -503,8 +489,20 @@ static int response_handler(struct nl_msg *msg, void *arg)
 
 		break;
 	case GET_STATE:
+		if (attrs_tb[STATE_NOT_FOUND]) {
+			session->cb_result = CB_STATE_NOT_FOUND;
+			return NL_OK;
+		}
+
+		if (attrs_tb[OP_ERROR]) {
+			session->cb_result = CB_ERROR;
+			return NL_OK;
+		}
+
 		if (get_state_handler(session, attrs_tb))
 			session->cb_result = CB_ERROR;
+
+		break;
 	default:
 		break;
 	}
@@ -716,6 +714,11 @@ struct lunatik_nl_state *lunatikS_getstate(struct lunatik_session *session, cons
 
 	if (receive_op_result(session))
 		return NULL;
+
+	if ((session->cb_result == CB_STATE_NOT_FOUND) || (session->cb_result == CB_ERROR)) {
+		session->cb_result = CB_EMPTY_RESULT;
+		return NULL;
+	}
 
 	return &session->state_holder;
 

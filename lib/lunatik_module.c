@@ -242,8 +242,14 @@ static int lsession_getstate(lua_State *L)
 	}
 
 	*state = *received_state;
+
+	if (lunatikS_initdata(state)) {
+		lua_pushnil(L);
+		return 1;
+	}
+
 	luaL_setmetatable(L, "states.control");
-	
+
 	return 1;
 }
 

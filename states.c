@@ -36,8 +36,7 @@
 
 extern int luaopen_memory(lua_State *);
 extern int luaopen_netlink(lua_State *L);
-
-static struct lunatik_instance instance;
+extern struct lunatik_instance *lunatik_pernet(struct net *net);
 
 static const luaL_Reg libs[] = {
 	{"memory", luaopen_memory},
@@ -51,22 +50,15 @@ static inline int name_hash(void *salt, const char *name)
 	return full_name_hash(salt, name, len) & (LUNATIK_HASH_BUCKETS - 1);
 }
 
-lunatik_State *lunatik_statelookup(const char *name)
+inline lunatik_State *lunatik_statelookup(const char *name)
 {
-	lunatik_State *state;
-	int key = name_hash(&instance, name);
-
-	hash_for_each_possible_rcu(instance.states_table, state, node, key) {
-		if (!strncmp(state->name, name, LUNATIK_NAME_MAXSIZE))
-			return state;
-	}
-	return NULL;
+	return lunatik_netstatelookup(NULL, name);
 }
 
 void state_destroy(lunatik_State *s)
 {
 	hash_del_rcu(&s->node);
-	atomic_dec(&(instance.states_count));
+	atomic_dec(&(s->instance.states_count));
 
 	spin_lock_bh(&s->lock);
 	if (s->L != NULL) {
@@ -123,85 +115,32 @@ static int state_init(lunatik_State *s)
 	return 0;
 }
 
-lunatik_State *lunatik_newstate(size_t maxalloc, const char *name)
+inline lunatik_State *lunatik_newstate(size_t maxalloc, const char *name)
 {
-	lunatik_State *s = lunatik_statelookup(name);
-	int namelen = strnlen(name, LUNATIK_NAME_MAXSIZE);
-
-	pr_debug("creating state: %.*s maxalloc: %zd\n", namelen, name,
-		maxalloc);
-
-	if (s != NULL) {
-		pr_err("state already exists: %.*s\n", namelen, name);
-		return NULL;
-	}
-
-	if (atomic_read(&(instance.states_count)) >= LUNATIK_HASH_BUCKETS) {
-		pr_err("could not allocate id for state %.*s\n", namelen, name);
-		pr_err("max states limit reached or out of memory\n");
-		return NULL;
-	}
-
-	if (maxalloc < LUNATIK_MIN_ALLOC_BYTES) {
-		pr_err("maxalloc %zu should be greater then MIN_ALLOC %zu\n",
-		    maxalloc, LUNATIK_MIN_ALLOC_BYTES);
-		return NULL;
-	}
-
-	if ((s = kzalloc(sizeof(lunatik_State), GFP_ATOMIC)) == NULL) {
-		pr_err("could not allocate nflua state\n");
-		return NULL;
-	}
-
-	spin_lock_init(&s->lock);
-	#ifndef LUNATIK_UNUSED
-	s->dseqnum   = 0;
-	#endif
-	s->maxalloc  = maxalloc;
-	s->curralloc = 0;
-	memcpy(&(s->name), name, namelen);
-
-	if (state_init(s)) {
-		pr_err("could not allocate a new lua state\n");
-		kfree(s);
-		return NULL;
-	}
-
-	spin_lock_bh(&(instance.statestable_lock));
-	hash_add_rcu(instance.states_table, &(s->node), name_hash(&instance, name));
-	refcount_inc(&s->users);
-	atomic_inc(&(instance.states_count));
-	spin_unlock_bh(&(instance.statestable_lock));
-
-	pr_debug("new state created: %.*s\n", namelen, name);
-	return s;
+	return lunatik_netnewstate(NULL, maxalloc, name);
 }
 
-int lunatik_close(const char *name)
+inline int lunatik_close(const char *name)
 {
-	lunatik_State *s = lunatik_statelookup(name);
-
-	if (s == NULL || refcount_read(&s->users) > 1)
-		return -1;
-
-	spin_lock_bh(&(instance.statestable_lock));
-	state_destroy(s);
-	spin_unlock_bh(&(instance.statestable_lock));
-
-	return 0;
+	return lunatik_netclosestate(NULL, name);
 }
 
-void lunatik_closeall(void)
+void lunatik_closeall_from_default_ns(void)
 {
+	struct lunatik_instance *instance;
+	struct net *net;
 	struct hlist_node *tmp;
 	lunatik_State *s;
 	int bkt;
 
-	spin_lock_bh(&(instance.statestable_lock));
-	hash_for_each_safe (instance.states_table, bkt, tmp, s, node) {
+	net = get_net_ns_by_pid(1);
+	instance = lunatik_pernet(net);
+
+	spin_lock_bh(&(instance->statestable_lock));
+	hash_for_each_safe (instance->states_table, bkt, tmp, s, node) {
 		state_destroy(s);
 	}
-	spin_unlock_bh(&(instance.statestable_lock));
+	spin_unlock_bh(&(instance->statestable_lock));
 }
 
 inline bool lunatik_stateget(lunatik_State *s)
@@ -212,7 +151,7 @@ inline bool lunatik_stateget(lunatik_State *s)
 void lunatik_stateput(lunatik_State *s)
 {
 	refcount_t *users = &s->users;
-	spinlock_t *refcnt_lock = &(instance.rfcnt_lock);
+	spinlock_t *refcnt_lock = &(s->instance.rfcnt_lock);
 
 	if (WARN_ON(s == NULL))
 		return;
@@ -229,23 +168,19 @@ out:
 	spin_unlock_bh(refcnt_lock);
 }
 
-void lunatik_statesinit(void)
+lunatik_State *lunatik_netstatelookup(struct net *net, const char *name)
 {
-	atomic_set(&(instance.states_count), 0);
-	spin_lock_init(&(instance.statestable_lock));
-	spin_lock_init(&(instance.rfcnt_lock));
-	hash_init(instance.states_table);
-}
-
-lunatik_State *lunatik_netstatelookup(struct lunatik_instance *instance, const char *name)
-{
-
 	lunatik_State *state;
+	struct lunatik_instance *instance;
 	int key;
-	if (instance == NULL)
-		return NULL;
 
-	key = name_hash(instance,name);
+	if (net == NULL) {
+		net = get_net_ns_by_pid(1);
+	}
+
+	instance = lunatik_pernet(net);
+
+	key = name_hash(instance, name);
 
 	hash_for_each_possible_rcu(instance->states_table, state, node, key) {
 		if (!strncmp(state->name, name, LUNATIK_NAME_MAXSIZE))
@@ -254,10 +189,16 @@ lunatik_State *lunatik_netstatelookup(struct lunatik_instance *instance, const c
 	return NULL;
 }
 
-lunatik_State *lunatik_netnewstate(struct lunatik_instance *instance, size_t maxalloc, const char *name)
+lunatik_State *lunatik_netnewstate(struct net *net, size_t maxalloc, const char *name)
 {
+	lunatik_State *s = lunatik_netstatelookup(net, name);
+	struct lunatik_instance *instance;
 
-	lunatik_State *s = lunatik_netstatelookup(instance, name);
+	if (net == NULL)
+		net = get_net_ns_by_pid(1);
+
+	instance = lunatik_pernet(net);
+
 	int namelen = strnlen(name, LUNATIK_NAME_MAXSIZE);
 
 	pr_debug("creating state: %.*s maxalloc: %zd\n", namelen, name,
@@ -306,9 +247,15 @@ lunatik_State *lunatik_netnewstate(struct lunatik_instance *instance, size_t max
 	return s;
 }
 
-int lunatik_netclose(struct lunatik_instance *instance, const char *name)
+int lunatik_netclosestate(struct net *net, const char *name)
 {
-	lunatik_State *s = lunatik_netstatelookup(instance,name);
+	lunatik_State *s = lunatik_netstatelookup(net, name);
+	struct lunatik_instance *instance;
+
+	if (net == NULL)
+		net = get_net_ns_by_pid(1);
+
+	instance = lunatik_pernet(net);
 
 	if (s == NULL || refcount_read(&s->users) > 1)
 		return -1;

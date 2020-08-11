@@ -31,6 +31,7 @@ enum callback_result {
     CB_ERROR,
     CB_EMPTY_RESULT,
     CB_LIST_EMPTY,
+    CB_STATE_NOT_FOUND,
 };
 
 enum session_status {
