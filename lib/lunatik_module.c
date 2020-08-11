@@ -269,55 +269,6 @@ static void buildlist(lua_State *L, struct lunatik_nl_state *states, size_t n)
 		lua_seti(L, -2, i + 1);
 	}
 }
-#ifndef _UNUSED
-static int ldata_open(lua_State *L)
-{
-	int ret;
-	uint32_t pid = generatepid(L, 1);
-	struct nflua_data *dch = lua_newuserdata(L, sizeof(struct nflua_data));
-
-	luaL_setmetatable(L, "nflua.data");
-	ret = nflua_data_init(dch, pid);
-
-	return ret < 0 ? pusherrno(L, ret) : 1;
-}
-
-static int ldata_gc(lua_State *L)
-{
-	struct nflua_data *dch = luaL_checkudata(L, 1, "nflua.data");
-	if (nflua_data_is_open(dch)) nflua_data_close(dch);
-	return 0;
-}
-
-static struct nflua_data *getdata(lua_State *L)
-{
-	struct nflua_data *dch = luaL_checkudata(L, 1, "nflua.data");
-	if (!nflua_data_is_open(dch)) luaL_argerror(L, 1, "socket closed");
-	return dch;
-}
-
-static int ldata_close(lua_State *L)
-{
-	struct nflua_data *dch = getdata(L);
-	nflua_data_close(dch);
-	lua_pushboolean(L, true);
-	return 1;
-}
-
-static int ldata_getfd(lua_State *L)
-{
-	struct nflua_data *dch = getdata(L);
-	lua_pushinteger(L, nflua_data_getsock(dch));
-	return 1;
-}
-
-static int ldata_getpid(lua_State *L)
-{
-	struct nflua_data *dch = getdata(L);
-	lua_pushinteger(L, nflua_data_getpid(dch));
-	return 1;
-}
-#endif /* _UNUSED */
 
 static int lstate_datasend(lua_State *L)
 {
@@ -376,54 +327,29 @@ static const luaL_Reg state_mt[] = {
 	{NULL, NULL}
 };
 
-#ifndef _UNUSED
-static const luaL_Reg data_mt[] = {
-	{"close", ldata_close},
-	{"getfd", ldata_getfd},
-	{"getpid", ldata_getpid},
-	{"__gc", ldata_gc},
-	{NULL, NULL}
-};
-#endif /*_UNUSED*/
-
 static const luaL_Reg lunatik_lib[] = {
 	{"session", lsession_open},
-	#ifndef _UNUSED
-	{"data", ldata_open},
-	#endif /*_UNUSED*/
 	{NULL, NULL}
 };
 
-#ifndef _UNUSED
 static void setconst(lua_State *L, const char *name, lua_Integer value)
 {
 	lua_pushinteger(L, value);
 	lua_setfield(L, -2, name);
 }
-#endif
 
 int luaopen_lunatik(lua_State *L)
 {
-	#ifndef _UNUSED
-	luaL_requiref(L, "memory", luaopen_memory, 1);
-	lua_pop(L, 1);
-	#endif /*_UNUSED*/
-
 	newclass(L, "lunatik.session", session_mt);
 	newclass(L, "states.control", state_mt);
-	#ifndef _UNUSED
-	newclass(L, "nflua.data", data_mt);
-	#endif /*_UNUSED*/
 
 	luaL_newlib(L, lunatik_lib);
 
-	#ifndef _UNUSED
-	setconst(L, "datamaxsize", NFLUA_DATA_MAXSIZE);
+	setconst(L, "datamaxsize", LUNATIK_FRAGMENT_SIZE);
 	setconst(L, "defaultmaxallocbytes", DEFAULT_MAXALLOC_BYTES);
-	setconst(L, "maxstates", NFLUA_MAX_STATES);
-	setconst(L, "scriptnamemaxsize", NFLUA_SCRIPTNAME_MAXSIZE);
-	setconst(L, "statenamemaxsize", NFLUA_NAME_MAXSIZE);
-	#endif /*_UNUSED*/
+	setconst(L, "maxstates", LUNATIK_HASH_BUCKETS);
+	setconst(L, "scriptnamemaxsize", LUNATIK_SCRIPTNAME_MAXSIZE);
+	setconst(L, "statenamemaxsize", LUNATIK_NAME_MAXSIZE);
 
 	return 1;
 }

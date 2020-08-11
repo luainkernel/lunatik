@@ -78,16 +78,6 @@ struct lunatik_session {
     uint32_t pid;
 };
 
-#ifndef _UNUSED
-struct nflua_data {
-    int fd;
-    uint32_t pid;
-    uint32_t seqnum;
-    char state[NFLUA_NAME_MAXSIZE];
-    char buffer[NFLUA_PAYLOAD_MAXSIZE];
-};
-#endif /* _UNUSED */
-
 static inline int lunatikS_getfd(const struct lunatik_session *session)
 {
     return session->control_fd;
@@ -117,31 +107,7 @@ int lunatikS_initdata(struct lunatik_nl_state *state);
 
 struct lunatik_nl_state *lunatikS_getstate(struct lunatik_session *session, const char *name);
 
-#ifndef _UNUSED
-static inline int nflua_data_getsock(const struct nflua_data *dch)
-{
-    return dch->fd;
-}
-
-static inline int nflua_data_getpid(const struct nflua_data *dch)
-{
-    return dch->pid;
-}
-
-static inline int nflua_data_is_open(const struct nflua_data *dch)
-{
-    return dch->fd >= 0;
-}
-
-int nflua_data_init(struct nflua_data *dch, uint32_t pid);
-
-void nflua_data_close(struct nflua_data *dch);
-#endif /* _UNUSED */
-
 int lunatik_datasend(struct lunatik_nl_state *state,
         const char *payload, size_t len);
 
-#ifndef _UNUSED
-int nflua_data_receive(struct nflua_data *dch, char *state, char *buffer);
-#endif /* _UNUSED */
 #endif /* LUNATIK_H */
