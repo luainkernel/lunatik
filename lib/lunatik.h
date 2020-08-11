@@ -68,6 +68,7 @@ struct lunatik_session {
     struct nl_sock *control_sock;
     struct states_list states_list;
     struct received_buffer recv_buffer;
+    struct lunatik_nl_state state_holder;
     enum session_status status;
     enum callback_result cb_result;
     int family;
@@ -112,6 +113,8 @@ int lunatikS_list(struct lunatik_session *session);
 int lunatikS_receive(struct lunatik_nl_state *state);
 
 int lunatikS_initdata(struct lunatik_nl_state *state);
+
+struct lunatik_nl_state *lunatikS_getstate(struct lunatik_session *session, const char *name);
 
 #ifndef _UNUSED
 static inline int nflua_data_getsock(const struct nflua_data *dch)

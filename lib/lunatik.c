@@ -405,6 +405,41 @@ static int send_data_cb_handler(struct nl_msg *msg, void *arg)
 	return NL_OK;
 }
 
+int init_socket(struct nl_sock**);
+
+static int get_state_handler(struct lunatik_session *session, struct nlattr **attrs_tb)
+{
+	char *name;
+
+	if (!(attrs_tb[STATE_NAME] || attrs_tb[CURR_ALLOC] || attrs_tb[MAX_ALLOC])) {
+		printf("Some attributes are missing\n");
+		return -1;
+	}
+
+	name = nla_get_string(attrs_tb[STATE_NAME]);
+
+	strcpy(session->state_holder.name, name);
+	session->state_holder.curralloc = nla_get_u32(attrs_tb[CURR_ALLOC]);
+	session->state_holder.maxalloc  = nla_get_u32(attrs_tb[MAX_ALLOC]);
+	session->state_holder.session   = session;
+	
+	if (init_socket(&(session->state_holder.recv_datasock))) {
+		printf("Failed to initialize recv data socket\n");
+		nl_socket_free(session->state_holder.recv_datasock);
+		return -1;
+	}
+	
+	if (init_socket(&(session->state_holder.send_datasock))) {
+		printf("Failed to initialize send data socket\n");
+		nl_socket_free(session->state_holder.send_datasock);
+		return -1;
+	}
+	
+	init_recv_datasocket_on_kernel(&session->state_holder);
+
+	return 0;
+}
+
 static int response_handler(struct nl_msg *msg, void *arg)
 {
 	struct nlmsghdr *nh = nlmsg_hdr(msg);
@@ -467,6 +502,9 @@ static int response_handler(struct nl_msg *msg, void *arg)
 			session->cb_result = CB_ERROR;
 
 		break;
+	case GET_STATE:
+		if (get_state_handler(session, attrs_tb))
+			session->cb_result = CB_ERROR;
 	default:
 		break;
 	}
@@ -663,4 +701,25 @@ int lunatikS_initdata(struct lunatik_nl_state *state)
 	nl_socket_disable_auto_ack(state->recv_datasock);
 
 	return 0;
+}
+
+struct lunatik_nl_state *lunatikS_getstate(struct lunatik_session *session, const char *name)
+{
+	struct nl_msg *msg = prepare_message(GET_STATE, 0);
+
+	NLA_PUT_STRING(msg, STATE_NAME, name);
+
+	if (nl_send_auto(session->control_sock, msg) < 0) {
+		printf("Failed to send message to kernel\n");
+		return NULL;
+	}
+
+	if (receive_op_result(session))
+		return NULL;
+
+	return &session->state_holder;
+
+nla_put_failure:
+	printf("Failed to put attributes on netlink message\n");
+	return NULL;
 }
