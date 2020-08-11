@@ -179,12 +179,12 @@ EXPORT_SYMBOL(lunatik_stateget);
 EXPORT_SYMBOL(lunatik_stateput);
 
 EXPORT_SYMBOL(lunatik_netnewstate);
-EXPORT_SYMBOL(lunatik_netclose);
+EXPORT_SYMBOL(lunatik_netclosestate);
 EXPORT_SYMBOL(lunatik_netstatelookup);
 
 extern struct genl_family lunatik_family;
 extern void lunatik_statesinit(void);
-extern void lunatik_closeall(void);
+extern void lunatik_closeall_from_default_ns(void);
 extern void state_destroy(lunatik_State *s);
 
 static int lunatik_netid __read_mostly;
@@ -235,8 +235,6 @@ static int __init modinit(void)
 {
 	int err;
 
-	lunatik_statesinit();
-
 	if ((err = register_pernet_subsys(&lunatik_net_ops))) {
 		pr_err("Failed to register pernet operations\n");
 		return err;
@@ -252,7 +250,7 @@ static int __init modinit(void)
 
 static void __exit modexit(void)
 {
-	lunatik_closeall();
+	lunatik_closeall_from_default_ns();
 	unregister_pernet_subsys(&lunatik_net_ops);
 	genl_unregister_family(&lunatik_family);
 }
