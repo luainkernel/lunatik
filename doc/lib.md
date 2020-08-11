@@ -4,6 +4,28 @@
 
 This document provides the documentation of the user space API of Lunatik. This API is divided in two main features, being the control API and the data API, the first one is responsible to send messages to Lunatik kernel module to perform some operations, whereas the data API is responsible to exchange data between the kernel module and this user space API.
 
+## Constants
+
+#### `lunatik.datamaxsize`
+
+Integer that represents the maximum amount of data that a state can receive or send each time.
+
+#### `lunatik.defaultmaxallocbytes`
+
+The default amount of memory that a state will be able to use if no value is passed on creation.
+
+#### `lunatik.maxstates`
+
+The maximum number of states that the lunatik module is able to store.
+
+#### `lunatik.scriptnamemaxsize`
+
+The maximum length of a script name, this name is used on debug porpuses, for example, show a name for the script on the callback stack trace.
+
+#### `lunatik.statenamemaxsize`
+
+The maximum length of a state name.
+
 ## Control API
 
 Responsable to send messages to Lunatik kernel module perform some operations, these are:
@@ -38,6 +60,10 @@ Returns a table with all states present on kernel. Each entry of that table is a
 #### `session:close()`
 
 Closes the connection with the kernel, after that, all references for the states will be lost, so it's important to check if you don't have any states in use before close the connection with the kernel to avoid memory leaks.
+
+#### `session:getstate(name)`
+
+Gets a user representation of the state with the name `name` which was created on kernel. Returns a userdata as described on [`session:new`](#sessionnewname--maxalloc) if such state is found and `nil` otherwise.
 
 ### State related operations
 
