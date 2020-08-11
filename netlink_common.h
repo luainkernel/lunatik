@@ -23,7 +23,8 @@ enum lunatik_operations {
 	DESTROY_STATE,
 	LIST_STATES,
 	DATA,
-	DATA_INIT
+	DATA_INIT,
+	GET_STATE,
 };
 
 enum lunatik_attrs {
@@ -41,6 +42,7 @@ enum lunatik_attrs {
 	OP_ERROR,
 	LUNATIK_DATA,
 	LUNATIK_DATA_LEN,
+	CURR_ALLOC,
 	ATTRS_COUNT
 #define ATTRS_MAX (ATTRS_COUNT - 1)
 };

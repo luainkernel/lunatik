@@ -227,6 +227,26 @@ static int lsession_list(lua_State *L)
 	return 1;
 }
 
+static int lsession_getstate(lua_State *L)
+{
+	struct lunatik_session *session = getsession(L);
+	struct lunatik_nl_state *state = lua_newuserdata(L, sizeof(struct lunatik_nl_state));
+	struct lunatik_nl_state *received_state;
+	const char *name;
+
+	name = luaL_checkstring(L, 2);
+
+	if ((received_state = lunatikS_getstate(session, name)) == NULL) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	*state = *received_state;
+	luaL_setmetatable(L, "states.control");
+	
+	return 1;
+}
+
 static void buildlist(lua_State *L, struct lunatik_nl_state *states, size_t n)
 {
 	size_t i;
@@ -335,6 +355,7 @@ static const luaL_Reg session_mt[] = {
 	{"getfd", lsession_getfd},
 	{"new", lsession_newstate},
 	{"list", lsession_list},
+	{"getstate", lsession_getstate},
 	{"__gc", lsession_gc},
 	{NULL, NULL}
 };

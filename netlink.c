@@ -49,19 +49,21 @@ static int lunatikN_close(struct sk_buff *buff, struct genl_info *info);
 static int lunatikN_list(struct sk_buff *buff, struct genl_info *info);
 static int lunatikN_data(struct sk_buff *buff, struct genl_info *info);
 static int lunatikN_datainit(struct sk_buff *buff, struct genl_info *info);
+static int lunatikN_sendstate(struct sk_buff *buff, struct genl_info *info);
 
 struct nla_policy lunatik_policy[ATTRS_COUNT] = {
 	[STATE_NAME]  = { .type = NLA_STRING },
-	[CODE]		= { .type = NLA_STRING },
+	[CODE]	      = { .type = NLA_STRING },
 	[SCRIPT_NAME] = { .type = NLA_STRING },
 	[STATES_LIST] = { .type = NLA_STRING },
 	[LUNATIK_DATA]= { .type = NLA_STRING },
 	[LUNATIK_DATA_LEN] = { .type = NLA_U32},
 	[SCRIPT_SIZE] = { .type = NLA_U32 },
 	[MAX_ALLOC]   = { .type = NLA_U32 },
-	[FLAGS] 	  = { .type = NLA_U8 },
+	[CURR_ALLOC]  = { .type = NLA_U32},
+	[FLAGS]       = { .type = NLA_U8 },
 	[OP_SUCESS]   = { .type = NLA_U8 },
-	[OP_ERROR]	= { .type = NLA_U8 },
+	[OP_ERROR]    = { .type = NLA_U8 },
 };
 
 static const struct genl_ops l_ops[] = {
@@ -108,6 +110,14 @@ static const struct genl_ops l_ops[] = {
 	{
 		.cmd    = DATA_INIT,
 		.doit   = lunatikN_datainit,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
+		/*Before kernel 5.2.0, each operation has its own policy*/
+		.policy = lunatik_policy
+#endif
+	},
+	{
+		.cmd    = GET_STATE,
+		.doit   = lunatikN_sendstate,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
 		/*Before kernel 5.2.0, each operation has its own policy*/
 		.policy = lunatik_policy
@@ -583,6 +593,64 @@ int lunatikN_send_data(lunatik_State *state, const char *payload, size_t size)
 
 	pr_debug("Message sent to user space\n");
 	return 0;
+}
+
+static int sendstate_msg(lunatik_State *state, struct genl_info *info)
+{
+	struct sk_buff *obuff;
+	void *msg_head;
+
+	if ((obuff = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL)) == NULL) {
+		pr_err("Failed allocating message to an reply\n");
+		return -1;
+	}
+
+	if ((msg_head = genlmsg_put_reply(obuff, info, &lunatik_family, 0, GET_STATE)) == NULL) {
+		pr_err("Failed to put generic netlink header\n");
+		return -1;
+	}
+
+	if (nla_put_string(obuff, STATE_NAME, state->name) ||
+		nla_put_u32(obuff, MAX_ALLOC, state->maxalloc) ||
+		nla_put_u32(obuff, CURR_ALLOC, state->curralloc)) {
+		pr_err("Failed to put attributes on socket buffer\n");
+		return -1;
+	}
+
+	genlmsg_end(obuff, msg_head);
+
+	if (genlmsg_reply(obuff, info) < 0) {
+		pr_err("Failed to send message to user space\n");
+		return -1;
+	}
+
+	pr_debug("Message sent to user space\n");
+	return 0;
+}
+
+static int lunatikN_sendstate(struct sk_buff *buff, struct genl_info *info)
+{
+	struct lunatik_instance *instance;
+	lunatik_State *state;
+	char *state_name;
+
+	instance = lunatik_pernet(genl_info_net(info));
+
+	state_name = nla_data(info->attrs[STATE_NAME]);
+
+	if(((state = lunatik_netstatelookup(instance, state_name)) == NULL) &&
+		((state = lunatik_statelookup(state_name)) == NULL)) {
+		pr_err("State not found\n");
+		//TODO reply with state not found
+	}
+
+	if (sendstate_msg(state, info)) {
+		pr_err("Failed to send message to user space\n");
+		// Reply with error
+	}
+
+	return 0;
+
 }
 
 /* Note: Most of the function below is copied from NFLua: https://github.com/cujoai/nflua
