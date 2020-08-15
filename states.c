@@ -28,7 +28,7 @@
 #include "lua/lualib.h"
 
 #include "luautil.h"
-#include "states.h"
+#include "lunatik.h"
 
 #ifndef LUNATIK_SETPAUSE
 #define LUNATIK_SETPAUSE	100
@@ -52,7 +52,7 @@ static inline int name_hash(void *salt, const char *name)
 
 inline lunatik_State *lunatik_statelookup(const char *name)
 {
-	return lunatik_netstatelookup(NULL, name);
+	return lunatik_netstatelookup(name, LUNATIK_DEFAULT_NS);
 }
 
 void state_destroy(lunatik_State *s)
@@ -67,7 +67,7 @@ void state_destroy(lunatik_State *s)
 	}
 	spin_unlock_bh(&s->lock);
 
-	lunatik_stateput(s);
+	lunatik_putstate(s);
 }
 
 static void *lua_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
@@ -115,26 +115,24 @@ static int state_init(lunatik_State *s)
 	return 0;
 }
 
-inline lunatik_State *lunatik_newstate(size_t maxalloc, const char *name)
+inline lunatik_State *lunatik_newstate(const char *name, size_t maxalloc)
 {
-	return lunatik_netnewstate(NULL, maxalloc, name);
+	return lunatik_netnewstate(name, maxalloc, LUNATIK_DEFAULT_NS);
 }
 
 inline int lunatik_close(const char *name)
 {
-	return lunatik_netclosestate(NULL, name);
+	return lunatik_netclosestate(name, LUNATIK_DEFAULT_NS);
 }
 
 void lunatik_closeall_from_default_ns(void)
 {
 	struct lunatik_instance *instance;
-	struct net *net;
 	struct hlist_node *tmp;
 	lunatik_State *s;
 	int bkt;
 
-	net = get_net_ns_by_pid(1);
-	instance = lunatik_pernet(net);
+	instance = lunatik_pernet(LUNATIK_DEFAULT_NS);
 
 	spin_lock_bh(&(instance->statestable_lock));
 	hash_for_each_safe (instance->states_table, bkt, tmp, s, node) {
@@ -143,12 +141,12 @@ void lunatik_closeall_from_default_ns(void)
 	spin_unlock_bh(&(instance->statestable_lock));
 }
 
-inline bool lunatik_stateget(lunatik_State *s)
+inline bool lunatik_getstate(lunatik_State *s)
 {
 	return refcount_inc_not_zero(&s->users);
 }
 
-void lunatik_stateput(lunatik_State *s)
+void lunatik_putstate(lunatik_State *s)
 {
 	refcount_t *users = &s->users;
 	spinlock_t *refcnt_lock = &(s->instance.rfcnt_lock);
@@ -168,15 +166,11 @@ out:
 	spin_unlock_bh(refcnt_lock);
 }
 
-lunatik_State *lunatik_netstatelookup(struct net *net, const char *name)
+lunatik_State *lunatik_netstatelookup(const char *name, struct net *net)
 {
 	lunatik_State *state;
 	struct lunatik_instance *instance;
 	int key;
-
-	if (net == NULL) {
-		net = get_net_ns_by_pid(1);
-	}
 
 	instance = lunatik_pernet(net);
 
@@ -189,13 +183,10 @@ lunatik_State *lunatik_netstatelookup(struct net *net, const char *name)
 	return NULL;
 }
 
-lunatik_State *lunatik_netnewstate(struct net *net, size_t maxalloc, const char *name)
+lunatik_State *lunatik_netnewstate(const char *name, size_t maxalloc, struct net *net)
 {
-	lunatik_State *s = lunatik_netstatelookup(net, name);
+	lunatik_State *s = lunatik_netstatelookup(name, net);
 	struct lunatik_instance *instance;
-
-	if (net == NULL)
-		net = get_net_ns_by_pid(1);
 
 	instance = lunatik_pernet(net);
 
@@ -247,13 +238,10 @@ lunatik_State *lunatik_netnewstate(struct net *net, size_t maxalloc, const char 
 	return s;
 }
 
-int lunatik_netclosestate(struct net *net, const char *name)
+int lunatik_netclosestate(const char *name, struct net *net)
 {
-	lunatik_State *s = lunatik_netstatelookup(net, name);
+	lunatik_State *s = lunatik_netstatelookup(name, net);
 	struct lunatik_instance *instance;
-
-	if (net == NULL)
-		net = get_net_ns_by_pid(1);
 
 	instance = lunatik_pernet(net);
 
@@ -271,7 +259,7 @@ int lunatik_netclosestate(struct net *net, const char *name)
 		s->L = NULL;
 	}
 	spin_unlock_bh(&s->lock);
-	lunatik_stateput(s);
+	lunatik_putstate(s);
 
 	spin_unlock_bh(&(instance->statestable_lock));
 

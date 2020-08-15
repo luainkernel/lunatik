@@ -22,7 +22,7 @@
 #include <lmemlib.h>
 
 #include "luautil.h"
-#include "states.h"
+#include "lunatik.h"
 
 extern int lunatikN_send_data(lunatik_State *state, const char *payload, size_t size);
 

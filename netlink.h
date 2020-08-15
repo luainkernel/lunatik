@@ -2,7 +2,7 @@
 #define NETLINK_H
 #include <net/genetlink.h>
 
-#include "states.h"
+#include "lunatik.h"
 
 extern struct genl_family lunatik_family;
 

@@ -30,7 +30,7 @@
 #include <lmemlib.h>
 
 #include "luautil.h"
-#include "states.h"
+#include "lunatik.h"
 #include "netlink_common.h"
 
 #define DATA_RECV_FUNC "receive_callback"
@@ -79,7 +79,6 @@ static const struct genl_ops l_ops[] = {
 		.cmd    = EXECUTE_CODE,
 		.doit   = lunatikN_dostring,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
-		/*Before kernel 5.2.0, each operation has its own policy*/
 		.policy = lunatik_policy
 #endif
 	},
@@ -87,7 +86,6 @@ static const struct genl_ops l_ops[] = {
 		.cmd    = DESTROY_STATE,
 		.doit   = lunatikN_close,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
-		/*Before kernel 5.2.0, each operation has its own policy*/
 		.policy = lunatik_policy
 #endif
 	},
@@ -95,7 +93,6 @@ static const struct genl_ops l_ops[] = {
 		.cmd    = LIST_STATES,
 		.doit   = lunatikN_list,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
-		/*Before kernel 5.2.0, each operation has its own policy*/
 		.policy = lunatik_policy
 #endif
 	},
@@ -103,7 +100,6 @@ static const struct genl_ops l_ops[] = {
 		.cmd    = DATA,
 		.doit   = lunatikN_data,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
-		/*Before kernel 5.2.0, each operation has its own policy*/
 		.policy = lunatik_policy
 #endif
 	},
@@ -111,7 +107,6 @@ static const struct genl_ops l_ops[] = {
 		.cmd    = DATA_INIT,
 		.doit   = lunatikN_datainit,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
-		/*Before kernel 5.2.0, each operation has its own policy*/
 		.policy = lunatik_policy
 #endif
 	},
@@ -119,7 +114,6 @@ static const struct genl_ops l_ops[] = {
 		.cmd    = GET_STATE,
 		.doit   = lunatikN_sendstate,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
-		/*Before kernel 5.2.0, each operation has its own policy*/
 		.policy = lunatik_policy
 #endif
 	}
@@ -234,7 +228,7 @@ static int lunatikN_newstate(struct sk_buff *buff, struct genl_info *info)
 	state_name = (char *)nla_data(info->attrs[STATE_NAME]);
 	max_alloc = (u32 *)nla_data(info->attrs[MAX_ALLOC]);
 
-	s = lunatik_netnewstate(genl_info_net(info), *max_alloc, state_name);
+	s = lunatik_netnewstate(state_name, *max_alloc, genl_info_net(info));
 
 	if (s == NULL) {
 		reply_with(OP_ERROR, CREATE_STATE, info);
@@ -271,7 +265,7 @@ static int dostring(char *code, lunatik_State *s, const char *script_name)
 	int base;
 	spin_lock_bh(&s->lock);
 
-	if (!lunatik_stateget(s)) {
+	if (!lunatik_getstate(s)) {
 		pr_err("Failed to get state\n");
 		err = -1;
 		goto out;
@@ -282,7 +276,7 @@ static int dostring(char *code, lunatik_State *s, const char *script_name)
 		pr_err("%s\n", lua_tostring(s->L, -1));
 	}
 
-	lunatik_stateput(s);
+	lunatik_putstate(s);
 	lua_settop(s->L, base);
 
 out:
@@ -306,7 +300,7 @@ static int lunatikN_dostring(struct sk_buff *buff, struct genl_info *info)
 	fragment = (char *)nla_data(info->attrs[CODE]);
 	flags = *((u8*)nla_data(info->attrs[FLAGS]));
 
-	if ((s = lunatik_netstatelookup(genl_info_net(info), state_name)) == NULL) {
+	if ((s = lunatik_netstatelookup(state_name, genl_info_net(info))) == NULL) {
 		pr_err("Error finding klua state\n");
 		reply_with(OP_ERROR, EXECUTE_CODE, info);
 		return 0;
@@ -338,7 +332,7 @@ static int lunatikN_close(struct sk_buff *buff, struct genl_info *info)
 
 	pr_debug("Received a DESTROY_STATE command\n");
 
-	if (lunatik_netclosestate(genl_info_net(info), state_name))
+	if (lunatik_netclosestate(state_name, genl_info_net(info)))
 		reply_with(OP_ERROR, DESTROY_STATE, info);
 	else
 		reply_with(OP_SUCESS, DESTROY_STATE, info);
@@ -493,7 +487,7 @@ static int lunatikN_data(struct sk_buff *buff, struct genl_info *info)
 
 	state_name = nla_data(info->attrs[STATE_NAME]);
 
-	if ((state = lunatik_netstatelookup(genl_info_net(info), state_name)) == NULL) {
+	if ((state = lunatik_netstatelookup(state_name, genl_info_net(info))) == NULL) {
 		pr_err("State %s not found\n", state_name);
 		goto error;
 	}
@@ -505,7 +499,7 @@ static int lunatikN_data(struct sk_buff *buff, struct genl_info *info)
 	if (err)
 		goto error;
 
-	if (!lunatik_stateget(state)) {
+	if (!lunatik_getstate(state)) {
 		pr_err("Failed to get state %s\n", state_name);
 		goto error;
 	}
@@ -524,7 +518,7 @@ static int lunatikN_data(struct sk_buff *buff, struct genl_info *info)
 unlock:
 	spin_unlock_bh(&state->lock);
 	lua_settop(state->L, base);
-	lunatik_stateput(state);
+	lunatik_putstate(state);
 
 	err ? reply_with(OP_ERROR, DATA, info) : reply_with(OP_SUCESS, DATA, info);
 
@@ -542,7 +536,7 @@ static int lunatikN_datainit(struct sk_buff *buff, struct genl_info *info)
 
 	name = nla_data(info->attrs[STATE_NAME]);
 
-	if ((state = lunatik_netstatelookup(genl_info_net(info), name)) == NULL) {
+	if ((state = lunatik_netstatelookup(name, genl_info_net(info))) == NULL) {
 		pr_err("Failed to find the state %s\n", name);
 		reply_with(OP_ERROR, DATA_INIT, info);
 		return 0;
@@ -627,7 +621,7 @@ static int lunatikN_sendstate(struct sk_buff *buff, struct genl_info *info)
 
 	state_name = nla_data(info->attrs[STATE_NAME]);
 
-	if(((state = lunatik_netstatelookup(genl_info_net(info), state_name)) == NULL)) {
+	if(((state = lunatik_netstatelookup(state_name, genl_info_net(info))) == NULL)) {
 		pr_err("State %s not found\n", state_name);
 		reply_with(STATE_NOT_FOUND, GET_STATE, info);
 		return 0;

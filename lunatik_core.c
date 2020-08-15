@@ -31,7 +31,7 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
-#include "states.h"
+#include "lunatik.h"
 #include "netlink_common.h"
 
 EXPORT_SYMBOL(lua_checkstack);
@@ -175,8 +175,8 @@ EXPORT_SYMBOL(luaopen_utf8);
 EXPORT_SYMBOL(lunatik_newstate);
 EXPORT_SYMBOL(lunatik_close);
 EXPORT_SYMBOL(lunatik_statelookup);
-EXPORT_SYMBOL(lunatik_stateget);
-EXPORT_SYMBOL(lunatik_stateput);
+EXPORT_SYMBOL(lunatik_getstate);
+EXPORT_SYMBOL(lunatik_putstate);
 
 EXPORT_SYMBOL(lunatik_netnewstate);
 EXPORT_SYMBOL(lunatik_netclosestate);

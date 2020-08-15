@@ -48,15 +48,15 @@ typedef struct lunatik_state {
 	unsigned char name[LUNATIK_NAME_MAXSIZE];
 } lunatik_State;
 
-lunatik_State *lunatik_newstate(size_t maxalloc, const char *name);
+lunatik_State *lunatik_newstate(const char *name, size_t maxalloc);
 int lunatik_close(const char *name);
 lunatik_State *lunatik_statelookup(const char *name);
 
-bool lunatik_stateget(lunatik_State *s);
-void lunatik_stateput(lunatik_State *s);
+bool lunatik_getstate(lunatik_State *s);
+void lunatik_putstate(lunatik_State *s);
 
-lunatik_State *lunatik_netnewstate(struct net *net, size_t maxalloc, const char *name);
-int lunatik_netclosestate(struct net *net, const char *name);
-lunatik_State *lunatik_netstatelookup(struct net *net, const char *name);
+lunatik_State *lunatik_netnewstate(const char *name, size_t maxalloc, struct net *net);
+int lunatik_netclosestate(const char *name, struct net *net);
+lunatik_State *lunatik_netstatelookup(const char *name, struct net *net);
 
 #endif /* LUNATIK_STATES_H */
