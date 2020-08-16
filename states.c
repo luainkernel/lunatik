@@ -265,3 +265,8 @@ int lunatik_netclosestate(const char *name, struct net *net)
 
 	return 0;
 }
+
+lunatik_State *lunatik_getenv(lua_State *L)
+{
+	return luaU_getenv(L, lunatik_State);
+}

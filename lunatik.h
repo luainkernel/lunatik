@@ -23,6 +23,7 @@
 #include "lua/lua.h"
 #include "lunatik_conf.h"
 #include "netlink.h"
+#include "luautil.h"
 
 struct lunatik_instance {
 	struct hlist_head states_table[LUNATIK_HASH_BUCKETS];
@@ -58,5 +59,7 @@ void lunatik_putstate(lunatik_State *s);
 lunatik_State *lunatik_netnewstate(const char *name, size_t maxalloc, struct net *net);
 int lunatik_netclosestate(const char *name, struct net *net);
 lunatik_State *lunatik_netstatelookup(const char *name, struct net *net);
+
+lunatik_State *lunatik_getenv(lua_State *L);
 
 #endif /* LUNATIK_STATES_H */

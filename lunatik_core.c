@@ -182,6 +182,8 @@ EXPORT_SYMBOL(lunatik_netnewstate);
 EXPORT_SYMBOL(lunatik_netclosestate);
 EXPORT_SYMBOL(lunatik_netstatelookup);
 
+EXPORT_SYMBOL(lunatik_getenv);
+
 extern struct genl_family lunatik_family;
 extern void lunatik_statesinit(void);
 extern void lunatik_closeall_from_default_ns(void);

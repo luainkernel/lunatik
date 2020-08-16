@@ -4,7 +4,7 @@
 #ifdef _KERNEL
 extern struct genl_family lunatik_family;
 #include <net/genetlink.h>
-#endif
+#endif /* _KERNEL */
 
 #define LUNATIK_FRAGMENT_SIZE (3000) // TODO Find, a size more precise
 #define DELIMITER 3 //How many delimiters will be necessary in each part of the message
