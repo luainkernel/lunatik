@@ -205,6 +205,7 @@ static int __net_init lunatik_instancenew(struct net *net)
 	spin_lock_init(&(instance->rfcnt_lock));
 	hash_init(instance->states_table);
 	(instance->reply_buffer).status = RB_INIT;
+	instance->namespace = *net;
 	return 0;
 }
 

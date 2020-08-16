@@ -28,6 +28,7 @@
 struct lunatik_instance {
 	struct hlist_head states_table[LUNATIK_HASH_BUCKETS];
 	struct reply_buffer reply_buffer;
+	struct net namespace;
 	spinlock_t statestable_lock;
 	spinlock_t rfcnt_lock;
 	spinlock_t sendmessage_lock;
