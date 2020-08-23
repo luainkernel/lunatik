@@ -12,10 +12,10 @@ local kscript = [[
     end
 ]]
 
-local s1 = session:new's1'
+local s1 = session:newstate's1'
 assert(s1 ~= nil)
 
-local s2 = session:new's2'
+local s2 = session:newstate's2'
 assert(s2 ~= nil)
 
 local err = s1:dostring(kscript, 'send script')

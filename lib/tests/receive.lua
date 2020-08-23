@@ -10,7 +10,7 @@ local kscript = [[
     netlink.send(buffer)
 ]]
 
-local s1 = session:new's1'
+local s1 = session:newstate's1'
 assert(s1 ~= nil)
 
 local err = s1:dostring(kscript, 'receive')

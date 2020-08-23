@@ -25,6 +25,7 @@ enum lunatik_operations {
 	DATA,
 	DATA_INIT,
 	GET_STATE,
+	GET_CURRALLOC,
 };
 
 enum lunatik_attrs {

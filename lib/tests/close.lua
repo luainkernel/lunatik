@@ -2,14 +2,14 @@ local lunatik = require'lunatik'
 local session = lunatik.session()
 
 -- Normal close
-local s1 = session:new's1'
+local s1 = session:newstate's1'
 assert(s1 ~= nil)
 
 local err = s1:close()
 assert(err ~= nil)
 
 -- Using state after close session
-s1 = session:new's1'
+s1 = session:newstate's1'
 assert(s1 ~= nil)
 
 session:close()

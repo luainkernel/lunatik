@@ -305,10 +305,24 @@ error:
 	return 1;
 }
 
+static int lstate_getcurralloc(lua_State *L)
+{
+	struct lunatik_nl_state *state = getnlstate(L);
+
+	if (lunatik_getcurralloc(state)) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	lua_pushinteger(L, state->curralloc);
+
+	return 1;
+}
+
 static const luaL_Reg session_mt[] = {
 	{"close", lsession_close},
 	{"getfd", lsession_getfd},
-	{"new", lsession_newstate},
+	{"newstate", lsession_newstate},
 	{"list", lsession_list},
 	{"getstate", lsession_getstate},
 	{"__gc", lsession_gc},
@@ -319,6 +333,7 @@ static const luaL_Reg state_mt[] = {
 	{"dostring", lstate_dostring},
 	{"getname", lstate_getname},
 	{"getmaxalloc", lstate_getmaxalloc},
+	{"getcurralloc", lstate_getcurralloc},
 	{"close", lstate_close},
 	{"send", lstate_datasend},
 	{"receive", lstate_datareceive},

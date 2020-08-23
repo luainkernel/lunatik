@@ -111,4 +111,6 @@ struct lunatik_nl_state *lunatikS_getstate(struct lunatik_session *session, cons
 int lunatik_datasend(struct lunatik_nl_state *state,
         const char *payload, size_t len);
 
+int lunatik_getcurralloc(struct lunatik_nl_state *state);
+
 #endif /* LUNATIK_H */

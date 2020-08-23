@@ -49,7 +49,7 @@ local session = lunatik.session()
 
 Now you can use the variable `session` to do all operations related to control API. These operations will be showed next.
 
-#### `session:new(name [, maxalloc])`
+#### `session:newstate(name [, maxalloc])`
 
 Tells the lunatik kernel module to create a state with the name `name`. If some value is passed to `maxalloc` that you be the maximum amount of memory that the state `name` can use during it execution, if no value is passed, a state with a default `maxalloc` will be created. If the state is succesfully created, the function returns a userdata, such userdata is used to perform all needed operations on that state. You can imagine this userdata as your user space representation of the state created on the kernel side. If the state creation fails, this function returns a `nil` value alongside with a error message.
 
@@ -65,12 +65,16 @@ Closes the connection with the kernel, after that, all references for the states
 
 Gets a user representation of the state with the name `name` which was created on kernel. Returns a userdata as described on [`session:new`](#sessionnewname--maxalloc) if such state is found and `nil` otherwise.
 
+#### `session:getfd()`
+
+Returns the session file descriptor of the control socket.
+
 ### State related operations
 
 As mentioned at [`session:new`](#sessionnewname--maxalloc) function, when you call that function, if the state is succesfully created, it  will be returned a userdata. That userdata is used to perform all operations related to that state, for example:
 
 ```lua
-local mystate = session:new'somename'
+local mystate = session:newstate'somename'
 ```
 
 This code will create a state named `somename` on kernel and store the userdata to perform all operations related to the state `somename` on the variable `mystate`.  From now on, it will be used `mystate` to explain all operations that can be done at that state.
@@ -82,6 +86,18 @@ Runs on the kernel, the code given by `code`, you can give a name for that code,
 #### `mystate:close()`
 
 Closes on the kernel the state that `mystate` represents.
+
+#### `mystate:getname()`
+
+Returns the name of state `mystate` as it is in the kernel.
+
+#### `mystate:getmaxalloc()`
+
+Return the maximum amount of memory that `mystate` can use in the kernel.
+
+#### `mystate:getcurralloc()`
+
+Return the current memory usage in the kernel of the state represent by `mystate`.
 
 ## Data API
 

@@ -23,6 +23,7 @@ typedef struct lunatik_state {
 	size_t maxalloc;
 	size_t curralloc;
 	size_t scriptsize;
+	bool inuse;
 	unsigned char name[LUNATIK_NAME_MAXSIZE];
 } lunatik_State;
 ```
@@ -69,6 +70,10 @@ Represents the maximum memory that the lua state `L` can use.
 
 Represents the current memory that the lua state `L` is using.
 
+**`bool inuse`**
+
+Tells if the states is in use for some process on the user space.
+
 **`unsigned char name[LUNATIK_NAME_MAXSIZE]`**
 
 Is the unique identifier to `lunatik_State`, used to search it in the kernel hash table, note that this is limited by `LUNATIK_NAME_MAXSIZE`.
@@ -97,6 +102,10 @@ It's important to get a reference to the state before perform any action because
 #### `void lunatik_putstate(lunatik_State *s)`
 
 Put back the reference of the state. This tells the lunatik that you're are done with that state.
+
+#### `lunatik_State *lunatik_getenv(lua_State *L)`
+
+Returns the lunatik state which the lua state `L` is contained into.
 
 ## Namespace depedent functions
 

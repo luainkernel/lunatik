@@ -50,6 +50,7 @@ static int lunatikN_list(struct sk_buff *buff, struct genl_info *info);
 static int lunatikN_data(struct sk_buff *buff, struct genl_info *info);
 static int lunatikN_datainit(struct sk_buff *buff, struct genl_info *info);
 static int lunatikN_sendstate(struct sk_buff *buff, struct genl_info *info);
+static int lunatikN_getcurralloc(struct sk_buff *buff, struct genl_info *info);
 
 struct nla_policy lunatik_policy[ATTRS_COUNT] = {
 	[STATE_NAME]  = { .type = NLA_STRING },
@@ -113,6 +114,13 @@ static const struct genl_ops l_ops[] = {
 	{
 		.cmd    = GET_STATE,
 		.doit   = lunatikN_sendstate,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
+		.policy = lunatik_policy
+#endif
+	},
+	{
+		.cmd    = GET_CURRALLOC,
+		.doit   = lunatikN_getcurralloc,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
 		.policy = lunatik_policy
 #endif
@@ -649,6 +657,61 @@ static int lunatikN_sendstate(struct sk_buff *buff, struct genl_info *info)
 
 	return 0;
 
+}
+
+static int send_curralloc(int curralloc, struct genl_info *info)
+{
+	struct sk_buff *obuff;
+	void *msg_head;
+
+	if ((obuff = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL)) == NULL) {
+		pr_err("Failed allocating message to an reply\n");
+		return -1;
+	}
+
+	if ((msg_head = genlmsg_put_reply(obuff, info, &lunatik_family, 0, GET_CURRALLOC)) == NULL) {
+		pr_err("Failed to put generic netlink header\n");
+		return -1;
+	}
+
+	if (nla_put_u32(obuff, CURR_ALLOC, curralloc)) {
+		pr_err("Failed to put attributes on socket buffer\n");
+		return -1;
+	}
+
+	genlmsg_end(obuff, msg_head);
+
+	if (genlmsg_reply(obuff, info) < 0) {
+		pr_err("Failed to send message to user space\n");
+		return -1;
+	}
+
+	pr_debug("Message sent to user space\n");
+	return 0;
+}
+
+static int lunatikN_getcurralloc(struct sk_buff *buff, struct genl_info *info)
+{
+	struct lunatik_state *s;
+	char *state_name;
+
+	pr_debug("Received a GET_CURRALLOC message\n");
+
+	state_name = (char *)nla_data(info->attrs[STATE_NAME]);
+
+	s = lunatik_netstatelookup(state_name, genl_info_net(info));
+
+	if (s == NULL)
+		goto error;
+
+	if (send_curralloc(s->curralloc, info))
+		goto error;
+
+	return 0;
+
+error:
+	reply_with(OP_ERROR, GET_CURRALLOC, info);
+	return 0;
 }
 
 /* Note: Most of the function below is copied from NFLua: https://github.com/cujoai/nflua
