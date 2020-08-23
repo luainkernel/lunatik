@@ -48,6 +48,7 @@ struct lunatik_nl_state {
     struct lunatik_session *session;
     struct nl_sock *send_datasock;
     struct nl_sock *recv_datasock;
+    struct nl_sock *control_sock;
     struct data_buffer data_buffer;
     enum callback_result cb_result;
     uint32_t maxalloc;
@@ -94,16 +95,16 @@ void lunatikS_close(struct lunatik_session *session);
 
 int lunatikS_newstate(struct lunatik_session *session, struct lunatik_nl_state *s);
 
-int lunatikS_closestate(struct lunatik_nl_state *state);
+int lunatik_closestate(struct lunatik_nl_state *state);
 
-int lunatikS_dostring(struct lunatik_session *session, const char *state_name,
+int lunatik_dostring(struct lunatik_nl_state *state,
     const char *script, const char *script_name, size_t total_code_size);
 
 int lunatikS_list(struct lunatik_session *session);
 
-int lunatikS_receive(struct lunatik_nl_state *state);
+int lunatik_receive(struct lunatik_nl_state *state);
 
-int lunatikS_initdata(struct lunatik_nl_state *state);
+int lunatik_initstate(struct lunatik_nl_state *state);
 
 struct lunatik_nl_state *lunatikS_getstate(struct lunatik_session *session, const char *name);
 

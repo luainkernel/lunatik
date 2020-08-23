@@ -230,13 +230,20 @@ static int lunatikN_newstate(struct sk_buff *buff, struct genl_info *info)
 
 	s = lunatik_netnewstate(state_name, *max_alloc, genl_info_net(info));
 
-	if (s == NULL) {
-		reply_with(OP_ERROR, CREATE_STATE, info);
-	} else {
-		s->instance = *instance;
-		reply_with(OP_SUCESS, CREATE_STATE, info);
-	}
+	if (s == NULL)
+		goto error;
 
+	if (s->inuse)
+		goto error;
+
+	s->instance = *instance;
+	reply_with(OP_SUCESS, CREATE_STATE, info);
+	s->inuse = true;
+
+	return 0;
+
+error:
+	reply_with(OP_ERROR, CREATE_STATE, info);
 	return 0;
 }
 
@@ -627,10 +634,18 @@ static int lunatikN_sendstate(struct sk_buff *buff, struct genl_info *info)
 		return 0;
 	}
 
+	if (state->inuse) {
+		pr_info("State %s is already in use\n", state_name);
+		reply_with(OP_ERROR, GET_STATE, info);
+		return 0;
+	}
+
 	if (sendstate_msg(state, info)) {
 		pr_err("Failed to send message to user space\n");
 		reply_with(OP_ERROR, GET_STATE, info);
 	}
+
+	state->inuse = true;
 
 	return 0;
 

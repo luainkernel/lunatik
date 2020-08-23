@@ -141,8 +141,8 @@ static int lsession_newstate(lua_State *L)
 		return 2;
 	}
 
-	if (lunatikS_initdata(state)) {
-		lua_pushnil(L);
+	if (lunatik_initstate(state)) {
+		pusherrmsg(L, "Failed to initialize state\n");
 		return 1;
 	}
 
@@ -154,7 +154,7 @@ static int lsession_newstate(lua_State *L)
 static int lstate_close(lua_State *L)
 {
 	struct lunatik_nl_state *state = getnlstate(L);
-	if (lunatikS_closestate(state)){
+	if (lunatik_closestate(state)){
 		lua_pushnil(L);
 		return 1;
 	}
@@ -166,8 +166,6 @@ static int lstate_close(lua_State *L)
 static int lstate_dostring(lua_State *L)
 {
 	struct lunatik_nl_state *s = getnlstate(L);
-	struct lunatik_session *session = s->session;
-	const char *name = s->name;
 	size_t len;
 	const char *payload = luaL_checklstring(L, 2, &len);
 	const char *script_name = luaL_optstring(L, 3, "Lunatik");
@@ -176,7 +174,7 @@ static int lstate_dostring(lua_State *L)
 		printf("script name too long\n");
 		goto error;
 	}
-	int status = lunatikS_dostring(session, name, payload, script_name, len);
+	int status = lunatik_dostring(s, payload, script_name, len);
 
 	if (status)
 		goto error;
@@ -243,8 +241,8 @@ static int lsession_getstate(lua_State *L)
 
 	*state = *received_state;
 
-	if (lunatikS_initdata(state)) {
-		lua_pushnil(L);
+	if (lunatik_initstate(state)) {
+		pusherrmsg(L, "Failed to initialize the state\n");
 		return 1;
 	}
 
@@ -292,7 +290,7 @@ static int lstate_datareceive(lua_State *L)
 	struct lunatik_nl_state *state = getnlstate(L);
 	char *memory;
 
-	if (lunatikS_receive(state))
+	if (lunatik_receive(state))
 		goto error;
 
 	memory = luamem_newalloc(L, state->data_buffer.size);

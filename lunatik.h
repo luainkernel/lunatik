@@ -47,6 +47,7 @@ typedef struct lunatik_state {
 	size_t maxalloc;
 	size_t curralloc;
 	size_t scriptsize;
+	bool inuse;
 	unsigned char name[LUNATIK_NAME_MAXSIZE];
 } lunatik_State;
 
