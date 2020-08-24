@@ -27,9 +27,9 @@ OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
 DEPS = $(OBJS:.o=.d)
 
 .PHONY: all
-all: lua_memory $(LIBS)
+all: lua_memory $(LIBS) clean_objs
 
-lua_memory:
+lua_memory: lua_memory_clean
 	$(MAKE) -C ../deps/lua-memory/src linux CFLAGS="-fPIC -I/usr/include/lua5.3"
 
 %.so:
@@ -41,10 +41,13 @@ lua_memory:
 -include $(DEPS)
 
 .PHONY: clean
-clean: lua_clean
+clean: lua_memory_clean
 	$(RM) $(LIBS) $(OBJS) $(DEPS)
 
-lua_clean:
+lua_memory_clean:
 	$(MAKE) -C ../deps/lua-memory/src clean
+
+clean_objs:
+	$(MAKE) -C ../deps/lua-memory/src clean_objs
 
 $(LIBS): $(OBJS)
