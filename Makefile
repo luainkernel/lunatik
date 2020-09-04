@@ -1,5 +1,5 @@
 ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -D_CONFIG_FULL_PANIC -DLUNATIK_UNUSED \
-							-I$(src)/lua -I$(src)/deps/lua-memory/src
+	-I$(src)/lua -I$(src)/deps/lua-memory/src
 asflags-y += -D_LUNATIK -D_KERNEL
 
 ifeq ($(ARCH), $(filter $(ARCH),i386 x86))
@@ -36,7 +36,9 @@ lua-objs = lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	 lua/ltablib.o lua/lutf8lib.o lua/loslib.o lua/lmathlib.o lua/linit.o \
 	 lua/loadlib.o luautil.o
 
-lua_memory-objs = deps/lua-memory/src/lmemlib.o deps/lua-memory/src/lmemmod.o
+lua_memory-path = deps/lua-memory/src
+
+lua_memory-objs = $(lua_memory-path)/lmemlib.o $(lua_memory-path)/lmemmod.o
 
 lunatik-objs += $(lua-objs) \
 	 arch/$(ARCH)/setjmp.o util/modti3.o lunatik_core.o states.o netlink.o $(lua_memory-objs) \
