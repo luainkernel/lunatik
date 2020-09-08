@@ -257,10 +257,10 @@ error:
 
 static void init_codebuffer(lunatik_State *s, struct genl_info *info)
 {
-  s->scriptsize = *((u32*)nla_data(info->attrs[SCRIPT_SIZE]));
+	s->scriptsize = *((u32*)nla_data(info->attrs[SCRIPT_SIZE]));
 
-  if ((s->code_buffer = kmalloc(s->scriptsize, GFP_KERNEL)) == NULL) {
-    pr_err("Failed allocating memory to code buffer\n");
+	if ((s->code_buffer = kmalloc(s->scriptsize, GFP_KERNEL)) == NULL) {
+		pr_err("Failed allocating memory to code buffer\n");
 		reply_with(OP_ERROR, EXECUTE_CODE, info);
 	}
 

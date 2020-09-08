@@ -37,8 +37,8 @@ struct reply_buffer {
 };
 
 struct lunatik_data {
-    char *buffer;
-    size_t size;
+	char *buffer;
+	size_t size;
 };
 
 #endif /* NETLINK_H */
