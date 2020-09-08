@@ -812,4 +812,3 @@ nla_put_failure:
 	printf("Failed to put attribute to get current alloc of state %s\n", state->name);
 	return -1;
 }
-
