@@ -31,7 +31,7 @@
 #include "lunatik.h"
 
 #ifndef LUNATIK_SETPAUSE
-#define LUNATIK_SETPAUSE	100
+#define LUNATIK_SETPAUSE	(100)
 #endif /* LUNATIK_SETPAUSE */
 
 extern int luaopen_memory(lua_State *);
