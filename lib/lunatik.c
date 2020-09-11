@@ -571,7 +571,7 @@ static int data_handler(struct nl_msg *msg, void *arg)
 	int err;
 
 	if (nla_parse(attrs_tb, ATTRS_COUNT, genlmsg_attrdata(gnlh, 0),
-              genlmsg_attrlen(gnlh, 0), NULL))
+			genlmsg_attrlen(gnlh, 0), NULL))
 	{
 		printf("Error parsing attributes\n");
 		state->cb_result = CB_ERROR;

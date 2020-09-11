@@ -33,7 +33,7 @@
 #include "lunatik.h"
 #include "netlink_common.h"
 
-#define DATA_RECV_FUNC "receive_callback"
+#define DATA_RECV_FUNC	("receive_callback")
 
 struct lunatik_nl_state {
 	char name[LUNATIK_NAME_MAXSIZE];
