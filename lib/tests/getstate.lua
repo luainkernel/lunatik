@@ -4,7 +4,7 @@ local buffer = memory.create(3)
 local session = lunatik.session()
 
 local kscript = [[
-    print'olá mundo!'
+	print'olá mundo!'
 ]]
 
 -- Testing state normal state creation

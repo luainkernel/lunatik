@@ -6,10 +6,10 @@ local buffer = memory.create(3)
 memory.set(buffer, 1, 0x1, 0x2, 0x3)
 
 local kscript = [[
-    function receive_callback(mem)
-        print'A memory has been received'
-        memory.tostring(mem)
-    end
+	function receive_callback(mem)
+		print'A memory has been received'
+		memory.tostring(mem)
+	end
 ]]
 
 local s1 = session:newstate's1'

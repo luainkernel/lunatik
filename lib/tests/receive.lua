@@ -3,11 +3,11 @@ local memory = require'memory'
 local session = lunatik.session()
 
 local kscript = [[
-    local buffer = memory.create(3)
-    memory.set(buffer, 1, 65, 66, 67)
-    netlink.send(buffer)
-    memory.set(buffer, 1, 68, 69, 70)
-    netlink.send(buffer)
+	local buffer = memory.create(3)
+	memory.set(buffer, 1, 65, 66, 67)
+	netlink.send(buffer)
+	memory.set(buffer, 1, 68, 69, 70)
+	netlink.send(buffer)
 ]]
 
 local s1 = session:newstate's1'

@@ -1,5 +1,4 @@
 local lunatik = require'lunatik'
-
 local session = lunatik.session()
 
 -- Normal creation
@@ -31,7 +30,6 @@ assert(ss1)
 -- State created from another session
 ss2 = session2:newstate's1'
 assert(ss2 == nil)
-
 
 s1:close()
 s2:close()

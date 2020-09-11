@@ -22,7 +22,6 @@ local states2 = session2:list()
 assert(#states == 6)
 assert(#states2 == 6)
 
-
 -- Close some states and check if they are gone when list
 s1:close()
 s2:close()
@@ -30,7 +29,6 @@ s3:close()
 
 states = session:list()
 states2 = session2:list()
-
 assert(#states == 3)
 assert(#states2 == 3)
 
