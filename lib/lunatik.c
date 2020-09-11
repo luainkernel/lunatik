@@ -249,7 +249,7 @@ nla_put_failure:
 }
 
 int lunatik_dostring(struct lunatik_nl_state *state,
-    const char *script, const char *script_name, size_t total_code_size)
+	const char *script, const char *script_name, size_t total_code_size)
 {
 	int err = -1;
 	int parts = 0;
@@ -533,7 +533,7 @@ static int response_state_handler(struct nl_msg *msg, void *arg)
 	struct lunatik_nl_state *state = (struct lunatik_nl_state *)arg;
 
 	if (nla_parse(attrs_tb, ATTRS_COUNT, genlmsg_attrdata(gnlh, 0),
-              genlmsg_attrlen(gnlh, 0), NULL))
+			genlmsg_attrlen(gnlh, 0), NULL))
 	{
 		printf("Error parsing attributes\n");
 		state->cb_result = CB_ERROR;
