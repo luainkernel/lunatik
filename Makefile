@@ -19,10 +19,10 @@ ifeq ($(ARCH), mips)
 		endif
 		AFLAGS_setjmp.o += -D_MIPS_ISA_MIPS64 \
 			-D_MIPS_ISA=_MIPS_ISA_MIPS64
-        else
+		else
 		AFLAGS_setjmp.o += -D__mips_o32 -D_MIPS_ISA_MIPS32 \
 			-D_MIPS_ISA=_MIPS_ISA_MIPS32
-        endif
+		endif
 endif
 
 obj-$(CONFIG_LUNATIK) += lunatik.o
