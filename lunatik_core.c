@@ -213,15 +213,16 @@ static void __net_exit lunatik_instanceclose(struct net *net)
 {
 	struct lunatik_instance *instance;
 	lunatik_State *s;
-	struct hlist_node *tmp;
 	int bkt;
 
 	instance = lunatik_pernet(net);
 
 	spin_lock_bh(&(instance->statestable_lock));
 
-	hash_for_each_safe(instance->states_table, bkt, tmp, s, node) {
+	hash_for_each(instance->states_table, bkt, s, node) {
 		state_destroy(s);
+		if (hash_empty(instance->states_table))
+			break;
 	}
 
 	spin_unlock_bh(&(instance->statestable_lock));
