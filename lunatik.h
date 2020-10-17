@@ -56,7 +56,7 @@ int lunatik_close(const char *name);
 lunatik_State *lunatik_statelookup(const char *name);
 
 bool lunatik_getstate(lunatik_State *s);
-void lunatik_putstate(lunatik_State *s);
+int lunatik_putstate(lunatik_State *s);
 
 lunatik_State *lunatik_netnewstate(const char *name, size_t maxalloc, struct net *net);
 int lunatik_netclosestate(const char *name, struct net *net);

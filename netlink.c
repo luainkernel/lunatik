@@ -51,6 +51,7 @@ static int lunatikN_data(struct sk_buff *buff, struct genl_info *info);
 static int lunatikN_datainit(struct sk_buff *buff, struct genl_info *info);
 static int lunatikN_sendstate(struct sk_buff *buff, struct genl_info *info);
 static int lunatikN_getcurralloc(struct sk_buff *buff, struct genl_info *info);
+static int lunatikN_putstate(struct sk_buff *buff, struct genl_info *info);
 
 struct nla_policy lunatik_policy[ATTRS_COUNT] = {
 	[STATE_NAME]  = { .type = NLA_STRING },
@@ -124,7 +125,15 @@ static const struct genl_ops l_ops[] = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
 		.policy = lunatik_policy
 #endif
+	},
+	{
+		.cmd    = PUT_STATE,
+		.doit   = lunatikN_putstate,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,0)
+		.policy = lunatik_policy
+#endif
 	}
+
 };
 
 struct genl_family lunatik_family = {
@@ -711,6 +720,38 @@ static int lunatikN_getcurralloc(struct sk_buff *buff, struct genl_info *info)
 
 error:
 	reply_with(OP_ERROR, GET_CURRALLOC, info);
+	return 0;
+}
+
+static int lunatikN_putstate(struct sk_buff *buff, struct genl_info *info)
+{
+	struct lunatik_state *s;
+	char *state_name;
+
+	pr_debug("Received a PUT_STATE command\n");
+
+	state_name = (char*)nla_data(info->attrs[STATE_NAME]);
+	s = lunatik_netstatelookup(state_name, genl_info_net(info));
+
+	if (s == NULL)
+		goto error;
+
+	if (!s->inuse) {
+		reply_with(NOT_IN_USE, PUT_STATE, info);
+		return 0;
+	}
+
+	if (lunatik_putstate(s))
+		goto error;
+
+
+	s->inuse = false;
+	reply_with(OP_SUCESS, PUT_STATE, info);
+
+	return 0;
+
+error:
+	reply_with(OP_ERROR, PUT_STATE, info);
 	return 0;
 }
 

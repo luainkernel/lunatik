@@ -146,24 +146,29 @@ inline bool lunatik_getstate(lunatik_State *s)
 	return refcount_inc_not_zero(&s->users);
 }
 
-void lunatik_putstate(lunatik_State *s)
+int lunatik_putstate(lunatik_State *s)
 {
 	refcount_t *users = &s->users;
 	spinlock_t *refcnt_lock = &(s->instance.rfcnt_lock);
 
 	if (WARN_ON(s == NULL))
-		return;
+		return 1;
 
 	if (refcount_dec_not_one(users))
-		return;
+		return 1;
 
 	spin_lock_bh(refcnt_lock);
 	if (!refcount_dec_and_test(users))
-		goto out;
+		goto error_and_unlock;
 
+	hash_del_rcu(&s->node);
 	kfree(s);
-out:
 	spin_unlock_bh(refcnt_lock);
+	return 0;
+
+error_and_unlock:
+	spin_unlock_bh(refcnt_lock);
+	return 1;
 }
 
 lunatik_State *lunatik_netstatelookup(const char *name, struct net *net)

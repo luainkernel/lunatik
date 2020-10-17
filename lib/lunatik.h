@@ -22,6 +22,7 @@
 
 #include <sys/user.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <netlink/genl/genl.h>
 #include "../netlink_common.h"
 #include "../lunatik_conf.h"
@@ -53,6 +54,7 @@ struct lunatik_nl_state {
 	enum callback_result cb_result;
 	uint32_t maxalloc;
 	uint32_t curralloc;
+	bool isvalid;
 	char name[LUNATIK_NAME_MAXSIZE];
 };
 
@@ -112,5 +114,7 @@ int lunatik_datasend(struct lunatik_nl_state *state,
 	const char *payload, size_t len);
 
 int lunatik_getcurralloc(struct lunatik_nl_state *state);
+
+int lunatik_putstate(struct lunatik_nl_state *state);
 
 #endif /* LUNATIK_H */

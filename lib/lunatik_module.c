@@ -135,6 +135,8 @@ static int lsession_newstate(lua_State *L)
 	strcpy(state->name, name);
 	state->maxalloc = maxalloc;
 	state->session = session;
+	state->isvalid = true;
+
 
 	if (lunatikS_newstate(session, state)) {
 		pusherrmsg(L, "Failed to create the state\n");
@@ -154,6 +156,10 @@ static int lsession_newstate(lua_State *L)
 static int lstate_close(lua_State *L)
 {
 	struct lunatik_nl_state *state = getnlstate(L);
+
+	if (!state->isvalid)
+		return luaL_error(L, "invalid state");
+
 	if (lunatik_closestate(state)){
 		lua_pushnil(L);
 		return 1;
@@ -170,10 +176,12 @@ static int lstate_dostring(lua_State *L)
 	const char *payload = luaL_checklstring(L, 2, &len);
 	const char *script_name = luaL_optstring(L, 3, "Lunatik");
 
-	if (strlen(script_name) > LUNATIK_SCRIPTNAME_MAXSIZE) {
-		printf("script name too long\n");
-		goto error;
-	}
+	if (strlen(script_name) > LUNATIK_SCRIPTNAME_MAXSIZE)
+		return luaL_argerror(L, 3, "script name too long");
+
+	if (!s->isvalid)
+		return luaL_error(L, "invalid state");
+
 	int status = lunatik_dostring(s, payload, script_name, len);
 
 	if (status)
@@ -189,12 +197,20 @@ error:
 
 static int lstate_getname(lua_State *L) {
 	struct lunatik_nl_state *s = getnlstate(L);
+
+	if (!s->isvalid)
+		return luaL_error(L, "invalid state");
+
 	lua_pushstring(L, s->name);
 	return 1;
 }
 
 static int lstate_getmaxalloc(lua_State *L) {
 	struct lunatik_nl_state *s = getnlstate(L);
+
+	if (!s->isvalid)
+		return luaL_error(L, "invalid state");
+
 	lua_pushinteger(L, s->maxalloc);
 	return 1;
 }
@@ -240,6 +256,7 @@ static int lsession_getstate(lua_State *L)
 	}
 
 	*state = *received_state;
+	state->isvalid = true;
 
 	if (lunatik_initstate(state)) {
 		pusherrmsg(L, "Failed to initialize the state\n");
@@ -277,6 +294,10 @@ static int lstate_datasend(lua_State *L)
 
 	if (buffer == NULL) luaL_argerror(L, 2, "expected non NULL memory object");
 
+	if (!state->isvalid)
+		return luaL_error(L, "invalid state");
+
+
 	err = lunatik_datasend(state, buffer, size);
 	err ? lua_pushnil(L) : lua_pushboolean(L, true);
 
@@ -289,6 +310,9 @@ static int lstate_datareceive(lua_State *L)
 {
 	struct lunatik_nl_state *state = getnlstate(L);
 	char *memory;
+
+	if (!state->isvalid)
+		return luaL_error(L, "invalid state");
 
 	if (lunatik_receive(state))
 		goto error;
@@ -309,12 +333,30 @@ static int lstate_getcurralloc(lua_State *L)
 {
 	struct lunatik_nl_state *state = getnlstate(L);
 
+	if (!state->isvalid)
+		return luaL_error(L, "invalid state");
+
 	if (lunatik_getcurralloc(state)) {
 		lua_pushnil(L);
 		return 1;
 	}
 
 	lua_pushinteger(L, state->curralloc);
+
+	return 1;
+}
+
+static int lstate_put(lua_State *L)
+{
+	struct lunatik_nl_state *state = getnlstate(L);
+
+	if (lunatik_putstate(state)) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	lua_pushboolean(L, true);
+	state->isvalid = false;
 
 	return 1;
 }
@@ -337,6 +379,7 @@ static const luaL_Reg state_mt[] = {
 	{"close", lstate_close},
 	{"send", lstate_datasend},
 	{"receive", lstate_datareceive},
+	{"put", lstate_put},
 	{NULL, NULL}
 };
 

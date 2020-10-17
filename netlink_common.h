@@ -44,6 +44,7 @@ enum lunatik_operations {
 	DATA_INIT,
 	GET_STATE,
 	GET_CURRALLOC,
+	PUT_STATE,
 };
 
 enum lunatik_attrs {
@@ -63,6 +64,7 @@ enum lunatik_attrs {
 	LUNATIK_DATA_LEN,
 	CURR_ALLOC,
 	STATE_NOT_FOUND,
+	NOT_IN_USE,
 	ATTRS_COUNT
 #define ATTRS_MAX	(ATTRS_COUNT - 1)
 };

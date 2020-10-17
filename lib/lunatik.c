@@ -546,6 +546,9 @@ static int response_state_handler(struct nl_msg *msg, void *arg)
 	} else if (attrs_tb[OP_ERROR] && nla_get_u8(attrs_tb[OP_ERROR])) {
 		state->cb_result = CB_ERROR;
 		return NL_OK;
+	} else if (attrs_tb[NOT_IN_USE] && nla_get_u8(attrs_tb[NOT_IN_USE])) {
+		state->cb_result = CB_ERROR;
+		return NL_OK;
 	}
 
 	if (attrs_tb[CURR_ALLOC]) {
@@ -808,5 +811,26 @@ int lunatik_getcurralloc(struct lunatik_nl_state *state)
 
 nla_put_failure:
 	printf("Failed to put attribute to get current alloc of state %s\n", state->name);
+	return -1;
+}
+
+int lunatik_putstate(struct lunatik_nl_state *state)
+{
+	struct nl_msg *msg;
+	
+	int err = -1;
+
+	if ((msg = prepare_message(PUT_STATE, 0)) == NULL) 
+		return err;
+
+	NLA_PUT_STRING(msg, STATE_NAME, state->name);
+
+	if ((err = nl_send_auto(state->control_sock, msg)) < 0)
+		return err;	
+
+	return receive_state_op_result(state);
+
+nla_put_failure:
+	printf("Failed to put attribute to put state\n");
 	return -1;
 }

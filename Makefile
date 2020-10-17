@@ -1,4 +1,4 @@
-ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -D_CONFIG_FULL_PANIC -DLUNATIK_UNUSED \
+ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -D_CONFIG_FULL_PANIC -DLUNATIK_UNUSED -DDEBUG\
 	-I$(src)/lua -I$(src)/deps/lua-memory/src
 asflags-y += -D_LUNATIK -D_KERNEL
 
