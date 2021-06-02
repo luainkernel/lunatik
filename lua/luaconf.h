@@ -872,7 +872,7 @@ static inline int time(void *p)
 
 /* stdlib.h */
 #include <linux/slab.h>
-#define free 			kfree
+#define free(a) 			kfree(a)
 #define realloc(a, b) 		krealloc(a, b, GFP_ATOMIC)
 
 /* signal.h */
