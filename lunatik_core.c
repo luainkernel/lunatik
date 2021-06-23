@@ -1,4 +1,5 @@
 /*
+* Copyright (c) 2020 Matheus Rodrigues <matheussr61@gmail.com>
 * Copyright (c) 2017-2019 CUJO LLC.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
@@ -22,10 +23,16 @@
 */
 #ifdef __linux__
 #include <linux/module.h>
+#include <net/net_namespace.h>
+#include <net/netns/generic.h>
+#include <linux/hashtable.h>
 
 #include "lua/lua.h"
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
+
+#include "lunatik.h"
+#include "netlink_common.h"
 
 EXPORT_SYMBOL(lua_checkstack);
 EXPORT_SYMBOL(lua_xmove);
@@ -165,13 +172,91 @@ EXPORT_SYMBOL(luaopen_string);
 EXPORT_SYMBOL(luaopen_table);
 EXPORT_SYMBOL(luaopen_utf8);
 
+EXPORT_SYMBOL(lunatik_newstate);
+EXPORT_SYMBOL(lunatik_close);
+EXPORT_SYMBOL(lunatik_statelookup);
+EXPORT_SYMBOL(lunatik_getstate);
+EXPORT_SYMBOL(lunatik_putstate);
+
+EXPORT_SYMBOL(lunatik_netnewstate);
+EXPORT_SYMBOL(lunatik_netclosestate);
+EXPORT_SYMBOL(lunatik_netstatelookup);
+
+EXPORT_SYMBOL(lunatik_getenv);
+
+extern struct genl_family lunatik_family;
+extern void lunatik_statesinit(void);
+extern void lunatik_closeall_from_default_ns(void);
+extern void state_destroy(lunatik_State *s);
+
+static int lunatik_netid __read_mostly;
+
+struct lunatik_instance *lunatik_pernet(struct net *net)
+{
+	return (struct lunatik_instance *)net_generic(net,lunatik_netid);
+}
+
+static int __net_init lunatik_instancenew(struct net *net)
+{
+	struct lunatik_instance *instance = lunatik_pernet(net);
+
+	atomic_set(&(instance->states_count), 0);
+	spin_lock_init(&(instance->statestable_lock));
+	spin_lock_init(&(instance->rfcnt_lock));
+	hash_init(instance->states_table);
+	(instance->reply_buffer).status = RB_INIT;
+	instance->namespace = *net;
+	return 0;
+}
+
+static void __net_exit lunatik_instanceclose(struct net *net)
+{
+	struct lunatik_instance *instance;
+	lunatik_State *s;
+	int bkt;
+
+	instance = lunatik_pernet(net);
+
+	spin_lock_bh(&(instance->statestable_lock));
+
+	hash_for_each(instance->states_table, bkt, s, node) {
+		state_destroy(s);
+		if (hash_empty(instance->states_table))
+			break;
+	}
+
+	spin_unlock_bh(&(instance->statestable_lock));
+}
+
+static struct pernet_operations lunatik_net_ops = {
+	.init = lunatik_instancenew,
+	.exit = lunatik_instanceclose,
+	.id   = &lunatik_netid,
+	.size = sizeof(struct lunatik_instance),
+};
+
 static int __init modinit(void)
 {
-        return 0;
+	int err;
+
+	if ((err = register_pernet_subsys(&lunatik_net_ops))) {
+		pr_err("Failed to register pernet operations\n");
+		return err;
+	}
+
+	if ((err = genl_register_family(&lunatik_family))) {
+		pr_err("Failed to register generic netlink family\n");
+		return err;
+	}
+
+	return 0;
 }
 
 static void __exit modexit(void)
 {
+	lunatik_closeall_from_default_ns();
+	unregister_pernet_subsys(&lunatik_net_ops);
+	genl_unregister_family(&lunatik_family);
 }
 
 module_init(modinit);

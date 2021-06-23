@@ -1,0 +1,3 @@
+[submodule "deps/lua-memory"]
+	path = deps/lua-memory
+	url = https://github.com/MatheusNtg/lua-memory
