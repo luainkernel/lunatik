@@ -1,4 +1,5 @@
 /*
+* Copyright (c) 2020-2023 ring-0 Ltda.
 * Copyright (c) 2017-2019 CUJO LLC.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
@@ -75,7 +76,7 @@ EXPORT_SYMBOL(lua_rawgeti);
 EXPORT_SYMBOL(lua_rawgetp);
 EXPORT_SYMBOL(lua_createtable);
 EXPORT_SYMBOL(lua_getmetatable);
-EXPORT_SYMBOL(lua_getuservalue);
+EXPORT_SYMBOL(lua_getiuservalue);
 EXPORT_SYMBOL(lua_setglobal);
 EXPORT_SYMBOL(lua_settable);
 EXPORT_SYMBOL(lua_setfield);
@@ -84,7 +85,7 @@ EXPORT_SYMBOL(lua_rawset);
 EXPORT_SYMBOL(lua_rawseti);
 EXPORT_SYMBOL(lua_rawsetp);
 EXPORT_SYMBOL(lua_setmetatable);
-EXPORT_SYMBOL(lua_setuservalue);
+EXPORT_SYMBOL(lua_setiuservalue);
 EXPORT_SYMBOL(lua_callk);
 EXPORT_SYMBOL(lua_pcallk);
 EXPORT_SYMBOL(lua_load);
@@ -97,7 +98,7 @@ EXPORT_SYMBOL(lua_concat);
 EXPORT_SYMBOL(lua_len);
 EXPORT_SYMBOL(lua_getallocf);
 EXPORT_SYMBOL(lua_setallocf);
-EXPORT_SYMBOL(lua_newuserdata);
+EXPORT_SYMBOL(lua_newuserdatauv);
 EXPORT_SYMBOL(lua_getupvalue);
 EXPORT_SYMBOL(lua_setupvalue);
 EXPORT_SYMBOL(lua_upvalueid);
@@ -160,7 +161,6 @@ EXPORT_SYMBOL(luaopen_package);
 EXPORT_SYMBOL(luaopen_coroutine);
 EXPORT_SYMBOL(luaopen_debug);
 EXPORT_SYMBOL(luaopen_math);
-EXPORT_SYMBOL(luaopen_os);
 EXPORT_SYMBOL(luaopen_string);
 EXPORT_SYMBOL(luaopen_table);
 EXPORT_SYMBOL(luaopen_utf8);
