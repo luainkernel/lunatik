@@ -21,7 +21,7 @@
 * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-#ifdef __linux__
+
 #include <linux/module.h>
 
 #include "lua/lua.h"
@@ -165,16 +165,16 @@ EXPORT_SYMBOL(luaopen_string);
 EXPORT_SYMBOL(luaopen_table);
 EXPORT_SYMBOL(luaopen_utf8);
 
-static int __init modinit(void)
+static int __init lunatik_init(void)
 {
         return 0;
 }
 
-static void __exit modexit(void)
+static void __exit lunatik_exit(void)
 {
 }
 
-module_init(modinit);
-module_exit(modexit);
+module_init(lunatik_init);
+module_exit(lunatik_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-#endif /* __linux__ */
+
