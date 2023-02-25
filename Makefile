@@ -1,6 +1,6 @@
 all: lunatik_sym.h
 	make -C /lib/modules/${shell uname -r}/build M=${PWD} \
-	CONFIG_LUNATIK=m
+	CONFIG_LUNATIK=m CONFIG_LUNATIK_RUN=m
 
 clean:
 	make -C /lib/modules/${shell uname -r}/build M=${PWD} clean
