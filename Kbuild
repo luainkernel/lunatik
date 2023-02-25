@@ -33,7 +33,5 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	 lua/lundump.o lua/lvm.o lua/lzio.o lua/lauxlib.o lua/lbaselib.o \
 	 lua/lcorolib.o lua/ldblib.o lua/lstrlib.o \
 	 lua/ltablib.o lua/lutf8lib.o lua/lmathlib.o lua/linit.o \
-	 lua/loadlib.o \
-	 arch/$(ARCH)/setjmp.o lunatik_core.o
-
+	 lua/loadlib.o arch/$(ARCH)/setjmp.o lunatik_aux.o lunatik_core.o
 
