@@ -28,6 +28,8 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+static lua_State *L;
+
 EXPORT_SYMBOL(lua_checkstack);
 EXPORT_SYMBOL(lua_xmove);
 EXPORT_SYMBOL(lua_atpanic);
@@ -167,11 +169,23 @@ EXPORT_SYMBOL(luaopen_utf8);
 
 static int __init lunatik_init(void)
 {
+	if ((L = luaL_newstate()) == NULL)
+		return -ENOMEM;
+	luaL_openlibs(L);
+
+	if (luaL_dofile(L, LUA_ROOT "lunatik.lua") != LUA_OK) {
+		pr_err("%s\n", lua_tostring(L, -1));
+		lua_pop(L, 1);
+		lua_close(L);
+		return -EINVAL;
+	}
+
         return 0;
 }
 
 static void __exit lunatik_exit(void)
 {
+	lua_close(L);
 }
 
 module_init(lunatik_init);
