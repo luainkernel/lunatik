@@ -24,8 +24,8 @@
 #include <linux/slab.h>
 #include <linux/fs.h>
 
-#include "lua/lua.h"
-#include "lua/lauxlib.h"
+#include <lua.h>
+#include <lauxlib.h>
 
 typedef struct lunatik_file {
 	struct file *file;
@@ -72,5 +72,4 @@ close:
 error:
 	return status;
 }
-EXPORT_SYMBOL(luaL_loadfile);
 
