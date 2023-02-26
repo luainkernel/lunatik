@@ -71,5 +71,4 @@ closefile:
 errfile:
   return status;
 }
-EXPORT_SYMBOL(luaL_loadfile);
 
