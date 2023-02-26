@@ -2,3 +2,5 @@
 *.[ao].cmd
 modules.builtin
 modules.order
+lunatik_sym.h
+
