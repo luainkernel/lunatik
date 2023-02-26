@@ -1,6 +1,11 @@
-*.[ao]
-*.[ao].cmd
+*.[aod]
+*.cmd
+*.ko
+*.mod
+*.mod.*
+Module.symvers
 modules.builtin
 modules.order
+build/
 lunatik_sym.h
 
