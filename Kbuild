@@ -1,4 +1,4 @@
-ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -I${PWD} -D_CONFIG_FULL_PANIC
+ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -I${PWD} -I${PWD}/lua -D_CONFIG_FULL_PANIC
 asflags-y += -D_LUNATIK -D_KERNEL
 
 ifeq ($(ARCH), $(filter $(ARCH),i386 x86))
@@ -36,4 +36,6 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	 lua/loadlib.o arch/$(ARCH)/setjmp.o lunatik_aux.o lunatik_core.o
 
 obj-$(CONFIG_LUNATIK_RUN) += lunatik_run.o
+
+obj-$(CONFIG_LUNATIK_DEVICE) += lib/luadevice.o
 
