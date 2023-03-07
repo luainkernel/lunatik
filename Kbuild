@@ -1,4 +1,5 @@
-ccflags-y += -D_LUNATIK -D_KERNEL -I$(src) -I${PWD} -I${PWD}/lua -D_CONFIG_FULL_PANIC
+ccflags-y += -D_LUNATIK -D_KERNEL -D_CONFIG_FULL_PANIC -Wimplicit-fallthrough=0 \
+	-I$(src) -I${PWD} -I${PWD}/lua
 asflags-y += -D_LUNATIK -D_KERNEL
 
 ifeq ($(ARCH), $(filter $(ARCH),i386 x86))
