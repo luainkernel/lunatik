@@ -1,11 +1,16 @@
 ccflags-y += -D_LUNATIK -D_KERNEL -D_CONFIG_FULL_PANIC -Wimplicit-fallthrough=0 \
-	-I$(src) -I${PWD} -I${PWD}/lua
+	-I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua
 asflags-y += -D_LUNATIK -D_KERNEL
 
-ifeq ($(ARCH), $(filter $(ARCH),i386 x86))
-	AFLAGS_setjmp.o := -D_REGPARM
+ifeq ($(ARCH), x86)
+	ccflags-y += -Dsetjmp=kernel_setjmp -Dlongjmp=kernel_longjmp
+	SUB := _$(BITS)
+	ifdef CONFIG_X86_32
+		asflags-y += -D_REGPARM
+	endif
 endif
 
+#TODO: we should cleanup this and just define __mips* as CONFIG_MIPS*
 ifeq ($(ARCH), mips)
 	ifdef CONFIG_64BIT
 		ifdef CONFIG_MIPS32_O32
@@ -34,7 +39,7 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	 lua/lundump.o lua/lvm.o lua/lzio.o lua/lauxlib.o lua/lbaselib.o \
 	 lua/lcorolib.o lua/ldblib.o lua/lstrlib.o \
 	 lua/ltablib.o lua/lutf8lib.o lua/lmathlib.o lua/linit.o \
-	 lua/loadlib.o arch/$(ARCH)/setjmp.o lunatik_aux.o lunatik_core.o
+	 lua/loadlib.o arch/$(ARCH)/setjmp$(SUB).o lunatik_aux.o lunatik_core.o
 
 obj-$(CONFIG_LUNATIK_RUN) += lunatik_run.o
 
