@@ -45,7 +45,7 @@ static const char *lunatik_loader(lua_State *L, void *ud, size_t *size)
 	return lf->buffer;
 }
 
-LUALIB_API int luaL_loadfilex(lua_State *L, const char *filename, const char *mode)
+int lunatik_loadfile(lua_State *L, const char *filename, const char *mode)
 {
 	lunatik_file lf;
 	int status = LUA_ERRFILE;
@@ -72,4 +72,5 @@ close:
 error:
 	return status;
 }
+EXPORT_SYMBOL(lunatik_loadfile);
 
