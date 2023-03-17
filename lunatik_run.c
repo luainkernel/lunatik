@@ -33,7 +33,7 @@ static lua_State *L;
 
 static int __init lunatik_run_init(void)
 {
-	if ((L = lunatik_newstate()) == NULL)
+	if ((L = lunatik_newstate(true)) == NULL)
 		return -ENOMEM;
 
 	luaL_openlibs(L);

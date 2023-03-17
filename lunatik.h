@@ -25,25 +25,41 @@
 #define lunatik_h
 
 #include <linux/mutex.h>
+#include <linux/spinlock.h>
 
 #include <lua.h>
 #include <lauxlib.h>
 
-#define lunatik_mutex(L)	((struct mutex *)lua_getextraspace(L))
-#define lunatik_lock(L)		(mutex_lock(lunatik_mutex(L)))
-#define lunatik_unlock(L)	(mutex_unlock(lunatik_mutex(L)))
+#define lunatik_locker(extra, spin_op, mutex_op)	\
+do {							\
+	if (extra->sleep)				\
+		mutex_op(&extra->lock.mutex);		\
+	else						\
+		spin_op(&extra->lock.spin);		\
+} while(0)
 
-static inline lua_State *lunatik_newstate(void)
+#define lunatik_getextra(L)	((lunatik_extra_t *)lua_getextraspace(L))
+#define lunatik_lock(L)		lunatik_locker(lunatik_getextra(L), spin_lock, mutex_lock)
+#define lunatik_unlock(L)	lunatik_locker(lunatik_getextra(L), spin_unlock, mutex_unlock)
+
+static inline lua_State *lunatik_newstate(bool sleep)
 {
 	lua_State *L;
-	if ((L = luaL_newstate()) != NULL)
-		mutex_init(lunatik_mutex(L));
+	if ((L = luaL_newstate()) != NULL) {
+		lunatik_extra_t *extra;
+		extra = lunatik_getextra(L);
+		extra->sleep = sleep;
+		lunatik_locker(extra, spin_lock_init, mutex_init);
+	}
 	return L;
 }
 
 static inline void lunatik_close(lua_State *L)
 {
-	mutex_destroy(lunatik_mutex(L));
+	lunatik_extra_t *extra;
+	extra = lunatik_getextra(L);
+	if (extra->sleep)
+		mutex_destroy(&extra->lock.mutex);
 	lua_close(L);
 }
 
