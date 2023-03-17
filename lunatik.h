@@ -26,6 +26,7 @@
 
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
+#include <linux/slab.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -72,6 +73,21 @@ do {						\
 	lua_settop(L, n);			\
 	lunatik_unlock(L);			\
 } while(0)
+
+/* based on l_alloc() @ lua/lauxlib.c */
+static inline void *lunatik_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
+{
+	lunatik_extra_t *extra;
+	(void)osize;  /* not used */
+
+	if (nsize == 0) {
+		kfree(ptr);
+		return NULL;
+	}
+	extra = (lunatik_extra_t *)ud;
+	return krealloc(ptr, nsize, extra->sleep ? GFP_KERNEL : GFP_ATOMIC);
+}
+#define lunatik_setalloc(L)	lua_setallocf(L, lunatik_alloc, lunatik_getextra(L))
 
 #endif
 
