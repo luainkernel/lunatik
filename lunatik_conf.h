@@ -105,8 +105,16 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode);
 #define LUA_PATH_DEFAULT  LUA_ROOT"?.lua;" LUA_ROOT"?/init.lua"
 
 #include <linux/mutex.h>
+#include <linux/spinlock.h>
+typedef struct lunatik_extra {
+	union {
+		struct mutex mutex;
+		spinlock_t spin;
+	} lock;
+	bool sleep;
+} lunatik_extra_t;
 #undef LUA_EXTRASPACE
-#define LUA_EXTRASPACE		(sizeof(struct mutex))
+#define LUA_EXTRASPACE		(sizeof(lunatik_extra_t))
 
 #ifdef current /* defined by asm/current.h */
 #undef current /* conflicts with Lua namespace */
