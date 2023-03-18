@@ -31,26 +31,27 @@
 
 static lua_State *L;
 
+static const luaL_Reg lunatik_libs[] = {
+	{LUA_GNAME, luaopen_base},
+	{LUA_LOADLIBNAME, luaopen_package},
+	{LUA_COLIBNAME, luaopen_coroutine},
+	{LUA_TABLIBNAME, luaopen_table},
+	{LUA_STRLIBNAME, luaopen_string},
+	{LUA_MATHLIBNAME, luaopen_math},
+	{LUA_UTF8LIBNAME, luaopen_utf8},
+	{LUA_DBLIBNAME, luaopen_debug},
+	{"lunatik", luaopen_lunatik},
+	{NULL, NULL}
+};
+
 static int __init lunatik_run_init(void)
 {
-	if ((L = lunatik_newstate(true)) == NULL)
-		return -ENOMEM;
-
-	luaL_openlibs(L);
-
-	if (luaL_dofile(L, LUA_ROOT "lunatik.lua") != LUA_OK) {
-		pr_err("%s\n", lua_tostring(L, -1));
-		lua_pop(L, 1);
-		lua_close(L);
-		return -EINVAL;
-	}
-
-        return 0;
+	return lunatik_runtime(&L, lunatik_libs, "lunatik.lua", true);
 }
 
 static void __exit lunatik_run_exit(void)
 {
-	lunatik_close(L);
+	lunatik_stop(&L);
 }
 
 module_init(lunatik_run_init);

@@ -21,6 +21,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/fs.h>
@@ -74,7 +75,7 @@ static int luadevice_fop(lua_State *L, int ud, unsigned int minor,
 
 	if (lua_pcall(L, nargs + 1, nresults, 0) != LUA_OK) {
 		/* TODO: improve this error message */
-		pr_err("runtime error: '%s'\n", lua_tostring(L, -1));
+		pr_err("%s\n", lua_tostring(L, -1));
 		lua_pop(L, 1); /* error */
 		return -ECANCELED;
 	}
