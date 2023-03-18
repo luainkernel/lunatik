@@ -32,13 +32,22 @@ function lunatik.prompt()
 	io.flush()
 end
 
+function lunatik.open(mode)
+	return io.open(lunatik.device, mode)
+end
+
+function lunatik.probe()
+	local prober <close> = lunatik.open("r")
+	assert(prober ~= nil, lunatik.device .. " not found")
+end
+
 function lunatik.load(chunk)
-	local loader <close> = io.open(lunatik.device, "w")
+	local loader <close> = lunatik.open("w")
 	loader:write(chunk)
 end
 
 function lunatik.result()
-	local reader <close> = io.open(lunatik.device, "r")
+	local reader <close> = lunatik.open("r")
 	print(reader:read("a"))
 end
 
@@ -46,6 +55,8 @@ function lunatik.dostring(chunk)
 	lunatik.load(chunk)
 	lunatik.result()
 end
+
+lunatik.probe()
 
 if #arg >= 1 then
 	local chunk = arg[1] == '-c' and

@@ -1,5 +1,5 @@
-ccflags-y += -D_LUNATIK -D_KERNEL -D_CONFIG_FULL_PANIC -Wimplicit-fallthrough=0 \
-	-I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua
+ccflags-y += -D_LUNATIK -D_KERNEL -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
+	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua
 asflags-y += -D_LUNATIK -D_KERNEL
 
 ifeq ($(ARCH), x86)

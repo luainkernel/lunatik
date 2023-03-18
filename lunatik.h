@@ -31,7 +31,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-#define lunatik_locker(extra, spin_op, mutex_op)	\
+#define lunatik_locker(extra, mutex_op, spin_op)	\
 do {							\
 	if (extra->sleep)				\
 		mutex_op(&extra->lock.mutex);		\
@@ -40,29 +40,12 @@ do {							\
 } while(0)
 
 #define lunatik_getextra(L)	((lunatik_extra_t *)lua_getextraspace(L))
-#define lunatik_lock(L)		lunatik_locker(lunatik_getextra(L), spin_lock, mutex_lock)
-#define lunatik_unlock(L)	lunatik_locker(lunatik_getextra(L), spin_unlock, mutex_unlock)
+#define lunatik_lock(L)		lunatik_locker(lunatik_getextra(L), mutex_lock, spin_lock)
+#define lunatik_unlock(L)	lunatik_locker(lunatik_getextra(L), mutex_unlock, spin_unlock)
 
-static inline lua_State *lunatik_newstate(bool sleep)
-{
-	lua_State *L;
-	if ((L = luaL_newstate()) != NULL) {
-		lunatik_extra_t *extra;
-		extra = lunatik_getextra(L);
-		extra->sleep = sleep;
-		lunatik_locker(extra, spin_lock_init, mutex_init);
-	}
-	return L;
-}
-
-static inline void lunatik_close(lua_State *L)
-{
-	lunatik_extra_t *extra;
-	extra = lunatik_getextra(L);
-	if (extra->sleep)
-		mutex_destroy(&extra->lock.mutex);
-	lua_close(L);
-}
+int lunatik_runtime(lua_State **runtime, const luaL_Reg *libs, const char *entrypoint, bool sleep);
+void lunatik_stop(lua_State **runtime);
+int luaopen_lunatik(lua_State *L);
 
 #define lunatik_run(L, handler, ret, ...)	\
 do {						\
@@ -73,21 +56,6 @@ do {						\
 	lua_settop(L, n);			\
 	lunatik_unlock(L);			\
 } while(0)
-
-/* based on l_alloc() @ lua/lauxlib.c */
-static inline void *lunatik_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
-{
-	lunatik_extra_t *extra;
-	(void)osize;  /* not used */
-
-	if (nsize == 0) {
-		kfree(ptr);
-		return NULL;
-	}
-	extra = (lunatik_extra_t *)ud;
-	return krealloc(ptr, nsize, extra->sleep ? GFP_KERNEL : GFP_ATOMIC);
-}
-#define lunatik_setalloc(L)	lua_setallocf(L, lunatik_alloc, lunatik_getextra(L))
 
 #endif
 
