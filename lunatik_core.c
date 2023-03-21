@@ -150,19 +150,7 @@ static const luaL_Reg lunatik_mt[] = {
 	{NULL, NULL}
 };
 
-/* TODO: move this to a new API (e.g., lunatik_opener) */
-int luaopen_lunatik(lua_State *L)
-{
-	luaL_newlib(L, lunatik_lib);
-	luaL_newmetatable(L, LUNATIK_MT);
-	luaL_setfuncs(L, lunatik_mt, 0);
-	lua_pushvalue(L, -1);  /* push lib */
-	lua_setfield(L, -2, "__index");  /* mt.__index = lib */
-	lua_pop(L, 1);  /* pop mt */
-	return 1;
-
-}
-EXPORT_SYMBOL(luaopen_lunatik);
+LUNATIK_NEWLIB(lunatik, LUNATIK_MT);
 #endif /* LUNATIK_RUNTIME */
 
 static int __init lunatik_init(void)

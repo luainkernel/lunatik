@@ -65,14 +65,14 @@ static int lualinux_random(lua_State *L)
 	return 1;
 }
 
-static const luaL_Reg lualinux_lib[] = {
+static const luaL_Reg linux_lib[] = {
 	{"random", lualinux_random},
 	{NULL, NULL}
 };
 
 int luaopen_linux(lua_State *L)
 {
-	luaL_newlib(L, lualinux_lib);
+	luaL_newlib(L, linux_lib);
 	return 1;
 }
 EXPORT_SYMBOL(luaopen_linux);
