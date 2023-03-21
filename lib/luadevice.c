@@ -37,7 +37,7 @@
 
 #include <lunatik.h>
 
-#define LUADEVICE_MT	"device"
+#define DEVICE_MT	"device"
 
 static struct class *luadevice_class;
 
@@ -247,7 +247,7 @@ static int luadevice_create(lua_State *L)
 	if ((ret = alloc_chrdev_region(&luadev->major, LUADEVICE_FIRSTMINOR, luadev->count, name) != 0))
 		luaL_error(L, "failed to allocate device (%d)", ret);
 
-	luaL_setmetatable(L, LUADEVICE_MT);
+	luaL_setmetatable(L, DEVICE_MT);
 	lua_pushvalue(L, 2);  /* push devlist */
 	lua_setiuservalue(L, -2, 1);
 
@@ -265,7 +265,7 @@ static int luadevice_destroy(lua_State *L)
 {
 	luadevice_t *luadev;
 
-	luadev = (luadevice_t *)luaL_checkudata(L, 1, LUADEVICE_MT);
+	luadev = (luadevice_t *)luaL_checkudata(L, 1, DEVICE_MT);
 	if (luadev->ud != LUA_NOREF) /* was cdev added? */
 		cdev_del(&luadev->cdev);
 	luadevice_destroyminors(luadev); /* it's safe to destroy uncreated minors */
@@ -274,30 +274,20 @@ static int luadevice_destroy(lua_State *L)
 	return 0;
 }
 
-static const luaL_Reg luadevice_lib[] = {
+static const luaL_Reg device_lib[] = {
 	{"create", luadevice_create},
 	{"destroy", luadevice_destroy},
 	{NULL, NULL}
 };
 
-static const luaL_Reg luadevice_mt[] = {
+static const luaL_Reg device_mt[] = {
 	{"__gc", luadevice_destroy},
 	{"__close", luadevice_destroy},
 	{"destroy", luadevice_destroy},
 	{NULL, NULL}
 };
 
-int luaopen_device(lua_State *L)
-{
-	luaL_newlib(L, luadevice_lib);
-	luaL_newmetatable(L, LUADEVICE_MT);
-	luaL_setfuncs(L, luadevice_mt, 0);
-	lua_pushvalue(L, -1);  /* push lib */
-	lua_setfield(L, -2, "__index");  /* mt.__index = lib */
-	lua_pop(L, 1);  /* pop mt */
-	return 1;
-}
-EXPORT_SYMBOL(luaopen_device);
+LUNATIK_NEWLIB(device, DEVICE_MT);
 
 static char *luadevice_checkmode(struct device *dev, umode_t *mode)
 {

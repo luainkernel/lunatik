@@ -57,5 +57,18 @@ do {						\
 	lunatik_unlock(L);			\
 } while(0)
 
+#define LUNATIK_NEWLIB(libname, MT)				\
+int luaopen_##libname(lua_State *L)				\
+{								\
+	luaL_newlib(L, libname##_lib);				\
+	luaL_newmetatable(L, MT);				\
+	luaL_setfuncs(L, libname##_mt, 0);			\
+	lua_pushvalue(L, -1);  /* push lib */			\
+	lua_setfield(L, -2, "__index");  /* mt.__index = lib */	\
+	lua_pop(L, 1);  /* pop mt */				\
+	return 1;						\
+}								\
+EXPORT_SYMBOL(luaopen_##libname)
+
 #endif
 
