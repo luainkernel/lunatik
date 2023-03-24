@@ -31,22 +31,9 @@
 
 static lua_State *L;
 
-static const luaL_Reg lunatik_libs[] = {
-	{LUA_GNAME, luaopen_base},
-	{LUA_LOADLIBNAME, luaopen_package},
-	{LUA_COLIBNAME, luaopen_coroutine},
-	{LUA_TABLIBNAME, luaopen_table},
-	{LUA_STRLIBNAME, luaopen_string},
-	{LUA_MATHLIBNAME, luaopen_math},
-	{LUA_UTF8LIBNAME, luaopen_utf8},
-	{LUA_DBLIBNAME, luaopen_debug},
-	{"lunatik", luaopen_lunatik},
-	{NULL, NULL}
-};
-
 static int __init lunatik_run_init(void)
 {
-	return lunatik_runtime(&L, lunatik_libs, "lunatik.lua", true);
+	return lunatik_runtime(&L, "lunatik.lua", true);
 }
 
 static void __exit lunatik_run_exit(void)
