@@ -43,7 +43,7 @@ do {							\
 #define lunatik_lock(L)		lunatik_locker(lunatik_getextra(L), mutex_lock, spin_lock)
 #define lunatik_unlock(L)	lunatik_locker(lunatik_getextra(L), mutex_unlock, spin_unlock)
 
-int lunatik_runtime(lua_State **runtime, const luaL_Reg *libs, const char *entrypoint, bool sleep);
+int lunatik_runtime(lua_State **runtime, const char *entrypoint, bool sleep);
 void lunatik_stop(lua_State **runtime);
 int luaopen_lunatik(lua_State *L);
 
