@@ -73,7 +73,7 @@ status() {
 
 run() {
 	if isloaded lunatik_run; then
-		bin/lunatik.lua
+		sbin/lunatik.lua
 	else
 		echo "lunatik_run is not loaded"
 	fi

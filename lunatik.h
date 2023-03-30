@@ -27,39 +27,69 @@
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
+#include <linux/kref.h>
 
 #include <lua.h>
 #include <lauxlib.h>
 
-#define lunatik_locker(extra, mutex_op, spin_op)	\
+typedef struct lunatik_runtime_s {
+	lua_State *L;
+	struct kref kref;
+	union {
+		struct mutex mutex;
+		spinlock_t spin;
+	};
+	bool sleep;
+} lunatik_runtime_t;
+
+#define lunatik_locker(runtime, mutex_op, spin_op)	\
 do {							\
-	if (extra->sleep)				\
-		mutex_op(&extra->lock.mutex);		\
+	if ((runtime)->sleep)				\
+		mutex_op(&(runtime)->mutex);		\
 	else						\
-		spin_op(&extra->lock.spin);		\
+		spin_op(&(runtime)->spin);		\
 } while(0)
 
-#define lunatik_getextra(L)	((lunatik_extra_t *)lua_getextraspace(L))
-#define lunatik_lock(L)		lunatik_locker(lunatik_getextra(L), mutex_lock, spin_lock)
-#define lunatik_unlock(L)	lunatik_locker(lunatik_getextra(L), mutex_unlock, spin_unlock)
+#define lunatik_lock(runtime)	lunatik_locker(runtime, mutex_lock, spin_lock)
+#define lunatik_unlock(runtime)	lunatik_locker(runtime, mutex_unlock, spin_unlock)
+#define lunatik_toruntime(L)	(*(lunatik_runtime_t **)lua_getextraspace(L))
 
-int lunatik_runtime(lua_State **runtime, const char *entrypoint, bool sleep);
-void lunatik_stop(lua_State **runtime);
-int luaopen_lunatik(lua_State *L);
+int lunatik_runtime(lunatik_runtime_t **pruntime, const char *entrypoint, bool sleep);
+void lunatik_stop(lunatik_runtime_t *runtime);
 
-#define lunatik_run(L, handler, ret, ...)	\
-do {						\
-	int n;					\
-	lunatik_lock(L);			\
-	n = lua_gettop(L);			\
-	ret = handler(L, ## __VA_ARGS__);	\
-	lua_settop(L, n);			\
-	lunatik_unlock(L);			\
+static inline void lunatik_release(struct kref *kref)
+{
+	lunatik_runtime_t *runtime = container_of(kref, lunatik_runtime_t, kref);
+	lunatik_locker(runtime, mutex_destroy, spin_lock);
+	kfree(runtime);
+}
+
+#define lunatik_put(runtime)	kref_put(&(runtime)->kref, lunatik_release)
+#define lunatik_get(runtime)	kref_get(&(runtime)->kref)
+
+#define lunatik_getsleep(L)	(lunatik_toruntime(L)->sleep)
+
+#define lunatik_run(runtime, handler, ret, ...)		\
+do {							\
+	lua_State *L;					\
+	lunatik_lock(runtime);				\
+	L = runtime->L;					\
+	if (unlikely(!L))				\
+		ret = -ENXIO;				\
+	else {						\
+		int n;					\
+		n = lua_gettop(L);			\
+		ret = handler(L, ## __VA_ARGS__);	\
+		lua_settop(L, n);			\
+	}						\
+	lunatik_unlock(runtime);			\
 } while(0)
 
-#define LUNATIK_NEWLIB(libname, MT)				\
+#define LUNATIK_NEWLIB(libname, MT, sleep)			\
 int luaopen_##libname(lua_State *L)				\
 {								\
+	if (sleep && !lunatik_getsleep(L))			\
+		return 0;					\
 	luaL_newlib(L, libname##_lib);				\
 	luaL_newmetatable(L, MT);				\
 	luaL_setfuncs(L, libname##_mt, 0);			\

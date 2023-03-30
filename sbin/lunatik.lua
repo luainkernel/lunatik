@@ -58,10 +58,18 @@ end
 
 lunatik.probe()
 
+local parser = {
+	['-c'] = 'return string.dump(loadfile("%s"))',
+	['-r'] = 'lunatik.__runtimes["%s"] = lunatik.runtime("%s")',
+	['-s'] = 'lunatik.__runtimes["%s"]:stop()',
+	['-f'] = 'dofile("%s")'
+}
+
 if #arg >= 1 then
-	local chunk = arg[1] == '-c' and
-		string.format('return string.dump(loadfile("%s"))', arg[2]) or
-		string.format('dofile("%s")', arg[1])
+	local fmt = string.format
+	local chunk = #arg == 1 and
+		fmt(parser['-f'], arg[1]) or
+		fmt(parser[arg[1]], arg[2], arg[2])
 	lunatik.dostring(chunk)
 	os.exit()
 end

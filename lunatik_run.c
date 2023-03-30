@@ -29,16 +29,16 @@
 
 #include "lunatik.h"
 
-static lua_State *L;
+static lunatik_runtime_t *runtime;
 
 static int __init lunatik_run_init(void)
 {
-	return lunatik_runtime(&L, "lunatik.lua", true);
+	return lunatik_runtime(&runtime, "lunatik", true);
 }
 
 static void __exit lunatik_run_exit(void)
 {
-	lunatik_stop(&L);
+	lunatik_stop(runtime);
 }
 
 module_init(lunatik_run_init);
