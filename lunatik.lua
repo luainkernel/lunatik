@@ -25,9 +25,9 @@ local device = require("device")
 
 local function nop() end
 
-local lunatik = {name = "lunatik", open = nop, release = nop}
+local driver = {name = "lunatik", open = nop, release = nop}
 
-function lunatik:read()
+function driver:read()
 	local result = self.result
 	self.result = nil
 	return result
@@ -37,7 +37,7 @@ local function result(_, ...)
 	return select("#", ...) > 0 and tostring(select(1, ...)) or ''
 end
 
-function lunatik:write(buf)
+function driver:write(buf)
 	local ok, err = load(buf)
 	if ok then
 		err = result(pcall(ok))
@@ -45,5 +45,6 @@ function lunatik:write(buf)
 	self.result = err
 end
 
-device.create("lunatik", {lunatik})
+lunatik.__device = device.new(driver)
+lunatik.__runtimes = {}
 

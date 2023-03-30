@@ -32,32 +32,125 @@
 #include "lunatik_sym.h"
 
 #ifdef LUNATIK_RUNTIME
-#define LUNATIK_MT	"runtime"
+#define lunatik_gfp(runtime)	(runtime->sleep ? GFP_KERNEL : GFP_ATOMIC)
 
+/* based on l_alloc() @ lua/lauxlib.c */
+static void *lunatik_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
+{
+	lunatik_runtime_t *runtime;
+	(void)osize;  /* not used */
+	if (nsize == 0) {
+		kfree(ptr);
+		return NULL;
+	}
+	runtime = (lunatik_runtime_t *)ud;
+	return krealloc(ptr, nsize, lunatik_gfp(runtime));
+}
+
+static inline lunatik_runtime_t *lunatik_new(lua_State *L, bool sleep)
+{
+	lunatik_runtime_t *runtime;
+	/* runtime creation are only allowed from process context */
+	if ((runtime = (lunatik_runtime_t *)kmalloc(sizeof(lunatik_runtime_t), GFP_KERNEL)) == NULL)
+		return NULL;
+	runtime->sleep = sleep;
+	runtime->L = L;
+	lunatik_toruntime(L) = runtime;
+	lunatik_locker(runtime, mutex_init, spin_lock_init);
+	kref_init(&runtime->kref);
+	return runtime;
+}
+
+static inline void lunatik_runerror(lua_State *L, lua_State *parent, const char *errmsg)
+{
+	if (parent)
+		lua_pushstring(parent, errmsg);
+	else
+		pr_err("%s\n", errmsg);
+}
+
+int luaopen_lunatik(lua_State *L); /* used for luaL_requiref() */
+
+static int lunatik_newruntime(lunatik_runtime_t **pruntime, lua_State *parent, const char *entrypoint, bool sleep)
+{
+	lunatik_runtime_t *runtime;
+	lua_State *L;
+	const char *filename;
+	int base;
+
+	if ((L = luaL_newstate()) == NULL) {
+		lunatik_runerror(L, parent, "failed to allocate Lua state");
+		return -ENOMEM;
+	}
+
+	if ((runtime = lunatik_new(L, sleep)) == NULL) {
+		lunatik_runerror(L, parent, "failed to allocate runtime");
+		lua_close(L);
+		return -ENOMEM;
+	}
+
+	base = lua_gettop(L);
+	luaL_openlibs(L);
+	if (!parent) /* child runtimes cannot create new */
+		luaL_requiref(L, "lunatik", luaopen_lunatik, 1);
+
+	filename = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, entrypoint);
+	if (luaL_dofile(L, filename) != LUA_OK) {
+		lunatik_runerror(L, parent, lua_tostring(L, -1));
+		lua_close(L);
+		lunatik_put(runtime);
+		return -EINVAL;
+	}
+
+	lua_setallocf(L, lunatik_alloc, runtime);
+	lua_settop(L, base);
+	*pruntime = runtime;
+        return 0;
+}
+
+int lunatik_runtime(lunatik_runtime_t **pruntime, const char *entrypoint, bool sleep)
+{
+	return lunatik_newruntime(pruntime, NULL, entrypoint, sleep);
+}
+EXPORT_SYMBOL(lunatik_runtime);
+
+void lunatik_stop(lunatik_runtime_t *runtime)
+{
+	lunatik_lock(runtime);
+	lua_close(runtime->L);
+	runtime->L = NULL;
+	lunatik_unlock(runtime);
+	lunatik_put(runtime);
+}
+EXPORT_SYMBOL(lunatik_stop);
+
+#define LUNATIK_MT	"runtime"
 static int lunatik_lruntime(lua_State *L)
 {
-	lua_State **runtime;
+	lunatik_runtime_t **pruntime;
 	const char *entrypoint;
 	bool sleep;
-	int ret;
 
 	entrypoint = luaL_checkstring(L, 1);
-	sleep = (bool)lua_toboolean(L, 2);
+	sleep = (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true);
 
-	runtime = (lua_State **)lua_newuserdatauv(L, sizeof(lua_State *), 0);
-	if ((ret = lunatik_runtime(runtime, entrypoint, sleep)) != 0)
-		/* TODO: get error message from runtime state */
-		luaL_error(L, "failed to run '%s': (%d)", entrypoint, ret);
+	pruntime = (lunatik_runtime_t **)lua_newuserdatauv(L, sizeof(lunatik_runtime_t *), 0);
+	if (lunatik_newruntime(pruntime, L, entrypoint, sleep) != 0)
+		lua_error(L);
 	luaL_setmetatable(L, LUNATIK_MT);
 	return 1;
 }
 
 static int lunatik_lstop(lua_State *L)
 {
-	lua_State **runtime;
+	lunatik_runtime_t **pruntime, *runtime;
 
-	runtime = (lua_State **)luaL_checkudata(L, 1, LUNATIK_MT);
-	lunatik_stop(runtime);
+	pruntime = (lunatik_runtime_t **)luaL_checkudata(L, 1, LUNATIK_MT);
+	runtime = *pruntime;
+	if (runtime != NULL) {
+		lunatik_stop(runtime);
+		*pruntime = NULL;
+	}
 	return 0;
 }
 
@@ -74,72 +167,7 @@ static const luaL_Reg lunatik_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(lunatik, LUNATIK_MT);
-
-/* based on l_alloc() @ lua/lauxlib.c */
-static void *lunatik_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
-{
-	lunatik_extra_t *extra;
-	(void)osize;  /* not used */
-
-	if (nsize == 0) {
-		kfree(ptr);
-		return NULL;
-	}
-	extra = (lunatik_extra_t *)ud;
-	return krealloc(ptr, nsize, extra->sleep ? GFP_KERNEL : GFP_ATOMIC);
-}
-
-static inline void lunatik_setup(lua_State *L, bool sleep)
-{
-	lunatik_extra_t *extra;
-
-	extra = lunatik_getextra(L);
-	extra->sleep = sleep;
-	lunatik_locker(extra, mutex_init, spin_lock_init);
-	lua_setallocf(L, lunatik_alloc, extra);
-}
-
-int lunatik_runtime(lua_State **runtime, const char *entrypoint, bool sleep)
-{
-	lua_State *L;
-	const char *filename;
-	int base;
-
-	if ((L = luaL_newstate()) == NULL)
-		return -ENOMEM;
-
-	base = lua_gettop(L);
-	luaL_openlibs(L);
-	luaL_requiref(L, "lunatik", luaopen_lunatik, 1);
-
-	filename = lua_pushfstring(L, "%s%s", LUA_ROOT, entrypoint);
-	if (luaL_dofile(L, filename) != LUA_OK) {
-		pr_err("%s\n", lua_tostring(L, -1));
-		lua_close(L);
-		return -EINVAL;
-	}
-
-	lunatik_setup(L, sleep);
-	lua_settop(L, base);
-	*runtime = L;
-        return 0;
-}
-EXPORT_SYMBOL(lunatik_runtime);
-
-void lunatik_stop(lua_State **runtime)
-{
-	lua_State *L;
-	lunatik_extra_t *extra;
-
-	L = *runtime;
-	extra = lunatik_getextra(L);
-	if (extra->sleep)
-		mutex_destroy(&extra->lock.mutex);
-	lua_close(L);
-	*runtime = NULL;
-}
-EXPORT_SYMBOL(lunatik_stop);
+LUNATIK_NEWLIB(lunatik, LUNATIK_MT, true);
 #endif /* LUNATIK_RUNTIME */
 
 static int __init lunatik_init(void)
