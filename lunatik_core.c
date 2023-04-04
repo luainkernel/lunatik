@@ -32,6 +32,13 @@
 #include "lunatik_sym.h"
 
 #ifdef LUNATIK_RUNTIME
+
+static inline void lunatik_setversion(lua_State *L)
+{
+	lua_pushstring(L, LUNATIK_VERSION);
+	lua_setglobal(L, "_LUNATIK_VERSION");
+}
+
 #define lunatik_gfp(runtime)	(runtime->sleep ? GFP_KERNEL : GFP_ATOMIC)
 
 /* based on l_alloc() @ lua/lauxlib.c */
@@ -96,6 +103,7 @@ static int lunatik_newruntime(lunatik_runtime_t **pruntime, lua_State *parent, c
 	}
 
 	base = lua_gettop(L);
+	lunatik_setversion(L);
 	luaL_openlibs(L);
 	if (!parent) /* child runtimes cannot create new */
 		luaL_requiref(L, "lunatik", luaopen_lunatik, 1);

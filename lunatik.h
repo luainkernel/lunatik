@@ -32,6 +32,8 @@
 #include <lua.h>
 #include <lauxlib.h>
 
+#define LUNATIK_VERSION	"Lunatik 3.0"
+
 typedef struct lunatik_runtime_s {
 	lua_State *L;
 	struct kref kref;

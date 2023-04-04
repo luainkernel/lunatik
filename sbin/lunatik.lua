@@ -23,7 +23,7 @@
 --
 
 local lunatik = {
-	copyright = "Lunatik 3.0 Copyright (C) 2023 ring-0 Ltda.",
+	copyright = "Copyright (C) 2023 ring-0 Ltda.",
 	device = "/dev/lunatik"
 }
 
@@ -39,6 +39,8 @@ end
 function lunatik.probe()
 	local prober <close> = lunatik.open("r")
 	assert(prober ~= nil, lunatik.device .. " not found")
+	local version = lunatik.dostring("return _LUNATIK_VERSION")
+	lunatik.copyright = version .. "  " .. lunatik.copyright
 end
 
 function lunatik.load(chunk)
@@ -48,12 +50,12 @@ end
 
 function lunatik.result()
 	local reader <close> = lunatik.open("r")
-	print(reader:read("a"))
+	return reader:read("a")
 end
 
 function lunatik.dostring(chunk)
 	lunatik.load(chunk)
-	lunatik.result()
+	return lunatik.result()
 end
 
 lunatik.probe()
@@ -61,23 +63,23 @@ lunatik.probe()
 local parser = {
 	['-c'] = 'return string.dump(loadfile("%s"))',
 	['-r'] = 'lunatik.__runtimes["%s"] = lunatik.runtime("%s")',
-	['-s'] = 'lunatik.__runtimes["%s"]:stop()',
+	['-s'] = 'lunatik.__runtimes["%s"]:stop() lunatik.__runtimes["%s"] = nil',
 	['-f'] = 'dofile("%s")'
 }
-
+local default = '-f'
 if #arg >= 1 then
 	local fmt = string.format
 	local chunk = #arg == 1 and
-		fmt(parser['-f'], arg[1]) or
+		fmt(parser[default], arg[1]) or
 		fmt(parser[arg[1]], arg[2], arg[2])
-	lunatik.dostring(chunk)
+	print(lunatik.dostring(chunk))
 	os.exit()
 end
 
 print(lunatik.copyright)
 lunatik.prompt()
 for chunk in io.lines() do
-	lunatik.dostring(chunk)
+	print(lunatik.dostring(chunk))
 	lunatik.prompt()
 end
 
