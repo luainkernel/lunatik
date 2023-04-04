@@ -43,76 +43,66 @@
 static struct class *luadevice_class;
 
 typedef struct luadevice_s {
+	struct list_head entry;
+	struct kref kref;
+	lunatik_runtime_t *runtime;
 	struct cdev *cdev;
 	dev_t devt;
 	int ud;
 } luadevice_t;
 
-typedef struct luadevice_ctx_s {
-	struct list_head entry;
-	struct kref kref;
-	lunatik_runtime_t *runtime;
+static DEFINE_MUTEX(luadevice_mutex);
+static LIST_HEAD(luadevice_list);
+
+#define luadevice_lock()		mutex_lock(&luadevice_mutex)
+#define luadevice_unlock()		mutex_unlock(&luadevice_mutex)
+#define luadevice_foreach(luadev)	list_for_each_entry(luadev, &luadevice_list, entry)
+
+static void luadevice_free(struct kref *kref)
+{
+	luadevice_t *luadev = container_of(kref, luadevice_t, kref);
+	kfree(luadev);
+}
+
+#define luadevice_refinit(luadev)	kref_init(&(luadev)->kref)
+#define luadevice_get(luadev)		kref_get(&(luadev)->kref)
+#define luadevice_put(luadev)		kref_put(&(luadev)->kref, luadevice_free)
+
+static inline void luadevice_listadd(luadevice_t *luadev)
+{
+	luadevice_lock();
+	list_add_tail(&luadev->entry, &luadevice_list);
+	luadevice_unlock();
+}
+
+static inline void luadevice_listdel(luadevice_t *luadev)
+{
+	luadevice_lock();
+	list_del(&luadev->entry);
+	luadevice_unlock();
+}
+
+static inline luadevice_t *luadevice_alloc(lua_State *L)
+{
 	luadevice_t *luadev;
-} luadevice_ctx_t;
-
-static DEFINE_MUTEX(luadevice_ctxmutex);
-static LIST_HEAD(luadevice_ctxlist);
-
-#define luadevice_ctxlock()		mutex_lock(&luadevice_ctxmutex)
-#define luadevice_ctxunlock()		mutex_unlock(&luadevice_ctxmutex)
-#define luadevice_ctxforeach(ctx)	list_for_each_entry(ctx, &luadevice_ctxlist, entry)
-
-static void luadevice_ctxfree(struct kref *kref)
-{
-	luadevice_ctx_t *ctx = container_of(kref, luadevice_ctx_t, kref);
-	kfree(ctx);
-}
-
-#define luadevice_ctxref(ctx)	(&(ctx)->kref)
-#define luadevice_ctxinit(ctx)	kref_init(luadevice_ctxref(ctx))
-#define luadevice_ctxget(ctx)	kref_get(luadevice_ctxref(ctx))
-#define luadevice_ctxput(ctx)	kref_put(luadevice_ctxref(ctx), luadevice_ctxfree)
-
-static inline void luadevice_ctxadd(luadevice_ctx_t *ctx)
-{
-	luadevice_ctxlock();
-	list_add_tail(&ctx->entry, &luadevice_ctxlist);
-	luadevice_ctxunlock();
-}
-
-static inline void luadevice_ctxdel(luadevice_ctx_t *ctx)
-{
-	luadevice_ctxlock();
-	list_del(&ctx->entry);
-	luadevice_ctxunlock();
-}
-
-static inline luadevice_ctx_t *luadevice_ctxnew(lua_State *L, luadevice_t *luadev)
-{
-	luadevice_ctx_t *ctx;
-	if ((ctx = (luadevice_ctx_t *)kzalloc(sizeof(luadevice_ctx_t), GFP_KERNEL)) == NULL)
+	if ((luadev = (luadevice_t *)kzalloc(sizeof(luadevice_t), GFP_KERNEL)) == NULL)
 		return NULL;
-	ctx->luadev = luadev;
-	ctx->runtime = lunatik_toruntime(L);
-	luadevice_ctxinit(ctx);
-	luadevice_ctxadd(ctx);
-	return ctx;
+	luadev->runtime = lunatik_toruntime(L);
+	luadevice_refinit(luadev);
+	luadevice_listadd(luadev);
+	return luadev;
 }
 
-static luadevice_ctx_t *luadevice_ctxfind(dev_t devt)
+static inline luadevice_t *luadevice_find(dev_t devt)
 {
-	luadevice_ctx_t *ctx = NULL;
-
-	luadevice_ctxlock();
-	luadevice_ctxforeach(ctx) {
-		luadevice_t *luadev = ctx->luadev;
-		if (luadev == NULL)
-			pr_err("lost context: %p\n", ctx);
-		else if (luadev->devt == devt)
+	luadevice_t *luadev = NULL;
+	luadevice_lock();
+	luadevice_foreach(luadev) {
+		if (luadev->devt == devt)
 			break;
 	}
-	luadevice_ctxunlock();
-	return ctx;
+	luadevice_unlock();
+	return luadev;
 }
 
 #define DEVICE_MT	"device"
@@ -222,22 +212,22 @@ static int luadevice_dorelease(lua_State *L, int ud)
 	return (int)lua_tointeger(L, -1);
 }
 
-#define luadevice_ctxfile(f)	((luadevice_ctx_t *)f->private_data)
+#define luadevice_fromfile(f)	((luadevice_t *)f->private_data)
 #define luadevice_run(handler, ret, f, ...)					\
-		lunatik_run(luadevice_ctxfile(f)->runtime, handler,		\
-			ret, luadevice_ctxfile(f)->luadev->ud, ## __VA_ARGS__)
+		lunatik_run(luadevice_fromfile(f)->runtime, handler,		\
+			ret, luadevice_fromfile(f)->ud, ## __VA_ARGS__)
 
 static int luadevice_open(struct inode *inode, struct file *f)
 {
-	luadevice_ctx_t *ctx;
+	luadevice_t *luadev;
 	int ret;
 
-	if ((ctx = luadevice_ctxfind(inode->i_rdev)) == NULL)
+	if ((luadev = luadevice_find(inode->i_rdev)) == NULL)
 		return -ENXIO;
 
-	luadevice_ctxget(ctx);
-	lunatik_get(ctx->runtime);
-	f->private_data = ctx;
+	luadevice_get(luadev);
+	lunatik_get(luadev->runtime);
+	f->private_data = luadev;
 	luadevice_run(luadevice_doopen, ret, f);
 	return ret;
 }
@@ -258,13 +248,13 @@ static ssize_t luadevice_write(struct file *f, const char *buf, size_t len, loff
 
 static int luadevice_release(struct inode *inode, struct file *f)
 {
-	luadevice_ctx_t *ctx;
+	luadevice_t *luadev;
 	int ret;
 
 	luadevice_run(luadevice_dorelease, ret, f);
-	ctx = luadevice_ctxfile(f);
-	lunatik_put(ctx->runtime);
-	luadevice_ctxput(ctx);
+	luadev = luadevice_fromfile(f);
+	lunatik_put(luadev->runtime);
+	luadevice_put(luadev);
 	return ret;
 }
 
@@ -279,8 +269,8 @@ static struct file_operations luadevice_fops =
 
 static int luadevice_new(lua_State *L)
 {
-	luadevice_ctx_t *ctx;
 	luadevice_t *luadev;
+	luadevice_t **pluadev;
 	struct device *device;
 	const char *name;
 	int tname;
@@ -291,11 +281,13 @@ static int luadevice_new(lua_State *L)
 		luaL_error(L, "bad field 'name' (string expected, got %s)", lua_typename(L, tname));
 	name = lua_tostring(L, -1);
 
-	luadev = (luadevice_t *)lua_newuserdatauv(L, sizeof(luadevice_t), 1);
-	luadev->ud = LUA_NOREF;
+	pluadev = (luadevice_t **)lua_newuserdatauv(L, sizeof(luadevice_t), 1);
 
-	if ((ctx = luadevice_ctxnew(L, luadev)) == NULL)
+	if ((luadev = luadevice_alloc(L)) == NULL)
 		luaL_error(L, "failed to allocate device context");
+	*pluadev = luadev;
+
+	luadev->ud = LUA_NOREF;
 
 	luaL_setmetatable(L, DEVICE_MT); /* __gc() is set for cleanup */
 	lua_pushvalue(L, 1);  /* push driver */
@@ -314,7 +306,7 @@ static int luadevice_new(lua_State *L)
 	luadev->ud = luaL_ref(L, LUA_REGISTRYINDEX); /* pops userdata */
 
 	lua_pushvalue(L, 1);  /* push driver */
-	device = device_create(luadevice_class, NULL, luadev->devt, ctx, name); /* calls devnode */
+	device = device_create(luadevice_class, NULL, luadev->devt, luadev, name); /* calls devnode */
 	if (IS_ERR(device))
 		luaL_error(L, "failed to create a new device (%d)", PTR_ERR(device));
 	lua_pop(L, 1); /* pop driver */
@@ -325,10 +317,11 @@ static int luadevice_new(lua_State *L)
 
 static int luadevice_delete(lua_State *L)
 {
-	luadevice_ctx_t *ctx;
 	luadevice_t *luadev;
+	luadevice_t **pluadev;
 
-	luadev = (luadevice_t *)luaL_checkudata(L, 1, DEVICE_MT);
+	pluadev = (luadevice_t **)luaL_checkudata(L, 1, DEVICE_MT);
+	luadev = *pluadev;
 
 	if (luadev->cdev != NULL)
 		cdev_del(luadev->cdev);
@@ -338,21 +331,15 @@ static int luadevice_delete(lua_State *L)
 		unregister_chrdev_region(luadev->devt, 1);
 	}
 
-	if ((ctx = luadevice_ctxfind(luadev->devt)) != NULL) {
-		ctx->luadev = NULL;
-		luadevice_ctxdel(ctx);
-		luadevice_ctxput(ctx);
-	}
-
 	luaL_unref(L, LUA_REGISTRYINDEX, luadev->ud);
+	luadevice_listdel(luadev);
+	luadevice_put(luadev);
 	return 0;
 }
 
 static int luadevice_set(lua_State *L)
 {
-	luadevice_t *luadev;
-
-	luadev = (luadevice_t *)luaL_checkudata(L, 1, DEVICE_MT);
+	luaL_checkudata(L, 1, DEVICE_MT);
 	if (luadevice_driver(L, 1) != 0)
 		luaL_error(L, "couln't find driver");
 
@@ -382,16 +369,14 @@ LUNATIK_NEWLIB(device, DEVICE_MT, true);
 static char *luadevice_devnode(struct device *dev, umode_t *mode)
 {
 	lua_State *L;
-	luadevice_ctx_t *ctx;
 	luadevice_t *luadev;
 	int base;
 
 	if (!mode)
 		goto out;
 
-	ctx = (luadevice_ctx_t *)dev_get_drvdata(dev);
-	luadev = ctx->luadev;
-	L = ctx->runtime->L;
+	luadev = (luadevice_t *)dev_get_drvdata(dev);
+	L = luadev->runtime->L;
 
 	base = lua_gettop(L);
 	if (luadevice_getdriver(L, luadev->ud) == 0 && lua_getfield(L, -1, "mode") == LUA_TNUMBER)
