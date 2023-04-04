@@ -62,7 +62,7 @@ void lunatik_stop(lunatik_runtime_t *runtime);
 static inline void lunatik_release(struct kref *kref)
 {
 	lunatik_runtime_t *runtime = container_of(kref, lunatik_runtime_t, kref);
-	lunatik_locker(runtime, mutex_destroy, spin_lock);
+	lunatik_locker(runtime, mutex_destroy, (void));
 	kfree(runtime);
 }
 
@@ -87,19 +87,19 @@ do {							\
 	lunatik_unlock(runtime);			\
 } while(0)
 
-#define LUNATIK_NEWLIB(libname, MT, sleep)			\
-int luaopen_##libname(lua_State *L)				\
-{								\
-	if (sleep && !lunatik_getsleep(L))			\
-		return 0;					\
-	luaL_newlib(L, libname##_lib);				\
-	luaL_newmetatable(L, MT);				\
-	luaL_setfuncs(L, libname##_mt, 0);			\
-	lua_pushvalue(L, -1);  /* push lib */			\
-	lua_setfield(L, -2, "__index");  /* mt.__index = lib */	\
-	lua_pop(L, 1);  /* pop mt */				\
-	return 1;						\
-}								\
+#define LUNATIK_NEWLIB(libname, MT, sleep)							\
+int luaopen_##libname(lua_State *L)								\
+{												\
+	if (sleep && !lunatik_getsleep(L))							\
+		luaL_error(L, "cannot require '" #libname "' on non-sleepable runtimes");	\
+	luaL_newlib(L, libname##_lib);								\
+	luaL_newmetatable(L, MT);								\
+	luaL_setfuncs(L, libname##_mt, 0);							\
+	lua_pushvalue(L, -1);  /* push lib */							\
+	lua_setfield(L, -2, "__index");  /* mt.__index = lib */					\
+	lua_pop(L, 1);  /* pop mt */								\
+	return 1;										\
+}												\
 EXPORT_SYMBOL(luaopen_##libname)
 
 #endif
