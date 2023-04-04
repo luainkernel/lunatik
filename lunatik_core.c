@@ -84,7 +84,7 @@ static inline void lunatik_runerror(lua_State *L, lua_State *parent, const char 
 
 int luaopen_lunatik(lua_State *L); /* used for luaL_requiref() */
 
-static int lunatik_newruntime(lunatik_runtime_t **pruntime, lua_State *parent, const char *entrypoint, bool sleep)
+static int lunatik_newruntime(lunatik_runtime_t **pruntime, lua_State *parent, const char *script, bool sleep)
 {
 	lunatik_runtime_t *runtime;
 	lua_State *L;
@@ -108,7 +108,7 @@ static int lunatik_newruntime(lunatik_runtime_t **pruntime, lua_State *parent, c
 	if (!parent) /* child runtimes cannot create new */
 		luaL_requiref(L, "lunatik", luaopen_lunatik, 1);
 
-	filename = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, entrypoint);
+	filename = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, script);
 	if (luaL_dofile(L, filename) != LUA_OK) {
 		lunatik_runerror(L, parent, lua_tostring(L, -1));
 		lua_close(L);
@@ -128,19 +128,19 @@ static int lunatik_newruntime(lunatik_runtime_t **pruntime, lua_State *parent, c
         return 0;
 }
 
-int lunatik_runtime(lunatik_runtime_t **pruntime, const char *entrypoint, bool sleep)
+int lunatik_runtime(lunatik_runtime_t **pruntime, const char *script, bool sleep)
 {
-	return lunatik_newruntime(pruntime, NULL, entrypoint, sleep);
+	return lunatik_newruntime(pruntime, NULL, script, sleep);
 }
 EXPORT_SYMBOL(lunatik_runtime);
 
-void lunatik_stop(lunatik_runtime_t *runtime)
+int lunatik_stop(lunatik_runtime_t *runtime)
 {
 	lunatik_lock(runtime);
 	lua_close(runtime->L);
 	runtime->L = NULL;
 	lunatik_unlock(runtime);
-	lunatik_put(runtime);
+	return lunatik_put(runtime);
 }
 EXPORT_SYMBOL(lunatik_stop);
 
@@ -148,14 +148,14 @@ EXPORT_SYMBOL(lunatik_stop);
 static int lunatik_lruntime(lua_State *L)
 {
 	lunatik_runtime_t **pruntime;
-	const char *entrypoint;
+	const char *script;
 	bool sleep;
 
-	entrypoint = luaL_checkstring(L, 1);
+	script = luaL_checkstring(L, 1);
 	sleep = (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true);
 
 	pruntime = (lunatik_runtime_t **)lua_newuserdatauv(L, sizeof(lunatik_runtime_t *), 0);
-	if (lunatik_newruntime(pruntime, L, entrypoint, sleep) != 0)
+	if (lunatik_newruntime(pruntime, L, script, sleep) != 0)
 		lua_error(L);
 	luaL_setmetatable(L, LUNATIK_MT);
 	return 1;
