@@ -25,7 +25,7 @@
 #define lunatik_stdlib_h
 
 #include <linux/slab.h>
-#define abort()		panic("Lua has aborted!")
+#define abort()		BUG()
 #define free(a)		kfree((a))
 #define realloc(a,b)	krealloc((a),(b),GFP_KERNEL)
 static inline char *getenv(const char *name)
