@@ -47,6 +47,12 @@ static void *lunatik_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
 	return krealloc(ptr, nsize, lunatik_gfp(runtime));
 }
 
+static inline void lunatik_removeglobal(lua_State *L, const char *var)
+{
+	lua_pushnil(L);
+	lua_setglobal(L, var);
+}
+
 static inline lunatik_runtime_t *lunatik_new(lua_State *L, bool sleep)
 {
 	lunatik_runtime_t *runtime;
@@ -100,6 +106,12 @@ static int lunatik_newruntime(lunatik_runtime_t **pruntime, lua_State *parent, c
 		lua_close(L);
 		lunatik_put(runtime);
 		return -EINVAL;
+	}
+
+	if (!sleep) { /* can't load file for now on */
+		lunatik_removeglobal(L, "dofile");
+		lunatik_removeglobal(L, "loadfile");
+		lunatik_removeglobal(L, "require");
 	}
 
 	lua_setallocf(L, lunatik_alloc, runtime);
