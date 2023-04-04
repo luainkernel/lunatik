@@ -23,6 +23,7 @@
 #
 
 LUNATIK_LIBS=(device linux)
+LUNATIK_PATH=/lib/modules/lua
 
 load() {
 	insmod $1.ko
@@ -73,7 +74,7 @@ status() {
 
 run() {
 	if isloaded lunatik_run; then
-		sbin/lunatik.lua
+		sbin/lunatik
 	else
 		echo "lunatik_run is not loaded"
 	fi
@@ -94,7 +95,10 @@ case "$1" in
 		status
 		;;
 	install)
-		cp lunatik.lua /lib/modules/lua/
+		mkdir -p ${LUNATIK_PATH}
+		cp lunatik.lua ${LUNATIK_PATH}
+		chown -R root.root ${LUNATIK_PATH}
+		chmod -R 644 ${LUNATIK_PATH}
 		;;
 	run)
 		run
