@@ -151,11 +151,7 @@ err:
 
 static int luadevice_doopen(lua_State *L, int ud)
 {
-	int ret;
-
-	if ((ret = luadevice_fop(L, ud, "open", 0, 1)) != 0)
-		return ret;
-	return (int)lua_tointeger(L, -1);
+	return luadevice_fop(L, ud, "open", 0, 0);
 }
 
 static ssize_t luadevice_doread(lua_State *L, int ud, char *buf, size_t len, loff_t *off)
@@ -205,11 +201,7 @@ static ssize_t luadevice_dowrite(lua_State *L, int ud, const char *buf, size_t l
 
 static int luadevice_dorelease(lua_State *L, int ud)
 {
-	int ret;
-
-	if ((ret = luadevice_fop(L, ud, "release", 0, 1)) != 0)
-		return ret;
-	return (int)lua_tointeger(L, -1);
+	return luadevice_fop(L, ud, "release", 0, 0);
 }
 
 #define luadevice_fromfile(f)	((luadevice_t *)f->private_data)

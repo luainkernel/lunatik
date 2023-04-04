@@ -23,6 +23,7 @@
 
 #include <linux/module.h>
 #include <linux/random.h>
+#include <linux/stat.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -65,14 +66,52 @@ static int lualinux_random(lua_State *L)
 	return 1;
 }
 
+typedef struct lualinux_stat_s {
+	const char *name;
+	lua_Integer flag;
+} lualinux_stat_t;
+
+static lualinux_stat_t lualinux_stat[] = {
+	/* user */
+	{"IRWXU", S_IRWXU},
+	{"IRUSR", S_IRUSR},
+	{"IWUSR", S_IWUSR},
+	{"IXUSR", S_IXUSR},
+	/* group */
+	{"IRWXG", S_IRWXG},
+	{"IRGRP", S_IRGRP},
+	{"IWGRP", S_IWGRP},
+	{"IXGRP", S_IXGRP},
+	/* other */
+	{"IRWXO", S_IRWXO},
+	{"IROTH", S_IROTH},
+	{"IWOTH", S_IWOTH},
+	{"IXOTH", S_IXOTH},
+	/* user, group, other */
+	{"IRWXUGO", (S_IRWXU|S_IRWXG|S_IRWXO)},
+	{"IALLUGO", (S_ISUID|S_ISGID|S_ISVTX|S_IRWXUGO)},
+	{"IRUGO", (S_IRUSR|S_IRGRP|S_IROTH)},
+	{"IWUGO", (S_IWUSR|S_IWGRP|S_IWOTH)},
+	{"IXUGO", (S_IXUSR|S_IXGRP|S_IXOTH)},
+	{NULL, 0}
+};
+
 static const luaL_Reg linux_lib[] = {
 	{"random", lualinux_random},
+	{"stat", NULL}, /* placeholder */
 	{NULL, NULL}
 };
 
 int luaopen_linux(lua_State *L)
 {
+	lualinux_stat_t *s;
 	luaL_newlib(L, linux_lib);
+	lua_newtable(L); /* stat = {} */
+	for (s = lualinux_stat; s->name; s++) {
+		lua_pushinteger(L, s->flag);
+		lua_setfield(L, -2, s->name); /* stat[name] = flag */
+	}
+	lua_setfield(L, -2, "stat"); /* lib.stat = stat */
 	return 1;
 }
 EXPORT_SYMBOL(luaopen_linux);

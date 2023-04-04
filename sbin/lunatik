@@ -58,20 +58,23 @@ function lunatik.dostring(chunk)
 	return lunatik.result()
 end
 
+function lunatik.usage()
+	print("usage: sbin/lunatik [[--run] <script>] [--stop <script>]")
+	os.exit(false)
+end
+
 lunatik.probe()
 
 local parser = {
-	['-c'] = 'return string.dump(loadfile("%s"))',
-	['-r'] = 'lunatik.__runtimes["%s"] = lunatik.runtime("%s")',
-	['-s'] = 'lunatik.__runtimes["%s"]:stop() lunatik.__runtimes["%s"] = nil',
-	['-f'] = 'dofile("%s")'
+	['--run'] = 'lunatik.__runtimes["%s"] = lunatik.runtime("%s")',
+	['--stop'] = 'lunatik.__runtimes["%s"]:stop() lunatik.__runtimes["%s"] = nil',
 }
-local default = '-f'
+local default = '--run'
 if #arg >= 1 then
 	local fmt = string.format
 	local chunk = #arg == 1 and
-		fmt(parser[default], arg[1]) or
-		fmt(parser[arg[1]], arg[2], arg[2])
+		fmt(parser[default], arg[1], arg[1]) or
+		fmt(parser[arg[1]] or lunatik.usage(), arg[2], arg[2])
 	print(lunatik.dostring(chunk))
 	os.exit()
 end

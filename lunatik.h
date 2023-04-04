@@ -56,8 +56,8 @@ do {							\
 #define lunatik_unlock(runtime)	lunatik_locker(runtime, mutex_unlock, spin_unlock)
 #define lunatik_toruntime(L)	(*(lunatik_runtime_t **)lua_getextraspace(L))
 
-int lunatik_runtime(lunatik_runtime_t **pruntime, const char *entrypoint, bool sleep);
-void lunatik_stop(lunatik_runtime_t *runtime);
+int lunatik_runtime(lunatik_runtime_t **pruntime, const char *script, bool sleep);
+int lunatik_stop(lunatik_runtime_t *runtime);
 
 static inline void lunatik_release(struct kref *kref)
 {
