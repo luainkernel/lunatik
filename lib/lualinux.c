@@ -29,6 +29,8 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include <lunatik.h>
+
 /* based on math_random() @ lua/lmathlib.c */
 static int lualinux_random(lua_State *L)
 {
@@ -66,12 +68,7 @@ static int lualinux_random(lua_State *L)
 	return 1;
 }
 
-typedef struct lualinux_stat_s {
-	const char *name;
-	lua_Integer flag;
-} lualinux_stat_t;
-
-static lualinux_stat_t lualinux_stat[] = {
+static const lunatik_reg_t lualinux_stat[] = {
 	/* user */
 	{"IRWXU", S_IRWXU},
 	{"IRUSR", S_IRUSR},
@@ -96,25 +93,17 @@ static lualinux_stat_t lualinux_stat[] = {
 	{NULL, 0}
 };
 
-static const luaL_Reg linux_lib[] = {
-	{"random", lualinux_random},
-	{"stat", NULL}, /* placeholder */
+static const lunatik_namespace_t lualinux_flags[] = {
+	{"stat", lualinux_stat},
 	{NULL, NULL}
 };
 
-int luaopen_linux(lua_State *L)
-{
-	lualinux_stat_t *s;
-	luaL_newlib(L, linux_lib);
-	lua_newtable(L); /* stat = {} */
-	for (s = lualinux_stat; s->name; s++) {
-		lua_pushinteger(L, s->flag);
-		lua_setfield(L, -2, s->name); /* stat[name] = flag */
-	}
-	lua_setfield(L, -2, "stat"); /* lib.stat = stat */
-	return 1;
-}
-EXPORT_SYMBOL(luaopen_linux);
+static const luaL_Reg lualinux_lib[] = {
+	{"random", lualinux_random},
+	{NULL, NULL}
+};
+
+LUNATIK_NEWLIB(linux, lualinux_lib, NULL, lualinux_flags, true);
 
 static int __init lualinux_init(void)
 {

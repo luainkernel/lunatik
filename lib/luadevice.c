@@ -40,7 +40,7 @@
 
 #include <lunatik.h>
 
-static struct class *luadevice_class;
+static struct class *luadevice_devclass;
 
 typedef struct luadevice_s {
 	struct list_head entry;
@@ -105,7 +105,7 @@ static inline luadevice_t *luadevice_find(dev_t devt)
 	return luadev;
 }
 
-#define DEVICE_MT	"device"
+#define LUADEVICE_MT	"device"
 
 #define luadevice_userdata(L, ud)	(lua_rawgeti(L, LUA_REGISTRYINDEX, ud) != LUA_TUSERDATA)
 #define luadevice_driver(L, ix)		(lua_getiuservalue(L, ix, 1) != LUA_TTABLE)
@@ -281,7 +281,7 @@ static int luadevice_new(lua_State *L)
 
 	luadev->ud = LUA_NOREF;
 
-	luaL_setmetatable(L, DEVICE_MT); /* __gc() is set for cleanup */
+	luaL_setmetatable(L, LUADEVICE_MT); /* __gc() is set for cleanup */
 	lua_pushvalue(L, 1);  /* push driver */
 	lua_setiuservalue(L, -2, 1); /* pops driver */
 
@@ -298,7 +298,7 @@ static int luadevice_new(lua_State *L)
 	luadev->ud = luaL_ref(L, LUA_REGISTRYINDEX); /* pops userdata */
 
 	lua_pushvalue(L, 1);  /* push driver */
-	device = device_create(luadevice_class, NULL, luadev->devt, luadev, name); /* calls devnode */
+	device = device_create(luadevice_devclass, NULL, luadev->devt, luadev, name); /* calls devnode */
 	if (IS_ERR(device))
 		luaL_error(L, "failed to create a new device (%d)", PTR_ERR(device));
 	lua_pop(L, 1); /* pop driver */
@@ -312,14 +312,14 @@ static int luadevice_delete(lua_State *L)
 	luadevice_t *luadev;
 	luadevice_t **pluadev;
 
-	pluadev = (luadevice_t **)luaL_checkudata(L, 1, DEVICE_MT);
+	pluadev = (luadevice_t **)luaL_checkudata(L, 1, LUADEVICE_MT);
 	luadev = *pluadev;
 
 	if (luadev->cdev != NULL)
 		cdev_del(luadev->cdev);
 
 	if (luadev->devt != 0) {
-		device_destroy(luadevice_class, luadev->devt);
+		device_destroy(luadevice_devclass, luadev->devt);
 		unregister_chrdev_region(luadev->devt, 1);
 	}
 
@@ -331,7 +331,7 @@ static int luadevice_delete(lua_State *L)
 
 static int luadevice_set(lua_State *L)
 {
-	luaL_checkudata(L, 1, DEVICE_MT);
+	luaL_checkudata(L, 1, LUADEVICE_MT);
 	if (luadevice_driver(L, 1) != 0)
 		luaL_error(L, "couln't find driver");
 
@@ -340,14 +340,14 @@ static int luadevice_set(lua_State *L)
 	return 0;
 }
 
-static const luaL_Reg device_lib[] = {
+static const luaL_Reg luadevice_lib[] = {
 	{"new", luadevice_new},
 	{"delete", luadevice_delete},
 	{"set", luadevice_set},
 	{NULL, NULL}
 };
 
-static const luaL_Reg device_mt[] = {
+static const luaL_Reg luadevice_mt[] = {
 	{"__gc", luadevice_delete},
 	{"__close", luadevice_delete},
 	{"__newindex", luadevice_set},
@@ -356,7 +356,12 @@ static const luaL_Reg device_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(device, DEVICE_MT, true);
+static const lunatik_class_t luadevice_class = {
+	.name = LUADEVICE_MT,
+	.methods = luadevice_mt,
+};
+
+LUNATIK_NEWLIB(device, luadevice_lib, &luadevice_class, NULL, true);
 
 static char *luadevice_devnode(struct device *dev, umode_t *mode)
 {
@@ -380,18 +385,18 @@ out:
 
 static int __init luadevice_init(void)
 {
-	luadevice_class = class_create(THIS_MODULE, "luadevice");
-	if (IS_ERR(luadevice_class)) {
+	luadevice_devclass = class_create(THIS_MODULE, "luadevice");
+	if (IS_ERR(luadevice_devclass)) {
 		pr_err("failed to create luadevice class\n");
-		return PTR_ERR(luadevice_class);
+		return PTR_ERR(luadevice_devclass);
 	}
-	luadevice_class->devnode = luadevice_devnode;
+	luadevice_devclass->devnode = luadevice_devnode;
 	return 0;
 }
 
 static void __exit luadevice_exit(void)
 {
-	class_destroy(luadevice_class);
+	class_destroy(luadevice_devclass);
 }
 
 module_init(luadevice_init);
