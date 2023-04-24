@@ -87,17 +87,55 @@ do {							\
 	lunatik_unlock(runtime);			\
 } while(0)
 
-#define LUNATIK_NEWLIB(libname, MT, sleep)							\
+typedef struct lunatik_reg_s {
+	const char *name;
+	lua_Integer value;
+} lunatik_reg_t;
+
+typedef struct lunatik_namespace_s {
+	const char *name;
+	const lunatik_reg_t *reg;
+} lunatik_namespace_t;
+
+typedef struct lunatik_class_s {
+	const char *name;
+	const luaL_Reg *methods;
+} lunatik_class_t;
+
+static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
+{
+	luaL_newmetatable(L, class->name); /* mt = {} */
+	luaL_setfuncs(L, class->methods, 0);
+	lua_pushvalue(L, -1);  /* push lib */
+	lua_setfield(L, -2, "__index");  /* mt.__index = lib */
+	lua_pop(L, 1);  /* pop mt */
+}
+
+static void inline lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
+{
+	for (; namespaces->name; namespaces++) {
+		const lunatik_reg_t *reg;
+		lua_newtable(L); /* namespace = {} */
+		for (reg = namespaces->reg; reg->name; reg++) {
+			lua_pushinteger(L, reg->value);
+			lua_setfield(L, -2, reg->name); /* namespace[name] = value */
+		}
+		lua_setfield(L, -2, namespaces->name); /* lib.namespace = namespace */
+	}
+}
+
+#define LUNATIK_NEWLIB(libname, funcs, class, namespaces, sleep)				\
 int luaopen_##libname(lua_State *L)								\
 {												\
+	const lunatik_class_t *cls = class; /* avoid -Waddress */				\
+	const lunatik_namespace_t *nss = namespaces; /* avoid -Waddress */			\
 	if (sleep && !lunatik_getsleep(L))							\
 		luaL_error(L, "cannot require '" #libname "' on non-sleepable runtimes");	\
-	luaL_newlib(L, libname##_lib);								\
-	luaL_newmetatable(L, MT);								\
-	luaL_setfuncs(L, libname##_mt, 0);							\
-	lua_pushvalue(L, -1);  /* push lib */							\
-	lua_setfield(L, -2, "__index");  /* mt.__index = lib */					\
-	lua_pop(L, 1);  /* pop mt */								\
+	luaL_newlib(L, funcs);									\
+	if (cls)										\
+		lunatik_newclass(L, class);							\
+	if (nss)										\
+		lunatik_newnamespaces(L, namespaces);						\
 	return 1;										\
 }												\
 EXPORT_SYMBOL(luaopen_##libname)

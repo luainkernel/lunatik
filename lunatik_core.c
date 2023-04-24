@@ -187,7 +187,12 @@ static const luaL_Reg lunatik_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(lunatik, LUNATIK_MT, true);
+static const lunatik_class_t lunatik_class = {
+	.name = LUNATIK_MT,
+	.methods = lunatik_mt,
+};
+
+LUNATIK_NEWLIB(lunatik, lunatik_lib, &lunatik_class, NULL, true);
 #endif /* LUNATIK_RUNTIME */
 
 static int __init lunatik_init(void)
