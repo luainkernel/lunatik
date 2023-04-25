@@ -22,7 +22,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-LUNATIK_LIBS=(device linux)
+LUNATIK_LIBS=(device linux notifier)
 LUNATIK_PATH=/lib/modules/lua
 
 load() {

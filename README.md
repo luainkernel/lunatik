@@ -383,6 +383,51 @@ integer flags to Lua.
 * `"IWUGO"`: permission only to _write_ for _user_, _group_ and _other_.
 * `"IXUGO"`: permission only to _execute_ for _user_, _group_ and _other_.
 
+### notifier
+
+The `notifier` library provides support for the kernel
+[notifier chains](https://elixir.bootlin.com/linux/latest/source/include/linux/notifier.h).
+
+#### `notifier.keyboard(callback)`
+
+_notifier.keyboard()_ returns a new keyboard `notifier`
+[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
+and installs it in the system.
+The `callback` function is called whenever a console keyboard event happens
+(e.g., a key has been pressed or released).
+This `callback` receives the following arguments:
+* `event`: the available _events_ are defined by the
+[notifier.kbd](https://github.com/luainkernel/lunatik#notifierkbd) table.
+* `down`: `true`, if the key is pressed; `false`, if it is released.
+* `shift`: `true`, if the shift key is held; `false`, otherwise.
+* `key`: _keycode_ or _keysym_ depending on `event`.
+
+The `callback` function might return the values defined by the
+[notifier.notify](https://github.com/luainkernel/lunatik#notifiernotify) table.
+
+#### `notifier.kbd`
+
+_notifier.kbd_ is a table that exports
+[KBD](https://elixir.bootlin.com/linux/latest/source/include/linux/notifier.h#L229)
+flags to Lua.
+
+* `"KEYCODE"`: keyboard _keycode_, called before any other.
+* `"UNBOUND_KEYCODE"`: keyboard _keycode_ which is not bound to any other.
+* `"UNICODE"`: keyboard unicode.
+* `"KEYSYM"`: keyboard _keysym_.
+* `"POST_KEYSYM"`: called after keyboard _keysym_ interpretation.
+
+#### `notifier.notify`
+
+_notifier.notify_ is a table that exports
+[NOTIFY](https://elixir.bootlin.com/linux/latest/source/include/linux/notifier.h#L183)
+flags to Lua.
+
+* `"DONE"`: don't care.
+* `"OK"`: suits me.
+* `"BAD"`: bad/veto action.
+* `"STOP"`: clean way to return from the notifier and stop further calls.
+
 ## References
 
 * [Scriptables Operating Systems with Lua](https://www.netbsd.org/~lneto/dls14.pdf)
