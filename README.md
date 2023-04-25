@@ -148,12 +148,12 @@ If `sleep` is _true_, it will use a [mutex](https://docs.kernel.org/locking/mute
 for locking the `runtime` environment and the
 [GFP\_KERNEL](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html)
 flag for allocating new memory later on on
-[lunatik\_run()](https://github.com/luainkernel/lunatik/tree/lneto_doc#lunatik_run) calls.
+[lunatik\_run()](https://github.com/luainkernel/lunatik#lunatik_run) calls.
 Otherwise, it will use a [spinlock](https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t) and [GFP\_ATOMIC](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html).
 _lunatik\_runtime()_ opens the Lua standard libraries
-[present on Lunatik](https://github.com/luainkernel/lunatik/tree/lneto_doc#c-api)
+[present on Lunatik](https://github.com/luainkernel/lunatik#c-api)
 and, if `sleep` is _true_, it also opens the
-[lunatik](https://github.com/luainkernel/lunatik/tree/lneto_doc#lunatik-1)
+[lunatik](https://github.com/luainkernel/lunatik#lunatik-1)
 library to make them available for the `script`.
 If successful, _lunatik\_runtime()_ sets the address pointed by `pruntime` and
 [Lua's extra space](https://www.lua.org/manual/5.4/manual.html#lua_getextraspace)
@@ -275,7 +275,7 @@ The `lunatik` library provides support to load and run scripts and manage runtim
 #### `lunatik.runtime(script [, sleep])`
 
 _lunatik.runtime()_ creates a new
-[runtime environment](https://github.com/luainkernel/lunatik/tree/lneto_doc#lunatik_runtime)
+[runtime environment](https://github.com/luainkernel/lunatik#lunatik_runtime)
 then loads and runs the script
 `/lib/modules/lua/<script>.lua` as the entry point for this environment.
 It returns a
@@ -286,15 +286,15 @@ and
 [GFP\_KERNEL](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html);
 otherwise, it will use a [spinlock](https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t) and [GFP\_ATOMIC](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html).
 _lunatik.runtime()_ opens the Lua standard libraries
-[present on Lunatik](https://github.com/luainkernel/lunatik/tree/lneto_doc#c-api),
+[present on Lunatik](https://github.com/luainkernel/lunatik#c-api),
 but differently from
-[lunatik\_runtime()](https://github.com/luainkernel/lunatik/tree/lneto_doc#lunatik_runtime),
+[lunatik\_runtime()](https://github.com/luainkernel/lunatik#lunatik_runtime),
 it **does not** open the `lunatik` library.
 
 #### `lunatik.stop(runtime)`, `runtime:stop()`
 
 _lunatik.stop()_
-[stops](https://github.com/luainkernel/lunatik/tree/lneto_doc#lunatik_stop)
+[stops](https://github.com/luainkernel/lunatik#lunatik_stop)
 the `runtime` environment and clear its reference from the runtime
 [userdata](https://www.lua.org/manual/5.4/manual.html#2.1).
 
@@ -308,7 +308,7 @@ in Lua.
 
 _device.new()_ returns a new `device`
 [userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
-and installs its `driver` in the system. 
+and installs its `driver` in the system.
 The `driver` **must** be defined as a table containing the following field:
 * `name`: string defining the device name; it is used for creating the device file (e.g., `/dev/<name>`).
 
@@ -342,7 +342,7 @@ It receives the `driver` table and it is expected to return nothing.
 on the device file.
 It receives the `driver` table and it is expected to return nothing.
 * `mode`: an integer specifying the device
-[file mode](https://github.com/luainkernel/lunatik/tree/lneto_doc#linuxstat).
+[file mode](https://github.com/luainkernel/lunatik#linuxstat).
 
 If an operation callback is not defined, the `device` returns `-ENXIO` to VFS on its access.
 
