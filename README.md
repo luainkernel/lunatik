@@ -350,7 +350,7 @@ If an operation callback is not defined, the `device` returns `-ENXIO` to VFS on
 
 _device.delete()_ removes a device `driver` specified by the `dev`
 [userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
-from the system. 
+from the system.
 
 ### linux
 
@@ -427,6 +427,52 @@ flags to Lua.
 * `"OK"`: suits me.
 * `"BAD"`: bad/veto action.
 * `"STOP"`: clean way to return from the notifier and stop further calls.
+
+#### `notifier.delete(notfr)`, `notfr:delete()`
+
+_notifier.delete()_ removes a `notifier` specified by the `notfr`
+[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
+from the system.
+
+## Examples
+
+### spyglass
+
+[spyglass](https://github.com/luainkernel/lunatik/examples/spyglass.lua)
+is a kernel script that implements a _keylogger_ inspired by the
+[spy](https://github.com/jarun/spy) kernel module.
+This kernel script logs the _keysym_ of the pressed keys in a device (`/dev/spyglass`).
+If the _keysym_ is a printable character, `spyglass` logs the _keysym_ itself;
+otherwise, it logs a mnemonic of the ASCII code, (e.g., `<del>` stands for `127`).
+
+#### Usage
+
+```
+sudo cp examples/spyglass.lua /lib/modules/lua/ # installs spyglass
+sudo sbin/lunatik --run spyglass    # runs spyglass
+sudo tail -f /dev/spyglass          # prints the key log
+sudo sh -c "echo 0 > /dev/spyglass" # disable the key logging
+sudo sh -c "echo 1 > /dev/spyglass" # enable the key logging
+```
+
+### keylocker
+
+[keylocker](https://github.com/luainkernel/lunatik/examples/keylocker.lua)
+is a kernel script that implements
+[Konami Code](https://en.wikipedia.org/wiki/Konami_Code)
+for locking and unlocking the console keyboard.
+When the user types `↑ ↑ ↓ ↓ ← → ← → LCTRL LALT`,
+the keyboard will be _locked_; that is, the system will stop processing any key pressed
+until the user types the same key sequence again.
+
+#### Usage
+
+```
+sudo cp examples/keylocker.lua /lib/modules/lua/ # installs keylocker
+sudo sbin/lunatik --run keylocker                # runs keylocker
+<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>   # locks keyboard
+<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>   # unlocks keyboard
+```
 
 ## References
 
