@@ -46,4 +46,5 @@ obj-$(CONFIG_LUNATIK_RUN) += lunatik_run.o
 obj-$(CONFIG_LUNATIK_DEVICE) += lib/luadevice.o
 obj-$(CONFIG_LUNATIK_LINUX) += lib/lualinux.o
 obj-$(CONFIG_LUNATIK_NOTIFIER) += lib/luanotifier.o
+obj-$(CONFIG_LUNATIK_SOCKET) += lib/luasocket.o
 
