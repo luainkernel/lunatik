@@ -24,7 +24,8 @@
 
 local lunatik = {
 	copyright = "Copyright (C) 2023 ring-0 Ltda.",
-	device = "/dev/lunatik"
+	device = "/dev/lunatik",
+	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "lunatik_run"}
 }
 
 function lunatik.prompt()
@@ -38,12 +39,12 @@ end
 
 function lunatik.probe()
 	local prober <close> = lunatik.open("r")
-	assert(prober ~= nil, lunatik.device .. " not found")
+	if not prober then lunatik.commands.load() end
 	local version = lunatik.dostring("return _LUNATIK_VERSION")
 	lunatik.copyright = version .. "  " .. lunatik.copyright
 end
 
-function lunatik.load(chunk)
+function lunatik.loadstring(chunk)
 	local loader <close> = lunatik.open("w")
 	loader:write(chunk)
 end
@@ -54,28 +55,80 @@ function lunatik.result()
 end
 
 function lunatik.dostring(chunk)
-	lunatik.load(chunk)
+	lunatik.loadstring(chunk)
 	return lunatik.result()
 end
 
 function lunatik.usage()
-	print("usage: sbin/lunatik [[--run] <script>] [--stop <script>]")
+	print("usage: lunatik [load|unload|reload|status] [run|stop <script>]")
 	os.exit(false)
+end
+
+function lunatik.sh(command, module, loaded)
+	local isloaded = loaded and "&&" or "||"
+	os.execute(string.format("MODULE=%s;grep -wq $MODULE /proc/modules %s%s", module, isloaded, command))
+end
+
+lunatik.commands = {
+	['load'] = function ()
+		for _, module in ipairs(lunatik.modules) do
+			local path = "/lib/modules/`uname -r`/lunatik"
+			lunatik.sh("modprobe -s $MODULE || insmod " .. path .. "/$MODULE.ko", module)
+		end
+	end,
+	['unload'] = function ()
+		local first = #lunatik.modules
+		for i = first, 1, -1 do
+			local module = lunatik.modules[i]
+			lunatik.sh("rmmod $MODULE", module, true)
+		end
+	end,
+	['reload'] = function()
+		local commands = lunatik.commands
+		commands.unload()
+		commands.load()
+	end,
+	['status'] = function ()
+		for _, module in ipairs(lunatik.modules) do
+			lunatik.sh("echo $MODULE is loaded || echo $MODULE is not loaded", module, true)
+		end
+	end
+}
+
+local command = lunatik.commands[arg[1]]
+if command then
+	command()
+	os.exit()
 end
 
 lunatik.probe()
 
 local parser = {
-	['--run'] = 'lunatik.__runtimes["%s"] = lunatik.runtime("%s")',
-	['--stop'] = 'lunatik.__runtimes["%s"]:stop() lunatik.__runtimes["%s"] = nil',
+	['run'] = [[
+		local script = "%s"
+		lunatik.__runtimes[script] = lunatik.runtime(script)
+	]],
+	['stop'] = [[
+		local script = "%s"
+		lunatik.__runtimes[script]:stop()
+		lunatik.__runtimes[script] = nil
+	]],
+	['list'] = [[
+		local list = {}
+		for script in pairs(lunatik.__runtimes) do
+			table.insert(list, script)
+		end
+		return table.concat(list, ', ')
+	]]
 }
-local default = '--run'
+
 if #arg >= 1 then
-	local fmt = string.format
-	local chunk = #arg == 1 and
-		fmt(parser[default], arg[1], arg[1]) or
-		fmt(parser[arg[1]] or lunatik.usage(), arg[2], arg[2])
-	print(lunatik.dostring(chunk))
+	local chunk = parser[arg[1]]
+	if chunk then
+		print(lunatik.dostring(string.format(chunk, arg[2])))
+	else
+		lunatik.usage()
+	end
 	os.exit()
 end
 
