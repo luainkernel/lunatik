@@ -2,11 +2,10 @@
 
 Lunatik is a framework for scripting the Linux kernel with [Lua](https://www.lua.org/).
 It is composed by the Lua interpreter modified to run in the kernel;
-a [device driver](lunatik.lua) (written in Lua =)) and a [command line tool](sbin/lunatik)
+a [device driver](lunatik.lua) (written in Lua =)) and a [command line tool](lunatik)
 to load and run scripts and manage runtime environments from the user space;
 a [C API](#lunatik-c-api) to load and run scripts and manage runtime environments from the kernel;
 and [Lua APIs](#lunatik-lua-apis) for binding kernel facilities to Lua scripts. 
-Lunatik also offers a [shell script](sbin/lunatik.sh) as a helper for managing its kernel modules.
 
 Here is an example of a character device driver written in Lua using Lunatik
 to generate random ASCII printable characters:
@@ -14,7 +13,7 @@ to generate random ASCII printable characters:
 -- /lib/modules/lua/passwd.lua
 --
 -- implements /dev/passwd for generate passwords
--- usage: $ sudo sbin/lunatik --run passwd
+-- usage: $ sudo lunatik run passwd
 --        $ head -c <width> /dev/passwd
 
 local device = require("device")
@@ -38,36 +37,26 @@ device.new(driver)
 
 ```
 make
-sudo sbin/lunatik.sh install # copy lunatik.lua to /lib/modules/lua
-sudo sbin/lunatik.sh start   # load Lunatik kernel modules
-sudo sbin/lunatik.sh run     # execute sbin/lunatik REPL
+sudo make install
+sudo lunatik # execute Lunatik REPL
 Lunatik 3.0  Copyright (C) 2023 ring-0 Ltda.
 > return 42 -- execute this line in the kernel
 42
 ```
 
-### sbin/lunatik
+### lunatik
 
 ```Shell
-usage: sbin/lunatik [[--run] <script>] [--stop <script>]
+usage: lunatik [load|unload|reload|status] [run|stop <script>]
 ```
 
-* `--run`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`
-* `--stop`: stop the runtime environment created to run the script `<script>`
-* `default`: start a _REPL (Read–Eval–Print Loop)_
-
-### sbin/lunatik.sh
-
-```
-usage: sbin/lunatik.sh {start|stop|restart|status|install|run}
-```
-
-* `start`: load Lunatik kernel modules
-* `stop`: remove Lunatik kernel modules
-* `restart`: reload Lunatik kernel modules
+* `load`: load Lunatik kernel modules
+* `unload`: unload Lunatik kernel modules
+* `reload`: reload Lunatik kernel modules
 * `status`: show what Lunatik kernel modules are currently loaded
-* `install`: copy `lunatik.lua` device driver to `/lib/modules/lua`
-* `run`: execute `sbin/lunatik` REPL
+* `run`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`
+* `stop`: stop the runtime environment created to run the script `<script>`
+* `default`: start a _REPL (Read–Eval–Print Loop)_
 
 ## Lua Version
 
@@ -434,7 +423,284 @@ _notifier.delete()_ removes a `notifier` specified by the `notfr`
 [userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
 from the system.
 
-## Examples
+### socket
+
+The `socket` library provides support for the kernel
+[networking handling](https://elixir.bootlin.com/linux/latest/source/include/linux/net.h).
+This library was inspired by
+[Chengzhi Tan](https://github.com/tcz717)'s
+[GSoC project](https://summerofcode.withgoogle.com/archive/2018/projects/5993341447569408).
+
+#### `socket.new(family, type, protocol)`
+
+_socket.new()_ creates a new `socket`
+[userdata](https://www.lua.org/manual/5.4/manual.html#2.1).
+This function receives the following arguments:
+* `family`: the available _address families_ are defined by the
+[socket.af](https://github.com/luainkernel/lunatik#socketaf) table.
+* `sock`: the available _types_ are present on the
+[socket.sock](https://github.com/luainkernel/lunatik#socketsock) table.
+* `protocol`: the available _protocols_ are defined by the
+[socket.ipproto](https://github.com/luainkernel/lunatik#socketipproto) table.
+
+#### `socket.af`
+
+_socket.af_ is a table that exports
+[address families (AF)](https://elixir.bootlin.com/linux/latest/source/include/linux/socket.h#L187)
+to Lua.
+
+* `"UNSPEC"`: Unspecified.
+* `"UNIX"`: Unix domain sockets.
+* `"LOCAL"`: POSIX name for AF\_UNIX.
+* `"INET"`: Internet IP Protocol.
+* `"AX25"`: Amateur Radio AX.25.
+* `"IPX"`: Novell IPX.
+* `"APPLETALK"`: AppleTalk DDP.
+* `"NETROM"`: Amateur Radio NET/ROM.
+* `"BRIDGE"`: Multiprotocol bridge.
+* `"ATMPVC"`: ATM PVCs.
+* `"X25"`: Reserved for X.25 project.
+* `"INET6"`: IP version 6.
+* `"ROSE"`: Amateur Radio X.25 PLP.
+* `"DEC"`: Reserved for DECnet project.
+* `"NETBEUI"`: Reserved for 802.2LLC project.
+* `"SECURITY"`: Security callback pseudo AF.
+* `"KEY"`: PF\_KEY key management API.
+* `"NETLINK"`: Netlink.
+* `"ROUTE"`: Alias to emulate 4.4BSD.
+* `"PACKET"`: Packet family.
+* `"ASH"`: Ash.
+* `"ECONET"`: Acorn Econet.
+* `"ATMSVC"`: ATM SVCs.
+* `"RDS"`: RDS sockets.
+* `"SNA"`: Linux SNA Project (nutters!).
+* `"IRDA"`: IRDA sockets.
+* `"PPPOX"`: PPPoX sockets.
+* `"WANPIPE"`: Wanpipe API Sockets.
+* `"LLC"`: Linux LLC.
+* `"IB"`: Native InfiniBand address.
+* `"MPLS"`: MPLS.
+* `"CAN"`: Controller Area Network.
+* `"TIPC"`: TIPC sockets.
+* `"BLUETOOTH"`: Bluetooth sockets.
+* `"IUCV"`: IUCV sockets.
+* `"RXRPC"`: RxRPC sockets.
+* `"ISDN"`: mISDN sockets.
+* `"PHONET"`: Phonet sockets.
+* `"IEEE802154"`: IEEE802154 sockets.
+* `"CAIF"`: CAIF sockets.
+* `"ALG"`: Algorithm sockets.
+* `"NFC"`: NFC sockets.
+* `"VSOCK"`: vSockets.
+* `"KCM"`: Kernel Connection Multiplexor.
+* `"QIPCRTR"`: Qualcomm IPC Router.
+* `"SMC"`: reserve number for PF\_SMC protocol family that reuses AF\_INET address family.
+* `"XDP"`: XDP sockets.
+* `"MCTP"`: Management component transport protocol.
+* `"MAX"`: Maximum.
+
+#### `socket.sock`
+
+_socket.sock_ is a table that exports socket 
+[types (SOCK)](https://elixir.bootlin.com/linux/latest/source/include/linux/net.h#L49):
+
+* `"STREAM"`: stream (connection) socket.
+* `"DGRAM"`: datagram (conn.less) socket.
+* `"RAW"`: raw socket.
+* `"RDM"`: reliably-delivered message.
+* `"SEQPACKET"`: sequential packet socket.
+* `"DCCP"`: Datagram Congestion Control Protocol socket.
+* `"PACKET"`: linux specific way of getting packets at the dev level.
+
+and [flags (SOCK)](https://elixir.bootlin.com/linux/latest/source/include/linux/net.h#L78):
+* `"CLOEXEC"`: n/a.
+* `"NONBLOCK"`: n/a.
+
+#### `socket.ipproto`
+
+_socket.ipproto_ is a table that exports
+[IP protocols (IPPROTO)](https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/in.h#L27)
+to Lua.
+
+* `"IP"`: Dummy protocol for TCP.
+* `"ICMP"`: Internet Control Message Protocol.
+* `"IGMP"`: Internet Group Management Protocol.
+* `"IPIP"`: IPIP tunnels (older KA9Q tunnels use 94).
+* `"TCP"`: Transmission Control Protocol.
+* `"EGP"`: Exterior Gateway Protocol.
+* `"PUP"`: PUP protocol.
+* `"UDP"`: User Datagram Protocol.
+* `"IDP"`: XNS IDP protocol.
+* `"TP"`: SO Transport Protocol Class 4.
+* `"DCCP"`: Datagram Congestion Control Protocol.
+* `"IPV6"`: IPv6-in-IPv4 tunnelling.
+* `"RSVP"`: RSVP Protocol.
+* `"GRE"`: Cisco GRE tunnels (rfc 1701,1702).
+* `"ESP"`: Encapsulation Security Payload protocol.
+* `"AH"`: Authentication Header protocol.
+* `"MTP"`: Multicast Transport Protocol.
+* `"BEETPH"`: IP option pseudo header for BEET.
+* `"ENCAP"`: Encapsulation Header.
+* `"PIM"`: Protocol Independent Multicast.
+* `"COMP"`: Compression Header Protocol.
+* `"SCTP"`: Stream Control Transport Protocol.
+* `"UDPLITE"`: UDP-Lite (RFC 3828).
+* `"MPLS"`: MPLS in IP (RFC 4023).
+* `"ETHERNET"`: Ethernet-within-IPv6 Encapsulation.
+* `"RAW"`: Raw IP packets.
+* `"MPTCP"`: Multipath TCP connection.
+
+#### `socket:close(sock)`, `sock:close()`
+
+_socket.close()_ removes `sock`
+[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
+from the system.
+
+#### `socket.send(sock, message, [addr [, port]])`, `sock:send(message, [addr [, port]])`
+
+_socket.send()_ sends a string `message` through the socket `sock`.
+If the `sock` address family is `af.INET`, then it expects the following arguments:
+* `addr`: `integer` describing the destination IPv4 address.
+* `port`: `integer` describing the destination IPv4 port. 
+
+Otherwise:
+* `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the destination address.
+
+#### `socket.receive(sock, length, [flags [, from]])`, `sock:receive(length, [flags [, from]])`
+
+_socket.receive()_ receives a string with up to `length` bytes through the socket `sock`.
+The available _message flags_ are defined by the
+[socket.message](https://github.com/luainkernel/lunatik#socketmsg) table.
+If `from` is `true`, it returns the received message followed by the peer's address.
+Otherwise, it returns only the received message.
+
+#### `socket.msg`
+
+_socket.msg_ is a table that exports
+[message flags](https://elixir.bootlin.com/linux/latest/source/include/linux/socket.h#L298)
+to Lua.
+
+* `"OOB"`: n/a.
+* `"PEEK"`: n/a.
+* `"DONTROUTE"`: n/a.
+* `"TRYHARD"`: Synonym for `"DONTROUTE"` for DECnet.
+* `"CTRUNC"`: n/a.
+* `"PROBE"`: Do not send. Only probe path f.e. for MTU.
+* `"TRUNC"`: n/a.
+* `"DONTWAIT"`: Nonblocking io.
+* `"EOR"`: End of record.
+* `"WAITALL"`: Wait for a full request.
+* `"FIN"`: n/a.
+* `"SYN"`: n/a.
+* `"CONFIRM"`: Confirm path validity.
+* `"RST"`: n/a.
+* `"ERRQUEUE"`: Fetch message from error queue.
+* `"NOSIGNAL"`: Do not generate SIGPIPE.
+* `"MORE"`: Sender will send more.
+* `"WAITFORONE"`: recvmmsg(): block until 1+ packets avail.
+* `"SENDPAGE_NOPOLICY"`: sendpage() internal: do no apply policy.
+* `"SENDPAGE_NOTLAST"`: sendpage() internal: not the last page.
+* `"BATCH"`: sendmmsg(): more messages coming.
+* `"EOF"`: n/a.
+* `"NO_SHARED_FRAGS"`: sendpage() internal: page frags are not shared.
+* `"SENDPAGE_DECRYPTED"`: sendpage() internal: page may carry plain text and require encryption.
+* `"ZEROCOPY"`: Use user data in kernel path.
+* `"FASTOPEN"`: Send data in TCP SYN.
+* `"CMSG_CLOEXEC"`: Set close\_on\_exec for file descriptor received through SCM\_RIGHTS.
+
+#### `socket.bind(sock, addr [, port])`, `sock:bind(addr [, port])`
+
+_socket.bind()_ binds the socket `sock` to a given address.
+If the `sock` address family is `af.INET`, then it expects the following arguments:
+* `addr`: `integer` describing host IPv4 address.
+* `port`: `integer` describing host IPv4 port. 
+
+Otherwise:
+* `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing host address.
+
+#### `socket.listen(sock [, backlog])`, `sock:listen([backlog])`
+
+_socket.listen()_ moves the socket `sock` to listening state.
+It returns a new socket
+* `backlog`: pending connections queue size.
+If omitted, it uses
+[SOMAXCONN](https://elixir.bootlin.com/linux/latest/source/include/linux/socket.h#L296)
+as default.
+
+#### `socket.accept(sock [, flags])`, `sock:accept([flags])`
+
+_socket.accept()_ accepts a connection on socket `sock`.
+It returns a new `socket`
+[userdata](https://www.lua.org/manual/5.4/manual.html#2.1).
+The available _flags_ are present on the
+[socket.sock](https://github.com/luainkernel/lunatik#socketsock) table.
+
+#### `socket.connect(sock, addr [, port] [, flags])`, `sock:connect(addr [, port] [, flags])`
+
+_socket.connect()_ connects the socket `sock` to the address `addr`.
+If the `sock` address family is `af.INET`, then it expects the following arguments:
+* `addr`: `integer` describing the destination IPv4 address.
+* `port`: `integer` describing the destination IPv4 port. 
+
+Otherwise:
+* `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the destination address.
+
+The available _flags_ are present on the
+[socket.sock](https://github.com/luainkernel/lunatik#socketsock) table.
+
+For datagram sockets, `addr` is the address to which datagrams are sent
+by default, and the only address from which datagrams are received.
+For stream sockets, attempts to connect to `addr`.
+
+#### `socket.getsockname(sock)`, `sock:getsockname()`
+
+_socket.getsockname()_ get the address which the socket `sock` is bound.
+If the `sock` address family is `af.INET`, then it returns the following:
+* `addr`: `integer` describing the bounded IPv4 address.
+* `port`: `integer` describing the bounded IPv4 port. 
+
+Otherwise:
+* `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the bounded address.
+
+#### `socket.getpeername(sock)`, `sock:getpeername()`
+
+_socket.getpeername()_ get the address which the socket `sock` is connected.
+If the `sock` address family is `af.INET`, then it returns the following:
+* `addr`: `integer` describing the peer's IPv4 address.
+* `port`: `integer` describing the peer's IPv4 port. 
+
+Otherwise:
+* `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the peer's address.
+
+### socket.inet
+
+The `socket.inet` library provides support for high-level IPv4 sockets.
+
+#### `inet.tcp()`
+
+_inet.tcp()_ creates a new `socket` using
+[af.INET](https://github.com/luainkernel/lunatik#socketaf) address family,
+[sock.STREAM](https://github.com/luainkernel/lunatik#socketsock) type
+and
+[ipproto.TCP](https://github.com/luainkernel/lunatik#socketipproto) protocol.
+It overrides `socket` methods to use addresses as _numbers-and-dots notation_
+(e.g., `"127.0.0.1"`), instead of integers.
+
+#### `inet.udp()`
+
+_inet.udp()_ creates a new `socket` using
+[af.INET](https://github.com/luainkernel/lunatik#socketaf) address family,
+[sock.DGRAM](https://github.com/luainkernel/lunatik#socketsock) type
+and
+[ipproto.UDP](https://github.com/luainkernel/lunatik#socketipproto) protocol.
+It overrides `socket` methods to use addresses as _numbers-and-dots notation_
+(e.g., `"127.0.0.1"`), instead of integers.
+
+##### `udp:receivefrom(length [, flags])`
+
+_udp:receivefrom()_ is just an alias to `sock:receive(length, flags, true)`.
+
+# Examples
 
 ### spyglass
 
@@ -448,8 +714,8 @@ otherwise, it logs a mnemonic of the ASCII code, (e.g., `<del>` stands for `127`
 #### Usage
 
 ```
-sudo cp examples/spyglass.lua /lib/modules/lua/ # installs spyglass
-sudo sbin/lunatik --run spyglass    # runs spyglass
+sudo make examples_install          # installs examples
+sudo lunatik run examples/spyglass  # runs spyglass
 sudo tail -f /dev/spyglass          # prints the key log
 sudo sh -c "echo 0 > /dev/spyglass" # disable the key logging
 sudo sh -c "echo 1 > /dev/spyglass" # enable the key logging
@@ -468,10 +734,10 @@ until the user types the same key sequence again.
 #### Usage
 
 ```
-sudo cp examples/keylocker.lua /lib/modules/lua/ # installs keylocker
-sudo sbin/lunatik --run keylocker                # runs keylocker
-<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>   # locks keyboard
-<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>   # unlocks keyboard
+sudo make examples_install                     # installs examples
+sudo lunatik run examples/keylocker            # runs keylocker
+<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT> # locks keyboard
+<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT> # unlocks keyboard
 ```
 
 ## References
