@@ -39,7 +39,7 @@ static const char *lunatik_loader(lua_State *L, void *ud, size_t *size)
 	ssize_t ret = kernel_read(lf->file, lf->buffer, PAGE_SIZE, &(lf->pos));
 
 	if (unlikely(ret < 0))
-	luaL_error(L, "kernel_read failure %lld", (long long)ret);
+		luaL_error(L, "kernel_read failure %I", (lua_Integer)ret);
 
 	*size = (size_t)ret;
 	return lf->buffer;
