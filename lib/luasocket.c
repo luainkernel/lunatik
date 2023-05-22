@@ -60,10 +60,19 @@ do {						\
 	msg.msg_name = &addr;			\
 } while(0)
 
-static void luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr *addr, int ix)
+#define LUASOCKET_SOCKADDR(addr)	(struct sockaddr *)&addr, sizeof(addr)
+
+#define LUASOCKET_ADDRMAX		(sizeof(struct sockaddr_ll)) /* AF_PACKET */
+#define LUASOCKET_ADDRLEN		(LUASOCKET_ADDRMAX - sizeof(unsigned short))
+typedef struct luasocket_addr_s {
+	unsigned short family;
+	unsigned char data[LUASOCKET_ADDRLEN];
+} luasocket_addr_t;
+
+static void luasocket_checkaddr(lua_State *L, struct socket *socket, luasocket_addr_t *addr, int ix)
 {
-	addr->sa_family = socket->sk->sk_family;
-	if (addr->sa_family == AF_INET) {
+	addr->family = socket->sk->sk_family;
+	if (addr->family == AF_INET) {
 		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
 		addr_in->sin_addr.s_addr = htonl((u32)luaL_checkinteger(L, ix));
 		addr_in->sin_port = htons((u16)luaL_checkinteger(L, ix + 1));
@@ -71,7 +80,7 @@ static void luasocket_checkaddr(lua_State *L, struct socket *socket, struct sock
 	else {
 		size_t len;
 		const char *addr_data = luaL_checklstring(L, ix, &len);
-		memcpy(addr->sa_data, addr_data, min(sizeof(addr->sa_data), len));
+		memcpy(addr->data, addr_data, min(LUASOCKET_ADDRLEN, len));
 	}
 }
 
@@ -131,7 +140,7 @@ static int luasocket_send(lua_State *L)
 	vec.iov_len = len;
 
 	if (unlikely(nargs >= 3)) {
-		struct sockaddr addr;
+		luasocket_addr_t addr;
 		luasocket_checkaddr(L, socket, &addr, 3);
 		luasocket_msgaddr(msg, addr);
 	}
@@ -168,10 +177,10 @@ static int luasocket_receive(lua_State *L)
 static int luasocket_bind(lua_State *L)
 {
 	struct socket *socket = luasocket_checksocket(L, 1);
-	struct sockaddr addr;
+	luasocket_addr_t addr;
 
 	luasocket_checkaddr(L, socket, &addr, 2);
-	luasocket_try(L, kernel_bind, socket, &addr, sizeof(addr));
+	luasocket_try(L, kernel_bind, socket, LUASOCKET_SOCKADDR(addr));
 	return 0;
 }
 
@@ -200,14 +209,14 @@ static int luasocket_accept(lua_State *L)
 static int luasocket_connect(lua_State *L)
 {
 	struct socket *socket = luasocket_checksocket(L, 1);
-	struct sockaddr addr;
+	luasocket_addr_t addr;
 	int nargs = lua_gettop(L);
 	int flags;
 
 	luasocket_checkaddr(L, socket, &addr, 2);
 	flags = luaL_optinteger(L, nargs, 0);
 
-	luasocket_try(L, kernel_connect, socket, &addr, sizeof(addr), flags);
+	luasocket_try(L, kernel_connect, socket, LUASOCKET_SOCKADDR(addr), flags);
 	return 0;
 }
 
