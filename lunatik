@@ -25,7 +25,7 @@
 local lunatik = {
 	copyright = "Copyright (C) 2023 ring-0 Ltda.",
 	device = "/dev/lunatik",
-	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "lunatik_run"}
+	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu", "lunatik_run"}
 }
 
 function lunatik.prompt()
