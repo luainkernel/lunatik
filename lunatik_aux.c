@@ -74,3 +74,7 @@ error:
 }
 EXPORT_SYMBOL(lunatik_loadfile);
 
+/* used by lib/luarcu.c */
+#include <lua/lstring.h>
+EXPORT_SYMBOL(luaS_hash);
+
