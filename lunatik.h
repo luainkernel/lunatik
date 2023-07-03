@@ -102,12 +102,21 @@ typedef struct lunatik_class_s {
 	const luaL_Reg *methods;
 } lunatik_class_t;
 
+static inline bool lunatik_isobject(lua_State *L, int index)
+{
+	bool isobject = lua_getfield(L, index, "__index") == LUA_TNIL;
+	lua_pop(L, 1);
+	return isobject;
+}
+
 static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 {
 	luaL_newmetatable(L, class->name); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
-	lua_pushvalue(L, -1);  /* push lib */
-	lua_setfield(L, -2, "__index");  /* mt.__index = lib */
+	if (lunatik_isobject(L, -1)) {
+		lua_pushvalue(L, -1);  /* push mt */
+		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
+	}
 	lua_pop(L, 1);  /* pop mt */
 }
 
