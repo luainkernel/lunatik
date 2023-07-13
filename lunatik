@@ -60,7 +60,7 @@ function lunatik.dostring(chunk)
 end
 
 function lunatik.usage()
-	print("usage: lunatik [load|unload|reload|status] [run|stop <script>]")
+	print("usage: lunatik [load|unload|reload|status|list] [run|stop <script>]")
 	os.exit(false)
 end
 

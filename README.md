@@ -47,13 +47,14 @@ Lunatik 3.0  Copyright (C) 2023 ring-0 Ltda.
 ### lunatik
 
 ```Shell
-usage: lunatik [load|unload|reload|status] [run|stop <script>]
+usage: lunatik [load|unload|reload|status|list] [run|stop <script>]
 ```
 
 * `load`: load Lunatik kernel modules
 * `unload`: unload Lunatik kernel modules
 * `reload`: reload Lunatik kernel modules
-* `status`: show what Lunatik kernel modules are currently loaded
+* `status`: show which Lunatik kernel modules are currently loaded
+* `list`: show which runtime environments are currently running
 * `run`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`
 * `stop`: stop the runtime environment created to run the script `<script>`
 * `default`: start a _REPL (Read–Eval–Print Loop)_
@@ -570,7 +571,7 @@ Otherwise:
 
 _socket.receive()_ receives a string with up to `length` bytes through the socket `sock`.
 The available _message flags_ are defined by the
-[socket.message](https://github.com/luainkernel/lunatik#socketmsg) table.
+[socket.msg](https://github.com/luainkernel/lunatik#socketmsg) table.
 If `from` is `true`, it returns the received message followed by the peer's address.
 Otherwise, it returns only the received message.
 
@@ -699,6 +700,33 @@ It overrides `socket` methods to use addresses as _numbers-and-dots notation_
 ##### `udp:receivefrom(length [, flags])`
 
 _udp:receivefrom()_ is just an alias to `sock:receive(length, flags, true)`.
+
+### rcu
+
+The `rcu` library provides support for the kernel
+[Read-copy update (RCU)](https://lwn.net/Articles/262464/)
+synchronization mechanism.
+This library was inspired by
+[Caio Messias](https://github.com/cmessias)'
+[GSoC project](https://summerofcode.withgoogle.com/archive/2018/projects/5736202426646528).
+
+#### `rcu.table([size])`
+
+_rcu.table()_ creates a new `rcu.table`
+[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
+which binds the kernel [generic hash table](https://lwn.net/Articles/510202/).
+This function receives as argument the number of buckets rounded up to the next power of 2.
+The default size is `1024`.
+
+#### `rcu.publish(name, rcu.table)`
+
+_rcu.publish()_ makes the `rcu.table` availabe on other runtime environments using
+[rcu.subscribe()](https://github.com/luainkernel/lunatik#rcusubscribe).
+
+#### `rcu.subscribe(name)`
+
+_rcu.subscribe()_ returns a `rcu.table` which was previously published using
+[rcu.publish()](https://github.com/luainkernel/lunatik#rcupublish).
 
 # Examples
 
