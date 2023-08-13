@@ -61,7 +61,7 @@ function lunatik.dostring(chunk)
 end
 
 function lunatik.usage()
-	print("usage: lunatik [load|unload|reload|status|list] [run|stop <script>]")
+	print("usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]")
 	os.exit(false)
 end
 
@@ -108,6 +108,11 @@ local parser = {
 	['run'] = [[
 		local script = "%s"
 		lunatik.__runtimes[script] = lunatik.runtime(script)
+	]],
+	['spawn'] = [[
+		local thread = require("thread")
+		local script = "%s"
+		lunatik.__runtimes[script] = thread.run(lunatik.runtime(script), script)
 	]],
 	['stop'] = [[
 		local script = "%s"
