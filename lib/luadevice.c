@@ -56,7 +56,7 @@ static LIST_HEAD(luadevice_list);
 
 #define luadevice_lock()		mutex_lock(&luadevice_mutex)
 #define luadevice_unlock()		mutex_unlock(&luadevice_mutex)
-#define luadevice_foreach(luadev)	list_for_each_entry(luadev, &luadevice_list, entry)
+#define luadevice_foreach(luadev)	list_for_each_entry((luadev), &luadevice_list, entry)
 
 static void luadevice_free(struct kref *kref)
 {
@@ -107,8 +107,8 @@ static inline luadevice_t *luadevice_find(dev_t devt)
 
 #define LUADEVICE_MT	"device"
 
-#define luadevice_userdata(L, ud)	(lua_rawgeti(L, LUA_REGISTRYINDEX, ud) != LUA_TUSERDATA)
-#define luadevice_driver(L, ix)		(lua_getiuservalue(L, ix, 1) != LUA_TTABLE)
+#define luadevice_userdata(L, ud)	(lua_rawgeti((L), LUA_REGISTRYINDEX, (ud)) != LUA_TUSERDATA)
+#define luadevice_driver(L, ix)		(lua_getiuservalue((L), (ix), 1) != LUA_TTABLE)
 
 static inline int luadevice_getdriver(lua_State *L, int ud)
 {
@@ -204,10 +204,10 @@ static int luadevice_dorelease(lua_State *L, int ud)
 	return luadevice_fop(L, ud, "release", 0, 0);
 }
 
-#define luadevice_fromfile(f)	((luadevice_t *)f->private_data)
+#define luadevice_fromfile(f)	((luadevice_t *)(f)->private_data)
 #define luadevice_run(handler, ret, f, ...)					\
-		lunatik_run(luadevice_fromfile(f)->runtime, handler,		\
-			ret, luadevice_fromfile(f)->ud, ## __VA_ARGS__)
+		lunatik_run(luadevice_fromfile(f)->runtime, (handler),		\
+			(ret), luadevice_fromfile(f)->ud, ## __VA_ARGS__)
 
 static int luadevice_open(struct inode *inode, struct file *f)
 {
