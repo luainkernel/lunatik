@@ -59,6 +59,8 @@ do {							\
 int lunatik_runtime(lunatik_runtime_t **pruntime, const char *script, bool sleep);
 int lunatik_stop(lunatik_runtime_t *runtime);
 
+lunatik_runtime_t *lunatik_checkruntime(lua_State *L, int arg);
+
 static inline void lunatik_release(struct kref *kref)
 {
 	lunatik_runtime_t *runtime = container_of(kref, lunatik_runtime_t, kref);

@@ -145,6 +145,19 @@ int lunatik_stop(lunatik_runtime_t *runtime)
 EXPORT_SYMBOL(lunatik_stop);
 
 #define LUNATIK_MT	"runtime"
+
+#define lunatik_checkpruntime(L, n)	((lunatik_runtime_t **)luaL_checkudata((L), (n), LUNATIK_MT))
+
+lunatik_runtime_t *lunatik_checkruntime(lua_State *L, int arg)
+{
+	lunatik_runtime_t **pruntime = lunatik_checkpruntime(L, 1);
+	lunatik_runtime_t *runtime = *pruntime;
+
+	luaL_argcheck(L, runtime != NULL, arg, "invalid runtime");
+	return runtime;
+}
+EXPORT_SYMBOL(lunatik_checkruntime);
+
 static int lunatik_lruntime(lua_State *L)
 {
 	lunatik_runtime_t **pruntime;
@@ -163,10 +176,9 @@ static int lunatik_lruntime(lua_State *L)
 
 static int lunatik_lstop(lua_State *L)
 {
-	lunatik_runtime_t **pruntime, *runtime;
+	lunatik_runtime_t **pruntime = lunatik_checkpruntime(L, 1);
+	lunatik_runtime_t *runtime = *pruntime;
 
-	pruntime = (lunatik_runtime_t **)luaL_checkudata(L, 1, LUNATIK_MT);
-	runtime = *pruntime;
 	if (runtime != NULL) {
 		lunatik_stop(runtime);
 		*pruntime = NULL;
