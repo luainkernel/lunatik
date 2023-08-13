@@ -47,7 +47,7 @@ Lunatik 3.0  Copyright (C) 2023 ring-0 Ltda.
 ### lunatik
 
 ```Shell
-usage: lunatik [load|unload|reload|status|list] [run|stop <script>]
+usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]
 ```
 
 * `load`: load Lunatik kernel modules
@@ -56,6 +56,7 @@ usage: lunatik [load|unload|reload|status|list] [run|stop <script>]
 * `status`: show which Lunatik kernel modules are currently loaded
 * `list`: show which runtime environments are currently running
 * `run`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`
+* `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
 * `stop`: stop the runtime environment created to run the script `<script>`
 * `default`: start a _REPL (Read–Eval–Print Loop)_
 
