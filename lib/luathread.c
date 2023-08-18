@@ -52,7 +52,10 @@ static inline luathread_t *luathread_checkudata(lua_State *L, int arg)
 static int luathread_call(lua_State *L)
 {
 	lua_getglobal(L, LUATHREAD_FUNC);
-	lua_call(L, 0, 1);
+	if (lua_pcall(L, 0, 1, 0) != LUA_OK) {
+		pr_err("%s: %s\n", lua_tostring(L, -1), LUATHREAD_FUNC);
+		return -1;
+	}
 	return (int)lua_tointeger(L, -1);
 }
 
