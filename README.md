@@ -623,7 +623,6 @@ Otherwise:
 #### `socket.listen(sock [, backlog])`, `sock:listen([backlog])`
 
 _socket.listen()_ moves the socket `sock` to listening state.
-It returns a new socket
 * `backlog`: pending connections queue size.
 If omitted, it uses
 [SOMAXCONN](https://elixir.bootlin.com/linux/latest/source/include/linux/socket.h#L296)
@@ -729,6 +728,55 @@ _rcu.publish()_ makes the `rcu.table` availabe on other runtime environments usi
 _rcu.subscribe()_ returns a `rcu.table` which was previously published using
 [rcu.publish()](https://github.com/luainkernel/lunatik#rcupublishname-rcutable).
 
+### thread
+
+The `thread` library provides support for the
+[kernel thread primitives](https://lwn.net/Articles/65178/).
+
+#### `thread.run(runtime, name)`
+
+_thread.run()_ creates a new `thread`
+[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
+and wakes it up.
+This function receives the following arguments:
+* `runtime`: the
+[runtime environment](https://github.com/luainkernel/lunatik#lunatikruntimescript--sleep)
+for running a task in the created kernel thread.
+The task must be specified using
+[thread.settask()](https://github.com/luainkernel/lunatik#threadsettasktask)
+on the runtime environment.
+* `name`: string representing the name for the thread (e.g., as shown on `ps`). 
+
+#### `thread.settask(task)`
+
+_thread.settask()_ specifies the `task` function to be called in the current
+[runtime environment](https://github.com/luainkernel/lunatik#lunatikruntimescript--sleep)
+when running it in a
+[thread](https://github.com/luainkernel/lunatik#threadrunruntime-name).
+The `task` may return an integer that will be received by
+[thread.stop()](https://github.com/luainkernel/lunatik#threadstopthrd-thrdstop).
+If none is returned,
+[thread.stop()](https://github.com/luainkernel/lunatik#threadstopthrd-thrdstop)
+receives `0`.
+If an error has occurred,
+[thread.stop()](https://github.com/luainkernel/lunatik#threadstopthrd-thrdstop)
+receives `-1`.
+
+#### `thread.shouldstop()`
+
+_thread.shouldstop()_ returns `true` if
+[thread.stop()](https://github.com/luainkernel/lunatik#threadstopthrd-thrdstop)
+was called; otherwise, it returns `false`.
+
+#### `thread.stop(thrd), thrd:stop()`
+
+_thread.stop()_ sets 
+[thread.shouldstop()](https://github.com/luainkernel/lunatik#threadshouldstop)
+on the thread `thrd` to return true, wakes `thrd`, and waits for it to exit.
+_thread.stop()_ returns the result of the `task` defined by
+[thread.settask()](https://github.com/luainkernel/lunatik#threadsettasktask)
+on `thrd`.
+
 # Examples
 
 ### spyglass
@@ -784,6 +832,32 @@ It prints destination and source MAC addresses followed by Ethernet type and the
 sudo make examples_install    # installs examples
 sudo lunatik run examples/tap # runs tap
 cat /dev/tap
+```
+
+### shared
+
+[shared](examples/shared.lua)
+is a kernel script that implements an in-memory key-value store using
+[rcu](https://github.com/luainkernel/lunatik#rcu),
+[socket](https://github.com/luainkernel/lunatik#socket) and
+[thread](https://github.com/luainkernel/lunatik#thread).
+
+#### Usage
+
+```
+sudo make examples_install         # installs examples
+sudo lunatik spawn examples/shared # spawns shared
+nc 127.0.0.1 90                    # connects to shared
+foo=bar                            # assigns "bar" to foo
+foo                                # retrieves foo
+bar
+^C                                 # finishes the connection
+sudo lunatik                       # runs lunatik prompt
+Lunatik 3.2  Copyright (C) 2023 ring-0 Ltda.
+> rcu    = require("rcu")          -- requires rcu library
+> shared = rcu.subscribe("shared") -- subscribes to the shared table
+> return shared.foo                -- returns foo's value to the user space
+bar
 ```
 
 ## References
