@@ -118,6 +118,7 @@ local parser = {
 		local script = "%s"
 		lunatik.__runtimes[script]:stop()
 		lunatik.__runtimes[script] = nil
+		collectgarbage() -- cleanup thread runtimes
 	]],
 	['list'] = [[
 		local list = {}
