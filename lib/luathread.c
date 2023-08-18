@@ -107,11 +107,11 @@ static int luathread_stop(lua_State *L)
 	luathread_t *thread = luathread_checkudata(L, 1);
 
 	complete(&thread->stopped);
-	kthread_stop(thread->task);
+	lua_pushinteger(L, kthread_stop(thread->task));
 	thread->task = NULL;
 	lunatik_put(thread->runtime);
 	thread->runtime = NULL;
-	return 0;
+	return 1;
 }
 
 static const luaL_Reg luathread_lib[] = {
