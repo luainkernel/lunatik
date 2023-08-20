@@ -39,7 +39,7 @@ device.new(driver)
 make
 sudo make install
 sudo lunatik # execute Lunatik REPL
-Lunatik 3.0  Copyright (C) 2023 ring-0 Ltda.
+Lunatik 3.2  Copyright (C) 2023 ring-0 Ltda.
 > return 42 -- execute this line in the kernel
 42
 ```
@@ -62,7 +62,7 @@ usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]
 
 ## Lua Version
 
-Lunatik 3.0 is based on
+Lunatik 3.2 is based on
 [Lua 5.4 adapted](https://github.com/luainkernel/lua)
 to run in the kernel.
 
