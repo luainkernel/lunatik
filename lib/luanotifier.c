@@ -33,29 +33,42 @@
 
 #define LUANOTIFIER_MT	"notifier"
 
+typedef int (*luanotifier_register_t)(struct notifier_block *nb);
+typedef int (*luanotifier_handler_t)(lua_State *L, void *data);
+
 typedef struct luanotifier_s {
 	struct notifier_block nb;
 	lunatik_runtime_t *runtime;
+	luanotifier_handler_t handler;
+	luanotifier_register_t unregister;
 	int ud;
 	bool running;
 } luanotifier_t;
 
-static int luanotifier_handler(lua_State *L, int ud, unsigned long event,
-	int down, int shift, unsigned int key)
+static int luanotifier_keyboard_handler(lua_State *L, void *data)
 {
+	struct keyboard_notifier_param *param = (struct keyboard_notifier_param *)data;
+
+	lua_pushboolean(L, param->down);
+	lua_pushboolean(L, param->shift);
+	lua_pushinteger(L, (lua_Integer)(param->value));
+	return 3;
+}
+
+static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
+{
+	int nargs = 1; /* event */
 	int ret = NOTIFY_OK;
 
-	if (lua_rawgeti(L, LUA_REGISTRYINDEX, ud) != LUA_TUSERDATA ||
+	if (lua_rawgeti(L, LUA_REGISTRYINDEX, notifier->ud) != LUA_TUSERDATA ||
 	    lua_getiuservalue(L, -1, 1) != LUA_TFUNCTION) {
 		pr_err("could not find notifier callback\n");
 		goto err;
 	}
 
 	lua_pushinteger(L, (lua_Integer)event);
-	lua_pushboolean(L, down);
-	lua_pushboolean(L, shift);
-	lua_pushinteger(L, (lua_Integer)key);
-	if (lua_pcall(L, 4, 1, 0) != LUA_OK) { /* callback(event, down, shift, keycode) */
+	nargs += notifier->handler(L, data);
+	if (lua_pcall(L, nargs, 1, 0) != LUA_OK) { /* callback(event, ...) */
 		pr_err("%s\n", lua_tostring(L, -1));
 		goto err;
 	}
@@ -65,20 +78,20 @@ err:
 	return ret;
 }
 
-static int luanotifier_cb(struct notifier_block *nb, unsigned long event, void *data)
+
+static int luanotifier_call(struct notifier_block *nb, unsigned long event, void *data)
 {
-	struct keyboard_notifier_param *param = (struct keyboard_notifier_param *)data;
 	luanotifier_t *notifier = container_of(nb, luanotifier_t, nb);
 	int ret;
 
 	notifier->running = true;
-	lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier->ud, event,
-			param->down, param->shift, param->value);
+	lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
 	notifier->running = false;
 	return ret;
 }
 
-static int luanotifier_keyboard(lua_State *L)
+static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, luanotifier_register_t unregister_fn,
+	luanotifier_handler_t handler_fn)
 {
 	luanotifier_t *notifier;
 
@@ -86,20 +99,32 @@ static int luanotifier_keyboard(lua_State *L)
 
 	notifier = (luanotifier_t *)lua_newuserdatauv(L, sizeof(luanotifier_t), 1);
 	notifier->runtime = lunatik_toruntime(L);
-	notifier->nb.notifier_call = luanotifier_cb;
+	notifier->nb.notifier_call = luanotifier_call;
 	notifier->running = false;
+	notifier->unregister = unregister_fn;
+	notifier->handler = handler_fn;
 
-	register_keyboard_notifier(&notifier->nb);
-
-	luaL_setmetatable(L, LUANOTIFIER_MT);
 	lua_pushvalue(L, 1);  /* push callback */
 	lua_setiuservalue(L, -2, 1); /* pops callback */
 
 	lua_pushvalue(L, -1);  /* push userdata */
 	notifier->ud = luaL_ref(L, LUA_REGISTRYINDEX); /* pops userdata */
 
+	if (register_fn(&notifier->nb) != 0)
+		luaL_error(L, "couldn't create notifier");
+
+	luaL_setmetatable(L, LUANOTIFIER_MT);
 	return 1; /* userdata */
 }
+
+#define LUANOTIFIER_NEWCHAIN(name) 						\
+static int luanotifier_##name(lua_State *L)					\
+{										\
+	return luanotifier_new(L, register_##name##_notifier, 			\
+		unregister_##name##_notifier, luanotifier_##name##_handler);	\
+}
+
+LUANOTIFIER_NEWCHAIN(keyboard);
 
 static int luanotifier_delete(lua_State *L)
 {
@@ -112,7 +137,7 @@ static int luanotifier_delete(lua_State *L)
 	if (runtime == NULL)
 		goto out;
 
-	unregister_keyboard_notifier(&notifier->nb);
+	notifier->unregister(&notifier->nb);
 	luaL_unref(runtime->L, LUA_REGISTRYINDEX, notifier->ud);
 	notifier->ud = LUA_NOREF;
 	notifier->runtime = NULL;
