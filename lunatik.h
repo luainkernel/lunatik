@@ -56,6 +56,11 @@ do {							\
 #define lunatik_unlock(runtime)	lunatik_locker(runtime, mutex_unlock, spin_unlock)
 #define lunatik_toruntime(L)	(*(lunatik_runtime_t **)lua_getextraspace(L))
 
+static inline bool lunatik_islocked(lunatik_runtime_t *runtime)
+{
+	return runtime->sleep ? mutex_is_locked(&runtime->mutex) : spin_is_locked(&runtime->spin);
+}
+
 int lunatik_runtime(lunatik_runtime_t **pruntime, const char *script, bool sleep);
 int lunatik_stop(lunatik_runtime_t *runtime);
 
@@ -76,7 +81,9 @@ static inline void lunatik_release(struct kref *kref)
 #define lunatik_run(runtime, handler, ret, ...)		\
 do {							\
 	lua_State *L;					\
-	lunatik_lock(runtime);				\
+	int unlocked = !lunatik_islocked(runtime);	\
+	if (likely(unlocked))				\
+		lunatik_lock(runtime);			\
 	L = runtime->L;					\
 	if (unlikely(!L))				\
 		ret = -ENXIO;				\
@@ -86,7 +93,8 @@ do {							\
 		ret = handler(L, ## __VA_ARGS__);	\
 		lua_settop(L, n);			\
 	}						\
-	lunatik_unlock(runtime);			\
+	if (likely(unlocked))				\
+		lunatik_unlock(runtime);		\
 } while(0)
 
 typedef struct lunatik_reg_s {
