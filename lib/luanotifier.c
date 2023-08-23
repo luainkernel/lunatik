@@ -23,7 +23,9 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
+#include <linux/version.h>
 #include <linux/keyboard.h>
+#include <linux/netdevice.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -53,6 +55,14 @@ static int luanotifier_keyboard_handler(lua_State *L, void *data)
 	lua_pushboolean(L, param->shift);
 	lua_pushinteger(L, (lua_Integer)(param->value));
 	return 3;
+}
+
+static int luanotifier_netdevice_handler(lua_State *L, void *data)
+{
+	struct net_device *dev = netdev_notifier_info_to_dev(data);
+
+	lua_pushstring(L, dev->name);
+	return 1;
 }
 
 static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
@@ -125,6 +135,7 @@ static int luanotifier_##name(lua_State *L)					\
 }
 
 LUANOTIFIER_NEWCHAIN(keyboard);
+LUANOTIFIER_NEWCHAIN(netdevice);
 
 static int luanotifier_delete(lua_State *L)
 {
@@ -147,6 +158,7 @@ out:
 
 static const luaL_Reg luanotifier_lib[] = {
 	{"keyboard", luanotifier_keyboard},
+	{"netdevice", luanotifier_netdevice},
 	{"delete", luanotifier_delete},
 	{NULL, NULL}
 };
@@ -175,9 +187,58 @@ static const lunatik_reg_t luanotifier_kbd[] = {
 	{NULL, 0}
 };
 
+static const lunatik_reg_t luanotifier_netdev[] = {
+	{"UP", NETDEV_UP},
+	{"DOWN", NETDEV_DOWN},
+	{"REBOOT", NETDEV_REBOOT},
+	{"CHANGE", NETDEV_CHANGE},
+	{"REGISTER", NETDEV_REGISTER},
+	{"UNREGISTER", NETDEV_UNREGISTER},
+	{"CHANGEMTU", NETDEV_CHANGEMTU},
+	{"CHANGEADDR", NETDEV_CHANGEADDR},
+	{"PRE_CHANGEADDR", NETDEV_PRE_CHANGEADDR},
+	{"GOING_DOWN", NETDEV_GOING_DOWN},
+	{"CHANGENAME", NETDEV_CHANGENAME},
+	{"FEAT_CHANGE", NETDEV_FEAT_CHANGE},
+	{"BONDING_FAILOVER", NETDEV_BONDING_FAILOVER},
+	{"PRE_UP", NETDEV_PRE_UP},
+	{"PRE_TYPE_CHANGE", NETDEV_PRE_TYPE_CHANGE},
+	{"POST_TYPE_CHANGE", NETDEV_POST_TYPE_CHANGE},
+	{"POST_INIT", NETDEV_POST_INIT},
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0))
+	{"PRE_UNINIT", NETDEV_PRE_UNINIT},
+#endif
+	{"RELEASE", NETDEV_RELEASE},
+	{"NOTIFY_PEERS", NETDEV_NOTIFY_PEERS},
+	{"JOIN", NETDEV_JOIN},
+	{"CHANGEUPPER", NETDEV_CHANGEUPPER},
+	{"RESEND_IGMP", NETDEV_RESEND_IGMP},
+	{"PRECHANGEMTU", NETDEV_PRECHANGEMTU},
+	{"CHANGEINFODATA", NETDEV_CHANGEINFODATA},
+	{"BONDING_INFO", NETDEV_BONDING_INFO},
+	{"PRECHANGEUPPER", NETDEV_PRECHANGEUPPER},
+	{"CHANGELOWERSTATE", NETDEV_CHANGELOWERSTATE},
+	{"UDP_TUNNEL_PUSH_INFO", NETDEV_UDP_TUNNEL_PUSH_INFO},
+	{"UDP_TUNNEL_DROP_INFO", NETDEV_UDP_TUNNEL_DROP_INFO},
+	{"CHANGE_TX_QUEUE_LEN", NETDEV_CHANGE_TX_QUEUE_LEN},
+	{"CVLAN_FILTER_PUSH_INFO", NETDEV_CVLAN_FILTER_PUSH_INFO},
+	{"CVLAN_FILTER_DROP_INFO", NETDEV_CVLAN_FILTER_DROP_INFO},
+	{"SVLAN_FILTER_PUSH_INFO", NETDEV_SVLAN_FILTER_PUSH_INFO},
+	{"SVLAN_FILTER_DROP_INFO", NETDEV_SVLAN_FILTER_DROP_INFO},
+	{"OFFLOAD_XSTATS_ENABLE", NETDEV_OFFLOAD_XSTATS_ENABLE},
+	{"OFFLOAD_XSTATS_DISABLE", NETDEV_OFFLOAD_XSTATS_DISABLE},
+	{"OFFLOAD_XSTATS_REPORT_USED", NETDEV_OFFLOAD_XSTATS_REPORT_USED},
+	{"OFFLOAD_XSTATS_REPORT_DELTA", NETDEV_OFFLOAD_XSTATS_REPORT_DELTA},
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+	{"XDP_FEAT_CHANGE", NETDEV_XDP_FEAT_CHANGE}
+#endif
+	{NULL, 0}
+};
+
 static const lunatik_namespace_t luanotifier_flags[] = {
 	{"notify", luanotifier_notify},
 	{"kbd", luanotifier_kbd},
+	{"netdev", luanotifier_netdev},
 	{NULL, NULL}
 };
 
