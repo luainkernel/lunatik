@@ -54,12 +54,6 @@ static void *lunatik_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
 	return krealloc(ptr, nsize, lunatik_gfp(runtime));
 }
 
-static inline void lunatik_removeglobal(lua_State *L, const char *var)
-{
-	lua_pushnil(L);
-	lua_setglobal(L, var);
-}
-
 static inline lunatik_runtime_t *lunatik_new(lua_State *L, bool sleep)
 {
 	lunatik_runtime_t *runtime;
@@ -67,6 +61,7 @@ static inline lunatik_runtime_t *lunatik_new(lua_State *L, bool sleep)
 	if ((runtime = (lunatik_runtime_t *)kmalloc(sizeof(lunatik_runtime_t), GFP_KERNEL)) == NULL)
 		return NULL;
 	runtime->sleep = sleep;
+	runtime->ready = false;
 	runtime->L = L;
 	lunatik_toruntime(L) = runtime;
 	lunatik_locker(runtime, mutex_init, spin_lock_init);
@@ -105,8 +100,8 @@ static int lunatik_newruntime(lunatik_runtime_t **pruntime, lua_State *parent, c
 	base = lua_gettop(L);
 	lunatik_setversion(L);
 	luaL_openlibs(L);
-	if (!parent) /* child runtimes cannot create new */
-		luaL_requiref(L, "lunatik", luaopen_lunatik, 1);
+	luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
+	lua_pop(L, 1); /* lunatik library */
 
 	filename = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, script);
 	if (luaL_dofile(L, filename) != LUA_OK) {
@@ -116,14 +111,9 @@ static int lunatik_newruntime(lunatik_runtime_t **pruntime, lua_State *parent, c
 		return -EINVAL;
 	}
 
-	if (!sleep) { /* can't load file for now on */
-		lunatik_removeglobal(L, "dofile");
-		lunatik_removeglobal(L, "loadfile");
-		lunatik_removeglobal(L, "require");
-	}
-
 	lua_setallocf(L, lunatik_alloc, runtime);
 	lua_settop(L, base);
+	runtime->ready = true;
 	*pruntime = runtime;
         return 0;
 }

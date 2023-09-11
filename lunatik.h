@@ -42,6 +42,7 @@ typedef struct lunatik_runtime_s {
 		spinlock_t spin;
 	};
 	bool sleep;
+	bool ready;
 } lunatik_runtime_t;
 
 #define lunatik_locker(runtime, mutex_op, spin_op)	\
@@ -77,6 +78,9 @@ static inline void lunatik_release(struct kref *kref)
 #define lunatik_get(runtime)	kref_get(&(runtime)->kref)
 
 #define lunatik_getsleep(L)	(lunatik_toruntime(L)->sleep)
+#define lunatik_getready(L)	(lunatik_toruntime(L)->ready)
+
+#define lunatik_cansleep(L)	(!lunatik_getready(L) || lunatik_getsleep(L))
 
 #define lunatik_run(runtime, handler, ret, ...)		\
 do {							\
@@ -149,7 +153,7 @@ int luaopen_##libname(lua_State *L)								\
 	const lunatik_class_t *cls = class; /* avoid -Waddress */				\
 	const lunatik_namespace_t *nss = namespaces; /* avoid -Waddress */			\
 	if (sleep && !lunatik_getsleep(L))							\
-		luaL_error(L, "cannot require '" #libname "' on non-sleepable runtimes");	\
+		luaL_error(L, "cannot require '" #libname "' on non-sleepable runtime");	\
 	luaL_newlib(L, funcs);									\
 	if (cls)										\
 		lunatik_newclass(L, class);							\
