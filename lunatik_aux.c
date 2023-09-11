@@ -27,6 +27,8 @@
 #include <lua.h>
 #include <lauxlib.h>
 
+#include <lunatik.h>
+
 typedef struct lunatik_file {
 	struct file *file;
 	char *buffer;
@@ -50,6 +52,11 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode)
 	lunatik_file lf = {NULL, NULL, 0};
 	int status = LUA_ERRFILE;
 	int fnameindex = lua_gettop(L) + 1;  /* index of filename on the stack */
+
+	if (unlikely(!lunatik_cansleep(L))) {
+		lua_pushfstring(L, "cannot load file on non-sleepable runtime");
+		goto error;
+	}
 
 	if (unlikely(filename == NULL) || IS_ERR(lf.file = filp_open(filename, O_RDONLY, 0600))) {
 		lua_pushfstring(L, "cannot open %s", filename);

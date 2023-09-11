@@ -142,10 +142,7 @@ flag for allocating new memory later on on
 [lunatik\_run()](https://github.com/luainkernel/lunatik#lunatik_run) calls.
 Otherwise, it will use a [spinlock](https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t) and [GFP\_ATOMIC](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html).
 _lunatik\_runtime()_ opens the Lua standard libraries
-[present on Lunatik](https://github.com/luainkernel/lunatik#c-api)
-and, if `sleep` is _true_, it also opens the
-[lunatik](https://github.com/luainkernel/lunatik#lunatik-1)
-library to make them available for the `script`.
+[present on Lunatik](https://github.com/luainkernel/lunatik#c-api).
 If successful, _lunatik\_runtime()_ sets the address pointed by `pruntime` and
 [Lua's extra space](https://www.lua.org/manual/5.4/manual.html#lua_getextraspace)
 with a pointer for the new created `runtime` environment,
@@ -277,10 +274,7 @@ and
 [GFP\_KERNEL](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html);
 otherwise, it will use a [spinlock](https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t) and [GFP\_ATOMIC](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html).
 _lunatik.runtime()_ opens the Lua standard libraries
-[present on Lunatik](https://github.com/luainkernel/lunatik#c-api),
-but differently from
-[lunatik\_runtime()](https://github.com/luainkernel/lunatik#lunatik_runtime),
-it **does not** open the `lunatik` library.
+[present on Lunatik](https://github.com/luainkernel/lunatik#c-api).
 
 #### `lunatik.stop(runtime)`, `runtime:stop()`
 

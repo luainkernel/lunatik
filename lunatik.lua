@@ -21,6 +21,8 @@
 -- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 --
 
+lunatik = require("lunatik")
+
 local device = require("device")
 
 local function nop() end
