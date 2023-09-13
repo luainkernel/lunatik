@@ -214,7 +214,6 @@ static int luarcu_index(lua_State *L)
 {
 	luarcu_table_t *table = luarcu_checktable(L, 1);
 	luarcu_entry_t *entry;
-	luaL_Buffer buffer;
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
 	unsigned int index = luarcu_hash(table, key, keylen);
@@ -226,9 +225,7 @@ static int luarcu_index(lua_State *L)
 		goto out;
 	}
 
-	luaL_buffinitsize(L, &buffer, entry->len);
-	luaL_addlstring(&buffer, entry->data, entry->len);
-	luaL_pushresultsize(&buffer, entry->len);
+	lua_pushlstring(L, entry->data, entry->len);
 out:
 	rcu_read_unlock();
 	return 1;
@@ -241,7 +238,6 @@ static int luarcu_newindex(lua_State *L)
 	const char *key = luaL_checklstring(L, 2, &keylen);
 	const char *data = luarcu_checkoptnil(L, 3, luaL_checklstring, &len);
 
-	len++; /* null-terminated */
 	luarcu_insert(L, table, key, keylen, data, len);
 	return 0;
 }
