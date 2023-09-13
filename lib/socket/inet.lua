@@ -51,6 +51,7 @@ end
 function inet:new(o)
 	local o = o or {}
 	self.__index = self
+	self.__close = self.close
 	return setmetatable(o, self)
 end
 
