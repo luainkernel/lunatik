@@ -47,7 +47,7 @@ static const char *lunatik_loader(lua_State *L, void *ud, size_t *size)
 
 int lunatik_loadfile(lua_State *L, const char *filename, const char *mode)
 {
-	lunatik_file lf;
+	lunatik_file lf = {NULL, NULL, 0};
 	int status = LUA_ERRFILE;
 	int fnameindex = lua_gettop(L) + 1;  /* index of filename on the stack */
 
