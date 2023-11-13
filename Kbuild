@@ -1,45 +1,31 @@
-ccflags-y += -D_LUNATIK -D_KERNEL -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
-	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua
-asflags-y += -D_LUNATIK -D_KERNEL
-
 ifeq ($(ARCH), x86)
-	ccflags-y += -Dsetjmp=kernel_setjmp -Dlongjmp=kernel_longjmp
-	SUB := _$(BITS)
 	ifdef CONFIG_X86_32
+		KLIBC_ARCH := i386
 		asflags-y += -D_REGPARM
+	else
+		KLIBC_ARCH := x86_64
 	endif
+else
+	KLIBC_ARCH := $(ARCH)
 endif
 
-#TODO: we should cleanup this and just define __mips* as CONFIG_MIPS*
-ifeq ($(ARCH), mips)
-	ifdef CONFIG_64BIT
-		ifdef CONFIG_MIPS32_O32
-			AFLAGS_setjmp.o += -D__mips_o32
-		else
-			ifdef CONFIG_MIPS32_N32
-				AFLAGS_setjmp.o += -D__mips_n32
-			else
-				AFLAGS_setjmp.o += -D__mips_n64
-			endif
-		endif
-		AFLAGS_setjmp.o += -D_MIPS_ISA_MIPS64 \
-			-D_MIPS_ISA=_MIPS_ISA_MIPS64
-        else
-		AFLAGS_setjmp.o += -D__mips_o32 -D_MIPS_ISA_MIPS32 \
-			-D_MIPS_ISA=_MIPS_ISA_MIPS32
-        endif
-endif
+KLIBC_USR := /klibc/usr
+ccflags-y += -D_LUNATIK -D_KERNEL -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
+	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua \
+	-I${PWD}$(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
+asflags-y += -D_LUNATIK -D_KERNEL
 
 obj-$(CONFIG_LUNATIK) += lunatik.o
 
 lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
-	 lua/ldump.o lua/lfunc.o lua/lgc.o lua/llex.o lua/lmem.o \
-	 lua/lobject.o lua/lopcodes.o lua/lparser.o lua/lstate.o \
-	 lua/lstring.o lua/ltable.o lua/ltm.o \
-	 lua/lundump.o lua/lvm.o lua/lzio.o lua/lauxlib.o lua/lbaselib.o \
-	 lua/lcorolib.o lua/ldblib.o lua/lstrlib.o \
-	 lua/ltablib.o lua/lutf8lib.o lua/lmathlib.o lua/linit.o \
-	 lua/loadlib.o arch/$(ARCH)/setjmp$(SUB).o lunatik_aux.o lunatik_core.o
+	lua/ldump.o lua/lfunc.o lua/lgc.o lua/llex.o lua/lmem.o \
+	lua/lobject.o lua/lopcodes.o lua/lparser.o lua/lstate.o \
+	lua/lstring.o lua/ltable.o lua/ltm.o \
+	lua/lundump.o lua/lvm.o lua/lzio.o lua/lauxlib.o lua/lbaselib.o \
+	lua/lcorolib.o lua/ldblib.o lua/lstrlib.o \
+	lua/ltablib.o lua/lutf8lib.o lua/lmathlib.o lua/linit.o \
+	lua/loadlib.o $(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/setjmp.o \
+	lunatik_aux.o lunatik_core.o
 
 obj-$(CONFIG_LUNATIK_RUN) += lunatik_run.o
 
