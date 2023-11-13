@@ -24,7 +24,10 @@
 #ifndef lunatik_setjmp_h
 #define lunatik_setjmp_h
 
-#include <arch/setjmp.h>
+#include <linux/ctype.h>
+
+#include <klibc/archconfig.h>
+#include <klibc/archsetjmp.h>
 
 extern int setjmp(jmp_buf);
 extern void __attribute__((noreturn)) longjmp(jmp_buf, int);
