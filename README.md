@@ -771,6 +771,33 @@ _thread.stop()_ returns the result of the `task` defined by
 [thread.settask()](https://github.com/luainkernel/lunatik#threadsettasktask)
 on `thrd`.
 
+### fib
+
+The `fib` library provides support for the
+[kernel Forwarding Information Base](https://thermalcircle.de/doku.php?id=blog:linux:routing_decisions_in_the_linux_kernel_1_lookup_packet_flow).
+
+#### `fib.newrule(table, priority)`
+
+_fib.newrule()_ binds the kernel 
+[fib_nl_newrule](https://elixir.bootlin.com/linux/latest/source/include/net/fib_rules.h#L182)
+API;
+it creates a new FIB rule that matches the specified routing _table_
+with the specified _priorioty_.
+This function is similar to the user-space command
+[ip rule add](https://datahacker.blog/industry/technology-menu/networking/iptables/follow-the-ip-rules)
+provided by [iproute2](https://wiki.linuxfoundation.org/networking/iproute2).
+
+#### `fib.delrule(table, priority)`
+
+_fib.delrule()_ binds the kernel 
+[fib_nl_delrule](https://elixir.bootlin.com/linux/latest/source/include/net/fib_rules.h#L184)
+API;
+it removes a FIB rule that matches the specified routing _table_
+with the specified _priorioty_.
+This function is similar to the user-space command
+[ip rule del](https://datahacker.blog/industry/technology-menu/networking/iptables/follow-the-ip-rules)
+provided by [iproute2](https://wiki.linuxfoundation.org/networking/iproute2).
+
 # Examples
 
 ### spyglass
