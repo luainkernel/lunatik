@@ -88,7 +88,6 @@ err:
 	return ret;
 }
 
-
 static int luanotifier_call(struct notifier_block *nb, unsigned long event, void *data)
 {
 	luanotifier_t *notifier = container_of(nb, luanotifier_t, nb);
