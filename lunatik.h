@@ -82,23 +82,22 @@ static inline void lunatik_release(struct kref *kref)
 
 #define lunatik_cansleep(L)	(!lunatik_getready(L) || lunatik_getsleep(L))
 
-#define lunatik_run(runtime, handler, ret, ...)		\
+#define lunatik_handle(runtime, handler, ret, ...)	\
 do {							\
-	lua_State *L;					\
-	int unlocked = !lunatik_islocked(runtime);	\
-	if (likely(unlocked))				\
-		lunatik_lock(runtime);			\
-	L = runtime->L;					\
-	if (unlikely(!L))				\
-		ret = -ENXIO;				\
-	else {						\
-		int n;					\
-		n = lua_gettop(L);			\
-		ret = handler(L, ## __VA_ARGS__);	\
-		lua_settop(L, n);			\
-	}						\
-	if (likely(unlocked))				\
-		lunatik_unlock(runtime);		\
+	lua_State *L = runtime->L;			\
+	int n = lua_gettop(L);				\
+	ret = handler(L, ## __VA_ARGS__);		\
+	lua_settop(L, n);				\
+} while(0)
+
+#define lunatik_run(runtime, handler, ret, ...)				\
+do {									\
+	lunatik_lock(runtime);						\
+	if (unlikely(!runtime->L))					\
+		ret = -ENXIO;						\
+	else								\
+		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
+	lunatik_unlock(runtime);					\
 } while(0)
 
 typedef struct lunatik_reg_s {

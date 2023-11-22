@@ -93,9 +93,13 @@ static int luanotifier_call(struct notifier_block *nb, unsigned long event, void
 	luanotifier_t *notifier = container_of(nb, luanotifier_t, nb);
 	int ret;
 
-	notifier->running = true;
-	lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
-	notifier->running = false;
+	if (notifier->running)
+		lunatik_handle(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
+	else {
+		notifier->running = true;
+		lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
+		notifier->running = false;
+	}
 	return ret;
 }
 
@@ -109,7 +113,6 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	notifier = (luanotifier_t *)lua_newuserdatauv(L, sizeof(luanotifier_t), 1);
 	notifier->runtime = lunatik_toruntime(L);
 	notifier->nb.notifier_call = luanotifier_call;
-	notifier->running = false;
 	notifier->unregister = unregister_fn;
 	notifier->handler = handler_fn;
 
@@ -119,8 +122,10 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	lua_pushvalue(L, -1);  /* push userdata */
 	notifier->ud = luaL_ref(L, LUA_REGISTRYINDEX); /* pops userdata */
 
+	notifier->running = true; /* notifier_call might be called directly (e.g., NETDEV_REGISTER) */
 	if (register_fn(&notifier->nb) != 0)
 		luaL_error(L, "couldn't create notifier");
+	notifier->running = false;
 
 	luaL_setmetatable(L, LUANOTIFIER_MT);
 	return 1; /* userdata */
