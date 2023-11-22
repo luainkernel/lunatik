@@ -39,7 +39,7 @@ device.new(driver)
 make
 sudo make install
 sudo lunatik # execute Lunatik REPL
-Lunatik 3.2  Copyright (C) 2023 ring-0 Ltda.
+Lunatik 3.3  Copyright (C) 2023 ring-0 Ltda.
 > return 42 -- execute this line in the kernel
 42
 ```
@@ -62,7 +62,7 @@ usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]
 
 ## Lua Version
 
-Lunatik 3.2 is based on
+Lunatik 3.3 is based on
 [Lua 5.4 adapted](https://github.com/luainkernel/lua)
 to run in the kernel.
 
@@ -778,7 +778,7 @@ The `fib` library provides support for the
 
 #### `fib.newrule(table, priority)`
 
-_fib.newrule()_ binds the kernel 
+_fib.newrule()_ binds the kernel
 [fib_nl_newrule](https://elixir.bootlin.com/linux/latest/source/include/net/fib_rules.h#L182)
 API;
 it creates a new FIB rule that matches the specified routing _table_
@@ -789,7 +789,7 @@ provided by [iproute2](https://wiki.linuxfoundation.org/networking/iproute2).
 
 #### `fib.delrule(table, priority)`
 
-_fib.delrule()_ binds the kernel 
+_fib.delrule()_ binds the kernel
 [fib_nl_delrule](https://elixir.bootlin.com/linux/latest/source/include/net/fib_rules.h#L184)
 API;
 it removes a FIB rule that matches the specified routing _table_
@@ -874,7 +874,7 @@ foo                                # retrieves foo
 bar
 ^C                                 # finishes the connection
 sudo lunatik                       # runs lunatik prompt
-Lunatik 3.2  Copyright (C) 2023 ring-0 Ltda.
+Lunatik 3.3  Copyright (C) 2023 ring-0 Ltda.
 > rcu    = require("rcu")          -- requires rcu library
 > shared = rcu.subscribe("shared") -- subscribes to the shared table
 > return shared.foo                -- returns foo's value to the user space

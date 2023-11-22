@@ -32,7 +32,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-#define LUNATIK_VERSION	"Lunatik 3.2"
+#define LUNATIK_VERSION	"Lunatik 3.3"
 
 typedef struct lunatik_runtime_s {
 	lua_State *L;
