@@ -113,20 +113,51 @@ typedef struct lunatik_namespace_s {
 typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
+	void (*release)(void *);
 } lunatik_class_t;
 
-static inline bool lunatik_isobject(lua_State *L, int index)
+typedef struct lunatik_object_s {
+	struct kref kref;
+	const lunatik_class_t *class;
+	void *private;
+} lunatik_object_t;
+
+static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 {
-	bool isobject = lua_getfield(L, index, "__index") == LUA_TNIL;
+	void *ud = NULL;
+	lua_Alloc alloc = lua_getallocf(L, &ud);
+	return alloc(ud, ptr, LUA_TNONE, size);
+}
+
+static inline void *lunatik_checkalloc(lua_State *L, size_t size)
+{
+	void *ptr = lunatik_realloc(L, NULL, size);
+	if (ptr == NULL)
+		luaL_error(L, "not enough memory");
+	return ptr;
+}
+
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, int uv);
+void lunatik_cloneobject(lua_State *L, lunatik_object_t *object, int uv);
+void lunatik_releaseobject(struct kref *kref);
+
+#define lunatik_checkpobject(L, i, m)	((lunatik_object_t **)luaL_checkudata((L), (i), (m)))
+#define lunatik_checkobject(L, i, m)	(*lunatik_checkpobject((L), (i), (m)))
+#define lunatik_getobject(o)		kref_get(&(o)->kref)
+#define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
+
+static inline bool lunatik_hasindex(lua_State *L, int index)
+{
+	bool hasindex = lua_getfield(L, index, "__index") != LUA_TNIL;
 	lua_pop(L, 1);
-	return isobject;
+	return hasindex;
 }
 
 static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 {
 	luaL_newmetatable(L, class->name); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
-	if (lunatik_isobject(L, -1)) {
+	if (!lunatik_hasindex(L, -1)) {
 		lua_pushvalue(L, -1);  /* push mt */
 		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
 	}
@@ -161,6 +192,18 @@ int luaopen_##libname(lua_State *L)								\
 	return 1;										\
 }												\
 EXPORT_SYMBOL(luaopen_##libname)
+
+#define LUNATIK_DELETEROBJECT(deleter, MT)				\
+static int deleter(lua_State *L)					\
+{									\
+	lunatik_object_t **pobject = lunatik_checkpobject(L, 1, MT);	\
+	lunatik_object_t *object = *pobject;				\
+	if (object != NULL) {						\
+		lunatik_putobject(object);				\
+		*pobject = NULL;					\
+	}								\
+	return 0;							\
+}
 
 #endif
 

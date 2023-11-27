@@ -41,35 +41,12 @@ typedef struct luadata_s {
 
 #define LUADATA_NUMBER_SZ	(sizeof(lua_Integer))
 
-static void *luadata_realloc(lua_State *L, void *ptr, size_t size)
-{
-	void *ud = NULL;
-	lua_Alloc alloc = lua_getallocf(L, &ud);
-	return alloc(ud, ptr, LUA_TNONE, size);
-}
-
-#define luadata_malloc(L, s)	(luadata_realloc((L), NULL, (s)))
-#define luadata_free(L, p)	(luadata_realloc((L), (p), 0))
-
-static int luadata_new(lua_State *L)
-{
-	size_t size = (size_t)luaL_checkinteger(L, 1);
-	luadata_t *data = (luadata_t *)lua_newuserdatauv(L, sizeof(luadata_t), 0);
-
-	data->ptr = luadata_malloc(L, size);
-	if (data->ptr == NULL)
-		luaL_error(L, "not enough memory");
-
-	data->size = size;
-	data->free = true;
-
-	luaL_setmetatable(L, LUADATA_MT);
-	return 1; /* userdata */
-}
+static int luadata_new(lua_State *L);
 
 static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lua_Integer length)
 {
-	luadata_t *data = (luadata_t *)luaL_checkudata(L, 1, LUADATA_MT);
+	lunatik_object_t *object = lunatik_checkobject(L, 1, LUADATA_MT);
+	luadata_t *data = object->private;
 	luaL_argcheck(L, data->ptr != NULL, 1, "null-pointer dereference");
 	*offset = luaL_checkinteger(L, 2);
 	luaL_argcheck(L, *offset >= 0 && length > 0 && *offset + length <= data->size, 2, "out of bounds");
@@ -133,17 +110,14 @@ static int luadata_setstring(lua_State *L)
 	return 0;
 }
 
-static int luadata_delete(lua_State *L)
+static void luadata_release(void *private)
 {
-	luadata_t *data = (luadata_t *)luaL_checkudata(L, 1, LUADATA_MT);
-
-	if (data->ptr != NULL) { 
-		if (data->free)
-			luadata_free(L, data->ptr);
-		data->ptr = NULL;
-	}
-	return 0;
+	luadata_t *data = private;
+	if (data->free)
+		kfree(data->ptr);
 }
+
+LUNATIK_DELETEROBJECT(luadata_delete, LUADATA_MT);
 
 static const luaL_Reg luadata_lib[] = {
 	{"new", luadata_new},
@@ -173,7 +147,20 @@ static const luaL_Reg luadata_mt[] = {
 static const lunatik_class_t luadata_class = {
 	.name = LUADATA_MT,
 	.methods = luadata_mt,
+	.release = luadata_release,
 };
+
+static int luadata_new(lua_State *L)
+{
+	size_t size = (size_t)luaL_checkinteger(L, 1);
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), 0);
+	luadata_t *data = object->private;
+
+	data->ptr = lunatik_checkalloc(L, size);
+	data->size = size;
+	data->free = true;
+	return 1; /* userdata */
+}
 
 LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL, true);
 

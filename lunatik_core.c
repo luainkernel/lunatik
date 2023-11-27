@@ -148,6 +148,53 @@ lunatik_runtime_t *lunatik_checkruntime(lua_State *L, int arg)
 }
 EXPORT_SYMBOL(lunatik_checkruntime);
 
+#define lunatik_newpobject(L, i)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (i))
+
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, int uv)
+{
+	lunatik_object_t **pobject = lunatik_newpobject(L, uv);
+	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
+
+	kref_init(&object->kref);
+	object->private = NULL;
+	object->class = class;
+	luaL_setmetatable(L, class->name);
+
+	/* object will be freed by __gc in case of failure */
+	object->private = lunatik_checkalloc(L, size);
+
+	*pobject = object;
+	return object;
+}
+EXPORT_SYMBOL(lunatik_newobject);
+
+void lunatik_cloneobject(lua_State *L, lunatik_object_t *object, int uv)
+{
+	lunatik_object_t **pobject = lunatik_newpobject(L, uv);
+	const lunatik_class_t *class = object->class;
+
+	lunatik_getobject(object);
+	luaL_setmetatable(L, class->name);
+	*pobject = object;
+}
+EXPORT_SYMBOL(lunatik_cloneobject);
+
+void lunatik_releaseobject(struct kref *kref)
+{
+	lunatik_object_t *object = container_of(kref, lunatik_object_t, kref);
+	void *private = object->private;
+	void (*release)(void *) = object->class->release;
+
+	if (release)
+		release(private);
+
+	/* in case of alloc failure */
+	if (private != NULL)
+		kfree(private);
+	kfree(object);
+}
+EXPORT_SYMBOL(lunatik_releaseobject);
+
 static int lunatik_lruntime(lua_State *L)
 {
 	lunatik_runtime_t **pruntime;
