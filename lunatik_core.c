@@ -64,7 +64,7 @@ static inline lunatik_runtime_t *lunatik_new(lua_State *L, bool sleep)
 	runtime->ready = false;
 	runtime->L = L;
 	lunatik_toruntime(L) = runtime;
-	lunatik_locker(runtime, mutex_init, spin_lock_init);
+	lunatik_lockinit(runtime);
 	kref_init(&runtime->kref);
 	return runtime;
 }
@@ -158,6 +158,8 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
+	object->sleep = true; //XXX add support for non-sleep
+	lunatik_lockinit(object);
 	luaL_setmetatable(L, class->name);
 
 	/* object will be freed by __gc in case of failure */
@@ -168,6 +170,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 }
 EXPORT_SYMBOL(lunatik_newobject);
 
+/* XXX need to open lib */
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object, int uv)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, uv);
@@ -191,6 +194,8 @@ void lunatik_releaseobject(struct kref *kref)
 	/* in case of alloc failure */
 	if (private != NULL)
 		kfree(private);
+
+	lunatik_lockrelease(object);
 	kfree(object);
 }
 EXPORT_SYMBOL(lunatik_releaseobject);

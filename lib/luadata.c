@@ -47,7 +47,8 @@ static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lu
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1, LUADATA_MT);
 	luadata_t *data = object->private;
-	luaL_argcheck(L, data->ptr != NULL, 1, "null-pointer dereference");
+	// XXX ptr can be "removed"
+	lunatik_checknull(L, data->ptr, 1);
 	*offset = luaL_checkinteger(L, 2);
 	luaL_argcheck(L, *offset >= 0 && length > 0 && *offset + length <= data->size, 2, "out of bounds");
 	return data;
@@ -117,7 +118,8 @@ static void luadata_release(void *private)
 		kfree(data->ptr);
 }
 
-LUNATIK_DELETEROBJECT(luadata_delete, LUADATA_MT);
+LUNATIK_OBJECTDELETER(luadata_delete, LUADATA_MT);
+LUNATIK_OBJECTMONITOR(luadata_monitor, LUADATA_MT);
 
 static const luaL_Reg luadata_lib[] = {
 	{"new", luadata_new},
@@ -134,6 +136,7 @@ static const luaL_Reg luadata_lib[] = {
 static const luaL_Reg luadata_mt[] = {
 	{"__gc", luadata_delete},
 	{"__close", luadata_delete},
+	{"__index", luadata_monitor},
 	{"delete", luadata_delete},
 	{"getnumber", luadata_getnumber},
 	{"setnumber", luadata_setnumber},

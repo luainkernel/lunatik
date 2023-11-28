@@ -53,6 +53,8 @@ do {							\
 		spin_op(&(runtime)->spin);		\
 } while(0)
 
+#define lunatik_lockinit(o)	lunatik_locker((o), mutex_init, spin_lock_init);
+#define lunatik_lockrelease(o)	lunatik_locker((o), mutex_destroy, (void));
 #define lunatik_lock(runtime)	lunatik_locker(runtime, mutex_lock, spin_lock)
 #define lunatik_unlock(runtime)	lunatik_locker(runtime, mutex_unlock, spin_unlock)
 #define lunatik_toruntime(L)	(*(lunatik_runtime_t **)lua_getextraspace(L))
@@ -70,7 +72,7 @@ lunatik_runtime_t *lunatik_checkruntime(lua_State *L, int arg);
 static inline void lunatik_release(struct kref *kref)
 {
 	lunatik_runtime_t *runtime = container_of(kref, lunatik_runtime_t, kref);
-	lunatik_locker(runtime, mutex_destroy, (void));
+	lunatik_lockrelease(runtime);
 	kfree(runtime);
 }
 
@@ -116,9 +118,16 @@ typedef struct lunatik_class_s {
 	void (*release)(void *);
 } lunatik_class_t;
 
+// XXX move union out
+
 typedef struct lunatik_object_s {
 	struct kref kref;
 	const lunatik_class_t *class;
+	bool sleep;
+	union {
+		struct mutex mutex;
+		spinlock_t spin;
+	};
 	void *private;
 } lunatik_object_t;
 
@@ -141,10 +150,17 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object, int uv);
 void lunatik_releaseobject(struct kref *kref);
 
+#define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), "null-pointer dereference")
 #define lunatik_checkpobject(L, i, m)	((lunatik_object_t **)luaL_checkudata((L), (i), (m)))
-#define lunatik_checkobject(L, i, m)	(*lunatik_checkpobject((L), (i), (m)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
+
+static inline lunatik_object_t *lunatik_checkobject(lua_State *L, int ix, const char *mt)
+{
+	lunatik_object_t *object = *lunatik_checkpobject(L, ix, mt);
+	lunatik_checknull(L, object, ix);
+	return object;
+}
 
 static inline bool lunatik_hasindex(lua_State *L, int index)
 {
@@ -193,7 +209,7 @@ int luaopen_##libname(lua_State *L)								\
 }												\
 EXPORT_SYMBOL(luaopen_##libname)
 
-#define LUNATIK_DELETEROBJECT(deleter, MT)				\
+#define LUNATIK_OBJECTDELETER(deleter, MT)				\
 static int deleter(lua_State *L)					\
 {									\
 	lunatik_object_t **pobject = lunatik_checkpobject(L, 1, MT);	\
@@ -203,6 +219,29 @@ static int deleter(lua_State *L)					\
 		*pobject = NULL;					\
 	}								\
 	return 0;							\
+}
+
+#define LUNATIK_OBJECTMONITOR(monitor, MT)				\
+static int monitor##closure(lua_State *L)				\
+{									\
+	int ret, n = lua_gettop(L);					\
+	lunatik_object_t *object = lunatik_checkobject(L, 1, MT);	\
+	lua_pushvalue(L, lua_upvalueindex(1)); /* method */		\
+	lua_insert(L, 1); /* stack: method, object, args */		\
+	lunatik_lock(object);						\
+	ret = lua_pcall(L, n, LUA_MULTRET, 0);				\
+	lunatik_unlock(object);						\
+	if (ret != LUA_OK)						\
+		lua_error(L);						\
+	return lua_gettop(L);						\
+}									\
+static int monitor(lua_State *L)					\
+{									\
+	lua_getmetatable(L, 1);						\
+	lua_insert(L, 2); /* stack: object, metatable, key */		\
+	if (lua_rawget(L, 2) == LUA_TFUNCTION) /* method */		\
+		lua_pushcclosure(L, monitor##closure, 1);		\
+	return 1;							\
 }
 
 #endif
