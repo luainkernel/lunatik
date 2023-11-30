@@ -95,7 +95,7 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr *addr)
 	}
 	else {
 		const char *addr_data = addr->sa_data;
-		lua_pushlstring(L, addr_data, sizeof(addr->sa_data));
+		lua_pushlstring(L, addr_data, strlen(addr->sa_data));
 		n = 1;
 	}
 	return n;
@@ -333,8 +333,8 @@ static const lunatik_reg_t luasocket_msg[] = {
 	{"NOSIGNAL", MSG_NOSIGNAL},
 	{"MORE", MSG_MORE},
 	{"WAITFORONE", MSG_WAITFORONE},
+	//{"SENDPAGE_NOTLAST", MSG_SENDPAGE_NOTLAST},
 	{"SENDPAGE_NOPOLICY", MSG_SENDPAGE_NOPOLICY},
-	{"SENDPAGE_NOTLAST", MSG_SENDPAGE_NOTLAST},
 	{"BATCH", MSG_BATCH},
 	{"EOF", MSG_EOF},
 	{"NO_SHARED_FRAGS", MSG_NO_SHARED_FRAGS},
