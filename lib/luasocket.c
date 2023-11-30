@@ -61,9 +61,14 @@ do {						\
 } while(0)
 
 #define LUASOCKET_SOCKADDR(addr)	(struct sockaddr *)&addr, sizeof(addr)
-
 #define LUASOCKET_ADDRMAX		(sizeof(struct sockaddr_ll)) /* AF_PACKET */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+#define LUASOCKET_ADDRMIN(addr)	(sizeof((addr)->sa_data_min))
+#else
+#define LUASOCKET_ADDRMIN(addr)	(sizeof((addr)->sa_data))
+#endif
 #define LUASOCKET_ADDRLEN		(LUASOCKET_ADDRMAX - sizeof(unsigned short))
+
 typedef struct luasocket_addr_s {
 	unsigned short family;
 	unsigned char data[LUASOCKET_ADDRLEN];
@@ -95,7 +100,7 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr *addr)
 	}
 	else {
 		const char *addr_data = addr->sa_data;
-		lua_pushlstring(L, addr_data, sizeof(addr->sa_data));
+		lua_pushlstring(L, addr_data, LUASOCKET_ADDRMIN(addr));
 		n = 1;
 	}
 	return n;
@@ -334,7 +339,9 @@ static const lunatik_reg_t luasocket_msg[] = {
 	{"MORE", MSG_MORE},
 	{"WAITFORONE", MSG_WAITFORONE},
 	{"SENDPAGE_NOPOLICY", MSG_SENDPAGE_NOPOLICY},
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
 	{"SENDPAGE_NOTLAST", MSG_SENDPAGE_NOTLAST},
+#endif
 	{"BATCH", MSG_BATCH},
 	{"EOF", MSG_EOF},
 	{"NO_SHARED_FRAGS", MSG_NO_SHARED_FRAGS},
