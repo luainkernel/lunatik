@@ -138,6 +138,8 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 	return alloc(ud, ptr, LUA_TNONE, size);
 }
 
+#define lunatik_free(p)	kfree(p)
+
 static inline void *lunatik_checkalloc(lua_State *L, size_t size)
 {
 	void *ptr = lunatik_realloc(L, NULL, size);
@@ -146,21 +148,15 @@ static inline void *lunatik_checkalloc(lua_State *L, size_t size)
 	return ptr;
 }
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, int uv);
-void lunatik_cloneobject(lua_State *L, lunatik_object_t *object, int uv);
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size);
+lunatik_object_t *lunatik_checkobject(lua_State *L, int ix);
+void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
 
 #define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), "null-pointer dereference")
 #define lunatik_checkpobject(L, i, m)	((lunatik_object_t **)luaL_checkudata((L), (i), (m)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
-
-static inline lunatik_object_t *lunatik_checkobject(lua_State *L, int ix, const char *mt)
-{
-	lunatik_object_t *object = *lunatik_checkpobject(L, ix, mt);
-	lunatik_checknull(L, object, ix);
-	return object;
-}
 
 static inline bool lunatik_hasindex(lua_State *L, int index)
 {
@@ -225,7 +221,7 @@ static int deleter(lua_State *L)					\
 static int monitor##closure(lua_State *L)				\
 {									\
 	int ret, n = lua_gettop(L);					\
-	lunatik_object_t *object = lunatik_checkobject(L, 1, MT);	\
+	lunatik_object_t *object = lunatik_checkobject(L, 1);		\
 	lua_pushvalue(L, lua_upvalueindex(1)); /* method */		\
 	lua_insert(L, 1); /* stack: method, object, args */		\
 	lunatik_lock(object);						\

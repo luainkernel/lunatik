@@ -45,7 +45,7 @@ static int luadata_new(lua_State *L);
 
 static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lua_Integer length)
 {
-	lunatik_object_t *object = lunatik_checkobject(L, 1, LUADATA_MT);
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
 	luadata_t *data = object->private;
 	// XXX ptr can be "removed"
 	lunatik_checknull(L, data->ptr, 1);
@@ -115,7 +115,7 @@ static void luadata_release(void *private)
 {
 	luadata_t *data = private;
 	if (data->free)
-		kfree(data->ptr);
+		lunatik_free(data->ptr);
 }
 
 LUNATIK_OBJECTDELETER(luadata_delete, LUADATA_MT);
@@ -156,7 +156,7 @@ static const lunatik_class_t luadata_class = {
 static int luadata_new(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), 0);
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t));
 	luadata_t *data = object->private;
 
 	data->ptr = lunatik_checkalloc(L, size);

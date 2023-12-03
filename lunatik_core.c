@@ -150,9 +150,17 @@ EXPORT_SYMBOL(lunatik_checkruntime);
 
 #define lunatik_newpobject(L, i)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (i))
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, int uv)
+static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
 {
-	lunatik_object_t **pobject = lunatik_newpobject(L, uv);
+	luaL_setmetatable(L, class->name);
+	lua_pushlightuserdata(L, (void *)class);
+	lua_setiuservalue(L, -2, 1); /* pops class */
+}
+
+//lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, int uv)
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size)
+{
+	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
 	kref_init(&object->kref);
@@ -160,7 +168,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	object->class = class;
 	object->sleep = true; //XXX add support for non-sleep
 	lunatik_lockinit(object);
-	luaL_setmetatable(L, class->name);
+	lunatik_setclass(L, class);
 
 	/* object will be freed by __gc in case of failure */
 	object->private = lunatik_checkalloc(L, size);
@@ -170,13 +178,27 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 }
 EXPORT_SYMBOL(lunatik_newobject);
 
-/* XXX need to open lib */
-void lunatik_cloneobject(lua_State *L, lunatik_object_t *object, int uv)
+lunatik_object_t *lunatik_checkobject(lua_State *L, int ix)
 {
-	lunatik_object_t **pobject = lunatik_newpobject(L, uv);
+	lunatik_object_t *object;
+	lunatik_class_t *class;
+
+	luaL_argcheck(L, lua_getiuservalue(L, ix, 1) != LUA_TNONE && (class = (lunatik_class_t *)lua_touserdata(L, -1)) != NULL,
+		ix, "object expected");
+	object = *lunatik_checkpobject(L, ix, class->name);
+	lunatik_checknull(L, object, ix);
+	lua_pop(L, 1); /* class */
+	return object;
+}
+EXPORT_SYMBOL(lunatik_checkobject);
+
+/* XXX need to open lib */
+void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
+{
+	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	const lunatik_class_t *class = object->class;
 
-	lunatik_getobject(object);
+	lunatik_setclass(L, class);
 	luaL_setmetatable(L, class->name);
 	*pobject = object;
 }
@@ -193,7 +215,7 @@ void lunatik_releaseobject(struct kref *kref)
 
 	/* in case of alloc failure */
 	if (private != NULL)
-		kfree(private);
+		lunatik_free(private);
 
 	lunatik_lockrelease(object);
 	kfree(object);
