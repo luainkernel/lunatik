@@ -359,9 +359,10 @@ static const luaL_Reg luadevice_mt[] = {
 static const lunatik_class_t luadevice_class = {
 	.name = LUADEVICE_MT,
 	.methods = luadevice_mt,
+	.sleep = true,
 };
 
-LUNATIK_NEWLIB(device, luadevice_lib, &luadevice_class, NULL, true);
+LUNATIK_NEWLIB(device, luadevice_lib, &luadevice_class, NULL);
 
 static char *luadevice_devnode(struct device *dev, umode_t *mode)
 {

@@ -132,9 +132,10 @@ static const luaL_Reg luathread_mt[] = {
 static const lunatik_class_t luathread_class = {
 	.name = LUATHREAD_MT,
 	.methods = luathread_mt,
+	.sleep = true,
 };
 
-LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, NULL, true);
+LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, NULL);
 
 static int __init luathread_init(void)
 {

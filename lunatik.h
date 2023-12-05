@@ -116,9 +116,10 @@ typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
 	void (*release)(void *);
+	bool sleep;
 } lunatik_class_t;
 
-// XXX move union out
+// XXX rutime must be an object ;-)
 
 typedef struct lunatik_object_s {
 	struct kref kref;
@@ -149,12 +150,12 @@ static inline void *lunatik_checkalloc(lua_State *L, size_t size)
 }
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size);
-lunatik_object_t *lunatik_checkobject(lua_State *L, int ix);
+lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
 
 #define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), "null-pointer dereference")
-#define lunatik_checkpobject(L, i, m)	((lunatik_object_t **)luaL_checkudata((L), (i), (m)))
+#define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
 
@@ -178,37 +179,43 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 
 static void inline lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
 {
-	for (; namespaces->name; namespaces++) {
-		const lunatik_reg_t *reg;
-		lua_newtable(L); /* namespace = {} */
-		for (reg = namespaces->reg; reg->name; reg++) {
-			lua_pushinteger(L, reg->value);
-			lua_setfield(L, -2, reg->name); /* namespace[name] = value */
+	if (namespaces != NULL) {
+		for (; namespaces->name; namespaces++) {
+			const lunatik_reg_t *reg;
+			lua_newtable(L); /* namespace = {} */
+			for (reg = namespaces->reg; reg->name; reg++) {
+				lua_pushinteger(L, reg->value);
+				lua_setfield(L, -2, reg->name); /* namespace[name] = value */
+			}
+			lua_setfield(L, -2, namespaces->name); /* lib.namespace = namespace */
 		}
-		lua_setfield(L, -2, namespaces->name); /* lib.namespace = namespace */
 	}
 }
 
-#define LUNATIK_NEWLIB(libname, funcs, class, namespaces, sleep)				\
+#define LUNATIK_NEWLIB(libname, funcs, class, namespaces)					\
 int luaopen_##libname(lua_State *L)								\
 {												\
-	const lunatik_class_t *cls = class; /* avoid -Waddress */				\
-	const lunatik_namespace_t *nss = namespaces; /* avoid -Waddress */			\
-	if (sleep && !lunatik_getsleep(L))							\
+	if (!lunatik_getsleep(L) && (class)->sleep)						\
 		luaL_error(L, "cannot require '" #libname "' on non-sleepable runtime");	\
 	luaL_newlib(L, funcs);									\
-	if (cls)										\
+	if ((class)->name != NULL)								\
 		lunatik_newclass(L, class);							\
-	if (nss)										\
-		lunatik_newnamespaces(L, namespaces);						\
+	lunatik_newnamespaces(L, namespaces);							\
 	return 1;										\
 }												\
 EXPORT_SYMBOL(luaopen_##libname)
 
-#define LUNATIK_OBJECTDELETER(deleter, MT)				\
+#define LUNATIK_OBJECTCHECKER(checker, T)			\
+static inline T checker(lua_State *L, int ix)			\
+{								\
+	lunatik_object_t *object = lunatik_checkobject(L, ix);	\
+	return (T)object->private;				\
+}
+
+#define LUNATIK_OBJECTDELETER(deleter)					\
 static int deleter(lua_State *L)					\
 {									\
-	lunatik_object_t **pobject = lunatik_checkpobject(L, 1, MT);	\
+	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);	\
 	lunatik_object_t *object = *pobject;				\
 	if (object != NULL) {						\
 		lunatik_putobject(object);				\
@@ -217,7 +224,7 @@ static int deleter(lua_State *L)					\
 	return 0;							\
 }
 
-#define LUNATIK_OBJECTMONITOR(monitor, MT)				\
+#define LUNATIK_OBJECTMONITOR(monitor)					\
 static int monitor##closure(lua_State *L)				\
 {									\
 	int ret, n = lua_gettop(L);					\

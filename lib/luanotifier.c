@@ -251,9 +251,10 @@ static const lunatik_namespace_t luanotifier_flags[] = {
 static const lunatik_class_t luanotifier_class = {
 	.name = LUANOTIFIER_MT,
 	.methods = luanotifier_mt,
+	.sleep = true,
 };
 
-LUNATIK_NEWLIB(notifier, luanotifier_lib, &luanotifier_class, luanotifier_flags, true);
+LUNATIK_NEWLIB(notifier, luanotifier_lib, &luanotifier_class, luanotifier_flags);
 
 static int __init luanotifier_init(void)
 {

@@ -157,7 +157,6 @@ static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
 	lua_setiuservalue(L, -2, 1); /* pops class */
 }
 
-//lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, int uv)
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
@@ -166,7 +165,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
-	object->sleep = true; //XXX add support for non-sleep
+	object->sleep = class->sleep;
 	lunatik_lockinit(object);
 	lunatik_setclass(L, class);
 
@@ -178,21 +177,20 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 }
 EXPORT_SYMBOL(lunatik_newobject);
 
-lunatik_object_t *lunatik_checkobject(lua_State *L, int ix)
+lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 {
-	lunatik_object_t *object;
+	lunatik_object_t **pobject;
 	lunatik_class_t *class;
 
-	luaL_argcheck(L, lua_getiuservalue(L, ix, 1) != LUA_TNONE && (class = (lunatik_class_t *)lua_touserdata(L, -1)) != NULL,
-		ix, "object expected");
-	object = *lunatik_checkpobject(L, ix, class->name);
-	lunatik_checknull(L, object, ix);
+	luaL_argcheck(L, lua_getiuservalue(L, ix, 1) != LUA_TNONE &&
+		(class = (lunatik_class_t *)lua_touserdata(L, -1)) != NULL, ix, "object expected");
+	pobject = (lunatik_object_t **)luaL_checkudata(L, ix, class->name);
+	lunatik_checknull(L, *pobject, ix);
 	lua_pop(L, 1); /* class */
-	return object;
+	return pobject;
 }
-EXPORT_SYMBOL(lunatik_checkobject);
+EXPORT_SYMBOL(lunatik_checkpobject);
 
-/* XXX need to open lib */
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
@@ -266,9 +264,10 @@ static const luaL_Reg lunatik_mt[] = {
 static const lunatik_class_t lunatik_class = {
 	.name = LUNATIK_MT,
 	.methods = lunatik_mt,
+	.sleep = true,
 };
 
-LUNATIK_NEWLIB(lunatik, lunatik_lib, &lunatik_class, NULL, true);
+LUNATIK_NEWLIB(lunatik, lunatik_lib, &lunatik_class, NULL);
 #endif /* LUNATIK_RUNTIME */
 
 static int __init lunatik_init(void)

@@ -37,8 +37,6 @@ typedef struct luadata_s {
 	bool free;
 } luadata_t;
 
-#define LUADATA_MT	"data"
-
 #define LUADATA_NUMBER_SZ	(sizeof(lua_Integer))
 
 static int luadata_new(lua_State *L);
@@ -118,8 +116,8 @@ static void luadata_release(void *private)
 		lunatik_free(data->ptr);
 }
 
-LUNATIK_OBJECTDELETER(luadata_delete, LUADATA_MT);
-LUNATIK_OBJECTMONITOR(luadata_monitor, LUADATA_MT);
+LUNATIK_OBJECTDELETER(luadata_delete);
+LUNATIK_OBJECTMONITOR(luadata_monitor);
 
 static const luaL_Reg luadata_lib[] = {
 	{"new", luadata_new},
@@ -148,9 +146,10 @@ static const luaL_Reg luadata_mt[] = {
 };
 
 static const lunatik_class_t luadata_class = {
-	.name = LUADATA_MT,
+	.name = "data",
 	.methods = luadata_mt,
 	.release = luadata_release,
+	.sleep = false,
 };
 
 static int luadata_new(lua_State *L)
@@ -162,10 +161,10 @@ static int luadata_new(lua_State *L)
 	data->ptr = lunatik_checkalloc(L, size);
 	data->size = size;
 	data->free = true;
-	return 1; /* userdata */
+	return 1; /* object */
 }
 
-LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL, true);
+LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 
 static int __init luadata_init(void)
 {

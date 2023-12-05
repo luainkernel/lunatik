@@ -34,7 +34,6 @@
 
 #include <lunatik.h>
 
-#define LUARCU_MT		"rcu.table"
 #define LUARCU_DEFAULT_SIZE	(256)
 
 typedef struct luarcu_entry_s {
@@ -49,10 +48,6 @@ typedef struct luarcu_table_s {
 	unsigned int seed;
 	struct hlist_head hlist[];
 } luarcu_table_t;
-
-#if 0
-static luarcu_table_t *luarcu_registry;
-#endif
 
 #define luarcu_sizeoftable(size)	(sizeof(luarcu_table_t) + sizeof(struct hlist_head) * (size))
 
@@ -179,12 +174,12 @@ static int luarcu_index(lua_State *L)
 	}
 
 	/* entry might be released after rcu_read_unlock */
-	object = entry->object; /* thus we need to store this pointer */
+	object = entry->object; /* thus we need to store object pointer */
 	lunatik_getobject(object);
 	rcu_read_unlock();
 
 	lunatik_cloneobject(L, object);
-	return 1;
+	return 1; /* object */
 }
 
 static int luarcu_newindex(lua_State *L)
@@ -207,44 +202,6 @@ static int luarcu_newindex(lua_State *L)
 	return 0;
 }
 
-#if 0
-static int luarcu_publish(lua_State *L)
-{
-	size_t keylen;
-	const char *key = luaL_checklstring(L, 1, &keylen);
-	luarcu_table_t *table = luarcu_checkoptnil(L, 2, luarcu_checktable);
-
-	luarcu_insert(L, luarcu_registry, key, keylen, table, 0);
-
-	if (table != NULL)
-		luarcu_refget(table);
-	return 0;
-}
-
-static int luarcu_subscribe(lua_State *L)
-{
-	luarcu_entry_t *entry;
-	size_t keylen;
-	const char *key = luaL_checklstring(L, 1, &keylen);
-	unsigned int index = luarcu_hash(luarcu_registry, key, keylen);
-	luarcu_table_t **ptable = luarcu_newptable(L);
-
-	rcu_read_lock();
-	entry = luarcu_lookup(luarcu_registry, index, key, keylen);
-	if (entry == NULL) {
-		lua_pushnil(L);
-		goto out;
-	}
-
-	*ptable = (luarcu_table_t *)entry->data;
-	luaL_setmetatable(L, LUARCU_MT);
-	luarcu_refget(*ptable);
-out:
-	rcu_read_unlock();
-	return 1;
-}
-#endif
-
 static void luarcu_release(void *private)
 {
 	luarcu_table_t *table = (luarcu_table_t *)private;
@@ -257,15 +214,11 @@ static void luarcu_release(void *private)
 	kfree(table);
 }
 
-LUNATIK_OBJECTDELETER(luarcu_delete, LUARCU_MT);
+LUNATIK_OBJECTDELETER(luarcu_delete);
 
 static const struct luaL_Reg luarcu_lib[] = {
 	{"table", luarcu_table},
 	{"delete", luarcu_delete},
-#if 0
-	{"publish", luarcu_publish},
-	{"subscribe", luarcu_subscribe},
-#endif
 	{NULL, NULL}
 };
 
@@ -278,9 +231,10 @@ static const struct luaL_Reg luarcu_mt[] = {
 };
 
 static const lunatik_class_t luarcu_class = {
-	.name = LUARCU_MT,
+	.name = "rcu.table",
 	.methods = luarcu_mt,
 	.release = luarcu_release,
+	.sleep = false,
 };
 
 static int luarcu_table(lua_State *L)
@@ -295,21 +249,15 @@ static int luarcu_table(lua_State *L)
 	return 1; /* object */
 }
 
-LUNATIK_NEWLIB(rcu, luarcu_lib, &luarcu_class, NULL, true);
+LUNATIK_NEWLIB(rcu, luarcu_lib, &luarcu_class, NULL);
 
 static int __init luarcu_init(void)
 {
-#if 0
-	luarcu_registry = luarcu_newtable(LUARCU_DEFAULT_SIZE);
-#endif
 	return 0;
 }
 
 static void __exit luarcu_exit(void)
 {
-#if 0
-	luarcu_refput(luarcu_registry);
-#endif
 }
 
 module_init(luarcu_init);
