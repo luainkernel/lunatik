@@ -64,10 +64,6 @@ typedef struct luasocket_addr_s {
 	unsigned char data[LUASOCKET_ADDRLEN];
 } luasocket_addr_t;
 
-#define luasocket_psocket(object)	((struct socket **)&object->private)
-// XXX move size to class
-#define luasocket_newsocket(L)		(lunatik_newobject((L), &luasocket_class, sizeof(struct socket *)))
-
 static int luasocket_new(lua_State *L);
 static int luasocket_accept(lua_State *L);
 
@@ -108,7 +104,9 @@ static void luasocket_release(void *private)
 	sock_release((struct socket *)private);
 }
 
-LUNATIK_OBJECTCHECKER(luasocket_checksocket, struct socket *);
+LUNATIK_OBJECTCHECKER(luasocket_checkpsocket, struct socket **);
+
+#define luasocket_checksocket(L, i)	(*luasocket_checkpsocket((L), (i)))
 
 static int luasocket_send(lua_State *L)
 {
@@ -118,6 +116,8 @@ static int luasocket_send(lua_State *L)
 	struct msghdr msg;
 	int nargs = lua_gettop(L);
 	int ret;
+
+	memset(&msg, 0, sizeof(msg));
 
 	vec.iov_base = (void *)luaL_checklstring(L, 2, &len);
 	vec.iov_len = len;
@@ -144,6 +144,8 @@ static int luasocket_receive(lua_State *L)
 	int flags = luaL_optinteger(L, 3, 0);
 	int from = lua_toboolean(L, 4);
 	int ret;
+
+	memset(&msg, 0, sizeof(msg));
 
 	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
 	vec.iov_len = len;
@@ -222,7 +224,7 @@ static const luaL_Reg luasocket_lib[] = {
 static const luaL_Reg luasocket_mt[] = {
 	{"__gc", luasocket_close},
 	{"__close", luasocket_close},
-	{"__monitor", luasocket_monitor},
+	{"__index", luasocket_monitor},
 	{"close", luasocket_close},
 	{"send", luasocket_send},
 	{"receive", luasocket_receive},
@@ -378,6 +380,9 @@ static const lunatik_class_t luasocket_class = {
 	.release = luasocket_release,
 	.sleep = true,
 };
+
+#define luasocket_newsocket(L)		(lunatik_newobject((L), &luasocket_class, sizeof(struct socket *)))
+#define luasocket_psocket(object)	((struct socket **)object->private)
 
 static int luasocket_accept(lua_State *L)
 {
