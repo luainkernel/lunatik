@@ -204,9 +204,6 @@ static void luasocket_release(void *private)
 	sock_release(*(struct socket **)(private));
 }
 
-LUNATIK_OBJECTDELETER(luasocket_delete);
-LUNATIK_OBJECTMONITOR(luasocket_monitor);
-
 static const luaL_Reg luasocket_lib[] = {
 	{"new", luasocket_new},
 	{"close", lunatik_closeobject},
@@ -222,9 +219,9 @@ static const luaL_Reg luasocket_lib[] = {
 };
 
 static const luaL_Reg luasocket_mt[] = {
-	{"__gc", luasocket_delete},
+	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", luasocket_monitor},
+	{"__index", lunatik_monitorobject},
 	{"close", lunatik_closeobject},
 	{"send", luasocket_send},
 	{"receive", luasocket_receive},

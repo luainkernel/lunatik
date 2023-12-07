@@ -116,12 +116,9 @@ static void luadata_release(void *private)
 		lunatik_free(data->ptr);
 }
 
-LUNATIK_OBJECTDELETER(luadata_delete);
-LUNATIK_OBJECTMONITOR(luadata_monitor);
-
 static const luaL_Reg luadata_lib[] = {
 	{"new", luadata_new},
-	{"delete", luadata_delete},
+	{"delete", lunatik_deleteobject},
 	{"getnumber", luadata_getnumber},
 	{"setnumber", luadata_setnumber},
 	{"getbyte", luadata_getbyte},
@@ -132,10 +129,10 @@ static const luaL_Reg luadata_lib[] = {
 };
 
 static const luaL_Reg luadata_mt[] = {
-	{"__gc", luadata_delete},
-	{"__close", luadata_delete},
-	{"__index", luadata_monitor},
-	{"delete", luadata_delete},
+	{"__gc", lunatik_deleteobject},
+	{"__close", lunatik_closeobject},
+	{"__index", lunatik_monitorobject},
+	{"delete", lunatik_deleteobject},
 	{"getnumber", luadata_getnumber},
 	{"setnumber", luadata_setnumber},
 	{"getbyte", luadata_getbyte},

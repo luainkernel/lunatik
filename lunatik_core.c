@@ -182,7 +182,7 @@ lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 	lunatik_object_t **pobject;
 	lunatik_class_t *class;
 
-	luaL_argcheck(L, lua_getiuservalue(L, ix, 1) != LUA_TNONE &&
+	luaL_argcheck(L, lua_isuserdata(L, ix) && lua_getiuservalue(L, ix, 1) != LUA_TNONE &&
 		(class = (lunatik_class_t *)lua_touserdata(L, -1)) != NULL, ix, "object expected");
 	pobject = (lunatik_object_t **)luaL_checkudata(L, ix, class->name);
 	lunatik_checknull(L, *pobject, ix);
@@ -202,7 +202,7 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 }
 EXPORT_SYMBOL(lunatik_cloneobject);
 
-static inline void lunatik_releaseobject(lunatik_object_t *object)
+static inline void lunatik_releaseprivate(lunatik_object_t *object)
 {
 	void (*release)(void *) = object->class->release;
 	if (release)
@@ -216,23 +216,64 @@ int lunatik_closeobject(lua_State *L)
 	void *private = object->private;
 
 	lunatik_checknull(L, private, 1);
-	lunatik_releaseobject(object);
+	lunatik_releaseprivate(object);
 	object->private = NULL;
 	return 0;
 }
 EXPORT_SYMBOL(lunatik_closeobject);
 
-void lunatik_freeobject(struct kref *kref)
+void lunatik_releaseobject(struct kref *kref)
 {
 	lunatik_object_t *object = container_of(kref, lunatik_object_t, kref);
 
 	if (object->private != NULL)
-		lunatik_releaseobject(object);
+		lunatik_releaseprivate(object);
 
 	lunatik_lockrelease(object);
 	kfree(object);
 }
-EXPORT_SYMBOL(lunatik_freeobject);
+EXPORT_SYMBOL(lunatik_releaseobject);
+
+int lunatik_deleteobject(lua_State *L)
+{
+	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
+	lunatik_object_t *object = *pobject;
+
+	if (object != NULL) {
+		lunatik_putobject(object);
+		*pobject = NULL;
+	}
+	return 0;
+}
+EXPORT_SYMBOL(lunatik_deleteobject);
+
+static int lunatik_monitor(lua_State *L)
+{
+	int ret, n = lua_gettop(L);
+	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
+
+	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
+	lua_insert(L, 1); /* stack: method, object, args */
+
+	lunatik_lock(*pobject);
+	ret = lua_pcall(L, n, LUA_MULTRET, 0);
+	if (*pobject != NULL) /* object might have been deleted */
+		lunatik_unlock(*pobject);
+
+	if (ret != LUA_OK)
+		lua_error(L);
+	return lua_gettop(L);
+}
+
+int lunatik_monitorobject(lua_State *L)
+{
+	lua_getmetatable(L, 1);
+	lua_insert(L, 2); /* stack: object, metatable, key */
+	if (lua_rawget(L, 2) == LUA_TFUNCTION) /* method */
+		lua_pushcclosure(L, lunatik_monitor, 1);
+	return 1;
+}
+EXPORT_SYMBOL(lunatik_monitorobject);
 
 static int lunatik_lruntime(lua_State *L)
 {

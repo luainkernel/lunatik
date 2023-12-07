@@ -214,19 +214,17 @@ static void luarcu_release(void *private)
 	kfree(table);
 }
 
-LUNATIK_OBJECTDELETER(luarcu_delete);
-
 static const struct luaL_Reg luarcu_lib[] = {
 	{"table", luarcu_table},
-	{"delete", luarcu_delete},
+	{"delete", lunatik_deleteobject},
 	{NULL, NULL}
 };
 
 static const struct luaL_Reg luarcu_mt[] = {
 	{"__newindex", luarcu_newindex},
 	{"__index", luarcu_index},
-	{"__gc", luarcu_delete},
-	{"__close", luarcu_delete},
+	{"__gc", lunatik_deleteobject},
+	{"__close", lunatik_closeobject},
 	{NULL, NULL}
 };
 

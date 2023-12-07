@@ -152,14 +152,15 @@ static inline void *lunatik_checkalloc(lua_State *L, size_t size)
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size);
 lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
-// XXX mudar de volta s/free/release/
-void lunatik_freeobject(struct kref *kref);
+void lunatik_releaseobject(struct kref *kref);
 int lunatik_closeobject(lua_State *L);
+int lunatik_deleteobject(lua_State *L);
+int lunatik_monitorobject(lua_State *L);
 
 #define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), "null-pointer dereference")
 #define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
-#define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_freeobject)
+#define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
 
 static inline bool lunatik_hasindex(lua_State *L, int index)
 {
@@ -213,42 +214,6 @@ static inline T checker(lua_State *L, int ix)			\
 	lunatik_object_t *object = lunatik_checkobject(L, ix);	\
 	lunatik_checknull(L, object->private, ix);		\
 	return (T)object->private;				\
-}
-
-// XXX nao precisamos mais destes templates!!
-#define LUNATIK_OBJECTDELETER(deleter)					\
-static int deleter(lua_State *L)					\
-{									\
-	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);	\
-	lunatik_object_t *object = *pobject;				\
-	if (object != NULL) {						\
-		lunatik_putobject(object);				\
-		*pobject = NULL;					\
-	}								\
-	return 0;							\
-}
-
-#define LUNATIK_OBJECTMONITOR(monitor)					\
-static int monitor##closure(lua_State *L)				\
-{									\
-	int ret, n = lua_gettop(L);					\
-	lunatik_object_t *object = lunatik_checkobject(L, 1);		\
-	lua_pushvalue(L, lua_upvalueindex(1)); /* method */		\
-	lua_insert(L, 1); /* stack: method, object, args */		\
-	lunatik_lock(object);						\
-	ret = lua_pcall(L, n, LUA_MULTRET, 0);				\
-	lunatik_unlock(object);						\
-	if (ret != LUA_OK)						\
-		lua_error(L);						\
-	return lua_gettop(L);						\
-}									\
-static int monitor(lua_State *L)					\
-{									\
-	lua_getmetatable(L, 1);						\
-	lua_insert(L, 2); /* stack: object, metatable, key */		\
-	if (lua_rawget(L, 2) == LUA_TFUNCTION) /* method */		\
-		lua_pushcclosure(L, monitor##closure, 1);		\
-	return 1;							\
 }
 
 #endif
