@@ -202,23 +202,37 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 }
 EXPORT_SYMBOL(lunatik_cloneobject);
 
-void lunatik_releaseobject(struct kref *kref)
+static inline void lunatik_releaseobject(lunatik_object_t *object)
+{
+	void (*release)(void *) = object->class->release;
+	if (release)
+		release(object->private);
+	lunatik_free(object->private);
+}
+
+int lunatik_closeobject(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, 1);	
+	void *private = object->private;
+
+	lunatik_checknull(L, private, 1);
+	lunatik_releaseobject(object);
+	object->private = NULL;
+	return 0;
+}
+EXPORT_SYMBOL(lunatik_closeobject);
+
+void lunatik_freeobject(struct kref *kref)
 {
 	lunatik_object_t *object = container_of(kref, lunatik_object_t, kref);
-	void *private = object->private;
-	void (*release)(void *) = object->class->release;
 
-	if (release)
-		release(private);
-
-	/* in case of alloc failure */
-	if (private != NULL)
-		lunatik_free(private);
+	if (object->private != NULL)
+		lunatik_releaseobject(object);
 
 	lunatik_lockrelease(object);
 	kfree(object);
 }
-EXPORT_SYMBOL(lunatik_releaseobject);
+EXPORT_SYMBOL(lunatik_freeobject);
 
 static int lunatik_lruntime(lua_State *L)
 {

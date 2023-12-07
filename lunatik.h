@@ -152,12 +152,14 @@ static inline void *lunatik_checkalloc(lua_State *L, size_t size)
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size);
 lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
-void lunatik_releaseobject(struct kref *kref);
+// XXX mudar de volta s/free/release/
+void lunatik_freeobject(struct kref *kref);
+int lunatik_closeobject(lua_State *L);
 
 #define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), "null-pointer dereference")
 #define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
-#define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
+#define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_freeobject)
 
 static inline bool lunatik_hasindex(lua_State *L, int index)
 {
@@ -209,9 +211,11 @@ EXPORT_SYMBOL(luaopen_##libname)
 static inline T checker(lua_State *L, int ix)			\
 {								\
 	lunatik_object_t *object = lunatik_checkobject(L, ix);	\
+	lunatik_checknull(L, object->private, ix);		\
 	return (T)object->private;				\
 }
 
+// XXX nao precisamos mais destes templates!!
 #define LUNATIK_OBJECTDELETER(deleter)					\
 static int deleter(lua_State *L)					\
 {									\

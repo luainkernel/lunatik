@@ -99,11 +99,6 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr *addr)
 	return n;
 }
 
-static void luasocket_release(void *private)
-{
-	sock_release((struct socket *)private);
-}
-
 LUNATIK_OBJECTCHECKER(luasocket_checkpsocket, struct socket **);
 
 #define luasocket_checksocket(L, i)	(*luasocket_checkpsocket((L), (i)))
@@ -204,12 +199,17 @@ static int luasocket_get##what(lua_State *L)			\
 LUASOCKET_NEWGETTER(sockname);
 LUASOCKET_NEWGETTER(peername);
 
-LUNATIK_OBJECTDELETER(luasocket_close);
+static void luasocket_release(void *private)
+{
+	sock_release(*(struct socket **)(private));
+}
+
+LUNATIK_OBJECTDELETER(luasocket_delete);
 LUNATIK_OBJECTMONITOR(luasocket_monitor);
 
 static const luaL_Reg luasocket_lib[] = {
 	{"new", luasocket_new},
-	{"close", luasocket_close},
+	{"close", lunatik_closeobject},
 	{"send", luasocket_send},
 	{"receive", luasocket_receive},
 	{"bind", luasocket_bind},
@@ -222,10 +222,10 @@ static const luaL_Reg luasocket_lib[] = {
 };
 
 static const luaL_Reg luasocket_mt[] = {
-	{"__gc", luasocket_close},
-	{"__close", luasocket_close},
+	{"__gc", luasocket_delete},
+	{"__close", lunatik_closeobject},
 	{"__index", luasocket_monitor},
-	{"close", luasocket_close},
+	{"close", lunatik_closeobject},
 	{"send", luasocket_send},
 	{"receive", luasocket_receive},
 	{"bind", luasocket_bind},
