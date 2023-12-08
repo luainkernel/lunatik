@@ -86,6 +86,7 @@ static luarcu_entry_t *luarcu_newentry(const char *key, lunatik_object_t *object
 
 	entry->key = key;
 	entry->object = object;
+	lunatik_getobject(object);
 	return entry;
 }
 
@@ -198,7 +199,7 @@ static int luarcu_newindex(lua_State *L)
 
 	if (ret != 0)
 		luaL_error(L, "not enough memory");
-	lunatik_getobject(table_obj);
+	//lunatik_getobject(table_obj);
 	return 0;
 }
 
@@ -210,8 +211,6 @@ static void luarcu_release(void *private)
 
 	luarcu_foreach(table, bucket, entry)
 		luarcu_remove(entry);
-
-	kfree(table);
 }
 
 static const struct luaL_Reg luarcu_lib[] = {

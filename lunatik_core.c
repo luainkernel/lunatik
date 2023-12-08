@@ -186,6 +186,7 @@ lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 		(class = (lunatik_class_t *)lua_touserdata(L, -1)) != NULL, ix, "object expected");
 	pobject = (lunatik_object_t **)luaL_checkudata(L, ix, class->name);
 	lunatik_checknull(L, *pobject, ix);
+	lunatik_checknull(L, (*pobject)->private, ix); /* might be closed */
 	lua_pop(L, 1); /* class */
 	return pobject;
 }
@@ -226,6 +227,7 @@ void lunatik_releaseobject(struct kref *kref)
 {
 	lunatik_object_t *object = container_of(kref, lunatik_object_t, kref);
 
+	pr_err("release: %p\n", object);
 	if (object->private != NULL)
 		lunatik_releaseprivate(object);
 
@@ -239,6 +241,7 @@ int lunatik_deleteobject(lua_State *L)
 	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
 	lunatik_object_t *object = *pobject;
 
+	pr_err("delete: %p\n", object);
 	if (object != NULL) {
 		lunatik_putobject(object);
 		*pobject = NULL;
@@ -250,26 +253,29 @@ EXPORT_SYMBOL(lunatik_deleteobject);
 static int lunatik_monitor(lua_State *L)
 {
 	int ret, n = lua_gettop(L);
-	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
 
 	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
 	lua_insert(L, 1); /* stack: method, object, args */
 
-	lunatik_lock(*pobject);
+	pr_err("lock: %p\n", object);
+	lunatik_lock(object);
 	ret = lua_pcall(L, n, LUA_MULTRET, 0);
-	if (*pobject != NULL) /* object might have been deleted */
-		lunatik_unlock(*pobject);
+	pr_err("unlock: %p\n", object);
+	lunatik_unlock(object);
 
 	if (ret != LUA_OK)
 		lua_error(L);
 	return lua_gettop(L);
 }
 
+#define lunatik_rawgetfunction(L, i)	(lua_rawget((L), (i)) == LUA_TFUNCTION)
+
 int lunatik_monitorobject(lua_State *L)
 {
 	lua_getmetatable(L, 1);
 	lua_insert(L, 2); /* stack: object, metatable, key */
-	if (lua_rawget(L, 2) == LUA_TFUNCTION) /* method */
+	if (lua_rawget(L, 2) == LUA_TFUNCTION && lua_tocfunction(L, -1) != lunatik_deleteobject) /* method */
 		lua_pushcclosure(L, lunatik_monitor, 1);
 	return 1;
 }

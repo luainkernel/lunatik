@@ -159,6 +159,7 @@ int lunatik_monitorobject(lua_State *L);
 
 #define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), "null-pointer dereference")
 #define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
+#define lunatik_toobject(L, i)		(*(lunatik_object_t **)lua_touserdata((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
 

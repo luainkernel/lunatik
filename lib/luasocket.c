@@ -99,13 +99,12 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr *addr)
 	return n;
 }
 
-LUNATIK_OBJECTCHECKER(luasocket_checkpsocket, struct socket **);
-
-#define luasocket_checksocket(L, i)	(*luasocket_checkpsocket((L), (i)))
+#define luasocket_topsocket(L, i)	((struct socket **)lunatik_toobject((L), (i))->private)
+#define luasocket_tosocket(L, i)	(*luasocket_topsocket((L), (i)))
 
 static int luasocket_send(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	size_t len;
 	struct kvec vec;
 	struct msghdr msg;
@@ -130,7 +129,7 @@ static int luasocket_send(lua_State *L)
 
 static int luasocket_receive(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	size_t len = (size_t)luaL_checkinteger(L, 2);
 	luaL_Buffer B;
 	struct kvec vec;
@@ -156,7 +155,7 @@ static int luasocket_receive(lua_State *L)
 
 static int luasocket_bind(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	luasocket_addr_t addr;
 
 	luasocket_checkaddr(L, socket, &addr, 2);
@@ -166,7 +165,7 @@ static int luasocket_bind(lua_State *L)
 
 static int luasocket_listen(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	int backlog = luaL_optinteger(L, 2, SOMAXCONN);
 
 	luasocket_try(L, kernel_listen, socket, backlog);
@@ -175,7 +174,7 @@ static int luasocket_listen(lua_State *L)
 
 static int luasocket_connect(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	luasocket_addr_t addr;
 	int nargs = lua_gettop(L);
 	int flags;
@@ -190,7 +189,7 @@ static int luasocket_connect(lua_State *L)
 #define LUASOCKET_NEWGETTER(what) 				\
 static int luasocket_get##what(lua_State *L)			\
 {								\
-	struct socket *socket = luasocket_checksocket(L, 1);	\
+	struct socket *socket = luasocket_tosocket(L, 1);	\
 	struct sockaddr addr;					\
 	luasocket_try(L, kernel_get##what, socket, &addr);	\
 	return luasocket_pushaddr(L, &addr);			\
@@ -383,7 +382,7 @@ static const lunatik_class_t luasocket_class = {
 
 static int luasocket_accept(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	int flags = luaL_optinteger(L, 2, 0);
 	lunatik_object_t *object = luasocket_newsocket(L);
 

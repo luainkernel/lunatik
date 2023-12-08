@@ -43,10 +43,11 @@ static int luadata_new(lua_State *L);
 
 static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lua_Integer length)
 {
-	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	lunatik_object_t *object = lunatik_toobject(L, 1);
+	//lunatik_object_t *object = lunatik_checkobject(L, 1);
 	luadata_t *data = object->private;
 	// XXX ptr can be "removed"
-	lunatik_checknull(L, data->ptr, 1);
+	lunatik_checknull(L, data->ptr, 1); // XXX do we really need this?
 	*offset = luaL_checkinteger(L, 2);
 	luaL_argcheck(L, *offset >= 0 && length > 0 && *offset + length <= data->size, 2, "out of bounds");
 	return data;
