@@ -227,7 +227,6 @@ void lunatik_releaseobject(struct kref *kref)
 {
 	lunatik_object_t *object = container_of(kref, lunatik_object_t, kref);
 
-	pr_err("release: %p\n", object);
 	if (object->private != NULL)
 		lunatik_releaseprivate(object);
 
@@ -241,7 +240,6 @@ int lunatik_deleteobject(lua_State *L)
 	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
 	lunatik_object_t *object = *pobject;
 
-	pr_err("delete: %p\n", object);
 	if (object != NULL) {
 		lunatik_putobject(object);
 		*pobject = NULL;
@@ -258,18 +256,14 @@ static int lunatik_monitor(lua_State *L)
 	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
 	lua_insert(L, 1); /* stack: method, object, args */
 
-	pr_err("lock: %p\n", object);
 	lunatik_lock(object);
 	ret = lua_pcall(L, n, LUA_MULTRET, 0);
-	pr_err("unlock: %p\n", object);
 	lunatik_unlock(object);
 
 	if (ret != LUA_OK)
 		lua_error(L);
 	return lua_gettop(L);
 }
-
-#define lunatik_rawgetfunction(L, i)	(lua_rawget((L), (i)) == LUA_TFUNCTION)
 
 int lunatik_monitorobject(lua_State *L)
 {

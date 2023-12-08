@@ -119,8 +119,6 @@ typedef struct lunatik_class_s {
 	bool sleep;
 } lunatik_class_t;
 
-// XXX rutime must be an object ;-)
-
 typedef struct lunatik_object_s {
 	struct kref kref;
 	const lunatik_class_t *class;
@@ -213,7 +211,6 @@ EXPORT_SYMBOL(luaopen_##libname)
 static inline T checker(lua_State *L, int ix)			\
 {								\
 	lunatik_object_t *object = lunatik_checkobject(L, ix);	\
-	lunatik_checknull(L, object->private, ix);		\
 	return (T)object->private;				\
 }
 

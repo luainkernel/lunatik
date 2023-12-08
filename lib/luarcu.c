@@ -151,11 +151,7 @@ static int luarcu_insert(luarcu_table_t *table, const char *key, size_t keylen, 
 	return ret;
 }
 
-static inline luarcu_table_t *luarcu_checktable(lua_State *L, int ix)
-{
-	lunatik_object_t *object = lunatik_checkobject(L, 1);
-	return (luarcu_table_t *)object->private;
-}
+LUNATIK_OBJECTCHECKER(luarcu_checktable, luarcu_table_t *);
 
 static int luarcu_index(lua_State *L)
 {
@@ -185,21 +181,20 @@ static int luarcu_index(lua_State *L)
 
 static int luarcu_newindex(lua_State *L)
 {
-	lunatik_object_t *table_obj = lunatik_checkobject(L, 1);
+	lunatik_object_t *table = lunatik_checkobject(L, 1);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
 	lunatik_object_t *object = luarcu_checkoptnil(L, 3, lunatik_checkobject);
 	int ret;
 
-	lunatik_lock(table_obj);
-	ret = luarcu_insert(table_obj->private, key, keylen, object);
-	lunatik_unlock(table_obj);
+	lunatik_lock(table);
+	ret = luarcu_insert(table->private, key, keylen, object);
+	lunatik_unlock(table);
 	if (!rcu_read_lock_held())
 		synchronize_rcu();
 
 	if (ret != 0)
 		luaL_error(L, "not enough memory");
-	//lunatik_getobject(table_obj);
 	return 0;
 }
 
