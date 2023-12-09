@@ -132,6 +132,8 @@ static int luasocket_close(lua_State *L)
 	return 0;
 }
 
+#define luasocket_setmsg(m)	memset(&(m), 0, sizeof(m))
+
 static int luasocket_send(lua_State *L)
 {
 	struct socket *socket = luasocket_checksocket(L, 1);
@@ -140,6 +142,8 @@ static int luasocket_send(lua_State *L)
 	struct msghdr msg;
 	int nargs = lua_gettop(L);
 	int ret;
+
+	luasocket_setmsg(msg);
 
 	vec.iov_base = (void *)luaL_checklstring(L, 2, &len);
 	vec.iov_len = len;
@@ -166,6 +170,8 @@ static int luasocket_receive(lua_State *L)
 	int flags = luaL_optinteger(L, 3, 0);
 	int from = lua_toboolean(L, 4);
 	int ret;
+
+	luasocket_setmsg(msg);
 
 	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
 	vec.iov_len = len;
