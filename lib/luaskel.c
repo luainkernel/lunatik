@@ -35,22 +35,21 @@ typedef struct luaskel_s {
 	int unused;
 } luaskel_t;
 
-#define LUASKEL_MT	"skel"
-
-static int luaskel_new(lua_State *L)
-{
-	luaskel_t *skel = (luskel_t *)lua_newuserdatauv(L, sizeof(luaskel_t), 0);
-
-	luaL_setmetatable(L, LUASKEL_MT);
-	return 1; /* userdata */
-}
-
 static int luaskel_nop(lua_State *L)
 {
-	luaskel_t *skel = (luaskel_t *)luaL_checkudata(L, 1, LUASKEL_MT);
-	/* do nothing */
+	lunatik_object_t *object = lunatik_toobject(L, 1);
+	luaskel_t *skel = (luaskel_t *)object->private;
+	(void)skel; /* do nothing */
 	return 0;
 }
+
+static void luaskel_release(void *private)
+{
+	luaskel_t *skel = (luaskel_t *)private;
+	(void)skel; /* do nothing */
+}
+
+static int luaskel_new(lua_State *L);
 
 static const luaL_Reg luaskel_lib[] = {
 	{"new", luaskel_new},
@@ -64,11 +63,21 @@ static const luaL_Reg luaskel_mt[] = {
 };
 
 static const lunatik_class_t luaskel_class = {
-	.name = LUASKEL_MT,
+	.name = "skel",
 	.methods = luaskel_mt,
+	.release = luaskel_release,
+	.sleep = false,
 };
 
-LUNATIK_NEWLIB(skel, luaskel_lib, &luaskel_class, NULL, true);
+static int luaskel_new(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_newobject(L, &luaskel_class, sizeof(luaskel_t));
+	luaskel_t *skel = (luskel_t *)object->private;
+	(void)private; /* do nothing */
+	return 1; /* object */
+}
+
+LUNATIK_NEWLIB(skel, luaskel_lib, &luaskel_class, NULL);
 
 static int __init luaskel_init(void)
 {

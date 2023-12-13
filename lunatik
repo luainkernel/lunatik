@@ -78,6 +78,14 @@ lunatik.commands = {
 		end
 	end,
 	['unload'] = function ()
+		lunatik.dostring[[
+			local runtimes = lunatik.__runtimes
+			for script, runtime in pairs(runtimes) do
+				runtime:stop()
+				runtimes[script] = nil
+			end
+			collectgarbage() -- cleanup thread runtimes
+		]]
 		local first = #lunatik.modules
 		for i = first, 1, -1 do
 			local module = lunatik.modules[i]
@@ -116,8 +124,9 @@ local parser = {
 	]],
 	['stop'] = [[
 		local script = "%s"
-		lunatik.__runtimes[script]:stop()
-		lunatik.__runtimes[script] = nil
+		local runtimes = lunatik.__runtimes
+		runtimes[script]:stop()
+		runtimes[script] = nil
 		collectgarbage() -- cleanup thread runtimes
 	]],
 	['list'] = [[

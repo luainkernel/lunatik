@@ -36,24 +36,24 @@
 typedef struct luathread_s {
 	struct completion stopped;
 	struct task_struct *task;
-	lunatik_runtime_t *runtime;
+	lunatik_object_t *runtime;
+	int result;
+	size_t nargs;
+	lunatik_object_t *argv[];
 } luathread_t;
 
-#define LUATHREAD_MT	"thread"
-#define LUATHREAD_FUNC	"__thread_task"
+static int luathread_run(lua_State *L);
 
-static inline luathread_t *luathread_checkudata(lua_State *L, int arg)
+static int luathread_call(lua_State *L, luathread_t *thread)
 {
-	luathread_t *thread = (luathread_t *)luaL_checkudata(L, arg, LUATHREAD_MT);
-	luaL_argcheck(L, thread->task != NULL, arg, "invalid thread");
-	return thread;
-}
+	int nresult, i, nargs = thread->nargs;
+	lunatik_object_t **argv = thread->argv;
 
-static int luathread_call(lua_State *L)
-{
-	lua_getglobal(L, LUATHREAD_FUNC);
-	if (lua_pcall(L, 0, 1, 0) != LUA_OK) {
-		pr_err("%s: %s\n", lua_tostring(L, -1), LUATHREAD_FUNC);
+	for (i = 0; i < nargs; i++)
+		lunatik_cloneobject(L, argv[i]);
+
+	if (lua_resume(L, NULL, nargs, &nresult) != LUA_OK) {
+		pr_err("%s\n", lua_tostring(L, -1));
 		return -1;
 	}
 	return (int)lua_tointeger(L, -1);
@@ -64,17 +64,10 @@ static int luathread_func(void *data)
 	luathread_t *thread = (luathread_t *)data;
 	int ret;
 
-	lunatik_run(thread->runtime, luathread_call, ret);
+	lunatik_run(thread->runtime, luathread_call, ret, thread);
 	while (!kthread_should_stop())
 		wait_for_completion_interruptible(&thread->stopped);
 	return ret;
-}
-
-static int luathread_settask(lua_State *L)
-{
-	luaL_checktype(L, 1, LUA_TFUNCTION);
-	lua_setglobal(L, LUATHREAD_FUNC);
-	return 0;
 }
 
 static int luathread_shouldstop(lua_State *L)
@@ -83,58 +76,80 @@ static int luathread_shouldstop(lua_State *L)
 	return 1;
 }
 
-static int luathread_run(lua_State *L)
+static void luathread_release(void *private)
 {
-	lunatik_runtime_t *runtime = lunatik_checkruntime(L, 1);
-	const char *name = luaL_checkstring(L, 2);
-	luathread_t *thread = (luathread_t *)lua_newuserdatauv(L, sizeof(luathread_t), 0);
+	luathread_t *thread = (luathread_t *)private;
 
-	lunatik_get(runtime);
-	thread->runtime = runtime;
-
-	luaL_setmetatable(L, LUATHREAD_MT);
-
-	init_completion(&thread->stopped);
-	thread->task = kthread_run(luathread_func, thread, name);
-	if (IS_ERR(thread->task))
-		luaL_error(L, "failed to create a new thread");
-
-	return 1; /* userdata */
+	if (thread->task != NULL) { /* has stopped? */
+		complete(&thread->stopped);
+		thread->result = kthread_stop(thread->task);
+		thread->task = NULL;
+		lunatik_putobject(thread->runtime);
+		thread->runtime = NULL;
+	}
 }
 
 static int luathread_stop(lua_State *L)
 {
-	luathread_t *thread = luathread_checkudata(L, 1);
+	lunatik_object_t *object = lunatik_toobject(L, 1);
+	luathread_t *thread = (luathread_t *)object->private;
 
-	complete(&thread->stopped);
-	lua_pushinteger(L, kthread_stop(thread->task));
-	thread->task = NULL;
-	lunatik_put(thread->runtime);
-	thread->runtime = NULL;
+	luathread_release(thread);
+	lua_pushinteger(L, thread->result);
 	return 1;
 }
 
 static const luaL_Reg luathread_lib[] = {
 	{"run", luathread_run},
 	{"stop", luathread_stop},
-	{"settask", luathread_settask},
 	{"shouldstop", luathread_shouldstop},
 	{NULL, NULL}
 };
 
 static const luaL_Reg luathread_mt[] = {
-	{"__gc", luathread_stop},
-	{"__close", luathread_stop},
+	{"__index", lunatik_monitorobject},
+	{"__gc", lunatik_deleteobject},
 	{"stop", luathread_stop},
 	{NULL, NULL}
 };
 
 static const lunatik_class_t luathread_class = {
-	.name = LUATHREAD_MT,
+	.name = "thread",
 	.methods = luathread_mt,
+	.release = luathread_release,
+	.sleep = true,
 };
 
-LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, NULL, true);
+#define luathread_size(n)	(sizeof(luathread_t) + sizeof(lunatik_object_t *) * (n))
+
+static int luathread_run(lua_State *L)
+{
+	lunatik_object_t *runtime = lunatik_checkobject(L, 1);
+	const char *name = luaL_checkstring(L, 2);
+	int i, nargs = lua_gettop(L) - 2;
+	lunatik_object_t *object = lunatik_newobject(L, &luathread_class, luathread_size(nargs));
+	luathread_t *thread = object->private;
+	lunatik_object_t **argv = thread->argv;
+
+	for (i = 0; i < nargs; i++) {
+		lunatik_object_t *arg = lunatik_checkobject(L, 3 + i);
+		lunatik_getobject(arg);
+		argv[i] = arg;
+	}
+	thread->nargs = nargs;
+
+	lunatik_getobject(runtime);
+	thread->runtime = runtime;
+
+	init_completion(&thread->stopped);
+	thread->task = kthread_run(luathread_func, thread, name);
+	if (IS_ERR(thread->task))
+		luaL_error(L, "failed to create a new thread");
+
+	return 1; /* object */
+}
+
+LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, NULL);
 
 static int __init luathread_init(void)
 {
