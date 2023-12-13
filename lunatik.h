@@ -34,57 +34,36 @@
 
 #define LUNATIK_VERSION	"Lunatik 3.3"
 
-typedef struct lunatik_runtime_s {
-	lua_State *L;
-	struct kref kref;
-	union {
-		struct mutex mutex;
-		spinlock_t spin;
-	};
-	bool sleep;
-	bool ready;
-} lunatik_runtime_t;
-
-#define lunatik_locker(runtime, mutex_op, spin_op)	\
-do {							\
-	if ((runtime)->sleep)				\
-		mutex_op(&(runtime)->mutex);		\
-	else						\
-		spin_op(&(runtime)->spin);		\
+#define lunatik_locker(o, mutex_op, spin_op)	\
+do {						\
+	if ((o)->sleep)				\
+		mutex_op(&(o)->mutex);		\
+	else					\
+		spin_op(&(o)->spin);		\
 } while(0)
 
-#define lunatik_lock(runtime)	lunatik_locker(runtime, mutex_lock, spin_lock)
-#define lunatik_unlock(runtime)	lunatik_locker(runtime, mutex_unlock, spin_unlock)
-#define lunatik_toruntime(L)	(*(lunatik_runtime_t **)lua_getextraspace(L))
+#define lunatik_newlock(o)	lunatik_locker((o), mutex_init, spin_lock_init);
+#define lunatik_freelock(o)	lunatik_locker((o), mutex_destroy, (void));
+#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock)
+#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock)
 
-static inline bool lunatik_islocked(lunatik_runtime_t *runtime)
+#define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
+#define lunatik_cansleep(L)	(lunatik_toruntime(L)->sleep)
+
+#define lunatik_getstate(runtime)	((lua_State *)runtime->private)
+
+static inline bool lunatik_isready(lua_State *L)
 {
-	return runtime->sleep ? mutex_is_locked(&runtime->mutex) : spin_is_locked(&runtime->spin);
+	bool ready;
+	lua_rawgetp(L, LUA_REGISTRYINDEX, L);
+	ready = lua_toboolean(L, -1);
+	lua_pop(L, 1);
+	return ready;
 }
-
-int lunatik_runtime(lunatik_runtime_t **pruntime, const char *script, bool sleep);
-int lunatik_stop(lunatik_runtime_t *runtime);
-
-lunatik_runtime_t *lunatik_checkruntime(lua_State *L, int arg);
-
-static inline void lunatik_release(struct kref *kref)
-{
-	lunatik_runtime_t *runtime = container_of(kref, lunatik_runtime_t, kref);
-	lunatik_locker(runtime, mutex_destroy, (void));
-	kfree(runtime);
-}
-
-#define lunatik_put(runtime)	kref_put(&(runtime)->kref, lunatik_release)
-#define lunatik_get(runtime)	kref_get(&(runtime)->kref)
-
-#define lunatik_getsleep(L)	(lunatik_toruntime(L)->sleep)
-#define lunatik_getready(L)	(lunatik_toruntime(L)->ready)
-
-#define lunatik_cansleep(L)	(!lunatik_getready(L) || lunatik_getsleep(L))
 
 #define lunatik_handle(runtime, handler, ret, ...)	\
 do {							\
-	lua_State *L = runtime->L;			\
+	lua_State *L = lunatik_getstate(runtime);	\
 	int n = lua_gettop(L);				\
 	ret = handler(L, ## __VA_ARGS__);		\
 	lua_settop(L, n);				\
@@ -93,7 +72,7 @@ do {							\
 #define lunatik_run(runtime, handler, ret, ...)				\
 do {									\
 	lunatik_lock(runtime);						\
-	if (unlikely(!runtime->L))					\
+	if (unlikely(!lunatik_getstate(runtime)))			\
 		ret = -ENXIO;						\
 	else								\
 		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
@@ -113,20 +92,86 @@ typedef struct lunatik_namespace_s {
 typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
+	void (*release)(void *);
+	bool sleep;
+	bool pointer;
 } lunatik_class_t;
 
-static inline bool lunatik_isobject(lua_State *L, int index)
+typedef struct lunatik_object_s {
+	struct kref kref;
+	const lunatik_class_t *class;
+	void *private;
+	union {
+		struct mutex mutex;
+		spinlock_t spin;
+	};
+	bool sleep;
+} lunatik_object_t;
+
+int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
+int lunatik_stop(lunatik_object_t *runtime);
+
+static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 {
-	bool isobject = lua_getfield(L, index, "__index") == LUA_TNIL;
+	void *ud = NULL;
+	lua_Alloc alloc = lua_getallocf(L, &ud);
+	return alloc(ud, ptr, LUA_TNONE, size);
+}
+
+#define lunatik_malloc(L, s)	lunatik_realloc((L), NULL, (s))
+#define lunatik_free(p)		kfree(p)
+
+static inline void *lunatik_checkalloc(lua_State *L, size_t size)
+{
+	void *ptr = lunatik_malloc(L, size);
+	if (ptr == NULL)
+		luaL_error(L, "not enough memory");
+	return ptr;
+}
+
+static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
+{
+	luaL_setmetatable(L, class->name);
+	lua_pushlightuserdata(L, (void *)class);
+	lua_setiuservalue(L, -2, 1); /* pop class */
+}
+
+static inline void lunatik_setobject(lua_State *L, lunatik_object_t *object, const lunatik_class_t *class, bool sleep)
+{
+	kref_init(&object->kref);
+	object->private = NULL;
+	object->class = class;
+	object->sleep = sleep;
+	lunatik_newlock(object);
+}
+
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size);
+lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix);
+void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
+void lunatik_releaseobject(struct kref *kref);
+int lunatik_closeobject(lua_State *L);
+int lunatik_deleteobject(lua_State *L);
+int lunatik_monitorobject(lua_State *L);
+
+#define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
+#define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), "null-pointer dereference")
+#define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
+#define lunatik_toobject(L, i)		(*(lunatik_object_t **)lua_touserdata((L), (i)))
+#define lunatik_getobject(o)		kref_get(&(o)->kref)
+#define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
+
+static inline bool lunatik_hasindex(lua_State *L, int index)
+{
+	bool hasindex = lua_getfield(L, index, "__index") != LUA_TNIL;
 	lua_pop(L, 1);
-	return isobject;
+	return hasindex;
 }
 
 static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 {
 	luaL_newmetatable(L, class->name); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
-	if (lunatik_isobject(L, -1)) {
+	if (!lunatik_hasindex(L, -1)) {
 		lua_pushvalue(L, -1);  /* push mt */
 		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
 	}
@@ -135,32 +180,38 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 
 static void inline lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
 {
-	for (; namespaces->name; namespaces++) {
-		const lunatik_reg_t *reg;
-		lua_newtable(L); /* namespace = {} */
-		for (reg = namespaces->reg; reg->name; reg++) {
-			lua_pushinteger(L, reg->value);
-			lua_setfield(L, -2, reg->name); /* namespace[name] = value */
+	if (namespaces != NULL) {
+		for (; namespaces->name; namespaces++) {
+			const lunatik_reg_t *reg;
+			lua_newtable(L); /* namespace = {} */
+			for (reg = namespaces->reg; reg->name; reg++) {
+				lua_pushinteger(L, reg->value);
+				lua_setfield(L, -2, reg->name); /* namespace[name] = value */
+			}
+			lua_setfield(L, -2, namespaces->name); /* lib.namespace = namespace */
 		}
-		lua_setfield(L, -2, namespaces->name); /* lib.namespace = namespace */
 	}
 }
 
-#define LUNATIK_NEWLIB(libname, funcs, class, namespaces, sleep)				\
+#define LUNATIK_NEWLIB(libname, funcs, class, namespaces)					\
 int luaopen_##libname(lua_State *L)								\
 {												\
-	const lunatik_class_t *cls = class; /* avoid -Waddress */				\
-	const lunatik_namespace_t *nss = namespaces; /* avoid -Waddress */			\
-	if (sleep && !lunatik_getsleep(L))							\
+	if (!lunatik_cansleep(L) && (class)->sleep)						\
 		luaL_error(L, "cannot require '" #libname "' on non-sleepable runtime");	\
 	luaL_newlib(L, funcs);									\
-	if (cls)										\
+	if ((class)->name != NULL)								\
 		lunatik_newclass(L, class);							\
-	if (nss)										\
-		lunatik_newnamespaces(L, namespaces);						\
+	lunatik_newnamespaces(L, namespaces);							\
 	return 1;										\
 }												\
 EXPORT_SYMBOL(luaopen_##libname)
+
+#define LUNATIK_OBJECTCHECKER(checker, T)			\
+static inline T checker(lua_State *L, int ix)			\
+{								\
+	lunatik_object_t *object = lunatik_checkobject(L, ix);	\
+	return (T)object->private;				\
+}
 
 #endif
 
