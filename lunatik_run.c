@@ -29,7 +29,7 @@
 
 #include "lunatik.h"
 
-static lunatik_runtime_t *runtime;
+static lunatik_object_t *runtime;
 
 static int __init lunatik_run_init(void)
 {
