@@ -101,7 +101,11 @@ static const luaL_Reg luafib_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(fib, luafib_lib, NULL, NULL, true);
+static const lunatik_class_t luafib_class = {
+	.sleep = true,
+};
+
+LUNATIK_NEWLIB(fib, luafib_lib, &luafib_class, NULL);
 
 static int __init luafib_init(void)
 {

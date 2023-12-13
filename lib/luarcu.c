@@ -28,20 +28,17 @@
 #include <linux/hashtable.h>
 #include <linux/hashtable.h>
 #include <linux/random.h>
-#include <linux/kref.h>
 
 #include <lua.h>
 #include <lauxlib.h>
 
 #include <lunatik.h>
 
-#define LUARCU_MT		"rcu.table"
 #define LUARCU_DEFAULT_SIZE	(256)
 
 typedef struct luarcu_entry_s {
 	const char *key;
-	const void *data;
-	size_t len;
+	lunatik_object_t *object;
 	struct hlist_node hlist;
 	struct rcu_head rcu;
 } luarcu_entry_t;
@@ -49,16 +46,9 @@ typedef struct luarcu_entry_s {
 typedef struct luarcu_table_s {
 	size_t size;
 	unsigned int seed;
-	spinlock_t lock;
-	struct kref kref;
 	struct hlist_head hlist[];
 } luarcu_table_t;
 
-static luarcu_table_t *luarcu_registry;
-
-#define luarcu_newptable(L)		((luarcu_table_t **)lua_newuserdatauv((L), sizeof(luarcu_table_t *), 0))
-#define luarcu_checkptable(L, i)	((luarcu_table_t **)luaL_checkudata((L), (i), LUARCU_MT))
-#define luarcu_istable(entry)		((entry)->len == 0)
 #define luarcu_sizeoftable(size)	(sizeof(luarcu_table_t) + sizeof(struct hlist_head) * (size))
 
 #include <lua/lstring.h>
@@ -74,34 +64,7 @@ static luarcu_table_t *luarcu_registry;
 #define luarcu_checkoptnil(L, i, checkopt, ...) \
 	(lua_type((L), (i)) == LUA_TNIL ? NULL : checkopt((L), (i), ## __VA_ARGS__))
 
-static inline void luarcu_remove(luarcu_entry_t *entry);
-
-static void luarcu_release(struct kref *kref)
-{
-	luarcu_table_t *table = container_of(kref, luarcu_table_t, kref);
-	unsigned int bucket;
-	luarcu_entry_t *entry;
-
-	luarcu_foreach(table, bucket, entry)
-		luarcu_remove(entry);
-
-	kfree(table);
-}
-
-#define luarcu_ref(table)	(&((luarcu_table_t *)(table))->kref)
-#define luarcu_refinit(table)	kref_init(luarcu_ref(table))
-#define luarcu_refget(table)	kref_get(luarcu_ref(table))
-#define luarcu_refput(table)	kref_put(luarcu_ref(table), luarcu_release)
-
-static inline luarcu_table_t *luarcu_checktable(lua_State *L, int index)
-{
-	luarcu_table_t **ptable = luarcu_checkptable(L, index);
-	luarcu_table_t *table = *ptable;
-
-	if (table == NULL)
-		luaL_error(L, "invalid rcu");
-	return table;
-}
+static int luarcu_table(lua_State *L);
 
 static inline luarcu_entry_t *luarcu_lookup(luarcu_table_t *table, unsigned int index,
 	const char *key, size_t keylen)
@@ -114,41 +77,27 @@ static inline luarcu_entry_t *luarcu_lookup(luarcu_table_t *table, unsigned int 
 	return NULL;
 }
 
-static luarcu_entry_t *luarcu_alloc(const char *key, const void *data, size_t len)
+static luarcu_entry_t *luarcu_newentry(const char *key, lunatik_object_t *object)
 {
 	luarcu_entry_t *entry = (luarcu_entry_t *)kmalloc(sizeof(luarcu_entry_t), GFP_ATOMIC);
 	if (entry == NULL)
 		return NULL;
 
-	entry->len = len;
 	entry->key = key;
-
-	if (!luarcu_istable(entry)) {
-		entry->data = kmalloc(len, GFP_ATOMIC);
-		if (entry->data == NULL) {
-			kfree(entry);
-			return NULL;
-		}
-		memcpy((void *)entry->data, data, len);
-	}
-	else
-		entry->data = data;
-
+	entry->object = object;
+	lunatik_getobject(object);
 	return entry;
 }
 
 static inline void luarcu_free(luarcu_entry_t *entry)
 {
-	if (luarcu_istable(entry))
-		luarcu_refput(entry->data);
-	else
-		kfree(entry->data);
+	lunatik_putobject(entry->object);
 	kfree(entry);
 }
 
-static int luarcu_replace(luarcu_entry_t *old, const void *data, size_t len)
+static int luarcu_replace(luarcu_entry_t *old, lunatik_object_t *object)
 {
-	luarcu_entry_t *new = luarcu_alloc(old->key, data, len);
+	luarcu_entry_t *new = luarcu_newentry(old->key, object);
 	if (new == NULL)
 		return -1;
 
@@ -157,8 +106,7 @@ static int luarcu_replace(luarcu_entry_t *old, const void *data, size_t len)
 	return 0;
 }
 
-static int luarcu_add(luarcu_table_t *table, unsigned int index, const char *key, size_t keylen,
-	const void *data, size_t len)
+static int luarcu_add(luarcu_table_t *table, unsigned int index, const char *key, size_t keylen, lunatik_object_t *object)
 {
 	char *entry_key;
 	luarcu_entry_t *entry;
@@ -168,7 +116,7 @@ static int luarcu_add(luarcu_table_t *table, unsigned int index, const char *key
 	if (entry_key == NULL)
 		return -1;
 
-	entry = luarcu_alloc(entry_key, data, len);
+	entry = luarcu_newentry(entry_key, object);
 	if (entry == NULL) {
 		kfree(entry_key);
 		return -1;
@@ -186,34 +134,29 @@ static inline void luarcu_remove(luarcu_entry_t *entry)
 	luarcu_free(entry);
 }
 
-static void luarcu_insert(lua_State *L, luarcu_table_t *table, const char *key, size_t keylen,
-	const void *data, size_t len)
+static int luarcu_insert(luarcu_table_t *table, const char *key, size_t keylen, lunatik_object_t *object)
 {
 	luarcu_entry_t *entry;
 	unsigned int index = luarcu_hash(table, key, keylen);
 	int ret = 0;
 
-	spin_lock(&table->lock);
-
 	entry = luarcu_lookup(table, index, key, keylen);
-	if (data)
-		ret = entry ? luarcu_replace(entry, data, len) :
-			luarcu_add(table, index, key, keylen, data, len);
+	if (object)
+		ret = entry ? luarcu_replace(entry, object) :
+			luarcu_add(table, index, key, keylen, object);
 	else if (entry)
 		luarcu_remove(entry);
 
-	spin_unlock(&table->lock);
-	if (!rcu_read_lock_held())
-		synchronize_rcu();
-
-	if (ret != 0)
-		luaL_error(L, "failed to insert");
+	return ret;
 }
+
+LUNATIK_OBJECTCHECKER(luarcu_checktable, luarcu_table_t *);
 
 static int luarcu_index(lua_State *L)
 {
 	luarcu_table_t *table = luarcu_checktable(L, 1);
 	luarcu_entry_t *entry;
+	lunatik_object_t *object;
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
 	unsigned int index = luarcu_hash(table, key, keylen);
@@ -221,128 +164,89 @@ static int luarcu_index(lua_State *L)
 	rcu_read_lock();
 	entry = luarcu_lookup(table, index, key, keylen);
 	if (entry == NULL) {
+		rcu_read_unlock();
 		lua_pushnil(L);
-		goto out;
+		return 1;
 	}
 
-	lua_pushlstring(L, entry->data, entry->len);
-out:
+	/* entry might be released after rcu_read_unlock */
+	object = entry->object; /* thus we need to store object pointer */
+	lunatik_getobject(object);
 	rcu_read_unlock();
-	return 1;
+
+	lunatik_cloneobject(L, object);
+	return 1; /* object */
 }
 
 static int luarcu_newindex(lua_State *L)
 {
-	luarcu_table_t *table = luarcu_checktable(L, 1);
-	size_t len, keylen;
+	lunatik_object_t *table = lunatik_checkobject(L, 1);
+	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
-	const char *data = luarcu_checkoptnil(L, 3, luaL_checklstring, &len);
+	lunatik_object_t *object = luarcu_checkoptnil(L, 3, lunatik_checkobject);
+	int ret;
 
-	luarcu_insert(L, table, key, keylen, data, len);
+	lunatik_lock(table);
+	ret = luarcu_insert(table->private, key, keylen, object);
+	lunatik_unlock(table);
+	if (!rcu_read_lock_held())
+		synchronize_rcu();
+
+	if (ret != 0)
+		luaL_error(L, "not enough memory");
 	return 0;
 }
 
-static int luarcu_delete(lua_State *L)
+static void luarcu_release(void *private)
 {
-	luarcu_table_t **ptable = luarcu_checkptable(L, 1);
-
-	luarcu_refput(*ptable);
-	*ptable = NULL;
-	return 0;
-}
-
-static luarcu_table_t *luarcu_newtable(size_t size)
-{
-	luarcu_table_t *table = (luarcu_table_t *)kmalloc(luarcu_sizeoftable(size), GFP_ATOMIC);
-	if (table != NULL) {
-		luarcu_refinit(table);
-		__hash_init(table->hlist, size);
-		table->size = size;
-		table->seed = luarcu_seed();
-		spin_lock_init(&table->lock);
-	}
-	return table;
-}
-
-static int luarcu_table(lua_State *L)
-{
-	size_t size = roundup_pow_of_two(luaL_optinteger(L, 1, LUARCU_DEFAULT_SIZE));
-	luarcu_table_t **ptable = luarcu_newptable(L);
-	luarcu_table_t *table = luarcu_newtable(size);
-	if (table == NULL)
-		luaL_error(L, "failed to allocate table");
-	*ptable = table;
-	luaL_setmetatable(L, LUARCU_MT);
-	return 1;
-}
-
-static int luarcu_publish(lua_State *L)
-{
-	size_t keylen;
-	const char *key = luaL_checklstring(L, 1, &keylen);
-	luarcu_table_t *table = luarcu_checkoptnil(L, 2, luarcu_checktable);
-
-	luarcu_insert(L, luarcu_registry, key, keylen, table, 0);
-
-	if (table != NULL)
-		luarcu_refget(table);
-	return 0;
-}
-
-static int luarcu_subscribe(lua_State *L)
-{
+	luarcu_table_t *table = (luarcu_table_t *)private;
+	unsigned int bucket;
 	luarcu_entry_t *entry;
-	size_t keylen;
-	const char *key = luaL_checklstring(L, 1, &keylen);
-	unsigned int index = luarcu_hash(luarcu_registry, key, keylen);
-	luarcu_table_t **ptable = luarcu_newptable(L);
 
-	rcu_read_lock();
-	entry = luarcu_lookup(luarcu_registry, index, key, keylen);
-	if (entry == NULL) {
-		lua_pushnil(L);
-		goto out;
-	}
-
-	*ptable = (luarcu_table_t *)entry->data;
-	luaL_setmetatable(L, LUARCU_MT);
-	luarcu_refget(*ptable);
-out:
-	rcu_read_unlock();
-	return 1;
+	luarcu_foreach(table, bucket, entry)
+		luarcu_remove(entry);
 }
 
 static const struct luaL_Reg luarcu_lib[] = {
 	{"table", luarcu_table},
-	{"publish", luarcu_publish},
-	{"subscribe", luarcu_subscribe},
 	{NULL, NULL}
 };
 
 static const struct luaL_Reg luarcu_mt[] = {
 	{"__newindex", luarcu_newindex},
 	{"__index", luarcu_index},
-	{"__gc", luarcu_delete},
-	{"__close", luarcu_delete},
+	{"__gc", lunatik_deleteobject},
 	{NULL, NULL}
 };
 
 static const lunatik_class_t luarcu_class = {
-	.name = LUARCU_MT,
+	.name = "rcu.table",
 	.methods = luarcu_mt,
+	.release = luarcu_release,
+	.sleep = false,
 };
 
-LUNATIK_NEWLIB(rcu, luarcu_lib, &luarcu_class, NULL, true);
+static int luarcu_table(lua_State *L)
+{
+	size_t size = roundup_pow_of_two(luaL_optinteger(L, 1, LUARCU_DEFAULT_SIZE));
+	lunatik_object_t *object = lunatik_newobject(L, &luarcu_class, luarcu_sizeoftable(size));
+	luarcu_table_t *table = object->private;
+
+	__hash_init(table->hlist, size);
+	table->size = size;
+	table->seed = luarcu_seed();
+	return 1; /* object */
+}
+
+LUNATIK_NEWLIB(rcu, luarcu_lib, &luarcu_class, NULL);
 
 static int __init luarcu_init(void)
 {
-	luarcu_registry = luarcu_newtable(LUARCU_DEFAULT_SIZE);
 	return 0;
 }
 
 static void __exit luarcu_exit(void)
 {
-	luarcu_refput(luarcu_registry);
 }
 
 module_init(luarcu_init);

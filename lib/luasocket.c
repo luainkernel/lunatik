@@ -37,11 +37,6 @@
 
 #include <lunatik.h>
 
-#define LUASOCKET_MT	"socket"
-
-#define luasocket_checkpsocket(L, ix)	((struct socket **)luaL_checkudata(L, ix, LUASOCKET_MT))
-#define luasocket_checksocket(L, ix)	(*luasocket_checkpsocket(L, ix))
-
 #define luasocket_tryret(L, ret, op, ...)			\
 do {								\
 	if ((ret = op(__VA_ARGS__)) < 0)			\
@@ -73,6 +68,9 @@ typedef struct luasocket_addr_s {
 	unsigned short family;
 	unsigned char data[LUASOCKET_ADDRLEN];
 } luasocket_addr_t;
+
+static int luasocket_new(lua_State *L);
+static int luasocket_accept(lua_State *L);
 
 static void luasocket_checkaddr(lua_State *L, struct socket *socket, luasocket_addr_t *addr, int ix)
 {
@@ -106,37 +104,12 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr *addr)
 	return n;
 }
 
-static int luasocket_new(lua_State *L)
-{
-	struct socket **psocket;
-	int family = luaL_checkinteger(L, 1);
-	int type = luaL_checkinteger(L, 2);
-	int proto = luaL_checkinteger(L, 3);
-
-	psocket = (struct socket **)lua_newuserdatauv(L, sizeof(struct socket *), 0);
-
-	luasocket_try(L, sock_create, family, type, proto, psocket);
-
-	luaL_setmetatable(L, LUASOCKET_MT);
-	return 1; /* userdata */
-}
-
-static int luasocket_close(lua_State *L)
-{
-	struct socket **psocket = luasocket_checkpsocket(L, 1);
-
-	if (*psocket) {
-		sock_release(*psocket);
-		*psocket = NULL;
-	}
-	return 0;
-}
-
-#define luasocket_setmsg(m)	memset(&(m), 0, sizeof(m))
+#define luasocket_tosocket(L, i)	((struct socket *)lunatik_toobject((L), (i))->private)
+#define luasocket_setmsg(m)		memset(&(m), 0, sizeof(m))
 
 static int luasocket_send(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	size_t len;
 	struct kvec vec;
 	struct msghdr msg;
@@ -161,7 +134,7 @@ static int luasocket_send(lua_State *L)
 
 static int luasocket_receive(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	size_t len = (size_t)luaL_checkinteger(L, 2);
 	luaL_Buffer B;
 	struct kvec vec;
@@ -187,7 +160,7 @@ static int luasocket_receive(lua_State *L)
 
 static int luasocket_bind(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	luasocket_addr_t addr;
 
 	luasocket_checkaddr(L, socket, &addr, 2);
@@ -197,29 +170,16 @@ static int luasocket_bind(lua_State *L)
 
 static int luasocket_listen(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	int backlog = luaL_optinteger(L, 2, SOMAXCONN);
 
 	luasocket_try(L, kernel_listen, socket, backlog);
 	return 0;
 }
 
-static int luasocket_accept(lua_State *L)
-{
-	struct socket *socket = luasocket_checksocket(L, 1);
-	struct socket **psocket;
-	int flags = luaL_optinteger(L, 2, 0);
-
-	psocket = (struct socket **)lua_newuserdatauv(L, sizeof(struct socket *), 0);
-
-	luasocket_try(L, kernel_accept, socket, psocket, flags);
-	luaL_setmetatable(L, LUASOCKET_MT);
-	return 1; /* userdata */
-}
-
 static int luasocket_connect(lua_State *L)
 {
-	struct socket *socket = luasocket_checksocket(L, 1);
+	struct socket *socket = luasocket_tosocket(L, 1);
 	luasocket_addr_t addr;
 	int nargs = lua_gettop(L);
 	int flags;
@@ -234,7 +194,7 @@ static int luasocket_connect(lua_State *L)
 #define LUASOCKET_NEWGETTER(what) 				\
 static int luasocket_get##what(lua_State *L)			\
 {								\
-	struct socket *socket = luasocket_checksocket(L, 1);	\
+	struct socket *socket = luasocket_tosocket(L, 1);	\
 	struct sockaddr addr;					\
 	luasocket_try(L, kernel_get##what, socket, &addr);	\
 	return luasocket_pushaddr(L, &addr);			\
@@ -243,9 +203,16 @@ static int luasocket_get##what(lua_State *L)			\
 LUASOCKET_NEWGETTER(sockname);
 LUASOCKET_NEWGETTER(peername);
 
+static void luasocket_release(void *private)
+{
+	struct socket *sock = (struct socket *)private;
+	kernel_sock_shutdown(sock, SHUT_RDWR);
+	sock_release(sock);
+}
+
 static const luaL_Reg luasocket_lib[] = {
 	{"new", luasocket_new},
-	{"close", luasocket_close},
+	{"close", lunatik_closeobject},
 	{"send", luasocket_send},
 	{"receive", luasocket_receive},
 	{"bind", luasocket_bind},
@@ -258,9 +225,10 @@ static const luaL_Reg luasocket_lib[] = {
 };
 
 static const luaL_Reg luasocket_mt[] = {
-	{"__gc", luasocket_close},
-	{"__close", luasocket_close},
-	{"close", luasocket_close},
+	{"__index", lunatik_monitorobject},
+	{"__gc", lunatik_deleteobject},
+	{"__close", lunatik_closeobject},
+	{"close", lunatik_closeobject},
 	{"send", luasocket_send},
 	{"receive", luasocket_receive},
 	{"bind", luasocket_bind},
@@ -412,11 +380,38 @@ static const lunatik_namespace_t luasocket_flags[] = {
 };
 
 static const lunatik_class_t luasocket_class = {
-	.name = LUASOCKET_MT,
+	.name = "socket",
 	.methods = luasocket_mt,
+	.release = luasocket_release,
+	.sleep = true,
+	.pointer = true,
 };
 
-LUNATIK_NEWLIB(socket, luasocket_lib, &luasocket_class, luasocket_flags, true);
+#define luasocket_newsocket(L)		(lunatik_newobject((L), &luasocket_class, 0))
+#define luasocket_psocket(object)	((struct socket **)&object->private)
+
+static int luasocket_accept(lua_State *L)
+{
+	struct socket *socket = luasocket_tosocket(L, 1);
+	int flags = luaL_optinteger(L, 2, 0);
+	lunatik_object_t *object = luasocket_newsocket(L);
+
+	luasocket_try(L, kernel_accept, socket, luasocket_psocket(object), flags);
+	return 1; /* object */
+}
+
+static int luasocket_new(lua_State *L)
+{
+	int family = luaL_checkinteger(L, 1);
+	int type = luaL_checkinteger(L, 2);
+	int proto = luaL_checkinteger(L, 3);
+	lunatik_object_t *object = luasocket_newsocket(L);
+
+	luasocket_try(L, sock_create, family, type, proto, luasocket_psocket(object));
+	return 1; /* object */
+}
+
+LUNATIK_NEWLIB(socket, luasocket_lib, &luasocket_class, luasocket_flags);
 
 static int __init luasocket_init(void)
 {
