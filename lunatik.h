@@ -108,6 +108,11 @@ typedef struct lunatik_object_s {
 	bool sleep;
 } lunatik_object_t;
 
+static inline int lunatik_trylock(lunatik_object_t *object)
+{
+	return object->sleep ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin);
+}
+
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
 int lunatik_stop(lunatik_object_t *runtime);
 

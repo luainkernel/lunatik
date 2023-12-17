@@ -25,7 +25,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kthread.h>
-#include <linux/completion.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -34,10 +33,8 @@
 #include <lunatik.h>
 
 typedef struct luathread_s {
-	struct completion stopped;
 	struct task_struct *task;
 	lunatik_object_t *runtime;
-	int result;
 	size_t nargs;
 	lunatik_object_t *argv[];
 } luathread_t;
@@ -61,12 +58,22 @@ static int luathread_call(lua_State *L, luathread_t *thread)
 
 static int luathread_func(void *data)
 {
-	luathread_t *thread = (luathread_t *)data;
-	int ret;
+	lunatik_object_t *object = (lunatik_object_t *)data;
+	luathread_t *thread = (luathread_t *)object->private;
+	int ret, locked = 0;
 
 	lunatik_run(thread->runtime, luathread_call, ret, thread);
+
 	while (!kthread_should_stop())
-		wait_for_completion_interruptible(&thread->stopped);
+		if ((locked = lunatik_trylock(object)))
+			break;
+
+	thread->task = NULL;
+
+	if (locked)
+		lunatik_unlock(object);
+
+	lunatik_putobject(object);
 	return ret;
 }
 
@@ -79,23 +86,33 @@ static int luathread_shouldstop(lua_State *L)
 static void luathread_release(void *private)
 {
 	luathread_t *thread = (luathread_t *)private;
-
-	if (thread->task != NULL) { /* has stopped? */
-		complete(&thread->stopped);
-		thread->result = kthread_stop(thread->task);
-		thread->task = NULL;
-		lunatik_putobject(thread->runtime);
-		thread->runtime = NULL;
-	}
+	lunatik_putobject(thread->runtime);
 }
 
 static int luathread_stop(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_toobject(L, 1);
 	luathread_t *thread = (luathread_t *)object->private;
+	struct task_struct *task = thread->task;
 
-	luathread_release(thread);
-	lua_pushinteger(L, thread->result);
+	if (task != NULL) {
+		int result = kthread_stop(task);
+
+		if (result == -EINTR) {
+			int i, nargs = thread->nargs;
+			lunatik_object_t **argv = thread->argv;
+
+			for (i = 0; i < nargs; i++)
+				lunatik_putobject(argv[i]);
+
+			lunatik_putobject(object);
+			luaL_error(L, "thread has never run");
+		}
+		
+		lua_pushinteger(L, result);
+	}
+	else
+		luaL_error(L, "thread has already stopped");
 	return 1;
 }
 
@@ -138,11 +155,11 @@ static int luathread_run(lua_State *L)
 	}
 	thread->nargs = nargs;
 
+	lunatik_getobject(object);
 	lunatik_getobject(runtime);
 	thread->runtime = runtime;
 
-	init_completion(&thread->stopped);
-	thread->task = kthread_run(luathread_func, thread, name);
+	thread->task = kthread_run(luathread_func, object, name);
 	if (IS_ERR(thread->task))
 		luaL_error(L, "failed to create a new thread");
 
