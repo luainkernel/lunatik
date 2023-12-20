@@ -24,9 +24,10 @@
 #include <linux/module.h>
 #include <linux/random.h>
 #include <linux/stat.h>
+#include <linux/sched.h>
+#include <linux/jiffies.h>
 
 #include <lua.h>
-#include <lualib.h>
 #include <lauxlib.h>
 
 #include <lunatik.h>
@@ -68,6 +69,32 @@ static int lualinux_random(lua_State *L)
 	return 1;
 }
 
+static int lualinux_schedule(lua_State *L)
+{
+	lua_Integer timeout = luaL_optinteger(L, 1, MAX_SCHEDULE_TIMEOUT);
+	lua_Integer state = luaL_optinteger(L, 2, TASK_STATE_MAX);
+
+	if (timeout != MAX_SCHEDULE_TIMEOUT)
+		timeout = msecs_to_jiffies(timeout);
+
+	if (state != TASK_STATE_MAX) {
+		luaL_argcheck(L, state == TASK_INTERRUPTIBLE || state == TASK_UNINTERRUPTIBLE ||
+			state == TASK_KILLABLE || state == TASK_IDLE, 2, "invalid state");
+		__set_current_state(state);
+	}
+
+	lua_pushinteger(L, jiffies_to_msecs(schedule_timeout(timeout)));
+	return 1;
+}
+
+static const lunatik_reg_t lualinux_task[] = {
+	{"INTERRUPTIBLE", TASK_INTERRUPTIBLE},
+	{"UNINTERRUPTIBLE", TASK_UNINTERRUPTIBLE},
+	{"KILLABLE", TASK_KILLABLE},
+	{"IDLE", TASK_IDLE},
+	{NULL, 0}
+};
+
 static const lunatik_reg_t lualinux_stat[] = {
 	/* user */
 	{"IRWXU", S_IRWXU},
@@ -95,11 +122,13 @@ static const lunatik_reg_t lualinux_stat[] = {
 
 static const lunatik_namespace_t lualinux_flags[] = {
 	{"stat", lualinux_stat},
+	{"task", lualinux_task},
 	{NULL, NULL}
 };
 
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
+	{"schedule", lualinux_schedule},
 	{NULL, NULL}
 };
 
