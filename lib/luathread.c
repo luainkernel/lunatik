@@ -35,7 +35,8 @@
 typedef struct luathread_s {
 	struct task_struct *task;
 	lunatik_object_t *runtime;
-	size_t nargs;
+	int nargs;
+	int nresults;
 	lunatik_object_t *argv[];
 } luathread_t;
 
@@ -43,17 +44,18 @@ static int luathread_run(lua_State *L);
 
 static int luathread_call(lua_State *L, luathread_t *thread)
 {
-	int nresult, i, nargs = thread->nargs;
+	int i, nargs = thread->nargs;
 	lunatik_object_t **argv = thread->argv;
 
 	for (i = 0; i < nargs; i++)
 		lunatik_cloneobject(L, argv[i]);
 
-	if (lua_resume(L, NULL, nargs, &nresult) != LUA_OK) {
-		pr_err("%s\n", lua_tostring(L, -1));
-		return -1;
+	if (lua_resume(L, NULL, nargs, &thread->nresults) != LUA_OK) {
+		pr_err("[%p] %s\n", thread, lua_tostring(L, -1));
+		lua_pop(L, 1);
+		return -ENOEXEC;
 	}
-	return (int)lua_tointeger(L, -1);
+	return 0;
 }
 
 static int luathread_func(void *data)
@@ -73,6 +75,7 @@ static int luathread_func(void *data)
 	if (locked)
 		lunatik_unlock(object);
 
+	lunatik_putobject(thread->runtime);
 	lunatik_putobject(object);
 	return ret;
 }
@@ -81,12 +84,6 @@ static int luathread_shouldstop(lua_State *L)
 {
 	lua_pushboolean(L, (int)kthread_should_stop());
 	return 1;
-}
-
-static void luathread_release(void *private)
-{
-	luathread_t *thread = (luathread_t *)private;
-	lunatik_putobject(thread->runtime);
 }
 
 static int luathread_stop(lua_State *L)
@@ -105,15 +102,16 @@ static int luathread_stop(lua_State *L)
 			for (i = 0; i < nargs; i++)
 				lunatik_putobject(argv[i]);
 
+			lunatik_putobject(thread->runtime);
 			lunatik_putobject(object);
-			luaL_error(L, "thread has never run");
+			pr_warn("[%p] thread has never run", thread);
 		}
-		
-		lua_pushinteger(L, result);
+		else if (result == -ENOEXEC)
+			pr_warn("[%p] thread has failed to execute", thread);
 	}
 	else
-		luaL_error(L, "thread has already stopped");
-	return 1;
+		pr_warn("[%p] thread has already stopped", thread);
+	return 0;
 }
 
 static const luaL_Reg luathread_lib[] = {
@@ -133,7 +131,6 @@ static const luaL_Reg luathread_mt[] = {
 static const lunatik_class_t luathread_class = {
 	.name = "thread",
 	.methods = luathread_mt,
-	.release = luathread_release,
 	.sleep = true,
 };
 
