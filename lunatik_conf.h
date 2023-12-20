@@ -66,7 +66,7 @@
 /* frame size shouldn't be larger than 1024 bytes; thus, LUAL_BUFFERSIZE
  * must be adjusted for the stack of functions that use luaL_Buffer */
 #undef LUAL_BUFFERSIZE
-#define LUAL_BUFFERSIZE		(256) /* {laux,load,lstr,ltab,lutf8}lib.c */   
+#define LUAL_BUFFERSIZE		(256) /* {laux,load,lstr,ltab,lutf8}lib.c */
 
 #ifdef lauxlib_c
 #define panic	lua_panic
@@ -104,8 +104,10 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode);
 #undef LUA_PATH_DEFAULT
 #define LUA_PATH_DEFAULT  LUA_ROOT"?.lua;" LUA_ROOT"?/init.lua"
 
+#if defined(lcode_c) || defined(ldebug_c) || defined(llex_c) || defined(lparser_c) || defined(lstate_c)
 #ifdef current /* defined by asm/current.h */
 #undef current /* conflicts with Lua namespace */
+#endif
 #endif
 
 #endif
