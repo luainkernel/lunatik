@@ -39,8 +39,10 @@
 
 #define luasocket_tryret(L, ret, op, ...)			\
 do {								\
-	if ((ret = op(__VA_ARGS__)) < 0)			\
-		luaL_error(L, #op " has failed (%d)", -ret);	\
+	if ((ret = op(__VA_ARGS__)) < 0) {			\
+		lua_pushinteger(L, -ret);			\
+		lua_error(L);					\
+	}							\
 } while(0)
 
 #define luasocket_try(L, op, ...)				\
