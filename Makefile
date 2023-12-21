@@ -28,6 +28,8 @@ scripts_uninstall:
 examples_install:
 	mkdir -p -m 0755 ${SCRIPTS_INSTALL_PATH}/examples
 	install -m 0644 -o root -g root examples/*.lua ${SCRIPTS_INSTALL_PATH}/examples
+	mkdir -p -m 0755 ${SCRIPTS_INSTALL_PATH}/examples/echod
+	install -m 0644 -o root -g root examples/echod/*.lua ${SCRIPTS_INSTALL_PATH}/examples/echod
 
 examples_uninstall:
 	rm -r ${SCRIPTS_INSTALL_PATH}/examples
