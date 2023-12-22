@@ -116,12 +116,6 @@ static void luadata_release(void *private)
 
 static const luaL_Reg luadata_lib[] = {
 	{"new", luadata_new},
-	{"getnumber", luadata_getnumber},
-	{"setnumber", luadata_setnumber},
-	{"getbyte", luadata_getbyte},
-	{"setbyte", luadata_setbyte},
-	{"getstring", luadata_getstring},
-	{"setstring", luadata_setstring},
 	{NULL, NULL}
 };
 

@@ -131,7 +131,6 @@ static void luanotifier_release(void *private)
 static const luaL_Reg luanotifier_lib[] = {
 	{"keyboard", luanotifier_keyboard},
 	{"netdevice", luanotifier_netdevice},
-	{"delete", lunatik_closeobject},
 	{NULL, NULL}
 };
 
