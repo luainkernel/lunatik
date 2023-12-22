@@ -52,7 +52,7 @@ local function daemon()
 			thread.run(lunatik.runtime("examples/" .. worker), worker .. n, control, session)
 			n = n + 1 
 		elseif session == errno.AGAIN then
-			linux.schedule(100, task.INTERRUPTIBLE)
+			linux.schedule(100)
 		end
 	end
 	control:setbyte(1, 0) -- dead

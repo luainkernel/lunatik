@@ -72,16 +72,14 @@ static int lualinux_random(lua_State *L)
 static int lualinux_schedule(lua_State *L)
 {
 	lua_Integer timeout = luaL_optinteger(L, 1, MAX_SCHEDULE_TIMEOUT);
-	lua_Integer state = luaL_optinteger(L, 2, TASK_STATE_MAX);
+	lua_Integer state = luaL_optinteger(L, 2, TASK_INTERRUPTIBLE);
 
 	if (timeout != MAX_SCHEDULE_TIMEOUT)
 		timeout = msecs_to_jiffies(timeout);
 
-	if (state != TASK_STATE_MAX) {
-		luaL_argcheck(L, state == TASK_INTERRUPTIBLE || state == TASK_UNINTERRUPTIBLE ||
-			state == TASK_KILLABLE || state == TASK_IDLE, 2, "invalid state");
-		__set_current_state(state);
-	}
+	luaL_argcheck(L, state == TASK_INTERRUPTIBLE || state == TASK_UNINTERRUPTIBLE ||
+		state == TASK_KILLABLE || state == TASK_IDLE, 2, "invalid task state");
+	__set_current_state(state);
 
 	lua_pushinteger(L, jiffies_to_msecs(schedule_timeout(timeout)));
 	return 1;
