@@ -37,10 +37,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_setobject(L, object, class, class->sleep);
 	lunatik_setclass(L, class);
 
-	if (!class->pointer) {
-		/* object will be freed by __gc in case of failure */
-		object->private = lunatik_checkalloc(L, size);
-	}
+	object->private = class->pointer ? NULL : lunatik_checkalloc(L, size);
 
 	*pobject = object;
 	return object;
@@ -56,7 +53,6 @@ lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 		(class = (lunatik_class_t *)lua_touserdata(L, -1)) != NULL, ix, "object expected");
 	pobject = (lunatik_object_t **)luaL_checkudata(L, ix, class->name);
 	lunatik_checknull(L, *pobject, ix);
-	lunatik_checknull(L, (*pobject)->private, ix); /* might be closed */
 	lua_pop(L, 1); /* class */
 	return pobject;
 }
