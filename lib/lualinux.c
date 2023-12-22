@@ -85,6 +85,20 @@ static int lualinux_schedule(lua_State *L)
 	return 1;
 }
 
+static int lualinux_tracing(lua_State *L)
+{
+	if (lua_gettop(L) == 0)
+		goto out;
+
+	if (lua_toboolean(L, 1))
+		tracing_on();
+	else
+		tracing_off();
+out:
+	lua_pushboolean(L, tracing_is_on());
+	return 1;
+}
+
 static const lunatik_reg_t lualinux_task[] = {
 	{"INTERRUPTIBLE", TASK_INTERRUPTIBLE},
 	{"UNINTERRUPTIBLE", TASK_UNINTERRUPTIBLE},
@@ -166,6 +180,7 @@ static const lunatik_namespace_t lualinux_flags[] = {
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
+	{"tracing", lualinux_tracing},
 	{NULL, NULL}
 };
 
