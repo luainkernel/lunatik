@@ -248,7 +248,6 @@ static void luadevice_free(void *private)
 
 static const luaL_Reg luadevice_lib[] = {
 	{"new", luadevice_new},
-	{"delete", lunatik_closeobject},
 	{NULL, NULL}
 };
 

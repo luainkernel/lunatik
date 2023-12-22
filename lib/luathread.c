@@ -116,7 +116,6 @@ static int luathread_stop(lua_State *L)
 
 static const luaL_Reg luathread_lib[] = {
 	{"run", luathread_run},
-	{"stop", luathread_stop},
 	{"shouldstop", luathread_shouldstop},
 	{NULL, NULL}
 };

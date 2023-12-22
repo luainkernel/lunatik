@@ -214,15 +214,6 @@ static void luasocket_release(void *private)
 
 static const luaL_Reg luasocket_lib[] = {
 	{"new", luasocket_new},
-	{"close", lunatik_closeobject},
-	{"send", luasocket_send},
-	{"receive", luasocket_receive},
-	{"bind", luasocket_bind},
-	{"listen", luasocket_listen},
-	{"accept", luasocket_accept},
-	{"connect", luasocket_connect},
-	{"getsockname", luasocket_getsockname},
-	{"getpeername", luasocket_getpeername},
 	{NULL, NULL}
 };
 
