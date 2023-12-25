@@ -136,7 +136,9 @@ static inline void *lunatik_checkalloc(lua_State *L, size_t size)
 
 static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
 {
-	luaL_setmetatable(L, class->name);
+	if (luaL_getmetatable(L, class->name) == LUA_TNIL)
+		luaL_error(L, "metatable not found (%s)", class->name);
+	lua_setmetatable(L, -2);
 	lua_pushlightuserdata(L, (void *)class);
 	lua_setiuservalue(L, -2, 1); /* pop class */
 }
