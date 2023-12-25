@@ -152,6 +152,13 @@ static int luarcu_insert(luarcu_table_t *table, const char *key, size_t keylen, 
 
 LUNATIK_OBJECTCHECKER(luarcu_checktable, luarcu_table_t *);
 
+static int luarcu_cloneobject(lua_State *L)
+{
+	lunatik_object_t *object = (lunatik_object_t *)lua_touserdata(L, 1);
+	lunatik_cloneobject(L, object);
+	return 1;
+}
+
 static int luarcu_index(lua_State *L)
 {
 	luarcu_table_t *table = luarcu_checktable(L, 1);
@@ -174,7 +181,12 @@ static int luarcu_index(lua_State *L)
 	lunatik_getobject(object);
 	rcu_read_unlock();
 
-	lunatik_cloneobject(L, object);
+	lua_pushcfunction(L, luarcu_cloneobject);
+	lua_pushlightuserdata(L, object);
+	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
+		lunatik_putobject(object);
+		lua_error(L);
+	}
 	return 1; /* object */
 }
 

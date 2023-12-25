@@ -42,18 +42,41 @@ typedef struct luathread_s {
 
 static int luathread_run(lua_State *L);
 
-static int luathread_call(lua_State *L, luathread_t *thread)
+static void luathread_putargs(luathread_t *thread)
 {
 	int i, nargs = thread->nargs;
 	lunatik_object_t **argv = thread->argv;
 
-	for (i = 0; i < nargs; i++)
-		lunatik_cloneobject(L, argv[i]);
+	for (i = 0; i < nargs; i++) {
+		if (argv[i] != NULL) {
+			lunatik_putobject(argv[i]);
+			argv[i] = NULL;
+		}
+	}
+}
 
-	if (lua_resume(L, NULL, nargs, &thread->nresults) != LUA_OK) {
+static int luathread_pushargs(lua_State *L)
+{
+	luathread_t *thread = (luathread_t *)lua_touserdata(L, 1);
+	int i, nargs = thread->nargs;
+	lunatik_object_t **argv = thread->argv;
+
+	for (i = 0; i < nargs; i++) {
+		lunatik_cloneobject(L, argv[i]);
+		argv[i] = NULL; /* after cloned, arg will be collect by GC */
+	}
+	return thread->nargs;
+}
+
+static int luathread_call(lua_State *L, luathread_t *thread)
+{
+	lua_pushcfunction(L, luathread_pushargs);
+	lua_pushlightuserdata(L, thread);
+	if (lua_pcall(L, 1, thread->nargs, 0) != LUA_OK || lua_resume(L, NULL, thread->nargs, &thread->nresults) != LUA_OK) {
 		pr_err("[%p] %s\n", thread, lua_tostring(L, -1));
 		lua_pop(L, 1);
-		return -ENOEXEC;
+		luathread_putargs(thread);
+		return ENOEXEC;
 	}
 	return 0;
 }
@@ -96,12 +119,7 @@ static int luathread_stop(lua_State *L)
 		int result = kthread_stop(task);
 
 		if (result == -EINTR) {
-			int i, nargs = thread->nargs;
-			lunatik_object_t **argv = thread->argv;
-
-			for (i = 0; i < nargs; i++)
-				lunatik_putobject(argv[i]);
-
+			luathread_putargs(thread);
 			lunatik_putobject(thread->runtime);
 			lunatik_putobject(object);
 			pr_warn("[%p] thread has never run", thread);
