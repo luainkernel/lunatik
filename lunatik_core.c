@@ -82,7 +82,6 @@ static int lunatik_lruntime(lua_State *L);
 
 static const luaL_Reg lunatik_lib[] = {
 	{"runtime", lunatik_lruntime},
-	{"stop", lunatik_closeobject},
 	{NULL, NULL}
 };
 
