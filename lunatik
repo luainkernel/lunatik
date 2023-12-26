@@ -78,14 +78,7 @@ lunatik.commands = {
 		end
 	end,
 	['unload'] = function ()
-		lunatik.dostring[[
-			local runtimes = lunatik.__runtimes
-			for script, runtime in pairs(runtimes) do
-				runtime:stop()
-				runtimes[script] = nil
-			end
-			collectgarbage() -- cleanup thread runtimes
-		]]
+		lunatik.dostring("lunatik.driver:shutdown()")
 		local first = #lunatik.modules
 		for i = first, 1, -1 do
 			local module = lunatik.modules[i]
@@ -112,36 +105,20 @@ end
 
 lunatik.probe()
 
-local parser = {
-	['run'] = [[
-		local script = "%s"
-		lunatik.__runtimes[script] = lunatik.runtime(script)
-	]],
-	['spawn'] = [[
-		local thread = require("thread")
-		local script = "%s"
-		lunatik.__runtimes[script] = thread.run(lunatik.runtime(script), script)
-	]],
-	['stop'] = [[
-		local script = "%s"
-		local runtimes = lunatik.__runtimes
-		runtimes[script]:stop()
-		runtimes[script] = nil
-		collectgarbage() -- cleanup thread runtimes
-	]],
-	['list'] = [[
-		local list = {}
-		for script in pairs(lunatik.__runtimes) do
-			table.insert(list, script)
-		end
-		return table.concat(list, ', ')
-	]]
-}
+local function set(t)
+	local s = {}
+	for _, key in ipairs(t) do s[key] = true end
+	return s
+end
+
+local tokens = set{"run", "spawn", "stop", "list"}
 
 if #arg >= 1 then
-	local chunk = parser[arg[1]]
-	if chunk then
-		print(lunatik.dostring(string.format(chunk, arg[2])))
+	local token = arg[1]
+	if tokens[token] then
+		local ret = token == "list" and "return" or ""
+		local chunk = string.format("%s lunatik.driver:%s('%s')", ret, token, arg[2])
+		print(lunatik.dostring(chunk))
 	else
 		lunatik.usage()
 	end
