@@ -107,10 +107,9 @@ int lunatik_deleteobject(lua_State *L)
 	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
 	lunatik_object_t *object = *pobject;
 
-	if (object != NULL) {
-		lunatik_putobject(object);
-		*pobject = NULL;
-	}
+	BUG_ON(!object);
+	lunatik_putobject(object);
+	*pobject = NULL;
 	return 0;
 }
 EXPORT_SYMBOL(lunatik_deleteobject);
