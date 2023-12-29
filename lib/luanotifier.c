@@ -67,7 +67,8 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 	int nargs = 1; /* event */
 	int ret = NOTIFY_OK;
 
-	if (lua_rawgetp(L, LUA_REGISTRYINDEX, notifier) != LUA_TFUNCTION) {
+	notifier->running = true;
+	if (lunatik_getregistry(L, notifier) != LUA_TFUNCTION) {
 		pr_err("could not find notifier callback\n");
 		goto err;
 	}
@@ -81,21 +82,21 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 
 	ret = lua_tointeger(L, -1);
 err:
+	notifier->running = false;
 	return ret;
 }
 
 static int luanotifier_call(struct notifier_block *nb, unsigned long event, void *data)
 {
 	luanotifier_t *notifier = container_of(nb, luanotifier_t, nb);
+	bool islocked = !notifier->unregister; /* was called from register_fn? */
 	int ret;
 
-	if (notifier->running)
+	if (islocked)
 		lunatik_handle(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
-	else {
-		notifier->running = true;
+	else
 		lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
-		notifier->running = false;
-	}
+
 	return ret;
 }
 
@@ -114,18 +115,59 @@ LUANOTIFIER_NEWCHAIN(netdevice);
 static void luanotifier_release(void *private)
 {
 	luanotifier_t *notifier = (luanotifier_t *)private;
-	lunatik_object_t *runtime = notifier->runtime;
-	lua_State *L = lunatik_getstate(runtime);
 
-	if (notifier->running == true)
-		luaL_error(L, "cannot delete notifier while running it");
+	/* notifier might have never been stopped */
+	if (notifier->unregister)
+		notifier->unregister(&notifier->nb);
 
-	notifier->unregister(&notifier->nb);
+	lunatik_putobject(notifier->runtime);
+}
 
+#define luanotifier_isruntime(L, notifier)	(lunatik_toruntime(L) == (notifier)->runtime)
+
+static inline void luanotifier_checkrunning(lua_State *L, luanotifier_t *notifier)
+{
+	if (luanotifier_isruntime(L, notifier) && notifier->running)
+		luaL_error(L, "[%p] notifier cannot unregister itself (deadlock)", notifier);
+}
+
+static inline void luanotifier_cleanregistry(lua_State *L, lunatik_object_t *object)
+{
 	lua_pushnil(L);
-	lua_rawsetp(L, LUA_REGISTRYINDEX, notifier); /* pop nil */
+	lunatik_setregistry(L, -1, object->private); /* remove callback */
+	lunatik_setregistry(L, -1, object); /* remove object, now it might be GC'ed */
+	lua_pop(L, 1); /* pop nil */
+}
 
-	lunatik_putobject(runtime);
+static int luanotifier_stop(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	luanotifier_t *notifier = (luanotifier_t *)object->private;
+
+	luanotifier_checkrunning(L, notifier);
+
+	lunatik_lock(object);
+	if (notifier->unregister) {
+		notifier->unregister(&notifier->nb);
+		notifier->unregister = NULL;
+	}
+	lunatik_unlock(object);
+
+	if (luanotifier_isruntime(L, notifier))
+		luanotifier_cleanregistry(L, object);
+	return 0;
+}
+
+int luanotifier_delete(lua_State *L)
+{
+	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
+	lunatik_object_t *object = *pobject;
+
+	luanotifier_checkrunning(L, (luanotifier_t *)object->private);
+
+	lunatik_putobject(object);
+	*pobject = NULL;
+	return 0;
 }
 
 static const luaL_Reg luanotifier_lib[] = {
@@ -135,9 +177,8 @@ static const luaL_Reg luanotifier_lib[] = {
 };
 
 static const luaL_Reg luanotifier_mt[] = {
-	{"__index", lunatik_monitorobject},
-	{"__gc", lunatik_deleteobject},
-	{"delete", lunatik_closeobject},
+	{"__gc", luanotifier_delete},
+	{"stop", luanotifier_stop},
 	{NULL, NULL}
 };
 
@@ -237,17 +278,19 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	lunatik_getobject(notifier->runtime);
 
 	notifier->nb.notifier_call = luanotifier_call;
-	notifier->unregister = unregister_fn;
+	notifier->unregister = NULL;
+	notifier->running = false;
 	notifier->handler = handler_fn;
 
-	lua_pushvalue(L, 1);  /* push callback */
-	lua_rawsetp(L, LUA_REGISTRYINDEX, notifier); /* pop callback */
+	lunatik_setregistry(L, 1, notifier); /* callback */
+	lunatik_setregistry(L, -1, object); /* prevent object from being GC'ed (unless stopped) */
 
-	notifier->running = true; /* notifier_call might be called directly (e.g., NETDEV_REGISTER) */
-	if (register_fn(&notifier->nb) != 0)
+	if (register_fn(&notifier->nb) != 0) {
+		luanotifier_cleanregistry(L, object);
 		luaL_error(L, "couldn't create notifier");
-	notifier->running = false;
+	}
 
+	notifier->unregister = unregister_fn;
 	return 1; /* object */
 }
 
