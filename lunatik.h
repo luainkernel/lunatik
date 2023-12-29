@@ -220,5 +220,13 @@ static inline T checker(lua_State *L, int ix)			\
 	return (T)object->private;				\
 }
 
+#define lunatik_getregistry(L, key)	lua_rawgetp((L), LUA_REGISTRYINDEX, (key))
+
+static inline void lunatik_setregistry(lua_State *L, int ix, void *key)
+{
+	lua_pushvalue(L, ix);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, key); /* pop value */
+}
+
 #endif
 
