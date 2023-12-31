@@ -228,5 +228,19 @@ static inline void lunatik_setregistry(lua_State *L, int ix, void *key)
 	lua_rawsetp(L, LUA_REGISTRYINDEX, key); /* pop value */
 }
 
+static inline void lunatik_registerobject(lua_State *L, int ix, lunatik_object_t *object)
+{
+	lunatik_setregistry(L, ix, object->private); /* private */
+	lunatik_setregistry(L, -1, object); /* prevent object from being GC'ed (unless stopped) */
+}
+
+static inline void lunatik_unregisterobject(lua_State *L, lunatik_object_t *object)
+{
+	lua_pushnil(L);
+	lunatik_setregistry(L, -1, object->private); /* remove private */
+	lunatik_setregistry(L, -1, object); /* remove object, now it might be GC'ed */
+	lua_pop(L, 1); /* pop nil */
+}
+
 #endif
 

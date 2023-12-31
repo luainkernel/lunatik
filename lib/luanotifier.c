@@ -131,14 +131,6 @@ static inline void luanotifier_checkrunning(lua_State *L, luanotifier_t *notifie
 		luaL_error(L, "[%p] notifier cannot unregister itself (deadlock)", notifier);
 }
 
-static inline void luanotifier_cleanregistry(lua_State *L, lunatik_object_t *object)
-{
-	lua_pushnil(L);
-	lunatik_setregistry(L, -1, object->private); /* remove callback */
-	lunatik_setregistry(L, -1, object); /* remove object, now it might be GC'ed */
-	lua_pop(L, 1); /* pop nil */
-}
-
 static int luanotifier_stop(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
@@ -154,7 +146,7 @@ static int luanotifier_stop(lua_State *L)
 	lunatik_unlock(object);
 
 	if (luanotifier_isruntime(L, notifier))
-		luanotifier_cleanregistry(L, object);
+		lunatik_unregisterobject(L, object);
 	return 0;
 }
 
@@ -282,11 +274,10 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	notifier->running = false;
 	notifier->handler = handler_fn;
 
-	lunatik_setregistry(L, 1, notifier); /* callback */
-	lunatik_setregistry(L, -1, object); /* prevent object from being GC'ed (unless stopped) */
+	lunatik_registerobject(L, 1, object);
 
 	if (register_fn(&notifier->nb) != 0) {
-		luanotifier_cleanregistry(L, object);
+		lunatik_unregisterobject(L, object);
 		luaL_error(L, "couldn't create notifier");
 	}
 
