@@ -91,6 +91,6 @@ function driver:shutdown()
 	end
 end
 
-lunatik.__device = device.new(driver)
+device.new(driver)
 lunatik.driver = driver
 
