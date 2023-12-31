@@ -37,4 +37,5 @@ obj-$(CONFIG_LUNATIK_RCU) += lib/luarcu.o
 obj-$(CONFIG_LUNATIK_THREAD) += lib/luathread.o
 obj-$(CONFIG_LUNATIK_FIB) += lib/luafib.o
 obj-$(CONFIG_LUNATIK_DATA) += lib/luadata.o
+obj-$(CONFIG_LUNATIK_FTRACE) += lib/luaftrace.o
 
