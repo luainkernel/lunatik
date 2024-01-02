@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023 ring-0 Ltda.
+* Copyright (c) 2023-2024 ring-0 Ltda.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
 * a copy of this software and associated documentation files (the
@@ -91,7 +91,7 @@ static int luadevice_fop(lua_State *L, luadevice_t *luadev, const char *fop, int
 	int ret = -ENXIO;
 
 	if (lunatik_getregistry(L, luadev) != LUA_TTABLE) {
-		pr_err("%s: couln't find driver\n", fop);
+		pr_err("%s: couldn't find driver\n", fop);
 		goto err;
 	}
 
