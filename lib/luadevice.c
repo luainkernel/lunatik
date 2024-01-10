@@ -337,6 +337,8 @@ static char *luadevice_devnode(struct device *dev, umode_t *mode)
 
 	luadev = (luadevice_t *)dev_get_drvdata(dev);
 	L = lunatik_getstate(luadev->runtime);
+	if (!L)
+		goto out;
 
 	base = lua_gettop(L);
 	if (lunatik_getregistry(L, luadev) == LUA_TTABLE && lua_getfield(L, -1, "mode") == LUA_TNUMBER)

@@ -89,9 +89,6 @@ static void luaprobe_delete(luaprobe_t *probe)
 	const char *symbol_name = kp->symbol_name;
 
 	if (symbol_name != NULL) {
-		/* XXX: it might crash if we probe functions used by the Lunatik driver
-		 * for deleting the probe itself (e.g., ksys_read)
-		 * see https://docs.kernel.org/trace/kprobes.html#kprobes-features-and-limitations*/
 		unregister_kprobe(kp);
 		kfree(symbol_name);
 		kp->symbol_name = NULL;

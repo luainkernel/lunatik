@@ -68,24 +68,28 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 }
 EXPORT_SYMBOL(lunatik_cloneobject);
 
-static inline void lunatik_releaseprivate(lunatik_object_t *object)
+static inline void lunatik_releaseprivate(const lunatik_class_t *class, void *private)
 {
-	const lunatik_class_t *class = object->class;
 	void (*release)(void *) = class->release;
 
 	if (release)
-		release(object->private);
+		release(private);
 	if (!class->pointer)
-		lunatik_free(object->private);
+		lunatik_free(private);
 }
 
 int lunatik_closeobject(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	void *private;
 
-	lunatik_checknull(L, object->private, 1);
-	lunatik_releaseprivate(object);
+	lunatik_lock(object);
+	private = object->private;
 	object->private = NULL;
+	lunatik_unlock(object);
+
+	lunatik_checknull(L, private, 1);
+	lunatik_releaseprivate(object->class, private);
 	return 0;
 }
 EXPORT_SYMBOL(lunatik_closeobject);
@@ -93,9 +97,10 @@ EXPORT_SYMBOL(lunatik_closeobject);
 void lunatik_releaseobject(struct kref *kref)
 {
 	lunatik_object_t *object = container_of(kref, lunatik_object_t, kref);
+	void *private = object->private;
 
-	if (object->private != NULL)
-		lunatik_releaseprivate(object);
+	if (private != NULL)
+		lunatik_releaseprivate(object->class, private);
 
 	lunatik_freelock(object);
 	kfree(object);
@@ -135,8 +140,12 @@ int lunatik_monitorobject(lua_State *L)
 {
 	lua_getmetatable(L, 1);
 	lua_insert(L, 2); /* stack: object, metatable, key */
-	if (lua_rawget(L, 2) == LUA_TFUNCTION && lua_tocfunction(L, -1) != lunatik_deleteobject)
-		lua_pushcclosure(L, lunatik_monitor, 1);
+	if (lua_rawget(L, 2) == LUA_TFUNCTION) {
+		lua_CFunction method = lua_tocfunction(L, -1);
+
+		if (likely(method != lunatik_deleteobject && method != lunatik_closeobject))
+			lua_pushcclosure(L, lunatik_monitor, 1);
+	}
 	return 1;
 }
 EXPORT_SYMBOL(lunatik_monitorobject);

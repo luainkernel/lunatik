@@ -25,11 +25,6 @@ local linux  = require("linux")
 local probe  = require("probe")
 local device = require("device")
 
---
--- XXX: this might crash; see lib/luaprobe.c @ 92 
--- local symbols = {"kernel_read", "kernel_write", "ksys_read"}
---
-
 local symbols = {"kernel_read", "kernel_write"}
 
 local track = {}
