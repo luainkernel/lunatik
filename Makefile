@@ -8,7 +8,7 @@ all: lunatik_sym.h
 	CONFIG_LUNATIK_RUN=m CONFIG_LUNATIK_RUNTIME=y CONFIG_LUNATIK_DEVICE=m	\
 	CONFIG_LUNATIK_LINUX=m CONFIG_LUNATIK_NOTIFIER=m CONFIG_LUNATIK_SOCKET=m \
 	CONFIG_LUNATIK_RCU=m CONFIG_LUNATIK_THREAD=m CONFIG_LUNATIK_FIB=m \
-	CONFIG_LUNATIK_DATA=m CONFIG_LUNATIK_PROBE=m
+	CONFIG_LUNATIK_DATA=m CONFIG_LUNATIK_PROBE=m CONFIG_LUNATIK_SYSCALL=m
 
 clean:
 	make -C ${MODULES_INSTALL_PATH}/build M=${PWD} clean
@@ -16,13 +16,16 @@ clean:
 
 scripts_install:
 	mkdir -p -m 0755 ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/socket
+	mkdir -p -m 0755 ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/syscall
 	install -m 0644 -o root -g root lunatik.lua ${SCRIPTS_INSTALL_PATH}
 	install -m 0644 -o root -g root lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
+	install -m 0644 -o root -g root lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	install -m 0755 -o root -g root lunatik ${LUNATIK_INSTALL_PATH}
 
 scripts_uninstall:
 	rm ${SCRIPTS_INSTALL_PATH}/lunatik.lua
 	rm -r ${SCRIPTS_INSTALL_PATH}/socket
+	rm -r ${SCRIPTS_INSTALL_PATH}/syscall
 	rm ${LUNATIK_INSTALL_PATH}/lunatik
 
 examples_install:

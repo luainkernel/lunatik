@@ -21,37 +21,14 @@
 -- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 --
 
-local linux   = require("linux")
-local probe   = require("probe")
-local device  = require("device")
-local syscall = require("syscall.table")
+local syscall = require("syscall")
 
-local track = {}
+local table = {}
 
-local function nop() end -- do nothing
-
-local s = linux.stat
-local driver = {name = "systrack", open = nop, release = nop, mode = s.IRUGO}
-
-local toggle = true
-function driver:read()
-	local log = ""
-	if toggle then
-		for symbol, counter in pairs(track) do
-			log = log .. string.format("%s: %d\n", symbol, counter)
-		end
-	end
-	toggle = not toggle
-	return log
+local numbers = syscall.numbers
+for name, number in pairs(numbers) do
+	table[name] = syscall.address(number)
 end
 
-for symbol, address in pairs(syscall) do
-	local function handler()
-		track[symbol] = (track[symbol] or 0) + 1
-	end
-
-	probe.new(address, {pre = handler, post = nop})
-end
-
-device.new(driver)
+return table
 
