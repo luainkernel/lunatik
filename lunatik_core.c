@@ -39,8 +39,6 @@ static inline void lunatik_setversion(lua_State *L)
 	lua_setglobal(L, "_LUNATIK_VERSION");
 }
 
-#define lunatik_gfp(runtime)	(runtime->sleep ? GFP_KERNEL : GFP_ATOMIC)
-
 /* based on l_alloc() @ lua/lauxlib.c */
 static void *lunatik_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
 {
