@@ -125,6 +125,7 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 
 #define lunatik_malloc(L, s)	lunatik_realloc((L), NULL, (s))
 #define lunatik_free(p)		kfree(p)
+#define lunatik_gfp(runtime)	(runtime->sleep ? GFP_KERNEL : GFP_ATOMIC)
 
 static inline void *lunatik_checkalloc(lua_State *L, size_t size)
 {

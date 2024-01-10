@@ -39,28 +39,28 @@ typedef struct luaprobe_s {
 
 static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler, struct pt_regs *regs)
 {
-	const char *symbol_name = probe->kp.symbol_name;
-	int ret = -ENXIO;
+	struct kprobe *kp = &probe->kp;
+	const char *symbol_name = kp->symbol_name;
 
 	if (lunatik_getregistry(L, probe) != LUA_TTABLE) {
-		pr_err("couldn't find probe table for '%s'\n", symbol_name);
-		goto err;
+		pr_err("couldn't find probe table\n");
+		goto out;
 	}
 
 	if (lua_getfield(L, -1, handler) != LUA_TFUNCTION) {
-		pr_err("%s handler isn't defined for '%s'", handler, symbol_name);
-		goto err;
+		pr_err("%s handler isn't defined", handler);
+		goto out;
 	}
 
-	lua_pushstring(L, symbol_name);
-	if (lua_pcall(L, 1, 0, 0) != LUA_OK) { /* callback(symbol_name) */
+	if (symbol_name != NULL)
+		lua_pushstring(L, symbol_name);
+	else
+		lua_pushlightuserdata(L, kp->addr);
+
+	if (lua_pcall(L, 1, 0, 0) != LUA_OK) /* callback(symbol_name | addr) */
 		pr_err("%s\n", lua_tostring(L, -1));
-		ret = -ECANCELED;
-		goto err;
-	}
-	ret = 0;
-err:
-	return ret;
+out:
+	return 0;
 }
 
 static int __kprobes luaprobe_pre_handler(struct kprobe *kp, struct pt_regs *regs)
@@ -88,8 +88,13 @@ static void luaprobe_delete(luaprobe_t *probe)
 	struct kprobe *kp = &probe->kp;
 	const char *symbol_name = kp->symbol_name;
 
-	if (symbol_name != NULL) {
+	if (kp->pre_handler != NULL) {
+		kp->pre_handler = NULL;
+		kp->post_handler = NULL;
 		unregister_kprobe(kp);
+	}
+
+	if (symbol_name != NULL) {
 		kfree(symbol_name);
 		kp->symbol_name = NULL;
 	}
@@ -141,26 +146,35 @@ static const lunatik_class_t luaprobe_class = {
 static int luaprobe_new(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t));
+	lunatik_object_t *runtime = lunatik_toruntime(L);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 	struct kprobe *kp = &probe->kp;
-	size_t symbol_len;
-	const char *symbol_name = lua_tolstring(L, 1, &symbol_len);
 	int ret;
-
-	luaL_checktype(L, 2, LUA_TTABLE); /* handlers */
 
 	memset(probe, 0, sizeof(luaprobe_t));
 
-	/* TODO: use GFP from lunatik_alloc */
-	kp->symbol_name = kstrndup(symbol_name, symbol_len, GFP_KERNEL);
+	probe->runtime = runtime;
+	lunatik_getobject(runtime);
+
+	if (lua_islightuserdata(L, 1))
+		kp->addr = lua_touserdata(L, 1);
+	else {
+		size_t symbol_len;
+		const char *symbol_name = luaL_checklstring(L, 1, &symbol_len);
+
+		if ((kp->symbol_name = kstrndup(symbol_name, symbol_len, lunatik_gfp(runtime))) == NULL)
+			luaL_error(L, "out of memory");
+	}
+
+	luaL_checktype(L, 2, LUA_TTABLE); /* handlers */
+
 	kp->pre_handler = luaprobe_pre_handler;
 	kp->post_handler = luaprobe_post_handler;
 
-	probe->runtime = lunatik_toruntime(L);
-	lunatik_getobject(probe->runtime);
-
-	if ((ret = register_kprobe(kp)) != 0)
+	if ((ret = register_kprobe(kp)) != 0) {
+		kp->pre_handler = NULL; /* shouldn't unregister on release() */
 		luaL_error(L, "failed to register probe (%d)", ret);
+	}
 
 	lunatik_registerobject(L, 2, object);
 	return 1; /* object */
