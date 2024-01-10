@@ -70,10 +70,14 @@ static void lunatik_releaseruntime(void *private)
 
 int lunatik_stop(lunatik_object_t *runtime)
 {
+	void *private;
+
 	lunatik_lock(runtime);
-	lunatik_releaseruntime(runtime->private);
+	private = runtime->private;
 	runtime->private = NULL;
 	lunatik_unlock(runtime);
+
+	lunatik_releaseruntime(private);
 	return lunatik_putobject(runtime);
 }
 EXPORT_SYMBOL(lunatik_stop);
@@ -86,7 +90,6 @@ static const luaL_Reg lunatik_lib[] = {
 };
 
 static const luaL_Reg lunatik_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
 	{"stop", lunatik_closeobject},
