@@ -40,9 +40,7 @@ end
 
 function lunatik.probe()
 	local prober <close> = lunatik.open("r")
-	if not prober then lunatik.commands.load() end
-	local version = lunatik.dostring("return _LUNATIK_VERSION")
-	lunatik.copyright = version .. "  " .. lunatik.copyright
+	return prober and true or false
 end
 
 function lunatik.loadstring(chunk)
@@ -78,7 +76,10 @@ lunatik.commands = {
 		end
 	end,
 	['unload'] = function ()
-		lunatik.dostring("lunatik.driver:shutdown()")
+		if lunatik.probe() then
+			lunatik.dostring("lunatik.driver:shutdown()")
+		end
+
 		local first = #lunatik.modules
 		for i = first, 1, -1 do
 			local module = lunatik.modules[i]
@@ -103,7 +104,12 @@ if command then
 	os.exit()
 end
 
-lunatik.probe()
+if not lunatik.probe() then
+	lunatik.commands.load()
+end
+
+local version = lunatik.dostring("return _LUNATIK_VERSION")
+lunatik.copyright = version .. "  " .. lunatik.copyright
 
 local function set(t)
 	local s = {}
