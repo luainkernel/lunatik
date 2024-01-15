@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023 ring-0 Ltda.
+* Copyright (c) 2023-2024 ring-0 Ltda.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
 * a copy of this software and associated documentation files (the
@@ -74,24 +74,28 @@
 
 #include <linux/module.h>
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
-#define symbol_lookup(p)	__symbol_get(p)
+void *lunatik_lookup(const char *symbol);
+#define lsys_loadlib(l)		__symbol_get((l))
+#define lsys_unloadlib(l)	symbol_put_addr((l))
 #else
 #include <linux/kallsyms.h>
-#define symbol_lookup(p)	kallsyms_lookup_name(p)
+#define lunatik_lookup(s)	((void *)kallsyms_lookup_name((l)))
+#define lsys_loadlib(l)		lunatik_lookup(l)
+#define lsys_unloadlib(l)
 #endif
 
-#define lsys_unloadlib(l)	symbol_put_addr((l))
 #define lsys_sym(L,l,s)		((lua_CFunction)(l))
 
 typedef struct lua_State lua_State;
 
 const char *lua_pushfstring(lua_State *L, const char *fmt, ...);
 
-static inline void *lsys_load (lua_State *L, const char *path, int seeglb) {
-	void *lib = (void *)symbol_lookup(path);
-	(void)(seeglb);  /* not used */
-	if (lib == NULL)
-		lua_pushfstring(L, "%s not found in kernel symbol table", path);
+static inline void *lsys_load(lua_State *L, const char *symbol, int seeglb)
+{
+	void *lib;
+	(void)(seeglb); /* not used */
+	if ((lib = lsys_loadlib(symbol)) == NULL)
+		lua_pushfstring(L, "%s not found in kernel symbol table", symbol);
 	return lib;
 }
 

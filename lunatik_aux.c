@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023 ring-0 Ltda.
+* Copyright (c) 2023-2024 ring-0 Ltda.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
 * a copy of this software and associated documentation files (the
@@ -80,6 +80,33 @@ error:
 	return status;
 }
 EXPORT_SYMBOL(lunatik_loadfile);
+
+#ifdef MODULE /* see https://lwn.net/Articles/813350/ */
+#include <linux/kprobes.h>
+
+static unsigned long (*__lunatik_lookup)(const char *) = NULL;
+
+void *lunatik_lookup(const char *symbol)
+{
+#ifdef CONFIG_KPROBES
+	if (__lunatik_lookup == NULL) {
+		struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
+
+		if (register_kprobe(&kp) != 0)
+			return NULL;
+
+		__lunatik_lookup = (unsigned long (*)(const char *))kp.addr;
+		unregister_kprobe(&kp);
+
+		BUG_ON(__lunatik_lookup == NULL);
+	}
+	return (void *)__lunatik_lookup(symbol);
+#else /* CONFIG_KPROBES */
+	return NULL;
+#endif /* CONFIG_KPROBES */
+}
+EXPORT_SYMBOL(lunatik_lookup);
+#endif /* MODULE */
 
 /* used by lib/luarcu.c */
 #include <lua/lstring.h>
