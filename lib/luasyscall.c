@@ -460,16 +460,8 @@ LUNATIK_NEWLIB(syscall, luasyscall_lib, &luasyscall_class, luasyscall_flags);
 
 static int __init luasyscall_init(void)
 {
-	unsigned long (*lookup)(const char *) = NULL;
-	struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
-
-	if (register_kprobe(&kp) != 0)
+	if ((luasyscall_table = (unsigned long **)lunatik_lookup("sys_call_table")) == NULL)
 		return -ENXIO;
-
-	lookup = (unsigned long (*)(const char *))kp.addr;
-	unregister_kprobe(&kp);
-
-	luasyscall_table = (unsigned long **)lookup("sys_call_table");
 	return 0;
 }
 
