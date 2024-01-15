@@ -89,6 +89,7 @@ static void luaprobe_delete(luaprobe_t *probe)
 	const char *symbol_name = kp->symbol_name;
 
 	if (kp->pre_handler != NULL) {
+		disable_kprobe(kp);
 		kp->pre_handler = NULL;
 		kp->post_handler = NULL;
 		unregister_kprobe(kp);
