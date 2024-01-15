@@ -37,10 +37,22 @@ typedef struct luaprobe_s {
 	lunatik_object_t *runtime;
 } luaprobe_t;
 
+static void (*luaprobe_showregs)(struct pt_regs *);
+
+static int luaprobe_dump(lua_State *L)
+{
+	struct pt_regs *regs = lua_touserdata(L, lua_upvalueindex(1));
+	if (regs == NULL)
+		luaL_error(L, LUNATIK_ERR_NULLPTR);
+
+	luaprobe_showregs(regs);
+	return 0;
+}
+
 static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler, struct pt_regs *regs)
 {
 	struct kprobe *kp = &probe->kp;
-	const char *symbol_name = kp->symbol_name;
+	const char *symbol = kp->symbol_name;
 
 	if (lunatik_getregistry(L, probe) != LUA_TTABLE) {
 		pr_err("couldn't find probe table\n");
@@ -52,13 +64,21 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 		goto out;
 	}
 
-	if (symbol_name != NULL)
-		lua_pushstring(L, symbol_name);
+	if (symbol != NULL)
+		lua_pushstring(L, symbol);
 	else
 		lua_pushlightuserdata(L, kp->addr);
 
-	if (lua_pcall(L, 1, 0, 0) != LUA_OK) /* callback(symbol_name | addr) */
+	lua_pushlightuserdata(L, regs);
+	lua_pushcclosure(L, luaprobe_dump, 1);
+	lua_pushvalue(L, -1); /* save dump() on the stack */
+	lua_insert(L, -4); /* stack: dump, handler, symbol | addr, dump */
+
+	if (lua_pcall(L, 2, 0, 0) != LUA_OK) /* handler(symbol | addr, dump) */
 		pr_err("%s\n", lua_tostring(L, -1));
+
+	lua_pushnil(L);
+	lua_setupvalue(L, -2, 1); /* clean up regs */
 out:
 	return 0;
 }
@@ -124,6 +144,30 @@ static int luaprobe_stop(lua_State *L)
 	return 0;
 }
 
+static int luaprobe_enable(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	luaprobe_t *probe = (luaprobe_t *)object->private;
+	struct kprobe *kp = &probe->kp;
+	bool enable = lua_toboolean(L, 2);
+
+	lunatik_lock(object);
+	kp = &probe->kp;
+
+	if (kp->pre_handler == NULL)
+		goto err;
+
+	if (enable)
+		enable_kprobe(kp);
+	else
+		disable_kprobe(kp);
+	lunatik_unlock(object);
+	return 0;
+err:
+	lunatik_unlock(object);
+	return luaL_argerror(L, 1, LUNATIK_ERR_NULLPTR);
+}
+
 static int luaprobe_new(lua_State *L);
 
 static const luaL_Reg luaprobe_lib[] = {
@@ -134,6 +178,7 @@ static const luaL_Reg luaprobe_lib[] = {
 static const luaL_Reg luaprobe_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"stop", luaprobe_stop},
+	{"enable", luaprobe_enable},
 	{NULL, NULL}
 };
 
@@ -185,6 +230,8 @@ LUNATIK_NEWLIB(probe, luaprobe_lib, &luaprobe_class, NULL);
 
 static int __init luaprobe_init(void)
 {
+	if ((luaprobe_showregs = (void (*)(struct pt_regs *))lunatik_lookup("show_regs")) == NULL)
+		return -ENXIO;
 	return 0;
 }
 

@@ -161,8 +161,10 @@ int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
 int lunatik_monitorobject(lua_State *L);
 
+#define LUNATIK_ERR_NULLPTR	"null-pointer dereference"
+
 #define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
-#define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), "null-pointer dereference")
+#define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_NULLPTR)
 #define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
 #define lunatik_toobject(L, i)		(*(lunatik_object_t **)lua_touserdata((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
