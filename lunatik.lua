@@ -51,14 +51,14 @@ end
 driver.__runtimes = {}
 driver.__threads = {}
 
-function driver:run(script)
-	local runtime = lunatik.runtime(script)
+function driver:run(script, ...)
+	local runtime = lunatik.runtime(script, ...)
 	self.__runtimes[script] = runtime
 	return runtime
 end
 
-function driver:spawn(script)
-	local runtime = self:run(script)
+function driver:spawn(script, ...)
+	local runtime = self:run(script, ...)
 	local name = string.match(script, "(%w*/*%w*)$")
 	local t = thread.run(runtime, name)
 	self.__threads[script] = t

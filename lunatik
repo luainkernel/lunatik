@@ -121,9 +121,12 @@ local tokens = set{"run", "spawn", "stop", "list"}
 
 if #arg >= 1 then
 	local token = arg[1]
+	local script = arg[2]
+	local parm = arg[3]
 	if tokens[token] then
+		local parm = parm and ("," .. parm) or ""
 		local ret = token == "list" and "return" or ""
-		local chunk = string.format("%s lunatik.driver:%s('%s')", ret, token, arg[2])
+		local chunk = string.format("%s lunatik.driver:%s('%s'%s)", ret, token, script, parm)
 		print(lunatik.dostring(chunk))
 	else
 		lunatik.usage()
