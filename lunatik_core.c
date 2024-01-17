@@ -133,8 +133,10 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *parent, co
 
 	lunatik_setversion(L);
 	luaL_openlibs(L);
-	luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
-	lua_pop(L, 1); /* lunatik library */
+	if (sleep) {
+		luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
+		lua_pop(L, 1); /* lunatik library */
+	}
 
 	filename = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, script);
 	if (luaL_dofile(L, filename) != LUA_OK) {
