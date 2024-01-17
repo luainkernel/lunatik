@@ -26,6 +26,7 @@
 #include <linux/stat.h>
 #include <linux/sched.h>
 #include <linux/jiffies.h>
+#include <linux/ktime.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -96,6 +97,20 @@ static int lualinux_tracing(lua_State *L)
 		tracing_off();
 out:
 	lua_pushboolean(L, tracing_is_on());
+	return 1;
+}
+
+static int lualinux_time(lua_State *L)
+{
+	lua_pushinteger(L, (lua_Integer)ktime_get_real_ns());
+	return 1;
+}
+
+static int lualinux_difftime(lua_State *L)
+{
+	u64 t2 = (u64) luaL_checkinteger(L, 1);
+	u64 t1 = (u64) luaL_checkinteger(L, 2);
+	lua_pushinteger(L, (lua_Integer)(t2 - t1));
 	return 1;
 }
 
@@ -181,6 +196,8 @@ static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
 	{"tracing", lualinux_tracing},
+	{"time", lualinux_time},
+	{"difftime", lualinux_difftime},
 	{NULL, NULL}
 };
 
