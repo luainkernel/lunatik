@@ -114,6 +114,14 @@ static int lualinux_difftime(lua_State *L)
 	return 1;
 }
 
+static int lualinux_lookup(lua_State *L)
+{
+	const char *symbol = luaL_checkstring(L, 1);
+
+	lua_pushlightuserdata(L, lunatik_lookup(symbol));
+	return 1;
+}
+
 static const lunatik_reg_t lualinux_task[] = {
 	{"INTERRUPTIBLE", TASK_INTERRUPTIBLE},
 	{"UNINTERRUPTIBLE", TASK_UNINTERRUPTIBLE},
@@ -198,6 +206,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"tracing", lualinux_tracing},
 	{"time", lualinux_time},
 	{"difftime", lualinux_difftime},
+	{"lookup", lualinux_lookup},
 	{NULL, NULL}
 };
 
