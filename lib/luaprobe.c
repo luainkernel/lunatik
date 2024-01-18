@@ -60,7 +60,7 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 	}
 
 	if (lua_getfield(L, -1, handler) != LUA_TFUNCTION) {
-		pr_err("%s handler isn't defined", handler);
+		pr_err("%s handler isn't defined\n", handler);
 		goto out;
 	}
 
@@ -89,7 +89,6 @@ static int __kprobes luaprobe_pre_handler(struct kprobe *kp, struct pt_regs *reg
 	int ret;
 
 	lunatik_run(probe->runtime, luaprobe_handler, ret, probe, "pre", regs);
-	/* TODO: use the return value from the Lua callback */
 	return ret;
 }
 
@@ -98,7 +97,7 @@ static void __kprobes luaprobe_post_handler(struct kprobe *kp, struct pt_regs *r
 	luaprobe_t *probe = container_of(kp, luaprobe_t, kp);
 	int ret;
 
-	/* TODO: pass flags to the Lua callback */
+	/* flags always seems to be zero; see:https://docs.kernel.org/trace/kprobes.html#api-reference */
 	lunatik_run(probe->runtime, luaprobe_handler, ret, probe, "post", regs);
 	(void)ret;
 }
