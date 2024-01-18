@@ -41,6 +41,7 @@ typedef struct luathread_s {
 } luathread_t;
 
 static int luathread_run(lua_State *L);
+static int luathread_current(lua_State *L);
 
 static void luathread_putargs(luathread_t *thread)
 {
@@ -113,28 +114,58 @@ static int luathread_stop(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_toobject(L, 1);
 	luathread_t *thread = (luathread_t *)object->private;
+	lunatik_object_t *runtime = thread->runtime;
 	struct task_struct *task = thread->task;
 
-	if (task != NULL) {
+	if (runtime == NULL)
+		pr_warn("[%p] thread wasn't created by us\n", thread);
+	else if (task != NULL) {
 		int result = kthread_stop(task);
 
 		if (result == -EINTR) {
 			luathread_putargs(thread);
 			lunatik_putobject(thread->runtime);
 			lunatik_putobject(object);
-			pr_warn("[%p] thread has never run", thread);
+			pr_warn("[%p] thread has never run\n", thread);
 		}
 		else if (result == -ENOEXEC)
-			pr_warn("[%p] thread has failed to execute", thread);
+			pr_warn("[%p] thread has failed to execute\n", thread);
 	}
 	else
-		pr_warn("[%p] thread has already stopped", thread);
+		pr_warn("[%p] thread has already stopped\n", thread);
 	return 0;
+}
+
+static int luathread_task(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_toobject(L, 1);
+	luathread_t *thread = (luathread_t *)object->private;
+	struct task_struct *task = thread->task;
+	int nrec = 4; /* number of elements */
+	int table;
+
+	lua_createtable(L, 0, nrec);
+	table = lua_gettop(L);
+
+	lua_pushinteger(L, task->on_cpu);
+	lua_setfield(L, table, "cpu");
+
+	lua_pushstring(L, task->comm);
+	lua_setfield(L, table, "command");
+
+	lua_pushinteger(L, task->pid);
+	lua_setfield(L, table, "pid");
+
+	lua_pushinteger(L, task->tgid);
+	lua_setfield(L, table, "tgid");
+
+	return 1;
 }
 
 static const luaL_Reg luathread_lib[] = {
 	{"run", luathread_run},
 	{"shouldstop", luathread_shouldstop},
+	{"current", luathread_current},
 	{NULL, NULL}
 };
 
@@ -142,6 +173,7 @@ static const luaL_Reg luathread_mt[] = {
 	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"stop", luathread_stop},
+	{"task", luathread_task},
 	{NULL, NULL}
 };
 
@@ -177,6 +209,19 @@ static int luathread_run(lua_State *L)
 	if (IS_ERR(thread->task))
 		luaL_error(L, "failed to create a new thread");
 
+	return 1; /* object */
+}
+
+static int luathread_current(lua_State *L)
+{
+	int nargs = 0;
+	lunatik_object_t *object = lunatik_newobject(L, &luathread_class, luathread_size(nargs));
+	luathread_t *thread = object->private;
+
+	thread->nargs = nargs;
+	thread->runtime = NULL;
+
+	thread->task = current;
 	return 1; /* object */
 }
 
