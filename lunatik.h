@@ -214,7 +214,7 @@ int luaopen_##libname(lua_State *L)								\
 	lunatik_newnamespaces(L, namespaces);							\
 	return 1;										\
 }												\
-EXPORT_SYMBOL(luaopen_##libname)
+EXPORT_SYMBOL_GPL(luaopen_##libname)
 
 #define LUNATIK_OBJECTCHECKER(checker, T)			\
 static inline T checker(lua_State *L, int ix)			\
