@@ -235,7 +235,6 @@ static const lunatik_class_t luarcu_class = {
 	.name = "rcu.table",
 	.methods = luarcu_mt,
 	.release = luarcu_release,
-	.sleep = false,
 };
 
 static int luarcu_table(lua_State *L)

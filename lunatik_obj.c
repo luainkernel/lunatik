@@ -34,7 +34,8 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
-	lunatik_setobject(L, object, class, class->sleep);
+	lunatik_checkclass(L, class);
+	lunatik_setobject(L, object, class, lunatik_toruntime(L)->sleep);
 	lunatik_setclass(L, class);
 
 	object->private = class->pointer ? NULL : lunatik_checkalloc(L, size);
@@ -63,6 +64,7 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	const lunatik_class_t *class = object->class;
 
+	lunatik_checkclass(L, class);
 	lunatik_setclass(L, class);
 	*pobject = object;
 }
