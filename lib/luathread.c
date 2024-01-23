@@ -180,7 +180,6 @@ static const luaL_Reg luathread_mt[] = {
 static const lunatik_class_t luathread_class = {
 	.name = "thread",
 	.methods = luathread_mt,
-	.sleep = true,
 };
 
 #define luathread_size(n)	(sizeof(luathread_t) + sizeof(lunatik_object_t *) * (n))

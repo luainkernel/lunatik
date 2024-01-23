@@ -452,11 +452,7 @@ static const luaL_Reg luasyscall_lib[] = {
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luasyscall_class = {
-	.sleep = false,
-};
-
-LUNATIK_NEWLIB(syscall, luasyscall_lib, &luasyscall_class, luasyscall_flags);
+LUNATIK_NEWLIB(syscall, luasyscall_lib, NULL, luasyscall_flags);
 
 static int __init luasyscall_init(void)
 {

@@ -210,11 +210,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{NULL, NULL}
 };
 
-static const lunatik_class_t lualinux_class = {
-	.sleep = false,
-};
-
-LUNATIK_NEWLIB(linux, lualinux_lib, &lualinux_class, lualinux_flags);
+LUNATIK_NEWLIB(linux, lualinux_lib, NULL, lualinux_flags);
 
 static int __init lualinux_init(void)
 {

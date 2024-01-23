@@ -48,8 +48,8 @@ do {						\
 #define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock)
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
-#define lunatik_cansleep(L)	(lunatik_toruntime(L)->sleep)
 
+#define lunatik_cannotsleep(L, s)	((s) && !lunatik_toruntime(L)->sleep)
 #define lunatik_getstate(runtime)	((lua_State *)runtime->private)
 
 static inline bool lunatik_isready(lua_State *L)
@@ -135,6 +135,12 @@ static inline void *lunatik_checkalloc(lua_State *L, size_t size)
 	return ptr;
 }
 
+static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
+{
+	if (lunatik_cannotsleep(L, class->sleep))
+		luaL_error(L, "cannot use '%s' class on non-sleepable runtime", class->name);
+}
+
 static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
 {
 	if (luaL_getmetatable(L, class->name) == LUA_TNIL)
@@ -190,30 +196,31 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 
 static void inline lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
 {
-	if (namespaces != NULL) {
-		for (; namespaces->name; namespaces++) {
-			const lunatik_reg_t *reg;
-			lua_newtable(L); /* namespace = {} */
-			for (reg = namespaces->reg; reg->name; reg++) {
-				lua_pushinteger(L, reg->value);
-				lua_setfield(L, -2, reg->name); /* namespace[name] = value */
-			}
-			lua_setfield(L, -2, namespaces->name); /* lib.namespace = namespace */
+	for (; namespaces->name; namespaces++) {
+		const lunatik_reg_t *reg;
+		lua_newtable(L); /* namespace = {} */
+		for (reg = namespaces->reg; reg->name; reg++) {
+			lua_pushinteger(L, reg->value);
+			lua_setfield(L, -2, reg->name); /* namespace[name] = value */
 		}
+		lua_setfield(L, -2, namespaces->name); /* lib.namespace = namespace */
 	}
 }
 
-#define LUNATIK_NEWLIB(libname, funcs, class, namespaces)					\
-int luaopen_##libname(lua_State *L)								\
-{												\
-	if (!lunatik_cansleep(L) && (class)->sleep)						\
-		luaL_error(L, "cannot require '" #libname "' on non-sleepable runtime");	\
-	luaL_newlib(L, funcs);									\
-	if ((class)->name != NULL)								\
-		lunatik_newclass(L, class);							\
-	lunatik_newnamespaces(L, namespaces);							\
-	return 1;										\
-}												\
+#define LUNATIK_NEWLIB(libname, funcs, class, namespaces)			\
+int luaopen_##libname(lua_State *L)						\
+{										\
+	const lunatik_class_t *cls = class; /* avoid -Waddress */		\
+	const lunatik_namespace_t *nss = namespaces; /* avoid -Waddress */	\
+	luaL_newlib(L, funcs);							\
+	if (cls) {								\
+		lunatik_checkclass(L, cls);					\
+		lunatik_newclass(L, cls);					\
+	}									\
+	if (nss)								\
+		lunatik_newnamespaces(L, nss);					\
+	return 1;								\
+}										\
 EXPORT_SYMBOL_GPL(luaopen_##libname)
 
 #define LUNATIK_OBJECTCHECKER(checker, T)			\
