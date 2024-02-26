@@ -39,7 +39,7 @@ device.new(driver)
 make
 sudo make install
 sudo lunatik # execute Lunatik REPL
-Lunatik 3.3  Copyright (C) 2023 ring-0 Ltda.
+Lunatik 3.4  Copyright (C) 2023-2024 ring-0 Ltda.
 > return 42 -- execute this line in the kernel
 42
 ```
@@ -62,7 +62,7 @@ usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]
 
 ## Lua Version
 
-Lunatik 3.3 is based on
+Lunatik 3.4 is based on
 [Lua 5.4 adapted](https://github.com/luainkernel/lua)
 to run in the kernel.
 
@@ -126,16 +126,20 @@ Lunatik **modifies** [luaL\_openlibs](https://www.lua.org/manual/5.4/manual.html
 
 #### lunatik\_runtime
 ```C
-int lunatik_runtime(lunatik_runtime_t **pruntime, const char *script, bool sleep);
+int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
 ```
 _lunatik\_runtime()_ creates a new `runtime` environment then loads and runs the script
 `/lib/modules/lua/<script>.lua` as the entry point for this environment.
 It _must_ only be called from _process context_.
-The `runtime` environment is composed by
-a [Lua state](https://www.lua.org/manual/5.4/manual.html#lua_State), 
+The `runtime` environment is a Lunatik object that holds
+a [Lua state](https://www.lua.org/manual/5.4/manual.html#lua_State). 
+Lunatik objects are special
+Lua [userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
+which also hold
 a [lock type](https://docs.kernel.org/locking/locktypes.html) and
 a [reference counter](https://www.kernel.org/doc/Documentation/kref.txt).
-If `sleep` is _true_, it will use a [mutex](https://docs.kernel.org/locking/mutex-design.html)
+If `sleep` is _true_, _lunatik\_runtime()_ will use a
+[mutex](https://docs.kernel.org/locking/mutex-design.html)
 for locking the `runtime` environment and the
 [GFP\_KERNEL](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html)
 flag for allocating new memory later on on
@@ -159,7 +163,7 @@ end
 ```
 
 ```C
-static lunatik_runtime_t *runtime;
+static lunatik_object_t *runtime;
 
 static int __init mydevice_init(void)
 {
@@ -170,7 +174,7 @@ static int __init mydevice_init(void)
 
 #### lunatik\_stop
 ```C
-int lunatik_stop(lunatik_runtime_t *runtime);
+int lunatik_stop(lunatik_object_t *runtime);
 ```
 _lunatik\_stop()_
 [closes](https://www.lua.org/manual/5.4/manual.html#lua_close)
@@ -186,7 +190,7 @@ otherwise, it returns `0`.
 
 #### lunatik\_run
 ```C
-void lunatik_run(lunatik_runtime_t *runtime, <inttype> (*handler)(...), <inttype> &ret, ...);
+void lunatik_run(lunatik_object_t *runtime, <inttype> (*handler)(...), <inttype> &ret, ...);
 ```
 _lunatik\_run()_ locks the `runtime` environment and calls the `handler`
 passing the associated Lua state as the first argument followed by the variadic arguments.
@@ -222,34 +226,34 @@ static int l_read(lua_State *L, char *buf, size_t len, loff_t *off)
 static ssize_t mydevice_read(struct file *f, char *buf, size_t len, loff_t *off)
 {
 	ssize_t ret;
-	lunatik_runtime_t *runtime = (lunatik_runtime_t *)f->private_data;
+	lunatik_object_t *runtime = (lunatik_object_t *)f->private_data;
 
 	lunatik_run(runtime, l_read, ret, buf, len, off);
 	return ret;
 }
 ```
 
-#### lunatik\_get
+#### lunatik\_getobject
 ```C
-void lunatik_get(lunatik_runtime_t *runtime);
+void lunatik_getobject(lunatik_object_t *object);
 ```
-_lunatik\_get()_ increments the
+_lunatik\_getobject()_ increments the
 [reference counter](https://www.kernel.org/doc/Documentation/kref.txt)
-of this `runtime` environment.
+of this `object` (e.g., `runtime` environment).
 
 #### lunatik\_put
 ```C
-int lunatik_put(lunatik_runtime_t *runtime);
+int lunatik_putobject(lunatik_object_t *object);
 ```
-_lunatik\_put()_ decrements the
+_lunatik\_putobject()_ decrements the
 [reference counter](https://www.kernel.org/doc/Documentation/kref.txt)
-of this `runtime` environment.
-If the `runtime` environment has been released, it returns `1`;
+of this `object` (e.g., `runtime` environment).
+If the `object` has been released, it returns `1`;
 otherwise, it returns `0`.
 
 #### lunatik\_toruntime
 ```C
-lunatik_runtime_t *lunatik_toruntime(lua_State *L);
+lunatik_object_t *lunatik_toruntime(lua_State *L);
 ```
 _lunatik\_toruntime()_ returns the `runtime` environment referenced by the `L`'s
 [extra space](https://www.lua.org/manual/5.4/manual.html#lua_getextraspace).
@@ -266,9 +270,7 @@ _lunatik.runtime()_ creates a new
 [runtime environment](https://github.com/luainkernel/lunatik#lunatik_runtime)
 then loads and runs the script
 `/lib/modules/lua/<script>.lua` as the entry point for this environment.
-It returns a
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
-representing the `runtime` environment.
+It returns a Lunatik object representing the `runtime` environment.
 If `sleep` is _true_ or omitted, it will use a [mutex](https://docs.kernel.org/locking/mutex-design.html)
 and
 [GFP\_KERNEL](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html);
@@ -280,8 +282,7 @@ _lunatik.runtime()_ opens the Lua standard libraries
 
 _lunatik.stop()_
 [stops](https://github.com/luainkernel/lunatik#lunatik_stop)
-the `runtime` environment and clear its reference from the runtime
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1).
+the `runtime` environment and clear its reference from the runtime object.
 
 ### device
 
@@ -291,8 +292,7 @@ in Lua.
 
 #### `device.new(driver)`
 
-_device.new()_ returns a new `device`
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
+_device.new()_ returns a new `device` object
 and installs its `driver` in the system.
 The `driver` **must** be defined as a table containing the following field:
 * `name`: string defining the device name; it is used for creating the device file (e.g., `/dev/<name>`).
@@ -331,11 +331,9 @@ It receives the `driver` table and it is expected to return nothing.
 
 If an operation callback is not defined, the `device` returns `-ENXIO` to VFS on its access.
 
-#### `device.delete(dev)`, `dev:delete()`
+#### `device.stop(dev)`, `dev:stop()`
 
-_device.delete()_ removes a device `driver` specified by the `dev`
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
-from the system.
+_device.stop()_ removes a device `driver` specified by the `dev` object from the system.
 
 ### linux
 
@@ -368,6 +366,65 @@ integer flags to Lua.
 * `"IWUGO"`: permission only to _write_ for _user_, _group_ and _other_.
 * `"IXUGO"`: permission only to _execute_ for _user_, _group_ and _other_.
 
+#### `linux.schedule([timeout [, state]])`
+
+_linux.schedule()_ sets the current task `state` and makes the it sleep until `timeout` milliseconds have elapsed.
+If `timeout` is omitted, it uses `MAX_SCHEDULE_TIMEOUT`.
+If `state` is omitted, it uses `task.INTERRUPTIBLE`.
+
+#### `linux.task`
+
+_linux.task_ is a table that exports
+[task state](https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h#L7v3)
+flags to Lua.
+
+* `"RUNNING"`: task is executing on a CPU or waiting to be executed.
+* `"INTERRUPTIBLE"`: task is waiting for a signal or a resource (sleeping).
+* `"UNINTERRUPTIBLE"`: behaves like "INTERRUPTIBLE" with the exception that signal will not wake up the task.
+* `"KILLABLE"`: behaves like "UNINTERRUPTIBLE" with the exception that fatal signals will wake up the task.
+* `"IDLE"`: behaves like "UNINTERRUPTIBLE" with the exception that it avoids the loadavg accounting.
+
+#### `linux.errno`
+
+_linux.errno_ is a table that exports
+[\<uapi/asm-generic/errno-base.h\>](https://elixir.bootlin.com/linux/latest/source/include/uapi/asm-generic/errno-base.h)
+flags to Lua.
+
+* `"PERM"`: Operation not permitted.
+* `"NOENT"`: No such file or directory.
+* `"SRCH"`: No such process.
+* `"INTR"`: Interrupted system call.
+* `"IO"`: I/O error.
+* `"NXIO"`:No such device or address.
+* `"2BIG"`:, Argument list too long.
+* `"NOEXEC"`: Exec format error.
+* `"BADF"`: Bad file number.
+* `"CHILD"`: No child processes.
+* `"AGAIN"`: Try again.
+* `"NOMEM"`: Out of memory.
+* `"ACCES"`: Permission denied.
+* `"FAULT"`: Bad address.
+* `"NOTBLK"`: Block device required.
+* `"BUSY"`: Device or resource busy.
+* `"EXIST"`: File exists.
+* `"XDEV"`: Cross-device link.
+* `"NODEV"`: No such device.
+* `"NOTDIR"`: Not a directory.
+* `"ISDIR"`: Is a directory.
+* `"INVAL"`: Invalid argument.
+* `"NFILE"`: File table overflow.
+* `"MFILE"`: Too many open files.
+* `"NOTTY"`: Not a typewriter.
+* `"TXTBSY"`: Text file busy.
+* `"FBIG"`: File too large.
+* `"NOSPC"`: No space left on device.
+* `"SPIPE"`: Illegal seek.
+* `"ROFS"`: Read-only file system.
+* `"MLINK"`: Too many links.
+* `"PIPE"`: Broken pipe.
+* `"DOM"`: Math argument out of domain of func.
+* `"RANGE"`: Math result not representable.
+
 ### notifier
 
 The `notifier` library provides support for the kernel
@@ -375,9 +432,7 @@ The `notifier` library provides support for the kernel
 
 #### `notifier.keyboard(callback)`
 
-_notifier.keyboard()_ returns a new keyboard `notifier`
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
-and installs it in the system.
+_notifier.keyboard()_ returns a new keyboard `notifier` object and installs it in the system.
 The `callback` function is called whenever a console keyboard event happens
 (e.g., a key has been pressed or released).
 This `callback` receives the following arguments:
@@ -402,6 +457,25 @@ flags to Lua.
 * `"KEYSYM"`: keyboard _keysym_.
 * `"POST_KEYSYM"`: called after keyboard _keysym_ interpretation.
 
+#### `notifier.netdevice(callback)`
+
+_notifier.netdevice()_ returns a new netdevice `notifier` object and installs it in the system.
+The `callback` function is called whenever a console netdevice event happens
+(e.g., a network interface has been connected or disconnected).
+This `callback` receives the following arguments:
+* `event`: the available _events_ are defined by the
+[notifier.netdev](https://github.com/luainkernel/lunatik#notifiernetdev) table.
+* `name`: the device name.
+
+The `callback` function might return the values defined by the
+[notifier.notify](https://github.com/luainkernel/lunatik#notifiernotify) table.
+
+#### `notifier.netdev`
+
+_notifier.netdev_ is a table that exports
+[NETDEV](https://elixir.bootlin.com/linux/v6.3/source/include/linux/netdevice.h#L2812)
+flags to Lua.
+
 #### `notifier.notify`
 
 _notifier.notify_ is a table that exports
@@ -415,9 +489,7 @@ flags to Lua.
 
 #### `notifier.delete(notfr)`, `notfr:delete()`
 
-_notifier.delete()_ removes a `notifier` specified by the `notfr`
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
-from the system.
+_notifier.delete()_ removes a `notifier` specified by the `notfr` object from the system.
 
 ### socket
 
@@ -429,8 +501,7 @@ This library was inspired by
 
 #### `socket.new(family, type, protocol)`
 
-_socket.new()_ creates a new `socket`
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1).
+_socket.new()_ creates a new `socket` object.
 This function receives the following arguments:
 * `family`: the available _address families_ are defined by the
 [socket.af](https://github.com/luainkernel/lunatik#socketaf) table.
@@ -548,9 +619,7 @@ to Lua.
 
 #### `socket:close(sock)`, `sock:close()`
 
-_socket.close()_ removes `sock`
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
-from the system.
+_socket.close()_ removes `sock` object from the system.
 
 #### `socket.send(sock, message, [addr [, port]])`, `sock:send(message, [addr [, port]])`
 
@@ -625,8 +694,7 @@ as default.
 #### `socket.accept(sock [, flags])`, `sock:accept([flags])`
 
 _socket.accept()_ accepts a connection on socket `sock`.
-It returns a new `socket`
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1).
+It returns a new `socket` object.
 The available _flags_ are present on the
 [socket.sock](https://github.com/luainkernel/lunatik#socketsock) table.
 
@@ -706,21 +774,11 @@ This library was inspired by
 
 #### `rcu.table([size])`
 
-_rcu.table()_ creates a new `rcu.table`
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
+_rcu.table()_ creates a new `rcu.table` object
 which binds the kernel [generic hash table](https://lwn.net/Articles/510202/).
 This function receives as argument the number of buckets rounded up to the next power of 2.
 The default size is `1024`.
-
-#### `rcu.publish(name, rcu.table)`
-
-_rcu.publish()_ makes the `rcu.table` availabe on other runtime environments using
-[rcu.subscribe()](https://github.com/luainkernel/lunatik#rcusubscribename).
-
-#### `rcu.subscribe(name)`
-
-_rcu.subscribe()_ returns a `rcu.table` which was previously published using
-[rcu.publish()](https://github.com/luainkernel/lunatik#rcupublishname-rcutable).
+Key must be a string and value must be a Lunatik object or nil.
 
 ### thread
 
@@ -729,32 +787,14 @@ The `thread` library provides support for the
 
 #### `thread.run(runtime, name)`
 
-_thread.run()_ creates a new `thread`
-[userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
-and wakes it up.
+_thread.run()_ creates a new `thread` object and wakes it up.
 This function receives the following arguments:
 * `runtime`: the
 [runtime environment](https://github.com/luainkernel/lunatik#lunatikruntimescript--sleep)
 for running a task in the created kernel thread.
-The task must be specified using
-[thread.settask()](https://github.com/luainkernel/lunatik#threadsettasktask)
-on the runtime environment.
+The task must be specified by returning a function on the script loaded 
+in the `runtime` environment.
 * `name`: string representing the name for the thread (e.g., as shown on `ps`). 
-
-#### `thread.settask(task)`
-
-_thread.settask()_ specifies the `task` function to be called in the current
-[runtime environment](https://github.com/luainkernel/lunatik#lunatikruntimescript--sleep)
-when running it in a
-[thread](https://github.com/luainkernel/lunatik#threadrunruntime-name).
-The `task` may return an integer that will be received by
-[thread.stop()](https://github.com/luainkernel/lunatik#threadstopthrd-thrdstop).
-If none is returned,
-[thread.stop()](https://github.com/luainkernel/lunatik#threadstopthrd-thrdstop)
-receives `0`.
-If an error has occurred,
-[thread.stop()](https://github.com/luainkernel/lunatik#threadstopthrd-thrdstop)
-receives `-1`.
 
 #### `thread.shouldstop()`
 
@@ -762,14 +802,20 @@ _thread.shouldstop()_ returns `true` if
 [thread.stop()](https://github.com/luainkernel/lunatik#threadstopthrd-thrdstop)
 was called; otherwise, it returns `false`.
 
+#### `thread.current()`
+
+_thread.current()_ returns a `thread` object representing the current task.
+
 #### `thread.stop(thrd), thrd:stop()`
 
 _thread.stop()_ sets 
 [thread.shouldstop()](https://github.com/luainkernel/lunatik#threadshouldstop)
 on the thread `thrd` to return true, wakes `thrd`, and waits for it to exit.
-_thread.stop()_ returns the result of the `task` defined by
-[thread.settask()](https://github.com/luainkernel/lunatik#threadsettasktask)
-on `thrd`.
+
+#### `thread.task(thread), thrd:task()`
+
+_thread.task()_ returns a table containing the task information of this `thread`
+(e.g., "cpu", "command", "pid" and "tgid").
 
 ### fib
 
@@ -797,6 +843,95 @@ with the specified _priorioty_.
 This function is similar to the user-space command
 [ip rule del](https://datahacker.blog/industry/technology-menu/networking/iptables/follow-the-ip-rules)
 provided by [iproute2](https://wiki.linuxfoundation.org/networking/iproute2).
+
+### data
+
+The `data` library provides support for binding the system memory to Lua.
+
+#### `data.new(size)`
+
+_data.new()_ creates a new `data` object which allocates `size` bytes.
+
+#### `data.getnumber(d, offset), d:getnumber(offset)`
+
+_data.getnumber()_ extracts a [lua\_Integer](https://www.lua.org/manual/5.4/manual.html#lua_Integer)
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setnumber(d, offset, number), d:setnumber(offset, number)`
+
+_data.setnumber()_ insert a [lua\_Integer](https://www.lua.org/manual/5.4/manual.html#lua_Integer)
+`number` into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.getbyte(d, offset), d:getbyte(offset)`
+
+_data.getbyte()_ extracts a byte 
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setbyte(d, offset, byte), d:setbyte(offset, byte)`
+
+_data.setbyte()_ insert a byte
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.getstring(d, offset, length), d:getstring(offset, length)`
+
+_data.getstring()_ extracts a string with `length` bytes 
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setstring(d, offset, s), d:setstring(offset, s)`
+
+_data.setstring()_ insert the string `s`
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+### probe
+
+The `probe` library provides support for
+[kernel probes](https://docs.kernel.org/trace/kprobes.html).
+
+#### `probe.new(symbol|address, handlers)`
+
+_probe.new()_ returns a new `probe` object for monitoring a kernel `symbol` (string) or `address` (light userdata)
+and installs its `handlers` in the system.
+The `handler` **must** be defined as a table containing the following field:
+* `pre`: function to be called before the probed instruction.
+It receives the `symbol` or `address`,
+followed by a closure that may be called to
+[show the CPU registers and stack](https://elixir.bootlin.com/linux/v5.6.19/source/include/linux/sched/debug.h#L26)
+in the system log.
+* `post`: function to be called after the probed instruction.
+It receives the `symbol` or `address`,
+followed by a closure that may be called to
+[show the CPU registers and stack](https://elixir.bootlin.com/linux/v5.6.19/source/include/linux/sched/debug.h#L26)
+in the system log.
+
+#### `probe.stop(p), p:stop()`
+
+_probe.stop()_ removes the `probe` handlers from the system.
+
+#### `probe.enable(p, bool), p:enable(bool)`
+
+_probe.enable()_ enables or disables the `probe` handlers, accordingly to `bool`.
+
+### syscall
+
+The `syscall` library provides support for system call addresses and numbers.
+
+#### `syscall.address(number)`
+
+_syscall.address()_ returns the system call address (light userdata) referenced by the given `number`.
+
+#### `syscall.number(name)`
+
+_syscall.number()_ returns the system call number referenced by the given `name`.
+
+### syscall.table
+
+The `syscall.table` library provides support for translating system call names to addresses (light userdata).
 
 # Examples
 
@@ -874,15 +1009,126 @@ foo                                # retrieves foo
 bar
 ^C                                 # finishes the connection
 sudo lunatik                       # runs lunatik prompt
-Lunatik 3.3  Copyright (C) 2023 ring-0 Ltda.
+Lunatik 3.4  Copyright (C) 2023 ring-0 Ltda.
 > rcu    = require("rcu")          -- requires rcu library
 > shared = rcu.subscribe("shared") -- subscribes to the shared table
 > return shared.foo                -- returns foo's value to the user space
 bar
 ```
 
+### echod
+
+[echod](examples/echod)
+is an echo server implemented as kernel scripts.
+
+#### Usage
+
+```
+sudo make examples_install               # installs examples
+sudo lunatik spawn examples/echod/daemon # runs echod
+nc 127.0.0.1 1337
+hello kernel!
+hello kernel!
+```
+
+### systrack
+
+[systrack](examples/systrack.lua)
+is a kernel script that implements a device driver to monitor system calls.
+It prints the amount of times each system call was called since the driver has been installed.
+
+#### Usage
+
+```
+sudo make examples_install         # installs examples
+sudo lunatik run examples/systrack # runs systracker
+cat /dev/systrack
+timerfd_settime: 121
+mprotect: 44
+geteuid: 7
+fchmod: 1
+munmap: 43
+close: 812
+getgid: 7
+rt_sigaction: 221
+getuid: 15
+nanosleep: 59
+sendmsg: 5
+futex: 160
+socket: 6
+gettid: 139
+prctl: 1
+epoll_pwait: 229
+syslog: 1
+pread64: 17
+epoll_ctl: 2
+fcntl: 95
+brk: 16
+statx: 33
+unlinkat: 4
+waitid: 3
+sched_getaffinity: 10
+ioctl: 10314
+openat: 806
+clone: 8
+inotify_add_watch: 48
+prlimit64: 3
+getdents64: 20
+signalfd4: 1
+bind: 1
+write: 198
+writev: 51
+getpid: 45
+symlinkat: 1
+getppid: 1
+fadvise64: 3
+readlinkat: 38
+dup3: 25
+epoll_create1: 1
+getsockname: 1
+getxattr: 1
+wait4: 17
+rt_sigprocmask: 285
+setpgid: 14
+timerfd_create: 3
+recvmsg: 374
+rt_sigreturn: 9
+umask: 2
+rseq: 3
+getrandom: 15
+set_tid_address: 3
+execve: 3
+kill: 1
+setitimer: 71
+statfs: 3
+getsockopt: 6
+faccessat: 22
+ppoll: 444
+recvfrom: 15
+clock_nanosleep: 47
+setsockopt: 7
+sendto: 7
+pselect6: 76
+pipe2: 12
+ftruncate: 2
+fsync: 1
+renameat: 2
+getegid: 7
+exit_group: 10
+getrusage: 2
+newfstatat: 1141
+mmap: 67
+uname: 1
+utimensat: 2
+lseek: 21
+read: 1269
+set_robust_list: 11
+```
+
 ## References
 
-* [Scriptables Operating Systems with Lua](https://www.netbsd.org/~lneto/dls14.pdf)
+* [Scripting the Linux Routing Table with Lua](https://netdevconf.info/0x17/sessions/talk/scripting-the-linux-routing-table-with-lua.html)
+* [Lua no Núcleo](https://www.youtube.com/watch?v=-ufBgy044HI) (Portuguese)
 * [Linux Network Scripting with Lua](https://legacy.netdevconf.info/0x14/session.html?talk-linux-network-scripting-with-lua)
+* [Scriptables Operating Systems with Lua](https://www.netbsd.org/~lneto/dls14.pdf)
 
