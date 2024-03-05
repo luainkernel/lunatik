@@ -995,6 +995,7 @@ cat /dev/tap
 [shared](examples/shared.lua)
 is a kernel script that implements an in-memory key-value store using
 [rcu](https://github.com/luainkernel/lunatik#rcu),
+[data](https://github.com/luainkernel/lunatik#data),
 [socket](https://github.com/luainkernel/lunatik#socket) and
 [thread](https://github.com/luainkernel/lunatik#thread).
 
@@ -1008,12 +1009,6 @@ foo=bar                            # assigns "bar" to foo
 foo                                # retrieves foo
 bar
 ^C                                 # finishes the connection
-sudo lunatik                       # runs lunatik prompt
-Lunatik 3.4  Copyright (C) 2023 ring-0 Ltda.
-> rcu    = require("rcu")          -- requires rcu library
-> shared = rcu.subscribe("shared") -- subscribes to the shared table
-> return shared.foo                -- returns foo's value to the user space
-bar
 ```
 
 ### echod

@@ -1,5 +1,5 @@
 --
--- Copyright (c) 2023 ring-0 Ltda.
+-- Copyright (c) 2023-2024 ring-0 Ltda.
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
 -- a copy of this software and associated documentation files (the
@@ -22,42 +22,58 @@
 --
 
 local thread = require("thread")
+local socket = require("socket")
 local inet   = require("socket.inet")
 local rcu    = require("rcu")
+local data   = require("data")
+local linux  = require("linux")
 
 local shared = rcu.table()
-rcu.publish("shared", shared)
 
 local server = inet.tcp()
 server:bind(inet.localhost, 90)
 server:listen()
 
 local shouldstop = thread.shouldstop
+local task = linux.task
+local sock = socket.sock
+local errno = linux.errno
+
+local size = 1024
 
 local function handle(session)
 	repeat
-		local request = session:receive(1024)
+		local request = session:receive(size)
 		local key, assign, value = string.match(request, "(%w+)(=*)(%w*)\n")
 		if key then
 			if assign ~= "" then
-				shared[key] = value == "" and nil or value
+				local slot
+				if value ~= "" then
+					slot = shared[key] or data.new(size)
+					slot:setstring(0, value)
+				end
+
+				shared[key] = slot
 			else
-				session:send(tostring(shared[key]) .. "\n")
+				local value = shared[key]:getstring(0, size)
+				session:send(value .. "\n")
 			end
 		end
 	until (not key or shouldstop())
 end
 
-thread.settask(function ()
+local function daemon()
 	print("starting shared...")
 	while (not shouldstop()) do
-		local session <close> = server:accept()
-		local ok, err = pcall(handle, session)
-		if not ok then
-			print(err)
+		local ok, session = pcall(server.accept, server, sock.NONBLOCK)
+		if ok then
+			handle(session)
+		elseif session == errno.AGAIN then
+			linux.schedule(100)
 		end
-		session:send("\n")
 	end
 	print("stopping shared...")
-end)
+end
+
+return daemon
 
