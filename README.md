@@ -1030,7 +1030,8 @@ hello kernel!
 
 [systrack](examples/systrack.lua)
 is a kernel script that implements a device driver to monitor system calls.
-It prints the amount of times each system call was called since the driver has been installed.
+It prints the amount of times each [system call](examples/systrack.lua#L29)
+was called since the driver has been installed.
 
 #### Usage
 
@@ -1038,86 +1039,12 @@ It prints the amount of times each system call was called since the driver has b
 sudo make examples_install         # installs examples
 sudo lunatik run examples/systrack # runs systracker
 cat /dev/systrack
-timerfd_settime: 121
-mprotect: 44
-geteuid: 7
-fchmod: 1
-munmap: 43
-close: 812
-getgid: 7
-rt_sigaction: 221
-getuid: 15
-nanosleep: 59
-sendmsg: 5
-futex: 160
-socket: 6
-gettid: 139
-prctl: 1
-epoll_pwait: 229
-syslog: 1
-pread64: 17
-epoll_ctl: 2
-fcntl: 95
-brk: 16
-statx: 33
-unlinkat: 4
-waitid: 3
-sched_getaffinity: 10
-ioctl: 10314
-openat: 806
-clone: 8
-inotify_add_watch: 48
-prlimit64: 3
-getdents64: 20
-signalfd4: 1
-bind: 1
-write: 198
-writev: 51
-getpid: 45
-symlinkat: 1
-getppid: 1
-fadvise64: 3
-readlinkat: 38
-dup3: 25
-epoll_create1: 1
-getsockname: 1
-getxattr: 1
-wait4: 17
-rt_sigprocmask: 285
-setpgid: 14
-timerfd_create: 3
-recvmsg: 374
-rt_sigreturn: 9
-umask: 2
-rseq: 3
-getrandom: 15
-set_tid_address: 3
-execve: 3
-kill: 1
-setitimer: 71
-statfs: 3
-getsockopt: 6
-faccessat: 22
-ppoll: 444
-recvfrom: 15
-clock_nanosleep: 47
-setsockopt: 7
-sendto: 7
-pselect6: 76
-pipe2: 12
-ftruncate: 2
-fsync: 1
-renameat: 2
-getegid: 7
-exit_group: 10
-getrusage: 2
-newfstatat: 1141
-mmap: 67
-uname: 1
-utimensat: 2
-lseek: 21
-read: 1269
-set_robust_list: 11
+writev: 0
+close: 1927
+write: 1085
+openat: 2036
+read: 4131
+readv: 0
 ```
 
 ## References
