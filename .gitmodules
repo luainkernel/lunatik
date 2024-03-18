@@ -3,4 +3,4 @@
 	url = https://github.com/luainkernel/lua.git
 [submodule "klibc"]
 	path = klibc
-	url = https://git.kernel.org/pub/scm/libs/klibc/klibc.git
+	url = https://github.com/luainkernel/klibc.git
