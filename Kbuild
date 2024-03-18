@@ -15,6 +15,8 @@ ccflags-y += -D_LUNATIK -D_KERNEL -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
 	-I${PWD}$(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
 asflags-y += -D_LUNATIK -D_KERNEL
 
+UBSAN_SANITIZE := n
+
 obj-$(CONFIG_LUNATIK) += lunatik.o
 
 lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
