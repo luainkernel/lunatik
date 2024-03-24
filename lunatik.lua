@@ -52,6 +52,9 @@ driver.__runtimes = {}
 driver.__threads = {}
 
 function driver:run(script, ...)
+	if self.__runtimes[script] then
+		error(string.format("%s is already running", script))
+	end
 	local runtime = lunatik.runtime(script, ...)
 	self.__runtimes[script] = runtime
 	return runtime
