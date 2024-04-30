@@ -233,8 +233,26 @@ static inline void luarcu_inittable(luarcu_table_t *table, size_t size)
 	table->seed = luarcu_seed();
 }
 
+static int luarcu_map(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	luarcu_table_t *table = (luarcu_table_t *)object->private;
+	unsigned int bucket;
+	luarcu_entry_t *entry;
+
+	luaL_checktype(L, 2, LUA_TFUNCTION);
+	luarcu_foreach(table, bucket, entry) {
+		lua_pushvalue(L, 2);
+		lua_pushstring(L, entry->key);
+		lunatik_pushobject(L, entry->object);
+		lua_call(L, 2, 0);
+	}
+	return 0;
+}
+
 static const struct luaL_Reg luarcu_lib[] = {
 	{"table", luarcu_table},
+	{"map", luarcu_map},
 	{NULL, NULL}
 };
 
