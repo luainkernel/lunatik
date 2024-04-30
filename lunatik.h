@@ -177,6 +177,12 @@ int lunatik_monitorobject(lua_State *L);
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
 
+static inline void lunatik_pushobject(lua_State *L, lunatik_object_t *object)
+{
+	lunatik_getobject(object);
+	lunatik_cloneobject(L, object);
+}
+
 static inline bool lunatik_hasindex(lua_State *L, int index)
 {
 	bool hasindex = lua_getfield(L, index, "__index") != LUA_TNIL;
