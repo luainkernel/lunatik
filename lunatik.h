@@ -150,7 +150,7 @@ static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
 	lua_setiuservalue(L, -2, 1); /* pop class */
 }
 
-static inline void lunatik_setobject(lua_State *L, lunatik_object_t *object, const lunatik_class_t *class, bool sleep)
+static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep)
 {
 	kref_init(&object->kref);
 	object->private = NULL;
