@@ -41,4 +41,5 @@ obj-$(CONFIG_LUNATIK_FIB) += lib/luafib.o
 obj-$(CONFIG_LUNATIK_DATA) += lib/luadata.o
 obj-$(CONFIG_LUNATIK_PROBE) += lib/luaprobe.o
 obj-$(CONFIG_LUNATIK_SYSCALL) += lib/luasyscall.o
+obj-$(CONFIG_LUNATIK_XDP) += lib/luaxdp.o
 

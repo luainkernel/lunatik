@@ -9,7 +9,8 @@ all: lunatik_sym.h
 	CONFIG_LUNATIK_RUN=m CONFIG_LUNATIK_RUNTIME=y CONFIG_LUNATIK_DEVICE=m	\
 	CONFIG_LUNATIK_LINUX=m CONFIG_LUNATIK_NOTIFIER=m CONFIG_LUNATIK_SOCKET=m \
 	CONFIG_LUNATIK_RCU=m CONFIG_LUNATIK_THREAD=m CONFIG_LUNATIK_FIB=m \
-	CONFIG_LUNATIK_DATA=m CONFIG_LUNATIK_PROBE=m CONFIG_LUNATIK_SYSCALL=m
+	CONFIG_LUNATIK_DATA=m CONFIG_LUNATIK_PROBE=m CONFIG_LUNATIK_SYSCALL=m \
+	CONFIG_LUNATIK_XDP=m
 
 clean:
 	make -C ${KDIR} M=${PWD} clean
@@ -41,6 +42,9 @@ examples_uninstall:
 modules_install:
 	mkdir -p -m 0755 ${MODULES_INSTALL_PATH}/lunatik
 	install -m 0644 -o root -g root *.ko lib/*.ko ${MODULES_INSTALL_PATH}/lunatik
+
+btf_install:
+	cp /sys/kernel/btf/vmlinux ${KDIR}
 
 modules_uninstall:
 	rm -r ${MODULES_INSTALL_PATH}/lunatik
