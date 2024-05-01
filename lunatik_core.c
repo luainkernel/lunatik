@@ -32,6 +32,8 @@
 #include "lunatik_sym.h"
 
 #ifdef LUNATIK_RUNTIME
+lunatik_object_t *lunatik_runtimes;
+EXPORT_SYMBOL(lunatik_runtimes);
 
 static inline void lunatik_setversion(lua_State *L)
 {
@@ -82,8 +84,15 @@ EXPORT_SYMBOL(lunatik_stop);
 
 static int lunatik_lruntime(lua_State *L);
 
+static int lunatik_lruntimes(lua_State *L)
+{
+	lunatik_pushobject(L, lunatik_runtimes);
+	return 1;
+}
+
 static const luaL_Reg lunatik_lib[] = {
 	{"runtime", lunatik_lruntime},
+	{"runtimes", lunatik_lruntimes},
 	{NULL, NULL}
 };
 

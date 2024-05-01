@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023 ring-0 Ltda.
+* Copyright (c) 2023-2024 ring-0 Ltda.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
 * a copy of this software and associated documentation files (the
@@ -28,16 +28,20 @@
 #include <lualib.h>
 
 #include "lunatik.h"
+#include "lib/luarcu.h"
 
 static lunatik_object_t *runtime;
 
 static int __init lunatik_run_init(void)
 {
+	if ((lunatik_runtimes = luarcu_newtable(LUARCU_DEFAULT_SIZE, false)) == NULL)
+		return -ENOMEM;
 	return lunatik_runtime(&runtime, "lunatik", true);
 }
 
 static void __exit lunatik_run_exit(void)
 {
+	lunatik_putobject(lunatik_runtimes);
 	lunatik_stop(runtime);
 }
 
