@@ -108,6 +108,8 @@ typedef struct lunatik_object_s {
 	bool sleep;
 } lunatik_object_t;
 
+extern lunatik_object_t *lunatik_runtimes;
+
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
 	return object->sleep ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin);

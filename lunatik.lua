@@ -1,5 +1,5 @@
 --
--- Copyright (c) 2023 ring-0 Ltda.
+-- Copyright (c) 2023-2024 ring-0 Ltda.
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
 -- a copy of this software and associated documentation files (the
@@ -25,6 +25,7 @@ lunatik = require("lunatik")
 
 local device = require("device")
 local thread = require("thread")
+local rcu    = require("rcu")
 
 local function nop() end
 
@@ -48,7 +49,7 @@ function driver:write(buf)
 	self.result = err
 end
 
-driver.__runtimes = {}
+driver.__runtimes = lunatik.runtimes()
 driver.__threads = {}
 
 function driver:run(script, ...)
@@ -82,16 +83,16 @@ end
 
 function driver:list()
 	local list = {}
-	for script in pairs(self.__runtimes) do
+	rcu.map(self.__runtimes, function (script)
 		table.insert(list, script)
-	end
+	end)
 	return table.concat(list, ', ')
 end
 
 function driver:shutdown()
-	for script in pairs(self.__runtimes) do
+	rcu.map(self.__runtimes, function (script)
 		self:stop(script)
-	end
+	end)
 end
 
 device.new(driver)
