@@ -45,6 +45,23 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 }
 EXPORT_SYMBOL(lunatik_newobject);
 
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep)
+{
+	gfp_t gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
+	lunatik_object_t *object = (lunatik_object_t *)kmalloc(sizeof(lunatik_object_t), gfp);
+
+	if (object == NULL)
+		return NULL;
+
+	lunatik_setobject(object, class, sleep);
+	if ((object->private = kmalloc(size, gfp)) == NULL) {
+		lunatik_putobject(object);
+		return NULL;
+	}
+	return object;
+}
+EXPORT_SYMBOL(lunatik_createobject);
+
 lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 {
 	lunatik_object_t **pobject;
