@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023 ring-0 Ltda.
+* Copyright (c) 2023-2024 ring-0 Ltda.
 *
 * Permission is hereby granted, free of charge, to any person obtaining
 * a copy of this software and associated documentation files (the
@@ -39,7 +39,7 @@ typedef struct luadata_s {
 
 #define LUADATA_NUMBER_SZ	(sizeof(lua_Integer))
 
-static int luadata_new(lua_State *L);
+static int luadata_lnew(lua_State *L);
 
 static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lua_Integer length)
 {
@@ -115,7 +115,7 @@ static void luadata_release(void *private)
 }
 
 static const luaL_Reg luadata_lib[] = {
-	{"new", luadata_new},
+	{"new", luadata_lnew},
 	{NULL, NULL}
 };
 
@@ -137,11 +137,11 @@ static const lunatik_class_t luadata_class = {
 	.release = luadata_release,
 };
 
-static int luadata_new(lua_State *L)
+static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
 	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t));
-	luadata_t *data = object->private;
+	luadata_t *data = (luadata_t *)object->private;
 
 	data->ptr = lunatik_checkalloc(L, size);
 	data->size = size;
@@ -150,6 +150,39 @@ static int luadata_new(lua_State *L)
 }
 
 LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
+
+lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep)
+{
+	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep);
+
+	if (object != NULL) {
+		luadata_t *data = (luadata_t *)object->private;
+		data->ptr = ptr;
+		data->size = size;
+		data->free = false;
+	}
+	return object;
+}
+EXPORT_SYMBOL(luadata_new);
+
+int luadata_reset(lunatik_object_t *object, void *ptr, size_t size)
+{
+	luadata_t *data;
+
+	lunatik_lock(object);
+	data = (luadata_t *)object->private;
+
+	if (data->free) {
+		lunatik_unlock(object);
+		return -1;
+	}
+
+	data->ptr = ptr;
+	data->size = size;
+	lunatik_unlock(object);
+	return 0;
+}
+EXPORT_SYMBOL(luadata_reset);
 
 static int __init luadata_init(void)
 {
