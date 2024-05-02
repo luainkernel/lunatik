@@ -160,6 +160,7 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 }
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size);
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep);
 lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
