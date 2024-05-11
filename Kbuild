@@ -41,4 +41,5 @@ obj-$(CONFIG_LUNATIK_PROBE) += lib/luaprobe.o
 obj-$(CONFIG_LUNATIK_SYSCALL) += lib/luasyscall.o
 obj-$(CONFIG_LUNATIK_XDP) += lib/luaxdp.o
 obj-$(CONFIG_LUNATIK_FIFO) += lib/luafifo.o
+obj-$(CONFIG_LUNATIK_NETFILTER) += lib/luanetfilter.o
 
