@@ -933,6 +933,150 @@ _syscall.number()_ returns the system call number referenced by the given `name`
 
 The `syscall.table` library provides support for translating system call names to addresses (light userdata).
 
+### netfilter
+
+The `netfilter` library provides support for the kernel [Netfilter](https://netfilter.org/) subsystem. This includes support for xtables (`match`, `target`) and netfilter hooks.
+
+#### `netfilter.xtable(match, target)`
+
+_netfilter.xtable(ops)_ registers a xtable with the specified match and target operations. The `match` and `target` are tables with the following fields:
+
+* `name`: the name of the xtable.
+* `revision`: the revision of the xtable.
+* `match` or `target`: the callback function that is called when the xtable is matched or targeted. The match callback should return either `NF_DROP` or `NF_ACCEPT` and the target callback should return one of the following values:
+  * `NF_ACCEPT`: accept the packet.
+  * `NF_DROP`: drop the packet.
+  * `NF_STOLEN`: the packet is stolen by the hook.
+  * `NF_QUEUE`: the packet is queued.
+  * `NF_REPEAT`: the packet is repeated.
+  * `NF_STOP`: stop the traversal.
+* `checkentry`: the callback function that is called when the xtable is checked.
+* `destroy`: the callback function that is called when the xtable is destroyed.
+* `family`: the protocol family. This is one of :
+  * `NFPROTO_UNSPEC` (unspecified).
+  * `NFPROTO_INET` (IPv4).
+  * `NFPROTO_IPV4` (IPv4).
+  * `NFPROTO_ARP` (ARP).
+  * `NFPROTO_NETDEV` (network device).
+  * `NFPROTO_BRIDGE` (bridge).
+  * `NFPROTO_IPV6` (IPv6).
+* `proto`: the protocol. This is one of (See [socket-ipproto](#socketipproto)) :
+  * TCP
+  * UDP
+  * ICMP
+  * ICMPv6
+  * DCCP
+  * SCTP
+  * UDPLITE
+  * RAW
+
+The userspace xtable library is used to provide help message, parse logic, sanity check, pass program specific data to the kernel space and to save the iptables state in the userspace.
+
+The arguments to the match and target callbacks have `skb` and `params`. The `skb` is the packet buffer and `params` is the program specific data passed to the kernel space from the xtables userspace library. The `skb` is a `sk_buff` structure which contains the packet data. The `params` is a `struct xt_entry_match` or `struct xt_entry_target` structure which contains the program specific data passed to the kernel space. 
+
+For the checkentry callback, the argument is a `struct xt_mtchk_param` or `struct xt_tgcheck_param` and for the destroy callback, the argument is a `struct xt_mtdtor_param` or `struct xt_tgdtor_param`.
+
+#### Example Script
+
+```lua
+local nf = require("netfilter")
+local action = nf.action
+local xt = nf.xt
+local socket = require("socket")
+
+function drop_packet(skb, params)
+	print("drop_packet called")
+	return action.DROP
+end
+
+function ignore_packet(skb, params)
+	print("ignore_packet called")
+	return xt.CONTINUE
+end
+
+local ipproto = socket.ipproto
+
+local match_ops = {
+	name= "mymatch",
+	revision=1,
+	match= drop_packet,
+	checkentry=nil,
+	destroy=nil,
+	family= nf.NFPROTO_INET,
+	proto= ipproto.TCP
+}
+
+local target_ops = {
+	name= "mytarget",
+	revision=1,
+	target= ignore_packet,
+	checkentry=nil,
+	destroy=nil,
+	family= nf.NFPROTO_INET,
+	proto= ipproto.TCP
+}
+
+nf.xtable{
+	match= match_ops,
+	target= target_ops
+}
+```
+
+#### `netfilter.hook(ops)`
+
+_netfilter.hook(ops)_ registers a netfilter hook with the specified `ops`. The `ops` is a table with the following fields:
+
+* `hook`: a callback function that returns a value one of the following values:
+  * `NF_ACCEPT`: accept the packet.
+  * `NF_DROP`: drop the packet.
+  * `NF_STOLEN`: the packet is stolen by the hook.
+  * `NF_QUEUE`: the packet is queued.
+  * `NF_REPEAT`: the packet is repeated.
+  * `NF_STOP`: stop the traversal.
+
+* `priority`: the priority of the hook.
+
+* `pf`: the protocol family. This is one of :
+  * `NFPROTO_UNSPEC` (unspecified).
+  * `NFPROTO_INET` (IPv4).
+  * `NFPROTO_IPV4` (IPv4).
+  * `NFPROTO_ARP` (ARP).
+  * `NFPROTO_NETDEV` (network device).
+  * `NFPROTO_BRIDGE` (bridge).
+  * `NFPROTO_IPV6` (IPv6).
+
+* `hooknum`: the hook number. This is one of :
+  * `NF_INET_PRE_ROUTING` (pre-routing).
+  * `NF_INET_LOCAL_IN` (local input).
+  * `NF_INET_FORWARD` (forward).
+  * `NF_INET_LOCAL_OUT` (local output).
+  * `NF_INET_POST_ROUTING` (post-routing).
+  * `NF_INET_NUMHOOKS` (number of hooks).
+
+#### Example Script
+
+```lua
+local nf = require("netfilter")
+
+function nfhook(data, skb, state)
+	print("nfhook called")
+	-- get data from skb and state and do something
+	return nf.NF_ACCEPT
+end
+
+local ok =
+	nf.hook({
+		hook = nfhook,
+		priority = 1,
+		pf = nf.NFPROTO_INET,
+		hooknum = nf.NF_INET_PRE_ROUTING
+	})
+if not ok then
+	print("failed to register hook")
+	return
+end
+```
+
 # Examples
 
 ### spyglass
