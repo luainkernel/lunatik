@@ -48,43 +48,31 @@ __diag_ignore_all("-Wmissing-prototypes",
                   "Global kfuncs as their definitions will be in BTF");
 #endif
 
-static inline int luaxdp_callback(lua_State *L)
-{
-	if (lunatik_getregistry(L, luaxdp_callback) == LUA_TNIL) {
-		lua_pop(L, 1); /* pop nil */
-		if (lua_type(L, -1) != LUA_TFUNCTION) {
-			pr_err("couldn't find callback");
-			return -1;
-		}
-		lunatik_setregistry(L, -1, luaxdp_callback);
-	}
-	return 0;
-}
-
-static int luaxdp_handler(lua_State *L, lunatik_object_t *packet)
+static int luaxdp_handler(lua_State *L, lunatik_object_t *buffer, size_t offset)
 {
 	int action = -1;
 	int status;
 
-	if (luaxdp_callback(L) != 0)
+	if (lunatik_getregistry(L, luaxdp_handler) != LUA_TFUNCTION) {
+		pr_err("couldn't find callback");
 		goto out;
+	}
 
-	lunatik_pushobject(L, packet);
-	if ((status = lua_pcall(L, 1, 1, 0)) != LUA_OK) {
+	lunatik_pushobject(L, buffer);
+	lua_pushinteger(L, (lua_Integer)offset);
+	if ((status = lua_pcall(L, 2, 1, 0)) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
-		goto pop;
+		goto out;
 	}
 
 	action = lua_tointeger(L, -1);
-pop:
-	lua_pop(L, 1);
 out:
 	return action;
 }
 
-__bpf_kfunc int bpf_luaxdp_run(struct xdp_md *xdp_ctx, char *key, size_t key__sz)
+__bpf_kfunc int bpf_luaxdp_run(struct xdp_md *xdp_ctx, char *key, size_t key__sz, size_t offset)
 {
-	lunatik_object_t *runtime, *packet;
+	lunatik_object_t *runtime, *buffer;
 	struct xdp_buff *ctx = (struct xdp_buff *)xdp_ctx;
 	int action = -1;
 	size_t keylen = key__sz - 1;
@@ -95,13 +83,13 @@ __bpf_kfunc int bpf_luaxdp_run(struct xdp_md *xdp_ctx, char *key, size_t key__sz
 		goto out;
 	}
 
-	if ((packet = luadata_new(ctx->data, ctx->data_end - ctx->data, false)) == NULL) {
+	if ((buffer = luadata_new(ctx->data, ctx->data_end - ctx->data, false)) == NULL) {
 		pr_err("%s: failed to create a new packet\n", key);
 		goto put;
 	}
 
-	lunatik_run(runtime, luaxdp_handler, action, packet);
-	luadata_close(packet);
+	lunatik_run(runtime, luaxdp_handler, action, buffer, offset);
+	luadata_close(buffer);
 put:
 	lunatik_putobject(runtime);
 out:
@@ -120,6 +108,28 @@ static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 };
 #endif
 
+#define luaxdp_setcallback(L, i)	(lunatik_setregistry((L), (i), luaxdp_handler))
+
+static int luaxdp_detach(lua_State *L)
+{
+	lua_pushnil(L);
+	luaxdp_setcallback(L, 1);
+	return 0;
+}
+
+static int luaxdp_attach(lua_State *L)
+{
+	luaL_checktype(L, 1, LUA_TFUNCTION);
+	luaxdp_setcallback(L, 1);
+	return 0;
+}
+
+static const luaL_Reg luaxdp_lib[] = {
+	{"attach", luaxdp_attach},
+	{"detach", luaxdp_detach},
+	{NULL, NULL}
+};
+
 static const lunatik_reg_t luaxdp_action[] = {
 	{"ABORTED", XDP_ABORTED},
 	{"DROP", XDP_DROP},
@@ -131,10 +141,6 @@ static const lunatik_reg_t luaxdp_action[] = {
 
 static const lunatik_namespace_t luaxdp_flags[] = {
 	{"action", luaxdp_action},
-	{NULL, NULL}
-};
-
-static const luaL_Reg luaxdp_lib[] = {
 	{NULL, NULL}
 };
 
