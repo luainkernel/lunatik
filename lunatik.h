@@ -129,13 +129,14 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 #define lunatik_free(p)		kfree(p)
 #define lunatik_gfp(runtime)	(runtime->sleep ? GFP_KERNEL : GFP_ATOMIC)
 
-static inline void *lunatik_checkalloc(lua_State *L, size_t size)
+static inline void *lunatik_checknull(lua_State *L, void *ptr)
 {
-	void *ptr = lunatik_malloc(L, size);
 	if (ptr == NULL)
 		luaL_error(L, "not enough memory");
 	return ptr;
 }
+
+#define lunatik_checkalloc(L, s)	(lunatik_checknull((L), lunatik_malloc((L), (s))))
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
@@ -173,7 +174,7 @@ int lunatik_monitorobject(lua_State *L);
 #define LUNATIK_ERR_NULLPTR	"null-pointer dereference"
 
 #define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
-#define lunatik_checknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_NULLPTR)
+#define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_NULLPTR)
 #define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
 #define lunatik_toobject(L, i)		(*(lunatik_object_t **)lua_touserdata((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)

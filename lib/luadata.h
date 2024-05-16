@@ -24,6 +24,8 @@
 #ifndef luadata_h
 #define luadata_h
 
+#define luadata_clear(o)	(luadata_reset((o), NULL, 0))
+
 lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep);
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size);
 
