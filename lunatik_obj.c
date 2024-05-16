@@ -70,7 +70,7 @@ lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 	luaL_argcheck(L, lua_isuserdata(L, ix) && lua_getiuservalue(L, ix, 1) != LUA_TNONE &&
 		(class = (lunatik_class_t *)lua_touserdata(L, -1)) != NULL, ix, "object expected");
 	pobject = (lunatik_object_t **)luaL_checkudata(L, ix, class->name);
-	lunatik_checknull(L, *pobject, ix);
+	lunatik_argchecknull(L, *pobject, ix);
 	lua_pop(L, 1); /* class */
 	return pobject;
 }
@@ -107,7 +107,7 @@ int lunatik_closeobject(lua_State *L)
 	object->private = NULL;
 	lunatik_unlock(object);
 
-	lunatik_checknull(L, private, 1);
+	lunatik_argchecknull(L, private, 1);
 	lunatik_releaseprivate(object->class, private);
 	return 0;
 }
