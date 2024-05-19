@@ -38,6 +38,8 @@ examples_install:
 	${INSTALL} -m 0644 examples/*.lua ${SCRIPTS_INSTALL_PATH}/examples
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/echod
 	${INSTALL} -m 0644 examples/echod/*.lua ${SCRIPTS_INSTALL_PATH}/examples/echod
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/filter
+	${INSTALL} -m 0644 examples/filter/*.lua ${SCRIPTS_INSTALL_PATH}/examples/filter
 
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
