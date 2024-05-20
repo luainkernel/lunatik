@@ -933,6 +933,44 @@ _syscall.number()_ returns the system call number referenced by the given `name`
 
 The `syscall.table` library provides support for translating system call names to addresses (light userdata).
 
+### xdp
+
+The `xdp` library provides support for the kernel
+[eXpress Data Path (XDP)](https://prototype-kernel.readthedocs.io/en/latest/networking/XDP/)
+subsystem.
+This library was inspired by
+[Victor Nogueira](https://github.com/VictorNogueiraRio/linux)'s
+[GSoC project](https://victornogueirario.github.io/xdplua/).
+
+#### `xdp.attach(callback)`
+
+_xdp.attach()_ registers a `callback` function to the current `runtime`
+to be called from an XDP/eBPF program whenever it calls
+[bpf_luaxdp_run](lib/luaxdp.c#L106)
+[kfunc](https://docs.kernel.org/bpf/kfuncs.html).
+This `callback` receives the following arguments:
+* `buffer`: a `data` object representing the network buffer.
+* `argument`: a `data` object containing the argument passed by the XDP/eBPF program.
+
+The `callback` function might return the values defined by the
+[xdp.action](https://github.com/luainkernel/lunatik#xdpaction) table.
+
+#### `xdp.detach()`
+
+_xdp.detach()_ unregisters the `callback` associated with the current `runtime`, if any.
+
+#### `xdp.action`
+
+_xdp.action_ is a table that exports
+[xdp_action](https://elixir.bootlin.com/linux/v6.4/source/include/uapi/linux/bpf.h#L6187)
+flags to Lua.
+
+* `"ABORTED"`: n/a.
+* `"DROP"`: n/a.
+* `"PASS"`: n/a.
+* `"TX"`: n/a.
+* `"REDIRECT"`: n/a.
+
 # Examples
 
 ### spyglass
@@ -1045,6 +1083,24 @@ write: 1085
 openat: 2036
 read: 4131
 readv: 0
+```
+
+### filter
+
+[filter](examples/filter) is a kernel extension composed by
+a XDP/eBPF program to filter HTTPS sessions and
+a Lua kernel script to filter [SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) TLS extension.
+This kernel extension drops any HTTPS request destinated to a
+[blacklisted](examples/filter/blacklist.lua) server.
+
+#### Usage
+
+```
+sudo make examples_install                   # installs examples
+cd examples/filter
+make                                         # builds the XDP/eBPF program
+sudo lunatik run examples/filter/sni false   # runs the Lua kernel script
+sudo xdp-loader load -m skb <ifname> https.o # loads the XDP/eBPF program
 ```
 
 ## References
