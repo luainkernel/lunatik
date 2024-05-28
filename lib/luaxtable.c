@@ -24,6 +24,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
 #include <linux/version.h>
+#include <linux/types.h>
 #include <linux/netfilter.h>
 #include <linux/netfilter/x_tables.h>
 
@@ -31,19 +32,126 @@
 #include <lauxlib.h>
 #include <lunatik.h>
 
-typedef struct luanetfilter_xtable_s {
+typedef enum luaxtable_type_e {
+	LUAXTABLE_TMATCH,
+	LUAXTABLE_TTARGET,
+} luaxtable_type_t;
+
+typedef struct luaxtable_s {
 	lunatik_object_t *runtime;
-} luanetfilter_xtable_t;
+	union {
+		struct xt_match match;
+		struct xt_target target;
+	};
+	luaxtable_type_t type;
+} luaxtable_t;
 
-static int luanetfilter_xtable(lua_State *L);
-
-static void luanetfilter_release(void *private)
+static bool luaxtable_match(const struct sk_buff *skb, struct xt_action_param *par)
 {
-	luanetfilter_xtable_t *luaxtable = (luanetfilter_xtable_t *)private;
-	lunatik_putobject(luaxtable->runtime);
+	return true;
 }
 
-static const lunatik_reg_t luanetfilter_protocol[] = {
+static int luaxtable_match_check(const struct xt_mtchk_param *par)
+{
+	return 0;
+}
+
+static void luaxtable_match_destroy(const struct xt_mtdtor_param *par)
+{
+}
+
+static unsigned int luaxtable_target(struct sk_buff *skb, const struct xt_action_param *par)
+{
+	return NF_ACCEPT;
+}
+
+static int luaxtable_target_check(const struct xt_tgchk_param *par)
+{
+	return 0;
+}
+
+static void luaxtable_target_destroy(const struct xt_tgdtor_param *par)
+{
+}
+
+static void luaxtable_release(void *private);
+
+static const luaL_Reg luaxtable_mt[] = {
+	{"__gc", lunatik_deleteobject},
+	{NULL, NULL}
+};
+
+static const lunatik_class_t luaxtable_class = {
+	.name = "xtable",
+	.methods = luaxtable_mt,
+	.release = luaxtable_release,
+	.sleep = false,
+};
+
+#define luaxtable_setinteger(L, idx, hook, field) 		\
+do {								\
+	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);	\
+	hook->field = lua_tointeger(L, -1);			\
+	lua_pop(L, 1);						\
+} while (0)
+
+#define luaxtable_setstring(L, idx, hook, field, maxlen)        \
+do {								\
+	size_t len;						\
+	lunatik_checkfield(L, idx, #field, LUA_TSTRING);	\
+	const char *str = lua_tolstring(L, -1, &len);			\
+	if (len > maxlen)					\
+		luaL_error(L, "'%s' is too long", #field);	\
+	strncpy((char *)hook->field, str, maxlen);		\
+	lua_pop(L, 1);						\
+} while (0)
+
+static inline lunatik_object_t *luaxtable_new(lua_State *L, int idx, int hook)
+{
+	luaL_checktype(L, idx, LUA_TTABLE);
+	lunatik_object_t *object = lunatik_newobject(L, &luaxtable_class , sizeof(luaxtable_t));
+	luaxtable_t *xtable = (luaxtable_t *)object->private;
+
+	xtable->type = hook;
+	xtable->runtime = NULL;
+	return object;
+}
+
+static inline void luaxtable_register(lua_State *L, int idx, luaxtable_t *xtable, lunatik_object_t *object)
+{
+	xtable->runtime = lunatik_toruntime(L);
+	lunatik_getobject(xtable->runtime);
+	lunatik_registerobject(L, idx, object);
+}
+
+#define LUAXTABLE_NEWHOOK(hook, HOOK)					\
+static int luaxtable_new##hook(lua_State *L) 				\
+{									\
+	lunatik_object_t *object = luaxtable_new(L, 1, HOOK); 		\
+	luaxtable_t *xtable = (luaxtable_t *)object->private;		\
+									\
+	struct xt_##hook *hook = &xtable->hook;				\
+	hook->me = THIS_MODULE;						\
+									\
+	luaxtable_setstring(L, 1, hook, name, XT_EXTENSION_MAXNAMELEN - 1);	\
+	luaxtable_setinteger(L, 1, hook, revision);			\
+	luaxtable_setinteger(L, 1, hook, family);			\
+	luaxtable_setinteger(L, 1, hook, proto);			\
+									\
+	hook->hook = luaxtable_##hook;					\
+	hook->checkentry = luaxtable_##hook##_check;			\
+	hook->destroy = luaxtable_##hook##_destroy;			\
+									\
+	if (xt_register_##hook(hook) != 0)				\
+		luaL_error(L, "unable to register " #hook);		\
+	luaxtable_register(L, 1, xtable, object);			\
+	return 1;							\
+}
+
+LUAXTABLE_NEWHOOK(match, LUAXTABLE_TMATCH);
+LUAXTABLE_NEWHOOK(target, LUAXTABLE_TTARGET);
+
+static const lunatik_reg_t luanetfilter_family[] = {
 	{"UNSPEC", NFPROTO_UNSPEC},
 	{"INET", NFPROTO_INET},
 	{"IPV4", NFPROTO_IPV4},
@@ -68,53 +176,48 @@ static const lunatik_reg_t luanetfilter_action[] = {
 
 static const lunatik_namespace_t luanetfilter_flags[] = {
 	{"action", luanetfilter_action},
-	{"proto", luanetfilter_protocol},
+	{"family", luanetfilter_family},
 	{NULL, NULL}
 };
 
-static const luaL_Reg luanetfilter_lib[] = {
-	{"xtable", luanetfilter_xtable},
+static const luaL_Reg luaxtable_lib[] = {
+	{"match", luaxtable_newmatch},
+	{"target", luaxtable_newtarget},
 	{NULL, NULL}
 };
 
-static const luaL_Reg luanetfilter_mt[] = {
-	{"__gc", lunatik_deleteobject},
-	{NULL, NULL}
-};
-
-static const lunatik_class_t luanetfilter_class = {
-	.name = "netfilter",
-	.methods = luanetfilter_mt,
-	.release = luanetfilter_release,
-	.sleep = false,
-};
-
-static int luanetfilter_xtable(lua_State *L)
+static void luaxtable_release(void *private)
 {
-	lunatik_object_t *object;
-	luanetfilter_xtable_t *luaxtable;
+	luaxtable_t *xtable = (luaxtable_t *)private;
+	if (!xtable->runtime) 
+		return;
 
-	object = lunatik_newobject(L, &luanetfilter_class, sizeof(luanetfilter_xtable_t));
-	luaxtable = (luanetfilter_xtable_t *)object->private;
+	switch (xtable->type) {
+	case LUAXTABLE_TMATCH:
+		xt_unregister_match(&xtable->match);
+		break;
+	case LUAXTABLE_TTARGET:
+		xt_unregister_target(&xtable->target);
+		break;
+	}
 
-	luaxtable->runtime = lunatik_toruntime(L);
-	lunatik_getobject(luaxtable->runtime);
-	return 1;
+	lunatik_putobject(xtable->runtime);
+	xtable->runtime = NULL;
 }
 
-LUNATIK_NEWLIB(netfilter, luanetfilter_lib, &luanetfilter_class, luanetfilter_flags);
+LUNATIK_NEWLIB(xtable, luaxtable_lib, &luaxtable_class, luanetfilter_flags);
 
-static int __init luanetfilter_init(void)
+static int __init luaxtable_init(void)
 {
 	return 0;
 }
 
-static void __exit luanetfilter_exit(void)
+static void __exit luaxtable_exit(void)
 {
 }
 
-module_init(luanetfilter_init);
-module_exit(luanetfilter_exit);
+module_init(luaxtable_init);
+module_exit(luaxtable_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>");
 
