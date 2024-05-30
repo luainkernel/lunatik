@@ -61,8 +61,8 @@ static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void 
 static int luaxdp_callback(lua_State *L)
 {
 	lunatik_object_t *buffer, *argument;
-	struct xdp_buff *ctx = (struct xdp_buff *)lunatik_checknull(L, lua_touserdata(L, 1));
-	void *arg = lunatik_checknull(L, lua_touserdata(L, 2));
+	struct xdp_buff *ctx = (struct xdp_buff *)lua_touserdata(L, 1);
+	void *arg = lua_touserdata(L, 2);
 	size_t arg__sz = (size_t)lua_tointeger(L, 3);
 
 	lua_pushvalue(L, lua_upvalueindex(1)); /* callback */
