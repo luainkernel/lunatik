@@ -1091,7 +1091,7 @@ readv: 0
 a XDP/eBPF program to filter HTTPS sessions and
 a Lua kernel script to filter [SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) TLS extension.
 This kernel extension drops any HTTPS request destinated to a
-[blacklisted](examples/filter/blacklist.lua) server.
+[blacklisted](examples/filter/sni.lua#L35) server.
 
 #### Usage
 
