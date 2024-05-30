@@ -32,7 +32,9 @@ local function set(t)
 	return s
 end
 
-local blacklist = set(require("examples/filter/blacklist"))
+local blacklist = set{
+	"ebpf.io",
+}
 
 local function log(sni, verdict)
 	print(string.format("filter_sni: %s %s", sni, verdict))
