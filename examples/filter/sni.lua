@@ -22,7 +22,6 @@
 --
 
 local xdp  = require("xdp")
-local data = require("data")
 
 local action = xdp.action
 
