@@ -32,6 +32,10 @@
 #include <lauxlib.h>
 #include <lunatik.h>
 
+#include "luadata.h"
+#include "luarcu.h"
+#include "luaxtable.h"
+
 typedef enum luaxtable_type_e {
 	LUAXTABLE_TMATCH,
 	LUAXTABLE_TTARGET,
@@ -39,6 +43,7 @@ typedef enum luaxtable_type_e {
 
 typedef struct luaxtable_s {
 	lunatik_object_t *runtime;
+	lunatik_object_t *skb;
 	union {
 		struct xt_match match;
 		struct xt_target target;
@@ -46,33 +51,107 @@ typedef struct luaxtable_s {
 	luaxtable_type_t type;
 } luaxtable_t;
 
-static bool luaxtable_match(const struct sk_buff *skb, struct xt_action_param *par)
+static struct {
+	lunatik_object_t *target;
+	lunatik_object_t *match;
+	bool match_fallback;
+	unsigned int target_fallback;
+} luaxtable_hooks = {NULL, NULL, false, XT_CONTINUE};
+
+
+static int luaxtable_invoke(lua_State *L, luaxtable_t *xtable, struct sk_buff *skb, const char *op, int nret)
 {
-	return true;
+	int ret = -1;
+	int nargs = 0;
+	lunatik_object_t *data = NULL;
+
+	if (lunatik_getregistry(L, xtable) != LUA_TTABLE) {
+		pr_err("%s: could not find ops table\n", op);
+		goto err;
+	}
+
+	if (lua_getfield(L, -1, op) != LUA_TFUNCTION) {
+		pr_err("%s isn't defined\n", op);
+		goto err;
+	}
+
+	if (skb != NULL ){
+		if (lunatik_getregistry(L, xtable->skb) != LUA_TUSERDATA) {
+			pr_err("%s: could not find skb\n", op);
+			goto err;
+		}
+
+		data = (lunatik_object_t *)lunatik_toobject(L, -1);
+		if (skb_is_nonlinear(skb))
+			pr_err("fragemented skb found!\n");
+
+		luadata_reset(data, skb->data, skb_headlen(skb));
+		nargs = 1;
+	}
+
+	if (lua_pcall(L, nargs, nret, 0) != LUA_OK) {
+		pr_err("%s error: %s\n", op, lua_tostring(L, -1));
+		ret = -ECANCELED;
+		goto err;
+	}
+	if (nret != 0)
+		ret = luaL_optinteger(L, -1, 0);
+
+err:
+	if (data)
+		luadata_clear(data);
+	return ret;
 }
 
-static int luaxtable_match_check(const struct xt_mtchk_param *par)
-{
-	return 0;
+#define LUAXTABLE_HOOK_CB(T, U, V, hook, huk) 				\
+static T luaxtable_##hook(U skb, V par)					\
+{									\
+	const luaxtable_info_t *info = (const luaxtable_info_t *)par->huk##info;	\
+	luaxtable_t *xtable = info->data;				\
+	int ret;							\
+									\
+	/* TODO: handle const type in luadata */			\
+	lunatik_run(xtable->runtime, luaxtable_invoke, ret, xtable, (struct sk_buff *)skb, #hook, 1);	\
+	return ret < 0 ? luaxtable_hooks.hook##_fallback : ret;			\
 }
 
-static void luaxtable_match_destroy(const struct xt_mtdtor_param *par)
-{
+#define LUAXTABLE_CHECKER_CB(hook, hk, huk, HOOK)					\
+static int luaxtable_##hook##_check(const struct xt_##hk##chk_param *par)	\
+{										\
+	int ret = -EINVAL;							\
+										\
+	luaxtable_t *xtable;							\
+	lunatik_object_t *obj = luarcu_gettable(luaxtable_hooks.hook, par->hook->name, XT_EXTENSION_MAXNAMELEN);	\
+	if (obj == NULL) {							\
+		pr_err("could not find table for %s\n", par->hook->name);	\
+		return -1;							\
+	}									\
+	xtable = (luaxtable_t *)obj->private;					\
+	luaxtable_info_t *info = (luaxtable_info_t *)par->huk##info; 		\
+	info->data = xtable;							\
+										\
+	lunatik_run(xtable->runtime, luaxtable_invoke, ret, xtable, NULL, "checkentry", 1);	\
+	return ret;								\
 }
 
-static unsigned int luaxtable_target(struct sk_buff *skb, const struct xt_action_param *par)
-{
-	return NF_ACCEPT;
+#define LUAXTABLE_DESTROYER_CB(hook, hk, huk, HOOK)				\
+static void luaxtable_##hook##_destroy(const struct xt_##hk##dtor_param *par)	\
+{										\
+	int ret;								\
+	luaxtable_info_t *info = (luaxtable_info_t *)par->huk##info; 		\
+	luaxtable_t *xtable = (luaxtable_t *)info->data;			\
+										\
+	lunatik_run(xtable->runtime, luaxtable_invoke, ret, xtable, NULL, "destroy", 0);	\
 }
 
-static int luaxtable_target_check(const struct xt_tgchk_param *par)
-{
-	return 0;
-}
+LUAXTABLE_HOOK_CB(bool, const struct  sk_buff *, struct xt_action_param *, match, match);
+LUAXTABLE_HOOK_CB(unsigned int, struct sk_buff *, const struct xt_action_param *, target, targ);
 
-static void luaxtable_target_destroy(const struct xt_tgdtor_param *par)
-{
-}
+LUAXTABLE_CHECKER_CB(match, mt, match, LUAXTABLE_TMATCH);
+LUAXTABLE_CHECKER_CB(target, tg, targ, LUAXTABLE_TTARGET);
+
+LUAXTABLE_DESTROYER_CB(match, mt, match, LUAXTABLE_TMATCH);
+LUAXTABLE_DESTROYER_CB(target, tg, targ, LUAXTABLE_TTARGET);
 
 static void luaxtable_release(void *private);
 
@@ -87,6 +166,15 @@ static const lunatik_class_t luaxtable_class = {
 	.release = luaxtable_release,
 	.sleep = false,
 };
+
+static inline void luaxtable_setbuf(lua_State *L, int idx, luaxtable_t *xtable)
+{
+	lunatik_require(L, data);
+	xtable->skb = lunatik_checknull(L, luadata_new(NULL, 0, false));
+	lunatik_cloneobject(L, xtable->skb);
+	lunatik_setregistry(L, -1, xtable->skb);
+	lua_pop(L, 1);
+}
 
 #define luaxtable_setinteger(L, idx, hook, field) 		\
 do {								\
@@ -114,6 +202,7 @@ static inline lunatik_object_t *luaxtable_new(lua_State *L, int idx, int hook)
 
 	xtable->type = hook;
 	xtable->runtime = NULL;
+	luaxtable_setbuf(L, idx, xtable);
 	return object;
 }
 
@@ -137,13 +226,22 @@ static int luaxtable_new##hook(lua_State *L) 				\
 	luaxtable_setinteger(L, 1, hook, revision);			\
 	luaxtable_setinteger(L, 1, hook, family);			\
 	luaxtable_setinteger(L, 1, hook, proto);			\
+	lunatik_checkfield(L, 1, "checkentry", LUA_TFUNCTION);		\
+	lunatik_checkfield(L, 1, "destroy", LUA_TFUNCTION);		\
+	lunatik_checkfield(L, 1, #hook, LUA_TFUNCTION);			\
 									\
+	hook->usersize = 0;						\
+	hook->hook##size = sizeof(luaxtable_info_t);			\
 	hook->hook = luaxtable_##hook;					\
 	hook->checkentry = luaxtable_##hook##_check;			\
 	hook->destroy = luaxtable_##hook##_destroy;			\
 									\
+	if (luarcu_settable(luaxtable_hooks.hook, hook->name, XT_EXTENSION_MAXNAMELEN, object) != 0)	\
+		luaL_error(L, "unable to set key : %s\n", hook->name);	\
+									\
 	if (xt_register_##hook(hook) != 0)				\
 		luaL_error(L, "unable to register " #hook);		\
+									\
 	luaxtable_register(L, 1, xtable, object);			\
 	return 1;							\
 }
@@ -209,11 +307,15 @@ LUNATIK_NEWLIB(xtable, luaxtable_lib, &luaxtable_class, luanetfilter_flags);
 
 static int __init luaxtable_init(void)
 {
+	luaxtable_hooks.match = luarcu_newtable(LUARCU_DEFAULT_SIZE, false);
+	luaxtable_hooks.target = luarcu_newtable(LUARCU_DEFAULT_SIZE, false);
 	return 0;
 }
 
 static void __exit luaxtable_exit(void)
 {
+	lunatik_putobject(luaxtable_hooks.match);
+	lunatik_putobject(luaxtable_hooks.target);
 }
 
 module_init(luaxtable_init);
