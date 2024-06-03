@@ -286,8 +286,8 @@ static int luadevice_new(lua_State *L)
 	int ret;
 
 	luaL_checktype(L, 1, LUA_TTABLE); /* driver */
-	if ((tname = lua_getfield(L, -1, "name")) != LUA_TSTRING) /* driver.name */
-		luaL_error(L, "bad field 'name' (string expected, got %s)", lua_typename(L, tname));
+
+	lunatik_checkfield(L, 1, "name", LUA_TSTRING);
 	name = lua_tostring(L, -1);
 
 	object = lunatik_newobject(L, &luadevice_class, sizeof(luadevice_t));
