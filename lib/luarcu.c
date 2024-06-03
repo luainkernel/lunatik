@@ -99,7 +99,7 @@ static int luarcu_replace(luarcu_entry_t *old, lunatik_object_t *object)
 {
 	luarcu_entry_t *new = luarcu_newentry(old->key, object);
 	if (new == NULL)
-		return -1;
+		return -ENOMEM;
 
 	hlist_replace_rcu(&old->hlist, &new->hlist);
 	luarcu_free(old);
@@ -112,12 +112,12 @@ static int luarcu_add(luarcu_table_t *table, unsigned int index, const char *key
 	luarcu_entry_t *entry;
 
 	if (entry_key == NULL)
-		return -1;
+		return -ENOMEM;
 
 	entry = luarcu_newentry(entry_key, object);
 	if (entry == NULL) {
 		kfree(entry_key);
-		return -1;
+		return -ENOMEM;
 	}
 
 	strncpy(entry_key, key, keylen);
@@ -177,6 +177,19 @@ lunatik_object_t *luarcu_gettable(lunatik_object_t *table, const char *key, size
 }
 EXPORT_SYMBOL(luarcu_gettable);
 
+int luarcu_settable(lunatik_object_t *table, const char *key, size_t keylen, lunatik_object_t *object)
+{
+	int ret;
+
+	lunatik_lock(table);
+	ret = luarcu_insert((luarcu_table_t *)table->private, key, keylen, object);
+	lunatik_unlock(table);
+	if (!rcu_read_lock_held())
+		synchronize_rcu();
+	return ret;
+}
+EXPORT_SYMBOL(luarcu_settable);
+
 static int luarcu_index(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobject(L, 1);
@@ -203,15 +216,8 @@ static int luarcu_newindex(lua_State *L)
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
 	lunatik_object_t *object = luarcu_checkoptnil(L, 3, lunatik_checkobject);
-	int ret;
 
-	lunatik_lock(table);
-	ret = luarcu_insert(table->private, key, keylen, object);
-	lunatik_unlock(table);
-	if (!rcu_read_lock_held())
-		synchronize_rcu();
-
-	if (ret != 0)
+	if(luarcu_settable(table, key, keylen, object) < 0)
 		luaL_error(L, "not enough memory");
 	return 0;
 }
