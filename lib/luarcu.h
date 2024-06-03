@@ -28,6 +28,7 @@
 
 lunatik_object_t *luarcu_newtable(size_t size, bool sleep);
 lunatik_object_t *luarcu_gettable(lunatik_object_t *table, const char *key, size_t keylen);
+int luarcu_settable(lunatik_object_t *table, const char *key, size_t keylen, lunatik_object_t *object);
 
 #endif
 
