@@ -138,6 +138,14 @@ static inline void *lunatik_checknull(lua_State *L, void *ptr)
 
 #define lunatik_checkalloc(L, s)	(lunatik_checknull((L), lunatik_malloc((L), (s))))
 
+static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
+{
+	int _type = lua_getfield(L, idx, field);
+	if (_type != type)
+		luaL_error(L, "bad field '%s' (%s expected, got %s)", field,
+			lua_typename(L, type), lua_typename(L, _type));
+}
+
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
 	if (lunatik_cannotsleep(L, class->sleep))
