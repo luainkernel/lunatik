@@ -32,7 +32,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-#define LUNATIK_VERSION	"Lunatik 3.4"
+#define LUNATIK_VERSION	"Lunatik 3.5"
 
 #define lunatik_locker(o, mutex_op, spin_op)	\
 do {						\
