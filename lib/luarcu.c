@@ -217,7 +217,7 @@ static int luarcu_newindex(lua_State *L)
 	const char *key = luaL_checklstring(L, 2, &keylen);
 	lunatik_object_t *object = luarcu_checkoptnil(L, 3, lunatik_checkobject);
 
-	if(luarcu_settable(table, key, keylen, object) < 0)
+	if (luarcu_settable(table, key, keylen, object) < 0)
 		luaL_error(L, "not enough memory");
 	return 0;
 }

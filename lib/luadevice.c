@@ -282,7 +282,6 @@ static int luadevice_new(lua_State *L)
 	luadevice_t *luadev;
 	struct device *device;
 	const char *name;
-	int tname;
 	int ret;
 
 	luaL_checktype(L, 1, LUA_TTABLE); /* driver */
