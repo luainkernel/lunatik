@@ -257,6 +257,15 @@ static inline T checker(lua_State *L, int ix)			\
 	return (T)object->private;				\
 }
 
+#define LUNATIK_PRIVATECHECKER(checker, T)			\
+static inline T checker(lua_State *L, int ix)			\
+{								\
+	T private = (T)lunatik_toobject(L, ix)->private;	\
+	/* avoid use-after-free */				\
+	lunatik_argchecknull(L, private, ix);			\
+	return private;						\
+}
+
 #define lunatik_getregistry(L, key)	lua_rawgetp((L), LUA_REGISTRYINDEX, (key))
 
 static inline void lunatik_setregistry(lua_State *L, int ix, void *key)
