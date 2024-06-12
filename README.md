@@ -1259,6 +1259,22 @@ sudo lunatik run examples/filter/sni false   # runs the Lua kernel script
 sudo xdp-loader load -m skb <ifname> https.o # loads the XDP/eBPF program
 ```
 
+### dnsblock
+
+[dnsblock](examples/dnsblock) is a kernel script that uses the lunatik xtable library to filter DNS packets. 
+This script drops any outbound DNS packet with question matching the blacklist provided by the user.
+
+#### Usage
+
+```
+sudo make examples_install  			# installs examples
+cd examples/dnsblock
+make    					# builds the userspace extension for netfilter
+sudo make install   				# installs the extension to Xtables directory
+sudo lunatik run examples/dnsblock/dnsblock     # runs the Lua kernel script
+sudo iptables -A OUTPUT -m dnsblock -j DROP     # this initiates the netfilter framework to load our extension
+```
+
 ## References
 
 * [Scripting the Linux Routing Table with Lua](https://netdevconf.info/0x17/sessions/talk/scripting-the-linux-routing-table-with-lua.html)
