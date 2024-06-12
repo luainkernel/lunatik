@@ -45,6 +45,8 @@ examples_install:
 	${INSTALL} -m 0644 examples/echod/*.lua ${SCRIPTS_INSTALL_PATH}/examples/echod
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/filter
 	${INSTALL} -m 0644 examples/filter/*.lua ${SCRIPTS_INSTALL_PATH}/examples/filter
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsblock
+	${INSTALL} -m 0644 examples/dnsblock/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsblock
 
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
