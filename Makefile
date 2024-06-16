@@ -23,6 +23,7 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/socket
 	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lunatik.lua ${SCRIPTS_INSTALL_PATH}
+	${INSTALL} -m 0644 lib/*.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0755 lunatik ${LUNATIK_INSTALL_PATH}
