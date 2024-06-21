@@ -108,6 +108,9 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode);
 #undef LUA_PATH_DEFAULT
 #define LUA_PATH_DEFAULT  LUA_ROOT"?.lua;" LUA_ROOT"?/init.lua"
 
+#undef LUAI_MAXSTACK
+#define LUAI_MAXSTACK  200
+
 #if defined(lcode_c) || defined(ldebug_c) || defined(llex_c) || defined(lparser_c) || defined(lstate_c)
 #ifdef current /* defined by asm/current.h */
 #undef current /* conflicts with Lua namespace */
