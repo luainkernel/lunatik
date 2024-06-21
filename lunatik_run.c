@@ -36,7 +36,7 @@ static int __init lunatik_run_init(void)
 {
 	if ((lunatik_runtimes = luarcu_newtable(LUARCU_DEFAULT_SIZE, false)) == NULL)
 		return -ENOMEM;
-	return lunatik_runtime(&runtime, "lunatik", true);
+	return lunatik_runtime(&runtime, "driver", true);
 }
 
 static void __exit lunatik_run_exit(void)
