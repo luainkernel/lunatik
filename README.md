@@ -2,7 +2,7 @@
 
 Lunatik is a framework for scripting the Linux kernel with [Lua](https://www.lua.org/).
 It is composed by the Lua interpreter modified to run in the kernel;
-a [device driver](lunatik.lua) (written in Lua =)) and a [command line tool](lunatik)
+a [device driver](driver.lua) (written in Lua =)) and a [command line tool](bin/lunatik)
 to load and run scripts and manage runtime environments from the user space;
 a [C API](#lunatik-c-api) to load and run scripts and manage runtime environments from the kernel;
 and [Lua APIs](#lunatik-lua-apis) for binding kernel facilities to Lua scripts. 
@@ -39,7 +39,7 @@ device.new(driver)
 make
 sudo make install
 sudo lunatik # execute Lunatik REPL
-Lunatik 3.4  Copyright (C) 2023-2024 ring-0 Ltda.
+Lunatik 3.5  Copyright (C) 2023-2024 ring-0 Ltda.
 > return 42 -- execute this line in the kernel
 42
 ```
