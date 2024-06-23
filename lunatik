@@ -44,7 +44,7 @@ function lunatik.probe()
 end
 
 function lunatik.loadstring(chunk)
-	local loader <close> = lunatik.open("w")
+	local loader <close> = assert(lunatik.open("r+"))
 	loader:write(chunk)
 end
 
