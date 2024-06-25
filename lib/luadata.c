@@ -50,41 +50,41 @@ static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lu
 	return data;
 }
 
-static int luadata_getnumber(lua_State *L)
-{
-	lua_Integer offset;
-	luadata_t *data = luadata_checkdata(L, &offset, LUADATA_NUMBER_SZ);
+#define luadata_checkint(L, offset, T)	luadata_checkdata((L), &(offset), sizeof(T##_t))
 
-	lua_pushinteger(L, *(lua_Integer *)(data->ptr + offset));
-	return 1;
+#define LUADATA_NEWINT_GETTER(T) 	\
+static int luadata_get##T(lua_State *L) \
+{					\
+	lua_Integer offset;		\
+	luadata_t *data = luadata_checkint(L, offset, T);			\
+	lua_pushinteger(L, (lua_Integer)*(T##_t *)(data->ptr + offset));	\
+	return 1;			\
 }
 
-static int luadata_setnumber(lua_State *L)
-{
-	lua_Integer offset;
-	luadata_t *data = luadata_checkdata(L, &offset, LUADATA_NUMBER_SZ);
-
-	*(lua_Integer *)(data->ptr + offset) = luaL_checkinteger(L, 3);
-	return 0;
+#define LUADATA_NEWINT_SETTER(T)		\
+static int luadata_set##T(lua_State *L)		\
+{						\
+	lua_Integer offset;			\
+	luadata_t *data = luadata_checkint(L, offset, T);			\
+	*(T##_t *)(data->ptr + offset) = (T##_t)luaL_checkinteger(L, 3);	\
+	return 0;				\
 }
 
-static int luadata_getbyte(lua_State *L)
-{
-	lua_Integer offset;
-	luadata_t *data = luadata_checkdata(L, &offset, 1);
+#define LUADATA_NEWINT(T)	\
+	LUADATA_NEWINT_GETTER(T); 	\
+	LUADATA_NEWINT_SETTER(T);
 
-	lua_pushinteger(L, (lua_Integer)*(data->ptr + offset));
-	return 1;
-}
+LUADATA_NEWINT(int8);
+LUADATA_NEWINT(uint8);
+LUADATA_NEWINT(int16);
+LUADATA_NEWINT(uint16);
+LUADATA_NEWINT(int32);
+LUADATA_NEWINT(uint32);
 
-static int luadata_setbyte(lua_State *L)
-{
-	lua_Integer offset;
-	luadata_t *data = luadata_checkdata(L, &offset, 1);
-
-	*(data->ptr + offset) = luaL_checkinteger(L, 3);
-	return 0;
-}
+#ifdef __LP64__
+LUADATA_NEWINT(int64);
+LUADATA_NEWINT(uint64);
+#endif
 
 static int luadata_getstring(lua_State *L)
 {
@@ -122,10 +122,31 @@ static const luaL_Reg luadata_lib[] = {
 static const luaL_Reg luadata_mt[] = {
 	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
-	{"getnumber", luadata_getnumber},
-	{"setnumber", luadata_setnumber},
-	{"getbyte", luadata_getbyte},
-	{"setbyte", luadata_setbyte},
+	{"getbyte", luadata_getuint8},
+	{"setbyte", luadata_setuint8},
+	{"getint8", luadata_getint8},
+	{"setint8", luadata_setint8},
+	{"getuint8", luadata_getuint8},
+	{"setuint8", luadata_setuint8},
+	{"getint16", luadata_getint16},
+	{"setint16", luadata_setint16},
+	{"getuint16", luadata_getuint16},
+	{"setuint16", luadata_setuint16},
+	{"getint32", luadata_getint32},
+	{"setint32", luadata_setint32},
+	{"getuint32", luadata_getuint32},
+	{"setuint32", luadata_setuint32},
+#ifdef __LP64__
+	{"getint64", luadata_getint64},
+	{"setint64", luadata_setint64},
+	{"getuint64", luadata_getuint64},
+	{"setuint64", luadata_setuint64},
+	{"getnumber", luadata_getint64},
+	{"setnumber", luadata_setint64},
+#else
+	{"getnumber", luadata_getint32},
+	{"setnumber", luadata_setint32},
+#endif
 	{"getstring", luadata_getstring},
 	{"setstring", luadata_setstring},
 	{NULL, NULL}
