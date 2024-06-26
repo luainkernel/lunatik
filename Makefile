@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+
 MODULES_INSTALL_PATH = /lib/modules/${shell uname -r}
 SCRIPTS_INSTALL_PATH = /lib/modules/lua
 LUNATIK_INSTALL_PATH = /usr/local/sbin
