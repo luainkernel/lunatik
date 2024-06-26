@@ -1110,3 +1110,13 @@ sudo xdp-loader load -m skb <ifname> https.o # loads the XDP/eBPF program
 * [Linux Network Scripting with Lua](https://legacy.netdevconf.info/0x14/session.html?talk-linux-network-scripting-with-lua)
 * [Scriptables Operating Systems with Lua](https://www.netbsd.org/~lneto/dls14.pdf)
 
+## License
+
+Lunatik is dual-licensed under [MIT](LICENSE-MIT) or [GPL-2.0-only](LICENSE-GPL).
+
+[Lua](https://github.com/luainkernel/lua) submodule is licensed under MIT.
+For more details, see its [Copyright Notice](https://github.com/luainkernel/lua/blob/lunatik/lua.h#L530-L556).
+
+[Klibc](https://github.com/luainkernel/klibc) submodule is dual-licensed under BSD 3-Clause or GPL-2.0-only.
+For more details, see its [LICENCE](https://github.com/luainkernel/klibc/blob/lunatik/usr/klibc/LICENSE) file.
+
