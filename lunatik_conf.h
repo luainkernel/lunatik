@@ -39,7 +39,7 @@
 #define luai_makeseed(L)		get_random_u32()
 
 #define lua_writestring(s,l)		printk("%s",(s))
-#define lua_writeline()			printk("\n")
+#define lua_writeline()			pr_cont("\n")
 #define lua_writestringerror(...)	pr_err(__VA_ARGS__)
 
 /* see https://www.gnu.org/software/libc/manual/html_node/Atomic-Types.html */
