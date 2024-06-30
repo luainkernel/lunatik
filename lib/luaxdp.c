@@ -104,11 +104,21 @@ out:
 	return action;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0))
+__bpf_kfunc_end_defs();
+#else
 __diag_pop();
+#endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0))
+BTF_KFUNCS_START(bpf_luaxdp_set)
+BTF_ID_FLAGS(func, bpf_luaxdp_run)
+BTF_KFUNCS_END(bpf_luaxdp_set)
+#else
 BTF_SET8_START(bpf_luaxdp_set)
 BTF_ID_FLAGS(func, bpf_luaxdp_run)
 BTF_SET8_END(bpf_luaxdp_set)
+#endif
 
 static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 	.owner = THIS_MODULE,
