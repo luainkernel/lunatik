@@ -36,7 +36,7 @@ static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void 
 
 	lua_pushvalue(L, lua_upvalueindex(upvalue));
 	data = (lunatik_object_t *)lunatik_toobject(L, -1);
-	luadata_reset(data, ptr, size);
+	luadata_reset(data, ptr, size, LUADATA_OPT_KEEP);
 	return data;
 }
 
@@ -129,7 +129,7 @@ static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 
 static inline void luaxdp_newdata(lua_State *L)
 {
-	lunatik_object_t *data = lunatik_checknull(L, luadata_new(NULL, 0, false));
+	lunatik_object_t *data = lunatik_checknull(L, luadata_new(NULL, 0, false, LUADATA_OPT_NONE));
 	lunatik_cloneobject(L, data);
 }
 
