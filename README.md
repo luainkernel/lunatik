@@ -888,6 +888,90 @@ _data.setstring()_ insert the string `s`
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
+#### `data.getint8(d, offset), d:getint8(offset)`
+
+_data.getint8(d, offset)_ extracts a signed 8-bit integer
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setint8(d, offset), d:setint8(offset)`
+
+_data.setint8(d, offset)_ sets a signed 8-bit integer
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.getuint8(d, offset), d:getuint8(offset)`
+
+_data.getuint8()_ extracts an unsigned 8-bit integer
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setuint8(d, offset), d:setuint8(offset)`
+
+_data.setuint8(d, offset)_ sets an unsigned 8-bit integer
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.getint16(d, offset), d:getint16(offset)`
+
+_data.getint16()_ extracts a signed 16-bit integer
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setint16(d, offset), d:setint16(offset)`
+
+_data.setint16(d, offset)_ sets a signed 16-bit integer
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.getuint16(d, offset), d:getuint16(offset)`
+
+_data.getuint16()_ extracts an unsigned 16-bit integer
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setuint16(d, offset), d:setuint16(offset)`
+
+_data.setuint16(d, offset)_ sets an unsigned 16-bit integer
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.getint32(d, offset), d:getint32(offset)`
+
+_data.getint32()_ extracts a signed 32-bit integer
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setint32(d, offset), d:setint32(offset)`
+
+_data.setint32(d, offset)_ sets a signed 32-bit integer
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.getuint32(d, offset), d:getuint32(offset)`
+
+_data.getuint32()_ extracts an unsigned 32-bit integer
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setuint32(d, offset), d:setuint32(offset)`
+
+_data.setuint32(d, offset)_ sets an unsigned 32-bit integer
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.getint64(d, offset), d:getint64(offset)`
+
+_data.getint64()_ extracts a signed 64-bit integer
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.setint64(d, offset), d:setint64(offset)`
+
+_data.setint64(d, offset)_ sets a signed 64-bit integer
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
 ### probe
 
 The `probe` library provides support for
