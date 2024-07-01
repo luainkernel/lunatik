@@ -6,16 +6,17 @@
 #ifndef luadata_h
 #define luadata_h
 
+#include <lunatik.h>
+
 LUNATIK_LIB(data);
 
-#define luadata_clear(o)	(luadata_reset((o), NULL, 0))
-
-lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep);
-int luadata_reset(lunatik_object_t *object, void *ptr, size_t size);
+lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep, bool editable);
+int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, bool editable);
+int luadata_clear(lunatik_object_t *object);
 
 static inline void luadata_close(lunatik_object_t *object)
 {
-	luadata_reset(object, NULL, 0);
+	luadata_clear(object);
 	lunatik_putobject(object);
 }
 
