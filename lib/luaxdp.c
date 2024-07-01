@@ -129,7 +129,7 @@ static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 
 static inline void luaxdp_newdata(lua_State *L)
 {
-	lunatik_object_t *data = lunatik_checknull(L, luadata_new(NULL, 0, false));
+	lunatik_object_t *data = lunatik_checknull(L, luadata_new(NULL, 0, false, 0));
 	lunatik_cloneobject(L, data);
 }
 
