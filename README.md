@@ -888,6 +888,36 @@ _data.setstring()_ insert the string `s`
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
+#### `data.get(u)int(8/16/32/64)(d, offset), d:get(u)int(8/16/32/64)(offset)`
+
+_data.getuint8()_ extracts an unsigned 8-bit integer \
+_data.getuint16()_ extracts an unsigned 16-bit integer \
+_data.getuint32()_ extracts an unsigned 32-bit integer \
+_data.getuint64()_ extracts an unsigned 64-bit integer
+
+_data.getint8()_ extracts a signed 8-bit integer \
+_data.getint16()_ extracts a signed 16-bit integer \
+_data.getint32()_ extracts a signed 32-bit integer \
+_data.getint64()_ extracts a signed 64-bit integer
+
+from the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
+#### `data.set(u)int(8/16/32/64)(d, offset, number), d:set(u)int(8/16/32/64)(offset, number)`
+
+_data.setuint8()_ inserts an unsigned 8-bit integer \
+_data.setuint16()_ inserts an unsigned 16-bit integer \
+_data.setuint32()_ inserts an unsigned 32-bit integer \
+_data.setuint64()_ inserts an unsigned 64-bit integer
+
+_data.setint8()_ inserts a signed 8-bit integer \
+_data.setint16()_ inserts a signed 16-bit integer \
+_data.setint32()_ inserts a signed 32-bit integer \
+_data.setint64()_ inserts a signed 64-bit integer
+
+into the memory referenced by a `data` object and a byte `offset`,
+starting from zero.
+
 ### probe
 
 The `probe` library provides support for
