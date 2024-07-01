@@ -9,6 +9,7 @@
 #include <linux/sched.h>
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
+#include <linux/byteorder/generic.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -104,6 +105,29 @@ static int lualinux_lookup(lua_State *L)
 	return 1;
 }
 
+#define LUALINUX_NEW_BYTESWAPPER(func, T) \
+static int lualinux_##func(lua_State *L) \
+{ \
+	T x = (T)luaL_checkinteger(L, 1); \
+	lua_pushinteger(L, (lua_Integer)func(x)); \
+	return 1; \
+}
+
+LUALINUX_NEW_BYTESWAPPER(cpu_to_be16, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(cpu_to_be32, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(cpu_to_le16, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(cpu_to_le32, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(be16_to_cpu, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(be32_to_cpu, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(le16_to_cpu, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(le32_to_cpu, uint32_t);
+#ifdef __LP64__
+LUALINUX_NEW_BYTESWAPPER(cpu_to_be64, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(cpu_to_le64, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(be64_to_cpu, uint32_t);
+LUALINUX_NEW_BYTESWAPPER(le64_to_cpu, uint32_t);
+#endif
+
 static const lunatik_reg_t lualinux_task[] = {
 	{"INTERRUPTIBLE", TASK_INTERRUPTIBLE},
 	{"UNINTERRUPTIBLE", TASK_UNINTERRUPTIBLE},
@@ -189,6 +213,26 @@ static const luaL_Reg lualinux_lib[] = {
 	{"time", lualinux_time},
 	{"difftime", lualinux_difftime},
 	{"lookup", lualinux_lookup},
+	{"ntoh16", lualinux_be16_to_cpu},
+	{"ntoh32", lualinux_be32_to_cpu},
+	{"hton16", lualinux_cpu_to_be16},
+	{"hton32", lualinux_cpu_to_be32},
+	{"htobe16", lualinux_cpu_to_be16},
+	{"htobe32", lualinux_cpu_to_be32},
+	{"htole16", lualinux_cpu_to_le16},
+	{"htole32", lualinux_cpu_to_le32},
+	{"be16toh", lualinux_be16_to_cpu},
+	{"be32toh", lualinux_be32_to_cpu},
+	{"le16toh", lualinux_le16_to_cpu},
+	{"le32toh", lualinux_le32_to_cpu},
+#ifdef __LP64__
+	{"ntoh64", lualinux_be64_to_cpu},
+	{"hton64", lualinux_cpu_to_be64},
+	{"htobe64", lualinux_cpu_to_be64},
+	{"htole64", lualinux_cpu_to_le64},
+	{"be64toh", lualinux_be64_to_cpu},
+	{"le64toh", lualinux_le64_to_cpu},
+#endif
 	{NULL, NULL}
 };
 
