@@ -23,10 +23,11 @@ typedef struct luadata_s {
 
 static int luadata_lnew(lua_State *L);
 
+LUNATIK_PRIVATECHECKER(luadata_check, luadata_t *);
+
 static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lua_Integer length)
 {
-	lunatik_object_t *object = lunatik_toobject(L, 1);
-	luadata_t *data = object->private;
+	luadata_t* data = luadata_check(L, 1);
 	*offset = luaL_checkinteger(L, 2);
 	luaL_argcheck(L, *offset >= 0 && length > 0 && *offset + length <= data->size, 2, "out of bounds");
 	return data;
@@ -91,9 +92,7 @@ static int luadata_setstring(lua_State *L)
 
 static int luadata_length(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_toobject(L, 1);
-	luadata_t *data = object->private;
-
+	luadata_t *data = luadata_check(L, 1);
 	lua_pushinteger(L, (lua_Integer)data->size);
 	return 1;
 }
