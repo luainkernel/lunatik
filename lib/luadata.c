@@ -89,6 +89,15 @@ static int luadata_setstring(lua_State *L)
 	return 0;
 }
 
+static int luadata_length(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_toobject(L, 1);
+	luadata_t *data = object->private;
+
+	lua_pushinteger(L, (lua_Integer)data->size);
+	return 1;
+}
+
 static void luadata_release(void *private)
 {
 	luadata_t *data = (luadata_t *)private;
@@ -104,6 +113,7 @@ static const luaL_Reg luadata_lib[] = {
 static const luaL_Reg luadata_mt[] = {
 	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
+	{"__len", luadata_length},
 	{"getbyte", luadata_getuint8},
 	{"setbyte", luadata_setuint8},
 	{"getint8", luadata_getint8},
