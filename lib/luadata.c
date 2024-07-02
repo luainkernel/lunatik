@@ -13,9 +13,12 @@
 
 #include <lunatik.h>
 
+#include "luadata.h"
+
 typedef struct luadata_s {
 	char *ptr;
 	size_t size;
+	uint32_t flags;
 	bool free;
 } luadata_t;
 
@@ -35,6 +38,12 @@ static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lu
 
 #define luadata_checkint(L, offset, T)	luadata_checkdata((L), &(offset), sizeof(T##_t))
 
+static inline void luadata_editablechecker(lua_State *L, luadata_t *data)
+{
+	if (data->flags & LUADATA_CONST)
+		luaL_error(L, "data is not editable");
+}
+
 #define LUADATA_NEWINT_GETTER(T) 	\
 static int luadata_get##T(lua_State *L) \
 {					\
@@ -49,6 +58,7 @@ static int luadata_set##T(lua_State *L)		\
 {						\
 	lua_Integer offset;			\
 	luadata_t *data = luadata_checkint(L, offset, T);			\
+	luadata_editablechecker(L, data);	\
 	*(T##_t *)(data->ptr + offset) = (T##_t)luaL_checkinteger(L, 3);	\
 	return 0;				\
 }
@@ -85,7 +95,7 @@ static int luadata_setstring(lua_State *L)
 	size_t length;
 	const char *str = luaL_checklstring(L, 3, &length);
 	luadata_t *data = luadata_checkdata(L, &offset, (lua_Integer)length);
-
+	luadata_editablechecker(L, data);
 	memcpy(data->ptr + offset, str, length);
 	return 0;
 }
@@ -158,12 +168,13 @@ static int luadata_lnew(lua_State *L)
 	data->ptr = lunatik_checkalloc(L, size);
 	data->size = size;
 	data->free = true;
+	data->flags = 0;
 	return 1; /* object */
 }
 
 LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 
-lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep)
+lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep, uint32_t flags)
 {
 	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep);
 
@@ -172,6 +183,7 @@ lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep)
 		data->ptr = ptr;
 		data->size = size;
 		data->free = false;
+		data->flags = flags;
 	}
 	return object;
 }
@@ -183,18 +195,31 @@ int luadata_reset(lunatik_object_t *object, void *ptr, size_t size)
 
 	lunatik_lock(object);
 	data = (luadata_t *)object->private;
-
 	if (data->free) {
 		lunatik_unlock(object);
 		return -1;
 	}
-
 	data->ptr = ptr;
 	data->size = size;
 	lunatik_unlock(object);
 	return 0;
 }
 EXPORT_SYMBOL(luadata_reset);
+
+int luadata_setflags(lunatik_object_t *object, uint32_t flags)
+{
+	luadata_t *data;
+	lunatik_lock(object);
+	data = (luadata_t *)object->private;
+	if (data->free) {
+		lunatik_unlock(object);
+		return -1;
+	}
+	data->flags = flags;
+	lunatik_unlock(object);
+	return 0;
+}
+EXPORT_SYMBOL(luadata_setflags);
 
 static int __init luadata_init(void)
 {
