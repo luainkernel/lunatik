@@ -37,7 +37,7 @@ static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lu
 
 #define luadata_checkint(L, offset, T)	luadata_checkdata((L), &(offset), sizeof(T##_t))
 
-#define luadata_checkwritable(L, data)	luaL_argcheck((L), ((data)->opt & LUADATA_OPT_READONLY), 1, "read only")
+#define luadata_checkwritable(L, data)	luaL_argcheck((L), !((data)->opt & LUADATA_OPT_READONLY), 1, "read only")
 
 #define LUADATA_NEWINT_GETTER(T) 	\
 static int luadata_get##T(lua_State *L) \
