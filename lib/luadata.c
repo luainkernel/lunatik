@@ -71,7 +71,6 @@ LUADATA_NEWINT(uint32);
 
 #ifdef __LP64__
 LUADATA_NEWINT(int64);
-LUADATA_NEWINT(uint64);
 #endif
 
 static int luadata_getstring(lua_State *L)
@@ -136,8 +135,6 @@ static const luaL_Reg luadata_mt[] = {
 #ifdef __LP64__
 	{"getint64", luadata_getint64},
 	{"setint64", luadata_setint64},
-	{"getuint64", luadata_getuint64},
-	{"setuint64", luadata_setuint64},
 	{"getnumber", luadata_getint64},
 	{"setnumber", luadata_setint64},
 #else
