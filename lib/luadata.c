@@ -27,11 +27,17 @@ static int luadata_lnew(lua_State *L);
 
 LUNATIK_PRIVATECHECKER(luadata_check, luadata_t *);
 
+static inline void luadata_checkbounds(lua_State *L, int ix, size_t size, lua_Integer offset, lua_Integer length)
+{
+	int bounds = offset >= 0 && length > 0 && offset + length <= size;
+	luaL_argcheck(L, bounds, ix, "out of bounds");
+}
+
 static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lua_Integer length)
 {
 	luadata_t* data = luadata_check(L, 1);
 	*offset = luaL_checkinteger(L, 2);
-	luaL_argcheck(L, *offset >= 0 && length > 0 && *offset + length <= data->size, 2, "out of bounds");
+	luadata_checkbounds(L, 2, data->size, *offset, length);
 	return data;
 }
 
@@ -75,9 +81,10 @@ LUADATA_NEWINT(int64);
 
 static int luadata_getstring(lua_State *L)
 {
-	lua_Integer offset;
-	lua_Integer length = luaL_checkinteger(L, 3);
-	luadata_t *data = luadata_checkdata(L, &offset, length);
+	luadata_t *data = luadata_check(L, 1);
+	lua_Integer offset = luaL_checkinteger(L, 2);
+	lua_Integer length = luaL_optinteger(L, 3, data->size - offset);
+	luadata_checkbounds(L, 2, data->size, offset, length);
 
 	lua_pushlstring(L, data->ptr + offset, length);
 	return 1;
