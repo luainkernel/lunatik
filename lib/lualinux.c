@@ -9,6 +9,7 @@
 #include <linux/sched.h>
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
+#include <linux/netdevice.h>
 #include <linux/byteorder/generic.h>
 
 #include <lua.h>
@@ -102,6 +103,17 @@ static int lualinux_lookup(lua_State *L)
 	const char *symbol = luaL_checkstring(L, 1);
 
 	lua_pushlightuserdata(L, lunatik_lookup(symbol));
+	return 1;
+}
+
+static int lualinux_ifindex(lua_State *L)
+{
+	const char *ifname = luaL_checkstring(L, 1);
+	struct net_device *dev = dev_get_by_name(&init_net, ifname);
+
+	luaL_argcheck(L, dev != NULL, 1, "device not found");
+	lua_pushinteger(L, dev->ifindex);
+	dev_put(dev);
 	return 1;
 }
 
@@ -213,6 +225,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"time", lualinux_time},
 	{"difftime", lualinux_difftime},
 	{"lookup", lualinux_lookup},
+	{"ifindex", lualinux_ifindex},
 	{"ntoh16", lualinux_be16_to_cpu},
 	{"ntoh32", lualinux_be32_to_cpu},
 	{"hton16", lualinux_cpu_to_be16},
