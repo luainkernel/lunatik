@@ -33,23 +33,14 @@ static inline void luadata_checkbounds(lua_State *L, int ix, size_t size, lua_In
 	luaL_argcheck(L, bounds, ix, "out of bounds");
 }
 
-static inline luadata_t *luadata_checkdata(lua_State *L, lua_Integer *offset, lua_Integer length)
-{
-	luadata_t* data = luadata_check(L, 1);
-	*offset = luaL_checkinteger(L, 2);
-	luadata_checkbounds(L, 2, data->size, *offset, length);
-	return data;
-}
-
-#define luadata_checkint(L, offset, T)	luadata_checkdata((L), &(offset), sizeof(T##_t))
-
 #define luadata_checkwritable(L, data)	luaL_argcheck((L), !((data)->opt & LUADATA_OPT_READONLY), 1, "read only")
 
 #define LUADATA_NEWINT_GETTER(T) 	\
 static int luadata_get##T(lua_State *L) \
 {					\
-	lua_Integer offset;		\
-	luadata_t *data = luadata_checkint(L, offset, T);			\
+	luadata_t *data = luadata_check(L, 1);					\
+	lua_Integer offset = luaL_checkinteger(L, 2);				\
+	luadata_checkbounds(L, 2, data->size, offset, sizeof(T##_t));		\
 	lua_pushinteger(L, (lua_Integer)*(T##_t *)(data->ptr + offset));	\
 	return 1;			\
 }
@@ -57,8 +48,9 @@ static int luadata_get##T(lua_State *L) \
 #define LUADATA_NEWINT_SETTER(T)		\
 static int luadata_set##T(lua_State *L)		\
 {						\
-	lua_Integer offset;			\
-	luadata_t *data = luadata_checkint(L, offset, T);			\
+	luadata_t *data = luadata_check(L, 1);					\
+	lua_Integer offset = luaL_checkinteger(L, 2);				\
+	luadata_checkbounds(L, 2, data->size, offset, sizeof(T##_t));		\
 	luadata_checkwritable(L, data);		\
 	*(T##_t *)(data->ptr + offset) = (T##_t)luaL_checkinteger(L, 3);	\
 	return 0;				\
@@ -92,10 +84,11 @@ static int luadata_getstring(lua_State *L)
 
 static int luadata_setstring(lua_State *L)
 {
-	lua_Integer offset;
 	size_t length;
+	luadata_t *data = luadata_check(L, 1);
+	lua_Integer offset = luaL_checkinteger(L, 2);
 	const char *str = luaL_checklstring(L, 3, &length);
-	luadata_t *data = luadata_checkdata(L, &offset, (lua_Integer)length);
+	luadata_checkbounds(L, 2, data->size, offset, length);
 	luadata_checkwritable(L, data);
 
 	memcpy(data->ptr + offset, str, length);
