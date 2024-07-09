@@ -425,6 +425,78 @@ flags to Lua.
 * `"DOM"`: Math argument out of domain of func.
 * `"RANGE"`: Math result not representable.
 
+#### `linux.hton16(num)`
+
+_linux.hton16()_ converts the host byte order to network byte order for a 16-bit integer.
+
+#### `linux.hton32(num)`
+
+_linux.hton32()_ converts the host byte order to network byte order for a 32-bit integer.
+
+#### `linux.hton64(num)`
+
+_linux.hton64()_ converts the host byte order to network byte order for a 64-bit integer.
+
+#### `linux.ntoh16(num)`
+
+_linux.ntoh16()_ converts the network byte order to host byte order for a 16-bit integer.
+
+#### `linux.ntoh32(num)`
+
+_linux.ntoh32()_ converts the network byte order to host byte order for a 32-bit integer.
+
+#### `linux.ntoh64(num)`
+
+_linux.ntoh64()_ converts the network byte order to host byte order for a 64-bit integer.
+
+#### `linux.htobe16(num)`
+
+_linux.htobe16()_ converts the host byte order to big-endian byte order for a 16-bit integer.
+
+#### `linux.htobe32(num)`
+
+_linux.htobe32()_ converts the host byte order to big-endian byte order for a 32-bit integer.
+
+#### `linux.htobe64(num)`
+
+_linux.htobe64()_ converts the host byte order to big-endian byte order for a 64-bit integer.
+
+#### `linux.be16toh(num)`
+
+_linux.be16toh()_ converts the big-endian byte order to host byte order for a 16-bit integer.
+
+#### `linux.be32toh(num)`
+
+_linux.be32toh()_ converts the big-endian byte order to host byte order for a 32-bit integer.
+
+#### `linux.be64toh(num)`
+
+_linux.be64toh()_ converts the big-endian byte order to host byte order for a 64-bit integer.
+
+#### `linux.htole16(num)`
+
+_linux.htole16()_ converts the host byte order to little-endian byte order for a 16-bit integer.
+
+#### `linux.htole32(num)`
+
+_linux.htole32()_ converts the host byte order to little-endian byte order for a 32-bit integer.
+
+#### `linux.htole64(num)`
+
+_linux.htole64()_ converts the host byte order to little-endian byte order for a 64-bit integer.
+
+#### `linux.le16toh(num)`
+
+_linux.le16toh()_ converts the little-endian byte order to host byte order for a 16-bit integer.
+
+#### `linux.le32toh(num)`
+
+_linux.le32toh()_ converts the little-endian byte order to host byte order for a 32-bit integer.
+
+#### `linux.le64toh(num)`
+
+_linux.le64toh()_ converts the little-endian byte order to host byte order for a 64-bit integer.
+
 ### notifier
 
 The `notifier` library provides support for the kernel
