@@ -102,6 +102,13 @@ static int luadata_length(lua_State *L)
 	return 1;
 }
 
+static int luadata_tostring(lua_State *L)
+{
+	luadata_t *data = luadata_check(L, 1);
+	lua_pushlstring(L, data->ptr, data->size);
+	return 1;
+}
+
 static void luadata_release(void *private)
 {
 	luadata_t *data = (luadata_t *)private;
@@ -118,6 +125,7 @@ static const luaL_Reg luadata_mt[] = {
 	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"__len", luadata_length},
+	{"__tostring", luadata_tostring},
 	{"getbyte", luadata_getuint8},
 	{"setbyte", luadata_setuint8},
 	{"getint8", luadata_getint8},
