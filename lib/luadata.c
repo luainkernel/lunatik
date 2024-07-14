@@ -174,7 +174,7 @@ static int luadata_lnew(lua_State *L)
 
 LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 
-lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep, uint32_t opt)
+lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep, uint8_t opt)
 {
 	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep);
 
