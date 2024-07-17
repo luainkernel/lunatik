@@ -31,7 +31,6 @@ do {						\
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 
-#define lunatik_cannotsleep(L, s)	((s) && !lunatik_toruntime(L)->sleep)
 #define lunatik_getstate(runtime)	((lua_State *)runtime->private)
 
 static inline bool lunatik_isready(lua_State *L)
@@ -130,8 +129,8 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
-	if (lunatik_cannotsleep(L, class->sleep))
-		luaL_error(L, "cannot use '%s' class on non-sleepable runtime", class->name);
+	if (class->sleep != lunatik_toruntime(L)->sleep)
+		luaL_error(L, "cannot use '%s' class on runtime (sleep mismatch)", class->name);
 }
 
 static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
