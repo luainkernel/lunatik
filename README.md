@@ -966,9 +966,9 @@ _data.getint8(d, offset)_ extracts a signed 8-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setint8(d, offset), d:setint8(offset)`
+#### `data.setint8(d, offset, number), d:setint8(offset, number)`
 
-_data.setint8(d, offset)_ sets a signed 8-bit integer
+_data.setint8()_ inserts a signed 8-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
@@ -978,9 +978,9 @@ _data.getuint8()_ extracts an unsigned 8-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setuint8(d, offset), d:setuint8(offset)`
+#### `data.setuint8(d, offset, number), d:setuint8(offset, number)`
 
-_data.setuint8(d, offset)_ sets an unsigned 8-bit integer
+_data.setuint8()_ inserts an unsigned 8-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
@@ -990,9 +990,9 @@ _data.getint16()_ extracts a signed 16-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setint16(d, offset), d:setint16(offset)`
+#### `data.setint16(d, offset, number), d:setint16(offset, number)`
 
-_data.setint16(d, offset)_ sets a signed 16-bit integer
+_data.setint16()_ inserts a signed 16-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
@@ -1002,9 +1002,9 @@ _data.getuint16()_ extracts an unsigned 16-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setuint16(d, offset), d:setuint16(offset)`
+#### `data.setuint16(d, offset, number), d:setuint16(offset, number)`
 
-_data.setuint16(d, offset)_ sets an unsigned 16-bit integer
+_data.setuint16()_ inserts an unsigned 16-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
@@ -1014,9 +1014,9 @@ _data.getint32()_ extracts a signed 32-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setint32(d, offset), d:setint32(offset)`
+#### `data.setint32(d, offset, number), d:setint32(offset, number)`
 
-_data.setint32(d, offset)_ sets a signed 32-bit integer
+_data.setint32()_ inserts a signed 32-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
@@ -1026,9 +1026,9 @@ _data.getuint32()_ extracts an unsigned 32-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setuint32(d, offset), d:setuint32(offset)`
+#### `data.setuint32(d, offset, number), d:setuint32(offset, number)`
 
-_data.setuint32(d, offset)_ sets an unsigned 32-bit integer
+_data.setuint32()_ inserts an unsigned 32-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
@@ -1038,9 +1038,9 @@ _data.getint64()_ extracts a signed 64-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setint64(d, offset), d:setint64(offset)`
+#### `data.setint64(d, offset, number), d:setint64(offset, number)`
 
-_data.setint64(d, offset)_ sets a signed 64-bit integer
+_data.setint64()_ inserts a signed 64-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
