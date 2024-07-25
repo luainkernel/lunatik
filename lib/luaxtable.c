@@ -7,7 +7,6 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/types.h>
-#include <linux/netfilter.h>
 #include <linux/netfilter/x_tables.h>
 
 #include <lua.h>
@@ -17,6 +16,7 @@
 #include "luadata.h"
 #include "luarcu.h"
 #include "luaxtable.h"
+#include "luanetfilter.h"
 
 typedef enum luaxtable_type_e {
 	LUAXTABLE_TMATCH,
@@ -270,44 +270,6 @@ static int luaxtable_new##hook(lua_State *L) 				\
 LUAXTABLE_NEWHOOK(match, LUAXTABLE_TMATCH);
 LUAXTABLE_NEWHOOK(target, LUAXTABLE_TTARGET);
 
-static const lunatik_reg_t luanetfilter_family[] = {
-	{"UNSPEC", NFPROTO_UNSPEC},
-	{"INET", NFPROTO_INET},
-	{"IPV4", NFPROTO_IPV4},
-	{"IPV6", NFPROTO_IPV6},
-	{"ARP", NFPROTO_ARP},
-	{"NETDEV", NFPROTO_NETDEV},
-	{"BRIDGE", NFPROTO_BRIDGE},
-	{NULL, 0}
-};
-
-static const lunatik_reg_t luanetfilter_action[] = {
-	{"DROP", NF_DROP},
-	{"ACCEPT", NF_ACCEPT},
-	{"STOLEN", NF_STOLEN},
-	{"QUEUE", NF_QUEUE},
-	{"REPEAT", NF_REPEAT},
-	{"STOP", NF_STOP},
-	{"CONTINUE", XT_CONTINUE},
-	{"RETURN", XT_RETURN},
-	{NULL, 0}
-};
-
-static const lunatik_reg_t luanetfilter_hooks[] = {
-	{"PRE_ROUTING", NF_INET_PRE_ROUTING},
-	{"LOCAL_IN", NF_INET_LOCAL_IN},
-	{"FORWARD", NF_INET_FORWARD},
-	{"LOCAL_OUT", NF_INET_LOCAL_OUT},
-	{"POST_ROUTING", NF_INET_POST_ROUTING},
-	{NULL, 0}
-};
-
-static const lunatik_namespace_t luanetfilter_flags[] = {
-	{"action", luanetfilter_action},
-	{"family", luanetfilter_family},
-	{"hooks", luanetfilter_hooks},
-	{NULL, NULL}
-};
 
 static const luaL_Reg luaxtable_lib[] = {
 	{"match", luaxtable_newmatch},
