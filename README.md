@@ -1143,9 +1143,9 @@ This function receives the following arguments:
 * `opts`: a table containing the following fields:
   * `name`: string representing the xtable extension name.
   * `revision`: integer representing the xtable extension revision.
-  * `family`: address family, one of [xtable.family](https://github.com/luainkernel/lunatik#xtablefamily).
+  * `family`: address family, one of [netfilter.family](https://github.com/luainkernel/lunatik#netfilterfamily).
   * `proto`: protocol number, one of [socket.ipproto](https://github.com/luainkernel/lunatik#socketipproto).
-  * `hooks` : hook to attach the extension to, one of [xtable.hooks](https://github.com/luainkernel/lunatik#xtablehooks) flag (E.g - `1 << hooks.LOCAL_OUT`).
+  * `hooks` : hook to attach the extension to, one value from either of the hooks table - [netfilter.inet_hooks](https://github.com/luainkernel/lunatik#netfilterinet_hooks), [netfilter.bridge_hooks](https://github.com/luainkernel/lunatik#netfilterbridge_hooks) and [netfilter.arp_hooks](https://github.com/luainkernel/lunatik#netfilterarp_hooks) (Note: [netfilter.netdev_hooks](https://github.com/luainkernel/lunatik#netfilternetdev_hooks) is not available for legacy x_tables). (E.g - `1 << inet_hooks.LOCAL_OUT`).
   * `match` : function to be called for matching packets. It receives the following arguments:
 	* `skb` (readonly): a `data` object representing the socket buffer.
 	* `par`: a table containing `hotdrop`, `thoff` (transport header offset) and `fragoff` (fragment offset) fields.
@@ -1161,20 +1161,36 @@ This function receives the following arguments:
 * `opts`: a table containing the following fields:
   * `name`: string representing the xtable extension name.
   * `revision`: integer representing the xtable extension revision.
-  * `family`: address family, one of [xtable.family](https://github.com/luainkernel/lunatik#xtablefamily).
+  * `family`: address family, one of [netfilter.family](https://github.com/luainkernel/lunatik#netfilterfamily).
   * `proto`: protocol number, one of [socket.ipproto](https://github.com/luainkernel/lunatik#socketipproto).
-  * `hooks` : hook to attach the extension to, one of [xtable.hooks](https://github.com/luainkernel/lunatik#xtablehooks) flag (E.g - `1 << hooks.LOCAL_OUT`).
+  * `hooks` : hook to attach the extension to, one value from either of the hooks table - [netfilter.inet_hooks](https://github.com/luainkernel/lunatik#netfilterinet_hooks), [netfilter.bridge_hooks](https://github.com/luainkernel/lunatik#netfilterbridge_hooks) and [netfilter.arp_hooks](https://github.com/luainkernel/lunatik#netfilterarp_hooks) (Note: [netfilter.netdev_hooks](https://github.com/luainkernel/lunatik#netfilternetdev_hooks) is not available for legacy x_tables). (E.g - `1 << inet_hooks.LOCAL_OUT`).
   * `target` : function to be called for targeting packets. It receives the following arguments:
     * `skb`: a `data` object representing the socket buffer.
     * `par` (readonly): a table containing `hotdrop`, `thoff` (transport header offset) and `fragoff` (fragment offset) fields.
     * `userargs` : a lua string passed from the userspace xtable module.
-    * The function must return one of the values defined by the [xtable.action](https://github.com/luainkernel/lunatik#xtableaction) table.
+    * The function must return one of the values defined by the [netfilter.action](https://github.com/luainkernel/lunatik#netfilteraction) table.
   * `checkentry`: function to be called for checking the entry. This function receives `userargs` as its argument.
   * `destroy`: function to be called for destroying the xtable extension. This function receives `userargs` as its argument.
 
-#### `xtable.family`
+### netfilter
 
-_xtable.family_ is a table that exports
+The `netfilter` library provides support for the [new netfilter hook](https://www.netfilter.org/documentation/HOWTO/netfilter-hacking-HOWTO-4.html#ss4.6) system.
+
+#### `netfilter.register(ops)`
+
+_netfilter.register()_ registers a new netfilter hook with the given `ops` table.
+This function receives the following arguments:
+* `ops`: a table containing the following fields:
+  * `pf`: protocol family, one of [netfilter.family](https://github.com/luainkernel/lunatik#netfilterfamily)
+  * `hooknum`:	hook to attach the filter to, one value from either of the hooks table - [netfilter.inet_hooks](https://github.com/luainkernel/lunatik#netfilterinet_hooks), [netfilter.bridge_hooks](https://github.com/luainkernel/lunatik#netfilterbridge_hooks), [netfilter.arp_hooks](https://github.com/luainkernel/lunatik#netfilterarp_hooks) and [netfilter.netdev_hooks](https://github.com/luainkernel/lunatik#netfilternetdev_hooks). (E.g - `inet_hooks.LOCAL_OUT + 11`).
+  * `priority`:	priority of the hook. One of the values from the [netfilter.ip_priority](https://github.com/luainkernel/lunatik#netfilterip_priority) or [netfilter.bridge_priority](https://github.com/luainkernel/lunatik#netfilterbridge_priority) tables.
+  * `hook`: function to be called for the hook. It receives the following arguments:
+	* `skb`: a `data` object representing the socket buffer.
+	* The function must return one of the values defined by the [netfilter.action](https://github.com/luainkernel/lunatik#netfilteraction).
+
+#### `netfilter.family`
+
+_netfilter.family_ is a table that exports
 address families to Lua.
 
 * `"UNSPEC"`: Unspecified.
@@ -1185,9 +1201,9 @@ address families to Lua.
 * `"NETDEV"`: Device ingress and egress path
 * `"BRIDGE"`: Ethernet Bridge.
 
-#### `xtable.action`
+#### `netfilter.action`
 
-_xtable.action_ is a table that exports
+_netfilter.action_ is a table that exports
 netfilter actions to Lua.
 
 * `"DROP"`: `NF_DROP`. The packet is dropped. It is not forwarded, processed, or seen by any other network layer.
@@ -1199,16 +1215,78 @@ netfilter actions to Lua.
 * `"CONTINUE"`: `XT_CONTINUE`. Return the packet should continue traversing the rules within the same table.
 * `"RETURN"`: `XT_RETURN`. Return the packet to the previous chain.
 
-#### `xtable.hooks`
+#### `netfilter.inet_hooks`
 
-_xtable.hooks_ is a table that exports
-netfilter hooks to Lua.
+_netfilter.inet_hooks_ is a table that exports
+inet netfilter hooks to Lua.
 
 * `"PRE_ROUTING"`: `NF_INET_PRE_ROUTING`. The packet is received by the network stack.
 * `"LOCAL_IN"`: `NF_INET_LOCAL_IN`. The packet is destined for the local system.
 * `"FORWARD"`: `NF_INET_FORWARD`. The packet is to be forwarded to another host.
 * `"LOCAL_OUT"`: `NF_INET_LOCAL_OUT`. The packet is generated by the local system.
 * `"POST_ROUTING"`: `NF_INET_POST_ROUTING`. The packet is about to be sent out.
+
+#### `netfilter.bridge_hooks`
+
+_netfilter.bridge_hooks_ is a table that exports
+bridge netfilter hooks to Lua.
+
+* `"PRE_ROUTING"`: `NF_BR_PRE_ROUTING`. First hook invoked, runs before forward database is consulted.
+* `"LOCAL_IN"`: `NF_BR_LOCAL_IN`. Invoked for packets destined for the machine where the bridge was configured on.
+* `"FORWARD"`: `NF_BR_FORWARD`. Called for frames that are bridged to a different port of the same logical bridge device. 
+* `"LOCAL_OUT"`: `NF_BR_LOCAL_OUT`. Called for locally originating packets that will be transmitted via the bridge.
+* `"POST_ROUTING"`: `NF_BR_POST_ROUTING`. Called for all locally generated packets and all bridged packets
+
+#### `netfilter.arp_hooks`
+
+_netfilter.arp_hooks_ is a table that exports
+arp netfilter hooks to Lua.
+
+* `"IN"`: `NF_ARP_IN`. The packet is received by the network stack.
+* `"OUT"`: `NF_ARP_OUT`. The packet is generated by the local system.
+* `"FORWARD"`: `NF_ARP_FORWARD`. The packet is to be forwarded to another host.
+
+#### `netfilter.netdev_hooks`
+
+_netfilter.netdev_hooks_ is a table that exports
+netdev netfilter hooks to Lua.
+
+* `"INGRESS"`: `NF_NETDEV_INGRESS`. The packet is received by the network stack.
+* `"EGRESS"`: `NF_NETDEV_EGRESS`. The packet is generated by the local system.
+
+#### `netfilter.ip_priority`
+
+_netfilter.ip_priority_ is a table that exports
+netfilter IPv4/IPv6 priority levels to Lua.
+
+* `"FIRST"`: `NF_IP_PRI_FIRST`
+* `"RAW_BEFORE_DEFRAG"`: `NF_IP_PRI_RAW_BEFORE_DEFRAG`
+* `"CONNTRACK_DEFRAG"`: `NF_IP_PRI_CONNTRACK_DEFRAG`
+* `"RAW"`: `NF_IP_PRI_RAW`
+* `"SELINUX_FIRST"`: `NF_IP_PRI_SELINUX_FIRST`
+* `"CONNTRACK"`: `NF_IP_PRI_CONNTRACK`
+* `"MANGLE"`: `NF_IP_PRI_MANGLE`
+* `"NAT_DST"`: `NF_IP_PRI_NAT_DST`
+* `"FILTER"`: `NF_IP_PRI_FILTER`
+* `"SECURITY"`: `NF_IP_PRI_SECURITY`
+* `"NAT_SRC"`: `NF_IP_PRI_NAT_SRC`
+* `"SELINUX_LAST"`: `NF_IP_PRI_SELINUX_LAST`
+* `"CONNTRACK_HELPER"`: `NF_IP_PRI_CONNTRACK_HELPER`
+* `"LAST"`: `NF_IP_PRI_LAST`
+
+#### `netfilter.bridge_priority`
+
+_netfilter.bridge_priority_ is a table that exports
+netfilter bridge priority levels to Lua.
+
+* `"FIRST"`: `NF_BR_PRI_FIRST`
+* `"NAT_DST_BRIDGED"`: `NF_BR_PRI_NAT_DST_BRIDGED`
+* `"FILTER_BRIDGED"`: `NF_BR_PRI_FILTER_BRIDGED`
+* `"BRNF"`: `NF_BR_PRI_BRNF`
+* `"NAT_DST_OTHER"`: `NF_BR_PRI_NAT_DST_OTHER`
+* `"FILTER_OTHER"`: `NF_BR_PRI_FILTER_OTHER`
+* `"NAT_SRC"`: `NF_BR_PRI_NAT_SRC`
+* `"LAST"`: `NF_BR_PRI_LAST`
 
 ### luaxt
 
