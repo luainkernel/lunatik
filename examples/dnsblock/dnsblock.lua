@@ -68,5 +68,6 @@ xt.match{
 	match = dnsblock_mt,
 	checkentry = nop,
 	destroy = nop,
+	hooks = 0,
 }
 
