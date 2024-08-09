@@ -9,6 +9,9 @@
 struct luaxtable_s;
 
 typedef struct luaxtable_info_s {
+	char userdata[256];
+
+	/* used internally by the luaxtable kernel module */
 	struct luaxtable_s *data __attribute__((aligned(8)));
 } luaxtable_info_t;
 
