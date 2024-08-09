@@ -1149,9 +1149,10 @@ This function receives the following arguments:
   * `match` : function to be called for matching packets. It receives the following arguments:
 	* `skb` (readonly): a `data` object representing the socket buffer.
 	* `par`: a table containing `hotdrop`, `thoff` (transport header offset) and `fragoff` (fragment offset) fields.
+    * `userdata` : a lua string passed from the userspace xtable module.
     * The function must return `true` if the packet matches the extension; otherwise, it must return `false`.
-  * `checkentry`: function to be called for checking the entry.
-  * `destroy`: function to be called for destroying the xtable extension.
+  * `checkentry`: function to be called for checking the entry. This function receives `userdata` as it's argument.
+  * `destroy`: function to be called for destroying the xtable extension. This function receives `userdata` as it's argument.
 
 #### `xtable.target(opts)`
 
@@ -1166,9 +1167,10 @@ This function receives the following arguments:
   * `target` : function to be called for targeting packets. It receives the following arguments:
     * `skb`: a `data` object representing the socket buffer.
     * `par` (readonly): a table containing `hotdrop`, `thoff` (transport header offset) and `fragoff` (fragment offset) fields.
+    * `userdata` : a lua string passed from the userspace xtable module.
     * The function must return one of the values defined by the [xtable.action](https://github.com/luainkernel/lunatik#xtableaction) table.
-  * `checkentry`: function to be called for checking the entry.
-  * `destroy`: function to be called for destroying the xtable extension.
+  * `checkentry`: function to be called for checking the entry. This function receives `userdata` as it's argument.
+  * `destroy`: function to be called for destroying the xtable extension. This function receives `userdata` as it's argument.
 
 #### `xtable.family`
 
@@ -1228,11 +1230,11 @@ This function receives the following arguments:
   * `revision`: integer representing the xtable extension revision (**must** be same as used in corresponding kernel extension).
   * `family`: address family, one of [luaxt.family](https://github.com/luainkernel/lunatik#luaxtfamily)
   * `help`: function to be called for displaying help message for the extension.
-  * `init`: function to be called for initializing the extension.
-  * `print`: function to be called for printing the arguments.
-  * `save`: function to be called for saving the arguments.
-  * `parse`: function to be called for parsing the command line arguments.
-  * `final_check`: function to be called for final checking of the arguments.
+  * `init`: function to be called for initializing the extension. This function receives an `par` table that can be used to set `userdata`. (`par.userdata = "mydata"`)
+  * `print`: function to be called for printing the arguments. This function recevies `userdata` set by the `init` or `parse` function.
+  * `save`: function to be called for saving the arguments. This function recevies `userdata` set by the `init` or `parse` function.
+  * `parse`: function to be called for parsing the command line arguments. This function receives an `par` table that can be used to set `userdata` and `flags`. (`par.userdata = "mydata"`)
+  * `final_check`: function to be called for final checking of the arguments. This function receives `flags` set by the `parse` function.
 
 #### `luaxt.target(opts)`
 
@@ -1242,11 +1244,11 @@ This function receives the following arguments:
   * `revision`: integer representing the xtable extension revision (**must** be same as used in corresponding kernel extension).
   * `family`: address family, one of [luaxt.family](https://github.com/luainkernel/lunatik#luaxtfamily)
   * `help`: function to be called for displaying help message for the extension.
-  * `init`: function to be called for initializing the extension.
-  * `print`: function to be called for printing the arguments.
-  * `save`: function to be called for saving the arguments.
-  * `parse`: function to be called for parsing the command line arguments.
-  * `final_check`: function to be called for final checking of the arguments.
+  * `init`: function to be called for initializing the extension. This function receives an `par` table that can be used to set `userdata`. (`par.userdata = "mydata"`)
+  * `print`: function to be called for printing the arguments. This function recevies `userdata` set by the `init` or `parse` function.
+  * `save`: function to be called for saving the arguments. This function recevies `userdata` set by the `init` or `parse` function.
+  * `parse`: function to be called for parsing the command line arguments. This function receives an `par` table that can be used to set `userdata` and `flags`. (`par.userdata = "mydata"`)
+  * `final_check`: function to be called for final checking of the arguments. This function receives `flags` set by the `parse` function.
 
 #### `luaxt.family`
 

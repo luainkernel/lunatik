@@ -21,6 +21,7 @@
 #endif
 
 #define pr_err(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#define MIN(a,b) (((a)<(b))?(a):(b))
 
 typedef struct luaxt_flags_s {
 	const char *name;
@@ -32,9 +33,9 @@ static int luaopen_luaxt(lua_State *L);
 static int luaxt_match(lua_State *L);
 static int luaxt_target(lua_State *L);
 
-static inline int luaxt_run(lua_State *L, const char *func_name, const char *key, int nargs, int nresults)
+static int luaxt_run(lua_State *L, const char *func_name, const char *key, int nargs, int nresults)
 {
-	int ret = 0;
+	int ret = -1;
 	int base = lua_gettop(L) - nargs;
 	lua_rawgetp(L, LUA_REGISTRYINDEX, key);
 
@@ -54,9 +55,35 @@ static inline int luaxt_run(lua_State *L, const char *func_name, const char *key
 
 	if (nresults == 1)
 		ret = lua_toboolean(L, -1);
-
 restore:
 	lua_settop(L, base);
+	return ret;
+}
+
+static int luaxt_doparams(lua_State *L, const char *op, const char *key, unsigned int *flags, luaxtable_info_t *info)
+{
+	int ret;
+	lua_newtable(L);
+	lua_pushvalue(L, -1); /* stack : param param */
+
+	ret = luaxt_run(L, op, key, 1, 1);
+	if (ret == -1)
+		return 0;
+
+	if (flags && (lua_getfield(L, -1, "flags") == LUA_TNUMBER)) {
+		*flags = lua_tointeger(L, -1);
+		lua_pop(L, 1);
+	}
+
+	if (lua_getfield(L, -1, "userdata") == LUA_TSTRING) {
+		size_t len = 0;
+		const char *ldata = lua_tolstring(L, -1, &len);
+		memset(info->userdata, 0, 256);
+		memcpy(info->userdata, ldata, MIN(len, 256));
+		lua_pop(L, 1);
+	}
+		
+	lua_pop(L, 1);
 	return ret;
 }
 
@@ -69,32 +96,37 @@ static void luaxt_##hook##_help(void)		   	\
 #define LUAXT_INITER_CB(hook)				   	\
 static void luaxt_##hook##_init(struct xt_entry_##hook *hook)   	\
 {								   	\
-	luaxt_run(L, "init", (void *)luaxt_##hook, 1, 0);		\
+	luaxt_doparams(L, "init", (void *)luaxt_##hook, NULL, (luaxtable_info_t *)(hook->data));	\
 }
 
 #define LUAXT_PARSER_CB(hook)			   		\
 static int luaxt_##hook##_parse(int c, char **argv, int invert, unsigned int *flags,	\
 					const void *entry, struct xt_entry_##hook **hook)	\
 {							   		\
-	return luaxt_run(L, "parse", (void *)luaxt_##hook, 0, 1);	\
+	return luaxt_doparams(L, "parse", (void *)luaxt_##hook, flags, (luaxtable_info_t *)((*hook)->data));	\
 }
 
 #define LUAXT_FINALCHECKER_CB(hook)				\
 static void luaxt_##hook##_finalcheck(unsigned int flags)		\
 {							  		\
-	luaxt_run(L, "final_check", (void *)luaxt_##hook, 0, 0);	\
+	lua_pushnumber(L, flags);					\
+	luaxt_run(L, "final_check", (void *)luaxt_##hook, 1, 0);	\
 }
 
 #define LUAXT_PRINTER_CB(hook)  					\
 static void luaxt_##hook##_print(const void *entry, const struct xt_entry_##hook *hook, int numeric)	\
 {							   		\
-	luaxt_run(L, "print", (void *)luaxt_##hook, 0, 0);		\
+	luaxtable_info_t *info = (luaxtable_info_t *)hook->data;	\
+	lua_pushstring(L, info->userdata);				\
+	luaxt_run(L, "print", (void *)luaxt_##hook, 1, 0);		\
 }
 
 #define LUAXT_SAVER_CB(hook)				\
 static void luaxt_##hook##_save(const void *entry, const struct xt_entry_##hook *hook)  \
-{								\
-	luaxt_run(L, "save", (void *)luaxt_##hook, 0, 0);	\
+{									\
+	luaxtable_info_t *info = (luaxtable_info_t *)hook->data;	\
+	lua_pushstring(L, info->userdata);				\
+	luaxt_run(L, "save", (void *)luaxt_##hook, 1, 0);		\
 }
 
 #define LUAXT_NEWCB(hook)  		\

@@ -40,7 +40,7 @@ static struct {
 	unsigned int target_fallback;
 } luaxtable_hooks = {NULL, NULL, false, XT_CONTINUE};
 
-static int luaxtable_docall(lua_State *L, luaxtable_t *xtable, const char *op, int nargs, int nret)
+static int luaxtable_docall(lua_State *L, luaxtable_t *xtable, luaxtable_info_t *info, const char *op, int nargs, int nret)
 {
 	int base = lua_gettop(L) - nargs;
 
@@ -56,8 +56,9 @@ static int luaxtable_docall(lua_State *L, luaxtable_t *xtable, const char *op, i
 
 	lua_insert(L, base + 1); /* op */
 	lua_pop(L, 1); /* table */
+	lua_pushstring(L, info->userdata); /* userdata */
 
-	if (lua_pcall(L, nargs, nret, 0) != LUA_OK) {
+	if (lua_pcall(L, nargs + 1, nret, 0) != LUA_OK) {
 		pr_err("%s error: %s\n", op, lua_tostring(L, -1));
 		goto err;
 	}
@@ -101,12 +102,12 @@ static int luaxtable_pushparams(lua_State *L, const struct xt_action_param *par,
 	return 0;
 }
 
-#define luaxtable_call(L, op, xtable, skb, par, opt)	\
-	((luaxtable_pushparams(L, par, xtable, skb, opt) == -1) || (luaxtable_docall(L, xtable, op, 2, 1) == -1))
+#define luaxtable_call(L, op, xtable, skb, par, info, opt)	\
+	((luaxtable_pushparams(L, par, xtable, skb, opt) == -1) || (luaxtable_docall(L, xtable, info, op, 2, 1) == -1))
 
 static int luaxtable_domatch(lua_State *L, luaxtable_t *xtable, const struct sk_buff *skb, struct xt_action_param *par, int fallback)
 {
-	if (luaxtable_call(L, "match", xtable, (struct sk_buff *)skb, par, LUADATA_OPT_READONLY) != 0)
+	if (luaxtable_call(L, "match", xtable, (struct sk_buff *)skb, par, (luaxtable_info_t *)par->matchinfo, LUADATA_OPT_READONLY) != 0)
 		return fallback;
 
 	int ret = lua_toboolean(L, -1);
@@ -117,7 +118,7 @@ static int luaxtable_domatch(lua_State *L, luaxtable_t *xtable, const struct sk_
 
 static int luaxtable_dotarget(lua_State *L, luaxtable_t *xtable, struct sk_buff *skb, const struct xt_action_param *par, int fallback)
 {
-	if (luaxtable_call(L, "target", xtable,  skb, par, LUADATA_OPT_NONE) != 0)
+	if (luaxtable_call(L, "target", xtable,  skb, par, (luaxtable_info_t *)par->targinfo, LUADATA_OPT_NONE) != 0)
 		return fallback;
 
 	int ret = lua_tointeger(L, -1);
@@ -149,7 +150,7 @@ static int luaxtable_##hook##_check(const struct xt_##hk##chk_param *par)	\
 	luaxtable_info_t *info = (luaxtable_info_t *)par->huk##info; 		\
 	info->data = xtable;							\
 										\
-	lunatik_run(xtable->runtime, luaxtable_docall, ret, xtable, "checkentry", 0, 1);	\
+	lunatik_run(xtable->runtime, luaxtable_docall, ret, xtable, info, "checkentry", 0, 1);	\
 	return ret != 0 ? -EINVAL : 0;						\
 }
 
@@ -160,7 +161,7 @@ static void luaxtable_##hook##_destroy(const struct xt_##hk##dtor_param *par)	\
 	luaxtable_info_t *info = (luaxtable_info_t *)par->huk##info; 		\
 	luaxtable_t *xtable = (luaxtable_t *)info->data;			\
 										\
-	lunatik_run(xtable->runtime, luaxtable_docall, ret, xtable, "destroy", 0, 0);	\
+	lunatik_run(xtable->runtime, luaxtable_docall, ret, xtable, info, "destroy", 0, 0);	\
 }
 
 LUAXTABLE_HOOK_CB(match, match, const struct  sk_buff *, struct xt_action_param *, bool);
