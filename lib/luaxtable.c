@@ -56,7 +56,7 @@ static int luaxtable_docall(lua_State *L, luaxtable_t *xtable, luaxtable_info_t 
 
 	lua_insert(L, base + 1); /* op */
 	lua_pop(L, 1); /* table */
-	lua_pushstring(L, info->userdata); /* userdata */
+	lua_pushlstring(L, info->userargs, LUAXTABLE_USERDATA_SIZE); /* userargs */
 
 	if (lua_pcall(L, nargs + 1, nret, 0) != LUA_OK) {
 		pr_err("%s error: %s\n", op, lua_tostring(L, -1));

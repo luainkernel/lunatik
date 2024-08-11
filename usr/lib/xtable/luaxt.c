@@ -21,7 +21,7 @@
 #endif
 
 #define pr_err(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
-#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 typedef struct luaxt_flags_s {
 	const char *name;
@@ -48,7 +48,7 @@ static int luaxt_run(lua_State *L, const char *func_name, const char *key, int n
 	lua_pop(L, 1); /* table */
 
 	if (lua_pcall(L, nargs, nresults, 0) != LUA_OK) {
-		pr_err("Failed to call Lua function %s: %s\n", func_name,
+		pr_err("failed to call Lua function %s: %s\n", func_name,
 				lua_tostring(L, -1));
 		goto restore;
 	}
@@ -60,14 +60,14 @@ restore:
 	return ret;
 }
 
-static int luaxt_doparams(lua_State *L, const char *op, const char *key, unsigned int *flags, luaxtable_info_t *info)
+static int luaxt_runwithuserargs(lua_State *L, const char *op, const char *key, unsigned int *flags, luaxtable_info_t *info)
 {
 	int ret;
-	lua_newtable(L);
-	lua_pushvalue(L, -1); /* stack : param param */
 
-	ret = luaxt_run(L, op, key, 1, 1);
-	if (ret == -1)
+	lua_newtable(L);
+	lua_pushvalue(L, -1); /* stack: param, param */
+
+	if ((ret = luaxt_run(L, op, key, 1, 1)) == -1)
 		return 0;
 
 	if (flags && (lua_getfield(L, -1, "flags") == LUA_TNUMBER)) {
@@ -75,14 +75,14 @@ static int luaxt_doparams(lua_State *L, const char *op, const char *key, unsigne
 		lua_pop(L, 1);
 	}
 
-	if (lua_getfield(L, -1, "userdata") == LUA_TSTRING) {
+	if (lua_getfield(L, -1, "userargs") == LUA_TSTRING) {
 		size_t len = 0;
 		const char *ldata = lua_tolstring(L, -1, &len);
-		memset(info->userdata, 0, 256);
-		memcpy(info->userdata, ldata, MIN(len, 256));
+		memset(info->userargs, 0, LUAXTABLE_USERDATA_SIZE);
+		memcpy(info->userargs, ldata, MIN(len, LUAXTABLE_USERDATA_SIZE));
 		lua_pop(L, 1);
 	}
-		
+
 	lua_pop(L, 1);
 	return ret;
 }
@@ -96,14 +96,14 @@ static void luaxt_##hook##_help(void)		   	\
 #define LUAXT_INITER_CB(hook)				   	\
 static void luaxt_##hook##_init(struct xt_entry_##hook *hook)   	\
 {								   	\
-	luaxt_doparams(L, "init", (void *)luaxt_##hook, NULL, (luaxtable_info_t *)(hook->data));	\
+	luaxt_runwithuserargs(L, "init", (void *)luaxt_##hook, NULL, (luaxtable_info_t *)(hook->data));	\
 }
 
 #define LUAXT_PARSER_CB(hook)			   		\
 static int luaxt_##hook##_parse(int c, char **argv, int invert, unsigned int *flags,	\
 					const void *entry, struct xt_entry_##hook **hook)	\
 {							   		\
-	return luaxt_doparams(L, "parse", (void *)luaxt_##hook, flags, (luaxtable_info_t *)((*hook)->data));	\
+	return luaxt_runwithuserargs(L, "parse", (void *)luaxt_##hook, flags, (luaxtable_info_t *)((*hook)->data));	\
 }
 
 #define LUAXT_FINALCHECKER_CB(hook)				\
@@ -117,7 +117,7 @@ static void luaxt_##hook##_finalcheck(unsigned int flags)		\
 static void luaxt_##hook##_print(const void *entry, const struct xt_entry_##hook *hook, int numeric)	\
 {							   		\
 	luaxtable_info_t *info = (luaxtable_info_t *)hook->data;	\
-	lua_pushstring(L, info->userdata);				\
+	lua_pushstring(L, info->userargs);				\
 	luaxt_run(L, "print", (void *)luaxt_##hook, 1, 0);		\
 }
 
@@ -125,7 +125,7 @@ static void luaxt_##hook##_print(const void *entry, const struct xt_entry_##hook
 static void luaxt_##hook##_save(const void *entry, const struct xt_entry_##hook *hook)  \
 {									\
 	luaxtable_info_t *info = (luaxtable_info_t *)hook->data;	\
-	lua_pushstring(L, info->userdata);				\
+	lua_pushstring(L, info->userargs);				\
 	luaxt_run(L, "save", (void *)luaxt_##hook, 1, 0);		\
 }
 
@@ -204,6 +204,7 @@ static const luaxt_flags_t luaxt_family[] = {
 static int luaopen_luaxt(lua_State *L)
 {
 	const luaxt_flags_t *flag;
+
 	luaL_newlib(L, luaxt_lib);
 	lua_newtable(L);
 	for (flag = luaxt_family; flag->name; flag++) {
@@ -217,14 +218,14 @@ static int luaopen_luaxt(lua_State *L)
 static int __attribute__((constructor)) _init(void)
 {
 	if ((L = luaL_newstate()) == NULL) {
-		pr_err("Failed to create Lua state\n");
+		pr_err("failed to create Lua state\n");
 		return -ENOMEM;
 	}
 	luaL_openlibs(L);
 	luaL_requiref(L, "luaxt", luaopen_luaxt, 1);
 
-	if (luaL_dofile(L, "libxt_"LUAXTABLE_MODULE".lua") != LUA_OK) {
-		pr_err("Failed to load Lua script: %s\n", lua_tostring(L, -1));
+	if (luaL_dofile(L, "libxt_" LUAXTABLE_MODULE ".lua") != LUA_OK) {
+		pr_err("failed to load Lua script: %s\n", lua_tostring(L, -1));
 		return -ENOENT;
 	}
 	return 0;

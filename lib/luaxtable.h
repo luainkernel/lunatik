@@ -6,10 +6,12 @@
 #ifndef luaxtable_h
 #define luaxtable_h
 
+#define LUAXTABLE_USERDATA_SIZE 256
+
 struct luaxtable_s;
 
 typedef struct luaxtable_info_s {
-	char userdata[256];
+	char userargs[LUAXTABLE_USERDATA_SIZE];
 
 	/* used internally by the luaxtable kernel module */
 	struct luaxtable_s *data __attribute__((aligned(8)));
