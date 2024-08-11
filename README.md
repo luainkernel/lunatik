@@ -1149,10 +1149,10 @@ This function receives the following arguments:
   * `match` : function to be called for matching packets. It receives the following arguments:
 	* `skb` (readonly): a `data` object representing the socket buffer.
 	* `par`: a table containing `hotdrop`, `thoff` (transport header offset) and `fragoff` (fragment offset) fields.
-    * `userdata` : a lua string passed from the userspace xtable module.
+    * `userargs` : a lua string passed from the userspace xtable module.
     * The function must return `true` if the packet matches the extension; otherwise, it must return `false`.
-  * `checkentry`: function to be called for checking the entry. This function receives `userdata` as it's argument.
-  * `destroy`: function to be called for destroying the xtable extension. This function receives `userdata` as it's argument.
+  * `checkentry`: function to be called for checking the entry. This function receives `userargs` as its argument.
+  * `destroy`: function to be called for destroying the xtable extension. This function receives `userargs` as its argument.
 
 #### `xtable.target(opts)`
 
@@ -1167,10 +1167,10 @@ This function receives the following arguments:
   * `target` : function to be called for targeting packets. It receives the following arguments:
     * `skb`: a `data` object representing the socket buffer.
     * `par` (readonly): a table containing `hotdrop`, `thoff` (transport header offset) and `fragoff` (fragment offset) fields.
-    * `userdata` : a lua string passed from the userspace xtable module.
+    * `userargs` : a lua string passed from the userspace xtable module.
     * The function must return one of the values defined by the [xtable.action](https://github.com/luainkernel/lunatik#xtableaction) table.
-  * `checkentry`: function to be called for checking the entry. This function receives `userdata` as it's argument.
-  * `destroy`: function to be called for destroying the xtable extension. This function receives `userdata` as it's argument.
+  * `checkentry`: function to be called for checking the entry. This function receives `userargs` as its argument.
+  * `destroy`: function to be called for destroying the xtable extension. This function receives `userargs` as its argument.
 
 #### `xtable.family`
 
@@ -1212,9 +1212,9 @@ netfilter hooks to Lua.
 
 ### luaxt
 
-The `luaxt` [userspace library](usr/lib/xtable) provides support for generating userspace code for [xtable extensions](https://inai.de/projects/xtables-addons/). The user can modify the generated lua code to implement the userspace handlers for the corresponding xtable extension.
+The `luaxt` [userspace library](usr/lib/xtable) provides support for generating userspace code for [xtable extensions](https://inai.de/projects/xtables-addons/).
 
-To generate the library, the following steps are required:
+To build the library, the following steps are required:
 
 1. Go to `usr/lib/xtable` and create a `libxt_<ext_name>.lua` file.
 2. Register your callbacks for the xtable extension by importing the library (`luaxt`) in the created file.
@@ -1230,10 +1230,10 @@ This function receives the following arguments:
   * `revision`: integer representing the xtable extension revision (**must** be same as used in corresponding kernel extension).
   * `family`: address family, one of [luaxt.family](https://github.com/luainkernel/lunatik#luaxtfamily)
   * `help`: function to be called for displaying help message for the extension.
-  * `init`: function to be called for initializing the extension. This function receives an `par` table that can be used to set `userdata`. (`par.userdata = "mydata"`)
-  * `print`: function to be called for printing the arguments. This function recevies `userdata` set by the `init` or `parse` function.
-  * `save`: function to be called for saving the arguments. This function recevies `userdata` set by the `init` or `parse` function.
-  * `parse`: function to be called for parsing the command line arguments. This function receives an `par` table that can be used to set `userdata` and `flags`. (`par.userdata = "mydata"`)
+  * `init`: function to be called for initializing the extension. This function receives an `par` table that can be used to set `userargs`. (`par.userargs = "mydata"`)
+  * `print`: function to be called for printing the arguments. This function recevies `userargs` set by the `init` or `parse` function.
+  * `save`: function to be called for saving the arguments. This function recevies `userargs` set by the `init` or `parse` function.
+  * `parse`: function to be called for parsing the command line arguments. This function receives an `par` table that can be used to set `userargs` and `flags`. (`par.userargs = "mydata"`)
   * `final_check`: function to be called for final checking of the arguments. This function receives `flags` set by the `parse` function.
 
 #### `luaxt.target(opts)`
@@ -1244,10 +1244,10 @@ This function receives the following arguments:
   * `revision`: integer representing the xtable extension revision (**must** be same as used in corresponding kernel extension).
   * `family`: address family, one of [luaxt.family](https://github.com/luainkernel/lunatik#luaxtfamily)
   * `help`: function to be called for displaying help message for the extension.
-  * `init`: function to be called for initializing the extension. This function receives an `par` table that can be used to set `userdata`. (`par.userdata = "mydata"`)
-  * `print`: function to be called for printing the arguments. This function recevies `userdata` set by the `init` or `parse` function.
-  * `save`: function to be called for saving the arguments. This function recevies `userdata` set by the `init` or `parse` function.
-  * `parse`: function to be called for parsing the command line arguments. This function receives an `par` table that can be used to set `userdata` and `flags`. (`par.userdata = "mydata"`)
+  * `init`: function to be called for initializing the extension. This function receives an `par` table that can be used to set `userargs`. (`par.userargs = "mydata"`)
+  * `print`: function to be called for printing the arguments. This function recevies `userargs` set by the `init` or `parse` function.
+  * `save`: function to be called for saving the arguments. This function recevies `userargs` set by the `init` or `parse` function.
+  * `parse`: function to be called for parsing the command line arguments. This function receives an `par` table that can be used to set `userargs` and `flags`. (`par.userargs = "mydata"`)
   * `final_check`: function to be called for final checking of the arguments. This function receives `flags` set by the `parse` function.
 
 #### `luaxt.family`
@@ -1409,6 +1409,46 @@ make                                    # builds the userspace extension for net
 sudo make install   					# installs the extension to Xtables directory
 sudo lunatik run examples/dnsblock/dnsblock false	# runs the Lua kernel script
 sudo iptables -A OUTPUT -m dnsblock -j DROP     	# this initiates the netfilter framework to load our extension
+```
+
+### dnsdoctor
+
+[dnsdoctor](examples/dnsdoctor) is a kernel script that uses the lunatik xtable library to change the DNS response 
+from Public IP to a Private IP if the destination IP matches the one provided by the user. For example, if the user
+wants to change the DNS response from `192.168.10.1` to `10.1.2.3` for the domain `lunatik.com` if the query is being sent to `10.1.1.2` (a private client), this script can be used.
+
+#### Usage
+
+```
+sudo make examples_install              # installs examples
+cd examples/dnsdoctor
+setup.sh                                # sets up the environment
+
+# test the setup, a response with IP 192.168.10.1 should be returned
+dig lunatik.com
+
+# run the Lua kernel script
+sudo lunatik run examples/dnsdoctor/dnsdoctor false
+
+# copy the userspace extension to luaxt directory
+cp libxt_dnsdoctor.lua ../../usr/lib/xtable/
+cd ../../usr/lib/xtable
+
+# build and install the userspace extension for netfilter
+LUAXTABLE_MODULE=dnsdoctor make
+sudo LUAXTABLE_MODULE=dnsdoctor make install
+
+# add rule to the mangle table
+sudo iptables -t mangle -A PREROUTING -p udp --sport 53 -j dnsdoctor
+
+# test the setup, a response with IP 10.1.2.3 should be returned
+dig lunatik.com
+
+# cleanup
+sudo iptables -t mangle -D PREROUTING -p udp --sport 53 -j dnsdoctor # remove the rule
+sudo lunatik unload
+cd ../../../examples/dnsdoctor
+cleanup.sh
 ```
 
 ## References
