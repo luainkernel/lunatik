@@ -8,4 +8,4 @@ modules.builtin
 modules.order
 build/
 lunatik_sym.h
-
+examples/sniblock/*.lua

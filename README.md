@@ -1351,6 +1351,28 @@ sudo lunatik run examples/dnsblock/dnsblock false	# runs the Lua kernel script
 sudo iptables -A OUTPUT -m dnsblock -j DROP     	# this initiates the netfilter framework to load our extension
 ```
 
+### sniblock
+
+[sniblock](examples/sniblock) is a kernel script, written in [MoonScript](https://moonscript.org/),
+that uses the lunatik xtable library to filter DNS packets.
+This script drops any outbound TLS handshake packet with sni not matching the whitelist provided by the user.
+This whitelist is populated by the mean of `/dev/sni_whitelist`.
+
+#### Usage
+
+```
+sudo luarocks install moonscript        # installs moonscript
+sudo make examples_install              # installs examples
+cd examples/sniblock
+make                                    # builds the userspace extension for netfilter
+sudo make install   					# installs the extension to Xtables directory
+sudo lunatik run examples/sniblock/match	# runs the Lua kernel script
+sudo iptables -A OUTPUT -m sniblock -p tcp --dport 443 -j REJECT     	# initiates the netfilter framework to load our extension
+sudo ip6tables -A OUTPUT -m sniblock -p tcp --dport 443 -j REJECT     	# initiates the netfilter framework to load our extension for IPv6
+echo "add github.com" | sudo tee /dev/sni_whitelist     	# opens access to https://github.com (and subdomains of github.com)
+echo "del github.com" | sudo tee /dev/sni_whitelist     	# removes access to https://github.com (and subdomains not open otherwise)
+```
+
 ## References
 
 * [Scripting the Linux Routing Table with Lua](https://netdevconf.info/0x17/sessions/talk/scripting-the-linux-routing-table-with-lua.html)
