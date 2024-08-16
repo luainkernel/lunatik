@@ -11,7 +11,7 @@ MKDIR = mkdir -p -m 0755
 INSTALL = install -o root -g root
 
 all: lunatik_sym.h
-	make -C ${KDIR} M=${PWD} CONFIG_LUNATIK=m	\
+	${MAKE} -C ${KDIR} M=${PWD} CONFIG_LUNATIK=m	\
 	CONFIG_LUNATIK_RUN=m CONFIG_LUNATIK_RUNTIME=y CONFIG_LUNATIK_DEVICE=m	\
 	CONFIG_LUNATIK_LINUX=m CONFIG_LUNATIK_NOTIFIER=m CONFIG_LUNATIK_SOCKET=m \
 	CONFIG_LUNATIK_RCU=m CONFIG_LUNATIK_THREAD=m CONFIG_LUNATIK_FIB=m \
@@ -19,7 +19,7 @@ all: lunatik_sym.h
 	CONFIG_LUNATIK_XDP=m CONFIG_LUNATIK_FIFO=m CONFIG_LUNATIK_XTABLE=m
 
 clean:
-	make -C ${KDIR} M=${PWD} clean
+	${MAKE} -C ${KDIR} M=${PWD} clean
 	${RM} lunatik_sym.h
 
 scripts_install:
