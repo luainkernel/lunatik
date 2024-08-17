@@ -384,6 +384,10 @@ flags to Lua.
 * `"KILLABLE"`: behaves like "UNINTERRUPTIBLE" with the exception that fatal signals will wake up the task.
 * `"IDLE"`: behaves like "UNINTERRUPTIBLE" with the exception that it avoids the loadavg accounting.
 
+#### `linux.time()`
+
+_linux.time()_ returns the current time in nanoseconds since epoch.
+
 #### `linux.errno`
 
 _linux.errno_ is a table that exports
