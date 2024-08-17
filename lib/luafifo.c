@@ -22,8 +22,9 @@ static int luafifo_push(lua_State *L)
 	size_t size;
 	const char *buf = luaL_checklstring(L, 2, &size);
 
-	lua_pushinteger(L, (lua_Integer)kfifo_in(fifo, buf, size));
-	return 1;
+	luaL_argcheck(L, size <= kfifo_avail(fifo), 2, "not enough space");
+	kfifo_in(fifo, buf, size);
+	return 0;
 }
 
 static int luafifo_pop(lua_State *L)
