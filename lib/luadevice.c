@@ -276,7 +276,7 @@ static int luadevice_new(lua_State *L)
 
 	memset(luadev, 0, sizeof(luadevice_t));
 
-	luadev->runtime = lunatik_toruntime(L);
+	lunatik_setruntime(L, device, luadev);
 	lunatik_getobject(luadev->runtime);
 
 	if ((ret = alloc_chrdev_region(&luadev->devt, 0, 1, name) != 0))

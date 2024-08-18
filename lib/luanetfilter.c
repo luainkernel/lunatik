@@ -126,7 +126,7 @@ static int luanetfilter_register(lua_State *L)
 	if (nf_register_hook(nfops) != 0)
 		luaL_error(L, "failed to register netfilter hook");
 #endif
-	nf->runtime = lunatik_toruntime(L);
+	lunatik_setruntime(L, netfilter, nf);
 	lunatik_getobject(nf->runtime);
 	lunatik_registerobject(L, 1, object);
 	return 1;

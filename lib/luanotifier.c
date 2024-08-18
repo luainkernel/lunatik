@@ -248,7 +248,7 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	object = lunatik_newobject(L, &luanotifier_class, sizeof(luanotifier_t));
 	notifier = (luanotifier_t *)object->private;
 
-	notifier->runtime = lunatik_toruntime(L);
+	lunatik_setruntime(L, notifier, notifier);
 	lunatik_getobject(notifier->runtime);
 
 	notifier->nb.notifier_call = luanotifier_call;
