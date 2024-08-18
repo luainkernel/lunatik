@@ -158,6 +158,7 @@ static const lunatik_class_t luadata_class = {
 	.name = "data",
 	.methods = luadata_mt,
 	.release = luadata_release,
+	.sleep = false,
 };
 
 static int luadata_lnew(lua_State *L)
