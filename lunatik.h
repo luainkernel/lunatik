@@ -26,8 +26,8 @@ do {						\
 
 #define lunatik_newlock(o)	lunatik_locker((o), mutex_init, spin_lock_init);
 #define lunatik_freelock(o)	lunatik_locker((o), mutex_destroy, (void));
-#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock)
-#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock)
+#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock_bh)
+#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock_bh)
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 
@@ -94,7 +94,7 @@ extern lunatik_object_t *lunatik_runtimes;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
-	return object->sleep ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin);
+	return object->sleep ? mutex_trylock(&object->mutex) : spin_trylock_bh(&object->spin);
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
