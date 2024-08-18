@@ -17,7 +17,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
 	lunatik_checkclass(L, class);
-	lunatik_setobject(object, class, lunatik_toruntime(L)->sleep);
+	lunatik_setobject(object, class, class->sleep);
 	lunatik_setclass(L, class);
 
 	object->private = class->pointer ? NULL : lunatik_checkalloc(L, size);
