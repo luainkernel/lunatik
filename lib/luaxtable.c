@@ -201,7 +201,7 @@ static inline lunatik_object_t *luaxtable_new(lua_State *L, int idx, int hook)
 
 static inline void luaxtable_register(lua_State *L, int idx, luaxtable_t *xtable, lunatik_object_t *object)
 {
-	xtable->runtime = lunatik_toruntime(L);
+	lunatik_setruntime(L, xtable, xtable);
 	lunatik_getobject(xtable->runtime);
 	lunatik_registerobject(L, idx, object);
 }

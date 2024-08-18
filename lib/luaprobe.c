@@ -173,15 +173,14 @@ static const lunatik_class_t luaprobe_class = {
 static int luaprobe_new(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t));
-	lunatik_object_t *runtime = lunatik_toruntime(L);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 	struct kprobe *kp = &probe->kp;
 	int ret;
 
 	memset(probe, 0, sizeof(luaprobe_t));
 
-	probe->runtime = runtime;
-	lunatik_getobject(runtime);
+	lunatik_setruntime(L, probe, probe);
+	lunatik_getobject(probe->runtime);
 
 	if (lua_islightuserdata(L, 1))
 		kp->addr = lua_touserdata(L, 1);
@@ -189,7 +188,7 @@ static int luaprobe_new(lua_State *L)
 		size_t symbol_len;
 		const char *symbol_name = luaL_checklstring(L, 1, &symbol_len);
 
-		if ((kp->symbol_name = kstrndup(symbol_name, symbol_len, lunatik_gfp(runtime))) == NULL)
+		if ((kp->symbol_name = kstrndup(symbol_name, symbol_len, lunatik_gfp(probe->runtime))) == NULL)
 			luaL_error(L, "out of memory");
 	}
 

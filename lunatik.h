@@ -128,6 +128,16 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 			lua_typename(L, type), lua_typename(L, _type));
 }
 
+static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, bool sleep)
+{
+	lunatik_object_t *runtime = lunatik_toruntime(L);
+	if (runtime->sleep != sleep)
+		luaL_error(L, "cannot use %ssleepable runtime in this context", runtime->sleep ? "" : "non-");
+	return runtime;
+}
+
+#define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.sleep))
+
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
 	if (lunatik_cannotsleep(L, class->sleep))

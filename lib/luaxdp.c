@@ -142,6 +142,7 @@ static int luaxdp_detach(lua_State *L)
 
 static int luaxdp_attach(lua_State *L)
 {
+	lunatik_checkruntime(L, false);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
 	lunatik_require(L, data);
