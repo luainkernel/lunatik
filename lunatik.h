@@ -218,6 +218,7 @@ static void inline lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t
 }
 
 #define LUNATIK_NEWLIB(libname, funcs, class, namespaces)			\
+int luaopen_##libname(lua_State *L);						\
 int luaopen_##libname(lua_State *L)						\
 {										\
 	const lunatik_class_t *cls = class; /* avoid -Waddress */		\

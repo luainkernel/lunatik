@@ -132,7 +132,7 @@ static int luanotifier_stop(lua_State *L)
 	return 0;
 }
 
-int luanotifier_delete(lua_State *L)
+static int luanotifier_delete(lua_State *L)
 {
 	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
 	lunatik_object_t *object = *pobject;
