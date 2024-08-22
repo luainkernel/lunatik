@@ -41,6 +41,10 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 		goto err;
 	}
 	lunatik_object_t *data = (lunatik_object_t *)lunatik_toobject(L, -1);
+	if (unlikely(data == NULL || skb_linearize(skb) != 0)) {
+		pr_err("could not get skb\n");
+		return -1;
+	}
 	luadata_reset(data, skb->data, skb_headlen(skb), LUADATA_OPT_NONE);
 
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {

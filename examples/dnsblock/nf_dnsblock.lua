@@ -3,13 +3,15 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- Filter DNS packets based on a blocklist
+-- Filter DNS packets based on a blocklist using new netfilter hooks
 
-local xt = require("xtable")
 local nf = require("netfilter")
 local linux = require("linux")
 local string = require("string")
 local family = nf.family
+local action = nf.action
+local hooks = nf.inet_hooks
+local priority = nf.ip_priority
 
 local udp = 0x11
 local dns = 0x35
@@ -42,9 +44,10 @@ local function get_domainname(skb, off)
 	return name .. skb:getstring(off, i)
 end
 
-local function dnsblock_mt(skb, par)
-	local thoff = par.thoff
+local function dnsblock_hook(skb)
 	local proto = skb:getuint8(9)
+	local ihl = (skb:getuint8(0) & 0x0F)
+	local thoff = ihl * 4
 
 	if proto == udp then
 		local dstport = linux.ntoh16(skb:getuint16(thoff + 2))
@@ -53,22 +56,18 @@ local function dnsblock_mt(skb, par)
 			local name = get_domainname(skb, qoff)
 			if check_blacklist(name) then
 				print("DNS query for " .. name .. " blocked\n")
-				return true
+				return action.DROP
 			end
 		end
 	end
 
-	return false
+	return action.ACCEPT
 end
 
-xt.match{
-	name = "dnsblock",
-	revision = 1,
-	family = family.UNSPEC,
-	proto = 0,
-	match = dnsblock_mt,
-	checkentry = nop,
-	destroy = nop,
-	hooks = 0,
+nf.register{
+	hook = dnsblock_hook,
+	pf = family.INET,
+	hooknum = hooks.LOCAL_OUT,
+	priority = priority.FILTER,
 }
 
