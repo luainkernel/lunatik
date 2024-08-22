@@ -3,14 +3,15 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- DNS Doctoring : Rewrite DNS type A record to a private address for local clients
+-- DNS Doctoring using new netfilter API
 
-local xt = require("xtable")
 local nf = require("netfilter")
 local linux = require("linux")
 local string = require("string")
 local action = nf.action
 local family = nf.family
+local hooks = nf.inet_hooks
+local pri = nf.ip_priority
 
 local udp = 0x11
 local dns = 0x35
@@ -22,9 +23,23 @@ local function get_domain(skb, off)
 	return name, nameoff + 1
 end
 
-local function dnsdoctor_tg(skb, par, userargs)
-	local target_dns, dst_ip, target_ip = string.unpack(">s4I4I4", userargs)
-	local thoff = par.thoff
+local function dnsdoctor_hook(skb)
+	local proto = skb:getuint8(9)
+	local ihl = (skb:getuint8(0) & 0x0F)
+	local thoff = ihl * 4
+
+	if proto ~= udp then
+		return action.ACCEPT
+	end
+
+	local target_dns = string.pack("s1s1", "lunatik", "com")
+	local dns_ip = "10.1.2.3"
+	local target_ip = 0
+	dns_ip:gsub("%d+", function(s) target_ip = target_ip * 256 + tonumber(s) end)
+
+	local dst = "10.1.1.2"
+	local dst_ip = 0
+	dst:gsub("%d+", function(s) dst_ip = dst_ip * 256 + tonumber(s) end)
 
 	local packetdst = skb:getuint32(16)
 	if packetdst ~= linux.hton32(dst_ip) then
@@ -56,14 +71,10 @@ local function dnsdoctor_tg(skb, par, userargs)
 	return action.ACCEPT
 end
 
-xt.target{
-	name = "dnsdoctor",
-	revision = 0,
-	family = family.UNSPEC,
-	proto = 0,
-	target = dnsdoctor_tg,
-	checkentry = nop,
-	destroy = nop,
-	hooks = 0,
+nf.register{
+	hook = dnsdoctor_hook,
+	pf = family.INET,
+	hooknum = hooks.PRE_ROUTING,
+	priority = pri.MANGLE + 1,
 }
 

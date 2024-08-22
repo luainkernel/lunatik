@@ -1480,6 +1480,7 @@ This script drops any outbound DNS packet with question matching the blacklist p
 
 #### Usage
 
+1. Using legacy iptables
 ```
 sudo make examples_install              # installs examples
 cd examples/dnsblock
@@ -1487,6 +1488,13 @@ make                                    # builds the userspace extension for net
 sudo make install   					# installs the extension to Xtables directory
 sudo lunatik run examples/dnsblock/dnsblock false	# runs the Lua kernel script
 sudo iptables -A OUTPUT -m dnsblock -j DROP     	# this initiates the netfilter framework to load our extension
+```
+
+2. Using new netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter))
+
+```
+sudo make examples_install              # installs examples
+sudo lunatik run examples/dnsblock/nf_dnsblock false	# runs the Lua kernel script
 ```
 
 ### dnsdoctor
@@ -1497,6 +1505,7 @@ wants to change the DNS response from `192.168.10.1` to `10.1.2.3` for the domai
 
 #### Usage
 
+1. Using legacy iptables
 ```
 sudo make examples_install              # installs examples
 cd examples/dnsdoctor
@@ -1527,6 +1536,25 @@ sudo iptables -t mangle -D PREROUTING -p udp --sport 53 -j dnsdoctor # remove th
 sudo lunatik unload
 cd ../../../examples/dnsdoctor
 cleanup.sh
+```
+
+2. Using new netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter))
+```
+sudo make examples_install              # installs examples
+examples/dnsdoctor/setup.sh             # sets up the environment
+
+# test the setup, a response with IP 192.168.10.1 should be returned
+dig lunatik.com
+
+# run the Lua kernel script
+sudo lunatik run examples/dnsdoctor/nf_dnsdoctor false
+
+# test the setup, a response with IP 10.1.2.3 should be returned
+dig lunatik.com
+
+# cleanup
+sudo lunatik unload
+examples/dnsdoctor/cleanup.sh
 ```
 
 ## References
