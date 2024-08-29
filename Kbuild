@@ -43,4 +43,5 @@ obj-$(CONFIG_LUNATIK_XDP) += lib/luaxdp.o
 obj-$(CONFIG_LUNATIK_FIFO) += lib/luafifo.o
 obj-$(CONFIG_LUNATIK_XTABLE) += lib/luaxtable.o
 obj-$(CONFIG_LUNATIK_COMPLETION) += lib/luacompletion.o
+obj-$(CONFIG_LUNATIK_FOO) += lib/luafoo.o
 
