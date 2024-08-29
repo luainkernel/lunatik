@@ -952,11 +952,12 @@ _data.setbyte()_ insert a byte
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getstring(d, offset, length), d:getstring(offset, length)`
+#### `data.getstring(d, offset[, length]), d:getstring(offset[, length])`
 
 _data.getstring()_ extracts a string with `length` bytes 
 from the memory referenced by a `data` object and a byte `offset`,
-starting from zero.
+starting from zero. If `length` is omitted, it extracts all bytes 
+from `offset` to the end of the `data`.
 
 #### `data.setstring(d, offset, s), d:setstring(offset, s)`
 
