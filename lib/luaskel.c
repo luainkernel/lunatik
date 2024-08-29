@@ -54,8 +54,8 @@ static const lunatik_class_t luaskel_class = {
 static int luaskel_new(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_newobject(L, &luaskel_class, sizeof(luaskel_t));
-	luaskel_t *skel = (luskel_t *)object->private;
-	(void)private; /* do nothing */
+	luaskel_t *skel = (luaskel_t *)object->private;
+	(void)skel; /* do nothing */
 	return 1; /* object */
 }
 
