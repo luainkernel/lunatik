@@ -1517,13 +1517,9 @@ dig lunatik.com
 # run the Lua kernel script
 sudo lunatik run examples/dnsdoctor/dnsdoctor false
 
-# copy the userspace extension to luaxt directory
-cp libxt_dnsdoctor.lua ../../usr/lib/xtable/
-cd ../../usr/lib/xtable
-
 # build and install the userspace extension for netfilter
-LUAXTABLE_MODULE=dnsdoctor make
-sudo LUAXTABLE_MODULE=dnsdoctor make install
+make
+sudo make install
 
 # add rule to the mangle table
 sudo iptables -t mangle -A PREROUTING -p udp --sport 53 -j dnsdoctor
@@ -1534,7 +1530,6 @@ dig lunatik.com
 # cleanup
 sudo iptables -t mangle -D PREROUTING -p udp --sport 53 -j dnsdoctor # remove the rule
 sudo lunatik unload
-cd ../../../examples/dnsdoctor
 cleanup.sh
 ```
 
