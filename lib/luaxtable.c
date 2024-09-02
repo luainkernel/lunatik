@@ -187,33 +187,6 @@ static const lunatik_class_t luaxtable_class = {
 	.sleep = false,
 };
 
-static inline void luaxtable_newbuffer(lua_State *L, int idx, luaxtable_t *xtable)
-{
-	lunatik_require(L, data);
-	xtable->skb = lunatik_checknull(L, luadata_new(NULL, 0, false, LUADATA_OPT_NONE));
-	lunatik_cloneobject(L, xtable->skb);
-	lunatik_setregistry(L, -1, xtable->skb);
-	lua_pop(L, 1); /* skb */
-}
-
-#define luaxtable_setinteger(L, idx, hook, field) 		\
-do {								\
-	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);	\
-	hook->field = lua_tointeger(L, -1);			\
-	lua_pop(L, 1);						\
-} while (0)
-
-#define luaxtable_setstring(L, idx, hook, field, maxlen)        \
-do {								\
-	size_t len;						\
-	lunatik_checkfield(L, idx, #field, LUA_TSTRING);	\
-	const char *str = lua_tolstring(L, -1, &len);			\
-	if (len > maxlen)					\
-		luaL_error(L, "'%s' is too long", #field);	\
-	strncpy((char *)hook->field, str, maxlen);		\
-	lua_pop(L, 1);						\
-} while (0)
-
 static inline lunatik_object_t *luaxtable_new(lua_State *L, int idx, int hook)
 {
 	luaL_checktype(L, idx, LUA_TTABLE);
@@ -222,7 +195,7 @@ static inline lunatik_object_t *luaxtable_new(lua_State *L, int idx, int hook)
 
 	xtable->type = hook;
 	xtable->runtime = NULL;
-	luaxtable_newbuffer(L, idx, xtable);
+	luanetfilter_newbuffer(L, idx, xtable, skb);
 	return object;
 }
 
@@ -242,11 +215,11 @@ static int luaxtable_new##hook(lua_State *L) 				\
 	struct xt_##hook *hook = &xtable->hook;				\
 	hook->me = THIS_MODULE;						\
 									\
-	luaxtable_setstring(L, 1, hook, name, XT_EXTENSION_MAXNAMELEN - 1);	\
-	luaxtable_setinteger(L, 1, hook, revision);			\
-	luaxtable_setinteger(L, 1, hook, family);			\
-	luaxtable_setinteger(L, 1, hook, proto);			\
-	luaxtable_setinteger(L, 1, hook, hooks);			\
+	lunatik_setstring(L, 1, hook, name, XT_EXTENSION_MAXNAMELEN - 1);	\
+	lunatik_setinteger(L, 1, hook, revision);			\
+	lunatik_setinteger(L, 1, hook, family);			\
+	lunatik_setinteger(L, 1, hook, proto);			\
+	lunatik_setinteger(L, 1, hook, hooks);			\
 	lunatik_checkfield(L, 1, "checkentry", LUA_TFUNCTION);		\
 	lunatik_checkfield(L, 1, "destroy", LUA_TFUNCTION);		\
 	lunatik_checkfield(L, 1, #hook, LUA_TFUNCTION);			\
