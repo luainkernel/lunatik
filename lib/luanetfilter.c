@@ -100,28 +100,12 @@ static const lunatik_class_t luanetfilter_class = {
 	.sleep = false,
 };
 
-#define luanetfilter_setinteger(L, idx, hook, field) 		\
-do {								\
-	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);	\
-	hook->field = lua_tointeger(L, -1);			\
-	lua_pop(L, 1);						\
-} while (0)
-
-static inline void luanetfilter_newbuffer(lua_State *L, int idx, luanetfilter_t *luanf)
-{
-	lunatik_require(L, data);
-	luanf->skb = lunatik_checknull(L, luadata_new(NULL, 0, false, LUADATA_OPT_NONE));
-	lunatik_cloneobject(L, luanf->skb);
-	lunatik_setregistry(L, -1, luanf->skb);
-	lua_pop(L, 1); /* skb */
-}
-
 static int luanetfilter_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
 	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class , sizeof(luanetfilter_t));
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
-	luanetfilter_newbuffer(L, 1, nf);
+	luanetfilter_newbuffer(L, 1, nf, skb);
 	nf->runtime = NULL;
 
 	struct nf_hook_ops *nfops = &nf->nfops;
@@ -131,9 +115,9 @@ static int luanetfilter_register(lua_State *L)
 	nfops->hook = luanetfilter_hook;
 	nfops->dev = NULL;
 	nfops->priv = nf;
-	luanetfilter_setinteger(L, 1, nfops, pf);
-	luanetfilter_setinteger(L, 1, nfops, hooknum);
-	luanetfilter_setinteger(L, 1, nfops, priority);
+	lunatik_setinteger(L, 1, nfops, pf);
+	lunatik_setinteger(L, 1, nfops, hooknum);
+	lunatik_setinteger(L, 1, nfops, priority);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 	if (nf_register_net_hook(&init_net, nfops) != 0)

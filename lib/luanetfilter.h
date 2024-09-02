@@ -14,6 +14,33 @@
 
 #include <lunatik.h>
 
+#define luanetfilter_newbuffer(L, idx, obj, field)	\
+do {							\
+	lunatik_require(L, data);			\
+	obj->field = lunatik_checknull(L, luadata_new(NULL, 0, false, LUADATA_OPT_NONE));	\
+	lunatik_cloneobject(L, obj->field);		\
+	lunatik_setregistry(L, -1, obj->field);	\
+	lua_pop(L, 1); /* skb */			\
+} while (0)
+
+#define lunatik_setinteger(L, idx, hook, field) 		\
+do {								\
+	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);	\
+	hook->field = lua_tointeger(L, -1);			\
+	lua_pop(L, 1);						\
+} while (0)
+
+#define lunatik_setstring(L, idx, hook, field, maxlen)        \
+do {								\
+	size_t len;						\
+	lunatik_checkfield(L, idx, #field, LUA_TSTRING);	\
+	const char *str = lua_tolstring(L, -1, &len);			\
+	if (len > maxlen)					\
+		luaL_error(L, "'%s' is too long", #field);	\
+	strncpy((char *)hook->field, str, maxlen);		\
+	lua_pop(L, 1);						\
+} while (0)
+
 const lunatik_reg_t luanetfilter_family[] = {
 	{"UNSPEC", NFPROTO_UNSPEC},
 	{"INET", NFPROTO_INET},
@@ -111,3 +138,4 @@ static const lunatik_namespace_t luanetfilter_flags[] = {
 };
 
 #endif
+
