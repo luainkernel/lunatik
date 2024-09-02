@@ -693,7 +693,7 @@ to Lua.
 * `"RAW"`: Raw IP packets.
 * `"MPTCP"`: Multipath TCP connection.
 
-#### `socket:close(sock)`, `sock:close()`
+#### `socket.close(sock)`, `sock:close()`
 
 _socket.close()_ removes `sock` object from the system.
 
