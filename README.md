@@ -278,11 +278,18 @@ otherwise, it will use a [spinlock](https://docs.kernel.org/locking/locktypes.ht
 _lunatik.runtime()_ opens the Lua standard libraries
 [present on Lunatik](https://github.com/luainkernel/lunatik#c-api).
 
-#### `lunatik.stop(runtime)`, `runtime:stop()`
+#### `runtime:stop()`
 
-_lunatik.stop()_
+_runtime:stop()_
 [stops](https://github.com/luainkernel/lunatik#lunatik_stop)
 the `runtime` environment and clear its reference from the runtime object.
+
+#### `runtime:resume([obj1, ...])`
+
+_runtime:resume()_
+resumes the execution of a `runtime`.
+The values `obj1, ...` are passed as the arguments to the function returned on the `runtime` creation.
+If the `runtime` has yielded, `resume()` restarts it; the values `obj1, ...` are passed as the results from the yield.
 
 ### device
 
