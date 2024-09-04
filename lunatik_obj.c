@@ -47,13 +47,11 @@ EXPORT_SYMBOL(lunatik_createobject);
 lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 {
 	lunatik_object_t **pobject;
-	lunatik_class_t *class;
+	lunatik_class_t *class= lunatik_getclass(L, ix);
 
-	luaL_argcheck(L, lua_isuserdata(L, ix) && lua_getiuservalue(L, ix, 1) != LUA_TNONE &&
-		(class = (lunatik_class_t *)lua_touserdata(L, -1)) != NULL, ix, "object expected");
+	luaL_argcheck(L, class != NULL, ix, "object expected");
 	pobject = (lunatik_object_t **)luaL_checkudata(L, ix, class->name);
 	lunatik_argchecknull(L, *pobject, ix);
-	lua_pop(L, 1); /* class */
 	return pobject;
 }
 EXPORT_SYMBOL(lunatik_checkpobject);

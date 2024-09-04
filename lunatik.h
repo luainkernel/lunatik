@@ -204,6 +204,25 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 	lua_pop(L, 1);  /* pop mt */
 }
 
+static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)
+{
+	if (lua_isuserdata(L, ix) && lua_getiuservalue(L, ix, 1) != LUA_TNONE) {
+		lunatik_class_t *class = (lunatik_class_t *)lua_touserdata(L, -1);
+		lua_pop(L, 1); /* class */
+		return class;
+	}
+	return NULL;
+}
+
+#define lunatik_isobject(L, ix)	(lunatik_getclass((L), (ix)) != NULL)
+
+static inline lunatik_object_t *lunatik_testobject(lua_State *L, int ix)
+{
+	lunatik_object_t **pobject;
+	lunatik_class_t *class = lunatik_getclass(L, ix);
+	return class != NULL && (pobject = luaL_testudata(L, ix, class->name)) != NULL ? *pobject : NULL;
+}
+
 static void inline lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
 {
 	for (; namespaces->name; namespaces++) {
