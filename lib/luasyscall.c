@@ -8,8 +8,6 @@
 #include <linux/module.h>
 #include <linux/kprobes.h>
 
-#include <asm-generic/unistd.h>
-
 #include <lua.h>
 #include <lauxlib.h>
 
@@ -293,7 +291,6 @@ static const lunatik_reg_t luasyscall_numbers[] = {
 	{"perf_event_open", __NR_perf_event_open},
 	{"accept4", __NR_accept4},
 	{"recvmmsg", __NR_recvmmsg},
-	{"arch_specific_syscall", __NR_arch_specific_syscall},
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
 	{"wait4", __NR_wait4},
 #endif
