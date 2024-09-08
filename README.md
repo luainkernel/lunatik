@@ -1348,6 +1348,30 @@ address families to Lua.
 * `"NETDEV"`: Device ingress and egress path
 * `"BRIDGE"`: Ethernet Bridge.
 
+### `completion`
+
+The `completion` library provides support for the [kernel completion primitives](https://docs.kernel.org/scheduler/completion.html).
+
+Task completion is a synchronization mechanism used to coordinate the execution of multiple threads, similar to `pthread_barrier`, it allows threads to wait for a specific event to occur before proceeding, ensuring certain tasks are complete in a race-free manner.
+
+#### `completion.new()`
+
+_completion.new()_ creates a new `completion` object.
+
+#### `c:complete()`
+
+_c:complete()_ signals a single thread waiting on this completion.
+
+#### `c:wait([timeout])`
+
+_c:wait()_ waits for completion of a task until the specified timeout expires.
+The timeout is specified in milliseconds. If the `timeout` parameter is omitted, it waits indefinitely. Passing a timeout value less than zero results in undefined behavior.
+Threads waiting for events can be interrupted by signals, for example, such as when `thread.stop` is invoked.
+Therefore, this function can return in three ways:
+* If it succeeds, it returns `true`
+* If the timeout is reached, it returns `nil, "timeout"`
+* If the task is interrupted, it returns `nil, "interrupt"`
+
 # Examples
 
 ### spyglass

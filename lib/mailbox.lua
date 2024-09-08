@@ -3,29 +3,37 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only 
 --
 
-local fifo = require("fifo")
+local fifo       = require("fifo")
+local completion = require("completion")
 
 local mailbox = {} 
 local MailBox = {}
 MailBox.__index = MailBox
 
-local function new(o, allowed, forbidden)
+local function new(q, e, allowed, forbidden)
 	local mbox = {}
-	mbox.queue = type(o) == 'userdata' and o or fifo.new(o)
+	if type(q) == 'userdata' then
+		mbox.queue, mbox.event = q, e
+	else
+		mbox.queue, mbox.event = fifo.new(q), completion.new()
+	end
 	mbox[forbidden] = function () error(allowed .. "-only mailbox") end
 	return setmetatable(mbox, MailBox)
 end
 
-function mailbox.inbox(o)
-	return new(o, 'receive', 'send')
+function mailbox.inbox(q, e)
+	return new(q, e, 'receive', 'send')
 end
 
-function mailbox.outbox(o)
-	return new(o, 'send', 'receive')
+function mailbox.outbox(q, e)
+	return new(q, e, 'send', 'receive')
 end
 
 local sizeoft = string.packsize("T")
 function MailBox:receive()
+	local ok, err = self.event:wait()
+	if not ok then error(err) end
+
 	local queue = self.queue
 	local header, header_size = queue:pop(sizeoft)
 
@@ -39,7 +47,8 @@ function MailBox:receive()
 end
 
 function MailBox:send(message)
-	return self.queue:push(string.pack("s", message))
+	self.queue:push(string.pack("s", message))
+	self.event:complete()
 end
 
 return mailbox
