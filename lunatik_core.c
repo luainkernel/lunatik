@@ -74,6 +74,13 @@ static int lunatik_lruntimes(lua_State *L)
 
 LUNATIK_PRIVATECHECKER(lunatik_check, lua_State *);
 
+static inline void lunatik_require(lua_State *L, const char *libname)
+{
+	lua_getglobal(L, "require");
+	lua_pushstring(L, libname);
+	lua_call(L, 1, 0);
+}
+
 static int lunatik_lcopyobjects(lua_State *L)
 {
 	lua_State *Lfrom = (lua_State *)lua_touserdata(L, 1);
@@ -84,6 +91,7 @@ static int lunatik_lcopyobjects(lua_State *L)
 		lunatik_object_t *object = lunatik_testobject(Lfrom, ixfrom + i);
 
 		luaL_argcheck(L, object != NULL, i + 1, "invalid object");
+		lunatik_require(L, object->class->name);
 		lunatik_cloneobject(L, object);
 		lunatik_getobject(object);
 	}

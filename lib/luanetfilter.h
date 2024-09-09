@@ -16,7 +16,7 @@
 
 #define luanetfilter_newbuffer(L, idx, obj, field)	\
 do {							\
-	lunatik_require(L, data);			\
+	lunatik_requiref(L, data);			\
 	obj->field = lunatik_checknull(L, luadata_new(NULL, 0, false, LUADATA_OPT_NONE));	\
 	lunatik_cloneobject(L, obj->field);		\
 	lunatik_setregistry(L, -1, obj->field);	\

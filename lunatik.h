@@ -256,7 +256,7 @@ EXPORT_SYMBOL_GPL(luaopen_##libname)
 #define LUNATIK_LIB(libname)		\
 int luaopen_##libname(lua_State *L);	\
 
-#define lunatik_require(L, libname)				\
+#define lunatik_requiref(L, libname)				\
 do {								\
 	luaL_requiref((L), #libname, luaopen_##libname, 0);	\
 	lua_pop(L, 1); /* pop lib */				\
