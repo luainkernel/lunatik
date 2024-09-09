@@ -570,9 +570,9 @@ flags to Lua.
 * `"BAD"`: bad/veto action.
 * `"STOP"`: clean way to return from the notifier and stop further calls.
 
-#### `notifier.delete(notfr)`, `notfr:delete()`
+#### `notfr:delete()`
 
-_notifier.delete()_ removes a `notifier` specified by the `notfr` object from the system.
+_notfr:delete()_ removes a `notifier` specified by the `notfr` object from the system.
 
 ### socket
 
@@ -700,13 +700,13 @@ to Lua.
 * `"RAW"`: Raw IP packets.
 * `"MPTCP"`: Multipath TCP connection.
 
-#### `socket.close(sock)`, `sock:close()`
+#### `sock:close()`
 
-_socket.close()_ removes `sock` object from the system.
+_sock:close()_ removes `sock` object from the system.
 
-#### `socket.send(sock, message, [addr [, port]])`, `sock:send(message, [addr [, port]])`
+#### `sock:send(message, [addr [, port]])`
 
-_socket.send()_ sends a string `message` through the socket `sock`.
+_sock:send()_ sends a string `message` through the socket `sock`.
 If the `sock` address family is `af.INET`, then it expects the following arguments:
 * `addr`: `integer` describing the destination IPv4 address.
 * `port`: `integer` describing the destination IPv4 port. 
@@ -714,9 +714,9 @@ If the `sock` address family is `af.INET`, then it expects the following argumen
 Otherwise:
 * `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the destination address.
 
-#### `socket.receive(sock, length, [flags [, from]])`, `sock:receive(length, [flags [, from]])`
+#### `sock:receive(length, [flags [, from]])`
 
-_socket.receive()_ receives a string with up to `length` bytes through the socket `sock`.
+_sock:receive()_ receives a string with up to `length` bytes through the socket `sock`.
 The available _message flags_ are defined by the
 [socket.msg](https://github.com/luainkernel/lunatik#socketmsg) table.
 If `from` is `true`, it returns the received message followed by the peer's address.
@@ -756,9 +756,9 @@ to Lua.
 * `"FASTOPEN"`: Send data in TCP SYN.
 * `"CMSG_CLOEXEC"`: Set close\_on\_exec for file descriptor received through SCM\_RIGHTS.
 
-#### `socket.bind(sock, addr [, port])`, `sock:bind(addr [, port])`
+#### `sock:bind(addr [, port])`
 
-_socket.bind()_ binds the socket `sock` to a given address.
+_sock:bind()_ binds the socket `sock` to a given address.
 If the `sock` address family is `af.INET`, then it expects the following arguments:
 * `addr`: `integer` describing host IPv4 address.
 * `port`: `integer` describing host IPv4 port. 
@@ -766,24 +766,24 @@ If the `sock` address family is `af.INET`, then it expects the following argumen
 Otherwise:
 * `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing host address.
 
-#### `socket.listen(sock [, backlog])`, `sock:listen([backlog])`
+#### `sock:listen([backlog])`
 
-_socket.listen()_ moves the socket `sock` to listening state.
+_sock:listen()_ moves the socket `sock` to listening state.
 * `backlog`: pending connections queue size.
 If omitted, it uses
 [SOMAXCONN](https://elixir.bootlin.com/linux/latest/source/include/linux/socket.h#L296)
 as default.
 
-#### `socket.accept(sock [, flags])`, `sock:accept([flags])`
+#### `sock:accept([flags])`
 
-_socket.accept()_ accepts a connection on socket `sock`.
+_sock:accept()_ accepts a connection on socket `sock`.
 It returns a new `socket` object.
 The available _flags_ are present on the
 [socket.sock](https://github.com/luainkernel/lunatik#socketsock) table.
 
-#### `socket.connect(sock, addr [, port] [, flags])`, `sock:connect(addr [, port] [, flags])`
+#### `sock:connect(addr [, port] [, flags])`
 
-_socket.connect()_ connects the socket `sock` to the address `addr`.
+_sock:connect()_ connects the socket `sock` to the address `addr`.
 If the `sock` address family is `af.INET`, then it expects the following arguments:
 * `addr`: `integer` describing the destination IPv4 address.
 * `port`: `integer` describing the destination IPv4 port. 
@@ -798,9 +798,9 @@ For datagram sockets, `addr` is the address to which datagrams are sent
 by default, and the only address from which datagrams are received.
 For stream sockets, attempts to connect to `addr`.
 
-#### `socket.getsockname(sock)`, `sock:getsockname()`
+#### `sock:getsockname()`
 
-_socket.getsockname()_ get the address which the socket `sock` is bound.
+_sock:getsockname()_ get the address which the socket `sock` is bound.
 If the `sock` address family is `af.INET`, then it returns the following:
 * `addr`: `integer` describing the bounded IPv4 address.
 * `port`: `integer` describing the bounded IPv4 port. 
@@ -808,9 +808,9 @@ If the `sock` address family is `af.INET`, then it returns the following:
 Otherwise:
 * `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the bounded address.
 
-#### `socket.getpeername(sock)`, `sock:getpeername()`
+#### `sock:getpeername()`
 
-_socket.getpeername()_ get the address which the socket `sock` is connected.
+_sock:getpeername()_ get the address which the socket `sock` is connected.
 If the `sock` address family is `af.INET`, then it returns the following:
 * `addr`: `integer` describing the peer's IPv4 address.
 * `port`: `integer` describing the peer's IPv4 port. 
@@ -889,15 +889,15 @@ was called; otherwise, it returns `false`.
 
 _thread.current()_ returns a `thread` object representing the current task.
 
-#### `thread.stop(thrd), thrd:stop()`
+#### `thrd:stop()`
 
-_thread.stop()_ sets 
+_thrd:stop()_ sets
 [thread.shouldstop()](https://github.com/luainkernel/lunatik#threadshouldstop)
 on the thread `thrd` to return true, wakes `thrd`, and waits for it to exit.
 
-#### `thread.task(thread), thrd:task()`
+#### `thrd:task()`
 
-_thread.task()_ returns a table containing the task information of this `thread`
+_thrd:task()_ returns a table containing the task information of this `thread`
 (e.g., "cpu", "command", "pid" and "tgid").
 
 ### fib
@@ -935,124 +935,124 @@ The `data` library provides support for binding the system memory to Lua.
 
 _data.new()_ creates a new `data` object which allocates `size` bytes.
 
-#### `data.getnumber(d, offset), d:getnumber(offset)`
+#### `d:getnumber(offset)`
 
-_data.getnumber()_ extracts a [lua\_Integer](https://www.lua.org/manual/5.4/manual.html#lua_Integer)
+_d:getnumber()_ extracts a [lua\_Integer](https://www.lua.org/manual/5.4/manual.html#lua_Integer)
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setnumber(d, offset, number), d:setnumber(offset, number)`
+#### `d:setnumber(offset, number)`
 
-_data.setnumber()_ insert a [lua\_Integer](https://www.lua.org/manual/5.4/manual.html#lua_Integer)
+_d:setnumber()_ insert a [lua\_Integer](https://www.lua.org/manual/5.4/manual.html#lua_Integer)
 `number` into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getbyte(d, offset), d:getbyte(offset)`
+#### `d:getbyte(offset)`
 
-_data.getbyte()_ extracts a byte 
+_d:getbyte()_ extracts a byte
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setbyte(d, offset, byte), d:setbyte(offset, byte)`
+#### `d:setbyte(offset, byte)`
 
-_data.setbyte()_ insert a byte
+_d:setbyte()_ insert a byte
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getstring(d, offset[, length]), d:getstring(offset[, length])`
+#### `d:getstring(offset[, length])`
 
-_data.getstring()_ extracts a string with `length` bytes 
+_d:getstring()_ extracts a string with `length` bytes
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero. If `length` is omitted, it extracts all bytes 
 from `offset` to the end of the `data`.
 
-#### `data.setstring(d, offset, s), d:setstring(offset, s)`
+#### `d:setstring(offset, s)`
 
-_data.setstring()_ insert the string `s`
+_d:setstring()_ insert the string `s`
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getint8(d, offset), d:getint8(offset)`
+#### `d:getint8(offset)`
 
-_data.getint8(d, offset)_ extracts a signed 8-bit integer
+_d:getint8(d, offset)_ extracts a signed 8-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setint8(d, offset, number), d:setint8(offset, number)`
+#### `d:setint8(offset, number)`
 
-_data.setint8()_ inserts a signed 8-bit number
+_d:setint8()_ inserts a signed 8-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getuint8(d, offset), d:getuint8(offset)`
+#### `d:getuint8(offset)`
 
-_data.getuint8()_ extracts an unsigned 8-bit integer
+_d:getuint8()_ extracts an unsigned 8-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setuint8(d, offset, number), d:setuint8(offset, number)`
+#### `d:setuint8(offset, number)`
 
-_data.setuint8()_ inserts an unsigned 8-bit number
+_d:setuint8()_ inserts an unsigned 8-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getint16(d, offset), d:getint16(offset)`
+#### `d:getint16(offset)`
 
-_data.getint16()_ extracts a signed 16-bit integer
+_d:getint16()_ extracts a signed 16-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setint16(d, offset, number), d:setint16(offset, number)`
+#### `d:setint16(offset, number)`
 
-_data.setint16()_ inserts a signed 16-bit number
+_d:setint16()_ inserts a signed 16-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getuint16(d, offset), d:getuint16(offset)`
+#### `d:getuint16(offset)`
 
-_data.getuint16()_ extracts an unsigned 16-bit integer
+_d:getuint16()_ extracts an unsigned 16-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setuint16(d, offset, number), d:setuint16(offset, number)`
+#### `d:setuint16(offset, number)`
 
-_data.setuint16()_ inserts an unsigned 16-bit number
+_d:setuint16()_ inserts an unsigned 16-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getint32(d, offset), d:getint32(offset)`
+#### `d:getint32(offset)`
 
-_data.getint32()_ extracts a signed 32-bit integer
+_d:getint32()_ extracts a signed 32-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setint32(d, offset, number), d:setint32(offset, number)`
+#### `d:setint32(offset, number)`
 
-_data.setint32()_ inserts a signed 32-bit number
+_d:setint32()_ inserts a signed 32-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getuint32(d, offset), d:getuint32(offset)`
+#### `d:getuint32(offset)`
 
-_data.getuint32()_ extracts an unsigned 32-bit integer
+_d:getuint32()_ extracts an unsigned 32-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setuint32(d, offset, number), d:setuint32(offset, number)`
+#### `d:setuint32(offset, number)`
 
-_data.setuint32()_ inserts an unsigned 32-bit number
+_d:setuint32()_ inserts an unsigned 32-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.getint64(d, offset), d:getint64(offset)`
+#### `d:getint64(offset)`
 
-_data.getint64()_ extracts a signed 64-bit integer
+_d:getint64()_ extracts a signed 64-bit integer
 from the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
-#### `data.setint64(d, offset, number), d:setint64(offset, number)`
+#### `d:setint64(offset, number)`
 
-_data.setint64()_ inserts a signed 64-bit number
+_d:setint64()_ inserts a signed 64-bit number
 into the memory referenced by a `data` object and a byte `offset`,
 starting from zero.
 
@@ -1077,13 +1077,13 @@ followed by a closure that may be called to
 [show the CPU registers and stack](https://elixir.bootlin.com/linux/v5.6.19/source/include/linux/sched/debug.h#L26)
 in the system log.
 
-#### `probe.stop(p), p:stop()`
+#### `p:stop()`
 
-_probe.stop()_ removes the `probe` handlers from the system.
+_p:stop()_ removes the `probe` handlers from the system.
 
-#### `probe.enable(p, bool), p:enable(bool)`
+#### `p:enable(bool)`
 
-_probe.enable()_ enables or disables the `probe` handlers, accordingly to `bool`.
+_p:enable()_ enables or disables the `probe` handlers, accordingly to `bool`.
 
 ### syscall
 
