@@ -17,50 +17,21 @@
 typedef struct luathread_s {
 	struct task_struct *task;
 	lunatik_object_t *runtime;
-	int nargs;
-	int nresults;
-	lunatik_object_t *argv[];
 } luathread_t;
 
 static int luathread_run(lua_State *L);
 static int luathread_current(lua_State *L);
 
-static void luathread_putargs(luathread_t *thread)
+static int luathread_resume(lua_State *L, luathread_t *thread)
 {
-	int i, nargs = thread->nargs;
-	lunatik_object_t **argv = thread->argv;
-
-	for (i = 0; i < nargs; i++) {
-		if (argv[i] != NULL) {
-			lunatik_putobject(argv[i]);
-			argv[i] = NULL;
-		}
-	}
-}
-
-static int luathread_pushargs(lua_State *L)
-{
-	luathread_t *thread = (luathread_t *)lua_touserdata(L, 1);
-	int i, nargs = thread->nargs;
-	lunatik_object_t **argv = thread->argv;
-
-	for (i = 0; i < nargs; i++) {
-		lunatik_cloneobject(L, argv[i]);
-		argv[i] = NULL; /* after cloned, arg will be collect by GC */
-	}
-	return thread->nargs;
-}
-
-static int luathread_call(lua_State *L, luathread_t *thread)
-{
-	lua_pushcfunction(L, luathread_pushargs);
-	lua_pushlightuserdata(L, thread);
-	if (lua_pcall(L, 1, thread->nargs, 0) != LUA_OK || lua_resume(L, NULL, thread->nargs, &thread->nresults) != LUA_OK) {
+	int nresults;
+	int status = lua_resume(L, NULL, 0, &nresults);
+	if (status != LUA_OK && status != LUA_YIELD) {
 		pr_err("[%p] %s\n", thread, lua_tostring(L, -1));
 		lua_pop(L, 1);
-		luathread_putargs(thread);
-		return ENOEXEC;
+		return -ENOEXEC;
 	}
+	lua_pop(L, nresults); /* ignore results */
 	return 0;
 }
 
@@ -70,7 +41,7 @@ static int luathread_func(void *data)
 	luathread_t *thread = (luathread_t *)object->private;
 	int ret, locked = 0;
 
-	lunatik_run(thread->runtime, luathread_call, ret, thread);
+	lunatik_run(thread->runtime, luathread_resume, ret, thread);
 
 	while (!kthread_should_stop())
 		if ((locked = lunatik_trylock(object)))
@@ -105,7 +76,7 @@ static int luathread_stop(lua_State *L)
 		int result = kthread_stop(task);
 
 		if (result == -EINTR) {
-			luathread_putargs(thread);
+			thread->task = NULL;
 			lunatik_putobject(thread->runtime);
 			lunatik_putobject(object);
 			pr_warn("[%p] thread has never run\n", thread);
@@ -140,7 +111,6 @@ static int luathread_task(lua_State *L)
 
 	lua_pushinteger(L, task->tgid);
 	lua_setfield(L, table, "tgid");
-
 	return 1;
 }
 
@@ -165,24 +135,15 @@ static const lunatik_class_t luathread_class = {
 	.sleep = true,
 };
 
-#define luathread_size(n)	(sizeof(luathread_t) + sizeof(lunatik_object_t *) * (n))
+#define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t)))
 
 static int luathread_run(lua_State *L)
 {
 	lunatik_object_t *runtime = lunatik_checkobject(L, 1);
 	luaL_argcheck(L, runtime->sleep, 1, "cannot use non-sleepable runtime in this context");
 	const char *name = luaL_checkstring(L, 2);
-	int i, nargs = lua_gettop(L) - 2;
-	lunatik_object_t *object = lunatik_newobject(L, &luathread_class, luathread_size(nargs));
+	lunatik_object_t *object = luathread_new(L);
 	luathread_t *thread = object->private;
-	lunatik_object_t **argv = thread->argv;
-
-	for (i = 0; i < nargs; i++) {
-		lunatik_object_t *arg = lunatik_checkobject(L, 3 + i);
-		lunatik_getobject(arg);
-		argv[i] = arg;
-	}
-	thread->nargs = nargs;
 
 	lunatik_getobject(object);
 	lunatik_getobject(runtime);
@@ -197,13 +158,10 @@ static int luathread_run(lua_State *L)
 
 static int luathread_current(lua_State *L)
 {
-	int nargs = 0;
-	lunatik_object_t *object = lunatik_newobject(L, &luathread_class, luathread_size(nargs));
+	lunatik_object_t *object = luathread_new(L);
 	luathread_t *thread = object->private;
 
-	thread->nargs = nargs;
 	thread->runtime = NULL;
-
 	thread->task = current;
 	return 1; /* object */
 }

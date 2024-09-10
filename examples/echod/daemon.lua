@@ -31,7 +31,9 @@ local function daemon()
 		local ok, session = pcall(server.accept, server, sock.NONBLOCK)
 		if ok then
 			control:setbyte(0, n) -- #workers
-			thread.run(lunatik.runtime("examples/" .. worker), worker .. n, control, session)
+			local runtime = lunatik.runtime("examples/" .. worker)
+			runtime:resume(control, session)
+			thread.run(runtime, worker .. n)
 			n = n + 1
 		elseif session == errno.AGAIN then
 			linux.schedule(100)
