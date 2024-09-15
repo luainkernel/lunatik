@@ -252,7 +252,7 @@ static const struct luaL_Reg luarcu_mt[] = {
 };
 
 static const lunatik_class_t luarcu_class = {
-	.name = "rcu.table",
+	.name = "rcu",
 	.methods = luarcu_mt,
 	.release = luarcu_release,
 };
