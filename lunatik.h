@@ -180,10 +180,18 @@ int lunatik_monitorobject(lua_State *L);
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
 
+static inline void lunatik_require(lua_State *L, const char *libname)
+{
+	lua_getglobal(L, "require");
+	lua_pushstring(L, libname);
+	lua_call(L, 1, 0);
+}
+
 static inline void lunatik_pushobject(lua_State *L, lunatik_object_t *object)
 {
-	lunatik_getobject(object);
+	lunatik_require(L, object->class->name);
 	lunatik_cloneobject(L, object);
+	lunatik_getobject(object);
 }
 
 static inline bool lunatik_hasindex(lua_State *L, int index)

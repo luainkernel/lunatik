@@ -7,7 +7,6 @@ lunatik = require("lunatik")
 
 local device = require("device")
 local thread = require("thread")
-local rcu    = require("rcu")
 
 local function nop() end
 
@@ -31,7 +30,7 @@ function driver:write(buf)
 	self.result = err
 end
 
-driver.__runtimes = lunatik.runtimes()
+driver.__runtimes = lunatik.runtimes
 driver.__threads = {}
 
 function driver:run(script, ...)
