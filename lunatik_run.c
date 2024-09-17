@@ -16,14 +16,22 @@ static lunatik_object_t *runtime;
 
 static int __init lunatik_run_init(void)
 {
-	if ((lunatik_runtimes = luarcu_newtable(LUARCU_DEFAULT_SIZE, false)) == NULL)
+	int ret = 0;
+
+	if ((lunatik_env = luarcu_newtable(LUARCU_DEFAULT_SIZE, false)) == NULL)
 		return -ENOMEM;
-	return lunatik_runtime(&runtime, "driver", true);
+
+	if ((ret = lunatik_runtime(&runtime, "driver", true)) < 0) {
+		pr_err("couldn't create driver runtime\n");
+		lunatik_putobject(lunatik_env);
+	}
+
+	return ret;
 }
 
 static void __exit lunatik_run_exit(void)
 {
-	lunatik_putobject(lunatik_runtimes);
+	lunatik_putobject(lunatik_env);
 	lunatik_stop(runtime);
 }
 

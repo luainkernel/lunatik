@@ -30,6 +30,8 @@ __diag_ignore_all("-Wmissing-prototypes",
                   "Global kfuncs as their definitions will be in BTF");
 #endif
 
+static lunatik_object_t *luaxdp_runtimes = NULL;
+
 static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void *ptr, size_t size)
 {
 	lunatik_object_t *data;
@@ -93,7 +95,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	size_t keylen = key__sz - 1;
 
 	key[keylen] = '\0';
-	if ((runtime = luarcu_gettable(lunatik_runtimes, key, keylen)) == NULL) {
+	if ((runtime = luarcu_gettable(luaxdp_runtimes, key, keylen)) == NULL) {
 		pr_err("couldn't find runtime '%s'\n", key);
 		goto out;
 	}
@@ -133,6 +135,14 @@ static inline void luaxdp_newdata(lua_State *L)
 	lunatik_cloneobject(L, data);
 }
 
+static inline void luaxdp_checkruntimes(lua_State *L)
+{
+	const char *key = "runtimes";
+	if (luaxdp_runtimes == NULL &&
+	   (luaxdp_runtimes = luarcu_gettable(lunatik_env, key, sizeof(key))) == NULL)
+		luaL_error(L, "couldn't find _ENV.runtimes\n");
+}
+
 static int luaxdp_detach(lua_State *L)
 {
 	lua_pushnil(L);
@@ -142,6 +152,7 @@ static int luaxdp_detach(lua_State *L)
 
 static int luaxdp_attach(lua_State *L)
 {
+	luaxdp_checkruntimes(L);
 	lunatik_checkruntime(L, false);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
@@ -190,6 +201,8 @@ static int __init luaxdp_init(void)
 
 static void __exit luaxdp_exit(void)
 {
+	if (luaxdp_runtimes != NULL)
+		lunatik_putobject(luaxdp_runtimes);
 }
 
 module_init(luaxdp_init);

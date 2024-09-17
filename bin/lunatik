@@ -57,10 +57,20 @@ lunatik.commands = {
 			local path = "/lib/modules/`uname -r`/lunatik"
 			lunatik.sh("modprobe -s $MODULE || insmod " .. path .. "/$MODULE.ko", module)
 		end
+
+		if not lunatik.probe() then
+			error("couldn't create " .. lunatik.device)
+		end
+
+		lunatik.dostring[[
+			lunatik = require("lunatik")
+			lunatik.runner = require("lunatik.runner")
+			lunatik.runner.startup()
+		]]
 	end,
 	['unload'] = function ()
 		if lunatik.probe() then
-			lunatik.dostring("lunatik.driver:shutdown()")
+			lunatik.dostring("lunatik.runner.shutdown()")
 		end
 
 		local first = #lunatik.modules
@@ -109,7 +119,7 @@ if #arg >= 1 then
 	if tokens[token] then
 		local parm = parm and ("," .. parm) or ""
 		local ret = token == "list" and "return" or ""
-		local chunk = string.format("%s lunatik.driver:%s('%s'%s)", ret, token, script, parm)
+		local chunk = string.format("%s lunatik.runner.%s('%s'%s)", ret, token, script, parm)
 		print(lunatik.dostring(chunk))
 	else
 		lunatik.usage()
