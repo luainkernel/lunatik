@@ -14,8 +14,8 @@
 #include "lunatik_sym.h"
 
 #ifdef LUNATIK_RUNTIME
-lunatik_object_t *lunatik_runtimes;
-EXPORT_SYMBOL(lunatik_runtimes);
+lunatik_object_t *lunatik_env;
+EXPORT_SYMBOL(lunatik_env);
 
 static inline void lunatik_setversion(lua_State *L)
 {
@@ -36,10 +36,10 @@ static void *lunatik_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
 	return krealloc(ptr, nsize, lunatik_gfp(runtime));
 }
 
-static inline void lunatik_runerror(lua_State *L, lua_State *Lfrom, const char *errmsg)
+static inline void lunatik_runerror(lua_State *L, const char *errmsg)
 {
-	if (Lfrom)
-		lua_pushstring(Lfrom, errmsg);
+	if (L)
+		lua_pushstring(L, errmsg);
 	else
 		pr_err("%s\n", errmsg);
 }
@@ -151,20 +151,18 @@ static inline void lunatik_setready(lua_State *L)
 
 static int lunatik_runscript(lua_State *L)
 {
-	lunatik_object_t *runtime = lunatik_toruntime(L);
 	const char *script = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, lua_touserdata(L, 1));
 	int scriptix = lua_gettop(L);
 
 	lunatik_setversion(L);
 	luaL_openlibs(L);
-	if (runtime->sleep) {
-		luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
-		if (lunatik_runtimes != NULL) {
-			lunatik_pushobject(L, lunatik_runtimes);
-			lua_setfield(L, -2, "runtimes");
-		}
-		lua_pop(L, 1); /* lunatik library */
+
+	luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
+	if (lunatik_env != NULL) {
+		lunatik_pushobject(L, lunatik_env);
+		lua_setfield(L, -2, "_ENV");
 	}
+	lua_pop(L, 1); /* lunatik library */
 
 	if (lunatik_loadfile(L, script, NULL) != LUA_OK)
 		lua_error(L);
@@ -181,12 +179,12 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	lua_State *L;
 
 	if ((L = luaL_newstate()) == NULL) {
-		lunatik_runerror(L, Lfrom, "failed to allocate Lua state");
+		lunatik_runerror(Lfrom, "failed to allocate Lua state");
 		return -ENOMEM;
 	}
 
 	if ((runtime = lunatik_malloc(L, sizeof(lunatik_object_t))) == NULL) {
-		lunatik_runerror(L, Lfrom, "failed to allocate runtime");
+		lunatik_runerror(Lfrom, "failed to allocate runtime");
 		lua_close(L);
 		return -ENOMEM;
 	}
@@ -198,7 +196,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	lua_pushcfunction(L, lunatik_runscript);
 	lua_pushlightuserdata(L, (void *)script);
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
-		lunatik_runerror(L, Lfrom, lua_tostring(L, -1));
+		lunatik_runerror(Lfrom, lua_tostring(L, -1));
 		lunatik_putobject(runtime);
 		return -ENOEXEC;
 	}
@@ -216,14 +214,11 @@ EXPORT_SYMBOL(lunatik_runtime);
 
 static int lunatik_lruntime(lua_State *L)
 {
-	lunatik_object_t **pruntime;
-	const char *script;
-	bool sleep;
+	lunatik_checkruntime(L, true);
+	const char *script = luaL_checkstring(L, 1);
+	bool sleep = (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true);
 
-	script = luaL_checkstring(L, 1);
-	sleep = (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true);
-
-	pruntime = lunatik_newpobject(L, 1);
+	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
 	if (lunatik_newruntime(pruntime, L, script, sleep) != 0)
 		lua_error(L);
 	lunatik_setclass(L, &lunatik_class);
