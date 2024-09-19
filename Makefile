@@ -4,6 +4,7 @@
 MODULES_INSTALL_PATH = /lib/modules/${shell uname -r}
 SCRIPTS_INSTALL_PATH = /lib/modules/lua
 LUNATIK_INSTALL_PATH = /usr/local/sbin
+LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
 LUA_API = lua/lua.h lua/lauxlib.h lua/lualib.h
 KDIR ?= ${MODULES_INSTALL_PATH}/build
 RM = rm -f
@@ -21,6 +22,7 @@ all: lunatik_sym.h
 
 clean:
 	${MAKE} -C ${KDIR} M=${PWD} clean
+	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h
 
 scripts_install:
@@ -51,8 +53,17 @@ examples_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
 	${INSTALL} -m 0644 examples/dnsdoctor/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
 
+.PHONY: ebpf
+examples:
+	${MAKE} -C examples/filter
+
+ebpf_install:
+	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
+	${INSTALL} -m 0644 examples/filter/https.o ${LUNATIK_EBPF_INSTALL_PATH}/
+
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
+	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}
 
 modules_install:
 	${MKDIR} ${MODULES_INSTALL_PATH}/lunatik
