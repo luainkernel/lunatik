@@ -62,11 +62,12 @@ lunatik.commands = {
 			error("couldn't create " .. lunatik.device)
 		end
 
-		lunatik.dostring[[
+		local result = lunatik.dostring[[
 			lunatik = require("lunatik")
 			lunatik.runner = require("lunatik.runner")
 			lunatik.runner.startup()
 		]]
+		if result ~= "" then error(result) end
 	end,
 	['unload'] = function ()
 		if lunatik.probe() then
