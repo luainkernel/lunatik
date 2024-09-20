@@ -11,7 +11,12 @@ local env = lunatik._ENV
 
 local runner = {}
 
+local function trim(script) -- drop ".lua" file extension
+	return script:gsub("(%w+).lua", "%1")
+end
+
 function runner.run(script, ...)
+	local script = trim(script)
 	if env.runtimes[script] then
 		error(string.format("%s is already running", script))
 	end
@@ -36,6 +41,7 @@ local function stop(registry, script)
 end
 
 function runner.stop(script)
+	local script = trim(script)
 	stop(env.threads, script)
 	stop(env.runtimes, script)
 end
