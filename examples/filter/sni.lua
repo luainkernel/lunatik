@@ -4,8 +4,7 @@
 --
 
 local xdp  = require("xdp")
-
-local action = xdp.action
+local netfilter = require("netfilter")
 
 local function set(t)
 	local s = {}
@@ -27,7 +26,7 @@ local function unpacker(packet, base)
 	end
 
 	local short = function (offset)
-		local offset = base + offset
+		offset = base + offset
 		return packet:getbyte(offset) << 8 | packet:getbyte(offset + 1)
 	end
 
@@ -49,8 +48,26 @@ local server_name  = 0x00
 local session = 43
 local max_extensions = 17
 
-local function filter_sni(packet, argument)
-	local byte, short, str = unpacker(packet, offset(argument))
+local function filter_sni(packet, argument)  -- argument will get passed only with XDP
+	local action = {}
+	local _offset
+	if tonumber(argument) then  -- XDP case
+		action = xdp.action
+		_offset = argument
+	else  -- netfilter case
+		for k, v in pairs(netfilter.action) do  -- we make a copy to avoid adding "PASS" directly onto netfilter.action
+			action[k] = v
+		end
+		action.PASS = action.CONTINUE  -- could be set to action.ACCEPT to bypass subsequent rules
+		local first_byte = packet:getbyte(0)
+		local ip_version = first_byte >> 4
+		_offset = ({
+			[6] = 40,
+			[4] = (first_byte & 0xf)
+		})[ip_version]
+	end
+
+	local byte, short, str = unpacker(packet, offset(_offset))
 
 	if byte(0) ~= handshake or byte(5) ~= client_hello then
 		return action.PASS
@@ -66,7 +83,7 @@ local function filter_sni(packet, argument)
 			local length = short(data + 3)
 			local sni = str(data + 5, length)
 
-			verdict = blacklist[sni] and "DROP" or "PASS"
+			local verdict = blacklist[sni] and "DROP" or "PASS"
 			log(sni, verdict)
 			return action[verdict]
 		end
@@ -77,4 +94,22 @@ local function filter_sni(packet, argument)
 end
 
 xdp.attach(filter_sni)
+
+-- In case of bridged networking
+netfilter.register{
+	pf = netfilter.family.BRIDGE,
+	hooknum = netfilter.bridge_hooks.FORWARD,
+	priority = netfilter.bridge_priority.FILTER_BRIDGED,
+	hook = filter_sni
+}
+
+-- In case of a router
+for _, pf in ipairs{netfilter.family.IPV4, netfilter.family.IPV6} do
+	netfilter.register{
+		pf = pf,
+		hooknum = netfilter.inet_hooks.FORWARD,
+		priority = netfilter.ip_priority.FILTER,
+		hook = filter_sni
+	}
+end
 
