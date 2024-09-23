@@ -4,6 +4,7 @@
 --
 
 local lunatik = require("lunatik")
+local linux   = require("linux")
 local thread  = require("thread")
 local rcu     = require("rcu")
 
@@ -15,14 +16,33 @@ local function trim(script) -- drop ".lua" file extension
 	return script:gsub("(%w+).lua", "%1")
 end
 
-function runner.run(script, ...)
-	local script = trim(script)
-	if env.runtimes[script] then
+local function runtime_name(cpu, script)
+	return cpu == 0 and script or script .. ":" .. cpu
+end
+
+function run(name, script, ...)
+	if env.runtimes[name] then
 		error(string.format("%s is already running", script))
 	end
 	local runtime = lunatik.runtime(script, ...)
-	env.runtimes[script] = runtime
+	env.runtimes[name] = runtime
 	return runtime
+end
+
+function runner.run(script, ...)
+	local script = trim(script)
+	return run(script, script, ...)
+end
+
+function runner.percpu(script, ...)
+	local script = trim(script)
+	local runtimes = {}
+	local args = {...}
+	linux.percpu(function (cpu)
+		local name = runtime_name(cpu, script)
+		runtimes[name] = run(name, script, table.unpack(args))
+	end)
+	return runtimes
 end
 
 function runner.spawn(script, ...)
@@ -43,7 +63,10 @@ end
 function runner.stop(script)
 	local script = trim(script)
 	stop(env.threads, script)
-	stop(env.runtimes, script)
+	linux.percpu(function (cpu)
+		local name = runtime_name(cpu, script)
+		stop(env.runtimes, name)
+	end)
 end
 
 function runner.list()

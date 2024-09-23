@@ -93,8 +93,16 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	struct xdp_buff *ctx = (struct xdp_buff *)xdp_ctx;
 	int action = -1;
 	size_t keylen = key__sz - 1;
+	unsigned int cpuid = smp_processor_id();
+	char pkey[128];
 
 	key[keylen] = '\0';
+	if (cpuid != 0) {
+		keylen = snprintf(pkey, keylen + 8, "%s:%d", key, cpuid);
+		key = pkey;
+	}
+	pr_info("<debug> bpf_luaxdp_run() -> key=[%s]\n", key);
+
 	if ((runtime = luarcu_gettable(luaxdp_runtimes, key, keylen)) == NULL) {
 		pr_err("couldn't find runtime '%s'\n", key);
 		goto out;
