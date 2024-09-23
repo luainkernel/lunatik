@@ -124,6 +124,10 @@ static const luaL_Reg lunatik_lib[] = {
 	{NULL, NULL}
 };
 
+static const luaL_Reg lunatik_stub_lib[] = {
+	{NULL, NULL}
+};
+
 static const luaL_Reg lunatik_mt[] = {
 	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
@@ -141,7 +145,9 @@ static const lunatik_class_t lunatik_class = {
 	.pointer = true,
 };
 
-int luaopen_lunatik(lua_State *L); /* used for luaL_requiref() */
+/* used for luaL_requiref() */
+int luaopen_lunatik(lua_State *L);
+int luaopen_lunatik_stub(lua_State *L);
 
 static inline void lunatik_setready(lua_State *L)
 {
@@ -157,7 +163,11 @@ static int lunatik_runscript(lua_State *L)
 	lunatik_setversion(L);
 	luaL_openlibs(L);
 
-	luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
+	if (lunatik_toruntime(L)->sleep)
+		luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
+	else
+		luaL_requiref(L, "lunatik", luaopen_lunatik_stub, 0);
+
 	if (lunatik_env != NULL) {
 		lunatik_pushobject(L, lunatik_env);
 		lua_setfield(L, -2, "_ENV");
@@ -214,7 +224,6 @@ EXPORT_SYMBOL(lunatik_runtime);
 
 static int lunatik_lruntime(lua_State *L)
 {
-	lunatik_checkruntime(L, true);
 	const char *script = luaL_checkstring(L, 1);
 	bool sleep = (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true);
 
@@ -226,6 +235,7 @@ static int lunatik_lruntime(lua_State *L)
 }
 
 LUNATIK_NEWLIB(lunatik, lunatik_lib, &lunatik_class, NULL);
+LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL, NULL);
 #endif /* LUNATIK_RUNTIME */
 
 static int __init lunatik_init(void)
