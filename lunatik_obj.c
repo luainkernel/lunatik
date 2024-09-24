@@ -58,6 +58,7 @@ EXPORT_SYMBOL(lunatik_checkpobject);
 
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {
+	lunatik_require(L, object->class->name);
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	const lunatik_class_t *class = object->class;
 
