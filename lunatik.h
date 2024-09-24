@@ -189,7 +189,6 @@ static inline void lunatik_require(lua_State *L, const char *libname)
 
 static inline void lunatik_pushobject(lua_State *L, lunatik_object_t *object)
 {
-	lunatik_require(L, object->class->name);
 	lunatik_cloneobject(L, object);
 	lunatik_getobject(object);
 }
@@ -263,12 +262,6 @@ EXPORT_SYMBOL_GPL(luaopen_##libname)
 
 #define LUNATIK_LIB(libname)		\
 int luaopen_##libname(lua_State *L);	\
-
-#define lunatik_requiref(L, libname)				\
-do {								\
-	luaL_requiref((L), #libname, luaopen_##libname, 0);	\
-	lua_pop(L, 1); /* pop lib */				\
-} while(0)
 
 #define LUNATIK_OBJECTCHECKER(checker, T)			\
 static inline T checker(lua_State *L, int ix)			\
