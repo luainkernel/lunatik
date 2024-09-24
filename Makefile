@@ -54,6 +54,8 @@ examples_install:
 	${INSTALL} -m 0644 examples/dnsblock/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsblock
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
 	${INSTALL} -m 0644 examples/dnsdoctor/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/systrack
+	${INSTALL} -m 0644 examples/systrack/*.lua ${SCRIPTS_INSTALL_PATH}/examples/systrack
 
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples

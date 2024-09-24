@@ -1469,8 +1469,7 @@ hello kernel!
 
 [systrack](examples/systrack.lua)
 is a kernel script that implements a device driver to monitor system calls.
-It prints the amount of times each [system call](examples/systrack.lua#L29)
-was called since the driver has been installed.
+It prints the amount of times each system call was called since the driver has been installed.
 
 #### Usage
 
@@ -1484,6 +1483,7 @@ write: 1085
 openat: 2036
 read: 4131
 readv: 0
+...
 ```
 
 ### filter
