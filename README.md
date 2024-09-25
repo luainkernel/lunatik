@@ -5,7 +5,7 @@ It is composed by the Lua interpreter modified to run in the kernel;
 a [device driver](driver.lua) (written in Lua =)) and a [command line tool](bin/lunatik)
 to load and run scripts and manage runtime environments from the user space;
 a [C API](#lunatik-c-api) to load and run scripts and manage runtime environments from the kernel;
-and [Lua APIs](#lunatik-lua-apis) for binding kernel facilities to Lua scripts. 
+and [Lua APIs](#lunatik-lua-apis) for binding kernel facilities to Lua scripts.
 
 Here is an example of a character device driver written in Lua using Lunatik
 to generate random ASCII printable characters:
@@ -33,11 +33,32 @@ end
 device.new(driver)
 ```
 
+## Setup
+
+Install dependencies (here for Debian/Ubuntu, to be adapted to one's distribution):
+
+```sh
+sudo apt install git build-essential lua5.4 dwarves clang llvm libelf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
+```
+
+Compile and install `lunatik`:
+
+```sh
+LUNATIK_DIR=~/lunatik  # to be adapted
+mkdir "${LUNATIK_DIR}" ; cd "${LUNATIK_DIR}"
+git clone --depth 1 --recurse-submodules https://github.com/luainkernel/lunatik.git
+cd lunatik
+make
+sudo make install
+```
+
+Once done, the `debian_kernel_postinst_lunatik.sh` script from tools/ may be copied into
+`/etc/kernel/postinst.d/`: this ensures `lunatik` (and also the `xdp` needed libs) will get
+compiled on kernel upgrade.
+
 ## Usage
 
 ```
-make
-sudo make install
 sudo lunatik # execute Lunatik REPL
 Lunatik 3.5  Copyright (C) 2023-2024 ring-0 Ltda.
 > return 42 -- execute this line in the kernel
@@ -132,7 +153,7 @@ _lunatik\_runtime()_ creates a new `runtime` environment then loads and runs the
 `/lib/modules/lua/<script>.lua` as the entry point for this environment.
 It _must_ only be called from _process context_.
 The `runtime` environment is a Lunatik object that holds
-a [Lua state](https://www.lua.org/manual/5.4/manual.html#lua_State). 
+a [Lua state](https://www.lua.org/manual/5.4/manual.html#lua_State).
 Lunatik objects are special
 Lua [userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
 which also hold
@@ -150,8 +171,8 @@ _lunatik\_runtime()_ opens the Lua standard libraries
 If successful, _lunatik\_runtime()_ sets the address pointed by `pruntime` and
 [Lua's extra space](https://www.lua.org/manual/5.4/manual.html#lua_getextraspace)
 with a pointer for the new created `runtime` environment,
-sets the _reference counter_ to `1` and then returns `0`. 
-Otherwise, it returns `-ENOMEM`, if insufficient memory is available; 
+sets the _reference counter_ to `1` and then returns `0`.
+Otherwise, it returns `-ENOMEM`, if insufficient memory is available;
 or `-EINVAL`, if it fails to load or run the `script`.
 
 ##### Example
@@ -262,7 +283,7 @@ _lunatik\_toruntime()_ returns the `runtime` environment referenced by the `L`'s
 
 ### lunatik
 
-The `lunatik` library provides support to load and run scripts and manage runtime environments from Lua. 
+The `lunatik` library provides support to load and run scripts and manage runtime environments from Lua.
 
 #### `lunatik.runtime(script [, sleep])`
 
@@ -313,7 +334,7 @@ followed by two integers,
 the `length` to be read and the file `offset`.
 It should return a string and, optionally, the `updated offset`.
 If the length of the returned string is greater than the requested `length`,
-the string will be corrected to that `length`. 
+the string will be corrected to that `length`.
 If the `updated offset` is not returned, the `offset` will be updated with `offset + length`.
 * `write`: callback function to handle the
 [write operation](https://docs.kernel.org/filesystems/vfs.html#id2)
@@ -651,7 +672,7 @@ to Lua.
 
 #### `socket.sock`
 
-_socket.sock_ is a table that exports socket 
+_socket.sock_ is a table that exports socket
 [types (SOCK)](https://elixir.bootlin.com/linux/latest/source/include/linux/net.h#L49):
 
 * `"STREAM"`: stream (connection) socket.
@@ -709,7 +730,7 @@ _sock:close()_ removes `sock` object from the system.
 _sock:send()_ sends a string `message` through the socket `sock`.
 If the `sock` address family is `af.INET`, then it expects the following arguments:
 * `addr`: `integer` describing the destination IPv4 address.
-* `port`: `integer` describing the destination IPv4 port. 
+* `port`: `integer` describing the destination IPv4 port.
 
 Otherwise:
 * `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the destination address.
@@ -761,7 +782,7 @@ to Lua.
 _sock:bind()_ binds the socket `sock` to a given address.
 If the `sock` address family is `af.INET`, then it expects the following arguments:
 * `addr`: `integer` describing host IPv4 address.
-* `port`: `integer` describing host IPv4 port. 
+* `port`: `integer` describing host IPv4 port.
 
 Otherwise:
 * `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing host address.
@@ -786,7 +807,7 @@ The available _flags_ are present on the
 _sock:connect()_ connects the socket `sock` to the address `addr`.
 If the `sock` address family is `af.INET`, then it expects the following arguments:
 * `addr`: `integer` describing the destination IPv4 address.
-* `port`: `integer` describing the destination IPv4 port. 
+* `port`: `integer` describing the destination IPv4 port.
 
 Otherwise:
 * `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the destination address.
@@ -803,7 +824,7 @@ For stream sockets, attempts to connect to `addr`.
 _sock:getsockname()_ get the address which the socket `sock` is bound.
 If the `sock` address family is `af.INET`, then it returns the following:
 * `addr`: `integer` describing the bounded IPv4 address.
-* `port`: `integer` describing the bounded IPv4 port. 
+* `port`: `integer` describing the bounded IPv4 port.
 
 Otherwise:
 * `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the bounded address.
@@ -813,7 +834,7 @@ Otherwise:
 _sock:getpeername()_ get the address which the socket `sock` is connected.
 If the `sock` address family is `af.INET`, then it returns the following:
 * `addr`: `integer` describing the peer's IPv4 address.
-* `port`: `integer` describing the peer's IPv4 port. 
+* `port`: `integer` describing the peer's IPv4 port.
 
 Otherwise:
 * `addr`: [packed string](https://www.lua.org/manual/5.4/manual.html#6.4.2) describing the peer's address.
@@ -875,9 +896,9 @@ This function receives the following arguments:
 * `runtime`: the
 [runtime environment](https://github.com/luainkernel/lunatik#lunatikruntimescript--sleep)
 for running a task in the created kernel thread.
-The task must be specified by returning a function on the script loaded 
+The task must be specified by returning a function on the script loaded
 in the `runtime` environment.
-* `name`: string representing the name for the thread (e.g., as shown on `ps`). 
+* `name`: string representing the name for the thread (e.g., as shown on `ps`).
 
 #### `thread.shouldstop()`
 
@@ -963,7 +984,7 @@ starting from zero.
 
 _d:getstring()_ extracts a string with `length` bytes
 from the memory referenced by a `data` object and a byte `offset`,
-starting from zero. If `length` is omitted, it extracts all bytes 
+starting from zero. If `length` is omitted, it extracts all bytes
 from `offset` to the end of the `data`.
 
 #### `d:setstring(offset, s)`
@@ -1217,7 +1238,7 @@ netfilter actions to Lua.
 * `"ACCEPT"`: `NF_ACCEPT`. The packet is accepted and passed to the next step in the network processing chain.
 * `"STOLEN"`: `NF_STOLEN`. The packet is taken by the handler, and processing stops.
 * `"QUEUE"`: `NF_QUEUE`. The packet is queued for user-space processing.
-* `"REPEAT"`: `NF_REPEAT`. The packet is sent through the hook chain again. 
+* `"REPEAT"`: `NF_REPEAT`. The packet is sent through the hook chain again.
 * `"STOP"`: `NF_STOP`. Processing of the packet stops.
 * `"CONTINUE"`: `XT_CONTINUE`. Return the packet should continue traversing the rules within the same table.
 * `"RETURN"`: `XT_RETURN`. Return the packet to the previous chain.
@@ -1240,7 +1261,7 @@ bridge netfilter hooks to Lua.
 
 * `"PRE_ROUTING"`: `NF_BR_PRE_ROUTING`. First hook invoked, runs before forward database is consulted.
 * `"LOCAL_IN"`: `NF_BR_LOCAL_IN`. Invoked for packets destined for the machine where the bridge was configured on.
-* `"FORWARD"`: `NF_BR_FORWARD`. Called for frames that are bridged to a different port of the same logical bridge device. 
+* `"FORWARD"`: `NF_BR_FORWARD`. Called for frames that are bridged to a different port of the same logical bridge device.
 * `"LOCAL_OUT"`: `NF_BR_LOCAL_OUT`. Called for locally originating packets that will be transmitted via the bridge.
 * `"POST_ROUTING"`: `NF_BR_POST_ROUTING`. Called for all locally generated packets and all bridged packets
 
@@ -1496,7 +1517,26 @@ This kernel extension drops any HTTPS request destinated to a
 
 #### Usage
 
+Compile and install `libbpf`, `libxdp` and `xdp-loader`:
+
+```sh
+mkdir -p "${LUNATIK_DIR}" ; cd "${LUNATIK_DIR}"  # LUNATIK_DIR must be set to the same value as above (Setup section)
+git clone --depth 1 --recurse-submodules https://github.com/xdp-project/xdp-tools.git
+cd xdp-tools/lib/libbpf/src
+make
+sudo DESTDIR=/ make install
+cd ../../../
+make libxdp
+cd xdp-loader
+make
+sudo make install
 ```
+
+Come back to this repository, install and load the filter:
+
+```sh
+cd ${LUNATIK_DIR}/lunatik                    # cf. above
+sudo make btf_install                        # needed to export the 'bpf_luaxdp_run' kfunc
 sudo make examples_install                   # installs examples
 cd examples/filter
 make                                         # builds the XDP/eBPF program
@@ -1504,9 +1544,29 @@ sudo lunatik run examples/filter/sni false   # runs the Lua kernel script
 sudo xdp-loader load -m skb <ifname> https.o # loads the XDP/eBPF program
 ```
 
+For example, testing is easy thanks to [docker](https://www.docker.com).
+Assuming docker is installed and running:
+
+- in a terminal:
+```sh
+sudo xdp-loader load -m skb docker0 https.o
+sudo journalctl -ft kernel
+```
+- in another one:
+```sh
+docker run --rm -it alpine/curl https://ebpf.io
+```
+
+The system logs (in the first terminal) should display `filter_sni: ebpf.io DROP`, and the
+`docker run…` should return `curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ebpf.io:443`.
+
+### filter in MoonScript
+
+[This other sni filter](https://github.com/luainkernel/snihook) uses netfilter api.
+
 ### dnsblock
 
-[dnsblock](examples/dnsblock) is a kernel script that uses the lunatik xtable library to filter DNS packets. 
+[dnsblock](examples/dnsblock) is a kernel script that uses the lunatik xtable library to filter DNS packets.
 This script drops any outbound DNS packet with question matching the blacklist provided by the user.
 
 #### Usage
@@ -1530,7 +1590,7 @@ sudo lunatik run examples/dnsblock/nf_dnsblock false	# runs the Lua kernel scrip
 
 ### dnsdoctor
 
-[dnsdoctor](examples/dnsdoctor) is a kernel script that uses the lunatik xtable library to change the DNS response 
+[dnsdoctor](examples/dnsdoctor) is a kernel script that uses the lunatik xtable library to change the DNS response
 from Public IP to a Private IP if the destination IP matches the one provided by the user. For example, if the user
 wants to change the DNS response from `192.168.10.1` to `10.1.2.3` for the domain `lunatik.com` if the query is being sent to `10.1.1.2` (a private client), this script can be used.
 
