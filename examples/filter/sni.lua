@@ -3,8 +3,9 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
-local xdp  = require("xdp")
-local netfilter = require("netfilter")
+local linux = require("linux")
+local xdp   = require("xdp")
+local nf    = require("netfilter")
 
 local function set(t)
 	local s = {}
@@ -37,10 +38,6 @@ local function unpacker(packet, base)
 	return byte, short, str
 end
 
-local function offset(argument)
-	return select(2, unpacker(argument, 0))(0)
-end
-
 local client_hello = 0x01
 local handshake    = 0x16
 local server_name  = 0x00
@@ -48,29 +45,11 @@ local server_name  = 0x00
 local session = 43
 local max_extensions = 17
 
-local function filter_sni(packet, argument)  -- argument will get passed only with XDP
-	local action = {}
-	local _offset
-	if tonumber(argument) then  -- XDP case
-		action = xdp.action
-		_offset = argument
-	else  -- netfilter case
-		for k, v in pairs(netfilter.action) do  -- we make a copy to avoid adding "PASS" directly onto netfilter.action
-			action[k] = v
-		end
-		action.PASS = action.CONTINUE  -- could be set to action.ACCEPT to bypass subsequent rules
-		local first_byte = packet:getbyte(0)
-		local ip_version = first_byte >> 4
-		_offset = ({
-			[6] = 40,
-			[4] = (first_byte & 0xf)
-		})[ip_version]
-	end
-
-	local byte, short, str = unpacker(packet, offset(_offset))
+local function filter_sni(packet, offset)
+	local byte, short, str = unpacker(packet, offset)
 
 	if byte(0) ~= handshake or byte(5) ~= client_hello then
-		return action.PASS
+		return
 	end
 
 	local cipher = (session + 1) + byte(session)
@@ -83,33 +62,33 @@ local function filter_sni(packet, argument)  -- argument will get passed only wi
 			local length = short(data + 3)
 			local sni = str(data + 5, length)
 
-			local verdict = blacklist[sni] and "DROP" or "PASS"
-			log(sni, verdict)
-			return action[verdict]
+			local isblock = blacklist[sni]
+			log(sni, isblock and "DROP" or "PASS/CONTINUE")
+			return isblock
 		end
 		extension = data + short(extension + 2)
 	end
-
-	return action.PASS
 end
 
-xdp.attach(filter_sni)
+xdp.attach(function (packet, argument)
+	local offset = linux.ntoh16(argument:getuint16(0))
+	local action = xdp.action
+	return filter_sni(packet, offset) and action.DROP or action.PASS
+end)
 
--- In case of bridged networking
-netfilter.register{
-	pf = netfilter.family.BRIDGE,
-	hooknum = netfilter.bridge_hooks.FORWARD,
-	priority = netfilter.bridge_priority.FILTER_BRIDGED,
-	hook = filter_sni
+nf.register{
+	pf = nf.family.INET,
+	hooknum = nf.inet_hooks.FORWARD,
+	priority = nf.ip_priority.LAST,
+	hook = function (packet)
+		local ihl = packet:getbyte(0) & 0x0F
+		local thoff = ihl * 4
+		local doff = ((packet:getbyte(thoff + 12) >> 4) & 0x0F) * 4
+		local offset = thoff + doff
+		local dport = linux.ntoh16(packet:getuint16(thoff + 2))
+		local action = nf.action
+		return (offset < #packet and dport == 443 and filter_sni(packet, offset))
+			and action.DROP or action.CONTINUE
+	end,
 }
-
--- In case of a router
-for _, pf in ipairs{netfilter.family.IPV4, netfilter.family.IPV6} do
-	netfilter.register{
-		pf = pf,
-		hooknum = netfilter.inet_hooks.FORWARD,
-		priority = netfilter.ip_priority.FILTER,
-		hook = filter_sni
-	}
-end
 
