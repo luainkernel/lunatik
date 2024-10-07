@@ -36,7 +36,7 @@ else
   git clone --recurse-submodules https://github.com/luainkernel/lunatik "${LUNATIK_DIR}"
   cd "${LUNATIK_DIR}"
 fi
-make -j"${CPU_CORES}" KERNEL_VERSION="${KERNEL_VERSION}" && make install && rm -r /usr/local/src/"linux-${KERNEL_VERSION}" || exit 1
+make -j"${CPU_CORES}" KERNEL_RELEASE="${KERNEL_RELEASE}" && make install && rm -r /usr/local/src/"linux-${KERNEL_VERSION}" || exit 1
 
 echo "Compiling and installing xdp-loader" &&\
 if [ -d "${XDP_DIR}" ]; then
