@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 
 KERNEL_RELEASE ?= ${shell uname -r}
-MODULES_INSTALL_PATH = /lib/modules/${KERNEL_VERSION}
+MODULES_INSTALL_PATH = /lib/modules/${KERNEL_RELEASE}
 SCRIPTS_INSTALL_PATH = /lib/modules/lua
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
