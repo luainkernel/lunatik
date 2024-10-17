@@ -4,15 +4,20 @@ LUNATIK_DIR="/opt/lunatik"
 XDP_DIR="/opt/xdp-tools"
 KERNEL_RELEASE="$1"
 # This ugly hack is needed because Ubuntu has a weird kernel package versionning.
-KERNEL_VERSION=$(echo $KERNEL_RELEASE | grep -o '^[0-9.]*')
+KERNEL_VERSION=$([ -e /proc/version_signature ] && grep -o '[0-9.]*$' /proc/version_signature || echo $KERNEL_RELEASE | grep -o '^[0-9.]*')
 KERNEL_VERSION_MAJOR=$(echo "${KERNEL_VERSION}" | grep -o '^[0-9]*')
 CPU_CORES=$(grep -m1 'cpu cores' /proc/cpuinfo | grep -o '[0-9]*$' || echo 1)
+echo "Installing Lunatik for kernel version ${KERNEL_VERSION} release {$KERNEL_RELEASE}"
 
-echo "Checking git, linux-headers-${KERNEL_RELEASE}, linux-tools-generic, lua5.4 and pahole are installed..."
+echo "Checking git linux-headers-${KERNEL_RELEASE} linux-tools-generic lua5.4 clang llvm libelf-dev libpcap-dev pahole are installed..."
 dpkg --get-selections | grep 'git\s' | grep install &&\
 dpkg --get-selections | grep "linux-headers-${KERNEL_RELEASE}\s" | grep install &&\
 dpkg --get-selections | grep 'linux-tools-generic\s' | grep install &&\
 dpkg --get-selections | grep 'lua5.4\s' | grep install &&\
+dpkg --get-selections | grep 'clang\s' | grep install &&\
+dpkg --get-selections | grep 'llvm\s' | grep install &&\
+dpkg --get-selections | grep 'libelf-dev' | grep install &&\
+dpkg --get-selections | grep 'libpcap-dev' | grep install &&\
 dpkg --get-selections | grep 'pahole\s' | grep install || exit 1
 cp /sys/kernel/btf/vmlinux "/usr/lib/modules/${KERNEL_RELEASE}/build/" || exit 1
 
