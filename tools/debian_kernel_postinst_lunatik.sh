@@ -9,10 +9,10 @@ KERNEL_VERSION_MAJOR=$(echo "${KERNEL_VERSION}" | grep -o '^[0-9]*')
 CPU_CORES=$(grep -m1 'cpu cores' /proc/cpuinfo | grep -o '[0-9]*$' || echo 1)
 echo "Installing Lunatik for kernel version ${KERNEL_VERSION} release {$KERNEL_RELEASE}"
 
-echo "Checking git linux-headers-${KERNEL_RELEASE} linux-tools-generic lua5.4 clang llvm libelf-dev libpcap-dev pahole are installed..."
+echo "Checking git linux-headers-${KERNEL_RELEASE} lua5.4 clang llvm libelf-dev libpcap-dev pahole are installed..."
 dpkg --get-selections | grep 'git\s' | grep install &&\
 dpkg --get-selections | grep "linux-headers-${KERNEL_RELEASE}\s" | grep install &&\
-dpkg --get-selections | grep 'linux-tools-generic\s' | grep install &&\
+#dpkg --get-selections | grep 'linux-tools-generic\s' | grep install &&\
 dpkg --get-selections | grep 'lua5.4\s' | grep install &&\
 dpkg --get-selections | grep 'clang\s' | grep install &&\
 dpkg --get-selections | grep 'llvm\s' | grep install &&\
@@ -41,7 +41,7 @@ else
   git clone --recurse-submodules https://github.com/luainkernel/lunatik "${LUNATIK_DIR}"
   cd "${LUNATIK_DIR}"
 fi
-make -j"${CPU_CORES}" KERNEL_RELEASE="${KERNEL_RELEASE}" && make install && rm -r /usr/local/src/"linux-${KERNEL_VERSION}" || exit 1
+make -j"${CPU_CORES}" KERNEL_RELEASE="${KERNEL_RELEASE}" && make KERNEL_RELEASE="${KERNEL_RELEASE}" install && rm -r /usr/local/src/"linux-${KERNEL_VERSION}" || exit 1
 
 echo "Compiling and installing xdp-loader" &&\
 if [ -d "${XDP_DIR}" ]; then
