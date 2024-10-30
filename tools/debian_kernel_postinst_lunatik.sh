@@ -23,7 +23,7 @@ cp /sys/kernel/btf/vmlinux "/usr/lib/modules/${KERNEL_RELEASE}/build/" || exit 1
 
 echo "Compiling and installing resolve_btfids from kernel sources"
 cd /usr/local/src &&\
-wget -O- "https://cdn.kernel.org/pub/linux/kernel/v${KERNEL_VERSION_MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz" | tar xJf - &&\
+[ -d linux-"${KERNEL_VERSION}" ] || wget -O- "https://cdn.kernel.org/pub/linux/kernel/v${KERNEL_VERSION_MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz" | tar xJf - &&\
 cd "linux-${KERNEL_VERSION}"/tools/bpf/resolve_btfids/ &&\
 make -j"${CPU_CORES}" &&\
 mkdir -p "/usr/src/linux-headers-${KERNEL_RELEASE}/tools/bpf/resolve_btfids/" &&\
@@ -31,7 +31,7 @@ cp resolve_btfids "/usr/src/linux-headers-${KERNEL_RELEASE}/tools/bpf/resolve_bt
 echo "Compiling and installing bpftool"
 cd ../bpftool &&\
 make -j"${CPU_CORES}" && make install &&\
-mv /usr/sbin/bpftool /usr/sbin/bpftool.orig && ln -s /usr/local/sbin/bpftool /usr/sbin/bpftool || exit 1
+mv /usr/sbin/bpftool /usr/sbin/bpftool.orig ; ln -s /usr/local/sbin/bpftool /usr/sbin/bpftool || exit 1
 
 echo "Compiling and installing Lunatik"
 if [ -d "${LUNATIK_DIR}" ]; then
@@ -41,7 +41,7 @@ else
   git clone --recurse-submodules https://github.com/luainkernel/lunatik "${LUNATIK_DIR}"
   cd "${LUNATIK_DIR}"
 fi
-make -j"${CPU_CORES}" KERNEL_RELEASE="${KERNEL_RELEASE}" && make KERNEL_RELEASE="${KERNEL_RELEASE}" install && rm -r /usr/local/src/"linux-${KERNEL_VERSION}" || exit 1
+make -j"${CPU_CORES}" KERNEL_RELEASE="${KERNEL_RELEASE}" && make KERNEL_RELEASE="${KERNEL_RELEASE}" install || exit 1
 
 echo "Compiling and installing xdp-loader" &&\
 if [ -d "${XDP_DIR}" ]; then
@@ -52,5 +52,6 @@ else
 fi
 cd "${XDP_DIR}"/lib/libbpf/src && make && sudo DESTDIR=/ make install &&\
 cd ../../../ && make clean && make -j"${CPU_CORES}" libxdp &&\
-cd xdp-loader && make && sudo make install
+cd xdp-loader && make && sudo make install || exit 1
 
+rm -r /usr/local/src/"linux-${KERNEL_VERSION}"
