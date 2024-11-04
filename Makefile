@@ -6,6 +6,7 @@ MODULES_INSTALL_PATH = /lib/modules/${KERNEL_RELEASE}
 SCRIPTS_INSTALL_PATH = /lib/modules/lua
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
+MOONTASTIK_RELEASE ?= v0.1c
 LUA_API = lua/lua.h lua/lauxlib.h lua/lualib.h
 KDIR ?= ${MODULES_INSTALL_PATH}/build
 RM = rm -f
@@ -88,4 +89,15 @@ uninstall: scripts_uninstall modules_uninstall
 
 lunatik_sym.h: $(LUA_API)
 	${shell ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
+
+moontastik_install_%:
+	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)
+	wget https://github.com/luainkernel/moontastik/releases/download/${MOONTASTIK_RELEASE}/moontastik_lua.zip -O moontastik_lua.zip
+	[ -d moontastik_lua ] && ${RM} -r moontastik_lua || true
+	unzip moontastik_lua.zip
+	cd moontastik_lua/"$*" && ./install.sh ; cd -
+
+moontastik_uninstall_%:
+	[ $* ] || (echo "usage: make moontastik_uninstall_TARGET" ; exit 1)
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/$*
 
