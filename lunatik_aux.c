@@ -66,7 +66,9 @@ EXPORT_SYMBOL(lunatik_loadfile);
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
 #include <linux/kprobes.h>
 
+#ifdef CONFIG_KPROBES
 static unsigned long (*__lunatik_lookup)(const char *) = NULL;
+#endif /* CONFIG_KPROBES */
 
 void *lunatik_lookup(const char *symbol)
 {

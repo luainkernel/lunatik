@@ -26,6 +26,7 @@ typedef struct luanotifier_s {
 	bool running;
 } luanotifier_t;
 
+#if 0
 static int luanotifier_keyboard_handler(lua_State *L, void *data)
 {
 	struct keyboard_notifier_param *param = (struct keyboard_notifier_param *)data;
@@ -35,6 +36,7 @@ static int luanotifier_keyboard_handler(lua_State *L, void *data)
 	lua_pushinteger(L, (lua_Integer)(param->value));
 	return 3;
 }
+#endif
 
 static int luanotifier_netdevice_handler(lua_State *L, void *data)
 {
@@ -91,7 +93,9 @@ static int luanotifier_##name(lua_State *L)					\
 		unregister_##name##_notifier, luanotifier_##name##_handler);	\
 }
 
+#if 0
 LUANOTIFIER_NEWCHAIN(keyboard);
+#endif
 LUANOTIFIER_NEWCHAIN(netdevice);
 
 static void luanotifier_release(void *private)
@@ -145,7 +149,9 @@ static int luanotifier_delete(lua_State *L)
 }
 
 static const luaL_Reg luanotifier_lib[] = {
+#if 0
 	{"keyboard", luanotifier_keyboard},
+#endif
 	{"netdevice", luanotifier_netdevice},
 	{NULL, NULL}
 };
@@ -164,6 +170,7 @@ static const lunatik_reg_t luanotifier_notify[] = {
 	{NULL, 0}
 };
 
+#if 0
 static const lunatik_reg_t luanotifier_kbd[] = {
 	{"KEYCODE", KBD_KEYCODE},
 	{"UNBOUND_KEYCODE", KBD_UNBOUND_KEYCODE},
@@ -172,6 +179,7 @@ static const lunatik_reg_t luanotifier_kbd[] = {
 	{"POST_KEYSYM", KBD_POST_KEYSYM},
 	{NULL, 0}
 };
+#endif
 
 static const lunatik_reg_t luanotifier_netdev[] = {
 	{"UP", NETDEV_UP},
@@ -225,7 +233,9 @@ static const lunatik_reg_t luanotifier_netdev[] = {
 
 static const lunatik_namespace_t luanotifier_flags[] = {
 	{"notify", luanotifier_notify},
+#if 0
 	{"kbd", luanotifier_kbd},
+#endif
 	{"netdev", luanotifier_netdev},
 	{NULL, NULL}
 };

@@ -1,91 +1,48 @@
-# SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
-# SPDX-License-Identifier: MIT OR GPL-2.0-only
+ifeq ($(ARCH), x86)
+	ifdef CONFIG_X86_32
+		KLIBC_ARCH := i386
+		asflags-y += -D_REGPARM
+	else
+		KLIBC_ARCH := x86_64
+	endif
+else
+	KLIBC_ARCH := $(ARCH)
+endif
 
-KERNEL_RELEASE ?= ${shell uname -r}
-MODULES_INSTALL_PATH = /lib/modules/${KERNEL_RELEASE}
-SCRIPTS_INSTALL_PATH = /lib/modules/lua
-LUNATIK_INSTALL_PATH = /usr/local/sbin
-LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
-LUA_API = lua/lua.h lua/lauxlib.h lua/lualib.h
-KDIR ?= ${MODULES_INSTALL_PATH}/build
-RM = rm -f
-MKDIR = mkdir -p -m 0755
-INSTALL = install -o root -g root
+KLIBC_USR := /klibc/usr
+#CFLAGS_lunatik.o = -D_LUNATIK -D_KERNEL -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
+ccflags-y += -D_LUNATIK -D_KERNEL -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
+	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua \
+	-I${PWD}$(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
+asflags-y += -D_LUNATIK -D_KERNEL
 
-all: lunatik_sym.h
-	${MAKE} -C ${KDIR} M=${PWD} CONFIG_LUNATIK=m	\
-	CONFIG_LUNATIK_RUN=m CONFIG_LUNATIK_RUNTIME=y CONFIG_LUNATIK_DEVICE=m	\
-	CONFIG_LUNATIK_LINUX=m CONFIG_LUNATIK_NOTIFIER=m CONFIG_LUNATIK_SOCKET=m \
-	CONFIG_LUNATIK_RCU=m CONFIG_LUNATIK_THREAD=m CONFIG_LUNATIK_FIB=m \
-	CONFIG_LUNATIK_DATA=m CONFIG_LUNATIK_PROBE=m CONFIG_LUNATIK_SYSCALL=m \
-	CONFIG_LUNATIK_XDP=m CONFIG_LUNATIK_FIFO=m CONFIG_LUNATIK_XTABLE=m \
-	CONFIG_LUNATIK_NETFILTER=m CONFIG_LUNATIK_COMPLETION=m
+obj-m += lunatik.o
 
-clean:
-	${MAKE} -C ${KDIR} M=${PWD} clean
-	${MAKE} -C examples/filter clean
-	${RM} lunatik_sym.h
+lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
+	lua/ldump.o lua/lfunc.o lua/lgc.o lua/llex.o lua/lmem.o \
+	lua/lobject.o lua/lopcodes.o lua/lparser.o lua/lstate.o \
+	lua/lstring.o lua/ltable.o lua/ltm.o \
+	lua/lundump.o lua/lvm.o lua/lzio.o lua/lauxlib.o lua/lbaselib.o \
+	lua/lcorolib.o lua/ldblib.o lua/lstrlib.o \
+	lua/ltablib.o lua/lutf8lib.o lua/lmathlib.o lua/linit.o \
+	lua/loadlib.o $(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/setjmp.o \
+	lunatik_aux.o lunatik_obj.o lunatik_core.o
 
-scripts_install:
-	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/lunatik
-	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/socket
-	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/syscall
-	${INSTALL} -m 0644 driver.lua ${SCRIPTS_INSTALL_PATH}/
-	${INSTALL} -m 0644 lib/mailbox.lua ${SCRIPTS_INSTALL_PATH}/
-	${INSTALL} -m 0644 lib/lunatik/*.lua ${SCRIPTS_INSTALL_PATH}/lunatik
-	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
-	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
-	${INSTALL} -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}
+obj-m += lunatik_run.o
 
-scripts_uninstall:
-	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
-	${RM} ${SCRIPTS_INSTALL_PATH}/runner.lua
-	${RM} ${SCRIPTS_INSTALL_PATH}/mailbox.lua
-	${RM} -r ${SCRIPTS_INSTALL_PATH}/lunatik
-	${RM} -r ${SCRIPTS_INSTALL_PATH}/socket
-	${RM} -r ${SCRIPTS_INSTALL_PATH}/syscall
-	${RM} ${LUNATIK_INSTALL_PATH}/lunatik
-
-examples_install:
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples
-	${INSTALL} -m 0644 examples/*.lua ${SCRIPTS_INSTALL_PATH}/examples
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/echod
-	${INSTALL} -m 0644 examples/echod/*.lua ${SCRIPTS_INSTALL_PATH}/examples/echod
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/filter
-	${INSTALL} -m 0644 examples/filter/*.lua ${SCRIPTS_INSTALL_PATH}/examples/filter
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsblock
-	${INSTALL} -m 0644 examples/dnsblock/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsblock
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
-	${INSTALL} -m 0644 examples/dnsdoctor/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
-
-.PHONY: ebpf
-examples:
-	${MAKE} -C examples/filter
-
-ebpf_install:
-	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
-	${INSTALL} -m 0644 examples/filter/https.o ${LUNATIK_EBPF_INSTALL_PATH}/
-
-examples_uninstall:
-	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
-	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}
-
-modules_install:
-	${MKDIR} ${MODULES_INSTALL_PATH}/lunatik
-	${INSTALL} -m 0644 *.ko lib/*.ko ${MODULES_INSTALL_PATH}/lunatik
-
-btf_install:
-	cp /sys/kernel/btf/vmlinux ${KDIR}
-
-modules_uninstall:
-	${RM} -r ${MODULES_INSTALL_PATH}/lunatik
-
-install: scripts_install modules_install
-	depmod -a
-
-uninstall: scripts_uninstall modules_uninstall
-	depmod -a
-
-lunatik_sym.h: $(LUA_API)
-	${shell ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
+obj-m += lib/luadevice.o
+obj-m += lib/lualinux.o
+obj-m += lib/luanotifier.o
+obj-m += lib/luasocket.o
+obj-m += lib/luarcu.o
+obj-m += lib/luathread.o
+obj-m += lib/luafib.o
+obj-m += lib/luadata.o
+obj-m += lib/luaprobe.o
+obj-m += lib/luasyscall.o
+#obj-m += lib/luaxdp.o
+obj-m += lib/luafifo.o
+obj-m += lib/luaxtable.o
+obj-m += lib/luanetfilter.o
+obj-m += lib/luacompletion.o
 

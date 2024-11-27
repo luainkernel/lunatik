@@ -90,7 +90,9 @@ static const lunatik_reg_t luanetfilter_arp_hooks[] = {
 
 const lunatik_reg_t luanetfilter_netdev_hooks[] = {
     {"INGRESS", NF_NETDEV_INGRESS},
+#if 0
     {"EGRESS", NF_NETDEV_EGRESS},
+#endif
     {NULL, 0}
 };
 

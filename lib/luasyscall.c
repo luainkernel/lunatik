@@ -366,6 +366,7 @@ static const lunatik_reg_t luasyscall_numbers[] = {
 #ifdef __ARCH_WANT_SYS_CLONE3
 	{"clone3", __NR_clone3},
 #endif
+#if 0
 	{"close_range", __NR_close_range},
 	{"openat2", __NR_openat2},
 	{"pidfd_getfd", __NR_pidfd_getfd},
@@ -377,10 +378,13 @@ static const lunatik_reg_t luasyscall_numbers[] = {
 	{"landlock_create_ruleset", __NR_landlock_create_ruleset},
 	{"landlock_add_rule", __NR_landlock_add_rule},
 	{"landlock_restrict_self", __NR_landlock_restrict_self},
+#endif
 #ifdef __ARCH_WANT_MEMFD_SECRET
 	{"memfd_secret", __NR_memfd_secret},
 #endif
+#if 0
 	{"process_mrelease", __NR_process_mrelease},
+#endif
 #if __BITS_PER_LONG == 64 && !defined(__SYSCALL_COMPAT)
 	{"fcntl", __NR_fcntl},
 	{"statfs", __NR_statfs},
