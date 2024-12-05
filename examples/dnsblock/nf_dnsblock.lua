@@ -12,8 +12,6 @@ local action = nf.action
 local hooks = nf.inet_hooks
 local priority = nf.ip_priority
 
-local function nop() end
-
 local function dnsblock_hook(skb)
 	local proto = skb:getuint8(9)
 	local ihl = (skb:getuint8(0) & 0x0F)

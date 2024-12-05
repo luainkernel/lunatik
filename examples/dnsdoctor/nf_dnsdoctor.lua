@@ -15,8 +15,6 @@ local pri = nf.ip_priority
 
 local udp = 0x11
 
-local function nop() end
-
 local function dnsdoctor_hook(skb)
 	local proto = skb:getuint8(9)
 	local ihl = (skb:getuint8(0) & 0x0F)
