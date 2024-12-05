@@ -3,9 +3,11 @@
 *.ko
 *.mod
 *.mod.*
+*.so
 Module.symvers
 modules.builtin
 modules.order
 build/
 lunatik_sym.h
 moontastik*
+dnstest
