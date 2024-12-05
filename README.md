@@ -1154,11 +1154,11 @@ _xdp.action_ is a table that exports
 [xdp_action](https://elixir.bootlin.com/linux/v6.4/source/include/uapi/linux/bpf.h#L6187)
 flags to Lua.
 
-* `"ABORTED"`: n/a.
-* `"DROP"`: n/a.
-* `"PASS"`: n/a.
-* `"TX"`: n/a.
-* `"REDIRECT"`: n/a.
+* `"ABORTED"`: Indicates that the XDP program aborted, typically due to an error.
+* `"DROP"`: Specifies that the packet should be dropped, discarding it entirely.
+* `"PASS"`: Allows the packet to pass through to the Linux network stack.
+* `"TX"`: Transmits the packet back out on the same interface it was received.
+* `"REDIRECT"`: Redirects the packet to another interface or processing context.
 
 ### xtable
 
