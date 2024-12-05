@@ -7,7 +7,6 @@
 
 local nf = require("netfilter")
 local linux = require("linux")
-local string = require("string")
 local action = nf.action
 local dns = 0x35
 

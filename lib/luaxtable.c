@@ -195,7 +195,7 @@ static inline lunatik_object_t *luaxtable_new(lua_State *L, int idx, int hook)
 
 	xtable->type = hook;
 	xtable->runtime = NULL;
-	luanetfilter_newbuffer(L, idx, xtable, skb);
+	luanetfilter_newbuffer(L, xtable, skb);
 	return object;
 }
 

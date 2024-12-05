@@ -105,7 +105,7 @@ static int luanetfilter_register(lua_State *L)
 	luaL_checktype(L, 1, LUA_TTABLE);
 	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class , sizeof(luanetfilter_t));
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
-	luanetfilter_newbuffer(L, 1, nf, skb);
+	luanetfilter_newbuffer(L, nf, skb);
 	nf->runtime = NULL;
 
 	struct nf_hook_ops *nfops = &nf->nfops;
