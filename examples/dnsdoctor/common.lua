@@ -17,9 +17,8 @@ local function get_domain(skb, off)
 	return name, nameoff + 1
 end
 
-function common.hook(skb, thoff, target_dns, target_ip, dst_ip)
-	local packetdst = skb:getuint32(16)
-	if packetdst ~= linux.hton32(dst_ip) then
+function common.hook(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
+	if packet_dst ~= linux.hton32(dst_ip) then
 		return action.ACCEPT
 	end
 
@@ -31,7 +30,6 @@ function common.hook(skb, thoff, target_dns, target_ip, dst_ip)
 		-- check the domain name
 		dnsoff = dnsoff + 12
 		local domainname, nameoff = get_domain(skb, dnsoff)
-
 		if domainname == target_dns then
 			dnsoff = dnsoff + nameoff + 4 -- skip over type, label fields
 			-- iterate over answers
