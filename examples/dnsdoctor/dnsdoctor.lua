@@ -16,8 +16,9 @@ local function nop() end
 local function dnsdoctor_tg(skb, par, userargs)
 	local target_dns, dst_ip, target_ip = string.unpack(">s4I4I4", userargs)
 	local thoff = par.thoff
+	local packet_dst = skb:getuint32(16)
 
-	return common.hook(skb, thoff, target_dns, target_ip, dst_ip)
+	return common.hook(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
 end
 
 xt.target{
