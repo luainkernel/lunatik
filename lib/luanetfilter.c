@@ -45,7 +45,11 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 		pr_err("could not get skb\n");
 		return -1;
 	}
-	luadata_reset(data, skb->data, skb_headlen(skb), LUADATA_OPT_NONE);
+
+	if (skb_mac_header_was_set(skb))
+		luadata_reset(data, skb_mac_header(skb), skb_headlen(skb) + skb_mac_header_len(skb), LUADATA_OPT_NONE);
+	else
+		luadata_reset(data, skb->data, skb_headlen(skb), LUADATA_OPT_NONE);
 
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
 		pr_err("luanetfilter hook: pcall error %s\n", lua_tostring(L, -1));

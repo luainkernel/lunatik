@@ -14,13 +14,15 @@ local hooks = nf.inet_hooks
 local pri = nf.ip_priority
 
 local udp = 0x11
+local eth_len = 14
 
 local function nop() end
 
 local function dnsdoctor_hook(skb)
-	local proto = skb:getuint8(9)
-	local ihl = (skb:getuint8(0) & 0x0F)
-	local thoff = ihl * 4
+	local proto = skb:getuint8(eth_len + 9)
+	local ihl = skb:getuint8(eth_len) & 0x0F
+	local thoff = eth_len + ihl * 4
+	local packet_dst = skb:getuint32(eth_len + 16)
 
 	if proto ~= udp then
 		return action.ACCEPT
@@ -35,7 +37,7 @@ local function dnsdoctor_hook(skb)
 	local dst_ip = 0
 	dst:gsub("%d+", function(s) dst_ip = dst_ip * 256 + tonumber(s) end)
 
-	return common.hook(skb, thoff, target_dns, target_ip, dst_ip)
+	return common.hook(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
 end
 
 nf.register{
