@@ -47,6 +47,17 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/syscall
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik
 
+.PHONY: ebpf
+ebpf:
+	${MAKE} -C examples/filter
+
+ebpf_install:
+	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
+	${INSTALL} -m 0644 examples/filter/https.o ${LUNATIK_EBPF_INSTALL_PATH}/
+
+ebpf_uninstall:
+	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}
+
 examples_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples
 	${INSTALL} -m 0644 examples/*.lua ${SCRIPTS_INSTALL_PATH}/examples
@@ -59,17 +70,8 @@ examples_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
 	${INSTALL} -m 0644 examples/dnsdoctor/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
 
-.PHONY: ebpf
-examples:
-	${MAKE} -C examples/filter
-
-ebpf_install:
-	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
-	${INSTALL} -m 0644 examples/filter/https.o ${LUNATIK_EBPF_INSTALL_PATH}/
-
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
-	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}
 
 modules_install:
 	${MKDIR} ${MODULES_INSTALL_PATH}/lunatik
