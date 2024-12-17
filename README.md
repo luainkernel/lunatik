@@ -1213,7 +1213,7 @@ This function receives the following arguments:
   * `hooknum`:	hook to attach the filter to, one value from either of the hooks table - [netfilter.inet_hooks](https://github.com/luainkernel/lunatik#netfilterinet_hooks), [netfilter.bridge_hooks](https://github.com/luainkernel/lunatik#netfilterbridge_hooks), [netfilter.arp_hooks](https://github.com/luainkernel/lunatik#netfilterarp_hooks) and [netfilter.netdev_hooks](https://github.com/luainkernel/lunatik#netfilternetdev_hooks). (E.g - `inet_hooks.LOCAL_OUT + 11`).
   * `priority`:	priority of the hook. One of the values from the [netfilter.ip_priority](https://github.com/luainkernel/lunatik#netfilterip_priority) or [netfilter.bridge_priority](https://github.com/luainkernel/lunatik#netfilterbridge_priority) tables.
   * `hook`: function to be called for the hook. It receives the following arguments:
-	* `skb`: a `data` object representing the socket buffer.
+	* `skb`: a `data` object representing the socket buffer. The object points to the beginning of the packet. In stardard cases, where the Ethernet header is present, it points to its start. Otherwise, the object points to the start of the IP header (E.g - for hooks in `LOCAL_OUT`).
 	* The function must return one of the values defined by the [netfilter.action](https://github.com/luainkernel/lunatik#netfilteraction).
 
 #### `netfilter.family`
@@ -1567,7 +1567,7 @@ The system logs (in the first terminal) should display `filter_sni: ebpf.io DROP
 ### dnsblock
 
 [dnsblock](examples/dnsblock) is a kernel script that uses the lunatik xtable library to filter DNS packets.
-This script drops any outbound DNS packet with question matching the blacklist provided by the user.
+This script drops any outbound DNS packet with question matching the blacklist provided by the user. By default, it will block DNS resolutions for the domains `github.com` and `gitlab.com`.
 
 #### Usage
 
