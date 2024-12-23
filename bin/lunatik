@@ -42,7 +42,7 @@ function lunatik.dostring(chunk)
 end
 
 function lunatik.usage()
-	print("usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]")
+	print("usage: lunatik [load|unload|reload|status|list] [run|percpu|spawn|stop <script>]")
 	os.exit(false)
 end
 
@@ -111,7 +111,7 @@ local function set(t)
 	return s
 end
 
-local tokens = set{"run", "spawn", "stop", "list"}
+local tokens = set{"run", "spawn", "percpu", "stop", "list"}
 
 if #arg >= 1 then
 	local token = arg[1]
