@@ -42,7 +42,7 @@ obj-m += lib/luaprobe.o
 obj-m += lib/luasyscall.o
 #obj-m += lib/luaxdp.o
 obj-m += lib/luafifo.o
-obj-m += lib/luaxtable.o
+#obj-m += lib/luaxtable.o
 obj-m += lib/luanetfilter.o
 obj-m += lib/luacompletion.o
 
