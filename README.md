@@ -41,6 +41,12 @@ Install dependencies (here for Debian/Ubuntu, to be adapted to one's distributio
 sudo apt install git build-essential lua5.4 dwarves clang llvm libelf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
 ```
 
+Install dependencies (here for Arch Linux):
+
+```sh
+sudo pacman -S git lua clang llvm m4 libpcap pkg-config build2 linux-tools linux-headers
+```
+
 Compile and install `lunatik`:
 
 ```sh
