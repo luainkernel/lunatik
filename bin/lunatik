@@ -54,7 +54,7 @@ end
 lunatik.commands = {
 	['load'] = function ()
 		for _, module in ipairs(lunatik.modules) do
-			local path = "/lib/modules/`uname -r`/lunatik"
+			local path = "/lib/modules/`uname -r`"
 			lunatik.sh("modprobe $MODULE || insmod " .. path .. "/$MODULE.ko", module)
 		end
 
