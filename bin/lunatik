@@ -8,7 +8,7 @@ local lunatik = {
 	copyright = "Copyright (C) 2023-2024 ring-0 Ltda.",
 	device = "/dev/lunatik",
 	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu",
-		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo", "luaxtable",
+		"luathread", "luadata", "luafifo",
 		"luanetfilter", "luacompletion", "lunatik_run"}
 }
 
