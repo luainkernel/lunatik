@@ -1,34 +1,12 @@
 --
--- SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only 
 --
 
 local socket = require("socket")
+local net = require("net")
 
 local inet = {localhost = '127.0.0.1'}
-
-function inet.aton(addr)
-	local i = 1
-	local bits = {24, 16, 8, 0}
-	local ip = 0
-	for n in string.gmatch(addr, "(%d+)") do
-		n = tonumber(n) & 0xFF
-  		ip = ip | (n << bits[i])
-  		i = i + 1
-	end
-	return ip
-end
-
-function inet.ntoa(ip)
-	local n = 4
-	local bytes = {}
-	for i = 1, n do
-		local shift = (n - i) * 8
-		local mask = 0xFF << shift
-		bytes[i] = (ip & mask) >> shift
-	end
-	return table.concat(bytes, '.')
-end
 
 function inet:new(o)
 	local o = o or {}
@@ -54,22 +32,22 @@ end
 
 function inet:send(msg, addr, port)
 	local sock = self.socket
-	return not addr and sock:send(msg) or sock:send(msg, inet.aton(addr), port)
+	return not addr and sock:send(msg) or sock:send(msg, net.aton(addr), port)
 end
 
 function inet:bind(addr, port)
-	local ip = addr ~= '*' and inet.aton(addr) or 0
+	local ip = addr ~= '*' and net.aton(addr) or 0
 	return self.socket:bind(ip, port)
 end
 
 function inet:connect(addr, port, flags)
-	self.socket:connect(inet.aton(addr), port, flags)
+	self.socket:connect(net.aton(addr), port, flags)
 end
 
 function inet:getaddr(what)
 	local socket = self.socket
 	local ip, port = socket['get' .. what](socket)
-	return inet.ntoa(ip), port
+	return net.ntoa(ip), port
 end
 
 function inet:getsockname()
@@ -96,7 +74,7 @@ inet.udp = inet:new{type = sock.DGRAM, proto = ipproto.UDP}
 
 function inet.udp:receivefrom(len, flags)
 	local msg, ip, port = self:receive(len, flags, true)
-	return msg, inet.ntoa(ip), port
+	return msg, net.ntoa(ip), port
 end
 
 inet.udp.sendto = inet.udp.send
