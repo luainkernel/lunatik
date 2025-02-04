@@ -873,6 +873,26 @@ It overrides `socket` methods to use addresses as _numbers-and-dots notation_
 
 _udp:receivefrom()_ is just an alias to `sock:receive(length, flags, true)`.
 
+### net
+
+The `net` library provides utility functions for working with IPv4 addresses.
+
+#### `net.aton(addr)`
+
+_net.aton()_ converts an IPv4 address from dotted-decimal notation (e.g., `"127.0.0.1"`) to its integer representation.
+
+* `addr`: A string representing the IPv4 address in dotted-decimal notation.
+
+Returns the integer representation of the IPv4 address.
+
+#### `net.ntoa(ip)`
+
+_net.ntoa()_ converts an IPv4 address from its integer representation to dotted-decimal notation (e.g., `"127.0.0.1"`).
+
+* `ip`: An integer representing the IPv4 address.
+
+Returns the dotted-decimal string representation of the IPv4 address.
+
 ### rcu
 
 The `rcu` library provides support for the kernel
