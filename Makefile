@@ -14,7 +14,7 @@ KLIBC_USR := /klibc/usr
 ccflags-y += -D_LUNATIK -D_KERNEL -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
 	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua \
 	-I${PWD}$(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
-asflags-y += -D_LUNATIK -D_KERNEL
+asflags-y += -D_LUNATIK -D_KERNEL -I${PWD}$(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
 
 obj-m += lunatik.o
 
