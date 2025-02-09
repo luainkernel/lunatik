@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2024-2025 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -366,21 +366,39 @@ static const lunatik_reg_t luasyscall_numbers[] = {
 #ifdef __ARCH_WANT_SYS_CLONE3
 	{"clone3", __NR_clone3},
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
 	{"close_range", __NR_close_range},
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 	{"openat2", __NR_openat2},
 	{"pidfd_getfd", __NR_pidfd_getfd},
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 	{"faccessat2", __NR_faccessat2},
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	{"process_madvise", __NR_process_madvise},
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 	{"epoll_pwait2", __NR_epoll_pwait2},
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 	{"mount_setattr", __NR_mount_setattr},
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0)
 	{"quotactl_fd", __NR_quotactl_fd},
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 	{"landlock_create_ruleset", __NR_landlock_create_ruleset},
 	{"landlock_add_rule", __NR_landlock_add_rule},
 	{"landlock_restrict_self", __NR_landlock_restrict_self},
+#endif
 #ifdef __ARCH_WANT_MEMFD_SECRET
 	{"memfd_secret", __NR_memfd_secret},
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	{"process_mrelease", __NR_process_mrelease},
+#endif
 #if __BITS_PER_LONG == 64 && !defined(__SYSCALL_COMPAT)
 	{"fcntl", __NR_fcntl},
 	{"statfs", __NR_statfs},
