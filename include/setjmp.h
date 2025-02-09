@@ -6,7 +6,7 @@
 #ifndef lunatik_setjmp_h
 #define lunatik_setjmp_h
 
-#include <linux/ctype.h>
+#include <linux/types.h>
 
 #include <klibc/archconfig.h>
 #include <klibc/archsetjmp.h>
