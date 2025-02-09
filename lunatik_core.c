@@ -73,8 +73,9 @@ static int lunatik_lcopyobjects(lua_State *L)
 	lua_State *Lfrom = (lua_State *)lua_touserdata(L, 1);
 	int ixfrom = lua_tointeger(L, 2);
 	int nobjects = lua_tointeger(L, 3);
+	int i;
 
-	for (int i = 0; i < nobjects; i++) {
+	for (i = 0; i < nobjects; i++) {
 		lunatik_object_t *object = lunatik_testobject(Lfrom, ixfrom + i);
 
 		luaL_argcheck(L, object != NULL, i + 1, "invalid object");
