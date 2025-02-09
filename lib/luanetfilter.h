@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2024 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
+* SPDX-FileCopyrightText: (c) 2024-2025 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -90,7 +90,9 @@ static const lunatik_reg_t luanetfilter_arp_hooks[] = {
 
 const lunatik_reg_t luanetfilter_netdev_hooks[] = {
     {"INGRESS", NF_NETDEV_INGRESS},
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
     {"EGRESS", NF_NETDEV_EGRESS},
+#endif
     {NULL, 0}
 };
 
