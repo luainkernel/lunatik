@@ -268,7 +268,9 @@ static const lunatik_reg_t luasocket_af[] = {
 	{"QIPCRTR", AF_QIPCRTR},
 	{"SMC", AF_SMC},
 	{"XDP", AF_XDP},
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	{"MCTP", AF_MCTP},
+#endif
 	{"MAX", AF_MAX},
 	{NULL, 0}
 };
@@ -345,9 +347,13 @@ static const lunatik_reg_t luasocket_ipproto[] = {
 	{"SCTP", IPPROTO_SCTP},
 	{"UDPLITE", IPPROTO_UDPLITE},
 	{"MPLS", IPPROTO_MPLS},
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 	{"ETHERNET", IPPROTO_ETHERNET},
+#endif
 	{"RAW", IPPROTO_RAW},
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 	{"MPTCP", IPPROTO_MPTCP},
+#endif
 	{NULL, 0}
 };
 
