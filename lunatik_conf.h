@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -38,6 +38,12 @@
 #include <linux/random.h>
 #define luai_makeseed(L)		get_random_u32()
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#include <linux/stdarg.h>
+#else
+#include <stdarg.h>
+#endif
 #define lua_writestring(s,l)		printk("%s",(s))
 #define lua_writeline()			pr_cont("\n")
 #define lua_writestringerror(...)	pr_err(__VA_ARGS__)
