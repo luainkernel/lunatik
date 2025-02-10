@@ -38,6 +38,7 @@
 #include <linux/random.h>
 #define luai_makeseed(L)		get_random_u32()
 
+#include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 #include <linux/stdarg.h>
 #else
