@@ -87,14 +87,32 @@ out:
 	return action;
 }
 
+#define LUAXDP_SCRIPT_LEN	128
+#define LUAXDP_SUFFIX_LEN 	4
+#define LUAXDP_KEY_LEN		(LUAXDP_SCRIPT_LEN + LUAXDP_SUFFIX_LEN)
+
 __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)
 {
+	char buf[LUAXDP_KEY_LEN];
 	lunatik_object_t *runtime;
 	struct xdp_buff *ctx = (struct xdp_buff *)xdp_ctx;
+	unsigned int cpuid = smp_processor_id();
 	int action = -1;
 	size_t keylen = key__sz - 1;
 
 	key[keylen] = '\0';
+
+	if (key__sz + LUAXDP_SUFFIX_LEN > LUAXDP_KEY_LEN) {
+		pr_err("runtime name is too long");
+		goto out;
+	}
+
+	keylen = snprintf(buf, LUAXDP_KEY_LEN, "%s:%d", key, cpuid);
+	key = buf;
+
+	if (keylen > LUAXDP_KEY_LEN)
+		keylen = LUAXDP_KEY_LEN;
+
 	if ((runtime = luarcu_gettable(luaxdp_runtimes, key, keylen)) == NULL) {
 		pr_err("couldn't find runtime '%s'\n", key);
 		goto out;

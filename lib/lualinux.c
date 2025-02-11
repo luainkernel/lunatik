@@ -117,6 +117,19 @@ static int lualinux_ifindex(lua_State *L)
 	return 1;
 }
 
+static int lualinux_percpu(lua_State *L)
+{
+	int cpu;
+
+	luaL_checktype(L, 1, LUA_TFUNCTION);
+	for_each_present_cpu(cpu) {
+		lua_pushvalue(L, 1);
+		lua_pushinteger(L, cpu);
+		lua_call(L, 1, 1);
+	}
+	return 0;
+}
+
 #define LUALINUX_NEW_BYTESWAPPER(func, T) \
 static int lualinux_##func(lua_State *L) \
 { \
@@ -226,6 +239,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"difftime", lualinux_difftime},
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
+	{"percpu", lualinux_percpu},
 	{"ntoh16", lualinux_be16_to_cpu},
 	{"ntoh32", lualinux_be32_to_cpu},
 	{"hton16", lualinux_cpu_to_be16},
