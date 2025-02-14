@@ -1,11 +1,11 @@
 #!/usr/bin/lua5.4
 --
--- SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
 local lunatik = {
-	copyright = "Copyright (C) 2023-2024 ring-0 Ltda.",
+	copyright = "Copyright (C) 2023-2025 ring-0 Ltda.",
 	device = "/dev/lunatik",
 	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu",
 		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo", "luaxtable",
@@ -54,8 +54,7 @@ end
 lunatik.commands = {
 	['load'] = function ()
 		for _, module in ipairs(lunatik.modules) do
-			local path = "/lib/modules/`uname -r`/lunatik"
-			lunatik.sh("modprobe -q $MODULE || insmod " .. path .. "/$MODULE.ko", module)
+			lunatik.sh("modprobe $MODULE", module)
 		end
 
 		if not lunatik.probe() then

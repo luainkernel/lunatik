@@ -1,20 +1,25 @@
-# SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 
 KERNEL_RELEASE ?= ${shell uname -r}
-MODULES_INSTALL_PATH = /lib/modules/${KERNEL_RELEASE}
-SCRIPTS_INSTALL_PATH = /lib/modules/lua
+MODULES_PATH := /lib/modules
+MODULES_RELEASE_PATH := ${MODULES_PATH}/${KERNEL_RELEASE}
+MODULES_ORDER_LIST := lunatik/lunatik.ko kernel/zfs/zfs.ko # needed for Ubuntu
+MODULES_ORDER_FILE := ${MODULES_RELEASE_PATH}/modules.order
+MODULES_BUILD_PATH ?= ${MODULES_RELEASE_PATH}/build
+MODULES_INSTALL_PATH := ${MODULES_RELEASE_PATH}/kernel
+SCRIPTS_INSTALL_PATH := ${MODULES_PATH}/lua
+
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
 MOONTASTIK_RELEASE ?= v0.1c
 LUA_API = lua/lua.h lua/lauxlib.h lua/lualib.h
-KDIR ?= ${MODULES_INSTALL_PATH}/build
 RM = rm -f
 MKDIR = mkdir -p -m 0755
 INSTALL = install -o root -g root
 
 all: lunatik_sym.h
-	${MAKE} -C ${KDIR} M=${PWD} CONFIG_LUNATIK=m	\
+	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} CONFIG_LUNATIK=m	\
 	CONFIG_LUNATIK_RUN=m CONFIG_LUNATIK_RUNTIME=y CONFIG_LUNATIK_DEVICE=m	\
 	CONFIG_LUNATIK_LINUX=m CONFIG_LUNATIK_NOTIFIER=m CONFIG_LUNATIK_SOCKET=m \
 	CONFIG_LUNATIK_RCU=m CONFIG_LUNATIK_THREAD=m CONFIG_LUNATIK_FIB=m \
@@ -23,7 +28,7 @@ all: lunatik_sym.h
 	CONFIG_LUNATIK_NETFILTER=m CONFIG_LUNATIK_COMPLETION=m
 
 clean:
-	${MAKE} -C ${KDIR} M=${PWD} clean
+	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
 	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h
 
@@ -80,18 +85,24 @@ modules_install:
 	${INSTALL} -m 0644 *.ko lib/*.ko ${MODULES_INSTALL_PATH}/lunatik
 
 btf_install:
-	cp /sys/kernel/btf/vmlinux ${KDIR}
+	cp /sys/kernel/btf/vmlinux ${MODULES_BUILD_PATH}
 
 modules_uninstall:
 	${RM} -r ${MODULES_INSTALL_PATH}/lunatik
 
 install: scripts_install modules_install
+	for mod in $(MODULES_ORDER_LIST); do \
+		grep -qxF "$$mod" $(MODULES_ORDER_FILE) || echo "$$mod" >> $(MODULES_ORDER_FILE); \
+	done
 	depmod -a
 
 uninstall: scripts_uninstall modules_uninstall
+	for mod in $(MODULES_ORDER_LIST); do \
+		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
+	done
 	depmod -a
 
-lunatik_sym.h: $(LUA_API)
+lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
 moontastik_install_%:
