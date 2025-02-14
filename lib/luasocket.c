@@ -64,9 +64,9 @@ static void luasocket_checkaddr(lua_State *L, struct socket *socket, luasocket_a
 		addr_in->sin_addr.s_addr = htonl((u32)luaL_checkinteger(L, ix));
 		addr_in->sin_port = htons((u16)luaL_checkinteger(L, ix + 1));
 	}
-	else if (addr->family == AF_PACKET) {
+	else if (addr->family == AF_PACKET && lua_type(L, ix) == LUA_TNUMBER) {
 		struct sockaddr_ll *addr_ll = (struct sockaddr_ll *)addr;
-		addr_ll->sll_ifindex = (int)luaL_checkinteger(L, ix);
+		addr_ll->sll_ifindex = (int)lua_tointeger(L, ix);
 	}
 	else {
 		size_t len;
