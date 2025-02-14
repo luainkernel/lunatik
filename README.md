@@ -66,7 +66,7 @@ compiled on kernel upgrade.
 
 ```
 sudo lunatik # execute Lunatik REPL
-Lunatik 3.5  Copyright (C) 2023-2024 ring-0 Ltda.
+Lunatik 3.6  Copyright (C) 2023-2025 ring-0 Ltda.
 > return 42 -- execute this line in the kernel
 42
 ```
@@ -89,7 +89,7 @@ usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]
 
 ## Lua Version
 
-Lunatik 3.4 is based on
+Lunatik 3.6 is based on
 [Lua 5.4 adapted](https://github.com/luainkernel/lua)
 to run in the kernel.
 
