@@ -30,8 +30,8 @@ function mailbox.outbox(q, e)
 end
 
 local sizeoft = string.packsize("T")
-function MailBox:receive()
-	local ok, err = self.event:wait()
+function MailBox:receive(timeout)
+	local ok, err = self.event:wait(timeout)
 	if not ok then error(err) end
 
 	local queue = self.queue
