@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -14,7 +14,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-#define LUNATIK_VERSION	"Lunatik 3.5"
+#define LUNATIK_VERSION	"Lunatik 3.6"
 
 #define lunatik_locker(o, mutex_op, spin_op)	\
 do {						\
