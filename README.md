@@ -62,6 +62,10 @@ Once done, the `debian_kernel_postinst_lunatik.sh` script from tools/ may be cop
 `/etc/kernel/postinst.d/`: this ensures `lunatik` (and also the `xdp` needed libs) will get
 compiled on kernel upgrade.
 
+### OpenWRT
+
+Install Lunatik from our [package feed](https://github.com/luainkernel/openwrt_feed/tree/openwrt-23.05).
+
 ## Usage
 
 ```
