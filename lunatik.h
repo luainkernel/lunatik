@@ -88,6 +88,7 @@ typedef struct lunatik_object_s {
 		spinlock_t spin;
 	};
 	bool sleep;
+	gfp_t gfp;
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
@@ -109,7 +110,7 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 
 #define lunatik_malloc(L, s)	lunatik_realloc((L), NULL, (s))
 #define lunatik_free(p)		kfree(p)
-#define lunatik_gfp(runtime)	(runtime->sleep ? GFP_KERNEL : GFP_ATOMIC)
+#define lunatik_gfp(runtime)	((runtime)->gfp)
 
 static inline void *lunatik_checknull(lua_State *L, void *ptr)
 {
@@ -159,6 +160,7 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 	object->private = NULL;
 	object->class = class;
 	object->sleep = sleep;
+	object->gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_newlock(object);
 }
 
