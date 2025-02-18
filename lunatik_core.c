@@ -5,6 +5,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
+#include <linux/mm.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -23,17 +24,30 @@ static inline void lunatik_setversion(lua_State *L)
 	lua_setglobal(L, "_LUNATIK_VERSION");
 }
 
-/* based on l_alloc() @ lua/lauxlib.c */
-static void *lunatik_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
+#define lunatik_cankrealloc(p, n, f)	\
+	(((f) == GFP_ATOMIC || (n) <= PAGE_SIZE) && (!is_vmalloc_addr(p) || (p) == NULL))
+
+static void *lunatik_alloc(void *ud, void *optr, size_t osize, size_t nsize)
 {
-	lunatik_object_t *runtime;
-	(void)osize;  /* not used */
 	if (nsize == 0) {
-		kfree(ptr);
+		kvfree(optr);
 		return NULL;
 	}
-	runtime = (lunatik_object_t *)ud;
-	return krealloc(ptr, nsize, lunatik_gfp(runtime));
+
+	lunatik_object_t *runtime = (lunatik_object_t *)ud;
+	gfp_t gfp = lunatik_gfp(runtime);
+
+	if (lunatik_cankrealloc(optr, nsize, gfp))
+		return krealloc(optr, nsize, gfp);
+
+	void *nptr = gfp == GFP_KERNEL ? kvmalloc(nsize, gfp) : kmalloc(nsize, gfp);
+	if (nptr == NULL) /* if shrinking, it's safe to return optr */
+		return nsize <= osize ? optr : nptr;
+	else if (optr != NULL) {
+		memcpy(nptr, optr, min(osize, nsize));
+		kvfree(optr);
+	}
+	return nptr;
 }
 
 static inline void lunatik_runerror(lua_State *L, const char *errmsg)
@@ -194,7 +208,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		return -ENOMEM;
 	}
 
-	if ((runtime = lunatik_malloc(L, sizeof(lunatik_object_t))) == NULL) {
+	if ((runtime = kmalloc(sizeof(lunatik_object_t), GFP_KERNEL)) == NULL) {
 		lunatik_runerror(Lfrom, "failed to allocate runtime");
 		lua_close(L);
 		return -ENOMEM;
@@ -204,6 +218,9 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	lunatik_toruntime(L) = runtime;
 	runtime->private = L;
 
+	runtime->gfp = GFP_KERNEL; /* might use kvmalloc while running in process */
+	lua_setallocf(L, lunatik_alloc, runtime);
+
 	lua_pushcfunction(L, lunatik_runscript);
 	lua_pushlightuserdata(L, (void *)script);
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
@@ -212,7 +229,9 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		return -ENOEXEC;
 	}
 
-	lua_setallocf(L, lunatik_alloc, runtime);
+	if (!sleep)
+		runtime->gfp = GFP_ATOMIC;
+
 	*pruntime = runtime;
         return 0;
 }
