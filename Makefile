@@ -14,9 +14,11 @@ KLIBC_USR := /klibc/usr
 ccflags-y += -D_LUNATIK -D_KERNEL -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
 	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua \
 	-I${PWD}$(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
-asflags-y += -D_LUNATIK -D_KERNEL -I${PWD}$(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
 
 obj-m += lunatik.o
+
+setjmp.o: setjmp.S
+        $(AS) $(ASFLAGS) -o setjmp.o setjmp.S
 
 lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	lua/ldump.o lua/lfunc.o lua/lgc.o lua/llex.o lua/lmem.o \
@@ -25,7 +27,7 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	lua/lundump.o lua/lvm.o lua/lzio.o lua/lauxlib.o lua/lbaselib.o \
 	lua/lcorolib.o lua/ldblib.o lua/lstrlib.o \
 	lua/ltablib.o lua/lutf8lib.o lua/lmathlib.o lua/linit.o \
-	lua/loadlib.o $(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/setjmp.o \
+	lua/loadlib.o setjmp.o \
 	lunatik_aux.o lunatik_obj.o lunatik_core.o
 
 obj-m += lunatik_run.o
