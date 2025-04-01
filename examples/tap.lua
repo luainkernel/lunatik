@@ -3,28 +3,26 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
-local device = require("device")
-local socket = require("socket")
-local linux  = require("linux")
+local chardev = require("device.char")
+local socket_lib = require("socket")
+local linux = require("linux")
 
-local PACKET    = socket.af.PACKET
-local RAW       = socket.sock.RAW
+local PACKET    = socket_lib.af.PACKET
+local RAW       = socket_lib.sock.RAW
 local ETH_P_ALL = 0x0003
 local MTU       = 1500
 
-local function nop() end
-
 local s = linux.stat
-local tap = {name = "tap", open = nop, release = nop, mode = s.IRUGO}
+local tap = {name = "tap", mode = s.IRUGO}
 
-local socket = socket.new(PACKET, RAW, ETH_P_ALL)
-socket:bind(string.pack(">I2", ETH_P_ALL))
+local sock = socket_lib.new(PACKET, RAW, ETH_P_ALL)
+sock:bind(string.pack(">I2", ETH_P_ALL))
 
 function tap:read()
-	local frame = socket:receive(MTU)
+	local frame = sock:receive(MTU)
 	local dst, src, ethtype = string.unpack(">I6I6I2", frame)
 	return string.format("%X\t%X\t%X\t%d\n", dst, src, ethtype, #frame)
 end
 
-device.new(tap)
+chardev.new(tap)
 
