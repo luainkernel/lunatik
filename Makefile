@@ -6,9 +6,11 @@ MODULES_PATH := /lib/modules
 MODULES_RELEASE_PATH := ${MODULES_PATH}/${KERNEL_RELEASE}
 MODULES_ORDER_LIST := lunatik/lunatik.ko kernel/zfs/zfs.ko # needed for Ubuntu
 MODULES_ORDER_FILE := ${MODULES_RELEASE_PATH}/modules.order
-MODULES_BUILD_PATH ?= ${MODULES_RELEASE_PATH}/build
+BTF_INSTALL_PATH = ${MODULES_RELEASE_PATH}/build
+MODULES_BUILD_PATH ?= ${BTF_INSTALL_PATH}
 MODULES_INSTALL_PATH := ${MODULES_RELEASE_PATH}/kernel
 SCRIPTS_INSTALL_PATH := ${MODULES_PATH}/lua
+
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
@@ -85,7 +87,7 @@ modules_install:
 	${INSTALL} -m 0644 *.ko lib/*.ko ${MODULES_INSTALL_PATH}/lunatik
 
 btf_install:
-	cp /sys/kernel/btf/vmlinux ${MODULES_BUILD_PATH}
+	cp /sys/kernel/btf/vmlinux ${BTF_INSTALL_PATH}
 
 modules_uninstall:
 	${RM} -r ${MODULES_INSTALL_PATH}/lunatik
