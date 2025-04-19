@@ -100,8 +100,10 @@ static int luathread_task(lua_State *L)
 	lua_createtable(L, 0, nrec);
 	table = lua_gettop(L);
 
+#ifdef CONFIG_SMP
 	lua_pushinteger(L, task->on_cpu);
 	lua_setfield(L, table, "cpu");
+#endif
 
 	lua_pushstring(L, task->comm);
 	lua_setfield(L, table, "command");
