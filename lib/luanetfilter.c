@@ -18,6 +18,7 @@
 typedef struct luanetfilter_s {
 	lunatik_object_t *runtime;
 	lunatik_object_t *skb;
+	__u32 mark;
 	struct nf_hook_ops nfops;
 } luanetfilter_t;
 
@@ -65,13 +66,21 @@ err:
 static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_buff *skb)
 {
 	int ret;
-	if (!luanf || !luanf->runtime) {
-		pr_err("lunatik: netfilter runtime not found\n");
-		return NF_ACCEPT;
+	int policy = NF_ACCEPT;
+
+	if (unlikely(!luanf || !luanf->runtime)) {
+		pr_err("runtime not found\n");
+		goto out;
 	}
 
+	__u32 mark = luanf->mark;
+	if (likely(mark && mark != skb->mark))
+		goto out;
+
 	lunatik_run(luanf->runtime, luanetfilter_hook_cb, ret, luanf, skb);
-	return (ret < 0 || ret > NF_MAX_VERDICT) ? NF_ACCEPT : ret;
+	return (ret < 0 || ret > NF_MAX_VERDICT) ? policy : ret;
+out:
+	return policy;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
@@ -124,6 +133,10 @@ static int luanetfilter_register(lua_State *L)
 	luanetfilter_setinteger(L, 1, nfops, pf);
 	luanetfilter_setinteger(L, 1, nfops, hooknum);
 	luanetfilter_setinteger(L, 1, nfops, priority);
+
+	lua_getfield(L, 1, "mark");
+	nf->mark = lua_tointeger(L, -1);
+	lua_pop(L, 1); /* mark */
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 	if (nf_register_net_hook(&init_net, nfops) != 0)
