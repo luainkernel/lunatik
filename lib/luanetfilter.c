@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2024 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
+* SPDX-FileCopyrightText: (c) 2024-2025 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -26,24 +26,26 @@ static void luanetfilter_release(void *private);
 static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
 {
 	int ret = -1;
+
 	if (lunatik_getregistry(L, luanf) != LUA_TTABLE) {
-		pr_err("lunatik hook: could not find ops table\n");
+		pr_err("could not find ops table\n");
 		goto err;
 	}
 
 	if (lua_getfield(L, -1, "hook") != LUA_TFUNCTION) {
-		pr_err("luanetfilter hook: operation not defined");
+		pr_err("operation not defined");
 		goto err;
 	}
 
 	if (lunatik_getregistry(L, luanf->skb) != LUA_TUSERDATA) {
-		pr_err("luanetfilter hook: could not find skb");
+		pr_err("could not find skb");
 		goto err;
 	}
+
 	lunatik_object_t *data = (lunatik_object_t *)lunatik_toobject(L, -1);
 	if (unlikely(data == NULL || skb_linearize(skb) != 0)) {
 		pr_err("could not get skb\n");
-		return -1;
+		goto err;
 	}
 
 	if (skb_mac_header_was_set(skb))
@@ -52,7 +54,7 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 		luadata_reset(data, skb->data, skb_headlen(skb), LUADATA_OPT_NONE);
 
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
-		pr_err("luanetfilter hook: pcall error %s\n", lua_tostring(L, -1));
+		pr_err("%s\n", lua_tostring(L, -1));
 		goto err;
 	}
 	ret = lua_tointeger(L, -1);
@@ -119,17 +121,16 @@ static int luanetfilter_register(lua_State *L)
 	nfops->hook = luanetfilter_hook;
 	nfops->dev = NULL;
 	nfops->priv = nf;
-	lunatik_setinteger(L, 1, nfops, pf);
-	lunatik_setinteger(L, 1, nfops, hooknum);
-	lunatik_setinteger(L, 1, nfops, priority);
+	luanetfilter_setinteger(L, 1, nfops, pf);
+	luanetfilter_setinteger(L, 1, nfops, hooknum);
+	luanetfilter_setinteger(L, 1, nfops, priority);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 	if (nf_register_net_hook(&init_net, nfops) != 0)
-		luaL_error(L, "failed to register netfilter hook");
 #else
 	if (nf_register_hook(nfops) != 0)
-		luaL_error(L, "failed to register netfilter hook");
 #endif
+		luaL_error(L, "failed to register netfilter hook");
 	lunatik_setruntime(L, netfilter, nf);
 	lunatik_getobject(nf->runtime);
 	lunatik_registerobject(L, 1, object);
