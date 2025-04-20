@@ -1245,6 +1245,8 @@ This function receives the following arguments:
   * `hook`: function to be called for the hook. It receives the following arguments:
 	* `skb`: a `data` object representing the socket buffer. The object points to the beginning of the packet. In stardard cases, where the Ethernet header is present, it points to its start. Otherwise, the object points to the start of the IP header (E.g - for hooks in `LOCAL_OUT`).
 	* The function must return one of the values defined by the [netfilter.action](https://github.com/luainkernel/lunatik#netfilteraction).
+  * `mark`: an integer used to match the `skb` (socket buffer) mark. When set to a non-zero value, the `hook` callback will be invoked **only** if the value of `mark` matches the packet's `skb mark`.  
+The mark can be set using tools such as [iptables](https://tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.netfilter.html) or [nftables](https://wiki.nftables.org/wiki-nftables/index.php/Matching_packet_metainformation#Matching_by_packet_mark,_routing_class_and_realm).
 
 #### `netfilter.family`
 
