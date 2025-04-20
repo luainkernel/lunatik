@@ -22,14 +22,14 @@ do {							\
 	lua_pop(L, 1); /* skb */			\
 } while (0)
 
-#define lunatik_setinteger(L, idx, hook, field) 		\
+#define luanetfilter_setinteger(L, idx, hook, field) 		\
 do {								\
 	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);	\
 	hook->field = lua_tointeger(L, -1);			\
 	lua_pop(L, 1);						\
 } while (0)
 
-#define lunatik_setstring(L, idx, hook, field, maxlen)        \
+#define luanetfilter_setstring(L, idx, hook, field, maxlen)        \
 do {								\
 	size_t len;						\
 	lunatik_checkfield(L, idx, #field, LUA_TSTRING);	\
