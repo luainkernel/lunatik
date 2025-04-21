@@ -590,6 +590,30 @@ _notifier.netdev_ is a table that exports
 [NETDEV](https://elixir.bootlin.com/linux/v6.3/source/include/linux/netdevice.h#L2812)
 flags to Lua.
 
+### `notifier.vterm(callback)`
+
+_notifier.vterm()_ returns a new virtual terminal `notifier` object and installs it in the system. The `callback` function is called whenever a virtual terminal event happens (e.g. new character written to the terminal, new terminal allocated, etc).
+The callback function receives the following arguments:
+* `event`: the available _events_ are defined by the
+[notifier.vt](https://github.com/luainkernel/lunatik#notifiervt) table.
+* `c`: character related to the event.
+* `vc_num`: virtual console number associated with the event.
+
+The `callback` function might return the values defined by the
+[notifier.notify](https://github.com/luainkernel/lunatik#notifiernotify) table.
+
+#### `notifier.vt`
+
+_notifier.vt_ is a table that exports
+[VT](https://elixir.bootlin.com/linux/latest/source/include/linux/vt.h)
+flags to Lua.
+
+* `"VT_ALLOCATE"`: virtual terminal is being allocated.
+* `"VT_DEALLOCATE"`: virtual terminal is being deallocated.
+* `"VT_WRITE"`: character is written to virtual terminal.
+* `"VT_UPDATE"`: virtual terminal update event.
+* `"VT_PREWRITE"`: before writing character to virtual terminal.
+
 #### `notifier.notify`
 
 _notifier.notify_ is a table that exports
