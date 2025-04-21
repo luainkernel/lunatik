@@ -8,6 +8,8 @@
 #include <linux/version.h>
 #include <linux/keyboard.h>
 #include <linux/netdevice.h>
+#include <linux/vt_kern.h>
+#include <linux/vt.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -42,6 +44,15 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 
 	lua_pushstring(L, dev->name);
 	return 1;
+}
+
+static int luanotifier_vt_handler (lua_State* L, void* data)
+{
+	struct vt_notifier_param* param = data;
+
+	lua_pushinteger(L, param->c);
+	lua_pushinteger(L, param->vc->vc_num);
+	return 2;
 }
 
 static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
@@ -93,6 +104,7 @@ static int luanotifier_##name(lua_State *L)					\
 
 LUANOTIFIER_NEWCHAIN(keyboard);
 LUANOTIFIER_NEWCHAIN(netdevice);
+LUANOTIFIER_NEWCHAIN(vt);
 
 static void luanotifier_release(void *private)
 {
@@ -147,6 +159,7 @@ static int luanotifier_delete(lua_State *L)
 static const luaL_Reg luanotifier_lib[] = {
 	{"keyboard", luanotifier_keyboard},
 	{"netdevice", luanotifier_netdevice},
+	{"vterm", luanotifier_vt},
 	{NULL, NULL}
 };
 
@@ -223,10 +236,19 @@ static const lunatik_reg_t luanotifier_netdev[] = {
 	{NULL, 0}
 };
 
+static const lunatik_reg_t luanotifier_vt_evs[] = {
+	{"VT_ALLOCATE", VT_ALLOCATE},
+	{"VT_DEALLOCATE", VT_DEALLOCATE},
+	{"VT_WRITE", VT_WRITE},
+	{"VT_UPDATE", VT_UPDATE},
+	{"VT_PREWRITE", VT_PREWRITE},
+	{NULL, 0}
+};
 static const lunatik_namespace_t luanotifier_flags[] = {
 	{"notify", luanotifier_notify},
 	{"kbd", luanotifier_kbd},
 	{"netdev", luanotifier_netdev},
+	{"vt", luanotifier_vt_evs},
 	{NULL, NULL}
 };
 
