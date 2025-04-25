@@ -7,6 +7,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/completion.h>
+#include <linux/sched.h>
 
 #include <lua.h>
 #include <lualib.h>
