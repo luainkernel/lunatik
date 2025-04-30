@@ -10,10 +10,13 @@ else
 endif
 
 KLIBC_USR := /klibc/usr
-ccflags-y += -D_LUNATIK -D_KERNEL -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
+KLIBC_INC := $(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
+
+LUNATIK_FLAGS := -D_LUNATIK -D_KERNEL -I${PWD}$(KLIBC_INC)
+
+asflags-y += $(LUNATIK_FLAGS)
+ccflags-y += $(LUNATIK_FLAGS) -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
 	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua
-asflags-y += -D_LUNATIK -D_KERNEL \
-	-I${PWD}$(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
 
 obj-$(CONFIG_LUNATIK) += lunatik.o
 
