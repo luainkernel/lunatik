@@ -13,21 +13,12 @@
 #undef LUA_MAXINTEGER
 #undef LUA_MININTEGER
 
-#ifdef __LP64__
 #define LUA_INTEGER		long long
 #define LUA_INTEGER_FRMLEN	"ll"
 #define LUA_UNSIGNED	        unsigned long long
 #define LUA_MAXUNSIGNED		ULLONG_MAX
 #define LUA_MAXINTEGER		LLONG_MAX
 #define LUA_MININTEGER		LLONG_MIN
-#else
-#define LUA_INTEGER		long
-#define LUA_INTEGER_FRMLEN	"l"
-#define LUA_UNSIGNED	        unsigned long
-#define LUA_MAXUNSIGNED		ULONG_MAX
-#define LUA_MAXINTEGER		LONG_MAX
-#define LUA_MININTEGER		LONG_MIN
-#endif /* __LP64__ */
 
 #define LUAI_UACNUMBER		LUA_INTEGER
 #define LUA_NUMBER		LUA_INTEGER
