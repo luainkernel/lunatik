@@ -18,11 +18,13 @@
 
 #include "luarcu.h"
 
+#define LUARCU_MAXKEY	(LUAL_BUFFERSIZE)
+
 typedef struct luarcu_entry_s {
-	const char *key;
 	lunatik_object_t *object;
 	struct hlist_node hlist;
 	struct rcu_head rcu;
+	char key[];
 } luarcu_entry_t;
 
 typedef struct luarcu_table_s {
@@ -39,9 +41,12 @@ typedef struct luarcu_table_s {
 #define luarcu_hash(table, key, keylen)		(luaS_hash((key), (keylen), (table)->seed) & luarcu_mask(table))
 #define luarcu_seed()				get_random_u32()
 
-#define luarcu_foreach(table, bucket, entry)							\
-	for (bucket = 0, entry = NULL; entry == NULL && bucket < (table)->size; bucket++)	\
-		hlist_for_each_entry_rcu(entry, &(table)->hlist[bucket], hlist)
+#define luarcu_entry(ptr, pos)		hlist_entry_safe(rcu_dereference_raw(ptr), typeof(*(pos)), hlist)
+#define luarcu_foreach(table, bucket, n, pos)							\
+	for (bucket = 0, pos = NULL; pos == NULL && bucket < (table)->size; bucket++)		\
+		for (pos = luarcu_entry(hlist_first_rcu(&(table)->hlist[bucket]), pos);		\
+			pos && ({ n = luarcu_entry(hlist_next_rcu(&(pos)->hlist), pos); 1; });	\
+			pos = n)
 
 #define luarcu_checkoptnil(L, i, checkopt, ...) \
 	(lua_type((L), (i)) == LUA_TNIL ? NULL : checkopt((L), (i), ## __VA_ARGS__))
@@ -59,13 +64,15 @@ static inline luarcu_entry_t *luarcu_lookup(luarcu_table_t *table, unsigned int 
 	return NULL;
 }
 
-static luarcu_entry_t *luarcu_newentry(const char *key, lunatik_object_t *object)
+static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_object_t *object)
 {
-	luarcu_entry_t *entry = (luarcu_entry_t *)kmalloc(sizeof(luarcu_entry_t), GFP_ATOMIC);
-	if (entry == NULL)
+	luarcu_entry_t *entry;
+
+	if (keylen >= LUARCU_MAXKEY || (entry = kmalloc(struct_size(entry, key, keylen + 1), GFP_ATOMIC)) == NULL)
 		return NULL;
 
-	entry->key = key;
+	strncpy(entry->key, key, keylen);
+	entry->key[keylen] = '\0';
 	entry->object = object;
 	lunatik_getobject(object);
 	return entry;
@@ -74,61 +81,7 @@ static luarcu_entry_t *luarcu_newentry(const char *key, lunatik_object_t *object
 static inline void luarcu_free(luarcu_entry_t *entry)
 {
 	lunatik_putobject(entry->object);
-	kfree(entry);
-}
-
-static int luarcu_replace(luarcu_entry_t *old, lunatik_object_t *object)
-{
-	luarcu_entry_t *new = luarcu_newentry(old->key, object);
-	if (new == NULL)
-		return -ENOMEM;
-
-	hlist_replace_rcu(&old->hlist, &new->hlist);
-	luarcu_free(old);
-	return 0;
-}
-
-static int luarcu_add(luarcu_table_t *table, unsigned int index, const char *key, size_t keylen, lunatik_object_t *object)
-{
-	char *entry_key = (char *)kmalloc(sizeof(char) * (keylen + 1), GFP_ATOMIC);
-	luarcu_entry_t *entry;
-
-	if (entry_key == NULL)
-		return -ENOMEM;
-
-	entry = luarcu_newentry(entry_key, object);
-	if (entry == NULL) {
-		kfree(entry_key);
-		return -ENOMEM;
-	}
-
-	strncpy(entry_key, key, keylen);
-	entry_key[keylen] = '\0';
-	hlist_add_head_rcu(&entry->hlist, table->hlist + index);
-	return 0;
-}
-
-static inline void luarcu_remove(luarcu_entry_t *entry)
-{
-	hlist_del_rcu(&entry->hlist);
-	kfree(entry->key);
-	luarcu_free(entry);
-}
-
-static int luarcu_insert(luarcu_table_t *table, const char *key, size_t keylen, lunatik_object_t *object)
-{
-	luarcu_entry_t *entry;
-	unsigned int index = luarcu_hash(table, key, keylen);
-	int ret = 0;
-
-	entry = luarcu_lookup(table, index, key, keylen);
-	if (object)
-		ret = entry ? luarcu_replace(entry, object) :
-			luarcu_add(table, index, key, keylen, object);
-	else if (entry)
-		luarcu_remove(entry);
-
-	return ret;
+	kfree_rcu(entry, rcu);
 }
 
 LUNATIK_OBJECTCHECKER(luarcu_checktable, luarcu_table_t *);
@@ -161,13 +114,35 @@ EXPORT_SYMBOL(luarcu_gettable);
 
 int luarcu_settable(lunatik_object_t *table, const char *key, size_t keylen, lunatik_object_t *object)
 {
-	int ret;
+	int ret = 0;
+	luarcu_table_t *tab = (luarcu_table_t *)table->private;
+	luarcu_entry_t *old;
+	unsigned int index = luarcu_hash(tab, key, keylen);
 
 	lunatik_lock(table);
-	ret = luarcu_insert((luarcu_table_t *)table->private, key, keylen, object);
+	rcu_read_lock();
+	old = luarcu_lookup(tab, index, key, keylen);
+	rcu_read_unlock();
+	if (object) {
+		luarcu_entry_t *new = luarcu_newentry(key, keylen, object);
+		if (new == NULL) {
+			ret = -ENOMEM;
+			goto unlock;
+		}
+
+		if (!old)
+			hlist_add_head_rcu(&new->hlist, tab->hlist + index);
+		else {
+			hlist_replace_rcu(&old->hlist, &new->hlist);
+			luarcu_free(old);
+		}
+	}
+	else if (old) {
+		hlist_del_rcu(&old->hlist);
+		luarcu_free(old);
+	}
+unlock:
 	lunatik_unlock(table);
-	if (!rcu_read_lock_held())
-		synchronize_rcu();
 	return ret;
 }
 EXPORT_SYMBOL(luarcu_settable);
@@ -208,10 +183,12 @@ static void luarcu_release(void *private)
 {
 	luarcu_table_t *table = (luarcu_table_t *)private;
 	unsigned int bucket;
-	luarcu_entry_t *entry;
+	luarcu_entry_t *n, *entry;
 
-	luarcu_foreach(table, bucket, entry)
-		luarcu_remove(entry);
+	luarcu_foreach(table, bucket, n, entry) {
+		hlist_del_rcu(&entry->hlist);
+		luarcu_free(entry);
+	}
 }
 
 static inline void luarcu_inittable(luarcu_table_t *table, size_t size)
@@ -221,20 +198,58 @@ static inline void luarcu_inittable(luarcu_table_t *table, size_t size)
 	table->seed = luarcu_seed();
 }
 
+static int luarcu_map_handle(lua_State *L)
+{
+	const char *key = (const char *)lua_touserdata(L, 2);
+	lunatik_object_t *value = (lunatik_object_t *)lua_touserdata(L, 3);
+
+	BUG_ON(!key || !value);
+
+	lua_pop(L, 2); /* key, value */
+
+	lua_pushstring(L, key);
+	lunatik_pushobject(L, value);
+	lua_call(L, 2, 0);
+
+	return 0;
+}
+
+static inline int luarcu_map_call(lua_State *L, int cb, const char *key, lunatik_object_t *value)
+{
+	lua_pushcfunction(L, luarcu_map_handle);
+	lua_pushvalue(L, cb);
+	lua_pushlightuserdata(L, (void *)key);
+	lua_pushlightuserdata(L, value);
+
+	return lua_pcall(L, 3, 0, 0); /* handle(cb, key, value) */
+}
+
 static int luarcu_map(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_checkobject(L, 1);
-	luarcu_table_t *table = (luarcu_table_t *)object->private;
+	luarcu_table_t *table = luarcu_checktable(L, 1);
 	unsigned int bucket;
-	luarcu_entry_t *entry;
+	luarcu_entry_t *n, *entry;
 
-	luaL_checktype(L, 2, LUA_TFUNCTION);
-	luarcu_foreach(table, bucket, entry) {
-		lua_pushvalue(L, 2);
-		lua_pushstring(L, entry->key);
-		lunatik_pushobject(L, entry->object);
-		lua_call(L, 2, 0);
+	luaL_checktype(L, 2, LUA_TFUNCTION); /* cb */
+	lua_remove(L, 1); /* table */
+
+	rcu_read_lock();
+	luarcu_foreach(table, bucket, n, entry) {
+		char key[LUARCU_MAXKEY];
+
+		strncpy(key, entry->key, LUARCU_MAXKEY);
+		key[LUARCU_MAXKEY - 1] = '\0';
+		lunatik_object_t *value = entry->object;
+		lunatik_getobject(value);
+
+		rcu_read_unlock();
+		int ret = luarcu_map_call(L, 1, key, value);
+		lunatik_putobject(value);
+		if (ret != LUA_OK)
+			lua_error(L);
+		rcu_read_lock();
 	}
+	rcu_read_unlock();
 	return 0;
 }
 
