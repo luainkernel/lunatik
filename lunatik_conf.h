@@ -1,10 +1,12 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
 #ifndef lunatik_conf_h
 #define lunatik_conf_h
+
+typedef struct lua_State lua_State;
 
 #undef LUA_INTEGER
 #undef LUA_INTEGER_FRMLEN
@@ -13,25 +15,63 @@
 #undef LUA_MAXINTEGER
 #undef LUA_MININTEGER
 
-#ifdef __LP64__
 #define LUA_INTEGER		long long
 #define LUA_INTEGER_FRMLEN	"ll"
 #define LUA_UNSIGNED	        unsigned long long
 #define LUA_MAXUNSIGNED		ULLONG_MAX
 #define LUA_MAXINTEGER		LLONG_MAX
 #define LUA_MININTEGER		LLONG_MIN
-#else
-#define LUA_INTEGER		long
-#define LUA_INTEGER_FRMLEN	"l"
-#define LUA_UNSIGNED	        unsigned long
-#define LUA_MAXUNSIGNED		ULONG_MAX
-#define LUA_MAXINTEGER		LONG_MAX
-#define LUA_MININTEGER		LONG_MIN
-#endif /* __LP64__ */
 
 #define LUAI_UACNUMBER		LUA_INTEGER
 #define LUA_NUMBER		LUA_INTEGER
 #define LUA_NUMBER_FMT		LUA_INTEGER_FMT
+
+#if BITS_PER_LONG == 64
+#define lunatik_idiv(L, m, n)	((m) / (n))
+#define lunatik_uidiv(L, m, n)	((m) / (n))
+#define lunatik_imod(L, m, n)	((m) % (n))
+#define lunatik_hashmod(t, n)	hashmod((t), (n))
+#elif BITS_PER_LONG == 32
+#include <linux/bug.h>
+#include <linux/math64.h>
+static inline LUA_UNSIGNED _lunatik_uimod(LUA_UNSIGNED m, LUA_UNSIGNED n)
+{
+	u64 r;
+	BUG_ON(n < LONG_MIN || n > LONG_MAX);
+	div64_u64_rem(m, n, &r);
+	return r;
+}
+#define lunatik_hashmod(t, n)	(gnode(t, _lunatik_uimod((n), ((sizenode(t)-1)|1))))
+
+int (luaL_error) (lua_State *L, const char *fmt, ...);
+#define lunatik_checklong(L, n, s)			\
+do {							\
+	if (unlikely(n < LONG_MIN || n > LONG_MAX))	\
+		luaL_error(L, s);			\
+} while(0)
+
+static inline LUA_INTEGER lunatik_idiv(lua_State *L, LUA_INTEGER m, LUA_INTEGER n)
+{
+	lunatik_checklong(L, n, "attempt to divide by a 64-bit value");
+	return div64_s64(m, n);
+}
+
+static inline LUA_UNSIGNED lunatik_uidiv(lua_State *L, LUA_UNSIGNED m, LUA_UNSIGNED n)
+{
+	lunatik_checklong(L, n, "attempt to divide by a 64-bit value");
+	return div64_u64(m, n);
+}
+
+static inline LUA_INTEGER lunatik_imod(lua_State *L, LUA_INTEGER m, LUA_INTEGER n)
+{
+	s32 r;
+	lunatik_checklong(L, n, "attempt to perform 'n%%' with a 64-bit value");
+	div_s64_rem(m, (s32)n, &r);
+	return (LUA_INTEGER)r;
+}
+#else /* BITS_PER_LONG */
+#error unsuported platform
+#endif /* BITS_PER_LONG */
 
 #define l_randomizePivot()	(~0)
 
@@ -67,8 +107,6 @@ void *lunatik_lookup(const char *symbol);
 #endif
 
 #define lsys_sym(L,l,s)		((lua_CFunction)(l))
-
-typedef struct lua_State lua_State;
 
 const char *lua_pushfstring(lua_State *L, const char *fmt, ...);
 

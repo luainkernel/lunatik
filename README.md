@@ -104,6 +104,12 @@ thus it **does not** support `__div` nor `__pow`
 [metamethods](https://www.lua.org/manual/5.4/manual.html#2.4)
 and the type _number_ has only the subtype _integer_.
 
+### Integer type
+
+Lunatik uses 64-bit integers on both 32-bit and 64-bit platforms.
+However, on 32-bit systems, only division and modulo operations with 32-bit divisors are supported.
+Attempting to divide or take the remainder using a divisor greater than `2^32 - 1` will raise an error.
+
 ### Lua API
 
 Lunatik **does not** support both [io](https://www.lua.org/manual/5.4/manual.html#6.8) and
