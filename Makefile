@@ -82,6 +82,14 @@ examples_install:
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
 
+tests_install:
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
+	${INSTALL} -m 0644 tests/rcumap_sync/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
+
+tests_uninstall:
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
+
 modules_install:
 	${MKDIR} ${MODULES_INSTALL_PATH}/lunatik
 	${INSTALL} -m 0644 *.ko lib/*.ko ${MODULES_INSTALL_PATH}/lunatik
