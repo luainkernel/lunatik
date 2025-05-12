@@ -17,10 +17,11 @@ typedef struct luaskel_s {
 	int unused;
 } luaskel_t;
 
+LUNATIK_PRIVATECHECKER(luaskel_check, luaskel_t *);
+
 static int luaskel_nop(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_toobject(L, 1);
-	luaskel_t *skel = (luaskel_t *)object->private;
+	luaskel_t *skel = luaskel_check(L, 1)
 	(void)skel; /* do nothing */
 	return 0;
 }
