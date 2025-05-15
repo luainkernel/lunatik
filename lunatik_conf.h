@@ -37,17 +37,24 @@ typedef struct lua_State lua_State;
 static inline LUA_UNSIGNED _lunatik_uimod(LUA_UNSIGNED m, LUA_UNSIGNED n)
 {
 	u64 r;
-	BUG_ON(n < LONG_MIN || n > LONG_MAX);
+	//BUG_ON(n > ULONG_MAX);
 	div64_u64_rem(m, n, &r);
 	return r;
 }
 #define lunatik_hashmod(t, n)	(gnode(t, _lunatik_uimod((n), ((sizenode(t)-1)|1))))
 
 int (luaL_error) (lua_State *L, const char *fmt, ...);
+
 #define lunatik_checklong(L, n, s)			\
 do {							\
 	if (unlikely(n < LONG_MIN || n > LONG_MAX))	\
 		luaL_error(L, s);			\
+} while(0)
+
+#define lunatik_checkulong(L, n, s)	\
+do {					\
+	if (unlikely(n > ULONG_MAX))	\
+		luaL_error(L, s);	\
 } while(0)
 
 static inline LUA_INTEGER lunatik_idiv(lua_State *L, LUA_INTEGER m, LUA_INTEGER n)
@@ -58,7 +65,7 @@ static inline LUA_INTEGER lunatik_idiv(lua_State *L, LUA_INTEGER m, LUA_INTEGER 
 
 static inline LUA_UNSIGNED lunatik_uidiv(lua_State *L, LUA_UNSIGNED m, LUA_UNSIGNED n)
 {
-	lunatik_checklong(L, n, "attempt to divide by a 64-bit value");
+	lunatik_checkulong(L, n, "attempt to divide by a 64-bit value");
 	return div64_u64(m, n);
 }
 
