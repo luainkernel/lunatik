@@ -102,6 +102,7 @@ static int luasocket_send(lua_State *L)
 	size_t len;
 	struct kvec vec;
 	struct msghdr msg;
+	luasocket_addr_t addr;
 	int nargs = lua_gettop(L);
 	int ret;
 
@@ -111,7 +112,6 @@ static int luasocket_send(lua_State *L)
 	vec.iov_len = len;
 
 	if (unlikely(nargs >= 3)) {
-		luasocket_addr_t addr;
 		luasocket_checkaddr(L, socket, &addr, 3);
 		luasocket_msgaddr(msg, addr);
 	}
