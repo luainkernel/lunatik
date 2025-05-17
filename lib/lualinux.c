@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -24,11 +24,7 @@ static int lualinux_random(lua_State *L)
 
 	switch (lua_gettop(L)) {  /* check number of arguments */
 	case 0: {  /* no arguments */
-#ifdef __LP64__
 		lua_pushinteger(L, (lua_Integer)get_random_u64());
-#else
-		lua_pushinteger(L, (lua_Integer)get_random_u32());
-#endif
 		return 1;
 	}
 	case 1: {  /* only upper limit */
@@ -49,7 +45,7 @@ static int lualinux_random(lua_State *L)
 	luaL_argcheck(L, low <= up, 1, "interval is empty");
 	luaL_argcheck(L, low >= 0 || up <= LUA_MAXINTEGER + low, 1, "interval too large");
 
-	rand = low + get_random_u32() % (up - low + 1);
+	rand = low + lunatik_imod(L, get_random_u32(), up - low + 1);
 	lua_pushinteger(L, rand);
 	return 1;
 }
@@ -125,20 +121,18 @@ static int lualinux_##func(lua_State *L) \
 	return 1; \
 }
 
-LUALINUX_NEW_BYTESWAPPER(cpu_to_be16, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(cpu_to_be32, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(cpu_to_le16, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(cpu_to_le32, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(be16_to_cpu, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(be32_to_cpu, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(le16_to_cpu, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(le32_to_cpu, uint32_t);
-#ifdef __LP64__
-LUALINUX_NEW_BYTESWAPPER(cpu_to_be64, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(cpu_to_le64, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(be64_to_cpu, uint32_t);
-LUALINUX_NEW_BYTESWAPPER(le64_to_cpu, uint32_t);
-#endif
+LUALINUX_NEW_BYTESWAPPER(cpu_to_be16, u16);
+LUALINUX_NEW_BYTESWAPPER(cpu_to_be32, u32);
+LUALINUX_NEW_BYTESWAPPER(cpu_to_le16, u16);
+LUALINUX_NEW_BYTESWAPPER(cpu_to_le32, u32);
+LUALINUX_NEW_BYTESWAPPER(be16_to_cpu, u16);
+LUALINUX_NEW_BYTESWAPPER(be32_to_cpu, u32);
+LUALINUX_NEW_BYTESWAPPER(le16_to_cpu, u16);
+LUALINUX_NEW_BYTESWAPPER(le32_to_cpu, u32);
+LUALINUX_NEW_BYTESWAPPER(cpu_to_be64, u64);
+LUALINUX_NEW_BYTESWAPPER(cpu_to_le64, u64);
+LUALINUX_NEW_BYTESWAPPER(be64_to_cpu, u64);
+LUALINUX_NEW_BYTESWAPPER(le64_to_cpu, u64);
 
 static const lunatik_reg_t lualinux_task[] = {
 	{"INTERRUPTIBLE", TASK_INTERRUPTIBLE},
@@ -238,14 +232,12 @@ static const luaL_Reg lualinux_lib[] = {
 	{"be32toh", lualinux_be32_to_cpu},
 	{"le16toh", lualinux_le16_to_cpu},
 	{"le32toh", lualinux_le32_to_cpu},
-#ifdef __LP64__
 	{"ntoh64", lualinux_be64_to_cpu},
 	{"hton64", lualinux_cpu_to_be64},
 	{"htobe64", lualinux_cpu_to_be64},
 	{"htole64", lualinux_cpu_to_le64},
 	{"be64toh", lualinux_be64_to_cpu},
 	{"le64toh", lualinux_le64_to_cpu},
-#endif
 	{NULL, NULL}
 };
 
