@@ -1,8 +1,14 @@
+--
+-- SPDX-FileCopyrightText: (c) 2025 Jieming Zhou <qrsikno@gmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
+-- example of a slow mouse driver
 local hid = require("luahid") 
-local dummy_submitx = function(value)
+local function dummy_submitx(value)
 	-- pass
 end
-local dummy_submity = function(value)
+local function dummy_submity(value)
 	-- pass
 end
 local slow_mouse_driver = {
