@@ -27,7 +27,8 @@ all: lunatik_sym.h
 	CONFIG_LUNATIK_RCU=m CONFIG_LUNATIK_THREAD=m CONFIG_LUNATIK_FIB=m \
 	CONFIG_LUNATIK_DATA=m CONFIG_LUNATIK_PROBE=m CONFIG_LUNATIK_SYSCALL=m \
 	CONFIG_LUNATIK_XDP=m CONFIG_LUNATIK_FIFO=m CONFIG_LUNATIK_XTABLE=m \
-	CONFIG_LUNATIK_NETFILTER=m CONFIG_LUNATIK_COMPLETION=m
+	CONFIG_LUNATIK_NETFILTER=m CONFIG_LUNATIK_COMPLETION=m \
+	CONFIG_LUNATIK_CRYPTO=m
 
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
@@ -41,6 +42,8 @@ scripts_install:
 	${INSTALL} -m 0644 driver.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/mailbox.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/net.lua ${SCRIPTS_INSTALL_PATH}/
+	${INSTALL} -m 0644 lib/hkdf.lua ${SCRIPTS_INSTALL_PATH}/
+	${INSTALL} -m 0644 lib/util.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/lunatik/*.lua ${SCRIPTS_INSTALL_PATH}/lunatik
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
@@ -86,6 +89,8 @@ tests_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
 	${INSTALL} -m 0644 tests/rcumap_sync/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/crypto
+	${INSTALL} -m 0644 tests/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/tests/crypto
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
