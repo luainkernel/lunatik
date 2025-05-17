@@ -90,26 +90,6 @@ static int lualinux_time(lua_State *L)
 	return 1;
 }
 
-static int lualinux_monotonic(lua_State *L) {
-    lua_pushinteger(L, (lua_Integer)ktime_get_ns());
-    return 1;
-}
-
-static int lualinux_boottime(lua_State *L) {
-    lua_pushinteger(L, (lua_Integer)ktime_get_boottime_ns());
-    return 1;
-}
-
-static int lualinux_clocktai(lua_State *L) {
-    lua_pushinteger(L, (lua_Integer)ktime_get_clocktai_ns());
-    return 1;
-}
-
-static int lualinux_rawtime(lua_State *L) {
-    lua_pushinteger(L, (lua_Integer)ktime_get_raw_ns());
-    return 1;
-}
-
 static int lualinux_difftime(lua_State *L)
 {
 	u64 t2 = (u64) luaL_checkinteger(L, 1);
@@ -243,11 +223,6 @@ static const luaL_Reg lualinux_lib[] = {
 	{"schedule", lualinux_schedule},
 	{"tracing", lualinux_tracing},
 	{"time", lualinux_time},
-	{"monotonic", lualinux_monotonic},
-	{"boottime", lualinux_boottime},
-	{"clocktai", lualinux_clocktai},
-	{"rawtime", lualinux_rawtime},
-
 	{"difftime", lualinux_difftime},
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
