@@ -8,8 +8,9 @@ local lunatik = {
 	copyright = "Copyright (C) 2023-2025 ring-0 Ltda.",
 	device = "/dev/lunatik",
 	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu",
-		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo", "luaxtable",
-		"luanetfilter", "luacompletion", "lunatik_run"}
+		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo",
+		"luaxtable", "luanetfilter", "luacompletion", "lunatik_run",
+		"luacrypto_aead", "luacrypto_shash", "luacrypto_skcipher"}
 }
 
 function lunatik.prompt()
@@ -133,4 +134,3 @@ for chunk in io.lines() do
 	print(lunatik.dostring(chunk))
 	lunatik.prompt()
 end
-

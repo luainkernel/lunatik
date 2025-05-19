@@ -47,4 +47,6 @@ obj-$(CONFIG_LUNATIK_FIFO) += lib/luafifo.o
 obj-$(CONFIG_LUNATIK_XTABLE) += lib/luaxtable.o
 obj-$(CONFIG_LUNATIK_NETFILTER) += lib/luanetfilter.o
 obj-$(CONFIG_LUNATIK_COMPLETION) += lib/luacompletion.o
-
+obj-$(CONFIG_LUNATIK_CRYPTO_SHASH) += lib/luacrypto_shash.o
+obj-$(CONFIG_LUNATIK_CRYPTO_AEAD) += lib/luacrypto_aead.o
+obj-$(CONFIG_LUNATIK_CRYPTO_SKCIPHER) += lib/luacrypto_skcipher.o
