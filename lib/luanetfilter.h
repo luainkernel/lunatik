@@ -29,6 +29,17 @@ do {								\
 	lua_pop(L, 1);						\
 } while (0)
 
+#define luanetfilter_optinteger(L, idx, nf, field, opt)	\
+do {							\
+	lua_getfield(L, idx, #field);			\
+	if (!lua_isnil(L, -1)) {			\
+		nf->field = lua_tointeger(L, -1);	\
+		lua_pop(L, 1);				\
+	}						\
+	else						\
+		nf->field = opt;			\
+} while (0)
+
 #define luanetfilter_setstring(L, idx, hook, field, maxlen)        \
 do {								\
 	size_t len;						\

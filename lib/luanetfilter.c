@@ -18,49 +18,61 @@
 typedef struct luanetfilter_s {
 	lunatik_object_t *runtime;
 	lunatik_object_t *skb;
-	__u32 mark;
+	u32 mark;
 	struct nf_hook_ops nfops;
 } luanetfilter_t;
 
 static void luanetfilter_release(void *private);
 
-static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
+static inline bool luanetfilter_pushcb(lua_State *L, luanetfilter_t *luanf)
 {
-	int ret = -1;
-
 	if (lunatik_getregistry(L, luanf) != LUA_TTABLE) {
 		pr_err("could not find ops table\n");
-		goto err;
+		return false;
 	}
 
 	if (lua_getfield(L, -1, "hook") != LUA_TFUNCTION) {
 		pr_err("operation not defined");
-		goto err;
+		return false;
 	}
+	return true;
+}
 
+static inline lunatik_object_t *luanetfilter_pushskb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
+{
 	if (lunatik_getregistry(L, luanf->skb) != LUA_TUSERDATA) {
 		pr_err("could not find skb");
-		goto err;
+		return NULL;
 	}
 
 	lunatik_object_t *data = (lunatik_object_t *)lunatik_toobject(L, -1);
 	if (unlikely(data == NULL || skb_linearize(skb) != 0)) {
 		pr_err("could not get skb\n");
-		goto err;
+		return NULL;
 	}
+	return data;
+}
+
+static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
+{
+	lunatik_object_t *data;
+
+	if (!luanetfilter_pushcb(L, luanf) || (data = luanetfilter_pushskb(L, luanf, skb)) == NULL)
+		return -1;
 
 	if (skb_mac_header_was_set(skb))
 		luadata_reset(data, skb_mac_header(skb), skb_headlen(skb) + skb_mac_header_len(skb), LUADATA_OPT_NONE);
 	else
 		luadata_reset(data, skb->data, skb_headlen(skb), LUADATA_OPT_NONE);
 
-	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
+	if (lua_pcall(L, 1, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
-		goto err;
+		return -1;
 	}
-	ret = lua_tointeger(L, -1);
-err:
-	return ret;
+
+	if (!lua_isnil(L, -1))
+		skb->mark = (u32)lua_tointeger(L, -1);
+	return lua_tointeger(L, -2);
 }
 
 static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_buff *skb)
@@ -73,8 +85,7 @@ static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_
 		goto out;
 	}
 
-	__u32 mark = luanf->mark;
-	if (likely(mark && mark != skb->mark))
+	if (likely(luanf->mark != skb->mark))
 		goto out;
 
 	lunatik_run(luanf->runtime, luanetfilter_hook_cb, ret, luanf, skb);
@@ -133,10 +144,7 @@ static int luanetfilter_register(lua_State *L)
 	luanetfilter_setinteger(L, 1, nfops, pf);
 	luanetfilter_setinteger(L, 1, nfops, hooknum);
 	luanetfilter_setinteger(L, 1, nfops, priority);
-
-	lua_getfield(L, 1, "mark");
-	nf->mark = lua_tointeger(L, -1);
-	lua_pop(L, 1); /* mark */
+	luanetfilter_optinteger(L, 1, nf, mark, 0);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 	if (nf_register_net_hook(&init_net, nfops) != 0)
