@@ -3,8 +3,22 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
+---
+-- Network utility functions.
+-- This module provides helper functions for network-related operations,
+-- primarily for converting between string and integer representations of IPv4 addresses.
+-- @module net
+--
+
 local net = {}
 
+---
+-- Converts an IPv4 address string to its integer representation.
+-- "Address to Number"
+-- @param addr (string) The IPv4 address string (e.g., "127.0.0.1").
+-- @return (number) The IPv4 address as an integer.
+-- @usage
+--   local ip_int = net.aton("192.168.1.1")
 function net.aton(addr)
 	local i = 1
 	local bits = { 24, 16, 8, 0 }
@@ -17,6 +31,13 @@ function net.aton(addr)
 	return ip
 end
 
+---
+-- Converts an integer representation of an IPv4 address to its string form.
+-- "Number to Address"
+-- @param ip (number) The IPv4 address as an integer.
+-- @return (string) The IPv4 address string (e.g., "127.0.0.1").
+-- @usage
+--   local ip_str = net.ntoa(3232235777)  -- "192.168.1.1"
 function net.ntoa(ip)
 	local n = 4
 	local bytes = {}

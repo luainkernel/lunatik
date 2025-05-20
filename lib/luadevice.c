@@ -3,6 +3,16 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/***
+* Low-level Lua interface for creating Linux character device drivers.
+*
+* This module allows Lua scripts to implement character device drivers
+* by providing callback functions for standard file operations like
+* `open`, `read`, `write`, and `release`.
+*
+* @module device
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -25,12 +35,21 @@
 
 static struct class *luadevice_devclass;
 
+/***
+* Represents a character device implemented in Lua.
+* This is a userdata object returned by `device.new()`. It encapsulates
+* the necessary kernel structures (`struct cdev`, `dev_t`) to manage a
+* character device, linking file operations to Lua callback functions.
+* @type device
+*/
 typedef struct luadevice_s {
 	struct list_head entry;
 	lunatik_object_t *runtime;
 	struct cdev *cdev;
 	dev_t devt;
 } luadevice_t;
+
+
 
 static DEFINE_MUTEX(luadevice_mutex);
 static LIST_HEAD(luadevice_list);
@@ -226,6 +245,26 @@ static void luadevice_release(void *private)
 	lunatik_putobject(luadev->runtime);
 }
 
+/***
+* Stops and releases a character device driver from the system.
+* This method is called on a device object returned by `device.new()`.
+* Once stopped, the device file (`/dev/<name>`) will be removed and
+* the associated resources released.
+*
+* This method provides an explicit way to release the device. The device
+* is also released when `close` is called (e.g., via Lua 5.4's to-be-closed
+* mechanism if `__close` is defined and triggered for the object, which typically
+* calls this same underlying function) or eventually when the device object is
+* garbage collected (via `__gc`). The `stop` and `close` methods offer more
+* deterministic cleanup than relying solely on garbage collection.
+* @function stop
+* @treturn nil Does not return any value to Lua.
+* @raise Error May raise an error if the underlying C function encounters a critical issue during cleanup and calls `lua_error`.
+* @usage
+*   -- Assuming 'dev' is a device object:
+*   dev:stop()
+* @see device.new
+*/
 static int luadevice_stop(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
@@ -240,6 +279,62 @@ static int luadevice_stop(lua_State *L)
 	return 0;
 }
 
+/***
+* Creates and installs a new character device driver in the system.
+* This function binds a Lua table (the `driver` table) to a new
+* character device file (`/dev/<name>`), allowing Lua functions
+* to handle file operations on that device.
+*
+* @function new
+* @tparam table driver A table defining the device driver's properties and callbacks.
+*   It **must** contain the field:
+*
+*   - `name` (string): The name of the device. This name will be used to create
+*     the device file `/dev/<name>`.
+*
+*   It **might** optionally contain the following fields (callback functions):
+*
+*   - `open` (function): Callback for the `open(2)` system call.
+*     Signature: `function(driver_table)`. Expected to return nothing.
+*   - `read` (function): Callback for the `read(2)` system call.
+*     Signature: `function(driver_table, length, offset) -> string [, updated_offset]`.
+*     Receives the driver table, the requested read length (integer), and the current
+*     file offset (integer). Should return the data as a string and optionally the
+*     updated file offset (integer). If `updated_offset` is not returned, the offset
+*     is advanced by the length of the returned string (or the requested length if
+*     the string is longer).
+*   - `write` (function): Callback for the `write(2)` system call.
+*     Signature: `function(driver_table, buffer_string, offset) -> [written_length] [, updated_offset]`.
+*     Receives the driver table, the data to write as a string, and the current file
+*     offset (integer). May return the number of bytes successfully written (integer)
+*     and optionally the updated file offset (integer). If `written_length` is not
+*     returned, it's assumed all provided data was written. If `updated_offset` is
+*     not returned, the offset is advanced by the `written_length`.
+*   - `release` (function): Callback for the `release(2)` system call (called when the
+*     last file descriptor is closed). Signature: `function(driver_table)`.
+*     Expected to return nothing.
+*   - `mode` (integer): Optional file mode flags (e.g., permissions) for the device file.
+*     Use constants from the `linux.stat` table (e.g., `linux.stat.IRUGO`).
+* @treturn userdata A Lunatik object representing the newly created device.
+*   This object can be used to explicitly stop the device using the `:stop()` method.
+* @raise Error if the device cannot be allocated or registered in the kernel,
+*   or if the `name` field is missing or not a string.
+* @usage
+*   local device = require("device")
+*   local linux = require("linux")
+*
+*   local my_driver = {
+*     name = "my_lua_device",
+*     mode = linux.stat.IRUGO, -- Read-only for all
+*     read = function(drv, len, off)
+*       local data = "Hello from " .. drv.name .. " at offset " .. tostring(off) .. "!"
+*       return data:sub(1, len), off + #data
+*     end
+*   }
+*   local dev_obj = device.new(my_driver)
+*   -- To clean up: dev_obj:stop() or let it be garbage collected.
+* @see linux.stat
+*/
 static const luaL_Reg luadevice_lib[] = {
 	{"new", luadevice_new},
 	{NULL, NULL}
