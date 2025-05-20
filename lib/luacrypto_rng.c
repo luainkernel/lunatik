@@ -21,6 +21,7 @@ which can then be used for generating random bytes.
 #include <linux/crypto.h>
 #include <crypto/rng.h>
 #include <linux/err.h>
+#include <linux/limits.h>
 #include <linux/slab.h>
 
 #include <lua.h>
@@ -77,13 +78,51 @@ static int luacrypto_rng_tfm_generate(lua_State *L) {
 	}
 
 	ret = crypto_rng_generate(tfm, seed_data, (unsigned int)seed_len, buffer, (unsigned int)num_bytes);
-	kfree(seed_data);
-
 	if (ret) {
 		kfree(buffer);
 		return luaL_error(L, "rng_tfm:generate: crypto_rng_generate failed (%d)", ret);
 	}
 	lua_pushlstring(L, (const char *)buffer, num_bytes);
+	kfree(buffer);
+	return 1;
+}
+
+/***
+Generates a specified number of random bytes using the simpler crypto_rng_get_bytes.
+This function does not take an explicit seed as an argument.
+@function crypto_rng_tfm:get_bytes
+@tparam integer num_bytes The number of random bytes to generate.
+@treturn string A binary string containing the generated random bytes.
+@raise Error on failure (e.g., allocation error, crypto API error).
+ */
+static int luacrypto_rng_tfm_get_bytes(lua_State *L) {
+	struct crypto_rng *tfm = luacrypto_check_rng_tfm(L, 1);
+	lua_Integer num_bytes_l = luaL_checkinteger(L, 2);
+	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
+	unsigned int num_bytes_uint;
+	u8 *buffer;
+	int ret;
+
+	luaL_argcheck(L, num_bytes_l >= 0, 2, "number of bytes must be non-negative");
+	luaL_argcheck(L, num_bytes_l <= UINT_MAX, 2, "number of bytes exceeds UINT_MAX");
+	num_bytes_uint = (unsigned int)num_bytes_l;
+
+	if (num_bytes_uint == 0) {
+		lua_pushlstring(L, "", 0);
+		return 1;
+	}
+
+	buffer = kmalloc(num_bytes_uint, gfp);
+	if (!buffer) {
+		return luaL_error(L, "rng_tfm:get_bytes: failed to allocate buffer");
+	}
+
+	ret = crypto_rng_get_bytes(tfm, buffer, num_bytes_uint);
+	if (ret) {
+		kfree(buffer);
+		return luaL_error(L, "rng_tfm:get_bytes: crypto_rng_get_bytes failed (%d)", ret);
+	}
+	lua_pushlstring(L, (const char *)buffer, num_bytes_uint);
 	kfree(buffer);
 	return 1;
 }
@@ -111,10 +150,31 @@ static int luacrypto_rng_tfm_reset(lua_State *L) {
 	return 0;
 }
 
+/***
+Retrieves information about the RNG algorithm.
+@function crypto_rng_tfm:alg_info
+@treturn table A table containing algorithm information, e.g., `{ driver_name = "...", seedsize = num }`.
+*/
+static int luacrypto_rng_tfm_alg_info(lua_State *L) {
+	struct crypto_rng *tfm = luacrypto_check_rng_tfm(L, 1);
+	const struct rng_alg *alg = crypto_rng_alg(tfm);
+
+	lua_createtable(L, 0, 2);
+
+	lua_pushstring(L, alg->base.cra_driver_name);
+	lua_setfield(L, -2, "driver_name");
+
+	lua_pushinteger(L, alg->seedsize);
+	lua_setfield(L, -2, "seedsize");
+
+	return 1;
+}
 
 static const luaL_Reg luacrypto_rng_tfm_mt[] = {
 	{"generate", luacrypto_rng_tfm_generate},
 	{"reset", luacrypto_rng_tfm_reset},
+	{"get_bytes", luacrypto_rng_tfm_get_bytes},
+	{"alg_info", luacrypto_rng_tfm_alg_info},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
 	{"__index", lunatik_monitorobject},
