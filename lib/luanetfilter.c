@@ -7,6 +7,9 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/netfilter.h>
+#if IS_ENABLED(CONFIG_NF_CONNTRACK)
+#include <net/netfilter/nf_conntrack.h>
+#endif
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -24,7 +27,7 @@ typedef struct luanetfilter_s {
 
 static void luanetfilter_release(void *private);
 
-static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
+static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb, u_int32_t *ctmark)
 {
 	int ret = -1;
 
@@ -54,11 +57,12 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 	else
 		luadata_reset(data, skb->data, skb_headlen(skb), LUADATA_OPT_NONE);
 
-	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
+	if (lua_pcall(L, 1, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
 		goto err;
 	}
-	ret = lua_tointeger(L, -1);
+	ret = lua_tointeger(L, -2);
+	*ctmark = (u_int32_t)lua_tointeger(L, -1);
 err:
 	return ret;
 }
@@ -67,6 +71,7 @@ static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_
 {
 	int ret;
 	int policy = NF_ACCEPT;
+	u_int32_t ctmark;
 
 	if (unlikely(!luanf || !luanf->runtime)) {
 		pr_err("runtime not found\n");
@@ -77,7 +82,15 @@ static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_
 	if (likely(mark && mark != skb->mark))
 		goto out;
 
-	lunatik_run(luanf->runtime, luanetfilter_hook_cb, ret, luanf, skb);
+	lunatik_run(luanf->runtime, luanetfilter_hook_cb, ret, luanf, skb, &ctmark);
+#if IS_ENABLED(CONFIG_NF_CONNTRACK)
+	if (ctmark != 0) {
+		enum ip_conntrack_info ctinfo;
+		struct nf_conn *ct = nf_ct_get(skb, &ctinfo);
+		if (ct != NULL)
+			WRITE_ONCE(ct->mark, ctmark);
+	}
+#endif
 	return (ret < 0 || ret > NF_MAX_VERDICT) ? policy : ret;
 out:
 	return policy;
