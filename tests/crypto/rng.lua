@@ -2,7 +2,7 @@
 -- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
-local new = require"crypto_rng".new
+local new = require"crypto.rng".new
 
 local test, expected, result, random
 

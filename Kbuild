@@ -51,3 +51,4 @@ obj-$(CONFIG_LUNATIK_CRYPTO_SHASH) += lib/luacrypto_shash.o
 obj-$(CONFIG_LUNATIK_CRYPTO_AEAD) += lib/luacrypto_aead.o
 obj-$(CONFIG_LUNATIK_CRYPTO_SKCIPHER) += lib/luacrypto_skcipher.o
 obj-$(CONFIG_LUNATIK_CRYPTO_RNG) += lib/luacrypto_rng.o
+obj-$(CONFIG_LUNATIK_CRYPTO_COMP) += lib/luacrypto_comp.o

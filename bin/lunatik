@@ -9,7 +9,7 @@ local lunatik = {
 	device = "/dev/lunatik",
 	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu",
 		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo",
-		"luaxtable", "luanetfilter", "luacompletion", "lunatik_run",
+    "luaxtable", "luanetfilter", "luacompletion", "lunatik_run", "luacrypto_comp",
 		"luacrypto_aead", "luacrypto_shash", "luacrypto_skcipher", "luacrypto_rng"}
 }
 
