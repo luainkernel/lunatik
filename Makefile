@@ -126,3 +126,6 @@ moontastik_uninstall_%:
 	[ $* ] || (echo "usage: make moontastik_uninstall_TARGET" ; exit 1)
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/$*
 
+doc-site:
+	ldoc .
+

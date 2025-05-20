@@ -3,6 +3,16 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/***
+* kprobes mechanism.
+* This library allows Lua scripts to dynamically probe (instrument) kernel
+* functions or specific instruction addresses. Callbacks can be registered
+* to execute Lua code just before (pre-handler) and/or just after
+* (post-handler) the probed instruction is executed.
+*
+* @module probe
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -14,6 +24,13 @@
 
 #include <lunatik.h>
 
+/***
+* Represents a kernel probe (kprobe) object.
+* This is a userdata object returned by `probe.new()`. It encapsulates a
+* `struct kprobe` and the associated Lua callback handlers. This object
+* can be used to enable, disable, or stop (unregister) the probe.
+* @type probe
+*/
 typedef struct luaprobe_s {
 	struct kprobe kp;
 	lunatik_object_t *runtime;
@@ -111,6 +128,15 @@ static void luaprobe_release(void *private)
 	lunatik_putobject(probe->runtime);
 }
 
+/***
+* Stops and unregisters the probe.
+* This method is called on a probe object. Once stopped, the kprobe is
+* disabled and unregistered from the kernel, and its handlers will no longer
+* be called. The associated resources are released.
+* @function stop
+* @treturn nil
+* @usage my_probe_object:stop()
+*/
 static int luaprobe_stop(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
@@ -125,6 +151,16 @@ static int luaprobe_stop(lua_State *L)
 	return 0;
 }
 
+/***
+* Enables or disables an already registered probe.
+* This method is called on a probe object.
+* @function enable
+* @tparam boolean enable_flag If `true`, the probe is enabled. If `false`, the probe is disabled.
+*   A disabled probe remains registered but its handlers will not be executed.
+* @treturn nil
+* @raise Error if the probe was not properly registered or has been stopped.
+* @usage my_probe_object:enable(false) -- Disable the probe
+*/
 static int luaprobe_enable(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
@@ -151,6 +187,42 @@ err:
 
 static int luaprobe_new(lua_State *L);
 
+/***
+* Creates and registers a new kernel probe.
+* This function installs a kprobe at the specified kernel symbol or address.
+* Lua callback functions can be provided to execute when the probe hits.
+*
+* @function new
+* @tparam string|lightuserdata symbol_or_address The kernel symbol name (string)
+*   or the absolute kernel address (lightuserdata) to probe.
+*   Suitable symbol names are typically those exported by the kernel or other modules,
+*   often visible in `/proc/kallsyms` (when viewed from userspace). The `syscall`
+*   module (e.g., `syscall.numbers.openat`) can be used to get system call numbers.
+*
+*   For system call addresses, you can use `syscall.address(syscall.numbers.openat)`.
+*   For other kernel symbols, `linux.lookup("symbol_name")` can provide the address.
+*   Directly using addresses requires knowing the exact memory location, which can
+*   vary between kernel builds and is generally less portable than using symbol names
+*   or lookup functions.
+* @tparam table handlers A table containing the callback functions for the probe.
+*   It can have the following fields:
+*
+*   - `pre` (function, optional): A Lua function to be called just *before* the
+*     probed instruction is executed.
+*   - `post` (function, optional): A Lua function to be called just *after* the
+*     probed instruction has executed.
+*
+*   Both `pre` and `post` handlers receive two arguments:
+*
+*   1. `target` (string|lightuserdata): The symbol name or address that was probed.
+*   2. `dump_regs` (function): A closure that, when called without arguments,
+*      will print the current CPU registers and stack trace to the system log.
+*      This is useful for debugging.
+*
+* @treturn probe A new probe object. This object can be used to later `stop()` or `enable()`/`disable()` the probe.
+* @raise Error if the probe cannot be registered (e.g., symbol not found, memory allocation failure, invalid address).
+* @within probe
+*/
 static const luaL_Reg luaprobe_lib[] = {
 	{"new", luaprobe_new},
 	{NULL, NULL}

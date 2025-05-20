@@ -3,6 +3,19 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/***
+* eXpress Data Path (XDP) integration.
+* This library allows Lua scripts to interact with the kernel's XDP subsystem.
+* It enables XDP/eBPF programs to call Lua functions for packet processing,
+* providing a flexible way to implement custom packet handling logic in Lua
+* at a very early stage in the network stack.
+*
+* The primary mechanism involves an XDP program calling the `bpf_luaxdp_run`
+* kfunc, which in turn invokes a Lua callback function previously registered
+* using `xdp.attach()`.
+* @module xdp
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
 #include <linux/version.h>
@@ -27,7 +40,7 @@ __bpf_kfunc_start_defs();
 #else
 __diag_push();
 __diag_ignore_all("-Wmissing-prototypes",
-                  "Global kfuncs as their definitions will be in BTF");
+									"Global kfuncs as their definitions will be in BTF");
 #endif
 
 static lunatik_object_t *luaxdp_runtimes = NULL;
@@ -141,6 +154,20 @@ static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 	.set   = &bpf_luaxdp_set,
 };
 
+/***
+* Table of XDP action verdicts.
+* These constants define the possible return values from an XDP program (and thus
+* from the Lua callback attached via `xdp.attach`) to indicate how the packet
+* should be handled.
+* (Constants from `<uapi/linux/bpf.h>`)
+* @table action
+*   @tfield integer ABORTED Indicates an error; packet is dropped. (XDP_ABORTED)
+*   @tfield integer DROP Drop the packet silently. (XDP_DROP)
+*   @tfield integer PASS Pass the packet to the normal network stack. (XDP_PASS)
+*   @tfield integer TX Transmit the packet back out the same interface it arrived on. (XDP_TX)
+*   @tfield integer REDIRECT Redirect the packet to another interface or BPF map. (XDP_REDIRECT)
+* @within xdp
+*/
 #define luaxdp_setcallback(L, i)	(lunatik_setregistry((L), (i), luaxdp_callback))
 
 static inline void luaxdp_newdata(lua_State *L)
@@ -149,6 +176,16 @@ static inline void luaxdp_newdata(lua_State *L)
 	lunatik_cloneobject(L, data);
 }
 
+/***
+* Unregisters the Lua callback function associated with the current Lunatik runtime.
+* After calling this, `bpf_luaxdp_run` calls targeting this runtime will no longer
+* invoke a Lua function (they will likely return an error or default action).
+* @function detach
+* @treturn nil
+* @usage
+*   xdp.detach()
+* @within xdp
+*/
 static int luaxdp_detach(lua_State *L)
 {
 	lua_pushnil(L);
@@ -156,6 +193,51 @@ static int luaxdp_detach(lua_State *L)
 	return 0;
 }
 
+/***
+* Registers a Lua callback function to be invoked by an XDP/eBPF program.
+* When an XDP program calls the `bpf_luaxdp_run` kfunc, Lunatik will execute
+* the registered Lua `callback` associated with the current Lunatik runtime.
+* The runtime invoking this function must be non-sleepable.
+*
+* The `bpf_luaxdp_run` kfunc is called from an eBPF program with the following signature:
+* `int bpf_luaxdp_run(char *key, size_t key_sz, struct xdp_md *xdp_ctx, void *arg, size_t arg_sz)`
+*
+* - `key`: A string identifying the Lunatik runtime (e.g., the script name like "examples/filter/sni").
+*   This key is used to look up the runtime in Lunatik's internal table of active runtimes.
+* - `key_sz`: Length of the key string (including the null terminator).
+* - `xdp_ctx`: The XDP metadata context (`struct xdp_md *`).
+* - `arg`: A pointer to arbitrary data passed from eBPF to Lua.
+* - `arg_sz`: The size of the `arg` data.
+*
+* @function attach
+* @tparam function callback The Lua function to be called. This function receives two arguments:
+*
+* 1. `buffer` (data): A `data` object representing the network packet buffer (`xdp_md`).
+*    The `data` object points to `xdp_ctx->data` and its size is `xdp_ctx->data_end - xdp_ctx->data`.
+* 2. `argument` (data): A `data` object representing the `arg` passed from the eBPF program.
+*    Its size is `arg_sz`.
+*
+*   The callback function should return an integer verdict, typically one of the values
+*   from the `xdp.action` table (e.g., `xdp.action.PASS`, `xdp.action.DROP`).
+* @treturn nil
+* @raise Error if the current runtime is sleepable or if internal setup fails.
+* @usage
+*   -- Lua script (e.g., "my_xdp_handler.lua" which is run via `lunatik run my_xdp_handler.lua`)
+*   local xdp = require("xdp")
+*
+*   local function my_packet_processor(packet_buffer, custom_arg)
+*     print("Packet received, size:", #packet_buffer)
+*     return xdp.action.PASS
+*   end
+*   xdp.attach(my_packet_processor)
+*
+*   -- In eBPF C code, to call the above Lua function:
+*   -- char rt_key[] = "my_xdp_handler.lua"; // Key matches the script name
+*   -- int verdict = bpf_luaxdp_run(rt_key, sizeof(rt_key), ctx, NULL, 0);
+* @see xdp.action
+* @see data
+* @within xdp
+*/
 static int luaxdp_attach(lua_State *L)
 {
 	lunatik_checkruntime(L, false);
