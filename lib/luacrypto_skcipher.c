@@ -4,16 +4,15 @@
 */
 
 /***
-Low-level Lua interface to the Linux Kernel Crypto API for synchronous
-block ciphers (SKCIPHER - Synchronous Kernel Cipher).
- *
-This module provides a `new` function to create SKCIPHER transform objects,
-which can then be used for encryption and decryption with various block cipher
-algorithms and modes.
-@see crypto_skcipher_tfm
-
-@module crypto_skcipher
- */
+* Low-level Lua interface to the Linux Kernel Crypto API for synchronous
+* block ciphers (SKCIPHER - Synchronous Kernel Cipher).
+*
+* This module provides a `new` function to create SKCIPHER transform objects,
+* which can then be used for encryption and decryption with various block cipher
+* algorithms and modes.
+*
+* @module crypto_skcipher
+*/
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
@@ -70,16 +69,18 @@ static void luacrypto_skcipher_tfm_release(void *private)
 }
 
 
-// These methods are available on SKCIPHER TFM objects created by `crypto_skcipher.new()`.
-// @see crypto_skcipher.new
-// @type crypto_skcipher_tfm
+/***
+* SKCIPHER Object methods.
+* These methods are available on SKCIPHER TFM objects created by `crypto_skcipher.new()`.
+* @type crypto_skcipher
+*/
 
 /***
-Sets the encryption key for the SKCIPHER transform.
-@function crypto_skcipher_tfm:setkey
-@tparam string key The encryption key.
-@raise Error if setting the key fails (e.g., invalid key length for the algorithm).
- */
+* Sets the encryption key for the SKCIPHER transform.
+* @function crypto_skcipher:setkey
+* @tparam string key The encryption key.
+* @raise Error if setting the key fails (e.g., invalid key length for the algorithm).
+*/
 static int luacrypto_skcipher_tfm_setkey(lua_State *L) {
 	luacrypto_skcipher_tfm_t *tfm_ud = luacrypto_check_skcipher_tfm(L, 1);
 	size_t keylen;
@@ -90,10 +91,10 @@ static int luacrypto_skcipher_tfm_setkey(lua_State *L) {
 }
 
 /***
-Gets the required initialization vector (IV) size for the SKCIPHER transform.
-@function crypto_skcipher_tfm:ivsize
-@treturn integer The IV size in bytes.
- */
+* Gets the required initialization vector (IV) size for the SKCIPHER transform.
+* @function crypto_skcipher:ivsize
+* @treturn integer The IV size in bytes.
+*/
 static int luacrypto_skcipher_tfm_ivsize(lua_State *L) {
 	luacrypto_skcipher_tfm_t *tfm_ud = luacrypto_check_skcipher_tfm(L, 1);
 	lua_pushinteger(L, crypto_skcipher_ivsize(tfm_ud->tfm));
@@ -101,12 +102,12 @@ static int luacrypto_skcipher_tfm_ivsize(lua_State *L) {
 }
 
 /***
-Gets the block size of the SKCIPHER transform.
-Data processed by encrypt/decrypt should typically be a multiple of this size,
-depending on the cipher mode.
-@function crypto_skcipher_tfm:blocksize
-@treturn integer The block size in bytes.
- */
+* Gets the block size of the SKCIPHER transform.
+* Data processed by encrypt/decrypt should typically be a multiple of this size,
+* depending on the cipher mode.
+* @function crypto_skcipher:blocksize
+* @treturn integer The block size in bytes.
+*/
 static int luacrypto_skcipher_tfm_blocksize(lua_State *L) {
 	luacrypto_skcipher_tfm_t *tfm_ud = luacrypto_check_skcipher_tfm(L, 1);
 	lua_pushinteger(L, crypto_skcipher_blocksize(tfm_ud->tfm));
@@ -117,7 +118,7 @@ static int luacrypto_skcipher_crypt_common(lua_State *L, bool encrypt) {
 	luacrypto_skcipher_tfm_t *tfm_ud = luacrypto_check_skcipher_tfm(L, 1);
 	size_t iv_s_len, data_s_len;
 	const char *iv_s = luaL_checklstring(L, 2, &iv_s_len);
-	const char *data_s = luaL_checklstring(L, 3, &data_s_len); // Data (plaintext or ciphertext)
+	const char *data_s = luaL_checklstring(L, 3, &data_s_len); /* Data (plaintext or ciphertext) */
 	int ret;
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
 	unsigned int expected_ivlen;
@@ -141,8 +142,10 @@ static int luacrypto_skcipher_crypt_common(lua_State *L, bool encrypt) {
 	}
 	memcpy(tfm_ud->iv_data, iv_s, iv_s_len);
 
-	// Data length must be appropriate for the cipher mode (e.g. multiple of blocksize for CBC)
-	// The kernel will return -EINVAL if not.
+	/*
+	* Data length must be appropriate for the cipher mode (e.g. multiple of blocksize for CBC)
+	* The kernel will return -EINVAL if not.
+	*/
 	if (!tfm_ud->work_buffer || tfm_ud->work_buffer_len < data_s_len) {
 		kfree(tfm_ud->work_buffer);
 		tfm_ud->work_buffer = kmalloc(data_s_len, gfp);
@@ -177,32 +180,38 @@ static int luacrypto_skcipher_crypt_common(lua_State *L, bool encrypt) {
 }
 
 /***
-Encrypts plaintext using the SKCIPHER transform.
-The IV (nonce) must be unique for each encryption operation with the same key for most modes.
-Plaintext length should be appropriate for the cipher mode (e.g., multiple of blocksize).
-@function crypto_skcipher_tfm:encrypt
-@tparam string iv The Initialization Vector. Its length must match `ivsize()`.
-@tparam string plaintext The data to encrypt.
-@treturn string The ciphertext.
-@raise Error on encryption failure, incorrect IV length, or allocation issues.
- */
+* Encrypts plaintext using the SKCIPHER transform.
+* The IV (nonce) must be unique for each encryption operation with the same key for most modes.
+* Plaintext length should be appropriate for the cipher mode (e.g., multiple of blocksize).
+* @function crypto_skcipher:encrypt
+* @tparam string iv The Initialization Vector. Its length must match `ivsize()`.
+* @tparam string plaintext The data to encrypt.
+* @treturn string The ciphertext.
+* @raise Error on encryption failure, incorrect IV length, or allocation issues.
+*/
 static int luacrypto_skcipher_tfm_encrypt(lua_State *L) {
 	return luacrypto_skcipher_crypt_common(L, true);
 }
 
 /***
-Decrypts ciphertext using the SKCIPHER transform.
-The IV must match the one used during encryption.
-Ciphertext length should be appropriate for the cipher mode.
-@function crypto_skcipher_tfm:decrypt
-@tparam string iv The Initialization Vector. Its length must match `ivsize()`.
-@tparam string ciphertext The data to decrypt.
-@treturn string The plaintext.
-@raise Error on decryption failure, incorrect IV length, or allocation issues.
- */
+* Decrypts ciphertext using the SKCIPHER transform.
+* The IV must match the one used during encryption.
+* Ciphertext length should be appropriate for the cipher mode.
+* @function crypto_skcipher:decrypt
+* @tparam string iv The Initialization Vector. Its length must match `ivsize()`.
+* @tparam string ciphertext The data to decrypt.
+* @treturn string The plaintext.
+* @raise Error on decryption failure, incorrect IV length, or allocation issues.
+*/
 static int luacrypto_skcipher_tfm_decrypt(lua_State *L) {
 	return luacrypto_skcipher_crypt_common(L, false);
 }
+/*** Lua C methods for the SKCIPHER TFM object.
+* Includes cryptographic operations and Lunatik metamethods.
+* The `__close` method is important for explicit resource cleanup.
+* @see crypto_skcipher
+* @see lunatik_closeobject
+*/
 
 static const luaL_Reg luacrypto_skcipher_tfm_mt[] = {
 	{"setkey", luacrypto_skcipher_tfm_setkey},
@@ -216,6 +225,11 @@ static const luaL_Reg luacrypto_skcipher_tfm_mt[] = {
 	{NULL, NULL}
 };
 
+/*** Lunatik class definition for SKCIPHER TFM objects.
+* This structure binds the C implementation (luacrypto_skcipher_tfm_t, methods, release function)
+* to the Lua object system managed by Lunatik.
+*/
+
 static const lunatik_class_t luacrypto_skcipher_tfm_class = {
 	.name = "crypto_skcipher_tfm",
 	.methods = luacrypto_skcipher_tfm_mt,
@@ -225,15 +239,16 @@ static const lunatik_class_t luacrypto_skcipher_tfm_class = {
 
 
 /***
-Creates a new SKCIPHER transform (TFM) object.
-This is the constructor function for the `crypto_skcipher` module.
-@function crypto_skcipher.new
-@tparam string algname The name of the skcipher algorithm (e.g., "cbc(aes)", "ctr(aes)").
-@treturn crypto_skcipher_tfm The new SKCIPHER TFM object.
-@raise Error if the TFM object or kernel request cannot be allocated/initialized.
-@usage local skcipher_mod = require("crypto_skcipher")
-local cipher = skcipher_mod.new("cbc(aes)")
- */
+* Creates a new SKCIPHER transform (TFM) object.
+* This is the constructor function for the `crypto_skcipher` module.
+* @function crypto_skcipher.new
+* @tparam string algname The name of the skcipher algorithm (e.g., "cbc(aes)", "ctr(aes)").
+* @treturn crypto_skcipher The new SKCIPHER TFM object.
+* @raise Error if the TFM object or kernel request cannot be allocated/initialized.
+* @usage
+*   local skcipher_mod = require("crypto_skcipher")
+*   local cipher = skcipher_mod.new("cbc(aes)")
+*/
 static int luacrypto_skcipher_new(lua_State *L) {
 	const char *algname = luaL_checkstring(L, 1);
 	luacrypto_skcipher_tfm_t *tfm_ud;
@@ -257,7 +272,7 @@ static int luacrypto_skcipher_new(lua_State *L) {
 
 	tfm_ud->req = skcipher_request_alloc(tfm_ud->tfm, gfp);
 	if (!tfm_ud->req) {
-		// tfm_ud->tfm is guaranteed not IS_ERR here.
+		/* tfm_ud->tfm is guaranteed not IS_ERR here. */
 		crypto_free_skcipher(tfm_ud->tfm);
 		tfm_ud->tfm = NULL;
 		return luaL_error(L, "crypto_skcipher.new: failed to allocate kernel request for %s",

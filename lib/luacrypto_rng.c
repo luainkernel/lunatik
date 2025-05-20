@@ -4,15 +4,14 @@
 */
 
 /***
-Low-level Lua interface to the Linux Kernel Crypto API for synchronous
-Random Number Generators (RNG).
- *
-This module provides a `new` function to create RNG transform objects,
-which can then be used for generating random bytes.
-@see crypto_rng_tfm
-
-@module crypto_rng
- */
+* Low-level Lua interface to the Linux Kernel Crypto API for synchronous
+* Random Number Generators (RNG).
+*
+* This module provides a `new` function to create RNG objects,
+* which can then be used for generating random bytes.
+*
+* @module crypto_rng
+*/
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
@@ -42,19 +41,21 @@ static void luacrypto_rng_tfm_release(void *private)
 }
 
 
-/// RNG Transform (TFM) methods.
-// These methods are available on RNG TFM objects created by `crypto_rng.new()`.
-// @see crypto_rng.new
-// @type crypto_rng_tfm
+/***
+* RNG object methods.
+* These methods are available on RNG objects created by `crypto_rng.new()`.
+* @see crypto_rng.new
+* @type crypto_rng
+*/
 
 /***
-Generates a specified number of random bytes.
-@function crypto_rng_tfm:generate
-@tparam integer num_bytes The number of random bytes to generate.
-@tparam[opt] string seed Optional seed material to mix into the RNG. If nil or omitted, no explicit seed is used.
-@treturn string A binary string containing the generated random bytes.
-@raise Error on failure (e.g., allocation error, crypto API error).
- */
+* Generates a specified number of random bytes, with optional seed.
+* @function crypto_rng:generate
+* @tparam integer num_bytes The number of random bytes to generate.
+* @tparam[opt] string seed Optional seed material to mix into the RNG. If nil or omitted, no explicit seed is used.
+* @treturn string A binary string containing the generated random bytes.
+* @raise Error on failure (e.g., allocation error, crypto API error).
+*/
 static int luacrypto_rng_tfm_generate(lua_State *L) {
 	struct crypto_rng *tfm = luacrypto_check_rng_tfm(L, 1);
 	lua_Integer num_bytes_l = luaL_checkinteger(L, 2);
@@ -88,13 +89,13 @@ static int luacrypto_rng_tfm_generate(lua_State *L) {
 }
 
 /***
-Generates a specified number of random bytes using the simpler crypto_rng_get_bytes.
-This function does not take an explicit seed as an argument.
-@function crypto_rng_tfm:get_bytes
-@tparam integer num_bytes The number of random bytes to generate.
-@treturn string A binary string containing the generated random bytes.
-@raise Error on failure (e.g., allocation error, crypto API error).
- */
+* Generates a specified number of random bytes.
+* This function does not take an explicit seed as an argument.
+* @function crypto_rng:get_bytes
+* @tparam integer num_bytes The number of random bytes to generate.
+* @treturn string A binary string containing the generated random bytes.
+* @raise Error on failure (e.g., allocation error, crypto API error).
+*/
 static int luacrypto_rng_tfm_get_bytes(lua_State *L) {
 	struct crypto_rng *tfm = luacrypto_check_rng_tfm(L, 1);
 	lua_Integer num_bytes_l = luaL_checkinteger(L, 2);
@@ -128,12 +129,12 @@ static int luacrypto_rng_tfm_get_bytes(lua_State *L) {
 }
 
 /***
-Resets the RNG transform.
-This can be used to re-initialize the RNG, optionally with new seed material.
-@function crypto_rng_tfm:reset
-@tparam[opt] string seed Optional seed material to mix into the RNG. If nil or omitted, the RNG will reseed from its default sources.
-@raise Error on failure (e.g., crypto API error).
- */
+* Resets the RNG.
+* This can be used to re-initialize the RNG, optionally with new seed material.
+* @function crypto_rng:reset
+* @tparam[opt] string seed Optional seed material to mix into the RNG. If nil or omitted, the RNG will reseed from its default sources.
+* @raise Error on failure (e.g., crypto API error).
+*/
 static int luacrypto_rng_tfm_reset(lua_State *L) {
 	struct crypto_rng *tfm = luacrypto_check_rng_tfm(L, 1);
 	int ret;
@@ -151,9 +152,9 @@ static int luacrypto_rng_tfm_reset(lua_State *L) {
 }
 
 /***
-Retrieves information about the RNG algorithm.
-@function crypto_rng_tfm:alg_info
-@treturn table A table containing algorithm information, e.g., `{ driver_name = "...", seedsize = num }`.
+* Retrieves information about the RNG algorithm.
+* @function crypto_rng:alg_info
+* @treturn table A table containing algorithm information, e.g., `{ driver_name = "...", seedsize = num }`.
 */
 static int luacrypto_rng_tfm_alg_info(lua_State *L) {
 	struct crypto_rng *tfm = luacrypto_check_rng_tfm(L, 1);
@@ -170,6 +171,12 @@ static int luacrypto_rng_tfm_alg_info(lua_State *L) {
 	return 1;
 }
 
+/*** Lua C methods for the RNG object.
+* Includes cryptographic operations and Lunatik metamethods.
+* The `__close` method is important for explicit resource cleanup.
+* @see crypto_rng
+* @see lunatik_closeobject
+*/
 static const luaL_Reg luacrypto_rng_tfm_mt[] = {
 	{"generate", luacrypto_rng_tfm_generate},
 	{"reset", luacrypto_rng_tfm_reset},
@@ -181,8 +188,12 @@ static const luaL_Reg luacrypto_rng_tfm_mt[] = {
 	{NULL, NULL}
 };
 
+/*** Lunatik class definition for RNG objects.
+* This structure binds the C implementation (struct crypto_rng *, methods, release function)
+* to the Lua object system managed by Lunatik.
+*/
 static const lunatik_class_t luacrypto_rng_tfm_class = {
-	.name = "crypto_rng_tfm",
+	.name = "crypto_rng_tfm", /* Lua type name */
 	.methods = luacrypto_rng_tfm_mt,
 	.release = luacrypto_rng_tfm_release,
 	.sleep = true,
@@ -191,15 +202,16 @@ static const lunatik_class_t luacrypto_rng_tfm_class = {
 
 
 /***
-Creates a new RNG transform (TFM) object.
-This is the constructor function for the `crypto_rng` module.
-@function crypto_rng.new
-@tparam string algname The name of the RNG algorithm (e.g., "stdrng", "drbg_nopr_ctr_aes256"). Defaults to "stdrng" if nil or omitted.
-@treturn crypto_rng_tfm The new RNG TFM object.
-@raise Error if the TFM object cannot be allocated/initialized.
-@usage local rng_mod = require("crypto_rng")
-local rng = rng_mod.new() -- Uses default "stdrng"
-local random_bytes = rng:generate(32) -- Get 32 random bytes
+* Creates a new RNG object.
+* This is the constructor function for the `crypto_rng` module.
+* @function crypto_rng.new
+* @tparam string algname The name of the RNG algorithm (e.g., "stdrng", "drbg_nopr_ctr_aes256"). Defaults to "stdrng" if nil or omitted.
+* @treturn crypto_rng The new RNG object.
+* @raise Error if the TFM object cannot be allocated/initialized.
+* @usage
+*   local rng_mod = require("crypto_rng")
+*   local rng = rng_mod.new()  -- Uses default "stdrng"
+*   local random_bytes = rng:generate(32)  -- Get 32 random bytes
 */
 static int luacrypto_rng_new(lua_State *L) {
 	const char *algname = luaL_optstring(L, 1, "stdrng");

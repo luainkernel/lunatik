@@ -6,15 +6,14 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 /***
-Low-level Lua interface to the Linux Kernel Crypto API for AEAD
-(Authenticated Encryption with Associated Data) ciphers.
- *
-This module provides a `new` function to create AEAD transform objects,
-which can then be used for encryption and decryption.
-@see crypto_aead_tfm
-
-@module crypto_aead
- */
+* Low-level Lua interface to the Linux Kernel Crypto API for AEAD
+* (Authenticated Encryption with Associated Data) ciphers.
+*
+* This module provides a `new` function to create AEAD transform objects,
+* which can then be used for encryption and decryption.
+*
+* @module crypto_aead
+*/
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -42,7 +41,7 @@ typedef struct {
 	size_t work_buffer_len;
 
 	size_t aad_len_in_buffer;
-	size_t crypt_data_len_in_buffer; // For encrypt: PT len. For decrypt: CT+Tag len.
+	size_t crypt_data_len_in_buffer; /* For encrypt: PT len. For decrypt: CT+Tag len. */
 
 	struct scatterlist sg_work;
 } luacrypto_aead_tfm_t;
@@ -72,17 +71,19 @@ static void luacrypto_aead_tfm_release(void *private)
 }
 
 
-/// AEAD Transform (TFM) methods.
-// These methods are available on AEAD TFM objects created by `crypto_aead.new()`.
-// @see crypto_aead.new
-// @type crypto_aead_tfm
+/***
+* AEAD object methods.
+* These methods are available on AEAD objects created by `crypto_aead.new()`.
+* @see crypto_aead.new
+* @type crypto_aead
+*/
 
 /***
-Sets the encryption key for the AEAD transform.
-@function crypto_aead_tfm:setkey
-@tparam string key The encryption key.
-@raise Error if setting the key fails (e.g., invalid key length for the algorithm).
- */
+* Sets the encryption key for the AEAD transform.
+* @function crypto_aead:setkey
+* @tparam string key The encryption key.
+* @raise Error if setting the key fails (e.g., invalid key length for the algorithm).
+*/
 static int luacrypto_aead_tfm_setkey(lua_State *L) {
 	luacrypto_aead_tfm_t *tfm_ud = luacrypto_check_aead_tfm(L, 1);
 	size_t keylen;
@@ -93,11 +94,11 @@ static int luacrypto_aead_tfm_setkey(lua_State *L) {
 }
 
 /***
-Sets the authentication tag size for the AEAD transform.
-@function crypto_aead_tfm:setauthsize
-@tparam integer tagsize The desired authentication tag size in bytes.
-@raise Error if setting the authsize fails (e.g., unsupported size).
- */
+* Sets the authentication tag size for the AEAD transform.
+* @function crypto_aead:setauthsize
+* @tparam integer tagsize The desired authentication tag size in bytes.
+* @raise Error if setting the authsize fails (e.g., unsupported size).
+*/
 static int luacrypto_aead_tfm_setauthsize(lua_State *L) {
 	luacrypto_aead_tfm_t *tfm_ud = luacrypto_check_aead_tfm(L, 1);
 	unsigned int tagsize = luaL_checkinteger(L, 2);
@@ -107,10 +108,10 @@ static int luacrypto_aead_tfm_setauthsize(lua_State *L) {
 }
 
 /***
-Gets the required initialization vector (IV) size for the AEAD transform.
-@function crypto_aead_tfm:ivsize
-@treturn integer The IV size in bytes.
- */
+* Gets the required initialization vector (IV) size for the AEAD transform.
+* @function crypto_aead:ivsize
+* @treturn integer The IV size in bytes.
+*/
 static int luacrypto_aead_tfm_ivsize(lua_State *L) {
 	luacrypto_aead_tfm_t *tfm_ud = luacrypto_check_aead_tfm(L, 1);
 	lua_pushinteger(L, crypto_aead_ivsize(tfm_ud->tfm));
@@ -118,11 +119,11 @@ static int luacrypto_aead_tfm_ivsize(lua_State *L) {
 }
 
 /***
-Gets the current authentication tag size for the AEAD transform.
-This is the value set by `setauthsize` or the algorithm's default.
-@function crypto_aead_tfm:authsize
-@treturn integer The authentication tag size in bytes.
- */
+* Gets the current authentication tag size for the AEAD transform.
+* This is the value set by `setauthsize` or the algorithm's default.
+* @function crypto_aead:authsize
+* @treturn integer The authentication tag size in bytes.
+*/
 static int luacrypto_aead_tfm_authsize(lua_State *L) {
 	luacrypto_aead_tfm_t *tfm_ud = luacrypto_check_aead_tfm(L, 1);
 	lua_pushinteger(L, crypto_aead_authsize(tfm_ud->tfm));
@@ -130,21 +131,21 @@ static int luacrypto_aead_tfm_authsize(lua_State *L) {
 }
 
 /***
-Encrypts data using the AEAD transform.
-The IV (nonce) must be unique for each encryption operation with the same key.
-@function crypto_aead_tfm:encrypt
-@tparam string iv The Initialization Vector (nonce). Its length must match `ivsize()`.
-@tparam string combined_data A string containing AAD (Additional Authenticated Data) concatenated with the plaintext (format: AAD || Plaintext).
-@tparam integer aad_len The length of the AAD part in `combined_data`.
-@treturn string The encrypted data, formatted as (AAD || Ciphertext || Tag).
-@raise Error on encryption failure, incorrect IV length, or allocation issues.
- */
+* Encrypts data using the AEAD transform.
+* The IV (nonce) must be unique for each encryption operation with the same key.
+* @function crypto_aead:encrypt
+* @tparam string iv The Initialization Vector (nonce). Its length must match `ivsize()`.
+* @tparam string combined_data A string containing AAD (Additional Authenticated Data) concatenated with the plaintext (format: AAD || Plaintext).
+* @tparam integer aad_len The length of the AAD part in `combined_data`.
+* @treturn string The encrypted data, formatted as (AAD || Ciphertext || Tag).
+* @raise Error on encryption failure, incorrect IV length, or allocation issues.
+*/
 static int luacrypto_aead_tfm_encrypt(lua_State *L) {
 	luacrypto_aead_tfm_t *tfm_ud = luacrypto_check_aead_tfm(L, 1);
 	size_t iv_s_len, combined_s_len, aad_s_len, actual_data_s_len;
 	const char *iv_s = luaL_checklstring(L, 2, &iv_s_len);
-	const char *combined_s = luaL_checklstring(L, 3, &combined_s_len); // AAD || Plaintext
-	lua_Integer aad_l = luaL_checkinteger(L, 4);
+	const char *combined_s = luaL_checklstring(L, 3, &combined_s_len); /* AAD || Plaintext */
+	lua_Integer aad_l = luaL_checkinteger(L, 4); /* AAD length */
 	int ret;
 	unsigned int authsize_val;
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
@@ -167,7 +168,7 @@ static int luacrypto_aead_tfm_encrypt(lua_State *L) {
 
 	luaL_argcheck(L, aad_l >= 0 && (size_t)aad_l <= combined_s_len, 4, "AAD length out of bounds");
 	aad_s_len = (size_t)aad_l;
-	actual_data_s_len = combined_s_len - aad_s_len; // Plaintext length
+	actual_data_s_len = combined_s_len - aad_s_len; /* Plaintext length */
 
 	authsize_val = crypto_aead_authsize(tfm_ud->tfm);
 	total_buffer_needed = aad_s_len + actual_data_s_len + authsize_val;
@@ -182,7 +183,7 @@ static int luacrypto_aead_tfm_encrypt(lua_State *L) {
 		tfm_ud->work_buffer_len = total_buffer_needed;
 	}
 
-	memcpy(tfm_ud->work_buffer, combined_s, combined_s_len); // Copies AAD || Plaintext
+	memcpy(tfm_ud->work_buffer, combined_s, combined_s_len); /* Copies AAD || Plaintext */
 
 	tfm_ud->aad_len_in_buffer = aad_s_len;
 	tfm_ud->crypt_data_len_in_buffer = actual_data_s_len;
@@ -198,7 +199,7 @@ static int luacrypto_aead_tfm_encrypt(lua_State *L) {
 		return luaL_error(L, "aead_tfm:encrypt: encryption failed (err %d)", ret);
 	}
 
-	// After encryption, work_buffer contains: AAD || Ciphertext || Tag.
+	/* After encryption, work_buffer contains: AAD || Ciphertext || Tag. */
 	lua_pushlstring(
 		L, (const char *)(tfm_ud->work_buffer),
 		tfm_ud->aad_len_in_buffer + tfm_ud->crypt_data_len_in_buffer + authsize_val
@@ -207,20 +208,19 @@ static int luacrypto_aead_tfm_encrypt(lua_State *L) {
 }
 
 /***
-Decrypts data using the AEAD transform.
-The IV (nonce) and AAD must match those used during encryption.
-@function crypto_aead_tfm:decrypt
-@tparam string iv The Initialization Vector (nonce). Its length must match `ivsize()`.
-@tparam string combined_data A string containing AAD (Additional Authenticated Data) concatenated with the ciphertext and tag (format: AAD || Ciphertext || Tag).
-@tparam integer aad_len The length of the AAD part in `combined_data`.
-@treturn string The decrypted data, formatted as (AAD || Plaintext).
-@raise Error on decryption failure (e.g., authentication error - EBADMSG), incorrect IV length, input data too short, or allocation issues.
- */
+* Decrypts data using the AEAD transform.
+* The IV (nonce) and AAD must match those used during encryption.
+* @function crypto_aead:decrypt
+* @tparam string iv The Initialization Vector (nonce). Its length must match `ivsize()`.
+* @tparam string combined_data A string containing AAD (Additional Authenticated Data) concatenated with the ciphertext and tag (format: AAD || Ciphertext || Tag).
+* @tparam integer aad_len The length of the AAD part in `combined_data`.
+* @treturn string The decrypted data, formatted as (AAD || Plaintext).
+* @raise Error on decryption failure (e.g., authentication error - EBADMSG), incorrect IV length, input data too short, or allocation issues.
+*/
 static int luacrypto_aead_tfm_decrypt(lua_State *L) {
 	luacrypto_aead_tfm_t *tfm_ud = luacrypto_check_aead_tfm(L, 1);
 	size_t iv_s_len, combined_s_len, aad_s_len, actual_data_s_len;
-	const char *iv_s = luaL_checklstring(L, 2, &iv_s_len);
-	// combined_s is AAD || CiphertextWithTag
+	const char *iv_s = luaL_checklstring(L, 2, &iv_s_len); /* Nonce */
 	const char *combined_s = luaL_checklstring(L, 3, &combined_s_len);
 	lua_Integer aad_l = luaL_checkinteger(L, 4);
 	int ret;
@@ -245,15 +245,17 @@ static int luacrypto_aead_tfm_decrypt(lua_State *L) {
 
 	luaL_argcheck(L, aad_l >= 0 && (size_t)aad_l <= combined_s_len, 4, "AAD length out of bounds");
 	aad_s_len = (size_t)aad_l;
-	actual_data_s_len = combined_s_len - aad_s_len; // CiphertextWithTag length
+	actual_data_s_len = combined_s_len - aad_s_len; /* CiphertextWithTag length */
 
 	authsize_val = crypto_aead_authsize(tfm_ud->tfm);
-	// For decryption, work_buffer needs to hold AAD || CiphertextWithTag initially.
-	// The output (AAD || Plaintext) will be shorter or same length.
-	// Kernel expects source buffer to be large enough for AAD + CT + Tag.
-	// Destination (which is same buffer) will receive AAD + PT.
-	// So, initial combined_s_len is AAD + CT + Tag.
-	total_buffer_needed = combined_s_len; // aad_s_len + actual_data_s_len
+	/*
+	* For decryption, work_buffer needs to hold AAD || CiphertextWithTag initially.
+	* The output (AAD || Plaintext) will be shorter or same length.
+	* Kernel expects source buffer to be large enough for AAD + CT + Tag.
+	* Destination (which is same buffer) will receive AAD + PT.
+	* So, initial combined_s_len is AAD + CT + Tag.
+	*/
+	total_buffer_needed = combined_s_len; /* aad_s_len + actual_data_s_len */
 
 	if (!tfm_ud->work_buffer || tfm_ud->work_buffer_len < total_buffer_needed) {
 		kfree(tfm_ud->work_buffer);
@@ -265,12 +267,12 @@ static int luacrypto_aead_tfm_decrypt(lua_State *L) {
 		tfm_ud->work_buffer_len = total_buffer_needed;
 	}
 
-	memcpy(tfm_ud->work_buffer, combined_s, combined_s_len); // Copies AAD || CiphertextWithTag
+	memcpy(tfm_ud->work_buffer, combined_s, combined_s_len); /* Copies AAD || CiphertextWithTag */
 
 	tfm_ud->aad_len_in_buffer = aad_s_len;
 	tfm_ud->crypt_data_len_in_buffer = actual_data_s_len;
 
-	// Scatterlist covers AAD and CiphertextWithTag.
+	/* Scatterlist covers AAD and CiphertextWithTag. */
 	sg_init_one(&tfm_ud->sg_work, tfm_ud->work_buffer, aad_s_len + actual_data_s_len);
 
 	aead_request_set_ad(tfm_ud->req, aad_s_len);
@@ -279,17 +281,19 @@ static int luacrypto_aead_tfm_decrypt(lua_State *L) {
 
 	ret = crypto_aead_decrypt(tfm_ud->req);
 	if (ret) {
-		// Common error is -EBADMSG for authentication failure
+		/* Common error is -EBADMSG for authentication failure */
 		return luaL_error(L, "aead_tfm:decrypt: decryption failed (err %d, possibly auth error)", ret);
 	}
 
-	// After decryption, work_buffer contains: AAD || Plaintext.
-	// The length of Plaintext is (ciphertext_with_tag_len - authsize_val)
+	/*
+	* After decryption, work_buffer contains: AAD || Plaintext.
+	* The length of Plaintext is (ciphertext_with_tag_len - authsize_val)
+	*/
 	luaL_argcheck(
 		L, tfm_ud->crypt_data_len_in_buffer >= authsize_val,
 		3, "input data (ciphertext+tag) too short for tag"
 	);
-	// The length of this combined data is (aad_len_in_buffer + plaintext_len)
+	/* The length of this combined data is (aad_len_in_buffer + plaintext_len) */
 	lua_pushlstring(
 		L, (const char *)(tfm_ud->work_buffer),
 		tfm_ud->aad_len_in_buffer + (tfm_ud->crypt_data_len_in_buffer - authsize_val)
@@ -297,11 +301,12 @@ static int luacrypto_aead_tfm_decrypt(lua_State *L) {
 	return 1;
 }
 
-/// Lua C methods for the AEAD TFM object.
-// Includes cryptographic operations and Lunatik metamethods.
-// The `__close` method is important for explicit resource cleanup.
-// @see crypto_aead_tfm
-// @see lunatik_closeobject
+/*** Lua C methods for the AEAD object.
+* Includes cryptographic operations and Lunatik metamethods.
+* The `__close` method is important for explicit resource cleanup.
+* @see crypto_aead
+* @see lunatik_closeobject
+*/
 static const luaL_Reg luacrypto_aead_tfm_mt[] = {
 	{"setkey", luacrypto_aead_tfm_setkey},
 	{"setauthsize", luacrypto_aead_tfm_setauthsize},
@@ -315,9 +320,10 @@ static const luaL_Reg luacrypto_aead_tfm_mt[] = {
 	{NULL, NULL}
 };
 
-/// Lunatik class definition for AEAD TFM objects.
-// This structure binds the C implementation (luacrypto_aead_tfm_t, methods, release function)
-// to the Lua object system managed by Lunatik.
+/*** Lunatik class definition for AEAD TFM objects.
+* This structure binds the C implementation (luacrypto_aead_tfm_t, methods, release function)
+* to the Lua object system managed by Lunatik.
+*/
 static const lunatik_class_t luacrypto_aead_tfm_class = {
 	.name = "crypto_aead_tfm",
 	.methods = luacrypto_aead_tfm_mt,
@@ -326,15 +332,18 @@ static const lunatik_class_t luacrypto_aead_tfm_class = {
 };
 
 
-/***
-Creates a new AEAD transform (TFM) object.
-This is the constructor function for the `crypto_aead` module.
-@function crypto_aead.new
-@tparam string algname The name of the AEAD algorithm (e.g., "gcm(aes)", "ccm(aes)").
-@treturn crypto_aead_tfm The new AEAD TFM object.
-@raise Error if the TFM object or kernel request cannot be allocated/initialized.
-@usage local aead_mod = require("crypto_aead") ; local cipher = aead_mod.new("gcm(aes)")
- */
+/*** Creates a new AEAD transform (TFM) object.
+/*** Creates a new AEAD object.
+* This is the constructor function for the `crypto_aead` module.
+* @function crypto_aead.new
+* @tparam string algname The name of the AEAD algorithm (e.g., "gcm(aes)", "ccm(aes)").
+* @tparam string algname The name of the AEAD algorithm (e.g., "gcm(aes)", "ccm(aes)").
+* @treturn crypto_aead The new AEAD object.
+* @raise Error if the TFM object or kernel request cannot be allocated/initialized.
+* @usage
+*   local aead = require("crypto_aead")
+*   local cipher = aead.new("gcm(aes)")
+*/
 static int luacrypto_aead_new(lua_State *L) {
 	const char *algname = luaL_checkstring(L, 1);
 	luacrypto_aead_tfm_t *tfm_ud;
@@ -358,7 +367,7 @@ static int luacrypto_aead_new(lua_State *L) {
 
 	tfm_ud->req = aead_request_alloc(tfm_ud->tfm, gfp);
 	if (!tfm_ud->req) {
-		// tfm_ud->tfm is guaranteed not IS_ERR here.
+		/* tfm_ud->tfm is guaranteed not IS_ERR here. */
 		crypto_free_aead(tfm_ud->tfm);
 		tfm_ud->tfm = NULL;
 		return luaL_error(L, "crypto_aead.new: failed to allocate kernel request for %s",

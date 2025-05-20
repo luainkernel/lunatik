@@ -4,3 +4,4 @@
 -- Simply re-export the C module, ensuring consistency in api
 -- by allowing `require"crypto.rng"`.
 return require("crypto_rng")
+

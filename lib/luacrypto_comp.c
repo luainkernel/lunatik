@@ -4,15 +4,14 @@
 */
 
 /***
-Low-level Lua interface to the Linux Kernel Crypto API for synchronous
-compression algorithms.
- *
-This module provides a `new` function to create COMP transform objects,
-which can then be used for compression and decompression.
-@see crypto_comp_tfm
-
-@module crypto_comp
- */
+* Low-level Lua interface to the Linux Kernel Crypto API for synchronous
+* compression algorithms.
+*
+* This module provides a `new` function to create COMP transform objects,
+* which can then be used for compression and decompression.
+*
+* @module crypto_comp
+*/
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
@@ -45,22 +44,23 @@ static void luacrypto_comp_tfm_release(void *private)
 }
 
 
-/// COMP Transform (TFM) methods.
-// These methods are available on COMP TFM objects created by `crypto_comp.new()`.
-// @see crypto_comp.new
-// @type crypto_comp_tfm
+/***
+* COMP Object methods.
+* These methods are available on COMP objects created by `crypto_comp.new()`.
+* @type crypto_comp
+*/
 
 /***
-Compresses the given data.
-Requires the maximum possible compressed size as an argument, as the kernel
-API needs a destination buffer of sufficient size. A common approach is to
-provide a size slightly larger than the input data (e.g., input size + a small fixed overhead or percentage).
-@function crypto_comp_tfm:compress
-@tparam string data The data to compress.
-@tparam integer max_output_len The maximum possible size of the compressed data.
-@treturn string The compressed data.
-@raise Error on failure (e.g., allocation error, crypto API error).
- */
+* Compresses the given data.
+* Requires the maximum possible compressed size as an argument, as the kernel
+* API needs a destination buffer of sufficient size. A common approach is to
+* provide a size slightly larger than the input data (e.g., input size + a small fixed overhead or percentage).
+* @function crypto_comp:compress
+* @tparam string data The data to compress.
+* @tparam integer max_output_len The maximum possible size of the compressed data.
+* @treturn string The compressed data.
+* @raise Error on failure (e.g., allocation error, crypto API error).
+*/
 static int luacrypto_comp_tfm_compress(lua_State *L) {
 	luacrypto_comp_tfm_t *tfm_ud = luacrypto_check_comp_tfm(L, 1);
 	size_t datalen_sz;
@@ -96,7 +96,7 @@ static int luacrypto_comp_tfm_compress(lua_State *L) {
 		return luaL_error(L, "comp_tfm:compress: failed to allocate output buffer");
 	}
 
-	actual_output_len_uint = max_output_len_uint; /* dlen is in/out */
+	actual_output_len_uint = max_output_len_uint; /* dlen is in/out */ /* The kernel updates this with the actual compressed size */
 	ret = crypto_comp_compress(tfm_ud->tfm, (const u8 *)data, datalen_uint,
 				   output_buf, &actual_output_len_uint);
 
@@ -111,16 +111,16 @@ static int luacrypto_comp_tfm_compress(lua_State *L) {
 }
 
 /***
-Decompresses the given data.
-Requires the maximum possible decompressed size as an argument, as the kernel
-API needs a destination buffer of sufficient size.
-@function crypto_comp_tfm:decompress
-@tparam string data The data to decompress.
-@tparam integer max_decompressed_len The maximum possible size of the decompressed data.
-@treturn string The decompressed data.
-@raise Error on failure (e.g., allocation error, crypto API error, input data corrupted,
-       `max_decompressed_len` too small).
- */
+* Decompresses the given data.
+* Requires the maximum possible decompressed size as an argument, as the kernel
+* API needs a destination buffer of sufficient size.
+* @function crypto_comp:decompress
+* @tparam string data The data to decompress.
+* @tparam integer max_decompressed_len The maximum possible size of the decompressed data.
+* @treturn string The decompressed data.
+* @raise Error on failure (e.g., allocation error, crypto API error, input data corrupted,
+*        `max_decompressed_len` too small).
+*/
 static int luacrypto_comp_tfm_decompress(lua_State *L) {
 	luacrypto_comp_tfm_t *tfm_ud = luacrypto_check_comp_tfm(L, 1);
 	size_t datalen_sz;
@@ -149,13 +149,16 @@ static int luacrypto_comp_tfm_decompress(lua_State *L) {
 
 
 	if (max_output_len_uint == 0) {
-		// If input is non-empty (we are here because datalen_uint > 0) and max_output_len_uint is 0,
-		// this is an error: cannot decompress non-empty data into a 0-byte buffer.
+		/*
+		* If input is non-empty (we are here because datalen_uint > 0) and max_output_len_uint is 0,
+		* this is an error: cannot decompress non-empty data into a 0-byte buffer.
+		*/
 		return luaL_error(L, "comp_tfm:decompress: cannot decompress non-empty data into a 0-byte buffer");
 	}
 
 	output_buf = kmalloc(max_output_len_uint, gfp);
 	if (!output_buf) {
+		/* -ENOMEM */
 		return luaL_error(L, "comp_tfm:decompress: failed to allocate output buffer");
 	}
 
@@ -165,8 +168,8 @@ static int luacrypto_comp_tfm_decompress(lua_State *L) {
 
 	if (ret) {
 		kfree(output_buf);
-		// -EINVAL often means output buffer too small
-		return luaL_error(L, "comp_tfm:decompress: crypto_comp_decompress failed (%d, possibly buffer too small or data corrupted)", ret);
+		/* -EINVAL often means output buffer too small */
+		return luaL_error(L, "comp_tfm:decompress: crypto_comp_decompress failed (%d, possibly buffer too small or data corrupted)", ret); /* -EINVAL, -EBADMSG, etc. */
 	}
 	lua_pushlstring(L, (const char *)output_buf, actual_output_len_uint);
 	kfree(output_buf);
@@ -191,14 +194,15 @@ static const lunatik_class_t luacrypto_comp_tfm_class = {
 
 
 /***
-Creates a new COMP transform (TFM) object.
-This is the constructor function for the `crypto_comp` module.
-@function crypto_comp.new
-@tparam string algname The name of the compression algorithm (e.g., "lz4", "deflate").
-@treturn crypto_comp_tfm The new COMP TFM object.
-@raise Error if the TFM object cannot be allocated/initialized.
-@usage local comp_mod = require("crypto_comp")
-local compressor = comp_mod.new("lz4")
+* Creates a new COMP transform (TFM) object.
+* This is the constructor function for the `crypto_comp` module.
+* @function crypto_comp.new
+* @tparam string algname The name of the compression algorithm (e.g., "lz4", "deflate").
+* @treturn crypto_comp The new COMP TFM object.
+* @raise Error if the TFM object cannot be allocated/initialized.
+* @usage
+*   local comp = require("crypto_comp")
+*   local compressor = comp.new("lz4")
  */
 static int luacrypto_comp_new(lua_State *L) {
 	const char *algname = luaL_checkstring(L, 1);

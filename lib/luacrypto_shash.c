@@ -4,15 +4,14 @@
 */
 
 /***
-Low-level Lua interface to the Linux Kernel Crypto API for synchronous
-message digest (hash) algorithms, including HMAC.
- *
-This module provides a `new` function to create SHASH transform objects,
-which can then be used for various hashing operations.
-@see crypto_shash_tfm
-
-@module crypto_shash
- */
+* Low-level Lua interface to the Linux Kernel Crypto API for synchronous
+* message digest (hash) algorithms, including HMAC.
+*
+* This module provides a `new` function to create SHASH transform objects,
+* which can then be used for various hashing operations.
+*
+* @module crypto_shash
+*/
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
@@ -32,7 +31,7 @@ static const lunatik_class_t luacrypto_shash_tfm_class;
 
 typedef struct {
 	struct crypto_shash *tfm;
-	struct shash_desc *kernel_desc; // Points to kmalloc'ed shash_desc + space
+	struct shash_desc *kernel_desc; /* Points to kmalloc'ed shash_desc + space */
 	size_t desc_alloc_len;
 } luacrypto_shash_tfm_t;
 
@@ -52,45 +51,47 @@ static void luacrypto_shash_tfm_release(void *private)
 }
 
 
-/// SHASH Transform (TFM) methods.
-// These methods are available on SHASH TFM objects created by `crypto_shash.new()`.
-// @see crypto_shash.new
-// @type crypto_shash_tfm
+/***
+* SHASH object methods.
+* These methods are available on SHASH objects created by `crypto_shash.new()`.
+* @see crypto_shash.new
+* @type crypto_shash
+*/
 
 /***
-Gets the digest size (output length) of the hash algorithm.
-@function crypto_shash_tfm:digestsize
-@treturn integer The digest size in bytes.
- */
+* Gets the digest size (output length) of the hash algorithm.
+* @function crypto_shash:digestsize
+* @treturn integer The digest size in bytes.
+*/
 static int luacrypto_shash_tfm_digestsize(lua_State *L) {
 	luacrypto_shash_tfm_t *tfm_ud = luacrypto_check_shash_tfm(L, 1);
 	lua_pushinteger(L, crypto_shash_digestsize(tfm_ud->tfm));
 	return 1;
 }
 /***
-Sets the key for the SHASH transform (used for HMAC).
-@function crypto_shash_tfm:setkey
-@tparam string key The key to use for HMAC.
-@raise Error if setting the key fails.
- */
+* Sets the key for the SHASH transform (used for HMAC).
+* @function crypto_shash:setkey
+* @tparam string key The key to use for HMAC.
+* @raise Error if setting the key fails.
+*/
 static int luacrypto_shash_tfm_setkey(lua_State *L) {
 	luacrypto_shash_tfm_t *tfm_ud = luacrypto_check_shash_tfm(L, 1);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
 	int ret = crypto_shash_setkey(tfm_ud->tfm, key, keylen);
-	if (ret) return luaL_error(L, "shash_tfm:setkey: failed (%d)", ret);
+	if (ret) return luaL_error(L, "shash:setkey: failed (%d)", ret);
 	return 0;
 }
 
 /***
-Computes the hash of the given data in a single operation.
-For HMAC, `setkey()` must have been called first.
-This function initializes, updates, and finalizes the hash calculation.
-@function crypto_shash_tfm:digest
-@tparam string data The data to hash.
-@treturn string The computed digest (hash output).
-@raise Error on failure (e.g., allocation error, crypto API error).
- */
+* Computes the hash of the given data in a single operation.
+* For HMAC, `setkey()` must have been called first.
+* This function initializes, updates, and finalizes the hash calculation.
+* @function crypto_shash:digest
+* @tparam string data The data to hash.
+* @treturn string The computed digest (hash output).
+* @raise Error on failure (e.g., allocation error, crypto API error).
+*/
 static int luacrypto_shash_tfm_digest(lua_State *L) {
 	luacrypto_shash_tfm_t *tfm_ud = luacrypto_check_shash_tfm(L, 1);
 	size_t datalen;
@@ -98,11 +99,11 @@ static int luacrypto_shash_tfm_digest(lua_State *L) {
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
 	unsigned int digestsize = crypto_shash_digestsize(tfm_ud->tfm);
 	u8 *digest_buf = kmalloc(digestsize, gfp);
-	if (!digest_buf) return luaL_error(L, "shash_tfm:digest: failed to allocate digest buffer");
+	if (!digest_buf) return luaL_error(L, "shash:digest: failed to allocate digest buffer");
 	int ret = crypto_shash_digest(tfm_ud->kernel_desc, data, datalen, digest_buf);
 	if (ret) {
 		kfree(digest_buf);
-		return luaL_error(L, "shash_tfm:digest: crypto_shash_digest failed (%d)", ret);
+		return luaL_error(L, "shash:digest: crypto_shash_digest failed (%d)", ret);
 	}
 	lua_pushlstring(
 		L, (const char *)digest_buf, digestsize
@@ -112,56 +113,56 @@ static int luacrypto_shash_tfm_digest(lua_State *L) {
 }
 
 /***
-Initializes a multi-part hash operation.
-This must be called before using `update()` or `final()`.
-@function crypto_shash_tfm:init
-@raise Error on failure.
- */
+* Initializes a multi-part hash operation.
+* This must be called before using `update()` or `final()`.
+* @function crypto_shash:init
+* @raise Error on failure.
+*/
 static int luacrypto_shash_tfm_init(lua_State *L) {
 	luacrypto_shash_tfm_t *tfm_ud = luacrypto_check_shash_tfm(L, 1);
 	int ret = crypto_shash_init(tfm_ud->kernel_desc);
 	if (ret) {
-		return luaL_error(L, "shash_tfm:init: failed (%d)", ret);
+		return luaL_error(L, "shash:init: failed (%d)", ret);
 	}
 	return 0;
 }
 
 /***
-Updates the hash state with more data.
-Must be called after `init()`. Can be called multiple times.
-@function crypto_shash_tfm:update
-@tparam string data The data chunk to add to the hash.
-@raise Error on failure.
- */
+* Updates the hash state with more data.
+* Must be called after `init()`. Can be called multiple times.
+* @function crypto_shash:update
+* @tparam string data The data chunk to add to the hash.
+* @raise Error on failure.
+*/
 static int luacrypto_shash_tfm_update(lua_State *L) {
 	luacrypto_shash_tfm_t *tfm_ud = luacrypto_check_shash_tfm(L, 1);
 	size_t datalen;
 	const char *data = luaL_checklstring(L, 2, &datalen);
 	int ret = crypto_shash_update(tfm_ud->kernel_desc, data, datalen);
 	if (ret) {
-		return luaL_error(L, "shash_tfm:update: failed (%d)", ret);
+		return luaL_error(L, "shash:update: failed (%d)", ret);
 	}
 	return 0;
 }
 
 /***
-Finalizes the multi-part hash operation and returns the digest.
-Must be called after `init()` and any `update()` calls.
-@function crypto_shash_tfm:final
-@treturn string The computed digest.
-@raise Error on failure.
- */
+* Finalizes the multi-part hash operation and returns the digest.
+* Must be called after `init()` and any `update()` calls.
+* @function crypto_shash:final
+* @treturn string The computed digest.
+* @raise Error on failure.
+*/
 static int luacrypto_shash_tfm_final(lua_State *L) {
 	luacrypto_shash_tfm_t *tfm_ud = luacrypto_check_shash_tfm(L, 1);
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
 	unsigned int digestsize = crypto_shash_digestsize(tfm_ud->tfm);
 	u8 *digest_buf = kmalloc(digestsize, gfp);
 	int ret;
-	if (!digest_buf) return luaL_error(L, "shash_tfm:final: failed to allocate digest buffer");
+	if (!digest_buf) return luaL_error(L, "shash:final: failed to allocate digest buffer");
 	ret = crypto_shash_final(tfm_ud->kernel_desc, digest_buf);
 	if (ret) {
 		kfree(digest_buf);
-		return luaL_error(L, "shash_tfm:final: failed (%d)", ret);
+		return luaL_error(L, "shash:final: failed (%d)", ret);
 	}
 	lua_pushlstring(
 		L, (const char *)digest_buf, digestsize
@@ -171,14 +172,14 @@ static int luacrypto_shash_tfm_final(lua_State *L) {
 }
 
 /***
-Combines update and finalization for a multi-part hash operation.
-Updates the hash state with the given data, then finalizes and returns the digest.
-`init()` must have been called prior to calling `finup()`.
-@function crypto_shash_tfm:finup
-@tparam string data The final data chunk.
-@treturn string The computed digest.
-@raise Error on failure.
- */
+* Combines update and finalization for a multi-part hash operation.
+* Updates the hash state with the given data, then finalizes and returns the digest.
+* `init()` must have been called prior to calling `finup()`.
+* @function crypto_shash:finup
+* @tparam string data The final data chunk.
+* @treturn string The computed digest.
+* @raise Error on failure.
+*/
 static int luacrypto_shash_tfm_finup(lua_State *L) {
 	luacrypto_shash_tfm_t *tfm_ud = luacrypto_check_shash_tfm(L, 1);
 	size_t datalen;
@@ -187,11 +188,11 @@ static int luacrypto_shash_tfm_finup(lua_State *L) {
 	unsigned int digestsize = crypto_shash_digestsize(tfm_ud->tfm);
 	u8 *digest_buf = kmalloc(digestsize, gfp);
 	int ret;
-	if (!digest_buf) return luaL_error(L, "shash_tfm:finup: failed to allocate digest buffer");
+	if (!digest_buf) return luaL_error(L, "shash:finup: failed to allocate digest buffer");
 	ret = crypto_shash_finup(tfm_ud->kernel_desc, data, datalen, digest_buf);
 	if (ret) {
 		kfree(digest_buf);
-		return luaL_error(L, "shash_tfm:finup: failed (%d)", ret);
+		return luaL_error(L, "shash:finup: failed (%d)", ret);
 	}
 	lua_pushlstring(
 		L, (const char *)digest_buf, digestsize
@@ -201,19 +202,19 @@ static int luacrypto_shash_tfm_finup(lua_State *L) {
 }
 
 /***
-Exports the internal state of the hash operation.
-This allows suspending and later resuming a hash calculation via `import()`.
-Must be called after `init()` and any `update()` calls if part of a multi-step operation.
-@function crypto_shash_tfm:export
-@treturn string The internal hash state as a binary string.
-@raise Error on failure (e.g., allocation error).
- */
+* Exports the internal state of the hash operation.
+* This allows suspending and later resuming a hash calculation via `import()`.
+* Must be called after `init()` and any `update()` calls if part of a multi-step operation.
+* @function crypto_shash:export
+* @treturn string The internal hash state as a binary string.
+* @raise Error on failure (e.g., allocation error).
+*/
 static int luacrypto_shash_tfm_export(lua_State *L) {
 	luacrypto_shash_tfm_t *tfm_ud = luacrypto_check_shash_tfm(L, 1);
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
 	unsigned int statesize = crypto_shash_statesize(tfm_ud->tfm);
 	void *state_buf = kmalloc(statesize, gfp);
-	if (!state_buf) return luaL_error(L, "shash_tfm:export: failed to allocate state buffer");
+	if (!state_buf) return luaL_error(L, "shash:export: failed to allocate state buffer");
 	crypto_shash_export(tfm_ud->kernel_desc, state_buf);
 	lua_pushlstring(
 		L, (const char *)state_buf, statesize
@@ -223,13 +224,13 @@ static int luacrypto_shash_tfm_export(lua_State *L) {
 }
 
 /***
-Imports a previously exported hash state.
-This overwrites the current hash state and allows resuming a hash calculation.
-The imported state must be compatible with the current hash algorithm.
-@function crypto_shash_tfm:import
-@tparam string state The previously exported hash state (binary string).
-@raise Error on failure or if the provided state length is incorrect for the algorithm.
- */
+* Imports a previously exported hash state.
+* This overwrites the current hash state and allows resuming a hash calculation.
+* The imported state must be compatible with the current hash algorithm.
+* @function crypto_shash:import
+* @tparam string state The previously exported hash state (binary string).
+* @raise Error on failure or if the provided state length is incorrect for the algorithm.
+*/
 static int luacrypto_shash_tfm_import(lua_State *L) {
 	luacrypto_shash_tfm_t *tfm_ud = luacrypto_check_shash_tfm(L, 1);
 	size_t statelen;
@@ -242,7 +243,7 @@ static int luacrypto_shash_tfm_import(lua_State *L) {
 		2, "incorrect state length for import"
 	);
 	ret = crypto_shash_import(tfm_ud->kernel_desc, state);
-	if (ret) return luaL_error(L, "shash_tfm:import: failed (%d)", ret);
+	if (ret) return luaL_error(L, "shash:import: failed (%d)", ret);
 	return 0;
 }
 
@@ -262,6 +263,11 @@ static const luaL_Reg luacrypto_shash_tfm_mt[] = {
 	{NULL, NULL}
 };
 
+/***
+* Lunatik class definition for SHASH objects.
+* This structure binds the C implementation (luacrypto_shash_tfm_t, methods, release function)
+* to the Lua object system managed by Lunatik.
+*/
 static const lunatik_class_t luacrypto_shash_tfm_class = {
 	.name = "crypto_shash_tfm",
 	.methods = luacrypto_shash_tfm_mt,
@@ -271,14 +277,15 @@ static const lunatik_class_t luacrypto_shash_tfm_class = {
 
 
 /***
-Creates a new SHASH transform (TFM) object.
-This is the constructor function for the `crypto_shash` module.
-@function crypto_shash.new
-@tparam string algname The name of the hash algorithm (e.g., "sha256", "hmac(sha256)").
-@treturn crypto_shash_tfm The new SHASH TFM object.
-@raise Error if the TFM object or kernel descriptor cannot be allocated/initialized.
-@usage local shash_mod = require("crypto_shash")
-local hasher = shash_mod.new("sha256")
+* Creates a new SHASH object.
+* This is the constructor function for the `crypto_shash` module.
+* @function crypto_shash.new
+* @tparam string algname The name of the hash algorithm (e.g., "sha256", "hmac(sha256)").
+* @treturn crypto_shash The new SHASH object.
+* @raise Error if the TFM object or kernel descriptor cannot be allocated/initialized.
+* @usage
+*   local shash_mod = require("crypto_shash")
+*   local hasher = shash_mod.new("sha256")
 */
 static int luacrypto_shash_new(lua_State *L) {
 	const char *algname = luaL_checkstring(L, 1);
@@ -290,7 +297,7 @@ static int luacrypto_shash_new(lua_State *L) {
 		sizeof(luacrypto_shash_tfm_t)
 	);
 	if (!object) {
-		return luaL_error(L, "crypto_shash.new: failed to create underlying SHASH TFM object");
+		return luaL_error(L, "crypto_shash.new: failed to create underlying SHASH object");
 	}
 	tfm_ud = (luacrypto_shash_tfm_t *)object->private;
 	memset(tfm_ud, 0, sizeof(luacrypto_shash_tfm_t));
@@ -301,12 +308,11 @@ static int luacrypto_shash_new(lua_State *L) {
 		return luaL_error(L, "failed to allocate SHASH transform for %s (err %ld)", algname, err);
 	}
 
-	// Allocate shash_desc
 	desc_size = sizeof(struct shash_desc) + crypto_shash_descsize(tfm_ud->tfm);
 	tfm_ud->kernel_desc = kmalloc(desc_size, gfp);
 	if (!tfm_ud->kernel_desc) {
 		crypto_free_shash(tfm_ud->tfm);
-		tfm_ud->tfm = NULL; // Prevent double free in release
+		tfm_ud->tfm = NULL; /* Prevent double free in release */
 		return luaL_error(L, "crypto_shash.new: failed to allocate descriptor memory for %s",
 					algname);
 	}
