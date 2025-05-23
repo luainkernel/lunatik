@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+#
+# SPDX-FileCopyrightText: (c) 2024-2025 jperon
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
+
 LUNATIK_DIR="/opt/lunatik"
 XDP_DIR="/opt/xdp-tools"
 KERNEL_RELEASE="$1"
@@ -35,23 +40,24 @@ mv /usr/sbin/bpftool /usr/sbin/bpftool.orig ; ln -s /usr/local/sbin/bpftool /usr
 
 echo "Compiling and installing Lunatik"
 if [ -d "${LUNATIK_DIR}" ]; then
-  cd "${LUNATIK_DIR}" && git pull --ff-only
-  make clean
+	cd "${LUNATIK_DIR}" && git pull --ff-only
+	make clean
 else
-  git clone --recurse-submodules https://github.com/luainkernel/lunatik "${LUNATIK_DIR}"
-  cd "${LUNATIK_DIR}"
+	git clone --recurse-submodules https://github.com/luainkernel/lunatik "${LUNATIK_DIR}"
+	cd "${LUNATIK_DIR}"
 fi
 make -j"${CPU_CORES}" KERNEL_RELEASE="${KERNEL_RELEASE}" && make KERNEL_RELEASE="${KERNEL_RELEASE}" install || exit 1
 
 echo "Compiling and installing xdp-loader" &&\
 if [ -d "${XDP_DIR}" ]; then
-  cd "${XDP_DIR}" && git pull --ff-only
-  make clean
+	cd "${XDP_DIR}" && git pull --ff-only
+	make clean
 else
-  git clone --recurse-submodules https://github.com/xdp-project/xdp-tools "${XDP_DIR}"
+	git clone --recurse-submodules https://github.com/xdp-project/xdp-tools "${XDP_DIR}"
 fi
 cd "${XDP_DIR}"/lib/libbpf/src && make && sudo DESTDIR=/ make install &&\
 cd ../../../ && make clean && make -j"${CPU_CORES}" libxdp &&\
 cd xdp-loader && make && sudo make install || exit 1
 
 rm -r /usr/local/src/"linux-${KERNEL_VERSION}"
+

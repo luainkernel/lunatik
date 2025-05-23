@@ -3,6 +3,14 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/***
+* Low-level Lua interface to the Linux Kernel Netfilter framework.
+* This module allows registering Lua functions as Netfilter hooks to inspect
+* and modify network packets.
+*
+* @module netfilter
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
 #include <linux/version.h>
@@ -15,12 +23,20 @@
 #include "luanetfilter.h"
 #include "luadata.h"
 
+/***
+* Represents a registered Netfilter hook.
+* This is a userdata object returned by `netfilter.register()`. It encapsulates
+* the kernel `struct nf_hook_ops` and associated Lunatik runtime information
+* necessary to invoke the Lua callback when a packet matches the hook criteria.
+* @type netfilter_hook
+*/
 typedef struct luanetfilter_s {
 	lunatik_object_t *runtime;
 	lunatik_object_t *skb;
 	__u32 mark;
 	struct nf_hook_ops nfops;
 } luanetfilter_t;
+
 
 static void luanetfilter_release(void *private);
 
@@ -115,6 +131,22 @@ static const lunatik_class_t luanetfilter_class = {
 	.sleep = false,
 };
 
+/***
+* Registers a Netfilter hook.
+* The hook function will be called for packets matching the specified criteria.
+* @function register
+* @tparam table opts A table containing the options for the Netfilter hook.
+*   It should have the following fields:
+*
+*   - `hook` (function): The Lua function to be called for each packet.
+*     It receives a `luadata` object representing the packet buffer (`skb`)
+*     and should return an integer verdict (e.g., `netfilter.action.ACCEPT`).
+*   - `pf` (integer): The protocol family (e.g., `netfilter.family.INET`).
+*   - `hooknum` (integer): The hook number within the protocol family (e.g., `netfilter.inet_hooks.LOCAL_OUT`).
+*   - `priority` (integer): The hook priority (e.g., `netfilter.ip_priority.FILTER`).
+*   - `mark` (integer, optional): Packet mark to match. If set, the hook is only called for packets with this mark.
+* @treturn userdata A handle representing the registered hook. This handle can be garbage collected to unregister the hook.
+*/
 static int luanetfilter_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
@@ -170,7 +202,7 @@ LUNATIK_NEWLIB(netfilter, luanetfilter_lib, &luanetfilter_class, luanetfilter_fl
 
 static int __init luanetfilter_init(void)
 {
-    return 0;
+		return 0;
 }
 
 static void __exit luanetfilter_exit(void)

@@ -17,7 +17,7 @@ static void dnsblock_mt_init(struct xt_entry_match *match)
 }
 
 static int dnsblock_mt_parse(int c, char **argv, int invert,
-    unsigned int *flags, const void *entry, struct xt_entry_match **match)
+		unsigned int *flags, const void *entry, struct xt_entry_match **match)
 {
 	return true;
 }
@@ -27,12 +27,12 @@ static void dnsblock_mt_check(unsigned int flags)
 }
 
 static void dnsblock_mt_print(const void *entry,
-    const struct xt_entry_match *match, int numeric)
+		const struct xt_entry_match *match, int numeric)
 {
 }
 
 static void dnsblock_mt_save(const void *entry,
-    const struct xt_entry_match *match)
+		const struct xt_entry_match *match)
 {
 }
 

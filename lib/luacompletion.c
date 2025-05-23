@@ -3,6 +3,18 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/***
+* Lua bindings for kernel completion mechanisms.
+* This library allows Lua scripts to create, signal, and wait on
+* kernel completion objects.
+*
+* Task completion is a synchronization mechanism used to coordinate the
+* execution of multiple threads. It allows threads to wait for a specific
+* event to occur before proceeding, ensuring certain tasks are complete.
+*
+* @module completion
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -17,6 +29,17 @@
 
 LUNATIK_OBJECTCHECKER(luacompletion_check, struct completion *);
 
+/***
+* Signals a completion.
+* This wakes up one task waiting on this completion object.
+* Corresponds to the kernel's `complete()` function.
+* @function complete
+* @treturn nil
+* @usage
+*   -- Assuming 'c' is a completion object returned by completion.new()
+*   c:complete()
+* @see completion.new
+*/
 static int luacompletion_complete(lua_State *L)
 {
 	struct completion *completion = luacompletion_check(L, 1);
@@ -25,6 +48,31 @@ static int luacompletion_complete(lua_State *L)
 	return 0;
 }
 
+/***
+* Waits for a completion to be signaled.
+* This function will block the current Lua runtime until the completion
+* is signaled, an optional timeout occurs, or the wait is interrupted.
+* The Lunatik runtime invoking this method must be sleepable.
+* Corresponds to the kernel's `wait_for_completion_interruptible_timeout()`.
+*
+* @function wait
+* @tparam[opt] integer timeout Optional timeout in milliseconds. If omitted or set to `MAX_SCHEDULE_TIMEOUT` (a large kernel-defined constant), waits indefinitely.
+* @treturn boolean `true` if the completion was signaled successfully before timeout or interruption.
+* @treturn nil,string `nil` and an error message if the wait did not complete successfully. The message will be one of:
+*   - `"timeout"`: The specified timeout elapsed.
+*   - `"interrupt"`: The waiting task was interrupted by a signal (e.g., `thread.stop()`).
+*   If the wait fails for other kernel internal reasons, the C code might push `"unknown"`, though typical documented returns are for timeout and interrupt.
+*   - `"unknown"`: An unexpected error occurred during the wait.
+* @usage
+*   -- Assuming 'c' is a completion object
+*   local success, err_msg = c:wait(1000) -- Wait for up to 1 second
+*   if success then
+*     print("Completion received!")
+*   else
+*     print("Wait failed: " .. err_msg)
+*   end
+* @see completion.new
+*/
 static int luacompletion_wait(lua_State *L)
 {
 	struct completion *completion = luacompletion_check(L, 1);
@@ -74,6 +122,16 @@ static const lunatik_class_t luacompletion_class = {
 	.sleep = false,
 };
 
+/***
+* Creates a new kernel completion object.
+* Initializes a `struct completion` and returns it wrapped as a Lua userdata
+* object of type `completion`.
+* @function new
+* @treturn completion A new completion object.
+* @usage
+*   local c = completion.new()
+* @within completion
+*/
 static int luacompletion_new(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_newobject(L, &luacompletion_class, sizeof(struct completion));

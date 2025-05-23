@@ -47,3 +47,4 @@ function common.hook(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
 end
 
 return common
+
