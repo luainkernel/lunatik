@@ -84,7 +84,7 @@ static int luacompletion_wait(lua_State *L)
 	ret = wait_for_completion_interruptible_timeout(completion, timeout_jiffies);
 	if (ret > 0) {
 		lua_pushboolean(L, true);
-		return 1;
+		return 1;		
 	}
 
 	lua_pushnil(L);
