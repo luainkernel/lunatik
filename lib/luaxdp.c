@@ -40,7 +40,7 @@ __bpf_kfunc_start_defs();
 #else
 __diag_push();
 __diag_ignore_all("-Wmissing-prototypes",
-									"Global kfuncs as their definitions will be in BTF");
+                  "Global kfuncs as their definitions will be in BTF");
 #endif
 
 static lunatik_object_t *luaxdp_runtimes = NULL;

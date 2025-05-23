@@ -383,7 +383,7 @@ static void luasocket_release(void *private)
 	kernel_sock_shutdown(sock, SHUT_RDWR);
 	sock_release(sock);
 }
-// End of methods, start of library registration
+
 static const luaL_Reg luasocket_lib[] = {
 	{"new", luasocket_new},
 	{NULL, NULL}
