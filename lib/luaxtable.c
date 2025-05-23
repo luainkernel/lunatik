@@ -384,7 +384,7 @@ static const luaL_Reg luaxtable_lib[] = {
 static void luaxtable_release(void *private)
 {
 	luaxtable_t *xtable = (luaxtable_t *)private;
-	if (!xtable->runtime)
+	if (!xtable->runtime) 
 		return;
 
 	switch (xtable->type) {
