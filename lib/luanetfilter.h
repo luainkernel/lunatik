@@ -29,12 +29,14 @@ do {							\
 	lunatik_setregistry(L, -1, obj->field);	\
 	lua_pop(L, 1); /* skb */			\
 } while (0)
+
 #define luanetfilter_setinteger(L, idx, hook, field) 		\
 do {								\
 	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);	\
 	hook->field = lua_tointeger(L, -1);			\
 	lua_pop(L, 1);						\
 } while (0)
+
 #define luanetfilter_setstring(L, idx, hook, field, maxlen)        \
 do {								\
 	size_t len;						\
@@ -154,11 +156,11 @@ static const lunatik_reg_t luanetfilter_arp_hooks[] = {
 *   @tfield integer EGRESS For packets just before they are transmitted by a network device, very late in the stack (Kernel 5.16+).
 */
 const lunatik_reg_t luanetfilter_netdev_hooks[] = {
-		{"INGRESS", NF_NETDEV_INGRESS},
+    {"INGRESS", NF_NETDEV_INGRESS},
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-		{"EGRESS", NF_NETDEV_EGRESS},
+    {"EGRESS", NF_NETDEV_EGRESS},
 #endif
-		{NULL, 0}
+    {NULL, 0}
 };
 
 /***
