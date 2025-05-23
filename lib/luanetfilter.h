@@ -156,11 +156,11 @@ static const lunatik_reg_t luanetfilter_arp_hooks[] = {
 *   @tfield integer EGRESS For packets just before they are transmitted by a network device, very late in the stack (Kernel 5.16+).
 */
 const lunatik_reg_t luanetfilter_netdev_hooks[] = {
-    {"INGRESS", NF_NETDEV_INGRESS},
+		{"INGRESS", NF_NETDEV_INGRESS},
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-    {"EGRESS", NF_NETDEV_EGRESS},
+		{"EGRESS", NF_NETDEV_EGRESS},
 #endif
-    {NULL, 0}
+		{NULL, 0}
 };
 
 /***

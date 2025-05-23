@@ -293,7 +293,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		runtime->gfp = GFP_ATOMIC;
 
 	*pruntime = runtime;
-        return 0;
+				return 0;
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep)
@@ -341,7 +341,7 @@ LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL, NULL);
 
 static int __init lunatik_init(void)
 {
-        return 0;
+				return 0;
 }
 
 static void __exit lunatik_exit(void)

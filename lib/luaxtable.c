@@ -104,7 +104,7 @@ static int luaxtable_pushparams(lua_State *L, const struct xt_action_param *par,
 		pr_err("could not get skb\n");
 		return -1;
 	}
-        luadata_reset(data, skb->data, skb->len, opt);
+				luadata_reset(data, skb->data, skb->len, opt);
 
 	lua_newtable(L);
 	lua_pushboolean(L, par->hotdrop);
@@ -384,7 +384,7 @@ static const luaL_Reg luaxtable_lib[] = {
 static void luaxtable_release(void *private)
 {
 	luaxtable_t *xtable = (luaxtable_t *)private;
-	if (!xtable->runtime) 
+	if (!xtable->runtime)
 		return;
 
 	switch (xtable->type) {

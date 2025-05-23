@@ -202,7 +202,7 @@ LUNATIK_NEWLIB(netfilter, luanetfilter_lib, &luanetfilter_class, luanetfilter_fl
 
 static int __init luanetfilter_init(void)
 {
-    return 0;
+		return 0;
 }
 
 static void __exit luanetfilter_exit(void)
