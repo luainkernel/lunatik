@@ -109,6 +109,9 @@ static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_
 		goto out;
 
 #if IS_ENABLED(CONFIG_NF_CONNTRACK)
+	pr_err("ctmark: %d, enabled: %d, checkconn: %d, skip: %d\n", luanf->ctmark,
+		(int)luanf->flags & LUANETFILTER_OPT_CTMARK, (int)luanetfilter_checkconn(skb, luanf->ctmark),
+		(int)((luanf->flags & LUANETFILTER_OPT_CTMARK) && luanetfilter_checkconn(skb, luanf->ctmark)));
 	if (likely((luanf->flags & LUANETFILTER_OPT_CTMARK) && luanetfilter_checkconn(skb, luanf->ctmark)))
 		goto out;
 #endif
