@@ -37,6 +37,7 @@ static inline bool luanetfilter_checkconn(struct sk_buff *skb, u32 ctmark)
 {
 	enum ip_conntrack_info ctinfo;
 	struct nf_conn *ct = nf_ct_get(skb, &ctinfo);
+	pr_err("ct: %p\n", ct);
 	return ct && READ_ONCE(ct->mark) != ctmark;
 }
 
@@ -109,8 +110,8 @@ static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_
 		goto out;
 
 #if IS_ENABLED(CONFIG_NF_CONNTRACK)
-	pr_err("ctmark: %d, enabled: %d, checkconn: %d, skip: %d\n", luanf->ctmark,
-		(int)luanf->flags & LUANETFILTER_OPT_CTMARK, (int)luanetfilter_checkconn(skb, luanf->ctmark),
+	pr_err("ctmark: %d, enabled: %d, checkconn: %d, skip: %d\n", (int)luanf->ctmark,
+		(int)(luanf->flags & LUANETFILTER_OPT_CTMARK), (int)luanetfilter_checkconn(skb, luanf->ctmark),
 		(int)((luanf->flags & LUANETFILTER_OPT_CTMARK) && luanetfilter_checkconn(skb, luanf->ctmark)));
 	if (likely((luanf->flags & LUANETFILTER_OPT_CTMARK) && luanetfilter_checkconn(skb, luanf->ctmark)))
 		goto out;
