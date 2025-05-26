@@ -4,6 +4,7 @@
 --
 
 -- copied from kernel src linux/drivers/hid/hid-xiaomi-mouse.c
+-- link: https://elixir.bootlin.com/linux/v6.14.7/source/drivers/hid/hid-xiaomi.c
 local hid = require("luahid")
 
 local fixed_xiaomi_report_descriptor = {
