@@ -7,6 +7,7 @@
 -- link: https://elixir.bootlin.com/linux/v6.14.7/source/drivers/hid/hid-xiaomi.c
 local hid = require("luahid")
 
+local mi_silent_mouse_orig_rdesc_length = 87
 local fixed_xiaomi_report_descriptor = {
 	0x05, 0x01,         --  Usage Page (Desktop),               --
 	0x09, 0x02,         --  Usage (Mouse),                      --
@@ -54,14 +55,23 @@ local fixed_xiaomi_report_descriptor = {
 	0xC0                --  End Collection                      --
 }
 
+local function xiaomi_report_fixup(device)
+	if device.product_id == 0x5014 then
+		if #device.report_descriptor == mi_silent_mouse_orig_rdesc_length then
+			return fixed_xiaomi_report_descriptor
+		end
+	end
+end
+
 local xiaomi_mouse_driver = {
 	name = "luahid_xiaomi_mouse_driver",
 	match_list = {
-		{ vendor_id = 0x2717, product_id = 0x5014 },	-- copied from kernel src linux/drivers/hid/hid-xiaomi.c, at 80th lines
-														-- link: https://elixir.bootlin.com/linux/v6.14.7/source/drivers/hid/hid-xiaomi.c
+		{ bus_type = 0x05, group = 0x0000, vendor_id = 0x2717, product_id = 0x5014, driver_data = 0x0000 },
+		-- copied from kernel src linux/drivers/hid/hid-xiaomi.c, at 80th lines
+		-- link: https://elixir.bootlin.com/linux/v6.14.7/source/drivers/hid/hid-xiaomi.c
 	},
 
-	report_descriptor = fixed_xiaomi_report_descriptor
+	report_fixup = xiaomi_report_fixup,
 }
 
 hid.register(xiaomi_mouse_driver)
