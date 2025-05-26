@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- example of a slow mouse driver
+-- copied from kernel src linux/drivers/hid/hid-xiaomi-mouse.c
 local hid = require("luahid")
 
 local fixed_xiaomi_report_descriptor = {
@@ -56,7 +56,7 @@ local fixed_xiaomi_report_descriptor = {
 local xiaomi_mouse_driver = {
 	name = "luahid_xiaomi_mouse_driver",
 	match_list = {
-		{ vendor_id = 0x2717, product_id = 0x5014 },  -- copied from kernel src 
+		{ vendor_id = 0x2717, product_id = 0x5014 },  -- copied from kernel src linux/drivers/hid/hid-xiaomi.c, at 80th lines
 	},
 
 	report_descriptor = fixed_xiaomi_report_descriptor
