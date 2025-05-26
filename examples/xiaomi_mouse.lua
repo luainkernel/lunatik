@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- copied from kernel src linux/drivers/hid/hid-xiaomi-mouse.c
+-- ported from kernel src linux/drivers/hid/hid-xiaomi-mouse.c
 -- link: https://elixir.bootlin.com/linux/v6.14.7/source/drivers/hid/hid-xiaomi.c
 local hid = require("luahid")
 
@@ -57,7 +57,8 @@ local fixed_xiaomi_report_descriptor = {
 local xiaomi_mouse_driver = {
 	name = "luahid_xiaomi_mouse_driver",
 	match_list = {
-		{ vendor_id = 0x2717, product_id = 0x5014 },  -- copied from kernel src linux/drivers/hid/hid-xiaomi.c, at 80th lines
+		{ vendor_id = 0x2717, product_id = 0x5014 },	-- copied from kernel src linux/drivers/hid/hid-xiaomi.c, at 80th lines
+														-- link: https://elixir.bootlin.com/linux/v6.14.7/source/drivers/hid/hid-xiaomi.c
 	},
 
 	report_descriptor = fixed_xiaomi_report_descriptor
