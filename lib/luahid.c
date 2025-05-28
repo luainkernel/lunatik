@@ -1,61 +1,33 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
 /*
- *  HID support for Linux
- *
- *  Copyright (c) 1999 Andreas Gal
- *  Copyright (c) 2000-2005 Vojtech Pavlik <vojtech@suse.cz>
- *  Copyright (c) 2005 Michael Haboustak <mike-@cinci.rr.com> for Concept2, Inc
- *  Copyright (c) 2007-2008 Oliver Neukum
- *  Copyright (c) 2006-2012 Jiri Kosina
- *  Copyright (c) 2012 Henrik Rydberg
- */
+* SPDX-FileCopyrightText: (c) 2024 Jieming Zhou <qrsikno@gmail.com>
+* SPDX-License-Identifier: MIT OR GPL-2.0-only
+*/
 
-/*
- */
-
-#include <linux/module.h>
-#include <linux/slab.h>
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kernel.h>
-#include <linux/unaligned.h>
+#include <linux/module.h>
+#include <linux/version.h>
+#include <linux/slab.h>
+// #include <linux/unaligned.h>
+#include <linux/limits.h>
 #include <asm/byteorder.h>
 
 #include <linux/hid.h>
 
-static struct hid_driver hid_generic;
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
-static int __check_hid_generic(struct device_driver *drv, void *data)
-{
-	struct hid_driver *hdrv = to_hid_driver(drv);
-	struct hid_device *hdev = data;
+#include <lunatik.h>
 
-	if (hdrv == &hid_generic)
-		return 0;
+#include "luanetfilter.h"
 
-	return hid_match_device(hdev, hdrv) != NULL;
-}
+typedef struct luahid_s {
+	lunatik_object_t *runtime;
+	struct hid_driver driver;
+} luahid_t;
 
-static bool hid_generic_match(struct hid_device *hdev,
-			      bool ignore_special_driver)
-{
-	if (ignore_special_driver)
-		return true;
-
-	if (hdev->quirks & HID_QUIRK_IGNORE_SPECIAL_DRIVER)
-		return true;
-
-	if (hdev->quirks & HID_QUIRK_HAVE_SPECIAL_DRIVER)
-		return false;
-
-	/*
-	 * If any other driver wants the device, leave the device to this other
-	 * driver.
-	 */
-	if (bus_for_each_drv(&hid_bus_type, NULL, hdev, __check_hid_generic))
-		return false;
-
-	return true;
-}
-
+//kernel codes
 static int hid_generic_probe(struct hid_device *hdev,
 			     const struct hid_device_id *id)
 {
@@ -69,21 +41,83 @@ static int hid_generic_probe(struct hid_device *hdev,
 
 	return hid_hw_start(hdev, HID_CONNECT_DEFAULT);
 }
-
 static const struct hid_device_id hid_table[] = {
-	{ HID_DEVICE(HID_BUS_ANY, HID_GROUP_ANY, HID_ANY_ID, HID_ANY_ID) },
+	{ HID_USB_DEVICE(0x046D, 0xC542) },
 	{ }
 };
 MODULE_DEVICE_TABLE(hid, hid_table);
 
-static struct hid_driver hid_generic = {
-	.name = "hid-generic-another",
-	.id_table = hid_table,
-	.match = hid_generic_match,
-	.probe = hid_generic_probe,
-};
-module_hid_driver(hid_generic);
 
-MODULE_AUTHOR("Henrik Rydberg");
-MODULE_DESCRIPTION("HID generic driver");
-MODULE_LICENSE("GPL");
+static void luahid_release(void *private)
+{
+	luahid_t *hid = (luahid_t *)private;
+	if (hid) {
+		hid_unregister_driver(&hid->driver);
+		lunatik_putobject(hid->runtime);
+	}
+}
+
+static int luahid_register(lua_State *L);
+
+static const luaL_Reg luahid_lib[] = {
+	{"register", luahid_register},
+	{NULL, NULL}
+};
+
+static const luaL_Reg luahid_mt[] = {
+	{"__gc", lunatik_deleteobject},
+	{NULL, NULL}
+};
+
+static const lunatik_class_t luahid_class = {
+	.name = "hid",
+	.methods = luahid_mt,
+	.release = luahid_release,
+	.sleep = false,
+};
+
+static int luahid_register(lua_State *L)
+{
+	size_t len = 0;
+	luaL_checktype(L, 1, LUA_TTABLE); // assure that is a driver
+
+	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t));
+	luahid_t *hid = (luahid_t *)object->private;
+
+	//configure the driver's properties & callbacks
+	struct hid_driver *user_driver = &(hid->driver);
+	lua_tolstring(L, -1, &len);
+	user_driver -> name = lunatik_checkalloc(L, len);
+	lunatik_setstring(L, 1, user_driver, name, NAME_MAX);
+	user_driver -> id_table = hid_table;
+	user_driver -> probe = hid_generic_probe;
+
+	lunatik_registerobject(L, 1, object);
+
+	int ret = __hid_register_driver(user_driver, THIS_MODULE, KBUILD_MODNAME);
+	if (ret) {
+		lunatik_unregisterobject(L, object);
+		luaL_error(L, "failed to register hid driver: %s", user_driver->name);
+	} 
+	lunatik_setruntime(L, hid, hid);
+	lunatik_getobject(hid->runtime);
+	// pass
+	return 1; /* object */
+}
+
+LUNATIK_NEWLIB(hid, luahid_lib, &luahid_class, NULL);
+
+static int __init luahid_init(void)
+{
+	return 0;
+}
+
+static void __exit luahid_exit(void)
+{
+}
+
+module_init(luahid_init);
+module_exit(luahid_exit);
+MODULE_LICENSE("Dual MIT/GPL");
+MODULE_AUTHOR("Jieming Zhou <qrsikno@gmail.com>");
+
