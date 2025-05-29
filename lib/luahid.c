@@ -8,7 +8,6 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/slab.h>
-// #include <linux/unaligned.h>
 #include <linux/limits.h>
 #include <asm/byteorder.h>
 
@@ -73,12 +72,11 @@ static const lunatik_class_t luahid_class = {
 	.name = "hid",
 	.methods = luahid_mt,
 	.release = luahid_release,
-	.sleep = false,
+	.sleep = true,
 };
 
 static int luahid_register(lua_State *L)
 {
-	size_t len = 0;
 	luaL_checktype(L, 1, LUA_TTABLE); // assure that is a driver
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t));
@@ -86,8 +84,7 @@ static int luahid_register(lua_State *L)
 
 	//configure the driver's properties & callbacks
 	struct hid_driver *user_driver = &(hid->driver);
-	lua_tolstring(L, -1, &len);
-	user_driver -> name = lunatik_checkalloc(L, len);
+	user_driver -> name = lunatik_checkalloc(L, NAME_MAX);
 	lunatik_setstring(L, 1, user_driver, name, NAME_MAX);
 	user_driver -> id_table = hid_table;
 	user_driver -> probe = hid_generic_probe;
