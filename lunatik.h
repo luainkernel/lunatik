@@ -283,6 +283,17 @@ static inline T checker(lua_State *L, int ix)			\
 
 #define lunatik_getregistry(L, key)	lua_rawgetp((L), LUA_REGISTRYINDEX, (key))
 
+#define lunatik_setstring(L, idx, hook, field, maxlen)        \
+do {								\
+	size_t len;						\
+	lunatik_checkfield(L, idx, #field, LUA_TSTRING);	\
+	const char *str = lua_tolstring(L, -1, &len);			\
+	if (len > maxlen)					\
+		luaL_error(L, "'%s' is too long", #field);	\
+	strncpy((char *)hook->field, str, maxlen);		\
+	lua_pop(L, 1);						\
+} while (0)
+
 static inline void lunatik_setregistry(lua_State *L, int ix, void *key)
 {
 	lua_pushvalue(L, ix);
