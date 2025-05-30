@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2024 Jieming Zhou <qrsikno@gmail.com>
+* SPDX-FileCopyrightText: (c) 2025 Jieming Zhou <qrsikno@gmail.com>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -24,7 +24,10 @@ typedef struct luahid_s {
 	struct hid_driver driver;
 } luahid_t;
 
-//kernel codes
+/*
+ * kernel codes copied from drivers/hid/hid-generic.c
+ * links: https://elixir.bootlin.com/linux/v6.13.7/source/drivers/hid/hid-generic.c 
+ */
 static int hid_generic_probe(struct hid_device *hdev,
 			     const struct hid_device_id *id)
 {
@@ -75,12 +78,14 @@ static const lunatik_class_t luahid_class = {
 
 static int luahid_register(lua_State *L)
 {
-	luaL_checktype(L, 1, LUA_TTABLE); // assure that is a driver
+	luaL_checktype(L, 1, LUA_TTABLE); /* assure that is a driver */
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t));
 	luahid_t *hid = (luahid_t *)object->private;
 
-	//configure the driver's properties & callbacks
+	/*
+	 * configure the driver's properties & callbacks
+	 */
 	struct hid_driver *user_driver = &(hid->driver);
 	user_driver -> name = lunatik_checkalloc(L, NAME_MAX);
 	lunatik_setstring(L, 1, user_driver, name, NAME_MAX);
@@ -96,7 +101,6 @@ static int luahid_register(lua_State *L)
 	} 
 	lunatik_setruntime(L, hid, hid);
 	lunatik_getobject(hid->runtime);
-	// pass
 	return 1; /* object */
 }
 
