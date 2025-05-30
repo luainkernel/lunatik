@@ -19,8 +19,6 @@
 
 #include <lunatik.h>
 
-#include "luanetfilter.h"
-
 typedef struct luahid_s {
 	lunatik_object_t *runtime;
 	struct hid_driver driver;
