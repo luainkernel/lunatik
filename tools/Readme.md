@@ -15,3 +15,4 @@ To check it works:
 ```sh
 sudo dpkg-reconfigure linux-image-`uname -r`
 ```
+

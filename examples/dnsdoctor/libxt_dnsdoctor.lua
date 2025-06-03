@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2025 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 local luaxt = require("luaxt")
 local family = luaxt.family
 
@@ -16,13 +21,13 @@ local function dnsdoctor_init(par)
 end
 
 luaxt.target{
-    revision = 0,
-    family = family.UNSPEC,
-    help = nop,
-    init = dnsdoctor_init,
-    print = nop,
-    save = nop,
-    parse = nop,
-    final_check = nop
+	revision = 0,
+	family = family.UNSPEC,
+	help = nop,
+	init = dnsdoctor_init,
+	print = nop,
+	save = nop,
+	parse = nop,
+	final_check = nop
 }
 

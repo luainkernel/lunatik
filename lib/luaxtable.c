@@ -3,6 +3,19 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/***
+* Netfilter Xtables extensions.
+* This library allows Lua scripts to define custom Netfilter match and target
+* extensions for `iptables`. These extensions can then be used in `iptables`
+* rules to implement complex packet filtering and manipulation logic in Lua.
+*
+* When an `iptables` rule using a Lua-defined extension is encountered, the
+* corresponding Lua callback function (`match` or `target`) is executed in the
+* kernel.
+*
+* @module xtable
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
 #include <linux/version.h>
@@ -23,6 +36,15 @@ typedef enum luaxtable_type_e {
 	LUAXTABLE_TTARGET,
 } luaxtable_type_t;
 
+/***
+* Represents a registered Xtables match or target extension.
+* This is a userdata object returned by `xtable.match()` or `xtable.target()`.
+* It encapsulates the kernel structures (`struct xt_match` or `struct xt_target`)
+* and the Lunatik runtime information necessary to invoke the Lua callbacks.
+* The primary way to interact with this object from Lua is to let it be garbage
+* collected, which will unregister the extension from the kernel.
+* @type xtable_extension
+*/
 typedef struct luaxtable_s {
 	lunatik_object_t *runtime;
 	lunatik_object_t *skb;
@@ -82,7 +104,7 @@ static int luaxtable_pushparams(lua_State *L, const struct xt_action_param *par,
 		pr_err("could not get skb\n");
 		return -1;
 	}
-        luadata_reset(data, skb->data, skb->len, opt);
+				luadata_reset(data, skb->data, skb->len, opt);
 
 	lua_newtable(L);
 	lua_pushboolean(L, par->hotdrop);
@@ -175,6 +197,115 @@ LUAXTABLE_DESTROYER_CB(target, tg, targ, LUAXTABLE_TTARGET);
 
 static void luaxtable_release(void *private);
 
+/***
+* Creates and registers a new Xtables match extension.
+* The Lua functions provided in `opts` will be called by the kernel
+* when `iptables` rules using this match are evaluated.
+* @function match
+* @tparam table opts A table containing the configuration for the match extension.
+*   It **must** include the following fields:
+*
+*   - `name` (string): The unique name for this match extension (e.g., "myluamatch"). This name is used in `iptables -m <name>`.
+*   - `revision` (integer): The revision number of this match extension.
+*   - `family` (netfilter.family): The protocol family this match applies to (e.g., `netfilter.family.INET`).
+*   - `proto` (socket.ipproto, optional, default: 0): The specific IP protocol this match applies to (e.g., `socket.ipproto.TCP`). Use 0 for any protocol.
+*   - `hooks` (integer): A bitmask indicating the Netfilter hooks where this match can be used (e.g., `1 << netfilter.inet_hooks.LOCAL_OUT`). Multiple hooks can be OR'd. Note: `netfilter.netdev_hooks` are not available for legacy Xtables.
+*   - `match` (function): The Lua function to be called to evaluate if a packet matches.
+*     Its signature is `function(skb, par, userargs) -> boolean`.
+*
+*     - `skb` (data): A read-only `data` object representing the packet's socket buffer.
+*     - `par` (table): A read-only table containing parameters related to the packet and hook:
+*       - `hotdrop` (boolean): `true` if an earlier rule already marked the packet for unconditional drop.
+*       - `thoff` (integer): Offset to the transport header within the `skb`.
+*       - `fragoff` (integer): Fragment offset (0 if not a fragment or is the first fragment).
+*       - `hooknum` (integer): The Netfilter hook number (e.g., `NF_INET_LOCAL_OUT`).
+*     - `userargs` (string): A string containing any arguments passed to this match from the `iptables` rule command line.
+*
+*     The function should return `true` if the packet matches, `false` otherwise.
+*   - `checkentry` (function): A Lua function called when an `iptables` rule using this match is added or modified.
+*     Its signature is `function(userargs)`.
+
+*     - `userargs` (string): The arguments string from the `iptables` rule.
+
+*     This function should validate the `userargs`. If validation fails, it should call `error()`.
+*   - `destroy` (function): A Lua function called when an `iptables` rule using this match is deleted.
+*     Its signature is `function(userargs)`.
+*
+*     - `userargs` (string): The arguments string from the `iptables` rule.
+*
+*     This function can be used for cleanup.
+* @treturn xtable_extension A userdata object representing the registered match extension.
+*   This object should be kept referenced as long as the extension is needed;
+*   when it's garbage collected, the extension is unregistered.
+* @raise Error if registration fails (e.g., name conflict, invalid parameters, memory allocation failure).
+* @see netfilter.family
+* @see socket.ipproto
+* @see netfilter.inet_hooks
+* @see netfilter.bridge_hooks
+* @see netfilter.arp_hooks
+* @usage
+*   local xtable = require("xtable")
+*   local nf = require("netfilter")
+*
+*   local my_match_opts = {
+*     name = "myluamatch",
+*     revision = 0,
+*     family = nf.family.INET,
+*     hooks = (1 << nf.inet_hooks.PREROUTING) | (1 << nf.inet_hooks.INPUT),
+*     match = function(skb, par, userargs)
+*       print("Matching packet with userargs:", userargs)
+*       return skb:getuint8(9) == 6 -- Check if protocol is TCP
+*     end,
+*     checkentry = function(userargs) print("Checking:", userargs) end,
+*     destroy = function(userargs) print("Destroying:", userargs) end
+*   }
+*   local match_ext = xtable.match(my_match_opts)
+*   -- To use in iptables: iptables -A INPUT -m myluamatch --somearg "hello" -j ACCEPT
+*/
+
+/***
+* Creates and registers a new Xtables target extension.
+* The Lua function provided in `opts` will be called by the kernel
+* for packets that reach an `iptables` rule using this target.
+* @function target
+* @tparam table opts A table containing the configuration for the target extension.
+*   It **must** include the following fields:
+*
+*   - `name` (string): The unique name for this target extension (e.g., "MYLUATARGET"). This name is used in `iptables -j <NAME>`.
+*   - `revision` (integer): The revision number of this target extension.
+*   - `family` (netfilter.family): The protocol family this target applies to (e.g., `netfilter.family.INET`).
+*   - `proto` (socket.ipproto, optional, default: 0): The specific IP protocol this target applies to (e.g., `socket.ipproto.UDP`). Use 0 for any protocol.
+*   - `hooks` (integer): A bitmask indicating the Netfilter hooks where this target can be used.
+*   - `target` (function): The Lua function to be called to process a packet.
+*     Its signature is `function(skb, par, userargs) -> netfilter.action_verdict`.
+*     - `skb` (data): A read-write `data` object representing the packet's socket buffer. Modifications to this `skb` can alter the packet.
+*     - `par` (table): A read-only table containing parameters related to the packet and hook (same structure as for `xtable.match`).
+*     - `userargs` (string): A string containing any arguments passed to this target from the `iptables` rule command line.
+*
+*     The function should return an integer verdict, typically one of the constants from the `netfilter.action` table (e.g., `netfilter.action.DROP`, `netfilter.action.ACCEPT`).
+*   - `checkentry` (function): A Lua function called when an `iptables` rule using this target is added or modified. Its signature is `function(userargs)`. (See `xtable.match` for details).
+*   - `destroy` (function): A Lua function called when an `iptable`s rule using this target is deleted. Its signature is `function(userargs)`. (See `xtable.match` for details).
+* @treturn xtable_extension A userdata object representing the registered target extension.
+* @raise Error if registration fails.
+* @see netfilter.action
+* @usage
+*   local my_target_opts = {
+*     name = "MYLUATARGET",
+*     revision = 0,
+*     family = nf.family.INET,
+*     hooks = (1 << nf.inet_hooks.FORWARD),
+*     target = function(skb, par, userargs)
+*       print("Targeting packet with userargs:", userargs)
+*       -- Example: Modify TTL (byte at offset 8 in IP header)
+*       -- skb:setuint8(8, skb:getuint8(8) - 1)
+*       return nf.action.ACCEPT
+*     end,
+*     checkentry = function(userargs) print("Checking target:", userargs) end,
+*     destroy = function(userargs) print("Destroying target:", userargs) end
+*   }
+*   local target_ext = xtable.target(my_target_opts)
+*   -- To use in iptables: iptables -A FORWARD -j MYLUATARGET --someoption "value"
+*/
 static const luaL_Reg luaxtable_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{NULL, NULL}
@@ -253,7 +384,7 @@ static const luaL_Reg luaxtable_lib[] = {
 static void luaxtable_release(void *private)
 {
 	luaxtable_t *xtable = (luaxtable_t *)private;
-	if (!xtable->runtime) 
+	if (!xtable->runtime)
 		return;
 
 	switch (xtable->type) {
