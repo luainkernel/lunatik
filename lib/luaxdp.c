@@ -205,8 +205,10 @@ static int __init luaxdp_init(void)
 
 static void __exit luaxdp_exit(void)
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 	if (luaxdp_runtimes != NULL)
 		lunatik_putobject(luaxdp_runtimes);
+#endif
 }
 
 module_init(luaxdp_init);
