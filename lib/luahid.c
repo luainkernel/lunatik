@@ -105,11 +105,11 @@ static int luahid_register(lua_State *L)
 	 * configure the driver's properties & callbacks
 	 */
 	struct hid_driver *user_driver = &(hid->driver);
-	user_driver -> name = lunatik_checkalloc(L, NAME_MAX);
+	user_driver->name = lunatik_checkalloc(L, NAME_MAX);
 	lunatik_setstring(L, 1, user_driver, name, NAME_MAX);
-	user_driver -> id_table = hid_table;
-	user_driver -> match = hid_match;
-	user_driver -> probe = hid_generic_probe;
+	user_driver->id_table = hid_table;
+	user_driver->match = hid_match;
+	user_driver->probe = hid_generic_probe;
 
 	lunatik_registerobject(L, 1, object);
 
