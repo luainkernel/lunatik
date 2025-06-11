@@ -3,7 +3,6 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
-#include "linux/printk.h"
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -99,20 +98,18 @@ static const struct hid_device_id *luahid_parse_id_table(lua_State *L, int idx)
 {
 	/* Check if the 'id_table' field exists and is a table */
 	if (lua_getfield(L, idx, "id_table") != LUA_TTABLE) {
-		lua_pop(L, 1); /* pop nil */
-		return hid_table; /* Return the default generic table */
+		lua_pop(L, 1); 
+		return hid_table; 
 	}
 
 	size_t len = luaL_len(L, -1);
 	if (len == 0) {
-		lua_pop(L, 1); /* pop empty table */
-		return hid_table; /* Return default if user provides an empty table */
+		lua_pop(L, 1); 
+		return hid_table; 
 	}
 
-	/* Allocate memory for the user-defined table + one terminator entry */
 	struct hid_device_id *user_table = lunatik_checkalloc(L, sizeof(struct hid_device_id) * (len + 1));
 
-	/* Iterate over the Lua table */
 	for (size_t i = 0; i < len; i++) {
 		if (lua_geti(L, -1, i + 1) != LUA_TTABLE) {
 			kfree(user_table);
@@ -120,14 +117,13 @@ static const struct hid_device_id *luahid_parse_id_table(lua_State *L, int idx)
 			return NULL; /* Unreachable */
 		}
 
-		/* Populate the C struct from the Lua inner table */
 		user_table[i].bus = get_int_field(L, -1, "bus", HID_BUS_ANY);
 		user_table[i].group = get_int_field(L, -1, "group", HID_GROUP_ANY);
 		user_table[i].vendor = get_int_field(L, -1, "vendor", HID_ANY_ID);
 		user_table[i].product = get_int_field(L, -1, "product", HID_ANY_ID);
 		user_table[i].driver_data = 0; /* driver_data not supported from Lua for simplicity */
 
-		printk("luahid: id_table[%zu] = { bus: %d, group: %d, vendor: 0x%04x, product: 0x%04x }\n",
+		pr_warn("id_table[%zu] = { bus: %d, group: %d, vendor: 0x%04x, product: 0x%04x }\n",
 		       i, user_table[i].bus, user_table[i].group,
 		       user_table[i].vendor, user_table[i].product);
 
