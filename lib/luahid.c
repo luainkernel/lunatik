@@ -7,18 +7,13 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/hid.h>
 #include <lunatik.h>
+#include <lauxlib.h>
 
 typedef struct luahid_s {
 	lunatik_object_t *runtime;
 	struct hid_driver driver;
 	bool registered;
 } luahid_t;
-
-static const struct hid_device_id luahid_table[] = {
-	{HID_DEVICE(HID_BUS_ANY, HID_GROUP_ANY, HID_ANY_ID, HID_ANY_ID)},
-	{ }
-};
-MODULE_DEVICE_TABLE(hid, luahid_table);
 
 static void luahid_release(void *private)
 {
@@ -27,6 +22,8 @@ static void luahid_release(void *private)
 		hid_unregister_driver(&hid->driver);
 	if (hid->runtime != NULL)
 		lunatik_putobject(hid->runtime);
+	if (hid->driver.id_table != NULL)
+		lunatik_free(hid->driver.id_table);
 	if (hid->driver.name != NULL)
 		lunatik_free(hid->driver.name);
 }
@@ -50,6 +47,42 @@ static const lunatik_class_t luahid_class = {
 	.sleep = true,
 };
 
+#define luahid_optinteger(L, idx, nf, field, opt)			\
+do {									\
+	lua_getfield(L, idx, #field);					\
+	nf->field = lua_isnil(L, -1) ? opt : lua_tointeger(L, -1);	\
+	lua_pop(L, 1);							\
+} while (0)
+
+static const struct hid_device_id *luahid_setidtable(lua_State *L, int idx)
+{
+	size_t len = luaL_len(L, idx);
+	struct hid_device_id *user_table = lunatik_checkalloc(L, sizeof(struct hid_device_id) * (len + 1));
+
+	struct hid_device_id *cur_id = user_table;
+	for (size_t i = 0; i < len; i++, cur_id++) {
+		if (lua_geti(L, idx, i + 1) != LUA_TTABLE) { /* table entry */
+			lua_pop(L, 1); /* table entry */
+			lunatik_free(user_table);
+			user_table = NULL;
+			goto out;
+		}
+
+		luahid_optinteger(L, -1, cur_id, bus, HID_BUS_ANY);
+		luahid_optinteger(L, -1, cur_id, group, HID_GROUP_ANY);
+		luahid_optinteger(L, -1, cur_id, vendor, HID_ANY_ID);
+		luahid_optinteger(L, -1, cur_id, product, HID_ANY_ID);
+		luahid_optinteger(L, -1, cur_id, driver_data, 0);
+
+		lua_pop(L, 1); /* table entry */
+	}
+
+	memset(cur_id, 0, sizeof(struct hid_device_id));
+out:
+	lua_pop(L, 1); /* id_table */
+	return user_table;
+}
+
 static int luahid_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
@@ -61,7 +94,10 @@ static int luahid_register(lua_State *L)
 	struct hid_driver *user_driver = &(hid->driver);
 	user_driver->name = lunatik_checkalloc(L, NAME_MAX);
 	lunatik_setstring(L, 1, user_driver, name, NAME_MAX);
-	user_driver->id_table = luahid_table;
+
+	lunatik_checkfield(L, 1, "id_table", LUA_TTABLE);
+	if ((user_driver->id_table = luahid_setidtable(L, -1)) == NULL)
+		luaL_error(L, "id_table is not specified or invalid");
 
 	lunatik_setruntime(L, hid, hid);
 	lunatik_getobject(hid->runtime);
