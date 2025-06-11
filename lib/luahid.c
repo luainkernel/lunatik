@@ -127,7 +127,7 @@ static const struct hid_device_id *luahid_parse_id_table(lua_State *L, int idx)
 		       i, user_table[i].bus, user_table[i].group,
 		       user_table[i].vendor, user_table[i].product);
 
-		lua_pop(L, 1); /* Pop the inner table */
+		lua_pop(L, 1); 
 	}
 
 	/* Add the null terminator entry */
@@ -142,12 +142,12 @@ static int luahid_register(lua_State *L)
 	luaL_checktype(L, 1, LUA_TTABLE); /* assure that is a driver */
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t));
-	luahid_t *hid = (luahid_t *)object->private;
+	luahid_t *hidvar = (luahid_t *)object->private;
 
 	/*
 	 * configure the driver's properties & callbacks
 	 */
-	struct hid_driver *user_driver = &(hid->driver);
+	struct hid_driver *user_driver = &(hidvar->driver);
 	user_driver->name = lunatik_checkalloc(L, NAME_MAX);
 	lunatik_setstring(L, 1, user_driver, name, NAME_MAX);
 	user_driver->id_table = luahid_parse_id_table(L, 1);
@@ -161,8 +161,8 @@ static int luahid_register(lua_State *L)
 		lunatik_unregisterobject(L, object);
 		luaL_error(L, "failed to register hid driver: %s", user_driver->name);
 	} 
-	lunatik_setruntime(L, hid, hid);
-	lunatik_getobject(hid->runtime);
+	lunatik_setruntime(L, hid, hidvar);
+	lunatik_getobject(hidvar->runtime);
 	return 1; /* object */
 }
 
