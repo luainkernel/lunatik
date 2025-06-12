@@ -3,6 +3,25 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/***
+* Read-Copy-Update (RCU) synchronized hash table.
+* This library provides a Lua-accessible hash table that uses RCU (Read-Copy-Update)
+* for synchronization within the Linux kernel. RCU allows for very fast, lockless
+* read operations, while write operations (updates and deletions) are synchronized
+* to ensure data consistency. This makes it highly suitable for scenarios where
+* read operations significantly outnumber write operations and high concurrency
+* is required.
+*
+* Keys in the RCU table must be strings. Values must be Lunatik objects
+* (i.e., userdata created by other Lunatik C modules like `data.new()`,
+* `lunatik.runtime()`, etc.) or `nil` to delete an entry.
+*
+* A practical example of its usage can be found in `examples/shared.lua`,
+* which implements an in-memory key-value store.
+*
+* @module rcu
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -25,6 +44,42 @@ typedef struct luarcu_entry_s {
 	struct rcu_head rcu;
 	char key[];
 } luarcu_entry_t;
+
+/***
+* Represents an RCU-synchronized hash table.
+* This is a userdata object returned by `rcu.table()`. It behaves like a
+* standard Lua table for get (`__index`) and set (`__newindex`) operations
+* but uses RCU internally for synchronization.
+*
+* Keys must be strings. Values stored must be Lunatik objects (e.g., created
+* via `data.new()`, `lunatik.runtime()`) or `nil` (to remove an entry).
+* When a Lunatik object is retrieved, it's a new reference to that object.
+*
+* @type rcu_table
+* @usage
+*  -- Assuming 'data' module is available for creating Lunatik objects
+*  -- and 'rcu' module is required.
+*  local rcu_store = rcu.table()
+*  local my_data = data.new(10) -- Create a Lunatik object
+*  my_data:setstring(0, "hello")
+*
+*  -- Set a value
+*  rcu_store["my_key"] = my_data
+*
+*  -- Get a value
+*  local retrieved_data = rcu_store["my_key"]
+*  if retrieved_data then
+*    print(retrieved_data:getstring(0)) -- Output: hello
+*  end
+*
+*  -- Remove a value
+*  rcu_store["my_key"] = nil
+*
+*  -- Iterate
+*  rcu_store:map(function(k, v_obj)
+*    print("Found key:", k, "Value object:", v_obj)
+*  end)
+*/
 
 typedef struct luarcu_table_s {
 	size_t size;
@@ -146,6 +201,21 @@ unlock:
 }
 EXPORT_SYMBOL(luarcu_settable);
 
+/***
+* Retrieves a value (a Lunatik object) from the RCU table.
+* This is the Lua `__index` metamethod, allowing table-like access `rcu_table[key]`.
+* Read operations are RCU-protected and lockless.
+* @function __index
+* @tparam rcu_table self The RCU table instance.
+* @tparam string key The key to look up in the table.
+* @treturn lunatik_object The Lunatik object associated with the key, or `nil` if the key is not found.
+*   A new reference to the object is returned.
+* @usage
+*  local my_object = my_rcu_table["some_key"]
+*  if my_object then
+*    -- Use my_object
+*  end
+*/
 static int luarcu_index(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobject(L, 1);
@@ -166,6 +236,21 @@ static int luarcu_index(lua_State *L)
 	return 1; /* value */
 }
 
+/***
+* Sets or removes a value in the RCU table.
+* This is the Lua `__newindex` metamethod, allowing table-like assignment `rcu_table[key] = value`.
+* Write operations are synchronized.
+* @function __newindex
+* @tparam rcu_table self The RCU table instance.
+* @tparam string key The key to set or update.
+* @tparam lunatik_object|nil value The Lunatik object to associate with the key.
+*   If `nil`, the key-value pair is removed from the table.
+* @raise Error if memory allocation fails during new entry creation.
+* @usage
+*   local data_obj = data.new(5) -- Assuming 'data' module
+*   my_rcu_table["new_key"] = some_lunatik_object
+*   my_rcu_table["another_key"] = nil -- Removes 'another_key'
+*/
 static int luarcu_newindex(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobject(L, 1);
@@ -223,6 +308,30 @@ static inline int luarcu_map_call(lua_State *L, int cb, const char *key, lunatik
 	return lua_pcall(L, 3, 0, 0); /* handle(cb, key, value) */
 }
 
+/***
+* Iterates over the RCU table and calls a callback for each key-value pair.
+* The iteration is RCU-protected. The order of iteration is not guaranteed.
+* For each entry, a new reference to the value (Lunatik object) is obtained
+* before calling the callback and released after the callback returns.
+*
+* @function map
+* @tparam rcu_table self The RCU table instance.
+* @tparam function callback A Lua function that will be called for each entry in the table.
+*   The callback receives two arguments:
+*
+*   1. `key` (string): The key of the current entry.
+*   2. `value` (lunatik_object): The Lunatik object associated with the key.
+*
+* @treturn nil
+* @raise Error if the callback function raises an error during its execution.
+* @usage
+*   -- Example: Iterating and printing content if values are 'data' objects
+*   my_rcu_table:map(function(k, v_obj)
+*     -- v_obj is the Lunatik object stored for the key.
+*     -- If it's a 'data' object (a common use case, see examples/shared.lua):
+*     print("Key:", k, "Content from data object:", v_obj:getstring(0))
+*   end)
+*/
 static int luarcu_map(lua_State *L)
 {
 	luarcu_table_t *table = luarcu_checktable(L, 1);
@@ -282,6 +391,37 @@ lunatik_object_t *luarcu_newtable(size_t size, bool sleep)
 }
 EXPORT_SYMBOL(luarcu_newtable);
 
+/***
+* Creates a new RCU-synchronized hash table.
+* @function table
+* @tparam[opt=1024] integer size Specifies the initial number of hash buckets (internal slots) for the table.
+*   This is **not** a hard limit on the number of entries the table can store.
+*   The provided `size` will be rounded up to the nearest power of two.
+*   Choosing an appropriate `size` involves a trade-off between memory usage and performance:
+*
+*   - more buckets (larger `size`): Consumes more memory for the table structure itself,
+*     even if many buckets remain empty. However, it reduces the probability of hash collisions,
+*     which can significantly speed up operations (lookups, insertions, deletions),
+*     especially when storing a large number of entries.
+*   - fewer buckets (smaller `size`): Uses less memory for the table's internal array.
+*     However, if the number of entries is high relative to the number of buckets,
+*     it increases the chance of hash collisions. This means more entries might end up
+*     in the same bucket, forming longer linked lists that need to be traversed,
+*     thereby slowing down operations.
+*
+*   **Guidance**: For optimal performance, aim for a `size` that is roughly in the order of,
+*   or somewhat larger than, the maximum number of entries you anticipate storing. This helps
+*   maintain a low average number of entries per bucket (a low "load factor," ideally close to 1).
+*   The table can hold more entries than its `size` (number of buckets), but performance
+*   will degrade as the load factor increases. The default is a general-purpose starting point
+*   suitable for many common use cases.
+* @treturn rcu_table A new RCU table object, or raises an error if memory allocation fails.
+* @usage
+*   local my_rcu_table = rcu.table() -- Default: 1024 buckets, good for moderate entries.
+*   local small_table = rcu.table(128) -- 128 buckets, for fewer expected entries.
+*   local large_table = rcu.table(8192) -- 8192 buckets, for many expected entries.
+* @within rcu
+*/
 static int luarcu_table(lua_State *L)
 {
 	size_t size = roundup_pow_of_two(luaL_optinteger(L, 1, LUARCU_DEFAULT_SIZE));

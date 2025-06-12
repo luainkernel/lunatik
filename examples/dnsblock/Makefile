@@ -21,3 +21,4 @@ lib%.so: lib%.o
 
 lib%.o: lib%.c
 	gcc ${CFLAGS} -D_INIT=lib$*_init -fPIC -c -o $@ $<;
+
