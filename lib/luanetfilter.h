@@ -40,17 +40,6 @@ do {							\
 		nf->field = opt;			\
 } while (0)
 
-#define luanetfilter_setstring(L, idx, hook, field, maxlen)        \
-do {								\
-	size_t len;						\
-	lunatik_checkfield(L, idx, #field, LUA_TSTRING);	\
-	const char *str = lua_tolstring(L, -1, &len);			\
-	if (len > maxlen)					\
-		luaL_error(L, "'%s' is too long", #field);	\
-	strncpy((char *)hook->field, str, maxlen);		\
-	lua_pop(L, 1);						\
-} while (0)
-
 const lunatik_reg_t luanetfilter_family[] = {
 	{"UNSPEC", NFPROTO_UNSPEC},
 	{"INET", NFPROTO_INET},
