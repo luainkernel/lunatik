@@ -18,10 +18,12 @@
 #include <lauxlib.h>
 
 #include <lunatik.h>
+#include "luadata.h"
 
 typedef struct luahid_s {
 	lunatik_object_t *runtime;
 	struct hid_driver driver;
+	lunatik_object_t *fixed_report_descriptor;
 } luahid_t;
 
 /*
@@ -137,6 +139,98 @@ static const struct hid_device_id *luahid_parse_id_table(lua_State *L, int idx)
 	return user_table;
 }
 
+static void luahid_push_device_info_table(lua_State *L, struct hid_device *hdev)
+{
+    lua_newtable(L);
+
+    lua_pushinteger(L, hdev->bus);
+    lua_setfield(L, -2, "bus"); 
+
+    lua_pushinteger(L, hdev->group);
+    lua_setfield(L, -2, "group");
+
+    lua_pushinteger(L, hdev->vendor);
+    lua_setfield(L, -2, "vendor");
+
+    lua_pushinteger(L, hdev->product);
+    lua_setfield(L, -2, "product");
+
+    lua_pushinteger(L, hdev->version);
+    lua_setfield(L, -2, "version");
+
+    lua_pushstring(L, hdev->name);
+    lua_setfield(L, -2, "name");
+}
+
+static int luahid_report_fixup_handler(lua_State *L, luahid_t *hidvar, 
+									   struct hid_device *hdev, __u8 *buf, unsigned int *size, 
+									   __u8* ret_ptr) { 
+	int ret = -1;
+
+	if (lunatik_getregistry(L, hidvar) != LUA_TTABLE) {
+		pr_err("luahid: could not find ops table for hid device\n");
+		goto err;
+	}
+
+	if(lua_getfield(L, -1, "report_fixup") != LUA_TFUNCTION) {
+		pr_err("luahid: report_fixup operation not defined\n");
+		goto err;
+	}
+
+	if (hidvar->fixed_report_descriptor != NULL) {
+		/* manually recircle the fixed report descriptor */
+		lunatik_putobject(hidvar->fixed_report_descriptor);
+		hidvar->fixed_report_descriptor = NULL;
+	} 
+
+	luahid_push_device_info_table(L, hdev);
+	lunatik_object_t *original_data = luadata_new(buf, *size, hidvar->runtime->sleep, LUADATA_OPT_READONLY);
+    if (!original_data) {
+		pr_err("luahid: failed to create luadata for original report\n");
+		goto err;
+    }
+    lunatik_pushobject(L, original_data); 
+
+    if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
+        pr_err("luahid: error calling 'report_fixup': %s\n", lua_tostring(L, -1));
+		goto err;
+    }
+
+	if (!lua_isnil(L, -1)) {
+        lunatik_object_t* returned_object = lunatik_checkobject(L, -1);
+        lunatik_getobject(returned_object);
+		hidvar->fixed_report_descriptor = returned_object;
+
+		luadata_t *data = (luadata_t *)returned_object->private;
+		*size= data->size;
+		ret_ptr = data->ptr;
+	}
+
+	return 0;
+err: 
+	return ret;
+}
+
+static const __u8* luahid_report_fixup(struct hid_device *hdev, __u8* buf, unsigned int *size) {
+	struct hid_driver *driver = hdev->driver;
+	luahid_t *hidvar = container_of(driver, luahid_t, driver);
+	__u8* ret_ptr = buf;
+	int ret;
+
+	if (!driver || !driver->report_fixup || !hidvar->runtime) {
+		pr_warn("No report_fixup callback defined for driver %s\n", driver ? driver->name : "unknown");
+		return buf; /* No fixup needed */
+	}
+
+	lunatik_run(hidvar->runtime, luahid_report_fixup_handler, ret, hidvar, hdev, buf, size, ret_ptr);
+
+	/* if error occured, returns the original buffer */
+	if (ret) 
+		return buf;
+	else 
+		return ret_ptr;
+}
+
 static int luahid_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE); /* assure that is a driver */
@@ -153,6 +247,7 @@ static int luahid_register(lua_State *L)
 	user_driver->id_table = luahid_parse_id_table(L, 1);
 	user_driver->match = NULL;
 	user_driver->probe = hid_probe;
+	user_driver->report_fixup = luahid_report_fixup;
 
 	lunatik_registerobject(L, 1, object);
 
