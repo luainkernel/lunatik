@@ -215,7 +215,7 @@ static int luaxtable_new##hook(lua_State *L) 				\
 	struct xt_##hook *hook = &xtable->hook;				\
 	hook->me = THIS_MODULE;						\
 									\
-	luanetfilter_setstring(L, 1, hook, name, XT_EXTENSION_MAXNAMELEN - 1);	\
+	lunatik_setstring(L, 1, hook, name, XT_EXTENSION_MAXNAMELEN - 1);	\
 	luanetfilter_setinteger(L, 1, hook, revision);			\
 	luanetfilter_setinteger(L, 1, hook, family);			\
 	luanetfilter_setinteger(L, 1, hook, proto);			\
