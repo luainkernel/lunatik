@@ -1,0 +1,26 @@
+Source: lunatik
+Section: kernel
+Priority: optional
+Maintainer: Shivam Vashisth <vashisth11shivam@gmail.com>
+Build-Depends: debhelper-compat (= 13), dh-dkms
+Standards-Version: 4.6.2
+Homepage: https://github.com/luainkernel/lunatik
+
+Package: lunatik
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, lua5.4
+Description: User-space tools for the Lunatik kernel module
+ This package provides the lunatik CLI tool for interacting with the Lunatik
+ kernel module, including running Lua scripts in the kernel and accessing the
+ REPL. Intended for advanced users and kernel developers interested in rapid
+ prototyping and scripting within the kernel space.
+
+Package: lunatik-dkms
+Architecture: all
+Depends: dkms, ${misc:Depends}
+Provides: lunatik-modules
+Description: DKMS source for the Lunatik kernel modules
+ This package provides the source code for the Lunatik kernel modules,
+ allowing DKMS to automatically build and install them for each kernel.
+ It does not ship prebuilt modules, but builds them locally for each
+ installed kernel, ensuring compatibility and easy updates.

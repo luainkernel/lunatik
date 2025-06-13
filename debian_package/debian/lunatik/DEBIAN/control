@@ -1,0 +1,14 @@
+Package: lunatik
+Version: 3.6.2-1
+Architecture: amd64
+Maintainer: Shivam Vashisth <vashisth11shivam@gmail.com>
+Installed-Size: 14
+Depends: lua5.4
+Section: kernel
+Priority: optional
+Homepage: https://github.com/luainkernel/lunatik
+Description: User-space tools for the Lunatik kernel module
+ This package provides the lunatik CLI tool for interacting with the Lunatik
+ kernel module, including running Lua scripts in the kernel and accessing the
+ REPL. Intended for advanced users and kernel developers interested in rapid
+ prototyping and scripting within the kernel space.

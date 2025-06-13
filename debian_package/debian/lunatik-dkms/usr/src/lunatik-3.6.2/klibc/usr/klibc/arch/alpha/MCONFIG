@@ -1,0 +1,19 @@
+# -*- makefile -*-
+#
+# arch/alpha/MCONFIG
+#
+# Build configuration for this architecture
+#
+
+KLIBCOPTFLAGS += -Os
+KLIBCBITSIZE  = 64
+
+# Extra linkflags when building the shared version of the library
+# This address needs to be reachable using normal inter-module
+# calls, and work on the memory models for this architecture
+# 7 GB - normal binaries start at 4.5 GB, and the stack is below
+# the binary.
+KLIBCSHAREDFLAGS	= $(LD_IMAGE_BASE_OPT) 0x1c0000000
+
+# Kernel uses our sa_restorer for signal return
+KLIBCEXECSTACK := n

@@ -1,0 +1,52 @@
+#
+# Generate socket calls based on SOCKETCALLS.def
+#
+
+# Include automatically generated Makefile fragment.
+# It contains definition of socketcall-objs specifying name of all .o files
+ifeq ($(clean),)
+-include $(obj)/socketcalls.mk
+endif
+
+# Listing of all .o files
+always := klib.list
+
+#####
+# Generate socket calls stubs
+# Based on input from SOCKETCALLS.def generate socket call stubs
+targets     := klib.list
+targets     += socketcalls.mk
+targets	    += SOCKETCALLS.i
+targets     += $(socketcall-objs)
+clean-files += *.S *.c *.o *.list
+
+EXTRA_KLIBCCFLAGS := -I$(srctree)/$(src)
+
+quiet_cmd_makelist = LIST    $@
+      cmd_makelist = echo '$(filter-out FORCE,$^)' > $@
+
+# Create list of all files
+$(obj)/klib.list: $(call objectify,$(socketcall-objs)) FORCE
+	$(call if_changed,makelist)
+
+# Generate assembler file (.i)
+# We pass -ansi to keep cpp from define e.g. "i386" as well as "__i386__"
+quiet_cmd_socketcall.i = GEN     $@
+      cmd_socketcall.i = $(KLIBCCC) $(klibccflags) -D__ASSEMBLY__ \
+                                -ansi -x c -E -o $@ $<
+$(obj)/SOCKETCALLS.i: $(KLIBCSRC)/SOCKETCALLS.def FORCE
+	$(call if_changed_dep,socketcall.i)
+
+# Generate socketcall stubs
+quiet_cmd_socketcalls = GEN     $@
+      cmd_socketcalls = $(PERL) $(srctree)/$(KLIBCSRC)/socketcalls.pl      \
+                                $(obj)/SOCKETCALLS.i                       \
+                                $(KLIBCARCH) $(obj) > $@                   \
+                                || ( rm -f $@ ; exit 1 )
+
+$(obj)/socketcalls.mk: $(srctree)/$(KLIBCSRC)/socketcalls.pl        \
+                       $(obj)/SOCKETCALLS.i                         \
+                       $(src)/socketcommon.h
+	$(call cmd,socketcalls)
+
+PHONY += FORCE

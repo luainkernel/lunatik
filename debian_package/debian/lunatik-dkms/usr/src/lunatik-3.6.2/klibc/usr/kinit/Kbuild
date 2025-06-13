@@ -1,0 +1,43 @@
+#
+# Kbuild file for kinit
+#
+
+# library part of kinit. Is used by programs in sub-directories (resume et al)
+lib-y   := name_to_dev.o devname.o getarg.o capabilities.o
+# use lib for kinit
+static/kinit-y  := lib.a
+
+static/kinit-y  += kinit.o do_mounts.o ramdisk_load.o initrd.o
+static/kinit-y  += getintfile.o readfile.o xpio.o
+static/kinit-y  += do_mounts_md.o do_mounts_mtd.o nfsroot.o
+
+static/kinit-y  += ipconfig/
+static/kinit-y  += nfsmount/
+static/kinit-y  += run-init/
+static/kinit-y  += fstype/
+static/kinit-y  += resume/
+
+static-y := static/kinit
+shared-y := shared/kinit
+shared/kinit-y := $(static/kinit-y)
+
+# Additional include paths files
+KLIBCCFLAGS += -I$(srctree)/$(src)/fstype \
+	       -I$(srctree)/$(src)/ipconfig \
+  	       -I$(srctree)/$(src)/nfsmount \
+  	       -I$(srctree)/$(src)/resume \
+ 	       -I$(srctree)/$(src)/run-init
+
+# Cleaning
+targets += static/kinit static/kinit.g shared/kinit shared/kinit.g
+subdir- := fstype ipconfig nfsmount resume run-init
+
+# Clean deletes the static and shared dir
+clean-dirs := static shared
+
+# install binary
+ifdef KLIBCSHAREDFLAGS
+install-y := shared/kinit
+else
+install-y := static/kinit
+endif

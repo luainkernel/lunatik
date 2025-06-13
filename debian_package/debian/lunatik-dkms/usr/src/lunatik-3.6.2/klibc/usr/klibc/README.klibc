@@ -1,0 +1,147 @@
+Introduction
+============
+
+This is klibc, what is intended to be a minimalistic libc subset for
+use with initramfs.  It is deliberately written for small size,
+minimal entanglement, and portability, not speed.  It is definitely a
+work in progress, and a lot of things are still missing.
+
+Building
+========
+
+The build procedure is not very polished yet, but for a native build
+with the default configuration it should be simple:
+
+1. In a recent Linux kernel source directory, run:
+       make headers_install INSTALL_HDR_PATH=<klibc-source-dir>/linux
+2. In the klibc source directory, run:
+       make
+
+Cross-compiling
+---------------
+
+If you're cross-compiling, you need to set KLIBCARCH to the
+appropriate architecture, and set CROSS_COMPILE to your toolchain
+prefix, on the "make" command line.  You also need to set ARCH to the
+appropriate kernel architecture name on the "make headers_install"
+command line.
+
+IMPORTANT: if you're on a 64-bit machine with a 32-bit userland, and
+you want to build the 32-bit version: you need to set KLIBCARCH to the
+32-bit architecture.  Building the 32-bit architecture usually (but
+not always) produces smaller binaries.
+
+If you are on ARM, and want to build a thumb version of the library
+(this is supported), change OPTFLAGS in arch/arm/MCONFIG to build
+thumb code.
+
+Out-of-tree builds
+------------------
+
+It is possible to use a separate build directory so that build
+products are not created in source directories.  To do this,
+create the build directory and in that directory run:
+    make -f <source-dir>/Makefile KBUILD_SRC=<source-dir>
+
+Build configuration
+-------------------
+
+The build configuration is defined in a ".config" file in the
+build directory.  If this file does not already exist, it is
+created as a copy of the "defconfig" source file.
+
+The configuration variables are:
+
+* CONFIG_KLIBC_ERRLIST (bool): Include standard error strings for
+  strerror().  If disabled, strerror() returns the error number as a
+  string.
+* CONFIG_KLIBC_ZLIB (bool): Include zlib decompression functions.  If
+  disabled, kinit can only load uncompressed ramdisk images.
+* CONFIG_KLIBC_ZIP (bool): Include compression support in the gzip
+  command.
+* CONFIG_DEBUG_INFO (bool): Install all executables and the shared
+  library with debug information and build IDs included.  If
+  disabled, the executables and shared library are stripped when
+  installed.
+
+For arm only:
+
+* CONFIG_KLIBC_THUMB (bool): Compile all code to Thumb instructions,
+  which should reduce code size slightly.  If disabled, regular ARM
+  instructions are used.
+* CONFIG_AEABI (bool): Compile ARM code to use the ARM EABI and the
+  "new" system call ABI.
+
+If both CONFIG_KLIBC_THUMB and CONFIG_AEABI are disabled, the GNU APCS
+and the old system call ABI are used.
+
+For i386 only:
+
+* CONFIG_REGPARM (bool): Optimise function calls by passing the first
+  3 function parameters in registers.
+
+For mips64 only:
+
+* CONFIG_KLIBC_MIPS_USE_CB (bool): Use compact branch instructions.
+  This should be enabled when targetting MIPS R6 and must be disabled
+  for older MIPS ISAs.
+
+Building without kernel source
+------------------------------
+
+If you already have a copy of the current kernel UAPI headers, you
+don't need the kernel source as well.  You can either:
+
+1. Copy or link to the UAPI headers so that they appear under the
+   "linux/include" subdirectory.
+2. Set the KLIBCKERNELSRC variable on the "make" command line to
+   point to the *parent* of the UAPI headers directory.
+
+Architecture support
+====================
+
+The following is the last known status of various architectures:
+
+   alpha:	 Working
+   arm-thumb:	 Working
+   arm:		 Working
+   arm64:	 Working
+   h8300:	 Not yet ported
+   i386:	 Working
+   ia64:	 Working
+   m68k:	 Working
+   mips:	 Working
+   mips64:	 Working
+   parisc:	 Working
+   parisc64:	 Not yet ported
+   ppc:		 Working
+   ppc64:	 Working
+   riscv64:	 Working
+   s390:	 Working
+   s390x:	 Working
+   sh:		 Working
+   sparc:	 Working
+   sparc64:	 Working
+   x86-64:	 Working
+   xtensa:	 Not yet ported
+
+Shared library support requires recent binutils on many architectures.
+
+Note that even the "working" ones likely have bugs.  Please report
+them if you run into them.
+
+Testing
+=======
+
+Try the test programs in the tests/ directory.  They should run...
+
+Contact
+=======
+
+Contact the klibc mailing list:
+
+	https://www.zytor.com/mailman/listinfo/klibc
+
+... for more info.
+
+	-hpa

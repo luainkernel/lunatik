@@ -1,0 +1,35 @@
+#
+# Kbuild file for ipconfig
+#
+
+static-y := static/ipconfig
+shared-y := shared/ipconfig
+
+# common .o files
+objs := main.o netdev.o packet.o
+# dhcp
+objs += dhcp_proto.o
+# bootp
+objs += bootp_proto.o
+
+
+# TODO - do we want a stripped version
+# TODO - do we want the static.g + shared.g directories?
+
+
+# Create built-in.o with all object files (used by kinit)
+lib-y := $(objs)
+
+# .o files used to built executables
+static/ipconfig-y := $(objs)
+shared/ipconfig-y := $(objs)
+
+# Cleaning
+clean-dirs := static shared
+
+# install binary
+ifdef KLIBCSHAREDFLAGS
+install-y := $(shared-y)
+else
+install-y := $(static-y)
+endif

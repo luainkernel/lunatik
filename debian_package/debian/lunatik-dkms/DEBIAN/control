@@ -1,0 +1,16 @@
+Package: lunatik-dkms
+Source: lunatik
+Version: 3.6.2-1
+Architecture: all
+Maintainer: Shivam Vashisth <vashisth11shivam@gmail.com>
+Installed-Size: 4861
+Depends: dkms (>= 2.1.0.0)
+Provides: lunatik-modules
+Section: kernel
+Priority: optional
+Homepage: https://github.com/luainkernel/lunatik
+Description: DKMS source for the Lunatik kernel modules
+ This package provides the source code for the Lunatik kernel modules,
+ allowing DKMS to automatically build and install them for each kernel.
+ It does not ship prebuilt modules, but builds them locally for each
+ installed kernel, ensuring compatibility and easy updates.

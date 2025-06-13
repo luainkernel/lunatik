@@ -1,0 +1,27 @@
+# -*- makefile -*-
+#
+# arch/ppc64/MCONFIG
+#
+# Special rules for this architecture.  Note that this is actually
+# included from the main Makefile, and that pathnames should be
+# accordingly.
+#
+
+KLIBCARCHREQFLAGS = -m64
+KLIBCARCHREQFLAGS += $(call cc-option, -mcall-aixdesc, )
+KLIBCARCHREQFLAGS += $(call cc-option, -mcmodel=small, )
+KLIBCOPTFLAGS     += -Os
+KLIBCBITSIZE      = 64
+
+# Extra linkflags when building the shared version of the library
+# This address needs to be reachable using normal inter-module
+# calls, and work on the memory models for this architecture
+# 256-16 MB - normal binaries start at 256 MB, and jumps are limited
+# to +/- 16 MB
+KLIBCSHAREDFLAGS     = $(LD_IMAGE_BASE_OPT) 0x0f000000
+
+# The asm include files live in asm-powerpc
+KLIBCASMARCH	= powerpc
+
+# Kernel uses vDSO for signal return since 2.6.12
+KLIBCEXECSTACK := n

@@ -1,0 +1,440 @@
+# ==========================================================================
+# Support for building klibc programs and klibc library
+# ==========================================================================
+#
+# To create a kbuild file for a userspace program do the following:
+#
+# Kbuild:
+#
+# static-y := cat
+# # This will compile a file named cat.c -> the executable 'cat'
+# # The executable will be linked statically
+#
+# shared-y := cats
+# # This will compile a file named cats.c -> the executable 'cats'
+# # The executable will be linked shared
+#
+# If the userspace program consist of composite files do the following:
+# Kbuild:
+#
+# static-y := kinit
+# kinit-y  := main.o netdev.c
+# So kinit will be linked statically using the two .o files
+# specified with kinit-y.
+#
+# Are part of the program located in a sub-directory do like this:
+# kinit-y += ipconfig/
+#
+# And in the subdirectory:
+# ipconfig/Kbuild:
+# lib-y := packet.o dhcp_proto.o
+# # All .o files listed with lib-y will be used to create a single .a file.
+# # The .a file is created before any subdirectories are visited so it
+# # may be used in the sub-directory programs.
+#
+#####
+# For a klibc libary file do like this
+# klibc/Kbuild
+# klib-y := error.o pipe.o zlib/
+#
+#####
+# Handling of compiler/linker options
+#
+# To set directory wide CFLAGS use:
+# EXTRA_KLIBCCFLAGS := -DDEBUG
+# To set directory wide AFLAGS use:
+# EXTRA_KLIBCAFLAGS := -DDEBUG
+#
+# To set target specific CFLAGS (for .c files) use
+# KLIBCCFLAGS-main.o := -DDEBUG=3
+# To set target specific AFLAGS (for .s files) use
+# KLIBCAFLAGS-main.o := -DDEBUG=3
+
+src := $(obj)
+# Preset target and make sure it is a ':=' variable
+targets :=
+
+PHONY := __build
+__build:
+
+# Read .config if it exist, otherwise ignore
+-include $(objtree)/.config
+
+# Generic Kbuild routines
+include $(srctree)/scripts/Kbuild.include
+
+# Defines used when compiling early userspace (klibc programs)
+# ---------------------------------------------------------------------------
+
+KLIBCREQFLAGS     := $(call cc-option, -fno-stack-protector, ) \
+                     $(call cc-option, -fwrapv, ) \
+                     $(call cc-option, -fno-PIE, ) \
+                     $(call cc-option, -fno-builtin-bcmp, ) \
+                     $(call cc-option, -fcommon, ) \
+                     -ggdb
+KLIBCARCHREQFLAGS :=
+KLIBCOPTFLAGS     :=
+KLIBCWARNFLAGS    := -W -Wall -Wno-sign-compare -Wno-unused-parameter
+KLIBCSHAREDFLAGS  :=
+KLIBCBITSIZE      :=
+KLIBCLDFLAGS      :=
+KLIBCCFLAGS       :=
+
+# Defaults for arch to override
+KLIBCARCHINCFLAGS =
+KLIBCCRTSHARED    := $(KLIBCOBJ)/shared-stub.o
+
+LD_IS_LLD         := $(shell $(LD) --version 2>&1 | grep LLD)
+LD_IMAGE_BASE_OPT := $(if $(LD_IS_LLD),--image-base,-Ttext-segment)
+
+# Arch specific definitions for klibc
+include $(srctree)/$(KLIBCSRC)/arch/$(KLIBCARCHDIR)/MCONFIG
+
+# include/asm-* architecture
+KLIBCASMARCH	  ?= $(KLIBCARCH)
+
+# klibc version
+KLIBCMAJOR        := $(shell cut -d. -f1 $(srctree)/usr/klibc/version)
+KLIBCMINOR        := $(shell cut -d. -f2 $(srctree)/usr/klibc/version)
+
+# binutils
+KLIBCLD          := $(LD)
+KLIBCCC          := $(CC)
+KLIBCAR          := $(AR)
+
+KLIBCRANLIB      := $(RANLIB) -D
+KLIBCSTRIP       := $(if $(CONFIG_DEBUG_INFO),true,$(STRIP))
+KLIBCNM          := $(NM)
+KLIBCOBJCOPY     := $(OBJCOPY)
+KLIBCOBJDUMP     := $(OBJDUMP)
+
+# klibc include paths
+KLIBCCPPFLAGS    := -nostdinc -iwithprefix include \
+                    -I$(KLIBCINC)/arch/$(KLIBCARCHDIR)	\
+                    -I$(KLIBCINC)/bits$(KLIBCBITSIZE)	\
+                    -I$(KLIBCOBJ)/../include		\
+                    -I$(KLIBCINC)
+ifeq ($(cc-name),clang)
+KLIBCCPPFLAGS    += -isystem $(shell $(KLIBCCC) $(KLIBCCFLAGS) --print-file-name=include)
+endif
+
+# kernel include paths
+KLIBCKERNELSRC	 ?= $(srctree)
+KLIBCCPPFLAGS    += -I$(KLIBCKERNELSRC)/include		\
+                     $(if $(KBUILD_SRC),-I$(srctree)/include)  \
+		     $(KLIBCARCHINCFLAGS)
+
+# compiler/assembler option for whether we want an executable stack
+KLIBCSTACKFLAGS  := -Wa,--$(if $(filter n,$(KLIBCEXECSTACK)),no)execstack
+
+# klibc definitions
+KLIBCDEFS        += -D__KLIBC__=$(KLIBCMAJOR)          \
+		    -D__KLIBC_MINOR__=$(KLIBCMINOR)    \
+		    -D_BITSIZE=$(KLIBCBITSIZE)
+KLIBCCPPFLAGS    += $(KLIBCDEFS)
+KLIBCCFLAGS      += $(KLIBCCPPFLAGS) $(KLIBCREQFLAGS) $(KLIBCARCHREQFLAGS)  \
+                    $(KLIBCOPTFLAGS) $(KLIBCSTACKFLAGS) $(KLIBCWARNFLAGS)
+KLIBCAFLAGS      += -D__ASSEMBLY__ $(KLIBCCFLAGS)
+KLIBCSTRIPFLAGS  += --strip-all -R .comment -R .note
+
+KLIBCLIBGCC_DEF  := $(shell $(KLIBCCC) $(KLIBCCFLAGS) $(if $(filter gcc,$(cc-name)),--print-libgcc,--print-libgcc-file-name))
+KLIBCLIBGCC      ?= $(KLIBCLIBGCC_DEF)
+KLIBCCRT0        := $(KLIBCOBJ)/arch/$(KLIBCARCHDIR)/crt0.o
+KLIBCLIBC        := $(KLIBCOBJ)/libc.a
+KLIBCLIBCSHARED  := $(KLIBCOBJ)/libc.so
+# How to tell the linker main() is the entrypoint
+KLIBCEMAIN	 ?= -e main
+
+ifdef CONFIG_DEBUG_INFO
+KLIBCLDFLAGS     += --build-id=sha1
+endif
+
+#
+# This indicates the location of the final version of the shared library.
+# THIS MUST BE AN ABSOLUTE PATH WITH NO FINAL SLASH.
+# Leave this empty to make it the root.
+#
+SHLIBDIR = /lib
+
+export KLIBCLD KLIBCCC KLIBCAR KLIBCSTRIP KLIBCNM
+export KLIBCCFLAGS KLIBCAFLAGS KLIBCLIBGCC KLIBCSHAREDFLAGS KLIBCSTRIPFLAGS
+export KLIBCCRT0 KLIBCLIBC SHLIBDIR
+
+# Add $(obj)/ for paths that is not absolute
+objectify = $(foreach o,$(1),$(if $(filter /%,$(o)),$(o),$(obj)/$(o)))
+
+# Kbuild file in the directory that is being build
+include $(srctree)/$(obj)/Kbuild
+
+#####
+# static-y + shared-y handling
+kprogs := $(static-y) $(shared-y)
+# kprogs based on a single .o file (with same name + .o)
+kprog-objs := $(foreach p, $(kprogs), $(if $($(p)-y),,$(p)))
+kprog-objs := $(addsuffix .o, $(kprog-objs))
+# kprogs which is based on several .o files
+kprog-multi := $(foreach p, $(kprogs), $(if $($(p)-y),$(p)))
+# objects used for kprogs with more then one .o file
+kprog-objs += $(foreach p, $(kprog-multi), $($(p)-y))
+# objects build in this dir
+kprog-real-objs := $(patsubst %/,,$(kprog-objs))
+# Directories we need to visit before kprogs-objs are up-to-date
+kprog-dirs :=  $(patsubst %/,%,$(filter %/, $(kprog-objs)))
+# replace all dir/ with dir/lib.a
+kprog-objs := $(patsubst %/, %/lib.a, $(kprog-objs))
+
+targets += $(static-y) $(shared-y)
+
+#####
+# klib-y handling
+# .o files to build in this dir
+klib-real-objs := $(patsubst %/,,$(klib-y))
+# Directories we need to visit before libs are up-to-date
+klib-dirs := $(patsubst %/,%,$(filter %/, $(klib-y)))
+# replace all dir/ with dir/klib.list
+klib-objs := $(patsubst %/, %/klib.list, $(klib-y))
+
+# $(output-dirs) are a list of directories that contain object files
+output-dirs := $(dir $(kprog-dirs) $(kprog-objs))
+output-dirs += $(foreach f, $(hostprogs-y) $(targets), \
+               $(if $(dir $(f)), $(dir $(f))))
+output-dirs += $(dir $(klib-objs))
+output-dirs := $(strip $(sort $(filter-out ./,$(output-dirs))))
+
+# prefix so we get full dir
+static-y        := $(addprefix $(obj)/,$(static-y))
+shared-y        := $(addprefix $(obj)/,$(shared-y))
+kprog-objs      := $(addprefix $(obj)/,$(kprog-objs))
+kprog-real-objs := $(addprefix $(obj)/,$(kprog-real-objs))
+output-dirs     := $(addprefix $(obj)/,$(output-dirs))
+kprog-dirs      := $(addprefix $(obj)/,$(kprog-dirs))
+subdir-y        := $(addprefix $(obj)/,$(subdir-y))
+always          := $(addprefix $(obj)/,$(always))
+targets         := $(addprefix $(obj)/,$(targets))
+lib-y           := $(addprefix $(obj)/,$(lib-y))
+klib-y          := $(addprefix $(obj)/,$(klib-y))
+klib-objs       := $(addprefix $(obj)/,$(klib-objs))
+klib-real-objs  := $(addprefix $(obj)/,$(klib-real-objs))
+klib-dirs       := $(addprefix $(obj)/,$(klib-dirs))
+
+#####
+# Handle options to gcc. Support building with separate output directory
+
+__klibccflags    = $(KLIBCCFLAGS) $(EXTRA_KLIBCCFLAGS) $(KLIBCCFLAGS_$(*F).o)
+__klibcaflags    = $(KLIBCAFLAGS) $(EXTRA_KLIBCAFLAGS) $(KLIBCAFLAGS_$(*F).o)
+
+_klibccflags    = $(call flags,__klibccflags)
+_klibcaflags    = $(call flags,__klibcaflags)
+
+klibccflags     = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(_klibccflags)
+klibcaflags     = -Wp,-MD,$(depfile) $(NOSTDINC_FLAGS) $(_klibcaflags)
+
+# Create output directory if not already present
+_dummy := $(shell [ -d $(obj) ] || mkdir -p $(obj))
+
+# Create directories for object files if directory does not exist
+# Needed when lib-y := dir/file.o syntax is used
+_dummy := $(foreach d,$(output-dirs), $(shell [ -d $(d) ] || mkdir -p $(d)))
+
+# Do we have to make a lib.a in this dir?
+ifneq ($(strip $(lib-y) $(lib-n) $(lib-)),)
+lib-target := $(obj)/lib.a
+endif
+
+__build: $(subdir-y) $(lib-target) $(always)
+	$(Q):
+
+# Compile C sources (.c)
+# ---------------------------------------------------------------------------
+
+quiet_cmd_cc_s_c = KLIBCCC $@
+      cmd_cc_s_c = $(KLIBCCC) $(klibccflags) -S -o $@ $<
+
+%.s: %.c FORCE
+	$(call if_changed_dep,cc_s_c)
+
+quiet_cmd_cc_o_c = KLIBCCC $@
+      cmd_cc_o_c = $(KLIBCCC) $(klibccflags) -c -o $@ $<
+
+%.o: %.c FORCE
+	$(call if_changed_dep,cc_o_c)
+
+quiet_cmd_cc_i_c = CPP     $@
+      cmd_cc_i_c = $(KLIBCCC) -E $(klibccflags) -o $@ $<
+%.i: %.c FORCE
+	$(call if_changed_dep,cc_i_c)
+
+# Compile assembler sources (.S)
+# ---------------------------------------------------------------------------
+
+quiet_cmd_as_o_S = KLIBCAS $@
+      cmd_as_o_S = $(KLIBCCC) $(klibcaflags) -c -o $@ $<
+
+%.o: %.S FORCE
+	$(call if_changed_dep,as_o_S)
+
+targets += $(real-objs-y)
+
+#
+# Rule to compile a set of .o files into one .o file
+#
+ifdef lib-target
+quiet_cmd_link_o_target = LD      $@
+# If the list of objects to link is empty, just create an empty lib.a
+cmd_link_o_target = $(if $(strip $(lib-y)),\
+                    rm -f $@; $(KLIBCAR) Dcr $@ $(filter $(lib-y), $^),\
+                    rm -f $@; $(KLIBCAR) Dcrs $@)
+
+$(lib-target): $(lib-y) FORCE
+	$(call if_changed,link_o_target)
+targets += $(lib-target) $(lib-y)
+endif # lib-target
+
+#
+# Create klib.list
+#
+# Do we have to create a klibc library file in this dir?
+ifneq ($(strip $(klib-y) $(klib-n) $(klib-)),)
+klib-target := $(obj)/klib.list
+endif
+
+ifdef klib-target
+# include this in build
+__build: $(klib-target) $(klib-dirs)
+
+# descend if needed
+$(sort $(addsuffix /klib.list,$(klib-dirs))): $(klib-dirs) ;
+
+# create klib.list
+quiet_cmd_klib-list = LIST    $@
+      cmd_klib-list = echo $(klib-real-objs) > $@
+$(klib-target): $(klib-objs) FORCE
+	$(call if_changed,klib-list)
+targets += $(klib-target) $(klib-real-objs)
+endif # klib-target
+
+ifdef kprogs
+# Compile klibc-programs for the target
+# ===========================================================================
+
+__build : $(kprog-dirs) $(static-y)
+ifdef KLIBCSHAREDFLAGS
+__build : $(shared-y)
+endif
+
+# Descend if needed
+$(sort $(addsuffix /lib.a,$(kprog-dirs))): $(kprog-dirs) ;
+
+# Define dependencies for link of progs
+# For the simple program:
+#	file.o => file
+# A program with multiple objects
+#	filea.o, fileb.o => file
+# A program with .o files in another dir
+#	dir/lib.a filea.o => file
+
+stripobj  = $(subst $(obj)/,,$@)
+addliba   = $(addprefix $(obj)/, $(patsubst %/, %/lib.a, $(1)))
+link-deps = $(if $($(stripobj)-y), $(call addliba, $($(stripobj)-y)), $@.o) \
+	    $(call objectify,$($(stripobj)-lib))
+
+quiet_cmd_ld-static = KLIBCLD $@
+      cmd_ld-static = $(KLIBCLD) $(KLIBCLDFLAGS) -o $@		\
+                       $(EXTRA_KLIBCLDFLAGS)			\
+                       $(KLIBCCRT0)				\
+		       --start-group				\
+                       $(link-deps)				\
+                       $(KLIBCLIBC)				\
+		       $(KLIBCLIBGCC)				\
+		       --end-group ;				\
+                      cp -f $@ $@.g ;				\
+                      $(KLIBCSTRIP) $(KLIBCSTRIPFLAGS) $@
+
+
+$(static-y): $(kprog-objs) $(lib-target) $(KLIBCCRT0) $(KLIBCLIBC) FORCE
+	$(call if_changed,ld-static)
+
+quiet_cmd_ld-shared = KLIBCLD $@
+      cmd_ld-shared = $(KLIBCLD) $(KLIBCLDFLAGS) -o $@		\
+                       $(EXTRA_KLIBCLDFLAGS)			\
+                       $(KLIBCEMAIN) $(KLIBCCRTSHARED)		\
+                       --start-group				\
+                       $(link-deps)				\
+                       --just-symbols $(KLIBCLIBCSHARED)	\
+	               $(KLIBCLIBGCC)				\
+		       --end-group ;				\
+                      cp -f $@ $@.g ;				\
+                      $(KLIBCSTRIP) $(KLIBCSTRIPFLAGS) $@
+
+
+$(shared-y): $(kprog-objs) $(lib-target) $(KLIBCCRTSHARED) \
+                                         $(KLIBCLIBCSHARED) FORCE
+	$(call if_changed,ld-shared)
+
+# Do not try to build KLIBC libaries if we are building klibc
+ifeq ($(klibc-build),)
+$(KLIBCCRT0) $(KLIBCLIBC): ;
+$(KLIBCCRTSHARED) $(KLIBCLIBCSHARED): ;
+endif
+
+targets += $(kprog-real-objs)
+endif
+
+# Compile programs on the host
+# ===========================================================================
+ifdef hostprogs-y
+include $(srctree)/scripts/Makefile.host
+endif
+
+# Descending
+# ---------------------------------------------------------------------------
+
+PHONY += $(subdir-y) $(kprog-dirs) $(klib-dirs)
+$(sort $(subdir-y) $(kprog-dirs) $(klib-dirs)): $(lib-target)
+	$(Q)$(MAKE) $(klibc)=$@
+
+# Add FORCE to the prequisites of a target to force it to be always rebuilt.
+# ---------------------------------------------------------------------------
+
+PHONY += FORCE
+
+FORCE:
+
+# Linking
+# Create a reloctable composite object file
+# ---------------------------------------------------------------------------
+quiet_cmd_klibcld = KLIBCLD $@
+      cmd_klibcld = $(KLIBCLD) -r $(KLIBCLDFLAGS) \
+                                $(EXTRA_KLIBCLDFLAGS) $(KLIBCLDFLAGS_$(@F)) \
+                                $(filter-out FORCE,$^) -o $@
+
+
+# Link target to a new name
+# ---------------------------------------------------------------------------
+quiet_cmd_ln = LN      $@
+      cmd_ln = rm -f $@ && ln $< $@
+
+# Strip target (remove all debugging info)
+quiet_cmd_strip = STRIP   $@
+      cmd_strip = $(KLIBCSTRIP) $(KLIBCSTRIPFLAGS) $< -o $@
+
+
+# Read all saved command lines and dependencies for the $(targets) we
+# may be building above, using $(if_changed{,_dep}). As an
+# optimization, we don't need to read them if the target does not
+# exist, we will rebuild anyway in that case.
+targets := $(wildcard $(sort $(targets)))
+cmd_files := $(wildcard $(foreach f,$(targets),$(dir $(f)).$(notdir $(f)).cmd))
+
+ifneq ($(cmd_files),)
+  include $(cmd_files)
+endif
+
+# Shorthand for $(Q)$(MAKE) -f scripts/Kbuild.klibc obj
+# Usage:
+# $(Q)$(MAKE) $(klibc)=dir
+klibc := -rR -f $(srctree)/scripts/Kbuild.klibc obj
+
+# Declare the contents of the PHONY variable as phony.  We keep the variable for
+# if_changed.
+.PHONY: $(PHONY)

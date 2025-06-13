@@ -1,0 +1,21 @@
+# -*- makefile -*-
+#
+# arch/mips/MCONFIG
+#
+# Special rules for this architecture.  Note that this is actually
+# included from the main Makefile, and that pathnames should be
+# accordingly.
+#
+
+KLIBCARCHREQFLAGS = -fno-pic -mno-abicalls -G 0
+KLIBCOPTFLAGS     += -Os
+KLIBCBITSIZE      = 32
+
+# Extra linkflags when building the shared version of the library
+# This address needs to be reachable using normal inter-module
+# calls, and work on the memory models for this architecture
+# 2 MB - normal binaries start at 4 MB
+KLIBCSHAREDFLAGS     = $(LD_IMAGE_BASE_OPT) 0x00200000
+
+# Kernel uses vDSO for signal return since 2.6.34
+KLIBCEXECSTACK := n

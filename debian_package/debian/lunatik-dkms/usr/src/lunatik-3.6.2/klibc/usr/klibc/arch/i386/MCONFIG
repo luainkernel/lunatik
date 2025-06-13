@@ -1,0 +1,36 @@
+# -*- makefile -*-
+#
+# arch/i386/MCONFIG
+#
+# Special rules for this architecture.  Note that this is actually
+# included from the main Makefile, and that pathnames should be
+# accordingly.
+#
+
+# Enable this to compile with register parameters; only safe for
+# gcc >= 3
+
+ifeq ($(CONFIG_REGPARM),y)
+REGPARM_OPT := -mregparm=3 -D_REGPARM=3
+endif
+
+gcc_align_option  := $(call cc-option, \
+		-falign-functions=0 -falign-jumps=0 -falign-loops=0, \
+		-malign-functions=0 -malign-jumps=0 -malign-loops=0)
+gcc_m32_option  := $(call cc-option, -m32, )
+
+KLIBCOPTFLAGS     += -march=i386 -Os -g -fomit-frame-pointer $(gcc_align_option)
+KLIBCLDFLAGS      = -m elf_i386
+KLIBCREQFLAGS	  += $(REGPARM_OPT)
+KLIBCARCHREQFLAGS += $(gcc_m32_option)
+
+KLIBCBITSIZE  = 32
+
+# Extra linkflags when building the shared version of the library
+# This address needs to be reachable using normal inter-module
+# calls, and work on the memory models for this architecture
+# 96 MB - normal binaries start at 128 MB
+KLIBCSHAREDFLAGS	= $(LD_IMAGE_BASE_OPT) 0x06000000
+
+# Kernel uses dedicated page or vDSO for signal return since 2.5.55
+KLIBCEXECSTACK := n

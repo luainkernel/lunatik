@@ -1,0 +1,103 @@
+#
+# Kbuild file for dash
+#
+
+config-cppflags := -DBSD=1 -DSMALL -DJOBS=0 -DHAVE_CONFIG_H -DSHELL
+config-cppflags += -DGLOB_BROKEN -DIFS_BROKEN
+
+EXTRA_KLIBCCFLAGS := -I$(srctree)/$(src) -I$(objtree)/$(obj)
+EXTRA_KLIBCCFLAGS += -include $(srctree)/$(src)/config.h
+EXTRA_KLIBCCFLAGS += $(config-cppflags)
+
+HOST_EXTRACFLAGS  := $(config-cppflags)
+
+init-o-files := alias.o arith_yacc.o arith_yylex.o cd.o error.o eval.o exec.o expand.o \
+		histedit.o input.o jobs.o mail.o main.o memalloc.o miscbltin.o \
+		mystring.o options.o parser.o redir.o show.o trap.o output.o \
+		bltin/printf.o system.o bltin/test.o var.o
+
+gen-o-files := builtins.o init.o nodes.o syntax.o
+
+static/sh-y := $(init-o-files) $(gen-o-files)
+
+hostprogs-y := mkinit mksyntax mknodes mksignames
+gen-h-files := builtins.h nodes.h syntax.h token.h
+
+static-y := static/sh
+
+# The shared binary
+shared-y    := shared/sh
+shared/sh-y := $(static/sh-y)
+
+# For cleaning
+targets := static/sh static/sh.g shared/sh shared/sh.g $(gen-o-files)
+
+# explicit dependency for all generated files
+$(addprefix $(obj)/, $(static/sh-y)): $(addprefix $(obj)/, $(gen-h-files))
+
+# Generate token.h
+targets += token.h
+quiet_cmd_mktokens = GEN     $@
+      cmd_mktokens = sh $< > $@
+$(obj)/token.h: $(src)/mktokens
+	$(call if_changed,mktokens)
+
+# Generate builtins.def
+targets += builtins.def
+quiet_cmd_mkbuiltins_def = GEN     $@
+      cmd_mkbuiltins_def = $(HOSTCC) $(hostc_flags) -x c -E -o $@ $<
+$(obj)/builtins.def: $(src)/builtins.def.in $(src)/config.h
+	$(call if_changed,mkbuiltins_def)
+
+# Generate builtins{.c + .h}
+targets += builtins.c builtins.h
+quiet_cmd_mkbuiltins = GEN     $@
+      cmd_mkbuiltins = mkdir -p $(obj)/bltin && cd $(obj) && \
+                       sh $(srctree)/$(src)/mkbuiltins builtins.def
+$(obj)/builtins.c: $(src)/mkbuiltins $(obj)/builtins.def
+	$(call cmd,mkbuiltins)
+
+# side effect..
+$(obj)/builtins.h: $(obj)/builtins.c
+	$(Q):
+
+# Generate init.c
+targets += init.c
+init-c-files := $(addprefix $(srctree)/$(src)/, $(init-o-files:.o=.c))
+quiet_cmd_mkinit = GEN     $@
+      cmd_mkinit = cd $(obj) && ./mkinit $(init-c-files)
+$(obj)/init.c: $(obj)/mkinit $(init-c-files)
+	$(call cmd,mkinit)
+
+# Generate nodes{.c + .h}
+targets += nodes.c nodes.h
+quiet_cmd_mknodes = GEN     $@
+      cmd_mknodes = cd $(obj) && ./mknodes $(srctree)/$(src)/nodetypes \
+			       $(srctree)/$(src)/nodes.c.pat
+$(obj)/nodes.c: $(obj)/mknodes $(src)/nodetypes $(src)/nodes.c.pat
+	$(call cmd,mknodes)
+
+# side effect..
+$(obj)/nodes.h: $(obj)/nodes.c
+	$(Q):
+
+# Generate syntax{.c + .h}
+targets += syntax.c syntax.h
+quiet_cmd_mksyntax = GEN     $@
+      cmd_mksyntax = cd $(obj) && ./mksyntax
+$(obj)/syntax.c: $(obj)/mksyntax
+	$(call cmd,mksyntax)
+
+# side effect..
+$(obj)/syntax.h: $(obj)/syntax.c
+	$(Q):
+
+# Clean deletes the static and shared dir
+clean-dirs := static shared
+
+# Targets to install
+ifdef KLIBCSHAREDFLAGS
+install-y := shared/sh
+else
+install-y := static/sh
+endif

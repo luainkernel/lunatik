@@ -1,0 +1,22 @@
+#
+# klibc files for s390
+#
+
+always  := crt0.o
+targets := crt0.o
+
+ifneq ("$(KLIBCARCH)", "s390x")
+
+klib-y := setjmp.o mmap.o syscall.o
+
+klib-y += ../../libgcc/__clzsi2.o   ../../libgcc/__ashldi3.o
+klib-y += ../../libgcc/__ashrdi3.o  ../../libgcc/__lshrdi3.o
+klib-y += ../../libgcc/__divdi3.o   ../../libgcc/__moddi3.o
+klib-y += ../../libgcc/__udivdi3.o  ../../libgcc/__umoddi3.o
+klib-y += ../../libgcc/__udivmoddi4.o
+
+else
+
+klib-y := setjmp.o mmap.o syscall.o
+
+endif

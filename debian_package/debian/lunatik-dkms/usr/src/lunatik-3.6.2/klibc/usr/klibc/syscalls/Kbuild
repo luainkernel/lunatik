@@ -1,0 +1,99 @@
+#
+# kbuild file for generating syscall stubs
+#
+
+# Include automatically generated Makefile fragment.
+# It contains definition of syscall-objs specifying name of all .o files
+ifeq ($(clean),)
+-include $(obj)/syscalls.mk
+endif
+
+# Listing of all .o files
+always := klib.list
+
+
+#####
+# Generate syscalls stubs
+# Based on list in SYSCALLS.def generate stubs for sys calls. Actual arch code
+# is defined in an arch specific perl file
+targets += syscalls.mk
+targets += klib.list
+targets += SYSCALLS.i syscalls.nrs
+targets += typesize.c typesize.o typesize.bin
+targets += $(syscall-objs)
+
+# Side effect of running syscalls.pl
+clean-files += $(objtree)/$(KLIBCINC)/klibc/havesyscall.h
+clean-files += $(KLIBCINC)/klibc/havesyscall.h
+# All the syscall stubs
+clean-files += *.o *.S *.c *.list *.bin
+
+EXTRA_KLIBCCFLAGS := -I$(srctree)/$(src)
+
+quiet_cmd_makelist = LIST    $@
+      cmd_makelist = echo '$(filter-out FORCE,$^)' > $@
+
+# Create list of all files
+$(obj)/klib.list: $(call objectify,$(syscall-objs)) FORCE
+	$(call if_changed,makelist)
+
+# Generate assembler file (.i)
+# We pass -ansi to keep cpp from define e.g. "i386" as well as "__i386__"
+quiet_cmd_syscall.i = GEN     $@
+      cmd_syscall.i = $(KLIBCCC) $(klibccflags) -D__ASSEMBLY__ \
+                                -ansi -x c -E -o $@ $<
+$(obj)/SYSCALLS.i: $(KLIBCSRC)/SYSCALLS.def FORCE
+	$(call if_changed_dep,syscall.i)
+
+# Get syscalls numbers
+quiet_cmd_syscall.nrs = GEN     $@
+      cmd_syscall.nrs = $(KLIBCCC) $(klibccflags) -Wp,-dM -x c -E -o $@ $<
+$(obj)/syscalls.nrs: $(KLIBCINC)/sys/syscall.h FORCE
+	$(call if_changed_dep,syscall.nrs)
+
+# Generate typesize.c
+quiet_cmd_syscalsz = GEN     $@
+      cmd_syscalsz = \
+            mkdir -p $(KLIBCINC)/klibc/;                                    \
+            $(PERL) $(srctree)/$(KLIBCSRC)/syscalls.pl                      \
+                  -1 $(obj)/SYSCALLS.i                                      \
+                  $(srctree)/$(KLIBCSRC)/arch/$(KLIBCARCHDIR)/sysstub.ph    \
+                  $(KLIBCARCH) $(KLIBCBITSIZE) $(obj)/syscalls.nrs          \
+                  $(obj)                                                    \
+                  $(KLIBCINC)/klibc/havesyscall.h                           \
+                  $(obj)/typesize.c > $@                                    \
+                  || ( rm -f $@ ; exit 1 )
+
+$(obj)/typesize.c: $(srctree)/$(KLIBCSRC)/syscalls.pl $(obj)/SYSCALLS.i     \
+                   $(srctree)/$(KLIBCSRC)/arch/$(KLIBCARCHDIR)/sysstub.ph   \
+                   $(src)/syscommon.h $(obj)/syscalls.nrs FORCE
+	$(call if_changed,syscalsz)
+
+# Convert typesize.o to typesize.bin
+quiet_cmd_mkbin = OBJCOPY $@
+      cmd_mkbin = $(KLIBCOBJCOPY) -O binary --only-section .rodata $< $@
+
+$(obj)/typesize.bin: $(obj)/typesize.o FORCE
+	$(call if_changed,mkbin)
+
+# Generate $(KLIBINC)/klibc/havesyscall.h + makefile fragment
+# Using sysstub.pl in arch dir generate all .S files
+quiet_cmd_syscalls = GEN     $@
+      cmd_syscalls = \
+            mkdir -p $(KLIBCINC)/klibc/;                                    \
+            $(PERL) $(srctree)/$(KLIBCSRC)/syscalls.pl -2 $(obj)/SYSCALLS.i \
+                  $(srctree)/$(KLIBCSRC)/arch/$(KLIBCARCHDIR)/sysstub.ph    \
+                  $(KLIBCARCH) $(KLIBCBITSIZE) $(obj)/syscalls.nrs          \
+                  $(obj)                                                    \
+                  $(KLIBCINC)/klibc/havesyscall.h                           \
+                  $(obj)/typesize.bin > $@                                  \
+                  || ( rm -f $@ ; exit 1 )
+
+$(obj)/syscalls.mk: $(srctree)/$(KLIBCSRC)/syscalls.pl $(obj)/SYSCALLS.i   \
+                    $(srctree)/$(KLIBCSRC)/arch/$(KLIBCARCHDIR)/sysstub.ph \
+                    $(call objectify, $(syscall-objs:.o=.S))               \
+                    $(src)/syscommon.h $(obj)/syscalls.nrs                 \
+                    $(obj)/typesize.bin FORCE
+	$(call if_changed,syscalls)
+
+PHONY += FORCE

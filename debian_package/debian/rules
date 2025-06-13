@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+
+export DEB_VERSION_UPSTREAM := $(shell dpkg-parsechangelog -SVersion | sed 's/-.*//')
+
+%:
+	dh $@ --with dkms
+
+override_dh_auto_build:
+	# Build only the CLI tool for the lunatik package
+	make bin/lunatik
+
+override_dh_auto_install:
+	# DKMS package: install only sources, not binaries
+	make clean
+	mkdir -p debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/
+	rsync -a --exclude=debian --exclude=.git --exclude=.gitignore --exclude=.gitmodules ./ debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/
+	cp debian/lunatik-dkms.dkms debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/dkms.conf
+	find debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/ -name '*.ko' -delete
+	find debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/ -name '*.o' -delete
+	find debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/ -name '*.mod.*' -delete
+	find debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/ -name '*.cmd' -delete
+	find debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/ -name '*.symvers' -delete
+	find debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/ -name '*.order' -delete
+	find debian/lunatik-dkms/usr/src/lunatik-$(DEB_VERSION_UPSTREAM)/ -type f ! -name '*.sh' ! -name '*.lua' ! -name '*.pl' ! -name '*.py' -exec chmod -x {} +
+
+override_dh_dkms:
+	dh_dkms -V"$(DEB_VERSION_UPSTREAM)"

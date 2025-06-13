@@ -1,0 +1,26 @@
+I have implemented portmap spoofing in klibc nfsmount (released as
+klibc-0.144) This is basically a vestigial portmap daemon which gets
+launched before the mount() call and then just records any
+transactions it gets to a file and sends back an affirmative reply.
+
+There are two ways to use it (this belongs in a README file, but it's
+too late at night right now):
+
+a) Set a fixed portnumber in /proc/sys/nfs/nlm_tcpport and
+/proc/sys/nfs/nlm_udpport before calling nfsmount; once the portmapper
+starts feed that fixed portnumber to pmap_set(8).  In this case the
+pmap_file can be /dev/null.
+
+b) Allow the kernel to bind to any port and use the file produced by
+nfsroot to feed to pmap_set (it should be directly compatible); this
+means the file needs to be transferred to a place where the "real
+root" can find it before run-init.
+
+In either case, it is imperative that the real portmapper is launched
+before any program actually tries to create locks!
+
+To use it:
+
+	# We need the loopback device to be up before we do this!
+	ipconfig 127.0.0.1:::::lo:none
+	nfsroot -p pmap_file -o lock server:/pathname /realpath

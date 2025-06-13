@@ -1,0 +1,7 @@
+
+# klibc files for arm64
+#
+
+klib-y := setjmp.o syscall.o vfork.o
+always  := crt0.o
+targets := crt0.o

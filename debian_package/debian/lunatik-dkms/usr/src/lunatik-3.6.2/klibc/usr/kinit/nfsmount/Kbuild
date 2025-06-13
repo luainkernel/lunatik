@@ -1,0 +1,31 @@
+#
+# kbuild file for nfsmount
+#
+
+static-y := static/nfsmount
+#FIXME - build is broken static-y := dummypmap
+shared-y := shared/nfsmount
+
+objs := main.o mount.o portmap.o dummypmap.o sunrpc.o
+
+# Create built-in.o with all .o files (used by kinit)
+lib-y := $(objs)
+
+# .o files used for executables
+static/nfsmount-y := $(objs)
+shared/nfsmount-y := $(objs)
+
+# dummypmap uses a single .o file (rename src file?)
+dummypmap-y := dummypmap_test.o
+
+# TODO - do we want a stripped version
+# TODO - do we want the static.g + shared.g directories?
+
+clean-dirs := static shared
+
+# Install binary
+ifdef KLIBCSHAREDFLAGS
+install-y := $(shared-y)
+else
+install-y := $(static-y)
+endif

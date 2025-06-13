@@ -1,0 +1,27 @@
+# -*- makefile -*-
+#
+# arch/arm64/MCONFIG
+#
+# Special rules for this architecture.  Note that this is actually
+# included from the main Makefile, and that pathnames should be
+# accordingly.
+#
+
+CPU_ARCH ?= armv8-a
+CPU_TUNE ?= generic
+
+KLIBCOPTFLAGS += -g -Os -march=$(CPU_ARCH) -mtune=$(CPU_TUNE)
+KLIBCBITSIZE  = 64
+KLIBCREQFLAGS += -fno-exceptions -mgeneral-regs-only
+KLIBCLDFLAGS  = $(LD_IMAGE_BASE_OPT) 0x00400000
+
+# Extra linkflags when building the shared version of the library
+# This address needs to be reachable using normal inter-module
+# calls, and work on the memory models for this architecture
+
+# On arm64, binaries are normally loaded at 4MB. Place klibc.so
+# a little before that at 2MB to prevent overlap.
+KLIBCSHAREDFLAGS = $(LD_IMAGE_BASE_OPT) 0x0200000
+
+# Kernel has never used stack trampolines
+KLIBCEXECSTACK := n

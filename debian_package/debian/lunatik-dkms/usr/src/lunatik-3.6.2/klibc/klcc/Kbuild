@@ -1,0 +1,47 @@
+#
+# Build klcc
+#
+
+always := $(KLIBCCROSS)klcc
+
+$(obj)/$(KLIBCCROSS)klibc.config: $(src)/Kbuild \
+				  $(srctree)/Makefile \
+                                  $(srctree)/scripts/Kbuild.klibc
+	@$(kecho) '  GEN     $@'
+	$(Q)rm -f $@
+	$(Q)echo 'ARCH=$(KLIBCARCH)' >> $@
+	$(Q)echo 'ARCHDIR=$(KLIBCARCHDIR)' >> $@
+	$(Q)echo 'CROSS=$(KLIBCROSS)' >> $@
+	$(Q)echo 'KCROSS=$(KCROSS)' >> $@
+	$(Q)echo 'CC=$(KLIBCCC)' >> $@
+	$(Q)echo 'LD=$(KLIBCLD)' >> $@
+	$(Q)echo 'REQFLAGS=$(filter-out -I%,$(KLIBCDEFS) $(KLIBCREQFLAGS) $(KLIBCARCHREQFLAGS) $(KLIBCCPPFLAGS))' >> $@
+	$(Q)echo 'OPTFLAGS=$(KLIBCOPTFLAGS)' >> $@
+	$(Q)echo 'LDFLAGS=$(KLIBCLDFLAGS)' >> $@
+	$(Q)echo 'STRIP=$(STRIP)' >> $@
+	$(Q)echo 'STRIPFLAGS=$(KLIBCSTRIPFLAGS)' >> $@
+	$(Q)echo 'EMAIN=$(KLIBCEMAIN)' >> $@
+	$(Q)echo 'CRTSHARED=$(notdir $(KLIBCCRTSHARED))' >> $@
+	$(Q)echo 'BITSIZE=$(KLIBCBITSIZE)' >> $@
+	$(Q)echo 'VERSION=$(shell cat $(srctree)/usr/klibc/version)' >> $@
+	$(Q)echo 'prefix=$(INSTALLDIR)' >> $@
+	$(Q)echo 'bindir=$(INSTALLDIR)/$(KCROSS)bin' >> $@
+	$(Q)echo 'libdir=$(INSTALLDIR)/$(KCROSS)lib' >> $@
+	$(Q)echo 'includedir=$(INSTALLDIR)/$(KCROSS)include' >> $@
+
+
+# Generate klcc
+targets := $(KLIBCCROSS)klcc
+
+quiet_cmd_klcc = GEN     $@
+      cmd_klcc = $(PERL) $< $(srctree)/$(src)/klcc.in \
+                            $(obj)/$(KLIBCCROSS)klibc.config \
+                            $(shell command -v $(PERL) 2>/dev/null) \
+			      > $@ || ( rm -f $@ ; exit 1 ) && \
+			      chmod a+x $@
+$(obj)/$(KLIBCCROSS)klcc: $(src)/makeklcc.pl $(src)/klcc.in \
+                          $(obj)/$(KLIBCCROSS)klibc.config
+	$(call if_changed,klcc)
+
+# Cleaning targets
+clean-files := $(KLIBCCROSS)klibc.config $(KLIBCCROSS)klcc

@@ -1,0 +1,12 @@
+# -*- makefile -*-
+#
+# klibc files for riscv64
+
+always  := crt0.o _main.o
+targets := crt0.o _main.o
+
+klib-y := setjmp.o syscall.o
+
+install-rule:
+	$(Q)$(shell $(install-data) $(call objectify,_main.o) \
+	          $(INSTALLROOT)$(INSTALLDIR)/$(KLIBCCROSS)lib)

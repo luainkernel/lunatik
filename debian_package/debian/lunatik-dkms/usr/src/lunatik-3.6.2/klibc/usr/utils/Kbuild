@@ -1,0 +1,86 @@
+#
+# Kbuild file for klib utils
+#
+
+progs := chroot dd mkdir mkfifo mknod mount pivot_root umount
+progs += true false sleep ln mv nuke minips cat ls losetup
+progs += insmod uname halt kill readlink cpio sync dmesg
+
+static-y := $(addprefix static/, $(progs))
+shared-y := $(addprefix shared/, $(progs))
+
+# The binary is placed in a subdir, so we need to tell kbuild this
+static/chroot-y     := chroot.o
+shared/chroot-y     := chroot.o
+static/dd-y         := dd.o
+shared/dd-y         := dd.o
+static/dmesg-y      := dmesg.o
+shared/dmesg-y      := dmesg.o
+static/mkdir-y      := mkdir.o file_mode.o
+shared/mkdir-y      := mkdir.o file_mode.o
+static/mkfifo-y     := mkfifo.o file_mode.o
+shared/mkfifo-y     := mkfifo.o file_mode.o
+static/mknod-y      := mknod.o file_mode.o
+shared/mknod-y      := mknod.o file_mode.o
+static/mount-y      := mount_main.o mount_opts.o
+shared/mount-y      := mount_main.o mount_opts.o
+static/pivot_root-y := pivot_root.o
+shared/pivot_root-y := pivot_root.o
+static/umount-y     := umount.o
+shared/umount-y     := umount.o
+static/true-y       := true.o
+shared/true-y       := true.o
+static/false-y      := false.o
+shared/false-y      := false.o
+static/sleep-y      := sleep.o
+shared/sleep-y      := sleep.o
+static/ln-y         := ln.o
+shared/ln-y         := ln.o
+static/ls-y         := ls.o
+shared/ls-y         := ls.o
+static/mv-y         := mv.o
+shared/mv-y         := mv.o
+static/nuke-y       := nuke.o
+shared/nuke-y       := nuke.o
+static/minips-y     := minips.o
+shared/minips-y     := minips.o
+static/cat-y        := cat.o
+shared/cat-y        := cat.o
+static/insmod-y     := insmod.o
+shared/insmod-y     := insmod.o
+static/uname-y      := uname.o
+shared/uname-y      := uname.o
+static/halt-y       := halt.o
+shared/halt-y       := halt.o
+static/kill-y       := kill.o
+shared/kill-y       := kill.o
+static/readlink-y   := readlink.o
+shared/readlink-y   := readlink.o
+static/cpio-y	    := cpio.o
+shared/cpio-y       := cpio.o
+static/sync-y       := sync.o
+shared/sync-y       := sync.o
+static/losetup-y    := losetup.o
+shared/losetup-y    := losetup.o
+
+# Additionally linked targets
+always := static/reboot static/poweroff
+ifdef KLIBCSHAREDFLAGS
+always += shared/reboot shared/poweroff
+endif
+
+$(obj)/static/reboot $(obj)/static/poweroff: $(obj)/static/halt
+	$(call cmd,ln)
+$(obj)/shared/reboot $(obj)/shared/poweroff: $(obj)/shared/halt
+	$(call cmd,ln)
+
+# Clean deletes the static and shared dir
+clean-dirs := static shared
+
+# install the shared binaries by preference
+ifdef KLIBCSHAREDFLAGS
+install-y := $(shared-y)
+else
+install-y := $(static-y)
+endif
+install-link-y := reboot=halt poweroff=halt

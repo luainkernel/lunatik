@@ -1,0 +1,69 @@
+#
+# Kbuild file for all test files
+#
+
+test-files := $(wildcard $(srctree)/$(src)/*.c)
+test-files := $(notdir $(test-files))
+
+# This particular file uses a bunch of formats gcc don't know of, in order
+# to test the full range of our vsnprintf() function.  This outputs a bunch
+# of useless warnings unless we tell it not to.
+KLIBCCFLAGS_testvsnp.o := -Wno-format
+
+# This deliberately calls malloc() with unreasonably large values.  We
+# can't use cc-disable-warning here as the option to *enable* this
+# warning requires a value.
+KLIBCCFLAGS_malloctest3.o := $(call cc-option,-Wno-alloc-size-larger-than)
+
+# Disable optimisation of these test cases based on compiler knowledge
+# of what the functions should do.
+KLIBCCFLAGS_strsearch.o := -fno-builtin-strchr -fno-builtin-strrchr \
+			   -fno-builtin-strspn -fno-builtin-strcspn \
+			   -fno-builtin-strpbrk -fno-builtin-strstr
+
+static-y := $(test-files:.c=)
+shared-y := $(addsuffix .shared, $(static-y))
+
+environ.shared-y	:= environ.o
+fcntl.shared-y		:= fcntl.o
+fnmatch.shared-y	:= fnmatch.o
+getopttest.shared-y	:= getopttest.o
+getoptlong.shared-y	:= getoptlong.o
+getpagesize.shared-y	:= getpagesize.o
+hello.shared-y		:= hello.o
+idtest.shared-y		:= idtest.o
+lseek.shared-y		:= lseek.o
+malloctest.shared-y	:= malloctest.o
+malloctest2.shared-y	:= malloctest2.o
+malloctest3.shared-y	:= malloctest3.o
+memstrtest.shared-y	:= memstrtest.o
+microhello.shared-y	:= microhello.o
+minihello.shared-y	:= minihello.o
+mmaptest.shared-y	:= mmaptest.o
+nfs_no_rpc.shared-y	:= nfs_no_rpc.o
+opentest.shared-y	:= opentest.o
+pipetest.shared-y	:= pipetest.o
+rtsig.shared-y		:= rtsig.o
+select.shared-y		:= select.o
+setenvtest.shared-y	:= setenvtest.o
+setjmptest.shared-y	:= setjmptest.o
+sigint.shared-y		:= sigint.o
+sig-nodefer.shared-y	:= sig-nodefer.o
+socket.shared-y		:= socket.o
+sscanf.shared-y		:= sscanf.o
+stat.shared-y		:= stat.o
+statfs.shared-y		:= statfs.o
+stdio.shared-y		:= stdio.o
+strlcpycat.shared-y	:= strlcpycat.o
+strsearch.shared-y	:= strsearch.o
+strtoimax.shared-y	:= strtoimax.o
+strtotime.shared-y	:= strtotime.o
+sysconf.shared-y	:= sysconf.o
+testrand48.shared-y	:= testrand48.o
+testvsnp.shared-y	:= testvsnp.o
+vfork.shared-y		:= vfork.o
+
+# Cleaning
+clean-files := $(static-y) $(shared-y) \
+	$(addsuffix .g, $(static-y) $(shared-y)) \
+	$(test-files:.c=.o)

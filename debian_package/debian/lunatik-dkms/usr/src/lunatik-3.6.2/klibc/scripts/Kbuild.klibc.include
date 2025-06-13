@@ -1,0 +1,11 @@
+
+# klibc-cc-option
+# Usage: cflags-y += $(call klibc-cc-option,-march=winchip-c6,-march=i586)
+
+klibc-cc-option = $(call try-run,\
+	$(CC) $(KLIBCCPPFLAGS) $(KLIBCCFLAGS) $(1) -c -xc /dev/null -o "$$TMP",$(1),$(2))
+
+# klibc-cc-option-yn
+# Usage: flag := $(call klibc-cc-option-yn,-march=winchip-c6)
+klibc-cc-option-yn = $(call try-run,\
+	$(CC) $(KLIBCCPPFLAGS) $(KLIBCCFLAGS) $(1) -c -xc /dev/null -o "$$TMP",y,n)

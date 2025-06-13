@@ -1,0 +1,40 @@
+# -*- makefile -*-
+#
+# arch/arm/MCONFIG
+#
+# Special rules for this architecture.  Note that this is actually
+# included from the main Makefile, and that pathnames should be
+# accordingly.
+#
+
+CPU_ARCH ?= armv4
+CPU_TUNE ?= strongarm
+
+KLIBCOPTFLAGS += -Os -march=$(CPU_ARCH) -mtune=$(CPU_TUNE)
+KLIBCBITSIZE  = 32
+KLIBCREQFLAGS += -fno-exceptions
+KLIBCSTRIPFLAGS += -R .ARM.exidx
+
+ifeq ($(CONFIG_KLIBC_THUMB),y)
+CPU_ARCH := $(CPU_ARCH)t
+KLIBCREQFLAGS += -mthumb
+KLIBCREQFLAGS += -mabi=aapcs-linux
+else
+# Extra linkflags when building the shared version of the library
+ifeq ($(CONFIG_AEABI),y)
+KLIBCREQFLAGS += -mabi=aapcs-linux -mno-thumb-interwork
+else
+KLIBCREQFLAGS += -mabi=apcs-gnu -mno-thumb-interwork
+endif
+endif
+
+# Normal binaries start at 64 kiB. A32 branch instructions have a
+# range of ±32 MiB and T32 branch instructions only ±16 MiB, so we
+# have to put klibc.so in that range. Putting it close above the
+# executable can cause breakage, so instead swap them around:
+# klibc.so at 2 MiB and executable at 4 MiB.
+KLIBCLDFLAGS     = $(LD_IMAGE_BASE_OPT) 0x400000
+KLIBCSHAREDFLAGS = $(LD_IMAGE_BASE_OPT) 0x200000
+
+# Kernel uses dedicated page or vDSO for signal return since 2.6.13
+KLIBCEXECSTACK := n
