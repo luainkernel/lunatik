@@ -10,7 +10,7 @@ local lunatik = {
 	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu",
 		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo", "luaxtable",
 		"luanetfilter", "luacompletion", "luacrypto_shash", "luacrypto_skcipher", "luacrypto_aead",
-		"luacrypto_rng", "luacrypto_comp", "luacpu", "lunatik_run"},
+		"luacrypto_rng", "luacrypto_comp", "luacpu", "luahid", "lunatik_run"},
 }
 
 function lunatik.prompt()
