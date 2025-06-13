@@ -10,7 +10,7 @@ local lunatik = {
 	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu",
 		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo", "luaxtable",
 		"luanetfilter", "luacompletion", "luacrypto_shash", "luacrypto_skcipher", "luacrypto_aead",
-		"lunatik_run"}
+		"luahid", "lunatik_run"}
 }
 
 function lunatik.prompt()
@@ -53,7 +53,7 @@ function lunatik.sh(command, module, loaded)
 end
 
 lunatik.commands = {
-	['load'] = function ()
+	['load'] = function()
 		for _, module in ipairs(lunatik.modules) do
 			lunatik.sh("modprobe $MODULE", module)
 		end
@@ -62,14 +62,14 @@ lunatik.commands = {
 			error("couldn't create " .. lunatik.device)
 		end
 
-		local result = lunatik.dostring[[
+		local result = lunatik.dostring [[
 			lunatik = require("lunatik")
 			lunatik.runner = require("lunatik.runner")
 			lunatik.runner.startup()
 		]]
 		if result ~= "" then error(result) end
 	end,
-	['unload'] = function ()
+	['unload'] = function()
 		if lunatik.probe() then
 			lunatik.dostring("lunatik.runner.shutdown()")
 		end
@@ -85,7 +85,7 @@ lunatik.commands = {
 		commands.unload()
 		commands.load()
 	end,
-	['status'] = function ()
+	['status'] = function()
 		for _, module in ipairs(lunatik.modules) do
 			lunatik.sh("echo $MODULE is loaded || echo $MODULE is not loaded", module, true)
 		end
@@ -111,7 +111,7 @@ local function set(t)
 	return s
 end
 
-local tokens = set{"run", "spawn", "stop", "list"}
+local tokens = set { "run", "spawn", "stop", "list" }
 
 if #arg >= 1 then
 	local token = arg[1]
@@ -134,4 +134,3 @@ for chunk in io.lines() do
 	print(lunatik.dostring(chunk))
 	lunatik.prompt()
 end
-
