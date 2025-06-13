@@ -1,0 +1,120 @@
+BOOTP/DHCP client for klibc
+---------------------------
+
+Usage:
+
+ipconfig [-c proto] [-d interface] [-i identifier]
+	 [-n] [-p port] [-t timeout] [interface ...]
+
+-c proto	Use PROTO as the configuration protocol for all
+		interfaces, unless overridden by specific interfaces.
+-d interface	Either the name of an interface, or a long spec.
+-i identifier	DHCP vendor class identifier.  The default is
+		"Linux ipconfig".
+-n		Do nothing - just print the configuration that would
+		be performed.
+-p port		Send bootp/dhcp broadcasts from PORT, to PORT - 1.
+-t timeout	Give up on all unconfigured interfaces after TIMEOUT secs.
+
+You can configure multiple interfaces by passing multiple interface
+specs on the command line, or by using the special interface name
+"all".  If you're autoconfiguring any interfaces, ipconfig will wait
+until either all such interfaces have been configured, or the timeout
+passes.
+
+PROTO can be one of the following, which selects the autoconfiguration
+protocol to use:
+
+not specified	use all protocols (the default)
+dhcp		use bootp and dhcp
+bootp		use bootp only
+rarp		use rarp (not currently supported)
+none		no autoconfiguration - either static config, or none at all
+
+An interface spec can be either short form, which is just the name of
+an interface (eth0 or whatever), or long form.  The long form consists
+of two or more fields, separated by colons:
+
+<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>:
+   <dns0-ip>:<dns1-ip>:<ntp0-ip>:...
+
+  <client-ip>	IP address of the client. If empty, the address will
+                either be determined by RARP/BOOTP/DHCP. What protocol
+                is used de- pends on the <autoconf> parameter. If this
+                parameter is not empty, autoconf will be used.
+
+  <server-ip>   IP address of the NFS server. If RARP is used to
+                determine the client address and this parameter is NOT
+                empty only replies from the specified server are
+                accepted. To use different RARP and NFS server,
+                specify your RARP server here (or leave it blank), and
+                specify your NFS server in the `nfsroot' parameter
+                (see above). If this entry is blank the address of the
+                server is used which answered the RARP/BOOTP/DHCP
+                request.
+
+  <gw-ip>       IP address of a gateway if the server is on a different
+                subnet. If this entry is empty no gateway is used and the
+                server is assumed to be on the local network, unless a
+                value has been received by BOOTP/DHCP.
+
+  <netmask>     Netmask for local network interface. If this is empty,
+                the netmask is derived from the client IP address assuming
+                classful addressing, unless overridden in BOOTP/DHCP reply.
+
+  <hostname>    Name of the client. If empty, the client IP address is
+                used in ASCII notation, or the value received by
+                BOOTP/DHCP.
+
+  <device>      Name of network device to use. If this is empty, all
+                devices are used for RARP/BOOTP/DHCP requests, and the
+                first one we receive a reply on is configured. If you
+                have only one device, you can safely leave this blank.
+
+  <autoconf>	Method to use for autoconfiguration. If this is either
+                'rarp', 'bootp', or 'dhcp' the specified protocol is
+                used.  If the value is 'both', 'all' or empty, all
+                protocols are used.  'off', 'static' or 'none' means
+                no autoconfiguration.
+
+  <dns0-ip>     IP address of primary nameserver.
+
+                Default: None if not using autoconfiguration; determined
+                automatically if using autoconfiguration.
+
+  <dns1-ip>     IP address of secondary nameserver.
+                See <dns0-ip>.
+
+  <ntp0-ip>     IP address of a Network Time Protocol (NTP) server.
+                Currently ignored.
+
+  ...           Additional fields will be ignored.
+
+IP addresses and netmasks must be either absent (defaulting to zero)
+or presented in dotted-quad notation.
+
+An interface spec can be prefixed with either "ip=", "nfsaddrs=", both
+of which are ignored.  These (along with the ugliness of the long
+form) are present for compatibility with the in-kernel ipconfig code
+from 2.4 and earlier kernels.
+
+Here are a few examples of valid ipconfig command lines.
+
+Enable the loopback interface:
+    ipconfig 127.0.0.1:::::lo:none
+
+Try to configure eth0 using bootp for up to 30 seconds:
+    ipconfig -t 30 -c bootp eth0
+
+Configure eth0 and eth1 using dhcp or bootp, and eth2 statically:
+    ipconfig -c any eth0 eth1 192.168.1.1:::::eth2:none
+
+--
+
+From Russell's original README, and still true:
+
+The code in main.c is yucky imho.  Needs cleaning.
+
+--
+Russell King (2002/10/22)
+Bryan O'Sullivan (2003/04/29)

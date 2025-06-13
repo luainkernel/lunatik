@@ -1,0 +1,26 @@
+#
+# Kbuild file for gzip
+#
+
+# The gzip executable
+static-y := gzip
+gzip-y   := gzip.o util.o unzip.o inflate.o
+
+# Additional targets
+always := gunzip zcat
+
+# Optional ZIP support
+gzip-$(CONFIG_KLIBC_ZIP)   += zip.o deflate.o trees.o bits.o
+cflags-$(CONFIG_KLIBC_ZIP) += -DSUPPORT_ZIP
+EXTRA_KLIBCCFLAGS := $(cflags-y)
+
+# Additionally linked targets
+$(obj)/gunzip $(obj)/zcat: $(obj)/gzip
+	$(call cmd,ln)
+
+# Cleaning
+targets := gzip gzip.g gunzip zcat
+
+# Targets to install
+install-y := gzip
+install-link-y := gunzip=gzip zcat=gzip

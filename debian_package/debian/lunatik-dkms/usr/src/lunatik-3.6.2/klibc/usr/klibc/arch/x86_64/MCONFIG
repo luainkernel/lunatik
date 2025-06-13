@@ -1,0 +1,43 @@
+# -*- makefile -*-
+#
+# arch/x86-64/MCONFIG
+#
+# Special rules for this architecture.  Note that this is actually
+# included from the main Makefile, and that pathnames should be
+# accordingly.
+#
+# Blatantly copied and modified from i386 version by Mats Petersson, AMD.
+#
+
+#
+# NOTE: -fno-asynchronous-unwind-tables produce significantly smaller
+# binaries (20% smaller), but makes the code completely useless for
+# debugging using gdb.
+#
+KLIBCARCHREQFLAGS = -m64
+KLIBCOPTFLAGS     += -Os -fomit-frame-pointer -mno-sse \
+                     $(call cc-option,-falign-functions=1, )	\
+                     $(call cc-option,-falign-jumps=1, )	\
+                     $(call cc-option,-falign-loops=1, )
+ifeq ($(DEBUG),y)
+KLIBCOPTFLAGS     += -g
+else
+KLIBCOPTFLAGS     += -fno-asynchronous-unwind-tables
+endif
+KLIBCBITSIZE      = 64
+KLIBCLDFLAGS      = -m elf_x86_64 $(LD_IMAGE_BASE_OPT) 0x00400000
+
+# Extra linkflags when building the shared version of the library
+# This address needs to be reachable using normal inter-module
+# calls, and work on the memory models for this architecture
+# 2 MB - normal binaries start at 4 MB
+#
+# binutils now uses max-page-size=0x200000 by default, which pushes
+# klibc.so data over the 4 MB mark, overlapping the executable.
+# The old default was max-page-size=0x100000, but that also results
+# in a broken layout with binutils 2.30.  Since there's no
+# architectural page size betwen 4 KB and 2MB, set it to 4 KB.
+KLIBCSHAREDFLAGS     = $(LD_IMAGE_BASE_OPT) 0x00200000 -z max-page-size=0x1000
+
+# Kernel has never used stack trampolines
+KLIBCEXECSTACK := n

@@ -1,0 +1,34 @@
+#
+# klibc files for sparc
+#
+
+always  := crt0.o
+targets := crt0.o
+
+m4-targets := sdiv.o srem.o udiv.o urem.o
+
+klib-y := $(m4-targets) smul.o umul.o __muldi3.o
+klib-y += setjmp.o pipe.o sigaction.o syscall.o sysfork.o
+
+klib-y += ../../libgcc/__ashldi3.o ../../libgcc/__ashrdi3.o
+klib-y += ../../libgcc/__lshrdi3.o ../../libgcc/__divdi3.o
+klib-y += ../../libgcc/__moddi3.o  ../../libgcc/__udivdi3.o
+klib-y += ../../libgcc/__umoddi3.o ../../libgcc/__udivmoddi4.o
+klib-y += ../../libgcc/__clzsi2.o
+
+
+$(obj)/sdiv.S: m4 := define(NAME,\`.div')define(OP,\`div')define(S,\`true')
+$(obj)/srem.S: m4 := define(NAME,\`.rem')define(OP,\`rem')define(S,\`true')
+$(obj)/udiv.S: m4 := define(NAME,\`.udiv')define(OP,\`div')define(S,\`false')
+$(obj)/urem.S: m4 := define(NAME,\`.urem')define(OP,\`rem')define(S,\`false')
+
+targets += $(m4-targets) $(m4-targets:.o=.S)
+
+quiet_cmd_m4 = M4      $@
+      cmd_m4 = (echo "$(m4)"; cat $^) | m4 > $@
+
+# build .o from .S
+$(addprefix $(obj)/,$(m4-targets)): $(obj)/%.o : $(obj)/%.S
+# build .S from .m4
+$(addprefix $(obj)/,$(m4-targets:.o=.S)): $(src)/divrem.m4
+	$(call if_changed,m4)

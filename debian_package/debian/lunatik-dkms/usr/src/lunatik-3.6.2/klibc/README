@@ -1,0 +1,33 @@
+Please see usr/klibc/README.klibc for build instructions and for the status of
+various platforms.
+
+
+
+klibc is archived at:
+
+	https://mirrors.kernel.org/pub/linux/libs/klibc/
+
+There is a mailing list for klibc and early-userspace issues at:
+
+	klibc@zytor.com
+
+	https://www.zytor.com/mailman/listinfo/klibc
+
+klibc is maintained in the git version control system.  The git
+repository can be viewed on the web at:
+
+	https://git.kernel.org/pub/scm/libs/klibc/klibc.git/
+
+To clone the klibc repository using git:
+
+	git clone https://git.kernel.org/pub/scm/libs/klibc/klibc.git <workdir>
+
+To update an already cloned tree:
+
+	git pull
+
+For more information on git, see:
+
+	https://git-scm.com/
+	https://mirrors.kernel.org/pub/software/scm/git/docs/gittutorial.html
+	https://mirrors.kernel.org/pub/software/scm/git/docs/

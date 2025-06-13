@@ -1,0 +1,13 @@
+#
+# klibc files for ia64
+#
+
+klib-y := vfork.o setjmp.o sigaction.o pipe.o syscall.o
+
+klib-y += ../../libgcc/__divdi3.o     ../../libgcc/__divsi3.o
+klib-y += ../../libgcc/__udivdi3.o    ../../libgcc/__udivsi3.o
+klib-y += ../../libgcc/__umodsi3.o    ../../libgcc/__umoddi3.o
+klib-y += ../../libgcc/__udivmodsi4.o ../../libgcc/__udivmoddi4.o
+
+always  := crt0.o
+targets := crt0.o

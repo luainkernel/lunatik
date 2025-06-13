@@ -1,0 +1,8 @@
+PACKAGE_NAME="lunatik"
+PACKAGE_VERSION="3.6.2"
+BUILT_MODULE_NAME[0]="lunatik"
+BUILT_MODULE_LOCATION[0]="."
+DEST_MODULE_LOCATION[0]="/updates/dkms"
+AUTOINSTALL="yes"
+MAKE[0]="make KERNELDIR=/lib/modules/${kernelver}/build"
+CLEAN="make clean"

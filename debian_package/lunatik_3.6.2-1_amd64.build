@@ -1,0 +1,110 @@
+ dpkg-buildpackage -us -uc -ui
+dpkg-buildpackage: info: source package lunatik
+dpkg-buildpackage: info: source version 3.6.2-1
+dpkg-buildpackage: info: source distribution unstable
+dpkg-buildpackage: info: source changed by Shivam Vashisth <Vashisth11shivam@gmail.com>
+ dpkg-source --before-build .
+dpkg-buildpackage: info: host architecture amd64
+ fakeroot debian/rules clean
+dh clean --with dkms
+   dh_auto_clean
+	make -j14 clean
+make[1]: Entering directory '/home/vboxuser/package/lunatik-3.6.2'
+make -C /lib/modules/6.11.0-26-generic/build M=/home/vboxuser/package/lunatik-3.6.2 clean
+make[2]: Entering directory '/usr/src/linux-headers-6.11.0-26-generic'
+make[2]: Leaving directory '/usr/src/linux-headers-6.11.0-26-generic'
+make -C examples/filter clean
+make[2]: Entering directory '/home/vboxuser/package/lunatik-3.6.2/examples/filter'
+rm -f vmlinux.h https.o
+make[2]: Leaving directory '/home/vboxuser/package/lunatik-3.6.2/examples/filter'
+rm -f lunatik_sym.h
+make[1]: Leaving directory '/home/vboxuser/package/lunatik-3.6.2'
+   dh_clean
+ dpkg-source -b .
+dpkg-source: info: using source format '3.0 (quilt)'
+dpkg-source: info: building lunatik using existing ./lunatik_3.6.2.orig.tar.xz
+dpkg-source: info: building lunatik in lunatik_3.6.2-1.debian.tar.xz
+dpkg-source: info: building lunatik in lunatik_3.6.2-1.dsc
+ debian/rules build
+dh build --with dkms
+   dh_update_autotools_config
+   dh_autoreconf
+   dh_auto_configure
+   debian/rules override_dh_auto_build
+make[1]: Entering directory '/home/vboxuser/package/lunatik-3.6.2'
+# Build only the CLI tool for the lunatik package
+make bin/lunatik
+make[2]: Entering directory '/home/vboxuser/package/lunatik-3.6.2'
+make[2]: Nothing to be done for 'bin/lunatik'.
+make[2]: Leaving directory '/home/vboxuser/package/lunatik-3.6.2'
+make[1]: Leaving directory '/home/vboxuser/package/lunatik-3.6.2'
+   dh_auto_test
+   create-stamp debian/debhelper-build-stamp
+ fakeroot debian/rules binary
+dh binary --with dkms
+   dh_testroot
+   dh_prep
+   debian/rules override_dh_auto_install
+make[1]: Entering directory '/home/vboxuser/package/lunatik-3.6.2'
+# DKMS package: install only sources, not binaries
+make clean
+make[2]: Entering directory '/home/vboxuser/package/lunatik-3.6.2'
+make -C /lib/modules/6.11.0-26-generic/build M=/home/vboxuser/package/lunatik-3.6.2 clean
+make[3]: Entering directory '/usr/src/linux-headers-6.11.0-26-generic'
+make[3]: Leaving directory '/usr/src/linux-headers-6.11.0-26-generic'
+make -C examples/filter clean
+make[3]: Entering directory '/home/vboxuser/package/lunatik-3.6.2/examples/filter'
+rm -f vmlinux.h https.o
+make[3]: Leaving directory '/home/vboxuser/package/lunatik-3.6.2/examples/filter'
+rm -f lunatik_sym.h
+make[2]: Leaving directory '/home/vboxuser/package/lunatik-3.6.2'
+mkdir -p debian/lunatik-dkms/usr/src/lunatik-3.6.2/
+rsync -a --exclude=debian --exclude=.git --exclude=.gitignore --exclude=.gitmodules ./ debian/lunatik-dkms/usr/src/lunatik-3.6.2/
+cp debian/lunatik-dkms.dkms debian/lunatik-dkms/usr/src/lunatik-3.6.2/dkms.conf
+find debian/lunatik-dkms/usr/src/lunatik-3.6.2/ -name '*.ko' -delete
+find debian/lunatik-dkms/usr/src/lunatik-3.6.2/ -name '*.o' -delete
+find debian/lunatik-dkms/usr/src/lunatik-3.6.2/ -name '*.mod.*' -delete
+find debian/lunatik-dkms/usr/src/lunatik-3.6.2/ -name '*.cmd' -delete
+find debian/lunatik-dkms/usr/src/lunatik-3.6.2/ -name '*.symvers' -delete
+find debian/lunatik-dkms/usr/src/lunatik-3.6.2/ -name '*.order' -delete
+find debian/lunatik-dkms/usr/src/lunatik-3.6.2/ -type f ! -name '*.sh' ! -name '*.lua' ! -name '*.pl' ! -name '*.py' -exec chmod -x {} +
+make[1]: Leaving directory '/home/vboxuser/package/lunatik-3.6.2'
+   dh_install
+   dh_installdocs
+   dh_installchangelogs
+   debian/rules override_dh_dkms
+make[1]: Entering directory '/home/vboxuser/package/lunatik-3.6.2'
+dh_dkms -V"3.6.2"
+make[1]: Leaving directory '/home/vboxuser/package/lunatik-3.6.2'
+   dh_perl
+   dh_link
+   dh_strip_nondeterminism
+   dh_compress
+   dh_fixperms
+   dh_missing
+   dh_dwz -a
+   dh_strip -a
+   dh_makeshlibs -a
+   dh_shlibdeps -a
+   dh_installdeb
+   dh_gencontrol
+dpkg-gencontrol: warning: Depends field of package lunatik: substitution variable ${shlibs:Depends} used, but is not defined
+dpkg-gencontrol: warning: package lunatik-dkms: substitution variable ${perl:Depends} unused, but is defined
+   dh_md5sums
+   dh_builddeb
+dpkg-deb: building package 'lunatik' in '../lunatik_3.6.2-1_amd64.deb'.
+dpkg-deb: building package 'lunatik-dkms' in '../lunatik-dkms_3.6.2-1_all.deb'.
+ dpkg-genbuildinfo -O../lunatik_3.6.2-1_amd64.buildinfo
+ dpkg-genchanges -O../lunatik_3.6.2-1_amd64.changes
+dpkg-genchanges: info: including full source code in upload
+ dpkg-source --after-build .
+dpkg-buildpackage: info: full upload (original source is included)
+Now running lintian lunatik_3.6.2-1_amd64.changes ...
+E: lunatik changes: bad-distribution-in-changes-file unstable
+W: lunatik-dkms: executable-not-elf-or-script [usr/src/lunatik-3.6.2/examples/dnsdoctor/cleanup.sh]
+W: lunatik-dkms: executable-not-elf-or-script [usr/src/lunatik-3.6.2/examples/dnsdoctor/setup.sh]
+W: lunatik: initial-upload-closes-no-bugs [usr/share/doc/lunatik/changelog.Debian.gz:1]
+W: lunatik-dkms: initial-upload-closes-no-bugs [usr/share/doc/lunatik-dkms/changelog.Debian.gz:1]
+W: lunatik-dkms: national-encoding [usr/src/lunatik-3.6.2/lua/testes/strings.lua]
+W: lunatik: no-manual-page [usr/bin/lunatik]
+Finished running lintian.

@@ -1,0 +1,9 @@
+kinit - tiny init program
+-------------------------
+
+This program is intended for use as /sbin/init in an initramfs
+environment.  It currently replaces the kernel's ipconfig and nfsroot
+code.
+
+--
+Bryan O'Sullivan (2003/05/05)

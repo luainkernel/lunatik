@@ -1,0 +1,29 @@
+#
+# Kbuild file for fstype
+#
+
+static-y := static/fstype
+shared-y := shared/fstype
+
+# common .o files
+objs := main.o fstype.o
+
+# TODO - do we want a stripped version
+# TODO - do we want the static.g + shared.g directories?
+
+# Create built-in.o with all object files (used by kinit)
+lib-y := $(objs)
+
+# .o files used to built executables
+static/fstype-y := $(objs)
+shared/fstype-y := $(objs)
+
+# Cleaning
+clean-dirs := static shared
+
+# install binary
+ifdef KLIBCSHAREDFLAGS
+install-y := $(shared-y)
+else
+install-y := $(static-y)
+endif

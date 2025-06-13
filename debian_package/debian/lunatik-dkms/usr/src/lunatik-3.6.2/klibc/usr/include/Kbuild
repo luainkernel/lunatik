@@ -1,0 +1,11 @@
+always := asm
+
+$(obj)/asm:
+	@echo '  SYMLINK $@ -> include/asm-$(KLIBCASMARCH)'
+	$(Q)if [ '$(KLIBCKERNELSRC)/.' -ef '$(obj)/../..' ]; then \
+		ln -fsn ../../include/asm-$(KLIBCASMARCH) $@; \
+	 else \
+		ln -fsn $(KLIBCKERNELSRC)/include/asm-$(KLIBCASMARCH) $@; \
+	 fi
+
+clean-files := asm
