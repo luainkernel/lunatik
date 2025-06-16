@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><strong>lunatik.runner</strong></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>lunatik.runner</code></h1>
+<p>Manages the execution and lifecycle of Lunatik scripts.</p>
+<p> This module provides functionalities to run scripts as isolated runtimes,
+ spawn them into separate kernel threads, and manage their state (start, stop, list, shutdown).
+ It uses RCU-safe tables to store references to active runtimes and threads.
+ In following descriptions, 'env' variable stands for 'lunatik._ENV'.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#list">list ()</a></td>
+	<td class="summary">Lists the names of all currently running scripts.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#run">run (script, ...)</a></td>
+	<td class="summary">Runs a Lunatik script in the current context.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#shutdown">shutdown ()</a></td>
+	<td class="summary">Shuts down all running scripts and their threads.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#spawn">spawn (script, ...)</a></td>
+	<td class="summary">Spawns a Lunatik script in a new kernel thread.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#startup">startup ()</a></td>
+	<td class="summary">Initializes the runner's internal state.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#stop">stop (script)</a></td>
+	<td class="summary">Stops a running script and its associated thread, if any.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "list"></a>
+    <strong>list ()</strong>
+    </dt>
+    <dd>
+    Lists the names of all currently running scripts.
+ Iterates over the <code>env.runtimes</code> RCU table to collect script names.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        A comma-separated string of running script names, or an empty string if no scripts are running.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "run"></a>
+    <strong>run (script, ...)</strong>
+    </dt>
+    <dd>
+    Runs a Lunatik script in the current context.
+ Creates a new Lunatik runtime for the given script and registers it.
+ Throws an error if a script with the same name is already running.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">script</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The path or name of the Lua script to run. The ".lua" extension will be trimmed.
+        </li>
+        <li><span class="parameter">...</span>
+         Additional arguments to pass to the script's main function.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        The created Lunatik runtime object.
+    </ol>
+
+    <h3>Raises:</h3>
+    error if the script is already running.
+
+
+
+</dd>
+    <dt>
+    <a name = "shutdown"></a>
+    <strong>shutdown ()</strong>
+    </dt>
+    <dd>
+    Shuts down all running scripts and their threads.
+ Iterates over <code>env.runtimes</code> and calls <a href="../modules/lunatik.runner.html#stop">runner.stop</a> for each script.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "spawn"></a>
+    <strong>spawn (script, ...)</strong>
+    </dt>
+    <dd>
+    Spawns a Lunatik script in a new kernel thread.
+ First, it runs the script using <a href="../modules/lunatik.runner.html#run">runner.run</a>, then creates a new kernel thread
+ to execute the runtime. The thread is named based on the script's filename.
+ The spawned script is expected to return a function, which will then be executed in the new thread.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">script</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The path or name of the Lua script to spawn.
+        </li>
+        <li><span class="parameter">...</span>
+         Additional arguments to pass to the script's main function.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">userdata</span></span>
+        The kernel thread object.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "startup"></a>
+    <strong>startup ()</strong>
+    </dt>
+    <dd>
+    Initializes the runner's internal state.
+ Creates RCU-safe tables for storing runtimes and threads.
+ This is typically called during Lunatik's initialization.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "stop"></a>
+    <strong>stop (script)</strong>
+    </dt>
+    <dd>
+    Stops a running script and its associated thread, if any.
+ It attempts to stop the thread first, then the runtime.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">script</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The name of the script to stop. The ".lua" extension will be trimmed.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

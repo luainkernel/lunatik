@@ -1,0 +1,362 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_rcu_table">Class rcu_table </a></li>
+<li><a href="#rcu">rcu</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><strong>rcu</strong></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>rcu</code></h1>
+<p>Read-Copy-Update (RCU) synchronized hash table.</p>
+<p> This library provides a Lua-accessible hash table that uses RCU (Read-Copy-Update)
+ for synchronization within the Linux kernel. RCU allows for very fast, lockless
+ read operations, while write operations (updates and deletions) are synchronized
+ to ensure data consistency. This makes it highly suitable for scenarios where
+ read operations significantly outnumber write operations and high concurrency
+ is required.</p>
+
+<p> Keys in the RCU table must be strings. Values must be Lunatik objects
+ (i.e., userdata created by other Lunatik C modules like <code>data.new()</code>,
+ <code>lunatik.runtime()</code>, etc.) or <code>nil</code> to delete an entry.</p>
+
+<p> A practical example of its usage can be found in <code>examples/shared.lua</code>,
+ which implements an in-memory key-value store.</p>
+
+
+<h2><a href="#Class_rcu_table">Class rcu_table </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#rcu_table:__index">rcu_table:__index (self, key)</a></td>
+	<td class="summary">Retrieves a value (a Lunatik object) from the RCU table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#rcu_table:__newindex">rcu_table:__newindex (self, key, value)</a></td>
+	<td class="summary">Sets or removes a value in the RCU table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#rcu_table:map">rcu_table:map (self, callback)</a></td>
+	<td class="summary">Iterates over the RCU table and calls a callback for each key-value pair.</td>
+	</tr>
+</table>
+<h2><a href="#rcu">rcu</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#table">table ([size=1024])</a></td>
+	<td class="summary">Creates a new RCU-synchronized hash table.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_rcu_table"></a>Class rcu_table </h2>
+
+          <div class="section-description">
+          Represents an RCU-synchronized hash table.
+ This is a userdata object returned by <code>rcu.table()</code>. It behaves like a
+ standard Lua table for get (<a href="../modules/rcu.html#rcu_table:__index">__index</a>) and set (<a href="../modules/rcu.html#rcu_table:__newindex">__newindex</a>) operations
+ but uses RCU internally for synchronization.</p>
+
+<p> Keys must be strings. Values stored must be Lunatik objects (e.g., created
+ via <code>data.new()</code>, <code>lunatik.runtime()</code>) or <code>nil</code> (to remove an entry).
+ When a Lunatik object is retrieved, it's a new reference to that object.
+          </div>
+            <h3>Usage:</h3>
+            <pre class="example"><span class="comment">-- Assuming 'data' module is available for creating Lunatik objects
+</span><span class="comment">-- and 'rcu' module is required.
+</span><span class="keyword">local</span> rcu_store = rcu.<span class="global">table</span>()
+<span class="keyword">local</span> my_data = data.<span class="function-name">new</span>(<span class="number">10</span>) <span class="comment">-- Create a Lunatik object
+</span>my_data:<span class="function-name">setstring</span>(<span class="number">0</span>, <span class="string">"hello"</span>)
+
+<span class="comment">-- Set a value
+</span>rcu_store[<span class="string">"my_key"</span>] = my_data
+
+<span class="comment">-- Get a value
+</span><span class="keyword">local</span> retrieved_data = rcu_store[<span class="string">"my_key"</span>]
+<span class="keyword">if</span> retrieved_data <span class="keyword">then</span>
+  <span class="global">print</span>(retrieved_data:<span class="function-name">getstring</span>(<span class="number">0</span>)) <span class="comment">-- Output: hello
+</span><span class="keyword">end</span>
+
+<span class="comment">-- Remove a value
+</span>rcu_store[<span class="string">"my_key"</span>] = <span class="keyword">nil</span>
+
+<span class="comment">-- Iterate
+</span>rcu_store:<span class="function-name">map</span>(<span class="keyword">function</span>(k, v_obj)
+  <span class="global">print</span>(<span class="string">"Found key:"</span>, k, <span class="string">"Value object:"</span>, v_obj)
+<span class="keyword">end</span>)</pre>
+    <dl class="function">
+    <dt>
+    <a name = "rcu_table:__index"></a>
+    <strong>rcu_table:__index (self, key)</strong>
+    </dt>
+    <dd>
+    Retrieves a value (a Lunatik object) from the RCU table.
+ This is the Lua <a href="../modules/rcu.html#rcu_table:__index">__index</a> metamethod, allowing table-like access <code>rcu_table[key]</code>.
+ Read operations are RCU-protected and lockless.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><span class="type">rcu_table</span></span>
+         The RCU table instance.
+        </li>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The key to look up in the table.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">lunatik_object</span></span>
+        The Lunatik object associated with the key, or <code>nil</code> if the key is not found.
+   A new reference to the object is returned.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> my_object = my_rcu_table[<span class="string">"some_key"</span>]
+<span class="keyword">if</span> my_object <span class="keyword">then</span>
+  <span class="comment">-- Use my_object
+</span><span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "rcu_table:__newindex"></a>
+    <strong>rcu_table:__newindex (self, key, value)</strong>
+    </dt>
+    <dd>
+    Sets or removes a value in the RCU table.
+ This is the Lua <a href="../modules/rcu.html#rcu_table:__newindex">__newindex</a> metamethod, allowing table-like assignment <code>rcu_table[key] = value</code>.
+ Write operations are synchronized.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><span class="type">rcu_table</span></span>
+         The RCU table instance.
+        </li>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The key to set or update.
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">lunatik_object</span> or <span class="type">nil</span></span>
+         The Lunatik object to associate with the key.
+   If <code>nil</code>, the key-value pair is removed from the table.
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    Error if memory allocation fails during new entry creation.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> data_obj = data.<span class="function-name">new</span>(<span class="number">5</span>) <span class="comment">-- Assuming 'data' module
+</span>my_rcu_table[<span class="string">"new_key"</span>] = some_lunatik_object
+my_rcu_table[<span class="string">"another_key"</span>] = <span class="keyword">nil</span> <span class="comment">-- Removes 'another_key'</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "rcu_table:map"></a>
+    <strong>rcu_table:map (self, callback)</strong>
+    </dt>
+    <dd>
+    Iterates over the RCU table and calls a callback for each key-value pair.
+ The iteration is RCU-protected. The order of iteration is not guaranteed.
+ For each entry, a new reference to the value (Lunatik object) is obtained
+ before calling the callback and released after the callback returns.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><span class="type">rcu_table</span></span>
+         The RCU table instance.
+        </li>
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+
+<p> A Lua function that will be called for each entry in the table.
+   The callback receives two arguments:</p>
+
+<ol>
+    <li><code>key</code> (string): The key of the current entry.</li>
+    <li><code>value</code> (lunatik_object): The Lunatik object associated with the key.</li>
+</ol>
+
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the callback function raises an error during its execution.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Example: Iterating and printing content if values are 'data' objects
+</span>my_rcu_table:<span class="function-name">map</span>(<span class="keyword">function</span>(k, v_obj)
+  <span class="comment">-- v_obj is the Lunatik object stored for the key.
+</span>  <span class="comment">-- If it's a 'data' object (a common use case, see examples/shared.lua):
+</span>  <span class="global">print</span>(<span class="string">"Key:"</span>, k, <span class="string">"Content from data object:"</span>, v_obj:<span class="function-name">getstring</span>(<span class="number">0</span>))
+<span class="keyword">end</span>)</pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="rcu"></a>rcu</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "table"></a>
+    <strong>table ([size=1024])</strong>
+    </dt>
+    <dd>
+    Creates a new RCU-synchronized hash table.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">size</span>
+            <span class="types"><span class="type">integer</span></span>
+         Specifies the initial number of hash buckets (internal slots) for the table.
+   This is <strong>not</strong> a hard limit on the number of entries the table can store.
+   The provided <code>size</code> will be rounded up to the nearest power of two.
+   Choosing an appropriate <code>size</code> involves a trade-off between memory usage and performance:</p>
+
+<ul>
+    <li>more buckets (larger <code>size</code>): Consumes more memory for the table structure itself,
+     even if many buckets remain empty. However, it reduces the probability of hash collisions,
+     which can significantly speed up operations (lookups, insertions, deletions),
+     especially when storing a large number of entries.</li>
+    <li>fewer buckets (smaller <code>size</code>): Uses less memory for the table's internal array.
+     However, if the number of entries is high relative to the number of buckets,
+     it increases the chance of hash collisions. This means more entries might end up
+     in the same bucket, forming longer linked lists that need to be traversed,
+     thereby slowing down operations.</li>
+</ul>
+
+<p>   <strong>Guidance</strong>: For optimal performance, aim for a <code>size</code> that is roughly in the order of,
+   or somewhat larger than, the maximum number of entries you anticipate storing. This helps
+   maintain a low average number of entries per bucket (a low "load factor," ideally close to 1).
+   The table can hold more entries than its <code>size</code> (number of buckets), but performance
+   will degrade as the load factor increases. The default is a general-purpose starting point
+   suitable for many common use cases.
+         (<em>default</em> 1024)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">rcu_table</span></span>
+        A new RCU table object, or raises an error if memory allocation fails.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> my_rcu_table = rcu.<span class="global">table</span>() <span class="comment">-- Default: 1024 buckets, good for moderate entries.
+</span><span class="keyword">local</span> small_table = rcu.<span class="global">table</span>(<span class="number">128</span>) <span class="comment">-- 128 buckets, for fewer expected entries.
+</span><span class="keyword">local</span> large_table = rcu.<span class="global">table</span>(<span class="number">8192</span>) <span class="comment">-- 8192 buckets, for many expected entries.</span></pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

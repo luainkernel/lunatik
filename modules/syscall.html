@@ -1,0 +1,1557 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#syscall">syscall</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><strong>syscall</strong></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>syscall</code></h1>
+<p>Accessing kernel system call information.</p>
+<p> This library allows retrieving the kernel address of a system call given its
+ number, and provides a table of system call numbers accessible by their names (see <a href="../modules/syscall.html#numbers">syscall.numbers</a>).
+ This is particularly useful for kernel probing (see <a href="../modules/probe.html#">probe</a>)
+ or other low-level kernel interactions.</p>
+
+
+<h2><a href="#syscall">syscall</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#address">address (syscall_number)</a></td>
+	<td class="summary">Retrieves the kernel address of a system call.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#numbers">numbers</a></td>
+	<td class="summary">Table of system call numbers.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="syscall"></a>syscall</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "address"></a>
+    <strong>address (syscall_number)</strong>
+    </dt>
+    <dd>
+    Retrieves the kernel address of a system call.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">syscall_number</span>
+            <span class="types"><span class="type">integer</span></span>
+         The system call number (e.g., <code>__NR_openat</code>).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">lightuserdata</span></span>
+        The kernel address of the system call entry point, or <code>nil</code> if the number is invalid or the address cannot be determined.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if <code>syscall_number</code> is out of bounds.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> syscall = <span class="global">require</span>(<span class="string">"syscall"</span>)
+<span class="keyword">local</span> openat_addr = syscall.<span class="function-name">address</span>(syscall.numbers.openat)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "numbers"></a>
+    <strong>numbers</strong>
+    </dt>
+    <dd>
+    Table of system call numbers.
+ This table maps system call names (strings) to their corresponding kernel
+ system call numbers (integers, e.g., <code>__NR_openat</code>). The availability of
+ specific system calls depends on the kernel version and architecture, as detailed below.
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">io_setup</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create an asynchronous I/O context.
+        </li>
+        <li><span class="parameter">io_destroy</span>
+            <span class="types"><span class="type">integer</span></span>
+         Destroy an asynchronous I/O context.
+        </li>
+        <li><span class="parameter">io_submit</span>
+            <span class="types"><span class="type">integer</span></span>
+         Submit asynchronous I/O blocks.
+        </li>
+        <li><span class="parameter">io_cancel</span>
+            <span class="types"><span class="type">integer</span></span>
+         Cancel an outstanding asynchronous I/O operation.
+        </li>
+        <li><span class="parameter">setxattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set an extended attribute value.
+        </li>
+        <li><span class="parameter">lsetxattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set an extended attribute value of a symbolic link.
+        </li>
+        <li><span class="parameter">fsetxattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set an extended attribute value of an open file.
+        </li>
+        <li><span class="parameter">getxattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get an extended attribute value.
+        </li>
+        <li><span class="parameter">lgetxattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get an extended attribute value of a symbolic link.
+        </li>
+        <li><span class="parameter">fgetxattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get an extended attribute value of an open file.
+        </li>
+        <li><span class="parameter">listxattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         List extended attribute names.
+        </li>
+        <li><span class="parameter">llistxattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         List extended attribute names of a symbolic link.
+        </li>
+        <li><span class="parameter">flistxattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         List extended attribute names of an open file.
+        </li>
+        <li><span class="parameter">removexattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Remove an extended attribute.
+        </li>
+        <li><span class="parameter">lremovexattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Remove an extended attribute of a symbolic link.
+        </li>
+        <li><span class="parameter">fremovexattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Remove an extended attribute of an open file.
+        </li>
+        <li><span class="parameter">getcwd</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get current working directory.
+        </li>
+        <li><span class="parameter">lookup_dcookie</span>
+            <span class="types"><span class="type">integer</span></span>
+         Return a directory entry's path.
+        </li>
+        <li><span class="parameter">eventfd2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a file descriptor for event notification.
+        </li>
+        <li><span class="parameter">epoll_create1</span>
+            <span class="types"><span class="type">integer</span></span>
+         Open an epoll file descriptor.
+        </li>
+        <li><span class="parameter">epoll_ctl</span>
+            <span class="types"><span class="type">integer</span></span>
+         Control interface for an epoll file descriptor.
+        </li>
+        <li><span class="parameter">epoll_pwait</span>
+            <span class="types"><span class="type">integer</span></span>
+         Wait for an I/O event on an epoll file descriptor.
+        </li>
+        <li><span class="parameter">dup</span>
+            <span class="types"><span class="type">integer</span></span>
+         Duplicate an old file descriptor.
+        </li>
+        <li><span class="parameter">dup3</span>
+            <span class="types"><span class="type">integer</span></span>
+         Duplicate an old file descriptor to a new one with flags.
+        </li>
+        <li><span class="parameter">inotify_init1</span>
+            <span class="types"><span class="type">integer</span></span>
+         Initialize an inotify instance.
+        </li>
+        <li><span class="parameter">inotify_add_watch</span>
+            <span class="types"><span class="type">integer</span></span>
+         Add a watch to an initialized inotify instance.
+        </li>
+        <li><span class="parameter">inotify_rm_watch</span>
+            <span class="types"><span class="type">integer</span></span>
+         Remove an existing watch from an inotify instance.
+        </li>
+        <li><span class="parameter">ioctl</span>
+            <span class="types"><span class="type">integer</span></span>
+         Control a device.
+        </li>
+        <li><span class="parameter">ioprio_set</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set I/O scheduling class and priority.
+        </li>
+        <li><span class="parameter">ioprio_get</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get I/O scheduling class and priority.
+        </li>
+        <li><span class="parameter">flock</span>
+            <span class="types"><span class="type">integer</span></span>
+         Apply or remove an advisory lock on an open file.
+        </li>
+        <li><span class="parameter">mknodat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a special or ordinary file relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">mkdirat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a directory relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">unlinkat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Remove a file relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">symlinkat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a symbolic link relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">linkat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Make a new name for a file relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">umount2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Unmount a filesystem with flags.
+        </li>
+        <li><span class="parameter">mount</span>
+            <span class="types"><span class="type">integer</span></span>
+         Mount a filesystem.
+        </li>
+        <li><span class="parameter">pivot_root</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change the root filesystem.
+        </li>
+        <li><span class="parameter">nfsservctl</span>
+            <span class="types"><span class="type">integer</span></span>
+         Syscall for NFS server control (obsolete).
+        </li>
+        <li><span class="parameter">fallocate</span>
+            <span class="types"><span class="type">integer</span></span>
+         Manipulate file space.
+        </li>
+        <li><span class="parameter">faccessat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Check user's permissions for a file relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">chdir</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change working directory.
+        </li>
+        <li><span class="parameter">fchdir</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change working directory using a file descriptor.
+        </li>
+        <li><span class="parameter">chroot</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change root directory.
+        </li>
+        <li><span class="parameter">fchmod</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change permissions of a file given a file descriptor.
+        </li>
+        <li><span class="parameter">fchmodat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change permissions of a file relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">fchownat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change ownership of a file relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">fchown</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change ownership of a file given a file descriptor.
+        </li>
+        <li><span class="parameter">openat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Open or create a file relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">close</span>
+            <span class="types"><span class="type">integer</span></span>
+         Close a file descriptor.
+        </li>
+        <li><span class="parameter">vhangup</span>
+            <span class="types"><span class="type">integer</span></span>
+         Virtually hangup the current tty.
+        </li>
+        <li><span class="parameter">pipe2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a pipe with flags.
+        </li>
+        <li><span class="parameter">quotactl</span>
+            <span class="types"><span class="type">integer</span></span>
+         Manipulate disk quotas.
+        </li>
+        <li><span class="parameter">getdents64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get directory entries.
+        </li>
+        <li><span class="parameter">read</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read from a file descriptor.
+        </li>
+        <li><span class="parameter">write</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write to a file descriptor.
+        </li>
+        <li><span class="parameter">readv</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read data into multiple buffers.
+        </li>
+        <li><span class="parameter">writev</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write data from multiple buffers.
+        </li>
+        <li><span class="parameter">pread64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read from a file descriptor at a given offset.
+        </li>
+        <li><span class="parameter">pwrite64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write to a file descriptor at a given offset.
+        </li>
+        <li><span class="parameter">preadv</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read data into multiple buffers from a given offset.
+        </li>
+        <li><span class="parameter">pwritev</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write data from multiple buffers at a given offset.
+        </li>
+        <li><span class="parameter">signalfd4</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a file descriptor for accepting signals.
+        </li>
+        <li><span class="parameter">vmsplice</span>
+            <span class="types"><span class="type">integer</span></span>
+         Splice user pages to a pipe.
+        </li>
+        <li><span class="parameter">splice</span>
+            <span class="types"><span class="type">integer</span></span>
+         Splice data to/from a pipe.
+        </li>
+        <li><span class="parameter">tee</span>
+            <span class="types"><span class="type">integer</span></span>
+         Duplicate pipe content.
+        </li>
+        <li><span class="parameter">readlinkat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read value of a symbolic link relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">sync</span>
+            <span class="types"><span class="type">integer</span></span>
+         Commit filesystem caches to disk.
+        </li>
+        <li><span class="parameter">fsync</span>
+            <span class="types"><span class="type">integer</span></span>
+         Synchronize a file's in-core state with storage device.
+        </li>
+        <li><span class="parameter">fdatasync</span>
+            <span class="types"><span class="type">integer</span></span>
+         Synchronize a file's data in-core state with storage device.
+        </li>
+        <li><span class="parameter">timerfd_create</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a file descriptor for timer notifications.
+        </li>
+        <li><span class="parameter">acct</span>
+            <span class="types"><span class="type">integer</span></span>
+         Switch process accounting on or off.
+        </li>
+        <li><span class="parameter">capget</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get process capabilities.
+        </li>
+        <li><span class="parameter">capset</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set process capabilities.
+        </li>
+        <li><span class="parameter">personality</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set the process execution domain.
+        </li>
+        <li><span class="parameter">exit</span>
+            <span class="types"><span class="type">integer</span></span>
+         Terminate the current process.
+        </li>
+        <li><span class="parameter">exit_group</span>
+            <span class="types"><span class="type">integer</span></span>
+         Terminate all threads in a process.
+        </li>
+        <li><span class="parameter">waitid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Wait for process state changes.
+        </li>
+        <li><span class="parameter">set_tid_address</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set pointer to thread ID.
+        </li>
+        <li><span class="parameter">unshare</span>
+            <span class="types"><span class="type">integer</span></span>
+         Disassociate parts of the process execution context.
+        </li>
+        <li><span class="parameter">set_robust_list</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set the address of the robust futex list.
+        </li>
+        <li><span class="parameter">get_robust_list</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get the address of the robust futex list.
+        </li>
+        <li><span class="parameter">getitimer</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get value of an interval timer.
+        </li>
+        <li><span class="parameter">setitimer</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set value of an interval timer.
+        </li>
+        <li><span class="parameter">kexec_load</span>
+            <span class="types"><span class="type">integer</span></span>
+         Load a new kernel for later execution.
+        </li>
+        <li><span class="parameter">init_module</span>
+            <span class="types"><span class="type">integer</span></span>
+         Load a kernel module.
+        </li>
+        <li><span class="parameter">delete_module</span>
+            <span class="types"><span class="type">integer</span></span>
+         Unload a kernel module.
+        </li>
+        <li><span class="parameter">timer_create</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a POSIX per-process timer.
+        </li>
+        <li><span class="parameter">timer_getoverrun</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get POSIX per-process timer overrun count.
+        </li>
+        <li><span class="parameter">timer_delete</span>
+            <span class="types"><span class="type">integer</span></span>
+         Delete a POSIX per-process timer.
+        </li>
+        <li><span class="parameter">syslog</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read and/or clear kernel message ring buffer; set console_loglevel.
+        </li>
+        <li><span class="parameter">ptrace</span>
+            <span class="types"><span class="type">integer</span></span>
+         Process trace.
+        </li>
+        <li><span class="parameter">sched_setparam</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set scheduling parameters for a process.
+        </li>
+        <li><span class="parameter">sched_setscheduler</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set scheduling policy and parameters for a process.
+        </li>
+        <li><span class="parameter">sched_getscheduler</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get scheduling policy for a process.
+        </li>
+        <li><span class="parameter">sched_getparam</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get scheduling parameters for a process.
+        </li>
+        <li><span class="parameter">sched_setaffinity</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set a thread's CPU affinity mask.
+        </li>
+        <li><span class="parameter">sched_getaffinity</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get a thread's CPU affinity mask.
+        </li>
+        <li><span class="parameter">sched_yield</span>
+            <span class="types"><span class="type">integer</span></span>
+         Yield the processor.
+        </li>
+        <li><span class="parameter">sched_get_priority_max</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get maximum priority value for a scheduling policy.
+        </li>
+        <li><span class="parameter">sched_get_priority_min</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get minimum priority value for a scheduling policy.
+        </li>
+        <li><span class="parameter">sched_rr_get_interval</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get the SCHED_RR interval for the named process.
+        </li>
+        <li><span class="parameter">restart_syscall</span>
+            <span class="types"><span class="type">integer</span></span>
+         Restart a system call after a signal.
+        </li>
+        <li><span class="parameter">kill</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send signal to a process.
+        </li>
+        <li><span class="parameter">tkill</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send signal to a thread.
+        </li>
+        <li><span class="parameter">tgkill</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send signal to a thread group.
+        </li>
+        <li><span class="parameter">sigaltstack</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set and/or get signal stack context.
+        </li>
+        <li><span class="parameter">rt_sigsuspend</span>
+            <span class="types"><span class="type">integer</span></span>
+         Wait for a real-time signal.
+        </li>
+        <li><span class="parameter">rt_sigaction</span>
+            <span class="types"><span class="type">integer</span></span>
+         Examine and change a real-time signal action.
+        </li>
+        <li><span class="parameter">rt_sigprocmask</span>
+            <span class="types"><span class="type">integer</span></span>
+         Examine and change blocked real-time signals.
+        </li>
+        <li><span class="parameter">rt_sigpending</span>
+            <span class="types"><span class="type">integer</span></span>
+         Examine pending real-time signals.
+        </li>
+        <li><span class="parameter">rt_sigqueueinfo</span>
+            <span class="types"><span class="type">integer</span></span>
+         Queue a real-time signal and data.
+        </li>
+        <li><span class="parameter">rt_sigreturn</span>
+            <span class="types"><span class="type">integer</span></span>
+         Return from signal handler and cleanup stack frame.
+        </li>
+        <li><span class="parameter">setpriority</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set program scheduling priority.
+        </li>
+        <li><span class="parameter">getpriority</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get program scheduling priority.
+        </li>
+        <li><span class="parameter">reboot</span>
+            <span class="types"><span class="type">integer</span></span>
+         Reboot or enable/disable Ctrl-Alt-Del.
+        </li>
+        <li><span class="parameter">setregid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set real and effective group IDs.
+        </li>
+        <li><span class="parameter">setgid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set effective group ID.
+        </li>
+        <li><span class="parameter">setreuid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set real and effective user IDs.
+        </li>
+        <li><span class="parameter">setuid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set effective user ID.
+        </li>
+        <li><span class="parameter">setresuid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set real, effective and saved user IDs.
+        </li>
+        <li><span class="parameter">getresuid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get real, effective and saved user IDs.
+        </li>
+        <li><span class="parameter">setresgid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set real, effective and saved group IDs.
+        </li>
+        <li><span class="parameter">getresgid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get real, effective and saved group IDs.
+        </li>
+        <li><span class="parameter">setfsuid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set filesystem user ID.
+        </li>
+        <li><span class="parameter">setfsgid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set filesystem group ID.
+        </li>
+        <li><span class="parameter">times</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get process times.
+        </li>
+        <li><span class="parameter">setpgid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set process group ID.
+        </li>
+        <li><span class="parameter">getpgid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get process group ID.
+        </li>
+        <li><span class="parameter">getsid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get session ID.
+        </li>
+        <li><span class="parameter">setsid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a session and set the process group ID.
+        </li>
+        <li><span class="parameter">getgroups</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get list of supplementary group IDs.
+        </li>
+        <li><span class="parameter">setgroups</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set list of supplementary group IDs.
+        </li>
+        <li><span class="parameter">uname</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get name and information about current kernel.
+        </li>
+        <li><span class="parameter">sethostname</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set the system's hostname.
+        </li>
+        <li><span class="parameter">setdomainname</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set the system's NIS/YP domain name.
+        </li>
+        <li><span class="parameter">getrusage</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get resource usage.
+        </li>
+        <li><span class="parameter">umask</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set file mode creation mask.
+        </li>
+        <li><span class="parameter">prctl</span>
+            <span class="types"><span class="type">integer</span></span>
+         Operations on a process or thread.
+        </li>
+        <li><span class="parameter">getcpu</span>
+            <span class="types"><span class="type">integer</span></span>
+         Determine CPU and NUMA node on which the calling thread is running.
+        </li>
+        <li><span class="parameter">getpid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get process ID.
+        </li>
+        <li><span class="parameter">getppid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get parent process ID.
+        </li>
+        <li><span class="parameter">getuid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get real user ID.
+        </li>
+        <li><span class="parameter">geteuid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get effective user ID.
+        </li>
+        <li><span class="parameter">getgid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get real group ID.
+        </li>
+        <li><span class="parameter">getegid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get effective group ID.
+        </li>
+        <li><span class="parameter">gettid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get thread ID.
+        </li>
+        <li><span class="parameter">sysinfo</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get system information.
+        </li>
+        <li><span class="parameter">mq_open</span>
+            <span class="types"><span class="type">integer</span></span>
+         Open a POSIX message queue.
+        </li>
+        <li><span class="parameter">mq_unlink</span>
+            <span class="types"><span class="type">integer</span></span>
+         Unlink a POSIX message queue.
+        </li>
+        <li><span class="parameter">mq_timedsend</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send a message to a POSIX message queue with timeout.
+        </li>
+        <li><span class="parameter">mq_timedreceive</span>
+            <span class="types"><span class="type">integer</span></span>
+         Receive a message from a POSIX message queue with timeout.
+        </li>
+        <li><span class="parameter">mq_notify</span>
+            <span class="types"><span class="type">integer</span></span>
+         Register for asynchronous notification of message arrival on a POSIX message queue.
+        </li>
+        <li><span class="parameter">mq_getsetattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get/set POSIX message queue attributes.
+        </li>
+        <li><span class="parameter">msgget</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get a System V message queue identifier.
+        </li>
+        <li><span class="parameter">msgctl</span>
+            <span class="types"><span class="type">integer</span></span>
+         System V message control operations.
+        </li>
+        <li><span class="parameter">msgrcv</span>
+            <span class="types"><span class="type">integer</span></span>
+         Receive messages from a System V message queue.
+        </li>
+        <li><span class="parameter">msgsnd</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send a message to a System V message queue.
+        </li>
+        <li><span class="parameter">semget</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get a System V semaphore set identifier.
+        </li>
+        <li><span class="parameter">semctl</span>
+            <span class="types"><span class="type">integer</span></span>
+         System V semaphore control operations.
+        </li>
+        <li><span class="parameter">semop</span>
+            <span class="types"><span class="type">integer</span></span>
+         System V semaphore operations.
+        </li>
+        <li><span class="parameter">shmget</span>
+            <span class="types"><span class="type">integer</span></span>
+         Allocates a System V shared memory segment.
+        </li>
+        <li><span class="parameter">shmctl</span>
+            <span class="types"><span class="type">integer</span></span>
+         System V shared memory control.
+        </li>
+        <li><span class="parameter">shmat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Attach the System V shared memory segment to the address space of the calling process.
+        </li>
+        <li><span class="parameter">shmdt</span>
+            <span class="types"><span class="type">integer</span></span>
+         Detach the System V shared memory segment from the address space of the calling process.
+        </li>
+        <li><span class="parameter">socket</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create an endpoint for communication.
+        </li>
+        <li><span class="parameter">socketpair</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a pair of connected sockets.
+        </li>
+        <li><span class="parameter">bind</span>
+            <span class="types"><span class="type">integer</span></span>
+         Bind a name to a socket.
+        </li>
+        <li><span class="parameter">listen</span>
+            <span class="types"><span class="type">integer</span></span>
+         Listen for connections on a socket.
+        </li>
+        <li><span class="parameter">accept</span>
+            <span class="types"><span class="type">integer</span></span>
+         Accept a connection on a socket.
+        </li>
+        <li><span class="parameter">connect</span>
+            <span class="types"><span class="type">integer</span></span>
+         Initiate a connection on a socket.
+        </li>
+        <li><span class="parameter">getsockname</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get socket name.
+        </li>
+        <li><span class="parameter">getpeername</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get name of connected peer socket.
+        </li>
+        <li><span class="parameter">sendto</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send a message on a socket.
+        </li>
+        <li><span class="parameter">recvfrom</span>
+            <span class="types"><span class="type">integer</span></span>
+         Receive a message from a socket.
+        </li>
+        <li><span class="parameter">setsockopt</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set options on sockets.
+        </li>
+        <li><span class="parameter">getsockopt</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get options on sockets.
+        </li>
+        <li><span class="parameter">shutdown</span>
+            <span class="types"><span class="type">integer</span></span>
+         Shut down part of a full-duplex connection.
+        </li>
+        <li><span class="parameter">sendmsg</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send a message on a socket using a message structure.
+        </li>
+        <li><span class="parameter">recvmsg</span>
+            <span class="types"><span class="type">integer</span></span>
+         Receive a message from a socket using a message structure.
+        </li>
+        <li><span class="parameter">readahead</span>
+            <span class="types"><span class="type">integer</span></span>
+         Initiate readahead on a file descriptor.
+        </li>
+        <li><span class="parameter">brk</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change data segment size.
+        </li>
+        <li><span class="parameter">munmap</span>
+            <span class="types"><span class="type">integer</span></span>
+         Unmap files or devices into memory.
+        </li>
+        <li><span class="parameter">mremap</span>
+            <span class="types"><span class="type">integer</span></span>
+         Remap a virtual memory address.
+        </li>
+        <li><span class="parameter">add_key</span>
+            <span class="types"><span class="type">integer</span></span>
+         Add a key to the kernel's key management facility.
+        </li>
+        <li><span class="parameter">request_key</span>
+            <span class="types"><span class="type">integer</span></span>
+         Request a key from the kernel's key management facility.
+        </li>
+        <li><span class="parameter">keyctl</span>
+            <span class="types"><span class="type">integer</span></span>
+         Manipulate the kernel's key management facility.
+        </li>
+        <li><span class="parameter">clone</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a child process.
+        </li>
+        <li><span class="parameter">execve</span>
+            <span class="types"><span class="type">integer</span></span>
+         Execute a program.
+        </li>
+        <li><span class="parameter">rt_tgsigqueueinfo</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send a real-time signal with data to a thread group.
+        </li>
+        <li><span class="parameter">perf_event_open</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set up performance monitoring.
+        </li>
+        <li><span class="parameter">accept4</span>
+            <span class="types"><span class="type">integer</span></span>
+         Accept a connection on a socket with flags.
+        </li>
+        <li><span class="parameter">recvmmsg</span>
+            <span class="types"><span class="type">integer</span></span>
+         Receive multiple messages from a socket.
+        </li>
+        <li><span class="parameter">prlimit64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get and set resource limits.
+        </li>
+        <li><span class="parameter">fanotify_init</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create and initialize fanotify group.
+        </li>
+        <li><span class="parameter">fanotify_mark</span>
+            <span class="types"><span class="type">integer</span></span>
+         Add, remove, or modify an fanotify mark on a filesystem object.
+        </li>
+        <li><span class="parameter">syncfs</span>
+            <span class="types"><span class="type">integer</span></span>
+         Commit filesystem caches to disk for a specific filesystem.
+        </li>
+        <li><span class="parameter">setns</span>
+            <span class="types"><span class="type">integer</span></span>
+         Reassociate thread with a namespace.
+        </li>
+        <li><span class="parameter">sendmmsg</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send multiple messages on a socket.
+        </li>
+        <li><span class="parameter">process_vm_readv</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read from another process's memory.
+        </li>
+        <li><span class="parameter">process_vm_writev</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write to another process's memory.
+        </li>
+        <li><span class="parameter">kcmp</span>
+            <span class="types"><span class="type">integer</span></span>
+         Compare two processes to determine if they share a kernel resource.
+        </li>
+        <li><span class="parameter">finit_module</span>
+            <span class="types"><span class="type">integer</span></span>
+         Load a kernel module from a file descriptor.
+        </li>
+        <li><span class="parameter">sched_setattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set scheduling policy and attributes for a thread.
+        </li>
+        <li><span class="parameter">sched_getattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get scheduling policy and attributes for a thread.
+        </li>
+        <li><span class="parameter">renameat2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Rename a file or directory, with flags.
+        </li>
+        <li><span class="parameter">seccomp</span>
+            <span class="types"><span class="type">integer</span></span>
+         Operate on Secure Computing state of the process.
+        </li>
+        <li><span class="parameter">getrandom</span>
+            <span class="types"><span class="type">integer</span></span>
+         Obtain a series of random bytes.
+        </li>
+        <li><span class="parameter">memfd_create</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create an anonymous file.
+        </li>
+        <li><span class="parameter">bpf</span>
+            <span class="types"><span class="type">integer</span></span>
+         Perform a BPF operation.
+        </li>
+        <li><span class="parameter">execveat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Execute a program relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">userfaultfd</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a file descriptor for handling page faults in user space.
+        </li>
+        <li><span class="parameter">membarrier</span>
+            <span class="types"><span class="type">integer</span></span>
+         Issue memory barriers.
+        </li>
+        <li><span class="parameter">mlock2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Lock memory with flags.
+        </li>
+        <li><span class="parameter">copy_file_range</span>
+            <span class="types"><span class="type">integer</span></span>
+         Copy a range of data from one file to another.
+        </li>
+        <li><span class="parameter">preadv2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read data into multiple buffers from a given offset, with flags.
+        </li>
+        <li><span class="parameter">pwritev2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write data from multiple buffers at a given offset, with flags.
+        </li>
+        <li><span class="parameter">pkey_mprotect</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set protection on a region of memory, with a protection key.
+        </li>
+        <li><span class="parameter">pkey_alloc</span>
+            <span class="types"><span class="type">integer</span></span>
+         Allocate a protection key.
+        </li>
+        <li><span class="parameter">pkey_free</span>
+            <span class="types"><span class="type">integer</span></span>
+         Free a protection key.
+        </li>
+        <li><span class="parameter">statx</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get file status (extended).
+        </li>
+        <li><span class="parameter">rseq</span>
+            <span class="types"><span class="type">integer</span></span>
+         Restartable sequences.
+        </li>
+        <li><span class="parameter">kexec_file_load</span>
+            <span class="types"><span class="type">integer</span></span>
+         Load a new kernel for later execution from a file descriptor.
+        </li>
+        <li><span class="parameter">pidfd_send_signal</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send a signal to a process specified by a PID file descriptor.
+        </li>
+        <li><span class="parameter">io_uring_setup</span>
+            <span class="types"><span class="type">integer</span></span>
+         Setup an io_uring instance.
+        </li>
+        <li><span class="parameter">io_uring_enter</span>
+            <span class="types"><span class="type">integer</span></span>
+         Register files or submit I/O to an io_uring instance.
+        </li>
+        <li><span class="parameter">io_uring_register</span>
+            <span class="types"><span class="type">integer</span></span>
+         Register files or user buffers for an io_uring instance.
+        </li>
+        <li><span class="parameter">open_tree</span>
+            <span class="types"><span class="type">integer</span></span>
+         Open a filesystem object by path and attribute.
+        </li>
+        <li><span class="parameter">move_mount</span>
+            <span class="types"><span class="type">integer</span></span>
+         Move a mount.
+        </li>
+        <li><span class="parameter">fsopen</span>
+            <span class="types"><span class="type">integer</span></span>
+         Open a filesystem by name and flags.
+        </li>
+        <li><span class="parameter">fsconfig</span>
+            <span class="types"><span class="type">integer</span></span>
+         Configure a filesystem.
+        </li>
+        <li><span class="parameter">fsmount</span>
+            <span class="types"><span class="type">integer</span></span>
+         Mount a filesystem.
+        </li>
+        <li><span class="parameter">fspick</span>
+            <span class="types"><span class="type">integer</span></span>
+         Select a filesystem by fd and path.
+        </li>
+        <li><span class="parameter">pidfd_open</span>
+            <span class="types"><span class="type">integer</span></span>
+         Obtain a file descriptor that refers to a process.</p>
+
+<p>   --- Conditional on <code>__ARCH_WANT_TIME32_SYSCALLS</code> or <code>__BITS_PER_LONG != 32</code> ---
+        </li>
+        <li><span class="parameter">io_getevents</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read asynchronous I/O events from the completion queue.
+        </li>
+        <li><span class="parameter">pselect6</span>
+            <span class="types"><span class="type">integer</span></span>
+         Synchronous I/O multiplexing with a timeout and a signal mask.
+        </li>
+        <li><span class="parameter">ppoll</span>
+            <span class="types"><span class="type">integer</span></span>
+         Wait for some event on a file descriptor with a timeout and a signal mask.
+        </li>
+        <li><span class="parameter">timerfd_settime</span>
+            <span class="types"><span class="type">integer</span></span>
+         Arm or disarm a timer that notifies via a file descriptor.
+        </li>
+        <li><span class="parameter">timerfd_gettime</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get current setting of a timer that notifies via a file descriptor.
+        </li>
+        <li><span class="parameter">utimensat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change file last access and modification times relative to a directory file descriptor.
+        </li>
+        <li><span class="parameter">futex</span>
+            <span class="types"><span class="type">integer</span></span>
+         Fast user-space locking.
+        </li>
+        <li><span class="parameter">nanosleep</span>
+            <span class="types"><span class="type">integer</span></span>
+         High-resolution sleep.
+        </li>
+        <li><span class="parameter">timer_gettime</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get POSIX per-process timer.
+        </li>
+        <li><span class="parameter">timer_settime</span>
+            <span class="types"><span class="type">integer</span></span>
+         Arm/disarm POSIX per-process timer.
+        </li>
+        <li><span class="parameter">clock_settime</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set time of a specified clock.
+        </li>
+        <li><span class="parameter">clock_gettime</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get time of a specified clock.
+        </li>
+        <li><span class="parameter">clock_getres</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get resolution of a specified clock.
+        </li>
+        <li><span class="parameter">clock_nanosleep</span>
+            <span class="types"><span class="type">integer</span></span>
+         High-resolution sleep with a specific clock.
+        </li>
+        <li><span class="parameter">rt_sigtimedwait</span>
+            <span class="types"><span class="type">integer</span></span>
+         Synchronously wait for queued real-time signals.
+        </li>
+        <li><span class="parameter">gettimeofday</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get time.
+        </li>
+        <li><span class="parameter">settimeofday</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set time.
+        </li>
+        <li><span class="parameter">adjtimex</span>
+            <span class="types"><span class="type">integer</span></span>
+         Tune kernel clock.
+        </li>
+        <li><span class="parameter">semtimedop</span>
+            <span class="types"><span class="type">integer</span></span>
+         System V semaphore operations with timeout.
+        </li>
+        <li><span class="parameter">wait4</span>
+            <span class="types"><span class="type">integer</span></span>
+         Wait for process state changes, BSD style.
+        </li>
+        <li><span class="parameter">clock_adjtime</span>
+            <span class="types"><span class="type">integer</span></span>
+         Tune a specified clock.
+        </li>
+        <li><span class="parameter">io_pgetevents</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read AIO events with timeout and signal mask.</p>
+
+<p>   --- Conditional on <code>__ARCH_WANT_RENAMEAT</code> ---
+        </li>
+        <li><span class="parameter">renameat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Rename a file or directory relative to directory file descriptors.</p>
+
+<p>   --- Conditional on <code>__ARCH_WANT_SYNC_FILE_RANGE2</code> ---
+        </li>
+        <li><span class="parameter">sync_file_range2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Sync a file segment with disk, with flags.</p>
+
+<p>   --- Conditional on <code>!__ARCH_WANT_SYNC_FILE_RANGE2</code> (else part) ---
+        </li>
+        <li><span class="parameter">sync_file_range</span>
+            <span class="types"><span class="type">integer</span></span>
+         Sync a file segment with disk.</p>
+
+<p>   --- Conditional on <code>__ARCH_WANT_SET_GET_RLIMIT</code> ---
+        </li>
+        <li><span class="parameter">getrlimit</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get resource limits.
+        </li>
+        <li><span class="parameter">setrlimit</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set resource limits.</p>
+
+<p>   --- Conditional on <code>!__ARCH_NOMMU</code> ---
+        </li>
+        <li><span class="parameter">swapon</span>
+            <span class="types"><span class="type">integer</span></span>
+         Start swapping to a file or block device.
+        </li>
+        <li><span class="parameter">swapoff</span>
+            <span class="types"><span class="type">integer</span></span>
+         Stop swapping to a file or block device.
+        </li>
+        <li><span class="parameter">mprotect</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set protection on a region of memory.
+        </li>
+        <li><span class="parameter">msync</span>
+            <span class="types"><span class="type">integer</span></span>
+         Synchronize a file with a memory map.
+        </li>
+        <li><span class="parameter">mlock</span>
+            <span class="types"><span class="type">integer</span></span>
+         Lock memory.
+        </li>
+        <li><span class="parameter">munlock</span>
+            <span class="types"><span class="type">integer</span></span>
+         Unlock memory.
+        </li>
+        <li><span class="parameter">mlockall</span>
+            <span class="types"><span class="type">integer</span></span>
+         Lock all pages mapped into the address space of the calling process.
+        </li>
+        <li><span class="parameter">munlockall</span>
+            <span class="types"><span class="type">integer</span></span>
+         Unlock all pages mapped into the address space of the calling process.
+        </li>
+        <li><span class="parameter">mincore</span>
+            <span class="types"><span class="type">integer</span></span>
+         Determine whether pages are resident in memory.
+        </li>
+        <li><span class="parameter">madvise</span>
+            <span class="types"><span class="type">integer</span></span>
+         Give advice about use of memory.
+        </li>
+        <li><span class="parameter">remap_file_pages</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a nonlinear file mapping.
+        </li>
+        <li><span class="parameter">mbind</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set memory policy for a memory range.
+        </li>
+        <li><span class="parameter">get_mempolicy</span>
+            <span class="types"><span class="type">integer</span></span>
+         Retrieve NUMA memory policy for a thread.
+        </li>
+        <li><span class="parameter">set_mempolicy</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set NUMA memory policy for a thread.
+        </li>
+        <li><span class="parameter">migrate_pages</span>
+            <span class="types"><span class="type">integer</span></span>
+         Migrate pages of the calling process to a set of nodes.
+        </li>
+        <li><span class="parameter">move_pages</span>
+            <span class="types"><span class="type">integer</span></span>
+         Move pages of the calling process to specific nodes.</p>
+
+<p>   --- Conditional on <code>__SYSCALL_COMPAT</code> or <code>__BITS_PER_LONG == 32</code> ---
+        </li>
+        <li><span class="parameter">clock_gettime64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get time of a specified clock (64-bit time_t).
+        </li>
+        <li><span class="parameter">clock_settime64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set time of a specified clock (64-bit time_t).
+        </li>
+        <li><span class="parameter">clock_adjtime64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Tune a specified clock (64-bit time_t).
+        </li>
+        <li><span class="parameter">clock_getres_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get resolution of a specified clock (64-bit time_t).
+        </li>
+        <li><span class="parameter">clock_nanosleep_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         High-resolution sleep with a specific clock (64-bit time_t).
+        </li>
+        <li><span class="parameter">timer_gettime64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get POSIX per-process timer (64-bit time_t).
+        </li>
+        <li><span class="parameter">timer_settime64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Arm/disarm POSIX per-process timer (64-bit time_t).
+        </li>
+        <li><span class="parameter">timerfd_gettime64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get current setting of a timerfd (64-bit time_t).
+        </li>
+        <li><span class="parameter">timerfd_settime64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Arm or disarm a timerfd (64-bit time_t).
+        </li>
+        <li><span class="parameter">utimensat_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change file timestamps relative to a directory fd (64-bit time_t).
+        </li>
+        <li><span class="parameter">pselect6_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Synchronous I/O multiplexing (64-bit time_t).
+        </li>
+        <li><span class="parameter">ppoll_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Wait for some event on a file descriptor (64-bit time_t).
+        </li>
+        <li><span class="parameter">io_pgetevents_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read AIO events with timeout and signal mask (64-bit time_t).
+        </li>
+        <li><span class="parameter">recvmmsg_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Receive multiple messages from a socket (64-bit time_t).
+        </li>
+        <li><span class="parameter">mq_timedsend_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send a message to a POSIX message queue with timeout (64-bit time_t).
+        </li>
+        <li><span class="parameter">mq_timedreceive_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Receive a message from a POSIX message queue with timeout (64-bit time_t).
+        </li>
+        <li><span class="parameter">semtimedop_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         System V semaphore operations with timeout (64-bit time_t).
+        </li>
+        <li><span class="parameter">rt_sigtimedwait_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Synchronously wait for queued real-time signals (64-bit time_t).
+        </li>
+        <li><span class="parameter">futex_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Fast user-space locking (64-bit time_t).
+        </li>
+        <li><span class="parameter">sched_rr_get_interval_time64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get the SCHED<em>RR interval for the named process (64-bit time</em>t).</p>
+
+<p>   --- Conditional on <code>__ARCH_WANT_SYS_CLONE3</code> ---
+        </li>
+        <li><span class="parameter">clone3</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a child process with a new API.</p>
+
+<p>   --- Conditional on <code>LINUX_VERSION_CODE &gt;= KERNEL_VERSION(5, 9, 0)</code> ---
+        </li>
+        <li><span class="parameter">close_range</span>
+            <span class="types"><span class="type">integer</span></span>
+         Close a range of file descriptors.</p>
+
+<p>   --- Conditional on <code>LINUX_VERSION_CODE &gt;= KERNEL_VERSION(5, 6, 0)</code> ---
+        </li>
+        <li><span class="parameter">openat2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Open or create a file relative to a directory file descriptor, with extended flags.
+        </li>
+        <li><span class="parameter">pidfd_getfd</span>
+            <span class="types"><span class="type">integer</span></span>
+         Obtain a duplicate of another process's file descriptor.</p>
+
+<p>   --- Conditional on <code>LINUX_VERSION_CODE &gt;= KERNEL_VERSION(5, 8, 0)</code> ---
+        </li>
+        <li><span class="parameter">faccessat2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Check user's permissions for a file relative to a directory fd, with flags.</p>
+
+<p>   --- Conditional on <code>LINUX_VERSION_CODE &gt;= KERNEL_VERSION(5, 10, 0)</code> ---
+        </li>
+        <li><span class="parameter">process_madvise</span>
+            <span class="types"><span class="type">integer</span></span>
+         Give advice about use of memory to a process.</p>
+
+<p>   --- Conditional on <code>LINUX_VERSION_CODE &gt;= KERNEL_VERSION(5, 11, 0)</code> ---
+        </li>
+        <li><span class="parameter">epoll_pwait2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Wait for an I/O event on an epoll file descriptor, with extended timeout.</p>
+
+<p>   --- Conditional on <code>LINUX_VERSION_CODE &gt;= KERNEL_VERSION(5, 12, 0)</code> ---
+        </li>
+        <li><span class="parameter">mount_setattr</span>
+            <span class="types"><span class="type">integer</span></span>
+         Change properties of a mount.</p>
+
+<p>   --- Conditional on <code>LINUX_VERSION_CODE &gt;= KERNEL_VERSION(5, 14, 0)</code> ---
+        </li>
+        <li><span class="parameter">quotactl_fd</span>
+            <span class="types"><span class="type">integer</span></span>
+         Manipulate disk quotas using a file descriptor.</p>
+
+<p>   --- Conditional on <code>LINUX_VERSION_CODE &gt;= KERNEL_VERSION(5, 13, 0)</code> ---
+        </li>
+        <li><span class="parameter">landlock_create_ruleset</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create a new Landlock ruleset.
+        </li>
+        <li><span class="parameter">landlock_add_rule</span>
+            <span class="types"><span class="type">integer</span></span>
+         Add a new rule to a Landlock ruleset.
+        </li>
+        <li><span class="parameter">landlock_restrict_self</span>
+            <span class="types"><span class="type">integer</span></span>
+         Enforce a Landlock ruleset on the calling thread.</p>
+
+<p>   --- Conditional on <code>__ARCH_WANT_MEMFD_SECRET</code> ---
+        </li>
+        <li><span class="parameter">memfd_secret</span>
+            <span class="types"><span class="type">integer</span></span>
+         Create an anonymous file in RAM for secrets.</p>
+
+<p>   --- Conditional on <code>LINUX_VERSION_CODE &gt;= KERNEL_VERSION(5, 15, 0)</code> ---
+        </li>
+        <li><span class="parameter">process_mrelease</span>
+            <span class="types"><span class="type">integer</span></span>
+         Release memory of a remote process.</p>
+
+<p>   --- Conditional on <code>__BITS_PER_LONG == 64</code> and <code>!__SYSCALL_COMPAT</code> ---
+        </li>
+        <li><span class="parameter">fcntl</span>
+            <span class="types"><span class="type">integer</span></span>
+         Manipulate file descriptor.
+        </li>
+        <li><span class="parameter">statfs</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get filesystem statistics.
+        </li>
+        <li><span class="parameter">fstatfs</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get filesystem statistics for an open file.
+        </li>
+        <li><span class="parameter">truncate</span>
+            <span class="types"><span class="type">integer</span></span>
+         Truncate a file to a specified length.
+        </li>
+        <li><span class="parameter">ftruncate</span>
+            <span class="types"><span class="type">integer</span></span>
+         Truncate an open file to a specified length.
+        </li>
+        <li><span class="parameter">lseek</span>
+            <span class="types"><span class="type">integer</span></span>
+         Reposition read/write file offset.
+        </li>
+        <li><span class="parameter">sendfile</span>
+            <span class="types"><span class="type">integer</span></span>
+         Transfer data between file descriptors.
+        </li>
+        <li><span class="parameter">newfstatat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get file status relative to a directory fd (new stat struct).
+        </li>
+        <li><span class="parameter">fstat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get file status for an open file (new stat struct).
+        </li>
+        <li><span class="parameter">mmap</span>
+            <span class="types"><span class="type">integer</span></span>
+         Map files or devices into memory.
+        </li>
+        <li><span class="parameter">fadvise64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Predeclare an access pattern for file data.
+        </li>
+        <li><span class="parameter">stat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get file status.
+        </li>
+        <li><span class="parameter">lstat</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get symbolic link status.</p>
+
+<p>   --- Conditional on <code>__BITS_PER_LONG != 64</code> or <code>__SYSCALL_COMPAT</code> (else part of above) ---
+        </li>
+        <li><span class="parameter">fcntl64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Manipulate file descriptor (64-bit version).
+        </li>
+        <li><span class="parameter">statfs64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get filesystem statistics (64-bit version).
+        </li>
+        <li><span class="parameter">fstatfs64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get filesystem statistics for an open file (64-bit version).
+        </li>
+        <li><span class="parameter">truncate64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Truncate a file to a specified length (64-bit version).
+        </li>
+        <li><span class="parameter">ftruncate64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Truncate an open file to a specified length (64-bit version).
+        </li>
+        <li><span class="parameter">llseek</span>
+            <span class="types"><span class="type">integer</span></span>
+         Reposition read/write file offset (long long version).
+        </li>
+        <li><span class="parameter">sendfile64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Transfer data between file descriptors (64-bit version).
+        </li>
+        <li><span class="parameter">fstatat64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get file status relative to a directory fd (64-bit stat struct).
+        </li>
+        <li><span class="parameter">fstat64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get file status for an open file (64-bit stat struct).
+        </li>
+        <li><span class="parameter">mmap2</span>
+            <span class="types"><span class="type">integer</span></span>
+         Map files or devices into memory (with offset in pages).
+        </li>
+        <li><span class="parameter">fadvise64_64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Predeclare an access pattern for file data (64-bit offset/len).
+        </li>
+        <li><span class="parameter">stat64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get file status (64-bit stat struct).
+        </li>
+        <li><span class="parameter">lstat64</span>
+            <span class="types"><span class="type">integer</span></span>
+         Get symbolic link status (64-bit stat struct).
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

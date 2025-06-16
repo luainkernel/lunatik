@@ -1,0 +1,298 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_xtable_extension">Class xtable_extension </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><strong>xtable</strong></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>xtable</code></h1>
+<p>Netfilter Xtables extensions.</p>
+<p> This library allows Lua scripts to define custom Netfilter match and target
+ extensions for <code>iptables</code>. These extensions can then be used in <code>iptables</code>
+ rules to implement complex packet filtering and manipulation logic in Lua.</p>
+
+<p> When an <code>iptables</code> rule using a Lua-defined extension is encountered, the
+ corresponding Lua callback function (<a href="../modules/xtable.html#xtable_extension:match">match</a> or <a href="../modules/xtable.html#xtable_extension:target">target</a>) is executed in the
+ kernel.</p>
+
+
+<h2><a href="#Class_xtable_extension">Class xtable_extension </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#xtable_extension:match">xtable_extension:match (opts)</a></td>
+	<td class="summary">Creates and registers a new Xtables match extension.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#xtable_extension:target">xtable_extension:target (opts)</a></td>
+	<td class="summary">Creates and registers a new Xtables target extension.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_xtable_extension"></a>Class xtable_extension </h2>
+
+          <div class="section-description">
+          Represents a registered Xtables match or target extension.
+ This is a userdata object returned by <code>xtable.match()</code> or <code>xtable.target()</code>.
+ It encapsulates the kernel structures (<code>struct xt_match</code> or <code>struct xt_target</code>)
+ and the Lunatik runtime information necessary to invoke the Lua callbacks.
+ The primary way to interact with this object from Lua is to let it be garbage
+ collected, which will unregister the extension from the kernel.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "xtable_extension:match"></a>
+    <strong>xtable_extension:match (opts)</strong>
+    </dt>
+    <dd>
+    Creates and registers a new Xtables match extension.
+ The Lua functions provided in <code>opts</code> will be called by the kernel
+ when <code>iptables</code> rules using this match are evaluated.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+
+<p> A table containing the configuration for the match extension.
+   It <strong>must</strong> include the following fields:</p>
+
+<ul>
+    <li><p><code>name</code> (string): The unique name for this match extension (e.g., "myluamatch"). This name is used in <code>iptables -m &lt;name&gt;</code>.</p></li>
+    <li><p><code>revision</code> (integer): The revision number of this match extension.</p></li>
+    <li><p><code>family</code> (netfilter.family): The protocol family this match applies to (e.g., <code>netfilter.family.INET</code>).</p></li>
+    <li><p><code>proto</code> (socket.ipproto, optional, default: 0): The specific IP protocol this match applies to (e.g., <code>socket.ipproto.TCP</code>). Use 0 for any protocol.</p></li>
+    <li><p><code>hooks</code> (integer): A bitmask indicating the Netfilter hooks where this match can be used (e.g., <code>1 &lt;&lt; netfilter.inet_hooks.LOCAL_OUT</code>). Multiple hooks can be OR'd. Note: <a href="../modules/netfilter.html#netdev_hooks">netfilter.netdev_hooks</a> are not available for legacy Xtables.</p></li>
+    <li><p><a href="../modules/xtable.html#xtable_extension:match">match</a> (function): The Lua function to be called to evaluate if a packet matches.
+     Its signature is <code>function(skb, par, userargs) -&gt; boolean</code>.</p>
+
+    <ul>
+        <li><code>skb</code> (data): A read-only <a href="../modules/data.html#">data</a> object representing the packet's socket buffer.</li>
+        <li><code>par</code> (table): A read-only table containing parameters related to the packet and hook:</li>
+        <li><code>hotdrop</code> (boolean): <code>true</code> if an earlier rule already marked the packet for unconditional drop.</li>
+        <li><code>thoff</code> (integer): Offset to the transport header within the <code>skb</code>.</li>
+        <li><code>fragoff</code> (integer): Fragment offset (0 if not a fragment or is the first fragment).</li>
+        <li><code>hooknum</code> (integer): The Netfilter hook number (e.g., <code>NF_INET_LOCAL_OUT</code>).</li>
+        <li><code>userargs</code> (string): A string containing any arguments passed to this match from the <code>iptables</code> rule command line.</li>
+    </ul>
+
+    <p> The function should return <code>true</code> if the packet matches, <code>false</code> otherwise.</p></li>
+    <li><p><code>checkentry</code> (function): A Lua function called when an <code>iptables</code> rule using this match is added or modified.
+     Its signature is <code>function(userargs)</code>.</p>
+    <ul>
+        <li><code>userargs</code> (string): The arguments string from the <code>iptables</code> rule.
+        This function should validate the <code>userargs</code>. If validation fails, it should call <code>error()</code>.</li>
+    </ul></li>
+    <li><p><code>destroy</code> (function): A Lua function called when an <code>iptables</code> rule using this match is deleted.
+     Its signature is <code>function(userargs)</code>.</p>
+
+    <ul>
+        <li><code>userargs</code> (string): The arguments string from the <code>iptables</code> rule.</li>
+    </ul>
+
+    <p> This function can be used for cleanup.</p></li>
+</ul>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">xtable_extension</span></span>
+         A userdata object representing the registered match extension.
+   This object should be kept referenced as long as the extension is needed;
+   when it's garbage collected, the extension is unregistered.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if registration fails (e.g., name conflict, invalid parameters, memory allocation failure).
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/netfilter.html#family">netfilter.family</a></li>
+         <li><a href="../modules/socket.html#ipproto">socket.ipproto</a></li>
+         <li><a href="../modules/netfilter.html#inet_hooks">netfilter.inet_hooks</a></li>
+         <li><a href="../modules/netfilter.html#bridge_hooks">netfilter.bridge_hooks</a></li>
+         <li><a href="../modules/netfilter.html#arp_hooks">netfilter.arp_hooks</a></li>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> xtable = <span class="global">require</span>(<span class="string">"xtable"</span>)
+<span class="keyword">local</span> nf = <span class="global">require</span>(<span class="string">"netfilter"</span>)
+
+<span class="keyword">local</span> my_match_opts = {
+  name = <span class="string">"myluamatch"</span>,
+  revision = <span class="number">0</span>,
+  family = nf.family.INET,
+  hooks = (<span class="number">1</span> &lt;&lt; nf.inet_hooks.PREROUTING) | (<span class="number">1</span> &lt;&lt; nf.inet_hooks.INPUT),
+  match = <span class="keyword">function</span>(skb, par, userargs)
+    <span class="global">print</span>(<span class="string">"Matching packet with userargs:"</span>, userargs)
+    <span class="keyword">return</span> skb:<span class="function-name">getuint8</span>(<span class="number">9</span>) == <span class="number">6</span> <span class="comment">-- Check if protocol is TCP
+</span>  <span class="keyword">end</span>,
+  checkentry = <span class="keyword">function</span>(userargs) <span class="global">print</span>(<span class="string">"Checking:"</span>, userargs) <span class="keyword">end</span>,
+  destroy = <span class="keyword">function</span>(userargs) <span class="global">print</span>(<span class="string">"Destroying:"</span>, userargs) <span class="keyword">end</span>
+}
+<span class="keyword">local</span> match_ext = xtable.<span class="function-name">match</span>(my_match_opts)
+<span class="comment">-- To use in iptables: iptables -A INPUT -m myluamatch --somearg "hello" -j ACCEPT</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "xtable_extension:target"></a>
+    <strong>xtable_extension:target (opts)</strong>
+    </dt>
+    <dd>
+    Creates and registers a new Xtables target extension.
+ The Lua function provided in <code>opts</code> will be called by the kernel
+ for packets that reach an <code>iptables</code> rule using this target.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+
+<p> A table containing the configuration for the target extension.
+   It <strong>must</strong> include the following fields:</p>
+
+<ul>
+    <li><p><code>name</code> (string): The unique name for this target extension (e.g., "MYLUATARGET"). This name is used in <code>iptables -j &lt;NAME&gt;</code>.</p></li>
+    <li><p><code>revision</code> (integer): The revision number of this target extension.</p></li>
+    <li><p><code>family</code> (netfilter.family): The protocol family this target applies to (e.g., <code>netfilter.family.INET</code>).</p></li>
+    <li><p><code>proto</code> (socket.ipproto, optional, default: 0): The specific IP protocol this target applies to (e.g., <code>socket.ipproto.UDP</code>). Use 0 for any protocol.</p></li>
+    <li><p><code>hooks</code> (integer): A bitmask indicating the Netfilter hooks where this target can be used.</p></li>
+    <li><p><a href="../modules/xtable.html#xtable_extension:target">target</a> (function): The Lua function to be called to process a packet.
+     Its signature is <code>function(skb, par, userargs) -&gt; netfilter.action_verdict</code>.</p>
+    <ul>
+        <li><code>skb</code> (data): A read-write <a href="../modules/data.html#">data</a> object representing the packet's socket buffer. Modifications to this <code>skb</code> can alter the packet.</li>
+        <li><code>par</code> (table): A read-only table containing parameters related to the packet and hook (same structure as for <a href="../modules/xtable.html#xtable_extension:match">xtable.match</a>).</li>
+        <li><code>userargs</code> (string): A string containing any arguments passed to this target from the <code>iptables</code> rule command line.</li>
+    </ul>
+
+    <p> The function should return an integer verdict, typically one of the constants from the <a href="../modules/netfilter.html#action">netfilter.action</a> table (e.g., <code>netfilter.action.DROP</code>, <code>netfilter.action.ACCEPT</code>).</p></li>
+    <li><p><code>checkentry</code> (function): A Lua function called when an <code>iptables</code> rule using this target is added or modified. Its signature is <code>function(userargs)</code>. (See <a href="../modules/xtable.html#xtable_extension:match">xtable.match</a> for details).</p></li>
+    <li><p><code>destroy</code> (function): A Lua function called when an <code>iptable</code>s rule using this target is deleted. Its signature is <code>function(userargs)</code>. (See <a href="../modules/xtable.html#xtable_extension:match">xtable.match</a> for details).</p></li>
+</ul>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">xtable_extension</span></span>
+        A userdata object representing the registered target extension.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if registration fails.
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netfilter.html#action">netfilter.action</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> my_target_opts = {
+  name = <span class="string">"MYLUATARGET"</span>,
+  revision = <span class="number">0</span>,
+  family = nf.family.INET,
+  hooks = (<span class="number">1</span> &lt;&lt; nf.inet_hooks.FORWARD),
+  target = <span class="keyword">function</span>(skb, par, userargs)
+    <span class="global">print</span>(<span class="string">"Targeting packet with userargs:"</span>, userargs)
+    <span class="comment">-- Example: Modify TTL (byte at offset 8 in IP header)
+</span>    <span class="comment">-- skb:setuint8(8, skb:getuint8(8) - 1)
+</span>    <span class="keyword">return</span> nf.action.ACCEPT
+  <span class="keyword">end</span>,
+  checkentry = <span class="keyword">function</span>(userargs) <span class="global">print</span>(<span class="string">"Checking target:"</span>, userargs) <span class="keyword">end</span>,
+  destroy = <span class="keyword">function</span>(userargs) <span class="global">print</span>(<span class="string">"Destroying target:"</span>, userargs) <span class="keyword">end</span>
+}
+<span class="keyword">local</span> target_ext = xtable.<span class="function-name">target</span>(my_target_opts)
+<span class="comment">-- To use in iptables: iptables -A FORWARD -j MYLUATARGET --someoption "value"</span></pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

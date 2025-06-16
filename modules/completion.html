@@ -1,0 +1,237 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#completion">completion</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><strong>completion</strong></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>completion</code></h1>
+<p>Lua bindings for kernel completion mechanisms.</p>
+<p> This library allows Lua scripts to create, signal, and wait on
+ kernel completion objects.</p>
+
+<p> Task completion is a synchronization mechanism used to coordinate the
+ execution of multiple threads. It allows threads to wait for a specific
+ event to occur before proceeding, ensuring certain tasks are complete.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#complete">complete ()</a></td>
+	<td class="summary">Signals a completion.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#wait">wait ([timeout])</a></td>
+	<td class="summary">Waits for a completion to be signaled.</td>
+	</tr>
+</table>
+<h2><a href="#completion">completion</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new ()</a></td>
+	<td class="summary">Creates a new kernel completion object.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "complete"></a>
+    <strong>complete ()</strong>
+    </dt>
+    <dd>
+    Signals a completion.
+ This wakes up one task waiting on this completion object.
+ Corresponds to the kernel's <code>complete()</code> function.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/completion.html#new">completion.new</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Assuming 'c' is a completion object returned by completion.new()
+</span>c:<span class="function-name">complete</span>()</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "wait"></a>
+    <strong>wait ([timeout])</strong>
+    </dt>
+    <dd>
+    Waits for a completion to be signaled.
+ This function will block the current Lua runtime until the completion
+ is signaled, an optional timeout occurs, or the wait is interrupted.
+ The Lunatik runtime invoking this method must be sleepable.
+ Corresponds to the kernel's <code>wait_for_completion_interruptible_timeout()</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">timeout</span>
+            <span class="types"><span class="type">integer</span></span>
+         Optional timeout in milliseconds. If omitted or set to <code>MAX_SCHEDULE_TIMEOUT</code> (a large kernel-defined constant), waits indefinitely.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">boolean</span></span>
+        <code>true</code> if the completion was signaled successfully before timeout or interruption.</li>
+        <li>
+           <span class="types"><span class="type">nil,string</span></span>
+         <code>nil</code> and an error message if the wait did not complete successfully. The message will be one of:
+   - <code>&quot;timeout&quot;</code>: The specified timeout elapsed.
+   - <code>&quot;interrupt&quot;</code>: The waiting task was interrupted by a signal (e.g., <code>thread.stop()</code>).
+   If the wait fails for other kernel internal reasons, the C code might push <code>&quot;unknown&quot;</code>, though typical documented returns are for timeout and interrupt.
+   - <code>&quot;unknown&quot;</code>: An unexpected error occurred during the wait.</li>
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/completion.html#new">completion.new</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Assuming 'c' is a completion object
+</span><span class="keyword">local</span> success, err_msg = c:<span class="function-name">wait</span>(<span class="number">1000</span>) <span class="comment">-- Wait for up to 1 second
+</span><span class="keyword">if</span> success <span class="keyword">then</span>
+  <span class="global">print</span>(<span class="string">"Completion received!"</span>)
+<span class="keyword">else</span>
+  <span class="global">print</span>(<span class="string">"Wait failed: "</span> .. err_msg)
+<span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="completion"></a>completion</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new ()</strong>
+    </dt>
+    <dd>
+    Creates a new kernel completion object.
+ Initializes a <code>struct completion</code> and returns it wrapped as a Lua userdata
+ object of type <a href="../modules/completion.html#">completion</a>.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">completion</span></span>
+        A new completion object.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> c = completion.<span class="function-name">new</span>()</pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

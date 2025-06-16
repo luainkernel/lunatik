@@ -1,0 +1,245 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_device">Class device </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><strong>device</strong></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>device</code></h1>
+<p>Low-level Lua interface for creating Linux character device drivers.</p>
+<p> This module allows Lua scripts to implement character device drivers
+ by providing callback functions for standard file operations like
+ <code>open</code>, <code>read</code>, <code>write</code>, and <code>release</code>.</p>
+
+
+<h2><a href="#Class_device">Class device </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#device:new">device:new (driver)</a></td>
+	<td class="summary">Creates and installs a new character device driver in the system.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#device:stop">device:stop ()</a></td>
+	<td class="summary">Stops and releases a character device driver from the system.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_device"></a>Class device </h2>
+
+          <div class="section-description">
+          Represents a character device implemented in Lua.
+ This is a userdata object returned by <code>device.new()</code>. It encapsulates
+ the necessary kernel structures (<code>struct cdev</code>, <code>dev_t</code>) to manage a
+ character device, linking file operations to Lua callback functions.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "device:new"></a>
+    <strong>device:new (driver)</strong>
+    </dt>
+    <dd>
+    Creates and installs a new character device driver in the system.
+ This function binds a Lua table (the <code>driver</code> table) to a new
+ character device file (<code>/dev/&lt;name&gt;</code>), allowing Lua functions
+ to handle file operations on that device.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">driver</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+
+<p> A table defining the device driver's properties and callbacks.
+   It <strong>must</strong> contain the field:</p>
+
+<ul>
+    <li><code>name</code> (string): The name of the device. This name will be used to create
+     the device file <code>/dev/&lt;name&gt;</code>.</li>
+</ul>
+
+<p>   It <strong>might</strong> optionally contain the following fields (callback functions):</p>
+
+<ul>
+    <li><code>open</code> (function): Callback for the <code>open(2)</code> system call.
+     Signature: <code>function(driver_table)</code>. Expected to return nothing.</li>
+    <li><code>read</code> (function): Callback for the <code>read(2)</code> system call.
+     Signature: <code>function(driver_table, length, offset) -&gt; string [, updated_offset]</code>.
+     Receives the driver table, the requested read length (integer), and the current
+     file offset (integer). Should return the data as a string and optionally the
+     updated file offset (integer). If <code>updated_offset</code> is not returned, the offset
+     is advanced by the length of the returned string (or the requested length if
+     the string is longer).</li>
+    <li><code>write</code> (function): Callback for the <code>write(2)</code> system call.
+     Signature: <code>function(driver_table, buffer_string, offset) -&gt; [written_length] [, updated_offset]</code>.
+     Receives the driver table, the data to write as a string, and the current file
+     offset (integer). May return the number of bytes successfully written (integer)
+     and optionally the updated file offset (integer). If <code>written_length</code> is not
+     returned, it's assumed all provided data was written. If <code>updated_offset</code> is
+     not returned, the offset is advanced by the <code>written_length</code>.</li>
+    <li><code>release</code> (function): Callback for the <code>release(2)</code> system call (called when the
+     last file descriptor is closed). Signature: <code>function(driver_table)</code>.
+     Expected to return nothing.</li>
+    <li><code>mode</code> (integer): Optional file mode flags (e.g., permissions) for the device file.
+     Use constants from the <a href="../modules/linux.html#stat">linux.stat</a> table (e.g., <code>linux.stat.IRUGO</code>).</li>
+</ul>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">userdata</span></span>
+        A Lunatik object representing the newly created device.
+   This object can be used to explicitly stop the device using the <code>:stop()</code> method.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the device cannot be allocated or registered in the kernel,
+   or if the <code>name</code> field is missing or not a string.
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/linux.html#stat">linux.stat</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> device = <span class="global">require</span>(<span class="string">"device"</span>)
+<span class="keyword">local</span> linux = <span class="global">require</span>(<span class="string">"linux"</span>)
+
+<span class="keyword">local</span> my_driver = {
+  name = <span class="string">"my_lua_device"</span>,
+  mode = linux.stat.IRUGO, <span class="comment">-- Read-only for all
+</span>  read = <span class="keyword">function</span>(drv, len, off)
+    <span class="keyword">local</span> data = <span class="string">"Hello from "</span> .. drv.name .. <span class="string">" at offset "</span> .. <span class="global">tostring</span>(off) .. <span class="string">"!"</span>
+    <span class="keyword">return</span> data:<span class="function-name">sub</span>(<span class="number">1</span>, len), off + #data
+  <span class="keyword">end</span>
+}
+<span class="keyword">local</span> dev_obj = device.<span class="function-name">new</span>(my_driver)
+<span class="comment">-- To clean up: dev_obj:stop() or let it be garbage collected.</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "device:stop"></a>
+    <strong>device:stop ()</strong>
+    </dt>
+    <dd>
+    Stops and releases a character device driver from the system.
+ This method is called on a device object returned by <code>device.new()</code>.
+ Once stopped, the device file (<code>/dev/&lt;name&gt;</code>) will be removed and
+ the associated resources released.</p>
+
+<p> This method provides an explicit way to release the device. The device
+ is also released when <code>close</code> is called (e.g., via Lua 5.4's to-be-closed
+ mechanism if <code>__close</code> is defined and triggered for the object, which typically
+ calls this same underlying function) or eventually when the device object is
+ garbage collected (via <code>__gc</code>). The <a href="../modules/device.html#device:stop">stop</a> and <code>close</code> methods offer more
+ deterministic cleanup than relying solely on garbage collection.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+        Does not return any value to Lua.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error May raise an error if the underlying C function encounters a critical issue during cleanup and calls <code>lua_error</code>.
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/device.html#device:new">device.new</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Assuming 'dev' is a device object:
+</span>dev:<span class="function-name">stop</span>()</pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

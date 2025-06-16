@@ -1,0 +1,1248 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Tables">Tables</a></li>
+<li><a href="#Byte_Order_Conversion">Byte Order Conversion </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><strong>linux</strong></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>linux</code></h1>
+<p>Various Linux kernel facilities.</p>
+<p> This library includes functions for random number generation, task scheduling,
+ time retrieval, kernel symbol lookup, network interface information,
+ byte order conversion, and access to kernel constants like file modes,
+ task states, and error numbers.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#difftime">difftime (t2, t1)</a></td>
+	<td class="summary">Calculates the difference between two timestamps.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ifindex">ifindex (interface_name)</a></td>
+	<td class="summary">Gets the interface index for a network device name.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#lookup">lookup (symbol_name)</a></td>
+	<td class="summary">Looks up a kernel symbol by name.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#random">random ([m[, n]])</a></td>
+	<td class="summary">Generates pseudo-random integers.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#schedule">schedule ([timeout[, state]])</a></td>
+	<td class="summary">Puts the current task to sleep.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#time">time ()</a></td>
+	<td class="summary">Gets the current real time.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#tracing">tracing ([enable])</a></td>
+	<td class="summary">Controls kernel tracing.</td>
+	</tr>
+</table>
+<h2><a href="#Tables">Tables</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#errno">errno</a></td>
+	<td class="summary">Table of error number constants.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#stat">stat</a></td>
+	<td class="summary">Table of file mode constants.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#task">task</a></td>
+	<td class="summary">Table of task state constants.</td>
+	</tr>
+</table>
+<h2><a href="#Byte_Order_Conversion">Byte Order Conversion </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#be16toh">be16toh (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from big-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#be32toh">be32toh (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from big-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#be64toh">be64toh (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from big-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htobe16">htobe16 (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from host byte order to big-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htobe32">htobe32 (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from host byte order to big-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htobe64">htobe64 (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from host byte order to big-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htole16">htole16 (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from host byte order to little-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htole32">htole32 (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from host byte order to little-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htole64">htole64 (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from host byte order to little-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hton16">hton16 (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from host byte order to network (big-endian) byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hton32">hton32 (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from host byte order to network (big-endian) byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hton64">hton64 (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from host byte order to network (big-endian) byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#le16toh">le16toh (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from little-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#le32toh">le32toh (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from little-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#le64toh">le64toh (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from little-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ntoh16">ntoh16 (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from network (big-endian) byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ntoh32">ntoh32 (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from network (big-endian) byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ntoh64">ntoh64 (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from network (big-endian) byte order to host byte order.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "difftime"></a>
+    <strong>difftime (t2, t1)</strong>
+    </dt>
+    <dd>
+    Calculates the difference between two timestamps.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t2</span>
+            <span class="types"><span class="type">integer</span></span>
+         The later timestamp (e.g., from <code>linux.time()</code>).
+        </li>
+        <li><span class="parameter">t1</span>
+            <span class="types"><span class="type">integer</span></span>
+         The earlier timestamp (e.g., from <code>linux.time()</code>).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The difference <code>t2 - t1</code> in nanoseconds.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ifindex"></a>
+    <strong>ifindex (interface_name)</strong>
+    </dt>
+    <dd>
+    Gets the interface index for a network device name.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">interface_name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The name of the network interface (e.g., "eth0").
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The interface index.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the device is not found.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> index = linux.<span class="function-name">ifindex</span>(<span class="string">"lo"</span>)
+<span class="global">print</span>(<span class="string">"Index of lo:"</span>, index)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "lookup"></a>
+    <strong>lookup (symbol_name)</strong>
+    </dt>
+    <dd>
+    Looks up a kernel symbol by name.
+ Uses <code>kallsyms_lookup_name</code> (potentially via kprobes) to find the address
+ of a kernel symbol.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">symbol_name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The name of the kernel symbol to look up.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">lightuserdata</span></span>
+        The address of the symbol if found, otherwise <code>nil</code> (represented as a NULL lightuserdata).
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> addr = linux.<span class="function-name">lookup</span>(<span class="string">"jiffies"</span>)
+<span class="keyword">if</span> addr <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Address of jiffies:"</span>, addr) <span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "random"></a>
+    <strong>random ([m[, n]])</strong>
+    </dt>
+    <dd>
+    Generates pseudo-random integers.
+ Mimics the behavior of Lua's <a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.random">math.random</a> but uses kernel's random number
+ generation facilities (<code>get_random_u32</code> or <code>get_random_u64</code>).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">m</span>
+            <span class="types"><span class="type">integer</span></span>
+         Lower bound of the range. If only one argument <code>n</code> is provided, <code>m</code> defaults to 1.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">n</span>
+            <span class="types"><span class="type">integer</span></span>
+         Upper bound of the range.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+         A pseudo-random integer.
+   - If called without arguments, returns an integer with all bits pseudo-random.
+   - If called with one integer <code>n</code>, returns a pseudo-random integer in the range <code>[1, n]</code>.
+   - If called with two integers <code>m</code> and <code>n</code>, returns a pseudo-random integer in the range <code>[m, n]</code>.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if <code>m &gt; n</code> or if the interval is too large.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> r1 = linux.<span class="function-name">random</span>()       <span class="comment">-- Full range random integer
+</span><span class="keyword">local</span> r2 = linux.<span class="function-name">random</span>(<span class="number">100</span>)    <span class="comment">-- Random integer between 1 and 100
+</span><span class="keyword">local</span> r3 = linux.<span class="function-name">random</span>(<span class="number">50</span>, <span class="number">60</span>) <span class="comment">-- Random integer between 50 and 60</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "schedule"></a>
+    <strong>schedule ([timeout[, state]])</strong>
+    </dt>
+    <dd>
+    Puts the current task to sleep.
+ Sets the current task's state and schedules it out until a timeout occurs
+ or it is woken up.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">timeout</span>
+            <span class="types"><span class="type">integer</span></span>
+         Duration in milliseconds to sleep. Defaults to <code>MAX_SCHEDULE_TIMEOUT</code> (effectively indefinite sleep until woken).
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">state</span>
+            <span class="types"><span class="type">integer</span></span>
+         The task state to set before sleeping. See <a href="../modules/linux.html#task">linux.task</a> for possible values. Defaults to <code>linux.task.INTERRUPTIBLE</code>.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The remaining time in milliseconds if the sleep was interrupted before the full timeout, or 0 if the full timeout elapsed.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if an invalid task state is provided.
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/linux.html#task">linux.task</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">linux.<span class="function-name">schedule</span>(<span class="number">1000</span>) <span class="comment">-- Sleep for 1 second (interruptible)
+</span>linux.<span class="function-name">schedule</span>(<span class="number">500</span>, linux.task.UNINTERRUPTIBLE) <span class="comment">-- Sleep for 0.5 seconds (uninterruptible)</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "time"></a>
+    <strong>time ()</strong>
+    </dt>
+    <dd>
+    Gets the current real time.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The current time in nanoseconds since the epoch (from <code>ktime_get_real_ns</code>).
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "tracing"></a>
+    <strong>tracing ([enable])</strong>
+    </dt>
+    <dd>
+    Controls kernel tracing.
+ Turns kernel tracing on or off via <code>tracing_on()</code> and <code>tracing_off()</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">enable</span>
+            <span class="types"><span class="type">boolean</span></span>
+         If <code>true</code>, turns tracing on. If <code>false</code>, turns tracing off. If omitted, does not change the state.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        The current state of kernel tracing (<code>true</code> if on, <code>false</code> if off) <em>after</em> any change.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> was_tracing = linux.<span class="function-name">tracing</span>(<span class="keyword">true</span>) <span class="comment">-- Enable tracing
+</span><span class="keyword">if</span> was_tracing <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Tracing is now on"</span>) <span class="keyword">end</span>
+<span class="keyword">local</span> current_state = linux.<span class="function-name">tracing</span>()   <span class="comment">-- Get current state
+</span>linux.<span class="function-name">tracing</span>(<span class="keyword">false</span>)                    <span class="comment">-- Disable tracing</span></pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "errno"></a>
+    <strong>errno</strong>
+    </dt>
+    <dd>
+    Table of error number constants.
+ Exports common errno values from <code>&lt;uapi/asm-generic/errno-base.h&gt;</code>.
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">PERM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Operation not permitted (EPERM).
+        </li>
+        <li><span class="parameter">NOENT</span>
+            <span class="types"><span class="type">integer</span></span>
+         No such file or directory (ENOENT).
+        </li>
+        <li><span class="parameter">SRCH</span>
+            <span class="types"><span class="type">integer</span></span>
+         No such process (ESRCH).
+        </li>
+        <li><span class="parameter">INTR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Interrupted system call (EINTR).
+        </li>
+        <li><span class="parameter">IO</span>
+            <span class="types"><span class="type">integer</span></span>
+         I/O error (EIO).
+        </li>
+        <li><span class="parameter">NXIO</span>
+            <span class="types"><span class="type">integer</span></span>
+         No such device or address (ENXIO).
+        </li>
+        <li><span class="parameter">E2BIG</span>
+            <span class="types"><span class="type">integer</span></span>
+         Argument list too long (E2BIG). (Lua field name is "2BIG")
+        </li>
+        <li><span class="parameter">NOEXEC</span>
+            <span class="types"><span class="type">integer</span></span>
+         Exec format error (ENOEXEC).
+        </li>
+        <li><span class="parameter">BADF</span>
+            <span class="types"><span class="type">integer</span></span>
+         Bad file number (EBADF).
+        </li>
+        <li><span class="parameter">CHILD</span>
+            <span class="types"><span class="type">integer</span></span>
+         No child processes (ECHILD).
+        </li>
+        <li><span class="parameter">AGAIN</span>
+            <span class="types"><span class="type">integer</span></span>
+         Try again (EAGAIN).
+        </li>
+        <li><span class="parameter">NOMEM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Out of memory (ENOMEM).
+        </li>
+        <li><span class="parameter">ACCES</span>
+            <span class="types"><span class="type">integer</span></span>
+         Permission denied (EACCES).
+        </li>
+        <li><span class="parameter">FAULT</span>
+            <span class="types"><span class="type">integer</span></span>
+         Bad address (EFAULT).
+        </li>
+        <li><span class="parameter">NOTBLK</span>
+            <span class="types"><span class="type">integer</span></span>
+         Block device required (ENOTBLK).
+        </li>
+        <li><span class="parameter">BUSY</span>
+            <span class="types"><span class="type">integer</span></span>
+         Device or resource busy (EBUSY).
+        </li>
+        <li><span class="parameter">EXIST</span>
+            <span class="types"><span class="type">integer</span></span>
+         File exists (EEXIST).
+        </li>
+        <li><span class="parameter">XDEV</span>
+            <span class="types"><span class="type">integer</span></span>
+         Cross-device link (EXDEV).
+        </li>
+        <li><span class="parameter">NODEV</span>
+            <span class="types"><span class="type">integer</span></span>
+         No such device (ENODEV).
+        </li>
+        <li><span class="parameter">NOTDIR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Not a directory (ENOTDIR).
+        </li>
+        <li><span class="parameter">ISDIR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Is a directory (EISDIR).
+        </li>
+        <li><span class="parameter">INVAL</span>
+            <span class="types"><span class="type">integer</span></span>
+         Invalid argument (EINVAL).
+        </li>
+        <li><span class="parameter">NFILE</span>
+            <span class="types"><span class="type">integer</span></span>
+         File table overflow (ENFILE).
+        </li>
+        <li><span class="parameter">MFILE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Too many open files (EMFILE).
+        </li>
+        <li><span class="parameter">NOTTY</span>
+            <span class="types"><span class="type">integer</span></span>
+         Not a typewriter (ENOTTY).
+        </li>
+        <li><span class="parameter">TXTBSY</span>
+            <span class="types"><span class="type">integer</span></span>
+         Text file busy (ETXTBSY).
+        </li>
+        <li><span class="parameter">FBIG</span>
+            <span class="types"><span class="type">integer</span></span>
+         File too large (EFBIG).
+        </li>
+        <li><span class="parameter">NOSPC</span>
+            <span class="types"><span class="type">integer</span></span>
+         No space left on device (ENOSPC).
+        </li>
+        <li><span class="parameter">SPIPE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Illegal seek (ESPIPE).
+        </li>
+        <li><span class="parameter">ROFS</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read-only file system (EROFS).
+        </li>
+        <li><span class="parameter">MLINK</span>
+            <span class="types"><span class="type">integer</span></span>
+         Too many links (EMLINK).
+        </li>
+        <li><span class="parameter">PIPE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Broken pipe (EPIPE).
+        </li>
+        <li><span class="parameter">DOM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Math argument out of domain of func (EDOM).
+        </li>
+        <li><span class="parameter">RANGE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Math result not representable (ERANGE).
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "stat"></a>
+    <strong>stat</strong>
+    </dt>
+    <dd>
+    Table of file mode constants.
+ Exports file permission flags from <code>&lt;linux/stat.h&gt;</code>. These can be used, for
+ example, with <code>device.new()</code> to set the mode of a character device.
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">IRWXU</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read, write, execute for owner. (S_IRWXU)
+        </li>
+        <li><span class="parameter">IRUSR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read for owner. (S_IRUSR)
+        </li>
+        <li><span class="parameter">IWUSR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write for owner. (S_IWUSR)
+        </li>
+        <li><span class="parameter">IXUSR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Execute for owner. (S_IXUSR)
+        </li>
+        <li><span class="parameter">IRWXG</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read, write, execute for group. (S_IRWXG)
+        </li>
+        <li><span class="parameter">IRGRP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read for group. (S_IRGRP)
+        </li>
+        <li><span class="parameter">IWGRP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write for group. (S_IWGRP)
+        </li>
+        <li><span class="parameter">IXGRP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Execute for group. (S_IXGRP)
+        </li>
+        <li><span class="parameter">IRWXO</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read, write, execute for others. (S_IRWXO)
+        </li>
+        <li><span class="parameter">IROTH</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read for others. (S_IROTH)
+        </li>
+        <li><span class="parameter">IWOTH</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write for others. (S_IWOTH)
+        </li>
+        <li><span class="parameter">IXOTH</span>
+            <span class="types"><span class="type">integer</span></span>
+         Execute for others. (S_IXOTH)
+        </li>
+        <li><span class="parameter">IRWXUGO</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read, write, execute for user, group, and others. (S<em>IRWXU|S</em>IRWXG|S_IRWXO)
+        </li>
+        <li><span class="parameter">IALLUGO</span>
+            <span class="types"><span class="type">integer</span></span>
+         All permissions for user, group, and others, including SUID, SGID, SVTX. (S<em>ISUID|S</em>ISGID|S<em>ISVTX|S</em>IRWXUGO)
+        </li>
+        <li><span class="parameter">IRUGO</span>
+            <span class="types"><span class="type">integer</span></span>
+         Read for user, group, and others. (S<em>IRUSR|S</em>IRGRP|S_IROTH)
+        </li>
+        <li><span class="parameter">IWUGO</span>
+            <span class="types"><span class="type">integer</span></span>
+         Write for user, group, and others. (S<em>IWUSR|S</em>IWGRP|S_IWOTH)
+        </li>
+        <li><span class="parameter">IXUGO</span>
+            <span class="types"><span class="type">integer</span></span>
+         Execute for user, group, and others. (S<em>IXUSR|S</em>IXGRP|S_IXOTH)
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/device.html#device:new">device.new</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "task"></a>
+    <strong>task</strong>
+    </dt>
+    <dd>
+    Table of task state constants.
+ Exports task state flags from <code>&lt;linux/sched.h&gt;</code>. These are used with
+ <code>linux.schedule()</code>.
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">INTERRUPTIBLE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Task is waiting for a signal or a resource (sleeping), can be interrupted.
+        </li>
+        <li><span class="parameter">UNINTERRUPTIBLE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Task is waiting (sleeping), cannot be interrupted by signals (except fatal ones if KILLABLE is also implied by context).
+        </li>
+        <li><span class="parameter">KILLABLE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Task is waiting (sleeping) like UNINTERRUPTIBLE, but can be interrupted by fatal signals.
+        </li>
+        <li><span class="parameter">IDLE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Task is idle, similar to UNINTERRUPTIBLE but avoids loadavg accounting.
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/linux.html#schedule">linux.schedule</a>
+    </ul>
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Byte_Order_Conversion"></a>Byte Order Conversion </h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "be16toh"></a>
+    <strong>be16toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from big-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in big-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "be32toh"></a>
+    <strong>be32toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from big-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in big-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "be64toh"></a>
+    <strong>be64toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from big-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in big-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htobe16"></a>
+    <strong>htobe16 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from host byte order to big-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in big-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htobe32"></a>
+    <strong>htobe32 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from host byte order to big-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in big-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htobe64"></a>
+    <strong>htobe64 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from host byte order to big-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in big-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htole16"></a>
+    <strong>htole16 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from host byte order to little-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in little-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htole32"></a>
+    <strong>htole32 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from host byte order to little-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in little-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htole64"></a>
+    <strong>htole64 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from host byte order to little-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in little-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hton16"></a>
+    <strong>hton16 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from host byte order to network (big-endian) byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in network byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hton32"></a>
+    <strong>hton32 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from host byte order to network (big-endian) byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in network byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hton64"></a>
+    <strong>hton64 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from host byte order to network (big-endian) byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in network byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "le16toh"></a>
+    <strong>le16toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from little-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in little-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "le32toh"></a>
+    <strong>le32toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from little-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in little-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "le64toh"></a>
+    <strong>le64toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from little-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in little-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ntoh16"></a>
+    <strong>ntoh16 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from network (big-endian) byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in network byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ntoh32"></a>
+    <strong>ntoh32 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from network (big-endian) byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in network byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ntoh64"></a>
+    <strong>ntoh64 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from network (big-endian) byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in network byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

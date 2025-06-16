@@ -1,0 +1,267 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#xdp">xdp</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><strong>xdp</strong></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>xdp</code></h1>
+<p>eXpress Data Path (XDP) integration.</p>
+<p> This library allows Lua scripts to interact with the kernel's XDP subsystem.
+ It enables XDP/eBPF programs to call Lua functions for packet processing,
+ providing a flexible way to implement custom packet handling logic in Lua
+ at a very early stage in the network stack.</p>
+
+<p> The primary mechanism involves an XDP program calling the <code>bpf_luaxdp_run</code>
+ kfunc, which in turn invokes a Lua callback function previously registered
+ using <code>xdp.attach()</code>.</p>
+
+
+<h2><a href="#xdp">xdp</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#action">action</a></td>
+	<td class="summary">Table of XDP action verdicts.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#attach">attach (callback)</a></td>
+	<td class="summary">Registers a Lua callback function to be invoked by an XDP/eBPF program.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#detach">detach ()</a></td>
+	<td class="summary">Unregisters the Lua callback function associated with the current Lunatik runtime.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="xdp"></a>xdp</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "action"></a>
+    <strong>action</strong>
+    </dt>
+    <dd>
+    Table of XDP action verdicts.
+ These constants define the possible return values from an XDP program (and thus
+ from the Lua callback attached via <a href="../modules/xdp.html#attach">xdp.attach</a>) to indicate how the packet
+ should be handled.
+ (Constants from <code>&lt;uapi/linux/bpf.h&gt;</code>)
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">ABORTED</span>
+            <span class="types"><span class="type">integer</span></span>
+         Indicates an error; packet is dropped. (XDP_ABORTED)
+        </li>
+        <li><span class="parameter">DROP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Drop the packet silently. (XDP_DROP)
+        </li>
+        <li><span class="parameter">PASS</span>
+            <span class="types"><span class="type">integer</span></span>
+         Pass the packet to the normal network stack. (XDP_PASS)
+        </li>
+        <li><span class="parameter">TX</span>
+            <span class="types"><span class="type">integer</span></span>
+         Transmit the packet back out the same interface it arrived on. (XDP_TX)
+        </li>
+        <li><span class="parameter">REDIRECT</span>
+            <span class="types"><span class="type">integer</span></span>
+         Redirect the packet to another interface or BPF map. (XDP_REDIRECT)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "attach"></a>
+    <strong>attach (callback)</strong>
+    </dt>
+    <dd>
+
+<p>Registers a Lua callback function to be invoked by an XDP/eBPF program.
+ When an XDP program calls the <code>bpf_luaxdp_run</code> kfunc, Lunatik will execute
+ the registered Lua <code>callback</code> associated with the current Lunatik runtime.
+ The runtime invoking this function must be non-sleepable.</p>
+
+<p> The <code>bpf_luaxdp_run</code> kfunc is called from an eBPF program with the following signature:
+ <code>int bpf_luaxdp_run(char *key, size_t key_sz, struct xdp_md *xdp_ctx, void *arg, size_t arg_sz)</code></p>
+
+<ul>
+    <li><code>key</code>: A string identifying the Lunatik runtime (e.g., the script name like "examples/filter/sni").
+    This key is used to look up the runtime in Lunatik's internal table of active runtimes.</li>
+    <li><code>key_sz</code>: Length of the key string (including the null terminator).</li>
+    <li><code>xdp_ctx</code>: The XDP metadata context (<code>struct xdp_md *</code>).</li>
+    <li><code>arg</code>: A pointer to arbitrary data passed from eBPF to Lua.</li>
+    <li><code>arg_sz</code>: The size of the <code>arg</code> data.</li>
+</ul>
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+         The Lua function to be called. This function receives two arguments:</p>
+
+<ol>
+    <li><code>buffer</code> (data): A <a href="../modules/data.html#">data</a> object representing the network packet buffer (<code>xdp_md</code>).
+    The <a href="../modules/data.html#">data</a> object points to <code>xdp_ctx-&gt;data</code> and its size is <code>xdp_ctx-&gt;data_end - xdp_ctx-&gt;data</code>.</li>
+    <li><code>argument</code> (data): A <a href="../modules/data.html#">data</a> object representing the <code>arg</code> passed from the eBPF program.
+    Its size is <code>arg_sz</code>.</li>
+</ol>
+
+<p>   The callback function should return an integer verdict, typically one of the values
+   from the <a href="../modules/xdp.html#action">xdp.action</a> table (e.g., <code>xdp.action.PASS</code>, <code>xdp.action.DROP</code>).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the current runtime is sleepable or if internal setup fails.
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/xdp.html#action">xdp.action</a></li>
+         <li><a href="../modules/data.html#">data</a></li>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Lua script (e.g., "my_xdp_handler.lua" which is run via <code>lunatik run my_xdp_handler.lua</code>)
+</span><span class="keyword">local</span> xdp = <span class="global">require</span>(<span class="string">"xdp"</span>)
+
+<span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">my_packet_processor</span>(packet_buffer, custom_arg)
+  <span class="global">print</span>(<span class="string">"Packet received, size:"</span>, #packet_buffer)
+  <span class="keyword">return</span> xdp.action.PASS
+<span class="keyword">end</span>
+xdp.<span class="function-name">attach</span>(my_packet_processor)
+
+<span class="comment">-- In eBPF C code, to call the above Lua function:
+</span><span class="comment">-- char rt_key[] = "my_xdp_handler.lua"; // Key matches the script name
+</span><span class="comment">-- int verdict = bpf_luaxdp_run(rt_key, sizeof(rt_key), ctx, NULL, 0);</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "detach"></a>
+    <strong>detach ()</strong>
+    </dt>
+    <dd>
+    Unregisters the Lua callback function associated with the current Lunatik runtime.
+ After calling this, <code>bpf_luaxdp_run</code> calls targeting this runtime will no longer
+ invoke a Lua function (they will likely return an error or default action).
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">xdp.<span class="function-name">detach</span>()</pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

@@ -1,0 +1,551 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_notifier">Class notifier </a></li>
+<li><a href="#notifier">notifier</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><strong>notifier</strong></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>notifier</code></h1>
+<p>Notifier chain mechanism.</p>
+<p> This library allows Lua scripts to register callback functions that are
+ invoked when specific kernel events occur, such as keyboard input,
+ network device status changes, or virtual terminal events.</p>
+
+
+<h2><a href="#Class_notifier">Class notifier </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#notifier:stop">notifier:stop ()</a></td>
+	<td class="summary">Stops and unregisters a notifier.</td>
+	</tr>
+</table>
+<h2><a href="#notifier">notifier</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#kbd">kbd</a></td>
+	<td class="summary">Table of keyboard event types.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#keyboard">keyboard (callback)</a></td>
+	<td class="summary">Registers a notifier for keyboard events.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#netdev">netdev</a></td>
+	<td class="summary">Table of network device event types.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#netdevice">netdevice (callback)</a></td>
+	<td class="summary">Registers a notifier for network device events.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#notify">notify</a></td>
+	<td class="summary">Table of notifier chain return status codes.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#vt">vt</a></td>
+	<td class="summary">Table of virtual terminal (VT) event types.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#vterm">vterm (callback)</a></td>
+	<td class="summary">Registers a notifier for virtual terminal (vterm) events.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_notifier"></a>Class notifier </h2>
+
+          <div class="section-description">
+          Represents a kernel notifier object.
+ This is a userdata object returned by functions like <code>notifier.keyboard()</code>,
+ <code>notifier.netdevice()</code>, or <code>notifier.vterm()</code>. It encapsulates a
+ <code>struct notifier_block</code> and the associated Lua callback.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "notifier:stop"></a>
+    <strong>notifier:stop ()</strong>
+    </dt>
+    <dd>
+    Stops and unregisters a notifier.
+ This method is called on a notifier object. Once stopped, the callback
+ will no longer be invoked for kernel events.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the notifier attempts to unregister itself from within its own callback (which would cause a deadlock).
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">my_notifier:<span class="function-name">stop</span>()</pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="notifier"></a>notifier</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "kbd"></a>
+    <strong>kbd</strong>
+    </dt>
+    <dd>
+    Table of keyboard event types.
+ Used as the <code>event</code> argument in <a href="../modules/notifier.html#keyboard">notifier.keyboard</a> callbacks.
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">KEYCODE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Keyboard keycode event, called before any other.
+        </li>
+        <li><span class="parameter">UNBOUND_KEYCODE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Keyboard keycode which is not bound to any other.
+        </li>
+        <li><span class="parameter">UNICODE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Keyboard unicode character event.
+        </li>
+        <li><span class="parameter">KEYSYM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Keyboard keysym event.
+        </li>
+        <li><span class="parameter">POST_KEYSYM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Event called after keyboard keysym interpretation.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "keyboard"></a>
+    <strong>keyboard (callback)</strong>
+    </dt>
+    <dd>
+    Registers a notifier for keyboard events.
+ The provided callback function will be invoked whenever a console keyboard
+ event occurs (e.g., a key is pressed or released).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+         The Lua function to call on keyboard events.
+   It receives the following arguments:</p>
+
+<ol>
+    <li><code>event</code> (integer): The keyboard event type (see <a href="../modules/notifier.html#kbd">notifier.kbd</a>).</li>
+    <li><code>down</code> (boolean): <code>true</code> if the key is pressed, <code>false</code> if released.</li>
+    <li><code>shift</code> (boolean): <code>true</code> if a shift key (Shift, Alt, Ctrl) is held, <code>false</code> otherwise.</li>
+    <li><code>value</code> (integer): The key's value (keycode or keysym, depending on the <code>event</code>).</li>
+</ol>
+
+<p>   The callback should return a <a href="../modules/notifier.html#notify">notifier.notify</a> status code (e.g., <code>notifier.notify.OK</code>).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/notifier.html#notifier">notifier</a></span>
+        A new notifier object.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/notifier.html#kbd">notifier.kbd</a></li>
+         <li><a href="../modules/notifier.html#notify">notifier.notify</a></li>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> kbd_notifier = notifier.<span class="function-name">keyboard</span>(<span class="keyword">function</span>(event, down, shift, value) <span class="global">print</span>(<span class="string">"Key event:"</span>, event, value); <span class="keyword">return</span> notifier.notify.OK <span class="keyword">end</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "netdev"></a>
+    <strong>netdev</strong>
+    </dt>
+    <dd>
+    Table of network device event types.
+ Used as the <code>event</code> argument in <a href="../modules/notifier.html#netdevice">notifier.netdevice</a> callbacks.
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">UP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device is up.
+        </li>
+        <li><span class="parameter">DOWN</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device is down.
+        </li>
+        <li><span class="parameter">REBOOT</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device is rebooting (deprecated).
+        </li>
+        <li><span class="parameter">CHANGE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device has changed state.
+        </li>
+        <li><span class="parameter">REGISTER</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device is being registered.
+        </li>
+        <li><span class="parameter">UNREGISTER</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device is being unregistered.
+        </li>
+        <li><span class="parameter">CHANGEMTU</span>
+            <span class="types"><span class="type">integer</span></span>
+         MTU of the network device has changed.
+        </li>
+        <li><span class="parameter">CHANGEADDR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Hardware address of the network device has changed.
+        </li>
+        <li><span class="parameter">PRE_CHANGEADDR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Notification before hardware address change.
+        </li>
+        <li><span class="parameter">GOING_DOWN</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device is being taken down.
+        </li>
+        <li><span class="parameter">CHANGENAME</span>
+            <span class="types"><span class="type">integer</span></span>
+         Name of the network device has changed.
+        </li>
+        <li><span class="parameter">FEAT_CHANGE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Features of the network device have changed.
+        </li>
+        <li><span class="parameter">BONDING_FAILOVER</span>
+            <span class="types"><span class="type">integer</span></span>
+         Bonding master has failed over to a new slave.
+        </li>
+        <li><span class="parameter">PRE_UP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Notification before network device is brought up.
+        </li>
+        <li><span class="parameter">PRE_TYPE_CHANGE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Notification before network device type changes.
+        </li>
+        <li><span class="parameter">POST_TYPE_CHANGE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Notification after network device type changes.
+        </li>
+        <li><span class="parameter">POST_INIT</span>
+            <span class="types"><span class="type">integer</span></span>
+         Notification after network device initialization.
+        </li>
+        <li><span class="parameter">PRE_UNINIT</span>
+            <span class="types"><span class="type">integer</span></span>
+         Notification before network device uninitialization (Kernel 6.2+).
+        </li>
+        <li><span class="parameter">RELEASE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device is being released.
+        </li>
+        <li><span class="parameter">NOTIFY_PEERS</span>
+            <span class="types"><span class="type">integer</span></span>
+         Notify peers of a change.
+        </li>
+        <li><span class="parameter">JOIN</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device has joined a multicast group.
+        </li>
+        <li><span class="parameter">CHANGEUPPER</span>
+            <span class="types"><span class="type">integer</span></span>
+         Upper device state change.
+        </li>
+        <li><span class="parameter">RESEND_IGMP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Resend IGMP joins.
+        </li>
+        <li><span class="parameter">PRECHANGEMTU</span>
+            <span class="types"><span class="type">integer</span></span>
+         Notification before MTU change.
+        </li>
+        <li><span class="parameter">CHANGEINFODATA</span>
+            <span class="types"><span class="type">integer</span></span>
+         Network device info data has changed.
+        </li>
+        <li><span class="parameter">BONDING_INFO</span>
+            <span class="types"><span class="type">integer</span></span>
+         Bonding information update.
+        </li>
+        <li><span class="parameter">CHANGE_TX_QUEUE_LEN</span>
+            <span class="types"><span class="type">integer</span></span>
+         Transmit queue length has changed.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "netdevice"></a>
+    <strong>netdevice (callback)</strong>
+    </dt>
+    <dd>
+    Registers a notifier for network device events.
+ The provided callback function will be invoked whenever a network device
+ event occurs (e.g., an interface goes up or down).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+         The Lua function to call on netdevice events.
+   It receives the following arguments:</p>
+
+<ol>
+    <li><code>event</code> (integer): The netdevice event type (see <a href="../modules/notifier.html#netdev">notifier.netdev</a>).</li>
+    <li><code>name</code> (string): The name of the network device (e.g., "eth0").</li>
+</ol>
+
+<p>   The callback should return a <a href="../modules/notifier.html#notify">notifier.notify</a> status code.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/notifier.html#notifier">notifier</a></span>
+        A new notifier object.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/notifier.html#netdev">notifier.netdev</a></li>
+         <li><a href="../modules/notifier.html#notify">notifier.notify</a></li>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> net_notif = notifier.<span class="function-name">netdevice</span>(<span class="keyword">function</span>(event, name) <span class="global">print</span>(<span class="string">"Netdev event:"</span>, name, event); <span class="keyword">return</span> notifier.notify.OK <span class="keyword">end</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "notify"></a>
+    <strong>notify</strong>
+    </dt>
+    <dd>
+    Table of notifier chain return status codes.
+ These values are typically returned by notifier callback functions.
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">DONE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Indicates the callback is done and doesn't care about further processing.
+        </li>
+        <li><span class="parameter">OK</span>
+            <span class="types"><span class="type">integer</span></span>
+         Indicates the callback processed the event successfully and other notifiers can proceed.
+        </li>
+        <li><span class="parameter">BAD</span>
+            <span class="types"><span class="type">integer</span></span>
+         Indicates the callback encountered an issue or wants to veto the action.
+        </li>
+        <li><span class="parameter">STOP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Indicates the callback handled the event and no further notifiers in the chain should be called.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "vt"></a>
+    <strong>vt</strong>
+    </dt>
+    <dd>
+    Table of virtual terminal (VT) event types.
+ Used as the <code>event</code> argument in <a href="../modules/notifier.html#vterm">notifier.vterm</a> callbacks.
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">VT_ALLOCATE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Virtual terminal is being allocated.
+        </li>
+        <li><span class="parameter">VT_DEALLOCATE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Virtual terminal is being deallocated.
+        </li>
+        <li><span class="parameter">VT_WRITE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Character is written to virtual terminal.
+        </li>
+        <li><span class="parameter">VT_UPDATE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Virtual terminal update event.
+        </li>
+        <li><span class="parameter">VT_PREWRITE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Before writing character to virtual terminal.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "vterm"></a>
+    <strong>vterm (callback)</strong>
+    </dt>
+    <dd>
+    Registers a notifier for virtual terminal (vterm) events.
+ The provided callback function will be invoked whenever a virtual terminal
+ event occurs (e.g., a character is written, a terminal is allocated).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+         The Lua function to call on vterm events.
+   It receives the following arguments:</p>
+
+<ol>
+    <li><code>event</code> (integer): The vterm event type (see <a href="../modules/notifier.html#vt">notifier.vt</a>).</li>
+    <li><code>c</code> (integer): The character related to the event (if applicable).</li>
+    <li><code>vc_num</code> (integer): The virtual console number associated with the event.</li>
+</ol>
+
+<p>   The callback should return a <a href="../modules/notifier.html#notify">notifier.notify</a> status code.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/notifier.html#notifier">notifier</a></span>
+        A new notifier object.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/notifier.html#vt">notifier.vt</a></li>
+         <li><a href="../modules/notifier.html#notify">notifier.notify</a></li>
+    </ul>
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

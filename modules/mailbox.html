@@ -1,0 +1,293 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Tables">Tables</a></li>
+<li><a href="#Class_MailBox">Class MailBox </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><strong>mailbox</strong></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>mailbox</code></h1>
+<p>Inter-runtime communication mechanism using FIFOs and completions.</p>
+<p> This module provides a way for different Lunatik runtimes (Lua states)
+ to send and receive messages to/from each other. It uses a FIFO queue
+ for message storage and a completion object for synchronization.</p>
+
+<p> Mailboxes are unidirectional (<a href="../modules/mailbox.html#mailbox:inbox">inbox</a> for receiving only, <a href="../modules/mailbox.html#mailbox:outbox">outbox</a> for sending only).
+ Messages are serialized as strings.</p>
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/fifo.html#">fifo</a></li>
+         <li><a href="../modules/completion.html#">completion</a></li>
+    </ul>
+
+
+<h2><a href="#Tables">Tables</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#mailbox">mailbox</a></td>
+	<td class="summary">The main mailbox table.</td>
+	</tr>
+</table>
+<h2><a href="#Class_MailBox">Class MailBox </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#MailBox:receive">MailBox:receive ([timeout])</a></td>
+	<td class="summary">Receives a message from the mailbox.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#MailBox:send">MailBox:send (message)</a></td>
+	<td class="summary">Sends a message to the mailbox.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#mailbox:inbox">mailbox:inbox (q, e)</a></td>
+	<td class="summary">Creates a new inbox (receive-only mailbox).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#mailbox:outbox">mailbox:outbox (q, e)</a></td>
+	<td class="summary">Creates a new outbox (send-only mailbox).</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "mailbox"></a>
+    <strong>mailbox</strong>
+    </dt>
+    <dd>
+    The main mailbox table.
+
+
+
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_MailBox"></a>Class MailBox </h2>
+
+          <div class="section-description">
+          Metatable for MailBox objects.
+ This table defines the methods available on mailbox instances.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "MailBox:receive"></a>
+    <strong>MailBox:receive ([timeout])</strong>
+    </dt>
+    <dd>
+    Receives a message from the mailbox.
+ This function will block until a message is available or the timeout expires.
+ Not available on outboxes.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">timeout</span>
+            <span class="types"><span class="type">number</span></span>
+         The maximum time to wait in jiffies.
+   If omitted or negative, waits indefinitely. If 0, returns immediately.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The received message.</li>
+        <li>
+           <span class="types"><span class="type">nil</span></span>
+        If no message is received (e.g., FIFO is empty after event or on timeout).</li>
+    </ol>
+     <h3>Or</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Error message if the wait times out or another error occurs.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if called on an outbox, or if the underlying event wait fails,
+   or if a malformed message is encountered.
+
+
+
+</dd>
+    <dt>
+    <a name = "MailBox:send"></a>
+    <strong>MailBox:send (message)</strong>
+    </dt>
+    <dd>
+    Sends a message to the mailbox.
+ Not available on inboxes.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">message</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The message to send.
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    Error if called on an inbox.
+
+
+
+</dd>
+    <dt>
+    <a name = "mailbox:inbox"></a>
+    <strong>mailbox:inbox (q, e)</strong>
+    </dt>
+    <dd>
+    Creates a new inbox (receive-only mailbox).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">q</span>
+         (fifo|number) Either an existing FIFO object or a capacity for a new FIFO.
+   If a number, a new FIFO with this capacity will be created.
+        </li>
+        <li><span class="parameter">e</span>
+         (completion) [optional] An existing completion object. If nil and <code>q</code> is a number,
+   a new completion object will be created.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        (MailBox) A new inbox object.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> my_inbox = mailbox.<span class="function-name">inbox</span>(<span class="number">10</span>) <span class="comment">-- Inbox with capacity for 10 messages
+</span><span class="keyword">local</span> msg = my_inbox:<span class="function-name">receive</span>()</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "mailbox:outbox"></a>
+    <strong>mailbox:outbox (q, e)</strong>
+    </dt>
+    <dd>
+    Creates a new outbox (send-only mailbox).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">q</span>
+         (fifo|number) Either an existing FIFO object or a capacity for a new FIFO.
+   If a number, a new FIFO with this capacity will be created.
+        </li>
+        <li><span class="parameter">e</span>
+         (completion) [optional] An existing completion object. If nil and <code>q</code> is a number,
+   a new completion object will be created.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        (MailBox) A new outbox object.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> my_outbox = mailbox.<span class="function-name">outbox</span>(<span class="number">10</span>) <span class="comment">-- Outbox with capacity for 10 messages
+</span>my_outbox:<span class="function-name">send</span>(<span class="string">"hello"</span>)</pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

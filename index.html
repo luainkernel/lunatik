@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="modules/completion.html">completion</a></li>
+  <li><a href="modules/data.html">data</a></li>
+  <li><a href="modules/device.html">device</a></li>
+  <li><a href="modules/fib.html">fib</a></li>
+  <li><a href="modules/fifo.html">fifo</a></li>
+  <li><a href="modules/lunatik.html">lunatik</a></li>
+  <li><a href="modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="modules/linux.html">linux</a></li>
+  <li><a href="modules/mailbox.html">mailbox</a></li>
+  <li><a href="modules/net.html">net</a></li>
+  <li><a href="modules/netfilter.html">netfilter</a></li>
+  <li><a href="modules/notifier.html">notifier</a></li>
+  <li><a href="modules/probe.html">probe</a></li>
+  <li><a href="modules/rcu.html">rcu</a></li>
+  <li><a href="modules/socket.html">socket</a></li>
+  <li><a href="modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="modules/syscall.html">syscall</a></li>
+  <li><a href="modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="modules/thread.html">thread</a></li>
+  <li><a href="modules/xdp.html">xdp</a></li>
+  <li><a href="modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+
+  <h2>Lunatik is a framework for scripting the Linux kernel with Lua.</h2>
+
+<h2>Modules</h2>
+<table class="module_list">
+	<tr>
+		<td class="name"  nowrap><a href="modules/completion.html">completion</a></td>
+		<td class="summary">Lua bindings for kernel completion mechanisms.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/data.html">data</a></td>
+		<td class="summary">Direct memory access and manipulation.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/device.html">device</a></td>
+		<td class="summary">Low-level Lua interface for creating Linux character device drivers.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/fib.html">fib</a></td>
+		<td class="summary">Forwarding Information Base (FIB) rules.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/fifo.html">fifo</a></td>
+		<td class="summary">kfifo (kernel FIFO) implementation.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/lunatik.html">lunatik</a></td>
+		<td class="summary">Core Lunatik module.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/lunatik.runner.html">lunatik.runner</a></td>
+		<td class="summary">Manages the execution and lifecycle of Lunatik scripts.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/linux.html">linux</a></td>
+		<td class="summary">Various Linux kernel facilities.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/mailbox.html">mailbox</a></td>
+		<td class="summary">Inter-runtime communication mechanism using FIFOs and completions.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/net.html">net</a></td>
+		<td class="summary">Network utility functions.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/netfilter.html">netfilter</a></td>
+		<td class="summary">Low-level Lua interface to the Linux Kernel Netfilter framework.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/notifier.html">notifier</a></td>
+		<td class="summary">Notifier chain mechanism.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/probe.html">probe</a></td>
+		<td class="summary">kprobes mechanism.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/rcu.html">rcu</a></td>
+		<td class="summary">Read-Copy-Update (RCU) synchronized hash table.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/socket.html">socket</a></td>
+		<td class="summary">Low-level Lua interface for kernel networking sockets.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/socket.inet.html">socket.inet</a></td>
+		<td class="summary">Internet (AF_INET) socket operations.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/syscall.html">syscall</a></td>
+		<td class="summary">Accessing kernel system call information.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/syscall.table.html">syscall.table</a></td>
+		<td class="summary">A table mapping system call names to their kernel addresses.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/thread.html">thread</a></td>
+		<td class="summary">Kernel thread primitives.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/xdp.html">xdp</a></td>
+		<td class="summary">eXpress Data Path (XDP) integration.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/xtable.html">xtable</a></td>
+		<td class="summary">Netfilter Xtables extensions.</td>
+	</tr>
+</table>
+<h2>Topics</h2>
+<table class="module_list">
+	<tr>
+		<td class="name"  nowrap><a href="topics/README.md.html">README.md</a></td>
+		<td class="summary"></td>
+	</tr>
+</table>
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

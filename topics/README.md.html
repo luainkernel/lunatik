@@ -1,0 +1,1912 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Setup">Setup </a></li>
+<li><a href="#Usage">Usage </a></li>
+<li><a href="#Lua_Version">Lua Version </a></li>
+<li><a href="#Lunatik_C_API">Lunatik C API </a></li>
+<li><a href="#Lunatik_Lua_APIs">Lunatik Lua APIs </a></li>
+<li><a href="#References">References </a></li>
+<li><a href="#License">License </a></li>
+</ul>
+
+
+<h2>Topics</h2>
+<ul class="">
+  <li><strong>README</strong></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+
+<h1>Lunatik</h1>
+
+<p>Lunatik is a framework for scripting the Linux kernel with <a href="https://www.lua.org/">Lua</a>.
+It is composed by the Lua interpreter modified to run in the kernel;
+a <a href="driver.lua">device driver</a> (written in Lua =)) and a <a href="bin/lunatik">command line tool</a>
+to load and run scripts and manage runtime environments from the user space;
+a <a href="#lunatik-c-api">C API</a> to load and run scripts and manage runtime environments from the kernel;
+and <a href="#lunatik-lua-apis">Lua APIs</a> for binding kernel facilities to Lua scripts.</p>
+
+<p>Here is an example of a character device driver written in Lua using Lunatik
+to generate random ASCII printable characters:</p>
+
+<pre>
+<span class="comment">-- /lib/modules/lua/passwd.lua
+</span><span class="comment">--
+</span><span class="comment">-- implements /dev/passwd for generate passwords
+</span><span class="comment">-- usage: $ sudo lunatik run passwd
+</span><span class="comment">--        $ head -c &lt;width&gt; /dev/passwd
+</span>
+<span class="keyword">local</span> device = <span class="global">require</span>(<span class="string">"device"</span>)
+<span class="keyword">local</span> linux  = <span class="global">require</span>(<span class="string">"linux"</span>)
+
+<span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">nop</span>() <span class="keyword">end</span> <span class="comment">-- do nothing
+</span>
+<span class="keyword">local</span> s = linux.stat
+<span class="keyword">local</span> driver = {name = <span class="string">"passwd"</span>, open = nop, release = nop, mode = s.IRUGO}
+
+<span class="keyword">function</span> driver:<span class="function-name">read</span>() <span class="comment">-- read(2) callback
+</span> <span class="comment">-- generate random ASCII printable characters
+</span> <span class="keyword">return</span> <span class="global">string</span>.<span class="function-name">char</span>(linux.<span class="function-name">random</span>(<span class="number">32</span>, <span class="number">126</span>))
+<span class="keyword">end</span>
+
+<span class="comment">-- creates a new character device
+</span>device.<span class="function-name">new</span>(driver)
+</pre>
+
+
+<p><a name="Setup"></a></p>
+<h2>Setup</h2>
+
+<p>Install dependencies (here for Debian/Ubuntu, to be adapted to one's distribution):</p>
+
+
+<pre>
+sudo apt install git build-essential lua5.<span class="number">4</span> dwarves clang llvm libelf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
+</pre>
+
+
+<p>Install dependencies (here for Arch Linux):</p>
+
+
+<pre>
+sudo pacman -S git lua clang llvm m4 libpcap pkg-config build2 linux-tools linux-headers
+</pre>
+
+
+<p>Compile and install <a href="../modules/lunatik.html#">lunatik</a>:</p>
+
+
+<pre>
+LUNATIK_DIR=~/lunatik  # to be adapted
+<span class="function-name">mkdir</span> <span class="string">"${LUNATIK_DIR}"</span> ; <span class="function-name">cd</span> <span class="string">"${LUNATIK_DIR}"</span>
+git clone <span class="comment">--depth 1 --recurse-submodules https://github.com/luainkernel/lunatik.git
+</span>cd lunatik
+make
+sudo make install
+</pre>
+
+
+<p>Once done, the <code>debian_kernel_postinst_lunatik.sh</code> script from tools/ may be copied into
+<code>/etc/kernel/postinst.d/</code>: this ensures <a href="../modules/lunatik.html#">lunatik</a> (and also the <a href="../modules/xdp.html#">xdp</a> needed libs) will get
+compiled on kernel upgrade.</p>
+
+<h3>OpenWRT</h3>
+
+<p>Install Lunatik from our <a href="https://github.com/luainkernel/openwrt_feed/tree/openwrt-23.05">package feed</a>.</p>
+
+<p><a name="Usage"></a></p>
+<h2>Usage</h2>
+
+<pre><code> sudo lunatik # execute Lunatik REPL
+ Lunatik 3.6  Copyright (C) 2023-2025 ring-0 Ltda.
+ &gt; return 42 -- execute this line in the kernel
+ 42
+</code></pre>
+
+
+<h3>lunatik</h3>
+
+
+<pre>
+usage: lunatik [<span class="global">load</span>|unload|reload|status|list] [run|spawn|stop &lt;script&gt;]
+</pre>
+
+
+<ul>
+    <li><a href="https://www.lua.org/manual/5.4/manual.html#pdf-load">load</a>: load Lunatik kernel modules</li>
+    <li><code>unload</code>: unload Lunatik kernel modules</li>
+    <li><code>reload</code>: reload Lunatik kernel modules</li>
+    <li><code>status</code>: show which Lunatik kernel modules are currently loaded</li>
+    <li><code>list</code>: show which runtime environments are currently running</li>
+    <li><code>run</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code></li>
+    <li><code>spawn</code>: create a new runtime environment and spawn a thread to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code></li>
+    <li><code>stop</code>: stop the runtime environment created to run the script <code>&lt;script&gt;</code></li>
+    <li><code>default</code>: start a <em>REPL (Read–Eval–Print Loop)</em></li>
+</ul>
+
+<p><a name="Lua_Version"></a></p>
+<h2>Lua Version</h2>
+
+<p>Lunatik 3.6 is based on
+<a href="https://github.com/luainkernel/lua">Lua 5.4 adapted</a>
+to run in the kernel.</p>
+
+<h3>Floating-point numbers</h3>
+
+<p>Lunatik <strong>does not</strong> support floating-point arithmetic,
+thus it <strong>does not</strong> support <code>__div</code> nor <code>__pow</code>
+<a href="https://www.lua.org/manual/5.4/manual.html#2.4">metamethods</a>
+and the type <em>number</em> has only the subtype <em>integer</em>.</p>
+
+<h3>Lua API</h3>
+
+<p>Lunatik <strong>does not</strong> support both <a href="https://www.lua.org/manual/5.4/manual.html#6.8">io</a> and
+<a href="https://www.lua.org/manual/5.4/manual.html#6.9">os</a> libraries,
+and the given identifiers from the following libraries:
+* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-debug.debug">debug.debug</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.acos">math.acos</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.asin">math.asin</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.atan">math.atan</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.ceil">math.ceil</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.cos">math.cos</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.deg">math.deg</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.exp">math.exp</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.floor">math.floor</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.fmod">math.fmod</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.huge">math.huge</a>.
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.log">math.log</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.modf">math.modf</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.pi">math.pi</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.rad">math.rad</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.random">math.random</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.randomseed">math.randomseed</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.sin">math.sin</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.sqrt">math.sqrt</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.tan">math.tan</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.type">math.type</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-package.cpath">package.cpath</a>.</p>
+
+<p>Lunatik <strong>modifies</strong> the following identifiers:
+* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-_VERSION">_VERSION</a>: is defined as <code>&quot;Lua 5.4-kernel&quot;</code>.
+* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-collectgarbage">collectgarbage("count")</a>: returns the total memory in use by Lua in <strong>bytes</strong>, instead of <em>Kbytes</em>.
+* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-package.path">package.path</a>: is defined as <code>&quot;/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua&quot;</code>.
+* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-require">require</a>: only supports built-in or already linked C modules, that is, Lunatik <strong>cannot</strong> load kernel modules dynamically.</p>
+
+<h3>C API</h3>
+
+<p>Lunatik <strong>does not</strong> support
+<a href="https://www.lua.org/manual/5.4/manual.html#luaL_Stream">luaL_Stream</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#luaL_execresult">luaL_execresult</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#luaL_fileresult">luaL_fileresult</a>,
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_io">luaopen_io</a> and
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_os">luaopen_os</a>.</p>
+
+<p>Lunatik <strong>modifies</strong> <a href="https://www.lua.org/manual/5.4/manual.html#luaL_openlibs">luaL_openlibs</a> to remove <a href="https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_io">luaopen_io</a> and <a href="https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_os">luaopen_os</a>.</p>
+
+<p><a name="Lunatik_C_API"></a></p>
+<h2>Lunatik C API</h2>
+
+
+<pre>
+#include &lt;lunatik.h&gt;
+</pre>
+
+
+<h4>lunatik_runtime</h4>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_runtime</span>(lunatik_object_t **pruntime, <span class="keyword">const</span> <span class="keyword">char</span> *script, <span class="keyword">bool</span> sleep);
+</pre>
+
+<p><em>lunatik_runtime()</em> creates a new <code>runtime</code> environment then loads and runs the script
+<code>/lib/modules/lua/&lt;script&gt;.lua</code> as the entry point for this environment.
+It <em>must</em> only be called from <em>process context</em>.
+The <code>runtime</code> environment is a Lunatik object that holds
+a <a href="https://www.lua.org/manual/5.4/manual.html#lua_State">Lua state</a>.
+Lunatik objects are special
+Lua <a href="https://www.lua.org/manual/5.4/manual.html#2.1">userdata</a>
+which also hold
+a <a href="https://docs.kernel.org/locking/locktypes.html">lock type</a> and
+a <a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>.
+If <code>sleep</code> is <em>true</em>, <em>lunatik_runtime()</em> will use a
+<a href="https://docs.kernel.org/locking/mutex-design.html">mutex</a>
+for locking the <code>runtime</code> environment and the
+<a href="https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html">GFP_KERNEL</a>
+flag for allocating new memory later on on
+<a href="https://github.com/luainkernel/lunatik#lunatik_run">lunatik_run()</a> calls.
+Otherwise, it will use a <a href="https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t">spinlock</a> and <a href="https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html">GFP_ATOMIC</a>.
+<em>lunatik_runtime()</em> opens the Lua standard libraries
+<a href="https://github.com/luainkernel/lunatik#c-api">present on Lunatik</a>.
+If successful, <em>lunatik_runtime()</em> sets the address pointed by <code>pruntime</code> and
+<a href="https://www.lua.org/manual/5.4/manual.html#lua_getextraspace">Lua's extra space</a>
+with a pointer for the new created <code>runtime</code> environment,
+sets the <em>reference counter</em> to <code>1</code> and then returns <code>0</code>.
+Otherwise, it returns <code>-ENOMEM</code>, if insufficient memory is available;
+or <code>-EINVAL</code>, if it fails to load or run the <code>script</code>.</p>
+
+<h5>Example</h5>
+
+<pre>
+<span class="comment">-- /lib/modules/lua/mydevice.lua
+</span><span class="keyword">function</span> <span class="function-name">myread</span>(len, off)
+    <span class="keyword">return</span> <span class="string">"42"</span>
+<span class="keyword">end</span>
+</pre>
+
+
+
+<pre>
+<span class="keyword">static</span> lunatik_object_t *runtime;
+
+<span class="keyword">static</span> <span class="keyword">int</span> __init <span class="function-name">mydevice_init</span>(<span class="keyword">void</span>)
+{
+    <span class="keyword">return</span> <span class="function-name">lunatik_runtime</span>(&amp;runtime, <span class="string">"mydevice"</span>, <span class="keyword">true</span>);
+}
+</pre>
+
+
+<h4>lunatik_stop</h4>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_stop</span>(lunatik_object_t *runtime);
+</pre>
+
+<p><em>lunatik_stop()</em>
+<a href="https://www.lua.org/manual/5.4/manual.html#lua_close">closes</a>
+the
+<a href="https://www.lua.org/manual/5.4/manual.html#lua_State">Lua state</a>
+created for this <code>runtime</code> environment and decrements the
+<a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>.
+Once the reference counter is decremented to zero, the
+<a href="https://docs.kernel.org/locking/locktypes.html">lock type</a>
+and the memory allocated for the <code>runtime</code> environment are released.
+If the <code>runtime</code> environment has been released, it returns <code>1</code>;
+otherwise, it returns <code>0</code>.</p>
+
+<h4>lunatik_run</h4>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_run</span>(lunatik_object_t *runtime, &lt;inttype&gt; (*handler)(...), &lt;inttype&gt; &amp;ret, ...);
+</pre>
+
+<p><em>lunatik_run()</em> locks the <code>runtime</code> environment and calls the <code>handler</code>
+passing the associated Lua state as the first argument followed by the variadic arguments.
+If the Lua state has been closed, <code>ret</code> is set with <code>-ENXIO</code>;
+otherwise, <code>ret</code> is set with the result of <code>handler(L, ...)</code> call.
+Then, it restores the Lua stack and unlocks the <code>runtime</code> environment.
+It is defined as a macro.</p>
+
+<h5>Example</h5>
+
+<pre>
+<span class="keyword">static</span> <span class="keyword">int</span> <span class="function-name">l_read</span>(lua_State *L, <span class="keyword">char</span> *buf, size_t len, loff_t *off)
+{
+    size_t llen;
+    <span class="keyword">const</span> <span class="keyword">char</span> *lbuf;
+
+    <span class="function-name">lua_getglobal</span>(L, <span class="string">"myread"</span>);
+    <span class="function-name">lua_pushinteger</span>(L, len);
+    <span class="function-name">lua_pushinteger</span>(L, *off);
+    <span class="keyword">if</span> (<span class="function-name">lua_pcall</span>(L, <span class="number">2</span>, <span class="number">2</span>, <span class="number">0</span>) != LUA_OK) { <span class="comment">/* calls myread(len, off) */</span>
+        <span class="function-name">pr_err</span>(<span class="string">"%s\n"</span>, <span class="function-name">lua_tostring</span>(L, -<span class="number">1</span>));
+        <span class="keyword">return</span> -ECANCELED;
+    }
+
+    lbuf = <span class="function-name">lua_tolstring</span>(L, -<span class="number">2</span>, &amp;llen);
+    llen = <span class="function-name">min</span>(len, llen);
+    <span class="keyword">if</span> (<span class="function-name">copy_to_user</span>(buf, lbuf, llen) != <span class="number">0</span>)
+        <span class="keyword">return</span> -EFAULT;
+
+    *off = (loff_t)<span class="function-name">luaL_optinteger</span>(L, -<span class="number">1</span>, *off + llen);
+    <span class="keyword">return</span> (ssize_t)llen;
+}
+
+<span class="keyword">static</span> ssize_t <span class="function-name">mydevice_read</span>(<span class="keyword">struct</span> file *f, <span class="keyword">char</span> *buf, size_t len, loff_t *off)
+{
+    ssize_t ret;
+    lunatik_object_t *runtime = (lunatik_object_t *)f-&gt;private_data;
+
+    <span class="function-name">lunatik_run</span>(runtime, l_read, ret, buf, len, off);
+    <span class="keyword">return</span> ret;
+}
+</pre>
+
+
+<h4>lunatik_getobject</h4>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_getobject</span>(lunatik_object_t *object);
+</pre>
+
+<p><em>lunatik_getobject()</em> increments the
+<a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>
+of this <code>object</code> (e.g., <code>runtime</code> environment).</p>
+
+<h4>lunatik_put</h4>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_putobject</span>(lunatik_object_t *object);
+</pre>
+
+<p><em>lunatik_putobject()</em> decrements the
+<a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>
+of this <code>object</code> (e.g., <code>runtime</code> environment).
+If the <code>object</code> has been released, it returns <code>1</code>;
+otherwise, it returns <code>0</code>.</p>
+
+<h4>lunatik_toruntime</h4>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_toruntime</span>(lua_State *L);
+</pre>
+
+<p><em>lunatik_toruntime()</em> returns the <code>runtime</code> environment referenced by the <code>L</code>'s
+<a href="https://www.lua.org/manual/5.4/manual.html#lua_getextraspace">extra space</a>.</p>
+
+<p><a name="Lunatik_Lua_APIs"></a></p>
+<h2>Lunatik Lua APIs</h2>
+
+<h3>lunatik</h3>
+
+<p>The <a href="../modules/lunatik.html#">lunatik</a> library provides support to load and run scripts and manage runtime environments from Lua.</p>
+
+<h4><code>lunatik.runtime(script [, sleep])</code></h4>
+
+<p><em>lunatik.runtime()</em> creates a new
+<a href="https://github.com/luainkernel/lunatik#lunatik_runtime">runtime environment</a>
+then loads and runs the script
+<code>/lib/modules/lua/&lt;script&gt;.lua</code> as the entry point for this environment.
+It returns a Lunatik object representing the <code>runtime</code> environment.
+If <code>sleep</code> is <em>true</em> or omitted, it will use a <a href="https://docs.kernel.org/locking/mutex-design.html">mutex</a>
+and
+<a href="https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html">GFP_KERNEL</a>;
+otherwise, it will use a <a href="https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t">spinlock</a> and <a href="https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html">GFP_ATOMIC</a>.
+<em>lunatik.runtime()</em> opens the Lua standard libraries
+<a href="https://github.com/luainkernel/lunatik#c-api">present on Lunatik</a>.</p>
+
+<h4><code>runtime:stop()</code></h4>
+
+<p><em>runtime:stop()</em>
+<a href="https://github.com/luainkernel/lunatik#lunatik_stop">stops</a>
+the <code>runtime</code> environment and clear its reference from the runtime object.</p>
+
+<h4><code>runtime:resume([obj1, ...])</code></h4>
+
+<p><em>runtime:resume()</em>
+resumes the execution of a <code>runtime</code>.
+The values <code>obj1, ...</code> are passed as the arguments to the function returned on the <code>runtime</code> creation.
+If the <code>runtime</code> has yielded, <code>resume()</code> restarts it; the values <code>obj1, ...</code> are passed as the results from the yield.</p>
+
+<h3>device</h3>
+
+<p>The <a href="../modules/device.html#">device</a> library provides support for writting
+<a href="https://static.lwn.net/images/pdf/LDD3/ch03.pdf">character device drivers</a>
+in Lua.</p>
+
+<h4><code>device.new(driver)</code></h4>
+
+<p><em>device.new()</em> returns a new <a href="../modules/device.html#">device</a> object
+and installs its <code>driver</code> in the system.
+The <code>driver</code> <strong>must</strong> be defined as a table containing the following field:
+* <code>name</code>: string defining the device name; it is used for creating the device file (e.g., <code>/dev/&lt;name&gt;</code>).</p>
+
+<p>The <code>driver</code> table might optionally contain the following fields:
+* <code>read</code>: callback function to handle the
+<a href="https://docs.kernel.org/filesystems/vfs.html#id2">read operation</a>
+on the device file.
+It receives the <code>driver</code> table as the first argument
+followed by two integers,
+the <code>length</code> to be read and the file <code>offset</code>.
+It should return a string and, optionally, the <code>updated offset</code>.
+If the length of the returned string is greater than the requested <code>length</code>,
+the string will be corrected to that <code>length</code>.
+If the <code>updated offset</code> is not returned, the <code>offset</code> will be updated with <code>offset + length</code>.
+* <code>write</code>: callback function to handle the
+<a href="https://docs.kernel.org/filesystems/vfs.html#id2">write operation</a>
+on the device file.
+It receives the <code>driver</code> table as the first argument
+followed by the string to be written and
+an integer as the file <code>offset</code>.
+It might return optionally the written <code>length</code> followed by the <code>updated offset</code>.
+If the returned length is greater than the requested <code>length</code>,
+the returned length will be corrected.
+If the <code>updated offset</code> is not returned, the <code>offset</code> will be updated with <code>offset + length</code>.
+* <code>open</code>: callback function to handle the
+<a href="https://docs.kernel.org/filesystems/vfs.html#id2">open operation</a>
+on the device file.
+It receives the <code>driver</code> table and it is expected to return nothing.
+* <code>release</code>: callback function to handle the
+<a href="https://docs.kernel.org/filesystems/vfs.html#id2">release operation</a>
+on the device file.
+It receives the <code>driver</code> table and it is expected to return nothing.
+* <code>mode</code>: an integer specifying the device
+<a href="https://github.com/luainkernel/lunatik#linuxstat">file mode</a>.</p>
+
+<p>If an operation callback is not defined, the <a href="../modules/device.html#">device</a> returns <code>-ENXIO</code> to VFS on its access.</p>
+
+<h4><code>device.stop(dev)</code>, <code>dev:stop()</code></h4>
+
+<p><em>device.stop()</em> removes a device <code>driver</code> specified by the <code>dev</code> object from the system.</p>
+
+<h3>linux</h3>
+
+<p>The <a href="../modules/linux.html#">linux</a> library provides support for some Linux kernel facilities.</p>
+
+<h4><code>linux.random([m [, n]])</code></h4>
+
+<p><em>linux.random()</em> mimics the behavior of
+<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.random">math.random</a>,
+but binding <em><linux/random.h></em>'s
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/random.h#L42">get_random_u32()</a>
+and
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/random.h#L43">get_random_u64()</a>
+APIs.</p>
+
+<p>When called without arguments,
+produces an integer with all bits (pseudo)random.
+When called with two integers <code>m</code> and <code>n</code>,
+<em>linux.random()</em> returns a pseudo-random integer with uniform distribution in the range <code>[m, n]</code>.
+The call <code>math.random(n)</code>, for a positive <code>n</code>, is equivalent to <code>math.random(1, n)</code>.</p>
+
+<h4><a href="../modules/linux.html#stat">linux.stat</a></h4>
+
+<p><em>linux.stat</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/stat.h">\<linux/stat.h\></a>
+integer flags to Lua.</p>
+
+<ul>
+    <li><code>&quot;IRWXUGO&quot;</code>: permission to <em>read</em>, <em>write</em> and <em>execute</em> for <em>user</em>, <em>group</em> and <em>other</em>.</li>
+    <li><code>&quot;IRUGO&quot;</code>: permission only to <em>read</em> for <em>user</em>, <em>group</em> and <em>other</em>.</li>
+    <li><code>&quot;IWUGO&quot;</code>: permission only to <em>write</em> for <em>user</em>, <em>group</em> and <em>other</em>.</li>
+    <li><code>&quot;IXUGO&quot;</code>: permission only to <em>execute</em> for <em>user</em>, <em>group</em> and <em>other</em>.</li>
+</ul>
+
+<h4><code>linux.schedule([timeout [, state]])</code></h4>
+
+<p><em>linux.schedule()</em> sets the current task <code>state</code> and makes the it sleep until <code>timeout</code> milliseconds have elapsed.
+If <code>timeout</code> is omitted, it uses <code>MAX_SCHEDULE_TIMEOUT</code>.
+If <code>state</code> is omitted, it uses <code>task.INTERRUPTIBLE</code>.</p>
+
+<h4><a href="../modules/linux.html#task">linux.task</a></h4>
+
+<p><em>linux.task</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h#L7v3">task state</a>
+flags to Lua.</p>
+
+<ul>
+    <li><code>&quot;RUNNING&quot;</code>: task is executing on a CPU or waiting to be executed.</li>
+    <li><code>&quot;INTERRUPTIBLE&quot;</code>: task is waiting for a signal or a resource (sleeping).</li>
+    <li><code>&quot;UNINTERRUPTIBLE&quot;</code>: behaves like "INTERRUPTIBLE" with the exception that signal will not wake up the task.</li>
+    <li><code>&quot;KILLABLE&quot;</code>: behaves like "UNINTERRUPTIBLE" with the exception that fatal signals will wake up the task.</li>
+    <li><code>&quot;IDLE&quot;</code>: behaves like "UNINTERRUPTIBLE" with the exception that it avoids the loadavg accounting.</li>
+</ul>
+
+<h4><code>linux.time()</code></h4>
+
+<p><em>linux.time()</em> returns the current time in nanoseconds since epoch.</p>
+
+<h4><a href="../modules/linux.html#errno">linux.errno</a></h4>
+
+<p><em>linux.errno</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/latest/source/include/uapi/asm-generic/errno-base.h">\<uapi/asm-generic/errno-base.h\></a>
+flags to Lua.</p>
+
+<ul>
+    <li><code>&quot;PERM&quot;</code>: Operation not permitted.</li>
+    <li><code>&quot;NOENT&quot;</code>: No such file or directory.</li>
+    <li><code>&quot;SRCH&quot;</code>: No such process.</li>
+    <li><code>&quot;INTR&quot;</code>: Interrupted system call.</li>
+    <li><code>&quot;IO&quot;</code>: I/O error.</li>
+    <li><code>&quot;NXIO&quot;</code>:No such device or address.</li>
+    <li><code>&quot;2BIG&quot;</code>:, Argument list too long.</li>
+    <li><code>&quot;NOEXEC&quot;</code>: Exec format error.</li>
+    <li><code>&quot;BADF&quot;</code>: Bad file number.</li>
+    <li><code>&quot;CHILD&quot;</code>: No child processes.</li>
+    <li><code>&quot;AGAIN&quot;</code>: Try again.</li>
+    <li><code>&quot;NOMEM&quot;</code>: Out of memory.</li>
+    <li><code>&quot;ACCES&quot;</code>: Permission denied.</li>
+    <li><code>&quot;FAULT&quot;</code>: Bad address.</li>
+    <li><code>&quot;NOTBLK&quot;</code>: Block device required.</li>
+    <li><code>&quot;BUSY&quot;</code>: Device or resource busy.</li>
+    <li><code>&quot;EXIST&quot;</code>: File exists.</li>
+    <li><code>&quot;XDEV&quot;</code>: Cross-device link.</li>
+    <li><code>&quot;NODEV&quot;</code>: No such device.</li>
+    <li><code>&quot;NOTDIR&quot;</code>: Not a directory.</li>
+    <li><code>&quot;ISDIR&quot;</code>: Is a directory.</li>
+    <li><code>&quot;INVAL&quot;</code>: Invalid argument.</li>
+    <li><code>&quot;NFILE&quot;</code>: File table overflow.</li>
+    <li><code>&quot;MFILE&quot;</code>: Too many open files.</li>
+    <li><code>&quot;NOTTY&quot;</code>: Not a typewriter.</li>
+    <li><code>&quot;TXTBSY&quot;</code>: Text file busy.</li>
+    <li><code>&quot;FBIG&quot;</code>: File too large.</li>
+    <li><code>&quot;NOSPC&quot;</code>: No space left on device.</li>
+    <li><code>&quot;SPIPE&quot;</code>: Illegal seek.</li>
+    <li><code>&quot;ROFS&quot;</code>: Read-only file system.</li>
+    <li><code>&quot;MLINK&quot;</code>: Too many links.</li>
+    <li><code>&quot;PIPE&quot;</code>: Broken pipe.</li>
+    <li><code>&quot;DOM&quot;</code>: Math argument out of domain of func.</li>
+    <li><code>&quot;RANGE&quot;</code>: Math result not representable.</li>
+</ul>
+
+<h4><code>linux.hton16(num)</code></h4>
+
+<p><em>linux.hton16()</em> converts the host byte order to network byte order for a 16-bit integer.</p>
+
+<h4><code>linux.hton32(num)</code></h4>
+
+<p><em>linux.hton32()</em> converts the host byte order to network byte order for a 32-bit integer.</p>
+
+<h4><code>linux.hton64(num)</code></h4>
+
+<p><em>linux.hton64()</em> converts the host byte order to network byte order for a 64-bit integer.</p>
+
+<h4><code>linux.ntoh16(num)</code></h4>
+
+<p><em>linux.ntoh16()</em> converts the network byte order to host byte order for a 16-bit integer.</p>
+
+<h4><code>linux.ntoh32(num)</code></h4>
+
+<p><em>linux.ntoh32()</em> converts the network byte order to host byte order for a 32-bit integer.</p>
+
+<h4><code>linux.ntoh64(num)</code></h4>
+
+<p><em>linux.ntoh64()</em> converts the network byte order to host byte order for a 64-bit integer.</p>
+
+<h4><code>linux.htobe16(num)</code></h4>
+
+<p><em>linux.htobe16()</em> converts the host byte order to big-endian byte order for a 16-bit integer.</p>
+
+<h4><code>linux.htobe32(num)</code></h4>
+
+<p><em>linux.htobe32()</em> converts the host byte order to big-endian byte order for a 32-bit integer.</p>
+
+<h4><code>linux.htobe64(num)</code></h4>
+
+<p><em>linux.htobe64()</em> converts the host byte order to big-endian byte order for a 64-bit integer.</p>
+
+<h4><code>linux.be16toh(num)</code></h4>
+
+<p><em>linux.be16toh()</em> converts the big-endian byte order to host byte order for a 16-bit integer.</p>
+
+<h4><code>linux.be32toh(num)</code></h4>
+
+<p><em>linux.be32toh()</em> converts the big-endian byte order to host byte order for a 32-bit integer.</p>
+
+<h4><code>linux.be64toh(num)</code></h4>
+
+<p><em>linux.be64toh()</em> converts the big-endian byte order to host byte order for a 64-bit integer.</p>
+
+<h4><code>linux.htole16(num)</code></h4>
+
+<p><em>linux.htole16()</em> converts the host byte order to little-endian byte order for a 16-bit integer.</p>
+
+<h4><code>linux.htole32(num)</code></h4>
+
+<p><em>linux.htole32()</em> converts the host byte order to little-endian byte order for a 32-bit integer.</p>
+
+<h4><code>linux.htole64(num)</code></h4>
+
+<p><em>linux.htole64()</em> converts the host byte order to little-endian byte order for a 64-bit integer.</p>
+
+<h4><code>linux.le16toh(num)</code></h4>
+
+<p><em>linux.le16toh()</em> converts the little-endian byte order to host byte order for a 16-bit integer.</p>
+
+<h4><code>linux.le32toh(num)</code></h4>
+
+<p><em>linux.le32toh()</em> converts the little-endian byte order to host byte order for a 32-bit integer.</p>
+
+<h4><code>linux.le64toh(num)</code></h4>
+
+<p><em>linux.le64toh()</em> converts the little-endian byte order to host byte order for a 64-bit integer.</p>
+
+<h3>notifier</h3>
+
+<p>The <a href="../modules/notifier.html#">notifier</a> library provides support for the kernel
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/notifier.h">notifier chains</a>.</p>
+
+<h4><code>notifier.keyboard(callback)</code></h4>
+
+<p><em>notifier.keyboard()</em> returns a new keyboard <a href="../modules/notifier.html#">notifier</a> object and installs it in the system.
+The <code>callback</code> function is called whenever a console keyboard event happens
+(e.g., a key has been pressed or released).
+This <code>callback</code> receives the following arguments:
+* <code>event</code>: the available <em>events</em> are defined by the
+<a href="https://github.com/luainkernel/lunatik#notifierkbd">notifier.kbd</a> table.
+* <code>down</code>: <code>true</code>, if the key is pressed; <code>false</code>, if it is released.
+* <code>shift</code>: <code>true</code>, if the shift key is held; <code>false</code>, otherwise.
+* <code>key</code>: <em>keycode</em> or <em>keysym</em> depending on <code>event</code>.</p>
+
+<p>The <code>callback</code> function might return the values defined by the
+<a href="https://github.com/luainkernel/lunatik#notifiernotify">notifier.notify</a> table.</p>
+
+<h4><a href="../modules/notifier.html#kbd">notifier.kbd</a></h4>
+
+<p><em>notifier.kbd</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/notifier.h#L229">KBD</a>
+flags to Lua.</p>
+
+<ul>
+    <li><code>&quot;KEYCODE&quot;</code>: keyboard <em>keycode</em>, called before any other.</li>
+    <li><code>&quot;UNBOUND_KEYCODE&quot;</code>: keyboard <em>keycode</em> which is not bound to any other.</li>
+    <li><code>&quot;UNICODE&quot;</code>: keyboard unicode.</li>
+    <li><code>&quot;KEYSYM&quot;</code>: keyboard <em>keysym</em>.</li>
+    <li><code>&quot;POST_KEYSYM&quot;</code>: called after keyboard <em>keysym</em> interpretation.</li>
+</ul>
+
+<h4><code>notifier.netdevice(callback)</code></h4>
+
+<p><em>notifier.netdevice()</em> returns a new netdevice <a href="../modules/notifier.html#">notifier</a> object and installs it in the system.
+The <code>callback</code> function is called whenever a console netdevice event happens
+(e.g., a network interface has been connected or disconnected).
+This <code>callback</code> receives the following arguments:
+* <code>event</code>: the available <em>events</em> are defined by the
+<a href="https://github.com/luainkernel/lunatik#notifiernetdev">notifier.netdev</a> table.
+* <code>name</code>: the device name.</p>
+
+<p>The <code>callback</code> function might return the values defined by the
+<a href="https://github.com/luainkernel/lunatik#notifiernotify">notifier.notify</a> table.</p>
+
+<h4><a href="../modules/notifier.html#netdev">notifier.netdev</a></h4>
+
+<p><em>notifier.netdev</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/v6.3/source/include/linux/netdevice.h#L2812">NETDEV</a>
+flags to Lua.</p>
+
+<h3><code>notifier.vterm(callback)</code></h3>
+
+<p><em>notifier.vterm()</em> returns a new virtual terminal <a href="../modules/notifier.html#">notifier</a> object and installs it in the system. The <code>callback</code> function is called whenever a virtual terminal event happens (e.g. new character written to the terminal, new terminal allocated, etc).
+The callback function receives the following arguments:
+* <code>event</code>: the available <em>events</em> are defined by the
+<a href="https://github.com/luainkernel/lunatik#notifiervt">notifier.vt</a> table.
+* <code>c</code>: character related to the event.
+* <code>vc_num</code>: virtual console number associated with the event.</p>
+
+<p>The <code>callback</code> function might return the values defined by the
+<a href="https://github.com/luainkernel/lunatik#notifiernotify">notifier.notify</a> table.</p>
+
+<h4><a href="../modules/notifier.html#vt">notifier.vt</a></h4>
+
+<p><em>notifier.vt</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/vt.h">VT</a>
+flags to Lua.</p>
+
+<ul>
+    <li><code>&quot;VT_ALLOCATE&quot;</code>: virtual terminal is being allocated.</li>
+    <li><code>&quot;VT_DEALLOCATE&quot;</code>: virtual terminal is being deallocated.</li>
+    <li><code>&quot;VT_WRITE&quot;</code>: character is written to virtual terminal.</li>
+    <li><code>&quot;VT_UPDATE&quot;</code>: virtual terminal update event.</li>
+    <li><code>&quot;VT_PREWRITE&quot;</code>: before writing character to virtual terminal.</li>
+</ul>
+
+<h4><a href="../modules/notifier.html#notify">notifier.notify</a></h4>
+
+<p><em>notifier.notify</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/notifier.h#L183">NOTIFY</a>
+flags to Lua.</p>
+
+<ul>
+    <li><code>&quot;DONE&quot;</code>: don't care.</li>
+    <li><code>&quot;OK&quot;</code>: suits me.</li>
+    <li><code>&quot;BAD&quot;</code>: bad/veto action.</li>
+    <li><code>&quot;STOP&quot;</code>: clean way to return from the notifier and stop further calls.</li>
+</ul>
+
+<h4><code>notfr:delete()</code></h4>
+
+<p><em>notfr:delete()</em> removes a <a href="../modules/notifier.html#">notifier</a> specified by the <code>notfr</code> object from the system.</p>
+
+<h3>socket</h3>
+
+<p>The <a href="../modules/socket.html#">socket</a> library provides support for the kernel
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/net.h">networking handling</a>.
+This library was inspired by
+<a href="https://github.com/tcz717">Chengzhi Tan</a>'s
+<a href="https://summerofcode.withgoogle.com/archive/2018/projects/5993341447569408">GSoC project</a>.</p>
+
+<h4><code>socket.new(family, type, protocol)</code></h4>
+
+<p><em>socket.new()</em> creates a new <a href="../modules/socket.html#">socket</a> object.
+This function receives the following arguments:
+* <code>family</code>: the available <em>address families</em> are defined by the
+<a href="https://github.com/luainkernel/lunatik#socketaf">socket.af</a> table.
+* <code>sock</code>: the available <em>types</em> are present on the
+<a href="https://github.com/luainkernel/lunatik#socketsock">socket.sock</a> table.
+* <code>protocol</code>: the available <em>protocols</em> are defined by the
+<a href="https://github.com/luainkernel/lunatik#socketipproto">socket.ipproto</a> table.</p>
+
+<h4><a href="../modules/socket.html#af">socket.af</a></h4>
+
+<p><em>socket.af</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/socket.h#L187">address families (AF)</a>
+to Lua.</p>
+
+<ul>
+    <li><code>&quot;UNSPEC&quot;</code>: Unspecified.</li>
+    <li><code>&quot;UNIX&quot;</code>: Unix domain sockets.</li>
+    <li><code>&quot;LOCAL&quot;</code>: POSIX name for AF_UNIX.</li>
+    <li><code>&quot;INET&quot;</code>: Internet IP Protocol.</li>
+    <li><code>&quot;AX25&quot;</code>: Amateur Radio AX.25.</li>
+    <li><code>&quot;IPX&quot;</code>: Novell IPX.</li>
+    <li><code>&quot;APPLETALK&quot;</code>: AppleTalk DDP.</li>
+    <li><code>&quot;NETROM&quot;</code>: Amateur Radio NET/ROM.</li>
+    <li><code>&quot;BRIDGE&quot;</code>: Multiprotocol bridge.</li>
+    <li><code>&quot;ATMPVC&quot;</code>: ATM PVCs.</li>
+    <li><code>&quot;X25&quot;</code>: Reserved for X.25 project.</li>
+    <li><code>&quot;INET6&quot;</code>: IP version 6.</li>
+    <li><code>&quot;ROSE&quot;</code>: Amateur Radio X.25 PLP.</li>
+    <li><code>&quot;DEC&quot;</code>: Reserved for DECnet project.</li>
+    <li><code>&quot;NETBEUI&quot;</code>: Reserved for 802.2LLC project.</li>
+    <li><code>&quot;SECURITY&quot;</code>: Security callback pseudo AF.</li>
+    <li><code>&quot;KEY&quot;</code>: PF_KEY key management API.</li>
+    <li><code>&quot;NETLINK&quot;</code>: Netlink.</li>
+    <li><code>&quot;ROUTE&quot;</code>: Alias to emulate 4.4BSD.</li>
+    <li><code>&quot;PACKET&quot;</code>: Packet family.</li>
+    <li><code>&quot;ASH&quot;</code>: Ash.</li>
+    <li><code>&quot;ECONET&quot;</code>: Acorn Econet.</li>
+    <li><code>&quot;ATMSVC&quot;</code>: ATM SVCs.</li>
+    <li><code>&quot;RDS&quot;</code>: RDS sockets.</li>
+    <li><code>&quot;SNA&quot;</code>: Linux SNA Project (nutters!).</li>
+    <li><code>&quot;IRDA&quot;</code>: IRDA sockets.</li>
+    <li><code>&quot;PPPOX&quot;</code>: PPPoX sockets.</li>
+    <li><code>&quot;WANPIPE&quot;</code>: Wanpipe API Sockets.</li>
+    <li><code>&quot;LLC&quot;</code>: Linux LLC.</li>
+    <li><code>&quot;IB&quot;</code>: Native InfiniBand address.</li>
+    <li><code>&quot;MPLS&quot;</code>: MPLS.</li>
+    <li><code>&quot;CAN&quot;</code>: Controller Area Network.</li>
+    <li><code>&quot;TIPC&quot;</code>: TIPC sockets.</li>
+    <li><code>&quot;BLUETOOTH&quot;</code>: Bluetooth sockets.</li>
+    <li><code>&quot;IUCV&quot;</code>: IUCV sockets.</li>
+    <li><code>&quot;RXRPC&quot;</code>: RxRPC sockets.</li>
+    <li><code>&quot;ISDN&quot;</code>: mISDN sockets.</li>
+    <li><code>&quot;PHONET&quot;</code>: Phonet sockets.</li>
+    <li><code>&quot;IEEE802154&quot;</code>: IEEE802154 sockets.</li>
+    <li><code>&quot;CAIF&quot;</code>: CAIF sockets.</li>
+    <li><code>&quot;ALG&quot;</code>: Algorithm sockets.</li>
+    <li><code>&quot;NFC&quot;</code>: NFC sockets.</li>
+    <li><code>&quot;VSOCK&quot;</code>: vSockets.</li>
+    <li><code>&quot;KCM&quot;</code>: Kernel Connection Multiplexor.</li>
+    <li><code>&quot;QIPCRTR&quot;</code>: Qualcomm IPC Router.</li>
+    <li><code>&quot;SMC&quot;</code>: reserve number for PF_SMC protocol family that reuses AF_INET address family.</li>
+    <li><code>&quot;XDP&quot;</code>: XDP sockets.</li>
+    <li><code>&quot;MCTP&quot;</code>: Management component transport protocol.</li>
+    <li><code>&quot;MAX&quot;</code>: Maximum.</li>
+</ul>
+
+<h4><a href="../modules/socket.html#sock">socket.sock</a></h4>
+
+<p><em>socket.sock</em> is a table that exports socket
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/net.h#L49">types (SOCK)</a>:</p>
+
+<ul>
+    <li><code>&quot;STREAM&quot;</code>: stream (connection) socket.</li>
+    <li><code>&quot;DGRAM&quot;</code>: datagram (conn.less) socket.</li>
+    <li><code>&quot;RAW&quot;</code>: raw socket.</li>
+    <li><code>&quot;RDM&quot;</code>: reliably-delivered message.</li>
+    <li><code>&quot;SEQPACKET&quot;</code>: sequential packet socket.</li>
+    <li><code>&quot;DCCP&quot;</code>: Datagram Congestion Control Protocol socket.</li>
+    <li><code>&quot;PACKET&quot;</code>: linux specific way of getting packets at the dev level.</li>
+</ul>
+
+<p>and <a href="https://elixir.bootlin.com/linux/latest/source/include/linux/net.h#L78">flags (SOCK)</a>:
+* <code>&quot;CLOEXEC&quot;</code>: n/a.
+* <code>&quot;NONBLOCK&quot;</code>: n/a.</p>
+
+<h4><a href="../modules/socket.html#ipproto">socket.ipproto</a></h4>
+
+<p><em>socket.ipproto</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/in.h#L27">IP protocols (IPPROTO)</a>
+to Lua.</p>
+
+<ul>
+    <li><code>&quot;IP&quot;</code>: Dummy protocol for TCP.</li>
+    <li><code>&quot;ICMP&quot;</code>: Internet Control Message Protocol.</li>
+    <li><code>&quot;IGMP&quot;</code>: Internet Group Management Protocol.</li>
+    <li><code>&quot;IPIP&quot;</code>: IPIP tunnels (older KA9Q tunnels use 94).</li>
+    <li><code>&quot;TCP&quot;</code>: Transmission Control Protocol.</li>
+    <li><code>&quot;EGP&quot;</code>: Exterior Gateway Protocol.</li>
+    <li><code>&quot;PUP&quot;</code>: PUP protocol.</li>
+    <li><code>&quot;UDP&quot;</code>: User Datagram Protocol.</li>
+    <li><code>&quot;IDP&quot;</code>: XNS IDP protocol.</li>
+    <li><code>&quot;TP&quot;</code>: SO Transport Protocol Class 4.</li>
+    <li><code>&quot;DCCP&quot;</code>: Datagram Congestion Control Protocol.</li>
+    <li><code>&quot;IPV6&quot;</code>: IPv6-in-IPv4 tunnelling.</li>
+    <li><code>&quot;RSVP&quot;</code>: RSVP Protocol.</li>
+    <li><code>&quot;GRE&quot;</code>: Cisco GRE tunnels (rfc 1701,1702).</li>
+    <li><code>&quot;ESP&quot;</code>: Encapsulation Security Payload protocol.</li>
+    <li><code>&quot;AH&quot;</code>: Authentication Header protocol.</li>
+    <li><code>&quot;MTP&quot;</code>: Multicast Transport Protocol.</li>
+    <li><code>&quot;BEETPH&quot;</code>: IP option pseudo header for BEET.</li>
+    <li><code>&quot;ENCAP&quot;</code>: Encapsulation Header.</li>
+    <li><code>&quot;PIM&quot;</code>: Protocol Independent Multicast.</li>
+    <li><code>&quot;COMP&quot;</code>: Compression Header Protocol.</li>
+    <li><code>&quot;SCTP&quot;</code>: Stream Control Transport Protocol.</li>
+    <li><code>&quot;UDPLITE&quot;</code>: UDP-Lite (RFC 3828).</li>
+    <li><code>&quot;MPLS&quot;</code>: MPLS in IP (RFC 4023).</li>
+    <li><code>&quot;ETHERNET&quot;</code>: Ethernet-within-IPv6 Encapsulation.</li>
+    <li><code>&quot;RAW&quot;</code>: Raw IP packets.</li>
+    <li><code>&quot;MPTCP&quot;</code>: Multipath TCP connection.</li>
+</ul>
+
+<h4><code>sock:close()</code></h4>
+
+<p><em>sock:close()</em> removes <code>sock</code> object from the system.</p>
+
+<h4><code>sock:send(message, [addr [, port]])</code></h4>
+
+<p><em>sock:send()</em> sends a string <code>message</code> through the socket <code>sock</code>.
+If the <code>sock</code> address family is <code>af.INET</code>, then it expects the following arguments:
+* <code>addr</code>: <code>integer</code> describing the destination IPv4 address.
+* <code>port</code>: <code>integer</code> describing the destination IPv4 port.</p>
+
+<p>Otherwise:
+* <code>addr</code>: <a href="https://www.lua.org/manual/5.4/manual.html#6.4.2">packed string</a> describing the destination address.</p>
+
+<h4><code>sock:receive(length, [flags [, from]])</code></h4>
+
+<p><em>sock:receive()</em> receives a string with up to <code>length</code> bytes through the socket <code>sock</code>.
+The available <em>message flags</em> are defined by the
+<a href="https://github.com/luainkernel/lunatik#socketmsg">socket.msg</a> table.
+If <code>from</code> is <code>true</code>, it returns the received message followed by the peer's address.
+Otherwise, it returns only the received message.</p>
+
+<h4><a href="../modules/socket.html#msg">socket.msg</a></h4>
+
+<p><em>socket.msg</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/socket.h#L298">message flags</a>
+to Lua.</p>
+
+<ul>
+    <li><code>&quot;OOB&quot;</code>: n/a.</li>
+    <li><code>&quot;PEEK&quot;</code>: n/a.</li>
+    <li><code>&quot;DONTROUTE&quot;</code>: n/a.</li>
+    <li><code>&quot;TRYHARD&quot;</code>: Synonym for <code>&quot;DONTROUTE&quot;</code> for DECnet.</li>
+    <li><code>&quot;CTRUNC&quot;</code>: n/a.</li>
+    <li><code>&quot;PROBE&quot;</code>: Do not send. Only probe path f.e. for MTU.</li>
+    <li><code>&quot;TRUNC&quot;</code>: n/a.</li>
+    <li><code>&quot;DONTWAIT&quot;</code>: Nonblocking io.</li>
+    <li><code>&quot;EOR&quot;</code>: End of record.</li>
+    <li><code>&quot;WAITALL&quot;</code>: Wait for a full request.</li>
+    <li><code>&quot;FIN&quot;</code>: n/a.</li>
+    <li><code>&quot;SYN&quot;</code>: n/a.</li>
+    <li><code>&quot;CONFIRM&quot;</code>: Confirm path validity.</li>
+    <li><code>&quot;RST&quot;</code>: n/a.</li>
+    <li><code>&quot;ERRQUEUE&quot;</code>: Fetch message from error queue.</li>
+    <li><code>&quot;NOSIGNAL&quot;</code>: Do not generate SIGPIPE.</li>
+    <li><code>&quot;MORE&quot;</code>: Sender will send more.</li>
+    <li><code>&quot;WAITFORONE&quot;</code>: recvmmsg(): block until 1+ packets avail.</li>
+    <li><code>&quot;SENDPAGE_NOPOLICY&quot;</code>: sendpage() internal: do no apply policy.</li>
+    <li><code>&quot;SENDPAGE_NOTLAST&quot;</code>: sendpage() internal: not the last page.</li>
+    <li><code>&quot;BATCH&quot;</code>: sendmmsg(): more messages coming.</li>
+    <li><code>&quot;EOF&quot;</code>: n/a.</li>
+    <li><code>&quot;NO_SHARED_FRAGS&quot;</code>: sendpage() internal: page frags are not shared.</li>
+    <li><code>&quot;SENDPAGE_DECRYPTED&quot;</code>: sendpage() internal: page may carry plain text and require encryption.</li>
+    <li><code>&quot;ZEROCOPY&quot;</code>: Use user data in kernel path.</li>
+    <li><code>&quot;FASTOPEN&quot;</code>: Send data in TCP SYN.</li>
+    <li><code>&quot;CMSG_CLOEXEC&quot;</code>: Set close_on_exec for file descriptor received through SCM_RIGHTS.</li>
+</ul>
+
+<h4><code>sock:bind(addr [, port])</code></h4>
+
+<p><em>sock:bind()</em> binds the socket <code>sock</code> to a given address.
+If the <code>sock</code> address family is <code>af.INET</code>, then it expects the following arguments:
+* <code>addr</code>: <code>integer</code> describing host IPv4 address.
+* <code>port</code>: <code>integer</code> describing host IPv4 port.</p>
+
+<p>Otherwise:
+* <code>addr</code>: <a href="https://www.lua.org/manual/5.4/manual.html#6.4.2">packed string</a> describing host address.</p>
+
+<h4><code>sock:listen([backlog])</code></h4>
+
+<p><em>sock:listen()</em> moves the socket <code>sock</code> to listening state.
+* <code>backlog</code>: pending connections queue size.
+If omitted, it uses
+<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/socket.h#L296">SOMAXCONN</a>
+as default.</p>
+
+<h4><code>sock:accept([flags])</code></h4>
+
+<p><em>sock:accept()</em> accepts a connection on socket <code>sock</code>.
+It returns a new <a href="../modules/socket.html#">socket</a> object.
+The available <em>flags</em> are present on the
+<a href="https://github.com/luainkernel/lunatik#socketsock">socket.sock</a> table.</p>
+
+<h4><code>sock:connect(addr [, port] [, flags])</code></h4>
+
+<p><em>sock:connect()</em> connects the socket <code>sock</code> to the address <code>addr</code>.
+If the <code>sock</code> address family is <code>af.INET</code>, then it expects the following arguments:
+* <code>addr</code>: <code>integer</code> describing the destination IPv4 address.
+* <code>port</code>: <code>integer</code> describing the destination IPv4 port.</p>
+
+<p>Otherwise:
+* <code>addr</code>: <a href="https://www.lua.org/manual/5.4/manual.html#6.4.2">packed string</a> describing the destination address.</p>
+
+<p>The available <em>flags</em> are present on the
+<a href="https://github.com/luainkernel/lunatik#socketsock">socket.sock</a> table.</p>
+
+<p>For datagram sockets, <code>addr</code> is the address to which datagrams are sent
+by default, and the only address from which datagrams are received.
+For stream sockets, attempts to connect to <code>addr</code>.</p>
+
+<h4><code>sock:getsockname()</code></h4>
+
+<p><em>sock:getsockname()</em> get the address which the socket <code>sock</code> is bound.
+If the <code>sock</code> address family is <code>af.INET</code>, then it returns the following:
+* <code>addr</code>: <code>integer</code> describing the bounded IPv4 address.
+* <code>port</code>: <code>integer</code> describing the bounded IPv4 port.</p>
+
+<p>Otherwise:
+* <code>addr</code>: <a href="https://www.lua.org/manual/5.4/manual.html#6.4.2">packed string</a> describing the bounded address.</p>
+
+<h4><code>sock:getpeername()</code></h4>
+
+<p><em>sock:getpeername()</em> get the address which the socket <code>sock</code> is connected.
+If the <code>sock</code> address family is <code>af.INET</code>, then it returns the following:
+* <code>addr</code>: <code>integer</code> describing the peer's IPv4 address.
+* <code>port</code>: <code>integer</code> describing the peer's IPv4 port.</p>
+
+<p>Otherwise:
+* <code>addr</code>: <a href="https://www.lua.org/manual/5.4/manual.html#6.4.2">packed string</a> describing the peer's address.</p>
+
+<h3>socket.inet</h3>
+
+<p>The <a href="../modules/socket.inet.html#">socket.inet</a> library provides support for high-level IPv4 sockets.</p>
+
+<h4><code>inet.tcp()</code></h4>
+
+<p><em>inet.tcp()</em> creates a new <a href="../modules/socket.html#">socket</a> using
+<a href="https://github.com/luainkernel/lunatik#socketaf">af.INET</a> address family,
+<a href="https://github.com/luainkernel/lunatik#socketsock">sock.STREAM</a> type
+and
+<a href="https://github.com/luainkernel/lunatik#socketipproto">ipproto.TCP</a> protocol.
+It overrides <a href="../modules/socket.html#">socket</a> methods to use addresses as <em>numbers-and-dots notation</em>
+(e.g., <code>&quot;127.0.0.1&quot;</code>), instead of integers.</p>
+
+<h4><code>inet.udp()</code></h4>
+
+<p><em>inet.udp()</em> creates a new <a href="../modules/socket.html#">socket</a> using
+<a href="https://github.com/luainkernel/lunatik#socketaf">af.INET</a> address family,
+<a href="https://github.com/luainkernel/lunatik#socketsock">sock.DGRAM</a> type
+and
+<a href="https://github.com/luainkernel/lunatik#socketipproto">ipproto.UDP</a> protocol.
+It overrides <a href="../modules/socket.html#">socket</a> methods to use addresses as <em>numbers-and-dots notation</em>
+(e.g., <code>&quot;127.0.0.1&quot;</code>), instead of integers.</p>
+
+<h5><code>udp:receivefrom(length [, flags])</code></h5>
+
+<p><em>udp:receivefrom()</em> is just an alias to <code>sock:receive(length, flags, true)</code>.</p>
+
+<h3>net</h3>
+
+<p>The <a href="../modules/net.html#">net</a> library provides utility functions for working with IPv4 addresses.</p>
+
+<h4><code>net.aton(addr)</code></h4>
+
+<p><em>net.aton()</em> converts an IPv4 address from dotted-decimal notation (e.g., <code>&quot;127.0.0.1&quot;</code>) to its integer representation.</p>
+
+<ul>
+    <li><code>addr</code>: A string representing the IPv4 address in dotted-decimal notation.</li>
+</ul>
+
+<p>Returns the integer representation of the IPv4 address.</p>
+
+<h4><code>net.ntoa(ip)</code></h4>
+
+<p><em>net.ntoa()</em> converts an IPv4 address from its integer representation to dotted-decimal notation (e.g., <code>&quot;127.0.0.1&quot;</code>).</p>
+
+<ul>
+    <li><code>ip</code>: An integer representing the IPv4 address.</li>
+</ul>
+
+<p>Returns the dotted-decimal string representation of the IPv4 address.</p>
+
+<h3>rcu</h3>
+
+<p>The <a href="../modules/rcu.html#">rcu</a> library provides support for the kernel
+<a href="https://lwn.net/Articles/262464/">Read-copy update (RCU)</a>
+synchronization mechanism.
+This library was inspired by
+<a href="https://github.com/cmessias">Caio Messias</a>'
+<a href="https://summerofcode.withgoogle.com/archive/2018/projects/5736202426646528">GSoC project</a>.</p>
+
+<h4><code>rcu.table([size])</code></h4>
+
+<p><em>rcu.table()</em> creates a new <a href="../modules/rcu.html#table">rcu.table</a> object
+which binds the kernel <a href="https://lwn.net/Articles/510202/">generic hash table</a>.
+This function receives as argument the number of buckets rounded up to the next power of 2.
+The default size is <code>1024</code>.
+Key must be a string and value must be a Lunatik object or nil.</p>
+
+<h3>thread</h3>
+
+<p>The <a href="../modules/thread.html#">thread</a> library provides support for the
+<a href="https://lwn.net/Articles/65178/">kernel thread primitives</a>.</p>
+
+<h4><code>thread.run(runtime, name)</code></h4>
+
+<p><em>thread.run()</em> creates a new <a href="../modules/thread.html#">thread</a> object and wakes it up.
+This function receives the following arguments:
+* <code>runtime</code>: the
+<a href="https://github.com/luainkernel/lunatik#lunatikruntimescript--sleep">runtime environment</a>
+for running a task in the created kernel thread.
+The task must be specified by returning a function on the script loaded
+in the <code>runtime</code> environment.
+* <code>name</code>: string representing the name for the thread (e.g., as shown on <code>ps</code>).</p>
+
+<h4><code>thread.shouldstop()</code></h4>
+
+<p><em>thread.shouldstop()</em> returns <code>true</code> if
+<a href="https://github.com/luainkernel/lunatik#threadstopthrd-thrdstop">thread.stop()</a>
+was called; otherwise, it returns <code>false</code>.</p>
+
+<h4><code>thread.current()</code></h4>
+
+<p><em>thread.current()</em> returns a <a href="../modules/thread.html#">thread</a> object representing the current task.</p>
+
+<h4><code>thrd:stop()</code></h4>
+
+<p><em>thrd:stop()</em> sets
+<a href="https://github.com/luainkernel/lunatik#threadshouldstop">thread.shouldstop()</a>
+on the thread <code>thrd</code> to return true, wakes <code>thrd</code>, and waits for it to exit.</p>
+
+<h4><code>thrd:task()</code></h4>
+
+<p><em>thrd:task()</em> returns a table containing the task information of this <a href="../modules/thread.html#">thread</a>
+(e.g., "cpu", "command", "pid" and "tgid").</p>
+
+<h3>fib</h3>
+
+<p>The <a href="../modules/fib.html#">fib</a> library provides support for the
+<a href="https://thermalcircle.de/doku.php?id=blog:linux:routing_decisions_in_the_linux_kernel_1_lookup_packet_flow">kernel Forwarding Information Base</a>.</p>
+
+<h4><code>fib.newrule(table, priority)</code></h4>
+
+<p><em>fib.newrule()</em> binds the kernel
+<a href="https://elixir.bootlin.com/linux/latest/source/include/net/fib_rules.h#L182">fib<em>nl</em>newrule</a>
+API;
+it creates a new FIB rule that matches the specified routing <em>table</em>
+with the specified <em>priorioty</em>.
+This function is similar to the user-space command
+<a href="https://datahacker.blog/industry/technology-menu/networking/iptables/follow-the-ip-rules">ip rule add</a>
+provided by <a href="https://wiki.linuxfoundation.org/networking/iproute2">iproute2</a>.</p>
+
+<h4><code>fib.delrule(table, priority)</code></h4>
+
+<p><em>fib.delrule()</em> binds the kernel
+<a href="https://elixir.bootlin.com/linux/latest/source/include/net/fib_rules.h#L184">fib<em>nl</em>delrule</a>
+API;
+it removes a FIB rule that matches the specified routing <em>table</em>
+with the specified <em>priorioty</em>.
+This function is similar to the user-space command
+<a href="https://datahacker.blog/industry/technology-menu/networking/iptables/follow-the-ip-rules">ip rule del</a>
+provided by <a href="https://wiki.linuxfoundation.org/networking/iproute2">iproute2</a>.</p>
+
+<h3>data</h3>
+
+<p>The <a href="../modules/data.html#">data</a> library provides support for binding the system memory to Lua.</p>
+
+<h4><code>data.new(size)</code></h4>
+
+<p><em>data.new()</em> creates a new <a href="../modules/data.html#">data</a> object which allocates <code>size</code> bytes.</p>
+
+<h4><code>d:getnumber(offset)</code></h4>
+
+<p><em>d:getnumber()</em> extracts a <a href="https://www.lua.org/manual/5.4/manual.html#lua_Integer">lua_Integer</a>
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:setnumber(offset, number)</code></h4>
+
+<p><em>d:setnumber()</em> insert a <a href="https://www.lua.org/manual/5.4/manual.html#lua_Integer">lua_Integer</a>
+<code>number</code> into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:getbyte(offset)</code></h4>
+
+<p><em>d:getbyte()</em> extracts a byte
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:setbyte(offset, byte)</code></h4>
+
+<p><em>d:setbyte()</em> insert a byte
+into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:getstring(offset[, length])</code></h4>
+
+<p><em>d:getstring()</em> extracts a string with <code>length</code> bytes
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero. If <code>length</code> is omitted, it extracts all bytes
+from <code>offset</code> to the end of the <a href="../modules/data.html#">data</a>.</p>
+
+<h4><code>d:setstring(offset, s)</code></h4>
+
+<p><em>d:setstring()</em> insert the string <code>s</code>
+into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:getint8(offset)</code></h4>
+
+<p><em>d:getint8(d, offset)</em> extracts a signed 8-bit integer
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:setint8(offset, number)</code></h4>
+
+<p><em>d:setint8()</em> inserts a signed 8-bit number
+into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:getuint8(offset)</code></h4>
+
+<p><em>d:getuint8()</em> extracts an unsigned 8-bit integer
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:setuint8(offset, number)</code></h4>
+
+<p><em>d:setuint8()</em> inserts an unsigned 8-bit number
+into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:getint16(offset)</code></h4>
+
+<p><em>d:getint16()</em> extracts a signed 16-bit integer
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:setint16(offset, number)</code></h4>
+
+<p><em>d:setint16()</em> inserts a signed 16-bit number
+into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:getuint16(offset)</code></h4>
+
+<p><em>d:getuint16()</em> extracts an unsigned 16-bit integer
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:setuint16(offset, number)</code></h4>
+
+<p><em>d:setuint16()</em> inserts an unsigned 16-bit number
+into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:getint32(offset)</code></h4>
+
+<p><em>d:getint32()</em> extracts a signed 32-bit integer
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:setint32(offset, number)</code></h4>
+
+<p><em>d:setint32()</em> inserts a signed 32-bit number
+into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:getuint32(offset)</code></h4>
+
+<p><em>d:getuint32()</em> extracts an unsigned 32-bit integer
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:setuint32(offset, number)</code></h4>
+
+<p><em>d:setuint32()</em> inserts an unsigned 32-bit number
+into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:getint64(offset)</code></h4>
+
+<p><em>d:getint64()</em> extracts a signed 64-bit integer
+from the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h4><code>d:setint64(offset, number)</code></h4>
+
+<p><em>d:setint64()</em> inserts a signed 64-bit number
+into the memory referenced by a <a href="../modules/data.html#">data</a> object and a byte <code>offset</code>,
+starting from zero.</p>
+
+<h3>probe</h3>
+
+<p>The <a href="../modules/probe.html#">probe</a> library provides support for
+<a href="https://docs.kernel.org/trace/kprobes.html">kernel probes</a>.</p>
+
+<h4><code>probe.new(symbol|address, handlers)</code></h4>
+
+<p><em>probe.new()</em> returns a new <a href="../modules/probe.html#">probe</a> object for monitoring a kernel <code>symbol</code> (string) or <code>address</code> (light userdata)
+and installs its <code>handlers</code> in the system.
+The <code>handler</code> <strong>must</strong> be defined as a table containing the following field:
+* <code>pre</code>: function to be called before the probed instruction.
+It receives the <code>symbol</code> or <code>address</code>,
+followed by a closure that may be called to
+<a href="https://elixir.bootlin.com/linux/v5.6.19/source/include/linux/sched/debug.h#L26">show the CPU registers and stack</a>
+in the system log.
+* <code>post</code>: function to be called after the probed instruction.
+It receives the <code>symbol</code> or <code>address</code>,
+followed by a closure that may be called to
+<a href="https://elixir.bootlin.com/linux/v5.6.19/source/include/linux/sched/debug.h#L26">show the CPU registers and stack</a>
+in the system log.</p>
+
+<h4><code>p:stop()</code></h4>
+
+<p><em>p:stop()</em> removes the <a href="../modules/probe.html#">probe</a> handlers from the system.</p>
+
+<h4><code>p:enable(bool)</code></h4>
+
+<p><em>p:enable()</em> enables or disables the <a href="../modules/probe.html#">probe</a> handlers, accordingly to <code>bool</code>.</p>
+
+<h3>syscall</h3>
+
+<p>The <a href="../modules/syscall.html#">syscall</a> library provides support for system call addresses and numbers.</p>
+
+<h4><code>syscall.address(number)</code></h4>
+
+<p><em>syscall.address()</em> returns the system call address (light userdata) referenced by the given <code>number</code>.</p>
+
+<h4><code>syscall.number(name)</code></h4>
+
+<p><em>syscall.number()</em> returns the system call number referenced by the given <code>name</code>.</p>
+
+<h3>syscall.table</h3>
+
+<p>The <a href="../modules/syscall.table.html#">syscall.table</a> library provides support for translating system call names to addresses (light userdata).</p>
+
+<h3>xdp</h3>
+
+<p>The <a href="../modules/xdp.html#">xdp</a> library provides support for the kernel
+<a href="https://prototype-kernel.readthedocs.io/en/latest/networking/XDP/">eXpress Data Path (XDP)</a>
+subsystem.
+This library was inspired by
+<a href="https://github.com/VictorNogueiraRio/linux">Victor Nogueira</a>'s
+<a href="https://victornogueirario.github.io/xdplua/">GSoC project</a>.</p>
+
+<h4><code>xdp.attach(callback)</code></h4>
+
+<p><em>xdp.attach()</em> registers a <code>callback</code> function to the current <code>runtime</code>
+to be called from an XDP/eBPF program whenever it calls
+<a href="lib/luaxdp.c#L106">bpf<em>luaxdp</em>run</a>
+<a href="https://docs.kernel.org/bpf/kfuncs.html">kfunc</a>.
+This <code>callback</code> receives the following arguments:
+* <code>buffer</code>: a <a href="../modules/data.html#">data</a> object representing the network buffer.
+* <code>argument</code>: a <a href="../modules/data.html#">data</a> object containing the argument passed by the XDP/eBPF program.</p>
+
+<p>The <code>callback</code> function might return the values defined by the
+<a href="https://github.com/luainkernel/lunatik#xdpaction">xdp.action</a> table.</p>
+
+<h4><code>xdp.detach()</code></h4>
+
+<p><em>xdp.detach()</em> unregisters the <code>callback</code> associated with the current <code>runtime</code>, if any.</p>
+
+<h4><a href="../modules/xdp.html#action">xdp.action</a></h4>
+
+<p><em>xdp.action</em> is a table that exports
+<a href="https://elixir.bootlin.com/linux/v6.4/source/include/uapi/linux/bpf.h#L6187">xdp_action</a>
+flags to Lua.</p>
+
+<ul>
+    <li><code>&quot;ABORTED&quot;</code>: Indicates that the XDP program aborted, typically due to an error.</li>
+    <li><code>&quot;DROP&quot;</code>: Specifies that the packet should be dropped, discarding it entirely.</li>
+    <li><code>&quot;PASS&quot;</code>: Allows the packet to pass through to the Linux network stack.</li>
+    <li><code>&quot;TX&quot;</code>: Transmits the packet back out on the same interface it was received.</li>
+    <li><code>&quot;REDIRECT&quot;</code>: Redirects the packet to another interface or processing context.</li>
+</ul>
+
+<h3>xtable</h3>
+
+<p>The <a href="../modules/xtable.html#">xtable</a> library provides support for developing netfilter <a href="https://inai.de/projects/xtables-addons/">xtable extensions</a>.</p>
+
+<h4><code>xtable.match(opts)</code></h4>
+
+<p><em>xtable.match()</em> returns a new <a href="https://inai.de/projects/xtables-addons/">xtable</a> object for match extensions.
+This function receives the following arguments:
+* <code>opts</code>: a table containing the following fields:
+  * <code>name</code>: string representing the xtable extension name.
+  * <code>revision</code>: integer representing the xtable extension revision.
+  * <code>family</code>: address family, one of <a href="https://github.com/luainkernel/lunatik#netfilterfamily">netfilter.family</a>.
+  * <code>proto</code>: protocol number, one of <a href="https://github.com/luainkernel/lunatik#socketipproto">socket.ipproto</a>.
+  * <code>hooks</code> : hook to attach the extension to, one value from either of the hooks table - <a href="https://github.com/luainkernel/lunatik#netfilterinet_hooks">netfilter.inet<em>hooks</a>, <a href="https://github.com/luainkernel/lunatik#netfilterbridge_hooks">netfilter.bridge</em>hooks</a> and <a href="https://github.com/luainkernel/lunatik#netfilterarp_hooks">netfilter.arp<em>hooks</a> (Note: <a href="https://github.com/luainkernel/lunatik#netfilternetdev_hooks">netfilter.netdev</em>hooks</a> is not available for legacy x_tables). (E.g - <code>1 &lt;&lt; inet_hooks.LOCAL_OUT</code>).
+  * <code>match</code> : function to be called for matching packets. It receives the following arguments:</p>
+
+<pre>
+* <span class="backtick"><code>skb</code></span> (readonly): a <span class="backtick"><a href="../modules/data.html#">data</a></span> object representing the socket buffer.
+* <span class="backtick"><code>par</code></span>: a <span class="global">table</span> containing <span class="backtick"><code>hotdrop</code></span>, <span class="backtick"><code>thoff</code></span> (transport header offset) <span class="keyword">and</span> <span class="backtick"><code>fragoff</code></span> (fragment offset) fields.
+* <span class="backtick"><code>userargs</code></span> : a lua <span class="global">string</span> passed from the userspace xtable <span class="global">module</span>.
+* The <span class="keyword">function</span> must <span class="keyword">return</span> <span class="backtick"><code>true</code></span> <span class="keyword">if</span> the packet matches the extension; otherwise, it must <span class="keyword">return</span> <span class="backtick"><code>false</code></span>.
+</pre>
+
+<p>  * <code>checkentry</code>: function to be called for checking the entry. This function receives <code>userargs</code> as its argument.
+  * <code>destroy</code>: function to be called for destroying the xtable extension. This function receives <code>userargs</code> as its argument.</p>
+
+<h4><code>xtable.target(opts)</code></h4>
+
+<p><em>xtable.target()</em> returns a new <a href="https://inai.de/projects/xtables-addons/">xtable</a> object for target extension.
+This function receives the following arguments:
+* <code>opts</code>: a table containing the following fields:
+  * <code>name</code>: string representing the xtable extension name.
+  * <code>revision</code>: integer representing the xtable extension revision.
+  * <code>family</code>: address family, one of <a href="https://github.com/luainkernel/lunatik#netfilterfamily">netfilter.family</a>.
+  * <code>proto</code>: protocol number, one of <a href="https://github.com/luainkernel/lunatik#socketipproto">socket.ipproto</a>.
+  * <code>hooks</code> : hook to attach the extension to, one value from either of the hooks table - <a href="https://github.com/luainkernel/lunatik#netfilterinet_hooks">netfilter.inet<em>hooks</a>, <a href="https://github.com/luainkernel/lunatik#netfilterbridge_hooks">netfilter.bridge</em>hooks</a> and <a href="https://github.com/luainkernel/lunatik#netfilterarp_hooks">netfilter.arp<em>hooks</a> (Note: <a href="https://github.com/luainkernel/lunatik#netfilternetdev_hooks">netfilter.netdev</em>hooks</a> is not available for legacy x_tables). (E.g - <code>1 &lt;&lt; inet_hooks.LOCAL_OUT</code>).
+  * <code>target</code> : function to be called for targeting packets. It receives the following arguments:</p>
+
+<pre>
+* <span class="backtick"><code>skb</code></span>: a <span class="backtick"><a href="../modules/data.html#">data</a></span> object representing the socket buffer.
+* <span class="backtick"><code>par</code></span> (readonly): a <span class="global">table</span> containing <span class="backtick"><code>hotdrop</code></span>, <span class="backtick"><code>thoff</code></span> (transport header offset) <span class="keyword">and</span> <span class="backtick"><code>fragoff</code></span> (fragment offset) fields.
+* <span class="backtick"><code>userargs</code></span> : a lua <span class="global">string</span> passed from the userspace xtable <span class="global">module</span>.
+* The <span class="keyword">function</span> must <span class="keyword">return</span> one of the values defined by the [netfilter.action](https://github.com/luainkernel/lunatik#netfilteraction) <span class="global">table</span>.
+</pre>
+
+<p>  * <code>checkentry</code>: function to be called for checking the entry. This function receives <code>userargs</code> as its argument.
+  * <code>destroy</code>: function to be called for destroying the xtable extension. This function receives <code>userargs</code> as its argument.</p>
+
+<h3>netfilter</h3>
+
+<p>The <a href="../modules/netfilter.html#">netfilter</a> library provides support for the <a href="https://www.netfilter.org/documentation/HOWTO/netfilter-hacking-HOWTO-4.html#ss4.6">new netfilter hook</a> system.</p>
+
+<h4><code>netfilter.register(ops)</code></h4>
+
+<p><em>netfilter.register()</em> registers a new netfilter hook with the given <code>ops</code> table.
+This function receives the following arguments:
+* <code>ops</code>: a table containing the following fields:
+  * <code>pf</code>: protocol family, one of <a href="https://github.com/luainkernel/lunatik#netfilterfamily">netfilter.family</a>
+  * <code>hooknum</code>:    hook to attach the filter to, one value from either of the hooks table - <a href="https://github.com/luainkernel/lunatik#netfilterinet_hooks">netfilter.inet<em>hooks</a>, <a href="https://github.com/luainkernel/lunatik#netfilterbridge_hooks">netfilter.bridge</em>hooks</a>, <a href="https://github.com/luainkernel/lunatik#netfilterarp_hooks">netfilter.arp<em>hooks</a> and <a href="https://github.com/luainkernel/lunatik#netfilternetdev_hooks">netfilter.netdev</em>hooks</a>. (E.g - <code>inet_hooks.LOCAL_OUT + 11</code>).
+  * <code>priority</code>:    priority of the hook. One of the values from the <a href="https://github.com/luainkernel/lunatik#netfilterip_priority">netfilter.ip<em>priority</a> or <a href="https://github.com/luainkernel/lunatik#netfilterbridge_priority">netfilter.bridge</em>priority</a> tables.
+  * <code>hook</code>: function to be called for the hook. It receives the following arguments:</p>
+
+<pre>
+* <span class="backtick"><code>skb</code></span>: a <span class="backtick"><a href="../modules/data.html#">data</a></span> object representing the socket buffer. The object points to the beginning of the packet. In stardard cases, where the Ethernet header is present, it points to its start. Otherwise, the object points to the start of the IP <span class="function-name">header</span> (E.g - <span class="keyword">for</span> hooks <span class="keyword">in</span> <span class="backtick"><code>LOCAL_OUT</code></span>).
+* The <span class="keyword">function</span> must <span class="keyword">return</span> one of the values defined by the [netfilter.action](https://github.com/luainkernel/lunatik#netfilteraction).
+</pre>
+
+<p>  * <code>mark</code>: an integer used to match the <code>skb</code> (socket buffer) mark. When set to a non-zero value, the <code>hook</code> callback will be invoked <strong>only</strong> if the value of <code>mark</code> matches the packet's <code>skb mark</code>. <br/>
+The mark can be set using tools such as <a href="https://tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.netfilter.html">iptables</a> or <a href="https://wiki.nftables.org/wiki-nftables/index.php/Matching_packet_metainformation#Matching_by_packet_mark,_routing_class_and_realm">nftables</a>.</p>
+
+<h4><a href="../modules/netfilter.html#family">netfilter.family</a></h4>
+
+<p><em>netfilter.family</em> is a table that exports
+address families to Lua.</p>
+
+<ul>
+    <li><code>&quot;UNSPEC&quot;</code>: Unspecified.</li>
+    <li><code>&quot;INET&quot;</code>: Internet Protocol version 4.</li>
+    <li><code>&quot;IPV4&quot;</code>: Internet Protocol version 4.</li>
+    <li><code>&quot;IPV6&quot;</code>: Internet Protocol version 6.</li>
+    <li><code>&quot;ARP&quot;</code>: Address Resolution Protocol.</li>
+    <li><code>&quot;NETDEV&quot;</code>: Device ingress and egress path</li>
+    <li><code>&quot;BRIDGE&quot;</code>: Ethernet Bridge.</li>
+</ul>
+
+<h4><a href="../modules/netfilter.html#action">netfilter.action</a></h4>
+
+<p><em>netfilter.action</em> is a table that exports
+netfilter actions to Lua.</p>
+
+<ul>
+    <li><code>&quot;DROP&quot;</code>: <code>NF_DROP</code>. The packet is dropped. It is not forwarded, processed, or seen by any other network layer.</li>
+    <li><code>&quot;ACCEPT&quot;</code>: <code>NF_ACCEPT</code>. The packet is accepted and passed to the next step in the network processing chain.</li>
+    <li><code>&quot;STOLEN&quot;</code>: <code>NF_STOLEN</code>. The packet is taken by the handler, and processing stops.</li>
+    <li><code>&quot;QUEUE&quot;</code>: <code>NF_QUEUE</code>. The packet is queued for user-space processing.</li>
+    <li><code>&quot;REPEAT&quot;</code>: <code>NF_REPEAT</code>. The packet is sent through the hook chain again.</li>
+    <li><code>&quot;STOP&quot;</code>: <code>NF_STOP</code>. Processing of the packet stops.</li>
+    <li><code>&quot;CONTINUE&quot;</code>: <code>XT_CONTINUE</code>. Return the packet should continue traversing the rules within the same table.</li>
+    <li><code>&quot;RETURN&quot;</code>: <code>XT_RETURN</code>. Return the packet to the previous chain.</li>
+</ul>
+
+<h4><a href="../modules/netfilter.html#inet_hooks">netfilter.inet_hooks</a></h4>
+
+<p><em>netfilter.inet</em>hooks_ is a table that exports
+inet netfilter hooks to Lua.</p>
+
+<ul>
+    <li><code>&quot;PRE_ROUTING&quot;</code>: <code>NF_INET_PRE_ROUTING</code>. The packet is received by the network stack.</li>
+    <li><code>&quot;LOCAL_IN&quot;</code>: <code>NF_INET_LOCAL_IN</code>. The packet is destined for the local system.</li>
+    <li><code>&quot;FORWARD&quot;</code>: <code>NF_INET_FORWARD</code>. The packet is to be forwarded to another host.</li>
+    <li><code>&quot;LOCAL_OUT&quot;</code>: <code>NF_INET_LOCAL_OUT</code>. The packet is generated by the local system.</li>
+    <li><code>&quot;POST_ROUTING&quot;</code>: <code>NF_INET_POST_ROUTING</code>. The packet is about to be sent out.</li>
+</ul>
+
+<h4><a href="../modules/netfilter.html#bridge_hooks">netfilter.bridge_hooks</a></h4>
+
+<p><em>netfilter.bridge</em>hooks_ is a table that exports
+bridge netfilter hooks to Lua.</p>
+
+<ul>
+    <li><code>&quot;PRE_ROUTING&quot;</code>: <code>NF_BR_PRE_ROUTING</code>. First hook invoked, runs before forward database is consulted.</li>
+    <li><code>&quot;LOCAL_IN&quot;</code>: <code>NF_BR_LOCAL_IN</code>. Invoked for packets destined for the machine where the bridge was configured on.</li>
+    <li><code>&quot;FORWARD&quot;</code>: <code>NF_BR_FORWARD</code>. Called for frames that are bridged to a different port of the same logical bridge device.</li>
+    <li><code>&quot;LOCAL_OUT&quot;</code>: <code>NF_BR_LOCAL_OUT</code>. Called for locally originating packets that will be transmitted via the bridge.</li>
+    <li><code>&quot;POST_ROUTING&quot;</code>: <code>NF_BR_POST_ROUTING</code>. Called for all locally generated packets and all bridged packets</li>
+</ul>
+
+<h4><a href="../modules/netfilter.html#arp_hooks">netfilter.arp_hooks</a></h4>
+
+<p><em>netfilter.arp</em>hooks_ is a table that exports
+arp netfilter hooks to Lua.</p>
+
+<ul>
+    <li><code>&quot;IN&quot;</code>: <code>NF_ARP_IN</code>. The packet is received by the network stack.</li>
+    <li><code>&quot;OUT&quot;</code>: <code>NF_ARP_OUT</code>. The packet is generated by the local system.</li>
+    <li><code>&quot;FORWARD&quot;</code>: <code>NF_ARP_FORWARD</code>. The packet is to be forwarded to another host.</li>
+</ul>
+
+<h4><a href="../modules/netfilter.html#netdev_hooks">netfilter.netdev_hooks</a></h4>
+
+<p><em>netfilter.netdev</em>hooks_ is a table that exports
+netdev netfilter hooks to Lua.</p>
+
+<ul>
+    <li><code>&quot;INGRESS&quot;</code>: <code>NF_NETDEV_INGRESS</code>. The packet is received by the network stack.</li>
+    <li><code>&quot;EGRESS&quot;</code>: <code>NF_NETDEV_EGRESS</code>. The packet is generated by the local system.</li>
+</ul>
+
+<h4><a href="../modules/netfilter.html#ip_priority">netfilter.ip_priority</a></h4>
+
+<p><em>netfilter.ip</em>priority_ is a table that exports
+netfilter IPv4/IPv6 priority levels to Lua.</p>
+
+<ul>
+    <li><code>&quot;FIRST&quot;</code>: <code>NF_IP_PRI_FIRST</code></li>
+    <li><code>&quot;RAW_BEFORE_DEFRAG&quot;</code>: <code>NF_IP_PRI_RAW_BEFORE_DEFRAG</code></li>
+    <li><code>&quot;CONNTRACK_DEFRAG&quot;</code>: <code>NF_IP_PRI_CONNTRACK_DEFRAG</code></li>
+    <li><code>&quot;RAW&quot;</code>: <code>NF_IP_PRI_RAW</code></li>
+    <li><code>&quot;SELINUX_FIRST&quot;</code>: <code>NF_IP_PRI_SELINUX_FIRST</code></li>
+    <li><code>&quot;CONNTRACK&quot;</code>: <code>NF_IP_PRI_CONNTRACK</code></li>
+    <li><code>&quot;MANGLE&quot;</code>: <code>NF_IP_PRI_MANGLE</code></li>
+    <li><code>&quot;NAT_DST&quot;</code>: <code>NF_IP_PRI_NAT_DST</code></li>
+    <li><code>&quot;FILTER&quot;</code>: <code>NF_IP_PRI_FILTER</code></li>
+    <li><code>&quot;SECURITY&quot;</code>: <code>NF_IP_PRI_SECURITY</code></li>
+    <li><code>&quot;NAT_SRC&quot;</code>: <code>NF_IP_PRI_NAT_SRC</code></li>
+    <li><code>&quot;SELINUX_LAST&quot;</code>: <code>NF_IP_PRI_SELINUX_LAST</code></li>
+    <li><code>&quot;CONNTRACK_HELPER&quot;</code>: <code>NF_IP_PRI_CONNTRACK_HELPER</code></li>
+    <li><code>&quot;LAST&quot;</code>: <code>NF_IP_PRI_LAST</code></li>
+</ul>
+
+<h4><a href="../modules/netfilter.html#bridge_priority">netfilter.bridge_priority</a></h4>
+
+<p><em>netfilter.bridge</em>priority_ is a table that exports
+netfilter bridge priority levels to Lua.</p>
+
+<ul>
+    <li><code>&quot;FIRST&quot;</code>: <code>NF_BR_PRI_FIRST</code></li>
+    <li><code>&quot;NAT_DST_BRIDGED&quot;</code>: <code>NF_BR_PRI_NAT_DST_BRIDGED</code></li>
+    <li><code>&quot;FILTER_BRIDGED&quot;</code>: <code>NF_BR_PRI_FILTER_BRIDGED</code></li>
+    <li><code>&quot;BRNF&quot;</code>: <code>NF_BR_PRI_BRNF</code></li>
+    <li><code>&quot;NAT_DST_OTHER&quot;</code>: <code>NF_BR_PRI_NAT_DST_OTHER</code></li>
+    <li><code>&quot;FILTER_OTHER&quot;</code>: <code>NF_BR_PRI_FILTER_OTHER</code></li>
+    <li><code>&quot;NAT_SRC&quot;</code>: <code>NF_BR_PRI_NAT_SRC</code></li>
+    <li><code>&quot;LAST&quot;</code>: <code>NF_BR_PRI_LAST</code></li>
+</ul>
+
+<h3>luaxt</h3>
+
+<p>The <code>luaxt</code> <a href="usr/lib/xtable">userspace library</a> provides support for generating userspace code for <a href="https://inai.de/projects/xtables-addons/">xtable extensions</a>.</p>
+
+<p>To build the library, the following steps are required:</p>
+
+<ol>
+    <li>Go to <code>usr/lib/xtable</code> and create a <code>libxt_&lt;ext_name&gt;.lua</code> file.</li>
+    <li>Register your callbacks for the xtable extension by importing the library (<code>luaxt</code>) in the created file.</li>
+    <li>Run <code>LUAXTABLE_MODULE=&lt;ext_name&gt; make</code> to build the extension and <code>LUAXTABLE_MODULE=&lt;ext_name&gt; make install</code> (as root) to install the userspace plugin to the system.</li>
+</ol>
+
+<p>Now load the extension normally using <code>iptables</code>.</p>
+
+<h4><code>luaxt.match(opts)</code></h4>
+
+<p><em>luaxt.match()</em> returns a new <a href="https://inai.de/projects/xtables-addons/">luaxt</a> object for match extensions.
+This function receives the following arguments:
+* <code>opts</code>: a table containing the following fields:
+  * <code>revision</code>: integer representing the xtable extension revision (<strong>must</strong> be same as used in corresponding kernel extension).
+  * <code>family</code>: address family, one of <a href="https://github.com/luainkernel/lunatik#luaxtfamily">luaxt.family</a>
+  * <code>help</code>: function to be called for displaying help message for the extension.
+  * <code>init</code>: function to be called for initializing the extension. This function receives an <code>par</code> table that can be used to set <code>userargs</code>. (<code>par.userargs = &quot;mydata&quot;</code>)
+  * <a href="https://www.lua.org/manual/5.4/manual.html#pdf-print">print</a>: function to be called for printing the arguments. This function recevies <code>userargs</code> set by the <code>init</code> or <code>parse</code> function.
+  * <code>save</code>: function to be called for saving the arguments. This function recevies <code>userargs</code> set by the <code>init</code> or <code>parse</code> function.
+  * <code>parse</code>: function to be called for parsing the command line arguments. This function receives an <code>par</code> table that can be used to set <code>userargs</code> and <code>flags</code>. (<code>par.userargs = &quot;mydata&quot;</code>)
+  * <code>final_check</code>: function to be called for final checking of the arguments. This function receives <code>flags</code> set by the <code>parse</code> function.</p>
+
+<h4><code>luaxt.target(opts)</code></h4>
+
+<p><em>luaxt.target()</em> returns a new <a href="https://inai.de/projects/xtables-addons/">luaxt</a> object for target extensions.
+This function receives the following arguments:
+* <code>opts</code>: a table containing the following fields:
+  * <code>revision</code>: integer representing the xtable extension revision (<strong>must</strong> be same as used in corresponding kernel extension).
+  * <code>family</code>: address family, one of <a href="https://github.com/luainkernel/lunatik#luaxtfamily">luaxt.family</a>
+  * <code>help</code>: function to be called for displaying help message for the extension.
+  * <code>init</code>: function to be called for initializing the extension. This function receives an <code>par</code> table that can be used to set <code>userargs</code>. (<code>par.userargs = &quot;mydata&quot;</code>)
+  * <a href="https://www.lua.org/manual/5.4/manual.html#pdf-print">print</a>: function to be called for printing the arguments. This function recevies <code>userargs</code> set by the <code>init</code> or <code>parse</code> function.
+  * <code>save</code>: function to be called for saving the arguments. This function recevies <code>userargs</code> set by the <code>init</code> or <code>parse</code> function.
+  * <code>parse</code>: function to be called for parsing the command line arguments. This function receives an <code>par</code> table that can be used to set <code>userargs</code> and <code>flags</code>. (<code>par.userargs = &quot;mydata&quot;</code>)
+  * <code>final_check</code>: function to be called for final checking of the arguments. This function receives <code>flags</code> set by the <code>parse</code> function.</p>
+
+<h4><code>luaxt.family</code></h4>
+
+<p><em>luaxt.family</em> is a table that exports
+address families to Lua.</p>
+
+<ul>
+    <li><code>&quot;UNSPEC&quot;</code>: Unspecified.</li>
+    <li><code>&quot;INET&quot;</code>: Internet Protocol version 4.</li>
+    <li><code>&quot;IPV4&quot;</code>: Internet Protocol version 4.</li>
+    <li><code>&quot;IPV6&quot;</code>: Internet Protocol version 6.</li>
+    <li><code>&quot;ARP&quot;</code>: Address Resolution Protocol.</li>
+    <li><code>&quot;NETDEV&quot;</code>: Device ingress and egress path</li>
+    <li><code>&quot;BRIDGE&quot;</code>: Ethernet Bridge.</li>
+</ul>
+
+<h3><a href="../modules/completion.html#">completion</a></h3>
+
+<p>The <a href="../modules/completion.html#">completion</a> library provides support for the <a href="https://docs.kernel.org/scheduler/completion.html">kernel completion primitives</a>.</p>
+
+<p>Task completion is a synchronization mechanism used to coordinate the execution of multiple threads, similar to <code>pthread_barrier</code>, it allows threads to wait for a specific event to occur before proceeding, ensuring certain tasks are complete in a race-free manner.</p>
+
+<h4><code>completion.new()</code></h4>
+
+<p><em>completion.new()</em> creates a new <a href="../modules/completion.html#">completion</a> object.</p>
+
+<h4><code>c:complete()</code></h4>
+
+<p><em>c:complete()</em> signals a single thread waiting on this completion.</p>
+
+<h4><code>c:wait([timeout])</code></h4>
+
+<p><em>c:wait()</em> waits for completion of a task until the specified timeout expires.
+The timeout is specified in milliseconds. If the <code>timeout</code> parameter is omitted, it waits indefinitely. Passing a timeout value less than zero results in undefined behavior.
+Threads waiting for events can be interrupted by signals, for example, such as when <a href="../modules/thread.html#thread:stop">thread.stop</a> is invoked.
+Therefore, this function can return in three ways:
+* If it succeeds, it returns <code>true</code>
+* If the timeout is reached, it returns <code>nil, &quot;timeout&quot;</code>
+* If the task is interrupted, it returns <code>nil, &quot;interrupt&quot;</code></p>
+
+<h1>Examples</h1>
+
+<h3>spyglass</h3>
+
+<p><a href="examples/spyglass.lua">spyglass</a>
+is a kernel script that implements a <em>keylogger</em> inspired by the
+<a href="https://github.com/jarun/spy">spy</a> kernel module.
+This kernel script logs the <em>keysym</em> of the pressed keys in a device (<code>/dev/spyglass</code>).
+If the <em>keysym</em> is a printable character, <code>spyglass</code> logs the <em>keysym</em> itself;
+otherwise, it logs a mnemonic of the ASCII code, (e.g., <code>&lt;del&gt;</code> stands for <code>127</code>).</p>
+
+<h4>Usage</h4>
+
+<pre><code> sudo make examples_install          # installs examples
+ sudo lunatik run examples/spyglass  # runs spyglass
+ sudo tail -f /dev/spyglass          # prints the key log
+ sudo sh -c "echo 'enable=false' &gt; /dev/spyglass"       # disable the key logging
+ sudo sh -c "echo 'enable=true' &gt; /dev/spyglass"        # enable the key logging
+ sudo sh -c "echo 'net=127.0.0.1:1337' &gt; /dev/spyglass" # enable network support
+ nc -lu 127.0.0.1 1337 &amp;             # listen to UDP 127.0.0.1:1337
+ sudo tail -f /dev/spyglass          # sends the key log through the network
+</code></pre>
+
+
+<h3>keylocker</h3>
+
+<p><a href="examples/keylocker.lua">keylocker</a>
+is a kernel script that implements
+<a href="https://en.wikipedia.org/wiki/Konami_Code">Konami Code</a>
+for locking and unlocking the console keyboard.
+When the user types <code>↑ ↑ ↓ ↓ ← → ← → LCTRL LALT</code>,
+the keyboard will be <em>locked</em>; that is, the system will stop processing any key pressed
+until the user types the same key sequence again.</p>
+
+<h4>Usage</h4>
+
+<pre><code> sudo make examples_install                     # installs examples
+ sudo lunatik run examples/keylocker            # runs keylocker
+ &lt;↑&gt; &lt;↑&gt; &lt;↓&gt; &lt;↓&gt; &lt;←&gt; &lt;→&gt; &lt;←&gt; &lt;→&gt; &lt;LCTRL&gt; &lt;LALT&gt; # locks keyboard
+ &lt;↑&gt; &lt;↑&gt; &lt;↓&gt; &lt;↓&gt; &lt;←&gt; &lt;→&gt; &lt;←&gt; &lt;→&gt; &lt;LCTRL&gt; &lt;LALT&gt; # unlocks keyboard
+</code></pre>
+
+
+<h3>tap</h3>
+
+<p><a href="examples/tap.lua">tap</a>
+is a kernel script that implements a <em>sniffer</em> using <code>AF_PACKET</code> socket.
+It prints destination and source MAC addresses followed by Ethernet type and the frame size.</p>
+
+<h4>Usage</h4>
+
+<pre><code> sudo make examples_install    # installs examples
+ sudo lunatik run examples/tap # runs tap
+ cat /dev/tap
+</code></pre>
+
+
+<h3>shared</h3>
+
+<p><a href="examples/shared.lua">shared</a>
+is a kernel script that implements an in-memory key-value store using
+<a href="https://github.com/luainkernel/lunatik#rcu">rcu</a>,
+<a href="https://github.com/luainkernel/lunatik#data">data</a>,
+<a href="https://github.com/luainkernel/lunatik#socket">socket</a> and
+<a href="https://github.com/luainkernel/lunatik#thread">thread</a>.</p>
+
+<h4>Usage</h4>
+
+<pre><code> sudo make examples_install         # installs examples
+ sudo lunatik spawn examples/shared # spawns shared
+ nc 127.0.0.1 90                    # connects to shared
+ foo=bar                            # assigns "bar" to foo
+ foo                                # retrieves foo
+ bar
+ ^C                                 # finishes the connection
+</code></pre>
+
+
+<h3>echod</h3>
+
+<p><a href="examples/echod">echod</a>
+is an echo server implemented as kernel scripts.</p>
+
+<h4>Usage</h4>
+
+<pre><code> sudo make examples_install               # installs examples
+ sudo lunatik spawn examples/echod/daemon # runs echod
+ nc 127.0.0.1 1337
+ hello kernel!
+ hello kernel!
+</code></pre>
+
+
+<h3>systrack</h3>
+
+<p><a href="examples/systrack.lua">systrack</a>
+is a kernel script that implements a device driver to monitor system calls.
+It prints the amount of times each <a href="examples/systrack.lua#L29">system call</a>
+was called since the driver has been installed.</p>
+
+<h4>Usage</h4>
+
+<pre><code> sudo make examples_install         # installs examples
+ sudo lunatik run examples/systrack # runs systracker
+ cat /dev/systrack
+ writev: 0
+ close: 1927
+ write: 1085
+ openat: 2036
+ read: 4131
+ readv: 0
+</code></pre>
+
+
+<h3>filter</h3>
+
+<p><a href="examples/filter">filter</a> is a kernel extension composed by
+a XDP/eBPF program to filter HTTPS sessions and
+a Lua kernel script to filter <a href="https://datatracker.ietf.org/doc/html/rfc3546#section-3.1">SNI</a> TLS extension.
+This kernel extension drops any HTTPS request destinated to a
+<a href="examples/filter/sni.lua#L35">blacklisted</a> server.</p>
+
+<h4>Usage</h4>
+
+<p>Compile and install <code>libbpf</code>, <code>libxdp</code> and <code>xdp-loader</code>:</p>
+
+
+<pre>
+mkdir -<span class="function-name">p</span> <span class="string">"${LUNATIK_DIR}"</span> ; <span class="function-name">cd</span> <span class="string">"${LUNATIK_DIR}"</span>  # LUNATIK_DIR must be set to the same value as <span class="function-name">above</span> (Setup section)
+git clone <span class="comment">--depth 1 --recurse-submodules https://github.com/xdp-project/xdp-tools.git
+</span>cd xdp-tools/lib/libbpf/src
+make
+sudo DESTDIR=/ make install
+cd ../../../
+make libxdp
+cd xdp-loader
+make
+sudo make install
+</pre>
+
+
+<p>Come back to this repository, install and load the filter:</p>
+
+
+<pre>
+cd ${LUNATIK_DIR}/lunatik                    # cf. above
+sudo make btf_install                        # needed to export <span class="function-name">the</span> <span class="string">'bpf_luaxdp_run'</span> kfunc
+sudo make examples_install                   # installs examples
+make ebpf                                    # builds the XDP/eBPF program
+sudo make ebpf_install                       # installs the XDP/eBPF program
+sudo lunatik run examples/filter/sni <span class="keyword">false</span>   # runs the Lua kernel script
+sudo xdp-loader <span class="global">load</span> -m skb &lt;ifname&gt; https.o # loads the XDP/eBPF program
+</pre>
+
+
+<p>For example, testing is easy thanks to <a href="https://www.docker.com">docker</a>.
+Assuming docker is installed and running:</p>
+
+<ul>
+    <li>in a terminal:
+
+<pre>
+sudo xdp-loader <span class="global">load</span> -m skb docker0 https.o
+sudo journalctl -ft kernel
+</pre>
+</li>
+    <li>in another one:
+
+<pre>
+docker run <span class="comment">--rm -it alpine/curl https://ebpf.io</span>
+</pre>
+</li>
+</ul>
+
+<p>The system logs (in the first terminal) should display <code>filter_sni: ebpf.io DROP</code>, and the
+<code>docker run…</code> should return <code>curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ebpf.io:443</code>.</p>
+
+<h3>filter in MoonScript</h3>
+
+<p><a href="https://github.com/luainkernel/snihook">This other sni filter</a> uses netfilter api.</p>
+
+<h3>dnsblock</h3>
+
+<p><a href="examples/dnsblock">dnsblock</a> is a kernel script that uses the lunatik xtable library to filter DNS packets.
+This script drops any outbound DNS packet with question matching the blacklist provided by the user. By default, it will block DNS resolutions for the domains <code>github.com</code> and <code>gitlab.com</code>.</p>
+
+<h4>Usage</h4>
+
+<ol>
+    <li><p>Using legacy iptables
+     sudo make examples_install              # installs examples
+     cd examples/dnsblock
+     make                                    # builds the userspace extension for netfilter
+     sudo make install                      # installs the extension to Xtables directory
+     sudo lunatik run examples/dnsblock/dnsblock false  # runs the Lua kernel script
+     sudo iptables -A OUTPUT -m dnsblock -j DROP        # this initiates the netfilter framework to load our extension</p></li>
+    <li><p>Using new netfilter framework (<a href="https://github.com/luainkernel/lunatik#netfilter">luanetfilter</a>)</p>
+
+    <p> sudo make examples<em>install              # installs examples
+     sudo lunatik run examples/dnsblock/nf</em>dnsblock false   # runs the Lua kernel script</p></li>
+</ol>
+
+
+<h3>dnsdoctor</h3>
+
+<p><a href="examples/dnsdoctor">dnsdoctor</a> is a kernel script that uses the lunatik xtable library to change the DNS response
+from Public IP to a Private IP if the destination IP matches the one provided by the user. For example, if the user
+wants to change the DNS response from <code>192.168.10.1</code> to <code>10.1.2.3</code> for the domain <code>lunatik.com</code> if the query is being sent to <code>10.1.1.2</code> (a private client), this script can be used.</p>
+
+<h4>Usage</h4>
+
+<ol>
+    <li><p>Using legacy iptables
+     sudo make examples_install              # installs examples
+     cd examples/dnsdoctor
+     setup.sh                                # sets up the environment</p>
+
+    <p> # test the setup, a response with IP 192.168.10.1 should be returned
+     dig lunatik.com</p>
+
+    <p> # run the Lua kernel script
+     sudo lunatik run examples/dnsdoctor/dnsdoctor false</p>
+
+    <p> # build and install the userspace extension for netfilter
+     make
+     sudo make install</p>
+
+    <p> # add rule to the mangle table
+     sudo iptables -t mangle -A PREROUTING -p udp --sport 53 -j dnsdoctor</p>
+
+    <p> # test the setup, a response with IP 10.1.2.3 should be returned
+     dig lunatik.com</p>
+
+    <p> # cleanup
+     sudo iptables -t mangle -D PREROUTING -p udp --sport 53 -j dnsdoctor # remove the rule
+     sudo lunatik unload
+     cleanup.sh</p></li>
+    <li><p>Using new netfilter framework (<a href="https://github.com/luainkernel/lunatik#netfilter">luanetfilter</a>)
+     sudo make examples_install              # installs examples
+     examples/dnsdoctor/setup.sh             # sets up the environment</p>
+
+    <p> # test the setup, a response with IP 192.168.10.1 should be returned
+     dig lunatik.com</p>
+
+    <p> # run the Lua kernel script
+     sudo lunatik run examples/dnsdoctor/nf_dnsdoctor false</p>
+
+    <p> # test the setup, a response with IP 10.1.2.3 should be returned
+     dig lunatik.com</p>
+
+    <p> # cleanup
+     sudo lunatik unload
+     examples/dnsdoctor/cleanup.sh</p></li>
+</ol>
+
+
+<p><a name="References"></a></p>
+<h2>References</h2>
+
+<ul>
+    <li><a href="https://netdevconf.info/0x17/sessions/talk/scripting-the-linux-routing-table-with-lua.html">Scripting the Linux Routing Table with Lua</a></li>
+    <li><a href="https://www.youtube.com/watch?v=-ufBgy044HI">Lua no Núcleo</a> (Portuguese)</li>
+    <li><a href="https://legacy.netdevconf.info/0x14/session.html?talk-linux-network-scripting-with-lua">Linux Network Scripting with Lua</a></li>
+    <li><a href="https://www.netbsd.org/~lneto/dls14.pdf">Scriptables Operating Systems with Lua</a></li>
+</ul>
+
+<p><a name="License"></a></p>
+<h2>License</h2>
+
+<p>Lunatik is dual-licensed under <a href="LICENSE-MIT">MIT</a> or <a href="LICENSE-GPL">GPL-2.0-only</a>.</p>
+
+<p><a href="https://github.com/luainkernel/lua">Lua</a> submodule is licensed under MIT.
+For more details, see its <a href="https://github.com/luainkernel/lua/blob/lunatik/lua.h#L530-L556">Copyright Notice</a>.</p>
+
+<p><a href="https://github.com/luainkernel/klibc">Klibc</a> submodule is dual-licensed under BSD 3-Clause or GPL-2.0-only.
+For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lunatik/usr/klibc/LICENSE">LICENCE</a> file.</p>
+
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

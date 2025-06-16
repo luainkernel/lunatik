@@ -1,0 +1,260 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_probe">Class probe </a></li>
+<li><a href="#probe">probe</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><strong>probe</strong></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>probe</code></h1>
+<p>kprobes mechanism.</p>
+<p> This library allows Lua scripts to dynamically probe (instrument) kernel
+ functions or specific instruction addresses. Callbacks can be registered
+ to execute Lua code just before (pre-handler) and/or just after
+ (post-handler) the probed instruction is executed.</p>
+
+
+<h2><a href="#Class_probe">Class probe </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#probe:enable">probe:enable (enable_flag)</a></td>
+	<td class="summary">Enables or disables an already registered probe.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#probe:stop">probe:stop ()</a></td>
+	<td class="summary">Stops and unregisters the probe.</td>
+	</tr>
+</table>
+<h2><a href="#probe">probe</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new (symbol_or_address, handlers)</a></td>
+	<td class="summary">Creates and registers a new kernel probe.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_probe"></a>Class probe </h2>
+
+          <div class="section-description">
+          Represents a kernel probe (kprobe) object.
+ This is a userdata object returned by <code>probe.new()</code>. It encapsulates a
+ <code>struct kprobe</code> and the associated Lua callback handlers. This object
+ can be used to enable, disable, or stop (unregister) the probe.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "probe:enable"></a>
+    <strong>probe:enable (enable_flag)</strong>
+    </dt>
+    <dd>
+    Enables or disables an already registered probe.
+ This method is called on a probe object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">enable_flag</span>
+            <span class="types"><span class="type">boolean</span></span>
+         If <code>true</code>, the probe is enabled. If <code>false</code>, the probe is disabled.
+   A disabled probe remains registered but its handlers will not be executed.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the probe was not properly registered or has been stopped.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">my_probe_object:<span class="function-name">enable</span>(<span class="keyword">false</span>) <span class="comment">-- Disable the probe</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "probe:stop"></a>
+    <strong>probe:stop ()</strong>
+    </dt>
+    <dd>
+    Stops and unregisters the probe.
+ This method is called on a probe object. Once stopped, the kprobe is
+ disabled and unregistered from the kernel, and its handlers will no longer
+ be called. The associated resources are released.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">my_probe_object:<span class="function-name">stop</span>()</pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="probe"></a>probe</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new (symbol_or_address, handlers)</strong>
+    </dt>
+    <dd>
+    Creates and registers a new kernel probe.
+ This function installs a kprobe at the specified kernel symbol or address.
+ Lua callback functions can be provided to execute when the probe hits.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">symbol_or_address</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <span class="type">lightuserdata</span></span>
+         The kernel symbol name (string)
+   or the absolute kernel address (lightuserdata) to probe.
+   Suitable symbol names are typically those exported by the kernel or other modules,
+   often visible in <code>/proc/kallsyms</code> (when viewed from userspace). The <a href="../modules/syscall.html#">syscall</a>
+   module (e.g., <code>syscall.numbers.openat</code>) can be used to get system call numbers.</p>
+
+<p>   For system call addresses, you can use <code>syscall.address(syscall.numbers.openat)</code>.
+   For other kernel symbols, <code>linux.lookup(&quot;symbol_name&quot;)</code> can provide the address.
+   Directly using addresses requires knowing the exact memory location, which can
+   vary between kernel builds and is generally less portable than using symbol names
+   or lookup functions.
+        </li>
+        <li><span class="parameter">handlers</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+
+<p> A table containing the callback functions for the probe.
+   It can have the following fields:</p>
+
+<ul>
+    <li><code>pre</code> (function, optional): A Lua function to be called just <em>before</em> the
+     probed instruction is executed.</li>
+    <li><code>post</code> (function, optional): A Lua function to be called just <em>after</em> the
+     probed instruction has executed.</li>
+</ul>
+
+<p>   Both <code>pre</code> and <code>post</code> handlers receive two arguments:</p>
+
+<ol>
+    <li><code>target</code> (string|lightuserdata): The symbol name or address that was probed.</li>
+    <li><code>dump_regs</code> (function): A closure that, when called without arguments,
+      will print the current CPU registers and stack trace to the system log.
+      This is useful for debugging.</li>
+</ol>
+
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/probe.html#probe">probe</a></span>
+        A new probe object. This object can be used to later <code>stop()</code> or <code>enable()</code>/<code>disable()</code> the probe.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the probe cannot be registered (e.g., symbol not found, memory allocation failure, invalid address).
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

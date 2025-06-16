@@ -1,0 +1,282 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Class_fifo">Class fifo </a></li>
+<li><a href="#fifo">fifo</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><strong>fifo</strong></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>fifo</code></h1>
+<p>kfifo (kernel FIFO) implementation.</p>
+<p> This library allows creating and managing fixed-size, lockless FIFO queues
+ for byte streams, suitable for producer-consumer scenarios within the kernel.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#pop">pop (size)</a></td>
+	<td class="summary">Pops data from the FIFO.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#push">push (data)</a></td>
+	<td class="summary">Pushes data into the FIFO.</td>
+	</tr>
+</table>
+<h2><a href="#Class_fifo">Class fifo </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#fifo:close">fifo:close ()</a></td>
+	<td class="summary">Closes and releases the FIFO object.</td>
+	</tr>
+</table>
+<h2><a href="#fifo">fifo</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new (size)</a></td>
+	<td class="summary">Creates a new kernel FIFO (kfifo) object.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "pop"></a>
+    <strong>pop (size)</strong>
+    </dt>
+    <dd>
+    Pops data from the FIFO.
+ Retrieves a specified number of bytes from the FIFO.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">size</span>
+            <span class="types"><span class="type">integer</span></span>
+         The maximum number of bytes to retrieve from the FIFO.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        A string containing the bytes popped from the FIFO. The actual length of this string might be less than <code>size</code> if the FIFO contained fewer bytes.</li>
+        <li>
+           <span class="types"><span class="type">integer</span></span>
+        The actual number of bytes popped from the FIFO.</li>
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/fifo.html#push">fifo.push</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Assuming 'myfifo' is a fifo object
+</span><span class="keyword">local</span> data, len = myfifo:<span class="function-name">pop</span>(<span class="number">10</span>)
+<span class="keyword">if</span> len &gt; <span class="number">0</span> <span class="keyword">then</span>
+  <span class="global">print</span>(<span class="string">"Popped "</span> .. len .. <span class="string">" bytes: "</span> .. data)
+<span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "push"></a>
+    <strong>push (data)</strong>
+    </dt>
+    <dd>
+    Pushes data into the FIFO.
+ Copies a string of bytes into the FIFO.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The string containing the bytes to be pushed into the FIFO.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the provided data string is larger than the available space in the FIFO.
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/fifo.html#pop">fifo.pop</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Assuming 'myfifo' is a fifo object
+</span>myfifo:<span class="function-name">push</span>(<span class="string">"hello"</span>)</pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_fifo"></a>Class fifo </h2>
+
+          <div class="section-description">
+          Represents a kernel FIFO (kfifo) object.
+ This is a userdata object returned by <code>fifo.new()</code>. It encapsulates
+ a <code>struct kfifo</code> from the Linux kernel, providing a first-in, first-out
+ byte queue.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "fifo:close"></a>
+    <strong>fifo:close ()</strong>
+    </dt>
+    <dd>
+    Closes and releases the FIFO object.
+ This is an alias for the <code>__close</code> and <code>__gc</code> metamethods.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="fifo"></a>fifo</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new (size)</strong>
+    </dt>
+    <dd>
+    Creates a new kernel FIFO (kfifo) object.
+ Allocates and initializes a kfifo of the specified size. The size should
+ ideally be a power of two for kfifo's internal optimizations, though kfifo
+ will handle non-power-of-two sizes by rounding up.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">size</span>
+            <span class="types"><span class="type">integer</span></span>
+         The desired capacity of the FIFO in bytes.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/fifo.html#fifo">fifo</a></span>
+        A new fifo object.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if kfifo allocation fails (e.g., due to insufficient memory).
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> myfifo = fifo.<span class="function-name">new</span>(<span class="number">1024</span>) <span class="comment">-- Creates a FIFO with a capacity of 1024 bytes</span></pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

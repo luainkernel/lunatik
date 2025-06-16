@@ -1,0 +1,275 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#lunatik">lunatik</a></li>
+<li><a href="#Class_runtime">Class runtime </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><strong>lunatik</strong></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>lunatik</code></h1>
+<p>Core Lunatik module.</p>
+<p> Provides functionalities to create and manage Lunatik runtimes,
+ which are isolated Lua environments running within the Linux kernel.
+ This module exposes the <a href="../modules/lunatik.html#">lunatik</a> global table in Lua, which can be
+ used to create new runtimes. Runtime objects themselves have methods
+ to control their execution (e.g., <a href="../modules/lunatik.html#runtime:resume">resume</a>, <a href="../modules/lunatik.html#runtime:stop">stop</a>).</p>
+
+<p> If a global Lunatik environment (<code>lunatik_env</code>) is configured at the C level,
+ it can be exposed to Lua scripts as <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a>. This allows for a shared
+ environment across multiple scripts or runtimes.</p>
+
+
+<h2><a href="#lunatik">lunatik</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#_ENV">_ENV</a></td>
+	<td class="summary">Shared environment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#runtime">runtime (script[, sleep=true])</a></td>
+	<td class="summary">Creates and starts a new Lunatik runtime environment.</td>
+	</tr>
+</table>
+<h2><a href="#Class_runtime">Class runtime </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#runtime:resume">runtime:resume (...)</a></td>
+	<td class="summary">Resumes a Lunatik runtime that has yielded.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#runtime:stop">runtime:stop ()</a></td>
+	<td class="summary">Stops and releases a Lunatik runtime environment.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="lunatik"></a>lunatik</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "_ENV"></a>
+    <strong>_ENV</strong>
+    </dt>
+    <dd>
+    Shared environment
+
+
+    <ul>
+        <li><span class="parameter">_ENV</span>
+         points to a shared global Lunatik runtime object. Scripts can
+ share RCU tables or other Lunatik objects through this mechanism.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "runtime"></a>
+    <strong>runtime (script[, sleep=true])</strong>
+    </dt>
+    <dd>
+    Creates and starts a new Lunatik runtime environment.
+ A Lunatik runtime is an isolated Lua state that can execute Lua scripts
+ within the kernel. Each runtime operates independently.</p>
+
+<p> The userdata object returned by <code>lunatik.runtime()</code> encapsulates an
+ isolated Lua state running within the Linux kernel. Each runtime can be
+ configured as sleepable (allowing blocking operations, using <code>GFP_KERNEL</code>
+ for allocations and mutexes for synchronization) or non-sleepable/atomic
+ (prohibiting blocking operations, using <code>GFP_ATOMIC</code> for allocations and
+ spinlocks for synchronization).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">script</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The name of the Lua script to load and execute (e.g., "myscript"). The system will look for "myscript.lua" in the Lua root path.
+        </li>
+        <li><span class="parameter">sleep</span>
+            <span class="types"><span class="type">boolean</span></span>
+         If <code>true</code> (default), the runtime can sleep (e.g., for I/O operations) and uses <code>GFP_KERNEL</code> for allocations.
+   If <code>false</code>, the runtime operates in an atomic context, cannot sleep, and uses <code>GFP_ATOMIC</code> for allocations.
+   This is crucial for runtimes used in contexts that cannot sleep, like Netfilter hooks.
+         (<em>default</em> true)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/lunatik.html#runtime">runtime</a></span>
+        A Lunatik runtime object. This object can be used to interact with the runtime, for example, to resume it if it yields or to stop it.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the Lua state or runtime cannot be allocated, or if the script fails to load or execute.
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_runtime"></a>Class runtime </h2>
+
+          <div class="section-description">
+          Represents a Lunatik runtime environment.
+ This is a userdata object returned by <code>lunatik.runtime()</code>. It encapsulates an
+ isolated Lua state running within the Linux kernel. Each runtime can be
+ configured as sleepable (allowing blocking operations, using <code>GFP_KERNEL</code>
+ for allocations and mutexes for synchronization) or non-sleepable/atomic
+ (prohibiting blocking operations, using <code>GFP_ATOMIC</code> for allocations and
+ spinlocks for synchronization).
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "runtime:resume"></a>
+    <strong>runtime:resume (...)</strong>
+    </dt>
+    <dd>
+    Resumes a Lunatik runtime that has yielded.
+ This function is used to continue the execution of a Lua script within a
+ Lunatik runtime from the point where it last yielded. It's analogous to
+ Lua's <a href="https://www.lua.org/manual/5.4/manual.html#pdf-coroutine.resume">coroutine.resume</a>.
+ The <a href="../modules/lunatik.html#runtime:resume">resume</a> method is called on a Lunatik runtime object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">...</span>
+         Arguments to pass to the Lua script upon resumption. These arguments will be received by the <code>coroutine.yield()</code> call that suspended the script.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">vararg</span></span>
+        Values returned by the <code>coroutine.yield()</code> call if the script yielded again, or values returned by the script if it completed.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the runtime cannot be resumed or if an error occurs within the resumed script. The error message will be propagated from the Lua C API error.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Assuming 'rt' is a Lunatik runtime object that has yielded.
+</span><span class="keyword">local</span> success, res_or_err = <span class="global">pcall</span>(<span class="keyword">function</span>() <span class="keyword">return</span> rt:<span class="function-name">resume</span>(<span class="string">"arg_to_script"</span>) <span class="keyword">end</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "runtime:stop"></a>
+    <strong>runtime:stop ()</strong>
+    </dt>
+    <dd>
+    Stops and releases a Lunatik runtime environment.
+ This method is called on a Lunatik runtime object. Once stopped, the runtime
+ cannot be resumed or used further. It ensures that the associated Lua state
+ is closed and all kernel resources are freed.</p>
+
+<p> This method provides an explicit way to release the runtime.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+        Does not return any value to Lua.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error May raise an error if the underlying C function encounters a critical issue during cleanup and calls <code>lua_error</code>.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Assuming 'rt' is a Lunatik runtime object:
+</span>rt:<span class="function-name">stop</span>()</pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

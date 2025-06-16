@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><strong>fib</strong></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>fib</code></h1>
+<p>Forwarding Information Base (FIB) rules.</p>
+<p> This library allows Lua scripts to add and delete FIB rules, similar to the
+ user-space <code>ip rule add</code> and <code>ip rule del</code> commands.
+ FIB rules are used to influence routing decisions by selecting different
+ routing tables based on various criteria.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#delrule">delrule (table, priority)</a></td>
+	<td class="summary">Deletes an existing FIB rule.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#newrule">newrule (table, priority)</a></td>
+	<td class="summary">Adds a new FIB rule.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "delrule"></a>
+    <strong>delrule (table, priority)</strong>
+    </dt>
+    <dd>
+    Deletes an existing FIB rule.
+ This function binds the kernel <code>fib_nl_delrule</code> API. It removes a FIB rule
+ that matches the specified routing <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a> and <code>priority</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">table</span>
+            <span class="types"><span class="type">integer</span></span>
+         The routing table identifier of the rule to delete.
+        </li>
+        <li><span class="parameter">priority</span>
+            <span class="types"><span class="type">integer</span></span>
+         The priority of the rule to delete.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the rule cannot be deleted (e.g., rule not found, kernel error).
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">fib.<span class="function-name">delrule</span>(<span class="number">100</span>, <span class="number">10000</span>) <span class="comment">-- Delete the rule with priority 10000 that looks up table 100</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "newrule"></a>
+    <strong>newrule (table, priority)</strong>
+    </dt>
+    <dd>
+    Adds a new FIB rule.
+ This function binds the kernel <code>fib_nl_newrule</code> API. It creates a new FIB rule
+ that directs lookups to the specified routing <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a> for packets matching
+ this rule's <code>priority</code>.</p>
+
+<p> Note: This function creates a relatively simple rule. The rule is always for
+ IPv4 (<code>AF_INET</code>), the action is always to look up the specified <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a>
+ (<code>FR_ACT_TO_TBL</code>), and the protocol is set to <code>RTPROT_KERNEL</code>. It does not
+ support specifying other match conditions (e.g., source/destination IP, interface, fwmark).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">table</span>
+            <span class="types"><span class="type">integer</span></span>
+         The routing table identifier (e.g., 254 for main, 255 for local).
+        </li>
+        <li><span class="parameter">priority</span>
+            <span class="types"><span class="type">integer</span></span>
+         The priority of the rule. Lower numbers have higher precedence.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the rule cannot be added (e.g., due to kernel error, invalid parameters).
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">fib.<span class="function-name">newrule</span>(<span class="number">100</span>, <span class="number">10000</span>) <span class="comment">-- Add a rule with priority 10000 to lookup table 100</span></pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

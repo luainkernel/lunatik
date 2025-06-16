@@ -1,0 +1,321 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_thread">Class thread </a></li>
+<li><a href="#thread">thread</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><strong>thread</strong></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>thread</code></h1>
+<p>Kernel thread primitives.</p>
+<p> This library provides support for creating and managing kernel threads from Lua.
+ It allows running Lua scripts, encapsulated in Lunatik runtime environments,
+ within dedicated kernel threads.</p>
+
+
+<h2><a href="#Class_thread">Class thread </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#thread:stop">thread:stop (self)</a></td>
+	<td class="summary">Stops a running kernel thread.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#thread:task">thread:task (self)</a></td>
+	<td class="summary">Retrieves information about the kernel task associated with the thread.</td>
+	</tr>
+</table>
+<h2><a href="#thread">thread</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#current">current ()</a></td>
+	<td class="summary">Gets a thread object representing the current kernel task.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#run">run (runtime, name)</a></td>
+	<td class="summary">Creates and starts a new kernel thread to run a Lua task.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#shouldstop">shouldstop ()</a></td>
+	<td class="summary">Checks if the current thread has been signaled to stop.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_thread"></a>Class thread </h2>
+
+          <div class="section-description">
+          Represents a kernel thread object.
+ This is a userdata object returned by <code>thread.run()</code> or <code>thread.current()</code>.
+ It encapsulates a kernel <code>struct task_struct</code> and, if created by <code>thread.run()</code>,
+ the Lunatik runtime environment associated with the thread's Lua task.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "thread:stop"></a>
+    <strong>thread:stop (self)</strong>
+    </dt>
+    <dd>
+    Stops a running kernel thread.
+ Signals the specified thread to stop and waits for it to exit.
+ This calls <code>kthread_stop()</code> on the underlying kernel thread.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="../modules/thread.html#thread">thread</a></span>
+         The thread object to stop.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Assuming 'my_thread' is an object returned by thread.run()
+</span>my_thread:<span class="function-name">stop</span>()</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "thread:task"></a>
+    <strong>thread:task (self)</strong>
+    </dt>
+    <dd>
+    Retrieves information about the kernel task associated with the thread.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="../modules/thread.html#thread">thread</a></span>
+         The thread object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        A table containing task information with the following fields:
+      <ul>
+        </ul>
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> t_info = my_thread:<span class="function-name">task</span>()
+<span class="global">print</span>(<span class="string">"Thread PID:"</span>, t_info.pid)
+<span class="global">print</span>(<span class="string">"Command:"</span>, t_info.command)
+<span class="keyword">if</span> t_info.cpu <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Running on CPU:"</span>, t_info.cpu) <span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="thread"></a>thread</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "current"></a>
+    <strong>current ()</strong>
+    </dt>
+    <dd>
+    Gets a thread object representing the current kernel task.
+ Note: If the current task was not created by <code>thread.run()</code>, the returned
+ thread object will not have an associated Lunatik runtime.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/thread.html#thread">thread</a></span>
+        A thread object for the current task.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> current_task_as_thread = thread.<span class="function-name">current</span>()</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "run"></a>
+    <strong>run (runtime, name)</strong>
+    </dt>
+    <dd>
+    Creates and starts a new kernel thread to run a Lua task.
+ The Lua task is defined by a function returned from the script loaded into the provided <code>runtime</code> environment.
+ The new thread begins execution by resuming this function.
+ The runtime environment must be sleepable.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">runtime</span>
+            <span class="types"><span class="type">runtime</span></span>
+         A Lunatik runtime object. The script associated with this runtime
+   (e.g., loaded via <code>lunatik.runtime(&quot;path/to/script.lua&quot;)</code>) must return a function.
+   This function will be executed in the new kernel thread.
+        </li>
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         A descriptive name for the kernel thread (e.g., as shown in <code>ps</code> or <code>top</code>).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/thread.html#thread">thread</a></span>
+        A new thread object representing the created kernel thread.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the runtime is not sleepable, if memory allocation fails, or if <code>kthread_run</code> fails.
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/lunatik.html#runtime">lunatik.runtime</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- main_script.lua
+</span><span class="keyword">local</span> lunatik = <span class="global">require</span>(<span class="string">"lunatik"</span>)
+<span class="keyword">local</span> thread = <span class="global">require</span>(<span class="string">"thread"</span>)
+<span class="comment">-- Assume "worker_script.lua" returns a function: function() print("worker running") while not thread.shouldstop() do linux.schedule(1000) end print("worker stopped") end
+</span><span class="keyword">local</span> worker_rt = lunatik.<span class="function-name">runtime</span>(<span class="string">"worker_script.lua"</span>)
+<span class="keyword">local</span> new_thread = thread.<span class="function-name">run</span>(worker_rt, <span class="string">"my_lua_worker"</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "shouldstop"></a>
+    <strong>shouldstop ()</strong>
+    </dt>
+    <dd>
+    Checks if the current thread has been signaled to stop.
+ This function should be called periodically within a thread's main loop
+ to allow for graceful termination when <code>thrd:stop()</code> is invoked.
+ It wraps the kernel's <code>kthread_should_stop()</code>.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        <code>true</code> if the thread should stop, <code>false</code> otherwise.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/thread.html#thread:stop">stop</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Inside a function returned by a script passed to thread.run():
+</span><span class="keyword">while</span> <span class="keyword">not</span> thread.<span class="function-name">shouldstop</span>() <span class="keyword">do</span>
+  <span class="comment">-- do work
+</span>  linux.<span class="function-name">schedule</span>(<span class="number">100</span>) <span class="comment">-- example: yield/sleep
+</span><span class="keyword">end</span>
+<span class="global">print</span>(<span class="string">"Thread is stopping."</span>)</pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

@@ -1,0 +1,1196 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_socket">Class socket </a></li>
+<li><a href="#socket">socket</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><strong>socket</strong></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>socket</code></h1>
+<p>Low-level Lua interface for kernel networking sockets.</p>
+<p> This library provides support for creating and managing various types of
+ sockets within the Linux kernel, enabling network communication directly
+ from Lua scripts running in kernel space. It is inspired by
+ <a href="https://github.com/tcz717">Chengzhi Tan</a>'s
+ <a href="https://summerofcode.withgoogle.com/archive/2018/projects/5993341447569408">GSoC project</a>.</p>
+
+<p> It allows operations such as creating sockets, binding, listening, connecting,
+ sending, and receiving data. The library also exposes constants for address
+ families, socket types, IP protocols, and message flags.</p>
+
+<p> For higher-level IPv4 TCP/UDP socket operations with string-based IP addresses
+ (e.g., "127.0.0.1"), consider using the <a href="../modules/socket.inet.html#">socket.inet</a> library.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.inet.html#">socket.inet</a>
+    </ul>
+
+
+<h2><a href="#Class_socket">Class socket </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#socket:accept">socket:accept (self[, flags=0])</a></td>
+	<td class="summary">Accepts a connection on a listening socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#socket:bind">socket:bind (addr[, port])</a></td>
+	<td class="summary">Binds the socket to a local address.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#socket:close">socket:close ()</a></td>
+	<td class="summary">Closes the socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#socket:connect">socket:connect (addr[, port[, flags=0]])</a></td>
+	<td class="summary">Initiates a connection on a socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#socket:getpeername">socket:getpeername ()</a></td>
+	<td class="summary">Gets the address of the peer to which the socket is connected.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#socket:getsockname">socket:getsockname ()</a></td>
+	<td class="summary">Gets the local address to which the socket is bound.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#socket:listen">socket:listen ([backlog])</a></td>
+	<td class="summary">Puts a connection-oriented socket into the listening state.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#socket:receive">socket:receive (length[, flags=0[, from=false]])</a></td>
+	<td class="summary">Receives a message from the socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#socket:send">socket:send (message[, addr[, port]])</a></td>
+	<td class="summary">Sends a message through the socket.</td>
+	</tr>
+</table>
+<h2><a href="#socket">socket</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#af">af</a></td>
+	<td class="summary">Table of address family constants.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ipproto">ipproto</a></td>
+	<td class="summary">Table of IP protocol constants.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#msg">msg</a></td>
+	<td class="summary">Table of message flags.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#new">new (family, type, protocol)</a></td>
+	<td class="summary">Creates a new socket object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#sock">sock</a></td>
+	<td class="summary">Table of socket type and flag constants.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_socket"></a>Class socket </h2>
+
+          <div class="section-description">
+          Represents a kernel socket object.
+ This is a userdata object returned by <code>socket.new()</code> or <code>sock:accept()</code>.
+ It encapsulates a kernel <code>struct socket</code> and provides methods for network
+ operations.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "socket:accept"></a>
+    <strong>socket:accept (self[, flags=0])</strong>
+    </dt>
+    <dd>
+    Accepts a connection on a listening socket.
+ This function is used with connection-oriented sockets (e.g., <code>SOCK_STREAM</code>)
+ that have been put into the listening state by <code>sock:listen()</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="../modules/socket.html#socket">socket</a></span>
+         The listening socket object.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         Optional flags to apply to the newly accepted socket
+   (e.g., <code>socket.sock.NONBLOCK</code>, <code>socket.sock.CLOEXEC</code>).
+         (<em>default</em> 0)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/socket.html#socket">socket</a></span>
+        A new socket object representing the accepted connection.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the accept operation fails.
+
+
+
+</dd>
+    <dt>
+    <a name = "socket:bind"></a>
+    <strong>socket:bind (addr[, port])</strong>
+    </dt>
+    <dd>
+    Binds the socket to a local address.
+ This is typically used on the server side before calling <code>listen()</code> or on
+ connectionless sockets to specify a local port/interface for receiving.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">addr</span>
+            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+
+<p> The local address to bind to. The interpretation depends on <code>socket.sk.sk_family</code>:</p>
+
+<ul>
+    <li><code>AF_INET</code> (IPv4): An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).
+     Use <code>0</code> (or <code>net.aton(&quot;0.0.0.0&quot;)</code>) to bind to all available interfaces.
+     The <code>port</code> argument is also required.</li>
+    <li><code>AF_PACKET</code>:
+    <ul>
+        <li>If <code>addr</code> is an integer: It's treated as the network interface index (e.g., from <code>linux.ifindex(&quot;eth0&quot;)</code>).
+        The <code>sll_protocol</code> field of the underlying <code>sockaddr_ll</code> structure would need to be set to <code>htons(ETH_P_ALL)</code> or similar
+        if not binding to a specific protocol via other means (e.g. <a href="../modules/socket.html#new">socket.new</a>'s protocol argument for <code>AF_PACKET</code> might set this).</li>
+        <li>If <code>addr</code> is a string: It's a packed string directly representing parts of the <code>sockaddr_ll</code> structure
+        (specifically, the fields after <code>sll_family</code>, like <code>sll_protocol</code>).
+        Example from <code>tap.lua</code> for binding to <code>ETH_P_ALL</code> (0x0003): <code>sock:bind(string.pack(&quot;&gt;H&quot;, 0x0003))</code>.</li>
+    </ul></li>
+    <li>Other families: A packed string representing the family-specific address structure.</li>
+</ul>
+
+        </li>
+        <li><span class="parameter">port</span>
+            <span class="types"><span class="type">integer</span></span>
+         The local port number (required and used only if the family is <code>AF_INET</code>).
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the bind operation fails (e.g., address already in use, invalid address).
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/net.html#aton">net.aton</a></li>
+         <li><a href="../modules/linux.html#ifindex">linux.ifindex</a></li>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Bind TCP/IPv4 socket to localhost, port 8080
+</span>tcp_server_sock:<span class="function-name">bind</span>(net.<span class="function-name">aton</span>(<span class="string">"127.0.0.1"</span>), <span class="number">8080</span>)
+
+<span class="comment">-- Bind AF_PACKET socket to receive all protocols (ETH_P_ALL = 0x0003)
+</span>af_packet_sock:<span class="function-name">bind</span>(<span class="global">string</span>.<span class="function-name">pack</span>(<span class="string">"&gt;H"</span>, <span class="number">0x0003</span>))</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "socket:close"></a>
+    <strong>socket:close ()</strong>
+    </dt>
+    <dd>
+    Closes the socket.
+ This shuts down the socket for both reading and writing and releases
+ associated kernel resources.
+ This method is also called automatically when the socket object is garbage collected
+ or via Lua 5.4's to-be-closed mechanism.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "socket:connect"></a>
+    <strong>socket:connect (addr[, port[, flags=0]])</strong>
+    </dt>
+    <dd>
+    Initiates a connection on a socket.
+ This is typically used by client sockets to establish a connection to a server.
+ For datagram sockets, this sets the default destination address for <a href="../modules/socket.html#socket:send">send</a> and
+ the only address from which datagrams are received.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">addr</span>
+            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+
+<p> The destination address to connect to.
+   Interpretation depends on <code>socket.sk.sk_family</code>:</p>
+
+<ul>
+    <li><code>AF_INET</code> (IPv4): An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).
+     The <code>port</code> argument is also required.</li>
+    <li>Other families: A packed string representing the family-specific destination address.</li>
+</ul>
+
+        </li>
+        <li><span class="parameter">port</span>
+            <span class="types"><span class="type">integer</span></span>
+         The destination port number (required and used only if the family is <code>AF_INET</code>).
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         Optional connection flags.
+         (<em>default</em> 0)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the connect operation fails (e.g., connection refused, host unreachable).
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">tcp_client_sock:<span class="function-name">connect</span>(net.<span class="function-name">aton</span>(<span class="string">"192.168.1.100"</span>), <span class="number">80</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "socket:getpeername"></a>
+    <strong>socket:getpeername ()</strong>
+    </dt>
+    <dd>
+    Gets the address of the peer to which the socket is connected.
+ This is typically used with connection-oriented sockets after a connection
+ has been established, or with connectionless sockets after <code>connect()</code> has
+ been called to set a default peer.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+
+<p> addr The peer's address.</p>
+
+<ul>
+    <li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
+    <li>For other families: A packed string representing the peer's address.</li>
+</ul>
+</li>
+        <li>
+           <span class="types"><span class="type">integer</span></span>
+        port If the family is <code>AF_INET</code>, the peer's port number.</li>
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation fails (e.g., socket not connected).
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> peer_ip_int, peer_port = connected_socket:<span class="function-name">getpeername</span>()
+<span class="keyword">if</span> connected_socket.sk.sk_family == socket.af.INET <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Connected to "</span> .. net.<span class="function-name">ntoa</span>(peer_ip_int) .. <span class="string">":"</span> .. peer_port) <span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "socket:getsockname"></a>
+    <strong>socket:getsockname ()</strong>
+    </dt>
+    <dd>
+    Gets the local address to which the socket is bound.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+
+<p> addr The local address.</p>
+
+<ul>
+    <li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
+    <li>For other families: A packed string representing the local address.</li>
+</ul>
+</li>
+        <li>
+           <span class="types"><span class="type">integer</span></span>
+        port If the family is <code>AF_INET</code>, the local port number.</li>
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation fails.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> local_ip_int, local_port = my_socket:<span class="function-name">getsockname</span>()
+<span class="keyword">if</span> my_socket.sk.sk_family == socket.af.INET <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Bound to "</span> .. net.<span class="function-name">ntoa</span>(local_ip_int) .. <span class="string">":"</span> .. local_port) <span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "socket:listen"></a>
+    <strong>socket:listen ([backlog])</strong>
+    </dt>
+    <dd>
+    Puts a connection-oriented socket into the listening state.
+ This is required for server sockets (e.g., <code>SOCK_STREAM</code>) to be able to
+ accept incoming connections.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">backlog</span>
+            <span class="types"><span class="type">integer</span></span>
+         The maximum length of the queue for pending connections.
+   If omitted, a system-dependent default (e.g., <code>SOMAXCONN</code>) is used.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the listen operation fails (e.g., socket not bound, invalid state).
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">tcp_server_sock:<span class="function-name">listen</span>(<span class="number">10</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "socket:receive"></a>
+    <strong>socket:receive (length[, flags=0[, from=false]])</strong>
+    </dt>
+    <dd>
+    Receives a message from the socket.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">length</span>
+            <span class="types"><span class="type">integer</span></span>
+         The maximum number of bytes to receive.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         Optional message flags (e.g., <code>socket.msg.PEEK</code>).
+   See the <a href="../modules/socket.html#msg">socket.msg</a> table for available flags. These can be OR'd together.
+         (<em>default</em> 0)
+        </li>
+        <li><span class="parameter">from</span>
+            <span class="types"><span class="type">boolean</span></span>
+         If <code>true</code>, the function also returns the sender's address
+   and port (for <code>AF_INET</code>). This is typically used with connectionless sockets (<code>SOCK_DGRAM</code>).
+         (<em>default</em> false)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The received message (as a string of bytes).</li>
+        <li>
+           <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         addr If <code>from</code> is true, the sender's address.
+   - For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).
+   - For other families: A packed string representing the sender's address.</li>
+        <li>
+           <span class="types"><span class="type">integer</span></span>
+        port If <code>from</code> is true and the family is <code>AF_INET</code>, the sender's port number.</li>
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the receive operation fails.
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/socket.html#msg">socket.msg</a></li>
+         <li><a href="../modules/net.html#ntoa">net.ntoa</a></li>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- For a connected TCP socket:
+</span><span class="keyword">local</span> data = tcp_conn_sock:<span class="function-name">receive</span>(<span class="number">1024</span>)
+<span class="keyword">if</span> data <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Received:"</span>, data) <span class="keyword">end</span>
+
+<span class="comment">-- For a UDP socket, getting sender info:
+</span><span class="keyword">local</span> data, sender_ip_int, sender_port = udp_sock:<span class="function-name">receive</span>(<span class="number">1500</span>, <span class="number">0</span>, <span class="keyword">true</span>)
+<span class="keyword">if</span> data <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Received from "</span> .. net.<span class="function-name">ntoa</span>(sender_ip_int) .. <span class="string">":"</span> .. sender_port .. <span class="string">": "</span> .. data) <span class="keyword">end</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "socket:send"></a>
+    <strong>socket:send (message[, addr[, port]])</strong>
+    </dt>
+    <dd>
+    Sends a message through the socket. </p>
+
+<p> For connection-oriented sockets (<code>SOCK_STREAM</code>), <code>addr</code> and <code>port</code> are usually omitted
+ as the connection is already established.
+ For connectionless sockets (<code>SOCK_DGRAM</code>), <code>addr</code> and <code>port</code> (if applicable for the
+ address family) specify the destination.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">message</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The string message to send.
+        </li>
+        <li><span class="parameter">addr</span>
+            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+
+<p> The destination address.</p>
+
+<ul>
+    <li>For <code>AF_INET</code> (IPv4) sockets: An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).</li>
+    <li>For other address families (e.g., <code>AF_PACKET</code>): A packed string representing the destination address
+    (e.g., MAC address for <code>AF_PACKET</code>). The exact format depends on the family.</li>
+</ul>
+
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">port</span>
+            <span class="types"><span class="type">integer</span></span>
+         The destination port number (required if <code>addr</code> is an IPv4 address for <code>AF_INET</code>).
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The number of bytes sent.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the send operation fails or if address parameters are incorrect for the socket type.
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/net.html#aton">net.aton</a>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- For a connected TCP socket:
+</span><span class="keyword">local</span> bytes_sent = tcp_conn_sock:<span class="function-name">send</span>(<span class="string">"Hello, server!"</span>)
+
+<span class="comment">-- For a UDP socket (sending to 192.168.1.100, port 1234):
+</span><span class="keyword">local</span> bytes_sent = udp_sock:<span class="function-name">send</span>(<span class="string">"UDP packet"</span>, net.<span class="function-name">aton</span>(<span class="string">"192.168.1.100"</span>), <span class="number">1234</span>)</pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="socket"></a>socket</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "af"></a>
+    <strong>af</strong>
+    </dt>
+    <dd>
+    Table of address family constants.
+ These constants are used in <code>socket.new()</code> to specify the
+ communication domain of the socket.
+ (Constants from <code>&lt;linux/socket.h&gt;</code>)
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">UNSPEC</span>
+            <span class="types"><span class="type">integer</span></span>
+         Unspecified.
+        </li>
+        <li><span class="parameter">UNIX</span>
+            <span class="types"><span class="type">integer</span></span>
+         Unix domain sockets.
+        </li>
+        <li><span class="parameter">LOCAL</span>
+            <span class="types"><span class="type">integer</span></span>
+         POSIX name for AF_UNIX.
+        </li>
+        <li><span class="parameter">INET</span>
+            <span class="types"><span class="type">integer</span></span>
+         Internet IP Protocol (IPv4).
+        </li>
+        <li><span class="parameter">AX25</span>
+            <span class="types"><span class="type">integer</span></span>
+         Amateur Radio AX.25.
+        </li>
+        <li><span class="parameter">IPX</span>
+            <span class="types"><span class="type">integer</span></span>
+         Novell IPX.
+        </li>
+        <li><span class="parameter">APPLETALK</span>
+            <span class="types"><span class="type">integer</span></span>
+         AppleTalk DDP.
+        </li>
+        <li><span class="parameter">NETROM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Amateur Radio NET/ROM.
+        </li>
+        <li><span class="parameter">BRIDGE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Multiprotocol bridge.
+        </li>
+        <li><span class="parameter">ATMPVC</span>
+            <span class="types"><span class="type">integer</span></span>
+         ATM PVCs.
+        </li>
+        <li><span class="parameter">X25</span>
+            <span class="types"><span class="type">integer</span></span>
+         Reserved for X.25 project.
+        </li>
+        <li><span class="parameter">INET6</span>
+            <span class="types"><span class="type">integer</span></span>
+         IP version 6.
+        </li>
+        <li><span class="parameter">ROSE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Amateur Radio X.25 PLP.
+        </li>
+        <li><span class="parameter">DECnet</span>
+            <span class="types"><span class="type">integer</span></span>
+         Reserved for DECnet project.
+        </li>
+        <li><span class="parameter">NETBEUI</span>
+            <span class="types"><span class="type">integer</span></span>
+         Reserved for 802.2LLC project.
+        </li>
+        <li><span class="parameter">SECURITY</span>
+            <span class="types"><span class="type">integer</span></span>
+         Security callback pseudo AF.
+        </li>
+        <li><span class="parameter">KEY</span>
+            <span class="types"><span class="type">integer</span></span>
+         PF_KEY key management API.
+        </li>
+        <li><span class="parameter">NETLINK</span>
+            <span class="types"><span class="type">integer</span></span>
+         Netlink.
+        </li>
+        <li><span class="parameter">ROUTE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Alias to emulate 4.4BSD.
+        </li>
+        <li><span class="parameter">PACKET</span>
+            <span class="types"><span class="type">integer</span></span>
+         Packet family.
+        </li>
+        <li><span class="parameter">ASH</span>
+            <span class="types"><span class="type">integer</span></span>
+         Ash.
+        </li>
+        <li><span class="parameter">ECONET</span>
+            <span class="types"><span class="type">integer</span></span>
+         Acorn Econet.
+        </li>
+        <li><span class="parameter">ATMSVC</span>
+            <span class="types"><span class="type">integer</span></span>
+         ATM SVCs.
+        </li>
+        <li><span class="parameter">RDS</span>
+            <span class="types"><span class="type">integer</span></span>
+         RDS sockets.
+        </li>
+        <li><span class="parameter">SNA</span>
+            <span class="types"><span class="type">integer</span></span>
+         Linux SNA Project.
+        </li>
+        <li><span class="parameter">IRDA</span>
+            <span class="types"><span class="type">integer</span></span>
+         IRDA sockets.
+        </li>
+        <li><span class="parameter">PPPOX</span>
+            <span class="types"><span class="type">integer</span></span>
+         PPPoX sockets.
+        </li>
+        <li><span class="parameter">WANPIPE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Wanpipe API Sockets.
+        </li>
+        <li><span class="parameter">LLC</span>
+            <span class="types"><span class="type">integer</span></span>
+         Linux LLC.
+        </li>
+        <li><span class="parameter">IB</span>
+            <span class="types"><span class="type">integer</span></span>
+         Native InfiniBand address.
+        </li>
+        <li><span class="parameter">MPLS</span>
+            <span class="types"><span class="type">integer</span></span>
+         MPLS.
+        </li>
+        <li><span class="parameter">CAN</span>
+            <span class="types"><span class="type">integer</span></span>
+         Controller Area Network.
+        </li>
+        <li><span class="parameter">TIPC</span>
+            <span class="types"><span class="type">integer</span></span>
+         TIPC sockets.
+        </li>
+        <li><span class="parameter">BLUETOOTH</span>
+            <span class="types"><span class="type">integer</span></span>
+         Bluetooth sockets.
+        </li>
+        <li><span class="parameter">IUCV</span>
+            <span class="types"><span class="type">integer</span></span>
+         IUCV sockets.
+        </li>
+        <li><span class="parameter">RXRPC</span>
+            <span class="types"><span class="type">integer</span></span>
+         RxRPC sockets.
+        </li>
+        <li><span class="parameter">ISDN</span>
+            <span class="types"><span class="type">integer</span></span>
+         mISDN sockets.
+        </li>
+        <li><span class="parameter">PHONET</span>
+            <span class="types"><span class="type">integer</span></span>
+         Phonet sockets.
+        </li>
+        <li><span class="parameter">IEEE802154</span>
+            <span class="types"><span class="type">integer</span></span>
+         IEEE802154 sockets.
+        </li>
+        <li><span class="parameter">CAIF</span>
+            <span class="types"><span class="type">integer</span></span>
+         CAIF sockets.
+        </li>
+        <li><span class="parameter">ALG</span>
+            <span class="types"><span class="type">integer</span></span>
+         Algorithm sockets.
+        </li>
+        <li><span class="parameter">NFC</span>
+            <span class="types"><span class="type">integer</span></span>
+         NFC sockets.
+        </li>
+        <li><span class="parameter">VSOCK</span>
+            <span class="types"><span class="type">integer</span></span>
+         vSockets.
+        </li>
+        <li><span class="parameter">KCM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Kernel Connection Multiplexor.
+        </li>
+        <li><span class="parameter">QIPCRTR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Qualcomm IPC Router.
+        </li>
+        <li><span class="parameter">SMC</span>
+            <span class="types"><span class="type">integer</span></span>
+         SMCP sockets (PF<em>SMC reuses AF</em>INET).
+        </li>
+        <li><span class="parameter">XDP</span>
+            <span class="types"><span class="type">integer</span></span>
+         XDP sockets.
+        </li>
+        <li><span class="parameter">MCTP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Management component transport protocol (Kernel 5.15+).
+        </li>
+        <li><span class="parameter">MAX</span>
+            <span class="types"><span class="type">integer</span></span>
+         Maximum value for AF constants.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ipproto"></a>
+    <strong>ipproto</strong>
+    </dt>
+    <dd>
+    Table of IP protocol constants.
+ These are used in <code>socket.new()</code> to specify the protocol for <code>AF_INET</code> or <code>AF_INET6</code> sockets.
+ (Constants from <code>&lt;uapi/linux/in.h&gt;</code>)
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">IP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Dummy protocol for TCP. (Typically 0)
+        </li>
+        <li><span class="parameter">ICMP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Internet Control Message Protocol.
+        </li>
+        <li><span class="parameter">IGMP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Internet Group Management Protocol.
+        </li>
+        <li><span class="parameter">IPIP</span>
+            <span class="types"><span class="type">integer</span></span>
+         IPIP tunnels.
+        </li>
+        <li><span class="parameter">TCP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Transmission Control Protocol.
+        </li>
+        <li><span class="parameter">EGP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Exterior Gateway Protocol.
+        </li>
+        <li><span class="parameter">PUP</span>
+            <span class="types"><span class="type">integer</span></span>
+         PUP protocol.
+        </li>
+        <li><span class="parameter">UDP</span>
+            <span class="types"><span class="type">integer</span></span>
+         User Datagram Protocol.
+        </li>
+        <li><span class="parameter">IDP</span>
+            <span class="types"><span class="type">integer</span></span>
+         XNS IDP protocol.
+        </li>
+        <li><span class="parameter">TP</span>
+            <span class="types"><span class="type">integer</span></span>
+         SO Transport Protocol Class 4.
+        </li>
+        <li><span class="parameter">DCCP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Datagram Congestion Control Protocol.
+        </li>
+        <li><span class="parameter">IPV6</span>
+            <span class="types"><span class="type">integer</span></span>
+         IPv6-in-IPv4 tunnelling.
+        </li>
+        <li><span class="parameter">RSVP</span>
+            <span class="types"><span class="type">integer</span></span>
+         RSVP Protocol.
+        </li>
+        <li><span class="parameter">GRE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Cisco GRE tunnels.
+        </li>
+        <li><span class="parameter">ESP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Encapsulation Security Payload protocol.
+        </li>
+        <li><span class="parameter">AH</span>
+            <span class="types"><span class="type">integer</span></span>
+         Authentication Header protocol.
+        </li>
+        <li><span class="parameter">MTP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Multicast Transport Protocol.
+        </li>
+        <li><span class="parameter">BEETPH</span>
+            <span class="types"><span class="type">integer</span></span>
+         IP option pseudo header for BEET.
+        </li>
+        <li><span class="parameter">ENCAP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Encapsulation Header.
+        </li>
+        <li><span class="parameter">PIM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Protocol Independent Multicast.
+        </li>
+        <li><span class="parameter">COMP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Compression Header Protocol.
+        </li>
+        <li><span class="parameter">L2TP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Layer Two Tunneling Protocol.
+        </li>
+        <li><span class="parameter">SCTP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Stream Control Transport Protocol.
+        </li>
+        <li><span class="parameter">UDPLITE</span>
+            <span class="types"><span class="type">integer</span></span>
+         UDP-Lite (RFC 3828).
+        </li>
+        <li><span class="parameter">MPLS</span>
+            <span class="types"><span class="type">integer</span></span>
+         MPLS in IP (RFC 4023).
+        </li>
+        <li><span class="parameter">ETHERNET</span>
+            <span class="types"><span class="type">integer</span></span>
+         Ethernet-within-IPv6 Encapsulation (Kernel 5.6+).
+        </li>
+        <li><span class="parameter">RAW</span>
+            <span class="types"><span class="type">integer</span></span>
+         Raw IP packets.
+        </li>
+        <li><span class="parameter">MPTCP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Multipath TCP connection (Kernel 5.6+).
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "msg"></a>
+    <strong>msg</strong>
+    </dt>
+    <dd>
+    Table of message flags.
+ These flags can be used with <code>sock:receive()</code> and <code>sock:send()</code>
+ to modify their behavior.
+ (Constants from <code>&lt;linux/socket.h&gt;</code>)
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">OOB</span>
+            <span class="types"><span class="type">integer</span></span>
+         Process out-of-band data.
+        </li>
+        <li><span class="parameter">PEEK</span>
+            <span class="types"><span class="type">integer</span></span>
+         Peek at incoming message without removing it from the queue.
+        </li>
+        <li><span class="parameter">DONTROUTE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Don't use a gateway to send out the packet.
+        </li>
+        <li><span class="parameter">TRYHARD</span>
+            <span class="types"><span class="type">integer</span></span>
+         Synonym for DONTROUTE for DECnet.
+        </li>
+        <li><span class="parameter">CTRUNC</span>
+            <span class="types"><span class="type">integer</span></span>
+         Control data lost before delivery.
+        </li>
+        <li><span class="parameter">PROBE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Do not send data, only probe path (e.g., for MTU discovery).
+        </li>
+        <li><span class="parameter">TRUNC</span>
+            <span class="types"><span class="type">integer</span></span>
+         Normal data lost before delivery.
+        </li>
+        <li><span class="parameter">DONTWAIT</span>
+            <span class="types"><span class="type">integer</span></span>
+         Enables non-blocking operation.
+        </li>
+        <li><span class="parameter">EOR</span>
+            <span class="types"><span class="type">integer</span></span>
+         Terminates a record (if supported by the protocol).
+        </li>
+        <li><span class="parameter">WAITALL</span>
+            <span class="types"><span class="type">integer</span></span>
+         Wait for full request or error.
+        </li>
+        <li><span class="parameter">FIN</span>
+            <span class="types"><span class="type">integer</span></span>
+         FIN segment.
+        </li>
+        <li><span class="parameter">SYN</span>
+            <span class="types"><span class="type">integer</span></span>
+         SYN segment.
+        </li>
+        <li><span class="parameter">CONFIRM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Confirm path validity (e.g., ARP entry).
+        </li>
+        <li><span class="parameter">RST</span>
+            <span class="types"><span class="type">integer</span></span>
+         RST segment.
+        </li>
+        <li><span class="parameter">ERRQUEUE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Fetch message from error queue.
+        </li>
+        <li><span class="parameter">NOSIGNAL</span>
+            <span class="types"><span class="type">integer</span></span>
+         Do not generate SIGPIPE.
+        </li>
+        <li><span class="parameter">MORE</span>
+            <span class="types"><span class="type">integer</span></span>
+         Sender will send more data.
+        </li>
+        <li><span class="parameter">WAITFORONE</span>
+            <span class="types"><span class="type">integer</span></span>
+         For <code>recvmmsg()</code>: block until at least one packet is available.
+        </li>
+        <li><span class="parameter">SENDPAGE_NOPOLICY</span>
+            <span class="types"><span class="type">integer</span></span>
+         Internal: <code>sendpage()</code> should not apply policy.
+        </li>
+        <li><span class="parameter">BATCH</span>
+            <span class="types"><span class="type">integer</span></span>
+         For <code>sendmmsg()</code>: more messages are coming.
+        </li>
+        <li><span class="parameter">EOF</span>
+            <span class="types"><span class="type">integer</span></span>
+         End of file.
+        </li>
+        <li><span class="parameter">NO_SHARED_FRAGS</span>
+            <span class="types"><span class="type">integer</span></span>
+         Internal: <code>sendpage()</code> page fragments are not shared.
+        </li>
+        <li><span class="parameter">SENDPAGE_DECRYPTED</span>
+            <span class="types"><span class="type">integer</span></span>
+         Internal: <code>sendpage()</code> page may carry plain text and require encryption.
+        </li>
+        <li><span class="parameter">ZEROCOPY</span>
+            <span class="types"><span class="type">integer</span></span>
+         Use user data in kernel path for zero-copy transmit.
+        </li>
+        <li><span class="parameter">FASTOPEN</span>
+            <span class="types"><span class="type">integer</span></span>
+         Send data in TCP SYN (TCP Fast Open).
+        </li>
+        <li><span class="parameter">CMSG_CLOEXEC</span>
+            <span class="types"><span class="type">integer</span></span>
+         Set close-on-exec for file descriptor received via SCM_RIGHTS.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "new"></a>
+    <strong>new (family, type, protocol)</strong>
+    </dt>
+    <dd>
+    Creates a new socket object.
+ This function is the primary way to create a socket.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">family</span>
+            <span class="types"><span class="type">integer</span></span>
+         The address family for the socket (e.g., <code>socket.af.INET</code>).
+        </li>
+        <li><span class="parameter">type</span>
+            <span class="types"><span class="type">integer</span></span>
+         The type of the socket (e.g., <code>socket.sock.STREAM</code>).
+        </li>
+        <li><span class="parameter">protocol</span>
+            <span class="types"><span class="type">integer</span></span>
+         The protocol to be used (e.g., <code>socket.ipproto.TCP</code>).
+   For <code>AF_PACKET</code> sockets, <code>protocol</code> is typically an <code>ETH_P_*</code> value in network byte order
+   (e.g., <code>linux.hton16(0x0003)</code> for <code>ETH_P_ALL</code>).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/socket.html#socket">socket</a></span>
+        A new socket object.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if socket creation fails.
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/socket.html#af">socket.af</a></li>
+         <li><a href="../modules/socket.html#sock">socket.sock</a></li>
+         <li><a href="../modules/socket.html#ipproto">socket.ipproto</a></li>
+    </ul>
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- TCP/IPv4 socket
+</span><span class="keyword">local</span> tcp_sock = socket.<span class="function-name">new</span>(socket.af.INET, socket.sock.STREAM, socket.ipproto.TCP)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "sock"></a>
+    <strong>sock</strong>
+    </dt>
+    <dd>
+    Table of socket type and flag constants.
+ Socket types are used in <code>socket.new()</code>. Socket flags can be used in
+ <code>socket.new()</code> (by ORing with type), <code>sock:accept()</code>, and <code>sock:connect()</code>.
+ (Constants from <code>&lt;linux/net.h&gt;</code>)
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">STREAM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Stream socket (e.g., TCP).
+        </li>
+        <li><span class="parameter">DGRAM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Datagram socket (e.g., UDP).
+        </li>
+        <li><span class="parameter">RAW</span>
+            <span class="types"><span class="type">integer</span></span>
+         Raw socket.
+        </li>
+        <li><span class="parameter">RDM</span>
+            <span class="types"><span class="type">integer</span></span>
+         Reliably-delivered message socket.
+        </li>
+        <li><span class="parameter">SEQPACKET</span>
+            <span class="types"><span class="type">integer</span></span>
+         Sequential packet socket.
+        </li>
+        <li><span class="parameter">DCCP</span>
+            <span class="types"><span class="type">integer</span></span>
+         Datagram Congestion Control Protocol socket.
+        </li>
+        <li><span class="parameter">PACKET</span>
+            <span class="types"><span class="type">integer</span></span>
+         Linux specific packet socket (deprecated in favor of AF_PACKET).
+        </li>
+        <li><span class="parameter">CLOEXEC</span>
+            <span class="types"><span class="type">integer</span></span>
+         Atomically set the close-on-exec flag for the new socket.
+        </li>
+        <li><span class="parameter">NONBLOCK</span>
+            <span class="types"><span class="type">integer</span></span>
+         Atomically set the O_NONBLOCK flag for the new socket.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-16 13:58:43 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
