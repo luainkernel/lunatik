@@ -15,6 +15,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kthread.h>
+#include <linux/sched/signal.h> //added newly
 
 #include <lua.h>
 #include <lualib.h>
@@ -37,6 +38,8 @@ typedef struct luathread_s {
 
 static int luathread_run(lua_State *L);
 static int luathread_current(lua_State *L);
+static int luathread_signal(lua_State *L); //newly added
+
 
 static int luathread_resume(lua_State *L, luathread_t *thread)
 {
@@ -187,6 +190,7 @@ static const luaL_Reg luathread_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"stop", luathread_stop},
 	{"task", luathread_task},
+        {"signal", luathread_signal}, //newly added
 	{NULL, NULL}
 };
 
@@ -258,6 +262,23 @@ static int luathread_current(lua_State *L)
 	thread->task = current;
 	return 1; /* object */
 }
+
+//below functions needs to be improved..
+static int luathread_signal(lua_State *L) {
+    lunatik_object_t *object = lunatik_toobject(L, 1);
+    luathread_t *thread = (luathread_t *)object->private;
+    int sig = luaL_checkinteger(L, 2);
+    if (thread->task) {
+        struct pid *pid = get_task_pid(thread->task, PIDTYPE_PID);
+        int ret = kill_pid(pid, sig, 1);
+        put_pid(pid); //needs improvment
+        lua_pushboolean(L, ret == 0);
+        return 1;
+    }
+	lua_pushboolean(L, 0);
+    return 1;
+}
+
 
 LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, NULL);
 
