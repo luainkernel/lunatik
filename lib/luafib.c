@@ -15,6 +15,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/version.h>
 #include <net/fib_rules.h>
 
 #include <lua.h>
@@ -30,7 +31,11 @@
 
 typedef struct luafib_rule_s {
 	struct net *net;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+	int (*command)(struct net *, struct sk_buff *, struct nlmsghdr *, struct netlink_ext_ack *, bool);
+#else
 	int (*command)(struct sk_buff *, struct nlmsghdr *, struct netlink_ext_ack *);
+#endif
 	u32 table;
 	u32 priority;
 } luafib_rule_t;
@@ -60,12 +65,22 @@ static int luafib_nl_rule(luafib_rule_t *rule)
 	nlmsg_end(skb, nlh);
 
 	skb->sk = rule->net->rtnl;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+	ret = rule->command(rule->net, skb, nlh, NULL, true);
+#else
 	ret = rule->command(skb, nlh, NULL);
+#endif
 free:
 	nlmsg_free(skb);
 out:
 	return ret;
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+#define LUAFIB_RULECOMMAND(op) fib_##op
+#else
+#define LUAFIB_RULECOMMAND(op) fib_nl_##op
+#endif
 
 #define LUAFIB_OPRULE(op) 				\
 static int luafib_##op(lua_State *L)			\
@@ -73,7 +88,7 @@ static int luafib_##op(lua_State *L)			\
 	luafib_rule_t rule;				\
 							\
 	rule.net = &init_net;				\
-	rule.command = fib_nl_##op;			\
+	rule.command = LUAFIB_RULECOMMAND(op);		\
 	rule.table = (u32)luaL_checkinteger(L, 1);	\
 	rule.priority = (u32)luaL_checkinteger(L, 2);	\
 							\
