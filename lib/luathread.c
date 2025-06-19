@@ -258,6 +258,7 @@ static int luathread_run(lua_State *L)
 * local current_task_as_thread = thread.current()
 * @within thread
 */
+
 static int luathread_current(lua_State *L)
 {
 	lunatik_object_t *object = luathread_new(L);
@@ -268,33 +269,48 @@ static int luathread_current(lua_State *L)
 	return 1; /* object */
 }
 
-static int luathread_allow_signal(lua_State *L){
- int signum = luaL_checkinteger(L, 2);
- allow_signal(signum);
- return 0;
+/*
+
+*/
+
+static int luathread_allow_signal(lua_State *L)
+{
+ 	int signum = luaL_checkinteger(L, 2);
+ 	allow_signal(signum);
+ 	return 0;
 }
 
-static int luathread_send_signal(lua_State *L){
- lunatik_object_t *object = lunatik_toobject(L, 1);
- int signum = luaL_checkinteger(L, 2);
- luathread_t *thread = (luathread_t *)object->private;
- struct task_struct *task = thread->task;
- if (!task)
-  return luaL_error(L, "thread task is NULL");
- int ret = send_sig(signum, task, 0);
- if (ret)
-  return luaL_error(L, "send_sig failed for signal %d", signum);
- return 0;
+/*
+
+*/
+
+static int luathread_send_signal(lua_State *L)
+{
+ 	lunatik_object_t *object = lunatik_toobject(L, 1);
+ 	int signum = luaL_checkinteger(L, 2);
+ 	luathread_t *thread = (luathread_t *)object->private;
+ 	struct task_struct *task = thread->task;
+	 if (!task)
+ 	 	return luaL_error(L, "thread task is NULL");
+	 int ret = send_sig(signum, task, 0);
+ 	if (ret)
+  		return luaL_error(L, "send_sig failed for signal %d", signum);
+ 	return 0;
 }
 
-static int luathread_signal_pending(lua_State *L){
- lunatik_object_t *object = lunatik_toobject(L, 1);
- luathread_t *thread = (luathread_t *)object->private;
- struct task_struct *task = thread->task;
- if (!task)
-  return luaL_error(L, "thread task is NULL");
- lua_pushboolean(L, signal_pending(task));
- return 1;
+/*
+
+*/
+
+static int luathread_signal_pending(lua_State *L)
+{
+	 lunatik_object_t *object = lunatik_toobject(L, 1);
+ 	luathread_t *thread = (luathread_t *)object->private;
+	 struct task_struct *task = thread->task;
+	 if (!task)
+ 		 return luaL_error(L, "thread task is NULL");
+ 	lua_pushboolean(L, signal_pending(task));
+	 return 1;
 }
 
 
