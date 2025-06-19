@@ -15,8 +15,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kthread.h>
-#include <linux/sched/signal.h> 
-#include <linux/signal.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -39,9 +37,6 @@ typedef struct luathread_s {
 
 static int luathread_run(lua_State *L);
 static int luathread_current(lua_State *L);
-static int luathread_allow_signal(lua_State *L);
-static int luathread_signal_pending(lua_State *L);
-static int luathread_send_signal(lua_State *L);
 
 static int luathread_resume(lua_State *L, luathread_t *thread)
 {
@@ -192,10 +187,6 @@ static const luaL_Reg luathread_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"stop", luathread_stop},
 	{"task", luathread_task},
-        {"allow_signal", luathread_allow_signal},
-        {"send_signal", luathread_send_signal},
-        {"signal_pending", luathread_signal_pending},
-
 	{NULL, NULL}
 };
 
@@ -268,36 +259,6 @@ static int luathread_current(lua_State *L)
 	return 1; /* object */
 }
 
-static int luathread_allow_signal(lua_State *L){
- int signum = luaL_checkinteger(L, 2);
- allow_signal(signum);
- return 0;
-}
-
-static int luathread_send_signal(lua_State *L){
- lunatik_object_t *object = lunatik_toobject(L, 1);
- int signum = luaL_checkinteger(L, 2);
- luathread_t *thread = (luathread_t *)object->private;
- struct task_struct *task = thread->task;
- if (!task)
-  return luaL_error(L, "thread task is NULL");
- int ret = send_sig(signum, task, 0);
- if (ret)
-  return luaL_error(L, "send_sig failed for signal %d", signum);
- return 0;
-}
-
-static int luathread_signal_pending(lua_State *L){
- lunatik_object_t *object = lunatik_toobject(L, 1);
- luathread_t *thread = (luathread_t *)object->private;
- struct task_struct *task = thread->task;
- if (!task)
-  return luaL_error(L, "thread task is NULL");
- lua_pushboolean(L, signal_pending(task));
- return 1;
-}
-
-
 LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, NULL);
 
 static int __init luathread_init(void)
@@ -313,4 +274,3 @@ module_init(luathread_init);
 module_exit(luathread_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
-
