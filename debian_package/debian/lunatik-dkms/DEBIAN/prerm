@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+# Automatically added by dh_dkms/3.0.11-1ubuntu13
+DKMS_NAME=lunatik
+DKMS_VERSION=3.6.2
+
+case "$1" in
+    remove|upgrade|deconfigure)
+      if [  "$(dkms status -m $DKMS_NAME -v $DKMS_VERSION)" ]; then
+         dkms remove -m $DKMS_NAME -v $DKMS_VERSION --all
+      fi
+    ;;
+esac
+# End automatically added section

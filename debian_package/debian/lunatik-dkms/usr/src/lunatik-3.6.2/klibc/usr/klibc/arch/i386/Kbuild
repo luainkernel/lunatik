@@ -1,0 +1,17 @@
+#
+# klibc .o files for i386
+#
+
+klib-y := setjmp.o syscall.o varsyscall.o
+klib-y += open.o openat.o vfork.o
+klib-y += libgcc/__ashldi3.o libgcc/__ashrdi3.o libgcc/__lshrdi3.o
+klib-y += libgcc/__muldi3.o  libgcc/__negdi2.o
+
+klib-y += ../../libgcc/__divdi3.o
+klib-y += ../../libgcc/__moddi3.o
+klib-y += ../../libgcc/__udivdi3.o
+klib-y += ../../libgcc/__umoddi3.o
+klib-y += ../../libgcc/__udivmoddi4.o
+
+always  := crt0.o
+targets := crt0.o

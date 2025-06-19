@@ -1,0 +1,26 @@
+# -*- makefile -*-
+#
+# arch/s390/MCONFIG
+#
+# Special rules for this architecture. Note that this is actually
+# included from the main Makefile, and that pathnames should be
+# accordingly.
+#
+
+KLIBCOPTFLAGS += -Os
+
+ifneq ("$(KLIBCARCH)", "s390x")
+	KLIBCBITSIZE	= 32
+	KLIBCCFLAGS	+= -m31
+	KLIBCLDFLAGS	+= -m elf_s390
+else
+	KLIBCBITSIZE	= 64
+	KLIBCCFLAGS	+= -m64
+	KLIBCLDFLAGS	+= -m elf64_s390
+endif
+
+KLIBCASMARCH		= s390
+KLIBCSHAREDFLAGS	= $(LD_IMAGE_BASE_OPT) 0x40000000
+
+# Kernel uses our sa_restorer for signal return
+KLIBCEXECSTACK := n

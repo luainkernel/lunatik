@@ -1,0 +1,17 @@
+# -*- makefile -*-
+#
+# arch/ia64/MCONFIG
+#
+# Special rules for this architecture.  Note that this is actually
+# included from the main Makefile, and that pathnames should be
+# accordingly.
+#
+
+KLIBCARCHREQFLAGS = -mno-pic
+KLIBCOPTFLAGS += -Os
+KLIBCBITSIZE  = 64
+
+KLIBCSHAREDFLAGS = -T $(srctree)/$(src)/arch/$(KLIBCARCH)/klibc.ld
+
+# Kernel has never used stack trampolines
+KLIBCEXECSTACK := n

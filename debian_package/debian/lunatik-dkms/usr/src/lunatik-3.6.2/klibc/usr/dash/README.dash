@@ -1,0 +1,50 @@
+This version of dash was obtained from
+
+git://git.kernel.org/pub/scm/utils/dash/dash.git
+
+It corresponds up to changeset 46abc8c6d8a5e9a5712bdc1312c0b6960eec65a4
+omitting ee5cbe9fd6bc02f31b4d955606288de36c3d4eab.
+
+Several changes have been made for klibc:
+
+* The build system is changed from autotools to kbuild, with a static config.h
+* Use of strtod() is guarded by HAVE_STRTOD, which we don't define
+* The built-in times command, which requires floating-point support, is
+  disabled
+* The signal_names[] array is replaced by a signal_name() function using
+  klibc's own signal name array.  decode_signal() is changed similarly.
+* The read built-in implements the -t option like bash
+* mktokens is modified to support out-of-tree builds
+* mkbuiltins is modified to sort with LC_ALL=C
+* Some header files have header guards added
+* Changelog and some manual pages are omitted
+* Automatic whitespace fixups
+
+HOWTO sync branch:
+
+1) Generate mailbox of patches and fix up their paths:
+
+ git format-patch --subject-prefix='' -N --stdout <changeset>.. \
+ | awk '(FNR == 1 || blank) && /^From / { header = 1; hash = $2 }
+        header && /^Subject:/ { sub("^Subject:", "Subject: [klibc] dash:") }
+        { print; blank = /^$/ }
+        header && blank {
+            print "[ dash commit", hash, "]"; print
+            header = 0
+        }' \
+ | filterdiff --strip 2 --addoldprefix a/usr/dash/ --addnewprefix b/usr/dash/ \
+       --exclude="*/configure.ac" --exclude="*/ChangeLog" \
+       --exclude="*/dash.1" --exclude="*/Makefile.am" \
+       --exclude="*/mksignames.c" \
+ > dash.mbox
+
+2) Import patches from mailbox:
+
+ git am --whitespace=fix -k -i -s ../dash/dash.mbox
+
+3) update config.h
+
+Generate klibc config.h in dash repository:
+ automake --add-missing
+ autoreconf
+ ./configure CC=klcc

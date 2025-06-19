@@ -1,0 +1,4 @@
+version=4
+opts=filenamemangle=s/.+\/v?(\d[\d\.]*)\.tar\.gz/lunatik-$1.tar.gz/ \
+    https://github.com/luainkernel/lunatik/releases \
+    .*/archive/refs/tags/v?(\d[\d\.]*)\.tar\.gz

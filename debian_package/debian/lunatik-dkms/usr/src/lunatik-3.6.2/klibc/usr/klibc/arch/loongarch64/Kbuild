@@ -1,0 +1,7 @@
+#
+# klibc files for LoongArch64
+#
+
+klib-y  := setjmp.o syscall.o
+always  := crt0.o
+targets := crt0.o

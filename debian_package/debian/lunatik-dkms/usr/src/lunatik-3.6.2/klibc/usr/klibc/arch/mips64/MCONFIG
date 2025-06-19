@@ -1,0 +1,34 @@
+# -*- makefile -*-
+#
+# arch/mips64/MCONFIG
+#
+# Special rules for this architecture.  Note that this is actually
+# included from the main Makefile, and that pathnames should be
+# accordingly.
+#
+
+KLIBCARCHREQFLAGS = -fno-pic -mno-abicalls -G 0
+KLIBCOPTFLAGS += -Os
+KLIBCBITSIZE  = 64
+
+# Extra linkflags when building the shared version of the library
+# This address needs to be reachable using normal inter-module
+# calls, and work on the memory models for this architecture.
+# Normal binaries start at 0x120000000 (4608 MiB).
+# * On R5 and earlier, non-PIC jumps usually use the JAL instruction
+#   which requires a destination within the same 256 MiB aligned
+#   region. Since we can't put ourselves below the normal load
+#   address, use the very top of the 256 MiB region (minus 2 MiB).
+# * On R6, non-PIC jumps may use either the JAL instruction or the
+#   BALC instruction which requires a destination within ±128 MiB. Put
+#   ourselves just under 128 MiB above the executable base address.
+ifneq ($(CONFIG_KLIBC_MIPS_USE_CB),y)
+KLIBCARCHREQFLAGS    += $(call cc-option,-mcompact-branches=never)
+KLIBCSHAREDFLAGS     = $(LD_IMAGE_BASE_OPT) 0x12FE00000
+else
+KLIBCARCHREQFLAGS    += -mcompact-branches=optimal
+KLIBCSHAREDFLAGS     = $(LD_IMAGE_BASE_OPT) 0x127E00000
+endif
+
+# Kernel uses vDSO for signal return since 2.6.34
+KLIBCEXECSTACK := n

@@ -1,0 +1,39 @@
+Format: 1.8
+Date: Wed, 11 Jun 2025 15:38:00 +0530
+Source: lunatik
+Binary: lunatik lunatik-dkms
+Built-For-Profiles: noudeb
+Architecture: source all amd64
+Version: 3.6.2-1
+Distribution: unstable
+Urgency: medium
+Maintainer: Shivam Vashisth <vashisth11shivam@gmail.com>
+Changed-By: Shivam Vashisth <Vashisth11shivam@gmail.com>
+Description:
+ lunatik    - User-space tools for the Lunatik kernel module
+ lunatik-dkms - DKMS source for the Lunatik kernel modules
+Changes:
+ lunatik (3.6.2-1) unstable; urgency=medium
+ .
+   * Initial release of Lunatik kernel Lua scripting framework for Debian/Ubuntu.
+Checksums-Sha1:
+ 7c983fbf99ec5d4c001112546ddc9ea8d3fe3948 914 lunatik_3.6.2-1.dsc
+ 6146c4579da928b24ff9151f4498be9587895cd4 21787348 lunatik_3.6.2.orig.tar.xz
+ d20c6b25205e6dd3b075edfe0aec8a0abe4eab55 2624 lunatik_3.6.2-1.debian.tar.xz
+ e8732b9865df8d9a8dee983a3930c9ea423bb228 943888 lunatik-dkms_3.6.2-1_all.deb
+ d97199f83d8efb0bac1aeae36aeda98f8874cf36 6789 lunatik_3.6.2-1_amd64.buildinfo
+ 23fc47eb44a679456bdb52c3fb6dde00da76f25e 3334 lunatik_3.6.2-1_amd64.deb
+Checksums-Sha256:
+ 6b5dba7f764d503443c8fcb9c7340bddc4155afce85094bcc7ff45ab8934fbf0 914 lunatik_3.6.2-1.dsc
+ 73aada49338efac0fd3ec25aec269d061b0cdc7e1cab1be13360075b7e979479 21787348 lunatik_3.6.2.orig.tar.xz
+ 5180b10bfb86efe67ac06a7593bc72ac5c3b6f90e80567dd714387a842c680e9 2624 lunatik_3.6.2-1.debian.tar.xz
+ d946893b0eef200b62d601414e3271a43a91205e25a5eb1c5803562c4f41979d 943888 lunatik-dkms_3.6.2-1_all.deb
+ 260583e48513381ec5e72720f0d4894c7126b44fc876012c896719fa8486c44d 6789 lunatik_3.6.2-1_amd64.buildinfo
+ 701ca9f50e8f6ec0c2dfbb654ea1989862e340adef844a1351007c19939a0ac0 3334 lunatik_3.6.2-1_amd64.deb
+Files:
+ 3d68ea03f535557585ee9bf0aa3588ca 914 kernel optional lunatik_3.6.2-1.dsc
+ f08c07c855857f3c96ad6d68b454cbf7 21787348 kernel optional lunatik_3.6.2.orig.tar.xz
+ 8b62c504a4626e53f38f3ae479c533f4 2624 kernel optional lunatik_3.6.2-1.debian.tar.xz
+ b5f876d0851f6733ff8f781540d4fdb7 943888 kernel optional lunatik-dkms_3.6.2-1_all.deb
+ cb0179e1dc85af3c7bf61a21ade70851 6789 kernel optional lunatik_3.6.2-1_amd64.buildinfo
+ 44c4e2587b641702ca2c25cd2b363ef7 3334 kernel optional lunatik_3.6.2-1_amd64.deb
