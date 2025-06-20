@@ -39,9 +39,6 @@ typedef struct luathread_s {
 
 static int luathread_run(lua_State *L);
 static int luathread_current(lua_State *L);
-static int luathread_allow_signal(lua_State *L);
-static int luathread_signal_pending(lua_State *L);
-static int luathread_send_signal(lua_State *L);
 
 static int luathread_resume(lua_State *L, luathread_t *thread)
 {
@@ -180,6 +177,53 @@ static int luathread_task(lua_State *L)
 	return 1;
 }
 
+/***
+* Allows the current kernel thread to handle a specific signal.
+* This function enables the thread to receive and process the specified signal by unblocking it at the kernel level.
+* @function allow
+* @tparam integer signum The signal number to allow (e.g., 15 for SIGTERM)
+* @treturn nil
+* @usage
+* local t = thread.current()
+* t:allow_signal(15)  -- Allow SIGTERM
+*/
+
+static int luathread_allow_signal(lua_State *L)
+{
+ 	int signum = luaL_checkinteger(L, 2);
+ 	allow_signal(signum);
+	
+ 	return 0;
+}
+
+static int luathread_send_signal(lua_State *L)
+{
+ 	int signum = luaL_checkinteger(L, 2);
+   	lunatik_object_t *object = lunatik_toobject(L, 1);
+   	luathread_t *thread = (luathread_t *)object->private;
+    
+    	if (!thread || !thread->task)
+        	return luaL_error(L, "invalid thread object");
+    
+    	if (send_sig(signum, thread->task, 0))
+        	return luaL_error(L, "send_sig failed for signal %d", signum);
+ 	
+	return 0;
+}
+
+static int luathread_signal_pending(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_toobject(L, 1);
+ 	luathread_t *thread = (luathread_t *)object->private;
+	
+	struct task_struct *task = thread->task;
+	if (!task)
+ 		return luaL_error(L, "thread task is NULL");
+ 	lua_pushboolean(L, signal_pending(task));
+	 
+	return 1;
+}
+
 static const luaL_Reg luathread_lib[] = {
 	{"run", luathread_run},
 	{"shouldstop", luathread_shouldstop},
@@ -192,9 +236,9 @@ static const luaL_Reg luathread_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"stop", luathread_stop},
 	{"task", luathread_task},
-        {"allow_signal", luathread_allow_signal},
-        {"send_signal", luathread_send_signal},
-        {"signal_pending", luathread_signal_pending},
+        {"allow", luathread_allow_signal},
+        {"send", luathread_send_signal},
+        {"sigpending", luathread_signal_pending},
 
 	{NULL, NULL}
 };
@@ -267,58 +311,6 @@ static int luathread_current(lua_State *L)
 	thread->runtime = NULL;
 	thread->task = current;
 	return 1; /* object */
-}
-
-/***
-*
-*
-*/
-
-static int luathread_allow_signal(lua_State *L)
-{
- 	int signum = luaL_checkinteger(L, 2);
- 	allow_signal(signum);
-	
- 	return 0;
-}
-
-/***
-*
-*
-*/
-
-static int luathread_send_signal(lua_State *L)
-{
- 	lunatik_object_t *object = lunatik_toobject(L, 1);
- 	int signum = luaL_checkinteger(L, 2);
-	
- 	luathread_t *thread = (luathread_t *)object->private;
- 	struct task_struct *task = thread->task;
-	if (!task)
- 	 	return luaL_error(L, "thread task is NULL");
-	 int ret = send_sig(signum, task, 0);
- 	if (ret)
-  		return luaL_error(L, "send_sig failed for signal %d", signum);
- 	
-	return 0;
-}
-
-/***
-*
-*
-*/
-
-static int luathread_signal_pending(lua_State *L)
-{
-	lunatik_object_t *object = lunatik_toobject(L, 1);
- 	luathread_t *thread = (luathread_t *)object->private;
-	
-	struct task_struct *task = thread->task;
-	if (!task)
- 		return luaL_error(L, "thread task is NULL");
- 	lua_pushboolean(L, signal_pending(task));
-	 
-	return 1;
 }
 
 
