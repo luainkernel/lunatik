@@ -15,6 +15,8 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kthread.h>
+#include <linux/sched/signal.h> 
+#include <linux/signal.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -34,6 +36,8 @@ typedef struct luathread_s {
 	struct task_struct *task;
 	lunatik_object_t *runtime;
 } luathread_t;
+
+LUNATIK_PRIVATECHECKER(luathread_check, luathread_t *);
 
 static int luathread_run(lua_State *L);
 static int luathread_current(lua_State *L);
@@ -175,6 +179,79 @@ static int luathread_task(lua_State *L)
 	return 1;
 }
 
+/***
+* Allows the current kernel thread to handle a specific signal.
+* This function enables the thread to receive and process the specified signal by unblocking it at the kernel level.
+* @function allow
+* @tparam integer signum The signal number to allow (e.g., 15 for SIGTERM)
+* @treturn nil
+* @usage
+* local t = thread.current()
+* t:allow(15)  -- Allow SIGTERM
+*/
+
+static int luathread_allow(lua_State *L)
+{
+ 	int signum = luaL_checkinteger(L, 2);
+ 	allow_signal(signum);
+	
+ 	return 0;
+}
+
+
+/***
+ * Sends a signal to the kernel thread represented by this thread object.
+ * This function attempts to deliver the specified signal to the kernel thread associated with the given lua thread object. 
+ * @function send
+ * @tparam integer signum The signal number to send (e.g., 15).
+ * @treturn nil
+ * @raise If the thread's kernel task has exited or does not exist, or if signal delivery fails.
+ * @usage
+ * -- Assuming t is a running thread
+ * t:send(15) -- Send SIGTERM to the worker thread
+ */
+static int luathread_send_signal(lua_State *L)
+{
+    luathread_t *thread = luathread_check(L, 1);
+
+    if (!thread->task)
+        return luaL_error(L, "thread task is NULL (might have exited)");
+
+    int signum = luaL_checkinteger(L, 2);
+
+    if (send_sig(signum, thread->task, 0))
+        return luaL_error(L, "send_sig failed for signal %d", signum);
+
+    return 0;
+}
+static int luathread_send(lua_State *L)
+{
+	luathread_t *thread = luathread_check(L,1);
+   
+    	if (!thread->task)
+        	return luaL_error(L, "thread task is NULL (might have exited)");
+
+	int signum = luaL_checkinteger(L, 2);
+
+    	if (send_sig(signum, thread->task, 0))
+        	return luaL_error(L, "send_sig failed for signal %d", signum);
+ 	
+	return 0;
+}
+
+static int luathread_pending(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_toobject(L, 1);
+ 	luathread_t *thread = (luathread_t *)object->private;
+	
+	struct task_struct *task = thread->task;
+	if (!task)
+ 		return luaL_error(L, "thread task is NULL");
+ 	lua_pushboolean(L, signal_pending(task));
+	 
+	return 1;
+}
+
 static const luaL_Reg luathread_lib[] = {
 	{"run", luathread_run},
 	{"shouldstop", luathread_shouldstop},
@@ -187,6 +264,10 @@ static const luaL_Reg luathread_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"stop", luathread_stop},
 	{"task", luathread_task},
+        {"allow", luathread_allow},
+        {"send", luathread_send},
+        {"pending", luathread_pending},
+
 	{NULL, NULL}
 };
 
@@ -249,6 +330,7 @@ static int luathread_run(lua_State *L)
 * local current_task_as_thread = thread.current()
 * @within thread
 */
+
 static int luathread_current(lua_State *L)
 {
 	lunatik_object_t *object = luathread_new(L);
@@ -258,6 +340,7 @@ static int luathread_current(lua_State *L)
 	thread->task = current;
 	return 1; /* object */
 }
+
 
 LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, NULL);
 
@@ -274,4 +357,3 @@ module_init(luathread_init);
 module_exit(luathread_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
-
