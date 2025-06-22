@@ -21,6 +21,8 @@
 #include <linux/ktime.h>
 #include <linux/netdevice.h>
 #include <linux/byteorder/generic.h>
+#include <linux/sched/signal.h>
+#include <linux/pid.h> 
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -111,6 +113,33 @@ static int lualinux_schedule(lua_State *L)
 
 	lua_pushinteger(L, jiffies_to_msecs(schedule_timeout(timeout)));
 	return 1;
+}
+
+/***
+* Kills a process by sending SIGKILL to pid.
+* @function kill
+* @tparam integer pid Process ID to kill.
+* @treturn boolean `true` if successful.
+* @raise Error if process not found or kill fails.
+* @usage 
+* linux.kill(1234) 
+*/
+static int lualinux_kill(lua_State *L)
+{
+    pid_t pid = (pid_t)luaL_checkinteger(L, 1);
+    struct pid *pid_struct = find_get_pid(pid);
+
+    luaL_argcheck(L, pid_struct != NULL, 1, "process not found");
+    
+    int ret = kill_pid(pid_struct, SIGKILL, 0);
+    put_pid(pid_struct);
+    
+    if (ret) {
+        return luaL_error(L, "kill failed with error %d", ret);
+    }
+    
+    lua_pushboolean(L, true);
+    return 1;
 }
 
 /***
@@ -521,6 +550,7 @@ static const lunatik_namespace_t lualinux_flags[] = {
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
+	{"kill", lualinux_kill},
 	{"tracing", lualinux_tracing},
 	{"time", lualinux_time},
 	{"difftime", lualinux_difftime},
@@ -564,4 +594,3 @@ module_init(lualinux_init);
 module_exit(lualinux_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
-
