@@ -21,6 +21,10 @@
 #include <linux/ktime.h>
 #include <linux/netdevice.h>
 #include <linux/byteorder/generic.h>
+#include <linux/sched/signal.h>
+#include <linux/pid.h> 
+#include <linux/signal.h>
+#include <linux/errno.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -111,6 +115,47 @@ static int lualinux_schedule(lua_State *L)
 
 	lua_pushinteger(L, jiffies_to_msecs(schedule_timeout(timeout)));
 	return 1;
+}
+
+/***
+* Kills a process by sending a signal.
+* By default, sends SIGKILL.
+* An optional second argument can specify a different signal (either by number or by using the constants from `linux.signal`).
+*
+* @function kill
+* @tparam integer pid Process ID to kill.
+* @tparam[opt] integer sig Signal number to send (default: `linux.signal.KILL`).
+* @treturn boolean `true` if the signal was sent successfully.
+* @treturn[error] boolean `false` followed by an error number if the operation fails.
+* @raise Errors:
+*   - (3): The specified PID doesn't exist
+*   - other errno values depending on the failure cause (e.g., `EPERM`, `EINVAL`, etc.)
+* @usage
+*   linux.kill(1234)  -- Kill process 1234 with SIGKILL (default)
+*   linux.kill(1234, linux.signal.TERM)  -- Kill process 1234 with SIGTERM
+*/
+static int lualinux_kill(lua_State *L)
+{
+	pid_t nr = (pid_t)luaL_checkinteger(L, 1);
+  	int sig = luaL_optinteger(L, 2, SIGKILL);
+ 	struct pid *pid = find_get_pid(nr);
+
+	int ret = ESRCH;
+	if (pid == NULL) 
+        	goto err;    
+	
+    	ret = kill_pid(pid, sig, 1);
+    	put_pid(pid);
+    
+    	if (ret) 
+		goto err;
+    
+    	lua_pushboolean(L, true);
+    	return 1;
+err:
+	lua_pushboolean(L, false);
+	lua_pushinteger(L, ret);
+	return 2;
 }
 
 /***
@@ -381,10 +426,84 @@ static const lunatik_reg_t lualinux_errno[] = {
 	{NULL, 0}
 };
 
+/***
+* Table of signal constants for use with `linux.kill`.
+* This table provides named constants for the standard Linux signals.
+* For example, `linux.signal.TERM` corresponds to SIGTERM (15).
+*
+* @table signal
+*   @tfield integer HUP  SIGHUP (1) - Hangup
+*   @tfield integer INT  SIGINT (2) - Interrupt (Ctrl-C)
+*   @tfield integer QUIT SIGQUIT (3) - Quit
+*   @tfield integer ILL  SIGILL (4) - Illegal instruction
+*   @tfield integer TRAP SIGTRAP (5) - Trace trap
+*   @tfield integer ABRT SIGABRT (6) - Abort
+*   @tfield integer BUS  SIGBUS (7) - Bus error
+*   @tfield integer FPE  SIGFPE (8) - Floating point exception
+*   @tfield integer KILL SIGKILL (9) - Kill (cannot be caught/ignored)
+*   @tfield integer USR1 SIGUSR1 (10) - User-defined signal 1
+*   @tfield integer SEGV SIGSEGV (11) - Segmentation violation
+*   @tfield integer USR2 SIGUSR2 (12) - User-defined signal 2
+*   @tfield integer PIPE SIGPIPE (13) - Broken pipe
+*   @tfield integer ALRM SIGALRM (14) - Alarm clock
+*   @tfield integer TERM SIGTERM (15) - Termination (default for kill command)
+*   @tfield integer STKFLT SIGSTKFLT (16) - Stack fault
+*   @tfield integer CHLD SIGCHLD (17) - Child status changed
+*   @tfield integer CONT SIGCONT (18) - Continue if stopped
+*   @tfield integer STOP SIGSTOP (19) - Stop (cannot be caught/ignored)
+*   @tfield integer TSTP SIGTSTP (20) - Terminal stop
+*   @tfield integer TTIN SIGTTIN (21) - Background read from tty
+*   @tfield integer TTOU SIGTTOU (22) - Background write to tty
+*   @tfield integer URG  SIGURG (23) - Urgent condition on socket
+*   @tfield integer XCPU SIGXCPU (24) - CPU limit exceeded
+*   @tfield integer XFSZ SIGXFSZ (25) - File size limit exceeded
+*   @tfield integer VTALRM SIGVTALRM (26) - Virtual alarm clock
+*   @tfield integer PROF SIGPROF (27) - Profiling alarm clock
+*   @tfield integer WINCH SIGWINCH (28) - Window size change
+*   @tfield integer IO   SIGIO (29) - I/O now possible
+*   @tfield integer PWR  SIGPWR (30) - Power failure
+*   @tfield integer SYS  SIGSYS (31) - Bad system call
+*/
+static const lunatik_reg_t lualinux_signal[] = {
+    	{"HUP", SIGHUP},
+	{"INT", SIGINT},
+	{"QUIT", SIGQUIT},
+	{"ILL", SIGILL},
+	{"TRAP", SIGTRAP},
+	{"ABRT", SIGABRT},
+	{"BUS", SIGBUS},
+	{"FPE", SIGFPE},
+	{"KILL", SIGKILL},
+	{"USR1", SIGUSR1},
+	{"SEGV", SIGSEGV},
+	{"USR2", SIGUSR2},
+	{"PIPE", SIGPIPE},
+	{"ALRM", SIGALRM},
+	{"TERM", SIGTERM},
+	{"STKFLT", SIGSTKFLT},
+	{"CHLD", SIGCHLD},
+	{"CONT", SIGCONT},
+	{"STOP", SIGSTOP},
+	{"TSTP", SIGTSTP},
+	{"TTIN", SIGTTIN},
+	{"TTOU", SIGTTOU},
+	{"URG", SIGURG},
+	{"XCPU", SIGXCPU},
+	{"XFSZ", SIGXFSZ},
+	{"VTALRM", SIGVTALRM},
+	{"PROF", SIGPROF},
+	{"WINCH", SIGWINCH},
+	{"IO", SIGIO},
+	{"PWR", SIGPWR},
+	{"SYS", SIGSYS},
+	{NULL, 0}
+};
+
 static const lunatik_namespace_t lualinux_flags[] = {
 	{"stat", lualinux_stat},
 	{"task", lualinux_task},
 	{"errno", lualinux_errno},
+	{"signal", lualinux_signal},
 	{NULL, NULL}
 };
 
@@ -521,6 +640,7 @@ static const lunatik_namespace_t lualinux_flags[] = {
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
+	{"kill", lualinux_kill},
 	{"tracing", lualinux_tracing},
 	{"time", lualinux_time},
 	{"difftime", lualinux_difftime},
