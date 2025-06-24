@@ -294,6 +294,24 @@ do {								\
 	lua_pop(L, 1);						\
 } while (0)
 
+#define lunatik_setinteger(L, idx, hook, field) 		\
+do {								\
+	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);	\
+	hook->field = lua_tointeger(L, -1);			\
+	lua_pop(L, 1);						\
+} while (0)
+
+#define lunatik_optinteger(L, idx, nf, field, opt)	\
+do {							\
+	lua_getfield(L, idx, #field);			\
+	if (!lua_isnil(L, -1)) {			\
+		nf->field = lua_tointeger(L, -1);	\
+		lua_pop(L, 1);				\
+	}						\
+	else						\
+		nf->field = opt;			\
+} while (0)
+
 
 static inline void lunatik_setregistry(lua_State *L, int ix, void *key)
 {

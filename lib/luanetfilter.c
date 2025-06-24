@@ -173,10 +173,10 @@ static int luanetfilter_register(lua_State *L)
 	nfops->hook = luanetfilter_hook;
 	nfops->dev = NULL;
 	nfops->priv = nf;
-	luanetfilter_setinteger(L, 1, nfops, pf);
-	luanetfilter_setinteger(L, 1, nfops, hooknum);
-	luanetfilter_setinteger(L, 1, nfops, priority);
-	luanetfilter_optinteger(L, 1, nf, mark, 0);
+	lunatik_setinteger(L, 1, nfops, pf);
+	lunatik_setinteger(L, 1, nfops, hooknum);
+	lunatik_setinteger(L, 1, nfops, priority);
+	lunatik_optinteger(L, 1, nf, mark, 0);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 	if (nf_register_net_hook(&init_net, nfops) != 0)
