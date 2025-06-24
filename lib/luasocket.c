@@ -38,20 +38,6 @@
 
 #include <lunatik.h>
 
-#define luasocket_tryret(L, ret, op, ...)			\
-do {								\
-	if ((ret = op(__VA_ARGS__)) < 0) {			\
-		lua_pushinteger(L, -ret);			\
-		lua_error(L);					\
-	}							\
-} while(0)
-
-#define luasocket_try(L, op, ...)				\
-do {								\
-	int ret;						\
-	luasocket_tryret(L, ret, op, __VA_ARGS__);		\
-} while(0)
-
 #define luasocket_msgaddr(msg, addr)		\
 do {						\
 	msg.msg_namelen = sizeof(addr);		\
@@ -169,7 +155,7 @@ static int luasocket_send(lua_State *L)
 		luasocket_msgaddr(msg, addr);
 	}
 
-	luasocket_tryret(L, ret, kernel_sendmsg, socket, &msg, &vec, 1, len);
+	lunatik_tryret(L, ret, kernel_sendmsg, socket, &msg, &vec, 1, len);
 	lua_pushinteger(L, ret);
 	return 1;
 }
@@ -220,7 +206,7 @@ static int luasocket_receive(lua_State *L)
 	if (unlikely(from))
 		luasocket_msgaddr(msg, addr);
 
-	luasocket_tryret(L, ret, kernel_recvmsg, socket, &msg, &vec, 1, len, flags);
+	lunatik_tryret(L, ret, kernel_recvmsg, socket, &msg, &vec, 1, len, flags);
 	luaL_pushresultsize(&B, ret);
 
 	return unlikely(from) ? luasocket_pushaddr(L, (struct sockaddr *)msg.msg_name) + 1 : 1;
@@ -263,7 +249,7 @@ static int luasocket_bind(lua_State *L)
 	luasocket_addr_t addr;
 
 	luasocket_checkaddr(L, socket, &addr, 2);
-	luasocket_try(L, kernel_bind, socket, LUASOCKET_SOCKADDR(addr));
+	lunatik_try(L, kernel_bind, socket, LUASOCKET_SOCKADDR(addr));
 	return 0;
 }
 
@@ -285,7 +271,7 @@ static int luasocket_listen(lua_State *L)
 	struct socket *socket = luasocket_check(L, 1);
 	int backlog = luaL_optinteger(L, 2, SOMAXCONN);
 
-	luasocket_try(L, kernel_listen, socket, backlog);
+	lunatik_try(L, kernel_listen, socket, backlog);
 	return 0;
 }
 
@@ -319,7 +305,7 @@ static int luasocket_connect(lua_State *L)
 	luasocket_checkaddr(L, socket, &addr, 2);
 	flags = luaL_optinteger(L, nargs, 0);
 
-	luasocket_try(L, kernel_connect, socket, LUASOCKET_SOCKADDR(addr), flags);
+	lunatik_try(L, kernel_connect, socket, LUASOCKET_SOCKADDR(addr), flags);
 	return 0;
 }
 
@@ -328,7 +314,7 @@ static int luasocket_get##what(lua_State *L)			\
 {								\
 	struct socket *socket = luasocket_check(L, 1);		\
 	struct sockaddr addr;					\
-	luasocket_try(L, kernel_get##what, socket, &addr);	\
+	lunatik_try(L, kernel_get##what, socket, &addr);	\
 	return luasocket_pushaddr(L, &addr);			\
 }
 
@@ -726,7 +712,7 @@ static int luasocket_accept(lua_State *L)
 	int flags = luaL_optinteger(L, 2, 0);
 	lunatik_object_t *object = luasocket_newsocket(L);
 
-	luasocket_try(L, kernel_accept, socket, luasocket_psocket(object), flags);
+	lunatik_try(L, kernel_accept, socket, luasocket_psocket(object), flags);
 	return 1; /* object */
 }
 
@@ -757,7 +743,7 @@ static int luasocket_new(lua_State *L)
 	int proto = luaL_checkinteger(L, 3);
 	lunatik_object_t *object = luasocket_newsocket(L);
 
-	luasocket_try(L, sock_create, family, type, proto, luasocket_psocket(object));
+	lunatik_try(L, sock_create, family, type, proto, luasocket_psocket(object));
 	return 1; /* object */
 }
 

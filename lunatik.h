@@ -121,6 +121,20 @@ static inline void *lunatik_checknull(lua_State *L, void *ptr)
 
 #define lunatik_checkalloc(L, s)	(lunatik_checknull((L), lunatik_malloc((L), (s))))
 
+#define lunatik_tryret(L, ret, op, ...)				\
+do {								\
+	if ((ret = op(__VA_ARGS__)) < 0) {			\
+		lua_pushinteger(L, -ret);			\
+		lua_error(L);					\
+	}							\
+} while(0)
+
+#define lunatik_try(L, op, ...)					\
+do {								\
+	int ret;						\
+	lunatik_tryret(L, ret, op, __VA_ARGS__);		\
+} while(0)
+
 static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
 {
 	int _type = lua_getfield(L, idx, field);
