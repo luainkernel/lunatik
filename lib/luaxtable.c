@@ -347,10 +347,10 @@ static int luaxtable_new##hook(lua_State *L) 				\
 	hook->me = THIS_MODULE;						\
 									\
 	lunatik_setstring(L, 1, hook, name, XT_EXTENSION_MAXNAMELEN - 1);	\
-	luanetfilter_setinteger(L, 1, hook, revision);			\
-	luanetfilter_setinteger(L, 1, hook, family);			\
-	luanetfilter_setinteger(L, 1, hook, proto);			\
-	luanetfilter_setinteger(L, 1, hook, hooks);			\
+	lunatik_setinteger(L, 1, hook, revision);			\
+	lunatik_setinteger(L, 1, hook, family);			\
+	lunatik_setinteger(L, 1, hook, proto);			\
+	lunatik_setinteger(L, 1, hook, hooks);			\
 	lunatik_checkfield(L, 1, "checkentry", LUA_TFUNCTION);		\
 	lunatik_checkfield(L, 1, "destroy", LUA_TFUNCTION);		\
 	lunatik_checkfield(L, 1, #hook, LUA_TFUNCTION);			\

@@ -30,23 +30,6 @@ do {							\
 	lua_pop(L, 1); /* skb */			\
 } while (0)
 
-#define luanetfilter_setinteger(L, idx, hook, field) 		\
-do {								\
-	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);	\
-	hook->field = lua_tointeger(L, -1);			\
-	lua_pop(L, 1);						\
-} while (0)
-
-#define luanetfilter_optinteger(L, idx, nf, field, opt)	\
-do {							\
-	lua_getfield(L, idx, #field);			\
-	if (!lua_isnil(L, -1)) {			\
-		nf->field = lua_tointeger(L, -1);	\
-		lua_pop(L, 1);				\
-	}						\
-	else						\
-		nf->field = opt;			\
-} while (0)
 
 /***
 * Table of Netfilter protocol families.
