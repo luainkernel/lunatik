@@ -93,6 +93,66 @@ out:
 	return user_table;
 }
 
+#define luahid_setfield(L, idx, obj, field)	\
+do { 						\
+	lua_pushinteger(L, obj->field);		\
+	lua_setfield(L, idx - 1, #field);	\
+} while (0)
+
+static inline void luahid_pushdevid(lua_State *L, int idx, const struct hid_device_id *device_id)
+{
+	lua_newtable(L);
+	luahid_setfield(L, -1, device_id, bus);
+	luahid_setfield(L, -1, device_id, group);
+	luahid_setfield(L, -1, device_id, vendor);
+	luahid_setfield(L, -1, device_id, product);
+	luahid_setfield(L, -1, device_id, driver_data);
+}
+
+#define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
+	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
+
+static int luahid_doprobe(lua_State *L, luahid_t *hid, struct hid_device *hdev, const struct hid_device_id *id)
+{
+	if (luahid_checkdriver(L, hid, -1, "_info")) {
+		pr_err("probe: couldn't find driver");
+		return -ENXIO;
+	}
+
+	if (lua_getfield(L, -2, "probe") != LUA_TFUNCTION)
+		return 0;
+
+	lua_pushvalue(L, -3); /* hid.ops */
+	luahid_pushdevid(L, -4, id);
+
+	if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
+		pr_err("probe: %s\n", lua_tostring(L, -1));
+		return -ECANCELED;
+	}
+
+	if (lua_type(L, -1) == LUA_TTABLE) {
+		lua_pushlightuserdata(L, hdev);
+		lua_pushvalue(L, -2); /* returned table */
+		lua_settable(L, -4); /* hid._info[hdev] = returned table */
+
+		hid_set_drvdata(hdev, hid);
+	}
+	return 0;
+}
+
+static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
+{
+	struct hid_driver *driver = hdev->driver;
+	luahid_t *hid = container_of(driver, luahid_t, driver);
+	int ret;
+
+	lunatik_run(hid->runtime, luahid_doprobe, ret, hid, hdev, id);
+	if (ret != 0 || (ret = hid_parse(hdev)) != 0)
+		return ret;
+
+	return hid_hw_start(hdev, HID_CONNECT_DEFAULT);
+}
+
 /***
 * Registers a new HID driver.
 * This function creates a new HID driver object from a Lua table and registers it with the kernel.
@@ -120,11 +180,29 @@ out:
 *	 		{ bus = 2, vendor = 0x4321, product = 0x8765 },
 *	 	}
 *	 }
+*
+*	 function hid_driver:probe(devid)
+*	 	drvdata = {}
+*	 	if devid.bus == 1 then
+*	 		drvdata.usb_feature = true
+*	 	end
+*	 	if devid.driver_data % 2 == 0 then
+*	 		drvdata.even_special_feature = true
+*	 	end
+*	 	return drvdata
+*	 end
+*
 *	 hid.register(hid_driver)
 */
 static int luahid_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
+
+	lua_newtable(L); /* hid = {} */
+	lua_pushvalue(L, 1);
+	lua_setfield(L, 2, "ops"); /* hid.ops = table */
+	lua_newtable(L);
+	lua_setfield(L, 2, "_info"); /* hid._info = {} */
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t));
 	luahid_t *hid = (luahid_t *)object->private;
@@ -138,14 +216,18 @@ static int luahid_register(lua_State *L)
 	luaL_argcheck(L, (user_driver->id_table = luahid_setidtable(L, -1)) != NULL,
 		      2, "invaild id_table");
 
+	user_driver->probe = luahid_probe;
+
 	lunatik_setruntime(L, hid, hid);
 	lunatik_getobject(hid->runtime);
+	lunatik_registerobject(L, 2, object);
 
-	if (__hid_register_driver(user_driver, THIS_MODULE, KBUILD_MODNAME) != 0)
+	if (__hid_register_driver(user_driver, THIS_MODULE, KBUILD_MODNAME) != 0) {
+		lunatik_unregisterobject(L, object);
 		luaL_error(L, "failed to register hid driver: %s", user_driver->name);
+	}
 
 	hid->registered = true;
-	lunatik_registerobject(L, 1, object);
 	return 1; /* object */
 }
 
