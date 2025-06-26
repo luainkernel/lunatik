@@ -86,6 +86,8 @@ tests_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
 	${INSTALL} -m 0644 tests/rcumap_sync/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/mailbox
+	${INSTALL} -m 0644 tests/mailbox/*.lua ${SCRIPTS_INSTALL_PATH}/tests/mailbox
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests

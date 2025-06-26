@@ -46,10 +46,10 @@ function MailboxTests.test_local_inbox_outbox()
 	assert_is_nil(inbox:receive(0)) -- Should be empty now
 
 	-- Test send on inbox (should error)
-	assert_has_error(function() inbox:send("should fail") end, "receive-only mailbox")
+	assert_has_error(function() inbox:send("should fail") end, "receive%-only mailbox")
 
 	-- Test receive on outbox (should error)
-	assert_has_error(function() outbox:receive(0) end, "send-only mailbox")
+	assert_has_error(function() outbox:receive(0) end, "send%-only mailbox")
 end
 
 function MailboxTests.test_non_blocking_mailbox()
@@ -163,8 +163,7 @@ local function run_tests()
 	print("\nRunning Mailbox Tests...")
 
 	for name, func in pairs(MailboxTests) do
-		if type(func) == "function" and string.sub(name, 1, 5) == "test_" then
-			io.write("  " .. name .. ": ")
+			print("  " .. name .. ": ")
 			local ok, err = pcall(func)
 			if ok then
 				print("PASS")
@@ -173,7 +172,6 @@ local function run_tests()
 				print("FAIL - " .. err)
 				num_failed = num_failed + 1
 			end
-		end
 	end
 
 	print(string.format("\nTests finished: %d passed, %d failed", num_passed, num_failed))
