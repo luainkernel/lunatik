@@ -91,6 +91,10 @@
 	<td class="summary">Gets the interface index for a network device name.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#kill">kill (pid[, sig])</a></td>
+	<td class="summary">Kills a process by sending a signal.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#lookup">lookup (symbol_name)</a></td>
 	<td class="summary">Looks up a kernel symbol by name.</td>
 	</tr>
@@ -116,6 +120,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#errno">errno</a></td>
 	<td class="summary">Table of error number constants.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#signal">signal</a></td>
+	<td class="summary">Table of signal constants for use with <a href="../modules/linux.html#kill">linux.kill</a>.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#stat">stat</a></td>
@@ -271,6 +279,52 @@
     <ul>
         <pre class="example"><span class="keyword">local</span> index = linux.<span class="function-name">ifindex</span>(<span class="string">"lo"</span>)
 <span class="global">print</span>(<span class="string">"Index of lo:"</span>, index)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "kill"></a>
+    <strong>kill (pid[, sig])</strong>
+    </dt>
+    <dd>
+    Kills a process by sending a signal.
+ By default, sends SIGKILL.
+ An optional second argument can specify a different signal (either by number or by using the constants from <a href="../modules/linux.html#signal">linux.signal</a>).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Process ID to kill.
+        </li>
+        <li><span class="parameter">sig</span>
+            <span class="types"><span class="type">integer</span></span>
+         Signal number to send (default: <code>linux.signal.KILL</code>).
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">boolean</span></span>
+        <code>true</code> if the signal was sent successfully.</li>
+        <li>
+           <span class="types"><span class="type">boolean</span></span>
+        <code>false</code> followed by an error number if the operation fails.</li>
+    </ol>
+
+    <h3>Raises:</h3>
+     Errors:
+   - (3): The specified PID doesn't exist
+   - other errno values depending on the failure cause (e.g., <code>EPERM</code>, <code>EINVAL</code>, etc.)
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">linux.<span class="function-name">kill</span>(<span class="number">1234</span>)  <span class="comment">-- Kill process 1234 with SIGKILL (default)
+</span>linux.<span class="function-name">kill</span>(<span class="number">1234</span>, linux.signal.TERM)  <span class="comment">-- Kill process 1234 with SIGTERM</span></pre>
     </ul>
 
 </dd>
@@ -606,6 +660,149 @@
         <li><span class="parameter">RANGE</span>
             <span class="types"><span class="type">integer</span></span>
          Math result not representable (ERANGE).
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "signal"></a>
+    <strong>signal</strong>
+    </dt>
+    <dd>
+    Table of signal constants for use with <a href="../modules/linux.html#kill">linux.kill</a>.
+ This table provides named constants for the standard Linux signals.
+ For example, <code>linux.signal.TERM</code> corresponds to SIGTERM (15).
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">HUP</span>
+            <span class="types"><span class="type">integer</span></span>
+          SIGHUP (1) - Hangup
+        </li>
+        <li><span class="parameter">INT</span>
+            <span class="types"><span class="type">integer</span></span>
+          SIGINT (2) - Interrupt (Ctrl-C)
+        </li>
+        <li><span class="parameter">QUIT</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGQUIT (3) - Quit
+        </li>
+        <li><span class="parameter">ILL</span>
+            <span class="types"><span class="type">integer</span></span>
+          SIGILL (4) - Illegal instruction
+        </li>
+        <li><span class="parameter">TRAP</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGTRAP (5) - Trace trap
+        </li>
+        <li><span class="parameter">ABRT</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGABRT (6) - Abort
+        </li>
+        <li><span class="parameter">BUS</span>
+            <span class="types"><span class="type">integer</span></span>
+          SIGBUS (7) - Bus error
+        </li>
+        <li><span class="parameter">FPE</span>
+            <span class="types"><span class="type">integer</span></span>
+          SIGFPE (8) - Floating point exception
+        </li>
+        <li><span class="parameter">KILL</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGKILL (9) - Kill (cannot be caught/ignored)
+        </li>
+        <li><span class="parameter">USR1</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGUSR1 (10) - User-defined signal 1
+        </li>
+        <li><span class="parameter">SEGV</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGSEGV (11) - Segmentation violation
+        </li>
+        <li><span class="parameter">USR2</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGUSR2 (12) - User-defined signal 2
+        </li>
+        <li><span class="parameter">PIPE</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGPIPE (13) - Broken pipe
+        </li>
+        <li><span class="parameter">ALRM</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGALRM (14) - Alarm clock
+        </li>
+        <li><span class="parameter">TERM</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGTERM (15) - Termination (default for kill command)
+        </li>
+        <li><span class="parameter">STKFLT</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGSTKFLT (16) - Stack fault
+        </li>
+        <li><span class="parameter">CHLD</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGCHLD (17) - Child status changed
+        </li>
+        <li><span class="parameter">CONT</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGCONT (18) - Continue if stopped
+        </li>
+        <li><span class="parameter">STOP</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGSTOP (19) - Stop (cannot be caught/ignored)
+        </li>
+        <li><span class="parameter">TSTP</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGTSTP (20) - Terminal stop
+        </li>
+        <li><span class="parameter">TTIN</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGTTIN (21) - Background read from tty
+        </li>
+        <li><span class="parameter">TTOU</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGTTOU (22) - Background write to tty
+        </li>
+        <li><span class="parameter">URG</span>
+            <span class="types"><span class="type">integer</span></span>
+          SIGURG (23) - Urgent condition on socket
+        </li>
+        <li><span class="parameter">XCPU</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGXCPU (24) - CPU limit exceeded
+        </li>
+        <li><span class="parameter">XFSZ</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGXFSZ (25) - File size limit exceeded
+        </li>
+        <li><span class="parameter">VTALRM</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGVTALRM (26) - Virtual alarm clock
+        </li>
+        <li><span class="parameter">PROF</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGPROF (27) - Profiling alarm clock
+        </li>
+        <li><span class="parameter">WINCH</span>
+            <span class="types"><span class="type">integer</span></span>
+         SIGWINCH (28) - Window size change
+        </li>
+        <li><span class="parameter">IO</span>
+            <span class="types"><span class="type">integer</span></span>
+           SIGIO (29) - I/O now possible
+        </li>
+        <li><span class="parameter">PWR</span>
+            <span class="types"><span class="type">integer</span></span>
+          SIGPWR (30) - Power failure
+        </li>
+        <li><span class="parameter">SYS</span>
+            <span class="types"><span class="type">integer</span></span>
+          SIGSYS (31) - Bad system call
         </li>
     </ul>
 
@@ -1241,7 +1438,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-06-25 17:17:08 </i>
+<i style="float:right;">Last updated 2025-06-27 17:53:55 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
