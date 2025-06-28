@@ -90,7 +90,7 @@ static int luahid_register(lua_State *L)
 
 	lunatik_checkfield(L, 1, "id_table", LUA_TTABLE);
 	luaL_argcheck(L, (user_driver->id_table = luahid_setidtable(L, -1)) == NULL,
-			   2, "id_table is not specified or invalid");
+			   2, "invaild id_table");
 
 	lunatik_setruntime(L, hid, hid);
 	lunatik_getobject(hid->runtime);
