@@ -47,13 +47,6 @@ static const lunatik_class_t luahid_class = {
 	.sleep = true,
 };
 
-#define luahid_optinteger(L, idx, nf, field, opt)			\
-do {									\
-	lua_getfield(L, idx, #field);					\
-	nf->field = lua_isnil(L, -1) ? opt : lua_tointeger(L, -1);	\
-	lua_pop(L, 1);							\
-} while (0)
-
 static const struct hid_device_id *luahid_setidtable(lua_State *L, int idx)
 {
 	size_t len = luaL_len(L, idx);
@@ -68,11 +61,11 @@ static const struct hid_device_id *luahid_setidtable(lua_State *L, int idx)
 			goto out;
 		}
 
-		luahid_optinteger(L, -1, cur_id, bus, HID_BUS_ANY);
-		luahid_optinteger(L, -1, cur_id, group, HID_GROUP_ANY);
-		luahid_optinteger(L, -1, cur_id, vendor, HID_ANY_ID);
-		luahid_optinteger(L, -1, cur_id, product, HID_ANY_ID);
-		luahid_optinteger(L, -1, cur_id, driver_data, 0);
+		lunatik_optinteger(L, -1, cur_id, bus, HID_BUS_ANY);
+		lunatik_optinteger(L, -1, cur_id, group, HID_GROUP_ANY);
+		lunatik_optinteger(L, -1, cur_id, vendor, HID_ANY_ID);
+		lunatik_optinteger(L, -1, cur_id, product, HID_ANY_ID);
+		lunatik_optinteger(L, -1, cur_id, driver_data, 0);
 
 		lua_pop(L, 1); /* table entry */
 	}
