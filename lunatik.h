@@ -301,15 +301,11 @@ do {								\
 	lua_pop(L, 1);						\
 } while (0)
 
-#define lunatik_optinteger(L, idx, nf, field, opt)	\
-do {							\
-	lua_getfield(L, idx, #field);			\
-	if (!lua_isnil(L, -1)) {			\
-		nf->field = lua_tointeger(L, -1);	\
-		lua_pop(L, 1);				\
-	}						\
-	else						\
-		nf->field = opt;			\
+#define lunatik_optinteger(L, idx, priv, field, opt)			\
+do {									\
+	lua_getfield(L, idx, #field);					\
+	priv->field = lua_isnil(L, -1) ? opt : lua_tointeger(L, -1);	\
+	lua_pop(L, 1);							\
 } while (0)
 
 
