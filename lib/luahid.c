@@ -3,8 +3,8 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
-#include <string.h>
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+#include <string.h>
 #include <linux/hid.h>
 #include <lunatik.h>
 #include <lauxlib.h>
@@ -89,7 +89,7 @@ static int luahid_register(lua_State *L)
 	lunatik_setstring(L, 1, user_driver, name, NAME_MAX);
 
 	lunatik_checkfield(L, 1, "id_table", LUA_TTABLE);
-	luaL_argcheck(L, (user_driver->id_table = luahid_setidtable(L, -1)) == NULL,
+	luaL_argcheck(L, (user_driver->id_table = luahid_setidtable(L, -1)) != NULL,
 			   2, "invaild id_table");
 
 	lunatik_setruntime(L, hid, hid);
