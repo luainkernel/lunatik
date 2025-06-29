@@ -38,12 +38,15 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/lunatik
 	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/socket
 	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/syscall
+	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/crypto
 	${INSTALL} -m 0644 driver.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/mailbox.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/net.lua ${SCRIPTS_INSTALL_PATH}/
+	${INSTALL} -m 0644 lib/util.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/lunatik/*.lua ${SCRIPTS_INSTALL_PATH}/lunatik
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
+	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
 	${INSTALL} -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}
 
 scripts_uninstall:
@@ -84,8 +87,11 @@ examples_uninstall:
 
 tests_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests
+	${INSTALL} -m 0644 tests/init.lua ${SCRIPTS_INSTALL_PATH}/tests
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
 	${INSTALL} -m 0644 tests/rcumap_sync/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/crypto
+	${INSTALL} -m 0644 tests/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/tests/crypto
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
