@@ -3,17 +3,34 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/*
+* This is a high-level Lua interface to the Linux HID subsystem.
+* This module allows registering Lua table with functions as a HID driver,
+* support for id_table is provided, which allows matching HID devices
+*
+* @module hid
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <string.h>
 #include <linux/hid.h>
 #include <lunatik.h>
 #include <lauxlib.h>
 
+/**
+ * Represents a registered HID driver.
+ * This is a userdata object returned by `hid.register()`. It encapsulates
+ * the kernel `struct hid_driver` and associated Lunatik runtime information
+ * necessary to invoke the Lua callback when a HID device is matched.
+* The `registered` field indicates whether the driver is currently registered
+ * @type hid_driver
+ */
 typedef struct luahid_s {
 	lunatik_object_t *runtime;
 	struct hid_driver driver;
 	bool registered;
 } luahid_t;
+
 
 static void luahid_release(void *private)
 {
@@ -76,6 +93,23 @@ out:
 	return user_table;
 }
 
+/***
+* Registers a new HID driver.
+* This function creates a new HID driver object from a Lua table and registers it with the kernel.
+* The Lua table must contain the following fields:
+* - `name`: The name of the driver (string).
+* - `id_table`: A table of device IDs that this driver can match against (lua_table).
+* 	- each id is a table consist of fields:
+* 		- `bus`: The bus type (integer, default: `HID_BUS_ANY`).
+* 		- `group`: The group type (integer, default: `HID_GROUP_ANY`).
+* 		- `vendor`: The vendor ID (integer, default: `HID_ANY_ID`).
+* 		- `product`: The product ID (integer, default: `HID_ANY_ID`).
+* 		- `driver_data`: Additional driver data (integer, default: `0`).
+*
+* @function hid.register
+* @param {table} table The Lua table containing driver information.
+* @return {hid_driver} The registered HID driver object.
+ */
 static int luahid_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
