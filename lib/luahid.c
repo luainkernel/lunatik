@@ -111,6 +111,16 @@ out:
 * @function hid.register
 * @tparam table table The Lua table containing driver information.
 * @treturn hid_driver The registered HID driver object.
+* @usage
+*	 local hid = require("hid")
+*	 local hid_driver = {
+*	 	name = "my_hid_driver",
+*	 	id_table = {
+*	 		{ bus = 1, vendor = 0x1234, product = 0x5678 },
+*	 		{ bus = 2, vendor = 0x4321, product = 0x8765 },
+*	 	}
+*	 }
+*	 hid.register(hid_driver)
 */
 static int luahid_register(lua_State *L)
 {
