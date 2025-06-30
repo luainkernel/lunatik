@@ -4,7 +4,7 @@
 */
 
 /***
-* This is a high-level Lua interface to the Linux HID subsystem.
+* High-level Lua interface to the Linux HID subsystem.
 * This module allows registering Lua table with functions as a HID driver,
 * support for id_table is provided, which allows matching HID devices
 *
@@ -97,9 +97,11 @@ out:
 * Registers a new HID driver.
 * This function creates a new HID driver object from a Lua table and registers it with the kernel.
 * The Lua table must contain the following fields:
+*
 * - `name`: The name of the driver (string).
 * - `id_table`: A table of device IDs that this driver can match against (lua_table).
 * 	- each id is a table consist of fields:
+*
 * 		- `bus`: The bus type (integer, default: `HID_BUS_ANY`).
 * 		- `group`: The group type (integer, default: `HID_GROUP_ANY`).
 * 		- `vendor`: The vendor ID (integer, default: `HID_ANY_ID`).
@@ -107,8 +109,8 @@ out:
 * 		- `driver_data`: Additional driver data (integer, default: `0`).
 *
 * @function hid.register
-* @param {table} table The Lua table containing driver information.
-* @return {hid_driver} The registered HID driver object.
+* @tparam table table The Lua table containing driver information.
+* @treturn hid_driver The registered HID driver object.
 */
 static int luahid_register(lua_State *L)
 {

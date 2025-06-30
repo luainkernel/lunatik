@@ -35,6 +35,7 @@ file = {
     './lib/luathread.c',
     './lib/luaxdp.c',
     './lib/luaxtable.c',
+    './lib/luahid.c',
 }
 
 -- examples = "./examples"
