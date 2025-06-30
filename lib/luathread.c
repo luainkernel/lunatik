@@ -37,6 +37,8 @@ typedef struct luathread_s {
 	lunatik_object_t *runtime;
 } luathread_t;
 
+LUNATIK_PRIVATECHECKER(luathread_check, luathread_t *);
+
 static int luathread_run(lua_State *L);
 static int luathread_current(lua_State *L);
 
@@ -178,32 +180,43 @@ static int luathread_task(lua_State *L)
 }
 
 /***
-* Allows the current kernel thread to handle a specific signal.
-* This function enables the thread to receive and process the specified signal by unblocking it at the kernel level.
-* @function allow
-* @tparam integer signum The signal number to allow (e.g., 15 for SIGTERM)
+* Allows a specific signal for the thread.
+* @function allow_signal
+* @tparam number signum The signal number to allow (e.g., 15 for SIGTERM) or takes thread.signal.TERM 
 * @treturn nil
 * @usage
-* local t = thread.current()
-* t:allow_signal(15)  -- Allow SIGTERM
+* t:allow_signal(15)  -- Allow SIGTERM for this thread
 */
 
-static int luathread_allow_signal(lua_State *L)
+static int luathread_allow(lua_State *L)
 {
- 	int signum = luaL_checkinteger(L, 2);
- 	allow_signal(signum);
-	
- 	return 0;
+   	luathread_t *thread = luathread_check(L, 1);
+    	struct task_struct *task = thread->task;
+    	if (!task)
+        	return luaL_error(L, "thread task is NULL");
+    
+    	int signum = luaL_checkinteger(L, 2);
+    
+    	sigset_t allow_mask;
+    	sigemptyset(&allow_mask);
+    	sigaddset(&allow_mask, signum);
+    
+    	sigdelset(&current->blocked, signum);
+    	recalc_sigpending();
+    
+    return 0;
 }
 
-static int luathread_send_signal(lua_State *L)
+static int luathread_send(lua_State *L)
 {
- 	int signum = luaL_checkinteger(L, 2);
-   	lunatik_object_t *object = lunatik_toobject(L, 1);
-   	luathread_t *thread = (luathread_t *)object->private;
+    	luathread_t *thread = luathread_check(L, 1);
+    	struct task_struct *task = thread->task;
+    	if (!task)
+        	return luaL_error(L, "thread task is NULL");
     
-    	if (!thread || !thread->task)
-        	return luaL_error(L, "invalid thread object");
+    	int signum = luaL_checkinteger(L, 2);
+	if (sigismember(&task->blocked, signum)) 
+        	return luaL_error(L, "signal %d is blocked for this thread", signum);
     
     	if (send_sig(signum, thread->task, 0))
         	return luaL_error(L, "send_sig failed for signal %d", signum);
@@ -211,17 +224,62 @@ static int luathread_send_signal(lua_State *L)
 	return 0;
 }
 
-static int luathread_signal_pending(lua_State *L)
+static int luathread_pending(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_toobject(L, 1);
- 	luathread_t *thread = (luathread_t *)object->private;
+	luathread_t *thread = luathread_check(L, 1);
+   	struct task_struct *task = thread->task;
 	
-	struct task_struct *task = thread->task;
 	if (!task)
  		return luaL_error(L, "thread task is NULL");
  	lua_pushboolean(L, signal_pending(task));
 	 
 	return 1;
+}
+
+static int luathread_allowedsignals(lua_State *L)
+{
+    	luathread_t *thread = luathread_check(L, 1);
+    	struct task_struct *task = thread->task;
+	
+    	if (!task) {
+        	pr_warn("[%p] Thread task is NULL\n", thread);
+        return 0;
+    	}
+
+    	pr_info("Allowed signals for thread %s (PID: %d):\n", task->comm, task->pid);
+    	for (int sig = 1; sig <= _NSIG; sig++) {
+        	if (!sigismember(&task->blocked, sig)) {
+            	pr_info("  Signal %d is allowed\n", sig);
+        	}
+    	}
+    	return 0;
+}
+
+/***
+* Blocks a specific signal for the thread.
+* @function block_signal
+* @tparam number signum The signal number to block (e.g., 15 for SIGTERM)
+* @treturn nil
+* @usage
+* t:block_signal(15)  -- Block SIGTERM for this thread
+* @within thread
+*/
+static int luathread_block(lua_State *L) {
+    	luathread_t *thread = luathread_check(L, 1);
+    	struct task_struct *task = thread->task;
+    	if (!task)
+        	return luaL_error(L, "thread task is NULL");
+    
+    	int signum = luaL_checkinteger(L, 2);
+	
+    	sigset_t block_mask;
+    	sigemptyset(&block_mask);
+    	sigaddset(&block_mask, signum);
+	
+    	sigaddset(&current->blocked, signum);
+    	recalc_sigpending();
+	
+    	return 0;
 }
 
 static const luaL_Reg luathread_lib[] = {
@@ -236,10 +294,11 @@ static const luaL_Reg luathread_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"stop", luathread_stop},
 	{"task", luathread_task},
-        {"allow", luathread_allow_signal},
-        {"send", luathread_send_signal},
-        {"sigpending", luathread_signal_pending},
-
+        {"allow", luathread_allow},
+        {"send", luathread_send},
+        {"pending", luathread_pending},
+	{"printallowed", luathread_allowedsignals},
+	{"block",luathread_block},
 	{NULL, NULL}
 };
 
@@ -249,6 +308,45 @@ static const lunatik_class_t luathread_class = {
 	.sleep = true,
 };
 
+static const lunatik_reg_t luathread_signal[] = {
+	{"HUP", SIGHUP},
+	{"INT", SIGINT},
+	{"QUIT", SIGQUIT},
+	{"ILL", SIGILL},
+	{"TRAP", SIGTRAP},
+	{"ABRT", SIGABRT},
+	{"BUS", SIGBUS},
+	{"FPE", SIGFPE},
+	{"KILL", SIGKILL},
+	{"USR1", SIGUSR1},
+	{"SEGV", SIGSEGV},
+	{"USR2", SIGUSR2},
+	{"PIPE", SIGPIPE},
+	{"ALRM", SIGALRM},
+	{"TERM", SIGTERM},
+	{"STKFLT", SIGSTKFLT},
+	{"CHLD", SIGCHLD},
+	{"CONT", SIGCONT},
+	{"STOP", SIGSTOP},
+	{"TSTP", SIGTSTP},
+	{"TTIN", SIGTTIN},
+	{"TTOU", SIGTTOU},
+	{"URG", SIGURG},
+	{"XCPU", SIGXCPU},
+	{"XFSZ", SIGXFSZ},
+	{"VTALRM", SIGVTALRM},
+	{"PROF", SIGPROF},
+	{"WINCH", SIGWINCH},
+	{"IO", SIGIO},
+	{"PWR", SIGPWR},
+	{"SYS", SIGSYS},
+	{NULL, 0}
+};
+
+static const lunatik_namespace_t luathread_flags[] = {
+	{"signal", luathread_signal},
+	{NULL, 0}
+};
 #define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t)))
 
 /***
@@ -314,7 +412,7 @@ static int luathread_current(lua_State *L)
 }
 
 
-LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, NULL);
+LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, luathread_flags);
 
 static int __init luathread_init(void)
 {
