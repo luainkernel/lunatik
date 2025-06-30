@@ -411,7 +411,6 @@ static int luathread_current(lua_State *L)
 	return 1; /* object */
 }
 
-
 LUNATIK_NEWLIB(thread, luathread_lib, &luathread_class, luathread_flags);
 
 static int __init luathread_init(void)
@@ -427,3 +426,4 @@ module_init(luathread_init);
 module_exit(luathread_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+
