@@ -42,6 +42,7 @@ scripts_install:
 	${INSTALL} -m 0644 driver.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/mailbox.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/net.lua ${SCRIPTS_INSTALL_PATH}/
+	${INSTALL} -m 0644 lib/util.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/lunatik/*.lua ${SCRIPTS_INSTALL_PATH}/lunatik
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
