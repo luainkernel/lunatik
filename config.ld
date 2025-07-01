@@ -14,6 +14,7 @@ title = 'Lunatik API Documentation'
 -- By manually specifying order, we ensure menu order.
 file = {
 	'./lib/luacompletion.c',
+	'./lib/luacrypto_aead.c',
 	'./lib/luacrypto_shash.c',
 	'./lib/luacrypto_skcipher.c',
 	'./lib/luadata.c',
