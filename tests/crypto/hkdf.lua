@@ -42,6 +42,11 @@ end)
 test("HKDF-Expand-Label examples from https://quic.xargs.org/#client-initial-keys-calc", function()
 	local h = new"sha256"
 
+	local function tls13_expand_label(prk, label, context, length)
+		local hkdf_label_info = string.pack(">Hs1s1", length, "tls13 " .. label, context)
+		return h:expand(prk, hkdf_label_info, length)
+	end
+
 	local expected = hex2bin"f016bb2dc9976dea2726c4e61e738a1e3680a2487591dc76b2aee2ed759822f6"
 	local result = h:extract(
 		hex2bin"38762cf7f55934b34d179ae6a4c80cadccbb7f0a",
@@ -50,16 +55,16 @@ test("HKDF-Expand-Label examples from https://quic.xargs.org/#client-initial-key
 	assert(result == expected, "HKDF-Expand-Label init_secret mismatch")
 
 	expected = hex2bin"47c6a638d4968595cc20b7c8bc5fbfbfd02d7c17cc67fa548c043ecb547b0eaa" -- This is the PRK from the previous step
-	result = h:tls13_expand_label(result, "client in", "", 32)
+	result = tls13_expand_label(result, "client in", "", 32)
 	assert(result == expected, "HKDF-Expand-Label csecret mismatch")
 	local csecret = result
 
 	expected = hex2bin"b14b918124fda5c8d79847602fa3520b"
-	result = h:tls13_expand_label(csecret, "quic key", "", 16)
+	result = tls13_expand_label(csecret, "quic key", "", 16)
 	assert(result == expected, "HKDF-Expand-Label client_init_key mismatch")
 
 	expected = hex2bin"ddbc15dea80925a55686a7df"
-	result = h:tls13_expand_label(csecret, "quic iv", "", 12)
+	result = tls13_expand_label(csecret, "quic iv", "", 12)
 	assert(result == expected, "HKDF-Expand-Label client_init_iv mismatch")
 end)
 
