@@ -15,6 +15,7 @@ title = 'Lunatik API Documentation'
 file = {
     './lib/luacompletion.c',
     './lib/luacrypto_shash.c',
+    './lib/luacrypto_skcipher.c',
     './lib/luadata.c',
     './lib/luadevice.c',
     './lib/luafib.c',
