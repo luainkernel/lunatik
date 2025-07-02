@@ -197,18 +197,25 @@ static int luathread_allow(lua_State *L)
     
     	int signum = luaL_checkinteger(L, 2);
     
-    	sigset_t new_blocked = task->blocked;
-    	sigdelset(&new_blocked, signum);
-    
-
 	spin_lock_irq(&task->sighand->siglock);
-	task->blocked = new_blocked;
+	sigdelset(&task->blocked, signum);  
 	recalc_sigpending();
 	spin_unlock_irq(&task->sighand->siglock);
     
     return 0;
 }
 
+/***
+* Sends a signal to the thread if it is allowed (not blocked).
+* Raises a Lua error if the signal is currently blocked or if sending fails.
+*
+* @function send
+* @tparam number signum The signal number to send (e.g., 15 for SIGTERM) or takes linux.signal.TERM flags
+* @treturn nil
+* @raise error if the signal is blocked or sending the signal fails.
+* @usage
+* t:send(15)          -- Send SIGTERM to the thread 
+*/
 static int luathread_send(lua_State *L)
 {
     	luathread_t *thread = luathread_check(L, 1);
@@ -226,6 +233,16 @@ static int luathread_send(lua_State *L)
 	return 0;
 }
 
+/***
+* Checks whether the thread has any pending signals.
+* @function pending
+* @treturn boolean `true` if the thread has any pending signals, `false` otherwise.
+* @raise error if the thread task is NULL.
+* @usage
+* if t:pending() then
+*     print("Thread has pending signals")
+* end
+*/
 static int luathread_pending(lua_State *L)
 {
 	luathread_t *thread = luathread_check(L, 1);
@@ -236,25 +253,6 @@ static int luathread_pending(lua_State *L)
  	lua_pushboolean(L, signal_pending(task));
 	 
 	return 1;
-}
-
-static int luathread_allowedsignals(lua_State *L)
-{
-    	luathread_t *thread = luathread_check(L, 1);
-    	struct task_struct *task = thread->task;
-
-	if (!task) {
-        	pr_warn("[%p] Thread task is NULL\n", thread);
-        return 0;
-    	}
-
-    	pr_info("Allowed signals for thread %s (PID: %d):\n", task->comm, task->pid);
-    	for (int sig = 1; sig <= _NSIG; sig++) {
-        	if (!sigismember(&task->blocked, sig)) {
-            	pr_info("  Signal %d is allowed\n", sig);
-        	}
-    	}
-    	return 0;
 }
 
 /***
@@ -273,17 +271,41 @@ static int luathread_block(lua_State *L) {
     
     	int signum = luaL_checkinteger(L, 2);
     
-	sigset_t new_blocked = task->blocked;
-	sigaddset(&new_blocked, signum);
-
 	spin_lock_irq(&task->sighand->siglock);
-	task->blocked = new_blocked;
+	sigaddset(&task->blocked, signum);  
 	recalc_sigpending();
 	spin_unlock_irq(&task->sighand->siglock);
 
-    return 0;
+  	return 0;
 }
 
+/***
+* Checks if a specific signal is allowed (unblocked) for the thread.
+* @function isallowed
+* @tparam number signum The signal number to check (e.g., 15 for SIGTERM).
+* @treturn boolean `true` if the signal is allowed (not blocked), `false` otherwise.
+* @usage
+* local a = t:isallowed(15) -- Returns 1 (true) if allowed else 0 (false)
+*/
+static int luathread_isallowed(lua_State *L)
+{
+	luathread_t *thread = luathread_check(L, 1);
+	struct task_struct *task = thread->task;
+	
+	if (!task)
+		return luaL_error(L, "thread task is NULL");
+	
+	int signum = luaL_checkinteger(L, 2);
+	if (signum == SIGKILL || signum == SIGSTOP) {
+		lua_pushboolean(L, 1);
+		return 1;
+	}
+	
+	bool allowed = !sigismember(&task->blocked, signum);
+	lua_pushboolean(L, allowed);
+	
+	return 1;
+}
 static const luaL_Reg luathread_lib[] = {
 	{"run", luathread_run},
 	{"shouldstop", luathread_shouldstop},
@@ -299,8 +321,8 @@ static const luaL_Reg luathread_mt[] = {
         {"allow", luathread_allow},
         {"send", luathread_send},
         {"pending", luathread_pending},
-	{"printallowed", luathread_allowedsignals},
 	{"block",luathread_block},
+	{"isallowed", luathread_isallowed},
 	{NULL, NULL}
 };
 
