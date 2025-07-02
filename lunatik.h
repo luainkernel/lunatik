@@ -322,10 +322,12 @@ do {									\
 	lua_pop(L, 1);							\
 } while (0)
 
+#define lunatik_checkbounds(L, idx, val, min, max)	luaL_argcheck(L, val >= min && val <= max, idx, "out of bounds")
+
 static inline unsigned int lunatik_checkuint(lua_State *L, int idx)
 {
 	lua_Integer val = luaL_checkinteger(L, idx);
-	luaL_argcheck(L, val > 0 && val <= UINT_MAX, idx, "out of bounds");
+	lunatik_checkbounds(L, idx, val, 1, UINT_MAX);
 	return (unsigned int)val;
 }
 
