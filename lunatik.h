@@ -322,6 +322,12 @@ do {									\
 	lua_pop(L, 1);							\
 } while (0)
 
+static inline unsigned int lunatik_checkuint(lua_State *L, int idx)
+{
+	lua_Integer val = luaL_checkinteger(L, idx);
+	luaL_argcheck(L, val > 0 && val <= UINT_MAX, idx, "out of bounds");
+	return (unsigned int)val;
+}
 
 static inline void lunatik_setregistry(lua_State *L, int ix, void *key)
 {
