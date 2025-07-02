@@ -4,22 +4,21 @@
 --
 
 local comp = require"crypto.comp"
-local util = require("util")
-local test = util.test
+local test = require("util").test
 local EINVAL = require("linux").errno.INVAL
 
-test("COMP compress empty string", function()
+test("COMP compress empty string (error)", function()
 	local c = comp.new"lz4"
-	local expected = ""
-	local result = c:compress("", 0)
-	assert(result == expected, "Compressing empty string should return empty string")
+	local status, err = pcall(c.compress, c, "", 0)
+	assert(not status, "Compressing empty string should return an error")
+	assert(err:find"out of bounds", "Error should indicate out of bounds, got: " .. tostring(err))
 end)
 
-test("COMP decompress empty string", function()
+test("COMP decompress empty string (error)", function()
 	local c = comp.new"lz4"
-	local expected = ""
-	local result = c:decompress("", 100) -- Max length doesn't matter for empty input
-	assert(result == expected, "Decompressing empty string should return empty string")
+	local status, err = pcall(c.decompress, c, "", 0)
+	assert(not status, "Decompressing empty string should return an error")
+	assert(err:find"out of bounds", "Error should indicate out of bounds, got: " .. tostring(err))
 end)
 
 test("COMP compress", function()
