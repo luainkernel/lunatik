@@ -187,7 +187,6 @@ static int luathread_task(lua_State *L)
 * @usage
 * t:allow(15)  -- Allow SIGTERM for this thread
 */
-
 static int luathread_allow(lua_State *L)
 {
    	luathread_t *thread = luathread_check(L, 1);
@@ -332,7 +331,6 @@ static const lunatik_class_t luathread_class = {
 	.sleep = true,
 };
 
-
 #define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t)))
 
 /***
@@ -386,7 +384,6 @@ static int luathread_run(lua_State *L)
 * local current_task_as_thread = thread.current()
 * @within thread
 */
-
 static int luathread_current(lua_State *L)
 {
 	lunatik_object_t *object = luathread_new(L);
