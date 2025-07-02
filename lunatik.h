@@ -246,7 +246,7 @@ static inline lunatik_object_t *lunatik_testobject(lua_State *L, int ix)
 	return class != NULL && (pobject = luaL_testudata(L, ix, class->name)) != NULL ? *pobject : NULL;
 }
 
-static void inline lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
+static inline void lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
 {
 	for (; namespaces->name; namespaces++) {
 		const lunatik_reg_t *reg;
