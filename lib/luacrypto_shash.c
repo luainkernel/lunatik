@@ -26,21 +26,14 @@
 #include <lualib.h>
 #include <lauxlib.h>
 #include <lunatik.h>
+#include "luacrypto.h"
 
 LUNATIK_PRIVATECHECKER(luacrypto_shash_check, struct shash_desc *);
 
-static void luacrypto_shash_release(void *private)
-{
-	struct crypto_shash *tfm;
-	struct shash_desc *sdesc = (struct shash_desc *)private;
-
-	if (sdesc) {
-		tfm = sdesc->tfm;
-		lunatik_free(sdesc);
-		if (tfm)
-			crypto_free_shash(tfm);
-	}
-}
+LUACRYPTO_RELEASE(shash, struct shash_desc, lunatik_free,
+	if (obj->tfm)
+		crypto_free_shash(obj->tfm);
+);
 
 /***
 * SHASH object methods.
@@ -232,7 +225,6 @@ static const lunatik_class_t luacrypto_shash_class = {
 	.pointer = true,
 };
 
-
 /***
 * Creates a new SHASH object.
 * This is the constructor function for the `crypto_shash` module.
@@ -244,28 +236,11 @@ static const lunatik_class_t luacrypto_shash_class = {
 *   local shash_mod = require("crypto_shash")
 *   local hasher = shash_mod.new("sha256")
 */
-static int luacrypto_shash_new(lua_State *L) {
-	const char *algname = luaL_checkstring(L, 1);
-	struct crypto_shash *tfm;
-	struct shash_desc *sdesc;
-	size_t desc_size;
-	lunatik_object_t *object = NULL;
-
-	tfm = crypto_alloc_shash(algname, 0, 0);
-	if (IS_ERR(tfm)) {
-		long err = PTR_ERR(tfm);
-		return luaL_error(L, "failed to allocate SHASH transform for %s (err %ld)", algname, err);
-	}
-
-	desc_size = sizeof(struct shash_desc) + crypto_shash_descsize(tfm);
-	sdesc = lunatik_checkalloc(L, desc_size);
+LUACRYPTO_NEW(shash, struct crypto_shash, crypto_alloc_shash, luacrypto_shash_class, sdesc,
+	size_t desc_size = sizeof(struct shash_desc) + crypto_shash_descsize(tfm);
+	struct shash_desc *sdesc = lunatik_checkalloc(L, desc_size);
 	sdesc->tfm = tfm;
-
-	object = lunatik_newobject(L, &luacrypto_shash_class, 0);
-	object->private = sdesc;
-	return 1;
-}
-
+);
 
 static const luaL_Reg luacrypto_shash_lib_funcs[] = {
 	{"new", luacrypto_shash_new},

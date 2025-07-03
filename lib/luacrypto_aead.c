@@ -27,15 +27,11 @@
 #include <lualib.h>
 #include <lauxlib.h>
 #include <lunatik.h>
+#include "luacrypto.h"
 
 LUNATIK_PRIVATECHECKER(luacrypto_aead_check, struct crypto_aead *);
 
-static void luacrypto_aead_release(void *private)
-{
-	struct crypto_aead *tfm = (struct crypto_aead *)private;
-	if (tfm)
-		crypto_free_aead(tfm);
-}
+LUACRYPTO_RELEASE(aead, struct crypto_aead, crypto_free_aead);
 
 /***
 * AEAD object methods.
@@ -231,19 +227,7 @@ static const lunatik_class_t luacrypto_aead_class = {
 *   local aead = require("crypto_aead")
 *   local cipher = aead.new("gcm(aes)")
 */
-static int luacrypto_aead_new(lua_State *L) {
-	const char *algname = luaL_checkstring(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luacrypto_aead_class, 0);
-
-	struct crypto_aead *tfm = crypto_alloc_aead(algname, 0, 0);
-	if (IS_ERR(tfm)) {
-		long err = PTR_ERR(tfm);
-		luaL_error(L, "Failed to allocate AEAD transform for %s (err %ld)", algname, err);
-	}
-	object->private = tfm;
-
-	return 1;
-}
+LUACRYPTO_NEW(aead, struct crypto_aead, crypto_alloc_aead, luacrypto_aead_class, tfm);
 
 static const luaL_Reg luacrypto_aead_lib[] = {
 	{"new", luacrypto_aead_new},
