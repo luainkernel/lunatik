@@ -4,3 +4,6 @@
 [submodule "klibc"]
 	path = klibc
 	url = https://github.com/luainkernel/klibc.git
+[submodule "lunatik_packages"]
+	path = lunatik_packages
+	url = https://github.com/luainkernel/lunatik_packages.git
