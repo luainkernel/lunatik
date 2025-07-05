@@ -28,15 +28,11 @@
 #include <lualib.h>
 #include <lauxlib.h>
 #include <lunatik.h>
+#include "luacrypto.h"
 
 LUNATIK_PRIVATECHECKER(luacrypto_skcipher_check, struct crypto_skcipher *);
 
-static void luacrypto_skcipher_release(void *private)
-{
-	struct crypto_skcipher *tfm = (struct crypto_skcipher *)private;
-	if (tfm)
-		crypto_free_skcipher(tfm);
-}
+LUACRYPTO_RELEASE(skcipher, struct crypto_skcipher, crypto_free_skcipher);
 
 /***
 * SKCIPHER Object methods.
@@ -199,20 +195,7 @@ static const lunatik_class_t luacrypto_skcipher_class = {
 *   local skcipher_mod = require("crypto_skcipher")
 *   local cipher = skcipher_mod.new("cbc(aes)")
 */
-static int luacrypto_skcipher_new(lua_State *L) {
-	const char *algname = luaL_checkstring(L, 1);
-	struct crypto_skcipher *tfm;
-	lunatik_object_t *object = lunatik_newobject(L, &luacrypto_skcipher_class, 0);
-
-	tfm = crypto_alloc_skcipher(algname, 0, 0);
-	if (IS_ERR(tfm)) {
-		long err = PTR_ERR(tfm);
-		luaL_error(L, "Failed to allocate SKCIPHER transform for %s (err %ld)", algname, err);
-	}
-	object->private = tfm;
-
-	return 1;
-}
+LUACRYPTO_NEW(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class, tfm);
 
 static const luaL_Reg luacrypto_skcipher_lib[] = {
 	{"new", luacrypto_skcipher_new},
