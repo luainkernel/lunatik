@@ -6,6 +6,7 @@
 local comp = require"crypto.comp"
 local util = require("util")
 local test = util.test
+local EINVAL = require("linux").errno.INVAL
 
 test("COMP compress empty string", function()
 	local c = comp.new"lz4"
@@ -52,6 +53,6 @@ test("COMP decompress with too small buffer (expect error)", function()
 	local compressed = c:compress(original_data, #original_data * 2) -- Allow for some overhead
 	local status, err = pcall(c.decompress, c, compressed, #original_data - 1)
 	assert(not status, "Decompression with too small buffer should fail")
-	assert(not not (string.find(err, "failed") or string.find(err, "buffer too small") or string.find(err, "data corrupted")), "Error message for small buffer is not as expected: " .. err)
+	assert(err == EINVAL, "Error message for small buffer is not as expected: " .. err)
 end)
 
