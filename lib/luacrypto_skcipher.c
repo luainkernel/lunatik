@@ -78,52 +78,56 @@ static int luacrypto_skcipher_blocksize(lua_State *L) {
 	return 1;
 }
 
-static inline int luacrypto_skcipher_crypt_common(lua_State *L, int (*crypt_func)(struct skcipher_request *req)) {
+static inline struct skcipher_request *luacrypto_skcipher_newrequest(lua_State *L, const char **data, u8 **iv,
+	size_t *data_len)
+{
 	struct crypto_skcipher *tfm = luacrypto_skcipher_check(L, 1);
+
 	size_t iv_len;
-	const char *iv = luaL_checklstring(L, 2, &iv_len);
-	size_t data_len;
-	const char *data = luaL_checklstring(L, 3, &data_len); /* Data (plaintext or ciphertext) */
+	const char *l_iv = luaL_checklstring(L, 2, &iv_len);
+	luaL_argcheck(L, iv_len == crypto_skcipher_ivsize(tfm), 2, "incorrect IV length");
+
+	*data = luaL_checklstring(L, 3, data_len);
+
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
+	struct skcipher_request *request = lunatik_checknull(L, skcipher_request_alloc(tfm, gfp));
+	*iv = (u8 *)lunatik_checkalloc(L, iv_len);
+	memcpy(*iv, l_iv, iv_len);
 
-	luaL_Buffer work_buffer;
-	u8 *buf = luaL_buffinitsize(L, &work_buffer, data_len);
-	memcpy(buf, data, data_len);
-
-	struct scatterlist sg_work;
-	sg_init_one(&sg_work, buf, data_len);
-
-	unsigned int expected_ivlen = crypto_skcipher_ivsize(tfm);
-	luaL_argcheck(L, iv_len == expected_ivlen, 2, "incorrect IV length");
-
-	u8 *iv_data = lunatik_checkalloc(L, iv_len);
-	memcpy(iv_data, iv, iv_len);
-
-	struct skcipher_request *req = skcipher_request_alloc(tfm, gfp);
-	if (!req) {
-		lunatik_free(iv_data); /* Free iv_data if request allocation fails */
-		luaL_error(L, "Failed to allocate request");
-	}
-
-	skcipher_request_set_crypt(req, &sg_work, &sg_work, data_len, iv_data);
-	skcipher_request_set_callback(req, 0, NULL, NULL);
-
-	int ret = crypt_func(req);
-	if (ret < 0) {
-		skcipher_request_free(req);
-		lunatik_free(iv_data);
-		luaL_error(L, "Crypto operation failed with error code %d", -ret);
-	}
-
-	luaL_pushresultsize(&work_buffer, data_len);
-	skcipher_request_free(req);
-	lunatik_free(iv_data);
-	return 1;
+	return request;
 }
 
-#define LUACRYPTO_SKCIPHER_CRYPT_FN(name)					\
-static int luacrypto_skcipher_##name(lua_State *L) {				\
-	return luacrypto_skcipher_crypt_common(L, crypto_skcipher_##name);	\
+static inline void luacrypto_skcipher_setrequest(lua_State *L, struct skcipher_request *request, const char *data, u8 *iv,
+	size_t data_len, char *buffer)
+{
+	memcpy(buffer, data, data_len);
+
+	struct scatterlist sg_work;
+	sg_init_one(&sg_work, buffer, data_len);
+
+	skcipher_request_set_crypt(request, &sg_work, &sg_work, data_len, iv);
+	skcipher_request_set_callback(request, 0, NULL, NULL);
+}
+
+LUACRYPTO_FREEREQUEST(skcipher, struct skcipher_request, skcipher_request_free);
+
+#define LUACRYPTO_SKCIPHER_CRYPT_FN(name)								\
+static int luacrypto_skcipher_##name(lua_State *L) {							\
+	const char *data;										\
+	u8 *iv;												\
+	size_t data_len;										\
+	struct skcipher_request *request = luacrypto_skcipher_newrequest(L, &data, &iv, &data_len);	\
+													\
+	luaL_Buffer B;											\
+	char *buffer = luaL_buffinitsize(L, &B, data_len);						\
+	luacrypto_skcipher_setrequest(L, request, data, iv, data_len, buffer);				\
+	int ret = crypto_skcipher_##name(request);							\
+	luacrypto_skcipher_freerequest(request, iv);							\
+	if (ret < 0)											\
+		luaL_error(L, "Crypto operation failed with error code %d", -ret);			\
+													\
+	luaL_pushresultsize(&B, data_len);								\
+	return 1;											\
 }
 
 /***
