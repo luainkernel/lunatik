@@ -94,17 +94,49 @@ static int luacrypto_aead_authsize(lua_State *L) {
 	return 1;
 }
 
-#if 0
-static inline struct aead_request *luacrypto_aead_request(lua_State *L, struct crypto_aead *tfm, gfp_t gfp
-	size_t buffer_len)
+static inline struct aead_request *luacrypto_aead_newrequest(lua_State *L, const char **combined, u8 **iv,
+	size_t *combined_len, size_t *aad_len, size_t *crypt_len, unsigned int *authsize)
 {
-	return req;
+	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
+
+	size_t iv_len;
+	const char *l_iv = luaL_checklstring(L, 2, &iv_len);
+	luaL_argcheck(L, iv_len == crypto_aead_ivsize(tfm), 2, "incorrect IV length");
+
+	*combined = luaL_checklstring(L, 3, combined_len);
+
+	*aad_len = (size_t)luaL_checkinteger(L, 4);
+	luaL_argcheck(L, aad_len >= 0 && aad_len <= combined_len, 4, "AAD length out of bounds");
+
+	*crypt_len = combined_len - aad_len;
+
+	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
+	struct aead_request *request = lunatik_checknull(L, aead_request_alloc(tfm, gfp));
+	*iv = (u8 *)lunatik_checkalloc(L, iv_len);
+	memcpy(*iv, l_iv, iv_len);
+	*authsize = crypto_aead_authsize(tfm);
+
+	return request;
+}
+
+static inline void luacrypto_aead_setrequest(lua_State *L, struct aead_request *request, const char *combined, u8 *iv,
+	size_t combined_len, size_t aad_len, size_t crypt_len, char *buffer, size_t buffer_len)
+{
+	memcpy(buffer, combined, combined_len);
+
+	struct scatterlist sg_work;
+	sg_init_one(&sg_work, buffer, buffer_len);
+
+	aead_request_set_ad(request, aad_len);
+	aead_request_set_crypt(request, &sg_work, &sg_work, crypt_len, iv);
+	aead_request_set_callback(request, 0, NULL, NULL);
 }
 
 static inline void luacrypto_aead_freerequest(struct aead_request *request, u8 *iv)
 {
+	aead_request_free(request);
+	lunatik_free(iv);
 }
-#endif
 
 #define LUACRYPTO_AEAD_CHECK_ENCRYPT(L, ix, crypt_len, authsize)
 #define LUACRYPTO_AEAD_CHECK_DECRYPT(L, ix, crypt_len, authsize)	\
@@ -115,42 +147,21 @@ static inline void luacrypto_aead_freerequest(struct aead_request *request, u8 *
 
 #define LUACRYPTO_AEAD_CRYPT_FN(name, NAME, res_factor)									\
 static int luacrypto_aead_##name(lua_State *L) {									\
-	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);								\
+	const char *combined;												\
+	u8 *iv;														\
+	unsigned int authsize;												\
+	size_t combined_len, aad_len, crypt_len;									\
+	struct aead_request *request = luacrypto_aead_newrequest(L, &combined, &iv, &combined_len,			\
+		&aad_len, &crypt_len, &authsize); 									\
 															\
-	size_t iv_len;													\
-	const char *l_iv = luaL_checklstring(L, 2, &iv_len);								\
-	luaL_argcheck(L, iv_len == crypto_aead_ivsize(tfm), 2, "incorrect IV length");					\
-															\
-	size_t combined_len;												\
-	const char *combined = luaL_checklstring(L, 3, &combined_len);							\
-															\
-	size_t aad_len = (size_t)luaL_checkinteger(L, 4);								\
-	luaL_argcheck(L, aad_len >= 0 && aad_len <= combined_len, 4, "AAD length out of bounds");			\
-															\
-	size_t crypt_len = combined_len - aad_len;									\
-															\
-	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));									\
-	struct aead_request *request = lunatik_checknull(L, aead_request_alloc(tfm, gfp));				\
-	u8 *iv = lunatik_checkalloc(L, iv_len);										\
-	memcpy(iv, l_iv, iv_len);											\
-	luaL_Buffer B;													\
-	unsigned int authsize = crypto_aead_authsize(tfm);								\
 	LUACRYPTO_AEAD_CHECK_##NAME(L, 3, crypt_len, authsize);								\
 	size_t buffer_len = LUACRYPTO_AEAD_LEN_##NAME(combined_len, authsize);						\
-	char *l_buf = luaL_buffinitsize(L, &B, buffer_len);								\
-	memcpy(l_buf, combined, combined_len);										\
 															\
-	struct scatterlist sg_work;											\
-	sg_init_one(&sg_work, l_buf, buffer_len);									\
-															\
-	aead_request_set_ad(request, aad_len);										\
-	aead_request_set_crypt(request, &sg_work, &sg_work, crypt_len, iv);						\
-	aead_request_set_callback(request, 0, NULL, NULL);								\
-															\
+	luaL_Buffer B;													\
+	char *buffer = luaL_buffinitsize(L, &B, buffer_len);								\
+	luacrypto_aead_setrequest(L, request, combined, iv, combined_len, aad_len, crypt_len, buffer, buffer_len);	\
 	int ret = crypto_aead_##name(request);										\
-	aead_request_free(request);											\
-	lunatik_free(iv);												\
-															\
+	luacrypto_aead_freerequest(request, iv);									\
 	if (ret < 0)													\
 		lua_pushinteger(L, ret);										\
 	else														\
