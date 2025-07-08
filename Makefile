@@ -4,7 +4,7 @@
 KERNEL_RELEASE ?= ${shell uname -r}
 MODULES_PATH := /lib/modules
 MODULES_RELEASE_PATH := ${MODULES_PATH}/${KERNEL_RELEASE}
-MODULES_ORDER_LIST := lunatik/lunatik.ko kernel/zfs/zfs.ko # needed for Ubuntu
+MODULES_ORDER_LIST := kernel/zfs/zfs.ko kernel/zfs/zlua.ko updates/dkms/zfs.ko updates/dkms/zlua.ko # needed when zfs module is installed
 MODULES_ORDER_FILE := ${MODULES_RELEASE_PATH}/modules.order
 BTF_INSTALL_PATH = ${MODULES_RELEASE_PATH}/build
 MODULES_BUILD_PATH ?= ${BTF_INSTALL_PATH}
