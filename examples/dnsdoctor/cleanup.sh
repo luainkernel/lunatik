@@ -8,7 +8,7 @@ set -eux
 rm dnstest -rf
 
 # backup resolv config
-if [[ -f /etc/resolv.conf.lunatik ]] then
+if [[ -f /etc/resolv.conf.lunatik ]]; then
 	echo "Restoring dns config from resolv.conf.lunatik"
 	sudo rm /etc/resolv.conf
 	sudo cp /etc/resolv.conf.lunatik /etc/resolv.conf
