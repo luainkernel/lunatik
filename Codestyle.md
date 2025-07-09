@@ -59,7 +59,7 @@ if (condition) {
 #define lunatik_handle(runtime, handler, ret, ...)	\
 do {							\
 	/* ... */					\
-} while(0)
+} while (0)
 ```
 
 ## Naming Conventions
