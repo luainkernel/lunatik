@@ -7,8 +7,9 @@ local util = require("util")
 local test = util.test
 local hex2bin = util.hex2bin
 local bin2hex = util.bin2hex
-local EINVAL = require("linux").errno.INVAL
-local EBADMSG = 74
+local errno = require("linux").errno
+local EINVAL = errno.INVAL
+local EBADMSG = errno.BADMSG
 
 test("AEAD AES-128-GCM encrypt", function()
 	local c = aead.new"gcm(aes)"
