@@ -11,6 +11,7 @@
 * @module hid
 */
 
+#include "asm-generic/errno.h"
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/version.h>
 #include <string.h>
@@ -132,12 +133,16 @@ static inline void luahid_push_device_info(lua_State *L, struct hid_device *hdev
 #define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
 	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
 
+#define luahid_error(code, op, msg)		\
+do {						\
+	pr_err("%s: %s\n", (op), (msg)); 	\
+	return code; 				\
+} while (0)
+
 static int luahid_doprobe(lua_State *L, luahid_t *hid, struct hid_device *hdev, const struct hid_device_id *id)
 {
-	if (luahid_checkdriver(L, hid, -1, "_info")) {
-		pr_err("probe: couldn't find driver");
-		return -ENXIO;
-	}
+	if (luahid_checkdriver(L, hid, -1, "_info"))
+		luahid_error(-ENXIO, "probe", "couldn't find driver");
 
 	if (lua_getfield(L, -2, "probe") != LUA_TFUNCTION)
 		return 0;
@@ -145,10 +150,8 @@ static int luahid_doprobe(lua_State *L, luahid_t *hid, struct hid_device *hdev, 
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_pushdevid(L, -4, id);
 
-	if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
-		pr_err("probe: %s\n", lua_tostring(L, -1));
-		return -ECANCELED;
-	}
+	if (lua_pcall(L, 2, 1, 0) != LUA_OK)
+		luahid_error(-ECANCELED, "probe", lua_tostring(L, -1));
 
 	if (lua_type(L, -1) == LUA_TTABLE) {
 		lua_pushlightuserdata(L, hdev);
@@ -177,10 +180,8 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 				 struct hid_device *hdev, __u8 *buf, unsigned int *size,
 				 __u8 **ret_ptr)
 {
-	if (luahid_checkdriver(L, hid, -1, "_report_des")) {
-		pr_err("report_fixup: couldn't find driver\n");
-		return -ENXIO;
-	}
+	if (luahid_checkdriver(L, hid, -1, "_report_des"))
+		luahid_error(-ENXIO, "report_fixup", "couldn't find driver");
 
 	if (lua_getfield(L, -2, "report_fixup") != LUA_TFUNCTION)
 		return -ENXIO;
@@ -188,16 +189,12 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_push_device_info(L, hdev);
 	lunatik_object_t *original_data = luadata_new(buf, *size, hid->runtime->sleep, LUADATA_OPT_READONLY);
-	if (!original_data) {
-		pr_err("report_fixup: failed to create luadata for original report\n");
-		return -ENOMEM;
-	}
+	if (!original_data)
+		luahid_error(-ENOMEM, "report_fixup", "failed to create luadata for original report");
 	lunatik_pushobject(L, original_data);
 
-	if (lua_pcall(L, 3, 1, 0) != LUA_OK) {
-		pr_err("report_fixup: %s\n", lua_tostring(L, -1));
-		return -ECANCELED;
-	}
+	if (lua_pcall(L, 3, 1, 0) != LUA_OK)
+		luahid_error(-ECANCELED, "report_fixup", lua_tostring(L, -1));
 
 	if (lua_isnil(L, -1))
 		return -ENXIO;
@@ -216,11 +213,10 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
 static const __u8 *luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsigned int *size)
-{
 #else
 static __u8 *luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsigned int *size)
-{
 #endif
+{
 	struct hid_driver *driver = hdev->driver;
 	luahid_t *hid = container_of(driver, luahid_t, driver);
 	__u8 *ret_ptr = buf;
@@ -298,7 +294,6 @@ static int luahid_register(lua_State *L)
 		      2, "invaild id_table");
 
 	user_driver->probe = luahid_probe;
-
 	user_driver->report_fixup = luahid_report_fixup;
 
 	lunatik_setruntime(L, hid, hid);
