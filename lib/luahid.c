@@ -11,7 +11,6 @@
 * @module hid
 */
 
-#include "asm-generic/errno.h"
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/version.h>
 #include <string.h>
