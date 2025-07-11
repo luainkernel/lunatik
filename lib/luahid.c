@@ -117,7 +117,7 @@ static inline void luahid_pushdevid(lua_State *L, int idx, const struct hid_devi
 	luahid_setfield(L, -1, device_id, driver_data);
 }
 
-static inline void luahid_push_device_info(lua_State *L, struct hid_device *hdev)
+static inline void luahid_pushhdev(lua_State *L, struct hid_device *hdev)
 {
 	lua_newtable(L);
 	luahid_setfield(L, -1, hdev, bus);
