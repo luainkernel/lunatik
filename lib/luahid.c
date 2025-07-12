@@ -13,7 +13,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/version.h>
-#include <string.h>
+#include <linux/string.h>
 #include <linux/hid.h>
 #include <lunatik.h>
 #include <lauxlib.h>
