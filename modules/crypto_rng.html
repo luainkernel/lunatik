@@ -1,0 +1,275 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_crypto_rng">Class crypto_rng </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/crypto_aead.html">crypto_aead</a></li>
+  <li><strong>crypto_rng</strong></li>
+  <li><a href="../modules/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../modules/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>crypto_rng</code></h1>
+<p>Low-level Lua interface to the Linux Kernel Crypto API for synchronous
+ Random Number Generators (RNG).</p>
+<p> This module provides a <a href="../modules/crypto_rng.html#crypto_rng:new">new</a> function to create RNG objects,
+ which can then be used for generating random bytes.</p>
+
+
+<h2><a href="#Class_crypto_rng">Class crypto_rng </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#crypto_rng:generate">crypto_rng:generate (num_bytes[, seed])</a></td>
+	<td class="summary">Generates a specified number of random bytes, with optional seed.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_rng:getbytes">crypto_rng:getbytes (num_bytes)</a></td>
+	<td class="summary">Generates a specified number of random bytes.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_rng:info">crypto_rng:info ()</a></td>
+	<td class="summary">Retrieves information about the RNG algorithm.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_rng:new">crypto_rng:new (algname)</a></td>
+	<td class="summary">Creates a new RNG object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_rng:reset">crypto_rng:reset ([seed])</a></td>
+	<td class="summary">Resets the RNG.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_crypto_rng"></a>Class crypto_rng </h2>
+
+          <div class="section-description">
+          RNG object methods.
+ These methods are available on RNG objects created by <code>crypto_rng.new()</code>.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "crypto_rng:generate"></a>
+    <strong>crypto_rng:generate (num_bytes[, seed])</strong>
+    </dt>
+    <dd>
+    Generates a specified number of random bytes, with optional seed.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num_bytes</span>
+            <span class="types"><span class="type">integer</span></span>
+         The number of random bytes to generate.
+        </li>
+        <li><span class="parameter">seed</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Optional seed material to mix into the RNG. If nil or omitted, no explicit seed is used.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        A binary string containing the generated random bytes.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error on failure (e.g., allocation error, crypto API error).
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_rng:getbytes"></a>
+    <strong>crypto_rng:getbytes (num_bytes)</strong>
+    </dt>
+    <dd>
+    Generates a specified number of random bytes.
+ This function does not take an explicit seed as an argument.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num_bytes</span>
+            <span class="types"><span class="type">integer</span></span>
+         The number of random bytes to generate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        A binary string containing the generated random bytes.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error on failure (e.g., allocation error, crypto API error).
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_rng:info"></a>
+    <strong>crypto_rng:info ()</strong>
+    </dt>
+    <dd>
+    Retrieves information about the RNG algorithm.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        A table containing algorithm information, e.g., <code>{ driver_name = &quot;...&quot;, seedsize = num }</code>.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_rng:new"></a>
+    <strong>crypto_rng:new (algname)</strong>
+    </dt>
+    <dd>
+    Creates a new RNG object.
+ This is the constructor function for the <a href="../modules/crypto_rng.html#">crypto_rng</a> module.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">algname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The name of the RNG algorithm (e.g., "stdrng", "drbg<em>nopr</em>ctr_aes256"). Defaults to "stdrng" if nil or omitted.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">crypto_rng</span></span>
+        The new RNG object.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the TFM object cannot be allocated/initialized.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> rng_mod = <span class="global">require</span>(<span class="string">"crypto_rng"</span>)
+<span class="keyword">local</span> rng = rng_mod.<span class="function-name">new</span>()  <span class="comment">-- Uses default "stdrng"
+</span><span class="keyword">local</span> random_bytes = rng:<span class="function-name">generate</span>(<span class="number">32</span>)  <span class="comment">-- Get 32 random bytes</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "crypto_rng:reset"></a>
+    <strong>crypto_rng:reset ([seed])</strong>
+    </dt>
+    <dd>
+    Resets the RNG.
+ This can be used to re-initialize the RNG, optionally with new seed material.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">seed</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Optional seed material to mix into the RNG. If nil or omitted, the RNG will reseed from its default sources.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    Error on failure (e.g., crypto API error).
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-07-12 20:18:23 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
