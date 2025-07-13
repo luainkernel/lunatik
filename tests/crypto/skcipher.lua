@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
-local skcipher = require("crypto_skcipher")
+local skcipher = require("crypto.skcipher")
 local util = require("util")
 local test = util.test
 local hex2bin = util.hex2bin
