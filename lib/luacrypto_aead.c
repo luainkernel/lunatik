@@ -17,7 +17,6 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/crypto.h>
 #include <crypto/aead.h>
 #include <linux/err.h>
 #include <linux/scatterlist.h>
@@ -63,7 +62,7 @@ static int luacrypto_aead_setkey(lua_State *L) {
 */
 static int luacrypto_aead_setauthsize(lua_State *L) {
 	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
-	unsigned int tagsize = luaL_checkinteger(L, 2);
+	unsigned int tagsize = lunatik_checkuint(L, 2);
 	lunatik_try(L, crypto_aead_setauthsize, tfm, tagsize);
 	return 0;
 }
@@ -103,7 +102,7 @@ static inline struct aead_request *luacrypto_aead_newrequest(lua_State *L, const
 	*combined = luaL_checklstring(L, 3, combined_len);
 
 	*aad_len = (size_t)luaL_checkinteger(L, 4);
-	luaL_argcheck(L, *aad_len >= 0 && *aad_len <= *combined_len, 4, "AAD length out of bounds");
+	lunatik_checkbounds(L, 4, *aad_len, 0, *combined_len);
 
 	*crypt_len = *combined_len - *aad_len;
 
