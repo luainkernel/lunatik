@@ -8,7 +8,7 @@
 -- underlying `crypto_shash` C module for HMAC calculations.
 -- @classmod crypto.hkdf
 
-local shash = require("crypto_shash")
+local shash = require("crypto.shash")
 local char, rep, sub = string.char, string.rep, string.sub
 
 --- HKDF operations.
