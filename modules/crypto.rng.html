@@ -33,18 +33,19 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_crypto_rng">Class crypto_rng </a></li>
+<li><a href="#Class_RNG">Class RNG </a></li>
+<li><a href="#rng">rng</a></li>
 </ul>
 
 
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/completion.html">completion</a></li>
-  <li><a href="../modules/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../modules/crypto_comp.html">crypto_comp</a></li>
-  <li><strong>crypto_rng</strong></li>
-  <li><a href="../modules/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../modules/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../modules/crypto.aead.html">crypto.aead</a></li>
+  <li><a href="../modules/crypto.comp.html">crypto.comp</a></li>
+  <li><strong>crypto.rng</strong></li>
+  <li><a href="../modules/crypto.shash.html">crypto.shash</a></li>
+  <li><a href="../modules/crypto.skcipher.html">crypto.skcipher</a></li>
   <li><a href="../modules/data.html">data</a></li>
   <li><a href="../modules/device.html">device</a></li>
   <li><a href="../modules/fib.html">fib</a></li>
@@ -75,34 +76,37 @@
 
 <div id="content">
 
-<h1>Module <code>crypto_rng</code></h1>
+<h1>Module <code>crypto.rng</code></h1>
 <p>Low-level Lua interface to the Linux Kernel Crypto API for synchronous
  Random Number Generators (RNG).</p>
-<p> This module provides a <a href="../modules/crypto_rng.html#crypto_rng:new">new</a> function to create RNG objects,
+<p> This module provides a <a href="../modules/crypto.rng.html#new">new</a> function to create RNG objects,
  which can then be used for generating random bytes.</p>
 
 
-<h2><a href="#Class_crypto_rng">Class crypto_rng </a></h2>
+<h2><a href="#Class_RNG">Class RNG </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:generate">crypto_rng:generate (num_bytes[, seed])</a></td>
+	<td class="name" nowrap><a href="#rng:generate">rng:generate (num_bytes[, seed])</a></td>
 	<td class="summary">Generates a specified number of random bytes, with optional seed.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:getbytes">crypto_rng:getbytes (num_bytes)</a></td>
+	<td class="name" nowrap><a href="#rng:getbytes">rng:getbytes (num_bytes)</a></td>
 	<td class="summary">Generates a specified number of random bytes.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:info">crypto_rng:info ()</a></td>
+	<td class="name" nowrap><a href="#rng:info">rng:info ()</a></td>
 	<td class="summary">Retrieves information about the RNG algorithm.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:new">crypto_rng:new (algname)</a></td>
-	<td class="summary">Creates a new RNG object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:reset">crypto_rng:reset ([seed])</a></td>
+	<td class="name" nowrap><a href="#rng:reset">rng:reset ([seed])</a></td>
 	<td class="summary">Resets the RNG.</td>
+	</tr>
+</table>
+<h2><a href="#rng">rng</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new (algname)</a></td>
+	<td class="summary">Creates a new RNG object.</td>
 	</tr>
 </table>
 
@@ -110,7 +114,7 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_crypto_rng"></a>Class crypto_rng </h2>
+    <h2 class="section-header has-description"><a name="Class_RNG"></a>Class RNG </h2>
 
           <div class="section-description">
           RNG object methods.
@@ -118,8 +122,8 @@
           </div>
     <dl class="function">
     <dt>
-    <a name = "crypto_rng:generate"></a>
-    <strong>crypto_rng:generate (num_bytes[, seed])</strong>
+    <a name = "rng:generate"></a>
+    <strong>rng:generate (num_bytes[, seed])</strong>
     </dt>
     <dd>
     Generates a specified number of random bytes, with optional seed.
@@ -152,8 +156,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_rng:getbytes"></a>
-    <strong>crypto_rng:getbytes (num_bytes)</strong>
+    <a name = "rng:getbytes"></a>
+    <strong>rng:getbytes (num_bytes)</strong>
     </dt>
     <dd>
     Generates a specified number of random bytes.
@@ -182,8 +186,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_rng:info"></a>
-    <strong>crypto_rng:info ()</strong>
+    <a name = "rng:info"></a>
+    <strong>rng:info ()</strong>
     </dt>
     <dd>
     Retrieves information about the RNG algorithm.
@@ -202,44 +206,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_rng:new"></a>
-    <strong>crypto_rng:new (algname)</strong>
-    </dt>
-    <dd>
-    Creates a new RNG object.
- This is the constructor function for the <a href="../modules/crypto_rng.html#">crypto_rng</a> module.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">algname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The name of the RNG algorithm (e.g., "stdrng", "drbg<em>nopr</em>ctr_aes256"). Defaults to "stdrng" if nil or omitted.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">crypto_rng</span></span>
-        The new RNG object.
-    </ol>
-
-    <h3>Raises:</h3>
-    Error if the TFM object cannot be allocated/initialized.
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="keyword">local</span> rng_mod = <span class="global">require</span>(<span class="string">"crypto_rng"</span>)
-<span class="keyword">local</span> rng = rng_mod.<span class="function-name">new</span>()  <span class="comment">-- Uses default "stdrng"
-</span><span class="keyword">local</span> random_bytes = rng:<span class="function-name">generate</span>(<span class="number">32</span>)  <span class="comment">-- Get 32 random bytes</span></pre>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "crypto_rng:reset"></a>
-    <strong>crypto_rng:reset ([seed])</strong>
+    <a name = "rng:reset"></a>
+    <strong>rng:reset ([seed])</strong>
     </dt>
     <dd>
     Resets the RNG.
@@ -263,13 +231,53 @@
 
 </dd>
 </dl>
+    <h2 class="section-header "><a name="rng"></a>rng</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new (algname)</strong>
+    </dt>
+    <dd>
+    Creates a new RNG object.
+ This is the constructor function for the <code>crypto_rng</code> module.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">algname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The name of the RNG algorithm (e.g., "stdrng", "drbg<em>nopr</em>ctr_aes256"). Defaults to "stdrng" if nil or omitted.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">crypto_rng</span></span>
+        The new RNG object.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the TFM object cannot be allocated/initialized.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> rng_mod = <span class="global">require</span>(<span class="string">"crypto.rng"</span>)
+<span class="keyword">local</span> rng = rng_mod.<span class="function-name">new</span>()  <span class="comment">-- Uses default "stdrng"
+</span><span class="keyword">local</span> random_bytes = rng:<span class="function-name">generate</span>(<span class="number">32</span>)  <span class="comment">-- Get 32 random bytes</span></pre>
+    </ul>
+
+</dd>
+</dl>
 
 
 </div> <!-- id="content" -->
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-07-13 21:41:10 </i>
+<i style="float:right;">Last updated 2025-07-13 23:08:08 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

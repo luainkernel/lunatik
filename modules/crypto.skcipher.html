@@ -33,18 +33,19 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_crypto_skcipher">Class crypto_skcipher </a></li>
+<li><a href="#Class_SKCIPHER">Class SKCIPHER </a></li>
+<li><a href="#skcipher">skcipher</a></li>
 </ul>
 
 
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/completion.html">completion</a></li>
-  <li><a href="../modules/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../modules/crypto_comp.html">crypto_comp</a></li>
-  <li><a href="../modules/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="../modules/crypto_shash.html">crypto_shash</a></li>
-  <li><strong>crypto_skcipher</strong></li>
+  <li><a href="../modules/crypto.aead.html">crypto.aead</a></li>
+  <li><a href="../modules/crypto.comp.html">crypto.comp</a></li>
+  <li><a href="../modules/crypto.rng.html">crypto.rng</a></li>
+  <li><a href="../modules/crypto.shash.html">crypto.shash</a></li>
+  <li><strong>crypto.skcipher</strong></li>
   <li><a href="../modules/data.html">data</a></li>
   <li><a href="../modules/device.html">device</a></li>
   <li><a href="../modules/fib.html">fib</a></li>
@@ -75,39 +76,42 @@
 
 <div id="content">
 
-<h1>Module <code>crypto_skcipher</code></h1>
+<h1>Module <code>crypto.skcipher</code></h1>
 <p>Low-level Lua interface to the Linux Kernel Crypto API for
  symmetric-key ciphers (SKCIPHER).</p>
-<p> This module provides a <a href="../modules/crypto_skcipher.html#crypto_skcipher:new">new</a> function to create SKCIPHER transform objects,
+<p> This module provides a <a href="../modules/crypto.skcipher.html#new">new</a> function to create SKCIPHER transform objects,
  which can then be used for encryption and decryption with various block cipher
  algorithms and modes.</p>
 
 
-<h2><a href="#Class_crypto_skcipher">Class crypto_skcipher </a></h2>
+<h2><a href="#Class_SKCIPHER">Class SKCIPHER </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#crypto_skcipher:blocksize">crypto_skcipher:blocksize ()</a></td>
+	<td class="name" nowrap><a href="#skcipher:blocksize">skcipher:blocksize ()</a></td>
 	<td class="summary">Gets the block size of the SKCIPHER transform.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_skcipher:decrypt">crypto_skcipher:decrypt (iv, ciphertext)</a></td>
+	<td class="name" nowrap><a href="#skcipher:decrypt">skcipher:decrypt (iv, ciphertext)</a></td>
 	<td class="summary">Decrypts ciphertext using the SKCIPHER transform.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_skcipher:encrypt">crypto_skcipher:encrypt (iv, plaintext)</a></td>
+	<td class="name" nowrap><a href="#skcipher:encrypt">skcipher:encrypt (iv, plaintext)</a></td>
 	<td class="summary">Encrypts plaintext using the SKCIPHER transform.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_skcipher:ivsize">crypto_skcipher:ivsize ()</a></td>
+	<td class="name" nowrap><a href="#skcipher:ivsize">skcipher:ivsize ()</a></td>
 	<td class="summary">Gets the required initialization vector (IV) size for the SKCIPHER transform.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_skcipher:new">crypto_skcipher:new (algname)</a></td>
-	<td class="summary">Creates a new SKCIPHER transform (TFM) object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_skcipher:setkey">crypto_skcipher:setkey (key)</a></td>
+	<td class="name" nowrap><a href="#skcipher:setkey">skcipher:setkey (key)</a></td>
 	<td class="summary">Sets the encryption key for the SKCIPHER transform.</td>
+	</tr>
+</table>
+<h2><a href="#skcipher">skcipher</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new (algname)</a></td>
+	<td class="summary">Creates a new SKCIPHER transform (TFM) object.</td>
 	</tr>
 </table>
 
@@ -115,7 +119,7 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_crypto_skcipher"></a>Class crypto_skcipher </h2>
+    <h2 class="section-header has-description"><a name="Class_SKCIPHER"></a>Class SKCIPHER </h2>
 
           <div class="section-description">
           SKCIPHER Object methods.
@@ -123,8 +127,8 @@
           </div>
     <dl class="function">
     <dt>
-    <a name = "crypto_skcipher:blocksize"></a>
-    <strong>crypto_skcipher:blocksize ()</strong>
+    <a name = "skcipher:blocksize"></a>
+    <strong>skcipher:blocksize ()</strong>
     </dt>
     <dd>
     Gets the block size of the SKCIPHER transform.
@@ -145,8 +149,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_skcipher:decrypt"></a>
-    <strong>crypto_skcipher:decrypt (iv, ciphertext)</strong>
+    <a name = "skcipher:decrypt"></a>
+    <strong>skcipher:decrypt (iv, ciphertext)</strong>
     </dt>
     <dd>
     Decrypts ciphertext using the SKCIPHER transform.
@@ -180,8 +184,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_skcipher:encrypt"></a>
-    <strong>crypto_skcipher:encrypt (iv, plaintext)</strong>
+    <a name = "skcipher:encrypt"></a>
+    <strong>skcipher:encrypt (iv, plaintext)</strong>
     </dt>
     <dd>
     Encrypts plaintext using the SKCIPHER transform.
@@ -215,8 +219,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_skcipher:ivsize"></a>
-    <strong>crypto_skcipher:ivsize ()</strong>
+    <a name = "skcipher:ivsize"></a>
+    <strong>skcipher:ivsize ()</strong>
     </dt>
     <dd>
     Gets the required initialization vector (IV) size for the SKCIPHER transform.
@@ -235,43 +239,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_skcipher:new"></a>
-    <strong>crypto_skcipher:new (algname)</strong>
-    </dt>
-    <dd>
-    Creates a new SKCIPHER transform (TFM) object.
- This is the constructor function for the <a href="../modules/crypto_skcipher.html#">crypto_skcipher</a> module.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">algname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The name of the skcipher algorithm (e.g., "cbc(aes)", "ctr(aes)").
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">crypto_skcipher</span></span>
-        The new SKCIPHER TFM object.
-    </ol>
-
-    <h3>Raises:</h3>
-    Error if the TFM object or kernel request cannot be allocated/initialized.
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="keyword">local</span> skcipher_mod = <span class="global">require</span>(<span class="string">"crypto_skcipher"</span>)
-<span class="keyword">local</span> cipher = skcipher_mod.<span class="function-name">new</span>(<span class="string">"cbc(aes)"</span>)</pre>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "crypto_skcipher:setkey"></a>
-    <strong>crypto_skcipher:setkey (key)</strong>
+    <a name = "skcipher:setkey"></a>
+    <strong>skcipher:setkey (key)</strong>
     </dt>
     <dd>
     Sets the encryption key for the SKCIPHER transform.
@@ -293,13 +262,52 @@
 
 </dd>
 </dl>
+    <h2 class="section-header "><a name="skcipher"></a>skcipher</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new (algname)</strong>
+    </dt>
+    <dd>
+    Creates a new SKCIPHER transform (TFM) object.
+ This is the constructor function for the <code>crypto_skcipher</code> module.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">algname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The name of the skcipher algorithm (e.g., "cbc(aes)", "ctr(aes)").
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">skcipher</span></span>
+        The new SKCIPHER TFM object.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the TFM object or kernel request cannot be allocated/initialized.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> skcipher = <span class="global">require</span>(<span class="string">"crypto.skcipher"</span>)
+<span class="keyword">local</span> cipher = skcipher.<span class="function-name">new</span>(<span class="string">"cbc(aes)"</span>)</pre>
+    </ul>
+
+</dd>
+</dl>
 
 
 </div> <!-- id="content" -->
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-07-13 21:41:10 </i>
+<i style="float:right;">Last updated 2025-07-13 23:08:08 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

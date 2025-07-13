@@ -33,18 +33,19 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_crypto_comp">Class crypto_comp </a></li>
+<li><a href="#Class_COMP">Class COMP </a></li>
+<li><a href="#comp">comp</a></li>
 </ul>
 
 
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/completion.html">completion</a></li>
-  <li><a href="../modules/crypto_aead.html">crypto_aead</a></li>
-  <li><strong>crypto_comp</strong></li>
-  <li><a href="../modules/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="../modules/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../modules/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../modules/crypto.aead.html">crypto.aead</a></li>
+  <li><strong>crypto.comp</strong></li>
+  <li><a href="../modules/crypto.rng.html">crypto.rng</a></li>
+  <li><a href="../modules/crypto.shash.html">crypto.shash</a></li>
+  <li><a href="../modules/crypto.skcipher.html">crypto.skcipher</a></li>
   <li><a href="../modules/data.html">data</a></li>
   <li><a href="../modules/device.html">device</a></li>
   <li><a href="../modules/fib.html">fib</a></li>
@@ -75,25 +76,28 @@
 
 <div id="content">
 
-<h1>Module <code>crypto_comp</code></h1>
+<h1>Module <code>crypto.comp</code></h1>
 <p>Low-level Lua interface to the Linux Kernel Crypto API for synchronous
  compression algorithms.</p>
-<p> This module provides a <a href="../modules/crypto_comp.html#crypto_comp:new">new</a> function to create COMP transform objects,
+<p> This module provides a <a href="../modules/crypto.comp.html#new">new</a> function to create COMP transform objects,
  which can then be used for compression and decompression.</p>
 
 
-<h2><a href="#Class_crypto_comp">Class crypto_comp </a></h2>
+<h2><a href="#Class_COMP">Class COMP </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#crypto_comp:compress">crypto_comp:compress (data, max_output_len)</a></td>
+	<td class="name" nowrap><a href="#comp:compress">comp:compress (data, max_output_len)</a></td>
 	<td class="summary">Compresses the given data.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_comp:decompress">crypto_comp:decompress (data, max_output_len)</a></td>
+	<td class="name" nowrap><a href="#comp:decompress">comp:decompress (data, max_output_len)</a></td>
 	<td class="summary">Decompresses the given data.</td>
 	</tr>
+</table>
+<h2><a href="#comp">comp</a></h2>
+<table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#crypto_comp:new">crypto_comp:new (algname)</a></td>
+	<td class="name" nowrap><a href="#new">new (algname)</a></td>
 	<td class="summary">Creates a new COMP transform (TFM) object.</td>
 	</tr>
 </table>
@@ -102,16 +106,16 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_crypto_comp"></a>Class crypto_comp </h2>
+    <h2 class="section-header has-description"><a name="Class_COMP"></a>Class COMP </h2>
 
           <div class="section-description">
           COMP Object methods.
- These methods are available on COMP objects created by <code>crypto_comp.new()</code>.
+ These methods are available on COMP objects created by <code>comp.new()</code>.
           </div>
     <dl class="function">
     <dt>
-    <a name = "crypto_comp:compress"></a>
-    <strong>crypto_comp:compress (data, max_output_len)</strong>
+    <a name = "comp:compress"></a>
+    <strong>comp:compress (data, max_output_len)</strong>
     </dt>
     <dd>
     Compresses the given data.
@@ -146,8 +150,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_comp:decompress"></a>
-    <strong>crypto_comp:decompress (data, max_output_len)</strong>
+    <a name = "comp:decompress"></a>
+    <strong>comp:decompress (data, max_output_len)</strong>
     </dt>
     <dd>
     Decompresses the given data.
@@ -184,13 +188,17 @@
 
 
 </dd>
+</dl>
+    <h2 class="section-header "><a name="comp"></a>comp</h2>
+
+    <dl class="function">
     <dt>
-    <a name = "crypto_comp:new"></a>
-    <strong>crypto_comp:new (algname)</strong>
+    <a name = "new"></a>
+    <strong>new (algname)</strong>
     </dt>
     <dd>
     Creates a new COMP transform (TFM) object.
- This is the constructor function for the <a href="../modules/crypto_comp.html#">crypto_comp</a> module.
+ This is the constructor function for the <code>crypto_comp</code> module.
 
 
     <h3>Parameters:</h3>
@@ -204,7 +212,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">crypto_comp</span></span>
+           <span class="types"><span class="type">comp</span></span>
         The new COMP TFM object.
     </ol>
 
@@ -214,7 +222,7 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> comp = <span class="global">require</span>(<span class="string">"crypto_comp"</span>)
+        <pre class="example"><span class="keyword">local</span> comp = <span class="global">require</span>(<span class="string">"crypto.comp"</span>)
 <span class="keyword">local</span> compressor = comp.<span class="function-name">new</span>(<span class="string">"lz4"</span>)</pre>
     </ul>
 
@@ -226,7 +234,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-07-13 21:41:10 </i>
+<i style="float:right;">Last updated 2025-07-13 23:08:08 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

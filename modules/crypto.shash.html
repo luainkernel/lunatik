@@ -33,18 +33,19 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_crypto_shash">Class crypto_shash </a></li>
+<li><a href="#Class_SHASH">Class SHASH </a></li>
+<li><a href="#shash">shash</a></li>
 </ul>
 
 
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/completion.html">completion</a></li>
-  <li><a href="../modules/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../modules/crypto_comp.html">crypto_comp</a></li>
-  <li><a href="../modules/crypto_rng.html">crypto_rng</a></li>
-  <li><strong>crypto_shash</strong></li>
-  <li><a href="../modules/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../modules/crypto.aead.html">crypto.aead</a></li>
+  <li><a href="../modules/crypto.comp.html">crypto.comp</a></li>
+  <li><a href="../modules/crypto.rng.html">crypto.rng</a></li>
+  <li><strong>crypto.shash</strong></li>
+  <li><a href="../modules/crypto.skcipher.html">crypto.skcipher</a></li>
   <li><a href="../modules/data.html">data</a></li>
   <li><a href="../modules/device.html">device</a></li>
   <li><a href="../modules/fib.html">fib</a></li>
@@ -75,54 +76,57 @@
 
 <div id="content">
 
-<h1>Module <code>crypto_shash</code></h1>
+<h1>Module <code>crypto.shash</code></h1>
 <p>Low-level Lua interface to the Linux Kernel Crypto API for synchronous
  message digest (hash) algorithms, including HMAC.</p>
-<p> This module provides a <a href="../modules/crypto_shash.html#crypto_shash:new">new</a> function to create SHASH transform objects,
+<p> This module provides a <a href="../modules/crypto.shash.html#new">new</a> function to create SHASH transform objects,
  which can then be used for various hashing operations.</p>
 
 
-<h2><a href="#Class_crypto_shash">Class crypto_shash </a></h2>
+<h2><a href="#Class_SHASH">Class SHASH </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:digest">crypto_shash:digest (data)</a></td>
+	<td class="name" nowrap><a href="#shash:digest">shash:digest (data)</a></td>
 	<td class="summary">Computes the hash of the given data in a single operation.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:digestsize">crypto_shash:digestsize ()</a></td>
+	<td class="name" nowrap><a href="#shash:digestsize">shash:digestsize ()</a></td>
 	<td class="summary">Gets the digest size (output length) of the hash algorithm.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:export">crypto_shash:export ()</a></td>
+	<td class="name" nowrap><a href="#shash:export">shash:export ()</a></td>
 	<td class="summary">Exports the internal state of the hash operation.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:final">crypto_shash:final ()</a></td>
+	<td class="name" nowrap><a href="#shash:final">shash:final ()</a></td>
 	<td class="summary">Finalizes the multi-part hash operation and returns the digest.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:finup">crypto_shash:finup (data)</a></td>
+	<td class="name" nowrap><a href="#shash:finup">shash:finup (data)</a></td>
 	<td class="summary">Combines update and finalization for a multi-part hash operation.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:import">crypto_shash:import (state)</a></td>
+	<td class="name" nowrap><a href="#shash:import">shash:import (state)</a></td>
 	<td class="summary">Imports a previously exported hash state.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:init">crypto_shash:init ()</a></td>
+	<td class="name" nowrap><a href="#shash:init">shash:init ()</a></td>
 	<td class="summary">Initializes a multi-part hash operation.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:new">crypto_shash:new (algname)</a></td>
-	<td class="summary">Creates a new SHASH object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:setkey">crypto_shash:setkey (key)</a></td>
+	<td class="name" nowrap><a href="#shash:setkey">shash:setkey (key)</a></td>
 	<td class="summary">Sets the key for the SHASH transform (used for HMAC).</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_shash:update">crypto_shash:update (data)</a></td>
+	<td class="name" nowrap><a href="#shash:update">shash:update (data)</a></td>
 	<td class="summary">Updates the hash state with more data.</td>
+	</tr>
+</table>
+<h2><a href="#shash">shash</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new (algname)</a></td>
+	<td class="summary">Creates a new SHASH object.</td>
 	</tr>
 </table>
 
@@ -130,7 +134,7 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_crypto_shash"></a>Class crypto_shash </h2>
+    <h2 class="section-header has-description"><a name="Class_SHASH"></a>Class SHASH </h2>
 
           <div class="section-description">
           SHASH object methods.
@@ -138,8 +142,8 @@
           </div>
     <dl class="function">
     <dt>
-    <a name = "crypto_shash:digest"></a>
-    <strong>crypto_shash:digest (data)</strong>
+    <a name = "shash:digest"></a>
+    <strong>shash:digest (data)</strong>
     </dt>
     <dd>
     Computes the hash of the given data in a single operation.
@@ -169,8 +173,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_shash:digestsize"></a>
-    <strong>crypto_shash:digestsize ()</strong>
+    <a name = "shash:digestsize"></a>
+    <strong>shash:digestsize ()</strong>
     </dt>
     <dd>
     Gets the digest size (output length) of the hash algorithm.
@@ -189,8 +193,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_shash:export"></a>
-    <strong>crypto_shash:export ()</strong>
+    <a name = "shash:export"></a>
+    <strong>shash:export ()</strong>
     </dt>
     <dd>
     Exports the internal state of the hash operation.
@@ -213,8 +217,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_shash:final"></a>
-    <strong>crypto_shash:final ()</strong>
+    <a name = "shash:final"></a>
+    <strong>shash:final ()</strong>
     </dt>
     <dd>
     Finalizes the multi-part hash operation and returns the digest.
@@ -236,8 +240,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_shash:finup"></a>
-    <strong>crypto_shash:finup (data)</strong>
+    <a name = "shash:finup"></a>
+    <strong>shash:finup (data)</strong>
     </dt>
     <dd>
     Combines update and finalization for a multi-part hash operation.
@@ -267,8 +271,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_shash:import"></a>
-    <strong>crypto_shash:import (state)</strong>
+    <a name = "shash:import"></a>
+    <strong>shash:import (state)</strong>
     </dt>
     <dd>
     Imports a previously exported hash state.
@@ -292,8 +296,8 @@
 
 </dd>
     <dt>
-    <a name = "crypto_shash:init"></a>
-    <strong>crypto_shash:init ()</strong>
+    <a name = "shash:init"></a>
+    <strong>shash:init ()</strong>
     </dt>
     <dd>
     Initializes a multi-part hash operation.
@@ -309,12 +313,63 @@
 
 </dd>
     <dt>
-    <a name = "crypto_shash:new"></a>
-    <strong>crypto_shash:new (algname)</strong>
+    <a name = "shash:setkey"></a>
+    <strong>shash:setkey (key)</strong>
+    </dt>
+    <dd>
+    Sets the key for the SHASH transform (used for HMAC).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The key to use for HMAC.
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    Error if setting the key fails.
+
+
+
+</dd>
+    <dt>
+    <a name = "shash:update"></a>
+    <strong>shash:update (data)</strong>
+    </dt>
+    <dd>
+    Updates the hash state with more data.
+ Must be called after <code>init()</code>. Can be called multiple times.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The data chunk to add to the hash.
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    Error on failure.
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="shash"></a>shash</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new (algname)</strong>
     </dt>
     <dd>
     Creates a new SHASH object.
- This is the constructor function for the <a href="../modules/crypto_shash.html#">crypto_shash</a> module.
+ This is the constructor function for the <code>crypto_shash</code> module.
 
 
     <h3>Parameters:</h3>
@@ -338,56 +393,9 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> shash_mod = <span class="global">require</span>(<span class="string">"crypto_shash"</span>)
+        <pre class="example"><span class="keyword">local</span> shash_mod = <span class="global">require</span>(<span class="string">"crypto.shash"</span>)
 <span class="keyword">local</span> hasher = shash_mod.<span class="function-name">new</span>(<span class="string">"sha256"</span>)</pre>
     </ul>
-
-</dd>
-    <dt>
-    <a name = "crypto_shash:setkey"></a>
-    <strong>crypto_shash:setkey (key)</strong>
-    </dt>
-    <dd>
-    Sets the key for the SHASH transform (used for HMAC).
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">key</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The key to use for HMAC.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if setting the key fails.
-
-
-
-</dd>
-    <dt>
-    <a name = "crypto_shash:update"></a>
-    <strong>crypto_shash:update (data)</strong>
-    </dt>
-    <dd>
-    Updates the hash state with more data.
- Must be called after <code>init()</code>. Can be called multiple times.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">data</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The data chunk to add to the hash.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error on failure.
-
-
 
 </dd>
 </dl>
@@ -397,7 +405,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-07-13 21:41:10 </i>
+<i style="float:right;">Last updated 2025-07-13 23:08:08 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
