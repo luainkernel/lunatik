@@ -18,7 +18,6 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/crypto.h>
 #include <crypto/skcipher.h>
 #include <linux/err.h>
 #include <linux/scatterlist.h>
@@ -28,6 +27,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 #include <lunatik.h>
+
 #include "luacrypto.h"
 
 LUNATIK_PRIVATECHECKER(luacrypto_skcipher_check, struct crypto_skcipher *);
@@ -111,7 +111,7 @@ static inline void luacrypto_skcipher_setrequest(lua_State *L, struct skcipher_r
 
 LUACRYPTO_FREEREQUEST(skcipher, struct skcipher_request, skcipher_request_free);
 
-#define LUACRYPTO_SKCIPHER_CRYPT_FN(name)								\
+#define LUACRYPTO_SKCIPHER_NEWCRYPT(name)								\
 static int luacrypto_skcipher_##name(lua_State *L) {							\
 	const char *data;										\
 	u8 *iv;												\
@@ -140,7 +140,7 @@ static int luacrypto_skcipher_##name(lua_State *L) {							\
 * @treturn string The ciphertext.
 * @raise Error on encryption failure, incorrect IV length, or allocation issues.
 */
-LUACRYPTO_SKCIPHER_CRYPT_FN(encrypt);
+LUACRYPTO_SKCIPHER_NEWCRYPT(encrypt);
 
 /***
 * Decrypts ciphertext using the SKCIPHER transform.
@@ -152,7 +152,7 @@ LUACRYPTO_SKCIPHER_CRYPT_FN(encrypt);
 * @treturn string The plaintext.
 * @raise Error on decryption failure, incorrect IV length, or allocation issues.
 */
-LUACRYPTO_SKCIPHER_CRYPT_FN(decrypt);
+LUACRYPTO_SKCIPHER_NEWCRYPT(decrypt);
 
 /***
 * Lua C methods for the SKCIPHER TFM object.

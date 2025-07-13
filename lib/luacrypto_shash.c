@@ -17,7 +17,6 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/crypto.h>
 #include <crypto/hash.h>
 #include <linux/err.h>
 #include <linux/slab.h>
@@ -26,6 +25,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 #include <lunatik.h>
+
 #include "luacrypto.h"
 
 LUNATIK_PRIVATECHECKER(luacrypto_shash_check, struct shash_desc *);
@@ -192,9 +192,7 @@ static int luacrypto_shash_import(lua_State *L) {
 	size_t statelen;
 	const char *state = luaL_checklstring(L, 2, &statelen);
 	unsigned int expected_statesize = crypto_shash_statesize(sdesc->tfm);
-	luaL_argcheck(L, statelen == expected_statesize, 2,
-		"incorrect state length for import"
-	);
+	luaL_argcheck(L, statelen == expected_statesize, 2, "incorrect state length for import");
 	lunatik_try(L, crypto_shash_import, sdesc, state);
 	return 0;
 }
@@ -249,12 +247,12 @@ static struct shash_desc *luacrypto_shash_new_sdesc(lua_State *L, struct crypto_
 
 LUACRYPTO_NEW(shash, struct crypto_shash, crypto_alloc_shash, luacrypto_shash_class, luacrypto_shash_new_sdesc);
 
-static const luaL_Reg luacrypto_shash_lib_funcs[] = {
+static const luaL_Reg luacrypto_shash_lib[] = {
 	{"new", luacrypto_shash_new},
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(crypto_shash, luacrypto_shash_lib_funcs, &luacrypto_shash_class, NULL);
+LUNATIK_NEWLIB(crypto_shash, luacrypto_shash_lib, &luacrypto_shash_class, NULL);
 
 static int __init luacrypto_shash_init(void)
 {
