@@ -7,13 +7,14 @@
 -- This module provides a Lua wrapper for AEAD operations,
 -- using the underlying 'crypto_aead' C module.
 --
--- @classmod crypto.aead
+-- @module crypto.aead
 
 local new = require("crypto_aead").new
 local sub = string.sub
 
 --- Prototype for AEAD instances.
 -- Objects of this type are created by `AeadModule.new()`.
+-- @type AEAD
 local AEAD = {}
 
 --- Closes the cipher instance and releases underlying C resources.
@@ -28,13 +29,14 @@ AEAD.__close = AEAD.close
 AEAD.__index = AEAD
 
 --- Creates a new AEAD cipher instance.
--- @function Aead.new
+-- @function new
 -- @tparam string algname The algorithm name, e.g., "gcm(aes)".
 -- @treturn Aead An AEAD instance.
 -- @raise Error if C object creation fails.
 -- @usage
 --  local aead = require("crypto.aead")
 --  local gcm_aes = aead.new("gcm(aes)")
+-- @within aead
 function AEAD.new(algname)
 	return setmetatable({tfm = new(algname)}, AEAD)
 end

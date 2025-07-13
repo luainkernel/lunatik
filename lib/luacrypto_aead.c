@@ -35,14 +35,14 @@ LUACRYPTO_RELEASER(aead, struct crypto_aead, crypto_free_aead, NULL);
 
 /***
 * AEAD object methods.
-* These methods are available on AEAD objects created by `crypto_aead.new()`.
-* @see crypto_aead.new
-* @type crypto_aead
+* These methods are available on AEAD objects created by `crypto.aead.new()`.
+* @see new
+* @type AEAD
 */
 
 /***
 * Sets the encryption key for the AEAD transform.
-* @function crypto_aead:setkey
+* @function setkey
 * @tparam string key The encryption key.
 * @raise Error if setting the key fails (e.g., invalid key length for the algorithm).
 */
@@ -56,7 +56,7 @@ static int luacrypto_aead_setkey(lua_State *L) {
 
 /***
 * Sets the authentication tag size for the AEAD transform.
-* @function crypto_aead:setauthsize
+* @function setauthsize
 * @tparam integer tagsize The desired authentication tag size in bytes.
 * @raise Error if setting the authsize fails (e.g., unsupported size).
 */
@@ -69,7 +69,7 @@ static int luacrypto_aead_setauthsize(lua_State *L) {
 
 /***
 * Gets the required initialization vector (IV) size for the AEAD transform.
-* @function crypto_aead:ivsize
+* @function ivsize
 * @treturn integer The IV size in bytes.
 */
 static int luacrypto_aead_ivsize(lua_State *L) {
@@ -81,7 +81,7 @@ static int luacrypto_aead_ivsize(lua_State *L) {
 /***
 * Gets the current authentication tag size for the AEAD transform.
 * This is the value set by `setauthsize` or the algorithm's default.
-* @function crypto_aead:authsize
+* @function authsize
 * @treturn integer The authentication tag size in bytes.
 */
 static int luacrypto_aead_authsize(lua_State *L) {
@@ -164,7 +164,7 @@ static int luacrypto_aead_##name(lua_State *L) {									\
 /***
 * Encrypts data using the AEAD transform.
 * The IV (nonce) must be unique for each encryption operation with the same key.
-* @function crypto_aead:encrypt
+* @function encrypt
 * @tparam string iv The Initialization Vector (nonce). Its length must match `ivsize()`.
 * @tparam string combined_data A string containing AAD (Additional Authenticated Data) concatenated with the plaintext (format: AAD || Plaintext).
 * @tparam integer aad_len The length of the AAD part in `combined_data`.
@@ -176,7 +176,7 @@ LUACRYPTO_AEAD_NEWCRYPT(encrypt, ENCRYPT, 1);
 /***
 * Decrypts data using the AEAD transform.
 * The IV (nonce) and AAD must match those used during encryption.
-* @function crypto_aead:decrypt
+* @function decrypt
 * @tparam string iv The Initialization Vector (nonce). Its length must match `ivsize()`.
 * @tparam string combined_data A string containing AAD (Additional Authenticated Data) concatenated with the ciphertext and tag (format: AAD || Ciphertext || Tag).
 * @tparam integer aad_len The length of the AAD part in `combined_data`.
@@ -188,7 +188,7 @@ LUACRYPTO_AEAD_NEWCRYPT(decrypt, DECRYPT, -1);
 /*** Lua C methods for the AEAD object.
 * Includes cryptographic operations and Lunatik metamethods.
 * The `__close` method is important for explicit resource cleanup.
-* @see crypto_aead
+* @see aead
 * @see lunatik_closeobject
 */
 static const luaL_Reg luacrypto_aead_mt[] = {
@@ -217,14 +217,15 @@ static const lunatik_class_t luacrypto_aead_class = {
 };
 
 /*** Creates a new AEAD object.
-* This is the constructor function for the `crypto_aead` module.
-* @function crypto_aead.new
+* This is the constructor function for the `aead` module.
+* @function .new
 * @tparam string algname The name of the AEAD algorithm (e.g., "gcm(aes)", "ccm(aes)").
-* @treturn crypto_aead The new AEAD object.
+* @treturn aead The new AEAD object.
 * @raise Error if the TFM object or kernel request cannot be allocated/initialized.
 * @usage
-*   local aead = require("crypto_aead")
+*   local AEAD = require("crypto.aead")
 *   local cipher = aead.new("gcm(aes)")
+* @within aead
 */
 LUACRYPTO_NEW(aead, struct crypto_aead, crypto_alloc_aead, luacrypto_aead_class, NULL);
 

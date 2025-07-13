@@ -10,7 +10,7 @@
 * This module provides a `new` function to create COMP transform objects,
 * which can then be used for compression and decompression.
 *
-* @module crypto_comp
+* @module crypto.comp
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -35,8 +35,9 @@ LUACRYPTO_RELEASER(comp, struct crypto_comp, crypto_free_comp, NULL);
 
 /***
 * COMP Object methods.
-* These methods are available on COMP objects created by `crypto_comp.new()`.
-* @type crypto_comp
+* These methods are available on COMP objects created by `comp.new()`.
+* @see new
+* @type COMP
 */
 
 #define LUACRYPTO_COMP_OPERATION(name)									\
@@ -60,7 +61,7 @@ static int luacrypto_comp_##name(lua_State *L) {							\
 * Requires the maximum possible compressed size as an argument, as the kernel
 * API needs a destination buffer of sufficient size. A common approach is to
 * provide a size slightly larger than the input data (e.g., input size + a small fixed overhead or percentage).
-* @function crypto_comp:compress
+* @function compress
 * @tparam string data The data to compress.
 * @tparam integer max_output_len The maximum possible size of the compressed data.
 * @treturn string The compressed data.
@@ -72,7 +73,7 @@ LUACRYPTO_COMP_OPERATION(compress);
 * Decompresses the given data.
 * Requires the maximum possible decompressed size as an argument, as the kernel
 * API needs a destination buffer of sufficient size.
-* @function crypto_comp:decompress
+* @function decompress
 * @tparam string data The data to decompress.
 * @tparam integer max_output_len The maximum possible size of the decompressed data.
 * @treturn string The decompressed data.
@@ -101,14 +102,15 @@ static const lunatik_class_t luacrypto_comp_class = {
 /***
 * Creates a new COMP transform (TFM) object.
 * This is the constructor function for the `crypto_comp` module.
-* @function crypto_comp.new
+* @function new
 * @tparam string algname The name of the compression algorithm (e.g., "lz4", "deflate").
-* @treturn crypto_comp The new COMP TFM object.
+* @treturn comp The new COMP TFM object.
 * @raise Error if the TFM object cannot be allocated/initialized.
 * @usage
-*   local comp = require("crypto_comp")
+*   local comp = require("crypto.comp")
 *   local compressor = comp.new("lz4")
- */
+* @within comp
+*/
 LUACRYPTO_NEW(comp, struct crypto_comp, crypto_alloc_comp, luacrypto_comp_class, NULL);
 
 static const luaL_Reg luacrypto_comp_lib[] = {

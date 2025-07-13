@@ -10,7 +10,7 @@
 * This module provides a `new` function to create SHASH transform objects,
 * which can then be used for various hashing operations.
 *
-* @module crypto_shash
+* @module crypto.shash
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -41,13 +41,13 @@ LUACRYPTO_RELEASER(shash, struct shash_desc, lunatik_free, luacrypto_shash_relea
 /***
 * SHASH object methods.
 * These methods are available on SHASH objects created by `crypto_shash.new()`.
-* @see crypto_shash.new
-* @type crypto_shash
+* @see new
+* @type SHASH
 */
 
 /***
 * Gets the digest size (output length) of the hash algorithm.
-* @function crypto_shash:digestsize
+* @function digestsize
 * @treturn integer The digest size in bytes.
 */
 static int luacrypto_shash_digestsize(lua_State *L) {
@@ -58,7 +58,7 @@ static int luacrypto_shash_digestsize(lua_State *L) {
 
 /***
 * Sets the key for the SHASH transform (used for HMAC).
-* @function crypto_shash:setkey
+* @function setkey
 * @tparam string key The key to use for HMAC.
 * @raise Error if setting the key fails.
 */
@@ -74,7 +74,7 @@ static int luacrypto_shash_setkey(lua_State *L) {
 * Computes the hash of the given data in a single operation.
 * For HMAC, `setkey()` must have been called first.
 * This function initializes, updates, and finalizes the hash calculation.
-* @function crypto_shash:digest
+* @function digest
 * @tparam string data The data to hash.
 * @treturn string The computed digest (hash output).
 * @raise Error on failure (e.g., allocation error, crypto API error).
@@ -95,7 +95,7 @@ static int luacrypto_shash_digest(lua_State *L) {
 /***
 * Initializes a multi-part hash operation.
 * This must be called before using `update()` or `final()`.
-* @function crypto_shash:init
+* @function init
 * @raise Error on failure.
 */
 static int luacrypto_shash_init_method(lua_State *L) {
@@ -108,7 +108,7 @@ static int luacrypto_shash_init_method(lua_State *L) {
 /***
 * Updates the hash state with more data.
 * Must be called after `init()`. Can be called multiple times.
-* @function crypto_shash:update
+* @function update
 * @tparam string data The data chunk to add to the hash.
 * @raise Error on failure.
 */
@@ -124,7 +124,7 @@ static int luacrypto_shash_update(lua_State *L) {
 /***
 * Finalizes the multi-part hash operation and returns the digest.
 * Must be called after `init()` and any `update()` calls.
-* @function crypto_shash:final
+* @function final
 * @treturn string The computed digest.
 * @raise Error on failure.
 */
@@ -143,7 +143,7 @@ static int luacrypto_shash_final(lua_State *L) {
 * Combines update and finalization for a multi-part hash operation.
 * Updates the hash state with the given data, then finalizes and returns the digest.
 * `init()` must have been called prior to calling `finup()`.
-* @function crypto_shash:finup
+* @function finup
 * @tparam string data The final data chunk.
 * @treturn string The computed digest.
 * @raise Error on failure.
@@ -165,7 +165,7 @@ static int luacrypto_shash_finup(lua_State *L) {
 * Exports the internal state of the hash operation.
 * This allows suspending and later resuming a hash calculation via `import()`.
 * Must be called after `init()` and any `update()` calls if part of a multi-step operation.
-* @function crypto_shash:export
+* @function export
 * @treturn string The internal hash state as a binary string.
 * @raise Error on failure (e.g., allocation error).
 */
@@ -183,7 +183,7 @@ static int luacrypto_shash_export(lua_State *L) {
 * Imports a previously exported hash state.
 * This overwrites the current hash state and allows resuming a hash calculation.
 * The imported state must be compatible with the current hash algorithm.
-* @function crypto_shash:import
+* @function import
 * @tparam string state The previously exported hash state (binary string).
 * @raise Error on failure or if the provided state length is incorrect for the algorithm.
 */
@@ -229,13 +229,14 @@ static const lunatik_class_t luacrypto_shash_class = {
 /***
 * Creates a new SHASH object.
 * This is the constructor function for the `crypto_shash` module.
-* @function crypto_shash.new
+* @function new
 * @tparam string algname The name of the hash algorithm (e.g., "sha256", "hmac(sha256)").
 * @treturn crypto_shash The new SHASH object.
 * @raise Error if the TFM object or kernel descriptor cannot be allocated/initialized.
 * @usage
-*   local shash_mod = require("crypto_shash")
+*   local shash_mod = require("crypto.shash")
 *   local hasher = shash_mod.new("sha256")
+* @within shash
 */
 static struct shash_desc *luacrypto_shash_new_sdesc(lua_State *L, struct crypto_shash *tfm)
 {
