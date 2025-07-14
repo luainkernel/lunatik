@@ -187,7 +187,7 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_pushhdev(L, hdev);
-	lunatik_object_t *original_data = luadata_new(buf, *size, hid->runtime->sleep, LUADATA_OPT_READONLY);
+	lunatik_object_t *original_data = luadata_new(buf, *size, hid->runtime->sleep, LUADATA_OPT_FREE);
 	if (!original_data)
 		luahid_error(-ENOMEM, "report_fixup", "failed to create luadata for original report");
 	lunatik_pushobject(L, original_data);

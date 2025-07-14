@@ -354,6 +354,31 @@ static const lunatik_class_t luadata_class = {
 	.sleep = false,
 };
 
+/***
+* Creates a duplicated data object with a specified size.
+* @function dup
+* @tparam data orig_data The original data object to duplicate.
+* @tparam[opt] integer new_size The size of the new data object. If omitted, uses the size of `orig_data
+* @treturn data A new data object with the same content as `orig_data`, but with the specified size.
+*/
+static int luadata_dup(lua_State *L)
+{
+	luadata_t *orig_data = luadata_check(L, 1);
+	lua_Integer new_size = luaL_optinteger(L, 2, orig_data->size);
+
+	lunatik_object_t *new_object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t));
+	luadata_t *new_data = (luadata_t *)new_object->private;
+
+	new_data->ptr = lunatik_checkalloc(L, new_size);
+	new_data->size = new_size;
+	new_data->opt = LUADATA_OPT_FREE;
+
+	size_t copy_len = (orig_data->size < new_size) ? orig_data->size : (size_t)new_size;
+	memcpy(new_data->ptr, orig_data->ptr, copy_len);
+
+	return 1; /* object */
+}
+
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
