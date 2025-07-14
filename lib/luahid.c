@@ -179,7 +179,7 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 				 struct hid_device *hdev, __u8 *buf, unsigned int *size,
 				 __u8 **ret_ptr)
 {
-	if (luahid_checkdriver(L, hid, -1, "_report_des"))
+	if (luahid_checkdriver(L, hid, -1, "_report"))
 		luahid_error(-ENXIO, "report_fixup", "couldn't find driver");
 
 	if (lua_getfield(L, -2, "report_fixup") != LUA_TFUNCTION)
@@ -201,7 +201,7 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 	lunatik_object_t *returned_object = lunatik_checkobject(L, -1);
 	lua_pushlightuserdata(L, hdev);
 	lua_pushvalue(L, -2); /* luadata */
-	lua_settable(L, -4); /* hid._report_des[hdev] = luadata */
+	lua_settable(L, -4); /* hid._report[hdev] = luadata */
 
 	luadata_t *data = (luadata_t *)returned_object->private;
 	*size = data->size;
@@ -278,7 +278,7 @@ static int luahid_register(lua_State *L)
 	lua_setfield(L, 2, "_info"); /* hid._info = {} */
 
 	lua_newtable(L);
-	lua_setfield(L, 2, "_report_des"); /* hid._report_des = {} */
+	lua_setfield(L, 2, "_report"); /* hid._report = {} */
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t));
 	luahid_t *hid = (luahid_t *)object->private;
