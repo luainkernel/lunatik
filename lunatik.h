@@ -14,7 +14,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-#define LUNATIK_VERSION	"Lunatik 3.6"
+#define LUNATIK_VERSION	"Lunatik 3.7"
 
 #define lunatik_locker(o, mutex_op, spin_op)	\
 do {						\
