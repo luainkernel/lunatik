@@ -265,6 +265,17 @@ static __u8 *luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsigned in
 *	 	return drvdata
 *	 end
 *
+*	 function hid_driver:report_fixup(hdev, original_report)
+*	 	if hdev.vendor == 0x1234 and hdev.product == 0x5678 then
+*	 		len = #original_report
+*	 		ret = original_report:dup(len + 1)
+*	 		ret:setbyte(1, 0x05)
+*	 		ret:setbyte(len, 0x0A)
+*	 		return ret
+*	 	end
+*	 	return original_report
+*	 end
+*
 *	 hid.register(hid_driver)
 */
 static int luahid_register(lua_State *L)
