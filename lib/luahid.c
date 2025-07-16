@@ -211,10 +211,12 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
-static const __u8 *luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsigned int *size)
+#define LUAHID_RET const __u8 *
 #else
-static __u8 *luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsigned int *size)
+#define LUAHID_RET __u8 *
 #endif
+
+static LUAHID_RET luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsigned int *size)
 {
 	struct hid_driver *driver = hdev->driver;
 	luahid_t *hid = container_of(driver, luahid_t, driver);

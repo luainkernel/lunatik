@@ -41,8 +41,6 @@ typedef struct luadata_s {
 
 static int luadata_lnew(lua_State *L);
 
-static int luadata_dup(lua_State *L);
-
 LUNATIK_PRIVATECHECKER(luadata_check, luadata_t *);
 
 static inline void luadata_checkbounds(lua_State *L, int ix, size_t size, lua_Integer offset, lua_Integer length)
@@ -268,6 +266,8 @@ static void luadata_release(void *private)
 	if (data->opt & LUADATA_OPT_FREE)
 		lunatik_free(data->ptr);
 }
+
+static int luadata_dup(lua_State *L);
 
 /***
 * Creates a new data object, allocating a fresh block of memory.
