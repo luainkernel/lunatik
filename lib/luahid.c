@@ -195,7 +195,7 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 	lunatik_pushobject(L, original_data);
 
 	if (lua_pcall(L, 3, 1, 0) != LUA_OK) {
-		pr_err("report_fixup: %s", lua_tostring(L, -1));
+		pr_err("report_fixup: %s\n", lua_tostring(L, -1));
 		return -ECANCELED;
 	}
 
@@ -203,9 +203,8 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 		return -EINVAL;
 
 	lunatik_object_t *returned_object = lunatik_checkobject(L, -1);
-	/* judge whether the returned object is a luadata */
 	if (strcmp(returned_object->class->name, "data")) {
-		pr_err("report_fixup: returned object is not a luadata");
+		pr_err("report_fixup: returned object is not a luadata\n");
 		return -EINVAL;
 	}
 
