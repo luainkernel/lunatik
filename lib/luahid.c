@@ -181,7 +181,7 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_pushhdev(L, hdev);
 
-	lua_newtable(L);
+	lua_newtable(L); /* original descriptor */
 	for (unsigned int i = 0; i < *size; i++) {
 		lua_pushinteger(L, buf[i]);
 		lua_seti(L, -2, i + 1);
