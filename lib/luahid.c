@@ -18,8 +18,6 @@
 #include <lunatik.h>
 #include <lauxlib.h>
 
-#include "luadata.h"
-
 /***
 * Represents a registered HID driver.
 * This is a userdata object returned by `hid.register()`. It encapsulates
@@ -34,11 +32,6 @@ typedef struct luahid_s {
 	bool registered;
 } luahid_t;
 
-typedef struct luadata_s {
-	char *ptr;
-	size_t size;
-	uint8_t opt;
-} luadata_t;
 
 static void luahid_release(void *private)
 {
@@ -177,7 +170,7 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 				 struct hid_device *hdev, __u8 *buf, unsigned int *size,
 				 __u8 **ret_ptr)
 {
-	if (luahid_checkdriver(L, hid, -1, "_report")) {
+	if (luahid_checkdriver(L, hid, -1, "_info")) {
 		pr_err("report_fixup: couldn't find driver\n");
 		return -ENXIO;
 	}
@@ -187,35 +180,52 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_pushhdev(L, hdev);
-	lunatik_object_t *original_data = luadata_new(buf, *size, hid->runtime->sleep, LUADATA_OPT_NONE);
-	if (!original_data) {
-		pr_err("report_fixup: failed to create luadata for original report\n");
-		return -ENOMEM;
+
+	lua_newtable(L);
+	for (unsigned int i = 0; i < *size; i++) {
+		lua_pushinteger(L, buf[i]);
+		lua_seti(L, -2, i + 1);
 	}
-	lunatik_pushobject(L, original_data);
+	lua_pushinteger(L, *size);
+	lua_setfield(L, -2, "size");
 
 	if (lua_pcall(L, 3, 1, 0) != LUA_OK) {
 		pr_err("report_fixup: %s\n", lua_tostring(L, -1));
 		return -ECANCELED;
 	}
 
-	if (lua_isnil(L, -1))
-		return -EINVAL;
+	if (lua_isnil(L, -1)) {
+		*ret_ptr = buf;
+		return 0;
+	}
 
-	lunatik_object_t *returned_object = lunatik_checkobject(L, -1);
-	if (strcmp(returned_object->class->name, "data")) {
-		pr_err("report_fixup: returned object is not a luadata\n");
+	if (!lua_istable(L, -1)) {
+		pr_err("report_fixup: expected table or nil, got %s\n", lua_typename(L, lua_type(L, -1)));
 		return -EINVAL;
 	}
 
-	lua_pushlightuserdata(L, hdev);
-	lua_pushvalue(L, -2); /* luadata */
-	lua_settable(L, -4); /* hid._report[hdev] = luadata */
+	lua_getfield(L, -1, "size");
+	if (lua_isinteger(L, -1)) {
+		unsigned int new_size = lua_tointeger(L, -1);
+		if (new_size > *size) {
+			pr_err("report_fixup: new size %u exceeds original size %u\n", new_size, *size);
+			return -EINVAL;
+		}
+		*size = new_size;
+	}
+	lua_pop(L, 1); /* size */
 
-	luadata_t *data = (luadata_t *)returned_object->private;
-	*size = data->size;
-	*ret_ptr = data->ptr;
+	for (unsigned int i = 0; i < *size; i++) {
+		lua_geti(L, -1, i + 1);
+		if (lua_isinteger(L, -1)) {
+			lua_Integer val = lua_tointeger(L, -1);
+			if (val >= 0 && val <= 255)
+				buf[i] = (__u8)val;
+		}
+		lua_pop(L, 1);
+	}
 
+	*ret_ptr = buf;
 	return 0;
 }
 
@@ -276,15 +286,12 @@ static LUAHID_RET luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsign
 *	 	return drvdata
 *	 end
 *
-*	 function hid_driver:report_fixup(hdev, original_report)
+*	 function hid_driver:report_fixup(hdev, report_data)
 *	 	if hdev.vendor == 0x1234 and hdev.product == 0x5678 then
-*	 		len = #original_report
-*	 		ret = original_report:dup(len + 1)
-*	 		ret:setbyte(1, 0x05)
-*	 		ret:setbyte(len, 0x0A)
-*	 		return ret
+*	 		report_data[1] = 0x05
+*	 		report_data[report_data.size] = 0x0A
+*	 		return report_data
 *	 	end
-*	 	return original_report
 *	 end
 *
 *	 hid.register(hid_driver)
@@ -298,9 +305,6 @@ static int luahid_register(lua_State *L)
 	lua_setfield(L, 2, "ops"); /* hid.ops = table */
 	lua_newtable(L);
 	lua_setfield(L, 2, "_info"); /* hid._info = {} */
-
-	lua_newtable(L);
-	lua_setfield(L, 2, "_report"); /* hid._report = {} */
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t));
 	luahid_t *hid = (luahid_t *)object->private;
