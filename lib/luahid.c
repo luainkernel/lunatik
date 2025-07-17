@@ -132,16 +132,12 @@ static inline void luahid_pushhdev(lua_State *L, struct hid_device *hdev)
 #define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
 	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
 
-#define luahid_error(code, op, msg)		\
-do {						\
-	pr_err("%s: %s\n", (op), (msg)); 	\
-	return code; 				\
-} while (0)
-
 static int luahid_doprobe(lua_State *L, luahid_t *hid, struct hid_device *hdev, const struct hid_device_id *id)
 {
-	if (luahid_checkdriver(L, hid, -1, "_info"))
-		luahid_error(-ENXIO, "probe", "couldn't find driver");
+	if (luahid_checkdriver(L, hid, -1, "_info")) {
+		pr_err("probe: couldn't find driver");
+		return -ENXIO;
+	}
 
 	if (lua_getfield(L, -2, "probe") != LUA_TFUNCTION)
 		return 0;
@@ -149,8 +145,10 @@ static int luahid_doprobe(lua_State *L, luahid_t *hid, struct hid_device *hdev, 
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_pushdevid(L, -4, id);
 
-	if (lua_pcall(L, 2, 1, 0) != LUA_OK)
-		luahid_error(-ECANCELED, "probe", lua_tostring(L, -1));
+	if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
+		pr_err("probe: %s\n", lua_tostring(L, -1));
+		return -ECANCELED;
+	}
 
 	if (lua_type(L, -1) == LUA_TTABLE) {
 		lua_pushlightuserdata(L, hdev);
@@ -179,26 +177,38 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
 				 struct hid_device *hdev, __u8 *buf, unsigned int *size,
 				 __u8 **ret_ptr)
 {
-	if (luahid_checkdriver(L, hid, -1, "_report"))
-		luahid_error(-ENXIO, "report_fixup", "couldn't find driver");
+	if (luahid_checkdriver(L, hid, -1, "_report")) {
+		pr_err("report_fixup: couldn't find driver\n");
+		return -ENXIO;
+	}
 
 	if (lua_getfield(L, -2, "report_fixup") != LUA_TFUNCTION)
 		return -ENXIO;
 
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_pushhdev(L, hdev);
-	lunatik_object_t *original_data = luadata_new(buf, *size, hid->runtime->sleep, LUADATA_OPT_FREE);
-	if (!original_data)
-		luahid_error(-ENOMEM, "report_fixup", "failed to create luadata for original report");
+	lunatik_object_t *original_data = luadata_new(buf, *size, hid->runtime->sleep, LUADATA_OPT_NONE);
+	if (!original_data) {
+		pr_err("report_fixup: failed to create luadata for original report\n");
+		return -ENOMEM;
+	}
 	lunatik_pushobject(L, original_data);
 
-	if (lua_pcall(L, 3, 1, 0) != LUA_OK)
-		luahid_error(-ECANCELED, "report_fixup", lua_tostring(L, -1));
+	if (lua_pcall(L, 3, 1, 0) != LUA_OK) {
+		pr_err("report_fixup: %s", lua_tostring(L, -1));
+		return -ECANCELED;
+	}
 
 	if (lua_isnil(L, -1))
-		return -ENXIO;
+		return -EINVAL;
 
 	lunatik_object_t *returned_object = lunatik_checkobject(L, -1);
+	/* judge whether the returned object is a luadata */
+	if (strcmp(returned_object->class->name, "data")) {
+		pr_err("report_fixup: returned object is not a luadata");
+		return -EINVAL;
+	}
+
 	lua_pushlightuserdata(L, hdev);
 	lua_pushvalue(L, -2); /* luadata */
 	lua_settable(L, -4); /* hid._report[hdev] = luadata */
