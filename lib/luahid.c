@@ -13,7 +13,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/version.h>
-#include <string.h>
+#include <linux/string.h>
 #include <linux/hid.h>
 #include <lunatik.h>
 #include <lauxlib.h>
@@ -135,7 +135,7 @@ static inline void luahid_pushhdev(lua_State *L, struct hid_device *hdev)
 static int luahid_doprobe(lua_State *L, luahid_t *hid, struct hid_device *hdev, const struct hid_device_id *id)
 {
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
-		pr_err("probe: couldn't find driver");
+		pr_err("probe: couldn't find driver\n");
 		return -ENXIO;
 	}
 
