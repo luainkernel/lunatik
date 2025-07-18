@@ -12,10 +12,13 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <string.h>
+#include <linux/version.h>
+#include <linux/string.h>
 #include <linux/hid.h>
 #include <lunatik.h>
 #include <lauxlib.h>
+
+#include "luadata.h"
 
 /***
 * Represents a registered HID driver.
@@ -109,13 +112,31 @@ static inline void luahid_pushdevid(lua_State *L, int idx, const struct hid_devi
 	luahid_setfield(L, -1, device_id, driver_data);
 }
 
+static inline void luahid_pushhdev(lua_State *L, struct hid_device *hdev)
+{
+	lua_newtable(L);
+	luahid_setfield(L, -1, hdev, bus);
+	luahid_setfield(L, -1, hdev, group);
+	luahid_setfield(L, -1, hdev, vendor);
+	luahid_setfield(L, -1, hdev, product);
+	luahid_setfield(L, -1, hdev, version);
+	lua_pushstring(L, hdev->name);
+	lua_setfield(L, -2, "name");
+}
+
+static inline void luahid_pushinfo(lua_State *L, int idx, struct hid_device *hdev)
+{
+	lua_pushlightuserdata(L, hdev);
+	lua_gettable(L, idx - 1);
+}
+
 #define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
 	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
 
 static int luahid_doprobe(lua_State *L, luahid_t *hid, struct hid_device *hdev, const struct hid_device_id *id)
 {
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
-		pr_err("probe: couldn't find driver");
+		pr_err("probe: couldn't find driver\n");
 		return -ENXIO;
 	}
 
@@ -151,6 +172,48 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 		return ret;
 
 	return hid_hw_start(hdev, HID_CONNECT_DEFAULT);
+}
+
+static int luahid_doreport_fixup(lua_State *L, luahid_t *hid, struct hid_device *hdev, __u8 *buf, unsigned int *size, __u8 **ret_ptr)
+{
+	if (luahid_checkdriver(L, hid, -1, "_info") || lua_getfield(L, -2, "report_fixup") != LUA_TFUNCTION) {
+		pr_err("report_fixup: couldn't find driver or the function\n");
+		return -ENXIO;
+	}
+
+	lua_pushvalue(L, -3); /* hid.ops */
+	luahid_pushhdev(L, hdev);
+	luahid_pushinfo(L, -4, hdev);
+	lunatik_object_t *original_data = luadata_new(buf, *size, hid->runtime->sleep, LUADATA_OPT_NONE);
+	if (!original_data) {
+		pr_err("report_fixup: failed to create original data object\n");
+		return -ENOMEM;
+	}
+	lunatik_pushobject(L, original_data);
+
+	if (lua_pcall(L, 4, 0, 0) != LUA_OK) {
+		pr_err("report_fixup: %s\n", lua_tostring(L, -1));
+		return -ECANCELED;
+	}
+
+	return 0;
+}
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
+typedef const __u8* luahid_ret_t;
+#else
+typedef  __u8* luahid_ret_t;
+#endif
+
+static luahid_ret_t luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsigned int *size)
+{
+	struct hid_driver *driver = hdev->driver;
+	luahid_t *hid = container_of(driver, luahid_t, driver);
+	__u8 *ret_ptr = buf;
+	int ret;
+
+	lunatik_run(hid->runtime, luahid_doreport_fixup, ret, hid, hdev, buf, size, &ret_ptr);
+	return ret ? buf : ret_ptr;
 }
 
 /***
@@ -192,6 +255,13 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 *	 	return drvdata
 *	 end
 *
+*	 function hid_driver:report_fixup(hdev, priv_data, descriptor)
+*	 	if hdev.vendor == 0x1234 and hdev.product == 0x5678 then
+*	 		descriptor[1] = 0x05
+*	 		descriptor[descriptor.size] = 0x0A
+*	 	end
+*	 end
+*
 *	 hid.register(hid_driver)
 */
 static int luahid_register(lua_State *L)
@@ -217,6 +287,7 @@ static int luahid_register(lua_State *L)
 		      2, "invaild id_table");
 
 	user_driver->probe = luahid_probe;
+	user_driver->report_fixup = luahid_report_fixup;
 
 	lunatik_setruntime(L, hid, hid);
 	lunatik_getobject(hid->runtime);
