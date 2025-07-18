@@ -18,6 +18,8 @@
 #include <lunatik.h>
 #include <lauxlib.h>
 
+#include "luadata.h"
+
 /***
 * Represents a registered HID driver.
 * This is a userdata object returned by `hid.register()`. It encapsulates
@@ -122,6 +124,12 @@ static inline void luahid_pushhdev(lua_State *L, struct hid_device *hdev)
 	lua_setfield(L, -2, "name");
 }
 
+static inline void luahid_pushinfo(lua_State *L, int idx, struct hid_device *hdev)
+{
+	lua_pushlightuserdata(L, hdev);
+	lua_gettable(L, -1);
+}
+
 #define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
 	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
 
@@ -166,76 +174,38 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	return hid_hw_start(hdev, HID_CONNECT_DEFAULT);
 }
 
-static int luahid_doreport_fixup(lua_State *L, luahid_t *hid,
-				 struct hid_device *hdev, __u8 *buf, unsigned int *size,
-				 __u8 **ret_ptr)
+static int luahid_doreport_fixup(lua_State *L, luahid_t *hid, struct hid_device *hdev, __u8 *buf, unsigned int *size, __u8 **ret_ptr)
 {
-	if (luahid_checkdriver(L, hid, -1, "_info")) {
-		pr_err("report_fixup: couldn't find driver\n");
+	if (luahid_checkdriver(L, hid, -1, "_info") || lua_getfield(L, -2, "report_fixup") != LUA_TFUNCTION) {
+		pr_err("report_fixup: couldn't find driver or the function\n");
 		return -ENXIO;
 	}
-
-	if (lua_getfield(L, -2, "report_fixup") != LUA_TFUNCTION)
-		return -ENXIO;
 
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_pushhdev(L, hdev);
-
-	lua_newtable(L); /* original descriptor */
-	for (unsigned int i = 0; i < *size; i++) {
-		lua_pushinteger(L, buf[i]);
-		lua_seti(L, -2, i + 1);
+	// luahid_pushinfo(L, -4, hdev);
+	lunatik_object_t *original_data = luadata_new(buf, *size, hid->runtime->sleep, LUADATA_OPT_NONE);
+	if (!original_data) {
+		pr_err("report_fixup: failed to create original data object\n");
+		return -ENOMEM;
 	}
-	lua_pushinteger(L, *size);
-	lua_setfield(L, -2, "size");
+	lunatik_pushobject(L, original_data);
 
-	if (lua_pcall(L, 3, 1, 0) != LUA_OK) {
+	if (lua_pcall(L, 3, 0, 0) != LUA_OK) {
 		pr_err("report_fixup: %s\n", lua_tostring(L, -1));
 		return -ECANCELED;
 	}
 
-	if (lua_isnil(L, -1)) {
-		*ret_ptr = buf;
-		return 0;
-	}
-
-	if (!lua_istable(L, -1)) {
-		pr_err("report_fixup: expected table or nil, got %s\n", lua_typename(L, lua_type(L, -1)));
-		return -EINVAL;
-	}
-
-	lua_getfield(L, -1, "size");
-	if (lua_isinteger(L, -1)) {
-		unsigned int new_size = lua_tointeger(L, -1);
-		if (new_size > *size) {
-			pr_err("report_fixup: new size %u exceeds original size %u\n", new_size, *size);
-			return -EINVAL;
-		}
-		*size = new_size;
-	}
-	lua_pop(L, 1); /* size */
-
-	for (unsigned int i = 0; i < *size; i++) {
-		lua_geti(L, -1, i + 1);
-		if (lua_isinteger(L, -1)) {
-			lua_Integer val = lua_tointeger(L, -1);
-			if (val >= 0 && val <= 255)
-				buf[i] = (__u8)val;
-		}
-		lua_pop(L, 1);
-	}
-
-	*ret_ptr = buf;
 	return 0;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
-#define LUAHID_RET const __u8 *
+typedef const __u8* luahid_ret_t;
 #else
-#define LUAHID_RET __u8 *
+typedef  __u8* luahid_ret_t;
 #endif
 
-static LUAHID_RET luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsigned int *size)
+static luahid_ret_t luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsigned int *size)
 {
 	struct hid_driver *driver = hdev->driver;
 	luahid_t *hid = container_of(driver, luahid_t, driver);
@@ -243,7 +213,6 @@ static LUAHID_RET luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsign
 	int ret;
 
 	lunatik_run(hid->runtime, luahid_doreport_fixup, ret, hid, hdev, buf, size, &ret_ptr);
-
 	return ret ? buf : ret_ptr;
 }
 
@@ -286,11 +255,10 @@ static LUAHID_RET luahid_report_fixup(struct hid_device *hdev, __u8 *buf, unsign
 *	 	return drvdata
 *	 end
 *
-*	 function hid_driver:report_fixup(hdev, report_data)
+*	 function hid_driver:report_fixup(hdev, priv_data, descriptor)
 *	 	if hdev.vendor == 0x1234 and hdev.product == 0x5678 then
-*	 		report_data[1] = 0x05
-*	 		report_data[report_data.size] = 0x0A
-*	 		return report_data
+*	 		descriptor[1] = 0x05
+*	 		descriptor[descriptor.size] = 0x0A
 *	 	end
 *	 end
 *
