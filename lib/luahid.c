@@ -127,7 +127,7 @@ static inline void luahid_pushhdev(lua_State *L, struct hid_device *hdev)
 static inline void luahid_pushinfo(lua_State *L, int idx, struct hid_device *hdev)
 {
 	lua_pushlightuserdata(L, hdev);
-	lua_gettable(L, -1);
+	lua_gettable(L, idx - 1);
 }
 
 #define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
@@ -183,7 +183,7 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid, struct hid_device 
 
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_pushhdev(L, hdev);
-	// luahid_pushinfo(L, -4, hdev);
+	luahid_pushinfo(L, -4, hdev);
 	lunatik_object_t *original_data = luadata_new(buf, *size, hid->runtime->sleep, LUADATA_OPT_NONE);
 	if (!original_data) {
 		pr_err("report_fixup: failed to create original data object\n");
@@ -191,7 +191,7 @@ static int luahid_doreport_fixup(lua_State *L, luahid_t *hid, struct hid_device 
 	}
 	lunatik_pushobject(L, original_data);
 
-	if (lua_pcall(L, 3, 0, 0) != LUA_OK) {
+	if (lua_pcall(L, 4, 0, 0) != LUA_OK) {
 		pr_err("report_fixup: %s\n", lua_tostring(L, -1));
 		return -ECANCELED;
 	}
