@@ -7,6 +7,8 @@ to load and run scripts and manage runtime environments from the user space;
 a [C API](#lunatik-c-api) to load and run scripts and manage runtime environments from the kernel;
 and [Lua APIs](#lunatik-lua-apis) for binding kernel facilities to Lua scripts.
 
+> Note: Lunatik supports Linux Kernel versions 5.x and 6.x
+
 Here is an example of a character device driver written in Lua using Lunatik
 to generate random ASCII printable characters:
 ```Lua
