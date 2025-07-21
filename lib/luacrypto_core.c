@@ -17,6 +17,7 @@ static const luaL_Reg luacrypto_lib[] = {
 	{"skcipher", luacrypto_skcipher_new},
 	{"aead", luacrypto_aead_new},
 	{"rng", luacrypto_rng_new},
+	{"acompress", luacrypto_acompress_new},
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 	{"comp", luacrypto_comp_new},
 #endif
@@ -28,6 +29,8 @@ static const lunatik_class_t *luacrypto_classes[] = {
 	&luacrypto_skcipher_class,
 	&luacrypto_aead_class,
 	&luacrypto_rng_class,
+	&luacrypto_acompress_class,
+	&luacrypto_acompress_req_class,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 	&luacrypto_comp_class,
 #endif
