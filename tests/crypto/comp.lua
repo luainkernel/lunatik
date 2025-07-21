@@ -52,6 +52,6 @@ test("COMP decompress with too small buffer (expect error)", function()
 	local compressed = c:compress(original_data, #original_data * 2) -- Allow for some overhead
 	local status, err = pcall(c.decompress, c, compressed, #original_data - 1)
 	assert(not status, "Decompression with too small buffer should fail")
-	assert(err == EINVAL, "Error message for small buffer is not as expected: " .. err)
+	assert(err == EINVAL, "Error message should be EINVAL, got: " .. err)
 end)
 
