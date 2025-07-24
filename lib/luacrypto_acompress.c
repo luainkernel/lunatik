@@ -80,6 +80,7 @@ static void luacrypto_acompress_lua_callback(void *data, int err)
 
 	lua_call(obj->L, 2, 0);
 	luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->cb_ref);
+	obj->cb_ref = LUA_NOREF;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
