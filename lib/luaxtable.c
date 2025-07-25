@@ -154,7 +154,9 @@ static T luaxtable_##hook(U skb, V par)					\
 	const luaxtable_info_t *info = (const luaxtable_info_t *)par->huk##info;	\
 	luaxtable_t *xtable = info->data;				\
 									\
+	local_bh_disable();						\
 	lunatik_run(xtable->runtime, luaxtable_do##hook, ret, xtable, skb, par, luaxtable_hooks.hook##_fallback);	\
+	local_bh_enable(); 						\
 	return ret;							\
 }
 
@@ -172,7 +174,9 @@ static int luaxtable_##hook##_check(const struct xt_##hk##chk_param *par)	\
 	luaxtable_info_t *info = (luaxtable_info_t *)par->huk##info; 		\
 	info->data = xtable;							\
 										\
+	local_bh_disable();							\
 	lunatik_run(xtable->runtime, luaxtable_docall, ret, xtable, info, "checkentry", 0, 1);	\
+	local_bh_enable(); 							\
 	return ret != 0 ? -EINVAL : 0;						\
 }
 
@@ -183,7 +187,9 @@ static void luaxtable_##hook##_destroy(const struct xt_##hk##dtor_param *par)	\
 	luaxtable_info_t *info = (luaxtable_info_t *)par->huk##info; 		\
 	luaxtable_t *xtable = (luaxtable_t *)info->data;			\
 										\
+	local_bh_disable(); 							\
 	lunatik_run(xtable->runtime, luaxtable_docall, ret, xtable, info, "destroy", 0, 0);	\
+	local_bh_enable(); 							\
 }
 
 LUAXTABLE_HOOK_CB(match, match, const struct  sk_buff *, struct xt_action_param *, bool);

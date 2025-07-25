@@ -27,8 +27,8 @@ do {						\
 
 #define lunatik_newlock(o)	lunatik_locker((o), mutex_init, spin_lock_init);
 #define lunatik_freelock(o)	lunatik_locker((o), mutex_destroy, (void));
-#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock_bh)
-#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock_bh)
+#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock)
+#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock)
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 
@@ -60,6 +60,31 @@ do {									\
 	else								\
 		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
 	lunatik_unlock(runtime);					\
+} while(0)
+
+#define lunatik_runbh(runtime, handler, ret, ...)			\
+do {									\
+	local_bh_disable();						\
+	lunatik_lock(runtime);						\
+	if (unlikely(!lunatik_getstate(runtime)))			\
+		ret = -ENXIO;						\
+	else								\
+		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
+	lunatik_unlock(runtime);					\
+	local_bh_enable();						\
+} while(0)
+
+#define lunatik_runirq(runtime, handler, ret, ...)			\
+do {									\
+	unsigned long flags;						\
+	local_irq_save(flags);						\
+	lunatik_lock(runtime);						\
+	if (unlikely(!lunatik_getstate(runtime)))			\
+		ret = -ENXIO;						\
+	else								\
+		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
+	lunatik_unlock(runtime);					\
+	local_irq_restore(flags);					\
 } while(0)
 
 typedef struct lunatik_reg_s {
