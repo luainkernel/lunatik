@@ -16,7 +16,7 @@ file = {
 	'./lib/luacompletion.c',
 	'./lib/crypto/aead.lua',
 	'./lib/luacrypto_acompress.c',
-	'./lib/crypto/comp.lua',
+	'./lib/crypto/compress.lua',
 	'./lib/luacrypto_rng.c',
 	'./lib/luacrypto_shash.c',
 	'./lib/luacrypto_skcipher.c',

@@ -7,25 +7,25 @@
 -- This module provides a synchronous, high-level API, but implemented on top
 -- of the low-level `crypto.acompress` and `completion` modules.
 --
--- @module crypto.comp
+-- @module crypto.compress
 
 local acomp = require("crypto.acompress")
 local completion = require("completion")
 
---- @type COMP
-local COMP = {}
-COMP.__index = COMP
+--- @type COMPRESS
+local COMPRESS = {}
+COMPRESS.__index = COMPRESS
 
 --- Creates a new compression object.
 -- @function new
 -- @tparam string algname The name of the compression algorithm (e.g., "lz4", "deflate", "lzo")
--- @treturn COMP A new compression object that can be used for compress/decompress operations
+-- @treturn COMPRESS A new compression object that can be used for compress/decompress operations
 -- @raise Error if the compression algorithm is not available or cannot be initialized
 -- @usage
---   local comp = require("crypto.comp").new("lz4")
--- @within comp
-function COMP.new(algname)
-	return setmetatable({ tfm = acomp.new(algname) }, COMP)
+--   local compress = require("crypto.compress").new("lz4")
+-- @within compress
+function COMPRESS.new(algname)
+	return setmetatable({ tfm = acomp.new(algname) }, COMPRESS)
 end
 
 local function operation(name)
@@ -57,9 +57,9 @@ end
 -- @treturn string compressed data
 -- @raise error if compression fails or wait operation fails
 -- @usage
---   local comp = require("crypto.comp").new("lz4")
---   local compressed = comp:compress("hello world", 64)
-COMP.compress = operation("compress")
+--   local c = require("crypto.compress").new("lz4")
+--   local compressed = c:compress("hello world", 64)
+COMPRESS.compress = operation("compress")
 
 --- Decompresses data synchronously.
 -- @function decompress
@@ -68,9 +68,9 @@ COMP.compress = operation("compress")
 -- @treturn string decompressed data
 -- @raise error if decompression fails or wait operation fails
 -- @usage
---   local comp = require("crypto.comp").new("lz4")
---   local decompressed = comp:decompress(compressed_data, 1024)
-COMP.decompress = operation("decompress")
+--   local c = require("crypto.compress").new("lz4")
+--   local decompressed = c:decompress(compressed_data, 1024)
+COMPRESS.decompress = operation("decompress")
 
-return COMP
+return COMPRESS
 

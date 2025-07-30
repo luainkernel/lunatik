@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
-local comp = require"crypto.comp"
+local comp = require"crypto.compress"
 local test = require("util").test
 local EINVAL = require("linux").errno.INVAL
 
