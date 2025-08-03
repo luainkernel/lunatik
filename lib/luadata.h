@@ -17,7 +17,7 @@ LUNATIK_LIB(data);
 
 #define luadata_clear(o)	(luadata_reset((o), NULL, 0, LUADATA_OPT_KEEP))
 
-lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep, uint8_t opt);
+lunatik_object_t *luadata_new(lua_State *L);
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
 
 static inline void luadata_close(lunatik_object_t *object)
@@ -25,6 +25,13 @@ static inline void luadata_close(lunatik_object_t *object)
 	luadata_clear(object);
 	lunatik_putobject(object);
 }
+
+#define luadata_attach(L, obj, field)			\
+do {							\
+	obj->field = luadata_new(L); 			\
+	lunatik_setregistry(L, -1, obj->field);		\
+	lua_pop(L, 1);					\
+} while (0)
 
 #endif
 

@@ -22,14 +22,6 @@
 
 #include <lunatik.h>
 
-#define luanetfilter_newbuffer(L, obj, field)		\
-do {							\
-	obj->field = lunatik_checknull(L, luadata_new(NULL, 0, false, LUADATA_OPT_NONE));	\
-	lunatik_cloneobject(L, obj->field);		\
-	lunatik_setregistry(L, -1, obj->field);	\
-	lua_pop(L, 1); /* skb */			\
-} while (0)
-
 
 /***
 * Table of Netfilter protocol families.

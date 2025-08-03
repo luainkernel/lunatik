@@ -368,7 +368,7 @@ static int luadata_lnew(lua_State *L)
 
 LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 
-lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep, uint8_t opt)
+static inline lunatik_object_t *luadata_create(void *ptr, size_t size, bool sleep, uint8_t opt)
 {
 	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep);
 
@@ -379,6 +379,13 @@ lunatik_object_t *luadata_new(void *ptr, size_t size, bool sleep, uint8_t opt)
 		data->opt = opt;
 	}
 	return object;
+}
+
+lunatik_object_t *luadata_new(lua_State *L)
+{
+	lunatik_object_t *data = lunatik_checknull(L, luadata_create(NULL, 0, false, LUADATA_OPT_NONE));
+	lunatik_cloneobject(L, data);
+	return data;
 }
 EXPORT_SYMBOL(luadata_new);
 

@@ -170,12 +170,6 @@ static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 */
 #define luaxdp_setcallback(L, i)	(lunatik_setregistry((L), (i), luaxdp_callback))
 
-static inline void luaxdp_newdata(lua_State *L)
-{
-	lunatik_object_t *data = lunatik_checknull(L, luadata_new(NULL, 0, false, LUADATA_OPT_NONE));
-	lunatik_cloneobject(L, data);
-}
-
 /***
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
 * After calling this, `bpf_luaxdp_run` calls targeting this runtime will no longer
@@ -243,8 +237,8 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_checkruntime(L, false);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	luaxdp_newdata(L); /* buffer */
-	luaxdp_newdata(L); /* argument */
+	luadata_new(L); /* buffer */
+	luadata_new(L); /* argument */
 
 	lua_pushcclosure(L, luaxdp_callback, 3);
 	luaxdp_setcallback(L, -1);
