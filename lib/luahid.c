@@ -103,7 +103,6 @@ do { 						\
 	lua_setfield(L, idx - 1, #field);	\
 } while (0)
 
-static inline void luahid_pushdevid(lua_State *L, int idx, const struct hid_device_id *device_id)
 #define luahid_pcall(L, func, arg) 					\
 do { 									\
 	int n = lua_gettop(L); 						\
@@ -125,13 +124,11 @@ do { 							\
 	luahid_setfield(L, -1, dev, extra); 		\
 } while (0)
 
+static inline int luahid_pushdevid(lua_State *L)
 {
-	lua_newtable(L);
-	luahid_setfield(L, -1, device_id, bus);
-	luahid_setfield(L, -1, device_id, group);
-	luahid_setfield(L, -1, device_id, vendor);
-	luahid_setfield(L, -1, device_id, product);
-	luahid_setfield(L, -1, device_id, driver_data);
+	struct hid_device_id *device_id = (struct hid_device_id *)lua_touserdata(L, 1);
+	luahid_newtable(L, device_id, driver_data);
+	return 1; /* devid table */
 }
 
 static inline int luahid_pushhdev(lua_State *L)
@@ -163,7 +160,7 @@ static int luahid_doprobe(lua_State *L, luahid_t *hid, struct hid_device *hdev, 
 		return 0;
 
 	lua_pushvalue(L, -3); /* hid.ops */
-	luahid_pushdevid(L, -4, id);
+	luahid_pcall(L, luahid_pushdevid, id);
 
 	if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
 		pr_err("probe: %s\n", lua_tostring(L, -1));
