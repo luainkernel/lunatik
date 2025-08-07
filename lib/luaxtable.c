@@ -135,6 +135,7 @@ static int luaxtable_domatch(lua_State *L, luaxtable_t *xtable, const struct sk_
 	int ret = lua_toboolean(L, -1);
 	lua_getfield(L, -2, "hotdrop");
 	par->hotdrop = lua_toboolean(L, -1);
+	luadata_clear(xtable->skb);
 	return ret;
 }
 
@@ -144,6 +145,7 @@ static int luaxtable_dotarget(lua_State *L, luaxtable_t *xtable, struct sk_buff 
 		return fallback;
 
 	int ret = lua_tointeger(L, -1);
+	luadata_clear(xtable->skb);
 	return ret >= 0 && ret <= NF_MAX_VERDICT ? ret : fallback;
 }
 
