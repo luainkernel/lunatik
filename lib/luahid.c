@@ -155,7 +155,7 @@ static inline void luahid_pushinfo(lua_State *L, int idx, struct hid_device *hde
 static int luahid_doprobe(lua_State *L, luahid_t *hid, struct hid_device *hdev, const struct hid_device_id *id)
 {
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
-		pr_err("probe: couldn't find driver");
+		pr_err("probe: couldn't find driver\n");
 		return -ENXIO;
 	}
 
