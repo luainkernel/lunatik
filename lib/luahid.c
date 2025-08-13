@@ -68,7 +68,7 @@ static const lunatik_class_t luahid_class = {
 	.name = "hid",
 	.methods = luahid_mt,
 	.release = luahid_release,
-	.sleep = true,
+	.sleep = false,
 };
 
 static const struct hid_device_id *luahid_setidtable(lua_State *L, int idx)
