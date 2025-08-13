@@ -16,7 +16,6 @@
 * @module xdp
 */
 
-#include "linux/bottom_half.h"
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
 #include <linux/version.h>
