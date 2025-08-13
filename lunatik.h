@@ -26,8 +26,8 @@ do {						\
 
 #define lunatik_newlock(o)	lunatik_locker((o), mutex_init, spin_lock_init);
 #define lunatik_freelock(o)	lunatik_locker((o), mutex_destroy, (void));
-#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock_bh)
-#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock_bh)
+#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock)
+#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock)
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 

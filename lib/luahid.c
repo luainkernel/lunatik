@@ -11,6 +11,8 @@
 * @module hid
 */
 
+#include "linux/irqflags.h"
+#include "linux/spinlock.h"
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/version.h>
 #include <linux/string.h>
@@ -305,8 +307,11 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 	luahid_t *hid = container_of(driver, luahid_t, driver);
 	int ret_bool = 0;
 	int ret;
+	unsigned long flags;
 
+	local_irq_save(flags);
 	lunatik_run(hid->runtime, luahid_doraw_event, ret, hid, hdev, report, data, size, &ret_bool);
+	local_irq_restore(flags);
 	return ret ? false : ret_bool;
 }
 
