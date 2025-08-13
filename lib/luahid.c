@@ -11,8 +11,6 @@
 * @module hid
 */
 
-#include "linux/irqflags.h"
-#include "linux/spinlock.h"
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/version.h>
 #include <linux/string.h>
