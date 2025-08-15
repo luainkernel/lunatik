@@ -104,9 +104,7 @@ static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_
 	if (likely(luanf->mark != skb->mark))
 		goto out;
 
-	local_bh_disable();
-	lunatik_run(luanf->runtime, luanetfilter_hook_cb, ret, luanf, skb);
-	local_bh_enable();
+	lunatik_runbh(luanf->runtime, luanetfilter_hook_cb, ret, luanf, skb);
 	return (ret < 0 || ret > NF_MAX_VERDICT) ? policy : ret;
 out:
 	return policy;
