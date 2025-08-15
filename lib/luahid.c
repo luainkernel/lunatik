@@ -282,16 +282,6 @@ static luahid_ret_t luahid_report_fixup(struct hid_device *hdev, __u8 *rdesc, un
 	return rdesc;
 }
 
-static inline lunatik_object_t *luahid_getrawdata(lua_State *L, luahid_t *hid)
-{
-	lunatik_object_t *data;
-	if (lunatik_getregistry(L, hid->raw_event) != LUA_TUSERDATA || unlikely((data = (lunatik_object_t *)lunatik_toobject(L, -1)) == NULL)) {
-		pr_err("could not find raw_event data\n");
-		return NULL;
-	}
-	return data;
-}
-
 static int luahid_doraw_event(lua_State *L, luahid_t *hid, struct hid_device *hdev, struct hid_report *report, u8 *data, int size, int *ret)
 {
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
@@ -307,7 +297,7 @@ static int luahid_doraw_event(lua_State *L, luahid_t *hid, struct hid_device *hd
 	luahid_pushinfo(L, -4, hdev);
 	luahid_pcall(L, luahid_pushreport, report, 0);
 	lunatik_object_t *raw_data;
-	if ((raw_data = luahid_getrawdata(L, hid)) == NULL) {
+	if ((raw_data = luahid_getdescriptor(L, hid)) == NULL) {
 		pr_warn("raw_event: event data not found\n");
 		return -ENXIO;
 	}
@@ -404,7 +394,6 @@ static int luahid_register(lua_State *L)
 	luahid_t *hid = (luahid_t *)object->private;
 	memset(hid, 0, sizeof(luahid_t));
 	luadata_attach(L, hid, descriptor);
-	luadata_attach(L, hid, raw_event);
 
 	struct hid_driver *user_driver = &(hid->driver);
 	user_driver->name = lunatik_checkalloc(L, NAME_MAX);
