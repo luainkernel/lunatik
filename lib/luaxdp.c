@@ -127,7 +127,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 		goto out;
 	}
 
-	lunatik_run(runtime, luaxdp_handler, action, ctx, arg, arg__sz);
+	lunatik_runbh(runtime, luaxdp_handler, action, ctx, arg, arg__sz);
 	lunatik_putobject(runtime);
 out:
 	return action;
