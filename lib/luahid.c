@@ -31,7 +31,6 @@
 typedef struct luahid_s {
 	lunatik_object_t *runtime;
 	lunatik_object_t *descriptor;
-	lunatik_object_t *raw_event;
 	struct hid_driver driver;
 	bool registered;
 } luahid_t;

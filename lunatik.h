@@ -64,12 +64,7 @@ do {									\
 #define lunatik_runbh(runtime, handler, ret, ...)			\
 do {									\
 	local_bh_disable();						\
-	lunatik_lock(runtime);						\
-	if (unlikely(!lunatik_getstate(runtime)))			\
-		ret = -ENXIO;						\
-	else								\
-		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
-	lunatik_unlock(runtime);					\
+	lunatik_run(runtime, handler, ret, ## __VA_ARGS__);		\
 	local_bh_enable();						\
 } while(0)
 
@@ -77,12 +72,7 @@ do {									\
 do {									\
 	unsigned long flags;						\
 	local_irq_save(flags);						\
-	lunatik_lock(runtime);						\
-	if (unlikely(!lunatik_getstate(runtime)))			\
-		ret = -ENXIO;						\
-	else								\
-		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
-	lunatik_unlock(runtime);					\
+	lunatik_run(runtime, handler, ret, ## __VA_ARGS__);		\
 	local_irq_restore(flags);					\
 } while(0)
 
