@@ -97,10 +97,10 @@ out:
 	return user_table;
 }
 
-#define luahid_setfield(L, idx, obj, field)					\
-do { 										\
-	lua_pushinteger(L, (obj)->field);					\
-	lua_setfield(L, idx - 1, #field);					\
+#define luahid_setfield(L, idx, obj, field)	\
+do { 					 	\
+	lua_pushinteger(L, (obj)->field);	\
+	lua_setfield(L, idx - 1, #field);	\
 } while (0)
 
 #define luahid_pcall(L, func, arg) 					\
