@@ -150,15 +150,6 @@ static inline void luahid_pushreport(lua_State *L, struct hid_report *report)
 #define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
 	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
 
-static inline lunatik_object_t *luahid_getdescriptor(lua_State *L, luahid_t *hid)
-{
-	lunatik_object_t *data;
-	if (lunatik_getregistry(L, hid->descriptor) != LUA_TUSERDATA || unlikely((data = (lunatik_object_t *)lunatik_toobject(L, -1)) == NULL)) {
-		pr_err("could not find descriptor\n");
-		return NULL;
-	}
-	return data;
-}
 
 typedef struct luahid_argprobe_s {
 	luahid_t *hid;
@@ -224,6 +215,16 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 		return ret;
 
 	return hid_hw_start(hdev, HID_CONNECT_DEFAULT);
+}
+
+static inline lunatik_object_t *luahid_getdescriptor(lua_State *L, luahid_t *hid)
+{
+	lunatik_object_t *data;
+	if (lunatik_getregistry(L, hid->descriptor) != LUA_TUSERDATA || unlikely((data = (lunatik_object_t *)lunatik_toobject(L, -1)) == NULL)) {
+		pr_err("could not find descriptor\n");
+		return NULL;
+	}
+	return data;
 }
 
 typedef struct luahid_argreport_s {
