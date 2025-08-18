@@ -98,7 +98,7 @@ out:
 }
 
 #define luahid_setfield(L, idx, obj, field)	\
-do {						\
+do { 						\
 	lua_pushinteger(L, obj->field);		\
 	lua_setfield(L, idx - 1, #field);	\
 } while (0)
