@@ -97,6 +97,12 @@ out:
 	return user_table;
 }
 
+#define luahid_setfield(L, idx, obj, field)					\
+do { 										\
+	lua_pushinteger(L, (obj)->field);					\
+	lua_setfield(L, idx - 1, #field);					\
+} while (0)
+
 #define luahid_pcall(L, func, arg) 					\
 do { 									\
 	int n = lua_gettop(L); 						\
@@ -106,12 +112,6 @@ do { 									\
 		pr_warn("%s: %s\n", #func, lua_tostring(L, -1));	\
 		lua_settop(L, n);					\
 	} 								\
-} while (0)
-
-#define luahid_setfield(L, idx, obj, field)					\
-do { 										\
-	lua_pushinteger(L, (obj)->field);					\
-	lua_setfield(L, idx - 1, #field);					\
 } while (0)
 
 #define luahid_newtable(L, dev, extra)			\
