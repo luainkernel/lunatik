@@ -150,7 +150,6 @@ static inline void luahid_pushreport(lua_State *L, struct hid_report *report)
 #define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
 	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
 
-
 typedef struct luahid_argprobe_s {
 	luahid_t *hid;
 	struct hid_device *hdev;
