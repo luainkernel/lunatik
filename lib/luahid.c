@@ -306,7 +306,6 @@ typedef struct luahid_argraw_s {
 } luahid_argraw_t;
 
 static int luahid_doraw_event(lua_State *L)
-     // luahid_t *hid, struct hid_device *hdev, struct hid_report *report, u8 *data, int size, int *ret)
 {
 	luahid_argraw_t *arg = (luahid_argraw_t *)lua_touserdata(L, 1);
 	luahid_t *hid = arg->hid;
