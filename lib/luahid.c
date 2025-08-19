@@ -11,6 +11,7 @@
 * @module hid
 */
 
+#include "lua.h"
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/version.h>
 #include <linux/string.h>
@@ -154,7 +155,6 @@ typedef struct luahid_argprobe_s {
 	luahid_t *hid;
 	struct hid_device *hdev;
 	const struct hid_device_id *id;
-	int ret;
 } luahid_argprobe_t;
 
 static int luahid_doprobe(lua_State *L)
@@ -166,19 +166,21 @@ static int luahid_doprobe(lua_State *L)
 
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
 		pr_err("probe: couldn't find driver\n");
-		arg->ret = -ENXIO;
-		return 0;
+		lua_pushinteger(L, -ENXIO);
+		return 1;
 	}
 
-	if (lua_getfield(L, -2, "probe") != LUA_TFUNCTION)
-		return 0;
+	if (lua_getfield(L, -2, "probe") != LUA_TFUNCTION) {
+		lua_pushinteger(L, 0);
+		return 1;
+	}
 
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_newtable(L, id, driver_data); /* devid */
 
 	if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
 		pr_err("probe: %s\n", lua_tostring(L, -1));
-		arg->ret = -ECANCELED;
+		lua_pushinteger(L, -ECANCELED);
 		return 0;
 	}
 
@@ -189,13 +191,14 @@ static int luahid_doprobe(lua_State *L)
 
 		hid_set_drvdata(hdev, hid);
 	}
-	return 0;
+	lua_pushinteger(L, 0);
+	return 1;
 }
 
 static int luahid_runprobe(lua_State *L, luahid_argprobe_t *arg)
 {
 	luahid_pcall(L, luahid_doprobe, arg);
-	return arg->ret;
+	return lua_tointeger(L, -1);
 }
 
 static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
@@ -207,7 +210,6 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	arg.hid = hid;
 	arg.hdev = hdev;
 	arg.id = id;
-	arg.ret = 0;
 
 	lunatik_run(hid->runtime, luahid_runprobe, ret, &arg);
 	if (ret != 0 || (ret = hid_parse(hdev)) != 0)
@@ -231,7 +233,6 @@ typedef struct luahid_argreport_s {
 	struct hid_device *hdev;
 	__u8 *rdesc;
 	unsigned int rsize;
-	int ret;
 } luahid_argreport_t;
 
 static int luahid_doreport_fixup(lua_State *L)
@@ -269,7 +270,7 @@ out:
 static int luahid_runreport_fixup(lua_State *L, luahid_argreport_t *arg)
 {
 	luahid_pcall(L, luahid_doreport_fixup, arg);
-	return arg->ret;
+	return 0;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
@@ -288,7 +289,6 @@ static luahid_ret_t luahid_report_fixup(struct hid_device *hdev, __u8 *rdesc, un
 	arg.hdev = hdev;
 	arg.rdesc = rdesc;
 	arg.rsize = *rsize;
-	arg.ret = 0;
 
 	lunatik_run(hid->runtime, luahid_runreport_fixup, ret, &arg);
 	return rdesc;
@@ -301,7 +301,6 @@ typedef struct luahid_argraw_s {
 	u8 *data;
 	int size;
 	int ret_bool;
-	int ret;
 } luahid_argraw_t;
 
 static int luahid_doraw_event(lua_State *L)
@@ -315,12 +314,14 @@ static int luahid_doraw_event(lua_State *L)
 
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
 		pr_err("raw_event: couldn't find driver");
-		arg->ret = -ENXIO;
-		return 0;
+		lua_pushinteger(L, -ENXIO);
+		return 1;
 	}
 
-	if (lua_getfield(L, -2, "raw_event") != LUA_TFUNCTION)
-		return 0;
+	if (lua_getfield(L, -2, "raw_event") != LUA_TFUNCTION) {
+		lua_pushinteger(L, 0);
+		return 1;
+	}
 
 	lua_pushvalue(L, -3);  /* hid.ops */
 	luahid_pushhdev(L, hdev);
@@ -329,31 +330,32 @@ static int luahid_doraw_event(lua_State *L)
 	lunatik_object_t *raw_data;
 	if ((raw_data = luahid_getdescriptor(L, hid)) == NULL) {
 		pr_warn("raw_event: event data not found\n");
-		arg->ret = -ENXIO;
-		return 0;
+		lua_pushinteger(L, -ENXIO);
+		return 1;
 	}
 	luadata_reset(raw_data, data, size, LUADATA_OPT_NONE);
 
 	if (lua_pcall(L, 5, 1, 0) != LUA_OK) {
 		pr_err("raw_event: %s\n", lua_tostring(L, -1));
-		arg->ret = -ECANCELED;
-		return 0;
+		lua_pushinteger(L, -ECANCELED);
+		return 1;
 	}
 
 	luadata_clear(raw_data);
 	if (!lua_isboolean(L, -1)) {
-		arg->ret = -EINVAL;
-		return 0;
+		lua_pushinteger(L, -EINVAL);
+		return 1;
 	}
 
 	arg->ret_bool = lua_toboolean(L, -1);
-	return 0;
+	lua_pushinteger(L, 0);
+	return 1;
 }
 
 static int luahid_runraw_event(lua_State *L, luahid_argraw_t *arg)
 {
 	luahid_pcall(L, luahid_doraw_event, arg);
-	return arg->ret;
+	return lua_tointeger(L, -1);
 }
 
 static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, u8 *data, int size)
