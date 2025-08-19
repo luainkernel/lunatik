@@ -150,34 +150,31 @@ static inline void luahid_pushreport(lua_State *L, struct hid_report *report)
 #define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
 	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
 
-typedef union {
-    struct {
-        luahid_t *hid;
-        struct hid_device *hdev;
-        const struct hid_device_id *id;
-        int ret;
-    } probe;
-    struct {
-        luahid_t *hid;
-        struct hid_device *hdev;
-        __u8 *rdesc;
-        unsigned int rsize;
-    } report;
-    struct {
-        luahid_t *hid;
-        struct hid_device *hdev;
-        struct hid_report *report;
-        u8 *data;
-        int size;
-        int ret_bool;
-    } raw;
+typedef struct {
+	luahid_t *hid;
+	struct hid_device *hdev;
+	union {
+		struct {
+			const struct hid_device_id *id;
+		} probe;
+		struct {
+			__u8 *rdesc;
+			unsigned int rsize;
+		} report;
+		struct {
+			struct hid_report *report;
+			u8 *data;
+			int size;
+			int ret_bool;
+		} raw;
+	};
 } luahid_arg_t;
 
 static int luahid_doprobe(lua_State *L)
 {
 	luahid_arg_t *arg = (luahid_arg_t *)lua_touserdata(L, 1);
-	luahid_t *hid = arg->probe.hid;
-	struct hid_device *hdev = arg->probe.hdev;
+	luahid_t *hid = arg->hid;
+	struct hid_device *hdev = arg->hdev;
 	const struct hid_device_id *id = arg->probe.id;
 
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
@@ -223,8 +220,8 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	luahid_t *hid = container_of(driver, luahid_t, driver);
 	int ret;
 	luahid_arg_t arg;
-	arg.probe.hid = hid;
-	arg.probe.hdev = hdev;
+	arg.hid = hid;
+	arg.hdev = hdev;
 	arg.probe.id = id;
 
 	lunatik_run(hid->runtime, luahid_runprobe, ret, &arg);
@@ -247,8 +244,8 @@ static inline lunatik_object_t *luahid_getdescriptor(lua_State *L, luahid_t *hid
 static int luahid_doreport_fixup(lua_State *L)
 {
 	luahid_arg_t *arg = (luahid_arg_t *)lua_touserdata(L, 1);
-	luahid_t *hid = arg->report.hid;
-	struct hid_device *hdev = arg->report.hdev;
+	luahid_t *hid = arg->hid;
+	struct hid_device *hdev = arg->hdev;
 	__u8 *rdesc = arg->report.rdesc;
 	unsigned int rsize = arg->report.rsize;
 
@@ -294,8 +291,8 @@ static luahid_ret_t luahid_report_fixup(struct hid_device *hdev, __u8 *rdesc, un
 	luahid_t *hid = container_of(driver, luahid_t, driver);
 	int ret;
 	luahid_arg_t arg;
-	arg.report.hid = hid;
-	arg.report.hdev = hdev;
+	arg.hid = hid;
+	arg.hdev = hdev;
 	arg.report.rdesc = rdesc;
 	arg.report.rsize = *rsize;
 
@@ -306,8 +303,8 @@ static luahid_ret_t luahid_report_fixup(struct hid_device *hdev, __u8 *rdesc, un
 static int luahid_doraw_event(lua_State *L)
 {
 	luahid_arg_t *arg = (luahid_arg_t *)lua_touserdata(L, 1);
-	luahid_t *hid = arg->raw.hid;
-	struct hid_device *hdev = arg->raw.hdev;
+	luahid_t *hid = arg->hid;
+	struct hid_device *hdev = arg->hdev;
 	struct hid_report *report = arg->raw.report;
 	u8 *data = arg->raw.data;
 	int size = arg->raw.size;
@@ -364,8 +361,8 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 	luahid_t *hid = container_of(driver, luahid_t, driver);
 	int ret;
 	luahid_arg_t arg;
-	arg.raw.hid = hid;
-	arg.raw.hdev = hdev;
+	arg.hid = hid;
+	arg.hdev = hdev;
 	arg.raw.report = report;
 	arg.raw.data = data;
 	arg.raw.size = size;
