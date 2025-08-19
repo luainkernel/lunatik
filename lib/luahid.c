@@ -152,21 +152,18 @@ static inline void luahid_pushreport(lua_State *L, struct hid_report *report)
 
 typedef union {
     struct {
-        /* probe 用 */
         luahid_t *hid;
         struct hid_device *hdev;
         const struct hid_device_id *id;
         int ret;
     } probe;
     struct {
-        /* report_fixup 用 */
         luahid_t *hid;
         struct hid_device *hdev;
         __u8 *rdesc;
         unsigned int rsize;
     } report;
     struct {
-        /* raw_event 用 */
         luahid_t *hid;
         struct hid_device *hdev;
         struct hid_report *report;
