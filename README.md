@@ -545,6 +545,49 @@ sudo lunatik unload
 examples/dnsdoctor/cleanup.sh
 ```
 
+### gesture
+
+[gesture](examples/gesture.lua)
+is a kernel script that implements a HID driver for QEMU USB Mouse (0627:0001).
+It supports gestures: swiping up locks the mouse, and swiping down unlocks it.
+
+#### Usage
+
+1. You need to change the display protocal into `VNC` and enable USB mouse device in QEMU, the following configuration can help you disable PS2 mouse & enable USB mouse:
+
+```
+<features>
+	<!-- ... -->
+	<ps2 state="off"/>
+	<!-- ... -->
+</features>
+```
+
+2. run the gesture script:
+
+```
+sudo make examples_install 			# installs examples
+sudo lunatik run examples/gesture false 	# runs gesture
+# In QEMU window:
+# Drag up to lock the mouse
+# Drag down to unlock the mouse
+```
+
+### xiaomi
+
+[xiaomi](examples/xiaomi.lua)
+is a kernel script that ports the Xiaomi Silent Mouse driver to Lua using `luahid`.
+It fixes the report descriptor for the device (`0x2717`:`0x5014`).
+
+#### Usage
+
+```
+sudo make examples_install 		# installs examples
+sudo lunatik run examples/xiaomi false 	# runs xiaomi driver
+```
+
+Then insert the Xiaomi Silent Mouse with bluetooth mode on and it should work properly.
+
 ## References
 
 * [Scripting the Linux Routing Table with Lua](https://netdevconf.info/0x17/sessions/talk/scripting-the-linux-routing-table-with-lua.html)
