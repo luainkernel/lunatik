@@ -1,10 +1,17 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
+-- Porting Xiaomi Silent Mouse's Kernel driver to work with luahid.
+-- Link: https://elixir.bootlin.com/linux/v6.16.3/source/drivers/hid/hid-xiaomi.c
+
 local hid = require("hid")
-local data = require("data")
 
 local driver = {
 	name = "luahid_xiaomi",
 	id_table = {
-		{ vendor = 0x2717, product = 0x5014 }
+		{ bus = 0x05, vendor = 0x2717, product = 0x5014 }
 	}
 }
 
@@ -55,7 +62,6 @@ local mi_silent_mouse_rdesc_fixed = {
 	0xB1, 0x02, --      Feature (Variable),
 	0xC0       --  End Collection
 }
-
 
 function driver:report_fixup(hdev, priv_data, original_report)
 	if hdev.product == 0x5014 and #original_report == mi_silent_mouse_orig_rdesc_length then
