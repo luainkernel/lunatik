@@ -8,7 +8,7 @@ local driver = {
 }
 
 function driver:probe(devid)
-	return { x = 0, y = 0, drag = false }
+	return { x = 0, y = 0, drag = false, lock = false}
 end
 
 function driver:raw_event(hdev, state, report, raw_data)
@@ -34,11 +34,24 @@ function driver:raw_event(hdev, state, report, raw_data)
 					direction = state.y > 0 and "downly" or "uply"
 				end
 				print(string.format("Swipe %s with x=%d, y=%d", direction, state.x, state.y))
+				if direction == "uply" then 
+					state.lock = true
+					print("Locking mouse")
+				end
+				if direction == "downly" and state.lock then 
+					state.lock = false
+					print("Unlocking mouse")
+				end
 			end
 			state.x = 0
 			state.y = 0
 			state.drag = false
 		end
+	end
+	if state.lock then 
+		raw_data:setbyte(0, 0)
+		raw_data:setbyte(1, 0)
+		raw_data:setbyte(2, 0)
 	end
 	return false
 end
