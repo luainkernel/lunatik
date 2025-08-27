@@ -150,12 +150,6 @@ static inline void luahid_pushreport(lua_State *L, struct hid_report *report)
 #define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
 	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
 
-#define luahid_return(L, ret)		\
-do {					\
-	lua_pushinteger(L, ret);	\
-	return 1;			\
-} while (0)
-
 typedef struct {
 	luahid_t *hid;
 	struct hid_device *hdev;
@@ -169,7 +163,6 @@ typedef struct {
 			struct hid_report *report;
 			u8 *data;
 			int size;
-			int ret_bool;
 		} raw;
 	};
 } luahid_arg_t;
@@ -183,18 +176,22 @@ static int luahid_doprobe(lua_State *L)
 
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
 		pr_err("probe: couldn't find driver\n");
-		luahid_return(L, -ENXIO);
+		lua_pushinteger(L, -ENXIO);
+		return 1;
 	}
 
-	if (lua_getfield(L, -2, "probe") != LUA_TFUNCTION)
-		luahid_return(L, 0);
+	if (lua_getfield(L, -2, "probe") != LUA_TFUNCTION) {
+		lua_pushinteger(L, 0);
+		return 1;
+	}
 
 	lua_pushvalue(L, -3); /* hid.ops */
 	luahid_newtable(L, id, driver_data); /* devid */
 
 	if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
 		pr_err("probe: %s\n", lua_tostring(L, -1));
-		luahid_return(L, -ECANCELED);
+		lua_pushinteger(L, -ECANCELED);
+		return 1;
 	}
 
 	if (lua_type(L, -1) == LUA_TTABLE) {
@@ -204,7 +201,8 @@ static int luahid_doprobe(lua_State *L)
 
 		hid_set_drvdata(hdev, hid);
 	}
-	luahid_return(L, 0);
+	lua_pushinteger(L, 0);
+	return 1;
 }
 
 static int luahid_runprobe(lua_State *L, luahid_arg_t *arg)
@@ -310,11 +308,14 @@ static int luahid_doraw_event(lua_State *L)
 
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
 		pr_err("raw_event: couldn't find driver");
-		luahid_return(L, -ENXIO);
+		lua_pushinteger(L, -ENXIO);
+		return 1;
 	}
 
-	if (lua_getfield(L, -2, "raw_event") != LUA_TFUNCTION)
-		luahid_return(L, 0);
+	if (lua_getfield(L, -2, "raw_event") != LUA_TFUNCTION) {
+		lua_pushinteger(L, 0);
+		return 1;
+	}
 
 	lua_pushvalue(L, -3);  /* hid.ops */
 	luahid_pushhdev(L, hdev);
@@ -323,13 +324,15 @@ static int luahid_doraw_event(lua_State *L)
 	lunatik_object_t *raw_data;
 	if ((raw_data = luahid_getdescriptor(L, hid)) == NULL) {
 		pr_warn("raw_event: event data not found\n");
-		luahid_return(L, -ENXIO);
+		lua_pushinteger(L, -ENXIO);
+		return 1;
 	}
 	luadata_reset(raw_data, data, size, LUADATA_OPT_NONE);
 
 	if (lua_pcall(L, 5, 1, 0) != LUA_OK) {
 		pr_err("raw_event: %s\n", lua_tostring(L, -1));
-		luahid_return(L, -ECANCELED);
+		lua_pushinteger(L, -ECANCELED);
+		return 1;
 	}
 
 	luadata_clear(raw_data);
@@ -338,31 +341,33 @@ static int luahid_doraw_event(lua_State *L)
 		return 1;
 	}
 
-	arg->raw.ret_bool = lua_toboolean(L, -1);
-	luahid_return(L, 0);
+	lua_pushinteger(L, 0);
+	return 1;
 }
 
-static int luahid_runraw_event(lua_State *L, luahid_arg_t *arg)
+static int luahid_runraw_event(lua_State *L, luahid_arg_t *arg, int *ret_bool)
 {
 	luahid_pcall(L, luahid_doraw_event, arg);
-	return lua_tointeger(L, -1);
+	int ret = lua_tointeger(L, -1);
+	*ret_bool = ret ? false : lua_toboolean(L, -2);
+	return ret;
+
 }
 
 static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, u8 *data, int size)
 {
 	struct hid_driver *driver = hdev->driver;
 	luahid_t *hid = container_of(driver, luahid_t, driver);
-	int ret;
+	int ret, ret_bool = false;
 	luahid_arg_t arg;
 	arg.hid = hid;
 	arg.hdev = hdev;
 	arg.raw.report = report;
 	arg.raw.data = data;
 	arg.raw.size = size;
-	arg.raw.ret_bool = 0;
 
-	lunatik_runirq(hid->runtime, luahid_runraw_event, ret, &arg);
-	return ret ? false : arg.raw.ret_bool;
+	lunatik_runirq(hid->runtime, luahid_runraw_event, ret, &arg, &ret_bool);
+	return ret_bool;
 }
 
 /***
