@@ -1,3 +1,11 @@
+--
+-- SPDX-FileCopyrightText: (c) 2025 Jieming Zhou <qrsikno@gmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
+-- Drvier for Qemu's USB mouse with gesture(dragging),
+-- swipeing up to lock the mouse and swipeing down to unlock it.
+
 local hid = require("hid")
 
 local driver = {
@@ -8,7 +16,7 @@ local driver = {
 }
 
 function driver:probe(devid)
-	return { x = 0, y = 0, drag = false, lock = false}
+	return { x = 0, y = 0, drag = false, lock = false }
 end
 
 function driver:raw_event(hdev, state, report, raw_data)
@@ -34,11 +42,11 @@ function driver:raw_event(hdev, state, report, raw_data)
 					direction = state.y > 0 and "downly" or "uply"
 				end
 				print(string.format("Swipe %s with x=%d, y=%d", direction, state.x, state.y))
-				if direction == "uply" then 
+				if direction == "uply" then
 					state.lock = true
 					print("Locking mouse")
 				end
-				if direction == "downly" and state.lock then 
+				if direction == "downly" and state.lock then
 					state.lock = false
 					print("Unlocking mouse")
 				end
@@ -48,10 +56,10 @@ function driver:raw_event(hdev, state, report, raw_data)
 			state.drag = false
 		end
 	end
-	if state.lock then 
-		raw_data:setbyte(0, 0)
-		raw_data:setbyte(1, 0)
-		raw_data:setbyte(2, 0)
+	if state.lock then
+		raw_data:setbyte(0, 0) -- buttons
+		raw_data:setbyte(1, 0) -- dx
+		raw_data:setbyte(2, 0) -- dy
 	end
 	return false
 end
