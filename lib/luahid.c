@@ -103,12 +103,13 @@ do { 						\
 	lua_setfield(L, idx - 1, #field);	\
 } while (0)
 
-#define luahid_pcall(L, func, arg) 					\
+#define luahid_pcall(L, func, hdev, arg) 				\
 do { 									\
 	int n = lua_gettop(L); 						\
 	lua_pushcfunction(L, func); 					\
+	lua_pushlightuserdata(L, (void *)hdev); 			\
 	lua_pushlightuserdata(L, (void *)arg); 				\
-	if (lua_pcall(L, 1, LUA_MULTRET, 0) != LUA_OK) { 		\
+	if (lua_pcall(L, 2, LUA_MULTRET, 0) != LUA_OK) { 		\
 		pr_warn("%s: %s\n", #func, lua_tostring(L, -1));	\
 		lua_settop(L, n);					\
 	} 								\
@@ -151,8 +152,6 @@ static inline void luahid_pushreport(lua_State *L, struct hid_report *report)
 	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
 
 typedef struct {
-	luahid_t *hid;
-	struct hid_device *hdev;
 	union {
 		const struct hid_device_id *id; /* probe */
 		struct {
@@ -169,9 +168,10 @@ typedef struct {
 
 static int luahid_doprobe(lua_State *L)
 {
-	luahid_arg_t *arg = (luahid_arg_t *)lua_touserdata(L, 1);
-	luahid_t *hid = arg->hid;
-	struct hid_device *hdev = arg->hdev;
+	struct hid_device *hdev = (struct hid_device *)lua_touserdata(L, 1);
+	luahid_arg_t *arg = (luahid_arg_t *)lua_touserdata(L, 2);
+	struct hid_driver *driver = hdev->driver;
+	luahid_t *hid = container_of(driver, luahid_t, driver);
 	const struct hid_device_id *id = arg->id;
 
 	if (luahid_checkdriver(L, hid, -1, "_info")) {
@@ -205,9 +205,9 @@ static int luahid_doprobe(lua_State *L)
 	return 1;
 }
 
-static int luahid_runprobe(lua_State *L, luahid_arg_t *arg)
+static int luahid_runprobe(lua_State *L, struct hid_device *hdev, luahid_arg_t *arg)
 {
-	luahid_pcall(L, luahid_doprobe, arg);
+	luahid_pcall(L, luahid_doprobe, hdev, arg);
 	return lua_tointeger(L, -1);
 }
 
@@ -217,11 +217,9 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	luahid_t *hid = container_of(driver, luahid_t, driver);
 	int ret;
 	luahid_arg_t arg;
-	arg.hid = hid;
-	arg.hdev = hdev;
 	arg.id = id;
 
-	lunatik_run(hid->runtime, luahid_runprobe, ret, &arg);
+	lunatik_run(hid->runtime, luahid_runprobe, ret, hdev, &arg);
 	if (ret != 0 || (ret = hid_parse(hdev)) != 0)
 		return ret;
 
@@ -240,9 +238,10 @@ static inline lunatik_object_t *luahid_getdescriptor(lua_State *L, luahid_t *hid
 
 static int luahid_doreport_fixup(lua_State *L)
 {
-	luahid_arg_t *arg = (luahid_arg_t *)lua_touserdata(L, 1);
-	luahid_t *hid = arg->hid;
-	struct hid_device *hdev = arg->hdev;
+	struct hid_device *hdev = (struct hid_device *)lua_touserdata(L, 1);
+	luahid_arg_t *arg = (luahid_arg_t *)lua_touserdata(L, 2);
+	struct hid_driver *driver = hdev->driver;
+	luahid_t *hid = container_of(driver, luahid_t, driver);
 	__u8 *rdesc = arg->report.rdesc;
 	unsigned int rsize = arg->report.rsize;
 
@@ -270,9 +269,9 @@ out:
 	return 0; /* unused  */
 }
 
-static int luahid_runreport_fixup(lua_State *L, luahid_arg_t *arg)
+static int luahid_runreport_fixup(lua_State *L, struct hid_device *hdev, luahid_arg_t *arg)
 {
-	luahid_pcall(L, luahid_doreport_fixup, arg);
+	luahid_pcall(L, luahid_doreport_fixup, hdev, arg);
 	return 0;
 }
 
@@ -288,20 +287,19 @@ static luahid_ret_t luahid_report_fixup(struct hid_device *hdev, __u8 *rdesc, un
 	luahid_t *hid = container_of(driver, luahid_t, driver);
 	int ret;
 	luahid_arg_t arg;
-	arg.hid = hid;
-	arg.hdev = hdev;
 	arg.report.rdesc = rdesc;
 	arg.report.rsize = *rsize;
 
-	lunatik_run(hid->runtime, luahid_runreport_fixup, ret, &arg);
+	lunatik_run(hid->runtime, luahid_runreport_fixup, ret, hdev, &arg);
 	return rdesc;
 }
 
 static int luahid_doraw_event(lua_State *L)
 {
-	luahid_arg_t *arg = (luahid_arg_t *)lua_touserdata(L, 1);
-	luahid_t *hid = arg->hid;
-	struct hid_device *hdev = arg->hdev;
+	struct hid_device *hdev = (struct hid_device *)lua_touserdata(L, 1);
+	luahid_arg_t *arg = (luahid_arg_t *)lua_touserdata(L, 2);
+	struct hid_driver *driver = hdev->driver;
+	luahid_t *hid = container_of(driver, luahid_t, driver);
 	struct hid_report *report = arg->raw.report;
 	u8 *data = arg->raw.data;
 	int size = arg->raw.size;
@@ -345,9 +343,9 @@ static int luahid_doraw_event(lua_State *L)
 	return 1;
 }
 
-static int luahid_runraw_event(lua_State *L, luahid_arg_t *arg, int *ret_bool)
+static int luahid_runraw_event(lua_State *L, struct hid_device *hdev, luahid_arg_t *arg, int *ret_bool)
 {
-	luahid_pcall(L, luahid_doraw_event, arg);
+	luahid_pcall(L, luahid_doraw_event, hdev, arg);
 	int ret = lua_tointeger(L, -1);
 	*ret_bool = ret ? false : lua_toboolean(L, -2);
 	return ret;
@@ -360,13 +358,11 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 	luahid_t *hid = container_of(driver, luahid_t, driver);
 	int ret, ret_bool = false;
 	luahid_arg_t arg;
-	arg.hid = hid;
-	arg.hdev = hdev;
 	arg.raw.report = report;
 	arg.raw.data = data;
 	arg.raw.size = size;
 
-	lunatik_runirq(hid->runtime, luahid_runraw_event, ret, &arg, &ret_bool);
+	lunatik_runirq(hid->runtime, luahid_runraw_event, ret, hdev, &arg, &ret_bool);
 	return ret_bool;
 }
 
