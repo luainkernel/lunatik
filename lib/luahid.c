@@ -269,7 +269,7 @@ static int luahid_do##NAME(lua_State *L)								\
 
 LUAHID_CALLBACK(probe, 2, 1, err);
 LUAHID_CALLBACK(report_fixup, 4, 0, warn);
-LUAHID_CALLBACK(raw_event, 5, 1, warn);
+LUAHID_CALLBACK(raw_event, 5, 1, err);
 
 static int luahid_runprobe(lua_State *L, struct hid_device *hdev, luahid_probe_arg_t *arg)
 {
