@@ -251,7 +251,7 @@ static int luahid_do##NAME(lua_State *L)								\
 													\
 	if (lua_getfield(L, -2, #NAME) != LUA_TFUNCTION) {						\
 		if (NRET) lua_pushinteger(L, 0);							\
-		return 1;                   								\
+		return (NRET) ? 1 : 0;                   						\
 	}                                                                      				\
 													\
 	lua_pushvalue(L, -3);                                                  				\
