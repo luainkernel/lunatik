@@ -41,7 +41,8 @@ do {						\
 
 #define LUASOCKET_SOCKADDR(addr)	(struct sockaddr *)&addr, sizeof(addr)
 #define LUASOCKET_ADDRMAX		(sizeof(struct sockaddr_ll)) /* AF_PACKET */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 150)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 150) && LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)) \
+	|| LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 80)
 #define LUASOCKET_ADDRMIN(addr)	(sizeof((addr)->sa_data_min))
 #else
 #define LUASOCKET_ADDRMIN(addr)	(sizeof((addr)->sa_data))
