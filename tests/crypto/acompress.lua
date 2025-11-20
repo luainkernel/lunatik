@@ -7,99 +7,72 @@ local acomp = require("crypto.acompress")
 local completion = require("completion")
 local test = require("util").test
 
+local function async_operation(op)
+	return function(tfm, inputs)
+		local results = {}
+		local done = completion.new()
+		local count = 0
+		local total = #inputs
+		-- keep requests alive until completion
+		local reqs = {}
+
+		local function check_done()
+			count = count + 1
+			if count == total then
+				done:complete()
+			end
+		end
+
+		for i, input in ipairs(inputs) do
+			local req = tfm:request()
+			reqs[i] = req
+			req[op](req, input, 4096, function(err, data)
+				results[i] = {err = err, data = data}
+				check_done()
+			end)
+		end
+
+		if total > 0 then
+			local ok, why = done:wait()
+			assert(ok, "Wait failed: " .. tostring(why))
+		end
+		return results
+	end
+end
+
+local async_compress = async_operation("compress")
+local async_decompress = async_operation("decompress")
+
 test("ACOMP compress async concurrent", function()
 	local tfm = acomp.new("lz4")
-	local req1 = tfm:request()
-	local req2 = tfm:request()
-	local done = completion.new()
-	local count = 0
-	local res1, res2
-
-	local function check_done()
-		count = count + 1
-		if count == 2 then
-			done:complete()
-		end
-	end
-
-	local function cb1(err, data)
-		res1 = {err = err, data = data}
-		check_done()
-	end
-
-	local function cb2(err, data)
-		res2 = {err = err, data = data}
-		check_done()
-	end
-
-	local data1 = "hello world 1"
-	local data2 = "hello world 2"
-
-	req1:compress(data1, 100, cb1)
-	req2:compress(data2, 100, cb2)
+	local inputs = {"hello world 1", "hello world 2"}
 	
-	local ok, why = done:wait()
-	assert(ok, "Wait failed: " .. tostring(why))
-	
-	assert(res1.err == 0, "Req1 failed")
-	assert(res2.err == 0, "Req2 failed")
-	assert(res1.data ~= res2.data, "Results should differ")
-	assert(#res1.data > 0, "Res1 empty")
-	assert(#res2.data > 0, "Res2 empty")
+	local results = async_compress(tfm, inputs)
+
+	assert(#results == 2, "Expected 2 results")
+	assert(results[1].err == 0, "Req1 failed")
+	assert(results[2].err == 0, "Req2 failed")
+	assert(results[1].data ~= results[2].data, "Results should differ")
+	assert(#results[1].data > 0, "Res1 empty")
+	assert(#results[2].data > 0, "Res2 empty")
 end)
 
 test("ACOMP decompress async concurrent", function()
 	local tfm = acomp.new("lz4")
-	local req1 = tfm:request()
-	local req2 = tfm:request()
-	local done = completion.new()
-	local cdata1, cdata2
-	local count = 0
+	local inputs = {"data one", "data two"}
 
 	-- Prepare compressed data concurrently
-	local function check_prep_done()
-		count = count + 1
-		if count == 2 then done:complete() end
+	local compressed_results = async_compress(tfm, inputs)
+	for i, res in ipairs(compressed_results) do
+		assert(res.err == 0, "Prep compress " .. i .. " failed")
+		compressed_results[i] = res.data
 	end
-
-	req1:compress("data one", 100, function(err, data)
-		assert(err == 0, "Prep compress 1 failed")
-		cdata1 = data
-		check_prep_done()
-	end)
-
-	req2:compress("data two", 100, function(err, data)
-		assert(err == 0, "Prep compress 2 failed")
-		cdata2 = data
-		check_prep_done()
-	end)
-	
-	local ok, why = done:wait()
-	assert(ok, "Prep wait failed: " .. tostring(why))
 
 	-- Concurrent decompression
-	done = completion.new()
-	count = 0
-	local res1, res2
+	local results = async_decompress(tfm, compressed_results)
 
-	local function check_done()
-		count = count + 1
-		if count == 2 then done:complete() end
-	end
-
-	req1:decompress(cdata1, 100, function(err, data)
-		res1 = {err = err, data = data}
-		check_done()
-	end)
-
-	req2:decompress(cdata2, 100, function(err, data)
-		res2 = {err = err, data = data}
-		check_done()
-	end)
-
-	ok, why = done:wait()
-	assert(ok, "Wait failed")
-	assert(res1.data == "data one", "Res1 mismatch")
-	assert(res2.data == "data two", "Res2 mismatch")
+	assert(#results == 2, "Expected 2 results")
+	assert(results[1].data == "data one", "Res1 mismatch")
+	assert(results[2].data == "data two", "Res2 mismatch")
 end)
 

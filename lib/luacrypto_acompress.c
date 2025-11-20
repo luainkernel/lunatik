@@ -252,9 +252,7 @@ static int luacrypto_acompress_request(lua_State *L)
 	lua_pushvalue(L, 1); /* push TFM object */
 	req->tfm = luaL_ref(L, LUA_REGISTRYINDEX);
 
-	req->req = luacrypto_acomp_request_alloc(tfm, L);
-	if (!req->req)
-		return luaL_error(L, "failed to allocate acomp request");
+	req->req = lunatik_checknull(L, luacrypto_acomp_request_alloc(tfm, L));
 
 	return 1;
 }
@@ -269,21 +267,7 @@ static const luaL_Reg luacrypto_acompress_mt[] = {
 
 /* Module Init */
 
-static int luacrypto_acompress_new(lua_State *L)
-{
-	const char *algname = luaL_checkstring(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luacrypto_acompress_class, 0);
-	struct crypto_acomp *tfm;
-
-	tfm = crypto_alloc_acomp(algname, 0, 0);
-	if (IS_ERR(tfm)) {
-		long err = PTR_ERR(tfm);
-		luaL_error(L, "Failed to allocate acompress transform for %s (err %ld)", algname, err);
-	}
-	object->private = tfm;
-
-	return 1;
-}
+LUACRYPTO_NEW(acompress, struct crypto_acomp, crypto_alloc_acomp, luacrypto_acompress_class, NULL);
 
 static const luaL_Reg luacrypto_acompress_lib[] = {
 	{"new", luacrypto_acompress_new},
