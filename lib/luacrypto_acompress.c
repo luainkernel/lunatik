@@ -53,8 +53,10 @@ typedef struct luacrypto_acomp_req_s {
 	struct acomp_req *req;
 	struct scatterlist sg_in;
 	struct scatterlist sg_out;
-	int cb_ref;
-	int buf_ref;
+	int cb;
+	int buf;
+	int tfm;
+	int self;
 	lua_State *L;
 	u8 *outbuf;
 	size_t outbuf_len;
@@ -67,14 +69,24 @@ static void luacrypto_acomp_req_release(void *private)
 {
 	luacrypto_acomp_req_t *obj = (luacrypto_acomp_req_t *)private;
 
-	if (obj->cb_ref != LUA_NOREF) {
-		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->cb_ref);
-		obj->cb_ref = LUA_NOREF;
+	if (obj->cb != LUA_NOREF) {
+		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->cb);
+		obj->cb = LUA_NOREF;
 	}
 
-	if (obj->buf_ref != LUA_NOREF) {
-		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->buf_ref);
-		obj->buf_ref = LUA_NOREF;
+	if (obj->buf != LUA_NOREF) {
+		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->buf);
+		obj->buf = LUA_NOREF;
+	}
+
+	if (obj->tfm != LUA_NOREF) {
+		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->tfm);
+		obj->tfm = LUA_NOREF;
+	}
+
+	if (obj->self != LUA_NOREF) {
+		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->self);
+		obj->self = LUA_NOREF;
 	}
 
 	if (obj->req) {
@@ -94,17 +106,22 @@ static int luacrypto_acomp_req_lua_cb(lua_State *L, void *data, int err)
 
 	obj->busy = false;
 
-	if (obj->buf_ref != LUA_NOREF) {
-		luaL_unref(L, LUA_REGISTRYINDEX, obj->buf_ref);
-		obj->buf_ref = LUA_NOREF;
+	if (obj->buf != LUA_NOREF) {
+		luaL_unref(L, LUA_REGISTRYINDEX, obj->buf);
+		obj->buf = LUA_NOREF;
 	}
 
-	if (obj->cb_ref == LUA_NOREF)
+	if (obj->self != LUA_NOREF) {
+		luaL_unref(L, LUA_REGISTRYINDEX, obj->self);
+		obj->self = LUA_NOREF;
+	}
+
+	if (obj->cb == LUA_NOREF)
 		return 0;
 
-	lua_rawgeti(L, LUA_REGISTRYINDEX, obj->cb_ref);
-	luaL_unref(L, LUA_REGISTRYINDEX, obj->cb_ref);
-	obj->cb_ref = LUA_NOREF;
+	lua_rawgeti(L, LUA_REGISTRYINDEX, obj->cb);
+	luaL_unref(L, LUA_REGISTRYINDEX, obj->cb);
+	obj->cb = LUA_NOREF;
 
 	if (lua_type(L, -1) != LUA_TFUNCTION) {
 		pr_err("No callback function found for acomp request\n");
@@ -145,7 +162,7 @@ static void luacrypto_acomp_req_docall(void *data, int err)
 #endif
 
 static int luacrypto_acomp_req_prepare(luacrypto_acomp_req_t *obj, lua_State *L,
-	const char *in_buf, size_t in_len, unsigned int out_len, int cb_ref, int buf_ref)
+	const char *in_buf, size_t in_len, unsigned int out_len, int cb, int buf)
 {
 	if (obj->outbuf_len < out_len) {
 		if (obj->outbuf)
@@ -160,8 +177,12 @@ static int luacrypto_acomp_req_prepare(luacrypto_acomp_req_t *obj, lua_State *L,
 	acomp_request_set_params(obj->req, &obj->sg_in, &obj->sg_out, in_len, out_len);
 	acomp_request_set_callback(obj->req, 0, luacrypto_acomp_req_docall, obj);
 
-	obj->cb_ref = cb_ref;
-	obj->buf_ref = buf_ref;
+	obj->cb = cb;
+	obj->buf = buf;
+	
+	lua_pushvalue(L, 1); /* push self */
+	obj->self = luaL_ref(L, LUA_REGISTRYINDEX);
+	
 	obj->busy = true;
 	return 0;
 }
@@ -181,11 +202,11 @@ static int luacrypto_acomp_req_##name(lua_State *L)						\
 	luaL_checktype(L, 4, LUA_TFUNCTION);							\
 												\
 	lua_pushvalue(L, 4);									\
-	int cb_ref = luaL_ref(L, LUA_REGISTRYINDEX);						\
+	int cb = luaL_ref(L, LUA_REGISTRYINDEX);						\
 	lua_pushvalue(L, 2);									\
-	int buf_ref = luaL_ref(L, LUA_REGISTRYINDEX);						\
+	int buf = luaL_ref(L, LUA_REGISTRYINDEX);						\
 												\
-	lunatik_try(L, luacrypto_acomp_req_prepare, obj, L, in_buf, in_len, out_len, cb_ref, buf_ref); \
+	lunatik_try(L, luacrypto_acomp_req_prepare, obj, L, in_buf, in_len, out_len, cb, buf);	\
 	int ret = crypto_acomp_##name(obj->req);						\
 	if (ret != -EINPROGRESS)								\
 		luacrypto_acomp_req_docall(obj, ret);						\
@@ -232,8 +253,12 @@ static int luacrypto_acompress_request(lua_State *L)
 
 	memset(req, 0, sizeof(luacrypto_acomp_req_t));
 	req->L = L;
-	req->cb_ref = LUA_NOREF;
-	req->buf_ref = LUA_NOREF;
+	req->cb = LUA_NOREF;
+	req->buf = LUA_NOREF;
+	req->self = LUA_NOREF;
+	
+	lua_pushvalue(L, 1); /* push TFM object */
+	req->tfm = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	req->req = luacrypto_acomp_request_alloc(tfm, L);
 	if (!req->req)
@@ -252,7 +277,29 @@ static const luaL_Reg luacrypto_acompress_mt[] = {
 
 /* Module Init */
 
-LUACRYPTO_NEW(acompress, struct crypto_acomp, crypto_alloc_acomp, luacrypto_acompress_class, NULL);
+static int luacrypto_acompress_new(lua_State *L)
+{
+	const char *algname = luaL_checkstring(L, 1);
+	lunatik_object_t *object = lunatik_newobject(L, &luacrypto_acompress_class, 0);
+	struct crypto_acomp *tfm;
+
+	if (luaL_getmetatable(L, luacrypto_acomp_req_class.name) == LUA_TNIL) {
+		lua_pop(L, 1);
+		lunatik_checkclass(L, &luacrypto_acomp_req_class);
+		lunatik_newclass(L, &luacrypto_acomp_req_class);
+	} else {
+		lua_pop(L, 1);
+	}
+
+	tfm = crypto_alloc_acomp(algname, 0, 0);
+	if (IS_ERR(tfm)) {
+		long err = PTR_ERR(tfm);
+		luaL_error(L, "Failed to allocate acompress transform for %s (err %ld)", algname, err);
+	}
+	object->private = tfm;
+
+	return 1;
+}
 
 static const luaL_Reg luacrypto_acompress_lib[] = {
 	{"new", luacrypto_acompress_new},
