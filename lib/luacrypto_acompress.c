@@ -240,14 +240,6 @@ static int luacrypto_acompress_request(lua_State *L)
 	lunatik_object_t *object;
 	luacrypto_acomp_req_t *req;
 
-	if (luaL_getmetatable(L, luacrypto_acomp_req_class.name) == LUA_TNIL) {
-		lua_pop(L, 1);
-		lunatik_checkclass(L, &luacrypto_acomp_req_class);
-		lunatik_newclass(L, &luacrypto_acomp_req_class);
-	} else {
-		lua_pop(L, 1);
-	}
-
 	object = lunatik_newobject(L, &luacrypto_acomp_req_class, sizeof(luacrypto_acomp_req_t));
 	req = (luacrypto_acomp_req_t *)object->private;
 
@@ -283,14 +275,6 @@ static int luacrypto_acompress_new(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luacrypto_acompress_class, 0);
 	struct crypto_acomp *tfm;
 
-	if (luaL_getmetatable(L, luacrypto_acomp_req_class.name) == LUA_TNIL) {
-		lua_pop(L, 1);
-		lunatik_checkclass(L, &luacrypto_acomp_req_class);
-		lunatik_newclass(L, &luacrypto_acomp_req_class);
-	} else {
-		lua_pop(L, 1);
-	}
-
 	tfm = crypto_alloc_acomp(algname, 0, 0);
 	if (IS_ERR(tfm)) {
 		long err = PTR_ERR(tfm);
@@ -306,7 +290,12 @@ static const luaL_Reg luacrypto_acompress_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(crypto_acompress, luacrypto_acompress_lib, &luacrypto_acompress_class, NULL);
+LUNATIK_NEWLIB_MULTICLASS(crypto_acompress, luacrypto_acompress_lib,
+	((const lunatik_class_t[]){
+		luacrypto_acompress_class,
+		luacrypto_acomp_req_class,
+		{NULL}
+	}), NULL);
 
 static int __init luacrypto_acompress_init(void)
 {
@@ -322,3 +311,4 @@ module_exit(luacrypto_acompress_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("jperon <cataclop@hotmail.com>");
 MODULE_DESCRIPTION("Lunatik low-level Linux Crypto API interface (ACOMPRESS)");
+
