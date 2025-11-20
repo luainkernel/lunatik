@@ -25,7 +25,8 @@ COMPRESS.__index = COMPRESS
 --   local compress = require("crypto.compress").new("lz4")
 -- @within compress
 function COMPRESS.new(algname)
-	return setmetatable({ tfm = acomp.new(algname) }, COMPRESS)
+	local tfm = acomp.new(algname)
+	return setmetatable({ tfm = tfm, req = tfm:request() }, COMPRESS)
 end
 
 local function operation(name)
@@ -33,7 +34,7 @@ local function operation(name)
 		local done = completion.new()
 		local result, output
 
-		self.tfm[name](self.tfm, data, max_output_len, function(err, out)
+		self.req[name](self.req, data, max_output_len, function(err, out)
 			result = err
 			output = out
 			done:complete()
@@ -73,4 +74,3 @@ COMPRESS.compress = operation("compress")
 COMPRESS.decompress = operation("decompress")
 
 return COMPRESS
-

@@ -264,3 +264,4 @@ module_exit(luacrypto_acompress_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("jperon <cataclop@hotmail.com>");
 MODULE_DESCRIPTION("Lunatik low-level Linux Crypto API interface (ACOMPRESS)");
+
