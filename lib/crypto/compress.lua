@@ -74,3 +74,4 @@ COMPRESS.compress = operation("compress")
 COMPRESS.decompress = operation("decompress")
 
 return COMPRESS
+
