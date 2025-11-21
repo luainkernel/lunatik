@@ -13,6 +13,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
+#include <linux/version.h>
 #include <linux/cpumask.h>
 #include <linux/kernel_stat.h>
 
@@ -112,7 +113,7 @@ static int luacpu_stats(lua_State *L)
 	luacpu_setstat(L, -1, kcs, steal, STEAL);
 	luacpu_setstat(L, -1, kcs, guest, GUEST);
 	luacpu_setstat(L, -1, kcs, guest_nice, GUEST_NICE);
-#ifdef CONFIG_SCHED_CORE
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)) && defined(CONFIG_SCHED_CORE)
 	luacpu_setstat(L, -1, kcs, forceidle, FORCEIDLE);
 #endif
 	return 1;
