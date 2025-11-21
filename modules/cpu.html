@@ -1,0 +1,357 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Fields">Fields</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><strong>cpu</strong></li>
+  <li><a href="../modules/crypto.aead.html">crypto.aead</a></li>
+  <li><a href="../modules/crypto.comp.html">crypto.comp</a></li>
+  <li><a href="../modules/crypto.rng.html">crypto.rng</a></li>
+  <li><a href="../modules/crypto.shash.html">crypto.shash</a></li>
+  <li><a href="../modules/crypto.skcipher.html">crypto.skcipher</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>cpu</code></h1>
+<p>Linux CPU Lua interface.</p>
+<p> This module provides access to Linux's CPU abstractions.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#foreach_online">foreach_online (callback)</a></td>
+	<td class="summary">Iterates over all online CPUs and calls a function for each.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#foreach_possible">foreach_possible (callback)</a></td>
+	<td class="summary">Iterates over all possible CPUs and calls a function for each.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#foreach_present">foreach_present (callback)</a></td>
+	<td class="summary">Iterates over all present CPUs and calls a function for each.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#num_possible">num_possible ()</a></td>
+	<td class="summary">Returns the possible CPUs in the system.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#num_possible">num_possible ()</a></td>
+	<td class="summary">Returns the possible CPUs in the system.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#num_possible">num_possible ()</a></td>
+	<td class="summary">Returns the possible CPUs in the system.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#stats">stats (cpu)</a></td>
+	<td class="summary">Gets CPU statistics for a specific CPU.</td>
+	</tr>
+</table>
+<h2><a href="#Fields">Fields</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#L">L</a></td>
+	<td class="summary">Macro to set CPU statistics in Lua table.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "foreach_online"></a>
+    <strong>foreach_online (callback)</strong>
+    </dt>
+    <dd>
+    Iterates over all online CPUs and calls a function for each.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+         Function to call for each online CPU
+        </li>
+    </ul>
+
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">cpu.<span class="function-name">foreach_online</span>(<span class="keyword">function</span>(cpu_num)
+    <span class="global">print</span>(<span class="string">"CPU"</span>, cpu.<span class="function-name">stats</span>(cpu_num))
+<span class="keyword">end</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "foreach_possible"></a>
+    <strong>foreach_possible (callback)</strong>
+    </dt>
+    <dd>
+    Iterates over all possible CPUs and calls a function for each.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+         Function to call for each possible CPU
+        </li>
+    </ul>
+
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">cpu.<span class="function-name">foreach_possible</span>(<span class="keyword">function</span>(cpu_num)
+    <span class="global">print</span>(<span class="string">"CPU"</span>, cpu.<span class="function-name">stats</span>(cpu_num))
+<span class="keyword">end</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "foreach_present"></a>
+    <strong>foreach_present (callback)</strong>
+    </dt>
+    <dd>
+    Iterates over all present CPUs and calls a function for each.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+         Function to call for each present CPU
+        </li>
+    </ul>
+
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">cpu.<span class="function-name">foreach_present</span>(<span class="keyword">function</span>(cpu_num)
+    <span class="global">print</span>(<span class="string">"CPU"</span>, cpu.<span class="function-name">stats</span>(cpu_num))
+<span class="keyword">end</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "num_possible"></a>
+    <strong>num_possible ()</strong>
+    </dt>
+    <dd>
+    Returns the possible CPUs in the system.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The number of possible CPUs in the system
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "num_possible"></a>
+    <strong>num_possible ()</strong>
+    </dt>
+    <dd>
+    Returns the possible CPUs in the system.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The number of possible CPUs in the system
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "num_possible"></a>
+    <strong>num_possible ()</strong>
+    </dt>
+    <dd>
+    Returns the possible CPUs in the system.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The number of possible CPUs in the system
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "stats"></a>
+    <strong>stats (cpu)</strong>
+    </dt>
+    <dd>
+    Gets CPU statistics for a specific CPU.
+ Fetches kernel CPU statistics including user, nice, system, idle, iowait,
+ irq, softirq, steal, guest, guest_nice and forceidle times.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">cpu</span>
+            <span class="types"><span class="type">integer</span></span>
+         The CPU number (0-based) to query.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        A table containing CPU time statistics with the following fields:
+      <ul>
+        </ul>
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if CPU is offline
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> cpu0 = cpu.<span class="function-name">stats</span>(<span class="number">0</span>)
+<span class="global">print</span>(<span class="string">"CPU 0 user time:"</span>, cpu0.user)
+<span class="global">print</span>(<span class="string">"CPU 0 idle time:"</span>, cpu0.idle)</pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Fields"></a>Fields</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "L"></a>
+    <strong>L</strong>
+    </dt>
+    <dd>
+    Macro to set CPU statistics in Lua table.
+
+
+    <ul>
+        <li><span class="parameter">L</span>
+         Lua state
+        </li>
+        <li><span class="parameter">idx</span>
+         Index of the table in the Lua stack
+        </li>
+        <li><span class="parameter">kcs</span>
+         Kernel CPU statistics structure (kernel_cpustat)
+        </li>
+        <li><span class="parameter">name</span>
+         Field name in the Lua table
+        </li>
+        <li><span class="parameter">NAME</span>
+         Corresponding C enum name for CPU time
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-11-21 21:42:22 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
