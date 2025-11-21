@@ -28,6 +28,7 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+
 #include <lunatik.h>
 
 #include "luacrypto.h"
@@ -213,7 +214,32 @@ static int luacrypto_acomp_req_##name(lua_State *L)						\
 	return 0;										\
 }
 
+/***
+* Request object methods.
+* These methods are available on request objects created by `ACOMPRESS:request()`.
+* @type crypto_acomp_req
+*/
+
+/***
+* Compresses data asynchronously using the ACOMPRESS transform.
+* The callback is invoked when the operation completes (either synchronously or asynchronously).
+* @function compress
+* @tparam string data The data to compress.
+* @tparam integer output_size The maximum size of the output buffer.
+* @tparam function callback The callback function to invoke upon completion. It receives two arguments: `err` (integer error code, 0 on success) and `data` (string containing compressed data, or nil on error).
+* @raise Error if the request object is busy, or if parameters are invalid.
+*/
 LUACRYPTO_ACOMP_REQ_OPERATION(compress)
+
+/***
+* Decompresses data asynchronously using the ACOMPRESS transform.
+* The callback is invoked when the operation completes (either synchronously or asynchronously).
+* @function decompress
+* @tparam string data The compressed data to decompress.
+* @tparam integer output_size The maximum size of the output buffer.
+* @tparam function callback The callback function to invoke upon completion. It receives two arguments: `err` (integer error code, 0 on success) and `data` (string containing decompressed data, or nil on error).
+* @raise Error if the request object is busy, or if parameters are invalid.
+*/
 LUACRYPTO_ACOMP_REQ_OPERATION(decompress)
 
 static const luaL_Reg luacrypto_acomp_req_mt[] = {
@@ -232,8 +258,21 @@ static const lunatik_class_t luacrypto_acomp_req_class = {
 	.sleep = true,
 };
 
-/* ACOMPRESS TFM Methods */
+/***
+* ACOMPRESS object methods.
+* These methods are available on ACOMPRESS TFM objects created by `crypto.acompress.new()`.
+* @see new
+* @type ACOMPRESS
+*/
 
+/***
+* Creates a new asynchronous compression request object.
+* Request objects are used to perform asynchronous compression and decompression operations.
+* Multiple requests can be created from the same TFM and used concurrently.
+* @function request
+* @treturn crypto_acomp_req A new request object.
+* @raise Error if request allocation fails.
+*/
 static int luacrypto_acompress_request(lua_State *L)
 {
 	struct crypto_acomp *tfm = luacrypto_acompress_check(L, 1);
@@ -265,8 +304,18 @@ static const luaL_Reg luacrypto_acompress_mt[] = {
 	{NULL, NULL}
 };
 
-/* Module Init */
-
+/***
+* Creates a new ACOMPRESS transform object for the specified algorithm.
+* @function new
+* @tparam string algorithm The name of the compression algorithm (e.g., "lz4", "deflate", "lzo").
+* @treturn ACOMPRESS A new ACOMPRESS transform object.
+* @raise Error if the algorithm is not found or allocation fails.
+* @usage
+*   local acomp = require("crypto.acompress")
+*   local tfm = acomp.new("lz4")
+*   local req = tfm:request()
+* @within crypto_acompress
+*/
 LUACRYPTO_NEW(acompress, struct crypto_acomp, crypto_alloc_acomp, luacrypto_acompress_class, NULL);
 
 static const luaL_Reg luacrypto_acompress_lib[] = {
@@ -274,12 +323,13 @@ static const luaL_Reg luacrypto_acompress_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB_MULTICLASS(crypto_acompress, luacrypto_acompress_lib,
-	((const lunatik_class_t[]){
-		luacrypto_acompress_class,
-		luacrypto_acomp_req_class,
-		{NULL}
-	}), NULL);
+static const lunatik_class_t luacrypto_acompress_classes[] = {
+	luacrypto_acompress_class,
+	luacrypto_acomp_req_class,
+	{NULL}
+};
+
+LUNATIK_NEWLIB_MULTICLASS(crypto_acompress, luacrypto_acompress_lib, luacrypto_acompress_classes, NULL);
 
 static int __init luacrypto_acompress_init(void)
 {
