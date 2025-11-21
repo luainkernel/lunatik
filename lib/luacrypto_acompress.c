@@ -58,7 +58,7 @@ typedef struct luacrypto_acomp_req_s {
 	int buf;
 	int tfm;
 	int self;
-	lua_State *L;
+	lunatik_object_t *runtime;
 	u8 *outbuf;
 	size_t outbuf_len;
 	bool busy;
@@ -70,24 +70,31 @@ static void luacrypto_acomp_req_release(void *private)
 {
 	luacrypto_acomp_req_t *obj = (luacrypto_acomp_req_t *)private;
 
-	if (obj->cb != LUA_NOREF) {
-		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->cb);
-		obj->cb = LUA_NOREF;
-	}
+	if (obj->runtime) {
+		lua_State *L = lunatik_getstate(obj->runtime);
 
-	if (obj->buf != LUA_NOREF) {
-		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->buf);
-		obj->buf = LUA_NOREF;
-	}
+		if (obj->cb != LUA_NOREF) {
+			luaL_unref(L, LUA_REGISTRYINDEX, obj->cb);
+			obj->cb = LUA_NOREF;
+		}
 
-	if (obj->tfm != LUA_NOREF) {
-		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->tfm);
-		obj->tfm = LUA_NOREF;
-	}
+		if (obj->buf != LUA_NOREF) {
+			luaL_unref(L, LUA_REGISTRYINDEX, obj->buf);
+			obj->buf = LUA_NOREF;
+		}
 
-	if (obj->self != LUA_NOREF) {
-		luaL_unref(obj->L, LUA_REGISTRYINDEX, obj->self);
-		obj->self = LUA_NOREF;
+		if (obj->tfm != LUA_NOREF) {
+			luaL_unref(L, LUA_REGISTRYINDEX, obj->tfm);
+			obj->tfm = LUA_NOREF;
+		}
+
+		if (obj->self != LUA_NOREF) {
+			luaL_unref(L, LUA_REGISTRYINDEX, obj->self);
+			obj->self = LUA_NOREF;
+		}
+
+		lunatik_putobject(obj->runtime);
+		obj->runtime = NULL;
 	}
 
 	if (obj->req) {
@@ -99,6 +106,30 @@ static void luacrypto_acomp_req_release(void *private)
 		lunatik_free(obj->outbuf);
 		obj->outbuf = NULL;
 	}
+}
+
+/* Helper function that will be called via pcall to safely push arguments and call callback */
+static int luacrypto_acomp_req_call_cb(lua_State *L)
+{
+	luacrypto_acomp_req_t *obj = (luacrypto_acomp_req_t *)lua_touserdata(L, 1);
+	int err = lua_tointeger(L, 2);
+
+	lua_rawgeti(L, LUA_REGISTRYINDEX, obj->cb);
+	
+	if (lua_type(L, -1) != LUA_TFUNCTION) {
+		pr_err("No callback function found for acomp request\n");
+		return 0;
+	}
+
+	lua_pushinteger(L, err);
+
+	if (err == 0)
+		lua_pushlstring(L, (const char *)obj->outbuf, obj->req->dlen);
+	else
+		lua_pushnil(L);
+
+	lua_call(L, 2, 0);
+	return 0;
 }
 
 static int luacrypto_acomp_req_lua_cb(lua_State *L, void *data, int err)
@@ -120,37 +151,30 @@ static int luacrypto_acomp_req_lua_cb(lua_State *L, void *data, int err)
 	if (obj->cb == LUA_NOREF)
 		return 0;
 
-	lua_rawgeti(L, LUA_REGISTRYINDEX, obj->cb);
-	luaL_unref(L, LUA_REGISTRYINDEX, obj->cb);
-	obj->cb = LUA_NOREF;
-
-	if (lua_type(L, -1) != LUA_TFUNCTION) {
-		pr_err("No callback function found for acomp request\n");
-		lua_pop(L, 1);
-		return 0;
-	}
-
+	/* Push the helper function and its arguments */
+	lua_pushcfunction(L, luacrypto_acomp_req_call_cb);
+	lua_pushlightuserdata(L, obj);
 	lua_pushinteger(L, err);
 
-	if (err == 0)
-		lua_pushlstring(L, (const char *)obj->outbuf, obj->req->dlen);
-	else
-		lua_pushnil(L);
-
+	/* Call the helper via pcall to protect against errors */
 	if (lua_pcall(L, 2, 0, 0) != LUA_OK) {
 		pr_err("Lua callback error: %s\n", lua_tostring(L, -1));
 		lua_pop(L, 1);
 	}
+
+	/* Clean up the callback reference */
+	luaL_unref(L, LUA_REGISTRYINDEX, obj->cb);
+	obj->cb = LUA_NOREF;
+
 	return 0;
 }
 
 static void luacrypto_acomp_req_docall(void *data, int err)
 {
 	luacrypto_acomp_req_t *obj = (luacrypto_acomp_req_t *)data;
-	lunatik_object_t *runtime = lunatik_toruntime(obj->L);
 	int ret;
 
-	lunatik_run(runtime, luacrypto_acomp_req_lua_cb, ret, data, err);
+	lunatik_run(obj->runtime, luacrypto_acomp_req_lua_cb, ret, data, err);
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
@@ -283,7 +307,8 @@ static int luacrypto_acompress_request(lua_State *L)
 	req = (luacrypto_acomp_req_t *)object->private;
 
 	memset(req, 0, sizeof(luacrypto_acomp_req_t));
-	req->L = L;
+	req->runtime = lunatik_toruntime(L);
+	lunatik_getobject(req->runtime);
 	req->cb = LUA_NOREF;
 	req->buf = LUA_NOREF;
 	req->self = LUA_NOREF;
