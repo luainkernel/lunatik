@@ -50,7 +50,7 @@ static const lunatik_class_t luacrypto_acompress_class = {
 
 /* ACOMPRESS Request Object */
 
-typedef struct luacrypto_acomp_req_s {
+typedef struct luacrypto_acompress_req_s {
 	struct acomp_req *req;
 	struct scatterlist sg_in;
 	struct scatterlist sg_out;
@@ -59,13 +59,13 @@ typedef struct luacrypto_acomp_req_s {
 	u8 *outbuf;
 	size_t outbuf_len;
 	bool busy;
-} luacrypto_acomp_req_t;
+} luacrypto_acompress_req_t;
 
-LUNATIK_PRIVATECHECKER(luacrypto_acomp_req_check, luacrypto_acomp_req_t *);
+LUNATIK_PRIVATECHECKER(luacrypto_acompress_req_check, luacrypto_acompress_req_t *);
 
-static void luacrypto_acomp_req_release(void *private)
+static void luacrypto_acompress_req_release(void *private)
 {
-	luacrypto_acomp_req_t *obj = (luacrypto_acomp_req_t *)private;
+	luacrypto_acompress_req_t *obj = (luacrypto_acompress_req_t *)private;
 
 	if (obj->runtime) {
 		lua_State *L = lunatik_getstate(obj->runtime);
@@ -91,9 +91,9 @@ static void luacrypto_acomp_req_release(void *private)
 }
 
 /* Helper function that will be called via pcall to safely push arguments and call callback */
-static int luacrypto_acomp_req_call_cb(lua_State *L)
+static int luacrypto_acompress_req_call_cb(lua_State *L)
 {
-	luacrypto_acomp_req_t *obj = (luacrypto_acomp_req_t *)lua_touserdata(L, 1);
+	luacrypto_acompress_req_t *obj = (luacrypto_acompress_req_t *)lua_touserdata(L, 1);
 	int err = lua_tointeger(L, 2);
 
 	/* Get the refs table */
@@ -121,9 +121,9 @@ static int luacrypto_acomp_req_call_cb(lua_State *L)
 	return 0;
 }
 
-static int luacrypto_acomp_req_lua_cb(lua_State *L, void *data, int err)
+static int luacrypto_acompress_req_lua_cb(lua_State *L, void *data, int err)
 {
-	luacrypto_acomp_req_t *obj = (luacrypto_acomp_req_t *)data;
+	luacrypto_acompress_req_t *obj = (luacrypto_acompress_req_t *)data;
 
 	obj->busy = false;
 
@@ -131,7 +131,7 @@ static int luacrypto_acomp_req_lua_cb(lua_State *L, void *data, int err)
 		return 0;
 	
 	/* Push the helper function and its arguments */
-	lua_pushcfunction(L, luacrypto_acomp_req_call_cb);
+	lua_pushcfunction(L, luacrypto_acompress_req_call_cb);
 	lua_pushlightuserdata(L, obj);
 	lua_pushinteger(L, err);
 
@@ -148,24 +148,24 @@ static int luacrypto_acomp_req_lua_cb(lua_State *L, void *data, int err)
 	return 0;
 }
 
-static void luacrypto_acomp_req_docall(void *data, int err)
+static void luacrypto_acompress_req_docall(void *data, int err)
 {
-	luacrypto_acomp_req_t *obj = (luacrypto_acomp_req_t *)data;
+	luacrypto_acompress_req_t *obj = (luacrypto_acompress_req_t *)data;
 	int ret;
 
-	lunatik_run(obj->runtime, luacrypto_acomp_req_lua_cb, ret, data, err);
+	lunatik_run(obj->runtime, luacrypto_acompress_req_lua_cb, ret, data, err);
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
-#define luacrypto_acomp_request_alloc(tfm, L) ({	\
+#define luacrypto_acompress_request_alloc(tfm, L) ({	\
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));	\
 	acomp_request_alloc(tfm, gfp);			\
 })
 #else
-#define luacrypto_acomp_request_alloc(tfm, L)	acomp_request_alloc(tfm)
+#define luacrypto_acompress_request_alloc(tfm, L)	acomp_request_alloc(tfm)
 #endif
 
-static int luacrypto_acomp_req_prepare(luacrypto_acomp_req_t *obj, lua_State *L,
+static int luacrypto_acompress_req_prepare(luacrypto_acompress_req_t *obj, lua_State *L,
 	const char *in_buf, size_t in_len, unsigned int out_len)
 {
 	if (obj->outbuf_len < out_len) {
@@ -179,7 +179,7 @@ static int luacrypto_acomp_req_prepare(luacrypto_acomp_req_t *obj, lua_State *L,
 	sg_init_one(&obj->sg_out, obj->outbuf, out_len);
 
 	acomp_request_set_params(obj->req, &obj->sg_in, &obj->sg_out, in_len, out_len);
-	acomp_request_set_callback(obj->req, 0, luacrypto_acomp_req_docall, obj);
+	acomp_request_set_callback(obj->req, 0, luacrypto_acompress_req_docall, obj);
 
 	/* Table to hold all references */
 	lua_newtable(L);
@@ -199,10 +199,10 @@ static int luacrypto_acomp_req_prepare(luacrypto_acomp_req_t *obj, lua_State *L,
 	return 0;
 }
 
-#define LUACRYPTO_ACOMP_REQ_OPERATION(name)							\
-static int luacrypto_acomp_req_##name(lua_State *L)						\
+#define LUACRYPTO_ACOMPRESS_REQ_OPERATION(name)							\
+static int luacrypto_acompress_req_##name(lua_State *L)						\
 {												\
-	luacrypto_acomp_req_t *obj = luacrypto_acomp_req_check(L, 1);				\
+	luacrypto_acompress_req_t *obj = luacrypto_acompress_req_check(L, 1);				\
 	if (obj->busy)										\
 		return luaL_error(L, "request object is busy");					\
 												\
@@ -213,17 +213,17 @@ static int luacrypto_acomp_req_##name(lua_State *L)						\
 	lunatik_checkbounds(L, 3, out_len, 1, UINT_MAX);					\
 	luaL_checktype(L, 4, LUA_TFUNCTION);							\
 												\
-	lunatik_try(L, luacrypto_acomp_req_prepare, obj, L, in_buf, in_len, out_len);	\
+	lunatik_try(L, luacrypto_acompress_req_prepare, obj, L, in_buf, in_len, out_len);	\
 	int ret = crypto_acomp_##name(obj->req);						\
 	if (ret != -EINPROGRESS)								\
-		luacrypto_acomp_req_docall(obj, ret);						\
+		luacrypto_acompress_req_docall(obj, ret);						\
 	return 0;										\
 }
 
 /***
 * Request object methods.
 * These methods are available on request objects created by `ACOMPRESS:request()`.
-* @type crypto_acomp_req
+* @type crypto_acompress_req
 */
 
 /***
@@ -235,7 +235,7 @@ static int luacrypto_acomp_req_##name(lua_State *L)						\
 * @tparam function callback The callback function to invoke upon completion. It receives two arguments: `err` (integer error code, 0 on success) and `data` (string containing compressed data, or nil on error).
 * @raise Error if the request object is busy, or if parameters are invalid.
 */
-LUACRYPTO_ACOMP_REQ_OPERATION(compress)
+LUACRYPTO_ACOMPRESS_REQ_OPERATION(compress)
 
 /***
 * Decompresses data asynchronously using the ACOMPRESS transform.
@@ -246,29 +246,34 @@ LUACRYPTO_ACOMP_REQ_OPERATION(compress)
 * @tparam function callback The callback function to invoke upon completion. It receives two arguments: `err` (integer error code, 0 on success) and `data` (string containing decompressed data, or nil on error).
 * @raise Error if the request object is busy, or if parameters are invalid.
 */
-LUACRYPTO_ACOMP_REQ_OPERATION(decompress)
+LUACRYPTO_ACOMPRESS_REQ_OPERATION(decompress)
 
-static int luacrypto_acomp_req_busy(lua_State *L)
+/***
+* Checks if the request object is currently busy with an asynchronous operation.
+* @function busy
+* @treturn boolean True if the request is busy, false otherwise.
+*/
+static int luacrypto_acompress_req_busy(lua_State *L)
 {
-	luacrypto_acomp_req_t *obj = luacrypto_acomp_req_check(L, 1);
+	luacrypto_acompress_req_t *obj = luacrypto_acompress_req_check(L, 1);
 	lua_pushboolean(L, obj->busy);
 	return 1;
 }
 
-static const luaL_Reg luacrypto_acomp_req_mt[] = {
-	{"compress", luacrypto_acomp_req_compress},
-	{"decompress", luacrypto_acomp_req_decompress},
-	{"busy", luacrypto_acomp_req_busy},
+static const luaL_Reg luacrypto_acompress_req_mt[] = {
+	{"compress", luacrypto_acompress_req_compress},
+	{"decompress", luacrypto_acompress_req_decompress},
+	{"busy", luacrypto_acompress_req_busy},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
 	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luacrypto_acomp_req_class = {
-	.name = "crypto_acomp_req",
-	.methods = luacrypto_acomp_req_mt,
-	.release = luacrypto_acomp_req_release,
+static const lunatik_class_t luacrypto_acompress_req_class = {
+	.name = "crypto_acompress_req",
+	.methods = luacrypto_acompress_req_mt,
+	.release = luacrypto_acompress_req_release,
 	.sleep = true,
 };
 
@@ -284,24 +289,24 @@ static const lunatik_class_t luacrypto_acomp_req_class = {
 * Request objects are used to perform asynchronous compression and decompression operations.
 * Multiple requests can be created from the same TFM and used concurrently.
 * @function request
-* @treturn crypto_acomp_req A new request object.
+* @treturn crypto_acompress_req A new request object.
 * @raise Error if request allocation fails.
 */
 static int luacrypto_acompress_request(lua_State *L)
 {
 	struct crypto_acomp *tfm = luacrypto_acompress_check(L, 1);
 	lunatik_object_t *object;
-	luacrypto_acomp_req_t *req;
+	luacrypto_acompress_req_t *req;
 
-	object = lunatik_newobject(L, &luacrypto_acomp_req_class, sizeof(luacrypto_acomp_req_t));
-	req = (luacrypto_acomp_req_t *)object->private;
+	object = lunatik_newobject(L, &luacrypto_acompress_req_class, sizeof(luacrypto_acompress_req_t));
+	req = (luacrypto_acompress_req_t *)object->private;
 
-	memset(req, 0, sizeof(luacrypto_acomp_req_t));
+	memset(req, 0, sizeof(luacrypto_acompress_req_t));
 	req->runtime = lunatik_toruntime(L);
 	lunatik_getobject(req->runtime);
 	req->refs = LUA_NOREF;
 
-	req->req = lunatik_checknull(L, luacrypto_acomp_request_alloc(tfm, L));
+	req->req = lunatik_checknull(L, luacrypto_acompress_request_alloc(tfm, L));
 
 	return 1;
 }
@@ -335,7 +340,7 @@ static const luaL_Reg luacrypto_acompress_lib[] = {
 
 static const lunatik_class_t luacrypto_acompress_classes[] = {
 	luacrypto_acompress_class,
-	luacrypto_acomp_req_class,
+	luacrypto_acompress_req_class,
 	{NULL}
 };
 
