@@ -248,9 +248,17 @@ LUACRYPTO_ACOMP_REQ_OPERATION(compress)
 */
 LUACRYPTO_ACOMP_REQ_OPERATION(decompress)
 
+static int luacrypto_acomp_req_busy(lua_State *L)
+{
+	luacrypto_acomp_req_t *obj = luacrypto_acomp_req_check(L, 1);
+	lua_pushboolean(L, obj->busy);
+	return 1;
+}
+
 static const luaL_Reg luacrypto_acomp_req_mt[] = {
 	{"compress", luacrypto_acomp_req_compress},
 	{"decompress", luacrypto_acomp_req_decompress},
+	{"busy", luacrypto_acomp_req_busy},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
 	{"__index", lunatik_monitorobject},
