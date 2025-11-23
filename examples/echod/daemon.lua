@@ -13,7 +13,6 @@ local data    = require("data")
 local shouldstop = thread.shouldstop
 local task = linux.task
 local sock = socket.sock
-local errno = linux.errno
 
 local control = data.new(2)
 control:setbyte(1, 1) -- alive
@@ -35,7 +34,7 @@ local function daemon()
 			runtime:resume(control, session)
 			thread.run(runtime, worker .. n)
 			n = n + 1
-		elseif session == errno.AGAIN then
+		elseif session == "EAGAIN" then
 			linux.schedule(100)
 		end
 	end
