@@ -37,7 +37,6 @@ server:listen()
 local shouldstop = thread.shouldstop
 local task = linux.task
 local sock = socket.sock
-local errno = linux.errno
 
 local size = 1024
 
@@ -68,7 +67,7 @@ local function daemon()
 		local ok, session = pcall(server.accept, server, sock.NONBLOCK)
 		if ok then
 			handle(session)
-		elseif session == errno.AGAIN then
+		elseif session == "EAGAIN" then
 			linux.schedule(100)
 		end
 	end

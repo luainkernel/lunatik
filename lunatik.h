@@ -10,6 +10,7 @@
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/kref.h>
+#include <linux/errname.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -124,7 +125,11 @@ static inline void *lunatik_checknull(lua_State *L, void *ptr)
 #define lunatik_tryret(L, ret, op, ...)				\
 do {								\
 	if ((ret = op(__VA_ARGS__)) < 0) {			\
-		lua_pushinteger(L, -ret);			\
+		const char *err = errname(-ret);		\
+		if (likely(err != NULL))			\
+			lua_pushstring(L, err);			\
+		else						\
+			lua_pushinteger(L, -ret);		\
 		lua_error(L);					\
 	}							\
 } while (0)
