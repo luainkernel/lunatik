@@ -21,12 +21,12 @@
 * @module socket
 * @see socket.inet
 */
-
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
+#include <linux/version.h>
 #include <linux/string.h>
 #include <linux/net.h>
-#include <linux/version.h>
+#include <linux/un.h>
 #include <net/sock.h>
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(6, 1, 0))
 #include <linux/l2tp.h>
@@ -42,7 +42,7 @@
 do {						\
 	msg.msg_namelen = sizeof(addr);		\
 	msg.msg_name = &addr;			\
-} while(0)
+} while (0)
 
 #define LUASOCKET_SOCKADDR(addr)	(struct sockaddr *)&addr, sizeof(addr)
 #define LUASOCKET_ADDRMAX		(sizeof(struct sockaddr_ll)) /* AF_PACKET */

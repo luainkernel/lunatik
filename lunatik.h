@@ -127,13 +127,13 @@ do {								\
 		lua_pushinteger(L, -ret);			\
 		lua_error(L);					\
 	}							\
-} while(0)
+} while (0)
 
 #define lunatik_try(L, op, ...)					\
 do {								\
 	int ret;						\
 	lunatik_tryret(L, ret, op, __VA_ARGS__);		\
-} while(0)
+} while (0)
 
 static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
 {
