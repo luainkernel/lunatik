@@ -30,7 +30,7 @@ static int luacpu_num_##name(lua_State *L) {			\
 }
 
 /***
-* Returns the possible CPUs in the system.
+* Returns the number of possible CPUs in the system.
 *
 * @function num_possible
 * @treturn integer The number of possible CPUs in the system
@@ -38,29 +38,21 @@ static int luacpu_num_##name(lua_State *L) {			\
 LUACPU_NUM(possible)
 
 /***
-* Returns the possible CPUs in the system.
+* Returns the number of CPUs present in the system.
 *
-* @function num_possible
-* @treturn integer The number of possible CPUs in the system
+* @function num_present
+* @treturn integer The number of CPUs present in the system
 */
 LUACPU_NUM(present)
 
 /***
-* Returns the possible CPUs in the system.
+* Returns the number of online CPUs in the system.
 *
-* @function num_possible
-* @treturn integer The number of possible CPUs in the system
+* @function num_online
+* @treturn integer The number of online CPUs in the system
 */
 LUACPU_NUM(online)
 
-/***
- * Macro to set CPU statistics in Lua table.
- * @param L Lua state
- * @param idx Index of the table in the Lua stack
- * @param kcs Kernel CPU statistics structure (kernel_cpustat)
- * @param name Field name in the Lua table
- * @param NAME Corresponding C enum name for CPU time
- */
 #define luacpu_setstat(L, idx, kcs, name, NAME)				\
 do {									\
 	lua_pushinteger(L, (lua_Integer)kcs.cpustat[CPUTIME_##NAME]);	\
