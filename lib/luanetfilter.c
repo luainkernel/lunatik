@@ -81,6 +81,9 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 	else
 		luadata_reset(data, skb->data, skb_headlen(skb), LUADATA_OPT_NONE);
 
+	/* Set the sk_buff pointer so the Lua code can call expand() */
+	luadata_set_skb(data, skb);
+
 	if (lua_pcall(L, 1, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
 		return -1;
