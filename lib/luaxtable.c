@@ -124,8 +124,13 @@ static int luaxtable_pushparams(lua_State *L, const struct xt_action_param *par,
 	return 0;
 }
 
+static inline int luaxtable_cleanup(luaxtable_t *xtable)
+{
+	return luadata_clear(xtable->skb);
+}
+
 #define luaxtable_call(L, op, xtable, skb, par, info, opt)	\
-	((luaxtable_pushparams(L, par, xtable, skb, opt) == -1) || (luaxtable_docall(L, xtable, info, op, 2, 1) == -1))
+	((luaxtable_pushparams(L, par, xtable, skb, opt) == -1) || (luaxtable_docall(L, xtable, info, op, 2, 1) == -1) || luaxtable_cleanup(xtable))
 
 static int luaxtable_domatch(lua_State *L, luaxtable_t *xtable, const struct sk_buff *skb, struct xt_action_param *par, int fallback)
 {
