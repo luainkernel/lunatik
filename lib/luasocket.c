@@ -38,73 +38,71 @@
 
 #include <lunatik.h>
 
-#define luasocket_msgaddr(msg, addr)		\
+#define luasocket_msgaddr(msg, addr, size)	\
 do {						\
-	msg.msg_namelen = sizeof(addr);		\
+	msg.msg_namelen = size;			\
 	msg.msg_name = &addr;			\
 } while (0)
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 150) && LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)) \
-	|| LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 80)
-#define LUASOCKET_ADDRMIN		(sizeof_field(struct sockaddr, sa_data_min))
-#else
-#define LUASOCKET_ADDRMIN		(sizeof_field(struct sockaddr, sa_data))
-#endif
+#define LUASOCKET_ADDRMAX	(sizeof_field(struct sockaddr_storage, __data))
 
 static int luasocket_new(lua_State *L);
 static int luasocket_accept(lua_State *L);
 
 #define LUASOCKET_ISUNIX(family)	((family) == AF_UNIX || (family) == AF_LOCAL)
 
-static void luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr *addr, int ix)
+static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr_storage *addr, int ix)
 {
-	addr->sa_family = socket->sk->sk_family;
-	if (addr->sa_family == AF_INET) {
+	addr->ss_family = socket->sk->sk_family;
+	if (addr->ss_family == AF_INET) {
 		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
 		addr_in->sin_addr.s_addr = htonl((u32)luaL_checkinteger(L, ix));
 		addr_in->sin_port = htons((u16)luaL_checkinteger(L, ix + 1));
+		return sizeof(struct sockaddr_in);
 	}
 #ifdef CONFIG_UNIX
-	else if (LUASOCKET_ISUNIX(addr->sa_family)) {
+	else if (LUASOCKET_ISUNIX(addr->ss_family)) {
 		size_t len;
 		struct sockaddr_un *addr_un = (struct sockaddr_un *)addr;
 		const char *addr_data = luaL_checklstring(L, ix, &len);
 		luaL_argcheck(L, len + 1 <= UNIX_PATH_MAX, ix, "out of bounds");
 		strncpy(addr_un->sun_path, addr_data, len);
 		addr_un->sun_path[len] = '\0';
+		return sizeof(struct sockaddr_un);
 	}
 #endif
-	else if (addr->sa_family == AF_PACKET && lua_type(L, ix) == LUA_TNUMBER) {
+	else if (addr->ss_family == AF_PACKET && lua_type(L, ix) == LUA_TNUMBER) {
 		struct sockaddr_ll *addr_ll = (struct sockaddr_ll *)addr;
 		addr_ll->sll_ifindex = (int)lua_tointeger(L, ix);
+		return sizeof(struct sockaddr_ll);
 	}
 	else {
 		size_t len;
 		const char *addr_data = luaL_checklstring(L, ix, &len);
-		luaL_argcheck(L, len <= LUASOCKET_ADDRMIN, ix, "out of bounds");
-		memcpy(addr->sa_data, addr_data, len);
+		luaL_argcheck(L, len <= LUASOCKET_ADDRMAX, ix, "out of bounds");
+		memcpy(addr->__data, addr_data, len);
+		return sizeof(struct sockaddr_storage);
 	}
 }
 
-static int luasocket_pushaddr(lua_State *L, struct sockaddr *addr)
+static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr)
 {
 	int n;
-	if (addr->sa_family == AF_INET) {
+	if (addr->ss_family == AF_INET) {
 		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
 		lua_pushinteger(L, (lua_Integer)ntohl(addr_in->sin_addr.s_addr));
 		lua_pushinteger(L, (lua_Integer)ntohs(addr_in->sin_port));
 		n = 2;
 	}
 #ifdef CONFIG_UNIX
-	else if (LUASOCKET_ISUNIX(addr->sa_family)) {
+	else if (LUASOCKET_ISUNIX(addr->ss_family)) {
 		struct sockaddr_un *addr_un = (struct sockaddr_un *)addr;
 		lua_pushstring(L, addr_un->sun_path);
 		n = 1;
 	}
 #endif
 	else {
-		const char *addr_data = addr->sa_data;
-		lua_pushlstring(L, addr_data, LUASOCKET_ADDRMIN);
+		lua_pushlstring(L, (const char *)addr->__data, LUASOCKET_ADDRMAX);
 		n = 1;
 	}
 	return n;
@@ -146,7 +144,7 @@ static int luasocket_send(lua_State *L)
 	size_t len;
 	struct kvec vec;
 	struct msghdr msg;
-	struct sockaddr addr;
+	struct sockaddr_storage addr;
 	int nargs = lua_gettop(L);
 	int ret;
 
@@ -156,8 +154,8 @@ static int luasocket_send(lua_State *L)
 	vec.iov_len = len;
 
 	if (unlikely(nargs >= 3)) {
-		luasocket_checkaddr(L, socket, &addr, 3);
-		luasocket_msgaddr(msg, addr);
+		size_t size = luasocket_checkaddr(L, socket, &addr, 3);
+		luasocket_msgaddr(msg, addr, size);
 	}
 
 	lunatik_tryret(L, ret, kernel_sendmsg, socket, &msg, &vec, 1, len);
@@ -198,7 +196,7 @@ static int luasocket_receive(lua_State *L)
 	luaL_Buffer B;
 	struct kvec vec;
 	struct msghdr msg;
-	struct sockaddr addr;
+	struct sockaddr_storage addr;
 	int flags = luaL_optinteger(L, 3, 0);
 	int from = lua_toboolean(L, 4);
 	int ret;
@@ -209,12 +207,12 @@ static int luasocket_receive(lua_State *L)
 	vec.iov_len = len;
 
 	if (unlikely(from))
-		luasocket_msgaddr(msg, addr);
+		luasocket_msgaddr(msg, addr, sizeof(addr));
 
 	lunatik_tryret(L, ret, kernel_recvmsg, socket, &msg, &vec, 1, len, flags);
 	luaL_pushresultsize(&B, ret);
 
-	return unlikely(from) ? luasocket_pushaddr(L, (struct sockaddr *)msg.msg_name) + 1 : 1;
+	return unlikely(from) ? luasocket_pushaddr(L, (struct sockaddr_storage *)msg.msg_name) + 1 : 1;
 }
 
 /***
@@ -251,10 +249,9 @@ static int luasocket_receive(lua_State *L)
 static int luasocket_bind(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
-	struct sockaddr addr;
-
-	luasocket_checkaddr(L, socket, &addr, 2);
-	lunatik_try(L, kernel_bind, socket, &addr, sizeof(addr));
+	struct sockaddr_storage addr;
+	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
+	lunatik_try(L, kernel_bind, socket, (struct sockaddr *)&addr, size);
 	return 0;
 }
 
@@ -303,23 +300,21 @@ static int luasocket_listen(lua_State *L)
 static int luasocket_connect(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
-	struct sockaddr addr;
+	struct sockaddr_storage addr;
 	int nargs = lua_gettop(L);
-	int flags;
-
-	luasocket_checkaddr(L, socket, &addr, 2);
-	flags = luaL_optinteger(L, nargs >= 4 ? 4 : 3, 0);
-	lunatik_try(L, kernel_connect, socket, &addr, sizeof(addr), flags);
+	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
+	int flags = luaL_optinteger(L, nargs >= 4 ? 4 : 3, 0);
+	lunatik_try(L, kernel_connect, socket, (struct sockaddr *)&addr, size, flags);
 	return 0;
 }
 
-#define LUASOCKET_NEWGETTER(what) 				\
-static int luasocket_get##what(lua_State *L)			\
-{								\
-	struct socket *socket = luasocket_check(L, 1);		\
-	struct sockaddr addr;					\
-	lunatik_try(L, kernel_get##what, socket, &addr);	\
-	return luasocket_pushaddr(L, &addr);			\
+#define LUASOCKET_NEWGETTER(what) 						\
+static int luasocket_get##what(lua_State *L)					\
+{										\
+	struct socket *socket = luasocket_check(L, 1);				\
+	struct sockaddr_storage addr;						\
+	lunatik_try(L, kernel_get##what, socket, (struct sockaddr *)&addr);	\
+	return luasocket_pushaddr(L, &addr);					\
 }
 
 /***
