@@ -151,6 +151,10 @@ Lunatik **does not** support
 
 Lunatik **modifies** [luaL\_openlibs](https://www.lua.org/manual/5.4/manual.html#luaL_openlibs) to remove [luaopen\_io](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_io) and [luaopen\_os](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_os).
 
+## Lunatik Lua APIs
+
+Lua APIs are documented thanks to [LDoc](https://stevedonovan.github.io/ldoc/). This documentation can be read here: https://luainkernel.github.io/lunatik/, and in the source files.
+
 ## Lunatik C API
 
 ```C
@@ -290,10 +294,6 @@ lunatik_object_t *lunatik_toruntime(lua_State *L);
 ```
 _lunatik\_toruntime()_ returns the `runtime` environment referenced by the `L`'s
 [extra space](https://www.lua.org/manual/5.4/manual.html#lua_getextraspace).
-
-## Lunatik Lua APIs
-
-Lua APIs are documented thanks to [LDoc](https://stevedonovan.github.io/ldoc/). This documentation can be read here: https://luainkernel.github.io/lunatik/, and in the source files.
 
 # Examples
 
