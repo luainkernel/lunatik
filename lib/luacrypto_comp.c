@@ -5,7 +5,7 @@
 
 /***
 * Low-level Lua interface to the Linux Kernel Crypto API for synchronous
-* compression algorithms.
+* compression algorithms (Kernel < 6.15).
 *
 * This module provides a `new` function to create COMP transform objects,
 * which can then be used for compression and decompression.
