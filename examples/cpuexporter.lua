@@ -10,7 +10,6 @@ local linux   = require("linux")
 local cpu     = require("cpu")
 
 local shouldstop = thread.shouldstop
-local sock = socket.sock
 
 local server = unix.bind("/tmp/cpuexporter.sock", "STREAM")
 server:listen()
@@ -153,7 +152,7 @@ last_stats = cpu_stats()
 local function daemon()
 	print("cpud [daemon]: started")
 	while (not shouldstop()) do
-		local ok, session = pcall(server.accept, server, sock.NONBLOCK)
+		local ok, session = pcall(server.accept, server, unix.NONBLOCK)
 		if ok then
 			local ok, err = pcall(handle_client, session)
 			if not ok then
