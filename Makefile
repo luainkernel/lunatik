@@ -84,6 +84,8 @@ examples_install:
 	${INSTALL} -m 0644 examples/dnsblock/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsblock
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
 	${INSTALL} -m 0644 examples/dnsdoctor/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsrewrite
+	${INSTALL} -m 0644 examples/dnsrewrite/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsrewrite
 
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
