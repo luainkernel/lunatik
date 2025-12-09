@@ -686,7 +686,7 @@ static const lunatik_class_t luasocket_class = {
 	.name = "socket",
 	.methods = luasocket_mt,
 	.release = luasocket_release,
-	.sleep = true,
+	.flags = LUNATIK_CLASS_SLEEPABLE,
 	.pointer = true,
 };
 

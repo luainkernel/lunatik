@@ -239,7 +239,7 @@ static const lunatik_class_t luaprobe_class = {
 	.name = "probe",
 	.methods = luaprobe_mt,
 	.release = luaprobe_release,
-	.sleep = true,
+	.flags = LUNATIK_CLASS_SLEEPABLE,
 };
 
 static int luaprobe_new(lua_State *L)

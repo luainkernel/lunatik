@@ -403,7 +403,7 @@ static const lunatik_class_t luanotifier_class = {
 	.name = "notifier",
 	.methods = luanotifier_mt,
 	.release = luanotifier_release,
-	.sleep = true,
+	.flags = LUNATIK_CLASS_SLEEPABLE,
 };
 
 static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, luanotifier_register_t unregister_fn,

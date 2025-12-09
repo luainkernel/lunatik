@@ -212,7 +212,7 @@ static const lunatik_class_t luacrypto_aead_class = {
 	.name = "crypto_aead",
 	.methods = luacrypto_aead_mt,
 	.release = luacrypto_aead_release,
-	.sleep = true,
+	.flags = LUNATIK_CLASS_SLEEPABLE,
 	.pointer = true,
 };
 

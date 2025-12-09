@@ -350,7 +350,7 @@ static const lunatik_class_t luadevice_class = {
 	.name = "device",
 	.methods = luadevice_mt,
 	.release = luadevice_release,
-	.sleep = true,
+	.flags = LUNATIK_CLASS_SLEEPABLE,
 };
 
 static int luadevice_new(lua_State *L)

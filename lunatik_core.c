@@ -216,7 +216,7 @@ static const lunatik_class_t lunatik_class = {
 	.name = "lunatik",
 	.methods = lunatik_mt,
 	.release = lunatik_releaseruntime,
-	.sleep = true,
+	.flags = LUNATIK_CLASS_SLEEPABLE,
 	.pointer = true,
 };
 
@@ -238,7 +238,7 @@ static int lunatik_runscript(lua_State *L)
 	lunatik_setversion(L);
 	luaL_openlibs(L);
 
-	if (lunatik_toruntime(L)->sleep)
+	if (lunatik_object_issleepable(lunatik_toruntime(L)))
 		luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
 	else
 		luaL_requiref(L, "lunatik", luaopen_lunatik_stub, 0);

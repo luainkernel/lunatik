@@ -17,7 +17,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
 	lunatik_checkclass(L, class);
-	lunatik_setobject(object, class, class->sleep);
+	lunatik_setobject(object, class, lunatik_class_issleepable(class));
 	lunatik_setclass(L, class);
 
 	object->private = class->pointer ? NULL : lunatik_checkalloc(L, size);
@@ -58,9 +58,13 @@ EXPORT_SYMBOL(lunatik_checkpobject);
 
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {
+	const lunatik_class_t *class = object->class;
+
+	if (class->flags & LUNATIK_CLASS_NOSHARE)
+		luaL_error(L, "%s objects cannot be shared across runtimes",class->name);
+
 	lunatik_require(L, object->class->name);
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
-	const lunatik_class_t *class = object->class;
 
 	lunatik_checkclass(L, class);
 	lunatik_setclass(L, class);

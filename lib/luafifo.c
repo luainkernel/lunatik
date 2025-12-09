@@ -129,7 +129,7 @@ static const lunatik_class_t luafifo_class = {
 	.name = "fifo",
 	.methods = luafifo_mt,
 	.release = luafifo_release,
-	.sleep = false,
+	.flags = false,
 };
 
 static int luafifo_new(lua_State *L)

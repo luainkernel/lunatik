@@ -141,7 +141,7 @@ static const luaL_Reg luafib_lib[] = {
 };
 
 static const lunatik_class_t luafib_class = {
-	.sleep = true,
+	.flags = LUNATIK_CLASS_SLEEPABLE,
 };
 
 LUNATIK_NEWLIB(fib, luafib_lib, &luafib_class, NULL);
