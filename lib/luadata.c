@@ -59,6 +59,22 @@ static inline void *luadata_checkbounds(lua_State *L, int ix, luadata_t *data, l
 	return (void *)(data->ptr + offset);
 }
 
+void *luadata_checkbuffer(lua_State *L, int first_arg, size_t *len_out)
+{
+    luadata_t *d = luadata_check(L, first_arg);     
+    lua_Integer off = luaL_checkinteger(L, first_arg+1); 
+    lua_Integer lval = luaL_checkinteger(L, first_arg+2); 
+    size_t len = (size_t)lval;
+
+    void *ptr = luadata_checkbounds(L, first_arg+1, d, off, lval); 
+
+    if (len_out)
+        *len_out = len;
+
+    return ptr;
+}
+EXPORT_SYMBOL(luadata_checkbuffer);
+
 #define luadata_checkwritable(L, data)	luaL_argcheck((L), !((data)->opt & LUADATA_OPT_READONLY), 1, "read only")
 
 /***

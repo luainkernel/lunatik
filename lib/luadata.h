@@ -15,10 +15,12 @@ LUNATIK_LIB(data);
 #define	LUADATA_OPT_FREE	0x02
 #define	LUADATA_OPT_KEEP  	0x80
 
+
 #define luadata_clear(o)	(luadata_reset((o), NULL, 0, LUADATA_OPT_KEEP))
 
 lunatik_object_t *luadata_new(lua_State *L);
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
+void *luadata_checkbuffer(lua_State *L, int first_arg, size_t *len_out);
 
 static inline void luadata_close(lunatik_object_t *object)
 {
