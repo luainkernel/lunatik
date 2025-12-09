@@ -31,23 +31,9 @@
 
 #include "luadata.h"
 
-typedef struct luadata_s {
-	char *ptr;
-	size_t size;
-	uint8_t opt;
-} luadata_t;
-
 #define LUADATA_NUMBER_SZ	(sizeof(lua_Integer))
 
 static int luadata_lnew(lua_State *L);
-
-LUNATIK_PRIVATECHECKER(luadata_check, luadata_t *);
-
-static inline void luadata_checkbounds(lua_State *L, int ix, size_t size, lua_Integer offset, lua_Integer length)
-{
-	int bounds = offset >= 0 && length > 0 && offset + length <= size;
-	luaL_argcheck(L, bounds, ix, "out of bounds");
-}
 
 #define luadata_checkwritable(L, data)	luaL_argcheck((L), !((data)->opt & LUADATA_OPT_READONLY), 1, "read only")
 

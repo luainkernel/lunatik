@@ -17,6 +17,21 @@ LUNATIK_LIB(data);
 
 #define luadata_clear(o)	(luadata_reset((o), NULL, 0, LUADATA_OPT_KEEP))
 
+typedef struct luadata_s {
+    char *ptr;
+    size_t size;
+    uint8_t opt;
+} luadata_t;
+
+LUNATIK_PRIVATECHECKER(luadata_check, luadata_t *);
+
+static inline void luadata_checkbounds(lua_State *L, int ix, size_t size,
+                                       lua_Integer offset, lua_Integer length)
+{
+    int bounds = offset >= 0 && length > 0 && offset + length <= size;
+    luaL_argcheck(L, bounds, ix, "out of bounds");
+}
+
 lunatik_object_t *luadata_new(lua_State *L);
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
 
