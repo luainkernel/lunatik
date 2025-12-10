@@ -118,6 +118,47 @@ static int lualinux_schedule(lua_State *L)
 }
 
 /***
+* Modifies signal mask for current task.
+*
+* @function sigmask
+* @tparam integer sig Signal number
+* @tparam[opt] integer cmd 0=BLOCK (default), 1=UNBLOCK
+* @treturn boolean `true` on success
+* @raise error string on failure (EINVAL, EPERM, etc.)
+* @within linux
+* @usage
+*   local ok = pcall(linux.sigmask, 15) -- Block SIGTERM
+*   pcall(linux.sigmask, 15, 1) -- Unblock SIGTERM
+*/
+static int lualinux_sigmask(lua_State *L)
+{
+    sigset_t newmask;
+    sigemptyset(&newmask);
+    
+    int signum = luaL_checkinteger(L, 1);
+    int cmd = luaL_optinteger(L, 2, 0);
+    
+    sigaddset(&newmask, signum);
+
+    lunatik_try(L, sigprocmask, cmd, &newmask, NULL);
+    lua_pushboolean(L, true);
+    return 1;
+}
+
+/***
+* Checks current task pending signals.
+*
+* @function sigpending
+* @treturn boolean
+* @within linux
+*/
+static int lualinux_sigpending(lua_State *L)
+{
+ 	lua_pushboolean(L, signal_pending(current));
+    return 1;
+}
+
+/***
 * Kills a process by sending a signal.
 * By default, sends SIGKILL.
 * An optional second argument can specify a different signal (either by number or by using the constants from `linux.signal`).
@@ -156,6 +197,50 @@ err:
 	lua_pushboolean(L, false);
 	lua_pushinteger(L, ret);
 	return 2;
+}
+
+/***
+* Checks signal state for current task.
+*
+* @function sigstate
+* @tparam integer sig Signal number
+* @tparam[opt] string state One of: sigstate_opts
+* @treturn boolean
+* @within linux
+*/
+static int lualinux_sigstate(lua_State *L)
+{
+    enum sigstate_cmd {
+        SIGSTATE_BLOCKED,
+        SIGSTATE_PENDING,
+        SIGSTATE_ALLOWED,
+    };
+
+    static const char *const sigstate_opts[] = {
+        [SIGSTATE_BLOCKED] = "blocked",
+        [SIGSTATE_PENDING] = "pending",
+        [SIGSTATE_ALLOWED] = "allowed",
+        NULL
+    };
+
+    int signum = luaL_checkinteger(L, 1);
+    enum sigstate_cmd cmd = (enum sigstate_cmd)luaL_checkoption(L, 2, "blocked", sigstate_opts);
+
+    bool result;
+    switch (cmd) {
+    case SIGSTATE_BLOCKED:
+        result = sigismember(&current->blocked, signum);
+        break;
+    case SIGSTATE_PENDING:
+        result = sigismember(&current->pending.signal, signum);
+        break;
+    case SIGSTATE_ALLOWED:
+        result = !sigismember(&current->blocked, signum);
+        break;
+    }
+
+    lua_pushboolean(L, result);
+    return 1;
 }
 
 /***
@@ -710,7 +795,10 @@ static const lunatik_namespace_t lualinux_flags[] = {
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
+	{"sigmask", lualinux_sigmask},        
+	{"sigpending", lualinux_sigpending},
 	{"kill", lualinux_kill},
+	{"sigstate", lualinux_sigstate},
 	{"tracing", lualinux_tracing},
 	{"time", lualinux_time},
 	{"difftime", lualinux_difftime},
