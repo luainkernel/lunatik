@@ -261,10 +261,9 @@ static int luasocket_receive(lua_State *L)
 	struct kvec vec;
 	struct msghdr msg;
 	struct sockaddr_storage addr;
-	int flags = luaL_optinteger(L, 3, 0);
-	int from = lua_toboolean(L, 4);
 	int ret;
 	luadata_t *data = NULL;
+	int ixopt = 3;
 	int t2 = lua_type(L, 2);
 
 	luasocket_setmsg(msg);
@@ -279,14 +278,15 @@ static int luasocket_receive(lua_State *L)
 		lua_Integer offset = luaL_checkinteger(L, 3);
 		len = (size_t)luaL_checkinteger(L, 4);
 
-		flags = luaL_optinteger(L, 5, 0);
-		from = lua_toboolean(L, 6);
-
 		luadata_checkbounds(L, 3, data->size, offset, len);
 
 		vec.iov_base = (void *)(data->ptr + offset);
 		vec.iov_len = len;
+		ixopt = 5;
 	}
+	
+	int flags = luaL_optinteger(L, ixopt, 0);
+    int from  = lua_toboolean(L, ixopt + 1);
 
 	if (unlikely(from))
 		luasocket_msgaddr(msg, addr, sizeof(addr));
