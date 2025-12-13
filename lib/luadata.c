@@ -43,10 +43,20 @@ static int luadata_lnew(lua_State *L);
 
 LUNATIK_PRIVATECHECKER(luadata_check, luadata_t *);
 
-static inline void luadata_checkbounds(lua_State *L, int ix, size_t size, lua_Integer offset, lua_Integer length)
+/***
+ * Bounds-checked pointer calculation. Returns pointer on success, raises Lua error on failure.
+ * @param L Lua state
+ * @param ix Argument index for error reporting
+ * @param data luadata object
+ * @param offset Byte offset
+ * @param length Access length
+ * @return Valid pointer within bounds
+ */
+static inline void *luadata_checkbounds(lua_State *L, int ix, luadata_t *data, lua_Integer offset, lua_Integer length)
 {
-	int bounds = offset >= 0 && length > 0 && offset + length <= size;
+	int bounds = offset >= 0 && length > 0 && offset + length <= data->size;
 	luaL_argcheck(L, bounds, ix, "out of bounds");
+	return (void *)(data->ptr + offset);
 }
 
 #define luadata_checkwritable(L, data)	luaL_argcheck((L), !((data)->opt & LUADATA_OPT_READONLY), 1, "read only")
@@ -70,8 +80,8 @@ static int luadata_get##T(lua_State *L) \
 {					\
 	luadata_t *data = luadata_check(L, 1);					\
 	lua_Integer offset = luaL_checkinteger(L, 2);				\
-	luadata_checkbounds(L, 2, data->size, offset, sizeof(T##_t));		\
-	lua_pushinteger(L, (lua_Integer)*(T##_t *)(data->ptr + offset));	\
+	T##_t value = *(T##_t *)luadata_checkbounds(L, 2, data, offset, sizeof(T##_t));		\
+	lua_pushinteger(L, (lua_Integer)value);	\
 	return 1;			\
 }
 
@@ -80,9 +90,9 @@ static int luadata_set##T(lua_State *L)		\
 {						\
 	luadata_t *data = luadata_check(L, 1);					\
 	lua_Integer offset = luaL_checkinteger(L, 2);				\
-	luadata_checkbounds(L, 2, data->size, offset, sizeof(T##_t));		\
+	T##_t *ptr = luadata_checkbounds(L, 2, data, offset, sizeof(T##_t));		\
 	luadata_checkwritable(L, data);		\
-	*(T##_t *)(data->ptr + offset) = (T##_t)luaL_checkinteger(L, 3);	\
+	*ptr = (T##_t)luaL_checkinteger(L, 3);	\
 	return 0;				\
 }
 
@@ -208,9 +218,9 @@ static int luadata_getstring(lua_State *L)
 	luadata_t *data = luadata_check(L, 1);
 	lua_Integer offset = luaL_checkinteger(L, 2);
 	lua_Integer length = luaL_optinteger(L, 3, data->size - offset);
-	luadata_checkbounds(L, 2, data->size, offset, length);
+	char *str = (char *)luadata_checkbounds(L, 2, data, offset, length);
 
-	lua_pushlstring(L, data->ptr + offset, length);
+	lua_pushlstring(L, str, length);
 	return 1;
 }
 
@@ -227,10 +237,10 @@ static int luadata_setstring(lua_State *L)
 	luadata_t *data = luadata_check(L, 1);
 	lua_Integer offset = luaL_checkinteger(L, 2);
 	const char *str = luaL_checklstring(L, 3, &length);
-	luadata_checkbounds(L, 2, data->size, offset, length);
+	void *ptr = luadata_checkbounds(L, 2, data, offset, length);
+	
 	luadata_checkwritable(L, data);
-
-	memcpy(data->ptr + offset, str, length);
+	memcpy(ptr, str, length);
 	return 0;
 }
 
