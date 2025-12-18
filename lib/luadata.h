@@ -17,8 +17,11 @@ LUNATIK_LIB(data);
 
 #define luadata_clear(o)	(luadata_reset((o), NULL, 0, LUADATA_OPT_KEEP))
 
+struct sk_buff;
+
 lunatik_object_t *luadata_new(lua_State *L);
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
+void luadata_set_skb(lunatik_object_t *object, struct sk_buff *skb);
 
 static inline void luadata_close(lunatik_object_t *object)
 {

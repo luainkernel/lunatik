@@ -27,6 +27,8 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include <linux/skbuff.h>
+
 #include <lunatik.h>
 
 #include "luadata.h"
@@ -35,6 +37,7 @@ typedef struct luadata_s {
 	char *ptr;
 	size_t size;
 	uint8_t opt;
+	struct sk_buff *skb;  /* optional sk_buff pointer for packet expansion */
 } luadata_t;
 
 #define LUADATA_NUMBER_SZ	(sizeof(lua_Integer))
@@ -278,6 +281,43 @@ static void luadata_release(void *private)
 }
 
 /***
+* Expands the packet buffer by adding bytes to the tail.
+* This function is only available when the data object is backed by an sk_buff
+* (i.e., when used in netfilter hooks). It calls skb_put() to add space at the
+* end of the packet buffer.
+* @function expand
+* @tparam integer bytes The number of bytes to add to the end of the packet buffer.
+* @raise Error if the data object is not backed by an sk_buff, is read-only,
+*        or if there's insufficient tailroom in the sk_buff.
+*/
+static int luadata_expand(lua_State *L)
+{
+	luadata_t *data = luadata_check(L, 1);
+	lua_Integer bytes = luaL_checkinteger(L, 2);
+
+	luaL_argcheck(L, bytes > 0, 2, "bytes must be positive");
+	luadata_checkwritable(L, data);
+
+	if (data->skb == NULL)
+		return luaL_error(L, "expand not supported: data object not backed by sk_buff");
+
+	/* Check if there's enough tailroom */
+	if (skb_tailroom(data->skb) < bytes)
+		return luaL_error(L, "insufficient tailroom in sk_buff");
+
+	/* Expand the sk_buff */
+	skb_put(data->skb, bytes);
+
+	/* Update the data object's size to reflect the new packet size */
+	if (skb_mac_header_was_set(data->skb))
+		data->size = skb_headlen(data->skb) + skb_mac_header_len(data->skb);
+	else
+		data->size = skb_headlen(data->skb);
+
+	return 0;
+}
+
+/***
 * Creates a new data object, allocating a fresh block of memory.
 * @function new
 * @tparam integer size The number of bytes to allocate for the data block.
@@ -354,6 +394,7 @@ static const luaL_Reg luadata_mt[] = {
 #endif
 	{"getstring", luadata_getstring},
 	{"setstring", luadata_setstring},
+	{"expand", luadata_expand},
 	{NULL, NULL}
 };
 
@@ -387,6 +428,7 @@ static inline lunatik_object_t *luadata_create(void *ptr, size_t size, bool slee
 		data->ptr = ptr;
 		data->size = size;
 		data->opt = opt;
+		data->skb = NULL;
 	}
 	return object;
 }
@@ -419,6 +461,17 @@ int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt)
 	return 0;
 }
 EXPORT_SYMBOL(luadata_reset);
+
+void luadata_set_skb(lunatik_object_t *object, struct sk_buff *skb)
+{
+	luadata_t *data;
+
+	lunatik_lock(object);
+	data = (luadata_t *)object->private;
+	data->skb = skb;
+	lunatik_unlock(object);
+}
+EXPORT_SYMBOL(luadata_set_skb);
 
 static int __init luadata_init(void)
 {
