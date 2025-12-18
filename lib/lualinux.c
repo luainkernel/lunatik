@@ -25,6 +25,8 @@
 #include <linux/pid.h> 
 #include <linux/signal.h>
 #include <linux/errno.h>
+#include <linux/string.h>
+#include <linux/errname.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -350,13 +352,35 @@ static const lunatik_reg_t lualinux_stat[] = {
 
 /***
 * Table of error number constants.
-* Exports common errno values from `<uapi/asm-generic/errno-base.h>`.
+* Uses errname() to dynamically convert error numbers to their symbolic names.
 *
 * @table errno
 *   See https://github.com/torvalds/linux/blob/master/tools/include/uapi/asm-generic/errno-base.h
 *   and https://github.com/torvalds/linux/blob/master/tools/include/uapi/asm-generic/errno.h
 *   for the full list of error numbers.
 */
+static int lualinux_errno_index(lua_State *L)
+{
+	const char *name = luaL_checkstring(L, 2);
+	const char *err;
+	int i;
+
+#ifdef CONFIG_SYMBOLIC_ERRNAME
+	/* Search for matching errno by name using errname() */
+	for (i = 1; i < 4096; i++) {
+		err = errname(i);
+		if (err && strcmp(err + 1, name) == 0) { /* errname() returns "Exxx", skip 'E' */
+			lua_pushinteger(L, i);
+			return 1;
+		}
+	}
+#endif
+
+	lua_pushnil(L);
+	return 1;
+}
+
+/* Old static errno table - kept as fallback when CONFIG_SYMBOLIC_ERRNAME is not enabled */
 static const lunatik_reg_t lualinux_errno[] = {
 	/* From errno-base.h */
 	{"PERM", EPERM},	/* Operation not permitted */
@@ -572,7 +596,9 @@ static const lunatik_reg_t lualinux_signal[] = {
 static const lunatik_namespace_t lualinux_flags[] = {
 	{"stat", lualinux_stat},
 	{"task", lualinux_task},
+#ifndef CONFIG_SYMBOLIC_ERRNAME
 	{"errno", lualinux_errno},
+#endif
 	{"signal", lualinux_signal},
 	{NULL, NULL}
 };
@@ -739,7 +765,26 @@ static const luaL_Reg lualinux_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(linux, lualinux_lib, NULL, lualinux_flags);
+int luaopen_linux(lua_State *L)
+{
+	/* Create the main linux library */
+	luaL_newlib(L, lualinux_lib);
+	
+	/* Add static namespaces (stat, task, signal, and errno if CONFIG_SYMBOLIC_ERRNAME not set) */
+	lunatik_newnamespaces(L, lualinux_flags);
+	
+#ifdef CONFIG_SYMBOLIC_ERRNAME
+	/* Create errno table with metatable for dynamic lookup using errname() */
+	lua_newtable(L); /* errno table */
+	lua_newtable(L); /* metatable */
+	lua_pushcfunction(L, lualinux_errno_index);
+	lua_setfield(L, -2, "__index");
+	lua_setmetatable(L, -2);
+	lua_setfield(L, -2, "errno");
+#endif
+	
+	return 1;
+}
 
 static int __init lualinux_init(void)
 {
