@@ -77,9 +77,9 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 		return -1;
 
 	if (skb_mac_header_was_set(skb))
-		luadata_reset(data, skb_mac_header(skb), skb_headlen(skb) + skb_mac_header_len(skb), LUADATA_OPT_NONE);
+		luadata_reset(data, skb, skb_headlen(skb) + skb_mac_header_len(skb), LUADATA_OPT_SKB);
 	else
-		luadata_reset(data, skb->data, skb_headlen(skb), LUADATA_OPT_NONE);
+		luadata_reset(data, skb, skb_headlen(skb), LUADATA_OPT_SKB);
 
 	if (lua_pcall(L, 1, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
