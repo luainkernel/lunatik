@@ -129,7 +129,7 @@ static int luaxtable_pushparams(lua_State *L, const struct xt_action_param *par,
 
 static int luaxtable_domatch(lua_State *L, luaxtable_t *xtable, const struct sk_buff *skb, struct xt_action_param *par, int fallback)
 {
-	if (luaxtable_call(L, "match", xtable, (struct sk_buff *)skb, par, (luaxtable_info_t *)par->matchinfo, LUADATA_OPT_READONLY) != 0)
+	if (luaxtable_call(L, "match", xtable, (struct sk_buff *)skb, par, (luaxtable_info_t *)par->matchinfo, LUADATA_OPT_READONLY | LUADATA_OPT_SKB) != 0)
 		return fallback;
 
 	int ret = lua_toboolean(L, -1);
@@ -140,7 +140,7 @@ static int luaxtable_domatch(lua_State *L, luaxtable_t *xtable, const struct sk_
 
 static int luaxtable_dotarget(lua_State *L, luaxtable_t *xtable, struct sk_buff *skb, const struct xt_action_param *par, int fallback)
 {
-	if (luaxtable_call(L, "target", xtable,  skb, par, (luaxtable_info_t *)par->targinfo, LUADATA_OPT_NONE) != 0)
+	if (luaxtable_call(L, "target", xtable, skb, par, (luaxtable_info_t *)par->targinfo, LUADATA_OPT_SKB) != 0)
 		return fallback;
 
 	int ret = lua_tointeger(L, -1);

@@ -13,6 +13,7 @@ LUNATIK_LIB(data);
 #define	LUADATA_OPT_NONE	0x00
 #define	LUADATA_OPT_READONLY	0x01
 #define	LUADATA_OPT_FREE	0x02
+#define LUADATA_OPT_SKB  	0x04
 #define	LUADATA_OPT_KEEP  	0x80
 
 #define luadata_clear(o)	(luadata_reset((o), NULL, 0, LUADATA_OPT_KEEP))
