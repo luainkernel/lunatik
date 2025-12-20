@@ -372,7 +372,7 @@ static int luadata_lnew(lua_State *L)
 
 	data->ptr = lunatik_checkalloc(L, size);
 	data->size = size;
-	data->opt = LUADATA_OPT_FREE;
+	data->opt = LUNATIK_CLASS_NOSHARE;
 	return 1; /* object */
 }
 

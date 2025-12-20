@@ -21,7 +21,7 @@
 #define LUNATIK_CLASS_NOSHARE 0x02   
 
 #define lunatik_class_issleepable(cls) (((cls)->flags & LUNATIK_CLASS_SLEEPABLE) != 0)
-#define lunatik_object_issleepable(obj) (((obj)->flags & LUNATIK_CLASS_SLEEPABLE) != 0)
+#define lunatik_object_issleepable(obj) lunatik_class_issleepable((obj)->class)
 
 #define lunatik_locker(o, mutex_op, spin_op)	\
 do {						\
