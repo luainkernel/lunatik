@@ -198,10 +198,18 @@ static const luaL_Reg luanetfilter_lib[] = {
 static void luanetfilter_release(void *private)
 {
 	luanetfilter_t *nf = (luanetfilter_t *)private;
+	if (nf->skb) {
+		luadata_close(nf->skb);
+		nf->skb = NULL;
+	}
 	if (!nf->runtime)
 		return;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 	nf_unregister_net_hook(&init_net, &nf->nfops);
+#else
+	nf_unregister_hook(&nf->nfops);
+#endif
 	lunatik_putobject(nf->runtime);
 	nf->runtime = NULL;
 }
