@@ -96,11 +96,7 @@ static int luadevice_fop(lua_State *L, luadevice_t *luadev, const char *fop, int
 		goto err;
 	}
 
-	if (lua_getfield(L, -1, fop) != LUA_TFUNCTION) {
-		lua_getfield(L, -2, "name");
-		pr_err("%s: operation isn't defined for /dev/%s\n", fop, lua_tostring(L, -1));
-		goto err;
-	}
+	lunatik_optcfunction(L, -1, fop, lunatik_nop);
 
 	lua_insert(L, base + 1); /* fop */
 	lua_insert(L, base + 2); /* driver */
