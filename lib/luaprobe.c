@@ -58,10 +58,7 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 		goto out;
 	}
 
-	if (lua_getfield(L, -1, handler) != LUA_TFUNCTION) {
-		pr_err("%s handler isn't defined\n", handler);
-		goto out;
-	}
+	lunatik_optcfunction(L, -1, handler, lunatik_nop);
 
 	if (symbol != NULL)
 		lua_pushstring(L, symbol);

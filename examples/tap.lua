@@ -12,10 +12,8 @@ local RAW       = socket.sock.RAW
 local ETH_P_ALL = 0x0003
 local MTU       = 1500
 
-local function nop() end
-
 local s = linux.stat
-local tap = {name = "tap", open = nop, release = nop, mode = s.IRUGO}
+local tap = {name = "tap", mode = s.IRUGO}
 
 local socket = socket.new(PACKET, RAW, ETH_P_ALL)
 socket:bind(string.pack(">I2", ETH_P_ALL))

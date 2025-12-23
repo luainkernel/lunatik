@@ -102,6 +102,11 @@ static inline int lunatik_trylock(lunatik_object_t *object)
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
 int lunatik_stop(lunatik_object_t *runtime);
 
+static inline int lunatik_nop(lua_State *L)
+{
+	return 0;
+}
+
 static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 {
 	void *ud = NULL;
@@ -326,6 +331,14 @@ do {									\
 	priv->field = lua_isnil(L, -1) ? opt : lua_tointeger(L, -1);	\
 	lua_pop(L, 1);							\
 } while (0)
+
+static inline void lunatik_optcfunction(lua_State *L, int idx, const char *field, lua_CFunction default_func)
+{
+	if (lua_getfield(L, idx, field) != LUA_TFUNCTION) {
+		lua_pop(L, 1);
+		lua_pushcfunction(L, default_func);
+	}
+}
 
 #define lunatik_checkbounds(L, idx, val, min, max)	luaL_argcheck(L, val >= min && val <= max, idx, "out of bounds")
 
