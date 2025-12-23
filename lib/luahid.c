@@ -15,8 +15,8 @@
 #include <linux/version.h>
 #include <linux/string.h>
 #include <linux/hid.h>
+
 #include <lunatik.h>
-#include <lauxlib.h>
 
 #include "luadata.h"
 
@@ -34,7 +34,6 @@ typedef struct luahid_s {
 	struct hid_driver driver;
 	bool registered;
 } luahid_t;
-
 
 static void luahid_release(void *private)
 {

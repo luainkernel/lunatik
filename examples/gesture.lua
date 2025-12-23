@@ -65,3 +65,4 @@ function driver:raw_event(hdev, state, report, raw_data)
 end
 
 hid.register(driver)
+

@@ -77,3 +77,4 @@ sort = true
 -- all = false -- This is the default
 
 -- For more LDoc options, see: https://github.com/lunarmodules/LDoc
+

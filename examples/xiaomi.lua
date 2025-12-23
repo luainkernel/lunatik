@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2024 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
+-- SPDX-FileCopyrightText: (c) 2025 Jieming Zhou <qrsikno@gmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -73,3 +73,4 @@ function driver:report_fixup(hdev, priv_data, original_report)
 end
 
 hid.register(driver)
+
