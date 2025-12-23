@@ -139,7 +139,8 @@ static const lunatik_class_t luanetfilter_class = {
 	.name = "netfilter",
 	.methods = luanetfilter_mt,
 	.release = luanetfilter_release,
-	.flags = false,
+	.sleep = false,
+	.shared = true,
 };
 
 /***

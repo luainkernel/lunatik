@@ -216,7 +216,8 @@ static const lunatik_class_t lunatik_class = {
 	.name = "lunatik",
 	.methods = lunatik_mt,
 	.release = lunatik_releaseruntime,
-	.flags = LUNATIK_CLASS_SLEEPABLE,
+	.sleep = true,
+	.shared = true,
 	.pointer = true,
 };
 

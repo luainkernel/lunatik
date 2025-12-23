@@ -58,13 +58,12 @@ EXPORT_SYMBOL(lunatik_checkpobject);
 
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {
-	const lunatik_class_t *class = object->class;
-
-	if (class->flags & LUNATIK_CLASS_NOSHARE)
-		luaL_error(L, "%s objects cannot be shared across runtimes",class->name);
+	 if (!object->shared)
+        luaL_error(L, "%s objects cannot be shared across runtimes", object->class->name);
 
 	lunatik_require(L, object->class->name);
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
+	const lunatik_class_t *class = object->class;
 
 	lunatik_checkclass(L, class);
 	lunatik_setclass(L, class);

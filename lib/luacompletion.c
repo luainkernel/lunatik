@@ -119,7 +119,8 @@ static const luaL_Reg luacompletion_mt[] = {
 static const lunatik_class_t luacompletion_class = {
 	.name = "completion",
 	.methods = luacompletion_mt,
-	.flags = false,
+	.sleep = false,
+	.shared = true,
 };
 
 /***

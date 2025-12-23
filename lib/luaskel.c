@@ -49,7 +49,8 @@ static const lunatik_class_t luaskel_class = {
 	.name = "skel",
 	.methods = luaskel_mt,
 	.release = luaskel_release,
-	.flags = false,
+	.sleep = false,
+	.shared = true,
 };
 
 static int luaskel_new(lua_State *L)

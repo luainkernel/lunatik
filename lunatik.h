@@ -17,11 +17,8 @@
 
 #define LUNATIK_VERSION	"Lunatik 3.7"
 
-#define LUNATIK_CLASS_SLEEPABLE  0x01
-#define LUNATIK_CLASS_NOSHARE 0x02   
-
-#define lunatik_class_issleepable(cls) (((cls)->flags & LUNATIK_CLASS_SLEEPABLE) != 0)
-#define lunatik_object_issleepable(obj) (((obj)->flags & LUNATIK_CLASS_SLEEPABLE) != 0)
+#define lunatik_object_issleepable(obj) ((obj)->sleep)
+#define lunatik_class_issleepable(cls)  ((cls)->sleep)
 
 #define lunatik_locker(o, mutex_op, spin_op)	\
 do {						\
@@ -82,7 +79,8 @@ typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
 	void (*release)(void *);
-	uint8_t flags;  
+	bool sleep;
+	bool shared;
 	bool pointer;
 } lunatik_class_t;
 
@@ -94,7 +92,8 @@ typedef struct lunatik_object_s {
 		struct mutex mutex;
 		spinlock_t spin;
 	};
-	uint8_t flags; 
+	bool sleep;
+	bool shared;
 	gfp_t gfp;
 } lunatik_object_t;
 
@@ -186,7 +185,8 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
-	object->flags = sleep ? LUNATIK_CLASS_SLEEPABLE : 0;
+	object->sleep = sleep;
+    object->shared = class->shared;
 	object->gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_newlock(object);
 }
