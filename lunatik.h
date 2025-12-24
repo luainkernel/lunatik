@@ -11,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/kref.h>
 #include <linux/errname.h>
+#include <linux/version.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -127,10 +128,21 @@ static inline void *lunatik_checknull(lua_State *L, void *ptr)
 
 #define lunatik_checkalloc(L, s)	(lunatik_checknull((L), lunatik_malloc((L), (s))))
 
+static inline const char *lunatik_errname(int err)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+	return errname(err);
+#else
+	static char buf[32];
+	snprintf(buf, sizeof(buf), "%pE", ERR_PTR(-err));
+	return buf;
+#endif
+}
+
 #define lunatik_tryret(L, ret, op, ...)				\
 do {								\
 	if ((ret = op(__VA_ARGS__)) < 0) {			\
-		const char *err = errname(-ret);		\
+		const char *err = lunatik_errname(-ret);		\
 		if (likely(err != NULL))			\
 			lua_pushstring(L, err);			\
 		else						\
