@@ -89,7 +89,7 @@ typedef struct lunatik_object_s {
 		spinlock_t spin;
 	};
 	bool sleep;
-	bool nshare;
+	bool single;
 	gfp_t gfp;
 } lunatik_object_t;
 
@@ -180,7 +180,7 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 	object->private = NULL;
 	object->class = class;
 	object->sleep = sleep;
-    object->nshare = false;
+    object->single = false;
 	object->gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_newlock(object);
 }
