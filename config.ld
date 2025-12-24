@@ -24,6 +24,7 @@ file = {
 	'./lib/luadevice.c',
 	'./lib/luafib.c',
 	'./lib/luafifo.c',
+	'./lib/luahid.c',
 	'./lunatik_core.c',
 	'./lib/lunatik/runner.lua',
 	'./lib/lualinux.c',
