@@ -25,6 +25,9 @@
 #include <linux/pid.h> 
 #include <linux/signal.h>
 #include <linux/errno.h>
+#include <linux/errname.h>
+#include <linux/version.h>
+#include <linux/err.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -349,154 +352,6 @@ static const lunatik_reg_t lualinux_stat[] = {
 };
 
 /***
-* Table of error number constants.
-* Exports common errno values from `<uapi/asm-generic/errno-base.h>`.
-*
-* @table errno
-*   See https://github.com/torvalds/linux/blob/master/tools/include/uapi/asm-generic/errno-base.h
-*   and https://github.com/torvalds/linux/blob/master/tools/include/uapi/asm-generic/errno.h
-*   for the full list of error numbers.
-*/
-static const lunatik_reg_t lualinux_errno[] = {
-	/* From errno-base.h */
-	{"PERM", EPERM},	/* Operation not permitted */
-	{"NOENT", ENOENT},	/* No such file or directory */
-	{"SRCH", ESRCH},	/* No such process */
-	{"INTR", EINTR},	/* Interrupted system call */
-	{"IO", EIO},		/* I/O error */
-	{"NXIO", ENXIO},	/* No such device or address */
-	{"2BIG", E2BIG},	/* Argument list too long */
-	{"NOEXEC", ENOEXEC},	/* Exec format error */
-	{"BADF", EBADF},	/* Bad file number */
-	{"CHILD", ECHILD},	/* No child processes */
-	{"AGAIN", EAGAIN},	/* Try again */
-	{"NOMEM", ENOMEM},	/* Out of memory */
-	{"ACCES", EACCES},	/* Permission denied */
-	{"FAULT", EFAULT},	/* Bad address */
-	{"NOTBLK", ENOTBLK},	/* Block device required */
-	{"BUSY", EBUSY},	/* Device or resource busy */
-	{"EXIST", EEXIST},	/* File exists */
-	{"XDEV", EXDEV},	/* Cross-device link */
-	{"NODEV", ENODEV},	/* No such device */
-	{"NOTDIR", ENOTDIR},	/* Not a directory */
-	{"ISDIR", EISDIR},	/* Is a directory */
-	{"INVAL", EINVAL},	/* Invalid argument */
-	{"NFILE", ENFILE},	/* File table overflow */
-	{"MFILE", EMFILE},	/* Too many open files */
-	{"NOTTY", ENOTTY},	/* Not a typewriter */
-	{"TXTBSY", ETXTBSY},	/* Text file busy */
-	{"FBIG", EFBIG},	/* File too large */
-	{"NOSPC", ENOSPC},	/* No space left on device */
-	{"SPIPE", ESPIPE},	/* Illegal seek */
-	{"ROFS", EROFS},	/* Read-only file system */
-	{"MLINK", EMLINK},	/* Too many links */
-	{"PIPE", EPIPE},	/* Broken pipe */
-	{"DOM", EDOM},		/* Math argument out of domain of func */
-	{"RANGE", ERANGE},	/* Math result not representable */
-	/* From errno.h */
-	{"DEADLK", EDEADLK},                 /* Resource deadlock would occur */
-	{"NAMETOOLONG", ENAMETOOLONG},       /* File name too long */
-	{"NOLCK", ENOLCK},                   /* No record locks available */
-	{"NOSYS", ENOSYS},                   /* Invalid system call number */
-	{"NOTEMPTY", ENOTEMPTY},             /* Directory not empty */
-	{"LOOP", ELOOP},                     /* Too many symbolic links encountered */
-	{"WOULDBLOCK", EWOULDBLOCK},         /* Operation would block */
-	{"NOMSG", ENOMSG},                   /* No message of desired type */
-	{"IDRM", EIDRM},                     /* Identifier removed */
-	{"CHRNG", ECHRNG},                   /* Channel number out of range */
-	{"L2NSYNC", EL2NSYNC},               /* Level 2 not synchronized */
-	{"L3HLT", EL3HLT},                   /* Level 3 halted */
-	{"L3RST", EL3RST},                   /* Level 3 reset */
-	{"LNRNG", ELNRNG},                   /* Link number out of range */
-	{"UNATCH", EUNATCH},                 /* Protocol driver not attached */
-	{"NOCSI", ENOCSI},                   /* No CSI structure available */
-	{"L2HLT", EL2HLT},                   /* Level 2 halted */
-	{"BADE", EBADE},                     /* Invalid exchange */
-	{"BADR", EBADR},                     /* Invalid request descriptor */
-	{"XFULL", EXFULL},                   /* Exchange full */
-	{"NOANO", ENOANO},                   /* No anode */
-	{"BADRQC", EBADRQC},                 /* Invalid request code */
-	{"BADSLT", EBADSLT},                 /* Invalid slot */
-	{"DEADLOCK", EDEADLOCK},             /* Resource deadlock would occur */
-	{"BFONT", EBFONT},                   /* Bad font file format */
-	{"NOSTR", ENOSTR},                   /* Device not a stream */
-	{"NODATA", ENODATA},                 /* No data available */
-	{"TIME", ETIME},                     /* Timer expired */
-	{"NOSR", ENOSR},                     /* Out of streams resources */
-	{"NONET", ENONET},                   /* Machine is not on the network */
-	{"NOPKG", ENOPKG},                   /* Package not installed */
-	{"REMOTE", EREMOTE},                 /* Object is remote */
-	{"NOLINK", ENOLINK},                 /* Link has been severed */
-	{"ADV", EADV},                       /* Advertise error */
-	{"SRMNT", ESRMNT},                   /* Srmount error */
-	{"COMM", ECOMM},                     /* Communication error on send */
-	{"PROTO", EPROTO},                   /* Protocol error */
-	{"MULTIHOP", EMULTIHOP},             /* Multihop attempted */
-	{"DOTDOT", EDOTDOT},                 /* RFS specific error */
-	{"BADMSG", EBADMSG},                 /* Not a data message */
-	{"OVERFLOW", EOVERFLOW},             /* Value too large for defined data type */
-	{"NOTUNIQ", ENOTUNIQ},               /* Name not unique on network */
-	{"BADFD", EBADFD},                   /* File descriptor in bad state */
-	{"REMCHG", EREMCHG},                 /* Remote address changed */
-	{"LIBACC", ELIBACC},                 /* Can not access a needed shared library */
-	{"LIBBAD", ELIBBAD},                 /* Accessing a corrupted shared library */
-	{"LIBSCN", ELIBSCN},                 /* .lib section in a.out corrupted */
-	{"LIBMAX", ELIBMAX},                 /* Attempting to link in too many shared libraries */
-	{"LIBEXEC", ELIBEXEC},               /* Cannot exec a shared library directly */
-	{"ILSEQ", EILSEQ},                   /* Illegal byte sequence */
-	{"RESTART", ERESTART},               /* Interrupted system call should be restarted */
-	{"STRPIPE", ESTRPIPE},               /* Streams pipe error */
-	{"USERS", EUSERS},                   /* Too many users */
-	{"NOTSOCK", ENOTSOCK},               /* Socket operation on non-socket */
-	{"DESTADDRREQ", EDESTADDRREQ},       /* Destination address required */
-	{"MSGSIZE", EMSGSIZE},               /* Message too long */
-	{"PROTOTYPE", EPROTOTYPE},           /* Protocol wrong type for socket */
-	{"NOPROTOOPT", ENOPROTOOPT},         /* Protocol not available */
-	{"PROTONOSUPPORT", EPROTONOSUPPORT}, /* Protocol not supported */
-	{"SOCKTNOSUPPORT", ESOCKTNOSUPPORT}, /* Socket type not supported */
-	{"OPNOTSUPP", EOPNOTSUPP},           /* Operation not supported on transport endpoint */
-	{"PFNOSUPPORT", EPFNOSUPPORT},       /* Protocol family not supported */
-	{"AFNOSUPPORT", EAFNOSUPPORT},       /* Address family not supported by protocol */
-	{"ADDRINUSE", EADDRINUSE},           /* Address already in use */
-	{"ADDRNOTAVAIL", EADDRNOTAVAIL},     /* Cannot assign requested address */
-	{"NETDOWN", ENETDOWN},               /* Network is down */
-	{"NETUNREACH", ENETUNREACH},         /* Network is unreachable */
-	{"NETRESET", ENETRESET},             /* Network dropped connection because of reset */
-	{"CONNABORTED", ECONNABORTED},       /* Software caused connection abort */
-	{"CONNRESET", ECONNRESET},           /* Connection reset by peer */
-	{"NOBUFS", ENOBUFS},                 /* No buffer space available */
-	{"ISCONN", EISCONN},                 /* Transport endpoint is already connected */
-	{"NOTCONN", ENOTCONN},               /* Transport endpoint is not connected */
-	{"SHUTDOWN", ESHUTDOWN},             /* Cannot send after transport endpoint shutdown */
-	{"TOOMANYREFS", ETOOMANYREFS},       /* Too many references: cannot splice */
-	{"TIMEDOUT", ETIMEDOUT},             /* Connection timed out */
-	{"CONNREFUSED", ECONNREFUSED},       /* Connection refused */
-	{"HOSTDOWN", EHOSTDOWN},             /* Host is down */
-	{"HOSTUNREACH", EHOSTUNREACH},       /* No route to host */
-	{"ALREADY", EALREADY},               /* Operation already in progress */
-	{"INPROGRESS", EINPROGRESS},         /* Operation now in progress */
-	{"STALE", ESTALE},                   /* Stale file handle */
-	{"UCLEAN", EUCLEAN},                 /* Structure needs cleaning */
-	{"NOTNAM", ENOTNAM},                 /* Not a XENIX named type file */
-	{"NAVAIL", ENAVAIL},                 /* No XENIX semaphores available */
-	{"ISNAM", EISNAM},                   /* Is a named type file */
-	{"REMOTEIO", EREMOTEIO},             /* Remote I/O error */
-	{"DQUOT", EDQUOT},                   /* Quota exceeded */
-	{"NOMEDIUM", ENOMEDIUM},             /* No medium found */
-	{"MEDIUMTYPE", EMEDIUMTYPE},         /* Wrong medium type */
-	{"CANCELED", ECANCELED},             /* Operation Canceled */
-	{"NOKEY", ENOKEY},                   /* Required key not available */
-	{"KEYEXPIRED", EKEYEXPIRED},         /* Key has expired */
-	{"KEYREVOKED", EKEYREVOKED},         /* Key has been revoked */
-	{"KEYREJECTED", EKEYREJECTED},       /* Key was rejected by service */
-	{"OWNERDEAD", EOWNERDEAD},           /* Owner died */
-	{"NOTRECOVERABLE", ENOTRECOVERABLE}, /* State not recoverable */
-	{"RFKILL", ERFKILL},                 /* Operation not possible due to RF-kill */
-	{"HWPOISON", EHWPOISON},             /* Memory page has hardware error */
-	{NULL, 0}
-};
-
-/***
 * Table of signal constants for use with `linux.kill`.
 * This table provides named constants for the standard Linux signals.
 * For example, `linux.signal.TERM` corresponds to SIGTERM (15).
@@ -569,10 +424,36 @@ static const lunatik_reg_t lualinux_signal[] = {
 	{NULL, 0}
 };
 
+/***
+* Returns the symbolic name of a kernel error number.
+* For example, it converts `2` to `"ENOENT"`.
+*
+* @function errname
+* @tparam integer err The error number (e.g., 2).
+* @treturn string The symbolic name of the error (e.g., "ENOENT"). Returns "unknown" (or the error number as a string) if the name cannot be resolved.
+* @usage
+* local name = linux.errname(2)
+* print("Error name:", name) -- "ENOENT"
+*/
+static int lualinux_errname(lua_State *L)
+{
+    int e = abs((int)luaL_checkinteger(L, 1));
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+    const char *n = errname(e);
+    lua_pushstring(L, n ? n : "unknown");
+#else
+    char buf[LUAL_BUFFERSIZE];
+    snprintf(buf, sizeof(buf), "%pE", ERR_PTR(-e));
+    lua_pushstring(L, buf);
+#endif
+
+    return 1;
+}
+
 static const lunatik_namespace_t lualinux_flags[] = {
 	{"stat", lualinux_stat},
 	{"task", lualinux_task},
-	{"errno", lualinux_errno},
 	{"signal", lualinux_signal},
 	{NULL, NULL}
 };
@@ -716,6 +597,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"difftime", lualinux_difftime},
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
+	{"errname", lualinux_errname},
 	{"ntoh16", lualinux_be16_to_cpu},
 	{"ntoh32", lualinux_be32_to_cpu},
 	{"hton16", lualinux_cpu_to_be16},
