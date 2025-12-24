@@ -19,10 +19,13 @@
 
 #define lunatik_locker(o, mutex_op, spin_op)	\
 do {						\
-	if ((o)->sleep)				\
-		mutex_op(&(o)->mutex);		\
-	else					\
-		spin_op(&(o)->spin);		\
+	if (!(o)->single)	\
+	{							\
+		if ((o)->sleep)				\
+			mutex_op(&(o)->mutex);		\
+		else					\
+			spin_op(&(o)->spin);		\
+	}							\
 } while(0)
 
 #define lunatik_newlock(o)	lunatik_locker((o), mutex_init, spin_lock_init);
@@ -97,7 +100,7 @@ extern lunatik_object_t *lunatik_env;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
-	return object->sleep ? mutex_trylock(&object->mutex) : spin_trylock_bh(&object->spin);
+	return object->single ? 1 : lunatik_object_issleepable(object) ? mutex_trylock(&object->mutex) : spin_trylock_bh(&object->spin);
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
@@ -174,19 +177,20 @@ static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
 	lua_setiuservalue(L, -2, 1); /* pop class */
 }
 
-static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep)
+static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep, bool single)
 {
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
 	object->sleep = sleep;
-    object->single = false;
+    object->single = single;
 	object->gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
-	lunatik_newlock(object);
+	if(!single)
+		lunatik_newlock(object);
 }
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size);
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep);
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool single);
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool single);
 lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
