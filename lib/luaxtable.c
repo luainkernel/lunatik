@@ -316,7 +316,6 @@ static const lunatik_class_t luaxtable_class = {
 	.methods = luaxtable_mt,
 	.release = luaxtable_release,
 	.sleep = false,
-	.shared = true,
 };
 
 static inline lunatik_object_t *luaxtable_new(lua_State *L, int idx, int hook)

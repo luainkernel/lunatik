@@ -185,7 +185,6 @@ static const lunatik_class_t luacrypto_skcipher_class = {
 	.methods = luacrypto_skcipher_mt,
 	.release = luacrypto_skcipher_release,
 	.sleep = true,
-	.shared = true,
 	.pointer = true,
 };
 

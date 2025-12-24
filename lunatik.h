@@ -19,7 +19,7 @@
 
 #define lunatik_locker(o, mutex_op, spin_op)	\
 do {						\
-	if (lunatik_object_issleepable(o))				\
+	if ((o)->sleep)				\
 		mutex_op(&(o)->mutex);		\
 	else					\
 		spin_op(&(o)->spin);		\
@@ -32,7 +32,7 @@ do {						\
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 
-#define lunatik_cannotsleep(L, s)	((s) && !lunatik_object_issleepable(lunatik_toruntime(L)))
+#define lunatik_cannotsleep(L, s)	((s) && !lunatik_toruntime(L)->sleep)
 #define lunatik_getstate(runtime)	((lua_State *)runtime->private)
 
 static inline bool lunatik_isready(lua_State *L)
@@ -97,7 +97,7 @@ extern lunatik_object_t *lunatik_env;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
-	return lunatik_object_issleepable(object) ? mutex_trylock(&object->mutex) : spin_trylock_bh(&object->spin);
+	return object->sleep ? mutex_trylock(&object->mutex) : spin_trylock_bh(&object->spin);
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
@@ -152,18 +152,16 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, bool sleep)
 {
 	lunatik_object_t *runtime = lunatik_toruntime(L);
-	bool rsleep = lunatik_object_issleepable(runtime);
-
-	if (rsleep != sleep)
-		luaL_error(L, "cannot use %ssleepable runtime in this context", rsleep ? "" : "non-");
+	if (runtime->sleep != sleep)
+		luaL_error(L, "cannot use %ssleepable runtime in this context", runtime->sleep ? "" : "non-");
 	return runtime;
 }
 
-#define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lunatik_class_issleepable(&lua##libname##_class)))
+#define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.sleep))
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
-	if (lunatik_cannotsleep(L, lunatik_class_issleepable(class)))
+	if (lunatik_cannotsleep(L, class->sleep))
 		luaL_error(L, "cannot use '%s' class on non-sleepable runtime", class->name);
 }
 
@@ -182,7 +180,7 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 	object->private = NULL;
 	object->class = class;
 	object->sleep = sleep;
-    object->shared = class->shared;
+    object->nshare = false;
 	object->gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_newlock(object);
 }

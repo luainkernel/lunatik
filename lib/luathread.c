@@ -223,7 +223,7 @@ static const lunatik_class_t luathread_class = {
 static int luathread_run(lua_State *L)
 {
 	lunatik_object_t *runtime = lunatik_checkobject(L, 1);
-	luaL_argcheck(L, lunatik_object_issleepable(runtime), 1, "cannot use non-sleepable runtime in this context");
+	luaL_argcheck(L, runtime->sleep, 1, "cannot use non-sleepable runtime in this context");
 	const char *name = luaL_checkstring(L, 2);
 	lunatik_object_t *object = luathread_new(L);
 	luathread_t *thread = object->private;
