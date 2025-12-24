@@ -256,6 +256,14 @@ static inline lunatik_object_t *lunatik_testobject(lua_State *L, int ix)
 	return class != NULL && (pobject = luaL_testudata(L, ix, class->name)) != NULL ? *pobject : NULL;
 }
 
+static inline void lunatik_newclasses(lua_State *L, const lunatik_class_t *classes)
+{
+	for (; classes->name; classes++) {
+		lunatik_checkclass(L, classes);
+		lunatik_newclass(L, classes);
+	}
+}
+
 static inline void lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
 {
 	for (; namespaces->name; namespaces++) {
@@ -269,21 +277,46 @@ static inline void lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t
 	}
 }
 
-#define LUNATIK_NEWLIB(libname, funcs, class, namespaces)			\
-int luaopen_##libname(lua_State *L);						\
-int luaopen_##libname(lua_State *L)						\
-{										\
-	const lunatik_class_t *cls = class; /* avoid -Waddress */		\
-	const lunatik_namespace_t *nss = namespaces; /* avoid -Waddress */	\
-	luaL_newlib(L, funcs);							\
-	if (cls) {								\
-		lunatik_checkclass(L, cls);					\
-		lunatik_newclass(L, cls);					\
-	}									\
-	if (nss)								\
-		lunatik_newnamespaces(L, nss);					\
-	return 1;								\
-}										\
+static inline void lunatik_register_class(lua_State *L, const lunatik_class_t *class)
+{
+	if (class) {
+		lunatik_checkclass(L, class);
+		lunatik_newclass(L, class);
+	}
+}
+
+static inline void lunatik_register_classes(lua_State *L, const lunatik_class_t *classes)
+{
+	if (classes)
+		lunatik_newclasses(L, classes);
+}
+
+static inline void lunatik_register_namespaces(lua_State *L, const lunatik_namespace_t *namespaces)
+{
+	if (namespaces)
+		lunatik_newnamespaces(L, namespaces);
+}
+
+#define LUNATIK_NEWLIB(libname, funcs, class, namespaces)		\
+int luaopen_##libname(lua_State *L);					\
+int luaopen_##libname(lua_State *L)					\
+{									\
+	luaL_newlib(L, funcs);						\
+	lunatik_register_class(L, class);				\
+	lunatik_register_namespaces(L, namespaces);			\
+	return 1;							\
+}									\
+EXPORT_SYMBOL_GPL(luaopen_##libname)
+
+#define LUNATIK_NEWLIB_MULTICLASS(libname, funcs, classes, namespaces)	\
+int luaopen_##libname(lua_State *L);					\
+int luaopen_##libname(lua_State *L)					\
+{									\
+	luaL_newlib(L, funcs);						\
+	lunatik_register_classes(L, classes);				\
+	lunatik_register_namespaces(L, namespaces);			\
+	return 1;							\
+}									\
 EXPORT_SYMBOL_GPL(luaopen_##libname)
 
 #define LUNATIK_LIB(libname)		\
