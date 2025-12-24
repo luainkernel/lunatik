@@ -1,0 +1,204 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_hid_driver">Class hid_driver </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.aead.html">crypto.aead</a></li>
+  <li><a href="../modules/crypto.comp.html">crypto.comp</a></li>
+  <li><a href="../modules/crypto.rng.html">crypto.rng</a></li>
+  <li><a href="../modules/crypto.shash.html">crypto.shash</a></li>
+  <li><a href="../modules/crypto.skcipher.html">crypto.skcipher</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><strong>hid</strong></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>hid</code></h1>
+<p>High-level Lua interface to the Linux HID subsystem.</p>
+<p> This module allows registering Lua table with functions as a HID driver,
+ support for id_table is provided, which allows matching HID devices</p>
+
+
+<h2><a href="#Class_hid_driver">Class hid_driver </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#hid_driver:register">hid_driver:register (table)</a></td>
+	<td class="summary">Registers a new HID driver.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_hid_driver"></a>Class hid_driver </h2>
+
+          <div class="section-description">
+          Represents a registered HID driver.
+ This is a userdata object returned by <code>hid.register()</code>. It encapsulates
+ the kernel <code>struct hid_driver</code> and associated Lunatik runtime information
+ necessary to invoke the Lua callback when a HID device is matched.
+ The <code>registered</code> field indicates whether the driver is currently registered
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "hid_driver:register"></a>
+    <strong>hid_driver:register (table)</strong>
+    </dt>
+    <dd>
+
+<p>Registers a new HID driver.
+ This function creates a new HID driver object from a Lua table and registers it with the kernel.
+ The Lua table must contain the following fields:</p>
+
+<ul>
+    <li><p><code>name</code>: The name of the driver (string).</p></li>
+    <li><p><code>id_table</code>: A table of device IDs that this driver can match against (lua_table).</p>
+    <ul>
+        <li><p>each id is a table consisting of fields:</p>
+
+        <ul>
+            <li><code>bus</code>: The bus type (integer, default: <code>HID_BUS_ANY</code>).</li>
+            <li><code>group</code>: The group type (integer, default: <code>HID_GROUP_ANY</code>).</li>
+            <li><code>vendor</code>: The vendor ID (integer, default: <code>HID_ANY_ID</code>).</li>
+            <li><code>product</code>: The product ID (integer, default: <code>HID_ANY_ID</code>).</li>
+            <li><code>driver_data</code>: Additional driver data (integer, default: <code>0</code>).</li>
+        </ul></li>
+    </ul></li>
+</ul>
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">table</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         The Lua table containing driver information.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">hid_driver</span></span>
+        The registered HID driver object.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> hid = <span class="global">require</span>(<span class="string">"hid"</span>)
+<span class="keyword">local</span> hid_driver = {
+	name = <span class="string">"my_hid_driver"</span>,
+	id_table = {
+		{ bus = <span class="number">1</span>, vendor = <span class="number">0x1234</span>, product = <span class="number">0x5678</span> },
+		{ bus = <span class="number">2</span>, vendor = <span class="number">0x4321</span>, product = <span class="number">0x8765</span> },
+	}
+}
+
+<span class="keyword">function</span> hid_driver:<span class="function-name">probe</span>(devid)
+	drvdata = {}
+	<span class="keyword">if</span> devid.bus == <span class="number">1</span> <span class="keyword">then</span>
+		drvdata.usb_feature = <span class="keyword">true</span>
+	<span class="keyword">end</span>
+	<span class="keyword">if</span> devid.driver_data % <span class="number">2</span> == <span class="number">0</span> <span class="keyword">then</span>
+		drvdata.even_special_feature = <span class="keyword">true</span>
+	<span class="keyword">end</span>
+	<span class="keyword">return</span> drvdata
+<span class="keyword">end</span>
+
+<span class="keyword">function</span> hid_driver:<span class="function-name">report_fixup</span>(hdev, priv_data, descriptor)
+	<span class="keyword">if</span> hdev.vendor == <span class="number">0x1234</span> <span class="keyword">and</span> hdev.product == <span class="number">0x5678</span> <span class="keyword">then</span>
+		descriptor[<span class="number">1</span>] = <span class="number">0x05</span>
+		descriptor[descriptor.size] = <span class="number">0x0A</span>
+	<span class="keyword">end</span>
+<span class="keyword">end</span>
+
+<span class="keyword">function</span> hid_driver:<span class="function-name">raw_event</span>(priv_data, report, raw_data)
+	<span class="global">print</span>(<span class="string">"Raw event received for report ID:"</span>, report.id)
+	<span class="keyword">return</span> <span class="keyword">false</span>
+<span class="keyword">end</span>
+
+hid.<span class="function-name">register</span>(hid_driver)</pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-12-24 22:15:26 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
