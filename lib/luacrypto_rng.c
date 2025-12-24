@@ -147,7 +147,6 @@ static const lunatik_class_t luacrypto_rng_class = {
 	.methods = luacrypto_rng_mt,
 	.release = luacrypto_rng_release,
 	.sleep = true,
-	.shared = true,
 	.pointer = true,
 };
 

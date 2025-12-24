@@ -100,7 +100,6 @@ static const lunatik_class_t luacrypto_comp_class = {
 	.methods = luacrypto_comp_mt,
 	.release = luacrypto_comp_release,
 	.sleep = true,
-	.shared = true,
 	.pointer = true,
 };
 

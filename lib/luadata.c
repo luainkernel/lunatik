@@ -368,16 +368,15 @@ static const lunatik_class_t luadata_class = {
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
-	bool single = lua_toboolean(L, 2); /* false -> sharable */
+	bool nshare = lua_toboolean(L, 2);
 
 	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t));
 	luadata_t *data = (luadata_t *)object->private;
 
+	object->nshare = nshare;
 	data->ptr = lunatik_checkalloc(L, size);
 	data->size = size;
 	data->opt = LUADATA_OPT_FREE;
-	if (single)
-		data->opt |= LUADATA_OPT_SINGLE;
 
 	return 1; /* object */
 }

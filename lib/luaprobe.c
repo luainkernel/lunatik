@@ -240,7 +240,6 @@ static const lunatik_class_t luaprobe_class = {
 	.methods = luaprobe_mt,
 	.release = luaprobe_release,
 	.sleep = true,
-	.shared = true,
 };
 
 static int luaprobe_new(lua_State *L)

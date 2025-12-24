@@ -687,7 +687,6 @@ static const lunatik_class_t luasocket_class = {
 	.methods = luasocket_mt,
 	.release = luasocket_release,
 	.sleep = true,
-	.shared = true,
 	.pointer = true,
 };
 

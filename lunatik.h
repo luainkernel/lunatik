@@ -17,9 +17,6 @@
 
 #define LUNATIK_VERSION	"Lunatik 3.7"
 
-#define lunatik_object_issleepable(obj) ((obj)->sleep)
-#define lunatik_class_issleepable(cls)  ((cls)->sleep)
-
 #define lunatik_locker(o, mutex_op, spin_op)	\
 do {						\
 	if (lunatik_object_issleepable(o))				\
@@ -80,7 +77,6 @@ typedef struct lunatik_class_s {
 	const luaL_Reg *methods;
 	void (*release)(void *);
 	bool sleep;
-	bool shared;
 	bool pointer;
 } lunatik_class_t;
 
@@ -93,7 +89,7 @@ typedef struct lunatik_object_s {
 		spinlock_t spin;
 	};
 	bool sleep;
-	bool shared;
+	bool nshare;
 	gfp_t gfp;
 } lunatik_object_t;
 

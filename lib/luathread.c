@@ -194,7 +194,6 @@ static const lunatik_class_t luathread_class = {
 	.name = "thread",
 	.methods = luathread_mt,
 	.sleep = true,
-	.shared = true,
 };
 
 #define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t)))
