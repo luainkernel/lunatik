@@ -83,8 +83,11 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 
 	if (lua_pcall(L, 1, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
+		luadata_clear(data);
 		return -1;
 	}
+
+	luadata_clear(data);
 
 	if (!lua_isnil(L, -1))
 		skb->mark = (u32)lua_tointeger(L, -1);
