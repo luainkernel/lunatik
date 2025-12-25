@@ -23,7 +23,7 @@ do {						\
 		mutex_op(&(o)->mutex);		\
 	else					\
 		spin_op(&(o)->spin);		\
-} while(0)
+} while (0)
 
 #define lunatik_newlock(o)	lunatik_locker((o), mutex_init, spin_lock_init);
 #define lunatik_freelock(o)	lunatik_locker((o), mutex_destroy, (void));
@@ -50,7 +50,7 @@ do {							\
 	int n = lua_gettop(L);				\
 	ret = handler(L, ## __VA_ARGS__);		\
 	lua_settop(L, n);				\
-} while(0)
+} while (0)
 
 #define lunatik_runner(runtime, handler, ret, ...)			\
 do {									\
