@@ -413,7 +413,7 @@ examples/dnsdoctor/cleanup.sh
 
 [gesture](examples/gesture.lua)
 is a kernel script that implements a HID driver for QEMU USB Mouse (0627:0001).
-It supports gestures: swiping up locks the mouse, and swiping down unlocks it.
+It supports gestures: swiping right locks the mouse, and swiping left unlocks it.
 
 #### Usage
 
@@ -433,8 +433,8 @@ It supports gestures: swiping up locks the mouse, and swiping down unlocks it.
 sudo make examples_install 			# installs examples
 sudo lunatik run examples/gesture false 	# runs gesture
 # In QEMU window:
-# Drag up to lock the mouse
-# Drag down to unlock the mouse
+# Drag right to lock the mouse
+# Drag left to unlock the mouse
 ```
 
 ### xiaomi
