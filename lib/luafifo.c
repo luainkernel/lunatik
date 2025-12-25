@@ -135,7 +135,7 @@ static const lunatik_class_t luafifo_class = {
 static int luafifo_new(lua_State *L)
 {
 	size_t size = luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luafifo_class, sizeof(struct kfifo));
+	lunatik_object_t *object = lunatik_newobject(L, &luafifo_class, sizeof(struct kfifo), false);
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
 	int ret;
 

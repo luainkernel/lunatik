@@ -366,7 +366,7 @@ static int luadevice_new(lua_State *L)
 	lunatik_checkfield(L, 1, "name", LUA_TSTRING);
 	name = lua_tostring(L, -1);
 
-	object = lunatik_newobject(L, &luadevice_class, sizeof(luadevice_t));
+	object = lunatik_newobject(L, &luadevice_class, sizeof(luadevice_t), false);
 	luadev = (luadevice_t *)object->private;
 
 	memset(luadev, 0, sizeof(luadevice_t));

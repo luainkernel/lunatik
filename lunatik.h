@@ -100,7 +100,7 @@ extern lunatik_object_t *lunatik_env;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
-	return object->single ? 1 : lunatik_object_issleepable(object) ? mutex_trylock(&object->mutex) : spin_trylock_bh(&object->spin);
+	return object->single ? 1 : object->sleep ? mutex_trylock(&object->mutex) : spin_trylock_bh(&object->spin);
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);

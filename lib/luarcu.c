@@ -385,7 +385,7 @@ lunatik_object_t *luarcu_newtable(size_t size, bool sleep)
 	lunatik_object_t *object;
 
 	size = roundup_pow_of_two(size);
-	if ((object = lunatik_createobject(&luarcu_class, luarcu_sizeoftable(size), sleep))!= NULL)
+	if ((object = lunatik_createobject(&luarcu_class, luarcu_sizeoftable(size), sleep, false))!= NULL)
 		luarcu_inittable((luarcu_table_t *)object->private, size);
 	return object;
 }
@@ -425,7 +425,7 @@ EXPORT_SYMBOL(luarcu_newtable);
 static int luarcu_table(lua_State *L)
 {
 	size_t size = roundup_pow_of_two(luaL_optinteger(L, 1, LUARCU_DEFAULT_SIZE));
-	lunatik_object_t *object = lunatik_newobject(L, &luarcu_class, luarcu_sizeoftable(size));
+	lunatik_object_t *object = lunatik_newobject(L, &luarcu_class, luarcu_sizeoftable(size), false);
 
 	luarcu_inittable((luarcu_table_t *)object->private, size);
 	return 1; /* object */

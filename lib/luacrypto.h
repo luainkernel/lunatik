@@ -32,7 +32,7 @@ typedef void (*luacrypto_free_t)(void *);
 static int luacrypto_##name##_new(lua_State *L)								\
 {													\
 	const char *algname = luaL_checkstring(L, 1);							\
-	lunatik_object_t *object = lunatik_newobject(L, &class, 0);					\
+	lunatik_object_t *object = lunatik_newobject(L, &class, 0, false);					\
 													\
 	T *tfm = alloc(algname, 0, 0);									\
 	if (IS_ERR(tfm)) {										\

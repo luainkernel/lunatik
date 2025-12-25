@@ -196,7 +196,7 @@ static const lunatik_class_t luathread_class = {
 	.sleep = true,
 };
 
-#define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t)))
+#define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t), false))
 
 /***
 * Creates and starts a new kernel thread to run a Lua task.

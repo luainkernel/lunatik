@@ -321,7 +321,7 @@ static const lunatik_class_t luaxtable_class = {
 static inline lunatik_object_t *luaxtable_new(lua_State *L, int idx, int hook)
 {
 	luaL_checktype(L, idx, LUA_TTABLE);
-	lunatik_object_t *object = lunatik_newobject(L, &luaxtable_class , sizeof(luaxtable_t));
+	lunatik_object_t *object = lunatik_newobject(L, &luaxtable_class , sizeof(luaxtable_t), false);
 	luaxtable_t *xtable = (luaxtable_t *)object->private;
 
 	xtable->type = hook;
