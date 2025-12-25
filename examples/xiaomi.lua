@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 Jieming Zhou <qrsikno@gmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 Jieming Zhou <qrsikno@gmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -8,12 +8,7 @@
 
 local hid = require("hid")
 
-local driver = {
-	name = "luahid_xiaomi",
-	id_table = {
-		{ bus = 0x05, vendor = 0x2717, product = 0x5014 }
-	}
-}
+local driver = {name = "luahid_xiaomi", id_table = {{bus = 0x05, vendor = 0x2717, product = 0x5014}}}
 
 local mi_silent_mouse_orig_rdesc_length = 87
 local mi_silent_mouse_rdesc_fixed = {
@@ -63,11 +58,11 @@ local mi_silent_mouse_rdesc_fixed = {
 	0xC0       --  End Collection
 }
 
-function driver:report_fixup(hdev, priv_data, original_report)
-	if hdev.product == 0x5014 and #original_report == mi_silent_mouse_orig_rdesc_length then
+function driver:report_fixup(hdev, report, data)
+	if hdev.product == 0x5014 and #report == mi_silent_mouse_orig_rdesc_length then
 		print("Fixing Xiaomi Silent Mouse report descriptor")
 		for i = 1, #mi_silent_mouse_rdesc_fixed do
-			original_report:setbyte(i - 1, mi_silent_mouse_rdesc_fixed[i])
+			report:setbyte(i - 1, mi_silent_mouse_rdesc_fixed[i])
 		end
 	end
 end
