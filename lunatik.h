@@ -52,29 +52,34 @@ do {							\
 	lua_settop(L, n);				\
 } while(0)
 
-#define lunatik_run(runtime, handler, ret, ...)				\
+#define lunatik_runner(runtime, handler, ret, ...)			\
 do {									\
-	lunatik_lock(runtime);						\
 	if (unlikely(!lunatik_getstate(runtime)))			\
 		ret = -ENXIO;						\
 	else								\
 		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
-	lunatik_unlock(runtime);					\
-} while(0)
-
-#define lunatik_runbh(runtime, handler, ret, ...)			\
-do {									\
-	local_bh_disable();						\
-	lunatik_run(runtime, handler, ret, ## __VA_ARGS__);		\
-	local_bh_enable();						\
 } while (0)
 
-#define lunatik_runirq(runtime, handler, ret, ...)			\
-do {									\
-	unsigned long flags;						\
-	local_irq_save(flags);						\
-	lunatik_run(runtime, handler, ret, ## __VA_ARGS__);		\
-	local_irq_restore(flags);					\
+#define lunatik_run(runtime, handler, ret, ...)			\
+do {								\
+	lunatik_lock(runtime);					\
+	lunatik_runner(runtime, handler, ret, ## __VA_ARGS__);	\
+	lunatik_unlock(runtime);				\
+} while (0)
+
+#define lunatik_runbh(runtime, handler, ret, ...)		\
+do {								\
+	spin_lock_bh(&runtime->spin);				\
+	lunatik_runner(runtime, handler, ret, ## __VA_ARGS__);	\
+	spin_unlock_bh(&runtime->spin);				\
+} while (0)
+
+#define lunatik_runirq(runtime, handler, ret, ...)		\
+do {								\
+	unsigned long flags;					\
+	spin_lock_irqsave(&runtime->spin, flags);		\
+	lunatik_runner(runtime, handler, ret, ## __VA_ARGS__);	\
+	spin_unlock_irqrestore(&runtime->spin, flags);		\
 } while (0)
 
 typedef struct lunatik_reg_s {
