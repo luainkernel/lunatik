@@ -179,7 +179,8 @@ static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
 
 static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep, bool single)
 {
-	kref_init(&object->kref);
+	if (!single)
+		kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
 	object->sleep = sleep;
