@@ -98,13 +98,6 @@ if command then
 	os.exit()
 end
 
-if not lunatik.probe() then
-	lunatik.commands.load()
-end
-
-local version = lunatik.dostring("return _LUNATIK_VERSION")
-lunatik.copyright = version .. "  " .. lunatik.copyright
-
 local function set(t)
 	local s = {}
 	for _, key in ipairs(t) do s[key] = true end
@@ -127,6 +120,13 @@ if #arg >= 1 then
 	end
 	os.exit()
 end
+
+if not lunatik.probe() then
+	lunatik.commands.load()
+end
+
+local version = lunatik.dostring("return _LUNATIK_VERSION")
+lunatik.copyright = version .. "  " .. lunatik.copyright
 
 print(lunatik.copyright)
 lunatik.prompt()
