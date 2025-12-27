@@ -185,31 +185,34 @@ typedef struct {
 
 #define LUAHID_ARG(L, name, ix)	((luahid_##name##_arg_t *)lua_touserdata(L, ix))
 
-static void luahid_preprobe(lua_State *L, struct hid_device *hdev, luahid_probe_arg_t *arg)
+static void luahid_preprobe(lua_State *L, struct hid_device *hdev, void *arg)
 {
-	luahid_newtable(L, arg, driver_data);
+	luahid_probe_arg_t *probe_arg = arg;
+	luahid_newtable(L, probe_arg, driver_data);
 }
 
-static void luahid_prereport_fixup(lua_State *L, struct hid_device *hdev, luahid_report_fixup_arg_t *arg)
+static void luahid_prereport_fixup(lua_State *L, struct hid_device *hdev, void *arg)
 {
 	luahid_pushhdev(L, hdev);
 	luahid_pushinfo(L, -4, hdev);
 	lunatik_object_t *data = luahid_getdescriptor(L, luahid_gethid(hdev));
+	luahid_report_fixup_arg_t *report_fixup_arg = arg;
 	if (data)
-		luadata_reset(data, arg->rdesc, arg->rsize, LUADATA_OPT_NONE);
+		luadata_reset(data, report_fixup_arg->rdesc, report_fixup_arg->rsize, LUADATA_OPT_NONE);
 }
 
-static void luahid_preraw_event(lua_State *L, struct hid_device *hdev, luahid_raw_event_arg_t *arg)
+static void luahid_preraw_event(lua_State *L, struct hid_device *hdev, void *arg)
 {
 	luahid_pushhdev(L, hdev);
 	luahid_pushinfo(L, -4, hdev);
-	luahid_pushreport(L, arg->report);
+	luahid_raw_event_arg_t *raw_event_arg = arg;
+	luahid_pushreport(L, raw_event_arg->report);
 	lunatik_object_t *data = luahid_getdescriptor(L, luahid_gethid(hdev));
 	if (data)
-		luadata_reset(data, arg->data, arg->size, LUADATA_OPT_NONE);
+		luadata_reset(data, raw_event_arg->data, raw_event_arg->size, LUADATA_OPT_NONE);
 }
 
-static void luahid_postprobe(lua_State *L, struct hid_device *hdev, luahid_probe_arg_t *arg)
+static void luahid_postprobe(lua_State *L, struct hid_device *hdev, void *arg)
 {
 	if (lua_istable(L, -1)) {
 		lua_pushlightuserdata(L, hdev);
@@ -220,14 +223,14 @@ static void luahid_postprobe(lua_State *L, struct hid_device *hdev, luahid_probe
 	lua_pushinteger(L, 0);
 }
 
-static void luahid_postreport_fixup(lua_State *L, struct hid_device *hdev, luahid_report_fixup_arg_t *arg)
+static void luahid_postreport_fixup(lua_State *L, struct hid_device *hdev, void *arg)
 {
 	lunatik_object_t *data = luahid_getdescriptor(L, luahid_gethid(hdev));
 	if (data)
 		luadata_clear(data);
 }
 
-static void luahid_postraw_event(lua_State *L, struct hid_device *hdev, luahid_raw_event_arg_t *arg)
+static void luahid_postraw_event(lua_State *L, struct hid_device *hdev, void *arg)
 {
 	lunatik_object_t *data = luahid_getdescriptor(L, luahid_gethid(hdev));
 
@@ -237,7 +240,29 @@ static void luahid_postraw_event(lua_State *L, struct hid_device *hdev, luahid_r
 	lua_pushinteger(L, !lua_isboolean(L, -1) ? -EINVAL : 0);
 }
 
-#define LUAHID_CALLBACK(NAME, NARG, NRET)					\
+typedef void (*luahid_cb_t)(lua_State *L, struct hid_device *hdev, void *arg);
+
+struct luahid_cb_ops {
+	luahid_cb_t pre;
+	luahid_cb_t post;
+};
+
+static const struct luahid_cb_ops luahid_probe_ops = {
+    .pre  = luahid_preprobe,
+    .post = luahid_postprobe,
+};
+
+static const struct luahid_cb_ops luahid_report_fixup_ops = {
+    .pre  = luahid_prereport_fixup,
+    .post = luahid_postreport_fixup,
+};
+
+static const struct luahid_cb_ops luahid_raw_event_ops = {
+    .pre  = luahid_preraw_event,
+    .post = luahid_postraw_event,
+};
+
+#define LUAHID_CALLBACK(NAME, OPS, NARG, NRET)					\
 static int luahid_do##NAME(lua_State *L)					\
 {										\
 	struct hid_device *hdev = (struct hid_device *)lua_touserdata(L, 1);	\
@@ -256,7 +281,8 @@ static int luahid_do##NAME(lua_State *L)					\
 	}                                                              		\
 										\
 	lua_pushvalue(L, -3);                                          		\
-	luahid_pre##NAME(L, hdev, arg);                         		\
+	if ((OPS)->pre)                                         		\
+		(OPS)->pre(L, hdev, arg);       \
 										\
 	if (lua_pcall(L, NARG, NRET, 0) != LUA_OK) {                           	\
 		pr_err(#NAME ": %s\n", lua_tostring(L, -1));			\
@@ -264,13 +290,14 @@ static int luahid_do##NAME(lua_State *L)					\
 		return 1;		                   			\
 	}									\
 										\
-	luahid_post##NAME(L, hdev, arg);					\
+	if ((OPS)->post)                					\
+		(OPS)->post(L, hdev, arg);      \
 	return NRET;                                                           	\
 }
 
-LUAHID_CALLBACK(probe, 2, 1);
-LUAHID_CALLBACK(report_fixup, 4, 0);
-LUAHID_CALLBACK(raw_event, 5, 1);
+LUAHID_CALLBACK(probe, luahid_probe_ops, 2, 1, err);
+LUAHID_CALLBACK(report_fixup, luahid_report_fixup_ops, 4, 0, warn);
+LUAHID_CALLBACK(raw_event, luahid_raw_event_ops, 5, 1, err);
 
 static int luahid_runprobe(lua_State *L, struct hid_device *hdev, luahid_probe_arg_t *arg)
 {
