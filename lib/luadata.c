@@ -420,9 +420,12 @@ static const lunatik_class_t luadata_class = {
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t));
+	bool single = lua_toboolean(L, 2);
+
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), single);
 	luadata_t *data = (luadata_t *)object->private;
 
+	object->single = single;
 	data->ptr = lunatik_checkalloc(L, size);
 	data->size = size;
 	data->opt = LUADATA_OPT_FREE;
@@ -433,7 +436,7 @@ LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 
 static inline lunatik_object_t *luadata_create(void *ptr, size_t size, bool sleep, uint8_t opt)
 {
-	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep);
+	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep, false);
 
 	if (object != NULL) {
 		luadata_t *data = (luadata_t *)object->private;
