@@ -60,6 +60,7 @@ void *lunatik_lookup(const char *symbol);
 #define lsys_loadlib(l)		__symbol_get((l))
 #define lsys_unloadlib(l)	symbol_put_addr((l))
 #else
+#error "are you running lunatik as built-in?"
 #include <linux/kallsyms.h>
 #define lunatik_lookup(s)	((void *)kallsyms_lookup_name((l)))
 #define lsys_loadlib(l)		lunatik_lookup(l)
