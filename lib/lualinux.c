@@ -118,6 +118,53 @@ static int lualinux_schedule(lua_State *L)
 }
 
 /***
+* Modifies signal mask for current task.
+*
+* @function sigmodify
+* @tparam integer sig Signal number
+* @tparam[opt] integer cmd 0=BLOCK (default), 1=UNBLOCK
+* @treturn boolean `true` on success
+* @treturn[error] boolean `false` followed by negated errno
+* @within linux
+* @usage
+*   linux.sigmodify(15, true)          -- Unblock SIGTERM
+*   linux.sigmodify(linux.signal.KILL) -- Block SIGKILL
+*/
+static int lualinux_sigmodify(lua_State *L)
+{
+    sigset_t newmask;
+    sigemptyset(&newmask);
+    
+    int signum = luaL_checkinteger(L, 1);
+    int cmd = luaL_optinteger(L, 2, 0);
+    
+    sigaddset(&newmask, signum);
+    
+    int ret = sigprocmask(cmd, &newmask, NULL);
+    if (ret) {
+        lua_pushboolean(L, false);
+        lua_pushinteger(L, -ret);
+        return 2;
+    }
+    
+    lua_pushboolean(L, true);
+    return 1;
+}
+
+/***
+* Checks current task pending signals.
+*
+* @function pending
+* @treturn boolean
+* @within linux
+*/
+static int lualinux_pending(lua_State *L)
+{
+    	lua_pushboolean(L, signal_pending(current));
+    	return 1;
+}
+
+/***
 * Kills a process by sending a signal.
 * By default, sends SIGKILL.
 * An optional second argument can specify a different signal (either by number or by using the constants from `linux.signal`).
@@ -156,6 +203,19 @@ err:
 	lua_pushboolean(L, false);
 	lua_pushinteger(L, ret);
 	return 2;
+}
+
+/***
+* Checks if signal is allowed (unblocked) for current task.
+* @function isallowed
+* @tparam integer sig Signal number to send (`linux.signal.KILL`).
+* @treturn boolean `true` if signal can be delivered (not blocked)
+*/
+static int lualinux_isallowed(lua_State *L)
+{
+    	int signum = luaL_checkinteger(L, 1);
+    	lua_pushboolean(L, !sigismember(&current->blocked, signum));
+    	return 1;
 }
 
 /***
@@ -710,7 +770,10 @@ static const lunatik_namespace_t lualinux_flags[] = {
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
+	{"sigmodify", lualinux_sigmodify},        
+	{"pending", lualinux_pending},
 	{"kill", lualinux_kill},
+	{"isallowed", lualinux_isallowed},
 	{"tracing", lualinux_tracing},
 	{"time", lualinux_time},
 	{"difftime", lualinux_difftime},
