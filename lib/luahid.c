@@ -234,7 +234,7 @@ static void luahid_postraw_event(lua_State *L, struct hid_device *hdev, luahid_r
 	if (data)
 		luadata_clear(data);
 
-	lua_pushinteger(L, !lua_isboolean(L, -1) ? EINVAL : 0);
+	lua_pushinteger(L, !lua_isboolean(L, -1) ? -EINVAL : 0);
 }
 
 #define LUAHID_CALLBACK(NAME, NARG, NRET)					\
