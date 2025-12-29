@@ -89,10 +89,9 @@ typedef struct luarcu_table_s {
 
 #define luarcu_sizeoftable(size)	(sizeof(luarcu_table_t) + sizeof(struct hlist_head) * (size))
 
-#include <lua/lstring.h>
 /* size is always a power of 2; thus `size - 1` turns on every valid bit */
 #define luarcu_mask(table)			((table)->size - 1)
-#define luarcu_hash(table, key, keylen)		(luaS_hash((key), (keylen), (table)->seed) & luarcu_mask(table))
+#define luarcu_hash(table, key, keylen)		(lunatik_hash((key), (keylen), (table)->seed) & luarcu_mask(table))
 #define luarcu_seed()				get_random_u32()
 
 #define luarcu_entry(ptr, pos)		hlist_entry_safe(rcu_dereference_raw(ptr), typeof(*(pos)), hlist)

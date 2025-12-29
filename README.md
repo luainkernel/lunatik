@@ -72,7 +72,7 @@ Install Lunatik from our [package feed](https://github.com/luainkernel/openwrt_f
 
 ```
 sudo lunatik # execute Lunatik REPL
-Lunatik 3.7  Copyright (C) 2023-2025 ring-0 Ltda.
+Lunatik 4.0  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 > return 42 -- execute this line in the kernel
 42
 ```
@@ -95,61 +95,63 @@ usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]
 
 ## Lua Version
 
-Lunatik 3.7 is based on
-[Lua 5.4 adapted](https://github.com/luainkernel/lua)
+Lunatik 4.0 is based on
+[Lua 5.5 adapted](https://github.com/luainkernel/lua)
 to run in the kernel.
 
 ### Floating-point numbers
 
 Lunatik **does not** support floating-point arithmetic,
 thus it **does not** support `__div` nor `__pow`
-[metamethods](https://www.lua.org/manual/5.4/manual.html#2.4)
+[metamethods](https://www.lua.org/manual/5.5/manual.html#2.4)
 and the type _number_ has only the subtype _integer_.
 
 ### Lua API
 
-Lunatik **does not** support both [io](https://www.lua.org/manual/5.4/manual.html#6.8) and
-[os](https://www.lua.org/manual/5.4/manual.html#6.9) libraries,
+Lunatik **does not** support both [io](https://www.lua.org/manual/5.5/manual.html#6.8) and
+[os](https://www.lua.org/manual/5.5/manual.html#6.9) libraries,
 and the given identifiers from the following libraries:
-* [debug.debug](https://www.lua.org/manual/5.4/manual.html#pdf-debug.debug),
-[math.acos](https://www.lua.org/manual/5.4/manual.html#pdf-math.acos),
-[math.asin](https://www.lua.org/manual/5.4/manual.html#pdf-math.asin),
-[math.atan](https://www.lua.org/manual/5.4/manual.html#pdf-math.atan),
-[math.ceil](https://www.lua.org/manual/5.4/manual.html#pdf-math.ceil),
-[math.cos](https://www.lua.org/manual/5.4/manual.html#pdf-math.cos),
-[math.deg](https://www.lua.org/manual/5.4/manual.html#pdf-math.deg),
-[math.exp](https://www.lua.org/manual/5.4/manual.html#pdf-math.exp),
-[math.floor](https://www.lua.org/manual/5.4/manual.html#pdf-math.floor),
-[math.fmod](https://www.lua.org/manual/5.4/manual.html#pdf-math.fmod),
-[math.huge](https://www.lua.org/manual/5.4/manual.html#pdf-math.huge).
-[math.log](https://www.lua.org/manual/5.4/manual.html#pdf-math.log),
-[math.modf](https://www.lua.org/manual/5.4/manual.html#pdf-math.modf),
-[math.pi](https://www.lua.org/manual/5.4/manual.html#pdf-math.pi),
-[math.rad](https://www.lua.org/manual/5.4/manual.html#pdf-math.rad),
-[math.random](https://www.lua.org/manual/5.4/manual.html#pdf-math.random),
-[math.randomseed](https://www.lua.org/manual/5.4/manual.html#pdf-math.randomseed),
-[math.sin](https://www.lua.org/manual/5.4/manual.html#pdf-math.sin),
-[math.sqrt](https://www.lua.org/manual/5.4/manual.html#pdf-math.sqrt),
-[math.tan](https://www.lua.org/manual/5.4/manual.html#pdf-math.tan),
-[math.type](https://www.lua.org/manual/5.4/manual.html#pdf-math.type),
-[package.cpath](https://www.lua.org/manual/5.4/manual.html#pdf-package.cpath).
+* [debug.debug](https://www.lua.org/manual/5.5/manual.html#pdf-debug.debug),
+[math.acos](https://www.lua.org/manual/5.5/manual.html#pdf-math.acos),
+[math.asin](https://www.lua.org/manual/5.5/manual.html#pdf-math.asin),
+[math.atan](https://www.lua.org/manual/5.5/manual.html#pdf-math.atan),
+[math.ceil](https://www.lua.org/manual/5.5/manual.html#pdf-math.ceil),
+[math.cos](https://www.lua.org/manual/5.5/manual.html#pdf-math.cos),
+[math.deg](https://www.lua.org/manual/5.5/manual.html#pdf-math.deg),
+[math.exp](https://www.lua.org/manual/5.5/manual.html#pdf-math.exp),
+[math.floor](https://www.lua.org/manual/5.5/manual.html#pdf-math.floor),
+[math.fmod](https://www.lua.org/manual/5.5/manual.html#pdf-math.fmod),
+[math.frexp](https://www.lua.org/manual/5.5/manual.html#pdf-math.frexp),
+[math.huge](https://www.lua.org/manual/5.5/manual.html#pdf-math.huge).
+[math.ldexp](https://www.lua.org/manual/5.5/manual.html#pdf-math.ldexp),
+[math.log](https://www.lua.org/manual/5.5/manual.html#pdf-math.log),
+[math.modf](https://www.lua.org/manual/5.5/manual.html#pdf-math.modf),
+[math.pi](https://www.lua.org/manual/5.5/manual.html#pdf-math.pi),
+[math.rad](https://www.lua.org/manual/5.5/manual.html#pdf-math.rad),
+[math.random](https://www.lua.org/manual/5.5/manual.html#pdf-math.random),
+[math.randomseed](https://www.lua.org/manual/5.5/manual.html#pdf-math.randomseed),
+[math.sin](https://www.lua.org/manual/5.5/manual.html#pdf-math.sin),
+[math.sqrt](https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt),
+[math.tan](https://www.lua.org/manual/5.5/manual.html#pdf-math.tan),
+[math.type](https://www.lua.org/manual/5.5/manual.html#pdf-math.type),
+[package.cpath](https://www.lua.org/manual/5.5/manual.html#pdf-package.cpath).
 
 Lunatik **modifies** the following identifiers:
-* [\_VERSION](https://www.lua.org/manual/5.4/manual.html#pdf-_VERSION): is defined as `"Lua 5.4-kernel"`.
-* [collectgarbage("count")](https://www.lua.org/manual/5.4/manual.html#pdf-collectgarbage): returns the total memory in use by Lua in **bytes**, instead of _Kbytes_.
-* [package.path](https://www.lua.org/manual/5.4/manual.html#pdf-package.path): is defined as `"/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua"`.
-* [require](https://www.lua.org/manual/5.4/manual.html#pdf-require): only supports built-in or already linked C modules, that is, Lunatik **cannot** load kernel modules dynamically.
+* [\_VERSION](https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION): is defined as `"Lua 5.5-kernel"`.
+* [collectgarbage("count")](https://www.lua.org/manual/5.5/manual.html#pdf-collectgarbage): returns the total memory in use by Lua in **bytes**, instead of _Kbytes_.
+* [package.path](https://www.lua.org/manual/5.5/manual.html#pdf-package.path): is defined as `"/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua"`.
+* [require](https://www.lua.org/manual/5.5/manual.html#pdf-require): only supports built-in or already linked C modules, that is, Lunatik **cannot** load kernel modules dynamically.
 
 ### C API
 
 Lunatik **does not** support
-[luaL\_Stream](https://www.lua.org/manual/5.4/manual.html#luaL_Stream),
-[luaL\_execresult](https://www.lua.org/manual/5.4/manual.html#luaL_execresult),
-[luaL\_fileresult](https://www.lua.org/manual/5.4/manual.html#luaL_fileresult),
-[luaopen\_io](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_io) and
-[luaopen\_os](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_os).
+[luaL\_Stream](https://www.lua.org/manual/5.5/manual.html#luaL_Stream),
+[luaL\_execresult](https://www.lua.org/manual/5.5/manual.html#luaL_execresult),
+[luaL\_fileresult](https://www.lua.org/manual/5.5/manual.html#luaL_fileresult),
+[luaopen\_io](https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_io) and
+[luaopen\_os](https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_os).
 
-Lunatik **modifies** [luaL\_openlibs](https://www.lua.org/manual/5.4/manual.html#luaL_openlibs) to remove [luaopen\_io](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_io) and [luaopen\_os](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_os).
+Lunatik **modifies** [luaL\_openlibs](https://www.lua.org/manual/5.5/manual.html#luaL_openlibs) to remove [luaopen\_io](https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_io) and [luaopen\_os](https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_os).
 
 ## Lunatik Lua APIs
 
@@ -169,9 +171,9 @@ _lunatik\_runtime()_ creates a new `runtime` environment then loads and runs the
 `/lib/modules/lua/<script>.lua` as the entry point for this environment.
 It _must_ only be called from _process context_.
 The `runtime` environment is a Lunatik object that holds
-a [Lua state](https://www.lua.org/manual/5.4/manual.html#lua_State).
+a [Lua state](https://www.lua.org/manual/5.5/manual.html#lua_State).
 Lunatik objects are special
-Lua [userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
+Lua [userdata](https://www.lua.org/manual/5.5/manual.html#2.1)
 which also hold
 a [lock type](https://docs.kernel.org/locking/locktypes.html) and
 a [reference counter](https://www.kernel.org/doc/Documentation/kref.txt).
@@ -185,7 +187,7 @@ Otherwise, it will use a [spinlock](https://docs.kernel.org/locking/locktypes.ht
 _lunatik\_runtime()_ opens the Lua standard libraries
 [present on Lunatik](https://github.com/luainkernel/lunatik#c-api).
 If successful, _lunatik\_runtime()_ sets the address pointed by `pruntime` and
-[Lua's extra space](https://www.lua.org/manual/5.4/manual.html#lua_getextraspace)
+[Lua's extra space](https://www.lua.org/manual/5.5/manual.html#lua_getextraspace)
 with a pointer for the new created `runtime` environment,
 sets the _reference counter_ to `1` and then returns `0`.
 Otherwise, it returns `-ENOMEM`, if insufficient memory is available;
@@ -214,9 +216,9 @@ static int __init mydevice_init(void)
 int lunatik_stop(lunatik_object_t *runtime);
 ```
 _lunatik\_stop()_
-[closes](https://www.lua.org/manual/5.4/manual.html#lua_close)
+[closes](https://www.lua.org/manual/5.5/manual.html#lua_close)
 the
-[Lua state](https://www.lua.org/manual/5.4/manual.html#lua_State)
+[Lua state](https://www.lua.org/manual/5.5/manual.html#lua_State)
 created for this `runtime` environment and decrements the
 [reference counter](https://www.kernel.org/doc/Documentation/kref.txt).
 Once the reference counter is decremented to zero, the
@@ -293,7 +295,7 @@ otherwise, it returns `0`.
 lunatik_object_t *lunatik_toruntime(lua_State *L);
 ```
 _lunatik\_toruntime()_ returns the `runtime` environment referenced by the `L`'s
-[extra space](https://www.lua.org/manual/5.4/manual.html#lua_getextraspace).
+[extra space](https://www.lua.org/manual/5.5/manual.html#lua_getextraspace).
 
 # Examples
 
