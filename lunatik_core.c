@@ -39,6 +39,7 @@
 #ifdef LUNATIK_RUNTIME
 lunatik_object_t *lunatik_env;
 EXPORT_SYMBOL(lunatik_env);
+EXPORT_SYMBOL(luaS_hash);	/* required by luarcu */
 
 static inline void lunatik_setversion(lua_State *L)
 {

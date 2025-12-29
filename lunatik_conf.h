@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -33,7 +33,7 @@
 #define LUA_NUMBER		LUA_INTEGER
 #define LUA_NUMBER_FMT		LUA_INTEGER_FMT
 
-#define l_randomizePivot()	(~0)
+#define l_randomizePivot(L)	(~0)
 
 #include <linux/random.h>
 #define luai_makeseed(L)		get_random_u32()
@@ -92,6 +92,13 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode);
 
 #undef LUAI_MAXSTACK
 #define LUAI_MAXSTACK  200
+
+#ifdef LUNATIK_RUNTIME
+unsigned int luaS_hash(const char *str, size_t l, unsigned int seed); /* required by luarcu */
+#define	lunatik_hash(str, l, seed)	luaS_hash((str), (l), (seed))
+#endif /* LUNATIK_RUNTIME */
+
+#define LUNATIK_GCCOUNT	/* LUA_GCCOUNT in bytes, instead of Kbytes */
 
 #if defined(lcode_c) || defined(ldebug_c) || defined(llex_c) || defined(lparser_c) || defined(lstate_c)
 #ifdef current /* defined by asm/current.h */

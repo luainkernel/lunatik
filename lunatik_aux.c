@@ -92,7 +92,3 @@ void *lunatik_lookup(const char *symbol)
 EXPORT_SYMBOL(lunatik_lookup);
 #endif /* MODULE */
 
-/* used by lib/luarcu.c */
-#include <lua/lstring.h>
-EXPORT_SYMBOL(luaS_hash);
-

@@ -1,11 +1,11 @@
 #!/usr/bin/lua5.4
 --
--- SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
 local lunatik = {
-	copyright = "Copyright (C) 2023-2025 ring-0 Ltda.",
+	copyright = "Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.",
 	device = "/dev/lunatik",
 	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu",
 		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo", "luaxtable",
