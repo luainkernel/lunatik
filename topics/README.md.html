@@ -170,7 +170,7 @@ compiled on kernel upgrade.</p>
 <h2>Usage</h2>
 
 <pre><code> sudo lunatik # execute Lunatik REPL
- Lunatik 3.7  Copyright (C) 2023-2025 ring-0 Ltda.
+ Lunatik 4.0  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
  &gt; return 42 -- execute this line in the kernel
  42
 </code></pre>
@@ -199,61 +199,63 @@ usage: lunatik [<span class="global">load</span>|unload|reload|status|list] [run
 <p><a name="Lua_Version"></a></p>
 <h2>Lua Version</h2>
 
-<p>Lunatik 3.7 is based on
-<a href="https://github.com/luainkernel/lua">Lua 5.4 adapted</a>
+<p>Lunatik 4.0 is based on
+<a href="https://github.com/luainkernel/lua">Lua 5.5 adapted</a>
 to run in the kernel.</p>
 
 <h3>Floating-point numbers</h3>
 
 <p>Lunatik <strong>does not</strong> support floating-point arithmetic,
 thus it <strong>does not</strong> support <code>__div</code> nor <code>__pow</code>
-<a href="https://www.lua.org/manual/5.4/manual.html#2.4">metamethods</a>
+<a href="https://www.lua.org/manual/5.5/manual.html#2.4">metamethods</a>
 and the type <em>number</em> has only the subtype <em>integer</em>.</p>
 
 <h3>Lua API</h3>
 
-<p>Lunatik <strong>does not</strong> support both <a href="https://www.lua.org/manual/5.4/manual.html#6.8">io</a> and
-<a href="https://www.lua.org/manual/5.4/manual.html#6.9">os</a> libraries,
+<p>Lunatik <strong>does not</strong> support both <a href="https://www.lua.org/manual/5.5/manual.html#6.8">io</a> and
+<a href="https://www.lua.org/manual/5.5/manual.html#6.9">os</a> libraries,
 and the given identifiers from the following libraries:
-* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-debug.debug">debug.debug</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.acos">math.acos</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.asin">math.asin</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.atan">math.atan</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.ceil">math.ceil</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.cos">math.cos</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.deg">math.deg</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.exp">math.exp</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.floor">math.floor</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.fmod">math.fmod</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.huge">math.huge</a>.
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.log">math.log</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.modf">math.modf</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.pi">math.pi</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.rad">math.rad</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.random">math.random</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.randomseed">math.randomseed</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.sin">math.sin</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.sqrt">math.sqrt</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.tan">math.tan</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-math.type">math.type</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-package.cpath">package.cpath</a>.</p>
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-debug.debug">debug.debug</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.acos">math.acos</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.asin">math.asin</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.atan">math.atan</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.ceil">math.ceil</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.cos">math.cos</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.deg">math.deg</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.exp">math.exp</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.floor">math.floor</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.fmod">math.fmod</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.frexp">math.frexp</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.huge">math.huge</a>.
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.ldexp">math.ldexp</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.log">math.log</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.modf">math.modf</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.pi">math.pi</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.rad">math.rad</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.random">math.random</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.randomseed">math.randomseed</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sin">math.sin</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt">math.sqrt</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.tan">math.tan</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.type">math.type</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.cpath">package.cpath</a>.</p>
 
 <p>Lunatik <strong>modifies</strong> the following identifiers:
-* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-_VERSION">_VERSION</a>: is defined as <code>&quot;Lua 5.4-kernel&quot;</code>.
-* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-collectgarbage">collectgarbage("count")</a>: returns the total memory in use by Lua in <strong>bytes</strong>, instead of <em>Kbytes</em>.
-* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-package.path">package.path</a>: is defined as <code>&quot;/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua&quot;</code>.
-* <a href="https://www.lua.org/manual/5.4/manual.html#pdf-require">require</a>: only supports built-in or already linked C modules, that is, Lunatik <strong>cannot</strong> load kernel modules dynamically.</p>
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION">_VERSION</a>: is defined as <code>&quot;Lua 5.5-kernel&quot;</code>.
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-collectgarbage">collectgarbage("count")</a>: returns the total memory in use by Lua in <strong>bytes</strong>, instead of <em>Kbytes</em>.
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a>: is defined as <code>&quot;/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua&quot;</code>.
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>: only supports built-in or already linked C modules, that is, Lunatik <strong>cannot</strong> load kernel modules dynamically.</p>
 
 <h3>C API</h3>
 
 <p>Lunatik <strong>does not</strong> support
-<a href="https://www.lua.org/manual/5.4/manual.html#luaL_Stream">luaL_Stream</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#luaL_execresult">luaL_execresult</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#luaL_fileresult">luaL_fileresult</a>,
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_io">luaopen_io</a> and
-<a href="https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_os">luaopen_os</a>.</p>
+<a href="https://www.lua.org/manual/5.5/manual.html#luaL_Stream">luaL_Stream</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#luaL_execresult">luaL_execresult</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#luaL_fileresult">luaL_fileresult</a>,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_io">luaopen_io</a> and
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_os">luaopen_os</a>.</p>
 
-<p>Lunatik <strong>modifies</strong> <a href="https://www.lua.org/manual/5.4/manual.html#luaL_openlibs">luaL_openlibs</a> to remove <a href="https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_io">luaopen_io</a> and <a href="https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_os">luaopen_os</a>.</p>
+<p>Lunatik <strong>modifies</strong> <a href="https://www.lua.org/manual/5.5/manual.html#luaL_openlibs">luaL_openlibs</a> to remove <a href="https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_io">luaopen_io</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_os">luaopen_os</a>.</p>
 
 <p><a name="Lunatik_Lua_APIs"></a></p>
 <h2>Lunatik Lua APIs</h2>
@@ -279,9 +281,9 @@ and the given identifiers from the following libraries:
 <code>/lib/modules/lua/&lt;script&gt;.lua</code> as the entry point for this environment.
 It <em>must</em> only be called from <em>process context</em>.
 The <code>runtime</code> environment is a Lunatik object that holds
-a <a href="https://www.lua.org/manual/5.4/manual.html#lua_State">Lua state</a>.
+a <a href="https://www.lua.org/manual/5.5/manual.html#lua_State">Lua state</a>.
 Lunatik objects are special
-Lua <a href="https://www.lua.org/manual/5.4/manual.html#2.1">userdata</a>
+Lua <a href="https://www.lua.org/manual/5.5/manual.html#2.1">userdata</a>
 which also hold
 a <a href="https://docs.kernel.org/locking/locktypes.html">lock type</a> and
 a <a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>.
@@ -295,7 +297,7 @@ Otherwise, it will use a <a href="https://docs.kernel.org/locking/locktypes.html
 <em>lunatik_runtime()</em> opens the Lua standard libraries
 <a href="https://github.com/luainkernel/lunatik#c-api">present on Lunatik</a>.
 If successful, <em>lunatik_runtime()</em> sets the address pointed by <code>pruntime</code> and
-<a href="https://www.lua.org/manual/5.4/manual.html#lua_getextraspace">Lua's extra space</a>
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_getextraspace">Lua's extra space</a>
 with a pointer for the new created <code>runtime</code> environment,
 sets the <em>reference counter</em> to <code>1</code> and then returns <code>0</code>.
 Otherwise, it returns <code>-ENOMEM</code>, if insufficient memory is available;
@@ -329,9 +331,9 @@ or <code>-EINVAL</code>, if it fails to load or run the <code>script</code>.</p>
 </pre>
 
 <p><em>lunatik_stop()</em>
-<a href="https://www.lua.org/manual/5.4/manual.html#lua_close">closes</a>
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_close">closes</a>
 the
-<a href="https://www.lua.org/manual/5.4/manual.html#lua_State">Lua state</a>
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_State">Lua state</a>
 created for this <code>runtime</code> environment and decrements the
 <a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>.
 Once the reference counter is decremented to zero, the
@@ -418,7 +420,7 @@ lunatik_object_t *<span class="function-name">lunatik_toruntime</span>(lua_State
 </pre>
 
 <p><em>lunatik_toruntime()</em> returns the <code>runtime</code> environment referenced by the <code>L</code>'s
-<a href="https://www.lua.org/manual/5.4/manual.html#lua_getextraspace">extra space</a>.</p>
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_getextraspace">extra space</a>.</p>
 
 <h1>Examples</h1>
 
@@ -769,7 +771,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-12-29 17:33:35 </i>
+<i style="float:right;">Last updated 2026-01-01 13:54:45 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
