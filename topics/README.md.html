@@ -91,7 +91,7 @@
 It is composed by the Lua interpreter modified to run in the kernel;
 a <a href="driver.lua">device driver</a> (written in Lua =)) and a <a href="bin/lunatik">command line tool</a>
 to load and run scripts and manage runtime environments from the user space;
-a <a href="#lunatik-c-api">C API</a> to load and run scripts and manage runtime environments from the kernel;
+a <a href="doc/capi.md">C API</a> to load and run scripts and manage runtime environments from the kernel;
 and <a href="#lunatik-lua-apis">Lua APIs</a> for binding kernel facilities to Lua scripts.</p>
 
 <blockquote>
@@ -265,162 +265,7 @@ and the given identifiers from the following libraries:
 <p><a name="Lunatik_C_API"></a></p>
 <h2>Lunatik C API</h2>
 
-
-<pre>
-#include &lt;lunatik.h&gt;
-</pre>
-
-
-<h4>lunatik_runtime</h4>
-
-<pre>
-<span class="keyword">int</span> <span class="function-name">lunatik_runtime</span>(lunatik_object_t **pruntime, <span class="keyword">const</span> <span class="keyword">char</span> *script, <span class="keyword">bool</span> sleep);
-</pre>
-
-<p><em>lunatik_runtime()</em> creates a new <code>runtime</code> environment then loads and runs the script
-<code>/lib/modules/lua/&lt;script&gt;.lua</code> as the entry point for this environment.
-It <em>must</em> only be called from <em>process context</em>.
-The <code>runtime</code> environment is a Lunatik object that holds
-a <a href="https://www.lua.org/manual/5.5/manual.html#lua_State">Lua state</a>.
-Lunatik objects are special
-Lua <a href="https://www.lua.org/manual/5.5/manual.html#2.1">userdata</a>
-which also hold
-a <a href="https://docs.kernel.org/locking/locktypes.html">lock type</a> and
-a <a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>.
-If <code>sleep</code> is <em>true</em>, <em>lunatik_runtime()</em> will use a
-<a href="https://docs.kernel.org/locking/mutex-design.html">mutex</a>
-for locking the <code>runtime</code> environment and the
-<a href="https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html">GFP_KERNEL</a>
-flag for allocating new memory later on on
-<a href="https://github.com/luainkernel/lunatik#lunatik_run">lunatik_run()</a> calls.
-Otherwise, it will use a <a href="https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t">spinlock</a> and <a href="https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html">GFP_ATOMIC</a>.
-<em>lunatik_runtime()</em> opens the Lua standard libraries
-<a href="https://github.com/luainkernel/lunatik#c-api">present on Lunatik</a>.
-If successful, <em>lunatik_runtime()</em> sets the address pointed by <code>pruntime</code> and
-<a href="https://www.lua.org/manual/5.5/manual.html#lua_getextraspace">Lua's extra space</a>
-with a pointer for the new created <code>runtime</code> environment,
-sets the <em>reference counter</em> to <code>1</code> and then returns <code>0</code>.
-Otherwise, it returns <code>-ENOMEM</code>, if insufficient memory is available;
-or <code>-EINVAL</code>, if it fails to load or run the <code>script</code>.</p>
-
-<h5>Example</h5>
-
-<pre>
-<span class="comment">-- /lib/modules/lua/mydevice.lua
-</span><span class="keyword">function</span> <span class="function-name">myread</span>(len, off)
-    <span class="keyword">return</span> <span class="string">"42"</span>
-<span class="keyword">end</span>
-</pre>
-
-
-
-<pre>
-<span class="keyword">static</span> lunatik_object_t *runtime;
-
-<span class="keyword">static</span> <span class="keyword">int</span> __init <span class="function-name">mydevice_init</span>(<span class="keyword">void</span>)
-{
-    <span class="keyword">return</span> <span class="function-name">lunatik_runtime</span>(&amp;runtime, <span class="string">"mydevice"</span>, <span class="keyword">true</span>);
-}
-</pre>
-
-
-<h4>lunatik_stop</h4>
-
-<pre>
-<span class="keyword">int</span> <span class="function-name">lunatik_stop</span>(lunatik_object_t *runtime);
-</pre>
-
-<p><em>lunatik_stop()</em>
-<a href="https://www.lua.org/manual/5.5/manual.html#lua_close">closes</a>
-the
-<a href="https://www.lua.org/manual/5.5/manual.html#lua_State">Lua state</a>
-created for this <code>runtime</code> environment and decrements the
-<a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>.
-Once the reference counter is decremented to zero, the
-<a href="https://docs.kernel.org/locking/locktypes.html">lock type</a>
-and the memory allocated for the <code>runtime</code> environment are released.
-If the <code>runtime</code> environment has been released, it returns <code>1</code>;
-otherwise, it returns <code>0</code>.</p>
-
-<h4>lunatik_run</h4>
-
-<pre>
-<span class="keyword">void</span> <span class="function-name">lunatik_run</span>(lunatik_object_t *runtime, &lt;inttype&gt; (*handler)(...), &lt;inttype&gt; &amp;ret, ...);
-</pre>
-
-<p><em>lunatik_run()</em> locks the <code>runtime</code> environment and calls the <code>handler</code>
-passing the associated Lua state as the first argument followed by the variadic arguments.
-If the Lua state has been closed, <code>ret</code> is set with <code>-ENXIO</code>;
-otherwise, <code>ret</code> is set with the result of <code>handler(L, ...)</code> call.
-Then, it restores the Lua stack and unlocks the <code>runtime</code> environment.
-It is defined as a macro.</p>
-
-<h5>Example</h5>
-
-<pre>
-<span class="keyword">static</span> <span class="keyword">int</span> <span class="function-name">l_read</span>(lua_State *L, <span class="keyword">char</span> *buf, size_t len, loff_t *off)
-{
-    size_t llen;
-    <span class="keyword">const</span> <span class="keyword">char</span> *lbuf;
-
-    <span class="function-name">lua_getglobal</span>(L, <span class="string">"myread"</span>);
-    <span class="function-name">lua_pushinteger</span>(L, len);
-    <span class="function-name">lua_pushinteger</span>(L, *off);
-    <span class="keyword">if</span> (<span class="function-name">lua_pcall</span>(L, <span class="number">2</span>, <span class="number">2</span>, <span class="number">0</span>) != LUA_OK) { <span class="comment">/* calls myread(len, off) */</span>
-        <span class="function-name">pr_err</span>(<span class="string">"%s\n"</span>, <span class="function-name">lua_tostring</span>(L, -<span class="number">1</span>));
-        <span class="keyword">return</span> -ECANCELED;
-    }
-
-    lbuf = <span class="function-name">lua_tolstring</span>(L, -<span class="number">2</span>, &amp;llen);
-    llen = <span class="function-name">min</span>(len, llen);
-    <span class="keyword">if</span> (<span class="function-name">copy_to_user</span>(buf, lbuf, llen) != <span class="number">0</span>)
-        <span class="keyword">return</span> -EFAULT;
-
-    *off = (loff_t)<span class="function-name">luaL_optinteger</span>(L, -<span class="number">1</span>, *off + llen);
-    <span class="keyword">return</span> (ssize_t)llen;
-}
-
-<span class="keyword">static</span> ssize_t <span class="function-name">mydevice_read</span>(<span class="keyword">struct</span> file *f, <span class="keyword">char</span> *buf, size_t len, loff_t *off)
-{
-    ssize_t ret;
-    lunatik_object_t *runtime = (lunatik_object_t *)f-&gt;private_data;
-
-    <span class="function-name">lunatik_run</span>(runtime, l_read, ret, buf, len, off);
-    <span class="keyword">return</span> ret;
-}
-</pre>
-
-
-<h4>lunatik_getobject</h4>
-
-<pre>
-<span class="keyword">void</span> <span class="function-name">lunatik_getobject</span>(lunatik_object_t *object);
-</pre>
-
-<p><em>lunatik_getobject()</em> increments the
-<a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>
-of this <code>object</code> (e.g., <code>runtime</code> environment).</p>
-
-<h4>lunatik_put</h4>
-
-<pre>
-<span class="keyword">int</span> <span class="function-name">lunatik_putobject</span>(lunatik_object_t *object);
-</pre>
-
-<p><em>lunatik_putobject()</em> decrements the
-<a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>
-of this <code>object</code> (e.g., <code>runtime</code> environment).
-If the <code>object</code> has been released, it returns <code>1</code>;
-otherwise, it returns <code>0</code>.</p>
-
-<h4>lunatik_toruntime</h4>
-
-<pre>
-lunatik_object_t *<span class="function-name">lunatik_toruntime</span>(lua_State *L);
-</pre>
-
-<p><em>lunatik_toruntime()</em> returns the <code>runtime</code> environment referenced by the <code>L</code>'s
-<a href="https://www.lua.org/manual/5.5/manual.html#lua_getextraspace">extra space</a>.</p>
+<p>See <a href="doc/capi.md">this</a> document.</p>
 
 <h1>Examples</h1>
 
@@ -771,7 +616,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-01-01 15:46:23 </i>
+<i style="float:right;">Last updated 2026-01-01 21:07:25 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
