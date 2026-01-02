@@ -251,7 +251,11 @@ static int luasocket_bind(lua_State *L)
 	struct socket *socket = luasocket_check(L, 1);
 	struct sockaddr_storage addr;
 	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0))
 	lunatik_try(L, kernel_bind, socket, (struct sockaddr *)&addr, size);
+#else
+	lunatik_try(L, kernel_bind, socket, (struct sockaddr_unsized *)&addr, size);
+#endif
 	return 0;
 }
 
@@ -304,7 +308,12 @@ static int luasocket_connect(lua_State *L)
 	int nargs = lua_gettop(L);
 	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
 	int flags = luaL_optinteger(L, nargs >= 4 ? 4 : 3, 0);
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0))
 	lunatik_try(L, kernel_connect, socket, (struct sockaddr *)&addr, size, flags);
+#else
+	lunatik_try(L, kernel_connect, socket, (struct sockaddr_unsized *)&addr, size, flags);
+#endif
 	return 0;
 }
 
