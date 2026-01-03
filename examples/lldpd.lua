@@ -4,7 +4,7 @@
 --
 
 -- Daemon to send LLDP frames on given interface
-local socket = require("socket")
+local raw    = require("socket.raw")
 local linux  = require("linux")
 local thread = require("thread")
 
@@ -36,8 +36,7 @@ local config = {
 local ethertype = string.pack(">H", ETH_P_LLDP)
 
 local function get_src_mac(ifindex)
-	local rx <close> = socket.new(socket.af.PACKET, socket.sock.RAW, ETH_P_ALL)
-	rx:bind(string.pack(">H", ETH_P_ALL), ifindex)
+	local rx <close> = raw.bind(ETH_P_ALL, ifindex)
 	local frame = rx:receive(2048)
 	return frame:sub(7, 12)
 end
@@ -80,8 +79,7 @@ local src_mac = get_src_mac(ifindex)
 local lldp_frame = build_lldp_frame(src_mac)
 
 local function worker()
-	local tx <close> = socket.new(socket.af.PACKET, socket.sock.RAW, ETH_P_LLDP)
-	tx:bind(ifindex)
+	local tx <close> = raw.bind(ETH_P_LLDP, ifindex)
 
 	while (not shouldstop()) do
 		tx:send(lldp_frame)
