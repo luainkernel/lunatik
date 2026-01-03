@@ -37,6 +37,7 @@ file = {
 	'./lib/luarcu.c',
 	'./lib/luasocket.c',
 	'./lib/socket/inet.lua',
+	'./lib/socket/raw.lua',
 	'./lib/socket/unix.lua',
 	'./lib/luasyscall.c',
 	'./lib/syscall/table.lua',

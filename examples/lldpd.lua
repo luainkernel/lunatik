@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -33,10 +33,10 @@ local config = {
 	},
 }
 
-local ethertype = string.pack(">H", ETH_P_LLDP)
+local ethertype = string.pack(">I2", ETH_P_LLDP)
 
-local function get_src_mac(ifindex)
-	local rx <close> = raw.bind(ETH_P_ALL, ifindex)
+local function get_src_mac()
+	local rx <close> = raw.bind(ETH_P_ALL)
 	local frame = rx:receive(2048)
 	return frame:sub(7, 12)
 end
@@ -45,13 +45,13 @@ local function tlv(t, payload, subtype)
 	if subtype then
 		payload = string.char(subtype) .. payload
 	end
-	return string.pack(">H", (t << 9) | #payload) .. payload
+	return string.pack(">I2", (t << 9) | #payload) .. payload
 end
 
 local function build_lldp_frame(chassis_id)
 	local port_id = config.interface
-	local ttl = string.pack(">H", config.system.ttl)
-	local capabilities = string.pack(">HH", config.system.capabilities, config.system.capabilities_enabled)
+	local ttl = string.pack(">I2", config.system.ttl)
+	local capabilities = string.pack(">I2I2", config.system.capabilities, config.system.capabilities_enabled)
 
 	local pdu = {
 		-- Ethernet header
@@ -75,7 +75,7 @@ end
 
 local ifindex = linux.ifindex(config.interface)
 
-local src_mac = get_src_mac(ifindex)
+local src_mac = get_src_mac()
 local lldp_frame = build_lldp_frame(src_mac)
 
 local function worker()
