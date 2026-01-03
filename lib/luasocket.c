@@ -232,7 +232,7 @@ static int luasocket_receive(lua_State *L)
 *       if not binding to a specific protocol via other means (e.g. `socket.new`'s protocol argument for `AF_PACKET` might set this).
 *     - If `addr` is a string: It's a packed string directly representing parts of the `sockaddr_ll` structure
 *       (specifically, the fields after `sll_family`, like `sll_protocol`).
-*       Example from `tap.lua` for binding to `ETH_P_ALL` (0x0003): `sock:bind(string.pack(">H", 0x0003))`.
+*       Example from `tap.lua` for binding to `ETH_P_ALL` (0x0003): `sock:bind(string.pack(">I2", 0x0003))`.
 *   - Other families: A packed string representing the family-specific address structure.
 * @tparam[opt] integer port The local port number (required and used only if the family is `AF_INET`).
 * @treturn nil
