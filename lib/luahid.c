@@ -56,6 +56,7 @@ static const luaL_Reg luahid_lib[] = {
 };
 
 static const luaL_Reg luahid_mt[] = {
+	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{NULL, NULL},
 };
@@ -102,26 +103,26 @@ do { 						\
 	lua_setfield(L, idx - 1, #field);	\
 } while (0)
 
-#define luahid_pcall(L, func, hdev, arg) 				\
-do { 									\
-	int n = lua_gettop(L); 						\
-	lua_pushcfunction(L, func); 					\
-	lua_pushlightuserdata(L, (void *)hdev); 			\
-	lua_pushlightuserdata(L, (void *)arg); 				\
-	if (lua_pcall(L, 2, LUA_MULTRET, 0) != LUA_OK) { 		\
-		pr_warn("%s: %s\n", #func, lua_tostring(L, -1));	\
-		lua_settop(L, n);					\
-	} 								\
+#define luahid_pcall(L, func, hdev, arg) 			\
+do { 								\
+	int n = lua_gettop(L); 					\
+	lua_pushcfunction(L, func); 				\
+	lua_pushlightuserdata(L, (void *)hdev); 		\
+	lua_pushlightuserdata(L, (void *)arg); 			\
+	if (lua_pcall(L, 2, LUA_MULTRET, 0) != LUA_OK) { 	\
+		pr_err("%s: %s\n", #func, lua_tostring(L, -1));	\
+		lua_settop(L, n);				\
+	} 							\
 } while (0)
 
-#define luahid_newtable(L, dev, extra)			\
-do { 							\
-	lua_newtable(L); 				\
-	luahid_setfield(L, -1, dev, bus); 		\
-	luahid_setfield(L, -1, dev, group); 		\
-	luahid_setfield(L, -1, dev, vendor); 		\
-	luahid_setfield(L, -1, dev, product); 		\
-	luahid_setfield(L, -1, dev, extra); 		\
+#define luahid_newtable(L, dev, extra)		\
+do { 						\
+	lua_newtable(L); 			\
+	luahid_setfield(L, -1, dev, bus); 	\
+	luahid_setfield(L, -1, dev, group); 	\
+	luahid_setfield(L, -1, dev, vendor); 	\
+	luahid_setfield(L, -1, dev, product); 	\
+	luahid_setfield(L, -1, dev, extra); 	\
 } while (0)
 
 static inline void luahid_pushhdev(lua_State *L, struct hid_device *hdev)
@@ -153,20 +154,26 @@ static luahid_t *luahid_gethid(struct hid_device *hdev)
 	return container_of(driver, luahid_t, driver);
 }
 
-#define luahid_checkdriver(L, hid, idx, field) (lunatik_getregistry(L, hid) != LUA_TTABLE || \
-	lua_getfield(L, idx, "ops") != LUA_TTABLE || lua_getfield(L, idx - 1, field) != LUA_TTABLE)
+#define luahid_checkdriver(L, hid, idx)			\
+	(lunatik_getregistry(L, hid) != LUA_TTABLE || 	\
+	 lua_getfield(L, idx, "ops") != LUA_TTABLE ||	\
+	 lua_getfield(L, idx - 1, "_info") != LUA_TTABLE)
 
 static inline lunatik_object_t *luahid_getdescriptor(lua_State *L, luahid_t *hid)
 {
 	lunatik_object_t *data;
-	if (lunatik_getregistry(L, hid->descriptor) != LUA_TUSERDATA || unlikely((data = (lunatik_object_t *)lunatik_toobject(L, -1)) == NULL)) {
+	if (lunatik_getregistry(L, hid->descriptor) != LUA_TUSERDATA ||
+	    unlikely((data = (lunatik_object_t *)lunatik_toobject(L, -1)) == NULL)) {
 		pr_err("could not find descriptor\n");
 		return NULL;
 	}
 	return data;
 }
 
-typedef struct hid_device_id luahid_probe_arg_t;
+typedef struct {
+	const struct hid_device_id *id;
+	int ret;
+} luahid_probe_arg_t;
 
 typedef struct {
 	__u8 *rdesc;
@@ -177,102 +184,134 @@ typedef struct {
 	struct hid_report *report;
 	u8 *data;
 	int size;
+	int ret;
 } luahid_raw_event_arg_t;
 
 #define LUAHID_ARG(L, name, ix)	((luahid_##name##_arg_t *)lua_touserdata(L, ix))
 
-static void luahid_preprobe(lua_State *L, struct hid_device *hdev, luahid_probe_arg_t *arg)
+static void luahid_preprobe(lua_State *L, struct hid_device *hdev, void *arg)
 {
-	luahid_newtable(L, arg, driver_data);
+	luahid_probe_arg_t *probe_arg = arg;
+	luahid_newtable(L, probe_arg->id, driver_data);
 }
 
-static void luahid_prereport_fixup(lua_State *L, struct hid_device *hdev, luahid_report_fixup_arg_t *arg)
+static void luahid_prereport_fixup(lua_State *L, struct hid_device *hdev, void *arg)
 {
 	luahid_pushhdev(L, hdev);
 	luahid_pushinfo(L, -4, hdev);
 	lunatik_object_t *data = luahid_getdescriptor(L, luahid_gethid(hdev));
+	luahid_report_fixup_arg_t *report_fixup_arg = arg;
 	if (data)
-		luadata_reset(data, arg->rdesc, arg->rsize, LUADATA_OPT_NONE);
+		luadata_reset(data, report_fixup_arg->rdesc, report_fixup_arg->rsize, LUADATA_OPT_NONE);
 }
 
-static void luahid_preraw_event(lua_State *L, struct hid_device *hdev, luahid_raw_event_arg_t *arg)
+static void luahid_preraw_event(lua_State *L, struct hid_device *hdev, void *arg)
 {
 	luahid_pushhdev(L, hdev);
 	luahid_pushinfo(L, -4, hdev);
-	luahid_pushreport(L, arg->report);
+	luahid_raw_event_arg_t *raw_event_arg = arg;
+	luahid_pushreport(L, raw_event_arg->report);
 	lunatik_object_t *data = luahid_getdescriptor(L, luahid_gethid(hdev));
 	if (data)
-		luadata_reset(data, arg->data, arg->size, LUADATA_OPT_NONE);
+		luadata_reset(data, raw_event_arg->data, raw_event_arg->size, LUADATA_OPT_NONE);
 }
 
-static void luahid_postprobe(lua_State *L, struct hid_device *hdev, luahid_probe_arg_t *arg)
+static void luahid_postprobe(lua_State *L, struct hid_device *hdev, void *arg)
 {
+	luahid_probe_arg_t *probe_arg = arg;
 	if (lua_istable(L, -1)) {
 		lua_pushlightuserdata(L, hdev);
 		lua_pushvalue(L, -2);
 		lua_settable(L, -4);
 		hid_set_drvdata(hdev, luahid_gethid(hdev));
+		probe_arg->ret = 0;
 	}
-	lua_pushinteger(L, 0);
 }
 
-static void luahid_postreport_fixup(lua_State *L, struct hid_device *hdev, luahid_report_fixup_arg_t *arg)
+static void luahid_postreport_fixup(lua_State *L, struct hid_device *hdev, void *arg)
 {
 	lunatik_object_t *data = luahid_getdescriptor(L, luahid_gethid(hdev));
 	if (data)
 		luadata_clear(data);
 }
 
-static void luahid_postraw_event(lua_State *L, struct hid_device *hdev, luahid_raw_event_arg_t *arg)
+static void luahid_postraw_event(lua_State *L, struct hid_device *hdev, void *arg)
 {
+	luahid_raw_event_arg_t *raw_event_arg = arg;
 	lunatik_object_t *data = luahid_getdescriptor(L, luahid_gethid(hdev));
+
 	if (data)
 		luadata_clear(data);
-	if (!lua_isboolean(L, -1))
-		lua_pushinteger(L, -EINVAL);
-	else
-		lua_pushinteger(L, 0);
+
+	if (!lua_isboolean(L, -1)) {
+		raw_event_arg->ret = -EINVAL;
+		return;
+	}
+
+	raw_event_arg->ret = lua_toboolean(L, -1) ? 1 : 0;
 }
 
-#define LUAHID_CALLBACK(NAME, NARG, NRET, LEVEL)							\
-static int luahid_do##NAME(lua_State *L)								\
-{													\
-	struct hid_device *hdev = (struct hid_device *)lua_touserdata(L, 1);				\
-	luahid_##NAME##_arg_t *arg = LUAHID_ARG(L, NAME, 2);						\
-	luahid_t *hid = luahid_gethid(hdev);								\
-													\
-	if (luahid_checkdriver(L, hid, -1, "_info")) {							\
-		pr_##LEVEL(#NAME ": invaild driver\n");							\
-		if (NRET) lua_pushinteger(L, -ENXIO);							\
-		return (NRET) ? 1 : 0;                   						\
-	}												\
-													\
-	if (lua_getfield(L, -2, #NAME) != LUA_TFUNCTION) {						\
-		if (NRET) lua_pushinteger(L, 0);							\
-		return (NRET) ? 1 : 0;                   						\
-	}                                                                      				\
-													\
-	lua_pushvalue(L, -3);                                                  				\
-	luahid_pre##NAME(L, hdev, arg);                               					\
-													\
-	if (lua_pcall(L, NARG, NRET, 0) != LUA_OK) {                           				\
-		pr_##LEVEL(#NAME ": %s\n", lua_tostring(L, -1));					\
-		if (NRET) lua_pushinteger(L, -ECANCELED);						\
-		return (NRET) ? 1 : 0;                   						\
-	}												\
-													\
-	luahid_post##NAME(L, hdev, arg);								\
-	return NRET;                                                           				\
+typedef void (*luahid_cb_t)(lua_State *L, struct hid_device *hdev, void *arg);
+
+struct luahid_cb_ops {
+	luahid_cb_t pre;
+	luahid_cb_t post;
+};
+
+static const struct luahid_cb_ops luahid_probe_ops = {
+    .pre  = luahid_preprobe,
+    .post = luahid_postprobe,
+};
+
+static const struct luahid_cb_ops luahid_report_fixup_ops = {
+    .pre  = luahid_prereport_fixup,
+    .post = luahid_postreport_fixup,
+};
+
+static const struct luahid_cb_ops luahid_raw_event_ops = {
+    .pre  = luahid_preraw_event,
+    .post = luahid_postraw_event,
+};
+
+#define LUAHID_CALLBACK(NAME, NARG, NRET)					\
+static int luahid_do##NAME(lua_State *L)					\
+{										\
+	struct hid_device *hdev = (struct hid_device *)lua_touserdata(L, 1);	\
+	luahid_##NAME##_arg_t *arg = LUAHID_ARG(L, NAME, 2);			\
+	luahid_t *hid = luahid_gethid(hdev);					\
+										\
+	if (luahid_checkdriver(L, hid, -1)) {					\
+		pr_err(#NAME ": invalid driver\n");				\
+		lua_pushinteger(L, -ENXIO);					\
+		return 1;		                   			\
+	}									\
+										\
+	if (lua_getfield(L, -2, #NAME) != LUA_TFUNCTION) {			\
+		lua_pushinteger(L, 0);						\
+		return 1;		                   			\
+	}                                                              		\
+										\
+	lua_pushvalue(L, -3);                                          		\
+	luahid_##NAME##_ops.pre(L, hdev, arg);       \
+										\
+	if (lua_pcall(L, NARG, NRET, 0) != LUA_OK) {                           	\
+		pr_err(#NAME ": %s\n", lua_tostring(L, -1));			\
+		lua_pushinteger(L, -ECANCELED);					\
+		return 1;		                   			\
+	}									\
+										\
+	luahid_##NAME##_ops.post(L, hdev, arg);      \
+	return NRET;                                                           	\
 }
 
-LUAHID_CALLBACK(probe, 2, 1, err);
-LUAHID_CALLBACK(report_fixup, 4, 0, warn);
-LUAHID_CALLBACK(raw_event, 5, 1, err);
+LUAHID_CALLBACK(probe, 2, 1);
+LUAHID_CALLBACK(report_fixup, 4, 0);
+LUAHID_CALLBACK(raw_event, 5, 1);
 
 static int luahid_runprobe(lua_State *L, struct hid_device *hdev, luahid_probe_arg_t *arg)
 {
 	luahid_pcall(L, luahid_doprobe, hdev, arg);
-	return lua_tointeger(L, -1);
+	return arg->ret;
 }
 
 static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
@@ -280,7 +319,9 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	luahid_t *hid = luahid_gethid(hdev);
 	int ret;
 
-	lunatik_run(hid->runtime, luahid_runprobe, ret, hdev, (luahid_probe_arg_t *)id);
+	luahid_probe_arg_t probe_arg = {.id = id, .ret = -ENODEV};
+
+	lunatik_run(hid->runtime, luahid_runprobe, ret, hdev, &probe_arg);
 	if (ret != 0 || (ret = hid_parse(hdev)) != 0)
 		return ret;
 
@@ -311,25 +352,23 @@ static luahid_ret_t luahid_report_fixup(struct hid_device *hdev, __u8 *rdesc, un
 	return rdesc;
 }
 
-static int luahid_runraw_event(lua_State *L, struct hid_device *hdev, luahid_raw_event_arg_t *arg, int *ret_bool)
+static int luahid_runraw_event(lua_State *L, struct hid_device *hdev, luahid_raw_event_arg_t *arg)
 {
 	luahid_pcall(L, luahid_doraw_event, hdev, arg);
-	int ret = lua_tointeger(L, -1);
-	*ret_bool = ret ? false : lua_toboolean(L, -2);
-	return ret;
+	return arg->ret;
 }
 
 static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, u8 *data, int size)
 {
 	luahid_t *hid = luahid_gethid(hdev);
-	int ret, ret_bool = false;
+	int ret;
 	luahid_raw_event_arg_t arg;
 	arg.report = report;
 	arg.data = data;
 	arg.size = size;
 
-	lunatik_runirq(hid->runtime, luahid_runraw_event, ret, hdev, &arg, &ret_bool);
-	return ret_bool;
+	lunatik_runirq(hid->runtime, luahid_runraw_event, ret, hdev, &arg);
+	return ret;
 }
 
 /***
@@ -406,7 +445,7 @@ static int luahid_register(lua_State *L)
 
 	lunatik_checkfield(L, 1, "id_table", LUA_TTABLE);
 	luaL_argcheck(L, (user_driver->id_table = luahid_setidtable(L, -1)) != NULL,
-		      2, "invaild id_table");
+		      2, "invalid id_table");
 
 	user_driver->probe = luahid_probe;
 	user_driver->report_fixup = luahid_report_fixup;
