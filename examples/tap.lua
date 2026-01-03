@@ -4,19 +4,15 @@
 --
 
 local device = require("device")
-local socket = require("socket")
+local raw    = require("socket.raw")
 local linux  = require("linux")
 
-local PACKET    = socket.af.PACKET
-local RAW       = socket.sock.RAW
-local ETH_P_ALL = 0x0003
 local MTU       = 1500
 
 local s = linux.stat
 local tap = {name = "tap", mode = s.IRUGO}
 
-local socket = socket.new(PACKET, RAW, ETH_P_ALL)
-socket:bind(string.pack(">I2", ETH_P_ALL))
+local socket = raw.bind()
 
 function tap:read()
 	local frame = socket:receive(MTU)
