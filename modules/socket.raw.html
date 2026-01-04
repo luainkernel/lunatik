@@ -55,14 +55,14 @@
   <li><a href="../modules/lunatik.html">lunatik</a></li>
   <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
   <li><a href="../modules/mailbox.html">mailbox</a></li>
-  <li><strong>net</strong></li>
+  <li><a href="../modules/net.html">net</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><a href="../modules/notifier.html">notifier</a></li>
   <li><a href="../modules/probe.html">probe</a></li>
   <li><a href="../modules/rcu.html">rcu</a></li>
   <li><a href="../modules/socket.html">socket</a></li>
   <li><a href="../modules/socket.inet.html">socket.inet</a></li>
-  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><strong>socket.raw</strong></li>
   <li><a href="../modules/socket.unix.html">socket.unix</a></li>
   <li><a href="../modules/syscall.html">syscall</a></li>
   <li><a href="../modules/syscall.table.html">syscall.table</a></li>
@@ -79,21 +79,20 @@
 
 <div id="content">
 
-<h1>Module <code>net</code></h1>
-<p>Network utility functions.</p>
-<p> This module provides helper functions for network-related operations,
- primarily for converting between string and integer representations of IPv4 addresses.</p>
+<h1>Module <code>socket.raw</code></h1>
+<p>RAW AF_PACKET socket operations.</p>
+<p> This module provides a higher-level abstraction over the <a href="../modules/socket.html#">socket</a> module.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#">socket</a>
+    </ul>
 
 
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#aton">aton (addr)</a></td>
-	<td class="summary">Converts an IPv4 address string to its integer representation.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#ntoa">ntoa (ip)</a></td>
-	<td class="summary">Converts an integer representation of an IPv4 address to its string form.</td>
+	<td class="name" nowrap><a href="#bind">bind (proto, ifindex)</a></td>
+	<td class="summary">Creates and binds a raw packet socket for receiving frames.</td>
 	</tr>
 </table>
 
@@ -105,62 +104,42 @@
 
     <dl class="function">
     <dt>
-    <a name = "aton"></a>
-    <strong>aton (addr)</strong>
+    <a name = "bind"></a>
+    <strong>bind (proto, ifindex)</strong>
     </dt>
     <dd>
-    Converts an IPv4 address string to its integer representation.
- "Address to Number"
+    Creates and binds a raw packet socket for receiving frames.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">addr</span>
-         (string) The IPv4 address string (e.g., "127.0.0.1").
+        <li><span class="parameter">proto</span>
+         (number) EtherType (defaults to ETH<em>P</em>ALL).
+        </li>
+        <li><span class="parameter">ifindex</span>
+         (number) [optional] Interface index (defaults to listen all interfaces).
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-        (number) The IPv4 address as an integer.
+        A new raw packet socket bound for proto and ifindex.
     </ol>
 
+    <h3>Raises:</h3>
+    Error if socket.new() or socket.bind() fail.
 
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="../modules/socket.html#new">socket.new</a></li>
+         <li><a href="../modules/socket.html#bind">socket.bind</a></li>
+    </ul>
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> ip_int = net.<span class="function-name">aton</span>(<span class="string">"192.168.1.1"</span>)</pre>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "ntoa"></a>
-    <strong>ntoa (ip)</strong>
-    </dt>
-    <dd>
-    Converts an integer representation of an IPv4 address to its string form.
- "Number to Address"
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">ip</span>
-         (number) The IPv4 address as an integer.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-        (string) The IPv4 address string (e.g., "127.0.0.1").
-    </ol>
-
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="keyword">local</span> ip_str = net.<span class="function-name">ntoa</span>(<span class="number">3232235777</span>)  <span class="comment">-- "192.168.1.1"</span></pre>
+        <pre class="example"><span class="keyword">local</span> rx &lt;close&gt; = raw.<span class="function-name">bind</span>(<span class="number">0x0003</span>)
+<span class="keyword">local</span> tx &lt;close&gt; = raw.<span class="function-name">bind</span>(<span class="number">0x88cc</span>, ifindex)</pre>
     </ul>
 
 </dd>
