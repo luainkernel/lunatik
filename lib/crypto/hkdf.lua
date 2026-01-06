@@ -26,7 +26,6 @@ function HKDF:close()
 	end
 end
 
-HKDF.__gc = HKDF.close
 HKDF.__close = HKDF.close
 HKDF.__index = HKDF
 
