@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2024-2025 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
+* SPDX-FileCopyrightText: (c) 2024-2026 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -104,7 +104,7 @@ static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_
 	if (likely(luanf->mark != skb->mark))
 		goto out;
 
-	lunatik_runbh(luanf->runtime, luanetfilter_hook_cb, ret, luanf, skb);
+	lunatik_run(luanf->runtime, luanetfilter_hook_cb, ret, luanf, skb);
 	return (ret < 0 || ret > NF_MAX_VERDICT) ? policy : ret;
 out:
 	return policy;
