@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -26,8 +26,8 @@ do {						\
 
 #define lunatik_newlock(o)	lunatik_locker((o), mutex_init, spin_lock_init);
 #define lunatik_freelock(o)	lunatik_locker((o), mutex_destroy, (void));
-#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock)
-#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock)
+#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock_bh)
+#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock_bh)
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 
@@ -51,35 +51,15 @@ do {							\
 	lua_settop(L, n);				\
 } while (0)
 
-#define lunatik_runner(runtime, handler, ret, ...)			\
+#define lunatik_run(runtime, handler, ret, ...)				\
 do {									\
+	lunatik_lock(runtime);						\
 	if (unlikely(!lunatik_getstate(runtime)))			\
 		ret = -ENXIO;						\
 	else								\
 		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
-} while (0)
-
-#define lunatik_run(runtime, handler, ret, ...)			\
-do {								\
-	lunatik_lock(runtime);					\
-	lunatik_runner(runtime, handler, ret, ## __VA_ARGS__);	\
-	lunatik_unlock(runtime);				\
-} while (0)
-
-#define lunatik_runbh(runtime, handler, ret, ...)		\
-do {								\
-	spin_lock_bh(&runtime->spin);				\
-	lunatik_runner(runtime, handler, ret, ## __VA_ARGS__);	\
-	spin_unlock_bh(&runtime->spin);				\
-} while (0)
-
-#define lunatik_runirq(runtime, handler, ret, ...)		\
-do {								\
-	unsigned long flags;					\
-	spin_lock_irqsave(&runtime->spin, flags);		\
-	lunatik_runner(runtime, handler, ret, ## __VA_ARGS__);	\
-	spin_unlock_irqrestore(&runtime->spin, flags);		\
-} while (0)
+	lunatik_unlock(runtime);					\
+} while(0)
 
 typedef struct lunatik_reg_s {
 	const char *name;
