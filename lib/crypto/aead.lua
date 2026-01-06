@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -24,7 +24,6 @@ function AEAD:close()
 	self.tfm = nil -- Allow the C object to be garbage collected by Lua
 end
 
-AEAD.__gc = AEAD.close
 AEAD.__close = AEAD.close
 AEAD.__index = AEAD
 

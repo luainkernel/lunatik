@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -26,7 +26,6 @@ function HKDF:close()
 	end
 end
 
-HKDF.__gc = HKDF.close
 HKDF.__close = HKDF.close
 HKDF.__index = HKDF
 
