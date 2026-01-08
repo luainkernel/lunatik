@@ -121,7 +121,7 @@ uninstall: scripts_uninstall modules_uninstall
 	depmod -a
 
 lunatik_sym.h: $(LUA_API) gensymbols.sh
-	${shell ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
+	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
 moontastik_install_%:
 	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)
