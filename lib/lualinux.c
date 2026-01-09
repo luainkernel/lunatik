@@ -25,9 +25,6 @@
 #include <linux/pid.h> 
 #include <linux/signal.h>
 #include <linux/errno.h>
-#include <linux/errname.h>
-#include <linux/version.h>
-#include <linux/err.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -524,17 +521,8 @@ static const lunatik_reg_t lualinux_signal[] = {
 */
 static int lualinux_errname(lua_State *L)
 {
-    int e = abs((int)luaL_checkinteger(L, 1));
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
-    const char *n = errname(e);
-    lua_pushstring(L, n ? n : "unknown");
-#else
-    char buf[LUAL_BUFFERSIZE];
-    snprintf(buf, sizeof(buf), "%pE", ERR_PTR(-e));
-    lua_pushstring(L, buf);
-#endif
-
+    int e = (int)luaL_checkinteger(L, 1);
+    lunatik_pusherrname(L, e);
     return 1;
 }
 
