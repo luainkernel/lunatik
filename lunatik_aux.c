@@ -109,3 +109,8 @@ void *lunatik_lookup(const char *symbol)
 EXPORT_SYMBOL(lunatik_lookup);
 #endif /* MODULE */
 
+#if BITS_PER_LONG == 32
+/* require by lib/lualinux.c */
+EXPORT_SYMBOL(__moddi3);
+#endif /* BITS_PER_LONG == 32 */
+
