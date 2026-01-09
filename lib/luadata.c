@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -174,8 +174,6 @@ LUADATA_NEWINT(int32);
 * @raise Error if offset is out of bounds or the data object is read-only.
 */
 LUADATA_NEWINT(uint32);
-
-#ifdef __LP64__
 /***
 * Extracts a signed 64-bit integer from the data object.
 * Assumes host byte order.
@@ -193,7 +191,6 @@ LUADATA_NEWINT(uint32);
 * @raise Error if offset is out of bounds or the data object is read-only.
 */
 LUADATA_NEWINT(int64);
-#endif
 
 /***
 * Extracts a string from the data object.
@@ -317,7 +314,6 @@ static const luaL_Reg luadata_mt[] = {
 	{"setint32", luadata_setint32},
 	{"getuint32", luadata_getuint32},
 	{"setuint32", luadata_setuint32},
-#ifdef __LP64__
 	{"getint64", luadata_getint64},
 	{"setint64", luadata_setint64},
 /***
@@ -338,10 +334,6 @@ static const luaL_Reg luadata_mt[] = {
 * @raise Error if offset is out of bounds or the data object is read-only.
 */
 	{"setnumber", luadata_setint64},
-#else
-	{"getnumber", luadata_getint32},
-	{"setnumber", luadata_setint32},
-#endif
 	{"getstring", luadata_getstring},
 	{"setstring", luadata_setstring},
 	{NULL, NULL}

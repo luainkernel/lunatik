@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+
 ifeq ($(ARCH), x86)
 	ifdef CONFIG_X86_32
 		KLIBC_ARCH := i386
@@ -11,6 +14,7 @@ endif
 
 KLIBC_USR := /klibc/usr
 KLIBC_INC := $(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
+KLIBC_LIBGCC := $(KLIBC_USR)/klibc/libgcc
 
 LUNATIK_FLAGS := -D_LUNATIK -D_KERNEL -I${PWD}$(KLIBC_INC)
 
@@ -29,6 +33,12 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	lua/ltablib.o lua/lutf8lib.o lua/lmathlib.o lua/linit.o \
 	lua/loadlib.o $(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/setjmp.o \
 	lunatik_aux.o lunatik_obj.o lunatik_core.o
+
+ifeq ($(CONFIG_64BIT),)
+lunatik-objs += $(KLIBC_LIBGCC)/__udivmoddi4.o	\
+	$(KLIBC_LIBGCC)/__divdi3.o $(KLIBC_LIBGCC)/__udivdi3.o \
+	$(KLIBC_LIBGCC)/__moddi3.o $(KLIBC_LIBGCC)/__umoddi3.o
+endif
 
 obj-$(CONFIG_LUNATIK_RUN) += lunatik_run.o
 
