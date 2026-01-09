@@ -544,7 +544,9 @@ static const lunatik_reg_t lualinux_signal[] = {
 	{"PIPE", SIGPIPE},
 	{"ALRM", SIGALRM},
 	{"TERM", SIGTERM},
+#ifdef SIGSTKFLT
 	{"STKFLT", SIGSTKFLT},
+#endif
 	{"CHLD", SIGCHLD},
 	{"CONT", SIGCONT},
 	{"STOP", SIGSTOP},
