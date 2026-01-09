@@ -5,6 +5,8 @@
 
 #include <linux/slab.h>
 #include <linux/fs.h>
+#include <linux/version.h>
+#include <linux/errname.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -62,6 +64,21 @@ error:
 	return status;
 }
 EXPORT_SYMBOL(lunatik_loadfile);
+
+void lunatik_pusherrname(lua_State *L, int err)
+{
+    err = abs(err);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+    const char *name = errname(err);
+    lua_pushstring(L, name ? name : "unknown");
+#else
+    char buf[LUAL_BUFFERSIZE];
+    snprintf(buf, sizeof(buf), "%pE", ERR_PTR(-err));
+    lua_pushstring(L, buf);
+#endif
+}
+EXPORT_SYMBOL(lunatik_pusherrname);
 
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
 #include <linux/kprobes.h>
