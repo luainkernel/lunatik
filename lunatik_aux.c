@@ -96,3 +96,8 @@ EXPORT_SYMBOL(lunatik_lookup);
 #include <lua/lstring.h>
 EXPORT_SYMBOL(luaS_hash);
 
+#if BITS_PER_LONG == 32
+/* require by lib/lualinux.c */
+EXPORT_SYMBOL(__moddi3);
+#endif /* BITS_PER_LONG == 32 */
+
