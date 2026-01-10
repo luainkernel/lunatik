@@ -163,6 +163,35 @@ static int luasocket_send(lua_State *L)
 	return 1;
 }
 
+static int luasocket_getroutedmac(lua_State *L)
+{
+	struct socket *socket = luasocket_check(L, 1);
+	struct sock *sk = socket->sk;
+
+	if (!sk->sk_bound_dev_if) {
+		lua_pushnil(L);
+	} else {
+		struct net_device *dev =
+			dev_get_by_index(sock_net(sk), sk->sk_bound_dev_if);
+		if (likely(dev)) {
+			unsigned char *mac = kmalloc(dev->addr_len, GFP_KERNEL);
+
+			if (!mac) {
+				lua_pushnil(L);
+				goto leave;
+			}
+
+			memcpy(mac, dev->dev_addr, dev->addr_len);
+			lua_pushstring(L, mac);
+			kfree(mac);
+			dev_put(dev);
+		}
+	}
+
+leave:
+	return 1;
+}
+
 /***
 * Receives a message from the socket.
 *
@@ -387,6 +416,7 @@ static const luaL_Reg luasocket_mt[] = {
 	{"connect", luasocket_connect},
 	{"getsockname", luasocket_getsockname},
 	{"getpeername", luasocket_getpeername},
+	{"getroutedmac", luasocket_getroutedmac},
 	{NULL, NULL}
 };
 
