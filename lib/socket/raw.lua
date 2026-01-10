@@ -11,11 +11,10 @@
 -- @see socket
 --
 local socket = require("socket")
+local eth    = require("linux.eth")
 
 local af   = socket.af
 local sock = socket.sock
-
-local ETH_P_ALL  = 0x0003
 
 local raw = {}
 
@@ -31,7 +30,7 @@ local raw = {}
 -- @see socket.new
 -- @see socket.bind
 function raw.bind(proto, ifindex)
-	local proto = proto or ETH_P_ALL
+	local proto = proto or eth.ALL
 	local s = socket.new(af.PACKET, sock.RAW, proto)
 	local param = ifindex and ifindex or string.pack(">I2", proto)
 	s:bind(param)

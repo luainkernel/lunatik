@@ -20,7 +20,7 @@ RM = rm -f
 MKDIR = mkdir -p -m 0755
 INSTALL = install -o root -g root
 
-all: lunatik_sym.h
+all: lunatik_sym.h constants
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} CONFIG_LUNATIK=m	\
 	CONFIG_LUNATIK_RUN=m CONFIG_LUNATIK_RUNTIME=y CONFIG_LUNATIK_DEVICE=m	\
 	CONFIG_LUNATIK_LINUX=m CONFIG_LUNATIK_NOTIFIER=m CONFIG_LUNATIK_SOCKET=m \
@@ -50,6 +50,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
+	${INSTALL} -m 0644 lib/linux/*.lua ${SCRIPTS_INSTALL_PATH}/linux
 	${INSTALL} -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}
 
 scripts_uninstall:
@@ -62,7 +63,7 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/syscall
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik
 
-.PHONY: ebpf
+.PHONY: ebpf constants
 ebpf:
 	${MAKE} -C examples/filter
 
@@ -122,6 +123,10 @@ uninstall: scripts_uninstall modules_uninstall
 
 lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
+
+constants:
+	${MKDIR} lib/linux
+	${shell CC='$(CC)' lua genconstants.lua}
 
 moontastik_install_%:
 	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)
