@@ -11,7 +11,6 @@ MODULES_BUILD_PATH ?= ${BTF_INSTALL_PATH}
 MODULES_INSTALL_PATH := ${MODULES_RELEASE_PATH}/kernel
 SCRIPTS_INSTALL_PATH := ${MODULES_PATH}/lua
 
-
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
 MOONTASTIK_RELEASE ?= v0.1c
@@ -30,7 +29,8 @@ all: lunatik_sym.h
 	CONFIG_LUNATIK_NETFILTER=m CONFIG_LUNATIK_COMPLETION=m \
 	CONFIG_LUNATIK_CRYPTO_SHASH=m CONFIG_LUNATIK_CRYPTO_SKCIPHER=m \
 	CONFIG_LUNATIK_CRYPTO_AEAD=m CONFIG_LUNATIK_CRYPTO_RNG=m \
-	CONFIG_LUNATIK_CRYPTO_COMP=m CONFIG_LUNATIK_CPU=m CONFIG_LUNATIK_HID=m
+	CONFIG_LUNATIK_CRYPTO_COMP=m CONFIG_LUNATIK_CPU=m CONFIG_LUNATIK_HID=m \
+	CONFIG_LUNATIK_ROOT=/tmp/
 
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
@@ -50,7 +50,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
-	${INSTALL} -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}
+	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 
 scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
@@ -121,7 +121,7 @@ uninstall: scripts_uninstall modules_uninstall
 	depmod -a
 
 lunatik_sym.h: $(LUA_API) gensymbols.sh
-	${shell ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
+	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
 moontastik_install_%:
 	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)
