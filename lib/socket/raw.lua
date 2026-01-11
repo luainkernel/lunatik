@@ -32,9 +32,9 @@ local raw = {}
 -- @see socket.bind
 function raw.bind(proto, ifindex)
 	local proto = proto or ETH_P_ALL
+	local ifindex = ifindex or 0
 	local s = socket.new(af.PACKET, sock.RAW, proto)
-	local param = ifindex and ifindex or string.pack(">I2", proto)
-	s:bind(param)
+	s:bind(proto, ifindex)
 	return s
 end
 
