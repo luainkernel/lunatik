@@ -65,145 +65,37 @@ static inline void *luadata_checkbounds(lua_State *L, int ix, luadata_t *data, l
 
 #define luadata_checkwritable(L, data)	luaL_argcheck((L), !((data)->opt & LUADATA_OPT_READONLY), 1, "read only")
 
-/***
-* Extracts a signed 8-bit integer from the data object.
-* @function getint8
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @treturn integer The signed 8-bit integer value at the specified offset.
-* @raise Error if offset is out of bounds.
-*/
-/***
-* Inserts a signed 8-bit integer into the data object.
-* @function setint8
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @tparam integer value The signed 8-bit integer value to write.
-* @raise Error if offset is out of bounds or the data object is read-only.
-*/
-#define LUADATA_NEWINT_GETTER(T) 	\
-static int luadata_get##T(lua_State *L) \
-{					\
-	luadata_t *data = luadata_check(L, 1);					\
-	lua_Integer offset = luaL_checkinteger(L, 2);				\
-	T##_t value = *(T##_t *)luadata_checkbounds(L, 2, data, offset, sizeof(T##_t));		\
-	lua_pushinteger(L, (lua_Integer)value);	\
-	return 1;			\
+#define LUADATA_NEWINT_GETTER(T)							\
+static int luadata_get##T(lua_State *L) 						\
+{											\
+	luadata_t *data = luadata_check(L, 1);						\
+	lua_Integer offset = luaL_checkinteger(L, 2);					\
+	T##_t value = *(T##_t *)luadata_checkbounds(L, 2, data, offset, sizeof(T##_t));	\
+	lua_pushinteger(L, (lua_Integer)value);						\
+	return 1;									\
 }
 
-#define LUADATA_NEWINT_SETTER(T)		\
-static int luadata_set##T(lua_State *L)		\
-{						\
+#define LUADATA_NEWINT_SETTER(T)						\
+static int luadata_set##T(lua_State *L)						\
+{										\
 	luadata_t *data = luadata_check(L, 1);					\
 	lua_Integer offset = luaL_checkinteger(L, 2);				\
-	T##_t *ptr = luadata_checkbounds(L, 2, data, offset, sizeof(T##_t));		\
-	luadata_checkwritable(L, data);		\
-	*ptr = (T##_t)luaL_checkinteger(L, 3);	\
-	return 0;				\
+	T##_t *ptr = luadata_checkbounds(L, 2, data, offset, sizeof(T##_t));	\
+	luadata_checkwritable(L, data);						\
+	*ptr = (T##_t)luaL_checkinteger(L, 3);					\
+	return 0;								\
 }
 
-#define LUADATA_NEWINT(T)	\
+#define LUADATA_NEWINT(T)		\
 	LUADATA_NEWINT_GETTER(T); 	\
 	LUADATA_NEWINT_SETTER(T);
 
-/***
-* Extracts an unsigned 8-bit integer from the data object.
-* @function getuint8
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @treturn integer The unsigned 8-bit integer value (0-255) at the specified offset.
-* @raise Error if offset is out of bounds.
-*/
-/***
-* Inserts an unsigned 8-bit integer into the data object.
-* @function setuint8
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @tparam integer value The unsigned 8-bit integer value (0-255) to write.
-* @raise Error if offset is out of bounds or the data object is read-only.
-*/
 LUADATA_NEWINT(int8);
 LUADATA_NEWINT(uint8);
-/***
-* Extracts a signed 16-bit integer from the data object.
-* Assumes host byte order. For specific byte orders, use `linux.be16toh` etc. on the result.
-* @function getint16
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @treturn integer The signed 16-bit integer value at the specified offset.
-* @raise Error if offset is out of bounds.
-*/
-/***
-* Inserts a signed 16-bit integer into the data object.
-* Assumes host byte order. For specific byte orders, use `linux.htobe16` etc. on the value before setting.
-* @function setint16
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @tparam integer value The signed 16-bit integer value to write.
-* @raise Error if offset is out of bounds or the data object is read-only.
-*/
 LUADATA_NEWINT(int16);
-/***
-* Extracts an unsigned 16-bit integer from the data object.
-* Assumes host byte order.
-* @function getuint16
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @treturn integer The unsigned 16-bit integer value at the specified offset.
-* @raise Error if offset is out of bounds.
-*/
-/***
-* Inserts an unsigned 16-bit integer into the data object.
-* Assumes host byte order.
-* @function setuint16
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @tparam integer value The unsigned 16-bit integer value to write.
-* @raise Error if offset is out of bounds or the data object is read-only.
-*/
 LUADATA_NEWINT(uint16);
-/***
-* Extracts a signed 32-bit integer from the data object.
-* Assumes host byte order.
-* @function getint32
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @treturn integer The signed 32-bit integer value at the specified offset.
-* @raise Error if offset is out of bounds.
-*/
-/***
-* Inserts a signed 32-bit integer into the data object.
-* Assumes host byte order.
-* @function setint32
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @tparam integer value The signed 32-bit integer value to write.
-* @raise Error if offset is out of bounds or the data object is read-only.
-*/
 LUADATA_NEWINT(int32);
-/***
-* Extracts an unsigned 32-bit integer from the data object.
-* Assumes host byte order.
-* @function getuint32
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @treturn integer The unsigned 32-bit integer value at the specified offset.
-* @raise Error if offset is out of bounds.
-*/
-/***
-* Inserts an unsigned 32-bit integer into the data object.
-* Assumes host byte order.
-* @function setuint32
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @tparam integer value The unsigned 32-bit integer value to write.
-* @raise Error if offset is out of bounds or the data object is read-only.
-*/
 LUADATA_NEWINT(uint32);
-/***
-* Extracts a signed 64-bit integer from the data object.
-* Assumes host byte order.
-* @function getint64
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @treturn integer The signed 64-bit integer value at the specified offset.
-* @raise Error if offset is out of bounds.
-*/
-/***
-* Inserts a signed 64-bit integer into the data object.
-* Assumes host byte order.
-* @function setint64
-* @tparam integer offset Byte offset from the start of the data block (0-indexed).
-* @tparam integer value The signed 64-bit integer value to write.
-* @raise Error if offset is out of bounds or the data object is read-only.
-*/
 LUADATA_NEWINT(int64);
 
 /***
@@ -364,23 +256,131 @@ static const luaL_Reg luadata_mt[] = {
 * @see setuint8
 */
 	{"setbyte", luadata_setuint8},
+/***
+* Extracts a signed 8-bit integer from the data object.
+* @function getint8
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @treturn integer The signed 8-bit integer value at the specified offset.
+* @raise Error if offset is out of bounds.
+*/
 	{"getint8", luadata_getint8},
+/***
+* Inserts a signed 8-bit integer into the data object.
+* @function setint8
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @tparam integer value The signed 8-bit integer value to write.
+* @raise Error if offset is out of bounds or the data object is read-only.
+*/
 	{"setint8", luadata_setint8},
+/***
+* Extracts an unsigned 8-bit integer from the data object.
+* @function getuint8
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @treturn integer The unsigned 8-bit integer value (0-255) at the specified offset.
+* @raise Error if offset is out of bounds.
+*/
 	{"getuint8", luadata_getuint8},
+/***
+* Inserts an unsigned 8-bit integer into the data object.
+* @function setuint8
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @tparam integer value The unsigned 8-bit integer value (0-255) to write.
+* @raise Error if offset is out of bounds or the data object is read-only.
+*/
 	{"setuint8", luadata_setuint8},
+/***
+* Extracts a signed 16-bit integer from the data object.
+* Assumes host byte order. For specific byte orders, use `linux.be16toh` etc. on the result.
+* @function getint16
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @treturn integer The signed 16-bit integer value at the specified offset.
+* @raise Error if offset is out of bounds.
+*/
 	{"getint16", luadata_getint16},
+/***
+* Inserts a signed 16-bit integer into the data object.
+* Assumes host byte order. For specific byte orders, use `linux.htobe16` etc. on the value before setting.
+* @function setint16
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @tparam integer value The signed 16-bit integer value to write.
+* @raise Error if offset is out of bounds or the data object is read-only.
+*/
 	{"setint16", luadata_setint16},
+/***
+* Extracts an unsigned 16-bit integer from the data object.
+* Assumes host byte order.
+* @function getuint16
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @treturn integer The unsigned 16-bit integer value at the specified offset.
+* @raise Error if offset is out of bounds.
+*/
 	{"getuint16", luadata_getuint16},
+/***
+* Inserts an unsigned 16-bit integer into the data object.
+* Assumes host byte order.
+* @function setuint16
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @tparam integer value The unsigned 16-bit integer value to write.
+* @raise Error if offset is out of bounds or the data object is read-only.
+*/
 	{"setuint16", luadata_setuint16},
+/***
+* Extracts a signed 32-bit integer from the data object.
+* Assumes host byte order.
+* @function getint32
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @treturn integer The signed 32-bit integer value at the specified offset.
+* @raise Error if offset is out of bounds.
+*/
 	{"getint32", luadata_getint32},
+/***
+* Inserts a signed 32-bit integer into the data object.
+* Assumes host byte order.
+* @function setint32
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @tparam integer value The signed 32-bit integer value to write.
+* @raise Error if offset is out of bounds or the data object is read-only.
+*/
 	{"setint32", luadata_setint32},
+/***
+* Extracts an unsigned 32-bit integer from the data object.
+* Assumes host byte order.
+* @function getuint32
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @treturn integer The unsigned 32-bit integer value at the specified offset.
+* @raise Error if offset is out of bounds.
+*/
 	{"getuint32", luadata_getuint32},
+/***
+* Inserts an unsigned 32-bit integer into the data object.
+* Assumes host byte order.
+* @function setuint32
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @tparam integer value The unsigned 32-bit integer value to write.
+* @raise Error if offset is out of bounds or the data object is read-only.
+*/
 	{"setuint32", luadata_setuint32},
+/***
+* Extracts a signed 64-bit integer from the data object.
+* Assumes host byte order.
+* @function getint64
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @treturn integer The signed 64-bit integer value at the specified offset.
+* @raise Error if offset is out of bounds.
+*/
 	{"getint64", luadata_getint64},
+/***
+* Inserts a signed 64-bit integer into the data object.
+* Assumes host byte order.
+* @function setint64
+* @tparam integer offset Byte offset from the start of the data block (0-indexed).
+* @tparam integer value The signed 64-bit integer value to write.
+* @raise Error if offset is out of bounds or the data object is read-only.
+*/
 	{"setint64", luadata_setint64},
 /***
-* Extracts a Lua integer (platform-dependent: 64-bit on LP64, 32-bit otherwise) from the data object.
-* Alias for `getint64` on LP64 systems, `getint32` otherwise. Assumes host byte order.
+* Extracts a Lua integer from the data object.
+* Alias for `getint64`. Assumes host byte order.
 * @function getnumber
 * @tparam integer offset Byte offset from the start of the data block (0-indexed).
 * @treturn integer The Lua integer value at the specified offset.
@@ -388,8 +388,8 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getnumber", luadata_getint64},
 /***
-* Inserts a Lua integer (platform-dependent: 64-bit on LP64, 32-bit otherwise) into the data object.
-* Alias for `setint64` on LP64 systems, `setint32` otherwise. Assumes host byte order.
+* Inserts a Lua integer into the data object.
+* Alias for `setint64`. Assumes host byte order.
 * @function setnumber
 * @tparam integer offset Byte offset from the start of the data block (0-indexed).
 * @tparam integer value The Lua integer value to write.
