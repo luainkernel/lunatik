@@ -13,12 +13,16 @@ local driver = {name = "gesture", id_table = {{vendor = 0x0627, product = 0x0001
 
 local threshold = 2
 
+local function debug(fmt, ...)
+	print(string.format(fmt, ...))
+end
+
 function driver:probe(id)
-	self.state = {x = 0, lock = false}
+	self.state = {x = 0, count = 0, lock = false}
 end
 
 local function forward(x0, x1)
-	return (x0 >= 255 and x1 <= 25) or (x1 > x0)
+	return (x0 >= 127 and x1 <= 0) or (x1 > x0)
 end
 
 local function count(state, direction)
@@ -40,10 +44,11 @@ function driver:raw_event(hdev, report, raw)
 	local left_down = (button & 1) == 1
 	if left_down then
 		local x0 = state.x
-		local x1 = raw:getbyte(1)
+		local x1 = raw:getint8(1)
 		local direction = x0 == x1 and "neutral" or
 			forward(x0, x1) and "right" or "left"
 
+		debug("%s\t%d %d", direction, x0, x1)
 		if count(state, direction) > threshold then
 			if direction == "right" then
 				state.lock = true
