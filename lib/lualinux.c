@@ -88,9 +88,12 @@ static int lualinux_random(lua_State *L)
 * or it is woken up.
 *
 * @function schedule
-* @tparam[opt] integer timeout Duration in milliseconds to sleep. Defaults to `MAX_SCHEDULE_TIMEOUT` (effectively indefinite sleep until woken).
-* @tparam[opt] integer state The task state to set before sleeping. See `linux.task` for possible values. Defaults to `linux.task.INTERRUPTIBLE`.
-* @treturn integer The remaining time in milliseconds if the sleep was interrupted before the full timeout, or 0 if the full timeout elapsed.
+* @tparam[opt] integer timeout Duration in milliseconds to sleep.
+* Defaults to `MAX_SCHEDULE_TIMEOUT` (effectively indefinite sleep until woken).
+* @tparam[opt] integer state The task state to set before sleeping.
+* See `linux.task` for possible values. Defaults to `linux.task.INTERRUPTIBLE`.
+* @treturn integer The remaining time in milliseconds
+* if the sleep was interrupted before the full timeout, or 0 if the full timeout elapsed.
 * @raise Error if an invalid task state is provided.
 * @see linux.task
 * @usage
@@ -203,7 +206,8 @@ static int lualinux_sigstate(lua_State *L)
 /***
 * Kills a process by sending a signal.
 * By default, sends SIGKILL.
-* An optional second argument can specify a different signal (either by number or by using the constants from `linux.signal`).
+* An optional second argument can specify a different signal
+* (either by number or by using the constants from `linux.signal`).
 *
 * @function kill
 * @tparam integer pid Process ID to kill.
@@ -246,7 +250,8 @@ err:
 * Turns kernel tracing on or off via `tracing_on()` and `tracing_off()`.
 *
 * @function tracing
-* @tparam[opt] boolean enable If `true`, turns tracing on. If `false`, turns tracing off. If omitted, does not change the state.
+* @tparam[opt] boolean enable If `true`, turns tracing on. If `false`, turns tracing off.
+* If omitted, does not change the state.
 * @treturn boolean The current state of kernel tracing (`true` if on, `false` if off) *after* any change.
 * @usage
 *   local was_tracing = linux.tracing(true) -- Enable tracing
@@ -338,26 +343,113 @@ static int lualinux_ifindex(lua_State *L)
 	return 1;
 }
 
-#define LUALINUX_NEW_BYTESWAPPER(func, T) \
-static int lualinux_##func(lua_State *L) \
-{ \
-	T x = (T)luaL_checkinteger(L, 1); \
-	lua_pushinteger(L, (lua_Integer)func(x)); \
-	return 1; \
+/***
+* Byte Order Conversion
+* @section byte_order
+*/
+#define LUALINUX_BYTESWAPPER(swapper, T)		\
+static int lualinux_##swapper(lua_State *L)		\
+{							\
+	T x = (T)luaL_checkinteger(L, 1);		\
+	lua_pushinteger(L, (lua_Integer)swapper(x));	\
+	return 1;					\
 }
 
-LUALINUX_NEW_BYTESWAPPER(cpu_to_be16, u16);
-LUALINUX_NEW_BYTESWAPPER(cpu_to_be32, u32);
-LUALINUX_NEW_BYTESWAPPER(cpu_to_le16, u16);
-LUALINUX_NEW_BYTESWAPPER(cpu_to_le32, u32);
-LUALINUX_NEW_BYTESWAPPER(be16_to_cpu, u16);
-LUALINUX_NEW_BYTESWAPPER(be32_to_cpu, u32);
-LUALINUX_NEW_BYTESWAPPER(le16_to_cpu, u16);
-LUALINUX_NEW_BYTESWAPPER(le32_to_cpu, u32);
-LUALINUX_NEW_BYTESWAPPER(cpu_to_be64, u64);
-LUALINUX_NEW_BYTESWAPPER(cpu_to_le64, u64);
-LUALINUX_NEW_BYTESWAPPER(be64_to_cpu, u64);
-LUALINUX_NEW_BYTESWAPPER(le64_to_cpu, u64);
+/***
+* Converts a 16-bit integer from host byte order to big-endian byte order.
+* @function htobe16
+* @tparam integer num The 16-bit integer in host byte order.
+* @treturn integer The integer in big-endian byte order.
+*/
+LUALINUX_BYTESWAPPER(cpu_to_be16, u16);
+
+/***
+* Converts a 32-bit integer from host byte order to big-endian byte order.
+* @function htobe32
+* @tparam integer num The 32-bit integer in host byte order.
+* @treturn integer The integer in big-endian byte order.
+*/
+LUALINUX_BYTESWAPPER(cpu_to_be32, u32);
+
+/***
+* Converts a 16-bit integer from host byte order to little-endian byte order.
+* @function htole16
+* @tparam integer num The 16-bit integer in host byte order.
+* @treturn integer The integer in little-endian byte order.
+*/
+LUALINUX_BYTESWAPPER(cpu_to_le16, u16);
+
+/***
+* Converts a 32-bit integer from host byte order to little-endian byte order.
+* @function htole32
+* @tparam integer num The 32-bit integer in host byte order.
+* @treturn integer The integer in little-endian byte order.
+*/
+LUALINUX_BYTESWAPPER(cpu_to_le32, u32);
+
+/***
+* Converts a 16-bit integer from big-endian byte order to host byte order.
+* @function be16toh
+* @tparam integer num The 16-bit integer in big-endian byte order.
+* @treturn integer The integer in host byte order.
+*/
+LUALINUX_BYTESWAPPER(be16_to_cpu, u16);
+
+/***
+* Converts a 32-bit integer from big-endian byte order to host byte order.
+* @function be32toh
+* @tparam integer num The 32-bit integer in big-endian byte order.
+* @treturn integer The integer in host byte order.
+*/
+LUALINUX_BYTESWAPPER(be32_to_cpu, u32);
+
+/***
+* Converts a 16-bit integer from little-endian byte order to host byte order.
+* @function le16toh
+* @tparam integer num The 16-bit integer in little-endian byte order.
+* @treturn integer The integer in host byte order.
+*/
+LUALINUX_BYTESWAPPER(le16_to_cpu, u16);
+
+/***
+* Converts a 32-bit integer from little-endian byte order to host byte order.
+* @function le32toh
+* @tparam integer num The 32-bit integer in little-endian byte order.
+* @treturn integer The integer in host byte order.
+*/
+LUALINUX_BYTESWAPPER(le32_to_cpu, u32);
+
+/***
+* Converts a 64-bit integer from host byte order to big-endian byte order.
+* @function htobe64
+* @tparam integer num The 64-bit integer in host byte order.
+* @treturn integer The integer in big-endian byte order.
+*/
+LUALINUX_BYTESWAPPER(cpu_to_be64, u64);
+
+/***
+* Converts a 64-bit integer from host byte order to little-endian byte order.
+* @function htole64
+* @tparam integer num The 64-bit integer in host byte order.
+* @treturn integer The integer in little-endian byte order.
+*/
+LUALINUX_BYTESWAPPER(cpu_to_le64, u64);
+
+/***
+* Converts a 64-bit integer from big-endian byte order to host byte order.
+* @function be64toh
+* @tparam integer num The 64-bit integer in big-endian byte order.
+* @treturn integer The integer in host byte order.
+*/
+LUALINUX_BYTESWAPPER(be64_to_cpu, u64);
+
+/***
+* Converts a 64-bit integer from little-endian byte order to host byte order.
+* @function le64toh
+* @tparam integer num The 64-bit integer in little-endian byte order.
+* @treturn integer The integer in host byte order.
+*/
+LUALINUX_BYTESWAPPER(le64_to_cpu, u64);
 
 /***
 * Table of task state constants.
@@ -366,7 +458,8 @@ LUALINUX_NEW_BYTESWAPPER(le64_to_cpu, u64);
 *
 * @table task
 *   @tfield integer INTERRUPTIBLE Task is waiting for a signal or a resource (sleeping), can be interrupted.
-*   @tfield integer UNINTERRUPTIBLE Task is waiting (sleeping), cannot be interrupted by signals (except fatal ones if KILLABLE is also implied by context).
+*   @tfield integer UNINTERRUPTIBLE Task is waiting (sleeping),
+*   cannot be interrupted by signals (except fatal ones if KILLABLE is also implied by context).
 *   @tfield integer KILLABLE Task is waiting (sleeping) like UNINTERRUPTIBLE, but can be interrupted by fatal signals.
 *   @tfield integer IDLE Task is idle, similar to UNINTERRUPTIBLE but avoids loadavg accounting.
 * @see linux.schedule
@@ -383,26 +476,6 @@ static const lunatik_reg_t lualinux_task[] = {
 * Table of file mode constants.
 * Exports file permission flags from `<linux/stat.h>`. These can be used, for
 * example, with `device.new()` to set the mode of a character device.
-*
-* @table stat
-*   @tfield integer IRWXU Read, write, execute for owner. (S_IRWXU)
-*   @tfield integer IRUSR Read for owner. (S_IRUSR)
-*   @tfield integer IWUSR Write for owner. (S_IWUSR)
-*   @tfield integer IXUSR Execute for owner. (S_IXUSR)
-*   @tfield integer IRWXG Read, write, execute for group. (S_IRWXG)
-*   @tfield integer IRGRP Read for group. (S_IRGRP)
-*   @tfield integer IWGRP Write for group. (S_IWGRP)
-*   @tfield integer IXGRP Execute for group. (S_IXGRP)
-*   @tfield integer IRWXO Read, write, execute for others. (S_IRWXO)
-*   @tfield integer IROTH Read for others. (S_IROTH)
-*   @tfield integer IWOTH Write for others. (S_IWOTH)
-*   @tfield integer IXOTH Execute for others. (S_IXOTH)
-*   @tfield integer IRWXUGO Read, write, execute for user, group, and others. (S_IRWXU|S_IRWXG|S_IRWXO)
-*   @tfield integer IALLUGO All permissions for user, group, and others, including SUID, SGID, SVTX. (S_ISUID|S_ISGID|S_ISVTX|S_IRWXUGO)
-*   @tfield integer IRUGO Read for user, group, and others. (S_IRUSR|S_IRGRP|S_IROTH)
-*   @tfield integer IWUGO Write for user, group, and others. (S_IWUSR|S_IWGRP|S_IWOTH)
-*   @tfield integer IXUGO Execute for user, group, and others. (S_IXUSR|S_IXGRP|S_IXOTH)
-* @see device.new
 */
 static const lunatik_reg_t lualinux_stat[] = {
 	/* user */
@@ -433,39 +506,6 @@ static const lunatik_reg_t lualinux_stat[] = {
 * Table of signal constants for use with `linux.kill`.
 * This table provides named constants for the standard Linux signals.
 * For example, `linux.signal.TERM` corresponds to SIGTERM (15).
-*
-* @table signal
-*   @tfield integer HUP  SIGHUP (1) - Hangup
-*   @tfield integer INT  SIGINT (2) - Interrupt (Ctrl-C)
-*   @tfield integer QUIT SIGQUIT (3) - Quit
-*   @tfield integer ILL  SIGILL (4) - Illegal instruction
-*   @tfield integer TRAP SIGTRAP (5) - Trace trap
-*   @tfield integer ABRT SIGABRT (6) - Abort
-*   @tfield integer BUS  SIGBUS (7) - Bus error
-*   @tfield integer FPE  SIGFPE (8) - Floating point exception
-*   @tfield integer KILL SIGKILL (9) - Kill (cannot be caught/ignored)
-*   @tfield integer USR1 SIGUSR1 (10) - User-defined signal 1
-*   @tfield integer SEGV SIGSEGV (11) - Segmentation violation
-*   @tfield integer USR2 SIGUSR2 (12) - User-defined signal 2
-*   @tfield integer PIPE SIGPIPE (13) - Broken pipe
-*   @tfield integer ALRM SIGALRM (14) - Alarm clock
-*   @tfield integer TERM SIGTERM (15) - Termination (default for kill command)
-*   @tfield integer STKFLT SIGSTKFLT (16) - Stack fault
-*   @tfield integer CHLD SIGCHLD (17) - Child status changed
-*   @tfield integer CONT SIGCONT (18) - Continue if stopped
-*   @tfield integer STOP SIGSTOP (19) - Stop (cannot be caught/ignored)
-*   @tfield integer TSTP SIGTSTP (20) - Terminal stop
-*   @tfield integer TTIN SIGTTIN (21) - Background read from tty
-*   @tfield integer TTOU SIGTTOU (22) - Background write to tty
-*   @tfield integer URG  SIGURG (23) - Urgent condition on socket
-*   @tfield integer XCPU SIGXCPU (24) - CPU limit exceeded
-*   @tfield integer XFSZ SIGXFSZ (25) - File size limit exceeded
-*   @tfield integer VTALRM SIGVTALRM (26) - Virtual alarm clock
-*   @tfield integer PROF SIGPROF (27) - Profiling alarm clock
-*   @tfield integer WINCH SIGWINCH (28) - Window size change
-*   @tfield integer IO   SIGIO (29) - I/O now possible
-*   @tfield integer PWR  SIGPWR (30) - Power failure
-*   @tfield integer SYS  SIGSYS (31) - Bad system call
 */
 static const lunatik_reg_t lualinux_signal[] = {
     	{"HUP", SIGHUP},
@@ -510,7 +550,8 @@ static const lunatik_reg_t lualinux_signal[] = {
 *
 * @function errname
 * @tparam integer err The error number (e.g., 2).
-* @treturn string The symbolic name of the error (e.g., "ENOENT"). Returns "unknown" (or the error number as a string) if the name cannot be resolved.
+* @treturn string The symbolic name of the error (e.g., "ENOENT").
+* Returns "unknown" (or the error number as a string) if the name cannot be resolved.
 * @usage
 * local name = linux.errname(2)
 * print("Error name:", name) -- "ENOENT"
@@ -529,140 +570,10 @@ static const lunatik_namespace_t lualinux_flags[] = {
 	{NULL, NULL}
 };
 
-/***
-* Byte Order Conversion
-* @section byte_order
-*/
-
-/***
-* Converts a 16-bit integer from network (big-endian) byte order to host byte order.
-* @function ntoh16
-* @tparam integer num The 16-bit integer in network byte order.
-* @treturn integer The integer in host byte order.
-*/
-
-/***
-* Converts a 32-bit integer from network (big-endian) byte order to host byte order.
-* @function ntoh32
-* @tparam integer num The 32-bit integer in network byte order.
-* @treturn integer The integer in host byte order.
-*/
-
-/***
-* Converts a 16-bit integer from host byte order to network (big-endian) byte order.
-* @function hton16
-* @tparam integer num The 16-bit integer in host byte order.
-* @treturn integer The integer in network byte order.
-*/
-
-/***
-* Converts a 32-bit integer from host byte order to network (big-endian) byte order.
-* @function hton32
-* @tparam integer num The 32-bit integer in host byte order.
-* @treturn integer The integer in network byte order.
-*/
-
-/***
-* Converts a 16-bit integer from host byte order to big-endian byte order.
-* @function htobe16
-* @tparam integer num The 16-bit integer in host byte order.
-* @treturn integer The integer in big-endian byte order.
-*/
-
-/***
-* Converts a 32-bit integer from host byte order to big-endian byte order.
-* @function htobe32
-* @tparam integer num The 32-bit integer in host byte order.
-* @treturn integer The integer in big-endian byte order.
-*/
-
-/***
-* Converts a 16-bit integer from host byte order to little-endian byte order.
-* @function htole16
-* @tparam integer num The 16-bit integer in host byte order.
-* @treturn integer The integer in little-endian byte order.
-*/
-
-/***
-* Converts a 32-bit integer from host byte order to little-endian byte order.
-* @function htole32
-* @tparam integer num The 32-bit integer in host byte order.
-* @treturn integer The integer in little-endian byte order.
-*/
-
-/***
-* Converts a 16-bit integer from big-endian byte order to host byte order.
-* @function be16toh
-* @tparam integer num The 16-bit integer in big-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-
-/***
-* Converts a 32-bit integer from big-endian byte order to host byte order.
-* @function be32toh
-* @tparam integer num The 32-bit integer in big-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-
-/***
-* Converts a 16-bit integer from little-endian byte order to host byte order.
-* @function le16toh
-* @tparam integer num The 16-bit integer in little-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-
-/***
-* Converts a 32-bit integer from little-endian byte order to host byte order.
-* @function le32toh
-* @tparam integer num The 32-bit integer in little-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-
-/***
-* Converts a 64-bit integer from network (big-endian) byte order to host byte order.
-* @function ntoh64
-* @tparam integer num The 64-bit integer in network byte order.
-* @treturn integer The integer in host byte order.
-*/
-
-/***
-* Converts a 64-bit integer from host byte order to network (big-endian) byte order.
-* @function hton64
-* @tparam integer num The 64-bit integer in host byte order.
-* @treturn integer The integer in network byte order.
-*/
-
-/***
-* Converts a 64-bit integer from host byte order to big-endian byte order.
-* @function htobe64
-* @tparam integer num The 64-bit integer in host byte order.
-* @treturn integer The integer in big-endian byte order.
-*/
-
-/***
-* Converts a 64-bit integer from host byte order to little-endian byte order.
-* @function htole64
-* @tparam integer num The 64-bit integer in host byte order.
-* @treturn integer The integer in little-endian byte order.
-*/
-
-/***
-* Converts a 64-bit integer from big-endian byte order to host byte order.
-* @function be64toh
-* @tparam integer num The 64-bit integer in big-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-
-/***
-* Converts a 64-bit integer from little-endian byte order to host byte order.
-* @function le64toh
-* @tparam integer num The 64-bit integer in little-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
-	{"sigmask", lualinux_sigmask},        
+	{"sigmask", lualinux_sigmask},
 	{"sigpending", lualinux_sigpending},
 	{"sigstate", lualinux_sigstate},
 	{"kill", lualinux_kill},
@@ -672,9 +583,33 @@ static const luaL_Reg lualinux_lib[] = {
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
 	{"errname", lualinux_errname},
+/***
+* Converts a 16-bit integer from network (big-endian) byte order to host byte order.
+* @function ntoh16
+* @tparam integer num The 16-bit integer in network byte order.
+* @treturn integer The integer in host byte order.
+*/
 	{"ntoh16", lualinux_be16_to_cpu},
+/***
+* Converts a 32-bit integer from network (big-endian) byte order to host byte order.
+* @function ntoh32
+* @tparam integer num The 32-bit integer in network byte order.
+* @treturn integer The integer in host byte order.
+*/
 	{"ntoh32", lualinux_be32_to_cpu},
+/***
+* Converts a 16-bit integer from host byte order to network (big-endian) byte order.
+* @function hton16
+* @tparam integer num The 16-bit integer in host byte order.
+* @treturn integer The integer in network byte order.
+*/
 	{"hton16", lualinux_cpu_to_be16},
+/***
+* Converts a 32-bit integer from host byte order to network (big-endian) byte order.
+* @function hton32
+* @tparam integer num The 32-bit integer in host byte order.
+* @treturn integer The integer in network byte order.
+*/
 	{"hton32", lualinux_cpu_to_be32},
 	{"htobe16", lualinux_cpu_to_be16},
 	{"htobe32", lualinux_cpu_to_be32},
@@ -684,7 +619,19 @@ static const luaL_Reg lualinux_lib[] = {
 	{"be32toh", lualinux_be32_to_cpu},
 	{"le16toh", lualinux_le16_to_cpu},
 	{"le32toh", lualinux_le32_to_cpu},
+/***
+* Converts a 64-bit integer from network (big-endian) byte order to host byte order.
+* @function ntoh64
+* @tparam integer num The 64-bit integer in network byte order.
+* @treturn integer The integer in host byte order.
+*/
 	{"ntoh64", lualinux_be64_to_cpu},
+/***
+* Converts a 64-bit integer from host byte order to network (big-endian) byte order.
+* @function hton64
+* @tparam integer num The 64-bit integer in host byte order.
+* @treturn integer The integer in network byte order.
+*/
 	{"hton64", lualinux_cpu_to_be64},
 	{"htobe64", lualinux_cpu_to_be64},
 	{"htole64", lualinux_cpu_to_le64},
@@ -707,5 +654,5 @@ static void __exit lualinux_exit(void)
 module_init(lualinux_init);
 module_exit(lualinux_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 
