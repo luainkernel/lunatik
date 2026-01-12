@@ -131,7 +131,7 @@ void lunatik_pusherrname(lua_State *L, int err);
 #define lunatik_tryret(L, ret, op, ...)				\
 do {								\
 	if ((ret = op(__VA_ARGS__)) < 0) {			\
-		lunatik_pusherrname(L, ret);		\
+		lunatik_pusherrname(L, ret);			\
 		lua_error(L);					\
 	}							\
 } while (0)
@@ -304,11 +304,11 @@ static inline T checker(lua_State *L, int ix)			\
 
 #define lunatik_getregistry(L, key)	lua_rawgetp((L), LUA_REGISTRYINDEX, (key))
 
-#define lunatik_setstring(L, idx, hook, field, maxlen)        \
+#define lunatik_setstring(L, idx, hook, field, maxlen)		\
 do {								\
 	size_t len;						\
 	lunatik_checkfield(L, idx, #field, LUA_TSTRING);	\
-	const char *str = lua_tolstring(L, -1, &len);			\
+	const char *str = lua_tolstring(L, -1, &len);		\
 	if (len > maxlen)					\
 		luaL_error(L, "'%s' is too long", #field);	\
 	strncpy((char *)hook->field, str, maxlen);		\
@@ -337,7 +337,8 @@ static inline void lunatik_optcfunction(lua_State *L, int idx, const char *field
 	}
 }
 
-#define lunatik_checkbounds(L, idx, val, min, max)	luaL_argcheck(L, val >= min && val <= max, idx, "out of bounds")
+#define lunatik_checkbounds(L, idx, val, min, max)	\
+	luaL_argcheck(L, val >= min && val <= max, idx, "out of bounds")
 
 static inline unsigned int lunatik_checkuint(lua_State *L, int idx)
 {

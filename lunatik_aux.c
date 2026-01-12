@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -68,7 +68,6 @@ EXPORT_SYMBOL(lunatik_loadfile);
 void lunatik_pusherrname(lua_State *L, int err)
 {
     err = abs(err);
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
     const char *name = errname(err);
     lua_pushstring(L, name ? name : "unknown");
