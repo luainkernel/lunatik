@@ -46,7 +46,8 @@ LUACRYPTO_RELEASER(aead, struct crypto_aead, crypto_free_aead, NULL);
 * @tparam string key The encryption key.
 * @raise Error if setting the key fails (e.g., invalid key length for the algorithm).
 */
-static int luacrypto_aead_setkey(lua_State *L) {
+static int luacrypto_aead_setkey(lua_State *L)
+{
 	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
@@ -60,7 +61,8 @@ static int luacrypto_aead_setkey(lua_State *L) {
 * @tparam integer tagsize The desired authentication tag size in bytes.
 * @raise Error if setting the authsize fails (e.g., unsupported size).
 */
-static int luacrypto_aead_setauthsize(lua_State *L) {
+static int luacrypto_aead_setauthsize(lua_State *L)
+{
 	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
 	unsigned int tagsize = lunatik_checkuint(L, 2);
 	lunatik_try(L, crypto_aead_setauthsize, tfm, tagsize);
@@ -72,7 +74,8 @@ static int luacrypto_aead_setauthsize(lua_State *L) {
 * @function ivsize
 * @treturn integer The IV size in bytes.
 */
-static int luacrypto_aead_ivsize(lua_State *L) {
+static int luacrypto_aead_ivsize(lua_State *L)
+{
 	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
 	lua_pushinteger(L, crypto_aead_ivsize(tfm));
 	return 1;
@@ -84,7 +87,8 @@ static int luacrypto_aead_ivsize(lua_State *L) {
 * @function authsize
 * @treturn integer The authentication tag size in bytes.
 */
-static int luacrypto_aead_authsize(lua_State *L) {
+static int luacrypto_aead_authsize(lua_State *L)
+{
 	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
 	lua_pushinteger(L, crypto_aead_authsize(tfm));
 	return 1;
@@ -167,7 +171,8 @@ static int luacrypto_aead_##name(lua_State *L)									\
 * The IV (nonce) must be unique for each encryption operation with the same key.
 * @function encrypt
 * @tparam string iv The Initialization Vector (nonce). Its length must match `ivsize()`.
-* @tparam string combined_data A string containing AAD (Additional Authenticated Data) concatenated with the plaintext (format: AAD || Plaintext).
+* @tparam string combined_data A string containing AAD (Additional Authenticated Data)
+* concatenated with the plaintext (format: AAD || Plaintext).
 * @tparam integer aad_len The length of the AAD part in `combined_data`.
 * @treturn string The encrypted data, formatted as (AAD || Ciphertext || Tag).
 * @raise Error on encryption failure, incorrect IV length, or allocation issues.
@@ -179,10 +184,12 @@ LUACRYPTO_AEAD_NEWCRYPT(encrypt, ENCRYPT, 1);
 * The IV (nonce) and AAD must match those used during encryption.
 * @function decrypt
 * @tparam string iv The Initialization Vector (nonce). Its length must match `ivsize()`.
-* @tparam string combined_data A string containing AAD (Additional Authenticated Data) concatenated with the ciphertext and tag (format: AAD || Ciphertext || Tag).
+* @tparam string combined_data A string containing AAD (Additional Authenticated Data)
+* concatenated with the ciphertext and tag (format: AAD || Ciphertext || Tag).
 * @tparam integer aad_len The length of the AAD part in `combined_data`.
 * @treturn string The decrypted data, formatted as (AAD || Plaintext).
-* @raise Error on decryption failure (e.g., authentication error - EBADMSG), incorrect IV length, input data too short, or allocation issues.
+* @raise Error on decryption failure (e.g., authentication error - EBADMSG),
+* incorrect IV length, input data too short, or allocation issues.
 */
 LUACRYPTO_AEAD_NEWCRYPT(decrypt, DECRYPT, -1);
 
