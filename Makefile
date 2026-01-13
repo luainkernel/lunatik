@@ -50,7 +50,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
-	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/bin/lunatik
+	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 
 scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
