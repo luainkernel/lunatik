@@ -45,7 +45,8 @@ LUACRYPTO_RELEASER(comp, struct crypto_comp, crypto_free_comp, NULL);
 */
 
 #define LUACRYPTO_COMP_OPERATION(name)									\
-static int luacrypto_comp_##name(lua_State *L) {							\
+static int luacrypto_comp_##name(lua_State *L)								\
+{													\
 	struct crypto_comp *tfm = luacrypto_comp_check(L, 1);						\
 	size_t datalen;											\
 	const u8 *data = (const u8 *)luaL_checklstring(L, 2, &datalen);					\

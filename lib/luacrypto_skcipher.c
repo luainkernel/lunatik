@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+* SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -46,7 +46,8 @@ LUACRYPTO_RELEASER(skcipher, struct crypto_skcipher, crypto_free_skcipher, NULL)
 * @tparam string key The encryption key.
 * @raise Error if setting the key fails (e.g., invalid key length for the algorithm).
 */
-static int luacrypto_skcipher_setkey(lua_State *L) {
+static int luacrypto_skcipher_setkey(lua_State *L)
+{
 	struct crypto_skcipher *tfm = luacrypto_skcipher_check(L, 1);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
