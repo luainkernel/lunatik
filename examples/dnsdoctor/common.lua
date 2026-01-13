@@ -7,6 +7,7 @@
 
 local nf = require("netfilter")
 local linux = require("linux")
+local byteorder = require("byteorder")
 local action = nf.action
 local dns = 0x35
 
@@ -18,14 +19,14 @@ local function get_domain(skb, off)
 end
 
 function common.hook(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
-	if packet_dst ~= linux.hton32(dst_ip) then
+	if packet_dst ~= byteorder.hton32(dst_ip) then
 		return action.ACCEPT
 	end
 
-	local srcport = linux.ntoh16(skb:getuint16(thoff))
+	local srcport = byteorder.ntoh16(skb:getuint16(thoff))
 	if srcport == dns then
 		local dnsoff = thoff + 8
-		local nanswers = linux.ntoh16(skb:getuint16(dnsoff + 6))
+		local nanswers = byteorder.ntoh16(skb:getuint16(dnsoff + 6))
 
 		-- check the domain name
 		dnsoff = dnsoff + 12
@@ -34,9 +35,9 @@ function common.hook(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
 			dnsoff = dnsoff + nameoff + 4 -- skip over type, label fields
 			-- iterate over answers
 			for i = 1, nanswers do
-				local atype = linux.hton16(skb:getuint16(dnsoff + 2))
+				local atype = byteorder.hton16(skb:getuint16(dnsoff + 2))
 				if atype == 1 then
-					skb:setuint32(dnsoff + 12, linux.hton32(target_ip))
+					skb:setuint32(dnsoff + 12, byteorder.hton32(target_ip))
 				end
 				dnsoff = dnsoff + 16
 			end
