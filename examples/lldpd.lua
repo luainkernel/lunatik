@@ -7,11 +7,9 @@
 local raw    = require("socket.raw")
 local linux  = require("linux")
 local thread = require("thread")
+local eth    = require("linux.eth")
 
 local shouldstop = thread.shouldstop
-
-local ETH_P_ALL  = 0x0003
-local ETH_P_LLDP = 0x88cc
 
 -- LLDP multicast destination
 local ETH_DST_MAC = string.char(0x01,0x80,0xc2,0x00,0x00,0x0e)
@@ -33,10 +31,10 @@ local config = {
 	},
 }
 
-local ethertype = string.pack(">I2", ETH_P_LLDP)
+local ethertype = string.pack(">I2", eth.LLDP)
 
 local function get_src_mac(ifindex)
-	local rx <close> = raw.bind(ETH_P_ALL, ifindex)
+	local rx <close> = raw.bind(eth.ALL, ifindex)
 	local frame = rx:receive(2048)
 	return frame:sub(7, 12)
 end
@@ -79,7 +77,7 @@ local src_mac = get_src_mac(ifindex)
 local lldp_frame = build_lldp_frame(src_mac)
 
 local function worker()
-	local tx <close> = raw.bind(ETH_P_LLDP, ifindex)
+	local tx <close> = raw.bind(eth.LLDP, ifindex)
 
 	while (not shouldstop()) do
 		tx:send(lldp_frame)
