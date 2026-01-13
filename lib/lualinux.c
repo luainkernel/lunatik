@@ -7,8 +7,7 @@
 * Various Linux kernel facilities.
 * This library includes functions for random number generation, task scheduling,
 * time retrieval, kernel symbol lookup, network interface information,
-* byte order conversion, and access to kernel constants like file modes,
-* task states, and error numbers.
+* access to kernel constants like file modes, task states, and error numbers.
 *
 * @module linux
 */
@@ -20,11 +19,6 @@
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
 #include <linux/netdevice.h>
-#include <linux/byteorder/generic.h>
-#include <linux/sched/signal.h>
-#include <linux/pid.h> 
-#include <linux/signal.h>
-#include <linux/errno.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -114,135 +108,6 @@ static int lualinux_schedule(lua_State *L)
 
 	lua_pushinteger(L, jiffies_to_msecs(schedule_timeout(timeout)));
 	return 1;
-}
-
-/***
-* Modifies signal mask for current task.
-*
-* @function sigmask
-* @tparam integer sig Signal number
-* @tparam[opt] integer cmd 0=BLOCK (default), 1=UNBLOCK
-* @raise error string on failure (EINVAL, EPERM, etc.)
-* @within linux
-* @usage
-*   pcall(linux.sigmask, 15) -- Block SIGTERM
-*   pcall(linux.sigmask, 15, 1) -- Unblock SIGTERM
-*/
-static int lualinux_sigmask(lua_State *L)
-{
-    sigset_t newmask;
-    sigemptyset(&newmask);
-    
-    int signum = luaL_checkinteger(L, 1);
-    int cmd = luaL_optinteger(L, 2, 0);
-    
-    sigaddset(&newmask, signum);
-
-    lunatik_try(L, sigprocmask, cmd, &newmask, NULL);
-    return 0;
-}
-
-/***
-* Checks current task pending signals.
-*
-* @function sigpending
-* @treturn boolean
-* @within linux
-* @usage
-*   linux.sigpending()
-*/
-static int lualinux_sigpending(lua_State *L)
-{
- 	lua_pushboolean(L, signal_pending(current));
-    return 1;
-}
-
-/***
-* Checks signal state for current task.
-*
-* @function sigstate
-* @tparam integer sig Signal number
-* @tparam[opt] string state One of: "blocked", "pending", "allowed"
-* @treturn boolean
-* @within linux
-* @usage
-*   linux.sigstate(15) -- check if SIGTERM is blocked (default)
-*   linux.sigstate(linux.signal.TERM, "pending")
-*/
-static int lualinux_sigstate(lua_State *L)
-{
-    enum sigstate_cmd {
-        SIGSTATE_BLOCKED,
-        SIGSTATE_PENDING,
-        SIGSTATE_ALLOWED,
-    };
-
-    const char *const sigstate_opts[] = {
-        [SIGSTATE_BLOCKED] = "blocked",
-        [SIGSTATE_PENDING] = "pending",
-        [SIGSTATE_ALLOWED] = "allowed",
-    };
-
-    int signum = luaL_checkinteger(L, 1);
-    enum sigstate_cmd cmd = (enum sigstate_cmd)luaL_checkoption(L, 2, "blocked", sigstate_opts);
-
-    bool result;
-    switch (cmd) {
-    case SIGSTATE_BLOCKED:
-        result = sigismember(&current->blocked, signum);
-        break;
-    case SIGSTATE_PENDING:
-        result = sigismember(&current->pending.signal, signum);
-        break;
-    case SIGSTATE_ALLOWED:
-        result = !sigismember(&current->blocked, signum);
-        break;
-    }
-
-    lua_pushboolean(L, result);
-    return 1;
-}
-
-/***
-* Kills a process by sending a signal.
-* By default, sends SIGKILL.
-* An optional second argument can specify a different signal
-* (either by number or by using the constants from `linux.signal`).
-*
-* @function kill
-* @tparam integer pid Process ID to kill.
-* @tparam[opt] integer sig Signal number to send (default: `linux.signal.KILL`).
-* @treturn boolean `true` if the signal was sent successfully.
-* @treturn[error] boolean `false` followed by an error number if the operation fails.
-* @raise Errors:
-*   - (3): The specified PID doesn't exist
-*   - other errno values depending on the failure cause (e.g., `EPERM`, `EINVAL`, etc.)
-* @usage
-*   linux.kill(1234)  -- Kill process 1234 with SIGKILL (default)
-*   linux.kill(1234, linux.signal.TERM)  -- Kill process 1234 with SIGTERM
-*/
-static int lualinux_kill(lua_State *L)
-{
-	pid_t nr = (pid_t)luaL_checkinteger(L, 1);
-  	int sig = luaL_optinteger(L, 2, SIGKILL);
- 	struct pid *pid = find_get_pid(nr);
-
-	int ret = ESRCH;
-	if (pid == NULL) 
-        	goto err;    
-	
-    	ret = kill_pid(pid, sig, 1);
-    	put_pid(pid);
-    
-    	if (ret) 
-		goto err;
-    
-    	lua_pushboolean(L, true);
-    	return 1;
-err:
-	lua_pushboolean(L, false);
-	lua_pushinteger(L, ret);
-	return 2;
 }
 
 /***
@@ -344,114 +209,6 @@ static int lualinux_ifindex(lua_State *L)
 }
 
 /***
-* Byte Order Conversion
-* @section byte_order
-*/
-#define LUALINUX_BYTESWAPPER(swapper, T)		\
-static int lualinux_##swapper(lua_State *L)		\
-{							\
-	T x = (T)luaL_checkinteger(L, 1);		\
-	lua_pushinteger(L, (lua_Integer)swapper(x));	\
-	return 1;					\
-}
-
-/***
-* Converts a 16-bit integer from host byte order to big-endian byte order.
-* @function htobe16
-* @tparam integer num The 16-bit integer in host byte order.
-* @treturn integer The integer in big-endian byte order.
-*/
-LUALINUX_BYTESWAPPER(cpu_to_be16, u16);
-
-/***
-* Converts a 32-bit integer from host byte order to big-endian byte order.
-* @function htobe32
-* @tparam integer num The 32-bit integer in host byte order.
-* @treturn integer The integer in big-endian byte order.
-*/
-LUALINUX_BYTESWAPPER(cpu_to_be32, u32);
-
-/***
-* Converts a 16-bit integer from host byte order to little-endian byte order.
-* @function htole16
-* @tparam integer num The 16-bit integer in host byte order.
-* @treturn integer The integer in little-endian byte order.
-*/
-LUALINUX_BYTESWAPPER(cpu_to_le16, u16);
-
-/***
-* Converts a 32-bit integer from host byte order to little-endian byte order.
-* @function htole32
-* @tparam integer num The 32-bit integer in host byte order.
-* @treturn integer The integer in little-endian byte order.
-*/
-LUALINUX_BYTESWAPPER(cpu_to_le32, u32);
-
-/***
-* Converts a 16-bit integer from big-endian byte order to host byte order.
-* @function be16toh
-* @tparam integer num The 16-bit integer in big-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-LUALINUX_BYTESWAPPER(be16_to_cpu, u16);
-
-/***
-* Converts a 32-bit integer from big-endian byte order to host byte order.
-* @function be32toh
-* @tparam integer num The 32-bit integer in big-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-LUALINUX_BYTESWAPPER(be32_to_cpu, u32);
-
-/***
-* Converts a 16-bit integer from little-endian byte order to host byte order.
-* @function le16toh
-* @tparam integer num The 16-bit integer in little-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-LUALINUX_BYTESWAPPER(le16_to_cpu, u16);
-
-/***
-* Converts a 32-bit integer from little-endian byte order to host byte order.
-* @function le32toh
-* @tparam integer num The 32-bit integer in little-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-LUALINUX_BYTESWAPPER(le32_to_cpu, u32);
-
-/***
-* Converts a 64-bit integer from host byte order to big-endian byte order.
-* @function htobe64
-* @tparam integer num The 64-bit integer in host byte order.
-* @treturn integer The integer in big-endian byte order.
-*/
-LUALINUX_BYTESWAPPER(cpu_to_be64, u64);
-
-/***
-* Converts a 64-bit integer from host byte order to little-endian byte order.
-* @function htole64
-* @tparam integer num The 64-bit integer in host byte order.
-* @treturn integer The integer in little-endian byte order.
-*/
-LUALINUX_BYTESWAPPER(cpu_to_le64, u64);
-
-/***
-* Converts a 64-bit integer from big-endian byte order to host byte order.
-* @function be64toh
-* @tparam integer num The 64-bit integer in big-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-LUALINUX_BYTESWAPPER(be64_to_cpu, u64);
-
-/***
-* Converts a 64-bit integer from little-endian byte order to host byte order.
-* @function le64toh
-* @tparam integer num The 64-bit integer in little-endian byte order.
-* @treturn integer The integer in host byte order.
-*/
-LUALINUX_BYTESWAPPER(le64_to_cpu, u64);
-
-/***
 * Table of task state constants.
 * Exports task state flags from `<linux/sched.h>`. These are used with
 * `linux.schedule()`.
@@ -503,48 +260,6 @@ static const lunatik_reg_t lualinux_stat[] = {
 };
 
 /***
-* Table of signal constants for use with `linux.kill`.
-* This table provides named constants for the standard Linux signals.
-* For example, `linux.signal.TERM` corresponds to SIGTERM (15).
-*/
-static const lunatik_reg_t lualinux_signal[] = {
-    	{"HUP", SIGHUP},
-	{"INT", SIGINT},
-	{"QUIT", SIGQUIT},
-	{"ILL", SIGILL},
-	{"TRAP", SIGTRAP},
-	{"ABRT", SIGABRT},
-	{"BUS", SIGBUS},
-	{"FPE", SIGFPE},
-	{"KILL", SIGKILL},
-	{"USR1", SIGUSR1},
-	{"SEGV", SIGSEGV},
-	{"USR2", SIGUSR2},
-	{"PIPE", SIGPIPE},
-	{"ALRM", SIGALRM},
-	{"TERM", SIGTERM},
-#ifdef SIGSTKFLT
-	{"STKFLT", SIGSTKFLT},
-#endif
-	{"CHLD", SIGCHLD},
-	{"CONT", SIGCONT},
-	{"STOP", SIGSTOP},
-	{"TSTP", SIGTSTP},
-	{"TTIN", SIGTTIN},
-	{"TTOU", SIGTTOU},
-	{"URG", SIGURG},
-	{"XCPU", SIGXCPU},
-	{"XFSZ", SIGXFSZ},
-	{"VTALRM", SIGVTALRM},
-	{"PROF", SIGPROF},
-	{"WINCH", SIGWINCH},
-	{"IO", SIGIO},
-	{"PWR", SIGPWR},
-	{"SYS", SIGSYS},
-	{NULL, 0}
-};
-
-/***
 * Returns the symbolic name of a kernel error number.
 * For example, it converts `2` to `"ENOENT"`.
 *
@@ -566,77 +281,18 @@ static int lualinux_errname(lua_State *L)
 static const lunatik_namespace_t lualinux_flags[] = {
 	{"stat", lualinux_stat},
 	{"task", lualinux_task},
-	{"signal", lualinux_signal},
 	{NULL, NULL}
 };
 
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
-	{"sigmask", lualinux_sigmask},
-	{"sigpending", lualinux_sigpending},
-	{"sigstate", lualinux_sigstate},
-	{"kill", lualinux_kill},
 	{"tracing", lualinux_tracing},
 	{"time", lualinux_time},
 	{"difftime", lualinux_difftime},
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
 	{"errname", lualinux_errname},
-/***
-* Converts a 16-bit integer from network (big-endian) byte order to host byte order.
-* @function ntoh16
-* @tparam integer num The 16-bit integer in network byte order.
-* @treturn integer The integer in host byte order.
-*/
-	{"ntoh16", lualinux_be16_to_cpu},
-/***
-* Converts a 32-bit integer from network (big-endian) byte order to host byte order.
-* @function ntoh32
-* @tparam integer num The 32-bit integer in network byte order.
-* @treturn integer The integer in host byte order.
-*/
-	{"ntoh32", lualinux_be32_to_cpu},
-/***
-* Converts a 16-bit integer from host byte order to network (big-endian) byte order.
-* @function hton16
-* @tparam integer num The 16-bit integer in host byte order.
-* @treturn integer The integer in network byte order.
-*/
-	{"hton16", lualinux_cpu_to_be16},
-/***
-* Converts a 32-bit integer from host byte order to network (big-endian) byte order.
-* @function hton32
-* @tparam integer num The 32-bit integer in host byte order.
-* @treturn integer The integer in network byte order.
-*/
-	{"hton32", lualinux_cpu_to_be32},
-	{"htobe16", lualinux_cpu_to_be16},
-	{"htobe32", lualinux_cpu_to_be32},
-	{"htole16", lualinux_cpu_to_le16},
-	{"htole32", lualinux_cpu_to_le32},
-	{"be16toh", lualinux_be16_to_cpu},
-	{"be32toh", lualinux_be32_to_cpu},
-	{"le16toh", lualinux_le16_to_cpu},
-	{"le32toh", lualinux_le32_to_cpu},
-/***
-* Converts a 64-bit integer from network (big-endian) byte order to host byte order.
-* @function ntoh64
-* @tparam integer num The 64-bit integer in network byte order.
-* @treturn integer The integer in host byte order.
-*/
-	{"ntoh64", lualinux_be64_to_cpu},
-/***
-* Converts a 64-bit integer from host byte order to network (big-endian) byte order.
-* @function hton64
-* @tparam integer num The 64-bit integer in host byte order.
-* @treturn integer The integer in network byte order.
-*/
-	{"hton64", lualinux_cpu_to_be64},
-	{"htobe64", lualinux_cpu_to_be64},
-	{"htole64", lualinux_cpu_to_le64},
-	{"be64toh", lualinux_be64_to_cpu},
-	{"le64toh", lualinux_le64_to_cpu},
 	{NULL, NULL}
 };
 
