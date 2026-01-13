@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+* SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -115,7 +115,7 @@ static inline struct aead_request *luacrypto_aead_newrequest(lua_State *L, const
 	return request;
 }
 
-static inline void luacrypto_aead_setrequest(lua_State *L, struct aead_request *request, const char *combined, u8 *iv,
+static inline void luacrypto_aead_setrequest(struct aead_request *request, const char *combined, u8 *iv,
 	size_t combined_len, size_t aad_len, size_t crypt_len, char *buffer, size_t buffer_len)
 {
 	memcpy(buffer, combined, combined_len);
@@ -137,28 +137,29 @@ LUACRYPTO_FREEREQUEST(aead, struct aead_request, aead_request_free);
 #define LUACRYPTO_AEAD_LEN_ENCRYPT(combined_len, authsize)	(combined_len + authsize)
 #define LUACRYPTO_AEAD_LEN_DECRYPT(combined_len, authsize)	(combined_len)
 
-#define LUACRYPTO_AEAD_NEWCRYPT(name, NAME, res_factor)									\
-static int luacrypto_aead_##name(lua_State *L) {									\
-	const char *combined;												\
-	u8 *iv;														\
-	unsigned int authsize;												\
-	size_t combined_len, aad_len, crypt_len;									\
-	struct aead_request *request = luacrypto_aead_newrequest(L, &combined, &iv, &combined_len,			\
-		&aad_len, &crypt_len, &authsize); 									\
-															\
-	LUACRYPTO_AEAD_CHECK_##NAME(L, 3, crypt_len, authsize);								\
-	size_t buffer_len = LUACRYPTO_AEAD_LEN_##NAME(combined_len, authsize);						\
-															\
-	luaL_Buffer B;													\
-	char *buffer = luaL_buffinitsize(L, &B, buffer_len);								\
-	luacrypto_aead_setrequest(L, request, combined, iv, combined_len, aad_len, crypt_len, buffer, buffer_len);	\
-	int ret = crypto_aead_##name(request);										\
-	luacrypto_aead_freerequest(request, iv);									\
-	if (ret < 0)													\
-		luaL_error(L, "crypto operation failed with error code %d", -ret);					\
-															\
-	luaL_pushresultsize(&B, combined_len + res_factor * (int)authsize);						\
-	return 1;													\
+#define LUACRYPTO_AEAD_NEWCRYPT(name, NAME, res_factor)								\
+static int luacrypto_aead_##name(lua_State *L)									\
+{														\
+	const char *combined;											\
+	u8 *iv;													\
+	unsigned int authsize;											\
+	size_t combined_len, aad_len, crypt_len;								\
+	struct aead_request *request = luacrypto_aead_newrequest(L, &combined, &iv, &combined_len,		\
+		&aad_len, &crypt_len, &authsize); 								\
+														\
+	LUACRYPTO_AEAD_CHECK_##NAME(L, 3, crypt_len, authsize);							\
+	size_t buffer_len = LUACRYPTO_AEAD_LEN_##NAME(combined_len, authsize);					\
+														\
+	luaL_Buffer B;												\
+	char *buffer = luaL_buffinitsize(L, &B, buffer_len);							\
+	luacrypto_aead_setrequest(request, combined, iv, combined_len, aad_len, crypt_len, buffer, buffer_len);	\
+	int ret = crypto_aead_##name(request);									\
+	luacrypto_aead_freerequest(request, iv);								\
+	if (ret < 0)												\
+		luaL_error(L, "crypto operation failed with error code %d", -ret);				\
+														\
+	luaL_pushresultsize(&B, combined_len + res_factor * (int)authsize);					\
+	return 1;												\
 }
 
 /***
