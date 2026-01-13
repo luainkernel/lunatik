@@ -106,10 +106,17 @@ static inline int lunatik_nop(lua_State *L)
 	return 0;
 }
 
+#define LUNATIK_ALLOC(L, a, u)	void *u = NULL; lua_Alloc a = lua_getallocf(L, &u)
+static inline const char *lunatik_pushstring(lua_State *L, char *s, size_t len)
+{
+	LUNATIK_ALLOC(L, alloc, ud);
+	s[len] = '\0';
+	return lua_pushexternalstring(L, s, len, alloc, ud);
+}
+
 static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 {
-	void *ud = NULL;
-	lua_Alloc alloc = lua_getallocf(L, &ud);
+	LUNATIK_ALLOC(L, alloc, ud);
 	return alloc(ud, ptr, LUA_TNONE, size);
 }
 
