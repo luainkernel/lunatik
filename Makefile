@@ -10,6 +10,8 @@ BTF_INSTALL_PATH = ${MODULES_RELEASE_PATH}/build
 MODULES_BUILD_PATH ?= ${BTF_INSTALL_PATH}
 MODULES_INSTALL_PATH := ${MODULES_RELEASE_PATH}/kernel
 SCRIPTS_INSTALL_PATH := ${MODULES_PATH}/lua
+INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
+AUTOGEN_DIR := ${PWD}/autogen
 
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
@@ -20,7 +22,7 @@ RM = rm -f
 MKDIR = mkdir -p -m 0755
 INSTALL = install -o root -g root
 
-all: lunatik_sym.h
+all: lunatik_sym.h defines
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} CONFIG_LUNATIK=m	\
 	CONFIG_LUNATIK_RUN=m CONFIG_LUNATIK_RUNTIME=y CONFIG_LUNATIK_DEVICE=m	\
 	CONFIG_LUNATIK_LINUX=m CONFIG_LUNATIK_NOTIFIER=m CONFIG_LUNATIK_SOCKET=m \
@@ -50,6 +52,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
+	${INSTALL} -m 0644 ${AUTOGEN_DIR}/linux/*.lua ${SCRIPTS_INSTALL_PATH}/linux
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/bin/lunatik
 
 scripts_uninstall:
@@ -62,7 +65,7 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/syscall
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik
 
-.PHONY: ebpf
+.PHONY: ebpf defines
 ebpf:
 	${MAKE} -C examples/filter
 
@@ -122,6 +125,12 @@ uninstall: scripts_uninstall modules_uninstall
 
 lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
+
+${AUTOGEN_DIR}/linux:
+	${MKDIR} ${AUTOGEN_DIR}/linux
+
+defines: ${AUTOGEN_DIR}/linux
+	${shell CC='$(CC)' lua genconstants.lua $(KERNEL_RELEASE) $(INCLUDE_PATH) $(AUTOGEN_DIR)/linux}
 
 moontastik_install_%:
 	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)
