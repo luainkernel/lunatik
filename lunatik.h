@@ -117,10 +117,12 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 #define lunatik_free(p)		kfree(p)
 #define lunatik_gfp(runtime)	((runtime)->gfp)
 
+#define lunatik_enomem(L)	luaL_error((L), "not enough memory")
+
 static inline void *lunatik_checknull(lua_State *L, void *ptr)
 {
 	if (ptr == NULL)
-		luaL_error(L, "not enough memory");
+		lunatik_enomem(L);
 	return ptr;
 }
 
@@ -128,18 +130,22 @@ static inline void *lunatik_checknull(lua_State *L, void *ptr)
 
 void lunatik_pusherrname(lua_State *L, int err);
 
-#define lunatik_tryret(L, ret, op, ...)				\
-do {								\
-	if ((ret = op(__VA_ARGS__)) < 0) {			\
-		lunatik_pusherrname(L, ret);			\
-		lua_error(L);					\
-	}							\
+static inline void lunatik_throw(lua_State *L, int ret)
+{
+	lunatik_pusherrname(L, ret);
+	lua_error(L);
+}
+
+#define lunatik_tryret(L, ret, op, ...)		\
+do {						\
+	if ((ret = op(__VA_ARGS__)) < 0)	\
+		lunatik_throw(L, ret);		\
 } while (0)
 
-#define lunatik_try(L, op, ...)					\
-do {								\
-	int ret;						\
-	lunatik_tryret(L, ret, op, __VA_ARGS__);		\
+#define lunatik_try(L, op, ...)				\
+do {							\
+	int ret;					\
+	lunatik_tryret(L, ret, op, __VA_ARGS__);	\
 } while (0)
 
 static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
