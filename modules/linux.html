@@ -34,8 +34,7 @@
 <h2>Contents</h2>
 <ul>
 <li><a href="#Functions">Functions</a></li>
-<li><a href="#linux">linux</a></li>
-<li><a href="#Byte_Order_Conversion">Byte Order Conversion </a></li>
+<li><a href="#Tables">Tables</a></li>
 </ul>
 
 
@@ -85,8 +84,7 @@
 <p>Various Linux kernel facilities.</p>
 <p> This library includes functions for random number generation, task scheduling,
  time retrieval, kernel symbol lookup, network interface information,
- byte order conversion, and access to kernel constants like file modes,
- task states, and error numbers.</p>
+ access to kernel constants like file modes, task states, and error numbers.</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -96,12 +94,12 @@
 	<td class="summary">Calculates the difference between two timestamps.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ifindex">ifindex (interface_name)</a></td>
-	<td class="summary">Gets the interface index for a network device name.</td>
+	<td class="name" nowrap><a href="#errname">errname (err)</a></td>
+	<td class="summary">Returns the symbolic name of a kernel error number.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#kill">kill (pid[, sig])</a></td>
-	<td class="summary">Kills a process by sending a signal.</td>
+	<td class="name" nowrap><a href="#ifindex">ifindex (interface_name)</a></td>
+	<td class="summary">Gets the interface index for a network device name.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#lookup">lookup (symbol_name)</a></td>
@@ -124,99 +122,8 @@
 	<td class="summary">Controls kernel tracing.</td>
 	</tr>
 </table>
-<h2><a href="#linux">linux</a></h2>
+<h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#sigmask">sigmask (sig[, cmd])</a></td>
-	<td class="summary">Modifies signal mask for current task.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#sigpending">sigpending ()</a></td>
-	<td class="summary">Checks current task pending signals.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#sigstate">sigstate (sig[, state])</a></td>
-	<td class="summary">Checks signal state for current task.</td>
-	</tr>
-</table>
-<h2><a href="#Byte_Order_Conversion">Byte Order Conversion </a></h2>
-<table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#be16toh">be16toh (num)</a></td>
-	<td class="summary">Converts a 16-bit integer from big-endian byte order to host byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#be32toh">be32toh (num)</a></td>
-	<td class="summary">Converts a 32-bit integer from big-endian byte order to host byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#be64toh">be64toh (num)</a></td>
-	<td class="summary">Converts a 64-bit integer from big-endian byte order to host byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#errname">errname (err)</a></td>
-	<td class="summary">Returns the symbolic name of a kernel error number.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#htobe16">htobe16 (num)</a></td>
-	<td class="summary">Converts a 16-bit integer from host byte order to big-endian byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#htobe32">htobe32 (num)</a></td>
-	<td class="summary">Converts a 32-bit integer from host byte order to big-endian byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#htobe64">htobe64 (num)</a></td>
-	<td class="summary">Converts a 64-bit integer from host byte order to big-endian byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#htole16">htole16 (num)</a></td>
-	<td class="summary">Converts a 16-bit integer from host byte order to little-endian byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#htole32">htole32 (num)</a></td>
-	<td class="summary">Converts a 32-bit integer from host byte order to little-endian byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#htole64">htole64 (num)</a></td>
-	<td class="summary">Converts a 64-bit integer from host byte order to little-endian byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#hton16">hton16 (num)</a></td>
-	<td class="summary">Converts a 16-bit integer from host byte order to network (big-endian) byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#hton32">hton32 (num)</a></td>
-	<td class="summary">Converts a 32-bit integer from host byte order to network (big-endian) byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#hton64">hton64 (num)</a></td>
-	<td class="summary">Converts a 64-bit integer from host byte order to network (big-endian) byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#le16toh">le16toh (num)</a></td>
-	<td class="summary">Converts a 16-bit integer from little-endian byte order to host byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#le32toh">le32toh (num)</a></td>
-	<td class="summary">Converts a 32-bit integer from little-endian byte order to host byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#le64toh">le64toh (num)</a></td>
-	<td class="summary">Converts a 64-bit integer from little-endian byte order to host byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#ntoh16">ntoh16 (num)</a></td>
-	<td class="summary">Converts a 16-bit integer from network (big-endian) byte order to host byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#ntoh32">ntoh32 (num)</a></td>
-	<td class="summary">Converts a 32-bit integer from network (big-endian) byte order to host byte order.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#ntoh64">ntoh64 (num)</a></td>
-	<td class="summary">Converts a 64-bit integer from network (big-endian) byte order to host byte order.</td>
-	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#task">task</a></td>
 	<td class="summary">Table of task state constants.</td>
@@ -262,6 +169,40 @@
 
 </dd>
     <dt>
+    <a name = "errname"></a>
+    <strong>errname (err)</strong>
+    </dt>
+    <dd>
+    Returns the symbolic name of a kernel error number.
+ For example, it converts <code>2</code> to <code>&quot;ENOENT&quot;</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">err</span>
+            <span class="types"><span class="type">integer</span></span>
+         The error number (e.g., 2).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The symbolic name of the error (e.g., "ENOENT").
+ Returns "unknown" (or the error number as a string) if the name cannot be resolved.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> name = linux.<span class="function-name">errname</span>(<span class="number">2</span>)
+<span class="global">print</span>(<span class="string">"Error name:"</span>, name) <span class="comment">-- "ENOENT"</span></pre>
+    </ul>
+
+</dd>
+    <dt>
     <a name = "ifindex"></a>
     <strong>ifindex (interface_name)</strong>
     </dt>
@@ -292,53 +233,6 @@
     <ul>
         <pre class="example"><span class="keyword">local</span> index = linux.<span class="function-name">ifindex</span>(<span class="string">"lo"</span>)
 <span class="global">print</span>(<span class="string">"Index of lo:"</span>, index)</pre>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "kill"></a>
-    <strong>kill (pid[, sig])</strong>
-    </dt>
-    <dd>
-    Kills a process by sending a signal.
- By default, sends SIGKILL.
- An optional second argument can specify a different signal
- (either by number or by using the constants from <code>linux.signal</code>).
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">pid</span>
-            <span class="types"><span class="type">integer</span></span>
-         Process ID to kill.
-        </li>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number to send (default: <code>linux.signal.KILL</code>).
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-        <li>
-           <span class="types"><span class="type">boolean</span></span>
-        <code>true</code> if the signal was sent successfully.</li>
-        <li>
-           <span class="types"><span class="type">boolean</span></span>
-        <code>false</code> followed by an error number if the operation fails.</li>
-    </ol>
-
-    <h3>Raises:</h3>
-     Errors:
-   - (3): The specified PID doesn't exist
-   - other errno values depending on the failure cause (e.g., <code>EPERM</code>, <code>EINVAL</code>, etc.)
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">linux.<span class="function-name">kill</span>(<span class="number">1234</span>)  <span class="comment">-- Kill process 1234 with SIGKILL (default)
-</span>linux.<span class="function-name">kill</span>(<span class="number">1234</span>, linux.signal.TERM)  <span class="comment">-- Kill process 1234 with SIGTERM</span></pre>
     </ul>
 
 </dd>
@@ -529,631 +423,9 @@
 
 </dd>
 </dl>
-    <h2 class="section-header "><a name="linux"></a>linux</h2>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
 
     <dl class="function">
-    <dt>
-    <a name = "sigmask"></a>
-    <strong>sigmask (sig[, cmd])</strong>
-    </dt>
-    <dd>
-    Modifies signal mask for current task.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number
-        </li>
-        <li><span class="parameter">cmd</span>
-            <span class="types"><span class="type">integer</span></span>
-         0=BLOCK (default), 1=UNBLOCK
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    error string on failure (EINVAL, EPERM, etc.)
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="global">pcall</span>(linux.sigmask, <span class="number">15</span>) <span class="comment">-- Block SIGTERM
-</span><span class="global">pcall</span>(linux.sigmask, <span class="number">15</span>, <span class="number">1</span>) <span class="comment">-- Unblock SIGTERM</span></pre>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "sigpending"></a>
-    <strong>sigpending ()</strong>
-    </dt>
-    <dd>
-    Checks current task pending signals.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-
-
-
-    </ol>
-
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">linux.<span class="function-name">sigpending</span>()</pre>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "sigstate"></a>
-    <strong>sigstate (sig[, state])</strong>
-    </dt>
-    <dd>
-    Checks signal state for current task.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number
-        </li>
-        <li><span class="parameter">state</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         One of: "blocked", "pending", "allowed"
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-
-
-
-    </ol>
-
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">linux.<span class="function-name">sigstate</span>(<span class="number">15</span>) <span class="comment">-- check if SIGTERM is blocked (default)
-</span>linux.<span class="function-name">sigstate</span>(linux.signal.TERM, <span class="string">"pending"</span>)</pre>
-    </ul>
-
-</dd>
-</dl>
-    <h2 class="section-header "><a name="Byte_Order_Conversion"></a>Byte Order Conversion </h2>
-
-    <dl class="function">
-    <dt>
-    <a name = "be16toh"></a>
-    <strong>be16toh (num)</strong>
-    </dt>
-    <dd>
-    Converts a 16-bit integer from big-endian byte order to host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 16-bit integer in big-endian byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in host byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "be32toh"></a>
-    <strong>be32toh (num)</strong>
-    </dt>
-    <dd>
-    Converts a 32-bit integer from big-endian byte order to host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 32-bit integer in big-endian byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in host byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "be64toh"></a>
-    <strong>be64toh (num)</strong>
-    </dt>
-    <dd>
-    Converts a 64-bit integer from big-endian byte order to host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 64-bit integer in big-endian byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in host byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "errname"></a>
-    <strong>errname (err)</strong>
-    </dt>
-    <dd>
-    Returns the symbolic name of a kernel error number.
- For example, it converts <code>2</code> to <code>&quot;ENOENT&quot;</code>.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">err</span>
-            <span class="types"><span class="type">integer</span></span>
-         The error number (e.g., 2).
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        The symbolic name of the error (e.g., "ENOENT").
- Returns "unknown" (or the error number as a string) if the name cannot be resolved.
-    </ol>
-
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="keyword">local</span> name = linux.<span class="function-name">errname</span>(<span class="number">2</span>)
-<span class="global">print</span>(<span class="string">"Error name:"</span>, name) <span class="comment">-- "ENOENT"</span></pre>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "htobe16"></a>
-    <strong>htobe16 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 16-bit integer from host byte order to big-endian byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 16-bit integer in host byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in big-endian byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "htobe32"></a>
-    <strong>htobe32 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 32-bit integer from host byte order to big-endian byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 32-bit integer in host byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in big-endian byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "htobe64"></a>
-    <strong>htobe64 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 64-bit integer from host byte order to big-endian byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 64-bit integer in host byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in big-endian byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "htole16"></a>
-    <strong>htole16 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 16-bit integer from host byte order to little-endian byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 16-bit integer in host byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in little-endian byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "htole32"></a>
-    <strong>htole32 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 32-bit integer from host byte order to little-endian byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 32-bit integer in host byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in little-endian byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "htole64"></a>
-    <strong>htole64 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 64-bit integer from host byte order to little-endian byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 64-bit integer in host byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in little-endian byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "hton16"></a>
-    <strong>hton16 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 16-bit integer from host byte order to network (big-endian) byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 16-bit integer in host byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in network byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "hton32"></a>
-    <strong>hton32 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 32-bit integer from host byte order to network (big-endian) byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 32-bit integer in host byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in network byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "hton64"></a>
-    <strong>hton64 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 64-bit integer from host byte order to network (big-endian) byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 64-bit integer in host byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in network byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "le16toh"></a>
-    <strong>le16toh (num)</strong>
-    </dt>
-    <dd>
-    Converts a 16-bit integer from little-endian byte order to host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 16-bit integer in little-endian byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in host byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "le32toh"></a>
-    <strong>le32toh (num)</strong>
-    </dt>
-    <dd>
-    Converts a 32-bit integer from little-endian byte order to host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 32-bit integer in little-endian byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in host byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "le64toh"></a>
-    <strong>le64toh (num)</strong>
-    </dt>
-    <dd>
-    Converts a 64-bit integer from little-endian byte order to host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 64-bit integer in little-endian byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in host byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "ntoh16"></a>
-    <strong>ntoh16 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 16-bit integer from network (big-endian) byte order to host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 16-bit integer in network byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in host byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "ntoh32"></a>
-    <strong>ntoh32 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 32-bit integer from network (big-endian) byte order to host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 32-bit integer in network byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in host byte order.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "ntoh64"></a>
-    <strong>ntoh64 (num)</strong>
-    </dt>
-    <dd>
-    Converts a 64-bit integer from network (big-endian) byte order to host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">num</span>
-            <span class="types"><span class="type">integer</span></span>
-         The 64-bit integer in network byte order.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        The integer in host byte order.
-    </ol>
-
-
-
-
-</dd>
     <dt>
     <a name = "task"></a>
     <strong>task</strong>
@@ -1201,7 +473,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-01-14 11:23:47 </i>
+<i style="float:right;">Last updated 2026-01-14 20:53:29 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
