@@ -8,8 +8,13 @@ config LUNATIK
 if LUNATIK
 
 config LUNATIK_RUNTIME
-	bool
+	bool "Lunatik Runtime Support"
 	default y
+	select LUNATIK_DEVICE
+	select LUNATIK_RCU
+	help
+	  Enables the core Lunatik runtime environment, allowing creation of
+	  isolated Lua states within the kernel.
 
 config LUNATIK_RUN
 	tristate "Lunatik Run (Execution Support)"
