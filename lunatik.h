@@ -340,6 +340,13 @@ static inline void lunatik_optcfunction(lua_State *L, int idx, const char *field
 #define lunatik_checkbounds(L, idx, val, min, max)	\
 	luaL_argcheck(L, val >= min && val <= max, idx, "out of bounds")
 
+static inline lua_Integer lunatik_checkinteger(lua_State *L, int idx, lua_Integer min, lua_Integer max)
+{
+	lua_Integer v = luaL_checkinteger(L, idx);
+	lunatik_checkbounds(L, idx, v, min, max);
+	return v;
+}
+
 static inline unsigned int lunatik_checkuint(lua_State *L, int idx)
 {
 	lua_Integer val = luaL_checkinteger(L, idx);
