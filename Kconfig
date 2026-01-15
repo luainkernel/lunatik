@@ -1,0 +1,175 @@
+# SPDX-FileCopyrightText: (c) 2026 Tanmay Deobhankar <emailtotanmay@gmail.com>
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+
+menuconfig LUNATIK
+	tristate "Lunatik Lua Interpreter"
+	default m
+	help
+	  Lunatik is a framework for scripting the Linux kernel with Lua.
+	  It allows you to write kernel drivers and extensions using Lua scripts.
+
+if LUNATIK
+
+config LUNATIK_RUNTIME
+	bool
+	default y
+	select LUNATIK_DEVICE
+	select LUNATIK_RCU
+	help
+	  Enables the core Lunatik runtime environment, allowing creation of
+	  isolated Lua states within the kernel. This requires both device
+	  and RCU support.
+
+config LUNATIK_RUN
+	tristate "Lunatik Run (Execution Support)"
+	default y
+	help
+	  Support for running Lua scripts in the kernel. This is required
+	  for basic script execution functionality.
+
+config LUNATIK_DEVICE
+	tristate "Lunatik Device Support"
+	default m
+	help
+	  Allows creating character devices using Lua.
+
+config LUNATIK_LINUX
+	tristate "Lunatik Linux API Bindings"
+	default m
+	help
+	  Provides Lua bindings for common Linux kernel functions (random, stat, etc.).
+
+config LUNATIK_NOTIFIER
+	tristate "Lunatik Notifier Support"
+	default m
+	help
+	  Support for kernel notifiers in Lua.
+
+config LUNATIK_SOCKET
+	tristate "Lunatik Socket Support"
+	default m
+	help
+	  Networking socket support for Lua scripts.
+
+config LUNATIK_RCU
+	tristate "Lunatik RCU Support"
+	default m
+	help
+	  Read-Copy-Update (RCU) synchronization support.
+
+config LUNATIK_THREAD
+	tristate "Lunatik Thread Support"
+	default m
+	help
+	  Kernel thread management from Lua.
+
+config LUNATIK_FIB
+	tristate "Lunatik FIB (Forwarding Information Base) Support"
+	default m
+	help
+	  Access to the kernel FIB (routing capability).
+
+config LUNATIK_DATA
+	tristate "Lunatik Data Support"
+	default m
+	help
+	  Shared data structures support.
+
+config LUNATIK_PROBE
+	tristate "Lunatik Probe (Kprobe/Kretprobe) Support"
+	default m
+	help
+	  Dynamic tracing support using kprobes.
+
+config LUNATIK_SYSCALL
+	tristate "Lunatik Syscall Support"
+	default m
+	help
+	  System call tracking and manipulation.
+
+config LUNATIK_XDP
+	tristate "Lunatik XDP Support"
+	default m
+	help
+	  Express Data Path (XDP) support for high-performance packet processing.
+
+config LUNATIK_FIFO
+	tristate "Lunatik FIFO Support"
+	default m
+	help
+	  First-In-First-Out queue support.
+
+config LUNATIK_XTABLE
+	tristate "Lunatik Xtable (Netfilter) Support"
+	default m
+	help
+	  Xtables extension support (iptables/nftables).
+
+config LUNATIK_NETFILTER
+	tristate "Lunatik Netfilter bindings"
+	default m
+	help
+	  New Netfilter API bindings.
+
+config LUNATIK_COMPLETION
+	tristate "Lunatik Completion Support"
+	default m
+	help
+	  Kernel completion synchronization primitives.
+
+config LUNATIK_CRYPTO_SHASH
+	tristate "Lunatik Crypto SHASH (Synchronous Hash) Support"
+	default m
+	help
+	  Synchronous Hash support.
+
+config LUNATIK_CRYPTO_SKCIPHER
+	tristate "Lunatik Crypto SKCIPHER (Symmetric Key Cipher) Support"
+	default m
+	help
+	  Symmetric Key Cipher support.
+
+config LUNATIK_CRYPTO_AEAD
+	tristate "Lunatik Crypto AEAD (Authenticated Encryption) Support"
+	default m
+	help
+	  Authenticated Encryption with Associated Data support.
+
+config LUNATIK_CRYPTO_RNG
+	tristate "Lunatik Crypto RNG (Random Number Generator) Support"
+	default m
+	help
+	  Random Number Generator support.
+
+config LUNATIK_CRYPTO_COMP
+	tristate "Lunatik Crypto COMP (Compression) Support"
+	default m
+	help
+	  Compression algorithm support.
+
+config LUNATIK_CPU
+	tristate "Lunatik CPU Support"
+	default m
+	help
+	  CPU management and information.
+
+config LUNATIK_HID
+	tristate "Lunatik HID (Human Interface Device) Support"
+	default m
+	help
+	  HID driver support in Lua.
+
+config LUNATIK_SIGNAL
+	tristate "Lunatik Signal Support"
+	default m
+	help
+	  Signal handling support.
+
+config LUNATIK_BYTEORDER
+	tristate "Lunatik Byteorder Support"
+	default m
+	help
+	  Byte order swapping functions.
+
+endif
+ 
