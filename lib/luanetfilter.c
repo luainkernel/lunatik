@@ -81,8 +81,15 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 	else
 		luadata_reset(data, skb, skb_headlen(skb), LUADATA_OPT_SKB);
 
-	if (lua_pcall(L, 1, 2, 0) != LUA_OK) {
+	struct net_device *dev = skb->dev;
+	if (dev)
+		lua_pushinteger(L, dev->ifindex);
+	else
+		lua_pushnil(L); /* dev may be NULL if hook is LOCAL_OUT */
+
+	if (lua_pcall(L, 2, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
+		lua_pop(L, 1);
 		return -1;
 	}
 
