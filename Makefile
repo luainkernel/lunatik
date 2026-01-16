@@ -32,7 +32,8 @@ all: lunatik_sym.h defines
 	CONFIG_LUNATIK_NETFILTER=m CONFIG_LUNATIK_COMPLETION=m \
 	CONFIG_LUNATIK_CRYPTO_SHASH=m CONFIG_LUNATIK_CRYPTO_SKCIPHER=m \
 	CONFIG_LUNATIK_CRYPTO_AEAD=m CONFIG_LUNATIK_CRYPTO_RNG=m \
-	CONFIG_LUNATIK_CRYPTO_COMP=m CONFIG_LUNATIK_CPU=m CONFIG_LUNATIK_HID=m
+	CONFIG_LUNATIK_CRYPTO_COMP=m CONFIG_LUNATIK_CPU=m CONFIG_LUNATIK_HID=m \
+    CONFIG_LUNATIK_SIGNAL=m CONFIG_LUNATIK_BYTEORDER=m
 
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
@@ -53,7 +54,8 @@ scripts_install:
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
 	${INSTALL} -m 0644 ${AUTOGEN_DIR}/linux/*.lua ${SCRIPTS_INSTALL_PATH}/linux
-	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/bin/lunatik
+	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
+
 
 scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
@@ -124,7 +126,7 @@ uninstall: scripts_uninstall modules_uninstall
 	depmod -a
 
 lunatik_sym.h: $(LUA_API) gensymbols.sh
-	${shell ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
+	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
 ${AUTOGEN_DIR}/linux:
 	${MKDIR} ${AUTOGEN_DIR}/linux

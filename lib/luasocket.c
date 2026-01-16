@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -57,7 +57,7 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 	if (addr->ss_family == AF_INET) {
 		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
 		addr_in->sin_addr.s_addr = htonl((u32)luaL_checkinteger(L, ix));
-		addr_in->sin_port = htons((u16)luaL_checkinteger(L, ix + 1));
+		addr_in->sin_port = htons((u16)lunatik_checkinteger(L, ix + 1, 0, U16_MAX));
 		return sizeof(struct sockaddr_in);
 	}
 #ifdef CONFIG_UNIX
@@ -71,9 +71,10 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 		return sizeof(struct sockaddr_un);
 	}
 #endif
-	else if (addr->ss_family == AF_PACKET && lua_type(L, ix) == LUA_TNUMBER) {
+	else if (addr->ss_family == AF_PACKET) {
 		struct sockaddr_ll *addr_ll = (struct sockaddr_ll *)addr;
-		addr_ll->sll_ifindex = (int)lua_tointeger(L, ix);
+		addr_ll->sll_protocol = htons((u16)lunatik_checkinteger(L, ix, 0, U16_MAX));
+		addr_ll->sll_ifindex = (int)lunatik_checkinteger(L, ix + 1, 0, INT_MAX);;
 		return sizeof(struct sockaddr_ll);
 	}
 	else {
@@ -226,23 +227,23 @@ static int luasocket_receive(lua_State *L)
 *   - `AF_INET` (IPv4): An integer representing the IPv4 address (e.g., from `net.aton()`).
 *     Use `0` (or `net.aton("0.0.0.0")`) to bind to all available interfaces.
 *     The `port` argument is also required.
-*   - `AF_PACKET`:
-*     - If `addr` is an integer: It's treated as the network interface index (e.g., from `linux.ifindex("eth0")`).
-*       The `sll_protocol` field of the underlying `sockaddr_ll` structure would need to be set to `htons(ETH_P_ALL)` or similar
-*       if not binding to a specific protocol via other means (e.g. `socket.new`'s protocol argument for `AF_PACKET` might set this).
-*     - If `addr` is a string: It's a packed string directly representing parts of the `sockaddr_ll` structure
-*       (specifically, the fields after `sll_family`, like `sll_protocol`).
-*       Example from `tap.lua` for binding to `ETH_P_ALL` (0x0003): `sock:bind(string.pack(">I2", 0x0003))`.
-*   - Other families: A packed string representing the family-specific address structure.
-* @tparam[opt] integer port The local port number (required and used only if the family is `AF_INET`).
+*   - `AF_PACKET`: An integer representing the ethernet protocol in host byte order
+*     (e.g., `0x0003` for `ETH_P_ALL`, `0x88CC` for `ETH_P_LLDP`)
+*     The `port` argument is also required.
+*   - Other families: A packed string directly representing parts of the family-specific address structure.
+*
+* @tparam[opt] integer port The local port or interface index.
+*   - `AF_INET`: TCP/UDP port number.
+*   - `AF_PACKET`: Network interface index (e.g., from `linux.ifindex("eth0")`).
+*
 * @treturn nil
 * @raise Error if the bind operation fails (e.g., address already in use, invalid address).
 * @usage
 *   -- Bind TCP/IPv4 socket to localhost, port 8080
 *   tcp_server_sock:bind(net.aton("127.0.0.1"), 8080)
 *
-*   -- Bind AF_PACKET socket to receive all protocols (ETH_P_ALL = 0x0003)
-*   af_packet_sock:bind(string.pack(">H", 0x0003))
+*   -- Bind AF_PACKET socket to protocol `ETH_P_LLDP` on a specific interface
+*   af_packet_sock:bind(0x88CC, linux.ifindex("eth0"))
 * @see net.aton
 * @see linux.ifindex
 */

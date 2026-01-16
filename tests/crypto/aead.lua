@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 local aead = require"crypto.aead"
@@ -7,9 +7,6 @@ local util = require("util")
 local test = util.test
 local hex2bin = util.hex2bin
 local bin2hex = util.bin2hex
-local errno = require("linux").errno
-local EINVAL = errno.INVAL
-local EBADMSG = errno.BADMSG
 
 test("AEAD AES-128-GCM encrypt", function()
 	local c = aead.new"gcm(aes)"
@@ -45,14 +42,14 @@ test("AEAD AES-128-GCM setkey with invalid key length", function()
 	local c = aead.new"gcm(aes)"
 	local status, err = pcall(c.setkey, c, "0123456789abcde") -- 15 bytes, invalid for AES-128
 	assert(not status, "setkey with invalid key length should fail")
-	assert(err == EINVAL, "Error code should be " .. EINVAL .. ", got: " .. err)
+	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM setauthsize with invalid tag length", function()
 	local c = aead.new"gcm(aes)"
 	local status, err = pcall(c.setauthsize, c, 11) -- 11 bytes, invalid for GCM (must be 4, 8, 12, 13, 14, 15, 16)
 	assert(not status, "setauthsize with invalid tag length should fail")
-	assert(err == EINVAL, "Error code should be " .. EINVAL .. ", got: " .. err)
+	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM encrypt with incorrect IV length", function()
@@ -81,10 +78,9 @@ test("AEAD AES-128-GCM decrypt with input data too short for tag", function()
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
 	local short_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918" -- Missing last byte of tag
-	local err_msg = "crypto operation failed with error code " .. EBADMSG
 	local status, err = pcall(c.decrypt, c, "abcdefghijkl", short_ciphertext, "0123456789abcdef")
 	assert(not status, "decrypt with input data too short for tag should fail")
-	assert(err == err_msg, "Error message should be '" .. err_msg .. "', got: " .. err)
+	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM decrypt with authentication failure", function()
@@ -92,9 +88,8 @@ test("AEAD AES-128-GCM decrypt with authentication failure", function()
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
 	local tampered_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918f" -- Last byte of tag tampered
-	local err_msg = "crypto operation failed with error code " .. EBADMSG
 	local status, err = pcall(c.decrypt, c, "abcdefghijkl", tampered_ciphertext)
 	assert(not status, "decrypt with tampered data should fail")
-	assert(err == err_msg, "Error message should be '" .. err_msg .. "', got: " .. err)
+	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
 end)
 

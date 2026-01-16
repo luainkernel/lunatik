@@ -6,6 +6,7 @@
 -- Common code for new netfilter framework and legacy iptables dnsblock example
 
 local linux = require("linux")
+local byteorder = require("byteorder")
 local string = require("string")
 
 local common = {}
@@ -34,7 +35,7 @@ end
 
 function common.hook(skb, thoff, proto)
 	if proto == udp then
-		local dstport = linux.ntoh16(skb:getuint16(thoff + 2))
+		local dstport = byteorder.ntoh16(skb:getuint16(thoff + 2))
 		if dstport == dns then
 			local qoff = thoff + 20
 			local name = get_domain(skb, qoff)

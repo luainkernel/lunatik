@@ -33,8 +33,9 @@ local config = {
 
 local ethertype = string.pack(">I2", eth.LLDP)
 
-local function get_src_mac()
-	local rx <close> = raw.bind(eth.ALL)
+local function get_src_mac(ifindex)
+	local rx <close> = raw.bind(eth.ALL, ifindex)
+
 	local frame = rx:receive(2048)
 	return frame:sub(7, 12)
 end
@@ -73,7 +74,7 @@ end
 
 local ifindex = linux.ifindex(config.interface)
 
-local src_mac = get_src_mac()
+local src_mac = get_src_mac(ifindex)
 local lldp_frame = build_lldp_frame(src_mac)
 
 local function worker()

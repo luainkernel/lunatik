@@ -106,10 +106,17 @@ static inline int lunatik_nop(lua_State *L)
 	return 0;
 }
 
+#define LUNATIK_ALLOC(L, a, u)	void *u = NULL; lua_Alloc a = lua_getallocf(L, &u)
+static inline const char *lunatik_pushstring(lua_State *L, char *s, size_t len)
+{
+	LUNATIK_ALLOC(L, alloc, ud);
+	s[len] = '\0';
+	return lua_pushexternalstring(L, s, len, alloc, ud);
+}
+
 static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 {
-	void *ud = NULL;
-	lua_Alloc alloc = lua_getallocf(L, &ud);
+	LUNATIK_ALLOC(L, alloc, ud);
 	return alloc(ud, ptr, LUA_TNONE, size);
 }
 
@@ -117,10 +124,12 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 #define lunatik_free(p)		kfree(p)
 #define lunatik_gfp(runtime)	((runtime)->gfp)
 
+#define lunatik_enomem(L)	luaL_error((L), "not enough memory")
+
 static inline void *lunatik_checknull(lua_State *L, void *ptr)
 {
 	if (ptr == NULL)
-		luaL_error(L, "not enough memory");
+		lunatik_enomem(L);
 	return ptr;
 }
 
@@ -128,18 +137,22 @@ static inline void *lunatik_checknull(lua_State *L, void *ptr)
 
 void lunatik_pusherrname(lua_State *L, int err);
 
-#define lunatik_tryret(L, ret, op, ...)				\
-do {								\
-	if ((ret = op(__VA_ARGS__)) < 0) {			\
-		lunatik_pusherrname(L, ret);			\
-		lua_error(L);					\
-	}							\
+static inline void lunatik_throw(lua_State *L, int ret)
+{
+	lunatik_pusherrname(L, ret);
+	lua_error(L);
+}
+
+#define lunatik_tryret(L, ret, op, ...)		\
+do {						\
+	if ((ret = op(__VA_ARGS__)) < 0)	\
+		lunatik_throw(L, ret);		\
 } while (0)
 
-#define lunatik_try(L, op, ...)					\
-do {								\
-	int ret;						\
-	lunatik_tryret(L, ret, op, __VA_ARGS__);		\
+#define lunatik_try(L, op, ...)				\
+do {							\
+	int ret;					\
+	lunatik_tryret(L, ret, op, __VA_ARGS__);	\
 } while (0)
 
 static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
@@ -340,11 +353,11 @@ static inline void lunatik_optcfunction(lua_State *L, int idx, const char *field
 #define lunatik_checkbounds(L, idx, val, min, max)	\
 	luaL_argcheck(L, val >= min && val <= max, idx, "out of bounds")
 
-static inline unsigned int lunatik_checkuint(lua_State *L, int idx)
+static inline lua_Integer lunatik_checkinteger(lua_State *L, int idx, lua_Integer min, lua_Integer max)
 {
-	lua_Integer val = luaL_checkinteger(L, idx);
-	lunatik_checkbounds(L, idx, val, 1, UINT_MAX);
-	return (unsigned int)val;
+	lua_Integer v = luaL_checkinteger(L, idx);
+	lunatik_checkbounds(L, idx, v, min, max);
+	return v;
 }
 
 static inline void lunatik_setregistry(lua_State *L, int ix, void *key)
