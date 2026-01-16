@@ -130,7 +130,7 @@ lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
 defines:
-	${shell CC='$(CC)' lua5.4 genconstants.lua $(KERNEL_RELEASE) $(INCLUDE_PATH) autogen/linux}
+	${shell CC='$(CC)' lua5.4 gendefines.lua $(KERNEL_RELEASE) $(INCLUDE_PATH) autogen/linux}
 
 moontastik_install_%:
 	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)
