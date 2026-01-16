@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 
 KERNEL_RELEASE ?= ${shell uname -r}
@@ -11,8 +11,6 @@ MODULES_BUILD_PATH ?= ${BTF_INSTALL_PATH}
 MODULES_INSTALL_PATH := ${MODULES_RELEASE_PATH}/kernel
 SCRIPTS_INSTALL_PATH := ${MODULES_PATH}/lua
 INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
-AUTOGEN_DIR := ${PWD}/autogen
-
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
@@ -33,18 +31,20 @@ all: lunatik_sym.h defines
 	CONFIG_LUNATIK_CRYPTO_SHASH=m CONFIG_LUNATIK_CRYPTO_SKCIPHER=m \
 	CONFIG_LUNATIK_CRYPTO_AEAD=m CONFIG_LUNATIK_CRYPTO_RNG=m \
 	CONFIG_LUNATIK_CRYPTO_COMP=m CONFIG_LUNATIK_CPU=m CONFIG_LUNATIK_HID=m \
-    CONFIG_LUNATIK_SIGNAL=m CONFIG_LUNATIK_BYTEORDER=m
+	CONFIG_LUNATIK_SIGNAL=m CONFIG_LUNATIK_BYTEORDER=m
 
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
 	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h
+	${RM} autogen/linux/*.lua
 
 scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/lunatik
 	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/socket
 	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/syscall
 	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/crypto
+	${MKDIR} ${SCRIPTS_INSTALL_PATH} ${SCRIPTS_INSTALL_PATH}/linux
 	${INSTALL} -m 0644 driver.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/mailbox.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/net.lua ${SCRIPTS_INSTALL_PATH}/
@@ -53,7 +53,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
-	${INSTALL} -m 0644 ${AUTOGEN_DIR}/linux/*.lua ${SCRIPTS_INSTALL_PATH}/linux
+	${INSTALL} -m 0644 autogen/linux/*.lua ${SCRIPTS_INSTALL_PATH}/linux
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 
 scripts_uninstall:
@@ -64,6 +64,8 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/lunatik
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/socket
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/syscall
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/crypto
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik
 
 .PHONY: ebpf defines
@@ -127,11 +129,8 @@ uninstall: scripts_uninstall modules_uninstall
 lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
-${AUTOGEN_DIR}/linux:
-	${MKDIR} ${AUTOGEN_DIR}/linux
-
-defines: ${AUTOGEN_DIR}/linux
-	${shell CC='$(CC)' lua genconstants.lua $(KERNEL_RELEASE) $(INCLUDE_PATH) $(AUTOGEN_DIR)/linux}
+defines:
+	${shell CC='$(CC)' lua5.4 genconstants.lua $(KERNEL_RELEASE) $(INCLUDE_PATH) autogen/linux}
 
 moontastik_install_%:
 	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)
