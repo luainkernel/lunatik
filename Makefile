@@ -110,12 +110,24 @@ modules_uninstall:
 	${RM} -r ${MODULES_INSTALL_PATH}/lunatik
 
 install: scripts_install modules_install
+ifeq ($(CONFIG_LUNATIK_INSTALL_EXAMPLES),y)
+	$(MAKE) examples_install
+endif
+ifeq ($(CONFIG_LUNATIK_INSTALL_TESTS),y)
+	$(MAKE) tests_install
+endif
 	for mod in $(MODULES_ORDER_LIST); do \
 		grep -qxF "$$mod" $(MODULES_ORDER_FILE) || echo "$$mod" >> $(MODULES_ORDER_FILE); \
 	done
 	depmod -a
 
 uninstall: scripts_uninstall modules_uninstall
+ifeq ($(CONFIG_LUNATIK_INSTALL_EXAMPLES),y)
+	$(MAKE) examples_uninstall
+endif
+ifeq ($(CONFIG_LUNATIK_INSTALL_TESTS),y)
+	$(MAKE) tests_uninstall
+endif
 	for mod in $(MODULES_ORDER_LIST); do \
 		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
 	done

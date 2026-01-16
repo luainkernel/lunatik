@@ -166,4 +166,18 @@ config LUNATIK_BYTEORDER
 	help
 	  Byte order swapping functions.
 
+config LUNATIK_INSTALL_EXAMPLES
+	bool "Install Lunatik examples"
+	default n
+	help
+	  Install example Lua scripts to /lib/modules/lua/examples.
+	  These examples demonstrate various Lunatik features and use cases.
+
+config LUNATIK_INSTALL_TESTS
+	bool "Install Lunatik tests"
+	default n
+	help
+	  Install test scripts to /lib/modules/lua/tests.
+	  These are useful for testing and validating Lunatik functionality.
+
 endif 
