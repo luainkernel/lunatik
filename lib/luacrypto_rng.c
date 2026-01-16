@@ -51,7 +51,7 @@ LUACRYPTO_RELEASER(rng, struct crypto_rng, crypto_free_rng, NULL);
 static int luacrypto_rng_generate(lua_State *L)
 {
 	struct crypto_rng *tfm = luacrypto_rng_check(L, 1);
-	unsigned int num_bytes = lunatik_checkuint(L, 2);
+	unsigned int num_bytes = (unsigned int)lunatik_checkinteger(L, 2, 1, UINT_MAX);
 
 	size_t seed_len = 0;
 	const char *seed_data = lua_tolstring(L, 3, &seed_len);
@@ -75,7 +75,7 @@ static int luacrypto_rng_generate(lua_State *L)
 static int luacrypto_rng_getbytes(lua_State *L)
 {
 	struct crypto_rng *tfm = luacrypto_rng_check(L, 1);
-	unsigned int num_bytes = lunatik_checkuint(L, 2);
+	unsigned int num_bytes = (unsigned int)lunatik_checkinteger(L, 2, 1, UINT_MAX);
 
 	luaL_Buffer b;
 	u8 *buffer = (u8 *)luaL_buffinitsize(L, &b, num_bytes);

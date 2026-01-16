@@ -64,7 +64,7 @@ static int luacrypto_aead_setkey(lua_State *L)
 static int luacrypto_aead_setauthsize(lua_State *L)
 {
 	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
-	unsigned int tagsize = lunatik_checkuint(L, 2);
+	unsigned int tagsize = (unsigned int)lunatik_checkinteger(L, 2, 1, UINT_MAX);
 	lunatik_try(L, crypto_aead_setauthsize, tfm, tagsize);
 	return 0;
 }
@@ -116,8 +116,7 @@ static inline void luacrypto_aead_newrequest(lua_State *L, luacrypto_aead_reques
 
 	request->combined = luaL_checklstring(L, 3, &request->combined_len);
 
-	request->aad_len = (size_t)luaL_checkinteger(L, 4);
-	lunatik_checkbounds(L, 4, request->aad_len, 0, request->combined_len);
+	request->aad_len = (size_t)lunatik_checkinteger(L, 4, 0, request->combined_len);
 
 	request->crypt_len = request->combined_len - request->aad_len;
 	request->authsize = (size_t)crypto_aead_authsize(tfm);
