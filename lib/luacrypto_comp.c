@@ -51,7 +51,7 @@ static int luacrypto_comp_##name(lua_State *L)								\
 	size_t datalen;											\
 	const u8 *data = (const u8 *)luaL_checklstring(L, 2, &datalen);					\
 	lunatik_checkbounds(L, 2, datalen, 1, UINT_MAX);						\
-	unsigned int max_len = lunatik_checkuint(L, 3);							\
+	unsigned int max_len = (unsigned int)lunatik_checkinteger(L, 3, 1, UINT_MAX);	\
 													\
 	luaL_Buffer b;											\
 	u8 *output_buf = luaL_buffinitsize(L, &b, max_len);						\

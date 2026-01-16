@@ -360,13 +360,6 @@ static inline lua_Integer lunatik_checkinteger(lua_State *L, int idx, lua_Intege
 	return v;
 }
 
-static inline unsigned int lunatik_checkuint(lua_State *L, int idx)
-{
-	lua_Integer val = luaL_checkinteger(L, idx);
-	lunatik_checkbounds(L, idx, val, 1, UINT_MAX);
-	return (unsigned int)val;
-}
-
 static inline void lunatik_setregistry(lua_State *L, int ix, void *key)
 {
 	lua_pushvalue(L, ix);
