@@ -108,10 +108,7 @@ static int luasignal_sigstate(lua_State *L)
 * @tparam integer pid Process ID to kill.
 * @tparam[opt] integer sig Signal number to send (default: `signal.flags.KILL`).
 * @treturn boolean `true` if the signal was sent successfully.
-* @treturn[error] boolean `false` followed by an error number if the operation fails.
-* @raise Errors:
-* - (3): The specified PID doesn't exist
-* - other errno values depending on the failure cause (e.g., `EPERM`, `EINVAL`, etc.)
+* @raise Error string (e.g., "ESRCH", "EPERM") if the operation fails.
 * @usage
 * signal.kill(1234)  -- Kill process 1234 with SIGKILL (default)
 * signal.kill(1234, signal.flags.TERM)  -- Kill process 1234 with SIGTERM
@@ -122,22 +119,17 @@ static int luasignal_kill(lua_State *L)
 	int sig = luaL_optinteger(L, 2, SIGKILL);
 	struct pid *pid = find_get_pid(nr);
 
-	int ret = ESRCH;
 	if (pid == NULL)
-		goto err;
+		lunatik_throw(L, ESRCH);
 
-	ret = kill_pid(pid, sig, 1);
+	int ret = kill_pid(pid, sig, 1);
 	put_pid(pid);
 
 	if (ret)
-		goto err;
+		lunatik_throw(L, -ret);
 
 	lua_pushboolean(L, true);
 	return 1;
-err:
-	lua_pushboolean(L, false);
-	lua_pushinteger(L, ret);
-	return 2;
 }
 
 /***
