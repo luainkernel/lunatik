@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -316,11 +316,14 @@ EXPORT_SYMBOL(lunatik_runtime);
 * spinlocks for synchronization).
 
 * @function runtime
-* @tparam string script The name of the Lua script to load and execute (e.g., "myscript"). The system will look for "myscript.lua" in the Lua root path.
-* @tparam[opt=true] boolean sleep If `true` (default), the runtime can sleep (e.g., for I/O operations) and uses `GFP_KERNEL` for allocations.
+* @tparam string script The name of the Lua script to load and execute (e.g., "myscript").
+*   The system will look for "myscript.lua" in the Lua root path.
+* @tparam[opt=true] boolean sleep If `true` (default),
+*   the runtime can sleep (e.g., for I/O operations) and uses `GFP_KERNEL` for allocations.
 *   If `false`, the runtime operates in an atomic context, cannot sleep, and uses `GFP_ATOMIC` for allocations.
 *   This is crucial for runtimes used in contexts that cannot sleep, like Netfilter hooks.
-* @treturn runtime A Lunatik runtime object. This object can be used to interact with the runtime, for example, to resume it if it yields or to stop it.
+* @treturn runtime A Lunatik runtime object. This object can be used to interact with the runtime, for example,
+*   to resume it if it yields or to stop it.
 * @raise Error if the Lua state or runtime cannot be allocated, or if the script fails to load or execute.
 * @within lunatik
 */
@@ -352,5 +355,5 @@ static void __exit lunatik_exit(void)
 module_init(lunatik_init);
 module_exit(lunatik_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 
