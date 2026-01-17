@@ -59,14 +59,28 @@ local function collect_constants(cpp_output, prefix)
 	return constants, macro_names
 end
 
-local function resolve_aliases(constants, macro_names, prefix, module_name)
-	for _, macro in ipairs(macro_names) do
-		local definition = constants[macro]
-		local stripped_name = definition:gsub("^" .. prefix, "")
-		if stripped_name ~= definition and constants[prefix .. stripped_name] then
-			constants[macro] = module_name .. '["' .. stripped_name .. '"]'
-		end
+local function resolve_value(value, constants, prefix, module_name, seen)
+	if tonumber(value) then
+		return value
 	end
+
+	if not constants[value] then
+		return nil
+	end
+
+	seen = seen or {}
+	-- recursion check: avoid cyclic defines
+	if seen[value] then
+		return nil
+	end
+    seen[value] = true
+
+	if value:find("^" .. prefix) then
+        local stripped = value:gsub("^" .. prefix, "")
+        return string.format('%s["%s"]', module_name, stripped)
+    end
+
+    return resolve_value(constants[value], constants, prefix, module_name, seen)
 end
 
 local function write_module(spec, constants, macro_names)
@@ -80,7 +94,10 @@ local function write_module(spec, constants, macro_names)
 	file:write("local " .. spec.module_name .. " = {}\n\n")
 	for _, macro in ipairs(macro_names) do
 		local field_name = macro:gsub("^" .. spec.prefix, "")
-		file:write(string.format('%s["%s"] = %s\n', spec.module_name, field_name, constants[macro]))
+        local resolved_value = resolve_value(constants[macro], constants, spec.prefix, spec.module_name)
+        if resolved_value then
+            file:write(string.format('%s["%s"] = %s\n', spec.module_name, field_name, resolved_value))
+        end
 	end
 	file:write("\nreturn " .. spec.module_name .. "\n")
 end
@@ -88,7 +105,6 @@ end
 for _, spec in ipairs(specs) do
 	local cpp_output = preprocess(spec.header)
 	local constants, macro_names = collect_constants(cpp_output, spec.prefix)
-	resolve_aliases(constants, macro_names, spec.prefix, spec.module_name)
 	write_module(spec, constants, macro_names)
 end
 
