@@ -22,7 +22,7 @@ local specs = {
 }
 
 local function exit(msg)
-	io.stderr:write("genconstants.lua: " .. msg .. "\n")
+	io.stderr:write("gendefines.lua: " .. msg .. "\n")
 	os.exit(1)
 end
 
@@ -31,7 +31,7 @@ local INCLUDE_PATH = arg[2]
 local OUTPUT_DIR = arg[3]
 
 if not KERNEL or not INCLUDE_PATH or not OUTPUT_DIR then
-	exit("usage: lua genconstants.lua <KERNEL> <INCLUDE_PATH> <OUTPUT_DIR>")
+	exit("usage: lua gendefines.lua <KERNEL> <INCLUDE_PATH> <OUTPUT_DIR>")
 end
 
 local CC = os.getenv("CC") or "cc"
