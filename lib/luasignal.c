@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2025-2026 L Venkata Subramanyam <202301280@dau.ac.in>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -201,4 +201,5 @@ static void __exit luasignal_exit(void)
 module_init(luasignal_init);
 module_exit(luasignal_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
+MODULE_AUTHOR("L Venkata Subramanyam <202301280@dau.ac.in>");
+
