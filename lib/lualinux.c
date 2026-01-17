@@ -209,6 +209,35 @@ static int lualinux_ifindex(lua_State *L)
 }
 
 /***
+* Gets the MAC address for the network interface index.
+*
+* @function mac
+* @tparam integer The interface index (e.g., 2).
+* @treturn string The interface MAC address.
+* @raise Error if the device is not found.
+* @usage
+*   local mac = linux.mac(2)
+*   print(string.byte(mac,1,6))
+*/
+static int lualinux_mac(lua_State *L)
+{
+	int ifindex = luaL_checkinteger(L, 1);
+	struct net_device *dev = dev_get_by_index(&init_net, ifindex);
+
+	luaL_argcheck(L, dev != NULL, 1, "device not found");
+
+	luaL_Buffer b;
+	luaL_buffinit(L, &b);
+
+	int len = min_t(size_t, dev->addr_len, ETH_ALEN);
+	luaL_addlstring(&b, (const char*)dev->dev_addr, len);
+	luaL_pushresult(&b);
+	dev_put(dev);
+	return 1;
+}
+
+
+/***
 * Table of task state constants.
 * Exports task state flags from `<linux/sched.h>`. These are used with
 * `linux.schedule()`.
@@ -292,6 +321,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"difftime", lualinux_difftime},
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
+	{"mac", lualinux_mac},
 	{"errname", lualinux_errname},
 	{NULL, NULL}
 };
