@@ -1,0 +1,671 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><strong>byteorder</strong></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.aead.html">crypto.aead</a></li>
+  <li><a href="../modules/crypto.comp.html">crypto.comp</a></li>
+  <li><a href="../modules/crypto.rng.html">crypto.rng</a></li>
+  <li><a href="../modules/crypto.shash.html">crypto.shash</a></li>
+  <li><a href="../modules/crypto.skcipher.html">crypto.skcipher</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../modules/xtable.html">xtable</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>byteorder</code></h1>
+<p>Byte Order Conversion</p>
+<p>
+
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#be16toh">be16toh (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from big-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#be32toh">be32toh (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from big-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#be64toh">be64toh (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from big-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htobe16">htobe16 (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from host byte order to big-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htobe32">htobe32 (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from host byte order to big-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htobe64">htobe64 (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from host byte order to big-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htole16">htole16 (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from host byte order to little-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htole32">htole32 (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from host byte order to little-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#htole64">htole64 (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from host byte order to little-endian byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hton16">hton16 (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from host byte order to network (big-endian) byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hton32">hton32 (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from host byte order to network (big-endian) byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hton64">hton64 (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from host byte order to network (big-endian) byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#le16toh">le16toh (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from little-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#le32toh">le32toh (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from little-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#le64toh">le64toh (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from little-endian byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ntoh16">ntoh16 (num)</a></td>
+	<td class="summary">Converts a 16-bit integer from network (big-endian) byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ntoh32">ntoh32 (num)</a></td>
+	<td class="summary">Converts a 32-bit integer from network (big-endian) byte order to host byte order.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ntoh64">ntoh64 (num)</a></td>
+	<td class="summary">Converts a 64-bit integer from network (big-endian) byte order to host byte order.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "be16toh"></a>
+    <strong>be16toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from big-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in big-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "be32toh"></a>
+    <strong>be32toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from big-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in big-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "be64toh"></a>
+    <strong>be64toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from big-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in big-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htobe16"></a>
+    <strong>htobe16 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from host byte order to big-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in big-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htobe32"></a>
+    <strong>htobe32 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from host byte order to big-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in big-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htobe64"></a>
+    <strong>htobe64 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from host byte order to big-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in big-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htole16"></a>
+    <strong>htole16 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from host byte order to little-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in little-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htole32"></a>
+    <strong>htole32 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from host byte order to little-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in little-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "htole64"></a>
+    <strong>htole64 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from host byte order to little-endian byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in little-endian byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hton16"></a>
+    <strong>hton16 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from host byte order to network (big-endian) byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in network byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hton32"></a>
+    <strong>hton32 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from host byte order to network (big-endian) byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in network byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hton64"></a>
+    <strong>hton64 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from host byte order to network (big-endian) byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in host byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in network byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "le16toh"></a>
+    <strong>le16toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from little-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in little-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "le32toh"></a>
+    <strong>le32toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from little-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in little-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "le64toh"></a>
+    <strong>le64toh (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from little-endian byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in little-endian byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ntoh16"></a>
+    <strong>ntoh16 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 16-bit integer from network (big-endian) byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 16-bit integer in network byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ntoh32"></a>
+    <strong>ntoh32 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 32-bit integer from network (big-endian) byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 32-bit integer in network byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ntoh64"></a>
+    <strong>ntoh64 (num)</strong>
+    </dt>
+    <dd>
+    Converts a 64-bit integer from network (big-endian) byte order to host byte order.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+            <span class="types"><span class="type">integer</span></span>
+         The 64-bit integer in network byte order.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        The integer in host byte order.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-01-18 18:03:05 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
