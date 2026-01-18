@@ -155,22 +155,6 @@ static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 };
 
 /***
-* Table of XDP action verdicts.
-* These constants define the possible return values from an XDP program (and thus
-* from the Lua callback attached via `xdp.attach`) to indicate how the packet
-* should be handled.
-* (Constants from `<uapi/linux/bpf.h>`)
-* @table action
-*   @tfield integer ABORTED Indicates an error; packet is dropped. (XDP_ABORTED)
-*   @tfield integer DROP Drop the packet silently. (XDP_DROP)
-*   @tfield integer PASS Pass the packet to the normal network stack. (XDP_PASS)
-*   @tfield integer TX Transmit the packet back out the same interface it arrived on. (XDP_TX)
-*   @tfield integer REDIRECT Redirect the packet to another interface or BPF map. (XDP_REDIRECT)
-* @within xdp
-*/
-#define luaxdp_setcallback(L, i)	(lunatik_setregistry((L), (i), luaxdp_callback))
-
-/***
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
 * After calling this, `bpf_luaxdp_run` calls targeting this runtime will no longer
 * invoke a Lua function (they will likely return an error or default action).
@@ -182,8 +166,7 @@ static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 */
 static int luaxdp_detach(lua_State *L)
 {
-	lua_pushnil(L);
-	luaxdp_setcallback(L, 1);
+	lunatik_unregister(L, luaxdp_callback);
 	return 0;
 }
 
@@ -241,7 +224,7 @@ static int luaxdp_attach(lua_State *L)
 	luadata_new(L); /* argument */
 
 	lua_pushcclosure(L, luaxdp_callback, 3);
-	luaxdp_setcallback(L, -1);
+	lunatik_register(L, -1, luaxdp_callback);
 	return 0;
 }
 #endif
@@ -254,6 +237,20 @@ static const luaL_Reg luaxdp_lib[] = {
 	{NULL, NULL}
 };
 
+/***
+* Table of XDP action verdicts.
+* These constants define the possible return values from an XDP program (and thus
+* from the Lua callback attached via `xdp.attach`) to indicate how the packet
+* should be handled.
+* (Constants from `<uapi/linux/bpf.h>`)
+* @table action
+*   @tfield integer ABORTED Indicates an error; packet is dropped. (XDP_ABORTED)
+*   @tfield integer DROP Drop the packet silently. (XDP_DROP)
+*   @tfield integer PASS Pass the packet to the normal network stack. (XDP_PASS)
+*   @tfield integer TX Transmit the packet back out the same interface it arrived on. (XDP_TX)
+*   @tfield integer REDIRECT Redirect the packet to another interface or BPF map. (XDP_REDIRECT)
+* @within xdp
+*/
 static const lunatik_reg_t luaxdp_action[] = {
 	{"ABORTED", XDP_ABORTED},
 	{"DROP", XDP_DROP},

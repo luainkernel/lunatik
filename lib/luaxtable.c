@@ -322,13 +322,13 @@ static inline lunatik_object_t *luaxtable_new(lua_State *L, int idx, int hook)
 
 	xtable->type = hook;
 	xtable->runtime = NULL;
-	luadata_attach(L, xtable, skb);
 	return object;
 }
 
 static inline void luaxtable_register(lua_State *L, int idx, luaxtable_t *xtable, lunatik_object_t *object)
 {
 	lunatik_setruntime(L, xtable, xtable);
+	luadata_attach(L, xtable, skb);
 	lunatik_getobject(xtable->runtime);
 	lunatik_registerobject(L, idx, object);
 }
@@ -380,7 +380,8 @@ static const luaL_Reg luaxtable_lib[] = {
 static void luaxtable_release(void *private)
 {
 	luaxtable_t *xtable = (luaxtable_t *)private;
-	if (!xtable->runtime) 
+	lunatik_object_t *runtime = xtable->runtime;
+	if (runtime == NULL)
 		return;
 
 	switch (xtable->type) {
@@ -392,7 +393,8 @@ static void luaxtable_release(void *private)
 		break;
 	}
 
-	lunatik_putobject(xtable->runtime);
+	luadata_detach(runtime, xtable, skb);
+	lunatik_putobject(runtime);
 	xtable->runtime = NULL;
 }
 
