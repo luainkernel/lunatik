@@ -12,6 +12,11 @@
 #include <lunatik.h>
 
 /***
+* POSIX Signals
+* @module signal
+*/
+
+/***
 * Modifies signal mask for current task.
 *
 * @function sigmask
