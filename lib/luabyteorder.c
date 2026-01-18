@@ -10,7 +10,7 @@
 
 /***
 * Byte Order Conversion
-* @section byte_order
+* @module byteorder
 */
 #define LUABYTEORDER_BYTESWAPPER(swapper, T)		\
 static int luabyteorder_##swapper(lua_State *L)		\
