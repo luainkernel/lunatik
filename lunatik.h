@@ -360,24 +360,28 @@ static inline lua_Integer lunatik_checkinteger(lua_State *L, int idx, lua_Intege
 	return v;
 }
 
-static inline void lunatik_setregistry(lua_State *L, int ix, void *key)
+static inline void lunatik_register(lua_State *L, int ix, void *key)
 {
 	lua_pushvalue(L, ix);
 	lua_rawsetp(L, LUA_REGISTRYINDEX, key); /* pop value */
 }
 
+static inline void lunatik_unregister(lua_State *L, void *key)
+{
+	lua_pushnil(L);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, key); /* pop nil */
+}
+
 static inline void lunatik_registerobject(lua_State *L, int ix, lunatik_object_t *object)
 {
-	lunatik_setregistry(L, ix, object->private); /* private */
-	lunatik_setregistry(L, -1, object); /* prevent object from being GC'ed (unless stopped) */
+	lunatik_register(L, ix, object->private); /* private */
+	lunatik_register(L, -1, object); /* prevent object from being GC'ed (unless stopped) */
 }
 
 static inline void lunatik_unregisterobject(lua_State *L, lunatik_object_t *object)
 {
-	lua_pushnil(L);
-	lunatik_setregistry(L, -1, object->private); /* remove private */
-	lunatik_setregistry(L, -1, object); /* remove object, now it might be GC'ed */
-	lua_pop(L, 1); /* pop nil */
+	lunatik_unregister(L, object->private); /* remove private */
+	lunatik_unregister(L, object); /* remove object, now it might be GC'ed */
 }
 
 #endif
