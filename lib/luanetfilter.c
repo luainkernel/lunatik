@@ -117,25 +117,11 @@ out:
 	return policy;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 static unsigned int luanetfilter_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
 	luanetfilter_t *luanf = (luanetfilter_t *)priv;
 	return luanetfilter_docall(luanf, skb);
 }
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
-static unsigned int luanetfilter_hook(const struct nf_hook_ops *ops, struct sk_buff *skb, const struct nf_hook_state *state)
-{
-	luanetfilter_t *luanf = (luanetfilter_t *)ops->priv;
-	return luanetfilter_docall(luanf, skb);
-}
-#else
-static unsigned int luanetfilter_hook(const struct nf_hook_ops *ops, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *))
-{
-	luanetfilter_t *luanf = (luanetfilter_t *)ops->priv;
-	return luanetfilter_docall(luanf, skb);
-}
-#endif
 
 static const luaL_Reg luanetfilter_mt[] = {
 	{"__gc", lunatik_deleteobject},
@@ -174,9 +160,7 @@ static int luanetfilter_register(lua_State *L)
 	nf->runtime = NULL;
 
 	struct nf_hook_ops *nfops = &nf->nfops;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
 	nfops->hook_ops_type = NF_HOOK_OP_UNDEFINED;
-#endif
 	nfops->hook = luanetfilter_hook;
 	nfops->dev = NULL;
 	nfops->priv = nf;
@@ -185,12 +169,9 @@ static int luanetfilter_register(lua_State *L)
 	lunatik_setinteger(L, 1, nfops, priority);
 	lunatik_optinteger(L, 1, nf, mark, 0);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
 	if (nf_register_net_hook(&init_net, nfops) != 0)
-#else
-	if (nf_register_hook(nfops) != 0)
-#endif
-	luaL_error(L, "failed to register netfilter hook");
+		luaL_error(L, "failed to register netfilter hook");
+
 	lunatik_setruntime(L, netfilter, nf);
 	lunatik_getobject(nf->runtime);
 	lunatik_registerobject(L, 1, object);

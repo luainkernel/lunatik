@@ -113,11 +113,7 @@ static int luaxtable_pushparams(lua_State *L, const struct xt_action_param *par,
 	lua_setfield(L, -2, "thoff");
 	lua_pushinteger(L, par->fragoff);
 	lua_setfield(L, -2, "fragoff");
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 	lua_pushinteger(L, xt_hooknum(par));
-#else
-	lua_pushinteger(L, par->hooknum);
-#endif
 	lua_setfield(L, -2, "hooknum");
 	lua_pushvalue(L, -1); /* param table */
 	lua_insert(L, lua_gettop(L) - 2); /* stack: (...), param, skb, param */
