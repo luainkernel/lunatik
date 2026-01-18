@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2024-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -27,11 +27,19 @@ static inline void luadata_close(lunatik_object_t *object)
 	lunatik_putobject(object);
 }
 
-#define luadata_attach(L, obj, field)			\
-do {							\
-	obj->field = luadata_new(L); 			\
-	lunatik_setregistry(L, -1, obj->field);		\
-	lua_pop(L, 1);					\
+#define luadata_attach(L, obj, field)		\
+do {						\
+	obj->field = luadata_new(L); 		\
+	lunatik_register(L, -1, obj->field);	\
+	lua_pop(L, 1);				\
+} while (0)
+
+#define luadata_detach(runtime, obj, field)			\
+do {								\
+	lua_State *L = lunatik_getstate(runtime);		\
+	if (L != NULL) /* might be called on lunatik_stop */	\
+		lunatik_unregister(L, obj->field);		\
+	obj->field = NULL; 					\
 } while (0)
 
 #endif
