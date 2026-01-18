@@ -156,7 +156,6 @@ static int luanetfilter_register(lua_State *L)
 	luaL_checktype(L, 1, LUA_TTABLE);
 	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class , sizeof(luanetfilter_t));
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
-	luadata_attach(L, nf, skb);
 	nf->runtime = NULL;
 
 	struct nf_hook_ops *nfops = &nf->nfops;
@@ -175,6 +174,7 @@ static int luanetfilter_register(lua_State *L)
 	lunatik_setruntime(L, netfilter, nf);
 	lunatik_getobject(nf->runtime);
 	lunatik_registerobject(L, 1, object);
+	luadata_attach(L, nf, skb);
 	return 1;
 }
 
@@ -186,11 +186,13 @@ static const luaL_Reg luanetfilter_lib[] = {
 static void luanetfilter_release(void *private)
 {
 	luanetfilter_t *nf = (luanetfilter_t *)private;
-	if (!nf->runtime)
+	lunatik_object_t *runtime = nf->runtime;
+	if (runtime == NULL)
 		return;
 
 	nf_unregister_net_hook(&init_net, &nf->nfops);
-	lunatik_putobject(nf->runtime);
+	luadata_detach(lunatik_getstate(runtime), nf, skb);
+	lunatik_putobject(runtime);
 	nf->runtime = NULL;
 }
 
