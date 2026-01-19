@@ -65,15 +65,16 @@ static struct {
 static int luaxtable_docall(lua_State *L, luaxtable_t *xtable, luaxtable_info_t *info, const char *op, int nargs, int nret)
 {
 	int base = lua_gettop(L) - nargs;
+	int ret = -1;
 
 	if (lunatik_getregistry(L, xtable) != LUA_TTABLE) {
 		pr_err("%s: could not find ops table\n", op);
-		goto err;
+		goto clear;
 	}
 
 	if (lua_getfield(L, -1, op) != LUA_TFUNCTION) {
 		pr_err("%s isn't defined\n", op);
-		goto err;
+		goto clear;
 	}
 
 	lua_insert(L, base + 1); /* op */
@@ -82,11 +83,12 @@ static int luaxtable_docall(lua_State *L, luaxtable_t *xtable, luaxtable_info_t 
 
 	if (lua_pcall(L, nargs + 1, nret, 0) != LUA_OK) {
 		pr_err("%s error: %s\n", op, lua_tostring(L, -1));
-		goto err;
+		goto clear;
 	}
-	return 0;
-err:
-	return -1;
+	ret = 0;
+clear:
+	luadata_clear(xtable->skb);
+	return ret;
 }
 
 static inline lunatik_object_t *luaxtable_getskb(lua_State *L, luaxtable_t *xtable)

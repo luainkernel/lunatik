@@ -72,9 +72,10 @@ static inline lunatik_object_t *luanetfilter_pushskb(lua_State *L, luanetfilter_
 static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
 {
 	lunatik_object_t *data;
+	int ret = -1;
 
 	if (!luanetfilter_pushcb(L, luanf) || (data = luanetfilter_pushskb(L, luanf, skb)) == NULL)
-		return -1;
+		goto out;
 
 	if (skb_mac_header_was_set(skb))
 		luadata_reset(data, skb, skb_headlen(skb) + skb_mac_header_len(skb), LUADATA_OPT_SKB);
@@ -90,12 +91,16 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 	if (lua_pcall(L, 2, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
 		lua_pop(L, 1);
-		return -1;
+		goto clear;
 	}
 
 	if (!lua_isnil(L, -1))
 		skb->mark = (u32)lua_tointeger(L, -1);
-	return lua_tointeger(L, -2);
+	ret = (int)lua_tointeger(L, -2);
+clear:
+	luadata_clear(data);
+out:
+	return ret;
 }
 
 static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_buff *skb)
