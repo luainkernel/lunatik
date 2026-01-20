@@ -209,6 +209,32 @@ static int lualinux_ifindex(lua_State *L)
 }
 
 /***
+* Gets the HW address for the network interface index.
+*
+* @function ifaddr
+* @tparam integer The interface index number.
+* @treturn string The interface HW address.
+* @raise Error if the device is not found.
+* @usage
+*   local addr = linux.ifaddr(index)
+*   print(string.byte(addr,1,6))
+*/
+static int lualinux_ifaddr(lua_State *L)
+{
+	int ifindex = luaL_checkinteger(L, 1);
+	luaL_Buffer B;
+	char *addr = luaL_buffinitsize(L, &B, MAX_ADDR_LEN);
+	struct net_device *dev = dev_get_by_index(&init_net, ifindex);
+
+	luaL_argcheck(L, dev != NULL, 1, "device not found");
+	size_t len = min(dev->addr_len, MAX_ADDR_LEN);
+	memcpy(addr, dev->dev_addr, len);
+	dev_put(dev);
+	luaL_pushresultsize(&B, len);
+	return 1;
+}
+
+/***
 * Table of task state constants.
 * Exports task state flags from `<linux/sched.h>`. These are used with
 * `linux.schedule()`.
@@ -292,6 +318,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"difftime", lualinux_difftime},
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
+	{"ifaddr", lualinux_ifaddr},
 	{"errname", lualinux_errname},
 	{NULL, NULL}
 };
