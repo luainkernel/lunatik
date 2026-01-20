@@ -56,11 +56,11 @@ static int luacrypto_rng_generate(lua_State *L)
 	size_t seed_len = 0;
 	const char *seed_data = lua_tolstring(L, 3, &seed_len);
 
-	luaL_Buffer b;
-	char *buffer = luaL_buffinitsize(L, &b, num_bytes);
+	luaL_Buffer B;
+	char *buffer = luaL_buffinitsize(L, &B, num_bytes);
 
 	lunatik_try(L, crypto_rng_generate, tfm, seed_data, (unsigned int)seed_len, (u8 *)buffer, num_bytes);
-	luaL_pushresultsize(&b, num_bytes);
+	luaL_pushresultsize(&B, num_bytes);
 	return 1;
 }
 
@@ -77,11 +77,11 @@ static int luacrypto_rng_getbytes(lua_State *L)
 	struct crypto_rng *tfm = luacrypto_rng_check(L, 1);
 	unsigned int num_bytes = (unsigned int)lunatik_checkinteger(L, 2, 1, UINT_MAX);
 
-	luaL_Buffer b;
-	u8 *buffer = (u8 *)luaL_buffinitsize(L, &b, num_bytes);
+	luaL_Buffer B;
+	u8 *buffer = (u8 *)luaL_buffinitsize(L, &B, num_bytes);
 
 	lunatik_try(L, crypto_rng_get_bytes, tfm, (u8 *)buffer, num_bytes);
-	luaL_pushresultsize(&b, num_bytes);
+	luaL_pushresultsize(&B, num_bytes);
 	return 1;
 }
 

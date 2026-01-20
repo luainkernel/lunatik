@@ -53,11 +53,11 @@ static int luacrypto_comp_##name(lua_State *L)								\
 	lunatik_checkbounds(L, 2, datalen, 1, UINT_MAX);						\
 	unsigned int max_len = (unsigned int)lunatik_checkinteger(L, 3, 1, UINT_MAX);	\
 													\
-	luaL_Buffer b;											\
-	u8 *output_buf = luaL_buffinitsize(L, &b, max_len);						\
+	luaL_Buffer B;											\
+	u8 *output_buf = luaL_buffinitsize(L, &B, max_len);						\
 													\
 	lunatik_try(L, crypto_comp_##name, tfm, data, (unsigned int)datalen, output_buf, &max_len);	\
-	luaL_pushresultsize(&b, max_len);								\
+	luaL_pushresultsize(&B, max_len);								\
 	return 1;											\
 }
 

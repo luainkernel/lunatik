@@ -84,11 +84,11 @@ static int luacrypto_shash_digest(lua_State *L) {
 	size_t datalen;
 	const char *data = luaL_checklstring(L, 2, &datalen);
 	unsigned int digestsize = crypto_shash_digestsize(sdesc->tfm);
-	luaL_Buffer b;
-	u8 *digest_buf = luaL_buffinitsize(L, &b, digestsize);
+	luaL_Buffer B;
+	u8 *digest_buf = luaL_buffinitsize(L, &B, digestsize);
 
 	lunatik_try(L, crypto_shash_digest, sdesc, data, datalen, digest_buf);
-	luaL_pushresultsize(&b, digestsize);
+	luaL_pushresultsize(&B, digestsize);
 	return 1;
 }
 
@@ -131,11 +131,11 @@ static int luacrypto_shash_update(lua_State *L) {
 static int luacrypto_shash_final(lua_State *L) {
 	struct shash_desc *sdesc = luacrypto_shash_check(L, 1);
 	unsigned int digestsize = crypto_shash_digestsize(sdesc->tfm);
-	luaL_Buffer b;
-	u8 *digest_buf = luaL_buffinitsize(L, &b, digestsize);
+	luaL_Buffer B;
+	u8 *digest_buf = luaL_buffinitsize(L, &B, digestsize);
 
 	lunatik_try(L, crypto_shash_final, sdesc, digest_buf);
-	luaL_pushresultsize(&b, digestsize);
+	luaL_pushresultsize(&B, digestsize);
 	return 1;
 }
 
@@ -153,11 +153,11 @@ static int luacrypto_shash_finup(lua_State *L) {
 	size_t datalen;
 	const char *data = luaL_checklstring(L, 2, &datalen);
 	unsigned int digestsize = crypto_shash_digestsize(sdesc->tfm);
-	luaL_Buffer b;
-	u8 *digest_buf = luaL_buffinitsize(L, &b, digestsize);
+	luaL_Buffer B;
+	u8 *digest_buf = luaL_buffinitsize(L, &B, digestsize);
 
 	lunatik_try(L, crypto_shash_finup, sdesc, data, datalen, digest_buf);
-	luaL_pushresultsize(&b, digestsize);
+	luaL_pushresultsize(&B, digestsize);
 	return 1;
 }
 
@@ -172,10 +172,10 @@ static int luacrypto_shash_finup(lua_State *L) {
 static int luacrypto_shash_export(lua_State *L) {
 	struct shash_desc *sdesc = luacrypto_shash_check(L, 1);
 	unsigned int statesize = crypto_shash_statesize(sdesc->tfm);
-	luaL_Buffer b;
-	void *state_buf = luaL_buffinitsize(L, &b, statesize);
+	luaL_Buffer B;
+	void *state_buf = luaL_buffinitsize(L, &B, statesize);
 	crypto_shash_export(sdesc, state_buf);
-	luaL_pushresultsize(&b, statesize);
+	luaL_pushresultsize(&B, statesize);
 	return 1;
 }
 
