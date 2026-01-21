@@ -51,7 +51,7 @@ static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void 
 
 	lua_pushvalue(L, lua_upvalueindex(upvalue));
 	data = (lunatik_object_t *)lunatik_toobject(L, -1);
-	luadata_reset(data, ptr, size, LUADATA_OPT_KEEP);
+	luadata_reset(data, ptr, 0, size, LUADATA_OPT_KEEP);
 	return data;
 }
 

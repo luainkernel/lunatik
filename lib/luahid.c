@@ -180,7 +180,7 @@ static inline lunatik_object_t *luahid_pushdata(lua_State *L, luahid_ctx_t *ctx)
 		luaL_error(L, "couldn't find data");
 	}
 
-	luadata_reset(obj, ctx->data, ctx->size, LUADATA_OPT_NONE);
+	luadata_reset(obj, ctx->data, 0, ctx->size, LUADATA_OPT_NONE);
 	return obj;
 }
 
