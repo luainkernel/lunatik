@@ -11,6 +11,8 @@
 
 #ifdef LUNATIK_RUNTIME
 
+#define MONITOR_CACHE_KEY "__monitor_cached"
+
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
@@ -166,8 +168,18 @@ int lunatik_monitorobject(lua_State *L)
 			/* Upvalue 1: The actual C function (method)
 			 * Upvalue 2: The name of the method (the key)
 			 */
-			lua_pushvalue(L, 3); /* stack: object, metatable, key, function, key */
-			lua_pushcclosure(L, lunatik_monitor, 2); /* stack: object, metatable, key, lunatik_monitor */
+
+			lua_getfield(L, 2, MONITOR_CACHE_KEY);
+			if (lua_isnil(L, -1)) {
+				lua_pop(L, 1);
+				lua_pushvalue(L, 3); /* stack: object, metatable, key, method, key */
+				lua_pushcclosure(L, lunatik_monitor, 2);
+				lua_pushvalue(L, -1);
+				lua_setfield(L, 2, MONITOR_CACHE_KEY); /* store on metatable */
+			}
+
+			lua_pushvalue(L, -1);
+			lua_setfield(L, 2, lua_tostring(L, 3)); /* mt[key] = cached closure */
 		}
 	}
 	return 1;
