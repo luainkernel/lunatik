@@ -37,7 +37,6 @@ typedef struct luanetfilter_s {
 	struct nf_hook_ops nfops;
 } luanetfilter_t;
 
-
 static void luanetfilter_release(void *private);
 
 static inline bool luanetfilter_pushcb(lua_State *L, luanetfilter_t *luanf)

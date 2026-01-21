@@ -169,20 +169,20 @@ static void luadata_skb_resize(lua_State *L, luadata_t *data, size_t new_size)
 */
 static int luadata_resize(lua_State *L)
 {
-    luadata_t *data = luadata_check(L, 1);
-    size_t new_size = (size_t)luaL_checkinteger(L, 2);
-    
-    luadata_checkwritable(L, data);
+	luadata_t *data = luadata_check(L, 1);
+	size_t new_size = (size_t)luaL_checkinteger(L, 2);
 
-    if (data->opt & LUADATA_OPT_SKB)
+	luadata_checkwritable(L, data);
+
+	if (data->opt & LUADATA_OPT_SKB)
 		luadata_skb_resize(L, data, new_size); 
 	else if (data->opt & LUADATA_OPT_FREE)
 		data->ptr = lunatik_checknull(L, lunatik_realloc(L, data->ptr, new_size)); 
 	else
 		luaL_error(L, "cannot resize external memory");
 
-    data->size = new_size;
-    return 0;
+	data->size = new_size;
+	return 0;
 }
 
 /***
