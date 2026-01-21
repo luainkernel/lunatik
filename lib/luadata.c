@@ -32,11 +32,13 @@
 
 #include "luadata.h"
 
-#define LUADATA_TOPTR(d)  ((d)->opt & LUADATA_OPT_SKB ? (((struct sk_buff *)(d)->ptr)->data) : (d)->ptr)
 #define LUADATA_TOSKB(d)  ((struct sk_buff *)(d)->ptr)
+#define LUADATA_TOPTR(d)	\
+	(((d)->opt & LUADATA_OPT_SKB ? (LUADATA_TOSKB(d)->data) : (d)->ptr) + (d)->offset)
 
 typedef struct luadata_s {
 	void *ptr;
+	ptrdiff_t offset;
 	size_t size;
 	uint8_t opt;
 } luadata_t;
@@ -177,7 +179,7 @@ static int luadata_resize(lua_State *L)
 	if (data->opt & LUADATA_OPT_SKB)
 		luadata_skb_resize(L, data, new_size); 
 	else if (data->opt & LUADATA_OPT_FREE)
-		data->ptr = lunatik_checknull(L, lunatik_realloc(L, data->ptr, new_size)); 
+		data->ptr = lunatik_checknull(L, lunatik_realloc(L, data->ptr, new_size));
 	else
 		luaL_error(L, "cannot resize external memory");
 
@@ -409,15 +411,21 @@ static const lunatik_class_t luadata_class = {
 	.sleep = false,
 };
 
+static inline void luadata_set(luadata_t *data, void *ptr, ptrdiff_t offset, size_t size, uint8_t opt)
+{
+	data->ptr = ptr;
+	data->offset = offset;
+	data->size = size;
+	data->opt = opt;
+}
+
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
 	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t));
 	luadata_t *data = (luadata_t *)object->private;
 
-	data->ptr = lunatik_checkalloc(L, size);
-	data->size = size;
-	data->opt = LUADATA_OPT_FREE;
+	luadata_set(data, lunatik_checkalloc(L, size), 0, size, LUADATA_OPT_FREE);
 	return 1; /* object */
 }
 
@@ -429,9 +437,7 @@ static inline lunatik_object_t *luadata_create(void *ptr, size_t size, bool slee
 
 	if (object != NULL) {
 		luadata_t *data = (luadata_t *)object->private;
-		data->ptr = ptr;
-		data->size = size;
-		data->opt = opt;
+		luadata_set(data, ptr, 0, size, opt);
 	}
 	return object;
 }
@@ -444,7 +450,7 @@ lunatik_object_t *luadata_new(lua_State *L)
 }
 EXPORT_SYMBOL(luadata_new);
 
-int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt)
+int luadata_reset(lunatik_object_t *object, void *ptr, ptrdiff_t offset, size_t size, uint8_t opt)
 {
 	luadata_t *data;
 
@@ -456,9 +462,8 @@ int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt)
 		return -1;
 	}
 
-	data->ptr = ptr;
-	data->size = size;
-	data->opt = opt & LUADATA_OPT_KEEP ? data->opt : opt;
+	opt = opt & LUADATA_OPT_KEEP ? data->opt : opt;
+	luadata_set(data, ptr, offset, size, opt);
 
 	lunatik_unlock(object);
 	return 0;
@@ -477,5 +482,5 @@ static void __exit luadata_exit(void)
 module_init(luadata_init);
 module_exit(luadata_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 
