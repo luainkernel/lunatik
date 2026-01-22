@@ -134,7 +134,7 @@ static int lunatik_error_handler(lua_State *L)
 	return 1;
 }
 
-static int lunatik_monitor(lua_State *L)
+int lunatik_monitor(lua_State *L)
 {
 	int ret, n = lua_gettop(L);
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
@@ -155,6 +155,7 @@ static int lunatik_monitor(lua_State *L)
 		lua_error(L);
 	return lua_gettop(L);
 }
+EXPORT_SYMBOL(lunatik_monitor);
 
 int lunatik_monitorobject(lua_State *L)
 {

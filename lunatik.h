@@ -206,6 +206,7 @@ void lunatik_releaseobject(struct kref *kref);
 int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
 int lunatik_monitorobject(lua_State *L);
+int lunatik_monitor(lua_State *L);
 
 #define LUNATIK_ERR_NULLPTR	"null-pointer dereference"
 
@@ -236,14 +237,47 @@ static inline bool lunatik_hasindex(lua_State *L, int index)
 	return hasindex;
 }
 
+static inline void lunatik_wrap_methods(lua_State *L, const lunatik_class_t *class)
+{
+	const luaL_Reg *reg;
+	for (reg = class->methods; reg->name != NULL; reg++) {
+		lua_getfield(L, -1, reg->name);  // stack: mt, method
+
+		if (!lua_isfunction(L, -1)) {
+			lua_pop(L, 1);
+			continue;
+		}
+
+		// Skip metamethods (starting with __)
+		if (reg->name[0] == '_' && reg->name[1] == '_') {
+			lua_pop(L, 1);
+			continue;
+		}
+
+		// Skip delete and close
+		if (reg->func == lunatik_deleteobject || reg->func == lunatik_closeobject) {
+			lua_pop(L, 1);
+			continue;
+		}
+
+		// stack: mt, method
+		/* upvalue 1: original method (already on stack) */
+		/* upvalue 2: method name */
+		lua_pushstring(L, reg->name);    // stack: mt, method, name
+		lua_pushcclosure(L, lunatik_monitor, 2);  // stack: mt, closure
+		lua_setfield(L, -2, reg->name);  // mt[name] = closure; stack: mt
+	}
+}
+
 static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 {
 	luaL_newmetatable(L, class->name); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
 	if (!lunatik_hasindex(L, -1)) {
-		lua_pushvalue(L, -1);  /* push mt */
-		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
-	}
+        lunatik_wrap_methods(L, class);
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -2, "__index");  /* mt.__index = mt */
+    }
 	lua_pop(L, 1);  /* pop mt */
 }
 
