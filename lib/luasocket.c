@@ -38,6 +38,8 @@
 
 #include <lunatik.h>
 
+#include "luadata.h"
+
 #define luasocket_msgaddr(msg, addr, size)	\
 do {						\
 	msg.msg_namelen = size;			\
@@ -114,7 +116,7 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *);
 #define luasocket_setmsg(m)		memset(&(m), 0, sizeof(m))
 
 /***
-* Sends a message through the socket.
+* Sends data through the socket.
 *
 * For connection-oriented sockets (`SOCK_STREAM`), `addr` and `port` are usually omitted
 * as the connection is already established.
@@ -122,22 +124,43 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *);
 * address family) specify the destination.
 *
 * @function send
-* @tparam string message The string message to send.
+* @tparam string|data message_or_data
+*   Either:
+*   - A Lua string containing the bytes to send (simple case), or
+*   - A `data` object representing a raw memory block.
+* @tparam[opt] integer offset
+*   When the second argument is a `data` object, the byte offset into the
+*   underlying buffer (0-indexed) where sending begins.
+* @tparam[opt] integer length
+*   When the second argument is a `data` object, the number of bytes to send
+*   starting at `offset`.
 * @tparam[opt] integer|string addr The destination address.
 *
-* - For `AF_INET` (IPv4) sockets: An integer representing the IPv4 address (e.g., from `net.aton()`).
-* - For other address families (e.g., `AF_PACKET`): A packed string representing the destination address
-*   (e.g., MAC address for `AF_PACKET`). The exact format depends on the family.
-* @tparam[opt] integer port The destination port number (required if `addr` is an IPv4 address for `AF_INET`).
+* - For `AF_INET` (IPv4) sockets: An integer representing the IPv4 address
+*   (e.g., from `net.aton()`).
+* - For other address families (e.g., `AF_PACKET`): A packed string
+*   representing the destination address (e.g., MAC address for `AF_PACKET`).
+*   The exact format depends on the family.
+* @tparam[opt] integer port The destination port number (required if `addr` is
+*   an IPv4 address for `AF_INET`).
 * @treturn integer The number of bytes sent.
-* @raise Error if the send operation fails or if address parameters are incorrect for the socket type.
+* @raise Error if the send operation fails, if address parameters are incorrect
+*   for the socket type, or if `data_obj`, `offset`, or `length` are invalid.
 * @usage
-*   -- For a connected TCP socket:
+*   -- For a connected TCP socket with a Lua string:
 *   local bytes_sent = tcp_conn_sock:send("Hello, server!")
 *
-*   -- For a UDP socket (sending to 192.168.1.100, port 1234):
+*   -- For a UDP socket (sending to 192.168.1.100, port 1234) with a Lua string:
 *   local bytes_sent = udp_sock:send("UDP packet", net.aton("192.168.1.100"), 1234)
+*
+*   -- Using a `data` buffer (zero-copy) with a connected TCP socket:
+*   local data = require "data"
+*   local buf = data.new(5)
+*   buf:setstring(0, "qerty")
+*   local bytes_sent = tcp_conn_sock:send(buf, 0, 5)
+*
 * @see net.aton
+* @see data
 */
 static int luasocket_send(lua_State *L)
 {
@@ -148,14 +171,20 @@ static int luasocket_send(lua_State *L)
 	struct sockaddr_storage addr;
 	int nargs = lua_gettop(L);
 	int ret;
+    int ixadrr = 3;
 
 	luasocket_setmsg(msg);
 
-	vec.iov_base = (void *)luaL_checklstring(L, 2, &len);
+    if (lua_type(L, 2) == LUA_TSTRING)
+		vec.iov_base = (void *)luaL_checklstring(L, 2, &len);
+    else {
+		vec.iov_base = luadata_checkbuffer(L, 2, &len);
+		ixadrr = 5;
+    }
 	vec.iov_len = len;
 
-	if (unlikely(nargs >= 3)) {
-		size_t size = luasocket_checkaddr(L, socket, &addr, 3);
+	if (unlikely(nargs >= ixadrr)) {
+		size_t size = luasocket_checkaddr(L, socket, &addr, ixadrr);
 		luasocket_msgaddr(msg, addr, size);
 	}
 
@@ -165,10 +194,22 @@ static int luasocket_send(lua_State *L)
 }
 
 /***
-* Receives a message from the socket.
+* Receives data from the socket.
+*
+* This function is overloaded and can either return a Lua string with the
+* received bytes or write the bytes directly into a data object.
 *
 * @function receive
-* @tparam integer length The maximum number of bytes to receive.
+* @tparam integer|data length_or_data
+*   Either:
+*   - An integer `length`: maximum number of bytes to receive into a Lua string.
+*   - A `data` object: buffer into which data will be received.
+* @tparam[opt] integer offset
+*   When the second argument is a `data` object, the byte offset into the
+*   underlying buffer (0-indexed) where writing will begin.
+* @tparam[opt] integer maxlen
+*   When the second argument is a `data` object, the maximum number of bytes
+*   to receive into the buffer starting at `offset`.
 * @tparam[opt=0] integer flags Optional message flags (e.g., `socket.msg.PEEK`).
 *   See the `socket.msg` table for available flags. These can be OR'd together.
 * @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
@@ -178,40 +219,65 @@ static int luasocket_send(lua_State *L)
 *   - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
 *   - For other families: A packed string representing the sender's address.
 * @treturn[opt] integer port If `from` is true and the family is `AF_INET`, the sender's port number.
-* @raise Error if the receive operation fails.
+* @raise Error if the receive operation fails, or if `data_obj`, `offset`, or
+*   `maxlen` are invalid.
 * @usage
-*   -- For a connected TCP socket:
+*   -- String form, connected TCP socket:
 *   local data = tcp_conn_sock:receive(1024)
 *   if data then print("Received:", data) end
 *
-*   -- For a UDP socket, getting sender info:
+*   -- String form, UDP socket with sender info:
 *   local data, sender_ip_int, sender_port = udp_sock:receive(1500, 0, true)
-*   if data then print("Received from " .. net.ntoa(sender_ip_int) .. ":" .. sender_port .. ": " .. data) end
+*   if data then
+*     print("Received from " .. net.ntoa(sender_ip_int) .. ":" .. sender_port .. ": " .. data)
+*   end
+*
+*   -- `data` form (zero-copy) with connected TCP socket:
+*   local data = require "data"
+*   local buf = data.new(1024)
+*   local n = tcp_conn_sock:receive(buf, 0, 1024)
+*   if n > 0 then
+*     print("Received:", buf:getstring(0, n))
+*   end
+*
 * @see socket.msg
 * @see net.ntoa
+* @see data
 */
 static int luasocket_receive(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
-	size_t len = (size_t)luaL_checkinteger(L, 2);
+	size_t len;
 	luaL_Buffer B;
 	struct kvec vec;
 	struct msghdr msg;
 	struct sockaddr_storage addr;
-	int flags = luaL_optinteger(L, 3, 0);
-	int from = lua_toboolean(L, 4);
 	int ret;
-
+	int ixopt = 3;
 	luasocket_setmsg(msg);
 
-	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
-	vec.iov_len = len;
+	if (lua_type(L, 2) == LUA_TSTRING) {
+		len = (size_t)luaL_checkinteger(L, 2);
+		vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
+	}
+	else {
+		vec.iov_base = luadata_checkbuffer(L, 2, &len);
+		ixopt = 5;
+	}
+	
+	vec.iov_len  = len;
+	int flags = luaL_optinteger(L, ixopt, 0);
+    int from = lua_toboolean(L, ixopt + 1);
 
 	if (unlikely(from))
 		luasocket_msgaddr(msg, addr, sizeof(addr));
 
 	lunatik_tryret(L, ret, kernel_recvmsg, socket, &msg, &vec, 1, len, flags);
-	luaL_pushresultsize(&B, ret);
+
+	if (ixopt == 5)
+		lua_pushinteger(L, ret);
+	else
+		luaL_pushresultsize(&B, ret);
 
 	return unlikely(from) ? luasocket_pushaddr(L, (struct sockaddr_storage *)msg.msg_name) + 1 : 1;
 }
