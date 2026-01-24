@@ -385,7 +385,6 @@ static const luaL_Reg luasocket_lib[] = {
 };
 
 static const luaL_Reg luasocket_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
 	{"close", lunatik_closeobject},

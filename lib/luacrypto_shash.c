@@ -209,7 +209,6 @@ static const luaL_Reg luacrypto_shash_mt[] = {
 	{"import", luacrypto_shash_import},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 

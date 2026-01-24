@@ -205,7 +205,7 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
 int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
-int lunatik_monitorobject(lua_State *L);
+int lunatik_monitor(lua_State *L);
 
 #define LUNATIK_ERR_NULLPTR	"null-pointer dereference"
 
@@ -236,11 +236,36 @@ static inline bool lunatik_hasindex(lua_State *L, int index)
 	return hasindex;
 }
 
+static inline void lunatik_wrap_methods(lua_State *L, const lunatik_class_t *class)
+{
+	const luaL_Reg *reg;
+	for (reg = class->methods; reg->name != NULL; reg++) {
+		lua_getfield(L, -1, reg->name);
+
+		if (!lua_isfunction(L, -1)) {
+			lua_pop(L, 1);
+			continue;
+		}
+		if (reg->name[0] == '_' && reg->name[1] == '_') {
+			lua_pop(L, 1);
+			continue;
+		}
+		if (reg->func == lunatik_deleteobject || reg->func == lunatik_closeobject) {
+			lua_pop(L, 1);
+			continue;
+		}
+
+		lua_pushcclosure(L, lunatik_monitor, 1); /* stack: class, method */
+		lua_setfield(L, -2, reg->name);
+	}
+}
+
 static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 {
 	luaL_newmetatable(L, class->name); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
 	if (!lunatik_hasindex(L, -1)) {
+        lunatik_wrap_methods(L, class);
 		lua_pushvalue(L, -1);  /* push mt */
 		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
 	}

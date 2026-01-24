@@ -92,7 +92,6 @@ static const luaL_Reg luacrypto_comp_mt[] = {
 	{"decompress", luacrypto_comp_decompress},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 
