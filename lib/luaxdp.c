@@ -233,6 +233,7 @@ static const luaL_Reg luaxdp_lib[] = {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 	{"attach", luaxdp_attach},
 	{"detach", luaxdp_detach},
+	{"unregister", luaxdp_detach},
 #endif
 	{NULL, NULL}
 };
