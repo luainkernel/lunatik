@@ -29,9 +29,10 @@ end
 local KERNEL = arg[1]
 local INCLUDE_PATH = arg[2]
 local OUTPUT_DIR = arg[3]
+local CONFIG_FLAGS = arg[4]
 
-if not KERNEL or not INCLUDE_PATH or not OUTPUT_DIR then
-	exit("usage: lua gendefines.lua <KERNEL> <INCLUDE_PATH> <OUTPUT_DIR>")
+if not KERNEL or not INCLUDE_PATH or not OUTPUT_DIR or not CONFIG_FLAGS then
+	exit("usage: lua gendefines.lua <KERNEL> <INCLUDE_PATH> <OUTPUT_DIR> <CONFIG_FLAGS>")
 end
 
 local CC = os.getenv("CC") or "cc"
@@ -83,8 +84,8 @@ local function resolve_value(value, constants, prefix, module_name, seen)
     return resolve_value(constants[value], constants, prefix, module_name, seen)
 end
 
-local function write_module(spec, constants, macro_names)
-	local filepath = string.format("%s/%s.lua", OUTPUT_DIR, spec.module_name)
+local function write_module(spec, constants, macro_names, output_dir)
+	local filepath = string.format("%s/linux/%s.lua", output_dir, spec.module_name)
 	local file <close>, err = io.open(filepath, "w")
 	if not file then
 		exit("cannot open " .. filepath .. ": " .. err)
@@ -102,9 +103,60 @@ local function write_module(spec, constants, macro_names)
 	file:write("\nreturn " .. spec.module_name .. "\n")
 end
 
+
+local function generate_build_config(kernel_release, output_dir, configs)
+	local module_map = {
+		["CONFIG_LUNATIK"] = "lunatik",
+		["CONFIG_LUNATIK_RUN"] = "lunatik_run"
+	}
+
+	local ignore_suffixes = {
+		["INSTALL_EXAMPLES"] = true,
+		["INSTALL_TESTS"] = true,
+		["RUNTIME"] = true
+	}
+
+	local modules = {}
+
+	for token in configs:gmatch("%S+") do
+		local config_option = token:match("(CONFIG_[%w_]+)=[my]")
+		if config_option then
+			local name = module_map[config_option]
+			if not name then
+				local suffix = config_option:match("CONFIG_LUNATIK_(.+)")
+				if suffix and not ignore_suffixes[suffix] then
+					name = "lua" .. suffix:lower()
+				end
+			end
+
+			if name then
+				table.insert(modules, name)
+			end
+		end
+	end
+
+	local filepath = output_dir .. "/lunatik/config.lua"
+	local file <close>, err = io.open(filepath, "w")
+	if not file then
+		exit("cannot open " .. filepath .. ": " .. err)
+	end
+
+	file:write("-- auto-generated, do not edit\n")
+	file:write("local config = {}\n\n")
+	file:write(string.format('config.kernel_release = "%s"\n', kernel_release))
+	file:write("config.modules = {\n")
+	for _, mod in ipairs(modules) do
+		file:write(string.format('\t"%s",\n', mod))
+	end
+	file:write("}\n\n")
+	file:write("return config\n")
+end
+
 for _, spec in ipairs(specs) do
 	local cpp_output = preprocess(spec.header)
 	local constants, macro_names = collect_constants(cpp_output, spec.prefix)
-	write_module(spec, constants, macro_names)
+	write_module(spec, constants, macro_names, OUTPUT_DIR)
 end
+
+generate_build_config(KERNEL, OUTPUT_DIR, CONFIG_FLAGS)
 
