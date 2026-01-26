@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -10,6 +10,8 @@
 #include "lunatik.h"
 
 #ifdef LUNATIK_RUNTIME
+
+#define MONITOR_CACHE_KEY "__monitor_cached"
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size)
 {
@@ -119,32 +121,67 @@ int lunatik_deleteobject(lua_State *L)
 }
 EXPORT_SYMBOL(lunatik_deleteobject);
 
-static int lunatik_monitor(lua_State *L)
+static int lunatik_error_handler(lua_State *L)
+{
+	const char *method_name = lua_tostring(L, lua_upvalueindex(1));
+	if (lua_isstring(L, -1) && method_name) {
+		const char *error_msg = lua_tostring(L, -1);
+        luaL_gsub(L, error_msg, "?", method_name);
+		lua_replace(L, 1); /* stack: new_err_msg */
+	}
+	luaL_traceback(L, L, lua_tostring(L, 1), 1);
+	lua_replace(L, 1);
+	return 1;
+}
+
+int lunatik_monitor(lua_State *L)
 {
 	int ret, n = lua_gettop(L);
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
 
+	lua_pushvalue(L, lua_upvalueindex(2)); /* method name */
+	lua_pushcclosure(L, lunatik_error_handler, 1); /* stack: object, args..., errhandler */
+
 	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
-	lua_insert(L, 1); /* stack: method, object, args */
+	lua_insert(L, 1); /* stack: method, object, args..., errhandler */
+	lua_insert(L, 1); /* stack: errhandler, method, object, args... */
 
 	lunatik_lock(object);
-	ret = lua_pcall(L, n, LUA_MULTRET, 0);
+	ret = lua_pcall(L, n, LUA_MULTRET, 1);
 	lunatik_unlock(object);
 
+	lua_remove(L, 1); /* remove error handler */
 	if (ret != LUA_OK)
 		lua_error(L);
 	return lua_gettop(L);
 }
+EXPORT_SYMBOL(lunatik_monitor);
 
 int lunatik_monitorobject(lua_State *L)
 {
 	lua_getmetatable(L, 1);
 	lua_insert(L, 2); /* stack: object, metatable, key */
+	lua_pushvalue(L, 3); /* stack: object, metatable, key, key */
 	if (lua_rawget(L, 2) == LUA_TFUNCTION) {
 		lua_CFunction method = lua_tocfunction(L, -1);
 
-		if (likely(method != lunatik_deleteobject && method != lunatik_closeobject))
-			lua_pushcclosure(L, lunatik_monitor, 1);
+		if (likely(method != lunatik_deleteobject && method != lunatik_closeobject)) {
+			/* Upvalue 1: The actual C function (method)
+			 * Upvalue 2: The name of the method (the key)
+			 */
+
+			lua_getfield(L, 2, MONITOR_CACHE_KEY);
+			if (lua_isnil(L, -1)) {
+				lua_pop(L, 1);
+				lua_pushvalue(L, 3); /* stack: object, metatable, key, method, key */
+				lua_pushcclosure(L, lunatik_monitor, 2);
+				lua_pushvalue(L, -1);
+				lua_setfield(L, 2, MONITOR_CACHE_KEY); /* store on metatable */
+			}
+
+			lua_pushvalue(L, -1);
+			lua_setfield(L, 2, lua_tostring(L, 3)); /* mt[key] = cached closure */
+		}
 	}
 	return 1;
 }

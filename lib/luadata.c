@@ -234,7 +234,6 @@ static const luaL_Reg luadata_lib[] = {
 };
 
 static const luaL_Reg luadata_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"__len", luadata_length},
 	{"__tostring", luadata_tostring},
