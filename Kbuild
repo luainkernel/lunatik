@@ -34,6 +34,10 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	lua/loadlib.o $(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/setjmp.o \
 	lunatik_aux.o lunatik_obj.o lunatik_core.o
 
+ifeq ($(ARCH),arm)
+lunatik-objs += arm_math.o $(KLIBC_USR)/klibc/arch/arm/aeabi_nonsense.o
+endif
+
 ifeq ($(CONFIG_64BIT),)
 lunatik-objs += $(KLIBC_LIBGCC)/__udivmoddi4.o	\
 	$(KLIBC_LIBGCC)/__divdi3.o $(KLIBC_LIBGCC)/__udivdi3.o \
