@@ -88,8 +88,8 @@ int lunatik_closeobject(lua_State *L)
 	object->private = NULL;
 	lunatik_unlock(object);
 
-	lunatik_argchecknull(L, private, 1);
-	lunatik_releaseprivate(object->class, private);
+	if (private != NULL)
+		lunatik_releaseprivate(object->class, private);
 	return 0;
 }
 EXPORT_SYMBOL(lunatik_closeobject);
