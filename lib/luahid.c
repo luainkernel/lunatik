@@ -64,6 +64,7 @@ static void luahid_release(void *private)
 }
 
 static int luahid_register(lua_State *L);
+static int luahid_unregister(lua_State *L);
 
 static const luaL_Reg luahid_lib[] = {
 	{"register", luahid_register},
@@ -73,6 +74,7 @@ static const luaL_Reg luahid_lib[] = {
 static const luaL_Reg luahid_mt[] = {
 	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
+	{"unregister", luahid_unregister},
 	{NULL, NULL},
 };
 
@@ -278,6 +280,23 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 
 	luahid_run(raw_event, &ctx, hid, hdev, ret);
 	return ret;
+}
+
+static int luahid_unregister(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	luahid_t *hid = (luahid_t *)object->private;
+
+	lunatik_lock(object);
+	if (hid->registered) {
+		hid_unregister_driver(&hid->driver);
+		hid->registered = false;
+	}
+	lunatik_unlock(object);
+
+	if (lunatik_toruntime(L) == hid->runtime)
+		lunatik_unregisterobject(L, object);
+	return 0;
 }
 
 /***

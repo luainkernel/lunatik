@@ -130,8 +130,11 @@ static unsigned int luanetfilter_hook(void *priv, struct sk_buff *skb, const str
 	return luanetfilter_docall(luanf, skb);
 }
 
+static int luanetfilter_unregister(lua_State *L);
+
 static const luaL_Reg luanetfilter_mt[] = {
 	{"__gc", lunatik_deleteobject},
+	{"unregister", luanetfilter_unregister},
 	{NULL, NULL}
 };
 
@@ -201,6 +204,25 @@ static void luanetfilter_release(void *private)
 	luadata_detach(runtime, nf, skb);
 	lunatik_putobject(runtime);
 	nf->runtime = NULL;
+}
+
+static int luanetfilter_unregister(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	luanetfilter_t *nf = (luanetfilter_t *)object->private;
+
+	lunatik_lock(object);
+	if (nf->runtime != NULL) {
+		nf_unregister_net_hook(&init_net, &nf->nfops);
+		luadata_detach(nf->runtime, nf, skb);
+		lunatik_putobject(nf->runtime);
+		nf->runtime = NULL;
+	}
+	lunatik_unlock(object);
+
+	if (lunatik_toruntime(L) == nf->runtime)
+		lunatik_unregisterobject(L, object);
+	return 0;
 }
 
 LUNATIK_NEWLIB(netfilter, luanetfilter_lib, &luanetfilter_class, luanetfilter_flags);
