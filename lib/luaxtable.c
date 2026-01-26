@@ -106,7 +106,7 @@ static int luaxtable_pushparams(lua_State *L, const struct xt_action_param *par,
 		pr_err("could not get skb\n");
 		return -1;
 	}
-        luadata_reset(data, skb->data, 0, skb->len, opt);
+	luadata_reset(data, skb->data, 0, skb->len, opt);
 
 	lua_newtable(L);
 	lua_pushboolean(L, par->hotdrop);
