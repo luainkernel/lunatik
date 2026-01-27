@@ -134,7 +134,6 @@ static const luaL_Reg luacrypto_rng_mt[] = {
 	{"info", luacrypto_rng_info},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 

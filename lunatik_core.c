@@ -205,7 +205,6 @@ static const luaL_Reg lunatik_stub_lib[] = {
 *   rt:stop()
 */
 static const luaL_Reg lunatik_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
 	{"stop", lunatik_closeobject},

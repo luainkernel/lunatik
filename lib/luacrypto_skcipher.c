@@ -190,7 +190,6 @@ static const luaL_Reg luacrypto_skcipher_mt[] = {
 	{"decrypt", luacrypto_skcipher_decrypt},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 

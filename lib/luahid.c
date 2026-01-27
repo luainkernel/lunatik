@@ -71,7 +71,6 @@ static const luaL_Reg luahid_lib[] = {
 };
 
 static const luaL_Reg luahid_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{NULL, NULL},
 };

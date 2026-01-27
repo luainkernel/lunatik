@@ -183,7 +183,6 @@ static const luaL_Reg luathread_lib[] = {
 };
 
 static const luaL_Reg luathread_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"stop", luathread_stop},
 	{"task", luathread_task},

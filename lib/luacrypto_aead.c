@@ -224,7 +224,6 @@ static const luaL_Reg luacrypto_aead_mt[] = {
 	{"decrypt", luacrypto_aead_decrypt},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 

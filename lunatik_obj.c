@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -20,6 +20,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_setobject(object, class, class->sleep);
 	lunatik_setclass(L, class);
 
+	object->monitored = true;
 	object->private = class->pointer ? NULL : lunatik_checkalloc(L, size);
 
 	*pobject = object;
@@ -36,6 +37,7 @@ lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size
 		return NULL;
 
 	lunatik_setobject(object, class, sleep);
+	object->monitored = false;
 	if ((object->private = kmalloc(size, gfp)) == NULL) {
 		lunatik_putobject(object);
 		return NULL;
@@ -119,7 +121,7 @@ int lunatik_deleteobject(lua_State *L)
 }
 EXPORT_SYMBOL(lunatik_deleteobject);
 
-static int lunatik_monitor(lua_State *L)
+int lunatik_monitor(lua_State *L)
 {
 	int ret, n = lua_gettop(L);
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
@@ -135,20 +137,7 @@ static int lunatik_monitor(lua_State *L)
 		lua_error(L);
 	return lua_gettop(L);
 }
-
-int lunatik_monitorobject(lua_State *L)
-{
-	lua_getmetatable(L, 1);
-	lua_insert(L, 2); /* stack: object, metatable, key */
-	if (lua_rawget(L, 2) == LUA_TFUNCTION) {
-		lua_CFunction method = lua_tocfunction(L, -1);
-
-		if (likely(method != lunatik_deleteobject && method != lunatik_closeobject))
-			lua_pushcclosure(L, lunatik_monitor, 1);
-	}
-	return 1;
-}
-EXPORT_SYMBOL(lunatik_monitorobject);
+EXPORT_SYMBOL(lunatik_monitor);
 
 #endif /* LUNATIK_RUNTIME */
 
