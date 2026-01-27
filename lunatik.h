@@ -33,6 +33,10 @@ do {						\
 
 #define lunatik_cannotsleep(L, s)	((s) && !lunatik_toruntime(L)->sleep)
 #define lunatik_getstate(runtime)	((lua_State *)runtime->private)
+#define lunatik_ismetamethod(reg)                         \
+	 (((reg)->name[0] == '_' && (reg)->name[1] == '_') || \
+     (reg)->func == lunatik_deleteobject ||               \
+     (reg)->func == lunatik_closeobject)
 
 static inline bool lunatik_isready(lua_State *L)
 {
@@ -88,6 +92,7 @@ typedef struct lunatik_object_s {
 		spinlock_t spin;
 	};
 	bool sleep;
+	bool monitored;
 	gfp_t gfp;
 } lunatik_object_t;
 
@@ -236,26 +241,28 @@ static inline bool lunatik_hasindex(lua_State *L, int index)
 	return hasindex;
 }
 
+static int lunatik_dispatch(lua_State *L)
+{
+	lunatik_object_t *obj = lunatik_checkobject(L, 1);
+	lua_CFunction fn = lua_tocfunction(L, lua_upvalueindex(1));
+
+	/* fast path, direct function call */
+	if (likely(!obj->monitored))
+		return fn(L);
+
+	/* slow path */
+	return lunatik_monitor(L);
+}
 static inline void lunatik_wrap_methods(lua_State *L, const lunatik_class_t *class)
 {
 	const luaL_Reg *reg;
 	for (reg = class->methods; reg->name != NULL; reg++) {
 		lua_getfield(L, -1, reg->name);
-
-		if (!lua_isfunction(L, -1)) {
+		if (lunatik_ismetamethod(reg)) {
 			lua_pop(L, 1);
 			continue;
 		}
-		if (reg->name[0] == '_' && reg->name[1] == '_') {
-			lua_pop(L, 1);
-			continue;
-		}
-		if (reg->func == lunatik_deleteobject || reg->func == lunatik_closeobject) {
-			lua_pop(L, 1);
-			continue;
-		}
-
-		lua_pushcclosure(L, lunatik_monitor, 1); /* stack: class, method */
+		lua_pushcclosure(L, lunatik_dispatch, 1); /* stack: mt, method */
 		lua_setfield(L, -2, reg->name);
 	}
 }
