@@ -4,13 +4,12 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
+local config = require("lunatik.config")
+
 local lunatik = {
 	copyright = "Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.",
 	device = "/dev/lunatik",
-	modules = {"lunatik", "luabyteorder", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu",
-		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo", "luaxtable",
-		"luanetfilter", "luacompletion", "luacrypto_shash", "luacrypto_skcipher", "luacrypto_aead",
-		"luacrypto_rng", "luacrypto_comp", "luacpu", "luahid", "luasignal", "lunatik_run"},
+	modules = config.modules,
 }
 
 function lunatik.prompt()
