@@ -39,10 +39,14 @@ ifeq ($(CONFIG_64BIT),)
 		$(KLIBC_LIBGCC)/__divdi3.o $(KLIBC_LIBGCC)/__udivdi3.o \
 		$(KLIBC_LIBGCC)/__moddi3.o $(KLIBC_LIBGCC)/__umoddi3.o
 #	ifeq ($(ARCH), arm)
-		lunatik-objs += $(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/__divmoddi4.o \
-			$(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/__aeabi_ldivmod.o \
-			$(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/__aeabi_uldivmod.o
+#		lunatik-objs += $(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/__divmoddi4.o \
+#			$(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/__aeabi_ldivmod.o \
+#			$(KLIBC_USR)/klibc/arch/$(KLIBC_ARCH)/__aeabi_uldivmod.o
 #	endif
+		lunatik-objs += $(KLIBC_USR)/klibc/arch/arm/__divmoddi4.o \
+			$(KLIBC_USR)/klibc/arch/arm/__aeabi_ldivmod.o \
+			$(KLIBC_USR)/klibc/arch/arm/__aeabi_uldivmod.o
+
 endif
 
 obj-$(CONFIG_LUNATIK_RUN) += lunatik_run.o
