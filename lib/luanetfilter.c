@@ -79,7 +79,8 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 	if (!luanetfilter_pushcb(L, luanf) || (data = luanetfilter_pushskb(L, luanf, skb)) == NULL)
 		goto out;
 
-	if (skb_mac_header_was_set(skb))
+	bool mac_header_was_set = skb_mac_header_was_set(skb);
+	if (mac_header_was_set)
 		luanetfilter_resetskb(data, skb, skb_mac_offset(skb), skb_mac_header_len(skb));
 	else
 		luanetfilter_resetskb(data, skb, 0, 0);
@@ -90,7 +91,21 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 	else
 		lua_pushnil(L); /* dev may be NULL if hook is LOCAL_OUT */
 
-	if (lua_pcall(L, 2, 2, 0) != LUA_OK) {
+	/* work out vlan TAG id, if present */
+	if (skb_vlan_tag_present(skb)) {
+		lua_pushinteger(L, skb_vlan_tag_get_id(skb));
+	} else if (mac_header_was_set && (skb->protocol == htons(ETH_P_8021Q) || skb->protocol == htons(ETH_P_8021AD))) {
+			struct vlan_ethhdr _veh;
+			struct vlan_ethhdr *veh = skb_header_pointer(skb, skb_mac_offset(skb), sizeof(_veh), &_veh);
+			if (veh)
+				lua_pushinteger(L, ntohs(veh->h_vlan_TCI) & VLAN_VID_MASK);
+			else
+				lua_pushnil(L);
+	} else {
+		lua_pushnil(L);
+	}
+
+	if (lua_pcall(L, 3, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
 		lua_pop(L, 1);
 		goto clear;
