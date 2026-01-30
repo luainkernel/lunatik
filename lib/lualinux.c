@@ -227,7 +227,7 @@ static int lualinux_ifaddr(lua_State *L)
 	struct net_device *dev = dev_get_by_index(&init_net, ifindex);
 
 	luaL_argcheck(L, dev != NULL, 1, "device not found");
-	size_t len = min(dev->addr_len, MAX_ADDR_LEN);
+	size_t len = min_t(size_t, dev->addr_len, MAX_ADDR_LEN);
 	memcpy(addr, dev->dev_addr, len);
 	dev_put(dev);
 	luaL_pushresultsize(&B, len);
