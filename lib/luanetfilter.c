@@ -166,7 +166,9 @@ static int luanetfilter_register(lua_State *L)
 	nf->runtime = NULL;
 
 	struct nf_hook_ops *nfops = &nf->nfops;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
 	nfops->hook_ops_type = NF_HOOK_OP_UNDEFINED;
+#endif
 	nfops->hook = luanetfilter_hook;
 	nfops->dev = NULL;
 	nfops->priv = nf;
