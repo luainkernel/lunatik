@@ -6,7 +6,9 @@
 #include <linux/slab.h>
 #include <linux/fs.h>
 #include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
 #include <linux/errname.h>
+#endif
 
 #include <lua.h>
 #include <lauxlib.h>
