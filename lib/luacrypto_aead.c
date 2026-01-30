@@ -224,7 +224,6 @@ static const luaL_Reg luacrypto_aead_mt[] = {
 	{"decrypt", luacrypto_aead_decrypt},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 
@@ -237,6 +236,7 @@ static const lunatik_class_t luacrypto_aead_class = {
 	.methods = luacrypto_aead_mt,
 	.release = luacrypto_aead_release,
 	.sleep = true,
+	.shared = true,
 	.pointer = true,
 };
 

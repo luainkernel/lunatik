@@ -71,7 +71,6 @@ static const luaL_Reg luahid_lib[] = {
 };
 
 static const luaL_Reg luahid_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{NULL, NULL},
 };
@@ -81,6 +80,7 @@ static const lunatik_class_t luahid_class = {
 	.methods = luahid_mt,
 	.release = luahid_release,
 	.sleep = false,
+	.shared = true,
 };
 
 static const struct hid_device_id *luahid_setidtable(lua_State *L, int idx)

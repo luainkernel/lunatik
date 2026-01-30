@@ -183,7 +183,6 @@ static const luaL_Reg luathread_lib[] = {
 };
 
 static const luaL_Reg luathread_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"stop", luathread_stop},
 	{"task", luathread_task},
@@ -194,6 +193,7 @@ static const lunatik_class_t luathread_class = {
 	.name = "thread",
 	.methods = luathread_mt,
 	.sleep = true,
+	.shared = true,
 };
 
 #define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t)))

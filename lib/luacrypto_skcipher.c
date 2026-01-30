@@ -190,7 +190,6 @@ static const luaL_Reg luacrypto_skcipher_mt[] = {
 	{"decrypt", luacrypto_skcipher_decrypt},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 
@@ -205,6 +204,7 @@ static const lunatik_class_t luacrypto_skcipher_class = {
 	.methods = luacrypto_skcipher_mt,
 	.release = luacrypto_skcipher_release,
 	.sleep = true,
+	.shared = true,
 	.pointer = true,
 };
 

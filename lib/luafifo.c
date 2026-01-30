@@ -116,7 +116,6 @@ static const luaL_Reg luafifo_lib[] = {
 * @treturn nil
 */
 static const luaL_Reg luafifo_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
 	{"close", lunatik_closeobject},
@@ -130,6 +129,7 @@ static const lunatik_class_t luafifo_class = {
 	.methods = luafifo_mt,
 	.release = luafifo_release,
 	.sleep = false,
+	.shared = true,
 };
 
 static int luafifo_new(lua_State *L)
