@@ -76,6 +76,7 @@ typedef struct lunatik_class_s {
 	const luaL_Reg *methods;
 	void (*release)(void *);
 	bool sleep;
+	bool shared;
 	bool pointer;
 } lunatik_class_t;
 
@@ -205,7 +206,7 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
 int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
-int lunatik_monitorobject(lua_State *L);
+void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 
 #define LUNATIK_ERR_NULLPTR	"null-pointer dereference"
 
@@ -241,6 +242,8 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
 	luaL_newmetatable(L, class->name); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
 	if (!lunatik_hasindex(L, -1)) {
+		if (class->shared)
+			lunatik_monitorobject(L, class);
 		lua_pushvalue(L, -1);  /* push mt */
 		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
 	}

@@ -134,7 +134,6 @@ static const luaL_Reg luacrypto_rng_mt[] = {
 	{"info", luacrypto_rng_info},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 
@@ -147,6 +146,7 @@ static const lunatik_class_t luacrypto_rng_class = {
 	.methods = luacrypto_rng_mt,
 	.release = luacrypto_rng_release,
 	.sleep = true,
+	.shared = true,
 	.pointer = true,
 };
 

@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -10,6 +10,11 @@
 #include "lunatik.h"
 
 #ifdef LUNATIK_RUNTIME
+
+#define lunatik_ismetamethod(reg)          \
+	((!strncmp(reg->name, "__", 2)) ||     \
+	(reg)->func == lunatik_deleteobject || \
+	(reg)->func == lunatik_closeobject)
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size)
 {
@@ -136,17 +141,16 @@ static int lunatik_monitor(lua_State *L)
 	return lua_gettop(L);
 }
 
-int lunatik_monitorobject(lua_State *L)
+void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class)
 {
-	lua_getmetatable(L, 1);
-	lua_insert(L, 2); /* stack: object, metatable, key */
-	if (lua_rawget(L, 2) == LUA_TFUNCTION) {
-		lua_CFunction method = lua_tocfunction(L, -1);
-
-		if (likely(method != lunatik_deleteobject && method != lunatik_closeobject))
-			lua_pushcclosure(L, lunatik_monitor, 1);
+	const luaL_Reg *reg;
+	for (reg = class->methods; reg->name != NULL; reg++) {
+		if (!lunatik_ismetamethod(reg)) {
+			lua_getfield(L, -1, reg->name);
+			lua_pushcclosure(L, lunatik_monitor, 1); /* stack: mt, method */
+			lua_setfield(L, -2, reg->name);
+		}
 	}
-	return 1;
 }
 EXPORT_SYMBOL(lunatik_monitorobject);
 

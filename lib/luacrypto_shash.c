@@ -209,7 +209,6 @@ static const luaL_Reg luacrypto_shash_mt[] = {
 	{"import", luacrypto_shash_import},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 
@@ -223,6 +222,7 @@ static const lunatik_class_t luacrypto_shash_class = {
 	.methods = luacrypto_shash_mt,
 	.release = luacrypto_shash_release,
 	.sleep = true,
+	.shared = true,
 	.pointer = true,
 };
 
