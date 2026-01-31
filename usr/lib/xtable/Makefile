@@ -24,6 +24,6 @@ clean:
 lib%.so: lib%.o
 	gcc -shared -fPIC -o libxt_${LUAXTABLE_MODULE}.so libxt_${LUAXTABLE_MODULE}.o ${LUA_FLAGS};
 
-lib%.o: luaxt.c
+lib%.o: lunaxt.c
 	gcc ${CFLAGS} ${LUA_FLAGS} -D_INIT=lib$*_init -fPIC -c -o libxt_${LUAXTABLE_MODULE}.o $<;
 

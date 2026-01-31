@@ -27,7 +27,7 @@
 #include <lauxlib.h>
 #include <lunatik.h>
 
-#include "luacrypto.h"
+#include "lunacrypto.h"
 
 LUNATIK_PRIVATECHECKER(luacrypto_aead_check, struct crypto_aead *);
 
