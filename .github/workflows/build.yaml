@@ -23,7 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libncurses-dev clang llvm pkg-config libpcap-dev lua5.4-dev m4
+        sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libncurses-dev clang llvm pkg-config libpcap-dev lua5.4 lua5.4-dev m4
     - name: Setup kernel ${{ matrix.kernel-version }}
       run: |
         KERNEL_VERSION="${{ matrix.kernel-version }}"
@@ -51,3 +51,4 @@ jobs:
       run: |
         test -f lunatik.ko || { echo "Build failed" ; exit 1; }
         echo "Lunatik built successfully for kernel ${{ matrix.kernel-version }}"
+

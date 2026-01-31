@@ -110,12 +110,6 @@ local function generate_build_config(kernel_release, output_dir, configs)
 		["CONFIG_LUNATIK_RUN"] = "lunatik_run"
 	}
 
-	local ignore_suffixes = {
-		["INSTALL_EXAMPLES"] = true,
-		["INSTALL_TESTS"] = true,
-		["RUNTIME"] = true
-	}
-
 	local modules = {}
 
 	for token in configs:gmatch("%S+") do
@@ -124,7 +118,7 @@ local function generate_build_config(kernel_release, output_dir, configs)
 			local name = module_map[config_option]
 			if not name then
 				local suffix = config_option:match("CONFIG_LUNATIK_(.+)")
-				if suffix and not ignore_suffixes[suffix] then
+				if suffix then
 					name = "lua" .. suffix:lower()
 				end
 			end
