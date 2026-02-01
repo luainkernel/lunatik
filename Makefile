@@ -14,7 +14,7 @@ SCRIPTS_INSTALL_PATH := ${MODULES_PATH}/lua
 INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
 
 LUA ?= lua5.4
-LUA_PATH ?= $(shell $(LUA_BIN) -e 'print(package.path:match("([^;]*)/%?%.lua;"))')
+LUA_PATH ?= $(shell $(LUA) -e 'print(package.path:match("([^;]*)/%?%.lua;"))')
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
