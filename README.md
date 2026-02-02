@@ -70,7 +70,7 @@ Install Lunatik from our [package feed](https://github.com/luainkernel/openwrt_f
 
 ```
 sudo lunatik # execute Lunatik REPL
-Lunatik 4.0  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
+Lunatik 4.1  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 > return 42 -- execute this line in the kernel
 42
 ```
@@ -93,7 +93,7 @@ usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]
 
 ## Lua Version
 
-Lunatik 4.0 is based on
+Lunatik 4.1 is based on
 [Lua 5.5 adapted](https://github.com/luainkernel/lua)
 to run in the kernel.
 
