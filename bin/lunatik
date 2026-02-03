@@ -22,8 +22,7 @@ function lunatik.open(mode)
 end
 
 function lunatik.probe()
-	local prober <close> = lunatik.open("r")
-	return prober and true or false
+	return os.execute("[ -e " .. lunatik.device .. " ]")
 end
 
 function lunatik.loadstring(chunk)
