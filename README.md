@@ -469,12 +469,12 @@ sudo make examples_install                  # installs examples
 ip link add veth0 type veth peer name veth1
 ip link set veth0 up
 ip link set veth1 up
-```
 
 sudo lunatik spawn examples/lldpd           # runs lldpd
 
 # verify LLDP frames are being transmitted
 sudo tcpdump -i veth0 -e ether proto 0x88cc -vv
+```
 
 ### cpuexporter
 
