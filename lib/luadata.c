@@ -162,6 +162,25 @@ static void luadata_skb_resize(lua_State *L, luadata_t *data, size_t new_size)
 }
 
 /***
+* Perform a raw checksum on a given buffer.
+* @function checksum
+* @tparam[opt] integer offset, from where to checksum
+* @tparam[opt] integer length, total length checksum
+* @raise Error if the write operation (offset + length of data).
+*/
+static int luadata_checksum(lua_State *L)
+{
+	luadata_t *data = luadata_check(L, 1);
+	lua_Integer offset = luaL_optinteger(L, 2, 0);
+	lua_Integer length = luaL_optinteger(L, 3, data->size - offset);
+	void *value = (void*)luadata_checkbounds(L, 2, data, offset, length);
+
+	__wsum sum = csum_partial(value, length, 0);
+	lua_pushinteger(L, csum_fold(sum));
+	return 1;
+}
+
+/***
 * Resizes the memory block represented by the data object.
 * If the object is a network packet (SKB), it uses skb_put() to expand 
 * or skb_trim() to shrink the buffer. For raw buffers, it updates the size.
@@ -400,6 +419,7 @@ static const luaL_Reg luadata_mt[] = {
 	{"getstring", luadata_getstring},
 	{"setstring", luadata_setstring},
 	{"resize", luadata_resize},
+	{"checksum", luadata_checksum},
 	{NULL, NULL}
 };
 
