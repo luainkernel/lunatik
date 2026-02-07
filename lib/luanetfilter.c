@@ -90,7 +90,13 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 	else
 		lua_pushnil(L); /* dev may be NULL if hook is LOCAL_OUT */
 
-	if (lua_pcall(L, 2, 2, 0) != LUA_OK) {
+	int narg = 2;
+	if (skb_vlan_tag_present(skb)) {
+		lua_pushinteger(L, skb_vlan_tag_get_id(skb));
+		narg++;
+	}
+
+	if (lua_pcall(L, narg, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
 		lua_pop(L, 1);
 		goto clear;
