@@ -124,37 +124,29 @@ int lunatik_deleteobject(lua_State *L)
 }
 EXPORT_SYMBOL(lunatik_deleteobject);
 
-static int lunatik_error_handler(lua_State *L)
-{
-	const char *method_name = lua_tostring(L, lua_upvalueindex(1));
-	const char *error_msg = lua_tostring(L, 1);
-	if (error_msg && method_name) {
-		luaL_gsub(L, error_msg, "?", method_name);
-		lua_replace(L, 1);
-	}
-	luaL_traceback(L, L, lua_tostring(L, 1), 1);
-	lua_replace(L, 1);
-	return 1;
-}
-
 static int lunatik_monitor(lua_State *L)
 {
 	int ret, n = lua_gettop(L);
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
 
-	lua_pushvalue(L, lua_upvalueindex(2));
-	lua_insert(L, 1); /* stack: errhandler, object, args */
-
-	lua_pushvalue(L, lua_upvalueindex(1));
-	lua_insert(L, 2); /* stack: errhandler, method, object, args */
+	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
+	lua_insert(L, 1); /* stack: method, object, args */
 
 	lunatik_lock(object);
-	ret = lua_pcall(L, n, LUA_MULTRET, 1);
+	ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	lunatik_unlock(object);
 
-	lua_remove(L, 1); /* remove error handler */
-	if (ret != LUA_OK)
+	if (ret != LUA_OK) {
+		const char *method_name = lua_tostring(L, lua_upvalueindex(2));
+		if (method_name) {
+			const char *error_msg = lua_tostring(L, -1);
+			luaL_gsub(L, error_msg, "?", method_name);
+			lua_remove(L, -2);
+		}
+		luaL_traceback(L, L, lua_tostring(L, -1), 1);
+		lua_remove(L, -2);
 		lua_error(L);
+	}
 	return lua_gettop(L);
 }
 
@@ -165,7 +157,6 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class)
 		if (!lunatik_ismetamethod(reg)) {
 			lua_getfield(L, -1, reg->name);
 			lua_pushstring(L, reg->name);
-			lua_pushcclosure(L, lunatik_error_handler, 1);
 			lua_pushcclosure(L, lunatik_monitor, 2); /* stack: mt, method, method name*/
 			lua_setfield(L, -2, reg->name);
 		}
