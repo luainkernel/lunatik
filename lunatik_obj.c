@@ -136,8 +136,17 @@ static int lunatik_monitor(lua_State *L)
 	ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	lunatik_unlock(object);
 
-	if (ret != LUA_OK)
+	if (ret != LUA_OK) {
+		const char *method_name = lua_tostring(L, lua_upvalueindex(2));
+		if (method_name) {
+			const char *error_msg = lua_tostring(L, -1);
+			luaL_gsub(L, error_msg, "?", method_name);
+			lua_remove(L, -2);
+		}
+		luaL_traceback(L, L, lua_tostring(L, -1), 1);
+		lua_remove(L, -2);
 		lua_error(L);
+	}
 	return lua_gettop(L);
 }
 
@@ -147,7 +156,8 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class)
 	for (reg = class->methods; reg->name != NULL; reg++) {
 		if (!lunatik_ismetamethod(reg)) {
 			lua_getfield(L, -1, reg->name);
-			lua_pushcclosure(L, lunatik_monitor, 1); /* stack: mt, method */
+			lua_pushstring(L, reg->name);
+			lua_pushcclosure(L, lunatik_monitor, 2); /* stack: mt, method, method name*/
 			lua_setfield(L, -2, reg->name);
 		}
 	}
