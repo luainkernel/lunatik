@@ -113,6 +113,32 @@ static ssize_t mydevice_read(struct file *f, char *buf, size_t len, loff_t *off)
 }
 ```
 
+## lunatik\_newobject
+```C
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared);
+```
+_lunatik\_newobject()_ allocates a new Lunatik object and pushes a userdata
+containing a pointer to the object onto the Lua stack.
+If `shared` is _true_, the object will use the monitored metatable for safe
+access Lunatik runtimes. This requires `class->shared = true;` otherwise, it raises a
+Lua error.
+- If `class->sleep` is _true_, it uses a mutex and `GFP_KERNEL`
+- If `class->sleep` is _false_, it uses a spinlock and `GFP_ATOMIC`
+
+It allocates size bytes for the object's private data, unless `class->pointer` is true.
+
+## lunatik\_createobject
+```C
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared);
+```
+_lunatik\_createobject()_ creates a Lunatik object independently of any Lua
+state. This is intended for objects created in C context that may be shared
+with Lua runtimes later.
+
+It allocates memory with `GFP_KERNEL` if `sleep` is _true_, or `GFP_ATOMIC` otherwise.
+It returns a pointer to the `lunatik_object_t` on success, or _NULL_ if memory
+allocation fails and _ERR_PTR(-EINVAL)_ if the class is not sharable but API is called with _true_ as `shared`
+
 ## lunatik\_getobject
 ```C
 void lunatik_getobject(lunatik_object_t *object);
