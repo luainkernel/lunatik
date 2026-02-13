@@ -127,7 +127,7 @@ static int luadata_setstring(lua_State *L)
 	lua_Integer offset = luaL_checkinteger(L, 2);
 	const char *str = luaL_checklstring(L, 3, &length);
 	void *ptr = luadata_checkbounds(L, 2, data, offset, length);
-	
+
 	luadata_checkwritable(L, data);
 	memcpy(ptr, str, length);
 	return 0;
@@ -176,7 +176,7 @@ static int luadata_checksum(lua_State *L)
 
 /***
 * Resizes the memory block represented by the data object.
-* If the object is a network packet (SKB), it uses skb_put() to expand 
+* If the object is a network packet (SKB), it uses skb_put() to expand
 * or skb_trim() to shrink the buffer. For raw buffers, it updates the size.
 * @function resize
 * @tparam integer new_size The desired size of the memory block in bytes.
@@ -190,7 +190,7 @@ static int luadata_resize(lua_State *L)
 	luadata_checkwritable(L, data);
 
 	if (data->opt & LUADATA_OPT_SKB)
-		luadata_skb_resize(L, data, new_size); 
+		luadata_skb_resize(L, data, new_size);
 	else if (data->opt & LUADATA_OPT_FREE)
 		data->ptr = lunatik_checknull(L, lunatik_realloc(L, data->ptr, new_size));
 	else
@@ -436,7 +436,7 @@ static inline void luadata_set(luadata_t *data, void *ptr, ptrdiff_t offset, siz
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t));
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), true);
 	luadata_t *data = (luadata_t *)object->private;
 
 	luadata_set(data, lunatik_checkalloc(L, size), 0, size, LUADATA_OPT_FREE);
@@ -447,7 +447,7 @@ LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 
 static inline lunatik_object_t *luadata_create(void *ptr, size_t size, bool sleep, uint8_t opt)
 {
-	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep);
+	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep, true);
 
 	if (object != NULL) {
 		luadata_t *data = (luadata_t *)object->private;

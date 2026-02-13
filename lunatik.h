@@ -91,13 +91,14 @@ typedef struct lunatik_object_s {
 	};
 	bool sleep;
 	gfp_t gfp;
+	bool shared;
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
-	return object->sleep ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin);
+	return unlikely(object->shared) ? (object->sleep ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin)) : 1;
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
@@ -181,27 +182,30 @@ static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class
 		luaL_error(L, "cannot use '%s' class on non-sleepable runtime", class->name);
 }
 
-static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class)
+static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool shared)
 {
-	if (luaL_getmetatable(L, class->name) == LUA_TNIL)
-		luaL_error(L, "metatable not found (%s)", class->name);
+	const char *fmt = shared ? "_%s" : "%s";
+	lua_pushfstring(L, fmt, class->name);
+	if (lua_rawget(L, LUA_REGISTRYINDEX) == LUA_TNIL)
+		luaL_error(L, "metatable not found (%s)", lua_tostring(L, -1));
 	lua_setmetatable(L, -2);
 	lua_pushlightuserdata(L, (void *)class);
 	lua_setiuservalue(L, -2, 1); /* pop class */
 }
 
-static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep)
+static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep, bool shared)
 {
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
 	object->sleep = sleep;
+	object->shared = shared;
 	object->gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_newlock(object);
 }
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size);
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep);
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared);
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared);
 lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
@@ -238,17 +242,19 @@ static inline bool lunatik_hasindex(lua_State *L, int index)
 	return hasindex;
 }
 
-static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
+static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, bool monitored)
 {
-	luaL_newmetatable(L, class->name); /* mt = {} */
+	const char *fmt = monitored ? "_%s" : "%s";
+	lua_pushfstring(L, fmt, class->name);
+	luaL_newmetatable(L, lua_tostring(L, -1)); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
+	if (monitored)
+		lunatik_monitorobject(L, class);
 	if (!lunatik_hasindex(L, -1)) {
-		if (class->shared)
-			lunatik_monitorobject(L, class);
 		lua_pushvalue(L, -1);  /* push mt */
 		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
 	}
-	lua_pop(L, 1);  /* pop mt */
+	lua_pop(L, 2);  /* pop mt, class name */
 }
 
 static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)
@@ -260,8 +266,6 @@ static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)
 	}
 	return NULL;
 }
-
-#define lunatik_isobject(L, ix)	(lunatik_getclass((L), (ix)) != NULL)
 
 static inline lunatik_object_t *lunatik_testobject(lua_State *L, int ix)
 {
@@ -292,7 +296,9 @@ int luaopen_##libname(lua_State *L)						\
 	luaL_newlib(L, funcs);							\
 	if (cls) {								\
 		lunatik_checkclass(L, cls);					\
-		lunatik_newclass(L, cls);					\
+		if (cls->shared)							\
+			lunatik_newclass(L, cls, true);			\
+		lunatik_newclass(L, cls, false);			\
 	}									\
 	if (nss)								\
 		lunatik_newnamespaces(L, nss);					\

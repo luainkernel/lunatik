@@ -275,7 +275,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		return -ENOMEM;
 	}
 
-	lunatik_setobject(runtime, &lunatik_class, sleep);
+	lunatik_setobject(runtime, &lunatik_class, sleep, true);
 	lunatik_toruntime(L) = runtime;
 	runtime->private = L;
 
@@ -335,7 +335,7 @@ static int lunatik_lruntime(lua_State *L)
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
 	if (lunatik_newruntime(pruntime, L, script, sleep) != 0)
 		lua_error(L);
-	lunatik_setclass(L, &lunatik_class);
+	lunatik_setclass(L, &lunatik_class, true);
 	return 1;
 }
 
