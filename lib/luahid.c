@@ -305,7 +305,7 @@ static int luahid_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
 
-	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t));
+	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), true);
 	luahid_t *hid = (luahid_t *)object->private;
 	memset(hid, 0, sizeof(luahid_t));
 
