@@ -11,16 +11,11 @@
 
 #include "luaskb.h"
 
-typedef struct luaskb_s {
-	struct sk_buff *skb;
-} luaskb_t;
-
-LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *);
+LUNATIK_PRIVATECHECKER(luaskb_check, struct sk_buff *);
 
 static int luaskb_len(lua_State *L)
 {
-	luaskb_t *luaskb = luaskb_check(L, 1);
-	struct sk_buff *skb = luaskb->skb;
+	struct sk_buff *skb = luaskb_check(L, 1);
 
 	lua_pushinteger(L, skb->len);
 	return 1;
@@ -28,8 +23,8 @@ static int luaskb_len(lua_State *L)
 
 static void luaskb_release(void *private)
 {
-	luaskb_t *luaskb = (luaskb_t *)private;
-    (void)luaskb;
+	struct sk_buff *skb = (struct sk_buff*)private;
+    (void)skb;
 }
 
 static const luaL_Reg luaskb_lib[] = {
@@ -56,8 +51,7 @@ lunatik_object_t *luaskb_create(struct sk_buff *skb)
 	lunatik_object_t *object = lunatik_createobject(&luaskb_class, 0, false);
 
 	if (object != NULL) {
-		struct sk_buff *skbuff = (struct sk_buff *)object->private;
-		skbuff = skb;
+		object->private = (void*)skb;
 	}
 	return object;
 }
