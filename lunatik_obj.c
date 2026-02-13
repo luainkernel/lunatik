@@ -41,7 +41,7 @@ lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size
 		return NULL;
 
 	lunatik_setobject(object, class, sleep);
-	if ((object->private = kmalloc(size, gfp)) == NULL) {
+	if (!class->pointer && (object->private = kmalloc(size, gfp)) == NULL) {
 		lunatik_putobject(object);
 		return NULL;
 	}
