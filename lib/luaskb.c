@@ -16,6 +16,7 @@ LUNATIK_PRIVATECHECKER(luaskb_check, struct sk_buff *);
 static int luaskb_len(lua_State *L)
 {
 	struct sk_buff *skb = luaskb_check(L, 1);
+	pr_info_ratelimited("%s:%d: skb=%p %d\n", __func__, __LINE__, skb, skb->len);
 
 	lua_pushinteger(L, skb->len);
 	return 1;
@@ -52,6 +53,7 @@ lunatik_object_t *luaskb_create(struct sk_buff *skb)
 
 	if (object != NULL) {
 		object->private = (void*)skb;
+		pr_info_ratelimited("%s:%d: create skb object %p of skb->len %d\n", __func__, __LINE__, skb, skb->len);
 	}
 	return object;
 }
