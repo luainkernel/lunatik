@@ -22,6 +22,7 @@
 
 #include "luanetfilter.h"
 #include "luadata.h"
+#include "luaskb.h"
 
 /***
 * Represents a registered Netfilter hook.
@@ -96,6 +97,12 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 		narg++;
 	}
 
+	lunatik_object_t *skbobj = luaskb_create(skb);
+	if (skbobj) {
+		lunatik_pushobject(L, skbobj);
+		narg++;
+	}
+
 	if (lua_pcall(L, narg, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
 		lua_pop(L, 1);
@@ -107,6 +114,7 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 	ret = (int)lua_tointeger(L, -2);
 clear:
 	luadata_clear(data);
+	lunatik_putobject(skbobj);
 out:
 	return ret;
 }
