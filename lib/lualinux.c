@@ -12,16 +12,12 @@
 * @module linux
 */
 
-#include <linux/module.h>
 #include <linux/random.h>
 #include <linux/stat.h>
 #include <linux/sched.h>
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
 #include <linux/netdevice.h>
-
-#include <lua.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 

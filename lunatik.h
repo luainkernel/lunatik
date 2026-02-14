@@ -10,6 +10,7 @@
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/kref.h>
+#include <linux/version.h>
 
 #include <lua.h>
 #include <lauxlib.h>

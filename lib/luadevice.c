@@ -14,8 +14,6 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/printk.h>
 #include <linux/string.h>
@@ -25,11 +23,6 @@
 #include <linux/list.h>
 #include <linux/mutex.h>
 #include <linux/kref.h>
-#include <linux/version.h>
-
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 
