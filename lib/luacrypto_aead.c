@@ -15,16 +15,11 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <crypto/aead.h>
 #include <linux/err.h>
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 #include <lunatik.h>
 
 #include "luacrypto.h"

@@ -23,14 +23,9 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/spinlock.h>
 #include <linux/hashtable.h>
 #include <linux/random.h>
-
-#include <lua.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 

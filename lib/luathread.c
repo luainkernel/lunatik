@@ -12,13 +12,7 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/kthread.h>
-
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 

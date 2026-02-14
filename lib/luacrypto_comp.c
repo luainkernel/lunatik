@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+* SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -15,17 +15,11 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/crypto.h>
 #include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/limits.h>
-#include <linux/version.h>
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 #include <lunatik.h>
 
 #include "luacrypto.h"

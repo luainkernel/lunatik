@@ -7,8 +7,6 @@
 #define _LUACRYPTO_H
 
 #include <linux/err.h>
-#include <lua.h>
-#include <lauxlib.h>
 #include <lunatik.h>
 
 typedef void *(*luacrypto_new_t)(lua_State *, void *);
