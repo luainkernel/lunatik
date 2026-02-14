@@ -37,6 +37,7 @@ file = {
 	'./lib/luaprobe.c',
 	'./lib/luarcu.c',
 	'./lib/luasignal.c',
+	'./lib/luaskb.c',
 	'./lib/luasocket.c',
 	'./lib/socket/inet.lua',
 	'./lib/socket/raw.lua',
