@@ -55,7 +55,7 @@ lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 	lunatik_class_t *class= lunatik_getclass(L, ix);
 
 	luaL_argcheck(L, class != NULL, ix, "object expected");
-	pobject = (lunatik_object_t **)luaL_checkudata(L, ix, class->name);
+	pobject = (lunatik_object_t **)lua_touserdata(L, ix);
 	lunatik_argchecknull(L, *pobject, ix);
 	return pobject;
 }

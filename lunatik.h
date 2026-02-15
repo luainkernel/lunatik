@@ -247,25 +247,18 @@ static inline bool lunatik_hasindex(lua_State *L, int index)
 	return hasindex;
 }
 
-
 static inline void lunatik_register_metatable(lua_State *L, const lunatik_class_t *class, bool monitored)
 {
-	if (monitored)
-		lua_pushfstring(L, "_%s", class->name);
-	else
-		lua_pushfstring(L, "%s", class->name);
-
+	lua_pushfstring(L, "%s%s", monitored ? "_" : "", class->name);
 	luaL_newmetatable(L, lua_tostring(L, -1)); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
-
 	if (monitored)
 		lunatik_monitorobject(L, class);
-
 	if (!lunatik_hasindex(L, -1)) {
 		lua_pushvalue(L, -1);
 		lua_setfield(L, -2, "__index");
 	}
-	lua_pop(L, 1); /* pop mt */
+	lua_pop(L, 2); /* pop mt */
 }
 
 static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class)
