@@ -4,9 +4,9 @@
 */
 
 /***
-* Reverse tree using XArray.
-* A tree structure where paths are stored in reverse order for efficient
-* prefix sharing (e.g., domain names, file paths).
+* Reverse tree with Lua values using XArray.
+* A tree structure where paths are stored in reverse order with Lua values
+* at each node (string, number, boolean, or nil).
 *
 * @module rtree
 */
@@ -18,7 +18,12 @@
 
 typedef struct luartree_node_s {
 	struct xarray children;
-	bool is_leaf;
+	int type;
+	union {
+		lua_Integer i;
+		bool b;
+		const char *s;
+	} value;
 } luartree_node_t;
 
 LUNATIK_PRIVATECHECKER(luartree_check, struct xarray *);
@@ -29,9 +34,10 @@ static luartree_node_t *luartree_newchild(struct xarray *xa, unsigned long hash,
 {
 	luartree_node_t *node = lunatik_checkzalloc(L, sizeof(luartree_node_t));
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
-	
+
 	xa_init(&node->children);
-	
+	node->type = LUA_TNIL;
+
 	void *old = xa_store(xa, hash, node, gfp);
 	if (xa_is_err(old)) {
 		lunatik_free(node);
@@ -44,86 +50,138 @@ static void luartree_freetree(struct xarray *xa)
 {
 	unsigned long index;
 	luartree_node_t *node;
-	
+
 	xa_for_each(xa, index, node) {
 		luartree_freetree(&node->children);
+		if (node->type == LUA_TSTRING)
+			lunatik_free(node->value.s);
 		xa_erase(xa, index);
-		kfree(node);
+		lunatik_free(node);
+	}
+}
+
+static void luartree_tonode(lua_State *L, luartree_node_t *node, int idx)
+{
+	if (node->type == LUA_TSTRING)
+		lunatik_free((void *)node->value.s);
+
+	node->type = lua_type(L, idx);
+	switch (node->type) {
+	case LUA_TNUMBER:
+		node->value.i = lua_tointeger(L, idx);
+		break;
+	case LUA_TBOOLEAN:
+		node->value.b = lua_toboolean(L, idx);
+		break;
+	case LUA_TSTRING: {
+		size_t len;
+		const char *s = lua_tolstring(L, idx, &len);
+		char *str = lunatik_checkalloc(L, len + 1);
+		memcpy(str, s, len + 1);
+		node->value.s = str;
+		break;
+	}
+	case LUA_TNIL:
+		break;
+	default:
+		luaL_error(L, "unsupported type: %s", lua_typename(L, node->type));
+	}
+}
+
+static void luartree_pushnode(lua_State *L, luartree_node_t *node)
+{
+	switch (node->type) {
+	case LUA_TNUMBER:
+		lua_pushinteger(L, node->value.i);
+		break;
+	case LUA_TBOOLEAN:
+		lua_pushboolean(L, node->value.b);
+		break;
+	case LUA_TSTRING:
+		lua_pushstring(L, node->value.s);
+		break;
+	case LUA_TNIL:
+	default:
+		lua_pushnil(L);
+		break;
 	}
 }
 
 /***
-* Inserts a path into the tree.
+* Inserts a path with a value into the tree.
 * @function insert
+* @tparam any value The value to store (string, number, boolean, or nil).
 * @tparam string ... Variable number of labels (path components).
 * @treturn nil
 * @raise Error if allocation fails.
-* @usage t:insert("ai", "claude", "foo")
+* @usage t:insert("hello", "ai", "claude", "foo")
+* @usage t:insert(42, "ai", "claude", "bar")
+* @usage t:insert(true, "ai", "claude", "baz")
 */
 static int luartree_insert(lua_State *L)
 {
 	struct xarray *root = luartree_check(L, 1);
-	int n = lua_gettop(L) - 1;
-	
-	if (n == 0)
-		goto out;
-	
-	struct xarray *cur = root;
+	int n = lua_gettop(L) - 2;
+
+	if (n < 1)
+		luaL_error(L, "insert requires value and path");
+
+	struct xarray *xa = root;
 	luartree_node_t *node = NULL;
-	
-	for (int i = 2; i <= n + 1; i++) {
+
+	for (int i = 3; i <= n + 2; i++) {
 		size_t len;
 		const char *label = luaL_checklstring(L, i, &len);
-		
 		unsigned long hash = lunatik_hash(label, len, 0);
-		
-		node = luartree_getchild(cur, hash);
+
+		node = luartree_getchild(xa, hash);
 		if (!node)
-			node = luartree_newchild(cur, hash, L);
-		
-		cur = &node->children;
+			node = luartree_newchild(xa, hash, L);
+
+		xa = &node->children;
 	}
-	
-	node->is_leaf = true;
-out:
+
+	luartree_tonode(L, node, 2);
 	return 0;
 }
 
 /***
-* Looks up a path in the tree.
+* Looks up a path and returns its value.
 * @function lookup
 * @tparam string ... Variable number of labels (path components).
-* @treturn boolean `true` if path exists, `false` otherwise.
-* @usage local found = t:lookup("ai", "claude", "foo")
+* @treturn any The value stored at the path, or nil if not found.
+* @usage local value = t:lookup("ai", "claude", "foo")
 */
 static int luartree_lookup(lua_State *L)
 {
 	struct xarray *root = luartree_check(L, 1);
-	
 	int n = lua_gettop(L) - 1;
+
 	if (n == 0)
 		goto notfound;
-	
-	struct xarray *cur = root;
+
+	struct xarray *xa = root;
 	luartree_node_t *node = NULL;
-	
+
 	for (int i = 2; i <= n + 1; i++) {
 		size_t len;
 		const char *label = luaL_checklstring(L, i, &len);
-		
 		unsigned long hash = lunatik_hash(label, len, 0);
-		node = luartree_getchild(cur, hash);
+
+		node = luartree_getchild(xa, hash);
 		if (!node)
 			goto notfound;
-		
-		cur = &node->children;
+
+		xa = &node->children;
 	}
-	
-	lua_pushboolean(L, node && node->is_leaf);
-	return 1;
+
+	if (node) {
+		luartree_pushnode(L, node);
+		return 1;
+	}
 
 notfound:
-	lua_pushboolean(L, false);
+	lua_pushnil(L);
 	return 1;
 }
 
@@ -174,7 +232,7 @@ static int luartree_new(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_newobject(L, &luartree_class, sizeof(struct xarray));
 	struct xarray *root = (struct xarray *)object->private;
-	
+
 	xa_init(root);
 	return 1;
 }
