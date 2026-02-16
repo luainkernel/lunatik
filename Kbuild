@@ -66,4 +66,5 @@ obj-$(CONFIG_LUNATIK_CPU) += lib/luacpu.o
 obj-$(CONFIG_LUNATIK_HID) += lib/luahid.o
 obj-$(CONFIG_LUNATIK_SIGNAL) += lib/luasignal.o
 obj-$(CONFIG_LUNATIK_BYTEORDER) += lib/luabyteorder.o
+obj-$(CONFIG_LUNATIK_RTREE) += lib/luartree.o
 
