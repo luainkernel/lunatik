@@ -300,9 +300,6 @@ int luaopen_##libname(lua_State *L)						\
 }										\
 EXPORT_SYMBOL_GPL(luaopen_##libname)
 
-#define LUNATIK_LIB(libname)		\
-int luaopen_##libname(lua_State *L);	\
-
 #define LUNATIK_OBJECTCHECKER(checker, T)			\
 static inline T checker(lua_State *L, int ix)			\
 {								\

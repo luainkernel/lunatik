@@ -8,8 +8,6 @@
 
 #include <lunatik.h>
 
-LUNATIK_LIB(data);
-
 #define	LUADATA_OPT_NONE	0x00
 #define	LUADATA_OPT_READONLY	0x01
 #define	LUADATA_OPT_FREE	0x02
