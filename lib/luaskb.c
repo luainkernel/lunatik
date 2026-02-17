@@ -43,7 +43,18 @@ static const lunatik_class_t luaskb_class = {
 	.methods = luaskb_mt,
 	.release = luaskb_release,
 	.pointer = true,
+	.shared = true,
 };
+
+int luaskb_reset(lunatik_object_t *object, void *ptr)
+{
+	lunatik_lock(object);
+	if (object != NULL)
+		object->private = (void*)ptr;
+	lunatik_unlock(object);
+	return 0;
+}
+EXPORT_SYMBOL(luaskb_reset);
 
 LUNATIK_NEWLIB(skb, luaskb_lib, &luaskb_class, NULL);
 
@@ -53,7 +64,6 @@ lunatik_object_t *luaskb_create(struct sk_buff *skb)
 
 	if (object != NULL) {
 		object->private = (void*)skb;
-		pr_info_ratelimited("%s:%d: create skb object %p of skb->len %d\n", __func__, __LINE__, skb, skb->len);
 	}
 	return object;
 }

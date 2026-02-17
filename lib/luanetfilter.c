@@ -30,6 +30,7 @@
 typedef struct luanetfilter_s {
 	lunatik_object_t *runtime;
 	lunatik_object_t *skb;
+	lunatik_object_t *skbdata;
 	u32 mark;
 	struct nf_hook_ops nfops;
 } luanetfilter_t;
@@ -93,9 +94,9 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 		narg++;
 	}
 
-	lunatik_object_t *skbobj = luaskb_create(skb);
-	if (skbobj) {
-		lunatik_pushobject(L, skbobj);
+	if (luanf->skbdata) {
+		luaskb_reset(luanf->skbdata, skb);
+		lunatik_pushobject(L, luanf->skbdata);
 		narg++;
 	}
 
@@ -110,7 +111,6 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 	ret = (int)lua_tointeger(L, -2);
 clear:
 	luadata_clear(data);
-	lunatik_putobject(skbobj);
 out:
 	return ret;
 }
@@ -174,6 +174,7 @@ static int luanetfilter_register(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class , sizeof(luanetfilter_t));
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
 	nf->runtime = NULL;
+	nf->skbdata = luaskb_create(NULL);
 
 	struct nf_hook_ops *nfops = &nf->nfops;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
@@ -213,6 +214,9 @@ static void luanetfilter_release(void *private)
 	luadata_detach(runtime, nf, skb);
 	lunatik_putobject(runtime);
 	nf->runtime = NULL;
+	lunatik_putobject(nf->skbdata);
+	nf->skbdata = NULL;
+
 }
 
 LUNATIK_NEWLIB(netfilter, luanetfilter_lib, &luanetfilter_class, luanetfilter_flags);

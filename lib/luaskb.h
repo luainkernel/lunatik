@@ -7,6 +7,7 @@
 #define luaskb_h
 
 lunatik_object_t *luaskb_create(struct sk_buff *skb);
+int luaskb_reset(lunatik_object_t *object, void *ptr);
 
 #endif
 
