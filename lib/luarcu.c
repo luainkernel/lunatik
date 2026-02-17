@@ -96,9 +96,6 @@ typedef struct luarcu_table_s {
 			pos && ({ n = luarcu_entry(hlist_next_rcu(&(pos)->hlist), pos); 1; });	\
 			pos = n)
 
-#define luarcu_checkoptnil(L, i, checkopt, ...) \
-	(lua_type((L), (i)) == LUA_TNIL ? NULL : checkopt((L), (i), ## __VA_ARGS__))
-
 static int luarcu_table(lua_State *L);
 
 static inline luarcu_entry_t *luarcu_lookup(luarcu_table_t *table, unsigned int index,
@@ -250,7 +247,7 @@ static int luarcu_newindex(lua_State *L)
 	lunatik_object_t *table = lunatik_checkobject(L, 1);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
-	lunatik_object_t *object = luarcu_checkoptnil(L, 3, lunatik_checkobject);
+	lunatik_object_t *object = lunatik_checkoptnil(L, 3, lunatik_checkobject);
 
 	if (luarcu_settable(table, key, keylen, object) < 0)
 		luaL_error(L, "not enough memory");
