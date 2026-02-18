@@ -44,6 +44,7 @@ file = {
 	'./lib/luasyscall.c',
 	'./lib/syscall/table.lua',
 	'./lib/luathread.c',
+	'./lib/luaxarray.c',
 	'./lib/luaxdp.c',
 	'./lib/luaxtable.c',
 }

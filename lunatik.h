@@ -137,6 +137,9 @@ static inline void *lunatik_checknull(lua_State *L, void *ptr)
 
 #define lunatik_checkalloc(L, s)	(lunatik_checknull((L), lunatik_malloc((L), (s))))
 
+#define lunatik_checkoptnil(L, i, checkopt, ...) \
+	(lua_type((L), (i)) == LUA_TNIL ? NULL : checkopt((L), (i), ## __VA_ARGS__))
+
 void lunatik_pusherrname(lua_State *L, int err);
 
 static inline void lunatik_throw(lua_State *L, int ret)
