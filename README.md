@@ -155,6 +155,42 @@ Lunatik **modifies** [luaL\_openlibs](https://www.lua.org/manual/5.5/manual.html
 
 Lua APIs are documented thanks to [LDoc](https://stevedonovan.github.io/ldoc/). This documentation can be read here: https://luainkernel.github.io/lunatik/, and in the source files.
 
+## Lunatik Objects
+
+Lunatik exposes kernel facilities to Lua through *objects*. A Lunatik object is a Lua userdata that represents a kernel-resident resource and is shared between Lua and C code.
+
+Internally, each Lunatik object combines:
+- a Lua userdata
+- a kernel lock (mutex or spinlock)
+- a reference counter
+
+This allows safe access to kernel resources from both Lua scripts and kernel code while respecting Linux kernel execution constraints.
+
+### Object Lifetime
+
+Lunatik objects are typically created by Lua APIs (e.g. `runtime`, `device`, `probe`) or by the [C API](<README#C API>). Once created, an object may be referenced by:
+- Lua variables
+- kernel subsystems
+- other Lunatik objects
+
+The lifetime of an object is not tied solely to Lua garbage collection. An object remains alive as long as at least one reference exists.
+
+Some objects expose an explicit *stop* or *close* operation, which releases internal resources (such as Lua states or kernel hooks) before the object itself is freed.
+
+### Reference Counting
+
+Each Lunatik object maintains an internal reference counter. References are incremented and decremented automatically by Lunatik, and may also be managed explicitly from C code using `lunatik_getobject()` and `lunatik_putobject()`.
+
+When the reference counter reaches zero, the object’s resources and memory are released.
+
+Lua scripts do not manage locking directly; synchronization is handled internally by Lunatik.
+
+### Interaction with Lua Garbage Collection
+
+Lua garbage collection may release Lua references to an object, but this does not necessarily destroy the underlying kernel object. Garbage collection typically results in a reference counter decrement.
+
+Kernel-held references keep the object alive even after all Lua references are gone. For deterministic cleanup, objects should be explicitly stopped or unloaded when appropriate.
+
 ## Lunatik C API
 
 See [this](doc/capi.md) document.
