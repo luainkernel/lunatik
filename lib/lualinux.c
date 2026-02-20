@@ -13,8 +13,8 @@
 */
 
 #include <linux/random.h>
-#include <linux/stat.h>
 #include <linux/sched.h>
+
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
 #include <linux/netdevice.h>
@@ -230,56 +230,6 @@ static int lualinux_ifaddr(lua_State *L)
 	return 1;
 }
 
-/***
-* Table of task state constants.
-* Exports task state flags from `<linux/sched.h>`. These are used with
-* `linux.schedule()`.
-*
-* @table task
-*   @tfield integer INTERRUPTIBLE Task is waiting for a signal or a resource (sleeping), can be interrupted.
-*   @tfield integer UNINTERRUPTIBLE Task is waiting (sleeping),
-*   cannot be interrupted by signals (except fatal ones if KILLABLE is also implied by context).
-*   @tfield integer KILLABLE Task is waiting (sleeping) like UNINTERRUPTIBLE, but can be interrupted by fatal signals.
-*   @tfield integer IDLE Task is idle, similar to UNINTERRUPTIBLE but avoids loadavg accounting.
-* @see linux.schedule
-*/
-static const lunatik_reg_t lualinux_task[] = {
-	{"INTERRUPTIBLE", TASK_INTERRUPTIBLE},
-	{"UNINTERRUPTIBLE", TASK_UNINTERRUPTIBLE},
-	{"KILLABLE", TASK_KILLABLE},
-	{"IDLE", TASK_IDLE},
-	{NULL, 0}
-};
-
-/***
-* Table of file mode constants.
-* Exports file permission flags from `<linux/stat.h>`. These can be used, for
-* example, with `device.new()` to set the mode of a character device.
-*/
-static const lunatik_reg_t lualinux_stat[] = {
-	/* user */
-	{"IRWXU", S_IRWXU},
-	{"IRUSR", S_IRUSR},
-	{"IWUSR", S_IWUSR},
-	{"IXUSR", S_IXUSR},
-	/* group */
-	{"IRWXG", S_IRWXG},
-	{"IRGRP", S_IRGRP},
-	{"IWGRP", S_IWGRP},
-	{"IXGRP", S_IXGRP},
-	/* other */
-	{"IRWXO", S_IRWXO},
-	{"IROTH", S_IROTH},
-	{"IWOTH", S_IWOTH},
-	{"IXOTH", S_IXOTH},
-	/* user, group, other */
-	{"IRWXUGO", (S_IRWXU|S_IRWXG|S_IRWXO)},
-	{"IALLUGO", (S_ISUID|S_ISGID|S_ISVTX|S_IRWXUGO)},
-	{"IRUGO", (S_IRUSR|S_IRGRP|S_IROTH)},
-	{"IWUGO", (S_IWUSR|S_IWGRP|S_IWOTH)},
-	{"IXUGO", (S_IXUSR|S_IXGRP|S_IXOTH)},
-	{NULL, 0}
-};
 
 /***
 * Returns the symbolic name of a kernel error number.
@@ -300,11 +250,7 @@ static int lualinux_errname(lua_State *L)
     return 1;
 }
 
-static const lunatik_namespace_t lualinux_flags[] = {
-	{"stat", lualinux_stat},
-	{"task", lualinux_task},
-	{NULL, NULL}
-};
+
 
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
@@ -319,7 +265,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(linux, lualinux_lib, NULL, lualinux_flags);
+LUNATIK_NEWLIB(linux, lualinux_lib, NULL, NULL);
 
 static int __init lualinux_init(void)
 {
