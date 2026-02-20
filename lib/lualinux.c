@@ -88,7 +88,9 @@ static int lualinux_random(lua_State *L)
 * @see linux.task
 * @usage
 *   linux.schedule(1000) -- Sleep for 1 second (interruptible)
-*   linux.schedule(500, linux.task.UNINTERRUPTIBLE) -- Sleep for 0.5 seconds (uninterruptible)
+*
+*   local task = require("linux.task")
+*   linux.schedule(500, task.UNINTERRUPTIBLE) -- Sleep for 0.5 seconds (uninterruptible)
 */
 static int lualinux_schedule(lua_State *L)
 {

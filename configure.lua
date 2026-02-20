@@ -167,9 +167,14 @@ end
 local function write_constants(file, module, spec, constants, macro_names)
 	for _, macro in ipairs(macro_names) do
 		local field_name = macro:gsub("^" .. spec.prefix, "")
-		local resolved_value = resolve_value(constants[macro], constants, spec.prefix, spec.module_name)
-		if resolved_value then
-			file:write(string.format('%s["%s"]\t= %s\n', spec.module_name, field_name, resolved_value))
+		local num = resolve_numeric(constants[macro], constants)
+		if num then
+			file:write(string.format('%s["%s"]\t= 0x%08x\n', spec.module_name, field_name, num))
+		else
+			local resolved_value = resolve_value(constants[macro], constants, spec.prefix, spec.module_name)
+			if resolved_value then
+				file:write(string.format('%s["%s"]\t= %s\n', spec.module_name, field_name, resolved_value))
+			end
 		end
 	end
 end
@@ -263,3 +268,4 @@ for _, spec in ipairs(specs) do
 end
 
 write_module("lunatik", "config", write_config)
+
