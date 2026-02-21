@@ -24,6 +24,13 @@ local specs = {
 		header = "uapi/linux/signal.h",
 		prefix = "SIG",
 		module_name = "signal",
+	},
+	{
+		-- kernel-internal header, extracted via grep (not preprocessor)
+		header = "linux/sched.h",
+		prefix = "TASK_",
+		module_name = "task",
+		internal = true,
 	}
 }
 
@@ -61,22 +68,77 @@ local function collect_constants(cpp_output, prefix)
 	return constants, macro_names
 end
 
-local function resolve_value(value, constants, prefix, module_name, seen)
-	if tonumber(value) then return value end
+-- Extract #define lines directly from a kernel-internal header file (no preprocessing).
+-- Handles simple values (hex/decimal) and single-line OR expressions like (A | B).
+local function grep_constants(header_path, prefix)
+	local filepath = string.format("%s/%s", INCLUDE, header_path)
+	local file <close> = io.open(filepath, "r")
+	if not file then
+		exit("cannot open " .. filepath)
+	end
 
-	if not constants[value] then return nil end
+	local constants = {}
+	local macro_names = {}
+
+	for line in file:lines() do
+		local macro, value = line:match("^#define%s+(" .. prefix .. "%w+)%s+(.+)$")
+		if macro and value then
+			value = value:gsub("%s+$", "")  -- trim trailing whitespace
+			-- skip multi-line macros (ending with backslash) and function-like macros
+			if not value:find("\\$") and not macro:find("%(") then
+				constants[macro] = value
+				table.insert(macro_names, macro)
+			end
+		end
+	end
+
+	table.sort(macro_names)
+	return constants, macro_names
+end
+
+-- Resolve a macro value to a Lua expression string. Handles:
+-- 1. Numeric literals (decimal, hex) -> formatted as hex
+-- 2. References to other macros (resolved recursively)
+-- 3. OR expressions like (MACRO_A | MACRO_B) -> resolved and formatted as hex
+-- 4. Cross-references to same-prefix macros -> module["FIELD"] syntax
+local function resolve_value(value, constants, prefix, module_name, seen)
+	-- numeric literal
+	local n = tonumber(value)
+	if n then return string.format("0x%08x", n) end
 
 	seen = seen or {}
 	-- recursion check: avoid cyclic defines
 	if seen[value] then return nil end
 	seen[value] = true
 
+	-- OR expression: (A|B|C) or (A | B | C)
+	local inner = value:match("^%((.+)%)$")
+	if inner then
+		local result = 0
+		for term in inner:gmatch("[^|]+") do
+			term = term:match("^%s*(.-)%s*$")  -- trim
+			local resolved = resolve_value(term, constants, prefix, module_name, seen)
+			if not resolved then return nil end
+			local n = tonumber(resolved)
+			if not n then return nil end
+			result = result | n
+		end
+		return string.format("0x%08x", result)
+	end
+
+	if not constants[value] then return nil end
+
+	-- try to resolve through the constants table first (e.g. chained defines)
+	local resolved = resolve_value(constants[value], constants, prefix, module_name, seen)
+	if resolved then return resolved end
+
+	-- cross-reference to a same-prefix macro (fallback)
 	if value:find("^" .. prefix) then
 		local stripped = value:gsub("^" .. prefix, "")
 		return string.format('%s["%s"]', module_name, stripped)
 	end
 
-	return resolve_value(constants[value], constants, prefix, module_name, seen)
+	return nil
 end
 
 local function write_constants(file, module, spec, constants, macro_names)
@@ -112,8 +174,15 @@ local function write_config(file, module)
 end
 
 for _, spec in ipairs(specs) do
-	local cpp_output = preprocess(spec.header)
-	local constants, macro_names = collect_constants(cpp_output, spec.prefix)
+	local constants, macro_names
+	if spec.internal then
+		-- kernel-internal header: extract via grep
+		constants, macro_names = grep_constants(spec.header, spec.prefix)
+	else
+		-- uapi header: use C preprocessor
+		local cpp_output = preprocess(spec.header)
+		constants, macro_names = collect_constants(cpp_output, spec.prefix)
+	end
 	write_module("linux", spec.module_name, write_constants, spec, constants, macro_names)
 end
 

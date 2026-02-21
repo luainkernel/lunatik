@@ -11,7 +11,6 @@ local linux   = require("linux")
 local data    = require("data")
 
 local shouldstop = thread.shouldstop
-local task = linux.task
 local sock = socket.sock
 
 local control = data.new(2)
