@@ -7,10 +7,10 @@ local linux  = require("linux")
 local probe  = require("probe")
 local device = require("device")
 local systab = require("syscall.table")
+local s      = require("linux.stat")
 
 local syscalls = {"openat", "read", "write", "readv", "writev", "close"}
 
-local s = linux.stat
 local driver = {name = "systrack", mode = s.IRUGO}
 
 local track = {}

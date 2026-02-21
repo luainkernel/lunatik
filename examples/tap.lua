@@ -6,10 +6,10 @@
 local device = require("device")
 local raw    = require("socket.raw")
 local linux  = require("linux")
+local s      = require("linux.stat")
 
 local MTU       = 1500
 
-local s = linux.stat
 local tap = {name = "tap", mode = s.IRUGO}
 
 local socket = raw.bind()
