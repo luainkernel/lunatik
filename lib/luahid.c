@@ -321,7 +321,7 @@ static int luahid_register(lua_State *L)
 	driver->raw_event = luahid_raw_event;
 
 	lunatik_setruntime(L, hid, hid);
-	luadata_attach(L, hid, data);
+	luadata_attach(L, hid, data, false);
 	lunatik_getobject(hid->runtime);
 	lunatik_registerobject(L, 1, object);
 
