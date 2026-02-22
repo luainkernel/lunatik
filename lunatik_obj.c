@@ -16,12 +16,21 @@
 	(reg)->func == lunatik_deleteobject || \
 	(reg)->func == lunatik_closeobject)
 
+/*
+ * Creates a new object of the given class.
+ * If shared = true, the object will use the monitored metatable and
+ * participate in cross-state sharing. This requires class->shared = true;
+ * passing shared = true for a non-shared class is invalid and will raise
+ * a Lua error.
+ */
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
 	lunatik_checkclass(L, class);
+	if (shared && !class->shared)
+		luaL_error(L, "cannot create shared object from non-shared class '%s'", class->name);
 	lunatik_setobject(object, class, class->sleep, shared);
 	lunatik_setclass(L, class, shared);
 

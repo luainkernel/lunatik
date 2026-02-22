@@ -183,7 +183,7 @@ static int luanetfilter_register(lua_State *L)
 		luaL_error(L, "failed to register netfilter hook");
 
 	lunatik_setruntime(L, netfilter, nf);
-	luadata_attach(L, nf, skb, false);
+	luadata_attach(L, nf, skb);
 	lunatik_getobject(nf->runtime);
 	lunatik_registerobject(L, 1, object);
 	return 1;

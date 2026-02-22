@@ -25,9 +25,9 @@ static inline void luadata_close(lunatik_object_t *object)
 	lunatik_putobject(object);
 }
 
-#define luadata_attach(L, obj, field, shared)		\
+#define luadata_attach(L, obj, field)		\
 do {						\
-	obj->field = luadata_new(L, shared); 		\
+	obj->field = luadata_new(L, false); 		\
 	lunatik_register(L, -1, obj->field);	\
 	lua_pop(L, 1);				\
 } while (0)
