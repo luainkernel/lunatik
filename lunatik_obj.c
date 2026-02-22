@@ -44,6 +44,10 @@ EXPORT_SYMBOL(lunatik_newobject);
 lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared)
 {
 	gfp_t gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
+	if (shared && !class->shared) {
+		pr_err("lunatik: cannot create shared object from non-shared class '%s'\n", class->name);
+		return NULL;
+	}
 	lunatik_object_t *object = (lunatik_object_t *)kmalloc(sizeof(lunatik_object_t), gfp);
 
 	if (object == NULL)
