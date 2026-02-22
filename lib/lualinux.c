@@ -88,7 +88,8 @@ static int lualinux_random(lua_State *L)
 * @see linux.task
 * @usage
 *   linux.schedule(1000) -- Sleep for 1 second (interruptible)
-*   linux.schedule(500, linux.task.UNINTERRUPTIBLE) -- Sleep for 0.5 seconds (uninterruptible)
+*   local task = require("linux.task")
+*   linux.schedule(500, task.UNINTERRUPTIBLE) -- Sleep for 0.5 seconds (uninterruptible)
 */
 static int lualinux_schedule(lua_State *L)
 {
@@ -231,25 +232,6 @@ static int lualinux_ifaddr(lua_State *L)
 }
 
 /***
-* Table of task state constants.
-* Exports task state flags from `<linux/sched.h>`. These are used with
-* `linux.schedule()`.
-*
-* @table task
-*   @tfield integer INTERRUPTIBLE Task is waiting for a signal or a resource (sleeping), can be interrupted.
-*   @tfield integer UNINTERRUPTIBLE Task is waiting (sleeping),
-*   cannot be interrupted by signals (except fatal ones if KILLABLE is also implied by context).
-*   @tfield integer KILLABLE Task is waiting (sleeping) like UNINTERRUPTIBLE, but can be interrupted by fatal signals.
-*   @tfield integer IDLE Task is idle, similar to UNINTERRUPTIBLE but avoids loadavg accounting.
-* @see linux.schedule
-*/
-static const lunatik_reg_t lualinux_task[] = {
-	{"INTERRUPTIBLE", TASK_INTERRUPTIBLE},
-	{"UNINTERRUPTIBLE", TASK_UNINTERRUPTIBLE},
-	{"KILLABLE", TASK_KILLABLE},
-	{"IDLE", TASK_IDLE},
-	{NULL, 0}
-};
 
 /***
 * Table of file mode constants.
@@ -302,7 +284,6 @@ static int lualinux_errname(lua_State *L)
 
 static const lunatik_namespace_t lualinux_flags[] = {
 	{"stat", lualinux_stat},
-	{"task", lualinux_task},
 	{NULL, NULL}
 };
 
