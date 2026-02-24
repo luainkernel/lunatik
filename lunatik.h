@@ -390,5 +390,7 @@ static inline void lunatik_unregisterobject(lua_State *L, lunatik_object_t *obje
 	lunatik_unregister(L, object); /* remove object, now it might be GC'ed */
 }
 
+#include "lunatik_val.h"
+
 #endif
 
