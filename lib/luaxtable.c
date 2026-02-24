@@ -157,7 +157,7 @@ static int luaxtable_##hook##_check(const struct xt_##hk##chk_param *par)	\
 {										\
 	int ret;								\
 	luaxtable_t *xtable;							\
-	lunatik_object_t *obj = luarcu_gettable(luaxtable_hooks.hook, par->hook->name, XT_EXTENSION_MAXNAMELEN);	\
+	lunatik_object_t *obj = luarcu_getobject(luaxtable_hooks.hook, par->hook->name, XT_EXTENSION_MAXNAMELEN);	\
 	if (obj == NULL) {							\
 		pr_err("could not find hook (%s)\n", par->hook->name);		\
 		return -EINVAL;							\
@@ -355,7 +355,7 @@ static int luaxtable_new##hook(lua_State *L) 				\
 	hook->checkentry = luaxtable_##hook##_check;			\
 	hook->destroy = luaxtable_##hook##_destroy;			\
 									\
-	if (luarcu_settable(luaxtable_hooks.hook, hook->name, XT_EXTENSION_MAXNAMELEN, object) != 0)	\
+	if (luarcu_setobject(luaxtable_hooks.hook, hook->name, XT_EXTENSION_MAXNAMELEN, object) != 0)	\
 		luaL_error(L, "unable to hook: %s\n", hook->name);	\
 									\
 	if (xt_register_##hook(hook) != 0)				\

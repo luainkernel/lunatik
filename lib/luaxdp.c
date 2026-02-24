@@ -98,7 +98,7 @@ static inline int luaxdp_checkruntimes(void)
 {
 	const char *key = "runtimes";
 	if (luaxdp_runtimes == NULL &&
-	   (luaxdp_runtimes = luarcu_gettable(lunatik_env, key, sizeof(key))) == NULL)
+	   (luaxdp_runtimes = luarcu_getobject(lunatik_env, key, sizeof(key))) == NULL)
 		return -1;
 	return 0;
 }
@@ -116,7 +116,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	}
 
 	key[keylen] = '\0';
-	if ((runtime = luarcu_gettable(luaxdp_runtimes, key, keylen)) == NULL) {
+	if ((runtime = luarcu_getobject(luaxdp_runtimes, key, keylen)) == NULL) {
 		pr_err("couldn't find runtime '%s'\n", key);
 		goto out;
 	}
