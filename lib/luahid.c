@@ -70,8 +70,27 @@ static const luaL_Reg luahid_lib[] = {
 	{NULL, NULL},
 };
 
+static int luahid_unregister(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	luahid_t *hid = (luahid_t *)object->private;
+
+	lunatik_lock(object);
+	if (hid->registered) {
+		hid_unregister_driver(&hid->driver);
+		hid->registered = false;
+	}
+	lunatik_unlock(object);
+
+	if (lunatik_isruntime(L, hid))
+		lunatik_unregisterobject(L, object);
+
+	return 0;
+}
+
 static const luaL_Reg luahid_mt[] = {
 	{"__gc", lunatik_deleteobject},
+	{"unregister", luahid_unregister},
 	{NULL, NULL},
 };
 

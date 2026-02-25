@@ -184,11 +184,9 @@ static void luanotifier_release(void *private)
 	lunatik_putobject(notifier->runtime);
 }
 
-#define luanotifier_isruntime(L, notifier)	(lunatik_toruntime(L) == (notifier)->runtime)
-
 static inline void luanotifier_checkrunning(lua_State *L, luanotifier_t *notifier)
 {
-	if (luanotifier_isruntime(L, notifier) && notifier->running)
+	if (lunatik_isruntime(L, notifier) && notifier->running)
 		luaL_error(L, "[%p] notifier cannot unregister itself (deadlock)", notifier);
 }
 
@@ -205,7 +203,6 @@ static int luanotifier_stop(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
 	luanotifier_t *notifier = (luanotifier_t *)object->private;
-
 	luanotifier_checkrunning(L, notifier);
 
 	lunatik_lock(object);
@@ -215,7 +212,7 @@ static int luanotifier_stop(lua_State *L)
 	}
 	lunatik_unlock(object);
 
-	if (luanotifier_isruntime(L, notifier))
+	if (lunatik_isruntime(L, notifier))
 		lunatik_unregisterobject(L, object);
 	return 0;
 }

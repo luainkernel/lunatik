@@ -62,6 +62,8 @@ do {									\
 	lunatik_unlock(runtime);					\
 } while(0)
 
+#define lunatik_isruntime(L, obj)	(lunatik_toruntime(L) == (obj)->runtime)
+
 typedef struct lunatik_reg_s {
 	const char *name;
 	lua_Integer value;
