@@ -12,6 +12,8 @@ MODULES_BUILD_PATH ?= ${BTF_INSTALL_PATH}
 MODULES_INSTALL_PATH := ${MODULES_RELEASE_PATH}/kernel
 SCRIPTS_INSTALL_PATH := ${MODULES_PATH}/lua
 INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
+KERNEL_ARCH ?= ${shell uname -m}
+ARCH ?= $(subst x86_64,x86,$(subst aarch64,arm64,$(KERNEL_ARCH)))
 
 LUA ?= lua5.4
 LUA_PATH ?= $(shell $(LUA) -e 'print(package.path:match("([^;]*)/%?%.lua;"))')
@@ -154,7 +156,7 @@ lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
 configure:
-	CC='$(CC)' "$(LUA)" configure.lua "$(KERNEL_RELEASE)" "$(INCLUDE_PATH)" "$(LUNATIK_MODULES)"
+	CC='$(CC)' "$(LUA)" configure.lua "$(KERNEL_RELEASE)" "$(INCLUDE_PATH)" "$(LUNATIK_MODULES)" "$(ARCH)"
 
 moontastik_install_%:
 	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)

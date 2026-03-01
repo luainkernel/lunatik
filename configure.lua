@@ -8,6 +8,7 @@ local SCRIPT  = arg[0]
 local KERNEL  = arg[1]
 local INCLUDE = arg[2]
 local MODULES = arg[3]
+local ARCH    = arg[4]
 
 local specs = {
 	{
@@ -24,6 +25,11 @@ local specs = {
 		header = "uapi/linux/signal.h",
 		prefix = "SIG",
 		module_name = "signal",
+	},
+	{
+		header = "linux/sched.h",
+		prefix = "TASK_",
+		module_name = "task",
 	}
 }
 
@@ -32,12 +38,14 @@ local function exit(msg)
 	os.exit(1)
 end
 
-if not KERNEL or not INCLUDE or not MODULES then
-	exit("usage: lua5.4 " .. SCRIPT .. " <KERNEL> <INCLUDE> <MODULES>")
+if not KERNEL or not INCLUDE or not MODULES or not ARCH then
+	exit("usage: lua5.4 " .. SCRIPT .. " <KERNEL> <INCLUDE> <MODULES> <ARCH>")
 end
 
 local CC = os.getenv("CC") or "cc"
-local CPP = string.format("%s -E -dM -I%s", CC, INCLUDE)
+local BUILD = INCLUDE:gsub("/include$", "")
+local CPP = string.format("%s -E -dM -I%s -I%s/include/generated -I%s/arch/%s/include -I%s/arch/%s/include/generated -include linux/kconfig.h",
+	CC, INCLUDE, BUILD, BUILD, ARCH, BUILD, ARCH)
 
 local function preprocess(header_path)
 	local cmd = string.format("%s %s/%s", CPP, INCLUDE, header_path)
@@ -52,37 +60,55 @@ local function collect_constants(cpp_output, prefix)
 	local constants = {}
 	local macro_names = {}
 
-	for macro, literal in cpp_output:gmatch("#define%s+(" .. prefix .. "%w+)%s+(%S+)") do
-		constants[macro] = literal
-		table.insert(macro_names, macro)
+	for line in cpp_output:gmatch("[^\n]+") do
+		local macro, value = line:match("#define%s+(" .. prefix .. "[%u%d_]+)%s+(.+)%s*$")
+		if macro and not line:match("#define%s+" .. prefix .. "%w+%(") then
+			constants[macro] = value
+			table.insert(macro_names, macro)
+		end
 	end
 
 	table.sort(macro_names)
 	return constants, macro_names
 end
 
-local function resolve_value(value, constants, prefix, module_name, seen)
-	if tonumber(value) then return value end
-
-	if not constants[value] then return nil end
-
+local function resolve_value(value, prefix, constants, seen)
 	seen = seen or {}
-	-- recursion check: avoid cyclic defines
 	if seen[value] then return nil end
-	seen[value] = true
 
-	if value:find("^" .. prefix) then
-		local stripped = value:gsub("^" .. prefix, "")
-		return string.format('%s["%s"]', module_name, stripped)
+	if tonumber(value) then return tonumber(value) end
+
+	-- OR expression: (A | B | ...)
+	local inner = value:match("^%((.+)%)$")
+	if inner then
+		local is_or_expr = true
+		local result = 0
+		for token in inner:gmatch("[^%s|]+") do
+			-- only resolve if token is a number or it starts with the expected prefix
+			if not (tonumber(token) or string.sub(token, 1, #prefix) == prefix) then
+				is_or_expr = false
+				break
+			end
+			local resolved = resolve_value(token, prefix, constants, seen)
+			if not resolved then return nil end
+			result = result | resolved
+		end
+		if is_or_expr then return result end
 	end
 
-	return resolve_value(constants[value], constants, prefix, module_name, seen)
+	-- macro reference
+	if not constants[value] then return nil end
+
+	seen[value] = true
+	local res = resolve_value(constants[value], prefix, constants, seen)
+	seen[value] = nil
+	return res
 end
 
 local function write_constants(file, module, spec, constants, macro_names)
 	for _, macro in ipairs(macro_names) do
 		local field_name = macro:gsub("^" .. spec.prefix, "")
-		local resolved_value = resolve_value(constants[macro], constants, spec.prefix, spec.module_name)
+		local resolved_value = resolve_value(constants[macro], spec.prefix, constants)
 		if resolved_value then
 			file:write(string.format('%s["%s"]\t= %s\n', spec.module_name, field_name, resolved_value))
 		end
