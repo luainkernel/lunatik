@@ -31,6 +31,10 @@
   <li><a href="../index.html">Index</a></li>
 </ul>
 
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
 
 
 <h2>Modules</h2>
@@ -48,7 +52,7 @@
   <li><a href="../modules/fib.html">fib</a></li>
   <li><a href="../modules/fifo.html">fifo</a></li>
   <li><a href="../modules/hid.html">hid</a></li>
-  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><strong>lighten</strong></li>
   <li><a href="../modules/linux.html">linux</a></li>
   <li><a href="../modules/lunatik.html">lunatik</a></li>
   <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
@@ -64,7 +68,7 @@
   <li><a href="../modules/socket.raw.html">socket.raw</a></li>
   <li><a href="../modules/socket.unix.html">socket.unix</a></li>
   <li><a href="../modules/syscall.html">syscall</a></li>
-  <li><strong>syscall.table</strong></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
   <li><a href="../modules/thread.html">thread</a></li>
   <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
@@ -77,37 +81,58 @@
 
 <div id="content">
 
-<h1>Module <code>syscall.table</code></h1>
-<p>A table mapping system call names to their kernel addresses.</p>
-<p> This module provides a pre-populated Lua table where each key
- is a system call name (string, e.g., "openat") and its corresponding
- value is the kernel address of that system call (lightuserdata).</p>
-    <h3>See also:</h3>
-    <ul>
-         <li><a href="../modules/syscall.html#">syscall</a></li>
-         <li><a href="../modules/syscall.html#numbers">syscall.numbers</a></li>
-         <li><a href="../modules/syscall.html#address">syscall.address</a></li>
-    </ul>
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">local syscall_addrs = require(&quot;syscall.table&quot;)
-
-if syscall_addrs.openat then
-  print(&quot;Address of &apos;openat&apos;:&quot;, syscall_addrs.openat)
-end
-
-if syscall_addrs.close then
-  print(&quot;Address of &apos;close&apos;:&quot;, syscall_addrs.close)
-end
-</pre>
-    </ul>
+<h1>Module <code>lighten</code></h1>
+<p>Encrypted Lua script support (AES-256-CTR).</p>
+<p> This module provides functions to run encrypted Lua scripts
+ using the <code>darken</code> C module.</p>
 
 
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#run">run (ct, iv)</a></td>
+	<td class="summary">Decrypts and executes an encrypted Lua script.</td>
+	</tr>
+</table>
 
 <br/>
 <br/>
 
 
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "run"></a>
+    <strong>run (ct, iv)</strong>
+    </dt>
+    <dd>
+    Decrypts and executes an encrypted Lua script.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">ct</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Hex-encoded ciphertext.
+        </li>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Hex-encoded 16-byte IV.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        The return values of the decrypted script.
+    </ol>
+
+
+
+
+</dd>
+</dl>
 
 
 </div> <!-- id="content" -->
