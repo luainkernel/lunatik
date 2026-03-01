@@ -99,12 +99,6 @@ config LUNATIK_FIFO
 	help
 	  First-In-First-Out queue support.
 
-config LUNATIK_XTABLE
-	tristate "Lunatik Xtable (Netfilter) Support"
-	default m
-	help
-	  Xtables extension support (iptables/nftables).
-
 config LUNATIK_NETFILTER
 	tristate "Lunatik Netfilter bindings"
 	default m

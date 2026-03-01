@@ -332,22 +332,10 @@ The system logs (in the first terminal) should display `filter_sni: ebpf.io DROP
 
 ### dnsblock
 
-[dnsblock](examples/dnsblock) is a kernel script that uses the lunatik xtable library to filter DNS packets.
+[dnsblock](examples/dnsblock) is a kernel script that uses the netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter)) to filter DNS packets.
 This script drops any outbound DNS packet with question matching the blacklist provided by the user. By default, it will block DNS resolutions for the domains `github.com` and `gitlab.com`.
 
 #### Usage
-
-1. Using legacy iptables
-```
-sudo make examples_install              # installs examples
-cd examples/dnsblock
-make                                    # builds the userspace extension for netfilter
-sudo make install   					# installs the extension to Xtables directory
-sudo lunatik run examples/dnsblock/dnsblock false	# runs the Lua kernel script
-sudo iptables -A OUTPUT -m dnsblock -j DROP     	# this initiates the netfilter framework to load our extension
-```
-
-2. Using new netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter))
 
 ```
 sudo make examples_install              # installs examples
@@ -356,41 +344,12 @@ sudo lunatik run examples/dnsblock/nf_dnsblock false	# runs the Lua kernel scrip
 
 ### dnsdoctor
 
-[dnsdoctor](examples/dnsdoctor) is a kernel script that uses the lunatik xtable library to change the DNS response
+[dnsdoctor](examples/dnsdoctor) is a kernel script that uses the netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter)) to change the DNS response
 from Public IP to a Private IP if the destination IP matches the one provided by the user. For example, if the user
 wants to change the DNS response from `192.168.10.1` to `10.1.2.3` for the domain `lunatik.com` if the query is being sent to `10.1.1.2` (a private client), this script can be used.
 
 #### Usage
 
-1. Using legacy iptables
-```
-sudo make examples_install              # installs examples
-cd examples/dnsdoctor
-setup.sh                                # sets up the environment
-
-# test the setup, a response with IP 192.168.10.1 should be returned
-dig lunatik.com
-
-# run the Lua kernel script
-sudo lunatik run examples/dnsdoctor/dnsdoctor false
-
-# build and install the userspace extension for netfilter
-make
-sudo make install
-
-# add rule to the mangle table
-sudo iptables -t mangle -A PREROUTING -p udp --sport 53 -j dnsdoctor
-
-# test the setup, a response with IP 10.1.2.3 should be returned
-dig lunatik.com
-
-# cleanup
-sudo iptables -t mangle -D PREROUTING -p udp --sport 53 -j dnsdoctor # remove the rule
-sudo lunatik unload
-cleanup.sh
-```
-
-2. Using new netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter))
 ```
 sudo make examples_install              # installs examples
 examples/dnsdoctor/setup.sh             # sets up the environment
