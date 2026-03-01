@@ -3,6 +3,17 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/***
+* Encrypted Lua script execution using AES-256-CTR.
+*
+* This module provides functionality to decrypt and execute Lua scripts
+* encrypted with AES-256 in CTR mode. Scripts are decrypted in-kernel
+* and executed immediately, with the decrypted plaintext never written
+* to persistent storage.
+*
+* @module darken
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <crypto/skcipher.h>
@@ -83,6 +94,15 @@ static void luadarken_decrypt(lua_State *L, luadarken_request_t *r)
 		lunatik_throw(L, ret);
 }
 
+/***
+* Decrypts and executes an encrypted Lua script.
+* @function run
+* @tparam string ciphertext The encrypted Lua script (binary).
+* @tparam string iv The 16-byte initialization vector (binary).
+* @tparam string key The 32-byte AES-256 key (binary).
+* @return The return values from the executed script.
+* @raise Error if decryption fails or IV/key length is invalid.
+*/
 static int luadarken_run(lua_State *L)
 {
 	size_t ct_len, iv_len, key_len;
