@@ -1,0 +1,24 @@
+name: PR Checklist
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+jobs:
+  checklist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+            const checklist = [
+              "did you test your patch?",
+              "did you check the code style?",
+              "did you use AI?"
+            ];
+            let missing = checklist.filter(item => !body.includes(item));
+            if (missing.length > 0) {
+              core.setFailed(`PR description missing checklist items: ${missing.join(", ")}`);
+            }
