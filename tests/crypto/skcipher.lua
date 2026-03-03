@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -7,7 +7,6 @@ local skcipher = require("crypto.skcipher")
 local util = require("util")
 local test = util.test
 local hex2bin = util.hex2bin
-local EINVAL = require("linux").errno.INVAL
 
 test("SKCIPHER AES-128-CBC encrypt", function()
 	local c = skcipher.new"cbc(aes)"
@@ -41,7 +40,7 @@ test("SKCIPHER AES-128-CBC setkey with invalid key length", function()
 	local c = skcipher.new"cbc(aes)"
 	local status, err = pcall(c.setkey, c, "0123456789abcde") -- 15 bytes, invalid for AES-128
 	assert(not status, "setkey with invalid key length should fail")
-	assert(err == EINVAL, "Error code should be EINVAL, got: " .. tostring(err))
+	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("SKCIPHER AES-128-CBC encrypt with incorrect IV length", function()
@@ -68,7 +67,7 @@ test("SKCIPHER AES-128-CBC encrypt with data not multiple of blocksize", functio
 	c:setkey"0123456789abcdef"
 	local status, err = pcall(c.encrypt, c, "fedcba9876543210", plaintext)
 	assert(not status, "encrypt with data not multiple of blocksize should fail")
-	assert(string.find(err, "Crypto operation failed with error code " .. EINVAL), "Error message should indicate EINVAL: " .. err)
+	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("SKCIPHER AES-128-CBC decrypt with data not multiple of blocksize", function()
@@ -77,6 +76,6 @@ test("SKCIPHER AES-128-CBC decrypt with data not multiple of blocksize", functio
 	c:setkey"0123456789abcdef"
 	local status, err = pcall(c.decrypt, c, "fedcba9876543210", ciphertext)
 	assert(not status, "decrypt with data not multiple of blocksize should fail")
-	assert(string.find(err, "Crypto operation failed with error code " .. EINVAL), "Error message should indicate EINVAL: " .. err)
+	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 

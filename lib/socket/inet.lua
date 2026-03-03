@@ -77,7 +77,8 @@ end
 -- @param msg (string) The message to send.
 -- @param addr (string) [optional] The destination IP address (e.g., for UDP).
 -- @param port (number) [optional] The destination port (e.g., for UDP).
--- @return (boolean or nil) True on success, or nil and an error message on failure.
+-- @return (number) Number of bytes sent on success
+-- @raise error on failure
 -- @see socket.send
 function inet:send(msg, addr, port)
 	local sock = self.socket

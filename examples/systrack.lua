@@ -10,10 +10,8 @@ local systab = require("syscall.table")
 
 local syscalls = {"openat", "read", "write", "readv", "writev", "close"}
 
-local function nop() end -- do nothing
-
 local s = linux.stat
-local driver = {name = "systrack", open = nop, release = nop, mode = s.IRUGO}
+local driver = {name = "systrack", mode = s.IRUGO}
 
 local track = {}
 local toggle = true
@@ -36,7 +34,7 @@ for _, symbol in ipairs(syscalls) do
 		track[symbol] = track[symbol] + 1
 	end
 
-	probe.new(address, {pre = handler, post = nop})
+	probe.new(address, {pre = handler})
 end
 
 device.new(driver)

@@ -1,0 +1,54 @@
+# Based on https://gist.github.com/domenic/ec8b0fc8ab45f39403dd
+name: Build Modules
+on:
+  pull_request:
+    branches:
+    - master
+  push:
+    branches:
+    - master
+jobs:
+  build:
+    name: Build ${{ matrix.kernel-version }}
+    strategy:
+      matrix:
+        kernel-version: [5.15, 6.11]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libncurses-dev clang llvm pkg-config libpcap-dev lua5.4 lua5.4-dev m4
+    - name: Setup kernel ${{ matrix.kernel-version }}
+      run: |
+        KERNEL_VERSION="${{ matrix.kernel-version }}"
+        MAJOR=$(echo $KERNEL_VERSION | cut -d. -f1)
+        wget -q "https://cdn.kernel.org/pub/linux/kernel/v${MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz"
+        tar xf linux-${KERNEL_VERSION}.tar.xz
+        cd linux-${KERNEL_VERSION}
+        make mrproper
+        make defconfig
+        echo "CONFIG_STACK_VALIDATION=n" >> .config
+        echo "CONFIG_WERROR=n" >> .config
+        if [[ "$KERNEL_VERSION" == "5."* ]]; then
+          sed -i 's/-Werror//g' tools/objtool/Makefile
+          sed -i 's/-Werror//g' tools/lib/subcmd/Makefile
+          export HOSTCFLAGS="-Wno-error=deprecated-declarations -Wno-error=use-after-free"
+        fi
+        make modules_prepare -j$(nproc)
+        echo "KERNEL_DIR=$(pwd)" >> $GITHUB_ENV
+    - name: Build Lunatik
+      run: |
+        export KERNEL_DIR="${{ env.KERNEL_DIR }}"
+        make clean || true
+        make -j$(nproc)
+    - name: Verify modules built
+      run: |
+        test -f lunatik.ko || { echo "Build failed" ; exit 1; }
+        echo "Lunatik built successfully for kernel ${{ matrix.kernel-version }}"
+

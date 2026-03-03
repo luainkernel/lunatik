@@ -1,0 +1,32 @@
+name: PR Checklist
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  checklist:
+    name: Verify PR Checklist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate PR description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+            const checklist = [
+              "Did you compile the code successfully",
+              "Did you run the relevant test suite",
+              "Did you manually verify functionality",
+              "Did you follow coding conventions",
+              "Did you run formatting tools",
+              "AI assistance: No / Partial / Full"
+            ];
+            let missing = checklist.filter(item => !body.includes(item));
+            if (missing.length > 0) {
+              core.setFailed(`PR description missing checklist items: ${missing.join(", ")}`);
+            }

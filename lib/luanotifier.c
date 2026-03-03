@@ -13,16 +13,10 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/module.h>
-#include <linux/version.h>
 #include <linux/keyboard.h>
 #include <linux/netdevice.h>
 #include <linux/vt_kern.h>
 #include <linux/vt.h>
-
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 
@@ -414,7 +408,7 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	object = lunatik_newobject(L, &luanotifier_class, sizeof(luanotifier_t));
+	object = lunatik_newobject(L, &luanotifier_class, sizeof(luanotifier_t), false);
 	notifier = (luanotifier_t *)object->private;
 
 	lunatik_setruntime(L, notifier, notifier);

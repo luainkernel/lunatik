@@ -1,16 +1,15 @@
 #!/usr/bin/lua5.4
 --
--- SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
+local config = require("lunatik.config")
+
 local lunatik = {
-	copyright = "Copyright (C) 2023-2025 ring-0 Ltda.",
+	copyright = "Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.",
 	device = "/dev/lunatik",
-	modules = {"lunatik", "luadevice", "lualinux", "luanotifier", "luasocket", "luarcu",
-		"luathread", "luafib", "luadata", "luaprobe", "luasyscall", "luaxdp", "luafifo", "luaxtable",
-		"luanetfilter", "luacompletion", "luacrypto_shash", "luacrypto_skcipher", "luacrypto_aead",
-		"luacrypto_rng", "luacrypto_comp", "luacpu", "lunatik_run"},
+	modules = config.modules,
 }
 
 function lunatik.prompt()
@@ -23,8 +22,7 @@ function lunatik.open(mode)
 end
 
 function lunatik.probe()
-	local prober <close> = lunatik.open("r")
-	return prober and true or false
+	return os.execute("[ -e " .. lunatik.device .. " ]")
 end
 
 function lunatik.loadstring(chunk)
@@ -98,12 +96,11 @@ if command then
 	os.exit()
 end
 
-if not lunatik.probe() then
-	lunatik.commands.load()
+function lunatik.load()
+	if not lunatik.probe() then
+		lunatik.commands.load()
+	end
 end
-
-local version = lunatik.dostring("return _LUNATIK_VERSION")
-lunatik.copyright = version .. "  " .. lunatik.copyright
 
 local function set(t)
 	local s = {}
@@ -118,6 +115,7 @@ if #arg >= 1 then
 	local script = arg[2]
 	local parm = arg[3]
 	if tokens[token] then
+		lunatik.load()
 		local parm = parm and ("," .. parm) or ""
 		local ret = token == "list" and "return" or ""
 		local chunk = string.format("%s lunatik.runner.%s('%s'%s)", ret, token, script, parm)
@@ -127,6 +125,10 @@ if #arg >= 1 then
 	end
 	os.exit()
 end
+
+lunatik.load()
+local version = lunatik.dostring("return _LUNATIK_VERSION")
+lunatik.copyright = version .. "  " .. lunatik.copyright
 
 print(lunatik.copyright)
 lunatik.prompt()

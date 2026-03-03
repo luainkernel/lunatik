@@ -13,13 +13,7 @@
 * @module fib
 */
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/version.h>
 #include <net/fib_rules.h>
-
-#include <lua.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 

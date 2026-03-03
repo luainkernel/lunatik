@@ -7,8 +7,6 @@
 #define _LUACRYPTO_H
 
 #include <linux/err.h>
-#include <lua.h>
-#include <lauxlib.h>
 #include <lunatik.h>
 
 typedef void *(*luacrypto_new_t)(lua_State *, void *);
@@ -32,7 +30,7 @@ typedef void (*luacrypto_free_t)(void *);
 static int luacrypto_##name##_new(lua_State *L)								\
 {													\
 	const char *algname = luaL_checkstring(L, 1);							\
-	lunatik_object_t *object = lunatik_newobject(L, &class, 0);					\
+	lunatik_object_t *object = lunatik_newobject(L, &class, 0, true);					\
 													\
 	T *tfm = alloc(algname, 0, 0);									\
 	if (IS_ERR(tfm)) {										\

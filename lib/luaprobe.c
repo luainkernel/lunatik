@@ -14,13 +14,8 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/kprobes.h>
 #include <linux/string.h>
-
-#include <lua.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 
@@ -58,10 +53,7 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 		goto out;
 	}
 
-	if (lua_getfield(L, -1, handler) != LUA_TFUNCTION) {
-		pr_err("%s handler isn't defined\n", handler);
-		goto out;
-	}
+	lunatik_optcfunction(L, -1, handler, lunatik_nop);
 
 	if (symbol != NULL)
 		lua_pushstring(L, symbol);
@@ -244,7 +236,7 @@ static const lunatik_class_t luaprobe_class = {
 
 static int luaprobe_new(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t));
+	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t), false);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 	struct kprobe *kp = &probe->kp;
 	int ret;

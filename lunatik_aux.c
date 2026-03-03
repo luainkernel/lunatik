@@ -1,10 +1,14 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
 #include <linux/slab.h>
 #include <linux/fs.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+#include <linux/errname.h>
+#endif
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -63,6 +67,20 @@ error:
 }
 EXPORT_SYMBOL(lunatik_loadfile);
 
+void lunatik_pusherrname(lua_State *L, int err)
+{
+    err = abs(err);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+    const char *name = errname(err);
+    lua_pushstring(L, name ? name : "unknown");
+#else
+    char buf[LUAL_BUFFERSIZE];
+    snprintf(buf, sizeof(buf), "%pE", ERR_PTR(-err));
+    lua_pushstring(L, buf);
+#endif
+}
+EXPORT_SYMBOL(lunatik_pusherrname);
+
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
 #include <linux/kprobes.h>
 
@@ -92,7 +110,8 @@ void *lunatik_lookup(const char *symbol)
 EXPORT_SYMBOL(lunatik_lookup);
 #endif /* MODULE */
 
-/* used by lib/luarcu.c */
-#include <lua/lstring.h>
-EXPORT_SYMBOL(luaS_hash);
+#if BITS_PER_LONG == 32
+/* require by lib/lualinux.c */
+EXPORT_SYMBOL(__moddi3);
+#endif /* BITS_PER_LONG == 32 */
 

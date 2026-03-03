@@ -14,13 +14,7 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/kernel.h>
-#include <linux/version.h>
-#include <linux/module.h>
 #include <linux/kprobes.h>
-
-#include <lua.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 

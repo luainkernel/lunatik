@@ -16,14 +16,8 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/completion.h>
 #include <linux/sched.h>
-
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 
@@ -84,7 +78,7 @@ static int luacompletion_wait(lua_State *L)
 	ret = wait_for_completion_interruptible_timeout(completion, timeout_jiffies);
 	if (ret > 0) {
 		lua_pushboolean(L, true);
-		return 1;		
+		return 1;
 	}
 
 	lua_pushnil(L);
@@ -134,7 +128,7 @@ static const lunatik_class_t luacompletion_class = {
 */
 static int luacompletion_new(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_newobject(L, &luacompletion_class, sizeof(struct completion));
+	lunatik_object_t *object = lunatik_newobject(L, &luacompletion_class, sizeof(struct completion), false);
 	struct completion *completion = (struct completion *)object->private;
 
 	init_completion(completion);

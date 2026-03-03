@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+* SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -15,15 +15,10 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <crypto/hash.h>
 #include <linux/err.h>
 #include <linux/slab.h>
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 #include <lunatik.h>
 
 #include "luacrypto.h"
@@ -84,11 +79,11 @@ static int luacrypto_shash_digest(lua_State *L) {
 	size_t datalen;
 	const char *data = luaL_checklstring(L, 2, &datalen);
 	unsigned int digestsize = crypto_shash_digestsize(sdesc->tfm);
-	luaL_Buffer b;
-	u8 *digest_buf = luaL_buffinitsize(L, &b, digestsize);
+	luaL_Buffer B;
+	u8 *digest_buf = luaL_buffinitsize(L, &B, digestsize);
 
 	lunatik_try(L, crypto_shash_digest, sdesc, data, datalen, digest_buf);
-	luaL_pushresultsize(&b, digestsize);
+	luaL_pushresultsize(&B, digestsize);
 	return 1;
 }
 
@@ -131,11 +126,11 @@ static int luacrypto_shash_update(lua_State *L) {
 static int luacrypto_shash_final(lua_State *L) {
 	struct shash_desc *sdesc = luacrypto_shash_check(L, 1);
 	unsigned int digestsize = crypto_shash_digestsize(sdesc->tfm);
-	luaL_Buffer b;
-	u8 *digest_buf = luaL_buffinitsize(L, &b, digestsize);
+	luaL_Buffer B;
+	u8 *digest_buf = luaL_buffinitsize(L, &B, digestsize);
 
 	lunatik_try(L, crypto_shash_final, sdesc, digest_buf);
-	luaL_pushresultsize(&b, digestsize);
+	luaL_pushresultsize(&B, digestsize);
 	return 1;
 }
 
@@ -153,11 +148,11 @@ static int luacrypto_shash_finup(lua_State *L) {
 	size_t datalen;
 	const char *data = luaL_checklstring(L, 2, &datalen);
 	unsigned int digestsize = crypto_shash_digestsize(sdesc->tfm);
-	luaL_Buffer b;
-	u8 *digest_buf = luaL_buffinitsize(L, &b, digestsize);
+	luaL_Buffer B;
+	u8 *digest_buf = luaL_buffinitsize(L, &B, digestsize);
 
 	lunatik_try(L, crypto_shash_finup, sdesc, data, datalen, digest_buf);
-	luaL_pushresultsize(&b, digestsize);
+	luaL_pushresultsize(&B, digestsize);
 	return 1;
 }
 
@@ -172,10 +167,10 @@ static int luacrypto_shash_finup(lua_State *L) {
 static int luacrypto_shash_export(lua_State *L) {
 	struct shash_desc *sdesc = luacrypto_shash_check(L, 1);
 	unsigned int statesize = crypto_shash_statesize(sdesc->tfm);
-	luaL_Buffer b;
-	void *state_buf = luaL_buffinitsize(L, &b, statesize);
+	luaL_Buffer B;
+	void *state_buf = luaL_buffinitsize(L, &B, statesize);
 	crypto_shash_export(sdesc, state_buf);
-	luaL_pushresultsize(&b, statesize);
+	luaL_pushresultsize(&B, statesize);
 	return 1;
 }
 
@@ -209,7 +204,6 @@ static const luaL_Reg luacrypto_shash_mt[] = {
 	{"import", luacrypto_shash_import},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
-	{"__index", lunatik_monitorobject},
 	{NULL, NULL}
 };
 
@@ -223,6 +217,7 @@ static const lunatik_class_t luacrypto_shash_class = {
 	.methods = luacrypto_shash_mt,
 	.release = luacrypto_shash_release,
 	.sleep = true,
+	.shared = true,
 	.pointer = true,
 };
 

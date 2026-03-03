@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -39,6 +39,7 @@
 #ifdef LUNATIK_RUNTIME
 lunatik_object_t *lunatik_env;
 EXPORT_SYMBOL(lunatik_env);
+EXPORT_SYMBOL(luaS_hash);	/* required by luarcu */
 
 static inline void lunatik_setversion(lua_State *L)
 {
@@ -165,7 +166,7 @@ static int lunatik_lresume(lua_State *L)
 {
 	lua_State *Lto = lunatik_check(L, 1);
 	int nargs = lua_gettop(L) - 1;
-	int nresults;
+	int nresults = 0;
 
 	if (lunatik_copyobjects(Lto, L, 2, nargs) != LUA_OK || (nresults = lunatik_resume(Lto, L, nargs) < 0)) {
 		lua_pushfstring(L, "%s\n", lua_tostring(Lto, -1));
@@ -204,7 +205,6 @@ static const luaL_Reg lunatik_stub_lib[] = {
 *   rt:stop()
 */
 static const luaL_Reg lunatik_mt[] = {
-	{"__index", lunatik_monitorobject},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
 	{"stop", lunatik_closeobject},
@@ -217,6 +217,7 @@ static const lunatik_class_t lunatik_class = {
 	.methods = lunatik_mt,
 	.release = lunatik_releaseruntime,
 	.sleep = true,
+	.shared = true,
 	.pointer = true,
 };
 
@@ -274,7 +275,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		return -ENOMEM;
 	}
 
-	lunatik_setobject(runtime, &lunatik_class, sleep);
+	lunatik_setobject(runtime, &lunatik_class, sleep, true);
 	lunatik_toruntime(L) = runtime;
 	runtime->private = L;
 
@@ -315,11 +316,14 @@ EXPORT_SYMBOL(lunatik_runtime);
 * spinlocks for synchronization).
 
 * @function runtime
-* @tparam string script The name of the Lua script to load and execute (e.g., "myscript"). The system will look for "myscript.lua" in the Lua root path.
-* @tparam[opt=true] boolean sleep If `true` (default), the runtime can sleep (e.g., for I/O operations) and uses `GFP_KERNEL` for allocations.
+* @tparam string script The name of the Lua script to load and execute (e.g., "myscript").
+*   The system will look for "myscript.lua" in the Lua root path.
+* @tparam[opt=true] boolean sleep If `true` (default),
+*   the runtime can sleep (e.g., for I/O operations) and uses `GFP_KERNEL` for allocations.
 *   If `false`, the runtime operates in an atomic context, cannot sleep, and uses `GFP_ATOMIC` for allocations.
 *   This is crucial for runtimes used in contexts that cannot sleep, like Netfilter hooks.
-* @treturn runtime A Lunatik runtime object. This object can be used to interact with the runtime, for example, to resume it if it yields or to stop it.
+* @treturn runtime A Lunatik runtime object. This object can be used to interact with the runtime, for example,
+*   to resume it if it yields or to stop it.
 * @raise Error if the Lua state or runtime cannot be allocated, or if the script fails to load or execute.
 * @within lunatik
 */
@@ -331,7 +335,7 @@ static int lunatik_lruntime(lua_State *L)
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
 	if (lunatik_newruntime(pruntime, L, script, sleep) != 0)
 		lua_error(L);
-	lunatik_setclass(L, &lunatik_class);
+	lunatik_setclass(L, &lunatik_class, true);
 	return 1;
 }
 
@@ -351,5 +355,5 @@ static void __exit lunatik_exit(void)
 module_init(lunatik_init);
 module_exit(lunatik_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 

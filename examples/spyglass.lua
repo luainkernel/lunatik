@@ -24,9 +24,7 @@ local function printable(keysym)
 	return keysym >= 32 and keysym <= 126
 end
 
-local function nop() end
-
-local spyglass = {name = "spyglass", open = nop, release = nop, log = ""}
+local spyglass = {name = "spyglass", log = ""}
 
 function spyglass:read()
 	local log = self.log

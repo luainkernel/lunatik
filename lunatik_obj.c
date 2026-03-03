@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -11,14 +11,23 @@
 
 #ifdef LUNATIK_RUNTIME
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size)
+#define lunatik_ismetamethod(reg)          \
+	((!strncmp(reg->name, "__", 2)) ||     \
+	(reg)->func == lunatik_deleteobject || \
+	(reg)->func == lunatik_closeobject)
+
+#define lunatik_issharable(class, shared) 	(!(shared) || ((class)->shared))
+
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
 	lunatik_checkclass(L, class);
-	lunatik_setobject(object, class, class->sleep);
-	lunatik_setclass(L, class);
+	if (!lunatik_issharable(class, shared))
+		luaL_error(L, LUNATIK_ERR_SHARED, class->name);
+	lunatik_setobject(object, class, class->sleep, shared);
+	lunatik_setclass(L, class, shared);
 
 	object->private = class->pointer ? NULL : lunatik_checkalloc(L, size);
 
@@ -27,15 +36,19 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 }
 EXPORT_SYMBOL(lunatik_newobject);
 
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep)
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared)
 {
 	gfp_t gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_object_t *object = (lunatik_object_t *)kmalloc(sizeof(lunatik_object_t), gfp);
 
+	if (!lunatik_issharable(class, shared)) {
+		pr_err(LUNATIK_ERR_SHARED, class->name);
+		return ERR_PTR(-EINVAL);
+	}
 	if (object == NULL)
 		return NULL;
 
-	lunatik_setobject(object, class, sleep);
+	lunatik_setobject(object, class, sleep, shared);
 	if ((object->private = kmalloc(size, gfp)) == NULL) {
 		lunatik_putobject(object);
 		return NULL;
@@ -44,26 +57,32 @@ lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size
 }
 EXPORT_SYMBOL(lunatik_createobject);
 
+static inline bool lunatik_isobject(lua_State *L, int ix, lunatik_object_t *object)
+{
+	lunatik_class_t *class= lunatik_getclass(L, ix);
+	return object && object->class == class;
+}
+
 lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 {
-	lunatik_object_t **pobject;
-	lunatik_class_t *class= lunatik_getclass(L, ix);
-
-	luaL_argcheck(L, class != NULL, ix, "object expected");
-	pobject = (lunatik_object_t **)luaL_checkudata(L, ix, class->name);
-	lunatik_argchecknull(L, *pobject, ix);
+	lunatik_object_t **pobject = (lunatik_object_t **)lua_touserdata(L, ix);
+	luaL_argcheck(L, pobject && lunatik_isobject(L, ix, *pobject), ix, "invalid object");
 	return pobject;
 }
 EXPORT_SYMBOL(lunatik_checkpobject);
 
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {
-	lunatik_require(L, object->class->name);
-	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	const lunatik_class_t *class = object->class;
 
+	if (!class->shared)
+		luaL_error(L, "cannot clone non-shared class ('%s')", class->name);
+
+	lunatik_require(L, class->name);
+	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
+
 	lunatik_checkclass(L, class);
-	lunatik_setclass(L, class);
+	lunatik_setclass(L, class, object->shared);
 	*pobject = object;
 }
 EXPORT_SYMBOL(lunatik_cloneobject);
@@ -88,8 +107,8 @@ int lunatik_closeobject(lua_State *L)
 	object->private = NULL;
 	lunatik_unlock(object);
 
-	lunatik_argchecknull(L, private, 1);
-	lunatik_releaseprivate(object->class, private);
+	if (private != NULL)
+		lunatik_releaseprivate(object->class, private);
 	return 0;
 }
 EXPORT_SYMBOL(lunatik_closeobject);
@@ -119,6 +138,18 @@ int lunatik_deleteobject(lua_State *L)
 }
 EXPORT_SYMBOL(lunatik_deleteobject);
 
+inline static void lunatik_fixerror(lua_State *L, const char *method)
+{
+	if (method) {
+		const char *error = lua_tostring(L, -1);
+		luaL_gsub(L, error, "?", method);
+		lua_remove(L, -2); /* error */
+	}
+	luaL_traceback(L, L, lua_tostring(L, -1), 1);
+	lua_remove(L, -2); /* fixed error */
+	lua_error(L);
+}
+
 static int lunatik_monitor(lua_State *L)
 {
 	int ret, n = lua_gettop(L);
@@ -131,22 +162,24 @@ static int lunatik_monitor(lua_State *L)
 	ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	lunatik_unlock(object);
 
-	if (ret != LUA_OK)
-		lua_error(L);
+	if (ret != LUA_OK) {
+		const char *method = lua_tostring(L, lua_upvalueindex(2));
+		lunatik_fixerror(L, method);
+	}
 	return lua_gettop(L);
 }
 
-int lunatik_monitorobject(lua_State *L)
+void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class)
 {
-	lua_getmetatable(L, 1);
-	lua_insert(L, 2); /* stack: object, metatable, key */
-	if (lua_rawget(L, 2) == LUA_TFUNCTION) {
-		lua_CFunction method = lua_tocfunction(L, -1);
-
-		if (likely(method != lunatik_deleteobject && method != lunatik_closeobject))
-			lua_pushcclosure(L, lunatik_monitor, 1);
+	const luaL_Reg *reg;
+	for (reg = class->methods; reg->name != NULL; reg++) {
+		if (!lunatik_ismetamethod(reg)) {
+			lua_getfield(L, -1, reg->name);
+			lua_pushstring(L, reg->name);
+			lua_pushcclosure(L, lunatik_monitor, 2); /* stack: mt, method, method name*/
+			lua_setfield(L, -2, reg->name);
+		}
 	}
-	return 1;
 }
 EXPORT_SYMBOL(lunatik_monitorobject);
 

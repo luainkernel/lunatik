@@ -13,6 +13,7 @@ title = 'Lunatik API Documentation'
 -- LDoc will recursively scan directories.
 -- By manually specifying order, we ensure menu order.
 file = {
+	'./lib/luabyteorder.c',
 	'./lib/luacompletion.c',
 	'./lib/luacpu.c',
 	'./lib/crypto/aead.lua',
@@ -20,10 +21,13 @@ file = {
 	'./lib/luacrypto_rng.c',
 	'./lib/luacrypto_shash.c',
 	'./lib/luacrypto_skcipher.c',
+	'./lib/luadarken.c',
 	'./lib/luadata.c',
 	'./lib/luadevice.c',
 	'./lib/luafib.c',
 	'./lib/luafifo.c',
+	'./lib/luahid.c',
+	'./lib/lighten.lua',
 	'./lunatik_core.c',
 	'./lib/lunatik/runner.lua',
 	'./lib/lualinux.c',
@@ -34,14 +38,15 @@ file = {
 	'./lib/luanotifier.c',
 	'./lib/luaprobe.c',
 	'./lib/luarcu.c',
+	'./lib/luasignal.c',
 	'./lib/luasocket.c',
 	'./lib/socket/inet.lua',
+	'./lib/socket/raw.lua',
 	'./lib/socket/unix.lua',
 	'./lib/luasyscall.c',
 	'./lib/syscall/table.lua',
 	'./lib/luathread.c',
 	'./lib/luaxdp.c',
-	'./lib/luaxtable.c',
 }
 
 -- examples = "./examples"

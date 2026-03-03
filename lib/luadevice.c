@@ -14,8 +14,6 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/printk.h>
 #include <linux/string.h>
@@ -25,11 +23,6 @@
 #include <linux/list.h>
 #include <linux/mutex.h>
 #include <linux/kref.h>
-#include <linux/version.h>
-
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
 
 #include <lunatik.h>
 
@@ -96,11 +89,7 @@ static int luadevice_fop(lua_State *L, luadevice_t *luadev, const char *fop, int
 		goto err;
 	}
 
-	if (lua_getfield(L, -1, fop) != LUA_TFUNCTION) {
-		lua_getfield(L, -2, "name");
-		pr_err("%s: operation isn't defined for /dev/%s\n", fop, lua_tostring(L, -1));
-		goto err;
-	}
+	lunatik_optcfunction(L, -1, fop, lunatik_nop);
 
 	lua_insert(L, base + 1); /* fop */
 	lua_insert(L, base + 2); /* driver */
@@ -366,7 +355,7 @@ static int luadevice_new(lua_State *L)
 	lunatik_checkfield(L, 1, "name", LUA_TSTRING);
 	name = lua_tostring(L, -1);
 
-	object = lunatik_newobject(L, &luadevice_class, sizeof(luadevice_t));
+	object = lunatik_newobject(L, &luadevice_class, sizeof(luadevice_t), false);
 	luadev = (luadevice_t *)object->private;
 
 	memset(luadev, 0, sizeof(luadevice_t));

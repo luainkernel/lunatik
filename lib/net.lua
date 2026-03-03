@@ -24,7 +24,7 @@ function net.aton(addr)
 	local bits = { 24, 16, 8, 0 }
 	local ip = 0
 	for n in string.gmatch(addr, "(%d+)") do
-		n = tonumber(n) & 0xFF
+		local n = tonumber(n) & 0xFF
 		ip = ip | (n << bits[i])
 		i = i + 1
 	end

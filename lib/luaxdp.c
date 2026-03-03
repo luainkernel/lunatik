@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2024-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -17,13 +17,7 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/module.h>
-#include <linux/version.h>
 #include <linux/bpf.h>
-
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
 
 #include <lunatik.h>
 
@@ -51,7 +45,7 @@ static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void 
 
 	lua_pushvalue(L, lua_upvalueindex(upvalue));
 	data = (lunatik_object_t *)lunatik_toobject(L, -1);
-	luadata_reset(data, ptr, size, LUADATA_OPT_KEEP);
+	luadata_reset(data, ptr, 0, size, LUADATA_OPT_KEEP);
 	return data;
 }
 
@@ -104,7 +98,7 @@ static inline int luaxdp_checkruntimes(void)
 {
 	const char *key = "runtimes";
 	if (luaxdp_runtimes == NULL &&
-	   (luaxdp_runtimes = luarcu_gettable(lunatik_env, key, sizeof(key))) == NULL)
+	   (luaxdp_runtimes = luarcu_getobject(lunatik_env, key, sizeof(key))) == NULL)
 		return -1;
 	return 0;
 }
@@ -122,7 +116,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	}
 
 	key[keylen] = '\0';
-	if ((runtime = luarcu_gettable(luaxdp_runtimes, key, keylen)) == NULL) {
+	if ((runtime = luarcu_getobject(luaxdp_runtimes, key, keylen)) == NULL) {
 		pr_err("couldn't find runtime '%s'\n", key);
 		goto out;
 	}
@@ -155,22 +149,6 @@ static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 };
 
 /***
-* Table of XDP action verdicts.
-* These constants define the possible return values from an XDP program (and thus
-* from the Lua callback attached via `xdp.attach`) to indicate how the packet
-* should be handled.
-* (Constants from `<uapi/linux/bpf.h>`)
-* @table action
-*   @tfield integer ABORTED Indicates an error; packet is dropped. (XDP_ABORTED)
-*   @tfield integer DROP Drop the packet silently. (XDP_DROP)
-*   @tfield integer PASS Pass the packet to the normal network stack. (XDP_PASS)
-*   @tfield integer TX Transmit the packet back out the same interface it arrived on. (XDP_TX)
-*   @tfield integer REDIRECT Redirect the packet to another interface or BPF map. (XDP_REDIRECT)
-* @within xdp
-*/
-#define luaxdp_setcallback(L, i)	(lunatik_setregistry((L), (i), luaxdp_callback))
-
-/***
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
 * After calling this, `bpf_luaxdp_run` calls targeting this runtime will no longer
 * invoke a Lua function (they will likely return an error or default action).
@@ -182,8 +160,7 @@ static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
 */
 static int luaxdp_detach(lua_State *L)
 {
-	lua_pushnil(L);
-	luaxdp_setcallback(L, 1);
+	lunatik_unregister(L, luaxdp_callback);
 	return 0;
 }
 
@@ -237,11 +214,11 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_checkruntime(L, false);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	luadata_new(L); /* buffer */
-	luadata_new(L); /* argument */
+	luadata_new(L, false); /* buffer */
+	luadata_new(L, false); /* argument */
 
 	lua_pushcclosure(L, luaxdp_callback, 3);
-	luaxdp_setcallback(L, -1);
+	lunatik_register(L, -1, luaxdp_callback);
 	return 0;
 }
 #endif
@@ -254,6 +231,20 @@ static const luaL_Reg luaxdp_lib[] = {
 	{NULL, NULL}
 };
 
+/***
+* Table of XDP action verdicts.
+* These constants define the possible return values from an XDP program (and thus
+* from the Lua callback attached via `xdp.attach`) to indicate how the packet
+* should be handled.
+* (Constants from `<uapi/linux/bpf.h>`)
+* @table action
+*   @tfield integer ABORTED Indicates an error; packet is dropped. (XDP_ABORTED)
+*   @tfield integer DROP Drop the packet silently. (XDP_DROP)
+*   @tfield integer PASS Pass the packet to the normal network stack. (XDP_PASS)
+*   @tfield integer TX Transmit the packet back out the same interface it arrived on. (XDP_TX)
+*   @tfield integer REDIRECT Redirect the packet to another interface or BPF map. (XDP_REDIRECT)
+* @within xdp
+*/
 static const lunatik_reg_t luaxdp_action[] = {
 	{"ABORTED", XDP_ABORTED},
 	{"DROP", XDP_DROP},

@@ -4,7 +4,7 @@ Lunatik is a framework for scripting the Linux kernel with [Lua](https://www.lua
 It is composed by the Lua interpreter modified to run in the kernel;
 a [device driver](driver.lua) (written in Lua =)) and a [command line tool](bin/lunatik)
 to load and run scripts and manage runtime environments from the user space;
-a [C API](#lunatik-c-api) to load and run scripts and manage runtime environments from the kernel;
+a [C API](doc/capi.md) to load and run scripts and manage runtime environments from the kernel;
 and [Lua APIs](#lunatik-lua-apis) for binding kernel facilities to Lua scripts.
 
 > Note: Lunatik supports Linux Kernel versions 5.x and 6.x
@@ -21,10 +21,8 @@ to generate random ASCII printable characters:
 local device = require("device")
 local linux  = require("linux")
 
-local function nop() end -- do nothing
-
 local s = linux.stat
-local driver = {name = "passwd", open = nop, release = nop, mode = s.IRUGO}
+local driver = {name = "passwd", mode = s.IRUGO}
 
 function driver:read() -- read(2) callback
 	-- generate random ASCII printable characters
@@ -72,7 +70,7 @@ Install Lunatik from our [package feed](https://github.com/luainkernel/openwrt_f
 
 ```
 sudo lunatik # execute Lunatik REPL
-Lunatik 3.7  Copyright (C) 2023-2025 ring-0 Ltda.
+Lunatik 4.1  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 > return 42 -- execute this line in the kernel
 42
 ```
@@ -95,61 +93,63 @@ usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]
 
 ## Lua Version
 
-Lunatik 3.7 is based on
-[Lua 5.4 adapted](https://github.com/luainkernel/lua)
+Lunatik 4.1 is based on
+[Lua 5.5 adapted](https://github.com/luainkernel/lua)
 to run in the kernel.
 
 ### Floating-point numbers
 
 Lunatik **does not** support floating-point arithmetic,
 thus it **does not** support `__div` nor `__pow`
-[metamethods](https://www.lua.org/manual/5.4/manual.html#2.4)
+[metamethods](https://www.lua.org/manual/5.5/manual.html#2.4)
 and the type _number_ has only the subtype _integer_.
 
 ### Lua API
 
-Lunatik **does not** support both [io](https://www.lua.org/manual/5.4/manual.html#6.8) and
-[os](https://www.lua.org/manual/5.4/manual.html#6.9) libraries,
+Lunatik **does not** support both [io](https://www.lua.org/manual/5.5/manual.html#6.8) and
+[os](https://www.lua.org/manual/5.5/manual.html#6.9) libraries,
 and the given identifiers from the following libraries:
-* [debug.debug](https://www.lua.org/manual/5.4/manual.html#pdf-debug.debug),
-[math.acos](https://www.lua.org/manual/5.4/manual.html#pdf-math.acos),
-[math.asin](https://www.lua.org/manual/5.4/manual.html#pdf-math.asin),
-[math.atan](https://www.lua.org/manual/5.4/manual.html#pdf-math.atan),
-[math.ceil](https://www.lua.org/manual/5.4/manual.html#pdf-math.ceil),
-[math.cos](https://www.lua.org/manual/5.4/manual.html#pdf-math.cos),
-[math.deg](https://www.lua.org/manual/5.4/manual.html#pdf-math.deg),
-[math.exp](https://www.lua.org/manual/5.4/manual.html#pdf-math.exp),
-[math.floor](https://www.lua.org/manual/5.4/manual.html#pdf-math.floor),
-[math.fmod](https://www.lua.org/manual/5.4/manual.html#pdf-math.fmod),
-[math.huge](https://www.lua.org/manual/5.4/manual.html#pdf-math.huge).
-[math.log](https://www.lua.org/manual/5.4/manual.html#pdf-math.log),
-[math.modf](https://www.lua.org/manual/5.4/manual.html#pdf-math.modf),
-[math.pi](https://www.lua.org/manual/5.4/manual.html#pdf-math.pi),
-[math.rad](https://www.lua.org/manual/5.4/manual.html#pdf-math.rad),
-[math.random](https://www.lua.org/manual/5.4/manual.html#pdf-math.random),
-[math.randomseed](https://www.lua.org/manual/5.4/manual.html#pdf-math.randomseed),
-[math.sin](https://www.lua.org/manual/5.4/manual.html#pdf-math.sin),
-[math.sqrt](https://www.lua.org/manual/5.4/manual.html#pdf-math.sqrt),
-[math.tan](https://www.lua.org/manual/5.4/manual.html#pdf-math.tan),
-[math.type](https://www.lua.org/manual/5.4/manual.html#pdf-math.type),
-[package.cpath](https://www.lua.org/manual/5.4/manual.html#pdf-package.cpath).
+* [debug.debug](https://www.lua.org/manual/5.5/manual.html#pdf-debug.debug),
+[math.acos](https://www.lua.org/manual/5.5/manual.html#pdf-math.acos),
+[math.asin](https://www.lua.org/manual/5.5/manual.html#pdf-math.asin),
+[math.atan](https://www.lua.org/manual/5.5/manual.html#pdf-math.atan),
+[math.ceil](https://www.lua.org/manual/5.5/manual.html#pdf-math.ceil),
+[math.cos](https://www.lua.org/manual/5.5/manual.html#pdf-math.cos),
+[math.deg](https://www.lua.org/manual/5.5/manual.html#pdf-math.deg),
+[math.exp](https://www.lua.org/manual/5.5/manual.html#pdf-math.exp),
+[math.floor](https://www.lua.org/manual/5.5/manual.html#pdf-math.floor),
+[math.fmod](https://www.lua.org/manual/5.5/manual.html#pdf-math.fmod),
+[math.frexp](https://www.lua.org/manual/5.5/manual.html#pdf-math.frexp),
+[math.huge](https://www.lua.org/manual/5.5/manual.html#pdf-math.huge).
+[math.ldexp](https://www.lua.org/manual/5.5/manual.html#pdf-math.ldexp),
+[math.log](https://www.lua.org/manual/5.5/manual.html#pdf-math.log),
+[math.modf](https://www.lua.org/manual/5.5/manual.html#pdf-math.modf),
+[math.pi](https://www.lua.org/manual/5.5/manual.html#pdf-math.pi),
+[math.rad](https://www.lua.org/manual/5.5/manual.html#pdf-math.rad),
+[math.random](https://www.lua.org/manual/5.5/manual.html#pdf-math.random),
+[math.randomseed](https://www.lua.org/manual/5.5/manual.html#pdf-math.randomseed),
+[math.sin](https://www.lua.org/manual/5.5/manual.html#pdf-math.sin),
+[math.sqrt](https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt),
+[math.tan](https://www.lua.org/manual/5.5/manual.html#pdf-math.tan),
+[math.type](https://www.lua.org/manual/5.5/manual.html#pdf-math.type),
+[package.cpath](https://www.lua.org/manual/5.5/manual.html#pdf-package.cpath).
 
 Lunatik **modifies** the following identifiers:
-* [\_VERSION](https://www.lua.org/manual/5.4/manual.html#pdf-_VERSION): is defined as `"Lua 5.4-kernel"`.
-* [collectgarbage("count")](https://www.lua.org/manual/5.4/manual.html#pdf-collectgarbage): returns the total memory in use by Lua in **bytes**, instead of _Kbytes_.
-* [package.path](https://www.lua.org/manual/5.4/manual.html#pdf-package.path): is defined as `"/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua"`.
-* [require](https://www.lua.org/manual/5.4/manual.html#pdf-require): only supports built-in or already linked C modules, that is, Lunatik **cannot** load kernel modules dynamically.
+* [\_VERSION](https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION): is defined as `"Lua 5.5-kernel"`.
+* [collectgarbage("count")](https://www.lua.org/manual/5.5/manual.html#pdf-collectgarbage): returns the total memory in use by Lua in **bytes**, instead of _Kbytes_.
+* [package.path](https://www.lua.org/manual/5.5/manual.html#pdf-package.path): is defined as `"/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua"`.
+* [require](https://www.lua.org/manual/5.5/manual.html#pdf-require): only supports built-in or already linked C modules, that is, Lunatik **cannot** load kernel modules dynamically.
 
 ### C API
 
 Lunatik **does not** support
-[luaL\_Stream](https://www.lua.org/manual/5.4/manual.html#luaL_Stream),
-[luaL\_execresult](https://www.lua.org/manual/5.4/manual.html#luaL_execresult),
-[luaL\_fileresult](https://www.lua.org/manual/5.4/manual.html#luaL_fileresult),
-[luaopen\_io](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_io) and
-[luaopen\_os](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_os).
+[luaL\_Stream](https://www.lua.org/manual/5.5/manual.html#luaL_Stream),
+[luaL\_execresult](https://www.lua.org/manual/5.5/manual.html#luaL_execresult),
+[luaL\_fileresult](https://www.lua.org/manual/5.5/manual.html#luaL_fileresult),
+[luaopen\_io](https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_io) and
+[luaopen\_os](https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_os).
 
-Lunatik **modifies** [luaL\_openlibs](https://www.lua.org/manual/5.4/manual.html#luaL_openlibs) to remove [luaopen\_io](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_io) and [luaopen\_os](https://www.lua.org/manual/5.4/manual.html#pdf-luaopen_os).
+Lunatik **modifies** [luaL\_openlibs](https://www.lua.org/manual/5.5/manual.html#luaL_openlibs) to remove [luaopen\_io](https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_io) and [luaopen\_os](https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_os).
 
 ## Lunatik Lua APIs
 
@@ -157,143 +157,7 @@ Lua APIs are documented thanks to [LDoc](https://stevedonovan.github.io/ldoc/). 
 
 ## Lunatik C API
 
-```C
-#include <lunatik.h>
-```
-
-#### lunatik\_runtime
-```C
-int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
-```
-_lunatik\_runtime()_ creates a new `runtime` environment then loads and runs the script
-`/lib/modules/lua/<script>.lua` as the entry point for this environment.
-It _must_ only be called from _process context_.
-The `runtime` environment is a Lunatik object that holds
-a [Lua state](https://www.lua.org/manual/5.4/manual.html#lua_State).
-Lunatik objects are special
-Lua [userdata](https://www.lua.org/manual/5.4/manual.html#2.1)
-which also hold
-a [lock type](https://docs.kernel.org/locking/locktypes.html) and
-a [reference counter](https://www.kernel.org/doc/Documentation/kref.txt).
-If `sleep` is _true_, _lunatik\_runtime()_ will use a
-[mutex](https://docs.kernel.org/locking/mutex-design.html)
-for locking the `runtime` environment and the
-[GFP\_KERNEL](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html)
-flag for allocating new memory later on on
-[lunatik\_run()](https://github.com/luainkernel/lunatik#lunatik_run) calls.
-Otherwise, it will use a [spinlock](https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t) and [GFP\_ATOMIC](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html).
-_lunatik\_runtime()_ opens the Lua standard libraries
-[present on Lunatik](https://github.com/luainkernel/lunatik#c-api).
-If successful, _lunatik\_runtime()_ sets the address pointed by `pruntime` and
-[Lua's extra space](https://www.lua.org/manual/5.4/manual.html#lua_getextraspace)
-with a pointer for the new created `runtime` environment,
-sets the _reference counter_ to `1` and then returns `0`.
-Otherwise, it returns `-ENOMEM`, if insufficient memory is available;
-or `-EINVAL`, if it fails to load or run the `script`.
-
-##### Example
-```Lua
--- /lib/modules/lua/mydevice.lua
-function myread(len, off)
-	return "42"
-end
-```
-
-```C
-static lunatik_object_t *runtime;
-
-static int __init mydevice_init(void)
-{
-	return lunatik_runtime(&runtime, "mydevice", true);
-}
-
-```
-
-#### lunatik\_stop
-```C
-int lunatik_stop(lunatik_object_t *runtime);
-```
-_lunatik\_stop()_
-[closes](https://www.lua.org/manual/5.4/manual.html#lua_close)
-the
-[Lua state](https://www.lua.org/manual/5.4/manual.html#lua_State)
-created for this `runtime` environment and decrements the
-[reference counter](https://www.kernel.org/doc/Documentation/kref.txt).
-Once the reference counter is decremented to zero, the
-[lock type](https://docs.kernel.org/locking/locktypes.html)
-and the memory allocated for the `runtime` environment are released.
-If the `runtime` environment has been released, it returns `1`;
-otherwise, it returns `0`.
-
-#### lunatik\_run
-```C
-void lunatik_run(lunatik_object_t *runtime, <inttype> (*handler)(...), <inttype> &ret, ...);
-```
-_lunatik\_run()_ locks the `runtime` environment and calls the `handler`
-passing the associated Lua state as the first argument followed by the variadic arguments.
-If the Lua state has been closed, `ret` is set with `-ENXIO`;
-otherwise, `ret` is set with the result of `handler(L, ...)` call.
-Then, it restores the Lua stack and unlocks the `runtime` environment.
-It is defined as a macro.
-
-##### Example
-```C
-static int l_read(lua_State *L, char *buf, size_t len, loff_t *off)
-{
-	size_t llen;
-	const char *lbuf;
-
-	lua_getglobal(L, "myread");
-	lua_pushinteger(L, len);
-	lua_pushinteger(L, *off);
-	if (lua_pcall(L, 2, 2, 0) != LUA_OK) { /* calls myread(len, off) */
-		pr_err("%s\n", lua_tostring(L, -1));
-		return -ECANCELED;
-	}
-
-	lbuf = lua_tolstring(L, -2, &llen);
-	llen = min(len, llen);
-	if (copy_to_user(buf, lbuf, llen) != 0)
-		return -EFAULT;
-
-	*off = (loff_t)luaL_optinteger(L, -1, *off + llen);
-	return (ssize_t)llen;
-}
-
-static ssize_t mydevice_read(struct file *f, char *buf, size_t len, loff_t *off)
-{
-	ssize_t ret;
-	lunatik_object_t *runtime = (lunatik_object_t *)f->private_data;
-
-	lunatik_run(runtime, l_read, ret, buf, len, off);
-	return ret;
-}
-```
-
-#### lunatik\_getobject
-```C
-void lunatik_getobject(lunatik_object_t *object);
-```
-_lunatik\_getobject()_ increments the
-[reference counter](https://www.kernel.org/doc/Documentation/kref.txt)
-of this `object` (e.g., `runtime` environment).
-
-#### lunatik\_put
-```C
-int lunatik_putobject(lunatik_object_t *object);
-```
-_lunatik\_putobject()_ decrements the
-[reference counter](https://www.kernel.org/doc/Documentation/kref.txt)
-of this `object` (e.g., `runtime` environment).
-If the `object` has been released, it returns `1`;
-otherwise, it returns `0`.
-
-#### lunatik\_toruntime
-```C
-lunatik_object_t *lunatik_toruntime(lua_State *L);
-```
-_lunatik\_toruntime()_ returns the `runtime` environment referenced by the `L`'s
-[extra space](https://www.lua.org/manual/5.4/manual.html#lua_getextraspace).
+See [this](doc/capi.md) document.
 
 # Examples
 
@@ -468,22 +332,10 @@ The system logs (in the first terminal) should display `filter_sni: ebpf.io DROP
 
 ### dnsblock
 
-[dnsblock](examples/dnsblock) is a kernel script that uses the lunatik xtable library to filter DNS packets.
+[dnsblock](examples/dnsblock) is a kernel script that uses the netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter)) to filter DNS packets.
 This script drops any outbound DNS packet with question matching the blacklist provided by the user. By default, it will block DNS resolutions for the domains `github.com` and `gitlab.com`.
 
 #### Usage
-
-1. Using legacy iptables
-```
-sudo make examples_install              # installs examples
-cd examples/dnsblock
-make                                    # builds the userspace extension for netfilter
-sudo make install   					# installs the extension to Xtables directory
-sudo lunatik run examples/dnsblock/dnsblock false	# runs the Lua kernel script
-sudo iptables -A OUTPUT -m dnsblock -j DROP     	# this initiates the netfilter framework to load our extension
-```
-
-2. Using new netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter))
 
 ```
 sudo make examples_install              # installs examples
@@ -492,41 +344,12 @@ sudo lunatik run examples/dnsblock/nf_dnsblock false	# runs the Lua kernel scrip
 
 ### dnsdoctor
 
-[dnsdoctor](examples/dnsdoctor) is a kernel script that uses the lunatik xtable library to change the DNS response
+[dnsdoctor](examples/dnsdoctor) is a kernel script that uses the netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter)) to change the DNS response
 from Public IP to a Private IP if the destination IP matches the one provided by the user. For example, if the user
 wants to change the DNS response from `192.168.10.1` to `10.1.2.3` for the domain `lunatik.com` if the query is being sent to `10.1.1.2` (a private client), this script can be used.
 
 #### Usage
 
-1. Using legacy iptables
-```
-sudo make examples_install              # installs examples
-cd examples/dnsdoctor
-setup.sh                                # sets up the environment
-
-# test the setup, a response with IP 192.168.10.1 should be returned
-dig lunatik.com
-
-# run the Lua kernel script
-sudo lunatik run examples/dnsdoctor/dnsdoctor false
-
-# build and install the userspace extension for netfilter
-make
-sudo make install
-
-# add rule to the mangle table
-sudo iptables -t mangle -A PREROUTING -p udp --sport 53 -j dnsdoctor
-
-# test the setup, a response with IP 10.1.2.3 should be returned
-dig lunatik.com
-
-# cleanup
-sudo iptables -t mangle -D PREROUTING -p udp --sport 53 -j dnsdoctor # remove the rule
-sudo lunatik unload
-cleanup.sh
-```
-
-2. Using new netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter))
 ```
 sudo make examples_install              # installs examples
 examples/dnsdoctor/setup.sh             # sets up the environment
@@ -543,6 +366,92 @@ dig lunatik.com
 # cleanup
 sudo lunatik unload
 examples/dnsdoctor/cleanup.sh
+```
+
+### gesture
+
+[gesture](examples/gesture.lua)
+is a kernel script that implements a HID driver for QEMU USB Mouse (0627:0001).
+It supports gestures: swiping right locks the mouse, and swiping left unlocks it.
+
+#### Usage
+
+1. You need to change the display protocal into `VNC` and enable USB mouse device in QEMU, the following configuration can help you disable PS2 mouse & enable USB mouse:
+
+```
+<features>
+	<!-- ... -->
+	<ps2 state="off"/>
+	<!-- ... -->
+</features>
+```
+
+2. run the gesture script:
+
+```
+sudo make examples_install 			# installs examples
+sudo lunatik run examples/gesture false 	# runs gesture
+# In QEMU window:
+# Drag right to lock the mouse
+# Drag left to unlock the mouse
+```
+
+### xiaomi
+
+[xiaomi](examples/xiaomi.lua)
+is a kernel script that ports the Xiaomi Silent Mouse driver to Lua using `luahid`.
+It fixes the report descriptor for the device (`0x2717`:`0x5014`).
+
+#### Usage
+
+```
+sudo make examples_install 		# installs examples
+sudo lunatik run examples/xiaomi false 	# runs xiaomi driver
+```
+
+Then insert the Xiaomi Silent Mouse with bluetooth mode on and it should work properly.
+
+### lldpd
+
+[lldpd](examples/lldpd.lua) shows how to implement a simple LLDP transmitter in kernel space using Lunatik.
+It periodically emits LLDP frames on a given interface using an AF_PACKET socket.
+
+#### Usage
+
+```
+sudo make examples_install                  # installs examples
+
+# the LLDP daemon sends frames on a single Ethernet interface
+# you may use an existing interface, or create a virtual one for testing
+
+# create a veth pair (the example uses veth0 by default)
+ip link add veth0 type veth peer name veth1
+ip link set veth0 up
+ip link set veth1 up
+
+sudo lunatik spawn examples/lldpd           # runs lldpd
+
+# verify LLDP frames are being transmitted
+sudo tcpdump -i veth0 -e ether proto 0x88cc -vv
+```
+
+### cpuexporter
+
+[cpuexporter](examples/cpuexporter.lua) will gather CPU usage statistics and expose using [OpenMetrics text format](https://github.com/prometheus/OpenMetrics/blob/main/specification/OpenMetrics.md#text-format) at a UNIX socket file.
+
+#### Usage
+
+```shell
+sudo make examples_install         	# installs examples
+sudo lunatik spawn examples/cpuexporter # runs cpuexporter
+sudo socat - UNIX-CONNECT:/tmp/cpuexporter.sock <<<""
+# TYPE cpu_usage_system gauge
+cpu_usage_system{cpu="cpu1"} 0.0000000000000000 1764094519529162
+cpu_usage_system{cpu="cpu0"} 0.0000000000000000 1764094519529162
+# TYPE cpu_usage_idle gauge
+cpu_usage_idle{cpu="cpu1"} 100.0000000000000000 1764094519529162
+cpu_usage_idle{cpu="cpu0"} 100.0000000000000000 1764094519529162
+...
 ```
 
 ## References
