@@ -158,9 +158,11 @@ static int lunatik_monitor(lua_State *L)
 	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
 	lua_insert(L, 1); /* stack: method, object, args */
 
+	lua_gc(L, LUA_GCSTOP);
 	lunatik_lock(object);
 	ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	lunatik_unlock(object);
+	lua_gc(L, LUA_GCRESTART);
 
 	if (ret != LUA_OK) {
 		const char *method = lua_tostring(L, lua_upvalueindex(2));
