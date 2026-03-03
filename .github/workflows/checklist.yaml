@@ -1,0 +1,50 @@
+name: PR Checklist Validator
+
+on:
+  pull_request:
+    branches:
+      - master
+    types: [opened, edited, synchronize, reopened]
+    
+jobs:
+  verify-template:
+    name: Verify PR Checkboxes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let rawBody = context.payload.pull_request?.body || "";
+            const body = rawBody.replace(/-\s*\[[xX]\]/g, "- [x]");
+            
+            const requiredChecks = [
+              "- [x] **I confirm** that I compiled the code successfully",
+              "- [x] **I confirm** that I manually verified",
+              "- [x] **I confirm** that I followed the project’s coding conventions",
+              "- [x] **I confirm** that no new warnings or errors are introduced."
+            ];
+            
+            let missing = requiredChecks.filter(item => !body.includes(item));
+            
+            const aiChecks = [
+              "- [x] No AI assistance was used.",
+              "- [x] AI was used for **partial assistance**",
+              "- [x] AI was used for **full generation**"
+            ];
+            
+            const checkedAiCount = aiChecks.filter(item => body.includes(item)).length;
+            
+            if (checkedAiCount === 0)
+               missing.push("An AI Usage option must be selected (tick exactly one of the AI checkboxes).");
+            else if (checkedAiCount > 1)
+               missing.push("You selected multiple AI Usage options. Please select exactly ONE.");
+
+            const usedAi = body.includes("- [x] AI was used for **partial") || body.includes("- [x] AI was used for **full");
+            
+            if (usedAi && !body.includes("- [x] I have thoroughly reviewed, understood, and validated all AI-generated code."))
+               missing.push("- [x] I have thoroughly reviewed, understood, and validated all AI-generated code. (Required since AI was used)");
+            
+            if (missing.length > 0) 
+              core.setFailed(`PR Checklist Validation Failed!\n\nMissing or invalid items:\n${missing.join("\n")}`);
+            
