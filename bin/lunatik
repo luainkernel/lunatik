@@ -75,7 +75,7 @@ lunatik.commands = {
 		local first = #lunatik.modules
 		for i = first, 1, -1 do
 			local module = lunatik.modules[i]
-			lunatik.sh("rmmod $MODULE", module, true)
+			lunatik.sh("modprobe -r $MODULE 2>/dev/null || rmmod $MODULE", module, true)
 		end
 	end,
 	['reload'] = function()
