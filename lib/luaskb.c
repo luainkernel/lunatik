@@ -144,6 +144,27 @@ static int luaskb_checksum(lua_State *L)
 	return 0;
 }
 
+/***
+* Forwards the skb out through its ingress device.
+* @function forward
+* @raise if skb has no device, MAC header is not set, or clone fails
+*/
+static int luaskb_forward(lua_State *L)
+{
+	luaskb_t *lskb = luaskb_check(L, 1);
+	struct sk_buff *skb = lskb->skb;
+	struct net_device *dev = skb->dev;
+
+	luaL_argcheck(L, dev != NULL, 1, "skb has no device");
+	luaL_argcheck(L, skb_mac_header_was_set(skb), 1, "MAC header not set");
+
+	struct sk_buff *nskb = lunatik_checknull(L, skb_clone(skb, GFP_ATOMIC));
+
+	skb_push(nskb, nskb->data - skb_mac_header(nskb));
+	dev_queue_xmit(nskb);
+	return 0;
+}
+
 static void luaskb_release(void *private)
 {
 	luaskb_t *lskb = (luaskb_t *)private;
@@ -163,6 +184,7 @@ static const luaL_Reg luaskb_mt[] = {
 	{"data",     luaskb_data},
 	{"resize",   luaskb_resize},
 	{"checksum", luaskb_checksum},
+	{"forward",  luaskb_forward},
 	{NULL, NULL}
 };
 
