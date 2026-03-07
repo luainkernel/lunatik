@@ -137,6 +137,7 @@ static inline void *lunatik_checknull(lua_State *L, void *ptr)
 }
 
 #define lunatik_checkalloc(L, s)	(lunatik_checknull((L), lunatik_malloc((L), (s))))
+#define lunatik_checkzalloc(L, s)	(memset(lunatik_checkalloc((L), (s)), 0, (s)))
 
 void lunatik_pusherrname(lua_State *L, int err);
 
