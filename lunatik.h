@@ -137,6 +137,7 @@ static inline void *lunatik_checknull(lua_State *L, void *ptr)
 }
 
 #define lunatik_checkalloc(L, s)	(lunatik_checknull((L), lunatik_malloc((L), (s))))
+#define lunatik_checkzalloc(L, s)	(memset(lunatik_checkalloc((L), (s)), 0, (s)))
 
 void lunatik_pusherrname(lua_State *L, int err);
 
@@ -312,12 +313,13 @@ static inline T checker(lua_State *L, int ix)			\
 	return (T)object->private;				\
 }
 
-#define LUNATIK_PRIVATECHECKER(checker, T)			\
+#define LUNATIK_PRIVATECHECKER(checker, T, ...)			\
 static inline T checker(lua_State *L, int ix)			\
 {								\
 	T private = (T)lunatik_toobject(L, ix)->private;	\
 	/* avoid use-after-free */				\
 	lunatik_argchecknull(L, private, ix);			\
+	__VA_ARGS__						\
 	return private;						\
 }
 
@@ -389,6 +391,21 @@ static inline void lunatik_unregisterobject(lua_State *L, lunatik_object_t *obje
 	lunatik_unregister(L, object->private); /* remove private */
 	lunatik_unregister(L, object); /* remove object, now it might be GC'ed */
 }
+
+#define lunatik_attach(L, obj, field, libname, new_fn, ...)	\
+do {								\
+	obj->field = new_fn((L), ##__VA_ARGS__);		\
+	lunatik_register((L), -1, obj->field);			\
+	lua_pop((L), 1);					\
+} while (0)
+
+#define lunatik_detach(runtime, obj, field)			\
+do {								\
+	lua_State *L = lunatik_getstate(runtime);		\
+	if (L != NULL) /* might be called on lunatik_stop */	\
+		lunatik_unregister(L, obj->field);		\
+	obj->field = NULL;					\
+} while (0)
 
 #include "lunatik_val.h"
 

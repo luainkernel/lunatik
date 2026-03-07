@@ -54,7 +54,7 @@ static void luahid_release(void *private)
 
 	lunatik_object_t *runtime = hid->runtime;
 	if (runtime != NULL) {
-		luadata_detach(runtime, hid, data);
+		lunatik_detach(runtime, hid, data);
 		lunatik_putobject(runtime);
 	}
 	if (hid->driver.id_table != NULL)
@@ -307,7 +307,6 @@ static int luahid_register(lua_State *L)
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), true);
 	luahid_t *hid = (luahid_t *)object->private;
-	memset(hid, 0, sizeof(luahid_t));
 
 	struct hid_driver *driver = &(hid->driver);
 	driver->name = lunatik_checkalloc(L, NAME_MAX);
@@ -321,7 +320,7 @@ static int luahid_register(lua_State *L)
 	driver->raw_event = luahid_raw_event;
 
 	lunatik_setruntime(L, hid, hid);
-	luadata_attach(L, hid, data);
+	luadata_attach(L, hid, data, false);
 	lunatik_getobject(hid->runtime);
 	lunatik_registerobject(L, 1, object);
 

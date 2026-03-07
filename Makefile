@@ -29,7 +29,9 @@ CONFIG_LUNATIK ?= m
 CONFIG_LUNATIK_RUNTIME ?= y
 CONFIG_LUNATIK_RUN ?= m
 
-LUNATIK_MODULES := DEVICE LINUX NOTIFIER SOCKET RCU THREAD FIB DATA PROBE SYSCALL XDP FIFO NETFILTER \
+# Order matters: modules are loaded left-to-right and unloaded right-to-left (rmmod).
+# A module must appear AFTER all modules it depends on (e.g. SKB before NETFILTER).
+LUNATIK_MODULES := DEVICE LINUX NOTIFIER SOCKET RCU THREAD FIB DATA PROBE SYSCALL XDP FIFO SKB NETFILTER \
 	COMPLETION CRYPTO_SHASH CRYPTO_SKCIPHER CRYPTO_AEAD CRYPTO_RNG CRYPTO_COMP CPU HID SIGNAL BYTEORDER DARKEN
 
 $(foreach c,$(LUNATIK_MODULES),\
@@ -125,6 +127,8 @@ tests_install:
 	${INSTALL} -m 0644 tests/rcumap_sync/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/crypto
 	${INSTALL} -m 0644 tests/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/tests/crypto
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/netfilter
+	${INSTALL} -m 0644 tests/netfilter/*.lua ${SCRIPTS_INSTALL_PATH}/tests/netfilter
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests

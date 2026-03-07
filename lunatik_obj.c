@@ -29,7 +29,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_setobject(object, class, class->sleep, shared);
 	lunatik_setclass(L, class, shared);
 
-	object->private = class->pointer ? NULL : lunatik_checkalloc(L, size);
+	object->private = class->pointer ? NULL : lunatik_checkzalloc(L, size);
 
 	*pobject = object;
 	return object;
@@ -49,7 +49,7 @@ lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size
 		return NULL;
 
 	lunatik_setobject(object, class, sleep, shared);
-	if ((object->private = kmalloc(size, gfp)) == NULL) {
+	if ((object->private = kzalloc(size, gfp)) == NULL) {
 		lunatik_putobject(object);
 		return NULL;
 	}

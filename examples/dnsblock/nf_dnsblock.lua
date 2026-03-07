@@ -13,11 +13,12 @@ local hooks = nf.inet_hooks
 local priority = nf.ip_priority
 
 local function dnsblock_hook(skb)
-	local proto = skb:getuint8(9)
-	local ihl = (skb:getuint8(0) & 0x0F)
+	local pkt = skb:data()
+	local proto = pkt:getuint8(9)
+	local ihl = (pkt:getuint8(0) & 0x0F)
 	local thoff = ihl * 4
 
-	return common.hook(skb, thoff, proto) and action.DROP or action.ACCEPT
+	return common.hook(pkt, thoff, proto) and action.DROP or action.ACCEPT
 end
 
 nf.register{
