@@ -20,15 +20,14 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/skbuff.h>
+#include <linux/bitops.h>
+#include <net/checksum.h>
 
 #include <lunatik.h>
 
 #include "luadata.h"
 
-#define LUADATA_TOSKB(d)  ((struct sk_buff *)(d)->ptr)
-#define LUADATA_TOPTR(d)	\
-	(((d)->opt & LUADATA_OPT_SKB ? (LUADATA_TOSKB(d)->data) : (d)->ptr) + (d)->offset)
+#define LUADATA_TOPTR(d)	((d)->ptr + (d)->offset)
 
 typedef struct luadata_s {
 	void *ptr;
@@ -134,28 +133,6 @@ static int luadata_setstring(lua_State *L)
 }
 
 /***
-* Resizes an SKB (socket buffer) to the specified size.
-* Expands the buffer using skb_put() if new_size > current size,
-* or shrinks it using skb_trim() if new_size < current size.
-* @param L Lua state for error reporting
-* @param data luadata object wrapping the SKB
-* @param new_size The desired size in bytes
-* @raise Error if insufficient tailroom is available for expansion
-*/
-static void luadata_skb_resize(lua_State *L, luadata_t *data, size_t new_size)
-{
-	struct sk_buff *skb = LUADATA_TOSKB(data);
-	if (new_size > data->size) {
-		size_t needed = new_size - data->size;
-		if (skb_tailroom(skb) < needed)
-			luaL_error(L, "insufficient tailroom for resize");
-		skb_put(skb, needed);
-	}
-	else if (new_size < data->size)
-		skb_trim(skb, new_size);
-}
-
-/***
 * Perform a raw checksum on a given buffer.
 * @function checksum
 * @tparam[opt] integer offset, from where to checksum
@@ -176,8 +153,6 @@ static int luadata_checksum(lua_State *L)
 
 /***
 * Resizes the memory block represented by the data object.
-* If the object is a network packet (SKB), it uses skb_put() to expand
-* or skb_trim() to shrink the buffer. For raw buffers, it updates the size.
 * @function resize
 * @tparam integer new_size The desired size of the memory block in bytes.
 * @raise Error if the data object is read-only or if resize fails.
@@ -189,9 +164,7 @@ static int luadata_resize(lua_State *L)
 
 	luadata_checkwritable(L, data);
 
-	if (data->opt & LUADATA_OPT_SKB)
-		luadata_skb_resize(L, data, new_size);
-	else if (data->opt & LUADATA_OPT_FREE)
+	if (data->opt & LUADATA_OPT_FREE)
 		data->ptr = lunatik_checknull(L, lunatik_realloc(L, data->ptr, new_size));
 	else
 		luaL_error(L, "cannot resize external memory");
@@ -445,24 +418,11 @@ static int luadata_lnew(lua_State *L)
 
 LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 
-static inline lunatik_object_t *luadata_create(void *ptr, size_t size, bool sleep, uint8_t opt, bool shared)
-{
-	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep, shared);
-
-	if (!IS_ERR_OR_NULL(object)) {
-		luadata_t *data = (luadata_t *)object->private;
-		luadata_set(data, ptr, 0, size, opt);
-	}
-	return object;
-}
-
 lunatik_object_t *luadata_new(lua_State *L, bool shared)
 {
-	lunatik_object_t *data = lunatik_checknull(L, luadata_create(NULL, 0, false, LUADATA_OPT_NONE, shared));
-	if (IS_ERR(data))
-		luaL_error(L, LUNATIK_ERR_SHARED, luadata_class.name);
-	lunatik_cloneobject(L, data);
-	return data;
+	lunatik_require(L, "data");
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), shared);
+	return object;
 }
 EXPORT_SYMBOL(luadata_new);
 
