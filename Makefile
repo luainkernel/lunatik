@@ -127,6 +127,8 @@ tests_install:
 	${INSTALL} -m 0644 tests/rcumap_sync/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/crypto
 	${INSTALL} -m 0644 tests/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/tests/crypto
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/netfilter
+	${INSTALL} -m 0644 tests/netfilter/*.lua ${SCRIPTS_INSTALL_PATH}/tests/netfilter
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
