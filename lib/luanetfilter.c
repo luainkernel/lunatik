@@ -17,7 +17,7 @@
 #include <lunatik.h>
 
 #include "luanetfilter.h"
-#include "luadata.h"
+#include "luaskb.h"
 
 /***
 * Represents a registered Netfilter hook.
@@ -52,47 +52,29 @@ static inline bool luanetfilter_pushcb(lua_State *L, luanetfilter_t *luanf)
 static inline lunatik_object_t *luanetfilter_pushskb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
 {
 	if (lunatik_getregistry(L, luanf->skb) != LUA_TUSERDATA) {
-		pr_err("could not find skb");
+		pr_err("could not find skb\n");
 		return NULL;
 	}
 
-	lunatik_object_t *data = (lunatik_object_t *)lunatik_toobject(L, -1);
-	if (unlikely(data == NULL || skb_linearize(skb) != 0)) {
-		pr_err("could not get skb\n");
+	lunatik_object_t *object = lunatik_toobject(L, -1);
+	if (unlikely(object == NULL)) {
+		pr_err("could not get skb object\n");
 		return NULL;
 	}
-	return data;
+
+	luaskb_reset(object, skb);
+	return object;
 }
-
-#define luanetfilter_resetskb(data, skb, offset, header_len)	\
-	luadata_reset(data, skb, offset, skb_headlen(skb) + header_len, LUADATA_OPT_SKB)
 
 static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
 {
-	lunatik_object_t *data;
+	lunatik_object_t *object = NULL;
 	int ret = -1;
 
-	if (!luanetfilter_pushcb(L, luanf) || (data = luanetfilter_pushskb(L, luanf, skb)) == NULL)
+	if (!luanetfilter_pushcb(L, luanf) || (object = luanetfilter_pushskb(L, luanf, skb)) == NULL)
 		goto out;
 
-	if (skb_mac_header_was_set(skb))
-		luanetfilter_resetskb(data, skb, skb_mac_offset(skb), skb_mac_header_len(skb));
-	else
-		luanetfilter_resetskb(data, skb, 0, 0);
-
-	struct net_device *dev = skb->dev;
-	if (dev)
-		lua_pushinteger(L, dev->ifindex);
-	else
-		lua_pushnil(L); /* dev may be NULL if hook is LOCAL_OUT */
-
-	int narg = 2;
-	if (skb_vlan_tag_present(skb)) {
-		lua_pushinteger(L, skb_vlan_tag_get_id(skb));
-		narg++;
-	}
-
-	if (lua_pcall(L, narg, 2, 0) != LUA_OK) {
+	if (lua_pcall(L, 1, 2, 0) != LUA_OK) {
 		pr_err("%s\n", lua_tostring(L, -1));
 		lua_pop(L, 1);
 		goto clear;
@@ -102,7 +84,7 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_t *luanf, struct sk_b
 		skb->mark = (u32)lua_tointeger(L, -1);
 	ret = (int)lua_tointeger(L, -2);
 clear:
-	luadata_clear(data);
+	luaskb_clear(object);
 out:
 	return ret;
 }
@@ -152,8 +134,8 @@ static const lunatik_class_t luanetfilter_class = {
 *   It should have the following fields:
 *
 *   - `hook` (function): The Lua function to be called for each packet.
-*     It receives a `luadata` object representing the packet buffer (`skb`)
-*     and should return an integer verdict (e.g., `netfilter.action.ACCEPT`).
+*     It receives an `skb` object and should return an integer verdict
+*     (e.g., `netfilter.action.ACCEPT`).
 *   - `pf` (integer): The protocol family (e.g., `netfilter.family.INET`).
 *   - `hooknum` (integer): The hook number within the protocol family (e.g., `netfilter.inet_hooks.LOCAL_OUT`).
 *   - `priority` (integer): The hook priority (e.g., `netfilter.ip_priority.FILTER`).
@@ -163,7 +145,7 @@ static const lunatik_class_t luanetfilter_class = {
 static int luanetfilter_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class , sizeof(luanetfilter_t), false);
+	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class, sizeof(luanetfilter_t), false);
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
 	nf->runtime = NULL;
 
@@ -183,7 +165,7 @@ static int luanetfilter_register(lua_State *L)
 		luaL_error(L, "failed to register netfilter hook");
 
 	lunatik_setruntime(L, netfilter, nf);
-	luadata_attach(L, nf, skb);
+	luaskb_attach(L, nf, skb);
 	lunatik_getobject(nf->runtime);
 	lunatik_registerobject(L, 1, object);
 	return 1;
@@ -202,7 +184,7 @@ static void luanetfilter_release(void *private)
 		return;
 
 	nf_unregister_net_hook(&init_net, &nf->nfops);
-	luadata_detach(runtime, nf, skb);
+	lunatik_detach(runtime, nf, skb);
 	lunatik_putobject(runtime);
 	nf->runtime = NULL;
 }
@@ -211,7 +193,7 @@ LUNATIK_NEWLIB(netfilter, luanetfilter_lib, &luanetfilter_class, luanetfilter_fl
 
 static int __init luanetfilter_init(void)
 {
-    return 0;
+	return 0;
 }
 
 static void __exit luanetfilter_exit(void)

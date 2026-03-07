@@ -313,12 +313,13 @@ static inline T checker(lua_State *L, int ix)			\
 	return (T)object->private;				\
 }
 
-#define LUNATIK_PRIVATECHECKER(checker, T)			\
+#define LUNATIK_PRIVATECHECKER(checker, T, ...)			\
 static inline T checker(lua_State *L, int ix)			\
 {								\
 	T private = (T)lunatik_toobject(L, ix)->private;	\
 	/* avoid use-after-free */				\
 	lunatik_argchecknull(L, private, ix);			\
+	__VA_ARGS__						\
 	return private;						\
 }
 
