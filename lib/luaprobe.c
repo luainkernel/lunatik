@@ -4,12 +4,7 @@
 */
 
 /***
-* kprobes mechanism.
-* This library allows Lua scripts to dynamically probe (instrument) kernel
-* functions or specific instruction addresses. Callbacks can be registered
-* to execute Lua code just before (pre-handler) and/or just after
-* (post-handler) the probed instruction is executed.
-*
+* kprobes interface.
 * @module probe
 */
 
@@ -20,10 +15,7 @@
 #include <lunatik.h>
 
 /***
-* Represents a kernel probe (kprobe) object.
-* This is a userdata object returned by `probe.new()`. It encapsulates a
-* `struct kprobe` and the associated Lua callback handlers. This object
-* can be used to enable, disable, or stop (unregister) the probe.
+* Represents a registered kprobe.
 * @type probe
 */
 typedef struct luaprobe_s {
@@ -88,7 +80,7 @@ static void __kprobes luaprobe_post_handler(struct kprobe *kp, struct pt_regs *r
 	luaprobe_t *probe = container_of(kp, luaprobe_t, kp);
 	int ret;
 
-	/* flags always seems to be zero; see:https://docs.kernel.org/trace/kprobes.html#api-reference */
+	/* flags always seems to be zero; see: https://docs.kernel.org/trace/kprobes.html#api-reference */
 	lunatik_run(probe->runtime, luaprobe_handler, ret, probe, "post", regs);
 	(void)ret;
 }
@@ -114,20 +106,13 @@ static void luaprobe_delete(luaprobe_t *probe)
 static void luaprobe_release(void *private)
 {
 	luaprobe_t *probe = (luaprobe_t *)private;
-
-	/* device might have never been stopped */
 	luaprobe_delete(probe);
 	lunatik_putobject(probe->runtime);
 }
 
 /***
-* Stops and unregisters the probe.
-* This method is called on a probe object. Once stopped, the kprobe is
-* disabled and unregistered from the kernel, and its handlers will no longer
-* be called. The associated resources are released.
+* Unregisters and stops the probe.
 * @function stop
-* @treturn nil
-* @usage my_probe_object:stop()
 */
 static int luaprobe_stop(lua_State *L)
 {
@@ -144,14 +129,10 @@ static int luaprobe_stop(lua_State *L)
 }
 
 /***
-* Enables or disables an already registered probe.
-* This method is called on a probe object.
+* Enables or disables the probe.
 * @function enable
-* @tparam boolean enable_flag If `true`, the probe is enabled. If `false`, the probe is disabled.
-*   A disabled probe remains registered but its handlers will not be executed.
-* @treturn nil
-* @raise Error if the probe was not properly registered or has been stopped.
-* @usage my_probe_object:enable(false) -- Disable the probe
+* @tparam boolean flag true to enable, false to disable
+* @raise if the probe has been stopped
 */
 static int luaprobe_enable(lua_State *L)
 {
@@ -161,7 +142,6 @@ static int luaprobe_enable(lua_State *L)
 	bool enable = lua_toboolean(L, 2);
 
 	lunatik_lock(object);
-	kp = &probe->kp;
 
 	if (kp->pre_handler == NULL)
 		goto err;
@@ -180,40 +160,13 @@ err:
 static int luaprobe_new(lua_State *L);
 
 /***
-* Creates and registers a new kernel probe.
-* This function installs a kprobe at the specified kernel symbol or address.
-* Lua callback functions can be provided to execute when the probe hits.
-*
+* Creates and registers a new kprobe.
 * @function new
-* @tparam string|lightuserdata symbol_or_address kernel symbol name (string)
-*   or the absolute kernel address (lightuserdata) to probe.
-*   Suitable symbol names are typically those exported by the kernel or other modules,
-*   often visible in `/proc/kallsyms` (when viewed from userspace). The `syscall`
-*   module (e.g., `syscall.numbers.openat`) can be used to get system call numbers.
-*
-*   For system call addresses, you can use `syscall.address(syscall.numbers.openat)`.
-*   For other kernel symbols, `linux.lookup("symbol_name")` can provide the address.
-*   Directly using addresses requires knowing the exact memory location, which can
-*   vary between kernel builds and is generally less portable than using symbol names
-*   or lookup functions.
-* @tparam table handlers A table containing the callback functions for the probe.
-*   It can have the following fields:
-*
-*   - `pre` (function, optional): A Lua function to be called just *before* the
-*     probed instruction is executed.
-*   - `post` (function, optional): A Lua function to be called just *after* the
-*     probed instruction has executed.
-*
-*   Both `pre` and `post` handlers receive two arguments:
-*
-*   1. `target` (string|lightuserdata): The symbol name or address that was probed.
-*   2. `dump_regs` (function): A closure that, when called without arguments,
-*      will print the current CPU registers and stack trace to the system log.
-*      This is useful for debugging.
-*
-* @treturn probe A new probe object. This object can be used to later `stop()` or `enable()`/`disable()` the probe.
-* @raise Error if the probe cannot be registered (e.g., symbol not found, memory allocation failure, invalid address).
-* @within probe
+* @tparam string|lightuserdata symbol kernel symbol name or address
+* @tparam table handlers table with optional `pre` and `post` callback functions;
+*   each receives the symbol (string or lightuserdata) and a `dump` closure
+* @treturn probe
+* @raise if registration fails
 */
 static const luaL_Reg luaprobe_lib[] = {
 	{"new", luaprobe_new},
@@ -221,8 +174,8 @@ static const luaL_Reg luaprobe_lib[] = {
 };
 
 static const luaL_Reg luaprobe_mt[] = {
-	{"__gc", lunatik_deleteobject},
-	{"stop", luaprobe_stop},
+	{"__gc",   lunatik_deleteobject},
+	{"stop",   luaprobe_stop},
 	{"enable", luaprobe_enable},
 	{NULL, NULL}
 };
@@ -241,8 +194,6 @@ static int luaprobe_new(lua_State *L)
 	struct kprobe *kp = &probe->kp;
 	int ret;
 
-	memset(probe, 0, sizeof(luaprobe_t));
-
 	lunatik_setruntime(L, probe, probe);
 	lunatik_getobject(probe->runtime);
 
@@ -253,7 +204,7 @@ static int luaprobe_new(lua_State *L)
 		const char *symbol_name = luaL_checklstring(L, 1, &symbol_len);
 
 		if ((kp->symbol_name = kstrndup(symbol_name, symbol_len, lunatik_gfp(probe->runtime))) == NULL)
-			luaL_error(L, "out of memory");
+			lunatik_enomem(L);
 	}
 
 	luaL_checktype(L, 2, LUA_TTABLE); /* handlers */
@@ -287,5 +238,5 @@ static void __exit luaprobe_exit(void)
 module_init(luaprobe_init);
 module_exit(luaprobe_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 
