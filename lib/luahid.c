@@ -47,7 +47,7 @@ static void luahid_release(void *private)
 
 	lunatik_object_t *runtime = hid->runtime;
 	if (runtime != NULL) {
-		luadata_detach(runtime, hid, data);
+		lunatik_detach(runtime, hid, data);
 		lunatik_putobject(runtime);
 	}
 	if (hid->driver.id_table != NULL)
@@ -299,7 +299,7 @@ static int luahid_register(lua_State *L)
 	driver->raw_event = luahid_raw_event;
 
 	lunatik_setruntime(L, hid, hid);
-	luadata_attach(L, hid, data);
+	lunatik_attach(L, hid, data, luadata_new, false);
 	lunatik_getobject(hid->runtime);
 	lunatik_registerobject(L, 1, object);
 

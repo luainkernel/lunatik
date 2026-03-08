@@ -391,6 +391,21 @@ static inline void lunatik_unregisterobject(lua_State *L, lunatik_object_t *obje
 	lunatik_unregister(L, object); /* remove object, now it might be GC'ed */
 }
 
+#define lunatik_attach(L, obj, field, new_fn, ...)	\
+do {							\
+	obj->field = new_fn((L), ##__VA_ARGS__);	\
+	lunatik_register((L), -1, obj->field);		\
+	lua_pop((L), 1);				\
+} while (0)
+
+#define lunatik_detach(runtime, obj, field)			\
+do {								\
+	lua_State *L = lunatik_getstate(runtime);		\
+	if (L != NULL) /* might be called on lunatik_stop */	\
+		lunatik_unregister(L, obj->field);		\
+	obj->field = NULL;					\
+} while (0)
+
 #include "lunatik_val.h"
 
 #endif
