@@ -145,7 +145,6 @@ inline static void lunatik_fixerror(lua_State *L, const char *method)
 		luaL_gsub(L, error, "?", method);
 		lua_remove(L, -2); /* error */
 	}
-	luaL_traceback(L, L, lua_tostring(L, -1), 1);
 	lua_remove(L, -2); /* fixed error */
 	lua_error(L);
 }
