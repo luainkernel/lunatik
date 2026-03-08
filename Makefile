@@ -134,6 +134,8 @@ tests_install:
 	${INSTALL} -m 0644 tests/rcu/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcu
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/crypto
 	${INSTALL} -m 0644 tests/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/tests/crypto
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/crypto
+	${INSTALL} -m 0755 tests/crypto/run.sh ${LUNATIK_TESTS_INSTALL_PATH}/crypto
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/monitor
 	${INSTALL} -m 0755 tests/monitor/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/monitor
 	${INSTALL} -m 0644 tests/monitor/*.lua ${SCRIPTS_INSTALL_PATH}/tests/monitor

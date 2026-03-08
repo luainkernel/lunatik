@@ -30,6 +30,7 @@ run_suite "$DIR/thread/run.sh"
 run_suite "$DIR/runtime/run.sh"
 run_suite "$DIR/socket/run.sh"
 run_suite "$DIR/rcu/run.sh"
+run_suite "$DIR/crypto/run.sh"
 
 echo ""
 echo "# Grand Totals: pass:$TOTAL_PASS fail:$TOTAL_FAIL skip:$TOTAL_SKIP"

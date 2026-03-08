@@ -5,10 +5,10 @@
 
 --- HMAC-based Extract-and-Expand Key Derivation Function (HKDF) based on RFC 5869.
 -- This module provides functions to perform HKDF operations, utilizing the
--- underlying `crypto_shash` C module for HMAC calculations.
+-- underlying `crypto` C module for HMAC calculations.
 -- @classmod crypto.hkdf
 
-local shash = require("crypto.shash")
+local shash = require("crypto").shash
 local char, rep, sub = string.char, string.rep, string.sub
 
 --- HKDF operations.
@@ -20,10 +20,7 @@ local HKDF = {}
 -- This method is also called by the garbage collector.
 -- @function HKDF:close
 function HKDF:close()
-	if self.tfm then
-		self.tfm:__close()
-		self.tfm = nil
-	end
+	self.tfm:__close()
 end
 
 HKDF.__close = HKDF.close
@@ -41,7 +38,7 @@ end
 -- @usage local hkdf_sha256 = require("crypto.hkdf").new("sha256")
 function HKDF.new(alg)
 	local hmac = setmetatable({}, HKDF)
-	hmac.tfm = shash.new("hmac(" .. alg .. ")")
+	hmac.tfm = shash("hmac(" .. alg .. ")")
 	hmac.salt = rep("\0", #hmac)
 
 	return hmac
