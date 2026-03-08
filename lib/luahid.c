@@ -4,10 +4,7 @@
 */
 
 /***
-* High-level Lua interface to the Linux HID subsystem.
-* This module allows registering Lua table with functions as a HID driver,
-* support for id_table is provided, which allows matching HID devices
-*
+* Lua interface to the Linux HID subsystem.
 * @module hid
 */
 
@@ -22,10 +19,6 @@
 
 /***
 * Represents a registered HID driver.
-* This is a userdata object returned by `hid.register()`. It encapsulates
-* the kernel `struct hid_driver` and associated Lunatik runtime information
-* necessary to invoke the Lua callback when a HID device is matched.
-* The `registered` field indicates whether the driver is currently registered
 * @type hid_driver
 */
 typedef struct luahid_s {
@@ -113,7 +106,7 @@ out:
 }
 
 #define luahid_setfield(L, idx, obj, field)	\
-do { 						\
+do {						\
 	lua_pushinteger(L, obj->field);		\
 	lua_setfield(L, idx - 1, #field);	\
 } while (0)
@@ -130,13 +123,13 @@ static inline int luahid_pcall(lua_State *L, lua_CFunction op, luahid_ctx_t *ctx
 }
 
 #define luahid_run(op, ctx, hid, hdev, ret)					\
-do { 										\
+do {										\
 	(ctx)->cb = #op; (ctx)->hid = hid; (ctx)->hdev = hdev;			\
 	lunatik_run(hid->runtime, luahid_pcall, ret, luahid_do##op, ctx);	\
 } while (0)
 
 #define luahid_pushid(L, id, extra)		\
-do { 						\
+do {						\
 	lua_newtable(L); 			\
 	luahid_setfield(L, -1, id, bus); 	\
 	luahid_setfield(L, -1, id, group); 	\
@@ -282,24 +275,11 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 
 /***
 * Registers a new HID driver.
-* This function creates a new HID driver object from a Lua table and registers it with the kernel.
-* The Lua table must contain the following fields:
-*
-* - `name`: The name of the driver (string).
-* - `id_table`: A table of device IDs that this driver can match against (lua_table).
-* 	- each id is a table consisting of fields:
-*
-* 		- `bus`: The bus type (integer, default: `HID_BUS_ANY`).
-* 		- `group`: The group type (integer, default: `HID_GROUP_ANY`).
-* 		- `vendor`: The vendor ID (integer, default: `HID_ANY_ID`).
-* 		- `product`: The product ID (integer, default: `HID_ANY_ID`).
-* 		- `driver_data`: Additional driver data (integer, default: `0`).
-*
-* @function hid.register
-* @tparam table table The Lua table containing driver information.
-* @treturn hid_driver The registered HID driver object.
-* @see examples/gesture.lua
-* @see examples/xiaomi.lua
+* @function register
+* @tparam table opts driver options: `name` (string), `id_table` (array of device ID tables,
+*   each with optional integer fields `bus`, `group`, `vendor`, `product`, `driver_data`)
+* @treturn hid_driver
+* @raise if required fields are missing, `id_table` is invalid, or driver registration fails
 */
 static int luahid_register(lua_State *L)
 {
@@ -307,14 +287,12 @@ static int luahid_register(lua_State *L)
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), true);
 	luahid_t *hid = (luahid_t *)object->private;
-	memset(hid, 0, sizeof(luahid_t));
-
-	struct hid_driver *driver = &(hid->driver);
+	struct hid_driver *driver = &hid->driver;
 	driver->name = lunatik_checkalloc(L, NAME_MAX);
 	lunatik_setstring(L, 1, driver, name, NAME_MAX);
 
 	lunatik_checkfield(L, 1, "id_table", LUA_TTABLE);
-	luaL_argcheck(L, (driver->id_table = luahid_setidtable(L, -1)) != NULL, 1, "invaild id_table");
+	luaL_argcheck(L, (driver->id_table = luahid_setidtable(L, -1)) != NULL, 1, "invalid id_table");
 
 	driver->probe = luahid_probe;
 	driver->report_fixup = luahid_report_fixup;
