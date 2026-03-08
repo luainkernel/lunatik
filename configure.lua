@@ -17,7 +17,7 @@ local specs = {
 		module_name = "eth",
 	},
 	{
-		header = "uapi/linux/stat.h",
+		header = "linux/stat.h",
 		prefix = "S_",
 		module_name = "stat",
 	},

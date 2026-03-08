@@ -13,7 +13,6 @@
 */
 
 #include <linux/random.h>
-#include <linux/stat.h>
 #include <linux/sched.h>
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
@@ -231,35 +230,6 @@ static int lualinux_ifaddr(lua_State *L)
 	return 1;
 }
 
-/***
-* Table of file mode constants.
-* Exports file permission flags from `<linux/stat.h>`. These can be used, for
-* example, with `device.new()` to set the mode of a character device.
-*/
-static const lunatik_reg_t lualinux_stat[] = {
-	/* user */
-	{"IRWXU", S_IRWXU},
-	{"IRUSR", S_IRUSR},
-	{"IWUSR", S_IWUSR},
-	{"IXUSR", S_IXUSR},
-	/* group */
-	{"IRWXG", S_IRWXG},
-	{"IRGRP", S_IRGRP},
-	{"IWGRP", S_IWGRP},
-	{"IXGRP", S_IXGRP},
-	/* other */
-	{"IRWXO", S_IRWXO},
-	{"IROTH", S_IROTH},
-	{"IWOTH", S_IWOTH},
-	{"IXOTH", S_IXOTH},
-	/* user, group, other */
-	{"IRWXUGO", (S_IRWXU|S_IRWXG|S_IRWXO)},
-	{"IALLUGO", (S_ISUID|S_ISGID|S_ISVTX|S_IRWXUGO)},
-	{"IRUGO", (S_IRUSR|S_IRGRP|S_IROTH)},
-	{"IWUGO", (S_IWUSR|S_IWGRP|S_IWOTH)},
-	{"IXUGO", (S_IXUSR|S_IXGRP|S_IXOTH)},
-	{NULL, 0}
-};
 
 /***
 * Returns the symbolic name of a kernel error number.
@@ -280,11 +250,6 @@ static int lualinux_errname(lua_State *L)
     return 1;
 }
 
-static const lunatik_namespace_t lualinux_flags[] = {
-	{"stat", lualinux_stat},
-	{NULL, NULL}
-};
-
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
@@ -298,7 +263,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(linux, lualinux_lib, NULL, lualinux_flags);
+LUNATIK_NEWLIB(linux, lualinux_lib, NULL, NULL);
 
 static int __init lualinux_init(void)
 {

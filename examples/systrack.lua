@@ -10,7 +10,7 @@ local systab = require("syscall.table")
 
 local syscalls = {"openat", "read", "write", "readv", "writev", "close"}
 
-local s = linux.stat
+local s = require("linux.stat")
 local driver = {name = "systrack", mode = s.IRUGO}
 
 local track = {}
