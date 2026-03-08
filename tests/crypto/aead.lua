@@ -2,14 +2,14 @@
 -- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
-local aead = require"crypto.aead"
+local aead = require("crypto").aead
 local util = require("util")
 local test = util.test
 local hex2bin = util.hex2bin
 local bin2hex = util.bin2hex
 
 test("AEAD AES-128-GCM encrypt", function()
-	local c = aead.new"gcm(aes)"
+	local c = aead("gcm(aes)")
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
 
@@ -20,7 +20,7 @@ test("AEAD AES-128-GCM encrypt", function()
 end)
 
 test("AEAD AES-128-GCM decrypt", function()
-	local c = aead.new"gcm(aes)"
+	local c = aead("gcm(aes)")
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
 
@@ -32,49 +32,47 @@ test("AEAD AES-128-GCM decrypt", function()
 end)
 
 test("AEAD AES-128-GCM ivsize and authsize", function()
-	local c = aead.new"gcm(aes)"
+	local c = aead("gcm(aes)")
 	assert(c:ivsize() == 12, "IV size for AES-128-GCM should be 12 bytes")
 	c:setauthsize(16)
 	assert(c:authsize() == 16, "Auth size for AES-128-GCM should be 16 bytes")
 end)
 
 test("AEAD AES-128-GCM setkey with invalid key length", function()
-	local c = aead.new"gcm(aes)"
+	local c = aead("gcm(aes)")
 	local status, err = pcall(c.setkey, c, "0123456789abcde") -- 15 bytes, invalid for AES-128
 	assert(not status, "setkey with invalid key length should fail")
 	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM setauthsize with invalid tag length", function()
-	local c = aead.new"gcm(aes)"
+	local c = aead("gcm(aes)")
 	local status, err = pcall(c.setauthsize, c, 11) -- 11 bytes, invalid for GCM (must be 4, 8, 12, 13, 14, 15, 16)
 	assert(not status, "setauthsize with invalid tag length should fail")
 	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM encrypt with incorrect IV length", function()
-	local c = aead.new"gcm(aes)"
+	local c = aead("gcm(aes)")
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
-	local err_msg = "incorrect IV length"
 	local status, err = pcall(c.encrypt, c, "abcdefghijk", "plaintext") -- 11 bytes, incorrect IV length
 	assert(not status, "encrypt with incorrect IV length should fail")
-	assert(err:find(err_msg), "Error message should contain '" .. err_msg .. "', got: " .. err)
+	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM decrypt with incorrect IV length", function()
-	local c = aead.new"gcm(aes)"
+	local c = aead("gcm(aes)")
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
 	local ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918e"
-	local err_msg = "incorrect IV length"
 	local status, err = pcall(c.decrypt, c, "abcdefghijk", ciphertext) -- 11 bytes, incorrect IV length
 	assert(not status, "decrypt with incorrect IV length should fail")
-	assert(err:find(err_msg), "Error message should contain '" .. err_msg .. "', got: " .. err)
+	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM decrypt with input data too short for tag", function()
-	local c = aead.new"gcm(aes)"
+	local c = aead("gcm(aes)")
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
 	local short_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918" -- Missing last byte of tag
@@ -84,7 +82,7 @@ test("AEAD AES-128-GCM decrypt with input data too short for tag", function()
 end)
 
 test("AEAD AES-128-GCM decrypt with authentication failure", function()
-	local c = aead.new"gcm(aes)"
+	local c = aead("gcm(aes)")
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
 	local tampered_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918f" -- Last byte of tag tampered

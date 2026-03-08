@@ -4,12 +4,7 @@
 */
 
 /***
-* Low-level Lua interface to the Linux Kernel Crypto API for synchronous
-* compression algorithms.
-*
-* This module provides a `new` function to create COMP transform objects,
-* which can then be used for compression and decompression.
-*
+* Lua interface to synchronous compression algorithms.
 * @module crypto.comp
 */
 
@@ -20,8 +15,6 @@
 #include <linux/slab.h>
 #include <linux/limits.h>
 
-#include <lunatik.h>
-
 #include "luacrypto.h"
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
@@ -29,21 +22,14 @@
 #else
 LUNATIK_PRIVATECHECKER(luacrypto_comp_check, struct crypto_comp *);
 
-LUACRYPTO_RELEASER(comp, struct crypto_comp, crypto_free_comp, NULL);
-
-/***
-* COMP Object methods.
-* These methods are available on COMP objects created by `comp.new()`.
-* @see new
-* @type COMP
-*/
+LUACRYPTO_RELEASER(comp, struct crypto_comp, crypto_free_comp);
 
 #define LUACRYPTO_COMP_OPERATION(name)									\
 static int luacrypto_comp_##name(lua_State *L)								\
 {													\
 	struct crypto_comp *tfm = luacrypto_comp_check(L, 1);						\
 	size_t datalen;											\
-	const u8 *data = (const u8 *)luaL_checklstring(L, 2, &datalen);					\
+	const u8 *data = (const u8 *)luaL_checklstring(L, 2, &datalen);				\
 	lunatik_checkbounds(L, 2, datalen, 1, UINT_MAX);						\
 	unsigned int max_len = (unsigned int)lunatik_checkinteger(L, 3, 1, UINT_MAX);	\
 													\
@@ -56,28 +42,22 @@ static int luacrypto_comp_##name(lua_State *L)								\
 }
 
 /***
-* Compresses the given data.
-* Requires the maximum possible compressed size as an argument, as the kernel
-* API needs a destination buffer of sufficient size. A common approach is to
-* provide a size slightly larger than the input data (e.g., input size + a small fixed overhead or percentage).
+* Compresses data.
 * @function compress
-* @tparam string data The data to compress.
-* @tparam integer max_output_len The maximum possible size of the compressed data.
-* @treturn string The compressed data.
-* @raise Error on failure (e.g., allocation error, crypto API error).
+* @tparam string data input data
+* @tparam integer max_len maximum size of compressed output
+* @treturn string compressed data
+* @raise on compression failure
 */
 LUACRYPTO_COMP_OPERATION(compress);
 
 /***
-* Decompresses the given data.
-* Requires the maximum possible decompressed size as an argument, as the kernel
-* API needs a destination buffer of sufficient size.
+* Decompresses data.
 * @function decompress
-* @tparam string data The data to decompress.
-* @tparam integer max_output_len The maximum possible size of the decompressed data.
-* @treturn string The decompressed data.
-* @raise Error on failure (e.g., allocation error, crypto API error, input data corrupted,
-*        `max_output_len` too small).
+* @tparam string data compressed input
+* @tparam integer max_len maximum size of decompressed output
+* @treturn string decompressed data
+* @raise on decompression failure
 */
 LUACRYPTO_COMP_OPERATION(decompress);
 
@@ -97,18 +77,16 @@ static const lunatik_class_t luacrypto_comp_class = {
 };
 
 /***
-* Creates a new COMP transform (TFM) object.
-* This is the constructor function for the `crypto_comp` module.
+* Creates a new COMP transform object.
 * @function new
-* @tparam string algname The name of the compression algorithm (e.g., "lz4", "deflate").
-* @treturn comp The new COMP TFM object.
-* @raise Error if the TFM object cannot be allocated/initialized.
+* @tparam string algname algorithm name (e.g., "lz4", "deflate")
+* @treturn crypto_comp
+* @raise on allocation failure
 * @usage
-*   local comp = require("crypto.comp")
-*   local compressor = comp.new("lz4")
-* @within comp
+*   local comp = require("crypto").comp
+*   local c = comp("lz4")
 */
-LUACRYPTO_NEW(comp, struct crypto_comp, crypto_alloc_comp, luacrypto_comp_class, NULL);
+LUACRYPTO_NEW(comp, struct crypto_comp, crypto_alloc_comp, luacrypto_comp_class);
 
 static const luaL_Reg luacrypto_comp_lib[] = {
 	{"new", luacrypto_comp_new},
