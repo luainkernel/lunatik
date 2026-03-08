@@ -33,15 +33,13 @@ local function format_percentage(metric, total)
 	return string.format("%d.%08d%08d", int_part, frac_high, frac_low)
 end
 
--- Helper function to sum all stats values in a table
--- Note: guest and guest_nice are already included in user and nice respectively
--- according to the Linux kernel documentation, so we must exclude them from the total
+-- guest and guest_nice are already included in user and nice — exclude from total
 local function sum_stats(stats)
 	local sum = 0
-	stats["guest"] = 0
-	stats["guest_nice"] = 0
 	for key, value in pairs(stats) do
-		sum = sum + value
+		if key ~= "guest" and key ~= "guest_nice" then
+			sum = sum + value
+		end
 	end
 	return sum
 end
@@ -65,13 +63,14 @@ local function cpu_usage()
 	local current_stats, current_total_stats = cpu_stats()
 
 	for cpu_id, _ in pairs(current_stats) do
+		local prev = last_stats[cpu_id] or {}
 		local total_delta = current_total_stats[cpu_id] - (last_total_stats[cpu_id] or 0)
-		local guest_delta = current_stats[cpu_id].guest - (last_stats[cpu_id].guest or 0)
-		local guest_nice_delta = current_stats[cpu_id].guest_nice - (last_stats[cpu_id].guest_nice or 0)
+		local guest_delta = current_stats[cpu_id].guest - (prev.guest or 0)
+		local guest_nice_delta = current_stats[cpu_id].guest_nice - (prev.guest_nice or 0)
 
 		usage[cpu_id] = {}
 		for metric, value in pairs(current_stats[cpu_id]) do
-			local metric_delta = value - (last_stats[cpu_id][metric] or 0)
+			local metric_delta = value - (prev[metric] or 0)
 
 			if metric == "user" then
 				metric_delta = metric_delta - guest_delta
@@ -89,23 +88,21 @@ end
 
 local function cpu_metrics()
 	local metrics = ""
-	local ts_ms = linux.time() // 1000  -- Convert to milliseconds (FIXME: note sure if this conversion is necessary)
-	local usage_data = cpu_usage()  -- Call once and store the result
+	local ts_ms = linux.time() // 1000000
+	local usage_data = cpu_usage()
 
-	-- Collect all unique metric names from the first available CPU
 	local cpu_metric_names = {}
-	for _, cpu_metrics in pairs(usage_data) do
-		for key, _ in pairs(cpu_metrics) do
+	for _, cpu_data in pairs(usage_data) do
+		for key, _ in pairs(cpu_data) do
 			cpu_metric_names[key] = true
 		end
-		break  -- Only need one CPU to get all metric names
+		break
 	end
 
-	-- Output grouped by metric name
 	for metric, _ in pairs(cpu_metric_names) do
 		metrics = metrics .. string.format('# TYPE cpu_usage_%s gauge\n', metric)
-		for cpu_id, cpu_metrics in pairs(usage_data) do
-			local value = cpu_metrics[metric] or "0"
+		for cpu_id, cpu_data in pairs(usage_data) do
+			local value = cpu_data[metric] or "0"
 			metrics = metrics .. string.format('cpu_usage_%s{cpu="cpu%d"} %s %d\n',
 				metric, cpu_id, value, ts_ms)
 		end
@@ -145,9 +142,6 @@ local function handle_client(session)
 	-- Send metrics (works for both HTTP and plain connections like socat)
 	session:send(cpu_metrics())
 end
-
--- Initial sample
-last_stats = cpu_stats()
 
 local function daemon()
 	print("cpud [daemon]: started")
