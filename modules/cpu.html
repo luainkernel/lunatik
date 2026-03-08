@@ -83,39 +83,47 @@
 <div id="content">
 
 <h1>Module <code>cpu</code></h1>
-<p>Linux CPU Lua interface.</p>
-<p> This module provides access to Linux's CPU abstractions.</p>
+<p>Lua interface to Linux CPU abstractions.</p>
+<p>
+
+</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#foreach_online">foreach_online (callback)</a></td>
-	<td class="summary">Iterates over all online CPUs and calls a function for each.</td>
+	<td class="summary">Calls a function for each online CPU.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#foreach_possible">foreach_possible (callback)</a></td>
-	<td class="summary">Iterates over all possible CPUs and calls a function for each.</td>
+	<td class="summary">Calls a function for each possible CPU.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#foreach_present">foreach_present (callback)</a></td>
-	<td class="summary">Iterates over all present CPUs and calls a function for each.</td>
+	<td class="summary">Calls a function for each present CPU.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#num_online">num_online ()</a></td>
-	<td class="summary">Returns the number of online CPUs in the system.</td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#num_possible">num_possible ()</a></td>
-	<td class="summary">Returns the number of possible CPUs in the system.</td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#num_present">num_present ()</a></td>
-	<td class="summary">Returns the number of CPUs present in the system.</td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#stats">stats (cpu)</a></td>
-	<td class="summary">Gets CPU statistics for a specific CPU.</td>
+	<td class="summary">Returns CPU time statistics for a given CPU.</td>
 	</tr>
 </table>
 
@@ -131,26 +139,20 @@
     <strong>foreach_online (callback)</strong>
     </dt>
     <dd>
-    Iterates over all online CPUs and calls a function for each.
+    Calls a function for each online CPU.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
-         Function to call for each online CPU
+         called with the CPU number
         </li>
     </ul>
 
 
 
 
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">cpu.<span class="function-name">foreach_online</span>(<span class="keyword">function</span>(cpu_num)
-    <span class="global">print</span>(<span class="string">"CPU"</span>, cpu.<span class="function-name">stats</span>(cpu_num))
-<span class="keyword">end</span>)</pre>
-    </ul>
 
 </dd>
     <dt>
@@ -158,26 +160,20 @@
     <strong>foreach_possible (callback)</strong>
     </dt>
     <dd>
-    Iterates over all possible CPUs and calls a function for each.
+    Calls a function for each possible CPU.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
-         Function to call for each possible CPU
+         called with the CPU number
         </li>
     </ul>
 
 
 
 
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">cpu.<span class="function-name">foreach_possible</span>(<span class="keyword">function</span>(cpu_num)
-    <span class="global">print</span>(<span class="string">"CPU"</span>, cpu.<span class="function-name">stats</span>(cpu_num))
-<span class="keyword">end</span>)</pre>
-    </ul>
 
 </dd>
     <dt>
@@ -185,26 +181,20 @@
     <strong>foreach_present (callback)</strong>
     </dt>
     <dd>
-    Iterates over all present CPUs and calls a function for each.
+    Calls a function for each present CPU.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
-         Function to call for each present CPU
+         called with the CPU number
         </li>
     </ul>
 
 
 
 
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">cpu.<span class="function-name">foreach_present</span>(<span class="keyword">function</span>(cpu_num)
-    <span class="global">print</span>(<span class="string">"CPU"</span>, cpu.<span class="function-name">stats</span>(cpu_num))
-<span class="keyword">end</span>)</pre>
-    </ul>
 
 </dd>
     <dt>
@@ -212,7 +202,9 @@
     <strong>num_online ()</strong>
     </dt>
     <dd>
-    Returns the number of online CPUs in the system.
+
+
+
 
 
 
@@ -220,7 +212,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The number of online CPUs in the system
+        number of online CPUs
     </ol>
 
 
@@ -232,7 +224,9 @@
     <strong>num_possible ()</strong>
     </dt>
     <dd>
-    Returns the number of possible CPUs in the system.
+
+
+
 
 
 
@@ -240,7 +234,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The number of possible CPUs in the system
+        number of possible CPUs
     </ol>
 
 
@@ -252,7 +246,9 @@
     <strong>num_present ()</strong>
     </dt>
     <dd>
-    Returns the number of CPUs present in the system.
+
+
+
 
 
 
@@ -260,7 +256,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The number of CPUs present in the system
+        number of present CPUs
     </ol>
 
 
@@ -272,16 +268,14 @@
     <strong>stats (cpu)</strong>
     </dt>
     <dd>
-    Gets CPU statistics for a specific CPU.
- Fetches kernel CPU statistics including user, nice, system, idle, iowait,
- irq, softirq, steal, guest, guest_nice and forceidle times.
+    Returns CPU time statistics for a given CPU.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">cpu</span>
             <span class="types"><span class="type">integer</span></span>
-         The CPU number (0-based) to query.
+         CPU number (0-based)
         </li>
     </ul>
 
@@ -289,21 +283,14 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        A table containing CPU time statistics with the following fields:
-      <ul>
-        </ul>
+        fields: <code>user</code>, <code>nice</code>, <code>system</code>, <code>idle</code>, <code>iowait</code>, <code>irq</code>,
+   <code>softirq</code>, <code>steal</code>, <code>guest</code>, <code>guest_nice</code>, <code>forceidle</code> (if CONFIG<em>SCHED</em>CORE)
     </ol>
 
     <h3>Raises:</h3>
-    Error if CPU is offline
+    if CPU is offline
 
 
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="keyword">local</span> cpu0 = cpu.<span class="function-name">stats</span>(<span class="number">0</span>)
-<span class="global">print</span>(<span class="string">"CPU 0 user time:"</span>, cpu0.user)
-<span class="global">print</span>(<span class="string">"CPU 0 idle time:"</span>, cpu0.idle)</pre>
-    </ul>
 
 </dd>
 </dl>
@@ -313,7 +300,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-03-08 22:00:00 </i>
+<i style="float:right;">Last updated 2026-03-08 22:00:57 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
