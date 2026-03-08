@@ -37,14 +37,6 @@ test("RNG reset with seed", function()
 	assert(#random == 16)
 end)
 
-test("RNG info", function()
-	local rng = new"stdrng"
-	local info = rng:info()
-	assert(type(info) == "table", "info should return a table")
-	assert(type(info.driver_name) == "string", "info.driver_name should be a string")
-	assert(type(info.seedsize) == "number", "info.seedsize should be a number")
-end)
-
 test("RNG getbytes 0 bytes (error)", function()
 	local rng = new"stdrng"
 	local status, err = pcall(rng.getbytes, rng, 0)
@@ -72,4 +64,13 @@ test("RNG getbytes (different from previous)", function()
 	local bytes32 = rng:getbytes(32)
 	assert(bytes16 ~= bytes32, "Consecutive getbytes calls should produce different results (highly probable)")
 end)
+
+test("RNG info", function()
+	local rng = new"stdrng"
+	local info = rng:info()
+	assert(type(info) == "table", "info should return a table")
+	assert(type(info.driver_name) == "string", "info.driver_name should be a string")
+	assert(type(info.seedsize) == "number", "info.seedsize should be a number")
+end)
+
 
