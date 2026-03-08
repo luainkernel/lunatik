@@ -4,10 +4,7 @@
 */
 
 /***
-* Linux CPU Lua interface.
-*
-* This module provides access to Linux's CPU abstractions.
-*
+* Lua interface to Linux CPU abstractions.
 * @module cpu
 */
 
@@ -18,32 +15,27 @@
 #include <lunatik.h>
 
 #define LUACPU_NUM(name)					\
-static int luacpu_num_##name(lua_State *L) {			\
+static int luacpu_num_##name(lua_State *L)			\
+{								\
 	lua_pushinteger(L, (lua_Integer)num_##name##_cpus());	\
 	return 1;						\
 }
 
 /***
-* Returns the number of possible CPUs in the system.
-*
 * @function num_possible
-* @treturn integer The number of possible CPUs in the system
+* @treturn integer number of possible CPUs
 */
 LUACPU_NUM(possible)
 
 /***
-* Returns the number of CPUs present in the system.
-*
 * @function num_present
-* @treturn integer The number of CPUs present in the system
+* @treturn integer number of present CPUs
 */
 LUACPU_NUM(present)
 
 /***
-* Returns the number of online CPUs in the system.
-*
 * @function num_online
-* @treturn integer The number of online CPUs in the system
+* @treturn integer number of online CPUs
 */
 LUACPU_NUM(online)
 
@@ -54,29 +46,12 @@ do {									\
 } while (0)
 
 /***
-* Gets CPU statistics for a specific CPU.
-* Fetches kernel CPU statistics including user, nice, system, idle, iowait,
-* irq, softirq, steal, guest, guest_nice and forceidle times.
-*
+* Returns CPU time statistics for a given CPU.
 * @function stats
-* @tparam integer cpu The CPU number (0-based) to query.
-* @treturn table A table containing CPU time statistics with the following fields:
-*   @tfield integer user Time spent in user mode
-*   @tfield integer nice Time spent in user mode with low priority (nice)
-*   @tfield integer system Time spent in system mode
-*   @tfield integer idle Time spent in idle task
-*   @tfield integer iowait Time waiting for I/O to complete
-*   @tfield integer irq Time servicing hardware interrupts
-*   @tfield integer softirq Time servicing software interrupts
-*   @tfield integer steal Time stolen by other operating systems (virtualized environment)
-*   @tfield integer guest Time spent running a virtual CPU for guest OS
-*   @tfield integer guest_nice Time spent running a niced guest
-*   @tfield integer forceidle Time spent in forced idle (if CONFIG_SCHED_CORE is enabled)
-* @raise Error if CPU is offline
-* @usage
-*   local cpu0 = cpu.stats(0)
-*   print("CPU 0 user time:", cpu0.user)
-*   print("CPU 0 idle time:", cpu0.idle)
+* @tparam integer cpu CPU number (0-based)
+* @treturn table fields: `user`, `nice`, `system`, `idle`, `iowait`, `irq`,
+*   `softirq`, `steal`, `guest`, `guest_nice`, `forceidle` (if CONFIG_SCHED_CORE)
+* @raise if CPU is offline
 */
 static int luacpu_stats(lua_State *L)
 {
@@ -106,7 +81,8 @@ static int luacpu_stats(lua_State *L)
 }
 
 #define LUACPU_FOREACH(name)				\
-static int luacpu_foreach_##name(lua_State *L) {	\
+static int luacpu_foreach_##name(lua_State *L)		\
+{							\
 	unsigned int cpu;				\
 	luaL_checktype(L, 1, LUA_TFUNCTION);		\
 	for_each_##name##_cpu(cpu) {			\
@@ -115,41 +91,26 @@ static int luacpu_foreach_##name(lua_State *L) {	\
 		lua_call(L, 1, 0);			\
 	}						\
 	return 0;					\
-};
+}
 
 /***
-* Iterates over all possible CPUs and calls a function for each.
-*
+* Calls a function for each possible CPU.
 * @function foreach_possible
-* @tparam function callback Function to call for each possible CPU
-* @usage
-*   cpu.foreach_possible(function(cpu_num)
-*       print("CPU", cpu.stats(cpu_num))
-*   end)
+* @tparam function callback called with the CPU number
 */
 LUACPU_FOREACH(possible)
 
 /***
-* Iterates over all present CPUs and calls a function for each.
-*
+* Calls a function for each present CPU.
 * @function foreach_present
-* @tparam function callback Function to call for each present CPU
-* @usage
-*   cpu.foreach_present(function(cpu_num)
-*       print("CPU", cpu.stats(cpu_num))
-*   end)
+* @tparam function callback called with the CPU number
 */
 LUACPU_FOREACH(present)
 
 /***
-* Iterates over all online CPUs and calls a function for each.
-*
+* Calls a function for each online CPU.
 * @function foreach_online
-* @tparam function callback Function to call for each online CPU
-* @usage
-*   cpu.foreach_online(function(cpu_num)
-*       print("CPU", cpu.stats(cpu_num))
-*   end)
+* @tparam function callback called with the CPU number
 */
 LUACPU_FOREACH(online)
 
@@ -178,6 +139,6 @@ static void __exit luacpu_exit(void)
 module_init(luacpu_init);
 module_exit(luacpu_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Enderson Maia <endersonmaia@gmail.com");
+MODULE_AUTHOR("Enderson Maia <endersonmaia@gmail.com>");
 MODULE_DESCRIPTION("Lunatik interface to Linux's CPU abstractions.");
 
