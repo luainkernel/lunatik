@@ -35,7 +35,6 @@ server:bind(inet.localhost, 90)
 server:listen()
 
 local shouldstop = thread.shouldstop
-local task = linux.task
 local sock = socket.sock
 
 local size = 1024

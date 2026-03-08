@@ -9,7 +9,7 @@ local linux  = require("linux")
 
 local MTU       = 1500
 
-local s = linux.stat
+local s = require("linux.stat")
 local tap = {name = "tap", mode = s.IRUGO}
 
 local socket = raw.bind()
