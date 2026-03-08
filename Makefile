@@ -129,6 +129,13 @@ tests_install:
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
 
+test: tests_install
+	for file in $$(find ./tests/ -type f); do\
+		./bin/lunatik run $$file; \
+		./bin/lunatik stop $$file; \
+	done
+	dmesg -T --since "10 seconds ago"
+
 modules_install:
 	${MKDIR} ${MODULES_INSTALL_PATH}/lunatik
 	${INSTALL} -m 0644 *.ko lib/*.ko ${MODULES_INSTALL_PATH}/lunatik
