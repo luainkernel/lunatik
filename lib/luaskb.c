@@ -90,8 +90,11 @@ static int luaskb_data(lua_State *L)
 		size += skb_mac_header_len(skb);
 	}
 
+	if (data)
+		lunatik_getregistry(L, data); /* push data */
+	else /* copy: allocate on demand; release() has no lua_State to unregister */
+		data = luadata_new(L, false); /* push data */
 	luadata_reset(data, ptr, 0, size, LUADATA_OPT_NONE);
-	lunatik_getregistry(L, data); /* push data */
 	return 1;
 }
 
@@ -165,9 +168,13 @@ static int luaskb_forward(lua_State *L)
 	return 0;
 }
 
+static int luaskb_copy(lua_State *L);
+
 static void luaskb_release(void *private)
 {
 	luaskb_t *lskb = (luaskb_t *)private;
+	if (lskb->skb)
+		kfree_skb(lskb->skb);
 	if (lskb->data)
 		luadata_close(lskb->data);
 }
@@ -185,6 +192,7 @@ static const luaL_Reg luaskb_mt[] = {
 	{"resize",   luaskb_resize},
 	{"checksum", luaskb_checksum},
 	{"forward",  luaskb_forward},
+	{"copy",     luaskb_copy},
 	{NULL, NULL}
 };
 
@@ -195,6 +203,21 @@ static const lunatik_class_t luaskb_class = {
 	.sleep   = false,
 	.shared  = true,
 };
+
+/***
+* Returns an independent copy of the skb with its own data buffer.
+* @function copy
+* @treturn skb
+* @raise if copy allocation fails
+*/
+static int luaskb_copy(lua_State *L)
+{
+	luaskb_t *lskb = luaskb_check(L, 1);
+	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), false);
+	luaskb_t *copy = (luaskb_t *)object->private;
+	copy->skb = lunatik_checknull(L, skb_copy(lskb->skb, GFP_ATOMIC));
+	return 1;
+}
 
 lunatik_object_t *luaskb_new(lua_State *L)
 {
