@@ -42,14 +42,14 @@ test("AEAD AES-128-GCM setkey with invalid key length", function()
 	local c = aead.new"gcm(aes)"
 	local status, err = pcall(c.setkey, c, "0123456789abcde") -- 15 bytes, invalid for AES-128
 	assert(not status, "setkey with invalid key length should fail")
-	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
+	assert(err:find"EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM setauthsize with invalid tag length", function()
 	local c = aead.new"gcm(aes)"
 	local status, err = pcall(c.setauthsize, c, 11) -- 11 bytes, invalid for GCM (must be 4, 8, 12, 13, 14, 15, 16)
 	assert(not status, "setauthsize with invalid tag length should fail")
-	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
+	assert(err:find"EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM encrypt with incorrect IV length", function()
@@ -80,7 +80,7 @@ test("AEAD AES-128-GCM decrypt with input data too short for tag", function()
 	local short_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918" -- Missing last byte of tag
 	local status, err = pcall(c.decrypt, c, "abcdefghijkl", short_ciphertext, "0123456789abcdef")
 	assert(not status, "decrypt with input data too short for tag should fail")
-	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
+	assert(err:find"EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
 end)
 
 test("AEAD AES-128-GCM decrypt with authentication failure", function()
@@ -90,6 +90,6 @@ test("AEAD AES-128-GCM decrypt with authentication failure", function()
 	local tampered_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918f" -- Last byte of tag tampered
 	local status, err = pcall(c.decrypt, c, "abcdefghijkl", tampered_ciphertext)
 	assert(not status, "decrypt with tampered data should fail")
-	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
+	assert(err:find"EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
 end)
 

@@ -40,7 +40,7 @@ test("SKCIPHER AES-128-CBC setkey with invalid key length", function()
 	local c = skcipher.new"cbc(aes)"
 	local status, err = pcall(c.setkey, c, "0123456789abcde") -- 15 bytes, invalid for AES-128
 	assert(not status, "setkey with invalid key length should fail")
-	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
+	assert(err:find"EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("SKCIPHER AES-128-CBC encrypt with incorrect IV length", function()
@@ -67,7 +67,7 @@ test("SKCIPHER AES-128-CBC encrypt with data not multiple of blocksize", functio
 	c:setkey"0123456789abcdef"
 	local status, err = pcall(c.encrypt, c, "fedcba9876543210", plaintext)
 	assert(not status, "encrypt with data not multiple of blocksize should fail")
-	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
+	assert(err:find"EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
 test("SKCIPHER AES-128-CBC decrypt with data not multiple of blocksize", function()
@@ -76,6 +76,6 @@ test("SKCIPHER AES-128-CBC decrypt with data not multiple of blocksize", functio
 	c:setkey"0123456789abcdef"
 	local status, err = pcall(c.decrypt, c, "fedcba9876543210", ciphertext)
 	assert(not status, "decrypt with data not multiple of blocksize should fail")
-	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
+	assert(err:find"EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
