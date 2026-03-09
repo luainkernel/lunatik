@@ -27,11 +27,10 @@
 
 #include "luadata.h"
 
-#define LUADATA_TOPTR(d)	((d)->ptr + (d)->offset)
+#define LUADATA_TOPTR(d)	((d)->ptr)
 
 typedef struct luadata_s {
 	void *ptr;
-	ptrdiff_t offset;
 	size_t size;
 	uint8_t opt;
 } luadata_t;
@@ -398,10 +397,9 @@ static const lunatik_class_t luadata_class = {
 	.shared = true,
 };
 
-static inline void luadata_set(luadata_t *data, void *ptr, ptrdiff_t offset, size_t size, uint8_t opt)
+static inline void luadata_set(luadata_t *data, void *ptr, size_t size, uint8_t opt)
 {
 	data->ptr = ptr;
-	data->offset = offset;
 	data->size = size;
 	data->opt = opt;
 }
@@ -412,7 +410,7 @@ static int luadata_lnew(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), true);
 	luadata_t *data = (luadata_t *)object->private;
 
-	luadata_set(data, lunatik_checkalloc(L, size), 0, size, LUADATA_OPT_FREE);
+	luadata_set(data, lunatik_checkalloc(L, size), size, LUADATA_OPT_FREE);
 	return 1; /* object */
 }
 
@@ -426,7 +424,7 @@ lunatik_object_t *luadata_new(lua_State *L, bool shared)
 }
 EXPORT_SYMBOL(luadata_new);
 
-int luadata_reset(lunatik_object_t *object, void *ptr, ptrdiff_t offset, size_t size, uint8_t opt)
+int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt)
 {
 	luadata_t *data;
 
@@ -439,7 +437,7 @@ int luadata_reset(lunatik_object_t *object, void *ptr, ptrdiff_t offset, size_t 
 	}
 
 	opt = opt & LUADATA_OPT_KEEP ? data->opt : opt;
-	luadata_set(data, ptr, offset, size, opt);
+	luadata_set(data, ptr, size, opt);
 
 	lunatik_unlock(object);
 	return 0;
