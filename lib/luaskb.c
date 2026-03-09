@@ -94,7 +94,7 @@ static int luaskb_data(lua_State *L)
 		lunatik_getregistry(L, data); /* push data */
 	else /* copy: allocate on demand; release() has no lua_State to unregister */
 		data = luadata_new(L, false); /* push data */
-	luadata_reset(data, ptr, 0, size, LUADATA_OPT_NONE);
+	luadata_reset(data, ptr, size, LUADATA_OPT_NONE);
 	return 1;
 }
 
