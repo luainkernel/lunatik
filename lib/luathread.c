@@ -1,13 +1,10 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
 /***
 * Kernel thread primitives.
-* This library provides support for creating and managing kernel threads from Lua.
-* It allows running Lua scripts, encapsulated in Lunatik runtime environments,
-* within dedicated kernel threads.
 * @module thread
 */
 
@@ -18,9 +15,6 @@
 
 /***
 * Represents a kernel thread object.
-* This is a userdata object returned by `thread.run()` or `thread.current()`.
-* It encapsulates a kernel `struct task_struct` and, if created by `thread.run()`,
-* the Lunatik runtime environment associated with the thread's Lua task.
 * @type thread
 */
 
@@ -41,7 +35,7 @@ static int luathread_resume(lua_State *L, luathread_t *thread)
 		lua_pop(L, 1);
 		return -ENOEXEC;
 	}
-	lua_pop(L, nresults); /* ignore results */
+	lua_pop(L, nresults);
 	return 0;
 }
 
@@ -69,20 +63,13 @@ static int luathread_func(void *data)
 
 /***
 * Checks if the current thread has been signaled to stop.
-* This function should be called periodically within a thread's main loop
-* to allow for graceful termination when `thrd:stop()` is invoked.
-* It wraps the kernel's `kthread_should_stop()`.
 * @function shouldstop
 * @treturn boolean `true` if the thread should stop, `false` otherwise.
 * @usage
-* -- Inside a function returned by a script passed to thread.run():
 * while not thread.shouldstop() do
-*   -- do work
-*   linux.schedule(100) -- example: yield/sleep
+*   linux.schedule(100)
 * end
-* print("Thread is stopping.")
 * @see stop
-* @within thread
 */
 static int luathread_shouldstop(lua_State *L)
 {
@@ -92,13 +79,11 @@ static int luathread_shouldstop(lua_State *L)
 
 /***
 * Stops a running kernel thread.
-* Signals the specified thread to stop and waits for it to exit.
-* This calls `kthread_stop()` on the underlying kernel thread.
+* Signals the thread to stop and waits for it to exit.
 * @function stop
 * @tparam thread self The thread object to stop.
 * @treturn nil
 * @usage
-* -- Assuming 'my_thread' is an object returned by thread.run()
 * my_thread:stop()
 */
 static int luathread_stop(lua_State *L)
@@ -131,27 +116,18 @@ static int luathread_stop(lua_State *L)
 * Retrieves information about the kernel task associated with the thread.
 * @function task
 * @tparam thread self The thread object.
-* @treturn table A table containing task information with the following fields:
-*   @tfield[opt] integer cpu The CPU number the task is currently running on (if CONFIG_SMP is enabled).
-*   @tfield string command The command name of the task.
-*   @tfield integer pid The process ID (PID) of the task.
-*   @tfield integer tgid The thread group ID (TGID) of the task.
+* @treturn table A table with fields: `cpu` (SMP only), `command`, `pid`, `tgid`.
 * @usage
-* local t_info = my_thread:task()
-* print("Thread PID:", t_info.pid)
-* print("Command:", t_info.command)
-* if t_info.cpu then print("Running on CPU:", t_info.cpu) end
+* local info = my_thread:task()
 */
 static int luathread_task(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_toobject(L, 1);
 	luathread_t *thread = (luathread_t *)object->private;
 	struct task_struct *task = thread->task;
-	int nrec = 4; /* number of elements */
-	int table;
 
-	lua_createtable(L, 0, nrec);
-	table = lua_gettop(L);
+	lua_createtable(L, 0, 4);
+	int table = lua_gettop(L);
 
 #ifdef CONFIG_SMP
 	lua_pushinteger(L, task->on_cpu);
@@ -194,25 +170,14 @@ static const lunatik_class_t luathread_class = {
 
 /***
 * Creates and starts a new kernel thread to run a Lua task.
-* The Lua task is defined by a function returned from the script loaded into the provided `runtime` environment.
-* The new thread begins execution by resuming this function.
-* The runtime environment must be sleepable.
+* The runtime must be sleepable; the script it loaded must return a function,
+* which becomes the thread body.
 * @function run
-* @tparam runtime runtime A Lunatik runtime object. The script associated with this runtime
-*   (e.g., loaded via `lunatik.runtime("path/to/script.lua")`) must return a function.
-*   This function will be executed in the new kernel thread.
-* @tparam string name A descriptive name for the kernel thread (e.g., as shown in `ps` or `top`).
-* @treturn thread A new thread object representing the created kernel thread.
-* @raise Error if the runtime is not sleepable, if memory allocation fails, or if `kthread_run` fails.
-* @usage
-* -- main_script.lua
-* local lunatik = require("lunatik")
-* local thread = require("thread")
-* -- Assume "worker_script.lua" returns a function: function() print("worker running") while not thread.shouldstop() do linux.schedule(1000) end print("worker stopped") end
-* local worker_rt = lunatik.runtime("worker_script.lua")
-* local new_thread = thread.run(worker_rt, "my_lua_worker")
+* @tparam runtime runtime A sleepable Lunatik runtime whose script returns a function.
+* @tparam string name A descriptive name for the kernel thread.
+* @treturn thread A new thread object.
+* @raise Error if the runtime is not sleepable or if thread creation fails.
 * @see lunatik.runtime
-* @within thread
 */
 static int luathread_run(lua_State *L)
 {
@@ -236,13 +201,12 @@ static int luathread_run(lua_State *L)
 
 /***
 * Gets a thread object representing the current kernel task.
-* Note: If the current task was not created by `thread.run()`, the returned
-* thread object will not have an associated Lunatik runtime.
+* If the current task was not created by `thread.run()`, the returned
+* object will not have an associated Lunatik runtime.
 * @function current
 * @treturn thread A thread object for the current task.
 * @usage
-* local current_task_as_thread = thread.current()
-* @within thread
+* local t = thread.current()
 */
 static int luathread_current(lua_State *L)
 {
@@ -268,5 +232,5 @@ static void __exit luathread_exit(void)
 module_init(luathread_init);
 module_exit(luathread_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 
