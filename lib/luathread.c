@@ -86,7 +86,7 @@ static int luathread_func(void *data)
 */
 static int luathread_shouldstop(lua_State *L)
 {
-	lua_pushboolean(L, (int)kthread_should_stop());
+	lua_pushboolean(L, (current->flags & PF_KTHREAD) ? (int)kthread_should_stop() : 0);
 	return 1;
 }
 
