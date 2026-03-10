@@ -368,6 +368,34 @@ sudo lunatik unload
 examples/dnsdoctor/cleanup.sh
 ```
 
+### tcpreject
+
+[tcpreject](examples/tcpreject) is a kernel script that uses the
+netfilter framework ([luanetfilter](https://github.com/luainkernel/lunatik#netfilter))
+and the socket buffer API ([luaskb](https://github.com/luainkernel/lunatik#skb))
+to inject a TCP RST toward the origin of forwarded packets.
+
+It intercepts packets marked by an `nft` rule, builds a RST+ACK by
+copying the original packet, inverting IP, MAC, and port addresses,
+trimming the payload, and recomputing the checksums.
+By default, it rejects forwarded HTTPS (TCP/443) connections to `8.8.8.8`.
+
+#### Usage
+
+```
+sudo make examples_install              # installs examples
+sudo examples/tcpreject/setup.sh        # sets up namespace, nft mark rule, and loads the hook
+
+# without the hook: connection succeeds
+ip netns exec tcpreject curl --connect-timeout 2 https://8.8.8.8
+
+# with the hook: connection is reset immediately
+ip netns exec tcpreject curl --connect-timeout 2 https://8.8.8.8
+
+# cleanup
+sudo examples/tcpreject/cleanup.sh
+```
+
 ### gesture
 
 [gesture](examples/gesture.lua)
