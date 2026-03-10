@@ -15,6 +15,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <net/ip.h>
+#include <net/ip6_checksum.h>
 
 #include "luaskb.h"
 
@@ -25,9 +26,17 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *,
 #define luaskb_pushoptinteger(L, cond, val)	\
 	((cond) ? lua_pushinteger(L, val) : lua_pushnil(L))
 
-#define luaskb_csum(skb, iph, iphlen, proto, len)		\
-	csum_tcpudp_magic((iph)->saddr, (iph)->daddr, (len), (proto),	\
-		skb_checksum((skb), (iphlen), (len), 0))
+#define luaskb_csum4(skb, iph, iphlen)					\
+	csum_tcpudp_magic((iph)->saddr, (iph)->daddr,			\
+		ntohs((iph)->tot_len) - (iphlen), (iph)->protocol,	\
+		skb_checksum((skb), (iphlen),				\
+			ntohs((iph)->tot_len) - (iphlen), 0))
+
+#define luaskb_csum6(skb, ip6h)						\
+	csum_ipv6_magic(&(ip6h)->saddr, &(ip6h)->daddr,			\
+		ntohs((ip6h)->payload_len), (ip6h)->nexthdr,		\
+		skb_checksum((skb), skb_transport_offset(skb),		\
+			ntohs((ip6h)->payload_len), 0))
 
 /***
 * @function __len
@@ -121,6 +130,14 @@ static int luaskb_resize(lua_State *L)
 	return 0;
 }
 
+static inline void luaskb_csum(struct sk_buff *skb, u8 proto, __sum16 csum)
+{
+	if (proto == IPPROTO_UDP)
+		udp_hdr(skb)->check = csum;
+	else if (proto == IPPROTO_TCP)
+		tcp_hdr(skb)->check = csum;
+}
+
 /***
 * Recomputes IP and transport-layer (TCP/UDP) checksums.
 * @function checksum
@@ -129,20 +146,18 @@ static int luaskb_checksum(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct sk_buff *skb = lskb->skb;
-	struct iphdr *iph = ip_hdr(skb);
-	unsigned int iphlen = ip_hdrlen(skb);
 
-	ip_send_check(iph);
-
-	if (iph->protocol == IPPROTO_UDP) {
-		struct udphdr *udph = udp_hdr(skb);
-		udph->check = 0;
-		udph->check = luaskb_csum(skb, iph, iphlen, IPPROTO_UDP, ntohs(udph->len));
+	if (skb->protocol == htons(ETH_P_IP)) {
+		struct iphdr *iph = ip_hdr(skb);
+		unsigned int iphlen = ip_hdrlen(skb);
+		ip_send_check(iph);
+		luaskb_csum(skb, iph->protocol, 0);
+		luaskb_csum(skb, iph->protocol, luaskb_csum4(skb, iph, iphlen));
 	}
-	else if (iph->protocol == IPPROTO_TCP) {
-		struct tcphdr *tcph = tcp_hdr(skb);
-		tcph->check = 0;
-		tcph->check = luaskb_csum(skb, iph, iphlen, IPPROTO_TCP, ntohs(iph->tot_len) - iphlen);
+	else if (skb->protocol == htons(ETH_P_IPV6)) {
+		struct ipv6hdr *ip6h = ipv6_hdr(skb);
+		luaskb_csum(skb, ip6h->nexthdr, 0);
+		luaskb_csum(skb, ip6h->nexthdr, luaskb_csum6(skb, ip6h));
 	}
 	return 0;
 }
