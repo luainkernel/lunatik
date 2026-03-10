@@ -4,10 +4,7 @@
 */
 
 /***
-* Low-level Lua interface to the Linux Kernel Netfilter framework.
-* This module allows registering Lua functions as Netfilter hooks to inspect
-* and modify network packets.
-*
+* Lua interface to the Linux Netfilter framework.
 * @module netfilter
 */
 
@@ -20,10 +17,7 @@
 #include "luaskb.h"
 
 /***
-* Represents a registered Netfilter hook.
-* This is a userdata object returned by `netfilter.register()`. It encapsulates
-* the kernel `struct nf_hook_ops` and associated Lunatik runtime information
-* necessary to invoke the Lua callback when a packet matches the hook criteria.
+* Registered Netfilter hook. Garbage collecting this object unregisters the hook.
 * @type netfilter_hook
 */
 typedef struct luanetfilter_s {
@@ -38,12 +32,12 @@ static void luanetfilter_release(void *private);
 static inline bool luanetfilter_pushcb(lua_State *L, luanetfilter_t *luanf)
 {
 	if (lunatik_getregistry(L, luanf) != LUA_TTABLE) {
-		pr_err("could not find ops table\n");
+		pr_err("couldn't find ops table\n");
 		return false;
 	}
 
 	if (lua_getfield(L, -1, "hook") != LUA_TFUNCTION) {
-		pr_err("operation not defined");
+		pr_err("operation not defined\n");
 		return false;
 	}
 	return true;
@@ -52,13 +46,13 @@ static inline bool luanetfilter_pushcb(lua_State *L, luanetfilter_t *luanf)
 static inline lunatik_object_t *luanetfilter_pushskb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
 {
 	if (lunatik_getregistry(L, luanf->skb) != LUA_TUSERDATA) {
-		pr_err("could not find skb\n");
+		pr_err("couldn't find skb\n");
 		return NULL;
 	}
 
 	lunatik_object_t *object = lunatik_toobject(L, -1);
 	if (unlikely(object == NULL)) {
-		pr_err("could not get skb object\n");
+		pr_err("couldn't get skb object\n");
 		return NULL;
 	}
 
@@ -128,19 +122,10 @@ static const lunatik_class_t luanetfilter_class = {
 
 /***
 * Registers a Netfilter hook.
-* The hook function will be called for packets matching the specified criteria.
 * @function register
-* @tparam table opts A table containing the options for the Netfilter hook.
-*   It should have the following fields:
-*
-*   - `hook` (function): The Lua function to be called for each packet.
-*     It receives an `skb` object and should return an integer verdict
-*     (e.g., `netfilter.action.ACCEPT`).
-*   - `pf` (integer): The protocol family (e.g., `netfilter.family.INET`).
-*   - `hooknum` (integer): The hook number within the protocol family (e.g., `netfilter.inet_hooks.LOCAL_OUT`).
-*   - `priority` (integer): The hook priority (e.g., `netfilter.ip_priority.FILTER`).
-*   - `mark` (integer, optional): Packet mark to match. If set, the hook is only called for packets with this mark.
-* @treturn userdata A handle representing the registered hook. This handle can be garbage collected to unregister the hook.
+* @tparam table opts Hook options: `hook` (function), `pf`, `hooknum`, `priority` (integers),
+*   and optionally `mark` (integer, default 0).
+* @treturn netfilter_hook Registered hook handle.
 */
 static int luanetfilter_register(lua_State *L)
 {
