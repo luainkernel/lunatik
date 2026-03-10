@@ -117,6 +117,8 @@ examples_install:
 	${INSTALL} -m 0644 examples/dnsblock/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsblock
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
 	${INSTALL} -m 0644 examples/dnsdoctor/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/tcpreject
+	${INSTALL} -m 0644 examples/tcpreject/*.lua ${SCRIPTS_INSTALL_PATH}/examples/tcpreject
 
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
