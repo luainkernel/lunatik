@@ -20,13 +20,9 @@
 * Modifies signal mask for current task.
 *
 * @function sigmask
-* @tparam integer sig Signal number
-* @tparam[opt] integer cmd 0=BLOCK (default), 1=UNBLOCK
-* @raise error string on failure (EINVAL, EPERM, etc.)
-* @within signal
-* @usage
-* pcall(signal.sigmask, 15) -- Block SIGTERM
-* pcall(signal.sigmask, 15, 1) -- Unblock SIGTERM
+* @tparam integer sig Signal number.
+* @tparam[opt] integer cmd SIG_BLOCK (0, default) or SIG_UNBLOCK (1).
+* @raise Error if the signal is invalid or the operation is not permitted.
 */
 static int luasignal_sigmask(lua_State *L)
 {
@@ -43,13 +39,10 @@ static int luasignal_sigmask(lua_State *L)
 }
 
 /***
-* Checks current task pending signals.
+* Checks if the current task has pending signals.
 *
 * @function sigpending
 * @treturn boolean
-* @within signal
-* @usage
-* signal.sigpending()
 */
 static int luasignal_sigpending(lua_State *L)
 {
@@ -61,12 +54,11 @@ static int luasignal_sigpending(lua_State *L)
 * Checks signal state for current task.
 *
 * @function sigstate
-* @tparam integer sig Signal number
-* @tparam[opt] string state One of: "blocked", "pending", "allowed"
+* @tparam integer sig Signal number.
+* @tparam[opt] string state `"blocked"` (default), `"pending"`, or `"allowed"`.
 * @treturn boolean
-* @within signal
 * @usage
-* signal.sigstate(15) -- check if SIGTERM is blocked (default)
+* signal.sigstate(15) -- check if SIGTERM is blocked
 * signal.sigstate(signal.flags.TERM, "pending")
 */
 static int luasignal_sigstate(lua_State *L)
@@ -98,25 +90,18 @@ static int luasignal_sigstate(lua_State *L)
 		result = !sigismember(&current->blocked, signum);
 		break;
 	}
-
 	lua_pushboolean(L, result);
 	return 1;
 }
 
 /***
-* Kills a process by sending a signal.
-* By default, sends SIGKILL.
-* An optional second argument can specify a different signal
-* (either by number or by using the constants from `signal.flags`).
+* Sends a signal to a process.
 *
 * @function kill
-* @tparam integer pid Process ID to kill.
-* @tparam[opt] integer sig Signal number to send (default: `signal.flags.KILL`).
-* @treturn boolean `true` if the signal was sent successfully.
-* @raise Error string (e.g., "ESRCH", "EPERM") if the operation fails.
-* @usage
-* signal.kill(1234)  -- Kill process 1234 with SIGKILL (default)
-* signal.kill(1234, signal.flags.TERM)  -- Kill process 1234 with SIGTERM
+* @tparam integer pid Target process ID.
+* @tparam[opt] integer sig Signal to send (default: `signal.flags.KILL`).
+* @treturn boolean `true` on success.
+* @raise Error if the process is not found or the operation is not permitted.
 */
 static int luasignal_kill(lua_State *L)
 {
@@ -138,9 +123,8 @@ static int luasignal_kill(lua_State *L)
 }
 
 /***
-* Table of signal constants for use with `signal.kill`.
-* This table provides named constants for the standard Linux signals.
-* For example, `signal.flags.TERM` corresponds to SIGTERM (15).
+* Signal constants.
+* @table flags
 */
 static const lunatik_reg_t luasignal_flags[] = {
 	{"HUP", SIGHUP},
