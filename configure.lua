@@ -6,7 +6,7 @@
 local OUTPUT_DIR = "autogen"
 local SCRIPT  = arg[0]
 local KERNEL  = arg[1]
-local INCLUDE = arg[2]
+local BUILD   = arg[2]
 local MODULES = arg[3]
 local ARCH    = arg[4]
 
@@ -38,12 +38,12 @@ local function exit(msg)
 	os.exit(1)
 end
 
-if not KERNEL or not INCLUDE or not MODULES or not ARCH then
-	exit("usage: lua5.4 " .. SCRIPT .. " <KERNEL> <INCLUDE> <MODULES> <ARCH>")
+if not KERNEL or not BUILD or not MODULES or not ARCH then
+	exit("usage: lua5.4 " .. SCRIPT .. " <KERNEL> <BUILD> <MODULES> <ARCH>")
 end
 
 local CC = os.getenv("CC") or "cc"
-local BUILD = INCLUDE:gsub("/include$", "")
+local INCLUDE = BUILD .. "/include"
 local CPP = string.format("%s -E -dM -I%s -I%s/include/generated -I%s/arch/%s/include -I%s/arch/%s/include/generated -include linux/kconfig.h",
 	CC, INCLUDE, BUILD, BUILD, ARCH, BUILD, ARCH)
 
@@ -77,24 +77,18 @@ local function resolve_value(value, prefix, constants, seen)
 	if seen[value] then return nil end
 
 	if tonumber(value) then return tonumber(value) end
+	local clean = value:match("^%((.+)%)$") or value
 
 	-- OR expression: (A | B | ...)
-	local inner = value:match("^%((.+)%)$")
-	if inner then
-		local is_or_expr = true
-		local result = 0
-		for token in inner:gmatch("[^%s|]+") do
-			-- only resolve if token is a number or it starts with the expected prefix
-			if not (tonumber(token) or string.sub(token, 1, #prefix) == prefix) then
-				is_or_expr = false
-				break
-			end
-			local resolved = resolve_value(token, prefix, constants, seen)
-			if not resolved then return nil end
-			result = result | resolved
-		end
-		if is_or_expr then return result end
-	end
+    if clean:find("|") then
+        local result = 0
+        for token in clean:gmatch("[^%s|]+") do
+            local resolved = resolve_value(token, prefix, constants, seen)
+            if not resolved then return nil end
+            result = result | resolved
+        end
+        return result
+    end
 
 	-- macro reference
 	if not constants[value] then return nil end
