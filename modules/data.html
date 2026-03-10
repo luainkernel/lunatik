@@ -33,8 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_data">Class data </a></li>
-<li><a href="#data">data</a></li>
+<li><a href="#Functions">Functions</a></li>
 </ul>
 
 
@@ -86,119 +85,162 @@
 
 <h1>Module <code>data</code></h1>
 <p>Direct memory access and manipulation.</p>
-<p> This library allows creating <a href="../modules/data.html#">data</a> objects that represent blocks of memory.
- These objects can then be used to read and write various integer types
- (signed/unsigned, 8/16/32/64-bit) and raw byte strings at specific offsets.</p>
+<p>
+
+</p>
 
 
-<h2><a href="#Class_data">Class data </a></h2>
+<h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#data.L">data.L</a></td>
-	<td class="summary">Bounds-checked pointer calculation.</td>
+	<td class="name" nowrap><a href="#__len">__len ()</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:__len">data:__len ()</a></td>
-	<td class="summary">Returns the length of the data object in bytes.</td>
+	<td class="name" nowrap><a href="#__tostring">__tostring ()</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:__tostring">data:__tostring ()</a></td>
-	<td class="summary">Returns the content of the data object as a Lua string.</td>
+	<td class="name" nowrap><a href="#checksum">checksum ([offset[, length]])</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:checksum">data:checksum ([offset[, length]])</a></td>
-	<td class="summary">Perform a raw checksum on a given buffer.</td>
+	<td class="name" nowrap><a href="#getbyte">getbyte (offset)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getbyte">data:getbyte (offset)</a></td>
-	<td class="summary">Extracts an unsigned 8-bit integer (a byte) from the data object.</td>
+	<td class="name" nowrap><a href="#getint16">getint16 (offset)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getint16">data:getint16 (offset)</a></td>
-	<td class="summary">Extracts a signed 16-bit integer from the data object.</td>
+	<td class="name" nowrap><a href="#getint32">getint32 (offset)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getint32">data:getint32 (offset)</a></td>
-	<td class="summary">Extracts a signed 32-bit integer from the data object.</td>
+	<td class="name" nowrap><a href="#getint64">getint64 (offset)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getint64">data:getint64 (offset)</a></td>
-	<td class="summary">Extracts a signed 64-bit integer from the data object.</td>
+	<td class="name" nowrap><a href="#getint8">getint8 (offset)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getint8">data:getint8 (offset)</a></td>
-	<td class="summary">Extracts a signed 8-bit integer from the data object.</td>
+	<td class="name" nowrap><a href="#getnumber">getnumber (offset)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getnumber">data:getnumber (offset)</a></td>
-	<td class="summary">Extracts a Lua integer from the data object.</td>
+	<td class="name" nowrap><a href="#getstring">getstring (offset[, length])</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getstring">data:getstring (offset[, length])</a></td>
-	<td class="summary">Extracts a string from the data object.</td>
+	<td class="name" nowrap><a href="#getuint16">getuint16 (offset)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getuint16">data:getuint16 (offset)</a></td>
-	<td class="summary">Extracts an unsigned 16-bit integer from the data object.</td>
+	<td class="name" nowrap><a href="#getuint32">getuint32 (offset)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getuint32">data:getuint32 (offset)</a></td>
-	<td class="summary">Extracts an unsigned 32-bit integer from the data object.</td>
+	<td class="name" nowrap><a href="#getuint8">getuint8 (offset)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:getuint8">data:getuint8 (offset)</a></td>
-	<td class="summary">Extracts an unsigned 8-bit integer from the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:resize">data:resize (new_size)</a></td>
-	<td class="summary">Resizes the memory block represented by the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setbyte">data:setbyte (offset, value)</a></td>
-	<td class="summary">Inserts an unsigned 8-bit integer (a byte) into the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setint16">data:setint16 (offset, value)</a></td>
-	<td class="summary">Inserts a signed 16-bit integer into the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setint32">data:setint32 (offset, value)</a></td>
-	<td class="summary">Inserts a signed 32-bit integer into the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setint64">data:setint64 (offset, value)</a></td>
-	<td class="summary">Inserts a signed 64-bit integer into the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setint8">data:setint8 (offset, value)</a></td>
-	<td class="summary">Inserts a signed 8-bit integer into the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setnumber">data:setnumber (offset, value)</a></td>
-	<td class="summary">Inserts a Lua integer into the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setstring">data:setstring (offset, s)</a></td>
-	<td class="summary">Inserts a string into the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setuint16">data:setuint16 (offset, value)</a></td>
-	<td class="summary">Inserts an unsigned 16-bit integer into the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setuint32">data:setuint32 (offset, value)</a></td>
-	<td class="summary">Inserts an unsigned 32-bit integer into the data object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data:setuint8">data:setuint8 (offset, value)</a></td>
-	<td class="summary">Inserts an unsigned 8-bit integer into the data object.</td>
-	</tr>
-</table>
-<h2><a href="#data">data</a></h2>
-<table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#new">new (size)</a></td>
-	<td class="summary">Creates a new data object, allocating a fresh block of memory.</td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#resize">resize (new_size)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setbyte">setbyte (offset, value)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setint16">setint16 (offset, value)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setint32">setint32 (offset, value)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setint64">setint64 (offset, value)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setint8">setint8 (offset, value)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setnumber">setnumber (offset, value)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setstring">setstring (offset, s)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setuint16">setuint16 (offset, value)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setuint32">setuint32 (offset, value)</a></td>
+	<td class="summary">
+
+</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setuint8">setuint8 (offset, value)</a></td>
+	<td class="summary">
+
+</td>
 	</tr>
 </table>
 
@@ -206,52 +248,17 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_data"></a>Class data </h2>
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
 
-          <div class="section-description">
-          Represents a raw block of memory.
- This is a userdata object returned by <code>data.new()</code> or created internally
- by other Lunatik modules (e.g., for network packet buffers).
-          </div>
     <dl class="function">
     <dt>
-    <a name = "data.L"></a>
-    <strong>data.L</strong>
+    <a name = "__len"></a>
+    <strong>__len ()</strong>
     </dt>
     <dd>
-    Bounds-checked pointer calculation.  Returns pointer on success, raises Lua error on failure.
-
-
-    <ul>
-        <li><span class="parameter">L</span>
-         Lua state
-        </li>
-        <li><span class="parameter">ix</span>
-         Argument index for error reporting
-        </li>
-        <li><span class="parameter">data</span>
-         luadata object
-        </li>
-        <li><span class="parameter">offset</span>
-         Byte offset
-        </li>
-        <li><span class="parameter">length</span>
-         Access length
-        </li>
-    </ul>
 
 
 
-
-
-</dd>
-    <dt>
-    <a name = "data:__len"></a>
-    <strong>data:__len ()</strong>
-    </dt>
-    <dd>
-    Returns the length of the data object in bytes.
- This is the Lua <a href="../modules/data.html#data:__len">__len</a> metamethod, allowing use of the <code>#</code> operator.
 
 
 
@@ -259,7 +266,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The total size of the memory block in bytes.
+        data size in bytes
     </ol>
 
 
@@ -267,12 +274,13 @@
 
 </dd>
     <dt>
-    <a name = "data:__tostring"></a>
-    <strong>data:__tostring ()</strong>
+    <a name = "__tostring"></a>
+    <strong>__tostring ()</strong>
     </dt>
     <dd>
-    Returns the content of the data object as a Lua string.
- This is the Lua <a href="../modules/data.html#data:__tostring">__tostring</a> metamethod.
+
+
+
 
 
 
@@ -280,7 +288,9 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        A string representation of the entire data block.
+
+
+
     </ol>
 
 
@@ -288,48 +298,65 @@
 
 </dd>
     <dt>
-    <a name = "data:checksum"></a>
-    <strong>data:checksum ([offset[, length]])</strong>
+    <a name = "checksum"></a>
+    <strong>checksum ([offset[, length]])</strong>
     </dt>
     <dd>
-    Perform a raw checksum on a given buffer.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-        , from where to checksum
+
+
+
          (<em>optional</em>)
         </li>
         <li><span class="parameter">length</span>
             <span class="types"><span class="type">integer</span></span>
-        , total length checksum
+
+
+
          (<em>optional</em>)
         </li>
     </ul>
 
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+
+
+
+    </ol>
 
     <h3>Raises:</h3>
-    Error if the write operation (offset + length of data).
+    if out of bounds
 
 
 
 </dd>
     <dt>
-    <a name = "data:getbyte"></a>
-    <strong>data:getbyte (offset)</strong>
+    <a name = "getbyte"></a>
+    <strong>getbyte (offset)</strong>
     </dt>
     <dd>
-    Extracts an unsigned 8-bit integer (a byte) from the data object.
- Alias for <a href="../modules/data.html#data:getuint8">getuint8</a>.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
     </ul>
 
@@ -337,33 +364,34 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The byte value (0-255) at the specified offset.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset is out of bounds.
+    if out of bounds
 
-    <h3>See also:</h3>
-    <ul>
-         <a href="../modules/data.html#data:getuint8">getuint8</a>
-    </ul>
 
 
 </dd>
     <dt>
-    <a name = "data:getint16"></a>
-    <strong>data:getint16 (offset)</strong>
+    <a name = "getint16"></a>
+    <strong>getint16 (offset)</strong>
     </dt>
     <dd>
-    Extracts a signed 16-bit integer from the data object.
- Assumes host byte order. For specific byte orders, use <code>linux.be16toh</code> etc. on the result.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
     </ul>
 
@@ -371,29 +399,34 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The signed 16-bit integer value at the specified offset.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset is out of bounds.
+    if out of bounds
 
 
 
 </dd>
     <dt>
-    <a name = "data:getint32"></a>
-    <strong>data:getint32 (offset)</strong>
+    <a name = "getint32"></a>
+    <strong>getint32 (offset)</strong>
     </dt>
     <dd>
-    Extracts a signed 32-bit integer from the data object.
- Assumes host byte order.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
     </ul>
 
@@ -401,29 +434,34 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The signed 32-bit integer value at the specified offset.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset is out of bounds.
+    if out of bounds
 
 
 
 </dd>
     <dt>
-    <a name = "data:getint64"></a>
-    <strong>data:getint64 (offset)</strong>
+    <a name = "getint64"></a>
+    <strong>getint64 (offset)</strong>
     </dt>
     <dd>
-    Extracts a signed 64-bit integer from the data object.
- Assumes host byte order.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
     </ul>
 
@@ -431,28 +469,34 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The signed 64-bit integer value at the specified offset.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset is out of bounds.
+    if out of bounds
 
 
 
 </dd>
     <dt>
-    <a name = "data:getint8"></a>
-    <strong>data:getint8 (offset)</strong>
+    <a name = "getint8"></a>
+    <strong>getint8 (offset)</strong>
     </dt>
     <dd>
-    Extracts a signed 8-bit integer from the data object.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
     </ul>
 
@@ -460,29 +504,34 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The signed 8-bit integer value at the specified offset.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset is out of bounds.
+    if out of bounds
 
 
 
 </dd>
     <dt>
-    <a name = "data:getnumber"></a>
-    <strong>data:getnumber (offset)</strong>
+    <a name = "getnumber"></a>
+    <strong>getnumber (offset)</strong>
     </dt>
     <dd>
-    Extracts a Lua integer from the data object.
- Alias for <a href="../modules/data.html#data:getint64">getint64</a>. Assumes host byte order.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
     </ul>
 
@@ -490,32 +539,38 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The Lua integer value at the specified offset.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset is out of bounds.
+    if out of bounds
 
 
 
 </dd>
     <dt>
-    <a name = "data:getstring"></a>
-    <strong>data:getstring (offset[, length])</strong>
+    <a name = "getstring"></a>
+    <strong>getstring (offset[, length])</strong>
     </dt>
     <dd>
-    Extracts a string from the data object.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
         <li><span class="parameter">length</span>
             <span class="types"><span class="type">integer</span></span>
-         Number of bytes to read. If omitted, reads all bytes from <code>offset</code> to the end of the data block.
+         number of bytes; default: from offset to end
          (<em>optional</em>)
         </li>
     </ul>
@@ -524,29 +579,34 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        The string containing the bytes read from the data object.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset/length is out of bounds.
+    if out of bounds
 
 
 
 </dd>
     <dt>
-    <a name = "data:getuint16"></a>
-    <strong>data:getuint16 (offset)</strong>
+    <a name = "getuint16"></a>
+    <strong>getuint16 (offset)</strong>
     </dt>
     <dd>
-    Extracts an unsigned 16-bit integer from the data object.
- Assumes host byte order.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
     </ul>
 
@@ -554,29 +614,34 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The unsigned 16-bit integer value at the specified offset.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset is out of bounds.
+    if out of bounds
 
 
 
 </dd>
     <dt>
-    <a name = "data:getuint32"></a>
-    <strong>data:getuint32 (offset)</strong>
+    <a name = "getuint32"></a>
+    <strong>getuint32 (offset)</strong>
     </dt>
     <dd>
-    Extracts an unsigned 32-bit integer from the data object.
- Assumes host byte order.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
     </ul>
 
@@ -584,28 +649,34 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The unsigned 32-bit integer value at the specified offset.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset is out of bounds.
+    if out of bounds
 
 
 
 </dd>
     <dt>
-    <a name = "data:getuint8"></a>
-    <strong>data:getuint8 (offset)</strong>
+    <a name = "getuint8"></a>
+    <strong>getuint8 (offset)</strong>
     </dt>
     <dd>
-    Extracts an unsigned 8-bit integer from the data object.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
+
+
+
         </li>
     </ul>
 
@@ -613,348 +684,405 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The unsigned 8-bit integer value (0-255) at the specified offset.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if offset is out of bounds.
+    if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:resize"></a>
-    <strong>data:resize (new_size)</strong>
-    </dt>
-    <dd>
-    Resizes the memory block represented by the data object.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">new_size</span>
-            <span class="types"><span class="type">integer</span></span>
-         The desired size of the memory block in bytes.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if the data object is read-only or if resize fails.
-
-
-
-</dd>
-    <dt>
-    <a name = "data:setbyte"></a>
-    <strong>data:setbyte (offset, value)</strong>
-    </dt>
-    <dd>
-    Inserts an unsigned 8-bit integer (a byte) into the data object.
- Alias for <a href="../modules/data.html#data:setuint8">setuint8</a>.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         The byte value (0-255) to write.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if offset is out of bounds or the data object is read-only.
-
-    <h3>See also:</h3>
-    <ul>
-         <a href="../modules/data.html#data:setuint8">setuint8</a>
-    </ul>
-
-
-</dd>
-    <dt>
-    <a name = "data:setint16"></a>
-    <strong>data:setint16 (offset, value)</strong>
-    </dt>
-    <dd>
-    Inserts a signed 16-bit integer into the data object.
- Assumes host byte order. For specific byte orders, use <code>linux.htobe16</code> etc. on the value before setting.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         The signed 16-bit integer value to write.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if offset is out of bounds or the data object is read-only.
-
-
-
-</dd>
-    <dt>
-    <a name = "data:setint32"></a>
-    <strong>data:setint32 (offset, value)</strong>
-    </dt>
-    <dd>
-    Inserts a signed 32-bit integer into the data object.
- Assumes host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         The signed 32-bit integer value to write.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if offset is out of bounds or the data object is read-only.
-
-
-
-</dd>
-    <dt>
-    <a name = "data:setint64"></a>
-    <strong>data:setint64 (offset, value)</strong>
-    </dt>
-    <dd>
-    Inserts a signed 64-bit integer into the data object.
- Assumes host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         The signed 64-bit integer value to write.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if offset is out of bounds or the data object is read-only.
-
-
-
-</dd>
-    <dt>
-    <a name = "data:setint8"></a>
-    <strong>data:setint8 (offset, value)</strong>
-    </dt>
-    <dd>
-    Inserts a signed 8-bit integer into the data object.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         The signed 8-bit integer value to write.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if offset is out of bounds or the data object is read-only.
-
-
-
-</dd>
-    <dt>
-    <a name = "data:setnumber"></a>
-    <strong>data:setnumber (offset, value)</strong>
-    </dt>
-    <dd>
-    Inserts a Lua integer into the data object.
- Alias for <a href="../modules/data.html#data:setint64">setint64</a>. Assumes host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         The Lua integer value to write.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if offset is out of bounds or the data object is read-only.
-
-
-
-</dd>
-    <dt>
-    <a name = "data:setstring"></a>
-    <strong>data:setstring (offset, s)</strong>
-    </dt>
-    <dd>
-    Inserts a string into the data object.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed) where writing will begin.
-        </li>
-        <li><span class="parameter">s</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The string to write into the data object.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if the write operation (offset + length of string) goes out of bounds, or if the data object is read-only.
-
-
-
-</dd>
-    <dt>
-    <a name = "data:setuint16"></a>
-    <strong>data:setuint16 (offset, value)</strong>
-    </dt>
-    <dd>
-    Inserts an unsigned 16-bit integer into the data object.
- Assumes host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         The unsigned 16-bit integer value to write.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if offset is out of bounds or the data object is read-only.
-
-
-
-</dd>
-    <dt>
-    <a name = "data:setuint32"></a>
-    <strong>data:setuint32 (offset, value)</strong>
-    </dt>
-    <dd>
-    Inserts an unsigned 32-bit integer into the data object.
- Assumes host byte order.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         The unsigned 32-bit integer value to write.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if offset is out of bounds or the data object is read-only.
-
-
-
-</dd>
-    <dt>
-    <a name = "data:setuint8"></a>
-    <strong>data:setuint8 (offset, value)</strong>
-    </dt>
-    <dd>
-    Inserts an unsigned 8-bit integer into the data object.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-         Byte offset from the start of the data block (0-indexed).
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         The unsigned 8-bit integer value (0-255) to write.
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if offset is out of bounds or the data object is read-only.
-
-
-
-</dd>
-</dl>
-    <h2 class="section-header "><a name="data"></a>data</h2>
-
-    <dl class="function">
     <dt>
     <a name = "new"></a>
     <strong>new (size)</strong>
     </dt>
     <dd>
-    Creates a new data object, allocating a fresh block of memory.
+
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">size</span>
             <span class="types"><span class="type">integer</span></span>
-         The number of bytes to allocate for the data block.
+
+
+
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="../modules/data.html#data">data</a></span>
-        A new, writable data object.
+           <span class="types"><span class="type">data</span></span>
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if memory allocation fails.
+    if allocation fails
+
+
+
+</dd>
+    <dt>
+    <a name = "resize"></a>
+    <strong>resize (new_size)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">new_size</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if read-only or not owned
+
+
+
+</dd>
+    <dt>
+    <a name = "setbyte"></a>
+    <strong>setbyte (offset, value)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
+
+
+
+</dd>
+    <dt>
+    <a name = "setint16"></a>
+    <strong>setint16 (offset, value)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
+
+
+
+</dd>
+    <dt>
+    <a name = "setint32"></a>
+    <strong>setint32 (offset, value)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
+
+
+
+</dd>
+    <dt>
+    <a name = "setint64"></a>
+    <strong>setint64 (offset, value)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
+
+
+
+</dd>
+    <dt>
+    <a name = "setint8"></a>
+    <strong>setint8 (offset, value)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
+
+
+
+</dd>
+    <dt>
+    <a name = "setnumber"></a>
+    <strong>setnumber (offset, value)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
+
+
+
+</dd>
+    <dt>
+    <a name = "setstring"></a>
+    <strong>setstring (offset, s)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">s</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
+
+
+
+</dd>
+    <dt>
+    <a name = "setuint16"></a>
+    <strong>setuint16 (offset, value)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
+
+
+
+</dd>
+    <dt>
+    <a name = "setuint32"></a>
+    <strong>setuint32 (offset, value)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
+
+
+
+</dd>
+    <dt>
+    <a name = "setuint8"></a>
+    <strong>setuint8 (offset, value)</strong>
+    </dt>
+    <dd>
+
+
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    if out of bounds or read-only
 
 
 
@@ -966,7 +1094,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-03-10 22:15:16 </i>
+<i style="float:right;">Last updated 2026-03-10 22:20:37 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
