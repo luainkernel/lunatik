@@ -129,6 +129,10 @@ tests_install:
 	${INSTALL} -m 0644 tests/rcumap_sync/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/crypto
 	${INSTALL} -m 0644 tests/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/tests/crypto
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/monitor
+	${INSTALL} -m 0644 tests/monitor/*.lua ${SCRIPTS_INSTALL_PATH}/tests/monitor
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/thread
+	${INSTALL} -m 0644 tests/thread/*.lua ${SCRIPTS_INSTALL_PATH}/tests/thread
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests

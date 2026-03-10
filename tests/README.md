@@ -29,6 +29,7 @@ Individual test:
 ```
 sudo bash tests/monitor/gc.sh
 sudo bash tests/thread/shouldstop.sh
+sudo bash tests/thread/run_during_load.sh
 ```
 
 ## Suites
@@ -49,4 +50,7 @@ Regression tests for `luathread`.
 - **shouldstop**: `thread.shouldstop()` must return `false` in a `run`
   (non-kthread) context without crashing, and `true` when stop is requested
   in a `spawn` (kthread) context.
+
+- **run_during_load**: `runner.spawn()` called from a script's top-level
+  code (during module load) must error instead of hanging the kernel.
 
