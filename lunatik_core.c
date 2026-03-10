@@ -216,9 +216,7 @@ static const lunatik_class_t lunatik_class = {
 	.name = "lunatik",
 	.methods = lunatik_mt,
 	.release = lunatik_releaseruntime,
-	.sleep = true,
-	.shared = true,
-	.pointer = true,
+	.flags = LUNATIK_SLEEPABLE | LUNATIK_SHARABLE | LUNATIK_EXTERNAL,
 };
 
 /* used for luaL_requiref() */
@@ -239,7 +237,7 @@ static int lunatik_runscript(lua_State *L)
 	lunatik_setversion(L);
 	luaL_openlibs(L);
 
-	if (lunatik_toruntime(L)->sleep)
+	if (lunatik_toruntime(L)->flags & LUNATIK_SLEEPABLE)
 		luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
 	else
 		luaL_requiref(L, "lunatik", luaopen_lunatik_stub, 0);
@@ -259,7 +257,7 @@ static int lunatik_runscript(lua_State *L)
 	return 1; /* callback */
 }
 
-static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, bool sleep)
+static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, u8 flags)
 {
 	lunatik_object_t *runtime;
 	lua_State *L;
@@ -275,7 +273,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		return -ENOMEM;
 	}
 
-	lunatik_setobject(runtime, &lunatik_class, sleep, true);
+	lunatik_setobject(runtime, &lunatik_class, flags | LUNATIK_SHARABLE);
 	lunatik_toruntime(L) = runtime;
 	runtime->private = L;
 
@@ -290,16 +288,16 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		return -ENOEXEC;
 	}
 
-	if (!sleep)
+	if (!(flags & LUNATIK_SLEEPABLE))
 		runtime->gfp = GFP_ATOMIC;
 
 	*pruntime = runtime;
         return 0;
 }
 
-int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep)
+int lunatik_runtime(lunatik_object_t **pruntime, const char *script, u8 flags)
 {
-	return lunatik_newruntime(pruntime, NULL, script, sleep);
+	return lunatik_newruntime(pruntime, NULL, script, flags);
 }
 EXPORT_SYMBOL(lunatik_runtime);
 
@@ -333,7 +331,7 @@ static int lunatik_lruntime(lua_State *L)
 	bool sleep = (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true);
 
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
-	if (lunatik_newruntime(pruntime, L, script, sleep) != 0)
+	if (lunatik_newruntime(pruntime, L, script, sleep ? LUNATIK_SLEEPABLE : 0) != 0)
 		lua_error(L);
 	lunatik_setclass(L, &lunatik_class, true);
 	return 1;

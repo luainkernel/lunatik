@@ -421,8 +421,7 @@ static const lunatik_class_t luadata_class = {
 	.name = "data",
 	.methods = luadata_mt,
 	.release = luadata_release,
-	.sleep = false,
-	.shared = true,
+	.flags = LUNATIK_SHARABLE,
 };
 
 static inline void luadata_set(luadata_t *data, void *ptr, ptrdiff_t offset, size_t size, uint8_t opt)
@@ -436,7 +435,7 @@ static inline void luadata_set(luadata_t *data, void *ptr, ptrdiff_t offset, siz
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), true);
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), LUNATIK_SHARABLE);
 	luadata_t *data = (luadata_t *)object->private;
 
 	luadata_set(data, lunatik_checkalloc(L, size), 0, size, LUADATA_OPT_FREE);
@@ -445,9 +444,9 @@ static int luadata_lnew(lua_State *L)
 
 LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 
-static inline lunatik_object_t *luadata_create(void *ptr, size_t size, bool sleep, uint8_t opt, bool shared)
+static inline lunatik_object_t *luadata_create(void *ptr, size_t size, u8 flags, uint8_t opt)
 {
-	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), sleep, shared);
+	lunatik_object_t *object = lunatik_createobject(&luadata_class, sizeof(luadata_t), flags);
 
 	if (!IS_ERR_OR_NULL(object)) {
 		luadata_t *data = (luadata_t *)object->private;
@@ -456,9 +455,9 @@ static inline lunatik_object_t *luadata_create(void *ptr, size_t size, bool slee
 	return object;
 }
 
-lunatik_object_t *luadata_new(lua_State *L, bool shared)
+lunatik_object_t *luadata_new(lua_State *L, u8 flags)
 {
-	lunatik_object_t *data = lunatik_checknull(L, luadata_create(NULL, 0, false, LUADATA_OPT_NONE, shared));
+	lunatik_object_t *data = lunatik_checknull(L, luadata_create(NULL, 0, flags, LUADATA_OPT_NONE));
 	if (IS_ERR(data))
 		luaL_error(L, LUNATIK_ERR_SHARED, luadata_class.name);
 	lunatik_cloneobject(L, data);

@@ -8,7 +8,7 @@
 
 #define LUARCU_DEFAULT_SIZE	(256)
 
-lunatik_object_t *luarcu_newtable(size_t size, bool sleep);
+lunatik_object_t *luarcu_newtable(size_t size, u8 flags);
 void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value);
 int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value);
 

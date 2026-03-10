@@ -17,12 +17,16 @@
 
 #define LUNATIK_VERSION	"Lunatik 4.1"
 
-#define lunatik_locker(o, mutex_op, spin_op)	\
-do {						\
-	if ((o)->sleep)				\
-		mutex_op(&(o)->mutex);		\
-	else					\
-		spin_op(&(o)->spin);		\
+#define LUNATIK_SLEEPABLE	(1U << 0)
+#define LUNATIK_SHARABLE	(1U << 1)
+#define LUNATIK_EXTERNAL	(1U << 2)
+
+#define lunatik_locker(o, mutex_op, spin_op)		\
+do {							\
+	if ((o)->flags & LUNATIK_SLEEPABLE)			\
+		mutex_op(&(o)->mutex);			\
+	else						\
+		spin_op(&(o)->spin);			\
 } while (0)
 
 #define lunatik_newlock(o)	lunatik_locker((o), mutex_init, spin_lock_init);
@@ -32,7 +36,7 @@ do {						\
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 
-#define lunatik_cannotsleep(L, s)	((s) && !lunatik_toruntime(L)->sleep)
+#define lunatik_cannotsleep(L, s)	((s) & LUNATIK_SLEEPABLE && !(lunatik_toruntime(L)->flags & LUNATIK_SLEEPABLE))
 #define lunatik_getstate(runtime)	((lua_State *)runtime->private)
 
 static inline bool lunatik_isready(lua_State *L)
@@ -76,9 +80,7 @@ typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
 	void (*release)(void *);
-	bool sleep;
-	bool shared;
-	bool pointer;
+	u8 flags; /* LUNATIK_SLEEPABLE | LUNATIK_SHARABLE | LUNATIK_EXTERNAL */
 } lunatik_class_t;
 
 typedef struct lunatik_object_s {
@@ -89,19 +91,19 @@ typedef struct lunatik_object_s {
 		struct mutex mutex;
 		spinlock_t spin;
 	};
-	bool sleep;
+	u8 flags; /* LUNATIK_SLEEPABLE | LUNATIK_SHARABLE */
 	gfp_t gfp;
-	bool shared;
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
-	return unlikely(object->shared) ? (object->sleep ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin)) : 1;
+	return unlikely(object->flags & LUNATIK_SHARABLE) ?
+		((object->flags & LUNATIK_SLEEPABLE) ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin)) : 1;
 }
 
-int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
+int lunatik_runtime(lunatik_object_t **pruntime, const char *script, u8 flags);
 int lunatik_stop(lunatik_object_t *runtime);
 
 static inline int lunatik_nop(lua_State *L)
@@ -167,25 +169,25 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 			lua_typename(L, type), lua_typename(L, _type));
 }
 
-static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, bool sleep)
+static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, u8 flags)
 {
 	lunatik_object_t *runtime = lunatik_toruntime(L);
-	if (runtime->sleep != sleep)
-		luaL_error(L, "cannot use %ssleepable runtime in this context", runtime->sleep ? "" : "non-");
+	if (!!(runtime->flags & LUNATIK_SLEEPABLE) != !!(flags & LUNATIK_SLEEPABLE))
+		luaL_error(L, "cannot use %ssleepable runtime in this context", (runtime->flags & LUNATIK_SLEEPABLE) ? "" : "non-");
 	return runtime;
 }
 
-#define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.sleep))
+#define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.flags))
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
-	if (lunatik_cannotsleep(L, class->sleep))
+	if (lunatik_cannotsleep(L, class->flags))
 		luaL_error(L, "cannot use '%s' class on non-sleepable runtime", class->name);
 }
 
-static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool shared)
+static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, u8 flags)
 {
-	lua_pushfstring(L, shared ? "_%s" : "%s", class->name);
+	lua_pushfstring(L, (flags & LUNATIK_SHARABLE) ? "_%s" : "%s", class->name);
 	if (lua_rawget(L, LUA_REGISTRYINDEX) == LUA_TNIL)
 		luaL_error(L, "metatable not found (%s)", lua_tostring(L, -1));
 	lua_setmetatable(L, -2);
@@ -193,19 +195,18 @@ static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, 
 	lua_setiuservalue(L, -2, 1); /* pop class */
 }
 
-static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep, bool shared)
+static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, u8 flags)
 {
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
-	object->sleep = sleep;
-	object->shared = shared;
-	object->gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
+	object->flags = flags;
+	object->gfp = (flags & LUNATIK_SLEEPABLE) ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_newlock(object);
 }
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared);
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared);
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, u8 flags);
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, u8 flags);
 lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
@@ -296,9 +297,9 @@ int luaopen_##libname(lua_State *L)						\
 	luaL_newlib(L, funcs);							\
 	if (cls) {								\
 		lunatik_checkclass(L, cls);					\
-		if (cls->shared)							\
-			lunatik_newclass(L, cls, true);			\
-		lunatik_newclass(L, cls, false);			\
+		if (cls->flags & LUNATIK_SHARABLE)					\
+			lunatik_newclass(L, cls, true);				\
+		lunatik_newclass(L, cls, false);				\
 	}									\
 	if (nss)								\
 		lunatik_newnamespaces(L, nss);					\

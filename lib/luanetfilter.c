@@ -141,7 +141,6 @@ static const lunatik_class_t luanetfilter_class = {
 	.name = "netfilter",
 	.methods = luanetfilter_mt,
 	.release = luanetfilter_release,
-	.sleep = false,
 };
 
 /***
@@ -163,7 +162,7 @@ static const lunatik_class_t luanetfilter_class = {
 static int luanetfilter_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class , sizeof(luanetfilter_t), false);
+	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class, sizeof(luanetfilter_t), 0);
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
 	nf->runtime = NULL;
 

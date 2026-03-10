@@ -339,7 +339,7 @@ static const lunatik_class_t luadevice_class = {
 	.name = "device",
 	.methods = luadevice_mt,
 	.release = luadevice_release,
-	.sleep = true,
+	.flags = LUNATIK_SLEEPABLE,
 };
 
 static int luadevice_new(lua_State *L)
@@ -355,7 +355,7 @@ static int luadevice_new(lua_State *L)
 	lunatik_checkfield(L, 1, "name", LUA_TSTRING);
 	name = lua_tostring(L, -1);
 
-	object = lunatik_newobject(L, &luadevice_class, sizeof(luadevice_t), false);
+	object = lunatik_newobject(L, &luadevice_class, sizeof(luadevice_t), 0);
 	luadev = (luadevice_t *)object->private;
 
 	memset(luadev, 0, sizeof(luadevice_t));

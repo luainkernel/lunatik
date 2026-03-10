@@ -16,39 +16,40 @@
 	(reg)->func == lunatik_deleteobject || \
 	(reg)->func == lunatik_closeobject)
 
-#define lunatik_issharable(class, shared) 	(!(shared) || ((class)->shared))
+#define lunatik_issharable(class, flags)	(!((flags) & LUNATIK_SHARABLE) || ((class)->flags & LUNATIK_SHARABLE))
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared)
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, u8 flags)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
+	u8 objflags = (class->flags & (LUNATIK_SLEEPABLE | LUNATIK_EXTERNAL)) | (flags & LUNATIK_SHARABLE);
 
 	lunatik_checkclass(L, class);
-	if (!lunatik_issharable(class, shared))
+	if (!lunatik_issharable(class, flags))
 		luaL_error(L, LUNATIK_ERR_SHARED, class->name);
-	lunatik_setobject(object, class, class->sleep, shared);
-	lunatik_setclass(L, class, shared);
+	lunatik_setobject(object, class, objflags);
+	lunatik_setclass(L, class, objflags);
 
-	object->private = class->pointer ? NULL : lunatik_checkzalloc(L, size);
+	object->private = (class->flags & LUNATIK_EXTERNAL) ? NULL : lunatik_checkzalloc(L, size);
 
 	*pobject = object;
 	return object;
 }
 EXPORT_SYMBOL(lunatik_newobject);
 
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared)
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, u8 flags)
 {
-	gfp_t gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
+	gfp_t gfp = (flags & LUNATIK_SLEEPABLE) ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_object_t *object = (lunatik_object_t *)kmalloc(sizeof(lunatik_object_t), gfp);
 
-	if (!lunatik_issharable(class, shared)) {
+	if (!lunatik_issharable(class, flags)) {
 		pr_err(LUNATIK_ERR_SHARED, class->name);
 		return ERR_PTR(-EINVAL);
 	}
 	if (object == NULL)
 		return NULL;
 
-	lunatik_setobject(object, class, sleep, shared);
+	lunatik_setobject(object, class, flags);
 	if ((object->private = kzalloc(size, gfp)) == NULL) {
 		lunatik_putobject(object);
 		return NULL;
@@ -75,14 +76,14 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {
 	const lunatik_class_t *class = object->class;
 
-	if (!class->shared)
+	if (!(class->flags & LUNATIK_SHARABLE))
 		luaL_error(L, "cannot clone non-shared class ('%s')", class->name);
 
 	lunatik_require(L, class->name);
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 
 	lunatik_checkclass(L, class);
-	lunatik_setclass(L, class, object->shared);
+	lunatik_setclass(L, class, object->flags);
 	*pobject = object;
 }
 EXPORT_SYMBOL(lunatik_cloneobject);
@@ -93,7 +94,7 @@ static inline void lunatik_releaseprivate(const lunatik_class_t *class, void *pr
 
 	if (release)
 		release(private);
-	if (!class->pointer)
+	if (!(class->flags & LUNATIK_EXTERNAL))
 		lunatik_free(private);
 }
 

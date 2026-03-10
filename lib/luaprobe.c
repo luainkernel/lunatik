@@ -231,12 +231,12 @@ static const lunatik_class_t luaprobe_class = {
 	.name = "probe",
 	.methods = luaprobe_mt,
 	.release = luaprobe_release,
-	.sleep = true,
+	.flags = LUNATIK_SLEEPABLE,
 };
 
 static int luaprobe_new(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t), false);
+	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t), 0);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 	struct kprobe *kp = &probe->kp;
 	int ret;

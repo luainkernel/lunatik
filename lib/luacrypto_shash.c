@@ -216,9 +216,7 @@ static const lunatik_class_t luacrypto_shash_class = {
 	.name = "crypto_shash",
 	.methods = luacrypto_shash_mt,
 	.release = luacrypto_shash_release,
-	.sleep = true,
-	.shared = true,
-	.pointer = true,
+	.flags = LUNATIK_SLEEPABLE | LUNATIK_SHARABLE | LUNATIK_EXTERNAL,
 };
 
 /***

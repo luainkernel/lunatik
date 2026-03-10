@@ -93,9 +93,7 @@ static const lunatik_class_t luacrypto_comp_class = {
 	.name = "crypto_comp",
 	.methods = luacrypto_comp_mt,
 	.release = luacrypto_comp_release,
-	.sleep = true,
-	.shared = true,
-	.pointer = true,
+	.flags = LUNATIK_SLEEPABLE | LUNATIK_SHARABLE | LUNATIK_EXTERNAL,
 };
 
 /***
