@@ -333,7 +333,7 @@ static int lunatik_lruntime(lua_State *L)
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
 	if (lunatik_newruntime(pruntime, L, script, sleep ? LUNATIK_SLEEPABLE : 0) != 0)
 		lua_error(L);
-	lunatik_setclass(L, &lunatik_class, true);
+	lunatik_setclass(L, &lunatik_class, LUNATIK_SHARABLE);
 	return 1;
 }
 

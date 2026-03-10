@@ -23,7 +23,7 @@
 
 #define lunatik_locker(o, mutex_op, spin_op)		\
 do {							\
-	if ((o)->flags & LUNATIK_SLEEPABLE)			\
+	if ((o)->flags & LUNATIK_SLEEPABLE)		\
 		mutex_op(&(o)->mutex);			\
 	else						\
 		spin_op(&(o)->spin);			\
@@ -297,7 +297,7 @@ int luaopen_##libname(lua_State *L)						\
 	luaL_newlib(L, funcs);							\
 	if (cls) {								\
 		lunatik_checkclass(L, cls);					\
-		if (cls->flags & LUNATIK_SHARABLE)					\
+		if (cls->flags & LUNATIK_SHARABLE)				\
 			lunatik_newclass(L, cls, true);				\
 		lunatik_newclass(L, cls, false);				\
 	}									\
