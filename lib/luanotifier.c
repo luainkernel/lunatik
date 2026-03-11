@@ -397,7 +397,7 @@ static const lunatik_class_t luanotifier_class = {
 	.name = "notifier",
 	.methods = luanotifier_mt,
 	.release = luanotifier_release,
-	.flags = LUNATIK_SLEEPABLE,
+	.flags = LUNATIK_FLAG_SLEEPABLE,
 };
 
 static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, luanotifier_register_t unregister_fn,
@@ -408,7 +408,7 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	object = lunatik_newobject(L, &luanotifier_class, sizeof(luanotifier_t), 0);
+	object = lunatik_newobject(L, &luanotifier_class, sizeof(luanotifier_t), LUNATIK_FLAG_NONE);
 	notifier = (luanotifier_t *)object->private;
 
 	lunatik_setruntime(L, notifier, notifier);

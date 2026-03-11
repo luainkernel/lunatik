@@ -421,7 +421,7 @@ static const lunatik_class_t luadata_class = {
 	.name = "data",
 	.methods = luadata_mt,
 	.release = luadata_release,
-	.flags = LUNATIK_SHARABLE,
+	.flags = LUNATIK_FLAG_SHARABLE,
 };
 
 static inline void luadata_set(luadata_t *data, void *ptr, ptrdiff_t offset, size_t size, uint8_t opt)
@@ -435,7 +435,7 @@ static inline void luadata_set(luadata_t *data, void *ptr, ptrdiff_t offset, siz
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), LUNATIK_SHARABLE);
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), LUNATIK_FLAG_SHARABLE);
 	luadata_t *data = (luadata_t *)object->private;
 
 	luadata_set(data, lunatik_checkalloc(L, size), 0, size, LUADATA_OPT_FREE);

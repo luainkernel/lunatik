@@ -140,7 +140,7 @@ static const lunatik_class_t luacrypto_rng_class = {
 	.name = "crypto_rng", /* Lua type name */
 	.methods = luacrypto_rng_mt,
 	.release = luacrypto_rng_release,
-	.flags = LUNATIK_SLEEPABLE | LUNATIK_SHARABLE | LUNATIK_EXTERNAL,
+	.flags = LUNATIK_DEFAULT,
 };
 
 static inline void *luacrypto_rng_randomize(lua_State *L, void *data)

@@ -214,8 +214,8 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_checkruntime(L, 0);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	luadata_new(L, 0); /* buffer */
-	luadata_new(L, 0); /* argument */
+	luadata_new(L, LUNATIK_FLAG_NONE); /* buffer */
+	luadata_new(L, LUNATIK_FLAG_NONE); /* argument */
 
 	lua_pushcclosure(L, luaxdp_callback, 3);
 	lunatik_register(L, -1, luaxdp_callback);

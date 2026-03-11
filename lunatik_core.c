@@ -216,7 +216,7 @@ static const lunatik_class_t lunatik_class = {
 	.name = "lunatik",
 	.methods = lunatik_mt,
 	.release = lunatik_releaseruntime,
-	.flags = LUNATIK_SLEEPABLE | LUNATIK_SHARABLE | LUNATIK_EXTERNAL,
+	.flags = LUNATIK_DEFAULT,
 };
 
 /* used for luaL_requiref() */
@@ -237,7 +237,7 @@ static int lunatik_runscript(lua_State *L)
 	lunatik_setversion(L);
 	luaL_openlibs(L);
 
-	if (lunatik_toruntime(L)->flags & LUNATIK_SLEEPABLE)
+	if (lunatik_toruntime(L)->flags & LUNATIK_FLAG_SLEEPABLE)
 		luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
 	else
 		luaL_requiref(L, "lunatik", luaopen_lunatik_stub, 0);
@@ -273,7 +273,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		return -ENOMEM;
 	}
 
-	lunatik_setobject(runtime, &lunatik_class, flags | LUNATIK_SHARABLE);
+	lunatik_setobject(runtime, &lunatik_class, flags | LUNATIK_FLAG_SHARABLE);
 	lunatik_toruntime(L) = runtime;
 	runtime->private = L;
 
@@ -288,7 +288,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		return -ENOEXEC;
 	}
 
-	if (!(flags & LUNATIK_SLEEPABLE))
+	if (!(flags & LUNATIK_FLAG_SLEEPABLE))
 		runtime->gfp = GFP_ATOMIC;
 
 	*pruntime = runtime;
@@ -331,9 +331,9 @@ static int lunatik_lruntime(lua_State *L)
 	bool sleep = (bool)(lua_gettop(L) >= 2 ? lua_toboolean(L, 2) : true);
 
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
-	if (lunatik_newruntime(pruntime, L, script, sleep ? LUNATIK_SLEEPABLE : 0) != 0)
+	if (lunatik_newruntime(pruntime, L, script, sleep ? LUNATIK_FLAG_SLEEPABLE : LUNATIK_FLAG_NONE) != 0)
 		lua_error(L);
-	lunatik_setclass(L, &lunatik_class, LUNATIK_SHARABLE);
+	lunatik_setclass(L, &lunatik_class, LUNATIK_FLAG_SHARABLE);
 	return 1;
 }
 

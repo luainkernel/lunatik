@@ -122,13 +122,13 @@ static const lunatik_class_t luafifo_class = {
 	.name = "fifo",
 	.methods = luafifo_mt,
 	.release = luafifo_release,
-	.flags = LUNATIK_SHARABLE,
+	.flags = LUNATIK_FLAG_SHARABLE,
 };
 
 static int luafifo_new(lua_State *L)
 {
 	size_t size = luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luafifo_class, sizeof(struct kfifo), LUNATIK_SHARABLE);
+	lunatik_object_t *object = lunatik_newobject(L, &luafifo_class, sizeof(struct kfifo), LUNATIK_FLAG_SHARABLE);
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
 	int ret;
 

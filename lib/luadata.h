@@ -25,11 +25,11 @@ static inline void luadata_close(lunatik_object_t *object)
 	lunatik_putobject(object);
 }
 
-#define luadata_attach(L, obj, field)		\
-do {						\
-	obj->field = luadata_new(L, 0); 		\
-	lunatik_register(L, -1, obj->field);	\
-	lua_pop(L, 1);				\
+#define luadata_attach(L, obj, field)				\
+do {								\
+	obj->field = luadata_new(L, LUNATIK_FLAG_NONE); 	\
+	lunatik_register(L, -1, obj->field);			\
+	lua_pop(L, 1);						\
 } while (0)
 
 #define luadata_detach(runtime, obj, field)			\

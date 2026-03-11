@@ -690,10 +690,10 @@ static const lunatik_class_t luasocket_class = {
 	.name = "socket",
 	.methods = luasocket_mt,
 	.release = luasocket_release,
-	.flags = LUNATIK_SLEEPABLE | LUNATIK_SHARABLE | LUNATIK_EXTERNAL,
+	.flags = LUNATIK_DEFAULT,
 };
 
-#define luasocket_newsocket(L)		(lunatik_newobject((L), &luasocket_class, 0, LUNATIK_SHARABLE))
+#define luasocket_newsocket(L)		(lunatik_newobject((L), &luasocket_class, 0, LUNATIK_FLAG_SHARABLE))
 #define luasocket_psocket(object)	((struct socket **)&object->private)
 
 /***

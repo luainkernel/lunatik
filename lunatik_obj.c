@@ -16,13 +16,13 @@
 	(reg)->func == lunatik_deleteobject || \
 	(reg)->func == lunatik_closeobject)
 
-#define lunatik_issharable(class, flags)	(!((flags) & LUNATIK_SHARABLE) || ((class)->flags & LUNATIK_SHARABLE))
+#define lunatik_issharable(class, flags)	(!((flags) & LUNATIK_FLAG_SHARABLE) || ((class)->flags & LUNATIK_FLAG_SHARABLE))
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, u8 flags)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
-	u8 objflags = (class->flags & (LUNATIK_SLEEPABLE | LUNATIK_EXTERNAL)) | (flags & LUNATIK_SHARABLE);
+	u8 objflags = (class->flags & (LUNATIK_FLAG_SLEEPABLE | LUNATIK_FLAG_EXTERNAL)) | (flags & LUNATIK_FLAG_SHARABLE);
 
 	lunatik_checkclass(L, class);
 	if (!lunatik_issharable(class, flags))
@@ -30,7 +30,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_setobject(object, class, objflags);
 	lunatik_setclass(L, class, objflags);
 
-	object->private = (class->flags & LUNATIK_EXTERNAL) ? NULL : lunatik_checkzalloc(L, size);
+	object->private = (class->flags & LUNATIK_FLAG_EXTERNAL) ? NULL : lunatik_checkzalloc(L, size);
 
 	*pobject = object;
 	return object;
@@ -39,7 +39,7 @@ EXPORT_SYMBOL(lunatik_newobject);
 
 lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, u8 flags)
 {
-	gfp_t gfp = (flags & LUNATIK_SLEEPABLE) ? GFP_KERNEL : GFP_ATOMIC;
+	gfp_t gfp = (flags & LUNATIK_FLAG_SLEEPABLE) ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_object_t *object = (lunatik_object_t *)kmalloc(sizeof(lunatik_object_t), gfp);
 
 	if (!lunatik_issharable(class, flags)) {
@@ -76,7 +76,7 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {
 	const lunatik_class_t *class = object->class;
 
-	if (!(class->flags & LUNATIK_SHARABLE))
+	if (!(class->flags & LUNATIK_FLAG_SHARABLE))
 		luaL_error(L, "cannot clone non-shared class ('%s')", class->name);
 
 	lunatik_require(L, class->name);
@@ -94,7 +94,7 @@ static inline void lunatik_releaseprivate(const lunatik_class_t *class, void *pr
 
 	if (release)
 		release(private);
-	if (!(class->flags & LUNATIK_EXTERNAL))
+	if (!(class->flags & LUNATIK_FLAG_EXTERNAL))
 		lunatik_free(private);
 }
 
