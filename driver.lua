@@ -14,7 +14,12 @@ function driver:read()
 end
 
 local function result(_, ...)
-	return select("#", ...) > 0 and tostring(select(1, ...)) or ''
+	local n = select('#', ...)
+	local t = {}
+	for i = 1, n do
+		t[i] = tostring(select(i, ...))
+	end
+	return table.concat(t, '\t')
 end
 
 function driver:write(buf)
