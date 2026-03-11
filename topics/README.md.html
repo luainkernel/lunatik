@@ -103,6 +103,8 @@ and <a href="#lunatik-lua-apis">Lua APIs</a> for binding kernel facilities to Lu
     <p>Note: Lunatik supports Linux Kernel versions 5.x and 6.x</p>
 </blockquote>
 
+<p>Feel free to join us on <a href="https://matrix.to/#/#lunatik:matrix.org">Matrix</a>.</p>
+
 <p>Here is an example of a character device driver written in Lua using Lunatik
 to generate random ASCII printable characters:</p>
 
@@ -215,33 +217,11 @@ and the type <em>number</em> has only the subtype <em>integer</em>.</p>
 
 <h3>Lua API</h3>
 
-<p>Lunatik <strong>does not</strong> support both <a href="https://www.lua.org/manual/5.5/manual.html#6.8">io</a> and
-<a href="https://www.lua.org/manual/5.5/manual.html#6.9">os</a> libraries,
-and the given identifiers from the following libraries:
-* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-debug.debug">debug.debug</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.acos">math.acos</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.asin">math.asin</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.atan">math.atan</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.ceil">math.ceil</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.cos">math.cos</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.deg">math.deg</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.exp">math.exp</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.floor">math.floor</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.fmod">math.fmod</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.frexp">math.frexp</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.huge">math.huge</a>.
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.ldexp">math.ldexp</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.log">math.log</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.modf">math.modf</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.pi">math.pi</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.rad">math.rad</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.random">math.random</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.randomseed">math.randomseed</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sin">math.sin</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt">math.sqrt</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.tan">math.tan</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.type">math.type</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.cpath">package.cpath</a>.</p>
+<p>Lunatik <strong>does not</strong> support the <a href="https://www.lua.org/manual/5.5/manual.html#6.8">io</a> and
+<a href="https://www.lua.org/manual/5.5/manual.html#6.9">os</a> libraries, floating-point arithmetic
+(<code>__div</code>, <code>__pow</code>), or <a href="https://www.lua.org/manual/5.4/manual.html#pdf-debug.debug">debug.debug</a>.
+The <a href="https://www.lua.org/manual/5.4/manual.html#6.7">math</a> library is present but all floating-point functions are absent —
+only integer operations are supported.</p>
 
 <p>Lunatik <strong>modifies</strong> the following identifiers:
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION">_VERSION</a>: is defined as <code>&quot;Lua 5.5-kernel&quot;</code>.
@@ -249,26 +229,43 @@ and the given identifiers from the following libraries:
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a>: is defined as <code>&quot;/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua&quot;</code>.
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>: only supports built-in or already linked C modules, that is, Lunatik <strong>cannot</strong> load kernel modules dynamically.</p>
 
-<h3>C API</h3>
-
-<p>Lunatik <strong>does not</strong> support
-<a href="https://www.lua.org/manual/5.5/manual.html#luaL_Stream">luaL_Stream</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#luaL_execresult">luaL_execresult</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#luaL_fileresult">luaL_fileresult</a>,
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_io">luaopen_io</a> and
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_os">luaopen_os</a>.</p>
-
-<p>Lunatik <strong>modifies</strong> <a href="https://www.lua.org/manual/5.5/manual.html#luaL_openlibs">luaL_openlibs</a> to remove <a href="https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_io">luaopen_io</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-luaopen_os">luaopen_os</a>.</p>
-
 <p><a name="Lunatik_Lua_APIs"></a></p>
 <h2>Lunatik Lua APIs</h2>
 
-<p>Lua APIs are documented thanks to <a href="https://stevedonovan.github.io/ldoc/">LDoc</a>. This documentation can be read here: https://luainkernel.github.io/lunatik/, and in the source files.</p>
+<p>Lua APIs are documented with <a href="https://stevedonovan.github.io/ldoc/">LDoc</a> and can be browsed at
+<a href="https://luainkernel.github.io/lunatik/">luainkernel.github.io/lunatik</a>.</p>
+
+<p>The table below lists the available kernel Lua modules:</p>
+
+<p>| Module | Description |
+|--------|-------------|
+| <a href="../modules/linux.html#">linux</a> | Kernel utilities: <code>schedule</code>, <code>time</code>, <code>random</code>, <code>stat</code> flags |
+| <a href="../modules/thread.html#">thread</a> | Kernel threads: spawn, stop, <code>shouldstop</code> |
+| <a href="../modules/socket.html#">socket</a> | Kernel sockets: TCP, UDP, AF_PACKET, AF_UNIX |
+| <a href="../modules/data.html#">data</a> | Raw memory buffer for binary data read/write |
+| <a href="../modules/device.html#">device</a> | Character device drivers |
+| <a href="../modules/rcu.html#">rcu</a> | RCU-protected shared hash table |
+| <a href="../modules/netfilter.html#">netfilter</a> | Netfilter hooks: register packet processing callbacks |
+| <a href="../modules/skb.html#">skb</a> | Socket buffer (<code>sk_buff</code>): inspect and modify packets |
+| <a href="../modules/xdp.html#">xdp</a> | XDP (eXpress Data Path) hooks |
+| <code>crypto</code> | Kernel crypto API: hash, cipher, AEAD, RNG, compression |
+| <a href="../modules/hid.html#">hid</a> | HID device drivers |
+| <a href="../modules/probe.html#">probe</a> | Kernel probes (kprobe / tracepoint) |
+| <a href="../modules/fib.html#">fib</a> | FIB routing table lookup |
+| <a href="../modules/fifo.html#">fifo</a> | Kernel FIFO queues |
+| <a href="../modules/signal.html#">signal</a> | POSIX signal management |
+| <a href="../modules/byteorder.html#">byteorder</a> | Network byte order conversions |
+| <a href="../modules/notifier.html#">notifier</a> | Kernel notifier chain registration |
+| <a href="../modules/lunatik.runner.html#">lunatik.runner</a> | Run, spawn, and stop scripts from within Lua |
+| <a href="../modules/net.html#">net</a> | Networking helpers |
+| <a href="../modules/mailbox.html#">mailbox</a> | Asynchronous inter-runtime messaging |</p>
 
 <p><a name="Lunatik_C_API"></a></p>
 <h2>Lunatik C API</h2>
 
-<p>See <a href="doc/capi.md">this</a> document.</p>
+<p>The <a href="doc/capi.md">C API</a> allows kernel modules to create and manage Lunatik runtime
+environments, define new object classes, and expose kernel facilities to Lua scripts.
+See <a href="doc/capi.md">doc/capi.md</a> for the full reference.</p>
 
 <h1>Examples</h1>
 
@@ -609,12 +606,28 @@ sudo socat - UNIX-CONNECT:/tmp/cpuexporter.sock &lt;&lt;&lt;<span class="string"
 <p><a name="References"></a></p>
 <h2>References</h2>
 
-<ul>
-    <li><a href="https://netdevconf.info/0x17/sessions/talk/scripting-the-linux-routing-table-with-lua.html">Scripting the Linux Routing Table with Lua</a></li>
-    <li><a href="https://www.youtube.com/watch?v=-ufBgy044HI">Lua no Núcleo</a> (Portuguese)</li>
-    <li><a href="https://legacy.netdevconf.info/0x14/session.html?talk-linux-network-scripting-with-lua">Linux Network Scripting with Lua</a></li>
-    <li><a href="https://www.netbsd.org/~lneto/dls14.pdf">Scriptables Operating Systems with Lua</a></li>
-</ul>
+<h3>Talks and Papers</h3>
+<p>* <a href="https://netdevconf.info/0x17/sessions/talk/scripting-the-linux-routing-table-with-lua.html">Scripting the Linux Routing Table with Lua</a> — Netdev 0x17 (2023)
+* <a href="https://legacy.netdevconf.info/0x14/session.html?talk-linux-network-scripting-with-lua">Linux Network Scripting with Lua</a> — Netdev 0x14 (2020)
+* <a href="https://www.youtube.com/watch?v=-ufBgy044HI">Lua no Núcleo</a> — Lua Workshop 2023, PUC-Rio (Portuguese)
+* <a href="https://www.netbsd.org/~lneto/dls14.pdf">Scriptable Operating Systems with Lua</a> — DLS 2014
+* <a href="https://events.canonical.com/event/89/contributions/506/attachments/265/393/Lua%20in%20Kernel%20-%20OOSC%202024%20(2">Lua in Kernel</a> — Opportunity Open Source Conference 2024</p>
+
+<h3>Articles</h3>
+<p>* <a href="https://medium.com/@lourival.neto/from-the-kernel-to-the-moon-a-journey-into-lunatik-bindings-c2cac8816f9e">From the Kernel to the Moon: A Journey into Lunatik Bindings</a> — Medium (2025)
+* <a href="https://medium.com/@lourival.neto/is-ebpf-driving-you-crazy-let-it-run-lunatik-instead-4aca7d63e6fd">Is eBPF driving you crazy? Let it run Lunatik instead!</a> — Medium (2024)
+* <a href="https://lwn.net/Articles/830154/">Lua in the kernel?</a> — LWN.net (2020)</p>
+
+<h3>GSoC Projects</h3>
+<p>* <a href="https://github.com/qrsikno2/GSoC2025">LuaHID</a> — LabLua (2025), Jieming Zhou
+* <a href="https://summerofcode.withgoogle.com/archive/2024/projects/BIJAPZjf">Lunatik binding for Netfilter</a> — LabLua (2024), Mohammad Shehar Yaar Tausif
+* <a href="https://luainkernel.github.io/ktls/">Lua hook on kTLS</a> — LabLua (2020), Xinzhe Wang
+* <a href="https://github.com/luainkernel/lunatik/pull/20">Lunatik States Management</a> — LabLua (2020), Matheus Rodrigues
+* <a href="https://victornogueirario.github.io/xdplua/">XDP Lua</a> — LabLua (2019), Victor Nogueira
+* <a href="https://github.com/cmessias/lunatik">RCU binding for Lunatik</a> — LabLua (2018), Caio Messias
+* <a href="https://github.com/luainkernel/lunatik/pull/4">Lunatik Socket Library</a> — LabLua (2018), Chengzhi Tan
+* <a href="https://www.google-melange.com/archive/gsoc/2015/orgs/lablua/projects/gmesalazar.html">Port Lua Test Suite to the NetBSD Kernel</a> — LabLua (2015), Guilherme Salazar
+* <a href="http://netbsd-soc.sourceforge.net/projects/luakern/">Lua scripting in the NetBSD kernel</a> — The NetBSD Foundation (2010), Lourival Vieira Neto</p>
 
 <p><a name="License"></a></p>
 <h2>License</h2>
@@ -633,7 +646,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-03-11 00:46:13 </i>
+<i style="float:right;">Last updated 2026-03-11 00:47:52 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
