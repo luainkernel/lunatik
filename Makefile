@@ -133,6 +133,8 @@ tests_install:
 	${INSTALL} -m 0644 tests/monitor/*.lua ${SCRIPTS_INSTALL_PATH}/tests/monitor
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/thread
 	${INSTALL} -m 0644 tests/thread/*.lua ${SCRIPTS_INSTALL_PATH}/tests/thread
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/runtime
+	${INSTALL} -m 0644 tests/runtime/*.lua ${SCRIPTS_INSTALL_PATH}/tests/runtime
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests

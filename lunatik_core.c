@@ -286,6 +286,10 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	lua_pushlightuserdata(L, (void *)script);
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
 		lunatik_runerror(Lfrom, lua_tostring(L, -1));
+		lunatik_lock(runtime);
+		runtime->private = NULL;
+		lunatik_unlock(runtime);
+		lua_close(L); /* hooks hold extra krefs; putobject alone won't reach 0 */
 		lunatik_putobject(runtime);
 		return -ENOEXEC;
 	}
