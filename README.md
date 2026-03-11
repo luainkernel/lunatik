@@ -49,6 +49,12 @@ Install dependencies (here for Arch Linux):
 sudo pacman -S git lua clang llvm m4 libpcap pkg-config build2 linux-tools linux-headers
 ```
 
+The `lua-readline` package is optional. When installed, the REPL gains line editing and command history:
+
+```sh
+sudo apt install lua-readline  # Debian/Ubuntu
+```
+
 Compile and install `lunatik`:
 
 ```sh
