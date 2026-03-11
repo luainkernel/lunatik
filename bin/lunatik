@@ -6,134 +6,148 @@
 
 local config = require("lunatik.config")
 
-local lunatik = {
-	copyright = "Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.",
-	device = "/dev/lunatik",
-	modules = config.modules,
-}
+local device    = "/dev/lunatik"
+local copyright = "Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA."
+local modules   = config.modules
 
-function lunatik.prompt()
-	io.write("> ")
-	io.flush()
+local function probe()
+	return os.execute("[ -e " .. device .. " ]")
 end
 
-function lunatik.open(mode)
-	return io.open(lunatik.device, mode)
-end
-
-function lunatik.probe()
-	return os.execute("[ -e " .. lunatik.device .. " ]")
-end
-
-function lunatik.loadstring(chunk)
-	local loader <close> = assert(lunatik.open("r+"))
-	loader:write(chunk)
-end
-
-function lunatik.result()
-	local reader <close> = lunatik.open("r")
+local function dostring(chunk)
+	do
+		local loader <close> = assert(io.open(device, "r+"))
+		loader:write(chunk)
+	end
+	local reader <close> = assert(io.open(device, "r"))
 	return reader:read("a")
 end
 
-function lunatik.dostring(chunk)
-	lunatik.loadstring(chunk)
-	return lunatik.result()
+local function sh(command, module, loaded)
+	local op = loaded and "&&" or "||"
+	os.execute(string.format("MODULE=%s;grep -wq $MODULE /proc/modules %s%s", module, op, command))
 end
 
-function lunatik.usage()
-	print("usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]")
-	os.exit(false)
-end
-
-function lunatik.sh(command, module, loaded)
-	local isloaded = loaded and "&&" or "||"
-	os.execute(string.format("MODULE=%s;grep -wq $MODULE /proc/modules %s%s", module, isloaded, command))
-end
-
-lunatik.commands = {
-	['load'] = function ()
-		for _, module in ipairs(lunatik.modules) do
-			lunatik.sh("modprobe $MODULE", module)
-		end
-
-		if not lunatik.probe() then
-			error("couldn't create " .. lunatik.device)
-		end
-
-		local result = lunatik.dostring[[
-			lunatik = require("lunatik")
-			lunatik.runner = require("lunatik.runner")
-			lunatik.runner.startup()
-		]]
-		if result ~= "" then error(result) end
-	end,
-	['unload'] = function ()
-		if lunatik.probe() then
-			lunatik.dostring("lunatik.runner.shutdown()")
-		end
-
-		local first = #lunatik.modules
-		for i = first, 1, -1 do
-			local module = lunatik.modules[i]
-			lunatik.sh("rmmod $MODULE", module, true)
-		end
-	end,
-	['reload'] = function()
-		local commands = lunatik.commands
-		commands.unload()
-		commands.load()
-	end,
-	['status'] = function ()
-		for _, module in ipairs(lunatik.modules) do
-			lunatik.sh("echo $MODULE is loaded || echo $MODULE is not loaded", module, true)
-		end
+local function load_modules()
+	for _, m in ipairs(modules) do
+		sh("modprobe $MODULE", m)
 	end
+	if not probe() then
+		error("couldn't create " .. device)
+	end
+	local result = dostring[[
+		lunatik = require("lunatik")
+		lunatik.runner = require("lunatik.runner")
+		lunatik.runner.startup()
+	]]
+	if result ~= "" then error(result) end
+end
+
+local function unload_modules()
+	if probe() then
+		dostring("lunatik.runner.shutdown()")
+	end
+	for i = #modules, 1, -1 do
+		sh("rmmod $MODULE", modules[i], true)
+	end
+end
+
+local function reload_modules()
+	unload_modules()
+	load_modules()
+end
+
+local function status_modules()
+	for _, m in ipairs(modules) do
+		sh("echo $MODULE is loaded || echo $MODULE is not loaded", m, true)
+	end
+end
+
+local commands = {
+	load   = load_modules,
+	unload = unload_modules,
+	reload = reload_modules,
+	status = status_modules,
 }
 
-local command = lunatik.commands[arg[1]]
-if command then
-	command()
-	os.exit()
-end
-
-function lunatik.load()
-	if not lunatik.probe() then
-		lunatik.commands.load()
+local function ensure_loaded()
+	if not probe() then
+		load_modules()
 	end
 end
 
-local function set(t)
-	local s = {}
-	for _, key in ipairs(t) do s[key] = true end
-	return s
+local function readline_reader()
+	local rl = require("readline")
+	rl.set_readline_name("lunatik")
+	local function read_line(prompt)
+		local line = rl.readline(prompt)
+		if line and line ~= "" then rl.add_history(line) end
+		return line
+	end
+	return read_line
 end
 
-local tokens = set{"run", "spawn", "stop", "list"}
+local function fallback_reader(prompt)
+	io.write(prompt)
+	io.flush()
+	return io.read("l")
+end
+
+local function try_as_expr(chunk)
+	return load("return " .. chunk .. ";") ~= nil
+end
+
+local function is_incomplete(chunk)
+	local _, err = load(chunk)
+	return err ~= nil and err:sub(-5) == "<eof>"
+end
+
+local function repl(read_line)
+	local line = read_line("> ")
+	while line ~= nil do
+		local chunk = line
+		while is_incomplete(chunk) do
+			local more = read_line(">> ")
+			if more == nil then break end
+			chunk = chunk .. "\n" .. more
+		end
+		local send = try_as_expr(chunk) and ("return " .. chunk) or chunk
+		local res = dostring(send)
+		if res ~= "" then print(res) end
+		line = read_line("> ")
+	end
+end
+
+local function start_repl()
+	ensure_loaded()
+	local version = dostring("return _LUNATIK_VERSION")
+	print(version .. "  " .. copyright)
+	local ok, read_line = pcall(readline_reader)
+	if not ok then read_line = fallback_reader end
+	repl(read_line)
+end
+
+local cmd = commands[arg[1]]
+if cmd then
+	cmd()
+	os.exit()
+end
 
 if #arg >= 1 then
-	local token = arg[1]
+	local token  = arg[1]
 	local script = arg[2]
-	local parm = arg[3]
-	if tokens[token] then
-		lunatik.load()
-		local parm = parm and ("," .. parm) or ""
-		local ret = token == "list" and "return" or ""
-		local chunk = string.format("%s lunatik.runner.%s('%s'%s)", ret, token, script, parm)
-		print(lunatik.dostring(chunk))
-	else
-		lunatik.usage()
+	local tokens = {run = true, spawn = true, stop = true, list = true}
+	if not tokens[token] then
+		print("usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]")
+		os.exit(false)
 	end
+	ensure_loaded()
+	local parm  = arg[3] and ("," .. arg[3]) or ""
+	local ret   = token == "list" and "return" or ""
+	local chunk = string.format("%s lunatik.runner.%s('%s'%s)", ret, token, script, parm)
+	print(dostring(chunk))
 	os.exit()
 end
 
-lunatik.load()
-local version = lunatik.dostring("return _LUNATIK_VERSION")
-lunatik.copyright = version .. "  " .. lunatik.copyright
-
-print(lunatik.copyright)
-lunatik.prompt()
-for chunk in io.lines() do
-	print(lunatik.dostring(chunk))
-	lunatik.prompt()
-end
+start_repl()
 
