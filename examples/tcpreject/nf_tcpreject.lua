@@ -111,7 +111,7 @@ netfilter.register{
 
 netfilter.register{
 	hook     = tcpreject,
-	pf       = family.INET6,
+	pf       = family.IPV6,
 	hooknum  = hooks.FORWARD,
 	priority = priority.FILTER,
 	mark     = 0x403,
