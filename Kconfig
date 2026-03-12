@@ -75,6 +75,14 @@ config LUNATIK_DATA
 	help
 	  Shared data structures support.
 
+config LUNATIK_SKB
+	tristate "Lunatik SKB (Socket Buffer) Support"
+	default m
+	depends on LUNATIK_DATA
+	help
+	  Socket buffer (skb) access support for Lua scripts.
+	  Requires Lunatik Data support.
+
 config LUNATIK_PROBE
 	tristate "Lunatik Probe (Kprobe/Kretprobe) Support"
 	default m
@@ -102,8 +110,10 @@ config LUNATIK_FIFO
 config LUNATIK_NETFILTER
 	tristate "Lunatik Netfilter bindings"
 	default m
+	depends on LUNATIK_SKB
 	help
 	  New Netfilter API bindings.
+	  Requires Lunatik SKB support.
 
 config LUNATIK_COMPLETION
 	tristate "Lunatik Completion Support"
