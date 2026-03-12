@@ -343,7 +343,7 @@ static inline void luadata_set(luadata_t *data, void *ptr, size_t size, uint8_t 
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), true);
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), true, true);
 	luadata_t *data = (luadata_t *)object->private;
 
 	luadata_set(data, lunatik_checkalloc(L, size), size, LUADATA_OPT_FREE);
@@ -355,7 +355,7 @@ LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 lunatik_object_t *luadata_new(lua_State *L, bool shared)
 {
 	lunatik_require(L, "data");
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), shared);
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), shared, shared);
 	return object;
 }
 EXPORT_SYMBOL(luadata_new);

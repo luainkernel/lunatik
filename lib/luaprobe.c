@@ -236,7 +236,7 @@ static const lunatik_class_t luaprobe_class = {
 
 static int luaprobe_new(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t), false);
+	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t), false, false);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 	struct kprobe *kp = &probe->kp;
 	int ret;
