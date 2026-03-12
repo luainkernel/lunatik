@@ -114,6 +114,7 @@ static const lunatik_class_t luacompletion_class = {
 	.name = "completion",
 	.methods = luacompletion_mt,
 	.sleep = false,
+	.shared = true,
 };
 
 /***
