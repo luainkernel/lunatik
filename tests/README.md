@@ -32,6 +32,7 @@ sudo bash tests/monitor/gc.sh
 sudo bash tests/thread/shouldstop.sh
 sudo bash tests/thread/run_during_load.sh
 sudo bash tests/runtime/refcnt_leak.sh
+sudo bash tests/runtime/resume_shared.sh
 ```
 
 ## Suites
@@ -78,4 +79,9 @@ Regression tests for `lunatik_newruntime`.
   (GC runs, hook finalizer fires: `nf_unregister_net_hook` +
   `lunatik_putobject` kref 2→1, LSTRMEM freed → `symbol_put_addr` restores
   refcnt), then `lunatik_putobject(runtime)` kref 1→0 → `kfree`.
+
+- **resume_shared**: `runtime:resume()` must correctly pass shared (monitored)
+  objects across runtime boundaries. Pushes a value into a shared `fifo`,
+  passes it to a sub-runtime via `resume()`, and asserts the value can be
+  popped.
 
