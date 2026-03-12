@@ -33,6 +33,7 @@ sudo bash tests/thread/shouldstop.sh
 sudo bash tests/thread/run_during_load.sh
 sudo bash tests/runtime/refcnt_leak.sh
 sudo bash tests/runtime/resume_shared.sh
+sudo bash tests/runtime/resume_mailbox.sh
 ```
 
 ## Suites
@@ -84,4 +85,9 @@ Regression tests for `lunatik_newruntime`.
   objects across runtime boundaries. Pushes a value into a shared `fifo`,
   passes it to a sub-runtime via `resume()`, and asserts the value can be
   popped.
+
+- **resume_mailbox**: `completion` objects must be passable via
+  `runtime:resume()` to enable the mailbox pattern. Passes a `fifo` and
+  `completion` to a sub-runtime that sends a message; the main runtime
+  receives and asserts the value.
 
