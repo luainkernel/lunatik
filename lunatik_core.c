@@ -123,10 +123,10 @@ static int lunatik_lcopyobjects(lua_State *L)
 	int i;
 
 	for (i = 0; i < nobjects; i++) {
-		lunatik_object_t *object = lunatik_testobject(Lfrom, ixfrom + i);
+		lunatik_object_t **pobject = lunatik_testobject(Lfrom, ixfrom + i);
 
-		luaL_argcheck(L, object != NULL, i + 1, "invalid object");
-		lunatik_pushobject(L, object);
+		luaL_argcheck(L, pobject, i + 1, "invalid object");
+		lunatik_pushobject(L, *pobject);
 	}
 	return nobjects;
 }

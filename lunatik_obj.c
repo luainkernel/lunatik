@@ -57,19 +57,6 @@ lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size
 }
 EXPORT_SYMBOL(lunatik_createobject);
 
-static inline bool lunatik_isobject(lua_State *L, int ix, lunatik_object_t *object)
-{
-	lunatik_class_t *class= lunatik_getclass(L, ix);
-	return object && object->class == class;
-}
-
-lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
-{
-	lunatik_object_t **pobject = (lunatik_object_t **)lua_touserdata(L, ix);
-	luaL_argcheck(L, pobject && lunatik_isobject(L, ix, *pobject), ix, "invalid object");
-	return pobject;
-}
-EXPORT_SYMBOL(lunatik_checkpobject);
 
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {

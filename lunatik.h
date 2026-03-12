@@ -206,7 +206,6 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared);
 lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared);
-lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
 int lunatik_closeobject(lua_State *L);
@@ -267,11 +266,23 @@ static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)
 	return NULL;
 }
 
-static inline lunatik_object_t *lunatik_testobject(lua_State *L, int ix)
+static inline bool lunatik_isobject(lua_State *L, int ix, lunatik_object_t *object)
 {
-	lunatik_object_t **pobject;
 	lunatik_class_t *class = lunatik_getclass(L, ix);
-	return class != NULL && (pobject = luaL_testudata(L, ix, class->name)) != NULL ? *pobject : NULL;
+	return class && object && object->class == class;
+}
+
+static inline lunatik_object_t **lunatik_testobject(lua_State *L, int ix)
+{
+	lunatik_object_t **pobject = (lunatik_object_t **)lua_touserdata(L, ix);
+	return (pobject && lunatik_isobject(L, ix, *pobject)) ? pobject : NULL;
+}
+
+static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
+{
+	lunatik_object_t **pobject = lunatik_testobject(L, ix);
+	luaL_argcheck(L, pobject, ix, "invalid object");
+	return pobject;
 }
 
 static inline void lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
