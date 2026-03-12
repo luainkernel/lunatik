@@ -129,7 +129,7 @@ static const lunatik_class_t luacompletion_class = {
 */
 static int luacompletion_new(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_newobject(L, &luacompletion_class, sizeof(struct completion), false);
+	lunatik_object_t *object = lunatik_newobject(L, &luacompletion_class, sizeof(struct completion), false, false);
 	struct completion *completion = (struct completion *)object->private;
 
 	init_completion(completion);

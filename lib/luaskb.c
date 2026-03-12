@@ -216,7 +216,7 @@ static const lunatik_class_t luaskb_class = {
 	.methods = luaskb_mt,
 	.release = luaskb_release,
 	.sleep   = false,
-	.shared  = true,
+	.shared = true,
 };
 
 /***
@@ -228,7 +228,7 @@ static const lunatik_class_t luaskb_class = {
 static int luaskb_copy(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), false);
+	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), false, false);
 	luaskb_t *copy = (luaskb_t *)object->private;
 	copy->skb = lunatik_checknull(L, skb_copy(lskb->skb, GFP_ATOMIC));
 	return 1;
@@ -237,7 +237,7 @@ static int luaskb_copy(lua_State *L)
 lunatik_object_t *luaskb_new(lua_State *L)
 {
 	lunatik_require(L, "skb");
-	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), false);
+	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), false, false);
 	luaskb_t *lskb = (luaskb_t *)object->private;
 	lskb->data = luadata_new(L, false);
 	lunatik_getobject(lskb->data);

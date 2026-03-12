@@ -16,18 +16,14 @@
 	(reg)->func == lunatik_deleteobject || \
 	(reg)->func == lunatik_closeobject)
 
-#define lunatik_issharable(class, shared) 	(!(shared) || ((class)->shared))
-
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared)
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool monitor, bool clone)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
 	lunatik_checkclass(L, class);
-	if (!lunatik_issharable(class, shared))
-		luaL_error(L, LUNATIK_ERR_SHARED, class->name);
-	lunatik_setobject(object, class, class->sleep, shared);
-	lunatik_setclass(L, class, shared);
+	lunatik_setobject(object, class, class->sleep, monitor, clone);
+	lunatik_setclass(L, class, monitor);
 
 	object->private = class->pointer ? NULL : lunatik_checkzalloc(L, size);
 
@@ -36,19 +32,15 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 }
 EXPORT_SYMBOL(lunatik_newobject);
 
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared)
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool monitor, bool clone)
 {
 	gfp_t gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_object_t *object = (lunatik_object_t *)kmalloc(sizeof(lunatik_object_t), gfp);
 
-	if (!lunatik_issharable(class, shared)) {
-		pr_err(LUNATIK_ERR_SHARED, class->name);
-		return ERR_PTR(-EINVAL);
-	}
 	if (object == NULL)
 		return NULL;
 
-	lunatik_setobject(object, class, sleep, shared);
+	lunatik_setobject(object, class, sleep, monitor, clone);
 	if ((object->private = kzalloc(size, gfp)) == NULL) {
 		lunatik_putobject(object);
 		return NULL;
@@ -62,14 +54,14 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {
 	const lunatik_class_t *class = object->class;
 
-	if (!class->shared)
-		luaL_error(L, "cannot clone non-shared class ('%s')", class->name);
+	if (!object->clone)
+		luaL_error(L, "cannot clone non-clonable object ('%s')", class->name);
 
 	lunatik_require(L, class->name);
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 
 	lunatik_checkclass(L, class);
-	lunatik_setclass(L, class, object->shared);
+	lunatik_setclass(L, class, object->monitor);
 	*pobject = object;
 }
 EXPORT_SYMBOL(lunatik_cloneobject);

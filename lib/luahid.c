@@ -285,7 +285,7 @@ static int luahid_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
 
-	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), true);
+	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), true, true);
 	luahid_t *hid = (luahid_t *)object->private;
 	struct hid_driver *driver = &hid->driver;
 	driver->name = lunatik_checkalloc(L, NAME_MAX);

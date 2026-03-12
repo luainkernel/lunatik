@@ -695,7 +695,7 @@ static const lunatik_class_t luasocket_class = {
 	.pointer = true,
 };
 
-#define luasocket_newsocket(L)		(lunatik_newobject((L), &luasocket_class, 0, true))
+#define luasocket_newsocket(L)		(lunatik_newobject((L), &luasocket_class, 0, true, true))
 #define luasocket_psocket(object)	((struct socket **)&object->private)
 
 /***

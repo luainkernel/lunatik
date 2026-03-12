@@ -91,14 +91,15 @@ typedef struct lunatik_object_s {
 	};
 	bool sleep;
 	gfp_t gfp;
-	bool shared;
+	bool monitor;
+	bool clone;
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
-	return unlikely(object->shared) ? (object->sleep ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin)) : 1;
+	return unlikely(object->monitor) ? (object->sleep ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin)) : 1;
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
@@ -183,9 +184,9 @@ static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class
 		luaL_error(L, "cannot use '%s' class on non-sleepable runtime", class->name);
 }
 
-static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool shared)
+static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool monitor)
 {
-	lua_pushfstring(L, shared ? "_%s" : "%s", class->name);
+	lua_pushfstring(L, monitor ? "_%s" : "%s", class->name);
 	if (lua_rawget(L, LUA_REGISTRYINDEX) == LUA_TNIL)
 		luaL_error(L, "metatable not found (%s)", lua_tostring(L, -1));
 	lua_setmetatable(L, -2);
@@ -193,19 +194,20 @@ static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, 
 	lua_setiuservalue(L, -2, 1); /* pop class */
 }
 
-static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep, bool shared)
+static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep, bool monitor, bool clone)
 {
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
 	object->sleep = sleep;
-	object->shared = shared;
+	object->monitor = monitor;
+	object->clone = clone;
 	object->gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
 	lunatik_newlock(object);
 }
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared);
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared);
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool monitor, bool clone);
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool monitor, bool clone);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
 int lunatik_closeobject(lua_State *L);
@@ -213,7 +215,6 @@ int lunatik_deleteobject(lua_State *L);
 void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 
 #define LUNATIK_ERR_NULLPTR	"null-pointer dereference"
-#define LUNATIK_ERR_SHARED 	"cannot create shared object from non-shared class '%s'"
 
 #define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
 #define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_NULLPTR)
@@ -307,7 +308,7 @@ int luaopen_##libname(lua_State *L)						\
 	luaL_newlib(L, funcs);							\
 	if (cls) {								\
 		lunatik_checkclass(L, cls);					\
-		if (cls->shared)							\
+		if (cls->shared)						\
 			lunatik_newclass(L, cls, true);			\
 		lunatik_newclass(L, cls, false);			\
 	}									\
