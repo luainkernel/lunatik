@@ -63,18 +63,32 @@ local function status_modules()
 	end
 end
 
-local commands = {
-	load   = load_modules,
-	unload = unload_modules,
-	reload = reload_modules,
-	status = status_modules,
-}
-
 local function ensure_loaded()
 	if not probe() then
 		load_modules()
 	end
 end
+
+local tests_path = "/usr/local/share/lunatik/tests"
+
+local function test_modules()
+	ensure_loaded()
+	local suite  = arg[2]
+	local target = suite and (tests_path .. "/" .. suite .. "/run.sh")
+	                      or (tests_path .. "/run.sh")
+	if not os.execute("[ -f " .. target .. " ]") then
+		error("tests not installed; run: sudo make tests_install")
+	end
+	os.execute("bash " .. target)
+end
+
+local commands = {
+	load   = load_modules,
+	unload = unload_modules,
+	reload = reload_modules,
+	status = status_modules,
+	test   = test_modules,
+}
 
 local function readline_reader()
 	local rl = require("readline")
@@ -138,7 +152,7 @@ if #arg >= 1 then
 	local script = arg[2]
 	local tokens = {run = true, spawn = true, stop = true, list = true}
 	if not tokens[token] then
-		print("usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]")
+		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>]")
 		os.exit(false)
 	end
 	ensure_loaded()

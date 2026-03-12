@@ -86,18 +86,29 @@ Lunatik 4.1  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 ### lunatik
 
 ```Shell
-usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]
+usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>]
 ```
 
 * `load`: load Lunatik kernel modules
 * `unload`: unload Lunatik kernel modules
 * `reload`: reload Lunatik kernel modules
 * `status`: show which Lunatik kernel modules are currently loaded
+* `test [suite]`: run installed test suites (see [Testing](#testing))
 * `list`: show which runtime environments are currently running
 * `run`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
 * `stop`: stop the runtime environment created to run the script `<script>`
 * `default`: start a _REPL (Read–Eval–Print Loop)_
+
+### Testing
+
+Install and run the test suites:
+
+```sh
+sudo make tests_install
+sudo lunatik test           # run all suites
+sudo lunatik test thread    # run a specific suite (monitor, thread, runtime)
+```
 
 ## Lua Version
 

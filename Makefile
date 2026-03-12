@@ -18,6 +18,7 @@ LUA_PATH ?= $(shell $(LUA) -e 'print(package.path:match("([^;]*)/%?%.lua;"))')
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
+LUNATIK_TESTS_INSTALL_PATH = /usr/local/share/lunatik/tests
 MOONTASTIK_RELEASE ?= v0.1c
 LUA_API = lua/lua.h lua/lauxlib.h lua/lualib.h
 RM = rm -f
@@ -124,20 +125,26 @@ examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
 
 tests_install:
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}
+	${INSTALL} -m 0755 tests/run.sh ${LUNATIK_TESTS_INSTALL_PATH}
+	${INSTALL} -m 0644 tests/lib.sh ${LUNATIK_TESTS_INSTALL_PATH}
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
 	${INSTALL} -m 0644 tests/rcumap_sync/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/crypto
 	${INSTALL} -m 0644 tests/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/tests/crypto
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/monitor
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/monitor
+	${INSTALL} -m 0755 tests/monitor/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/monitor
 	${INSTALL} -m 0644 tests/monitor/*.lua ${SCRIPTS_INSTALL_PATH}/tests/monitor
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/thread
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/thread
+	${INSTALL} -m 0755 tests/thread/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/thread
 	${INSTALL} -m 0644 tests/thread/*.lua ${SCRIPTS_INSTALL_PATH}/tests/thread
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/runtime
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/runtime
+	${INSTALL} -m 0755 tests/runtime/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/runtime
 	${INSTALL} -m 0644 tests/runtime/*.lua ${SCRIPTS_INSTALL_PATH}/tests/runtime
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
+	${RM} -r ${LUNATIK_TESTS_INSTALL_PATH}
 
 modules_install:
 	${MKDIR} ${MODULES_INSTALL_PATH}/lunatik
