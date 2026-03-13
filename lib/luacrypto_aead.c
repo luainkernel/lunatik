@@ -230,9 +230,7 @@ static const lunatik_class_t luacrypto_aead_class = {
 	.name = "crypto_aead",
 	.methods = luacrypto_aead_mt,
 	.release = luacrypto_aead_release,
-	.sleep = true,
-	.shared = true,
-	.pointer = true,
+	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
 };
 
 /*** Creates a new AEAD object.

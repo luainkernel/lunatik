@@ -16,31 +16,33 @@
 	(reg)->func == lunatik_deleteobject || \
 	(reg)->func == lunatik_closeobject)
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool monitor, bool clone)
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt)
 {
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
+	/* SOFTIRQ runtime requires a SOFTIRQ class */
 	lunatik_checkclass(L, class);
-	lunatik_setobject(object, class, class->sleep, monitor, clone);
-	lunatik_setclass(L, class, monitor);
 
-	object->private = class->pointer ? NULL : lunatik_checkzalloc(L, size);
+	lunatik_setobject(object, class, opt);
+	lunatik_setclass(L, class, lunatik_ismonitor(object->opt));
+
+	object->private = lunatik_isexternal(class->opt) ? NULL : lunatik_checkzalloc(L, size);
 
 	*pobject = object;
 	return object;
 }
 EXPORT_SYMBOL(lunatik_newobject);
 
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool monitor, bool clone)
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, lunatik_opt_t opt)
 {
-	gfp_t gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
-	lunatik_object_t *object = (lunatik_object_t *)kmalloc(sizeof(lunatik_object_t), gfp);
+	gfp_t gfp = lunatik_issoftirq(opt | class->opt) ? GFP_ATOMIC : GFP_KERNEL;
+	lunatik_object_t *object = (lunatik_object_t *)kzalloc(sizeof(lunatik_object_t), gfp);
 
 	if (object == NULL)
 		return NULL;
 
-	lunatik_setobject(object, class, sleep, monitor, clone);
+	lunatik_setobject(object, class, opt);
 	if ((object->private = kzalloc(size, gfp)) == NULL) {
 		lunatik_putobject(object);
 		return NULL;
@@ -54,14 +56,14 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 {
 	const lunatik_class_t *class = object->class;
 
-	if (!object->clone)
-		luaL_error(L, "cannot clone non-clonable object ('%s')", class->name);
+	if (lunatik_issingle(object->opt))
+		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_SINGLE);
 
 	lunatik_require(L, class->name);
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 
 	lunatik_checkclass(L, class);
-	lunatik_setclass(L, class, object->monitor);
+	lunatik_setclass(L, class, lunatik_ismonitor(object->opt));
 	*pobject = object;
 }
 EXPORT_SYMBOL(lunatik_cloneobject);
@@ -72,7 +74,7 @@ static inline void lunatik_releaseprivate(const lunatik_class_t *class, void *pr
 
 	if (release)
 		release(private);
-	if (!class->pointer)
+	if (!lunatik_isexternal(class->opt))
 		lunatik_free(private);
 }
 

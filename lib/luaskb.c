@@ -102,7 +102,7 @@ static int luaskb_data(lua_State *L)
 	if (data)
 		lunatik_getregistry(L, data); /* push data */
 	else /* copy: allocate on demand; release() has no lua_State to unregister */
-		data = luadata_new(L, false); /* push data */
+		data = luadata_new(L, LUNATIK_OPT_SINGLE); /* push data */
 	luadata_reset(data, ptr, size, LUADATA_OPT_NONE);
 	return 1;
 }
@@ -215,8 +215,7 @@ static const lunatik_class_t luaskb_class = {
 	.name    = "skb",
 	.methods = luaskb_mt,
 	.release = luaskb_release,
-	.sleep   = false,
-	.shared = true,
+	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
 /***
@@ -228,7 +227,7 @@ static const lunatik_class_t luaskb_class = {
 static int luaskb_copy(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), false, false);
+	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *copy = (luaskb_t *)object->private;
 	copy->skb = lunatik_checknull(L, skb_copy(lskb->skb, GFP_ATOMIC));
 	return 1;
@@ -237,9 +236,9 @@ static int luaskb_copy(lua_State *L)
 lunatik_object_t *luaskb_new(lua_State *L)
 {
 	lunatik_require(L, "skb");
-	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), false, false);
+	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *lskb = (luaskb_t *)object->private;
-	lskb->data = luadata_new(L, false);
+	lskb->data = luadata_new(L, LUNATIK_OPT_SINGLE);
 	lunatik_getobject(lskb->data);
 	lunatik_register(L, -1, lskb->data);
 	lua_pop(L, 1);

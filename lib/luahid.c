@@ -72,8 +72,7 @@ static const lunatik_class_t luahid_class = {
 	.name = "hid",
 	.methods = luahid_mt,
 	.release = luahid_release,
-	.sleep = false,
-	.shared = true,
+	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
 static const struct hid_device_id *luahid_setidtable(lua_State *L, int idx)
@@ -285,7 +284,7 @@ static int luahid_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
 
-	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), true, true);
+	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), LUNATIK_OPT_NONE);
 	luahid_t *hid = (luahid_t *)object->private;
 	struct hid_driver *driver = &hid->driver;
 	driver->name = lunatik_checkalloc(L, NAME_MAX);
@@ -299,7 +298,7 @@ static int luahid_register(lua_State *L)
 	driver->raw_event = luahid_raw_event;
 
 	lunatik_setruntime(L, hid, hid);
-	luadata_attach(L, hid, data, false);
+	luadata_attach(L, hid, data, LUNATIK_OPT_SINGLE);
 	lunatik_getobject(hid->runtime);
 	lunatik_registerobject(L, 1, object);
 

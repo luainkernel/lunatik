@@ -17,9 +17,21 @@
 
 #define LUNATIK_VERSION	"Lunatik 4.1"
 
+typedef u8 __bitwise lunatik_opt_t;
+#define LUNATIK_OPT_SOFTIRQ	((__force lunatik_opt_t)(1U << 0))
+#define LUNATIK_OPT_MONITOR	((__force lunatik_opt_t)(1U << 1))
+#define LUNATIK_OPT_SINGLE	((__force lunatik_opt_t)(1U << 2))
+#define LUNATIK_OPT_EXTERNAL	((__force lunatik_opt_t)(1U << 3))
+#define LUNATIK_OPT_NONE	((__force lunatik_opt_t)0)
+
+#define lunatik_issoftirq(opt)		((opt) & LUNATIK_OPT_SOFTIRQ)
+#define lunatik_ismonitor(opt)		((opt) & LUNATIK_OPT_MONITOR)
+#define lunatik_issingle(opt)		((opt) & LUNATIK_OPT_SINGLE)
+#define lunatik_isexternal(opt)		((opt) & LUNATIK_OPT_EXTERNAL)
+
 #define lunatik_locker(o, mutex_op, spin_op)	\
 do {						\
-	if ((o)->sleep)				\
+	if (!lunatik_issoftirq((o)->opt))	\
 		mutex_op(&(o)->mutex);		\
 	else					\
 		spin_op(&(o)->spin);		\
@@ -32,7 +44,7 @@ do {						\
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 
-#define lunatik_cannotsleep(L, s)	((s) && !lunatik_toruntime(L)->sleep)
+#define lunatik_cannotsleep(L, s)	((s) && lunatik_issoftirq(lunatik_toruntime(L)->opt))
 #define lunatik_getstate(runtime)	((lua_State *)runtime->private)
 
 static inline bool lunatik_isready(lua_State *L)
@@ -76,9 +88,7 @@ typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
 	void (*release)(void *);
-	bool sleep;
-	bool shared;
-	bool pointer;
+	lunatik_opt_t opt;
 } lunatik_class_t;
 
 typedef struct lunatik_object_s {
@@ -89,20 +99,19 @@ typedef struct lunatik_object_s {
 		struct mutex mutex;
 		spinlock_t spin;
 	};
-	bool sleep;
+	lunatik_opt_t opt;
 	gfp_t gfp;
-	bool monitor;
-	bool clone;
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
-	return unlikely(object->monitor) ? (object->sleep ? mutex_trylock(&object->mutex) : spin_trylock(&object->spin)) : 1;
+	return unlikely(lunatik_ismonitor(object->opt)) ?
+		(lunatik_issoftirq(object->opt) ? spin_trylock(&object->spin) : mutex_trylock(&object->mutex)) : 1;
 }
 
-int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
+int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);
 int lunatik_stop(lunatik_object_t *runtime);
 
 static inline int lunatik_nop(lua_State *L)
@@ -168,53 +177,57 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 			lua_typename(L, type), lua_typename(L, _type));
 }
 
-static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, bool sleep)
+#define LUNATIK_ERR_NULLPTR	"null pointer dereference"
+#define LUNATIK_ERR_SINGLE	"cannot share SINGLE object"
+#define LUNATIK_ERR_METATABLE	"metatable not found"
+#define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
+#define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
+
+static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt)
 {
 	lunatik_object_t *runtime = lunatik_toruntime(L);
-	if (runtime->sleep != sleep)
-		luaL_error(L, "cannot use %ssleepable runtime in this context", runtime->sleep ? "" : "non-");
+	if (lunatik_issoftirq(runtime->opt) != lunatik_issoftirq(opt))
+		luaL_error(L, LUNATIK_ERR_RUNTIME);
 	return runtime;
 }
 
-#define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.sleep))
+#define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.opt))
+#define lunatik_monitormt(class, monitor)	((monitor) ? (void *)&(class)->opt : (void *)(class))
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
-	if (lunatik_cannotsleep(L, class->sleep))
-		luaL_error(L, "cannot use '%s' class on non-sleepable runtime", class->name);
+	if (lunatik_cannotsleep(L, !lunatik_issoftirq(class->opt)))
+		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_CONTEXT);
 }
 
 static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool monitor)
 {
-	lua_pushlightuserdata(L, monitor ? (void *)&class->shared : (void *)class);
+	lua_pushlightuserdata(L, lunatik_monitormt(class, monitor));
 	if (lua_rawget(L, LUA_REGISTRYINDEX) == LUA_TNIL)
-		luaL_error(L, "metatable not found (%s)", class->name);
+		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_METATABLE);
 	lua_setmetatable(L, -2);
 	lua_pushlightuserdata(L, (void *)class);
 	lua_setiuservalue(L, -2, 1); /* pop class */
 }
 
-static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, bool sleep, bool monitor, bool clone)
+static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, lunatik_opt_t opt)
 {
+	lunatik_opt_t inherited = opt | class->opt;
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
-	object->sleep = sleep;
-	object->monitor = monitor;
-	object->clone = clone;
-	object->gfp = sleep ? GFP_KERNEL : GFP_ATOMIC;
+	object->opt = lunatik_issingle(opt) ? inherited & ~LUNATIK_OPT_MONITOR : inherited;
+	object->gfp = lunatik_issoftirq(object->opt) ? GFP_ATOMIC : GFP_KERNEL;
 	lunatik_newlock(object);
 }
 
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool monitor, bool clone);
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool monitor, bool clone);
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
 int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
 void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
-
-#define LUNATIK_ERR_NULLPTR	"null-pointer dereference"
 
 #define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
 #define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_NULLPTR)
@@ -245,7 +258,7 @@ static inline bool lunatik_hasindex(lua_State *L, int index)
 
 static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, bool monitored)
 {
-	lua_pushlightuserdata(L, monitored ? (void *)&class->shared : (void *)class);
+	lua_pushlightuserdata(L, lunatik_monitormt(class, monitored));
 	lua_newtable(L); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
 	if (monitored)
@@ -308,9 +321,9 @@ int luaopen_##libname(lua_State *L)						\
 	luaL_newlib(L, funcs);							\
 	if (cls) {								\
 		lunatik_checkclass(L, cls);					\
-		if (cls->shared)						\
-			lunatik_newclass(L, cls, true);			\
-		lunatik_newclass(L, cls, false);			\
+		if (lunatik_ismonitor(cls->opt))				\
+			lunatik_newclass(L, cls, true);				\
+		lunatik_newclass(L, cls, false);				\
 	}									\
 	if (nss)								\
 		lunatik_newnamespaces(L, nss);					\

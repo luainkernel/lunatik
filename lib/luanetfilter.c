@@ -117,7 +117,7 @@ static const lunatik_class_t luanetfilter_class = {
 	.name = "netfilter",
 	.methods = luanetfilter_mt,
 	.release = luanetfilter_release,
-	.sleep = false,
+	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
 /***
@@ -130,7 +130,7 @@ static const lunatik_class_t luanetfilter_class = {
 static int luanetfilter_register(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class, sizeof(luanetfilter_t), false, false);
+	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class, sizeof(luanetfilter_t), LUNATIK_OPT_NONE);
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
 	nf->runtime = NULL;
 

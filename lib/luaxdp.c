@@ -211,11 +211,11 @@ static int luaxdp_detach(lua_State *L)
 */
 static int luaxdp_attach(lua_State *L)
 {
-	lunatik_checkruntime(L, false);
+	lunatik_checkruntime(L, LUNATIK_OPT_SOFTIRQ);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	luadata_new(L, false); /* buffer */
-	luadata_new(L, false); /* argument */
+	luadata_new(L, LUNATIK_OPT_SINGLE); /* buffer */
+	luadata_new(L, LUNATIK_OPT_SINGLE); /* argument */
 
 	lua_pushcclosure(L, luaxdp_callback, 3);
 	lunatik_register(L, -1, luaxdp_callback);
