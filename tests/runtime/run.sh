@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in "$DIR"/refcnt_leak.sh "$DIR"/resume_shared.sh "$DIR"/resume_mailbox.sh; do
+for t in "$DIR"/refcnt_leak.sh "$DIR"/resume_shared.sh "$DIR"/resume_mailbox.sh "$DIR"/rcu_shared.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	SEP=$'\n'
 	bash "$t" || FAILED=$((FAILED+1))
