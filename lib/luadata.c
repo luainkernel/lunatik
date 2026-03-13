@@ -342,7 +342,10 @@ static inline void luadata_set(luadata_t *data, void *ptr, size_t size, uint8_t 
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), LUNATIK_OPT_NONE);
+	static const char *const modes[] = {"shared", "single", NULL};
+	int mode = luaL_checkoption(L, 2, "shared", modes);
+	lunatik_opt_t opt = mode == 1 ? LUNATIK_OPT_SINGLE : LUNATIK_OPT_MONITOR;
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), opt);
 	luadata_t *data = (luadata_t *)object->private;
 
 	luadata_set(data, lunatik_checkalloc(L, size), size, LUADATA_OPT_FREE);
