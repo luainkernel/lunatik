@@ -32,6 +32,7 @@
 #endif
 
 #include <lunatik.h>
+#include "luadata.h"
 
 #define luasocket_msgaddr(msg, addr, size)	\
 do {						\
@@ -117,7 +118,7 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *);
 * address family) specify the destination.
 *
 * @function send
-* @tparam string message The string message to send.
+* @tparam string|data message The message to send; a data object avoids string allocation.
 * @tparam[opt] integer|string addr The destination address.
 *
 * - For `AF_INET` (IPv4) sockets: An integer representing the IPv4 address (e.g., from `net.aton()`).
@@ -146,7 +147,14 @@ static int luasocket_send(lua_State *L)
 
 	luasocket_setmsg(msg);
 
-	vec.iov_base = (void *)luaL_checklstring(L, 2, &len);
+	if (lua_isuserdata(L, 2)) {
+		luadata_t *data = lunatik_checkclass(L, 2, "data", LUNATIK_OPT_SINGLE)->private;
+		lunatik_argchecknull(L, data->ptr, 2);
+		vec.iov_base = data->ptr;
+		len = data->size;
+	}
+	else
+		vec.iov_base = (void *)luaL_checklstring(L, 2, &len);
 	vec.iov_len = len;
 
 	if (unlikely(nargs >= 3)) {
@@ -163,32 +171,21 @@ static int luasocket_send(lua_State *L)
 * Receives a message from the socket.
 *
 * @function receive
-* @tparam integer length The maximum number of bytes to receive.
-* @tparam[opt=0] integer flags Optional message flags (e.g., `socket.msg.PEEK`).
-*   See the `socket.msg` table for available flags. These can be OR'd together.
-* @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
-*   and port (for `AF_INET`). This is typically used with connectionless sockets (`SOCK_DGRAM`).
-* @treturn string The received message (as a string of bytes).
-* @treturn[opt] integer|string addr If `from` is true, the sender's address.
-*   - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
-*   - For other families: A packed string representing the sender's address.
-* @treturn[opt] integer port If `from` is true and the family is `AF_INET`, the sender's port number.
+* @tparam integer|data buffer Maximum bytes to receive, or a data object to receive into.
+* @tparam[opt=0] integer flags Message flags (e.g., `socket.msg.PEEK`).
+* @tparam[opt=false] boolean from If `true`, also returns sender address and port (`AF_INET`).
+* @treturn string|integer Received bytes as a string, or byte count when a data object is passed.
+* @treturn[opt] integer|string addr Sender address if `from` is true.
+* @treturn[opt] integer port Sender port if `from` is true and family is `AF_INET`.
 * @raise Error if the receive operation fails.
-* @usage
-*   -- For a connected TCP socket:
-*   local data = tcp_conn_sock:receive(1024)
-*   if data then print("Received:", data) end
-*
-*   -- For a UDP socket, getting sender info:
-*   local data, sender_ip_int, sender_port = udp_sock:receive(1500, 0, true)
-*   if data then print("Received from " .. net.ntoa(sender_ip_int) .. ":" .. sender_port .. ": " .. data) end
 * @see socket.msg
 * @see net.ntoa
 */
 static int luasocket_receive(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
-	size_t len = (size_t)luaL_checkinteger(L, 2);
+	int isdata = lua_isuserdata(L, 2);
+	size_t len;
 	luaL_Buffer B;
 	struct kvec vec;
 	struct msghdr msg;
@@ -199,14 +196,23 @@ static int luasocket_receive(lua_State *L)
 
 	luasocket_setmsg(msg);
 
-	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
+	if (isdata) {
+		luadata_t *data = lunatik_checkclass(L, 2, "data", LUNATIK_OPT_SINGLE)->private;
+		lunatik_argchecknull(L, data->ptr, 2);
+		vec.iov_base = data->ptr;
+		len = data->size;
+	}
+	else {
+		len = (size_t)luaL_checkinteger(L, 2);
+		vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
+	}
 	vec.iov_len = len;
 
 	if (unlikely(from))
 		luasocket_msgaddr(msg, addr, sizeof(addr));
 
 	lunatik_tryret(L, ret, kernel_recvmsg, socket, &msg, &vec, 1, len, flags);
-	luaL_pushresultsize(&B, ret);
+	isdata ? lua_pushinteger(L, ret) : luaL_pushresultsize(&B, ret);
 
 	return unlikely(from) ? luasocket_pushaddr(L, (struct sockaddr_storage *)msg.msg_name) + 1 : 1;
 }
