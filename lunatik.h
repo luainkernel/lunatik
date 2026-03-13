@@ -186,9 +186,9 @@ static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class
 
 static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool monitor)
 {
-	lua_pushfstring(L, monitor ? "_%s" : "%s", class->name);
+	lua_pushlightuserdata(L, monitor ? (void *)&class->shared : (void *)class);
 	if (lua_rawget(L, LUA_REGISTRYINDEX) == LUA_TNIL)
-		luaL_error(L, "metatable not found (%s)", lua_tostring(L, -1));
+		luaL_error(L, "metatable not found (%s)", class->name);
 	lua_setmetatable(L, -2);
 	lua_pushlightuserdata(L, (void *)class);
 	lua_setiuservalue(L, -2, 1); /* pop class */
@@ -245,8 +245,8 @@ static inline bool lunatik_hasindex(lua_State *L, int index)
 
 static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, bool monitored)
 {
-	lua_pushfstring(L, monitored ? "_%s" : "%s", class->name);
-	luaL_newmetatable(L, lua_tostring(L, -1)); /* mt = {} */
+	lua_pushlightuserdata(L, monitored ? (void *)&class->shared : (void *)class);
+	lua_newtable(L); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
 	if (monitored)
 		lunatik_monitorobject(L, class);
@@ -254,7 +254,7 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, 
 		lua_pushvalue(L, -1);  /* push mt */
 		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
 	}
-	lua_pop(L, 2);  /* pop mt, class name */
+	lua_rawset(L, LUA_REGISTRYINDEX); /* registry[key] = mt */
 }
 
 static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)
