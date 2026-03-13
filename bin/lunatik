@@ -151,7 +151,8 @@ if #arg >= 1 then
 	local token  = arg[1]
 	local script = arg[2]
 	local tokens = {run = true, spawn = true, stop = true, list = true}
-	if not tokens[token] then
+	local needs_script = {run = true, spawn = true, stop = true}
+	if not tokens[token] or (needs_script[token] and not script) then
 		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>]")
 		os.exit(false)
 	end
