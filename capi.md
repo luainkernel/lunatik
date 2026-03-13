@@ -19,11 +19,11 @@ typedef struct lunatik_class_s {
 ```
 Describes a Lunatik object class.
 
-- `name`: class name; used to look up metatables in the registry and as the argument to `require`.
+- `name`: class name; used as the argument to `require` and to identify the class.
 - `methods`: `NULL`-terminated array of Lua methods registered in the metatable.
 - `release`: called when the object's reference counter reaches zero; may be `NULL`.
 - `sleep`: if `true`, objects use a mutex and `GFP_KERNEL`; if `false`, a spinlock and `GFP_ATOMIC`.
-- `shared`: if `true`, allows the class to be used with `lunatik_newobject(..., true)` and `lunatik_cloneobject`.
+- `shared`: if `true`, registers a monitored metatable that wraps method calls with a lock, enabling safe concurrent access from multiple runtimes. Required for classes whose instances may be created with `monitor=true` or `clone=true`.
 - `pointer`: if `true`, `object->private` holds an external pointer — Lunatik will not free it on release.
 
 ### lunatik\_reg\_t
@@ -186,30 +186,28 @@ initialization — for example, spawning a kernel thread from a `runner.spawn` c
 
 ### lunatik\_newobject
 ```C
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool shared);
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool monitor, bool clone);
 ```
 _lunatik\_newobject()_ allocates a new Lunatik object and pushes a userdata
 containing a pointer to the object onto the Lua stack.
-If `shared` is _true_, the object will use the monitored metatable for safe
-access across Lunatik runtimes. This requires `class->shared = true`; otherwise, it raises a
-Lua error.
-- If `class->sleep` is _true_, it uses a mutex and `GFP_KERNEL`.
-- If `class->sleep` is _false_, it uses a spinlock and `GFP_ATOMIC`.
+- If `monitor` is _true_, method calls are wrapped with the class lock, enabling safe concurrent
+  access from multiple runtimes. Requires `class->monitor = true`.
+- If `clone` is _true_, the object may be shared across runtimes via RCU or `resume()`.
+- If `class->sleep` is _true_, it uses a mutex and `GFP_KERNEL`; otherwise a spinlock and `GFP_ATOMIC`.
 
 It allocates `size` bytes for the object's private data, unless `class->pointer` is _true_,
 in which case `object->private` is expected to be set by the caller.
 
 ### lunatik\_createobject
 ```C
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool shared);
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool monitor, bool clone);
 ```
 _lunatik\_createobject()_ creates a Lunatik object independently of any Lua
 state. This is intended for objects created in C that will be shared
 with Lua runtimes later via `lunatik_cloneobject`.
 
 It allocates memory with `GFP_KERNEL` if `sleep` is _true_, or `GFP_ATOMIC` otherwise.
-Returns a pointer to the `lunatik_object_t` on success, `NULL` if memory allocation fails,
-or `ERR_PTR(-EINVAL)` if the class is not sharable but `shared` is _true_.
+Returns a pointer to the `lunatik_object_t` on success, or `NULL` if memory allocation fails.
 
 ### lunatik\_cloneobject
 ```C
@@ -218,7 +216,7 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 _lunatik\_cloneobject()_ pushes `object` onto the Lua stack as a userdata with the correct
 metatable. It calls `lunatik_require(L, class->name)` internally to ensure the class
 metatable is registered even if the script never called `require` itself.
-The class must have `shared = true`.
+The object must have been created with `clone = true`; otherwise a Lua error is raised.
 
 Use together with `lunatik_createobject` for C-owned objects that must be passed to Lua:
 ```C
