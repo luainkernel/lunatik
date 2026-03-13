@@ -329,8 +329,7 @@ static const lunatik_class_t luadata_class = {
 	.name = "data",
 	.methods = luadata_mt,
 	.release = luadata_release,
-	.sleep = false,
-	.shared = true,
+	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_MONITOR,
 };
 
 static inline void luadata_set(luadata_t *data, void *ptr, size_t size, uint8_t opt)
@@ -343,7 +342,7 @@ static inline void luadata_set(luadata_t *data, void *ptr, size_t size, uint8_t 
 static int luadata_lnew(lua_State *L)
 {
 	size_t size = (size_t)luaL_checkinteger(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), true, true);
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), LUNATIK_OPT_NONE);
 	luadata_t *data = (luadata_t *)object->private;
 
 	luadata_set(data, lunatik_checkalloc(L, size), size, LUADATA_OPT_FREE);
@@ -352,10 +351,10 @@ static int luadata_lnew(lua_State *L)
 
 LUNATIK_NEWLIB(data, luadata_lib, &luadata_class, NULL);
 
-lunatik_object_t *luadata_new(lua_State *L, bool shared)
+lunatik_object_t *luadata_new(lua_State *L, lunatik_opt_t opt)
 {
 	lunatik_require(L, "data");
-	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), shared, shared);
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), opt);
 	return object;
 }
 EXPORT_SYMBOL(luadata_new);

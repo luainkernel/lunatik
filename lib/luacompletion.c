@@ -74,7 +74,7 @@ static int luacompletion_wait(lua_State *L)
 	unsigned long timeout_jiffies = msecs_to_jiffies((unsigned long)timeout);
 	long ret;
 
-	lunatik_checkruntime(L, true);
+	lunatik_checkruntime(L, LUNATIK_OPT_NONE);
 	ret = wait_for_completion_interruptible_timeout(completion, timeout_jiffies);
 	if (ret > 0) {
 		lua_pushboolean(L, true);
@@ -113,8 +113,7 @@ static const luaL_Reg luacompletion_mt[] = {
 static const lunatik_class_t luacompletion_class = {
 	.name = "completion",
 	.methods = luacompletion_mt,
-	.sleep = false,
-	.shared = true,
+	.opt = LUNATIK_OPT_SOFTIRQ,
 };
 
 /***
@@ -129,7 +128,7 @@ static const lunatik_class_t luacompletion_class = {
 */
 static int luacompletion_new(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_newobject(L, &luacompletion_class, sizeof(struct completion), false, false);
+	lunatik_object_t *object = lunatik_newobject(L, &luacompletion_class, sizeof(struct completion), LUNATIK_OPT_NONE);
 	struct completion *completion = (struct completion *)object->private;
 
 	init_completion(completion);

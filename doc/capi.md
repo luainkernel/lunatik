@@ -12,9 +12,7 @@ typedef struct lunatik_class_s {
 	const char     *name;
 	const luaL_Reg *methods;
 	void          (*release)(void *);
-	bool            sleep;
-	bool            shared;
-	bool            pointer;
+	lunatik_opt_t   opt;
 } lunatik_class_t;
 ```
 Describes a Lunatik object class.
@@ -22,9 +20,19 @@ Describes a Lunatik object class.
 - `name`: class name; used as the argument to `require` and to identify the class.
 - `methods`: `NULL`-terminated array of Lua methods registered in the metatable.
 - `release`: called when the object's reference counter reaches zero; may be `NULL`.
-- `sleep`: if `true`, objects use a mutex and `GFP_KERNEL`; if `false`, a spinlock and `GFP_ATOMIC`.
-- `shared`: if `true`, registers a monitored metatable that wraps method calls with a lock, enabling safe concurrent access from multiple runtimes. Required for classes whose instances may be created with `monitor=true` or `clone=true`.
-- `pointer`: if `true`, `object->private` holds an external pointer — Lunatik will not free it on release.
+- `opt`: bitmask of `LUNATIK_OPT_*` flags controlling class behaviour. Flags are inherited by
+  every instance via `object->opt = opt | class->opt` (see `lunatik_newobject`). Flags differ
+  in whether they act as **constraints** or **capabilities**:
+  - `LUNATIK_OPT_SOFTIRQ` *(constraint)*: all instances use a spinlock and `GFP_ATOMIC`; absence
+    means mutex and `GFP_KERNEL`. Because this flag is always inherited, a SOFTIRQ class can never
+    produce a non-SOFTIRQ instance.
+  - `LUNATIK_OPT_MONITOR` *(capability)*: the class supports a monitored metatable that wraps Lua
+    method calls with the object lock, enabling safe concurrent access from multiple runtimes.
+    Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`.
+  - `LUNATIK_OPT_SINGLE` *(constraint)*: all instances are private and non-shareable by default.
+    Like `SOFTIRQ`, this is always inherited and cannot be overridden per instance.
+  - `LUNATIK_OPT_EXTERNAL` *(constraint)*: `object->private` holds an external pointer — Lunatik
+    will not free it on release.
 
 ### lunatik\_reg\_t
 ```C
@@ -186,27 +194,35 @@ initialization — for example, spawning a kernel thread from a `runner.spawn` c
 
 ### lunatik\_newobject
 ```C
-lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, bool monitor, bool clone);
+lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
 ```
 _lunatik\_newobject()_ allocates a new Lunatik object and pushes a userdata
 containing a pointer to the object onto the Lua stack.
-- If `monitor` is _true_, method calls are wrapped with the class lock, enabling safe concurrent
-  access from multiple runtimes. Requires `class->monitor = true`.
-- If `clone` is _true_, the object may be shared across runtimes via RCU or `resume()`.
-- If `class->sleep` is _true_, it uses a mutex and `GFP_KERNEL`; otherwise a spinlock and `GFP_ATOMIC`.
 
-It allocates `size` bytes for the object's private data, unless `class->pointer` is _true_,
-in which case `object->private` is expected to be set by the caller.
+`object->opt` is computed as `opt | class->opt`: all class flags are inherited by the instance.
+`opt` may add flags on top (e.g. `LUNATIK_OPT_SOFTIRQ` for a non-sleepable runtime instance).
+
+- Pass `LUNATIK_OPT_MONITOR` to wrap method calls with the object lock, enabling safe concurrent
+  access from multiple runtimes.
+- Pass `LUNATIK_OPT_SINGLE` for a private, non-shareable instance. The object cannot be cloned or
+  passed to another runtime via `_ENV` or `resume`. `SINGLE` cancels `MONITOR` inheritance: a
+  `SINGLE` instance of a `MONITOR` class does **not** get monitor wrappers, since non-shared
+  objects do not need them.
+- Pass `LUNATIK_OPT_NONE` (`0`) to inherit only the class flags.
+
+It allocates `size` bytes for the object's private data, unless `LUNATIK_OPT_EXTERNAL` is set in
+`class->opt`, in which case `object->private` is expected to be set by the caller.
 
 ### lunatik\_createobject
 ```C
-lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, bool sleep, bool monitor, bool clone);
+lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
 ```
 _lunatik\_createobject()_ creates a Lunatik object independently of any Lua
 state. This is intended for objects created in C that will be shared
 with Lua runtimes later via `lunatik_cloneobject`.
 
-It allocates memory with `GFP_KERNEL` if `sleep` is _true_, or `GFP_ATOMIC` otherwise.
+Like `lunatik_newobject`, `object->opt` is computed as `opt | class->opt`.
+Sleep mode is determined by `LUNATIK_OPT_SOFTIRQ` in `object->opt`.
 Returns a pointer to the `lunatik_object_t` on success, or `NULL` if memory allocation fails.
 
 ### lunatik\_cloneobject
@@ -216,11 +232,11 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 _lunatik\_cloneobject()_ pushes `object` onto the Lua stack as a userdata with the correct
 metatable. It calls `lunatik_require(L, class->name)` internally to ensure the class
 metatable is registered even if the script never called `require` itself.
-The object must have been created with `clone = true`; otherwise a Lua error is raised.
+The object must not have `LUNATIK_OPT_SINGLE` set; otherwise a Lua error is raised.
 
 Use together with `lunatik_createobject` for C-owned objects that must be passed to Lua:
 ```C
-obj = lunatik_createobject(&luafoo_class, sizeof(foo_t), true, true);
+obj = lunatik_createobject(&luafoo_class, sizeof(foo_t), LUNATIK_OPT_MONITOR);
 lunatik_run(runtime, my_handler, ret, obj);
 
 /* inside my_handler: */

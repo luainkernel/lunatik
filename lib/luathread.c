@@ -162,11 +162,10 @@ static const luaL_Reg luathread_mt[] = {
 static const lunatik_class_t luathread_class = {
 	.name = "thread",
 	.methods = luathread_mt,
-	.sleep = true,
-	.shared = true,
+	.opt = LUNATIK_OPT_MONITOR,
 };
 
-#define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t), true, true))
+#define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t), LUNATIK_OPT_NONE))
 
 /***
 * Creates and starts a new kernel thread to run a Lua task.
@@ -183,7 +182,7 @@ static int luathread_run(lua_State *L)
 {
 	luaL_argcheck(L, lunatik_isready(L), 1, "not allowed during module load");
 	lunatik_object_t *runtime = lunatik_checkobject(L, 1);
-	luaL_argcheck(L, runtime->sleep, 1, "cannot use non-sleepable runtime in this context");
+	luaL_argcheck(L, !lunatik_issoftirq(runtime->opt), 1, "SOFTIRQ runtime cannot spawn threads");
 	const char *name = luaL_checkstring(L, 2);
 	lunatik_object_t *object = luathread_new(L);
 	luathread_t *thread = object->private;

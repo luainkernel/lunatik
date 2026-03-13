@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -43,12 +43,12 @@ static const lunatik_class_t luaskel_class = {
 	.name = "skel",
 	.methods = luaskel_mt,
 	.release = luaskel_release,
-	.sleep = false,
+	.opt = LUNATIK_OPT_MONITOR,
 };
 
 static int luaskel_new(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_newobject(L, &luaskel_class, sizeof(luaskel_t), false, false);
+	lunatik_object_t *object = lunatik_newobject(L, &luaskel_class, sizeof(luaskel_t), LUNATIK_OPT_NONE);
 	luaskel_t *skel = (luaskel_t *)object->private;
 	(void)skel; /* do nothing */
 	return 1; /* object */
@@ -68,5 +68,5 @@ static void __exit luaskel_exit(void)
 module_init(luaskel_init);
 module_exit(luaskel_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 

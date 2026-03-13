@@ -18,10 +18,10 @@ static int __init lunatik_run_init(void)
 {
 	int ret = 0;
 
-	if ((lunatik_env = luarcu_newtable(LUARCU_DEFAULT_SIZE, false)) == NULL)
+	if ((lunatik_env = luarcu_newtable(LUARCU_DEFAULT_SIZE, LUNATIK_OPT_NONE)) == NULL)
 		return -ENOMEM;
 
-	if ((ret = lunatik_runtime(&runtime, "driver", true)) < 0) {
+	if ((ret = lunatik_runtime(&runtime, "driver", LUNATIK_OPT_NONE)) < 0) {
 		pr_err("couldn't create driver runtime\n");
 		lunatik_putobject(lunatik_env);
 	}
