@@ -1,0 +1,108 @@
+name: PR Checklist Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  validate-checklist:
+    name: Validate PR Checklist
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Check checklist items are ticked
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+
+            // Each required checklist item — match the exact label text
+            const requiredItems = [
+              'I have **tested my patch**',
+              'I have **checked the code style**',
+              'I have disclosed whether **AI assistance was used**',
+            ];
+
+            const missing = [];
+
+            for (const item of requiredItems) {
+              // A ticked checkbox looks like: - [x] or - [X]
+              const tickedPattern = new RegExp(
+                `- \\[[xX]\\].*${item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+              );
+              if (!tickedPattern.test(body)) {
+                missing.push(`• ${item}`);
+              }
+            }
+
+            if (missing.length > 0) {
+              const msg = [
+                '## ❌ PR Checklist Incomplete',
+                '',
+                'Please tick **all** checklist items in the PR description before this can be reviewed.',
+                '',
+                'The following items are still unchecked:',
+                ...missing,
+                '',
+                '_Edit the PR description and mark each box with `[x]` once done._',
+              ].join('\n');
+
+              // Post or update a comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+              });
+
+              const botComment = comments.find(
+                (c) =>
+                  c.user.type === 'Bot' &&
+                  c.body.includes('PR Checklist Incomplete'),
+              );
+
+              if (botComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: msg,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  body: msg,
+                });
+              }
+
+              core.setFailed(
+                `PR checklist is incomplete. Missing items:\n${missing.join('\n')}`,
+              );
+            } else {
+              // If everything is checked, clean up any previous failure comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+              });
+
+              const botComment = comments.find(
+                (c) =>
+                  c.user.type === 'Bot' &&
+                  c.body.includes('PR Checklist Incomplete'),
+              );
+
+              if (botComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: '## ✅ PR Checklist Complete\n\nAll checklist items have been confirmed. Thank you!',
+                });
+              }
+
+              console.log('All checklist items are ticked. ✅');
+            }
