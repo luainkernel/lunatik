@@ -141,6 +141,11 @@ tests_install:
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/runtime
 	${INSTALL} -m 0755 tests/runtime/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/runtime
 	${INSTALL} -m 0644 tests/runtime/*.lua ${SCRIPTS_INSTALL_PATH}/tests/runtime
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix
+	${INSTALL} -m 0755 tests/socket/run.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
+	${INSTALL} -m 0755 tests/socket/unix/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
+	${INSTALL} -m 0644 tests/socket/unix/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
