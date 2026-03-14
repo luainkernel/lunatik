@@ -30,7 +30,7 @@ mark_dmesg
 
 lunatik run "$SCRIPT"
 
-check_dmesg || exit 1
+check_dmesg || { ktap_totals; exit 1; }
 ktap_pass "rcu.table() stored in _ENV and retrieved by another runtime"
 
 ktap_totals

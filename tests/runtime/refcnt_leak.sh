@@ -35,7 +35,7 @@ mark_dmesg
 # it is expected to fail — ignore the error
 lunatik run "$SCRIPT" false 2>/dev/null || true
 
-check_dmesg || exit 1
+check_dmesg || { ktap_totals; exit 1; }
 
 after=$(cat /sys/module/$MODULE/refcnt 2>/dev/null)
 [ "$before" = "$after" ] || fail "$MODULE refcnt leaked: $before -> $after (fix lunatik_newruntime error path)"
