@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -32,7 +32,7 @@ end
 -- Creates a new Lunatik runtime for the given script and registers it.
 -- Throws an error if a script with the same name is already running.
 -- @tparam string script The path or name of the Lua script to run. The ".lua" extension will be trimmed.
--- @param ... Additional arguments to pass to the script's main function.
+-- @tparam[opt] string context Execution context: `"process"` (default) or `"softirq"` (for netfilter/XDP hooks).
 -- @treturn table The created Lunatik runtime object.
 -- @raise error if the script is already running.
 function runner.run(script, ...)
@@ -50,7 +50,6 @@ end
 -- to execute the runtime. The thread is named based on the script's filename.
 -- The spawned script is expected to return a function, which will then be executed in the new thread.
 -- @tparam string script The path or name of the Lua script to spawn.
--- @param ... Additional arguments to pass to the script's main function.
 -- @treturn userdata The kernel thread object.
 function runner.spawn(script, ...)
 	local runtime = runner.run(script, ...)
@@ -91,8 +90,6 @@ function runner.list()
 	rcu.map(env.runtimes, function (script)
 		table.insert(list, script)
 	end)
-	-- The original code `table.concat(list, ', ')` correctly returns an empty string
-	-- if `list` is empty, so no change to the code logic is needed or made here.
 	return table.concat(list, ', ')
 end
 

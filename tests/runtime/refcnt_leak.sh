@@ -33,7 +33,7 @@ mark_dmesg
 
 # run the script in a non-sleepable runtime (required for netfilter hooks);
 # it is expected to fail — ignore the error
-lunatik run "$SCRIPT" false 2>/dev/null || true
+lunatik run "$SCRIPT" softirq 2>/dev/null || true
 
 check_dmesg || { ktap_totals; exit 1; }
 

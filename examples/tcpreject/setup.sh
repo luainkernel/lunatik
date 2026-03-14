@@ -53,7 +53,7 @@ nft add rule ip6 tcpreject forward \
 	ip6 daddr $DNS6 tcp dport 443 mark set $MARK
 
 # load the Lua hook
-lunatik run examples/tcpreject/nf_tcpreject false
+lunatik run examples/tcpreject/nf_tcpreject softirq
 
 echo "setup done"
 echo "test IPv4: ip netns exec $NETNS curl --connect-timeout 2 https://$DNS4"

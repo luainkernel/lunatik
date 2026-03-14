@@ -22,13 +22,7 @@ ktap_plan 1
 
 mark_dmesg
 
-output=$(lunatik run "$SCRIPT")
-if echo "$output" | grep -qE "\.lua:[0-9]+:"; then
-	ktap_fail "Lua error in script"
-	echo "# $output"
-	ktap_totals
-	exit 1
-fi
+run_script "$SCRIPT"
 
 check_dmesg || { ktap_totals; exit 1; }
 ktap_pass "opt guards: SINGLE rejected, MONITOR/NONE accepted"
