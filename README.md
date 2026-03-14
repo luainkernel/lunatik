@@ -95,7 +95,7 @@ usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>]
 * `status`: show which Lunatik kernel modules are currently loaded
 * `test [suite]`: run installed test suites (see [Testing](#testing))
 * `list`: show which runtime environments are currently running
-* `run`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`
+* `run [softirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in atomic context (netfilter, XDP)
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
 * `stop`: stop the runtime environment created to run the script `<script>`
 * `default`: start a _REPL (Read–Eval–Print Loop)_
@@ -320,7 +320,7 @@ sudo make btf_install                        # needed to export the 'bpf_luaxdp_
 sudo make examples_install                   # installs examples
 make ebpf                                    # builds the XDP/eBPF program
 sudo make ebpf_install                       # installs the XDP/eBPF program
-sudo lunatik run examples/filter/sni false   # runs the Lua kernel script
+sudo lunatik run examples/filter/sni softirq   # runs the Lua kernel script
 sudo xdp-loader load -m skb <ifname> https.o # loads the XDP/eBPF program
 ```
 
@@ -353,7 +353,7 @@ This script drops any outbound DNS packet with question matching the blacklist p
 
 ```
 sudo make examples_install              # installs examples
-sudo lunatik run examples/dnsblock/nf_dnsblock false	# runs the Lua kernel script
+sudo lunatik run examples/dnsblock/nf_dnsblock softirq	# runs the Lua kernel script
 ```
 
 ### dnsdoctor
@@ -372,7 +372,7 @@ examples/dnsdoctor/setup.sh             # sets up the environment
 dig lunatik.com
 
 # run the Lua kernel script
-sudo lunatik run examples/dnsdoctor/nf_dnsdoctor false
+sudo lunatik run examples/dnsdoctor/nf_dnsdoctor softirq
 
 # test the setup, a response with IP 10.1.2.3 should be returned
 dig lunatik.com
@@ -434,7 +434,7 @@ It supports gestures: swiping right locks the mouse, and swiping left unlocks it
 
 ```
 sudo make examples_install 			# installs examples
-sudo lunatik run examples/gesture false 	# runs gesture
+sudo lunatik run examples/gesture softirq 	# runs gesture
 # In QEMU window:
 # Drag right to lock the mouse
 # Drag left to unlock the mouse
@@ -450,7 +450,7 @@ It fixes the report descriptor for the device (`0x2717`:`0x5014`).
 
 ```
 sudo make examples_install 		# installs examples
-sudo lunatik run examples/xiaomi false 	# runs xiaomi driver
+sudo lunatik run examples/xiaomi softirq 	# runs xiaomi driver
 ```
 
 Then insert the Xiaomi Silent Mouse with bluetooth mode on and it should work properly.

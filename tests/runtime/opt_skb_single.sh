@@ -30,7 +30,8 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 
 mark_dmesg
 
-lunatik run "$SCRIPT" false
+run_script "$SCRIPT" softirq
+
 ping -c 1 -W 1 127.0.0.1 > /dev/null 2>&1 || true
 
 check_dmesg || { ktap_totals; exit 1; }

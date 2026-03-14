@@ -51,13 +51,7 @@ static inline void lunatik_setversion(lua_State *L)
 	(((f) == GFP_ATOMIC || (n) <= PAGE_SIZE) && (!is_vmalloc_addr(p) || (p) == NULL))
 
 /***
-* Represents a Lunatik runtime environment.
-* This is a userdata object returned by `lunatik.runtime()`. It encapsulates an
-* isolated Lua state running within the Linux kernel. Each runtime can be
-* configured as sleepable (allowing blocking operations, using `GFP_KERNEL`
-* for allocations and mutexes for synchronization) or non-sleepable/atomic
-* (prohibiting blocking operations, using `GFP_ATOMIC` for allocations and
-* spinlocks for synchronization).
+* Isolated Lua state running within the Linux kernel.
 * @type runtime
 */
 static void *lunatik_alloc(void *ud, void *optr, size_t osize, size_t nsize)
@@ -306,33 +300,22 @@ int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt
 EXPORT_SYMBOL(lunatik_runtime);
 
 /***
-* Creates and starts a new Lunatik runtime environment.
-* A Lunatik runtime is an isolated Lua state that can execute Lua scripts
-* within the kernel. Each runtime operates independently.
-*
-* The userdata object returned by `lunatik.runtime()` encapsulates an
-* isolated Lua state running within the Linux kernel. Each runtime can be
-* configured as sleepable (allowing blocking operations, using `GFP_KERNEL`
-* for allocations and mutexes for synchronization) or non-sleepable/atomic
-* (prohibiting blocking operations, using `GFP_ATOMIC` for allocations and
-* spinlocks for synchronization).
-
+* Creates a new Lunatik runtime executing the given script.
 * @function runtime
-* @tparam string script The name of the Lua script to load and execute (e.g., "myscript").
-*   The system will look for "myscript.lua" in the Lua root path.
-* @tparam[opt=true] boolean sleep If `true` (default),
-*   the runtime can sleep (e.g., for I/O operations) and uses `GFP_KERNEL` for allocations.
-*   If `false`, the runtime operates in an atomic context, cannot sleep, and uses `GFP_ATOMIC` for allocations.
-*   This is crucial for runtimes used in contexts that cannot sleep, like Netfilter hooks.
-* @treturn runtime A Lunatik runtime object. This object can be used to interact with the runtime, for example,
-*   to resume it if it yields or to stop it.
-* @raise Error if the Lua state or runtime cannot be allocated, or if the script fails to load or execute.
+* @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
+* @tparam[opt="process"] string context execution context: `"process"` (sleepable,
+*   GFP\_KERNEL, mutex) or `"softirq"` (atomic, GFP\_ATOMIC, spinlock).
+*   Use `"softirq"` for hooks that fire in interrupt context (netfilter, XDP).
+* @treturn runtime
+* @raise if allocation fails or the script errors on load
 * @within lunatik
 */
 static int lunatik_lruntime(lua_State *L)
 {
+	static const char *const contexts[] = {"process", "softirq", NULL};
 	const char *script = luaL_checkstring(L, 1);
-	lunatik_opt_t opt = (lua_gettop(L) >= 2 && !lua_toboolean(L, 2)) ? LUNATIK_OPT_SOFTIRQ : LUNATIK_OPT_NONE;
+	int context = luaL_checkoption(L, 2, "process", contexts);
+	lunatik_opt_t opt = context == 1 ? LUNATIK_OPT_SOFTIRQ : LUNATIK_OPT_NONE;
 
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
 	if (lunatik_newruntime(pruntime, L, script, opt) != 0)

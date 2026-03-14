@@ -157,7 +157,7 @@ if #arg >= 1 then
 		os.exit(false)
 	end
 	ensure_loaded()
-	local parm  = arg[3] and ("," .. arg[3]) or ""
+	local parm  = arg[3] and (', "' .. arg[3] .. '"') or ""
 	local ret   = token == "list" and "return" or ""
 	local chunk = string.format("%s lunatik.runner.%s('%s'%s)", ret, token, script, parm)
 	print(dostring(chunk))
