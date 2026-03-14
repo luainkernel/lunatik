@@ -8,10 +8,13 @@ local thread  = require("thread")
 local unix    = require("socket.unix")
 local linux   = require("linux")
 local cpu     = require("cpu")
+local socket  = require("socket")
 
 local shouldstop = thread.shouldstop
+local NONBLOCK   = socket.sock.NONBLOCK
 
-local server = unix.bind("/tmp/cpuexporter.sock", "STREAM")
+local server = unix.stream("/tmp/cpuexporter.sock")
+server:bind()
 server:listen()
 
 local last_stats = {}
@@ -89,7 +92,7 @@ end
 
 local function cpu_metrics()
 	local metrics = ""
-	local ts_ms = linux.time() // 1000  -- Convert to milliseconds (FIXME: note sure if this conversion is necessary)
+	local ts_ms = linux.time() // 1000  -- convert nanoseconds to milliseconds
 	local usage_data = cpu_usage()  -- Call once and store the result
 
 	-- Collect all unique metric names from the first available CPU
@@ -152,7 +155,7 @@ last_stats = cpu_stats()
 local function daemon()
 	print("cpud [daemon]: started")
 	while (not shouldstop()) do
-		local ok, session = pcall(server.accept, server, unix.NONBLOCK)
+		local ok, session = pcall(server.accept, server, NONBLOCK)
 		if ok then
 			local ok, err = pcall(handle_client, session)
 			if not ok then
