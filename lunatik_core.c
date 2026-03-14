@@ -4,17 +4,7 @@
 */
 
 /***
-* Core Lunatik module.
-* Provides functionalities to create and manage Lunatik runtimes,
-* which are isolated Lua environments running within the Linux kernel.
-* This module exposes the `lunatik` global table in Lua, which can be
-* used to create new runtimes. Runtime objects themselves have methods
-* to control their execution (e.g., `resume`, `stop`).
-*
-* If a global Lunatik environment (`lunatik_env`) is configured at the C level,
-* it can be exposed to Lua scripts as `lunatik._ENV`. This allows for a shared
-* environment across multiple scripts or runtimes.
-*
+* Manages Lunatik runtimes — isolated Lua states running in the kernel.
 * @module lunatik
 */
 
@@ -30,9 +20,8 @@
 #include "lunatik_sym.h"
 
 /***
-* Shared environment
-* @field _ENV points to a shared global Lunatik runtime object. Scripts can
-* share RCU tables or other Lunatik objects through this mechanism.
+* Shared global environment; scripts exchange objects (e.g. RCU tables) through it.
+* @field _ENV
 * @within lunatik
 */
 
@@ -143,18 +132,11 @@ static inline int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int nargs)
 }
 
 /***
-* Resumes a Lunatik runtime that has yielded.
-* This function is used to continue the execution of a Lua script within a
-* Lunatik runtime from the point where it last yielded. It's analogous to
-* Lua's `coroutine.resume`.
-* The `resume` method is called on a Lunatik runtime object.
+* Resumes a yielded runtime, analogous to `coroutine.resume`.
 * @function resume
-* @param ... Arguments to pass to the Lua script upon resumption. These arguments will be received by the `coroutine.yield()` call that suspended the script.
-* @treturn vararg Values returned by the `coroutine.yield()` call if the script yielded again, or values returned by the script if it completed.
-* @raise Error if the runtime cannot be resumed or if an error occurs within the resumed script. The error message will be propagated from the Lua C API error.
-* @usage
-*   -- Assuming 'rt' is a Lunatik runtime object that has yielded.
-*   local success, res_or_err = pcall(function() return rt:resume("arg_to_script") end)
+* @param ... values delivered to the script as return values of `coroutine.yield()`
+* @treturn vararg values passed to the next `coroutine.yield()`, or returned by the script
+* @raise if the runtime errors on resumption
 */
 static int lunatik_lresume(lua_State *L)
 {
@@ -185,18 +167,8 @@ static const luaL_Reg lunatik_stub_lib[] = {
 };
 
 /***
-* Stops and releases a Lunatik runtime environment.
-* This method is called on a Lunatik runtime object. Once stopped, the runtime
-* cannot be resumed or used further. It ensures that the associated Lua state
-* is closed and all kernel resources are freed.
-*
-* This method provides an explicit way to release the runtime.
+* Stops the runtime and releases all associated kernel resources.
 * @function stop
-* @treturn nil Does not return any value to Lua.
-* @raise Error May raise an error if the underlying C function encounters a critical issue during cleanup and calls `lua_error`.
-* @usage
-*   -- Assuming 'rt' is a Lunatik runtime object:
-*   rt:stop()
 */
 static const luaL_Reg lunatik_mt[] = {
 	{"__gc", lunatik_deleteobject},
@@ -330,7 +302,7 @@ LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL, NULL);
 
 static int __init lunatik_init(void)
 {
-        return 0;
+	return 0;
 }
 
 static void __exit lunatik_exit(void)
