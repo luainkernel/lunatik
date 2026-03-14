@@ -31,7 +31,7 @@ mark_dmesg
 
 lunatik run "$SCRIPT"
 
-check_dmesg || exit 1
+check_dmesg || { ktap_totals; exit 1; }
 ktap_pass "resume with shared fifo object succeeded"
 
 ktap_totals
