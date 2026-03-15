@@ -14,15 +14,10 @@
 
 #include <lua.h>
 #include <lauxlib.h>
+#include "lunatik_obj.h"
 
 #define LUNATIK_VERSION	"Lunatik 4.1"
 
-typedef u8 __bitwise lunatik_opt_t;
-#define LUNATIK_OPT_SOFTIRQ	((__force lunatik_opt_t)(1U << 0))
-#define LUNATIK_OPT_MONITOR	((__force lunatik_opt_t)(1U << 1))
-#define LUNATIK_OPT_SINGLE	((__force lunatik_opt_t)(1U << 2))
-#define LUNATIK_OPT_EXTERNAL	((__force lunatik_opt_t)(1U << 3))
-#define LUNATIK_OPT_NONE	((__force lunatik_opt_t)0)
 
 #define lunatik_issoftirq(opt)		((opt) & LUNATIK_OPT_SOFTIRQ)
 #define lunatik_ismonitor(opt)		((opt) & LUNATIK_OPT_MONITOR)
@@ -84,24 +79,7 @@ typedef struct lunatik_namespace_s {
 	const lunatik_reg_t *reg;
 } lunatik_namespace_t;
 
-typedef struct lunatik_class_s {
-	const char *name;
-	const luaL_Reg *methods;
-	void (*release)(void *);
-	lunatik_opt_t opt;
-} lunatik_class_t;
 
-typedef struct lunatik_object_s {
-	struct kref kref;
-	const lunatik_class_t *class;
-	void *private;
-	union {
-		struct mutex mutex;
-		spinlock_t spin;
-	};
-	lunatik_opt_t opt;
-	gfp_t gfp;
-} lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
 
