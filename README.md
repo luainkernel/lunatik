@@ -162,6 +162,8 @@ The table below lists the available kernel Lua modules:
 | `fifo` | Kernel FIFO queues |
 | `signal` | POSIX signal management |
 | `byteorder` | Network byte order conversions |
+| `darken` | AES-256-CTR encrypted script execution |
+| `lighten` | Lua interface for running encrypted scripts via `darken` |
 | `notifier` | Kernel notifier chain registration |
 | `lunatik.runner` | Run, spawn, and stop scripts from within Lua |
 | `net` | Networking helpers |

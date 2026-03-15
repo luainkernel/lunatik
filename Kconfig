@@ -133,6 +133,13 @@ config LUNATIK_CRYPTO_SKCIPHER
 	help
 	  Symmetric Key Cipher support.
 
+config LUNATIK_DARKEN
+	tristate "Lunatik Darken (Encrypted Script) Support"
+	depends on LUNATIK_CRYPTO_SKCIPHER
+	default m
+	help
+	  AES-256-CTR encrypted Lua script support.
+
 config LUNATIK_CRYPTO_AEAD
 	tristate "Lunatik Crypto AEAD (Authenticated Encryption) Support"
 	default m
