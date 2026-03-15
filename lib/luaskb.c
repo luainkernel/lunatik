@@ -26,6 +26,12 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *,
 #define luaskb_pushoptinteger(L, cond, val)	\
 	((cond) ? lua_pushinteger(L, val) : lua_pushnil(L))
 
+/* FRAGLIST GSO skbs hold segments in frag_list; skb_copy refuses to copy
+ * them (ambiguous semantics: copy the container or the segments?). */
+#define luaskb_checkfraglist(L, lskb, ix)				\
+	luaL_argcheck(L, !(skb_shinfo((lskb)->skb)->gso_type &		\
+		SKB_GSO_FRAGLIST), (ix), "FRAGLIST GSO skbs cannot be copied")
+
 #define luaskb_csum4(skb, iph, iphlen)					\
 	csum_tcpudp_magic((iph)->saddr, (iph)->daddr,			\
 		ntohs((iph)->tot_len) - (iphlen), (iph)->protocol,	\
@@ -73,11 +79,8 @@ static int luaskb_vlan(lua_State *L)
 	return 1;
 }
 
-static inline void luaskb_checklinearize(lua_State *L, luaskb_t *lskb)
-{
-	if (skb_linearize(lskb->skb) != 0)
-		lunatik_enomem(L);
-}
+#define luaskb_checklinearize(L, lskb, ix)	\
+	luaL_argcheck(L, skb_linearize((lskb)->skb) == 0, (ix), "skb linearization failed")
 
 /***
 * @function data
@@ -88,12 +91,12 @@ static inline void luaskb_checklinearize(lua_State *L, luaskb_t *lskb)
 static int luaskb_data(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
+	luaskb_checklinearize(L, lskb, 1);
+
 	lunatik_object_t *data = lskb->data;
 	struct sk_buff *skb = lskb->skb;
 	static const char *const layers[] = {"net", "mac", NULL};
 	bool mac = luaL_checkoption(L, 2, "net", layers);
-
-	luaskb_checklinearize(L, lskb);
 
 	void *ptr = skb->data;
 	size_t size = skb_headlen(skb);
@@ -229,12 +232,14 @@ static const lunatik_class_t luaskb_class = {
 * (e.g. bridged traffic with paged data).
 * @function copy
 * @treturn skb
-* @raise if linearization or copy allocation fails
+* @raise if skb is FRAGLIST GSO, linearization fails, or copy allocation fails
 */
 static int luaskb_copy(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	luaskb_checklinearize(L, lskb);
+	luaskb_checkfraglist(L, lskb, 1);
+	luaskb_checklinearize(L, lskb, 1);
+
 	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *copy = (luaskb_t *)object->private;
 	copy->skb = lunatik_checknull(L, skb_copy(lskb->skb, GFP_ATOMIC));
