@@ -30,7 +30,7 @@ done
 
 mark_dmesg
 
-lunatik run "$SCRIPT"
+run_script "$SCRIPT"
 
 check_dmesg || { ktap_totals; exit 1; }
 ktap_pass "mailbox send/receive via resume succeeded"

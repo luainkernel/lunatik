@@ -27,6 +27,16 @@ check_dmesg() {
 	return 1
 }
 
+run_script() {
+	local output
+	output=$(lunatik run "$@")
+	echo "$output" | grep -qE "\.lua:[0-9]+:" || return 0
+	ktap_fail "Lua error in script"
+	echo "# $output"
+	ktap_totals
+	exit 1
+}
+
 # Each test script must define cleanup().
 # fail <description> stops the script, calls cleanup, and exits non-zero.
 fail() {

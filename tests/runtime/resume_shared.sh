@@ -29,7 +29,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 
 mark_dmesg
 
-lunatik run "$SCRIPT"
+run_script "$SCRIPT"
 
 check_dmesg || { ktap_totals; exit 1; }
 ktap_pass "resume with shared fifo object succeeded"

@@ -31,8 +31,8 @@ ktap_plan 2
 
 # Case 1: run context — must return false and not crash
 mark_dmesg
-lunatik run "$SCRIPT_RUN"
-check_dmesg || exit 1
+run_script "$SCRIPT_RUN"
+check_dmesg || { ktap_totals; exit 1; }
 ktap_pass "shouldstop() returns false in run context"
 
 # Case 2: spawn context — must return true when stopped
@@ -40,7 +40,7 @@ mark_dmesg
 lunatik spawn "$SCRIPT_SPAWN"
 sleep $SLEEP
 lunatik stop "$SCRIPT_SPAWN"
-check_dmesg || exit 1
+check_dmesg || { ktap_totals; exit 1; }
 found=$(dmesg | tail -n +$((DMESG_LINE+1)) | grep "shouldstop: ok" || true)
 [ -z "$found" ] && fail "shouldstop() did not return true in spawn context"
 ktap_pass "shouldstop() returns true in spawn context"
