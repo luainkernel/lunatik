@@ -64,9 +64,13 @@ local function status_modules()
 end
 
 local function ensure_loaded()
-	if not probe() then
-		load_modules()
-	end
+	if not probe() then load_modules() end
+	local result = dostring[[
+		lunatik = lunatik or require("lunatik")
+		lunatik.runner = lunatik.runner or require("lunatik.runner")
+		lunatik.runner.startup()
+	]]
+	if result ~= "" then error(result) end
 end
 
 local tests_path = "/usr/local/share/lunatik/tests"
