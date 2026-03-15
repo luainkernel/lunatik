@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Fields">Fields</a></li>
+<li><a href="#Class_unix">Class unix </a></li>
 </ul>
 
 
@@ -85,22 +85,80 @@
 
 <h1>Module <code>socket.unix</code></h1>
 <p>UNIX domain socket (AF_UNIX) operations.</p>
-<p> This module provides a higher-level abstraction over the <a href="../modules/socket.html#">socket</a> module.</p>
+<p> This module provides an OOP-style abstraction over the <a href="../modules/socket.html#">socket</a> module for
+ AF_UNIX sockets, modeled after <a href="../modules/socket.inet.html#">socket.inet</a>.</p>
+
+<p> A socket instance can be created with an optional path stored as default
+ address, which is then reused automatically in <a href="../modules/socket.unix.html#unix:bind">bind</a>, <a href="../modules/socket.unix.html#unix:connect">connect</a>, and
+ <code>dgram:sendto</code> without an explicit per-call address.</p>
     <h3>See also:</h3>
     <ul>
-         <a href="../modules/socket.html#">socket</a>
+         <li><a href="../modules/socket.html#">socket</a></li>
+         <li><a href="../modules/socket.inet.html#">socket.inet</a></li>
     </ul>
 
 
-<h2><a href="#Fields">Fields</a></h2>
+<h2><a href="#Class_unix">Class unix </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#path">path</a></td>
-	<td class="summary">Creates and binds a new UNIX domain socket to a specific path.</td>
+	<td class="name" nowrap><a href="#unix.dgram">unix.dgram</a></td>
+	<td class="summary">DGRAM socket specialization (connectionless).</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#path">path</a></td>
-	<td class="summary">Creates and connects a new UNIX domain socket to a specific path.</td>
+	<td class="name" nowrap><a href="#unix.dgram:receivefrom">unix.dgram:receivefrom (len, flags)</a></td>
+	<td class="summary">Receives data from a DGRAM socket along with the sender's path.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix.dgram:sendto">unix.dgram:sendto (msg, path)</a></td>
+	<td class="summary">Sends data to a UNIX domain socket path.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix.stream">unix.stream</a></td>
+	<td class="summary">STREAM socket specialization (connection-oriented).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix.stream:accept">unix.stream:accept (flags)</a></td>
+	<td class="summary">Accepts an incoming connection on a listening STREAM socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix.stream:listen">unix.stream:listen (backlog)</a></td>
+	<td class="summary">Listens for incoming connections on a STREAM socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix:__call">unix:__call (path)</a></td>
+	<td class="summary">Creates a new UNIX domain socket instance.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix:bind">unix:bind (path)</a></td>
+	<td class="summary">Binds the socket to a UNIX domain path.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix:close">unix:close ()</a></td>
+	<td class="summary">Closes the underlying socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix:connect">unix:connect (path)</a></td>
+	<td class="summary">Connects the socket to a UNIX domain path.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix:getpeername">unix:getpeername ()</a></td>
+	<td class="summary">Gets the remote address (path) the socket is connected to.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix:getsockname">unix:getsockname ()</a></td>
+	<td class="summary">Gets the local address (path) of the socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix:new">unix:new (o)</a></td>
+	<td class="summary">Constructor for unix socket objects.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix:receive">unix:receive (...)</a></td>
+	<td class="summary">Receives data from the socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#unix:send">unix:send (msg, path)</a></td>
+	<td class="summary">Sends data through the socket.</td>
 	</tr>
 </table>
 
@@ -108,50 +166,165 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Fields"></a>Fields</h2>
+    <h2 class="section-header has-description"><a name="Class_unix"></a>Class unix </h2>
 
+          <div class="section-description">
+          Base class for UNIX domain socket objects.
+          </div>
     <dl class="function">
     <dt>
-    <a name = "path"></a>
-    <strong>path</strong>
+    <a name = "unix.dgram"></a>
+    <strong>unix.dgram</strong>
     </dt>
     <dd>
-    Creates and binds a new UNIX domain socket to a specific path.
+    DGRAM socket specialization (connectionless).
+ Create instances with <code>unix.dgram([path])</code>.
+ The optional path is stored as the default destination for <a href="../modules/socket.unix.html#unix.dgram:sendto">sendto</a>.
 
 
+    <h3>Fields:</h3>
     <ul>
-        <li><span class="parameter">path</span>
-         (string) The UNIX domain socket path.
-        </li>
         <li><span class="parameter">type</span>
-         (string) [optional] "STREAM" or "DGRAM".
+         The socket type (<code>socket.sock.DGRAM</code>).
         </li>
     </ul>
 
 
 
+
+
+</dd>
+    <dt>
+    <a name = "unix.dgram:receivefrom"></a>
+    <strong>unix.dgram:receivefrom (len, flags)</strong>
+    </dt>
+    <dd>
+    Receives data from a DGRAM socket along with the sender's path.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">len</span>
+         (number) [optional] Maximum number of bytes to receive.
+        </li>
+        <li><span class="parameter">flags</span>
+         (number) [optional] Receive flags.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        (string or nil) The received data.</li>
+        <li>
+        (string or nil) The sender's socket path.</li>
+    </ol>
+
+
     <h3>See also:</h3>
     <ul>
-         <li><a href="../modules/socket.html#new">socket.new</a></li>
-         <li><a href="../modules/socket.html#bind">socket.bind</a></li>
+         <a href="../modules/socket.html#receive">socket.receive</a>
     </ul>
 
 
 </dd>
     <dt>
-    <a name = "path"></a>
-    <strong>path</strong>
+    <a name = "unix.dgram:sendto"></a>
+    <strong>unix.dgram:sendto (msg, path)</strong>
     </dt>
     <dd>
-    Creates and connects a new UNIX domain socket to a specific path.
+    Sends data to a UNIX domain socket path.
+ If <code>path</code> is omitted, uses the path provided at construction time.
 
 
+    <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">path</span>
-         (string) The UNIX domain socket path.
+        <li><span class="parameter">msg</span>
+         (string) The message to send.
         </li>
+        <li><span class="parameter">path</span>
+         (string) [optional] Destination socket path.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        (number) Number of bytes sent on success.
+    </ol>
+
+    <h3>Raises:</h3>
+    error on failure.
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.unix.html#unix:send">unix.send</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix.stream"></a>
+    <strong>unix.stream</strong>
+    </dt>
+    <dd>
+    STREAM socket specialization (connection-oriented).
+ Create instances with <code>unix.stream([path])</code>.
+
+
+    <h3>Fields:</h3>
+    <ul>
         <li><span class="parameter">type</span>
-         (string) [optional] "STREAM" or "DGRAM".
+         The socket type (<code>socket.sock.STREAM</code>).
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "unix.stream:accept"></a>
+    <strong>unix.stream:accept (flags)</strong>
+    </dt>
+    <dd>
+    Accepts an incoming connection on a listening STREAM socket.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">flags</span>
+         (number) [optional] Flags for the accept operation.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        A new socket object for the accepted connection.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#accept">socket.accept</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix.stream:listen"></a>
+    <strong>unix.stream:listen (backlog)</strong>
+    </dt>
+    <dd>
+    Listens for incoming connections on a STREAM socket.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">backlog</span>
+         (number) Maximum length of the queue of pending connections.
         </li>
     </ul>
 
@@ -159,8 +332,244 @@
 
     <h3>See also:</h3>
     <ul>
-         <li><a href="../modules/socket.html#new">socket.new</a></li>
-         <li><a href="../modules/socket.html#connect">socket.connect</a></li>
+         <a href="../modules/socket.html#listen">socket.listen</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix:__call"></a>
+    <strong>unix:__call (path)</strong>
+    </dt>
+    <dd>
+    Creates a new UNIX domain socket instance.
+ This is the primary way to create instances (e.g. <code>local s = unix.stream(path)</code>).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+         (string) [optional] Default UNIX socket path stored in the object.
+   Reused automatically by <a href="../modules/socket.unix.html#unix:bind">bind</a>, <a href="../modules/socket.unix.html#unix:connect">connect</a>, <a href="../modules/socket.unix.html#unix:send">send</a>, <a href="../modules/socket.unix.html#unix.dgram:sendto">sendto</a>, and <a href="../modules/socket.unix.html#unix.dgram:receivefrom">receivefrom</a>
+   when no explicit path is given.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        (table) A new unix socket object.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#new">socket.new</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix:bind"></a>
+    <strong>unix:bind (path)</strong>
+    </dt>
+    <dd>
+    Binds the socket to a UNIX domain path.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+         (string) [optional] Path to bind to.
+   Defaults to the path provided at construction time.
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#bind">socket.bind</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix:close"></a>
+    <strong>unix:close ()</strong>
+    </dt>
+    <dd>
+    Closes the underlying socket.
+
+
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#close">socket.close</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix:connect"></a>
+    <strong>unix:connect (path)</strong>
+    </dt>
+    <dd>
+    Connects the socket to a UNIX domain path.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+         (string) [optional] Path to connect to.
+   Defaults to the path provided at construction time.
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#connect">socket.connect</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix:getpeername"></a>
+    <strong>unix:getpeername ()</strong>
+    </dt>
+    <dd>
+    Gets the remote address (path) the socket is connected to.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        (string) The remote socket path.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#getpeername">socket.getpeername</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix:getsockname"></a>
+    <strong>unix:getsockname ()</strong>
+    </dt>
+    <dd>
+    Gets the local address (path) of the socket.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        (string) The local socket path.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#getsockname">socket.getsockname</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix:new"></a>
+    <strong>unix:new (o)</strong>
+    </dt>
+    <dd>
+    Constructor for unix socket objects.
+ Initializes a new socket object and sets up its metatable.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">o</span>
+         (table) [optional] An initial table to use as the object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        (table) The new unix socket object.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "unix:receive"></a>
+    <strong>unix:receive (...)</strong>
+    </dt>
+    <dd>
+    Receives data from the socket.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">...</span>
+         Varargs passed directly to <code>socket:receive()</code>.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Varargs returned by <code>socket:receive()</code>.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#receive">socket.receive</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "unix:send"></a>
+    <strong>unix:send (msg, path)</strong>
+    </dt>
+    <dd>
+    Sends data through the socket.
+ For connected STREAM sockets, <code>path</code> is omitted. For DGRAM sockets,
+ use <code>sendto()</code> to send to the stored path or an explicit destination.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">msg</span>
+         (string) The message to send.
+        </li>
+        <li><span class="parameter">path</span>
+         (string) [optional] Explicit destination socket path.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        (number) Number of bytes sent on success.
+    </ol>
+
+    <h3>Raises:</h3>
+    error on failure.
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#send">socket.send</a>
     </ul>
 
 
@@ -172,7 +581,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-03-15 01:36:51 </i>
+<i style="float:right;">Last updated 2026-03-15 01:44:22 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
