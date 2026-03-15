@@ -293,6 +293,13 @@ static inline lunatik_object_t **lunatik_testobject(lua_State *L, int ix)
 	return (pobject && lunatik_isobject(L, ix, *pobject)) ? pobject : NULL;
 }
 
+static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
+{
+	lunatik_object_t **pobject = lunatik_testobject(L, ix);
+	luaL_argcheck(L, pobject, ix, "invalid object");
+	return pobject;
+}
+
 static inline lunatik_object_t *lunatik_checkclass(lua_State *L, int ix,
 	const char *name, lunatik_opt_t opt)
 {
@@ -300,13 +307,6 @@ static inline lunatik_object_t *lunatik_checkclass(lua_State *L, int ix,
 	luaL_argcheck(L, strcmp(object->class->name, name) == 0, ix, name);
 	luaL_argcheck(L, !opt || (object->opt & opt) == opt, ix, name);
 	return object;
-}
-
-static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
-{
-	lunatik_object_t **pobject = lunatik_testobject(L, ix);
-	luaL_argcheck(L, pobject, ix, "invalid object");
-	return pobject;
 }
 
 static inline void lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
