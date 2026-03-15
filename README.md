@@ -78,7 +78,7 @@ Install Lunatik from our [package feed](https://github.com/luainkernel/openwrt_f
 
 ```
 sudo lunatik # execute Lunatik REPL
-Lunatik 4.1  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
+Lunatik 4.2  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 > return 42 -- execute this line in the kernel
 42
 ```
@@ -112,7 +112,7 @@ sudo lunatik test thread    # run a specific suite (monitor, thread, runtime)
 
 ## Lua Version
 
-Lunatik 4.1 is based on
+Lunatik 4.2 is based on
 [Lua 5.5 adapted](https://github.com/luainkernel/lua)
 to run in the kernel.
 
