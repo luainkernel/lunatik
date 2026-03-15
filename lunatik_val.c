@@ -5,6 +5,22 @@
 
 #include "lunatik.h"
 
+static void lunatik_releasestring(struct kref *kref)
+{
+	lunatik_string_t *s = container_of(kref, lunatik_string_t, kref);
+	kfree(s);
+}
+
+static inline void lunatik_getstring(lunatik_value_t *value)
+{
+	kref_get(&value->string->kref);
+}
+
+static inline void lunatik_putstring(lunatik_value_t *value)
+{
+	kref_put(&value->string->kref, lunatik_releasestring);
+}
+
 void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value)
 {
 	value->type = lua_type(L, ix);
@@ -22,6 +38,18 @@ void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value)
 		if (!value->object->clone)
 			luaL_argerror(L, ix, "cannot share non-clonable object");
 		break;
+	case LUA_TSTRING: {
+		size_t len;
+		const char *str = lua_tolstring(L, ix, &len);
+		lunatik_string_t *s = kmalloc(sizeof(lunatik_string_t) + len + 1, GFP_ATOMIC);
+		if (!s)
+			luaL_error(L, "not enough memory");
+		kref_init(&s->kref);
+		s->len = len;
+		memcpy(s->str, str, len + 1);
+		value->string = s;
+		break;
+	}
 	default:
 		luaL_argerror(L, ix, "unsupported type");
 		break;
@@ -47,6 +75,9 @@ void lunatik_pushvalue(lua_State *L, lunatik_value_t *value)
 		break;
 	case LUA_TNUMBER:
 		lua_pushinteger(L, value->integer);
+		break;
+	case LUA_TSTRING:
+		lunatik_pushstring(L, value->string->str, value->string->len);
 		break;
 	case LUA_TUSERDATA:
 		lua_pushcfunction(L, lunatik_doclone);

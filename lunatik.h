@@ -14,6 +14,7 @@
 
 #include <lua.h>
 #include <lauxlib.h>
+#include "lunatik_obj.h"
 
 #define LUNATIK_VERSION	"Lunatik 4.1"
 
@@ -72,28 +73,6 @@ typedef struct lunatik_namespace_s {
 	const lunatik_reg_t *reg;
 } lunatik_namespace_t;
 
-typedef struct lunatik_class_s {
-	const char *name;
-	const luaL_Reg *methods;
-	void (*release)(void *);
-	bool sleep;
-	bool shared;
-	bool pointer;
-} lunatik_class_t;
-
-typedef struct lunatik_object_s {
-	struct kref kref;
-	const lunatik_class_t *class;
-	void *private;
-	union {
-		struct mutex mutex;
-		spinlock_t spin;
-	};
-	bool sleep;
-	gfp_t gfp;
-	bool monitor;
-	bool clone;
-} lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
 

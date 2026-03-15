@@ -7,7 +7,7 @@
 * RCU-synchronized hash table.
 * Provides a concurrent hash table using Read-Copy-Update (RCU) synchronization.
 * Reads are lockless; writes are serialized. Keys are strings, values can be
-* booleans, integers, lunatik objects, or `nil` (to delete an entry).
+* booleans, integers, strings,  lunatik objects, or `nil` (to delete an entry).
 *
 * See `examples/shared.lua` for a practical example.
 * @module rcu
@@ -89,6 +89,8 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 	entry->value = *value;
 	if (lunatik_isuserdata(value))
 		lunatik_getobject(value->object);
+	else if (lunatik_isstring(value))
+		lunatik_getstring(value);
 	return entry;
 }
 
@@ -96,6 +98,8 @@ static inline void luarcu_free(luarcu_entry_t *entry)
 {
 	if (lunatik_isuserdata(&entry->value))
 		lunatik_putobject(entry->value.object);
+	else if (lunatik_isstring(&entry->value))
+		lunatik_putstring(&entry->value);
 	kfree_rcu(entry, rcu);
 }
 
