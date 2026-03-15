@@ -73,6 +73,12 @@ static int luaskb_vlan(lua_State *L)
 	return 1;
 }
 
+static inline void luaskb_checklinearize(lua_State *L, luaskb_t *lskb)
+{
+	if (skb_linearize(lskb->skb) != 0)
+		lunatik_enomem(L);
+}
+
 /***
 * @function data
 * @tparam[opt] string layer "net" (default, L3) or "mac" (L2, includes MAC header)
@@ -87,8 +93,7 @@ static int luaskb_data(lua_State *L)
 	static const char *const layers[] = {"net", "mac", NULL};
 	bool mac = luaL_checkoption(L, 2, "net", layers);
 
-	if (skb_linearize(skb) != 0)
-		lunatik_enomem(L);
+	luaskb_checklinearize(L, lskb);
 
 	void *ptr = skb->data;
 	size_t size = skb_headlen(skb);
@@ -220,13 +225,16 @@ static const lunatik_class_t luaskb_class = {
 
 /***
 * Returns an independent copy of the skb with its own data buffer.
+* The skb is linearized before copying to avoid failures on fragmented skbs
+* (e.g. bridged traffic with paged data).
 * @function copy
 * @treturn skb
-* @raise if copy allocation fails
+* @raise if linearization or copy allocation fails
 */
 static int luaskb_copy(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
+	luaskb_checklinearize(L, lskb);
 	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *copy = (luaskb_t *)object->private;
 	copy->skb = lunatik_checknull(L, skb_copy(lskb->skb, GFP_ATOMIC));
