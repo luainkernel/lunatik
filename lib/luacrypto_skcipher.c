@@ -4,13 +4,7 @@
 */
 
 /***
-* Low-level Lua interface to the Linux Kernel Crypto API for
-* symmetric-key ciphers (SKCIPHER).
-*
-* This module provides a `new` function to create SKCIPHER transform objects,
-* which can then be used for encryption and decryption with various block cipher
-* algorithms and modes.
-*
+* Lua interface to symmetric-key ciphers (SKCIPHER).
 * @module crypto.skcipher
 */
 
@@ -27,19 +21,13 @@
 
 LUNATIK_PRIVATECHECKER(luacrypto_skcipher_check, struct crypto_skcipher *);
 
-LUACRYPTO_RELEASER(skcipher, struct crypto_skcipher, crypto_free_skcipher, NULL);
+LUACRYPTO_RELEASER(skcipher, struct crypto_skcipher, crypto_free_skcipher);
 
 /***
-* SKCIPHER Object methods.
-* These methods are available on SKCIPHER TFM objects created by `crypto_skcipher.new()`.
-* @type SKCIPHER
-*/
-
-/***
-* Sets the encryption key for the SKCIPHER transform.
+* Sets the cipher key.
 * @function setkey
-* @tparam string key The encryption key.
-* @raise Error if setting the key fails (e.g., invalid key length for the algorithm).
+* @tparam string key
+* @raise on invalid key length or algorithm error
 */
 static int luacrypto_skcipher_setkey(lua_State *L)
 {
@@ -51,22 +39,21 @@ static int luacrypto_skcipher_setkey(lua_State *L)
 }
 
 /***
-* Gets the required initialization vector (IV) size for the SKCIPHER transform.
+* Returns the required IV size in bytes.
 * @function ivsize
-* @treturn integer The IV size in bytes.
+* @treturn integer
 */
-static int luacrypto_skcipher_ivsize(lua_State *L) {
+static int luacrypto_skcipher_ivsize(lua_State *L)
+{
 	struct crypto_skcipher *tfm = luacrypto_skcipher_check(L, 1);
 	lua_pushinteger(L, crypto_skcipher_ivsize(tfm));
 	return 1;
 }
 
 /***
-* Gets the block size of the SKCIPHER transform.
-* Data processed by encrypt/decrypt should typically be a multiple of this size,
-* depending on the cipher mode.
+* Returns the cipher block size in bytes.
 * @function blocksize
-* @treturn integer The block size in bytes.
+* @treturn integer
 */
 static int luacrypto_skcipher_blocksize(lua_State *L)
 {
@@ -119,63 +106,51 @@ static inline void luacrypto_skcipher_setrequest(luacrypto_skcipher_request_t *r
 	skcipher_request_set_callback(skcipher, 0, NULL, NULL);
 }
 
-LUACRYPTO_FREEREQUEST(skcipher, struct skcipher_request, skcipher_request_free);
-
-#define LUACRYPTO_SKCIPHER_NEWCRYPT(name)					\
-static int luacrypto_skcipher_##name(lua_State *L)				\
-{										\
-	luacrypto_skcipher_request_t request;					\
-	luacrypto_skcipher_newrequest(L, &request);				\
-										\
-	char *buffer = (char *)lunatik_malloc(L, request.data_len);		\
-	if (buffer == NULL) {							\
-		luacrypto_skcipher_freerequest(request.skcipher, request.iv);	\
-		lunatik_enomem(L);						\
-	}									\
-										\
-	luacrypto_skcipher_setrequest(&request, buffer);			\
-	int ret = crypto_skcipher_##name(request.skcipher);			\
-	luacrypto_skcipher_freerequest(request.skcipher, request.iv);		\
-	if (ret < 0) {								\
-		lunatik_free(buffer);						\
-		lunatik_throw(L, ret);						\
-	}									\
-										\
-	lunatik_pushstring(L, buffer, request.data_len);			\
-	return 1;								\
+#define LUACRYPTO_SKCIPHER_NEWCRYPT(name)				\
+static int luacrypto_skcipher_##name(lua_State *L)			\
+{									\
+	luacrypto_skcipher_request_t request;				\
+	luacrypto_skcipher_newrequest(L, &request);			\
+									\
+	char *buffer = (char *)lunatik_malloc(L, request.data_len);	\
+	if (buffer == NULL) {						\
+		skcipher_request_free(request.skcipher);		\
+		lunatik_free(request.iv);				\
+		lunatik_enomem(L);					\
+	}								\
+									\
+	luacrypto_skcipher_setrequest(&request, buffer);		\
+	int ret = crypto_skcipher_##name(request.skcipher);		\
+	skcipher_request_free(request.skcipher);			\
+	lunatik_free(request.iv);					\
+	if (ret < 0) {							\
+		lunatik_free(buffer);					\
+		lunatik_throw(L, ret);					\
+	}								\
+									\
+	lunatik_pushstring(L, buffer, request.data_len);		\
+	return 1;							\
 }
 
 /***
-* Encrypts plaintext using the SKCIPHER transform.
-* The IV (nonce) must be unique for each encryption operation with the same key for most modes.
-* Plaintext length should be appropriate for the cipher mode (e.g., multiple of blocksize).
+* Encrypts data. IV length must match `ivsize()`.
 * @function encrypt
-* @tparam string iv The Initialization Vector. Its length must match `ivsize()`.
-* @tparam string plaintext The data to encrypt.
-* @treturn string The ciphertext.
-* @raise Error on encryption failure, incorrect IV length, or allocation issues.
+* @tparam string iv initialization vector
+* @tparam string data plaintext
+* @treturn string ciphertext (same length as input)
+* @raise on encryption failure or incorrect IV length
 */
 LUACRYPTO_SKCIPHER_NEWCRYPT(encrypt);
 
 /***
-* Decrypts ciphertext using the SKCIPHER transform.
-* The IV must match the one used during encryption.
-* Ciphertext length should be appropriate for the cipher mode.
+* Decrypts data. IV length must match `ivsize()`.
 * @function decrypt
-* @tparam string iv The Initialization Vector. Its length must match `ivsize()`.
-* @tparam string ciphertext The data to decrypt.
-* @treturn string The plaintext.
-* @raise Error on decryption failure, incorrect IV length, or allocation issues.
+* @tparam string iv initialization vector
+* @tparam string data ciphertext
+* @treturn string plaintext (same length as input)
+* @raise on decryption failure or incorrect IV length
 */
 LUACRYPTO_SKCIPHER_NEWCRYPT(decrypt);
-
-/***
-* Lua C methods for the SKCIPHER TFM object.
-* Includes cryptographic operations and Lunatik metamethods.
-* The `__close` method is important for explicit resource cleanup.
-* @see skcipher
-* @see lunatik_closeobject
-*/
 
 static const luaL_Reg luacrypto_skcipher_mt[] = {
 	{"setkey", luacrypto_skcipher_setkey},
@@ -188,12 +163,6 @@ static const luaL_Reg luacrypto_skcipher_mt[] = {
 	{NULL, NULL}
 };
 
-/***
-* Lunatik class definition for SKCIPHER TFM objects.
-* This structure binds the C implementation (luacrypto_skcipher_t, methods, release function)
-* to the Lua object system managed by Lunatik.
-*/
-
 static const lunatik_class_t luacrypto_skcipher_class = {
 	.name = "crypto_skcipher",
 	.methods = luacrypto_skcipher_mt,
@@ -202,18 +171,16 @@ static const lunatik_class_t luacrypto_skcipher_class = {
 };
 
 /***
-* Creates a new SKCIPHER transform (TFM) object.
-* This is the constructor function for the `crypto_skcipher` module.
+* Creates a new SKCIPHER transform object.
 * @function new
-* @tparam string algname The name of the skcipher algorithm (e.g., "cbc(aes)", "ctr(aes)").
-* @treturn skcipher The new SKCIPHER TFM object.
-* @raise Error if the TFM object or kernel request cannot be allocated/initialized.
+* @tparam string algname algorithm name (e.g., "cbc(aes)", "ctr(aes)")
+* @treturn crypto_skcipher
+* @raise on allocation failure
 * @usage
 *   local skcipher = require("crypto.skcipher")
 *   local cipher = skcipher.new("cbc(aes)")
-* @within skcipher
 */
-LUACRYPTO_NEW(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class, NULL);
+LUACRYPTO_NEW(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class);
 
 static const luaL_Reg luacrypto_skcipher_lib[] = {
 	{"new", luacrypto_skcipher_new},
