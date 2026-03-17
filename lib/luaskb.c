@@ -28,9 +28,13 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *,
 
 /* FRAGLIST GSO skbs hold segments in frag_list; skb_copy refuses to copy
  * them (ambiguous semantics: copy the container or the segments?). */
+#ifdef SKB_GSO_FRAGLIST
 #define luaskb_checkfraglist(L, lskb, ix)				\
 	luaL_argcheck(L, !(skb_shinfo((lskb)->skb)->gso_type &		\
 		SKB_GSO_FRAGLIST), (ix), "FRAGLIST GSO skbs cannot be copied")
+#else
+#define luaskb_checkfraglist(L, lskb, ix)
+#endif
 
 #define luaskb_csum4(skb, iph, iphlen)					\
 	csum_tcpudp_magic((iph)->saddr, (iph)->daddr,			\
