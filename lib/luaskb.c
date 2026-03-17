@@ -28,9 +28,9 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *,
 
 /* FRAGLIST GSO skbs hold segments in frag_list; skb_copy refuses to copy
  * them (ambiguous semantics: copy the container or the segments?). */
-#define luaskb_checkfraglist(L, lskb, ix)				\
-	luaL_argcheck(L, !(skb_shinfo((lskb)->skb)->gso_type &		\
-		SKB_GSO_FRAGLIST), (ix), "FRAGLIST GSO skbs cannot be copied")
+#define luaskb_checkfraglist(L, lskb)					\
+	lunatik_assert(L, !(skb_shinfo((lskb)->skb)->gso_type &		\
+		SKB_GSO_FRAGLIST), "FRAGLIST GSO skbs cannot be copied")
 
 #define luaskb_csum4(skb, iph, iphlen)					\
 	csum_tcpudp_magic((iph)->saddr, (iph)->daddr,			\
@@ -79,8 +79,8 @@ static int luaskb_vlan(lua_State *L)
 	return 1;
 }
 
-#define luaskb_checklinearize(L, lskb, ix)	\
-	luaL_argcheck(L, skb_linearize((lskb)->skb) == 0, (ix), "skb linearization failed")
+#define luaskb_checklinearize(L, lskb)	\
+	lunatik_assert(L, skb_linearize((lskb)->skb) == 0, "skb linearization failed")
 
 /***
 * @function data
@@ -91,7 +91,7 @@ static int luaskb_vlan(lua_State *L)
 static int luaskb_data(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	luaskb_checklinearize(L, lskb, 1);
+	luaskb_checklinearize(L, lskb);
 
 	lunatik_object_t *data = lskb->data;
 	struct sk_buff *skb = lskb->skb;
@@ -237,8 +237,8 @@ static const lunatik_class_t luaskb_class = {
 static int luaskb_copy(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	luaskb_checkfraglist(L, lskb, 1);
-	luaskb_checklinearize(L, lskb, 1);
+	luaskb_checkfraglist(L, lskb);
+	luaskb_checklinearize(L, lskb);
 
 	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *copy = (luaskb_t *)object->private;

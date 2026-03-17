@@ -139,6 +139,12 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 
 #define lunatik_enomem(L)	luaL_error((L), "not enough memory")
 
+static inline void lunatik_assert(lua_State *L, bool cond, const char *msg)
+{
+	if (!cond)
+		luaL_error(L, msg);
+}
+
 static inline void *lunatik_checknull(lua_State *L, void *ptr)
 {
 	if (ptr == NULL)
