@@ -6,16 +6,35 @@
 #ifndef lunatik_val_h
 #define lunatik_val_h
 
+typedef struct lunatik_string_s {
+	struct kref kref;
+	size_t len;
+	char data[];
+} lunatik_string_t;
+
 typedef struct lunatik_value_s {
 	int type;
 	union {
 		int boolean;
 		lua_Integer integer;
 		lunatik_object_t *object;
+		lunatik_string_t *string;
 	};
 } lunatik_value_t;
 
 #define lunatik_isuserdata(v)	((v)->type == LUA_TUSERDATA)
+#define lunatik_isstring(v)	((v)->type == LUA_TSTRING)
+
+void lunatik_freestring(struct kref *kref);
+#define lunatik_getstring(s)	kref_get(&(s)->kref)
+#define lunatik_putstring(s)	kref_put(&(s)->kref, lunatik_freestring)
+
+/* release value's reference after lunatik_pushvalue (strings only; objects transfer their ref) */
+static inline void lunatik_putvalue(lunatik_value_t *value)
+{
+	if (lunatik_isstring(value))
+		lunatik_putstring(value->string);
+}
 
 void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value);
 void lunatik_pushvalue(lua_State *L, lunatik_value_t *value);
