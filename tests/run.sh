@@ -29,6 +29,7 @@ run_suite "$DIR/monitor/run.sh"
 run_suite "$DIR/thread/run.sh"
 run_suite "$DIR/runtime/run.sh"
 run_suite "$DIR/socket/run.sh"
+run_suite "$DIR/io/test.sh"
 
 echo ""
 echo "# Grand Totals: pass:$TOTAL_PASS fail:$TOTAL_FAIL skip:$TOTAL_SKIP"

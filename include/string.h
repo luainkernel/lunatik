@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -8,6 +8,7 @@
 
 #include <linux/string.h>
 #define strcoll(l,r)	strcmp((l),(r))
+#define strerror(n)	"I/O error"
 
 #if defined(CONFIG_FORTIFY_SOURCE) && !defined(unsafe_memcpy)
 #define unsafe_memcpy(dst, src, bytes, justification)	__builtin_memcpy(dst, src, bytes)
