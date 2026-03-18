@@ -15,6 +15,9 @@
 #include <linux/random.h>
 #define luai_makeseed(L)		get_random_u32()
 
+#undef lua_getlocaledecpoint
+#define lua_getlocaledecpoint()		('.')
+
 #define lua_writestring(s,l)		printk("%s",(s))
 #define lua_writeline()			pr_cont("\n")
 #define lua_writestringerror(...)	pr_err(__VA_ARGS__)
