@@ -135,7 +135,8 @@ static int luacompletion_new(lua_State *L)
 	return 1;
 }
 
-LUNATIK_NEWLIB(completion, luacompletion_lib, &luacompletion_class, NULL);
+LUNATIK_CLASSES(completion, &luacompletion_class);
+LUNATIK_NEWLIB(completion, luacompletion_lib, luacompletion_classes, NULL);
 
 static int __init luacompletion_init(void)
 {

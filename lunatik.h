@@ -312,19 +312,29 @@ static inline void lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t
 	}
 }
 
-#define LUNATIK_NEWLIB(libname, funcs, class, namespaces)			\
+#define LUNATIK_CLASSES(name, ...)	\
+static const lunatik_class_t *lua##name##_classes[] = { __VA_ARGS__, NULL }
+
+static inline void lunatik_newclasses(lua_State *L, const lunatik_class_t **classes)
+{
+	for (; *classes; classes++) {
+		const lunatik_class_t *cls = *classes;
+		lunatik_checkclass(L, cls);
+		if (lunatik_ismonitor(cls->opt))
+			lunatik_newclass(L, cls, true);
+		lunatik_newclass(L, cls, false);
+	}
+}
+
+#define LUNATIK_NEWLIB(libname, funcs, classes, namespaces)			\
 int luaopen_##libname(lua_State *L);						\
 int luaopen_##libname(lua_State *L)						\
 {										\
-	const lunatik_class_t *cls = class; /* avoid -Waddress */		\
+	const lunatik_class_t **clss = classes; /* avoid -Waddress */		\
 	const lunatik_namespace_t *nss = namespaces; /* avoid -Waddress */	\
 	luaL_newlib(L, funcs);							\
-	if (cls) {								\
-		lunatik_checkclass(L, cls);					\
-		if (lunatik_ismonitor(cls->opt))				\
-			lunatik_newclass(L, cls, true);				\
-		lunatik_newclass(L, cls, false);				\
-	}									\
+	if (clss)								\
+		lunatik_newclasses(L, clss);					\
 	if (nss)								\
 		lunatik_newnamespaces(L, nss);					\
 	return 1;								\

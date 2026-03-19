@@ -220,7 +220,8 @@ static const luaL_Reg luacrypto_skcipher_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(crypto_skcipher, luacrypto_skcipher_lib, &luacrypto_skcipher_class, NULL);
+LUNATIK_CLASSES(crypto_skcipher, &luacrypto_skcipher_class);
+LUNATIK_NEWLIB(crypto_skcipher, luacrypto_skcipher_lib, luacrypto_skcipher_classes, NULL);
 
 static int __init luacrypto_skcipher_init(void)
 {

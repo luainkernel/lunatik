@@ -246,7 +246,8 @@ static const luaL_Reg luacrypto_shash_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(crypto_shash, luacrypto_shash_lib, &luacrypto_shash_class, NULL);
+LUNATIK_CLASSES(crypto_shash, &luacrypto_shash_class);
+LUNATIK_NEWLIB(crypto_shash, luacrypto_shash_lib, luacrypto_shash_classes, NULL);
 
 static int __init luacrypto_shash_init(void)
 {

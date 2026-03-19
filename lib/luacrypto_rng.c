@@ -170,7 +170,8 @@ static const luaL_Reg luacrypto_rng_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(crypto_rng, luacrypto_rng_lib, &luacrypto_rng_class, NULL);
+LUNATIK_CLASSES(crypto_rng, &luacrypto_rng_class);
+LUNATIK_NEWLIB(crypto_rng, luacrypto_rng_lib, luacrypto_rng_classes, NULL);
 
 static int __init luacrypto_rng_init(void)
 {

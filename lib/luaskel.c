@@ -54,7 +54,8 @@ static int luaskel_new(lua_State *L)
 	return 1; /* object */
 }
 
-LUNATIK_NEWLIB(skel, luaskel_lib, &luaskel_class, NULL);
+LUNATIK_CLASSES(skel, &luaskel_class);
+LUNATIK_NEWLIB(skel, luaskel_lib, luaskel_classes, NULL);
 
 static int __init luaskel_init(void)
 {

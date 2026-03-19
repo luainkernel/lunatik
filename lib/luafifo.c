@@ -137,7 +137,8 @@ static int luafifo_new(lua_State *L)
 	return 1; /* object */
 }
 
-LUNATIK_NEWLIB(fifo, luafifo_lib, &luafifo_class, NULL);
+LUNATIK_CLASSES(fifo, &luafifo_class);
+LUNATIK_NEWLIB(fifo, luafifo_lib, luafifo_classes, NULL);
 
 static int __init luafifo_init(void)
 {
