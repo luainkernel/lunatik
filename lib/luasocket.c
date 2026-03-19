@@ -749,7 +749,8 @@ static int luasocket_new(lua_State *L)
 	return 1; /* object */
 }
 
-LUNATIK_NEWLIB(socket, luasocket_lib, &luasocket_class, luasocket_flags);
+LUNATIK_CLASSES(socket, &luasocket_class);
+LUNATIK_NEWLIB(socket, luasocket_lib, luasocket_classes, luasocket_flags);
 
 static int __init luasocket_init(void)
 {

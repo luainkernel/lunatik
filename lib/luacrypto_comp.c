@@ -115,7 +115,8 @@ static const luaL_Reg luacrypto_comp_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(crypto_comp, luacrypto_comp_lib, &luacrypto_comp_class, NULL);
+LUNATIK_CLASSES(crypto_comp, &luacrypto_comp_class);
+LUNATIK_NEWLIB(crypto_comp, luacrypto_comp_lib, luacrypto_comp_classes, NULL);
 #endif
 
 static int __init luacrypto_comp_init(void)

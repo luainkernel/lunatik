@@ -251,7 +251,8 @@ static const luaL_Reg luacrypto_aead_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(crypto_aead, luacrypto_aead_lib, &luacrypto_aead_class, NULL);
+LUNATIK_CLASSES(crypto_aead, &luacrypto_aead_class);
+LUNATIK_NEWLIB(crypto_aead, luacrypto_aead_lib, luacrypto_aead_classes, NULL);
 
 static int __init luacrypto_aead_init(void)
 {
