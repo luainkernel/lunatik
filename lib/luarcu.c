@@ -215,20 +215,20 @@ static inline void luarcu_inittable(luarcu_table_t *table, size_t size)
 static int luarcu_map_handle(lua_State *L)
 {
 	const char *key = (const char *)lua_touserdata(L, 2);
-	lunatik_object_t *value = (lunatik_object_t *)lua_touserdata(L, 3);
+	lunatik_value_t *value = (lunatik_value_t *)lua_touserdata(L, 3);
 
 	BUG_ON(!key || !value);
 
 	lua_pop(L, 2); /* key, value */
 
 	lua_pushstring(L, key);
-	lunatik_pushobject(L, value);
+	lunatik_pushvalue(L, value);
 	lua_call(L, 2, 0);
 
 	return 0;
 }
 
-static inline int luarcu_map_call(lua_State *L, int cb, const char *key, lunatik_object_t *value)
+static inline int luarcu_map_call(lua_State *L, int cb, const char *key, lunatik_value_t *value)
 {
 	lua_pushcfunction(L, luarcu_map_handle);
 	lua_pushvalue(L, cb);
@@ -260,12 +260,12 @@ static int luarcu_map(lua_State *L)
 
 		strncpy(key, entry->key, LUARCU_MAXKEY);
 		key[LUARCU_MAXKEY - 1] = '\0';
-		lunatik_object_t *value = entry->value.object;
-		lunatik_getobject(value);
+		lunatik_value_t value = entry->value;
+		if (lunatik_isuserdata(&value))
+			lunatik_getobject(value.object);
 
 		rcu_read_unlock();
-		int ret = luarcu_map_call(L, 1, key, value);
-		lunatik_putobject(value);
+		int ret = luarcu_map_call(L, 1, key, &value);
 		if (ret != LUA_OK)
 			lua_error(L);
 		rcu_read_lock();

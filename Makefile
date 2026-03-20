@@ -128,8 +128,10 @@ tests_install:
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0755 tests/run.sh ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0644 tests/lib.sh ${LUNATIK_TESTS_INSTALL_PATH}
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
-	${INSTALL} -m 0644 tests/rcumap_sync/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcumap_sync
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/rcu
+	${INSTALL} -m 0755 tests/rcu/run.sh ${LUNATIK_TESTS_INSTALL_PATH}/rcu
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/rcu
+	${INSTALL} -m 0644 tests/rcu/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcu
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/crypto
 	${INSTALL} -m 0644 tests/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/tests/crypto
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/monitor

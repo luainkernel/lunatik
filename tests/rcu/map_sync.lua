@@ -4,12 +4,12 @@
 --
 
 -- Usage:
--- > lunatik spawn tests/rcumap_sync/main
+-- > lunatik spawn tests/rcu/map_sync
 --
 -- It should output a random number about every second.
 --
 -- To stop it:
--- > lunatik stop tests/rcumap_sync/main ; lunatik stop tests/rcumap_sync/clean
+-- > lunatik stop tests/rcu/map_sync ; lunatik stop tests/rcu/map_sync_clean
 
 local lunatik = require "lunatik"
 local linux = require "linux"
@@ -23,7 +23,7 @@ end
 
 return function()
 	lunatik._ENV.whitelist = rcu.table(1024)
-	runner.spawn "tests/rcumap_sync/clean"
+	runner.spawn "tests/rcu/map_sync_clean"
 
 	local whitelist = lunatik._ENV.whitelist
 	local start = milliseconds()
