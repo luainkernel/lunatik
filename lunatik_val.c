@@ -35,7 +35,7 @@ void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value)
 		const char *s = lua_tolstring(L, ix, &len);
 		lunatik_string_t *str = kmalloc(sizeof(*str) + len + 1, GFP_ATOMIC);
 		if (unlikely(!str))
-			luaL_argerror(L, ix, "not enough memory");
+			lunatik_enomem(L);
 		kref_init(&str->kref);
 		str->len = len;
 		memcpy(str->data, s, len + 1);
