@@ -400,37 +400,46 @@ truncated to `maxlen` bytes. Raises a Lua error if the field is missing or not a
 
 ## Module Definition
 
+### LUNATIK\_CLASSES
+```C
+#define LUNATIK_CLASSES(name, ...)
+```
+Declares a NULL-terminated `const lunatik_class_t *` array named `lua<name>_classes`,
+to be passed as the `classes` argument of `LUNATIK_NEWLIB`.
+
+- `name`: module name suffix (same token used in `LUNATIK_NEWLIB`).
+- `...`: one or more `lunatik_class_t *` pointers.
+
 ### LUNATIK\_NEWLIB
 ```C
-#define LUNATIK_NEWLIB(libname, funcs, class, namespaces)
+#define LUNATIK_NEWLIB(libname, funcs, classes, namespaces)
 ```
 Defines and exports the `luaopen_<libname>` entry point using `EXPORT_SYMBOL_GPL`.
 
 - `funcs`: `luaL_Reg[]` of Lua-callable functions (the module table).
-- `class`: pointer to a `lunatik_class_t`, or `NULL` if the module defines no object type.
+- `classes`: NULL-terminated `const lunatik_class_t **` array declared with
+  `LUNATIK_CLASSES`, or `NULL` if the module defines no object type.
 - `namespaces`: `lunatik_namespace_t[]` of constant sub-tables, or `NULL`.
 
-When `class != NULL`, `LUNATIK_NEWLIB` registers the class metatable(s). When
-`namespaces != NULL`, it creates constant sub-tables inside the module table.
+When `classes != NULL`, `LUNATIK_NEWLIB` registers the metatable(s) for every
+class in the array. When `namespaces != NULL`, it creates constant sub-tables
+inside the module table.
 
-#### Example
+#### Example — single class
 ```C
 static const luaL_Reg luafoo_lib[] = {
 	{"new", luafoo_new},
 	{NULL, NULL},
 };
 
-static const lunatik_reg_t luafoo_flags[] = {
-	{"BAR", FOO_BAR},
-	{NULL, 0},
-};
+LUNATIK_CLASSES(foo, &luafoo_class);
+LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes, NULL);
+```
 
-static const lunatik_namespace_t luafoo_namespaces[] = {
-	{"flags", luafoo_flags},
-	{NULL, NULL},
-};
-
-LUNATIK_NEWLIB(foo, luafoo_lib, &luafoo_class, luafoo_namespaces);
+#### Example — multiple classes
+```C
+LUNATIK_CLASSES(foo, &luafoo_class, &luafoo_bar_class);
+LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes, NULL);
 ```
 
 ---
