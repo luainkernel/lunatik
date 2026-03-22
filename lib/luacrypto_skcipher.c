@@ -5,7 +5,7 @@
 
 /***
 * Lua interface to symmetric-key ciphers (SKCIPHER).
-* @module crypto.skcipher
+* @classmod crypto_skcipher
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -175,7 +175,7 @@ static const luaL_Reg luacrypto_skcipher_mt[] = {
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luacrypto_skcipher_class = {
+const lunatik_class_t luacrypto_skcipher_class = {
 	.name = "crypto_skcipher",
 	.methods = luacrypto_skcipher_mt,
 	.release = luacrypto_skcipher_release,
@@ -193,27 +193,4 @@ static const lunatik_class_t luacrypto_skcipher_class = {
 *   local cipher = skcipher("cbc(aes)")
 */
 LUACRYPTO_NEW(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class);
-
-static const luaL_Reg luacrypto_skcipher_lib[] = {
-	{"new", luacrypto_skcipher_new},
-	{NULL, NULL}
-};
-
-LUNATIK_CLASSES(crypto_skcipher, &luacrypto_skcipher_class);
-LUNATIK_NEWLIB(crypto_skcipher, luacrypto_skcipher_lib, luacrypto_skcipher_classes, NULL);
-
-static int __init luacrypto_skcipher_init(void)
-{
-	return 0;
-}
-
-static void __exit luacrypto_skcipher_exit(void)
-{
-}
-
-module_init(luacrypto_skcipher_init);
-module_exit(luacrypto_skcipher_exit);
-MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("jperon <cataclop@hotmail.com>");
-MODULE_DESCRIPTION("Lunatik low-level Linux Crypto API interface (SKCIPHER)");
 

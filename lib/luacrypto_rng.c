@@ -5,7 +5,7 @@
 
 /***
 * Lua interface to synchronous Random Number Generators (RNG).
-* @module crypto.rng
+* @classmod crypto_rng
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -118,7 +118,7 @@ static const luaL_Reg luacrypto_rng_mt[] = {
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luacrypto_rng_class = {
+const lunatik_class_t luacrypto_rng_class = {
 	.name = "crypto_rng",
 	.methods = luacrypto_rng_mt,
 	.release = luacrypto_rng_release,
@@ -135,7 +135,7 @@ static const lunatik_class_t luacrypto_rng_class = {
 *   local rng = require("crypto").rng
 *   local r = rng()  -- uses "stdrng"
 */
-static int luacrypto_rng_new(lua_State *L)
+int luacrypto_rng_new(lua_State *L)
 {
 	const char *algname = luaL_optstring(L, 1, "stdrng");
 	lunatik_object_t *object = lunatik_newobject(L, &luacrypto_rng_class, 0, LUNATIK_OPT_NONE);
@@ -148,27 +148,4 @@ static int luacrypto_rng_new(lua_State *L)
 	lunatik_try(L, crypto_rng_reset, tfm, NULL, 0);
 	return 1;
 }
-
-static const luaL_Reg luacrypto_rng_lib[] = {
-	{"new", luacrypto_rng_new},
-	{NULL, NULL}
-};
-
-LUNATIK_CLASSES(crypto_rng, &luacrypto_rng_class);
-LUNATIK_NEWLIB(crypto_rng, luacrypto_rng_lib, luacrypto_rng_classes, NULL);
-
-static int __init luacrypto_rng_init(void)
-{
-	return 0;
-}
-
-static void __exit luacrypto_rng_exit(void)
-{
-}
-
-module_init(luacrypto_rng_init);
-module_exit(luacrypto_rng_exit);
-MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("jperon <cataclop@hotmail.com>");
-MODULE_DESCRIPTION("Lunatik low-level Linux Crypto API interface (RNG)");
 
