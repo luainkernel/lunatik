@@ -1,0 +1,330 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><strong>crypto.hkdf</strong></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Class <code>crypto.hkdf</code></h1>
+<p>HMAC-based Extract-and-Expand Key Derivation Function (HKDF) based on RFC 5869.</p>
+<p> This module provides functions to perform HKDF operations, utilizing the
+ underlying <a href="../modules/crypto.html#">crypto</a> C module for HMAC calculations.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#HKDF.new">HKDF.new (alg)</a></td>
+	<td class="summary">Creates a new HKDF instance for a given hash algorithm.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#HKDF:close">HKDF:close ()</a></td>
+	<td class="summary">Closes the HKDF instance and releases the underlying HMAC transform.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#HKDF:expand">HKDF:expand (prk[, info], length)</a></td>
+	<td class="summary">Performs the HKDF Expand step.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#HKDF:extract">HKDF:extract ([salt], ikm)</a></td>
+	<td class="summary">Performs the HKDF Extract step.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#HKDF:hkdf">HKDF:hkdf ([salt], ikm[, info], length)</a></td>
+	<td class="summary">Performs the full HKDF (Extract and Expand) operation.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#HKDF:hmac">HKDF:hmac (key, data)</a></td>
+	<td class="summary">Performs an HMAC calculation using the instance's algorithm.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "HKDF.new"></a>
+    <strong>HKDF.new (alg)</strong>
+    </dt>
+    <dd>
+    Creates a new HKDF instance for a given hash algorithm.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">alg</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The base hash algorithm name (e.g., "sha256", "sha512").
+ The "hmac(" prefix will be added automatically.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">HKDF</span></span>
+        An HKDF instance table with methods for key derivation.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> hkdf_sha256 = <span class="global">require</span>(<span class="string">"crypto.hkdf"</span>).<span class="function-name">new</span>(<span class="string">"sha256"</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "HKDF:close"></a>
+    <strong>HKDF:close ()</strong>
+    </dt>
+    <dd>
+    Closes the HKDF instance and releases the underlying HMAC transform.
+ This method is also called by the garbage collector.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "HKDF:expand"></a>
+    <strong>HKDF:expand (prk[, info], length)</strong>
+    </dt>
+    <dd>
+    Performs the HKDF Expand step.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">prk</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Pseudorandom Key.
+        </li>
+        <li><span class="parameter">info</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Optional context and application-specific information. Defaults to an empty string if nil.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">length</span>
+            <span class="types"><span class="type">number</span></span>
+         The desired length in bytes for the Output Keying Material (OKM).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The Output Keying Material of the specified <code>length</code>.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "HKDF:extract"></a>
+    <strong>HKDF:extract ([salt], ikm)</strong>
+    </dt>
+    <dd>
+    Performs the HKDF Extract step.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">salt</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Optional salt value. If nil or not provided, a salt of <code>hash_len</code> zeros is used.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">ikm</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Input Keying Material.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The Pseudorandom Key (PRK).
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "HKDF:hkdf"></a>
+    <strong>HKDF:hkdf ([salt], ikm[, info], length)</strong>
+    </dt>
+    <dd>
+    Performs the full HKDF (Extract and Expand) operation.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">salt</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Optional salt value.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">ikm</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Input Keying Material.
+        </li>
+        <li><span class="parameter">info</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Optional context and application-specific information.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">length</span>
+            <span class="types"><span class="type">number</span></span>
+         The desired length in bytes for the Output Keying Material.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The Output Keying Material.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "HKDF:hmac"></a>
+    <strong>HKDF:hmac (key, data)</strong>
+    </dt>
+    <dd>
+    Performs an HMAC calculation using the instance's algorithm.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The HMAC key.
+        </li>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The data to hash.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The HMAC digest.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-03-22 17:23:54 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

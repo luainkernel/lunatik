@@ -33,11 +33,19 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Functions">Functions</a></li>
-<li><a href="#Tables">Tables</a></li>
+<li><a href="#Methods">Methods</a></li>
 </ul>
 
 
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><strong>crypto_rng</strong></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/byteorder.html">byteorder</a></li>
@@ -60,7 +68,7 @@
   <li><a href="../modules/notifier.html">notifier</a></li>
   <li><a href="../modules/probe.html">probe</a></li>
   <li><a href="../modules/rcu.html">rcu</a></li>
-  <li><strong>signal</strong></li>
+  <li><a href="../modules/signal.html">signal</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
   <li><a href="../modules/socket.html">socket</a></li>
   <li><a href="../modules/socket.inet.html">socket.inet</a></li>
@@ -71,15 +79,6 @@
   <li><a href="../modules/thread.html">thread</a></li>
   <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
-  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
-</ul>
 <h2>Topics</h2>
 <ul class="">
   <li><a href="../topics/README.md.html">README</a></li>
@@ -89,37 +88,34 @@
 
 <div id="content">
 
-<h1>Module <code>signal</code></h1>
-<p>POSIX Signals</p>
+<h1>Class <code>crypto_rng</code></h1>
+<p>Lua interface to synchronous Random Number Generators (RNG).</p>
 <p>
 
 </p>
 
 
-<h2><a href="#Functions">Functions</a></h2>
+<h2><a href="#Methods">Methods</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#kill">kill (pid[, sig])</a></td>
-	<td class="summary">Sends a signal to a process.</td>
+	<td class="name" nowrap><a href="#crypto_rng:generate">crypto_rng:generate (n[, seed])</a></td>
+	<td class="summary">Generates random bytes, optionally reseeding first.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#sigmask">sigmask (sig[, cmd])</a></td>
-	<td class="summary">Modifies signal mask for current task.</td>
+	<td class="name" nowrap><a href="#crypto_rng:getbytes">crypto_rng:getbytes (n)</a></td>
+	<td class="summary">Generates random bytes without reseeding.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#sigpending">sigpending ()</a></td>
-	<td class="summary">Checks if the current task has pending signals.</td>
+	<td class="name" nowrap><a href="#crypto_rng:info">crypto_rng:info ()</a></td>
+	<td class="summary">Returns algorithm information.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#sigstate">sigstate (sig[, state])</a></td>
-	<td class="summary">Checks signal state for current task.</td>
+	<td class="name" nowrap><a href="#crypto_rng:new">crypto_rng:new ([algname])</a></td>
+	<td class="summary">Creates a new RNG object.</td>
 	</tr>
-</table>
-<h2><a href="#Tables">Tables</a></h2>
-<table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#flags">flags</a></td>
-	<td class="summary">Signal constants.</td>
+	<td class="name" nowrap><a href="#crypto_rng:reset">crypto_rng:reset (seed)</a></td>
+	<td class="summary">Reseeds the RNG.</td>
 	</tr>
 </table>
 
@@ -127,110 +123,26 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
 
     <dl class="function">
     <dt>
-    <a name = "kill"></a>
-    <strong>kill (pid[, sig])</strong>
+    <a name = "crypto_rng:generate"></a>
+    <strong>crypto_rng:generate (n[, seed])</strong>
     </dt>
     <dd>
-    Sends a signal to a process.
+    Generates random bytes, optionally reseeding first.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">pid</span>
+        <li><span class="parameter">n</span>
             <span class="types"><span class="type">integer</span></span>
-         Target process ID.
+         number of bytes to generate
         </li>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal to send (default: <code>signal.flags.KILL</code>).
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-        <code>true</code> on success.
-    </ol>
-
-    <h3>Raises:</h3>
-    Error if the process is not found or the operation is not permitted.
-
-
-
-</dd>
-    <dt>
-    <a name = "sigmask"></a>
-    <strong>sigmask (sig[, cmd])</strong>
-    </dt>
-    <dd>
-    Modifies signal mask for current task.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number.
-        </li>
-        <li><span class="parameter">cmd</span>
-            <span class="types"><span class="type">integer</span></span>
-         SIG<em>BLOCK (0, default) or SIG</em>UNBLOCK (1).
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if the signal is invalid or the operation is not permitted.
-
-
-
-</dd>
-    <dt>
-    <a name = "sigpending"></a>
-    <strong>sigpending ()</strong>
-    </dt>
-    <dd>
-    Checks if the current task has pending signals.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-
-
-
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "sigstate"></a>
-    <strong>sigstate (sig[, state])</strong>
-    </dt>
-    <dd>
-    Checks signal state for current task.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number.
-        </li>
-        <li><span class="parameter">state</span>
+        <li><span class="parameter">seed</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         <code>&quot;blocked&quot;</code> (default), <code>&quot;pending&quot;</code>, or <code>&quot;allowed&quot;</code>.
+         optional seed data
          (<em>optional</em>)
         </li>
     </ul>
@@ -238,35 +150,123 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">boolean</span></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        random bytes
+    </ol>
+
+    <h3>Raises:</h3>
+    on generation failure
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_rng:getbytes"></a>
+    <strong>crypto_rng:getbytes (n)</strong>
+    </dt>
+    <dd>
+    Generates random bytes without reseeding.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">n</span>
+            <span class="types"><span class="type">integer</span></span>
+         number of bytes to generate
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        random bytes
+    </ol>
+
+    <h3>Raises:</h3>
+    on generation failure
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_rng:info"></a>
+    <strong>crypto_rng:info ()</strong>
+    </dt>
+    <dd>
+    Returns algorithm information.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        with fields <code>driver_name</code> (string) and <code>seedsize</code> (integer)
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_rng:new"></a>
+    <strong>crypto_rng:new ([algname])</strong>
+    </dt>
+    <dd>
+    Creates a new RNG object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">algname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         algorithm name; defaults to "stdrng"
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">crypto_rng</span></span>
 
 
 
     </ol>
 
+    <h3>Raises:</h3>
+    on allocation or initialization failure
 
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example">signal.<span class="function-name">sigstate</span>(<span class="number">15</span>) <span class="comment">-- check if SIGTERM is blocked
-</span>signal.<span class="function-name">sigstate</span>(signal.flags.TERM, <span class="string">"pending"</span>)</pre>
+        <pre class="example"><span class="keyword">local</span> rng = <span class="global">require</span>(<span class="string">"crypto"</span>).rng
+<span class="keyword">local</span> r = <span class="function-name">rng</span>()  <span class="comment">-- uses "stdrng"</span></pre>
     </ul>
 
 </dd>
-</dl>
-    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
-
-    <dl class="function">
     <dt>
-    <a name = "flags"></a>
-    <strong>flags</strong>
+    <a name = "crypto_rng:reset"></a>
+    <strong>crypto_rng:reset (seed)</strong>
     </dt>
     <dd>
-    Signal constants.
+    Reseeds the RNG.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">seed</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
 
 
 
+        </li>
+    </ul>
 
+
+    <h3>Raises:</h3>
+    on reseed failure
 
 
 

@@ -1,0 +1,354 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Methods">Methods</a></li>
+</ul>
+
+
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><strong>crypto_aead</strong></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Class <code>crypto_aead</code></h1>
+<p>Lua interface to AEAD (Authenticated Encryption with Associated Data) ciphers.</p>
+<p>
+
+</p>
+
+
+<h2><a href="#Methods">Methods</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#crypto_aead:authsize">crypto_aead:authsize ()</a></td>
+	<td class="summary">Returns the authentication tag size in bytes.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_aead:decrypt">crypto_aead:decrypt (iv, ciphertext_with_tag[, aad])</a></td>
+	<td class="summary">Decrypts and authenticates ciphertext.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_aead:encrypt">crypto_aead:encrypt (iv, plaintext[, aad])</a></td>
+	<td class="summary">Encrypts plaintext with authentication.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_aead:ivsize">crypto_aead:ivsize ()</a></td>
+	<td class="summary">Returns the required IV size in bytes.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_aead:new">crypto_aead:new (algname)</a></td>
+	<td class="summary">Creates a new AEAD transform object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_aead:setauthsize">crypto_aead:setauthsize (tagsize)</a></td>
+	<td class="summary">Sets the authentication tag size.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#crypto_aead:setkey">crypto_aead:setkey (key)</a></td>
+	<td class="summary">Sets the cipher key.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "crypto_aead:authsize"></a>
+    <strong>crypto_aead:authsize ()</strong>
+    </dt>
+    <dd>
+    Returns the authentication tag size in bytes.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+
+
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_aead:decrypt"></a>
+    <strong>crypto_aead:decrypt (iv, ciphertext_with_tag[, aad])</strong>
+    </dt>
+    <dd>
+    Decrypts and authenticates ciphertext.
+ IV length must match <code>ivsize()</code>. Raises EBADMSG on authentication failure.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         initialization vector
+        </li>
+        <li><span class="parameter">ciphertext_with_tag</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         ciphertext concatenated with authentication tag
+        </li>
+        <li><span class="parameter">aad</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         additional authenticated data (default: empty string)
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        decrypted plaintext
+    </ol>
+
+    <h3>Raises:</h3>
+    on authentication failure (EBADMSG), incorrect IV length, or input too short
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_aead:encrypt"></a>
+    <strong>crypto_aead:encrypt (iv, plaintext[, aad])</strong>
+    </dt>
+    <dd>
+    Encrypts plaintext with authentication.
+ IV length must match <code>ivsize()</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         initialization vector
+        </li>
+        <li><span class="parameter">plaintext</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         data to encrypt
+        </li>
+        <li><span class="parameter">aad</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         additional authenticated data (default: empty string)
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        ciphertext concatenated with authentication tag
+    </ol>
+
+    <h3>Raises:</h3>
+    on encryption failure or incorrect IV length
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_aead:ivsize"></a>
+    <strong>crypto_aead:ivsize ()</strong>
+    </dt>
+    <dd>
+    Returns the required IV size in bytes.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+
+
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_aead:new"></a>
+    <strong>crypto_aead:new (algname)</strong>
+    </dt>
+    <dd>
+    Creates a new AEAD transform object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">algname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         algorithm name (e.g., "gcm(aes)", "ccm(aes)")
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">crypto_aead</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    on allocation failure
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> aead = <span class="global">require</span>(<span class="string">"crypto"</span>).aead
+<span class="keyword">local</span> cipher = <span class="function-name">aead</span>(<span class="string">"gcm(aes)"</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "crypto_aead:setauthsize"></a>
+    <strong>crypto_aead:setauthsize (tagsize)</strong>
+    </dt>
+    <dd>
+    Sets the authentication tag size.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tagsize</span>
+            <span class="types"><span class="type">integer</span></span>
+         tag size in bytes
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    on unsupported size
+
+
+
+</dd>
+    <dt>
+    <a name = "crypto_aead:setkey"></a>
+    <strong>crypto_aead:setkey (key)</strong>
+    </dt>
+    <dd>
+    Sets the cipher key.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+
+
+
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    on invalid key length or algorithm error
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-03-22 17:23:54 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
