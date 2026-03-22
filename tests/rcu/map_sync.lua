@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -36,7 +36,7 @@ return function()
 
 		if entry and now - last_print > 1000 then
 			last_print = now
-			print(entry:getnumber(0))
+			print(string.format("map_sync: reader found entry written %dms ago", now - entry:getnumber(0)))
 		end
 	end
 
