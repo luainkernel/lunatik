@@ -121,42 +121,18 @@ config LUNATIK_COMPLETION
 	help
 	  Kernel completion synchronization primitives.
 
-config LUNATIK_CRYPTO_SHASH
-	tristate "Lunatik Crypto SHASH (Synchronous Hash) Support"
+config LUNATIK_CRYPTO
+	tristate "Lunatik Crypto Support"
 	default m
 	help
-	  Synchronous Hash support.
-
-config LUNATIK_CRYPTO_SKCIPHER
-	tristate "Lunatik Crypto SKCIPHER (Symmetric Key Cipher) Support"
-	default m
-	help
-	  Symmetric Key Cipher support.
+	  Linux Crypto API support (hash, cipher, AEAD, RNG, compression).
 
 config LUNATIK_DARKEN
 	tristate "Lunatik Darken (Encrypted Script) Support"
-	depends on LUNATIK_CRYPTO_SKCIPHER
+	depends on LUNATIK_CRYPTO
 	default m
 	help
 	  AES-256-CTR encrypted Lua script support.
-
-config LUNATIK_CRYPTO_AEAD
-	tristate "Lunatik Crypto AEAD (Authenticated Encryption) Support"
-	default m
-	help
-	  Authenticated Encryption with Associated Data support.
-
-config LUNATIK_CRYPTO_RNG
-	tristate "Lunatik Crypto RNG (Random Number Generator) Support"
-	default m
-	help
-	  Random Number Generator support.
-
-config LUNATIK_CRYPTO_COMP
-	tristate "Lunatik Crypto COMP (Compression) Support"
-	default m
-	help
-	  Compression algorithm support.
 
 config LUNATIK_CPU
 	tristate "Lunatik CPU Support"

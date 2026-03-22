@@ -5,7 +5,7 @@
 
 /***
 * Lua interface to AEAD (Authenticated Encryption with Associated Data) ciphers.
-* @module crypto.aead
+* @classmod crypto_aead
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -220,7 +220,7 @@ static const luaL_Reg luacrypto_aead_mt[] = {
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luacrypto_aead_class = {
+const lunatik_class_t luacrypto_aead_class = {
 	.name = "crypto_aead",
 	.methods = luacrypto_aead_mt,
 	.release = luacrypto_aead_release,
@@ -238,27 +238,4 @@ static const lunatik_class_t luacrypto_aead_class = {
 *   local cipher = aead("gcm(aes)")
 */
 LUACRYPTO_NEW(aead, struct crypto_aead, crypto_alloc_aead, luacrypto_aead_class);
-
-static const luaL_Reg luacrypto_aead_lib[] = {
-	{"new", luacrypto_aead_new},
-	{NULL, NULL}
-};
-
-LUNATIK_CLASSES(crypto_aead, &luacrypto_aead_class);
-LUNATIK_NEWLIB(crypto_aead, luacrypto_aead_lib, luacrypto_aead_classes, NULL);
-
-static int __init luacrypto_aead_init(void)
-{
-	return 0;
-}
-
-static void __exit luacrypto_aead_exit(void)
-{
-}
-
-module_init(luacrypto_aead_init);
-module_exit(luacrypto_aead_exit);
-MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("jperon <cataclop@hotmail.com>");
-MODULE_DESCRIPTION("Lunatik low-level Linux Crypto API interface (AEAD)");
 

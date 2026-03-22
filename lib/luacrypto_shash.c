@@ -5,7 +5,7 @@
 
 /***
 * Lua interface to synchronous message digest (hash) algorithms, including HMAC.
-* @module crypto.shash
+* @classmod crypto_shash
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -201,7 +201,7 @@ static const luaL_Reg luacrypto_shash_mt[] = {
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luacrypto_shash_class = {
+const lunatik_class_t luacrypto_shash_class = {
 	.name = "crypto_shash",
 	.methods = luacrypto_shash_mt,
 	.release = luacrypto_shash_release,
@@ -218,7 +218,7 @@ static const lunatik_class_t luacrypto_shash_class = {
 *   local shash = require("crypto").shash
 *   local h = shash("sha256")
 */
-static int luacrypto_shash_new(lua_State *L)
+int luacrypto_shash_new(lua_State *L)
 {
 	const char *algname = luaL_checkstring(L, 1);
 	struct crypto_shash *tfm = crypto_alloc_shash(algname, 0, 0);
@@ -241,27 +241,4 @@ static int luacrypto_shash_new(lua_State *L)
 	object->private = sdesc;
 	return 1;
 }
-
-static const luaL_Reg luacrypto_shash_lib[] = {
-	{"new", luacrypto_shash_new},
-	{NULL, NULL}
-};
-
-LUNATIK_CLASSES(crypto_shash, &luacrypto_shash_class);
-LUNATIK_NEWLIB(crypto_shash, luacrypto_shash_lib, luacrypto_shash_classes, NULL);
-
-static int __init luacrypto_shash_mod_init(void)
-{
-	return 0;
-}
-
-static void __exit luacrypto_shash_mod_exit(void)
-{
-}
-
-module_init(luacrypto_shash_mod_init);
-module_exit(luacrypto_shash_mod_exit);
-MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("jperon <cataclop@hotmail.com>");
-MODULE_DESCRIPTION("Lunatik low-level Linux Crypto API interface (SHASH)");
 

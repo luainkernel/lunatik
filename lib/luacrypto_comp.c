@@ -5,7 +5,7 @@
 
 /***
 * Lua interface to synchronous compression algorithms.
-* @module crypto.comp
+* @classmod crypto_comp
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -69,7 +69,7 @@ static const luaL_Reg luacrypto_comp_mt[] = {
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luacrypto_comp_class = {
+const lunatik_class_t luacrypto_comp_class = {
 	.name = "crypto_comp",
 	.methods = luacrypto_comp_mt,
 	.release = luacrypto_comp_release,
@@ -88,27 +88,5 @@ static const lunatik_class_t luacrypto_comp_class = {
 */
 LUACRYPTO_NEW(comp, struct crypto_comp, crypto_alloc_comp, luacrypto_comp_class);
 
-static const luaL_Reg luacrypto_comp_lib[] = {
-	{"new", luacrypto_comp_new},
-	{NULL, NULL}
-};
-
-LUNATIK_CLASSES(crypto_comp, &luacrypto_comp_class);
-LUNATIK_NEWLIB(crypto_comp, luacrypto_comp_lib, luacrypto_comp_classes, NULL);
 #endif
-
-static int __init luacrypto_comp_init(void)
-{
-	return 0;
-}
-
-static void __exit luacrypto_comp_exit(void)
-{
-}
-
-module_init(luacrypto_comp_init);
-module_exit(luacrypto_comp_exit);
-MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("jperon <cataclop@hotmail.com>");
-MODULE_DESCRIPTION("Lunatik low-level Linux Crypto API interface (COMP)");
 
