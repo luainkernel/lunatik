@@ -9,6 +9,7 @@
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
+#include <linux/string.h>
 #include <linux/kref.h>
 #include <linux/version.h>
 
@@ -194,7 +195,7 @@ static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t
 #define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.opt))
 #define lunatik_monitormt(class, monitor)	((monitor) ? (void *)&(class)->opt : (void *)(class))
 
-static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
+static inline void lunatik_checkcontext(lua_State *L, const lunatik_class_t *class)
 {
 	if (lunatik_cannotsleep(L, !lunatik_issoftirq(class->opt)))
 		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_CONTEXT);
@@ -299,6 +300,15 @@ static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 	return pobject;
 }
 
+static inline lunatik_object_t *lunatik_checkclass(lua_State *L, int ix,
+	const char *name, lunatik_opt_t opt)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, ix);
+	luaL_argcheck(L, strcmp(object->class->name, name) == 0, ix, name);
+	luaL_argcheck(L, !opt || (object->opt & opt) == opt, ix, name);
+	return object;
+}
+
 static inline void lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
 {
 	for (; namespaces->name; namespaces++) {
@@ -320,7 +330,7 @@ int luaopen_##libname(lua_State *L)						\
 	const lunatik_namespace_t *nss = namespaces; /* avoid -Waddress */	\
 	luaL_newlib(L, funcs);							\
 	if (cls) {								\
-		lunatik_checkclass(L, cls);					\
+		lunatik_checkcontext(L, cls);					\
 		if (lunatik_ismonitor(cls->opt))				\
 			lunatik_newclass(L, cls, true);				\
 		lunatik_newclass(L, cls, false);				\

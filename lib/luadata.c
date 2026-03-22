@@ -16,13 +16,6 @@
 
 #include "luadata.h"
 
-
-typedef struct luadata_s {
-	void *ptr;
-	size_t size;
-	uint8_t opt;
-} luadata_t;
-
 #define LUADATA_NUMBER_SZ	(sizeof(lua_Integer))
 
 static int luadata_lnew(lua_State *L);

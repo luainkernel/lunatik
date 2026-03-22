@@ -26,5 +26,12 @@ static inline void luadata_close(lunatik_object_t *object)
 
 #define luadata_attach(L, obj, field, opt)	lunatik_attach(L, obj, field, luadata_new, opt)
 
+typedef struct luadata_s {
+	void *ptr;
+	size_t size;
+	uint8_t opt;
+} luadata_t;
+
+
 #endif
 

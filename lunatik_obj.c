@@ -22,7 +22,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
 	/* SOFTIRQ runtime requires a SOFTIRQ class */
-	lunatik_checkclass(L, class);
+	lunatik_checkcontext(L, class);
 
 	lunatik_setobject(object, class, opt);
 	lunatik_setclass(L, class, lunatik_ismonitor(object->opt));
@@ -62,7 +62,7 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 	lunatik_require(L, class->name);
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 
-	lunatik_checkclass(L, class);
+	lunatik_checkcontext(L, class);
 	lunatik_setclass(L, class, lunatik_ismonitor(object->opt));
 	*pobject = object;
 }
