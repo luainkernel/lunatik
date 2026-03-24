@@ -122,10 +122,7 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 	memcpy(entry->key, key, keylen);
 	entry->keylen = keylen;
 	entry->value = *value;
-	if (lunatik_isuserdata(value))
-		lunatik_getobject(value->object);
-	else if (lunatik_isstring(value))
-		lunatik_getstring(value->string);
+	lunatik_holdvalue(value);
 	return entry;
 }
 
@@ -136,10 +133,7 @@ static void luarcu_freeentry(struct rcu_head *head)
 
 static inline void luarcu_free(luarcu_entry_t *entry)
 {
-	if (lunatik_isuserdata(&entry->value))
-		lunatik_putobject(entry->value.object);
-	else if (lunatik_isstring(&entry->value))
-		lunatik_putstring(entry->value.string);
+	lunatik_dropvalue(&entry->value);
 	call_srcu(&luarcu_srcu, &entry->rcu, luarcu_freeentry);
 }
 
