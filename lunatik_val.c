@@ -7,22 +7,22 @@
 
 void lunatik_freestring(struct kref *kref)
 {
-	lunatik_free(container_of(kref, lunatik_string_t, kref));
+	lunatik_string_t *str = container_of(kref, lunatik_string_t, kref);
+	lunatik_free(str->data);
+	lunatik_free(str);
 }
 EXPORT_SYMBOL(lunatik_freestring);
-
-static void *lunatik_string_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
-{
-	if (nsize == 0)
-		lunatik_putstring((lunatik_string_t *)ud);
-	return NULL;
-}
 
 static inline lunatik_string_t *lunatik_newstring(lua_State *L, int ix)
 {
 	size_t len;
-	const char *s = lua_tolstring(L, ix, &len);
-	lunatik_string_t *str = lunatik_checkalloc(L, sizeof(*str) + len + 1);
+	const char *s = luaL_checklstring(L, ix, &len);
+	lunatik_string_t *str = lunatik_checkalloc(L, sizeof(*str));
+	str->data = lunatik_malloc(L, len + 1);
+	if (unlikely(!str->data)) {
+		lunatik_free(str);
+		lunatik_enomem(L);
+	}
 	kref_init(&str->kref);
 	str->len = len;
 	memcpy(str->data, s, len + 1);
@@ -75,8 +75,13 @@ void lunatik_pushvalue(lua_State *L, lunatik_value_t *value)
 		break;
 	case LUA_TSTRING: {
 		lunatik_string_t *s = value->string;
-		lunatik_getstring(s); /* for Lua's GC; released via lunatik_string_alloc */
-		lua_pushexternalstring(L, s->data, s->len, lunatik_string_alloc, s);
+		char *buf = lunatik_malloc(L, s->len + 1);
+		if (unlikely(!buf)) {
+			lunatik_putstring(s);
+			lunatik_enomem(L);
+		}
+		memcpy(buf, s->data, s->len);
+		lunatik_pushexternalstring(L, buf, s->len);
 		break;
 	}
 	case LUA_TUSERDATA:
