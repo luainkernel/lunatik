@@ -8,8 +8,7 @@
 
 typedef struct lunatik_string_s {
 	struct kref kref;
-	size_t len;
-	char data[];
+	char *data;
 } lunatik_string_t;
 
 typedef struct lunatik_value_s {
