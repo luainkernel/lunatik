@@ -87,19 +87,13 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 	strncpy(entry->key, key, keylen);
 	entry->key[keylen] = '\0';
 	entry->value = *value;
-	if (lunatik_isuserdata(value))
-		lunatik_getobject(value->object);
-	else if (lunatik_isstring(value))
-		lunatik_getstring(value->string);
+	lunatik_holdvalue(value);
 	return entry;
 }
 
 static inline void luarcu_free(luarcu_entry_t *entry)
 {
-	if (lunatik_isuserdata(&entry->value))
-		lunatik_putobject(entry->value.object);
-	else if (lunatik_isstring(&entry->value))
-		lunatik_putstring(entry->value.string);
+	lunatik_dropvalue(&entry->value);
 	kfree_rcu(entry, rcu);
 }
 
@@ -116,10 +110,7 @@ void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lu
 		value->type = LUA_TNIL;
 	else {
 		*value = entry->value;
-		if (lunatik_isuserdata(value))
-			lunatik_getobject(value->object);
-		else if (lunatik_isstring(value))
-			lunatik_getstring(value->string);
+		lunatik_holdvalue(value);
 	}
 	rcu_read_unlock();
 }
@@ -274,17 +265,11 @@ static int luarcu_map(lua_State *L)
 		strncpy(key, entry->key, LUARCU_MAXKEY);
 		key[LUARCU_MAXKEY - 1] = '\0';
 
-		if (lunatik_isuserdata(&value))
-			lunatik_getobject(value.object);
-		else if (lunatik_isstring(&value))
-			lunatik_getstring(value.string);
+		lunatik_holdvalue(&value);
 
 		rcu_read_unlock();
 		int ret = luarcu_map_call(L, 1, key, &value);
-		if (lunatik_isuserdata(&value))
-			lunatik_putobject(value.object);
-		else if (lunatik_isstring(&value))
-			lunatik_putstring(value.string);
+		lunatik_dropvalue(&value);
 		if (ret != LUA_OK)
 			lua_error(L);
 		rcu_read_lock();

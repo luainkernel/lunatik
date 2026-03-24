@@ -7,7 +7,7 @@
 
 void lunatik_freestring(struct kref *kref)
 {
-	kfree(container_of(kref, lunatik_string_t, kref));
+	lunatik_free(container_of(kref, lunatik_string_t, kref));
 }
 EXPORT_SYMBOL(lunatik_freestring);
 
@@ -16,6 +16,17 @@ static void *lunatik_string_alloc(void *ud, void *ptr, size_t osize, size_t nsiz
 	if (nsize == 0)
 		lunatik_putstring((lunatik_string_t *)ud);
 	return NULL;
+}
+
+static inline lunatik_string_t *lunatik_newstring(lua_State *L, int ix)
+{
+	size_t len;
+	const char *s = lua_tolstring(L, ix, &len);
+	lunatik_string_t *str = lunatik_checkalloc(L, sizeof(*str) + len + 1);
+	kref_init(&str->kref);
+	str->len = len;
+	memcpy(str->data, s, len + 1);
+	return str;
 }
 
 void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value)
@@ -30,18 +41,9 @@ void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value)
 	case LUA_TNUMBER:
 		value->integer = lua_tointeger(L, ix);
 		break;
-	case LUA_TSTRING: {
-		size_t len;
-		const char *s = lua_tolstring(L, ix, &len);
-		lunatik_string_t *str = kmalloc(sizeof(*str) + len + 1, GFP_ATOMIC);
-		if (unlikely(!str))
-			lunatik_enomem(L);
-		kref_init(&str->kref);
-		str->len = len;
-		memcpy(str->data, s, len + 1);
-		value->string = str;
+	case LUA_TSTRING:
+		value->string = lunatik_newstring(L, ix);
 		break;
-	}
 	case LUA_TUSERDATA:
 		value->object = lunatik_checkobject(L, ix);
 		if (lunatik_issingle(value->object->opt))

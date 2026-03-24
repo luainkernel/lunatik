@@ -29,6 +29,22 @@ void lunatik_freestring(struct kref *kref);
 #define lunatik_getstring(s)	kref_get(&(s)->kref)
 #define lunatik_putstring(s)	kref_put(&(s)->kref, lunatik_freestring)
 
+static inline void lunatik_holdvalue(lunatik_value_t *value)
+{
+	if (lunatik_isuserdata(value))
+		lunatik_getobject(value->object);
+	else if (lunatik_isstring(value))
+		lunatik_getstring(value->string);
+}
+
+static inline void lunatik_dropvalue(lunatik_value_t *value)
+{
+	if (lunatik_isuserdata(value))
+		lunatik_putobject(value->object);
+	else if (lunatik_isstring(value))
+		lunatik_putstring(value->string);
+}
+
 /* release value's reference after lunatik_pushvalue (strings only; objects transfer their ref) */
 static inline void lunatik_putvalue(lunatik_value_t *value)
 {
