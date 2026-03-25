@@ -8,7 +8,7 @@ local SCRIPT  = arg[0]
 local KERNEL  = arg[1]
 local BUILD   = arg[2]
 local MODULES = arg[3]
-local ARCH    = arg[4]
+local ARCH    = os.getenv("ARCH")
 
 local specs = {
 	{
@@ -39,7 +39,7 @@ local function exit(msg)
 end
 
 if not KERNEL or not BUILD or not MODULES or not ARCH then
-	exit("usage: lua5.4 " .. SCRIPT .. " <KERNEL> <BUILD> <MODULES> <ARCH>")
+	exit("usage: ARCH=<ARCH> lua5.4 " .. SCRIPT .. " <KERNEL> <BUILD> <MODULES>")
 end
 
 local CC = os.getenv("CC") or "cc"
