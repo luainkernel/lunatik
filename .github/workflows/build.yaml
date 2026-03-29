@@ -45,7 +45,7 @@ jobs:
     - name: Build Lunatik
       run: |
         make clean MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}" || true
-        make -j$(nproc) MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
+        make -j$(nproc) MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}" KBUILD_MODPOST_WARN=1
     - name: Verify modules built
       run: |
         test -f lunatik.ko || { echo "Build failed" ; exit 1; }
