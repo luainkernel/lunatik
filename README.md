@@ -7,7 +7,7 @@ to load and run scripts and manage runtime environments from the user space;
 a [C API](doc/capi.md) to load and run scripts and manage runtime environments from the kernel;
 and [Lua APIs](#lunatik-lua-apis) for binding kernel facilities to Lua scripts.
 
-> Note: Lunatik supports Linux Kernel versions 5.x and 6.x
+> Note: Lunatik supports Linux Kernel versions 5.15 and later
 
 Feel free to join us on [Matrix](https://matrix.to/#/#lunatik:matrix.org).
 
