@@ -201,12 +201,15 @@ static int lunatik_runscript(lua_State *L)
 	int scriptix = lua_gettop(L);
 
 	lunatik_setversion(L);
-	luaL_openlibs(L);
 
-	if (!(lunatik_issoftirq(lunatik_toruntime(L)->opt)))
+	if (!(lunatik_issoftirq(lunatik_toruntime(L)->opt))) {
+		luaL_openlibs(L);
 		luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
-	else
+	}
+	else {
+		luaL_openselectedlibs(L, ~LUA_IOLIBK, 0);
 		luaL_requiref(L, "lunatik", luaopen_lunatik_stub, 0);
+	}
 
 	if (lunatik_env != NULL) {
 		lunatik_pushobject(L, lunatik_env);
