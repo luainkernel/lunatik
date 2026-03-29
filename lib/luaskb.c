@@ -278,6 +278,7 @@ static void __exit luaskb_exit(void)
 module_init(luaskb_init);
 module_exit(luaskb_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_SOFTDEP("pre: lunatik");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 MODULE_AUTHOR("Carlos Carvalho <carloslack@gmail.com>");
 MODULE_AUTHOR("Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>");

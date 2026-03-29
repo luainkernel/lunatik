@@ -190,5 +190,6 @@ static void __exit luasignal_exit(void)
 module_init(luasignal_init);
 module_exit(luasignal_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_SOFTDEP("pre: lunatik");
 MODULE_AUTHOR("L Venkata Subramanyam <202301280@dau.ac.in>");
 

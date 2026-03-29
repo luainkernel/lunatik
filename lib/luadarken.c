@@ -147,6 +147,7 @@ static void __exit luadarken_exit(void)
 module_init(luadarken_init);
 module_exit(luadarken_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_SOFTDEP("pre: lunatik");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 MODULE_DESCRIPTION("Lunatik darken — AES-256-CTR script decryption");
 

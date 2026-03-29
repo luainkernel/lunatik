@@ -153,5 +153,6 @@ static void __exit luafib_exit(void)
 module_init(luafib_init);
 module_exit(luafib_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_SOFTDEP("pre: lunatik");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
 

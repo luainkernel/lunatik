@@ -326,5 +326,6 @@ static void __exit luahid_exit(void)
 module_init(luahid_init);
 module_exit(luahid_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_SOFTDEP("pre: lunatik");
 MODULE_AUTHOR("Jieming Zhou <qrsikno@gmail.com>");
 

@@ -339,5 +339,6 @@ static void __exit luarcu_exit(void)
 module_init(luarcu_init);
 module_exit(luarcu_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_SOFTDEP("pre: lunatik");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 

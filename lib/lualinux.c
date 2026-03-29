@@ -333,5 +333,6 @@ static void __exit lualinux_exit(void)
 module_init(lualinux_init);
 module_exit(lualinux_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_SOFTDEP("pre: lunatik");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 

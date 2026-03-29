@@ -48,6 +48,7 @@ static void __exit luacrypto_exit(void)
 module_init(luacrypto_init);
 module_exit(luacrypto_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_SOFTDEP("pre: lunatik");
 MODULE_AUTHOR("jperon <cataclop@hotmail.com>");
 MODULE_DESCRIPTION("Lunatik Linux Crypto API interface");
 

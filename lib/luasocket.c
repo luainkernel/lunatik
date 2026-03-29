@@ -764,5 +764,6 @@ static void __exit luasocket_exit(void)
 module_init(luasocket_init);
 module_exit(luasocket_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_SOFTDEP("pre: lunatik");
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 
