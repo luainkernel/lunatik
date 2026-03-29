@@ -8,6 +8,7 @@
 # Usage: sudo bash tests/io/test.sh
 
 SCRIPT="tests/io/test"
+SCRIPT_SOFTIRQ="tests/io/softirq"
 TMPFILE="/tmp/lunatik_io_test"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -19,13 +20,18 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 1
+ktap_plan 2
 
 mark_dmesg
 run_script "$SCRIPT"
 check_dmesg || { ktap_totals; exit 1; }
 
 ktap_pass "io: open/read/write/seek/lines/type and edge cases"
+
+mark_dmesg
+run_script "$SCRIPT_SOFTIRQ" softirq
+check_dmesg || { ktap_totals; exit 1; }
+ktap_pass "io: not available in softirq runtime"
 
 ktap_totals
 
