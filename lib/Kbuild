@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+
+obj-$(CONFIG_LUNATIK_CRYPTO) += luacrypto.o
+luacrypto-objs := luacrypto_shash.o luacrypto_skcipher.o luacrypto_aead.o \
+                  luacrypto_rng.o luacrypto_comp.o luacrypto_core.o
+

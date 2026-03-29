@@ -21,6 +21,7 @@ LUNATIK_FLAGS := -D_LUNATIK -D_KERNEL -I${PWD}/$(KLIBC_INC)
 asflags-y += $(LUNATIK_FLAGS)
 ccflags-y += $(LUNATIK_FLAGS) -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
 	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua
+subdir-ccflags-y += $(ccflags-y)
 
 obj-$(CONFIG_LUNATIK) += lunatik.o
 
@@ -56,9 +57,7 @@ obj-$(CONFIG_LUNATIK_XDP) += lib/luaxdp.o
 obj-$(CONFIG_LUNATIK_FIFO) += lib/luafifo.o
 obj-$(CONFIG_LUNATIK_NETFILTER) += lib/luanetfilter.o
 obj-$(CONFIG_LUNATIK_COMPLETION) += lib/luacompletion.o
-obj-$(CONFIG_LUNATIK_CRYPTO) += lib/luacrypto.o
-lib/luacrypto-objs := lib/luacrypto_shash.o lib/luacrypto_skcipher.o lib/luacrypto_aead.o \
-                      lib/luacrypto_rng.o lib/luacrypto_comp.o lib/luacrypto_core.o
+obj-$(CONFIG_LUNATIK_CRYPTO) += lib/
 obj-$(CONFIG_LUNATIK_CPU) += lib/luacpu.o
 obj-$(CONFIG_LUNATIK_HID) += lib/luahid.o
 obj-$(CONFIG_LUNATIK_SIGNAL) += lib/luasignal.o
