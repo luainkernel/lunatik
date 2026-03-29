@@ -44,9 +44,8 @@ jobs:
         echo "KERNEL_DIR=$(pwd)" >> $GITHUB_ENV
     - name: Build Lunatik
       run: |
-        export KERNEL_DIR="${{ env.KERNEL_DIR }}"
-        make clean || true
-        make -j$(nproc)
+        make clean MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}" || true
+        make -j$(nproc) MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
     - name: Verify modules built
       run: |
         test -f lunatik.ko || { echo "Build failed" ; exit 1; }

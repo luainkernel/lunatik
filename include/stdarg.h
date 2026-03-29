@@ -6,7 +6,12 @@
 #ifndef lunatik_stdarg_h
 #define lunatik_stdarg_h
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
 #include <linux/stdarg.h>
+#else
+#include <stdarg.h>
+#endif
 
 #endif
 
