@@ -4,7 +4,7 @@
 */
 
 /***
-* Lua interface to synchronous message digest (hash) algorithms, including HMAC.
+* Lua interface to message digest (hash) algorithms.
 * @classmod crypto_shash
 */
 
@@ -41,10 +41,10 @@ static int luacrypto_shash_digestsize(lua_State *L)
 }
 
 /***
-* Sets the key (required for HMAC algorithms).
+* Sets the key.
 * @function setkey
 * @tparam string key
-* @raise on invalid key or algorithm error
+* @raise on failure
 */
 static int luacrypto_shash_setkey(lua_State *L)
 {
@@ -56,11 +56,11 @@ static int luacrypto_shash_setkey(lua_State *L)
 }
 
 /***
-* Computes the digest of data in a single call.
+* Computes the digest in a single call.
 * @function digest
 * @tparam string data
 * @treturn string digest bytes
-* @raise on hash failure
+* @raise on failure
 */
 static int luacrypto_shash_digest(lua_State *L)
 {
@@ -77,9 +77,9 @@ static int luacrypto_shash_digest(lua_State *L)
 }
 
 /***
-* Initializes the hash state for incremental hashing.
+* Initializes the hash state.
 * @function init
-* @raise on initialization failure
+* @raise on failure
 */
 static int luacrypto_shash_init_mt(lua_State *L)
 {
@@ -90,10 +90,10 @@ static int luacrypto_shash_init_mt(lua_State *L)
 }
 
 /***
-* Feeds data into the running hash.
+* Feeds data into the hash.
 * @function update
 * @tparam string data
-* @raise on hash failure
+* @raise on failure
 */
 static int luacrypto_shash_update(lua_State *L)
 {
@@ -109,7 +109,7 @@ static int luacrypto_shash_update(lua_State *L)
 * Finalizes and returns the digest.
 * @function final
 * @treturn string digest bytes
-* @raise on hash failure
+* @raise on failure
 */
 static int luacrypto_shash_final(lua_State *L)
 {
@@ -124,11 +124,11 @@ static int luacrypto_shash_final(lua_State *L)
 }
 
 /***
-* Feeds final data and returns the digest (update + final in one call).
+* Feeds final data and returns the digest.
 * @function finup
 * @tparam string data
 * @treturn string digest bytes
-* @raise on hash failure
+* @raise on failure
 */
 static int luacrypto_shash_finup(lua_State *L)
 {
@@ -161,10 +161,10 @@ static int luacrypto_shash_export(lua_State *L)
 }
 
 /***
-* Restores a previously exported hash state.
+* Restores a hash state.
 * @function import
-* @tparam string state blob returned by `export()`
-* @raise on length mismatch
+* @tparam string state blob from `export()`
+* @raise on failure
 */
 static int luacrypto_shash_import(lua_State *L)
 {
@@ -211,9 +211,8 @@ const lunatik_class_t luacrypto_shash_class = {
 /***
 * Creates a new SHASH object.
 * @function new
-* @tparam string algname algorithm name (e.g., "sha256", "hmac(sha256)")
+* @tparam string algname algorithm (e.g., "sha256")
 * @treturn crypto_shash
-* @raise on allocation failure
 * @usage
 *   local shash = require("crypto").shash
 *   local h = shash("sha256")

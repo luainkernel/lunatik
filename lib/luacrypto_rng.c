@@ -4,7 +4,7 @@
 */
 
 /***
-* Lua interface to synchronous Random Number Generators (RNG).
+* Lua interface to synchronous RNG.
 * @classmod crypto_rng
 */
 
@@ -22,12 +22,12 @@ LUNATIK_PRIVATECHECKER(luacrypto_rng_check, struct crypto_rng *);
 LUACRYPTO_RELEASER(rng, struct crypto_rng, crypto_free_rng);
 
 /***
-* Generates random bytes, optionally reseeding first.
+* Generates random bytes.
 * @function generate
-* @tparam integer n number of bytes to generate
-* @tparam[opt] string seed optional seed data
-* @treturn string random bytes
-* @raise on generation failure
+* @tparam integer n bytes to generate
+* @tparam[opt] string seed
+* @treturn string
+* @raise on failure
 */
 static int luacrypto_rng_generate(lua_State *L)
 {
@@ -49,7 +49,7 @@ static int luacrypto_rng_generate(lua_State *L)
 * Reseeds the RNG.
 * @function reset
 * @tparam string seed
-* @raise on reseed failure
+* @raise on failure
 */
 static int luacrypto_rng_reset(lua_State *L)
 {
@@ -63,9 +63,9 @@ static int luacrypto_rng_reset(lua_State *L)
 /***
 * Generates random bytes without reseeding.
 * @function getbytes
-* @tparam integer n number of bytes to generate
-* @treturn string random bytes
-* @raise on generation failure
+* @tparam integer n bytes to generate
+* @treturn string
+* @raise on failure
 */
 static int luacrypto_rng_getbytes(lua_State *L)
 {
@@ -83,7 +83,7 @@ static int luacrypto_rng_getbytes(lua_State *L)
 /***
 * Returns algorithm information.
 * @function info
-* @treturn table with fields `driver_name` (string) and `seedsize` (integer)
+* @treturn table `{driver_name = string, seedsize = integer}`
 */
 static int luacrypto_rng_info(lua_State *L)
 {
@@ -128,12 +128,11 @@ const lunatik_class_t luacrypto_rng_class = {
 /***
 * Creates a new RNG object.
 * @function new
-* @tparam[opt] string algname algorithm name; defaults to "stdrng"
+* @tparam[opt] string algname algorithm (default: "stdrng")
 * @treturn crypto_rng
-* @raise on allocation or initialization failure
 * @usage
 *   local rng = require("crypto").rng
-*   local r = rng()  -- uses "stdrng"
+*   local r = rng()
 */
 int luacrypto_rng_new(lua_State *L)
 {

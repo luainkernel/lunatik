@@ -4,7 +4,7 @@
 */
 
 /***
-* Lua interface to synchronous compression algorithms.
+* Lua interface to synchronous compression.
 * @classmod crypto_comp
 */
 
@@ -44,20 +44,20 @@ static int luacrypto_comp_##name(lua_State *L)								\
 /***
 * Compresses data.
 * @function compress
-* @tparam string data input data
-* @tparam integer max_len maximum size of compressed output
-* @treturn string compressed data
-* @raise on compression failure
+* @tparam string data
+* @tparam integer max_len max output size
+* @treturn string
+* @raise on failure
 */
 LUACRYPTO_COMP_OPERATION(compress);
 
 /***
 * Decompresses data.
 * @function decompress
-* @tparam string data compressed input
-* @tparam integer max_len maximum size of decompressed output
-* @treturn string decompressed data
-* @raise on decompression failure
+* @tparam string data
+* @tparam integer max_len max output size
+* @treturn string
+* @raise on failure
 */
 LUACRYPTO_COMP_OPERATION(decompress);
 
@@ -77,11 +77,10 @@ const lunatik_class_t luacrypto_comp_class = {
 };
 
 /***
-* Creates a new COMP transform object.
+* Creates a new COMP object.
 * @function new
-* @tparam string algname algorithm name (e.g., "lz4", "deflate")
+* @tparam string algname algorithm (e.g., "lz4")
 * @treturn crypto_comp
-* @raise on allocation failure
 * @usage
 *   local comp = require("crypto").comp
 *   local c = comp("lz4")

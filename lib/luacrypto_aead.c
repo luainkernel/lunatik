@@ -4,7 +4,7 @@
 */
 
 /***
-* Lua interface to AEAD (Authenticated Encryption with Associated Data) ciphers.
+* Lua interface to AEAD ciphers.
 * @classmod crypto_aead
 */
 
@@ -25,7 +25,7 @@ LUACRYPTO_RELEASER(aead, struct crypto_aead, crypto_free_aead);
 * Sets the cipher key.
 * @function setkey
 * @tparam string key
-* @raise on invalid key length or algorithm error
+* @raise on failure
 */
 static int luacrypto_aead_setkey(lua_State *L)
 {
@@ -39,8 +39,8 @@ static int luacrypto_aead_setkey(lua_State *L)
 /***
 * Sets the authentication tag size.
 * @function setauthsize
-* @tparam integer tagsize tag size in bytes
-* @raise on unsupported size
+* @tparam integer tagsize in bytes
+* @raise on failure
 */
 static int luacrypto_aead_setauthsize(lua_State *L)
 {
@@ -158,13 +158,12 @@ static inline int luacrypto_aead_finish(lua_State *L, luacrypto_aead_request_t *
 
 /***
 * Encrypts plaintext with authentication.
-* IV length must match `ivsize()`.
 * @function encrypt
 * @tparam string iv initialization vector
-* @tparam string plaintext data to encrypt
-* @tparam[opt] string aad additional authenticated data (default: empty string)
-* @treturn string ciphertext concatenated with authentication tag
-* @raise on encryption failure or incorrect IV length
+* @tparam string plaintext
+* @tparam[opt] string aad additional authenticated data
+* @treturn string ciphertext + tag
+* @raise on failure
 */
 static int luacrypto_aead_encrypt(lua_State *L)
 {
@@ -178,13 +177,12 @@ static int luacrypto_aead_encrypt(lua_State *L)
 
 /***
 * Decrypts and authenticates ciphertext.
-* IV length must match `ivsize()`. Raises EBADMSG on authentication failure.
 * @function decrypt
 * @tparam string iv initialization vector
-* @tparam string ciphertext_with_tag ciphertext concatenated with authentication tag
-* @tparam[opt] string aad additional authenticated data (default: empty string)
-* @treturn string decrypted plaintext
-* @raise on authentication failure (EBADMSG), incorrect IV length, or input too short
+* @tparam string ciphertext_with_tag ciphertext + tag
+* @tparam[opt] string aad additional authenticated data
+* @treturn string plaintext
+* @raise on failure (e.g., EBADMSG)
 */
 static int luacrypto_aead_decrypt(lua_State *L)
 {
@@ -228,11 +226,10 @@ const lunatik_class_t luacrypto_aead_class = {
 };
 
 /***
-* Creates a new AEAD transform object.
+* Creates a new AEAD object.
 * @function new
-* @tparam string algname algorithm name (e.g., "gcm(aes)", "ccm(aes)")
+* @tparam string algname algorithm (e.g., "gcm(aes)")
 * @treturn crypto_aead
-* @raise on allocation failure
 * @usage
 *   local aead = require("crypto").aead
 *   local cipher = aead("gcm(aes)")

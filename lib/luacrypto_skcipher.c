@@ -25,7 +25,7 @@ LUACRYPTO_RELEASER(skcipher, struct crypto_skcipher, crypto_free_skcipher);
 * Sets the cipher key.
 * @function setkey
 * @tparam string key
-* @raise on invalid key length or algorithm error
+* @raise on failure
 */
 static int luacrypto_skcipher_setkey(lua_State *L)
 {
@@ -131,12 +131,12 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 }
 
 /***
-* Encrypts data. IV length must match `ivsize()`.
+* Encrypts data.
 * @function encrypt
 * @tparam string iv initialization vector
 * @tparam string data plaintext
-* @treturn string ciphertext (same length as input)
-* @raise on encryption failure or incorrect IV length
+* @treturn string ciphertext
+* @raise on failure
 */
 static int luacrypto_skcipher_encrypt(lua_State *L)
 {
@@ -144,12 +144,12 @@ static int luacrypto_skcipher_encrypt(lua_State *L)
 }
 
 /***
-* Decrypts data. IV length must match `ivsize()`.
+* Decrypts data.
 * @function decrypt
 * @tparam string iv initialization vector
 * @tparam string data ciphertext
-* @treturn string plaintext (same length as input)
-* @raise on decryption failure or incorrect IV length
+* @treturn string plaintext
+* @raise on failure
 */
 static int luacrypto_skcipher_decrypt(lua_State *L)
 {
@@ -183,11 +183,10 @@ const lunatik_class_t luacrypto_skcipher_class = {
 };
 
 /***
-* Creates a new SKCIPHER transform object.
+* Creates a new SKCIPHER object.
 * @function new
-* @tparam string algname algorithm name (e.g., "cbc(aes)", "ctr(aes)")
+* @tparam string algname algorithm (e.g., "cbc(aes)")
 * @treturn crypto_skcipher
-* @raise on allocation failure
 * @usage
 *   local skcipher = require("crypto").skcipher
 *   local cipher = skcipher("cbc(aes)")
