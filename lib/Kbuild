@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+
+obj-$(CONFIG_LUNATIK_DEVICE) += luadevice.o
+obj-$(CONFIG_LUNATIK_LINUX) += lualinux.o
+obj-$(CONFIG_LUNATIK_NOTIFIER) += luanotifier.o
+obj-$(CONFIG_LUNATIK_SOCKET) += luasocket.o
+obj-$(CONFIG_LUNATIK_RCU) += luarcu.o
+obj-$(CONFIG_LUNATIK_THREAD) += luathread.o
+obj-$(CONFIG_LUNATIK_FIB) += luafib.o
+obj-$(CONFIG_LUNATIK_DATA) += luadata.o
+obj-$(CONFIG_LUNATIK_PROBE) += luaprobe.o
+obj-$(CONFIG_LUNATIK_SYSCALL) += luasyscall.o
+obj-$(CONFIG_LUNATIK_XDP) += luaxdp.o
+obj-$(CONFIG_LUNATIK_FIFO) += luafifo.o
+obj-$(CONFIG_LUNATIK_NETFILTER) += luanetfilter.o
+obj-$(CONFIG_LUNATIK_COMPLETION) += luacompletion.o
+obj-$(CONFIG_LUNATIK_CRYPTO) += luacrypto.o
+luacrypto-objs := luacrypto_shash.o luacrypto_skcipher.o luacrypto_aead.o \
+                  luacrypto_rng.o luacrypto_comp.o luacrypto_core.o
+obj-$(CONFIG_LUNATIK_CPU) += luacpu.o
+obj-$(CONFIG_LUNATIK_HID) += luahid.o
+obj-$(CONFIG_LUNATIK_SIGNAL) += luasignal.o
+obj-$(CONFIG_LUNATIK_BYTEORDER) += luabyteorder.o
+obj-$(CONFIG_LUNATIK_DARKEN) += luadarken.o
+obj-$(CONFIG_LUNATIK_SKB) += luaskb.o
+
