@@ -6,6 +6,7 @@
 #ifndef lunatik_string_h
 #define lunatik_string_h
 
+#include "stdarg.h"
 #include <linux/string.h>
 #define strcoll(l,r)	strcmp((l),(r))
 #define strerror(n)	"I/O error"

@@ -6,6 +6,7 @@
 #ifndef lunatik_stdlib_h
 #define lunatik_stdlib_h
 
+#include "stdarg.h"
 #include <linux/slab.h>
 #define abort()		BUG()
 #define free(a)		kfree((a))
