@@ -10,7 +10,7 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
 #include <linux/stdarg.h>
 #else
-#include <stdarg.h>
+#include_next <stdarg.h>
 #endif
 
 #endif

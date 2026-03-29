@@ -20,7 +20,8 @@ LUNATIK_FLAGS := -D_LUNATIK -D_KERNEL -I${PWD}/$(KLIBC_INC)
 
 asflags-y += $(LUNATIK_FLAGS)
 ccflags-y += $(LUNATIK_FLAGS) -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
-	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua
+	-Wimplicit-fallthrough=0 -include ${PWD}/include/stdarg.h \
+	-I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua
 subdir-ccflags-y += $(ccflags-y)
 
 obj-$(CONFIG_LUNATIK) += lunatik.o
