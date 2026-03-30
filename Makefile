@@ -171,7 +171,8 @@ modules_uninstall:
 
 install: scripts_install modules_install
 	for mod in $(MODULES_ORDER_LIST); do \
-		grep -qxF "$$mod" $(MODULES_ORDER_FILE) || echo "$$mod" >> $(MODULES_ORDER_FILE); \
+		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
+		echo "$$mod" >> $(MODULES_ORDER_FILE); \
 	done
 	depmod -a
 
