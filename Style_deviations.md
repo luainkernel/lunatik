@@ -47,17 +47,36 @@ Includes should be grouped, with system/kernel headers first, followed by `lunat
 /* #include "project_header.h" (if applicable) */
 ```
 
-## Bracing Style
+## Documentation Comments
 
-### Control Structures (if, for, while, do-while)
+Lunatik uses **LDoc-style** comments (`/*** ... */`) for both file-level and function-level documentation. This deviates from the [Linux kernel-doc format](https://www.kernel.org/doc/html/latest/doc-guide/kernel-doc.html) (`/** ... */`) to better support standard Lua documentation tools.
 
-If any branch of a conditional statement requires braces, all branches must use them to maintain consistency and prevent logic errors (e.g., [`lunatik_core.c`](lunatik_core.c:59-66)).
+Documentation blocks should use specific tags to describe types and behaviors:
+*   `@tparam`: Defines parameter types (e.g., `string|data`). Use `[opt]` for optional parameters.
+*   `@treturn`: Defines the return type.
+*   `@raise`: Describes conditions that trigger a Lua error.
+*   `@see`: References related functions or modules.
 
 ```c
-if (nptr == NULL) {
-	return nsize <= osize ? optr : nptr;
-} else if (optr != NULL) {
-	memcpy(nptr, optr, min(osize, nsize));
-	kvfree(optr);
-}
+/***
+* Sends a message through the socket.
+*
+* @function send
+* @tparam string|data message The message to send; a data object avoids string allocation.
+* @tparam[opt] integer|string addr Destination address (family-dependent).
+* @tparam[opt] integer port Destination port (required for `AF_INET`).
+* @treturn integer The number of bytes sent.
+* @raise Error if the send operation fails.
+* @see net.aton
+*/
+static int luasocket_send(lua_State *L)
+```
+
+## Pointer Comparisons
+
+Unlike the Linux kernel, which prefers implicit boolean evaluation for pointers (e.g., `if (!ptr)`), Lunatik uses **explicit comparisons** to improve clarity and maintain consistency with Lua's explicit handling of `nil`.
+
+```c
+if (ptr == NULL) /* Preferred in Lunatik */
+if (!ptr)        /* Discouraged in Lunatik */
 ```
