@@ -1,6 +1,6 @@
 # Lunatik C Code Style Guide
 
-This guide outlines the code style conventions observed in the `lunatik.h` header file, which should be followed for consistency across the Lunatik project. As a general rule, we tend to stick to [Linux kernel rules](https://www.kernel.org/doc/html/latest/process/coding-style.html).
+This guide outlines the code style conventions observed in the Lunatik project, which should be followed for consistency. As a general rule, we tend to stick to [Linux kernel rules](https://www.kernel.org/doc/html/latest/process/coding-style.html).
 
 ## File Headers
 
@@ -15,17 +15,14 @@ All source files should begin with the SPDX license identifier and copyright inf
 
 ## Includes
 
-Includes should be grouped, with system/kernel headers first, followed by Lua headers, and then project-specific headers. Use an empty line to separate groups (e.g., [`lunatik.h`](lunatik.h:9-16)).
+Includes should be grouped, with system/kernel headers first, followed by `lunatik.h`, and then any other project-specific headers. Lua headers are already included by `lunatik.h` and should not be included directly. Use an empty line to separate groups (e.g., [`lib/lualinux.c`](lib/lualinux.c:17-22)).
 
 ```c
-#include <linux/mutex.h>
-#include <linux/spinlock.h>
-#include <linux/slab.h>
-#include <linux/kref.h>
+#include <linux/random.h>
+#include <linux/stat.h>
+#include <linux/sched.h>
 
-#include <lua.h>
-#include <lauxlib.h>
-
+#include <lunatik.h>
 /* #include "project_header.h" (if applicable) */
 ```
 
@@ -53,6 +50,8 @@ Control structures like `if`, `for`, `while`, and `do-while` loops use K&R style
 
 ```c
 if (condition) {
+	/* ... */
+} else {
 	/* ... */
 }
 
@@ -232,4 +231,4 @@ return unlikely(lunatik_ismonitor(object->opt)) ?
 
 ## Line breaks, new lines and file Endings
 
-All source files must end with one empty line. Files should not contain multiple consecutive empty lines.
+All source files must end with a single newline. Avoid using more than one consecutive empty line within source files.
