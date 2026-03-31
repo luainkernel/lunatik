@@ -193,7 +193,7 @@
     <ul>
         <li><span class="parameter">self</span>
             <span class="types"><span class="type">socket</span></span>
-         The listening socket object.
+         listening socket object.
         </li>
         <li><span class="parameter">flags</span>
             <span class="types"><span class="type">integer</span></span>
@@ -231,7 +231,7 @@
         <li><span class="parameter">addr</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
 
-<p> The local address to bind to. The interpretation depends on <code>socket.sk.sk_family</code>:</p>
+<p> local address to bind to. Interpretation depends on <code>socket.sk.sk_family</code>:</p>
 
 <ul>
     <li><code>AF_INET</code> (IPv4): An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).
@@ -247,7 +247,7 @@
         </li>
         <li><span class="parameter">port</span>
             <span class="types"><span class="type">integer</span></span>
-         The local port or interface index.
+         local port or interface index.
    - <code>AF_INET</code>: TCP/UDP port number.
    - <code>AF_PACKET</code>: Network interface index (e.g., from <code>linux.ifindex(&quot;eth0&quot;)</code>).
          (<em>optional</em>)
@@ -324,7 +324,7 @@
         <li><span class="parameter">addr</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
 
-<p> The destination address to connect to.
+<p> destination address to connect to.
    Interpretation depends on <code>socket.sk.sk_family</code>:</p>
 
 <ul>
@@ -336,7 +336,7 @@
         </li>
         <li><span class="parameter">port</span>
             <span class="types"><span class="type">integer</span></span>
-         The destination port number (required and used only if the family is <code>AF_INET</code>).
+         destination port number (required and used only if the family is <code>AF_INET</code>).
          (<em>optional</em>)
         </li>
         <li><span class="parameter">flags</span>
@@ -382,7 +382,7 @@
         <li>
            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
 
-<p> addr The peer's address.</p>
+<p> addr peer's address.</p>
 
 <ul>
     <li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
@@ -419,7 +419,7 @@
         <li>
            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
 
-<p> addr The local address.</p>
+<p> addr local address.</p>
 
 <ul>
     <li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
@@ -456,7 +456,7 @@
     <ul>
         <li><span class="parameter">backlog</span>
             <span class="types"><span class="type">integer</span></span>
-         The maximum length of the queue for pending connections.
+         maximum length of the queue for pending connections.
    If omitted, a system-dependent default (e.g., <code>SOMAXCONN</code>) is used.
          (<em>optional</em>)
         </li>
@@ -493,7 +493,7 @@
     <ul>
         <li><span class="parameter">length</span>
             <span class="types"><span class="type">integer</span></span>
-         The maximum number of bytes to receive.
+         maximum number of bytes to receive.
         </li>
         <li><span class="parameter">flags</span>
             <span class="types"><span class="type">integer</span></span>
@@ -513,7 +513,7 @@
     <ol>
         <li>
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        The received message (as a string of bytes).</li>
+        received message (as a string of bytes).</li>
         <li>
            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
          addr If <code>from</code> is true, the sender's address.
@@ -562,12 +562,12 @@
     <ul>
         <li><span class="parameter">message</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The string message to send.
+         message to send.
         </li>
         <li><span class="parameter">addr</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
 
-<p> The destination address.</p>
+<p> destination address.</p>
 
 <ul>
     <li>For <code>AF_INET</code> (IPv4) sockets: An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).</li>
@@ -579,7 +579,7 @@
         </li>
         <li><span class="parameter">port</span>
             <span class="types"><span class="type">integer</span></span>
-         The destination port number (required if <code>addr</code> is an IPv4 address for <code>AF_INET</code>).
+         destination port number (required if <code>addr</code> is an IPv4 address for <code>AF_INET</code>).
          (<em>optional</em>)
         </li>
     </ul>
@@ -588,7 +588,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The number of bytes sent.
+        number of bytes sent.
     </ol>
 
     <h3>Raises:</h3>
@@ -1097,15 +1097,15 @@
     <ul>
         <li><span class="parameter">family</span>
             <span class="types"><span class="type">integer</span></span>
-         The address family for the socket (e.g., <code>socket.af.INET</code>).
+         address family (e.g., <code>socket.af.INET</code>).
         </li>
         <li><span class="parameter">type</span>
             <span class="types"><span class="type">integer</span></span>
-         The type of the socket (e.g., <code>socket.sock.STREAM</code>).
+         socket type (e.g., <code>socket.sock.STREAM</code>).
         </li>
         <li><span class="parameter">protocol</span>
             <span class="types"><span class="type">integer</span></span>
-         The protocol to be used (e.g., <code>socket.ipproto.TCP</code>).
+         protocol (e.g., <code>socket.ipproto.TCP</code>).
    For <code>AF_PACKET</code> sockets, <code>protocol</code> is typically an <code>ETH_P_*</code> value in network byte order
    (e.g., <code>linux.hton16(0x0003)</code> for <code>ETH_P_ALL</code>).
         </li>
@@ -1198,7 +1198,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-03-31 00:26:50 </i>
+<i style="float:right;">Last updated 2026-03-31 12:21:45 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

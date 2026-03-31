@@ -107,7 +107,7 @@
 	<td class="summary">Returns the symbolic name of a kernel error number.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ifaddr">ifaddr (The)</a></td>
+	<td class="name" nowrap><a href="#ifaddr">ifaddr (ifindex)</a></td>
 	<td class="summary">Gets the HW address for the network interface index.</td>
 	</tr>
 	<tr>
@@ -162,11 +162,11 @@
     <ul>
         <li><span class="parameter">t2</span>
             <span class="types"><span class="type">integer</span></span>
-         The later timestamp (e.g., from <code>linux.time()</code>).
+         later timestamp (e.g., from <code>linux.time()</code>).
         </li>
         <li><span class="parameter">t1</span>
             <span class="types"><span class="type">integer</span></span>
-         The earlier timestamp (e.g., from <code>linux.time()</code>).
+         earlier timestamp (e.g., from <code>linux.time()</code>).
         </li>
     </ul>
 
@@ -174,7 +174,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The difference <code>t2 - t1</code> in nanoseconds.
+        difference <code>t2 - t1</code> in nanoseconds.
     </ol>
 
 
@@ -194,7 +194,7 @@
     <ul>
         <li><span class="parameter">err</span>
             <span class="types"><span class="type">integer</span></span>
-         The error number (e.g., 2).
+         error number (e.g., 2).
         </li>
     </ul>
 
@@ -202,7 +202,7 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        The symbolic name of the error (e.g., "ENOENT").
+        symbolic error name (e.g., "ENOENT").
  Returns "unknown" (or the error number as a string) if the name cannot be resolved.
     </ol>
 
@@ -217,7 +217,7 @@
 </dd>
     <dt>
     <a name = "ifaddr"></a>
-    <strong>ifaddr (The)</strong>
+    <strong>ifaddr (ifindex)</strong>
     </dt>
     <dd>
     Gets the HW address for the network interface index.
@@ -225,7 +225,7 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">The</span>
+        <li><span class="parameter">ifindex</span>
             <span class="types"><span class="type">integer</span></span>
          interface index number.
         </li>
@@ -235,7 +235,7 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        The interface HW address.
+        interface HW address.
     </ol>
 
     <h3>Raises:</h3>
@@ -261,7 +261,7 @@
     <ul>
         <li><span class="parameter">interface_name</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The name of the network interface (e.g., "eth0").
+         network interface name (e.g., "eth0").
         </li>
     </ul>
 
@@ -269,7 +269,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The interface index.
+        interface index.
     </ol>
 
     <h3>Raises:</h3>
@@ -297,7 +297,7 @@
     <ul>
         <li><span class="parameter">symbol_name</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The name of the kernel symbol to look up.
+         kernel symbol name to look up.
         </li>
     </ul>
 
@@ -305,7 +305,7 @@
     <ol>
 
            <span class="types"><span class="type">lightuserdata</span></span>
-        The address of the symbol if found, otherwise <code>nil</code> (represented as a NULL lightuserdata).
+        symbol address if found, otherwise <code>nil</code> (represented as a NULL lightuserdata).
     </ol>
 
 
@@ -383,7 +383,7 @@
         </li>
         <li><span class="parameter">state</span>
             <span class="types"><span class="type">integer</span></span>
-         The task state to set before sleeping.
+         task state to set before sleeping.
  See <a href="../modules/linux.html#task">linux.task</a> for possible values. Defaults to <code>linux.task.INTERRUPTIBLE</code>.
          (<em>optional</em>)
         </li>
@@ -393,7 +393,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The remaining time in milliseconds
+        remaining time in milliseconds
  if the sleep was interrupted before the full timeout, or 0 if the full timeout elapsed.
     </ol>
 
@@ -425,7 +425,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        The current time in nanoseconds since the epoch (from <code>ktime_get_real_ns</code>).
+        current time in nanoseconds since the epoch (from <code>ktime_get_real_ns</code>).
     </ol>
 
 
@@ -455,7 +455,7 @@
     <ol>
 
            <span class="types"><span class="type">boolean</span></span>
-        The current state of kernel tracing (<code>true</code> if on, <code>false</code> if off) <em>after</em> any change.
+        current kernel tracing state (<code>true</code> if on, <code>false</code> if off) <em>after</em> any change.
     </ol>
 
 
@@ -520,7 +520,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-03-31 00:26:50 </i>
+<i style="float:right;">Last updated 2026-03-31 12:21:45 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
