@@ -117,14 +117,14 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *);
 * address family) specify the destination.
 *
 * @function send
-* @tparam string message The string message to send.
-* @tparam[opt] integer|string addr The destination address.
+* @tparam string message message to send.
+* @tparam[opt] integer|string addr destination address.
 *
 * - For `AF_INET` (IPv4) sockets: An integer representing the IPv4 address (e.g., from `net.aton()`).
 * - For other address families (e.g., `AF_PACKET`): A packed string representing the destination address
 *   (e.g., MAC address for `AF_PACKET`). The exact format depends on the family.
-* @tparam[opt] integer port The destination port number (required if `addr` is an IPv4 address for `AF_INET`).
-* @treturn integer The number of bytes sent.
+* @tparam[opt] integer port destination port number (required if `addr` is an IPv4 address for `AF_INET`).
+* @treturn integer number of bytes sent.
 * @raise Error if the send operation fails or if address parameters are incorrect for the socket type.
 * @usage
 *   -- For a connected TCP socket:
@@ -163,12 +163,12 @@ static int luasocket_send(lua_State *L)
 * Receives a message from the socket.
 *
 * @function receive
-* @tparam integer length The maximum number of bytes to receive.
+* @tparam integer length maximum number of bytes to receive.
 * @tparam[opt=0] integer flags Optional message flags (e.g., `socket.msg.PEEK`).
 *   See the `socket.msg` table for available flags. These can be OR'd together.
 * @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
 *   and port (for `AF_INET`). This is typically used with connectionless sockets (`SOCK_DGRAM`).
-* @treturn string The received message (as a string of bytes).
+* @treturn string received message (as a string of bytes).
 * @treturn[opt] integer|string addr If `from` is true, the sender's address.
 *   - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
 *   - For other families: A packed string representing the sender's address.
@@ -217,7 +217,7 @@ static int luasocket_receive(lua_State *L)
 * connectionless sockets to specify a local port/interface for receiving.
 *
 * @function bind
-* @tparam integer|string addr The local address to bind to. The interpretation depends on `socket.sk.sk_family`:
+* @tparam integer|string addr local address to bind to. Interpretation depends on `socket.sk.sk_family`:
 *
 *   - `AF_INET` (IPv4): An integer representing the IPv4 address (e.g., from `net.aton()`).
 *     Use `0` (or `net.aton("0.0.0.0")`) to bind to all available interfaces.
@@ -227,7 +227,7 @@ static int luasocket_receive(lua_State *L)
 *     The `port` argument is also required.
 *   - Other families: A packed string directly representing parts of the family-specific address structure.
 *
-* @tparam[opt] integer port The local port or interface index.
+* @tparam[opt] integer port local port or interface index.
 *   - `AF_INET`: TCP/UDP port number.
 *   - `AF_PACKET`: Network interface index (e.g., from `linux.ifindex("eth0")`).
 *
@@ -261,7 +261,7 @@ static int luasocket_bind(lua_State *L)
 * accept incoming connections.
 *
 * @function listen
-* @tparam[opt] integer backlog The maximum length of the queue for pending connections.
+* @tparam[opt] integer backlog maximum length of the queue for pending connections.
 *   If omitted, a system-dependent default (e.g., `SOMAXCONN`) is used.
 * @treturn nil
 * @raise Error if the listen operation fails (e.g., socket not bound, invalid state).
@@ -284,13 +284,13 @@ static int luasocket_listen(lua_State *L)
 * the only address from which datagrams are received.
 *
 * @function connect
-* @tparam integer|string addr The destination address to connect to.
+* @tparam integer|string addr destination address to connect to.
 *   Interpretation depends on `socket.sk.sk_family`:
 *
 *   - `AF_INET` (IPv4): An integer representing the IPv4 address (e.g., from `net.aton()`).
 *     The `port` argument is also required.
 *   - Other families: A packed string representing the family-specific destination address.
-* @tparam[opt] integer port The destination port number (required and used only if the family is `AF_INET`).
+* @tparam[opt] integer port destination port number (required and used only if the family is `AF_INET`).
 * @tparam[opt=0] integer flags Optional connection flags.
 * @treturn nil
 * @raise Error if the connect operation fails (e.g., connection refused, host unreachable).
@@ -326,7 +326,7 @@ static int luasocket_get##what(lua_State *L)					\
 * Gets the local address to which the socket is bound.
 *
 * @function getsockname
-* @treturn integer|string addr The local address.
+* @treturn integer|string addr local address.
 *
 * - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
 * - For other families: A packed string representing the local address.
@@ -345,7 +345,7 @@ LUASOCKET_NEWGETTER(sockname);
 * been called to set a default peer.
 *
 * @function getpeername
-* @treturn integer|string addr The peer's address.
+* @treturn integer|string addr peer's address.
 *
 * - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
 * - For other families: A packed string representing the peer's address.
@@ -702,7 +702,7 @@ static const lunatik_class_t luasocket_class = {
 * that have been put into the listening state by `sock:listen()`.
 *
 * @function accept
-* @tparam socket self The listening socket object.
+* @tparam socket self listening socket object.
 * @tparam[opt=0] integer flags Optional flags to apply to the newly accepted socket
 *   (e.g., `socket.sock.NONBLOCK`, `socket.sock.CLOEXEC`).
 * @treturn socket A new socket object representing the accepted connection.
@@ -723,9 +723,9 @@ static int luasocket_accept(lua_State *L)
 * This function is the primary way to create a socket.
 *
 * @function new
-* @tparam integer family The address family for the socket (e.g., `socket.af.INET`).
-* @tparam integer type The type of the socket (e.g., `socket.sock.STREAM`).
-* @tparam integer protocol The protocol to be used (e.g., `socket.ipproto.TCP`).
+* @tparam integer family address family (e.g., `socket.af.INET`).
+* @tparam integer type socket type (e.g., `socket.sock.STREAM`).
+* @tparam integer protocol protocol (e.g., `socket.ipproto.TCP`).
 *   For `AF_PACKET` sockets, `protocol` is typically an `ETH_P_*` value in network byte order
 *   (e.g., `linux.hton16(0x0003)` for `ETH_P_ALL`).
 * @treturn socket A new socket object.

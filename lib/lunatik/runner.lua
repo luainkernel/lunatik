@@ -22,8 +22,8 @@ local runner = {}
 --- Removes the ".lua" extension from a script filename.
 -- @local
 -- @function trim
--- @tparam string script The script filename (e.g., "myscript.lua").
--- @treturn string The script name without the ".lua" extension (e.g., "myscript").
+-- @tparam string script script filename (e.g., "myscript.lua").
+-- @treturn string script name without the ".lua" extension (e.g., "myscript").
 local function trim(script) -- drop ".lua" file extension
 	return script:gsub("(%w+).lua", "%1")
 end
@@ -31,9 +31,9 @@ end
 --- Runs a Lunatik script in the current context.
 -- Creates a new Lunatik runtime for the given script and registers it.
 -- Throws an error if a script with the same name is already running.
--- @tparam string script The path or name of the Lua script to run. The ".lua" extension will be trimmed.
+-- @tparam string script path or name of the Lua script to run. The ".lua" extension will be trimmed.
 -- @tparam[opt] string context Execution context: `"process"` (default) or `"softirq"` (for netfilter/XDP hooks).
--- @treturn table The created Lunatik runtime object.
+-- @treturn table created Lunatik runtime object.
 -- @raise error if the script is already running.
 function runner.run(script, ...)
 	local script = trim(script)
@@ -49,8 +49,8 @@ end
 -- First, it runs the script using `runner.run`, then creates a new kernel thread
 -- to execute the runtime. The thread is named based on the script's filename.
 -- The spawned script is expected to return a function, which will then be executed in the new thread.
--- @tparam string script The path or name of the Lua script to spawn.
--- @treturn userdata The kernel thread object.
+-- @tparam string script path or name of the Lua script to spawn.
+-- @treturn userdata kernel thread object.
 function runner.spawn(script, ...)
 	local runtime = runner.run(script, ...)
 	local name = string.match(script, "(%w*/*%w*)$")
@@ -64,8 +64,8 @@ end
 -- and it's removed from the registry.
 -- @local
 -- @function stop
--- @tparam table registry The registry table (e.g., `env.threads` or `env.runtimes`).
--- @tparam string script The key (script name) of the item to stop.
+-- @tparam table registry registry table (e.g., `env.threads` or `env.runtimes`).
+-- @tparam string script key (script name) of the item to stop.
 local function stop(registry, script)
 	if registry[script] then
 		registry[script]:stop()
@@ -75,7 +75,7 @@ end
 
 --- Stops a running script and its associated thread, if any.
 -- It attempts to stop the thread first, then the runtime.
--- @tparam string script The name of the script to stop. The ".lua" extension will be trimmed.
+-- @tparam string script name of the script to stop. The ".lua" extension will be trimmed.
 function runner.stop(script)
 	local script = trim(script)
 	stop(env.threads, script)

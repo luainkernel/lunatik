@@ -81,7 +81,7 @@ static int luathread_shouldstop(lua_State *L)
 * Stops a running kernel thread.
 * Signals the thread to stop and waits for it to exit.
 * @function stop
-* @tparam thread self The thread object to stop.
+* @tparam thread self thread object to stop.
 * @treturn nil
 * @usage
 * my_thread:stop()
@@ -115,7 +115,7 @@ static int luathread_stop(lua_State *L)
 /***
 * Retrieves information about the kernel task associated with the thread.
 * @function task
-* @tparam thread self The thread object.
+* @tparam thread self thread object.
 * @treturn table A table with fields: `cpu` (SMP only), `command`, `pid`, `tgid`.
 * @usage
 * local info = my_thread:task()

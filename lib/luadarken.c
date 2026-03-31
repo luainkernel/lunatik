@@ -97,9 +97,9 @@ static void luadarken_decrypt(lua_State *L, luadarken_request_t *r)
 /***
 * Decrypts and executes an encrypted Lua script.
 * @function run
-* @tparam string ciphertext The encrypted Lua script (binary).
-* @tparam string iv The 16-byte initialization vector (binary).
-* @tparam string key The 32-byte AES-256 key (binary).
+* @tparam string ciphertext encrypted Lua script (binary).
+* @tparam string iv 16-byte initialization vector (binary).
+* @tparam string key 32-byte AES-256 key (binary).
 * @return The return values from the executed script.
 * @raise Error if decryption fails or IV/key length is invalid.
 */

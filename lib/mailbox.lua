@@ -88,9 +88,9 @@ local sizeoft = string.packsize("T")
 -- This function will block until a message is available or the timeout expires.
 -- Not available on outboxes.
 -- @function MailBox:receive
--- @tparam[opt] number timeout The maximum time to wait in jiffies.
+-- @tparam[opt] number timeout maximum time to wait in jiffies.
 --   If omitted or negative, waits indefinitely. If 0, returns immediately.
--- @treturn[1] string The received message.
+-- @treturn[1] string received message.
 -- @treturn[1] nil If no message is received (e.g., FIFO is empty after event or on timeout).
 -- @treturn[2] string Error message if the wait times out or another error occurs.
 -- @raise Error if called on an outbox, or if the underlying event wait fails,
@@ -115,7 +115,7 @@ end
 -- Sends a message to the mailbox.
 -- Not available on inboxes.
 -- @function MailBox:send
--- @tparam string message The message to send.
+-- @tparam string message message to send.
 -- @raise Error if called on an inbox.
 function MailBox:send(message)
 	self.queue:push(string.pack("s", message))

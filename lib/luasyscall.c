@@ -23,8 +23,8 @@ static unsigned long **luasyscall_table;
 /***
 * Retrieves the kernel address of a system call.
 * @function address
-* @tparam integer syscall_number The system call number (e.g., `__NR_openat`).
-* @treturn lightuserdata The kernel address of the system call entry point, or `nil` if the number is invalid or the address cannot be determined.
+* @tparam integer syscall_number system call number (e.g., `__NR_openat`).
+* @treturn lightuserdata kernel address of the system call entry point, or `nil` if the number is invalid or the address cannot be determined.
 * @raise Error if `syscall_number` is out of bounds.
 * @usage
 *   local syscall = require("syscall")

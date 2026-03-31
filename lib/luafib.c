@@ -104,8 +104,8 @@ static int luafib_##op(lua_State *L)			\
 * support specifying other match conditions (e.g., source/destination IP, interface, fwmark).
 *
 * @function newrule
-* @tparam integer table The routing table identifier (e.g., 254 for main, 255 for local).
-* @tparam integer priority The priority of the rule. Lower numbers have higher precedence.
+* @tparam integer table routing table identifier (e.g., 254 for main, 255 for local).
+* @tparam integer priority rule priority. Lower numbers have higher precedence.
 * @treturn nil
 * @raise Error if the rule cannot be added (e.g., due to kernel error, invalid parameters).
 * @usage
@@ -119,8 +119,8 @@ LUAFIB_OPRULE(newrule);
 * that matches the specified routing `table` and `priority`.
 *
 * @function delrule
-* @tparam integer table The routing table identifier of the rule to delete.
-* @tparam integer priority The priority of the rule to delete.
+* @tparam integer table routing table identifier of the rule to delete.
+* @tparam integer priority priority of the rule to delete.
 * @treturn nil
 * @raise Error if the rule cannot be deleted (e.g., rule not found, kernel error).
 * @usage

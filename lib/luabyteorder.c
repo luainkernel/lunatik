@@ -23,96 +23,96 @@ static int luabyteorder_##swapper(lua_State *L)		\
 /***
 * Converts a 16-bit integer from host byte order to big-endian byte order.
 * @function htobe16
-* @tparam integer num The 16-bit integer in host byte order.
-* @treturn integer The integer in big-endian byte order.
+* @tparam integer num16-bit integer in host byte order.
+* @treturn integer value in big-endian byte order.
 */
 LUABYTEORDER_BYTESWAPPER(cpu_to_be16, u16);
 
 /***
 * Converts a 32-bit integer from host byte order to big-endian byte order.
 * @function htobe32
-* @tparam integer num The 32-bit integer in host byte order.
-* @treturn integer The integer in big-endian byte order.
+* @tparam integer num32-bit integer in host byte order.
+* @treturn integer value in big-endian byte order.
 */
 LUABYTEORDER_BYTESWAPPER(cpu_to_be32, u32);
 
 /***
 * Converts a 16-bit integer from host byte order to little-endian byte order.
 * @function htole16
-* @tparam integer num The 16-bit integer in host byte order.
-* @treturn integer The integer in little-endian byte order.
+* @tparam integer num16-bit integer in host byte order.
+* @treturn integer value in little-endian byte order.
 */
 LUABYTEORDER_BYTESWAPPER(cpu_to_le16, u16);
 
 /***
 * Converts a 32-bit integer from host byte order to little-endian byte order.
 * @function htole32
-* @tparam integer num The 32-bit integer in host byte order.
-* @treturn integer The integer in little-endian byte order.
+* @tparam integer num32-bit integer in host byte order.
+* @treturn integer value in little-endian byte order.
 */
 LUABYTEORDER_BYTESWAPPER(cpu_to_le32, u32);
 
 /***
 * Converts a 16-bit integer from big-endian byte order to host byte order.
 * @function be16toh
-* @tparam integer num The 16-bit integer in big-endian byte order.
-* @treturn integer The integer in host byte order.
+* @tparam integer num16-bit integer in big-endian byte order.
+* @treturn integer value in host byte order.
 */
 LUABYTEORDER_BYTESWAPPER(be16_to_cpu, u16);
 
 /***
 * Converts a 32-bit integer from big-endian byte order to host byte order.
 * @function be32toh
-* @tparam integer num The 32-bit integer in big-endian byte order.
-* @treturn integer The integer in host byte order.
+* @tparam integer num32-bit integer in big-endian byte order.
+* @treturn integer value in host byte order.
 */
 LUABYTEORDER_BYTESWAPPER(be32_to_cpu, u32);
 
 /***
 * Converts a 16-bit integer from little-endian byte order to host byte order.
 * @function le16toh
-* @tparam integer num The 16-bit integer in little-endian byte order.
-* @treturn integer The integer in host byte order.
+* @tparam integer num16-bit integer in little-endian byte order.
+* @treturn integer value in host byte order.
 */
 LUABYTEORDER_BYTESWAPPER(le16_to_cpu, u16);
 
 /***
 * Converts a 32-bit integer from little-endian byte order to host byte order.
 * @function le32toh
-* @tparam integer num The 32-bit integer in little-endian byte order.
-* @treturn integer The integer in host byte order.
+* @tparam integer num32-bit integer in little-endian byte order.
+* @treturn integer value in host byte order.
 */
 LUABYTEORDER_BYTESWAPPER(le32_to_cpu, u32);
 
 /***
 * Converts a 64-bit integer from host byte order to big-endian byte order.
 * @function htobe64
-* @tparam integer num The 64-bit integer in host byte order.
-* @treturn integer The integer in big-endian byte order.
+* @tparam integer num64-bit integer in host byte order.
+* @treturn integer value in big-endian byte order.
 */
 LUABYTEORDER_BYTESWAPPER(cpu_to_be64, u64);
 
 /***
 * Converts a 64-bit integer from host byte order to little-endian byte order.
 * @function htole64
-* @tparam integer num The 64-bit integer in host byte order.
-* @treturn integer The integer in little-endian byte order.
+* @tparam integer num64-bit integer in host byte order.
+* @treturn integer value in little-endian byte order.
 */
 LUABYTEORDER_BYTESWAPPER(cpu_to_le64, u64);
 
 /***
 * Converts a 64-bit integer from big-endian byte order to host byte order.
 * @function be64toh
-* @tparam integer num The 64-bit integer in big-endian byte order.
-* @treturn integer The integer in host byte order.
+* @tparam integer num64-bit integer in big-endian byte order.
+* @treturn integer value in host byte order.
 */
 LUABYTEORDER_BYTESWAPPER(be64_to_cpu, u64);
 
 /***
 * Converts a 64-bit integer from little-endian byte order to host byte order.
 * @function le64toh
-* @tparam integer num The 64-bit integer in little-endian byte order.
-* @treturn integer The integer in host byte order.
+* @tparam integer num64-bit integer in little-endian byte order.
+* @treturn integer value in host byte order.
 */
 LUABYTEORDER_BYTESWAPPER(le64_to_cpu, u64);
 
@@ -120,29 +120,29 @@ static const luaL_Reg luabyteorder_lib[] = {
 /***
 * Converts a 16-bit integer from network (big-endian) byte order to host byte order.
 * @function ntoh16
-* @tparam integer num The 16-bit integer in network byte order.
-* @treturn integer The integer in host byte order.
+* @tparam integer num16-bit integer in network byte order.
+* @treturn integer value in host byte order.
 */
 	{"ntoh16", luabyteorder_be16_to_cpu},
 /***
 * Converts a 32-bit integer from network (big-endian) byte order to host byte order.
 * @function ntoh32
-* @tparam integer num The 32-bit integer in network byte order.
-* @treturn integer The integer in host byte order.
+* @tparam integer num32-bit integer in network byte order.
+* @treturn integer value in host byte order.
 */
 	{"ntoh32", luabyteorder_be32_to_cpu},
 /***
 * Converts a 16-bit integer from host byte order to network (big-endian) byte order.
 * @function hton16
-* @tparam integer num The 16-bit integer in host byte order.
-* @treturn integer The integer in network byte order.
+* @tparam integer num16-bit integer in host byte order.
+* @treturn integer value in network byte order.
 */
 	{"hton16", luabyteorder_cpu_to_be16},
 /***
 * Converts a 32-bit integer from host byte order to network (big-endian) byte order.
 * @function hton32
-* @tparam integer num The 32-bit integer in host byte order.
-* @treturn integer The integer in network byte order.
+* @tparam integer num32-bit integer in host byte order.
+* @treturn integer value in network byte order.
 */
 	{"hton32", luabyteorder_cpu_to_be32},
 	{"htobe16", luabyteorder_cpu_to_be16},
@@ -156,15 +156,15 @@ static const luaL_Reg luabyteorder_lib[] = {
 /***
 * Converts a 64-bit integer from network (big-endian) byte order to host byte order.
 * @function ntoh64
-* @tparam integer num The 64-bit integer in network byte order.
-* @treturn integer The integer in host byte order.
+* @tparam integer num64-bit integer in network byte order.
+* @treturn integer value in host byte order.
 */
 	{"ntoh64", luabyteorder_be64_to_cpu},
 /***
 * Converts a 64-bit integer from host byte order to network (big-endian) byte order.
 * @function hton64
-* @tparam integer num The 64-bit integer in host byte order.
-* @treturn integer The integer in network byte order.
+* @tparam integer num64-bit integer in host byte order.
+* @treturn integer value in network byte order.
 */
 	{"hton64", luabyteorder_cpu_to_be64},
 	{"htobe64", luabyteorder_cpu_to_be64},
