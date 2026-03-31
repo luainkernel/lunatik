@@ -181,7 +181,7 @@ static int luaxdp_detach(lua_State *L)
 * - `arg_sz`: The size of the `arg` data.
 *
 * @function attach
-* @tparam function callback The Lua function to be called. This function receives two arguments:
+* @tparam function callback Lua function to call. It receives two arguments:
 *
 * 1. `buffer` (data): A `data` object representing the network packet buffer (`xdp_md`).
 *    The `data` object points to `xdp_ctx->data` and its size is `xdp_ctx->data_end - xdp_ctx->data`.

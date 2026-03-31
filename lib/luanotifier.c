@@ -111,7 +111,7 @@ static int luanotifier_new(lua_State *, luanotifier_register_t, luanotifier_regi
 * The provided callback function will be invoked whenever a console keyboard
 * event occurs (e.g., a key is pressed or released).
 * @function keyboard
-* @tparam function callback The Lua function to call on keyboard events.
+* @tparam function callback Lua function called on keyboard events.
 *   It receives the following arguments:
 *
 *   1. `event` (integer): The keyboard event type (see `notifier.kbd`).
@@ -138,7 +138,7 @@ static int luanotifier_##name(lua_State *L)					\
 * The provided callback function will be invoked whenever a network device
 * event occurs (e.g., an interface goes up or down).
 * @function netdevice
-* @tparam function callback The Lua function to call on netdevice events.
+* @tparam function callback Lua function called on netdevice events.
 *   It receives the following arguments:
 *
 *   1. `event` (integer): The netdevice event type (see `notifier.netdev`).
@@ -158,7 +158,7 @@ LUANOTIFIER_NEWCHAIN(netdevice);
 * The provided callback function will be invoked whenever a virtual terminal
 * event occurs (e.g., a character is written, a terminal is allocated).
 * @function vterm
-* @tparam function callback The Lua function to call on vterm events.
+* @tparam function callback Lua function called on vterm events.
 *   It receives the following arguments:
 *
 *   1. `event` (integer): The vterm event type (see `notifier.vt`).

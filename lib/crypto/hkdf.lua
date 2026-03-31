@@ -32,7 +32,7 @@ end
 
 --- Creates a new HKDF instance for a given hash algorithm.
 -- @function HKDF.new
--- @tparam string alg The base hash algorithm name (e.g., "sha256", "sha512").
+-- @tparam string alg base hash algorithm name (e.g., "sha256", "sha512").
 -- The "hmac(" prefix will be added automatically.
 -- @treturn HKDF An HKDF instance table with methods for key derivation.
 -- @usage local hkdf_sha256 = require("crypto.hkdf").new("sha256")
@@ -45,9 +45,9 @@ function HKDF.new(alg)
 end
 
 --- Performs an HMAC calculation using the instance's algorithm.
--- @tparam string key The HMAC key.
--- @tparam string data The data to hash.
--- @treturn string The HMAC digest.
+-- @tparam string key HMAC key.
+-- @tparam string data data to hash.
+-- @treturn string HMAC digest.
 function HKDF:hmac(key, data)
 	self.tfm:setkey(key)
 	return self.tfm:digest(data)
@@ -57,7 +57,7 @@ end
 -- @function HKDF:extract
 -- @tparam[opt] string salt Optional salt value. If nil or not provided, a salt of `hash_len` zeros is used.
 -- @tparam string ikm Input Keying Material.
--- @treturn string The Pseudorandom Key (PRK).
+-- @treturn string Pseudorandom Key (PRK).
 function HKDF:extract(salt, ikm)
 	return self:hmac((salt or self.salt), ikm)
 end
@@ -66,8 +66,8 @@ end
 -- @function HKDF:expand
 -- @tparam string prk Pseudorandom Key.
 -- @tparam[opt] string info Optional context and application-specific information. Defaults to an empty string if nil.
--- @tparam number length The desired length in bytes for the Output Keying Material (OKM).
--- @treturn string The Output Keying Material of the specified `length`.
+-- @tparam number length desired length in bytes for the Output Keying Material (OKM).
+-- @treturn string Output Keying Material of the specified `length`.
 function HKDF:expand(prk, info, length)
 	info = info or ""
 	local hash_len = #self
@@ -87,8 +87,8 @@ end
 -- @tparam[opt] string salt Optional salt value.
 -- @tparam string ikm Input Keying Material.
 -- @tparam[opt] string info Optional context and application-specific information.
--- @tparam number length The desired length in bytes for the Output Keying Material.
--- @treturn string The Output Keying Material.
+-- @tparam number length desired length in bytes for the Output Keying Material.
+-- @treturn string Output Keying Material.
 function HKDF:hkdf(salt, ikm, info, length)
 	return self:expand(self:extract(salt, ikm), info, length)
 end

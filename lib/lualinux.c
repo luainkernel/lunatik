@@ -80,9 +80,9 @@ static int lualinux_random(lua_State *L)
 * @function schedule
 * @tparam[opt] integer timeout Duration in milliseconds to sleep.
 * Defaults to `MAX_SCHEDULE_TIMEOUT` (effectively indefinite sleep until woken).
-* @tparam[opt] integer state The task state to set before sleeping.
+* @tparam[opt] integer state task state to set before sleeping.
 * See `linux.task` for possible values. Defaults to `linux.task.INTERRUPTIBLE`.
-* @treturn integer The remaining time in milliseconds
+* @treturn integer remaining time in milliseconds
 * if the sleep was interrupted before the full timeout, or 0 if the full timeout elapsed.
 * @raise Error if an invalid task state is provided.
 * @see linux.task
@@ -113,7 +113,7 @@ static int lualinux_schedule(lua_State *L)
 * @function tracing
 * @tparam[opt] boolean enable If `true`, turns tracing on. If `false`, turns tracing off.
 * If omitted, does not change the state.
-* @treturn boolean The current state of kernel tracing (`true` if on, `false` if off) *after* any change.
+* @treturn boolean current kernel tracing state (`true` if on, `false` if off) *after* any change.
 * @usage
 *   local was_tracing = linux.tracing(true) -- Enable tracing
 *   if was_tracing then print("Tracing is now on") end
@@ -138,7 +138,7 @@ out:
 * Gets the current real time.
 *
 * @function time
-* @treturn integer The current time in nanoseconds since the epoch (from `ktime_get_real_ns`).
+* @treturn integer current time in nanoseconds since the epoch (from `ktime_get_real_ns`).
 */
 static int lualinux_time(lua_State *L)
 {
@@ -150,9 +150,9 @@ static int lualinux_time(lua_State *L)
 * Calculates the difference between two timestamps.
 *
 * @function difftime
-* @tparam integer t2 The later timestamp (e.g., from `linux.time()`).
-* @tparam integer t1 The earlier timestamp (e.g., from `linux.time()`).
-* @treturn integer The difference `t2 - t1` in nanoseconds.
+* @tparam integer t2 later timestamp (e.g., from `linux.time()`).
+* @tparam integer t1 earlier timestamp (e.g., from `linux.time()`).
+* @treturn integer difference `t2 - t1` in nanoseconds.
 */
 static int lualinux_difftime(lua_State *L)
 {
@@ -168,8 +168,8 @@ static int lualinux_difftime(lua_State *L)
 * of a kernel symbol.
 *
 * @function lookup
-* @tparam string symbol_name The name of the kernel symbol to look up.
-* @treturn lightuserdata The address of the symbol if found, otherwise `nil` (represented as a NULL lightuserdata).
+* @tparam string symbol_name kernel symbol name to look up.
+* @treturn lightuserdata symbol address if found, otherwise `nil` (represented as a NULL lightuserdata).
 * @usage
 *   local addr = linux.lookup("jiffies")
 *   if addr then print("Address of jiffies:", addr) end
@@ -186,8 +186,8 @@ static int lualinux_lookup(lua_State *L)
 * Gets the interface index for a network device name.
 *
 * @function ifindex
-* @tparam string interface_name The name of the network interface (e.g., "eth0").
-* @treturn integer The interface index.
+* @tparam string interface_name network interface name (e.g., "eth0").
+* @treturn integer interface index.
 * @raise Error if the device is not found.
 * @usage
 *   local index = linux.ifindex("lo")
@@ -208,8 +208,8 @@ static int lualinux_ifindex(lua_State *L)
 * Gets the HW address for the network interface index.
 *
 * @function ifaddr
-* @tparam integer The interface index number.
-* @treturn string The interface HW address.
+* @tparam integer ifindex interface index number.
+* @treturn string interface HW address.
 * @raise Error if the device is not found.
 * @usage
 *   local addr = linux.ifaddr(index)
@@ -286,8 +286,8 @@ static const lunatik_reg_t lualinux_stat[] = {
 * For example, it converts `2` to `"ENOENT"`.
 *
 * @function errname
-* @tparam integer err The error number (e.g., 2).
-* @treturn string The symbolic name of the error (e.g., "ENOENT").
+* @tparam integer err error number (e.g., 2).
+* @treturn string symbolic error name (e.g., "ENOENT").
 * Returns "unknown" (or the error number as a string) if the name cannot be resolved.
 * @usage
 * local name = linux.errname(2)

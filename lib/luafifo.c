@@ -22,7 +22,7 @@ LUNATIK_PRIVATECHECKER(luafifo_check, struct kfifo *);
 * Pushes data into the FIFO.
 * Copies a string of bytes into the FIFO.
 * @function push
-* @tparam string data The string containing the bytes to be pushed into the FIFO.
+* @tparam string data bytes to push into the FIFO.
 * @treturn nil
 * @raise Error if the provided data string is larger than the available space in the FIFO.
 * @usage
@@ -45,9 +45,9 @@ static int luafifo_push(lua_State *L)
 * Pops data from the FIFO.
 * Retrieves a specified number of bytes from the FIFO.
 * @function pop
-* @tparam integer size The maximum number of bytes to retrieve from the FIFO.
+* @tparam integer size maximum number of bytes to retrieve from the FIFO.
 * @treturn string A string containing the bytes popped from the FIFO. The actual length of this string might be less than `size` if the FIFO contained fewer bytes.
-* @treturn integer The actual number of bytes popped from the FIFO.
+* @treturn integer actual number of bytes popped from the FIFO.
 * @usage
 *   -- Assuming 'myfifo' is a fifo object
 *   local data, len = myfifo:pop(10)
@@ -91,7 +91,7 @@ static int luafifo_new(lua_State *L);
 * ideally be a power of two for kfifo's internal optimizations, though kfifo
 * will handle non-power-of-two sizes by rounding up.
 * @function new
-* @tparam integer size The desired capacity of the FIFO in bytes.
+* @tparam integer size desired capacity of the FIFO in bytes.
 * @treturn fifo A new fifo object.
 * @raise Error if kfifo allocation fails (e.g., due to insufficient memory).
 * @usage

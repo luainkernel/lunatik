@@ -185,7 +185,7 @@ static int luaprobe_new(lua_State *L);
 * Lua callback functions can be provided to execute when the probe hits.
 *
 * @function new
-* @tparam string|lightuserdata symbol_or_address The kernel symbol name (string)
+* @tparam string|lightuserdata symbol_or_address kernel symbol name (string)
 *   or the absolute kernel address (lightuserdata) to probe.
 *   Suitable symbol names are typically those exported by the kernel or other modules,
 *   often visible in `/proc/kallsyms` (when viewed from userspace). The `syscall`
