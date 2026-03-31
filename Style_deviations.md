@@ -28,11 +28,17 @@ typedef struct lunatik_object_s {
 
 ### Macros
 
-The Linux kernel generally prefers capitalized macro names. Lunatik follows this for constants, but allows `lowercase_with_underscores` for macros that behave like functions; these must be prefixed according to the module name (e.g., [`lunatik.h`](lunatik.h:27-30)).
+Lunatik follows the Linux kernel's preference for **capitalized macro names** for constants, bitmask options, and initialization/boilerplate macros (e.g., [`lunatik.h`](lunatik.h:21-25,329)).
+
+```c
+#define LUNATIK_OPT_SOFTIRQ	((__force lunatik_opt_t)(1U << 0))
+#define LUNATIK_NEWLIB(libname, funcs, classes, namespaces) ...
+```
+
+However, it allows `lowercase_with_underscores` for macros that behave like functions; these must be prefixed according to the module name (e.g., [`lunatik.h`](lunatik.h:27-30)).
 
 ```c
 #define lunatik_issoftirq(opt)		((opt) & LUNATIK_OPT_SOFTIRQ)
-#define lunatik_ismonitor(opt)		((opt) & LUNATIK_OPT_MONITOR)
 ```
 
 ## Includes
@@ -74,9 +80,36 @@ static int luasocket_send(lua_State *L)
 
 ## Pointer Comparisons
 
-Unlike the Linux kernel, which prefers implicit boolean evaluation for pointers (e.g., `if (!ptr)`), Lunatik uses **explicit comparisons** to improve clarity and maintain consistency with Lua's explicit handling of `nil`.
+Unlike the Linux kernel, which prefers implicit boolean evaluation for pointers (e.g., `if (!ptr)`), Lunatik uses **explicit comparisons** to improve clarity and maintain consistency with Lua's explicit handling of `nil` (e.g., [`lunatik_core.c`](lunatik_core.c:211)).
 
 ```c
 if (ptr == NULL) /* Preferred in Lunatik */
 if (!ptr)        /* Discouraged in Lunatik */
+```
+
+## Return Statements
+
+Unlike the Linux kernel, which forbids parentheses around return values (e.g., `return a;`), Lunatik allows them when it improves readability or is used within complex macros (e.g., [`lunatik_aux.c`](lunatik_aux.c:105)).
+
+```c
+return (void *)__lunatik_lookup(symbol); /* Accepted in Lunatik */
+```
+
+## Switch Statements
+
+Lunatik indents `case` labels relative to the `switch` statement to maintain a clear visual hierarchy, whereas the Linux kernel prefers they be aligned (e.g., [`lunatik_val.c`](lunatik_val.c:11-12)).
+
+```c
+switch (value->type) {
+	case LUA_TNIL: /* Indented in Lunatik */
+		break;
+}
+```
+
+## Assignments in Conditionals
+
+Lunatik frequently performs assignments within `if` conditions to maintain concise Lua-C integration logic (e.g., [`lunatik_core.c`](lunatik_core.c:231)).
+
+```c
+if ((L = luaL_newstate()) == NULL)
 ```
