@@ -36,7 +36,7 @@ EXPORT_SYMBOL(lunatik_newobject);
 
 lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, lunatik_opt_t opt)
 {
-	gfp_t gfp = lunatik_issoftirq(opt | class->opt) ? GFP_ATOMIC : GFP_KERNEL;
+	gfp_t gfp = lunatik_isirq(opt | class->opt) ? GFP_ATOMIC : GFP_KERNEL;
 	lunatik_object_t *object = (lunatik_object_t *)kzalloc(sizeof(lunatik_object_t), gfp);
 
 	if (object == NULL)

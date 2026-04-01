@@ -18,33 +18,39 @@
 #define LUNATIK_VERSION	"Lunatik 4.2"
 
 typedef u8 __bitwise lunatik_opt_t;
-#define LUNATIK_OPT_SOFTIRQ	((__force lunatik_opt_t)(1U << 0))
-#define LUNATIK_OPT_MONITOR	((__force lunatik_opt_t)(1U << 1))
-#define LUNATIK_OPT_SINGLE	((__force lunatik_opt_t)(1U << 2))
-#define LUNATIK_OPT_EXTERNAL	((__force lunatik_opt_t)(1U << 3))
+#define LUNATIK_OPT_IRQ		((__force lunatik_opt_t)(1U << 0))
+#define LUNATIK_OPT_SOFTIRQ	(LUNATIK_OPT_IRQ | ((__force lunatik_opt_t)(1U << 1))) /* netfilter, XDP */
+#define LUNATIK_OPT_HARDIRQ	(LUNATIK_OPT_IRQ | ((__force lunatik_opt_t)(1U << 2))) /* kprobes */
+#define LUNATIK_OPT_MONITOR	((__force lunatik_opt_t)(1U << 3))
+#define LUNATIK_OPT_SINGLE	((__force lunatik_opt_t)(1U << 4))
+#define LUNATIK_OPT_EXTERNAL	((__force lunatik_opt_t)(1U << 5))
 #define LUNATIK_OPT_NONE	((__force lunatik_opt_t)0)
 
-#define lunatik_issoftirq(opt)		((opt) & LUNATIK_OPT_SOFTIRQ)
+#define lunatik_isirq(opt)		((opt) & LUNATIK_OPT_IRQ)
+#define lunatik_issoftirq(opt)		((opt) & ((__force lunatik_opt_t)(1U << 1)))
+#define lunatik_ishardirq(opt)		((opt) & ((__force lunatik_opt_t)(1U << 2)))
 #define lunatik_ismonitor(opt)		((opt) & LUNATIK_OPT_MONITOR)
 #define lunatik_issingle(opt)		((opt) & LUNATIK_OPT_SINGLE)
 #define lunatik_isexternal(opt)		((opt) & LUNATIK_OPT_EXTERNAL)
 
-#define lunatik_locker(o, mutex_op, spin_op)	\
-do {						\
-	if (!lunatik_issoftirq((o)->opt))	\
-		mutex_op(&(o)->mutex);		\
-	else					\
-		spin_op(&(o)->spin);		\
+#define lunatik_locker(o, mutex_op, softirq_op, hardirq_op, ...)	\
+do {									\
+	if (!lunatik_isirq((o)->opt))					\
+		mutex_op(&(o)->mutex);					\
+	else if (lunatik_ishardirq((o)->opt))				\
+		hardirq_op(&(o)->spin, ##__VA_ARGS__);			\
+	else								\
+		softirq_op(&(o)->spin);					\
 } while (0)
 
-#define lunatik_newlock(o)	lunatik_locker((o), mutex_init, spin_lock_init);
-#define lunatik_freelock(o)	lunatik_locker((o), mutex_destroy, (void));
-#define lunatik_lock(o)		lunatik_locker((o), mutex_lock, spin_lock_bh)
-#define lunatik_unlock(o)	lunatik_locker((o), mutex_unlock, spin_unlock_bh)
+#define lunatik_newlock(o)   lunatik_locker((o), mutex_init, spin_lock_init, spin_lock_init);
+#define lunatik_freelock(o)  lunatik_locker((o), mutex_destroy, (void), (void));
+#define lunatik_lock(o)      lunatik_locker((o), mutex_lock, spin_lock_bh, spin_lock_irqsave, (o)->flags)
+#define lunatik_unlock(o)    lunatik_locker((o), mutex_unlock, spin_unlock_bh, spin_unlock_irqrestore, (o)->flags)
 
 #define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 
-#define lunatik_cannotsleep(L, s)	((s) && lunatik_issoftirq(lunatik_toruntime(L)->opt))
+#define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 #define lunatik_getstate(runtime)	((lua_State *)runtime->private)
 
 static inline bool lunatik_isready(lua_State *L)
@@ -101,14 +107,20 @@ typedef struct lunatik_object_s {
 	};
 	lunatik_opt_t opt;
 	gfp_t gfp;
+	unsigned long flags;
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
-	return unlikely(lunatik_ismonitor(object->opt)) ?
-		(lunatik_issoftirq(object->opt) ? spin_trylock(&object->spin) : mutex_trylock(&object->mutex)) : 1;
+	if (likely(!lunatik_ismonitor(object->opt)))
+		return 1;
+	if (lunatik_issoftirq(object->opt))
+		return spin_trylock(&object->spin);
+	if (lunatik_isirq(object->opt))
+		return spin_trylock_irqsave(&object->spin, object->flags);
+	return mutex_trylock(&object->mutex);
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);
@@ -183,10 +195,12 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
 
+#define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
+
 static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt)
 {
 	lunatik_object_t *runtime = lunatik_toruntime(L);
-	if (lunatik_issoftirq(runtime->opt) != lunatik_issoftirq(opt))
+	if (lunatik_context(runtime->opt) != lunatik_context(opt))
 		luaL_error(L, LUNATIK_ERR_RUNTIME);
 	return runtime;
 }
@@ -196,7 +210,7 @@ static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
-	if (lunatik_cannotsleep(L, !lunatik_issoftirq(class->opt)))
+	if (lunatik_cannotsleep(L, !lunatik_isirq(class->opt)))
 		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_CONTEXT);
 }
 
@@ -217,7 +231,7 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 	object->private = NULL;
 	object->class = class;
 	object->opt = lunatik_issingle(opt) ? inherited & ~LUNATIK_OPT_MONITOR : inherited;
-	object->gfp = lunatik_issoftirq(object->opt) ? GFP_ATOMIC : GFP_KERNEL;
+	object->gfp = lunatik_isirq(object->opt) ? GFP_ATOMIC : GFP_KERNEL;
 	lunatik_newlock(object);
 }
 
