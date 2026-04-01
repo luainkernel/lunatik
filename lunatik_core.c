@@ -202,7 +202,7 @@ static int lunatik_runscript(lua_State *L)
 
 	lunatik_setversion(L);
 
-	if (!(lunatik_issoftirq(lunatik_toruntime(L)->opt))) {
+	if (!(lunatik_isirq(lunatik_toruntime(L)->opt))) {
 		luaL_openlibs(L);
 		luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
 	}
@@ -261,7 +261,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 		return -ENOEXEC;
 	}
 
-	if (lunatik_issoftirq(opt))
+	if (lunatik_isirq(opt))
 		runtime->gfp = GFP_ATOMIC;
 
 	*pruntime = runtime;
@@ -279,18 +279,21 @@ EXPORT_SYMBOL(lunatik_runtime);
 * @function runtime
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context: `"process"` (sleepable,
-*   GFP\_KERNEL, mutex) or `"softirq"` (atomic, GFP\_ATOMIC, spinlock).
-*   Use `"softirq"` for hooks that fire in interrupt context (netfilter, XDP).
+*   GFP\_KERNEL, mutex), `"softirq"` (atomic, GFP\_ATOMIC, spinlock), or `"irq"`
+*   (atomic, GFP\_ATOMIC, spinlock with IRQs disabled).
+*   Use `"softirq"` for hooks that fire in softirq context (netfilter, XDP).
+*   Use `"hardirq"` for hooks that fire in hardirq context (kprobes).
 * @treturn runtime
 * @raise if allocation fails or the script errors on load
 * @within lunatik
 */
 static int lunatik_lruntime(lua_State *L)
 {
-	static const char *const contexts[] = {"process", "softirq", NULL};
+	static const char *const contexts[] = {"process", "softirq", "hardirq", NULL};
+	static const lunatik_opt_t opts[] = {LUNATIK_OPT_NONE, LUNATIK_OPT_SOFTIRQ, LUNATIK_OPT_HARDIRQ};
 	const char *script = luaL_checkstring(L, 1);
 	int context = luaL_checkoption(L, 2, "process", contexts);
-	lunatik_opt_t opt = context == 1 ? LUNATIK_OPT_SOFTIRQ : LUNATIK_OPT_NONE;
+	lunatik_opt_t opt = opts[context];
 
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
 	if (lunatik_newruntime(pruntime, L, script, opt) != 0)

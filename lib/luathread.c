@@ -182,7 +182,7 @@ static int luathread_run(lua_State *L)
 {
 	luaL_argcheck(L, lunatik_isready(L), 1, "not allowed during module load");
 	lunatik_object_t *runtime = lunatik_checkobject(L, 1);
-	luaL_argcheck(L, !lunatik_issoftirq(runtime->opt), 1, "SOFTIRQ runtime cannot spawn threads");
+	luaL_argcheck(L, !lunatik_isirq(runtime->opt), 1, "IRQ runtime cannot spawn threads");
 	const char *name = luaL_checkstring(L, 2);
 	lunatik_object_t *object = luathread_new(L);
 	luathread_t *thread = object->private;

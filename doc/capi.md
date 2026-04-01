@@ -23,9 +23,13 @@ Describes a Lunatik object class.
 - `opt`: bitmask of `LUNATIK_OPT_*` flags controlling class behaviour. Flags are inherited by
   every instance via `object->opt = opt | class->opt` (see `lunatik_newobject`). Flags differ
   in whether they act as **constraints** or **capabilities**:
-  - `LUNATIK_OPT_SOFTIRQ` *(constraint)*: all instances use a spinlock and `GFP_ATOMIC`; absence
-    means mutex and `GFP_KERNEL`. Because this flag is always inherited, a SOFTIRQ class can never
-    produce a non-SOFTIRQ instance.
+  - `LUNATIK_OPT_SOFTIRQ` *(constraint)*: all instances use a spinlock with bottom-half disabling
+    (`spin_lock_bh`) and `GFP_ATOMIC`; absence means mutex and `GFP_KERNEL`. Use for classes whose
+    handlers fire in softirq context (netfilter, XDP). Because this flag is always inherited, a
+    SOFTIRQ class can never produce a non-SOFTIRQ instance.
+  - `LUNATIK_OPT_HARDIRQ` *(constraint)*: like `SOFTIRQ` but uses `spin_lock_irqsave`, which
+    disables hardware interrupts. Required for classes whose handlers fire in hardirq context
+    (e.g. kprobes).
   - `LUNATIK_OPT_MONITOR` *(capability)*: the class supports a monitored metatable that wraps Lua
     method calls with the object lock, enabling safe concurrent access from multiple runtimes.
     Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`.
@@ -188,6 +192,16 @@ Returns `true` if the script associated with `L` has finished loading (i.e., the
 chunk has returned). Use this to guard operations that must not run during module
 initialization — for example, spawning a kernel thread from a `runner.spawn` callback.
 
+### lunatik\_checkruntime
+```C
+lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt);
+```
+Returns the runtime associated with `L` and raises a Lua error if its context does not match
+`opt`. Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a
+`softirq` runtime, a HARDIRQ class in a `hardirq` runtime, and a process-context class in a
+process runtime. Typically called from `lunatik_new*` functions to enforce that a class is
+only instantiated in a compatible runtime.
+
 ---
 
 ## Object Lifecycle
@@ -200,7 +214,7 @@ _lunatik\_newobject()_ allocates a new Lunatik object and pushes a userdata
 containing a pointer to the object onto the Lua stack.
 
 `object->opt` is computed as `opt | class->opt`: all class flags are inherited by the instance.
-`opt` may add flags on top (e.g. `LUNATIK_OPT_SOFTIRQ` for a non-sleepable runtime instance).
+`opt` may add flags on top (e.g. `LUNATIK_OPT_SOFTIRQ` or `LUNATIK_OPT_HARDIRQ` for a non-sleepable runtime instance).
 
 - Pass `LUNATIK_OPT_MONITOR` to wrap method calls with the object lock, enabling safe concurrent
   access from multiple runtimes.
