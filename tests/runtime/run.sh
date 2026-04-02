@@ -10,11 +10,21 @@
 DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
+TESTS=(
+	refcnt_leak.sh
+	resume_shared.sh
+	resume_mailbox.sh
+	rcu_shared.sh
+	opt_guards.sh
+	opt_skb_single.sh
+	require_cloneobject.sh
+)
+
 SEP=""
-for t in "$DIR"/refcnt_leak.sh "$DIR"/resume_shared.sh "$DIR"/resume_mailbox.sh "$DIR"/rcu_shared.sh "$DIR"/opt_guards.sh "$DIR"/opt_skb_single.sh; do
-	echo "${SEP}# --- $(basename "$t") ---"
+for t in "${TESTS[@]}"; do
+	echo "${SEP}# --- $t ---"
 	SEP=$'\n'
-	bash "$t" || FAILED=$((FAILED+1))
+	bash "$DIR/$t" || FAILED=$((FAILED+1))
 done
 
 exit $FAILED
