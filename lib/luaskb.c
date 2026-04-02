@@ -223,10 +223,12 @@ static const luaL_Reg luaskb_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(skb);
 static const lunatik_class_t luaskb_class = {
 	.name    = "skb",
 	.methods = luaskb_mt,
 	.release = luaskb_release,
+	.opener = luaopen_skb,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
@@ -252,7 +254,7 @@ static int luaskb_copy(lua_State *L)
 
 lunatik_object_t *luaskb_new(lua_State *L)
 {
-	lunatik_require(L, "skb");
+	lunatik_require(L, &luaskb_class);
 	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *lskb = (luaskb_t *)object->private;
 	lskb->data = luadata_new(L, LUNATIK_OPT_SINGLE);

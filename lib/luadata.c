@@ -325,10 +325,12 @@ static const luaL_Reg luadata_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(data);
 static const lunatik_class_t luadata_class = {
 	.name = "data",
 	.methods = luadata_mt,
 	.release = luadata_release,
+	.opener = luaopen_data,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_MONITOR,
 };
 
@@ -357,7 +359,7 @@ LUNATIK_NEWLIB(data, luadata_lib, luadata_classes);
 
 lunatik_object_t *luadata_new(lua_State *L, lunatik_opt_t opt)
 {
-	lunatik_require(L, "data");
+	lunatik_require(L, &luadata_class);
 	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), opt);
 	return object;
 }

@@ -112,10 +112,12 @@ static const luaL_Reg luanetfilter_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(netfilter);
 static const lunatik_class_t luanetfilter_class = {
 	.name = "netfilter",
 	.methods = luanetfilter_mt,
 	.release = luanetfilter_release,
+	.opener = luaopen_netfilter,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 

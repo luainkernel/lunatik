@@ -159,9 +159,11 @@ static const luaL_Reg luathread_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(thread);
 static const lunatik_class_t luathread_class = {
 	.name = "thread",
 	.methods = luathread_mt,
+	.opener = luaopen_thread,
 	.opt = LUNATIK_OPT_MONITOR,
 };
 

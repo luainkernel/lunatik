@@ -79,6 +79,7 @@ typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
 	void (*release)(void *);
+	lua_CFunction opener;
 	lunatik_opt_t opt;
 } lunatik_class_t;
 
@@ -235,11 +236,12 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
 
-static inline void lunatik_require(lua_State *L, const char *libname)
+static inline void lunatik_require(lua_State *L, const lunatik_class_t *class)
 {
-	lua_getglobal(L, "require");
-	lua_pushstring(L, libname);
-	lua_call(L, 1, 0);
+	if (class->opener) {
+		luaL_requiref(L, class->name, class->opener, 0);
+		lua_pop(L, 1);
+	}
 }
 
 static inline void lunatik_pushobject(lua_State *L, lunatik_object_t *object)
@@ -310,6 +312,8 @@ static inline void lunatik_newclasses(lua_State *L, const lunatik_class_t **clas
 		lunatik_newclass(L, cls, false);
 	}
 }
+
+#define LUNATIK_OPENER(libname)		int luaopen_##libname(lua_State *L)
 
 #define LUNATIK_NEWLIB(libname, funcs, classes)					\
 int luaopen_##libname(lua_State *L);						\

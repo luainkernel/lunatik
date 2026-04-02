@@ -118,10 +118,12 @@ static const luaL_Reg luafifo_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(fifo);
 static const lunatik_class_t luafifo_class = {
 	.name = "fifo",
 	.methods = luafifo_mt,
 	.release = luafifo_release,
+	.opener = luaopen_fifo,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_MONITOR,
 };
 
