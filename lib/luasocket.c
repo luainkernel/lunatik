@@ -394,10 +394,12 @@ static const luaL_Reg luasocket_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(socket);
 static const lunatik_class_t luasocket_class = {
 	.name = "socket",
 	.methods = luasocket_mt,
 	.release = luasocket_release,
+	.opener = luaopen_socket,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
 };
 

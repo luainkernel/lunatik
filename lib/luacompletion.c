@@ -110,9 +110,11 @@ static const luaL_Reg luacompletion_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(completion);
 static const lunatik_class_t luacompletion_class = {
 	.name = "completion",
 	.methods = luacompletion_mt,
+	.opener = luaopen_completion,
 	.opt = LUNATIK_OPT_SOFTIRQ,
 };
 

@@ -39,10 +39,12 @@ static const luaL_Reg luaskel_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(skel);
 static const lunatik_class_t luaskel_class = {
 	.name = "skel",
 	.methods = luaskel_mt,
 	.release = luaskel_release,
+	.opener = luaopen_skel,
 	.opt = LUNATIK_OPT_MONITOR,
 };
 

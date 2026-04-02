@@ -134,7 +134,9 @@ static const luaL_Reg luafib_lib[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(fib);
 static const lunatik_class_t luafib_class = {
+	.opener = luaopen_fib,
 	.opt = LUNATIK_OPT_NONE,
 };
 

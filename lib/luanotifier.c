@@ -202,10 +202,12 @@ static const luaL_Reg luanotifier_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(notifier);
 static const lunatik_class_t luanotifier_process_class = {
 	.name = "notifier",
 	.methods = luanotifier_mt,
 	.release = luanotifier_release,
+	.opener = luaopen_notifier,
 	.opt = LUNATIK_OPT_SINGLE,
 };
 
@@ -213,6 +215,7 @@ static const lunatik_class_t luanotifier_hardirq_class = {
 	.name = "notifier",
 	.methods = luanotifier_mt,
 	.release = luanotifier_release,
+	.opener = luaopen_notifier,
 	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
 };
 

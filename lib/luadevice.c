@@ -336,10 +336,12 @@ static const luaL_Reg luadevice_mt[] = {
 	{NULL, NULL}
 };
 
+LUNATIK_OPENER(device);
 static const lunatik_class_t luadevice_class = {
 	.name = "device",
 	.methods = luadevice_mt,
 	.release = luadevice_release,
+	.opener = luaopen_device,
 	.opt = LUNATIK_OPT_SINGLE,
 };
 

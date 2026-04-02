@@ -59,7 +59,7 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 	if (lunatik_issingle(object->opt))
 		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_SINGLE);
 
-	lunatik_require(L, class->name);
+	lunatik_require(L, class);
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 
 	lunatik_checkclass(L, class);

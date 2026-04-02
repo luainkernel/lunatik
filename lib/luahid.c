@@ -68,10 +68,12 @@ static const luaL_Reg luahid_mt[] = {
 	{NULL, NULL},
 };
 
+LUNATIK_OPENER(hid);
 static const lunatik_class_t luahid_class = {
 	.name = "hid",
 	.methods = luahid_mt,
 	.release = luahid_release,
+	.opener = luaopen_hid,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
