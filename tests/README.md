@@ -91,3 +91,7 @@ Regression tests for `lunatik_newruntime`.
   `completion` to a sub-runtime that sends a message; the main runtime
   receives and asserts the value.
 
+- **require_cloneobject**: `lunatik_cloneobject` must load a class into
+  the receiving runtime via the class opener (`luaL_requiref`) even when
+  that runtime never called `require()` for the module.
+
