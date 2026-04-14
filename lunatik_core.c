@@ -244,7 +244,6 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 
 	lunatik_setobject(runtime, &lunatik_class, opt);
 	lunatik_toruntime(L) = runtime;
-	runtime->private = L;
 
 	runtime->gfp = GFP_KERNEL; /* might use kvmalloc while running in process */
 	lua_setallocf(L, lunatik_alloc, runtime);
@@ -253,9 +252,6 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	lua_pushlightuserdata(L, (void *)script);
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
 		lunatik_runerror(Lfrom, lua_tostring(L, -1));
-		lunatik_lock(runtime);
-		runtime->private = NULL;
-		lunatik_unlock(runtime);
 		lua_close(L); /* hooks hold extra krefs; putobject alone won't reach 0 */
 		lunatik_putobject(runtime);
 		return -ENOEXEC;
@@ -264,6 +260,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	if (lunatik_isirq(opt))
 		runtime->gfp = GFP_ATOMIC;
 
+	runtime->private = L; /* NULL until here: lunatik_run returns -ENXIO during init */
 	*pruntime = runtime;
 	return 0;
 }
