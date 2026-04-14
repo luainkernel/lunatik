@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -72,7 +72,8 @@ static int __kprobes luaprobe_pre_handler(struct kprobe *kp, struct pt_regs *reg
 	int ret;
 
 	lunatik_run(probe->runtime, luaprobe_handler, ret, probe, "pre", regs);
-	return ret;
+	(void)ret;
+	return 0;
 }
 
 static void __kprobes luaprobe_post_handler(struct kprobe *kp, struct pt_regs *regs, unsigned long flags)
@@ -91,7 +92,6 @@ static void luaprobe_delete(luaprobe_t *probe)
 	const char *symbol_name = kp->symbol_name;
 
 	if (kp->pre_handler != NULL) {
-		disable_kprobe(kp);
 		kp->pre_handler = NULL;
 		kp->post_handler = NULL;
 		unregister_kprobe(kp);
@@ -107,7 +107,8 @@ static void luaprobe_release(void *private)
 {
 	luaprobe_t *probe = (luaprobe_t *)private;
 	luaprobe_delete(probe);
-	lunatik_putobject(probe->runtime);
+	if (probe->runtime)
+		lunatik_putobject(probe->runtime);
 }
 
 /***
@@ -119,9 +120,7 @@ static int luaprobe_stop(lua_State *L)
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 
-	lunatik_lock(object);
 	luaprobe_delete(probe);
-	lunatik_unlock(object);
 
 	if (lunatik_toruntime(L) == probe->runtime)
 		lunatik_unregisterobject(L, object);
@@ -141,20 +140,15 @@ static int luaprobe_enable(lua_State *L)
 	struct kprobe *kp = &probe->kp;
 	bool enable = lua_toboolean(L, 2);
 
-	lunatik_lock(object);
-
 	if (kp->pre_handler == NULL)
-		goto err;
+		return luaL_argerror(L, 1, LUNATIK_ERR_NULLPTR);
 
 	if (enable)
 		enable_kprobe(kp);
 	else
 		disable_kprobe(kp);
-	lunatik_unlock(object);
+
 	return 0;
-err:
-	lunatik_unlock(object);
-	return luaL_argerror(L, 1, LUNATIK_ERR_NULLPTR);
 }
 
 static int luaprobe_new(lua_State *L);
@@ -184,7 +178,7 @@ static const lunatik_class_t luaprobe_class = {
 	.name = "probe",
 	.methods = luaprobe_mt,
 	.release = luaprobe_release,
-	.opt = LUNATIK_OPT_SINGLE,
+	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
 };
 
 static int luaprobe_new(lua_State *L)
@@ -194,7 +188,7 @@ static int luaprobe_new(lua_State *L)
 	struct kprobe *kp = &probe->kp;
 	int ret;
 
-	lunatik_setruntime(L, probe, probe);
+	probe->runtime = lunatik_checkruntime(L, LUNATIK_OPT_HARDIRQ);
 	lunatik_getobject(probe->runtime);
 
 	if (lua_islightuserdata(L, 1))
@@ -212,12 +206,15 @@ static int luaprobe_new(lua_State *L)
 	kp->pre_handler = luaprobe_pre_handler;
 	kp->post_handler = luaprobe_post_handler;
 
+	/* must precede register_kprobe: kprobe may fire immediately */
+	lunatik_registerobject(L, 2, object);
+
 	if ((ret = register_kprobe(kp)) != 0) {
 		kp->pre_handler = NULL; /* shouldn't unregister on release() */
+		lunatik_unregisterobject(L, object);
 		luaL_error(L, "failed to register probe (%d)", ret);
 	}
 
-	lunatik_registerobject(L, 2, object);
 	return 1; /* object */
 }
 
