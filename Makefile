@@ -156,6 +156,10 @@ tests_install:
 	${INSTALL} -m 0755 tests/io/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/io
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/io
 	${INSTALL} -m 0644 tests/io/*.lua ${SCRIPTS_INSTALL_PATH}/tests/io
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/probe
+	${INSTALL} -m 0755 tests/probe/run.sh tests/probe/kprobe_concurrent.sh ${LUNATIK_TESTS_INSTALL_PATH}/probe
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/probe
+	${INSTALL} -m 0644 tests/probe/*.lua ${SCRIPTS_INSTALL_PATH}/tests/probe
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
