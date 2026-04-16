@@ -40,6 +40,7 @@ typedef struct luadevice_s {
 	lunatik_object_t *runtime;
 	struct cdev *cdev;
 	dev_t devt;
+	umode_t mode;
 } luadevice_t;
 
 
@@ -372,6 +373,8 @@ static int luadevice_new(lua_State *L)
 	if ((ret = cdev_add(luadev->cdev, luadev->devt, 1)) != 0)
 		luaL_error(L, "failed to add cdev (%d)", ret);
 
+	lunatik_optinteger(L, 1, luadev, mode, 0);
+
 	luadevice_listadd(luadev);
 	lunatik_registerobject(L, 1, object); /* driver */
 
@@ -394,23 +397,10 @@ static char *luadevice_devnode(const struct device *dev, umode_t *mode)
 static char *luadevice_devnode(struct device *dev, umode_t *mode)
 #endif
 {
-	lua_State *L;
-	luadevice_t *luadev;
-	int base;
+	luadevice_t *luadev = (luadevice_t *)dev_get_drvdata(dev);
 
-	if (!mode)
-		goto out;
-
-	luadev = (luadevice_t *)dev_get_drvdata(dev);
-	L = lunatik_getstate(luadev->runtime);
-	if (!L)
-		goto out;
-
-	base = lua_gettop(L);
-	if (lunatik_getregistry(L, luadev) == LUA_TTABLE && lua_getfield(L, -1, "mode") == LUA_TNUMBER)
-		*mode = (umode_t)lua_tointeger(L, -1);
-	lua_settop(L, base);
-out:
+	if (mode && luadev->mode)
+		*mode = luadev->mode;
 	return NULL;
 }
 
