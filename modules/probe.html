@@ -34,7 +34,6 @@
 <h2>Contents</h2>
 <ul>
 <li><a href="#Class_probe">Class probe </a></li>
-<li><a href="#probe">probe</a></li>
 </ul>
 
 
@@ -90,29 +89,25 @@
 <div id="content">
 
 <h1>Module <code>probe</code></h1>
-<p>kprobes mechanism.</p>
-<p> This library allows Lua scripts to dynamically probe (instrument) kernel
- functions or specific instruction addresses. Callbacks can be registered
- to execute Lua code just before (pre-handler) and/or just after
- (post-handler) the probed instruction is executed.</p>
+<p>kprobes interface.</p>
+<p>
+
+</p>
 
 
 <h2><a href="#Class_probe">Class probe </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#probe:enable">probe:enable (enable_flag)</a></td>
-	<td class="summary">Enables or disables an already registered probe.</td>
+	<td class="name" nowrap><a href="#probe:enable">probe:enable (flag)</a></td>
+	<td class="summary">Enables or disables the probe.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#probe:new">probe:new (symbol, handlers)</a></td>
+	<td class="summary">Creates and registers a new kprobe.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#probe:stop">probe:stop ()</a></td>
-	<td class="summary">Stops and unregisters the probe.</td>
-	</tr>
-</table>
-<h2><a href="#probe">probe</a></h2>
-<table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#new">new (symbol_or_address, handlers)</a></td>
-	<td class="summary">Creates and registers a new kernel probe.</td>
+	<td class="summary">Unregisters and stops the probe.</td>
 	</tr>
 </table>
 
@@ -123,131 +118,50 @@
     <h2 class="section-header has-description"><a name="Class_probe"></a>Class probe </h2>
 
           <div class="section-description">
-          Represents a kernel probe (kprobe) object.
- This is a userdata object returned by <code>probe.new()</code>. It encapsulates a
- <code>struct kprobe</code> and the associated Lua callback handlers. This object
- can be used to enable, disable, or stop (unregister) the probe.
+          Represents a registered kprobe.
           </div>
     <dl class="function">
     <dt>
     <a name = "probe:enable"></a>
-    <strong>probe:enable (enable_flag)</strong>
+    <strong>probe:enable (flag)</strong>
     </dt>
     <dd>
-    Enables or disables an already registered probe.
- This method is called on a probe object.
+    Enables or disables the probe.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">enable_flag</span>
+        <li><span class="parameter">flag</span>
             <span class="types"><span class="type">boolean</span></span>
-         If <code>true</code>, the probe is enabled. If <code>false</code>, the probe is disabled.
-   A disabled probe remains registered but its handlers will not be executed.
+         true to enable, false to disable
         </li>
     </ul>
 
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">nil</span></span>
-
-
-
-    </ol>
 
     <h3>Raises:</h3>
-    Error if the probe was not properly registered or has been stopped.
+    if the probe has been stopped
 
 
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">my_probe_object:<span class="function-name">enable</span>(<span class="keyword">false</span>) <span class="comment">-- Disable the probe</span></pre>
-    </ul>
 
 </dd>
     <dt>
-    <a name = "probe:stop"></a>
-    <strong>probe:stop ()</strong>
+    <a name = "probe:new"></a>
+    <strong>probe:new (symbol, handlers)</strong>
     </dt>
     <dd>
-    Stops and unregisters the probe.
- This method is called on a probe object. Once stopped, the kprobe is
- disabled and unregistered from the kernel, and its handlers will no longer
- be called. The associated resources are released.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">nil</span></span>
-
-
-
-    </ol>
-
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">my_probe_object:<span class="function-name">stop</span>()</pre>
-    </ul>
-
-</dd>
-</dl>
-    <h2 class="section-header "><a name="probe"></a>probe</h2>
-
-    <dl class="function">
-    <dt>
-    <a name = "new"></a>
-    <strong>new (symbol_or_address, handlers)</strong>
-    </dt>
-    <dd>
-    Creates and registers a new kernel probe.
- This function installs a kprobe at the specified kernel symbol or address.
- Lua callback functions can be provided to execute when the probe hits.
+    Creates and registers a new kprobe.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">symbol_or_address</span>
+        <li><span class="parameter">symbol</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <span class="type">lightuserdata</span></span>
-         kernel symbol name (string)
-   or the absolute kernel address (lightuserdata) to probe.
-   Suitable symbol names are typically those exported by the kernel or other modules,
-   often visible in <code>/proc/kallsyms</code> (when viewed from userspace). The <a href="../modules/syscall.html#">syscall</a>
-   module (e.g., <code>syscall.numbers.openat</code>) can be used to get system call numbers.</p>
-
-<p>   For system call addresses, you can use <code>syscall.address(syscall.numbers.openat)</code>.
-   For other kernel symbols, <code>linux.lookup(&quot;symbol_name&quot;)</code> can provide the address.
-   Directly using addresses requires knowing the exact memory location, which can
-   vary between kernel builds and is generally less portable than using symbol names
-   or lookup functions.
+         kernel symbol name or address
         </li>
         <li><span class="parameter">handlers</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-
-<p> A table containing the callback functions for the probe.
-   It can have the following fields:</p>
-
-<ul>
-    <li><code>pre</code> (function, optional): A Lua function to be called just <em>before</em> the
-     probed instruction is executed.</li>
-    <li><code>post</code> (function, optional): A Lua function to be called just <em>after</em> the
-     probed instruction has executed.</li>
-</ul>
-
-<p>   Both <code>pre</code> and <code>post</code> handlers receive two arguments:</p>
-
-<ol>
-    <li><code>target</code> (string|lightuserdata): The symbol name or address that was probed.</li>
-    <li><code>dump_regs</code> (function): A closure that, when called without arguments,
-      will print the current CPU registers and stack trace to the system log.
-      This is useful for debugging.</li>
-</ol>
-
-
+         table with optional <code>pre</code> and <code>post</code> callback functions;
+   each receives the symbol (string or lightuserdata) and a <code>dump</code> closure
         </li>
     </ul>
 
@@ -255,11 +169,27 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/probe.html#probe">probe</a></span>
-        A new probe object. This object can be used to later <code>stop()</code> or <code>enable()</code>/<code>disable()</code> the probe.
+
+
+
     </ol>
 
     <h3>Raises:</h3>
-    Error if the probe cannot be registered (e.g., symbol not found, memory allocation failure, invalid address).
+    if registration fails
+
+
+
+</dd>
+    <dt>
+    <a name = "probe:stop"></a>
+    <strong>probe:stop ()</strong>
+    </dt>
+    <dd>
+    Unregisters and stops the probe.
+
+
+
+
 
 
 
@@ -271,7 +201,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-04-16 23:09:34 </i>
+<i style="float:right;">Last updated 2026-04-16 23:24:03 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
