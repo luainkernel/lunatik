@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -12,8 +12,8 @@ function konami:completion(key)
 	return self.ix == (#self.code + 1)
 end
 
-local notify = notifier.notify
-local kbd    = notifier.kbd
+local notify = require("linux.notify")
+local kbd    = require("linux.kbd")
 local enable = true
 local function locker(event, down, shift, key)
 	if not down and event == kbd.KEYCODE and konami:completion(key) then

@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -70,8 +70,8 @@ function spyglass:write(buf)
 	end
 end
 
-local notify = notifier.notify
-local kbd    = notifier.kbd
+local notify = require("linux.notify")
+local kbd    = require("linux.kbd")
 function spyglass.callback(event, down, shift, key)
 	if not down and event == kbd.KEYSYM then
 		local keysym = key & 0xFF
