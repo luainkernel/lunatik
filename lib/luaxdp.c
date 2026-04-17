@@ -189,23 +189,23 @@ static int luaxdp_detach(lua_State *L)
 *    Its size is `arg_sz`.
 *
 *   The callback function should return an integer verdict, typically one of the values
-*   from the `xdp.action` table (e.g., `xdp.action.PASS`, `xdp.action.DROP`).
+*   from `linux.xdp` (e.g., `action.PASS`, `action.DROP`).
 * @treturn nil
 * @raise Error if the current runtime is sleepable or if internal setup fails.
 * @usage
 *   -- Lua script (e.g., "my_xdp_handler.lua" which is run via `lunatik run my_xdp_handler.lua`)
 *   local xdp = require("xdp")
+*   local action = require("linux.xdp")
 *
 *   local function my_packet_processor(packet_buffer, custom_arg)
 *     print("Packet received, size:", #packet_buffer)
-*     return xdp.action.PASS
+*     return action.PASS
 *   end
 *   xdp.attach(my_packet_processor)
 *
 *   -- In eBPF C code, to call the above Lua function:
 *   -- char rt_key[] = "my_xdp_handler.lua"; // Key matches the script name
 *   -- int verdict = bpf_luaxdp_run(rt_key, sizeof(rt_key), ctx, NULL, 0);
-* @see xdp.action
 * @see data
 * @within xdp
 */
@@ -231,35 +231,7 @@ static const luaL_Reg luaxdp_lib[] = {
 	{NULL, NULL}
 };
 
-/***
-* Table of XDP action verdicts.
-* These constants define the possible return values from an XDP program (and thus
-* from the Lua callback attached via `xdp.attach`) to indicate how the packet
-* should be handled.
-* (Constants from `<uapi/linux/bpf.h>`)
-* @table action
-*   @tfield integer ABORTED Indicates an error; packet is dropped. (XDP_ABORTED)
-*   @tfield integer DROP Drop the packet silently. (XDP_DROP)
-*   @tfield integer PASS Pass the packet to the normal network stack. (XDP_PASS)
-*   @tfield integer TX Transmit the packet back out the same interface it arrived on. (XDP_TX)
-*   @tfield integer REDIRECT Redirect the packet to another interface or BPF map. (XDP_REDIRECT)
-* @within xdp
-*/
-static const lunatik_reg_t luaxdp_action[] = {
-	{"ABORTED", XDP_ABORTED},
-	{"DROP", XDP_DROP},
-	{"PASS", XDP_PASS},
-	{"TX", XDP_TX},
-	{"REDIRECT", XDP_REDIRECT},
-	{NULL, 0}
-};
-
-static const lunatik_namespace_t luaxdp_flags[] = {
-	{"action", luaxdp_action},
-	{NULL, NULL}
-};
-
-LUNATIK_NEWLIB(xdp, luaxdp_lib, NULL, luaxdp_flags);
+LUNATIK_NEWLIB(xdp, luaxdp_lib, NULL, NULL);
 
 static int __init luaxdp_init(void)
 {

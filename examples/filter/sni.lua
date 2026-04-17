@@ -1,11 +1,10 @@
 --
--- SPDX-FileCopyrightText: (c) 2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2024-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
-local xdp  = require("xdp")
-
-local action = xdp.action
+local xdp    = require("xdp")
+local action = require("linux.xdp")
 
 local function set(t)
 	local s = {}
