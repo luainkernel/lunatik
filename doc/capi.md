@@ -399,11 +399,45 @@ truncated to `maxlen` bytes. Raises a Lua error if the field is missing or not a
 ```C
 #define LUNATIK_CLASSES(name, ...)
 ```
-Declares a NULL-terminated `const lunatik_class_t *` array named `lua<name>_classes`,
-to be passed as the `classes` argument of `LUNATIK_NEWLIB`.
+Declares a `static const lunatik_class_t *` array of class pointers with an
+implicit trailing `NULL` sentinel. The array is named `lua<name>_classes` —
+the same token used in `LUNATIK_NEWLIB(<name>, ..., lua<name>_classes, ...)`,
+so both macros compose without the author naming the array explicitly.
 
-- `name`: module name suffix (same token used in `LUNATIK_NEWLIB`).
-- `...`: one or more `lunatik_class_t *` pointers.
+- `name`: module name suffix; must match the `libname` of the companion
+  `LUNATIK_NEWLIB` call.
+- `...`: one or more `const lunatik_class_t *` pointers. The macro appends
+  the terminator, so authors must **not** include a trailing `NULL`.
+
+A module may list classes with different execution contexts (e.g. a HARDIRQ
+class alongside a process-context class) in the same array; see the note
+under [`LUNATIK_NEWLIB`](#lunatik_newlib) for how context enforcement is
+handled at object creation.
+
+#### When to use
+
+Prefer `LUNATIK_CLASSES` for the common case of a fixed class list: it
+removes boilerplate, enforces the `static const` qualifiers, and makes
+forgetting the `NULL` sentinel impossible.
+
+Write the array out by hand when any item is guarded by a preprocessor
+directive — `#if`/`#endif` inside a macro argument list is undefined
+behavior in C99 (§6.10.3/11), so the helper cannot express conditional
+inclusion:
+
+```C
+static const lunatik_class_t *luafoo_classes[] = {
+	&luafoo_class,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
+	&luafoo_legacy_class,
+#endif
+	NULL
+};
+LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes);
+```
+
+The naming convention (`lua<libname>_classes`) is a convention of the helper,
+not a requirement of `LUNATIK_NEWLIB`: any NULL-terminated array works.
 
 ### LUNATIK\_NEWLIB
 ```C
@@ -439,11 +473,26 @@ LUNATIK_CLASSES(foo, &luafoo_class);
 LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes);
 ```
 
-#### Example — multiple classes
+#### Example — multiple classes, different contexts
 ```C
-LUNATIK_CLASSES(foo, &luafoo_class, &luafoo_bar_class);
+static const lunatik_class_t luafoo_process_class = {
+	.name = "foo", .methods = luafoo_mt, .release = luafoo_release,
+	.opt = LUNATIK_OPT_SINGLE,
+};
+
+static const lunatik_class_t luafoo_hardirq_class = {
+	.name = "foo", .methods = luafoo_mt, .release = luafoo_release,
+	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+};
+
+LUNATIK_CLASSES(foo, &luafoo_process_class, &luafoo_hardirq_class);
 LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes);
 ```
+
+`require("foo")` succeeds in any runtime — both metatables are registered.
+Each class can only be instantiated from a runtime whose context matches
+its `opt`; the constructor enforces this via
+[`lunatik_checkruntime`](#lunatik_checkruntime).
 
 ---
 
