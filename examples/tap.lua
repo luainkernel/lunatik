@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -9,7 +9,7 @@ local linux  = require("linux")
 
 local MTU       = 1500
 
-local s = linux.stat
+local s = require("linux.stat")
 local tap = {name = "tap", mode = s.IRUGO}
 
 local socket = raw.bind()
