@@ -12,7 +12,7 @@ local data    = require("data")
 
 local shouldstop = thread.shouldstop
 local task = require("linux.task")
-local sock = socket.sock
+local sock = require("linux.sock")
 
 local control = data.new(2)
 control:setbyte(1, 1) -- alive

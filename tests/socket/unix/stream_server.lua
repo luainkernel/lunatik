@@ -11,7 +11,7 @@ local socket = require("socket")
 local thread = require("thread")
 local linux  = require("linux")
 
-local NONBLOCK = socket.sock.NONBLOCK
+local NONBLOCK = require("linux.sock").NONBLOCK
 local PATH     = "/tmp/lunatik_unix_stream.sock"
 
 local server = unix.stream(PATH)

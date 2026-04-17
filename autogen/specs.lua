@@ -19,5 +19,9 @@ return {
 	{ header = "linux/netdevice.h",     prefix = "NETDEV_", module = "netdev" },
 	{ header = "uapi/linux/bpf.h",      prefix = "XDP_",    module = "xdp"    },
 	{ header = "linux/sched.h",         prefix = "TASK_",   module = "task"   },
+	{ header = "linux/net.h",           prefix = "SOCK_",   module = "sock"   },
+	{ header = "linux/socket.h",        prefix = "AF_",     module = "af"     },
+	{ header = "linux/socket.h",        prefix = "MSG_",    module = "msg"    },
+	{ header = "uapi/linux/in.h",       prefix = "IPPROTO_",module = "ipproto"},
 }
 

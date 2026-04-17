@@ -164,8 +164,8 @@ static int luasocket_send(lua_State *L)
 *
 * @function receive
 * @tparam integer length maximum number of bytes to receive.
-* @tparam[opt=0] integer flags Optional message flags (e.g., `socket.msg.PEEK`).
-*   See the `socket.msg` table for available flags. These can be OR'd together.
+* @tparam[opt=0] integer flags Optional message flags (e.g., `linux.msg.PEEK`).
+*   See the `linux.msg` table for available flags. These can be OR'd together.
 * @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
 *   and port (for `AF_INET`). This is typically used with connectionless sockets (`SOCK_DGRAM`).
 * @treturn string received message (as a string of bytes).
@@ -182,7 +182,7 @@ static int luasocket_send(lua_State *L)
 *   -- For a UDP socket, getting sender info:
 *   local data, sender_ip_int, sender_port = udp_sock:receive(1500, 0, true)
 *   if data then print("Received from " .. net.ntoa(sender_ip_int) .. ":" .. sender_port .. ": " .. data) end
-* @see socket.msg
+* @see linux.msg
 * @see net.ntoa
 */
 static int luasocket_receive(lua_State *L)
@@ -334,7 +334,7 @@ static int luasocket_get##what(lua_State *L)					\
 * @raise Error if the operation fails.
 * @usage
 *   local local_ip_int, local_port = my_socket:getsockname()
-*   if my_socket.sk.sk_family == socket.af.INET then print("Bound to " .. net.ntoa(local_ip_int) .. ":" .. local_port) end
+*   if my_socket.sk.sk_family == linux.af.INET then print("Bound to " .. net.ntoa(local_ip_int) .. ":" .. local_port) end
 */
 LUASOCKET_NEWGETTER(sockname);
 
@@ -353,7 +353,7 @@ LUASOCKET_NEWGETTER(sockname);
 * @raise Error if the operation fails (e.g., socket not connected).
 * @usage
 *   local peer_ip_int, peer_port = connected_socket:getpeername()
-*   if connected_socket.sk.sk_family == socket.af.INET then print("Connected to " .. net.ntoa(peer_ip_int) .. ":" .. peer_port) end
+*   if connected_socket.sk.sk_family == linux.af.INET then print("Connected to " .. net.ntoa(peer_ip_int) .. ":" .. peer_port) end
 */
 LUASOCKET_NEWGETTER(peername);
 
@@ -394,298 +394,6 @@ static const luaL_Reg luasocket_mt[] = {
 	{NULL, NULL}
 };
 
-/***
-* Table of address family constants.
-* These constants are used in `socket.new()` to specify the
-* communication domain of the socket.
-* (Constants from `<linux/socket.h>`)
-* @table af
-*
-*   @tfield integer UNSPEC Unspecified.
-*   @tfield integer UNIX Unix domain sockets.
-*   @tfield integer LOCAL POSIX name for AF_UNIX.
-*   @tfield integer INET Internet IP Protocol (IPv4).
-*   @tfield integer AX25 Amateur Radio AX.25.
-*   @tfield integer IPX Novell IPX.
-*   @tfield integer APPLETALK AppleTalk DDP.
-*   @tfield integer NETROM Amateur Radio NET/ROM.
-*   @tfield integer BRIDGE Multiprotocol bridge.
-*   @tfield integer ATMPVC ATM PVCs.
-*   @tfield integer X25 Reserved for X.25 project.
-*   @tfield integer INET6 IP version 6.
-*   @tfield integer ROSE Amateur Radio X.25 PLP.
-*   @tfield integer DECnet Reserved for DECnet project.
-*   @tfield integer NETBEUI Reserved for 802.2LLC project.
-*   @tfield integer SECURITY Security callback pseudo AF.
-*   @tfield integer KEY PF_KEY key management API.
-*   @tfield integer NETLINK Netlink.
-*   @tfield integer ROUTE Alias to emulate 4.4BSD.
-*   @tfield integer PACKET Packet family.
-*   @tfield integer ASH Ash.
-*   @tfield integer ECONET Acorn Econet.
-*   @tfield integer ATMSVC ATM SVCs.
-*   @tfield integer RDS RDS sockets.
-*   @tfield integer SNA Linux SNA Project.
-*   @tfield integer IRDA IRDA sockets.
-*   @tfield integer PPPOX PPPoX sockets.
-*   @tfield integer WANPIPE Wanpipe API Sockets.
-*   @tfield integer LLC Linux LLC.
-*   @tfield integer IB Native InfiniBand address.
-*   @tfield integer MPLS MPLS.
-*   @tfield integer CAN Controller Area Network.
-*   @tfield integer TIPC TIPC sockets.
-*   @tfield integer BLUETOOTH Bluetooth sockets.
-*   @tfield integer IUCV IUCV sockets.
-*   @tfield integer RXRPC RxRPC sockets.
-*   @tfield integer ISDN mISDN sockets.
-*   @tfield integer PHONET Phonet sockets.
-*   @tfield integer IEEE802154 IEEE802154 sockets.
-*   @tfield integer CAIF CAIF sockets.
-*   @tfield integer ALG Algorithm sockets.
-*   @tfield integer NFC NFC sockets.
-*   @tfield integer VSOCK vSockets.
-*   @tfield integer KCM Kernel Connection Multiplexor.
-*   @tfield integer QIPCRTR Qualcomm IPC Router.
-*   @tfield integer SMC SMCP sockets (PF_SMC reuses AF_INET).
-*   @tfield integer XDP XDP sockets.
-*   @tfield integer MCTP Management component transport protocol (Kernel 5.15+).
-*   @tfield integer MAX Maximum value for AF constants.
-*
-* @within socket
-*/
-static const lunatik_reg_t luasocket_af[] = {
-	{"UNSPEC", AF_UNSPEC},
-	{"UNIX", AF_UNIX},
-	{"LOCAL", AF_LOCAL},
-	{"INET", AF_INET},
-	{"AX25", AF_AX25},
-	{"IPX", AF_IPX},
-	{"APPLETALK", AF_APPLETALK},
-	{"NETROM", AF_NETROM},
-	{"BRIDGE", AF_BRIDGE},
-	{"ATMPVC", AF_ATMPVC},
-	{"X25", AF_X25},
-	{"INET6", AF_INET6},
-	{"ROSE", AF_ROSE},
-	{"DECnet", AF_DECnet},
-	{"NETBEUI", AF_NETBEUI},
-	{"SECURITY", AF_SECURITY},
-	{"KEY", AF_KEY},
-	{"NETLINK", AF_NETLINK},
-	{"ROUTE", AF_ROUTE},
-	{"PACKET", AF_PACKET},
-	{"ASH", AF_ASH},
-	{"ECONET", AF_ECONET},
-	{"ATMSVC", AF_ATMSVC},
-	{"RDS", AF_RDS},
-	{"SNA", AF_SNA},
-	{"IRDA", AF_IRDA},
-	{"PPPOX", AF_PPPOX},
-	{"WANPIPE", AF_WANPIPE},
-	{"LLC", AF_LLC},
-	{"IB", AF_IB},
-	{"MPLS", AF_MPLS},
-	{"CAN", AF_CAN},
-	{"TIPC", AF_TIPC},
-	{"BLUETOOTH", AF_BLUETOOTH},
-	{"IUCV", AF_IUCV},
-	{"RXRPC", AF_RXRPC},
-	{"ISDN", AF_ISDN},
-	{"PHONET", AF_PHONET},
-	{"IEEE802154", AF_IEEE802154},
-	{"CAIF", AF_CAIF},
-	{"ALG", AF_ALG},
-	{"NFC", AF_NFC},
-	{"VSOCK", AF_VSOCK},
-	{"KCM", AF_KCM},
-	{"QIPCRTR", AF_QIPCRTR},
-	{"SMC", AF_SMC},
-	{"XDP", AF_XDP},
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
-	{"MCTP", AF_MCTP},
-#endif
-	{"MAX", AF_MAX},
-	{NULL, 0}
-};
-
-/***
-* Table of message flags.
-* These flags can be used with `sock:receive()` and `sock:send()`
-* to modify their behavior.
-* (Constants from `<linux/socket.h>`)
-* @table msg
-*
-*   @tfield integer OOB Process out-of-band data.
-*   @tfield integer PEEK Peek at incoming message without removing it from the queue.
-*   @tfield integer DONTROUTE Don't use a gateway to send out the packet.
-*   @tfield integer TRYHARD Synonym for DONTROUTE for DECnet.
-*   @tfield integer CTRUNC Control data lost before delivery.
-*   @tfield integer PROBE Do not send data, only probe path (e.g., for MTU discovery).
-*   @tfield integer TRUNC Normal data lost before delivery.
-*   @tfield integer DONTWAIT Enables non-blocking operation.
-*   @tfield integer EOR Terminates a record (if supported by the protocol).
-*   @tfield integer WAITALL Wait for full request or error.
-*   @tfield integer FIN FIN segment.
-*   @tfield integer SYN SYN segment.
-*   @tfield integer CONFIRM Confirm path validity (e.g., ARP entry).
-*   @tfield integer RST RST segment.
-*   @tfield integer ERRQUEUE Fetch message from error queue.
-*   @tfield integer NOSIGNAL Do not generate SIGPIPE.
-*   @tfield integer MORE Sender will send more data.
-*   @tfield integer WAITFORONE For `recvmmsg()`: block until at least one packet is available.
-*   @tfield integer SENDPAGE_NOPOLICY Internal: `sendpage()` should not apply policy.
-*   @tfield integer BATCH For `sendmmsg()`: more messages are coming.
-*   @tfield integer EOF End of file.
-*   @tfield integer NO_SHARED_FRAGS Internal: `sendpage()` page fragments are not shared.
-*   @tfield integer SENDPAGE_DECRYPTED Internal: `sendpage()` page may carry plain text and require encryption.
-*   @tfield integer ZEROCOPY Use user data in kernel path for zero-copy transmit.
-*   @tfield integer FASTOPEN Send data in TCP SYN (TCP Fast Open).
-*   @tfield integer CMSG_CLOEXEC Set close-on-exec for file descriptor received via SCM_RIGHTS.
-*
-* @within socket
-*/
-static const lunatik_reg_t luasocket_msg[] = {
-	{"OOB", MSG_OOB},
-	{"PEEK", MSG_PEEK},
-	{"DONTROUTE", MSG_DONTROUTE},
-	{"TRYHARD", MSG_TRYHARD},
-	{"CTRUNC", MSG_CTRUNC},
-	{"PROBE", MSG_PROBE},
-	{"TRUNC", MSG_TRUNC},
-	{"DONTWAIT", MSG_DONTWAIT},
-	{"EOR", MSG_EOR},
-	{"WAITALL", MSG_WAITALL},
-	{"FIN", MSG_FIN},
-	{"SYN", MSG_SYN},
-	{"CONFIRM", MSG_CONFIRM},
-	{"RST", MSG_RST},
-	{"ERRQUEUE", MSG_ERRQUEUE},
-	{"NOSIGNAL", MSG_NOSIGNAL},
-	{"MORE", MSG_MORE},
-	{"WAITFORONE", MSG_WAITFORONE},
-	{"SENDPAGE_NOPOLICY", MSG_SENDPAGE_NOPOLICY},
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
-	{"SENDPAGE_NOTLAST", MSG_SENDPAGE_NOTLAST},
-#endif
-	{"BATCH", MSG_BATCH},
-	{"EOF", MSG_EOF},
-	{"NO_SHARED_FRAGS", MSG_NO_SHARED_FRAGS},
-	{"SENDPAGE_DECRYPTED", MSG_SENDPAGE_DECRYPTED},
-	{"ZEROCOPY", MSG_ZEROCOPY},
-	{"FASTOPEN", MSG_FASTOPEN},
-	{"CMSG_CLOEXEC", MSG_CMSG_CLOEXEC},
-	{NULL, 0}
-};
-
-/***
-* Table of socket type and flag constants.
-* Socket types are used in `socket.new()`. Socket flags can be used in
-* `socket.new()` (by ORing with type), `sock:accept()`, and `sock:connect()`.
-* (Constants from `<linux/net.h>`)
-* @table sock
-*   @tfield integer STREAM Stream socket (e.g., TCP).
-*   @tfield integer DGRAM Datagram socket (e.g., UDP).
-*   @tfield integer RAW Raw socket.
-*   @tfield integer RDM Reliably-delivered message socket.
-*   @tfield integer SEQPACKET Sequential packet socket.
-*   @tfield integer DCCP Datagram Congestion Control Protocol socket.
-*   @tfield integer PACKET Linux specific packet socket (deprecated in favor of AF_PACKET).
-*   @tfield integer CLOEXEC Atomically set the close-on-exec flag for the new socket.
-*   @tfield integer NONBLOCK Atomically set the O_NONBLOCK flag for the new socket.
-* @within socket
-*/
-static const lunatik_reg_t luasocket_sock[] = {
-	{"STREAM", SOCK_STREAM},
-	{"DGRAM", SOCK_DGRAM},
-	{"RAW", SOCK_RAW},
-	{"RDM", SOCK_RDM},
-	{"SEQPACKET", SOCK_SEQPACKET},
-	{"DCCP", SOCK_DCCP},
-	{"PACKET", SOCK_PACKET},
-	{"CLOEXEC", SOCK_CLOEXEC},
-	{"NONBLOCK", SOCK_NONBLOCK},
-	{NULL, 0}
-};
-
-/***
-* Table of IP protocol constants.
-* These are used in `socket.new()` to specify the protocol for `AF_INET` or `AF_INET6` sockets.
-* (Constants from `<uapi/linux/in.h>`)
-* @table ipproto
-*   @tfield integer IP Dummy protocol for TCP. (Typically 0)
-*   @tfield integer ICMP Internet Control Message Protocol.
-*   @tfield integer IGMP Internet Group Management Protocol.
-*   @tfield integer IPIP IPIP tunnels.
-*   @tfield integer TCP Transmission Control Protocol.
-*   @tfield integer EGP Exterior Gateway Protocol.
-*   @tfield integer PUP PUP protocol.
-*   @tfield integer UDP User Datagram Protocol.
-*   @tfield integer IDP XNS IDP protocol.
-*   @tfield integer TP SO Transport Protocol Class 4.
-*   @tfield integer DCCP Datagram Congestion Control Protocol.
-*   @tfield integer IPV6 IPv6-in-IPv4 tunnelling.
-*   @tfield integer RSVP RSVP Protocol.
-*   @tfield integer GRE Cisco GRE tunnels.
-*   @tfield integer ESP Encapsulation Security Payload protocol.
-*   @tfield integer AH Authentication Header protocol.
-*   @tfield integer MTP Multicast Transport Protocol.
-*   @tfield integer BEETPH IP option pseudo header for BEET.
-*   @tfield integer ENCAP Encapsulation Header.
-*   @tfield integer PIM Protocol Independent Multicast.
-*   @tfield integer COMP Compression Header Protocol.
-*   @tfield integer L2TP Layer Two Tunneling Protocol.
-*   @tfield integer SCTP Stream Control Transport Protocol.
-*   @tfield integer UDPLITE UDP-Lite (RFC 3828).
-*   @tfield integer MPLS MPLS in IP (RFC 4023).
-*   @tfield integer ETHERNET Ethernet-within-IPv6 Encapsulation (Kernel 5.6+).
-*   @tfield integer RAW Raw IP packets.
-*   @tfield integer MPTCP Multipath TCP connection (Kernel 5.6+).
-* @within socket
-*/
-static const lunatik_reg_t luasocket_ipproto[] = {
-	{"IP", IPPROTO_IP},
-	{"ICMP", IPPROTO_ICMP},
-	{"IGMP", IPPROTO_IGMP},
-	{"IPIP", IPPROTO_IPIP},
-	{"TCP", IPPROTO_TCP},
-	{"EGP", IPPROTO_EGP},
-	{"PUP", IPPROTO_PUP},
-	{"UDP", IPPROTO_UDP},
-	{"IDP", IPPROTO_IDP},
-	{"TP", IPPROTO_TP},
-	{"DCCP", IPPROTO_DCCP},
-	{"IPV6", IPPROTO_IPV6},
-	{"RSVP", IPPROTO_RSVP},
-	{"GRE", IPPROTO_GRE},
-	{"ESP", IPPROTO_ESP},
-	{"AH", IPPROTO_AH},
-	{"MTP", IPPROTO_MTP},
-	{"BEETPH", IPPROTO_BEETPH},
-	{"ENCAP", IPPROTO_ENCAP},
-	{"PIM", IPPROTO_PIM},
-	{"COMP", IPPROTO_COMP},
-	{"L2TP", IPPROTO_L2TP},
-	{"SCTP", IPPROTO_SCTP},
-	{"UDPLITE", IPPROTO_UDPLITE},
-	{"MPLS", IPPROTO_MPLS},
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
-	{"ETHERNET", IPPROTO_ETHERNET},
-#endif
-	{"RAW", IPPROTO_RAW},
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
-	{"MPTCP", IPPROTO_MPTCP},
-#endif
-	{NULL, 0}
-};
-
-static const lunatik_namespace_t luasocket_flags[] = {
-	{"af", luasocket_af},
-	{"msg", luasocket_msg},
-	{"sock", luasocket_sock},
-	{"ipproto", luasocket_ipproto},
-	{NULL, NULL}
-};
-
 static const lunatik_class_t luasocket_class = {
 	.name = "socket",
 	.methods = luasocket_mt,
@@ -704,7 +412,7 @@ static const lunatik_class_t luasocket_class = {
 * @function accept
 * @tparam socket self listening socket object.
 * @tparam[opt=0] integer flags Optional flags to apply to the newly accepted socket
-*   (e.g., `socket.sock.NONBLOCK`, `socket.sock.CLOEXEC`).
+*   (e.g., `linux.sock.NONBLOCK`, `linux.sock.CLOEXEC`).
 * @treturn socket A new socket object representing the accepted connection.
 * @raise Error if the accept operation fails.
 */
@@ -723,19 +431,19 @@ static int luasocket_accept(lua_State *L)
 * This function is the primary way to create a socket.
 *
 * @function new
-* @tparam integer family address family (e.g., `socket.af.INET`).
-* @tparam integer type socket type (e.g., `socket.sock.STREAM`).
-* @tparam integer protocol protocol (e.g., `socket.ipproto.TCP`).
+* @tparam integer family address family (e.g., `linux.af.INET`).
+* @tparam integer type socket type (e.g., `linux.sock.STREAM`).
+* @tparam integer protocol protocol (e.g., `linux.ipproto.TCP`).
 *   For `AF_PACKET` sockets, `protocol` is typically an `ETH_P_*` value in network byte order
 *   (e.g., `linux.hton16(0x0003)` for `ETH_P_ALL`).
 * @treturn socket A new socket object.
 * @raise Error if socket creation fails.
 * @usage
 *   -- TCP/IPv4 socket
-*   local tcp_sock = socket.new(socket.af.INET, socket.sock.STREAM, socket.ipproto.TCP)
-* @see socket.af
-* @see socket.sock
-* @see socket.ipproto
+*   local tcp_sock = socket.new(linux.af.INET, linux.sock.STREAM, linux.ipproto.TCP)
+* @see linux.af
+* @see linux.sock
+* @see linux.ipproto
 * @within socket
 */
 static int luasocket_new(lua_State *L)
@@ -750,7 +458,7 @@ static int luasocket_new(lua_State *L)
 }
 
 LUNATIK_CLASSES(socket, &luasocket_class);
-LUNATIK_NEWLIB(socket, luasocket_lib, luasocket_classes, luasocket_flags);
+LUNATIK_NEWLIB(socket, luasocket_lib, luasocket_classes, NULL);
 
 static int __init luasocket_init(void)
 {

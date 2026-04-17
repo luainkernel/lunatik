@@ -9,6 +9,8 @@ local socket = require("socket")
 local fifo   = require("fifo")
 local linux  = require("linux")
 local thread = require("thread")
+local af     = require("linux.af")
+local sock   = require("linux.sock")
 
 collectgarbage("generational")
 collectgarbage("param", "minormul", 0)
@@ -21,7 +23,7 @@ return function()
 		f:push(string.rep("x", 256))
 
 		for i = 1, 10 do
-			socket.new(socket.af.PACKET, socket.sock.RAW, 0)
+			socket.new(af.PACKET, sock.RAW, 0)
 		end
 
 		collectgarbage("restart")
