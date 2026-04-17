@@ -36,7 +36,6 @@ typedef struct luanotifier_s {
 	lunatik_object_t *runtime;
 	luanotifier_handler_t handler;
 	luanotifier_register_t unregister;
-	bool running;
 } luanotifier_t;
 
 static int luanotifier_keyboard_handler(lua_State *L, void *data)
@@ -57,9 +56,9 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 	return 1;
 }
 
-static int luanotifier_vt_handler (lua_State* L, void* data)
+static int luanotifier_vt_handler(lua_State *L, void *data)
 {
-	struct vt_notifier_param* param = data;
+	struct vt_notifier_param *param = data;
 
 	lua_pushinteger(L, param->c);
 	lua_pushinteger(L, param->vc->vc_num);
@@ -69,31 +68,24 @@ static int luanotifier_vt_handler (lua_State* L, void* data)
 static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
 {
 	int nargs = 1; /* event */
-	int ret = NOTIFY_OK;
 
-	notifier->running = true;
-	if (lunatik_getregistry(L, notifier) != LUA_TFUNCTION) {
-		pr_err("could not find notifier callback\n");
-		goto err;
-	}
+	if (lunatik_getregistry(L, notifier) != LUA_TFUNCTION)
+		return NOTIFY_DONE; /* callback removed by stop() — silent no-op */
 
 	lua_pushinteger(L, (lua_Integer)event);
 	nargs += notifier->handler(L, data);
 	if (lua_pcall(L, nargs, 1, 0) != LUA_OK) { /* callback(event, ...) */
 		pr_err("%s\n", lua_tostring(L, -1));
-		goto err;
+		return NOTIFY_OK;
 	}
 
-	ret = lua_tointeger(L, -1);
-err:
-	notifier->running = false;
-	return ret;
+	return lua_tointeger(L, -1);
 }
 
 static int luanotifier_call(struct notifier_block *nb, unsigned long event, void *data)
 {
 	luanotifier_t *notifier = container_of(nb, luanotifier_t, nb);
-	bool islocked = !notifier->unregister; /* was called from register_fn? */
+	bool islocked = !notifier->unregister; /* still inside register_fn? */
 	int ret;
 
 	if (islocked)
@@ -104,93 +96,27 @@ static int luanotifier_call(struct notifier_block *nb, unsigned long event, void
 	return ret;
 }
 
-static int luanotifier_new(lua_State *, luanotifier_register_t, luanotifier_register_t, luanotifier_handler_t);
-
-/***
-* Registers a notifier for keyboard events.
-* The provided callback function will be invoked whenever a console keyboard
-* event occurs (e.g., a key is pressed or released).
-* @function keyboard
-* @tparam function callback Lua function called on keyboard events.
-*   It receives the following arguments:
-*
-*   1. `event` (integer): The keyboard event type (see `linux.kbd`).
-*   2. `down` (boolean): `true` if the key is pressed, `false` if released.
-*   3. `shift` (boolean): `true` if a shift key (Shift, Alt, Ctrl) is held, `false` otherwise.
-*   4. `value` (integer): The key's value (keycode or keysym, depending on the `event`).
-*
-*   The callback should return an integer status code from `linux.notify` (e.g. `OK`).
-* @treturn notifier A new notifier object.
-* @within notifier
-*/
-#define LUANOTIFIER_NEWCHAIN(name) 						\
-static int luanotifier_##name(lua_State *L)					\
-{										\
-	return luanotifier_new(L, register_##name##_notifier, 			\
-		unregister_##name##_notifier, luanotifier_##name##_handler);	\
-}
-
-/***
-* Registers a notifier for network device events.
-* The provided callback function will be invoked whenever a network device
-* event occurs (e.g., an interface goes up or down).
-* @function netdevice
-* @tparam function callback Lua function called on netdevice events.
-*   It receives the following arguments:
-*
-*   1. `event` (integer): The netdevice event type (see `linux.netdev`).
-*   2. `name` (string): The name of the network device (e.g., "eth0").
-*
-*   The callback should return an integer status code from `linux.notify`.
-* @treturn notifier A new notifier object.
-* @within notifier
-*/
-LUANOTIFIER_NEWCHAIN(keyboard);
-LUANOTIFIER_NEWCHAIN(netdevice);
-/***
-* Registers a notifier for virtual terminal (vterm) events.
-* The provided callback function will be invoked whenever a virtual terminal
-* event occurs (e.g., a character is written, a terminal is allocated).
-* @function vterm
-* @tparam function callback Lua function called on vterm events.
-*   It receives the following arguments:
-*
-*   1. `event` (integer): The vterm event type (see `linux.vt`).
-*   2. `c` (integer): The character related to the event (if applicable).
-*   3. `vc_num` (integer): The virtual console number associated with the event.
-*
-*   The callback should return an integer status code from `linux.notify`.
-* @treturn notifier A new notifier object.
-* @within notifier
-*/
-LUANOTIFIER_NEWCHAIN(vt);
-
 static void luanotifier_release(void *private)
 {
 	luanotifier_t *notifier = (luanotifier_t *)private;
 
-	/* notifier might have never been stopped */
+	/* release always runs in process context (lua_close -> GC -> release),
+	 * so unregister_*_notifier can safely sleep on synchronize_rcu */
 	if (notifier->unregister)
 		notifier->unregister(&notifier->nb);
 
 	lunatik_putobject(notifier->runtime);
 }
 
-#define luanotifier_isruntime(L, notifier)	(lunatik_toruntime(L) == (notifier)->runtime)
-
-static inline void luanotifier_checkrunning(lua_State *L, luanotifier_t *notifier)
-{
-	if (luanotifier_isruntime(L, notifier) && notifier->running)
-		luaL_error(L, "[%p] notifier cannot unregister itself (deadlock)", notifier);
-}
-
 /***
-* Stops and unregisters a notifier.
-* This method is called on a notifier object. Once stopped, the callback
-* will no longer be invoked for kernel events.
+* Stops event delivery to the Lua callback.
+* After `stop()`, the underlying `notifier_block` remains registered in the
+* kernel chain until the owning runtime is torn down, but firings become
+* silent no-ops. This keeps `stop()` safe in any context (including hardirq)
+* since it performs no sleeping operations; the real unregistration happens
+* in `release`, which always runs in process context.
 * @function stop
 * @treturn nil
-* @raise Error if the notifier attempts to unregister itself from within its own callback (which would cause a deadlock).
 * @usage my_notifier:stop()
 */
 static int luanotifier_stop(lua_State *L)
@@ -198,31 +124,64 @@ static int luanotifier_stop(lua_State *L)
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
 	luanotifier_t *notifier = (luanotifier_t *)object->private;
 
-	luanotifier_checkrunning(L, notifier);
-
-	lunatik_lock(object);
-	if (notifier->unregister) {
-		notifier->unregister(&notifier->nb);
-		notifier->unregister = NULL;
-	}
-	lunatik_unlock(object);
-
-	if (luanotifier_isruntime(L, notifier))
-		lunatik_unregisterobject(L, object);
+	lunatik_unregister(L, notifier); /* clear callback; handler becomes no-op */
 	return 0;
 }
 
-static int luanotifier_delete(lua_State *L)
-{
-	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
-	lunatik_object_t *object = *pobject;
+static int luanotifier_new(lua_State *, luanotifier_register_t, luanotifier_register_t,
+	luanotifier_handler_t, const lunatik_class_t *);
 
-	luanotifier_checkrunning(L, (luanotifier_t *)object->private);
-
-	lunatik_putobject(object);
-	*pobject = NULL;
-	return 0;
+#define LUANOTIFIER_NEWCHAIN(name, class)					\
+static int luanotifier_##name(lua_State *L)					\
+{										\
+	return luanotifier_new(L, register_##name##_notifier,			\
+		unregister_##name##_notifier, luanotifier_##name##_handler,	\
+		(class));							\
 }
+
+static const lunatik_class_t luanotifier_process_class;
+static const lunatik_class_t luanotifier_hardirq_class;
+
+/***
+* Registers a keyboard-event notifier. Must be called from a `hardirq`
+* runtime.
+*
+* @function keyboard
+* @tparam function callback invoked as `callback(event, down, shift, value)`
+*   — `event` is a `linux.kbd` code, `down` is a boolean (key pressed),
+*   `shift` is a boolean (modifier held), and `value` is the keycode or
+*   keysym depending on `event`. Returns a `linux.notify` status code.
+* @treturn notifier
+* @within notifier
+*/
+LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
+
+/***
+* Registers a network-device notifier. Must be called from a process
+* runtime (the default).
+*
+* @function netdevice
+* @tparam function callback invoked as `callback(event, name)` — `event`
+*   is a `linux.netdev` code and `name` is the device name (e.g. `"eth0"`).
+*   Returns a `linux.notify` status code.
+* @treturn notifier
+* @within notifier
+*/
+LUANOTIFIER_NEWCHAIN(netdevice, &luanotifier_process_class);
+
+/***
+* Registers a virtual-terminal notifier. Must be called from a `hardirq`
+* runtime.
+*
+* @function vterm
+* @tparam function callback invoked as `callback(event, c, vc_num)` —
+*   `event` is a `linux.vt` code, `c` is the character value, and
+*   `vc_num` is the virtual console number. Returns a `linux.notify`
+*   status code.
+* @treturn notifier
+* @within notifier
+*/
+LUANOTIFIER_NEWCHAIN(vt, &luanotifier_hardirq_class);
 
 static const luaL_Reg luanotifier_lib[] = {
 	{"keyboard", luanotifier_keyboard},
@@ -232,35 +191,38 @@ static const luaL_Reg luanotifier_lib[] = {
 };
 
 static const luaL_Reg luanotifier_mt[] = {
-	{"__gc", luanotifier_delete},
+	{"__gc", lunatik_deleteobject},
 	{"stop", luanotifier_stop},
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luanotifier_class = {
+static const lunatik_class_t luanotifier_process_class = {
 	.name = "notifier",
 	.methods = luanotifier_mt,
 	.release = luanotifier_release,
 	.opt = LUNATIK_OPT_SINGLE,
 };
 
-static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, luanotifier_register_t unregister_fn,
-	luanotifier_handler_t handler_fn)
-{
-	lunatik_object_t *object;
-	luanotifier_t *notifier;
+static const lunatik_class_t luanotifier_hardirq_class = {
+	.name = "notifier",
+	.methods = luanotifier_mt,
+	.release = luanotifier_release,
+	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+};
 
+static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, luanotifier_register_t unregister_fn,
+	luanotifier_handler_t handler_fn, const lunatik_class_t *class)
+{
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	object = lunatik_newobject(L, &luanotifier_class, sizeof(luanotifier_t), LUNATIK_OPT_NONE);
-	notifier = (luanotifier_t *)object->private;
+	lunatik_object_t *object = lunatik_newobject(L, class, sizeof(luanotifier_t), LUNATIK_OPT_NONE);
+	luanotifier_t *notifier = (luanotifier_t *)object->private;
 
-	lunatik_setruntime(L, notifier, notifier);
+	notifier->runtime = lunatik_checkruntime(L, class->opt);
 	lunatik_getobject(notifier->runtime);
 
 	notifier->nb.notifier_call = luanotifier_call;
-	notifier->unregister = NULL;
-	notifier->running = false;
+	notifier->unregister = NULL; /* sentinel: doubles as islocked marker during register_fn */
 	notifier->handler = handler_fn;
 
 	lunatik_registerobject(L, 1, object);
@@ -270,11 +232,11 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 		luaL_error(L, "couldn't create notifier");
 	}
 
-	notifier->unregister = unregister_fn;
+	notifier->unregister = unregister_fn; /* set AFTER register_fn so islocked works */
 	return 1; /* object */
 }
 
-LUNATIK_CLASSES(notifier, &luanotifier_class);
+LUNATIK_CLASSES(notifier, &luanotifier_process_class, &luanotifier_hardirq_class);
 LUNATIK_NEWLIB(notifier, luanotifier_lib, luanotifier_classes);
 
 static int __init luanotifier_init(void)
@@ -289,5 +251,5 @@ static void __exit luanotifier_exit(void)
 module_init(luanotifier_init);
 module_exit(luanotifier_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 
