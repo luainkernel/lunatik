@@ -17,5 +17,6 @@ return {
 	{ header = "linux/notifier.h",      prefix = "KBD_",    module = "kbd"    },
 	{ header = "linux/vt.h",            prefix = "VT_",     module = "vt"     },
 	{ header = "linux/netdevice.h",     prefix = "NETDEV_", module = "netdev" },
+	{ header = "uapi/linux/bpf.h",      prefix = "XDP_",    module = "xdp"    },
 }
 
