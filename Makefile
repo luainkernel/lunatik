@@ -51,15 +51,19 @@ LUNATIK_MODULES := \
 	$(foreach c,$(LUNATIK_MODULES),\
 		$(if $(filter y m,$(CONFIG_LUNATIK_$(c))),$(c)))
 
-all: lunatik_sym.h configure
+all: lunatik_sym.h autogen
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
 
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
+	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD}/autogen clean
 	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h
 	${RM} autogen/lunatik/*.lua
 	${RM} autogen/linux/*.lua
+	${RM} autogen/dump_*.c autogen/dump_*.pp
+	${RM} autogen/extract.c autogen/extract.s
+	${RM} autogen/targets.mk
 
 scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}
@@ -191,8 +195,9 @@ uninstall: scripts_uninstall modules_uninstall
 lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
-configure:
-	CC='$(CC)' "$(LUA)" configure.lua "$(KERNEL_RELEASE)" "$(INCLUDE_PATH)" "$(LUNATIK_MODULES)"
+.PHONY: autogen
+autogen:
+	CC='$(CC)' "$(LUA)" autogen.lua "$(MODULES_BUILD_PATH)" "$(KERNEL_RELEASE)" "$(LUNATIK_MODULES)"
 
 moontastik_install_%:
 	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)

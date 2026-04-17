@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+
+-include $(src)/targets.mk
+
+quiet_cmd_cpp_dD = CPP -dD $@
+      cmd_cpp_dD = $(CPP) $(c_flags) -E -dD -o $@ $<
+
+$(obj)/%.pp: $(src)/%.c FORCE
+	$(call if_changed_dep,cpp_dD)
+
