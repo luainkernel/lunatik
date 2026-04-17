@@ -36,7 +36,7 @@ function inet:new(o)
 	return setmetatable(o, self)
 end
 
-local af = socket.af
+local af = require("linux.af")
 ---
 -- Metamethod to create a new socket instance when `inet()` or `inet.tcp()` or `inet.udp()` is called.
 -- This is the primary way to create new socket instances (e.g., `local sock = inet.tcp()`).
@@ -141,15 +141,16 @@ function inet:getpeername()
 	return self:getaddr("peername")
 end
 
-local sock, ipproto = socket.sock, socket.ipproto
+local sock    = require("linux.sock")
+local ipproto = require("linux.ipproto")
 
 ---
 -- TCP socket specialization.
 -- Provides methods specific to TCP sockets (e.g., `listen`, `accept`).
 -- Create TCP sockets using `inet.tcp()`.
 -- @table inet.tcp
--- @field type The socket type (e.g., `socket.sock.STREAM`).
--- @field proto The protocol (e.g., `socket.ipproto.TCP`).
+-- @field type The socket type (e.g., `linux.sock.STREAM`).
+-- @field proto The protocol (e.g., `linux.ipproto.TCP`).
 inet.tcp = inet:new{type = sock.STREAM, proto = ipproto.TCP}
 
 ---
@@ -175,8 +176,8 @@ end
 -- Provides methods specific to UDP sockets (e.g., `receivefrom`, `sendto`).
 -- Create UDP sockets using `inet.udp()`.
 -- @table inet.udp
--- @field type The socket type (e.g., `socket.sock.DGRAM`).
--- @field proto The protocol (e.g., `socket.ipproto.UDP`).
+-- @field type The socket type (e.g., `linux.sock.DGRAM`).
+-- @field proto The protocol (e.g., `linux.ipproto.UDP`).
 inet.udp = inet:new{type = sock.DGRAM, proto = ipproto.UDP}
 
 ---
