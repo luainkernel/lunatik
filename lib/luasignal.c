@@ -58,8 +58,9 @@ static int luasignal_sigpending(lua_State *L)
 * @tparam[opt] string state `"blocked"` (default), `"pending"`, or `"allowed"`.
 * @treturn boolean
 * @usage
+* local sig = require("linux.signal")
 * signal.sigstate(15) -- check if SIGTERM is blocked
-* signal.sigstate(signal.flags.TERM, "pending")
+* signal.sigstate(sig.TERM, "pending")
 */
 static int luasignal_sigstate(lua_State *L)
 {
@@ -99,7 +100,7 @@ static int luasignal_sigstate(lua_State *L)
 *
 * @function kill
 * @tparam integer pid Target process ID.
-* @tparam[opt] integer sig Signal to send (default: `signal.flags.KILL`).
+* @tparam[opt] integer sig Signal to send (default: `KILL`, from `linux.signal`).
 * @treturn boolean `true` on success.
 * @raise Error if the process is not found or the operation is not permitted.
 */
@@ -122,52 +123,6 @@ static int luasignal_kill(lua_State *L)
 	return 1;
 }
 
-/***
-* Signal constants.
-* @table flags
-*/
-static const lunatik_reg_t luasignal_flags[] = {
-	{"HUP", SIGHUP},
-	{"INT", SIGINT},
-	{"QUIT", SIGQUIT},
-	{"ILL", SIGILL},
-	{"TRAP", SIGTRAP},
-	{"ABRT", SIGABRT},
-	{"BUS", SIGBUS},
-	{"FPE", SIGFPE},
-	{"KILL", SIGKILL},
-	{"USR1", SIGUSR1},
-	{"SEGV", SIGSEGV},
-	{"USR2", SIGUSR2},
-	{"PIPE", SIGPIPE},
-	{"ALRM", SIGALRM},
-	{"TERM", SIGTERM},
-#ifdef SIGSTKFLT
-	{"STKFLT", SIGSTKFLT},
-#endif
-	{"CHLD", SIGCHLD},
-	{"CONT", SIGCONT},
-	{"STOP", SIGSTOP},
-	{"TSTP", SIGTSTP},
-	{"TTIN", SIGTTIN},
-	{"TTOU", SIGTTOU},
-	{"URG", SIGURG},
-	{"XCPU", SIGXCPU},
-	{"XFSZ", SIGXFSZ},
-	{"VTALRM", SIGVTALRM},
-	{"PROF", SIGPROF},
-	{"WINCH", SIGWINCH},
-	{"IO", SIGIO},
-	{"PWR", SIGPWR},
-	{"SYS", SIGSYS},
-	{NULL, 0}
-};
-
-static const lunatik_namespace_t luasignal_namespaces[] = {
-	{"flags", luasignal_flags},
-	{NULL, NULL}
-};
-
 static const luaL_Reg luasignal_lib[] = {
 	{"sigmask", luasignal_sigmask},
 	{"sigpending", luasignal_sigpending},
@@ -176,7 +131,7 @@ static const luaL_Reg luasignal_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(signal, luasignal_lib, NULL, luasignal_namespaces);
+LUNATIK_NEWLIB(signal, luasignal_lib, NULL, NULL);
 
 static int __init luasignal_init(void)
 {
