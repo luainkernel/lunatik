@@ -310,7 +310,6 @@ static inline void lunatik_newclasses(lua_State *L, const lunatik_class_t **clas
 {
 	for (; *classes; classes++) {
 		const lunatik_class_t *cls = *classes;
-		lunatik_checkclass(L, cls);
 		if (lunatik_ismonitor(cls->opt))
 			lunatik_newclass(L, cls, true);
 		lunatik_newclass(L, cls, false);

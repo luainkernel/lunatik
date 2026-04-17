@@ -418,6 +418,16 @@ Defines and exports the `luaopen_<libname>` entry point using `EXPORT_SYMBOL_GPL
 When `classes != NULL`, `LUNATIK_NEWLIB` registers the metatable(s) for every
 class in the array.
 
+Metatable registration is context-agnostic: a module may expose classes of
+different execution contexts (e.g. a HARDIRQ class alongside a process-context
+class) and `luaopen_<libname>` succeeds in any runtime. Context enforcement
+happens later, at object creation time — `lunatik_newobject` rejects a
+process-context class in an IRQ runtime, and each constructor should call
+[`lunatik_checkruntime`](#lunatik_checkruntime) to reject exact mismatches
+(e.g. a SOFTIRQ class in a HARDIRQ runtime). This lets a single module serve
+runtimes of different contexts: each runtime sees every class registered, but
+can only instantiate the ones whose context matches its own.
+
 #### Example — single class
 ```C
 static const luaL_Reg luafoo_lib[] = {
