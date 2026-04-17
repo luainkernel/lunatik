@@ -130,10 +130,13 @@ function enumerate.write_stubs(dumps)
 	end
 end
 
--- Is the #define value an integer constant expression? Strip hex literals
--- first (they legitimately carry a lowercase 'x'), then reject anything with
--- remaining lowercase: `((cast_t)0)`, `sizeof(...)`, function pointers, etc.
+-- Is the #define value an integer constant expression?
+-- Reject if any function-like macro invocation (`IDENT(...)`) appears --
+-- those expand to code, not compile-time integers. Then strip hex literals
+-- (legitimately carry a lowercase 'x') and reject remaining lowercase,
+-- which signals casts, sizeof, function pointers, etc.
 local function is_integer_expr(value)
+	if value:match("[%a_][%w_]*%s*%(") then return false end
 	return not value:gsub("0[xX][%x]+[uUlL]*", ""):match("[a-z]")
 end
 

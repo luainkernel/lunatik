@@ -7,7 +7,7 @@ local linux  = require("linux")
 local rcu    = require("rcu")
 local runner = require("lunatik.runner")
 
-local s = linux.stat
+local s = require("linux.stat")
 local driver = {name = "systrack", mode = s.IRUGO}
 
 local track = rcu.table()

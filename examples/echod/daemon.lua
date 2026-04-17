@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -11,7 +11,7 @@ local linux   = require("linux")
 local data    = require("data")
 
 local shouldstop = thread.shouldstop
-local task = linux.task
+local task = require("linux.task")
 local sock = socket.sock
 
 local control = data.new(2)

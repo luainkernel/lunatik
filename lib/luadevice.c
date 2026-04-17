@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -304,18 +304,18 @@ static int luadevice_stop(lua_State *L)
 *     last file descriptor is closed). Signature: `function(driver_table)`.
 *     Expected to return nothing.
 *   - `mode` (integer): Optional file mode flags (e.g., permissions) for the device file.
-*     Use constants from the `linux.stat` table (e.g., `linux.stat.IRUGO`).
+*     Use constants from `linux.stat` (e.g., `stat.IRUGO`).
 * @treturn userdata A Lunatik object representing the newly created device.
 *   This object can be used to explicitly stop the device using the `:stop()` method.
 * @raise Error if the device cannot be allocated or registered in the kernel,
 *   or if the `name` field is missing or not a string.
 * @usage
 *   local device = require("device")
-*   local linux = require("linux")
+*   local stat   = require("linux.stat")
 *
 *   local my_driver = {
 *     name = "my_lua_device",
-*     mode = linux.stat.IRUGO, -- Read-only for all
+*     mode = stat.IRUGO, -- Read-only for all
 *     read = function(drv, len, off)
 *       local data = "Hello from " .. drv.name .. " at offset " .. tostring(off) .. "!"
 *       return data:sub(1, len), off + #data
@@ -323,7 +323,6 @@ static int luadevice_stop(lua_State *L)
 *   }
 *   local dev_obj = device.new(my_driver)
 *   -- To clean up: dev_obj:stop() or let it be garbage collected.
-* @see linux.stat
 */
 static const luaL_Reg luadevice_lib[] = {
 	{"new", luadevice_new},

@@ -1,5 +1,5 @@
 --
--- Copyright (c) 2023-2024 ring-0 Ltda.
+-- Copyright (c) 2023-2026 ring-0 Ltda.
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
 -- a copy of this software and associated documentation files (the
@@ -35,7 +35,7 @@ server:bind(inet.localhost, 90)
 server:listen()
 
 local shouldstop = thread.shouldstop
-local task = linux.task
+local task = require("linux.task")
 local sock = socket.sock
 
 local size = 1024
