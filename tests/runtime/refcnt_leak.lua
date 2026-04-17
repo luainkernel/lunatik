@@ -5,10 +5,10 @@
 -- Kernel-side script for the runtime refcnt leak regression test (see refcnt_leak.sh).
 
 local netfilter = require("netfilter")
-local family    = netfilter.family
+local family    = require("linux.nfproto")
 local action    = netfilter.action
-local hooks     = netfilter.inet_hooks
-local priority  = netfilter.ip_priority
+local hooks     = require("linux.nf_inet")
+local priority  = require("linux.nf_ip_pri")
 
 local function hook(skb)
 	return action.ACCEPT

@@ -35,7 +35,6 @@ file = {
 	'./lib/lualinux.c',
 	'./lib/mailbox.lua',
 	'./lib/net.lua',
-	'./lib/luanetfilter.h',
 	'./lib/luanetfilter.c',
 	'./lib/luaskb.c',
 	'./lib/luanotifier.c',

@@ -8,10 +8,10 @@
 
 local netfilter = require("netfilter")
 local byteorder = require("byteorder")
-local family    = netfilter.family
+local family    = require("linux.nfproto")
 local action    = netfilter.action
-local hooks     = netfilter.inet_hooks
-local priority  = netfilter.ip_priority
+local hooks     = require("linux.nf_inet")
+local priority  = require("linux.nf_ip_pri")
 
 local IP_TOTLEN  = 2
 local IP_SADDR   = 12
