@@ -80,16 +80,6 @@ do {									\
 	lunatik_unlock(runtime);					\
 } while(0)
 
-typedef struct lunatik_reg_s {
-	const char *name;
-	lua_Integer value;
-} lunatik_reg_t;
-
-typedef struct lunatik_namespace_s {
-	const char *name;
-	const lunatik_reg_t *reg;
-} lunatik_namespace_t;
-
 typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
@@ -313,19 +303,6 @@ static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 	return pobject;
 }
 
-static inline void lunatik_newnamespaces(lua_State *L, const lunatik_namespace_t *namespaces)
-{
-	for (; namespaces->name; namespaces++) {
-		const lunatik_reg_t *reg;
-		lua_newtable(L); /* namespace = {} */
-		for (reg = namespaces->reg; reg->name; reg++) {
-			lua_pushinteger(L, reg->value);
-			lua_setfield(L, -2, reg->name); /* namespace[name] = value */
-		}
-		lua_setfield(L, -2, namespaces->name); /* lib.namespace = namespace */
-	}
-}
-
 #define LUNATIK_CLASSES(name, ...)	\
 static const lunatik_class_t *lua##name##_classes[] = { __VA_ARGS__, NULL }
 
@@ -340,17 +317,14 @@ static inline void lunatik_newclasses(lua_State *L, const lunatik_class_t **clas
 	}
 }
 
-#define LUNATIK_NEWLIB(libname, funcs, classes, namespaces)			\
+#define LUNATIK_NEWLIB(libname, funcs, classes)					\
 int luaopen_##libname(lua_State *L);						\
 int luaopen_##libname(lua_State *L)						\
 {										\
 	const lunatik_class_t **clss = classes; /* avoid -Waddress */		\
-	const lunatik_namespace_t *nss = namespaces; /* avoid -Waddress */	\
 	luaL_newlib(L, funcs);							\
 	if (clss)								\
 		lunatik_newclasses(L, clss);					\
-	if (nss)								\
-		lunatik_newnamespaces(L, nss);					\
 	return 1;								\
 }										\
 EXPORT_SYMBOL_GPL(luaopen_##libname)

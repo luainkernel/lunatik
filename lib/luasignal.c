@@ -131,7 +131,7 @@ static const luaL_Reg luasignal_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(signal, luasignal_lib, NULL, NULL);
+LUNATIK_NEWLIB(signal, luasignal_lib, NULL);
 
 static int __init luasignal_init(void)
 {

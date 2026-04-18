@@ -275,7 +275,7 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 }
 
 LUNATIK_CLASSES(notifier, &luanotifier_class);
-LUNATIK_NEWLIB(notifier, luanotifier_lib, luanotifier_classes, NULL);
+LUNATIK_NEWLIB(notifier, luanotifier_lib, luanotifier_classes);
 
 static int __init luanotifier_init(void)
 {

@@ -353,7 +353,7 @@ static int luadata_lnew(lua_State *L)
 }
 
 LUNATIK_CLASSES(data, &luadata_class);
-LUNATIK_NEWLIB(data, luadata_lib, luadata_classes, NULL);
+LUNATIK_NEWLIB(data, luadata_lib, luadata_classes);
 
 lunatik_object_t *luadata_new(lua_State *L, lunatik_opt_t opt)
 {

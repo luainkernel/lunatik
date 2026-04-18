@@ -218,7 +218,7 @@ static int luathread_current(lua_State *L)
 }
 
 LUNATIK_CLASSES(thread, &luathread_class);
-LUNATIK_NEWLIB(thread, luathread_lib, luathread_classes, NULL);
+LUNATIK_NEWLIB(thread, luathread_lib, luathread_classes);
 
 static int __init luathread_init(void)
 {

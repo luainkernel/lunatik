@@ -262,7 +262,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(linux, lualinux_lib, NULL, NULL);
+LUNATIK_NEWLIB(linux, lualinux_lib, NULL);
 
 static int __init lualinux_init(void)
 {

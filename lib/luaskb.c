@@ -264,7 +264,7 @@ lunatik_object_t *luaskb_new(lua_State *L)
 EXPORT_SYMBOL(luaskb_new);
 
 LUNATIK_CLASSES(skb, &luaskb_class);
-LUNATIK_NEWLIB(skb, luaskb_lib, luaskb_classes, NULL);
+LUNATIK_NEWLIB(skb, luaskb_lib, luaskb_classes);
 
 static int __init luaskb_init(void)
 {

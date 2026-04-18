@@ -139,7 +139,7 @@ static const lunatik_class_t luafib_class = {
 };
 
 LUNATIK_CLASSES(fib, &luafib_class);
-LUNATIK_NEWLIB(fib, luafib_lib, luafib_classes, NULL);
+LUNATIK_NEWLIB(fib, luafib_lib, luafib_classes);
 
 static int __init luafib_init(void)
 {

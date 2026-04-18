@@ -313,7 +313,7 @@ static int luahid_register(lua_State *L)
 }
 
 LUNATIK_CLASSES(hid, &luahid_class);
-LUNATIK_NEWLIB(hid, luahid_lib, luahid_classes, NULL);
+LUNATIK_NEWLIB(hid, luahid_lib, luahid_classes);
 
 static int __init luahid_init(void)
 {
