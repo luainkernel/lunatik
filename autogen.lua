@@ -145,7 +145,9 @@ end
 -- inside `enum { ... }` bodies (enum values are always integer constants).
 -- `spec.exclude`, if set, drops names starting with that longer prefix --
 -- useful when a shorter prefix shadows a nested spec (e.g. `NF_BR_` also
--- matches `NF_BR_PRI_*`).
+-- matches `NF_BR_PRI_*`). `spec.include`, if set, keeps only names whose
+-- suffix (after the prefix) matches one of the listed items -- useful when
+-- a spec should emit only a curated subset of a broad prefix.
 -- @tparam table spec
 -- @treturn {string,...} names matching `spec.prefix`, sorted
 function enumerate.candidates(spec)
@@ -170,6 +172,14 @@ function enumerate.candidates(spec)
 	if spec.exclude then
 		for name in pairs(seen) do
 			if name:sub(1, #spec.exclude) == spec.exclude then seen[name] = nil end
+		end
+	end
+
+	if spec.include then
+		local keep = {}
+		for _, suffix in ipairs(spec.include) do keep[spec.prefix .. suffix] = true end
+		for name in pairs(seen) do
+			if not keep[name] then seen[name] = nil end
 		end
 	end
 
