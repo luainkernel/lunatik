@@ -5,7 +5,7 @@
 
 -- Common code for new netfilter framework and legacy iptables dns doctoring example
 
-local nf = require("netfilter")
+local nf = require("linux.nf")
 local linux = require("linux")
 local byteorder = require("byteorder")
 local action = nf.action
@@ -48,3 +48,4 @@ function common.hook(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
 end
 
 return common
+
