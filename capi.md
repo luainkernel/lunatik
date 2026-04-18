@@ -38,25 +38,6 @@ Describes a Lunatik object class.
   - `LUNATIK_OPT_EXTERNAL` *(constraint)*: `object->private` holds an external pointer — Lunatik
     will not free it on release.
 
-### lunatik\_reg\_t
-```C
-typedef struct lunatik_reg_s {
-	const char  *name;
-	lua_Integer  value;
-} lunatik_reg_t;
-```
-A name–integer-value pair used to export constants to Lua. Arrays must be terminated by `{NULL, 0}`.
-
-### lunatik\_namespace\_t
-```C
-typedef struct lunatik_namespace_s {
-	const char          *name;
-	const lunatik_reg_t *reg;
-} lunatik_namespace_t;
-```
-A named table of `lunatik_reg_t` constants. Passed to `LUNATIK_NEWLIB` to create sub-tables
-in the module table. Terminated by `{NULL, NULL}`.
-
 ---
 
 ## Runtime
@@ -426,18 +407,16 @@ to be passed as the `classes` argument of `LUNATIK_NEWLIB`.
 
 ### LUNATIK\_NEWLIB
 ```C
-#define LUNATIK_NEWLIB(libname, funcs, classes, namespaces)
+#define LUNATIK_NEWLIB(libname, funcs, classes)
 ```
 Defines and exports the `luaopen_<libname>` entry point using `EXPORT_SYMBOL_GPL`.
 
 - `funcs`: `luaL_Reg[]` of Lua-callable functions (the module table).
 - `classes`: NULL-terminated `const lunatik_class_t **` array declared with
   `LUNATIK_CLASSES`, or `NULL` if the module defines no object type.
-- `namespaces`: `lunatik_namespace_t[]` of constant sub-tables, or `NULL`.
 
 When `classes != NULL`, `LUNATIK_NEWLIB` registers the metatable(s) for every
-class in the array. When `namespaces != NULL`, it creates constant sub-tables
-inside the module table.
+class in the array.
 
 #### Example — single class
 ```C
@@ -447,13 +426,13 @@ static const luaL_Reg luafoo_lib[] = {
 };
 
 LUNATIK_CLASSES(foo, &luafoo_class);
-LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes, NULL);
+LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes);
 ```
 
 #### Example — multiple classes
 ```C
 LUNATIK_CLASSES(foo, &luafoo_class, &luafoo_bar_class);
-LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes, NULL);
+LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes);
 ```
 
 ---
