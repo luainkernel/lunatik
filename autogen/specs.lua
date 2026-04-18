@@ -28,6 +28,8 @@ return {
 	{ header = "uapi/linux/netfilter.h",        prefix = "NF_NETDEV_", module = "nf.netdev" },
 	{ header = "uapi/linux/netfilter_arp.h",    prefix = "NF_ARP_",    module = "nf.arp"    },
 	{ header = "uapi/linux/netfilter_ipv4.h",   prefix = "NF_IP_PRI_", module = "nf.ip.pri" },
+	{ header = "uapi/linux/netfilter_bridge.h", prefix = "NF_BR_",     module = "nf.br",
+		exclude = "NF_BR_PRI_" },
 	{ header = "uapi/linux/netfilter_bridge.h", prefix = "NF_BR_PRI_", module = "nf.br.pri" },
 }
 
