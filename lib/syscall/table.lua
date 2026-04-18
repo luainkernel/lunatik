@@ -11,7 +11,7 @@
 --
 -- @module syscall.table
 -- @see syscall
--- @see syscall.numbers
+-- @see linux.syscall.numbers
 -- @see syscall.address
 -- @usage
 --   local syscall_addrs = require("syscall.table")
@@ -26,10 +26,10 @@
 --
 
 local syscall = require("syscall")
+local numbers = require("linux.syscall").numbers
 
 local table = {}
 
-local numbers = syscall.numbers
 for name, number in pairs(numbers) do
 	table[name] = syscall.address(number)
 end
