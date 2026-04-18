@@ -231,7 +231,7 @@ static const luaL_Reg luaxdp_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(xdp, luaxdp_lib, NULL, NULL);
+LUNATIK_NEWLIB(xdp, luaxdp_lib, NULL);
 
 static int __init luaxdp_init(void)
 {

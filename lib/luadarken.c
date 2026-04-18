@@ -133,7 +133,7 @@ static const luaL_Reg luadarken_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(darken, luadarken_lib, NULL, NULL);
+LUNATIK_NEWLIB(darken, luadarken_lib, NULL);
 
 static int __init luadarken_init(void)
 {

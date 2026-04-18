@@ -125,7 +125,7 @@ static const luaL_Reg luacpu_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(cpu, luacpu_lib, NULL, NULL);
+LUNATIK_NEWLIB(cpu, luacpu_lib, NULL);
 
 static int __init luacpu_init(void)
 {

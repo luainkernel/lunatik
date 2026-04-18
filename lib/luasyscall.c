@@ -46,7 +46,7 @@ static const luaL_Reg luasyscall_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(syscall, luasyscall_lib, NULL, NULL);
+LUNATIK_NEWLIB(syscall, luasyscall_lib, NULL);
 
 static int __init luasyscall_init(void)
 {

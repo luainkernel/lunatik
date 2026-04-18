@@ -174,7 +174,7 @@ static const luaL_Reg luabyteorder_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(byteorder, luabyteorder_lib, NULL, NULL);
+LUNATIK_NEWLIB(byteorder, luabyteorder_lib, NULL);
 
 static int __init luabyteorder_init(void)
 {

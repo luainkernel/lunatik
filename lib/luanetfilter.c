@@ -174,7 +174,7 @@ static void luanetfilter_release(void *private)
 }
 
 LUNATIK_CLASSES(netfilter, &luanetfilter_class);
-LUNATIK_NEWLIB(netfilter, luanetfilter_lib, luanetfilter_classes, NULL);
+LUNATIK_NEWLIB(netfilter, luanetfilter_lib, luanetfilter_classes);
 
 static int __init luanetfilter_init(void)
 {

@@ -388,7 +388,7 @@ static int luadevice_new(lua_State *L)
 }
 
 LUNATIK_CLASSES(device, &luadevice_class);
-LUNATIK_NEWLIB(device, luadevice_lib, luadevice_classes, NULL);
+LUNATIK_NEWLIB(device, luadevice_lib, luadevice_classes);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
 static char *luadevice_devnode(const struct device *dev, umode_t *mode)

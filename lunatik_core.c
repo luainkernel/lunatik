@@ -301,8 +301,8 @@ static int lunatik_lruntime(lua_State *L)
 
 static const lunatik_class_t *lunatik_classes[] = { &lunatik_class, NULL };
 
-LUNATIK_NEWLIB(lunatik, lunatik_lib, lunatik_classes, NULL);
-LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL, NULL);
+LUNATIK_NEWLIB(lunatik, lunatik_lib, lunatik_classes);
+LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL);
 #endif /* LUNATIK_RUNTIME */
 
 static int __init lunatik_init(void)

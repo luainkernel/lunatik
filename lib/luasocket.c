@@ -458,7 +458,7 @@ static int luasocket_new(lua_State *L)
 }
 
 LUNATIK_CLASSES(socket, &luasocket_class);
-LUNATIK_NEWLIB(socket, luasocket_lib, luasocket_classes, NULL);
+LUNATIK_NEWLIB(socket, luasocket_lib, luasocket_classes);
 
 static int __init luasocket_init(void)
 {

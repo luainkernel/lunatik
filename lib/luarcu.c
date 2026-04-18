@@ -325,7 +325,7 @@ static int luarcu_table(lua_State *L)
 }
 
 LUNATIK_CLASSES(rcu, &luarcu_class);
-LUNATIK_NEWLIB(rcu, luarcu_lib, luarcu_classes, NULL);
+LUNATIK_NEWLIB(rcu, luarcu_lib, luarcu_classes);
 
 static int __init luarcu_init(void)
 {

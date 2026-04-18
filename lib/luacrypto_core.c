@@ -34,7 +34,7 @@ static const lunatik_class_t *luacrypto_classes[] = {
 	NULL
 };
 
-LUNATIK_NEWLIB(crypto, luacrypto_lib, luacrypto_classes, NULL);
+LUNATIK_NEWLIB(crypto, luacrypto_lib, luacrypto_classes);
 
 static int __init luacrypto_init(void)
 {

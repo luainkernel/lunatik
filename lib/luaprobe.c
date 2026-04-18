@@ -219,7 +219,7 @@ static int luaprobe_new(lua_State *L)
 }
 
 LUNATIK_CLASSES(probe, &luaprobe_class);
-LUNATIK_NEWLIB(probe, luaprobe_lib, luaprobe_classes, NULL);
+LUNATIK_NEWLIB(probe, luaprobe_lib, luaprobe_classes);
 
 static int __init luaprobe_init(void)
 {
