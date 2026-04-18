@@ -190,11 +190,13 @@ function extract.write(dumps, candidates)
 	util.spit(BASE .. "/extract.c", table.concat(parts))
 end
 
---- Parse `extract.s` into per-module records.
+--- Parse `extract.s` into module records grouped by top-level name.
 -- The asm-offsets `DEFINE()` macro emits `.ascii "->sym val name"`;
--- `COMMENT()` emits `.ascii "->#..."`. We use the latter to delimit modules.
--- @treturn {[string]=table,...} modules indexed by name
--- @treturn {string,...} module names in spec order
+-- `COMMENT()` emits `.ascii "->#..."`. We use the latter to delimit
+-- modules, and group records by their first dotted segment so each
+-- top maps to the set of records that will share one output file.
+-- @treturn {[string]={table,...},...} module records keyed by top-level name
+-- @treturn {string,...} top-level names in first-seen order
 function extract.parse()
 	local modules, order = {}, {}
 	local current
@@ -204,9 +206,13 @@ function extract.parse()
 		if ascii then
 			local name, prefix = ascii:match('^%-%>#module%s+(%S+)%s+(%S+)$')
 			if name then
+				local top = name:match("^[^.]+")
+				if not modules[top] then
+					modules[top] = {}
+					table.insert(order, top)
+				end
 				current = { name = name, prefix = prefix, entries = {} }
-				modules[name] = current
-				table.insert(order, name)
+				table.insert(modules[top], current)
 			else
 				local sym, val = ascii:match('^%-%>(%S+)%s+(%-?%d+)%s+%S+$')
 				local prefix_len = current and #current.prefix
@@ -225,19 +231,55 @@ end
 
 local emit = {}
 
---- Write a single module's Lua file (autogen/linux/<mod.name>.lua).
--- Entries are sorted by key for stable output.
--- @tparam table mod record produced by `extract.parse`
-function emit.module(mod)
-	local out <close> = assert(io.open(("%s/linux/%s.lua"):format(BASE, mod.name), "w"))
-	out:write("-- auto-generated, do not edit\n")
-	out:write("-- kernel: ", KERNEL, "\n\n")
-	out:write("local ", mod.name, " = {}\n\n")
+-- Collect intermediate sub-paths needed to host nested sub-tables
+-- (e.g. `nf.br` so `nf.br.pri` can be assigned to). Paths that happen
+-- to also be specs get re-initialized harmlessly by their own submodule
+-- write (entries come after and survive).
+local function intermediate_paths(mods)
+	local needs = {}
+	for _, mod in ipairs(mods) do
+		local parts = {}
+		for p in mod.name:gmatch("[^.]+") do table.insert(parts, p) end
+		for i = 2, #parts - 1 do
+			needs[table.concat(parts, ".", 1, i)] = true
+		end
+	end
+	return util.sorted(needs)
+end
+
+-- Write one sub-table block: init line (unless this is the top itself)
+-- followed by sorted entries.
+local function write_submodule(out, mod, top)
+	out:write("\n")
+	if mod.name ~= top then out:write(mod.name, " = {}\n") end
 	table.sort(mod.entries, function(a, b) return a.key < b.key end)
 	for _, e in ipairs(mod.entries) do
 		out:write(mod.name, '["', e.key, '"]\t= ', e.value, "\n")
 	end
-	out:write("\nreturn ", mod.name, "\n\n")
+end
+
+--- Write one Lua file per top-level group. Specs whose `module` name shares
+-- a first segment (e.g. `nf.inet`, `nf.ip.pri`) merge into a single file
+-- (`linux/nf.lua`) with nested sub-tables, giving callers a single
+-- `require("linux.nf")` handle.
+-- @tparam string top top-level group name (e.g. `"eth"`, `"nf"`)
+-- @tparam {table,...} mods module records produced by `extract.parse`
+function emit.module(top, mods)
+	local out <close> = assert(io.open(("%s/linux/%s.lua"):format(BASE, top), "w"))
+	out:write("-- auto-generated, do not edit\n")
+	out:write("-- kernel: ", KERNEL, "\n\n")
+	out:write("local ", top, " = {}\n")
+
+	for _, path in ipairs(intermediate_paths(mods)) do
+		out:write(path, " = {}\n")
+	end
+
+	table.sort(mods, function(a, b) return a.name < b.name end)
+	for _, mod in ipairs(mods) do
+		write_submodule(out, mod, top)
+	end
+
+	out:write("\nreturn ", top, "\n\n")
 end
 
 --- Write autogen/lunatik/config.lua with kernel version and module list.
@@ -277,7 +319,7 @@ util.run_kbuild("extract.s")
 
 local modules, order = extract.parse()
 for _, name in ipairs(order) do
-	emit.module(modules[name])
+	emit.module(name, modules[name])
 end
 emit.config()
 

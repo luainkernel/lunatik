@@ -192,7 +192,7 @@ static const lunatik_reg_t luanetfilter_action[] = {
 /***
 * Table of Netfilter hooks in the BRIDGE family.
 * Kept in C because `NF_BR_*` and `NF_BR_PRI_*` share the same prefix; the
-* priorities are exported separately via `require("linux.nf_br_pri")`.
+* priorities are exported separately via `require("linux.nf").br.pri`.
 * @table bridge_hooks
 *   @tfield integer PRE_ROUTING Before any bridge processing.
 *   @tfield integer LOCAL_IN Destined for the bridge interface itself.

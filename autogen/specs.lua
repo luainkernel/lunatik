@@ -23,11 +23,11 @@ return {
 	{ header = "linux/socket.h",                prefix = "AF_",        module = "af"        },
 	{ header = "linux/socket.h",                prefix = "MSG_",       module = "msg"       },
 	{ header = "uapi/linux/in.h",               prefix = "IPPROTO_",   module = "ipproto"   },
-	{ header = "uapi/linux/netfilter.h",        prefix = "NFPROTO_",   module = "nfproto"   },
-	{ header = "uapi/linux/netfilter.h",        prefix = "NF_INET_",   module = "nf_inet"   },
-	{ header = "uapi/linux/netfilter.h",        prefix = "NF_NETDEV_", module = "nf_netdev" },
-	{ header = "uapi/linux/netfilter_arp.h",    prefix = "NF_ARP_",    module = "nf_arp"    },
-	{ header = "uapi/linux/netfilter_ipv4.h",   prefix = "NF_IP_PRI_", module = "nf_ip_pri" },
-	{ header = "uapi/linux/netfilter_bridge.h", prefix = "NF_BR_PRI_", module = "nf_br_pri" },
+	{ header = "uapi/linux/netfilter.h",        prefix = "NFPROTO_",   module = "nf.proto"  },
+	{ header = "uapi/linux/netfilter.h",        prefix = "NF_INET_",   module = "nf.inet"   },
+	{ header = "uapi/linux/netfilter.h",        prefix = "NF_NETDEV_", module = "nf.netdev" },
+	{ header = "uapi/linux/netfilter_arp.h",    prefix = "NF_ARP_",    module = "nf.arp"    },
+	{ header = "uapi/linux/netfilter_ipv4.h",   prefix = "NF_IP_PRI_", module = "nf.ip.pri" },
+	{ header = "uapi/linux/netfilter_bridge.h", prefix = "NF_BR_PRI_", module = "nf.br.pri" },
 }
 

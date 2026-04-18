@@ -5,10 +5,11 @@
 -- Kernel-side script for the opt_skb_single regression test (see opt_skb_single.sh).
 
 local netfilter = require("netfilter")
-local family    = require("linux.nfproto")
+local nf        = require("linux.nf")
+local family    = nf.proto
 local action    = netfilter.action
-local hooks     = require("linux.nf_inet")
-local priority  = require("linux.nf_ip_pri")
+local hooks     = nf.inet
+local priority  = nf.ip.pri
 local lunatik   = require("lunatik")
 
 local triggered = false
