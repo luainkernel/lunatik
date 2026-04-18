@@ -18,8 +18,8 @@
 --
 local socket = require("socket")
 
-local af   = require("linux.af")
-local sock = require("linux.sock")
+local af   = require("linux.socket").af
+local sock = require("linux.socket").sock
 
 ---
 -- Base class for UNIX domain socket objects.
@@ -119,7 +119,7 @@ end
 -- STREAM socket specialization (connection-oriented).
 -- Create instances with `unix.stream([path])`.
 -- @table unix.stream
--- @field type The socket type (`linux.sock.STREAM`).
+-- @field type The socket type (`linux.socket.sock.STREAM`).
 unix.stream = unix:new{type = sock.STREAM}
 
 ---
@@ -144,7 +144,7 @@ end
 -- Create instances with `unix.dgram([path])`.
 -- The optional path is stored as the default destination for `sendto`.
 -- @table unix.dgram
--- @field type The socket type (`linux.sock.DGRAM`).
+-- @field type The socket type (`linux.socket.sock.DGRAM`).
 unix.dgram = unix:new{type = sock.DGRAM}
 
 ---

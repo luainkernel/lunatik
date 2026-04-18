@@ -36,7 +36,7 @@ server:listen()
 
 local shouldstop = thread.shouldstop
 local task = require("linux.task")
-local sock = require("linux.sock")
+local sock = require("linux.socket").sock
 
 local size = 1024
 
