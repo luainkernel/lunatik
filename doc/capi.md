@@ -55,7 +55,7 @@ typedef struct lunatik_namespace_s {
 } lunatik_namespace_t;
 ```
 A named table of `lunatik_reg_t` constants. Passed to `LUNATIK_NEWLIB` to create sub-tables
-in the module table (e.g., `syscall.numbers`). Terminated by `{NULL, NULL}`.
+in the module table. Terminated by `{NULL, NULL}`.
 
 ---
 

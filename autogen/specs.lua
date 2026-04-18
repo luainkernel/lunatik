@@ -33,5 +33,7 @@ return {
 	{ header = "uapi/linux/netfilter_bridge.h", prefix = "NF_BR_PRI_", module = "nf.br.pri"      },
 	{ header = "uapi/linux/netfilter.h",        prefix = "NF_",        module = "nf.action",
 		include = { "DROP", "ACCEPT", "STOLEN", "QUEUE", "REPEAT", "STOP" }                  },
+	{ header = "asm/unistd.h",                  prefix = "__NR_",      module = "syscall.numbers",
+		exclude = { "__NR_arch_specific_syscall", "__NR_compat_", "__NR_syscalls" }          },
 }
 
