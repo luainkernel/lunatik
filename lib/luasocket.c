@@ -164,8 +164,8 @@ static int luasocket_send(lua_State *L)
 *
 * @function receive
 * @tparam integer length maximum number of bytes to receive.
-* @tparam[opt=0] integer flags Optional message flags (e.g., `linux.msg.PEEK`).
-*   See the `linux.msg` table for available flags. These can be OR'd together.
+* @tparam[opt=0] integer flags Optional message flags (e.g., `linux.socket.msg.PEEK`).
+*   See the `linux.socket.msg` table for available flags. These can be OR'd together.
 * @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
 *   and port (for `AF_INET`). This is typically used with connectionless sockets (`SOCK_DGRAM`).
 * @treturn string received message (as a string of bytes).
@@ -182,7 +182,7 @@ static int luasocket_send(lua_State *L)
 *   -- For a UDP socket, getting sender info:
 *   local data, sender_ip_int, sender_port = udp_sock:receive(1500, 0, true)
 *   if data then print("Received from " .. net.ntoa(sender_ip_int) .. ":" .. sender_port .. ": " .. data) end
-* @see linux.msg
+* @see linux.socket.msg
 * @see net.ntoa
 */
 static int luasocket_receive(lua_State *L)
@@ -334,7 +334,7 @@ static int luasocket_get##what(lua_State *L)					\
 * @raise Error if the operation fails.
 * @usage
 *   local local_ip_int, local_port = my_socket:getsockname()
-*   if my_socket.sk.sk_family == linux.af.INET then print("Bound to " .. net.ntoa(local_ip_int) .. ":" .. local_port) end
+*   if my_socket.sk.sk_family == linux.socket.af.INET then print("Bound to " .. net.ntoa(local_ip_int) .. ":" .. local_port) end
 */
 LUASOCKET_NEWGETTER(sockname);
 
@@ -353,7 +353,7 @@ LUASOCKET_NEWGETTER(sockname);
 * @raise Error if the operation fails (e.g., socket not connected).
 * @usage
 *   local peer_ip_int, peer_port = connected_socket:getpeername()
-*   if connected_socket.sk.sk_family == linux.af.INET then print("Connected to " .. net.ntoa(peer_ip_int) .. ":" .. peer_port) end
+*   if connected_socket.sk.sk_family == linux.socket.af.INET then print("Connected to " .. net.ntoa(peer_ip_int) .. ":" .. peer_port) end
 */
 LUASOCKET_NEWGETTER(peername);
 
@@ -412,7 +412,7 @@ static const lunatik_class_t luasocket_class = {
 * @function accept
 * @tparam socket self listening socket object.
 * @tparam[opt=0] integer flags Optional flags to apply to the newly accepted socket
-*   (e.g., `linux.sock.NONBLOCK`, `linux.sock.CLOEXEC`).
+*   (e.g., `linux.socket.sock.NONBLOCK`, `linux.socket.sock.CLOEXEC`).
 * @treturn socket A new socket object representing the accepted connection.
 * @raise Error if the accept operation fails.
 */
@@ -431,19 +431,19 @@ static int luasocket_accept(lua_State *L)
 * This function is the primary way to create a socket.
 *
 * @function new
-* @tparam integer family address family (e.g., `linux.af.INET`).
-* @tparam integer type socket type (e.g., `linux.sock.STREAM`).
-* @tparam integer protocol protocol (e.g., `linux.ipproto.TCP`).
+* @tparam integer family address family (e.g., `linux.socket.af.INET`).
+* @tparam integer type socket type (e.g., `linux.socket.sock.STREAM`).
+* @tparam integer protocol protocol (e.g., `linux.socket.ipproto.TCP`).
 *   For `AF_PACKET` sockets, `protocol` is typically an `ETH_P_*` value in network byte order
 *   (e.g., `linux.hton16(0x0003)` for `ETH_P_ALL`).
 * @treturn socket A new socket object.
 * @raise Error if socket creation fails.
 * @usage
 *   -- TCP/IPv4 socket
-*   local tcp_sock = socket.new(linux.af.INET, linux.sock.STREAM, linux.ipproto.TCP)
-* @see linux.af
-* @see linux.sock
-* @see linux.ipproto
+*   local tcp_sock = socket.new(linux.socket.af.INET, linux.socket.sock.STREAM, linux.socket.ipproto.TCP)
+* @see linux.socket.af
+* @see linux.socket.sock
+* @see linux.socket.ipproto
 * @within socket
 */
 static int luasocket_new(lua_State *L)

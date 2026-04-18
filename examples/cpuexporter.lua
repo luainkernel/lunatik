@@ -11,7 +11,7 @@ local cpu     = require("cpu")
 local socket  = require("socket")
 
 local shouldstop = thread.shouldstop
-local NONBLOCK   = require("linux.sock").NONBLOCK
+local NONBLOCK   = require("linux.socket").sock.NONBLOCK
 
 local server = unix.stream("/tmp/cpuexporter.sock")
 server:bind()

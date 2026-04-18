@@ -9,8 +9,9 @@ local socket = require("socket")
 local fifo   = require("fifo")
 local linux  = require("linux")
 local thread = require("thread")
-local af     = require("linux.af")
-local sock   = require("linux.sock")
+local ls     = require("linux.socket")
+local af     = ls.af
+local sock   = ls.sock
 
 collectgarbage("generational")
 collectgarbage("param", "minormul", 0)
