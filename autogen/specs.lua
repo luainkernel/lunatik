@@ -31,5 +31,7 @@ return {
 	{ header = "uapi/linux/netfilter_bridge.h", prefix = "NF_BR_",     module = "nf.br",
 		exclude = "NF_BR_PRI_" },
 	{ header = "uapi/linux/netfilter_bridge.h", prefix = "NF_BR_PRI_", module = "nf.br.pri" },
+	{ header = "uapi/linux/netfilter.h",        prefix = "NF_",        module = "nf.action",
+		include = { "DROP", "ACCEPT", "STOLEN", "QUEUE", "REPEAT", "STOP" } },
 }
 

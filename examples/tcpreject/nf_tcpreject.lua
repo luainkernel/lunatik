@@ -10,7 +10,7 @@ local netfilter = require("netfilter")
 local byteorder = require("byteorder")
 local nf        = require("linux.nf")
 local family    = nf.proto
-local action    = netfilter.action
+local action    = nf.action
 local hooks     = nf.inet
 local priority  = nf.ip.pri
 
