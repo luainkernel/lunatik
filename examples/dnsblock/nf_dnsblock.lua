@@ -5,12 +5,13 @@
 
 -- Filter DNS packets based on a blocklist using new netfilter hooks
 
-local nf = require("netfilter")
-local common = require("examples.dnsblock.common")
-local family = nf.family
-local action = nf.action
-local hooks = nf.inet_hooks
-local priority = nf.ip_priority
+local netfilter = require("netfilter")
+local nf        = require("linux.nf")
+local common    = require("examples.dnsblock.common")
+local family    = nf.proto
+local action    = nf.action
+local hooks     = nf.inet
+local priority  = nf.ip.pri
 
 local function dnsblock_hook(skb)
 	local pkt = skb:data("net")
@@ -21,7 +22,7 @@ local function dnsblock_hook(skb)
 	return common.hook(pkt, thoff, proto) and action.DROP or action.ACCEPT
 end
 
-nf.register{
+netfilter.register{
 	hook = dnsblock_hook,
 	pf = family.INET,
 	hooknum = hooks.LOCAL_OUT,

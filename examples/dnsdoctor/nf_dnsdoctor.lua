@@ -5,13 +5,14 @@
 
 -- DNS Doctoring using new netfilter API
 
-local nf = require("netfilter")
-local string = require("string")
-local common = require("examples.dnsdoctor.common")
-local action = nf.action
-local family = nf.family
-local hooks = nf.inet_hooks
-local pri = nf.ip_priority
+local netfilter = require("netfilter")
+local nf        = require("linux.nf")
+local string    = require("string")
+local common    = require("examples.dnsdoctor.common")
+local action    = nf.action
+local family    = nf.proto
+local hooks     = nf.inet
+local pri       = nf.ip.pri
 
 local udp = 0x11
 
@@ -38,7 +39,7 @@ local function dnsdoctor_hook(skb)
 	return common.hook(pkt, thoff, target_dns, target_ip, dst_ip, packet_dst)
 end
 
-nf.register{
+netfilter.register{
 	hook = dnsdoctor_hook,
 	pf = family.INET,
 	hooknum = hooks.PRE_ROUTING,
