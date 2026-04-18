@@ -143,6 +143,9 @@ end
 --- Extract candidate names from a spec's preprocessed dump file.
 -- Two sources: #define lines with integer values, and identifiers appearing
 -- inside `enum { ... }` bodies (enum values are always integer constants).
+-- `spec.exclude`, if set, drops names starting with that longer prefix --
+-- useful when a shorter prefix shadows a nested spec (e.g. `NF_BR_` also
+-- matches `NF_BR_PRI_*`).
 -- @tparam table spec
 -- @treturn {string,...} names matching `spec.prefix`, sorted
 function enumerate.candidates(spec)
@@ -161,6 +164,12 @@ function enumerate.candidates(spec)
 	for body in text:gmatch("enum[^{]*{(.-)}") do
 		for name in body:gmatch(member_pattern) do
 			seen[name] = true
+		end
+	end
+
+	if spec.exclude then
+		for name in pairs(seen) do
+			if name:sub(1, #spec.exclude) == spec.exclude then seen[name] = nil end
 		end
 	end
 
@@ -232,18 +241,20 @@ end
 local emit = {}
 
 -- Collect intermediate sub-paths needed to host nested sub-tables
--- (e.g. `nf.br` so `nf.br.pri` can be assigned to). Paths that happen
--- to also be specs get re-initialized harmlessly by their own submodule
--- write (entries come after and survive).
+-- (e.g. `nf.br` so `nf.br.pri` can be assigned to). Paths that are
+-- themselves specs are skipped -- their own `write_submodule` will
+-- init them.
 local function intermediate_paths(mods)
-	local needs = {}
+	local specs, needs = {}, {}
 	for _, mod in ipairs(mods) do
+		specs[mod.name] = true
 		local parts = {}
 		for p in mod.name:gmatch("[^.]+") do table.insert(parts, p) end
 		for i = 2, #parts - 1 do
 			needs[table.concat(parts, ".", 1, i)] = true
 		end
 	end
+	for name in pairs(specs) do needs[name] = nil end
 	return util.sorted(needs)
 end
 

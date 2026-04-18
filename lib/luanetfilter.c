@@ -10,7 +10,6 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/netfilter.h>
-#include <linux/netfilter_bridge.h>
 #include <linux/netfilter/x_tables.h>
 
 #include <lunatik.h>
@@ -189,29 +188,8 @@ static const lunatik_reg_t luanetfilter_action[] = {
 	{NULL, 0}
 };
 
-/***
-* Table of Netfilter hooks in the BRIDGE family.
-* Kept in C because `NF_BR_*` and `NF_BR_PRI_*` share the same prefix; the
-* priorities are exported separately via `require("linux.nf").br.pri`.
-* @table bridge_hooks
-*   @tfield integer PRE_ROUTING Before any bridge processing.
-*   @tfield integer LOCAL_IN Destined for the bridge interface itself.
-*   @tfield integer FORWARD Forwarded between bridge ports.
-*   @tfield integer LOCAL_OUT Originating from the bridge interface.
-*   @tfield integer POST_ROUTING After bridge processing, before egress.
-*/
-static const lunatik_reg_t luanetfilter_bridge_hooks[] = {
-	{"PRE_ROUTING",  NF_BR_PRE_ROUTING},
-	{"LOCAL_IN",     NF_BR_LOCAL_IN},
-	{"FORWARD",      NF_BR_FORWARD},
-	{"LOCAL_OUT",    NF_BR_LOCAL_OUT},
-	{"POST_ROUTING", NF_BR_POST_ROUTING},
-	{NULL, 0}
-};
-
 static const lunatik_namespace_t luanetfilter_flags[] = {
-	{"action",       luanetfilter_action},
-	{"bridge_hooks", luanetfilter_bridge_hooks},
+	{"action", luanetfilter_action},
 	{NULL, NULL}
 };
 
