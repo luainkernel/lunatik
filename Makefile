@@ -185,14 +185,14 @@ btf_install:
 modules_uninstall:
 	${RM} -r ${MODULES_INSTALL_PATH}/lunatik
 
-install: scripts_install modules_install
+install: scripts_install modules_install examples_install tests_install
 	for mod in $(MODULES_ORDER_LIST); do \
 		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
 		echo "$$mod" >> $(MODULES_ORDER_FILE); \
 	done
 	depmod -a
 
-uninstall: scripts_uninstall modules_uninstall
+uninstall: scripts_uninstall modules_uninstall examples_uninstall tests_uninstall
 	for mod in $(MODULES_ORDER_LIST); do \
 		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
 	done
