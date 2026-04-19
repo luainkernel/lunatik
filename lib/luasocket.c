@@ -182,7 +182,7 @@ static int luasocket_send(lua_State *L)
 *   -- For a UDP socket, getting sender info:
 *   local data, sender_ip_int, sender_port = udp_sock:receive(1500, 0, true)
 *   if data then print("Received from " .. net.ntoa(sender_ip_int) .. ":" .. sender_port .. ": " .. data) end
-* @see linux.socket.msg
+* @see linux
 * @see net.ntoa
 */
 static int luasocket_receive(lua_State *L)
@@ -441,9 +441,7 @@ static int luasocket_accept(lua_State *L)
 * @usage
 *   -- TCP/IPv4 socket
 *   local tcp_sock = socket.new(linux.socket.af.INET, linux.socket.sock.STREAM, linux.socket.ipproto.TCP)
-* @see linux.socket.af
-* @see linux.socket.sock
-* @see linux.socket.ipproto
+* @see linux
 * @within socket
 */
 static int luasocket_new(lua_State *L)

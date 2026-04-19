@@ -13,5 +13,5 @@ moontastik*
 dnstest
 doc/*
 !doc/capi.md
-/lib/linux/
+/lib/linux.lua
 

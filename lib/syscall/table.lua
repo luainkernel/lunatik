@@ -11,7 +11,7 @@
 --
 -- @module syscall.table
 -- @see syscall
--- @see linux.syscall.numbers
+-- @see linux
 -- @see syscall.address
 -- @usage
 --   local syscall_addrs = require("syscall.table")

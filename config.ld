@@ -33,7 +33,7 @@ file = {
 	'./lunatik_core.c',
 	'./lib/lunatik/runner.lua',
 	'./lib/lualinux.c',
-	'./lib/linux',
+	'./lib/linux.lua',
 	'./lib/mailbox.lua',
 	'./lib/net.lua',
 	'./lib/luanetfilter.c',
