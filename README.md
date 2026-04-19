@@ -186,24 +186,25 @@ See [doc/capi.md](doc/capi.md) for the full reference.
 
 ### spyglass
 
-[spyglass](examples/spyglass.lua)
+[spyglass](examples/spyglass)
 is a kernel script that implements a _keylogger_ inspired by the
 [spy](https://github.com/jarun/spy) kernel module.
 This kernel script logs the _keysym_ of the pressed keys in a device (`/dev/spyglass`).
 If the _keysym_ is a printable character, `spyglass` logs the _keysym_ itself;
 otherwise, it logs a mnemonic of the ASCII code, (e.g., `<del>` stands for `127`).
 
+The keyboard notifier fires in hardirq context, whereas the device requires
+process context; spyglass splits across two runtimes
+([`device.lua`](examples/spyglass/device.lua) in process and
+[`notifier.lua`](examples/spyglass/notifier.lua) in hardirq) sharing captured
+chars via a [`fifo`](lib/luafifo.c).
+
 #### Usage
 
 ```
-sudo make examples_install          # installs examples
-sudo lunatik run examples/spyglass  # runs spyglass
-sudo tail -f /dev/spyglass          # prints the key log
-sudo sh -c "echo 'enable=false' > /dev/spyglass"       # disable the key logging
-sudo sh -c "echo 'enable=true' > /dev/spyglass"        # enable the key logging
-sudo sh -c "echo 'net=127.0.0.1:1337' > /dev/spyglass" # enable network support
-nc -lu 127.0.0.1 1337 &             # listen to UDP 127.0.0.1:1337
-sudo tail -f /dev/spyglass          # sends the key log through the network
+sudo make examples_install                 # installs examples
+sudo lunatik run examples/spyglass/device  # runs spyglass
+sudo tail -f /dev/spyglass                 # prints the key log
 ```
 
 ### keylocker
