@@ -70,13 +70,11 @@ clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD}/autogen clean
 	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h
-	${RM} autogen/lunatik/*.lua
-	${RM} autogen/linux/*.lua
-	${RM} autogen/dump_*.c autogen/dump_*.pp
-	${RM} autogen/extract.c autogen/extract.s
-	${RM} autogen/targets.mk
-	${RM} ${AUTOGEN_STAMP} ${AUTOGEN_CONFIG}
 	${RM} -r lib/linux
+	${RM} autogen/lunatik/*.lua autogen/linux/*.lua \
+		autogen/dump_*.c autogen/dump_*.pp \
+		autogen/extract.c autogen/extract.s \
+		autogen/targets.mk ${AUTOGEN_STAMP} ${AUTOGEN_CONFIG}
 
 scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}
@@ -103,9 +101,10 @@ scripts_install:
 
 scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
-	${RM} ${SCRIPTS_INSTALL_PATH}/runner.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/mailbox.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/net.lua
+	${RM} ${SCRIPTS_INSTALL_PATH}/util.lua
+	${RM} ${SCRIPTS_INSTALL_PATH}/lighten.lua
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/lunatik
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/socket
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/syscall
