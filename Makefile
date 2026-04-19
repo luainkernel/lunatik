@@ -164,6 +164,10 @@ tests_install:
 	${INSTALL} -m 0755 tests/probe/run.sh tests/probe/kprobe_concurrent.sh ${LUNATIK_TESTS_INSTALL_PATH}/probe
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/probe
 	${INSTALL} -m 0644 tests/probe/*.lua ${SCRIPTS_INSTALL_PATH}/tests/probe
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/notifier
+	${INSTALL} -m 0755 tests/notifier/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/notifier
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/notifier
+	${INSTALL} -m 0644 tests/notifier/*.lua ${SCRIPTS_INSTALL_PATH}/tests/notifier
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
