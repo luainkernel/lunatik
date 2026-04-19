@@ -232,7 +232,8 @@ static void luadevice_release(void *private)
 
 	/* device might have never been stopped */
 	luadevice_delete(luadev);
-	lunatik_putobject(luadev->runtime);
+	if (luadev->runtime) /* NULL if setruntime errored in init */
+		lunatik_putobject(luadev->runtime);
 }
 
 /***
