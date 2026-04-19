@@ -124,65 +124,36 @@ ebpf_install:
 ebpf_uninstall:
 	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}
 
+EXAMPLE_DIRS := $(patsubst examples/%/,%,$(wildcard examples/*/))
+
 examples_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples
 	${INSTALL} -m 0644 examples/*.lua ${SCRIPTS_INSTALL_PATH}/examples
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/echod
-	${INSTALL} -m 0644 examples/echod/*.lua ${SCRIPTS_INSTALL_PATH}/examples/echod
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/filter
-	${INSTALL} -m 0644 examples/filter/*.lua ${SCRIPTS_INSTALL_PATH}/examples/filter
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsblock
-	${INSTALL} -m 0644 examples/dnsblock/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsblock
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
-	${INSTALL} -m 0644 examples/dnsdoctor/*.lua ${SCRIPTS_INSTALL_PATH}/examples/dnsdoctor
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/systrack
-	${INSTALL} -m 0644 examples/systrack/*.lua ${SCRIPTS_INSTALL_PATH}/examples/systrack
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/spyglass
-	${INSTALL} -m 0644 examples/spyglass/*.lua ${SCRIPTS_INSTALL_PATH}/examples/spyglass
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/tcpreject
-	${INSTALL} -m 0644 examples/tcpreject/*.lua ${SCRIPTS_INSTALL_PATH}/examples/tcpreject
+	for d in $(EXAMPLE_DIRS); do \
+		${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
+		${INSTALL} -m 0644 examples/$$d/*.lua ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
+	done
 
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
+
+# Flat test subdirs follow the pattern `.sh -> TESTS/<x>, .lua -> SCRIPTS/tests/<x>`.
+# `socket/` is nested (unix/ underneath) and handled separately below.
+TEST_DIRS := $(filter-out socket,$(patsubst tests/%/,%,$(wildcard tests/*/)))
 
 tests_install:
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0755 tests/run.sh ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0644 tests/lib.sh ${LUNATIK_TESTS_INSTALL_PATH}
-	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/rcu
-	${INSTALL} -m 0755 tests/rcu/run.sh tests/rcu/map_sync.sh ${LUNATIK_TESTS_INSTALL_PATH}/rcu
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/rcu
-	${INSTALL} -m 0644 tests/rcu/*.lua ${SCRIPTS_INSTALL_PATH}/tests/rcu
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/crypto
-	${INSTALL} -m 0644 tests/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/tests/crypto
-	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/crypto
-	${INSTALL} -m 0755 tests/crypto/run.sh ${LUNATIK_TESTS_INSTALL_PATH}/crypto
-	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/monitor
-	${INSTALL} -m 0755 tests/monitor/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/monitor
-	${INSTALL} -m 0644 tests/monitor/*.lua ${SCRIPTS_INSTALL_PATH}/tests/monitor
-	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/thread
-	${INSTALL} -m 0755 tests/thread/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/thread
-	${INSTALL} -m 0644 tests/thread/*.lua ${SCRIPTS_INSTALL_PATH}/tests/thread
-	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/runtime
-	${INSTALL} -m 0755 tests/runtime/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/runtime
-	${INSTALL} -m 0644 tests/runtime/*.lua ${SCRIPTS_INSTALL_PATH}/tests/runtime
-	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix
+	for d in $(TEST_DIRS); do \
+		${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/$$d ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
+		${INSTALL} -m 0755 tests/$$d/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/$$d; \
+		${INSTALL} -m 0644 tests/$$d/*.lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
+	done
+	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/run.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0755 tests/socket/unix/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0644 tests/socket/unix/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
-	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/io
-	${INSTALL} -m 0755 tests/io/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/io
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/io
-	${INSTALL} -m 0644 tests/io/*.lua ${SCRIPTS_INSTALL_PATH}/tests/io
-	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/probe
-	${INSTALL} -m 0755 tests/probe/run.sh tests/probe/kprobe_concurrent.sh ${LUNATIK_TESTS_INSTALL_PATH}/probe
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/probe
-	${INSTALL} -m 0644 tests/probe/*.lua ${SCRIPTS_INSTALL_PATH}/tests/probe
-	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/notifier
-	${INSTALL} -m 0755 tests/notifier/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/notifier
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests/notifier
-	${INSTALL} -m 0644 tests/notifier/*.lua ${SCRIPTS_INSTALL_PATH}/tests/notifier
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
