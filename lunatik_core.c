@@ -189,10 +189,11 @@ static const lunatik_class_t lunatik_class = {
 int luaopen_lunatik(lua_State *L);
 int luaopen_lunatik_stub(lua_State *L);
 
-static inline void lunatik_setready(lua_State *L)
+static inline void lunatik_setready(lunatik_object_t *runtime)
 {
-	lua_pushboolean(L, true);
-	lua_rawsetp(L, LUA_REGISTRYINDEX, L);
+	lunatik_lock(runtime); /* publish ready under the same lock readers take */
+	lunatik_extra(lunatik_getstate(runtime))->ready = true;
+	lunatik_unlock(runtime);
 }
 
 static int lunatik_runscript(lua_State *L)
@@ -222,7 +223,6 @@ static int lunatik_runscript(lua_State *L)
 
 	lua_call(L, 0, 1);
 	lua_remove(L, scriptix);
-	lunatik_setready(L);
 	return 1; /* callback */
 }
 
@@ -244,14 +244,18 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 
 	lunatik_setobject(runtime, &lunatik_class, opt);
 	lunatik_toruntime(L) = runtime;
+	lunatik_extra(L)->ready = false;
 
 	runtime->gfp = GFP_KERNEL; /* might use kvmalloc while running in process */
 	lua_setallocf(L, lunatik_alloc, runtime);
+
+	runtime->private = L;
 
 	lua_pushcfunction(L, lunatik_runscript);
 	lua_pushlightuserdata(L, (void *)script);
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
 		lunatik_runerror(Lfrom, lua_tostring(L, -1));
+		runtime->private = NULL;
 		lua_close(L); /* hooks hold extra krefs; putobject alone won't reach 0 */
 		lunatik_putobject(runtime);
 		return -ENOEXEC;
@@ -260,7 +264,8 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	if (lunatik_isirq(opt))
 		runtime->gfp = GFP_ATOMIC;
 
-	runtime->private = L; /* NULL until here: lunatik_run returns -ENXIO during init */
+	lunatik_setready(runtime); /* lunatik_run returns -ENXIO until here */
+
 	*pruntime = runtime;
 	return 0;
 }
