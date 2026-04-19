@@ -33,8 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#lunatik">lunatik</a></li>
-<li><a href="#Class_runtime">Class runtime </a></li>
+<li><a href="#Tables">Tables</a></li>
 </ul>
 
 
@@ -62,9 +61,9 @@
   <li><a href="../modules/linux.stat.html">linux.stat</a></li>
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
-  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><strong>linux.vt</strong></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
-  <li><strong>lunatik</strong></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
   <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
   <li><a href="../modules/mailbox.html">mailbox</a></li>
   <li><a href="../modules/net.html">net</a></li>
@@ -101,33 +100,16 @@
 
 <div id="content">
 
-<h1>Module <code>lunatik</code></h1>
-<p>Manages Lunatik runtimes — isolated Lua states running in the kernel.</p>
-<p>
-
-</p>
+<h1>Module <code>linux.vt</code></h1>
+<p>Linux kernel constants exposed under <a href="../modules/linux.vt.html#">linux.vt</a>.</p>
+<p> Values are populated at build time from the kernel headers.</p>
 
 
-<h2><a href="#lunatik">lunatik</a></h2>
+<h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#_ENV">_ENV</a></td>
-	<td class="summary">Shared global environment; scripts exchange objects (e.g.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#runtime">runtime (script[, context="process"])</a></td>
-	<td class="summary">Creates a new Lunatik runtime executing the given script.</td>
-	</tr>
-</table>
-<h2><a href="#Class_runtime">Class runtime </a></h2>
-<table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#runtime:resume">runtime:resume (...)</a></td>
-	<td class="summary">Resumes a yielded runtime, analogous to <a href="https://www.lua.org/manual/5.4/manual.html#pdf-coroutine.resume">coroutine.resume</a>.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#runtime:stop">runtime:stop ()</a></td>
-	<td class="summary">Stops the runtime and releases all associated kernel resources.</td>
+	<td class="name" nowrap><a href="#constants">constants</a></td>
+	<td class="summary">Virtual terminal notifier event types.</td>
 	</tr>
 </table>
 
@@ -135,111 +117,16 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="lunatik"></a>lunatik</h2>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
 
     <dl class="function">
     <dt>
-    <a name = "_ENV"></a>
-    <strong>_ENV</strong>
+    <a name = "constants"></a>
+    <strong>constants</strong>
     </dt>
     <dd>
-    Shared global environment; scripts exchange objects (e.g.  RCU tables) through it.
-
-
-    <ul>
-        <li><span class="parameter">_ENV</span>
-
-
-
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "runtime"></a>
-    <strong>runtime (script[, context="process"])</strong>
-    </dt>
-    <dd>
-    Creates a new Lunatik runtime executing the given script.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">script</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         script name (e.g., <code>&quot;mymod&quot;</code> loads <code>/lib/modules/lua/mymod.lua</code>)
-        </li>
-        <li><span class="parameter">context</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         execution context: <code>&quot;process&quot;</code> (sleepable,
-   GFP_KERNEL, mutex), <code>&quot;softirq&quot;</code> (atomic, GFP_ATOMIC, spinlock), or <code>&quot;irq&quot;</code>
-   (atomic, GFP_ATOMIC, spinlock with IRQs disabled).
-   Use <code>&quot;softirq&quot;</code> for hooks that fire in softirq context (netfilter, XDP).
-   Use <code>&quot;hardirq&quot;</code> for hooks that fire in hardirq context (kprobes).
-         (<em>default</em> "process")
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/lunatik.html#runtime">runtime</a></span>
-
-
-
-    </ol>
-
-    <h3>Raises:</h3>
-    if allocation fails or the script errors on load
-
-
-
-</dd>
-</dl>
-    <h2 class="section-header has-description"><a name="Class_runtime"></a>Class runtime </h2>
-
-          <div class="section-description">
-          Isolated Lua state running within the Linux kernel.
-          </div>
-    <dl class="function">
-    <dt>
-    <a name = "runtime:resume"></a>
-    <strong>runtime:resume (...)</strong>
-    </dt>
-    <dd>
-    Resumes a yielded runtime, analogous to <a href="https://www.lua.org/manual/5.4/manual.html#pdf-coroutine.resume">coroutine.resume</a>.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">...</span>
-         values delivered to the script as return values of <code>coroutine.yield()</code>
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">vararg</span></span>
-        values passed to the next <code>coroutine.yield()</code>, or returned by the script
-    </ol>
-
-    <h3>Raises:</h3>
-    if the runtime errors on resumption
-
-
-
-</dd>
-    <dt>
-    <a name = "runtime:stop"></a>
-    <strong>runtime:stop ()</strong>
-    </dt>
-    <dd>
-    Stops the runtime and releases all associated kernel resources.
+    Virtual terminal notifier event types.
+ Mirrors <code>VT_*</code> defines in <code>&lt;linux/vt.h&gt;</code>.
 
 
 

@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Functions">Functions</a></li>
+<li><a href="#Tables">Tables</a></li>
 </ul>
 
 
@@ -41,7 +41,7 @@
 <ul class="nowrap">
   <li><a href="../modules/byteorder.html">byteorder</a></li>
   <li><a href="../modules/completion.html">completion</a></li>
-  <li><strong>cpu</strong></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
   <li><a href="../modules/crypto.html">crypto</a></li>
   <li><a href="../modules/darken.html">darken</a></li>
   <li><a href="../modules/data.html">data</a></li>
@@ -62,7 +62,7 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
-  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+  <li><strong>linux.xdp</strong></li>
   <li><a href="../modules/lunatik.html">lunatik</a></li>
   <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
   <li><a href="../modules/mailbox.html">mailbox</a></li>
@@ -100,48 +100,16 @@
 
 <div id="content">
 
-<h1>Module <code>cpu</code></h1>
-<p>Lua interface to Linux CPU abstractions.</p>
-<p>
-
-</p>
+<h1>Module <code>linux.xdp</code></h1>
+<p>Linux kernel constants exposed under <a href="../modules/linux.xdp.html#">linux.xdp</a>.</p>
+<p> Values are populated at build time from the kernel headers.</p>
 
 
-<h2><a href="#Functions">Functions</a></h2>
+<h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#foreach_online">foreach_online (callback)</a></td>
-	<td class="summary">Calls a function for each online CPU.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#foreach_possible">foreach_possible (callback)</a></td>
-	<td class="summary">Calls a function for each possible CPU.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#foreach_present">foreach_present (callback)</a></td>
-	<td class="summary">Calls a function for each present CPU.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#num_online">num_online ()</a></td>
-	<td class="summary">
-
-</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#num_possible">num_possible ()</a></td>
-	<td class="summary">
-
-</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#num_present">num_present ()</a></td>
-	<td class="summary">
-
-</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#stats">stats (cpu)</a></td>
-	<td class="summary">Returns CPU time statistics for a given CPU.</td>
+	<td class="name" nowrap><a href="#constants">constants</a></td>
+	<td class="summary">XDP verdicts and flags.</td>
 	</tr>
 </table>
 
@@ -149,164 +117,20 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
 
     <dl class="function">
     <dt>
-    <a name = "foreach_online"></a>
-    <strong>foreach_online (callback)</strong>
+    <a name = "constants"></a>
+    <strong>constants</strong>
     </dt>
     <dd>
-    Calls a function for each online CPU.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">callback</span>
-            <span class="types"><span class="type">function</span></span>
-         called with the CPU number
-        </li>
-    </ul>
+    XDP verdicts and flags.
+ Mirrors <code>XDP_*</code> defines in <code>&lt;uapi/linux/bpf.h&gt;</code>.
 
 
 
 
-
-</dd>
-    <dt>
-    <a name = "foreach_possible"></a>
-    <strong>foreach_possible (callback)</strong>
-    </dt>
-    <dd>
-    Calls a function for each possible CPU.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">callback</span>
-            <span class="types"><span class="type">function</span></span>
-         called with the CPU number
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "foreach_present"></a>
-    <strong>foreach_present (callback)</strong>
-    </dt>
-    <dd>
-    Calls a function for each present CPU.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">callback</span>
-            <span class="types"><span class="type">function</span></span>
-         called with the CPU number
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "num_online"></a>
-    <strong>num_online ()</strong>
-    </dt>
-    <dd>
-
-
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        number of online CPUs
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "num_possible"></a>
-    <strong>num_possible ()</strong>
-    </dt>
-    <dd>
-
-
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        number of possible CPUs
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "num_present"></a>
-    <strong>num_present ()</strong>
-    </dt>
-    <dd>
-
-
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        number of present CPUs
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "stats"></a>
-    <strong>stats (cpu)</strong>
-    </dt>
-    <dd>
-    Returns CPU time statistics for a given CPU.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">cpu</span>
-            <span class="types"><span class="type">integer</span></span>
-         CPU number (0-based)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        fields: <code>user</code>, <code>nice</code>, <code>system</code>, <code>idle</code>, <code>iowait</code>, <code>irq</code>,
-   <code>softirq</code>, <code>steal</code>, <code>guest</code>, <code>guest_nice</code>, <code>forceidle</code> (if CONFIG<em>SCHED</em>CORE)
-    </ol>
-
-    <h3>Raises:</h3>
-    if CPU is offline
 
 
 
