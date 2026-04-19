@@ -104,8 +104,8 @@ static void luanotifier_release(void *private)
 	 * so unregister_*_notifier can safely sleep on synchronize_rcu */
 	if (notifier->unregister)
 		notifier->unregister(&notifier->nb);
-
-	lunatik_putobject(notifier->runtime);
+	if (notifier->runtime) /* NULL if checkruntime errored in init */
+		lunatik_putobject(notifier->runtime);
 }
 
 /***
