@@ -48,19 +48,14 @@ do {									\
 #define lunatik_lock(o)      lunatik_locker((o), mutex_lock, spin_lock_bh, spin_lock_irqsave, (o)->flags)
 #define lunatik_unlock(o)    lunatik_locker((o), mutex_unlock, spin_unlock_bh, spin_unlock_irqrestore, (o)->flags)
 
-#define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
+#define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
+#define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
-#define lunatik_getstate(runtime)	((lua_State *)runtime->private)
 
-static inline bool lunatik_isready(lua_State *L)
-{
-	bool ready;
-	lua_rawgetp(L, LUA_REGISTRYINDEX, L);
-	ready = lua_toboolean(L, -1);
-	lua_pop(L, 1);
-	return ready;
-}
+#define lunatik_getstate(runtime)	((lua_State *)(runtime)->private)
+#define lunatik_isready(runtime)	\
+	((runtime)->private && lunatik_extra(lunatik_getstate(runtime))->ready)
 
 #define lunatik_handle(runtime, handler, ret, ...)	\
 do {							\
@@ -73,7 +68,7 @@ do {							\
 #define lunatik_run(runtime, handler, ret, ...)				\
 do {									\
 	lunatik_lock(runtime);						\
-	if (unlikely(!lunatik_getstate(runtime)))			\
+	if (unlikely(!lunatik_isready(runtime)))			\
 		ret = -ENXIO;						\
 	else								\
 		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\

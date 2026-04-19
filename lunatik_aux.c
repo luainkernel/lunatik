@@ -39,7 +39,7 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode)
 	int status = LUA_ERRFILE;
 	int fnameindex = lua_gettop(L) + 1;  /* index of filename on the stack */
 
-	if (unlikely(lunatik_cannotsleep(L, lunatik_isready(L)))) {
+	if (unlikely(lunatik_cannotsleep(L, lunatik_isready(lunatik_toruntime(L))))) {
 		lua_pushfstring(L, "cannot load file on non-sleepable runtime");
 		goto error;
 	}

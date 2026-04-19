@@ -180,7 +180,7 @@ static const lunatik_class_t luathread_class = {
 */
 static int luathread_run(lua_State *L)
 {
-	luaL_argcheck(L, lunatik_isready(L), 1, "not allowed during module load");
+	luaL_argcheck(L, lunatik_isready(lunatik_toruntime(L)), 1, "not allowed during module load");
 	lunatik_object_t *runtime = lunatik_checkobject(L, 1);
 	luaL_argcheck(L, !lunatik_isirq(runtime->opt), 1, "IRQ runtime cannot spawn threads");
 	const char *name = luaL_checkstring(L, 2);
