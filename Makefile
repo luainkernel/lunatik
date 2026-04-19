@@ -51,6 +51,13 @@ LUNATIK_MODULES := \
 	$(foreach c,$(LUNATIK_MODULES),\
 		$(if $(filter y m,$(CONFIG_LUNATIK_$(c))),$(c)))
 
+.PHONY: all clean install uninstall autogen doc-site \
+	scripts_install scripts_uninstall \
+	modules_install modules_uninstall btf_install \
+	examples_install examples_uninstall \
+	tests_install tests_uninstall \
+	ebpf ebpf_install ebpf_uninstall
+
 all: lunatik_sym.h autogen
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
 
@@ -100,7 +107,6 @@ scripts_uninstall:
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik
 	${RM} -r ${LUA_PATH}/lunatik
 
-.PHONY: ebpf defines
 ebpf:
 	${MAKE} -C examples/filter
 
@@ -201,7 +207,6 @@ uninstall: scripts_uninstall modules_uninstall examples_uninstall tests_uninstal
 lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
-.PHONY: autogen
 autogen:
 	CC='$(CC)' "$(LUA)" autogen.lua "$(MODULES_BUILD_PATH)" "$(KERNEL_RELEASE)" "$(LUNATIK_MODULES)"
 
