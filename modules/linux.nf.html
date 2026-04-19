@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_hid_driver">Class hid_driver </a></li>
+<li><a href="#Tables">Tables</a></li>
 </ul>
 
 
@@ -48,13 +48,13 @@
   <li><a href="../modules/device.html">device</a></li>
   <li><a href="../modules/fib.html">fib</a></li>
   <li><a href="../modules/fifo.html">fifo</a></li>
-  <li><strong>hid</strong></li>
+  <li><a href="../modules/hid.html">hid</a></li>
   <li><a href="../modules/lighten.html">lighten</a></li>
   <li><a href="../modules/linux.html">linux</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
-  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><strong>linux.nf</strong></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
   <li><a href="../modules/linux.socket.html">linux.socket</a></li>
@@ -100,18 +100,44 @@
 
 <div id="content">
 
-<h1>Module <code>hid</code></h1>
-<p>Lua interface to the Linux HID subsystem.</p>
-<p>
-
-</p>
+<h1>Module <code>linux.nf</code></h1>
+<p>Linux kernel constants exposed under <a href="../modules/linux.nf.html#">linux.nf</a>.</p>
+<p> Values are populated at build time from the kernel headers.</p>
 
 
-<h2><a href="#Class_hid_driver">Class hid_driver </a></h2>
+<h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#hid_driver:register">hid_driver:register (opts)</a></td>
-	<td class="summary">Registers a new HID driver.</td>
+	<td class="name" nowrap><a href="#action">action</a></td>
+	<td class="summary">Netfilter hook verdicts.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#arp">arp</a></td>
+	<td class="summary">Netfilter hook positions in the ARP family.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#br">br</a></td>
+	<td class="summary">Netfilter hook positions in the BRIDGE family.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#br.pri">br.pri</a></td>
+	<td class="summary">Netfilter hook priorities in the BRIDGE family.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#inet">inet</a></td>
+	<td class="summary">Netfilter hook positions in the INET family.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ip.pri">ip.pri</a></td>
+	<td class="summary">Netfilter hook priorities in the IP family.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#netdev">netdev</a></td>
+	<td class="summary">Netfilter hook positions in the NETDEV family.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#proto">proto</a></td>
+	<td class="summary">Netfilter protocol families.</td>
 	</tr>
 </table>
 
@@ -119,40 +145,125 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_hid_driver"></a>Class hid_driver </h2>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
 
-          <div class="section-description">
-          Represents a registered HID driver.
-          </div>
     <dl class="function">
     <dt>
-    <a name = "hid_driver:register"></a>
-    <strong>hid_driver:register (opts)</strong>
+    <a name = "action"></a>
+    <strong>action</strong>
     </dt>
     <dd>
-    Registers a new HID driver.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">opts</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         driver options: <code>name</code> (string), <code>id_table</code> (array of device ID tables,
-   each with optional integer fields <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code>, <code>driver_data</code>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">hid_driver</span></span>
+    Netfilter hook verdicts.
+ Mirrors <code>NF_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
 
 
 
-    </ol>
 
-    <h3>Raises:</h3>
-    if required fields are missing, <code>id_table</code> is invalid, or driver registration fails
+
+
+
+</dd>
+    <dt>
+    <a name = "arp"></a>
+    <strong>arp</strong>
+    </dt>
+    <dd>
+    Netfilter hook positions in the ARP family.
+ Mirrors <code>NF_ARP_*</code> defines in <code>&lt;uapi/linux/netfilter_arp.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "br"></a>
+    <strong>br</strong>
+    </dt>
+    <dd>
+    Netfilter hook positions in the BRIDGE family.
+ Mirrors <code>NF_BR_*</code> defines in <code>&lt;uapi/linux/netfilter_bridge.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "br.pri"></a>
+    <strong>br.pri</strong>
+    </dt>
+    <dd>
+    Netfilter hook priorities in the BRIDGE family.
+ Mirrors <code>NF_BR_PRI_*</code> defines in <code>&lt;uapi/linux/netfilter_bridge.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "inet"></a>
+    <strong>inet</strong>
+    </dt>
+    <dd>
+    Netfilter hook positions in the INET family.
+ Mirrors <code>NF_INET_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ip.pri"></a>
+    <strong>ip.pri</strong>
+    </dt>
+    <dd>
+    Netfilter hook priorities in the IP family.
+ Mirrors <code>NF_IP_PRI_*</code> defines in <code>&lt;uapi/linux/netfilter_ipv4.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "netdev"></a>
+    <strong>netdev</strong>
+    </dt>
+    <dd>
+    Netfilter hook positions in the NETDEV family.
+ Mirrors <code>NF_NETDEV_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "proto"></a>
+    <strong>proto</strong>
+    </dt>
+    <dd>
+    Netfilter protocol families.
+ Mirrors <code>NFPROTO_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
+
+
+
+
 
 
 

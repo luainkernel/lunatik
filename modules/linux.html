@@ -34,7 +34,6 @@
 <h2>Contents</h2>
 <ul>
 <li><a href="#Functions">Functions</a></li>
-<li><a href="#linux_Functions">linux Functions</a></li>
 </ul>
 
 
@@ -52,6 +51,18 @@
   <li><a href="../modules/hid.html">hid</a></li>
   <li><a href="../modules/lighten.html">lighten</a></li>
   <li><strong>linux</strong></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
   <li><a href="../modules/lunatik.html">lunatik</a></li>
   <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
   <li><a href="../modules/mailbox.html">mailbox</a></li>
@@ -133,97 +144,6 @@
 	<tr>
 	<td class="name" nowrap><a href="#tracing">tracing ([enable])</a></td>
 	<td class="summary">Controls kernel tracing.</td>
-	</tr>
-</table>
-<h2><a href="#linux_Functions">linux Functions</a></h2>
-<table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#eth">eth</a></td>
-	<td class="summary">Ethernet protocol IDs.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#kbd">kbd</a></td>
-	<td class="summary">Keyboard notifier event types.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#netdev">netdev</a></td>
-	<td class="summary">Network device notifier event types.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#nf.action">nf.action</a></td>
-	<td class="summary">Netfilter hook verdicts.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#nf.arp">nf.arp</a></td>
-	<td class="summary">Netfilter hook positions in the ARP family.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#nf.br">nf.br</a></td>
-	<td class="summary">Netfilter hook positions in the BRIDGE family.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#nf.br.pri">nf.br.pri</a></td>
-	<td class="summary">Netfilter hook priorities in the BRIDGE family.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#nf.inet">nf.inet</a></td>
-	<td class="summary">Netfilter hook positions in the INET family.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#nf.ip.pri">nf.ip.pri</a></td>
-	<td class="summary">Netfilter hook priorities in the IP family.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#nf.netdev">nf.netdev</a></td>
-	<td class="summary">Netfilter hook positions in the NETDEV family.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#nf.proto">nf.proto</a></td>
-	<td class="summary">Netfilter protocol families.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#notify">notify</a></td>
-	<td class="summary">Return codes for kernel notifier chains.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#signal">signal</a></td>
-	<td class="summary">POSIX signal numbers.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#socket.af">socket.af</a></td>
-	<td class="summary">Socket address families.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#socket.ipproto">socket.ipproto</a></td>
-	<td class="summary">IP-layer protocol numbers.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#socket.msg">socket.msg</a></td>
-	<td class="summary">Message flags for send/recv.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#socket.sock">socket.sock</a></td>
-	<td class="summary">Socket types (SOCK<em>STREAM, SOCK</em>DGRAM, ...).</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#stat">stat</a></td>
-	<td class="summary">File mode bits.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#syscall.numbers">syscall.numbers</a></td>
-	<td class="summary">System call numbers (<code>__NR_*</code>) for the build arch.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#task">task</a></td>
-	<td class="summary">Task state flags.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#vt">vt</a></td>
-	<td class="summary">Virtual terminal notifier event types.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#xdp">xdp</a></td>
-	<td class="summary">XDP verdicts and flags.</td>
 	</tr>
 </table>
 
@@ -468,7 +388,7 @@
         <li><span class="parameter">state</span>
             <span class="types"><span class="type">integer</span></span>
          task state to set before sleeping.
- See <a href="../modules/linux.html#task">linux.task</a> for possible values. Defaults to <code>TASK_INTERRUPTIBLE</code>.
+ See <a href="../modules/linux.task.html#">linux.task</a> for possible values. Defaults to <code>TASK_INTERRUPTIBLE</code>.
          (<em>optional</em>)
         </li>
     </ul>
@@ -551,347 +471,13 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 
 </dd>
 </dl>
-    <h2 class="section-header "><a name="linux_Functions"></a>linux Functions</h2>
-
-    <dl class="function">
-    <dt>
-    <a name = "eth"></a>
-    <strong>eth</strong>
-    </dt>
-    <dd>
-    Ethernet protocol IDs.
- Mirrors <code>ETH_P_*</code> in <code>&lt;uapi/linux/if_ether.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "kbd"></a>
-    <strong>kbd</strong>
-    </dt>
-    <dd>
-    Keyboard notifier event types.
- Mirrors <code>KBD_*</code> in <code>&lt;linux/notifier.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "netdev"></a>
-    <strong>netdev</strong>
-    </dt>
-    <dd>
-    Network device notifier event types.
- Mirrors <code>NETDEV_*</code> in <code>&lt;linux/netdevice.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "nf.action"></a>
-    <strong>nf.action</strong>
-    </dt>
-    <dd>
-    Netfilter hook verdicts.
- Mirrors <code>NF_*</code> in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "nf.arp"></a>
-    <strong>nf.arp</strong>
-    </dt>
-    <dd>
-    Netfilter hook positions in the ARP family.
- Mirrors <code>NF_ARP_*</code> in <code>&lt;uapi/linux/netfilter_arp.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "nf.br"></a>
-    <strong>nf.br</strong>
-    </dt>
-    <dd>
-    Netfilter hook positions in the BRIDGE family.
- Mirrors <code>NF_BR_*</code> in <code>&lt;uapi/linux/netfilter_bridge.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "nf.br.pri"></a>
-    <strong>nf.br.pri</strong>
-    </dt>
-    <dd>
-    Netfilter hook priorities in the BRIDGE family.
- Mirrors <code>NF_BR_PRI_*</code> in <code>&lt;uapi/linux/netfilter_bridge.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "nf.inet"></a>
-    <strong>nf.inet</strong>
-    </dt>
-    <dd>
-    Netfilter hook positions in the INET family.
- Mirrors <code>NF_INET_*</code> in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "nf.ip.pri"></a>
-    <strong>nf.ip.pri</strong>
-    </dt>
-    <dd>
-    Netfilter hook priorities in the IP family.
- Mirrors <code>NF_IP_PRI_*</code> in <code>&lt;uapi/linux/netfilter_ipv4.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "nf.netdev"></a>
-    <strong>nf.netdev</strong>
-    </dt>
-    <dd>
-    Netfilter hook positions in the NETDEV family.
- Mirrors <code>NF_NETDEV_*</code> in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "nf.proto"></a>
-    <strong>nf.proto</strong>
-    </dt>
-    <dd>
-    Netfilter protocol families.
- Mirrors <code>NFPROTO_*</code> in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "notify"></a>
-    <strong>notify</strong>
-    </dt>
-    <dd>
-    Return codes for kernel notifier chains.
- Mirrors <code>NOTIFY_*</code> in <code>&lt;linux/notifier.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "signal"></a>
-    <strong>signal</strong>
-    </dt>
-    <dd>
-    POSIX signal numbers.
- Mirrors <code>SIG*</code> in <code>&lt;uapi/linux/signal.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "socket.af"></a>
-    <strong>socket.af</strong>
-    </dt>
-    <dd>
-    Socket address families.
- Mirrors <code>AF_*</code> in <code>&lt;linux/socket.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "socket.ipproto"></a>
-    <strong>socket.ipproto</strong>
-    </dt>
-    <dd>
-    IP-layer protocol numbers.
- Mirrors <code>IPPROTO_*</code> in <code>&lt;uapi/linux/in.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "socket.msg"></a>
-    <strong>socket.msg</strong>
-    </dt>
-    <dd>
-    Message flags for send/recv.
- Mirrors <code>MSG_*</code> in <code>&lt;linux/socket.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "socket.sock"></a>
-    <strong>socket.sock</strong>
-    </dt>
-    <dd>
-    Socket types (SOCK<em>STREAM, SOCK</em>DGRAM, ...).
- Mirrors <code>SOCK_*</code> in <code>&lt;linux/net.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "stat"></a>
-    <strong>stat</strong>
-    </dt>
-    <dd>
-    File mode bits.
- Mirrors <code>S_*</code> in <code>&lt;linux/stat.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "syscall.numbers"></a>
-    <strong>syscall.numbers</strong>
-    </dt>
-    <dd>
-    System call numbers (<code>__NR_*</code>) for the build arch.
- Mirrors <code>__NR_*</code> in <code>&lt;asm/unistd.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "task"></a>
-    <strong>task</strong>
-    </dt>
-    <dd>
-    Task state flags.
- Mirrors <code>TASK_*</code> in <code>&lt;linux/sched.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "vt"></a>
-    <strong>vt</strong>
-    </dt>
-    <dd>
-    Virtual terminal notifier event types.
- Mirrors <code>VT_*</code> in <code>&lt;linux/vt.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "xdp"></a>
-    <strong>xdp</strong>
-    </dt>
-    <dd>
-    XDP verdicts and flags.
- Mirrors <code>XDP_*</code> in <code>&lt;uapi/linux/bpf.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-</dl>
 
 
 </div> <!-- id="content" -->
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-04-19 18:04:43 </i>
+<i style="float:right;">Last updated 2026-04-19 21:30:58 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

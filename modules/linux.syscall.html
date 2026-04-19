@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_hid_driver">Class hid_driver </a></li>
+<li><a href="#Tables">Tables</a></li>
 </ul>
 
 
@@ -48,7 +48,7 @@
   <li><a href="../modules/device.html">device</a></li>
   <li><a href="../modules/fib.html">fib</a></li>
   <li><a href="../modules/fifo.html">fifo</a></li>
-  <li><strong>hid</strong></li>
+  <li><a href="../modules/hid.html">hid</a></li>
   <li><a href="../modules/lighten.html">lighten</a></li>
   <li><a href="../modules/linux.html">linux</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -59,7 +59,7 @@
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
   <li><a href="../modules/linux.socket.html">linux.socket</a></li>
   <li><a href="../modules/linux.stat.html">linux.stat</a></li>
-  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><strong>linux.syscall</strong></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
@@ -100,18 +100,16 @@
 
 <div id="content">
 
-<h1>Module <code>hid</code></h1>
-<p>Lua interface to the Linux HID subsystem.</p>
-<p>
-
-</p>
+<h1>Module <code>linux.syscall</code></h1>
+<p>Linux kernel constants exposed under <a href="../modules/linux.syscall.html#">linux.syscall</a>.</p>
+<p> Values are populated at build time from the kernel headers.</p>
 
 
-<h2><a href="#Class_hid_driver">Class hid_driver </a></h2>
+<h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#hid_driver:register">hid_driver:register (opts)</a></td>
-	<td class="summary">Registers a new HID driver.</td>
+	<td class="name" nowrap><a href="#numbers">numbers</a></td>
+	<td class="summary">System call numbers (<code>__NR_*</code>) for the build arch.</td>
 	</tr>
 </table>
 
@@ -119,40 +117,20 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_hid_driver"></a>Class hid_driver </h2>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
 
-          <div class="section-description">
-          Represents a registered HID driver.
-          </div>
     <dl class="function">
     <dt>
-    <a name = "hid_driver:register"></a>
-    <strong>hid_driver:register (opts)</strong>
+    <a name = "numbers"></a>
+    <strong>numbers</strong>
     </dt>
     <dd>
-    Registers a new HID driver.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">opts</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         driver options: <code>name</code> (string), <code>id_table</code> (array of device ID tables,
-   each with optional integer fields <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code>, <code>driver_data</code>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">hid_driver</span></span>
+    System call numbers (<code>__NR_*</code>) for the build arch.
+ Mirrors <code>__NR_*</code> defines in <code>&lt;asm/unistd.h&gt;</code>.
 
 
 
-    </ol>
 
-    <h3>Raises:</h3>
-    if required fields are missing, <code>id_table</code> is invalid, or driver registration fails
 
 
 
