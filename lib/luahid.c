@@ -122,10 +122,22 @@ static inline int luahid_pcall(lua_State *L, lua_CFunction op, luahid_ctx_t *ctx
 	return ctx->ret;
 }
 
+/*
+ * hid_register_driver synchronously probes already-connected matching devices
+ * from the caller's context, so hid->probe fires with the runtime lock still
+ * held by luahid_register. Re-entering lunatik_run would deadlock on the
+ * (non-recursive) runtime spinlock. hid->registered doubles as the sentinel:
+ * it is false until hid_register_driver returns, so the in-registration case
+ * routes through lunatik_handle (no lock re-acquire); every firing afterwards
+ * takes the lock normally.
+ */
 #define luahid_run(op, ctx, hid, hdev, ret)					\
 do {										\
 	(ctx)->cb = #op; (ctx)->hid = hid; (ctx)->hdev = hdev;			\
-	lunatik_run(hid->runtime, luahid_pcall, ret, luahid_do##op, ctx);	\
+	if ((hid)->registered)							\
+		lunatik_run(hid->runtime, luahid_pcall, ret, luahid_do##op, ctx); \
+	else									\
+		lunatik_handle(hid->runtime, luahid_pcall, ret, luahid_do##op, ctx); \
 } while (0)
 
 #define luahid_pushid(L, id, extra)		\
