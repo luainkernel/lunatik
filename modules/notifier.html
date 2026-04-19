@@ -100,22 +100,22 @@
 <table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#notifier:stop">notifier:stop ()</a></td>
-	<td class="summary">Stops and unregisters a notifier.</td>
+	<td class="summary">Stops event delivery to the Lua callback.</td>
 	</tr>
 </table>
 <h2><a href="#notifier">notifier</a></h2>
 <table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#keyboard">keyboard (callback)</a></td>
-	<td class="summary">Registers a notifier for keyboard events.</td>
+	<td class="summary">Registers a keyboard-event notifier.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#netdevice">netdevice (callback)</a></td>
-	<td class="summary">Registers a notifier for network device events.</td>
+	<td class="summary">Registers a network-device notifier.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#vterm">vterm (callback)</a></td>
-	<td class="summary">Registers a notifier for virtual terminal (vterm) events.</td>
+	<td class="summary">Registers a virtual-terminal notifier.</td>
 	</tr>
 </table>
 
@@ -137,9 +137,12 @@
     <strong>notifier:stop ()</strong>
     </dt>
     <dd>
-    Stops and unregisters a notifier.
- This method is called on a notifier object. Once stopped, the callback
- will no longer be invoked for kernel events.
+    Stops event delivery to the Lua callback.
+ After <code>stop()</code>, the underlying <code>notifier_block</code> remains registered in the
+ kernel chain until the owning runtime is torn down, but firings become
+ silent no-ops. This keeps <code>stop()</code> safe in any context (including hardirq)
+ since it performs no sleeping operations; the real unregistration happens
+ in <code>release</code>, which always runs in process context.
 
 
 
@@ -152,8 +155,6 @@
 
     </ol>
 
-    <h3>Raises:</h3>
-    Error if the notifier attempts to unregister itself from within its own callback (which would cause a deadlock).
 
 
     <h3>Usage:</h3>
@@ -171,26 +172,18 @@
     <strong>keyboard (callback)</strong>
     </dt>
     <dd>
-    Registers a notifier for keyboard events.
- The provided callback function will be invoked whenever a console keyboard
- event occurs (e.g., a key is pressed or released).
+    Registers a keyboard-event notifier.  Must be called from a <code>hardirq</code>
+ runtime.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
-         Lua function called on keyboard events.
-   It receives the following arguments:</p>
-
-<ol>
-    <li><code>event</code> (integer): The keyboard event type (see <code>linux.kbd</code>).</li>
-    <li><code>down</code> (boolean): <code>true</code> if the key is pressed, <code>false</code> if released.</li>
-    <li><code>shift</code> (boolean): <code>true</code> if a shift key (Shift, Alt, Ctrl) is held, <code>false</code> otherwise.</li>
-    <li><code>value</code> (integer): The key's value (keycode or keysym, depending on the <code>event</code>).</li>
-</ol>
-
-<p>   The callback should return an integer status code from <code>linux.notify</code> (e.g. <code>OK</code>).
+         invoked as <code>callback(event, down, shift, value)</code>
+   — <code>event</code> is a <code>linux.kbd</code> code, <code>down</code> is a boolean (key pressed),
+   <code>shift</code> is a boolean (modifier held), and <code>value</code> is the keycode or
+   keysym depending on <code>event</code>. Returns a <code>linux.notify</code> status code.
         </li>
     </ul>
 
@@ -198,7 +191,9 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/notifier.html#notifier">notifier</a></span>
-        A new notifier object.
+
+
+
     </ol>
 
 
@@ -210,24 +205,17 @@
     <strong>netdevice (callback)</strong>
     </dt>
     <dd>
-    Registers a notifier for network device events.
- The provided callback function will be invoked whenever a network device
- event occurs (e.g., an interface goes up or down).
+    Registers a network-device notifier.  Must be called from a process
+ runtime (the default).
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
-         Lua function called on netdevice events.
-   It receives the following arguments:</p>
-
-<ol>
-    <li><code>event</code> (integer): The netdevice event type (see <code>linux.netdev</code>).</li>
-    <li><code>name</code> (string): The name of the network device (e.g., "eth0").</li>
-</ol>
-
-<p>   The callback should return an integer status code from <code>linux.notify</code>.
+         invoked as <code>callback(event, name)</code> — <code>event</code>
+   is a <code>linux.netdev</code> code and <code>name</code> is the device name (e.g. <code>&quot;eth0&quot;</code>).
+   Returns a <code>linux.notify</code> status code.
         </li>
     </ul>
 
@@ -235,7 +223,9 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/notifier.html#notifier">notifier</a></span>
-        A new notifier object.
+
+
+
     </ol>
 
 
@@ -247,25 +237,18 @@
     <strong>vterm (callback)</strong>
     </dt>
     <dd>
-    Registers a notifier for virtual terminal (vterm) events.
- The provided callback function will be invoked whenever a virtual terminal
- event occurs (e.g., a character is written, a terminal is allocated).
+    Registers a virtual-terminal notifier.  Must be called from a <code>hardirq</code>
+ runtime.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
-         Lua function called on vterm events.
-   It receives the following arguments:</p>
-
-<ol>
-    <li><code>event</code> (integer): The vterm event type (see <code>linux.vt</code>).</li>
-    <li><code>c</code> (integer): The character related to the event (if applicable).</li>
-    <li><code>vc_num</code> (integer): The virtual console number associated with the event.</li>
-</ol>
-
-<p>   The callback should return an integer status code from <code>linux.notify</code>.
+         invoked as <code>callback(event, c, vc_num)</code> —
+   <code>event</code> is a <code>linux.vt</code> code, <code>c</code> is the character value, and
+   <code>vc_num</code> is the virtual console number. Returns a <code>linux.notify</code>
+   status code.
         </li>
     </ul>
 
@@ -273,7 +256,9 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/notifier.html#notifier">notifier</a></span>
-        A new notifier object.
+
+
+
     </ol>
 
 
@@ -287,7 +272,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-04-18 18:46:29 </i>
+<i style="float:right;">Last updated 2026-04-19 11:56:33 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
