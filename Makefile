@@ -55,7 +55,7 @@ AUTOGEN_STAMP := autogen/.stamp
 AUTOGEN_CONFIG := autogen/.config
 AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 
-.PHONY: all clean install uninstall autogen doc-site FORCE \
+.PHONY: all clean install uninstall autogen doc-site doc-stubs FORCE \
 	scripts_install scripts_uninstall \
 	modules_install modules_uninstall btf_install \
 	examples_install examples_uninstall \
@@ -76,6 +76,7 @@ clean:
 	${RM} autogen/extract.c autogen/extract.s
 	${RM} autogen/targets.mk
 	${RM} ${AUTOGEN_STAMP} ${AUTOGEN_CONFIG}
+	${RM} -r lib/linux
 
 scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}
@@ -94,6 +95,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
+	# NOTE: `lib/linux/` exists only as LDoc stubs (see doc-stubs); never install it.
 	${INSTALL} -m 0644 autogen/linux/*.lua ${SCRIPTS_INSTALL_PATH}/linux
 	${INSTALL} -m 0644 autogen/lunatik/*.lua ${SCRIPTS_INSTALL_PATH}/lunatik
 	${LN} ${SCRIPTS_INSTALL_PATH}/lunatik/config.lua ${LUA_PATH}/lunatik/config.lua
@@ -237,6 +239,9 @@ moontastik_uninstall_%:
 	[ $* ] || (echo "usage: make moontastik_uninstall_TARGET" ; exit 1)
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/$*
 
-doc-site:
+doc-stubs:
+	"$(LUA)" autogen/ldoc.lua
+
+doc-site: doc-stubs
 	ldoc .
 
