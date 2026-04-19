@@ -51,7 +51,11 @@ LUNATIK_MODULES := \
 	$(foreach c,$(LUNATIK_MODULES),\
 		$(if $(filter y m,$(CONFIG_LUNATIK_$(c))),$(c)))
 
-.PHONY: all clean install uninstall autogen doc-site \
+AUTOGEN_STAMP := autogen/.stamp
+AUTOGEN_CONFIG := autogen/.config
+AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
+
+.PHONY: all clean install uninstall autogen doc-site FORCE \
 	scripts_install scripts_uninstall \
 	modules_install modules_uninstall btf_install \
 	examples_install examples_uninstall \
@@ -71,6 +75,7 @@ clean:
 	${RM} autogen/dump_*.c autogen/dump_*.pp
 	${RM} autogen/extract.c autogen/extract.s
 	${RM} autogen/targets.mk
+	${RM} ${AUTOGEN_STAMP} ${AUTOGEN_CONFIG}
 
 scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}
@@ -207,8 +212,19 @@ uninstall: scripts_uninstall modules_uninstall examples_uninstall tests_uninstal
 lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
 
-autogen:
+# Only rewrite .config when the key actually changes, so its mtime
+# advances exactly when KERNEL_RELEASE or the enabled module set does.
+$(AUTOGEN_CONFIG): FORCE
+	@printf '%s\n' '$(AUTOGEN_KEY)' | cmp -s - $@ 2>/dev/null || \
+		printf '%s\n' '$(AUTOGEN_KEY)' > $@
+
+$(AUTOGEN_STAMP): autogen.lua autogen/specs.lua $(AUTOGEN_CONFIG)
 	CC='$(CC)' "$(LUA)" autogen.lua "$(MODULES_BUILD_PATH)" "$(KERNEL_RELEASE)" "$(LUNATIK_MODULES)"
+	@touch $@
+
+autogen: $(AUTOGEN_STAMP)
+
+FORCE:
 
 moontastik_install_%:
 	[ $* ] || (echo "usage: make moontastik_install_TARGET" ; exit 1)
