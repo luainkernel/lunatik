@@ -33,6 +33,7 @@ run_suite "$DIR/rcu/run.sh"
 run_suite "$DIR/crypto/run.sh"
 run_suite "$DIR/io/test.sh"
 run_suite "$DIR/probe/run.sh"
+run_suite "$DIR/notifier/run.sh"
 
 echo ""
 echo "# Grand Totals: pass:$TOTAL_PASS fail:$TOTAL_FAIL skip:$TOTAL_SKIP"
