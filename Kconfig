@@ -43,7 +43,9 @@ config LUNATIK_NOTIFIER
 	tristate "Lunatik Notifier Support"
 	default m
 	help
-	  Support for kernel notifiers in Lua.
+	  Support for kernel notifiers in Lua. The `keyboard` and `vterm`
+	  chains are compiled in only when the kernel is built with VT
+	  support; `netdevice` is always available.
 
 config LUNATIK_SOCKET
 	tristate "Lunatik Socket Support"
