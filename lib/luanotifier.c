@@ -13,10 +13,12 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/keyboard.h>
 #include <linux/netdevice.h>
+#ifdef CONFIG_VT
+#include <linux/keyboard.h>
 #include <linux/vt_kern.h>
 #include <linux/vt.h>
+#endif
 
 #include <lunatik.h>
 
@@ -37,33 +39,6 @@ typedef struct luanotifier_s {
 	luanotifier_handler_t handler;
 	luanotifier_register_t unregister;
 } luanotifier_t;
-
-static int luanotifier_keyboard_handler(lua_State *L, void *data)
-{
-	struct keyboard_notifier_param *param = (struct keyboard_notifier_param *)data;
-
-	lua_pushboolean(L, param->down);
-	lua_pushboolean(L, param->shift);
-	lua_pushinteger(L, (lua_Integer)(param->value));
-	return 3;
-}
-
-static int luanotifier_netdevice_handler(lua_State *L, void *data)
-{
-	struct net_device *dev = netdev_notifier_info_to_dev(data);
-
-	lua_pushstring(L, dev->name);
-	return 1;
-}
-
-static int luanotifier_vt_handler(lua_State *L, void *data)
-{
-	struct vt_notifier_param *param = data;
-
-	lua_pushinteger(L, param->c);
-	lua_pushinteger(L, param->vc->vc_num);
-	return 2;
-}
 
 static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
 {
@@ -142,19 +117,13 @@ static int luanotifier_##name(lua_State *L)					\
 static const lunatik_class_t luanotifier_process_class;
 static const lunatik_class_t luanotifier_hardirq_class;
 
-/***
-* Registers a keyboard-event notifier. Must be called from a `hardirq`
-* runtime.
-*
-* @function keyboard
-* @tparam function callback invoked as `callback(event, down, shift, value)`
-*   — `event` is a `linux.kbd` code, `down` is a boolean (key pressed),
-*   `shift` is a boolean (modifier held), and `value` is the keycode or
-*   keysym depending on `event`. Returns a `linux.notify` status code.
-* @treturn notifier
-* @within notifier
-*/
-LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
+static int luanotifier_netdevice_handler(lua_State *L, void *data)
+{
+	struct net_device *dev = netdev_notifier_info_to_dev(data);
+
+	lua_pushstring(L, dev->name);
+	return 1;
+}
 
 /***
 * Registers a network-device notifier. Must be called from a process
@@ -169,9 +138,43 @@ LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
 */
 LUANOTIFIER_NEWCHAIN(netdevice, &luanotifier_process_class);
 
+#ifdef CONFIG_VT
+static int luanotifier_keyboard_handler(lua_State *L, void *data)
+{
+	struct keyboard_notifier_param *param = (struct keyboard_notifier_param *)data;
+
+	lua_pushboolean(L, param->down);
+	lua_pushboolean(L, param->shift);
+	lua_pushinteger(L, (lua_Integer)(param->value));
+	return 3;
+}
+
 /***
-* Registers a virtual-terminal notifier. Must be called from a `hardirq`
-* runtime.
+* Registers a keyboard-event notifier. Must be called from a `hardirq` runtime.
+* Only available when the kernel is built with `CONFIG_VT`.
+*
+* @function keyboard
+* @tparam function callback invoked as `callback(event, down, shift, value)`
+*   — `event` is a `linux.kbd` code, `down` is a boolean (key pressed),
+*   `shift` is a boolean (modifier held), and `value` is the keycode or
+*   keysym depending on `event`. Returns a `linux.notify` status code.
+* @treturn notifier
+* @within notifier
+*/
+LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
+
+static int luanotifier_vt_handler(lua_State *L, void *data)
+{
+	struct vt_notifier_param *param = data;
+
+	lua_pushinteger(L, param->c);
+	lua_pushinteger(L, param->vc->vc_num);
+	return 2;
+}
+
+/***
+* Registers a virtual-terminal notifier. Must be called from a `hardirq` runtime.
+* Only available when the kernel is built with `CONFIG_VT`.
 *
 * @function vterm
 * @tparam function callback invoked as `callback(event, c, vc_num)` —
@@ -182,11 +185,14 @@ LUANOTIFIER_NEWCHAIN(netdevice, &luanotifier_process_class);
 * @within notifier
 */
 LUANOTIFIER_NEWCHAIN(vt, &luanotifier_hardirq_class);
+#endif
 
 static const luaL_Reg luanotifier_lib[] = {
-	{"keyboard", luanotifier_keyboard},
 	{"netdevice", luanotifier_netdevice},
+#ifdef CONFIG_VT
+	{"keyboard", luanotifier_keyboard},
 	{"vterm", luanotifier_vt},
+#endif
 	{NULL, NULL}
 };
 
