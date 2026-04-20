@@ -322,7 +322,7 @@ execution contexts.
 
 ```
 sudo make examples_install                         # installs examples
-sudo lunatik spawn examples/ifquarantine/control   # starts control+filter
+sudo lunatik run examples/ifquarantine/control     # starts control+filter
 sudo cat /dev/ifquarantine                         # lists known interfaces and verdict
 sudo sh -c "echo 'allow=eth0' > /dev/ifquarantine" # lift quarantine on eth0
 sudo sh -c "echo 'deny=eth0'  > /dev/ifquarantine" # re-apply quarantine
