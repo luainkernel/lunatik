@@ -166,10 +166,14 @@ LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
 static int luanotifier_vt_handler(lua_State *L, void *data)
 {
 	struct vt_notifier_param *param = data;
+	const struct vc_data *vc = param->vc;
+	const struct vc_state *s = &vc->state;
 
 	lua_pushinteger(L, param->c);
-	lua_pushinteger(L, param->vc->vc_num);
-	return 2;
+	lua_pushinteger(L, vc->vc_num);
+	lua_pushinteger(L, s->x);
+	lua_pushinteger(L, s->y);
+	return 4;
 }
 
 /***
@@ -177,9 +181,10 @@ static int luanotifier_vt_handler(lua_State *L, void *data)
 * Only available when the kernel is built with `CONFIG_VT`.
 *
 * @function vterm
-* @tparam function callback invoked as `callback(event, c, vc_num)` —
-*   `event` is a `linux.vt` code, `c` is the character value, and
-*   `vc_num` is the virtual console number. Returns a `linux.notify`
+* @tparam function callback invoked as `callback(event, c, vc_num, x, y)`
+*   where `event` is a `linux.vt` code, `c` is the character value,
+*   `vc_num` is the virtual console number, and `x`/`y` are the cursor
+*   coordinates at the moment of the event. Returns a `linux.notify`
 *   status code.
 * @treturn notifier
 * @within notifier
