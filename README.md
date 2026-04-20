@@ -334,6 +334,54 @@ synchronously replays `NETDEV_REGISTER` (and `NETDEV_UP`) for each existing
 netdev when the notifier block is registered, so they enter quarantine at
 script start too.
 
+### vtmirror
+
+[vtmirror](examples/vtmirror) maintains a text mirror of what is currently
+displayed on a kernel virtual terminal and exposes it via `/dev/vtmirror`.
+Useful to peek at a physical console (tty1..ttyN) remotely — e.g. over
+SSH — without switching VTs. Each VT_WRITE event carries the cursor
+`(x, y)` at the moment the kernel console parser placed the character, so
+the Lua side just drops the char into a 2D grid keyed by virtual console
+number.
+
+A hardirq runtime owns the `notifier.vterm` callback and writes each
+printable character into a shared [`data`](lib/luadata.c) grid sized
+`MAXVTS * MAXROWS * MAXCOLS`; a process runtime owns `/dev/vtmirror`
+and renders the rows of the watched VT on read. Write `watch=N` to
+select the VT to mirror (1-based: `watch=1` mirrors `tty1`).
+
+#### Usage
+
+```
+sudo make install                                  # installs modules and examples
+sudo lunatik run examples/vtmirror/device          # starts both runtimes
+echo watch=1 > /dev/vtmirror                       # mirror tty1 (default)
+cat /dev/vtmirror                                  # dump a single snapshot
+watch -n 0.5 cat /dev/vtmirror                     # live view
+sudo lunatik stop examples/vtmirror/device         # stops both runtimes
+```
+
+`/dev/vtmirror` is a snapshot, not an event stream: each `read(2)`
+returns the current grid of the watched VT once and then `""` (EOF),
+so `cat` terminates normally and `watch` can refresh it on a timer.
+Use `watch` (or loop with `cat`) for a live view — `tail -f` reopens
+the device in a tight loop and is not the right tool here.
+
+#### Terminal width
+
+A row in the output is as wide as the underlying VT (check with
+`stty -F /dev/tty1 size`; typical framebuffer consoles are 128 or 160
+columns). If your viewing terminal — e.g. an SSH window — is narrower
+than the VT, each row wraps visually. Either widen the viewing
+terminal or truncate on the way out:
+
+```
+watch -n 0.5 'cat /dev/vtmirror | cut -c1-$(tput cols)'
+```
+
+Limitations: only printable ASCII is recorded; screen scrolls and clears
+are not tracked, so stale rows above the active region will linger.
+
 ### filter
 
 [filter](examples/filter) is a kernel extension composed by
