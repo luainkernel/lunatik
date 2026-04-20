@@ -71,10 +71,17 @@ function util.slurp(path)
 	return f:read("a")
 end
 
---- Write a string to a file, creating/replacing it.
+local function unchanged(path, text)
+	local f <close> = io.open(path, "r")
+	return f and f:read("a") == text
+end
+
+--- Write a string to a file. No-op if its current contents match,
+-- so downstream tools (notably kbuild) can skip rebuilds.
 -- @tparam string path
 -- @tparam string text
 function util.spit(path, text)
+	if unchanged(path, text) then return end
 	local f <close>, err = io.open(path, "w")
 	if not f then util.die("cannot write %s: %s", path, err) end
 	f:write(text)
