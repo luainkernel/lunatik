@@ -32,16 +32,13 @@ ktap_header
 ktap_plan 2
 
 mark_dmesg
-mark_ts=$(awk '{print $1}' /proc/uptime)
 
 output=$(lunatik run "$SCRIPT" 2>&1)
 echo "$output" | grep -q "runtime context mismatch" || \
 	fail "expected 'runtime context mismatch' error, got: $output"
 ktap_pass "hardirq-class constructor in process runtime errors cleanly"
 
-oops=$(dmesg | awk -v ts="$mark_ts" \
-	'match($0, /\[[ ]*([0-9]+\.[0-9]+)/, a) && a[1]+0 >= ts+0' | \
-	grep -E "Oops:|BUG:|kernel BUG at|NULL pointer dereference|general protection" || true)
+oops=$(dmesg_since | grep -E "Oops:|BUG:|kernel BUG at|NULL pointer dereference|general protection" || true)
 [ -n "$oops" ] && fail "kernel oops during context-mismatch cleanup: ${oops%%$'\n'*}"
 ktap_pass "no kernel oops during context-mismatch cleanup"
 

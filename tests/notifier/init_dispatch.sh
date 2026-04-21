@@ -31,16 +31,13 @@ ktap_header
 ktap_plan 2
 
 mark_dmesg
-mark_ts=$(awk '{print $1}' /proc/uptime)
 
 output=$(lunatik run "$SCRIPT" 2>&1)
 echo "$output" | grep -qE "\.lua:[0-9]+:" && \
 	fail "Lua error during init-time notifier registration: $output"
 ktap_pass "notifier.netdevice() at script init runs without Lua error"
 
-oops=$(dmesg | awk -v ts="$mark_ts" \
-	'match($0, /\[[ ]*([0-9]+\.[0-9]+)/, a) && a[1]+0 >= ts+0' | \
-	grep -E "Oops:|BUG:|kernel BUG at|NULL pointer dereference|general protection" || true)
+oops=$(dmesg_since | grep -E "Oops:|BUG:|kernel BUG at|NULL pointer dereference|general protection" || true)
 [ -n "$oops" ] && fail "kernel oops during init-time notifier replay: ${oops%%$'\n'*}"
 ktap_pass "no kernel oops during init-time NETDEV_REGISTER replay"
 

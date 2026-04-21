@@ -44,11 +44,11 @@ sleep $SLEEP
 lunatik stop "$SCRIPT_SERVER" 2>/dev/null
 check_dmesg || { ktap_totals; exit 1; }
 
-found=$(dmesg | tail -n +$((DMESG_LINE+1)) | grep "unix stream: server ok" || true)
+found=$(dmesg_since | grep "unix stream: server ok" || true)
 [ -z "$found" ] && fail "server did not receive expected message"
 ktap_pass "unix.stream server: bind/listen/accept via stored path"
 
-found=$(dmesg | tail -n +$((DMESG_LINE+1)) | grep "unix stream: client ok" || true)
+found=$(dmesg_since | grep "unix stream: client ok" || true)
 [ -z "$found" ] && fail "client did not complete successfully"
 ktap_pass "unix.stream client: connect/send/receive via stored path"
 

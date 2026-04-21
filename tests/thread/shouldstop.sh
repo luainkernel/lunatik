@@ -41,7 +41,7 @@ lunatik spawn "$SCRIPT_SPAWN"
 sleep $SLEEP
 lunatik stop "$SCRIPT_SPAWN"
 check_dmesg || { ktap_totals; exit 1; }
-found=$(dmesg | tail -n +$((DMESG_LINE+1)) | grep "shouldstop: ok" || true)
+found=$(dmesg_since | grep "shouldstop: ok" || true)
 [ -z "$found" ] && fail "shouldstop() did not return true in spawn context"
 ktap_pass "shouldstop() returns true in spawn context"
 
