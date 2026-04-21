@@ -76,14 +76,16 @@ end
 local tests_path = "/usr/local/share/lunatik/tests"
 
 local function test_modules()
-	ensure_loaded()
 	local suite  = arg[2]
 	local target = suite and (tests_path .. "/" .. suite .. "/run.sh")
 	                      or (tests_path .. "/run.sh")
 	if not os.execute("[ -f " .. target .. " ]") then
 		error("tests not installed; run: sudo make tests_install")
 	end
+	reload_modules()
+	ensure_loaded()
 	os.execute("bash " .. target)
+	unload_modules()
 end
 
 local commands = {
