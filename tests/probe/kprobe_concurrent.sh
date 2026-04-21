@@ -46,7 +46,6 @@ ktap_header
 ktap_plan 2
 
 mark_dmesg
-mark_ts=$(awk '{print $1}' /proc/uptime)
 
 run_script "$SCRIPT" hardirq
 
@@ -73,9 +72,7 @@ ktap_pass "runtime stop completed within timeout"
 
 check_dmesg || { ktap_totals; exit 1; }
 
-sched=$(dmesg | awk -v ts="$mark_ts" \
-	'match($0, /\[[ ]*([0-9]+\.[0-9]+)/, a) && a[1]+0 >= ts+0' | \
-	grep -E "scheduling while atomic|BUG:|Oops:|kernel BUG at|general protection" || true)
+sched=$(dmesg_since | grep -E "scheduling while atomic|BUG:|Oops:|kernel BUG at|general protection" || true)
 [ -n "$sched" ] && fail "kernel error during concurrent kprobe handler firings: ${sched%%$'\n'*}"
 ktap_pass "no kernel errors during concurrent kprobe handler firings"
 

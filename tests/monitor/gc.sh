@@ -26,17 +26,13 @@ ktap_header
 ktap_plan 1
 
 mark_dmesg
-mark_ts=$(awk '{print $1}' /proc/uptime)
 
 lunatik spawn "$SCRIPT"
 sleep $SLEEP
 lunatik stop "$SCRIPT"
 
 check_dmesg || exit 1
-# scan dmesg since mark_ts for "scheduling while atomic" (GC-under-spinlock panic)
-sched=$(dmesg | awk -v ts="$mark_ts" \
-	'match($0, /\[[ ]*([0-9]+\.[0-9]+)/, a) && a[1]+0 >= ts+0' | \
-	grep "scheduling while atomic" || true)
+sched=$(dmesg_since | grep "scheduling while atomic" || true)
 [ -n "$sched" ] && fail "GC ran under spinlock: scheduling while atomic"
 ktap_pass "GC did not run under spinlock"
 

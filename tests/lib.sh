@@ -16,11 +16,15 @@ ktap_pass()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_PASS=$((KTAP_PASS+1)); echo "
 ktap_fail()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_FAIL=$((KTAP_FAIL+1)); echo "not ok $KTAP_COUNT $*"; }
 ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:0"; }
 
-DMESG_LINE=0
-mark_dmesg()  { DMESG_LINE=$(dmesg | wc -l); }
+DMESG_TS=0
+mark_dmesg() { DMESG_TS=$(awk '{print $1}' /proc/uptime); }
+dmesg_since() {
+	dmesg | awk -v ts="$DMESG_TS" \
+		'match($0, /\[[ ]*([0-9]+\.[0-9]+)/, a) && a[1]+0 >= ts+0'
+}
 check_dmesg() {
 	local errs
-	errs=$(dmesg | tail -n +$((DMESG_LINE+1)) | grep -E "\.lua:[0-9]+:" || true)
+	errs=$(dmesg_since | grep -E "\.lua:[0-9]+:" || true)
 	[ -z "$errs" ] && return 0
 	ktap_fail "no Lua errors in kernel"
 	echo "# $errs"

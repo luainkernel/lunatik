@@ -23,7 +23,7 @@ for t in $TESTS; do
 		ktap_fail "crypto/$t: script execution failed"
 		continue
 	fi
-	errs=$(dmesg | tail -n +$((DMESG_LINE+1)) | grep -iE "^[^:]+: FAIL	|\.lua:[0-9]+:" || true)
+	errs=$(dmesg_since | grep -iE "^[^:]+: FAIL	|\.lua:[0-9]+:" || true)
 	if [ -z "$errs" ]; then
 		ktap_pass "crypto/$t"
 	else

@@ -43,11 +43,11 @@ sleep $SLEEP
 lunatik stop "$SCRIPT_SERVER" 2>/dev/null
 check_dmesg || { ktap_totals; exit 1; }
 
-found=$(dmesg | tail -n +$((DMESG_LINE+1)) | grep "unix dgram: server ok" || true)
+found=$(dmesg_since | grep "unix dgram: server ok" || true)
 [ -z "$found" ] && fail "server did not receive expected datagram"
 ktap_pass "unix.dgram server: receivefrom with DONTWAIT"
 
-found=$(dmesg | tail -n +$((DMESG_LINE+1)) | grep "unix dgram: client ok" || true)
+found=$(dmesg_since | grep "unix dgram: client ok" || true)
 [ -z "$found" ] && fail "client did not complete successfully"
 ktap_pass "unix.dgram client: sendto using stored path (no explicit address)"
 
