@@ -22,9 +22,9 @@ to generate random ASCII printable characters:
 
 local device = require("device")
 local linux  = require("linux")
+local stat   = require("linux.stat")
 
-local s = linux.stat
-local driver = {name = "passwd", mode = s.IRUGO}
+local driver = {name = "passwd", mode = stat.IRUGO}
 
 function driver:read() -- read(2) callback
 	-- generate random ASCII printable characters
