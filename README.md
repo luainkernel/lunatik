@@ -105,10 +105,16 @@ usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>]
 Install and run the test suites:
 
 ```sh
-sudo make tests_install
+sudo make install
 sudo lunatik test           # run all suites
-sudo lunatik test thread    # run a specific suite (monitor, thread, runtime)
+sudo lunatik test thread    # run a specific suite (crypto, io, monitor,
+                            # notifier, probe, rcu, runtime, socket, thread)
 ```
+
+`lunatik test` reloads the modules before the run and unloads them
+afterwards, so each invocation exercises the currently-installed kernel
+code. See [tests/README.md](tests/README.md) for the full list of suites
+and individual tests.
 
 ## Lua Version
 
