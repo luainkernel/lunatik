@@ -3,6 +3,10 @@
 
 -include $(src)/targets.mk
 
+# Kernel < 5.10 has no `always-y`; alias it onto the legacy `always` so the
+# targets in targets.mk are still picked up by kbuild there.
+always := $(always-y)
+
 quiet_cmd_cpp_dD = CPP -dD $@
       cmd_cpp_dD = $(CPP) $(c_flags) -E -dD -o $@ $<
 
