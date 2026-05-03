@@ -39,59 +39,76 @@ __diag_ignore_all("-Wmissing-prototypes",
 
 static lunatik_object_t *luaxdp_runtimes = NULL;
 
-static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void *ptr, size_t size)
+typedef struct luaxdp_ctx {
+	lunatik_object_t	*buffer;
+	lunatik_object_t	*argument;
+	struct xdp_buff		*xdp;
+	void				*arg;
+	size_t				arg__sz;
+	int					action;
+} luaxdp_ctx_t;
+
+static int luaxdp_packet(lua_State *L)
 {
-	lunatik_object_t *data;
+	luaxdp_ctx_t *ctx = *(luaxdp_ctx_t **)lua_touserdata(L, 1);
 
-	lua_pushvalue(L, lua_upvalueindex(upvalue));
-	data = (lunatik_object_t *)lunatik_toobject(L, -1);
-	luadata_reset(data, ptr, size, LUADATA_OPT_KEEP);
-	return data;
-}
-
-static int luaxdp_callback(lua_State *L)
-{
-	lunatik_object_t *buffer, *argument;
-	struct xdp_buff *ctx = (struct xdp_buff *)lua_touserdata(L, 1);
-	void *arg = lua_touserdata(L, 2);
-	size_t arg__sz = (size_t)lua_tointeger(L, 3);
-
-	lua_pushvalue(L, lua_upvalueindex(1)); /* callback */
-	buffer = luaxdp_pushdata(L, 2, ctx->data, ctx->data_end - ctx->data);
-	argument = luaxdp_pushdata(L, 3, arg, arg__sz);
-
-	if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
-		luadata_clear(buffer);
-		luadata_clear(argument);
-		return lua_error(L);
-	}
-
-	luadata_clear(buffer);
-	luadata_clear(argument);
+	luadata_reset(ctx->buffer, ctx->xdp->data, ctx->xdp->data_end - ctx->xdp->data, LUADATA_OPT_KEEP);
+	lunatik_pushobject(L, ctx->buffer);
 	return 1;
 }
 
-static int luaxdp_handler(lua_State *L, struct xdp_buff *ctx, void *arg, size_t arg__sz)
+static int luaxdp_argument(lua_State *L)
 {
-	int action = -1;
-	int status;
+	luaxdp_ctx_t *ctx = *(luaxdp_ctx_t **)lua_touserdata(L, 1);
+
+	luadata_reset(ctx->argument, ctx->arg, ctx->arg__sz, LUADATA_OPT_KEEP);
+	lunatik_pushobject(L, ctx->argument);
+	return 1;
+}
+
+static int luaxdp_set_action(lua_State *L)
+{
+	luaxdp_ctx_t *ctx = *(luaxdp_ctx_t **)lua_touserdata(L, 1);
+
+	ctx->action = (int)luaL_checkinteger(L, 2);
+	return 0;
+}
+
+static const luaL_Reg luaxdp_ctx_methods[] = {
+	{"packet",		luaxdp_packet},
+	{"argument",	luaxdp_argument},
+	{"set_action",	luaxdp_set_action},
+	{NULL, NULL}
+};
+
+static void luaxdp_ctx_register(lua_State *L)
+{
+	luaL_newmetatable(L, "luaxdp.ctx");
+
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -2, "__index");
+
+	luaL_setfuncs(L, luaxdp_ctx_methods, 0);
+
+	lua_pop(L, 1);
+}
+
+static int luaxdp_callback(lua_State *L, void *arg)
+{
+	luaxdp_ctx_t *ctx = (luaxdp_ctx_t *)arg;
 
 	if (lunatik_getregistry(L, luaxdp_callback) != LUA_TFUNCTION) {
-		pr_err("couldn't find callback");
-		goto out;
+		pr_err("callback not found");
+		return -1;
 	}
+	luaxdp_ctx_t **ud = lua_newuserdata(L, sizeof(*ud));
+	*ud = ctx;
+	luaL_setmetatable(L, "luaxdp.ctx");
 
-	lua_pushlightuserdata(L, ctx);
-	lua_pushlightuserdata(L, arg);
-	lua_pushinteger(L, (lua_Integer)arg__sz);
-	if ((status = lua_pcall(L, 3, 1, 0)) != LUA_OK) {
-		pr_err("%s\n", lua_tostring(L, -1));
-		goto out;
-	}
+	if (lua_pcall(L, 1, 0, 0) != LUA_OK)
+		return lua_error(L);
 
-	action = lua_tointeger(L, -1);
-out:
-	return action;
+	return 0;
 }
 
 static inline int luaxdp_checkruntimes(void)
@@ -105,26 +122,25 @@ static inline int luaxdp_checkruntimes(void)
 
 __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)
 {
+	struct luaxdp_ctx ctx = {
+		.xdp     = (struct xdp_buff *)xdp_ctx,
+		.arg     = arg,
+		.arg__sz = arg__sz,
+		.action  = XDP_PASS,
+	};
 	lunatik_object_t *runtime;
-	struct xdp_buff *ctx = (struct xdp_buff *)xdp_ctx;
-	int action = -1;
 	size_t keylen = key__sz - 1;
 
-	if (unlikely(luaxdp_checkruntimes() != 0)) {
-		pr_err("couldn't find _ENV.runtimes\n");
-		goto out;
-	}
+	if (unlikely(luaxdp_checkruntimes() != 0))
+		return XDP_PASS;
 
 	key[keylen] = '\0';
-	if ((runtime = luarcu_getobject(luaxdp_runtimes, key, keylen)) == NULL) {
-		pr_err("couldn't find runtime '%s'\n", key);
-		goto out;
-	}
+	if ((runtime = luarcu_getobject(luaxdp_runtimes, key, keylen)) == NULL)
+		return XDP_PASS;
 
-	lunatik_run(runtime, luaxdp_handler, action, ctx, arg, arg__sz);
+	lunatik_bpf_run(runtime, luaxdp_callback, &ctx);
 	lunatik_putobject(runtime);
-out:
-	return action;
+	return ctx.action;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0))
@@ -212,13 +228,13 @@ static int luaxdp_detach(lua_State *L)
 static int luaxdp_attach(lua_State *L)
 {
 	lunatik_checkruntime(L, LUNATIK_OPT_SOFTIRQ);
-	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
+	luaL_checktype(L, 1, LUA_TFUNCTION);
 
-	luadata_new(L, LUNATIK_OPT_SINGLE); /* buffer */
-	luadata_new(L, LUNATIK_OPT_SINGLE); /* argument */
+	lua_pushvalue(L, 1);
 
-	lua_pushcclosure(L, luaxdp_callback, 3);
-	lunatik_register(L, -1, luaxdp_callback);
+	lua_pushcclosure(L, luaxdp_callback, 1);
+	lunatik_register(L, -1, NULL);
+
 	return 0;
 }
 #endif
@@ -231,7 +247,15 @@ static const luaL_Reg luaxdp_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(xdp, luaxdp_lib, NULL);
+int luaopen_xdp(lua_State *L)
+{
+	luaL_newlib(L, luaxdp_lib);
+
+	luaxdp_ctx_register(L);
+
+	return 1;
+}
+EXPORT_SYMBOL_GPL(luaopen_xdp);
 
 static int __init luaxdp_init(void)
 {
