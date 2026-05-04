@@ -248,7 +248,7 @@ function extract.parse()
 				current = { name = name, prefix = prefix, entries = {} }
 				table.insert(modules[top], current)
 			else
-				local sym, val = ascii:match('^%-%>(%S+)%s+(%-?%d+)%s+%S+$')
+				local sym, val = ascii:match('^%-%>(%S+)%s+%$?(%-?%d+)%s+%S+$')
 				local prefix_len = current and #current.prefix
 				if sym and prefix_len and sym:sub(1, prefix_len) == current.prefix then
 					table.insert(current.entries, {
