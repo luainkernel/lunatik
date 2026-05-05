@@ -61,7 +61,7 @@ LUNATIK_PRIVATECHECKER(luaxdp_ctx_check, luaxdp_ctx_t *,
 static int luaxdp_ctx_packet(lua_State *L)
 {
 	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
-	lunatik_pushobject(L, ctx->packet);
+    lunatik_getregistry(L, ctx->packet);
 	return 1;
 }
 
@@ -73,7 +73,7 @@ static int luaxdp_ctx_packet(lua_State *L)
 static int luaxdp_ctx_arg(lua_State *L)
 {
 	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
-	lunatik_pushobject(L, ctx->argument);
+    lunatik_getregistry(L, ctx->argument);
 	return 1;
 }
 
@@ -106,12 +106,12 @@ static void luaxdp_ctx_release(void *private)
 		luadata_close(lctx->argument);
 }
 
-LUNATIK_OPENER(ctx);
+LUNATIK_OPENER(xdp);
 static const lunatik_class_t luaxdp_ctx_class = {
 	.name    = "xdp.ctx",
 	.methods = luaxdp_ctx_mt,
 	.release = luaxdp_ctx_release,
-	.opener  = luaopen_ctx,
+	.opener  = luaopen_xdp,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
