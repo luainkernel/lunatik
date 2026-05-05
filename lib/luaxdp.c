@@ -142,7 +142,7 @@ static int luaxdp_push_ctx(lua_State *L, void *raw_ctx)
 
 static int luaxdp_callback(lua_State *L)
 {
-	luaxdp_ctx_t *ctx = (luaxdp_ctx_t *)lunatik_checkprivate(L, 1, &luaxdp_ctx_class);
+	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
 
 	luadata_reset(ctx->packet,   ctx->xdp->data, ctx->xdp->data_end - ctx->xdp->data, LUADATA_OPT_KEEP);
 	luadata_reset(ctx->argument, ctx->arg, ctx->arg__sz, LUADATA_OPT_KEEP);
@@ -192,7 +192,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 		pr_err("couldn't find runtime '%.*s'\n", (int)keylen, key);
 		return XDP_PASS;
 	}
-	lunatik_bpf_run(runtime, key, keylen, luaxdp_callback, luaxdp_push_ctx, &ctx);
+	lunatik_bpf_run(runtime, luaxdp_callback, luaxdp_push_ctx, &ctx);
 	lunatik_putobject(runtime);
 	return action;
 }
