@@ -48,11 +48,14 @@ local server_name  = 0x00
 local session = 43
 local max_extensions = 17
 
-local function filter_sni(packet, argument)
+local function filter_sni(ctx)
+	local packet = ctx:packet()
+	local argument = ctx:argument()
 	local byte, short, str = unpacker(packet, offset(argument))
 
 	if byte(0) ~= handshake or byte(5) ~= client_hello then
-		return action.PASS
+		ctx:set_action(action.PASS)
+		return
 	end
 
 	local cipher = (session + 1) + byte(session)
@@ -67,12 +70,13 @@ local function filter_sni(packet, argument)
 
 			verdict = blacklist[sni] and "DROP" or "PASS"
 			log(sni, verdict)
-			return action[verdict]
+			ctx:set_action(action[verdict])
+			return
 		end
 		extension = data + short(extension + 2)
 	end
 
-	return action.PASS
+	ctx:set_action(action.PASS)
 end
 
 xdp.attach(filter_sni)

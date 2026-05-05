@@ -23,6 +23,7 @@
 
 #include "luarcu.h"
 #include "luadata.h"
+#include "lunatik_bpf.h"
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 #include <linux/btf.h>
@@ -39,59 +40,121 @@ __diag_ignore_all("-Wmissing-prototypes",
 
 static lunatik_object_t *luaxdp_runtimes = NULL;
 
-static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void *ptr, size_t size)
-{
-	lunatik_object_t *data;
+typedef struct luaxdp_ctx_s {
+	struct xdp_buff  *xdp;
+	void             *arg;
+	size_t            arg__sz;
+	int              *action;
+	lunatik_object_t *packet;
+	lunatik_object_t *argument;
+} luaxdp_ctx_t;
 
-	lua_pushvalue(L, lua_upvalueindex(upvalue));
-	data = (lunatik_object_t *)lunatik_toobject(L, -1);
-	luadata_reset(data, ptr, size, LUADATA_OPT_KEEP);
-	return data;
+LUNATIK_PRIVATECHECKER(luaxdp_ctx_check, luaxdp_ctx_t *,
+	luaL_argcheck(L, private->xdp != NULL, ix, "ctx is not set");
+);
+
+/***
+* Returns the packet data buffer for the current XDP context.
+* @function packet
+* @treturn data
+*/
+static int luaxdp_ctx_packet(lua_State *L)
+{
+	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
+	lunatik_getregistry(L, ctx->packet);
+	return 1;
+}
+
+/***
+* Returns the argument data buffer passed from eBPF.
+* @function argument
+* @treturn data
+*/
+static int luaxdp_ctx_arg(lua_State *L)
+{
+	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
+    lunatik_getregistry(L, ctx->argument);
+	return 1;
+}
+
+/***
+* Sets the XDP verdict action for this packet.
+* @function set_action
+* @tparam integer action XDP action constant (e.g. XDP_PASS, XDP_DROP, ...)
+*/
+static int luaxdp_set_action(lua_State *L)
+{
+	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
+	*ctx->action = luaL_checkinteger(L, 2);
+	return 0;
+}
+
+static const luaL_Reg luaxdp_ctx_mt[] = {
+	{"__gc",        lunatik_deleteobject},
+	{"packet",      luaxdp_ctx_packet},
+	{"argument",    luaxdp_ctx_arg},
+	{"set_action",  luaxdp_set_action},
+	{NULL, NULL}
+};
+
+static void luaxdp_ctx_release(void *private)
+{
+	luaxdp_ctx_t *lctx = (luaxdp_ctx_t *)private;
+	if (lctx->packet)
+		luadata_close(lctx->packet);
+	if (lctx->argument)
+		luadata_close(lctx->argument);
+}
+
+LUNATIK_OPENER(xdp);
+static const lunatik_class_t luaxdp_ctx_class = {
+	.name    = "xdp.ctx",
+	.methods = luaxdp_ctx_mt,
+	.release = luaxdp_ctx_release,
+	.opener  = luaopen_xdp,
+	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
+};
+
+static int luaxdp_push_ctx(lua_State *L, void *raw_ctx)
+{
+	luaxdp_ctx_t *ctx = (luaxdp_ctx_t *)raw_ctx;
+
+	lunatik_require(L, &luaxdp_ctx_class);
+	lunatik_object_t *object = lunatik_newobject(L, &luaxdp_ctx_class, sizeof(luaxdp_ctx_t), LUNATIK_OPT_NONE);
+	object->private = ctx;
+
+	ctx->packet = luadata_new(L, LUNATIK_OPT_SINGLE);
+	lunatik_getobject(ctx->packet);
+	lunatik_register(L, -1, ctx->packet);
+	lua_pop(L, 1);
+
+	ctx->argument = luadata_new(L, LUNATIK_OPT_SINGLE);
+	lunatik_getobject(ctx->argument);
+	lunatik_register(L, -1, ctx->argument);
+	lua_pop(L, 1);
+
+	return 1;
 }
 
 static int luaxdp_callback(lua_State *L)
 {
-	lunatik_object_t *buffer, *argument;
-	struct xdp_buff *ctx = (struct xdp_buff *)lua_touserdata(L, 1);
-	void *arg = lua_touserdata(L, 2);
-	size_t arg__sz = (size_t)lua_tointeger(L, 3);
+	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
+
+	luadata_reset(ctx->packet,   ctx->xdp->data, ctx->xdp->data_end - ctx->xdp->data, LUADATA_OPT_KEEP);
+	luadata_reset(ctx->argument, ctx->arg, ctx->arg__sz, LUADATA_OPT_KEEP);
 
 	lua_pushvalue(L, lua_upvalueindex(1)); /* callback */
-	buffer = luaxdp_pushdata(L, 2, ctx->data, ctx->data_end - ctx->data);
-	argument = luaxdp_pushdata(L, 3, arg, arg__sz);
+	lua_pushvalue(L, 1); /* ctx userdata */
 
-	if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
-		luadata_clear(buffer);
-		luadata_clear(argument);
+	if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
+		luadata_clear(ctx->packet);
+		luadata_clear(ctx->argument);
 		return lua_error(L);
 	}
 
-	luadata_clear(buffer);
-	luadata_clear(argument);
-	return 1;
-}
-
-static int luaxdp_handler(lua_State *L, struct xdp_buff *ctx, void *arg, size_t arg__sz)
-{
-	int action = -1;
-	int status;
-
-	if (lunatik_getregistry(L, luaxdp_callback) != LUA_TFUNCTION) {
-		pr_err("couldn't find callback");
-		goto out;
-	}
-
-	lua_pushlightuserdata(L, ctx);
-	lua_pushlightuserdata(L, arg);
-	lua_pushinteger(L, (lua_Integer)arg__sz);
-	if ((status = lua_pcall(L, 3, 1, 0)) != LUA_OK) {
-		pr_err("%s\n", lua_tostring(L, -1));
-		goto out;
-	}
-
-	action = lua_tointeger(L, -1);
-out:
-	return action;
+	luadata_clear(ctx->packet);
+	luadata_clear(ctx->argument);
+	return 0;
 }
 
 static inline int luaxdp_checkruntimes(void)
@@ -106,24 +169,27 @@ static inline int luaxdp_checkruntimes(void)
 __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)
 {
 	lunatik_object_t *runtime;
-	struct xdp_buff *ctx = (struct xdp_buff *)xdp_ctx;
-	int action = -1;
+	int action = XDP_PASS;
+	luaxdp_ctx_t ctx = {
+		.xdp     = (struct xdp_buff *)xdp_ctx,
+		.arg     = arg,
+		.arg__sz = arg__sz,
+		.action  = &action,
+	};
 	size_t keylen = key__sz - 1;
 
 	if (unlikely(luaxdp_checkruntimes() != 0)) {
 		pr_err("couldn't find _ENV.runtimes\n");
-		goto out;
+		return XDP_PASS;
 	}
 
 	key[keylen] = '\0';
 	if ((runtime = luarcu_getobject(luaxdp_runtimes, key, keylen)) == NULL) {
-		pr_err("couldn't find runtime '%s'\n", key);
-		goto out;
+		pr_err("couldn't find runtime '%.*s'\n", (int)keylen, key);
+		return XDP_PASS;
 	}
-
-	lunatik_run(runtime, luaxdp_handler, action, ctx, arg, arg__sz);
+	lunatik_bpf_run(runtime, luaxdp_callback, luaxdp_push_ctx, &ctx);
 	lunatik_putobject(runtime);
-out:
 	return action;
 }
 
@@ -181,15 +247,13 @@ static int luaxdp_detach(lua_State *L)
 * - `arg_sz`: The size of the `arg` data.
 *
 * @function attach
-* @tparam function callback Lua function to call. It receives two arguments:
+* @tparam function callback Lua function to call. It receives one argument:
 *
-* 1. `buffer` (data): A `data` object representing the network packet buffer (`xdp_md`).
-*    The `data` object points to `xdp_ctx->data` and its size is `xdp_ctx->data_end - xdp_ctx->data`.
-* 2. `argument` (data): A `data` object representing the `arg` passed from the eBPF program.
-*    Its size is `arg_sz`.
+* 1. `ctx` (xdp.ctx userdata): A context object used to inspect the packet
+*    and control the XDP verdict via `ctx:set_action()`.
 *
-*   The callback function should return an integer verdict, typically one of the values
-*   from `linux.xdp` (e.g., `action.PASS`, `action.DROP`).
+*   The callback **must not return a value**. If no action is set, the default
+*   is `action.PASS`.
 * @treturn nil
 * @raise Error if the current runtime is sleepable or if internal setup fails.
 * @usage
@@ -197,9 +261,11 @@ static int luaxdp_detach(lua_State *L)
 *   local xdp = require("xdp")
 *   local action = require("linux.xdp")
 *
-*   local function my_packet_processor(packet_buffer, custom_arg)
+*   local function my_packet_processor(ctx)
+*     local packet_buffer = ctx:packet()
 *     print("Packet received, size:", #packet_buffer)
-*     return action.PASS
+*     ctx:set_action(XDP_PASS)
+*     return nil
 *   end
 *   xdp.attach(my_packet_processor)
 *
@@ -214,10 +280,7 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_checkruntime(L, LUNATIK_OPT_SOFTIRQ);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	luadata_new(L, LUNATIK_OPT_SINGLE); /* buffer */
-	luadata_new(L, LUNATIK_OPT_SINGLE); /* argument */
-
-	lua_pushcclosure(L, luaxdp_callback, 3);
+	lua_pushcclosure(L, luaxdp_callback, 1);
 	lunatik_register(L, -1, luaxdp_callback);
 	return 0;
 }
@@ -231,7 +294,8 @@ static const luaL_Reg luaxdp_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(xdp, luaxdp_lib, NULL);
+LUNATIK_CLASSES(xdp, &luaxdp_ctx_class);
+LUNATIK_NEWLIB(xdp, luaxdp_lib, luaxdp_classes);
 
 static int __init luaxdp_init(void)
 {
