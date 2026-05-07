@@ -83,6 +83,72 @@ EXPORT_SYMBOL(lunatik_pusherrname);
 
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
 #include <linux/kprobes.h>
+#include <linux/irqflags.h>
+#ifdef CONFIG_X86_KERNEL_IBT
+#include <asm/ibt.h>
+#include <asm/msr.h>
+#include <asm/cpufeature.h>
+/*
+ * Detect ENDBR64 (f3 0f 1e fa) or ENDBR poison (0f 1f 40 d6).
+ * __is_endbr() is only a static inline from Linux 7.0; use raw opcodes so
+ * that we remain compatible with older kernels (e.g. 6.11).
+ */
+static inline bool lunatik_is_endbr(u32 val)
+{
+	/* ENDBR64 little-endian */
+	if (val == 0xfa1e0ff3U)
+		return true;
+	/* ENDBR poison: nopl -42(%rax), used to seal indirect-call targets */
+	if (val == 0xd6401f0fU)
+		return true;
+	return false;
+}
+
+/*
+ * On IBT kernels kprobes places kp.addr past the ENDBR/ENDBR-poison prefix
+ * (+4 bytes); step back only when confirmed, so that functions without any
+ * ENDBR prefix are handled correctly too.
+ */
+static inline void *lunatik_kprobe_addr(void *addr)
+{
+	u32 *start = (u32 *)((unsigned long)addr - ENDBR_INSN_SIZE);
+
+	return lunatik_is_endbr(*start) ? (void *)start : addr;
+}
+
+/*
+ * kallsyms_lookup_name has been sealed in kernel 7.0: its ENDBR64 was replaced
+ * with ENDBR poison, making it an invalid indirect-call target under hardware
+ * IBT.  Temporarily disable ENDBR enforcement (CET_ENDBR_EN in MSR_IA32_S_CET)
+ * around the indirect call.  ibt_save()/ibt_restore() are not exported to
+ * modules, so we replicate their logic directly.
+ */
+static inline u64 lunatik_ibt_save(void)
+{
+	u64 msr = 0;
+
+	if (cpu_feature_enabled(X86_FEATURE_IBT)) {
+		rdmsrl(MSR_IA32_S_CET, msr);
+		wrmsrl(MSR_IA32_S_CET, msr & ~CET_ENDBR_EN);
+	}
+	return msr;
+}
+
+static inline void lunatik_ibt_restore(u64 save)
+{
+	if (cpu_feature_enabled(X86_FEATURE_IBT)) {
+		u64 msr;
+
+		rdmsrl(MSR_IA32_S_CET, msr);
+		/* Only restore CET_ENDBR_EN; avoid clobbering other CET state */
+		wrmsrl(MSR_IA32_S_CET, (msr & ~CET_ENDBR_EN) | (save & CET_ENDBR_EN));
+	}
+}
+#else /* !CONFIG_X86_KERNEL_IBT */
+static inline void *lunatik_kprobe_addr(void *addr) { return addr; }
+static inline u64 lunatik_ibt_save(void) { return 0; }
+static inline void lunatik_ibt_restore(u64 save) { (void)save; }
+#endif /* CONFIG_X86_KERNEL_IBT */
 
 #ifdef CONFIG_KPROBES
 static unsigned long (*__lunatik_lookup)(const char *) = NULL;
@@ -91,18 +157,34 @@ static unsigned long (*__lunatik_lookup)(const char *) = NULL;
 void *lunatik_lookup(const char *symbol)
 {
 #ifdef CONFIG_KPROBES
+	unsigned long result;
+	unsigned long flags;
+	u64 ibt_state;
+
 	if (__lunatik_lookup == NULL) {
 		struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
 
 		if (register_kprobe(&kp) != 0)
 			return NULL;
 
-		__lunatik_lookup = (unsigned long (*)(const char *))kp.addr;
+		__lunatik_lookup = (unsigned long (*)(const char *))lunatik_kprobe_addr(kp.addr);
 		unregister_kprobe(&kp);
 
 		BUG_ON(__lunatik_lookup == NULL);
 	}
-	return (void *)__lunatik_lookup(symbol);
+
+	/*
+	 * Disable IRQs to pin execution to this CPU while MSR_IA32_S_CET is
+	 * modified (per-CPU MSR); also prevents interrupt handlers from running
+	 * with IBT temporarily disabled.
+	 */
+	local_irq_save(flags);
+	ibt_state = lunatik_ibt_save();
+	result = __lunatik_lookup(symbol);
+	lunatik_ibt_restore(ibt_state);
+	local_irq_restore(flags);
+
+	return (void *)result;
 #else /* CONFIG_KPROBES */
 	return NULL;
 #endif /* CONFIG_KPROBES */
