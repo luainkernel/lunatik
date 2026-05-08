@@ -84,6 +84,8 @@ EXPORT_SYMBOL(lunatik_pusherrname);
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
 #include <linux/kprobes.h>
 
+#include "lunatik_cfi.h"
+
 #ifdef CONFIG_KPROBES
 static unsigned long (*__lunatik_lookup)(const char *) = NULL;
 #endif /* CONFIG_KPROBES */
@@ -97,12 +99,12 @@ void *lunatik_lookup(const char *symbol)
 		if (register_kprobe(&kp) != 0)
 			return NULL;
 
-		__lunatik_lookup = (unsigned long (*)(const char *))kp.addr;
+		__lunatik_lookup = (unsigned long (*)(const char *))lunatik_cfi_entry(kp.addr);
 		unregister_kprobe(&kp);
 
 		BUG_ON(__lunatik_lookup == NULL);
 	}
-	return (void *)__lunatik_lookup(symbol);
+	return (void *)lunatik_cfi_call(__lunatik_lookup(symbol));
 #else /* CONFIG_KPROBES */
 	return NULL;
 #endif /* CONFIG_KPROBES */
