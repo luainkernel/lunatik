@@ -91,3 +91,25 @@ test("AEAD AES-128-GCM decrypt with authentication failure", function()
 	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
 end)
 
+-- Round-trip without the optional AAD argument; covers aad_len = 0.
+test("AEAD AES-128-GCM round-trip without AAD", function()
+	local c = aead("gcm(aes)")
+	c:setkey"0123456789abcdef"
+	c:setauthsize(16)
+	local ciphertext = c:encrypt("abcdefghijkl", "plaintext")
+	local plaintext = c:decrypt("abcdefghijkl", ciphertext)
+	assert(plaintext == "plaintext", "Round-trip without AAD failed: got " .. bin2hex(plaintext))
+end)
+
+-- Encrypt produces tag only (crypt_len = 0); decrypt of a tag-only input
+-- yields empty plaintext (output_len = 0).
+test("AEAD AES-128-GCM round-trip empty plaintext with AAD", function()
+	local c = aead("gcm(aes)")
+	c:setkey"0123456789abcdef"
+	c:setauthsize(16)
+	local tag = c:encrypt("abcdefghijkl", "", "0123456789abcdef")
+	assert(#tag == 16, "Empty-plaintext output should be just the tag (16 bytes), got " .. #tag)
+	local plaintext = c:decrypt("abcdefghijkl", tag, "0123456789abcdef")
+	assert(plaintext == "", "Empty-plaintext round-trip failed")
+end)
+
