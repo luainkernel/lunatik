@@ -61,7 +61,8 @@ static int luacrypto_skcipher_blocksize(lua_State *L)
 }
 
 typedef struct luacrypto_skcipher_request_s {
-	struct scatterlist sg;
+	struct scatterlist src;
+	struct scatterlist dst;
 	struct skcipher_request *skcipher;
 	const char *data;
 	size_t data_len;
@@ -73,35 +74,21 @@ static inline void luacrypto_skcipher_newrequest(lua_State *L, luacrypto_skciphe
 	memset(request, 0, sizeof(luacrypto_skcipher_request_t));
 	struct crypto_skcipher *tfm = luacrypto_skcipher_check(L, 1);
 
-	size_t iv_len;
-	const char *iv = luaL_checklstring(L, 2, &iv_len);
-	if (iv_len != crypto_skcipher_ivsize(tfm))
-		lunatik_throw(L, -EINVAL);
-
+	request->iv = luacrypto_checkiv(L, 2, crypto_skcipher_ivsize(tfm));
 	request->data = luaL_checklstring(L, 3, &request->data_len);
 
-	request->iv = (u8 *)lunatik_checkalloc(L, iv_len);
-	memcpy(request->iv, iv, iv_len);
-
-	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
-	request->skcipher = skcipher_request_alloc(tfm, gfp);
-	if (request->skcipher == NULL) {
-		lunatik_free(request->iv);
-		lunatik_enomem(L);
-	}
+	LUACRYPTO_REQUEST_ALLOC(L, request, skcipher, tfm);
 }
 
 static inline void luacrypto_skcipher_setrequest(luacrypto_skcipher_request_t *request, char *buffer)
 {
 	struct skcipher_request *skcipher = request->skcipher;
-	struct scatterlist *sg = &request->sg;
 	size_t data_len = request->data_len;
 
-	memcpy(buffer, request->data, data_len);
+	sg_init_one(&request->src, request->data, data_len);	/* mapped from Lua string */
+	sg_init_one(&request->dst, buffer, data_len);		/* into allocated buffer */
 
-	sg_init_one(sg, buffer, data_len);
-
-	skcipher_request_set_crypt(skcipher, sg, sg, data_len, request->iv);
+	skcipher_request_set_crypt(skcipher, &request->src, &request->dst, data_len, request->iv);
 	skcipher_request_set_callback(skcipher, 0, NULL, NULL);
 }
 
@@ -112,15 +99,13 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 
 	char *buffer = (char *)lunatik_malloc(L, request.data_len);
 	if (buffer == NULL) {
-		skcipher_request_free(request.skcipher);
-		lunatik_free(request.iv);
+		LUACRYPTO_REQUEST_FREE(&request, skcipher);
 		lunatik_enomem(L);
 	}
 
 	luacrypto_skcipher_setrequest(&request, buffer);
 	int ret = crypt(request.skcipher);
-	skcipher_request_free(request.skcipher);
-	lunatik_free(request.iv);
+	LUACRYPTO_REQUEST_FREE(&request, skcipher);
 	if (ret < 0) {
 		lunatik_free(buffer);
 		lunatik_throw(L, ret);
