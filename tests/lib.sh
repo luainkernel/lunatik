@@ -16,12 +16,8 @@ ktap_pass()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_PASS=$((KTAP_PASS+1)); echo "
 ktap_fail()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_FAIL=$((KTAP_FAIL+1)); echo "not ok $KTAP_COUNT $*"; }
 ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:0"; }
 
-DMESG_TS=0
-mark_dmesg() { DMESG_TS=$(awk '{print $1}' /proc/uptime); }
-dmesg_since() {
-	dmesg | awk -v ts="$DMESG_TS" \
-		'match($0, /\[[ ]*([0-9]+\.[0-9]+)/, a) && a[1]+0 >= ts+0'
-}
+mark_dmesg() { dmesg -C 2>/dev/null; }
+dmesg_since() { dmesg; }
 check_dmesg() {
 	local errs
 	errs=$(dmesg_since | grep -E "\.lua:[0-9]+:" || true)
