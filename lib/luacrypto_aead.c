@@ -75,7 +75,8 @@ static int luacrypto_aead_authsize(lua_State *L)
 }
 
 typedef struct luacrypto_aead_request_s {
-	struct scatterlist sg;
+	struct scatterlist src[2];	/* AAD + data, mapped from Lua strings */
+	struct scatterlist dst[2];	/* AAD prefix + output, in allocated buffer */
 	struct aead_request *aead;
 	const char *data;
 	const char *aad;
@@ -90,56 +91,53 @@ static inline void luacrypto_aead_newrequest(lua_State *L, luacrypto_aead_reques
 	memset(request, 0, sizeof(luacrypto_aead_request_t));
 	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
 
-	size_t iv_len;
-	const char *iv = luaL_checklstring(L, 2, &iv_len);
-	if (iv_len != crypto_aead_ivsize(tfm))
-		lunatik_throw(L, -EINVAL);
-
+	request->iv = luacrypto_checkiv(L, 2, crypto_aead_ivsize(tfm));
 	request->data = luaL_checklstring(L, 3, &request->crypt_len);
 	request->aad = luaL_optlstring(L, 4, "", &request->aad_len);
-	request->authsize = (size_t)crypto_aead_authsize(tfm);
+	request->authsize = crypto_aead_authsize(tfm);
 
-	request->iv = (u8 *)lunatik_checkalloc(L, iv_len);
-	memcpy(request->iv, iv, iv_len);
-
-	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
-	request->aead = aead_request_alloc(tfm, gfp);
-	if (request->aead == NULL) {
-		lunatik_free(request->iv);
-		lunatik_enomem(L);
-	}
+	LUACRYPTO_REQUEST_ALLOC(L, request, aead, tfm);
 }
 
-static inline void luacrypto_aead_setrequest(luacrypto_aead_request_t *request, char *buffer, size_t buffer_len)
+static inline void luacrypto_aead_setrequest(luacrypto_aead_request_t *request, char *buffer, size_t output_len)
 {
 	struct aead_request *aead = request->aead;
-	struct scatterlist *sg = &request->sg;
+	struct scatterlist *src = request->src;
+	struct scatterlist *dst = request->dst;
+	unsigned int n = request->aad_len ? 2 : 1;
 
-	/* Build combined = aad || data in buffer */
+	/* src maps the Lua input strings directly (no copy). */
+	sg_init_table(src, n);
+	if (request->aad_len)
+		sg_set_buf(&src[0], request->aad, request->aad_len);
+	sg_set_buf(&src[n - 1], request->data, request->crypt_len);
+
+	/* dst mirrors the AAD prefix and reserves room for the output. */
 	memcpy(buffer, request->aad, request->aad_len);
-	memcpy(buffer + request->aad_len, request->data, request->crypt_len);
-
-	sg_init_one(sg, buffer, buffer_len);
+	sg_init_table(dst, n);
+	if (request->aad_len)
+		sg_set_buf(&dst[0], buffer, request->aad_len);
+	sg_set_buf(&dst[n - 1], buffer + request->aad_len, output_len ? output_len : 1);
 
 	aead_request_set_ad(aead, request->aad_len);
-	aead_request_set_crypt(aead, sg, sg, request->crypt_len, request->iv);
+	aead_request_set_crypt(aead, src, dst, request->crypt_len, request->iv);
 	aead_request_set_callback(aead, 0, NULL, NULL);
 }
 
 static inline void luacrypto_aead_request_free(luacrypto_aead_request_t *request)
 {
-	aead_request_free(request->aead);
-	lunatik_free(request->iv);
+	LUACRYPTO_REQUEST_FREE(request, aead);
 }
 
-static inline char *luacrypto_aead_prepare(lua_State *L, luacrypto_aead_request_t *request, size_t buffer_len)
+static inline char *luacrypto_aead_prepare(lua_State *L, luacrypto_aead_request_t *request, size_t output_len)
 {
+	size_t buffer_len = request->aad_len + (output_len ? output_len : 1);
 	char *buffer = (char *)lunatik_malloc(L, buffer_len);
 	if (buffer == NULL) {
 		luacrypto_aead_request_free(request);
 		lunatik_enomem(L);
 	}
-	luacrypto_aead_setrequest(request, buffer, buffer_len);
+	luacrypto_aead_setrequest(request, buffer, output_len);
 	return buffer;
 }
 
@@ -170,10 +168,10 @@ static int luacrypto_aead_encrypt(lua_State *L)
 {
 	luacrypto_aead_request_t request;
 	luacrypto_aead_newrequest(L, &request);
-	size_t buffer_len = request.aad_len + request.crypt_len + request.authsize;
-	char *buffer = luacrypto_aead_prepare(L, &request, buffer_len);
+	size_t output_len = request.crypt_len + request.authsize;
+	char *buffer = luacrypto_aead_prepare(L, &request, output_len);
 	int ret = crypto_aead_encrypt(request.aead);
-	return luacrypto_aead_finish(L, &request, buffer, ret, request.crypt_len + request.authsize);
+	return luacrypto_aead_finish(L, &request, buffer, ret, output_len);
 }
 
 /***
@@ -194,10 +192,10 @@ static int luacrypto_aead_decrypt(lua_State *L)
 		luacrypto_aead_request_free(&request);
 		lunatik_throw(L, -EBADMSG);
 	}
-	size_t buffer_len = request.aad_len + request.crypt_len;
-	char *buffer = luacrypto_aead_prepare(L, &request, buffer_len);
+	size_t output_len = request.crypt_len - request.authsize;
+	char *buffer = luacrypto_aead_prepare(L, &request, output_len);
 	int ret = crypto_aead_decrypt(request.aead);
-	return luacrypto_aead_finish(L, &request, buffer, ret, request.crypt_len - request.authsize);
+	return luacrypto_aead_finish(L, &request, buffer, ret, output_len);
 }
 
 static int luacrypto_aead_algname(lua_State *L)
