@@ -17,11 +17,11 @@ obj-$(CONFIG_LUNATIK_NETFILTER) += luanetfilter.o
 obj-$(CONFIG_LUNATIK_COMPLETION) += luacompletion.o
 obj-$(CONFIG_LUNATIK_CRYPTO) += luacrypto.o
 luacrypto-objs := luacrypto_shash.o luacrypto_skcipher.o luacrypto_aead.o \
-                  luacrypto_rng.o luacrypto_comp.o luacrypto_core.o
+                  luacrypto_rng.o luacrypto_comp.o luacrypto_pool.o \
+                  luacrypto_core.o
 obj-$(CONFIG_LUNATIK_CPU) += luacpu.o
 obj-$(CONFIG_LUNATIK_HID) += luahid.o
 obj-$(CONFIG_LUNATIK_SIGNAL) += luasignal.o
 obj-$(CONFIG_LUNATIK_BYTEORDER) += luabyteorder.o
 obj-$(CONFIG_LUNATIK_DARKEN) += luadarken.o
 obj-$(CONFIG_LUNATIK_SKB) += luaskb.o
-

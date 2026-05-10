@@ -66,6 +66,7 @@ typedef struct luacrypto_skcipher_request_s {
 	struct skcipher_request *skcipher;
 	const char *data;
 	size_t data_len;
+	unsigned int reqsize;
 	u8 *iv;
 } luacrypto_skcipher_request_t;
 
@@ -77,7 +78,13 @@ static inline void luacrypto_skcipher_newrequest(lua_State *L, luacrypto_skciphe
 	request->iv = luacrypto_checkiv(L, 2, crypto_skcipher_ivsize(tfm));
 	request->data = luaL_checklstring(L, 3, &request->data_len);
 
-	LUACRYPTO_REQUEST_ALLOC(L, request, skcipher, tfm);
+	request->reqsize = crypto_skcipher_reqsize(tfm);
+	request->skcipher = luacrypto_request_pool_acquire(L, LUACRYPTO_REQUEST_SKCIPHER,
+		tfm, request->reqsize);
+	if (request->skcipher == NULL) {
+		lunatik_free(request->iv);
+		lunatik_enomem(L);
+	}
 }
 
 static inline void luacrypto_skcipher_setrequest(luacrypto_skcipher_request_t *request, char *buffer)
@@ -97,15 +104,20 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 	luacrypto_skcipher_request_t request;
 	luacrypto_skcipher_newrequest(L, &request);
 
-	char *buffer = (char *)lunatik_malloc(L, request.data_len);
+	char *buffer = (char *)lunatik_malloc(L, request.data_len + 1);
 	if (buffer == NULL) {
-		LUACRYPTO_REQUEST_FREE(&request, skcipher);
+		luacrypto_request_pool_release(L, LUACRYPTO_REQUEST_SKCIPHER, request.skcipher,
+			request.reqsize);
+		lunatik_free(request.iv);
 		lunatik_enomem(L);
 	}
 
 	luacrypto_skcipher_setrequest(&request, buffer);
 	int ret = crypt(request.skcipher);
-	LUACRYPTO_REQUEST_FREE(&request, skcipher);
+	buffer[request.data_len] = '\0';
+	luacrypto_request_pool_release(L, LUACRYPTO_REQUEST_SKCIPHER, request.skcipher,
+		request.reqsize);
+	lunatik_free(request.iv);
 	if (ret < 0) {
 		lunatik_free(buffer);
 		lunatik_throw(L, ret);
@@ -178,4 +190,3 @@ const lunatik_class_t luacrypto_skcipher_class = {
 *   local cipher = skcipher("cbc(aes)")
 */
 LUACRYPTO_NEW(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class);
-

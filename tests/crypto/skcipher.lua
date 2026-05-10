@@ -79,3 +79,15 @@ test("SKCIPHER AES-128-CBC decrypt with data not multiple of blocksize", functio
 	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
+test("SKCIPHER AES-128-CBC stress round-trip", function()
+	local c = skcipher("cbc(aes)")
+	local iv = "fedcba9876543210"
+	local plaintext = "This is a test!!"
+	c:setkey"0123456789abcdef"
+
+	for _ = 1, 5000 do
+		local ciphertext = c:encrypt(iv, plaintext)
+		local decrypted = c:decrypt(iv, ciphertext)
+		assert(decrypted == plaintext, "Stress round-trip mismatch")
+	end
+end)

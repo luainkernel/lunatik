@@ -113,3 +113,17 @@ test("AEAD AES-128-GCM round-trip empty plaintext with AAD", function()
 	assert(plaintext == "", "Empty-plaintext round-trip failed")
 end)
 
+test("AEAD AES-128-GCM stress round-trip", function()
+	local c = aead("gcm(aes)")
+	local iv = "abcdefghijkl"
+	local aad = "0123456789abcdef"
+	local plaintext = "plaintext"
+	c:setkey"0123456789abcdef"
+	c:setauthsize(16)
+
+	for _ = 1, 5000 do
+		local ciphertext = c:encrypt(iv, plaintext, aad)
+		local decrypted = c:decrypt(iv, ciphertext, aad)
+		assert(decrypted == plaintext, "Stress round-trip mismatch")
+	end
+end)

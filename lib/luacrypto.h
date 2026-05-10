@@ -36,27 +36,24 @@ static inline u8 *luacrypto_checkiv(lua_State *L, int idx, size_t expected)
 	const char *iv = luaL_checklstring(L, idx, &iv_len);
 	if (iv_len != expected)
 		lunatik_throw(L, -EINVAL);
+	if (iv_len == 0)
+		return NULL;
 
 	u8 *out = (u8 *)lunatik_checkalloc(L, iv_len);
 	memcpy(out, iv, iv_len);
 	return out;
 }
 
-#define LUACRYPTO_REQUEST_ALLOC(L, request, name, tfm)				\
-do {										\
-	gfp_t __gfp = lunatik_gfp(lunatik_toruntime(L));			\
-	(request)->name = name##_request_alloc((tfm), __gfp);			\
-	if ((request)->name == NULL) {						\
-		lunatik_free((request)->iv);					\
-		lunatik_enomem(L);						\
-	}									\
-} while (0)
+enum luacrypto_request_type {
+	LUACRYPTO_REQUEST_SKCIPHER = 1,
+	LUACRYPTO_REQUEST_AEAD = 2,
+};
 
-#define LUACRYPTO_REQUEST_FREE(request, name)					\
-do {										\
-	name##_request_free((request)->name);					\
-	lunatik_free((request)->iv);						\
-} while (0)
+void *luacrypto_request_pool_acquire(lua_State *L, enum luacrypto_request_type type,
+	void *tfm, unsigned int reqsize);
+
+void luacrypto_request_pool_release(lua_State *L, enum luacrypto_request_type type,
+	void *request, unsigned int reqsize);
 
 extern const lunatik_class_t luacrypto_shash_class;
 extern const lunatik_class_t luacrypto_skcipher_class;
@@ -74,4 +71,3 @@ int luacrypto_comp_new(lua_State *L);
 #endif
 
 #endif /* _LUACRYPTO_H */
-

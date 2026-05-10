@@ -208,6 +208,13 @@ containing a pointer to the object onto the Lua stack.
 It allocates `size` bytes for the object's private data, unless `LUNATIK_OPT_EXTERNAL` is set in
 `class->opt`, in which case `object->private` is expected to be set by the caller.
 
+### Crypto request pooling
+
+The `crypto` module reuses `skcipher_request` and `aead_request` objects through a
+per-runtime pool keyed by request type and `reqsize`. The pool is intentionally bounded;
+when it is empty, callers fall back to the normal dynamic allocation path so behavior remains
+compatible under memory pressure.
+
 ### lunatik\_createobject
 ```C
 lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
@@ -515,4 +522,3 @@ Reallocates `ptr` to `size` bytes using the Lua allocator.
 void lunatik_free(void *ptr);
 ```
 Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`. Equivalent to `kfree`.
-
