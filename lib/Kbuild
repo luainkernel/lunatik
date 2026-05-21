@@ -13,6 +13,7 @@ obj-$(CONFIG_LUNATIK_DATA) += luadata.o
 obj-$(CONFIG_LUNATIK_PROBE) += luaprobe.o
 obj-$(CONFIG_LUNATIK_SYSCALL) += luasyscall.o
 obj-$(CONFIG_LUNATIK_XDP) += luaxdp.o
+obj-$(CONFIG_LUNATIK_TC) += luatc.o
 obj-$(CONFIG_LUNATIK_FIFO) += luafifo.o
 obj-$(CONFIG_LUNATIK_NETFILTER) += luanetfilter.o
 obj-$(CONFIG_LUNATIK_COMPLETION) += luacompletion.o
