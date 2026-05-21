@@ -23,6 +23,12 @@ static inline void luaskb_clear(lunatik_object_t *object)
 	lskb->skb = NULL;
 }
 
+static inline void luaskb_close(lunatik_object_t *object)
+{
+	luaskb_clear(object);
+	lunatik_putobject(object);
+}
+
 lunatik_object_t *luaskb_new(lua_State *L);
 
 #define luaskb_attach(L, obj, field)	lunatik_attach(L, obj, field, luaskb_new)
