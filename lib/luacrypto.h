@@ -40,6 +40,11 @@ int luacrypto_skcipher_new(lua_State *L);
 int luacrypto_aead_new(lua_State *L);
 int luacrypto_rng_new(lua_State *L);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0))
+extern const lunatik_class_t luacrypto_sig_class;
+int luacrypto_sig_new(lua_State *L);
+#endif
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 extern const lunatik_class_t luacrypto_comp_class;
 int luacrypto_comp_new(lua_State *L);

@@ -20,6 +20,9 @@ static const luaL_Reg luacrypto_lib[] = {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 	{"comp", luacrypto_comp_new},
 #endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0))
+	{"sig", luacrypto_sig_new},
+#endif
 	{NULL, NULL}
 };
 
@@ -30,6 +33,9 @@ static const lunatik_class_t *luacrypto_classes[] = {
 	&luacrypto_rng_class,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 	&luacrypto_comp_class,
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0))
+	&luacrypto_sig_class,
 #endif
 	NULL
 };
