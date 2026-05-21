@@ -111,6 +111,12 @@ config LUNATIK_XDP
 	help
 	  Express Data Path (XDP) support for high-performance packet processing.
 
+config LUNATIK_TC
+	tristate "Lunatik TC Support"
+	default m
+	help
+	  Traffic Controller (TC) support for high-performance packet scheduling.
+
 config LUNATIK_FIFO
 	tristate "Lunatik FIFO Support"
 	default m
@@ -176,4 +182,4 @@ config LUNATIK_BPF
 	  Access to pinned eBPF maps from Lua scripts.
 
 endif
- 
+
