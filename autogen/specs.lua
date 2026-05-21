@@ -27,6 +27,8 @@ return {
 		desc = "Network device notifier event types." },
 	{ header = "uapi/linux/bpf.h",              prefix = "XDP_",       module = "xdp",
 		desc = "XDP verdicts and flags." },
+	{ header = "uapi/linux/pkt_cls.h",          prefix = "TC_",        module = "tc",
+		desc = "TC verdicts and flags." },
 	{ header = "linux/sched.h",                 prefix = "TASK_",      module = "task",
 		desc = "Task state flags." },
 	{ header = "linux/net.h",                   prefix = "SOCK_",      module = "socket.sock",
