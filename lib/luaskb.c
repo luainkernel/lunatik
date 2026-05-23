@@ -221,6 +221,50 @@ static int luaskb_connmark(lua_State *L)
 }
 #endif /* CONFIG_NF_CONNTRACK_MARK */
 
+#define luaskb_getinteger(name, field) \
+static int luaskb_get##name(lua_State *l) \
+{ \
+	luaskb_t *lskb = luaskb_check(l, 1); \
+	lua_pushinteger(l, lskb->skb->field); \
+	return 1; \
+}
+
+#define luaskb_setinteger(name, field) \
+static int luaskb_set##name(lua_State *l) \
+{ \
+	luaskb_t *lskb = luaskb_check(l, 1); \
+	lskb->skb->field = (u32)luaL_checkinteger(l, 2); \
+	return 0; \
+}
+
+/***
+* Gets the packet mark.
+* @function getmark
+* @return skb->mark
+*/
+luaskb_getinteger(mark, mark);
+
+/***
+* Sets the packet mark.
+* @function setmark
+* @param mark New packet mark value
+*/
+luaskb_setinteger(mark, mark);
+
+/***
+* Gets the packet priority.
+* @function getpriority
+* @return skb->priority
+*/
+luaskb_getinteger(priority, priority);
+
+/***
+* Sets the packet priority.
+* @function setpriority
+* @param priority New packet priority value
+*/
+luaskb_setinteger(priority, priority);
+
 static int luaskb_copy(lua_State *L);
 
 static void luaskb_release(void *private)
@@ -237,20 +281,25 @@ static const luaL_Reg luaskb_lib[] = {
 };
 
 static const luaL_Reg luaskb_mt[] = {
-	{"__gc",     lunatik_deleteobject},
-	{"__len",    luaskb_len},
-	{"ifindex",  luaskb_ifindex},
-	{"vlan",     luaskb_vlan},
-	{"data",     luaskb_data},
-	{"resize",   luaskb_resize},
-	{"checksum", luaskb_checksum},
-	{"forward",  luaskb_forward},
-	{"copy",     luaskb_copy},
+	{"__gc",        lunatik_deleteobject},
+	{"__len",       luaskb_len},
+	{"ifindex",     luaskb_ifindex},
+	{"vlan",        luaskb_vlan},
+	{"data",        luaskb_data},
+	{"resize",      luaskb_resize},
+	{"checksum",    luaskb_checksum},
+	{"forward",     luaskb_forward},
+	{"copy",        luaskb_copy},
 #if defined(CONFIG_NF_CONNTRACK_MARK)
-	{"connmark", luaskb_connmark},
+	{"connmark",    luaskb_connmark},
 #endif
+	{"getmark",     luaskb_getmark},
+	{"getpriority", luaskb_getpriority},
+	{"setmark",     luaskb_setmark},
+	{"setpriority", luaskb_setpriority},
 	{NULL, NULL}
 };
+
 
 LUNATIK_OPENER(skb);
 static const lunatik_class_t luaskb_class = {

@@ -38,6 +38,7 @@ file = {
 	'./lib/net.lua',
 	'./lib/luanetfilter.c',
 	'./lib/luaskb.c',
+	'./lib/skb/attr.lua',
 	'./lib/luanotifier.c',
 	'./lib/luaprobe.c',
 	'./lib/luarcu.c',
