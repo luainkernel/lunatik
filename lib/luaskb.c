@@ -228,6 +228,33 @@ static int luaskb_connmark(lua_State *L)
 }
 #endif /* CONFIG_NF_CONNTRACK_MARK */
 
+#define luaskb_integer(name, field) \
+static int luaskb_##name(lua_State *L) \
+{ \
+	luaskb_t *lskb = luaskb_check(L, 1); \
+	struct sk_buff *skb = lskb->skb; \
+	if (!lua_isnone(L, 2)) \
+		skb->field = (typeof(skb->field))luaL_checkinteger(L, 2); \
+	lua_pushinteger(L, skb->field); \
+	return 1; \
+}
+
+/***
+* Gets or sets the packet mark: with no argument reads it, with `value` sets it.
+* @function mark
+* @tparam[opt] integer value the new packet mark
+* @treturn integer the packet mark
+*/
+luaskb_integer(mark, mark);
+
+/***
+* Gets or sets the packet priority: with no argument reads it, with `value` sets it.
+* @function priority
+* @tparam[opt] integer value the new packet priority
+* @treturn integer the packet priority
+*/
+luaskb_integer(priority, priority);
+
 static int luaskb_copy(lua_State *L);
 
 static void luaskb_release(void *private)
@@ -256,6 +283,8 @@ static const luaL_Reg luaskb_mt[] = {
 #if defined(CONFIG_NF_CONNTRACK_MARK)
 	{"connmark", luaskb_connmark},
 #endif
+	{"mark",     luaskb_mark},
+	{"priority", luaskb_priority},
 	{NULL, NULL}
 };
 
