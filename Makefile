@@ -83,6 +83,7 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink/rt
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink/nl80211
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/skb
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/syscall
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/crypto
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/bpf
@@ -101,6 +102,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/netlink/*.lua ${SCRIPTS_INSTALL_PATH}/netlink
 	${INSTALL} -m 0644 lib/netlink/rt/*.lua ${SCRIPTS_INSTALL_PATH}/netlink/rt
 	${INSTALL} -m 0644 lib/netlink/nl80211/*.lua ${SCRIPTS_INSTALL_PATH}/netlink/nl80211
+	${INSTALL} -m 0644 lib/skb/*.lua ${SCRIPTS_INSTALL_PATH}/skb
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
 	${INSTALL} -m 0644 lib/bpf/*.lua ${SCRIPTS_INSTALL_PATH}/bpf
