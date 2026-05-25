@@ -117,10 +117,12 @@ scripts_uninstall:
 
 ebpf:
 	${MAKE} -C examples/filter
+	${MAKE} -C examples/sniclassify
 
 ebpf_install:
 	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
 	${INSTALL} -m 0644 examples/filter/https.o ${LUNATIK_EBPF_INSTALL_PATH}/
+	${INSTALL} -m 0644 examples/sniclassify/classify.o ${LUNATIK_EBPF_INSTALL_PATH}/
 
 ebpf_uninstall:
 	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}
