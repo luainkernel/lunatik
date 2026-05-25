@@ -465,6 +465,46 @@ ip netns exec tcpreject curl --connect-timeout 2 https://[2001:4860:4860::8888]
 sudo examples/tcpreject/cleanup.sh
 ```
 
+### sniclassify
+
+[sniclassify](examples/sniclassify) is a kernel extension composed by
+a TC/eBPF classifier program attached on egress,
+a Lua kernel script to classify [SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) traffic.
+This kernel extension extracts server name and assigns traffic
+classes according to a Lua [policy table](examples/sniclassify/sni.lua#18).
+
+Install and load the classfier:
+
+```sh
+sudo make btf_install         # needed to export the 'bpf_luatc_run' kfunc
+sudo make examples_install    # installs examples
+make ebpf                     # builds the TC/eBPF program
+sudo make ebpf_install        # installs the TC/eBPF program
+sudo lunatik run examples/sniclassify/sni softirq
+```
+
+Configure HTB classes:
+```
+sudo tc qdisc del dev docker0 root 2>/dev/null
+sudo tc qdisc add dev docker0 root handle 1: htb default 30
+sudo tc class add dev docker0 parent 1: classid 1:10 htb rate 20mbit
+sudo tc class add dev docker0 parent 1: classid 1:20 htb rate 10mbit
+```
+
+Attach the TC/eBPF classifier on egress:
+```
+sudo tc filter add dev docker0 parent 1: bpf da obj examples/sniclassify/classify.o sec classifier
+```
+
+The classifier inspects outbound TLS ClientHello packets, extracts the SNI
+field, and assigns a traffic class according to the Lua policy table.
+
+Verify and test:
+```
+sudo tc filter show dev docker0
+sudo journalctl -ft kernel
+```
+
 ### gesture
 
 [gesture](examples/gesture.lua)
