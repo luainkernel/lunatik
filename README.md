@@ -459,6 +459,51 @@ ip netns exec tcpreject curl --connect-timeout 2 https://[2001:4860:4860::8888]
 sudo examples/tcpreject/cleanup.sh
 ```
 
+### sniclassify
+
+[sniclassify](examples/sniclassify) is a kernel extension composed by
+a TC/eBPF classifier program attached on egress,
+a Lua kernel script to classify [SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) traffic.
+This kernel extension extracts server name and assigns traffic
+classes according to a Lua [policy table](examples/sniclassify/sni.lua#18).
+
+Install and load the classifier:
+
+```sh
+sudo make btf_install         # needed to export the 'bpf_luatc_run' kfunc
+sudo make examples_install    # installs examples
+make ebpf                     # builds the TC/eBPF program
+sudo make ebpf_install        # installs the TC/eBPF program
+sudo lunatik run examples/sniclassify/sni softirq percpu
+```
+
+Configure HTB classes:
+```
+sudo tc filter del dev eth0 egress 2>/dev/null
+sudo tc qdisc del dev eth0 clsact 2>/dev/null
+sudo tc qdisc del dev eth0 root 2>/dev/null
+sudo tc qdisc add dev eth0 root handle 1: htb default 20
+sudo tc class add dev eth0 parent 1: classid 1:1 htb rate 100mbit ceil 100mbit
+sudo tc class add dev eth0 parent 1:1 classid 1:10 htb rate 50mbit ceil 100mbit prio 1
+sudo tc class add dev eth0 parent 1:1 classid 1:20 htb rate 30mbit ceil 100mbit prio 2
+sudo tc class add dev eth0 parent 1:1 classid 1:30 htb rate 20mbit ceil 100mbit prio 3
+```
+
+Attach the TC/eBPF classifier on egress:
+```
+sudo tc qdisc add dev eth0 clsact
+sudo tc filter add dev eth0 egress bpf da obj examples/sniclassify/classify.o sec classifier
+```
+
+The classifier inspects outbound TLS ClientHello packets, extracts the SNI
+field, and assigns a traffic class according to the Lua policy table.
+
+Verify and test:
+```
+sudo tc filter show dev eth0
+sudo journalctl -ft kernel
+```
+
 ### gesture
 
 [gesture](examples/gesture.lua)
