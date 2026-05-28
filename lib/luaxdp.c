@@ -20,23 +20,17 @@
 #include <linux/bpf.h>
 
 #include <lunatik.h>
+#include <lunatik_ebpf.h>
 
 #include "luarcu.h"
 #include "luadata.h"
-#include "lunatik_bpf.h"
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 #include <linux/btf.h>
 #include <linux/btf_ids.h>
 #include <net/xdp.h>
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0))
-__bpf_kfunc_start_defs();
-#else
-__diag_push();
-__diag_ignore_all("-Wmissing-prototypes",
-                  "Global kfuncs as their definitions will be in BTF");
-#endif
+LUNATIK_EBPF_START();
 
 static char luaxdp_env_key;
 
@@ -157,31 +151,13 @@ static int luaxdp_handler(lua_State *L, luaxdp_ctx_t *ctx)
 	return 0;
 }
 
-static inline int luaxdp_checkruntimes(void)
-{
-	const char *key = "runtimes";
-	if (luaxdp_runtimes == NULL &&
-	   (luaxdp_runtimes = luarcu_getobject(lunatik_env, key, sizeof(key))) == NULL)
-		return -1;
-	return 0;
-}
-
 __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)
 {
-	lunatik_object_t *runtime;
 	int action = -1;
-	size_t keylen = key__sz - 1;
 
-	if (unlikely(luaxdp_checkruntimes() != 0)) {
-		pr_err("couldn't find _ENV.runtimes\n");
+	lunatik_object_t *runtime = lunatik_ebpf_lookup(luaxdp_runtimes, key, key__sz);
+	if (runtime == NULL)
 		goto out;
-	}
-
-	key[keylen] = '\0';
-	if ((runtime = luarcu_getobject(luaxdp_runtimes, key, keylen)) == NULL) {
-		pr_err("couldn't find runtime '%s'\n", key);
-		goto out;
-	}
 
 	luaxdp_ctx_t ctx = {
 		.xdp     = (struct xdp_buff *)xdp_ctx,
@@ -196,26 +172,9 @@ out:
 	return action;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0))
-__bpf_kfunc_end_defs();
-#else
-__diag_pop();
-#endif
+LUNATIK_EBPF_END();
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0))
-BTF_KFUNCS_START(bpf_luaxdp_set)
-BTF_ID_FLAGS(func, bpf_luaxdp_run)
-BTF_KFUNCS_END(bpf_luaxdp_set)
-#else
-BTF_SET8_START(bpf_luaxdp_set)
-BTF_ID_FLAGS(func, bpf_luaxdp_run)
-BTF_SET8_END(bpf_luaxdp_set)
-#endif
-
-static const struct btf_kfunc_id_set bpf_luaxdp_kfunc_set = {
-	.owner = THIS_MODULE,
-	.set   = &bpf_luaxdp_set,
-};
+LUNATIK_EBPF_KFUNC_DEFINE_SET(xdp, bpf_luaxdp_run);
 
 /***
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
@@ -272,7 +231,7 @@ static int luaxdp_detach(lua_State *L)
 *   local function my_packet_processor(ctx)
 *     local packet_buffer = ctx:packet()
 *     print("Packet received, size:", #packet_buffer)
-*     ctx:action(XDP_PASS)
+*     ctx:action(action.PASS)
 *     return nil
 *   end
 *   xdp.attach(my_packet_processor)
@@ -324,11 +283,7 @@ LUNATIK_NEWLIB(xdp, luaxdp_lib, luaxdp_classes);
 
 static int __init luaxdp_init(void)
 {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
-	return register_btf_kfunc_id_set(BPF_PROG_TYPE_XDP, &bpf_luaxdp_kfunc_set);
-#else
-	return 0;
-#endif
+	LUNATIK_EBPF_KFUNC_INIT(xdp, BPF_PROG_TYPE_XDP);
 }
 
 static void __exit luaxdp_exit(void)
