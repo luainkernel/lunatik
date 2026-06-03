@@ -59,6 +59,12 @@ config LUNATIK_RCU
 	help
 	  Read-Copy-Update (RCU) synchronization support.
 
+config LUNATIK_TASK
+	tristate "Lunatik Task Support"
+	default m
+	help
+	  Kernel task management from Lua.
+
 config LUNATIK_THREAD
 	tristate "Lunatik Thread Support"
 	default m
