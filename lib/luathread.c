@@ -13,18 +13,19 @@
 
 #include <lunatik.h>
 
+#include "luatask.h"
+
 /***
 * Represents a kernel thread object.
 * @type thread
 */
 
 typedef struct luathread_s {
-	struct task_struct *task;
+	lunatik_object_t *task;
 	lunatik_object_t *runtime;
 } luathread_t;
 
 static int luathread_run(lua_State *L);
-static int luathread_current(lua_State *L);
 
 static int luathread_resume(lua_State *L, luathread_t *thread)
 {
@@ -50,7 +51,7 @@ static int luathread_func(void *data)
 	while (!kthread_should_stop())
 		if ((locked = lunatik_trylock(object)))
 			break;
-
+	lunatik_putobject(thread->task);
 	thread->task = NULL;
 
 	if (locked)
@@ -91,15 +92,16 @@ static int luathread_stop(lua_State *L)
 	lunatik_object_t *object = lunatik_toobject(L, 1);
 	luathread_t *thread = (luathread_t *)object->private;
 	lunatik_object_t *runtime = thread->runtime;
-	struct task_struct *task = thread->task;
+	lunatik_object_t *task = thread->task;
 
 	if (runtime == NULL)
 		pr_warn("[%p] thread wasn't created by us\n", thread);
 	else if (task != NULL) {
-		int result = kthread_stop(task);
+		int result = luatask_stop(task);
 
 		if (result == -EINTR) {
 			thread->task = NULL;
+			lunatik_putobject(task);
 			lunatik_putobject(thread->runtime);
 			lunatik_putobject(object);
 			pr_warn("[%p] thread has never run\n", thread);
@@ -124,31 +126,19 @@ static int luathread_task(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_toobject(L, 1);
 	luathread_t *thread = (luathread_t *)object->private;
-	struct task_struct *task = thread->task;
 
-	lua_createtable(L, 0, 4);
-	int table = lua_gettop(L);
-
-#ifdef CONFIG_SMP
-	lua_pushinteger(L, task->on_cpu);
-	lua_setfield(L, table, "cpu");
-#endif
-
-	lua_pushstring(L, task->comm);
-	lua_setfield(L, table, "command");
-
-	lua_pushinteger(L, task->pid);
-	lua_setfield(L, table, "pid");
-
-	lua_pushinteger(L, task->tgid);
-	lua_setfield(L, table, "tgid");
+	if (!thread->task) {
+		lua_pushnil(L);
+		return 1;
+	}
+	lunatik_getobject(thread->task);
+	lunatik_pushobject(L, thread->task);
 	return 1;
 }
 
 static const luaL_Reg luathread_lib[] = {
 	{"run", luathread_run},
 	{"shouldstop", luathread_shouldstop},
-	{"current", luathread_current},
 	{NULL, NULL}
 };
 
@@ -193,29 +183,10 @@ static int luathread_run(lua_State *L)
 	lunatik_getobject(runtime);
 	thread->runtime = runtime;
 
-	thread->task = kthread_run(luathread_func, object, name);
+	thread->task = luatask_run(L, luathread_func, object, name);
 	if (IS_ERR(thread->task))
 		luaL_error(L, "failed to create a new thread");
 
-	return 1; /* object */
-}
-
-/***
-* Gets a thread object representing the current kernel task.
-* If the current task was not created by `thread.run()`, the returned
-* object will not have an associated Lunatik runtime.
-* @function current
-* @treturn thread A thread object for the current task.
-* @usage
-* local t = thread.current()
-*/
-static int luathread_current(lua_State *L)
-{
-	lunatik_object_t *object = luathread_new(L);
-	luathread_t *thread = object->private;
-
-	thread->runtime = NULL;
-	thread->task = current;
 	return 1; /* object */
 }
 
