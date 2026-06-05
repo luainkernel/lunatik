@@ -16,6 +16,9 @@
 #include <linux/udp.h>
 #include <net/ip.h>
 #include <net/ip6_checksum.h>
+#if defined(CONFIG_NF_CONNTRACK_MARK)
+#include <net/netfilter/nf_conntrack.h>
+#endif
 
 #include "luaskb.h"
 
@@ -195,6 +198,29 @@ static int luaskb_forward(lua_State *L)
 	return 0;
 }
 
+#if defined(CONFIG_NF_CONNTRACK_MARK)
+/***
+* Gets or sets the conntrack mark: with no argument reads it, with `value` sets
+* it. Returns the current (or new) mark, or nil if no conntrack is associated.
+* @function connmark
+* @tparam[opt] integer value 32-bit mark to set
+* @treturn integer 32-bit connmark, or nil if no conntrack is associated
+*/
+static int luaskb_connmark(lua_State *L)
+{
+	luaskb_t *lskb = luaskb_check(L, 1);
+	bool set = !lua_isnone(L, 2);
+	u32 value = set ? (u32)luaL_checkinteger(L, 2) : 0;
+	enum ip_conntrack_info ctinfo;
+	struct nf_conn *ct = nf_ct_get(lskb->skb, &ctinfo);
+
+	if (ct && set)
+		WRITE_ONCE(ct->mark, value);
+	luaskb_pushoptinteger(L, ct, (lua_Integer)(u32)READ_ONCE(ct->mark));
+	return 1;
+}
+#endif /* CONFIG_NF_CONNTRACK_MARK */
+
 static int luaskb_copy(lua_State *L);
 
 static void luaskb_release(void *private)
@@ -220,6 +246,9 @@ static const luaL_Reg luaskb_mt[] = {
 	{"checksum", luaskb_checksum},
 	{"forward",  luaskb_forward},
 	{"copy",     luaskb_copy},
+#if defined(CONFIG_NF_CONNTRACK_MARK)
+	{"connmark", luaskb_connmark},
+#endif
 	{NULL, NULL}
 };
 
