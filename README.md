@@ -108,7 +108,8 @@ Install and run the test suites:
 sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (crypto, io, monitor,
-                            # notifier, probe, rcu, runtime, socket, thread)
+                            # notifier, probe, rcu, runtime, skb, socket,
+                            # thread)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them
