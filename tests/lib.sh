@@ -9,12 +9,14 @@
 KTAP_COUNT=0
 KTAP_PASS=0
 KTAP_FAIL=0
+KTAP_SKIP=0
 
 ktap_header() { echo "KTAP version 1"; }
 ktap_plan()   { echo "1..$1"; }
 ktap_pass()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_PASS=$((KTAP_PASS+1)); echo "ok $KTAP_COUNT $*"; }
 ktap_fail()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_FAIL=$((KTAP_FAIL+1)); echo "not ok $KTAP_COUNT $*"; }
-ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:0"; }
+ktap_skip()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_SKIP=$((KTAP_SKIP+1)); echo "ok $KTAP_COUNT $* # SKIP"; }
+ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:$KTAP_SKIP"; }
 
 mark_dmesg() { dmesg -C 2>/dev/null; }
 dmesg_since() { dmesg; }

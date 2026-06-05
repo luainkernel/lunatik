@@ -107,6 +107,15 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   the receiving runtime via `class->opener` (`luaL_requiref`), even when
   that runtime never called `require()` for the module.
 
+### skb
+
+- **connmark**: a `LOCAL_OUT` netfilter hook exercises `skb:connmark` (get/set)
+  on a tracked UDP flow — an overwrite, a Lua-composed masked set that preserves
+  out-of-mask bits, and a clear — cross-checked in the conntrack table with
+  `conntrack -L`; a second `notrack`'d flow asserts `connmark` returns nil for
+  read and write without conntrack. Conntrack is engaged via an nft `ct state`
+  rule; skips cleanly if `nf_conntrack` is unavailable.
+
 ### socket
 
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
