@@ -163,6 +163,13 @@ config LUNATIK_CPU
 	help
 	  CPU management and information.
 
+config LUNATIK_SCHED
+	tristate "Lunatik Scheduler Support"
+	default m
+	select LUNATIK_TASK
+	help
+	  Extensible Linux Scheduler support for custom process scheduling.
+
 config LUNATIK_HID
 	tristate "Lunatik HID (Human Interface Device) Support"
 	default m
@@ -189,4 +196,4 @@ config LUNATIK_BPF
 	  Access to pinned eBPF maps from Lua scripts.
 
 endif
- 
+

@@ -109,22 +109,33 @@ end
 local enumerate = {}
 
 --- Plan one dump per unique spec header.
--- Each dump has `.header` (the kernel header) and `.name` (the file stem
--- used for `dump_N.c` / `dump_N.pp`). Mutates each spec with `.dump` set
--- to its dump record, for later lookup by `enumerate.candidates`.
--- @treturn {{header=string, name=string},...} dumps, in first-seen order
+-- Each dump has `.header` (the kernel header), `.name` (the file stem
+-- used for `dump_N.c` / `dump_N.pp`) and `.optional`, true when every spec
+-- on the header marks it `optional`: a header some supported kernels lack,
+-- whose module then comes out empty instead of failing the build. Mutates
+-- each spec with `.dump` set to its dump record, for later lookup by
+-- `enumerate.candidates`.
+-- @treturn {{header=string, name=string, optional=boolean},...} dumps, in first-seen order
 function enumerate.plan()
 	local by_header, dumps = {}, {}
 	for _, spec in ipairs(specs) do
 		local dump = by_header[spec.header]
 		if not dump then
-			dump = { header = spec.header, name = "dump_" .. (#dumps + 1) }
+			dump = { header = spec.header, name = "dump_" .. (#dumps + 1), optional = true }
 			table.insert(dumps, dump)
 			by_header[spec.header] = dump
 		end
+		dump.optional = dump.optional and spec.optional == true
 		spec.dump = dump
 	end
 	return dumps
+end
+
+-- The `#include` line for a dump, guarded when the header may be absent.
+local function include(dump)
+	local line = ("#include <%s>\n"):format(dump.header)
+	if not dump.optional then return line end
+	return ("#if __has_include(<%s>)\n%s#endif\n"):format(dump.header, line)
 end
 
 --- Write one `dump_N.c` stub per dump. Each contains only the `#include`;
@@ -132,8 +143,7 @@ end
 -- @tparam {table,...} dumps
 function enumerate.write_stubs(dumps)
 	for _, dump in ipairs(dumps) do
-		util.spit(("%s/%s.c"):format(BASE, dump.name),
-			BANNER .. ("#include <%s>\n"):format(dump.header))
+		util.spit(("%s/%s.c"):format(BASE, dump.name), BANNER .. include(dump))
 	end
 end
 
@@ -226,7 +236,7 @@ end
 function extract.write(dumps, candidates)
 	local parts = { BANNER, "#include <linux/kbuild.h>\n#include <linux/stddef.h>\n" }
 	for _, dump in ipairs(dumps) do
-		table.insert(parts, ("#include <%s>\n"):format(dump.header))
+		table.insert(parts, include(dump))
 	end
 	table.insert(parts, "\nint main(void)\n{\n")
 	for _, spec in ipairs(specs) do
