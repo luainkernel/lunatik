@@ -61,6 +61,7 @@ file = {
 	'./lib/luanotifier.c',
 	'./lib/luaprobe.c',
 	'./lib/luarcu.c',
+	'./lib/luasched.c',
 	'./lib/luasignal.c',
 	'./lib/luasocket.c',
 	'./lib/luaset.c',
