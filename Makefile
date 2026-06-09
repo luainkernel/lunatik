@@ -33,7 +33,7 @@ CONFIG_LUNATIK_RUN ?= m
 # Order matters: modules are loaded left-to-right and unloaded right-to-left (rmmod).
 # A module must appear AFTER all modules it depends on (e.g. SKB before NETFILTER).
 LUNATIK_MODULES := DEVICE LINUX NOTIFIER SOCKET RCU SET THREAD FIB DATA PROBE SYSCALL XDP TC FIFO SKB NETFILTER \
-	COMPLETION CRYPTO CPU HID SIGNAL BYTEORDER DARKEN TASK
+	COMPLETION CRYPTO CPU HID SIGNAL BYTEORDER DARKEN TASK SCHED
 
 $(foreach c,$(LUNATIK_MODULES),\
 	$(eval CONFIG_LUNATIK_$(c) ?= m))
