@@ -591,6 +591,37 @@ cpu_usage_idle{cpu="cpu0"} 100.0000000000000000 1764094519529162
 ...
 ```
 
+### workload scheduler
+
+[workload](examples/workload) is a scheduler composed by
+[sched_ext/scx](https://github.com/sched-ext/scx) framework and eBPF. It includes
+and eBPF program which uses a eBPF map to assign queues and slices to tasks and
+a Lua kernel script to set dispatch queue and slice to the tasks seen for the first time
+according to a Lua [policy table](examples/workload/workload.lua#13).
+
+Install and load the scheduler:
+
+```sh
+sudo make btf_install         # needed to export the 'bpf_luasched_run' kfunc
+sudo make examples_install    # installs examples
+make ebpf                     # builds the sched_ext/eBPF program
+sudo make ebpf_install        # installs the sched_ext/eBPF program
+sudo lunatik run examples/workload/workload hardirq
+```
+
+Load and attach the struct_ops scheduler:
+
+```sh
+sudo bpftool struct_ops register examples/workload/scheduler.o /sys/fs/bpf/luasched
+```
+
+Verify and test:
+
+```sh
+sudo bpftool struct_ops show
+sudo journalctl -ft kernel
+```
+
 ## References
 
 ### Talks and Papers

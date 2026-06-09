@@ -31,6 +31,8 @@ return {
 		desc = "TC verdicts and flags." },
 	{ header = "linux/sched.h",                 prefix = "TASK_",      module = "task",
 		desc = "Task state flags." },
+	{ header = "linux/sched/ext.h",             prefix = "SCX_",       module = "scx",
+		desc = "Extensible scheduler flags." },
 	{ header = "linux/net.h",                   prefix = "SOCK_",      module = "socket.sock",
 		desc = "Socket types (SOCK_STREAM, SOCK_DGRAM, ...)." },
 	{ header = "linux/socket.h",                prefix = "AF_",        module = "socket.af",

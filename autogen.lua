@@ -283,6 +283,23 @@ local function intermediate_paths(mods)
 	return util.sorted(needs)
 end
 
+local function to_lua_number(val)
+	-- Negative decimal: assembler sign-extended a u64 with high bit set.
+	-- Convert to the equivalent hex literal so Lua parses the correct
+	-- bit pattern without floating point precision loss.
+	local neg = val:match("^%-(%d+)$")
+	if neg then
+		local n = math.tointeger(neg)
+		if n == nil then
+			-- Magnitude itself overflows: only -2^63 can do this,
+			-- which is math.mininteger.
+			return string.format("0x%016X", math.mininteger)
+		end
+		return string.format("0x%016X", -n)
+	end
+	return val
+end
+
 -- Write one sub-table block: init line (unless this is the top itself)
 -- followed by sorted entries.
 local function write_submodule(out, mod, top)
@@ -290,7 +307,7 @@ local function write_submodule(out, mod, top)
 	if mod.name ~= top then out:write(mod.name, " = {}\n") end
 	table.sort(mod.entries, function(a, b) return a.key < b.key end)
 	for _, e in ipairs(mod.entries) do
-		out:write(mod.name, '["', e.key, '"]\t= ', e.value, "\n")
+		out:write(mod.name, '["', e.key, '"]\t= ', to_lua_number(e.value), "\n")
 	end
 end
 
