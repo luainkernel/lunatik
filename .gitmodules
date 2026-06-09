@@ -4,3 +4,6 @@
 [submodule "klibc"]
 	path = klibc
 	url = https://github.com/luainkernel/klibc.git
+[submodule "examples/workload/scx"]
+	path = examples/workload/scx
+	url = https://github.com/sched-ext/scx.git
