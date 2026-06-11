@@ -17,9 +17,14 @@
 
 #include "luacrypto.h"
 
-LUNATIK_PRIVATECHECKER(luacrypto_aead_check, struct crypto_aead *);
+LUNATIK_PRIVATECHECKER(luacrypto_aead_checkctx, luacrypto_ctx_t *);
 
-LUACRYPTO_RELEASER(aead, struct crypto_aead, crypto_free_aead);
+static inline struct crypto_aead *luacrypto_aead_check(lua_State *L, int idx)
+{
+	return (struct crypto_aead *)luacrypto_aead_checkctx(L, idx)->tfm;
+}
+
+LUACRYPTO_RELEASERCTX(aead, struct crypto_aead, crypto_free_aead);
 
 /***
 * Sets the cipher key.
@@ -84,26 +89,20 @@ typedef struct luacrypto_aead_request_s {
 	size_t aad_len;
 	size_t crypt_len;
 	size_t authsize;
-	unsigned int reqsize;
 } luacrypto_aead_request_t;
 
 static inline void luacrypto_aead_newrequest(lua_State *L, luacrypto_aead_request_t *request)
 {
 	memset(request, 0, sizeof(luacrypto_aead_request_t));
-	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
+	luacrypto_ctx_t *ctx = luacrypto_aead_checkctx(L, 1);
+	struct crypto_aead *tfm = (struct crypto_aead *)ctx->tfm;
 
-	request->iv = luacrypto_checkiv(L, 2, crypto_aead_ivsize(tfm));
+	request->iv = luacrypto_checkiv(L, 2, ctx->iv, crypto_aead_ivsize(tfm));
 	request->data = luaL_checklstring(L, 3, &request->crypt_len);
 	request->aad = luaL_optlstring(L, 4, "", &request->aad_len);
 
 	request->authsize = crypto_aead_authsize(tfm);
-	request->reqsize = crypto_aead_reqsize(tfm);
-	request->aead = luacrypto_request_pool_acquire(L, LUACRYPTO_REQUEST_AEAD,
-		tfm, request->reqsize);
-	if (request->aead == NULL) {
-		lunatik_free(request->iv);
-		lunatik_enomem(L);
-	}
+	request->aead = (struct aead_request *)ctx->request;
 }
 
 static inline void luacrypto_aead_setrequest(luacrypto_aead_request_t *request, char *buffer, size_t output_len)
@@ -136,12 +135,8 @@ static inline char *luacrypto_aead_prepare(lua_State *L, luacrypto_aead_request_
 {
 	size_t buffer_len = request->aad_len + (output_len ? output_len : 1);
 	char *buffer = (char *)lunatik_malloc(L, buffer_len);
-	if (buffer == NULL) {
-		luacrypto_request_pool_release(L, LUACRYPTO_REQUEST_AEAD, request->aead,
-			request->reqsize);
-		lunatik_free(request->iv);
+	if (buffer == NULL)
 		lunatik_enomem(L);
-	}
 	luacrypto_aead_setrequest(request, buffer, output_len);
 	return buffer;
 }
@@ -149,9 +144,6 @@ static inline char *luacrypto_aead_prepare(lua_State *L, luacrypto_aead_request_
 static inline int luacrypto_aead_finish(lua_State *L, luacrypto_aead_request_t *request,
 	char *buffer, int ret, size_t output_len)
 {
-	luacrypto_request_pool_release(L, LUACRYPTO_REQUEST_AEAD, request->aead,
-		request->reqsize);
-	lunatik_free(request->iv);
 	if (ret < 0) {
 		lunatik_free(buffer);
 		lunatik_throw(L, ret);
@@ -195,12 +187,8 @@ static int luacrypto_aead_decrypt(lua_State *L)
 {
 	luacrypto_aead_request_t request;
 	luacrypto_aead_newrequest(L, &request);
-	if (request.crypt_len < request.authsize) {
-		luacrypto_request_pool_release(L, LUACRYPTO_REQUEST_AEAD, request.aead,
-			request.reqsize);
-		lunatik_free(request.iv);
+	if (request.crypt_len < request.authsize)
 		lunatik_throw(L, -EBADMSG);
-	}
 	size_t output_len = request.crypt_len - request.authsize;
 	char *buffer = luacrypto_aead_prepare(L, &request, output_len);
 	int ret = crypto_aead_decrypt(request.aead);
@@ -231,7 +219,7 @@ const lunatik_class_t luacrypto_aead_class = {
 	.name = "crypto_aead",
 	.methods = luacrypto_aead_mt,
 	.release = luacrypto_aead_release,
-	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
+	.opt = LUNATIK_OPT_MONITOR,
 };
 
 /***
@@ -244,4 +232,4 @@ const lunatik_class_t luacrypto_aead_class = {
 *   local aead = require("crypto").aead
 *   local cipher = aead("gcm(aes)")
 */
-LUACRYPTO_NEW(aead, struct crypto_aead, crypto_alloc_aead, luacrypto_aead_class);
+LUACRYPTO_NEWCTX(aead, struct crypto_aead, crypto_alloc_aead, luacrypto_aead_class);

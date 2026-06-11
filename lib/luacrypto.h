@@ -30,30 +30,61 @@ static void luacrypto_##name##_release(void *private)		\
 		obj_free(obj);					\
 }
 
-static inline u8 *luacrypto_checkiv(lua_State *L, int idx, size_t expected)
+/*
+ * skcipher/aead context: everything whose size is fixed for a given tfm
+ * (the request and the IV buffer) is allocated once at creation time, so
+ * encrypt/decrypt never allocates them on the hot path (e.g. softirq).
+ */
+typedef struct luacrypto_ctx_s {
+	void *tfm;
+	void *request;
+	u8 *iv;
+} luacrypto_ctx_t;
+
+#define LUACRYPTO_NEWCTX(name, T, alloc, class)							\
+int luacrypto_##name##_new(lua_State *L)							\
+{												\
+	const char *algname = luaL_checkstring(L, 1);						\
+	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));						\
+	lunatik_object_t *object = lunatik_newobject(L, &class,				\
+		sizeof(luacrypto_ctx_t), LUNATIK_OPT_NONE);					\
+	luacrypto_ctx_t *ctx = (luacrypto_ctx_t *)object->private;				\
+	T *tfm = alloc(algname, 0, 0);								\
+	if (IS_ERR(tfm))									\
+		lunatik_throw(L, PTR_ERR(tfm));							\
+	ctx->tfm = tfm;										\
+	unsigned int ivsize = crypto_##name##_ivsize(tfm);					\
+	ctx->request = name##_request_alloc(tfm, gfp);						\
+	ctx->iv = ivsize != 0 ? (u8 *)lunatik_malloc(L, ivsize) : NULL;				\
+	if (ctx->request == NULL || (ivsize != 0 && ctx->iv == NULL))				\
+		lunatik_enomem(L);								\
+	return 1;										\
+}
+
+#define LUACRYPTO_RELEASERCTX(name, T, tfm_free)		\
+static void luacrypto_##name##_release(void *private)		\
+{								\
+	luacrypto_ctx_t *ctx = (luacrypto_ctx_t *)private;	\
+	if (ctx == NULL)					\
+		return;						\
+	name##_request_free(ctx->request);			\
+	lunatik_free(ctx->iv);					\
+	if (ctx->tfm)						\
+		tfm_free((T *)ctx->tfm);			\
+}
+
+static inline u8 *luacrypto_checkiv(lua_State *L, int idx, u8 *iv, size_t expected)
 {
 	size_t iv_len;
-	const char *iv = luaL_checklstring(L, idx, &iv_len);
+	const char *str = luaL_checklstring(L, idx, &iv_len);
 	if (iv_len != expected)
 		lunatik_throw(L, -EINVAL);
 	if (iv_len == 0)
 		return NULL;
 
-	u8 *out = (u8 *)lunatik_checkalloc(L, iv_len);
-	memcpy(out, iv, iv_len);
-	return out;
+	memcpy(iv, str, iv_len);
+	return iv;
 }
-
-enum luacrypto_request_type {
-	LUACRYPTO_REQUEST_SKCIPHER = 1,
-	LUACRYPTO_REQUEST_AEAD = 2,
-};
-
-void *luacrypto_request_pool_acquire(lua_State *L, enum luacrypto_request_type type,
-	void *tfm, unsigned int reqsize);
-
-void luacrypto_request_pool_release(lua_State *L, enum luacrypto_request_type type,
-	void *request, unsigned int reqsize);
 
 extern const lunatik_class_t luacrypto_shash_class;
 extern const lunatik_class_t luacrypto_skcipher_class;
