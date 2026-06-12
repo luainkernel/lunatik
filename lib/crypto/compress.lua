@@ -13,19 +13,19 @@
 local acompress = require("crypto").acompress
 local completion = require("completion")
 
-local COMPRESS = {}
-COMPRESS.__index = COMPRESS
+local Compress = {}
+Compress.__index = Compress
 
 --- Creates a new compression object.
 -- @function new
 -- @tparam string algname The name of the compression algorithm (e.g., "lz4", "deflate", "lzo")
--- @treturn COMPRESS A new compression object
+-- @treturn Compress A new compression object
 -- @raise Error if the compression algorithm is not available
 -- @usage
 --   local compress = require("crypto.compress").new("lz4")
-function COMPRESS.new(algname)
+function Compress.new(algname)
 	local tfm = acompress(algname)
-	return setmetatable({ tfm = tfm, req = tfm:request() }, COMPRESS)
+	return setmetatable({ tfm = tfm, req = tfm:request() }, Compress)
 end
 
 local function operation(name)
@@ -56,7 +56,7 @@ end
 -- @tparam integer max_len maximum expected output length
 -- @treturn string compressed data
 -- @raise errno name (e.g. "EINVAL") on failure
-COMPRESS.compress = operation("compress")
+Compress.compress = operation("compress")
 
 --- Decompresses data synchronously.
 -- @function decompress
@@ -64,6 +64,6 @@ COMPRESS.compress = operation("compress")
 -- @tparam integer max_len maximum expected output length
 -- @treturn string decompressed data
 -- @raise errno name (e.g. "EINVAL") on failure
-COMPRESS.decompress = operation("decompress")
+Compress.decompress = operation("decompress")
 
-return COMPRESS
+return Compress

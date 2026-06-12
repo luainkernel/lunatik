@@ -16,6 +16,7 @@ file = {
 	'./lib/luabyteorder.c',
 	'./lib/luacompletion.c',
 	'./lib/luacpu.c',
+	'./lib/crypto/comp.lua',
 	'./lib/crypto/compress.lua',
 	'./lib/crypto/hkdf.lua',
 	'./lib/luacrypto_acompress.c',

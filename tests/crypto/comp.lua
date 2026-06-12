@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
-local comp = require("crypto").comp
+local comp = require("crypto.comp") -- native crypto.comp, or compatibility wrapper on kernels >= 6.15
 local test = require("util").test
 
 test("COMP compress empty string (error)", function()
