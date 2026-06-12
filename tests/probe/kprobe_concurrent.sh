@@ -59,15 +59,17 @@ done
 
 sleep $SLEEP
 
-# Stop must complete within 5 s; timeout exit code 124 means a hang.
-timeout 5 lunatik stop "$SCRIPT" 2>/dev/null
+# A hung stop never returns, so any finite bound detects it. Unregistering
+# one kprobe per syscall costs a synchronize_rcu + ftrace update each,
+# which takes ~10 s on a small VM: 30 s leaves headroom without masking hangs.
+timeout 30 lunatik stop "$SCRIPT" 2>/dev/null
 STOP_RET=$?
 
 for pid in "${LOAD_PIDS[@]}"; do kill "$pid" 2>/dev/null; done
 wait "${LOAD_PIDS[@]}" 2>/dev/null
 LOAD_PIDS=()
 
-[ $STOP_RET -eq 124 ] && fail "runtime stop hung (exceeded 5s timeout)"
+[ $STOP_RET -eq 124 ] && fail "runtime stop hung (exceeded 30s timeout)"
 ktap_pass "runtime stop completed within timeout"
 
 check_dmesg || { ktap_totals; exit 1; }
