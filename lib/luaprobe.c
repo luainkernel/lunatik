@@ -92,9 +92,13 @@ static void luaprobe_delete(luaprobe_t *probe)
 	const char *symbol_name = kp->symbol_name;
 
 	if (kp->pre_handler != NULL) {
+		/* handlers must stay untouched while registered: on kprobe-on-ftrace
+		 * kernels the disarm path picks the ftrace_ops from
+		 * `post_handler != NULL` (ipmodify); clearing it first unbalances
+		 * arm/disarm and leaves a freed kprobe armed (use-after-free). */
+		unregister_kprobe(kp);
 		kp->pre_handler = NULL;
 		kp->post_handler = NULL;
-		unregister_kprobe(kp);
 	}
 
 	if (symbol_name != NULL) {
