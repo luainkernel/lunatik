@@ -57,6 +57,10 @@ return {
 		include = { "DROP", "ACCEPT", "STOLEN", "QUEUE", "REPEAT", "STOP" } },
 	{ header = "asm/unistd.h",                  prefix = "__NR_",      module = "syscall.numbers",
 		desc = "System call numbers (`__NR_*`) for the build arch.",
-		exclude = { "__NR_arch_specific_syscall", "__NR_compat_", "__NR_syscalls" } },
+		-- __NR_x32_*/__NR_ia32_* show up when CONFIG_X86_X32_ABI /
+		-- IA32_EMULATION are set (e.g. Debian kernels); they index
+		-- separate syscall tables, out of bounds for syscall.address().
+		exclude = { "__NR_arch_specific_syscall", "__NR_compat_", "__NR_syscalls",
+			"__NR_x32_", "__NR_ia32_" } },
 }
 
