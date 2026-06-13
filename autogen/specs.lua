@@ -57,6 +57,7 @@ return {
 		include = { "DROP", "ACCEPT", "STOLEN", "QUEUE", "REPEAT", "STOP" } },
 	{ header = "asm/unistd.h",                  prefix = "__NR_",      module = "syscall.numbers",
 		desc = "System call numbers (`__NR_*`) for the build arch.",
-		exclude = { "__NR_arch_specific_syscall", "__NR_compat_", "__NR_syscalls" } },
+		exclude = { "__NR_arch_specific_syscall", "__NR_compat_", "__NR_syscalls",
+			"__NR_x32_", "__NR_ia32_" } },
 }
 
