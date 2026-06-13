@@ -92,9 +92,10 @@ static void luaprobe_delete(luaprobe_t *probe)
 	const char *symbol_name = kp->symbol_name;
 
 	if (kp->pre_handler != NULL) {
+		/* disarm picks the ftrace_ops from post_handler; clear handlers only after unregister */
+		unregister_kprobe(kp);
 		kp->pre_handler = NULL;
 		kp->post_handler = NULL;
-		unregister_kprobe(kp);
 	}
 
 	if (symbol_name != NULL) {
