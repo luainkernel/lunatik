@@ -25,11 +25,10 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_checkclass(L, class);
 
 	lunatik_setobject(object, class, opt);
+	*pobject = object; /* before setclass exposes it to __gc */
 	lunatik_setclass(L, class, lunatik_ismonitor(object->opt));
 
 	object->private = lunatik_isexternal(class->opt) ? NULL : lunatik_checkzalloc(L, size);
-
-	*pobject = object;
 	return object;
 }
 EXPORT_SYMBOL(lunatik_newobject);

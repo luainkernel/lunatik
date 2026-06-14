@@ -75,6 +75,10 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 - **map_sync**: `rcu.map()` remains safe when called while another
   kthread is modifying the table.
 
+- **newobject_oom**: a failed private allocation in `lunatik_newobject()`
+  (forced via an absurd `rcu.table()` bucket count) surfaces as a graceful
+  error without the `__gc` finalizer running on uninitialized memory.
+
 ### runtime
 
 Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
