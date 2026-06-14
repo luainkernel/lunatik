@@ -92,3 +92,14 @@ test("SKCIPHER AES-128-CBC stress round-trip", function()
 	end
 end)
 
+test("SKCIPHER AES-128-ECB round-trip without IV", function()
+	local c = skcipher("ecb(aes)")
+	local plaintext = "This is a test!!"
+	c:setkey"0123456789abcdef"
+	assert(c:ivsize() == 0, "ECB should have no IV")
+
+	local ciphertext = c:encrypt("", plaintext)
+	local decrypted = c:decrypt("", ciphertext)
+	assert(decrypted == plaintext, "ECB round-trip mismatch")
+end)
+
