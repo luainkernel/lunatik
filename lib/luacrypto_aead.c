@@ -17,12 +17,7 @@
 
 #include "luacrypto.h"
 
-LUNATIK_PRIVATECHECKER(luacrypto_aead_checkctx, luacrypto_ctx_t *);
-
-static inline struct crypto_aead *luacrypto_aead_check(lua_State *L, int idx)
-{
-	return (struct crypto_aead *)luacrypto_aead_checkctx(L, idx)->tfm;
-}
+LUACRYPTO_CHECKER(aead, struct crypto_aead);
 
 LUACRYPTO_RELEASERCTX(aead, struct crypto_aead, crypto_free_aead);
 
