@@ -17,9 +17,14 @@
 
 #include "luacrypto.h"
 
-LUNATIK_PRIVATECHECKER(luacrypto_skcipher_check, struct crypto_skcipher *);
+LUNATIK_PRIVATECHECKER(luacrypto_skcipher_checkctx, luacrypto_ctx_t *);
 
-LUACRYPTO_RELEASER(skcipher, struct crypto_skcipher, crypto_free_skcipher);
+static inline struct crypto_skcipher *luacrypto_skcipher_check(lua_State *L, int idx)
+{
+	return (struct crypto_skcipher *)luacrypto_skcipher_checkctx(L, idx)->tfm;
+}
+
+LUACRYPTO_RELEASERCTX(skcipher, struct crypto_skcipher, crypto_free_skcipher);
 
 /***
 * Sets the cipher key.
@@ -72,12 +77,12 @@ typedef struct luacrypto_skcipher_request_s {
 static inline void luacrypto_skcipher_newrequest(lua_State *L, luacrypto_skcipher_request_t *request)
 {
 	memset(request, 0, sizeof(luacrypto_skcipher_request_t));
-	struct crypto_skcipher *tfm = luacrypto_skcipher_check(L, 1);
+	luacrypto_ctx_t *ctx = luacrypto_skcipher_checkctx(L, 1);
+	struct crypto_skcipher *tfm = (struct crypto_skcipher *)ctx->tfm;
 
-	request->iv = luacrypto_checkiv(L, 2, crypto_skcipher_ivsize(tfm));
+	request->iv = luacrypto_checkiv(L, 2, ctx->iv, crypto_skcipher_ivsize(tfm));
 	request->data = luaL_checklstring(L, 3, &request->data_len);
-
-	LUACRYPTO_REQUEST_ALLOC(L, request, skcipher, tfm);
+	request->skcipher = (struct skcipher_request *)ctx->request;
 }
 
 static inline void luacrypto_skcipher_setrequest(luacrypto_skcipher_request_t *request, char *buffer)
@@ -97,15 +102,13 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 	luacrypto_skcipher_request_t request;
 	luacrypto_skcipher_newrequest(L, &request);
 
-	char *buffer = (char *)lunatik_malloc(L, request.data_len);
-	if (buffer == NULL) {
-		LUACRYPTO_REQUEST_FREE(&request, skcipher);
+	/* extra byte for the NUL terminator written by lunatik_pushstring() */
+	char *buffer = (char *)lunatik_malloc(L, request.data_len + 1);
+	if (buffer == NULL)
 		lunatik_enomem(L);
-	}
 
 	luacrypto_skcipher_setrequest(&request, buffer);
 	int ret = crypt(request.skcipher);
-	LUACRYPTO_REQUEST_FREE(&request, skcipher);
 	if (ret < 0) {
 		lunatik_free(buffer);
 		lunatik_throw(L, ret);
@@ -164,7 +167,7 @@ const lunatik_class_t luacrypto_skcipher_class = {
 	.name = "crypto_skcipher",
 	.methods = luacrypto_skcipher_mt,
 	.release = luacrypto_skcipher_release,
-	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
+	.opt = LUNATIK_OPT_MONITOR,
 };
 
 /***
@@ -177,5 +180,5 @@ const lunatik_class_t luacrypto_skcipher_class = {
 *   local skcipher = require("crypto").skcipher
 *   local cipher = skcipher("cbc(aes)")
 */
-LUACRYPTO_NEW(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class);
+LUACRYPTO_NEWCTX(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class);
 

@@ -30,33 +30,58 @@ static void luacrypto_##name##_release(void *private)		\
 		obj_free(obj);					\
 }
 
-static inline u8 *luacrypto_checkiv(lua_State *L, int idx, size_t expected)
-{
-	size_t iv_len;
-	const char *iv = luaL_checklstring(L, idx, &iv_len);
-	if (iv_len != expected)
-		lunatik_throw(L, -EINVAL);
+/* Per-tfm fixed-size state (request, IV) allocated once at creation, so
+ * encrypt/decrypt never allocates on the hot path (e.g. softirq). */
+typedef struct luacrypto_ctx_s {
+	void *tfm;
+	void *request;
+	u8 *iv;
+} luacrypto_ctx_t;
 
-	u8 *out = (u8 *)lunatik_checkalloc(L, iv_len);
-	memcpy(out, iv, iv_len);
-	return out;
+#define LUACRYPTO_NEWCTX(name, T, alloc, class)							\
+int luacrypto_##name##_new(lua_State *L)							\
+{												\
+	const char *algname = luaL_checkstring(L, 1);						\
+	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));						\
+	lunatik_object_t *object = lunatik_newobject(L, &class,				\
+		sizeof(luacrypto_ctx_t), LUNATIK_OPT_NONE);					\
+	luacrypto_ctx_t *ctx = (luacrypto_ctx_t *)object->private;				\
+	T *tfm = alloc(algname, 0, 0);								\
+	if (IS_ERR(tfm))									\
+		lunatik_throw(L, PTR_ERR(tfm));							\
+	ctx->tfm = tfm;										\
+	unsigned int ivsize = crypto_##name##_ivsize(tfm);					\
+	ctx->request = name##_request_alloc(tfm, gfp);						\
+	ctx->iv = ivsize != 0 ? (u8 *)lunatik_malloc(L, ivsize) : NULL;				\
+	if (ctx->request == NULL || (ivsize != 0 && ctx->iv == NULL))				\
+		lunatik_enomem(L);								\
+	return 1;										\
 }
 
-#define LUACRYPTO_REQUEST_ALLOC(L, request, name, tfm)				\
-do {										\
-	gfp_t __gfp = lunatik_gfp(lunatik_toruntime(L));			\
-	(request)->name = name##_request_alloc((tfm), __gfp);			\
-	if ((request)->name == NULL) {						\
-		lunatik_free((request)->iv);					\
-		lunatik_enomem(L);						\
-	}									\
-} while (0)
+#define LUACRYPTO_RELEASERCTX(name, T, tfm_free)		\
+static void luacrypto_##name##_release(void *private)		\
+{								\
+	luacrypto_ctx_t *ctx = (luacrypto_ctx_t *)private;	\
+	if (ctx == NULL)					\
+		return;						\
+	name##_request_free(ctx->request);			\
+	lunatik_free(ctx->iv);					\
+	if (ctx->tfm)						\
+		tfm_free((T *)ctx->tfm);			\
+}
 
-#define LUACRYPTO_REQUEST_FREE(request, name)					\
-do {										\
-	name##_request_free((request)->name);					\
-	lunatik_free((request)->iv);						\
-} while (0)
+static inline u8 *luacrypto_checkiv(lua_State *L, int idx, u8 *iv, size_t expected)
+{
+	size_t iv_len;
+	const char *str = luaL_checklstring(L, idx, &iv_len);
+	if (iv_len != expected)
+		lunatik_throw(L, -EINVAL);
+	if (iv_len == 0)
+		return NULL;
+
+	memcpy(iv, str, iv_len);
+	return iv;
+}
 
 extern const lunatik_class_t luacrypto_shash_class;
 extern const lunatik_class_t luacrypto_skcipher_class;
