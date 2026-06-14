@@ -39,5 +39,8 @@ RESULT=$?
 
 echo ""
 bash "$DIR/map_sync.sh" || RESULT=1
+
+echo ""
+bash "$DIR/newobject_oom.sh" || RESULT=1
 exit $RESULT
 
