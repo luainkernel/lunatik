@@ -46,6 +46,17 @@ static inline T *luacrypto_##name##_check(lua_State *L, int idx)				\
 	return (T *)luacrypto_##name##_checkctx(L, idx)->tfm;				\
 }
 
+/* store the request and allocate the IV (NULL when the cipher has none),
+ * failing if either could not be obtained */
+static inline void luacrypto_initctx(lua_State *L, luacrypto_ctx_t *ctx,
+	void *request, unsigned int ivsize)
+{
+	ctx->request = request;
+	ctx->iv = ivsize != 0 ? (u8 *)lunatik_malloc(L, ivsize) : NULL;
+	if (ctx->request == NULL || (ivsize != 0 && ctx->iv == NULL))
+		lunatik_enomem(L);
+}
+
 #define LUACRYPTO_NEWCTX(name, T, alloc, class)							\
 int luacrypto_##name##_new(lua_State *L)							\
 {												\
@@ -58,11 +69,8 @@ int luacrypto_##name##_new(lua_State *L)							\
 	if (IS_ERR(tfm))									\
 		lunatik_throw(L, PTR_ERR(tfm));							\
 	ctx->tfm = tfm;										\
-	unsigned int ivsize = crypto_##name##_ivsize(tfm);					\
-	ctx->request = name##_request_alloc(tfm, gfp);						\
-	ctx->iv = ivsize != 0 ? (u8 *)lunatik_malloc(L, ivsize) : NULL;				\
-	if (ctx->request == NULL || (ivsize != 0 && ctx->iv == NULL))				\
-		lunatik_enomem(L);								\
+	luacrypto_initctx(L, ctx, name##_request_alloc(tfm, gfp),				\
+		crypto_##name##_ivsize(tfm));							\
 	return 1;										\
 }
 
