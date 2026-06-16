@@ -78,6 +78,9 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 - **newobject_oom**: a failed private allocation in `lunatik_newobject()`
   (forced via an absurd `rcu.table()` bucket count) surfaces as a graceful
   error without the `__gc` finalizer running on uninitialized memory.
+- **bigtable_free**: a large `rcu.table()` whose private exceeds `KMALLOC_MAX`
+  is backed by `vmalloc`; releasing it must free with `kvfree`, not `kfree`,
+  so the teardown leaves the kernel alive.
 
 ### runtime
 

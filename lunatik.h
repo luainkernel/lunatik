@@ -132,7 +132,7 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 }
 
 #define lunatik_malloc(L, s)	lunatik_realloc((L), NULL, (s))
-#define lunatik_free(p)		kfree(p)
+#define lunatik_free(p)		kvfree(p)
 #define lunatik_gfp(runtime)	((runtime)->gfp)
 
 #define lunatik_enomem(L)	luaL_error((L), "not enough memory")
