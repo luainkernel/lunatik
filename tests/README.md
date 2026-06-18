@@ -114,6 +114,13 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   the receiving runtime via `class->opener` (`luaL_requiref`), even when
   that runtime never called `require()` for the module.
 
+### set
+
+- **set**: `set.new` sorting unsorted input and binary-search membership
+  (`has`); suffix and prefix matching by separator (`suffix`, `prefix`); size
+  (`#`); duplicates kept; the empty-set and empty-string-member edges; and the
+  raises (multi-byte separator, non-string member).
+
 ### skb
 
 - **connmark**: a `LOCAL_OUT` netfilter hook exercises `skb:connmark` (get/set)
