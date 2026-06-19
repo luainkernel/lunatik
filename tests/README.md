@@ -116,10 +116,11 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 ### set
 
-- **set**: `set.new` sorting unsorted input and binary-search membership
-  (`has`); suffix and prefix matching by separator (`suffix`, `prefix`); size
-  (`#`); duplicates kept; the empty-set and empty-string-member edges; and the
-  raises (multi-byte separator, non-string member).
+- **set**: `set.new` sorting member/tag pairs; `has` returning a member's tag
+  and `suffix`/`prefix` the bitwise OR of the tags over the matching hierarchy (0
+  on a miss); size (`#`); a tag crossed as a bitmask on the Lua side; tags across
+  the 32-bit range; the empty-set and empty-string-member edges; and the raises
+  (multi-byte separator, non-string member, tag outside [1, 2^32)).
 
 ### skb
 
