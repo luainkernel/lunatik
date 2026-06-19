@@ -119,7 +119,10 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **set**: `set.new` sorting unsorted input and binary-search membership
   (`has`); suffix and prefix matching by separator (`suffix`, `prefix`); size
   (`#`); duplicates kept; the empty-set and empty-string-member edges; and the
-  raises (multi-byte separator, non-string member).
+  raises (multi-byte separator, non-string member). Labeled sets (`{key=int}`):
+  `has`/`suffix`/`prefix` returning the matched label, the label-0 vs nil
+  distinction, the 1/2/4/8-byte width growth, a bitmask crossed on the Lua side,
+  and the raises (non-integer or negative label).
 
 ### skb
 
