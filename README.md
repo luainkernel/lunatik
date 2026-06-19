@@ -166,7 +166,7 @@ The table below lists the available kernel Lua modules:
 | `data` | Raw memory buffer for binary data read/write |
 | `device` | Character device drivers |
 | `rcu` | RCU-protected shared hash table |
-| `set` | Compact immutable string set with exact and suffix/prefix matching |
+| `set` | Compact immutable set of strings tagged with a bitmask; exact lookup or the union of tags over a suffix/prefix hierarchy (e.g. domain categories) |
 | `netfilter` | Netfilter hooks: register packet processing callbacks |
 | `skb` | Socket buffer (`sk_buff`): inspect and modify packets |
 | `xdp` | XDP (eXpress Data Path) hooks |
