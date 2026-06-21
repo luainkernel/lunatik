@@ -7,6 +7,7 @@ obj-$(CONFIG_LUNATIK_NOTIFIER) += luanotifier.o
 obj-$(CONFIG_LUNATIK_SOCKET) += luasocket.o
 obj-$(CONFIG_LUNATIK_RCU) += luarcu.o
 obj-$(CONFIG_LUNATIK_SET) += luaset.o
+luaset-objs := luaset_core.o luaset_plain.o luaset_labeled.o
 obj-$(CONFIG_LUNATIK_THREAD) += luathread.o
 obj-$(CONFIG_LUNATIK_FIB) += luafib.o
 obj-$(CONFIG_LUNATIK_DATA) += luadata.o
