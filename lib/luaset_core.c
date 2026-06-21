@@ -9,59 +9,26 @@
 * It stores many short strings as a sorted blob of key bytes plus a uint32 offset
 * array, with no per-key allocation, so it costs about `length + 4` bytes per key,
 * instead of the hash node and slab rounding a Lua or `rcu` table pays per key.
-* Built once by `set.new` (which sorts the members), it is then read-only: lookups
-* take no lock and allocate nothing, safe from softirq. It tests exact membership
-* with `set:has`.
+* Built once, it is then read-only: lookups take no lock and allocate nothing, safe
+* from softirq.
+*
+* `set.new` builds a plain set, tested for exact membership with `set:has`.
+* `set.labeled` builds a labeled set: each member carries a 32-bit flag bitmask, and
+* `set:match` walks a key by `.` returning the bitwise OR of the flags of every member
+* that is a suffix of it (0 when nothing matches), as for domain categories.
 *
 * @module set
 * @see rcu
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/string.h>
 
-#include <lunatik.h>
+#include "luaset.h"
 
-typedef struct luaset_s {
-	uint32_t n;		/* number of keys */
-	const uint32_t *off;	/* n+1 offsets into blob */
-	const char *blob;	/* all keys concatenated, no separator */
-} luaset_t;
-
-static int luaset_new(lua_State *L);
 static const lunatik_class_t luaset_class;
 
-LUNATIK_PRIVATECHECKER(luaset_check, luaset_t *);
-
-static inline int luaset_keycmp(const char *a, uint32_t alen, const char *b, uint32_t blen)
-{
-	uint32_t m = min(alen, blen);
-	int c = memcmp(a, b, m);
-	return c != 0 ? c : (alen > blen) - (alen < blen);
-}
-
-static bool luaset_contains(const luaset_t *set, const char *key, uint32_t len)
-{
-	int lo = 0, hi = (int)set->n - 1;
-
-	while (lo <= hi) {
-		int mid = lo + (hi - lo) / 2;
-		const char *k = set->blob + set->off[mid];
-		uint32_t klen = set->off[mid + 1] - set->off[mid];
-		int c = luaset_keycmp(key, len, k, klen);
-
-		if (c == 0)
-			return true;
-		if (c < 0)
-			hi = mid - 1;
-		else
-			lo = mid + 1;
-	}
-	return false;
-}
-
 /***
-* A built `set`. Query it with `set:has` for exact membership, and `#` for size.
+* A built plain `set`. Query it with `set:has` for exact membership, and `#` for size.
 * @type set
 */
 
@@ -77,19 +44,7 @@ static int luaset_has(lua_State *L)
 	size_t len;
 	const char *s = luaL_checklstring(L, 2, &len);
 
-	lua_pushboolean(L, luaset_contains(set, s, (uint32_t)len));
-	return 1;
-}
-
-/***
-* Returns the number of keys in the set.
-* @function __len
-* @treturn integer the number of keys.
-*/
-static int luaset_length(lua_State *L)
-{
-	luaset_t *set = luaset_check(L, 1);
-	lua_pushinteger(L, (lua_Integer)set->n);
+	lua_pushboolean(L, luaset_find(set, s, (uint32_t)len) >= 0);
 	return 1;
 }
 
@@ -142,7 +97,7 @@ static void luaset_build(lua_State *L, luaset_t *set, lua_Integer cap)
 	if (off == NULL)
 		lunatik_enomem(L);
 	set->off = off; /* own off before measure can raise, so release frees it */
-	set->n = (uint32_t)cap;
+	set->n = (size_t)cap;
 
 	total = luaset_measure(L, off, cap);
 	if (total == 0) /* no bytes to store; lookups never read blob */
@@ -155,15 +110,8 @@ static void luaset_build(lua_State *L, luaset_t *set, lua_Integer cap)
 	luaset_pack(L, blob, off, cap);
 }
 
-static void luaset_release(void *private)
-{
-	luaset_t *set = (luaset_t *)private;
-	lunatik_free(set->blob);
-	lunatik_free(set->off);
-}
-
 /***
-* Builds the set from an array of strings.
+* Builds a plain set from an array of strings.
 *
 * The array is sorted in place. The members must be unique; duplicates are kept,
 * which keeps lookups correct but wastes space, so de-duplicate first if it
@@ -174,7 +122,6 @@ static void luaset_release(void *private)
 * @treturn set the built set.
 * @raise Error on a non-string member, if the keys exceed 4 GiB, or on
 * allocation failure.
-* @within set
 * @usage local blocked = set.new({ "evil.com", "ads.net" })
 */
 static int luaset_new(lua_State *L)
@@ -194,6 +141,7 @@ static int luaset_new(lua_State *L)
 
 static const luaL_Reg luaset_lib[] = {
 	{"new", luaset_new},
+	{"labeled", luaset_labeled},
 	{NULL, NULL}
 };
 
@@ -204,16 +152,19 @@ static const luaL_Reg luaset_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(set);
 static const lunatik_class_t luaset_class = {
 	.name = "set",
 	.methods = luaset_mt,
 	.release = luaset_release,
-	.opener = luaopen_set,
 	.opt = LUNATIK_OPT_SOFTIRQ,
 };
 
-LUNATIK_CLASSES(set, &luaset_class);
+static const lunatik_class_t *luaset_classes[] = {
+	&luaset_class,
+	&luaset_labeled_class,
+	NULL
+};
+
 LUNATIK_NEWLIB(set, luaset_lib, luaset_classes);
 
 static int __init luaset_init(void)

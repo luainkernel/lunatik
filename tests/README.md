@@ -118,7 +118,12 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 - **set**: `set.new` sorting unsorted input and binary-search membership
   (`has`); size (`#`); duplicates kept; the empty-set and empty-string-member
-  edges; and the raise on a non-string member.
+  edges; and the raise on a non-string member. For the labeled flavor:
+  `set.labeled` mapping members to flags and `match` returning the bitwise OR
+  over the matching suffix hierarchy (0 on a miss); members that suffix one
+  another; a flag crossed as a bitmask on the Lua side; flags across the 32-bit
+  range; the empty and empty-string-member edges; and the raises (non-string
+  member, flag outside [1, 2^32)).
 
 ### skb
 
