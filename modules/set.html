@@ -33,8 +33,9 @@
 
 <h2>Contents</h2>
 <ul>
+<li><a href="#Functions">Functions</a></li>
 <li><a href="#Class_set">Class set </a></li>
-<li><a href="#set">set</a></li>
+<li><a href="#Class_set_labeled">Class set.labeled </a></li>
 </ul>
 
 
@@ -107,40 +108,48 @@
 <p> It stores many short strings as a sorted blob of key bytes plus a uint32 offset
  array, with no per-key allocation, so it costs about <code>length + 4</code> bytes per key,
  instead of the hash node and slab rounding a Lua or <a href="../modules/rcu.html#">rcu</a> table pays per key.
- Built once by <a href="../modules/set.html#new">set.new</a> (which sorts the members), it is then read-only: lookups
- take no lock and allocate nothing, safe from softirq. It tests exact membership
- (<a href="../modules/set.html#set:has">set:has</a>) or matches by segment, from the right (<a href="../modules/set.html#set:suffix">set:suffix</a>, as for domains)
- or the left (<a href="../modules/set.html#set:prefix">set:prefix</a>, as for filesystem or URI paths).</p>
+ Built once, it is then read-only: lookups take no lock and allocate nothing, safe
+ from softirq.</p>
+
+<p> <a href="../modules/set.html#set:new">set.new</a> builds a plain set, tested for exact membership with <a href="../modules/set.html#set:has">set:has</a>: a single
+ binary search, <code>O(log n)</code>.
+ <a href="../modules/set.html#set.labeled">set.labeled</a> builds a labeled set: each member carries a 32-bit label bitmask, and
+ <a href="../modules/set.html#set.labeled:match">set:match</a> walks a key by <code>.</code> returning the bitwise OR of the labels of every member
+ that is a suffix of it (0 when nothing matches); one binary search per <code>.</code>-separated
+ level, <code>O(d log n)</code> for a <code>d</code>-level key.</p>
     <h3>See also:</h3>
     <ul>
          <a href="../modules/rcu.html#">rcu</a>
     </ul>
 
 
-<h2><a href="#Class_set">Class set </a></h2>
+<h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#set:__len">set:__len ()</a></td>
-	<td class="summary">Returns the number of keys in the set.</td>
+	<td class="name" nowrap><a href="#__len">__len ()</a></td>
+	<td class="summary">Returns the number of members.</td>
 	</tr>
+</table>
+<h2><a href="#Class_set">Class set </a></h2>
+<table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#set:has">set:has (s)</a></td>
 	<td class="summary">Returns whether a string is in the set.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#set:prefix">set:prefix (s, sep)</a></td>
-	<td class="summary">Returns whether <code>s</code>, or a prefix of it before a separator, is in the set.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#set:suffix">set:suffix (s, sep)</a></td>
-	<td class="summary">Returns whether <code>s</code>, or a suffix of it after a separator, is in the set.</td>
+	<td class="name" nowrap><a href="#set:new">set:new (strings)</a></td>
+	<td class="summary">Builds a plain set from an array of strings.</td>
 	</tr>
 </table>
-<h2><a href="#set">set</a></h2>
+<h2><a href="#Class_set_labeled">Class set.labeled </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#new">new (strings)</a></td>
-	<td class="summary">Builds the set from an array of strings.</td>
+	<td class="name" nowrap><a href="#set.labeled:labeled">set.labeled:labeled (t)</a></td>
+	<td class="summary">Builds a labeled set from a table of members, each with a label bitmask.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#set.labeled:match">set.labeled:match (s)</a></td>
+	<td class="summary">Returns the union of the labels of <code>s</code> and its suffixes, or 0.</td>
 	</tr>
 </table>
 
@@ -148,19 +157,15 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_set"></a>Class set </h2>
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
 
-          <div class="section-description">
-          A built <a href="../modules/set.html#">set</a>.  Query it with <a href="../modules/set.html#set:has">set:has</a> for exact membership,
- <a href="../modules/set.html#set:suffix">set:suffix</a> or <a href="../modules/set.html#set:prefix">set:prefix</a> for segment membership, and <code>#</code> for size.
-          </div>
     <dl class="function">
     <dt>
-    <a name = "set:__len"></a>
-    <strong>set:__len ()</strong>
+    <a name = "__len"></a>
+    <strong>__len ()</strong>
     </dt>
     <dd>
-    Returns the number of keys in the set.
+    Returns the number of members.
 
 
 
@@ -168,13 +173,20 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        the number of keys.
+        the number of members.
     </ol>
 
 
 
 
 </dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_set"></a>Class set </h2>
+
+          <div class="section-description">
+          A built plain <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#set:new">set.new</a>.
+          </div>
+    <dl class="function">
     <dt>
     <a name = "set:has"></a>
     <strong>set:has (s)</strong>
@@ -203,85 +215,11 @@
 
 </dd>
     <dt>
-    <a name = "set:prefix"></a>
-    <strong>set:prefix (s, sep)</strong>
+    <a name = "set:new"></a>
+    <strong>set:new (strings)</strong>
     </dt>
     <dd>
-    Returns whether <code>s</code>, or a prefix of it before a separator, is in the set. </p>
-
-<p> Tests <code>s</code>, then each prefix ending before a <code>sep</code>, so <code>t:prefix(&quot;/a/b/c&quot;, &quot;/&quot;)</code>
- tries <code>&quot;/a/b/c&quot;</code>, <code>&quot;/a/b&quot;</code>, <code>&quot;/a&quot;</code>. This roots the hierarchy on the left, as for
- filesystem or URI paths.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">s</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         the string to test.
-        </li>
-        <li><span class="parameter">sep</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         a one-byte separator.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-        whether <code>s</code>, or a prefix of it, is in the set.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "set:suffix"></a>
-    <strong>set:suffix (s, sep)</strong>
-    </dt>
-    <dd>
-    Returns whether <code>s</code>, or a suffix of it after a separator, is in the set. </p>
-
-<p> Tests <code>s</code>, then each suffix starting after a <code>sep</code>, so <code>t:suffix(&quot;a.b.com&quot;, &quot;.&quot;)</code>
- tries <code>&quot;a.b.com&quot;</code>, <code>&quot;b.com&quot;</code>, <code>&quot;com&quot;</code>. This roots the hierarchy on the right, as
- for domains, reverse-DNS, or dotted ids.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">s</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         the string to test.
-        </li>
-        <li><span class="parameter">sep</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         a one-byte separator.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-        whether <code>s</code>, or a suffix of it, is in the set.
-    </ol>
-
-
-
-
-</dd>
-</dl>
-    <h2 class="section-header "><a name="set"></a>set</h2>
-
-    <dl class="function">
-    <dt>
-    <a name = "new"></a>
-    <strong>new (strings)</strong>
-    </dt>
-    <dd>
-    Builds the set from an array of strings. </p>
+    Builds a plain set from an array of strings. </p>
 
 <p> The array is sorted in place. The members must be unique; duplicates are kept,
  which keeps lookups correct but wastes space, so de-duplicate first if it
@@ -311,8 +249,83 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> blocked = set.<span class="function-name">new</span>({ <span class="string">"evil.com"</span>, <span class="string">"ads.net"</span> })</pre>
+        <pre class="example"><span class="keyword">local</span> s = set.<span class="function-name">new</span>({ <span class="string">"alpha"</span>, <span class="string">"bravo"</span> })</pre>
     </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_set_labeled"></a>Class set.labeled </h2>
+
+          <div class="section-description">
+          A built labeled <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#set.labeled">set.labeled</a>.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "set.labeled:labeled"></a>
+    <strong>set.labeled:labeled (t)</strong>
+    </dt>
+    <dd>
+    Builds a labeled set from a table of members, each with a label bitmask. </p>
+
+<p> It allocates, so call it where it can sleep (a process-context runtime, or any
+ runtime's load).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">{[string]=integer}</a></span>
+         the member/labels pairs; labels are in <code>[1, 2^32)</code>.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/set.html#set.labeled">set.labeled</a></span>
+        the built labeled set.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error on a non-string member, a label outside <code>[1, 2^32)</code>, if the members
+ exceed 4 GiB, or on allocation failure.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> s = set.<span class="function-name">labeled</span>({ [<span class="string">"a.b.c"</span>] = <span class="number">1</span>, [<span class="string">"b.c"</span>] = <span class="number">2</span>, [<span class="string">"c"</span>] = <span class="number">4</span> })
+ <span class="keyword">local</span> labels = s:<span class="function-name">match</span>(<span class="string">"a.b.c"</span>)  <span class="comment">--&gt; 7, the union 1 | 2 | 4</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "set.labeled:match"></a>
+    <strong>set.labeled:match (s)</strong>
+    </dt>
+    <dd>
+    Returns the union of the labels of <code>s</code> and its suffixes, or 0. </p>
+
+<p> Walks <code>s</code> by <code>.</code> (<code>&quot;a.b.c&quot;</code> tries <code>&quot;a.b.c&quot;</code>, <code>&quot;b.c&quot;</code>, <code>&quot;c&quot;</code>), ORing the labels of
+ every level that is a member. This roots the hierarchy on the right.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">s</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         the string to look up.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        the union of the matching levels' labels, or 0.
+    </ol>
+
+
+
 
 </dd>
 </dl>
@@ -322,7 +335,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-06-18 16:38:30 </i>
+<i style="float:right;">Last updated 2026-06-21 18:33:03 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
