@@ -63,7 +63,8 @@ config LUNATIK_SET
 	tristate "Lunatik Set Support"
 	default m
 	help
-	  Compact immutable set of strings with exact membership.
+	  Compact immutable set of strings: exact membership, plus a
+	  suffix-matched labeled flavor.
 
 config LUNATIK_THREAD
 	tristate "Lunatik Thread Support"
