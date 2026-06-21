@@ -7,10 +7,10 @@ local set = require("set")
 local test = require("util").test
 
 test("set.new sorts unsorted input", function()
-	local s = set.new({"evil.com", "ads.net", "aaa.io", "zzz.net"})
-	assert(s:has("aaa.io"), "missing aaa.io")
-	assert(s:has("zzz.net"), "missing zzz.net")
-	assert(s:has("evil.com"), "missing evil.com")
+	local s = set.new({"delta", "alpha", "charlie", "bravo"})
+	assert(s:has("charlie"), "missing charlie")
+	assert(s:has("bravo"), "missing bravo")
+	assert(s:has("delta"), "missing delta")
 	assert(not s:has("nope"), "false positive nope")
 	assert(#s == 4, "expected 4, got " .. #s)
 end)
@@ -44,5 +44,73 @@ end)
 
 test("set.new rejects a non-string member", function()
 	assert(not pcall(function() set.new({"ok", 42}) end), "non-string member should raise")
+end)
+
+test("set.labeled match returns a member's labels", function()
+	local s = set.labeled({["alpha"] = 1, ["bravo"] = 2, ["charlie"] = 4, ["delta"] = 8})
+	assert(s:match("charlie") == 4, "charlie labels")
+	assert(s:match("alpha") == 1, "alpha labels")
+	assert(s:match("nope") == 0, "absent returns 0")
+	assert(#s == 4, "expected 4, got " .. #s)
+end)
+
+test("set.labeled match unions the labels of every matching level", function()
+	local s = set.labeled({["a.b.c"] = 1, ["b.c"] = 2, ["c"] = 4})
+	assert(s:match("a.b.c") == 7, "1|2|4 over all levels, got " .. tostring(s:match("a.b.c")))
+	assert(s:match("x.a.b.c") == 7, "deeper still unions all three")
+	assert(s:match("b.c") == 6, "2|4")
+	assert(s:match("c") == 4, "just c")
+	assert(s:match("nope") == 0, "no match is 0")
+end)
+
+test("set.labeled match distinguishes members that suffix one another", function()
+	local s = set.labeled({["c"] = 1, ["b.c"] = 2, ["a.b.c"] = 4})
+	assert(s:match("c") == 1, "c")
+	assert(s:match("b.c") == 3, "b.c unions b.c|c = 2|1")
+	assert(s:match("a.b.c") == 7, "all three")
+	assert(s:match("z.c") == 1, "z.c only c")
+end)
+
+test("a label is crossed as a bitmask on the Lua side", function()
+	local RED <const>, GREEN <const>, BLUE <const> = 1, 2, 4
+	local s = set.labeled({["a.b"] = RED | BLUE, ["b"] = GREEN})
+	local want = RED | GREEN
+	-- x.a.b unions a.b (red|blue) with b (green)
+	local m = s:match("x.a.b")
+	assert(m & want == want, "a.b carries red (own) and green (b)")
+	assert(m & BLUE ~= 0, "and still carries blue")
+	assert(s:match("z.w") == 0, "z.w absent")
+	assert(s:match("c.b") & GREEN ~= 0, "any *.b carries green")
+end)
+
+test("empty labeled set", function()
+	local s = set.labeled({})
+	assert(#s == 0, "empty size")
+	assert(s:match("a.b") == 0, "empty match")
+end)
+
+test("a labeled member may be the empty string, matched via a trailing separator", function()
+	local s = set.labeled({[""] = 5})
+	assert(s:match("a.") == 5, "trailing '.' reaches the empty-string member")
+	assert(s:match("a") == 0, "no trailing '.', the empty string is not reached")
+	assert(#s == 1, "expected 1, got " .. #s)
+end)
+
+test("labels across the 32-bit range round-trip", function()
+	for _, label in ipairs({1, 255, 256, 65535, 65536, 16777215, 4294967295}) do
+		local s = set.labeled({["k"] = label})
+		assert(s:match("k") == label, "label " .. label .. " round-trips, got " .. tostring(s:match("k")))
+	end
+end)
+
+test("set.labeled rejects a non-string member", function()
+	assert(not pcall(function() set.labeled({[42] = 1, ["k"] = 2}) end), "non-string member should raise")
+end)
+
+test("set.labeled rejects a label outside [1, 2^32)", function()
+	assert(not pcall(function() set.labeled({["k"] = "not a number"}) end), "string label should raise")
+	assert(not pcall(function() set.labeled({["k"] = 0}) end), "label 0 should raise")
+	assert(not pcall(function() set.labeled({["k"] = -1}) end), "negative label should raise")
+	assert(not pcall(function() set.labeled({["k"] = 4294967296}) end), "label >= 2^32 should raise")
 end)
 
