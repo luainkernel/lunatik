@@ -11,8 +11,7 @@
 * instead of the hash node and slab rounding a Lua or `rcu` table pays per key.
 * Built once by `set.new` (which sorts the members), it is then read-only: lookups
 * take no lock and allocate nothing, safe from softirq. It tests exact membership
-* (`set:has`) or matches by segment, from the right (`set:suffix`, as for domains)
-* or the left (`set:prefix`, as for filesystem or URI paths).
+* with `set:has`.
 *
 * @module set
 * @see rcu
@@ -61,37 +60,8 @@ static bool luaset_contains(const luaset_t *set, const char *key, uint32_t len)
 	return false;
 }
 
-static bool luaset_findsuffix(const luaset_t *set, const char *s, size_t len, char sep)
-{
-	size_t i = 0;
-
-	while (i <= len) {
-		if (luaset_contains(set, s + i, (uint32_t)(len - i)))
-			return true;
-		const char *next = memchr(s + i, sep, len - i);
-		if (next == NULL)
-			return false;
-		i = (size_t)(next - s) + 1;
-	}
-	return false;
-}
-
-static bool luaset_findprefix(const luaset_t *set, const char *s, size_t len, char sep)
-{
-	while (len > 0) {
-		if (luaset_contains(set, s, (uint32_t)len))
-			return true;
-		while (len > 0 && s[len - 1] != sep)
-			len--;
-		if (len > 0)
-			len--; /* drop the separator */
-	}
-	return false;
-}
-
 /***
-* A built `set`. Query it with `set:has` for exact membership,
-* `set:suffix` or `set:prefix` for segment membership, and `#` for size.
+* A built `set`. Query it with `set:has` for exact membership, and `#` for size.
 * @type set
 */
 
@@ -110,44 +80,6 @@ static int luaset_has(lua_State *L)
 	lua_pushboolean(L, luaset_contains(set, s, (uint32_t)len));
 	return 1;
 }
-
-#define LUASET_NEWMATCH(dir)							\
-static int luaset_##dir(lua_State *L)						\
-{										\
-	luaset_t *set = luaset_check(L, 1);					\
-	size_t len, seplen;							\
-	const char *s = luaL_checklstring(L, 2, &len);				\
-	const char *sep = luaL_checklstring(L, 3, &seplen);			\
-	luaL_argcheck(L, seplen == 1, 3, "separator must be a single byte");	\
-	lua_pushboolean(L, luaset_find##dir(set, s, len, sep[0]));		\
-	return 1;								\
-}
-
-/***
-* Returns whether `s`, or a suffix of it after a separator, is in the set.
-*
-* Tests `s`, then each suffix starting after a `sep`, so `t:suffix("a.b.com", ".")`
-* tries `"a.b.com"`, `"b.com"`, `"com"`. This roots the hierarchy on the right, as
-* for domains, reverse-DNS, or dotted ids.
-* @function suffix
-* @tparam string s the string to test.
-* @tparam string sep a one-byte separator.
-* @treturn boolean whether `s`, or a suffix of it, is in the set.
-*/
-LUASET_NEWMATCH(suffix);
-
-/***
-* Returns whether `s`, or a prefix of it before a separator, is in the set.
-*
-* Tests `s`, then each prefix ending before a `sep`, so `t:prefix("/a/b/c", "/")`
-* tries `"/a/b/c"`, `"/a/b"`, `"/a"`. This roots the hierarchy on the left, as for
-* filesystem or URI paths.
-* @function prefix
-* @tparam string s the string to test.
-* @tparam string sep a one-byte separator.
-* @treturn boolean whether `s`, or a prefix of it, is in the set.
-*/
-LUASET_NEWMATCH(prefix);
 
 /***
 * Returns the number of keys in the set.
@@ -269,8 +201,6 @@ static const luaL_Reg luaset_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"__len", luaset_length},
 	{"has", luaset_has},
-	{"suffix", luaset_suffix},
-	{"prefix", luaset_prefix},
 	{NULL, NULL}
 };
 

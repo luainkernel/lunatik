@@ -117,9 +117,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 ### set
 
 - **set**: `set.new` sorting unsorted input and binary-search membership
-  (`has`); suffix and prefix matching by separator (`suffix`, `prefix`); size
-  (`#`); duplicates kept; the empty-set and empty-string-member edges; and the
-  raises (multi-byte separator, non-string member).
+  (`has`); size (`#`); duplicates kept; the empty-set and empty-string-member
+  edges; and the raise on a non-string member.
 
 ### skb
 
