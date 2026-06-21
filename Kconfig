@@ -59,6 +59,12 @@ config LUNATIK_RCU
 	help
 	  Read-Copy-Update (RCU) synchronization support.
 
+config LUNATIK_SET
+	tristate "Lunatik Set Support"
+	default m
+	help
+	  Compact immutable set of strings with exact membership.
+
 config LUNATIK_THREAD
 	tristate "Lunatik Thread Support"
 	default m
