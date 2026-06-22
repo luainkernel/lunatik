@@ -38,6 +38,8 @@ return {
 		desc = "XDP verdicts and flags." },
 	{ header = "uapi/linux/pkt_cls.h",          prefix = "TC_",        module = "tc",
 		desc = "TC verdicts and flags." },
+	{ header = "uapi/linux/bpf.h",              prefix = "BPF_",       module = "bpf",
+		desc = "BPF maps and flags." },
 	{ header = "linux/sched.h",                 prefix = "TASK_",      module = "task",
 		desc = "Task state flags." },
 	{ header = "linux/sched/ext.h",             prefix = "SCX_",       module = "scx",
