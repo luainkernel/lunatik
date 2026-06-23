@@ -103,11 +103,14 @@ extern const lunatik_class_t luacrypto_shash_class;
 extern const lunatik_class_t luacrypto_skcipher_class;
 extern const lunatik_class_t luacrypto_aead_class;
 extern const lunatik_class_t luacrypto_rng_class;
+extern const lunatik_class_t luacrypto_acompress_class;
+extern const lunatik_class_t luacrypto_acompress_req_class;
 
 int luacrypto_shash_new(lua_State *L);
 int luacrypto_skcipher_new(lua_State *L);
 int luacrypto_aead_new(lua_State *L);
 int luacrypto_rng_new(lua_State *L);
+int luacrypto_acompress_new(lua_State *L);
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 extern const lunatik_class_t luacrypto_comp_class;

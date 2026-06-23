@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="shash skcipher aead rng hkdf comp"
+TESTS="shash skcipher aead rng hkdf comp compress acompress"
 TOTAL=$(echo $TESTS | wc -w)
 
 ktap_header
