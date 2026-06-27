@@ -53,7 +53,8 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 
 ### netlink
 
-Dump tests for `netlink.rt` over the `netlink` socket (read-only, safe for CI).
+Read-only tests for `netlink.rt` and `netlink.genl` over the `netlink` socket
+(safe for CI).
 
 - **link_dump**: `rt.link_dump()` lists interfaces; asserts loopback (`lo`,
   ifindex 1) is present with a non-zero MTU.
@@ -61,6 +62,8 @@ Dump tests for `netlink.rt` over the `netlink` socket (read-only, safe for CI).
   is present on loopback with `prefix_len == 8`.
 - **route_dump**: `rt.route_dump()` returns at least one route with its
   `family`, `scope` and `rtype` fields populated.
+- **genl_family**: `genl.family("nlctrl")` resolves the generic netlink
+  controller family to `GENL_ID_CTRL`.
 
 ### notifier
 

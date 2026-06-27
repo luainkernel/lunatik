@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=$'\n'
-for t in "$DIR"/link_dump.sh "$DIR"/addr_dump.sh "$DIR"/route_dump.sh; do
+for t in "$DIR"/link_dump.sh "$DIR"/addr_dump.sh "$DIR"/route_dump.sh "$DIR"/genl_family.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	bash "$t" || FAILED=$((FAILED+1))
 done
