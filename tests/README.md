@@ -63,6 +63,9 @@ channel test exercises kernel-to-userspace multicast delivery.
   is present on loopback with `prefix_len == 8`.
 - **route_dump**: `rt.route_dump()` returns at least one route with its
   `family`, `scope` and `rtype` fields populated.
+- **route_adddel**: `rt.route_add()` creates a dummy `192.0.2.0/24` route via
+  `lo` in an isolated table, confirms it in a dump, then `rt.route_del()`
+  removes it.
 - **genl_family**: `genl.family("nlctrl")` resolves the generic netlink
   controller family to `GENL_ID_CTRL`.
 - **channel**: a softirq runtime registers a generic netlink multicast family
