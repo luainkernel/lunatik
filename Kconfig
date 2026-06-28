@@ -53,6 +53,12 @@ config LUNATIK_SOCKET
 	help
 	  Networking socket support for Lua scripts.
 
+config LUNATIK_NETLINK
+	tristate "Lunatik Netlink Support"
+	default m
+	help
+	  AF_NETLINK kernel socket support for Lua scripts.
+
 config LUNATIK_RCU
 	tristate "Lunatik RCU Support"
 	default m
