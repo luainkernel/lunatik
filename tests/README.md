@@ -53,7 +53,8 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 
 ### netlink
 
-Tests for `netlink.rt` over the `netlink` socket, against loopback.
+Tests for `netlink.rt` and `netlink.genl` over the `netlink` socket, against
+loopback and the generic netlink controller.
 
 - **link_dump**: `rt.link_dump()` lists interfaces; asserts loopback (`lo`,
   ifindex 1) is present with a non-zero MTU.
@@ -64,6 +65,8 @@ Tests for `netlink.rt` over the `netlink` socket, against loopback.
 - **route_adddel**: `rt.route_add()` creates a dummy `192.0.2.0/24` route via
   `lo` in an isolated table, confirms it in a dump, then `rt.route_del()`
   removes it.
+- **genl_family**: `genl.family("nlctrl")` resolves the generic netlink
+  controller family to `GENL_ID_CTRL`.
 
 ### notifier
 
