@@ -53,7 +53,9 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 
 ### netlink
 
-Tests for `netlink.rt` over the `netlink` socket, against loopback.
+Tests for `netlink.rt` and `netlink.channel`. The rt tests dump against
+loopback; the channel test exercises kernel-to-userspace multicast from a
+softirq netfilter hook.
 
 - **link_dump**: `rt.link_dump()` lists interfaces; asserts loopback (`lo`,
   ifindex 1) is present with a non-zero MTU.
@@ -64,6 +66,10 @@ Tests for `netlink.rt` over the `netlink` socket, against loopback.
 - **route_adddel**: `rt.route_add()` creates a dummy `192.0.2.0/24` route via
   `lo` in an isolated table, confirms it in a dump, then `rt.route_del()`
   removes it.
+- **channel**: a softirq runtime registers a generic netlink multicast family
+  and a `LOCAL_OUT` netfilter hook that broadcasts from softirq; a userspace
+  subscriber joins the family's group and receives the payload, proving
+  kernel-to-userspace delivery from softirq (skips without `gcc`/`genl`).
 
 ### notifier
 
