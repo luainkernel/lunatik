@@ -53,8 +53,9 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 
 ### netlink
 
-Read-only tests for `netlink.rt` and `netlink.genl` over the `netlink` socket
-(safe for CI).
+Tests for `netlink.rt`, `netlink.genl` and `netlink.channel`. The rt/genl
+dumps are read-only against loopback and the generic netlink controller; the
+channel test exercises kernel-to-userspace multicast delivery.
 
 - **link_dump**: `rt.link_dump()` lists interfaces; asserts loopback (`lo`,
   ifindex 1) is present with a non-zero MTU.
@@ -64,6 +65,10 @@ Read-only tests for `netlink.rt` and `netlink.genl` over the `netlink` socket
   `family`, `scope` and `rtype` fields populated.
 - **genl_family**: `genl.family("nlctrl")` resolves the generic netlink
   controller family to `GENL_ID_CTRL`.
+- **channel**: a softirq runtime registers a generic netlink multicast family
+  and a `LOCAL_OUT` netfilter hook that broadcasts from softirq; a userspace
+  subscriber joins the family's group and receives the payload, proving
+  kernel-to-userspace delivery from softirq (skips without `gcc`/`genl`).
 
 ### notifier
 
