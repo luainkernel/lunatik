@@ -59,6 +59,15 @@ Tests for the `netlink` socket and its higher-level Lua modules.
   `RTM_GETLINK` dump request gets a reply (raw `new`/`send`/`recv`/`close`).
 - **message**: builds a message with attributes and parses it back, asserting
   the round-trip preserves the type and attribute values.
+- **link_dump**: `rt.link_dump()` lists interfaces; asserts loopback (`lo`,
+  ifindex 1) is present with a non-zero MTU.
+- **addr_dump**: `rt.addr_dump(AF_INET)` lists addresses; asserts `127.0.0.1`
+  is present on loopback with `prefix_len == 8`.
+- **route_dump**: `rt.route_dump()` returns at least one route with its
+  `family`, `scope` and `rtype` fields populated.
+- **route_adddel**: `rt.route_add()` creates a dummy `192.0.2.0/24` route via
+  `lo` in an isolated table, confirms it in a dump, then `rt.route_del()`
+  removes it.
 
 ### notifier
 
