@@ -51,6 +51,13 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
   finalizes a dropped AF_PACKET socket. Must not trigger "scheduling
   while atomic".
 
+### netlink
+
+Tests for the `netlink` socket and its higher-level Lua modules.
+
+- **socket**: opens a `NETLINK_ROUTE` socket and asserts a hand-built
+  `RTM_GETLINK` dump request gets a reply (raw `new`/`send`/`recv`/`close`).
+
 ### notifier
 
 - **context_mismatch**: calling a hardirq-class constructor (e.g.
