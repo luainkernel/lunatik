@@ -109,6 +109,11 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *);
 #define luasocket_setmsg(m)		memset(&(m), 0, sizeof(m))
 
 /***
+* A kernel socket, returned by `socket.new()`.
+* @type socket
+*/
+
+/***
 * Sends a message through the socket.
 *
 * For connection-oriented sockets (`SOCK_STREAM`), `addr` and `port` are usually omitted
