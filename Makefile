@@ -32,7 +32,7 @@ CONFIG_LUNATIK_RUN ?= m
 
 # Order matters: modules are loaded left-to-right and unloaded right-to-left (rmmod).
 # A module must appear AFTER all modules it depends on (e.g. SKB before NETFILTER).
-LUNATIK_MODULES := DEVICE LINUX NOTIFIER SOCKET RCU SET THREAD FIB DATA PROBE SYSCALL XDP FIFO SKB NETFILTER \
+LUNATIK_MODULES := DEVICE LINUX NOTIFIER SOCKET NETLINK RCU SET THREAD FIB DATA PROBE SYSCALL XDP FIFO SKB NETFILTER \
 	COMPLETION CRYPTO CPU HID SIGNAL BYTEORDER DARKEN
 
 $(foreach c,$(LUNATIK_MODULES),\
@@ -156,6 +156,7 @@ tests_install:
 		${INSTALL} -m 0755 tests/$$d/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/$$d; \
 		${INSTALL} -m 0644 tests/$$d/*.lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 	done
+	${INSTALL} -m 0644 tests/netlink/channel_subscriber.c ${LUNATIK_TESTS_INSTALL_PATH}/netlink
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/run.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0755 tests/socket/unix/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix
