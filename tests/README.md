@@ -72,6 +72,16 @@ higher-level `netlink.*` modules built on top of it.
   `call()` round-trip (regression for the orphaned-ACK desync), a `GETFAMILY`
   `dump()` that lists every family (with `nlctrl` among them), and an unknown
   family raising.
+- **link_list**: `rt.link_list()` lists interfaces; asserts loopback (`lo`,
+  ifindex 1) is present with a non-zero MTU.
+- **addr_list**: `rt.addr_list(AF_INET)` lists addresses; asserts `127.0.0.1`
+  is present on loopback with `prefix_len == 8`.
+- **route_list**: `rt.route_list()` returns at least one route with its
+  `family`, `scope` and `rtype` fields populated.
+- **route_adddel**: `rt.route_add()` creates a dummy `192.0.2.0/24` route via
+  `lo` in an isolated table whose id is > 255 (exercising the `RTA_TABLE`
+  attribute path), confirms it in a dump, asserts a duplicate add raises
+  (`NLM_F_EXCL`), then `rt.route_del()` removes it.
 - **channel**: a softirq runtime registers a generic netlink family, unicasts
   to an absent port id (which returns `false`), and installs a `PRE_ROUTING`
   netfilter hook that, on received traffic (NET_RX softirq), both broadcasts to

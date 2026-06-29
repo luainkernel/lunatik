@@ -11,7 +11,9 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=$'\n'
-for t in "$DIR"/socket.sh "$DIR"/message.sh "$DIR"/session.sh "$DIR"/genl_family.sh "$DIR"/channel.sh; do
+for t in "$DIR"/socket.sh "$DIR"/message.sh "$DIR"/session.sh "$DIR"/genl_family.sh \
+	"$DIR"/link_list.sh "$DIR"/addr_list.sh "$DIR"/route_list.sh "$DIR"/route_adddel.sh \
+	"$DIR"/channel.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	bash "$t" || FAILED=$((FAILED+1))
 done
