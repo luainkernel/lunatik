@@ -108,8 +108,8 @@ Install and run the test suites:
 sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (crypto, io, monitor,
-                            # notifier, probe, rcu, runtime, set, skb, socket,
-                            # thread)
+                            # netlink, notifier, probe, rcu, runtime, set, skb,
+                            # socket, thread)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them
@@ -163,6 +163,7 @@ The table below lists the available kernel Lua modules:
 | `linux` | Kernel utilities: `schedule`, `time`, `random`, `stat` flags |
 | `thread` | Kernel threads: spawn, stop, `shouldstop` |
 | `socket` | Kernel sockets: TCP, UDP, AF\_PACKET, AF\_UNIX |
+| `netlink` | AF\_NETLINK sockets with rtnetlink and generic-netlink helpers |
 | `data` | Raw memory buffer for binary data read/write |
 | `device` | Character device drivers |
 | `rcu` | RCU-protected shared hash table |
