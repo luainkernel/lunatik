@@ -41,6 +41,7 @@ file = {
 	'./lib/netlink/message.lua',
 	'./lib/netlink/session.lua',
 	'./lib/luanetfilter.c',
+	'./lib/luanetlink.c',
 	'./lib/luaskb.c',
 	'./lib/luanotifier.c',
 	'./lib/luaprobe.c',
