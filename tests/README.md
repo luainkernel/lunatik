@@ -51,6 +51,16 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
   finalizes a dropped AF_PACKET socket. Must not trigger "scheduling
   while atomic".
 
+### netlink
+
+Tests for netlink: the `AF_NETLINK` address family in `socket`, and the
+higher-level `netlink.message`/`netlink.rt`/`netlink.genl`/`netlink.channel`
+modules built on top of it.
+
+- **socket**: opens an `AF_NETLINK` socket; a bind/`getsockname` round-trip
+  exercises the address translation, and an `RTM_GETLINK` dump exercises send
+  (which attaches the kernel destination) and receive.
+
 ### notifier
 
 - **context_mismatch**: calling a hardirq-class constructor (e.g.

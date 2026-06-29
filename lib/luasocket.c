@@ -26,6 +26,7 @@
 #include <linux/string.h>
 #include <linux/net.h>
 #include <linux/un.h>
+#include <linux/netlink.h>
 #include <net/sock.h>
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(6, 1, 0))
 #include <linux/l2tp.h>
@@ -45,10 +46,11 @@ static int luasocket_new(lua_State *L);
 static int luasocket_accept(lua_State *L);
 
 #define LUASOCKET_ISUNIX(family)	((family) == AF_UNIX || (family) == AF_LOCAL)
+#define luasocket_family(socket)	((socket)->sk->sk_family)
 
 static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr_storage *addr, int ix)
 {
-	addr->ss_family = socket->sk->sk_family;
+	addr->ss_family = luasocket_family(socket);
 	if (addr->ss_family == AF_INET) {
 		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
 		addr_in->sin_addr.s_addr = htonl((u32)luaL_checkinteger(L, ix));
@@ -71,6 +73,13 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 		addr_ll->sll_protocol = htons((u16)lunatik_checkinteger(L, ix, 0, U16_MAX));
 		addr_ll->sll_ifindex = (int)lunatik_checkinteger(L, ix + 1, 0, INT_MAX);;
 		return sizeof(struct sockaddr_ll);
+	}
+	else if (addr->ss_family == AF_NETLINK) {
+		struct sockaddr_nl *addr_nl = (struct sockaddr_nl *)addr;
+		addr_nl->nl_pad = 0;
+		addr_nl->nl_pid = (u32)luaL_optinteger(L, ix, 0);
+		addr_nl->nl_groups = (u32)luaL_optinteger(L, ix + 1, 0);
+		return sizeof(struct sockaddr_nl);
 	}
 	else {
 		size_t len;
@@ -97,6 +106,12 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr)
 		n = 1;
 	}
 #endif
+	else if (addr->ss_family == AF_NETLINK) {
+		struct sockaddr_nl *addr_nl = (struct sockaddr_nl *)addr;
+		lua_pushinteger(L, (lua_Integer)addr_nl->nl_pid);
+		lua_pushinteger(L, (lua_Integer)addr_nl->nl_groups);
+		n = 2;
+	}
 	else {
 		lua_pushlstring(L, (const char *)addr->__data, LUASOCKET_ADDRMAX);
 		n = 1;
@@ -154,7 +169,8 @@ static int luasocket_send(lua_State *L)
 	vec.iov_base = (void *)luaL_checklstring(L, 2, &len);
 	vec.iov_len = len;
 
-	if (unlikely(nargs >= 3)) {
+	/* netlink needs an explicit destination to set NETLINK_SKB_DST */
+	if (unlikely(nargs >= 3) || luasocket_family(socket) == AF_NETLINK) {
 		size_t size = luasocket_checkaddr(L, socket, &addr, 3);
 		luasocket_msgaddr(msg, addr, size);
 	}
