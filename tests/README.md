@@ -67,6 +67,11 @@ higher-level `netlink.*` modules built on top of it.
   empty read; `talk()` drains the reply up to the kernel acknowledgment,
   keeping a data reply and passing a zero error code; and `talk()` raises the
   bare symbolic error name on a kernel error reply.
+- **genl_family**: `genl.family("nlctrl")` resolves the generic netlink
+  controller family to `GENL_ID_CTRL`; then on the same instance a `GETFAMILY`
+  `call()` round-trip (regression for the orphaned-ACK desync), a `GETFAMILY`
+  `dump()` that lists every family (with `nlctrl` among them), and an unknown
+  family raising.
 
 ### notifier
 
