@@ -271,7 +271,7 @@ local function struct_facts(name, fields, total)
 end
 
 -- Find-or-create the record for a dotted module name. Struct specs sharing a
--- module (e.g. `netlink.struct`) accumulate into one record.
+-- module (e.g. `netlink.layout`) accumulate into one record.
 local function get_module(modules, order, name)
 	local top = name:match("^[^.]+")
 	if not modules[top] then
