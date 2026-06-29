@@ -54,12 +54,12 @@
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
-  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><strong>linux.netlink</strong></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
   <li><a href="../modules/linux.socket.html">linux.socket</a></li>
-  <li><strong>linux.stat</strong></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
@@ -102,16 +102,16 @@
 
 <div id="content">
 
-<h1>Module <code>linux.stat</code></h1>
-<p>Linux kernel constants exposed under <a href="../modules/linux.stat.html#">linux.stat</a>.</p>
+<h1>Module <code>linux.netlink</code></h1>
+<p>Linux kernel constants exposed under <a href="../modules/linux.netlink.html#">linux.netlink</a>.</p>
 <p> Values are populated at build time from the kernel headers.</p>
 
 
 <h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#constants">constants</a></td>
-	<td class="summary">File mode bits.</td>
+	<td class="name" nowrap><a href="#proto">proto</a></td>
+	<td class="summary">Netlink protocol numbers.</td>
 	</tr>
 </table>
 
@@ -123,12 +123,12 @@
 
     <dl class="function">
     <dt>
-    <a name = "constants"></a>
-    <strong>constants</strong>
+    <a name = "proto"></a>
+    <strong>proto</strong>
     </dt>
     <dd>
-    File mode bits.
- Mirrors <code>S_*</code> defines in <code>&lt;linux/stat.h&gt;</code>.
+    Netlink protocol numbers.
+ Mirrors <code>NETLINK_*</code> defines in <code>&lt;uapi/linux/netlink.h&gt;</code>.
 
 
 
