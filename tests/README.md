@@ -57,6 +57,8 @@ Tests for the `netlink` socket and its higher-level Lua modules.
 
 - **socket**: opens a `NETLINK_ROUTE` socket and asserts a hand-built
   `RTM_GETLINK` dump request gets a reply (raw `new`/`send`/`recv`/`close`).
+- **message**: builds a message with attributes and parses it back, asserting
+  the round-trip preserves the type and attribute values.
 
 ### notifier
 
