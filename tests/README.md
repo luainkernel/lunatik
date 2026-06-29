@@ -54,12 +54,19 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 ### netlink
 
 Tests for netlink: the `AF_NETLINK` address family in `socket`, and the
-higher-level `netlink.message`/`netlink.rt`/`netlink.genl`/`netlink.channel`
-modules built on top of it.
+higher-level `netlink.*` modules built on top of it.
 
 - **socket**: opens an `AF_NETLINK` socket; a bind/`getsockname` round-trip
   exercises the address translation, and an `RTM_GETLINK` dump exercises send
   (which attaches the kernel destination) and receive.
+- **message**: builds a message with attributes and parses it back, asserting
+  the round-trip preserves the type and attribute values; and the edges:
+  malformed wire data parses to nothing, empty attribute sets round-trip
+  empty, and a non-u32 number value raises.
+- **session**: over a fake socket, `dump()` terminates (does not hang) on an
+  empty read; `talk()` drains the reply up to the kernel acknowledgment,
+  keeping a data reply and passing a zero error code; and `talk()` raises the
+  bare symbolic error name on a kernel error reply.
 
 ### notifier
 
