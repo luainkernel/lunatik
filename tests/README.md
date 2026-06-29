@@ -72,6 +72,16 @@ higher-level `netlink.*` modules built on top of it.
   `call()` round-trip (regression for the orphaned-ACK desync), a `GETFAMILY`
   `dump()` that lists every family (with `nlctrl` among them), and an unknown
   family raising.
+- **link_dump**: `rt.link_dump()` lists interfaces; asserts loopback (`lo`,
+  ifindex 1) is present with a non-zero MTU.
+- **addr_dump**: `rt.addr_dump(AF_INET)` lists addresses; asserts `127.0.0.1`
+  is present on loopback with `prefix_len == 8`.
+- **route_dump**: `rt.route_dump()` returns at least one route with its
+  `family`, `scope` and `rtype` fields populated.
+- **route_adddel**: `rt.route_add()` creates a dummy `192.0.2.0/24` route via
+  `lo` in an isolated table whose id is > 255 (exercising the `RTA_TABLE`
+  attribute path), confirms it in a dump, asserts a duplicate add raises
+  (`NLM_F_EXCL`), then `rt.route_del()` removes it.
 
 ### notifier
 
