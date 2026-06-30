@@ -31,16 +31,12 @@
   <li><a href="../index.html">Index</a></li>
 </ul>
 
-<h2>Contents</h2>
-<ul>
-<li><a href="#Tables">Tables</a></li>
-</ul>
 
 
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/byteorder.html">byteorder</a></li>
-  <li><a href="../modules/class.html">class</a></li>
+  <li><strong>class</strong></li>
   <li><a href="../modules/completion.html">completion</a></li>
   <li><a href="../modules/cpu.html">cpu</a></li>
   <li><a href="../modules/crypto.html">crypto</a></li>
@@ -55,7 +51,7 @@
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
-  <li><strong>linux.netlink</strong></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -103,42 +99,30 @@
 
 <div id="content">
 
-<h1>Module <code>linux.netlink</code></h1>
-<p>Linux kernel constants exposed under <a href="../modules/linux.netlink.html#">linux.netlink</a>.</p>
-<p> Values are populated at build time from the kernel headers.</p>
+<h1>Module <code>class</code></h1>
+<p>Minimal class helper for the OOP-style modules (e.g.</p>
+<p> <a href="../modules/socket.inet.html#">socket.inet</a>,
+ <a href="../modules/socket.unix.html#">socket.unix</a>). Calling the module on a table makes it an instantiable class:
+ it gains a <code>:new</code> constructor that wires <code>__index</code>/<code>__close</code> and sets the
+ class as the metatable of new objects, serving both to build instances and to
+ derive specializations (subclasses that inherit the methods).</p>
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">local class = require(&quot;class&quot;)
+
+local Point = class{}
+function Point:sum() return self.x + self.y end
+
+local point &lt;close&gt; = Point:new{x = 1, y = 2}   -- point:sum() == 3
+</pre>
+    </ul>
 
 
-<h2><a href="#Tables">Tables</a></h2>
-<table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#proto">proto</a></td>
-	<td class="summary">Netlink protocol numbers.</td>
-	</tr>
-</table>
 
 <br/>
 <br/>
 
 
-    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
-
-    <dl class="function">
-    <dt>
-    <a name = "proto"></a>
-    <strong>proto</strong>
-    </dt>
-    <dd>
-    Netlink protocol numbers.
- Mirrors <code>NETLINK_*</code> defines in <code>&lt;uapi/linux/netlink.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-</dl>
 
 
 </div> <!-- id="content" -->
