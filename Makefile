@@ -88,6 +88,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/class.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/mailbox.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/net.lua ${SCRIPTS_INSTALL_PATH}/
+	${INSTALL} -m 0644 lib/struct.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/util.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/lighten.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/lunatik/*.lua ${SCRIPTS_INSTALL_PATH}/lunatik
@@ -105,6 +106,7 @@ scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/class.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/mailbox.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/net.lua
+	${RM} ${SCRIPTS_INSTALL_PATH}/struct.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/util.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/lighten.lua
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/lunatik

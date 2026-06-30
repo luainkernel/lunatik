@@ -48,6 +48,7 @@ file = {
 	'./lib/socket/inet.lua',
 	'./lib/socket/raw.lua',
 	'./lib/socket/unix.lua',
+	'./lib/struct.lua',
 	'./lib/luasyscall.c',
 	'./lib/syscall/table.lua',
 	'./lib/luathread.c',
