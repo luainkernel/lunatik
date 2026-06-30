@@ -16,27 +16,24 @@
 --
 
 local socket = require("socket")
-local net = require("net")
+local net    = require("net")
+local class  = require("class")
 
 ---
 -- Base class for socket types.
 -- @type inet
 -- @field localhost (string) The loopback address '127.0.0.1'.
-local inet = {localhost = '127.0.0.1'}
 
 ---
--- Constructor for inet socket objects.
--- Initializes a new socket object, setting up its metatable for OOP-like behavior.
--- @param o (table) [optional] An initial table to be used as the object.
--- @return (table) The new inet socket object.
-function inet:new(o)
-	local o = o or {}
-	self.__index = self
-	self.__close = self.close
-	return setmetatable(o, self)
-end
+-- Creates a new inet socket object.
+-- @function inet:new
+-- @tparam[opt] table o an initial object table.
+-- @treturn inet the new socket object.
+-- @see class
+local inet = class{localhost = '127.0.0.1'}
 
 local af = require("linux.socket").af
+
 ---
 -- Metamethod to create a new socket instance when `inet()` or `inet.tcp()` or `inet.udp()` is called.
 -- This is the primary way to create new socket instances (e.g., `local sock = inet.tcp()`).
