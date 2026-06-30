@@ -203,62 +203,154 @@ end
 
 local extract = {}
 
+-- DEFINE each field's offset, size and signedness (1 if signed) plus the
+-- struct's total size, so extract.parse can reconstruct its layout. Returns
+-- the C source for one struct spec.
+local function struct_probes(spec)
+	local out = { ('\tCOMMENT("struct %s %s");\n'):format(spec.module, spec.struct) }
+	for _, f in ipairs(spec.fields) do
+		table.insert(out, ('\tDEFINE(%s_%s_off, offsetof(struct %s, %s));\n'):format(spec.struct, f, spec.struct, f))
+		table.insert(out, ('\tDEFINE(%s_%s_sz, sizeof(((struct %s *)0)->%s));\n'):format(spec.struct, f, spec.struct, f))
+		table.insert(out, ('\tDEFINE(%s_%s_sg, ((__typeof__(((struct %s *)0)->%s)) -1) < 0);\n'):format(spec.struct, f, spec.struct, f))
+	end
+	table.insert(out, ('\tDEFINE(%s_total, sizeof(struct %s));\n'):format(spec.struct, spec.struct))
+	return table.concat(out)
+end
+
 --- Write `extract.c`: include every unique header and emit a
--- `DEFINE(name, name)` for each candidate. The resulting `.s` file carries
--- resolved integer values as assembly immediates (see linux/kbuild.h).
+-- `DEFINE(name, name)` for each candidate (or struct layout probes). The
+-- resulting `.s` file carries resolved integer values as assembly immediates
+-- (see linux/kbuild.h).
 -- @tparam {table,...} dumps
 -- @tparam {[table]={string,...},...} candidates keyed by spec
 function extract.write(dumps, candidates)
-	local parts = { BANNER, "#include <linux/kbuild.h>\n" }
+	local parts = { BANNER, "#include <linux/kbuild.h>\n#include <linux/stddef.h>\n" }
 	for _, dump in ipairs(dumps) do
 		table.insert(parts, ("#include <%s>\n"):format(dump.header))
 	end
 	table.insert(parts, "\nint main(void)\n{\n")
 	for _, spec in ipairs(specs) do
-		table.insert(parts, ('\tCOMMENT("module %s %s");\n'):format(spec.module, spec.prefix))
-		for _, name in ipairs(candidates[spec]) do
-			table.insert(parts, ("\tDEFINE(%s, %s);\n"):format(name, name))
+		if spec.struct then
+			table.insert(parts, struct_probes(spec))
+		else
+			table.insert(parts, ('\tCOMMENT("module %s %s");\n'):format(spec.module, spec.prefix))
+			for _, name in ipairs(candidates[spec]) do
+				table.insert(parts, ("\tDEFINE(%s, %s);\n"):format(name, name))
+			end
 		end
 	end
 	table.insert(parts, "\treturn 0;\n}\n")
 	util.spit(BASE .. "/extract.c", table.concat(parts))
 end
 
+-- Emit a struct's layout as a Lua table literal: `{ size = N, fields = {
+-- {name, offset, size, signed}, ... } }`, fields in offset order. Validates
+-- that fields neither overlap nor exceed the total size (catches a union).
+-- The format-string derivation lives in `lib/struct.lua`, not here.
+local function struct_facts(name, fields, total)
+	local list = {}
+	for fname, f in pairs(fields) do
+		table.insert(list, { name = fname, offset = f.off, size = f.sz, signed = f.sg == 1 })
+	end
+	table.sort(list, function(a, b) return a.offset < b.offset end)
+	local pos = 0
+	for _, f in ipairs(list) do
+		assert(f.offset >= pos, ("struct %s: field %s at offset %d overlaps the "
+			.. "previous field (ends at %d)"):format(name, f.name, f.offset, pos))
+		pos = f.offset + f.size
+	end
+	assert(total >= pos, ("struct %s: total size %d is below the last field end %d")
+		:format(name, total, pos))
+	local out = { "{\n\t\tsize = " .. total .. ",\n\t\tfields = {\n" }
+	for _, f in ipairs(list) do
+		table.insert(out, ('\t\t\t{ name = "%s", offset = %d, size = %d, signed = %s },\n')
+			:format(f.name, f.offset, f.size, tostring(f.signed)))
+	end
+	table.insert(out, "\t\t},\n\t}")
+	return table.concat(out)
+end
+
+-- Find-or-create the record for a dotted module name. Struct specs sharing a
+-- module (e.g. `netlink.struct`) accumulate into one record.
+local function get_module(modules, order, name)
+	local top = name:match("^[^.]+")
+	if not modules[top] then
+		modules[top] = {}
+		table.insert(order, top)
+	end
+	for _, rec in ipairs(modules[top]) do
+		if rec.name == name then return rec end
+	end
+	local rec = { name = name, entries = {} }
+	table.insert(modules[top], rec)
+	return rec
+end
+
+-- Decode one struct probe symbol (`<field>_off`/`_sz`/`_sg`, or `total`)
+-- and record its value into `struct`.
+local function record_probe(struct, sym, val)
+	local rest = sym:sub(#struct.name + 2)
+	if rest == "total" then
+		struct.total = tonumber(val)
+		return
+	end
+	local field, probe = rest:match('^(.+)_(%a+)$')
+	if field and (probe == "off" or probe == "sz" or probe == "sg") then
+		local f = struct.fields[field] or {}
+		f[probe] = tonumber(val)
+		struct.fields[field] = f
+	end
+end
+
+-- Emit the finished struct as one layout-descriptor entry under its module.
+local function flush_struct(modules, order, struct)
+	if not struct then return end
+	table.insert(get_module(modules, order, struct.module).entries, {
+		key = struct.name,
+		value = struct_facts(struct.name, struct.fields, struct.total),
+	})
+end
+
 --- Parse `extract.s` into module records grouped by top-level name.
 -- The asm-offsets `DEFINE()` macro emits `.ascii "->sym val name"`;
--- `COMMENT()` emits `.ascii "->#..."`. We use the latter to delimit
--- modules, and group records by their first dotted segment so each
--- top maps to the set of records that will share one output file.
+-- `COMMENT()` emits `.ascii "->#..."`. We use the latter to delimit a
+-- constant module or a struct, and group records by their first dotted
+-- segment so each top maps to the records sharing one output file.
 -- @treturn {[string]={table,...},...} module records keyed by top-level name
 -- @treturn {string,...} top-level names in first-seen order
 function extract.parse()
 	local modules, order = {}, {}
-	local current
+	local current, struct
 
 	for line in io.lines(BASE .. "/extract.s") do
 		local ascii = line:match('%.ascii%s*"(.-)"')
 		if ascii then
-			local name, prefix = ascii:match('^%-%>#module%s+(%S+)%s+(%S+)$')
-			if name then
-				local top = name:match("^[^.]+")
-				if not modules[top] then
-					modules[top] = {}
-					table.insert(order, top)
-				end
-				current = { name = name, prefix = prefix, entries = {} }
-				table.insert(modules[top], current)
+			local mname, mprefix = ascii:match('^%-%>#module%s+(%S+)%s+(%S+)$')
+			local smod, sname = ascii:match('^%-%>#struct%s+(%S+)%s+(%S+)$')
+			if mname then
+				flush_struct(modules, order, struct)
+				struct = nil
+				current = get_module(modules, order, mname)
+				current.prefix = mprefix
+			elseif smod then
+				flush_struct(modules, order, struct)
+				current = nil
+				struct = { module = smod, name = sname, fields = {}, total = 0 }
 			else
-				local sym, val = ascii:match('^%-%>(%S+)%s+%$?(%-?%d+)%s+%S+$')
-				local prefix_len = current and #current.prefix
-				if sym and prefix_len and sym:sub(1, prefix_len) == current.prefix then
+				local sym, val = ascii:match('^%-%>(%S+)%s+%$?(%-?%d+)%s+.+$')
+				if sym and val and struct then
+					record_probe(struct, sym, val)
+				elseif sym and val and current and current.prefix
+						and sym:sub(1, #current.prefix) == current.prefix then
 					table.insert(current.entries, {
-						key = sym:sub(prefix_len + 1),
+						key = sym:sub(#current.prefix + 1),
 						value = val,
 					})
 				end
 			end
 		end
 	end
+	flush_struct(modules, order, struct)
 
 	return modules, order
 end
@@ -347,7 +439,7 @@ util.run_kbuild(table.concat(dump_targets, " "))
 
 local candidates = {}
 for _, spec in ipairs(specs) do
-	candidates[spec] = enumerate.candidates(spec)
+	candidates[spec] = spec.struct and {} or enumerate.candidates(spec)
 end
 
 extract.write(dumps, candidates)
