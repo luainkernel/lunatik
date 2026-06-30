@@ -41,6 +41,16 @@ local function provenance(spec)
 	return ("`%s*` constants from `<%s>`."):format(spec.prefix, spec.header)
 end
 
+local function doclines(spec, top)
+	if spec.struct then
+		return ("`%s` struct layouts."):format(top),
+			("Layout descriptors (per-field offset/size/signedness) generated from "
+				.. "`<%s>`; consume via `require(\"struct\")`."):format(spec.header)
+	end
+	return provenance(spec),
+		("Mirrors `%s*` defines in `<%s>`."):format(spec.prefix, spec.header)
+end
+
 local function write_block(f, lines)
 	f:write("---\n")
 	for _, line in ipairs(lines) do f:write("-- ", line, "\n") end
@@ -61,19 +71,15 @@ for _, top in ipairs(order) do
 	})
 	f:write(("local %s = {}\n"):format(top))
 
+	local seen = {}
 	for _, s in ipairs(group) do
-		local name
-		if s.module == top then
-			name = "constants"
-		else
-			name = s.module:sub(#top + 2)
+		if not seen[s.module] then
+			seen[s.module] = true
+			local name = s.module == top and "constants" or s.module:sub(#top + 2)
+			local default, source = doclines(s, top)
+			write_block(f, { s.desc or default, source, "@table " .. name })
+			f:write(("%s.%s = {}\n"):format(top, name))
 		end
-		write_block(f, {
-			s.desc or provenance(s),
-			"Mirrors `" .. s.prefix .. "*` defines in `<" .. s.header .. ">`.",
-			"@table " .. name,
-		})
-		f:write(("%s.%s = {}\n"):format(top, name))
 	end
 
 	f:write(("\nreturn %s\n\n"):format(top))

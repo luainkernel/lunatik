@@ -2,13 +2,21 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- Input for autogen.lua. Each entry produces one autogen/linux/<module>.lua
--- with integer constants matching `prefix` stripped from the Lua table key.
+-- Input for autogen.lua. A spec is one of two kinds. A constant spec carries
+-- a `prefix` and produces a table of integer constants (keyed by the constant
+-- name with `prefix` stripped). A struct spec carries `struct` and `fields`
+-- and produces a layout descriptor (per-field offset/size/signedness + total
+-- size); `lib/struct.lua` turns that into a `string.pack` codec. Each entry
+-- feeds one autogen/linux/<module>.lua.
 --
 -- @field header path relative to $(KBUILD)/include
--- @field prefix constant prefix
 -- @field module name of the resulting Lua module
 -- @field desc   short LDoc description used by autogen/ldoc.lua
+-- @field prefix constant prefix (constant specs)
+-- @field struct kernel struct name (struct specs)
+-- @field fields the struct's scalar fields (struct specs); order is free
+--   (sorted by offset), but list them all, as gaps become padding and
+--   non-scalar fields fail the build
 
 return {
 	{ header = "uapi/linux/if_ether.h",         prefix = "ETH_P_",     module = "eth",
