@@ -17,6 +17,7 @@
 -- @see socket.inet
 --
 local socket = require("socket")
+local class  = require("class")
 
 local af   = require("linux.socket").af
 local sock = require("linux.socket").sock
@@ -24,19 +25,14 @@ local sock = require("linux.socket").sock
 ---
 -- Base class for UNIX domain socket objects.
 -- @type unix
-local unix = {}
 
 ---
--- Constructor for unix socket objects.
--- Initializes a new socket object and sets up its metatable.
--- @param o (table) [optional] An initial table to use as the object.
--- @return (table) The new unix socket object.
-function unix:new(o)
-	local o = o or {}
-	self.__index = self
-	self.__close = self.close
-	return setmetatable(o, self)
-end
+-- Creates a new unix socket object.
+-- @function unix:new
+-- @tparam[opt] table o an initial object table.
+-- @treturn unix the new socket object.
+-- @see class
+local unix = class{}
 
 ---
 -- Creates a new UNIX domain socket instance.

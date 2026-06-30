@@ -85,6 +85,7 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/linux
 	${MKDIR} ${LUA_PATH}/lunatik
 	${INSTALL} -m 0644 driver.lua ${SCRIPTS_INSTALL_PATH}/
+	${INSTALL} -m 0644 lib/class.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/mailbox.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/net.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/util.lua ${SCRIPTS_INSTALL_PATH}/
@@ -101,6 +102,7 @@ scripts_install:
 
 scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
+	${RM} ${SCRIPTS_INSTALL_PATH}/class.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/mailbox.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/net.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/util.lua
