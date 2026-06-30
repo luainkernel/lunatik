@@ -109,7 +109,7 @@ sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (crypto, io, monitor,
                             # netlink, notifier, probe, rcu, runtime, set, skb,
-                            # socket, thread)
+                            # socket, struct, thread)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them

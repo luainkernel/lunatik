@@ -153,6 +153,13 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **unix/dgram**: `socket.unix` DGRAM server (`receivefrom` with
   `DONTWAIT`) and client (`sendto` using the stored path).
 
+### struct
+
+- **test**: the `struct` codec derives a `string.pack` format from a layout
+  descriptor — inter-field padding, signed fields, trailing pad, and
+  out-of-order fields — with a pack/unpack round-trip and the
+  overlapping-fields (union) guard.
+
 ### thread
 
 Regression tests for `luathread`.
