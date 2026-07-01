@@ -16,6 +16,9 @@
 -- local bytes = nlmsghdr:pack(len, mtype, flags, seq, pid)
 -- local len, mtype = nlmsghdr:unpack(bytes)
 
+local insert, concat, move, sort = table.insert, table.concat, table.move, table.sort
+local pack, unpack, packsize     = string.pack, string.unpack, string.packsize
+
 local struct = {}
 struct.__index = struct
 
@@ -23,16 +26,16 @@ struct.__index = struct
 -- `i<size>` when signed), with `x` filling inter-field padding and the tail
 -- up to `size`. Native byte order (`=`) for the host-endian struct.
 local function build_format(layout)
-	local fields = table.move(layout.fields, 1, #layout.fields, 1, {})
-	table.sort(fields, function(a, b) return a.offset < b.offset end)
+	local fields = move(layout.fields, 1, #layout.fields, 1, {})
+	sort(fields, function(a, b) return a.offset < b.offset end)
 	local out, pos = {"="}, 0
 	for _, f in ipairs(fields) do
-		if f.offset > pos then table.insert(out, ("x"):rep(f.offset - pos)) end
-		table.insert(out, (f.signed and "i" or "I") .. f.size)
+		if f.offset > pos then insert(out, ("x"):rep(f.offset - pos)) end
+		insert(out, (f.signed and "i" or "I") .. f.size)
 		pos = f.offset + f.size
 	end
-	if layout.size > pos then table.insert(out, ("x"):rep(layout.size - pos)) end
-	return table.concat(out)
+	if layout.size > pos then insert(out, ("x"):rep(layout.size - pos)) end
+	return concat(out)
 end
 
 ---
@@ -41,7 +44,7 @@ end
 -- @param ... the field values
 -- @treturn string
 function struct:pack(...)
-	return string.pack(self.format, ...)
+	return pack(self.format, ...)
 end
 
 ---
@@ -51,7 +54,7 @@ end
 -- @tparam[opt] integer pos starting offset (1-based)
 -- @return the field values in offset order, then the position past the struct
 function struct:unpack(buf, pos)
-	return string.unpack(self.format, buf, pos)
+	return unpack(self.format, buf, pos)
 end
 
 ---
@@ -60,7 +63,7 @@ end
 -- @treturn struct a codec exposing `:pack`, `:unpack` and a `size` field.
 return function(layout)
 	local format = build_format(layout)
-	assert(string.packsize(format) == layout.size,
+	assert(packsize(format) == layout.size,
 		"struct: derived format does not match the layout size (overlapping fields?)")
 	return setmetatable({ format = format, size = layout.size }, struct)
 end
