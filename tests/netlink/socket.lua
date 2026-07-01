@@ -23,14 +23,14 @@ assert(type(pid) == "number" and groups == 0, "netlink getsockname round-trip fa
 print("netlink socket: getsockname ok")
 
 -- a GETLINK dump exercises send (which attaches the kernel destination) + receive
-local ifinfo = string.pack("<BBI2i4I4I4", 0, 0, 0, 0, 0, 0)
-local hdr = string.pack("<I4I2I2I4I4", NLMSG_HDRLEN + #ifinfo, RTM_GETLINK,
+local ifinfo = string.pack("=BBI2i4I4I4", 0, 0, 0, 0, 0, 0)
+local hdr = string.pack("=I4I2I2I4I4", NLMSG_HDRLEN + #ifinfo, RTM_GETLINK,
 	NLM_F_REQUEST | NLM_F_DUMP, 1, 0)
 sock:send(hdr .. ifinfo)
 
 local resp = sock:receive(8192)
 assert(#resp >= NLMSG_HDRLEN, "no netlink response")
-local _, rtype = string.unpack("<I4I2", resp)
+local _, rtype = string.unpack("=I4I2", resp)
 assert(rtype == RTM_NEWLINK, "expected RTM_NEWLINK, got " .. rtype)
 print("netlink socket: GETLINK round-trip ok")
 
