@@ -379,6 +379,45 @@ LUASOCKET_NEWGETTER(sockname);
 LUASOCKET_NEWGETTER(peername);
 
 /***
+* Sets a socket option.
+* `SOL_SOCKET` options are handled by the network core; any other level is
+* passed to the socket's protocol handler, mirroring the `setsockopt(2)`
+* routing.
+*
+* @function setsockopt
+* @tparam integer level option level (e.g., `linux.socket.sol.SOCKET`).
+* @tparam integer optname option name (e.g., `linux.socket.so.RCVTIMEO_NEW`).
+* @tparam integer|string value option value: an integer for the common `int`
+*   payload, or a string carrying the option's packed binary payload.
+* @raise Error if the operation fails.
+* @usage
+*   -- bound blocking receives to 500 ms (a `struct __kernel_sock_timeval`)
+*   sock:setsockopt(sol.SOCKET, so.RCVTIMEO_NEW, timeval:pack(0, 500000))
+*/
+static int luasocket_setsockopt(lua_State *L)
+{
+	struct socket *socket = luasocket_check(L, 1);
+	int level = (int)luaL_checkinteger(L, 2);
+	int optname = (int)luaL_checkinteger(L, 3);
+	int (*setter)(struct socket *, int, int, sockptr_t, unsigned int) =
+		level == SOL_SOCKET ? sock_setsockopt : socket->ops->setsockopt;
+	int value;
+	size_t len;
+	const char *optval;
+
+	luaL_argcheck(L, setter != NULL, 2, "unsupported option level");
+	if (lua_type(L, 4) == LUA_TSTRING)
+		optval = lua_tolstring(L, 4, &len);
+	else {
+		value = (int)luaL_checkinteger(L, 4);
+		optval = (const char *)&value;
+		len = sizeof(value);
+	}
+	lunatik_try(L, setter, socket, level, optname, KERNEL_SOCKPTR((void *)optval), (unsigned int)len);
+	return 0;
+}
+
+/***
 * Closes the socket.
 * This shuts down the socket for both reading and writing and releases
 * associated kernel resources.
@@ -410,6 +449,7 @@ static const luaL_Reg luasocket_mt[] = {
 	{"listen", luasocket_listen},
 	{"accept", luasocket_accept},
 	{"connect", luasocket_connect},
+	{"setsockopt", luasocket_setsockopt},
 	{"getsockname", luasocket_getsockname},
 	{"getpeername", luasocket_getpeername},
 	{NULL, NULL}
