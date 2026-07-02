@@ -158,6 +158,11 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 ### socket
 
+- **setsockopt**: `socket:setsockopt()` sets an integer option (`SO_RCVBUF`)
+  and a packed struct option (`SO_RCVTIMEO_NEW` built with the `timeval`
+  layout codec); with the receive timeout set, a receive with no data returns
+  (raises) instead of blocking forever.
+
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at
   construction.

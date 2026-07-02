@@ -207,7 +207,7 @@ local extract = {}
 -- struct's total size, so extract.parse can reconstruct its layout. Returns
 -- the C source for one struct spec.
 local function struct_probes(spec)
-	local out = { ('\tCOMMENT("struct %s %s");\n'):format(spec.module, spec.struct) }
+	local out = { ('\tCOMMENT("struct %s %s %s");\n'):format(spec.module, spec.struct, spec.as or spec.struct) }
 	for _, f in ipairs(spec.fields) do
 		table.insert(out, ('\tDEFINE(%s_%s_off, offsetof(struct %s, %s));\n'):format(spec.struct, f, spec.struct, f))
 		table.insert(out, ('\tDEFINE(%s_%s_sz, sizeof(((struct %s *)0)->%s));\n'):format(spec.struct, f, spec.struct, f))
@@ -306,8 +306,8 @@ end
 local function flush_struct(modules, order, struct)
 	if not struct then return end
 	table.insert(get_module(modules, order, struct.module).entries, {
-		key = struct.name,
-		value = struct_facts(struct.name, struct.fields, struct.total),
+		key = struct.key,
+		value = struct_facts(struct.key, struct.fields, struct.total),
 	})
 end
 
@@ -326,7 +326,7 @@ function extract.parse()
 		local ascii = line:match('%.ascii%s*"(.-)"')
 		if ascii then
 			local mname, mprefix = ascii:match('^%-%>#module%s+(%S+)%s+(%S+)$')
-			local smod, sname = ascii:match('^%-%>#struct%s+(%S+)%s+(%S+)$')
+			local smod, sname, skey = ascii:match('^%-%>#struct%s+(%S+)%s+(%S+)%s+(%S+)$')
 			if mname then
 				flush_struct(modules, order, struct)
 				struct = nil
@@ -335,7 +335,7 @@ function extract.parse()
 			elseif smod then
 				flush_struct(modules, order, struct)
 				current = nil
-				struct = { module = smod, name = sname, fields = {}, total = 0 }
+				struct = { module = smod, name = sname, key = skey, fields = {}, total = 0 }
 			else
 				local sym, val = ascii:match('^%-%>(%S+)%s+%$?(%-?%d+)%s+.+$')
 				if sym and val and struct then

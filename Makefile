@@ -157,7 +157,8 @@ tests_install:
 		${INSTALL} -m 0644 tests/$$d/*.lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 	done
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
-	${INSTALL} -m 0755 tests/socket/run.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
+	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
+	${INSTALL} -m 0644 tests/socket/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket
 	${INSTALL} -m 0755 tests/socket/unix/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix
 	${INSTALL} -m 0644 tests/socket/unix/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 
