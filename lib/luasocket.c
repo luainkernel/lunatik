@@ -34,6 +34,10 @@
 
 #include <lunatik.h>
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 7, 0)
+typedef int (*luasocket_setter_t)(struct socket *, int, int, sockptr_t, unsigned int);
+#endif
+
 #define luasocket_msgaddr(msg, addr, size)	\
 do {						\
 	msg.msg_namelen = size;			\
@@ -379,6 +383,49 @@ LUASOCKET_NEWGETTER(sockname);
 LUASOCKET_NEWGETTER(peername);
 
 /***
+* Sets a socket option.
+* `SOL_SOCKET` options are handled by the network core; any other level is
+* passed to the socket's protocol handler, mirroring the `setsockopt(2)`
+* routing.
+*
+* @function setsockopt
+* @tparam integer level option level (e.g., `linux.socket.sol.SOCKET`).
+* @tparam integer optname option name (e.g., `linux.socket.so.RCVTIMEO_NEW`).
+* @tparam integer|string value option value: an integer for the common `int`
+*   payload, or a string carrying the option's packed binary payload.
+* @raise Error if the operation fails.
+* @usage
+*   -- bound blocking receives to 500 ms (a `struct __kernel_sock_timeval`)
+*   sock:setsockopt(sol.SOCKET, so.RCVTIMEO_NEW, timeval:pack(0, 500000))
+*/
+static int luasocket_setsockopt(lua_State *L)
+{
+	struct socket *socket = luasocket_check(L, 1);
+	int level = (int)luaL_checkinteger(L, 2);
+	int optname = (int)luaL_checkinteger(L, 3);
+	int value;
+	size_t len;
+	const char *optval;
+
+	if (lua_type(L, 4) == LUA_TSTRING)
+		optval = lua_tolstring(L, 4, &len);
+	else {
+		value = (int)luaL_checkinteger(L, 4);
+		optval = (const char *)&value;
+		len = sizeof(value);
+	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+	lunatik_try(L, do_sock_setsockopt, socket, false, level, optname,
+		KERNEL_SOCKPTR((void *)optval), (int)len);
+#else
+	luasocket_setter_t setter = level == SOL_SOCKET ? sock_setsockopt : socket->ops->setsockopt;
+	luaL_argcheck(L, setter != NULL, 2, "unsupported option level");
+	lunatik_try(L, setter, socket, level, optname, KERNEL_SOCKPTR((void *)optval), (unsigned int)len);
+#endif
+	return 0;
+}
+
+/***
 * Closes the socket.
 * This shuts down the socket for both reading and writing and releases
 * associated kernel resources.
@@ -410,6 +457,7 @@ static const luaL_Reg luasocket_mt[] = {
 	{"listen", luasocket_listen},
 	{"accept", luasocket_accept},
 	{"connect", luasocket_connect},
+	{"setsockopt", luasocket_setsockopt},
 	{"getsockname", luasocket_getsockname},
 	{"getpeername", luasocket_getpeername},
 	{NULL, NULL}
