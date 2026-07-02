@@ -14,6 +14,7 @@
 -- @field desc   short LDoc description used by autogen/ldoc.lua
 -- @field prefix constant prefix (constant specs)
 -- @field struct kernel struct name (struct specs)
+-- @field as     Lua key for the layout (struct specs); defaults to `struct`
 -- @field fields the struct's scalar fields (struct specs); order is free
 --   (sorted by offset), but list them all, as gaps become padding and
 --   non-scalar fields fail the build
@@ -45,6 +46,14 @@ return {
 		desc = "Message flags for send/recv." },
 	{ header = "uapi/linux/in.h",               prefix = "IPPROTO_",   module = "socket.ipproto",
 		desc = "IP-layer protocol numbers." },
+	{ header = "linux/socket.h",                prefix = "SOL_",       module = "socket.sol",
+		desc = "Socket option levels (SOL_*)." },
+	{ header = "uapi/asm-generic/socket.h",     prefix = "SO_",        module = "socket.so",
+		desc = "Socket-level option names (SO_*)." },
+	{ header = "uapi/linux/time_types.h",       module = "socket.layout",    struct = "__kernel_sock_timeval",
+		desc = "Socket option payload layouts.",
+		as = "timeval",
+		fields = { "tv_sec", "tv_usec" } },
 	{ header = "uapi/linux/netfilter.h",        prefix = "NFPROTO_",   module = "nf.proto",
 		desc = "Netfilter protocol families." },
 	{ header = "uapi/linux/netfilter.h",        prefix = "NF_INET_",   module = "nf.inet",
