@@ -66,11 +66,11 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
   <li><a href="../modules/lunatik.html">lunatik</a></li>
-  <li><strong>lunatik.runner</strong></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
   <li><a href="../modules/mailbox.html">mailbox</a></li>
   <li><a href="../modules/net.html">net</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
-  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><strong>netlink.message</strong></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
   <li><a href="../modules/notifier.html">notifier</a></li>
   <li><a href="../modules/probe.html">probe</a></li>
@@ -106,39 +106,28 @@
 
 <div id="content">
 
-<h1>Module <code>lunatik.runner</code></h1>
-<p>Manages the execution and lifecycle of Lunatik scripts.</p>
-<p> This module provides functionalities to run scripts as isolated runtimes,
- spawn them into separate kernel threads, and manage their state (start, stop, list, shutdown).
- It uses RCU-safe tables to store references to active runtimes and threads.
- In following descriptions, 'env' variable stands for 'lunatik._ENV'.</p>
+<h1>Module <code>netlink.message</code></h1>
+<p>Netlink wire codec shared by the netlink modules.</p>
+<p> Builds <code>nlmsghdr</code>/<code>nlattr</code>
+ structures via the <a href="../modules/struct.html#">struct</a> codec and parses received buffers into Lua
+ tables.</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#list">list ()</a></td>
-	<td class="summary">Lists the names of all currently running scripts.</td>
+	<td class="name" nowrap><a href="#attrs">attrs (attrs[, pos])</a></td>
+	<td class="summary">Attribute codec: serializes a <code>{[type] = value}</code> table into netlink
+ attributes, or parses them back from a message body starting at <code>pos</code>.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#run">run (script[, context])</a></td>
-	<td class="summary">Runs a Lunatik script in the current context.</td>
+	<td class="name" nowrap><a href="#encode">encode (mtype, flags, seq, payload)</a></td>
+	<td class="summary">Builds a complete netlink message.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#shutdown">shutdown ()</a></td>
-	<td class="summary">Shuts down all running scripts and their threads.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#spawn">spawn (script)</a></td>
-	<td class="summary">Spawns a Lunatik script in a new kernel thread.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#startup">startup ()</a></td>
-	<td class="summary">Initializes the runner's internal state.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#stop">stop (script)</a></td>
-	<td class="summary">Stops a running script and its associated thread, if any.</td>
+	<td class="name" nowrap><a href="#parse">parse (buf)</a></td>
+	<td class="summary">Parses a buffer into a list of <code>{type, flags, body}</code> messages, where <code>body</code>
+ holds the bytes after the <code>nlmsghdr</code> (family header and attributes).</td>
 	</tr>
 </table>
 
@@ -150,45 +139,24 @@
 
     <dl class="function">
     <dt>
-    <a name = "list"></a>
-    <strong>list ()</strong>
+    <a name = "attrs"></a>
+    <strong>attrs (attrs[, pos])</strong>
     </dt>
     <dd>
-    Lists the names of all currently running scripts.
- Iterates over the <code>env.runtimes</code> RCU table to collect script names.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        A comma-separated string of running script names, or an empty string if no scripts are running.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "run"></a>
-    <strong>run (script[, context])</strong>
-    </dt>
-    <dd>
-    Runs a Lunatik script in the current context.
- Creates a new Lunatik runtime for the given script and registers it.
- Throws an error if a script with the same name is already running.
+    Attribute codec: serializes a <code>{[type] = value}</code> table into netlink
+ attributes, or parses them back from a message body starting at <code>pos</code>.
+ A <code>number</code> value is packed as a <code>u32</code>; a <a href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> is used verbatim.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">script</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         path or name of the Lua script to run. The ".lua" extension will be trimmed.
+        <li><span class="parameter">attrs</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         attribute table (serialize) or message body (parse).
         </li>
-        <li><span class="parameter">context</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         Execution context: <code>&quot;process&quot;</code> (default) or <code>&quot;softirq&quot;</code> (for netfilter/XDP hooks).
+        <li><span class="parameter">pos</span>
+            <span class="types"><span class="type">integer</span></span>
+         1-based position of the first attribute (parse).
          (<em>optional</em>)
         </li>
     </ul>
@@ -196,55 +164,47 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        created Lunatik runtime object.
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        the serialized attributes, or the parsed table.
     </ol>
 
-    <h3>Raises:</h3>
-    error if the script is already running.
 
 
 
 </dd>
     <dt>
-    <a name = "shutdown"></a>
-    <strong>shutdown ()</strong>
+    <a name = "encode"></a>
+    <strong>encode (mtype, flags, seq, payload)</strong>
     </dt>
     <dd>
-    Shuts down all running scripts and their threads.
- Iterates over <code>env.runtimes</code> and calls <a href="../modules/lunatik.runner.html#stop">runner.stop</a> for each script.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "spawn"></a>
-    <strong>spawn (script)</strong>
-    </dt>
-    <dd>
-    Spawns a Lunatik script in a new kernel thread.
- First, it runs the script using <a href="../modules/lunatik.runner.html#run">runner.run</a>, then creates a new kernel thread
- to execute the runtime. The thread is named based on the script's filename.
- The spawned script is expected to return a function, which will then be executed in the new thread.
+    Builds a complete netlink message.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">script</span>
+        <li><span class="parameter">mtype</span>
+            <span class="types"><span class="type">integer</span></span>
+         message type.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         NLM<em>F</em>* flags.
+        </li>
+        <li><span class="parameter">seq</span>
+            <span class="types"><span class="type">integer</span></span>
+         sequence number.
+        </li>
+        <li><span class="parameter">payload</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         path or name of the Lua script to spawn.
+         family header and/or attributes.
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">userdata</span></span>
-        kernel thread object.
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        the serialized message.
     </ol>
 
 
@@ -252,38 +212,28 @@
 
 </dd>
     <dt>
-    <a name = "startup"></a>
-    <strong>startup ()</strong>
+    <a name = "parse"></a>
+    <strong>parse (buf)</strong>
     </dt>
     <dd>
-    Initializes the runner's internal state.
- Creates RCU-safe tables for storing runtimes and threads.
- This is typically called during Lunatik's initialization.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "stop"></a>
-    <strong>stop (script)</strong>
-    </dt>
-    <dd>
-    Stops a running script and its associated thread, if any.
- It attempts to stop the thread first, then the runtime.
+    Parses a buffer into a list of <code>{type, flags, body}</code> messages, where <code>body</code>
+ holds the bytes after the <code>nlmsghdr</code> (family header and attributes).
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">script</span>
+        <li><span class="parameter">buf</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         name of the script to stop. The ".lua" extension will be trimmed.
+         received buffer.
         </li>
     </ul>
 
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        list of messages.
+    </ol>
 
 
 

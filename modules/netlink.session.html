@@ -1,0 +1,339 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_session">Class session </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><strong>netlink.session</strong></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>netlink.session</code></h1>
+<p>Netlink request/response session.</p>
+<p> A session owns an <code>AF_NETLINK</code> socket and
+ the transaction discipline on it: <a href="../modules/netlink.session.html#session:talk">talk</a> and <a href="../modules/netlink.session.html#session:dump">dump</a> send one request and
+ drain its complete reply, raising on a kernel error reply (<code>NLMSG_ERROR</code>).
+ Protocol modules (rtnetlink, generic netlink) derive from this class.
+ All methods block and require a sleepable runtime.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/socket.html#">socket</a>
+    </ul>
+
+
+<h2><a href="#Class_session">Class session </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#session:__call">session:__call ()</a></td>
+	<td class="summary">Creates a session backed by an <code>AF_NETLINK</code> socket of the class's <code>proto</code>.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#session:close">session:close ()</a></td>
+	<td class="summary">Closes the underlying socket.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#session:dump">session:dump (mtype, payload)</a></td>
+	<td class="summary">Sends a dump request and drains the multipart reply until <code>NLMSG_DONE</code>.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#session:new">session:new ([o])</a></td>
+	<td class="summary">Creates a new session object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#session:request">session:request (mtype, flags, payload)</a></td>
+	<td class="summary">Sends one request (<code>NLM_F_REQUEST</code> plus <code>flags</code>) with a fresh sequence number, without waiting for a reply.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#session:talk">session:talk (mtype[, flags=0], payload)</a></td>
+	<td class="summary">Sends a request with <code>NLM_F_ACK</code> and drains the reply up to the kernel
+ acknowledgment, keeping the socket in sync.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_session"></a>Class session </h2>
+
+          <div class="section-description">
+          Base class for netlink sessions.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "session:__call"></a>
+    <strong>session:__call ()</strong>
+    </dt>
+    <dd>
+    Creates a session backed by an <code>AF_NETLINK</code> socket of the class's <code>proto</code>.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.session.html#session">session</a></span>
+        a new session object.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "session:close"></a>
+    <strong>session:close ()</strong>
+    </dt>
+    <dd>
+    Closes the underlying socket.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "session:dump"></a>
+    <strong>session:dump (mtype, payload)</strong>
+    </dt>
+    <dd>
+    Sends a dump request and drains the multipart reply until <code>NLMSG_DONE</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mtype</span>
+            <span class="types"><span class="type">integer</span></span>
+         message type.
+        </li>
+        <li><span class="parameter">payload</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         the family header and attributes.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        the parsed reply messages (the trailing <code>NLMSG_DONE</code> included; see <a href="../modules/netlink.message.html#parse">netlink.message.parse</a>).
+    </ol>
+
+    <h3>Raises:</h3>
+    on a netlink error reply.
+
+
+
+</dd>
+    <dt>
+    <a name = "session:new"></a>
+    <strong>session:new ([o])</strong>
+    </dt>
+    <dd>
+    Creates a new session object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">o</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         an initial object table.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.session.html#session">session</a></span>
+        the new session object.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/class.html#">class</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "session:request"></a>
+    <strong>session:request (mtype, flags, payload)</strong>
+    </dt>
+    <dd>
+    Sends one request (<code>NLM_F_REQUEST</code> plus <code>flags</code>) with a fresh sequence number, without waiting for a reply.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mtype</span>
+            <span class="types"><span class="type">integer</span></span>
+         message type.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         additional NLM<em>F</em>* flags.
+        </li>
+        <li><span class="parameter">payload</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         the family header and attributes.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "session:talk"></a>
+    <strong>session:talk (mtype[, flags=0], payload)</strong>
+    </dt>
+    <dd>
+    Sends a request with <code>NLM_F_ACK</code> and drains the reply up to the kernel
+ acknowledgment, keeping the socket in sync.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mtype</span>
+            <span class="types"><span class="type">integer</span></span>
+         message type.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         extra NLM<em>F</em>* flags.
+         (<em>default</em> 0)
+        </li>
+        <li><span class="parameter">payload</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         the family header and attributes.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        the parsed reply messages (the trailing ack included).
+    </ol>
+
+    <h3>Raises:</h3>
+    on a netlink error reply.
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-07-02 14:39:12 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
