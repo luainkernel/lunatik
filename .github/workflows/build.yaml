@@ -12,7 +12,7 @@ jobs:
     name: Build ${{ matrix.kernel-version }}
     strategy:
       matrix:
-        kernel-version: [5.15, 6.11]
+        kernel-version: [5.15, 6.12]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -26,16 +26,23 @@ jobs:
         sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libncurses-dev clang llvm pkg-config libpcap-dev lua5.4 lua5.4-dev m4
     - name: Setup kernel ${{ matrix.kernel-version }}
       run: |
-        KERNEL_VERSION="${{ matrix.kernel-version }}"
-        MAJOR=$(echo $KERNEL_VERSION | cut -d. -f1)
-        wget -q "https://cdn.kernel.org/pub/linux/kernel/v${MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz"
-        tar xf linux-${KERNEL_VERSION}.tar.xz
-        cd linux-${KERNEL_VERSION}
+        SERIES="${{ matrix.kernel-version }}"
+        # kernel.org publishes only the latest point release of each
+        # maintained series: resolve it from releases.json (empty for an EOL
+        # series) and fetch its git.kernel.org snapshot
+        ESC=$(echo "$SERIES" | sed 's/\./\\./g')
+        VERSION=$(curl -sSL --retry 3 https://www.kernel.org/releases.json \
+          | grep -oE '"'"$ESC"'\.[0-9]+"' | tr -d '"' | head -1)
+        test -n "$VERSION" || { echo "no maintained release for kernel series $SERIES"; exit 1; }
+        echo "Fetching linux-$VERSION"
+        wget -q --tries=3 --timeout=60 "https://git.kernel.org/stable/t/linux-${VERSION}.tar.gz"
+        tar xf "linux-${VERSION}.tar.gz"
+        cd "linux-${VERSION}"
         make mrproper
         make defconfig
         echo "CONFIG_STACK_VALIDATION=n" >> .config
         echo "CONFIG_WERROR=n" >> .config
-        if [[ "$KERNEL_VERSION" == "5."* ]]; then
+        if [[ "$SERIES" == "5."* ]]; then
           sed -i 's/-Werror//g' tools/objtool/Makefile
           sed -i 's/-Werror//g' tools/lib/subcmd/Makefile
           export HOSTCFLAGS="-Wno-error=deprecated-declarations -Wno-error=use-after-free"
