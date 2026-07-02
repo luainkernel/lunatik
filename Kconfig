@@ -53,6 +53,13 @@ config LUNATIK_SOCKET
 	help
 	  Networking socket support for Lua scripts.
 
+config LUNATIK_NETLINK
+	tristate "Lunatik Netlink Support"
+	default m
+	help
+	  Generic netlink multicast channel (netlink.channel) for softirq-safe
+	  kernel-to-userspace telemetry from Lua scripts.
+
 config LUNATIK_RCU
 	tristate "Lunatik RCU Support"
 	default m

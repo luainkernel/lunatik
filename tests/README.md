@@ -72,6 +72,11 @@ higher-level `netlink.*` modules built on top of it.
   `call()` round-trip (regression for the orphaned-ACK desync), a `GETFAMILY`
   `dump()` that lists every family (with `nlctrl` among them), and an unknown
   family raising.
+- **channel**: a softirq runtime registers a generic netlink multicast family
+  and a `PRE_ROUTING` netfilter hook that broadcasts on received traffic (NET_RX
+  softirq); a userspace subscriber joins the family's group and receives the
+  payload, proving kernel-to-userspace delivery from softirq (skips without
+  `gcc`/`genl`).
 
 ### notifier
 
