@@ -56,6 +56,7 @@ file = {
 	'./lib/syscall/table.lua',
 	'./lib/luathread.c',
 	'./lib/luaxdp.c',
+	'./lib/luaebpf_map.c',
 }
 
 -- examples = "./examples"
