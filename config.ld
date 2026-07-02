@@ -39,6 +39,7 @@ file = {
 	'./lib/net.lua',
 	'./lib/netlink/genl.lua',
 	'./lib/netlink/message.lua',
+	'./lib/netlink/rt.lua',
 	'./lib/netlink/session.lua',
 	'./lib/luanetfilter.c',
 	'./lib/luaskb.c',
