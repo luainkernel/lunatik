@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_netfilter_hook">Class netfilter_hook </a></li>
+<li><a href="#Tables">Tables</a></li>
 </ul>
 
 
@@ -53,7 +53,7 @@
   <li><a href="../modules/lighten.html">lighten</a></li>
   <li><a href="../modules/linux.html">linux</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
-  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><strong>linux.genl</strong></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
@@ -70,7 +70,7 @@
   <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
   <li><a href="../modules/mailbox.html">mailbox</a></li>
   <li><a href="../modules/net.html">net</a></li>
-  <li><strong>netfilter</strong></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -108,18 +108,28 @@
 
 <div id="content">
 
-<h1>Module <code>netfilter</code></h1>
-<p>Lua interface to the Linux Netfilter framework.</p>
-<p>
-
-</p>
+<h1>Module <code>linux.genl</code></h1>
+<p>Linux kernel constants exposed under <a href="../modules/linux.genl.html#">linux.genl</a>.</p>
+<p> Values are populated at build time from the kernel headers.</p>
 
 
-<h2><a href="#Class_netfilter_hook">Class netfilter_hook </a></h2>
+<h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#netfilter_hook:register">netfilter_hook:register (opts)</a></td>
-	<td class="summary">Registers a Netfilter hook.</td>
+	<td class="name" nowrap><a href="#attr">attr</a></td>
+	<td class="summary">Generic netlink controller attributes (CTRL<em>ATTR</em>*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#cmd">cmd</a></td>
+	<td class="summary">Generic netlink controller commands (CTRL<em>CMD</em>*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#id">id</a></td>
+	<td class="summary">Generic netlink reserved family ids (GENL<em>ID</em>*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#layout">layout</a></td>
+	<td class="summary">Generic netlink header layout.</td>
 	</tr>
 </table>
 
@@ -127,35 +137,64 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_netfilter_hook"></a>Class netfilter_hook </h2>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
 
-          <div class="section-description">
-          Registered Netfilter hook.  Garbage collecting this object unregisters the hook.
-          </div>
     <dl class="function">
     <dt>
-    <a name = "netfilter_hook:register"></a>
-    <strong>netfilter_hook:register (opts)</strong>
+    <a name = "attr"></a>
+    <strong>attr</strong>
     </dt>
     <dd>
-    Registers a Netfilter hook.
+    Generic netlink controller attributes (CTRL<em>ATTR</em>*).
+ Mirrors <code>CTRL_ATTR_*</code> defines in <code>&lt;uapi/linux/genetlink.h&gt;</code>.
 
 
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">opts</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         Hook options: <code>hook</code> (function), <code>pf</code>, <code>hooknum</code>, <code>priority</code> (integers),
-   and optionally <code>mark</code> (integer, default 0).
-        </li>
-    </ul>
 
-    <h3>Returns:</h3>
-    <ol>
 
-           <span class="types"><span class="type">netfilter_hook</span></span>
-        Registered hook handle.
-    </ol>
+
+
+
+</dd>
+    <dt>
+    <a name = "cmd"></a>
+    <strong>cmd</strong>
+    </dt>
+    <dd>
+    Generic netlink controller commands (CTRL<em>CMD</em>*).
+ Mirrors <code>CTRL_CMD_*</code> defines in <code>&lt;uapi/linux/genetlink.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "id"></a>
+    <strong>id</strong>
+    </dt>
+    <dd>
+    Generic netlink reserved family ids (GENL<em>ID</em>*).
+ Mirrors <code>GENL_ID_*</code> defines in <code>&lt;uapi/linux/genetlink.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "layout"></a>
+    <strong>layout</strong>
+    </dt>
+    <dd>
+    Generic netlink header layout.
+ Layout descriptors (per-field offset/size/signedness) generated from <code>&lt;uapi/linux/genetlink.h&gt;</code>; consume via <code>require(&quot;struct&quot;)</code>.
+
+
+
 
 
 

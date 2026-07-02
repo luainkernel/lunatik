@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Functions">Functions</a></li>
+<li><a href="#Class_genl">Class genl </a></li>
 </ul>
 
 
@@ -71,8 +71,8 @@
   <li><a href="../modules/mailbox.html">mailbox</a></li>
   <li><a href="../modules/net.html">net</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
-  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
-  <li><strong>netlink.message</strong></li>
+  <li><strong>netlink.genl</strong></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
   <li><a href="../modules/notifier.html">notifier</a></li>
   <li><a href="../modules/probe.html">probe</a></li>
@@ -108,28 +108,35 @@
 
 <div id="content">
 
-<h1>Module <code>netlink.message</code></h1>
-<p>Netlink wire codec shared by the netlink modules.</p>
-<p> Builds <code>nlmsghdr</code>/<code>nlattr</code>
- structures via the <a href="../modules/struct.html#">struct</a> codec and parses received buffers into Lua
- tables.</p>
+<h1>Module <code>netlink.genl</code></h1>
+<p>Generic netlink (<code>NETLINK_GENERIC</code>) interface.</p>
+<p> A <a href="../modules/netlink.session.html#">netlink.session</a>
+ specialization: create an instance with <code>genl()</code>, resolve a family name to
+ its id, then dispatch commands; close it when done. All methods block and
+ require a sleepable runtime.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
+    </ul>
 
 
-<h2><a href="#Functions">Functions</a></h2>
+<h2><a href="#Class_genl">Class genl </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#attrs">attrs (attrs[, pos])</a></td>
-	<td class="summary">Attribute codec: serializes a <code>{[type] = value}</code> table into netlink
- attributes, or parses them back from a message body starting at <code>pos</code>.</td>
+	<td class="name" nowrap><a href="#genl:call">genl:call (family_id, cmd[, flags=0[, payload]])</a></td>
+	<td class="summary">Sends a single generic netlink command and returns the decoded reply messages.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#encode">encode (mtype, flags, seq, payload)</a></td>
-	<td class="summary">Builds a complete netlink message.</td>
+	<td class="name" nowrap><a href="#genl:dump">genl:dump (family_id, cmd[, payload])</a></td>
+	<td class="summary">Sends a dump command and collects the full multipart response.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#parse">parse (buf)</a></td>
-	<td class="summary">Parses a buffer into a list of <code>{type, flags, body}</code> messages, where <code>body</code>
- holds the bytes after the <code>nlmsghdr</code> (family header and attributes).</td>
+	<td class="name" nowrap><a href="#genl:family">genl:family (name)</a></td>
+	<td class="summary">Resolves a generic netlink family name to its (dynamically assigned) id.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#genl:new">genl:new ([o])</a></td>
+	<td class="summary">Creates a new genl object.</td>
 	</tr>
 </table>
 
@@ -137,28 +144,38 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+    <h2 class="section-header has-description"><a name="Class_genl"></a>Class genl </h2>
 
+          <div class="section-description">
+          Generic netlink session.
+          </div>
     <dl class="function">
     <dt>
-    <a name = "attrs"></a>
-    <strong>attrs (attrs[, pos])</strong>
+    <a name = "genl:call"></a>
+    <strong>genl:call (family_id, cmd[, flags=0[, payload]])</strong>
     </dt>
     <dd>
-    Attribute codec: serializes a <code>{[type] = value}</code> table into netlink
- attributes, or parses them back from a message body starting at <code>pos</code>.
- A <code>number</code> value is packed as a <code>u32</code>; a <a href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> is used verbatim.
+    Sends a single generic netlink command and returns the decoded reply messages.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">attrs</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         attribute table (serialize) or message body (parse).
-        </li>
-        <li><span class="parameter">pos</span>
+        <li><span class="parameter">family_id</span>
             <span class="types"><span class="type">integer</span></span>
-         1-based position of the first attribute (parse).
+         family id (from <a href="../modules/netlink.genl.html#genl:family">family</a>).
+        </li>
+        <li><span class="parameter">cmd</span>
+            <span class="types"><span class="type">integer</span></span>
+         command number.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         additional NLM<em>F</em>* flags.
+         (<em>default</em> 0)
+        </li>
+        <li><span class="parameter">payload</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         serialized attributes.
          (<em>optional</em>)
         </li>
     </ul>
@@ -166,67 +183,38 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        the serialized attributes, or the parsed table.
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        list of <code>{cmd, attrs}</code> response messages.
     </ol>
 
+    <h3>Raises:</h3>
+    on netlink error.
 
 
 
 </dd>
     <dt>
-    <a name = "encode"></a>
-    <strong>encode (mtype, flags, seq, payload)</strong>
+    <a name = "genl:dump"></a>
+    <strong>genl:dump (family_id, cmd[, payload])</strong>
     </dt>
     <dd>
-    Builds a complete netlink message.
+    Sends a dump command and collects the full multipart response.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">mtype</span>
+        <li><span class="parameter">family_id</span>
             <span class="types"><span class="type">integer</span></span>
-         message type.
+         family id (from <a href="../modules/netlink.genl.html#genl:family">family</a>).
         </li>
-        <li><span class="parameter">flags</span>
+        <li><span class="parameter">cmd</span>
             <span class="types"><span class="type">integer</span></span>
-         NLM<em>F</em>* flags.
-        </li>
-        <li><span class="parameter">seq</span>
-            <span class="types"><span class="type">integer</span></span>
-         sequence number.
+         command number.
         </li>
         <li><span class="parameter">payload</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         family header and/or attributes.
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        the serialized message.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "parse"></a>
-    <strong>parse (buf)</strong>
-    </dt>
-    <dd>
-    Parses a buffer into a list of <code>{type, flags, body}</code> messages, where <code>body</code>
- holds the bytes after the <code>nlmsghdr</code> (family header and attributes).
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">buf</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         received buffer.
+         serialized attributes.
+         (<em>optional</em>)
         </li>
     </ul>
 
@@ -234,10 +222,73 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        list of messages.
+        list of <code>{cmd, attrs}</code> response messages.
+    </ol>
+
+    <h3>Raises:</h3>
+    on netlink error.
+
+
+
+</dd>
+    <dt>
+    <a name = "genl:family"></a>
+    <strong>genl:family (name)</strong>
+    </dt>
+    <dd>
+    Resolves a generic netlink family name to its (dynamically assigned) id.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         family name (e.g. <code>&quot;nlctrl&quot;</code>, <code>&quot;nl80211&quot;</code>).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        the family id.
+    </ol>
+
+    <h3>Raises:</h3>
+    if the family does not exist.
+
+
+
+</dd>
+    <dt>
+    <a name = "genl:new"></a>
+    <strong>genl:new ([o])</strong>
+    </dt>
+    <dd>
+    Creates a new genl object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">o</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         an initial object table.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.genl.html#genl">genl</a></span>
+        the new genl object.
     </ol>
 
 
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/class.html#">class</a>
+    </ul>
 
 
 </dd>
