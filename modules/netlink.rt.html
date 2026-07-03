@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Tables">Tables</a></li>
+<li><a href="#Functions">Functions</a></li>
 </ul>
 
 
@@ -57,7 +57,7 @@
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
-  <li><strong>linux.nf</strong></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -75,7 +75,7 @@
   <li><a href="../modules/netlink.html">netlink</a></li>
   <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
-  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><strong>netlink.rt</strong></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
   <li><a href="../modules/notifier.html">notifier</a></li>
   <li><a href="../modules/probe.html">probe</a></li>
@@ -111,44 +111,44 @@
 
 <div id="content">
 
-<h1>Module <code>linux.nf</code></h1>
-<p>Linux kernel constants exposed under <a href="../modules/linux.nf.html#">linux.nf</a>.</p>
-<p> Values are populated at build time from the kernel headers.</p>
+<h1>Module <code>netlink.rt</code></h1>
+<p>rtnetlink interface for routes, links and addresses.</p>
+<p> A <a href="../modules/netlink.session.html#">netlink.session</a>
+ specialization over the <code>NETLINK_ROUTE</code> protocol: create an instance with
+ <code>rt()</code> and call its methods; the underlying socket is closed by <code>close()</code>
+ (or the to-be-closed <code>__close</code>). All methods block and require a sleepable
+ runtime.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
+    </ul>
 
 
-<h2><a href="#Tables">Tables</a></h2>
+<h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#action">action</a></td>
-	<td class="summary">Netfilter hook verdicts.</td>
+	<td class="name" nowrap><a href="#addr_list">addr_list ([family=AF_UNSPEC])</a></td>
+	<td class="summary">Lists all interface addresses from the kernel.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#arp">arp</a></td>
-	<td class="summary">Netfilter hook positions in the ARP family.</td>
+	<td class="name" nowrap><a href="#link_list">link_list ()</a></td>
+	<td class="summary">Lists all network interfaces from the kernel.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#br">br</a></td>
-	<td class="summary">Netfilter hook positions in the BRIDGE family.</td>
+	<td class="name" nowrap><a href="#new">new ([o])</a></td>
+	<td class="summary">Creates a new rt object.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#br.pri">br.pri</a></td>
-	<td class="summary">Netfilter hook priorities in the BRIDGE family.</td>
+	<td class="name" nowrap><a href="#route_add">route_add (opts)</a></td>
+	<td class="summary">Adds a route to the kernel routing table.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet">inet</a></td>
-	<td class="summary">Netfilter hook positions in the INET family.</td>
+	<td class="name" nowrap><a href="#route_del">route_del (opts)</a></td>
+	<td class="summary">Deletes a route from the kernel routing table.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ip.pri">ip.pri</a></td>
-	<td class="summary">Netfilter hook priorities in the IP family.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#netdev">netdev</a></td>
-	<td class="summary">Netfilter hook positions in the NETDEV family.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#proto">proto</a></td>
-	<td class="summary">Netfilter protocol families.</td>
+	<td class="name" nowrap><a href="#route_list">route_list ([family=AF_UNSPEC])</a></td>
+	<td class="summary">Lists all routes from the kernel routing tables.</td>
 	</tr>
 </table>
 
@@ -156,18 +156,105 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
 
     <dl class="function">
     <dt>
-    <a name = "action"></a>
-    <strong>action</strong>
+    <a name = "addr_list"></a>
+    <strong>addr_list ([family=AF_UNSPEC])</strong>
     </dt>
     <dd>
-    Netfilter hook verdicts.
- Mirrors <code>NF_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
+    Lists all interface addresses from the kernel.
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">family</span>
+            <span class="types"><span class="type">integer</span></span>
+         address family.
+         (<em>default</em> AF_UNSPEC)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        list of address tables.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "link_list"></a>
+    <strong>link_list ()</strong>
+    </dt>
+    <dd>
+    Lists all network interfaces from the kernel.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        list of link tables.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "new"></a>
+    <strong>new ([o])</strong>
+    </dt>
+    <dd>
+    Creates a new rt object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">o</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         an initial object table.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">rt</span></span>
+        the new rt object.
+    </ol>
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/class.html#">class</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "route_add"></a>
+    <strong>route_add (opts)</strong>
+    </dt>
+    <dd>
+    Adds a route to the kernel routing table.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         route parameters: optional <code>family</code> (default <code>AF_INET</code>),
+   <code>dst_len</code>, <code>dst</code>, <code>gateway</code>, <code>oif</code>, <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a>, <code>protocol</code>, <code>scope</code>, <code>rtype</code>.
+        </li>
+    </ul>
 
 
 
@@ -175,14 +262,21 @@
 
 </dd>
     <dt>
-    <a name = "arp"></a>
-    <strong>arp</strong>
+    <a name = "route_del"></a>
+    <strong>route_del (opts)</strong>
     </dt>
     <dd>
-    Netfilter hook positions in the ARP family.
- Mirrors <code>NF_ARP_*</code> defines in <code>&lt;uapi/linux/netfilter_arp.h&gt;</code>.
+    Deletes a route from the kernel routing table.
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         route parameters: optional <code>family</code> (default <code>AF_INET</code>),
+   <code>dst_len</code>, <code>dst</code>, <code>oif</code>, <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a>.
+        </li>
+    </ul>
 
 
 
@@ -190,90 +284,28 @@
 
 </dd>
     <dt>
-    <a name = "br"></a>
-    <strong>br</strong>
+    <a name = "route_list"></a>
+    <strong>route_list ([family=AF_UNSPEC])</strong>
     </dt>
     <dd>
-    Netfilter hook positions in the BRIDGE family.
- Mirrors <code>NF_BR_*</code> defines in <code>&lt;uapi/linux/netfilter_bridge.h&gt;</code>.
+    Lists all routes from the kernel routing tables.
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">family</span>
+            <span class="types"><span class="type">integer</span></span>
+         address family.
+         (<em>default</em> AF_UNSPEC)
+        </li>
+    </ul>
 
+    <h3>Returns:</h3>
+    <ol>
 
-
-
-
-</dd>
-    <dt>
-    <a name = "br.pri"></a>
-    <strong>br.pri</strong>
-    </dt>
-    <dd>
-    Netfilter hook priorities in the BRIDGE family.
- Mirrors <code>NF_BR_PRI_*</code> defines in <code>&lt;uapi/linux/netfilter_bridge.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "inet"></a>
-    <strong>inet</strong>
-    </dt>
-    <dd>
-    Netfilter hook positions in the INET family.
- Mirrors <code>NF_INET_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "ip.pri"></a>
-    <strong>ip.pri</strong>
-    </dt>
-    <dd>
-    Netfilter hook priorities in the IP family.
- Mirrors <code>NF_IP_PRI_*</code> defines in <code>&lt;uapi/linux/netfilter_ipv4.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "netdev"></a>
-    <strong>netdev</strong>
-    </dt>
-    <dd>
-    Netfilter hook positions in the NETDEV family.
- Mirrors <code>NF_NETDEV_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "proto"></a>
-    <strong>proto</strong>
-    </dt>
-    <dd>
-    Netfilter protocol families.
- Mirrors <code>NFPROTO_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
-
-
-
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        list of route tables.
+    </ol>
 
 
 

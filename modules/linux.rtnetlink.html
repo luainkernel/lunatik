@@ -58,8 +58,8 @@
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
-  <li><strong>linux.notify</strong></li>
-  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><strong>linux.rtnetlink</strong></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
   <li><a href="../modules/linux.socket.html">linux.socket</a></li>
   <li><a href="../modules/linux.stat.html">linux.stat</a></li>
@@ -111,16 +111,48 @@
 
 <div id="content">
 
-<h1>Module <code>linux.notify</code></h1>
-<p>Linux kernel constants exposed under <a href="../modules/linux.notify.html#">linux.notify</a>.</p>
+<h1>Module <code>linux.rtnetlink</code></h1>
+<p>Linux kernel constants exposed under <a href="../modules/linux.rtnetlink.html#">linux.rtnetlink</a>.</p>
 <p> Values are populated at build time from the kernel headers.</p>
 
 
 <h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#constants">constants</a></td>
-	<td class="summary">Return codes for kernel notifier chains.</td>
+	<td class="name" nowrap><a href="#ifa">ifa</a></td>
+	<td class="summary">rtnetlink address attribute types (IFA_*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ifla">ifla</a></td>
+	<td class="summary">rtnetlink link attribute types (IFLA_*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#layout">layout</a></td>
+	<td class="summary">rtnetlink message header layouts.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#rta">rta</a></td>
+	<td class="summary">rtnetlink route attribute types (RTA_*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#rtm">rtm</a></td>
+	<td class="summary">rtnetlink message types (RTM_*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#rtn">rtn</a></td>
+	<td class="summary">rtnetlink route types (RTN_*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#rtprot">rtprot</a></td>
+	<td class="summary">rtnetlink route origins (RTPROT_*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#scope">scope</a></td>
+	<td class="summary">rtnetlink route scopes (RT<em>SCOPE</em>*).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#table">table</a></td>
+	<td class="summary">rtnetlink routing table ids (RT<em>TABLE</em>*).</td>
 	</tr>
 </table>
 
@@ -132,12 +164,132 @@
 
     <dl class="function">
     <dt>
-    <a name = "constants"></a>
-    <strong>constants</strong>
+    <a name = "ifa"></a>
+    <strong>ifa</strong>
     </dt>
     <dd>
-    Return codes for kernel notifier chains.
- Mirrors <code>NOTIFY_*</code> defines in <code>&lt;linux/notifier.h&gt;</code>.
+    rtnetlink address attribute types (IFA_*).
+ Mirrors <code>IFA_*</code> defines in <code>&lt;uapi/linux/if_addr.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ifla"></a>
+    <strong>ifla</strong>
+    </dt>
+    <dd>
+    rtnetlink link attribute types (IFLA_*).
+ Mirrors <code>IFLA_*</code> defines in <code>&lt;uapi/linux/if_link.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "layout"></a>
+    <strong>layout</strong>
+    </dt>
+    <dd>
+    rtnetlink message header layouts.
+ Layout descriptors (per-field offset/size/signedness) generated from <code>&lt;uapi/linux/rtnetlink.h&gt;</code>; consume via <code>require(&quot;struct&quot;)</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "rta"></a>
+    <strong>rta</strong>
+    </dt>
+    <dd>
+    rtnetlink route attribute types (RTA_*).
+ Mirrors <code>RTA_*</code> defines in <code>&lt;uapi/linux/rtnetlink.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "rtm"></a>
+    <strong>rtm</strong>
+    </dt>
+    <dd>
+    rtnetlink message types (RTM_*).
+ Mirrors <code>RTM_*</code> defines in <code>&lt;uapi/linux/rtnetlink.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "rtn"></a>
+    <strong>rtn</strong>
+    </dt>
+    <dd>
+    rtnetlink route types (RTN_*).
+ Mirrors <code>RTN_*</code> defines in <code>&lt;uapi/linux/rtnetlink.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "rtprot"></a>
+    <strong>rtprot</strong>
+    </dt>
+    <dd>
+    rtnetlink route origins (RTPROT_*).
+ Mirrors <code>RTPROT_*</code> defines in <code>&lt;uapi/linux/rtnetlink.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "scope"></a>
+    <strong>scope</strong>
+    </dt>
+    <dd>
+    rtnetlink route scopes (RT<em>SCOPE</em>*).
+ Mirrors <code>RT_SCOPE_*</code> defines in <code>&lt;uapi/linux/rtnetlink.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "table"></a>
+    <strong>table</strong>
+    </dt>
+    <dd>
+    rtnetlink routing table ids (RT<em>TABLE</em>*).
+ Mirrors <code>RT_TABLE_*</code> defines in <code>&lt;uapi/linux/rtnetlink.h&gt;</code>.
 
 
 
