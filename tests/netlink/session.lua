@@ -18,7 +18,7 @@ local function sock_send() end
 
 local function sock_receive(self)
 	self.i = self.i + 1
-	return self.chunks[self.i]
+	return self.chunks[self.i] or ""
 end
 
 local function fakesession(chunks)
@@ -32,6 +32,11 @@ end
 -- dump must terminate (not hang) on an empty read
 assert(#fakesession{""}:dump(MTYPE, "") == 0, "dump on empty read should return no messages")
 print("netlink session: dump empty-read ok")
+
+-- dump must drain a MULTI reply that never sends DONE down to the empty read
+local drained = fakesession{message.encode(MTYPE, nl.flag.MULTI, 1, "data")}:dump(MTYPE, "")
+assert(#drained == 1 and drained[1].type == MTYPE, "dump should drain a MULTI reply to the empty read")
+print("netlink session: dump drains a MULTI reply ok")
 
 -- talk drains the reply up to the ack and passes a zero error code; a data
 -- message in the same datagram is kept, in order
