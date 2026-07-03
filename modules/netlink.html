@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Functions">Functions</a></li>
+<li><a href="#Class_netlink_channel">Class netlink.channel </a></li>
 </ul>
 
 
@@ -71,7 +71,7 @@
   <li><a href="../modules/mailbox.html">mailbox</a></li>
   <li><a href="../modules/net.html">net</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
-  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><strong>netlink</strong></li>
   <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -80,7 +80,7 @@
   <li><a href="../modules/rcu.html">rcu</a></li>
   <li><a href="../modules/set.html">set</a></li>
   <li><a href="../modules/signal.html">signal</a></li>
-  <li><strong>skb</strong></li>
+  <li><a href="../modules/skb.html">skb</a></li>
   <li><a href="../modules/socket.html">socket</a></li>
   <li><a href="../modules/socket.inet.html">socket.inet</a></li>
   <li><a href="../modules/socket.raw.html">socket.raw</a></li>
@@ -109,59 +109,29 @@
 
 <div id="content">
 
-<h1>Module <code>skb</code></h1>
-<p>Linux socket buffer interface.</p>
-<p>
+<h1>Module <code>netlink</code></h1>
+<p>Generic netlink channel.</p>
+<p> Exposes <a href="../modules/netlink.html#netlink.channel">netlink.channel</a>, a generic netlink family with one multicast group
+ whose <a href="../modules/netlink.html#netlink.channel:broadcast">broadcast</a>/<a href="../modules/netlink.html#netlink.channel:unicast">unicast</a> are safe from softirq (netfilter hooks, XDP), for
+ kernel-to-userspace delivery. The message body is built in Lua (e.g. with
+ <a href="../modules/netlink.message.html#">netlink.message</a>) and sent as-is; request/response netlink is otherwise done
+ in Lua over the <a href="../modules/socket.html#">socket</a> module. Only this softirq-capable send path needs a
+ dedicated kernel object.</p>
 
-</p>
 
-
-<h2><a href="#Functions">Functions</a></h2>
+<h2><a href="#Class_netlink_channel">Class netlink.channel </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#__len">__len ()</a></td>
-	<td class="summary">
-
-</td>
+	<td class="name" nowrap><a href="#netlink.channel:broadcast">netlink.channel:broadcast (cmd[, payload])</a></td>
+	<td class="summary">Broadcasts a message to every subscriber of the channel's group.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#checksum">checksum ()</a></td>
-	<td class="summary">Recomputes IP and transport-layer (TCP/UDP) checksums.</td>
+	<td class="name" nowrap><a href="#netlink.channel:channel">netlink.channel:channel (name)</a></td>
+	<td class="summary">Creates a generic netlink channel.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#connmark">connmark ([value])</a></td>
-	<td class="summary">Gets or sets the conntrack mark: with no argument reads it, with <code>value</code> sets
- it.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#copy">copy ()</a></td>
-	<td class="summary">Returns an independent copy of the skb with its own data buffer.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#data">data ([layer])</a></td>
-	<td class="summary">
-
-</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#forward">forward ()</a></td>
-	<td class="summary">Forwards the skb out through its ingress device.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#ifindex">ifindex ()</a></td>
-	<td class="summary">
-
-</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#resize">resize (n)</a></td>
-	<td class="summary">Expands (skb<em>put) or shrinks (skb</em>trim) the skb data area.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#vlan">vlan ()</a></td>
-	<td class="summary">
-
-</td>
+	<td class="name" nowrap><a href="#netlink.channel:unicast">netlink.channel:unicast (portid, cmd[, payload])</a></td>
+	<td class="summary">Unicasts a message to a single userspace subscriber by port id.</td>
 	</tr>
 </table>
 
@@ -169,115 +139,33 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+    <h2 class="section-header has-description"><a name="Class_netlink_channel"></a>Class netlink.channel </h2>
 
+          <div class="section-description">
+          A generic netlink channel.
+ Returned by <code>netlink.channel()</code>. Backed by a generic netlink family with one
+ multicast group; <a href="../modules/netlink.html#netlink.channel:broadcast">broadcast</a> and <a href="../modules/netlink.html#netlink.channel:unicast">unicast</a> are safe from softirq (netfilter
+ hooks, XDP) and deliver to userspace subscribers of the family.
+          </div>
     <dl class="function">
     <dt>
-    <a name = "__len"></a>
-    <strong>__len ()</strong>
+    <a name = "netlink.channel:broadcast"></a>
+    <strong>netlink.channel:broadcast (cmd[, payload])</strong>
     </dt>
     <dd>
-
-
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        skb length in bytes
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "checksum"></a>
-    <strong>checksum ()</strong>
-    </dt>
-    <dd>
-    Recomputes IP and transport-layer (TCP/UDP) checksums.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "connmark"></a>
-    <strong>connmark ([value])</strong>
-    </dt>
-    <dd>
-    Gets or sets the conntrack mark: with no argument reads it, with <code>value</code> sets
- it.  Returns the current (or new) mark, or nil if no conntrack is associated.
+    Broadcasts a message to every subscriber of the channel's group.
+ Safe to call from softirq.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">value</span>
+        <li><span class="parameter">cmd</span>
             <span class="types"><span class="type">integer</span></span>
-         32-bit mark to set
-         (<em>optional</em>)
+         Generic netlink command.
         </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        32-bit connmark, or nil if no conntrack is associated
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "copy"></a>
-    <strong>copy ()</strong>
-    </dt>
-    <dd>
-    Returns an independent copy of the skb with its own data buffer.
- The skb is linearized before copying to avoid failures on fragmented skbs
- (e.g. bridged traffic with paged data).
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">skb</span></span>
-
-
-
-    </ol>
-
-    <h3>Raises:</h3>
-    if skb is FRAGLIST GSO, linearization fails, or copy allocation fails
-
-
-
-</dd>
-    <dt>
-    <a name = "data"></a>
-    <strong>data ([layer])</strong>
-    </dt>
-    <dd>
-
-
-
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">layer</span>
+        <li><span class="parameter">payload</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         "net" (default, L3) or "mac" (L2, includes MAC header)
+         Message body (e.g. from <a href="../modules/netlink.message.html#">netlink.message</a>).
          (<em>optional</em>)
         </li>
     </ul>
@@ -285,97 +173,86 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="../modules/skb.html#data">data</a></span>
-
-
-
+           <span class="types"><span class="type">boolean</span></span>
+        whether it reached at least one subscriber.
     </ol>
 
     <h3>Raises:</h3>
-    if linearization fails, MAC header is not set, or layer is invalid
+    on an allocation error.
 
 
 
 </dd>
     <dt>
-    <a name = "forward"></a>
-    <strong>forward ()</strong>
+    <a name = "netlink.channel:channel"></a>
+    <strong>netlink.channel:channel (name)</strong>
     </dt>
     <dd>
-    Forwards the skb out through its ingress device.
-
-
-
-
-    <h3>Raises:</h3>
-    if skb has no device, MAC header is not set, or clone fails
-
-
-
-</dd>
-    <dt>
-    <a name = "ifindex"></a>
-    <strong>ifindex ()</strong>
-    </dt>
-    <dd>
-
-
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        network interface index, or nil if not available
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "resize"></a>
-    <strong>resize (n)</strong>
-    </dt>
-    <dd>
-    Expands (skb<em>put) or shrinks (skb</em>trim) the skb data area.
+    Creates a generic netlink channel.
+ Registers a generic netlink family <code>name</code> with a single multicast group;
+ userspace resolves the family by name (e.g. via <a href="../modules/netlink.genl.html#">netlink.genl</a>) to learn the
+ group it must join. Like a netfilter hook, it must be created at script load
+ (process context); the returned channel lives for the runtime and its
+ <a href="../modules/netlink.html#netlink.channel:broadcast">broadcast</a>/<a href="../modules/netlink.html#netlink.channel:unicast">unicast</a> may then be called from softirq.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">n</span>
-            <span class="types"><span class="type">integer</span></span>
-         desired size in bytes
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Generic netlink family name (up to <code>GENL_NAMSIZ-1</code> bytes).
         </li>
     </ul>
 
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.html#netlink.channel">netlink.channel</a></span>
+        A new channel object.
+    </ol>
 
     <h3>Raises:</h3>
-    if insufficient tailroom for expansion
+    if the name is empty or too long, or family registration fails.
 
 
 
 </dd>
     <dt>
-    <a name = "vlan"></a>
-    <strong>vlan ()</strong>
+    <a name = "netlink.channel:unicast"></a>
+    <strong>netlink.channel:unicast (portid, cmd[, payload])</strong>
     </dt>
     <dd>
+    Unicasts a message to a single userspace subscriber by port id.
+ Safe to call from softirq.
 
 
-
-
-
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">portid</span>
+            <span class="types"><span class="type">integer</span></span>
+         Destination netlink port id.
+        </li>
+        <li><span class="parameter">cmd</span>
+            <span class="types"><span class="type">integer</span></span>
+         Generic netlink command.
+        </li>
+        <li><span class="parameter">payload</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Message body (e.g. from <a href="../modules/netlink.message.html#">netlink.message</a>).
+         (<em>optional</em>)
+        </li>
+    </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">integer</span></span>
-        VLAN tag ID, or nil if not present
+           <span class="types"><span class="type">boolean</span></span>
+        whether it was queued to the port id (<code>false</code> if the port
+   id is gone or its receive buffer is full).
     </ol>
 
+    <h3>Raises:</h3>
+    if <code>portid</code> is 0, or on an allocation error.
 
 
 
