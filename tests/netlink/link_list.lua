@@ -4,10 +4,10 @@
 --
 -- Kernel-side script for the netlink link_list test (see link_list.sh).
 
-local rt = require("netlink.rt")
+local netlink = require("netlink")
 
-local r <close> = rt()
-for _, link in ipairs(r:link_list()) do
+local rt <close> = netlink.rt()
+for _, link in ipairs(rt:link_list()) do
 	if link.name == "lo" then
 		assert(link.ifindex == 1, "expected lo ifindex == 1, got " .. tostring(link.ifindex))
 		print("netlink link_list: lo found")

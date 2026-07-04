@@ -4,15 +4,14 @@
 */
 
 /***
-* Generic netlink channel.
-* Exposes `netlink.channel`, a generic netlink family with one multicast group
+* Generic netlink channel: a generic netlink family with one multicast group
 * whose `multicast`/`unicast` are safe from softirq (netfilter hooks, XDP), for
 * kernel-to-userspace delivery. The message body is built in Lua (e.g. with
 * `netlink.message`) and sent as-is; request/response netlink is otherwise done
 * in Lua over the `socket` module. Only this softirq-capable send path needs a
 * dedicated kernel object.
 *
-* @module netlink
+* @module netlink.channel
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -125,13 +124,13 @@ static const luaL_Reg luanetlink_channel_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(netlink);
+LUNATIK_OPENER(netlink_channel);
 
 static const lunatik_class_t luanetlink_channel_class = {
 	.name    = "netlink.channel",
 	.methods = luanetlink_channel_mt,
 	.release = luanetlink_channel_release,
-	.opener  = luaopen_netlink,
+	.opener  = luaopen_netlink_channel,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
@@ -142,11 +141,11 @@ static const lunatik_class_t luanetlink_channel_class = {
 * group it must join. Like a netfilter hook, it must be created at script load
 * (process context); the returned channel lives for the runtime and its
 * `multicast`/`unicast` may then be called from softirq.
-* @function channel
+* @function new
 * @tparam string name Generic netlink family name (up to `GENL_NAMSIZ-1` bytes).
 * @treturn netlink.channel A new channel object.
 * @raise if the name is empty or too long, or family registration fails.
-* @within netlink
+* @within netlink.channel
 */
 static int luanetlink_channel_new(lua_State *L)
 {
@@ -172,12 +171,12 @@ static int luanetlink_channel_new(lua_State *L)
 }
 
 static const luaL_Reg luanetlink_lib[] = {
-	{"channel", luanetlink_channel_new},
+	{"new", luanetlink_channel_new},
 	{NULL, NULL}
 };
 
-LUNATIK_CLASSES(netlink, &luanetlink_channel_class);
-LUNATIK_NEWLIB(netlink, luanetlink_lib, luanetlink_classes);
+LUNATIK_CLASSES(netlink_channel, &luanetlink_channel_class);
+LUNATIK_NEWLIB(netlink_channel, luanetlink_lib, luanetlink_channel_classes);
 
 static int __init luanetlink_init(void)
 {

@@ -4,10 +4,10 @@
 --
 -- Kernel-side script for the netlink route_list test (see route_list.sh).
 
-local rt = require("netlink.rt")
+local netlink = require("netlink")
 
-local r <close> = rt()
-local routes = r:route_list()
+local rt <close> = netlink.rt()
+local routes = rt:route_list()
 
 if #routes > 0 then
 	print("netlink route_list: routes found")

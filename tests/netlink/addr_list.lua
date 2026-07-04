@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the netlink addr_list test (see addr_list.sh).
 
-local rt = require("netlink.rt")
+local netlink = require("netlink")
 local af = require("linux.socket").af
 
 local function is_loopback(addr)
@@ -13,8 +13,8 @@ local function is_loopback(addr)
 	return b1 == 127 and b2 == 0 and b3 == 0 and b4 == 1
 end
 
-local r <close> = rt()
-for _, addr in ipairs(r:addr_list(af.INET)) do
+local rt <close> = netlink.rt()
+for _, addr in ipairs(rt:addr_list(af.INET)) do
 	if is_loopback(addr.address) then
 		print("netlink addr_list: 127.0.0.1 found")
 		if addr.prefix_len == 8 then
