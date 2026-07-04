@@ -6,7 +6,7 @@
 /*
 * Userspace subscriber for the netlink channel test (see channel.sh): binds to
 * a fixed port id (so the kernel can unicast to it) and joins the given generic
-* netlink multicast group, then reads until it has seen both the broadcast and
+* netlink multicast group, then reads until it has seen both the multicast and
 * the unicast message (or a recv times out).
 */
 
@@ -33,9 +33,9 @@
 /* message classification, accumulated into a bitmask until BOTH are seen */
 enum {
 	NONE      = 0,
-	BROADCAST = 1,
+	MULTICAST = 1,
 	UNICAST   = 2,
-	BOTH      = BROADCAST | UNICAST,
+	BOTH      = MULTICAST | UNICAST,
 };
 
 /* binds a NETLINK_GENERIC socket to UNICAST_PORT, joins multicast group `grp`,
@@ -80,8 +80,8 @@ static int report(char *buf, ssize_t n)
 	printf("%s\n", msg);
 	fflush(stdout);
 
-	if (strstr(msg, "broadcast"))
-		return BROADCAST;
+	if (strstr(msg, "multicast"))
+		return MULTICAST;
 	if (strstr(msg, "unicast"))
 		return UNICAST;
 	return NONE;
