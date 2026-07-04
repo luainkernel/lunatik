@@ -10,6 +10,7 @@
 local channel = require("netlink.channel")
 local rt      = require("netlink.rt")
 local genl    = require("netlink.genl")
+local nl80211 = require("netlink.nl80211")
 
 local netlink = {}
 
@@ -34,6 +35,13 @@ netlink.rt = rt
 -- @table netlink.genl
 -- @see netlink.genl
 netlink.genl = genl
+
+---
+-- nl80211 (wireless) session specialization.
+-- Open sessions (sleepable) using `netlink.nl80211()`.
+-- @table netlink.nl80211
+-- @see netlink.nl80211
+netlink.nl80211 = nl80211
 
 return netlink
 

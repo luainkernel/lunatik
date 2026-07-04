@@ -40,6 +40,7 @@ file = {
 	'./lib/netlink.lua',
 	'./lib/netlink/genl.lua',
 	'./lib/netlink/message.lua',
+	'./lib/netlink/nl80211.lua',
 	'./lib/netlink/rt.lua',
 	'./lib/netlink/rt/addr.lua',
 	'./lib/netlink/rt/link.lua',

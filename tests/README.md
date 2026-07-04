@@ -121,6 +121,11 @@ higher-level `netlink.*` modules built on top of it.
   that port id and joined to the group receives both, proving kernel-to-
   userspace multicast and unicast delivery from softirq (skips without
   `gcc`/`genl`).
+- **nl80211**: loads `mac80211_hwsim` (simulated wifi), then `netlink.nl80211`
+  lists the simulated `wlan` interfaces over the nl80211 generic netlink family
+  (asserting one is present, in `STATION` mode and with its fields decoded) and
+  asserts both simulated wiphys come out of the fragmented `GET_WIPHY` dump
+  (skips without `mac80211_hwsim`).
 
 ### notifier
 
