@@ -13,7 +13,7 @@ local DST     = string.char(192, 0, 2, 0) -- 192.0.2.0 (TEST-NET-1), network byt
 local DST_LEN = 24
 local LO      = 1                          -- loopback ifindex
 
-local r <close> = rt()
+local r <close> = rt.new()
 
 local function present()
 	for _, route in ipairs(r:route_list(af.INET)) do

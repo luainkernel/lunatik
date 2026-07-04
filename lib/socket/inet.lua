@@ -35,17 +35,14 @@ local inet = class{localhost = '127.0.0.1'}
 local af = require("linux.socket").af
 
 ---
--- Metamethod to create a new socket instance when `inet()` or `inet.tcp()` or `inet.udp()` is called.
--- This is the primary way to create new socket instances (e.g., `local sock = inet.tcp()`).
--- @return (table) A new socket object (e.g., a TCP or UDP socket object).
+-- Sets up the underlying `AF_INET` socket for the class's type and protocol;
+-- run by `new` (e.g. `inet.tcp.new()` or `inet.udp.new()`).
 -- @see socket.new
 -- @usage
--- local tcp_socket = inet.tcp()
--- local udp_socket = inet.udp()
-function inet:__call()
-	local o = self:new()
-	o.socket = socket.new(af.INET, self.type, self.proto)
-	return o
+-- local tcp_socket = inet.tcp.new()
+-- local udp_socket = inet.udp.new()
+function inet:init()
+	self.socket = socket.new(af.INET, self.type, self.proto)
 end
 
 ---
@@ -144,11 +141,11 @@ local ipproto = require("linux.socket").ipproto
 ---
 -- TCP socket specialization.
 -- Provides methods specific to TCP sockets (e.g., `listen`, `accept`).
--- Create TCP sockets using `inet.tcp()`.
+-- Create TCP sockets using `inet.tcp.new()`.
 -- @table inet.tcp
 -- @field type The socket type (e.g., `linux.socket.sock.STREAM`).
 -- @field proto The protocol (e.g., `linux.socket.ipproto.TCP`).
-inet.tcp = inet:new{type = sock.STREAM, proto = ipproto.TCP}
+inet.tcp = inet:extend{type = sock.STREAM, proto = ipproto.TCP}
 
 ---
 -- Listens for incoming connections on a TCP socket.
@@ -171,11 +168,11 @@ end
 ---
 -- UDP socket specialization.
 -- Provides methods specific to UDP sockets (e.g., `receivefrom`, `sendto`).
--- Create UDP sockets using `inet.udp()`.
+-- Create UDP sockets using `inet.udp.new()`.
 -- @table inet.udp
 -- @field type The socket type (e.g., `linux.socket.sock.DGRAM`).
 -- @field proto The protocol (e.g., `linux.socket.ipproto.UDP`).
-inet.udp = inet:new{type = sock.DGRAM, proto = ipproto.UDP}
+inet.udp = inet:extend{type = sock.DGRAM, proto = ipproto.UDP}
 
 ---
 -- Receives data from a UDP socket, along with the sender's address.

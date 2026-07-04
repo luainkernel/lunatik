@@ -9,7 +9,7 @@
 local unix = require("socket.unix")
 
 local SERVER_PATH = "/tmp/lunatik_unix_dgram.sock"
-local client      = unix.dgram(SERVER_PATH)
+local client      = unix.dgram.new(SERVER_PATH)
 
 client:sendto("hello dgram")   -- uses stored SERVER_PATH, no explicit path
 client:close()

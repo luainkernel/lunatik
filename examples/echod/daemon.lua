@@ -17,7 +17,7 @@ local sock = require("linux.socket").sock
 local control = data.new(2)
 control:setbyte(1, 1) -- alive
 
-local server = inet.tcp()
+local server = inet.tcp.new()
 server:bind(inet.localhost, 1337)
 server:listen()
 

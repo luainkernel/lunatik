@@ -6,7 +6,7 @@
 
 local rt = require("netlink.rt")
 
-local r <close> = rt()
+local r <close> = rt.new()
 local routes = r:route_list()
 
 if #routes > 0 then

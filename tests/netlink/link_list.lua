@@ -6,7 +6,7 @@
 
 local rt = require("netlink.rt")
 
-local r <close> = rt()
+local r <close> = rt.new()
 for _, link in ipairs(r:link_list()) do
 	if link.name == "lo" then
 		assert(link.ifindex == 1, "expected lo ifindex == 1, got " .. tostring(link.ifindex))

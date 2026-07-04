@@ -14,7 +14,7 @@ local linux  = require("linux")
 local DONTWAIT = require("linux.socket").msg.DONTWAIT
 local PATH     = "/tmp/lunatik_unix_dgram.sock"
 
-local server = unix.dgram(PATH)
+local server = unix.dgram.new(PATH)
 server:bind()
 
 return function()

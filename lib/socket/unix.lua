@@ -35,17 +35,15 @@ local sock = require("linux.socket").sock
 local unix = class{}
 
 ---
--- Creates a new UNIX domain socket instance.
--- This is the primary way to create instances (e.g. `local s = unix.stream(path)`).
+-- Sets up the underlying `AF_UNIX` socket and stores the optional default path;
+-- run by `new` (e.g. `unix.stream.new(path)`).
 -- @param path (string) [optional] Default UNIX socket path stored in the object.
 --   Reused automatically by `bind`, `connect`, `send`, `sendto`, and `receivefrom`
 --   when no explicit path is given.
--- @return (table) A new unix socket object.
 -- @see socket.new
-function unix:__call(path)
-	local o = self:new{path = path}
-	o.socket = socket.new(af.UNIX, self.type, 0)
-	return o
+function unix:init(path)
+	self.path = path
+	self.socket = socket.new(af.UNIX, self.type, 0)
 end
 
 ---
@@ -113,10 +111,10 @@ end
 
 ---
 -- STREAM socket specialization (connection-oriented).
--- Create instances with `unix.stream([path])`.
+-- Create instances with `unix.stream.new([path])`.
 -- @table unix.stream
 -- @field type The socket type (`linux.socket.sock.STREAM`).
-unix.stream = unix:new{type = sock.STREAM}
+unix.stream = unix:extend{type = sock.STREAM}
 
 ---
 -- Listens for incoming connections on a STREAM socket.
@@ -137,11 +135,11 @@ end
 
 ---
 -- DGRAM socket specialization (connectionless).
--- Create instances with `unix.dgram([path])`.
+-- Create instances with `unix.dgram.new([path])`.
 -- The optional path is stored as the default destination for `sendto`.
 -- @table unix.dgram
 -- @field type The socket type (`linux.socket.sock.DGRAM`).
-unix.dgram = unix:new{type = sock.DGRAM}
+unix.dgram = unix:extend{type = sock.DGRAM}
 
 ---
 -- Receives data from a DGRAM socket along with the sender's path.

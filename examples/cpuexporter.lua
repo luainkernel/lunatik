@@ -13,7 +13,7 @@ local socket  = require("socket")
 local shouldstop = thread.shouldstop
 local NONBLOCK   = require("linux.socket").sock.NONBLOCK
 
-local server = unix.stream("/tmp/cpuexporter.sock")
+local server = unix.stream.new("/tmp/cpuexporter.sock")
 server:bind()
 server:listen()
 

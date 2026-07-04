@@ -8,7 +8,7 @@ local genl    = require("netlink.genl")
 local message = require("netlink.message")
 local ctrl    = require("linux.genl")
 
-local g <close> = genl()
+local g <close> = genl.new()
 local id = g:family("nlctrl")
 assert(id == ctrl.id.CTRL, "expected nlctrl id == " .. ctrl.id.CTRL .. ", got " .. tostring(id))
 print("netlink genl_family: nlctrl resolved")

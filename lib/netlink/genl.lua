@@ -5,7 +5,7 @@
 
 ---
 -- Generic netlink (`NETLINK_GENERIC`) interface. A `netlink.session`
--- specialization: create an instance with `genl()`, resolve a family name to
+-- specialization: create an instance with `genl.new()`, resolve a family name to
 -- its id, then dispatch commands; close it when done. All methods block and
 -- require a sleepable runtime.
 --
@@ -36,12 +36,11 @@ local NOOP, ERROR, DONE, OVERRUN = nl.type.NOOP, nl.type.ERROR, nl.type.DONE, nl
 -- @type genl
 
 ---
--- Creates a new genl object.
--- @function genl:new
--- @tparam[opt] table o an initial object table.
+-- Creates a new genl session over `NETLINK_GENERIC`.
+-- @function genl.new
 -- @treturn genl the new genl object.
 -- @see class
-local genl = session:new{proto = nl.proto.GENERIC}
+local genl = session:extend{proto = nl.proto.GENERIC}
 
 local function command(cmd, payload)
 	return genlmsghdr:pack(cmd, GENL_VERSION, 0) .. (payload or "")

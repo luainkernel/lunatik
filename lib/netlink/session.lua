@@ -92,13 +92,10 @@ local function transact(session, mtype, flags, payload, last)
 end
 
 ---
--- Creates a session backed by an `AF_NETLINK` socket of the class's `proto`.
--- @treturn session a new session object.
-function session:__call()
-	local o = self:new()
-	o.socket = socket.new(sk.af.NETLINK, sk.sock.RAW, self.proto)
-	o.sequence = 0
-	return o
+-- Sets up the session's `AF_NETLINK` socket for the class's `proto`; run by `new`.
+function session:init()
+	self.socket = socket.new(sk.af.NETLINK, sk.sock.RAW, self.proto)
+	self.sequence = 0
 end
 
 ---

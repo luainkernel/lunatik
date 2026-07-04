@@ -6,7 +6,7 @@
 ---
 -- rtnetlink interface for routes, links and addresses. A `netlink.session`
 -- specialization over the `NETLINK_ROUTE` protocol: create an instance with
--- `rt()` and call its methods; the underlying socket is closed by `close()`
+-- `rt.new()` and call its methods; the underlying socket is closed by `close()`
 -- (or the to-be-closed `__close`). All methods block and require a sleepable
 -- runtime.
 --
@@ -57,12 +57,11 @@ end
 -- @type rt
 
 ---
--- Creates a new rt object.
--- @function rt:new
--- @tparam[opt] table o an initial object table.
+-- Creates a new rt session over `NETLINK_ROUTE`.
+-- @function rt.new
 -- @treturn rt the new rt object.
 -- @see class
-local rt = session:new{proto = nl.proto.ROUTE}
+local rt = session:extend{proto = nl.proto.ROUTE}
 
 ---
 -- Lists all routes from the kernel routing tables.

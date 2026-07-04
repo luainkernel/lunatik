@@ -30,7 +30,7 @@ local linux  = require("linux")
 
 local shared = rcu.table()
 
-local server = inet.tcp()
+local server = inet.tcp.new()
 server:bind(inet.localhost, 90)
 server:listen()
 

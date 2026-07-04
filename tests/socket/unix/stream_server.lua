@@ -14,7 +14,7 @@ local linux  = require("linux")
 local NONBLOCK = require("linux.socket").sock.NONBLOCK
 local PATH     = "/tmp/lunatik_unix_stream.sock"
 
-local server = unix.stream(PATH)
+local server = unix.stream.new(PATH)
 server:bind()
 server:listen(1)
 

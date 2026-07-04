@@ -9,7 +9,7 @@
 local unix = require("socket.unix")
 
 local PATH   = "/tmp/lunatik_unix_stream.sock"
-local client = unix.stream(PATH)
+local client = unix.stream.new(PATH)
 
 client:connect()         -- uses stored PATH
 client:send("ping")
