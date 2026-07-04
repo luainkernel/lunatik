@@ -6,7 +6,7 @@
 ---
 -- rtnetlink interface for routes, links and addresses. A `netlink.session`
 -- specialization over the `NETLINK_ROUTE` protocol: create an instance with
--- `rt()` and call its methods; the underlying socket is closed by `close()`
+-- `netlink.rt()` and call its methods; the underlying socket is closed by `close()`
 -- (or the to-be-closed `__close`). All methods block and require a sleepable
 -- runtime.
 --

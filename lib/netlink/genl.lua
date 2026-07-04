@@ -5,7 +5,7 @@
 
 ---
 -- Generic netlink (`NETLINK_GENERIC`) interface. A `netlink.session`
--- specialization: create an instance with `genl()`, resolve a family name to
+-- specialization: create an instance with `netlink.genl()`, resolve a family name to
 -- its id, then dispatch commands; close it when done. All methods block and
 -- require a sleepable runtime.
 --

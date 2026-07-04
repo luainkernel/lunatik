@@ -37,6 +37,7 @@ file = {
 	'./lib/linux',
 	'./lib/mailbox.lua',
 	'./lib/net.lua',
+	'./lib/netlink.lua',
 	'./lib/netlink/genl.lua',
 	'./lib/netlink/message.lua',
 	'./lib/netlink/rt.lua',
