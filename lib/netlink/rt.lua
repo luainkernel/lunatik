@@ -54,6 +54,9 @@ local function str(value)
 end
 
 ---
+-- @type rt
+
+---
 -- Creates a new rt object.
 -- @function rt:new
 -- @tparam[opt] table o an initial object table.
