@@ -6,7 +6,7 @@
 /***
 * Generic netlink channel.
 * Exposes `netlink.channel`, a generic netlink family with one multicast group
-* whose `broadcast`/`unicast` are safe from softirq (netfilter hooks, XDP), for
+* whose `multicast`/`unicast` are safe from softirq (netfilter hooks, XDP), for
 * kernel-to-userspace delivery. The message body is built in Lua (e.g. with
 * `netlink.message`) and sent as-is; request/response netlink is otherwise done
 * in Lua over the `socket` module. Only this softirq-capable send path needs a
@@ -44,7 +44,7 @@ static void luanetlink_channel_release(void *private)
 /***
 * A generic netlink channel.
 * Returned by `netlink.channel()`. Backed by a generic netlink family with one
-* multicast group; `broadcast` and `unicast` are safe from softirq (netfilter
+* multicast group; `multicast` and `unicast` are safe from softirq (netfilter
 * hooks, XDP) and deliver to userspace subscribers of the family.
 * @type netlink.channel
 */
@@ -70,15 +70,15 @@ static struct sk_buff *luanetlink_message(lua_State *L, struct genl_family *fami
 }
 
 /***
-* Broadcasts a message to every subscriber of the channel's group.
+* Multicasts a message to every subscriber of the channel's group.
 * Safe to call from softirq.
-* @function broadcast
+* @function multicast
 * @tparam integer cmd Generic netlink command.
 * @tparam[opt] string payload Message body (e.g. from `netlink.message`).
 * @treturn boolean whether it reached at least one subscriber.
 * @raise on an allocation error.
 */
-static int luanetlink_broadcast(lua_State *L)
+static int luanetlink_multicast(lua_State *L)
 {
 	luanetlink_channel_t *channel = luanetlink_channel_check(L, 1);
 	int cmd = (int)luaL_checkinteger(L, 2);
@@ -120,7 +120,7 @@ static int luanetlink_unicast(lua_State *L)
 
 static const luaL_Reg luanetlink_channel_mt[] = {
 	{"__gc",      lunatik_deleteobject},
-	{"broadcast", luanetlink_broadcast},
+	{"multicast", luanetlink_multicast},
 	{"unicast",   luanetlink_unicast},
 	{NULL, NULL}
 };
@@ -141,7 +141,7 @@ static const lunatik_class_t luanetlink_channel_class = {
 * userspace resolves the family by name (e.g. via `netlink.genl`) to learn the
 * group it must join. Like a netfilter hook, it must be created at script load
 * (process context); the returned channel lives for the runtime and its
-* `broadcast`/`unicast` may then be called from softirq.
+* `multicast`/`unicast` may then be called from softirq.
 * @function channel
 * @tparam string name Generic netlink family name (up to `GENL_NAMSIZ-1` bytes).
 * @treturn netlink.channel A new channel object.

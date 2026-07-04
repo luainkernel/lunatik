@@ -6,10 +6,10 @@
 # Tests netlink.channel end to end FROM SOFTIRQ: a softirq runtime registers a
 # generic netlink family ("lunatiktest"), unicasts to an absent port id (which
 # must return false), and installs a PRE_ROUTING netfilter hook that, on
-# received traffic (NET_RX softirq), both broadcasts to the group and unicasts
+# received traffic (NET_RX softirq), both multicasts to the group and unicasts
 # to a fixed port id. A userspace subscriber (built with gcc) binds to that port
 # id and joins the group, and receives both messages, proving kernel-to-
-# userspace broadcast and unicast delivery from softirq.
+# userspace multicast and unicast delivery from softirq.
 #
 # Usage: sudo bash tests/netlink/channel.sh
 
@@ -69,8 +69,8 @@ for _ in $(seq 1 5); do echo x > /dev/udp/127.0.0.1/9999 2>/dev/null; sleep 0.1;
 wait "$SUB_PID" 2>/dev/null
 check_dmesg || { ktap_totals; exit 1; }
 
-grep -q "channel broadcast ok" "$SUB_OUT" || fail "subscriber did not receive the softirq broadcast"
-ktap_pass "channel: userspace received a broadcast sent from a softirq hook"
+grep -q "channel multicast ok" "$SUB_OUT" || fail "subscriber did not receive the softirq multicast"
+ktap_pass "channel: userspace received a multicast sent from a softirq hook"
 
 grep -q "channel unicast ok" "$SUB_OUT" || fail "subscriber did not receive the softirq unicast"
 ktap_pass "channel: userspace received a unicast sent from a softirq hook"

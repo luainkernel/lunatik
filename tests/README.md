@@ -84,10 +84,10 @@ higher-level `netlink.*` modules built on top of it.
   (`NLM_F_EXCL`), then `rt.route_del()` removes it.
 - **channel**: a softirq runtime registers a generic netlink family, unicasts
   to an absent port id (which returns `false`), and installs a `PRE_ROUTING`
-  netfilter hook that, on received traffic (NET_RX softirq), both broadcasts to
+  netfilter hook that, on received traffic (NET_RX softirq), both multicasts to
   the group and unicasts to a fixed port id; a userspace subscriber bound to
   that port id and joined to the group receives both, proving kernel-to-
-  userspace broadcast and unicast delivery from softirq (skips without
+  userspace multicast and unicast delivery from softirq (skips without
   `gcc`/`genl`).
 
 ### notifier
