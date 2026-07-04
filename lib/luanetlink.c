@@ -146,6 +146,7 @@ static const lunatik_class_t luanetlink_channel_class = {
 * @tparam string name Generic netlink family name (up to `GENL_NAMSIZ-1` bytes).
 * @treturn netlink.channel A new channel object.
 * @raise if the name is empty or too long, or family registration fails.
+* @within netlink
 */
 static int luanetlink_channel_new(lua_State *L)
 {
