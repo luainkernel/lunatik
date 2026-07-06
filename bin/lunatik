@@ -45,7 +45,12 @@ end
 
 local function unload_modules()
 	if probe() then
-		dostring("lunatik.runner.shutdown()")
+		local result = dostring[[
+			lunatik = lunatik or require("lunatik")
+			lunatik.runner = lunatik.runner or require("lunatik.runner")
+			lunatik.runner.shutdown()
+		]]
+		if result ~= "" then error(result) end
 	end
 	for i = #modules, 1, -1 do
 		sh("rmmod $MODULE", modules[i], true)
