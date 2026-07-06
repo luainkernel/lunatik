@@ -95,7 +95,9 @@ end
 
 --- Shuts down all running scripts and their threads.
 -- Iterates over `env.runtimes` and calls `runner.stop` for each script.
+-- A no-op if `startup` was never called.
 function runner.shutdown()
+	if not env.runtimes then return end
 	rcu.map(env.runtimes, function (script)
 		runner.stop(script)
 	end)
