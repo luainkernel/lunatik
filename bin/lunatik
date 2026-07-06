@@ -47,9 +47,17 @@ local function unload_modules()
 	if probe() then
 		dostring("lunatik.runner.shutdown()")
 	end
-	for i = #modules, 1, -1 do
-		sh("rmmod $MODULE", modules[i], true)
-	end
+for pass = 1, 3 do
+		local progress = false
+		for i = #modules, 1, -1 do
+			local m = modules[i]
+			local check = string.format('grep -qE "^%s [0-9]+ 0 " /proc/modules', m)
+			if os.execute(check) then
+				os.execute("rmmod " .. m)
+				progress = true
+			end
+		end
+		if not progress then break end
 end
 
 local function reload_modules()
