@@ -43,6 +43,13 @@ local function load_modules()
 	if result ~= "" then error(result) end
 end
 
+local function rmmod(module)
+	local loaded <close> = io.open("/sys/module/" .. module .. "/initstate")
+	if loaded and not os.execute("rmmod " .. module) then
+		error("couldn't unload " .. module)
+	end
+end
+
 local function unload_modules()
 	if probe() then
 		local result = dostring[[
@@ -53,7 +60,7 @@ local function unload_modules()
 		if result ~= "" then error(result) end
 	end
 	for i = #modules, 1, -1 do
-		sh("rmmod $MODULE", modules[i], true)
+		rmmod(modules[i])
 	end
 end
 
