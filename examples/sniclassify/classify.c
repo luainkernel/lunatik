@@ -29,7 +29,7 @@ int classify(struct __sk_buff *skb)
 {
 	__u32 key = skb->hash;
 
-	__u32 *priority= bpf_map_lookup_elem(&flow_cache, &key);
+	__u32 *priority = bpf_map_lookup_elem(&flow_cache, &key);
 	if (priority) {
 		skb->priority = *priority;
 		return TC_ACT_OK;
