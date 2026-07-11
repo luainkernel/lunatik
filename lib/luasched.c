@@ -39,8 +39,7 @@ static lunatik_object_t *luasched_runtimes = NULL;
 typedef struct luasched_ctx_s {
 	struct task_struct *task;
 	int                *dsq;
-	int                *slice_ns;
-	lunatik_object_t   *task_obj;
+	u64                *slice_ns;
 	int                callback_ref;
 } luasched_ctx_t;
 
@@ -56,7 +55,8 @@ LUNATIK_PRIVATECHECKER(luasched_ctx_check, luasched_ctx_t *,
 static int luasched_task(lua_State *L)
 {
 	luasched_ctx_t *ctx = luasched_ctx_check(L, 1);
-	lunatik_getregistry(L, ctx->task_obj);
+	lunatik_object_t *task = luatask_new(L, ctx->task);
+	lunatik_pushobject(L, task);
 	return 1;
 }
 
@@ -99,7 +99,6 @@ static void luasched_release(void *private)
 		put_task_struct(lctx->task);
 		lctx->task = NULL;
 	}
-	lctx->task_obj = NULL;
 }
 
 LUNATIK_OPENER(sched);
@@ -108,14 +107,13 @@ static const lunatik_class_t luasched_class = {
 	.methods = luasched_mt,
 	.release = luasched_release,
 	.opener  = luaopen_sched,
-	.opt     = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+	.opt     = LUNATIK_OPT_HARDIRQ,
 };
 
 static void luasched_handler_cleanup(luasched_ctx_t *lctx)
 {
 	put_task_struct(lctx->task);
 	lctx->task = NULL;
-	lctx->task_obj->private = NULL;
 	lctx->dsq = NULL;
 	lctx->slice_ns = NULL;
 }
@@ -129,7 +127,6 @@ static int luasched_handler(lua_State *L, luasched_ctx_t *ctx)
 	lctx->task = ctx->task;
 	lctx->dsq      = ctx->dsq;
 	lctx->slice_ns = ctx->slice_ns;
-	lctx->task_obj->private = ctx->task;
 
 	lua_rawgeti(L, LUA_REGISTRYINDEX, lctx->callback_ref);
 	if (!lua_isfunction(L, -1)) {
@@ -159,7 +156,7 @@ struct task_class {
 __bpf_kfunc int bpf_luasched_run(char *key, size_t key__sz, struct task_struct *task, struct task_class *cls)
 {
 	int dsq = -1;
-	int slice_ns = -1;
+	u64 slice_ns = -1;
 
 	if (!cls)
 		return -EINVAL;
@@ -258,11 +255,6 @@ static int luasched_attach(lua_State *L)
 
 	lunatik_object_t *object = lunatik_newobject(L, &luasched_class, sizeof(luasched_ctx_t), LUNATIK_OPT_NONE);
 	luasched_ctx_t *ctx = (luasched_ctx_t *)object->private;
-
-	ctx->task_obj = luatask_new(L, NULL);
-	lunatik_pushobject(L, ctx->task_obj);
-	lunatik_register(L, -1, ctx->task_obj);
-	lua_pop(L, 1);
 
 	lua_pushvalue(L, 1);
 	ctx->callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);

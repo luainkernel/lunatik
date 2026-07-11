@@ -104,6 +104,13 @@ static int luatask_current(lua_State *L)
 	return 1;
 }
 
+static int luatask_sum_exec_runtime(lua_State *L)
+{
+	struct task_struct *task = luatask_check(L, 1);
+	lua_pushinteger(L, task->se.sum_exec_runtime);
+	return 1;
+}
+
 static void luatask_release(void *private)
 {
 	struct task_struct *task = (struct task_struct *)private;
@@ -119,11 +126,12 @@ static const luaL_Reg luatask_lib[] = {
 };
 
 static const luaL_Reg luatask_mt[] = {
-	{"__gc", lunatik_deleteobject},
-	{"comm", luatask_comm},
-	{"pid",  luatask_pid},
-	{"tgid", luatask_tgid},
-	{"prio", luatask_prio},
+	{"__gc",    lunatik_deleteobject},
+	{"comm",    luatask_comm},
+	{"pid",     luatask_pid},
+	{"tgid",    luatask_tgid},
+	{"prio",    luatask_prio},
+	{"runtime", luatask_sum_exec_runtime},
 #ifdef CONFIG_SMP
 	{"cpu",  luatask_cpu},
 #endif
@@ -142,10 +150,10 @@ static const lunatik_class_t luatask_class = {
 lunatik_object_t *luatask_new(lua_State *L, struct task_struct *task)
 {
 	lunatik_require(L, &luatask_class);
+	if (!task)
+		return NULL;
 	lunatik_object_t *object = lunatik_newobject(L, &luatask_class, sizeof(struct task_struct *), LUNATIK_OPT_NONE);
-	if (task != NULL) {
-		get_task_struct(task);
-	}
+	get_task_struct(task);
 	object->private = task;
 	lunatik_getobject(object);
 	lua_pop(L, 1);
