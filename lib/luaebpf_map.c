@@ -215,7 +215,9 @@ static int luaebpf_map_get_next_key(lua_State *L)
 	const char *key = luaL_optlstring(L, 2, NULL, &key_size);
 	luaL_argcheck(L, (key_size == map->key_size) || (key_size == 0), 2, "invalid key size");
 	void *next_key = lunatik_checkalloc(L, map->key_size);
+	rcu_read_lock();
 	long ret = map->ops->map_get_next_key(map, (void *)key, next_key);
+	rcu_read_unlock();
 
 	luaebpf_map_checkret(L, ret, kfree(next_key));
 	lua_pushlstring(L, next_key, map->key_size);

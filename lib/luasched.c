@@ -43,6 +43,11 @@ typedef struct luasched_ctx_s {
 	int                callback_ref;
 } luasched_ctx_t;
 
+struct luasched_task_release {
+	struct rcu_head rcu;
+	struct task_struct *task;
+};
+
 LUNATIK_PRIVATECHECKER(luasched_ctx_check, luasched_ctx_t *,
 	luaL_argcheck(L, private->task != NULL, ix, "ctx is not set");
 );
@@ -92,11 +97,32 @@ static const luaL_Reg luasched_mt[] = {
 	{NULL, NULL}
 };
 
+static void luasched_task_rcu_callback(struct rcu_head *rcu)
+{
+	struct luasched_task_release *r = container_of(rcu, struct luasched_task_release, rcu);
+	put_task_struct(r->task);
+	kfree(r);
+}
+
+static void luasched_put_task_deferred(struct task_struct *task)
+{
+	struct luasched_task_release *r;
+	if (!task)
+		return;
+	r = kmalloc(sizeof(*r), GFP_ATOMIC);
+	if (!r) {
+		put_task_struct(task);
+		return;
+	}
+	r->task = task;
+	call_rcu(&r->rcu, luasched_task_rcu_callback);
+}
+
 static void luasched_release(void *private)
 {
 	luasched_ctx_t *lctx = (luasched_ctx_t *)private;
 	if (lctx->task != NULL) {
-		put_task_struct(lctx->task);
+		luasched_put_task_deferred(lctx->task);
 		lctx->task = NULL;
 	}
 }
@@ -112,7 +138,7 @@ static const lunatik_class_t luasched_class = {
 
 static void luasched_handler_cleanup(luasched_ctx_t *lctx)
 {
-	put_task_struct(lctx->task);
+	luasched_put_task_deferred(lctx->task);
 	lctx->task = NULL;
 	lctx->dsq = NULL;
 	lctx->slice_ns = NULL;
