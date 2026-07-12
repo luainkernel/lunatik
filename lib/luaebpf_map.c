@@ -102,12 +102,15 @@ static int luaebpf_map_lookup(lua_State *L)
 	const char *key = luaL_checklstring(L, 2, &key_size);
 	luaebpf_map_checksize(L, key_size, map->key_size, 2, "key");
 
+	rcu_read_lock();
 	void *value = map->ops->map_lookup_elem(map, (void *)key);
-
-	if (!value)
+	if (!value) {
+		rcu_read_unlock();
 		lua_pushnil(L);
-	else
+	} else {
 		lua_pushlstring(L, value, map->value_size);
+		rcu_read_unlock();
+	}
 	return 1;
 }
 
@@ -139,7 +142,9 @@ static int luaebpf_map_update(lua_State *L)
 	if (!luaebpf_map_is_valid_update_flag(flags))
 		luaL_argerror(L, 4, "invalid update flag");
 
+	rcu_read_lock();
 	long ret = map->ops->map_update_elem(map, (void *)key, (void *)value, flags);
+	rcu_read_unlock();
 	return luaebpf_map_pushresult(L, ret);
 }
 
@@ -159,7 +164,9 @@ static int luaebpf_map_delete(lua_State *L)
 
 	luaebpf_map_checksize(L, key_size, map->key_size, 2, "key");
 
+	rcu_read_lock();
 	long ret = map->ops->map_delete_elem(map, (void *)key);
+	rcu_read_unlock();
 	return luaebpf_map_pushresult(L, ret);
 }
 
@@ -180,7 +187,9 @@ static int luaebpf_map_remove(lua_State *L)
 	luaebpf_map_checksize(L, key_size, map->key_size, 2, "key");
 
 	char *value = lunatik_checkalloc(L, map->value_size);
+	rcu_read_lock();
 	int ret = map->ops->map_lookup_and_delete_elem(map, (void *)key, (void *)value, 0);
+	rcu_read_unlock();
 
 	luaebpf_map_push_clean(L, ret, value, map->value_size);
 
@@ -212,7 +221,9 @@ static int luaebpf_map_get_next_key(lua_State *L)
 
 	luaebpf_map_checkoptsize(L, key_size, map->key_size, 2, "key");
 	void *next_key = lunatik_checkalloc(L, map->key_size);
+	rcu_read_lock();
 	long ret = map->ops->map_get_next_key(map, (void *)key, next_key);
+	rcu_read_unlock();
 
 	luaebpf_map_push_clean(L, ret, next_key, map->key_size);
 
