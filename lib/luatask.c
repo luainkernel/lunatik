@@ -15,6 +15,11 @@
 
 #include "luatask.h"
 
+struct luatask_rcu_release {
+	struct rcu_head rcu;
+	struct task_struct *task;
+};
+
 LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *,
 	luaL_argcheck(L, private != NULL, ix, "task is not set");
 );
@@ -111,13 +116,28 @@ static int luatask_sum_exec_runtime(lua_State *L)
 	return 1;
 }
 
+static void luatask_rcu_callback(struct rcu_head *rcu)
+{
+	struct luatask_rcu_release *r = container_of(rcu, struct luatask_rcu_release, rcu);
+	put_task_struct(r->task);
+	kfree(r);
+}
+
 static void luatask_release(void *private)
 {
 	struct task_struct *task = (struct task_struct *)private;
-	if (task) {
+	struct luatask_rcu_release *r;
+
+	if (!task)
+		return;
+
+	r = kmalloc(sizeof(*r), GFP_ATOMIC);
+	if (!r) {
 		put_task_struct(task);
-		task = NULL;
+		return;
 	}
+	r->task = task;
+	call_rcu(&r->rcu, luatask_rcu_callback);
 }
 
 static const luaL_Reg luatask_lib[] = {
