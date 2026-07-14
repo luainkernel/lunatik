@@ -10,6 +10,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kprobes.h>
+#include <linux/ptrace.h>
 #include <linux/string.h>
 
 #include <lunatik.h>
@@ -35,6 +36,18 @@ static int luaprobe_dump(lua_State *L)
 	return 0;
 }
 
+static int luaprobe_argument(lua_State *L)
+{
+	struct pt_regs *regs = lua_touserdata(L, lua_upvalueindex(1));
+	unsigned int n = (unsigned int)luaL_checkinteger(L, 1);
+
+	if (regs == NULL)
+		luaL_error(L, LUNATIK_ERR_NULLPTR);
+
+	lua_pushinteger(L, (lua_Integer)regs_get_kernel_argument(regs, n));
+	return 1;
+}
+
 static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler, struct pt_regs *regs)
 {
 	struct kprobe *kp = &probe->kp;
@@ -56,12 +69,18 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 	lua_pushcclosure(L, luaprobe_dump, 1);
 	lua_pushvalue(L, -1); /* save dump() on the stack */
 	lua_insert(L, -4); /* stack: dump, handler, symbol | addr, dump */
+	lua_pushlightuserdata(L, regs);
+	lua_pushcclosure(L, luaprobe_argument, 1);
+	lua_pushvalue(L, -1); /* save argument() on the stack */
+	lua_insert(L, -6); /* stack: argument, dump, handler, symbol | addr, dump, argument */
 
-	if (lua_pcall(L, 2, 0, 0) != LUA_OK) /* handler(symbol | addr, dump) */
+	if (lua_pcall(L, 3, 0, 0) != LUA_OK) /* handler(symbol | addr, dump, argument) */
 		pr_err("%s\n", lua_tostring(L, -1));
 
 	lua_pushnil(L);
-	lua_setupvalue(L, -2, 1); /* clean up regs */
+	lua_setupvalue(L, -2, 1); /* clean up dump() regs */
+	lua_pushnil(L);
+	lua_setupvalue(L, -3, 1); /* clean up argument() regs */
 out:
 	return 0;
 }
@@ -159,7 +178,9 @@ static int luaprobe_new(lua_State *L);
 * @function new
 * @tparam string|lightuserdata symbol kernel symbol name or address
 * @tparam table handlers table with optional `pre` and `post` callback functions;
-*   each receives the symbol (string or lightuserdata) and a `dump` closure
+*   each receives the symbol (string or lightuserdata), a `dump` closure and an
+*   `argument` closure; `argument(n)` returns the n-th (0-based) argument of the
+*   probed function as an integer, only valid during the callback
 * @treturn probe
 * @raise if registration fails
 */
