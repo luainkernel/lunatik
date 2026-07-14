@@ -74,8 +74,10 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 	lua_pushvalue(L, -1); /* save argument() on the stack */
 	lua_insert(L, -6); /* stack: argument, dump, handler, symbol | addr, dump, argument */
 
-	if (lua_pcall(L, 3, 0, 0) != LUA_OK) /* handler(symbol | addr, dump, argument) */
+	if (lua_pcall(L, 3, 0, 0) != LUA_OK) { /* handler(symbol | addr, dump, argument) */
 		pr_err("%s\n", lua_tostring(L, -1));
+		lua_pop(L, 1); /* drop the error so the cleanup below reaches dump/argument */
+	}
 
 	lua_pushnil(L);
 	lua_setupvalue(L, -2, 1); /* clean up dump() regs */
