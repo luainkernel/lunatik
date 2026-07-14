@@ -24,13 +24,13 @@ local function workload(ctx)
 	for _, rule in ipairs(policy) do
 		if task:comm():match(rule.pattern) then
 			ctx:dsq(rule.dsq)
-			ctx:slice_ns(rule.slice)
+			ctx:slice(rule.slice)
 			log(task:comm(), rule.dsq, rule.slice)
 			return
 		end
 	end
 	ctx:dsq(DEFAULT)
-	ctx:slice_ns(scx.SLICE_DFL)
+	ctx:slice(scx.SLICE_DFL)
 end
 
 sched.attach(workload)
