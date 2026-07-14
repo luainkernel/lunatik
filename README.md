@@ -311,6 +311,29 @@ write: 438
 sudo lunatik stop examples/systrack/device            # stops device and probe runtimes
 ```
 
+### dropreason
+
+[dropreason](examples/dropreason.lua) answers "why is my packet dying?":
+a kprobe on `kfree_skb_reason()` reads the drop reason from the probed
+function's arguments and counts every skb drop by name in an RCU table
+published on the shared environment (`lunatik._ENV`), queryable live from
+the REPL. Setting `WATCH` in the script also dumps the registers and call
+trace of the first drop matching one reason.
+
+#### Usage
+
+```
+sudo make examples_install                   # installs examples
+sudo lunatik run examples/dropreason hardirq # arms the kprobe
+echo x > /dev/udp/127.0.0.1/9999             # trigger a NO_SOCKET drop
+sudo lunatik                                 # opens the kernel REPL
+> drops = require("examples.dropreason_report")
+> drops.NO_SOCKET
+16
+> return drops.report()                      # counts by reason
+sudo lunatik stop examples/dropreason
+```
+
 ### ifquarantine
 
 [ifquarantine](examples/ifquarantine) composes two notifier chains to build
