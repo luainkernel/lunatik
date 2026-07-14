@@ -85,10 +85,10 @@ static int luasched_slice_ns(lua_State *L)
 }
 
 static const luaL_Reg luasched_mt[] = {
-	{"__gc",		lunatik_deleteobject},
-	{"task",		luasched_task},
-	{"dsq",			luasched_dsq},
-	{"slice_ns",	luasched_slice_ns},
+	{"__gc",	lunatik_deleteobject},
+	{"task",	luasched_task},
+	{"dsq",		luasched_dsq},
+	{"slice",	luasched_slice_ns},
 	{NULL, NULL}
 };
 
@@ -236,7 +236,7 @@ static int luasched_detach(lua_State *L)
 *     local task = ctx:task()
 *     if task:comm() == "bash" then
 *       ctx:dsq(sched_ext.LOCAL)
-*       ctx:slice_ns(sched_ext.BYPASS)
+*       ctx:slice(sched_ext.BYPASS)
 *     end
 *     return nil
 *   end
