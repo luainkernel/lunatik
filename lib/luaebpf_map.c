@@ -180,7 +180,7 @@ static int luaebpf_map_remove(lua_State *L)
 
 	luaebpf_map_checksize(L, key_size, map->key_size, 2, "key");
 
-	char *value = lunatik_checkalloc(L, map->value_size);
+	char *value = kmalloc(map->value_size, GFP_ATOMIC);
 	rcu_read_lock();
 	int ret = map->ops->map_lookup_and_delete_elem(map, (void *)key, (void *)value, 0);
 	rcu_read_unlock();
@@ -214,7 +214,7 @@ static int luaebpf_map_get_next_key(lua_State *L)
 	size_t key_size;
 	const char *key = luaL_optlstring(L, 2, NULL, &key_size);
 	luaL_argcheck(L, (key_size == map->key_size) || (key_size == 0), 2, "invalid key size");
-	void *next_key = lunatik_checkalloc(L, map->key_size);
+	void *next_key = kmalloc(map->key_size, GFP_ATOMIC);
 	rcu_read_lock();
 	long ret = map->ops->map_get_next_key(map, (void *)key, next_key);
 	rcu_read_unlock();
@@ -257,7 +257,7 @@ static const lunatik_class_t luaebpf_map_class = {
 	.methods = luaebpf_map_mt,
 	.release = luaebpf_map_release,
 	.opener = luaopen_ebpf_map,
-	.opt = LUNATIK_OPT_SOFTIRQ,
+	.opt = LUNATIK_OPT_HARDIRQ,
 };
 
 /**

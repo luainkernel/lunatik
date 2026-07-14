@@ -121,8 +121,8 @@ static void luasched_put_task_deferred(struct task_struct *task)
 static void luasched_release(void *private)
 {
 	luasched_ctx_t *lctx = (luasched_ctx_t *)private;
-	if (lctx->task != NULL) {
-		luasched_put_task_deferred(lctx->task);
+	if (lctx->task) {
+		put_task_struct(lctx->task);
 		lctx->task = NULL;
 	}
 }
@@ -138,8 +138,10 @@ static const lunatik_class_t luasched_class = {
 
 static void luasched_handler_cleanup(luasched_ctx_t *lctx)
 {
-	luasched_put_task_deferred(lctx->task);
-	lctx->task = NULL;
+	if (lctx->task) {
+		put_task_struct(lctx->task);
+		lctx->task = NULL;
+	}
 	lctx->dsq = NULL;
 	lctx->slice_ns = NULL;
 }

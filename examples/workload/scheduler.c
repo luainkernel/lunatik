@@ -53,11 +53,11 @@ void BPF_STRUCT_OPS(luasched_enqueue, struct task_struct *p, u64 enq_flags)
 
 	cls = bpf_map_lookup_elem(&task_classes, &pid);
 	if (cls) {
-		scx_bpf_dsq_insert(p, cls->dsq, cls->slice_ns, 0);
+		scx_bpf_dsq_insert(p, cls->dsq, cls->slice_ns, enq_flags);
 		return;
 	}
 
-	struct task_class received_cls = { .dsq = -1, .slice_ns = -1 };
+	struct task_class received_cls = { .dsq = DSQ_DEFAULT, .slice_ns = SCX_SLICE_DFL };
 
 	int ret = bpf_luasched_run(runtime, sizeof(runtime), p, &received_cls);
 
@@ -67,7 +67,7 @@ void BPF_STRUCT_OPS(luasched_enqueue, struct task_struct *p, u64 enq_flags)
 	}
 
 	bpf_map_update_elem(&task_classes, &pid, &received_cls, BPF_ANY);
-	scx_bpf_dsq_insert(p, received_cls.dsq, received_cls.slice_ns, 0);
+	scx_bpf_dsq_insert(p, received_cls.dsq, received_cls.slice_ns, enq_flags);
 }
 
 void BPF_STRUCT_OPS(luasched_exit_task, struct task_struct *p, struct scx_exit_task_args *args)
