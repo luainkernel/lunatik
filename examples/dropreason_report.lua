@@ -1,17 +1,26 @@
--- Formats the dropreason counts (see examples/dropreason.lua) as lines sorted
--- by count, one reason per line. Query it live from the REPL:
---   > return require("examples.dropreason_report")(lunatik._ENV.dropreason)
+-- Query API for the dropreason monitor (examples/dropreason.lua). Bind it in the
+-- REPL, read a count by reason name, or call report() for the full picture:
+--   > drops = require("examples.dropreason_report")
+--   > drops.NO_SOCKET
+--   16
+--   > return drops.report()
 
-local rcu = require("rcu")
+local rcu     = require("rcu")
+local lunatik = require("lunatik")
 
-local function report(drops)
+local drops = {}
+
+-- All drop counts as lines sorted by count, one reason per line.
+function drops.report()
 	local lines = {}
-	rcu.map(drops, function(reason, count)
+	rcu.map(lunatik._ENV.dropreason, function(reason, count)
 		table.insert(lines, string.format("%7d  %s", count, reason))
 	end)
 	table.sort(lines)
 	return table.concat(lines, "\n")
 end
 
-return report
+return setmetatable(drops, {__index = function(_, reason)
+	return lunatik._ENV.dropreason[reason]
+end})
 

@@ -325,10 +325,12 @@ trace of the first drop matching one reason.
 ```
 sudo make examples_install                   # installs examples
 sudo lunatik run examples/dropreason hardirq # arms the kprobe
+echo x > /dev/udp/127.0.0.1/9999             # trigger a NO_SOCKET drop
 sudo lunatik                                 # opens the kernel REPL
-> drops = lunatik._ENV.dropreason
+> drops = require("examples.dropreason_report")
 > drops.NO_SOCKET
 16
+> return drops.report()                      # counts by reason
 sudo lunatik stop examples/dropreason
 ```
 

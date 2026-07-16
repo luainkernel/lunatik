@@ -8,10 +8,10 @@
 --   sudo lunatik run examples/dropreason hardirq
 --   echo x > /dev/udp/127.0.0.1/9999              # trigger a NO_SOCKET drop
 --   sudo lunatik                                  # opens the kernel REPL
---   > drops = lunatik._ENV.dropreason
+--   > drops = require("examples.dropreason_report")
 --   > drops.NO_SOCKET
 --   16
---   > return require("examples.dropreason_report")(drops)   # counts by reason
+--   > return drops.report()                        # counts by reason
 
 local probe  = require("probe")
 local rcu    = require("rcu")
@@ -19,9 +19,9 @@ local reason = require("linux.dropreason")
 local env    = require("lunatik")._ENV
 
 -- WATCH traps one drop reason: on its first occurrence, the register dump and
--- call trace of that exact drop site are printed to dmesg. Set it to any reason
--- name from linux.dropreason (e.g. "NO_SOCKET", "NETFILTER_DROP", "TCP_CSUM").
-local WATCH
+-- call trace of that exact drop site are printed to dmesg. Uncomment and set it
+-- to any reason name from linux.dropreason (e.g. "NO_SOCKET", "NETFILTER_DROP",
+-- "TCP_CSUM").
 -- local WATCH = "NO_SOCKET"
 
 local CONSUMED <const> = reason.CONSUMED -- freed, not dropped
