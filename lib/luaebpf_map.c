@@ -235,13 +235,14 @@ static int luaebpf_map_close(lua_State *L)
 }
 
 static const luaL_Reg luaebpf_map_mt[] = {
-	{"lookup", luaebpf_map_lookup},
-	{"update", luaebpf_map_update},
-	{"delete", luaebpf_map_delete},
-	{"remove", luaebpf_map_remove},
-	{"next",   luaebpf_map_get_next_key},
-	{"close",  luaebpf_map_close},
-	{"__gc",   lunatik_deleteobject},
+	{"lookup",  luaebpf_map_lookup},
+	{"update",  luaebpf_map_update},
+	{"delete",  luaebpf_map_delete},
+	{"remove",  luaebpf_map_remove},
+	{"next",    luaebpf_map_get_next_key},
+	{"close",   luaebpf_map_close},
+	{"__close", lunatik_deleteobject},
+	{"__gc",    lunatik_deleteobject},
 	{NULL, NULL}
 };
 
@@ -251,7 +252,7 @@ static const lunatik_class_t luaebpf_map_class = {
 	.methods = luaebpf_map_mt,
 	.release = luaebpf_map_release,
 	.opener = luaopen_ebpf_map,
-	.opt = LUNATIK_OPT_EXTERNAL,
+	.opt = LUNATIK_OPT_EXTERNAL | LUNATIK_OPT_IRQ,
 };
 
 /**
