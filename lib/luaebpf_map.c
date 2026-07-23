@@ -252,7 +252,7 @@ static const lunatik_class_t luaebpf_map_class = {
 	.methods = luaebpf_map_mt,
 	.release = luaebpf_map_release,
 	.opener = luaopen_ebpf_map,
-	.opt = LUNATIK_OPT_EXTERNAL | LUNATIK_OPT_IRQ,
+	.opt = LUNATIK_OPT_EXTERNAL | LUNATIK_OPT_HARDIRQ,
 };
 
 /**
