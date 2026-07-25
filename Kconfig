@@ -58,7 +58,7 @@ config LUNATIK_NETLINK
 	default m
 	help
 	  Generic netlink channel (netlink.channel) for softirq-safe
-	  kernel-to-userspace delivery (broadcast and unicast) from Lua scripts.
+	  kernel-to-userspace delivery (multicast and unicast) from Lua scripts.
 
 config LUNATIK_RCU
 	tristate "Lunatik RCU Support"
