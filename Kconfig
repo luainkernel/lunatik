@@ -79,12 +79,6 @@ config LUNATIK_THREAD
 	help
 	  Kernel thread management from Lua.
 
-config LUNATIK_FIB
-	tristate "Lunatik FIB (Forwarding Information Base) Support"
-	default m
-	help
-	  Access to the kernel FIB (routing capability).
-
 config LUNATIK_DATA
 	tristate "Lunatik Data Support"
 	default m
