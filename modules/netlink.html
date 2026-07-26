@@ -33,8 +33,8 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_netlink_channel">Class netlink.channel </a></li>
-<li><a href="#netlink">netlink</a></li>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Tables">Tables</a></li>
 </ul>
 
 
@@ -74,6 +74,7 @@
   <li><a href="../modules/net.html">net</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><strong>netlink</strong></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
   <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
@@ -113,31 +114,27 @@
 <div id="content">
 
 <h1>Module <code>netlink</code></h1>
-<p>Generic netlink channel.</p>
-<p> Exposes <a href="../modules/netlink.html#netlink.channel">netlink.channel</a>, a generic netlink family with one multicast group
- whose <a href="../modules/netlink.html#netlink.channel:multicast">multicast</a>/<a href="../modules/netlink.html#netlink.channel:unicast">unicast</a> are safe from softirq (netfilter hooks, XDP), for
- kernel-to-userspace delivery. The message body is built in Lua (e.g. with
- <a href="../modules/netlink.message.html#">netlink.message</a>) and sent as-is; request/response netlink is otherwise done
- in Lua over the <a href="../modules/socket.html#">socket</a> module. Only this softirq-capable send path needs a
- dedicated kernel object.</p>
+<p>The netlink namespace.</p>
+<p> Groups the netlink factories.</p>
 
 
-<h2><a href="#Class_netlink_channel">Class netlink.channel </a></h2>
-<table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#netlink.channel:multicast">netlink.channel:multicast (cmd[, payload])</a></td>
-	<td class="summary">Multicasts a message to every subscriber of the channel's group.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#netlink.channel:unicast">netlink.channel:unicast (portid, cmd[, payload])</a></td>
-	<td class="summary">Unicasts a message to a single userspace subscriber by port id.</td>
-	</tr>
-</table>
-<h2><a href="#netlink">netlink</a></h2>
+<h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#channel">channel (name)</a></td>
-	<td class="summary">Creates a generic netlink channel.</td>
+	<td class="summary">Registers a generic netlink family with one multicast group; the returned
+ channel's <code>multicast</code>/<code>unicast</code> are softirq-safe.</td>
+	</tr>
+</table>
+<h2><a href="#Tables">Tables</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#genl">genl</a></td>
+	<td class="summary">Generic netlink session specialization.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#rt">rt</a></td>
+	<td class="summary">rtnetlink session specialization for routes, links and addresses.</td>
 	</tr>
 </table>
 
@@ -145,92 +142,7 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_netlink_channel"></a>Class netlink.channel </h2>
-
-          <div class="section-description">
-          A generic netlink channel.
- Returned by <code>netlink.channel()</code>. Backed by a generic netlink family with one
- multicast group; <a href="../modules/netlink.html#netlink.channel:multicast">multicast</a> and <a href="../modules/netlink.html#netlink.channel:unicast">unicast</a> are safe from softirq (netfilter
- hooks, XDP) and deliver to userspace subscribers of the family.
-          </div>
-    <dl class="function">
-    <dt>
-    <a name = "netlink.channel:multicast"></a>
-    <strong>netlink.channel:multicast (cmd[, payload])</strong>
-    </dt>
-    <dd>
-    Multicasts a message to every subscriber of the channel's group.
- Safe to call from softirq.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">cmd</span>
-            <span class="types"><span class="type">integer</span></span>
-         Generic netlink command.
-        </li>
-        <li><span class="parameter">payload</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         Message body (e.g. from <a href="../modules/netlink.message.html#">netlink.message</a>).
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-        whether it reached at least one subscriber.
-    </ol>
-
-    <h3>Raises:</h3>
-    on an allocation error.
-
-
-
-</dd>
-    <dt>
-    <a name = "netlink.channel:unicast"></a>
-    <strong>netlink.channel:unicast (portid, cmd[, payload])</strong>
-    </dt>
-    <dd>
-    Unicasts a message to a single userspace subscriber by port id.
- Safe to call from softirq.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">portid</span>
-            <span class="types"><span class="type">integer</span></span>
-         Destination netlink port id.
-        </li>
-        <li><span class="parameter">cmd</span>
-            <span class="types"><span class="type">integer</span></span>
-         Generic netlink command.
-        </li>
-        <li><span class="parameter">payload</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         Message body (e.g. from <a href="../modules/netlink.message.html#">netlink.message</a>).
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-        whether it was queued to the port id (<code>false</code> if the port
-   id is gone or its receive buffer is full).
-    </ol>
-
-    <h3>Raises:</h3>
-    if <code>portid</code> is 0, or on an allocation error.
-
-
-
-</dd>
-</dl>
-    <h2 class="section-header "><a name="netlink"></a>netlink</h2>
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
 
     <dl class="function">
     <dt>
@@ -238,12 +150,8 @@
     <strong>channel (name)</strong>
     </dt>
     <dd>
-    Creates a generic netlink channel.
- Registers a generic netlink family <code>name</code> with a single multicast group;
- userspace resolves the family by name (e.g. via <a href="../modules/netlink.genl.html#">netlink.genl</a>) to learn the
- group it must join. Like a netfilter hook, it must be created at script load
- (process context); the returned channel lives for the runtime and its
- <a href="../modules/netlink.html#netlink.channel:multicast">multicast</a>/<a href="../modules/netlink.html#netlink.channel:unicast">unicast</a> may then be called from softirq.
+    Registers a generic netlink family with one multicast group; the returned
+ channel's <code>multicast</code>/<code>unicast</code> are softirq-safe.
 
 
     <h3>Parameters:</h3>
@@ -257,13 +165,57 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="../modules/netlink.html#netlink.channel">netlink.channel</a></span>
+           <span class="types"><a class="type" href="../modules/netlink.html#channel">netlink.channel</a></span>
         A new channel object.
     </ol>
 
-    <h3>Raises:</h3>
-    if the name is empty or too long, or family registration fails.
 
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netlink.channel.html#">netlink.channel</a>
+    </ul>
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "genl"></a>
+    <strong>genl</strong>
+    </dt>
+    <dd>
+    Generic netlink session specialization.
+ Open sessions (sleepable) using <code>netlink.genl()</code>.
+
+
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netlink.genl.html#">netlink.genl</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "rt"></a>
+    <strong>rt</strong>
+    </dt>
+    <dd>
+    rtnetlink session specialization for routes, links and addresses.
+ Open sessions (sleepable) using <code>netlink.rt()</code>.
+
+
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netlink.rt.html#">netlink.rt</a>
+    </ul>
 
 
 </dd>
@@ -274,7 +226,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-07-25 15:13:49 </i>
+<i style="float:right;">Last updated 2026-07-26 12:18:38 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
