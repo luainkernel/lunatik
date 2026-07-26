@@ -14,7 +14,7 @@ local nl     = require("linux.netlink")
 local struct = require("struct")
 
 local insert, concat = table.insert, table.concat
-local pack, rep      = string.pack, string.rep
+local pack, unpack, rep = string.pack, string.unpack, string.rep
 
 local message = {}
 
@@ -102,6 +102,22 @@ end
 -- @treturn string|table the serialized attributes, or the parsed table.
 function message.attrs(attrs, pos)
 	return type(attrs) == "string" and parse_attrs(attrs, pos) or encode_attrs(attrs)
+end
+
+---
+-- Decodes a `u32` attribute value.
+-- @tparam[opt] string value raw attribute payload; `nil` is passed through.
+-- @treturn integer|nil the decoded integer.
+function message.u32(value)
+	return value and unpack(U32, value)
+end
+
+---
+-- Decodes a NUL-terminated string attribute value.
+-- @tparam[opt] string value raw attribute payload; `nil` is passed through.
+-- @treturn string|nil the decoded string.
+function message.str(value)
+	return value and unpack("z", value)
 end
 
 return message
