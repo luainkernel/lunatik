@@ -23,7 +23,7 @@ local rtnl = require("linux.rtnetlink")
 local sk   = require("linux.socket")
 
 local insert = table.insert
-local unpack = string.unpack
+local u32, str = message.u32, message.str
 
 local rtmsg     = struct(rtnl.layout.rtmsg)
 local RTMSG_LEN = rtmsg.size
@@ -42,16 +42,6 @@ end
 local RTM_TABLE_MAX = (1 << 8 * fieldsize(rtnl.layout.rtmsg, "rtm_table")) - 1
 
 local NEWROUTE, NEWLINK, NEWADDR = rtnl.rtm.NEWROUTE, rtnl.rtm.NEWLINK, rtnl.rtm.NEWADDR
-
-local U32 = "=I4"
-
-local function u32(value)
-	return value and unpack(U32, value)
-end
-
-local function str(value)
-	return value and unpack("z", value)
-end
 
 ---
 -- @type rt
