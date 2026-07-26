@@ -28,7 +28,6 @@ file = {
 	'./lib/luadarken.c',
 	'./lib/luadata.c',
 	'./lib/luadevice.c',
-	'./lib/luafib.c',
 	'./lib/luafifo.c',
 	'./lib/luahid.c',
 	'./lib/lighten.lua',

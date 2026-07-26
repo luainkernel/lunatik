@@ -175,7 +175,6 @@ The table below lists the available kernel Lua modules:
 | `crypto` | Kernel crypto API: hash, cipher, AEAD, RNG, compression |
 | `hid` | HID device drivers |
 | `probe` | Kernel probes (kprobe / tracepoint) |
-| `fib` | FIB routing table lookup |
 | `fifo` | Kernel FIFO queues |
 | `signal` | POSIX signal management |
 | `byteorder` | Network byte order conversions |
