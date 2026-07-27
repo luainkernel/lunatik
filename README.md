@@ -107,7 +107,7 @@ Install and run the test suites:
 ```sh
 sudo make install
 sudo lunatik test           # run all suites
-sudo lunatik test thread    # run a specific suite (crypto, io, monitor,
+sudo lunatik test thread    # run a specific suite (bpf, crypto, io, monitor,
                             # netlink, notifier, probe, rcu, runtime, set, skb,
                             # socket, struct, thread)
 ```
