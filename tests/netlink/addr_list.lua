@@ -13,11 +13,11 @@ local function is_loopback(addr)
 	return b1 == 127 and b2 == 0 and b3 == 0 and b4 == 1
 end
 
-local rt <close> = netlink.rt()
-for _, addr in ipairs(rt:addr_list(af.INET)) do
-	if is_loopback(addr.address) then
+local addr <close> = netlink.rt.addr()
+for _, address in ipairs(addr:list(af.INET)) do
+	if is_loopback(address.address) then
 		print("netlink addr_list: 127.0.0.1 found")
-		if addr.prefix_len == 8 then
+		if address.prefix_len == 8 then
 			print("netlink addr_list: prefix_len ok")
 		end
 		break

@@ -23,8 +23,7 @@ local netlink = {}
 netlink.channel = channel.new
 
 ---
--- rtnetlink session specialization for routes, links and addresses.
--- Open sessions (sleepable) using `netlink.rt()`.
+-- The rtnetlink namespace; groups the `NETLINK_ROUTE` object classes.
 -- @table netlink.rt
 -- @see netlink.rt
 netlink.rt = rt

@@ -58,13 +58,24 @@ function struct:unpack(buf, pos)
 end
 
 ---
+-- Returns the size in bytes of a named field.
+-- @function struct:fieldsize
+-- @tparam string name the field name.
+-- @treturn integer|nil the field size, or `nil` if the layout has no such field.
+function struct:fieldsize(name)
+	for _, field in ipairs(self.layout.fields) do
+		if field.name == name then return field.size end
+	end
+end
+
+---
 -- Builds a codec from a layout descriptor.
 -- @tparam table layout `{ size = bytes, fields = { {name, offset, size, signed}, ... } }`
--- @treturn struct a codec exposing `:pack`, `:unpack` and a `size` field.
+-- @treturn struct a codec exposing `:pack`, `:unpack`, `:fieldsize` and a `size` field.
 return function(layout)
 	local format = build_format(layout)
 	assert(packsize(format) == layout.size,
 		"struct: derived format does not match the layout size (overlapping fields?)")
-	return setmetatable({ format = format, size = layout.size }, struct)
+	return setmetatable({ format = format, size = layout.size, layout = layout }, struct)
 end
 

@@ -6,8 +6,8 @@
 
 local netlink = require("netlink")
 
-local rt <close> = netlink.rt()
-local routes = rt:route_list()
+local route <close> = netlink.rt.route()
+local routes = route:list()
 
 if #routes > 0 then
 	print("netlink route_list: routes found")

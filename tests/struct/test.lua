@@ -24,6 +24,10 @@ assert(#bytes == 16, "packed size: " .. #bytes)
 local a, b, c, d = codec:unpack(bytes)
 assert(a == 1 and b == 2 and c == -3 and d == 4, "round-trip")
 
+-- fieldsize reports a named field's width; unknown names yield nil
+assert(codec:fieldsize("b") == 2, "fieldsize")
+assert(codec:fieldsize("nope") == nil, "fieldsize unknown")
+
 -- fields may be listed out of offset order; the codec sorts by offset
 local unordered = struct{ size = 4, fields = {
 	{ name = "hi", offset = 2, size = 2, signed = false },
