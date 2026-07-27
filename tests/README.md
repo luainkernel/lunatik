@@ -109,6 +109,10 @@ higher-level `netlink.*` modules built on top of it.
   `lo` in an isolated table whose id is > 255 (exercising the `RTA_TABLE`
   attribute path), confirms it in a dump, asserts a duplicate add raises
   (`NLM_F_EXCL`), then `del()` removes it.
+- **rule_adddel**: `rt.rule():add()` creates a FIB rule directing lookups to an
+  isolated table whose id is > 255 (exercising the `FRA_TABLE` attribute),
+  confirms it in a dump, asserts a duplicate add raises (`NLM_F_EXCL`), then
+  `del()` removes it.
 - **channel**: a softirq runtime registers a generic netlink family, unicasts
   to an absent port id (which returns `false`), and installs a `PRE_ROUTING`
   netfilter hook that, on received traffic (NET_RX softirq), both multicasts to
