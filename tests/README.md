@@ -32,6 +32,25 @@ sudo bash tests/runtime/refcnt_leak.sh
 
 ## Suites
 
+### bpf
+
+Tests for the `bpf` module (pinned eBPF map access). Requires
+`bpftool`; skipped when it is not available.
+
+- **map_values**: creates a pinned hash map with `bpftool`, then exercises
+  `lookup`, `update` (flag semantics included), `delete`, `remove`, `next`
+  driving a generic `for`, `info`/`#` and the lifecycle after `close`; also
+  asserts that `bpf.map` rejects non-map paths and unsupported map types,
+  and that mismatched key/value sizes raise errors.
+- **array**: array map coverage — update/lookup by packed index,
+  out-of-range lookup and update, `delete`/`remove` rejection, and full
+  index iteration.
+- **lru**: LRU hash round-trip (update, lookup, remove, delete).
+- **map_softirq**: opens and exercises the hash map while loading a
+  softirq runtime (atomic-context allocator path).
+- The harness also cross-checks a Lua-written value with
+  `bpftool map lookup` (kernel-to-userspace interop).
+
 ### crypto
 
 Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
