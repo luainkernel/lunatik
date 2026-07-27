@@ -6,12 +6,12 @@
 
 local netlink = require("netlink")
 
-local rt <close> = netlink.rt()
-for _, link in ipairs(rt:link_list()) do
-	if link.name == "lo" then
-		assert(link.ifindex == 1, "expected lo ifindex == 1, got " .. tostring(link.ifindex))
+local link <close> = netlink.rt.link()
+for _, iface in ipairs(link:list()) do
+	if iface.name == "lo" then
+		assert(iface.ifindex == 1, "expected lo ifindex == 1, got " .. tostring(iface.ifindex))
 		print("netlink link_list: lo found")
-		if link.mtu and link.mtu > 0 then
+		if iface.mtu and iface.mtu > 0 then
 			print("netlink link_list: mtu ok")
 		end
 		break
