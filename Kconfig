@@ -174,5 +174,12 @@ config LUNATIK_BYTEORDER
 	help
 	  Byte order swapping functions.
 
+config LUNATIK_BPF
+	tristate "Lunatik BPF Support"
+	default m
+	depends on BPF_SYSCALL
+	help
+	  Access to pinned eBPF maps from Lua scripts.
+
 endif
  

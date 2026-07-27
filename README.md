@@ -171,6 +171,7 @@ The table below lists the available kernel Lua modules:
 | `netfilter` | Netfilter hooks: register packet processing callbacks |
 | `skb` | Socket buffer (`sk_buff`): inspect and modify packets |
 | `xdp` | XDP (eXpress Data Path) hooks |
+| `bpf` | Pinned eBPF map access (hash, array, LRU hash) |
 | `crypto` | Kernel crypto API: hash, cipher, AEAD, RNG, compression |
 | `hid` | HID device drivers |
 | `probe` | Kernel probes (kprobe / tracepoint) |
