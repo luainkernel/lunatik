@@ -45,6 +45,7 @@ file = {
 	'./lib/netlink/rt/addr.lua',
 	'./lib/netlink/rt/link.lua',
 	'./lib/netlink/rt/route.lua',
+	'./lib/netlink/rt/rule.lua',
 	'./lib/netlink/session.lua',
 	'./lib/luanetfilter.c',
 	'./lib/luanetlink.c',

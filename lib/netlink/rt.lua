@@ -11,6 +11,7 @@
 local route = require("netlink.rt.route")
 local link  = require("netlink.rt.link")
 local addr  = require("netlink.rt.addr")
+local rule  = require("netlink.rt.rule")
 
 local rt = {}
 
@@ -34,6 +35,13 @@ rt.link = link
 -- @table netlink.rt.addr
 -- @see netlink.rt.addr
 rt.addr = addr
+
+---
+-- FIB rule (policy routing) class.
+-- Open sessions using `netlink.rt.rule()`.
+-- @table netlink.rt.rule
+-- @see netlink.rt.rule
+rt.rule = rule
 
 return rt
 
