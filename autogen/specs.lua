@@ -39,7 +39,7 @@ return {
 	{ header = "uapi/linux/bpf.h",              prefix = "BPF_",       module = "bpf",
 		desc = "BPF map types and update flags.",
 		include = { "ANY", "NOEXIST", "EXIST",
-			"MAP_TYPE_HASH", "MAP_TYPE_ARRAY", "MAP_TYPE_LRU_HASH" } },
+			"MAP_TYPE_HASH", "MAP_TYPE_ARRAY", "MAP_TYPE_LRU_HASH", "MAP_TYPE_QUEUE", "MAP_TYPE_STACK" } },
 	{ header = "linux/sched.h",                 prefix = "TASK_",      module = "task",
 		desc = "Task state flags." },
 	{ header = "linux/net.h",                   prefix = "SOCK_",      module = "socket.sock",
