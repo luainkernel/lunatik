@@ -6,17 +6,24 @@
 /***
 * Lua interface to eBPF.
 *
-* This module provides generic key-value access to pinned eBPF maps,
-* supporting types that implement standard lookup, update, deletion,
-* and iteration operations:
+* This module provides access to pinned eBPF maps of two kinds:
+*
+* Key-value maps, via `lookup`, `update`, `delete`, `remove`, and `next`:
 *   - BPF_MAP_TYPE_HASH
 *   - BPF_MAP_TYPE_ARRAY
 *   - BPF_MAP_TYPE_LRU_HASH
 *
-* Other map types are rejected when opened.
+* Queue/stack maps, via `push`, `pop`, and `peek`:
+*   - BPF_MAP_TYPE_QUEUE (FIFO)
+*   - BPF_MAP_TYPE_STACK (LIFO)
+*
+* Other map types are rejected when opened. Calling an operation that a
+* map type does not implement (e.g. `lookup` on a queue) raises an
+* `EOPNOTSUPP` error.
 *
 * Keys and values are exchanged as packed Lua strings whose sizes must
-* match the map's configured key and value sizes.
+* match the map's configured key and value sizes. Queue/stack maps have
+* no keys, so only `value_size` applies to them.
 *
 * @module bpf
 */
@@ -32,7 +39,8 @@
 LUNATIK_PRIVATECHECKER(luabpf_map_check, struct bpf_map *);
 
 #define luabpf_map_issupported(type)	\
-	((type) == BPF_MAP_TYPE_HASH || (type) == BPF_MAP_TYPE_ARRAY || (type) == BPF_MAP_TYPE_LRU_HASH)
+	((type) == BPF_MAP_TYPE_HASH || (type) == BPF_MAP_TYPE_ARRAY || (type) == BPF_MAP_TYPE_LRU_HASH || \
+	 (type) == BPF_MAP_TYPE_QUEUE || (type) == BPF_MAP_TYPE_STACK)
 
 static const struct inode_operations *luabpf_map_iops;
 
@@ -234,6 +242,61 @@ static int luabpf_map_next(lua_State *L)
 }
 
 /***
+* Pushes a value onto a queue or stack map.
+* @function push
+* @tparam string value Packed value.
+* @tparam[opt=0] integer flags Update flags. `BPF_EXIST` may be set to
+* overwrite the oldest element once the map is full.
+* @treturn boolean success
+* @raise Error if the map does not support this operation (e.g. hash/array maps).
+*/
+static int luabpf_map_push(lua_State *L)
+{
+	struct bpf_map *map = luabpf_map_check(L, 1);
+	const char *value = luabpf_map_checkvalue(L, map, 2);
+	u64 flags = luaL_optinteger(L, 3, 0);
+
+	long ret;
+	luabpf_map_call(ret, map->ops->map_push_elem(map, (void *)value, flags));
+	return luabpf_map_pushresult(L, ret);
+}
+
+/***
+* Pops (removes and returns) the next value from a queue or stack map.
+* Queue maps pop in FIFO order; stack maps pop in LIFO order.
+* @function pop
+* @treturn string value Packed value, or `nil` if the map is empty.
+* @raise Error if the map does not support this operation (e.g. hash/array maps).
+*/
+static int luabpf_map_pop(lua_State *L)
+{
+	struct bpf_map *map = luabpf_map_check(L, 1);
+	luaL_Buffer B;
+	char *value = luaL_buffinitsize(L, &B, map->value_size);
+
+	long ret;
+	luabpf_map_call(ret, map->ops->map_pop_elem(map, value));
+	return luabpf_map_pushbuffer(L, &B, map->value_size, ret);
+}
+
+/***
+* Peeks at the next value of a queue or stack map without removing it.
+* @function peek
+* @treturn string value Packed value, or `nil` if the map is empty.
+* @raise Error if the map does not support this operation (e.g. hash/array maps).
+*/
+static int luabpf_map_peek(lua_State *L)
+{
+	struct bpf_map *map = luabpf_map_check(L, 1);
+	luaL_Buffer B;
+	char *value = luaL_buffinitsize(L, &B, map->value_size);
+
+	long ret;
+	luabpf_map_call(ret, map->ops->map_peek_elem(map, value));
+	return luabpf_map_pushbuffer(L, &B, map->value_size, ret);
+}
+
+/***
 * Returns the map properties.
 * @function info
 * @treturn table `type`, `key_size`, `value_size` and `max_entries`,
@@ -278,6 +341,9 @@ static const luaL_Reg luabpf_map_mt[] = {
 	{"delete",  luabpf_map_delete},
 	{"remove",  luabpf_map_remove},
 	{"next",    luabpf_map_next},
+	{"push",    luabpf_map_push},
+	{"pop",     luabpf_map_pop},
+	{"peek",    luabpf_map_peek},
 	{"info",    luabpf_map_info},
 	{"close",   lunatik_closeobject},
 	{"__len",   luabpf_map_len},
@@ -315,6 +381,13 @@ static const lunatik_class_t luabpf_map_class = {
 *   end
 *   counter:delete(key)
 *   counter:close()
+*
+*   -- Queue/stack maps have no keys; use push/pop/peek instead.
+*   local jobs = bpf.map("/sys/fs/bpf/job_queue")
+*   assert(jobs:push(string.pack("I4", 7)))
+*   local job = jobs:peek()          -- inspect without removing
+*   job = jobs:pop()                 -- remove and return
+*   jobs:close()
 * @within bpf
 */
 static int luabpf_map_open(lua_State *L)
