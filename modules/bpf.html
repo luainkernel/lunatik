@@ -1,0 +1,452 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_map">Class map </a></li>
+<li><a href="#bpf">bpf</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><strong>bpf</strong></li>
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fib.html">fib</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>bpf</code></h1>
+<p>Lua interface to eBPF.</p>
+<p> This module provides generic key-value access to pinned eBPF maps,
+ supporting types that implement standard lookup, update, deletion,
+ and iteration operations:
+   - BPF<em>MAP</em>TYPE<em>HASH
+   - BPF</em>MAP<em>TYPE</em>ARRAY
+   - BPF<em>MAP</em>TYPE<em>LRU</em>HASH</p>
+
+<p> Other map types are rejected when opened.</p>
+
+<p> Keys and values are exchanged as packed Lua strings whose sizes must
+ match the map's configured key and value sizes.</p>
+
+
+<h2><a href="#Class_map">Class map </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#map:close">map:close ()</a></td>
+	<td class="summary">Releases the map reference.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:delete">map:delete (key)</a></td>
+	<td class="summary">Deletes a key from the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:info">map:info ()</a></td>
+	<td class="summary">Returns the map properties.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:lookup">map:lookup (key)</a></td>
+	<td class="summary">Looks up a key from the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:next">map:next ([key])</a></td>
+	<td class="summary">Returns the next key in the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:remove">map:remove (key)</a></td>
+	<td class="summary">Looks up and deletes a key from the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:update">map:update (key, value[, flags=BPF_ANY])</a></td>
+	<td class="summary">Updates a key in the map.</td>
+	</tr>
+</table>
+<h2><a href="#bpf">bpf</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#map">map (path)</a></td>
+	<td class="summary">Opens a map from a pinned bpffs path.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_map"></a>Class map </h2>
+
+          <div class="section-description">
+          Represents an open eBPF map handle.
+ This is a userdata object returned by <code>bpf.map()</code>. It holds a
+ reference to a pinned <code>struct bpf_map</code>.
+ The length operator (<code>#map</code>) returns the map's <code>max_entries</code>.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "map:close"></a>
+    <strong>map:close ()</strong>
+    </dt>
+    <dd>
+    Releases the map reference.
+ This is an alias for the <code>__close</code> metamethod.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:delete"></a>
+    <strong>map:delete (key)</strong>
+    </dt>
+    <dd>
+    Deletes a key from the map.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Packed key.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        success
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation is not permitted by the map.
+
+
+
+</dd>
+    <dt>
+    <a name = "map:info"></a>
+    <strong>map:info ()</strong>
+    </dt>
+    <dd>
+    Returns the map properties.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        <a href="https://www.lua.org/manual/5.4/manual.html#pdf-type">type</a>, <code>key_size</code>, <code>value_size</code> and <code>max_entries</code>,
+ named as in the kernel's <code>struct bpf_map_info</code>.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:lookup"></a>
+    <strong>map:lookup (key)</strong>
+    </dt>
+    <dd>
+    Looks up a key from the map.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Packed key.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        value Packed value, or <code>nil</code> if the key is not present.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation fails.
+
+
+
+</dd>
+    <dt>
+    <a name = "map:next"></a>
+    <strong>map:next ([key])</strong>
+    </dt>
+    <dd>
+    Returns the next key in the map.
+ Mirrors Lua's <code>next(t, key)</code>, so it can drive a generic <code>for</code> directly.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Packed key; returns the first key if nothing is passed.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        next_key Packed next key, or <code>nil</code> if there are no more keys.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation fails.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> map = <span class="global">require</span>(<span class="string">"bpf"</span>).map
+<span class="keyword">local</span> flow = <span class="function-name">map</span>(<span class="string">"/sys/fs/bpf/flow_cache"</span>)
+<span class="keyword">for</span> key <span class="keyword">in</span> flow.<span class="global">next</span>, flow <span class="keyword">do</span>
+	<span class="global">print</span>(key)
+<span class="keyword">end</span>
+flow:<span class="function-name">close</span>()</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "map:remove"></a>
+    <strong>map:remove (key)</strong>
+    </dt>
+    <dd>
+    Looks up and deletes a key from the map.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Packed key.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        value Packed value, or <code>nil</code> if the key is not present.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation is not supported by the map (e.g. array maps).
+
+
+
+</dd>
+    <dt>
+    <a name = "map:update"></a>
+    <strong>map:update (key, value[, flags=BPF_ANY])</strong>
+    </dt>
+    <dd>
+    Updates a key in the map.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Packed key.
+        </li>
+        <li><span class="parameter">value</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Packed value.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         Update flags. One of:
+   - <code>BPF_ANY</code> (default): Create a new element or update an existing one.
+   - <code>BPF_NOEXIST</code>: Create a new element only if the key does not exist.
+   - <code>BPF_EXIST</code>: Update an existing element only if the key exists.
+         (<em>default</em> BPF_ANY)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        success; <code>false</code> when the flag condition is not met
+ (<code>BPF_EXIST</code> on an absent key, <code>BPF_NOEXIST</code> on a present one).
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation is not permitted by the map.
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="bpf"></a>bpf</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "map"></a>
+    <strong>map (path)</strong>
+    </dt>
+    <dd>
+    Opens a map from a pinned bpffs path.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to a pinned eBPF map.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/bpf.html#map">map</a></span>
+        Opened map handle.
+    </ol>
+
+    <h3>Raises:</h3>
+     Error if the path does not resolve to a supported pinned eBPF map.
+ Path lookup may sleep, so on interrupt-context runtimes (softirq/hardirq)
+ <a href="../modules/bpf.html#map">map</a> is only allowed during script load; the returned handle can then be
+ used from handlers.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> bpf = <span class="global">require</span>(<span class="string">"bpf"</span>)
+<span class="keyword">local</span> counter = bpf.<span class="function-name">map</span>(<span class="string">"/sys/fs/bpf/counters"</span>)
+<span class="comment">-- 32-bit key/value encoded as packed strings.
+</span><span class="keyword">local</span> key = <span class="global">string</span>.<span class="function-name">pack</span>(<span class="string">"I4"</span>, <span class="number">1</span>)
+<span class="keyword">local</span> value = <span class="global">string</span>.<span class="function-name">pack</span>(<span class="string">"I4"</span>, <span class="number">42</span>)
+<span class="global">assert</span>(counter:<span class="function-name">update</span>(key, value))
+<span class="keyword">local</span> result = counter:<span class="function-name">lookup</span>(key)
+<span class="keyword">if</span> result <span class="keyword">then</span>
+    <span class="global">print</span>(<span class="global">string</span>.<span class="function-name">unpack</span>(<span class="string">"I4"</span>, result))
+<span class="keyword">end</span>
+counter:<span class="function-name">delete</span>(key)
+counter:<span class="function-name">close</span>()</pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-07-28 10:50:54 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
