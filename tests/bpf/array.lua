@@ -20,6 +20,12 @@ test("bpf.map array update and lookup by index", function()
 	m:close()
 end)
 
+test("bpf.map array lookup in range never misses", function()
+	local m = map(path)
+	assert(m:lookup(pack("I4", 3)) == pack("I4", 0), "expected zero-filled value for an unwritten index")
+	m:close()
+end)
+
 test("bpf.map array lookup out of range returns nil", function()
 	local m = map(path)
 	assert(m:lookup(pack("I4", 100)) == nil, "expected nil past max_entries")
