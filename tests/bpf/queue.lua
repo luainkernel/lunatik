@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the bpf queue map test (see run.sh).
 
-local map = require("bpf").map
+local queue = require("bpf").queue
 local bpf = require("linux.bpf")
 local test = require("util").test
 
@@ -15,16 +15,16 @@ local function drain(m)
 	end
 end
 
-test("bpf.map queue push and peek returns inserted value", function()
-	local m = map(path)
+test("bpf.queue push and peek returns inserted value", function()
+	local m = queue(path)
 	assert(m:push("foo"))
 	local value = m:peek()
 	assert(value == "foo", "expected 'foo', got: " .. tostring(value))
 	m:close()
 end)
 
-test("bpf.map queue peek does not remove value", function()
-	local m = map(path)
+test("bpf.queue peek does not remove value", function()
+	local m = queue(path)
 	drain(m)
 	assert(m:push("foo"))
 	assert(m:peek() == "foo")
@@ -32,8 +32,8 @@ test("bpf.map queue peek does not remove value", function()
 	m:close()
 end)
 
-test("bpf.map queue pop removes values in FIFO order", function()
-	local m = map(path)
+test("bpf.queue pop removes values in FIFO order", function()
+	local m = queue(path)
 	drain(m)
 	assert(m:push("foo"))
 	assert(m:push("bar"))
@@ -44,22 +44,22 @@ test("bpf.map queue pop removes values in FIFO order", function()
 	m:close()
 end)
 
-test("bpf.map queue pop on empty queue returns nil", function()
-	local m = map(path)
+test("bpf.queue pop on empty queue returns nil", function()
+	local m = queue(path)
 	drain(m)
 	assert(m:pop() == nil, "expected nil from empty queue")
 	m:close()
 end)
 
-test("bpf.map queue peek on empty queue returns nil", function()
-	local m = map(path)
+test("bpf.queue peek on empty queue returns nil", function()
+	local m = queue(path)
 	drain(m)
 	assert(m:peek() == nil, "expected nil from empty queue")
 	m:close()
 end)
 
-test("bpf.map queue push full queue returns false", function()
-	local m = map(path)
+test("bpf.queue push full queue returns false", function()
+	local m = queue(path)
 	drain(m)
 	for i = 1, #m do
 		assert(m:push("xyz"))
@@ -68,8 +68,8 @@ test("bpf.map queue push full queue returns false", function()
 	m:close()
 end)
 
-test("bpf.map queue push BPF_EXIST overwrites the oldest when full", function()
-	local m = map(path)
+test("bpf.queue push BPF_EXIST overwrites the oldest when full", function()
+	local m = queue(path)
 	drain(m)
 	assert(m:push("aaa"))
 	for i = 2, #m do
@@ -82,45 +82,27 @@ test("bpf.map queue push BPF_EXIST overwrites the oldest when full", function()
 	m:close()
 end)
 
-test("bpf.map queue push NOEXIST raises", function()
-	local m = map(path)
+test("bpf.queue push NOEXIST raises", function()
+	local m = queue(path)
 	drain(m)
 	assert(not pcall(m.push, m, "xyz", bpf.NOEXIST), "expected error: NOEXIST is not a push flag")
 	m:close()
 end)
 
-test("bpf.map queue lookup returns nil", function()
-	local m = map(path)
-	assert(m:lookup("") == nil, "expected nil: queue lookup unsupported")
+test("bpf.queue handle has no key-value operations", function()
+	local m = queue(path)
+	assert(m.lookup == nil and m.update == nil and m.delete == nil and m.remove == nil and m.next == nil,
+		"expected no key-value methods on a queue handle")
 	m:close()
 end)
 
-test("bpf.map queue update raises", function()
-	local m = map(path)
-	assert(not pcall(m.update, m, "", "foo", bpf.ANY), "expected error: queue does not support update")
-	m:close()
+test("bpf.queue rejects other map types", function()
+	assert(not pcall(queue, "/sys/fs/bpf/test_map"), "expected error on hash map")
+	assert(not pcall(queue, "/sys/fs/bpf/test_map_stack"), "expected error on stack map")
 end)
 
-test("bpf.map queue delete raises", function()
-	local m = map(path)
-	assert(not pcall(m.delete, m, ""), "expected error: queue does not support delete")
-	m:close()
-end)
-
-test("bpf.map queue remove raises", function()
-	local m = map(path)
-	assert(not pcall(m.remove, m, ""), "expected error: queue does not support remove")
-	m:close()
-end)
-
-test("bpf.map queue next raises", function()
-	local m = map(path)
-	assert(not pcall(m.next, m), "expected error: queue does not support iteration")
-	m:close()
-end)
-
-test("bpf.map queue info reports map properties", function()
-	local m = map(path)
+test("bpf.queue info reports map properties", function()
+	local m = queue(path)
 	local info = m:info()
 	assert(info.type == bpf.MAP_TYPE_QUEUE, "expected queue map type")
 	assert(info.key_size == 0, "expected key_size 0")

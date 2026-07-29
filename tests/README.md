@@ -39,18 +39,20 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 
 - **map_values**: creates a pinned hash map with `bpftool`, then exercises
   `lookup`, `update` (flag semantics included), `delete`, `remove`, `next`
-  driving a generic `for`, `info`/`#`, `push`/`pop`/`peek` rejection and
-  the lifecycle after `close`; also asserts that `bpf.map` rejects non-map
-  paths and unsupported map types, and that mismatched key/value sizes
-  raise errors.
+  driving a generic `for`, `info`/`#` and the lifecycle after `close`;
+  also asserts that the key-value handle carries no queue methods, and
+  that `bpf.hash` rejects non-map paths, every other map type and
+  mismatched key/value sizes.
 - **array**: array map coverage — update/lookup by packed index,
   zero-filled reads of unwritten indexes, out-of-range lookup and
-  update, `delete`/`remove` rejection, and full index iteration.
-- **lru**: LRU hash round-trip (update, lookup, remove, delete).
+  update, `delete`/`remove` rejection, full index iteration and the
+  cross-type constructor rejection.
+- **lru**: LRU hash round-trip (update, lookup, remove, delete) and the
+  cross-type constructor rejection.
 - **queue**: queue map coverage — push/peek/pop in FIFO order, empty-map
   `nil`, full-map `false` and `BPF_EXIST` overwriting the oldest, invalid
-  push flags, the stubbed key-value operations (`lookup` `nil`;
-  `update`/`delete`/`next` raising) and metadata with `key_size` 0.
+  push flags, the absence of key-value methods on the handle, the
+  cross-type constructor rejection and metadata with `key_size` 0.
 - **stack**: the same for LIFO stack maps.
 - **map_softirq**: opens and exercises the hash map while loading a
   softirq runtime (atomic-context allocator path).

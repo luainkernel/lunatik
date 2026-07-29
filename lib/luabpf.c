@@ -6,26 +6,18 @@
 /***
 * Lua interface to eBPF.
 *
-* This module provides access to pinned eBPF maps of two kinds:
+* This module provides typed access to pinned eBPF maps; one
+* constructor per map type, each validating the type on open:
 *
-* Key-value maps, via `lookup`, `update`, `delete`, `remove`, and `next`:
-*   - BPF_MAP_TYPE_HASH
-*   - BPF_MAP_TYPE_ARRAY
-*   - BPF_MAP_TYPE_LRU_HASH
+* `hash`, `array` and `lru_hash` open key-value maps, with `lookup`,
+* `update`, `delete`, `remove` and `next`.
 *
-* Queue/stack maps, via `push`, `pop`, and `peek`:
-*   - BPF_MAP_TYPE_QUEUE (FIFO)
-*   - BPF_MAP_TYPE_STACK (LIFO)
-*
-* Other map types are rejected when opened. Calling an operation of the
-* other kind raises `EOPNOTSUPP` when the map lacks the operation
-* (e.g. `push` on a hash, `remove` on a queue) and `EINVAL` when the
-* kernel stubs it (`update`, `delete` and `next` on queues/stacks);
-* `lookup` on a queue/stack returns `nil`.
+* `queue` (FIFO) and `stack` (LIFO) open keyless maps, with `push`,
+* `pop` and `peek`.
 *
 * Keys and values are exchanged as packed Lua strings whose sizes must
-* match the map's configured key and value sizes. Queue/stack maps have
-* no keys, so only `value_size` applies to them.
+* match the map's configured key and value sizes. Queues and stacks
+* have no keys, so only `value_size` applies to them.
 *
 * @module bpf
 */
@@ -40,12 +32,7 @@
 
 LUNATIK_PRIVATECHECKER(luabpf_map_check, struct bpf_map *);
 
-#define luabpf_map_istype(type, TYPE)	((type) == BPF_MAP_TYPE_##TYPE)
-
-#define luabpf_map_issupported(type)								\
-	(luabpf_map_istype(type, HASH) || luabpf_map_istype(type, ARRAY) ||			\
-	 luabpf_map_istype(type, LRU_HASH) || luabpf_map_istype(type, QUEUE) ||			\
-	 luabpf_map_istype(type, STACK))
+#define luabpf_map_istype(map, type)	((map) != NULL && (map)->map_type == (type))
 
 static const struct inode_operations *luabpf_map_iops;
 
@@ -108,25 +95,27 @@ static inline struct bpf_map *luabpf_map_frompath(const struct path *path)
 	return inode->i_op == luabpf_map_iops ? inode->i_private : NULL;
 }
 
-static struct bpf_map *luabpf_map_get(lua_State *L, const char *pathname)
+static struct bpf_map *luabpf_map_get(lua_State *L, const char *pathname, enum bpf_map_type type)
 {
 	struct path path;
 	lunatik_try(L, kern_path, pathname, LOOKUP_FOLLOW, &path);
 
 	struct bpf_map *map = luabpf_map_frompath(&path);
-	if (map)
+	if (luabpf_map_istype(map, type))
 		bpf_map_inc(map);
+	else
+		map = NULL;
 
 	path_put(&path);
 	return map;
 }
 
 /***
-* Represents an open eBPF map handle.
-* This is a userdata object returned by `bpf.map()`. It holds a
-* reference to a pinned `struct bpf_map`.
-* The length operator (`#map`) returns the map's `max_entries`.
-* @type map
+* Represents an open key-value map handle.
+* This is a userdata object returned by `bpf.hash()`, `bpf.array()` and
+* `bpf.lru_hash()`. It holds a reference to a pinned `struct bpf_map`.
+* The length operator (`#t`) returns the map's `max_entries`.
+* @type bpf_hash
 */
 
 static long luabpf_map_copyvalue(struct bpf_map *map, const char *key, char *value)
@@ -231,8 +220,8 @@ static int luabpf_map_remove(lua_State *L)
 * @treturn string next_key Packed next key, or `nil` if there are no more keys.
 * @raise Error if the operation fails.
 * @usage
-*   local map = require("bpf").map
-*   local flow = map("/sys/fs/bpf/flow_cache")
+*   local hash = require("bpf").hash
+*   local flow = hash("/sys/fs/bpf/flow_cache")
 *   for key in flow.next, flow do
 *   	print(key)
 *   end
@@ -252,14 +241,34 @@ static int luabpf_map_next(lua_State *L)
 }
 
 /***
-* Pushes a value onto a queue or stack map.
+* Returns the map properties.
+* @function info
+* @treturn table `type`, `key_size`, `value_size` and `max_entries`,
+* named as in the kernel's `struct bpf_map_info`.
+*/
+
+/***
+* Releases the map reference.
+* This is an alias for the `__close` metamethod.
+* @function close
+*/
+
+/***
+* Represents an open queue or stack handle, as returned by `bpf.queue()`
+* and `bpf.stack()`. It also exposes `info`, `close` and the length
+* operator, as `bpf_hash`.
+* @type bpf_queue
+*/
+
+/***
+* Pushes a value onto the map.
 * @function push
 * @tparam string value Packed value.
 * @tparam[opt=BPF_ANY] integer flags Update flags. `BPF_EXIST` may be set to
 * overwrite the oldest element once the map is full.
 * @treturn boolean success; `false` when the map is full and `BPF_EXIST`
 * was not given.
-* @raise Error if the map does not support this operation (e.g. hash/array maps).
+* @raise Error on invalid flags.
 */
 static int luabpf_map_push(lua_State *L)
 {
@@ -293,28 +302,20 @@ static int luabpf_map_##name(lua_State *L)					\
 }
 
 /***
-* Pops (removes and returns) the next value from a queue or stack map.
-* Queue maps pop in FIFO order; stack maps pop in LIFO order.
+* Pops (removes and returns) the next value from the map.
+* Queues pop in FIFO order; stacks pop in LIFO order.
 * @function pop
 * @treturn string value Packed value, or `nil` if the map is empty.
-* @raise Error if the map does not support this operation (e.g. hash/array maps).
 */
 LUABPF_MAP_GETTER(pop, map_pop_elem)
 
 /***
-* Peeks at the next value of a queue or stack map without removing it.
+* Peeks at the next value of the map without removing it.
 * @function peek
 * @treturn string value Packed value, or `nil` if the map is empty.
-* @raise Error if the map does not support this operation (e.g. hash/array maps).
 */
 LUABPF_MAP_GETTER(peek, map_peek_elem)
 
-/***
-* Returns the map properties.
-* @function info
-* @treturn table `type`, `key_size`, `value_size` and `max_entries`,
-* named as in the kernel's `struct bpf_map_info`.
-*/
 static int luabpf_map_info(lua_State *L)
 {
 	struct bpf_map *map = luabpf_map_check(L, 1);
@@ -343,17 +344,21 @@ static void luabpf_map_release(void *private)
 	bpf_map_put((struct bpf_map *)private);
 }
 
-/***
-* Releases the map reference.
-* This is an alias for the `__close` metamethod.
-* @function close
-*/
-static const luaL_Reg luabpf_map_mt[] = {
+static const luaL_Reg luabpf_hash_mt[] = {
 	{"lookup",  luabpf_map_lookup},
 	{"update",  luabpf_map_update},
 	{"delete",  luabpf_map_delete},
 	{"remove",  luabpf_map_remove},
 	{"next",    luabpf_map_next},
+	{"info",    luabpf_map_info},
+	{"close",   lunatik_closeobject},
+	{"__len",   luabpf_map_len},
+	{"__close", lunatik_closeobject},
+	{"__gc",    lunatik_deleteobject},
+	{NULL, NULL}
+};
+
+static const luaL_Reg luabpf_queue_mt[] = {
 	{"push",    luabpf_map_push},
 	{"pop",     luabpf_map_pop},
 	{"peek",    luabpf_map_peek},
@@ -365,25 +370,53 @@ static const luaL_Reg luabpf_map_mt[] = {
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luabpf_map_class = {
-	.name = "bpf_map",
-	.methods = luabpf_map_mt,
+static const lunatik_class_t luabpf_hash_class = {
+	.name = "bpf_hash",
+	.methods = luabpf_hash_mt,
 	.release = luabpf_map_release,
 	.opt = LUNATIK_OPT_EXTERNAL | LUNATIK_OPT_HARDIRQ,
 };
 
+static const lunatik_class_t luabpf_queue_class = {
+	.name = "bpf_queue",
+	.methods = luabpf_queue_mt,
+	.release = luabpf_map_release,
+	.opt = LUNATIK_OPT_EXTERNAL | LUNATIK_OPT_HARDIRQ,
+};
+
+static int luabpf_open(lua_State *L, const lunatik_class_t *class, enum bpf_map_type type,
+	const char *expected)
+{
+	if (unlikely(lunatik_cannotsleep(L, lunatik_isready(lunatik_toruntime(L)))))
+		luaL_argerror(L, 1, "not allowed after module load");
+
+	const char *pathname = luaL_checkstring(L, 1);
+	lunatik_object_t *object = lunatik_newobject(L, class, 0, LUNATIK_OPT_NONE);
+
+	object->private = luabpf_map_get(L, pathname, type);
+	luaL_argcheck(L, object->private != NULL, 1, expected);
+	return 1;
+}
+
+#define LUABPF_OPENER(name, class, TYPE)						\
+static int luabpf_##name##_open(lua_State *L)						\
+{											\
+	return luabpf_open(L, &luabpf_##class##_class, BPF_MAP_TYPE_##TYPE,		\
+		#name " map expected");							\
+}
+
 /***
-* Opens a map from a pinned bpffs path.
-* @function map
-* @tparam string path Path to a pinned eBPF map.
-* @treturn map Opened map handle.
-* @raise Error if the path does not resolve to a supported pinned eBPF map.
+* Opens a hash map from a pinned bpffs path.
+* @function hash
+* @tparam string path Path to a pinned eBPF hash map.
+* @treturn bpf_hash Opened map handle.
+* @raise Error if the path does not resolve to a pinned eBPF hash map.
 * Path lookup may sleep, so on interrupt-context runtimes (softirq/hardirq)
-* `map` is only allowed during script load; the returned handle can then be
-* used from handlers.
+* the constructors are only allowed during script load; the returned handle
+* can then be used from handlers.
 * @usage
 *   local bpf = require("bpf")
-*   local counter = bpf.map("/sys/fs/bpf/counters")
+*   local counter = bpf.hash("/sys/fs/bpf/counters")
 *   -- 32-bit key/value encoded as packed strings.
 *   local key = string.pack("I4", 1)
 *   local value = string.pack("I4", 42)
@@ -394,35 +427,72 @@ static const lunatik_class_t luabpf_map_class = {
 *   end
 *   counter:delete(key)
 *   counter:close()
-*
-*   -- Queue/stack maps have no keys; use push/pop/peek instead.
-*   local jobs = bpf.map("/sys/fs/bpf/job_queue")
+* @within bpf
+*/
+LUABPF_OPENER(hash, hash, HASH)
+
+/***
+* Opens an array map from a pinned bpffs path.
+* Keys are 32-bit indexes, packed as 4-byte strings.
+* Same interrupt-context restriction as `hash`.
+* @function array
+* @tparam string path Path to a pinned eBPF array map.
+* @treturn bpf_hash Opened map handle.
+* @raise Error if the path does not resolve to a pinned eBPF array map.
+* @within bpf
+*/
+LUABPF_OPENER(array, hash, ARRAY)
+
+/***
+* Opens an LRU hash map from a pinned bpffs path.
+* Same interrupt-context restriction as `hash`.
+* @function lru_hash
+* @tparam string path Path to a pinned eBPF LRU hash map.
+* @treturn bpf_hash Opened map handle.
+* @raise Error if the path does not resolve to a pinned eBPF LRU hash map.
+* @within bpf
+*/
+LUABPF_OPENER(lru_hash, hash, LRU_HASH)
+
+/***
+* Opens a queue (FIFO) map from a pinned bpffs path.
+* Same interrupt-context restriction as `hash`.
+* @function queue
+* @tparam string path Path to a pinned eBPF queue map.
+* @treturn bpf_queue Opened queue handle.
+* @raise Error if the path does not resolve to a pinned eBPF queue map.
+* @usage
+*   local bpf = require("bpf")
+*   local jobs = bpf.queue("/sys/fs/bpf/job_queue")
 *   assert(jobs:push(string.pack("I4", 7)))
 *   local job = jobs:peek()          -- inspect without removing
 *   job = jobs:pop()                 -- remove and return
 *   jobs:close()
 * @within bpf
 */
-static int luabpf_map_open(lua_State *L)
-{
-	lunatik_object_t *runtime = lunatik_toruntime(L);
-	luaL_argcheck(L, !lunatik_isirq(runtime->opt) || !lunatik_isready(runtime), 1, "not allowed after module load");
-	const char *pathname = luaL_checkstring(L, 1);
-	lunatik_object_t *object = lunatik_newobject(L, &luabpf_map_class, 0, LUNATIK_OPT_NONE);
-	struct bpf_map *map = luabpf_map_get(L, pathname);
+LUABPF_OPENER(queue, queue, QUEUE)
 
-	object->private = map;
-	luaL_argcheck(L, map != NULL, 1, "not a bpf map");
-	luaL_argcheck(L, luabpf_map_issupported(map->map_type), 1, "unsupported map type");
-	return 1;
-}
+/***
+* Opens a stack (LIFO) map from a pinned bpffs path.
+* Same interrupt-context restriction as `hash`.
+* @function stack
+* @tparam string path Path to a pinned eBPF stack map.
+* @treturn bpf_queue Opened stack handle.
+* @raise Error if the path does not resolve to a pinned eBPF stack map.
+* @within bpf
+*/
+LUABPF_OPENER(stack, queue, STACK)
 
 static const luaL_Reg luabpf_lib[] = {
-	{"map", luabpf_map_open},
+	{"hash",     luabpf_hash_open},
+	{"array",    luabpf_array_open},
+	{"lru_hash", luabpf_lru_hash_open},
+	{"queue",    luabpf_queue_open},
+	{"stack",    luabpf_stack_open},
 	{NULL, NULL}
 };
 
-LUNATIK_CLASSES(bpf, &luabpf_map_class);
+LUNATIK_CLASSES(bpf, &luabpf_hash_class, &luabpf_queue_class);
 LUNATIK_NEWLIB(bpf, luabpf_lib, luabpf_classes);
 
 static int __init luabpf_init(void)

@@ -4,9 +4,9 @@
 --
 -- Kernel-side script for the bpf softirq-runtime test (see run.sh).
 
-local map = require("bpf").map
+local hash = require("bpf").hash
 
-local m = map("/sys/fs/bpf/test_map")
+local m = hash("/sys/fs/bpf/test_map")
 assert(m:update("sfq", "irq"), "softirq runtime update failed")
 assert(m:lookup("sfq") == "irq", "softirq runtime lookup mismatch")
 assert(m:delete("sfq"), "softirq runtime delete failed")
