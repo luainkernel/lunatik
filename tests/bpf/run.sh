@@ -7,7 +7,7 @@
 #
 # Creates pinned maps with bpftool (hash, array, lru_hash, queue, stack and
 # a percpu hash for the unsupported-type check), seeds the hash map, then
-# exercises the bpf.map API from kernel Lua scripts: per-type coverage
+# exercises the bpf module API from kernel Lua scripts: per-type coverage
 # in process context, a softirq-runtime script, and a Lua-to-bpftool
 # interop check.
 #
