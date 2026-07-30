@@ -117,17 +117,26 @@
 
 <h1>Module <code>bpf</code></h1>
 <p>Lua interface to eBPF.</p>
-<p> This module provides generic key-value access to pinned eBPF maps,
- supporting types that implement standard lookup, update, deletion,
- and iteration operations:
+<p> This module provides access to pinned eBPF maps of two kinds:</p>
+
+<p> Key-value maps, via <a href="../modules/bpf.html#map:lookup">lookup</a>, <a href="../modules/bpf.html#map:update">update</a>, <a href="../modules/bpf.html#map:delete">delete</a>, <a href="../modules/bpf.html#map:remove">remove</a>, and <a href="../modules/bpf.html#map:next">next</a>:
    - BPF<em>MAP</em>TYPE<em>HASH
    - BPF</em>MAP<em>TYPE</em>ARRAY
    - BPF<em>MAP</em>TYPE<em>LRU</em>HASH</p>
 
-<p> Other map types are rejected when opened.</p>
+<p> Queue/stack maps, via <a href="../modules/bpf.html#map:push">push</a>, <a href="../modules/bpf.html#map:pop">pop</a>, and <a href="../modules/bpf.html#map:peek">peek</a>:
+   - BPF<em>MAP</em>TYPE<em>QUEUE (FIFO)
+   - BPF</em>MAP<em>TYPE</em>STACK (LIFO)</p>
+
+<p> Other map types are rejected when opened. Calling an operation of the
+ other kind raises <code>EOPNOTSUPP</code> when the map lacks the operation
+ (e.g. <a href="../modules/bpf.html#map:push">push</a> on a hash, <a href="../modules/bpf.html#map:remove">remove</a> on a queue) and <code>EINVAL</code> when the
+ kernel stubs it (<a href="../modules/bpf.html#map:update">update</a>, <a href="../modules/bpf.html#map:delete">delete</a> and <a href="../modules/bpf.html#map:next">next</a> on queues/stacks);
+ <a href="../modules/bpf.html#map:lookup">lookup</a> on a queue/stack returns <code>nil</code>.</p>
 
 <p> Keys and values are exchanged as packed Lua strings whose sizes must
- match the map's configured key and value sizes.</p>
+ match the map's configured key and value sizes. Queue/stack maps have
+ no keys, so only <code>value_size</code> applies to them.</p>
 
 
 <h2><a href="#Class_map">Class map </a></h2>
@@ -151,6 +160,18 @@
 	<tr>
 	<td class="name" nowrap><a href="#map:next">map:next ([key])</a></td>
 	<td class="summary">Returns the next key in the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:peek">map:peek ()</a></td>
+	<td class="summary">Peeks at the next value of a queue or stack map without removing it.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:pop">map:pop ()</a></td>
+	<td class="summary">Pops (removes and returns) the next value from a queue or stack map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:push">map:push (value[, flags=BPF_ANY])</a></td>
+	<td class="summary">Pushes a value onto a queue or stack map.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#map:remove">map:remove (key)</a></td>
@@ -317,6 +338,87 @@ flow:<span class="function-name">close</span>()</pre>
 
 </dd>
     <dt>
+    <a name = "map:peek"></a>
+    <strong>map:peek ()</strong>
+    </dt>
+    <dd>
+    Peeks at the next value of a queue or stack map without removing it.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        value Packed value, or <code>nil</code> if the map is empty.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the map does not support this operation (e.g. hash/array maps).
+
+
+
+</dd>
+    <dt>
+    <a name = "map:pop"></a>
+    <strong>map:pop ()</strong>
+    </dt>
+    <dd>
+    Pops (removes and returns) the next value from a queue or stack map.
+ Queue maps pop in FIFO order; stack maps pop in LIFO order.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        value Packed value, or <code>nil</code> if the map is empty.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the map does not support this operation (e.g. hash/array maps).
+
+
+
+</dd>
+    <dt>
+    <a name = "map:push"></a>
+    <strong>map:push (value[, flags=BPF_ANY])</strong>
+    </dt>
+    <dd>
+    Pushes a value onto a queue or stack map.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">value</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Packed value.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         Update flags. <code>BPF_EXIST</code> may be set to
+ overwrite the oldest element once the map is full.
+         (<em>default</em> BPF_ANY)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        success; <code>false</code> when the map is full and <code>BPF_EXIST</code>
+ was not given.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the map does not support this operation (e.g. hash/array maps).
+
+
+
+</dd>
+    <dt>
     <a name = "map:remove"></a>
     <strong>map:remove (key)</strong>
     </dt>
@@ -434,7 +536,14 @@ flow:<span class="function-name">close</span>()</pre>
     <span class="global">print</span>(<span class="global">string</span>.<span class="function-name">unpack</span>(<span class="string">"I4"</span>, result))
 <span class="keyword">end</span>
 counter:<span class="function-name">delete</span>(key)
-counter:<span class="function-name">close</span>()</pre>
+counter:<span class="function-name">close</span>()
+
+<span class="comment">-- Queue/stack maps have no keys; use push/pop/peek instead.
+</span><span class="keyword">local</span> jobs = bpf.<span class="function-name">map</span>(<span class="string">"/sys/fs/bpf/job_queue"</span>)
+<span class="global">assert</span>(jobs:<span class="function-name">push</span>(<span class="global">string</span>.<span class="function-name">pack</span>(<span class="string">"I4"</span>, <span class="number">7</span>)))
+<span class="keyword">local</span> job = jobs:<span class="function-name">peek</span>()          <span class="comment">-- inspect without removing
+</span>job = jobs:<span class="function-name">pop</span>()                 <span class="comment">-- remove and return
+</span>jobs:<span class="function-name">close</span>()</pre>
     </ul>
 
 </dd>
@@ -445,7 +554,7 @@ counter:<span class="function-name">close</span>()</pre>
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-07-28 10:50:54 </i>
+<i style="float:right;">Last updated 2026-07-30 14:36:34 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
