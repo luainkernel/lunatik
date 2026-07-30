@@ -40,9 +40,12 @@
 
 LUNATIK_PRIVATECHECKER(luabpf_map_check, struct bpf_map *);
 
-#define luabpf_map_issupported(type)	\
-	((type) == BPF_MAP_TYPE_HASH || (type) == BPF_MAP_TYPE_ARRAY || (type) == BPF_MAP_TYPE_LRU_HASH || \
-	 (type) == BPF_MAP_TYPE_QUEUE || (type) == BPF_MAP_TYPE_STACK)
+#define luabpf_map_istype(type, TYPE)	((type) == BPF_MAP_TYPE_##TYPE)
+
+#define luabpf_map_issupported(type)								\
+	(luabpf_map_istype(type, HASH) || luabpf_map_istype(type, ARRAY) ||			\
+	 luabpf_map_istype(type, LRU_HASH) || luabpf_map_istype(type, QUEUE) ||			\
+	 luabpf_map_istype(type, STACK))
 
 static const struct inode_operations *luabpf_map_iops;
 
