@@ -7,7 +7,7 @@
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
 local byteorder = require("byteorder")
-local ipproto   = require("linux.ipproto")
+local ipproto   = require("linux.socket").ipproto
 
 local IP_PROTO     <const> = 9
 local UDP_DPORT    <const> = 2
