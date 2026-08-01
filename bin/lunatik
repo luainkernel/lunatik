@@ -113,6 +113,18 @@ local function fallback_reader(prompt)
 	return io.read("l")
 end
 
+local function options(...)
+	local context, percpu
+	for _, opt in ipairs({...}) do
+		if opt == "percpu" then
+			percpu = true
+		else
+			context = opt
+		end
+	end
+	return context, percpu
+end
+
 local function try_as_expr(chunk)
 	return load("return " .. chunk .. ";") ~= nil
 end
@@ -159,13 +171,14 @@ if #arg >= 1 then
 	local tokens = {run = true, spawn = true, stop = true, list = true}
 	local needs_script = {run = true, spawn = true, stop = true}
 	if not tokens[token] or (needs_script[token] and not script) then
-		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>]")
+		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu]")
 		os.exit(false)
 	end
 	ensure_loaded()
-	local parm  = arg[3] and (', "' .. arg[3] .. '"') or ""
+	local context, percpu = options(arg[3], arg[4])
 	local ret   = token == "list" and "return" or ""
-	local chunk = string.format("%s lunatik.runner.%s('%s'%s)", ret, token, script, parm)
+	local chunk = string.format("%s lunatik.runner.%s(%q, %s, %s)", ret, token, script,
+		context and string.format("%q", context) or "nil", percpu and "true" or "nil")
 	print(dostring(chunk))
 	os.exit()
 end
