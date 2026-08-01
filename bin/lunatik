@@ -159,11 +159,16 @@ if #arg >= 1 then
 	local tokens = {run = true, spawn = true, stop = true, list = true}
 	local needs_script = {run = true, spawn = true, stop = true}
 	if not tokens[token] or (needs_script[token] and not script) then
-		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>]")
+		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu]")
 		os.exit(false)
 	end
 	ensure_loaded()
-	local parm  = arg[3] and (', "' .. arg[3] .. '"') or ""
+	local percpu  = arg[3] == "percpu" or arg[4] == "percpu"
+	local context = (arg[3] ~= "percpu" and arg[3]) or (arg[4] ~= "percpu" and arg[4]) or nil
+	local parm    = context and string.format(', "%s"', context) or ""
+	if percpu then
+		parm = (context and parm or ", nil") .. ", true"
+	end
 	local ret   = token == "list" and "return" or ""
 	local chunk = string.format("%s lunatik.runner.%s('%s'%s)", ret, token, script, parm)
 	print(dostring(chunk))
