@@ -32,8 +32,10 @@ before=$(cat /sys/module/$MODULE/refcnt 2>/dev/null) || {
 mark_dmesg
 
 # run the script in a non-sleepable runtime (required for netfilter hooks);
-# it is expected to fail — ignore the error
-lunatik run "$SCRIPT" softirq 2>/dev/null || true
+# the failure below is the intentional one
+output=$(lunatik run "$SCRIPT" softirq 2>&1)
+echo "$output" | grep -q "intentional error after first register" || \
+	fail "script did not reach the intentional error: $output"
 
 check_dmesg || { ktap_totals; exit 1; }
 
