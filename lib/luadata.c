@@ -72,6 +72,14 @@ LUADATA_NEWINT(uint32);
 LUADATA_NEWINT(int64);
 
 /***
+* Represents a byte buffer.
+* This is a userdata object returned by `data.new()` and by the modules that
+* expose kernel memory (as `skb:data()`), read and written through the
+* `getuint*`/`setuint*` accessors below.
+* @type data
+*/
+
+/***
 * @function getstring
 * @tparam integer offset
 * @tparam[opt] integer length number of bytes; default: from offset to end

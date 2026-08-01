@@ -52,6 +52,13 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *,
 			ntohs((ip6h)->payload_len), 0))
 
 /***
+* Represents a socket buffer (`sk_buff`).
+* This is a userdata object handed to the hooks that receive packets; it is
+* `SINGLE`, so it cannot be shared with another runtime.
+* @type skb
+*/
+
+/***
 * @function __len
 * @treturn integer skb length in bytes
 */

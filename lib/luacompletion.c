@@ -24,6 +24,13 @@
 LUNATIK_OBJECTCHECKER(luacompletion_check, struct completion *);
 
 /***
+* Represents a kernel completion object.
+* This is a userdata object returned by `completion.new()`, wrapping a
+* `struct completion` used to wait for and signal an event.
+* @type completion
+*/
+
+/***
 * Signals a completion.
 * This wakes up one task waiting on this completion object.
 * Corresponds to the kernel's `complete()` function.
