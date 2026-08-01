@@ -163,7 +163,21 @@ if #arg >= 1 then
 		os.exit(false)
 	end
 	ensure_loaded()
-	local parm  = arg[3] and (', "' .. arg[3] .. '"') or ""
+	local context, percpu
+	for i = 3, 4 do
+		if arg[i] == "percpu" then
+			percpu = true
+		elseif arg[i] then
+			context = arg[i]
+		end
+	end
+	local parm = ""
+	if context or percpu then
+		parm = ", " .. (context and ('"' .. context .. '"') or "nil")
+	end
+	if percpu then
+		parm = parm .. ", true"
+	end
 	local ret   = token == "list" and "return" or ""
 	local chunk = string.format("%s lunatik.runner.%s('%s'%s)", ret, token, script, parm)
 	print(dostring(chunk))

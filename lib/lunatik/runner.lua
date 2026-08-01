@@ -14,6 +14,7 @@
 local lunatik = require("lunatik")
 local thread  = require("thread")
 local rcu     = require("rcu")
+local linux   = require("linux")
 
 local env = lunatik._ENV
 
@@ -28,6 +29,10 @@ local function trim(script) -- drop ".lua" file extension
 	return script:gsub("(%w+).lua", "%1")
 end
 
+local function key(script, cpu)
+	return script .. ":" .. cpu
+end
+
 --- Runs a Lunatik script in the current context.
 -- Creates a new Lunatik runtime for the given script and registers it.
 -- Throws an error if a script with the same name is already running.
@@ -35,12 +40,19 @@ end
 -- @tparam[opt] string context Execution context: `"process"` (default) or `"softirq"` (for netfilter/XDP hooks).
 -- @treturn table created Lunatik runtime object.
 -- @raise error if the script is already running.
-function runner.run(script, ...)
+function runner.run(script, context, percpu, ...)
 	local script = trim(script)
-	if env.runtimes[script] then
+	if env.runtimes[script] or env.percpu[script] then
 		error(string.format("%s is already running", script))
 	end
-	local runtime = lunatik.runtime(script, ...)
+	if percpu then
+		env.percpu[script] = true
+		for cpu = 0, linux.numcpus() - 1 do
+			env.runtimes[key(script, cpu)] = lunatik.runtime(script, context, ...)
+		end
+		return nil
+	end
+	local runtime = lunatik.runtime(script, context, ...)
 	env.runtimes[script] = runtime
 	return runtime
 end
@@ -53,6 +65,9 @@ end
 -- @treturn userdata kernel thread object.
 function runner.spawn(script, ...)
 	local runtime = runner.run(script, ...)
+	if not runtime then
+		error("spawn does not support percpu scripts")
+	end
 	local name = string.match(script, "(%w*/*%w*)$")
 	local t = thread.run(runtime, name)
 	env.threads[script] = t
@@ -73,6 +88,20 @@ local function stop(registry, script)
 	end
 end
 
+local function stop_percpu(script)
+	if not env.percpu[script] then
+		return
+	end
+	for cpu = 0, linux.numcpus() - 1 do
+		local k = key(script, cpu)
+		if env.runtimes[k] then
+			env.runtimes[k]:stop()
+			env.runtimes[k] = nil
+		end
+	end
+	env.percpu[script] = nil
+end
+
 --- Stops a running script and its associated thread, if any.
 -- It attempts to stop the thread first, then the runtime.
 -- @tparam string script name of the script to stop. The ".lua" extension will be trimmed.
@@ -80,6 +109,9 @@ function runner.stop(script)
 	local script = trim(script)
 	stop(env.threads, script)
 	stop(env.runtimes, script)
+	if env.percpu[script] then
+		stop_percpu(script)
+	end
 end
 
 --- Lists the names of all currently running scripts.
@@ -107,6 +139,7 @@ end
 function runner.startup()
 	if env.runtimes then return end
 	env.runtimes = rcu.table()
+	env.percpu = rcu.table()
 	env.threads = rcu.table()
 end
 

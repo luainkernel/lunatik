@@ -249,6 +249,17 @@ static int lualinux_errname(lua_State *L)
     return 1;
 }
 
+/***
+ * Returns the number of CPUs.
+ * @function numcpus
+ * @treturn integer number of CPUs
+ */
+static int lualinux_numcpus(lua_State *L)
+{
+	lua_pushinteger(L, num_online_cpus());
+	return 1;
+}
+
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
@@ -259,6 +270,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"ifindex", lualinux_ifindex},
 	{"ifaddr", lualinux_ifaddr},
 	{"errname", lualinux_errname},
+	{"numcpus", lualinux_numcpus},
 	{NULL, NULL}
 };
 
