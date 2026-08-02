@@ -18,19 +18,10 @@ ktap_header
 ktap_plan $TOTAL
 
 for t in $TESTS; do
-	mark_dmesg
-	if ! lunatik run "tests/set/$t" 2>/dev/null; then
-		ktap_fail "set/$t: script execution failed"
-		continue
-	fi
-	errs=$(dmesg_since | grep -iE "^[^:]+: FAIL	|\.lua:[0-9]+:" || true)
-	if [ -z "$errs" ]; then
+	if run_test "tests/set/$t"; then
 		ktap_pass "set/$t"
 	else
 		ktap_fail "set/$t"
-		while IFS= read -r line; do
-			echo "# $line"
-		done <<< "$errs"
 	fi
 done
 
