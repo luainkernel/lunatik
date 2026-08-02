@@ -33,7 +33,8 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_map">Class map </a></li>
+<li><a href="#Class_bpf_hash">Class bpf_hash </a></li>
+<li><a href="#Class_bpf_queue">Class bpf_queue </a></li>
 <li><a href="#bpf">bpf</a></li>
 </ul>
 
@@ -117,76 +118,87 @@
 
 <h1>Module <code>bpf</code></h1>
 <p>Lua interface to eBPF.</p>
-<p> This module provides access to pinned eBPF maps of two kinds:</p>
+<p> This module provides typed access to pinned eBPF maps; one
+ constructor per map type, each validating the type on open:</p>
 
-<p> Key-value maps, via <a href="../modules/bpf.html#map:lookup">lookup</a>, <a href="../modules/bpf.html#map:update">update</a>, <a href="../modules/bpf.html#map:delete">delete</a>, <a href="../modules/bpf.html#map:remove">remove</a>, and <a href="../modules/bpf.html#map:next">next</a>:
-   - BPF<em>MAP</em>TYPE<em>HASH
-   - BPF</em>MAP<em>TYPE</em>ARRAY
-   - BPF<em>MAP</em>TYPE<em>LRU</em>HASH</p>
+<p> <a href="../modules/bpf.html#hash">hash</a>, <a href="../modules/bpf.html#array">array</a> and <a href="../modules/bpf.html#lru_hash">lru_hash</a> open key-value maps, with <a href="../modules/bpf.html#bpf_hash:lookup">lookup</a>,
+ <a href="../modules/bpf.html#bpf_hash:update">update</a>, <a href="../modules/bpf.html#bpf_hash:delete">delete</a>, <a href="../modules/bpf.html#bpf_hash:remove">remove</a> and <a href="../modules/bpf.html#bpf_hash:next">next</a>.</p>
 
-<p> Queue/stack maps, via <a href="../modules/bpf.html#map:push">push</a>, <a href="../modules/bpf.html#map:pop">pop</a>, and <a href="../modules/bpf.html#map:peek">peek</a>:
-   - BPF<em>MAP</em>TYPE<em>QUEUE (FIFO)
-   - BPF</em>MAP<em>TYPE</em>STACK (LIFO)</p>
-
-<p> Other map types are rejected when opened. Calling an operation of the
- other kind raises <code>EOPNOTSUPP</code> when the map lacks the operation
- (e.g. <a href="../modules/bpf.html#map:push">push</a> on a hash, <a href="../modules/bpf.html#map:remove">remove</a> on a queue) and <code>EINVAL</code> when the
- kernel stubs it (<a href="../modules/bpf.html#map:update">update</a>, <a href="../modules/bpf.html#map:delete">delete</a> and <a href="../modules/bpf.html#map:next">next</a> on queues/stacks);
- <a href="../modules/bpf.html#map:lookup">lookup</a> on a queue/stack returns <code>nil</code>.</p>
+<p> <a href="../modules/bpf.html#queue">queue</a> (FIFO) and <a href="../modules/bpf.html#stack">stack</a> (LIFO) open keyless maps, with <a href="../modules/bpf.html#bpf_queue:push">push</a>,
+ <a href="../modules/bpf.html#bpf_queue:pop">pop</a> and <a href="../modules/bpf.html#bpf_queue:peek">peek</a>.</p>
 
 <p> Keys and values are exchanged as packed Lua strings whose sizes must
- match the map's configured key and value sizes. Queue/stack maps have
- no keys, so only <code>value_size</code> applies to them.</p>
+ match the map's configured key and value sizes. Queues and stacks
+ have no keys, so only <code>value_size</code> applies to them.</p>
 
 
-<h2><a href="#Class_map">Class map </a></h2>
+<h2><a href="#Class_bpf_hash">Class bpf_hash </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#map:close">map:close ()</a></td>
+	<td class="name" nowrap><a href="#bpf_hash:close">bpf_hash:close ()</a></td>
 	<td class="summary">Releases the map reference.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:delete">map:delete (key)</a></td>
+	<td class="name" nowrap><a href="#bpf_hash:delete">bpf_hash:delete (key)</a></td>
 	<td class="summary">Deletes a key from the map.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:info">map:info ()</a></td>
+	<td class="name" nowrap><a href="#bpf_hash:info">bpf_hash:info ()</a></td>
 	<td class="summary">Returns the map properties.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:lookup">map:lookup (key)</a></td>
+	<td class="name" nowrap><a href="#bpf_hash:lookup">bpf_hash:lookup (key)</a></td>
 	<td class="summary">Looks up a key from the map.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:next">map:next ([key])</a></td>
+	<td class="name" nowrap><a href="#bpf_hash:next">bpf_hash:next ([key])</a></td>
 	<td class="summary">Returns the next key in the map.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:peek">map:peek ()</a></td>
-	<td class="summary">Peeks at the next value of a queue or stack map without removing it.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#map:pop">map:pop ()</a></td>
-	<td class="summary">Pops (removes and returns) the next value from a queue or stack map.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#map:push">map:push (value[, flags=BPF_ANY])</a></td>
-	<td class="summary">Pushes a value onto a queue or stack map.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#map:remove">map:remove (key)</a></td>
+	<td class="name" nowrap><a href="#bpf_hash:remove">bpf_hash:remove (key)</a></td>
 	<td class="summary">Looks up and deletes a key from the map.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:update">map:update (key, value[, flags=BPF_ANY])</a></td>
+	<td class="name" nowrap><a href="#bpf_hash:update">bpf_hash:update (key, value[, flags=BPF_ANY])</a></td>
 	<td class="summary">Updates a key in the map.</td>
+	</tr>
+</table>
+<h2><a href="#Class_bpf_queue">Class bpf_queue </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#bpf_queue:peek">bpf_queue:peek ()</a></td>
+	<td class="summary">Peeks at the next value of the map without removing it.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#bpf_queue:pop">bpf_queue:pop ()</a></td>
+	<td class="summary">Pops (removes and returns) the next value from the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#bpf_queue:push">bpf_queue:push (value[, flags=BPF_ANY])</a></td>
+	<td class="summary">Pushes a value onto the map.</td>
 	</tr>
 </table>
 <h2><a href="#bpf">bpf</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#map">map (path)</a></td>
-	<td class="summary">Opens a map from a pinned bpffs path.</td>
+	<td class="name" nowrap><a href="#array">array (path)</a></td>
+	<td class="summary">Opens an array map from a pinned bpffs path.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hash">hash (path)</a></td>
+	<td class="summary">Opens a hash map from a pinned bpffs path.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#lru_hash">lru_hash (path)</a></td>
+	<td class="summary">Opens an LRU hash map from a pinned bpffs path.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#queue">queue (path)</a></td>
+	<td class="summary">Opens a queue (FIFO) map from a pinned bpffs path.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#stack">stack (path)</a></td>
+	<td class="summary">Opens a stack (LIFO) map from a pinned bpffs path.</td>
 	</tr>
 </table>
 
@@ -194,18 +206,18 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_map"></a>Class map </h2>
+    <h2 class="section-header has-description"><a name="Class_bpf_hash"></a>Class bpf_hash </h2>
 
           <div class="section-description">
-          Represents an open eBPF map handle.
- This is a userdata object returned by <code>bpf.map()</code>. It holds a
- reference to a pinned <code>struct bpf_map</code>.
- The length operator (<code>#map</code>) returns the map's <code>max_entries</code>.
+          Represents an open key-value map handle.
+ This is a userdata object returned by <code>bpf.hash()</code>, <code>bpf.array()</code> and
+ <code>bpf.lru_hash()</code>. It holds a reference to a pinned <code>struct bpf_map</code>.
+ The length operator (<code>#t</code>) returns the map's <code>max_entries</code>.
           </div>
     <dl class="function">
     <dt>
-    <a name = "map:close"></a>
-    <strong>map:close ()</strong>
+    <a name = "bpf_hash:close"></a>
+    <strong>bpf_hash:close ()</strong>
     </dt>
     <dd>
     Releases the map reference.
@@ -219,8 +231,8 @@
 
 </dd>
     <dt>
-    <a name = "map:delete"></a>
-    <strong>map:delete (key)</strong>
+    <a name = "bpf_hash:delete"></a>
+    <strong>bpf_hash:delete (key)</strong>
     </dt>
     <dd>
     Deletes a key from the map.
@@ -248,8 +260,8 @@
 
 </dd>
     <dt>
-    <a name = "map:info"></a>
-    <strong>map:info ()</strong>
+    <a name = "bpf_hash:info"></a>
+    <strong>bpf_hash:info ()</strong>
     </dt>
     <dd>
     Returns the map properties.
@@ -269,8 +281,8 @@
 
 </dd>
     <dt>
-    <a name = "map:lookup"></a>
-    <strong>map:lookup (key)</strong>
+    <a name = "bpf_hash:lookup"></a>
+    <strong>bpf_hash:lookup (key)</strong>
     </dt>
     <dd>
     Looks up a key from the map.
@@ -298,8 +310,8 @@
 
 </dd>
     <dt>
-    <a name = "map:next"></a>
-    <strong>map:next ([key])</strong>
+    <a name = "bpf_hash:next"></a>
+    <strong>bpf_hash:next ([key])</strong>
     </dt>
     <dd>
     Returns the next key in the map.
@@ -328,8 +340,8 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> map = <span class="global">require</span>(<span class="string">"bpf"</span>).map
-<span class="keyword">local</span> flow = <span class="function-name">map</span>(<span class="string">"/sys/fs/bpf/flow_cache"</span>)
+        <pre class="example"><span class="keyword">local</span> hash = <span class="global">require</span>(<span class="string">"bpf"</span>).hash
+<span class="keyword">local</span> flow = <span class="function-name">hash</span>(<span class="string">"/sys/fs/bpf/flow_cache"</span>)
 <span class="keyword">for</span> key <span class="keyword">in</span> flow.<span class="global">next</span>, flow <span class="keyword">do</span>
 	<span class="global">print</span>(key)
 <span class="keyword">end</span>
@@ -338,89 +350,8 @@ flow:<span class="function-name">close</span>()</pre>
 
 </dd>
     <dt>
-    <a name = "map:peek"></a>
-    <strong>map:peek ()</strong>
-    </dt>
-    <dd>
-    Peeks at the next value of a queue or stack map without removing it.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        value Packed value, or <code>nil</code> if the map is empty.
-    </ol>
-
-    <h3>Raises:</h3>
-    Error if the map does not support this operation (e.g. hash/array maps).
-
-
-
-</dd>
-    <dt>
-    <a name = "map:pop"></a>
-    <strong>map:pop ()</strong>
-    </dt>
-    <dd>
-    Pops (removes and returns) the next value from a queue or stack map.
- Queue maps pop in FIFO order; stack maps pop in LIFO order.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        value Packed value, or <code>nil</code> if the map is empty.
-    </ol>
-
-    <h3>Raises:</h3>
-    Error if the map does not support this operation (e.g. hash/array maps).
-
-
-
-</dd>
-    <dt>
-    <a name = "map:push"></a>
-    <strong>map:push (value[, flags=BPF_ANY])</strong>
-    </dt>
-    <dd>
-    Pushes a value onto a queue or stack map.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">value</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         Packed value.
-        </li>
-        <li><span class="parameter">flags</span>
-            <span class="types"><span class="type">integer</span></span>
-         Update flags. <code>BPF_EXIST</code> may be set to
- overwrite the oldest element once the map is full.
-         (<em>default</em> BPF_ANY)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-        success; <code>false</code> when the map is full and <code>BPF_EXIST</code>
- was not given.
-    </ol>
-
-    <h3>Raises:</h3>
-    Error if the map does not support this operation (e.g. hash/array maps).
-
-
-
-</dd>
-    <dt>
-    <a name = "map:remove"></a>
-    <strong>map:remove (key)</strong>
+    <a name = "bpf_hash:remove"></a>
+    <strong>bpf_hash:remove (key)</strong>
     </dt>
     <dd>
     Looks up and deletes a key from the map.
@@ -448,8 +379,8 @@ flow:<span class="function-name">close</span>()</pre>
 
 </dd>
     <dt>
-    <a name = "map:update"></a>
-    <strong>map:update (key, value[, flags=BPF_ANY])</strong>
+    <a name = "bpf_hash:update"></a>
+    <strong>bpf_hash:update (key, value[, flags=BPF_ANY])</strong>
     </dt>
     <dd>
     Updates a key in the map.
@@ -490,43 +421,160 @@ flow:<span class="function-name">close</span>()</pre>
 
 </dd>
 </dl>
-    <h2 class="section-header "><a name="bpf"></a>bpf</h2>
+    <h2 class="section-header has-description"><a name="Class_bpf_queue"></a>Class bpf_queue </h2>
 
+          <div class="section-description">
+          Represents an open queue or stack handle, as returned by <code>bpf.queue()</code>
+ and <code>bpf.stack()</code>.  It also exposes <a href="../modules/bpf.html#bpf_hash:info">info</a>, <a href="../modules/bpf.html#bpf_hash:close">close</a> and the length
+ operator, as <a href="../modules/bpf.html#bpf_hash">bpf_hash</a>.
+          </div>
     <dl class="function">
     <dt>
-    <a name = "map"></a>
-    <strong>map (path)</strong>
+    <a name = "bpf_queue:peek"></a>
+    <strong>bpf_queue:peek ()</strong>
     </dt>
     <dd>
-    Opens a map from a pinned bpffs path.
+    Peeks at the next value of the map without removing it.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        value Packed value, or <code>nil</code> if the map is empty.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "bpf_queue:pop"></a>
+    <strong>bpf_queue:pop ()</strong>
+    </dt>
+    <dd>
+    Pops (removes and returns) the next value from the map.
+ Queues pop in FIFO order; stacks pop in LIFO order.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        value Packed value, or <code>nil</code> if the map is empty.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "bpf_queue:push"></a>
+    <strong>bpf_queue:push (value[, flags=BPF_ANY])</strong>
+    </dt>
+    <dd>
+    Pushes a value onto the map.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">path</span>
+        <li><span class="parameter">value</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         Path to a pinned eBPF map.
+         Packed value.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         Update flags. <code>BPF_EXIST</code> may be set to
+ overwrite the oldest element once the map is full.
+         (<em>default</em> BPF_ANY)
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="../modules/bpf.html#map">map</a></span>
+           <span class="types"><span class="type">boolean</span></span>
+        success; <code>false</code> when the map is full and <code>BPF_EXIST</code>
+ was not given.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error on invalid flags.
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="bpf"></a>bpf</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "array"></a>
+    <strong>array (path)</strong>
+    </dt>
+    <dd>
+    Opens an array map from a pinned bpffs path.
+ Keys are 32-bit indexes, packed as 4-byte strings.
+ Same interrupt-context restriction as <a href="../modules/bpf.html#hash">hash</a>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to a pinned eBPF array map.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bpf_hash</span></span>
         Opened map handle.
     </ol>
 
     <h3>Raises:</h3>
-     Error if the path does not resolve to a supported pinned eBPF map.
+    Error if the path does not resolve to a pinned eBPF array map.
+
+
+
+</dd>
+    <dt>
+    <a name = "hash"></a>
+    <strong>hash (path)</strong>
+    </dt>
+    <dd>
+    Opens a hash map from a pinned bpffs path.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to a pinned eBPF hash map.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bpf_hash</span></span>
+        Opened map handle.
+    </ol>
+
+    <h3>Raises:</h3>
+     Error if the path does not resolve to a pinned eBPF hash map.
  Path lookup may sleep, so on interrupt-context runtimes (softirq/hardirq)
- <a href="../modules/bpf.html#map">map</a> is only allowed during script load; the returned handle can then be
- used from handlers.
+ the constructors are only allowed during script load; the returned handle
+ can then be used from handlers.
 
 
     <h3>Usage:</h3>
     <ul>
         <pre class="example"><span class="keyword">local</span> bpf = <span class="global">require</span>(<span class="string">"bpf"</span>)
-<span class="keyword">local</span> counter = bpf.<span class="function-name">map</span>(<span class="string">"/sys/fs/bpf/counters"</span>)
+<span class="keyword">local</span> counter = bpf.<span class="function-name">hash</span>(<span class="string">"/sys/fs/bpf/counters"</span>)
 <span class="comment">-- 32-bit key/value encoded as packed strings.
 </span><span class="keyword">local</span> key = <span class="global">string</span>.<span class="function-name">pack</span>(<span class="string">"I4"</span>, <span class="number">1</span>)
 <span class="keyword">local</span> value = <span class="global">string</span>.<span class="function-name">pack</span>(<span class="string">"I4"</span>, <span class="number">42</span>)
@@ -536,15 +584,107 @@ flow:<span class="function-name">close</span>()</pre>
     <span class="global">print</span>(<span class="global">string</span>.<span class="function-name">unpack</span>(<span class="string">"I4"</span>, result))
 <span class="keyword">end</span>
 counter:<span class="function-name">delete</span>(key)
-counter:<span class="function-name">close</span>()
+counter:<span class="function-name">close</span>()</pre>
+    </ul>
 
-<span class="comment">-- Queue/stack maps have no keys; use push/pop/peek instead.
-</span><span class="keyword">local</span> jobs = bpf.<span class="function-name">map</span>(<span class="string">"/sys/fs/bpf/job_queue"</span>)
+</dd>
+    <dt>
+    <a name = "lru_hash"></a>
+    <strong>lru_hash (path)</strong>
+    </dt>
+    <dd>
+    Opens an LRU hash map from a pinned bpffs path.
+ Same interrupt-context restriction as <a href="../modules/bpf.html#hash">hash</a>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to a pinned eBPF LRU hash map.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bpf_hash</span></span>
+        Opened map handle.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the path does not resolve to a pinned eBPF LRU hash map.
+
+
+
+</dd>
+    <dt>
+    <a name = "queue"></a>
+    <strong>queue (path)</strong>
+    </dt>
+    <dd>
+    Opens a queue (FIFO) map from a pinned bpffs path.
+ Same interrupt-context restriction as <a href="../modules/bpf.html#hash">hash</a>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to a pinned eBPF queue map.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bpf_queue</span></span>
+        Opened queue handle.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the path does not resolve to a pinned eBPF queue map.
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> bpf = <span class="global">require</span>(<span class="string">"bpf"</span>)
+<span class="keyword">local</span> jobs = bpf.<span class="function-name">queue</span>(<span class="string">"/sys/fs/bpf/job_queue"</span>)
 <span class="global">assert</span>(jobs:<span class="function-name">push</span>(<span class="global">string</span>.<span class="function-name">pack</span>(<span class="string">"I4"</span>, <span class="number">7</span>)))
 <span class="keyword">local</span> job = jobs:<span class="function-name">peek</span>()          <span class="comment">-- inspect without removing
 </span>job = jobs:<span class="function-name">pop</span>()                 <span class="comment">-- remove and return
 </span>jobs:<span class="function-name">close</span>()</pre>
     </ul>
+
+</dd>
+    <dt>
+    <a name = "stack"></a>
+    <strong>stack (path)</strong>
+    </dt>
+    <dd>
+    Opens a stack (LIFO) map from a pinned bpffs path.
+ Same interrupt-context restriction as <a href="../modules/bpf.html#hash">hash</a>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to a pinned eBPF stack map.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bpf_queue</span></span>
+        Opened stack handle.
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the path does not resolve to a pinned eBPF stack map.
+
+
 
 </dd>
 </dl>
@@ -554,7 +694,7 @@ counter:<span class="function-name">close</span>()
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-08-02 12:25:29 </i>
+<i style="float:right;">Last updated 2026-08-02 13:31:45 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
