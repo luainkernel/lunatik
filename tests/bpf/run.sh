@@ -5,11 +5,11 @@
 #
 # Runs all bpf tests and reports aggregated KTAP results.
 #
-# Creates pinned maps with bpftool (hash, array, lru_hash, queue, stack and
-# a percpu hash for the unsupported-type check), seeds the hash map, then
-# exercises the bpf module API from kernel Lua scripts: per-type coverage
-# in process context, a softirq-runtime script, and a Lua-to-bpftool
-# interop check.
+# Creates pinned maps with bpftool (hash, array, lru_hash, queue, stack, a
+# second hash for the bpf.map layer and a percpu hash for the unsupported-type
+# check), seeds the first hash map, then exercises the bpf module API and the
+# bpf.map layer from kernel Lua scripts: per-type coverage in process context,
+# a softirq-runtime script, and a Lua-to-bpftool interop check.
 #
 # Usage: sudo bash tests/bpf/run.sh
 
@@ -21,6 +21,7 @@ BPF_FS=/sys/fs/bpf
 MAP=$BPF_FS/test_map
 ARRAY_MAP=$BPF_FS/test_map_array
 LRU_MAP=$BPF_FS/test_map_lru
+TBL_MAP=$BPF_FS/test_map_tbl
 PERCPU_MAP=$BPF_FS/test_map_percpu
 QUEUE_MAP=$BPF_FS/test_map_queue
 STACK_MAP=$BPF_FS/test_map_stack
@@ -35,7 +36,7 @@ create_map() { bpftool map create "$@" > /dev/null || skip "bpf: cannot create p
 cleanup()
 {
 	lunatik stop "$SOFTIRQ_SCRIPT" 2>/dev/null
-	rm -f "$MAP" "$ARRAY_MAP" "$LRU_MAP" "$PERCPU_MAP" "$QUEUE_MAP" "$STACK_MAP"
+	rm -f "$MAP" "$ARRAY_MAP" "$LRU_MAP" "$TBL_MAP" "$PERCPU_MAP" "$QUEUE_MAP" "$STACK_MAP"
 }
 
 trap cleanup EXIT
@@ -49,13 +50,14 @@ fi
 create_map "$MAP" type hash key 3 value 3 entries 128 name test_map
 create_map "$ARRAY_MAP" type array key 4 value 4 entries 4 name test_array
 create_map "$LRU_MAP" type lru_hash key 3 value 3 entries 128 name test_lru
+create_map "$TBL_MAP" type hash key 4 value 4 entries 16 name test_tbl
 create_map "$PERCPU_MAP" type percpu_hash key 3 value 3 entries 128 name test_percpu
 create_map "$QUEUE_MAP" type queue key 0 value 3 entries 128 name test_queue
 create_map "$STACK_MAP" type stack key 0 value 3 entries 128 name test_stack
 
 bpftool map update pinned "$MAP" key hex 66 6f 6f value hex 62 61 72 || skip "bpf: cannot seed the pinned map"
 
-TESTS="map_values array lru queue stack"
+TESTS="map_values array lru queue stack map"
 TOTAL=$(($(echo $TESTS | wc -w) + 2))
 
 ktap_header

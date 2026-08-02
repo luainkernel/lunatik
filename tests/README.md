@@ -54,6 +54,12 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
   push flags, the absence of key-value methods on the handle, the
   cross-type constructor rejection and metadata with `key_size` 0.
 - **stack**: the same for LIFO stack maps.
+- **map**: the `bpf.map` layer — scalar, multi-value and `struct` codec
+  specs, the table proxy (assignment, `nil` delete, `pairs`, `<close>`
+  and function-named keys as plain map keys) over hash, array and
+  lru_hash, the queue and stack objects (`push`/`pop`/`peek`, FIFO and
+  LIFO order, empty `nil`, full `false`, `info`), spec size validation
+  and the cross-type rejection.
 - **map_softirq**: opens and exercises the hash map while loading a
   softirq runtime (atomic-context allocator path).
 - The harness also cross-checks a Lua-written value with
