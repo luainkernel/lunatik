@@ -14,6 +14,7 @@ title = 'Lunatik API Documentation'
 -- By manually specifying order, we ensure menu order.
 file = {
 	'./lib/luabpf.c',
+	'./lib/bpf/map.lua',
 	'./lib/luabyteorder.c',
 	'./lib/luacompletion.c',
 	'./lib/luacpu.c',
