@@ -33,8 +33,7 @@ ktap_plan 2
 mark_dmesg
 
 output=$(lunatik run "$SCRIPT" 2>&1)
-echo "$output" | grep -qE "\.lua:[0-9]+:" && \
-	fail "Lua error during init-time notifier registration: $output"
+[ -n "$output" ] && fail "Lua error during init-time notifier registration: $output"
 ktap_pass "notifier.netdevice() at script init runs without Lua error"
 
 oops=$(dmesg_since | grep -E "Oops:|BUG:|kernel BUG at|NULL pointer dereference|general protection" || true)
