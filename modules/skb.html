@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Functions">Functions</a></li>
+<li><a href="#Class_skb">Class skb </a></li>
 </ul>
 
 
@@ -121,49 +121,49 @@
 </p>
 
 
-<h2><a href="#Functions">Functions</a></h2>
+<h2><a href="#Class_skb">Class skb </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#__len">__len ()</a></td>
+	<td class="name" nowrap><a href="#skb:__len">skb:__len ()</a></td>
 	<td class="summary">
 
 </td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#checksum">checksum ()</a></td>
+	<td class="name" nowrap><a href="#skb:checksum">skb:checksum ()</a></td>
 	<td class="summary">Recomputes IP and transport-layer (TCP/UDP) checksums.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#connmark">connmark ([value])</a></td>
+	<td class="name" nowrap><a href="#skb:connmark">skb:connmark ([value])</a></td>
 	<td class="summary">Gets or sets the conntrack mark: with no argument reads it, with <code>value</code> sets
  it.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#copy">copy ()</a></td>
+	<td class="name" nowrap><a href="#skb:copy">skb:copy ()</a></td>
 	<td class="summary">Returns an independent copy of the skb with its own data buffer.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data">data ([layer])</a></td>
+	<td class="name" nowrap><a href="#skb:data">skb:data ([layer])</a></td>
 	<td class="summary">
 
 </td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#forward">forward ()</a></td>
+	<td class="name" nowrap><a href="#skb:forward">skb:forward ()</a></td>
 	<td class="summary">Forwards the skb out through its ingress device.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ifindex">ifindex ()</a></td>
+	<td class="name" nowrap><a href="#skb:ifindex">skb:ifindex ()</a></td>
 	<td class="summary">
 
 </td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#resize">resize (n)</a></td>
+	<td class="name" nowrap><a href="#skb:resize">skb:resize (n)</a></td>
 	<td class="summary">Expands (skb<em>put) or shrinks (skb</em>trim) the skb data area.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#vlan">vlan ()</a></td>
+	<td class="name" nowrap><a href="#skb:vlan">skb:vlan ()</a></td>
 	<td class="summary">
 
 </td>
@@ -174,12 +174,17 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+    <h2 class="section-header has-description"><a name="Class_skb"></a>Class skb </h2>
 
+          <div class="section-description">
+          Represents a socket buffer (<code>sk_buff</code>).
+ This is a userdata object handed to the hooks that receive packets; it is
+ <code>SINGLE</code>, so it cannot be shared with another runtime.
+          </div>
     <dl class="function">
     <dt>
-    <a name = "__len"></a>
-    <strong>__len ()</strong>
+    <a name = "skb:__len"></a>
+    <strong>skb:__len ()</strong>
     </dt>
     <dd>
 
@@ -200,8 +205,8 @@
 
 </dd>
     <dt>
-    <a name = "checksum"></a>
-    <strong>checksum ()</strong>
+    <a name = "skb:checksum"></a>
+    <strong>skb:checksum ()</strong>
     </dt>
     <dd>
     Recomputes IP and transport-layer (TCP/UDP) checksums.
@@ -214,8 +219,8 @@
 
 </dd>
     <dt>
-    <a name = "connmark"></a>
-    <strong>connmark ([value])</strong>
+    <a name = "skb:connmark"></a>
+    <strong>skb:connmark ([value])</strong>
     </dt>
     <dd>
     Gets or sets the conntrack mark: with no argument reads it, with <code>value</code> sets
@@ -243,8 +248,8 @@
 
 </dd>
     <dt>
-    <a name = "copy"></a>
-    <strong>copy ()</strong>
+    <a name = "skb:copy"></a>
+    <strong>skb:copy ()</strong>
     </dt>
     <dd>
     Returns an independent copy of the skb with its own data buffer.
@@ -256,7 +261,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">skb</span></span>
+           <span class="types"><a class="type" href="../modules/skb.html#skb">skb</a></span>
 
 
 
@@ -269,8 +274,8 @@
 
 </dd>
     <dt>
-    <a name = "data"></a>
-    <strong>data ([layer])</strong>
+    <a name = "skb:data"></a>
+    <strong>skb:data ([layer])</strong>
     </dt>
     <dd>
 
@@ -290,7 +295,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="../modules/skb.html#data">data</a></span>
+           <span class="types"><a class="type" href="../modules/skb.html#skb:data">data</a></span>
 
 
 
@@ -303,8 +308,8 @@
 
 </dd>
     <dt>
-    <a name = "forward"></a>
-    <strong>forward ()</strong>
+    <a name = "skb:forward"></a>
+    <strong>skb:forward ()</strong>
     </dt>
     <dd>
     Forwards the skb out through its ingress device.
@@ -319,8 +324,8 @@
 
 </dd>
     <dt>
-    <a name = "ifindex"></a>
-    <strong>ifindex ()</strong>
+    <a name = "skb:ifindex"></a>
+    <strong>skb:ifindex ()</strong>
     </dt>
     <dd>
 
@@ -341,8 +346,8 @@
 
 </dd>
     <dt>
-    <a name = "resize"></a>
-    <strong>resize (n)</strong>
+    <a name = "skb:resize"></a>
+    <strong>skb:resize (n)</strong>
     </dt>
     <dd>
     Expands (skb<em>put) or shrinks (skb</em>trim) the skb data area.
@@ -364,8 +369,8 @@
 
 </dd>
     <dt>
-    <a name = "vlan"></a>
-    <strong>vlan ()</strong>
+    <a name = "skb:vlan"></a>
+    <strong>skb:vlan ()</strong>
     </dt>
     <dd>
 
@@ -392,7 +397,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-08-02 15:53:00 </i>
+<i style="float:right;">Last updated 2026-08-02 15:53:38 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
