@@ -29,14 +29,30 @@ check_dmesg() {
 	return 1
 }
 
+comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
+
+# a script that fails reports on the output, not on the exit status.
 run_script() {
 	local output
-	output=$(lunatik run "$@")
-	echo "$output" | grep -qE "\.lua:[0-9]+:" || return 0
+	output=$(lunatik run "$@" 2>&1)
+	[ -z "$output" ] && return 0
 	ktap_fail "Lua error in script"
-	echo "# $output"
+	comment "$output"
 	ktap_totals
 	exit 1
+}
+
+# Same, for suites that run several scripts and count each one.
+run_test() {
+	local output errs
+	mark_dmesg
+	output=$(lunatik run "$@" 2>&1)
+	errs=$(dmesg_since | grep -iE "^[^:]+: FAIL	|\.lua:[0-9]+:" || true)
+	[ -z "$output" ] && [ -z "$errs" ] && return 0
+
+	[ -n "$output" ] && comment "$output"
+	[ -n "$errs" ] && comment "$errs"
+	return 1
 }
 
 # Each test script must define cleanup().
