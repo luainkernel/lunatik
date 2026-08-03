@@ -96,9 +96,9 @@ out:
 
 static inline int luaxdp_checkruntimes(void)
 {
-	const char *key = "runtimes";
+	static const char key[] = "runtimes";
 	if (luaxdp_runtimes == NULL &&
-	   (luaxdp_runtimes = luarcu_getobject(lunatik_env, key, sizeof(key))) == NULL)
+	   (luaxdp_runtimes = luarcu_getobject(lunatik_env, key, sizeof(key) - 1)) == NULL)
 		return -1;
 	return 0;
 }
