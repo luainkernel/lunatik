@@ -33,19 +33,10 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Methods">Methods</a></li>
+<li><a href="#Functions">Functions</a></li>
 </ul>
 
 
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
-  <li><strong>crypto_rng</strong></li>
-  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
-</ul>
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/bpf.html">bpf</a></li>
@@ -89,7 +80,7 @@
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><strong>netlink.rt.object</strong></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -109,6 +100,15 @@
   <li><a href="../modules/thread.html">thread</a></li>
   <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
 <h2>Topics</h2>
 <ul class="">
   <li><a href="../topics/README.md.html">README</a></li>
@@ -118,34 +118,24 @@
 
 <div id="content">
 
-<h1>Class <code>crypto_rng</code></h1>
-<p>Lua interface to synchronous Random Number Generators (RNG).</p>
-<p>
+<h1>Module <code>netlink.rt.object</code></h1>
+<p>Base class for the rtnetlink object classes (<a href="../modules/netlink.rt.route.html">route</a>, <a href="../modules/netlink.rt.link.html">link</a>, <a href="../modules/netlink.rt.addr.html">addr</a>,
+ <a href="../modules/netlink.rt.rule.html">rule</a>): a <a href="../modules/netlink.session.html#">netlink.session</a> over the <code>NETLINK_ROUTE</code> protocol carrying the
+ shared dump loop and the routing-table id split.</p>
+<p> Each object class provides
+ its request <code>header</code>, its record <code>decode</code> and its <code>GET</code>/<code>NEW</code> (and <code>DEL</code>)
+ message types.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
+    </ul>
 
-</p>
 
-
-<h2><a href="#Methods">Methods</a></h2>
+<h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:generate">crypto_rng:generate (n[, seed])</a></td>
-	<td class="summary">Generates random bytes, optionally reseeding first.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:getbytes">crypto_rng:getbytes (n)</a></td>
-	<td class="summary">Generates random bytes without reseeding.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:info">crypto_rng:info ()</a></td>
-	<td class="summary">Returns algorithm information.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:new">crypto_rng:new ([algname])</a></td>
-	<td class="summary">Creates a new RNG object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:reset">crypto_rng:reset (seed)</a></td>
-	<td class="summary">Reseeds the RNG.</td>
+	<td class="name" nowrap><a href="#list">list ([family=AF_UNSPEC])</a></td>
+	<td class="summary">Dumps and decodes every record of the object type.</td>
 	</tr>
 </table>
 
@@ -153,150 +143,33 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
 
     <dl class="function">
     <dt>
-    <a name = "crypto_rng:generate"></a>
-    <strong>crypto_rng:generate (n[, seed])</strong>
+    <a name = "list"></a>
+    <strong>list ([family=AF_UNSPEC])</strong>
     </dt>
     <dd>
-    Generates random bytes, optionally reseeding first.
+    Dumps and decodes every record of the object type.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">n</span>
+        <li><span class="parameter">family</span>
             <span class="types"><span class="type">integer</span></span>
-         number of bytes to generate
-        </li>
-        <li><span class="parameter">seed</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         optional seed data
-         (<em>optional</em>)
+         address family.
+         (<em>default</em> AF_UNSPEC)
         </li>
     </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        random bytes
-    </ol>
-
-    <h3>Raises:</h3>
-    on generation failure
-
-
-
-</dd>
-    <dt>
-    <a name = "crypto_rng:getbytes"></a>
-    <strong>crypto_rng:getbytes (n)</strong>
-    </dt>
-    <dd>
-    Generates random bytes without reseeding.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">n</span>
-            <span class="types"><span class="type">integer</span></span>
-         number of bytes to generate
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        random bytes
-    </ol>
-
-    <h3>Raises:</h3>
-    on generation failure
-
-
-
-</dd>
-    <dt>
-    <a name = "crypto_rng:info"></a>
-    <strong>crypto_rng:info ()</strong>
-    </dt>
-    <dd>
-    Returns algorithm information.
-
-
 
     <h3>Returns:</h3>
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        with fields <code>driver_name</code> (string) and <code>seedsize</code> (integer)
+        list of decoded record tables.
     </ol>
 
-
-
-
-</dd>
-    <dt>
-    <a name = "crypto_rng:new"></a>
-    <strong>crypto_rng:new ([algname])</strong>
-    </dt>
-    <dd>
-    Creates a new RNG object.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">algname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         algorithm name; defaults to "stdrng"
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">crypto_rng</span></span>
-
-
-
-    </ol>
-
-    <h3>Raises:</h3>
-    on allocation or initialization failure
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="keyword">local</span> rng = <span class="global">require</span>(<span class="string">"crypto"</span>).rng
-<span class="keyword">local</span> r = <span class="function-name">rng</span>()  <span class="comment">-- uses "stdrng"</span></pre>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "crypto_rng:reset"></a>
-    <strong>crypto_rng:reset (seed)</strong>
-    </dt>
-    <dd>
-    Reseeds the RNG.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">seed</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-
-
-
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    on reseed failure
 
 
 
