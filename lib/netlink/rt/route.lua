@@ -11,10 +11,10 @@
 -- runtime.
 --
 -- @module netlink.rt.route
--- @see netlink.session
+-- @see netlink.rt.object
 --
 
-local session = require("netlink.session")
+local object  = require("netlink.rt.object")
 local message = require("netlink.message")
 local struct  = require("struct")
 
@@ -22,16 +22,10 @@ local nl   = require("linux.netlink")
 local rtnl = require("linux.rtnetlink")
 local sk   = require("linux.socket")
 
-local insert = table.insert
 local u32 = message.u32
 
 local rtmsg     = struct(rtnl.layout.rtmsg)
 local RTMSG_LEN = rtmsg.size
-
--- ids that do not fit the u8 table header field go in the TABLE attribute
-local TABLE_MAX = (1 << 8 * rtmsg:fieldsize("rtm_table")) - 1
-
-local NEWROUTE, DELROUTE, GETROUTE = rtnl.rtm.NEWROUTE, rtnl.rtm.DELROUTE, rtnl.rtm.GETROUTE
 
 ---
 -- @type route
@@ -42,39 +36,40 @@ local NEWROUTE, DELROUTE, GETROUTE = rtnl.rtm.NEWROUTE, rtnl.rtm.DELROUTE, rtnl.
 -- @tparam[opt] table o an initial object table.
 -- @treturn route the new route object.
 -- @see class
-local route = session:new{proto = nl.proto.ROUTE}
+local route = object:new{
+	GET = rtnl.rtm.GETROUTE, NEW = rtnl.rtm.NEWROUTE, DEL = rtnl.rtm.DELROUTE,
+	TABLE_MAX = object.tablemax(rtmsg, "rtm_table"),
+}
+
+function route:header(family)
+	return rtmsg:pack(family or sk.af.UNSPEC, 0, 0, 0, 0, 0, 0, 0, 0)
+end
+
+function route:decode(body)
+	local fam, dst_len, src_len, tos, tbl, protocol, scope, rtype, flags = rtmsg:unpack(body)
+	local attrs = message.attrs(body, RTMSG_LEN + 1)
+	return {
+		family = fam, dst_len = dst_len, src_len = src_len, tos = tos,
+		table = u32(attrs[rtnl.rta.TABLE]) or tbl,
+		protocol = protocol, scope = scope, rtype = rtype, flags = flags,
+		dst = attrs[rtnl.rta.DST], gateway = attrs[rtnl.rta.GATEWAY],
+		oif = u32(attrs[rtnl.rta.OIF]),
+		priority = u32(attrs[rtnl.rta.PRIORITY]),
+	}
+end
 
 ---
 -- Lists all routes from the kernel routing tables.
+-- @function route:list
 -- @tparam[opt=AF_UNSPEC] integer family address family.
 -- @treturn table list of route tables.
-function route:list(family)
-	local header = rtmsg:pack(family or sk.af.UNSPEC, 0, 0, 0, 0, 0, 0, 0, 0)
-	local routes = {}
-	for _, msg in ipairs(self:dump(GETROUTE, header)) do
-		if msg.type == NEWROUTE then
-			local body = msg.body
-			local fam, dst_len, src_len, tos, tbl, protocol, scope, rtype, flags = rtmsg:unpack(body)
-			local attrs = message.attrs(body, RTMSG_LEN + 1)
-			insert(routes, {
-				family = fam, dst_len = dst_len, src_len = src_len, tos = tos,
-				table = u32(attrs[rtnl.rta.TABLE]) or tbl,
-				protocol = protocol, scope = scope, rtype = rtype, flags = flags,
-				dst = attrs[rtnl.rta.DST], gateway = attrs[rtnl.rta.GATEWAY],
-				oif = u32(attrs[rtnl.rta.OIF]),
-				priority = u32(attrs[rtnl.rta.PRIORITY]),
-			})
-		end
-	end
-	return routes
-end
 
-local function route_attrs(opts)
+local function route_attrs(route, opts)
 	return message.attrs{
 		[rtnl.rta.DST]     = opts.dst,
 		[rtnl.rta.GATEWAY] = opts.gateway,
 		[rtnl.rta.OIF]     = opts.oif,
-		[rtnl.rta.TABLE]   = opts.table and opts.table > TABLE_MAX and opts.table or nil,
+		[rtnl.rta.TABLE]   = route:attrtable(opts.table),
 	}
 end
 
@@ -83,11 +78,10 @@ end
 -- @tparam table opts route parameters: optional `family` (default `AF_INET`),
 --   `dst_len`, `dst`, `gateway`, `oif`, `table`, `protocol`, `scope`, `rtype`.
 function route:add(opts)
-	local tbl = opts.table or rtnl.table.MAIN
 	local header = rtmsg:pack(opts.family or sk.af.INET, opts.dst_len or 0, 0, 0,
-		tbl <= TABLE_MAX and tbl or rtnl.table.UNSPEC, opts.protocol or rtnl.rtprot.STATIC,
+		self:headertable(opts.table or rtnl.table.MAIN), opts.protocol or rtnl.rtprot.STATIC,
 		opts.scope or rtnl.scope.UNIVERSE, opts.rtype or rtnl.rtn.UNICAST, 0)
-	self:talk(NEWROUTE, nl.flag.CREATE | nl.flag.EXCL, header .. route_attrs(opts))
+	self:talk(self.NEW, nl.flag.CREATE | nl.flag.EXCL, header .. route_attrs(self, opts))
 end
 
 ---
@@ -95,11 +89,10 @@ end
 -- @tparam table opts route parameters: optional `family` (default `AF_INET`),
 --   `dst_len`, `dst`, `oif`, `table`.
 function route:del(opts)
-	local tbl = opts.table or rtnl.table.MAIN
 	-- scope NOWHERE is the deletion wildcard: match the route whatever its scope
 	local header = rtmsg:pack(opts.family or sk.af.INET, opts.dst_len or 0, 0, 0,
-		tbl <= TABLE_MAX and tbl or rtnl.table.UNSPEC, 0, rtnl.scope.NOWHERE, 0, 0)
-	self:talk(DELROUTE, nil, header .. route_attrs(opts))
+		self:headertable(opts.table or rtnl.table.MAIN), 0, rtnl.scope.NOWHERE, 0, 0)
+	self:talk(self.DEL, nil, header .. route_attrs(self, opts))
 end
 
 return route
