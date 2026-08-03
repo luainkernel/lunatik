@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Tables">Tables</a></li>
+<li><a href="#Class_nl80211">Class nl80211 </a></li>
 </ul>
 
 
@@ -54,7 +54,7 @@
   <li><a href="../modules/linux.html">linux</a></li>
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
-  <li><strong>linux.genl</strong></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
@@ -78,7 +78,7 @@
   <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
   <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
-  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><strong>netlink.nl80211</strong></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
@@ -120,28 +120,27 @@
 
 <div id="content">
 
-<h1>Module <code>linux.genl</code></h1>
-<p>Linux kernel constants exposed under <a href="../modules/linux.genl.html#">linux.genl</a>.</p>
-<p> Values are populated at build time from the kernel headers.</p>
+<h1>Module <code>netlink.nl80211</code></h1>
+<p>nl80211 (wireless) interface.</p>
+<p> A <a href="../modules/netlink.genl.html#">netlink.genl</a> specialization bound to the
+ <code>&quot;nl80211&quot;</code> generic netlink family: create an instance with <code>netlink.nl80211()</code>,
+ then list wiphys and interfaces over the socket. All methods block and require
+ a sleepable runtime.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netlink.genl.html#">netlink.genl</a>
+    </ul>
 
 
-<h2><a href="#Tables">Tables</a></h2>
+<h2><a href="#Class_nl80211">Class nl80211 </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#attr">attr</a></td>
-	<td class="summary">Generic netlink controller attributes (CTRL<em>ATTR</em>*).</td>
+	<td class="name" nowrap><a href="#nl80211:interface_list">nl80211:interface_list ()</a></td>
+	<td class="summary">Lists the wireless interfaces known to the kernel.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#cmd">cmd</a></td>
-	<td class="summary">Generic netlink controller commands (CTRL<em>CMD</em>*).</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#id">id</a></td>
-	<td class="summary">Generic netlink reserved family ids (GENL<em>ID</em>*).</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#layout">layout</a></td>
-	<td class="summary">Generic netlink header layout.</td>
+	<td class="name" nowrap><a href="#nl80211:wiphy_list">nl80211:wiphy_list ()</a></td>
+	<td class="summary">Lists the wireless PHYs (wiphys) known to the kernel.</td>
 	</tr>
 </table>
 
@@ -149,64 +148,45 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+    <h2 class="section-header "><a name="Class_nl80211"></a>Class nl80211 </h2>
 
     <dl class="function">
     <dt>
-    <a name = "attr"></a>
-    <strong>attr</strong>
+    <a name = "nl80211:interface_list"></a>
+    <strong>nl80211:interface_list ()</strong>
     </dt>
     <dd>
-    Generic netlink controller attributes (CTRL<em>ATTR</em>*).
- Mirrors <code>CTRL_ATTR_*</code> defines in <code>&lt;uapi/linux/genetlink.h&gt;</code>.
+    Lists the wireless interfaces known to the kernel.
 
 
 
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        list of <code>{ifindex, name, wiphy, iftype, mac}</code> tables (<code>mac</code>
+   is 6 raw bytes).
+    </ol>
 
 
 
 
 </dd>
     <dt>
-    <a name = "cmd"></a>
-    <strong>cmd</strong>
+    <a name = "nl80211:wiphy_list"></a>
+    <strong>nl80211:wiphy_list ()</strong>
     </dt>
     <dd>
-    Generic netlink controller commands (CTRL<em>CMD</em>*).
- Mirrors <code>CTRL_CMD_*</code> defines in <code>&lt;uapi/linux/genetlink.h&gt;</code>.
+    Lists the wireless PHYs (wiphys) known to the kernel.
 
 
 
+    <h3>Returns:</h3>
+    <ol>
 
-
-
-
-</dd>
-    <dt>
-    <a name = "id"></a>
-    <strong>id</strong>
-    </dt>
-    <dd>
-    Generic netlink reserved family ids (GENL<em>ID</em>*).
- Mirrors <code>GENL_ID_*</code> defines in <code>&lt;uapi/linux/genetlink.h&gt;</code>.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "layout"></a>
-    <strong>layout</strong>
-    </dt>
-    <dd>
-    Generic netlink header layout.
- Layout descriptors (per-field offset/size/signedness) generated from <code>&lt;uapi/linux/genetlink.h&gt;</code>; consume via <code>require(&quot;struct&quot;)</code>.
-
-
-
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        list of <code>{wiphy, name}</code> tables.
+    </ol>
 
 
 
