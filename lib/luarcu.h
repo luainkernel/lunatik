@@ -7,6 +7,7 @@
 #define luarcu_h
 
 #define LUARCU_DEFAULT_SIZE	(256)
+#define LUARCU_MAXKEY		(LUAL_BUFFERSIZE)
 
 lunatik_object_t *luarcu_newtable(size_t size, lunatik_opt_t opt);
 void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value);

@@ -22,8 +22,6 @@
 
 #include "luarcu.h"
 
-#define LUARCU_MAXKEY	(LUAL_BUFFERSIZE)
-
 typedef struct luarcu_entry_s {
 	lunatik_value_t value;
 	struct hlist_node hlist;

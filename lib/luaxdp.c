@@ -38,6 +38,7 @@ __diag_ignore_all("-Wmissing-prototypes",
 #endif
 
 static lunatik_object_t *luaxdp_runtimes = NULL;
+static lunatik_object_t *luaxdp_percpu = NULL;
 
 static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void *ptr, size_t size)
 {
@@ -96,11 +97,14 @@ out:
 
 static inline int luaxdp_checkruntimes(void)
 {
-	static const char key[] = "runtimes";
-	if (luaxdp_runtimes == NULL &&
-	   (luaxdp_runtimes = luarcu_getobject(lunatik_env, key, sizeof(key) - 1)) == NULL)
-		return -1;
-	return 0;
+	static const char runtimes_key[] = "runtimes";
+	static const char percpu_key[] = "percpu";
+
+	if (luaxdp_runtimes == NULL)
+		luaxdp_runtimes = luarcu_getobject(lunatik_env, runtimes_key, sizeof(runtimes_key) - 1);
+	if (luaxdp_percpu == NULL)
+		luaxdp_percpu = luarcu_getobject(lunatik_env, percpu_key, sizeof(percpu_key) - 1);
+	return luaxdp_runtimes != NULL && luaxdp_percpu != NULL ? 0 : -1;
 }
 
 __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)
@@ -109,13 +113,21 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	struct xdp_buff *ctx = (struct xdp_buff *)xdp_ctx;
 	int action = -1;
 	size_t keylen = key__sz - 1;
+	lunatik_value_t value;
+	char cpu_key[LUARCU_MAXKEY];
 
 	if (unlikely(luaxdp_checkruntimes() != 0)) {
-		pr_err("couldn't find _ENV.runtimes\n");
+		pr_err("couldn't find _ENV.runtimes or _ENV.percpu\n");
 		goto out;
 	}
 
 	key[keylen] = '\0';
+	luarcu_getvalue(luaxdp_percpu, key, keylen, &value);
+	if (value.type == LUA_TBOOLEAN && value.boolean) {
+		keylen = scnprintf(cpu_key, sizeof(cpu_key), "%s:%d", key, raw_smp_processor_id());
+		key = cpu_key;
+	}
+
 	if ((runtime = luarcu_getobject(luaxdp_runtimes, key, keylen)) == NULL) {
 		pr_err("couldn't find runtime '%s'\n", key);
 		goto out;
