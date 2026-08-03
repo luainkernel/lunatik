@@ -82,6 +82,7 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/socket
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink/rt
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink/nl80211
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/syscall
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/crypto
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/linux
@@ -98,6 +99,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/socket/*.lua ${SCRIPTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 lib/netlink/*.lua ${SCRIPTS_INSTALL_PATH}/netlink
 	${INSTALL} -m 0644 lib/netlink/rt/*.lua ${SCRIPTS_INSTALL_PATH}/netlink/rt
+	${INSTALL} -m 0644 lib/netlink/nl80211/*.lua ${SCRIPTS_INSTALL_PATH}/netlink/nl80211
 	${INSTALL} -m 0644 lib/syscall/*.lua ${SCRIPTS_INSTALL_PATH}/syscall
 	${INSTALL} -m 0644 lib/crypto/*.lua ${SCRIPTS_INSTALL_PATH}/crypto
 	# NOTE: `lib/linux/` exists only as LDoc stubs (see doc-stubs); never install it.

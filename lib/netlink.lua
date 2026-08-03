@@ -37,8 +37,7 @@ netlink.rt = rt
 netlink.genl = genl
 
 ---
--- nl80211 (wireless) session specialization.
--- Open sessions (sleepable) using `netlink.nl80211()`.
+-- The nl80211 (wireless) namespace; groups the nl80211 object classes.
 -- @table netlink.nl80211
 -- @see netlink.nl80211
 netlink.nl80211 = nl80211
