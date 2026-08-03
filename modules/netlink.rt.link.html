@@ -33,19 +33,10 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Methods">Methods</a></li>
+<li><a href="#Class_link">Class link </a></li>
 </ul>
 
 
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
-  <li><strong>crypto_rng</strong></li>
-  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
-</ul>
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/bpf.html">bpf</a></li>
@@ -88,7 +79,7 @@
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
-  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><strong>netlink.rt.link</strong></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -108,6 +99,15 @@
   <li><a href="../modules/thread.html">thread</a></li>
   <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
 <h2>Topics</h2>
 <ul class="">
   <li><a href="../topics/README.md.html">README</a></li>
@@ -117,34 +117,28 @@
 
 <div id="content">
 
-<h1>Class <code>crypto_rng</code></h1>
-<p>Lua interface to synchronous Random Number Generators (RNG).</p>
-<p>
+<h1>Module <code>netlink.rt.link</code></h1>
+<p>Network interface (link) listing.</p>
+<p> A <a href="../modules/netlink.session.html#">netlink.session</a> specialization over
+ the <code>NETLINK_ROUTE</code> protocol: create an instance with <code>netlink.rt.link()</code>
+ and list the kernel's interfaces; the underlying socket is closed by
+ <code>close()</code> (or the to-be-closed <code>__close</code>). All methods block and require a
+ sleepable runtime.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
+    </ul>
 
-</p>
 
-
-<h2><a href="#Methods">Methods</a></h2>
+<h2><a href="#Class_link">Class link </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:generate">crypto_rng:generate (n[, seed])</a></td>
-	<td class="summary">Generates random bytes, optionally reseeding first.</td>
+	<td class="name" nowrap><a href="#link:list">link:list ()</a></td>
+	<td class="summary">Lists all network interfaces from the kernel.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:getbytes">crypto_rng:getbytes (n)</a></td>
-	<td class="summary">Generates random bytes without reseeding.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:info">crypto_rng:info ()</a></td>
-	<td class="summary">Returns algorithm information.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:new">crypto_rng:new ([algname])</a></td>
-	<td class="summary">Creates a new RNG object.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#crypto_rng:reset">crypto_rng:reset (seed)</a></td>
-	<td class="summary">Reseeds the RNG.</td>
+	<td class="name" nowrap><a href="#link:new">link:new ([o])</a></td>
+	<td class="summary">Creates a new link object.</td>
 	</tr>
 </table>
 
@@ -152,78 +146,15 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+    <h2 class="section-header "><a name="Class_link"></a>Class link </h2>
 
     <dl class="function">
     <dt>
-    <a name = "crypto_rng:generate"></a>
-    <strong>crypto_rng:generate (n[, seed])</strong>
+    <a name = "link:list"></a>
+    <strong>link:list ()</strong>
     </dt>
     <dd>
-    Generates random bytes, optionally reseeding first.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">n</span>
-            <span class="types"><span class="type">integer</span></span>
-         number of bytes to generate
-        </li>
-        <li><span class="parameter">seed</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         optional seed data
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        random bytes
-    </ol>
-
-    <h3>Raises:</h3>
-    on generation failure
-
-
-
-</dd>
-    <dt>
-    <a name = "crypto_rng:getbytes"></a>
-    <strong>crypto_rng:getbytes (n)</strong>
-    </dt>
-    <dd>
-    Generates random bytes without reseeding.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">n</span>
-            <span class="types"><span class="type">integer</span></span>
-         number of bytes to generate
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        random bytes
-    </ol>
-
-    <h3>Raises:</h3>
-    on generation failure
-
-
-
-</dd>
-    <dt>
-    <a name = "crypto_rng:info"></a>
-    <strong>crypto_rng:info ()</strong>
-    </dt>
-    <dd>
-    Returns algorithm information.
+    Lists all network interfaces from the kernel.
 
 
 
@@ -231,7 +162,7 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        with fields <code>driver_name</code> (string) and <code>seedsize</code> (integer)
+        list of link tables.
     </ol>
 
 
@@ -239,18 +170,18 @@
 
 </dd>
     <dt>
-    <a name = "crypto_rng:new"></a>
-    <strong>crypto_rng:new ([algname])</strong>
+    <a name = "link:new"></a>
+    <strong>link:new ([o])</strong>
     </dt>
     <dd>
-    Creates a new RNG object.
+    Creates a new link object.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">algname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         algorithm name; defaults to "stdrng"
+        <li><span class="parameter">o</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         an initial object table.
          (<em>optional</em>)
         </li>
     </ul>
@@ -258,45 +189,15 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">crypto_rng</span></span>
-
-
-
+           <span class="types"><a class="type" href="../modules/netlink.rt.link.html#link">link</a></span>
+        the new link object.
     </ol>
 
-    <h3>Raises:</h3>
-    on allocation or initialization failure
 
-
-    <h3>Usage:</h3>
+    <h3>See also:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> rng = <span class="global">require</span>(<span class="string">"crypto"</span>).rng
-<span class="keyword">local</span> r = <span class="function-name">rng</span>()  <span class="comment">-- uses "stdrng"</span></pre>
+         <a href="../modules/class.html#">class</a>
     </ul>
-
-</dd>
-    <dt>
-    <a name = "crypto_rng:reset"></a>
-    <strong>crypto_rng:reset (seed)</strong>
-    </dt>
-    <dd>
-    Reseeds the RNG.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">seed</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-
-
-
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    on reseed failure
-
 
 
 </dd>

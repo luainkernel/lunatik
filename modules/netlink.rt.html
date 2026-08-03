@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_rt">Class rt </a></li>
+<li><a href="#Tables">Tables</a></li>
 </ul>
 
 
@@ -48,7 +48,6 @@
   <li><a href="../modules/darken.html">darken</a></li>
   <li><a href="../modules/data.html">data</a></li>
   <li><a href="../modules/device.html">device</a></li>
-  <li><a href="../modules/fib.html">fib</a></li>
   <li><a href="../modules/fifo.html">fifo</a></li>
   <li><a href="../modules/hid.html">hid</a></li>
   <li><a href="../modules/lighten.html">lighten</a></li>
@@ -79,6 +78,10 @@
   <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
   <li><strong>netlink.rt</strong></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
   <li><a href="../modules/notifier.html">notifier</a></li>
   <li><a href="../modules/probe.html">probe</a></li>
@@ -115,43 +118,28 @@
 <div id="content">
 
 <h1>Module <code>netlink.rt</code></h1>
-<p>rtnetlink interface for routes, links and addresses.</p>
-<p> A <a href="../modules/netlink.session.html#">netlink.session</a>
- specialization over the <code>NETLINK_ROUTE</code> protocol: create an instance with
- <code>netlink.rt()</code> and call its methods; the underlying socket is closed by <code>close()</code>
- (or the to-be-closed <code>__close</code>). All methods block and require a sleepable
- runtime.</p>
-    <h3>See also:</h3>
-    <ul>
-         <a href="../modules/netlink.session.html#">netlink.session</a>
-    </ul>
+<p>The rtnetlink namespace.</p>
+<p> Groups the <code>NETLINK_ROUTE</code> object classes; each
+ opens its own request/response session (sleepable).</p>
 
 
-<h2><a href="#Class_rt">Class rt </a></h2>
+<h2><a href="#Tables">Tables</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#rt:addr_list">rt:addr_list ([family=AF_UNSPEC])</a></td>
-	<td class="summary">Lists all interface addresses from the kernel.</td>
+	<td class="name" nowrap><a href="#netlink.rt.addr">netlink.rt.addr</a></td>
+	<td class="summary">Interface address class.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#rt:link_list">rt:link_list ()</a></td>
-	<td class="summary">Lists all network interfaces from the kernel.</td>
+	<td class="name" nowrap><a href="#netlink.rt.link">netlink.rt.link</a></td>
+	<td class="summary">Network interface (link) class.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#rt:new">rt:new ([o])</a></td>
-	<td class="summary">Creates a new rt object.</td>
+	<td class="name" nowrap><a href="#netlink.rt.route">netlink.rt.route</a></td>
+	<td class="summary">Kernel routing table class.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#rt:route_add">rt:route_add (opts)</a></td>
-	<td class="summary">Adds a route to the kernel routing table.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#rt:route_del">rt:route_del (opts)</a></td>
-	<td class="summary">Deletes a route from the kernel routing table.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#rt:route_list">rt:route_list ([family=AF_UNSPEC])</a></td>
-	<td class="summary">Lists all routes from the kernel routing tables.</td>
+	<td class="name" nowrap><a href="#netlink.rt.rule">netlink.rt.rule</a></td>
+	<td class="summary">FIB rule (policy routing) class.</td>
 	</tr>
 </table>
 
@@ -159,158 +147,82 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Class_rt"></a>Class rt </h2>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
 
     <dl class="function">
     <dt>
-    <a name = "rt:addr_list"></a>
-    <strong>rt:addr_list ([family=AF_UNSPEC])</strong>
+    <a name = "netlink.rt.addr"></a>
+    <strong>netlink.rt.addr</strong>
     </dt>
     <dd>
-    Lists all interface addresses from the kernel.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">family</span>
-            <span class="types"><span class="type">integer</span></span>
-         address family.
-         (<em>default</em> AF_UNSPEC)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        list of address tables.
-    </ol>
+    Interface address class.
+ Open sessions using <code>netlink.rt.addr()</code>.
 
 
 
-
-</dd>
-    <dt>
-    <a name = "rt:link_list"></a>
-    <strong>rt:link_list ()</strong>
-    </dt>
-    <dd>
-    Lists all network interfaces from the kernel.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        list of link tables.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "rt:new"></a>
-    <strong>rt:new ([o])</strong>
-    </dt>
-    <dd>
-    Creates a new rt object.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">o</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         an initial object table.
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/netlink.rt.html#rt">rt</a></span>
-        the new rt object.
-    </ol>
 
 
     <h3>See also:</h3>
     <ul>
-         <a href="../modules/class.html#">class</a>
+         <a href="../modules/netlink.rt.addr.html#">netlink.rt.addr</a>
     </ul>
 
 
 </dd>
     <dt>
-    <a name = "rt:route_add"></a>
-    <strong>rt:route_add (opts)</strong>
+    <a name = "netlink.rt.link"></a>
+    <strong>netlink.rt.link</strong>
     </dt>
     <dd>
-    Adds a route to the kernel routing table.
+    Network interface (link) class.
+ Open sessions using <code>netlink.rt.link()</code>.
 
 
-    <h3>Parameters:</h3>
+
+
+
+    <h3>See also:</h3>
     <ul>
-        <li><span class="parameter">opts</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         route parameters: optional <code>family</code> (default <code>AF_INET</code>),
-   <code>dst_len</code>, <code>dst</code>, <code>gateway</code>, <code>oif</code>, <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a>, <code>protocol</code>, <code>scope</code>, <code>rtype</code>.
-        </li>
+         <a href="../modules/netlink.rt.link.html#">netlink.rt.link</a>
     </ul>
-
-
-
 
 
 </dd>
     <dt>
-    <a name = "rt:route_del"></a>
-    <strong>rt:route_del (opts)</strong>
+    <a name = "netlink.rt.route"></a>
+    <strong>netlink.rt.route</strong>
     </dt>
     <dd>
-    Deletes a route from the kernel routing table.
+    Kernel routing table class.
+ Open sessions using <code>netlink.rt.route()</code>.
 
 
-    <h3>Parameters:</h3>
+
+
+
+    <h3>See also:</h3>
     <ul>
-        <li><span class="parameter">opts</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         route parameters: optional <code>family</code> (default <code>AF_INET</code>),
-   <code>dst_len</code>, <code>dst</code>, <code>oif</code>, <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a>.
-        </li>
+         <a href="../modules/netlink.rt.route.html#">netlink.rt.route</a>
     </ul>
-
-
-
 
 
 </dd>
     <dt>
-    <a name = "rt:route_list"></a>
-    <strong>rt:route_list ([family=AF_UNSPEC])</strong>
+    <a name = "netlink.rt.rule"></a>
+    <strong>netlink.rt.rule</strong>
     </dt>
     <dd>
-    Lists all routes from the kernel routing tables.
+    FIB rule (policy routing) class.
+ Open sessions using <code>netlink.rt.rule()</code>.
 
 
-    <h3>Parameters:</h3>
+
+
+
+    <h3>See also:</h3>
     <ul>
-        <li><span class="parameter">family</span>
-            <span class="types"><span class="type">integer</span></span>
-         address family.
-         (<em>default</em> AF_UNSPEC)
-        </li>
+         <a href="../modules/netlink.rt.rule.html#">netlink.rt.rule</a>
     </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        list of route tables.
-    </ol>
-
-
 
 
 </dd>
@@ -321,7 +233,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-08-02 15:53:38 </i>
+<i style="float:right;">Last updated 2026-08-03 13:12:42 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
