@@ -46,10 +46,10 @@ function runner.run(script, context, percpu, ...)
 		error(string.format("%s is already running", script))
 	end
 	if percpu then
-		env.percpu[script] = true
 		for cpu = 0, linux.numcpus() - 1 do
 			env.runtimes[key(script, cpu)] = lunatik.runtime(script, context, ...)
 		end
+		env.percpu[script] = true
 		return nil
 	end
 	local runtime = lunatik.runtime(script, context, ...)
