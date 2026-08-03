@@ -18,6 +18,7 @@ TESTS=(
 	opt_guards.sh
 	opt_skb_single.sh
 	require_cloneobject.sh
+	percpu.sh
 )
 
 SEP=""
