@@ -40,10 +40,6 @@ __diag_ignore_all("-Wmissing-prototypes",
 static lunatik_object_t *luaxdp_runtimes = NULL;
 static lunatik_object_t *luaxdp_percpu = NULL;
 
-#define PERCPU_SCRIPT_LEN	128
-#define PERCPU_SUFFIX_LEN	4
-#define PERCPU_KEY_LEN		(PERCPU_SCRIPT_LEN + PERCPU_SUFFIX_LEN)
-
 static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void *ptr, size_t size)
 {
 	lunatik_object_t *data;
@@ -118,7 +114,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	int action = -1;
 	size_t keylen = key__sz - 1;
 	lunatik_value_t value;
-	char cpu_key[PERCPU_KEY_LEN];
+	char cpu_key[LUARCU_MAXKEY];
 
 	if (unlikely(luaxdp_checkruntimes() != 0)) {
 		pr_err("couldn't find _ENV.runtimes or _ENV.percpu\n");
@@ -128,11 +124,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	key[keylen] = '\0';
 	luarcu_getvalue(luaxdp_percpu, key, keylen, &value);
 	if (value.type == LUA_TBOOLEAN && value.boolean) {
-		if (key__sz + PERCPU_SUFFIX_LEN > PERCPU_KEY_LEN) {
-			pr_err("runtime name is too long\n");
-			goto out;
-		}
-		keylen = snprintf(cpu_key, PERCPU_KEY_LEN, "%s:%d", key, raw_smp_processor_id());
+		keylen = scnprintf(cpu_key, sizeof(cpu_key), "%s:%d", key, raw_smp_processor_id());
 		key = cpu_key;
 	}
 
