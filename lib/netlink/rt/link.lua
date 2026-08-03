@@ -11,24 +11,20 @@
 -- sleepable runtime.
 --
 -- @module netlink.rt.link
--- @see netlink.session
+-- @see netlink.rt.object
 --
 
-local session = require("netlink.session")
+local object  = require("netlink.rt.object")
 local message = require("netlink.message")
 local struct  = require("struct")
 
-local nl   = require("linux.netlink")
 local rtnl = require("linux.rtnetlink")
 local sk   = require("linux.socket")
 
-local insert = table.insert
 local u32, str = message.u32, message.str
 
 local ifinfomsg  = struct(rtnl.layout.ifinfomsg)
 local IFINFO_LEN = ifinfomsg.size
-
-local NEWLINK, GETLINK = rtnl.rtm.NEWLINK, rtnl.rtm.GETLINK
 
 ---
 -- @type link
@@ -39,29 +35,27 @@ local NEWLINK, GETLINK = rtnl.rtm.NEWLINK, rtnl.rtm.GETLINK
 -- @tparam[opt] table o an initial object table.
 -- @treturn link the new link object.
 -- @see class
-local link = session:new{proto = nl.proto.ROUTE}
+local link = object:new{GET = rtnl.rtm.GETLINK, NEW = rtnl.rtm.NEWLINK}
+
+function link:header()
+	return ifinfomsg:pack(sk.af.UNSPEC, 0, 0, 0, 0)
+end
+
+function link:decode(body)
+	local fam, ltype, ifindex, flags, change = ifinfomsg:unpack(body)
+	local attrs = message.attrs(body, IFINFO_LEN + 1)
+	return {
+		family = fam, ltype = ltype, ifindex = ifindex,
+		flags = flags, change = change,
+		name = str(attrs[rtnl.ifla.IFNAME]),
+		mtu = u32(attrs[rtnl.ifla.MTU]),
+	}
+end
 
 ---
 -- Lists all network interfaces from the kernel.
+-- @function link:list
 -- @treturn table list of link tables.
-function link:list()
-	local header = ifinfomsg:pack(sk.af.UNSPEC, 0, 0, 0, 0)
-	local links = {}
-	for _, msg in ipairs(self:dump(GETLINK, header)) do
-		if msg.type == NEWLINK then
-			local body = msg.body
-			local fam, ltype, ifindex, flags, change = ifinfomsg:unpack(body)
-			local attrs = message.attrs(body, IFINFO_LEN + 1)
-			insert(links, {
-				family = fam, ltype = ltype, ifindex = ifindex,
-				flags = flags, change = change,
-				name = str(attrs[rtnl.ifla.IFNAME]),
-				mtu = u32(attrs[rtnl.ifla.MTU]),
-			})
-		end
-	end
-	return links
-end
 
 return link
 

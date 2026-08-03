@@ -11,24 +11,20 @@
 -- sleepable runtime.
 --
 -- @module netlink.rt.addr
--- @see netlink.session
+-- @see netlink.rt.object
 --
 
-local session = require("netlink.session")
+local object  = require("netlink.rt.object")
 local message = require("netlink.message")
 local struct  = require("struct")
 
-local nl   = require("linux.netlink")
 local rtnl = require("linux.rtnetlink")
 local sk   = require("linux.socket")
 
-local insert = table.insert
 local str = message.str
 
 local ifaddrmsg  = struct(rtnl.layout.ifaddrmsg)
 local IFADDR_LEN = ifaddrmsg.size
-
-local NEWADDR, GETADDR = rtnl.rtm.NEWADDR, rtnl.rtm.GETADDR
 
 ---
 -- @type addr
@@ -39,29 +35,27 @@ local NEWADDR, GETADDR = rtnl.rtm.NEWADDR, rtnl.rtm.GETADDR
 -- @tparam[opt] table o an initial object table.
 -- @treturn addr the new addr object.
 -- @see class
-local addr = session:new{proto = nl.proto.ROUTE}
+local addr = object:new{GET = rtnl.rtm.GETADDR, NEW = rtnl.rtm.NEWADDR}
+
+function addr:header(family)
+	return ifaddrmsg:pack(family or sk.af.UNSPEC, 0, 0, 0, 0)
+end
+
+function addr:decode(body)
+	local fam, prefix_len, _, scope, ifindex = ifaddrmsg:unpack(body)
+	local attrs = message.attrs(body, IFADDR_LEN + 1)
+	return {
+		family = fam, prefix_len = prefix_len, scope = scope, ifindex = ifindex,
+		address = attrs[rtnl.ifa.ADDRESS] or attrs[rtnl.ifa.LOCAL],
+		label = str(attrs[rtnl.ifa.LABEL]),
+	}
+end
 
 ---
 -- Lists all interface addresses from the kernel.
+-- @function addr:list
 -- @tparam[opt=AF_UNSPEC] integer family address family.
 -- @treturn table list of address tables.
-function addr:list(family)
-	local header = ifaddrmsg:pack(family or sk.af.UNSPEC, 0, 0, 0, 0)
-	local addrs = {}
-	for _, msg in ipairs(self:dump(GETADDR, header)) do
-		if msg.type == NEWADDR then
-			local body = msg.body
-			local fam, prefix_len, _, scope, ifindex = ifaddrmsg:unpack(body)
-			local attrs = message.attrs(body, IFADDR_LEN + 1)
-			insert(addrs, {
-				family = fam, prefix_len = prefix_len, scope = scope, ifindex = ifindex,
-				address = attrs[rtnl.ifa.ADDRESS] or attrs[rtnl.ifa.LOCAL],
-				label = str(attrs[rtnl.ifa.LABEL]),
-			})
-		end
-	end
-	return addrs
-end
 
 return addr
 
