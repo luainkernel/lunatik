@@ -159,22 +159,13 @@ if #arg >= 1 then
 	local tokens = {run = true, spawn = true, stop = true, list = true}
 	local needs_script = {run = true, spawn = true, stop = true}
 	if not tokens[token] or (needs_script[token] and not script) then
-		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>]")
+		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu]")
 		os.exit(false)
 	end
 	ensure_loaded()
-	local context, percpu
-	for i = 3, 4 do
-		if arg[i] == "percpu" then
-			percpu = true
-		elseif arg[i] then
-			context = arg[i]
-		end
-	end
-	local parm = ""
-	if context or percpu then
-		parm = ", " .. (context and ('"' .. context .. '"') or "nil")
-	end
+	local percpu  = arg[3] == "percpu" or arg[4] == "percpu"
+	local context = (arg[3] ~= "percpu" and arg[3]) or (arg[4] ~= "percpu" and arg[4]) or nil
+	local parm  = (percpu or context) and (', ' .. (context and ('"' .. context .. '"') or "nil")) or ""
 	if percpu then
 		parm = parm .. ", true"
 	end
