@@ -29,12 +29,56 @@ local function trim(script) -- drop ".lua" file extension
 	return script:gsub("(%w+).lua", "%1")
 end
 
-local function key(script, cpu)
+--- Builds the registry key for a per-CPU runtime.
+-- The key is formed as `<script>:<cpu>` and is used to store
+-- and retrieve runtimes associated with a specific CPU.
+-- @local
+-- @function percpukey
+-- @tparam string script script name.
+-- @tparam integer cpu CPU identifier.
+-- @treturn string per-CPU runtime key.
+local function percpukey(script, cpu)
 	return script .. ":" .. cpu
 end
 
+--- Checks whether a registry key represents a per-CPU runtime.
+-- @local
+-- @function ispercpukey
+-- @tparam string script registry key to test.
+-- @treturn boolean `true` if the key is a per-CPU runtime key, otherwise `false`.
 local function ispercpukey(script)
 	return script:find(":", 1, true) ~= nil
+end
+
+--- Stops an item (runtime or thread) in the given registry.
+-- If the item exists in the registry, its `stop()` method is called,
+-- and it's removed from the registry.
+-- @local
+-- @function stop
+-- @tparam table registry registry table (e.g., `env.threads` or `env.runtimes`).
+-- @tparam string script key (script name) of the item to stop.
+local function stop(registry, script)
+	if registry[script] then
+		registry[script]:stop()
+		registry[script] = nil
+	end
+end
+
+--- Stops all per-CPU runtimes for a script.
+-- If the script is registered as a per-CPU script, all runtimes
+-- associated with each CPU are stopped and removed from
+-- `env.runtimes`, and the script is removed from `env.percpu`.
+-- @local
+-- @function stop_percpu
+-- @tparam string script script name.
+local function stop_percpu(script)
+	if not env.percpu[script] then
+		return
+	end
+	for cpu = 0, linux.numcpus() - 1 do
+		stop(env.runtimes, percpukey(script, cpu))
+	end
+	env.percpu[script] = nil
 end
 
 --- Runs a Lunatik script in the current context.
@@ -45,17 +89,23 @@ end
 -- @tparam[opt] boolean percpu create one runtime per CPU id, registered as `<script>:<cpu>`,
 --   for scripts dispatched by the eBPF bindings; the script runs once per runtime.
 -- @treturn table created Lunatik runtime object, or `nil` when `percpu` is set.
--- @raise error if the script is already running.
+-- @raise error if the script is already running or runtime creation fails.
 function runner.run(script, context, percpu, ...)
 	local script = trim(script)
 	if env.runtimes[script] or env.percpu[script] then
 		error(string.format("%s is already running", script))
 	end
 	if percpu then
-		for cpu = 0, linux.numcpus() - 1 do
-			env.runtimes[key(script, cpu)] = lunatik.runtime(script, context, ...)
-		end
 		env.percpu[script] = true
+		local ok, err = pcall(function(...)
+			for cpu = 0, linux.numcpus() - 1 do
+				env.runtimes[percpukey(script, cpu)] = lunatik.runtime(script, context, ...)
+			end
+		end, ...)
+		if not ok then
+			stop_percpu(script)
+			error(err, 0)
+		end
 		return nil
 	end
 	local runtime = lunatik.runtime(script, context, ...)
@@ -79,30 +129,6 @@ function runner.spawn(script, context, percpu, ...)
 	local t = thread.run(runtime, name)
 	env.threads[script] = t
 	return t
-end
-
---- Stops an item (runtime or thread) in the given registry.
--- If the item exists in the registry, its `stop()` method is called,
--- and it's removed from the registry.
--- @local
--- @function stop
--- @tparam table registry registry table (e.g., `env.threads` or `env.runtimes`).
--- @tparam string script key (script name) of the item to stop.
-local function stop(registry, script)
-	if registry[script] then
-		registry[script]:stop()
-		registry[script] = nil
-	end
-end
-
-local function stop_percpu(script)
-	if not env.percpu[script] then
-		return
-	end
-	for cpu = 0, linux.numcpus() - 1 do
-		stop(env.runtimes, key(script, cpu))
-	end
-	env.percpu[script] = nil
 end
 
 --- Stops a running script and its associated thread, if any.
