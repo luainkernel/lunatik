@@ -51,6 +51,9 @@ do {									\
 
 #define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
+#define LUNATIK_CPU_NONE	(-1)
+#define lunatik_getcpu(L)	(lunatik_extra(L)->cpu)
+#define lunatik_ispercpu(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 
