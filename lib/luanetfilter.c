@@ -23,6 +23,7 @@ typedef struct luanetfilter_s {
 	lunatik_object_t *runtime;
 	lunatik_object_t *skb;
 	u32 mark;
+	int cpu;
 	struct nf_hook_ops nfops;
 } luanetfilter_t;
 
@@ -92,6 +93,11 @@ static inline unsigned int luanetfilter_docall(luanetfilter_t *luanf, struct sk_
 		goto out;
 	}
 
+	/* foreign percpu instances must stay transparent to the chain,
+	 * whatever the policy becomes */
+	if (luanf->cpu >= 0 && luanf->cpu != raw_smp_processor_id())
+		return NF_ACCEPT;
+
 	if (likely(luanf->mark != skb->mark))
 		goto out;
 
@@ -123,6 +129,9 @@ static const lunatik_class_t luanetfilter_class = {
 
 /***
 * Registers a Netfilter hook.
+* Registered from a percpu runtime instance, the hook only acts on packets
+* being processed on its instance's CPU and accepts everything else, so each
+* packet is handled by exactly one instance.
 * @function register
 * @tparam table opts Hook options: `hook` (function), `pf`, `hooknum`, `priority` (integers),
 *   and optionally `mark` (integer, default 0).
@@ -146,6 +155,7 @@ static int luanetfilter_register(lua_State *L)
 	lunatik_setinteger(L, 1, nfops, hooknum);
 	lunatik_setinteger(L, 1, nfops, priority);
 	lunatik_optinteger(L, 1, nf, mark, 0);
+	nf->cpu = lunatik_getcpu(L);
 
 	if (nf_register_net_hook(&init_net, nfops) != 0)
 		luaL_error(L, "failed to register netfilter hook");
