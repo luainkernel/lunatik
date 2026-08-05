@@ -94,11 +94,7 @@ local function stop_percpu(script)
 		return
 	end
 	for cpu = 0, linux.numcpus() - 1 do
-		local k = key(script, cpu)
-		if env.runtimes[k] then
-			env.runtimes[k]:stop()
-			env.runtimes[k] = nil
-		end
+		stop(env.runtimes, key(script, cpu))
 	end
 	env.percpu[script] = nil
 end
@@ -110,9 +106,7 @@ function runner.stop(script)
 	local script = trim(script)
 	stop(env.threads, script)
 	stop(env.runtimes, script)
-	if env.percpu[script] then
-		stop_percpu(script)
-	end
+	stop_percpu(script)
 end
 
 --- Lists the names of all currently running scripts.
@@ -126,12 +120,17 @@ function runner.list()
 	return table.concat(list, ', ')
 end
 
---- Shuts down all running scripts and their threads.
--- Iterates over `env.runtimes` and calls `runner.stop` for each script.
-function runner.shutdown()
-	rcu.map(env.runtimes, function (script)
+local function stopall(registry)
+	rcu.map(registry, function (script)
 		runner.stop(script)
 	end)
+end
+
+--- Shuts down all running scripts and their threads.
+-- Iterates over `env.percpu` and `env.runtimes` and calls `runner.stop` for each script.
+function runner.shutdown()
+	stopall(env.percpu)
+	stopall(env.runtimes)
 end
 
 --- Initializes the runner's internal state.
