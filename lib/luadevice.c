@@ -353,6 +353,7 @@ static int luadevice_new(lua_State *L)
 	const char *name;
 	int ret;
 
+	lunatik_checknotpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE); /* driver */
 
 	lunatik_checkfield(L, 1, "name", LUA_TSTRING);

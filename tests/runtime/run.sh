@@ -20,6 +20,7 @@ TESTS=(
 	require_cloneobject.sh
 	percpu.sh
 	percpu_affinity.sh
+	percpu_refuse.sh
 )
 
 SEP=""

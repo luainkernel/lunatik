@@ -222,6 +222,7 @@ static const lunatik_class_t luanotifier_hardirq_class = {
 static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, luanotifier_register_t unregister_fn,
 	luanotifier_handler_t handler_fn, const lunatik_class_t *class)
 {
+	lunatik_checknotpercpu(L);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
 	lunatik_object_t *object = lunatik_newobject(L, class, sizeof(luanotifier_t), LUNATIK_OPT_NONE);

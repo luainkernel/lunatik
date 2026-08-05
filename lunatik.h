@@ -56,6 +56,11 @@ do {									\
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 
+/* for constructors whose registration is global: a percpu script would
+ * register it once per instance */
+#define lunatik_checknotpercpu(L)	\
+	luaL_argcheck((L), !lunatik_ispercpu(L), 1, "not allowed in a percpu runtime")
+
 #define lunatik_getstate(runtime)	((lua_State *)(runtime)->private)
 #define lunatik_isready(runtime)	\
 	((runtime)->private && lunatik_extra(lunatik_getstate(runtime))->ready)

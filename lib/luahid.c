@@ -285,6 +285,7 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 */
 static int luahid_register(lua_State *L)
 {
+	lunatik_checknotpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE);
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), LUNATIK_OPT_NONE);
