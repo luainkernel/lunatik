@@ -86,10 +86,11 @@ Lunatik 4.4  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 ### lunatik
 
 ```Shell
-usage: lunatik [load|unload|reload|status|test|list]
-       lunatik run <script> [softirq|hardirq] [percpu]
-       lunatik spawn <script>
-       lunatik stop <script>
+usage:
+	lunatik [load|unload|reload|status|test|list]
+	lunatik run <script> [softirq|hardirq] [percpu]
+	lunatik spawn <script>
+	lunatik stop <script>
 ```
 
 * `load`: load Lunatik kernel modules

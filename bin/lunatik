@@ -155,10 +155,10 @@ end
 
 local USAGE = [[
 usage:
+	lunatik [load|unload|reload|status|test|list]
 	lunatik run <script> [softirq|hardirq] [percpu]
 	lunatik spawn <script>
 	lunatik stop <script>
-	lunatik [load|unload|reload|status|test|list]
 ]]
 
 if #arg >= 1 then
