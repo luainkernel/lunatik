@@ -10,6 +10,6 @@ local test    = require("util").test
 local zombie <const> = "tests/runtime/percpu_fail:0"
 
 test("percpu rollback leaves no instances behind", function()
-	assert(lunatik._ENV.runtimes[zombie] == nil, "instance 0 survived the failed run")
+	assert(lunatik._ENV.percpu[zombie] == nil, "instance 0 survived the failed run")
 end)
 

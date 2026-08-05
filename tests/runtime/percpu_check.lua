@@ -8,13 +8,15 @@ local lunatik = require("lunatik")
 local linux   = require("linux")
 local test    = require("util").test
 
-local prefix <const> = "tests/runtime/percpu:"
+local script <const> = "tests/runtime/percpu"
+local prefix <const> = script .. ":"
 
 test("percpu registers one runtime per possible CPU id", function()
-	local runtimes = lunatik._ENV.runtimes
+	local percpu = lunatik._ENV.percpu
 	for cpu = 0, linux.numcpus() - 1 do
-		assert(runtimes[prefix .. cpu] ~= nil, "missing runtime for CPU " .. cpu)
+		assert(percpu[prefix .. cpu] ~= nil, "missing runtime for CPU " .. cpu)
 	end
-	assert(runtimes[prefix .. linux.numcpus()] == nil, "runtime beyond the last CPU id")
+	assert(percpu[prefix .. linux.numcpus()] == nil, "runtime beyond the last CPU id")
+	assert(lunatik._ENV.runtimes[script] == nil, "percpu script leaked into env.runtimes")
 end)
 

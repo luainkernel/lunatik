@@ -205,8 +205,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   CPU id, as `<script>:<cpu>`, which is the key the eBPF bindings look
   up; the script is listed once, by name; `stop` drops every instance
   and lets it run again; `spawn` refuses percpu without creating any
-  runtime; and a script that fails on one instance rolls back the ones
-  already created.
+  runtime; a script that fails on one instance rolls back the ones
+  already created; and the instances are not reachable through a
+  generic stop.
 
 ### set
 
