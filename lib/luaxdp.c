@@ -259,6 +259,8 @@ static void __exit luaxdp_exit(void)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 	if (luaxdp_runtimes != NULL)
 		lunatik_putobject(luaxdp_runtimes);
+	if (luaxdp_percpu != NULL)
+		lunatik_putobject(luaxdp_percpu);
 #endif
 }
 
