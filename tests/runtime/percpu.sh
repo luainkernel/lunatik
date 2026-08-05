@@ -8,7 +8,7 @@
 # bindings look up; the script is listed once, by name; stopping it drops every
 # instance and lets it run again; `spawn` refuses percpu without creating any
 # runtime; a script that fails on one instance rolls back the ones already
-# created; and stopping a single instance is refused.
+# created; and the instances are not reachable through a generic stop.
 #
 # Usage: sudo bash tests/runtime/percpu.sh
 
@@ -79,13 +79,15 @@ lunatik stop "$FAIL_SCRIPT" > /dev/null 2>&1
 ktap_pass "a failing instance rolls back the ones already created"
 
 run_script "$SCRIPT" percpu
-output=$(lunatik stop "$SCRIPT:0" 2>&1)
-echo "$output" | grep -q "stop the script by name" || \
-	fail "stopping a single instance did not refuse: $output"
+lunatik stop "$SCRIPT:0" > /dev/null 2>&1
+mark_dmesg
+run_script "$CHECK"
+check_dmesg || { ktap_totals; exit 1; }
+lunatik stop "$CHECK" > /dev/null 2>&1
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 run_script "$SCRIPT" percpu
 lunatik stop "$SCRIPT" > /dev/null 2>&1
-ktap_pass "stopping a single instance is refused"
+ktap_pass "instances are not reachable through a generic stop"
 
 ktap_totals
 
