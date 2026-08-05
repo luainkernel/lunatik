@@ -579,6 +579,14 @@ cpu_usage_idle{cpu="cpu0"} 100.0000000000000000 1764094519529162
 * [Port Lua Test Suite to the NetBSD Kernel](https://www.google-melange.com/archive/gsoc/2015/orgs/lablua/projects/gmesalazar.html) — LabLua (2015), Guilherme Salazar
 * [Lua scripting in the NetBSD kernel](http://netbsd-soc.sourceforge.net/projects/luakern/) — The NetBSD Foundation (2010), Lourival Vieira Neto
 
+## Contributing
+
+Conventions for contributors, and for AI coding assistants working on this repository, are in
+[AGENTS.md](AGENTS.md): build and test loop, execution contexts, object model, code style, and commit
+discipline. Design notes for work in progress live under [docs/design](docs/design); what is being
+worked on, and how far along it is, lives in the
+[project boards](https://github.com/orgs/luainkernel/projects).
+
 ## License
 
 Lunatik is dual-licensed under [MIT](LICENSE-MIT) or [GPL-2.0-only](LICENSE-GPL).
