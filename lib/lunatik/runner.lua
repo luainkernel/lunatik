@@ -34,7 +34,22 @@ local function key(script, cpu)
 end
 
 local function ispercpukey(script)
-	return script:find(":", 1, true) ~= nil
+	local base = string.match(script, "^(.+):%d+$")
+	return base ~= nil and env.percpu[base] ~= nil
+end
+
+--- Stops an item (runtime or thread) in the given registry.
+-- If the item exists in the registry, its `stop()` method is called,
+-- and it's removed from the registry.
+-- @local
+-- @function stop
+-- @tparam table registry registry table (e.g., `env.threads` or `env.runtimes`).
+-- @tparam string script key (script name) of the item to stop.
+local function stop(registry, script)
+	if registry[script] then
+		registry[script]:stop()
+		registry[script] = nil
+	end
 end
 
 --- Runs a Lunatik script in the current context.
@@ -53,7 +68,14 @@ function runner.run(script, context, percpu, ...)
 	end
 	if percpu then
 		for cpu = 0, linux.numcpus() - 1 do
-			env.runtimes[key(script, cpu)] = lunatik.runtime(script, context, ...)
+			local ok, runtime = pcall(lunatik.runtime, script, context, ...)
+			if not ok then
+				for created = 0, cpu - 1 do
+					stop(env.runtimes, key(script, created))
+				end
+				error(runtime, 0)
+			end
+			env.runtimes[key(script, cpu)] = runtime
 		end
 		env.percpu[script] = true
 		return nil
@@ -79,20 +101,6 @@ function runner.spawn(script, context, percpu, ...)
 	local t = thread.run(runtime, name)
 	env.threads[script] = t
 	return t
-end
-
---- Stops an item (runtime or thread) in the given registry.
--- If the item exists in the registry, its `stop()` method is called,
--- and it's removed from the registry.
--- @local
--- @function stop
--- @tparam table registry registry table (e.g., `env.threads` or `env.runtimes`).
--- @tparam string script key (script name) of the item to stop.
-local function stop(registry, script)
-	if registry[script] then
-		registry[script]:stop()
-		registry[script] = nil
-	end
 end
 
 local function stop_percpu(script)
