@@ -117,7 +117,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	char cpu_key[LUARCU_MAXKEY];
 
 	if (unlikely(luaxdp_checkruntimes() != 0)) {
-		pr_err("couldn't find _ENV.runtimes or _ENV.percpu\n");
+		pr_err_ratelimited("couldn't find _ENV.runtimes or _ENV.percpu\n");
 		goto out;
 	}
 
@@ -129,7 +129,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	}
 
 	if ((runtime = luarcu_getobject(luaxdp_runtimes, key, keylen)) == NULL) {
-		pr_err("couldn't find runtime '%s'\n", key);
+		pr_err_ratelimited("couldn't find runtime '%s'\n", key);
 		goto out;
 	}
 
