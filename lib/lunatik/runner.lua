@@ -47,7 +47,7 @@ end
 -- @tparam string script registry key to test.
 -- @treturn boolean `true` if the key is a per-CPU runtime key, otherwise `false`.
 local function ispercpukey(script)
-	return script:find(":", 1, true) ~= nil
+	return env.percpu[script:match("^(.+):%d+$")] ~= nil
 end
 
 --- Stops an item (runtime or thread) in the given registry.
@@ -72,9 +72,6 @@ end
 -- @function stop_percpu
 -- @tparam string script script name.
 local function stop_percpu(script)
-	if not env.percpu[script] then
-		return
-	end
 	for cpu = 0, linux.numcpus() - 1 do
 		stop(env.runtimes, percpukey(script, cpu))
 	end
@@ -96,7 +93,6 @@ function runner.run(script, context, percpu, ...)
 		error(string.format("%s is already running", script))
 	end
 	if percpu then
-		env.percpu[script] = true
 		local ok, err = pcall(function(...)
 			for cpu = 0, linux.numcpus() - 1 do
 				env.runtimes[percpukey(script, cpu)] = lunatik.runtime(script, context, ...)
@@ -106,6 +102,7 @@ function runner.run(script, context, percpu, ...)
 			stop_percpu(script)
 			error(err, 0)
 		end
+		env.percpu[script] = true
 		return nil
 	end
 	local runtime = lunatik.runtime(script, context, ...)
