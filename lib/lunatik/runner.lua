@@ -77,8 +77,9 @@ end
 -- @tparam[opt] string context Execution context: `"process"` (default) or `"softirq"` (for netfilter/XDP hooks).
 -- @tparam[opt] boolean ispercpu create one runtime per CPU id, registered in `env.percpu`
 --   as `<script>:<cpu>`, for scripts dispatched by the eBPF bindings; the script runs
---   once per runtime.
--- @treturn table created Lunatik runtime object, or `nil` when `percpu` is set.
+--   once per instance and can read its id with `lunatik.cpu()`. Constructors whose
+--   registration is global refuse to run in an instance.
+-- @treturn table created Lunatik runtime object, or `nil` when `ispercpu` is set.
 -- @raise error if the script is already running.
 function runner.run(script, context, ispercpu)
 	local script = trim(script)
@@ -171,10 +172,10 @@ local function restore(name)
 end
 
 --- Initializes the runner's internal state.
--- Creates RCU-safe tables for storing runtimes and threads, keeping the ones a
--- previous startup left behind. An entry the core kept across an upgrade may
--- hold what an older runner stored, which this rejects rather than indexing.
--- @raise error if a registry survived in a format this runner cannot use.
+-- Creates the RCU-safe tables for runtimes, percpu instances and threads,
+-- reusing the ones a previous startup left in `env`. A table left by an
+-- incompatible runner is rejected: the modules have to be unloaded and loaded.
+-- @raise error if a table in `env` is not an rcu table.
 function runner.startup()
 	env.runtimes = restore("runtimes")
 	env.percpu = restore("percpu")
