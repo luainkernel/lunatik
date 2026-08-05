@@ -272,6 +272,13 @@ luaskb_getinteger(priority, priority);
 */
 luaskb_setinteger(priority, priority);
 
+/***
+* Gets the packet hash.
+* @function gethash
+* @return skb->hash
+*/
+luaskb_getinteger(hash, hash);
+
 static int luaskb_copy(lua_State *L);
 
 static void luaskb_release(void *private)
@@ -304,6 +311,7 @@ static const luaL_Reg luaskb_mt[] = {
 	{"getpriority", luaskb_getpriority},
 	{"setmark",     luaskb_setmark},
 	{"setpriority", luaskb_setpriority},
+	{"gethash",     luaskb_gethash},
 	{NULL, NULL}
 };
 
