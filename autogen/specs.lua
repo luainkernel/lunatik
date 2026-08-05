@@ -142,7 +142,7 @@ return {
 	{ header = "uapi/linux/nl80211.h",          prefix = "NL80211_CMD_",    module = "nl80211.cmd",
 		desc = "nl80211 commands (NL80211_CMD_*).",
 		include = { "GET_WIPHY", "NEW_WIPHY", "GET_INTERFACE", "SET_INTERFACE",
-			"NEW_INTERFACE", "GET_STATION", "NEW_STATION",
+			"NEW_INTERFACE", "DEL_INTERFACE", "GET_STATION", "NEW_STATION",
 			"GET_SCAN", "TRIGGER_SCAN", "NEW_SCAN_RESULTS" } },
 	{ header = "uapi/linux/nl80211.h",          prefix = "NL80211_ATTR_",   module = "nl80211.attr",
 		desc = "nl80211 attributes (NL80211_ATTR_*).",
