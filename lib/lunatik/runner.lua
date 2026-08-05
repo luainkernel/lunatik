@@ -42,7 +42,9 @@ end
 -- Throws an error if a script with the same name is already running.
 -- @tparam string script path or name of the Lua script to run. The ".lua" extension will be trimmed.
 -- @tparam[opt] string context Execution context: `"process"` (default) or `"softirq"` (for netfilter/XDP hooks).
--- @treturn table created Lunatik runtime object.
+-- @tparam[opt] boolean percpu create one runtime per CPU id, registered as `<script>:<cpu>`,
+--   for scripts dispatched by the eBPF bindings; the script runs once per runtime.
+-- @treturn table created Lunatik runtime object, or `nil` when `percpu` is set.
 -- @raise error if the script is already running.
 function runner.run(script, context, percpu, ...)
 	local script = trim(script)
