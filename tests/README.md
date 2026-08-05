@@ -127,6 +127,10 @@ higher-level `netlink.*` modules built on top of it.
   (asserting one is present, in `STATION` mode and with its fields decoded) and
   asserts both simulated wiphys come out of `netlink.nl80211.wiphy`'s
   fragmented `GET_WIPHY` dump (skips without `mac80211_hwsim`).
+- **nl80211_iface**: `netlink.nl80211.interface():add()` creates an AP interface
+  on the first simulated wiphy, asserts it returns the new `ifindex` and the
+  interface shows up as an AP in a dump, asserts a second add of the same
+  interface raises, then `del()` removes it (skips without `mac80211_hwsim`).
 
 ### notifier
 
