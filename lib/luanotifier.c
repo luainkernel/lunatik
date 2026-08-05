@@ -134,6 +134,7 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 *   is a `linux.netdev` code and `name` is the device name (e.g. `"eth0"`).
 *   Returns a `linux.notify` status code.
 * @treturn notifier
+* @raise if called from a percpu runtime
 * @within notifier
 */
 LUANOTIFIER_NEWCHAIN(netdevice, &luanotifier_process_class);
@@ -159,6 +160,7 @@ static int luanotifier_keyboard_handler(lua_State *L, void *data)
 *   `shift` is a boolean (modifier held), and `value` is the keycode or
 *   keysym depending on `event`. Returns a `linux.notify` status code.
 * @treturn notifier
+* @raise if called from a percpu runtime
 * @within notifier
 */
 LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
@@ -182,6 +184,7 @@ static int luanotifier_vt_handler(lua_State *L, void *data)
 *   `vc_num` is the virtual console number. Returns a `linux.notify`
 *   status code.
 * @treturn notifier
+* @raise if called from a percpu runtime
 * @within notifier
 */
 LUANOTIFIER_NEWCHAIN(vt, &luanotifier_hardirq_class);
@@ -222,6 +225,7 @@ static const lunatik_class_t luanotifier_hardirq_class = {
 static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, luanotifier_register_t unregister_fn,
 	luanotifier_handler_t handler_fn, const lunatik_class_t *class)
 {
+	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
 	lunatik_object_t *object = lunatik_newobject(L, class, sizeof(luanotifier_t), LUNATIK_OPT_NONE);
