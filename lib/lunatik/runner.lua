@@ -147,10 +147,9 @@ end
 -- Creates RCU-safe tables for storing runtimes and threads.
 -- This is typically called during Lunatik's initialization.
 function runner.startup()
-	if env.runtimes then return end
-	env.runtimes = rcu.table()
-	env.percpu = rcu.table()
-	env.threads = rcu.table()
+	env.runtimes = env.runtimes or rcu.table()
+	env.percpu = env.percpu or rcu.table()
+	env.threads = env.threads or rcu.table()
 end
 
 return runner
