@@ -116,8 +116,12 @@ end
 --- Stops a running script and its associated thread, if any.
 -- It attempts to stop the thread first, then the runtime.
 -- @tparam string script name of the script to stop. The ".lua" extension will be trimmed.
+-- @raise error on a single instance of a percpu script; stop it by name.
 function runner.stop(script)
 	local script = trim(script)
+	if ispercpukey(script) then
+		error(string.format("%s is a percpu instance; stop the script by name", script))
+	end
 	stop(env.threads, script)
 	stop(env.runtimes, script)
 	stop_percpu(script)
