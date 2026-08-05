@@ -250,13 +250,17 @@ static int lualinux_errname(lua_State *L)
 }
 
 /***
- * Returns the number of CPUs.
- * @function numcpus
- * @treturn integer number of CPUs
- */
+* Returns the number of possible CPU ids.
+* CPU ids range from `0` to `numcpus() - 1`; the online ones are a subset,
+* so an id in that range may be offline.
+* @function numcpus
+* @treturn integer number of possible CPU ids
+* @usage
+* for cpu = 0, linux.numcpus() - 1 do print(cpu) end
+*/
 static int lualinux_numcpus(lua_State *L)
 {
-	lua_pushinteger(L, num_online_cpus());
+	lua_pushinteger(L, nr_cpu_ids);
 	return 1;
 }
 
