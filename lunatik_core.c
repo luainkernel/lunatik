@@ -157,12 +157,30 @@ static int lunatik_lresume(lua_State *L)
 	return nresults;
 }
 
+/***
+* Returns the CPU id of a percpu runtime instance.
+* Ranges from `0` to `linux.numcpus() - 1`; see `runner.run`.
+* @function cpu
+* @treturn integer instance CPU id, or `nil` on a plain runtime
+* @within lunatik
+*/
+static int lunatik_cpu(lua_State *L)
+{
+	if (lunatik_ispercpu(L))
+		lua_pushinteger(L, lunatik_getcpu(L));
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
 static const luaL_Reg lunatik_lib[] = {
 	{"runtime", lunatik_lruntime},
+	{"cpu", lunatik_cpu},
 	{NULL, NULL}
 };
 
 static const luaL_Reg lunatik_stub_lib[] = {
+	{"cpu", lunatik_cpu},
 	{NULL, NULL}
 };
 
@@ -225,7 +243,7 @@ static int lunatik_runscript(lua_State *L)
 	return 1; /* callback */
 }
 
-static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt)
+static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt, int cpu)
 {
 	lunatik_object_t *runtime;
 	lua_State *L;
@@ -244,6 +262,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	lunatik_setobject(runtime, &lunatik_class, opt);
 	lunatik_toruntime(L) = runtime;
 	lunatik_extra(L)->ready = false;
+	lunatik_extra(L)->cpu = cpu;
 
 	runtime->gfp = GFP_KERNEL; /* might use kvmalloc while running in process */
 	lua_setallocf(L, lunatik_alloc, runtime);
@@ -271,7 +290,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt)
 {
-	return lunatik_newruntime(pruntime, NULL, script, opt);
+	return lunatik_newruntime(pruntime, NULL, script, opt, LUNATIK_CPU_NONE);
 }
 EXPORT_SYMBOL(lunatik_runtime);
 
@@ -284,6 +303,9 @@ EXPORT_SYMBOL(lunatik_runtime);
 *   (atomic, GFP\_ATOMIC, spinlock with IRQs disabled).
 *   Use `"softirq"` for hooks that fire in softirq context (netfilter, XDP).
 *   Use `"hardirq"` for hooks that fire in hardirq context (kprobes).
+* @tparam[opt=-1] integer cpu percpu instance CPU id; the runner passes it when
+*   creating `run <script> percpu` instances. A runtime created directly with a
+*   cpu claims to be that instance without being registered for dispatch.
 * @treturn runtime
 * @raise if allocation fails or the script errors on load
 * @within lunatik
@@ -294,10 +316,13 @@ static int lunatik_lruntime(lua_State *L)
 	static const lunatik_opt_t opts[] = {LUNATIK_OPT_NONE, LUNATIK_OPT_SOFTIRQ, LUNATIK_OPT_HARDIRQ};
 	const char *script = luaL_checkstring(L, 1);
 	int context = luaL_checkoption(L, 2, "process", contexts);
+	int cpu = luaL_optinteger(L, 3, LUNATIK_CPU_NONE);
 	lunatik_opt_t opt = opts[context];
 
+	luaL_argcheck(L, cpu >= LUNATIK_CPU_NONE && cpu < (int)nr_cpu_ids, 3, "invalid cpu");
+
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
-	if (lunatik_newruntime(pruntime, L, script, opt) != 0)
+	if (lunatik_newruntime(pruntime, L, script, opt, cpu) != 0)
 		lua_error(L);
 	lunatik_setclass(L, &lunatik_class, true);
 	return 1;
