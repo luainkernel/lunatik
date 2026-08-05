@@ -31,6 +31,10 @@
   <li><a href="../index.html">Index</a></li>
 </ul>
 
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_object">Class object </a></li>
+</ul>
 
 
 <h2>Modules</h2>
@@ -76,7 +80,7 @@
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><strong>netlink.nl80211.object</strong></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
@@ -97,7 +101,7 @@
   <li><a href="../modules/socket.unix.html">socket.unix</a></li>
   <li><a href="../modules/struct.html">struct</a></li>
   <li><a href="../modules/syscall.html">syscall</a></li>
-  <li><strong>syscall.table</strong></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
   <li><a href="../modules/thread.html">thread</a></li>
   <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
@@ -119,37 +123,81 @@
 
 <div id="content">
 
-<h1>Module <code>syscall.table</code></h1>
-<p>A table mapping system call names to their kernel addresses.</p>
-<p> This module provides a pre-populated Lua table where each key
- is a system call name (string, e.g., "openat") and its corresponding
- value is the kernel address of that system call (lightuserdata).</p>
+<h1>Module <code>netlink.nl80211.object</code></h1>
+<p>Base class for the nl80211 object classes (<a href="../modules/netlink.nl80211.wiphy.html">wiphy</a>, <a href="../modules/netlink.nl80211.interface.html">interface</a>, ...): a
+ <a href="../modules/netlink.genl.html#">netlink.genl</a> session bound to the <code>&quot;nl80211&quot;</code> family, caching its id and
+ carrying the shared dump-decode loop.</p>
+<p> Each object class provides its <code>GET</code>
+ dump command, its <code>NEW</code> reply command and a <code>decode</code> for the attributes.</p>
     <h3>See also:</h3>
     <ul>
-         <li><a href="../modules/syscall.html#">syscall</a></li>
-         <li><a href="../modules/linux.syscall.html#numbers">linux.syscall.numbers</a></li>
-         <li><a href="../modules/syscall.html#address">syscall.address</a></li>
-    </ul>
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example">local syscall_addrs = require(&quot;syscall.table&quot;)
-
-if syscall_addrs.openat then
-  print(&quot;Address of &apos;openat&apos;:&quot;, syscall_addrs.openat)
-end
-
-if syscall_addrs.close then
-  print(&quot;Address of &apos;close&apos;:&quot;, syscall_addrs.close)
-end
-</pre>
+         <a href="../modules/netlink.genl.html#">netlink.genl</a>
     </ul>
 
 
+<h2><a href="#Class_object">Class object </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#object:__call">object:__call ()</a></td>
+	<td class="summary">Opens the genl socket, then resolves and caches the <code>&quot;nl80211&quot;</code> family id.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#object:list">object:list ()</a></td>
+	<td class="summary">Dumps and decodes every record of the object type.</td>
+	</tr>
+</table>
 
 <br/>
 <br/>
 
 
+    <h2 class="section-header has-description"><a name="Class_object"></a>Class object </h2>
+
+          <div class="section-description">
+          Base class for the nl80211 object classes.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "object:__call"></a>
+    <strong>object:__call ()</strong>
+    </dt>
+    <dd>
+    Opens the genl socket, then resolves and caches the <code>&quot;nl80211&quot;</code> family id.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.nl80211.object.html#object">object</a></span>
+        a new nl80211 object.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "object:list"></a>
+    <strong>object:list ()</strong>
+    </dt>
+    <dd>
+    Dumps and decodes every record of the object type.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        list of decoded record tables.
+    </ol>
+
+
+
+
+</dd>
+</dl>
 
 
 </div> <!-- id="content" -->
