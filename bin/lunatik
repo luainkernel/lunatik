@@ -165,9 +165,9 @@ if #arg >= 1 then
 	ensure_loaded()
 	local percpu  = arg[3] == "percpu" or arg[4] == "percpu"
 	local context = (arg[3] ~= "percpu" and arg[3]) or (arg[4] ~= "percpu" and arg[4]) or nil
-	local parm  = (percpu or context) and (', ' .. (context and ('"' .. context .. '"') or "nil")) or ""
+	local parm    = context and string.format(', "%s"', context) or ""
 	if percpu then
-		parm = parm .. ", true"
+		parm = (context and parm or ", nil") .. ", true"
 	end
 	local ret   = token == "list" and "return" or ""
 	local chunk = string.format("%s lunatik.runner.%s('%s'%s)", ret, token, script, parm)
