@@ -153,13 +153,21 @@ if cmd then
 	os.exit()
 end
 
+local USAGE = [[
+usage:
+	lunatik run <script> [softirq|hardirq] [percpu]
+	lunatik spawn <script>
+	lunatik stop <script>
+	lunatik [load|unload|reload|status|test|list]
+]]
+
 if #arg >= 1 then
 	local token  = arg[1]
 	local script = arg[2]
 	local tokens = {run = true, spawn = true, stop = true, list = true}
 	local needs_script = {run = true, spawn = true, stop = true}
 	if not tokens[token] or (needs_script[token] and not script) then
-		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu]")
+		print(USAGE)
 		os.exit(false)
 	end
 	ensure_loaded()
