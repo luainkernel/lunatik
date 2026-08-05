@@ -309,7 +309,7 @@ static int luadevice_stop(lua_State *L)
 * @treturn userdata A Lunatik object representing the newly created device.
 *   This object can be used to explicitly stop the device using the `:stop()` method.
 * @raise Error if the device cannot be allocated or registered in the kernel,
-*   or if the `name` field is missing or not a string.
+*   if the `name` field is missing or not a string, or if called from a percpu runtime.
 * @usage
 *   local device = require("device")
 *   local stat   = require("linux.stat")
@@ -353,6 +353,7 @@ static int luadevice_new(lua_State *L)
 	const char *name;
 	int ret;
 
+	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE); /* driver */
 
 	lunatik_checkfield(L, 1, "name", LUA_TSTRING);

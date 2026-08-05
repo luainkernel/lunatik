@@ -281,10 +281,12 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 * @tparam table opts driver options: `name` (string), `id_table` (array of device ID tables,
 *   each with optional integer fields `bus`, `group`, `vendor`, `product`, `driver_data`)
 * @treturn hid_driver
-* @raise if required fields are missing, `id_table` is invalid, or driver registration fails
+* @raise if required fields are missing, `id_table` is invalid, driver registration fails,
+*   or if called from a percpu runtime
 */
 static int luahid_register(lua_State *L)
 {
+	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE);
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), LUNATIK_OPT_NONE);
