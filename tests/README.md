@@ -210,6 +210,14 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   stop; and each instance sees its own id via `lunatik.cpu()`, which a
   plain runtime sees as `nil`.
 
+- **percpu_affinity**: a netfilter hook registered by a percpu instance
+  only acts on packets processed on its instance's CPU: after K pings
+  the per-instance counters add up to exactly K, not N*K.
+
+- **percpu_refuse**: a global registration (`device.new`) fails at load
+  in a percpu instance, naming percpu, with a clean rollback; the same
+  script runs as a plain runtime.
+
 ### set
 
 - **set**: `set.new` sorting unsorted input and binary-search membership
