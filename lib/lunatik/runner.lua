@@ -33,6 +33,10 @@ local function key(script, cpu)
 	return script .. ":" .. cpu
 end
 
+local function ispercpukey(script)
+	return script:find(":", 1, true) ~= nil
+end
+
 --- Runs a Lunatik script in the current context.
 -- Creates a new Lunatik runtime for the given script and registers it.
 -- Throws an error if a script with the same name is already running.
@@ -110,12 +114,18 @@ function runner.stop(script)
 end
 
 --- Lists the names of all currently running scripts.
--- Iterates over the `env.runtimes` RCU table to collect script names.
+-- Iterates over the `env.percpu` and `env.runtimes` RCU tables to collect
+-- script names; a percpu script is named once, not once per CPU id.
 -- @treturn string A comma-separated string of running script names, or an empty string if no scripts are running.
 function runner.list()
 	local list = {}
-	rcu.map(env.runtimes, function (script)
+	rcu.map(env.percpu, function (script)
 		table.insert(list, script)
+	end)
+	rcu.map(env.runtimes, function (script)
+		if not ispercpukey(script) then
+			table.insert(list, script)
+		end
 	end)
 	return table.concat(list, ', ')
 end
