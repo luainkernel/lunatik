@@ -204,8 +204,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **percpu**: `run <script> percpu` registers one runtime per possible
   CPU id, as `<script>:<cpu>`, which is the key the eBPF bindings look
   up; the script is listed once, by name; `stop` drops every instance
-  and lets it run again; `spawn` refuses percpu without creating any
-  runtime; a script that fails on one instance rolls back the ones
+  and lets it run again; a running script is neither run nor spawned
+  twice; a script that fails on one instance rolls back the ones
   already created; the instances are not reachable through a generic
   stop; and each instance sees its own id via `lunatik.cpu()`, which a
   plain runtime sees as `nil`.
@@ -217,6 +217,11 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **percpu_refuse**: a global registration (`device.new`) fails at load
   in a percpu instance, naming percpu, with a clean rollback; the same
   script runs as a plain runtime.
+
+- **percpu_spawn**: `spawn <script> percpu` starts one thread per
+  possible CPU id, each bound to its CPU: every thread records whether
+  it runs where its instance claims, and the check asserts all did;
+  stopping by name drops every thread and lets the script spawn again.
 
 ### set
 
