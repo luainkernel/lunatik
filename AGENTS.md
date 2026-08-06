@@ -42,8 +42,18 @@ Use `sudo make install`, not the partial `*_install` targets. Use `sudo lunatik 
 `lunatik reload` cannot always replace the core module while something still holds it. If you changed
 `lunatik.ko` itself and the behaviour did not change, verify rather than assume the new core is live.
 
+After a kernel upgrade the installed modules were built for the previous kernel and fail to load with
+`Exec format error` (a vermagic mismatch). Reinstall the headers, `make clean && make`, and reinstall
+before the next `reload`.
+
 Never run two `lunatik` operations at once. Concurrent operations wedge `/dev/lunatik` and leave
 processes in D state. Check with `ps` before starting one.
+
+Trust the formal test over manual poking. Iterating by hand — `lunatik run`/`stop`, `iw`, `ip`,
+`rmmod`, `modprobe` — leaves stale state that wedges the next run: an interface in the wrong mode, an
+orphan `.ko` still pinning the core, a script still registered. A test's `.sh` does its own setup and
+teardown; a green formal test is the authoritative result, not a red manual scratch fighting leftover
+state.
 
 ### Running a script
 
@@ -173,6 +183,10 @@ Never `require("foo").method()`.
 * No comments restating obvious kernel or Lua API usage. Non obvious rationale is welcome.
 * Public functions and object types get LDoc comments. Use `@type <class>` names that do not collide
   with a function name, or LDoc will attach the wrong things.
+* LDoc does not surface a method a class inherits. To show it on the subclass's page, add a doc-only
+  `@function <class>:<method>` block there, with no function under it. A `--` comment placed directly
+  before a `---` doc block silences that block; keep any rationale note above the doc block or inside
+  the function.
 * A new module needs an entry in `config.ld`, inserted in alphabetical order, and a row in the README
   module table.
 * Do not insert code between a doc block and the function it documents.
