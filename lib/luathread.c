@@ -116,7 +116,8 @@ static int luathread_stop(lua_State *L)
 * Retrieves information about the kernel task associated with the thread.
 * @function task
 * @tparam thread self thread object.
-* @treturn table A table with fields: `cpu` (SMP only), `command`, `pid`, `tgid`.
+* @treturn table A table with fields: `cpu` (SMP only, the CPU the task last ran on),
+*   `command`, `pid`, `tgid`.
 * @usage
 * local info = my_thread:task()
 */
@@ -130,7 +131,7 @@ static int luathread_task(lua_State *L)
 	int table = lua_gettop(L);
 
 #ifdef CONFIG_SMP
-	lua_pushinteger(L, task->on_cpu);
+	lua_pushinteger(L, task_cpu(task));
 	lua_setfield(L, table, "cpu");
 #endif
 
