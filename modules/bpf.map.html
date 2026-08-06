@@ -1,0 +1,581 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Lunatik</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Class_map_queue">Class map_queue </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/bpf.html">bpf</a></li>
+  <li><strong>bpf.map</strong></li>
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h2>Topics</h2>
+<ul class="">
+  <li><a href="../topics/README.md.html">README</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>bpf.map</code></h1>
+<p>High-level view over pinned eBPF maps.</p>
+<p> Each constructor mirrors the one in <a href="../modules/bpf.html#">bpf</a>, taking the packing spec of what
+ the map holds. Key-value maps become table proxies: indexing looks values
+ up, assignment updates, assigning <code>nil</code> deletes, and <a href="https://www.lua.org/manual/5.4/manual.html#pdf-pairs">pairs</a> iterates.
+ Keyless maps become objects, with <a href="../modules/bpf.map.html#map_queue:push">push</a>, <a href="../modules/bpf.map.html#map_queue:pop">pop</a> and <a href="../modules/bpf.map.html#map_queue:peek">peek</a>.</p>
+
+<p> Keys and values are opaque fixed-size buffers to eBPF. A spec is either a
+ <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format (e.g. <code>&quot;I4&quot;</code>, <code>&quot;c6&quot;</code>) or a <a href="../modules/struct.html#">struct</a> codec, and says both
+ how many bytes it takes, validated against the map on open, and how to read
+ them. Specs that pack a single value take and return it as a scalar;
+ multi-value formats and <a href="../modules/struct.html#">struct</a> codecs take and return an array of values,
+ in field order.</p>
+
+<p> Operations on a table proxy come from outside it (<a href="../modules/bpf.map.html#close">close</a> and <a href="../modules/bpf.map.html#info">info</a> are
+ module functions, as in Lua's <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a> library or <a href="../modules/rcu.html#rcu_table:map">rcu.map</a>), so any key the
+ spec can encode is a valid map key.</p>
+
+<p> Conditional updates (<code>BPF_NOEXIST</code>/<code>BPF_EXIST</code>) and the boolean results
+ belong to the raw API.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/bpf.html#">bpf</a>
+    </ul>
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">local map = require(&quot;bpf.map&quot;)
+
+local counters &lt;close&gt; = map.hash(&quot;/sys/fs/bpf/counters&quot;, &quot;I4&quot;, &quot;I4&quot;)
+counters[1] = 42
+print(counters[1])
+counters[1] = nil                 -- delete
+for key, value in pairs(counters) do print(key, value) end
+
+local events &lt;close&gt; = map.queue(&quot;/sys/fs/bpf/events&quot;, &quot;I8&quot;)
+events:push(1234)
+print(events:pop())
+</pre>
+    </ul>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#array">array (pathname, keyspec, valuespec)</a></td>
+	<td class="summary">Opens a pinned array map as a table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#close">close (proxy)</a></td>
+	<td class="summary">Releases the map reference.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hash">hash (pathname, keyspec, valuespec)</a></td>
+	<td class="summary">Opens a pinned hash map as a table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#info">info (proxy)</a></td>
+	<td class="summary">Returns the map properties, as <a href="../modules/bpf.html#">bpf</a> map <a href="../modules/bpf.map.html#info">info</a>.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#lru_hash">lru_hash (pathname, keyspec, valuespec)</a></td>
+	<td class="summary">Opens a pinned LRU hash map as a table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#queue">queue (pathname, valuespec)</a></td>
+	<td class="summary">Opens a pinned queue map (FIFO).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#stack">stack (pathname, valuespec)</a></td>
+	<td class="summary">Opens a pinned stack map (LIFO).</td>
+	</tr>
+</table>
+<h2><a href="#Class_map_queue">Class map_queue </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#map_queue:close">map_queue:close ()</a></td>
+	<td class="summary">Releases the map reference.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map_queue:info">map_queue:info ()</a></td>
+	<td class="summary">Returns the map properties, as <a href="../modules/bpf.html#">bpf</a> map <a href="../modules/bpf.map.html#info">info</a>.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map_queue:peek">map_queue:peek ()</a></td>
+	<td class="summary">Returns the next value, leaving it in the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map_queue:pop">map_queue:pop ()</a></td>
+	<td class="summary">Removes and returns the next value.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map_queue:push">map_queue:push (value)</a></td>
+	<td class="summary">Inserts a value.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "array"></a>
+    <strong>array (pathname, keyspec, valuespec)</strong>
+    </dt>
+    <dd>
+    Opens a pinned array map as a table.
+ Keys are the <code>u32</code> indices of the array.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pathname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to the pinned map.
+        </li>
+        <li><span class="parameter">keyspec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the key.
+        </li>
+        <li><span class="parameter">valuespec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">map_hash</span></span>
+        the table proxy
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the map cannot be opened or a spec does not match its sizes.
+
+
+
+</dd>
+    <dt>
+    <a name = "close"></a>
+    <strong>close (proxy)</strong>
+    </dt>
+    <dd>
+    Releases the map reference.
+ Also wired as the proxy's <code>__close</code> metamethod.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">proxy</span>
+            <span class="types"><span class="type">map_hash</span></span>
+         the table proxy
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hash"></a>
+    <strong>hash (pathname, keyspec, valuespec)</strong>
+    </dt>
+    <dd>
+    Opens a pinned hash map as a table.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pathname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to the pinned map.
+        </li>
+        <li><span class="parameter">keyspec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the key.
+        </li>
+        <li><span class="parameter">valuespec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">map_hash</span></span>
+        the table proxy
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the map cannot be opened or a spec does not match its sizes.
+
+
+
+</dd>
+    <dt>
+    <a name = "info"></a>
+    <strong>info (proxy)</strong>
+    </dt>
+    <dd>
+    Returns the map properties, as <a href="../modules/bpf.html#">bpf</a> map <a href="../modules/bpf.map.html#info">info</a>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">proxy</span>
+            <span class="types"><span class="type">map_hash</span></span>
+         the table proxy
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        <a href="https://www.lua.org/manual/5.4/manual.html#pdf-type">type</a>, <code>key_size</code>, <code>value_size</code> and <code>max_entries</code>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "lru_hash"></a>
+    <strong>lru_hash (pathname, keyspec, valuespec)</strong>
+    </dt>
+    <dd>
+    Opens a pinned LRU hash map as a table.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pathname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to the pinned map.
+        </li>
+        <li><span class="parameter">keyspec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the key.
+        </li>
+        <li><span class="parameter">valuespec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">map_hash</span></span>
+        the table proxy
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the map cannot be opened or a spec does not match its sizes.
+
+
+
+</dd>
+    <dt>
+    <a name = "queue"></a>
+    <strong>queue (pathname, valuespec)</strong>
+    </dt>
+    <dd>
+    Opens a pinned queue map (FIFO).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pathname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to the pinned map.
+        </li>
+        <li><span class="parameter">valuespec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">map_queue</span></span>
+        the map object
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the map cannot be opened or the spec does not match its value size.
+
+
+
+</dd>
+    <dt>
+    <a name = "stack"></a>
+    <strong>stack (pathname, valuespec)</strong>
+    </dt>
+    <dd>
+    Opens a pinned stack map (LIFO).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pathname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to the pinned map.
+        </li>
+        <li><span class="parameter">valuespec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">map_queue</span></span>
+        the map object
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the map cannot be opened or the spec does not match its value size.
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_map_queue"></a>Class map_queue </h2>
+
+          <div class="section-description">
+          Keyless map object, as returned by <a href="../modules/bpf.map.html#queue">queue</a> and <a href="../modules/bpf.map.html#stack">stack</a>.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "map_queue:close"></a>
+    <strong>map_queue:close ()</strong>
+    </dt>
+    <dd>
+    Releases the map reference.
+ Also wired as the object's <code>__close</code> metamethod.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map_queue:info"></a>
+    <strong>map_queue:info ()</strong>
+    </dt>
+    <dd>
+    Returns the map properties, as <a href="../modules/bpf.html#">bpf</a> map <a href="../modules/bpf.map.html#info">info</a>.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        <a href="https://www.lua.org/manual/5.4/manual.html#pdf-type">type</a>, <code>key_size</code>, <code>value_size</code> and <code>max_entries</code>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map_queue:peek"></a>
+    <strong>map_queue:peek ()</strong>
+    </dt>
+    <dd>
+    Returns the next value, leaving it in the map.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the value, or <code>nil</code> if the map is empty
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation fails.
+
+
+
+</dd>
+    <dt>
+    <a name = "map_queue:pop"></a>
+    <strong>map_queue:pop ()</strong>
+    </dt>
+    <dd>
+    Removes and returns the next value.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the value, or <code>nil</code> if the map is empty
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation fails.
+
+
+
+</dd>
+    <dt>
+    <a name = "map_queue:push"></a>
+    <strong>map_queue:push (value)</strong>
+    </dt>
+    <dd>
+    Inserts a value.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">value</span>
+         the value to insert, as the spec encodes it
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        <code>false</code> if the map is full, <code>true</code> otherwise
+    </ol>
+
+    <h3>Raises:</h3>
+    Error if the operation fails.
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-08-06 12:24:08 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
