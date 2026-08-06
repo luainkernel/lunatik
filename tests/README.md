@@ -101,6 +101,9 @@ higher-level `netlink.*` modules built on top of it.
   family raising.
 - **link_list**: `rt.link():list()` lists interfaces; asserts loopback (`lo`,
   ifindex 1) is present with a non-zero MTU.
+- **link_updown**: `rt.link():set()` brings a down dummy interface up and
+  asserts `IFF_UP` appears in its dump flags, then brings it down and asserts
+  the flag is cleared.
 - **addr_list**: `rt.addr():list(AF_INET)` lists addresses; asserts `127.0.0.1`
   is present on loopback with `prefix_len == 8`.
 - **route_list**: `rt.route():list()` returns at least one route with its
