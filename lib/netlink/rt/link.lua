@@ -4,11 +4,11 @@
 --
 
 ---
--- Network interface (link) listing. A `netlink.session` specialization over
+-- Network interface (link) management. A `netlink.session` specialization over
 -- the `NETLINK_ROUTE` protocol: create an instance with `netlink.rt.link()`
--- and list the kernel's interfaces; the underlying socket is closed by
--- `close()` (or the to-be-closed `__close`). All methods block and require a
--- sleepable runtime.
+-- to list the kernel's interfaces and set their up state; the underlying
+-- socket is closed by `close()` (or the to-be-closed `__close`). All methods
+-- block and require a sleepable runtime.
 --
 -- @module netlink.rt.link
 -- @see netlink.rt.object
@@ -35,7 +35,9 @@ local IFINFO_LEN = ifinfomsg.size
 -- @tparam[opt] table o an initial object table.
 -- @treturn link the new link object.
 -- @see class
-local link = object:new{GET = rtnl.rtm.GETLINK, NEW = rtnl.rtm.NEWLINK}
+local link = object:new{
+	GET = rtnl.rtm.GETLINK, NEW = rtnl.rtm.NEWLINK, SET = rtnl.rtm.SETLINK,
+}
 
 function link:header()
 	return ifinfomsg:pack(sk.af.UNSPEC, 0, 0, 0, 0)
@@ -56,6 +58,15 @@ end
 -- Lists all network interfaces from the kernel.
 -- @function link:list
 -- @treturn table list of link tables.
+
+---
+-- Sets an interface's administrative up state.
+-- @tparam table opts link parameters: `ifindex` and `up` (boolean).
+-- @raise on a netlink error.
+function link:set(opts)
+	local flags = opts.up and rtnl.iff.UP or 0
+	self:talk(self.SET, nil, ifinfomsg:pack(sk.af.UNSPEC, 0, opts.ifindex, flags, rtnl.iff.UP))
+end
 
 return link
 
