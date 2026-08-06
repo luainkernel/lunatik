@@ -134,6 +134,11 @@ higher-level `netlink.*` modules built on top of it.
   on the first simulated wiphy, asserts it returns the new `ifindex` and the
   interface shows up as an AP in a dump, asserts a second add of the same
   interface raises, then `del()` removes it (skips without `mac80211_hwsim`).
+- **nl80211_ap**: creates an AP interface on the first simulated wiphy, brings
+  it up (`rt.link():set`), then `netlink.nl80211.ap():start()` begins beaconing
+  with a minimal open-AP beacon on channel 1, asserts a second start raises,
+  and `stop()` ends it — the whole AP bring-up staying in the kernel (skips
+  without `mac80211_hwsim`).
 
 ### notifier
 

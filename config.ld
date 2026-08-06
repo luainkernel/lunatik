@@ -41,6 +41,7 @@ file = {
 	'./lib/netlink/genl.lua',
 	'./lib/netlink/message.lua',
 	'./lib/netlink/nl80211.lua',
+	'./lib/netlink/nl80211/ap.lua',
 	'./lib/netlink/nl80211/interface.lua',
 	'./lib/netlink/nl80211/object.lua',
 	'./lib/netlink/nl80211/wiphy.lua',
