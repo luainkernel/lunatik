@@ -132,6 +132,11 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
   named helper into its callers while refactoring; they exist for readability and symmetry.
 * When a two line pattern repeats in every method, collapse it into one helper or macro.
 * `/*** @section name */` separates logical sections in a merged C file and groups them in the docs.
+* Two short mutually exclusive calls read better as a ternary than a four line if/else; void arms are
+  fine. This does not transpose to Lua (see Lua style).
+* Function pointers get a named typedef: `lua<libname>_<role>_t`.
+* For every raise after acquiring a resource, know what is already held and who releases it; validate
+  before acquiring whenever the check does not need the resource.
 
 ## Lua style
 
@@ -145,6 +150,15 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * Named constants at the top: `local PORT <const> = 5562`. No magic numbers.
 * Prefer the standard library (`string.match`, `string.gsub`, `table.*`) over hand written loops.
 * The kernel Lua state has no `math.type`; use `type(x) == "number"`.
+* A call repeated with the same arguments in one flow is resolved once into a local:
+  `local kind = type(spec)`, then compare `kind`.
+* Dispatch over a type or a key uses a table whose handlers are declared in place —
+  `function codecs.string(format)` — not an if/elseif chain. Look the handler up once and guard the
+  result with `== nil`; a looked-up constructor is named `new`, never the same name as what it builds.
+* `cond and f() or g()` only when `f` is guaranteed to return a truthy value: if `f()` returns nil or
+  false, `g()` runs too. Side effects and doubtful returns take if/else.
+* Name variables by role, not by structure: `proxy`, not `tbl`; `openproxy` to pair with `openqueue`,
+  not `opentable`.
 
 Inside a CLI dostring, require once at startup and call by name afterwards:
 
