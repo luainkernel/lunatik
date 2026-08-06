@@ -177,6 +177,8 @@ static const lunatik_class_t luathread_class = {
 * @function run
 * @tparam runtime runtime A sleepable Lunatik runtime whose script returns a function.
 * @tparam string name A descriptive name for the kernel thread.
+* @tparam[opt] integer cpu CPU id to bind the thread to; it then runs there and
+*   nowhere else, and stays parked while that CPU is offline.
 * @treturn thread A new thread object.
 * @raise Error if the runtime is not sleepable or if thread creation fails.
 * @see lunatik.runtime
@@ -187,6 +189,8 @@ static int luathread_run(lua_State *L)
 	lunatik_object_t *runtime = lunatik_checkobject(L, 1);
 	luaL_argcheck(L, !lunatik_isirq(runtime->opt), 1, "IRQ runtime cannot spawn threads");
 	const char *name = luaL_checkstring(L, 2);
+	int cpu = luaL_optinteger(L, 3, -1);
+	luaL_argcheck(L, cpu >= -1 && cpu < (int)nr_cpu_ids, 3, "invalid cpu");
 	lunatik_object_t *object = luathread_new(L);
 	luathread_t *thread = object->private;
 
@@ -194,9 +198,13 @@ static int luathread_run(lua_State *L)
 	lunatik_getobject(runtime);
 	thread->runtime = runtime;
 
-	thread->task = kthread_run(luathread_func, object, name);
+	thread->task = kthread_create(luathread_func, object, name);
 	if (IS_ERR(thread->task))
 		luaL_error(L, "failed to create a new thread");
+
+	if (cpu >= 0)
+		kthread_bind(thread->task, cpu); /* must precede the first wake up */
+	wake_up_process(thread->task);
 
 	return 1; /* object */
 }
