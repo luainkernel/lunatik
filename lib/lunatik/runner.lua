@@ -64,9 +64,23 @@ function percpu.run(script, context)
 	end
 end
 
+function percpu.attach(script, name)
+	for cpu = 0, linux.numcpus() - 1 do
+		local instance = key(script, cpu)
+		local ok, t = pcall(thread.run, env.percpu[instance], name, cpu)
+		if not ok then
+			percpu.stop(script)
+			error(t, 0)
+		end
+		env.threads[instance] = t
+	end
+end
+
 function percpu.stop(script)
 	for cpu = 0, linux.numcpus() - 1 do
-		stop(env.percpu, key(script, cpu))
+		local instance = key(script, cpu)
+		stop(env.threads, instance)
+		stop(env.percpu, instance)
 	end
 end
 
@@ -100,14 +114,19 @@ end
 -- to execute the runtime. The thread is named based on the script's filename.
 -- The spawned script is expected to return a function, which will then be executed in the new thread.
 -- @tparam string script path or name of the Lua script to spawn.
--- @treturn userdata kernel thread object.
--- @raise error if the script is already running or `percpu` is set.
+-- @tparam[opt] string context Execution context; `spawn` is always sleepable.
+-- @tparam[opt] boolean ispercpu spawn one thread per CPU id, each bound to its own
+--   CPU and running its own runtime; see `runner.run`.
+-- @treturn userdata kernel thread object, or `nil` when `ispercpu` is set.
+-- @raise error if the script is already running.
 function runner.spawn(script, context, ispercpu)
+	local script = trim(script)
+	local name = string.match(script, "(%w*/*%w*)$")
 	if ispercpu then
-		error("spawn does not support percpu scripts")
+		runner.run(script, context, true)
+		return percpu.attach(script, name)
 	end
 	local runtime = runner.run(script, context)
-	local name = string.match(script, "(%w*/*%w*)$")
 	local t = thread.run(runtime, name)
 	env.threads[script] = t
 	return t
