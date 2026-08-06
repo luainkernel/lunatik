@@ -10,6 +10,7 @@
 
 local wiphy     = require("netlink.nl80211.wiphy")
 local interface = require("netlink.nl80211.interface")
+local ap        = require("netlink.nl80211.ap")
 
 local nl80211 = {}
 
@@ -26,6 +27,13 @@ nl80211.wiphy = wiphy
 -- @table netlink.nl80211.interface
 -- @see netlink.nl80211.interface
 nl80211.interface = interface
+
+---
+-- Access Point control class.
+-- Open sessions using `netlink.nl80211.ap()`.
+-- @table netlink.nl80211.ap
+-- @see netlink.nl80211.ap
+nl80211.ap = ap
 
 return nl80211
 
