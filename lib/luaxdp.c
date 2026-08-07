@@ -51,8 +51,15 @@ LUNATIK_PRIVATECHECKER(luaxdp_ctx_check, luaxdp_ctx_t *,
 );
 
 /***
+* XDP callback context, valid only while the callback runs.
+* It is handed to the callback registered with `xdp.attach`; its methods raise
+* once the callback returns.
+* @type xdp_ctx
+*/
+
+/***
 * Returns the packet data buffer for the current XDP context.
-* @function packet
+* @function xdp_ctx:packet
 * @treturn data
 */
 static int luaxdp_packet(lua_State *L)
@@ -64,7 +71,7 @@ static int luaxdp_packet(lua_State *L)
 
 /***
 * Returns the argument data buffer passed from eBPF.
-* @function argument
+* @function xdp_ctx:argument
 * @treturn data
 */
 static int luaxdp_argument(lua_State *L)
@@ -76,7 +83,7 @@ static int luaxdp_argument(lua_State *L)
 
 /***
 * Sets the XDP verdict action for this packet.
-* @function action
+* @function xdp_ctx:action
 * @tparam integer action XDP action constant (e.g. XDP_PASS, XDP_DROP, ...)
 */
 static int luaxdp_action(lua_State *L)
