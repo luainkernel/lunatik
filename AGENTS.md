@@ -132,6 +132,8 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * Single statement `if` without braces.
 * Block comments `/* */`, never `//`.
 * Symbols in a library are prefixed `LUA<LIBNAME>_` or `lua<libname>_`.
+* The `l` prefix on a Lua binding (`lunatik_lruntime`) exists to disambiguate from a C function of
+  the same name. Without that collision, the plain name is the right one.
 * Kernel headers first, then a blank line, then `#include <lunatik.h>`. Do not remove that blank line.
 * `<lua.h>` and `<lauxlib.h>` are already pulled in by `lunatik.h`.
 * Every file ends with a trailing blank line. A pre commit hook rejects files that do not.
@@ -190,6 +192,17 @@ Never `require("foo").method()`.
 * A new module needs an entry in `config.ld`, inserted in alphabetical order, and a row in the README
   module table.
 * Do not insert code between a doc block and the function it documents.
+* A doc block states the contract, not how it was found. Keep the debugging story — the crash that
+  motivated a guard, the scenario that produced a stale state — in the commit body, where history
+  belongs.
+* The same holds for inline rationale: say why the code is what it is, not what it would take if
+  something changed. Speculation about a future refactor ages badly and reads as doubt.
+* Enumerate in one place only, and prefer none: a list of modules that adopt a rule rots on the next
+  adoption, and the list of who calls a guard is the code. Restrictions on using a function are
+  documented on that function, in its own `@raise`, where the caller reads.
+* A doc block and the code it describes share vocabulary: an `@raise` states its condition in the
+  same words as the error message it documents, and a rename in the code is a rename in the prose
+  above it.
 
 ## Tests
 
