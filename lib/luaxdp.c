@@ -191,9 +191,15 @@ LUNATIK_EBPF_KFUNC_DEFINE_SET(xdp, bpf_luaxdp_run);
 static int luaxdp_detach(lua_State *L)
 {
 	luaxdp_ctx_t *lctx = lunatik_ebpf_getctx(L, &luaxdp_env_key);
+
+	if (lctx == NULL) /* nothing attached */
+		return 0;
+
 	luaL_unref(L, LUA_REGISTRYINDEX, lctx->callback_ref);
 	lctx->callback_ref = LUA_NOREF;
 	lua_pop(L, 1);
+	lunatik_unregister(L, lctx->packet);
+	lunatik_unregister(L, lctx->argument);
 	lunatik_unregister(L, &luaxdp_env_key);
 	return 0;
 }
