@@ -124,6 +124,9 @@ static int luaxdp_handler(lua_State *L, luaxdp_ctx_t *ctx)
 	luaxdp_ctx_t *lctx = lunatik_ebpf_getctx(L, &luaxdp_env_key);
 	int ret = 0;
 
+	if (lctx == NULL) /* the script never attached, or has detached */
+		return -1;
+
 	lctx->xdp     = ctx->xdp;
 	lctx->arg     = ctx->arg;
 	lctx->arg__sz = ctx->arg__sz;
