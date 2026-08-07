@@ -157,7 +157,8 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 {
 	int action = -1;
 
-	lunatik_object_t *runtime = lunatik_ebpf_lookupruntime(&luaxdp_runtimes, &luaxdp_percpu, key, key__sz, raw_smp_processor_id());
+	lunatik_object_t *runtime = lunatik_ebpf_lookupruntime(&luaxdp_runtimes, &luaxdp_percpu,
+		key, key__sz, raw_smp_processor_id());
 	if (runtime == NULL)
 		goto out;
 

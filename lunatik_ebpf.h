@@ -19,7 +19,8 @@ static inline int lunatik_ebpf_checkruntimes(lunatik_object_t **runtimes, lunati
 	return *runtimes && *percpu ? 0 : -1;
 }
 
-static inline lunatik_object_t *lunatik_ebpf_lookupruntime(lunatik_object_t **runtimes, lunatik_object_t **percpu, char *key, size_t key_sz, int cpuid)
+static inline lunatik_object_t *lunatik_ebpf_lookupruntime(lunatik_object_t **runtimes,
+	lunatik_object_t **percpu, char *key, size_t key_sz, int cpuid)
 {
 	lunatik_object_t *runtime = NULL;
 	size_t keylen = key_sz - 1;
