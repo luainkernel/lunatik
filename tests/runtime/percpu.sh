@@ -6,8 +6,8 @@
 # Regression test for percpu runtimes: `run <script> percpu` registers one
 # runtime per possible CPU id as `<script>:<cpu>`, which is what the eBPF
 # bindings look up; the script is listed once, by name; stopping it drops every
-# instance and lets it run again; `spawn` refuses percpu without creating any
-# runtime; a script that fails on one instance rolls back the ones already
+# instance and lets it run again; a running script is neither run nor spawned
+# twice; a script that fails on one instance rolls back the ones already
 # created; and the instances are not reachable through a generic stop.
 #
 # Usage: sudo bash tests/runtime/percpu.sh
@@ -58,14 +58,15 @@ run_script "$SCRIPT" percpu
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 ktap_pass "stop drops every instance and lets the script run again"
 
+run_script "$SCRIPT" percpu
+output=$(lunatik run "$SCRIPT" percpu 2>&1)
+echo "$output" | grep -q "is already running" || \
+	fail "a second percpu run was accepted: $output"
 output=$(lunatik spawn "$SCRIPT" percpu 2>&1)
-echo "$output" | grep -q "spawn does not support percpu" || \
-	fail "spawn accepted percpu: $output"
-listed=$(lunatik list)
-case "$listed" in
-	*"$SCRIPT"*) fail "the refused spawn left runtimes behind: $listed" ;;
-esac
-ktap_pass "spawn refuses percpu without creating runtimes"
+echo "$output" | grep -q "is already running" || \
+	fail "a percpu spawn over a running script was accepted: $output"
+lunatik stop "$SCRIPT" > /dev/null 2>&1
+ktap_pass "a running percpu script is not run or spawned twice"
 
 output=$(lunatik run "$FAIL_SCRIPT" percpu 2>&1)
 echo "$output" | grep -q "intentional error on the second instance" || \

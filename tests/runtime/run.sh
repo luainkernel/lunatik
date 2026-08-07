@@ -21,6 +21,7 @@ TESTS=(
 	percpu.sh
 	percpu_affinity.sh
 	percpu_refuse.sh
+	percpu_spawn.sh
 )
 
 SEP=""
