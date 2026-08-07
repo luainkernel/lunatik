@@ -155,7 +155,7 @@ out:
 
 __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)
 {
-	int action = XDP_PASS;
+	int action = -1;
 
 	lunatik_object_t *runtime = lunatik_ebpf_lookupruntime(&luaxdp_runtimes, &luaxdp_percpu, key, key__sz, raw_smp_processor_id());
 	if (runtime == NULL)
@@ -226,8 +226,8 @@ static int luaxdp_detach(lua_State *L)
 * `ctx` (xdp.ctx userdata): A context object used to inspect the packet
 *    and control the XDP verdict via `ctx:action()`.
 *
-*   The callback need not return a value. If no action is set, the default
-*   is `action.PASS`.
+*   The callback need not return a value. If it sets no action, `bpf_luaxdp_run`
+*   returns `-1` and the verdict is left to the eBPF program.
 * @treturn nil
 * @raise Error if the current runtime is sleepable or if internal setup fails.
 * @usage
