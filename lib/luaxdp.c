@@ -67,10 +67,10 @@ static int luaxdp_packet(lua_State *L)
 * @function argument
 * @treturn data
 */
-static int luaxdp_arg(lua_State *L)
+static int luaxdp_argument(lua_State *L)
 {
 	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
-    lunatik_getregistry(L, ctx->argument);
+	lunatik_getregistry(L, ctx->argument);
 	return 1;
 }
 
@@ -89,7 +89,7 @@ static int luaxdp_action(lua_State *L)
 static const luaL_Reg luaxdp_mt[] = {
 	{"__gc",		lunatik_deleteobject},
 	{"packet",		luaxdp_packet},
-	{"argument",	luaxdp_arg},
+	{"argument",	luaxdp_argument},
 	{"action",		luaxdp_action},
 	{NULL, NULL}
 };
@@ -112,7 +112,8 @@ static const lunatik_class_t luaxdp_class = {
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
-static inline void luaxdp_handler_cleanup(luaxdp_ctx_t *lctx) {
+static inline void luaxdp_handler_cleanup(luaxdp_ctx_t *lctx)
+{
 	luadata_clear(lctx->packet);
 	luadata_clear(lctx->argument);
 	lctx->xdp = NULL;
