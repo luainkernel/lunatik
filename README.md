@@ -376,7 +376,7 @@ sudo make btf_install                        # needed to export the 'bpf_luaxdp_
 sudo make examples_install                   # installs examples
 make ebpf                                    # builds the XDP/eBPF program
 sudo make ebpf_install                       # installs the XDP/eBPF program
-sudo lunatik run examples/filter/sni softirq   # runs the Lua kernel script
+sudo lunatik run examples/filter/sni softirq percpu # runs the Lua kernel script, one runtime per CPU
 sudo xdp-loader load -m skb <ifname> https.o # loads the XDP/eBPF program
 ```
 
