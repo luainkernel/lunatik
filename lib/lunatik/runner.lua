@@ -53,9 +53,9 @@ function percpu.name(script)
 	return string.match(script, "^(.+):0$")
 end
 
-function percpu.run(script, context, ...)
+function percpu.run(script, context)
 	for cpu = 0, linux.numcpus() - 1 do
-		local ok, runtime = pcall(lunatik.runtime, script, context, ...)
+		local ok, runtime = pcall(lunatik.runtime, script, context, cpu)
 		if not ok then
 			percpu.stop(script)
 			error(runtime, 0)
@@ -77,18 +77,19 @@ end
 -- @tparam[opt] string context Execution context: `"process"` (default) or `"softirq"` (for netfilter/XDP hooks).
 -- @tparam[opt] boolean ispercpu create one runtime per CPU id, registered in `env.percpu`
 --   as `<script>:<cpu>`, for scripts dispatched by the eBPF bindings; the script runs
---   once per runtime.
--- @treturn table created Lunatik runtime object, or `nil` when `percpu` is set.
+--   once per instance and can read its id with `lunatik.cpu()`. Netfilter hooks and
+--   constructors whose registration is global refuse to run in an instance.
+-- @treturn table created Lunatik runtime object, or `nil` when `ispercpu` is set.
 -- @raise error if the script is already running.
-function runner.run(script, context, ispercpu, ...)
+function runner.run(script, context, ispercpu)
 	local script = trim(script)
 	if env.runtimes[script] or env.percpu[key(script, 0)] then
 		error(string.format("%s is already running", script))
 	end
 	if ispercpu then
-		return percpu.run(script, context, ...)
+		return percpu.run(script, context)
 	end
-	local runtime = lunatik.runtime(script, context, ...)
+	local runtime = lunatik.runtime(script, context)
 	env.runtimes[script] = runtime
 	return runtime
 end
@@ -100,11 +101,11 @@ end
 -- @tparam string script path or name of the Lua script to spawn.
 -- @treturn userdata kernel thread object.
 -- @raise error if the script is already running or `percpu` is set.
-function runner.spawn(script, context, ispercpu, ...)
+function runner.spawn(script, context, ispercpu)
 	if ispercpu then
 		error("spawn does not support percpu scripts")
 	end
-	local runtime = runner.run(script, context, ispercpu, ...)
+	local runtime = runner.run(script, context)
 	local name = string.match(script, "(%w*/*%w*)$")
 	local t = thread.run(runtime, name)
 	env.threads[script] = t
@@ -159,13 +160,26 @@ function runner.shutdown()
 	end
 end
 
+local function restore(name)
+	local current = env[name]
+	if current == nil then
+		return rcu.table()
+	end
+	if type(current) ~= "userdata" then
+		error(string.format("_ENV.%s is not an rcu table; unload and load the modules", name))
+	end
+	return current
+end
+
 --- Initializes the runner's internal state.
--- Creates RCU-safe tables for storing runtimes and threads.
--- This is typically called during Lunatik's initialization.
+-- Creates the RCU-safe tables for runtimes, percpu instances and threads,
+-- reusing the ones a previous startup left in `env`. A table left by an
+-- incompatible runner is rejected: the modules have to be unloaded and loaded.
+-- @raise error if a table in `env` is not an rcu table.
 function runner.startup()
-	env.runtimes = env.runtimes or rcu.table()
-	env.percpu = env.percpu or rcu.table()
-	env.threads = env.threads or rcu.table()
+	env.runtimes = restore("runtimes")
+	env.percpu = restore("percpu")
+	env.threads = restore("threads")
 end
 
 return runner

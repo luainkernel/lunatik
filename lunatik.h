@@ -51,6 +51,9 @@ do {									\
 
 #define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
+#define LUNATIK_CPU_NONE	(-1)
+#define lunatik_getcpu(L)	(lunatik_extra(L)->cpu)
+#define lunatik_ispercpu(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 
@@ -181,8 +184,15 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_METATABLE	"metatable not found"
 #define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
+#define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 
 #define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
+
+static inline void lunatik_checkpercpu(lua_State *L)
+{
+	if (lunatik_ispercpu(L))
+		luaL_error(L, LUNATIK_ERR_PERCPU);
+}
 
 static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt)
 {

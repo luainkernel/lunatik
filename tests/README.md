@@ -209,8 +209,14 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   up; the script is listed once, by name; `stop` drops every instance
   and lets it run again; `spawn` refuses percpu without creating any
   runtime; a script that fails on one instance rolls back the ones
-  already created; and the instances are not reachable through a
-  generic stop.
+  already created; the instances are not reachable through a generic
+  stop; and each instance sees its own id via `lunatik.cpu()`, which a
+  plain runtime sees as `nil`.
+
+- **percpu_refuse**: a registration a percpu instance cannot own fails
+  at load, naming percpu, with a clean rollback, and the same script
+  runs as a plain runtime: `device.new`, whose registration is global,
+  and `netfilter.register`, which has no per-CPU dispatch.
 
 ### set
 
