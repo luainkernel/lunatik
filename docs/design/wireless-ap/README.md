@@ -39,14 +39,15 @@ Three things decide whether this work goes well:
    path and reloadable live. Both have limits — see `plan.md`.
 
 2. **The per-CPU foundation is a prerequisite, and one question inside it is
-   open.** Per-CPU runtimes ([#676], merged) and per-CPU affinity at the
-   registration points ([#678], resolving [#675]) are what make the SMP design
-   possible; this project depends on them. What they do **not** yet answer is
-   whether an EAPOL frame can be delivered to the per-CPU-affine runtime for the
-   CPU it arrives on, or whether it only arrives out-of-band over the control
-   port's single netlink socket. `kernel-notes.md` states both candidates
-   honestly; a phase is dedicated to proving one before any handshake code is
-   written.
+   open.** Per-CPU runtimes ([#676], merged), per-CPU affinity at the registration
+   points ([#678], resolving [#675]), and per-CPU CPU-pinned kthreads for `spawn`
+   ([#686], sleepable — so a worker can do the keying and PBKDF2 inline) are what
+   make the SMP design possible; this project depends on them. What they do
+   **not** yet answer is whether an EAPOL frame can be delivered to a per-CPU
+   worker for the CPU it arrives on, or whether it only arrives out-of-band over
+   the control port's single netlink socket. `kernel-notes.md` states the
+   candidates honestly; a phase is dedicated to proving one before any handshake
+   code is written.
 
 3. **Bringing up an AP is bringing up a radio.** Test on `mac80211_hwsim` with a
    `wpa_supplicant` client, never on hardware whose network you care about — a
@@ -68,4 +69,5 @@ flight. Nothing of the authenticator exists yet.
 [#675]: https://github.com/luainkernel/lunatik/issues/675
 [#676]: https://github.com/luainkernel/lunatik/pull/676
 [#678]: https://github.com/luainkernel/lunatik/pull/678
+[#686]: https://github.com/luainkernel/lunatik/pull/686
 
