@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_skb">Class skb </a></li>
+<li><a href="#Class_ap">Class ap </a></li>
 </ul>
 
 
@@ -80,7 +80,7 @@
   <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
-  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><strong>netlink.nl80211.ap</strong></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
   <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
@@ -96,7 +96,7 @@
   <li><a href="../modules/rcu.html">rcu</a></li>
   <li><a href="../modules/set.html">set</a></li>
   <li><a href="../modules/signal.html">signal</a></li>
-  <li><strong>skb</strong></li>
+  <li><a href="../modules/skb.html">skb</a></li>
   <li><a href="../modules/socket.html">socket</a></li>
   <li><a href="../modules/socket.inet.html">socket.inet</a></li>
   <li><a href="../modules/socket.raw.html">socket.raw</a></li>
@@ -125,59 +125,32 @@
 
 <div id="content">
 
-<h1>Module <code>skb</code></h1>
-<p>Linux socket buffer interface.</p>
-<p>
+<h1>Module <code>netlink.nl80211.ap</code></h1>
+<p>Access Point control.</p>
+<p> An <a href="../modules/netlink.nl80211.html">nl80211</a> object over the <code>&quot;nl80211&quot;</code> generic
+ netlink family: create an instance with <code>netlink.nl80211.ap()</code> then start and
+ stop beaconing on an AP-mode interface; the underlying socket is closed by
+ <code>close()</code> (or the to-be-closed <code>__close</code>). All methods block and require a
+ sleepable runtime.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a>
+    </ul>
 
-</p>
 
-
-<h2><a href="#Class_skb">Class skb </a></h2>
+<h2><a href="#Class_ap">Class ap </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#skb:__len">skb:__len ()</a></td>
-	<td class="summary">
-
-</td>
+	<td class="name" nowrap><a href="#ap:new">ap:new ([o])</a></td>
+	<td class="summary">Creates a new ap object.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#skb:checksum">skb:checksum ()</a></td>
-	<td class="summary">Recomputes IP and transport-layer (TCP/UDP) checksums.</td>
+	<td class="name" nowrap><a href="#ap:start">ap:start (opts)</a></td>
+	<td class="summary">Starts beaconing on an AP-mode interface (which must already be up).</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#skb:connmark">skb:connmark ([value])</a></td>
-	<td class="summary">Gets or sets the conntrack mark: with no argument reads it, with <code>value</code> sets
- it.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#skb:copy">skb:copy ()</a></td>
-	<td class="summary">Returns an independent copy of the skb with its own data buffer.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#skb:data">skb:data ([layer])</a></td>
-	<td class="summary">
-
-</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#skb:forward">skb:forward ()</a></td>
-	<td class="summary">Forwards the skb out through its ingress device.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#skb:ifindex">skb:ifindex ()</a></td>
-	<td class="summary">
-
-</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#skb:resize">skb:resize (n)</a></td>
-	<td class="summary">Expands (skb<em>put) or shrinks (skb</em>trim) the skb data area.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#skb:vlan">skb:vlan ()</a></td>
-	<td class="summary">
-
-</td>
+	<td class="name" nowrap><a href="#ap:stop">ap:stop (opts)</a></td>
+	<td class="summary">Stops beaconing on an AP-mode interface.</td>
 	</tr>
 </table>
 
@@ -185,64 +158,22 @@
 <br/>
 
 
-    <h2 class="section-header has-description"><a name="Class_skb"></a>Class skb </h2>
+    <h2 class="section-header "><a name="Class_ap"></a>Class ap </h2>
 
-          <div class="section-description">
-          Represents a socket buffer (<code>sk_buff</code>).
- This is a userdata object handed to the hooks that receive packets; it is
- <code>SINGLE</code>, so it cannot be shared with another runtime.
-          </div>
     <dl class="function">
     <dt>
-    <a name = "skb:__len"></a>
-    <strong>skb:__len ()</strong>
+    <a name = "ap:new"></a>
+    <strong>ap:new ([o])</strong>
     </dt>
     <dd>
-
-
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        skb length in bytes
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "skb:checksum"></a>
-    <strong>skb:checksum ()</strong>
-    </dt>
-    <dd>
-    Recomputes IP and transport-layer (TCP/UDP) checksums.
-
-
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "skb:connmark"></a>
-    <strong>skb:connmark ([value])</strong>
-    </dt>
-    <dd>
-    Gets or sets the conntrack mark: with no argument reads it, with <code>value</code> sets
- it.  Returns the current (or new) mark, or nil if no conntrack is associated.
+    Creates a new ap object.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-         32-bit mark to set
+        <li><span class="parameter">o</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         an initial object table.
          (<em>optional</em>)
         </li>
     </ul>
@@ -250,153 +181,64 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">integer</span></span>
-        32-bit connmark, or nil if no conntrack is associated
+           <span class="types"><a class="type" href="../modules/netlink.nl80211.ap.html#ap">ap</a></span>
+        the new ap object.
     </ol>
 
 
-
-
-</dd>
-    <dt>
-    <a name = "skb:copy"></a>
-    <strong>skb:copy ()</strong>
-    </dt>
-    <dd>
-    Returns an independent copy of the skb with its own data buffer.
- The skb is linearized before copying to avoid failures on fragmented skbs
- (e.g. bridged traffic with paged data).
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/skb.html#skb">skb</a></span>
-
-
-
-    </ol>
-
-    <h3>Raises:</h3>
-    if skb is FRAGLIST GSO, linearization fails, or copy allocation fails
-
-
-
-</dd>
-    <dt>
-    <a name = "skb:data"></a>
-    <strong>skb:data ([layer])</strong>
-    </dt>
-    <dd>
-
-
-
-
-
-    <h3>Parameters:</h3>
+    <h3>See also:</h3>
     <ul>
-        <li><span class="parameter">layer</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         "net" (default, L3) or "mac" (L2, includes MAC header)
-         (<em>optional</em>)
-        </li>
+         <a href="../modules/class.html#">class</a>
     </ul>
 
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/skb.html#skb:data">data</a></span>
-
-
-
-    </ol>
-
-    <h3>Raises:</h3>
-    if linearization fails, MAC header is not set, or layer is invalid
-
-
 
 </dd>
     <dt>
-    <a name = "skb:forward"></a>
-    <strong>skb:forward ()</strong>
+    <a name = "ap:start"></a>
+    <strong>ap:start (opts)</strong>
     </dt>
     <dd>
-    Forwards the skb out through its ingress device.
-
-
-
-
-    <h3>Raises:</h3>
-    if skb has no device, MAC header is not set, or clone fails
-
-
-
-</dd>
-    <dt>
-    <a name = "skb:ifindex"></a>
-    <strong>skb:ifindex ()</strong>
-    </dt>
-    <dd>
-
-
-
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        network interface index, or nil if not available
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "skb:resize"></a>
-    <strong>skb:resize (n)</strong>
-    </dt>
-    <dd>
-    Expands (skb<em>put) or shrinks (skb</em>trim) the skb data area.
+    Starts beaconing on an AP-mode interface (which must already be up).
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">n</span>
-            <span class="types"><span class="type">integer</span></span>
-         desired size in bytes
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         AP parameters: <code>ifindex</code> (an AP interface), <code>freq</code>
+   (channel frequency in MHz), <code>beacon_interval</code>, <code>dtim</code> and <code>head</code> (the raw
+   beacon frame up to the TIM element); optional <code>ssid</code> and <code>tail</code> (the raw
+   beacon frame after the TIM).
         </li>
     </ul>
 
 
     <h3>Raises:</h3>
-    if insufficient tailroom for expansion
+    on a netlink error (e.g. the interface is not an AP, is down, or the
+   beacon or channel is rejected).
 
 
 
 </dd>
     <dt>
-    <a name = "skb:vlan"></a>
-    <strong>skb:vlan ()</strong>
+    <a name = "ap:stop"></a>
+    <strong>ap:stop (opts)</strong>
     </dt>
     <dd>
+    Stops beaconing on an AP-mode interface.
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         AP parameters: <code>ifindex</code>.
+        </li>
+    </ul>
 
 
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        VLAN tag ID, or nil if not present
-    </ol>
-
+    <h3>Raises:</h3>
+    on a netlink error.
 
 
 
