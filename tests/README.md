@@ -284,3 +284,18 @@ Regression tests for `luathread`.
 
 - **run_during_load**: `runner.spawn()` called from a script's top-level
   code must error instead of hanging the kernel.
+
+### xdp
+
+Regression tests for `luaxdp`. The suite builds real XDP programs that call
+`bpf_luaxdp_run`, pins them via `bpftool` and attaches them to a veth pair
+whose peer sits in a network namespace, with the neighbor entries pinned so
+ARP never competes with ICMP for the verdict; skipped when the module lacks
+BTF, or `bpftool` or `clang` is unavailable.
+
+- **xdp pass**: `pass.lua` verifies the callback receives a valid `xdp_ctx`
+  and `action.PASS` lets the ping reach its destination.
+
+- **xdp drop**: same setup with `drop.lua`, verifying that setting
+  `action.DROP` blocks the packet instead.
+

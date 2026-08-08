@@ -166,6 +166,7 @@ tests_install:
 		${INSTALL} -m 0644 tests/$$d/*.lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 	done
 	${INSTALL} -m 0644 tests/netlink/channel_subscriber.c ${LUNATIK_TESTS_INSTALL_PATH}/netlink
+	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 tests/socket/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket
