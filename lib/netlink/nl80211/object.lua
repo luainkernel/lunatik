@@ -32,10 +32,12 @@ end
 
 ---
 -- Dumps and decodes every record of the object type.
+-- @tparam[opt] string payload a serialized filter (e.g. an interface index) to
+--   scope the dump.
 -- @treturn table list of decoded record tables.
-function object:list()
+function object:list(payload)
 	local records = {}
-	for _, msg in ipairs(self:dump(self.id, self.GET)) do
+	for _, msg in ipairs(self:dump(self.id, self.GET, payload)) do
 		if msg.cmd == self.NEW then
 			insert(records, self:decode(msg.attrs))
 		end
