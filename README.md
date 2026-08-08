@@ -353,31 +353,21 @@ This kernel extension drops any HTTPS request destinated to a
 
 #### Usage
 
-Compile and install `libbpf`, `libxdp` and `xdp-loader`:
-
-```sh
-mkdir -p "${LUNATIK_DIR}" ; cd "${LUNATIK_DIR}"  # LUNATIK_DIR must be set to the same value as above (Setup section)
-git clone --depth 1 --recurse-submodules https://github.com/xdp-project/xdp-tools.git
-cd xdp-tools/lib/libbpf/src
-make
-sudo DESTDIR=/ make install
-cd ../../../
-make libxdp
-cd xdp-loader
-make
-sudo make install
-```
+Usage requires `libbpf` and `bpftool` installed.
 
 Come back to this repository, install and load the filter:
 
 ```sh
-cd ${LUNATIK_DIR}/lunatik                    # cf. above
-sudo make btf_install                        # needed to export the 'bpf_luaxdp_run' kfunc
-sudo make examples_install                   # installs examples
-make ebpf                                    # builds the XDP/eBPF program
-sudo make ebpf_install                       # installs the XDP/eBPF program
-sudo lunatik run examples/filter/sni softirq percpu # runs the Lua kernel script, one runtime per CPU
-sudo xdp-loader load -m skb <ifname> https.o # loads the XDP/eBPF program
+cd ${LUNATIK_DIR}/lunatik    # cf. above
+sudo make btf_install        # needed to export the 'bpf_luaxdp_run' kfunc
+sudo make examples_install   # installs examples
+make ebpf                    # builds the XDP/eBPF program
+sudo make ebpf_install       # installs the XDP/eBPF program
+# Run the Lua kernel script, one runtime per CPU
+sudo lunatik run examples/filter/sni softirq percpu
+# Load the compiled XDP/eBPF program and attach to interface <ifname>
+sudo bpftool prog load examples/filter/https.o /sys/fs/bpf/lunatik_filter type xdp
+sudo bpftool net attach xdp pinned /sys/fs/bpf/lunatik_filter dev <ifname>
 ```
 
 For example, testing is easy thanks to [docker](https://www.docker.com).
@@ -385,7 +375,8 @@ Assuming docker is installed and running:
 
 - in a terminal:
 ```sh
-sudo xdp-loader load -m skb docker0 https.o
+sudo bpftool prog load example/filter/https.o /sys/fs/bpf/lunatik_filter type xdp
+sudo bpftool net attach xdp pinned /sys/fs/bpf/lunatik_filter dev docker0
 sudo journalctl -ft kernel
 ```
 - in another one:
