@@ -147,6 +147,12 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * Two short mutually exclusive calls read better as a ternary than a four line if/else; void arms are
   fine. This does not transpose to Lua (see Lua style).
 * Function pointers get a named typedef: `lua<libname>_<role>_t`.
+* A check on the runtime or the execution context raises with `luaL_error` and is named for what it
+  examines, as `lunatik_checkruntime` and `lunatik_checkclass` are; the polarity belongs in the
+  message, not in the identifier. `luaL_argcheck` is for a value that arrived at an index and is
+  wrong: using it for a context error blames argument #1 for something no argument could have fixed.
+* A sentinel value gets a name as soon as it appears in more than one place: `cpu != LUNATIK_CPU_NONE`
+  says what `cpu >= 0` only implies, and ties the definition, the default and every test of it.
 * For every raise after acquiring a resource, know what is already held and who releases it; validate
   before acquiring whenever the check does not need the resource.
 
@@ -213,10 +219,34 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
 * mark `dmesg` before the run, read only what came after, and `check_dmesg` at the end;
 * clean up in a `trap`, and run the cleanup once up front as well;
 * coverage means the matrix of operation by type by outcome, including the successes, not a list of
-  features and not only the error paths.
+  features and not only the error paths;
+* prove the test discriminates: disable the mechanism it covers, watch it fail, restore. Commit
+  first, since restoring is a `git checkout --` that takes any uncommitted work with it;
+* a test for an exactly once property runs on the path where that property is structural, and the
+  header says which path and why. The same assertion on a path that can migrate CPUs mid way passes
+  for the wrong reason.
 
 A test is not done until `tests/README.md` describes it, the suite's `run.sh` runs it, and, for a new
 suite, the top level `README.md` lists it. Same commit, or a fixup of it.
+
+## Deciding what to change
+
+Code on `master` is not settled. When a new design makes an existing mechanism simpler, or subsumes
+it, change or remove it. Working around it to keep a diff small leaves two mechanisms doing one job,
+and every later change has to serve both. Authorship is not a reason to keep code, and neither is how
+recently it was merged; a commit that removes or subsumes something already on `master` names it in
+the body.
+
+* Do not land an implementation you already intend to replace. A guarantee that holds only on some
+  paths is not a guarantee: make it structural or do not offer it. Merging a half measure and opening
+  a follow up that deletes it pollutes the history across pull requests the same way a commit that
+  undoes another one pollutes a branch.
+* Refusing is a legitimate outcome. When a combination has no sound semantics yet, refuse it where it
+  is registered, with an error that names the reason, rather than shipping an approximation. Lifting
+  the refusal afterwards is one line and a test.
+* A guard keys on a property that is true by construction where it is enforced, never on a proxy that
+  merely correlates. That a registration is global is such a property. A netfilter hook number is not:
+  the same hook runs in softirq or in process context depending on the path the packet took.
 
 ## Patches and commits
 
