@@ -192,48 +192,50 @@ What the merged/in-flight foundation provides:
   packet is handled by exactly one instance with no locking. Global-registration
   constructors (`device`, `notifier`, `probe`, `hid`) refuse at load in a percpu
   instance.
-* `spawn` does **not** support percpu (no per-CPU kthread). A percpu authenticator
-  is therefore event-dispatched (a hook per CPU), not a receive-loop kthread.
+* `spawn <script> percpu` ([#686], stacked on [#678]) starts one runtime **and one
+  CPU-pinned kernel thread** per CPU id — process context, so it may sleep, with
+  per-CPU state and no locking (the ksoftirqd shape, in Lua).
 
-This is exactly the model for a per-CPU authenticator **if** EAPOL arrives through
-a per-CPU-affine hook. Which is the open question.
+So there are two shapes for a per-CPU authenticator. A **spawned per-CPU worker**
+([#686]): a CPU-pinned kthread that receives EAPOL in a bounded loop and runs the
+whole handshake inline — it may sleep, so the keying (`NEW_KEY`/`SET_STATION`) and
+the PBKDF2 happen in place. Or a **softirq per-CPU hook** (`netfilter`/XDP): fast
+and affine at dispatch, but atomic, so the sleeping steps must be deferred to a
+worker — two tiers. The worker shape is the cleaner one; what is still open is how
+EAPOL reaches the right CPU's worker. That is the open question.
 
 ## Open questions
 
 Documented as open, not resolved. Each is a phase-2 spike deliverable.
 
-1. **Per-CPU EAPOL delivery, and the eBPF path.** Control-port-over-nl80211
-   delivers EAPOL by unicast to one socket (§3a) — not per-CPU, not through the
-   affine packet path (§6). The per-CPU alternative (path A) is an **eBPF path**:
-   the [#676] per-CPU runtime resolution is wired only in `bpf_luaxdp_run`, so an
-   **XDP or TC-BPF program** on the AP netdev filtering EtherType `0x888E`, calling
-   `bpf_luaxdp_run`, is the existing mechanism that lands EAPOL on the runtime of
-   the CPU it arrived on. The open part is **visibility**: does mac80211 expose
-   control-port frames to an XDP/TC hook on the netdev, or consume them first? And
-   is XDP even attachable on the wireless interface / hwsim? eBPF does not answer
-   these — if mac80211 eats the frame first, path A never sees it. If not, is a
-   software MAC-hash dispatch from the single control-port socket (path B)
-   acceptable, and where does its dispatcher live? **This gates the sharded design.**
-2. **The atomic-context split path A forces.** XDP and `netfilter` hooks run in
-   **softirq** — `GFP_ATOMIC`, no sleeping. But the handshake's key steps sleep: a
-   `NEW_KEY`/`SET_STATION` netlink round trip, and PBKDF2's 4096 HMAC iterations
-   are too heavy for softirq. So a per-CPU packet-path authenticator cannot run
-   inline; path A is a **two-tier** structure — a softirq XDP/TC front-end that
-   receives and dispatches, and a process-context worker that does the keying and
-   crypto. Path B (control-port over netlink, process context) does the whole
-   handshake inline but on one socket. Whether the two-tier per-CPU structure earns
-   its complexity over an inline process-context authenticator (single runtime, or
-   a software per-CPU dispatch) is the spike's real tradeoff, not "XDP yes/no". A
-   `bpf.map` ([#633], Lua↔BPF map) is a candidate for the per-STA state shared
-   between the two tiers, versus a plain `rcu.table`.
-3. **AF_PACKET fanout for L2.** If path A uses `AF_PACKET` + `PACKET_FANOUT` instead
-   of XDP/TC, does the fanout hash distribute EtherType-`0x888E` frames usefully
-   across CPUs, with stable per-STA affinity or not? (Determines whether per-STA
-   state can be CPU-local or must stay shared.)
-4. **Software MLME vs offload on hwsim.** Does hwsim require the AP to answer
+1. **Where EAPOL enters, and how it reaches a per-CPU worker.** With [#686]'s
+   per-CPU workers (§6), the sleeping-context problem is solved; delivery is what
+   is left. Candidates:
+   * a per-CPU **`AF_PACKET`** socket (EtherType `0x888E`) on the AP netdev with
+     `PACKET_FANOUT` — the kernel shards received EAPOL across the sockets, each
+     worker reads its share and runs the handshake inline. The cleanest fit, **if**
+     mac80211 exposes EAPOL to `AF_PACKET` on an AP netdev rather than consuming it
+     into the control port first;
+   * the **control port** (§3a) — one socket, unicast to the AP owner; fits a
+     single worker, and going per-CPU needs a software MAC-hash dispatch;
+   * a softirq **XDP/TC-BPF** hook via `bpf_luaxdp_run` — per-CPU by arrival, but
+     atomic, so the keying and PBKDF2 defer to a worker (two tiers).
+
+   The open, spike-answered part is **visibility**: does mac80211 let EAPOL reach
+   `AF_PACKET`/a packet hook on an AP netdev, or does the control port take it
+   first? If the control port is the only way in, the per-CPU story needs the
+   software dispatch. **This gates the sharded design.**
+2. **STA affinity, or shared state.** `PACKET_FANOUT_CPU` (and the XDP arrival CPU)
+   shards by the CPU a frame lands on, not by station, so a station's frames may
+   cross CPUs during its handshake — its state then must be shared (`rcu.table`,
+   per-STA lock), not CPU-local. `PACKET_FANOUT_HASH` on the source MAC would give
+   stable STA→CPU affinity and CPU-local state, **if** the hash keys on the L2
+   source for a non-IP frame (unverified). This decides whether the per-STA state
+   is shared or owned.
+3. **Software MLME vs offload on hwsim.** Does hwsim require the AP to answer
    auth/assoc in software (`REGISTER_FRAME`/`FRAME`), or does it offload them?
    Phase 1 settles this; it changes where association policy is evaluated.
-5. **Crypto availability** (the three `[to verify]` in §4): AES-CMAC, AES key wrap,
+4. **Crypto availability** (the three `[to verify]` in §4): AES-CMAC, AES key wrap,
    and the cost of in-kernel PBKDF2. Phase 3, before the handshake.
 
 ## Version drift to watch
@@ -248,4 +250,5 @@ Documented as open, not resolved. Each is a phase-2 spike deliverable.
 [#675]: https://github.com/luainkernel/lunatik/issues/675
 [#676]: https://github.com/luainkernel/lunatik/pull/676
 [#678]: https://github.com/luainkernel/lunatik/pull/678
+[#686]: https://github.com/luainkernel/lunatik/pull/686
 

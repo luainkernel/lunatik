@@ -71,17 +71,19 @@ group keys (`wpa_group`: GMK/GTK/IGTK, and the GTK rekey fan-out), the station
 table and AID allocator, the protection counters, and the prebuilt RSN IE. See
 `kernel-notes.md` §"Per-STA vs per-BSS state" for the full split.
 
-So the design aims at a **`percpu` authenticator**: one runtime per CPU, each
-handling the handshakes for the stations whose frames land on its CPU — subject to
-"The open question" below, which decides whether that delivery is even available.
-The per-station handshake state lives in a shared `rcu.table` (read-mostly, keyed
-by STA MAC), because — and this is the honest limit of the merged infrastructure —
-[#676] shards by the CPU a frame *arrives on*, not by station. A station's frames
-are not guaranteed to land on one CPU, so its state cannot be CPU-local; it is
-shared, with per-STA serialization. The parallelism is real (N CPUs deriving PTKs
-concurrently), but it is shared-state parallelism, not share-nothing. The per-BSS
-group-key subsystem has a single owner and RCU readers; GTK rekey is the one
-inherently cross-CPU operation (a barrier over all stations).
+So the design aims at a **per-CPU authenticator**: with [#686], a `spawn ... percpu`
+worker is a CPU-pinned kernel thread per CPU — process context, so it may sleep,
+which the handshake's keying and PBKDF2 need — each handling the handshakes for the
+stations whose frames land on its CPU. This is subject to "The open question"
+below, which decides whether EAPOL can reach a per-CPU worker at all. The
+per-station handshake state lives in a shared `rcu.table` (read-mostly, keyed by
+STA MAC), because per-CPU delivery shards by the CPU a frame *arrives on*, not by
+station: a station's frames are not guaranteed to land on one CPU, so its state
+cannot be CPU-local unless the delivery is made STA-affine (see the open questions).
+The parallelism is real (N CPUs deriving PTKs concurrently), but it is shared-state
+parallelism, not share-nothing. The per-BSS group-key subsystem has a single owner
+and RCU readers; GTK rekey is the one inherently cross-CPU operation (a barrier
+over all stations).
 
 The authenticator's only outward dependencies are the four `hostapd` uses:
 `send_eapol`, `set_key`, `get_psk`, `set_port_authorized`. Those map to the
@@ -144,18 +146,15 @@ here with a prototype, not an assumption.
 ### Phase 2: the EAPOL I/O spike (the gate)
 
 Prove, on hwsim with a real `wpa_supplicant` client, that the kernel script can
-**receive and send** an EAPOL-Key frame — both candidate paths from "The open
-question" tried, the winner chosen with data. Path A is specifically the
-**eBPF path**: an XDP/TC-BPF program catching EtherType `0x888E` and dispatching
-per-CPU via `bpf_luaxdp_run` (the mechanism [#676] already wires). The spike must
-answer not just "does a frame arrive" but two things that decide the whole shape:
-whether mac80211 even exposes EAPOL to that hook, and — since XDP/`netfilter` run
-in softirq — that path A forces a **two-tier** design (a softirq front-end plus a
-process-context worker, because the keying and PBKDF2 sleep), which path B
-(control-port over netlink, all in process context) does not. See
-`kernel-notes.md` "Open questions" 1–2. No handshake logic, no PR of a public API
-until RX and TX are demonstrated; the phase produces a throwaway prototype and a
-findings note.
+**receive and send** an EAPOL-Key frame. The question the spike settles is where
+EAPOL enters and how it reaches a per-CPU worker (`kernel-notes.md` "Open
+questions" 1). The leading candidate, now that [#686] gives per-CPU sleepable
+workers, is a per-CPU `AF_PACKET` socket (`0x888E`) with `PACKET_FANOUT` feeding a
+`spawn ... percpu` worker that handles the handshake inline — clean if mac80211
+exposes EAPOL to `AF_PACKET` on an AP netdev rather than taking it into the control
+port first. The control-port socket (one owner) and a softirq XDP/TC hook (atomic,
+two-tier) are the fallbacks. No handshake logic, no PR of a public API until RX and
+TX are demonstrated; the phase produces a throwaway prototype and a findings note.
 
 If neither path works cleanly, that is a finding too: it caps the project at "open
 AP + external authenticator" and is worth knowing before writing crypto.
@@ -171,11 +170,12 @@ passes encrypted traffic on hwsim.
 
 ### Phase 4: shard across CPUs
 
-Move the authenticator to a `percpu` script with per-STA state in a shared
-`rcu.table`, using the phase-2 delivery path and [#678]'s affinity. The per-BSS
-group-key subsystem gets a single owner. Prove correctness under concurrent
-associations (many clients at once) and measure the speedup against phase 3's
-single runtime. GTK rekey stays serialized (the cross-CPU barrier).
+Move the authenticator to a `spawn ... percpu` worker ([#686]) — a CPU-pinned
+kernel thread per CPU — with per-STA state in a shared `rcu.table`, using the
+phase-2 delivery path. The per-BSS group-key subsystem gets a single owner. Prove
+correctness under concurrent associations (many clients at once) and measure the
+speedup against phase 3's single runtime. GTK rekey stays serialized (the
+cross-CPU barrier).
 
 ### Phase 5: programmable policy and the demo
 
@@ -233,4 +233,5 @@ A phase is done when all of the following hold. This is the review checklist.
 [#675]: https://github.com/luainkernel/lunatik/issues/675
 [#676]: https://github.com/luainkernel/lunatik/pull/676
 [#678]: https://github.com/luainkernel/lunatik/pull/678
+[#686]: https://github.com/luainkernel/lunatik/pull/686
 
