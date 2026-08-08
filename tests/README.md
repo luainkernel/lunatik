@@ -145,6 +145,10 @@ higher-level `netlink.*` modules built on top of it.
   with a minimal open-AP beacon on channel 1, asserts a second start raises,
   and `stop()` ends it — the whole AP bring-up staying in the kernel (skips
   without `mac80211_hwsim`).
+- **nl80211_station**: over a beaconing AP, `netlink.nl80211.station():add()`
+  adds a station and asserts it appears in `list()`, a duplicate add raises,
+  `set{authorized = true}` is accepted (the `STA_FLAGS2` path), and `del()`
+  removes it (skips without `mac80211_hwsim`).
 
 ### notifier
 

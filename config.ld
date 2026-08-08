@@ -45,6 +45,7 @@ file = {
 	'./lib/netlink/nl80211/ap.lua',
 	'./lib/netlink/nl80211/interface.lua',
 	'./lib/netlink/nl80211/object.lua',
+	'./lib/netlink/nl80211/station.lua',
 	'./lib/netlink/nl80211/wiphy.lua',
 	'./lib/netlink/rt.lua',
 	'./lib/netlink/rt/addr.lua',
