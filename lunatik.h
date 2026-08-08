@@ -7,6 +7,7 @@
 #define lunatik_h
 
 #include <linux/mutex.h>
+#include <linux/percpu.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/mm.h>
@@ -25,6 +26,7 @@ typedef u8 __bitwise lunatik_opt_t;
 #define LUNATIK_OPT_MONITOR	((__force lunatik_opt_t)(1U << 3))
 #define LUNATIK_OPT_SINGLE	((__force lunatik_opt_t)(1U << 4))
 #define LUNATIK_OPT_EXTERNAL	((__force lunatik_opt_t)(1U << 5))
+#define LUNATIK_OPT_PERCPU	((__force lunatik_opt_t)(1U << 6))
 #define LUNATIK_OPT_NONE	((__force lunatik_opt_t)0)
 
 #define lunatik_isirq(opt)		((opt) & LUNATIK_OPT_IRQ)
@@ -33,6 +35,7 @@ typedef u8 __bitwise lunatik_opt_t;
 #define lunatik_ismonitor(opt)		((opt) & LUNATIK_OPT_MONITOR)
 #define lunatik_issingle(opt)		((opt) & LUNATIK_OPT_SINGLE)
 #define lunatik_isexternal(opt)		((opt) & LUNATIK_OPT_EXTERNAL)
+#define lunatik_ispercpu(opt)		((opt) & LUNATIK_OPT_PERCPU)
 
 #define lunatik_locker(o, mutex_op, softirq_op, hardirq_op, ...)	\
 do {									\
@@ -53,7 +56,7 @@ do {									\
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
 #define LUNATIK_CPU_NONE	(-1)
 #define lunatik_getcpu(L)	(lunatik_extra(L)->cpu)
-#define lunatik_ispercpu(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
+#define lunatik_isinstance(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 
@@ -69,14 +72,19 @@ do {							\
 	lua_settop(L, n);				\
 } while (0)
 
-#define lunatik_run(runtime, handler, ret, ...)				\
-do {									\
-	lunatik_lock(runtime);						\
-	if (unlikely(!lunatik_isready(runtime)))			\
-		ret = -ENXIO;						\
-	else								\
-		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
-	lunatik_unlock(runtime);					\
+#define lunatik_run(object, handler, ret, ...)					\
+do {										\
+	lunatik_object_t *_runtime = lunatik_current(object);			\
+	if (unlikely(_runtime == NULL))						\
+		ret = -ENXIO;							\
+	else {									\
+		lunatik_lock(_runtime);						\
+		if (unlikely(!lunatik_isready(_runtime)))			\
+			ret = -ENXIO;						\
+		else								\
+			lunatik_handle(_runtime, handler, ret, ## __VA_ARGS__);	\
+		lunatik_unlock(_runtime);					\
+	}									\
 } while(0)
 
 typedef struct lunatik_class_s {
@@ -99,6 +107,22 @@ typedef struct lunatik_object_s {
 	gfp_t gfp;
 	unsigned long flags;
 } lunatik_object_t;
+
+typedef struct lunatik_percpu_s {
+	lunatik_object_t * __percpu *runtime;
+} lunatik_percpu_t;
+
+/* the caller must hold a reference for the whole call; instances are freed with their group.
+ * raw: from a preemptible context this reads the instance of the CPU the caller happened
+ * to be on, which is all a migratable caller can ask for */
+static inline lunatik_object_t *lunatik_current(lunatik_object_t *object)
+{
+	if (likely(!lunatik_ispercpu(object->opt)))
+		return object;
+
+	lunatik_percpu_t *percpu = (lunatik_percpu_t *)object->private;
+	return percpu->runtime == NULL ? NULL : *raw_cpu_ptr(percpu->runtime);
+}
 
 extern lunatik_object_t *lunatik_env;
 
@@ -190,7 +214,7 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 
 static inline void lunatik_checkpercpu(lua_State *L)
 {
-	if (lunatik_ispercpu(L))
+	if (lunatik_isinstance(L))
 		luaL_error(L, LUNATIK_ERR_PERCPU);
 }
 
