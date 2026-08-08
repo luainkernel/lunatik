@@ -272,3 +272,17 @@ Regression tests for `luathread`.
 
 - **run_during_load**: `runner.spawn()` called from a script's top-level
   code must error instead of hanging the kernel.
+
+### xdp
+
+Regression tests for `luaxdp`.
+
+- **xdp pass**: loads and pins a real XDP program on `docker0` via `bpftool`,
+  attaches `pass.lua` with `xdp.attach()`, and drives a ping through
+  it, verifying the callback receives a valid `xdp_ctx` (`packet()` and
+  `argument()` both non-nil) and that setting `action.PASS` lets the packet
+  reach its destination.
+
+- **xdp drop**: same setup with `drop.lua`, verifying that setting
+  `action.DROP` blocks the packet instead.
+
