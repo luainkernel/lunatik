@@ -98,6 +98,7 @@ typedef struct lunatik_object_s {
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
+extern const lunatik_class_t lunatik_class;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
