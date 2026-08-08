@@ -279,3 +279,31 @@ the body.
 5. error paths audited: for each raise, everything already acquired is released;
 6. commits are small, ordered, and none of them undoes another.
 
+## Reviewing a pull request
+
+A review produces two things: the comments, and a branch showing what the comments ask for. Neither
+is posted before the maintainer has seen both.
+
+1. Check out the author's branch, build it and run the suite. A review that only reads the diff
+   misses what the machine already knows.
+2. Work on `review/<pr number>`, started from the author's head. The number is what lets the author,
+   and the next reviewer, find the branch; a name of your own choosing does not.
+3. One fixup per finding, `git commit --fixup=<the author's commit>`. Not one per file, and not one
+   per target commit: a comment pointing at a commit that does three unrelated things cannot be
+   accepted in parts, and the author is the one who autosquashes what they accept.
+4. Rebase the review branch when `master` moves under it, so the fixups still apply to what the
+   author will rebase onto.
+5. Draft the comments and hand them over. The repository's public voice is the maintainer's; a
+   reviewer writes, the maintainer posts. Do not comment on a pull request or an issue unless you
+   were asked to, and having offered earlier is not authorization.
+
+On the comments themselves:
+
+* Each one states the defect and the change it requires, and links the fixup that makes it. Showing
+  the shape of the fix costs the author less than a paragraph describing it.
+* A request for changes is not a place for praise. Padding buries the change being asked for.
+* Missing tests are a finding of their own, written as such, not a remark appended to another
+  comment.
+* The checklist above is the reviewer's too. A pull request that fails it is not ready, whatever the
+  code looks like.
+
