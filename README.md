@@ -365,7 +365,7 @@ make ebpf                    # builds the XDP/eBPF program
 sudo make ebpf_install       # installs the XDP/eBPF program
 # Run the Lua kernel script, one runtime per CPU
 sudo lunatik run examples/filter/sni softirq percpu
-# Load the compiled XDP/eBPF program and attack to interface <ifname>
+# Load the compiled XDP/eBPF program and attach to interface <ifname>
 sudo bpftool prog load examples/filter/https.o /sys/fs/bpf/lunatik_filter type xdp
 sudo bpftool net attach xdp pinned /sys/fs/bpf/lunatik_filter dev <ifname>
 ```
