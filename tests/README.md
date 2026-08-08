@@ -272,3 +272,5 @@ Regression tests for `luathread`.
 
 - **run_during_load**: `runner.spawn()` called from a script's top-level
   code must error instead of hanging the kernel.
+
+### xdp
