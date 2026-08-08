@@ -204,14 +204,13 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   the receiving runtime via `class->opener` (`luaL_requiref`), even when
   that runtime never called `require()` for the module.
 
-- **percpu**: `run <script> percpu` registers one runtime per possible
-  CPU id, as `<script>:<cpu>`, which is the key the eBPF bindings look
-  up; the script is listed once, by name; `stop` drops every instance
-  and lets it run again; `spawn` refuses percpu without creating any
-  runtime; a script that fails on one instance rolls back the ones
-  already created; the instances are not reachable through a generic
-  stop; and each instance sees its own id via `lunatik.cpu()`, which a
-  plain runtime sees as `nil`.
+- **percpu**: `run <script> percpu` registers one object holding a
+  runtime per possible CPU id, and runs the script once per instance,
+  each seeing its own id via `lunatik.cpu()`, which a plain runtime
+  sees as `nil`; the script is listed once, by name; `stop` drops every
+  instance and lets it run again; `spawn` refuses percpu without
+  creating any runtime; and a script that fails on one instance rolls
+  back the ones already created before the run returns.
 
 - **percpu_refuse**: a registration a percpu instance cannot own fails
   at load, naming percpu, with a clean rollback, and the same script

@@ -38,7 +38,6 @@ __diag_ignore_all("-Wmissing-prototypes",
 #endif
 
 static lunatik_object_t *luaxdp_runtimes = NULL;
-static lunatik_object_t *luaxdp_percpu = NULL;
 
 static inline lunatik_object_t *luaxdp_pushdata(lua_State *L, int upvalue, void *ptr, size_t size)
 {
@@ -98,13 +97,10 @@ out:
 static inline int luaxdp_checkruntimes(void)
 {
 	static const char runtimes_key[] = "runtimes";
-	static const char percpu_key[] = "percpu";
 
 	if (luaxdp_runtimes == NULL)
 		luaxdp_runtimes = luarcu_getobject(lunatik_env, runtimes_key, sizeof(runtimes_key) - 1);
-	if (luaxdp_percpu == NULL)
-		luaxdp_percpu = luarcu_getobject(lunatik_env, percpu_key, sizeof(percpu_key) - 1);
-	return luaxdp_runtimes != NULL && luaxdp_percpu != NULL ? 0 : -1;
+	return luaxdp_runtimes != NULL ? 0 : -1;
 }
 
 __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)
@@ -115,17 +111,12 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	size_t keylen = key__sz - 1;
 
 	if (unlikely(luaxdp_checkruntimes() != 0)) {
-		pr_err_ratelimited("couldn't find _ENV.runtimes or _ENV.percpu\n");
+		pr_err_ratelimited("couldn't find _ENV.runtimes\n");
 		goto out;
 	}
 
 	key[keylen] = '\0';
 	if ((runtime = luarcu_getobject(luaxdp_runtimes, key, keylen)) == NULL) {
-		char cpu_key[LUARCU_MAXKEY];
-		size_t cpulen = scnprintf(cpu_key, sizeof(cpu_key), "%s:%d", key, raw_smp_processor_id());
-		runtime = luarcu_getobject(luaxdp_percpu, cpu_key, cpulen);
-	}
-	if (runtime == NULL) {
 		pr_err_ratelimited("couldn't find runtime '%s'\n", key);
 		goto out;
 	}
@@ -256,8 +247,6 @@ static void __exit luaxdp_exit(void)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 	if (luaxdp_runtimes != NULL)
 		lunatik_putobject(luaxdp_runtimes);
-	if (luaxdp_percpu != NULL)
-		lunatik_putobject(luaxdp_percpu);
 #endif
 }
 
