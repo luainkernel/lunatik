@@ -222,9 +222,10 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   stop; and each instance sees its own id via `lunatik.cpu()`, which a
   plain runtime sees as `nil`.
 
-- **percpu_refuse**: a global registration (`device.new`) fails at load
-  in a percpu instance, naming percpu, with a clean rollback; the same
-  script runs as a plain runtime.
+- **percpu_refuse**: a registration a percpu instance cannot own fails
+  at load, naming percpu, with a clean rollback, and the same script
+  runs as a plain runtime: `device.new`, whose registration is global,
+  and `netfilter.register`, which has no per-CPU dispatch.
 
 ### set
 
