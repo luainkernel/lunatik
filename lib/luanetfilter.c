@@ -127,9 +127,11 @@ static const lunatik_class_t luanetfilter_class = {
 * @tparam table opts Hook options: `hook` (function), `pf`, `hooknum`, `priority` (integers),
 *   and optionally `mark` (integer, default 0).
 * @treturn netfilter_hook Registered hook handle.
+* @raise if the hook cannot be registered, or if called from a percpu runtime
 */
 static int luanetfilter_register(lua_State *L)
 {
+	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE);
 	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class, sizeof(luanetfilter_t), LUNATIK_OPT_NONE);
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
