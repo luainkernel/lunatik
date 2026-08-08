@@ -171,6 +171,9 @@ higher-level `netlink.*` modules built on top of it.
 - **map_values**: `rcu.map()` iterates booleans, integers, userdata,
   mixed types, and skips nil (deleted) entries.
 
+- **map_foreign**: `rcu.map()` refuses an object of another class
+  instead of walking its private data as a table.
+
 - **map_sync**: `rcu.map()` remains safe when called while another
   kthread is modifying the table.
 
@@ -269,6 +272,9 @@ Regression tests for `luathread`.
 - **shouldstop**: `thread.shouldstop()` returns `false` in a `run`
   (non-kthread) context without crashing, and `true` in a `spawn`
   (kthread) context when stop is requested.
+
+- **foreign_object**: `thread.run()` refuses an object of another class
+  instead of using its private data as a Lua state.
 
 - **run_during_load**: `runner.spawn()` called from a script's top-level
   code must error instead of hanging the kernel.
