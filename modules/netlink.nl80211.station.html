@@ -33,8 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_completion">Class completion </a></li>
-<li><a href="#completion">completion</a></li>
+<li><a href="#Class_station">Class station </a></li>
 </ul>
 
 
@@ -44,7 +43,7 @@
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
   <li><a href="../modules/byteorder.html">byteorder</a></li>
   <li><a href="../modules/class.html">class</a></li>
-  <li><strong>completion</strong></li>
+  <li><a href="../modules/completion.html">completion</a></li>
   <li><a href="../modules/cpu.html">cpu</a></li>
   <li><a href="../modules/crypto.html">crypto</a></li>
   <li><a href="../modules/darken.html">darken</a></li>
@@ -84,7 +83,7 @@
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
   <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
-  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><strong>netlink.nl80211.station</strong></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
@@ -127,161 +126,177 @@
 
 <div id="content">
 
-<h1>Module <code>completion</code></h1>
-<p>Lua bindings for kernel completion mechanisms.</p>
-<p> This library allows Lua scripts to create, signal, and wait on
- kernel completion objects.</p>
-
-<p> Task completion is a synchronization mechanism used to coordinate the
- execution of multiple threads. It allows threads to wait for a specific
- event to occur before proceeding, ensuring certain tasks are complete.</p>
-
-
-<h2><a href="#Class_completion">Class completion </a></h2>
-<table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#completion:complete">completion:complete ()</a></td>
-	<td class="summary">Signals a completion.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#completion:wait">completion:wait ([timeout])</a></td>
-	<td class="summary">Waits for a completion to be signaled.</td>
-	</tr>
-</table>
-<h2><a href="#completion">completion</a></h2>
-<table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#new">new ()</a></td>
-	<td class="summary">Creates a new kernel completion object.</td>
-	</tr>
-</table>
-
-<br/>
-<br/>
-
-
-    <h2 class="section-header has-description"><a name="Class_completion"></a>Class completion </h2>
-
-          <div class="section-description">
-          Represents a kernel completion object.
- This is a userdata object returned by <code>completion.new()</code>, wrapping a
- <code>struct completion</code> used to wait for and signal an event.
-          </div>
-    <dl class="function">
-    <dt>
-    <a name = "completion:complete"></a>
-    <strong>completion:complete ()</strong>
-    </dt>
-    <dd>
-    Signals a completion.
- This wakes up one task waiting on this completion object.
- Corresponds to the kernel's <code>complete()</code> function.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">nil</span></span>
-
-
-
-    </ol>
-
-
+<h1>Module <code>netlink.nl80211.station</code></h1>
+<p>Station management.</p>
+<p> An <a href="../modules/netlink.nl80211.html">nl80211</a> object over the <code>&quot;nl80211&quot;</code> generic netlink
+ family: create an instance with <code>netlink.nl80211.station()</code> then add, delete,
+ authorize and list the stations of an AP interface; the underlying socket is
+ closed by <code>close()</code> (or the to-be-closed <code>__close</code>). All methods block and
+ require a sleepable runtime.</p>
     <h3>See also:</h3>
     <ul>
-         <a href="../modules/completion.html#new">completion.new</a>
+         <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a>
     </ul>
 
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="comment">-- Assuming 'c' is a completion object returned by completion.new()
-</span>c:<span class="function-name">complete</span>()</pre>
-    </ul>
 
-</dd>
+<h2><a href="#Class_station">Class station </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#station:add">station:add (opts)</a></td>
+	<td class="summary">Adds a station to an AP interface.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#station:del">station:del (opts)</a></td>
+	<td class="summary">Removes a station from an AP interface.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#station:list">station:list (ifindex)</a></td>
+	<td class="summary">Lists the stations of an AP interface.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#station:new">station:new ([o])</a></td>
+	<td class="summary">Creates a new station object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#station:set">station:set (opts)</a></td>
+	<td class="summary">Sets a station's authorized state, opening or closing its controlled port.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Class_station"></a>Class station </h2>
+
+    <dl class="function">
     <dt>
-    <a name = "completion:wait"></a>
-    <strong>completion:wait ([timeout])</strong>
+    <a name = "station:add"></a>
+    <strong>station:add (opts)</strong>
     </dt>
     <dd>
-    Waits for a completion to be signaled.
- This function will block the current Lua runtime until the completion
- is signaled, an optional timeout occurs, or the wait is interrupted.
- The Lunatik runtime invoking this method must be sleepable.
- Corresponds to the kernel's <code>wait_for_completion_interruptible_timeout()</code>.
+    Adds a station to an AP interface.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">timeout</span>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         station parameters: <code>ifindex</code>, <code>mac</code>, <code>aid</code>,
+   <code>listen_interval</code> and <code>supported_rates</code> (raw rate bytes).
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    on a netlink error.
+
+
+
+</dd>
+    <dt>
+    <a name = "station:del"></a>
+    <strong>station:del (opts)</strong>
+    </dt>
+    <dd>
+    Removes a station from an AP interface.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         station parameters: <code>ifindex</code> and <code>mac</code>.
+        </li>
+    </ul>
+
+
+    <h3>Raises:</h3>
+    on a netlink error.
+
+
+
+</dd>
+    <dt>
+    <a name = "station:list"></a>
+    <strong>station:list (ifindex)</strong>
+    </dt>
+    <dd>
+    Lists the stations of an AP interface.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">ifindex</span>
             <span class="types"><span class="type">integer</span></span>
-         Optional timeout in milliseconds. If omitted or set to <code>MAX_SCHEDULE_TIMEOUT</code> (a large kernel-defined constant), waits indefinitely.
+         the AP interface index.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        list of <code>{mac}</code> tables.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "station:new"></a>
+    <strong>station:new ([o])</strong>
+    </dt>
+    <dd>
+    Creates a new station object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">o</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         an initial object table.
          (<em>optional</em>)
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
-        <li>
-           <span class="types"><span class="type">boolean</span></span>
-        <code>true</code> if the completion was signaled successfully before timeout or interruption.</li>
-        <li>
-           <span class="types"><span class="type">nil,string</span></span>
-         <code>nil</code> and an error message if the wait did not complete successfully. The message will be one of:
-   - <code>&quot;timeout&quot;</code>: The specified timeout elapsed.
-   - <code>&quot;interrupt&quot;</code>: The waiting task was interrupted by a signal (e.g., <code>thread.stop()</code>).
-   If the wait fails for other kernel internal reasons, the C code might push <code>&quot;unknown&quot;</code>, though typical documented returns are for timeout and interrupt.
-   - <code>&quot;unknown&quot;</code>: An unexpected error occurred during the wait.</li>
+
+           <span class="types"><a class="type" href="../modules/netlink.nl80211.station.html#station">station</a></span>
+        the new station object.
     </ol>
 
 
     <h3>See also:</h3>
     <ul>
-         <a href="../modules/completion.html#new">completion.new</a>
+         <a href="../modules/class.html#">class</a>
     </ul>
 
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="comment">-- Assuming 'c' is a completion object
-</span><span class="keyword">local</span> success, err_msg = c:<span class="function-name">wait</span>(<span class="number">1000</span>) <span class="comment">-- Wait for up to 1 second
-</span><span class="keyword">if</span> success <span class="keyword">then</span>
-  <span class="global">print</span>(<span class="string">"Completion received!"</span>)
-<span class="keyword">else</span>
-  <span class="global">print</span>(<span class="string">"Wait failed: "</span> .. err_msg)
-<span class="keyword">end</span></pre>
-    </ul>
 
 </dd>
-</dl>
-    <h2 class="section-header "><a name="completion"></a>completion</h2>
-
-    <dl class="function">
     <dt>
-    <a name = "new"></a>
-    <strong>new ()</strong>
+    <a name = "station:set"></a>
+    <strong>station:set (opts)</strong>
     </dt>
     <dd>
-    Creates a new kernel completion object.
- Initializes a <code>struct completion</code> and returns it wrapped as a Lua userdata
- object of type <a href="../modules/completion.html#">completion</a>.
+    Sets a station's authorized state, opening or closing its controlled port.
 
 
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/completion.html#completion">completion</a></span>
-        A new completion object.
-    </ol>
-
-
-
-    <h3>Usage:</h3>
+    <h3>Parameters:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> c = completion.<span class="function-name">new</span>()</pre>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         station parameters: <code>ifindex</code>, <code>mac</code> and <code>authorized</code>.
+        </li>
     </ul>
+
+
+    <h3>Raises:</h3>
+    on a netlink error.
+
+
 
 </dd>
 </dl>
