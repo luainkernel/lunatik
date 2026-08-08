@@ -80,7 +80,7 @@ static void lunatik_releaseruntime(void *private)
 	lua_close(L);
 }
 
-int lunatik_stop(lunatik_object_t *runtime)
+static void lunatik_closeruntime(lunatik_object_t *runtime)
 {
 	void *private;
 
@@ -89,7 +89,13 @@ int lunatik_stop(lunatik_object_t *runtime)
 	runtime->private = NULL;
 	lunatik_unlock(runtime);
 
-	lunatik_releaseruntime(private);
+	if (private != NULL)
+		lunatik_releaseruntime(private);
+}
+
+int lunatik_stop(lunatik_object_t *runtime)
+{
+	lunatik_closeruntime(runtime);
 	return lunatik_putobject(runtime);
 }
 EXPORT_SYMBOL(lunatik_stop);
@@ -166,15 +172,18 @@ static int lunatik_lresume(lua_State *L)
 */
 static int lunatik_cpu(lua_State *L)
 {
-	if (lunatik_ispercpu(L))
+	if (lunatik_isinstance(L))
 		lua_pushinteger(L, lunatik_getcpu(L));
 	else
 		lua_pushnil(L);
 	return 1;
 }
 
+static int lunatik_lpercpu(lua_State *L);
+
 static const luaL_Reg lunatik_lib[] = {
 	{"runtime", lunatik_lruntime},
+	{"percpu", lunatik_lpercpu},
 	{"cpu", lunatik_cpu},
 	{NULL, NULL}
 };
@@ -294,6 +303,14 @@ int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt
 }
 EXPORT_SYMBOL(lunatik_runtime);
 
+static inline lunatik_opt_t lunatik_checkcontext(lua_State *L, int ix)
+{
+	static const char *const contexts[] = {"process", "softirq", "hardirq", NULL};
+	static const lunatik_opt_t opts[] = {LUNATIK_OPT_NONE, LUNATIK_OPT_SOFTIRQ, LUNATIK_OPT_HARDIRQ};
+
+	return opts[luaL_checkoption(L, ix, "process", contexts)];
+}
+
 /***
 * Creates a new Lunatik runtime executing the given script.
 * @function runtime
@@ -312,12 +329,9 @@ EXPORT_SYMBOL(lunatik_runtime);
 */
 static int lunatik_lruntime(lua_State *L)
 {
-	static const char *const contexts[] = {"process", "softirq", "hardirq", NULL};
-	static const lunatik_opt_t opts[] = {LUNATIK_OPT_NONE, LUNATIK_OPT_SOFTIRQ, LUNATIK_OPT_HARDIRQ};
 	const char *script = luaL_checkstring(L, 1);
-	int context = luaL_checkoption(L, 2, "process", contexts);
+	lunatik_opt_t opt = lunatik_checkcontext(L, 2);
 	int cpu = luaL_optinteger(L, 3, LUNATIK_CPU_NONE);
-	lunatik_opt_t opt = opts[context];
 
 	luaL_argcheck(L, cpu >= LUNATIK_CPU_NONE && cpu < (int)nr_cpu_ids, 3, "invalid cpu");
 
@@ -328,7 +342,95 @@ static int lunatik_lruntime(lua_State *L)
 	return 1;
 }
 
-static const lunatik_class_t *lunatik_classes[] = { &lunatik_class, NULL };
+/***
+* Set of runtimes, one per CPU id, running the same script. A callback dispatched
+* through it reaches the instance of the CPU it fired on.
+* @type percpu
+*/
+static void lunatik_releasepercpu(void *private)
+{
+	lunatik_percpu_t *percpu = (lunatik_percpu_t *)private;
+	int cpu;
+
+	if (percpu->runtime == NULL)
+		return;
+
+	for_each_possible_cpu(cpu) {
+		lunatik_object_t *runtime = *per_cpu_ptr(percpu->runtime, cpu);
+		if (runtime != NULL)
+			lunatik_stop(runtime);
+	}
+	free_percpu(percpu->runtime);
+	percpu->runtime = NULL;
+}
+
+/***
+* Closes every instance, releasing their Lua states.
+* @function stop
+*/
+static int lunatik_stoppercpu(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	lunatik_percpu_t *percpu = (lunatik_percpu_t *)object->private;
+	int cpu;
+
+	for_each_possible_cpu(cpu) {
+		lunatik_object_t *runtime = *per_cpu_ptr(percpu->runtime, cpu);
+		if (runtime != NULL)
+			lunatik_closeruntime(runtime);
+	}
+	return 0;
+}
+
+static const luaL_Reg lunatik_percpu_mt[] = {
+	{"__gc", lunatik_deleteobject},
+	{"__close", lunatik_stoppercpu},
+	{"stop", lunatik_stoppercpu},
+	{NULL, NULL}
+};
+
+static const lunatik_class_t lunatik_percpu_class = {
+	.name = "percpu",
+	.methods = lunatik_percpu_mt,
+	.release = lunatik_releasepercpu,
+	.opener = luaopen_lunatik,
+	.opt = LUNATIK_OPT_PERCPU,
+};
+
+/***
+* Creates one runtime per CPU id, each loading the given script.
+* The instances are dispatched by CPU: see `lunatik.cpu` and `runner.run`.
+* @function percpu
+* @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
+* @tparam[opt="process"] string context execution context, as in `lunatik.runtime`
+* @treturn percpu
+* @raise if allocation fails or the script errors on load, after releasing the instances
+*   already created
+* @within lunatik
+*/
+static int lunatik_lpercpu(lua_State *L)
+{
+	const char *script = luaL_checkstring(L, 1);
+	lunatik_opt_t opt = lunatik_checkcontext(L, 2);
+	int cpu;
+
+	lunatik_object_t *object = lunatik_newobject(L, &lunatik_percpu_class, sizeof(lunatik_percpu_t),
+		LUNATIK_OPT_NONE);
+	lunatik_percpu_t *percpu = (lunatik_percpu_t *)object->private;
+
+	if ((percpu->runtime = alloc_percpu(lunatik_object_t *)) == NULL)
+		lunatik_enomem(L);
+
+	for_each_possible_cpu(cpu) {
+		if (lunatik_newruntime(per_cpu_ptr(percpu->runtime, cpu), L, script, opt, cpu) != 0) {
+			lunatik_releasepercpu(percpu); /* stop the instances now, not on collection */
+			lua_error(L);
+		}
+	}
+	return 1;
+}
+
+static const lunatik_class_t *lunatik_classes[] = { &lunatik_class, &lunatik_percpu_class, NULL };
 
 LUNATIK_NEWLIB(lunatik, lunatik_lib, lunatik_classes);
 LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL);
