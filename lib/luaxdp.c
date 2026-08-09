@@ -261,6 +261,7 @@ static int luaxdp_attach(lua_State *L)
 {
 	lunatik_checkruntime(L, LUNATIK_OPT_SOFTIRQ);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
+	luaxdp_detach(L); /* re-attaching replaces the previous callback */
 
 	lunatik_object_t *object = lunatik_newobject(L, &luaxdp_class, sizeof(luaxdp_ctx_t), LUNATIK_OPT_NONE);
 	luaxdp_ctx_t *ctx = (luaxdp_ctx_t *)object->private;
