@@ -23,6 +23,7 @@ cleanup() {
 	[ "$HWSIM_LOADED" = 1 ] && rmmod mac80211_hwsim 2>/dev/null
 }
 trap cleanup EXIT
+cleanup
 
 ktap_header
 ktap_plan 4
