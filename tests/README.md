@@ -281,9 +281,11 @@ whose peer sits in a network namespace, with the neighbor entries pinned so
 ARP never competes with ICMP for the verdict; skipped when the module lacks
 BTF, or `bpftool` or `clang` is unavailable.
 
-- **xdp pass**: `pass.lua` verifies the callback receives a valid `xdp_ctx`
-  and `action.PASS` lets the ping reach its destination.
+- **xdp pass**: the callback inspects `ctx:packet()` (IPv4 ethertype and the
+  ICMP protocol byte of the ping) and `ctx:argument()` (a magic passed by the
+  eBPF program), and `action.PASS` lets the packet reach its destination; the
+  runtime is plain, covering the plain-name kfunc lookup.
 
-- **xdp drop**: same setup with `drop.lua`, verifying that setting
-  `action.DROP` blocks the packet instead.
+- **xdp drop**: `action.DROP` blocks the ping; the runtime is percpu,
+  covering the per-CPU kfunc lookup.
 
