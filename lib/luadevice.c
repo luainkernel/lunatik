@@ -429,5 +429,5 @@ static void __exit luadevice_exit(void)
 module_init(luadevice_init);
 module_exit(luadevice_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 
