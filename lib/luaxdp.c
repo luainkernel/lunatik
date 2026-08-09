@@ -302,10 +302,7 @@ static const lunatik_class_t *luaxdp_classes[] = { NULL };
 #endif
 LUNATIK_NEWLIB(xdp, luaxdp_lib, luaxdp_classes);
 
-static int __init luaxdp_init(void)
-{
-	LUNATIK_EBPF_KFUNC_INIT(xdp, BPF_PROG_TYPE_XDP);
-}
+LUNATIK_EBPF_KFUNC_INIT(xdp, BPF_PROG_TYPE_XDP);
 
 static void __exit luaxdp_exit(void)
 {

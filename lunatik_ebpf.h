@@ -82,9 +82,16 @@ static inline void *lunatik_ebpf_getctx(lua_State *L, char *env_key)
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 #define LUNATIK_EBPF_KFUNC_INIT(subsys, prog_type) \
-	return register_btf_kfunc_id_set(prog_type, &bpf_lua##subsys##_kfunc_set);
+static int __init lua##subsys##_init(void) \
+{ \
+	return register_btf_kfunc_id_set(prog_type, &bpf_lua##subsys##_kfunc_set); \
+}
 #else
-#define LUNATIK_EBPF_KFUNC_INIT(subsys, prog_type) return 0;
+#define LUNATIK_EBPF_KFUNC_INIT(subsys, prog_type) \
+static int __init lua##subsys##_init(void) \
+{ \
+	return 0; \
+}
 #endif
 
 #endif
