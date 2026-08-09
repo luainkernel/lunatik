@@ -218,6 +218,9 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
 * skip, do not fail, when the kernel lacks a required config;
 * mark `dmesg` before the run, read only what came after, and `check_dmesg` at the end;
 * clean up in a `trap`, and run the cleanup once up front as well;
+* a test does not depend on what else runs on the host: when a host process — a network manager, say
+  — can race it by acting on a resource the test created, make the test robust to any such process,
+  not wired to silence one by name, which does not carry to another distro or to CI;
 * coverage means the matrix of operation by type by outcome, including the successes, not a list of
   features and not only the error paths;
 * prove the test discriminates: disable the mechanism it covers, watch it fail, restore. Commit
@@ -261,6 +264,9 @@ the body.
 * Restoring something that was removed puts it back exactly where and how it was.
 * Subject line says what changed and why, not how. A body only when there is something the diff does
   not say: a new API, a behaviour change, a non obvious rationale. No bullet list of every detail.
+* A root cause named in a commit body or a pull request rests on a captured stack or a source-traced
+  chain, not a correlated log line or a plausible mechanism. Until it is traced it is a hypothesis,
+  labelled as one; a fix may land on the observed behaviour without naming a cause it has not proven.
 * Corrections to a commit on your own branch are `git commit --fixup=<hash>`, not a standalone
   "address review comments" commit. Never fixup a commit that is already on `master`; that becomes a
   new commit on a new branch.
