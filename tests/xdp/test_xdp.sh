@@ -39,9 +39,12 @@ cleanup()
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
 	rm -f "${PIN}_PASS"
 	rm -f "${PIN}_DROP"
+	lunatik stop tests/xdp/pass > /dev/null 2>&1
+	lunatik stop tests/xdp/drop > /dev/null 2>&1
 }
 
 trap cleanup EXIT
+cleanup
 
 make -C "$DIR" || { ktap_fail "failed to build XDP program"; ktap_totals; exit 1; }
 
@@ -65,6 +68,7 @@ run_case()
 
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
 	rm -f "$pin"
+	lunatik stop "tests/xdp/${script%.lua}" > /dev/null 2>&1
 
 	dmesg_since | grep -qF "$label test pass" || { ktap_fail "$label: verdict callback did not run"; return 1; }
 
