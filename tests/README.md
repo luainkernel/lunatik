@@ -301,3 +301,7 @@ BTF, or `bpftool` or `clang` is unavailable.
 - **xdp drop**: `action.DROP` blocks the ping; the runtime is percpu,
   covering the per-CPU kfunc lookup.
 
+- **xdp detach**: the callback drops the first ping and calls `xdp.detach()`
+  from inside the callback; traffic resumes because `bpf_luaxdp_run` then
+  returns `-1` and the eBPF program falls back to `XDP_PASS`.
+
