@@ -15,7 +15,9 @@ IFACE="docker0"
 PIN="/sys/fs/bpf/xdp"
 TARGET=$(ip -4 addr show "$IFACE" | awk '/inet / {sub(/\/.*/, "", $2); print $2}')
 
-source "$(dirname "$(readlink -f "$0")")/../lib.sh"
+DIR="$(dirname "$(readlink -f "$0")")"
+
+source "$DIR/../lib.sh"
 
 ktap_header
 ktap_plan 1
@@ -41,7 +43,7 @@ cleanup()
 
 trap cleanup EXIT
 
-make -C tests/xdp || { ktap_fail "failed to build XDP program"; ktap_totals; exit 1; }
+make -C "$DIR" || { ktap_fail "failed to build XDP program"; ktap_totals; exit 1; }
 
 ktap_plan 2
 
@@ -49,7 +51,7 @@ run_case()
 {
 	local obj="$1" pin="$2" script="$3" expect_reachable="$4" label="$5"
 
-	bpftool prog load "tests/xdp/$obj" "$pin" type xdp ||
+	bpftool prog load "$DIR/$obj" "$pin" type xdp ||
 		{ ktap_fail "$label: failed to load XDP program"; return 1; }
 	bpftool net attach xdp pinned "$pin" dev "$IFACE" ||
 		{ ktap_fail "$label: failed to attach XDP program"; bpftool prog unpin "$pin"; return 1; }
