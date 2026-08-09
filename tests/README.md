@@ -275,13 +275,14 @@ Regression tests for `luathread`.
 
 ### xdp
 
-Regression tests for `luaxdp`.
+Regression tests for `luaxdp`. The suite builds real XDP programs that call
+`bpf_luaxdp_run`, pins them via `bpftool` and attaches them to a veth pair
+whose peer sits in a network namespace, with the neighbor entries pinned so
+ARP never competes with ICMP for the verdict; skipped when the module lacks
+BTF, or `bpftool` or `clang` is unavailable.
 
-- **xdp pass**: loads and pins a real XDP program on `docker0` via `bpftool`,
-  attaches `pass.lua` with `xdp.attach()`, and drives a ping through
-  it, verifying the callback receives a valid `xdp_ctx` (`packet()` and
-  `argument()` both non-nil) and that setting `action.PASS` lets the packet
-  reach its destination.
+- **xdp pass**: `pass.lua` verifies the callback receives a valid `xdp_ctx`
+  and `action.PASS` lets the ping reach its destination.
 
 - **xdp drop**: same setup with `drop.lua`, verifying that setting
   `action.DROP` blocks the packet instead.

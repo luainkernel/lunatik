@@ -60,6 +60,12 @@ ip link set "$IFACE" up
 ip netns exec "$NETNS" ip addr add 10.199.0.2/24 dev "$PEER"
 ip netns exec "$NETNS" ip link set "$PEER" up
 
+# pin the neighbor entries so ARP never competes with ICMP for the verdict
+MAC=$(cat /sys/class/net/$IFACE/address)
+PEER_MAC=$(ip netns exec "$NETNS" cat /sys/class/net/$PEER/address)
+ip neigh replace 10.199.0.2 lladdr "$PEER_MAC" dev "$IFACE" nud permanent
+ip netns exec "$NETNS" ip neigh replace "$TARGET" lladdr "$MAC" dev "$PEER" nud permanent
+
 run_case()
 {
 	local obj="$1" pin="$2" script="$3" expect_reachable="$4" label="$5"
