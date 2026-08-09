@@ -94,10 +94,10 @@ static int luaxdp_action(lua_State *L)
 }
 
 static const luaL_Reg luaxdp_mt[] = {
-	{"__gc",		lunatik_deleteobject},
-	{"packet",		luaxdp_packet},
-	{"argument",	luaxdp_argument},
-	{"action",		luaxdp_action},
+	{"__gc", lunatik_deleteobject},
+	{"packet", luaxdp_packet},
+	{"argument", luaxdp_argument},
+	{"action", luaxdp_action},
 	{NULL, NULL}
 };
 
