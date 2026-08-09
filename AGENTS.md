@@ -254,6 +254,8 @@ the body.
 * Change only what the task requires. Do not reformat untouched lines, do not move code, do not
   rename variables in passing. Compare `git diff` against `git diff -w` before committing to catch
   stray whitespace.
+* No dead or unnecessary code. A branch that cannot execute — a nil check on a call that raises
+  instead of returning nil — is noise that misstates the API's contract.
 * No cosmetic changes inside a feature or fix commit, not even a blank line.
 * Never remove an existing comment unless the change made it factually wrong.
 * Restoring something that was removed puts it back exactly where and how it was.
