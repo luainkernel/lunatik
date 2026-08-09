@@ -147,19 +147,22 @@ local function is_integer_expr(value)
 	return not value:gsub("0[xX][%x]+[uUlL]*", ""):match("[a-z]")
 end
 
---- Extract candidate names from a spec's preprocessed dump file.
--- Two sources: #define lines with integer values, and identifiers appearing
--- inside `enum { ... }` bodies (enum values are always integer constants).
--- `spec.exclude`, if set, drops names starting with the given longer
--- prefix (string) or any of the given prefixes (table). Useful when a
--- shorter prefix shadows a nested spec (e.g. `NF_BR_` also matches
--- `NF_BR_PRI_*`) or to drop non-syscall aliases like `__NR_syscalls`.
--- `spec.include`, if set, keeps only names whose suffix (after the
--- prefix) matches one of the listed items -- useful when a spec should
--- emit only a curated subset of a broad prefix.
--- @tparam table spec
--- @treturn {string,...} names matching `spec.prefix`, sorted
-function enumerate.candidates(spec)
+-- The names an explicit `include` list resolves to: each curated suffix,
+-- prefixed, sorted. Authoritative -- emitted verbatim for the C compiler to
+-- validate, so a curated spec may name function-like-macro constants (e.g.
+-- `WLAN_CIPHER_SUITE_* = SUITE(...)`) that `is_integer_expr` rejects; an
+-- unknown name is then a build error, not a silent drop.
+local function curated(spec)
+	local names = {}
+	for _, suffix in ipairs(spec.include) do table.insert(names, spec.prefix .. suffix) end
+	table.sort(names)
+	return names
+end
+
+-- The set of `spec.prefix`-matching names in the preprocessed dump: #define
+-- lines with integer values, and identifiers inside `enum { ... }` bodies
+-- (enum values are always integer constants).
+local function scanned(spec)
 	local text = util.slurp(("%s/%s.pp"):format(BASE, spec.dump.name))
 	local seen = {}
 
@@ -178,26 +181,36 @@ function enumerate.candidates(spec)
 		end
 	end
 
-	if spec.exclude then
-		local prefixes = type(spec.exclude) == "table" and spec.exclude or { spec.exclude }
-		for name in pairs(seen) do
-			for _, prefix in ipairs(prefixes) do
-				if name:sub(1, #prefix) == prefix then
-					seen[name] = nil
-					break
-				end
+	return seen
+end
+
+-- Drop from `seen` every name beginning with `prefixes` (a string or a list).
+-- Used when a shorter prefix shadows a nested spec (`NF_BR_` also matches
+-- `NF_BR_PRI_*`) or to drop non-syscall aliases like `__NR_syscalls`.
+local function reject(seen, prefixes)
+	local list = type(prefixes) == "table" and prefixes or { prefixes }
+	for name in pairs(seen) do
+		for _, prefix in ipairs(list) do
+			if name:sub(1, #prefix) == prefix then
+				seen[name] = nil
+				break
 			end
 		end
 	end
+end
 
+--- Candidate names for a spec, sorted. An explicit `include` list is
+-- authoritative; otherwise scan the preprocessed dump and honor `exclude`.
+-- @tparam table spec
+-- @treturn {string,...} names matching `spec.prefix`, sorted
+function enumerate.candidates(spec)
 	if spec.include then
-		local keep = {}
-		for _, suffix in ipairs(spec.include) do keep[spec.prefix .. suffix] = true end
-		for name in pairs(seen) do
-			if not keep[name] then seen[name] = nil end
-		end
+		return curated(spec)
 	end
-
+	local seen = scanned(spec)
+	if spec.exclude then
+		reject(seen, spec.exclude)
+	end
 	return util.sorted(seen)
 end
 
