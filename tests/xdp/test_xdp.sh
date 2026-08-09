@@ -21,7 +21,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 3
+ktap_plan 4
 
 skip_all()
 {
@@ -29,6 +29,7 @@ skip_all()
 	ktap_skip "xdp pass: verdict enforced, packet and argument content verified"
 	ktap_skip "xdp drop: verdict enforced correctly"
 	ktap_skip "xdp detach: callback stops firing and traffic resumes"
+	ktap_skip "xdp attach: refuses a sleepable runtime"
 	ktap_totals
 	exit 0
 }
@@ -45,6 +46,7 @@ cleanup()
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
 	lunatik stop tests/xdp/detach > /dev/null 2>&1
+	lunatik stop tests/xdp/attach_sleepable > /dev/null 2>&1
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
 }
@@ -131,6 +133,12 @@ run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass" \
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop" \
 	"xdp drop: verdict enforced correctly" softirq percpu
 detach_case
+
+mark_dmesg
+run_script "tests/xdp/attach_sleepable"
+check_dmesg || { ktap_totals; exit 1; }
+lunatik stop tests/xdp/attach_sleepable > /dev/null 2>&1
+ktap_pass "xdp attach: refuses a sleepable runtime"
 
 ktap_totals
 
