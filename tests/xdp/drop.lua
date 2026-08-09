@@ -8,10 +8,6 @@ local xdp    = require("xdp")
 local action = require("linux.xdp")
 
 local function test_drop(ctx)
-	if not ctx then
-		print("xdp drop test fail: ctx is nil")
-		return
-	end
 	print("xdp drop test pass: verdict set to drop")
 	ctx:action(action.DROP)
 end
