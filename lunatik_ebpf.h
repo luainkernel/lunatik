@@ -39,6 +39,7 @@ static inline lunatik_object_t *lunatik_ebpf_lookupruntime(lunatik_object_t **ru
 	return runtime;
 }
 
+/* on success the context userdata stays on the stack, ready to be passed to the callback */
 static inline void *lunatik_ebpf_getctx(lua_State *L, char *env_key)
 {
 	lunatik_object_t *obj;
