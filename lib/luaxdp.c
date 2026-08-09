@@ -164,6 +164,7 @@ out:
 __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)
 {
 	int action = -1;
+	int ret;
 
 	lunatik_object_t *runtime = lunatik_ebpf_lookupruntime(&luaxdp_runtimes, &luaxdp_percpu,
 			key, key__sz, raw_smp_processor_id());
@@ -176,7 +177,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 		.arg__sz = arg__sz,
 		.action  = &action,
 	};
-	int ret;
+
 	lunatik_run(runtime, luaxdp_handler, ret, &ctx);
 	lunatik_putobject(runtime);
 out:
