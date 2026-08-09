@@ -264,5 +264,5 @@ static void __exit luaxdp_exit(void)
 module_init(luaxdp_init);
 module_exit(luaxdp_exit);
 MODULE_LICENSE("Dual MIT/GPL");
-MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ring-0.io>");
+MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 
