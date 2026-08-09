@@ -21,13 +21,14 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 2
+ktap_plan 3
 
 skip_all()
 {
 	echo "# SKIP: $1"
 	ktap_skip "xdp pass: verdict enforced, packet and argument content verified"
 	ktap_skip "xdp drop: verdict enforced correctly"
+	ktap_skip "xdp detach: callback stops firing and traffic resumes"
 	ktap_totals
 	exit 0
 }
@@ -40,9 +41,10 @@ command -v clang > /dev/null 2>&1 || skip_all "clang not available"
 cleanup()
 {
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
-	rm -f "${PIN}_pass" "${PIN}_drop"
+	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_detach"
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
+	lunatik stop tests/xdp/detach > /dev/null 2>&1
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
 }
@@ -100,10 +102,35 @@ run_case()
 	ktap_pass "$title"
 }
 
+detach_case()
+{
+	bpftool prog load "$DIR/xdp_detach.bpf.o" "${PIN}_detach" type xdp ||
+		{ ktap_fail "xdp detach: failed to load XDP program"; return 1; }
+	bpftool net attach xdp pinned "${PIN}_detach" dev "$IFACE" ||
+		{ ktap_fail "xdp detach: failed to attach XDP program"; bpftool prog unpin "${PIN}_detach"; return 1; }
+
+	mark_dmesg
+	run_script "tests/xdp/detach" softirq
+	check_dmesg || { ktap_fail "xdp detach: script raised an error"; return 1; }
+
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1 &&
+		{ ktap_fail "xdp detach: the first ping should have been dropped"; return 1; }
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1 ||
+		{ ktap_fail "xdp detach: traffic did not resume after detach"; return 1; }
+
+	bpftool net detach xdp dev "$IFACE" 2>/dev/null
+	rm -f "${PIN}_detach"
+	lunatik stop tests/xdp/detach > /dev/null 2>&1
+
+	dmesg_since | grep -qF "xdp detach test pass" || { ktap_fail "xdp detach: callback did not run"; return 1; }
+	ktap_pass "xdp detach: callback stops firing and traffic resumes"
+}
+
 run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass" \
 	"xdp pass: verdict enforced, packet and argument content verified" softirq
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop" \
 	"xdp drop: verdict enforced correctly" softirq percpu
+detach_case
 
 ktap_totals
 
