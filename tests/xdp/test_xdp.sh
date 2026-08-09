@@ -1,14 +1,12 @@
 #!/bin/bash
-
 #
 # SPDX-FileCopyrightText: (c) 2026 Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-
 # Tests the XDP dispatch path by loading an XDP program with bpftool,
 # attaching it to an interface, and running a Lunatik XDP script.
 #
-# Usage: sudo bash tests/xdp/run.sh
+# Usage: sudo bash tests/xdp/test_xdp.sh
 
 MODULE="luaxdp"
 IFACE="docker0"
