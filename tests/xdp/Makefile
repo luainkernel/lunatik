@@ -13,5 +13,5 @@ xdp_drop.bpf.o: xdp_drop.bpf.c vmlinux.h
 	clang -target bpf -Wall -O2 -c -g $<
 
 clean:
-	rm -f vmlinux.h xdp.bpf.o
+	rm -f vmlinux.h xdp_pass.bpf.o xdp_drop.bpf.o
 
