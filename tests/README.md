@@ -149,6 +149,9 @@ higher-level `netlink.*` modules built on top of it.
   adds a station and asserts it appears in `list()`, a duplicate add raises,
   `set{authorized = true}` is accepted (the `STA_FLAGS2` path), and `del()`
   removes it (skips without `mac80211_hwsim`).
+- **nl80211_key**: over a beaconing AP, `netlink.nl80211.key():add()` installs a
+  group key (GTK) as hostapd does after START_AP, asserts an out-of-range key
+  index raises, and `del()` removes it (skips without `mac80211_hwsim`).
 
 ### notifier
 
