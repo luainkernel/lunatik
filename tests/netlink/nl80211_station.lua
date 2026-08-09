@@ -61,7 +61,3 @@ station:del{ifindex = ifindex, mac = STA}
 assert(not present(), "station still listed after del")
 print("netlink nl80211_station: deleted")
 
-ap:stop{ifindex = ifindex}
-netlink.rt.link():set{ifindex = ifindex, up = false}
-netlink.nl80211.interface():del{ifindex = ifindex}
-
