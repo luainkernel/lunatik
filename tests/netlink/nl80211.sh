@@ -17,7 +17,7 @@ MODULE="luasocket"
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 HWSIM_LOADED=0
-cleanup() { [ "$HWSIM_LOADED" = 1 ] && rmmod mac80211_hwsim 2>/dev/null; }
+cleanup() { lunatik stop "$SCRIPT" 2>/dev/null; [ "$HWSIM_LOADED" = 1 ] && rmmod mac80211_hwsim 2>/dev/null; }
 trap cleanup EXIT
 
 ktap_header

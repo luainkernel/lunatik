@@ -18,6 +18,7 @@ source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 HWSIM_LOADED=0
 cleanup() {
+	lunatik stop "$SCRIPT" 2>/dev/null
 	ip link del "$IFNAME" 2>/dev/null
 	[ "$HWSIM_LOADED" = 1 ] && rmmod mac80211_hwsim 2>/dev/null
 }
