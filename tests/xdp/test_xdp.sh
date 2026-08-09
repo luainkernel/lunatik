@@ -39,8 +39,7 @@ command -v clang > /dev/null 2>&1 || skip_all "clang not available"
 cleanup()
 {
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
-	rm -f "${PIN}_PASS"
-	rm -f "${PIN}_DROP"
+	rm -f "${PIN}_pass" "${PIN}_drop"
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
 }
@@ -82,7 +81,7 @@ run_case()
 	ktap_pass "$label: verdict enforced correctly"
 }
 
-run_case xdp_pass.bpf.o "${PIN}_PASS" pass.lua yes "xdp pass"
+run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass"
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop"
 
 ktap_totals
