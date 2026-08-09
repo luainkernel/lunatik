@@ -20,19 +20,21 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 1
+ktap_plan 2
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
+skip_all()
+{
+	echo "# SKIP: $1"
+	ktap_skip "xdp pass: verdict enforced correctly"
+	ktap_skip "xdp drop: verdict enforced correctly"
 	ktap_totals
 	exit 0
 }
 
-command -v bpftool > /dev/null 2>&1 || {
-	echo "# SKIP: bpftool not available"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_all "$MODULE not loaded"
+[ -f /sys/kernel/btf/$MODULE ] || skip_all "$MODULE built without BTF (make btf_install, rebuild)"
+command -v bpftool > /dev/null 2>&1 || skip_all "bpftool not available"
+command -v clang > /dev/null 2>&1 || skip_all "clang not available"
 
 cleanup()
 {
@@ -47,8 +49,6 @@ trap cleanup EXIT
 cleanup
 
 make -C "$DIR" || { ktap_fail "failed to build XDP program"; ktap_totals; exit 1; }
-
-ktap_plan 2
 
 run_case()
 {
