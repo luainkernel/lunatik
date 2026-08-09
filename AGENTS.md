@@ -268,6 +268,11 @@ the body.
   first.
 * After squashing, re read the comments and commit bodies so they describe the final state rather than
   the path taken.
+* Naming an existing literal is done by visiting every call site of what carries it: sweep for the
+  function's callers or the field's users, not for the literal, which misses positional arguments.
+* A force-push that restructures a branch is not done until the pull request title and body are
+  re-read against it. They describe the branch; a rewrite that drops or replaces a mechanism turns
+  them into fiction the reviewer reads first.
 * Do not commit directly to `master`.
 * Copyright years: a new file carries the current year; a modified file extends its range to include
   it.
