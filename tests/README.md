@@ -293,3 +293,6 @@ BTF, or `bpftool` or `clang` is unavailable.
   from inside the callback; traffic resumes because `bpf_luaxdp_run` then
   returns `-1` and the eBPF program falls back to `XDP_PASS`.
 
+- **xdp attach**: `xdp.attach` refuses a sleepable runtime with "runtime
+  context mismatch".
+
