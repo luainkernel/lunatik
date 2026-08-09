@@ -3,15 +3,18 @@
 # SPDX-FileCopyrightText: (c) 2026 Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Tests the XDP dispatch path by loading an XDP program with bpftool,
-# attaching it to an interface, and running a Lunatik XDP script.
+# Tests the XDP dispatch path by loading an XDP program with bpftool and
+# attaching it to a veth pair whose peer sits in a network namespace, so a
+# ping from the namespace traverses the hook regardless of the host setup.
 #
 # Usage: sudo bash tests/xdp/test_xdp.sh
 
 MODULE="luaxdp"
-IFACE="docker0"
+IFACE="lunatik0"
+PEER="lunatik1"
+NETNS="lunatik_xdp"
 PIN="/sys/fs/bpf/xdp"
-TARGET=$(ip -4 addr show "$IFACE" | awk '/inet / {sub(/\/.*/, "", $2); print $2}')
+TARGET="10.199.0.1"
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
@@ -40,12 +43,22 @@ cleanup()
 	rm -f "${PIN}_pass" "${PIN}_drop"
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
+	ip netns del "$NETNS" 2>/dev/null
+	ip link del "$IFACE" 2>/dev/null
 }
 
 trap cleanup EXIT
 cleanup
 
 make -C "$DIR" || { ktap_fail "failed to build XDP program"; ktap_totals; exit 1; }
+
+ip netns add "$NETNS"
+ip link add "$IFACE" type veth peer name "$PEER"
+ip link set "$PEER" netns "$NETNS"
+ip addr add "$TARGET/24" dev "$IFACE"
+ip link set "$IFACE" up
+ip netns exec "$NETNS" ip addr add 10.199.0.2/24 dev "$PEER"
+ip netns exec "$NETNS" ip link set "$PEER" up
 
 run_case()
 {
@@ -60,7 +73,7 @@ run_case()
 	run_script "tests/xdp/$script" softirq percpu
 	check_dmesg || { ktap_fail "$label: script raised an error"; return 1; }
 
-	docker run --rm alpine ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
 	local reached=$?
 
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
