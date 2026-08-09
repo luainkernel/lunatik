@@ -304,6 +304,10 @@ On the comments themselves:
 * A request for changes is not a place for praise. Padding buries the change being asked for.
 * Missing tests are a finding of their own, written as such, not a remark appended to another
   comment.
+* A review holds new code to the conventions this file records; it does not impose preferences
+  beyond them. Where the tree itself is inconsistent and a style seems worth settling, that is an
+  exclusive pull request — one that fixes the whole tree and records the convention here — never a
+  finding on someone's feature work.
 * The checklist above is the reviewer's too. A pull request that fails it is not ready, whatever the
   code looks like.
 
