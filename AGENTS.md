@@ -143,6 +143,9 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * Prefer a named `static inline` helper over an open coded repetition, and do not inline an existing
   named helper into its callers while refactoring; they exist for readability and symmetry.
 * When a two line pattern repeats in every method, collapse it into one helper or macro.
+* A secondary check that must always follow a `LUNATIK_PRIVATECHECKER` (a field that must be set,
+  the class identity of the object) goes in the macro's vararg body, in the mold of `luaskb_check`;
+  `L` and `ix` are in scope there. A hand written checker only when the macro's shape does not fit.
 * `/*** @section name */` separates logical sections in a merged C file and groups them in the docs.
 * Two short mutually exclusive calls read better as a ternary than a four line if/else; void arms are
   fine. This does not transpose to Lua (see Lua style).
@@ -208,7 +211,8 @@ Never `require("foo").method()`.
   documented on that function, in its own `@raise`, where the caller reads.
 * A doc block and the code it describes share vocabulary: an `@raise` states its condition in the
   same words as the error message it documents, and a rename in the code is a rename in the prose
-  above it.
+  above it. An error message that names an API element quotes its canonical name, `rcu.table` and
+  not a paraphrase of it; the name is looked up, never composed.
 
 ## Tests
 
@@ -254,6 +258,9 @@ the body.
 ## Patches and commits
 
 * Small, auditable, incremental commits. Each one stands alone and adds value.
+* A commit is one change and everything that change entails, even across modules: a new core check
+  adopted by four bindings is one commit. Independent fixes are separate commits, even when a single
+  review finding uncovered them all; the finding is the reviewer's unit, not the committer's.
 * Change only what the task requires. Do not reformat untouched lines, do not move code, do not
   rename variables in passing. Compare `git diff` against `git diff -w` before committing to catch
   stray whitespace.
@@ -317,6 +324,9 @@ On the comments themselves:
 * A request for changes is not a place for praise. Padding buries the change being asked for.
 * Missing tests are a finding of their own, written as such, not a remark appended to another
   comment.
+* The verdict states whether the pull request can merge as it stands: a finding that must be folded
+  is a request for changes, however small the fix. A comment review is for observations that do not
+  gate the merge.
 * A review holds new code to the conventions this file records; it does not impose preferences
   beyond them. Where the tree itself is inconsistent and a style seems worth settling, that is an
   exclusive pull request — one that fixes the whole tree and records the convention here — never a
