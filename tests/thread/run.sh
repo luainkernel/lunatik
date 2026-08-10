@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in "$DIR"/shouldstop.sh "$DIR"/run_during_load.sh; do
+for t in "$DIR"/shouldstop.sh "$DIR"/run_during_load.sh "$DIR"/foreign_object.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	SEP=$'\n'
 	bash "$t" || FAILED=$((FAILED+1))

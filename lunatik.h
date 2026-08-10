@@ -101,6 +101,7 @@ typedef struct lunatik_object_s {
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
+extern const lunatik_class_t lunatik_class;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
@@ -242,6 +243,8 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 
 #define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
 #define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_NULLPTR)
+#define lunatik_argcheckclass(L, ix, cls, tname)	\
+	luaL_argexpected((L), lunatik_toobject((L), (ix))->class == (cls), (ix), (tname))
 #define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
 #define lunatik_toobject(L, i)		(*(lunatik_object_t **)lua_touserdata((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)

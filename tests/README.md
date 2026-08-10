@@ -276,5 +276,8 @@ Regression tests for `luathread`.
   (non-kthread) context without crashing, and `true` in a `spawn`
   (kthread) context when stop is requested.
 
+- **foreign_object**: `thread.run()` refuses an object of another class
+  instead of using its private data as a Lua state.
+
 - **run_during_load**: `runner.spawn()` called from a script's top-level
   code must error instead of hanging the kernel.
