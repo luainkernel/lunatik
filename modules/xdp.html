@@ -33,6 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
+<li><a href="#Class_xdp_ctx">Class xdp_ctx </a></li>
 <li><a href="#xdp">xdp</a></li>
 </ul>
 
@@ -135,9 +136,24 @@
 
 <p> The primary mechanism involves an XDP program calling the <code>bpf_luaxdp_run</code>
  kfunc, which in turn invokes a Lua callback function previously registered
- using <code>xdp.attach()</code>.</p>
+ using <a href="../modules/xdp.html#attach">xdp.attach</a>.</p>
 
 
+<h2><a href="#Class_xdp_ctx">Class xdp_ctx </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#xdp_ctx:action">xdp_ctx:action (action)</a></td>
+	<td class="summary">Sets the XDP verdict action for this packet.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#xdp_ctx:argument">xdp_ctx:argument ()</a></td>
+	<td class="summary">Returns the argument data buffer passed from eBPF.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#xdp_ctx:packet">xdp_ctx:packet ()</a></td>
+	<td class="summary">Returns the packet data buffer for the current XDP context.</td>
+	</tr>
+</table>
 <h2><a href="#xdp">xdp</a></h2>
 <table class="function_list">
 	<tr>
@@ -154,6 +170,76 @@
 <br/>
 
 
+    <h2 class="section-header has-description"><a name="Class_xdp_ctx"></a>Class xdp_ctx </h2>
+
+          <div class="section-description">
+          XDP callback context, valid only while the callback runs.
+ It is handed to the callback registered with <a href="../modules/xdp.html#attach">xdp.attach</a>; its methods raise
+ once the callback returns.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "xdp_ctx:action"></a>
+    <strong>xdp_ctx:action (action)</strong>
+    </dt>
+    <dd>
+    Sets the XDP verdict action for this packet.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">action</span>
+            <span class="types"><span class="type">integer</span></span>
+         XDP action constant (e.g. <code>XDP_PASS</code>, <code>XDP_DROP</code>, ...)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "xdp_ctx:argument"></a>
+    <strong>xdp_ctx:argument ()</strong>
+    </dt>
+    <dd>
+    Returns the argument data buffer passed from eBPF.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">data</span></span>
+        argument buffer
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "xdp_ctx:packet"></a>
+    <strong>xdp_ctx:packet ()</strong>
+    </dt>
+    <dd>
+    Returns the packet data buffer for the current XDP context.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">data</span></span>
+        packet buffer
+    </ol>
+
+
+
+
+</dd>
+</dl>
     <h2 class="section-header "><a name="xdp"></a>xdp</h2>
 
     <dl class="function">
@@ -169,13 +255,13 @@
  The runtime invoking this function must be non-sleepable.</p>
 
 <p> The <code>bpf_luaxdp_run</code> kfunc is called from an eBPF program with the following signature:
- <code>int bpf_luaxdp_run(char *key, size_t key_sz, struct xdp_md *xdp_ctx, void *arg, size_t arg_sz)</code></p>
+ <code>int bpf_luaxdp_run(char *key, size_t key_sz, struct xdp_md *xdp_md, void *arg, size_t arg_sz)</code></p>
 
 <ul>
     <li><code>key</code>: A string identifying the Lunatik runtime (e.g., the script name like "examples/filter/sni").
     This key is used to look up the runtime in Lunatik's internal table of active runtimes.</li>
     <li><code>key_sz</code>: Length of the key string (including the null terminator).</li>
-    <li><code>xdp_ctx</code>: The XDP metadata context (<code>struct xdp_md *</code>).</li>
+    <li><code>xdp_md</code>: The XDP metadata context (<code>struct xdp_md *</code>).</li>
     <li><code>arg</code>: A pointer to arbitrary data passed from eBPF to Lua.</li>
     <li><code>arg_sz</code>: The size of the <code>arg</code> data.</li>
 </ul>
@@ -187,17 +273,13 @@
     <ul>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
-         Lua function to call. It receives two arguments:</p>
+         Lua function to call. It receives one argument:</p>
 
-<ol>
-    <li><code>buffer</code> (data): A <a href="../modules/data.html#">data</a> object representing the network packet buffer (<code>xdp_md</code>).
-    The <a href="../modules/data.html#">data</a> object points to <code>xdp_ctx-&gt;data</code> and its size is <code>xdp_ctx-&gt;data_end - xdp_ctx-&gt;data</code>.</li>
-    <li><code>argument</code> (data): A <a href="../modules/data.html#">data</a> object representing the <code>arg</code> passed from the eBPF program.
-    Its size is <code>arg_sz</code>.</li>
-</ol>
+<p>   <code>ctx</code>: An <a href="../modules/xdp.html#xdp_ctx">xdp_ctx</a> context object used to inspect the packet
+   and control the XDP verdict via <a href="../modules/xdp.html#xdp_ctx:action">xdp_ctx:action</a>.</p>
 
-<p>   The callback function should return an integer verdict, typically one of the values
-   from <a href="../modules/linux.xdp.html#">linux.xdp</a> (e.g., <code>action.PASS</code>, <code>action.DROP</code>).
+<p>   The callback need not return a value. If it sets no action, <code>bpf_luaxdp_run</code>
+   returns <code>-1</code> and the verdict is left to the eBPF program.
         </li>
     </ul>
 
@@ -220,13 +302,14 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="comment">-- Lua script (e.g., "my_xdp_handler.lua" which is run via <code>lunatik run my_xdp_handler.lua</code>)
+        <pre class="example"><span class="comment">-- Lua script (e.g., "my_xdp_handler.lua" which is run via <code>lunatik run my_xdp_handler.lua softirq</code>)
 </span><span class="keyword">local</span> xdp = <span class="global">require</span>(<span class="string">"xdp"</span>)
 <span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>)
 
-<span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">my_packet_processor</span>(packet_buffer, custom_arg)
-  <span class="global">print</span>(<span class="string">"Packet received, size:"</span>, #packet_buffer)
-  <span class="keyword">return</span> action.PASS
+<span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">my_packet_processor</span>(ctx)
+  <span class="keyword">local</span> pkt = ctx:<span class="function-name">packet</span>()
+  <span class="global">print</span>(<span class="string">"Packet received, size:"</span>, #pkt)
+  ctx:<span class="function-name">action</span>(action.PASS)
 <span class="keyword">end</span>
 xdp.<span class="function-name">attach</span>(my_packet_processor)
 
@@ -271,7 +354,7 @@ xdp.<span class="function-name">attach</span>(my_packet_processor)
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-08-10 13:31:59 </i>
+<i style="float:right;">Last updated 2026-08-10 14:27:14 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
