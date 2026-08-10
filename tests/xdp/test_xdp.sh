@@ -21,7 +21,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 4
+ktap_plan 5
 
 skip_all()
 {
@@ -30,6 +30,7 @@ skip_all()
 	ktap_skip "xdp drop: verdict enforced correctly"
 	ktap_skip "xdp detach: callback stops firing and traffic resumes"
 	ktap_skip "xdp attach: refuses a sleepable runtime"
+	ktap_skip "xdp zero-key: a zero-sized key is rejected without a crash"
 	ktap_totals
 	exit 0
 }
@@ -42,7 +43,7 @@ command -v clang > /dev/null 2>&1 || skip_all "clang not available"
 cleanup()
 {
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
-	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_detach"
+	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_detach" "${PIN}_zerokey"
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
 	lunatik stop tests/xdp/detach > /dev/null 2>&1
@@ -128,6 +129,27 @@ detach_case()
 	ktap_pass "xdp detach: callback stops firing and traffic resumes"
 }
 
+zerokey_case()
+{
+	bpftool prog load "$DIR/xdp_zerokey.bpf.o" "${PIN}_zerokey" type xdp ||
+		{ ktap_fail "xdp zero-key: failed to load XDP program"; return 1; }
+	bpftool net attach xdp pinned "${PIN}_zerokey" dev "$IFACE" ||
+		{ ktap_fail "xdp zero-key: failed to attach XDP program"; bpftool prog unpin "${PIN}_zerokey"; return 1; }
+
+	mark_dmesg
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+	local reached=$?
+
+	bpftool net detach xdp dev "$IFACE" 2>/dev/null
+	rm -f "${PIN}_zerokey"
+
+	# the program drops on rejection, so a working guard blocks the ping: reachable means
+	# the kfunc was never exercised, a clean dmesg alone would be a false pass
+	check_dmesg || { ktap_fail "xdp zero-key: the kfunc crashed on a zero-sized key"; return 1; }
+	[ "$reached" -ne 0 ] || { ktap_fail "xdp zero-key: ping passed, the kfunc did not run"; return 1; }
+	ktap_pass "xdp zero-key: a zero-sized key is rejected without a crash"
+}
+
 run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass" \
 	"xdp pass: verdict enforced, packet and argument content verified" softirq
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop" \
@@ -139,6 +161,8 @@ run_script "tests/xdp/attach_sleepable"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop tests/xdp/attach_sleepable > /dev/null 2>&1
 ktap_pass "xdp attach: refuses a sleepable runtime"
+
+zerokey_case
 
 ktap_totals
 

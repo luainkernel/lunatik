@@ -8,6 +8,16 @@
 
 #include "lib/luarcu.h"
 
+/* a zero size is allowed by the verifier and would underflow the length */
+static inline int lunatik_ebpf_checkkey(char *key, size_t key_sz, size_t *keylen)
+{
+	if (unlikely(key_sz == 0))
+		return -1;
+	*keylen = key_sz - 1;
+	key[*keylen] = '\0';
+	return 0;
+}
+
 static inline int lunatik_ebpf_checkruntimes(lunatik_object_t **runtimes, lunatik_object_t **percpu)
 {
 	static const char runtimes_key[] = "runtimes";
@@ -23,8 +33,10 @@ static inline lunatik_object_t *lunatik_ebpf_lookupruntime(lunatik_object_t **ru
 		lunatik_object_t **percpu, char *key, size_t key_sz, int cpuid)
 {
 	lunatik_object_t *runtime = NULL;
-	size_t keylen = key_sz - 1;
-	key[keylen] = '\0';
+	size_t keylen;
+
+	if (lunatik_ebpf_checkkey(key, key_sz, &keylen) != 0)
+		return NULL;
 	if (unlikely(lunatik_ebpf_checkruntimes(runtimes, percpu) != 0)) {
 		pr_err_ratelimited("couldn't find _ENV.runtimes or _ENV.percpu\n");
 		return NULL;
