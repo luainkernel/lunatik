@@ -171,6 +171,9 @@ higher-level `netlink.*` modules built on top of it.
 - **map_values**: `rcu.map()` iterates booleans, integers, userdata,
   mixed types, and skips nil (deleted) entries.
 
+- **map_foreign**: `rcu.map()` refuses an object of another class
+  instead of walking its private data as a table.
+
 - **map_sync**: `rcu.map()` remains safe when called while another
   kthread is modifying the table.
 

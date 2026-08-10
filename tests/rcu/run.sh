@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="map_values"
+TESTS="map_values map_foreign"
 TOTAL=$(echo $TESTS | wc -w)
 
 ktap_header

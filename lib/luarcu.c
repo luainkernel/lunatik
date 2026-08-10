@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -97,7 +97,11 @@ static inline void luarcu_free(luarcu_entry_t *entry)
 	kfree_rcu(entry, rcu);
 }
 
-LUNATIK_OBJECTCHECKER(luarcu_checktable, luarcu_table_t *);
+static const lunatik_class_t luarcu_class;
+
+LUNATIK_PRIVATECHECKER(luarcu_checktable, luarcu_table_t *,
+	lunatik_argcheckclass(L, ix, &luarcu_class, "rcu.table");
+);
 
 void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value)
 {
