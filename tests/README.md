@@ -308,3 +308,9 @@ BTF, or `bpftool` or `clang` is unavailable.
 - **xdp attach**: `xdp.attach` refuses a sleepable runtime with "runtime
   context mismatch".
 
+- **xdp zero-key**: an eBPF program calling `bpf_luaxdp_run` with a
+  zero-sized key (which the verifier accepts) is rejected in the kfunc
+  instead of underflowing the length into an out-of-bounds access. The program
+  drops on rejection, so a working guard blocks the ping, proving the
+  kfunc ran and returned without crashing.
+
