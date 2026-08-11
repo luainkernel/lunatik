@@ -198,6 +198,10 @@ Never `require("foo").method()`.
 * No comments restating obvious kernel or Lua API usage. Non obvious rationale is welcome.
 * A comment is one line carrying the reason the code is not obvious, nothing the code below already
   says. State the why; the what and the how are the code's job.
+* A comment about a specific call goes on that call's line, not above the function signature.
+* Reaching for a comment is a signal to reconsider the code's clarity first: a name that states the
+  intent, a helper that names the step, an enum instead of a bare constant. Comment what the code
+  cannot be made to say, not what a clearer shape would.
 * Public functions and object types get LDoc comments. Use `@type <class>` names that do not collide
   with a function name, or LDoc will attach the wrong things.
 * LDoc does not surface a method a class inherits. To show it on the subclass's page, add a doc-only
