@@ -574,7 +574,7 @@ cpu_usage_idle{cpu="cpu0"} 100.0000000000000000 1764094519529162
 
 Conventions for contributors, and for AI coding assistants working on this repository, are in
 [AGENTS.md](AGENTS.md): build and test loop, execution contexts, object model, code style, and commit
-discipline. Design notes for work in progress live under [docs/design](docs/design); what is being
+discipline. Design notes for work in progress live under [doc/design](doc/design); what is being
 worked on, and how far along it is, lives in the
 [project boards](https://github.com/orgs/luainkernel/projects).
 
