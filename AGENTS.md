@@ -192,6 +192,8 @@ Never `require("foo").method()`.
 
 * Comments describe the present, not the history. No "was", "no longer", "used to".
 * No comments restating obvious kernel or Lua API usage. Non obvious rationale is welcome.
+* A comment is one line carrying the reason the code is not obvious, nothing the code below already
+  says. State the why; the what and the how are the code's job.
 * Public functions and object types get LDoc comments. Use `@type <class>` names that do not collide
   with a function name, or LDoc will attach the wrong things.
 * LDoc does not surface a method a class inherits. To show it on the subclass's page, add a doc-only
