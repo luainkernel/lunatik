@@ -24,8 +24,12 @@ machine. Two rules follow from that and outrank everything else in this document
 | `bin/lunatik` | userspace CLI, talks to the kernel through `/dev/lunatik` |
 | `tests/` | KTAP integration tests, one directory per suite |
 | `examples/` | example kernel scripts |
-| `docs/design/` | design notes for work in progress: gap analysis, proposed APIs, verified kernel references, test strategy |
-| `doc/` | generated LDoc output, plus the hand written C API reference |
+| `doc/` | all documentation: the hand written C API reference (`doc/capi.md`), design notes (`doc/design/`), and generated LDoc output (everything else, gitignored) |
+| `doc/design/` | design notes for work in progress: gap analysis, proposed APIs, verified kernel references, test strategy |
+
+All documentation lives under `doc/`. There is exactly one documentation directory: never create a
+second top level one (`docs/`, `documentation/`, and the like). Design notes go in `doc/design/<topic>/`,
+the C API reference is `doc/capi.md`, and LDoc fills the rest of `doc/`.
 
 ## Build, install, test
 

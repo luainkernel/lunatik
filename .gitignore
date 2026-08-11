@@ -13,5 +13,7 @@ moontastik*
 dnstest
 doc/*
 !doc/capi.md
+!doc/design
+!doc/design/**
 /lib/linux/
 
