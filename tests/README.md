@@ -271,6 +271,34 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   out-of-order fields — with a pack/unpack round-trip, `fieldsize` reporting
   a named field's width, and the overlapping-fields (union) guard.
 
+### tc
+
+Regression tests for `luatc`. The suite builds real TC/eBPF programs that call
+`bpf_luatc_run`, attaches them with `tc` on the egress of a veth pair
+whose peer sits in a network namespace, with the neighbor entries pinned so
+ARP never competes with ICMP for the verdict; skipped when the module lacks
+BTF, or `bpftool`, `clang` or `tc` is unavailable.
+
+- **tc pass**: the callback inspects `ctx:skb()` (IPv4 ethertype and the
+  ICMP protocol byte of the ping) and `action.ACT_OK` lets the packet reach
+  its destination; the runtime is plain, covering the plain-name kfunc lookup.
+
+- **tc drop**: `action.ACT_SHOT` blocks the ping; the runtime is percpu,
+  covering the per-CPU kfunc lookup.
+
+- **tc detach**: the callback drops the first ping and calls `tc.detach()`
+  from inside the callback; traffic resumes because `bpf_luatc_run` then
+  returns `-1` and the eBPF program falls back to `TC_ACT_OK`.
+
+- **tc attach**: `tc.attach` refuses a sleepable runtime with "runtime
+  context mismatch".
+
+- **tc zero-key**: an eBPF program calling `bpf_luatc_run` with a
+  zero-sized key (which the verifier accepts) is rejected in the kfunc
+  instead of underflowing the length into an out-of-bounds access. The program
+  drops on rejection, so a working guard blocks the ping, proving the
+  kfunc ran and returned without crashing.
+
 ### thread
 
 Regression tests for `luathread`.
