@@ -41,5 +41,7 @@ What is unusual about this project, and what to keep in mind:
 
 ## Status
 
-Tracked in the epic issue in this repository. Each phase lands as its own pull request.
+These documents describe the design; they do not track progress. What is in flight, and how far along
+each phase is, lives on the [LPeg binding board](https://github.com/orgs/luainkernel/projects/4). Each
+phase is an issue there and lands as its own pull request.
 
