@@ -31,10 +31,7 @@
 
 LUNATIK_EBPF_START();
 
-static char luaxdp_env_key;
-
-static lunatik_object_t *luaxdp_runtimes = NULL;
-static lunatik_object_t *luaxdp_percpu = NULL;
+LUNATIK_EBPF_STATE(xdp);
 
 typedef struct luaxdp_ctx_s {
 	struct xdp_buff  *xdp;
@@ -142,21 +139,7 @@ static int luaxdp_handler(lua_State *L, luaxdp_ctx_t *ctx)
 	luadata_reset(lctx->packet, lctx->xdp->data, lctx->xdp->data_end - lctx->xdp->data, LUADATA_OPT_KEEP);
 	luadata_reset(lctx->argument, lctx->arg, lctx->arg__sz, LUADATA_OPT_KEEP);
 
-	lua_rawgeti(L, LUA_REGISTRYINDEX, lctx->callback_ref);
-	if (!lua_isfunction(L, -1)) {
-		pr_err_ratelimited("callback_ref is not a function\n");
-		lua_pop(L, 2);
-		ret = -1;
-		goto out;
-	}
-	lua_insert(L, -2);
-	if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
-		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
-		lua_pop(L, 1);
-		ret = -1;
-		goto out;
-	}
-out:
+	ret = lunatik_ebpf_invoke(L, lctx->callback_ref);
 	luaxdp_handler_cleanup(lctx);
 	return ret;
 }
@@ -164,12 +147,6 @@ out:
 __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)
 {
 	int action = -1;
-	int ret;
-
-	lunatik_object_t *runtime = lunatik_ebpf_lookupruntime(&luaxdp_runtimes, &luaxdp_percpu,
-			key, key__sz, raw_smp_processor_id());
-	if (runtime == NULL)
-		goto out;
 
 	luaxdp_ctx_t ctx = {
 		.xdp     = (struct xdp_buff *)xdp_ctx,
@@ -178,9 +155,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 		.action  = &action,
 	};
 
-	lunatik_run(runtime, luaxdp_handler, ret, &ctx);
-	lunatik_putobject(runtime);
-out:
+	LUNATIK_EBPF_RUN(xdp, key, key__sz, luaxdp_handler, &ctx);
 	return action;
 }
 
@@ -205,12 +180,9 @@ static int luaxdp_detach(lua_State *L)
 	if (lctx == NULL)
 		return 0;
 
-	luaL_unref(L, LUA_REGISTRYINDEX, lctx->callback_ref);
-	lctx->callback_ref = LUA_NOREF;
-	lua_pop(L, 1);
+	lunatik_ebpf_detach(L, &lctx->callback_ref, &luaxdp_env_key);
 	lunatik_unregister(L, lctx->packet);
 	lunatik_unregister(L, lctx->argument);
-	lunatik_unregister(L, &luaxdp_env_key);
 	return 0;
 }
 
@@ -277,12 +249,7 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_register(L, -1, ctx->argument);
 	lua_pop(L, 1);
 
-	lua_pushvalue(L, 1);
-	ctx->callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-
-	lunatik_register(L, -1, &luaxdp_env_key);
-	lua_pop(L, 1);
-
+	lunatik_ebpf_attach(L, &ctx->callback_ref, &luaxdp_env_key);
 	return 0;
 }
 #endif
@@ -295,24 +262,11 @@ static const luaL_Reg luaxdp_lib[] = {
 	{NULL, NULL}
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
-LUNATIK_CLASSES(xdp, &luaxdp_class);
-#else
-static const lunatik_class_t *luaxdp_classes[] = { NULL };
-#endif
-LUNATIK_NEWLIB(xdp, luaxdp_lib, luaxdp_classes);
+LUNATIK_EBPF_NEWLIB(xdp, luaxdp_lib, &luaxdp_class);
 
 LUNATIK_EBPF_KFUNC_INIT(xdp, BPF_PROG_TYPE_XDP);
 
-static void __exit luaxdp_exit(void)
-{
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
-	if (luaxdp_runtimes != NULL)
-		lunatik_putobject(luaxdp_runtimes);
-	if (luaxdp_percpu != NULL)
-		lunatik_putobject(luaxdp_percpu);
-#endif
-}
+LUNATIK_EBPF_EXIT(xdp);
 
 module_init(luaxdp_init);
 module_exit(luaxdp_exit);
