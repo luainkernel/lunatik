@@ -315,7 +315,11 @@ A review produces two things: the comments, and a branch showing what the commen
 is posted before the maintainer has seen both.
 
 1. Check out the author's branch, build it and run the suite. A review that only reads the diff
-   misses what the machine already knows.
+   misses what the machine already knows. If it does not run, that is a hypothesis to trace, not a
+   finding to report: separate the artifact under test from the tool exercising it — the same
+   program the distribution's loader rejects may load under a current one — and exhaust the working
+   path before writing "could not run". A reviewer with the machine drives it to ground rather than
+   asking the author to confirm what the machine could have said.
 2. Work on `review/<pr number>`, started from the author's head. The number is what lets the author,
    and the next reviewer, find the branch; a name of your own choosing does not.
 3. One fixup per finding, `git commit --fixup=<the author's commit>`. Not one per file, and not one
@@ -341,6 +345,15 @@ On the comments themselves:
   beyond them. Where the tree itself is inconsistent and a style seems worth settling, that is an
   exclusive pull request — one that fixes the whole tree and records the convention here — never a
   finding on someone's feature work.
+* A finding names its severity from what is traced, not from what is feared. A crash is a crash only
+  when a reachable path reaches it; short of that it is a contract or parity gap, said as one. The
+  same discipline the commit rules ask of a root cause applies to a review's own claims.
+* Cover the whole diff before posting. A review that reads the one file it expected the bug in and
+  skips the rest — the helper it leans on, the example, the second module — is half a review, and
+  the half it skipped is where the reader assumes it looked.
+* Re-read your own review before it goes out, against the exact branch: the overstated severity, the
+  file left unopened, the fixup whose comment drifted from what it does. The self-audit the code gets
+  is owed to the review too.
 * The checklist above is the reviewer's too. A pull request that fails it is not ready, whatever the
   code looks like.
 
