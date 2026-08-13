@@ -64,6 +64,64 @@ static inline void *lunatik_ebpf_getctx(lua_State *L, char *env_key)
 	return obj->private;
 }
 
+/* invokes the Lua callback referenced by 'callback_ref', consuming the
+ * context userdata that lunatik_ebpf_getctx() left on top of the stack */
+static inline int lunatik_ebpf_invoke(lua_State *L, int callback_ref)
+{
+	lua_rawgeti(L, LUA_REGISTRYINDEX, callback_ref);
+	if (!lua_isfunction(L, -1)) {
+		pr_err_ratelimited("callback_ref is not a function\n");
+		lua_pop(L, 2);
+		return -1;
+	}
+
+	lua_insert(L, -2);
+	if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
+		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
+		lua_pop(L, 1);
+		return -1;
+	}
+	return 0;
+}
+
+/* references the Lua function at stack index 1 as the callback and binds its
+ * lifetime to 'env_key' (the ctx object must already be on top of the stack) */
+static inline void lunatik_ebpf_attach(lua_State *L, int *callback_ref, char *env_key)
+{
+	lua_pushvalue(L, 1);
+	*callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	lunatik_register(L, -1, env_key);
+	lua_pop(L, 1);
+}
+
+/* the caller still unregisters any binding specific sub-objects */
+static inline void lunatik_ebpf_detach(lua_State *L, int *callback_ref, char *env_key)
+{
+	luaL_unref(L, LUA_REGISTRYINDEX, *callback_ref);
+	*callback_ref = LUA_NOREF;
+	lunatik_unregister(L, env_key);
+	lua_pop(L, 1);
+}
+
+#define LUNATIK_EBPF_STATE(subsys) \
+	static char lua##subsys##_env_key; \
+	static lunatik_object_t *lua##subsys##_runtimes = NULL; \
+	static lunatik_object_t *lua##subsys##_percpu = NULL
+
+/* looks up the runtime for 'key'/'key_sz', runs 'handler' with 'ctxp' on it,
+ * and releases the runtime; a no-op if no matching runtime is found */
+#define LUNATIK_EBPF_RUN(subsys, key, key_sz, handler, ctxp) \
+do { \
+	lunatik_object_t *__runtime = lunatik_ebpf_lookupruntime(&lua##subsys##_runtimes, \
+			&lua##subsys##_percpu, (key), (key_sz), raw_smp_processor_id()); \
+	if (__runtime != NULL) { \
+		int __ret; \
+		lunatik_run(__runtime, (handler), __ret, (ctxp)); \
+		lunatik_putobject(__runtime); \
+	} \
+} while (0)
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0))
 #define LUNATIK_EBPF_START() __bpf_kfunc_start_defs()
 #define LUNATIK_EBPF_END()   __bpf_kfunc_end_defs()
@@ -93,16 +151,36 @@ static inline void *lunatik_ebpf_getctx(lua_State *L, char *env_key)
 	};
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
+#define LUNATIK_EBPF_NEWLIB(subsys, lib, class) \
+	LUNATIK_CLASSES(subsys, class); \
+	LUNATIK_NEWLIB(subsys, lib, lua##subsys##_classes)
+
 #define LUNATIK_EBPF_KFUNC_INIT(subsys, prog_type) \
 static int __init lua##subsys##_init(void) \
 { \
 	return register_btf_kfunc_id_set(prog_type, &bpf_lua##subsys##_kfunc_set); \
 }
+#define LUNATIK_EBPF_EXIT(subsys) \
+static void __exit lua##subsys##_exit(void) \
+{ \
+	if (lua##subsys##_runtimes != NULL) \
+		lunatik_putobject(lua##subsys##_runtimes); \
+	if (lua##subsys##_percpu != NULL) \
+		lunatik_putobject(lua##subsys##_percpu); \
+}
 #else
+#define LUNATIK_EBPF_NEWLIB(subsys, lib, class) \
+	static const lunatik_class_t *lua##subsys##_classes[] = { NULL }; \
+	LUNATIK_NEWLIB(subsys, lib, lua##subsys##_classes)
+
 #define LUNATIK_EBPF_KFUNC_INIT(subsys, prog_type) \
 static int __init lua##subsys##_init(void) \
 { \
 	return 0; \
+}
+#define LUNATIK_EBPF_EXIT(subsys) \
+static void __exit lua##subsys##_exit(void) \
+{ \
 }
 #endif
 
