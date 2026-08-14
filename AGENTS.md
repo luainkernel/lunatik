@@ -4,6 +4,9 @@ Conventions for contributors, and for AI coding assistants working on this repos
 using an assistant that reads a project file automatically (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`),
 point it here.
 
+These conventions bind the change you write, not only the one you review: run your own additions
+through them before committing, rather than waiting for review to catch them.
+
 Lunatik runs Lua inside the Linux kernel. A mistake here does not raise an exception, it panics a
 machine. Two rules follow from that and outrank everything else in this document:
 
