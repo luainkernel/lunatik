@@ -147,6 +147,11 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * Prefer a named `static inline` helper over an open coded repetition, and do not inline an existing
   named helper into its callers while refactoring; they exist for readability and symmetry.
 * When a two line pattern repeats in every method, collapse it into one helper or macro.
+* A helper meant to be shared is held to a higher design bar than a one-off, because everything
+  built on it inherits its shape: a pair mirrors, so whatever one half acquires or registers its
+  partner releases or unregisters, and an argument on one appears on the other; a family of helpers
+  or macros names the same argument the same way, carries the same prefix, and types a value for
+  what it is, not for how it is stored.
 * A secondary check that must always follow a `LUNATIK_PRIVATECHECKER` (a field that must be set,
   the class identity of the object) goes in the macro's vararg body, in the mold of `luaskb_check`;
   `L` and `ix` are in scope there. A hand written checker only when the macro's shape does not fit.
@@ -307,7 +312,10 @@ the body.
 3. new API is documented and listed in `config.ld` and the README;
 4. new tests are wired into their suite and described;
 5. error paths audited: for each raise, everything already acquired is released;
-6. commits are small, ordered, and none of them undoes another.
+6. commits are small, ordered, and none of them undoes another;
+7. every helper the change introduces has a caller. A helper extracted to remove duplication but
+   left unused, while the duplication it replaces still stands, is the refactor half-done. Grep the
+   new symbols for a caller before sending.
 
 ## Reviewing a pull request
 
@@ -324,7 +332,10 @@ is posted before the maintainer has seen both.
    and the next reviewer, find the branch; a name of your own choosing does not.
 3. One fixup per finding, `git commit --fixup=<the author's commit>`. Not one per file, and not one
    per target commit: a comment pointing at a commit that does three unrelated things cannot be
-   accepted in parts, and the author is the one who autosquashes what they accept.
+   accepted in parts, and the author is the one who autosquashes what they accept. A fixup touches
+   only what the pull request introduced; check the symbol's provenance before changing it, since one
+   already on `master` is a separate change on its own branch, not a fixup folded into this review. A
+   consistency fix on the branch's own code is done now, not deferred.
 4. Rebase the review branch when `master` moves under it, so the fixups still apply to what the
    author will rebase onto.
 5. Draft the comments and hand them over. The repository's public voice is the maintainer's; a
@@ -334,7 +345,10 @@ is posted before the maintainer has seen both.
 On the comments themselves:
 
 * Each one states the defect and the change it requires, and links the fixup that makes it. Showing
-  the shape of the fix costs the author less than a paragraph describing it.
+  the shape of the fix costs the author less than a paragraph describing it. A linked fixup's SHA is
+  a published reference the moment the comment posts; amending or rebasing the review branch after
+  that rewrites the SHA and leaves the link pointing at the superseded version. Leave the branch be
+  once posted; when a change is unavoidable, refresh the SHAs in the comments it moved.
 * A request for changes is not a place for praise. Padding buries the change being asked for.
 * Missing tests are a finding of their own, written as such, not a remark appended to another
   comment.
