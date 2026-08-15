@@ -8,6 +8,8 @@
 
 #include "lib/luarcu.h"
 
+static char lunatik_ebpf_env_key;
+
 /* a zero size is allowed by the verifier and would underflow the length */
 static inline int lunatik_ebpf_checkkey(char *key, size_t key_sz, size_t *keylen)
 {
@@ -52,10 +54,10 @@ static inline lunatik_object_t *lunatik_ebpf_lookupruntime(lunatik_object_t **ru
 }
 
 /* on success the context userdata stays on the stack, ready to be passed to the callback */
-static inline void *lunatik_ebpf_getctx(lua_State *L, char *env_key)
+static inline void *lunatik_ebpf_getctx(lua_State *L)
 {
 	lunatik_object_t *obj;
-	if (lunatik_getregistry(L, env_key) != LUA_TUSERDATA) {
+	if (lunatik_getregistry(L, &lunatik_ebpf_env_key) != LUA_TUSERDATA) {
 		lua_pop(L, 1);
 		pr_err_ratelimited("couldn't find the context object\n");
 		return NULL;
@@ -86,26 +88,25 @@ static inline int lunatik_ebpf_invoke(lua_State *L, int callback_ref)
 
 /* references the Lua function at stack index 1 as the callback and binds its
  * lifetime to 'env_key' (the ctx object must already be on top of the stack) */
-static inline void lunatik_ebpf_attach(lua_State *L, int *callback_ref, char *env_key)
+static inline void lunatik_ebpf_attach(lua_State *L, int *callback_ref)
 {
 	lua_pushvalue(L, 1);
 	*callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
-	lunatik_register(L, -1, env_key);
+	lunatik_register(L, -1, &lunatik_ebpf_env_key);
 	lua_pop(L, 1);
 }
 
 /* the caller still unregisters any binding specific sub-objects */
-static inline void lunatik_ebpf_detach(lua_State *L, int *callback_ref, char *env_key)
+static inline void lunatik_ebpf_detach(lua_State *L, int *callback_ref)
 {
 	luaL_unref(L, LUA_REGISTRYINDEX, *callback_ref);
 	*callback_ref = LUA_NOREF;
-	lunatik_unregister(L, env_key);
+	lunatik_unregister(L, &lunatik_ebpf_env_key);
 	lua_pop(L, 1);
 }
 
 #define LUNATIK_EBPF_STATE(subsys) \
-	static char lua##subsys##_env_key; \
 	static lunatik_object_t *lua##subsys##_runtimes = NULL; \
 	static lunatik_object_t *lua##subsys##_percpu = NULL
 
