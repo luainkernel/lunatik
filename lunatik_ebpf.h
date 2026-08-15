@@ -9,6 +9,8 @@
 #include "lib/luarcu.h"
 
 static char lunatik_ebpf_env_key;
+static lunatik_object_t *lunatik_ebpf_runtimes = NULL;
+static lunatik_object_t *lunatik_ebpf_percpu = NULL;
 
 /* a zero size is allowed by the verifier and would underflow the length */
 static inline int lunatik_ebpf_checkkey(char *key, size_t key_sz, size_t *keylen)
@@ -106,16 +108,12 @@ static inline void lunatik_ebpf_detach(lua_State *L, int *callback_ref)
 	lua_pop(L, 1);
 }
 
-#define LUNATIK_EBPF_STATE(subsys) \
-	static lunatik_object_t *lua##subsys##_runtimes = NULL; \
-	static lunatik_object_t *lua##subsys##_percpu = NULL
-
 /* looks up the runtime for 'key'/'key_sz', runs 'handler' with 'ctxp' on it,
  * and releases the runtime; a no-op if no matching runtime is found */
 #define LUNATIK_EBPF_RUN(subsys, key, key_sz, handler, ctxp) \
 do { \
-	lunatik_object_t *__runtime = lunatik_ebpf_lookupruntime(&lua##subsys##_runtimes, \
-			&lua##subsys##_percpu, (key), (key_sz), raw_smp_processor_id()); \
+	lunatik_object_t *__runtime = lunatik_ebpf_lookupruntime(&lunatik_ebpf_runtimes, \
+			&lunatik_ebpf_percpu, (key), (key_sz), raw_smp_processor_id()); \
 	if (__runtime != NULL) { \
 		int __ret; \
 		lunatik_run(__runtime, (handler), __ret, (ctxp)); \
@@ -164,10 +162,10 @@ static int __init lua##subsys##_init(void) \
 #define LUNATIK_EBPF_EXIT(subsys) \
 static void __exit lua##subsys##_exit(void) \
 { \
-	if (lua##subsys##_runtimes != NULL) \
-		lunatik_putobject(lua##subsys##_runtimes); \
-	if (lua##subsys##_percpu != NULL) \
-		lunatik_putobject(lua##subsys##_percpu); \
+	if (lunatik_ebpf_runtimes != NULL) \
+		lunatik_putobject(lunatik_ebpf_runtimes); \
+	if (lunatik_ebpf_percpu != NULL) \
+		lunatik_putobject(lunatik_ebpf_percpu); \
 }
 #else
 #define LUNATIK_EBPF_NEWLIB(subsys, lib, class) \
