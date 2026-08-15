@@ -327,7 +327,12 @@ is posted before the maintainer has seen both.
    finding to report: separate the artifact under test from the tool exercising it — the same
    program the distribution's loader rejects may load under a current one — and exhaust the working
    path before writing "could not run". A reviewer with the machine drives it to ground rather than
-   asking the author to confirm what the machine could have said.
+   asking the author to confirm what the machine could have said. Read the PR's own conversation too,
+   not only its diff: an author's comment may raise a question or propose an alternative the review
+   has to engage with, and a verdict that ignores an open author thread is incomplete. A PR based on
+   another branch rather than `master` is stacked: review it against its own base, and read the whole
+   stack first, because what one PR seems to delete may have moved to a PR stacked on top of it —
+   check there before reporting a deletion as a loss.
 2. Work on `review/<pr number>`, started from the author's head. The number is what lets the author,
    and the next reviewer, find the branch; a name of your own choosing does not.
 3. One fixup per finding, `git commit --fixup=<the author's commit>`. Not one per file, and not one
