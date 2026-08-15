@@ -31,8 +31,6 @@
 
 LUNATIK_EBPF_START();
 
-LUNATIK_EBPF_STATE(xdp);
-
 typedef struct luaxdp_ctx_s {
 	struct xdp_buff  *xdp;
 	void             *arg;
