@@ -5,6 +5,7 @@
 
 local xdp    = require("xdp")
 local action = require("linux.xdp")
+local sni    = require("examples.common.sni")
 
 local function set(t)
 	local s = {}
@@ -16,66 +17,22 @@ local blacklist = set{
 	"ebpf.io",
 }
 
-local function log(sni, verdict)
-	print(string.format("filter_sni: %s %s", sni, verdict))
-end
-
-local function unpacker(packet, base)
-	local byte = function (offset)
-		return packet:getbyte(base + offset)
-	end
-
-	local short = function (offset)
-		local offset = base + offset
-		return packet:getbyte(offset) << 8 | packet:getbyte(offset + 1)
-	end
-
-	local str = function (offset, length)
-		return packet:getstring(base + offset, length)
-	end
-
-	return byte, short, str
+local function log(host, verdict)
+	print(string.format("filter_sni: %s %s", host, verdict))
 end
 
 local function offset(argument)
-	return select(2, unpacker(argument, 0))(0)
+	return argument:getbyte(0) << 8 | argument:getbyte(1)
 end
 
-local client_hello = 0x01
-local handshake    = 0x16
-local server_name  = 0x00
-
-local session = 43
-local max_extensions = 17
-
 local function filter_sni(ctx)
-	local packet = ctx:packet()
-	local argument = ctx:argument()
-	local byte, short, str = unpacker(packet, offset(argument))
-
-	if byte(0) ~= handshake or byte(5) ~= client_hello then
-		ctx:action(action.PASS)
+	local host = sni(ctx:packet(), offset(ctx:argument()))
+	if host then
+		local verdict = blacklist[host] and "DROP" or "PASS"
+		log(host, verdict)
+		ctx:action(action[verdict])
 		return
 	end
-
-	local cipher = (session + 1) + byte(session)
-	local compression = cipher + 2 + short(cipher)
-	local extension = compression + 3 + byte(compression)
-
-	for i = 1, max_extensions do
-		local data = extension + 4
-		if short(extension) == server_name then
-			local length = short(data + 3)
-			local sni = str(data + 5, length)
-
-			verdict = blacklist[sni] and "DROP" or "PASS"
-			log(sni, verdict)
-			ctx:action(action[verdict])
-			return
-		end
-		extension = data + short(extension + 2)
-	end
-
 	ctx:action(action.PASS)
 end
 
