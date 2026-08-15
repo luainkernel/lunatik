@@ -126,7 +126,7 @@ static inline void luaxdp_handler_cleanup(luaxdp_ctx_t *lctx)
 
 static int luaxdp_handler(lua_State *L, luaxdp_ctx_t *ctx)
 {
-	luaxdp_ctx_t *lctx = lunatik_ebpf_getctx(L, &luaxdp_env_key);
+	luaxdp_ctx_t *lctx = lunatik_ebpf_getctx(L);
 	int ret = 0;
 
 	if (lctx == NULL)
@@ -175,12 +175,12 @@ LUNATIK_EBPF_KFUNC_DEFINE_SET(xdp, bpf_luaxdp_run);
 */
 static int luaxdp_detach(lua_State *L)
 {
-	luaxdp_ctx_t *lctx = lunatik_ebpf_getctx(L, &luaxdp_env_key);
+	luaxdp_ctx_t *lctx = lunatik_ebpf_getctx(L);
 
 	if (lctx == NULL)
 		return 0;
 
-	lunatik_ebpf_detach(L, &lctx->callback_ref, &luaxdp_env_key);
+	lunatik_ebpf_detach(L, &lctx->callback_ref);
 	lunatik_unregister(L, lctx->packet);
 	lunatik_unregister(L, lctx->argument);
 	return 0;
@@ -249,7 +249,7 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_register(L, -1, ctx->argument);
 	lua_pop(L, 1);
 
-	lunatik_ebpf_attach(L, &ctx->callback_ref, &luaxdp_env_key);
+	lunatik_ebpf_attach(L, &ctx->callback_ref);
 	return 0;
 }
 #endif
