@@ -270,6 +270,10 @@ the body.
   paths is not a guarantee: make it structural or do not offer it. Merging a half measure and opening
   a follow up that deletes it pollutes the history across pull requests the same way a commit that
   undoes another one pollutes a branch.
+* Removing a check as redundant is verified, not asserted: trace the invariant to whoever establishes
+  it and confirm every path that sets the value does. `invoke`'s type check is redundant because
+  `attach` validates the callback first, so it is always a function there; a `pcall` that would catch
+  a bad value anyway is a second reason, not the trace.
 * Refusing is a legitimate outcome. When a combination has no sound semantics yet, refuse it where it
   is registered, with an error that names the reason, rather than shipping an approximation. Lifting
   the refusal afterwards is one line and a test.
