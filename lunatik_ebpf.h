@@ -30,7 +30,7 @@ static inline int lunatik_ebpf_checkruntimes(void)
 		lunatik_ebpf_runtimes = luarcu_getobject(lunatik_env, runtimes_key, sizeof(runtimes_key) - 1);
 	if (lunatik_ebpf_percpu == NULL)
 		lunatik_ebpf_percpu = luarcu_getobject(lunatik_env, percpu_key, sizeof(percpu_key) - 1);
-	return lunatik_ebpf_runtimes && lunatik_ebpf_percpu ? 0 : -1;
+	return !(lunatik_ebpf_runtimes && lunatik_ebpf_percpu);
 }
 
 static inline lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key_sz, int cpuid)
