@@ -65,9 +65,9 @@ static inline void *lunatik_ebpf_getctx(lua_State *L)
 	return obj->private;
 }
 
-static inline int lunatik_ebpf_invoke(lua_State *L, int callback_ref)
+static inline int lunatik_ebpf_invoke(lua_State *L, int cb)
 {
-	lua_rawgeti(L, LUA_REGISTRYINDEX, callback_ref);
+	lua_rawgeti(L, LUA_REGISTRYINDEX, cb);
 	lua_insert(L, -2);
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
@@ -77,19 +77,19 @@ static inline int lunatik_ebpf_invoke(lua_State *L, int callback_ref)
 	return 0;
 }
 
-static inline void lunatik_ebpf_attach(lua_State *L, int ix, int *callback_ref)
+static inline void lunatik_ebpf_attach(lua_State *L, int ix, int *cb)
 {
 	lua_pushvalue(L, ix);
-	*callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	*cb = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	lunatik_register(L, -1, &lunatik_ebpf_env_key);
 	lua_pop(L, 1);
 }
 
-static inline void lunatik_ebpf_detach(lua_State *L, int *callback_ref)
+static inline void lunatik_ebpf_detach(lua_State *L, int *cb)
 {
-	luaL_unref(L, LUA_REGISTRYINDEX, *callback_ref);
-	*callback_ref = LUA_NOREF;
+	luaL_unref(L, LUA_REGISTRYINDEX, *cb);
+	*cb = LUA_NOREF;
 	lunatik_unregister(L, &lunatik_ebpf_env_key);
 	lua_pop(L, 1);
 }

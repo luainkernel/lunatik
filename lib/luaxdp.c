@@ -38,7 +38,7 @@ typedef struct luaxdp_ctx_s {
 	int              *action;
 	lunatik_object_t *packet;
 	lunatik_object_t *argument;
-	int              callback_ref;
+	int              cb;
 } luaxdp_ctx_t;
 
 LUNATIK_PRIVATECHECKER(luaxdp_ctx_check, luaxdp_ctx_t *,
@@ -137,7 +137,7 @@ static int luaxdp_handler(lua_State *L, luaxdp_ctx_t *ctx)
 	luadata_reset(lctx->packet, lctx->xdp->data, lctx->xdp->data_end - lctx->xdp->data, LUADATA_OPT_KEEP);
 	luadata_reset(lctx->argument, lctx->arg, lctx->arg__sz, LUADATA_OPT_KEEP);
 
-	ret = lunatik_ebpf_invoke(L, lctx->callback_ref);
+	ret = lunatik_ebpf_invoke(L, lctx->cb);
 	luaxdp_handler_cleanup(lctx);
 	return ret;
 }
@@ -178,7 +178,7 @@ static int luaxdp_detach(lua_State *L)
 	if (lctx == NULL)
 		return 0;
 
-	lunatik_ebpf_detach(L, &lctx->callback_ref);
+	lunatik_ebpf_detach(L, &lctx->cb);
 	lunatik_unregister(L, lctx->packet);
 	lunatik_unregister(L, lctx->argument);
 	return 0;
@@ -247,7 +247,7 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_register(L, -1, ctx->argument);
 	lua_pop(L, 1);
 
-	lunatik_ebpf_attach(L, 1, &ctx->callback_ref);
+	lunatik_ebpf_attach(L, 1, &ctx->cb);
 	return 0;
 }
 #endif
