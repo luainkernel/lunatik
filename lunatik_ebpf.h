@@ -47,8 +47,7 @@ static inline lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key
 	runtime = luarcu_getobject(lunatik_ebpf_runtimes, key, keylen);
 	if (!runtime) {
 		char cpu_key[LUARCU_MAXKEY];
-		size_t cpulen;
-		cpulen = scnprintf(cpu_key, sizeof(cpu_key), "%s:%d", key, cpuid);
+		size_t cpulen = scnprintf(cpu_key, sizeof(cpu_key), "%s:%d", key, cpuid);
 		runtime = luarcu_getobject(lunatik_ebpf_percpu, cpu_key, cpulen);
 	}
 	return runtime;
