@@ -116,17 +116,17 @@ do { \
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0))
-#define LUNATIK_BTF_SET_START(name) BTF_KFUNCS_START(name)
-#define LUNATIK_BTF_SET_END(name)   BTF_KFUNCS_END(name)
+#define LUNATIK_EBPF_BTF_SET_START(name) BTF_KFUNCS_START(name)
+#define LUNATIK_EBPF_BTF_SET_END(name)   BTF_KFUNCS_END(name)
 #else
-#define LUNATIK_BTF_SET_START(name) BTF_SET8_START(name)
-#define LUNATIK_BTF_SET_END(name)   BTF_SET8_END(name)
+#define LUNATIK_EBPF_BTF_SET_START(name) BTF_SET8_START(name)
+#define LUNATIK_EBPF_BTF_SET_END(name)   BTF_SET8_END(name)
 #endif
 
 #define LUNATIK_EBPF_KFUNC_DEFINE_SET(subsys, kfunc) \
-	LUNATIK_BTF_SET_START(bpf_lua##subsys##_set) \
+	LUNATIK_EBPF_BTF_SET_START(bpf_lua##subsys##_set) \
 	BTF_ID_FLAGS(func, kfunc) \
-	LUNATIK_BTF_SET_END(bpf_lua##subsys##_set) \
+	LUNATIK_EBPF_BTF_SET_END(bpf_lua##subsys##_set) \
 	static const struct btf_kfunc_id_set bpf_lua##subsys##_kfunc_set = { \
 		.owner = THIS_MODULE, \
 		.set   = &bpf_lua##subsys##_set, \
