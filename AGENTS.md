@@ -367,6 +367,9 @@ On the comments themselves:
 * Work a review defers to a later pull request is captured as an issue, linked from the comment that
   defers it. A "we can do this separately" that lives only in the thread is lost when the pull
   request merges; the issue makes the deferral a tracked plan, not a promise.
+* A reply to an author's comment opens with a quote of the line it answers. An issue comment does
+  not thread, so a bare reply floats free of what prompted it; the quote makes it a reply instead of
+  a stray remark.
 * A finding names its severity from what is traced, not from what is feared. A crash is a crash only
   when a reachable path reaches it; short of that it is a contract or parity gap, said as one. The
   same discipline the commit rules ask of a root cause applies to a review's own claims.
