@@ -6,11 +6,7 @@
 
 local lunatik = require("lunatik")
 
-local env = lunatik._ENV
-local count = (env.percpu_fail_count or 0) + 1
-env.percpu_fail_count = count
-if count == 2 then
-	env.percpu_fail_count = nil
+if lunatik.cpu() == 1 then
 	error("intentional error on the second instance")
 end
 
