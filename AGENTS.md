@@ -364,6 +364,9 @@ On the comments themselves:
   beyond them. Where the tree itself is inconsistent and a style seems worth settling, that is an
   exclusive pull request — one that fixes the whole tree and records the convention here — never a
   finding on someone's feature work.
+* Work a review defers to a later pull request is captured as an issue, linked from the comment that
+  defers it. A "we can do this separately" that lives only in the thread is lost when the pull
+  request merges; the issue makes the deferral a tracked plan, not a promise.
 * A finding names its severity from what is traced, not from what is feared. A crash is a crash only
   when a reachable path reaches it; short of that it is a contract or parity gap, said as one. The
   same discipline the commit rules ask of a root cause applies to a review's own claims.
