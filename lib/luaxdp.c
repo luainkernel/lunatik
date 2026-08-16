@@ -153,7 +153,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 		.action  = &action,
 	};
 
-	LUNATIK_EBPF_RUN(xdp, key, key__sz, luaxdp_handler, &ctx);
+	LUNATIK_EBPF_RUN(key, key__sz, luaxdp_handler, &ctx);
 	return action;
 }
 
