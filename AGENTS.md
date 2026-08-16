@@ -349,8 +349,9 @@ is posted before the maintainer has seen both.
 
 On the comments themselves:
 
-* Each one states the defect and the change it requires, and links the fixup that makes it. Showing
-  the shape of the fix costs the author less than a paragraph describing it. A linked fixup's SHA is
+* Each one states the defect and the change it requires, and links the fixup that makes it as a full
+  commit URL — never a backtick'd SHA, which renders as code and does not link. Showing the shape of
+  the fix costs the author less than a paragraph describing it. A linked fixup's SHA is
   a published reference the moment the comment posts; amending or rebasing the review branch after
   that rewrites the SHA and leaves the link pointing at the superseded version. Leave the branch be
   once posted; when a change is unavoidable, refresh the SHAs in the comments it moved.
