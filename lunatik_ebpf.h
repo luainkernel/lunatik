@@ -69,12 +69,6 @@ static inline void *lunatik_ebpf_getctx(lua_State *L)
 static inline int lunatik_ebpf_invoke(lua_State *L, int callback_ref)
 {
 	lua_rawgeti(L, LUA_REGISTRYINDEX, callback_ref);
-	if (!lua_isfunction(L, -1)) {
-		pr_err_ratelimited("callback_ref is not a function\n");
-		lua_pop(L, 2);
-		return -1;
-	}
-
 	lua_insert(L, -2);
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
