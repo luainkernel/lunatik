@@ -54,7 +54,6 @@ static inline lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key
 	return runtime;
 }
 
-/* on success the context userdata stays on the stack, ready to be passed to the callback */
 static inline void *lunatik_ebpf_getctx(lua_State *L)
 {
 	lunatik_object_t *obj;
@@ -67,8 +66,6 @@ static inline void *lunatik_ebpf_getctx(lua_State *L)
 	return obj->private;
 }
 
-/* invokes the Lua callback referenced by 'callback_ref', consuming the
- * context userdata that lunatik_ebpf_getctx() left on top of the stack */
 static inline int lunatik_ebpf_invoke(lua_State *L, int callback_ref)
 {
 	lua_rawgeti(L, LUA_REGISTRYINDEX, callback_ref);
@@ -87,8 +84,6 @@ static inline int lunatik_ebpf_invoke(lua_State *L, int callback_ref)
 	return 0;
 }
 
-/* references the Lua function at stack index 1 as the callback and binds its
- * lifetime to 'env_key' (the ctx object must already be on top of the stack) */
 static inline void lunatik_ebpf_attach(lua_State *L, int *callback_ref)
 {
 	lua_pushvalue(L, 1);
@@ -98,7 +93,6 @@ static inline void lunatik_ebpf_attach(lua_State *L, int *callback_ref)
 	lua_pop(L, 1);
 }
 
-/* the caller still unregisters any binding specific sub-objects */
 static inline void lunatik_ebpf_detach(lua_State *L, int *callback_ref)
 {
 	luaL_unref(L, LUA_REGISTRYINDEX, *callback_ref);
@@ -107,8 +101,6 @@ static inline void lunatik_ebpf_detach(lua_State *L, int *callback_ref)
 	lua_pop(L, 1);
 }
 
-/* looks up the runtime for 'key'/'key_sz', runs 'handler' with 'ctxp' on it,
- * and releases the runtime; a no-op if no matching runtime is found */
 #define LUNATIK_EBPF_RUN(key, key_sz, handler, ctxp) \
 do { \
 	lunatik_object_t *__runtime = lunatik_ebpf_lookupruntime((key), (key_sz), raw_smp_processor_id()); \
