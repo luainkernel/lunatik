@@ -138,6 +138,9 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * Symbols in a library are prefixed `LUA<LIBNAME>_` or `lua<libname>_`.
 * The `l` prefix on a Lua binding (`lunatik_lruntime`) exists to disambiguate from a C function of
   the same name. Without that collision, the plain name is the right one.
+* A name matches what the tree already calls the same thing; grep for it before choosing. A Lua stack
+  index is `ix`, a callback `cb`. Importing `arg` or `callback_ref` where the base settled on a
+  shorter word is a deviation.
 * Kernel headers first, then a blank line, then `#include <lunatik.h>`. Do not remove that blank line.
 * `<lua.h>` and `<lauxlib.h>` are already pulled in by `lunatik.h`.
 * Every file ends with a trailing blank line. A pre commit hook rejects files that do not.
