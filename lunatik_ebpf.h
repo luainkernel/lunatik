@@ -84,9 +84,9 @@ static inline int lunatik_ebpf_invoke(lua_State *L, int callback_ref)
 	return 0;
 }
 
-static inline void lunatik_ebpf_attach(lua_State *L, int *callback_ref)
+static inline void lunatik_ebpf_attach(lua_State *L, int ix, int *callback_ref)
 {
-	lua_pushvalue(L, 1);
+	lua_pushvalue(L, ix);
 	*callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	lunatik_register(L, -1, &lunatik_ebpf_env_key);
