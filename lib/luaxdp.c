@@ -247,7 +247,7 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_register(L, -1, ctx->argument);
 	lua_pop(L, 1);
 
-	lunatik_ebpf_attach(L, &ctx->callback_ref);
+	lunatik_ebpf_attach(L, 1, &ctx->callback_ref);
 	return 0;
 }
 #endif
