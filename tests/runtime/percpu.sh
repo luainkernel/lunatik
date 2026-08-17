@@ -67,16 +67,21 @@ case "$listed" in
 esac
 ktap_pass "spawn refuses percpu without creating runtimes"
 
-output=$(lunatik run "$FAIL_SCRIPT" percpu 2>&1)
-echo "$output" | grep -q "intentional error on the second instance" || \
-	fail "the percpu run did not fail as intended: $output"
-mark_dmesg
-run_script "$FAIL_CHECK"
-check_dmesg || { ktap_totals; exit 1; }
-lunatik stop "$FAIL_CHECK" > /dev/null 2>&1
-run_script "$FAIL_SCRIPT"
-lunatik stop "$FAIL_SCRIPT" > /dev/null 2>&1
-ktap_pass "a failing instance rolls back the ones already created"
+# the rollback needs a second instance to fail, so it runs only with >1 possible CPU
+if [ "$(nproc --all)" -ge 2 ]; then
+	output=$(lunatik run "$FAIL_SCRIPT" percpu 2>&1)
+	echo "$output" | grep -q "intentional error on the second instance" || \
+		fail "the percpu run did not fail as intended: $output"
+	mark_dmesg
+	run_script "$FAIL_CHECK"
+	check_dmesg || { ktap_totals; exit 1; }
+	lunatik stop "$FAIL_CHECK" > /dev/null 2>&1
+	run_script "$FAIL_SCRIPT"
+	lunatik stop "$FAIL_SCRIPT" > /dev/null 2>&1
+	ktap_pass "a failing instance rolls back the ones already created"
+else
+	ktap_skip "a failing instance rolls back the ones already created (needs >1 CPU)"
+fi
 
 run_script "$SCRIPT" percpu
 lunatik stop "$SCRIPT:0" > /dev/null 2>&1
