@@ -286,6 +286,10 @@ BTF, or `bpftool`, `clang` or `tc` is unavailable.
 - **tc drop**: `action.ACT_SHOT` blocks the ping; the runtime is percpu,
   covering the per-CPU kfunc lookup.
 
+- **tc reattach**: the script attaches one callback and then a second in the
+  same runtime; the ping passes because only the last callback runs, exercising
+  the re-attach path.
+
 - **tc detach**: the callback drops the first ping and calls `tc.detach()`
   from inside the callback; traffic resumes because `bpf_luatc_run` then
   returns `-1` and the eBPF program falls back to `TC_ACT_OK`.
