@@ -38,7 +38,7 @@ tc_unload()
 }
 
 ktap_header
-ktap_plan 5
+ktap_plan 6
 
 skip_all()
 {
@@ -64,6 +64,7 @@ cleanup()
 	tc qdisc del dev "$IFACE" clsact 2>/dev/null
 	lunatik stop tests/tc/pass > /dev/null 2>&1
 	lunatik stop tests/tc/drop > /dev/null 2>&1
+	lunatik stop tests/tc/reattach > /dev/null 2>&1
 	lunatik stop tests/tc/detach > /dev/null 2>&1
 	lunatik stop tests/tc/attach_sleepable > /dev/null 2>&1
 	ip netns del "$NETNS" 2>/dev/null
@@ -164,6 +165,8 @@ run_case tc_pass.bpf.o pass.lua yes "tc pass" \
 	"tc pass test pass: packet content verified" softirq
 run_case tc_drop.bpf.o drop.lua no "tc drop" \
 	"tc drop test pass: verdict set to drop" softirq percpu
+run_case tc_reattach.bpf.o reattach.lua yes "tc reattach" \
+	"tc reattach test pass: re-attach installed the last callback" softirq
 detach_case
 
 mark_dmesg
