@@ -213,6 +213,7 @@ static int luatc_attach(lua_State *L)
 {
 	lunatik_checkruntime(L, LUNATIK_OPT_SOFTIRQ);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
+	luatc_detach(L); /* re-attaching replaces the previous callback */
 
 	lunatik_object_t *object = lunatik_newobject(L, &luatc_class, sizeof(luatc_ctx_t), LUNATIK_OPT_NONE);
 	luatc_ctx_t *ctx = (luatc_ctx_t *)object->private;
