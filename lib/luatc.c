@@ -115,9 +115,9 @@ static int luatc_handler(lua_State *L, luatc_ctx_t *ctx)
 	if (lctx == NULL)
 		return -1;
 
-	luaskb_t *lskb = (luaskb_t *)lctx->skb_obj->private;
+	struct sk_buff *skb = (struct sk_buff *)ctx->skb;
 
-	lskb->skb = (struct sk_buff *)ctx->skb;
+	luaskb_reset(lctx->skb_obj, skb);
 
 	lctx->skb     = ctx->skb;
 	lctx->action  = ctx->action;
