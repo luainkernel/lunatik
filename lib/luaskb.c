@@ -247,28 +247,28 @@ static int luaskb_set##name(lua_State *L) \
 /***
 * Gets the packet mark.
 * @function getmark
-* @return skb->mark
+* @treturn integer the packet mark
 */
 luaskb_getinteger(mark, mark);
 
 /***
 * Sets the packet mark.
 * @function setmark
-* @param mark New packet mark value
+* @tparam integer mark the new packet mark
 */
 luaskb_setinteger(mark, mark);
 
 /***
 * Gets the packet priority.
 * @function getpriority
-* @return skb->priority
+* @treturn integer the packet priority
 */
 luaskb_getinteger(priority, priority);
 
 /***
 * Sets the packet priority.
 * @function setpriority
-* @param priority New packet priority value
+* @tparam integer priority the new packet priority
 */
 luaskb_setinteger(priority, priority);
 
