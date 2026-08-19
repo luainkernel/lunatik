@@ -3,44 +3,48 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
----
--- Socket buffer operations.
--- This module provides a higher-level abstraction over the `skb` module.
---
--- @module skb.attr
+--- Attribute view over an `skb`: reads and writes packet fields as table keys
+-- (`view.mark`, `view.priority`) instead of method calls. The wrapped packet
+-- stays reachable as `view.skb`.
+-- @classmod skb.attr
 -- @see skb
---
 
-local mt = {
-	__len = function(self)
-		return #self._skb
-	end,
-
-	__index = function(self, key)
-		local getter = self._skb["get" .. key]
-		if type(getter) == "function" then
-			return getter(self._skb)
-		end
-
-		local method = self._skb[key]
-		if type(method) == "function" then
-			return function(_, ...)
-				return method(self._skb, ...)
-			end
-		end
-	end,
-
-	__newindex = function(self, key, val)
-		local setter = self._skb["set" .. key]
-		if type(setter) == "function" then
-			return setter(self._skb, val)
-		end
-
-		error("skb field '" .. key .. "' is read-only or does not exist")
-	end,
+-- packet attribute -> overloaded read/write method on the underlying skb
+local FIELD <const> = {
+	mark     = "mark",
+	priority = "priority",
 }
 
-return function(raw_skb)
-	return setmetatable({ _skb = raw_skb }, mt)
+local attr = {}
+
+function attr.__index(view, key)
+	local method = FIELD[key]
+	if method then
+		local skb = view.skb
+		return skb[method](skb)
+	end
 end
+
+function attr.__newindex(view, key, val)
+	local method = FIELD[key]
+	if not method then
+		error("skb has no writable attribute '" .. key .. "'")
+	end
+	local skb = view.skb
+	skb[method](skb, val)
+end
+
+function attr.__len(view)
+	return #view.skb
+end
+
+--- Wraps an `skb` in an attribute view.
+-- @function attr.new
+-- @tparam skb skb the packet to view.
+-- @treturn attr the attribute view.
+function attr.new(skb)
+	return setmetatable({skb = skb}, attr)
+end
+
+return attr
 

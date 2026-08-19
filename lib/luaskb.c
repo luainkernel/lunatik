@@ -228,49 +228,31 @@ static int luaskb_connmark(lua_State *L)
 }
 #endif /* CONFIG_NF_CONNTRACK_MARK */
 
-#define luaskb_getinteger(name, field) \
-static int luaskb_get##name(lua_State *L) \
+#define luaskb_integer(name, field) \
+static int luaskb_##name(lua_State *L) \
 { \
 	luaskb_t *lskb = luaskb_check(L, 1); \
+	if (!lua_isnone(L, 2)) \
+		lskb->skb->field = (typeof(lskb->skb->field))luaL_checkinteger(L, 2); \
 	lua_pushinteger(L, lskb->skb->field); \
 	return 1; \
 }
 
-#define luaskb_setinteger(name, field) \
-static int luaskb_set##name(lua_State *L) \
-{ \
-	luaskb_t *lskb = luaskb_check(L, 1); \
-	lskb->skb->field = (u32)luaL_checkinteger(L, 2); \
-	return 0; \
-}
-
 /***
-* Gets the packet mark.
-* @function getmark
+* Gets or sets the packet mark: with no argument reads it, with `value` sets it.
+* @function mark
+* @tparam[opt] integer value the new packet mark
 * @treturn integer the packet mark
 */
-luaskb_getinteger(mark, mark);
+luaskb_integer(mark, mark);
 
 /***
-* Sets the packet mark.
-* @function setmark
-* @tparam integer mark the new packet mark
-*/
-luaskb_setinteger(mark, mark);
-
-/***
-* Gets the packet priority.
-* @function getpriority
+* Gets or sets the packet priority: with no argument reads it, with `value` sets it.
+* @function priority
+* @tparam[opt] integer value the new packet priority
 * @treturn integer the packet priority
 */
-luaskb_getinteger(priority, priority);
-
-/***
-* Sets the packet priority.
-* @function setpriority
-* @tparam integer priority the new packet priority
-*/
-luaskb_setinteger(priority, priority);
+luaskb_integer(priority, priority);
 
 static int luaskb_copy(lua_State *L);
 
@@ -300,10 +282,8 @@ static const luaL_Reg luaskb_mt[] = {
 #if defined(CONFIG_NF_CONNTRACK_MARK)
 	{"connmark", luaskb_connmark},
 #endif
-	{"getmark", luaskb_getmark},
-	{"getpriority", luaskb_getpriority},
-	{"setmark", luaskb_setmark},
-	{"setpriority", luaskb_setpriority},
+	{"mark",     luaskb_mark},
+	{"priority", luaskb_priority},
 	{NULL, NULL}
 };
 
