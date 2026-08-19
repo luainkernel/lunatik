@@ -26,9 +26,6 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *,
 	luaL_argcheck(L, private->skb != NULL, ix, "skb is not set");
 );
 
-#define luaskb_pushoptinteger(L, cond, val)	\
-	((cond) ? lua_pushinteger(L, val) : lua_pushnil(L))
-
 /* FRAGLIST GSO skbs hold segments in frag_list; skb_copy refuses to copy
  * them (ambiguous semantics: copy the container or the segments?). */
 #ifdef SKB_GSO_FRAGLIST
@@ -77,7 +74,7 @@ static int luaskb_ifindex(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct net_device *dev = lskb->skb->dev;
-	luaskb_pushoptinteger(L, dev, dev->ifindex);
+	lunatik_pushoptinteger(L, dev, dev->ifindex);
 	return 1;
 }
 
@@ -89,7 +86,7 @@ static int luaskb_vlan(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct sk_buff *skb = lskb->skb;
-	luaskb_pushoptinteger(L, skb_vlan_tag_present(skb), skb_vlan_tag_get_id(skb));
+	lunatik_pushoptinteger(L, skb_vlan_tag_present(skb), skb_vlan_tag_get_id(skb));
 	return 1;
 }
 
@@ -223,7 +220,7 @@ static int luaskb_connmark(lua_State *L)
 
 	if (ct && set)
 		WRITE_ONCE(ct->mark, value);
-	luaskb_pushoptinteger(L, ct, (lua_Integer)(u32)READ_ONCE(ct->mark));
+	lunatik_pushoptinteger(L, ct, (lua_Integer)(u32)READ_ONCE(ct->mark));
 	return 1;
 }
 #endif /* CONFIG_NF_CONNTRACK_MARK */

@@ -130,6 +130,8 @@ static inline const char *lunatik_pushstring(lua_State *L, char *s, size_t len)
 	return lua_pushexternalstring(L, s, len, alloc, ud);
 }
 
+#define lunatik_pushoptinteger(L, cond, val)	((cond) ? lua_pushinteger((L), (val)) : lua_pushnil((L)))
+
 static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
 {
 	LUNATIK_ALLOC(L, alloc, ud);
