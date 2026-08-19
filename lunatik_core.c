@@ -166,10 +166,7 @@ static int lunatik_lresume(lua_State *L)
 */
 static int lunatik_cpu(lua_State *L)
 {
-	if (lunatik_ispercpu(L))
-		lua_pushinteger(L, lunatik_getcpu(L));
-	else
-		lua_pushnil(L);
+	lunatik_pushoptinteger(L, lunatik_ispercpu(L), lunatik_getcpu(L));
 	return 1;
 }
 
