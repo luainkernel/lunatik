@@ -25,7 +25,7 @@ end
 
 local function sh(command, module, loaded)
 	local op = loaded and "&&" or "||"
-	os.execute(string.format("MODULE=%s;grep -wq $MODULE /proc/modules %s%s", module, op, command))
+	return os.execute(string.format("MODULE=%s;grep -wq $MODULE /proc/modules %s%s", module, op, command))
 end
 
 local function load_modules()
@@ -43,13 +43,37 @@ local function load_modules()
 	if result ~= "" then error(result) end
 end
 
+local function readall(handle)
+	local h <close> = handle
+	return h and h:read("a") or ""
+end
+
+local function holders()
+	return readall(io.popen("ls /sys/module/lunatik/holders 2>/dev/null"))
+end
+
+local function refcount(module)
+	return tonumber(readall(io.open("/sys/module/" .. module .. "/refcnt")))
+end
+
+local function unload_unused()
+	local removed = 0
+	for m in (holders() .. " lunatik"):gmatch("%S+") do
+		if refcount(m) == 0 and sh("rmmod $MODULE", m, true) then
+			removed = removed + 1
+		end
+	end
+	return removed
+end
+
 local function unload_modules()
 	if probe() then
-		dostring("lunatik.runner.shutdown()")
+		local result = dostring("lunatik.runner.shutdown()")
+		if result ~= "" then error(result) end
 	end
-	for i = #modules, 1, -1 do
-		sh("rmmod $MODULE", modules[i], true)
-	end
+	repeat
+		local removed = unload_unused()
+	until removed == 0
 end
 
 local function reload_modules()
