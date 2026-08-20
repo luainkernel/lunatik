@@ -9,29 +9,29 @@
 -- @classmod skb.attr
 -- @see skb
 
--- packet attribute -> overloaded read/write method on the underlying skb
-local FIELD <const> = {
-	mark     = "mark",
-	priority = "priority",
+local fields <const> = {
+	mark     = true,
+	priority = true,
 }
 
 local attr = {}
 
-function attr.__index(view, key)
-	local method = FIELD[key]
-	if method then
-		local skb = view.skb
-		return skb[method](skb)
+local function checkfield(key)
+	if not fields[key] then
+		error("skb has no attribute '" .. key .. "'")
 	end
 end
 
-function attr.__newindex(view, key, val)
-	local method = FIELD[key]
-	if not method then
-		error("skb has no writable attribute '" .. key .. "'")
-	end
+function attr.__index(view, key)
+	checkfield(key)
 	local skb = view.skb
-	skb[method](skb, val)
+	return skb[key](skb)
+end
+
+function attr.__newindex(view, key, val)
+	checkfield(key)
+	local skb = view.skb
+	skb[key](skb, val)
 end
 
 function attr.__len(view)

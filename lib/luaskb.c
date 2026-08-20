@@ -232,9 +232,10 @@ static int luaskb_connmark(lua_State *L)
 static int luaskb_##name(lua_State *L) \
 { \
 	luaskb_t *lskb = luaskb_check(L, 1); \
+	struct sk_buff *skb = lskb->skb; \
 	if (!lua_isnone(L, 2)) \
-		lskb->skb->field = (typeof(lskb->skb->field))luaL_checkinteger(L, 2); \
-	lua_pushinteger(L, lskb->skb->field); \
+		skb->field = (typeof(skb->field))luaL_checkinteger(L, 2); \
+	lua_pushinteger(L, skb->field); \
 	return 1; \
 }
 
