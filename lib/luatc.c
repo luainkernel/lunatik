@@ -11,7 +11,7 @@
 * way to implement custom networking logic in Lua at the ingress and egress
 * layers of network stack.
 *
-* The primary mechanism involves an TC program calling the `bpf_luatc_run`
+* The primary mechanism involves a TC program calling the `bpf_luatc_run`
 * kfunc, which in turn invokes a Lua callback function previously registered
 * using `tc.attach()`.
 * @module tc
@@ -167,8 +167,8 @@ static int luatc_detach(lua_State *L)
 }
 
 /***
-* Registers a Lua callback function to be invoked by an TC/eBPF program.
-* When an TC program calls the `bpf_luatc_run` kfunc, Lunatik will execute
+* Registers a Lua callback function to be invoked by a TC/eBPF program.
+* When a TC program calls the `bpf_luatc_run` kfunc, Lunatik will execute
 * the registered Lua `callback` associated with the current Lunatik runtime.
 * The runtime invoking this function must be non-sleepable.
 *
@@ -183,7 +183,7 @@ static int luatc_detach(lua_State *L)
 * @function attach
 * @tparam function callback Lua function to call. It receives one argument:
 *
-*   `ctx`: An `tc_ctx` context object used to inspect the packet
+*   `ctx`: A `tc_ctx` context object used to inspect the packet
 *   and control the TC verdict via `tc_ctx:action`.
 *
 *   The callback need not return a value. If it sets no action, `bpf_luatc_run`
