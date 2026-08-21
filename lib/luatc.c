@@ -100,7 +100,7 @@ static const lunatik_class_t luatc_class = {
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
-static void luatc_handler_cleanup(luatc_ctx_t *lctx)
+static inline void luatc_handler_cleanup(luatc_ctx_t *lctx)
 {
 	luaskb_clear(lctx->skb_obj);
 	lctx->skb = NULL;
