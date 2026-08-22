@@ -4,7 +4,7 @@
 */
 
 /***
-* Linux Traffic Controller (TC) integration.
+* Linux Traffic Control (TC) integration.
 * This library allows Lua scripts to interact with the kernel's TC subsystem.
 * It enables TC/eBPF programs to call Lua functions for packet processing,
 * traffic shaping, filtering, and policy enforcement, providing a flexible

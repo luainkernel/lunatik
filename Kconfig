@@ -115,7 +115,7 @@ config LUNATIK_TC
 	tristate "Lunatik TC Support"
 	default m
 	help
-	  Traffic Controller (TC) support for high-performance packet scheduling.
+	  Traffic Control (TC) support for high-performance packet scheduling.
 
 config LUNATIK_FIFO
 	tristate "Lunatik FIFO Support"
