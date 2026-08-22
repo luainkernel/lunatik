@@ -19,5 +19,5 @@ int test_xdp_detach(struct xdp_md *ctx)
 	return ret < 0 ? XDP_PASS : ret;
 }
 
-char LICENSE[] SEC("license") = "GPL";
+char _license[] SEC("license") = "Dual MIT/GPL";
 
