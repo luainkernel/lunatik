@@ -22,5 +22,5 @@ int test_tc_zerokey(struct __sk_buff *skb)
 	return ret < 0 ? TC_ACT_SHOT : TC_ACT_OK;
 }
 
-char LICENSE[] SEC("license") = "GPL";
+char _license[] SEC("license") = "Dual MIT/GPL";
 
