@@ -1,8 +1,9 @@
-# Proposed interface: `lunatikc`
+# Interface: `lunatikc`
 
-This is a design proposal, not a specification. Names are open for review (`lunatikc` avoids
-shadowing the distribution `luac`; `lunatik compile` as a CLI subcommand is a possible wrapper);
-the constraints behind the behavior (`kernel-notes.md`) are not.
+The tool is named `lunatikc` (settled with the maintainer, 2026-08-23): it avoids shadowing the
+distribution `luac`, and a `lunatik compile` CLI subcommand remains possible as a wrapper later.
+Option shapes are still open for review; the constraints behind the behavior (`kernel-notes.md`)
+are not.
 
 ## Command line
 
