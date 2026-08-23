@@ -85,10 +85,8 @@ static const luaL_Reg luatc_mt[] = {
 static void luatc_release(void *private)
 {
 	luatc_ctx_t *lctx = (luatc_ctx_t *)private;
-	if (lctx->skb_obj) {
-		luaskb_clear(lctx->skb_obj);
-		lunatik_putobject(lctx->skb_obj);
-	}
+	if (lctx->skb_obj)
+		luaskb_close(lctx->skb_obj);
 }
 
 LUNATIK_OPENER(tc);
