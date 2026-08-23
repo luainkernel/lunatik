@@ -159,8 +159,8 @@ static int luatc_detach(lua_State *L)
 	if (lctx == NULL)
 		return 0;
 
-	lunatik_ebpf_detach(L, &lctx->cb);
-	lunatik_unregister(L, lctx->skb_obj);
+	lunatik_ebpf_unbind(L, &lctx->cb);
+	lunatik_ebpf_detach(L, lctx, skb_obj);
 	return 0;
 }
 
@@ -216,12 +216,9 @@ static int luatc_attach(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luatc_class, sizeof(luatc_ctx_t), LUNATIK_OPT_NONE);
 	luatc_ctx_t *ctx = (luatc_ctx_t *)object->private;
 
-	ctx->skb_obj = luaskb_new(L);
-	lunatik_getobject(ctx->skb_obj);
-	lunatik_register(L, -1, ctx->skb_obj);
-	lua_pop(L, 1);
+	lunatik_ebpf_attach(L, ctx, skb_obj, luaskb_new);
 
-	lunatik_ebpf_attach(L, 1, &ctx->cb);
+	lunatik_ebpf_bind(L, 1, &ctx->cb);
 	return 0;
 }
 #endif
