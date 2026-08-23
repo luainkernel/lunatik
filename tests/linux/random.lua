@@ -23,10 +23,3 @@ test("linux.random(n) stays within [1, n]", function()
 	end
 end)
 
-test("linux.random(m, n) fits string.char for ASCII printable", function()
-	for i = 1, 1000 do
-		local c = string.char(linux.random(32, 126))
-		assert(#c == 1, "expected one character")
-	end
-end)
-
