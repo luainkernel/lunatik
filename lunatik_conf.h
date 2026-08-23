@@ -12,6 +12,7 @@
 
 #define l_randomizePivot(L)	(~0)
 
+#ifdef __KERNEL__
 #include <linux/random.h>
 #define luai_makeseed(L)		get_random_u32()
 
@@ -97,6 +98,8 @@ unsigned int luaS_hash(const char *str, size_t l, unsigned int seed); /* require
 #undef current /* conflicts with Lua namespace */
 #endif
 #endif
+
+#endif /* __KERNEL__ */
 
 #endif
 
