@@ -123,6 +123,30 @@ State that must see a whole flow therefore belongs in something the runtimes sha
 published in `lunatik._ENV` or the conntrack mark; the runtime holds what is per-CPU, a counter or
 a cache. An `rcu.table()` the script body creates is not shared: the body runs once per runtime, so
 each gets its own.
+### lunatikc
+
+```Shell
+usage: lunatikc [-s] [-o output] [-n chunkname] input.lua ...
+```
+
+Compiles kernel Lua scripts into binary chunks. `lunatikc` is built with the host compiler from the
+same `lua/` sources and configuration as `lunatik.ko`, so its chunks match the kernel's opcode set
+and integer-only number format; chunks from the distribution `luac` are rejected by the kernel.
+
+* `-s`: strip debug information (line numbers, local and upvalue names)
+* `-o output`: output file, or a directory when compiling several inputs (default: `<input>.luac`)
+* `-n chunkname`: chunk name recorded in the dump, as in `load` (default: `@<input>`)
+
+A chunk is installed and run under the usual `.lua` name; the kernel detects it by its signature:
+
+```Shell
+lunatikc -s -o hello.lua hello.lua    # overwrite with the stripped chunk
+sudo cp hello.lua /lib/modules/lua/
+sudo lunatik run hello
+```
+
+`BYTECODE=1 make install` installs the kernel Lua libraries and the examples as stripped chunks
+instead of source.
 
 ### Testing
 
