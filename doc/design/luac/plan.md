@@ -127,16 +127,28 @@ compile; a foreign `.luac` fed by mistake is a parse error, not a silently copie
 * Default stays source. It came out at 15 Makefile lines, so it shipped with the tool rather than as
   a separate phase; the full suite was run both ways.
 
-### Phase 4 — cross-endian (`lua/` fork, `bin/lunatikc.c`) — not started
+### Phase 4 — cross-endian (`lua/` fork, `bin/lunatikc.c`) — prototyped
 
-* `lua/ldump.c` in `luainkernel/lua`: a host-only `LUNATIK_DUMP_SWAP` (name open) that makes
-  `dumpVector` for `Instruction`, the `abslineinfo` vector and the header `dumpNumInfo` go through
-  a byte swap when `D->swap` is set — the eLua model. Set from a new field reached by
-  `lua_dump`… which has no such parameter: pass the target through the `DumpState` from a
-  `luaU_dump` variant (`luaU_dumpx(L, f, w, data, strip, swap)`), exported only on the host.
-* `lunatikc -e big|little` (default host). Then a submodule bump in lunatik and the option in the
-  tool. Verification: compile for big-endian on the development host and load it under `qemu-system-mips`
-  OpenWrt, or at minimum compare byte-for-byte with a chunk produced natively on a BE host.
+* A `lunatik_conf.h`-only route was investigated first and does not exist cleanly: `dumpVector`
+  and `dumpBlock` are file-local to `ldump.c`, defined after every include, so no configuration
+  header can reach them; the luaconf hooks that do expand inside the dump path (`lua_lock`,
+  `lua_assert`) carry no block-type context (strings must not be swapped) and are used in other
+  scopes; and swapping in the tool's writer or as a post-process would re-encode the whole chunk
+  grammar in `lunatikc.c` — a shadow of `lundump.c`. Upstream's own comment says where the change
+  belongs: "All high-level dumps go through dumpVector; you can change it to change the endianness
+  of the result".
+* So: branch `claude_luac` in `luainkernel/lua`, guarded by `LUNATIKC` (defined only by the tool
+  build; the kernel and stock builds are untouched). `dumpVector` honors a `luaU_dumpswap` flag
+  and routes raw elements through `dumpSwapVector` (bytes reversed per element); `abslineinfo` is
+  dumped as `int`s so the swap keeps each field. ~48 lines including the `llex.c` warning fence.
+* `lunatikc -e big|little` (default host) sets `luaU_dumpswap` when the target differs from the
+  host; `-e` with the host order is byte-identical to the default output. A tool built against a
+  submodule without the hook fails to link (`luaU_dumpswap`), which is the loud failure wanted.
+* Verified: a 32-bit big-endian runner (MIPS32, `qemu-user`, built from the same fork sources with
+  `-D_KERNEL -DLUNATIKC`) runs `-e big` chunks compiled on the aarch64 host, full and stripped,
+  with correct integer semantics (`7 / 2 == 3`, 64-bit `lua_Integer` constants) and correct error
+  line numbers (the swapped `abslineinfo`); the native chunk is rejected there with `int format
+  mismatch`, and the `-e big` chunk is rejected by the little-endian kernel the same way.
 
 ### Phase 5 — follow-ups (separate plans when picked up)
 
@@ -158,7 +170,7 @@ compile; a foreign `.luac` fed by mistake is a parse error, not a silently copie
 |-------|----------|---------|------|
 | 1+3 | 166 lines C, ~50 Makefile | `lunatik_conf.h` (fence only) | low; prototyped, suite green both ways |
 | 2 | 1 shell + 5 Lua test files, `check_dmesg` pattern, `runner.lua` trim | `tests/run.sh`, READMEs | low; prototyped |
-| 4 | ~40 lines in `lua/ldump.c`, ~20 in the tool | `lua/` submodule bump | medium: needs a BE box or qemu to verify |
+| 4 | ~48 lines in the `lua/` fork, ~15 in the tool | `lua/` submodule bump | low; prototyped, verified under qemu MIPS BE |
 | 5 | per follow-up | `Kbuild`, `Kconfig`, `lunatik_aux.c`, `luadarken.c` | separate plans |
 
 ## Non goals
@@ -179,8 +191,9 @@ compile; a foreign `.luac` fed by mistake is a parse error, not a silently copie
 * **Test harness blind spot.** With `-s`, a failing script prints `?:?:` and `check_dmesg` would
   not notice (`run_script` fails on any output since `e9e57297`). Fixed in the suite commit and
   validated negatively: a failing stripped chunk is reported as `not ok`.
-* **Submodule drift.** Phase 4 lands in `luainkernel/lua` first; until the bump, the tool's
-  `-e` must fail loudly ("byte swap not supported by this build"), not emit a native chunk.
+* **Submodule drift.** Phase 4 lands in `luainkernel/lua` first (branch `claude_luac` there);
+  a tool built against a submodule without the hook fails to link, so `-e` can never silently
+  emit a native chunk.
 * **Chunk name leakage.** A chunk keeps the path given at compile time; the install recipe must
   pass `-n` so kernel messages name the installed file, and `-s` installs carry no path at all.
 * **`lua_Number` drift.** If the kernel fork ever changes number configuration, the header

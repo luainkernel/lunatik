@@ -66,12 +66,25 @@ failures, not a list of features.
 
 ### Phase 4: cross-endian
 
-| Operation | Expected |
+The suite covers what a single-endian box can: host-order output is byte-identical (`cmp`) and
+foreign-order output is rejected by the kernel header probes. The positive cross run needs a
+big-endian runtime; it was done by hand and is reproducible with the distribution cross tools:
+
+```sh
+sudo apt install gcc-mips-linux-gnu qemu-user-static
+mips-linux-gnu-gcc -static -std=gnu99 -O1 -w -D_KERNEL -DLUNATIKC -DLUA_USE_LINUX \
+        -I. -Ilua -o be_run <a loadbufferx "b" + pcall driver> lua/{core}.c -lm
+bin/lunatikc -e big -o chunk.luac script.lua
+qemu-mips-static ./be_run chunk.luac
+```
+
+| Operation | Verified |
 |-----------|----------|
-| `lunatikc -e big` on a little-endian host, load on a big-endian runtime (qemu MIPS OpenWrt) | runs |
-| `lunatikc -e big` chunk loaded on the little-endian host | `int format mismatch` (header probe catches it) |
-| `-e little` on a little-endian host | byte-identical to no `-e` |
-| `-e big` with a tool built without the swap hook | loud error, no output |
+| `-e big` chunk (full and stripped) on MIPS32 BE under qemu | runs; `7 / 2 == 3`, 64-bit integer constants intact, error lines correct |
+| native LE chunk on the BE runtime | `int format mismatch` |
+| `-e big` chunk on the LE kernel | `int format mismatch` (suite) |
+| `-e <host order>` | byte-identical to the default output (suite, `cmp`) |
+| tool built against a `lua/` without the hook | link error on `luaU_dumpswap` |
 
 ## How to fake a stock chunk without a stock `luac`
 

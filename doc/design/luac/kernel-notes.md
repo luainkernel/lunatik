@@ -54,10 +54,10 @@ kernel build never defines `LUA_32BITS`; `Kbuild` only adds libgcc 64-bit divisi
 `!CONFIG_64BIT`), `int` and `Instruction` are 4 bytes everywhere. So a 64-bit little-endian host
 produces chunks that load unchanged on 32-bit little-endian targets (ARM, x86). Only a big-endian
 target (e.g. MIPS routers on OpenWrt) needs a byte-swapping dump, and only for three things: the
-32-bit instruction vector, `abslineinfo` (gone with `-s`) and the header probes. That hook does not
-exist upstream; it is a change in the `lua/` fork (`ldump.c`), behind a host-only define — the
-eLua `luac.cross` model (`DumpTargetInfo` + swap in `DumpVector`/`DumpCode`), not the OpenWrt 5.1
-model of swapping on load — or a `qemu-user` run of the native tool.
+32-bit instruction vector, `abslineinfo` (gone with `-s`) and the header probes. That hook does
+not exist upstream; it lives in the `lua/` fork (`ldump.c`, branch `claude_luac`) behind the
+`LUNATIKC` define that only the tool build sets — swap on the dump side, the eLua `luac.cross`
+model, not the OpenWrt 5.1 model of swapping on load, which would cost the kernel.
 
 ## Stripping (`lua_dump(..., strip)`)
 

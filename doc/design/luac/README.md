@@ -42,8 +42,9 @@ Three facts shape everything here, and are worth carrying from the start:
 
 ## Status
 
-Design notes plus a prototype on the `claude_luac` branch (on top of `origin/master`): the compiler,
-its build and install wiring, `BYTECODE=1`, the `luac` suite and the `runner.lua` trim fix — phases
-1–3 of `plan.md`, full suite green with source and with bytecode installs. Cross-endian (phase 4)
-and the follow-ups are not started. Not yet an epic; the phases are sized to become one issue each.
+Phases 1–3 (the compiler, its wiring, `BYTECODE=1`, the `luac` suite, the `runner.lua` trim fix)
+are pull request [#742](https://github.com/luainkernel/lunatik/pull/742), branch `claude_luac`,
+full suite green with source and with bytecode installs. Phase 4 (cross-endian, `-e`) is
+prototyped on `claude_luac_cross` plus branch `claude_luac` of `luainkernel/lua`, verified against
+a MIPS32 big-endian runtime under qemu. The follow-ups in `plan.md` are not started.
 

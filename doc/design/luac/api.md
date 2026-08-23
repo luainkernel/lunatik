@@ -16,7 +16,7 @@ lunatikc [-s] [-o output] [-n chunkname] [-e big|little] input.lua [input.lua ..
 | `-s` | strip debug information (`lua_dump` strip): no line numbers, local or upvalue names, no source name | off |
 | `-o output` | output file; with several inputs, a directory | `<input>.luac` next to each input |
 | `-n chunkname` | chunk name baked into the dump, as `lua_load` would receive it (`@path` or `=name`) | `@<input>` |
-| `-e big\|little` | target byte order (phase 4) | host |
+| `-e big\|little` | target byte order; when it differs from the host's, raw values are dumped byte-reversed | host |
 
 * Input is always parsed as **text** (`luaL_loadbufferx(..., "t")`); a binary input is an error.
 * Exit status 0 only if every input compiled and was written; otherwise the first error goes to
