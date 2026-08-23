@@ -56,6 +56,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_all "$MODULE not loaded"
 [ -f /sys/kernel/btf/$MODULE ] || skip_all "$MODULE built without BTF (make btf_install, rebuild)"
 command -v bpftool > /dev/null 2>&1 || skip_all "bpftool not available"
 command -v clang > /dev/null 2>&1 || skip_all "clang not available"
+command -v tc > /dev/null 2>&1 || skip_all "tc not available"
 
 cleanup()
 {
