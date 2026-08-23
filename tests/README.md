@@ -118,6 +118,14 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 - **random**: `linux.random` ranged draws stay within `[m, n]`, covering
   the two-argument, one-argument and negative-range forms.
 
+### luac
+
+- **run**: the host bytecode compiler `lunatikc`: compiled chunks (full and
+  stripped) run under `lunatik run` and `require`; error messages carry the
+  `-n` chunk name, or `?:?:` when stripped; a stock (float) number format
+  is rejected by the chunk header; `load(..., "t")` rejects a chunk in the
+  kernel. Skips when `lunatikc` is not installed.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).
