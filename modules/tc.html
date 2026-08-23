@@ -33,7 +33,8 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Functions">Functions</a></li>
+<li><a href="#Class_tc_ctx">Class tc_ctx </a></li>
+<li><a href="#tc">tc</a></li>
 </ul>
 
 
@@ -97,7 +98,7 @@
   <li><a href="../modules/probe.html">probe</a></li>
   <li><a href="../modules/rcu.html">rcu</a></li>
   <li><a href="../modules/set.html">set</a></li>
-  <li><strong>signal</strong></li>
+  <li><a href="../modules/signal.html">signal</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
   <li><a href="../modules/socket.html">socket</a></li>
   <li><a href="../modules/socket.inet.html">socket.inet</a></li>
@@ -106,7 +107,7 @@
   <li><a href="../modules/struct.html">struct</a></li>
   <li><a href="../modules/syscall.html">syscall</a></li>
   <li><a href="../modules/syscall.table.html">syscall.table</a></li>
-  <li><a href="../modules/tc.html">tc</a></li>
+  <li><strong>tc</strong></li>
   <li><a href="../modules/thread.html">thread</a></li>
   <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
@@ -129,30 +130,39 @@
 
 <div id="content">
 
-<h1>Module <code>signal</code></h1>
-<p>POSIX Signals</p>
-<p>
+<h1>Module <code>tc</code></h1>
+<p>Linux Traffic Control (TC) integration.</p>
+<p> This library allows Lua scripts to interact with the kernel's TC subsystem.
+ It enables TC/eBPF programs to call Lua functions for packet processing,
+ traffic shaping, filtering, and policy enforcement, providing a flexible
+ way to implement custom networking logic in Lua at the ingress and egress
+ layers of network stack.</p>
 
-</p>
+<p> The primary mechanism involves a TC program calling the <code>bpf_luatc_run</code>
+ kfunc, which in turn invokes a Lua callback function previously registered
+ using <code>tc.attach()</code>.</p>
 
 
-<h2><a href="#Functions">Functions</a></h2>
+<h2><a href="#Class_tc_ctx">Class tc_ctx </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#kill">kill (pid[, sig])</a></td>
-	<td class="summary">Sends a signal to a process.</td>
+	<td class="name" nowrap><a href="#tc_ctx:action">tc_ctx:action (action)</a></td>
+	<td class="summary">Sets the TC verdict action for this packet.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#sigmask">sigmask (sig[, cmd])</a></td>
-	<td class="summary">Modifies signal mask for current task.</td>
+	<td class="name" nowrap><a href="#tc_ctx:skb">tc_ctx:skb ()</a></td>
+	<td class="summary">Returns the packet object for the current TC context.</td>
+	</tr>
+</table>
+<h2><a href="#tc">tc</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#attach">attach (callback)</a></td>
+	<td class="summary">Registers a Lua callback function to be invoked by a TC/eBPF program.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#sigpending">sigpending ()</a></td>
-	<td class="summary">Checks if the current task has pending signals.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#sigstate">sigstate (sig[, state])</a></td>
-	<td class="summary">Checks signal state for current task.</td>
+	<td class="name" nowrap><a href="#detach">detach ()</a></td>
+	<td class="summary">Unregisters the Lua callback function associated with the current Lunatik runtime.</td>
 	</tr>
 </table>
 
@@ -160,118 +170,151 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+    <h2 class="section-header has-description"><a name="Class_tc_ctx"></a>Class tc_ctx </h2>
+
+          <div class="section-description">
+          TC callback context, valid only while the callback runs.
+ It is handed to the callback registered with <a href="../modules/tc.html#attach">tc.attach</a>; its methods raise
+ once the callback returns.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "tc_ctx:action"></a>
+    <strong>tc_ctx:action (action)</strong>
+    </dt>
+    <dd>
+    Sets the TC verdict action for this packet.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">action</span>
+            <span class="types"><span class="type">integer</span></span>
+         TC action constant (e.g. <code>TC_ACT_OK</code>, <code>TC_ACT_SHOT</code>, ...)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "tc_ctx:skb"></a>
+    <strong>tc_ctx:skb ()</strong>
+    </dt>
+    <dd>
+    Returns the packet object for the current TC context.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/tc.html#tc_ctx:skb">skb</a></span>
+
+
+
+    </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="tc"></a>tc</h2>
 
     <dl class="function">
     <dt>
-    <a name = "kill"></a>
-    <strong>kill (pid[, sig])</strong>
+    <a name = "attach"></a>
+    <strong>attach (callback)</strong>
     </dt>
     <dd>
-    Sends a signal to a process.
+
+<p>Registers a Lua callback function to be invoked by a TC/eBPF program.
+ When a TC program calls the <code>bpf_luatc_run</code> kfunc, Lunatik will execute
+ the registered Lua <code>callback</code> associated with the current Lunatik runtime.
+ The runtime invoking this function must be non-sleepable.</p>
+
+<p> The <code>bpf_luatc_run</code> kfunc is called from an eBPF program with the following signature:
+ <code>int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *sk_buff)</code></p>
+
+<ul>
+    <li><code>key</code>: A string identifying the Lunatik runtime (e.g., the script name like "examples/sniclassify/sni").
+    This key is used to look up the runtime in Lunatik's internal table of active runtimes.</li>
+    <li><code>key_sz</code>: Length of the key string (including the null terminator).</li>
+    <li><code>sk_buff</code>: The TC metadata context (<code>struct __sk_buff *</code>).</li>
+</ul>
+
+
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">pid</span>
-            <span class="types"><span class="type">integer</span></span>
-         Target process ID.
-        </li>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal to send (default: <code>KILL</code>, from <a href="../modules/linux.signal.html#">linux.signal</a>).
-         (<em>optional</em>)
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+         Lua function to call. It receives one argument:</p>
+
+<p>   <code>ctx</code>: A <a href="../modules/tc.html#tc_ctx">tc_ctx</a> context object used to inspect the packet
+   and control the TC verdict via <a href="../modules/tc.html#tc_ctx:action">tc_ctx:action</a>.</p>
+
+<p>   The callback need not return a value. If it sets no action, <code>bpf_luatc_run</code>
+   returns <code>-1</code> and the verdict is left to the eBPF program.
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">boolean</span></span>
-        <code>true</code> on success.
-    </ol>
-
-    <h3>Raises:</h3>
-    Error if the process is not found or the operation is not permitted.
-
-
-
-</dd>
-    <dt>
-    <a name = "sigmask"></a>
-    <strong>sigmask (sig[, cmd])</strong>
-    </dt>
-    <dd>
-    Modifies signal mask for current task.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number.
-        </li>
-        <li><span class="parameter">cmd</span>
-            <span class="types"><span class="type">integer</span></span>
-         SIG<em>BLOCK (0, default) or SIG</em>UNBLOCK (1).
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if the signal is invalid or the operation is not permitted.
-
-
-
-</dd>
-    <dt>
-    <a name = "sigpending"></a>
-    <strong>sigpending ()</strong>
-    </dt>
-    <dd>
-    Checks if the current task has pending signals.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
+           <span class="types"><span class="type">nil</span></span>
 
 
 
     </ol>
 
+    <h3>Raises:</h3>
+    Error if the current runtime is sleepable or if internal setup fails.
 
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/skb.html#">skb</a>
+    </ul>
 
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- Lua script (e.g., "my_tc_handler.lua" which is run via <code>lunatik run my_tc_handler.lua softirq</code>)
+</span><span class="keyword">local</span> tc = <span class="global">require</span>(<span class="string">"tc"</span>)
+<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.tc"</span>)
+
+<span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">my_traffic_shaper</span>(ctx)
+  <span class="keyword">local</span> skb = ctx:<span class="function-name">skb</span>()
+  <span class="global">print</span>(<span class="string">"Packet received, size:"</span>, #skb)
+  ctx:<span class="function-name">action</span>(action.ACT_OK)
+  <span class="keyword">return</span>
+<span class="keyword">end</span>
+tc.<span class="function-name">attach</span>(my_traffic_shaper)
+
+<span class="comment">-- In eBPF C code, to call the above Lua function:
+</span><span class="comment">-- char rt_key[] = "my_tc_handler.lua"; // Key matches the script name
+</span><span class="comment">-- int verdict = bpf_luatc_run(rt_key, sizeof(rt_key), skb);</span></pre>
+    </ul>
 
 </dd>
     <dt>
-    <a name = "sigstate"></a>
-    <strong>sigstate (sig[, state])</strong>
+    <a name = "detach"></a>
+    <strong>detach ()</strong>
     </dt>
     <dd>
-    Checks signal state for current task.
+    Unregisters the Lua callback function associated with the current Lunatik runtime.
+ After calling this, <code>bpf_luatc_run</code> calls targeting this runtime will no longer
+ invoke a Lua function (they will likely return an error or default action).
 
 
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number.
-        </li>
-        <li><span class="parameter">state</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         <code>&quot;blocked&quot;</code> (default), <code>&quot;pending&quot;</code>, or <code>&quot;allowed&quot;</code>.
-         (<em>optional</em>)
-        </li>
-    </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">boolean</span></span>
+           <span class="types"><span class="type">nil</span></span>
 
 
 
@@ -281,9 +324,7 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> sig = <span class="global">require</span>(<span class="string">"linux.signal"</span>)
-signal.<span class="function-name">sigstate</span>(<span class="number">15</span>) <span class="comment">-- check if SIGTERM is blocked
-</span>signal.<span class="function-name">sigstate</span>(sig.TERM, <span class="string">"pending"</span>)</pre>
+        <pre class="example">tc.<span class="function-name">detach</span>()</pre>
     </ul>
 
 </dd>

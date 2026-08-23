@@ -33,10 +33,20 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Functions">Functions</a></li>
+<li><a href="#Methods">Methods</a></li>
 </ul>
 
 
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><strong>skb.attr</strong></li>
+</ul>
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/bpf.html">bpf</a></li>
@@ -97,7 +107,7 @@
   <li><a href="../modules/probe.html">probe</a></li>
   <li><a href="../modules/rcu.html">rcu</a></li>
   <li><a href="../modules/set.html">set</a></li>
-  <li><strong>signal</strong></li>
+  <li><a href="../modules/signal.html">signal</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
   <li><a href="../modules/socket.html">socket</a></li>
   <li><a href="../modules/socket.inet.html">socket.inet</a></li>
@@ -110,16 +120,6 @@
   <li><a href="../modules/thread.html">thread</a></li>
   <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
-  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
-  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
-</ul>
 <h2>Topics</h2>
 <ul class="">
   <li><a href="../topics/README.md.html">README</a></li>
@@ -129,30 +129,22 @@
 
 <div id="content">
 
-<h1>Module <code>signal</code></h1>
-<p>POSIX Signals</p>
-<p>
+<h1>Class <code>skb.attr</code></h1>
+<p>Attribute view over an <a href="../modules/skb.html#">skb</a>: reads and writes packet fields as table keys
+ (<code>view.mark</code>, <code>view.priority</code>) instead of method calls.</p>
+<p> The wrapped packet
+ stays reachable as <code>view.skb</code>.</p>
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/skb.html#">skb</a>
+    </ul>
 
-</p>
 
-
-<h2><a href="#Functions">Functions</a></h2>
+<h2><a href="#Methods">Methods</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#kill">kill (pid[, sig])</a></td>
-	<td class="summary">Sends a signal to a process.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#sigmask">sigmask (sig[, cmd])</a></td>
-	<td class="summary">Modifies signal mask for current task.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#sigpending">sigpending ()</a></td>
-	<td class="summary">Checks if the current task has pending signals.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#sigstate">sigstate (sig[, state])</a></td>
-	<td class="summary">Checks signal state for current task.</td>
+	<td class="name" nowrap><a href="#skb.attr:new">skb.attr:new (skb)</a></td>
+	<td class="summary">Wraps an <a href="../modules/skb.html#">skb</a> in an attribute view.</td>
 	</tr>
 </table>
 
@@ -160,131 +152,34 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
 
     <dl class="function">
     <dt>
-    <a name = "kill"></a>
-    <strong>kill (pid[, sig])</strong>
+    <a name = "skb.attr:new"></a>
+    <strong>skb.attr:new (skb)</strong>
     </dt>
     <dd>
-    Sends a signal to a process.
+    Wraps an <a href="../modules/skb.html#">skb</a> in an attribute view.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">pid</span>
-            <span class="types"><span class="type">integer</span></span>
-         Target process ID.
-        </li>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal to send (default: <code>KILL</code>, from <a href="../modules/linux.signal.html#">linux.signal</a>).
-         (<em>optional</em>)
+        <li><span class="parameter">skb</span>
+            <span class="types"><span class="type">skb</span></span>
+         the packet to view.
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">boolean</span></span>
-        <code>true</code> on success.
-    </ol>
-
-    <h3>Raises:</h3>
-    Error if the process is not found or the operation is not permitted.
-
-
-
-</dd>
-    <dt>
-    <a name = "sigmask"></a>
-    <strong>sigmask (sig[, cmd])</strong>
-    </dt>
-    <dd>
-    Modifies signal mask for current task.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number.
-        </li>
-        <li><span class="parameter">cmd</span>
-            <span class="types"><span class="type">integer</span></span>
-         SIG<em>BLOCK (0, default) or SIG</em>UNBLOCK (1).
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-
-    <h3>Raises:</h3>
-    Error if the signal is invalid or the operation is not permitted.
-
-
-
-</dd>
-    <dt>
-    <a name = "sigpending"></a>
-    <strong>sigpending ()</strong>
-    </dt>
-    <dd>
-    Checks if the current task has pending signals.
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-
-
-
+           <span class="types"><a class="type" href="../classes/skb.attr.html">attr</a></span>
+        the attribute view.
     </ol>
 
 
 
-
-</dd>
-    <dt>
-    <a name = "sigstate"></a>
-    <strong>sigstate (sig[, state])</strong>
-    </dt>
-    <dd>
-    Checks signal state for current task.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number.
-        </li>
-        <li><span class="parameter">state</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         <code>&quot;blocked&quot;</code> (default), <code>&quot;pending&quot;</code>, or <code>&quot;allowed&quot;</code>.
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-
-
-
-    </ol>
-
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <pre class="example"><span class="keyword">local</span> sig = <span class="global">require</span>(<span class="string">"linux.signal"</span>)
-signal.<span class="function-name">sigstate</span>(<span class="number">15</span>) <span class="comment">-- check if SIGTERM is blocked
-</span>signal.<span class="function-name">sigstate</span>(sig.TERM, <span class="string">"pending"</span>)</pre>
-    </ul>
 
 </dd>
 </dl>
