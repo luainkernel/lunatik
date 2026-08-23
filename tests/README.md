@@ -81,7 +81,9 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   stripped) run under `lunatik run` and `require`; error messages carry the
   `-n` chunk name, or `?:?:` when stripped; a stock (float) number format
   is rejected by the chunk header; `load(..., "t")` rejects a chunk in the
-  kernel. Skips when `lunatikc` is not installed.
+  kernel; `-e` with the host byte order is byte-identical and with the
+  foreign byte order is rejected by the header. Skips when `lunatikc` is
+  not installed.
 
 ### monitor
 

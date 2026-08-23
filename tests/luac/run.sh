@@ -10,6 +10,8 @@
 #   - errors name the chunk name given with -n; stripped errors are "?:?:"
 #   - a chunk with a stock (float) number format is rejected by the header check
 #   - load() with mode "t" rejects a chunk inside the kernel
+#   - -e with the host byte order is byte-identical to the default output
+#   - -e with the foreign byte order is rejected by the header check
 #
 # Usage: sudo bash tests/luac/run.sh
 
@@ -20,16 +22,16 @@ SRC="$SCRIPTS_PATH/tests/luac"
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
-	rm -f "$SRC"/*_bc.lua "$SRC"/*_s.lua "$SRC"/stock.lua
+	rm -f "$SRC"/*_bc.lua "$SRC"/*_s.lua "$SRC"/stock.lua "$SRC"/*_order.lua
 }
 trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 8
+ktap_plan 10
 
 if ! command -v lunatikc >/dev/null; then
-	for i in $(seq 8); do ktap_skip "luac: lunatikc not installed"; done
+	for i in $(seq 10); do ktap_skip "luac: lunatikc not installed"; done
 	ktap_totals
 	exit 0
 fi
@@ -81,6 +83,23 @@ printf '\x00\x00\x00\x00\x00\x28\x77\xc0' | dd of="$SRC/stock.lua" bs=1 seek=32 
 output=$(lunatik run tests/luac/stock)
 echo "$output" | grep -q "Lua number format mismatch" || fail "luac: stock chunk accepted: $output"
 ktap_pass "luac: stock number format is rejected"
+
+if [ "$(printf '\001\000' | od -An -td2 | tr -d ' ')" = "1" ]; then
+	HOST_ORDER=little FOREIGN_ORDER=big
+else
+	HOST_ORDER=big FOREIGN_ORDER=little
+fi
+
+lunatikc -e "$HOST_ORDER" -n "@$SRC/hello_bc.lua" -o "$SRC/host_order.lua" "$SRC/hello.lua" \
+	|| fail "luac: compile -e $HOST_ORDER"
+cmp -s "$SRC/host_order.lua" "$SRC/hello_bc.lua" || fail "luac: -e $HOST_ORDER differs from the default output"
+ktap_pass "luac: host byte order output is byte-identical"
+
+lunatikc -e "$FOREIGN_ORDER" -n "@$SRC/hello_bc.lua" -o "$SRC/foreign_order.lua" "$SRC/hello.lua" \
+	|| fail "luac: compile -e $FOREIGN_ORDER"
+output=$(lunatik run tests/luac/foreign_order)
+echo "$output" | grep -q "int format mismatch" || fail "luac: foreign byte order accepted: $output"
+ktap_pass "luac: foreign byte order is rejected"
 
 mark_dmesg
 run_script "tests/luac/textmode"
