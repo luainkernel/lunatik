@@ -23,3 +23,10 @@ test("linux.random(n) stays within [1, n]", function()
 	end
 end)
 
+test("linux.random(m, n) stays within a negative range", function()
+	for i = 1, 1000 do
+		local r = linux.random(-126, -32)
+		assert(r >= -126 and r <= -32, "out of range: " .. r)
+	end
+end)
+
