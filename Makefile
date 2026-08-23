@@ -32,7 +32,7 @@ LUNATIKC := bin/lunatikc
 LUNATIKC_CORE := lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem lobject lopcodes \
 	lparser lstate lstring ltable ltm lundump lvm lzio lauxlib
 LUNATIKC_SRCS := ${LUNATIKC}.c $(addprefix lua/,$(addsuffix .c,$(LUNATIKC_CORE)))
-LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
+LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUNATIKC -DLUA_USE_LINUX -I. -Ilua
 
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
 ifeq ($(BYTECODE),1)

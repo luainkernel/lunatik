@@ -19,6 +19,7 @@
 
 #include <lua.h>
 #include <lauxlib.h>
+#include <lundump.h>
 
 #define LUNATIKC_EXT	".luac"
 
@@ -26,11 +27,18 @@ static const char *progname = "lunatikc";
 
 static void usage(void)
 {
-	fprintf(stderr, "usage: %s [-s] [-o output] [-n chunkname] input.lua ...\n"
+	fprintf(stderr, "usage: %s [-s] [-o output] [-n chunkname] [-e big|little] input.lua ...\n"
 		"  -s             strip debug information\n"
 		"  -o output      output file (or directory, with several inputs); default: input" LUNATIKC_EXT "\n"
-		"  -n chunkname   chunk name recorded in the dump; default: @input\n", progname);
+		"  -n chunkname   chunk name recorded in the dump; default: @input\n"
+		"  -e big|little  target byte order; default: the host's\n", progname);
 	exit(2);
+}
+
+static int bigendian(void)
+{
+	const union { unsigned int u; unsigned char b[sizeof(unsigned int)]; } one = {1};
+	return one.b[0] == 0;
 }
 
 static void fail(const char *msg)
@@ -139,6 +147,12 @@ int main(int argc, char **argv)
 			output = argv[++i];
 		else if (strcmp(argv[i], "-n") == 0 && i + 1 < argc)
 			chunkname = argv[++i];
+		else if (strcmp(argv[i], "-e") == 0 && i + 1 < argc) {
+			const char *order = argv[++i];
+			if (strcmp(order, "big") != 0 && strcmp(order, "little") != 0)
+				usage();
+			luaU_dumpswap = (order[0] == 'b') != bigendian();
+		}
 		else
 			usage();
 	}

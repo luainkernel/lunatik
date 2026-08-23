@@ -113,6 +113,8 @@ and integer-only number format; chunks from the distribution `luac` are rejected
 * `-s`: strip debug information (line numbers, local and upvalue names)
 * `-o output`: output file, or a directory when compiling several inputs (default: `<input>.luac`)
 * `-n chunkname`: chunk name recorded in the dump, as in `load` (default: `@<input>`)
+* `-e big|little`: target byte order (default: the host's); the header probes, instructions and
+  line tables are the only byte-order dependent parts of a chunk
 
 A chunk is installed and run under the usual `.lua` name; the kernel detects it by its signature:
 
