@@ -25,7 +25,7 @@ local runner = {}
 -- @tparam string script script filename (e.g., "myscript.lua").
 -- @treturn string script name without the ".lua" extension (e.g., "myscript").
 local function trim(script) -- drop ".lua" file extension
-	return script:gsub("(%w+).lua", "%1")
+	return (script:gsub("%.lua$", ""))
 end
 
 --- Stops an item (runtime or thread) in the given registry.
