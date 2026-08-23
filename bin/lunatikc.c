@@ -49,7 +49,7 @@ static char *readfile(const char *path, size_t *size)
 	if (n < 0 || fseek(f, 0, SEEK_SET) != 0)
 		return NULL;
 
-	char *buffer = malloc(n);
+	char *buffer = malloc(n + 1); /* n may be 0 */
 	if (buffer != NULL && fread(buffer, 1, n, f) != (size_t)n) {
 		free(buffer);
 		buffer = NULL;
