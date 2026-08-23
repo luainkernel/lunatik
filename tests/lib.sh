@@ -22,7 +22,7 @@ mark_dmesg() { dmesg -C 2>/dev/null; }
 dmesg_since() { dmesg; }
 check_dmesg() {
 	local errs
-	errs=$(dmesg_since | grep -E "\.lua:[0-9]+:" || true)
+	errs=$(dmesg_since | grep -E "(\.lua:[0-9]+|\?:\?):" || true)
 	[ -z "$errs" ] && return 0
 	ktap_fail "no Lua errors in kernel"
 	echo "# $errs"
