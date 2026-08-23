@@ -77,7 +77,17 @@ static inline int lunatik_ebpf_invoke(lua_State *L, int cb)
 	return 0;
 }
 
-static inline void lunatik_ebpf_attach(lua_State *L, int ix, int *cb)
+#define lunatik_ebpf_attach(L, obj, field, new_fn, ...)	\
+do {								\
+	obj->field = new_fn((L), ##__VA_ARGS__);		\
+	lunatik_getobject(obj->field);				\
+	lunatik_register((L), -1, obj->field);			\
+	lua_pop((L), 1);					\
+} while (0)
+
+#define lunatik_ebpf_detach(L, obj, field)	lunatik_unregister((L), obj->field)
+
+static inline void lunatik_ebpf_bind(lua_State *L, int ix, int *cb)
 {
 	lua_pushvalue(L, ix);
 	*cb = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -86,7 +96,7 @@ static inline void lunatik_ebpf_attach(lua_State *L, int ix, int *cb)
 	lua_pop(L, 1);
 }
 
-static inline void lunatik_ebpf_detach(lua_State *L, int *cb)
+static inline void lunatik_ebpf_unbind(lua_State *L, int *cb)
 {
 	luaL_unref(L, LUA_REGISTRYINDEX, *cb);
 	*cb = LUA_NOREF;

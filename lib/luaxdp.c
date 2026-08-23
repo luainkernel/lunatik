@@ -178,9 +178,9 @@ static int luaxdp_detach(lua_State *L)
 	if (lctx == NULL)
 		return 0;
 
-	lunatik_ebpf_detach(L, &lctx->cb);
-	lunatik_unregister(L, lctx->packet);
-	lunatik_unregister(L, lctx->argument);
+	lunatik_ebpf_unbind(L, &lctx->cb);
+	lunatik_ebpf_detach(L, lctx, packet);
+	lunatik_ebpf_detach(L, lctx, argument);
 	return 0;
 }
 
@@ -237,17 +237,10 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luaxdp_class, sizeof(luaxdp_ctx_t), LUNATIK_OPT_NONE);
 	luaxdp_ctx_t *ctx = (luaxdp_ctx_t *)object->private;
 
-	ctx->packet = luadata_new(L, LUNATIK_OPT_SINGLE);
-	lunatik_getobject(ctx->packet);
-	lunatik_register(L, -1, ctx->packet);
-	lua_pop(L, 1);
+	lunatik_ebpf_attach(L, ctx, packet, luadata_new, LUNATIK_OPT_SINGLE);
+	lunatik_ebpf_attach(L, ctx, argument, luadata_new, LUNATIK_OPT_SINGLE);
 
-	ctx->argument = luadata_new(L, LUNATIK_OPT_SINGLE);
-	lunatik_getobject(ctx->argument);
-	lunatik_register(L, -1, ctx->argument);
-	lua_pop(L, 1);
-
-	lunatik_ebpf_attach(L, 1, &ctx->cb);
+	lunatik_ebpf_bind(L, 1, &ctx->cb);
 	return 0;
 }
 #endif
