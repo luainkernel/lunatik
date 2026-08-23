@@ -67,7 +67,11 @@ static int lualinux_random(lua_State *L)
 	luaL_argcheck(L, low <= up, 1, "interval is empty");
 	luaL_argcheck(L, low >= 0 || up <= LUA_MAXINTEGER + low, 1, "interval too large");
 
-	rand = low + ((lua_Integer)get_random_u64()) % (up - low + 1);
+	{
+		u64 span = (u64)(up - low + 1);
+		u64 offset = get_random_u64() % span;
+		rand = low + (lua_Integer)offset;
+	}
 	lua_pushinteger(L, rand);
 	return 1;
 }
