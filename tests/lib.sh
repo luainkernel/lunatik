@@ -22,7 +22,7 @@ ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:$KTAP_SKIP"
 
 # A Lua error, or a kernel complaint a script's input should not be able to provoke;
 # arm64 heads an oops with "Internal error:", and a debug trap nobody owns with the BRK line.
-KTAP_ERRORS='\.lua:[0-9]+:|WARNING:|UBSAN:|Internal error:|Unexpected kernel BRK'
+KTAP_ERRORS='(\.lua:[0-9]+|\?:\?):|WARNING:|UBSAN:|Internal error:|Unexpected kernel BRK'
 
 mark_dmesg() { dmesg -C 2>/dev/null; }
 dmesg_since() { dmesg; }
