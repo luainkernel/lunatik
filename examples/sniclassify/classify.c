@@ -7,7 +7,8 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
 
-extern int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *skb) __ksym;
+extern int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *skb,
+		void *arg, size_t arg__sz) __ksym;
 
 static char runtime[] = "examples/sniclassify/sni";
 
@@ -52,7 +53,7 @@ int classify(struct __sk_buff *skb)
 	if (payload > data_end)
 		goto pass;
 
-	int action = bpf_luatc_run(runtime, sizeof(runtime), skb);
+	int action = bpf_luatc_run(runtime, sizeof(runtime), skb, NULL, 0);
 	if (action < 0)
 		return TC_ACT_OK;
 

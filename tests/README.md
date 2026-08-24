@@ -285,7 +285,8 @@ ARP never competes with ICMP for the verdict; skipped when the module lacks
 BTF, or `bpftool`, `clang` or `tc` is unavailable.
 
 - **tc pass**: the callback inspects `ctx:skb()` (IPv4 ethertype and the
-  ICMP protocol byte of the ping) and `action.ACT_OK` lets the packet reach
+  ICMP protocol byte of the ping) and `ctx:argument()` (a magic word the
+  eBPF program passed through), and `action.ACT_OK` lets the packet reach
   its destination; the runtime is plain, covering the plain-name kfunc lookup.
 
 - **tc drop**: `action.ACT_SHOT` blocks the ping; the runtime is percpu,

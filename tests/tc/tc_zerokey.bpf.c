@@ -6,7 +6,8 @@
 #include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 
-extern int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *skb) __ksym;
+extern int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *skb,
+		void *arg, size_t arg__sz) __ksym;
 
 static char runtime[] = "tests/tc/zerokey";
 
@@ -18,7 +19,7 @@ int test_tc_zerokey(struct __sk_buff *skb)
 {
 	/* drop on rejection, so a working guard blocks the ping and proves the kfunc ran */
 	int ret;
-	ret = bpf_luatc_run(runtime, 0, skb);
+	ret = bpf_luatc_run(runtime, 0, skb, NULL, 0);
 	return ret < 0 ? TC_ACT_SHOT : TC_ACT_OK;
 }
 

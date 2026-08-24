@@ -35,8 +35,11 @@ LUNATIK_EBPF_START();
 
 typedef struct luatc_ctx_s {
 	struct __sk_buff *skb;
+	void             *arg;
+	size_t            arg__sz;
 	int              *action;
 	lunatik_object_t *skb_obj;
+	lunatik_object_t *argument;
 	int              cb;
 } luatc_ctx_t;
 
@@ -64,6 +67,18 @@ static int luatc_skb(lua_State *L)
 }
 
 /***
+* Returns the argument data buffer passed from eBPF.
+* @function tc_ctx:argument
+* @treturn data argument buffer
+*/
+static int luatc_argument(lua_State *L)
+{
+	luatc_ctx_t *ctx = luatc_ctx_check(L, 1);
+	lunatik_getregistry(L, ctx->argument);
+	return 1;
+}
+
+/***
 * Sets the TC verdict action for this packet.
 * @function tc_ctx:action
 * @tparam integer action TC action constant (e.g. `TC_ACT_OK`, `TC_ACT_SHOT`, ...)
@@ -78,6 +93,7 @@ static int luatc_action(lua_State *L)
 static const luaL_Reg luatc_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"skb", luatc_skb},
+	{"argument", luatc_argument},
 	{"action", luatc_action},
 	{NULL, NULL}
 };
@@ -87,6 +103,8 @@ static void luatc_release(void *private)
 	luatc_ctx_t *lctx = (luatc_ctx_t *)private;
 	if (lctx->skb_obj)
 		luaskb_close(lctx->skb_obj);
+	if (lctx->argument)
+		luadata_close(lctx->argument);
 }
 
 LUNATIK_OPENER(tc);
@@ -101,6 +119,7 @@ static const lunatik_class_t luatc_class = {
 static inline void luatc_handler_cleanup(luatc_ctx_t *lctx)
 {
 	luaskb_clear(lctx->skb_obj);
+	luadata_clear(lctx->argument);
 	lctx->skb = NULL;
 	lctx->action = NULL;
 }
@@ -118,19 +137,24 @@ static int luatc_handler(lua_State *L, luatc_ctx_t *ctx)
 	luaskb_reset(lctx->skb_obj, skb);
 
 	lctx->skb     = ctx->skb;
+	lctx->arg     = ctx->arg;
+	lctx->arg__sz = ctx->arg__sz;
 	lctx->action  = ctx->action;
+	luadata_reset(lctx->argument, lctx->arg, lctx->arg__sz, LUADATA_OPT_KEEP);
 
 	ret = lunatik_ebpf_invoke(L, lctx->cb);
 	luatc_handler_cleanup(lctx);
 	return ret;
 }
 
-__bpf_kfunc int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *skb)
+__bpf_kfunc int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *skb, void *arg, size_t arg__sz)
 {
 	int action = -1;
 
 	luatc_ctx_t ctx = {
 		.skb     = skb,
+		.arg     = arg,
+		.arg__sz = arg__sz,
 		.action  = &action,
 	};
 
@@ -161,6 +185,7 @@ static int luatc_detach(lua_State *L)
 
 	lunatik_ebpf_unbind(L, &lctx->cb);
 	lunatik_ebpf_detach(L, lctx, skb_obj);
+	lunatik_ebpf_detach(L, lctx, argument);
 	return 0;
 }
 
@@ -171,12 +196,14 @@ static int luatc_detach(lua_State *L)
 * The runtime invoking this function must be non-sleepable.
 *
 * The `bpf_luatc_run` kfunc is called from an eBPF program with the following signature:
-* `int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *sk_buff)`
+* `int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *sk_buff, void *arg, size_t arg__sz)`
 *
 * - `key`: A string identifying the Lunatik runtime (e.g., the script name like "examples/sniclassify/sni").
 *   This key is used to look up the runtime in Lunatik's internal table of active runtimes.
 * - `key_sz`: Length of the key string (including the null terminator).
 * - `sk_buff`: The TC metadata context (`struct __sk_buff *`).
+* - `arg`: A pointer to arbitrary data passed from eBPF to Lua.
+* - `arg_sz`: The size of the `arg` data.
 *
 * @function attach
 * @tparam function callback Lua function to call. It receives one argument:
@@ -203,8 +230,9 @@ static int luatc_detach(lua_State *L)
 *
 *   -- In eBPF C code, to call the above Lua function:
 *   -- char rt_key[] = "my_tc_handler.lua"; // Key matches the script name
-*   -- int verdict = bpf_luatc_run(rt_key, sizeof(rt_key), skb);
+*   -- int verdict = bpf_luatc_run(rt_key, sizeof(rt_key), skb, NULL, 0);
 * @see skb
+* @see data
 * @within tc
 */
 static int luatc_attach(lua_State *L)
@@ -217,6 +245,7 @@ static int luatc_attach(lua_State *L)
 	luatc_ctx_t *ctx = (luatc_ctx_t *)object->private;
 
 	lunatik_ebpf_attach(L, ctx, skb_obj, luaskb_new);
+	lunatik_ebpf_attach(L, ctx, argument, luadata_new, LUNATIK_OPT_SINGLE);
 
 	lunatik_ebpf_bind(L, 1, &ctx->cb);
 	return 0;
