@@ -8,6 +8,7 @@ local tc      = require("tc")
 local action  = require("linux.tc")
 local skbattr = require("skb.attr")
 
+local MAGIC    <const> = 0x4C554E41 -- matches tc_pass.bpf.c
 local ETH_HI   <const> = 12 -- ethertype, then IPv4 protocol
 local ETH_LO   <const> = 13
 local IPPROTO  <const> = 23
@@ -22,7 +23,11 @@ local function test_pass(ctx)
 	if data:getuint8(ETH_HI) == 0x08 and data:getuint8(ETH_LO) == 0x00
 			and data:getuint8(IPPROTO) == ICMP
 			and skb.priority == 0x1234 and skb.mark == 0xabcd then
-		print("tc pass test pass: packet content verified")
+		if ctx:argument():getuint32(0) == MAGIC then
+			print("tc pass test pass: packet and argument content verified")
+		else
+			print("tc pass test fail: argument does not carry the magic")
+		end
 	else
 		print("tc pass test fail: packet content mismatch")
 	end

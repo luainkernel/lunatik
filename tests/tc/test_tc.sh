@@ -163,7 +163,7 @@ zerokey_case()
 }
 
 run_case tc_pass.bpf.o pass.lua yes "tc pass" \
-	"tc pass test pass: packet content verified" softirq
+	"tc pass test pass: packet and argument content verified" softirq
 run_case tc_drop.bpf.o drop.lua no "tc drop" \
 	"tc drop test pass: verdict set to drop" softirq percpu
 run_case tc_reattach.bpf.o reattach.lua yes "tc reattach" \
