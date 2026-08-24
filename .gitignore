@@ -16,6 +16,7 @@ doc/*
 !doc/design
 !doc/design/**
 /lib/linux/
+bin/lunatikc
 
 CLAUDE.local.md
 /scratch/
