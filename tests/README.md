@@ -337,6 +337,18 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   `setvbuf`, and `package` has no `cpath` and resolves a C module in the
   kernel symbol table.
 
+### luac
+
+- **run**: the bytecode compiler `lunatic`: compiled chunks (full and
+  stripped) run under `lunatik run` and `require`; error messages carry the
+  source path and line, or `?:?:` when stripped; `-l` lists a compiled
+  chunk; a syntax error names the file and line, `-p` writes no chunk, and
+  250 inputs compile in one call; `lunatik compile` forwards its arguments
+  and `lunatic`'s exit status; a stock (float) number format is rejected
+  by the chunk header, in the kernel and as an input to `lunatic`;
+  `load(..., "t")` rejects a chunk in the kernel. Skips when `lunatic` is
+  not installed.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).
