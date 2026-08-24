@@ -319,6 +319,15 @@ after the watch is stopped.
   (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_IN_IGNORED`,
   `FS_DN_MULTISHOT`) are absent.
 
+### luac
+
+- **run**: the bytecode compiler `lunatikc`: compiled chunks (full and
+  stripped) run under `lunatik run` and `require`; error messages carry the
+  source path and line, or `?:?:` when stripped; `-l` lists a compiled
+  chunk; a stock (float) number format is rejected by the chunk header;
+  `load(..., "t")` rejects a chunk in the kernel. Skips when `lunatikc` is
+  not installed.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).

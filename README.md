@@ -153,7 +153,7 @@ Install and run the test suites:
 sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (bpf, crypto, data, fifo,
-                            # fsnotify, hid, io, linux, monitor, netlink,
+                            # fsnotify, hid, io, linux, luac, monitor, netlink,
                             # notifier, probe, rcu, runtime, set, skb, socket,
                             # struct, task, tc, thread, xdp)
 ```
