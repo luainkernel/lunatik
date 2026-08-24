@@ -95,7 +95,7 @@ Lunatik 4.4  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 ### lunatik
 
 ```Shell
-usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu]
+usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu] [compile <arguments>]
 ```
 
 * `load`: load Lunatik kernel modules
@@ -103,6 +103,7 @@ usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [
 * `reload`: reload Lunatik kernel modules
 * `status`: show which Lunatik kernel modules are currently loaded
 * `test [suite]`: run installed test suites (see [Testing](#testing))
+* `compile <arguments>`: run `lunatic` with the given arguments (see [lunatic](#lunatic))
 * `list`: show which runtime environments are currently running
 * `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [percpu scripts](#percpu-scripts)
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
@@ -132,6 +133,31 @@ State that must see a whole flow therefore belongs in something the runtimes sha
 published in `lunatik._ENV` or the conntrack mark; the runtime holds what is per-CPU, a counter or
 a cache. An `rcu.table()` the script body creates is not shared: the body runs once per runtime, so
 each gets its own.
+### lunatic
+
+```Shell
+usage: lunatic [options] [filenames]
+```
+
+`lunatic` is `luac` built with the host compiler from the same `lua/` sources and configuration
+as `lunatik.ko`, so its chunks match the kernel's opcode set and integer-only number format;
+chunks from the distribution `luac` are rejected by the kernel. The options are `luac`'s
+(`-l` list, `-o` output, `-p` parse only, `-s` strip debug information, `-v` version), and
+`lunatik compile` runs it with the same arguments.
+
+A chunk is installed and run under the usual `.lua` name; the kernel detects it by its signature.
+Several inputs make one chunk that runs them in order, as with `luac`, so compile one file per
+call. `-s` drops the source name and the line numbers, so a stripped chunk reports an error as
+`?:?: ...`; keep the full chunk while developing:
+
+```Shell
+lunatik compile -o hello.luac hello.lua
+sudo install -m 0644 hello.luac /lib/modules/lua/hello.lua
+sudo lunatik run hello
+```
+
+`BYTECODE=1 make install` installs the kernel Lua libraries and the examples as stripped chunks
+instead of source, so an error raised from one of them reads `?:?:`.
 
 ### Testing
 

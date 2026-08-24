@@ -112,12 +112,22 @@ local function test_modules()
 	unload_modules()
 end
 
+local function compile_scripts()
+	local args = {}
+	for i = 2, #arg do
+		table.insert(args, "'" .. arg[i]:gsub("'", "'\\''") .. "'")
+	end
+	local ok, _, code = os.execute("lunatic " .. table.concat(args, " "))
+	os.exit(ok or code)
+end
+
 local commands = {
 	load   = load_modules,
 	unload = unload_modules,
 	reload = reload_modules,
 	status = status_modules,
 	test   = test_modules,
+	compile = compile_scripts,
 }
 
 local function readline_reader()
@@ -196,7 +206,7 @@ if #arg >= 1 then
 	local tokens = {run = true, spawn = true, stop = true, list = true}
 	local needs_script = {run = true, spawn = true, stop = true}
 	if not tokens[token] or (needs_script[token] and not script) then
-		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu]")
+		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu] [compile <arguments>]")
 		os.exit(false)
 	end
 	ensure_loaded()
