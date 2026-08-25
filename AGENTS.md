@@ -181,6 +181,8 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * Hooks and callbacks are named `local function`s referenced by name, never anonymous functions inline
   in a table field.
 * Named constants at the top: `local PORT <const> = 5562`. No magic numbers.
+* CAPS `<const>` marks a scalar constant; a table used as a lookup, dispatch, or allow-list is a
+  lowercase name by role — `codecs`, `tokens`, `fields` — never caps, even when it is `<const>`.
 * Prefer the standard library (`string.match`, `string.gsub`, `table.*`) over hand written loops.
 * The kernel Lua state has no `math.type`; use `type(x) == "number"`.
 * A call repeated with the same arguments in one flow is resolved once into a local:
@@ -192,6 +194,16 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
   false, `g()` runs too. Side effects and doubtful returns take if/else.
 * Name variables by role, not by structure: `proxy`, not `tbl`; `openproxy` to pair with `openqueue`,
   not `opentable`.
+* A module that makes objects returns a class or namespace table, never a bare function; that return
+  is for builders like `class` and `struct`. The object holds its underlying handle in a named field
+  — `socket`, `tfm` — not one prefixed with an underscore, and is constructed through `.new` or a
+  `:__call` method on the class, as `hkdf` and `inet` do, not a metatable wrapped around the module to
+  make it callable, which nothing in the tree does. The instance metatable is named for what it is,
+  not `mt`.
+* A proxy's metamethods do not allocate per access. `bpf.map`'s `view` resolves a key in one lookup;
+  an `__index` that builds a closure on every method fetch, or composes `"get" .. key`, pays that on
+  every packet in a softirq path, and the composed name collides with a real method spelled the same.
+  A fixed set of fields is a table looked up once, not a name assembled each time.
 
 Inside a CLI dostring, require once at startup and call by name afterwards:
 
@@ -244,6 +256,10 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
 * skip, do not fail, when the kernel lacks a required config;
 * mark `dmesg` before the run, read only what came after, and `check_dmesg` at the end;
 * clean up in a `trap`, and run the cleanup once up front as well;
+* the cleanup undoes everything any case can create, not only what the happy path stops inline: a case
+  that fails before its own teardown leaves its runtime registered, and the next run finds it already
+  there. A new case extends the cleanup in the commit that adds it, so the up-front run clears the
+  leak and a green formal test stays authoritative;
 * a test does not depend on what else runs on the host: when a host process — a network manager, say
   — can race it by acting on a resource the test created, make the test robust to any such process,
   not wired to silence one by name, which does not carry to another distro or to CI;
@@ -266,6 +282,12 @@ and every later change has to serve both. Authorship is not a reason to keep cod
 recently it was merged; a commit that removes or subsumes something already on `master` names it in
 the body.
 
+Reshaping or renaming an API means updating every consumer, grepped for — including consumers in
+stacked or sibling pull requests that will rebase onto the change. A caller left on the old shape
+compiles against a Lua module and only fails when its code path runs: `skb.attr` became a class with
+`.new` and a pure attribute view, and `sniclassify`'s `skbattr(...)` / `skb:data()` — written for the
+old factory — kept building and broke at the first packet.
+
 * Do not land an implementation you already intend to replace. A guarantee that holds only on some
   paths is not a guarantee: make it structural or do not offer it. Merging a half measure and opening
   a follow up that deletes it pollutes the history across pull requests the same way a commit that
@@ -274,12 +296,20 @@ the body.
   it and confirm every path that sets the value does. `invoke`'s type check is redundant because
   `attach` validates the callback first, so it is always a function there; a `pcall` that would catch
   a bad value anyway is a second reason, not the trace.
+* A function's contract — that it only reads, that it never sleeps, what it returns — is read from its
+  body, not inferred from its name or its place in a method table. `connmark` reads and writes through
+  one overloaded method despite sitting among read-only accessors; calling it read-only from where it
+  sits is a guess, not a trace.
 * Refusing is a legitimate outcome. When a combination has no sound semantics yet, refuse it where it
   is registered, with an error that names the reason, rather than shipping an approximation. Lifting
   the refusal afterwards is one line and a test.
 * A guard keys on a property that is true by construction where it is enforced, never on a proxy that
   merely correlates. That a registration is global is such a property. A netfilter hook number is not:
   the same hook runs in softirq or in process context depending on the path the packet took.
+* A call the conventions here already settle is made, not escalated: decide it, note it in a line, and
+  move on. A question is for a genuine fork — where the answer changes the outcome and no rule,
+  precedent, or test resolves it. Asking whether to add a comment the tree's macros never carry spends
+  the maintainer on a call this document already made.
 
 ## Patches and commits
 
@@ -327,70 +357,140 @@ the body.
 7. every helper the change introduces has a caller. A helper extracted to remove duplication but
    left unused, while the duplication it replaces still stands, is the refactor half-done. Grep the
    new symbols for a caller before sending.
+8. the branch is handed back merge-ready, not as a working scratch: the session's commits grouped into
+   a clean history that none of them undoes, nothing left to squash, the pull request title and body
+   describing the final state. On a harness or docs pull request you author, tidy it before returning
+   it, unasked — what comes back is reviewed and merged, not tidied first.
 
 ## Reviewing a pull request
 
 A review produces two things: the comments, and a branch showing what the comments ask for. Neither
-is posted before the maintainer has seen both.
+is posted before the maintainer has seen both, and the checklist below is the reviewer's own — a
+review that fails it is not ready, whatever the code looks like.
 
-1. Check out the author's branch, build it and run the suite. A review that only reads the diff
-   misses what the machine already knows. If it does not run, that is a hypothesis to trace, not a
-   finding to report: separate the artifact under test from the tool exercising it — the same
-   program the distribution's loader rejects may load under a current one — and exhaust the working
-   path before writing "could not run". A reviewer with the machine drives it to ground rather than
-   asking the author to confirm what the machine could have said. Read the PR's own conversation too,
-   not only its diff: an author's comment may raise a question or propose an alternative the review
-   has to engage with, and a verdict that ignores an open author thread is incomplete. A PR based on
-   another branch rather than `master` is stacked: review it against its own base, and read the whole
-   stack first, because what one PR seems to delete may have moved to a PR stacked on top of it —
-   check there before reporting a deletion as a loss.
-2. Work on `review/<pr number>`, started from the author's head. The number is what lets the author,
+### Before the verdict
+
+1. Check out the author's branch, build it, and run the suite. Reading the diff misses what the
+   machine already knows. A change with no test of its own — an example, a script — is run directly,
+   not merely built: an entry point that never fires hides a runtime crash behind a green build, and
+   an approval says it ran. If it does not run, that is a hypothesis to trace, not a finding: separate
+   the artifact under test from the tool exercising it — the same program the distribution's loader
+   rejects may load under a current one — and exhaust the working path before writing "could not run".
+   A reviewer with the machine drives it to ground rather than asking the author to confirm what the
+   machine could have said.
+2. List every file the pull request touches (`gh pr view <n> --json files`) and read from that list.
+   The patch spans the repo, not the feature's folder, so a claim that the PR contains or lacks a file
+   is grounded in that changeset, never in a directory listing scoped to where you assumed it would
+   live — "no README in the PR", from an `ls` of the example directory while the PR edited the
+   repo-root `README.md`, is the shape of that error.
+3. Read the PR's own conversation, not only its diff. An author's comment may raise a question or
+   propose an alternative the review has to engage; a verdict that ignores an open author thread is
+   incomplete.
+4. A PR based on another branch rather than `master` is stacked: review it against its own base, and
+   read the whole stack first, because what one PR seems to delete may have moved to a PR stacked on
+   top of it — check there before reporting a deletion as a loss.
+5. Work on `review/<pr number>`, started from the author's head. The number is what lets the author,
    and the next reviewer, find the branch; a name of your own choosing does not.
-3. One fixup per finding, `git commit --fixup=<the author's commit>`. Not one per file, and not one
-   per target commit: a comment pointing at a commit that does three unrelated things cannot be
-   accepted in parts, and the author is the one who autosquashes what they accept. A fixup touches
-   only what the pull request introduced; check the symbol's provenance before changing it, since one
-   already on `master` is a separate change on its own branch, not a fixup folded into this review. A
-   consistency fix on the branch's own code is done now, not deferred.
-4. Rebase the review branch when `master` moves under it, so the fixups still apply to what the
-   author will rebase onto.
-5. Draft the comments and hand them over. The repository's public voice is the maintainer's; a
-   reviewer writes, the maintainer posts. Do not comment on a pull request or an issue unless you
-   were asked to, and having offered earlier is not authorization.
 
-On the comments themselves:
+### Findings
 
-* Each one states the defect and the change it requires, and links the fixup that makes it as a full
-  commit URL — never a backtick'd SHA, which renders as code and does not link. Showing the shape of
-  the fix costs the author less than a paragraph describing it. A linked fixup's SHA is
-  a published reference the moment the comment posts; amending or rebasing the review branch after
-  that rewrites the SHA and leaves the link pointing at the superseded version. Leave the branch be
-  once posted; when a change is unavoidable, refresh the SHAs in the comments it moved.
-* A request for changes is not a place for praise. Padding buries the change being asked for.
-* Missing tests are a finding of their own, written as such, not a remark appended to another
-  comment.
-* The verdict states whether the pull request can merge as it stands: a finding that must be folded
-  is a request for changes, however small the fix. A comment review is for observations that do not
-  gate the merge.
-* A review holds new code to the conventions this file records; it does not impose preferences
-  beyond them. Where the tree itself is inconsistent and a style seems worth settling, that is an
-  exclusive pull request — one that fixes the whole tree and records the convention here — never a
-  finding on someone's feature work.
-* Work a review defers to a later pull request is captured as an issue, linked from the comment that
-  defers it. A "we can do this separately" that lives only in the thread is lost when the pull
-  request merges; the issue makes the deferral a tracked plan, not a promise.
-* A reply to an author's comment opens with a quote of the line it answers. An issue comment does
-  not thread, so a bare reply floats free of what prompted it; the quote makes it a reply instead of
-  a stray remark.
 * A finding names its severity from what is traced, not from what is feared. A crash is a crash only
-  when a reachable path reaches it; short of that it is a contract or parity gap, said as one. The
-  same discipline the commit rules ask of a root cause applies to a review's own claims.
-* Cover the whole diff before posting. A review that reads the one file it expected the bug in and
-  skips the rest — the helper it leans on, the example, the second module — is half a review, and
-  the half it skipped is where the reader assumes it looked.
+  when a reachable path reaches it; short of that it is a contract or parity gap, said as one. A cost
+  claim — "overhead", "slow", "expensive" — is a measurement, not an adjective: unmeasured, what you
+  have is a duplication or an extra call, named as that, not as a hot path. When a number would decide
+  the point and is not in hand, say it was not measured.
+* A symptom seen while poking by hand is not a finding until a clean run reproduces it. Reload to a
+  fresh slate, run once, apply one stimulus, read the result — that is authoritative; a scratch
+  fighting leftover state is not. An absence of errors counts only if you exercised the path that
+  raises them: zero because the code never ran is not zero because it ran clean. A "serious bug"
+  escalated from stale-environment noise and nearly filed against someone's PR is the failure this
+  guards against.
+* A finding is resolved, not parked. When something looks wrong, run it to ground — reproduce it, find
+  the cause, then fix it or dismiss it. "I'll flag it to the author", "let's look into it separately",
+  or asking whether to investigate is dropping it, not handling it. Deferral is for work that belongs
+  in another pull request, captured as an issue linked from the comment that defers it — not for the
+  hard half of the finding in hand.
+* Cover the whole change, and flag across all of it — the author's code and your own fixups alike.
+  "It is the author's code" or "my line, not the feature" is never a reason to pass over a defect;
+  what is scoped is the fixup, which touches only what a finding requires, not the finding. A review
+  that reads the one file it expected the bug in and skips the rest is half a review, and the half it
+  skipped is where the reader assumes it looked.
+* A review holds new code to the conventions this file records; it does not impose preferences beyond
+  them. Where the tree itself is inconsistent and a style seems worth settling, that is an exclusive
+  pull request that fixes the whole tree and records the convention here — never a finding on someone's
+  feature work. A name that deliberately mirrors a kernel symbol keeps its spelling: `TC_H_MAKE` ported
+  from the kernel macro stays upper-case though Lua functions are lower-case, because the recognition
+  is the point. Check what a name mirrors, and read the author's stated reason, before calling it a
+  violation.
+* A new module is read for its shape, not only its logic. How a module of its kind returns, names its
+  handle field, constructs, and documents is measured against the nearest existing sibling —
+  `socket.inet` for a wrapper, `bpf.map`'s `view` for a proxy — and correct code in a shape the tree
+  does not use is a finding. That a form conforms is found in the tree by grepping for the peer that
+  uses it, not felt.
+* The base can be the outdated one. When new code diverges from it, check which side is right before
+  aligning — pulling the new code down to match a sibling that is itself behind is the wrong fix.
+  `tc`'s BPF programs were right to declare `Dual MIT/GPL`; the `xdp` ones still on `GPL` are what a
+  separate cleanup fixes.
+* Missing tests are a finding of their own, written as such, not a remark appended to another comment.
+
+### Fixups
+
+* A code finding ships as the fixup that makes it, not as a paragraph in the imperative — "use
+  `set.labeled`", "name these offsets", "please follow that" hands the author work you could have done
+  and shown, and is the review half-done. The prose points at the fixup and says why; the fixup is the
+  change. A code finding with no commit behind it is not ready to post, and a review posted as comments
+  with no branch is the lazy half of the two the review owes.
+* One fixup per finding, `git commit --fixup=<the author's commit>` — not one per file, and not one
+  per target commit: a comment pointing at a commit that does three unrelated things cannot be accepted
+  in parts, and the author is the one who autosquashes what they accept. A fixup touches only what the
+  pull request introduced; check the symbol's provenance first, since one already on `master` is a
+  separate change on its own branch. A consistency fix on the branch's own code is done now, not
+  deferred.
+* A script or command handed to the author is one you ran, not one you syntax-checked or copied from a
+  doc. `bash -n` passing is not the script working, and "it is the README's own command" is not "it
+  runs here". If the environment cannot verify it — a stale module, a skewed signature in the way —
+  the verdict is "unverified", said plainly, not "it works".
+* Rebase the review branch when `master` moves under it, so the fixups still apply to what the author
+  will rebase onto. A linked fixup's SHA is a published reference the moment the comment posts;
+  amending or rebasing after that leaves the link pointing at the superseded version, so leave the
+  branch be once posted, and when a change is unavoidable, refresh the SHAs in the comments it moved.
+
+### Comments and the verdict
+
+* Draft the comments and hand them over. The repository's public voice is the maintainer's; a reviewer
+  writes, the maintainer posts. Do not comment on a pull request or an issue unless asked, and having
+  offered earlier is not authorization. Being told to post is not a license to post words the
+  maintainer has not read: show the exact text, get the go-ahead on it, then post — the approval is of
+  the wording, and "post it" or "where is it?" asks for the draft, not for it to already be public.
+* Each comment links its fixup as a full commit URL — never a backtick'd SHA, which renders as code and
+  does not link. A reply to an author's comment @-mentions the author and opens with a quote of the
+  line it answers: an issue comment does not thread and need not even notify them, so the @-mention
+  reaches them and the quote makes it a reply, not a stray remark. A request for changes is not a place
+  for praise; padding buries the change being asked for.
+* The verdict states whether the pull request can merge as it stands: a finding that must be folded is
+  a request for changes, however small; a comment review is for observations that do not gate. Once it
+  is clean, the verdict is an Approve, not a comment — a comment saying it looks good leaves an earlier
+  request-for-changes standing and the gate closed. Say it plainly and flip the state.
+* A further request-for-changes, when the PR already carries your changes-requested, does not surface:
+  GitHub stores it and the API shows it, but the conversation gains no new item because the gate did
+  not move — so it "posted" by every check you can run and is still invisible. When the gate is already
+  closed and there is more to say, comment. And feedback lives in one artifact: when you fall back to a
+  comment, or correct or move a comment, edit or supersede the one that carries it — never leave two
+  copies to drift.
+* Approving is the reviewer's to state; merging is the maintainer's to trigger. Even a clean, approved
+  PR is not merged on the reviewer's initiative — pushing or merging to `master` is irreversible and
+  public, and the click is the maintainer's alone. A question about state — "can we merge?", "is it
+  ready?", "what's the status?" — asks for the readiness, the way "where is it?" asks for a draft, not
+  for the merge. Wait for the imperative, "merge it"; report the state and stop.
+
+### After a round
+
 * Re-read your own review before it goes out, against the exact branch: the overstated severity, the
   file left unopened, the fixup whose comment drifted from what it does. The self-audit the code gets
   is owed to the review too.
-* The checklist above is the reviewer's too. A pull request that fails it is not ready, whatever the
-  code looks like.
+* A re-review re-fetches the author's branch and reads what changed there — not the review branch you
+  built last round. Diff the author's new head against what you last saw: re-reading your own fixups
+  reviews your work, not theirs, and misses what they folded wrong, spelled differently, or left out.
+  Confirming that prior findings were folded and the build is green is where a re-review starts, not
+  where it ends.
 
