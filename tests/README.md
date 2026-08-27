@@ -75,6 +75,11 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 - **test**: kernel `io` library (open/read/write/seek/lines/type); also
   asserts `io` is absent from softirq runtimes.
 
+### linux
+
+- **random**: `linux.random` ranged draws stay within `[m, n]`, covering
+  the two-argument, one-argument and negative-range forms.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).
