@@ -57,7 +57,9 @@ Trust the formal test over manual poking. Iterating by hand — `lunatik run`/`s
 `rmmod`, `modprobe` — leaves stale state that wedges the next run: an interface in the wrong mode, an
 orphan `.ko` still pinning the core, a script still registered. A test's `.sh` does its own setup and
 teardown; a green formal test is the authoritative result, not a red manual scratch fighting leftover
-state.
+state. A known-clean baseline is a precondition for a valid observation, not an afterthought: restore
+it before a run and again after, so what the next run sees is the code under test, not the residue of
+the last one.
 
 ### Running a script
 
@@ -404,7 +406,11 @@ review that fails it is not ready, whatever the code looks like.
   fighting leftover state is not. An absence of errors counts only if you exercised the path that
   raises them: zero because the code never ran is not zero because it ran clean. A "serious bug"
   escalated from stale-environment noise and nearly filed against someone's PR is the failure this
-  guards against.
+  guards against. Non-determinism is the tell: a symptom that shows on one run and not the next, from
+  the same inputs, is environment state, not a code path — the variable is the leftover, so control it
+  (a fresh reload, a pinned CPU, the program cut down to the one call under test) rather than theorise
+  a bug. The minimal isolating reproduction settles in one run what reading the noisy end-to-end path
+  never does.
 * A finding is resolved, not parked. When something looks wrong, run it to ground — reproduce it, find
   the cause, then fix it or dismiss it. "I'll flag it to the author", "let's look into it separately",
   or asking whether to investigate is dropping it, not handling it. Deferral is for work that belongs
