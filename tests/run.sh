@@ -38,6 +38,7 @@ run_suite "$DIR/bpf/run.sh"
 run_suite "$DIR/xdp/run.sh"
 run_suite "$DIR/crypto/run.sh"
 run_suite "$DIR/io/test.sh"
+run_suite "$DIR/linux/run.sh"
 run_suite "$DIR/probe/run.sh"
 run_suite "$DIR/notifier/run.sh"
 
