@@ -58,7 +58,7 @@ static inline void *lunatik_ebpf_getctx(lua_State *L)
 	lunatik_object_t *obj;
 	if (lunatik_getregistry(L, &lunatik_ebpf_env_key) != LUA_TUSERDATA) {
 		lua_pop(L, 1);
-		pr_err_ratelimited("couldn't find the context object\n");
+		pr_err_ratelimited("no callback attached (cpu %d)\n", lunatik_getcpu(L));
 		return NULL;
 	}
 	obj = (lunatik_object_t *)lunatik_toobject(L, -1);
