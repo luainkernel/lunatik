@@ -172,6 +172,10 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
   says what `cpu >= 0` only implies, and ties the definition, the default and every test of it.
 * For every raise after acquiring a resource, know what is already held and who releases it; validate
   before acquiring whenever the check does not need the resource.
+* A log or error message is one terse line naming the condition, in the tree's voice — `couldn't find
+  X`, lowercase, no trailing period — not a sentence spelling out the cause and its caveats. The
+  reasoning behind a failure belongs in a code comment or the commit message, not the runtime log; a
+  `pr_err` that reads as a paragraph is the smell.
 
 ## Lua style
 
