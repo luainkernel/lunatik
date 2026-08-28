@@ -367,6 +367,14 @@ old factory — kept building and broke at the first packet.
    a clean history that none of them undoes, nothing left to squash, the pull request title and body
    describing the final state. On a harness or docs pull request you author, tidy it before returning
    it, unasked — what comes back is reviewed and merged, not tidied first.
+9. the simplification pass, before sending. For each helper, collection, or loop the change adds, name
+   what it buys over the minimal shape — weighing the whole cost, not the line count at one call site.
+   A loop that vanishes locally by generating a build-time list can add more surface than it removes
+   (an extra argument, an emitted table, a file to keep in sync); prefer the ground truth the system
+   already exposes — the kernel's own "Used by" list, a field already on the struct — over a structure
+   invented to encode it, and keep a loop that is doing honest work. The same holds for a comment: one
+   non-obvious reason, one line, at the site that needs it — not spread over two, not repeated wherever
+   the feature is touched.
 
 ## Reviewing a pull request
 
