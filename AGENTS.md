@@ -352,6 +352,22 @@ old factory — kept building and broke at the first packet.
 * Copyright years: a new file carries the current year; a modified file extends its range to include
   it.
 
+## Reviewing your own change
+
+The conventions in this document are a checklist to run against your own diff before showing it, not
+reference to reach for after a reviewer objects. Code shown without that pass makes the reader the
+reviewer, and the deviations they then find — a prefix nothing else in the file uses, a comment on a
+body the file leaves bare, a handle closed by hand where the file uses `<close>` — were already rules
+here. The failure is not the missing rule; it is not running the ones that exist.
+
+Before presenting a change to an existing file, read the file as the authority and measure the
+addition against it — naming, comment density, idioms, resource handling, duplication — then prove
+the behaviour on the operation in isolation, not a round trip that hides a partial result: `unload`
+reaching zero, not `reload` returning to a full set. The pass covers the prose the change ships with,
+too: after any rewrite or force-push, re-read the commit message and the pull request body against
+the final code, as *Patches and commits* requires — a description of a version the branch no longer
+contains is the same failure as unreviewed code. A change shown without that pass is not done.
+
 ## Before opening a pull request
 
 1. `make` is clean, with no new warnings;
