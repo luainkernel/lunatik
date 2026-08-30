@@ -352,6 +352,8 @@ old factory — kept building and broke at the first packet.
 * Restoring something that was removed puts it back exactly where and how it was.
 * Subject line says what changed and why, not how. A body only when there is something the diff does
   not say: a new API, a behaviour change, a non obvious rationale. No bullet list of every detail.
+* A pull request title and body follow the same rule: what and why, nothing the commits already say.
+  No "Test plan" section, and no em dashes.
 * A root cause named in a commit body or a pull request rests on a captured stack or a source-traced
   chain, not a correlated log line or a plausible mechanism. Until it is traced it is a hypothesis,
   labelled as one; a fix may land on the observed behaviour without naming a cause it has not proven.
@@ -428,7 +430,8 @@ review that fails it is not ready, whatever the code looks like.
    the artifact under test from the tool exercising it — the same program the distribution's loader
    rejects may load under a current one — and exhaust the working path before writing "could not run".
    A reviewer with the machine drives it to ground rather than asking the author to confirm what the
-   machine could have said.
+   machine could have said. The base to diff against is `origin/master`, not the local `master`, which
+   may have drifted; `git rev-list --count origin/master..master` says whether it did.
 2. List every file the pull request touches (`gh pr view <n> --json files`) and read from that list.
    The patch spans the repo, not the feature's folder, so a claim that the PR contains or lacks a file
    is grounded in that changeset, never in a directory listing scoped to where you assumed it would
@@ -445,6 +448,9 @@ review that fails it is not ready, whatever the code looks like.
 
 ### Findings
 
+* A finding is worded softly even when its trace is hard. A prescriptive "should" lands as a ruling
+  on the author's work: say what the code does, what impression the name or contract gives, and
+  offer the fix conditioned on the intent. The trace can be categorical; the phrasing is not.
 * A finding names its severity from what is traced, not from what is feared. A crash is a crash only
   when a reachable path reaches it; short of that it is a contract or parity gap, said as one. A cost
   claim — "overhead", "slow", "expensive" — is a measurement, not an adjective: unmeasured, what you
@@ -517,6 +523,10 @@ review that fails it is not ready, whatever the code looks like.
   offered earlier is not authorization. Being told to post is not a license to post words the
   maintainer has not read: show the exact text, get the go-ahead on it, then post — the approval is of
   the wording, and "post it" or "where is it?" asks for the draft, not for it to already be public.
+* A code finding is posted inline, anchored on the line it addresses; the review body carries the
+  verdict and opens addressing the author by handle. A finding in the body, away from its line,
+  makes the reader hunt for where it applies — and a submitted review cannot be deleted, only
+  dismissed, so the placement is decided before posting, not repaired after.
 * Each comment links its fixup as a full commit URL — never a backtick'd SHA, which renders as code and
   does not link. A reply to an author's comment @-mentions the author and opens with a quote of the
   line it answers: an issue comment does not thread and need not even notify them, so the @-mention
