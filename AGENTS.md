@@ -8,8 +8,12 @@ Lunatik runs Lua inside the Linux kernel. A mistake here does not raise an excep
 machine. Two rules follow from that and outrank everything else in this document:
 
 1. **Verify, do not assume.** Before using a kernel API, read its declaration in
-   `/usr/src/linux-headers-$(uname -r)/include` and confirm it is exported in `Module.symvers`.
-   Signatures change between releases. If you have not checked, say so instead of asserting.
+   `/usr/src/linux-headers-$(uname -r)/include` and confirm it is exported in `Module.symvers`. A
+   kernel interface read at runtime rather than linked — a `/sys` or `/proc` path and the format it
+   returns, the `/dev/lunatik` protocol — is held to the same rule: confirm it against the source
+   across the supported kernel range (5.15 and later), not from the one kernel you happen to run.
+   Signatures and formats change between releases. If you have not checked, say so instead of
+   asserting.
 2. **Know your execution context.** Code that may sleep must not run from softirq or hardirq context.
    See "Execution contexts" below.
 
