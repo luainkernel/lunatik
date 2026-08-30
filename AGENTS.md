@@ -57,6 +57,21 @@ before the next `reload`.
 Never run two `lunatik` operations at once. Concurrent operations wedge `/dev/lunatik` and leave
 processes in D state. Check with `ps` before starting one.
 
+`lunatik reload` unloads only the modules the installed CLI lists. A module loaded from another
+branch's install escapes it and pins the core: `rmmod` reports `Module lunatik is in use by ...`
+while `lunatik list` is empty. Diff `lsmod` against the installed `lunatik/config.lua` to find the
+orphan and `rmmod` it — the one case where a manual `rmmod` is the fix.
+
+The autogen output (`autogen/linux/*.lua`, `autogen/.config`, `autogen/.stamp`) is untracked build
+state and does not follow a branch switch. The symptom is a runtime `attempt to index a nil value`
+on a `linux.*` constant, not a build error. Regenerate cleanly with
+`rm -f autogen/.stamp autogen/linux/*.lua && make`; autogen recreates the files, not the directory.
+
+`make install` never removes a stray file from `/lib/modules/lua/`. A scratch script left there
+shadows the module of the same name: `require` returns `true` and the failure surfaces later as
+`attempt to index a boolean value`, far from its cause. Remove a scratch script right after
+running it.
+
 Trust the formal test over manual poking. Iterating by hand — `lunatik run`/`stop`, `iw`, `ip`,
 `rmmod`, `modprobe` — leaves stale state that wedges the next run: an interface in the wrong mode, an
 orphan `.ko` still pinning the core, a script still registered. A test's `.sh` does its own setup and
