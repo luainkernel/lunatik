@@ -109,7 +109,7 @@ sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (bpf, crypto, io, linux,
                             # monitor, netlink, notifier, probe, rcu, runtime,
-                            # set, skb, socket, struct, thread, xdp)
+                            # set, skb, socket, struct, task, thread, xdp)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them
@@ -161,6 +161,7 @@ The table below lists the available kernel Lua modules:
 | Module | Description |
 |--------|-------------|
 | `linux` | Kernel utilities: `schedule`, `time`, `random`, `stat` flags |
+| `task` | Linux task inspection: `comm`, `pid`, `tgid`, `prio`, `cpu`, `current` |
 | `thread` | Kernel threads: spawn, stop, `shouldstop` |
 | `socket` | Kernel sockets: TCP, UDP, AF\_PACKET, AF\_UNIX |
 | `netlink` | Netlink namespace: rtnetlink and generic-netlink sessions, softirq-safe channel |
