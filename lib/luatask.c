@@ -20,6 +20,11 @@ LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *,
 );
 
 /***
+* A Linux task.
+* @type task
+*/
+
+/***
 * Returns the command name (comm) of the task, i.e., the executable.
 * This is truncated to TASK_COMM_LEN (16) characters by the kernel.
 * @function comm
@@ -96,18 +101,14 @@ static int luatask_cpu(lua_State *L)
 */
 static int luatask_current(lua_State *L)
 {
-	lunatik_object_t *object = luatask_new(L, current);
-	lunatik_pushobject(L, object);
+	luatask_new(L, current);
 	return 1;
 }
 
 static void luatask_release(void *private)
 {
-	struct task_struct *task = (struct task_struct *)private;
-	if (task) {
-		put_task_struct(task);
-		task = NULL;
-	}
+	if (private)
+		put_task_struct((struct task_struct *)private);
 }
 
 static const luaL_Reg luatask_lib[] = {
@@ -131,18 +132,16 @@ static const lunatik_class_t luatask_class = {
 	.methods = luatask_mt,
 	.release = luatask_release,
 	.opener  = luaopen_task,
-	.opt     = LUNATIK_OPT_SOFTIRQ,
+	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_EXTERNAL,
 };
 
 lunatik_object_t *luatask_new(lua_State *L, struct task_struct *task)
 {
 	lunatik_require(L, &luatask_class);
-	lunatik_object_t *object = lunatik_newobject(L, &luatask_class, sizeof(struct task_struct *), LUNATIK_OPT_NONE);
+	lunatik_object_t *object = lunatik_newobject(L, &luatask_class, 0, LUNATIK_OPT_NONE);
 	if (task)
 		get_task_struct(task);
 	object->private = task;
-	lunatik_getobject(object);
-	lua_pop(L, 1);
 	return object;
 }
 EXPORT_SYMBOL(luatask_new);

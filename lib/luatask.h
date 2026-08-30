@@ -11,12 +11,12 @@
 
 static inline void luatask_reset(lunatik_object_t *object, struct task_struct *task)
 {
-	struct task_struct *ltask = (struct task_struct *)object->private;
+	struct task_struct *old = (struct task_struct *)object->private;
 	if (task != NULL)
 		get_task_struct(task);
-	if (ltask != NULL)
-		put_task_struct(ltask);
-	ltask = task;
+	if (old != NULL)
+		put_task_struct(old);
+	object->private = task;
 }
 
 static inline void luatask_clear(lunatik_object_t *object)
