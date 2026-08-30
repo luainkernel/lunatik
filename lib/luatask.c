@@ -142,10 +142,9 @@ static const lunatik_class_t luatask_class = {
 lunatik_object_t *luatask_new(lua_State *L, struct task_struct *task)
 {
 	lunatik_require(L, &luatask_class);
-	if (!task)
-		return NULL;
 	lunatik_object_t *object = lunatik_newobject(L, &luatask_class, sizeof(struct task_struct *), LUNATIK_OPT_NONE);
-	get_task_struct(task);
+	if (task)
+		get_task_struct(task);
 	object->private = task;
 	lunatik_getobject(object);
 	lua_pop(L, 1);
