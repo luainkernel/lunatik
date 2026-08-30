@@ -28,6 +28,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | `bin/lunatik` | userspace CLI, talks to the kernel through `/dev/lunatik` |
 | `tests/` | KTAP integration tests, one directory per suite |
 | `examples/` | example kernel scripts |
+| `tools/` | maintenance scripts, and the mechanical convention checks in `tools/checks/` |
 | `doc/` | all documentation: the hand written C API reference (`doc/capi.md`), design notes (`doc/design/`), and generated LDoc output (everything else, gitignored) |
 | `doc/design/` | design notes for work in progress: gap analysis, proposed APIs, verified kernel references, test strategy |
 
@@ -79,6 +80,16 @@ teardown; a green formal test is the authoritative result, not a red manual scra
 state. A known-clean baseline is a precondition for a valid observation, not an afterthought: restore
 it before a run and again after, so what the next run sees is the code under test, not the residue of
 the last one.
+
+### Checks
+
+`tools/checks/` holds the mechanical checks: comment and LDoc style on framework files
+(`module-conventions.sh`), test scripts that cannot detect a failed load (`test-harness.sh`),
+cppcheck on userspace test C (`cppcheck-tests.sh`), and the trailing blank line rule (`pre-commit`).
+Each takes file paths and skips what does not apply, so any editor, assistant, or CI can run them.
+Install the commit gate with:
+
+    ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
 ### Running a script
 
@@ -164,7 +175,8 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
   shorter word is a deviation.
 * Kernel headers first, then a blank line, then `#include <lunatik.h>`. Do not remove that blank line.
 * `<lua.h>` and `<lauxlib.h>` are already pulled in by `lunatik.h`.
-* Every file ends with a trailing blank line. A pre commit hook rejects files that do not.
+* Every file ends with a trailing blank line. `tools/checks/pre-commit` rejects a commit that does
+  not.
 * Lunatik has no floats. Do not check `lua_isinteger`.
 * Multi line macros use the `do { ... } while (0)` form.
 * Do not duplicate a struct defined by another module; use its exported API.
