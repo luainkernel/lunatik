@@ -368,9 +368,11 @@ Before presenting a change to an existing file, read the file as the authority a
 addition against it — naming, comment density, idioms, resource handling, duplication — then prove
 the behaviour on the operation in isolation, not a round trip that hides a partial result: `unload`
 reaching zero, not `reload` returning to a full set. The pass covers the prose the change ships with,
-too: after any rewrite or force-push, re-read the commit message and the pull request body against
-the final code, as *Patches and commits* requires — a description of a version the branch no longer
-contains is the same failure as unreviewed code. A change shown without that pass is not done.
+too: after any rewrite or force-push, the commit message and the pull request body go through the
+same review against the final code — a claim the code does not support, a mechanism the branch
+dropped or a rationale its call sites contradict, is caught there, as *Patches and commits* requires.
+Saying the prose matches is not the check; showing the claim-to-code mapping is. A change shown
+without that pass is not done.
 
 ## Before opening a pull request
 
