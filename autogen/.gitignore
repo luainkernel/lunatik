@@ -3,4 +3,6 @@ dump_*.c
 dump_*.pp
 extract.c
 extract.s
+.config
+.stamp
 
