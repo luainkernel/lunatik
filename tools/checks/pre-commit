@@ -1,0 +1,28 @@
+#!/bin/bash
+# Pre-commit hook: reject staged text files (C, Lua, Makefile, shell scripts)
+# missing the trailing blank line the tree requires.
+# Install with: ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
+
+bad=""
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+	case "$f" in
+		*.c|*.h|*.lua|Makefile|*.sh|bin/*)
+			if file --mime-encoding "$(git rev-parse --show-toplevel)/$f" 2>/dev/null | grep -q binary; then
+				continue
+			fi
+			if [ "$(git show ":$f" | tail -c 2 | tr '\n' 'N')" != "NN" ]; then
+				bad="$bad $f"
+			fi
+			;;
+	esac
+done
+
+if [ -n "$bad" ]; then
+	echo "ERROR: Files missing a trailing blank line:"
+	for f in $bad; do
+		echo "  $f"
+	done
+	echo "Fix with: printf '\\n' >> <file>"
+	exit 1
+fi
+
