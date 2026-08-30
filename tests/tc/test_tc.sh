@@ -45,6 +45,7 @@ skip_all()
 	echo "# SKIP: $1"
 	ktap_skip "tc pass: verdict enforced, packet and argument content verified"
 	ktap_skip "tc drop: verdict enforced correctly"
+	ktap_skip "tc reattach: re-attach installs the last callback"
 	ktap_skip "tc detach: callback stops firing and traffic resumes"
 	ktap_skip "tc attach: refuses a sleepable runtime"
 	ktap_skip "tc zero-key: a zero-sized key is rejected without a crash"
