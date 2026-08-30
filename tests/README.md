@@ -276,6 +276,21 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   out-of-order fields — with a pack/unpack round-trip, `fieldsize` reporting
   a named field's width, and the overlapping-fields (union) guard.
 
+### task
+
+Covers the `task` module (`luatask`).
+
+- **task**: `task.current()` returns a usable task object from process
+  context; `comm()` reports the caller's command name (`lunatik`, the CLI
+  process that issues the script via the device's `write(2)` callback);
+  `pid()`/`tgid()` are positive and match for the single-threaded caller;
+  `prio()` stays within the kernel's dynamic priority range; `cpu()` returns
+  a valid CPU index associated with the task; and independent `current()`
+  calls agree and remain usable across garbage collection of another reference.
+- **softirq**: `task` loads in a softirq-flagged runtime and
+  `task.current()` allocates correctly using the class's softirq-safe
+  allocation flags, without crashing the kernel.
+
 ### tc
 
 Regression tests for `luatc`. The suite builds real TC/eBPF programs that call

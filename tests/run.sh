@@ -27,6 +27,7 @@ run_suite() {
 
 run_suite "$DIR/monitor/run.sh"
 run_suite "$DIR/thread/run.sh"
+run_suite "$DIR/task/run.sh"
 run_suite "$DIR/runtime/run.sh"
 run_suite "$DIR/socket/run.sh"
 run_suite "$DIR/netlink/run.sh"
