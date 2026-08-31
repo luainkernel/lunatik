@@ -82,6 +82,7 @@ config LUNATIK_TASK
 config LUNATIK_THREAD
 	tristate "Lunatik Thread Support"
 	default m
+	select LUNATIK_TASK
 	help
 	  Kernel thread management from Lua.
 

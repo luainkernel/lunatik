@@ -13,6 +13,8 @@
 
 #include <lunatik.h>
 
+#include "luatask.h"
+
 /***
 * Represents a kernel thread object.
 * @type thread
@@ -113,35 +115,21 @@ static int luathread_stop(lua_State *L)
 }
 
 /***
-* Retrieves information about the kernel task associated with the thread.
+* Returns a task object for the kernel task associated with the thread.
+* Once the thread has exited the object has no task and its methods raise.
 * @function task
 * @tparam thread self thread object.
-* @treturn table A table with fields: `cpu` (SMP only), `command`, `pid`, `tgid`.
+* @treturn task
 * @usage
-* local info = my_thread:task()
+* local t = my_thread:task()
+* print(t:pid(), t:comm())
 */
 static int luathread_task(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_toobject(L, 1);
 	luathread_t *thread = (luathread_t *)object->private;
-	struct task_struct *task = thread->task;
 
-	lua_createtable(L, 0, 4);
-	int table = lua_gettop(L);
-
-#ifdef CONFIG_SMP
-	lua_pushinteger(L, task->on_cpu);
-	lua_setfield(L, table, "cpu");
-#endif
-
-	lua_pushstring(L, task->comm);
-	lua_setfield(L, table, "command");
-
-	lua_pushinteger(L, task->pid);
-	lua_setfield(L, table, "pid");
-
-	lua_pushinteger(L, task->tgid);
-	lua_setfield(L, table, "tgid");
+	luatask_new(L, thread->task);
 	return 1;
 }
 
