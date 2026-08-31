@@ -29,6 +29,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | `tests/` | KTAP integration tests, one directory per suite |
 | `examples/` | example kernel scripts |
 | `tools/` | maintenance scripts, and the mechanical convention checks in `tools/checks/` |
+| `.agents/skills/` | the recurring workflows packaged as agent skills (open `SKILL.md` format) |
 | `doc/` | all documentation: the hand written C API reference (`doc/capi.md`), design notes (`doc/design/`), and generated LDoc output (everything else, gitignored) |
 | `doc/design/` | design notes for work in progress: gap analysis, proposed APIs, verified kernel references, test strategy |
 
@@ -90,6 +91,13 @@ Each takes file paths and skips what does not apply, so any editor, assistant, o
 Install the commit gate with:
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
+
+### Skills
+
+`.agents/skills/` packages the recurring workflows — the build/test cycle, a new binding, a new
+test suite, preparing a pull request — as agent skills in the open `SKILL.md` format
+([agentskills.io](https://agentskills.io)), discovered by any compatible assistant. Each one
+defers to this file as the authority and orders the steps; none replaces reading it.
 
 ### Running a script
 
