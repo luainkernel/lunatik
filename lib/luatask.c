@@ -33,7 +33,9 @@ LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *,
 static int luatask_comm(lua_State *L)
 {
 	struct task_struct *task = luatask_check(L, 1);
-	lua_pushstring(L, task->comm);
+	char comm[TASK_COMM_LEN];
+	strscpy_pad(comm, task->comm, sizeof(comm));
+	lua_pushstring(L, comm);
 	return 1;
 }
 
