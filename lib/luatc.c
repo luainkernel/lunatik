@@ -59,24 +59,14 @@ LUNATIK_PRIVATECHECKER(luatc_ctx_check, luatc_ctx_t *,
 * @function tc_ctx:skb
 * @treturn skb
 */
-static int luatc_skb(lua_State *L)
-{
-	luatc_ctx_t *ctx = luatc_ctx_check(L, 1);
-	lunatik_getregistry(L, ctx->skb_obj);
-	return 1;
-}
+LUNATIK_EBPF_GETTER(luatc_skb, luatc_ctx_check, skb_obj)
 
 /***
 * Returns the argument data buffer passed from eBPF.
 * @function tc_ctx:argument
 * @treturn data argument buffer
 */
-static int luatc_argument(lua_State *L)
-{
-	luatc_ctx_t *ctx = luatc_ctx_check(L, 1);
-	lunatik_getregistry(L, ctx->argument);
-	return 1;
-}
+LUNATIK_EBPF_GETTER(luatc_argument, luatc_ctx_check, argument)
 
 /***
 * Sets the TC verdict action for this packet.
