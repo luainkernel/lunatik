@@ -57,24 +57,14 @@ LUNATIK_PRIVATECHECKER(luaxdp_ctx_check, luaxdp_ctx_t *,
 * @function xdp_ctx:packet
 * @treturn data packet buffer
 */
-static int luaxdp_packet(lua_State *L)
-{
-	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
-	lunatik_getregistry(L, ctx->packet);
-	return 1;
-}
+LUNATIK_EBPF_GETTER(luaxdp_packet, luaxdp_ctx_check, packet)
 
 /***
 * Returns the argument data buffer passed from eBPF.
 * @function xdp_ctx:argument
 * @treturn data argument buffer
 */
-static int luaxdp_argument(lua_State *L)
-{
-	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
-	lunatik_getregistry(L, ctx->argument);
-	return 1;
-}
+LUNATIK_EBPF_GETTER(luaxdp_argument, luaxdp_ctx_check, argument)
 
 /***
 * Sets the XDP verdict action for this packet.

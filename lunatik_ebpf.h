@@ -87,6 +87,13 @@ do {								\
 
 #define lunatik_ebpf_detach(L, obj, field)	lunatik_unregister((L), obj->field)
 
+#define LUNATIK_EBPF_GETTER(name, checker, field)	\
+static int name(lua_State *L)				\
+{							\
+	lunatik_getregistry(L, checker(L, 1)->field);	\
+	return 1;					\
+}
+
 static inline void lunatik_ebpf_bind(lua_State *L, int ix, int *cb)
 {
 	lua_pushvalue(L, ix);
