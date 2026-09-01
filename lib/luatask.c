@@ -99,8 +99,7 @@ static int luatask_cpu(lua_State *L)
 */
 static int luatask_current(lua_State *L)
 {
-	lunatik_object_t *object = luatask_new(L, current);
-	lunatik_pushobject(L, object);
+	luatask_new(L, current);
 	return 1;
 }
 
@@ -143,8 +142,6 @@ lunatik_object_t *luatask_new(lua_State *L, struct task_struct *task)
 	if (task)
 		get_task_struct(task);
 	object->private = task;
-	lunatik_getobject(object);
-	lua_pop(L, 1);
 	return object;
 }
 EXPORT_SYMBOL(luatask_new);
