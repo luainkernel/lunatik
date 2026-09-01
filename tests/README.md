@@ -284,13 +284,12 @@ Covers the `task` module (`luatask`).
   context; `comm()` reports the caller's command name (`lunatik`, the CLI
   process that issues the script via the device's `write(2)` callback);
   `pid()`/`tgid()` are positive and match for the single-threaded caller;
-  `prio()` stays within the kernel's dynamic priority range; `cpu()` is
-  only exposed under `CONFIG_SMP` and reflects the caller actively
-  running; and independent `current()` calls agree and remain usable
-  across garbage collection of another reference.
+  `prio()` stays within the kernel's dynamic priority range; `cpu()` returns
+  a valid CPU index associated with the task; and independent `current()`
+  calls agree and remain usable across garbage collection of another reference.
 - **softirq**: `task` loads in a softirq-flagged runtime and
-  `task.current()` allocates correctly (`GFP_ATOMIC`, via the class's opt
-  being OR'd in) instead of crashing.
+  `task.current()` allocates correctly using the class's softirq-safe
+  allocation flags, without crashing the kernel.
 
 ### tc
 
