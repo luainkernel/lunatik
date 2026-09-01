@@ -79,19 +79,16 @@ static int luatask_prio(lua_State *L)
 }
 
 /***
-* Returns whether the task is currently running on a CPU.
-* Only available on SMP systems.
+* Returns the CPU the task last ran on.
 * @function cpu
-* @treturn integer 1 if a task is actively occupying a CPU core, else 0.
+* @treturn integer CPU index
 */
-#ifdef CONFIG_SMP
 static int luatask_cpu(lua_State *L)
 {
 	struct task_struct *task = luatask_check(L, 1);
-	lua_pushinteger(L, task->on_cpu);
+	lua_pushinteger(L, task_cpu(task));
 	return 1;
 }
-#endif
 
 /***
 * Gets an object representing the current kernel task.
@@ -125,9 +122,7 @@ static const luaL_Reg luatask_mt[] = {
 	{"pid", luatask_pid},
 	{"tgid", luatask_tgid},
 	{"prio", luatask_prio},
-#ifdef CONFIG_SMP
 	{"cpu", luatask_cpu},
-#endif
 	{NULL, NULL}
 };
 
