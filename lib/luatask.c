@@ -20,6 +20,11 @@ LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *,
 );
 
 /***
+* A Linux task.
+* @type task
+*/
+
+/***
 * Returns the command name (comm) of the task, i.e., the executable.
 * This is truncated to TASK_COMM_LEN (16) characters by the kernel.
 * @function comm
