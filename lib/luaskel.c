@@ -3,6 +3,15 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/***
+* Skeleton for a new Lunatik binding.
+* Template for a kernel module exposing a Lua library: copy it to
+* `lib/lua<name>.c`, rename the `luaskel_` prefix, and grow it following
+* AGENTS.md. The no-op object class wires the whole object model: checker,
+* methods, release, opener.
+* @module skel
+*/
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <lunatik.h>
@@ -13,6 +22,15 @@ typedef struct luaskel_s {
 
 LUNATIK_PRIVATECHECKER(luaskel_check, luaskel_t *);
 
+/***
+* Does nothing.
+* Placeholder method showing the checker-then-work shape of a bound method.
+* @function nop
+* @treturn nil
+* @usage
+*   skel.new():nop()
+* @see skel.new
+*/
 static int luaskel_nop(lua_State *L)
 {
 	luaskel_t *skel = luaskel_check(L, 1);
@@ -28,6 +46,21 @@ static void luaskel_release(void *private)
 
 static int luaskel_new(lua_State *L);
 
+/***
+* Represents a skeleton object.
+* A userdata returned by `skel.new()` carrying an empty private structure.
+* @type skel
+*/
+
+/***
+* Creates a new skeleton object.
+* @function new
+* @treturn skel A new skel object.
+* @raise Error if the allocation fails.
+* @usage
+*   local obj = skel.new()
+* @within skel
+*/
 static const luaL_Reg luaskel_lib[] = {
 	{"new", luaskel_new},
 	{"nop", luaskel_nop},
