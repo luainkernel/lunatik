@@ -8,6 +8,7 @@
 --
 
 local task = require("task")
+local cpu  = require("cpu")
 local test = require("util").test
 
 test("task.current() returns a task object", function()
@@ -37,12 +38,12 @@ test("prio() is within the kernel's dynamic priority range", function()
 	assert(prio >= 0 and prio <= 139, "prio(): out of range [0, 139]: " .. prio)
 end)
 
-test("cpu() is only exposed under CONFIG_SMP and reflects the caller running", function()
+test("cpu() reports a valid online CPU index", function()
 	local t = task.current()
-	if t.cpu then
-		local cpu = t:cpu()
-		assert(cpu == 0 or cpu == 1, "cpu(): expected 0 or 1, got " .. tostring(cpu))
-	end
+	local online = cpu.num_online()
+	local c = t:cpu()
+	assert(type(c) == "number", "cpu(): expected number, got " .. type(c))
+	assert(c >= 0 and c < online, "cpu(): out of range [0, " .. online .. "): " .. c)
 end)
 
 test("independent current() calls agree and survive garbage collection", function()
