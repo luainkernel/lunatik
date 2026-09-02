@@ -50,7 +50,12 @@ static inline lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key
 		size_t cpulen = scnprintf(cpu_key, sizeof(cpu_key), "%s:%d", key, cpuid);
 		runtime = luarcu_getobject(lunatik_ebpf_percpu, cpu_key, cpulen);
 	}
-	return runtime;
+	if (runtime == NULL || likely(lunatik_isirq(runtime->opt)))
+		return runtime;
+
+	pr_err_ratelimited("'%s' is a process-context runtime, not dispatched\n", key);
+	lunatik_putobject(runtime);
+	return NULL;
 }
 
 static inline void *lunatik_ebpf_getctx(lua_State *L)

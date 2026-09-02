@@ -21,7 +21,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 6
+ktap_plan 7
 
 skip_all()
 {
@@ -31,6 +31,7 @@ skip_all()
 	ktap_skip "xdp detach: callback stops firing and traffic resumes"
 	ktap_skip "xdp attach: refuses a sleepable runtime"
 	ktap_skip "xdp zero-key: a zero-sized key is rejected without a crash"
+	ktap_skip "xdp process: a process-context runtime under the key is not dispatched"
 	ktap_skip "xdp percpu: the callback runs on the instance of the receiving CPU"
 	ktap_totals
 	exit 0
@@ -44,11 +45,12 @@ command -v clang > /dev/null 2>&1 || skip_all "clang not available"
 cleanup()
 {
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
-	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_detach" "${PIN}_zerokey" "${PIN}_percpu"
+	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_detach" "${PIN}_zerokey" "${PIN}_process" "${PIN}_percpu"
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
 	lunatik stop tests/xdp/detach > /dev/null 2>&1
 	lunatik stop tests/xdp/attach_sleepable > /dev/null 2>&1
+	lunatik stop tests/xdp/process > /dev/null 2>&1
 	lunatik stop tests/xdp/percpu > /dev/null 2>&1
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
@@ -152,6 +154,28 @@ zerokey_case()
 	ktap_pass "xdp zero-key: a zero-sized key is rejected without a crash"
 }
 
+process_case()
+{
+	bpftool prog load "$DIR/xdp_process.bpf.o" "${PIN}_process" type xdp ||
+		{ ktap_fail "xdp process: failed to load XDP program"; return 1; }
+	bpftool net attach xdp pinned "${PIN}_process" dev "$IFACE" ||
+		{ ktap_fail "xdp process: failed to attach XDP program"; bpftool prog unpin "${PIN}_process"; return 1; }
+
+	mark_dmesg
+	run_script "tests/xdp/process"
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+
+	bpftool net detach xdp dev "$IFACE" 2>/dev/null
+	rm -f "${PIN}_process"
+	lunatik stop tests/xdp/process > /dev/null 2>&1
+
+	# the kfunc must refuse the runtime before taking its lock: reaching the handler
+	# would take a mutex in softirq, which the missing-callback log betrays
+	dmesg_since | grep -qF "no callback attached" && { ktap_fail "xdp process: the runtime was dispatched"; return 1; }
+	dmesg_since | grep -qF "process-context runtime" || { ktap_fail "xdp process: the kfunc did not refuse the runtime"; return 1; }
+	ktap_pass "xdp process: a process-context runtime under the key is not dispatched"
+}
+
 # the veth runs the receive softirq on the sending CPU, so the pinned ping picks the instance
 percpu_case()
 {
@@ -195,6 +219,7 @@ lunatik stop tests/xdp/attach_sleepable > /dev/null 2>&1
 ktap_pass "xdp attach: refuses a sleepable runtime"
 
 zerokey_case
+process_case
 percpu_case
 
 ktap_totals
