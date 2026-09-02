@@ -367,3 +367,7 @@ BTF, or `bpftool` or `clang` is unavailable.
   drops on rejection, so a working guard blocks the ping, proving the
   kfunc ran and returned without crashing.
 
+- **xdp percpu**: with the ping pinned to the last online CPU, which is where
+  the veth runs the receive softirq, the callback of a percpu script reports
+  that CPU as its instance id, and no other; skipped on a single CPU.
+
