@@ -70,6 +70,7 @@ file = {
 	'./lib/struct.lua',
 	'./lib/luasyscall.c',
 	'./lib/syscall/table.lua',
+	'./lib/luatask.c',
 	'./lib/luatc.c',
 	'./lib/luathread.c',
 	'./lib/luaxdp.c',
