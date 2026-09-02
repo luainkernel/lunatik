@@ -82,14 +82,7 @@ static void lunatik_releaseruntime(void *private)
 
 int lunatik_stop(lunatik_object_t *runtime)
 {
-	void *private;
-
-	lunatik_lock(runtime);
-	private = runtime->private;
-	runtime->private = NULL;
-	lunatik_unlock(runtime);
-
-	lunatik_releaseruntime(private);
+	lunatik_closeprivate(runtime);
 	return lunatik_putobject(runtime);
 }
 EXPORT_SYMBOL(lunatik_stop);

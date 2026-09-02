@@ -77,9 +77,8 @@ static inline void lunatik_releaseprivate(const lunatik_class_t *class, void *pr
 		lunatik_free(private);
 }
 
-int lunatik_closeobject(lua_State *L)
+void lunatik_closeprivate(lunatik_object_t *object)
 {
-	lunatik_object_t *object = lunatik_checkobject(L, 1);
 	void *private;
 
 	lunatik_lock(object);
@@ -89,6 +88,12 @@ int lunatik_closeobject(lua_State *L)
 
 	if (private != NULL)
 		lunatik_releaseprivate(object->class, private);
+}
+EXPORT_SYMBOL(lunatik_closeprivate);
+
+int lunatik_closeobject(lua_State *L)
+{
+	lunatik_closeprivate(lunatik_checkobject(L, 1));
 	return 0;
 }
 EXPORT_SYMBOL(lunatik_closeobject);
