@@ -552,6 +552,10 @@ review that fails it is not ready, whatever the code looks like.
   line it answers: an issue comment does not thread and need not even notify them, so the @-mention
   reaches them and the quote makes it a reply, not a stray remark. A request for changes is not a place
   for praise; padding buries the change being asked for.
+* A claim that rests on source outside the diff — a kernel accessor, a sibling module, a spec — links
+  that source the way a fixup is linked: a stable, line-anchored URL at a pinned ref, a commit or tag
+  blob, never a moving `master` link that drifts off the line. The reference is the evidence; a finding
+  that names an accessor or a pattern without a link asks to be trusted, not checked.
 * The verdict states whether the pull request can merge as it stands: a finding that must be folded is
   a request for changes, however small; a comment review is for observations that do not gate. Once it
   is clean, the verdict is an Approve, not a comment — a comment saying it looks good leaves an earlier
