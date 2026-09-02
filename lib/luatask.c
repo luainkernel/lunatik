@@ -19,6 +19,10 @@ LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *,
 	luaL_argcheck(L, private != NULL, ix, "task is not set");
 );
 
+/* Getters read task fields locklessly; task_lock can't be held in the softirq/hardirq contexts
+ * this class serves. A scalar reads as a coherent old-or-new value; comm is copied with
+ * strscpy_pad, so a concurrent rename yields at worst a garbled name, never a crash. */
+
 /***
 * A Linux task.
 * @type task
