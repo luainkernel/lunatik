@@ -239,6 +239,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
+void lunatik_closeprivate(lunatik_object_t *object);
 int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
 void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
