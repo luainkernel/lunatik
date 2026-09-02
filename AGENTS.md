@@ -552,6 +552,8 @@ review that fails it is not ready, whatever the code looks like.
   line it answers: an issue comment does not thread and need not even notify them, so the @-mention
   reaches them and the quote makes it a reply, not a stray remark. A request for changes is not a place
   for praise; padding buries the change being asked for.
+* Write a finding plainly and no longer than it needs to be: the defect, the fix, and the trace,
+  without metaphor, restatement, or throat-clearing. Padding buries the finding the way praise does.
 * A claim that rests on source outside the diff — a kernel accessor, a sibling module, a spec — links
   that source the way a fixup is linked: a stable, line-anchored URL at a pinned ref, a commit or tag
   blob, never a moving `master` link that drifts off the line. The reference is the evidence; a finding
