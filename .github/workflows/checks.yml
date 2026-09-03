@@ -1,0 +1,30 @@
+name: Checks
+on:
+  pull_request:
+    branches:
+    - master
+jobs:
+  checks:
+    name: Convention checks
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Install dependencies
+      run: sudo apt-get install -yq cppcheck
+    - name: Stage the pull request's diff
+      # pre-commit reads the index, so the diff against the base is staged as a commit would be
+      run: git reset -q --soft "origin/${{ github.base_ref }}"
+    - name: Trailing blank line
+      run: bash tools/checks/pre-commit
+    - name: Advisory checks
+      # heuristics that nudge a review; they annotate the run and do not fail it
+      run: |
+        files=$(git diff --cached --name-only --diff-filter=ACM)
+        for check in module-conventions test-harness cppcheck-tests; do
+          out=$(bash "tools/checks/$check.sh" $files 2>&1) || true
+          test -n "$out" && echo "::warning title=$check::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
+        done
+        true
