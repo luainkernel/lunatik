@@ -53,7 +53,7 @@ do {									\
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
 #define LUNATIK_CPU_NONE	(-1)
 #define lunatik_getcpu(L)	(lunatik_extra(L)->cpu)
-#define lunatik_ispercpu(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
+#define lunatik_hascpu(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 
@@ -193,7 +193,7 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 
 static inline void lunatik_checkpercpu(lua_State *L)
 {
-	if (lunatik_ispercpu(L))
+	if (lunatik_hascpu(L))
 		luaL_error(L, LUNATIK_ERR_PERCPU);
 }
 
