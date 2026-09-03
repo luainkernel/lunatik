@@ -106,6 +106,10 @@ test suite, preparing a pull request — as agent skills in the open `SKILL.md` 
 ([agentskills.io](https://agentskills.io)), discovered by any compatible assistant. Each one
 defers to this file as the authority and orders the steps; none replaces reading it.
 
+For Claude Code, `CLAUDE.md` imports this file, `.claude/settings.json` runs `review-post-guard.sh`
+and the file checks as hooks, and `.claude/skills/` links to `.agents/skills/`; nothing there holds
+logic of its own.
+
 ### Running a script
 
     lunatik run <script> [softirq|hardirq]   # one shot
