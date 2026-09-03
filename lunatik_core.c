@@ -305,9 +305,6 @@ static inline lunatik_opt_t lunatik_checkcontext(lua_State *L, int ix)
 *   (atomic, GFP\_ATOMIC, spinlock with IRQs disabled).
 *   Use `"softirq"` for hooks that fire in softirq context (netfilter, XDP).
 *   Use `"hardirq"` for hooks that fire in hardirq context (kprobes).
-* @tparam[opt=-1] integer cpu percpu instance CPU id; the runner passes it when
-*   creating `run <script> percpu` instances. A runtime created directly with a
-*   cpu claims to be that instance without being registered for dispatch.
 * @treturn runtime
 * @raise if allocation fails or the script errors on load
 * @within lunatik
@@ -316,12 +313,9 @@ static int lunatik_lruntime(lua_State *L)
 {
 	const char *script = luaL_checkstring(L, 1);
 	lunatik_opt_t opt = lunatik_checkcontext(L, 2);
-	int cpu = luaL_optinteger(L, 3, LUNATIK_CPU_NONE);
-
-	luaL_argcheck(L, cpu >= LUNATIK_CPU_NONE && cpu < (int)nr_cpu_ids, 3, "invalid cpu");
 
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
-	if (lunatik_newruntime(pruntime, L, script, opt, cpu) != 0)
+	if (lunatik_newruntime(pruntime, L, script, opt, LUNATIK_CPU_NONE) != 0)
 		lua_error(L);
 	lunatik_setclass(L, &lunatik_class, true);
 	return 1;
