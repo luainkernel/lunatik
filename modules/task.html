@@ -33,20 +33,10 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Methods">Methods</a></li>
+<li><a href="#Class_task">Class task </a></li>
 </ul>
 
 
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
-  <li><strong>crypto_comp</strong></li>
-  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
-  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
-</ul>
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/bpf.html">bpf</a></li>
@@ -116,10 +106,20 @@
   <li><a href="../modules/struct.html">struct</a></li>
   <li><a href="../modules/syscall.html">syscall</a></li>
   <li><a href="../modules/syscall.table.html">syscall.table</a></li>
-  <li><a href="../modules/task.html">task</a></li>
+  <li><strong>task</strong></li>
   <li><a href="../modules/tc.html">tc</a></li>
   <li><a href="../modules/thread.html">thread</a></li>
   <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
 </ul>
 <h2>Topics</h2>
 <ul class="">
@@ -130,26 +130,38 @@
 
 <div id="content">
 
-<h1>Class <code>crypto_comp</code></h1>
-<p>Lua interface to synchronous compression algorithms.</p>
+<h1>Module <code>task</code></h1>
+<p>Linux task interface.</p>
 <p>
 
 </p>
 
 
-<h2><a href="#Methods">Methods</a></h2>
+<h2><a href="#Class_task">Class task </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#crypto_comp:compress">crypto_comp:compress (data, max_len)</a></td>
-	<td class="summary">Compresses data.</td>
+	<td class="name" nowrap><a href="#task:comm">task:comm ()</a></td>
+	<td class="summary">Returns the command name (comm) of the task, i.e., the executable.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_comp:decompress">crypto_comp:decompress (data, max_len)</a></td>
-	<td class="summary">Decompresses data.</td>
+	<td class="name" nowrap><a href="#task:cpu">task:cpu ()</a></td>
+	<td class="summary">Returns the CPU the task last ran on.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#crypto_comp:new">crypto_comp:new (algname)</a></td>
-	<td class="summary">Creates a new COMP transform object.</td>
+	<td class="name" nowrap><a href="#task:current">task:current ()</a></td>
+	<td class="summary">Gets an object representing the current kernel task.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#task:pid">task:pid ()</a></td>
+	<td class="summary">Returns the process ID (PID) of the task.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#task:prio">task:prio ()</a></td>
+	<td class="summary">Returns the dynamic priority of the task.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#task:tgid">task:tgid ()</a></td>
+	<td class="summary">Returns the thread group ID (TGID) of the task.</td>
 	</tr>
 </table>
 
@@ -157,109 +169,142 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+    <h2 class="section-header has-description"><a name="Class_task"></a>Class task </h2>
 
+          <div class="section-description">
+          A Linux task.
+          </div>
     <dl class="function">
     <dt>
-    <a name = "crypto_comp:compress"></a>
-    <strong>crypto_comp:compress (data, max_len)</strong>
+    <a name = "task:comm"></a>
+    <strong>task:comm ()</strong>
     </dt>
     <dd>
-    Compresses data.
+    Returns the command name (comm) of the task, i.e., the executable.
+ This is truncated to TASK<em>COMM</em>LEN (16) characters by the kernel.
 
 
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">data</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         input data
-        </li>
-        <li><span class="parameter">max_len</span>
-            <span class="types"><span class="type">integer</span></span>
-         maximum size of compressed output
-        </li>
-    </ul>
 
     <h3>Returns:</h3>
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        compressed data
+        command name of the task
     </ol>
 
-    <h3>Raises:</h3>
-    on compression failure
 
 
 
 </dd>
     <dt>
-    <a name = "crypto_comp:decompress"></a>
-    <strong>crypto_comp:decompress (data, max_len)</strong>
+    <a name = "task:cpu"></a>
+    <strong>task:cpu ()</strong>
     </dt>
     <dd>
-    Decompresses data.
+    Returns the CPU the task last ran on.
 
 
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">data</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         compressed input
-        </li>
-        <li><span class="parameter">max_len</span>
-            <span class="types"><span class="type">integer</span></span>
-         maximum size of decompressed output
-        </li>
-    </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        decompressed data
+           <span class="types"><span class="type">integer</span></span>
+        CPU index
     </ol>
 
-    <h3>Raises:</h3>
-    on decompression failure
 
 
 
 </dd>
     <dt>
-    <a name = "crypto_comp:new"></a>
-    <strong>crypto_comp:new (algname)</strong>
+    <a name = "task:current"></a>
+    <strong>task:current ()</strong>
     </dt>
     <dd>
-    Creates a new COMP transform object.
+    Gets an object representing the current kernel task.
 
 
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">algname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         algorithm name (e.g., "lz4", "deflate")
-        </li>
-    </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">crypto_comp</span></span>
-
-
-
+           <span class="types"><a class="type" href="../modules/task.html#task">task</a></span>
+        task object for the current task.
     </ol>
 
-    <h3>Raises:</h3>
-    on allocation failure
 
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> comp = <span class="global">require</span>(<span class="string">"crypto"</span>).comp
-<span class="keyword">local</span> c = <span class="function-name">comp</span>(<span class="string">"lz4"</span>)</pre>
+        <pre class="example"><span class="keyword">local</span> task = <span class="global">require</span>(<span class="string">"task"</span>)
+<span class="keyword">local</span> t = task.<span class="function-name">current</span>()
+<span class="global">print</span>(t:<span class="function-name">pid</span>(), t:<span class="function-name">comm</span>())</pre>
     </ul>
+
+</dd>
+    <dt>
+    <a name = "task:pid"></a>
+    <strong>task:pid ()</strong>
+    </dt>
+    <dd>
+    Returns the process ID (PID) of the task.
+ For threads, this is the thread ID (TID) unique to each thread.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        pid of the task
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "task:prio"></a>
+    <strong>task:prio ()</strong>
+    </dt>
+    <dd>
+    Returns the dynamic priority of the task.
+ Ranges from 0 (highest) to 139 (lowest); normal tasks are 100-139,
+ real-time tasks are 0-99.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        priority of the task
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "task:tgid"></a>
+    <strong>task:tgid ()</strong>
+    </dt>
+    <dd>
+    Returns the thread group ID (TGID) of the task.
+ For the main thread, TGID equals PID. For other threads in the group,
+ TGID is the PID of the main thread.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        tgid of the task
+    </ol>
+
+
+
 
 </dd>
 </dl>
