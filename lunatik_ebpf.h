@@ -11,36 +11,27 @@
 static char lunatik_ebpf_env_key;
 static lunatik_object_t *lunatik_ebpf_runtimes = NULL;
 
-/* a zero size is allowed by the verifier and would underflow the length */
-static inline int lunatik_ebpf_checkkey(char *key, size_t key_sz, size_t *keylen)
-{
-	if (unlikely(key_sz == 0))
-		return -1;
-	*keylen = key_sz - 1;
-	key[*keylen] = '\0';
-	return 0;
-}
-
-static inline int lunatik_ebpf_checkruntimes(void)
+static inline lunatik_object_t *lunatik_ebpf_getruntimes(void)
 {
 	static const char runtimes_key[] = "runtimes";
 	if (lunatik_ebpf_runtimes == NULL)
 		lunatik_ebpf_runtimes = luarcu_getobject(lunatik_env, runtimes_key, sizeof(runtimes_key) - 1);
-	return !lunatik_ebpf_runtimes;
+	return lunatik_ebpf_runtimes;
 }
 
 static inline lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key_sz)
 {
-	size_t keylen;
-
-	if (lunatik_ebpf_checkkey(key, key_sz, &keylen) != 0)
+	if (unlikely(key_sz == 0)) /* the verifier allows a zero size, which would underflow the length */
 		return NULL;
-	if (unlikely(lunatik_ebpf_checkruntimes() != 0)) {
+	size_t keylen = key_sz - 1;
+	key[keylen] = '\0';
+
+	lunatik_object_t *runtimes = lunatik_ebpf_getruntimes();
+	if (unlikely(runtimes == NULL)) {
 		pr_err_ratelimited("couldn't find _ENV.runtimes\n");
 		return NULL;
 	}
-
-	lunatik_object_t *runtime = luarcu_getobject(lunatik_ebpf_runtimes, key, keylen);
+	lunatik_object_t *runtime = luarcu_getobject(runtimes, key, keylen);
 	if (runtime == NULL || likely(lunatik_isirq(runtime->opt)))
 		return runtime;
 
@@ -51,14 +42,12 @@ static inline lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key
 
 static inline void *lunatik_ebpf_getctx(lua_State *L)
 {
-	lunatik_object_t *obj;
 	if (lunatik_getregistry(L, &lunatik_ebpf_env_key) != LUA_TUSERDATA) {
 		lua_pop(L, 1);
 		pr_err_ratelimited("no callback attached (cpu %d)\n", lunatik_getcpu(L));
 		return NULL;
 	}
-	obj = (lunatik_object_t *)lunatik_toobject(L, -1);
-	return obj->private;
+	return lunatik_toobject(L, -1)->private;
 }
 
 static inline int lunatik_ebpf_invoke(lua_State *L, int cb)
