@@ -17,7 +17,6 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/bpf.h>
-#include <linux/sched/ext.h>
 
 #include <lunatik.h>
 #include <lunatik_ebpf.h>
@@ -25,10 +24,11 @@
 #include "luarcu.h"
 #include "luatask.h"
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)) && defined(CONFIG_SCHED_CLASS_EXT)
+#ifdef CONFIG_SCHED_CLASS_EXT
 #include <linux/btf.h>
 #include <linux/btf_ids.h>
 #include <linux/sched.h>
+#include <linux/sched/ext.h>
 
 LUNATIK_EBPF_START();
 
@@ -255,13 +255,10 @@ static int luasched_attach(lua_State *L)
 	lunatik_ebpf_bind(L, 1, &ctx->cb);
 	return 0;
 }
-#endif
 
 static const luaL_Reg luasched_lib[] = {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)) && defined(CONFIG_SCHED_CLASS_EXT)
 	{"attach", luasched_attach},
 	{"detach", luasched_detach},
-#endif
 	{NULL, NULL}
 };
 
@@ -270,6 +267,22 @@ LUNATIK_EBPF_NEWLIB(sched, luasched_lib, &luasched_class);
 LUNATIK_EBPF_KFUNC_INIT(sched, BPF_PROG_TYPE_STRUCT_OPS);
 
 LUNATIK_EBPF_EXIT(sched);
+#else
+static const luaL_Reg luasched_lib[] = {
+	{NULL, NULL}
+};
+
+LUNATIK_NEWLIB(sched, luasched_lib, NULL);
+
+static int __init luasched_init(void)
+{
+	return 0;
+}
+
+static void __exit luasched_exit(void)
+{
+}
+#endif
 
 module_init(luasched_init);
 module_exit(luasched_exit);
