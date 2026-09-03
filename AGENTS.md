@@ -92,12 +92,12 @@ Install the commit gate with:
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
-Two guards read the tool command on stdin instead of a file, for an assistant wired to run them
-before a shell call (`PreToolUse`): `check-review-comment.sh` rejects a fixup reference given as a
-backtick'd SHA, which renders as code and does not link, and `review-post-guard.sh` blocks a `gh`
-write to reviews or comments unless the command carries the `REVIEW_POST_OK` marker, set once the
-exact text has been shown to the maintainer and approved. The marker forces the show-then-post
-step; it cannot check that the text was shown, only that it was set on purpose.
+`review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
+to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments unless
+the command carries the `REVIEW_POST_OK` marker, set once the exact text has been shown to the
+maintainer and approved, or when the text gives a fixup reference as a backtick'd SHA, which
+renders as code and does not link. The marker forces the show-then-post step; it cannot check that
+the text was shown, only that it was set on purpose.
 
 ### Skills
 
