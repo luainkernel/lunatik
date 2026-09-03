@@ -376,6 +376,9 @@ old factory — kept building and broke at the first packet.
 * A commit is one change and everything that change entails, even across modules: a new core check
   adopted by four bindings is one commit. Independent fixes are separate commits, even when a single
   review finding uncovered them all; the finding is the reviewer's unit, not the committer's.
+* A change to a function is read against the whole function, not the lines it touches: re-read it
+  and take the simplification the change enables. A guard left standing that the new shape made
+  redundant — `!cond || check(cond)` where the call now sits inside `if (cond)` — is a partial fix.
 * Change only what the task requires. Do not reformat untouched lines, do not move code, do not
   rename variables in passing. Compare `git diff` against `git diff -w` before committing to catch
   stray whitespace.
