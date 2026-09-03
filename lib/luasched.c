@@ -66,7 +66,7 @@ static int luasched_task(lua_State *L)
 /***
 * Sets the sched_ext dispatch queue for this task.
 * @function sched_ctx:dsq
-* @tparam integer dispatch queue to set for the task
+* @tparam integer dsq dispatch queue to set for the task
 */
 static int luasched_dsq(lua_State *L)
 {
@@ -78,7 +78,7 @@ static int luasched_dsq(lua_State *L)
 /***
 * Sets the sched_ext slice in nanoseconds for this task.
 * @function sched_ctx:slice
-* @tparam integer slice in ns to set for the task
+* @tparam integer slice slice in ns to set for the task
 */
 static int luasched_slice(lua_State *L)
 {
