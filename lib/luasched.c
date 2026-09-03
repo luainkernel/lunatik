@@ -184,7 +184,7 @@ static int luasched_detach(lua_State *L)
 	luasched_ctx_t *lctx = lunatik_ebpf_getctx(L);
 
 	if (lctx == NULL)
-		return -1;
+		return 0;
 
 	lunatik_ebpf_unbind(L, &lctx->cb);
 	lunatik_ebpf_detach(L, lctx, task_obj);
