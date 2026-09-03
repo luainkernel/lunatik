@@ -15,9 +15,7 @@
 
 #include "luatask.h"
 
-LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *,
-	luaL_argcheck(L, private != NULL, ix, "task is not set");
-);
+LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *);
 
 /* Getters read task fields locklessly; task_lock can't be held in the softirq/hardirq contexts
  * this class serves. A scalar reads as a coherent old-or-new value; comm is copied with
