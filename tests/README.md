@@ -221,14 +221,13 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   the receiving runtime via `class->opener` (`luaL_requiref`), even when
   that runtime never called `require()` for the module.
 
-- **percpu**: `run <script> percpu` registers one runtime per possible
-  CPU id, as `<script>:<cpu>`, which is the key the eBPF bindings look
-  up; the script is listed once, by name; `stop` drops every instance
-  and lets it run again; `spawn` refuses percpu without creating any
-  runtime; a script that fails on one instance rolls back the ones
-  already created; the instances are not reachable through a generic
-  stop; and each instance sees its own id via `lunatik.cpu()`, which a
-  plain runtime sees as `nil`.
+- **percpu**: `run <script> percpu` registers one object holding a
+  runtime per possible CPU id, and runs the script once per instance,
+  each seeing its own id via `lunatik.cpu()`, which a plain runtime
+  sees as `nil`; the script is listed once, by name; `stop` drops every
+  instance and lets it run again; `spawn` refuses percpu without
+  creating any runtime; and a script that fails on one instance rolls
+  back the ones already created before the run returns.
 
 - **percpu_object**: `lunatik.percpu()` runs the script once per possible
   CPU id, each instance stamping its own id; `stop` closes every instance
@@ -313,7 +312,7 @@ BTF, or `bpftool`, `clang` or `tc` is unavailable.
   kfunc lookup.
 
 - **tc drop**: `action.ACT_SHOT` blocks the ping; the runtime is percpu,
-  covering the per-CPU kfunc lookup.
+  covering the dispatch to a percpu instance.
 
 - **tc reattach**: the script attaches one callback and then a second in the
   same runtime; the ping passes because only the last callback runs, exercising
@@ -366,7 +365,7 @@ BTF, or `bpftool` or `clang` is unavailable.
   runtime is plain, covering the plain-name kfunc lookup.
 
 - **xdp drop**: `action.DROP` blocks the ping; the runtime is percpu,
-  covering the per-CPU kfunc lookup.
+  covering the dispatch to a percpu instance.
 
 - **xdp detach**: the callback drops the first ping and calls `xdp.detach()`
   from inside the callback; traffic resumes because `bpf_luaxdp_run` then
