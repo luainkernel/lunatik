@@ -159,7 +159,7 @@ static int lunatik_lresume(lua_State *L)
 */
 static int lunatik_cpu(lua_State *L)
 {
-	lunatik_pushoptinteger(L, lunatik_ispercpu(L), lunatik_getcpu(L));
+	lunatik_pushoptinteger(L, lunatik_hascpu(L), lunatik_getcpu(L));
 	return 1;
 }
 
