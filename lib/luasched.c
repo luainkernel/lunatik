@@ -100,10 +100,6 @@ static void luasched_release(void *private)
 	luasched_ctx_t *lctx = (luasched_ctx_t *)private;
 	if (lctx->task_obj)
 		luatask_close(lctx->task_obj);
-	if (lctx->task != NULL) {
-		put_task_struct(lctx->task);
-		lctx->task = NULL;
-	}
 }
 
 LUNATIK_OPENER(sched);
