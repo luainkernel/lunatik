@@ -12,6 +12,7 @@ local wiphy     = require("netlink.nl80211.wiphy")
 local interface = require("netlink.nl80211.interface")
 local ap        = require("netlink.nl80211.ap")
 local station   = require("netlink.nl80211.station")
+local key       = require("netlink.nl80211.key")
 
 local nl80211 = {}
 
@@ -42,6 +43,13 @@ nl80211.ap = ap
 -- @table netlink.nl80211.station
 -- @see netlink.nl80211.station
 nl80211.station = station
+
+---
+-- Key management class.
+-- Open sessions using `netlink.nl80211.key()`.
+-- @table netlink.nl80211.key
+-- @see netlink.nl80211.key
+nl80211.key = key
 
 return nl80211
 

@@ -13,7 +13,7 @@ FAILED=0
 SEP=$'\n'
 for t in "$DIR"/socket.sh "$DIR"/message.sh "$DIR"/session.sh "$DIR"/genl_family.sh \
 	"$DIR"/link_list.sh "$DIR"/link_updown.sh "$DIR"/addr_list.sh "$DIR"/route_list.sh "$DIR"/route_adddel.sh "$DIR"/rule_adddel.sh \
-	"$DIR"/channel.sh "$DIR"/nl80211.sh "$DIR"/nl80211_iface.sh "$DIR"/nl80211_ap.sh "$DIR"/nl80211_station.sh; do
+	"$DIR"/channel.sh "$DIR"/nl80211.sh "$DIR"/nl80211_iface.sh "$DIR"/nl80211_ap.sh "$DIR"/nl80211_station.sh "$DIR"/nl80211_key.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	bash "$t" || FAILED=$((FAILED+1))
 done
