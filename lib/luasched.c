@@ -108,7 +108,7 @@ static const lunatik_class_t luasched_class = {
 	.methods = luasched_mt,
 	.release = luasched_release,
 	.opener  = luaopen_sched,
-	.opt     = LUNATIK_OPT_HARDIRQ,
+	.opt     = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
 };
 
 static void luasched_handler_cleanup(luasched_ctx_t *lctx)
