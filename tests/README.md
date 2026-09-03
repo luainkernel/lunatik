@@ -230,6 +230,12 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   stop; and each instance sees its own id via `lunatik.cpu()`, which a
   plain runtime sees as `nil`.
 
+- **percpu_object**: `lunatik.percpu()` runs the script once per possible
+  CPU id, each instance stamping its own id; `stop` closes every instance
+  and the object can be created again; `stop` refuses an object of another
+  class; a script that fails on one instance raises with its error instead of
+  returning an object.
+
 - **percpu_refuse**: a registration a percpu instance cannot own fails
   at load, naming percpu, with a clean rollback, and the same script
   runs as a plain runtime: `device.new`, whose registration is global,

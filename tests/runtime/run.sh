@@ -19,6 +19,7 @@ TESTS=(
 	opt_skb_single.sh
 	require_cloneobject.sh
 	percpu.sh
+	percpu_object.sh
 	percpu_refuse.sh
 )
 
