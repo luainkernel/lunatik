@@ -25,7 +25,7 @@
 #include "luarcu.h"
 #include "luatask.h"
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)) && defined(CONFIG_SCHED_CLASS_EXT)
 #include <linux/btf.h>
 #include <linux/btf_ids.h>
 #include <linux/sched.h>
@@ -141,7 +141,7 @@ static int luasched_handler(lua_State *L, luasched_ctx_t *ctx)
 
 	ret = lunatik_ebpf_invoke(L, lctx->cb);
 	luasched_handler_cleanup(lctx);
-	return 0;
+	return ret;
 }
 
 struct task_class {
@@ -258,7 +258,7 @@ static int luasched_attach(lua_State *L)
 #endif
 
 static const luaL_Reg luasched_lib[] = {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)) && defined(CONFIG_SCHED_CLASS_EXT)
 	{"attach", luasched_attach},
 	{"detach", luasched_detach},
 #endif
