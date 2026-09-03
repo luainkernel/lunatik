@@ -7,6 +7,8 @@
 #define lunatik_h
 
 #include <linux/mutex.h>
+#include <linux/percpu.h>
+#include <linux/preempt.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/mm.h>
@@ -25,6 +27,7 @@ typedef u8 __bitwise lunatik_opt_t;
 #define LUNATIK_OPT_MONITOR	((__force lunatik_opt_t)(1U << 3))
 #define LUNATIK_OPT_SINGLE	((__force lunatik_opt_t)(1U << 4))
 #define LUNATIK_OPT_EXTERNAL	((__force lunatik_opt_t)(1U << 5))
+#define LUNATIK_OPT_PERCPU	((__force lunatik_opt_t)(1U << 6))
 #define LUNATIK_OPT_NONE	((__force lunatik_opt_t)0)
 
 #define lunatik_isirq(opt)		((opt) & LUNATIK_OPT_IRQ)
@@ -33,6 +36,7 @@ typedef u8 __bitwise lunatik_opt_t;
 #define lunatik_ismonitor(opt)		((opt) & LUNATIK_OPT_MONITOR)
 #define lunatik_issingle(opt)		((opt) & LUNATIK_OPT_SINGLE)
 #define lunatik_isexternal(opt)		((opt) & LUNATIK_OPT_EXTERNAL)
+#define lunatik_ispercpu(opt)		((opt) & LUNATIK_OPT_PERCPU)
 
 #define lunatik_locker(o, mutex_op, softirq_op, hardirq_op, ...)	\
 do {									\
@@ -69,14 +73,17 @@ do {							\
 	lua_settop(L, n);				\
 } while (0)
 
-#define lunatik_run(runtime, handler, ret, ...)				\
-do {									\
-	lunatik_lock(runtime);						\
-	if (unlikely(!lunatik_isready(runtime)))			\
-		ret = -ENXIO;						\
-	else								\
-		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);	\
-	lunatik_unlock(runtime);					\
+#define lunatik_run(object, handler, ret, ...)					\
+do {										\
+	lunatik_object_t *_object = (object);					\
+	lunatik_object_t *_runtime = lunatik_pin(_object);			\
+	lunatik_lock(_runtime);							\
+	if (unlikely(!lunatik_isready(_runtime)))				\
+		ret = -ENXIO;							\
+	else									\
+		lunatik_handle(_runtime, handler, ret, ## __VA_ARGS__);		\
+	lunatik_unlock(_runtime);						\
+	lunatik_unpin(_object);							\
 } while(0)
 
 typedef struct lunatik_class_s {
@@ -99,6 +106,31 @@ typedef struct lunatik_object_s {
 	gfp_t gfp;
 	unsigned long flags;
 } lunatik_object_t;
+
+#define lunatik_percpuruntimes(p)	((lunatik_object_t * __percpu __force *)(p))
+
+static inline lunatik_object_t *lunatik_pin(lunatik_object_t *object)
+{
+	if (likely(!lunatik_ispercpu(object->opt)))
+		return object;
+
+	if (lunatik_isirq(object->opt))
+		preempt_disable();
+	else /* a process instance may sleep */
+		migrate_disable();
+	return *this_cpu_ptr(lunatik_percpuruntimes(object->private));
+}
+
+static inline void lunatik_unpin(lunatik_object_t *object)
+{
+	if (likely(!lunatik_ispercpu(object->opt)))
+		return;
+
+	if (lunatik_isirq(object->opt))
+		preempt_enable();
+	else
+		migrate_enable();
+}
 
 extern lunatik_object_t *lunatik_env;
 extern const lunatik_class_t lunatik_class;
