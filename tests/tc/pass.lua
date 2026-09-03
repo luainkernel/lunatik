@@ -16,20 +16,20 @@ local ICMP     <const> = 1
 
 local function test_pass(ctx)
 	local raw  = ctx:skb()
-	local skb  = skbattr.new(raw)
 	local data = raw:data()
-	skb.priority = 0x1234 -- exercise the attribute accessors
-	skb.mark = 0xabcd
+	-- the namespace also emits IPv6 autoconf traffic, from a context the test does not control
 	if data:getuint8(ETH_HI) == 0x08 and data:getuint8(ETH_LO) == 0x00
-			and data:getuint8(IPPROTO) == ICMP
-			and skb.priority == 0x1234 and skb.mark == 0xabcd then
-		if ctx:argument():getuint32(0) == MAGIC then
+			and data:getuint8(IPPROTO) == ICMP then
+		local skb = skbattr.new(raw)
+		skb.priority = 0x1234 -- exercise the attribute accessors
+		skb.mark = 0xabcd
+		if skb.priority ~= 0x1234 or skb.mark ~= 0xabcd then
+			print("tc pass test fail: attribute mismatch")
+		elseif ctx:argument():getuint32(0) == MAGIC then
 			print("tc pass test pass: packet and argument content verified")
 		else
 			print("tc pass test fail: argument does not carry the magic")
 		end
-	else
-		print("tc pass test fail: packet content mismatch")
 	end
 	ctx:action(action.ACT_OK)
 end
