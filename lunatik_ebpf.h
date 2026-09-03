@@ -10,7 +10,6 @@
 
 static char lunatik_ebpf_env_key;
 static lunatik_object_t *lunatik_ebpf_runtimes = NULL;
-static lunatik_object_t *lunatik_ebpf_percpu = NULL;
 
 /* a zero size is allowed by the verifier and would underflow the length */
 static inline int lunatik_ebpf_checkkey(char *key, size_t key_sz, size_t *keylen)
@@ -25,31 +24,23 @@ static inline int lunatik_ebpf_checkkey(char *key, size_t key_sz, size_t *keylen
 static inline int lunatik_ebpf_checkruntimes(void)
 {
 	static const char runtimes_key[] = "runtimes";
-	static const char percpu_key[] = "percpu";
 	if (lunatik_ebpf_runtimes == NULL)
 		lunatik_ebpf_runtimes = luarcu_getobject(lunatik_env, runtimes_key, sizeof(runtimes_key) - 1);
-	if (lunatik_ebpf_percpu == NULL)
-		lunatik_ebpf_percpu = luarcu_getobject(lunatik_env, percpu_key, sizeof(percpu_key) - 1);
-	return !(lunatik_ebpf_runtimes && lunatik_ebpf_percpu);
+	return !lunatik_ebpf_runtimes;
 }
 
-static inline lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key_sz, int cpuid)
+static inline lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key_sz)
 {
-	lunatik_object_t *runtime = NULL;
 	size_t keylen;
 
 	if (lunatik_ebpf_checkkey(key, key_sz, &keylen) != 0)
 		return NULL;
 	if (unlikely(lunatik_ebpf_checkruntimes() != 0)) {
-		pr_err_ratelimited("couldn't find _ENV.runtimes or _ENV.percpu\n");
+		pr_err_ratelimited("couldn't find _ENV.runtimes\n");
 		return NULL;
 	}
-	runtime = luarcu_getobject(lunatik_ebpf_runtimes, key, keylen);
-	if (!runtime) {
-		char cpu_key[LUARCU_MAXKEY];
-		size_t cpulen = scnprintf(cpu_key, sizeof(cpu_key), "%s:%d", key, cpuid);
-		runtime = luarcu_getobject(lunatik_ebpf_percpu, cpu_key, cpulen);
-	}
+
+	lunatik_object_t *runtime = luarcu_getobject(lunatik_ebpf_runtimes, key, keylen);
 	if (runtime == NULL || likely(lunatik_isirq(runtime->opt)))
 		return runtime;
 
@@ -111,7 +102,7 @@ static inline void lunatik_ebpf_unbind(lua_State *L, int *cb)
 
 #define LUNATIK_EBPF_RUN(key, key_sz, handler, ctxp) \
 do { \
-	lunatik_object_t *__runtime = lunatik_ebpf_lookupruntime((key), (key_sz), raw_smp_processor_id()); \
+	lunatik_object_t *__runtime = lunatik_ebpf_lookupruntime((key), (key_sz)); \
 	if (__runtime != NULL) { \
 		int __ret; \
 		lunatik_run(__runtime, (handler), __ret, (ctxp)); \
@@ -162,8 +153,6 @@ static void __exit lua##subsys##_exit(void) \
 { \
 	if (lunatik_ebpf_runtimes != NULL) \
 		lunatik_putobject(lunatik_ebpf_runtimes); \
-	if (lunatik_ebpf_percpu != NULL) \
-		lunatik_putobject(lunatik_ebpf_percpu); \
 }
 #else
 #define LUNATIK_EBPF_NEWLIB(subsys, lib, class) \

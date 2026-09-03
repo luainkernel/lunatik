@@ -14,7 +14,6 @@
 local lunatik = require("lunatik")
 local thread  = require("thread")
 local rcu     = require("rcu")
-local linux   = require("linux")
 
 local env = lunatik._ENV
 
@@ -27,10 +26,6 @@ local runner = {}
 -- @treturn string script name without the ".lua" extension (e.g., "myscript").
 local function trim(script) -- drop ".lua" file extension
 	return script:gsub("(%w+).lua", "%1")
-end
-
-local function key(script, cpu)
-	return script .. ":" .. cpu
 end
 
 --- Stops an item (runtime or thread) in the given registry.
@@ -47,49 +42,23 @@ local function stop(registry, script)
 	end
 end
 
-local percpu = {}
-
-function percpu.name(script)
-	return string.match(script, "^(.+):0$")
-end
-
-function percpu.run(script, context)
-	for cpu = 0, linux.numcpus() - 1 do
-		local ok, runtime = pcall(lunatik.runtime, script, context, cpu)
-		if not ok then
-			percpu.stop(script)
-			error(runtime, 0)
-		end
-		env.percpu[key(script, cpu)] = runtime
-	end
-end
-
-function percpu.stop(script)
-	for cpu = 0, linux.numcpus() - 1 do
-		stop(env.percpu, key(script, cpu))
-	end
-end
-
 --- Runs a Lunatik script in the current context.
 -- Creates a new Lunatik runtime for the given script and registers it.
 -- Throws an error if a script with the same name is already running.
 -- @tparam string script path or name of the Lua script to run. The ".lua" extension will be trimmed.
 -- @tparam[opt] string context Execution context: `"process"` (default) or `"softirq"` (for netfilter/XDP hooks).
--- @tparam[opt] boolean ispercpu create one runtime per CPU id, registered in `env.percpu`
---   as `<script>:<cpu>`, for scripts dispatched by the eBPF bindings; the script runs
---   once per instance and can read its id with `lunatik.cpu()`. Netfilter hooks and
---   constructors whose registration is global refuse to run in an instance.
--- @treturn table created Lunatik runtime object, or `nil` when `ispercpu` is set.
+-- @tparam[opt] boolean ispercpu create one runtime per CPU id, dispatched by the CPU a
+--   callback fires on; the script runs once per instance and can read its id with
+--   `lunatik.cpu()`. Netfilter hooks and constructors whose registration is global
+--   refuse to run in an instance.
+-- @treturn table created Lunatik runtime object, or the percpu object when `ispercpu` is set.
 -- @raise error if the script is already running.
 function runner.run(script, context, ispercpu)
 	local script = trim(script)
-	if env.runtimes[script] or env.percpu[key(script, 0)] then
+	if env.runtimes[script] then
 		error(string.format("%s is already running", script))
 	end
-	if ispercpu then
-		return percpu.run(script, context)
-	end
-	local runtime = lunatik.runtime(script, context)
+	local runtime = ispercpu and lunatik.percpu(script, context) or lunatik.runtime(script, context)
 	env.runtimes[script] = runtime
 	return runtime
 end
@@ -119,21 +88,13 @@ function runner.stop(script)
 	local script = trim(script)
 	stop(env.threads, script)
 	stop(env.runtimes, script)
-	percpu.stop(script)
 end
 
 --- Lists the names of all currently running scripts.
--- Iterates over the `env.percpu` and `env.runtimes` RCU tables to collect
--- script names; a percpu script is named once, not once per CPU id.
+-- Iterates over the `env.runtimes` RCU table to collect script names.
 -- @treturn string A comma-separated string of running script names, or an empty string if no scripts are running.
 function runner.list()
 	local list = {}
-	rcu.map(env.percpu, function (script)
-		local base = percpu.name(script)
-		if base then
-			table.insert(list, base)
-		end
-	end)
 	rcu.map(env.runtimes, function (script)
 		table.insert(list, script)
 	end)
@@ -141,23 +102,10 @@ function runner.list()
 end
 
 --- Shuts down all running scripts and their threads.
--- Collects the names from `env.percpu` and `env.runtimes`, then calls
--- `runner.stop` for each script; stopping a percpu script removes entries
--- beyond the current one, which the iteration does not support.
+-- Stops each script as the iteration reaches it: `runner.stop` removes the
+-- entry the callback was given, which is all `rcu.map` allows.
 function runner.shutdown()
-	local scripts = {}
-	rcu.map(env.percpu, function (script)
-		local base = percpu.name(script)
-		if base then
-			table.insert(scripts, base)
-		end
-	end)
-	rcu.map(env.runtimes, function (script)
-		table.insert(scripts, script)
-	end)
-	for _, script in ipairs(scripts) do
-		runner.stop(script)
-	end
+	rcu.map(env.runtimes, runner.stop)
 end
 
 local function restore(name)
@@ -172,13 +120,12 @@ local function restore(name)
 end
 
 --- Initializes the runner's internal state.
--- Creates the RCU-safe tables for runtimes, percpu instances and threads,
--- reusing the ones a previous startup left in `env`. A table left by an
+-- Creates the RCU-safe tables for runtimes and threads, reusing the ones a
+-- previous startup left in `env`. A table left by an
 -- incompatible runner is rejected: the modules have to be unloaded and loaded.
 -- @raise error if a table in `env` is not an rcu table.
 function runner.startup()
 	env.runtimes = restore("runtimes")
-	env.percpu = restore("percpu")
 	env.threads = restore("threads")
 end
 
