@@ -342,6 +342,24 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   runtime is refused; a registration from a callback, after load, is
   refused; and the same script registers as a plain softirq runtime.
 
+### sched
+
+Regression tests for `luasched`: the attach guards, and the dispatch path
+through a struct_ops scheduler whose `enqueue` calls `bpf_luasched_run`.
+Skipped when the kernel has no sched_ext (`/sys/kernel/sched_ext`), the
+module lacks BTF, or `bpftool` or `clang` is unavailable.
+
+- **sched attach**: `sched.attach()` refuses a sleepable runtime with
+  `runtime context mismatch`.
+
+- **sched reattach**: a hardirq runtime attaches, re-attaches (replacing the
+  callback) and detaches without a Lua error.
+
+- **sched pass**: registering the scheduler routes every enqueue on the host
+  through the Lua callback, which sets the dispatch queue and slice and
+  reports once; the report in `dmesg`, with no Lua error, is the proof. The
+  scheduler is unregistered before its runtime stops.
+
 ### set
 
 - **set**: `set.new` sorting unsorted input and binary-search membership
