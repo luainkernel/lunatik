@@ -335,7 +335,7 @@ static void lunatik_releasepercpu(void *private)
 
 	for_each_possible_cpu(cpu) {
 		lunatik_object_t *runtime = *per_cpu_ptr(runtimes, cpu);
-		if (runtime != NULL) /* last reference: a stop would lock, and this can run in softirq */
+		if (runtime != NULL) /* last reference: a hook holds the object, not the instance; a stop would lock in softirq */
 			lunatik_putobject(runtime);
 	}
 	free_percpu(runtimes);
