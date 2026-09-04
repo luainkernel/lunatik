@@ -492,6 +492,14 @@ A review produces two things: the comments, and a branch showing what the commen
 is posted before the maintainer has seen both, and the checklist below is the reviewer's own — a
 review that fails it is not ready, whatever the code looks like.
 
+The checklist runs whole on every pull request, whoever wrote it: the maintainer's own, another
+session's, or this session's earlier work. Authorship shortens nothing. A change that arrives with
+a rationale attached — a comment beside the line, a body that explains the choice, a prior session
+that "already reviewed it" — is reviewed against the code, not against the rationale: a comment
+beside `raw_cpu_ptr` about a preemptible caller that does not exist is a finding to run to ground
+against the kernel's own idiom, not a reason to pass the line. Reading the rationale as the review
+is how a mutex in softirq and a crash reachable from Lua were passed.
+
 ### Before the verdict
 
 1. Check out the author's branch, build it, and run the suite. Reading the diff misses what the
@@ -564,6 +572,9 @@ review that fails it is not ready, whatever the code looks like.
   `tc`'s BPF programs were right to declare `Dual MIT/GPL`; the `xdp` ones still on `GPL` are what a
   separate cleanup fixes.
 * Missing tests are a finding of their own, written as such, not a remark appended to another comment.
+* A contract the author documented is not redesigned by the review. An ergonomics preference, `nil`
+  against an object whose methods raise, is stated with its trade-off and left to the maintainer;
+  shipped as a fixup, it asks the author to un-decide.
 
 ### Fixups
 
@@ -576,8 +587,10 @@ review that fails it is not ready, whatever the code looks like.
   per target commit: a comment pointing at a commit that does three unrelated things cannot be accepted
   in parts, and the author is the one who autosquashes what they accept. A fixup touches only what the
   pull request introduced; check the symbol's provenance first, since one already on `master` is a
-  separate change on its own branch. A consistency fix on the branch's own code is done now, not
-  deferred.
+  separate change on its own branch, and a design note under `doc/design/` that mentions the old
+  shape is a snapshot of a plan, not the API's documentation, and stays out. A fixup is the
+  reviewer's code with no reviewer, so it gets the pass the author's code got. A consistency fix on
+  the branch's own code is done now, not deferred.
 * A script or command handed to the author is one you ran, not one you syntax-checked or copied from a
   doc. `bash -n` passing is not the script working, and "it is the README's own command" is not "it
   runs here". If the environment cannot verify it — a stale module, a skewed signature in the way —
@@ -619,6 +632,9 @@ review that fails it is not ready, whatever the code looks like.
   closed and there is more to say, comment. And feedback lives in one artifact: when you fall back to a
   comment, or correct or move a comment, edit or supersede the one that carries it — never leave two
   copies to drift.
+* A stacked pull request is merged after its base, never before: GitHub merges it into the base
+  branch, the base pull request grows a commit nobody reviewed there, and the stacked one closes
+  as merged with nothing on `master`. A verdict on a stacked pull request says "after #N".
 * Approving is the reviewer's to state; merging is the maintainer's to trigger. Even a clean, approved
   PR is not merged on the reviewer's initiative — pushing or merging to `master` is irreversible and
   public, and the click is the maintainer's alone. A question about state — "can we merge?", "is it
