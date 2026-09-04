@@ -49,8 +49,8 @@ end
 -- @tparam[opt] string context Execution context: `"process"` (default) or `"softirq"` (for netfilter/XDP hooks).
 -- @tparam[opt] boolean ispercpu create one runtime per CPU id, dispatched by the CPU a
 --   callback fires on; the script runs once per instance and can read its id with
---   `lunatik.cpu()`. Netfilter hooks and constructors whose registration is global
---   refuse to run in an instance.
+--   `lunatik.cpu()`. The instances share a netfilter hook; constructors whose
+--   registration is global refuse to run in an instance.
 -- @treturn table created Lunatik runtime object, or the percpu object when `ispercpu` is set.
 -- @raise error if the script is already running.
 function runner.run(script, context, ispercpu)

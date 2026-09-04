@@ -255,8 +255,14 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 - **percpu_refuse**: a registration a percpu instance cannot own fails
   at load, naming percpu, with a clean rollback, and the same script
-  runs as a plain runtime: `device.new`, whose registration is global,
-  and `netfilter.register`, which has no per-CPU dispatch.
+  runs as a plain runtime: `device.new`, whose registration is global.
+
+- **percpu_netfilter**: the instances of a percpu script share one
+  `LOCAL_IN` hook: with the ping pinned to the last online CPU, each marked
+  request is counted exactly once, by the instance of that CPU; a second
+  registration of the same hook in one instance is refused; a registration
+  from a callback, after load, is refused; and the same script registers as
+  a plain softirq runtime.
 
 ### set
 

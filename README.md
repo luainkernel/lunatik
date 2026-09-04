@@ -95,7 +95,7 @@ usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [
 * `status`: show which Lunatik kernel modules are currently loaded
 * `test [suite]`: run installed test suites (see [Testing](#testing))
 * `list`: show which runtime environments are currently running
-* `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime instance per CPU id, dispatched to the instance of the CPU the callback runs on. The script runs once per instance and can read its id with `lunatik.cpu()`; netfilter hooks and constructors whose registration is global fail at load in a percpu instance
+* `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime instance per CPU id, dispatched to the instance of the CPU the callback runs on. The script runs once per instance and can read its id with `lunatik.cpu()`; the instances share a netfilter hook, and constructors whose registration is global fail at load in a percpu instance
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
 * `stop`: stop the runtime environment created to run the script `<script>`
 * `default`: start a _REPL (Read–Eval–Print Loop)_
@@ -402,6 +402,7 @@ This script drops any outbound DNS packet with question matching the blacklist p
 ```
 sudo make examples_install              # installs examples
 sudo lunatik run examples/dnsblock/nf_dnsblock softirq	# runs the Lua kernel script
+sudo lunatik run examples/dnsblock/nf_dnsblock softirq percpu	# or one instance per CPU, sharing the hook
 ```
 
 ### dnsdoctor
@@ -421,6 +422,7 @@ dig lunatik.com
 
 # run the Lua kernel script
 sudo lunatik run examples/dnsdoctor/nf_dnsdoctor softirq
+sudo lunatik run examples/dnsdoctor/nf_dnsdoctor softirq percpu	# or one instance per CPU, sharing the hook
 
 # test the setup, a response with IP 10.1.2.3 should be returned
 dig lunatik.com
