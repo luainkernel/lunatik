@@ -410,6 +410,10 @@ old factory — kept building and broke at the first packet.
   not say: a new API, a behaviour change, a non obvious rationale. No bullet list of every detail.
 * A pull request title and body follow the same rule: what and why, nothing the commits already say.
   No "Test plan" section, and no em dashes.
+* A pull request is one mechanism, read in one screen of diff and one paragraph of body. A body that
+  needs a section per mechanism describes several pull requests: stack them, each on the one below.
+* No session links or assistant footers in a commit or a pull request beyond the `Co-Authored-By`
+  trailer. The project settings turn the link off; one that slipped in is removed with a reword.
 * A root cause named in a commit body or a pull request rests on a captured stack or a source-traced
   chain, not a correlated log line or a plausible mechanism. Until it is traced it is a hypothesis,
   labelled as one; a fix may land on the observed behaviour without naming a cause it has not proven.
