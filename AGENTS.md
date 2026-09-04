@@ -488,6 +488,11 @@ A review produces two things: the comments, and a branch showing what the commen
 is posted before the maintainer has seen both, and the checklist below is the reviewer's own — a
 review that fails it is not ready, whatever the code looks like.
 
+"The tree does it" is a fact about the tree, not a reason. A choice is defended by what it buys
+and what it costs; prevalence says whether it is common, never whether it is right, and a tree can
+be wrong in a hundred places. When the only support for a line is a precedent, say so and judge it
+again.
+
 The checklist runs whole on every pull request, whoever wrote it: the maintainer's own, another
 session's, or this session's earlier work. Authorship shortens nothing. A change that arrives with
 a rationale attached — a comment beside the line, a body that explains the choice, a prior session
