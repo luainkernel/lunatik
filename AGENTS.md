@@ -585,6 +585,9 @@ rationale as the review is how a mutex in softirq and a crash reachable from Lua
   and shown, and is the review half-done. The prose points at the fixup and says why; the fixup is the
   change. A code finding with no commit behind it is not ready to post, and a review posted as comments
   with no branch is the lazy half of the two the review owes.
+* A fixup is the reviewer's code with no reviewer, so it gets the pass the author's code got:
+  only what the pull request introduced, said in one place. A design note under `doc/design/` that
+  mentions the old shape is a snapshot of a plan, not the API's documentation, and stays out.
 * One fixup per finding, `git commit --fixup=<the author's commit>` — not one per file, and not one
   per target commit: a comment pointing at a commit that does three unrelated things cannot be accepted
   in parts, and the author is the one who autosquashes what they accept. A fixup touches only what the
