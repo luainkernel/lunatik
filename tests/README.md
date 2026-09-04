@@ -307,9 +307,9 @@ BTF, or `bpftool`, `clang` or `tc` is unavailable.
 - **tc pass**: the callback inspects `ctx:skb()` (IPv4 ethertype and the
   ICMP protocol byte of the ping) and `ctx:argument()` (a magic word the
   eBPF program passed through), and `action.ACT_OK` lets the packet reach
-  its destination; only the ping is verified, since the namespace emits
-  autoconf traffic of its own; the runtime is plain, covering the plain-name
-  kfunc lookup.
+  its destination; the runtime is plain, covering the plain-name kfunc lookup.
+  Every callback that reads the packet acts only on the ping, through the
+  suite's `packet.isping`, since the namespace emits autoconf traffic of its own.
 
 - **tc drop**: `action.ACT_SHOT` blocks the ping; the runtime is percpu,
   covering the dispatch to a percpu instance.
@@ -319,8 +319,9 @@ BTF, or `bpftool`, `clang` or `tc` is unavailable.
   the re-attach path.
 
 - **tc detach**: the callback drops the first ping and calls `tc.detach()`
-  from inside the callback; traffic resumes because `bpf_luatc_run` then
-  returns `-1` and the eBPF program falls back to `TC_ACT_OK`.
+  from inside the callback, letting other traffic through; traffic resumes
+  because `bpf_luatc_run` then returns `-1` and the eBPF program falls back
+  to `TC_ACT_OK`.
 
 - **tc attach**: `tc.attach` refuses a sleepable runtime with "runtime
   context mismatch".
@@ -368,8 +369,9 @@ BTF, or `bpftool` or `clang` is unavailable.
   covering the dispatch to a percpu instance.
 
 - **xdp detach**: the callback drops the first ping and calls `xdp.detach()`
-  from inside the callback; traffic resumes because `bpf_luaxdp_run` then
-  returns `-1` and the eBPF program falls back to `XDP_PASS`.
+  from inside the callback, letting other traffic through; traffic resumes
+  because `bpf_luaxdp_run` then returns `-1` and the eBPF program falls back
+  to `XDP_PASS`.
 
 - **xdp attach**: `xdp.attach` refuses a sleepable runtime with "runtime
   context mismatch".
