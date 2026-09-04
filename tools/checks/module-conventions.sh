@@ -39,6 +39,21 @@ check() {
 		add "has } else on the same line; else goes on its own line"
 	[ "$(tail -c2 "$file" | tr '\n' 'N')" = "NN" ] || \
 		add "does not end with a trailing blank line"
+	grep -nE '\braw_cpu_ptr\(' "$file" >/dev/null 2>&1 && \
+		add "uses raw_cpu_ptr; a per-CPU access names its guarantee: this_cpu_ptr where preemption is off, per_cpu_ptr with an explicit id"
+	grep -nE '__percpu[[:space:]]+\*[[:space:]]*\)' "$file" 2>/dev/null | grep -v '__force' | grep -q . && \
+		add "casts into __percpu without __force; a cast into an annotated address space carries __force, as the opt constants do"
+	grep -nE 'lunatik_toobject\(L, *(-?[0-9]+|ix)\)->private' "$file" 2>/dev/null | grep -vE 'lunatik_getregistry|_key\)' | grep -q . && \
+		add "reads ->private through lunatik_toobject on an argument; lunatik_toobject returns NULL for a non-userdata, so a checker (lunatik_checkobject) goes first"
+	# a method that reads private as its own type right after lunatik_checkobject, which
+	# accepts any Lunatik object, skips the class check; a checker tests the class in between.
+	awk '
+		/lunatik_checkobject\(L, *(-?[0-9]+|ix)\)/ { hold=NR }
+		hold && /argcheckclass|argexpected/ { hold=0 }
+		hold && NR<=hold+3 && /->private/ { print NR; found=1; hold=0 }
+		END { exit !found }
+	' "$file" >/dev/null 2>&1 && \
+		add "reads ->private right after lunatik_checkobject, which accepts any Lunatik object; check the class first (lunatik_argcheckclass, or luaL_argexpected over the classes the method accepts)"
 
 	# over-comment nudges. Heuristic, so advisory.
 	# (a) a comment right after a preprocessor branch usually restates the condition.
