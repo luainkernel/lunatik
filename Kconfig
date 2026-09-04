@@ -166,6 +166,7 @@ config LUNATIK_CPU
 config LUNATIK_SCHED
 	tristate "Lunatik Scheduler Support"
 	default m
+	select LUNATIK_TASK
 	help
 	  Extensible Linux Scheduler support for custom process scheduling.
 
@@ -195,4 +196,4 @@ config LUNATIK_BPF
 	  Access to pinned eBPF maps from Lua scripts.
 
 endif
- 
+
