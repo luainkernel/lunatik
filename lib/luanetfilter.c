@@ -117,13 +117,13 @@ static unsigned int luanetfilter_hook(void *priv, struct sk_buff *skb, const str
 	return luanetfilter_docall((luanetfilter_hook_t *)priv, skb);
 }
 
-static luanetfilter_hook_t *luanetfilter_findhook(lunatik_object_t *runtime, const struct nf_hook_ops *nfops)
+static luanetfilter_hook_t *luanetfilter_findhook(lunatik_object_t *runtime, const luanetfilter_hook_t *spec)
 {
 	luanetfilter_hook_t *hook;
 
 	list_for_each_entry(hook, &luanetfilter_hooks, list) {
-		if (hook->runtime == runtime && hook->nfops.pf == nfops->pf &&
-		    hook->nfops.hooknum == nfops->hooknum && hook->nfops.priority == nfops->priority)
+		if (hook->runtime == runtime && hook->mark == spec->mark && hook->nfops.pf == spec->nfops.pf &&
+		    hook->nfops.hooknum == spec->nfops.hooknum && hook->nfops.priority == spec->nfops.priority)
 			return hook;
 	}
 	return NULL;
@@ -187,7 +187,7 @@ static const lunatik_class_t luanetfilter_class = {
 *   and optionally `mark` (integer, default 0).
 * @treturn netfilter_hook Registered hook handle.
 * @raise if the hook cannot be registered, or if this instance already registered the same
-*   `pf`, `hooknum` and `priority`
+*   `pf`, `hooknum`, `priority` and `mark`
 */
 static int luanetfilter_register(lua_State *L)
 {
@@ -208,7 +208,7 @@ static int luanetfilter_register(lua_State *L)
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
 
 	mutex_lock(&luanetfilter_lock);
-	luanetfilter_hook_t *hook = percpu != NULL ? luanetfilter_findhook(percpu, &spec.nfops) : NULL;
+	luanetfilter_hook_t *hook = percpu != NULL ? luanetfilter_findhook(percpu, &spec) : NULL;
 	if (hook == NULL)
 		hook = luanetfilter_newhook(percpu != NULL ? percpu : runtime, &spec);
 	else if (lunatik_getregistry(L, hook) != LUA_TNIL) {
