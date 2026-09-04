@@ -297,6 +297,11 @@ Never `require("foo").method()`.
 * A comment is one line carrying the reason the code is not obvious, nothing the code below already
   says. State the why; the what and the how are the code's job.
 * A comment about a specific call goes on that call's line, not above the function signature.
+* When the surprise is the call itself, a `put` where the tree would `stop`, the comment on the
+  call's line gives the one reason it is not the expected call, `/* last reference: a stop would
+  lock, and this can run in softirq */`; when the alternative is the other arm of the same `if`,
+  the reason alone, `else /* this arm may sleep */`. The comment states the choice, not the world
+  behind it; the invariant the choice rests on is the commit body's.
 * Reaching for a comment is a signal to reconsider the code's clarity first: a name that states the
   intent, a helper that names the step, an enum instead of a bare constant. Comment what the code
   cannot be made to say, not what a clearer shape would.
@@ -347,7 +352,9 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   first, since restoring is a `git checkout --` that takes any uncommitted work with it;
 * a test for an exactly once property runs on the path where that property is structural, and the
   header says which path and why. The same assertion on a path that can migrate CPUs mid way passes
-  for the wrong reason.
+  for the wrong reason;
+* a test that guards a kernel crash is not proved by removing the guard. Say that its discrimination
+  rests on the message it asserts, and prove the rest of the suite the usual way.
 
 A test is not done until `tests/README.md` describes it, the suite's `run.sh` runs it, and, for a new
 suite, the top level `README.md` lists it. Same commit, or a fixup of it.
@@ -388,6 +395,10 @@ old factory — kept building and broke at the first packet.
   move on. A question is for a genuine fork — where the answer changes the outcome and no rule,
   precedent, or test resolves it. Asking whether to add a comment the tree's macros never carry spends
   the maintainer on a call this document already made.
+* "The tree does it" is a fact about the tree, not a reason. A choice is defended by what it buys and
+  what it costs; prevalence says whether it is common, never whether it is right, and a tree can be
+  wrong in a hundred places. When the only support for a line is a precedent, say so and judge it
+  again.
 
 ## Patches and commits
 
@@ -410,6 +421,10 @@ old factory — kept building and broke at the first packet.
   not say: a new API, a behaviour change, a non obvious rationale. No bullet list of every detail.
 * A pull request title and body follow the same rule: what and why, nothing the commits already say.
   No "Test plan" section, and no em dashes.
+* A pull request is one mechanism, read in one screen of diff and one paragraph of body. A body that
+  needs a section per mechanism describes several pull requests: stack them, each on the one below.
+* No session links or assistant footers in a commit or a pull request beyond the `Co-Authored-By`
+  trailer. The project settings turn the link off; one that slipped in is removed with a reword.
 * A root cause named in a commit body or a pull request rests on a captured stack or a source-traced
   chain, not a correlated log line or a plausible mechanism. Until it is traced it is a hypothesis,
   labelled as one; a fix may land on the observed behaviour without naming a cause it has not proven.
