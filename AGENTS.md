@@ -54,7 +54,17 @@ Use `sudo make install`, not the partial `*_install` targets. Use `sudo lunatik 
 
 After a kernel upgrade the installed modules were built for the previous kernel and fail to load with
 `Exec format error` (a vermagic mismatch). Reinstall the headers, `make clean && make`, and reinstall
-before the next `reload`.
+before the next `reload`. The eBPF modules also need the running kernel's BTF at build time,
+`sudo make btf_install` before `make`, or they log `missing module BTF, cannot register kfuncs` and
+do not load; and the `bpftool` wrapper needs `linux-tools-$(uname -r)`, or every BPF program fails
+to load.
+
+A wedged device — a `lunatik` process in D state, usually below an oops in `dmesg` — is cleared only
+by a reboot, and the reboot is the maintainer's to trigger: other sessions share the host. Before
+asking, capture what the reboot erases with `tools/oops.sh`, write down which suites were pending
+and which build was installed, and run nothing else against the device. After it, the suite that
+oopsed runs twice: a second oops is a bug to trace, a clean pair is a symptom without its cause,
+said as such. The lunatik-cycle skill orders both halves.
 
 Never run two `lunatik` operations at once. Concurrent operations wedge `/dev/lunatik` and leave
 processes in D state. Check with `ps` before starting one.
