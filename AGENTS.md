@@ -297,6 +297,11 @@ Never `require("foo").method()`.
 * A comment is one line carrying the reason the code is not obvious, nothing the code below already
   says. State the why; the what and the how are the code's job.
 * A comment about a specific call goes on that call's line, not above the function signature.
+* When the surprise is the call itself, a `put` where the tree would `stop`, the comment on the
+  call's line gives the one reason it is not the expected call, `/* last reference: a stop would
+  lock here */`; when the alternative is the other arm of the same `if`, the reason alone,
+  `else /* this arm may sleep */`. The comment states the choice, not the world behind it; the
+  invariant the choice rests on is the commit body's.
 * Reaching for a comment is a signal to reconsider the code's clarity first: a name that states the
   intent, a helper that names the step, an enum instead of a bare constant. Comment what the code
   cannot be made to say, not what a clearer shape would.
