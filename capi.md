@@ -114,6 +114,9 @@ passing the associated Lua state as the first argument followed by the variadic 
 If the Lua state has been closed, `ret` is set with `-ENXIO`;
 otherwise, `ret` is set with the result of `handler(L, ...)` call.
 Then, it restores the Lua stack and unlocks the `runtime` environment.
+A `percpu` object, which the caller keeps referenced across the call, is resolved first
+to the instance of the CPU the caller runs on, and the caller stays on that CPU until the
+call returns.
 It is defined as a macro.
 
 #### Example
