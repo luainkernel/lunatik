@@ -39,6 +39,19 @@ check() {
 		add "has } else on the same line; else goes on its own line"
 	[ "$(tail -c2 "$file" | tr '\n' 'N')" = "NN" ] || \
 		add "does not end with a trailing blank line"
+	grep -nE '\braw_cpu_ptr\(' "$file" >/dev/null 2>&1 && \
+		add "uses raw_cpu_ptr; a per-CPU access names its guarantee: this_cpu_ptr where preemption is off, per_cpu_ptr with an explicit id"
+	grep -nE '__percpu[[:space:]]+\*[[:space:]]*\)' "$file" 2>/dev/null | grep -v '__force' | grep -q . && \
+		add "casts into __percpu without __force; a cast into an annotated address space carries __force, as the opt constants do"
+	# a method that reads private as its own type right after lunatik_checkobject, which
+	# accepts any Lunatik object, skips the class check; a checker adds lunatik_argcheckclass.
+	awk '
+		/lunatik_checkobject\(L, [0-9]+\)/ { hold=NR }
+		hold && /argcheckclass/ { hold=0 }
+		hold && NR<=hold+3 && /->private/ { print NR; found=1; hold=0 }
+		END { exit !found }
+	' "$file" >/dev/null 2>&1 && \
+		add "reads ->private right after lunatik_checkobject, which accepts any Lunatik object; check the class first (LUNATIK_PRIVATECHECKER with lunatik_argcheckclass, or a hand written checker)"
 
 	# over-comment nudges. Heuristic, so advisory.
 	# (a) a comment right after a preprocessor branch usually restates the condition.
