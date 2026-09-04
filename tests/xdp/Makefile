@@ -3,7 +3,7 @@
 
 all: xdp_pass.bpf.o xdp_drop.bpf.o xdp_detach.bpf.o xdp_zerokey.bpf.o xdp_process.bpf.o xdp_percpu.bpf.o
 
-vmlinux.h:
+vmlinux.h: /sys/kernel/btf/vmlinux
 	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@
 
 xdp_pass.bpf.o: xdp_pass.bpf.c vmlinux.h
