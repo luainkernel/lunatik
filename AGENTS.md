@@ -553,6 +553,12 @@ review that fails it is not ready, whatever the code looks like.
   `tc`'s BPF programs were right to declare `Dual MIT/GPL`; the `xdp` ones still on `GPL` are what a
   separate cleanup fixes.
 * Missing tests are a finding of their own, written as such, not a remark appended to another comment.
+* A comment is not a trace. A rationale left on the weaker primitive, `raw_cpu_ptr` justified by a
+  preemptible caller that does not exist, is a finding to run to ground against the kernel's own
+  idiom, not a reason to pass the line.
+* A contract the author documented is not redesigned by the review. An ergonomics preference, `nil`
+  against an object whose methods raise, is stated with its trade-off and left to the maintainer;
+  shipped as a fixup, it asks the author to un-decide.
 
 ### Fixups
 
