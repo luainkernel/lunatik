@@ -3,7 +3,7 @@
 
 all: tc_pass.bpf.o tc_drop.bpf.o tc_detach.bpf.o tc_zerokey.bpf.o tc_reattach.bpf.o
 
-vmlinux.h:
+vmlinux.h: /sys/kernel/btf/vmlinux
 	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@
 
 tc_pass.bpf.o: tc_pass.bpf.c vmlinux.h
