@@ -41,3 +41,28 @@ idle system is the driver runtime's require-pins (a kernel `require()` pins the 
 until that state's `lua_close`). `/sys/module/X/holders` lists only symbol dependencies, not
 require-pins; `refcnt` is the complete in-degree.
 
+# A wedged device: before and after the reboot
+
+A `lunatik` process in D state does not come back, and the reboot that clears it is the
+maintainer's call (AGENTS.md, "Build, install, test"). Before asking for it:
+
+    ps -eo pid,stat,etime,cmd | awk '$2 ~ /D/'          # confirm, and note the PID
+    tools/oops.sh > scratch/oops-$(date +%F).txt         # dmesg block, faulting instructions, D-state processes
+
+Then write down (memory or scratch) which tree `make install` last ran from and its HEAD, the
+suites not yet run, and the branches whose tests were interrupted. Run no further `lunatik`
+command; the D-state child cannot be killed and every new one queues behind it.
+
+After the reboot, in this order:
+
+    uname -r                                             # a kernel upgrade may have come with it
+    sudo apt install linux-headers-$(uname -r) linux-tools-$(uname -r)
+    git worktree prune                                   # scratch worktrees under /tmp are gone
+    git worktree add <scratch>/w<name> <ref> && git -C <scratch>/w<name> submodule update --init
+    make clean && sudo make btf_install && make && sudo make install && sudo lunatik reload
+    sudo lunatik test <the suite that oopsed>            # twice
+
+A second oops is the bug, traced from `scratch/oops-*.txt`; a clean pair means the trigger
+was state the reboot cleared, reported as untraced. Then the pending list, in the order the
+branches stack.
+
