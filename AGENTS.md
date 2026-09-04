@@ -632,6 +632,9 @@ rationale as the review is how a mutex in softirq and a crash reachable from Lua
   closed and there is more to say, comment. And feedback lives in one artifact: when you fall back to a
   comment, or correct or move a comment, edit or supersede the one that carries it — never leave two
   copies to drift.
+* A stacked pull request is merged after its base, never before: GitHub merges it into the base
+  branch, the base pull request grows a commit nobody reviewed there, and the stacked one closes
+  as merged with nothing on `master`. A verdict on a stacked pull request says "after #N".
 * Approving is the reviewer's to state; merging is the maintainer's to trigger. Even a clean, approved
   PR is not merged on the reviewer's initiative — pushing or merging to `master` is irreversible and
   public, and the click is the maintainer's alone. A question about state — "can we merge?", "is it
