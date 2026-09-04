@@ -214,6 +214,11 @@ does — the socket layer does not check `kthread_should_stop()`. To wait indefi
 * Objects a C module pre allocates but exposes to Lua use `lunatik_createobject` plus
   `lunatik_cloneobject`, which requires `.shared = true`.
 
+A registration a percpu script makes once for all its instances, a hook or a kernel thread, lives
+in a block from `lunatik_getshared`, which the object tears down before closing the instances. A
+binding that keeps a global list or a use count of its own to find what the other instances
+registered is doing the object's job.
+
 The registry pattern for a reusable per hook object (`lunatik_getregistry`, reset, pass to Lua, clear
 afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than inventing a variant.
 

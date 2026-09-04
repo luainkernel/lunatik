@@ -186,6 +186,20 @@ Returns the runtime associated with `L` and raises a Lua error if its context do
 process runtime. Typically called from `lunatik_new*` functions to enforce that a class is
 only instantiated in a compatible runtime.
 
+### lunatik\_getshared
+```C
+void *lunatik_getshared(lua_State *L, const lunatik_shared_t *shared);
+```
+Returns the block the instances of a `percpu` script share for the descriptor `shared`, which
+gives the block's `size` and its `stop` callback. The first instance to call with a descriptor
+allocates the block, zeroed; the following ones get the same block. The object owns it: `percpu:stop()` runs `stop` on each block, in process
+context, before closing the instances, and a block keeps the object referenced until then, as a
+hook keeps a plain runtime. A registration a script makes once for all its instances, a netfilter
+hook, say, lives in such a block, with `stop` unregistering it.
+Only the script body may claim a block, while the instance loads; it raises a Lua error afterwards.
+Returns `NULL` on a plain runtime, which has no instances to share with;
+`lunatik_getpercpu(L)` tells the two apart, returning the object owning the instance `L`, or `NULL`.
+
 ---
 
 ## Object Lifecycle
