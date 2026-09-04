@@ -220,6 +220,15 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * A secondary check that must always follow a `LUNATIK_PRIVATECHECKER` (a field that must be set,
   the class identity of the object) goes in the macro's vararg body, in the mold of `luaskb_check`;
   `L` and `ix` are in scope there. A hand written checker only when the macro's shape does not fit.
+* A method that reads `private` as its own type checks the class first. `lunatik_checkobject`
+  accepts any Lunatik object, so a foreign object's private read through this class's pointer is a
+  kernel crash reachable from Lua: `getmetatable(a).method(b)` is one line of script. The check is
+  `lunatik_argcheckclass` in the checker's body, or in a hand written checker when the cast needs
+  `__force`.
+* A per-CPU access names the guarantee it has: `this_cpu_ptr` where preemption is off, `per_cpu_ptr`
+  with an explicit id, and `raw_cpu_ptr` never to silence the check a preemptible caller would trip.
+  A cast into an annotated address space or type, `__percpu` or `__bitwise`, carries `__force`, as
+  the `opt` constants do.
 * `/*** @section name */` separates logical sections in a merged C file and groups them in the docs.
 * Two short mutually exclusive calls read better as a ternary than a four line if/else; void arms are
   fine. This does not transpose to Lua (see Lua style).
