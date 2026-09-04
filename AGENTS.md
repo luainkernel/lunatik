@@ -347,7 +347,9 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   first, since restoring is a `git checkout --` that takes any uncommitted work with it;
 * a test for an exactly once property runs on the path where that property is structural, and the
   header says which path and why. The same assertion on a path that can migrate CPUs mid way passes
-  for the wrong reason.
+  for the wrong reason;
+* a test that guards a kernel crash is not proved by removing the guard. Say that its discrimination
+  rests on the message it asserts, and prove the rest of the suite the usual way.
 
 A test is not done until `tests/README.md` describes it, the suite's `run.sh` runs it, and, for a new
 suite, the top level `README.md` lists it. Same commit, or a fixup of it.
