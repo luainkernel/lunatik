@@ -58,6 +58,7 @@ do {									\
 #define LUNATIK_CPU_NONE	(-1)
 #define lunatik_getcpu(L)	(lunatik_extra(L)->cpu)
 #define lunatik_hascpu(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
+#define lunatik_getpercpu(L)	(lunatik_extra(L)->percpu)
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 

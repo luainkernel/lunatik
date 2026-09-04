@@ -237,7 +237,8 @@ static int lunatik_runscript(lua_State *L)
 	return 1; /* callback */
 }
 
-static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt, int cpu)
+static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt,
+	lunatik_object_t *percpu, int cpu)
 {
 	lunatik_object_t *runtime;
 	lua_State *L;
@@ -257,6 +258,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	lunatik_toruntime(L) = runtime;
 	lunatik_extra(L)->ready = false;
 	lunatik_extra(L)->cpu = cpu;
+	lunatik_extra(L)->percpu = percpu;
 
 	runtime->gfp = GFP_KERNEL; /* might use kvmalloc while running in process */
 	lua_setallocf(L, lunatik_alloc, runtime);
@@ -284,7 +286,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt)
 {
-	return lunatik_newruntime(pruntime, NULL, script, opt, LUNATIK_CPU_NONE);
+	return lunatik_newruntime(pruntime, NULL, script, opt, NULL, LUNATIK_CPU_NONE);
 }
 EXPORT_SYMBOL(lunatik_runtime);
 
@@ -315,7 +317,7 @@ static int lunatik_lruntime(lua_State *L)
 	lunatik_opt_t opt = lunatik_checkcontext(L, 2);
 
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
-	if (lunatik_newruntime(pruntime, L, script, opt, LUNATIK_CPU_NONE) != 0)
+	if (lunatik_newruntime(pruntime, L, script, opt, NULL, LUNATIK_CPU_NONE) != 0)
 		lua_error(L);
 	lunatik_setclass(L, &lunatik_class, true);
 	return 1;
@@ -405,7 +407,7 @@ static int lunatik_percpu(lua_State *L)
 	object->private = runtimes;
 
 	for_each_possible_cpu(cpu) {
-		if (lunatik_newruntime(per_cpu_ptr(runtimes, cpu), L, script, opt, cpu) != 0) {
+		if (lunatik_newruntime(per_cpu_ptr(runtimes, cpu), L, script, opt, object, cpu) != 0) {
 			object->private = NULL;
 			lunatik_releasepercpu(runtimes); /* release the instances now, not on collection */
 			lua_error(L);
