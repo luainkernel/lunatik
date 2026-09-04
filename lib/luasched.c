@@ -17,7 +17,6 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/bpf.h>
-#include <linux/sched/ext.h>
 
 #include <lunatik.h>
 #include <lunatik_ebpf.h>
@@ -25,7 +24,7 @@
 #include "luarcu.h"
 #include "luatask.h"
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)) && defined(CONFIG_SCHED_CLASS_EXT)
+#ifdef CONFIG_SCHED_CLASS_EXT
 #include <linux/btf.h>
 #include <linux/btf_ids.h>
 #include <linux/sched.h>
@@ -66,7 +65,7 @@ static int luasched_task(lua_State *L)
 /***
 * Sets the sched_ext dispatch queue for this task.
 * @function sched_ctx:dsq
-* @tparam integer dispatch queue to set for the task
+* @tparam integer dsq dispatch queue to set for the task
 */
 static int luasched_dsq(lua_State *L)
 {
@@ -78,7 +77,7 @@ static int luasched_dsq(lua_State *L)
 /***
 * Sets the sched_ext slice in nanoseconds for this task.
 * @function sched_ctx:slice
-* @tparam integer slice in ns to set for the task
+* @tparam integer slice slice in ns to set for the task
 */
 static int luasched_slice(lua_State *L)
 {
@@ -100,10 +99,6 @@ static void luasched_release(void *private)
 	luasched_ctx_t *lctx = (luasched_ctx_t *)private;
 	if (lctx->task_obj)
 		luatask_close(lctx->task_obj);
-	if (lctx->task != NULL) {
-		put_task_struct(lctx->task);
-		lctx->task = NULL;
-	}
 }
 
 LUNATIK_OPENER(sched);
@@ -112,7 +107,7 @@ static const lunatik_class_t luasched_class = {
 	.methods = luasched_mt,
 	.release = luasched_release,
 	.opener  = luaopen_sched,
-	.opt     = LUNATIK_OPT_HARDIRQ,
+	.opt     = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
 };
 
 static void luasched_handler_cleanup(luasched_ctx_t *lctx)
@@ -188,7 +183,7 @@ static int luasched_detach(lua_State *L)
 	luasched_ctx_t *lctx = lunatik_ebpf_getctx(L);
 
 	if (lctx == NULL)
-		return -1;
+		return 0;
 
 	lunatik_ebpf_unbind(L, &lctx->cb);
 	lunatik_ebpf_detach(L, lctx, task_obj);
@@ -255,13 +250,10 @@ static int luasched_attach(lua_State *L)
 	lunatik_ebpf_bind(L, 1, &ctx->cb);
 	return 0;
 }
-#endif
 
 static const luaL_Reg luasched_lib[] = {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)) && defined(CONFIG_SCHED_CLASS_EXT)
 	{"attach", luasched_attach},
 	{"detach", luasched_detach},
-#endif
 	{NULL, NULL}
 };
 
@@ -270,6 +262,22 @@ LUNATIK_EBPF_NEWLIB(sched, luasched_lib, &luasched_class);
 LUNATIK_EBPF_KFUNC_INIT(sched, BPF_PROG_TYPE_STRUCT_OPS);
 
 LUNATIK_EBPF_EXIT(sched);
+#else
+static const luaL_Reg luasched_lib[] = {
+	{NULL, NULL}
+};
+
+LUNATIK_NEWLIB(sched, luasched_lib, NULL);
+
+static int __init luasched_init(void)
+{
+	return 0;
+}
+
+static void __exit luasched_exit(void)
+{
+}
+#endif
 
 module_init(luasched_init);
 module_exit(luasched_exit);
