@@ -87,7 +87,6 @@ run_case()
 
 	mark_dmesg
 	run_script "tests/xdp/$script" "$@"
-	check_dmesg || { ktap_fail "$label: script raised an error"; return 1; }
 
 	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
 	local reached=$?
@@ -96,6 +95,7 @@ run_case()
 	rm -f "$pin"
 	lunatik stop "tests/xdp/${script%.lua}" > /dev/null 2>&1
 
+	check_dmesg || { ktap_fail "$label: script raised an error"; return 1; }
 	dmesg_since | grep -qF "$label test fail" && { ktap_fail "$label: callback reported a failure"; return 1; }
 	dmesg_since | grep -qF "$label test pass" || { ktap_fail "$label: verdict callback did not run"; return 1; }
 
@@ -118,17 +118,19 @@ detach_case()
 
 	mark_dmesg
 	run_script "tests/xdp/detach" softirq
-	check_dmesg || { ktap_fail "xdp detach: script raised an error"; return 1; }
 
-	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1 &&
-		{ ktap_fail "xdp detach: the first ping should have been dropped"; return 1; }
-	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1 ||
-		{ ktap_fail "xdp detach: traffic did not resume after detach"; return 1; }
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+	local dropped=$?
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+	local resumed=$?
 
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
 	rm -f "${PIN}_detach"
 	lunatik stop tests/xdp/detach > /dev/null 2>&1
 
+	check_dmesg || { ktap_fail "xdp detach: script raised an error"; return 1; }
+	[ "$dropped" -ne 0 ] || { ktap_fail "xdp detach: the first ping should have been dropped"; return 1; }
+	[ "$resumed" -eq 0 ] || { ktap_fail "xdp detach: traffic did not resume after detach"; return 1; }
 	dmesg_since | grep -qF "xdp detach test pass" || { ktap_fail "xdp detach: callback did not run"; return 1; }
 	ktap_pass "xdp detach: callback stops firing and traffic resumes"
 }
@@ -192,13 +194,13 @@ percpu_case()
 
 	mark_dmesg
 	run_script "tests/xdp/percpu" softirq percpu
-	check_dmesg || { ktap_fail "xdp percpu: script raised an error"; return 1; }
 	taskset -c "$cpu" ip netns exec "$NETNS" ping -c 3 -W 2 "$TARGET" > /dev/null 2>&1
 
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
 	rm -f "${PIN}_percpu"
 	lunatik stop tests/xdp/percpu > /dev/null 2>&1
 
+	check_dmesg || { ktap_fail "xdp percpu: script raised an error"; return 1; }
 	hits=$(dmesg_since | grep -o "xdp percpu test hit: cpu [0-9]*" | sort -u)
 	[ -n "$hits" ] || { ktap_fail "xdp percpu: the callback did not run"; return 1; }
 	[ "$hits" = "xdp percpu test hit: cpu $cpu" ] ||
