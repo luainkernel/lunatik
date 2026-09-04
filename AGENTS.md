@@ -483,6 +483,12 @@ A review produces two things: the comments, and a branch showing what the commen
 is posted before the maintainer has seen both, and the checklist below is the reviewer's own — a
 review that fails it is not ready, whatever the code looks like.
 
+The checklist runs whole on every pull request, whoever wrote it: the maintainer's own, another
+session's, or this session's earlier work. Authorship shortens nothing. A change that arrives with
+a rationale attached — a comment beside the line, a body that explains the choice, a prior session
+that "already reviewed it" — is reviewed against the code, not against the rationale; reading the
+rationale as the review is how a mutex in softirq and a crash reachable from Lua were passed.
+
 ### Before the verdict
 
 1. Check out the author's branch, build it, and run the suite. Reading the diff misses what the
