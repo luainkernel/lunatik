@@ -101,7 +101,6 @@ run_case()
 
 	mark_dmesg
 	run_script "tests/tc/$script" "$@"
-	check_dmesg || { ktap_fail "$label: script raised an error"; return 1; }
 
 	# egress from the host toward the namespaced peer is what the classifier sees
 	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
@@ -110,6 +109,7 @@ run_case()
 	tc_unload
 	lunatik stop "tests/tc/${script%.lua}" > /dev/null 2>&1
 
+	check_dmesg || { ktap_fail "$label: script raised an error"; return 1; }
 	dmesg_since | grep -qF "$label test fail" && { ktap_fail "$label: callback reported a failure"; return 1; }
 	dmesg_since | grep -qF "$label test pass" || { ktap_fail "$label: verdict callback did not run"; return 1; }
 
@@ -130,16 +130,18 @@ detach_case()
 
 	mark_dmesg
 	run_script "tests/tc/detach" softirq
-	check_dmesg || { ktap_fail "tc detach: script raised an error"; return 1; }
 
-	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1 &&
-		{ ktap_fail "tc detach: the first ping should have been dropped"; return 1; }
-	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1 ||
-		{ ktap_fail "tc detach: traffic did not resume after detach"; return 1; }
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
+	local dropped=$?
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
+	local resumed=$?
 
 	tc_unload
 	lunatik stop tests/tc/detach > /dev/null 2>&1
 
+	check_dmesg || { ktap_fail "tc detach: script raised an error"; return 1; }
+	[ "$dropped" -ne 0 ] || { ktap_fail "tc detach: the first ping should have been dropped"; return 1; }
+	[ "$resumed" -eq 0 ] || { ktap_fail "tc detach: traffic did not resume after detach"; return 1; }
 	dmesg_since | grep -qF "tc detach test pass" || { ktap_fail "tc detach: callback did not run"; return 1; }
 	ktap_pass "tc detach: callback stops firing and traffic resumes"
 }
