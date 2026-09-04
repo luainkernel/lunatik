@@ -21,6 +21,7 @@ TESTS=(
 	percpu.sh
 	percpu_object.sh
 	percpu_refuse.sh
+	percpu_netfilter.sh
 )
 
 SEP=""
