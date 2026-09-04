@@ -59,6 +59,15 @@ before the next `reload`.
 Never run two `lunatik` operations at once. Concurrent operations wedge `/dev/lunatik` and leave
 processes in D state. Check with `ps` before starting one.
 
+A worktree named for a task may belong to another session on the same machine. Check
+`git worktree list` and the branch a worktree holds before a checkout or a reset there, and never
+reset a branch checked out elsewhere. A review, or a build of a branch not your own, runs in a
+worktree created for it (`git worktree add`, then `git submodule update --init`) and removed at the
+end.
+
+A tree with a conflict pending (`git status` showing `UU`) is not a test subject: a suite run over a
+half-applied rebase or cherry-pick measures neither side. Resolve and commit, then build.
+
 `lunatik reload` unloads only the modules the installed CLI lists. A module loaded from another
 branch's install escapes it and pins the core: `rmmod` reports `Module lunatik is in use by ...`
 while `lunatik list` is empty. Diff `lsmod` against the installed `lunatik/config.lua` to find the

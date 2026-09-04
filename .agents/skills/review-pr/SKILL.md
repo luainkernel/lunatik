@@ -8,8 +8,10 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
 
 # Reading and driving the branch
 
-- `git fetch origin pull/<N>/head:review/<N>` brings the author's head; build and run it with
-  the lunatik-cycle skill.
+- `git fetch origin pull/<N>/head:review/<N>` brings the author's head; check it out in a worktree
+  of its own (`git worktree add <scratch>/w<N> review/<N>`, then `git submodule update --init`),
+  since a worktree named for a task may be another session's; build and run it with the
+  lunatik-cycle skill.
 - Read the pull request through the REST API, which needs no `read:org` scope:
   `gh api repos/luainkernel/lunatik/pulls/<N>` for the PR,
   `gh api repos/.../issues/<N>/comments` and `gh api repos/.../pulls/<N>/comments` for the
