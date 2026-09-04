@@ -6,8 +6,13 @@
 
 local xdp    = require("xdp")
 local action = require("linux.xdp")
+local packet = require("tests.xdp.packet")
 
 local function drop_then_detach(ctx)
+	if not packet.isping(ctx:packet()) then
+		ctx:action(action.PASS)
+		return
+	end
 	ctx:action(action.DROP)
 	xdp.detach()
 	print("xdp detach test pass: verdict set and callback detached")

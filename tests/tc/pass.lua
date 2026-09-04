@@ -7,19 +7,13 @@
 local tc      = require("tc")
 local action  = require("linux.tc")
 local skbattr = require("skb.attr")
+local packet  = require("tests.tc.packet")
 
-local MAGIC    <const> = 0x4C554E41 -- matches tc_pass.bpf.c
-local ETH_HI   <const> = 12 -- ethertype, then IPv4 protocol
-local ETH_LO   <const> = 13
-local IPPROTO  <const> = 23
-local ICMP     <const> = 1
+local MAGIC <const> = 0x4C554E41 -- matches tc_pass.bpf.c
 
 local function test_pass(ctx)
-	local raw  = ctx:skb()
-	local data = raw:data()
-	-- the namespace also emits IPv6 autoconf traffic, from a context the test does not control
-	if data:getuint8(ETH_HI) == 0x08 and data:getuint8(ETH_LO) == 0x00
-			and data:getuint8(IPPROTO) == ICMP then
+	local raw = ctx:skb()
+	if packet.isping(raw:data()) then
 		local skb = skbattr.new(raw)
 		skb.priority = 0x1234 -- exercise the attribute accessors
 		skb.mark = 0xabcd
