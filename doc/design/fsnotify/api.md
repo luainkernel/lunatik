@@ -119,8 +119,10 @@ badly: `nil` (a handler that forgot to return) must mean allow.
 
 Denial surfaces to the process as `EPERM` on the syscall.
 
-Requires `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`. Without it the `*_PERM` constants are absent from
-`linux.fs` and marking with them raises.
+Requires `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`. The `*_PERM` constants are present either way, since
+the config gates the permission hooks and not the defines, so their presence cannot be the test: the
+module decides in C, and marking for a permission event on a kernel built without them has to refuse
+rather than register a mark nothing will ever reach.
 
 ## Reentrancy
 
