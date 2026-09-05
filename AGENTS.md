@@ -88,6 +88,16 @@ state and does not follow a branch switch. The symptom is a runtime `attempt to 
 on a `linux.*` constant, not a build error. Regenerate cleanly with
 `rm -f autogen/.stamp autogen/linux/*.lua && make`; autogen recreates the files, not the directory.
 
+A worktree that has not run `make` cannot install: `scripts_install` needs the autogen output and
+fails, and an install whose output was silenced fails unseen while the previous install stays in
+place, so every run after it tests the wrong tree. Keep the install's output visible, and before
+reading a result confirm that what sits under `/lib/modules/lua/` is the tree under test: its
+timestamp, or a grep for a symbol only the branch has.
+
+`lunatik test` reloads the modules before the suite and unloads them after it. A test script run
+directly afterwards (`bash tests/<suite>/<test>.sh`) skips with `not loaded` until the next
+`lunatik reload`; that unload is the CLI's, not a leak.
+
 `make install` never removes a stray file from `/lib/modules/lua/`. A scratch script left there
 shadows the module of the same name: `require` returns `true` and the failure surfaces later as
 `attempt to index a boolean value`, far from its cause. Remove a scratch script right after
