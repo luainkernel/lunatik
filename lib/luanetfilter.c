@@ -157,11 +157,6 @@ static void luanetfilter_stophooks(void *hooks)
 	}
 }
 
-static const lunatik_shared_t luanetfilter_shared = {
-	.size = sizeof(struct list_head),
-	.stop = luanetfilter_stophooks,
-};
-
 static const luaL_Reg luanetfilter_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{NULL, NULL}
@@ -213,7 +208,7 @@ static int luanetfilter_register(lua_State *L)
 		nf->hook = hook;
 	}
 	else {
-		struct list_head *hooks = lunatik_getshared(L, &luanetfilter_shared);
+		struct list_head *hooks = lunatik_percpudata(L, sizeof(struct list_head), luanetfilter_stophooks);
 		if (hooks->next == NULL) /* the block comes zeroed */
 			INIT_LIST_HEAD(hooks);
 		if ((hook = luanetfilter_findhook(hooks, &spec)) == NULL) {
