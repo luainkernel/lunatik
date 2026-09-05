@@ -17,7 +17,7 @@
 
 #include "luacrypto.h"
 
-LUNATIK_PRIVATECHECKER(luacrypto_rng_check, struct crypto_rng *);
+LUNATIK_PRIVATECHECKER(luacrypto_rng_check, struct crypto_rng *, &luacrypto_rng_class);
 
 LUACRYPTO_RELEASER(rng, struct crypto_rng, crypto_free_rng);
 

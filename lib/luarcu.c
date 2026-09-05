@@ -99,9 +99,7 @@ static inline void luarcu_free(luarcu_entry_t *entry)
 
 static const lunatik_class_t luarcu_class;
 
-LUNATIK_PRIVATECHECKER(luarcu_checktable, luarcu_table_t *,
-	lunatik_argcheckclass(L, ix, &luarcu_class, "rcu.table");
-);
+LUNATIK_PRIVATECHECKER(luarcu_checktable, luarcu_table_t *, &luarcu_class);
 
 void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value)
 {
@@ -165,6 +163,7 @@ EXPORT_SYMBOL(luarcu_setvalue);
 static int luarcu_index(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobject(L, 1);
+	lunatik_argcheckclass(L, 1, table, &luarcu_class);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
 	lunatik_value_t value;
@@ -185,6 +184,7 @@ static int luarcu_index(lua_State *L)
 static int luarcu_newindex(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobject(L, 1);
+	lunatik_argcheckclass(L, 1, table, &luarcu_class);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
 
@@ -291,7 +291,7 @@ static const struct luaL_Reg luarcu_mt[] = {
 
 LUNATIK_OPENER(rcu);
 static const lunatik_class_t luarcu_class = {
-	.name = "rcu",
+	.name = "rcu.table",
 	.methods = luarcu_mt,
 	.release = luarcu_release,
 	.opener = luaopen_rcu,

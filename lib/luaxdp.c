@@ -41,7 +41,9 @@ typedef struct luaxdp_ctx_s {
 	int              cb;
 } luaxdp_ctx_t;
 
-LUNATIK_PRIVATECHECKER(luaxdp_ctx_check, luaxdp_ctx_t *,
+static const lunatik_class_t luaxdp_class;
+
+LUNATIK_PRIVATECHECKER(luaxdp_ctx_check, luaxdp_ctx_t *, &luaxdp_class,
 	luaL_argcheck(L, private->xdp != NULL, ix, "ctx is not set");
 );
 

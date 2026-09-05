@@ -21,7 +21,9 @@
 
 #include <lunatik.h>
 
-LUNATIK_OBJECTCHECKER(luacompletion_check, struct completion *);
+static const lunatik_class_t luacompletion_class;
+
+LUNATIK_PRIVATECHECKER(luacompletion_check, struct completion *, &luacompletion_class);
 
 /***
 * Represents a kernel completion object.

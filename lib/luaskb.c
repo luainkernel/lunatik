@@ -22,7 +22,9 @@
 
 #include "luaskb.h"
 
-LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *,
+static const lunatik_class_t luaskb_class;
+
+LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *, &luaskb_class,
 	luaL_argcheck(L, private->skb != NULL, ix, "skb is not set");
 );
 

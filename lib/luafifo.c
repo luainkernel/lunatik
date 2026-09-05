@@ -16,7 +16,9 @@
 
 #include <lunatik.h>
 
-LUNATIK_PRIVATECHECKER(luafifo_check, struct kfifo *);
+static const lunatik_class_t luafifo_class;
+
+LUNATIK_PRIVATECHECKER(luafifo_check, struct kfifo *, &luafifo_class);
 
 /***
 * Pushes data into the FIFO.

@@ -273,21 +273,27 @@ lunatik_object_t *lunatik_toobject(lua_State *L, int i);
 Returns the Lunatik object at stack position `i` without type checking. Returns `NULL` if
 the value is not a userdata. Defined as a macro.
 
-### LUNATIK\_OBJECTCHECKER
-```C
-#define LUNATIK_OBJECTCHECKER(checker, T)
-```
-Generates a `static inline` function `T checker(lua_State *L, int ix)` that returns
-`object->private` cast to `T`. Performs a full object check; raises a Lua error if the
-value at `ix` is not a valid Lunatik object.
-
 ### LUNATIK\_PRIVATECHECKER
 ```C
-#define LUNATIK_PRIVATECHECKER(checker, T, ...)
+#define LUNATIK_PRIVATECHECKER(checker, T, cls, ...)
+#define LUNATIK_PRIVATECHECKERS(checker, T, tname, isclass, ...)
 ```
-Like `LUNATIK_OBJECTCHECKER`, but also guards against use-after-free by checking that
-`private != NULL` before returning. The optional `...` may include additional validation
-statements (e.g., checking a secondary field) that are executed before `return private`.
+Generates a `static inline` function `T checker(lua_State *L, int ix)` that returns
+`object->private` cast to `T`, after proving three things about the value at `ix`, each with a
+Lua error: it is a Lunatik object (`lunatik_checkobject`), it is of the class `cls`, whose
+`name` the type error quotes, and its private is set, which rules out a closed object. The
+second form is for a family of classes sharing one checker: `isclass` is the condition on
+`object->class`, and `tname` the name the type error quotes. The optional `...` are further
+validation statements, run with `L`, `ix`, `object` and `private` in scope, before `return
+private`.
+
+### lunatik\_argcheckclass
+```C
+void lunatik_argcheckclass(lua_State *L, int ix, lunatik_object_t *object, const lunatik_class_t *cls);
+```
+Raises a type error naming `cls->name` unless `object`, the Lunatik object at `ix`, is of that
+class. For a method that needs the object itself, not only its private: `lunatik_checkobject`
+followed by this check is what the checkers above do. Defined as a macro.
 
 ---
 
