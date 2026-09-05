@@ -122,6 +122,13 @@ run, the heuristic checks annotate it. Install the commit gate with:
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
+`guard-removed.sh` names the crash guards a C file drops against `HEAD` (a checker, an
+`argcheck`, a context check): removing one and running the test that covers it reproduces the
+crash the guard prevents, and on the shared host that is a forced reboot. `crash-guard.sh`, wired
+before a shell call like the review guard below, blocks an install, reload or run while any
+worktree drops such a line, unless the command carries `CRASH_AB_OK=1`, set once the maintainer
+authorized the experiment and named the machine it may take down.
+
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments unless
 the command carries the `REVIEW_POST_OK` marker, set once the exact text has been shown to the
@@ -363,6 +370,11 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   that fails before its own teardown leaves its runtime registered, and the next run finds it already
   there. A new case extends the cleanup in the commit that adds it, so the up-front run clears the
   leak and a green formal test stays authoritative;
+* a test that guards a kernel crash is not proved by removing the guard: that reproduces the crash,
+  and on the shared host it is a forced reboot. Its discrimination rests on the message it asserts.
+  An experiment that does remove a guard is authorized by the maintainer beforehand, names the
+  machine it may take down, and runs after the commit it is meant to prove; `crash-guard.sh` blocks
+  the install or run until `CRASH_AB_OK=1` says that happened;
 * a case tears down before it reads its verdict: every program it attached, pin it made and script it
   started is undone before the first check, so a failing check leaves nothing for the next case to
   trip on. A case that returns from a check with its program still attached turns one failure into
