@@ -13,6 +13,7 @@
 #include <linux/slab.h>
 #include <linux/mm.h>
 #include <linux/kref.h>
+#include <linux/list.h>
 #include <linux/version.h>
 
 #include <lua.h>
@@ -58,6 +59,7 @@ do {									\
 #define LUNATIK_CPU_NONE	(-1)
 #define lunatik_getcpu(L)	(lunatik_extra(L)->cpu)
 #define lunatik_hascpu(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
+#define lunatik_getpercpu(L)	(lunatik_extra(L)->percpu)
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 
@@ -86,10 +88,12 @@ do {										\
 	lunatik_unpin(_object);							\
 } while(0)
 
+typedef void (*lunatik_release_t)(void *);
+
 typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
-	void (*release)(void *);
+	lunatik_release_t release;
 	lua_CFunction opener;
 	lunatik_opt_t opt;
 } lunatik_class_t;
@@ -107,7 +111,14 @@ typedef struct lunatik_object_s {
 	unsigned long flags;
 } lunatik_object_t;
 
-#define lunatik_percpuruntimes(p)	((lunatik_object_t * __percpu __force *)(p))
+typedef struct lunatik_percpu_s {
+	lunatik_object_t * __percpu *runtimes;
+	struct list_head blocks;
+} lunatik_percpu_t;
+
+#define lunatik_topercpu(object)	((lunatik_percpu_t *)(object)->private)
+
+void *lunatik_percpudata(lua_State *L, size_t size, lunatik_release_t stop);
 
 static inline lunatik_object_t *lunatik_pin(lunatik_object_t *object)
 {
@@ -118,7 +129,7 @@ static inline lunatik_object_t *lunatik_pin(lunatik_object_t *object)
 		preempt_disable();
 	else /* a process instance may sleep */
 		migrate_disable();
-	return *this_cpu_ptr(lunatik_percpuruntimes(object->private));
+	return *this_cpu_ptr(lunatik_topercpu(object)->runtimes);
 }
 
 static inline void lunatik_unpin(lunatik_object_t *object)

@@ -237,7 +237,8 @@ static int lunatik_runscript(lua_State *L)
 	return 1; /* callback */
 }
 
-static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt, int cpu)
+static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt,
+	lunatik_object_t *percpu, int cpu)
 {
 	lunatik_object_t *runtime;
 	lua_State *L;
@@ -257,6 +258,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 	lunatik_toruntime(L) = runtime;
 	lunatik_extra(L)->ready = false;
 	lunatik_extra(L)->cpu = cpu;
+	lunatik_extra(L)->percpu = percpu;
 
 	runtime->gfp = GFP_KERNEL; /* might use kvmalloc while running in process */
 	lua_setallocf(L, lunatik_alloc, runtime);
@@ -284,7 +286,7 @@ static int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, con
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt)
 {
-	return lunatik_newruntime(pruntime, NULL, script, opt, LUNATIK_CPU_NONE);
+	return lunatik_newruntime(pruntime, NULL, script, opt, NULL, LUNATIK_CPU_NONE);
 }
 EXPORT_SYMBOL(lunatik_runtime);
 
@@ -315,7 +317,7 @@ static int lunatik_lruntime(lua_State *L)
 	lunatik_opt_t opt = lunatik_checkcontext(L, 2);
 
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
-	if (lunatik_newruntime(pruntime, L, script, opt, LUNATIK_CPU_NONE) != 0)
+	if (lunatik_newruntime(pruntime, L, script, opt, NULL, LUNATIK_CPU_NONE) != 0)
 		lua_error(L);
 	lunatik_setclass(L, &lunatik_class, true);
 	return 1;
@@ -326,39 +328,89 @@ static int lunatik_lruntime(lua_State *L)
 * through it reaches the instance of the CPU it fired on.
 * @type percpu
 */
+typedef struct lunatik_block_s {
+	struct list_head list;
+	lunatik_release_t stop;
+	char data[];
+} lunatik_block_t;
+
+void *lunatik_percpudata(lua_State *L, size_t size, lunatik_release_t stop)
+{
+	lunatik_object_t *object = lunatik_getpercpu(L);
+	lunatik_block_t *block;
+
+	if (object == NULL)
+		return NULL;
+
+	if (lunatik_isready(lunatik_toruntime(L)))
+		luaL_error(L, "not allowed after module load");
+
+	lunatik_percpu_t *percpu = lunatik_topercpu(object);
+	list_for_each_entry(block, &percpu->blocks, list) {
+		if (block->stop == stop)
+			return block->data;
+	}
+
+	if ((block = kzalloc(sizeof(lunatik_block_t) + size, GFP_KERNEL)) == NULL)
+		lunatik_enomem(L);
+	block->stop = stop;
+	lunatik_getobject(object); /* a block keeps the object until stop tears it down */
+	list_add(&block->list, &percpu->blocks);
+	return block->data;
+}
+EXPORT_SYMBOL(lunatik_percpudata);
+
+static void lunatik_stoppercpudata(lunatik_object_t *object)
+{
+	lunatik_percpu_t *percpu = lunatik_topercpu(object);
+	lunatik_block_t *block, *next;
+
+	list_for_each_entry_safe(block, next, &percpu->blocks, list) {
+		list_del(&block->list);
+		block->stop(block->data);
+		kfree(block);
+		lunatik_putobject(object);
+	}
+}
+
 static void lunatik_releasepercpu(void *private)
 {
-	lunatik_object_t * __percpu *runtimes = lunatik_percpuruntimes(private);
+	lunatik_percpu_t *percpu = (lunatik_percpu_t *)private;
 	int cpu;
 
+	if (percpu->runtimes == NULL)
+		return;
+
 	for_each_possible_cpu(cpu) {
-		lunatik_object_t *runtime = *per_cpu_ptr(runtimes, cpu);
+		lunatik_object_t *runtime = *per_cpu_ptr(percpu->runtimes, cpu);
 		if (runtime != NULL) /* last reference: a stop would lock, and this can run in softirq */
 			lunatik_putobject(runtime);
 	}
-	free_percpu(runtimes);
+	free_percpu(percpu->runtimes);
 }
 
 static const lunatik_class_t lunatik_percpu_class;
 
-static inline lunatik_object_t * __percpu *lunatik_checkruntimes(lua_State *L, int ix)
+static inline lunatik_object_t *lunatik_checkpercpuobject(lua_State *L, int ix)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, ix);
 	lunatik_argcheckclass(L, ix, &lunatik_percpu_class, "percpu");
-	return lunatik_percpuruntimes(object->private);
+	return object;
 }
 
 /***
-* Closes every instance, releasing their Lua states.
+* Tears down what the instances share, then closes every instance, releasing their Lua states.
 * @function stop
 */
 static int lunatik_stoppercpu(lua_State *L)
 {
-	lunatik_object_t * __percpu *runtimes = lunatik_checkruntimes(L, 1);
+	lunatik_object_t *object = lunatik_checkpercpuobject(L, 1);
+	lunatik_percpu_t *percpu = lunatik_topercpu(object);
 	int cpu;
 
+	lunatik_stoppercpudata(object);
 	for_each_possible_cpu(cpu) {
-		lunatik_object_t *runtime = *per_cpu_ptr(runtimes, cpu);
+		lunatik_object_t *runtime = *per_cpu_ptr(percpu->runtimes, cpu);
 		if (runtime != NULL)
 			lunatik_closeprivate(runtime);
 	}
@@ -377,7 +429,7 @@ static const lunatik_class_t lunatik_percpu_class = {
 	.methods = lunatik_percpu_mt,
 	.release = lunatik_releasepercpu,
 	.opener = luaopen_lunatik,
-	.opt = LUNATIK_OPT_PERCPU | LUNATIK_OPT_EXTERNAL,
+	.opt = LUNATIK_OPT_PERCPU,
 };
 
 /***
@@ -397,17 +449,17 @@ static int lunatik_percpu(lua_State *L)
 	lunatik_opt_t opt = lunatik_checkcontext(L, 2);
 	int cpu;
 
-	lunatik_object_t *object = lunatik_newobject(L, &lunatik_percpu_class, 0, opt);
-	lunatik_object_t * __percpu *runtimes = alloc_percpu(lunatik_object_t *);
+	lunatik_object_t *object = lunatik_newobject(L, &lunatik_percpu_class, sizeof(lunatik_percpu_t), opt);
+	lunatik_percpu_t *percpu = lunatik_topercpu(object);
 
-	if (runtimes == NULL)
+	INIT_LIST_HEAD(&percpu->blocks);
+	if ((percpu->runtimes = alloc_percpu(lunatik_object_t *)) == NULL)
 		lunatik_enomem(L);
-	object->private = runtimes;
 
 	for_each_possible_cpu(cpu) {
-		if (lunatik_newruntime(per_cpu_ptr(runtimes, cpu), L, script, opt, cpu) != 0) {
-			object->private = NULL;
-			lunatik_releasepercpu(runtimes); /* release the instances now, not on collection */
+		if (lunatik_newruntime(per_cpu_ptr(percpu->runtimes, cpu), L, script, opt, object, cpu) != 0) {
+			lunatik_stoppercpudata(object);
+			lunatik_closeprivate(object); /* release the instances now, not on collection */
 			lua_error(L);
 		}
 	}
