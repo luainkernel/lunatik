@@ -242,8 +242,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **percpu_netfilter**: the instances of a percpu script share one
   `LOCAL_IN` hook: with the ping pinned to the last online CPU, each marked
   request is counted exactly once, by the instance of that CPU; a second
-  registration of the same hook in one instance is refused; and the same
-  script registers as a plain softirq runtime.
+  registration of the same hook in one instance is refused; a registration
+  from a callback, after load, is refused; and the same script registers as
+  a plain softirq runtime.
 
 ### set
 
