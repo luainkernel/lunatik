@@ -240,6 +240,19 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   runs as a plain runtime: `device.new`, whose registration is global,
   and `netfilter.register`, which has no per-CPU dispatch.
 
+### sched
+
+Regression tests for `luasched`. Only the attach guards are covered, since
+they need no sched_ext program; the dispatch path, `bpf_luasched_run` reaching
+the callback from a struct_ops scheduler, is not. Skipped when the kernel has
+no sched_ext (`/sys/kernel/sched_ext`).
+
+- **sched attach**: `sched.attach()` refuses a sleepable runtime with
+  `runtime context mismatch`.
+
+- **sched reattach**: a hardirq runtime attaches, re-attaches (replacing the
+  callback) and detaches without a Lua error.
+
 ### set
 
 - **set**: `set.new` sorting unsorted input and binary-search membership
