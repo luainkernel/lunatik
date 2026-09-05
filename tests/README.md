@@ -117,6 +117,11 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 
 - **random**: `linux.random` ranged draws stay within `[m, n]`, covering
   the two-argument, one-argument and negative-range forms.
+- **fs**: `linux.fs` carries every fsnotify event mask at the value the
+  `FAN_*`/`IN_*` uapi pins it to, every entry is a single distinct bit,
+  and the composite and private names the curated `include` list drops
+  (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_IN_IGNORED`,
+  `FS_DN_MULTISHOT`) are absent.
 
 ### monitor
 
