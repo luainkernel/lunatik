@@ -203,6 +203,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   across runtime boundaries. Push into a shared `fifo`, resume a
   sub-runtime with it, assert the value pops on the other side.
 
+- **resume_foreign**: `runtime:resume()` refuses an object of another class
+  instead of reading its private data as a Lua state.
+
 - **resume_mailbox**: `completion` objects pass through `runtime:resume()`
   to enable the mailbox pattern. Sub-runtime sends via `fifo` +
   `completion`; main runtime receives.

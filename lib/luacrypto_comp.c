@@ -20,7 +20,7 @@
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
 #warning "crypto_comp API was removed in Linux 6.15, skip COMP module"
 #else
-LUNATIK_PRIVATECHECKER(luacrypto_comp_check, struct crypto_comp *);
+LUNATIK_PRIVATECHECKER(luacrypto_comp_check, struct crypto_comp *, &luacrypto_comp_class);
 
 LUACRYPTO_RELEASER(comp, struct crypto_comp, crypto_free_comp);
 

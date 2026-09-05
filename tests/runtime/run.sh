@@ -13,6 +13,7 @@ FAILED=0
 TESTS=(
 	refcnt_leak.sh
 	resume_shared.sh
+	resume_foreign.sh
 	resume_mailbox.sh
 	rcu_shared.sh
 	opt_guards.sh

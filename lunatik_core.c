@@ -89,7 +89,7 @@ EXPORT_SYMBOL(lunatik_stop);
 
 static int lunatik_lruntime(lua_State *L);
 
-LUNATIK_PRIVATECHECKER(lunatik_check, lua_State *);
+LUNATIK_PRIVATECHECKER(lunatik_check, lua_State *, &lunatik_class);
 
 static int lunatik_lcopyobjects(lua_State *L)
 {
@@ -344,7 +344,7 @@ static const lunatik_class_t lunatik_percpu_class;
 static inline lunatik_object_t * __percpu *lunatik_checkruntimes(lua_State *L, int ix)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, ix);
-	lunatik_argcheckclass(L, ix, &lunatik_percpu_class, "percpu");
+	lunatik_argcheckclass(L, ix, object, &lunatik_percpu_class);
 	return lunatik_percpuruntimes(object->private);
 }
 
