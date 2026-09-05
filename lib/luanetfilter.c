@@ -132,27 +132,19 @@ static luanetfilter_hook_t *luanetfilter_newhook(lua_State *L, lunatik_object_t 
 
 	*hook = *spec;
 	hook->nfops.priv = hook;
-	lunatik_getobject(runtime);
 	hook->runtime = runtime;
 
 	if ((ret = nf_register_net_hook(&init_net, &hook->nfops)) != 0) {
-		lunatik_putobject(runtime);
 		lunatik_free(hook);
 		lunatik_throw(L, ret);
 	}
 	return hook;
 }
 
-static void luanetfilter_puthook(luanetfilter_hook_t *hook)
+static void luanetfilter_freehook(luanetfilter_hook_t *hook)
 {
 	nf_unregister_net_hook(&init_net, &hook->nfops);
-	lunatik_putobject(hook->runtime);
 	lunatik_free(hook);
-}
-
-static void luanetfilter_inithooks(void *hooks)
-{
-	INIT_LIST_HEAD((struct list_head *)hooks);
 }
 
 static void luanetfilter_stophooks(void *hooks)
@@ -161,13 +153,12 @@ static void luanetfilter_stophooks(void *hooks)
 
 	list_for_each_entry_safe(hook, next, (struct list_head *)hooks, list) {
 		list_del(&hook->list);
-		luanetfilter_puthook(hook);
+		luanetfilter_freehook(hook);
 	}
 }
 
 static const lunatik_shared_t luanetfilter_shared = {
 	.size = sizeof(struct list_head),
-	.init = luanetfilter_inithooks,
 	.stop = luanetfilter_stophooks,
 };
 
@@ -218,10 +209,13 @@ static int luanetfilter_register(lua_State *L)
 
 	if (percpu == NULL) {
 		hook = luanetfilter_newhook(L, runtime, &spec);
+		lunatik_getobject(runtime); /* the block holds a percpu object; a plain runtime is held here */
 		nf->hook = hook;
 	}
 	else {
 		struct list_head *hooks = lunatik_getshared(L, &luanetfilter_shared);
+		if (hooks->next == NULL) /* the block comes zeroed */
+			INIT_LIST_HEAD(hooks);
 		if ((hook = luanetfilter_findhook(hooks, &spec)) == NULL) {
 			hook = luanetfilter_newhook(L, percpu, &spec);
 			list_add(&hook->list, hooks);
@@ -247,8 +241,10 @@ static void luanetfilter_release(void *private)
 {
 	luanetfilter_t *nf = (luanetfilter_t *)private;
 
-	if (nf->hook != NULL)
-		luanetfilter_puthook(nf->hook);
+	if (nf->hook != NULL) {
+		luanetfilter_freehook(nf->hook);
+		lunatik_putobject(nf->runtime);
+	}
 	lunatik_detach(nf->runtime, nf, skb);
 }
 
