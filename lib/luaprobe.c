@@ -116,9 +116,12 @@ static void luaprobe_release(void *private)
 * Unregisters and stops the probe.
 * @function stop
 */
+static const lunatik_class_t luaprobe_class;
+
 static int luaprobe_stop(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	lunatik_argcheckclass(L, 1, object, &luaprobe_class);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 
 	luaprobe_delete(probe);
@@ -137,6 +140,7 @@ static int luaprobe_stop(lua_State *L)
 static int luaprobe_enable(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	lunatik_argcheckclass(L, 1, object, &luaprobe_class);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 	struct kprobe *kp = &probe->kp;
 	bool enable = lua_toboolean(L, 2);

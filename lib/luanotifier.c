@@ -40,6 +40,12 @@ typedef struct luanotifier_s {
 	luanotifier_register_t unregister;
 } luanotifier_t;
 
+static const lunatik_class_t luanotifier_process_class;
+static const lunatik_class_t luanotifier_hardirq_class;
+
+LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanotifier_process_class,
+	&luanotifier_hardirq_class);
+
 static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
 {
 	int nargs = 1; /* event */
@@ -96,8 +102,7 @@ static void luanotifier_release(void *private)
 */
 static int luanotifier_stop(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_checkobject(L, 1);
-	luanotifier_t *notifier = (luanotifier_t *)object->private;
+	luanotifier_t *notifier = luanotifier_check(L, 1);
 
 	lunatik_unregister(L, notifier); /* clear callback; handler becomes no-op */
 	return 0;
@@ -113,9 +118,6 @@ static int luanotifier_##name(lua_State *L)					\
 		unregister_##name##_notifier, luanotifier_##name##_handler,	\
 		(class));							\
 }
-
-static const lunatik_class_t luanotifier_process_class;
-static const lunatik_class_t luanotifier_hardirq_class;
 
 static int luanotifier_netdevice_handler(lua_State *L, void *data)
 {
