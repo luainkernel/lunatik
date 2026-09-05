@@ -206,6 +206,10 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **resume_foreign**: `runtime:resume()` refuses an object of another class
   instead of reading its private data as a Lua state.
 
+- **foreign_method**: `device:stop`, `notifier:stop`, `probe:stop`,
+  `probe:enable` and the `rcu.table` index metamethods refuse an object of
+  another class instead of reading its private data as their own.
+
 - **resume_mailbox**: `completion` objects pass through `runtime:resume()`
   to enable the mailbox pattern. Sub-runtime sends via `fifo` +
   `completion`; main runtime receives.

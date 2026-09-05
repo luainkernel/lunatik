@@ -256,9 +256,12 @@ static void luadevice_release(void *private)
 *   dev:stop()
 * @see device.new
 */
+static const lunatik_class_t luadevice_class;
+
 static int luadevice_stop(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	lunatik_argcheckclass(L, 1, object, &luadevice_class);
 	luadevice_t *luadev = (luadevice_t *)object->private;
 
 	lunatik_lock(object);
