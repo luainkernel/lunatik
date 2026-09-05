@@ -14,6 +14,6 @@ test("resume refuses an object of another class", function()
 	local runtime <close> = lunatik.runtime(SCRIPT)
 	local ok, err = pcall(getmetatable(runtime).resume, data.new(8))
 	assert(not ok, "resume accepted a data object")
-	assert(err:match("lunatik expected"), "resume raised something else: " .. err)
+	assert(err:match("runtime expected"), "resume raised something else: " .. err)
 end)
 
