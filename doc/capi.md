@@ -8,11 +8,13 @@
 
 ### lunatik\_class\_t
 ```C
+typedef void (*lunatik_release_t)(void *);
+
 typedef struct lunatik_class_s {
-	const char     *name;
-	const luaL_Reg *methods;
-	void          (*release)(void *);
-	lunatik_opt_t   opt;
+	const char        *name;
+	const luaL_Reg    *methods;
+	lunatik_release_t  release;
+	lunatik_opt_t      opt;
 } lunatik_class_t;
 ```
 Describes a Lunatik object class.
@@ -186,16 +188,17 @@ Returns the runtime associated with `L` and raises a Lua error if its context do
 process runtime. Typically called from `lunatik_new*` functions to enforce that a class is
 only instantiated in a compatible runtime.
 
-### lunatik\_getshared
+### lunatik\_percpudata
 ```C
-void *lunatik_getshared(lua_State *L, const lunatik_shared_t *shared);
+void *lunatik_percpudata(lua_State *L, size_t size, lunatik_release_t stop);
 ```
-Returns the block the instances of a `percpu` script share for the descriptor `shared`, which
-gives the block's `size` and its `stop` callback. The first instance to call with a descriptor
-allocates the block, zeroed; the following ones get the same block. The object owns it: `percpu:stop()` runs `stop` on each block, in process
-context, before closing the instances, and a block keeps the object referenced until then, as a
-hook keeps a plain runtime. A registration a script makes once for all its instances, a netfilter
-hook, say, lives in such a block, with `stop` unregistering it.
+Returns the data block of `size` bytes a `percpu` object holds for the teardown callback `stop`,
+which every instance of the object sees: the first instance to ask for it allocates the block,
+zeroed; the following ones get the same block, so a binding keeps one block per callback. The
+object owns it: `percpu:stop()` runs `stop` on each block, in process context, before closing the
+instances, and a block keeps the object referenced until then, as a hook keeps a plain runtime. A
+registration a script makes once for all its instances, a netfilter hook, say, lives in such a
+block, with `stop` unregistering it.
 Only the script body may claim a block, while the instance loads; it raises a Lua error afterwards.
 Returns `NULL` on a plain runtime, which has no instances to share with;
 `lunatik_getpercpu(L)` tells the two apart, returning the object owning the instance `L`, or `NULL`.

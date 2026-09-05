@@ -88,10 +88,12 @@ do {										\
 	lunatik_unpin(_object);							\
 } while(0)
 
+typedef void (*lunatik_release_t)(void *);
+
 typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
-	void (*release)(void *);
+	lunatik_release_t release;
 	lua_CFunction opener;
 	lunatik_opt_t opt;
 } lunatik_class_t;
@@ -109,19 +111,14 @@ typedef struct lunatik_object_s {
 	unsigned long flags;
 } lunatik_object_t;
 
-typedef struct lunatik_shared_s {
-	size_t size;
-	void (*stop)(void *);
-} lunatik_shared_t;
-
 typedef struct lunatik_percpu_s {
 	lunatik_object_t * __percpu *runtimes;
-	struct list_head shared;
+	struct list_head blocks;
 } lunatik_percpu_t;
 
 #define lunatik_topercpu(object)	((lunatik_percpu_t *)(object)->private)
 
-void *lunatik_getshared(lua_State *L, const lunatik_shared_t *shared);
+void *lunatik_percpudata(lua_State *L, size_t size, lunatik_release_t stop);
 
 static inline lunatik_object_t *lunatik_pin(lunatik_object_t *object)
 {

@@ -215,7 +215,7 @@ does — the socket layer does not check `kthread_should_stop()`. To wait indefi
   `lunatik_cloneobject`, which requires `.shared = true`.
 
 A registration a percpu script makes once for all its instances, a hook or a kernel thread, lives
-in a block from `lunatik_getshared`, which the object tears down before closing the instances. A
+in a block from `lunatik_percpudata`, which the object tears down before closing the instances. A
 binding that keeps a global list or a use count of its own to find what the other instances
 registered is doing the object's job.
 

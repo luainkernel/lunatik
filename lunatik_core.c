@@ -330,11 +330,11 @@ static int lunatik_lruntime(lua_State *L)
 */
 typedef struct lunatik_block_s {
 	struct list_head list;
-	const lunatik_shared_t *shared;
+	lunatik_release_t stop;
 	char data[];
 } lunatik_block_t;
 
-void *lunatik_getshared(lua_State *L, const lunatik_shared_t *shared)
+void *lunatik_percpudata(lua_State *L, size_t size, lunatik_release_t stop)
 {
 	lunatik_object_t *object = lunatik_getpercpu(L);
 	lunatik_block_t *block;
@@ -346,28 +346,28 @@ void *lunatik_getshared(lua_State *L, const lunatik_shared_t *shared)
 		luaL_error(L, "not allowed after module load");
 
 	lunatik_percpu_t *percpu = lunatik_topercpu(object);
-	list_for_each_entry(block, &percpu->shared, list) {
-		if (block->shared == shared)
+	list_for_each_entry(block, &percpu->blocks, list) {
+		if (block->stop == stop)
 			return block->data;
 	}
 
-	if ((block = kzalloc(sizeof(lunatik_block_t) + shared->size, GFP_KERNEL)) == NULL)
+	if ((block = kzalloc(sizeof(lunatik_block_t) + size, GFP_KERNEL)) == NULL)
 		lunatik_enomem(L);
-	block->shared = shared;
+	block->stop = stop;
 	lunatik_getobject(object); /* a block keeps the object until stop tears it down */
-	list_add(&block->list, &percpu->shared);
+	list_add(&block->list, &percpu->blocks);
 	return block->data;
 }
-EXPORT_SYMBOL(lunatik_getshared);
+EXPORT_SYMBOL(lunatik_percpudata);
 
-static void lunatik_stopshared(lunatik_object_t *object)
+static void lunatik_stoppercpudata(lunatik_object_t *object)
 {
 	lunatik_percpu_t *percpu = lunatik_topercpu(object);
 	lunatik_block_t *block, *next;
 
-	list_for_each_entry_safe(block, next, &percpu->shared, list) {
+	list_for_each_entry_safe(block, next, &percpu->blocks, list) {
 		list_del(&block->list);
-		block->shared->stop(block->data);
+		block->stop(block->data);
 		kfree(block);
 		lunatik_putobject(object);
 	}
@@ -408,7 +408,7 @@ static int lunatik_stoppercpu(lua_State *L)
 	lunatik_percpu_t *percpu = lunatik_topercpu(object);
 	int cpu;
 
-	lunatik_stopshared(object);
+	lunatik_stoppercpudata(object);
 	for_each_possible_cpu(cpu) {
 		lunatik_object_t *runtime = *per_cpu_ptr(percpu->runtimes, cpu);
 		if (runtime != NULL)
@@ -452,13 +452,13 @@ static int lunatik_percpu(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &lunatik_percpu_class, sizeof(lunatik_percpu_t), opt);
 	lunatik_percpu_t *percpu = lunatik_topercpu(object);
 
-	INIT_LIST_HEAD(&percpu->shared);
+	INIT_LIST_HEAD(&percpu->blocks);
 	if ((percpu->runtimes = alloc_percpu(lunatik_object_t *)) == NULL)
 		lunatik_enomem(L);
 
 	for_each_possible_cpu(cpu) {
 		if (lunatik_newruntime(per_cpu_ptr(percpu->runtimes, cpu), L, script, opt, object, cpu) != 0) {
-			lunatik_stopshared(object);
+			lunatik_stoppercpudata(object);
 			lunatik_closeprivate(object); /* release the instances now, not on collection */
 			lua_error(L);
 		}
