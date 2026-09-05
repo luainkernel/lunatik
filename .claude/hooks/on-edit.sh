@@ -14,10 +14,10 @@ dir=$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2>/dev/null)
 
 findings=$(for check in module-conventions test-harness cppcheck-tests; do
 	bash "$dir/tools/checks/$check.sh" "$file" 2>&1
-done)
+done; bash "$dir/tools/checks/guard-removed.sh" "$file" 2>&1)
 [ -z "$findings" ] && exit 0
 
-escaped=$(printf '%s' "$findings" | tr '"' "'" | sed ':a;N;$!ba;s/\n/\\n/g')
+escaped=$(printf '%s' "$findings" | tr '"\t' "' " | sed ':a;N;$!ba;s/\n/\\n/g')
 printf '{"decision":"block","reason":"%s"}\n' "$escaped"
 exit 0
 

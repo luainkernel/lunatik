@@ -21,6 +21,10 @@ A worktree installs only after `make`: `scripts_install` needs the autogen outpu
 install's output visible, and confirm what landed under `/lib/modules/lua/` (timestamp, or a
 grep for a symbol only the branch has) before trusting a run against it.
 
+A tree that drops a crash guard (a checker, an `argcheck`) is not installed or run on the shared
+host: the test covering the guard reproduces the crash. `crash-guard.sh` blocks it; an experiment
+needs the maintainer's authorization first, and `CRASH_AB_OK=1` on the command records that.
+
 `lunatik test` unloads the modules when it finishes: `sudo lunatik reload` before a direct
 `bash tests/<suite>/<test>.sh` afterwards, or it skips with `not loaded`.
 
