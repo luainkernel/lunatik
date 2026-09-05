@@ -17,6 +17,13 @@ without module changes, `bash tests/<suite>/run.sh` skips the reload and is gent
 device. `make scripts_install` does not install tests: after touching lib or tests, run the full
 install, or the installed suite drifts from the tree.
 
+A worktree installs only after `make`: `scripts_install` needs the autogen output. Keep the
+install's output visible, and confirm what landed under `/lib/modules/lua/` (timestamp, or a
+grep for a symbol only the branch has) before trusting a run against it.
+
+`lunatik test` unloads the modules when it finishes: `sudo lunatik reload` before a direct
+`bash tests/<suite>/<test>.sh` afterwards, or it skips with `not loaded`.
+
 # One operation at a time
 
 Never run two lunatik operations concurrently (`test`, `run`, `reload`, a suite's run.sh): the
