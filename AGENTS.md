@@ -363,6 +363,10 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   that fails before its own teardown leaves its runtime registered, and the next run finds it already
   there. A new case extends the cleanup in the commit that adds it, so the up-front run clears the
   leak and a green formal test stays authoritative;
+* a case tears down before it reads its verdict: every program it attached, pin it made and script it
+  started is undone before the first check, so a failing check leaves nothing for the next case to
+  trip on. A case that returns from a check with its program still attached turns one failure into
+  one per case after it;
 * a test does not depend on what else runs on the host: when a host process — a network manager, say
   — can race it by acting on a resource the test created, make the test robust to any such process,
   not wired to silence one by name, which does not carry to another distro or to CI;
@@ -564,7 +568,10 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   the same inputs, is environment state, not a code path — the variable is the leftover, so control it
   (a fresh reload, a pinned CPU, the program cut down to the one call under test) rather than theorise
   a bug. The minimal isolating reproduction settles in one run what reading the noisy end-to-end path
-  never does.
+  never does. When the variable is a stimulus the host may or may not supply — a stray packet in a
+  window — supply it yourself and reproduce the signature on demand, and log what the hook actually
+  saw before naming the packet. A mechanism proved by injection is reported as that, not as the
+  trigger of the run that failed, which was not captured.
 * A finding is resolved, not parked. When something looks wrong, run it to ground — reproduce it, find
   the cause, then fix it or dismiss it. "I'll flag it to the author", "let's look into it separately",
   or asking whether to investigate is dropping it, not handling it. Deferral is for work that belongs
