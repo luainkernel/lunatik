@@ -15,7 +15,9 @@
 *
 * Delivery is synchronous: the callback runs inside the syscall of the process
 * performing the access, holding the runtime lock, so every watched access on
-* the machine is serialized behind it.
+* the machine is serialized behind it. That task may also hold the lock of the
+* directory the event is about, so `watch:mark`, `watch:find` and `mark:mask`
+* called from a callback resolve their path from the directory cache alone.
 *
 * @module fsnotify
 */
@@ -73,6 +75,32 @@ LUNATIK_PRIVATECHECKER(luafsnotify_checkmark, luafsnotify_mark_t *, &luafsnotify
 
 LUNATIK_PRIVATECHECKER(luafsnotify_checkevent, luafsnotify_event_t *, &luafsnotify_event_class);
 
+static const char luafsnotify_incallback_key;
+
+static inline void luafsnotify_setincallback(lua_State *L, bool on)
+{
+	lua_pushboolean(L, on);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, &luafsnotify_incallback_key);
+}
+
+static inline bool luafsnotify_incallback(lua_State *L)
+{
+	lunatik_getregistry(L, &luafsnotify_incallback_key);
+	bool on = lua_toboolean(L, -1);
+
+	lua_pop(L, 1);
+	return on;
+}
+
+static inline int luafsnotify_kernpath(lua_State *L, const char *pathname, struct path *path)
+{
+	unsigned int flags = LOOKUP_FOLLOW;
+
+	if (luafsnotify_incallback(L))
+		flags |= LOOKUP_CACHED; /* the task may hold the directory lock a dcache miss takes */
+	return kern_path(pathname, flags, path);
+}
+
 static inline lunatik_object_t *luafsnotify_pushevent(lua_State *L, luafsnotify_t *watch,
 	luafsnotify_event_t *event)
 {
@@ -98,8 +126,10 @@ static int luafsnotify_callback(lua_State *L, luafsnotify_t *watch, luafsnotify_
 	if ((object = luafsnotify_pushevent(L, watch, event)) == NULL)
 		return 0;
 
+	luafsnotify_setincallback(L, true);
 	if (lua_pcall(L, 2, 0, 0) != LUA_OK) /* callback(mask, event) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
+	luafsnotify_setincallback(L, false);
 
 	object->private = NULL; /* the frame it points at goes next: a kept event raises instead */
 	return 0;
@@ -247,7 +277,7 @@ static luafsnotify_mark_t *luafsnotify_attachmark(lua_State *L, luafsnotify_t *w
 	struct path path;
 	int ret;
 
-	if ((ret = kern_path(pathname, LOOKUP_FOLLOW, &path)) != 0) {
+	if ((ret = luafsnotify_kernpath(L, pathname, &path)) != 0) {
 		lunatik_free(mark);
 		lunatik_throw(L, ret);
 	}
@@ -284,9 +314,10 @@ static luafsnotify_mark_t *luafsnotify_attachmark(lua_State *L, luafsnotify_t *w
 * @tparam[opt] string kind `"inode"` (default), `"mount"` or `"sb"`; `"mount"`
 *   needs kernel 6.10 or later
 * @treturn fsnotify_mark the mark, which the watch keeps until it is removed
-* @raise if `path` does not resolve, if `kind` is not one this kernel offers,
-*   if this watch already marks the object, if the watch has been stopped, or
-*   if `mask` carries a permission event
+* @raise if `path` does not resolve, `EAGAIN` when it is resolved from a
+*   callback and the directory cache alone cannot answer it, if `kind` is not
+*   one this kernel offers, if this watch already marks the object, if the
+*   watch has been stopped, or if `mask` carries a permission event
 * @usage local mark = watch:mark("/tmp/scratch", fs.OPEN | fs.MODIFY, "mount")
 */
 static int luafsnotify_mark(lua_State *L)
@@ -313,8 +344,9 @@ static int luafsnotify_mark(lua_State *L)
 *   needs kernel 6.10 or later
 * @treturn fsnotify_mark the mark this watch placed there, or `nil` when it has
 *   none
-* @raise if `path` does not resolve, if `kind` is not one this kernel offers,
-*   or if the watch has been stopped
+* @raise if `path` does not resolve, `EAGAIN` when it is resolved from a
+*   callback and the directory cache alone cannot answer it, if `kind` is not
+*   one this kernel offers, or if the watch has been stopped
 * @usage local mark = watch:find("/tmp/scratch", "mount")
 */
 static int luafsnotify_find(lua_State *L)
@@ -325,7 +357,7 @@ static int luafsnotify_find(lua_State *L)
 	struct fsnotify_mark *found;
 	struct path path;
 
-	lunatik_try(L, kern_path, pathname, LOOKUP_FOLLOW, &path);
+	lunatik_try(L, luafsnotify_kernpath, L, pathname, &path);
 	found = luafsnotify_findmark(luafsnotify_object(&path, type), type, watch->group);
 	path_put(&path);
 
@@ -377,8 +409,9 @@ static int luafsnotify_stop(lua_State *L)
 * @tparam[opt] integer mask the new event mask, a combination of `linux.fs` bits
 * @treturn integer the mark's event mask
 * @raise if the mark has been removed, if `mask` carries a permission event, or
-*   if the mark cannot be added again, because the path no longer resolves or
-*   the kernel refuses it, which leaves the mark removed
+*   if the mark cannot be added again, because the path no longer resolves,
+*   `EAGAIN` when a callback resolving it finds the directory cache alone cannot
+*   answer it, or the kernel refuses it, which leaves the mark removed
 * @usage mark:mask(mark:mask() | fs.MODIFY)
 */
 static int luafsnotify_mask(lua_State *L)
@@ -642,6 +675,7 @@ static int luafsnotify_watch(lua_State *L)
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
 	lunatik_object_t *runtime = lunatik_checkruntime(L, luafsnotify_class.opt);
+	luafsnotify_setincallback(L, luafsnotify_incallback(L)); /* the callback writes it outside any pcall */
 	lunatik_object_t *object = lunatik_newobject(L, &luafsnotify_class, 0, LUNATIK_OPT_NONE);
 	luafsnotify_t *watch = luafsnotify_newwatch(L, runtime);
 

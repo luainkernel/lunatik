@@ -12,6 +12,20 @@
 # FS_MODIFY on its first event, so the shell's second read of each must be
 # silent, and its write to the second must arrive.
 #
+# Both operations resolve a path, and the task the callback runs on may hold the
+# lock of the directory the event is about, so from a callback the walk stays in
+# the directory cache. inside.lua asks for a name the shell never touches, which
+# is therefore not cached: it answers EAGAIN rather than descending into a lock
+# its own task may hold. The two paths it does resolve are cached, which is why
+# the operations above still work.
+#
+# The open events above arrive with no directory lock held, so the last case
+# marks the scratch directory for FS_CREATE, which the kernel delivers inside
+# the parent's i_rwsem, and resolves the uncached name from that callback: it
+# answers EAGAIN there too. A tree without the flag wedges the host on this
+# case, since the walk takes the lock its own task holds, so it runs only on a
+# tree that carries the flag and discriminates by the message, never by an A/B.
+#
 # Usage: sudo bash tests/fsnotify/inside.sh
 
 SCRIPT="tests/fsnotify/inside"
@@ -31,7 +45,7 @@ mkdir -p -m 0700 "$SCRATCH"
 : > "$SCRATCH/remasked"
 
 ktap_header
-ktap_plan 5
+ktap_plan 7
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -47,6 +61,10 @@ opened=$(dmesg_since)
 mark_dmesg
 echo written > "$SCRATCH/remasked"
 written=$(dmesg_since)
+
+mark_dmesg
+: > "$SCRATCH/created"
+created=$(dmesg_since)
 
 lunatik stop "$SCRIPT" 2>/dev/null
 
@@ -66,7 +84,15 @@ echo "$written" | grep -qF "inside test: $SCRATCH/remasked mask 20" && \
 	fail "the event set out of the mask from the callback still arrived"
 ktap_pass "a mark set from inside its callback stops delivering the event it was set out of"
 
-errs=$(printf '%s\n%s\n%s\n' "$oneshot" "$opened" "$written" | grep -E "$KTAP_ERRORS" || true)
+echo "$oneshot" | grep -qF "inside test: uncached EAGAIN" || \
+	fail "a path outside the directory cache did not answer EAGAIN: $(echo "$oneshot" | grep -F 'inside test: uncached')"
+ktap_pass "a path resolved from inside a callback stays in the directory cache"
+
+echo "$created" | grep -qF "inside test: locked EAGAIN" || \
+	fail "a path resolved under the directory lock did not answer EAGAIN: $(echo "$created" | grep -F 'inside test: locked')"
+ktap_pass "a path resolved from a callback under the directory lock stays in the directory cache"
+
+errs=$(printf '%s\n%s\n%s\n%s\n' "$oneshot" "$opened" "$written" "$created" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
 ktap_pass "no Lua errors in kernel"
 
