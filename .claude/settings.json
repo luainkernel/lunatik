@@ -5,7 +5,8 @@
         "matcher": "Bash",
         "hooks": [
           { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/review-post-guard.sh\"" },
-          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/crash-guard.sh\"" }
+          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/crash-guard.sh\"" },
+          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/pr-body-guard.sh\"" }
         ]
       }
     ],

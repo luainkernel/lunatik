@@ -129,6 +129,10 @@ before a shell call like the review guard below, blocks an install, reload or ru
 worktree drops such a line, unless the command carries `CRASH_AB_OK=1`, set once the maintainer
 authorized the experiment and named the machine it may take down.
 
+`pr-body.sh` takes a pull request body file and fails it on more than three paragraphs, an em dash
+or a "Test plan" section; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
+blocks a `gh` write to pulls that carries a body file the check fails on.
+
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments unless
 the command carries the `REVIEW_POST_OK` marker, set once the exact text has been shown to the
@@ -462,6 +466,11 @@ old factory — kept building and broke at the first packet.
   not say: a new API, a behaviour change, a non obvious rationale. No bullet list of every detail.
 * A pull request title and body follow the same rule: what and why, nothing the commits already say.
   No "Test plan" section, and no em dashes.
+* The body opens with the failure or the need in one plain sentence — what a script can do today,
+  what breaks, what has nowhere to live — then says what the change does, in a few lines, and what
+  it depends on. Three short paragraphs at most. How the problem was found, what was measured and
+  what was tried belong in the commits; a body a reviewer has to study is not a summary.
+  `tools/checks/pr-body.sh` holds a body file to this.
 * A pull request is one mechanism, read in one screen of diff and one paragraph of body. A body that
   needs a section per mechanism describes several pull requests: stack them, each on the one below.
 * No session links or assistant footers in a commit or a pull request beyond the `Co-Authored-By`

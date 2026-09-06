@@ -20,5 +20,8 @@ no "Test plan" section, no em dashes. On top of it:
   reason; none is dropped in silence.
 - The hand-back carries the test matrix: for each guard or mechanism the change adds, operations
   by types by outcomes, each cell with its test or the reason it is not covered.
+- The body opens with the failure or the need in one plain sentence, then what the change does,
+  then what it depends on: three short paragraphs at most; `bash tools/checks/pr-body.sh <file>`
+  before posting it.
 - After any force-push, re-read the title and body against the branch as it now stands.
 
