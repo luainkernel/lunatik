@@ -119,11 +119,13 @@ int lunatik_copyobjects(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nobjec
 }
 EXPORT_SYMBOL(lunatik_copyobjects);
 
-static inline int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int nargs)
+int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs)
 {
 	int nresults;
-	int status = lua_resume(Lto, Lfrom, nargs, &nresults);
-	return status == LUA_OK || status == LUA_YIELD ? nresults : -1;
+
+	if (lunatik_copyobjects(Lto, Lfrom, ixfrom, nargs) != LUA_OK)
+		return -ECANCELED;
+	return lua_resume(Lto, Lfrom, nargs, &nresults) > LUA_YIELD ? -ECANCELED : nresults;
 }
 
 /***
@@ -140,9 +142,9 @@ static int lunatik_lresume(lua_State *L)
 {
 	lua_State *Lto = lunatik_check(L, 1);
 	int nargs = lua_gettop(L) - 1;
-	int nresults = 0;
+	int nresults = lunatik_resume(Lto, L, 2, nargs);
 
-	if (lunatik_copyobjects(Lto, L, 2, nargs) != LUA_OK || (nresults = lunatik_resume(Lto, L, nargs)) < 0) {
+	if (nresults < 0) {
 		lua_pushfstring(L, "%s\n", lua_tostring(Lto, -1));
 		lua_pop(Lto, 1); /* error message */
 		lua_error(L);

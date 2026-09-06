@@ -15,6 +15,7 @@ TESTS=(
 	resume_shared.sh
 	resume_results.sh
 	resume_foreign.sh
+	resume_percpu.sh
 	foreign_method.sh
 	foreign_checker.sh
 	resume_mailbox.sh

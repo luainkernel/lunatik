@@ -100,6 +100,54 @@ static void lunatik_releasepercpu(void *private)
 	free_percpu(percpu->runtimes);
 }
 
+static int lunatik_resumeruntime(lua_State *L, lunatik_object_t *runtime, int nargs, char *error)
+{
+	int nresults = -ENXIO;
+
+	lunatik_lock(runtime); /* a runtime dispatches as soon as its script registers a hook */
+	if (likely(lunatik_isready(runtime))) {
+		lua_State *Lto = lunatik_getstate(runtime);
+
+		nresults = lunatik_resume(Lto, L, 2, nargs);
+		if (nresults < 0) /* the caller raises: a longjmp here would skip the unlock */
+			strscpy(error, lua_tostring(Lto, -1) ?: "error object is not a string", LUAL_BUFFERSIZE);
+		lua_pop(Lto, nresults < 0 ? 1 : nresults); /* the message, or the yield a broadcast drops */
+	}
+	lunatik_unlock(runtime);
+	return nresults;
+}
+
+/***
+* Resumes every runtime, as `runtime:resume` does, delivering the same objects to each. Nothing
+* comes back: a broadcast has no single set of values to return, so what a runtime yields is
+* dropped.
+* @function resume
+* @param ... objects delivered to each runtime as the return values of its `coroutine.yield()`
+* @raise "null pointer dereference" if the object has been stopped; otherwise the error of the
+*   first runtime that refuses a value it cannot carry or raises on resumption, naming its CPU,
+*   with the runtimes after it not resumed. A runtime that refuses a value stays where it yielded;
+*   one that raises is dead, so every later resume delivers to the CPUs before it again and fails
+*   on it again
+*/
+static int lunatik_resumepercpu(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &lunatik_percpu_class);
+	lunatik_percpu_t *percpu = lunatik_topercpu(object);
+	int nargs = lua_gettop(L) - 1;
+	char error[LUAL_BUFFERSIZE];
+	lunatik_object_t *runtime;
+	int cpu;
+
+	lunatik_foreachruntime(percpu, cpu, runtime) {
+		int status = lunatik_resumeruntime(L, runtime, nargs, error);
+
+		luaL_argcheck(L, status != -ENXIO, 1, LUNATIK_ERR_NULLPTR);
+		if (status < 0)
+			luaL_error(L, "cpu %d: %s", cpu, error);
+	}
+	return 0;
+}
+
 /***
 * Closes the objects the runtimes share, then every runtime, releasing their Lua states.
 * @function stop
@@ -117,6 +165,7 @@ static const luaL_Reg lunatik_percpu_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_stoppercpu},
 	{"stop", lunatik_stoppercpu},
+	{"resume", lunatik_resumepercpu},
 	{NULL, NULL}
 };
 

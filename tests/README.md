@@ -236,6 +236,18 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   of another library; `rcu.map` refuses `nil`; and a method on a closed
   runtime or fifo is refused instead of dereferencing its NULL private.
 
+- **resume_percpu**: `percpu:resume()` delivers the objects it is given to
+  every runtime of a process set and of a softirq one, each marking its own
+  CPU id in the shared `rcu.table`s it receives, and two of them are marked in
+  the order they were passed; what a runtime yields is dropped, and the next
+  `resume()` carries the runtimes past their yield; a hardirq set, whose
+  runtimes resume under `spin_lock_irqsave`, receives what it is given and
+  raises when it is given nothing; the error a runtime raises comes back naming
+  it and leaves that runtime dead, so the next `resume()` fails on it again,
+  while a value that cannot cross is refused without consuming the yield; and
+  it refuses a stopped object, whose runtimes have no state left, and an object
+  of another class.
+
 - **resume_mailbox**: `completion` objects pass through `runtime:resume()`
   to enable the mailbox pattern. Sub-runtime sends via `fifo` +
   `completion`; main runtime receives.
