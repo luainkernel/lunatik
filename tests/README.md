@@ -197,7 +197,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   successful `netfilter.register()` call. The fix, under the runtime
   spinlock, nulls `runtime->private`, calls `lua_close(L)` to fire the
   hook finalizer (`nf_unregister_net_hook` + `symbol_put_addr`), and
-  then releases the runtime.
+  then releases the runtime. The percpu case errors on the last instance, so
+  the rollback has the hooks of the earlier ones, which the shared registration
+  holds, to release; it needs more than one CPU and skips otherwise.
 
 - **resume_shared**: `runtime:resume()` passes shared (monitored) objects
   across runtime boundaries. Push into a shared `fifo`, resume a

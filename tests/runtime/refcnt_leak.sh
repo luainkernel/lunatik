@@ -16,12 +16,22 @@
 # Usage: sudo bash tests/runtime/refcnt_leak.sh
 
 SCRIPT="tests/runtime/refcnt_leak"
+PERCPU="tests/runtime/refcnt_leak_percpu"
 MODULE="luanetfilter"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
+cleanup()
+{
+	lunatik stop "$SCRIPT" > /dev/null 2>&1
+	lunatik stop "$PERCPU" > /dev/null 2>&1
+}
+
+trap cleanup EXIT
+cleanup
+
 ktap_header
-ktap_plan 1
+ktap_plan 2
 
 before=$(cat /sys/module/$MODULE/refcnt 2>/dev/null) || {
 	echo "# SKIP: $MODULE not loaded"
@@ -43,6 +53,22 @@ after=$(cat /sys/module/$MODULE/refcnt 2>/dev/null)
 [ "$before" = "$after" ] || fail "$MODULE refcnt leaked: $before -> $after (fix lunatik_newruntime error path)"
 
 ktap_pass "$MODULE refcnt restored after failed script"
+
+[ "$(sed 's/.*-//' /sys/devices/system/cpu/possible)" -gt 0 ] || {
+	echo "# SKIP: the percpu rollback needs an instance before the one that fails"
+	ktap_skip "$MODULE refcnt restored after a percpu script failed on its last instance"
+	ktap_totals
+	exit 0
+}
+
+mark_dmesg
+output=$(lunatik run "$PERCPU" softirq percpu 2>&1)
+echo "$output" | grep -q "intentional error on the last instance" || \
+	fail "percpu script did not reach the intentional error: $output"
+check_dmesg || { ktap_totals; exit 1; }
+after=$(cat /sys/module/$MODULE/refcnt 2>/dev/null)
+[ "$before" = "$after" ] || fail "$MODULE refcnt leaked: $before -> $after (the rollback left a hook of an earlier instance)"
+ktap_pass "$MODULE refcnt restored after a percpu script failed on its last instance"
 
 ktap_totals
 
