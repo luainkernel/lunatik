@@ -122,6 +122,7 @@ static inline int lunatik_trylock(lunatik_object_t *object)
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);
 int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt,
 	lunatik_object_t *percpu, int cpu);
+int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs);
 int lunatik_stop(lunatik_object_t *runtime);
 int lunatik_copyobjects(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nobjects);
 
