@@ -45,6 +45,8 @@ check() {
 		add "casts into __percpu without __force; a cast into an annotated address space carries __force, as the opt constants do"
 	grep -nE 'lunatik_toobject\(L, *(-?[0-9]+|ix)\)->private' "$file" 2>/dev/null | grep -vE 'lunatik_getregistry|_key\)' | grep -q . && \
 		add "reads ->private through lunatik_toobject on an argument; lunatik_toobject returns NULL for a non-userdata, so a checker (lunatik_checkobject) goes first"
+	grep -nE '(object|[a-z]+)->class *== *&lua[a-z_]+_class' "$file" 2>/dev/null | grep -q . && \
+		add "tests the class by hand; LUNATIK_PRIVATECHECKER and lunatik_argcheckclass take the class, LUNATIK_PRIVATECHECKERS a list of them"
 	# a method that reads private as its own type right after lunatik_checkobject, which
 	# accepts any Lunatik object, skips the class check; a checker tests the class in between.
 	awk '

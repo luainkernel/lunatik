@@ -238,6 +238,11 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * Do not duplicate a struct defined by another module; use its exported API.
 * Prefer a named `static inline` helper over an open coded repetition, and do not inline an existing
   named helper into its callers while refactoring; they exist for readability and symmetry.
+* A function does one thing; whether to do it is its caller's decision. An early return added at the
+  top of a function that creates something, guarded by a lookup with its own stack juggling, moves
+  that decision into the wrong place: the lookup becomes a `has`/`is` predicate beside the ones the
+  header already has, and the caller that loops over the work tests it. `lunatik_newclass` grew such
+  a guard and gave it back to `lunatik_newclasses` through `lunatik_hasclass`.
 * When a two line pattern repeats in every method, collapse it into one helper or macro.
 * A helper meant to be shared is held to a higher design bar than a one-off, because everything
   built on it inherits its shape: a pair mirrors, so whatever one half acquires or registers its
@@ -473,6 +478,11 @@ old factory — kept building and broke at the first packet.
   the path taken.
 * Naming an existing literal is done by visiting every call site of what carries it: sweep for the
   function's callers or the field's users, not for the literal, which misses positional arguments.
+* Changing the value of a field visits every reader of it, in the code and in the field's doc, and
+  asks what each does with the value: `class->name` is the type name a type error quotes and the
+  key `lunatik_require` registers the library under, and renaming `rcu` to `rcu.table` for the
+  first opened `luarcu` twice in every runtime through the second. A reader that merely compiles
+  against the new value is not accounted for.
 * A force-push that restructures a branch is not done until the pull request title and body are
   re-read against it. They describe the branch; a rewrite that drops or replaces a mechanism turns
   them into fiction the reviewer reads first.
