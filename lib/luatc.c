@@ -43,7 +43,9 @@ typedef struct luatc_ctx_s {
 	int              cb;
 } luatc_ctx_t;
 
-LUNATIK_PRIVATECHECKER(luatc_ctx_check, luatc_ctx_t *,
+static const lunatik_class_t luatc_class;
+
+LUNATIK_PRIVATECHECKER(luatc_ctx_check, luatc_ctx_t *, &luatc_class,
 	luaL_argcheck(L, private->skb != NULL, ix, "ctx is not set");
 );
 

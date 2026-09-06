@@ -30,7 +30,10 @@
 
 #include <lunatik.h>
 
-LUNATIK_PRIVATECHECKER(luabpf_map_check, struct bpf_map *);
+static const lunatik_class_t luabpf_hash_class;
+static const lunatik_class_t luabpf_queue_class;
+
+LUNATIK_PRIVATECHECKERS(luabpf_map_check, struct bpf_map *, "bpf.map", &luabpf_hash_class, &luabpf_queue_class);
 
 #define luabpf_map_istype(map, type)	((map) != NULL && (map)->map_type == (type))
 

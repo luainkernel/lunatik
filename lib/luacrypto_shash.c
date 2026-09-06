@@ -16,7 +16,7 @@
 
 #include "luacrypto.h"
 
-LUNATIK_PRIVATECHECKER(luacrypto_shash_check, struct shash_desc *);
+LUNATIK_PRIVATECHECKER(luacrypto_shash_check, struct shash_desc *, &luacrypto_shash_class);
 
 static void luacrypto_shash_release(void *private)
 {

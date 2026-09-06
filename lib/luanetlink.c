@@ -30,7 +30,9 @@ typedef struct luanetlink_channel_s {
 	bool                        registered;
 } luanetlink_channel_t;
 
-LUNATIK_PRIVATECHECKER(luanetlink_channel_check, luanetlink_channel_t *);
+static const lunatik_class_t luanetlink_channel_class;
+
+LUNATIK_PRIVATECHECKER(luanetlink_channel_check, luanetlink_channel_t *, &luanetlink_channel_class);
 
 static void luanetlink_channel_release(void *private)
 {

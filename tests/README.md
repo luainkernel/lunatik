@@ -203,6 +203,20 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   across runtime boundaries. Push into a shared `fifo`, resume a
   sub-runtime with it, assert the value pops on the other side.
 
+- **resume_foreign**: `runtime:resume()` refuses an object of another class
+  instead of reading its private data as a Lua state.
+
+- **foreign_method**: `device:stop`, `notifier:stop`, `probe:stop`,
+  `probe:enable` and the `rcu.table` index metamethods refuse an object of
+  another class instead of reading its private data as their own.
+
+- **foreign_checker**: a method of every class a process runtime can
+  construct (`data`, `fifo`, `completion`, `set`, `crypto_shash`, `task`,
+  `runtime`), called through the class's metatable, refuses an object of
+  another class naming both classes, refuses `nil` and refuses a userdata
+  of another library; `rcu.map` refuses `nil`; and a method on a closed
+  runtime or fifo is refused instead of dereferencing its NULL private.
+
 - **resume_mailbox**: `completion` objects pass through `runtime:resume()`
   to enable the mailbox pattern. Sub-runtime sends via `fifo` +
   `completion`; main runtime receives.
@@ -220,6 +234,10 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **require_cloneobject**: `lunatik_cloneobject` loads the class into
   the receiving runtime via `class->opener` (`luaL_requiref`), even when
   that runtime never called `require()` for the module.
+
+- **require_reopen**: a library opened again under another name (the
+  `_ENV` object registers `luarcu` as `rcu.table`, the script's `require`
+  as `rcu`) keeps the class metatables the first open created.
 
 - **percpu**: `run <script> percpu` registers one object holding a
   runtime per possible CPU id, and runs the script once per instance,

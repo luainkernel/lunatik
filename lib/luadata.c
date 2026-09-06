@@ -27,7 +27,9 @@ typedef struct luadata_s {
 
 static int luadata_lnew(lua_State *L);
 
-LUNATIK_PRIVATECHECKER(luadata_check, luadata_t *);
+static const lunatik_class_t luadata_class;
+
+LUNATIK_PRIVATECHECKER(luadata_check, luadata_t *, &luadata_class);
 
 static inline void *luadata_checkbounds(lua_State *L, int ix, luadata_t *data, lua_Integer offset, lua_Integer length)
 {

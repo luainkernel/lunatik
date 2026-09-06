@@ -40,7 +40,7 @@ typedef struct luacrypto_ctx_s {
 
 /* checkctx returns the context; check returns ctx->tfm for tfm-only methods. */
 #define LUACRYPTO_CHECKER(name, T)							\
-LUNATIK_PRIVATECHECKER(luacrypto_##name##_checkctx, luacrypto_ctx_t *)			\
+LUNATIK_PRIVATECHECKER(luacrypto_##name##_checkctx, luacrypto_ctx_t *, &luacrypto_##name##_class)	\
 static inline T *luacrypto_##name##_check(lua_State *L, int idx)				\
 {											\
 	return (T *)luacrypto_##name##_checkctx(L, idx)->tfm;				\

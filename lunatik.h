@@ -278,8 +278,8 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 
 #define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
 #define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_NULLPTR)
-#define lunatik_argcheckclass(L, ix, cls, tname)	\
-	luaL_argexpected((L), lunatik_toobject((L), (ix))->class == (cls), (ix), (tname))
+#define lunatik_argcheckclass(L, ix, object, cls)	\
+	luaL_argexpected((L), (object)->class == (cls), (ix), (cls)->name)
 #define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
 #define lunatik_toobject(L, i)		(*(lunatik_object_t **)lua_touserdata((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
@@ -311,6 +311,8 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, 
 	lua_pushlightuserdata(L, lunatik_monitormt(class, monitored));
 	lua_newtable(L); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
+	lua_pushstring(L, class->name);
+	lua_setfield(L, -2, "__name"); /* names the class in type errors and tostring */
 	if (monitored)
 		lunatik_monitorobject(L, class);
 	if (!lunatik_hasindex(L, -1)) {
@@ -322,7 +324,7 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, 
 
 static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)
 {
-	if (lua_isuserdata(L, ix) && lua_getiuservalue(L, ix, 1) != LUA_TNONE) {
+	if (lua_type(L, ix) == LUA_TUSERDATA && lua_getiuservalue(L, ix, 1) != LUA_TNONE) {
 		lunatik_class_t *class = (lunatik_class_t *)lua_touserdata(L, -1);
 		lua_pop(L, 1); /* class */
 		return class;
@@ -352,10 +354,19 @@ static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 #define LUNATIK_CLASSES(name, ...)	\
 static const lunatik_class_t *lua##name##_classes[] = { __VA_ARGS__, NULL }
 
+static inline bool lunatik_hasclass(lua_State *L, const lunatik_class_t *class)
+{
+	int type = lua_rawgetp(L, LUA_REGISTRYINDEX, lunatik_monitormt(class, false));
+	lua_pop(L, 1); /* mt or nil */
+	return type != LUA_TNIL;
+}
+
 static inline void lunatik_newclasses(lua_State *L, const lunatik_class_t **classes)
 {
 	for (; *classes; classes++) {
 		const lunatik_class_t *cls = *classes;
+		if (lunatik_hasclass(L, cls)) /* opened again under another name */
+			continue;
 		if (lunatik_ismonitor(cls->opt))
 			lunatik_newclass(L, cls, true);
 		lunatik_newclass(L, cls, false);
@@ -376,22 +387,31 @@ int luaopen_##libname(lua_State *L)						\
 }										\
 EXPORT_SYMBOL_GPL(luaopen_##libname)
 
-#define LUNATIK_OBJECTCHECKER(checker, T)			\
+#define LUNATIK_CHECKER(checker, T, argcheckclass, ...)		\
 static inline T checker(lua_State *L, int ix)			\
 {								\
 	lunatik_object_t *object = lunatik_checkobject(L, ix);	\
-	return (T)object->private;				\
-}
-
-#define LUNATIK_PRIVATECHECKER(checker, T, ...)			\
-static inline T checker(lua_State *L, int ix)			\
-{								\
-	T private = (T)lunatik_toobject(L, ix)->private;	\
-	/* avoid use-after-free */				\
-	lunatik_argchecknull(L, private, ix);			\
+	argcheckclass;						\
+	T private = (T)object->private;				\
+	lunatik_argchecknull(L, private, ix); /* closed */	\
 	__VA_ARGS__						\
 	return private;						\
 }
+
+#define LUNATIK_PRIVATECHECKER(checker, T, cls, ...)	\
+	LUNATIK_CHECKER(checker, T, lunatik_argcheckclass(L, ix, object, cls), ##__VA_ARGS__)
+
+static inline bool lunatik_isoneof(const lunatik_class_t *class, const lunatik_class_t *const *classes)
+{
+	for (; *classes != NULL; classes++)
+		if (*classes == class)
+			return true;
+	return false;
+}
+
+#define LUNATIK_PRIVATECHECKERS(checker, T, tname, ...)						\
+static const lunatik_class_t *const checker##_classes[] = { __VA_ARGS__, NULL };		\
+LUNATIK_CHECKER(checker, T, luaL_argexpected(L, lunatik_isoneof(object->class, checker##_classes), ix, tname))
 
 #define lunatik_getregistry(L, key)	lua_rawgetp((L), LUA_REGISTRYINDEX, (key))
 

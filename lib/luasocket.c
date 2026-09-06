@@ -123,7 +123,9 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr)
 	return n;
 }
 
-LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *);
+static const lunatik_class_t luasocket_class;
+
+LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *, &luasocket_class);
 
 #define luasocket_setmsg(m)		memset(&(m), 0, sizeof(m))
 

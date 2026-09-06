@@ -20,7 +20,9 @@ typedef struct luaskel_s {
 	int unused;
 } luaskel_t;
 
-LUNATIK_PRIVATECHECKER(luaskel_check, luaskel_t *);
+static const lunatik_class_t luaskel_class;
+
+LUNATIK_PRIVATECHECKER(luaskel_check, luaskel_t *, &luaskel_class);
 
 /***
 * Does nothing.

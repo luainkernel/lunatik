@@ -43,7 +43,7 @@ static int luaset_labeled(lua_State *L);
 static const lunatik_class_t luaset_class;
 static const lunatik_class_t luaset_labeled_class;
 
-LUNATIK_PRIVATECHECKER(luaset_check, luaset_t *);
+LUNATIK_PRIVATECHECKERS(luaset_check, luaset_t *, "set", &luaset_class, &luaset_labeled_class);
 
 static inline int luaset_keycmp(const char *a, uint32_t alen, const char *b, uint32_t blen)
 {

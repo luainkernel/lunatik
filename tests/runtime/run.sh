@@ -13,11 +13,15 @@ FAILED=0
 TESTS=(
 	refcnt_leak.sh
 	resume_shared.sh
+	resume_foreign.sh
+	foreign_method.sh
+	foreign_checker.sh
 	resume_mailbox.sh
 	rcu_shared.sh
 	opt_guards.sh
 	opt_skb_single.sh
 	require_cloneobject.sh
+	require_reopen.sh
 	percpu.sh
 	percpu_object.sh
 	percpu_refuse.sh

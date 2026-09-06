@@ -15,7 +15,9 @@
 
 #include "luatask.h"
 
-LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *);
+static const lunatik_class_t luatask_class;
+
+LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *, &luatask_class);
 
 /* Getters read task fields locklessly; task_lock can't be held in the softirq/hardirq contexts
  * this class serves. A scalar reads as a coherent old-or-new value; comm is copied with
