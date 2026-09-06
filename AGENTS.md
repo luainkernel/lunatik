@@ -7,7 +7,9 @@ point it here.
 Lunatik runs Lua inside the Linux kernel. A mistake here does not raise an exception, it panics a
 machine. Two rules follow from that and outrank everything else in this document:
 
-1. **Verify, do not assume.** Before using a kernel API, read its declaration in
+1. **Verify, do not assume.** How the kernel behaves is read in its source, not inferred from a
+   measurement: which CPU a hook runs on is answered by `NF_HOOK`'s callers, and a run on one host
+   confirms that reading, it does not replace it. Before using a kernel API, read its declaration in
    `/usr/src/linux-headers-$(uname -r)/include` and confirm it is exported in `Module.symvers`. A
    kernel interface read at runtime rather than linked — a `/sys` or `/proc` path and the format it
    returns, the `/dev/lunatik` protocol — is held to the same rule: confirm it against the source
@@ -633,6 +635,10 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   window — supply it yourself and reproduce the signature on demand, and log what the hook actually
   saw before naming the packet. A mechanism proved by injection is reported as that, not as the
   trigger of the run that failed, which was not captured.
+* A defect found on the way is fixed, not reported and left: a pre-existing one, in code the change
+  does not touch, becomes a commit of its own, or a pull request of its own when it stands apart, and
+  the hand-back says which. Asking whether to fix it is asking the maintainer to decide what the
+  rules already decide.
 * A finding is resolved, not parked. When something looks wrong, run it to ground — reproduce it, find
   the cause, then fix it or dismiss it. "I'll flag it to the author", "let's look into it separately",
   or asking whether to investigate is dropping it, not handling it. Deferral is for work that belongs
