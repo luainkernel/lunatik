@@ -322,7 +322,7 @@ static inline lunatik_object_t **lunatik_testobject(lua_State *L, int ix)
 static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 {
 	lunatik_object_t **pobject = lunatik_testobject(L, ix);
-	luaL_argcheck(L, pobject, ix, "invalid object");
+	luaL_argcheck(L, pobject != NULL, ix, "invalid object");
 	return pobject;
 }
 
