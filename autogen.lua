@@ -385,6 +385,12 @@ local function intermediate_paths(mods)
 	return util.sorted(needs)
 end
 
+-- A u64 with the high bit set reaches the assembly as a negative decimal; hex keeps its bits.
+local function to_lua_number(val)
+	local n = math.tointeger(val)
+	return n and n < 0 and ("0x%016X"):format(n) or val
+end
+
 -- Write one sub-table block: init line (unless this is the top itself)
 -- followed by sorted entries.
 local function write_submodule(out, mod, top)
@@ -392,7 +398,7 @@ local function write_submodule(out, mod, top)
 	if mod.name ~= top then out:write(mod.name, " = {}\n") end
 	table.sort(mod.entries, function(a, b) return a.key < b.key end)
 	for _, e in ipairs(mod.entries) do
-		out:write(mod.name, '["', e.key, '"]\t= ', e.value, "\n")
+		out:write(mod.name, '["', e.key, '"]\t= ', to_lua_number(e.value), "\n")
 	end
 end
 
