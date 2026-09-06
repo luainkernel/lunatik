@@ -52,7 +52,11 @@ Use `sudo make install`, not the partial `*_install` targets. Use `sudo lunatik 
 `rmmod`: the CLI knows the dependency order and unloads cleanly.
 
 `lunatik reload` cannot always replace the core module while something still holds it. If you changed
-`lunatik.ko` itself and the behaviour did not change, verify rather than assume the new core is live.
+`lunatik.ko` itself and the behaviour did not change, verify rather than assume the new core is live:
+`cat /sys/module/lunatik/srcversion` against `modinfo -F srcversion` of the installed `.ko` says
+whether the running core is the one just built. A kernel thread outliving its runtime is one way to
+pin it, and nothing short of a reboot gets it back, so a test that spawns one gives its body work
+that ends rather than a loop waiting to be stopped.
 
 After a kernel upgrade the installed modules were built for the previous kernel and fail to load with
 `Exec format error` (a vermagic mismatch). Reinstall the headers, `make clean && make`, and reinstall
@@ -461,6 +465,9 @@ old factory — kept building and broke at the first packet.
 * A change to a function is read against the whole function, not the lines it touches: re-read it
   and take the simplification the change enables. A guard left standing that the new shape made
   redundant — `!cond || check(cond)` where the call now sits inside `if (cond)` — is a partial fix.
+* Read the commit before pushing it, not only the working tree: `git show` the diff that is about to
+  be published. Instrumentation added while debugging — a `pr_err`, a hardcoded branch — is invisible
+  in a passing test and lands in the pull request.
 * Change only what the task requires. Do not reformat untouched lines, do not move code, do not
   rename variables in passing. Compare `git diff` against `git diff -w` before committing to catch
   stray whitespace.
