@@ -50,7 +50,10 @@ end
 -- @tparam[opt] boolean ispercpu create one runtime per CPU id, dispatched by the CPU a
 --   callback fires on; the script runs once per runtime and can read its id with
 --   `lunatik.cpu()`. The runtimes share a netfilter hook and a kprobe; constructors
---   whose registration is global refuse to run in a percpu runtime.
+--   whose registration is global refuse to run in a percpu runtime. A runtime is not a
+--   connection: which one a packet reaches is the CPU the hook runs on, so the
+--   packets of one flow reach several runtimes. Per-flow state belongs in something
+--   the runtimes share, per-CPU state in the runtime.
 -- @treturn table created Lunatik runtime object, or the percpu object when `ispercpu` is set.
 -- @raise error if the script is already running.
 function runner.run(script, context, ispercpu)
