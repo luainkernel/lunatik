@@ -549,15 +549,20 @@ class tests written by hand where the checker takes the classes were that.
    each cell naming its test or saying why it is not covered. Wiring is what a check confirms; the
    matrix is what a rewrite inherits from the branch it replaces unless it is written down;
 5. error paths audited: for each raise, everything already acquired is released;
-6. commits are small, ordered, and none of them undoes another;
-7. every helper the change introduces has a caller. A helper extracted to remove duplication but
+6. every example that uses a binding the change touches is run, not only loaded, through the
+   example's own `setup.sh` and `cleanup.sh` where it has them, and the hand-back says of each
+   one whether it ran, only loaded, or was not run, and why. A loaded script that never fired
+   its hook is the green build the review rule warns about; "loads as percpu" said of
+   `tcpreject` and `dnsdoctor` after #785 merged was that;
+7. commits are small, ordered, and none of them undoes another;
+8. every helper the change introduces has a caller. A helper extracted to remove duplication but
    left unused, while the duplication it replaces still stands, is the refactor half-done. Grep the
    new symbols for a caller before sending.
-8. the branch is handed back merge-ready, not as a working scratch: the session's commits grouped into
+9. the branch is handed back merge-ready, not as a working scratch: the session's commits grouped into
    a clean history that none of them undoes, nothing left to squash, the pull request title and body
    describing the final state. On a harness or docs pull request you author, tidy it before returning
    it, unasked — what comes back is reviewed and merged, not tidied first.
-9. the simplification pass, before sending. For each helper, collection, or loop the change adds, name
+10. the simplification pass, before sending. For each helper, collection, or loop the change adds, name
    what it buys over the minimal shape — weighing the whole cost, not the line count at one call site.
    A loop that vanishes locally by generating a build-time list can add more surface than it removes
    (an extra argument, an emitted table, a file to keep in sync); prefer the ground truth the system

@@ -22,6 +22,8 @@ no "Test plan" section, no em dashes. On top of it:
   reason; none is dropped in silence.
 - The hand-back carries the test matrix: for each guard or mechanism the change adds, operations
   by types by outcomes, each cell with its test or the reason it is not covered.
+- Every example that uses a binding the change touches is run through its own `setup.sh` and
+  `cleanup.sh`, and the hand-back says of each whether it ran, only loaded, or was not run, and why.
 - The body opens with the failure or the need in one plain sentence, then what the change does,
   then what it depends on: three short paragraphs at most; `bash tools/checks/pr-body.sh <file>`
   before posting it.
