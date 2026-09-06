@@ -8,11 +8,13 @@
 
 ### lunatik\_class\_t
 ```C
+typedef void (*lunatik_release_t)(void *);
+
 typedef struct lunatik_class_s {
-	const char     *name;
-	const luaL_Reg *methods;
-	void          (*release)(void *);
-	lunatik_opt_t   opt;
+	const char        *name;
+	const luaL_Reg    *methods;
+	lunatik_release_t  release;
+	lunatik_opt_t      opt;
 } lunatik_class_t;
 ```
 Describes a Lunatik object class.
@@ -187,6 +189,22 @@ Returns the runtime associated with `L` and raises a Lua error if its context do
 `softirq` runtime, a HARDIRQ class in a `hardirq` runtime, and a process-context class in a
 process runtime. Typically called from `lunatik_new*` functions to enforce that a class is
 only instantiated in a compatible runtime.
+
+### lunatik\_percpudata
+```C
+lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class, size_t size);
+```
+Returns the object of `class` a `percpu` object holds for its instances: the first instance to ask
+creates it, as `lunatik_createobject(class, size, LUNATIK_OPT_NONE)` does, with its private zeroed;
+the following ones get the same object, so every instance sees one. The `percpu` object owns it:
+`percpu:stop()` closes it (`lunatik_closeprivate`, which runs the class's `release` in process
+context) before closing the instances, then drops it, and an object with such data outstanding is
+released by `stop`, never by collection. A registration a script makes once for all its instances,
+a netfilter hook, say, lives in the private of such an object, with the class's `release`
+unregistering it. Only the script body may ask, while the instance loads; it raises a Lua error
+afterwards. Returns `NULL` on a plain runtime, which has no instances to share with;
+`lunatik_getpercpu(L)` tells the two apart, returning the `percpu` object owning the instance `L`,
+or `NULL`.
 
 ---
 

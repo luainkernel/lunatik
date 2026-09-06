@@ -81,10 +81,12 @@ do {										\
 	lunatik_unpin(_object);							\
 } while(0)
 
+typedef void (*lunatik_release_t)(void *);
+
 typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
-	void (*release)(void *);
+	lunatik_release_t release;
 	lua_CFunction opener;
 	lunatik_opt_t opt;
 } lunatik_class_t;
@@ -117,7 +119,8 @@ static inline int lunatik_trylock(lunatik_object_t *object)
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);
-int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt, int cpu);
+int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt,
+	lunatik_object_t *percpu, int cpu);
 int lunatik_stop(lunatik_object_t *runtime);
 
 static inline int lunatik_nop(lua_State *L)

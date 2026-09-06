@@ -69,7 +69,7 @@ EXPORT_SYMBOL(lunatik_cloneobject);
 
 static inline void lunatik_releaseprivate(const lunatik_class_t *class, void *private)
 {
-	void (*release)(void *) = class->release;
+	lunatik_release_t release = class->release;
 
 	if (release)
 		release(private);
