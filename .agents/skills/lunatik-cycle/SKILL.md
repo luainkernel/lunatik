@@ -8,6 +8,7 @@ AGENTS.md, "Build, install, test", is the authority; this skill orders the workf
 # The cycle
 
     make
+    make C=1                 # sparse, for a change touching __percpu or another address space
     sudo make install        # never a partial *_install
     sudo lunatik reload      # never rmmod by hand
     sudo lunatik test [suite]

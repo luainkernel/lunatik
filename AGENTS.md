@@ -529,7 +529,11 @@ class tests written by hand where the checker takes the classes were that.
 
 ## Before opening a pull request
 
-1. `make` is clean, with no new warnings;
+1. `make` is clean, with no new warnings, and a change that touches a `__percpu` pointer, or any
+   other address-space annotated one, is clean under `make C=1` too: sparse models the annotation as
+   an address space, as GCC 14 on x86 does for `__percpu` (`__seg_gs`), so a `void *` holding one, or
+   a cast between the two, is a warning here and a build error there. The `lunatik_percpuruntimes`
+   cast and `object->private = runtimes` were both;
 2. `sudo make install && sudo lunatik reload && sudo lunatik test` passes;
 3. new API is documented and listed in `config.ld` and the README;
 4. new tests are wired into their suite and described, and the hand-back carries the matrix the
