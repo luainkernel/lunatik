@@ -219,6 +219,10 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   of another library; `rcu.map` refuses `nil`; and a method on a closed
   runtime or fifo is refused instead of dereferencing its NULL private.
 
+- **resume_thread**: what a resumed script returns stays on its stack for the
+  next resumption, which is how `thread.run` gets a thread body, as `echod`
+  does; `resume` itself returns nothing to its caller.
+
 - **resume_mailbox**: `completion` objects pass through `runtime:resume()`
   to enable the mailbox pattern. Sub-runtime sends via `fifo` +
   `completion`; main runtime receives.

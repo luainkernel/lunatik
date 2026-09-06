@@ -126,28 +126,23 @@ static inline int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int nargs)
 
 /***
 * Resumes a yielded runtime, analogous to `coroutine.resume`.
+* What the script leaves on its stack stays there for the next resumption, which is how a
+* script hands the function it returns to `thread.run`; nothing comes back to the caller.
 * @function resume
 * @param ... values delivered to the script as return values of `coroutine.yield()`
-* @treturn vararg values passed to the next `coroutine.yield()`, or returned by the script
 * @raise if the runtime errors on resumption
 */
 static int lunatik_lresume(lua_State *L)
 {
 	lua_State *Lto = lunatik_check(L, 1);
 	int nargs = lua_gettop(L) - 1;
-	int nresults = 0;
 
-	if (lunatik_copyobjects(Lto, L, 2, nargs) != LUA_OK || (nresults = lunatik_resume(Lto, L, nargs) < 0)) {
+	if (lunatik_copyobjects(Lto, L, 2, nargs) != LUA_OK || lunatik_resume(Lto, L, nargs) < 0) {
 		lua_pushfstring(L, "%s\n", lua_tostring(Lto, -1));
 		lua_pop(Lto, 1); /* error message */
 		lua_error(L);
 	}
-
-	int status = lunatik_copyobjects(L, Lto, nargs, nresults);
-	lua_pop(Lto, nresults);
-	if (status != LUA_OK)
-		lua_error(L);
-	return nresults;
+	return 0;
 }
 
 /***

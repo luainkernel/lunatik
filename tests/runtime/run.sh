@@ -13,6 +13,7 @@ FAILED=0
 TESTS=(
 	refcnt_leak.sh
 	resume_shared.sh
+	resume_thread.sh
 	resume_foreign.sh
 	foreign_method.sh
 	foreign_checker.sh
