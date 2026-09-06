@@ -57,7 +57,17 @@ check() {
 	' "$file" >/dev/null 2>&1 && \
 		add "reads ->private right after lunatik_checkobject, which accepts any Lunatik object; check the class first (lunatik_argcheckclass, or luaL_argexpected over the classes the method accepts)"
 
-	# over-comment nudges. Heuristic, so advisory.
+	# a function past thirty lines of body hides a step that wants a name; the tree's
+	# longest, luadevice_new, has 42, and a register of 39 was split three ways.
+	long=$(awk '
+		/^[a-zA-Z].*\)$/ && !/;$/ { name=$0; next }
+		/^\{$/ && name != "" { start=NR; next }
+		/^\}$/ && start { if (NR-start-1 > 30) { sub(/\(.*/, "", name); sub(/.* /, "", name); print name" has "NR-start-1; found=1 } start=0; name="" }
+		END { exit !found }
+	' "$file" 2>/dev/null | head -3)
+	while read -r line; do
+		[ -n "$line" ] && add "$line lines of body; a step of it wants a name as a helper (AGENTS.md, C style)"
+	done <<< "$long"
 	# (a) a comment right after a preprocessor branch usually restates the condition.
 	awk '
 		prev ~ /^[[:space:]]*#[[:space:]]*(if|ifdef|ifndef|else|elif|endif)/ \
