@@ -398,6 +398,12 @@ LUNATIK_CHECKER(checker, T, luaL_argexpected(L, lunatik_isoneof(object->class, c
 
 #define lunatik_getregistry(L, key)	lua_rawgetp((L), LUA_REGISTRYINDEX, (key))
 
+static inline lunatik_object_t *lunatik_getregistryobject(lua_State *L, void *key)
+{
+	lunatik_object_t **pobject = lunatik_getregistry(L, key) == LUA_TUSERDATA ? lunatik_testobject(L, -1) : NULL;
+	return pobject != NULL ? *pobject : NULL;
+}
+
 #define lunatik_setstring(L, idx, hook, field, maxlen)		\
 do {								\
 	size_t len;						\

@@ -362,6 +362,15 @@ int lunatik_getregistry(lua_State *L, void *key);
 Pushes the value stored in `LUA_REGISTRYINDEX` at `key` onto the Lua stack and returns
 its type. Defined as a macro wrapping `lua_rawgetp`.
 
+### lunatik\_getregistryobject
+```C
+lunatik_object_t *lunatik_getregistryobject(lua_State *L, void *key);
+```
+Pushes the value stored in `LUA_REGISTRYINDEX` at `key` and returns it as a Lunatik object, or
+`NULL` when there is none or it is no Lunatik object: a hook that reaches for the object it
+registered (an `skb`, a handle) reads it through this rather than through `lunatik_toobject`,
+which does not check.
+
 ### lunatik\_attach
 ```C
 void lunatik_attach(lua_State *L, obj, field, new_fn, ...);

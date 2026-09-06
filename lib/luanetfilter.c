@@ -52,14 +52,10 @@ static inline bool luanetfilter_pushcb(lua_State *L, luanetfilter_t *luanf)
 
 static inline lunatik_object_t *luanetfilter_pushskb(lua_State *L, luanetfilter_t *luanf, struct sk_buff *skb)
 {
-	if (lunatik_getregistry(L, luanf->skb) != LUA_TUSERDATA) {
-		pr_err("couldn't find skb\n");
-		return NULL;
-	}
+	lunatik_object_t *object = lunatik_getregistryobject(L, luanf->skb);
 
-	lunatik_object_t *object = lunatik_toobject(L, -1);
 	if (unlikely(object == NULL)) {
-		pr_err("couldn't get skb object\n");
+		pr_err("couldn't find skb\n");
 		return NULL;
 	}
 
@@ -72,12 +68,13 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct 
 	lunatik_object_t *object = NULL;
 	int ret = -1;
 
-	if (lunatik_getregistry(L, hook) != LUA_TUSERDATA) {
+	lunatik_object_t *handle = lunatik_getregistryobject(L, hook);
+	if (handle == NULL) {
 		pr_err("couldn't find hook\n");
 		goto out;
 	}
 
-	luanetfilter_t *luanf = (luanetfilter_t *)lunatik_toobject(L, -1)->private;
+	luanetfilter_t *luanf = (luanetfilter_t *)handle->private;
 	if (!luanetfilter_pushcb(L, luanf) || (object = luanetfilter_pushskb(L, luanf, skb)) == NULL)
 		goto out;
 

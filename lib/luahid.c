@@ -167,10 +167,9 @@ static luahid_t *luahid_gethid(struct hid_device *hdev)
 
 static inline lunatik_object_t *luahid_pushdata(lua_State *L, luahid_ctx_t *ctx)
 {
-	lunatik_object_t *obj;
+	lunatik_object_t *obj = lunatik_getregistryobject(L, ctx->hid->data);
 
-	if (lunatik_getregistry(L, ctx->hid->data) != LUA_TUSERDATA ||
-	    unlikely((obj = lunatik_toobject(L, -1)) == NULL)) {
+	if (unlikely(obj == NULL)) {
 		ctx->ret = -ENXIO;
 		luaL_error(L, "couldn't find data");
 	}
