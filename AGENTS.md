@@ -498,12 +498,25 @@ dropped or a rationale its call sites contradict, is caught there, as *Patches a
 Saying the prose matches is not the check; showing the claim-to-code mapping is. A change shown
 without that pass is not done.
 
+Before the hand-back, every function the diff touches is re-read whole, not by its changed lines:
+a new branch is asked whether it is this function's job or its caller's, a condition with stack
+juggling is asked whether it is a predicate helper, and a guard the new shape made redundant is
+removed. The maintainer reading a function and finding it dirtier than before is the pass not run.
+
+The hand-back lists each finding of your own review that the change does not apply, with the
+reason. A finding dropped in silence is found again by the maintainer, who then doubts the whole
+review; and "few sites" is not a reason against a rule that collapses a repeated pattern — three
+class tests written by hand where the checker takes the classes were that.
+
 ## Before opening a pull request
 
 1. `make` is clean, with no new warnings;
 2. `sudo make install && sudo lunatik reload && sudo lunatik test` passes;
 3. new API is documented and listed in `config.ld` and the README;
-4. new tests are wired into their suite and described;
+4. new tests are wired into their suite and described, and the hand-back carries the matrix the
+   change is held to: for each guard or mechanism it adds, the operations by types by outcomes,
+   each cell naming its test or saying why it is not covered. Wiring is what a check confirms; the
+   matrix is what a rewrite inherits from the branch it replaces unless it is written down;
 5. error paths audited: for each raise, everything already acquired is released;
 6. commits are small, ordered, and none of them undoes another;
 7. every helper the change introduces has a caller. A helper extracted to remove duplication but
@@ -611,6 +624,8 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   `tc`'s BPF programs were right to declare `Dual MIT/GPL`; the `xdp` ones still on `GPL` are what a
   separate cleanup fixes.
 * Missing tests are a finding of their own, written as such, not a remark appended to another comment.
+  The review writes the matrix the change is held to and reads the tests against it; a test set
+  taken as given because it came with the branch is the review not done.
 * A contract the author documented is not redesigned by the review. An ergonomics preference, `nil`
   against an object whose methods raise, is stated with its trade-off and left to the maintainer;
   shipped as a fixup, it asks the author to un-decide.

@@ -17,6 +17,12 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
   `gh api repos/.../issues/<N>/comments` and `gh api repos/.../pulls/<N>/comments` for the
   conversation, `gh api -X PATCH repos/.../pulls/<N> -f title=... -F body=@file` to edit.
 
+# Before the verdict
+
+- Write the matrix the change is held to: for each guard or mechanism it adds, the operations by
+  types by outcomes, and read the tests against it, cell by cell. A test set taken as given because
+  it came with the branch, or with the branch a rewrite replaces, is the review not done.
+
 # Posting the review (only when asked; placement is decided BEFORE posting)
 
 Each finding goes inline on its line; the review body is only the verdict, opening with the
