@@ -17,7 +17,7 @@ local pri       = nf.ip.pri
 local udp = 0x11
 
 local function dnsdoctor_hook(skb)
-	local pkt = skb:data("mac")
+	local pkt = skb:data("net")
 	local ihl = pkt:getuint8(0) & 0x0F
 	local thoff = ihl * 4
 	local proto = pkt:getuint8(9)
