@@ -7,8 +7,6 @@
 #define lunatik_h
 
 #include <linux/mutex.h>
-#include <linux/percpu.h>
-#include <linux/preempt.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/mm.h>
@@ -55,9 +53,6 @@ do {									\
 
 #define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
-#define LUNATIK_CPU_NONE	(-1)
-#define lunatik_getcpu(L)	(lunatik_extra(L)->cpu)
-#define lunatik_hascpu(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 
@@ -107,31 +102,6 @@ typedef struct lunatik_object_s {
 	unsigned long flags;
 } lunatik_object_t;
 
-#define lunatik_percpuruntimes(p)	((lunatik_object_t * __percpu __force *)(p))
-
-static inline lunatik_object_t *lunatik_pin(lunatik_object_t *object)
-{
-	if (likely(!lunatik_ispercpu(object->opt)))
-		return object;
-
-	if (lunatik_isirq(object->opt))
-		preempt_disable();
-	else /* a process instance may sleep */
-		migrate_disable();
-	return *this_cpu_ptr(lunatik_percpuruntimes(object->private));
-}
-
-static inline void lunatik_unpin(lunatik_object_t *object)
-{
-	if (likely(!lunatik_ispercpu(object->opt)))
-		return;
-
-	if (lunatik_isirq(object->opt))
-		preempt_enable();
-	else
-		migrate_enable();
-}
-
 extern lunatik_object_t *lunatik_env;
 extern const lunatik_class_t lunatik_class;
 
@@ -147,6 +117,7 @@ static inline int lunatik_trylock(lunatik_object_t *object)
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);
+int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt, int cpu);
 int lunatik_stop(lunatik_object_t *runtime);
 
 static inline int lunatik_nop(lua_State *L)
@@ -219,15 +190,8 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_METATABLE	"metatable not found"
 #define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
-#define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 
 #define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
-
-static inline void lunatik_checkpercpu(lua_State *L)
-{
-	if (lunatik_hascpu(L))
-		luaL_error(L, LUNATIK_ERR_PERCPU);
-}
 
 static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt)
 {
@@ -235,6 +199,14 @@ static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t
 	if (lunatik_context(runtime->opt) != lunatik_context(opt))
 		luaL_error(L, LUNATIK_ERR_RUNTIME);
 	return runtime;
+}
+
+static inline lunatik_opt_t lunatik_checkcontext(lua_State *L, int ix)
+{
+	static const char *const contexts[] = {"process", "softirq", "hardirq", NULL};
+	static const lunatik_opt_t opts[] = {LUNATIK_OPT_NONE, LUNATIK_OPT_SOFTIRQ, LUNATIK_OPT_HARDIRQ};
+
+	return opts[luaL_checkoption(L, ix, "process", contexts)];
 }
 
 #define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.opt))
@@ -498,6 +470,7 @@ do {								\
 } while (0)
 
 #include "lunatik_val.h"
+#include "lunatik_percpu.h"
 
 #endif
 

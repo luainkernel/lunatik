@@ -33,6 +33,7 @@ file = {
 	'./lib/luahid.c',
 	'./lib/lighten.lua',
 	'./lunatik_core.c',
+	'./lunatik_percpu.c',
 	'./lib/lunatik/runner.lua',
 	'./lib/lualinux.c',
 	'./lib/linux',
