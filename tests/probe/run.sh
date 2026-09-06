@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=$'\n'
-for t in "$DIR"/kprobe_concurrent.sh; do
+for t in "$DIR"/kprobe_concurrent.sh "$DIR"/percpu_probe.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	bash "$t" || FAILED=$((FAILED+1))
 done
