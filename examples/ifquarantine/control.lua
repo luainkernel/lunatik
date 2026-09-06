@@ -49,7 +49,7 @@ end
 
 local driver = {name = "ifquarantine", mode = stat.IRUGO | stat.IWUGO}
 
-function driver:read()
+function driver:read(len, off)
 	local lines = {}
 	for name, idx in pairs(known) do
 		local state = quarantined[tostring(idx)] and "DROP" or "ALLOW"
@@ -58,7 +58,8 @@ function driver:read()
 	if #lines == 0 then
 		return ""
 	end
-	return table.concat(lines, "\n") .. "\n"
+	local text = table.concat(lines, "\n") .. "\n"
+	return text:sub(off + 1, off + len)
 end
 
 function driver:write(buf)
