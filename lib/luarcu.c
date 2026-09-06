@@ -162,8 +162,7 @@ EXPORT_SYMBOL(luarcu_setvalue);
 */
 static int luarcu_index(lua_State *L)
 {
-	lunatik_object_t *table = lunatik_checkobject(L, 1);
-	lunatik_argcheckclass(L, 1, table, &luarcu_class);
+	lunatik_object_t *table = lunatik_checkobjectclass(L, 1, &luarcu_class);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
 	lunatik_value_t value;
@@ -183,8 +182,7 @@ static int luarcu_index(lua_State *L)
 */
 static int luarcu_newindex(lua_State *L)
 {
-	lunatik_object_t *table = lunatik_checkobject(L, 1);
-	lunatik_argcheckclass(L, 1, table, &luarcu_class);
+	lunatik_object_t *table = lunatik_checkobjectclass(L, 1, &luarcu_class);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
 

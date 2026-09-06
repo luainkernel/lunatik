@@ -312,8 +312,15 @@ private`.
 void lunatik_argcheckclass(lua_State *L, int ix, lunatik_object_t *object, const lunatik_class_t *cls);
 ```
 Raises a type error naming `cls->name` unless `object`, the Lunatik object at `ix`, is of that
-class. For a method that needs the object itself, not only its private: `lunatik_checkobject`
-followed by this check is what the checkers above do. Defined as a macro.
+class. Defined as a macro.
+
+### lunatik\_checkobjectclass
+```C
+lunatik_object_t *lunatik_checkobjectclass(lua_State *L, int ix, const lunatik_class_t *cls);
+```
+Returns the Lunatik object at `ix` after proving it is one and is of the class `cls`, raising a
+Lua error otherwise: the checkers above, for a method that needs the object itself, not only its
+private.
 
 ---
 

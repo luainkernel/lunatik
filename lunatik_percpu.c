@@ -100,20 +100,13 @@ static void lunatik_releasepercpu(void *private)
 	free_percpu(percpu->runtimes);
 }
 
-static inline lunatik_object_t *lunatik_checkpercpuobject(lua_State *L, int ix)
-{
-	lunatik_object_t *object = lunatik_checkobject(L, ix);
-	lunatik_argcheckclass(L, ix, object, &lunatik_percpu_class);
-	return object;
-}
-
 /***
 * Closes the objects the instances share, then every instance, releasing their Lua states.
 * @function stop
 */
 static int lunatik_stoppercpu(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_checkpercpuobject(L, 1);
+	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &lunatik_percpu_class);
 
 	lunatik_stopdata(object);
 	lunatik_closeinstances(lunatik_topercpu(object));

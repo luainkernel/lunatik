@@ -255,6 +255,7 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 #define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_NULLPTR)
 #define lunatik_argcheckclass(L, ix, object, cls)	\
 	luaL_argexpected((L), (object)->class == (cls), (ix), (cls)->name)
+
 #define lunatik_checkobject(L, i)	(*lunatik_checkpobject((L), (i)))
 #define lunatik_toobject(L, i)		(*(lunatik_object_t **)lua_touserdata((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
@@ -324,6 +325,13 @@ static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 	lunatik_object_t **pobject = lunatik_testobject(L, ix);
 	luaL_argcheck(L, pobject != NULL, ix, "invalid object");
 	return pobject;
+}
+
+static inline lunatik_object_t *lunatik_checkobjectclass(lua_State *L, int ix, const lunatik_class_t *cls)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, ix);
+	lunatik_argcheckclass(L, ix, object, cls);
+	return object;
 }
 
 #define LUNATIK_CLASSES(name, ...)	\
