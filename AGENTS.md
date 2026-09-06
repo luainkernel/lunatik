@@ -535,7 +535,10 @@ class tests written by hand where the checker takes the classes were that.
    a cast between the two, is a warning here and a build error there. The `lunatik_percpuruntimes`
    cast and `object->private = runtimes` were both;
 2. `sudo make install && sudo lunatik reload && sudo lunatik test` passes;
-3. new API is documented and listed in `config.ld` and the README;
+3. new API is documented and listed in `config.ld` and the README, and `make doc-site LUA=lua5.4`,
+   the CI target, exits zero: a C file that contributes to a module another file declares carries
+   `@module` with the same name, which `merge = true` in `config.ld` folds, since `@submodule`
+   deduces its section name from a path under `lib/`;
 4. new tests are wired into their suite and described, and the hand-back carries the matrix the
    change is held to: for each guard or mechanism it adds, the operations by types by outcomes,
    each cell naming its test or saying why it is not covered. Wiring is what a check confirms; the
