@@ -13,6 +13,7 @@ local notify   = require("linux.notify")
 local stat     = require("linux.stat")
 
 local filter      <const> = "examples/ifquarantine/filter"
+local percpu      <const> = true
 local quarantined         = rcu.table()   -- tostring(ifindex) -> true
 local known               = {}            -- name -> ifindex
 
@@ -79,8 +80,8 @@ end
 
 device.new(driver)
 
-local rt = runner.run(filter, "softirq")
-rt:resume(quarantined)
+local runtimes = runner.run(filter, "softirq", percpu)
+runtimes:resume(quarantined)
 
 driver.sentinel = setmetatable({}, {__gc = function()
 	runner.stop(filter)
