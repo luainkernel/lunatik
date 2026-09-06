@@ -323,10 +323,10 @@ released from quarantine by writing `allow=<name>` to `/dev/ifquarantine`;
 re-denied with `deny=<name>`; inspected with `cat /dev/ifquarantine`.
 
 The control runtime (process context) owns `notifier.netdevice` and the
-device; it spawns a child softirq runtime with the netfilter hook, sharing
-the quarantine set via `rcu.table` through `runtime:resume()`. Illustrates
-cross-subsystem composition between two notifier chains of different
-execution contexts.
+device; it runs the netfilter hook as a softirq percpu script, one runtime
+per CPU sharing the hook, and hands each the quarantine set via `rcu.table`
+through `percpu:resume()`. Illustrates cross-subsystem composition between
+two notifier chains of different execution contexts.
 
 #### Usage
 
@@ -336,7 +336,7 @@ sudo lunatik run examples/ifquarantine/control     # starts control+filter
 sudo cat /dev/ifquarantine                         # lists known interfaces and verdict
 sudo sh -c "echo 'allow=eth0' > /dev/ifquarantine" # lift quarantine on eth0
 sudo sh -c "echo 'deny=eth0'  > /dev/ifquarantine" # re-apply quarantine
-sudo lunatik stop examples/ifquarantine/control    # stops both runtimes
+sudo lunatik stop examples/ifquarantine/control    # stops both scripts
 ```
 
 Pre-existing interfaces are covered as well: `register_netdevice_notifier`
