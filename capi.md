@@ -17,7 +17,9 @@ typedef struct lunatik_class_s {
 ```
 Describes a Lunatik object class.
 
-- `name`: class name; used as the argument to `require` and to identify the class.
+- `name`: the class's type name, quoted by type errors and `__name`; `lunatik_require` also
+  registers the library under it when an object of the class enters another state, so a script's
+  own `require` of the library may open it a second time, which keeps the classes already opened.
 - `methods`: `NULL`-terminated array of Lua methods registered in the metatable.
 - `release`: called when the object's reference counter reaches zero; may be `NULL`.
 - `opt`: bitmask of `LUNATIK_OPT_*` flags controlling class behaviour. Flags are inherited by
@@ -273,21 +275,27 @@ lunatik_object_t *lunatik_toobject(lua_State *L, int i);
 Returns the Lunatik object at stack position `i` without type checking. Returns `NULL` if
 the value is not a userdata. Defined as a macro.
 
-### LUNATIK\_OBJECTCHECKER
-```C
-#define LUNATIK_OBJECTCHECKER(checker, T)
-```
-Generates a `static inline` function `T checker(lua_State *L, int ix)` that returns
-`object->private` cast to `T`. Performs a full object check; raises a Lua error if the
-value at `ix` is not a valid Lunatik object.
-
 ### LUNATIK\_PRIVATECHECKER
 ```C
-#define LUNATIK_PRIVATECHECKER(checker, T, ...)
+#define LUNATIK_PRIVATECHECKER(checker, T, cls, ...)
+#define LUNATIK_PRIVATECHECKERS(checker, T, tname, ...)
 ```
-Like `LUNATIK_OBJECTCHECKER`, but also guards against use-after-free by checking that
-`private != NULL` before returning. The optional `...` may include additional validation
-statements (e.g., checking a secondary field) that are executed before `return private`.
+Generates a `static inline` function `T checker(lua_State *L, int ix)` that returns
+`object->private` cast to `T`, after proving three things about the value at `ix`, each with a
+Lua error: it is a Lunatik object (`lunatik_checkobject`), it is of the class `cls`, whose
+`name` the type error quotes, and its private is set, which rules out a closed object. The
+second form is for a family of classes sharing one checker: `...` lists the classes it accepts,
+and `tname` is the name the type error quotes. The first form's optional `...` are further
+validation statements, run with `L`, `ix`, `object` and `private` in scope, before `return
+private`.
+
+### lunatik\_argcheckclass
+```C
+void lunatik_argcheckclass(lua_State *L, int ix, lunatik_object_t *object, const lunatik_class_t *cls);
+```
+Raises a type error naming `cls->name` unless `object`, the Lunatik object at `ix`, is of that
+class. For a method that needs the object itself, not only its private: `lunatik_checkobject`
+followed by this check is what the checkers above do. Defined as a macro.
 
 ---
 
