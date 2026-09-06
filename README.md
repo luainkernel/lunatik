@@ -95,10 +95,34 @@ usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [
 * `status`: show which Lunatik kernel modules are currently loaded
 * `test [suite]`: run installed test suites (see [Testing](#testing))
 * `list`: show which runtime environments are currently running
-* `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime
+* `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [percpu scripts](#percpu-scripts)
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
 * `stop`: stop the runtime environment created to run the script `<script>`
 * `default`: start a _REPL (Read–Eval–Print Loop)_
+
+### percpu scripts
+
+`lunatik run <script> [softirq|hardirq] percpu` creates one runtime per CPU id and
+dispatches a callback to the runtime of the CPU it fires on. The runtimes share the
+registrations a script makes once for all of them, a netfilter hook and a kprobe, and each reads
+its own id with `lunatik.cpu()`.
+
+A runtime is a CPU, not a connection. A netfilter hook runs in the packet's own processing path
+(`NF_HOOK` from `ip_rcv`, `ip_output` and their peers), so the runtime is whichever CPU that path
+is on, and the packets of one connection reach several. Over loopback and veth the transmit side
+queues the packet to its own CPU's backlog (`__netif_rx` from `loopback_xmit` and
+`veth_forward_skb`), which the receive softirq drains on that CPU. On a NIC it is the CPU the
+queue's interrupt is bound to; with RPS, the one the queue's map picks from the flow hash, stable
+while the map is; with RFS, the one where the flow's last `recvmsg` ran, which follows a reader
+that migrates. An outbound hook reached from a `sendmsg` runs on the sending process's CPU, but
+the same hook number also fires from the receive softirq, forwarding a packet or sending a RST for
+one, and from the timer softirq on a retransmission, where it is that softirq's CPU. A kprobe
+reaches the runtime of the CPU the probed call ran on.
+
+State that must see a whole flow therefore belongs in something the runtimes share, a table
+published in `lunatik._ENV` or the conntrack mark; the runtime holds what is per-CPU, a counter or
+a cache. An `rcu.table()` the script body creates is not shared: the body runs once per runtime, so
+each gets its own.
 
 ### Testing
 

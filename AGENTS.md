@@ -206,6 +206,11 @@ runs later, from a hook, may not.
 Use `lunatik_cannotsleep(L, ...)` to reject a sleeping entry point called from an IRQ context runtime
 rather than letting it deadlock the machine.
 
+Which runtime of a percpu script a callback reaches is the CPU it fires on, and nothing else ties a
+flow to one of them: the packets of one connection reach several. State that must see a whole flow
+belongs in what the runtimes share, the runtime holds what is per-CPU. Which CPU each path lands on
+is traced in the README's percpu scripts section.
+
 ### Kernel threads
 
 A script for `lunatik spawn` must return the thread body, poll for a stop request, and yield.
