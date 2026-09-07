@@ -229,6 +229,14 @@ in the private of an object from `lunatik_percpudata`, of a class the binding de
 `release` the percpu object runs before closing the instances. A binding that keeps a global list
 or a use count of its own to find what the other instances registered is doing the object's job.
 
+That registration arms before the set exists. `lunatik_percpu` creates the instances one at a time and
+writes each per-CPU slot last, after that instance's script body has run, so a hook or a kprobe armed
+from the first body fires while the other slots are still NULL — and the body is where it must be armed,
+since `lunatik_percpudata` refuses to create shared data once the runtime is ready. Whatever dispatches
+through a percpu object therefore has to survive an instance that is not published yet: `lunatik_run`
+answers `-ENXIO`, as it already does for a runtime whose script is still loading. A kprobe on a syscall
+found this by dereferencing a NULL slot on every CPU at once and taking the machine down.
+
 The registry pattern for a reusable per hook object (`lunatik_getregistry`, reset, pass to Lua, clear
 afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than inventing a variant.
 
@@ -287,10 +295,22 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * A sentinel value gets a name as soon as it appears in more than one place: `cpu != LUNATIK_CPU_NONE`
   says what `cpu >= 0` only implies, and ties the definition, the default and every test of it.
 * For every raise after acquiring a resource, know what is already held and who releases it; validate
-  before acquiring whenever the check does not need the resource.
+  before acquiring whenever the check does not need the resource. The mirror holds too: a reference the
+  `release` will drop is taken before the first call that can raise, and a registration made before the
+  object is complete is undone on every error path out of the constructor.
+* An assignment used as a value inside a condition is parenthesised: `<` binds tighter than `=`, so
+  `n = f() < 0` stores the comparison and not the count. That one went unnoticed for two years and left
+  `runtime:resume` returning nothing while its documentation promised the values.
+* A size, length or count that arrives from Lua is bounded before it reaches an allocator, with
+  `lunatik_checkbounds`. `kvmalloc` warns above `INT_MAX` and returns NULL, so an unbounded argument
+  turns a script's mistake into a kernel `WARNING`, and the multiplication that sizes the object can
+  overflow before the allocator ever sees it.
 * The minimal representation: a raw pointer where a struct would wrap one field, a fresh allocation
   where a cache would need invalidating, a function where a macro is not clearer. A structure earns
   its place by what it buys, not by looking more complete.
+* A `pr_err` on a path a callback reaches is `pr_err_ratelimited`, as `lunatik_ebpf.h` uses throughout:
+  a handler that logs per packet or per syscall is a printk storm the moment a script starts failing,
+  and it competes with the log that would explain the failure.
 * A log or error message is one terse line naming the condition, in the tree's voice — `couldn't find
   X`, lowercase, no trailing period — not a sentence spelling out the cause and its caveats. The
   reasoning behind a failure belongs in a code comment or the commit message, not the runtime log; a
