@@ -211,6 +211,17 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   across runtime boundaries. Push into a shared `fifo`, resume a
   sub-runtime with it, assert the value pops on the other side.
 
+- **resume_results**: `runtime:resume()` returns what the resumed script
+  yields, and what it returns: one object, then two in the order they were
+  yielded, then the returned one. A yielded value that is not a Lunatik
+  object, and a yielded `SINGLE` one, are refused by name and leave the
+  runtime suspended and resumable; a number given to `resume()` is refused
+  the same way; and a runtime whose body has returned is dead to the next
+  `resume()`. The first `resume()` carries two objects the script checks it
+  got in order, so the values come back off the resumed stack rather than
+  from a slot indexed by the caller's argument count, and one round carries
+  more objects than `LUA_MINSTACK`, in both directions.
+
 - **resume_foreign**: `runtime:resume()` refuses an object of another class
   instead of reading its private data as a Lua state.
 
