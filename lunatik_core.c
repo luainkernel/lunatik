@@ -98,6 +98,7 @@ static int lunatik_lcopyobjects(lua_State *L)
 	int nobjects = lua_tointeger(L, 3);
 	int i;
 
+	luaL_checkstack(L, nobjects, "too many objects");
 	for (i = 0; i < nobjects; i++) {
 		lunatik_object_t **pobject = lunatik_testobject(Lfrom, ixfrom + i);
 
