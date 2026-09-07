@@ -123,6 +123,7 @@ int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt
 int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt,
 	lunatik_object_t *percpu, int cpu);
 int lunatik_stop(lunatik_object_t *runtime);
+int lunatik_copyobjects(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nobjects);
 
 static inline int lunatik_nop(lua_State *L)
 {
@@ -326,6 +327,15 @@ static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
 	lunatik_object_t **pobject = lunatik_testobject(L, ix);
 	luaL_argcheck(L, pobject != NULL, ix, "invalid object");
 	return pobject;
+}
+
+static inline lunatik_object_t *lunatik_checkshareable(lua_State *L, int ix)
+{
+	lunatik_object_t *object = lunatik_checkobject(L, ix);
+
+	if (lunatik_issingle(object->opt))
+		luaL_argerror(L, ix, LUNATIK_ERR_SINGLE);
+	return object;
 }
 
 static inline lunatik_object_t *lunatik_checkobjectclass(lua_State *L, int ix, const lunatik_class_t *cls)

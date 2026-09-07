@@ -370,6 +370,16 @@ Regression tests for `luathread`.
 - **foreign_object**: `thread.run()` refuses an object of another class
   instead of using its private data as a Lua state.
 
+- **run_args**: `thread.run()` passes its extra arguments, which must be
+  Lunatik objects, to the function the script returned, in the order they
+  were given: the body receives a `fifo` and a control block, and pushes a
+  marker through the fifo once it reads the driver's token in the control
+  block. A number in their place is refused with "invalid object" and a
+  `SINGLE` object with "cannot share SINGLE object", neither reaching the
+  runtime, which the run that follows proves still usable; a runtime already
+  stopped is refused with "stopped runtime"; and a second run carries more
+  objects than `LUA_MINSTACK`, which the body sees in order.
+
 - **run_during_load**: `runner.spawn()` called from a script's top-level
   code must error instead of hanging the kernel.
 

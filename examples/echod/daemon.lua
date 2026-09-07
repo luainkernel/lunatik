@@ -31,8 +31,7 @@ local function daemon()
 		if ok then
 			control:setbyte(0, n) -- #workers
 			local runtime = lunatik.runtime("examples/" .. worker)
-			runtime:resume(control, session)
-			thread.run(runtime, worker .. n)
+			thread.run(runtime, worker .. n, control, session)
 			n = n + 1
 		elseif session == "EAGAIN" then
 			linux.schedule(100)
