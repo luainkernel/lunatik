@@ -108,7 +108,7 @@ static int lunatik_lcopyobjects(lua_State *L)
 	return nobjects;
 }
 
-static inline int lunatik_copyobjects(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nobjects)
+int lunatik_copyobjects(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nobjects)
 {
 	lua_pushcfunction(Lto, lunatik_lcopyobjects);
 	lua_pushlightuserdata(Lto, Lfrom);
@@ -117,6 +117,7 @@ static inline int lunatik_copyobjects(lua_State *Lto, lua_State *Lfrom, int ixfr
 
 	return lua_pcall(Lto, 3, nobjects, 0);
 }
+EXPORT_SYMBOL(lunatik_copyobjects);
 
 static inline int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int nargs)
 {

@@ -109,6 +109,17 @@ and the memory allocated for the `runtime` environment are released.
 If the `runtime` environment has been released, it returns `1`;
 otherwise, it returns `0`.
 
+### lunatik\_copyobjects
+```C
+int lunatik_copyobjects(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nobjects);
+```
+Clones onto `Lto`, in order, the `nobjects` Lunatik objects `Lfrom` holds from `ixfrom`, which may
+be negative to count from `Lfrom`'s top. It carries objects and nothing else: a value that is not a
+Lunatik object fails it with `invalid object`, an object marked `SINGLE` with
+`cannot share SINGLE object`. On failure it returns the status of the
+[protected call](https://www.lua.org/manual/5.5/manual.html#lua_pcall) and leaves the message on
+`Lto`, which the caller pops; on success it returns `LUA_OK`.
+
 ### lunatik\_run
 ```C
 void lunatik_run(lunatik_object_t *runtime, <inttype> (*handler)(...), <inttype> &ret, ...);

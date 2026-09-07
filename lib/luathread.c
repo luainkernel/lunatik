@@ -23,15 +23,17 @@
 typedef struct luathread_s {
 	struct task_struct *task;
 	lunatik_object_t *runtime;
+	int nargs;
 } luathread_t;
 
 static int luathread_run(lua_State *L);
 static int luathread_current(lua_State *L);
+static void luathread_popargs(lunatik_object_t *runtime, int nargs);
 
 static int luathread_resume(lua_State *L, luathread_t *thread)
 {
 	int nresults;
-	int status = lua_resume(L, NULL, 0, &nresults);
+	int status = lua_resume(L, NULL, thread->nargs, &nresults);
 	if (status != LUA_OK && status != LUA_YIELD) {
 		pr_err("[%p] %s\n", thread, lua_tostring(L, -1));
 		lua_pop(L, 1);
@@ -102,6 +104,7 @@ static int luathread_stop(lua_State *L)
 
 		if (result == -EINTR) {
 			thread->task = NULL;
+			luathread_popargs(runtime, thread->nargs);
 			lunatik_putobject(thread->runtime);
 			lunatik_putobject(object);
 			pr_warn("[%p] thread has never run\n", thread);
@@ -156,16 +159,52 @@ static const lunatik_class_t luathread_class = {
 };
 
 #define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t), LUNATIK_OPT_NONE))
+#define LUATHREAD_ARGIX		3
+
+static void luathread_checkargs(lua_State *L, int nargs)
+{
+	int i;
+
+	for (i = 0; i < nargs; i++)
+		lunatik_checkshareable(L, LUATHREAD_ARGIX + i);
+}
+
+static void luathread_pushargs(lua_State *L, lunatik_object_t *runtime, int nargs)
+{
+	lua_State *Lto;
+	int status = LUA_OK;
+
+	lunatik_lock(runtime);
+	Lto = lunatik_isready(runtime) ? lunatik_getstate(runtime) : NULL;
+	if (Lto != NULL && nargs > 0 && (status = lunatik_copyobjects(Lto, L, LUATHREAD_ARGIX, nargs)) != LUA_OK)
+		lua_pop(Lto, 1); /* error message */
+	lunatik_unlock(runtime);
+
+	luaL_argcheck(L, Lto != NULL, 1, "stopped runtime"); /* raising under the lock would skip the unlock */
+	if (status != LUA_OK)
+		luaL_error(L, "couldn't pass the thread arguments");
+}
+
+static void luathread_popargs(lunatik_object_t *runtime, int nargs)
+{
+	lunatik_lock(runtime);
+	if (lunatik_isready(runtime))
+		lua_pop(lunatik_getstate(runtime), nargs);
+	lunatik_unlock(runtime);
+}
 
 /***
 * Creates and starts a new kernel thread to run a Lua task.
 * The runtime must be sleepable; the script it loaded must return a function,
-* which becomes the thread body.
+* which becomes the thread body, called with the objects given here.
 * @function run
 * @tparam runtime runtime A sleepable Lunatik runtime whose script returns a function.
 * @tparam string name A descriptive name for the kernel thread.
+* @param ... Lunatik objects passed to the thread body.
 * @treturn thread A new thread object.
-* @raise Error if the runtime is not sleepable or if thread creation fails.
+* @raise Error if called during module load, if the runtime is not sleepable or has been stopped,
+*   if a value passed to the body is not a Lunatik object or is a `SINGLE` one, if the arguments
+*   couldn't be passed, or if thread creation fails.
 * @see lunatik.runtime
 */
 static int luathread_run(lua_State *L)
@@ -174,8 +213,15 @@ static int luathread_run(lua_State *L)
 	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_class);
 	luaL_argcheck(L, !lunatik_isirq(runtime->opt), 1, "IRQ runtime cannot spawn threads");
 	const char *name = luaL_checkstring(L, 2);
+	int nargs = lua_gettop(L) - LUATHREAD_ARGIX + 1;
+
+	luathread_checkargs(L, nargs);
+
 	lunatik_object_t *object = luathread_new(L);
 	luathread_t *thread = object->private;
+
+	luathread_pushargs(L, runtime, nargs);
+	thread->nargs = nargs;
 
 	lunatik_getobject(object);
 	lunatik_getobject(runtime);
@@ -183,6 +229,7 @@ static int luathread_run(lua_State *L)
 
 	thread->task = kthread_run(luathread_func, object, name);
 	if (IS_ERR(thread->task)) {
+		luathread_popargs(runtime, nargs);
 		lunatik_putobject(runtime);
 		lunatik_putobject(object);
 		luaL_error(L, "failed to create a new thread");

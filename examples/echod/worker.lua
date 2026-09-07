@@ -23,18 +23,16 @@ local function echo(session)
 end
 
 local function worker(control, session)
-	return function ()
-		local id = control:getbyte(0)
+	local id = control:getbyte(0)
 
-		info(id, "started")
-		repeat
-			local ok, err = pcall(echo, session)
-				if not ok then
-				return info(id, "aborted")
-			end
-		until (not alive(control) or err or shouldstop())
-		info(id, "stopped")
-	end
+	info(id, "started")
+	repeat
+		local ok, err = pcall(echo, session)
+		if not ok then
+			return info(id, "aborted")
+		end
+	until (not alive(control) or err or shouldstop())
+	info(id, "stopped")
 end
 
 return worker

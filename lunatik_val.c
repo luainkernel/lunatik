@@ -18,9 +18,7 @@ void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value)
 		value->integer = lua_tointeger(L, ix);
 		break;
 	case LUA_TUSERDATA:
-		value->object = lunatik_checkobject(L, ix);
-		if (lunatik_issingle(value->object->opt))
-			luaL_argerror(L, ix, LUNATIK_ERR_SINGLE);
+		value->object = lunatik_checkshareable(L, ix);
 		break;
 	default:
 		luaL_argerror(L, ix, "unsupported type");
