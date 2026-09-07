@@ -182,8 +182,11 @@ static int luathread_run(lua_State *L)
 	thread->runtime = runtime;
 
 	thread->task = kthread_run(luathread_func, object, name);
-	if (IS_ERR(thread->task))
+	if (IS_ERR(thread->task)) {
+		lunatik_putobject(runtime);
+		lunatik_putobject(object);
 		luaL_error(L, "failed to create a new thread");
+	}
 
 	return 1; /* object */
 }
