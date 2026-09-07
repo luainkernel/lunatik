@@ -41,7 +41,7 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 	const char *symbol = kp->symbol_name;
 
 	if (lunatik_getregistry(L, probe) != LUA_TTABLE) {
-		pr_err("couldn't find probe table\n");
+		pr_err_ratelimited("couldn't find probe table\n");
 		goto out;
 	}
 
@@ -58,7 +58,7 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 	lua_insert(L, -4); /* stack: dump, handler, symbol | addr, dump */
 
 	if (lua_pcall(L, 2, 0, 0) != LUA_OK) /* handler(symbol | addr, dump) */
-		pr_err("%s\n", lua_tostring(L, -1));
+		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 
 	lua_pushnil(L);
 	lua_setupvalue(L, -2, 1); /* clean up regs */

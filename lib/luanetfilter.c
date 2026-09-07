@@ -39,12 +39,12 @@ static void luanetfilter_release(void *private);
 static inline bool luanetfilter_pushcb(lua_State *L, luanetfilter_t *luanf)
 {
 	if (lunatik_getregistry(L, luanf) != LUA_TTABLE) {
-		pr_err("couldn't find ops table\n");
+		pr_err_ratelimited("couldn't find ops table\n");
 		return false;
 	}
 
 	if (lua_getfield(L, -1, "hook") != LUA_TFUNCTION) {
-		pr_err("operation not defined\n");
+		pr_err_ratelimited("operation not defined\n");
 		return false;
 	}
 	return true;
@@ -55,7 +55,7 @@ static inline lunatik_object_t *luanetfilter_pushskb(lua_State *L, luanetfilter_
 	lunatik_object_t *object = lunatik_getregistryobject(L, luanf->skb);
 
 	if (unlikely(object == NULL)) {
-		pr_err("couldn't find skb\n");
+		pr_err_ratelimited("couldn't find skb\n");
 		return NULL;
 	}
 
@@ -70,7 +70,7 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct 
 
 	lunatik_object_t *handle = lunatik_getregistryobject(L, hook);
 	if (handle == NULL) {
-		pr_err("couldn't find hook\n");
+		pr_err_ratelimited("couldn't find hook\n");
 		goto out;
 	}
 
@@ -79,7 +79,7 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct 
 		goto out;
 
 	if (lua_pcall(L, 1, 2, 0) != LUA_OK) {
-		pr_err("%s\n", lua_tostring(L, -1));
+		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 		lua_pop(L, 1);
 		goto clear;
 	}
