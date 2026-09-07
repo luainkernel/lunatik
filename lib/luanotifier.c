@@ -56,7 +56,7 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 	lua_pushinteger(L, (lua_Integer)event);
 	nargs += notifier->handler(L, data);
 	if (lua_pcall(L, nargs, 1, 0) != LUA_OK) { /* callback(event, ...) */
-		pr_err("%s\n", lua_tostring(L, -1));
+		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 		return NOTIFY_OK;
 	}
 

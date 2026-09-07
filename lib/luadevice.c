@@ -86,7 +86,7 @@ static int luadevice_fop(lua_State *L, luadevice_t *luadev, const char *fop, int
 	int ret = -ENXIO;
 
 	if (lunatik_getregistry(L, luadev) != LUA_TTABLE) {
-		pr_err("%s: couldn't find driver\n", fop);
+		pr_err_ratelimited("%s: couldn't find driver\n", fop);
 		goto err;
 	}
 
@@ -96,7 +96,7 @@ static int luadevice_fop(lua_State *L, luadevice_t *luadev, const char *fop, int
 	lua_insert(L, base + 2); /* driver */
 
 	if (lua_pcall(L, nargs + 1, nresults, 0) != LUA_OK) { /* fop(driver, arg1, ...) */
-		pr_err("%s: %s\n", lua_tostring(L, -1), fop);
+		pr_err_ratelimited("%s: %s\n", lua_tostring(L, -1), fop);
 		ret = -ECANCELED;
 		goto err;
 	}
