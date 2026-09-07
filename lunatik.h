@@ -72,12 +72,13 @@ do {							\
 do {										\
 	lunatik_object_t *_object = (object);					\
 	lunatik_object_t *_runtime = lunatik_pin(_object);			\
-	lunatik_lock(_runtime);							\
-	if (unlikely(!lunatik_isready(_runtime)))				\
-		ret = -ENXIO;							\
-	else									\
-		lunatik_handle(_runtime, handler, ret, ## __VA_ARGS__);		\
-	lunatik_unlock(_runtime);						\
+	ret = -ENXIO;								\
+	if (likely(_runtime != NULL)) {						\
+		lunatik_lock(_runtime);						\
+		if (likely(lunatik_isready(_runtime)))				\
+			lunatik_handle(_runtime, handler, ret, ## __VA_ARGS__);	\
+		lunatik_unlock(_runtime);					\
+	}									\
 	lunatik_unpin(_object);							\
 } while(0)
 
