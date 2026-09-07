@@ -250,7 +250,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   back the ones already created before the run returns.
 
 - **percpu_object**: `lunatik.percpu()` runs the script once per possible
-  CPU id, each instance stamping its own id; `stop` closes every instance
+  CPU id, each runtime stamping its own id; `stop` closes every runtime
   and the object can be created again; `stop` refuses an object of another
   class; a script that fails on one instance raises with its error instead of
   returning an object.
@@ -259,12 +259,13 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   at load, naming percpu, with a clean rollback, and the same script
   runs as a plain runtime: `device.new`, whose registration is global.
 
-- **percpu_netfilter**: the instances of a percpu script share one
+- **percpu_netfilter**: the runtimes of a percpu script share one
   `LOCAL_IN` hook: with the ping pinned to the last online CPU, each marked
-  request is counted exactly once, by the instance of that CPU; a second
-  registration of the same hook in one instance is refused; a registration
-  from a callback, after load, is refused; and the same script registers as
-  a plain softirq runtime.
+  request is counted exactly once, by the runtime of that CPU; a burst that
+  reaches the hook while the runtimes are still being created is accepted
+  without being counted; a second registration of the same hook in one
+  runtime is refused; a registration from a callback, after load, is
+  refused; and the same script registers as a plain softirq runtime.
 
 ### set
 

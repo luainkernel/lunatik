@@ -29,9 +29,10 @@ static inline lunatik_object_t *lunatik_pin(lunatik_object_t *object)
 
 	if (lunatik_isirq(object->opt))
 		preempt_disable();
-	else /* a process instance may sleep */
+	else /* a process runtime may sleep */
 		migrate_disable();
-	return *this_cpu_ptr(lunatik_topercpu(object)->runtimes);
+	/* pairs with smp_store_release() in lunatik_newruntime(); NULL until this CPU's runtime is published */
+	return smp_load_acquire(this_cpu_ptr(lunatik_topercpu(object)->runtimes));
 }
 
 static inline void lunatik_unpin(lunatik_object_t *object)
