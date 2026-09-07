@@ -72,6 +72,12 @@ and which build was installed, and run nothing else against the device. After it
 oopsed runs twice: a second oops is a bug to trace, a clean pair is a symptom without its cause,
 said as such. The lunatik-cycle skill orders both halves.
 
+What reaches a terminal after a machine dies is a fragment. The previous boot's kernel log survives in
+the journal, `journalctl -b -1 -k`, and it carries the registers of every oops in the cascade, which is
+what tells one faulting pointer from another. Read that before theorising from the excerpt, and resolve
+the faulting `pc` against the disassembly of the module that was loaded — the `Code:` line in the oops
+matches the build word for word, so it also proves which build crashed.
+
 Never run two `lunatik` operations at once. Concurrent operations wedge `/dev/lunatik` and leave
 processes in D state. Check with `ps` before starting one.
 
@@ -426,6 +432,10 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   features and not only the error paths;
 * prove the test discriminates: disable the mechanism it covers, watch it fail, restore. Commit
   first, since restoring is a `git checkout --` that takes any uncommitted work with it;
+* a case whose stimulus only exists on a busy machine is forced, not waited for: the probe test picks a
+  syscall an idle host never makes, which is why it never hit the creation window that crashed the host,
+  and covering that window meant pinning the call to the CPU whose instance is published last. A test
+  that passes because the race is rare is not covering the race;
 * a test for an exactly once property runs on the path where that property is structural, and the
   header says which path and why. The same assertion on a path that can migrate CPUs mid way passes
   for the wrong reason;
