@@ -303,12 +303,14 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, 
 
 static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)
 {
-	if (lua_type(L, ix) == LUA_TUSERDATA && lua_getiuservalue(L, ix, 1) != LUA_TNONE) {
-		lunatik_class_t *class = (lunatik_class_t *)lua_touserdata(L, -1);
+	lunatik_class_t *class = NULL;
+
+	if (lua_type(L, ix) == LUA_TUSERDATA) {
+		lua_getiuservalue(L, ix, 1); /* pushes nil when the userdata has no such value */
+		class = (lunatik_class_t *)lua_touserdata(L, -1);
 		lua_pop(L, 1); /* class */
-		return class;
 	}
-	return NULL;
+	return class;
 }
 
 static inline bool lunatik_isobject(lua_State *L, int ix, lunatik_object_t *object)
