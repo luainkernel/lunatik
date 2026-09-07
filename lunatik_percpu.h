@@ -15,7 +15,7 @@
 #define lunatik_getpercpu(L)	(lunatik_extra(L)->percpu)
 
 typedef struct lunatik_percpu_s {
-	lunatik_object_t * __percpu *runtimes;
+	lunatik_object_t * __percpu *instances;
 	lunatik_object_t **data;
 	unsigned int ndata;
 } lunatik_percpu_t;
@@ -32,7 +32,7 @@ static inline lunatik_object_t *lunatik_pin(lunatik_object_t *object)
 	else /* a process instance may sleep */
 		migrate_disable();
 	/* an instance is published after its script ran; until then this is NULL */
-	return smp_load_acquire(this_cpu_ptr(lunatik_topercpu(object)->runtimes));
+	return smp_load_acquire(this_cpu_ptr(lunatik_topercpu(object)->instances));
 }
 
 static inline void lunatik_unpin(lunatik_object_t *object)

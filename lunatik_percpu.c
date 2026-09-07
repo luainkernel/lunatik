@@ -73,31 +73,31 @@ static void lunatik_stopdata(lunatik_object_t *object)
 	percpu->data = NULL;
 }
 
-#define lunatik_foreachinstance(percpu, cpu, runtime)	\
+#define lunatik_foreachinstance(percpu, cpu, instance)	\
 	for_each_possible_cpu(cpu)			\
-		if ((runtime = *per_cpu_ptr((percpu)->runtimes, cpu)) != NULL)
+		if ((instance = *per_cpu_ptr((percpu)->instances, cpu)) != NULL)
 
 static void lunatik_closeinstances(lunatik_percpu_t *percpu)
 {
-	lunatik_object_t *runtime;
+	lunatik_object_t *instance;
 	int cpu;
 
-	lunatik_foreachinstance(percpu, cpu, runtime)
-		lunatik_closeprivate(runtime);
+	lunatik_foreachinstance(percpu, cpu, instance)
+		lunatik_closeprivate(instance);
 }
 
 static void lunatik_releasepercpu(void *private)
 {
 	lunatik_percpu_t *percpu = (lunatik_percpu_t *)private;
-	lunatik_object_t *runtime;
+	lunatik_object_t *instance;
 	int cpu;
 
-	if (percpu->runtimes == NULL)
+	if (percpu->instances == NULL)
 		return;
 
-	lunatik_foreachinstance(percpu, cpu, runtime)
-		lunatik_putobject(runtime); /* may run in softirq: a put, never a stop */
-	free_percpu(percpu->runtimes);
+	lunatik_foreachinstance(percpu, cpu, instance)
+		lunatik_putobject(instance); /* may run in softirq: a put, never a stop */
+	free_percpu(percpu->instances);
 }
 
 /***
@@ -148,11 +148,11 @@ int lunatik_percpu(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &lunatik_percpu_class, sizeof(lunatik_percpu_t), opt);
 	lunatik_percpu_t *percpu = lunatik_topercpu(object);
 
-	if ((percpu->runtimes = alloc_percpu(lunatik_object_t *)) == NULL)
+	if ((percpu->instances = alloc_percpu(lunatik_object_t *)) == NULL)
 		lunatik_enomem(L);
 
 	for_each_possible_cpu(cpu) {
-		if (lunatik_newruntime(per_cpu_ptr(percpu->runtimes, cpu), L, script, opt, object, cpu) != 0) {
+		if (lunatik_newruntime(per_cpu_ptr(percpu->instances, cpu), L, script, opt, object, cpu) != 0) {
 			lunatik_stopdata(object);
 			lunatik_closeprivate(object); /* release the instances now, not on collection */
 			lua_error(L);
