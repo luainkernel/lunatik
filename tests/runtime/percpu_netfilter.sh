@@ -6,11 +6,15 @@
 # Regression test for a netfilter hook in a percpu script: the instances share one
 # LOCAL_IN hook, so each marked ping request is handled exactly once, and by the
 # instance of the CPU that received it, which is where the loopback delivers the
-# pinned ping; a second registration of the same hook in one instance is refused;
-# a registration from a callback, after the script loaded, is refused before it
+# pinned ping; a marked packet reaching that hook while the instances are still
+# being created finds none published on its CPU, and is accepted without being
+# counted; a second registration of the same hook in one instance is refused; a
+# registration from a callback, after the script loaded, is refused before it
 # could sleep in softirq; and the same script registers as a plain softirq
 # runtime. The exactly-once assertion runs on the shared hook, where it is
-# structural.
+# structural. The burst starts when the script reports the hook armed, and runs
+# inside the spin every instance does before returning, so it arrives while no
+# instance is published.
 #
 # Usage: sudo bash tests/runtime/percpu_netfilter.sh
 
@@ -18,9 +22,13 @@ SCRIPT="tests/runtime/percpu_netfilter"
 CHECK="tests/runtime/percpu_netfilter_check"
 TWICE="tests/runtime/percpu_netfilter_twice"
 LATE="tests/runtime/percpu_netfilter_late"
+EARLY="tests/runtime/percpu_netfilter_early"
+ARMED="percpu netfilter early: armed"
 MODULE="luanetfilter"
 MARK=208
 COUNT=5
+BURST=10
+TRIES=100
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -30,6 +38,17 @@ cleanup()
 	lunatik stop "$CHECK" > /dev/null 2>&1
 	lunatik stop "$TWICE" > /dev/null 2>&1
 	lunatik stop "$LATE" > /dev/null 2>&1
+	lunatik stop "$EARLY" > /dev/null 2>&1
+}
+
+burst_when_armed()
+{
+	local try
+	for ((try = 0; try < TRIES; try++)); do
+		dmesg_since | grep -qF "$ARMED" && break
+		sleep 0.02
+	done
+	ping -f -c $BURST -m $MARK 127.0.0.1 > /dev/null 2>&1
 }
 
 count_pinned()
@@ -47,11 +66,12 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 4
+ktap_plan 5
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
 	ktap_skip "the instances share one hook: each marked request is counted once, by the receiving CPU"
+	ktap_skip "a packet reaching the shared hook before the instances are published is accepted, uncounted"
 	ktap_skip "a second registration of the same hook in one instance is refused"
 	ktap_skip "a registration from a callback, after load, is refused"
 	ktap_skip "the same script registers as a plain softirq runtime"
@@ -66,6 +86,17 @@ dmesg_since | grep -qF "percpu netfilter: nf_percpu:$cpu $COUNT" || \
 	fail "the packets were not counted by the instance of CPU $cpu: $(dmesg_since | grep 'percpu netfilter')"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 ktap_pass "the instances share one hook: each marked request is counted once, by the receiving CPU"
+
+mark_dmesg
+burst_when_armed &
+burst=$!
+run_script "$EARLY" softirq percpu
+wait $burst || fail "a marked ping was lost while the instances were being created"
+count_pinned "$cpu"
+dmesg_since | grep -qF "percpu netfilter: nf_percpu:$cpu $COUNT" || \
+	fail "the burst was counted, or it missed the instance of CPU $cpu: $(dmesg_since | grep 'percpu netfilter')"
+lunatik stop "$EARLY" > /dev/null 2>&1
+ktap_pass "a packet reaching the shared hook before the instances are published is accepted, uncounted"
 
 output=$(lunatik run "$TWICE" softirq percpu 2>&1)
 echo "$output" | grep -q "hook already registered" || fail "the second registration was not refused: $output"

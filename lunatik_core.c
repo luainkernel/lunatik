@@ -278,7 +278,7 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 
 	lunatik_setready(runtime); /* lunatik_run returns -ENXIO until here */
 
-	*pruntime = runtime;
+	smp_store_release(pruntime, runtime);
 	return 0;
 }
 
