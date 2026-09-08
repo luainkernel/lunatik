@@ -80,11 +80,12 @@ end
 device.new(driver)
 
 local rt = runner.run(filter, "softirq")
-rt:resume(quarantined)
 
 driver.sentinel = setmetatable({}, {__gc = function()
 	runner.stop(filter)
 end})
+
+rt:resume(quarantined)
 
 notifier.netdevice(callback)
 

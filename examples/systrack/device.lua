@@ -30,9 +30,10 @@ end
 device.new(driver)
 
 local probe = runner.run("examples/systrack/probe", "hardirq")
-probe:resume(track)
 
 driver.sentinel = setmetatable({}, {__gc = function()
 	runner.stop("examples/systrack/probe")
 end})
+
+probe:resume(track)
 
