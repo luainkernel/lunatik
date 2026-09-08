@@ -318,10 +318,12 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * An assignment used as a value inside a condition is parenthesised: `<` binds tighter than `=`, so
   `n = f() < 0` stores the comparison and not the count. That one went unnoticed for two years and left
   `runtime:resume` returning nothing while its documentation promised the values.
-* A size, length or count that arrives from Lua is bounded before it reaches an allocator, with
-  `lunatik_checkbounds`. `kvmalloc` warns above `INT_MAX` and returns NULL, so an unbounded argument
-  turns a script's mistake into a kernel `WARNING`, and the multiplication that sizes the object can
-  overflow before the allocator ever sees it.
+* A size, length or count that arrives from Lua is bounded with `lunatik_checkbounds`, for what the
+  binding itself can serve: `roundup_pow_of_two` is undefined at zero, `__kfifo_alloc` truncates to an
+  unsigned int, and the multiplication that sizes an object wraps before any allocator sees it. What
+  the bound does not buy is silence from the kernel: a script reaches the Lua state's allocator with a
+  size no binding named, `("x"):rep(1 << 40)` among them, so it is that allocator that asks for
+  `__GFP_NOWARN`, since Lua turns the NULL into an error the script sees.
 * The minimal representation: a raw pointer where a struct would wrap one field, a fresh allocation
   where a cache would need invalidating, a function where a macro is not clearer. A structure earns
   its place by what it buys, not by looking more complete.
