@@ -149,6 +149,10 @@ wrong, over rules that were already written and already broken, adds a paragraph
 or a "Test plan" section; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
 blocks a `gh` write to pulls that carries a body file the check fails on.
 
+`lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device while another
+operation is already on it, naming the processes it found; a process in D state among them is a wedged
+device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once they are known to be stale.
+
 `consumers.sh` names the out-of-tree scripts that load a binding the changed files touch, reading the
 clones listed in `LUNATIK_CONSUMERS`; `consumers-guard.sh`, wired before a shell call, blocks opening or
 editing a pull request that changes such a binding until the command carries `CONSUMERS_OK=1`, set once
