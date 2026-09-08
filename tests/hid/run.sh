@@ -12,9 +12,11 @@
 # binding serves, one entry and LUAHID_MAXIDS of them, under a vendor no device on
 # the bus carries, and refuses a longer table, a fabricated length, a length that
 # is not an integer, an entry that is not a table and an entry that raises while it
-# is read. The accepted ones are read back from /sys/bus/hid/drivers, since a
-# driver that raised nothing has still not necessarily reached the bus, and read
-# again after the runtime stops, since they leave the bus with it.
+# is read. It also refuses a name that fills NAME_MAX with no room for its
+# terminator, and accepts the longest one that does leave room. The accepted ones
+# are read back from /sys/bus/hid/drivers, since a driver that raised nothing has
+# still not necessarily reached the bus, and read again after the runtime stops,
+# since they leave the bus with it.
 #
 # The refusals carry the weight: hid.register() hands the id_table to the driver
 # before the walk that can raise, so the object's release owns it from then on, and
@@ -32,7 +34,8 @@ source "$DIR/../lib.sh"
 
 SCRIPT=tests/hid/register
 DRIVERS=/sys/bus/hid/drivers
-NAMES="lunatik_hid_one lunatik_hid_max lunatik_hid_after"
+LONGNAME=$(printf 'x%.0s' $(seq 1 254)) # NAME_MAX - 1, the longest name hid.register serves
+NAMES="lunatik_hid_one lunatik_hid_max lunatik_hid_after $LONGNAME"
 TOTAL=$(echo $NAMES | wc -w)
 
 skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }

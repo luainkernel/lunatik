@@ -421,7 +421,7 @@ do {								\
 	size_t len;						\
 	lunatik_checkfield(L, idx, #field, LUA_TSTRING);	\
 	const char *str = lua_tolstring(L, -1, &len);		\
-	if (len > maxlen)					\
+	if (len >= maxlen)					\
 		luaL_error(L, "'%s' is too long", #field);	\
 	strncpy((char *)hook->field, str, maxlen);		\
 	lua_pop(L, 1);						\
