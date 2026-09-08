@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Regression test for the percpu refusal: a registration a percpu instance
+# Regression test for the percpu refusal: a registration a percpu runtime
 # cannot own must fail at load, naming percpu, and the rollback must leave
 # nothing registered; the same script runs fine as a plain runtime. Covered
 # here by device.new, whose registration is global.
@@ -29,7 +29,7 @@ refuse()
 		fail "percpu run did not refuse the registration: $output"
 	listed=$(lunatik list)
 	case "$listed" in
-		*"$script"*) fail "the refused run left instances behind: $listed" ;;
+		*"$script"*) fail "the refused run left runtimes behind: $listed" ;;
 	esac
 }
 
@@ -41,7 +41,7 @@ ktap_plan 2
 
 refuse "$SCRIPT"
 [ -e /dev/percpu_refuse ] && fail "the refused run left the device registered"
-ktap_pass "global registration fails at load in a percpu instance"
+ktap_pass "global registration fails at load in a percpu runtime"
 
 mark_dmesg
 run_script "$SCRIPT"

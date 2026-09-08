@@ -55,20 +55,20 @@ after=$(cat /sys/module/$MODULE/refcnt 2>/dev/null)
 ktap_pass "$MODULE refcnt restored after failed script"
 
 [ "$(sed 's/.*-//' /sys/devices/system/cpu/possible)" -gt 0 ] || {
-	echo "# SKIP: the percpu rollback needs an instance before the one that fails"
-	ktap_skip "$MODULE refcnt restored after a percpu script failed on its last instance"
+	echo "# SKIP: the percpu rollback needs a runtime before the one that fails"
+	ktap_skip "$MODULE refcnt restored after a percpu script failed on its last runtime"
 	ktap_totals
 	exit 0
 }
 
 mark_dmesg
 output=$(lunatik run "$PERCPU" softirq percpu 2>&1)
-echo "$output" | grep -q "intentional error on the last instance" || \
+echo "$output" | grep -q "intentional error on the last runtime" || \
 	fail "percpu script did not reach the intentional error: $output"
 check_dmesg || { ktap_totals; exit 1; }
 after=$(cat /sys/module/$MODULE/refcnt 2>/dev/null)
-[ "$before" = "$after" ] || fail "$MODULE refcnt leaked: $before -> $after (the rollback left a hook of an earlier instance)"
-ktap_pass "$MODULE refcnt restored after a percpu script failed on its last instance"
+[ "$before" = "$after" ] || fail "$MODULE refcnt leaked: $before -> $after (the rollback left a hook of an earlier runtime)"
+ktap_pass "$MODULE refcnt restored after a percpu script failed on its last runtime"
 
 ktap_totals
 

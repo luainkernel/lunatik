@@ -15,9 +15,9 @@ local stamp   <const> = "percpu_cpu:"
 local env = lunatik._ENV
 
 local function stamped()
-	assert(env[stamp .. linux.numcpus()] == nil, "an instance ran beyond the last CPU id")
+	assert(env[stamp .. linux.numcpus()] == nil, "a runtime ran beyond the last CPU id")
 	for cpu = 0, linux.numcpus() - 1 do
-		assert(env[stamp .. cpu], "no instance stamped CPU " .. cpu)
+		assert(env[stamp .. cpu], "no runtime stamped CPU " .. cpu)
 		env[stamp .. cpu] = nil
 	end
 end
@@ -27,7 +27,7 @@ test("percpu runs the script once per possible CPU id", function()
 	stamped()
 end)
 
-test("stop closes every instance and the script runs again", function()
+test("stop closes every runtime and the script runs again", function()
 	local percpu = lunatik.percpu(body)
 	percpu:stop()
 	stamped()
@@ -45,10 +45,10 @@ test("stop refuses an object of another class", function()
 end)
 
 if linux.numcpus() > 1 then
-	test("a failing instance raises with its error", function()
+	test("a failing runtime raises with its error", function()
 		local ok, err = pcall(lunatik.percpu, failing)
 		assert(not ok, "percpu returned an object for a failing script")
-		assert(err:match("intentional error on the second instance"), "unexpected error: " .. err)
+		assert(err:match("intentional error on the second runtime"), "unexpected error: " .. err)
 	end)
 end
 

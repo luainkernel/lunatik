@@ -241,16 +241,16 @@ does — the socket layer does not check `kthread_should_stop()`. To wait indefi
 * Objects a C module pre allocates but exposes to Lua use `lunatik_createobject` plus
   `lunatik_cloneobject`, which requires `.shared = true`.
 
-A registration a percpu script makes once for all its instances, a hook or a kernel thread, lives
+A registration a percpu script makes once for all its runtimes, a hook or a kernel thread, lives
 in the private of an object from `lunatik_percpudata`, of a class the binding declares for it, whose
-`release` the percpu object runs before closing the instances. A binding that keeps a global list
-or a use count of its own to find what the other instances registered is doing the object's job.
+`release` the percpu object runs before closing the runtimes. A binding that keeps a global list
+or a use count of its own to find what the other runtimes registered is doing the object's job.
 
-That registration arms before the set exists. `lunatik_percpu` creates the instances one at a time and
-writes each per-CPU slot last, after that instance's script body has run, so a hook or a kprobe armed
+That registration arms before the set exists. `lunatik_percpu` creates the runtimes one at a time and
+writes each per-CPU slot last, after that runtime's script body has run, so a hook or a kprobe armed
 from the first body fires while the other slots are still NULL — and the body is where it must be armed,
 since `lunatik_percpudata` refuses to create shared data once the runtime is ready. Whatever dispatches
-through a percpu object therefore has to survive an instance that is not published yet: `lunatik_run`
+through a percpu object therefore has to survive a runtime that is not published yet: `lunatik_run`
 answers `-ENXIO`, as it already does for a runtime whose script is still loading. A kprobe on a syscall
 found this by dereferencing a NULL slot on every CPU at once and taking the machine down.
 
@@ -445,7 +445,7 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   first, since restoring is a `git checkout --` that takes any uncommitted work with it;
 * a case whose stimulus only exists on a busy machine is forced, not waited for: the probe test picks a
   syscall an idle host never makes, which is why it never hit the creation window that crashed the host,
-  and covering that window meant pinning the call to the CPU whose instance is published last. A test
+  and covering that window meant pinning the call to the CPU whose runtime is published last. A test
   that passes because the race is rare is not covering the race;
 * a test for an exactly once property runs on the path where that property is structural, and the
   header says which path and why. The same assertion on a path that can migrate CPUs mid way passes

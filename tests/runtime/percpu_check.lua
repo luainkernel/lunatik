@@ -15,9 +15,9 @@ local env = lunatik._ENV
 
 test("percpu registers one object, running the script on every CPU id", function()
 	assert(env.runtimes[script] ~= nil, "the percpu script is not registered")
-	assert(env[stamp .. linux.numcpus()] == nil, "an instance ran beyond the last CPU id")
+	assert(env[stamp .. linux.numcpus()] == nil, "a runtime ran beyond the last CPU id")
 	for cpu = 0, linux.numcpus() - 1 do
-		assert(env[stamp .. cpu], "no instance stamped CPU " .. cpu)
+		assert(env[stamp .. cpu], "no runtime stamped CPU " .. cpu)
 		env[stamp .. cpu] = nil
 	end
 end)
