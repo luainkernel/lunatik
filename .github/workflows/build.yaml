@@ -2,8 +2,6 @@
 name: Build Modules
 on:
   pull_request:
-    branches:
-    - master
   push:
     branches:
     - master
