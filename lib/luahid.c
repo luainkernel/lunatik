@@ -79,24 +79,21 @@ static const lunatik_class_t luahid_class = {
 
 #define LUAHID_MAXIDS	(4096)
 
-static const struct hid_device_id *luahid_setidtable(lua_State *L, int idx)
+static void luahid_setidtable(lua_State *L, int idx, struct hid_driver *driver)
 {
-	size_t len = luaL_len(L, idx);
+	lunatik_checkfield(L, idx, "id_table", LUA_TTABLE);
+	size_t len = luaL_len(L, -1);
 
 	if (len > LUAHID_MAXIDS)
 		luaL_error(L, "'id_table' is too long");
 
-	struct hid_device_id *user_table = lunatik_checkalloc(L, sizeof(struct hid_device_id) * (len + 1));
-
-	struct hid_device_id *cur_id = user_table;
+	struct hid_device_id *id_table = lunatik_checkalloc(L, sizeof(struct hid_device_id) * (len + 1));
+	struct hid_device_id *cur_id = id_table;
 	size_t i;
+
+	driver->id_table = id_table; /* own id_table before the walk can raise, so release frees it */
 	for (i = 0; i < len; i++, cur_id++) {
-		if (lua_geti(L, idx, i + 1) != LUA_TTABLE) { /* table entry */
-			lua_pop(L, 1); /* table entry */
-			lunatik_free(user_table);
-			user_table = NULL;
-			goto out;
-		}
+		luaL_argcheck(L, lua_geti(L, -1, i + 1) == LUA_TTABLE, idx, "invalid id_table"); /* table entry */
 
 		lunatik_optinteger(L, -1, cur_id, bus, HID_BUS_ANY);
 		lunatik_optinteger(L, -1, cur_id, group, HID_GROUP_ANY);
@@ -108,9 +105,7 @@ static const struct hid_device_id *luahid_setidtable(lua_State *L, int idx)
 	}
 
 	memset(cur_id, 0, sizeof(struct hid_device_id));
-out:
 	lua_pop(L, 1); /* id_table */
-	return user_table;
 }
 
 #define luahid_setfield(L, idx, obj, field)	\
@@ -300,8 +295,7 @@ static int luahid_register(lua_State *L)
 	driver->name = lunatik_checkalloc(L, NAME_MAX);
 	lunatik_setstring(L, 1, driver, name, NAME_MAX);
 
-	lunatik_checkfield(L, 1, "id_table", LUA_TTABLE);
-	luaL_argcheck(L, (driver->id_table = luahid_setidtable(L, -1)) != NULL, 1, "invalid id_table");
+	luahid_setidtable(L, 1, driver);
 
 	driver->probe = luahid_probe;
 	driver->report_fixup = luahid_report_fixup;
