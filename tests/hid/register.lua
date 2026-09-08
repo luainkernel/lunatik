@@ -17,6 +17,18 @@ local function hugelen()
 	return HUGE_IDS
 end
 
+local function onelen()
+	return 1
+end
+
+local function badlen()
+	return "eight"
+end
+
+local function raise()
+	error("id_table entry")
+end
+
 local function ids(n)
 	local id_table = {}
 	for i = 1, n do
@@ -29,10 +41,11 @@ local function register(name, id_table)
 	hid.register({name = name, id_table = id_table})
 end
 
-local function refuses(name, id_table)
+local function refuses(name, id_table, expected)
 	local ok, err = pcall(register, name, id_table)
-	assert(not ok, "hid.register accepted an id_table of " .. #id_table .. " entries")
-	assert(err:match("'id_table' is too long"), "hid.register raised something else: " .. err)
+	assert(not ok, "hid.register accepted " .. name)
+	assert(err:match(expected), "hid.register raised something else: " .. err)
+	collectgarbage() -- run the refused driver's finalizer now, while the test can still see a crash
 end
 
 test("hid.register accepts an id_table it serves", function()
@@ -41,10 +54,18 @@ test("hid.register accepts an id_table it serves", function()
 end)
 
 test("hid.register refuses an id_table it cannot serve", function()
-	refuses("lunatik_hid_over", ids(MAXIDS + 1))
+	refuses("lunatik_hid_over", ids(MAXIDS + 1), "'id_table' is too long")
+	refuses("lunatik_hid_huge", setmetatable({}, {__len = hugelen}), "'id_table' is too long")
+	refuses("lunatik_hid_len", setmetatable({}, {__len = badlen}), "not an integer")
 end)
 
-test("hid.register refuses a fabricated id_table length", function()
-	refuses("lunatik_hid_huge", setmetatable({}, {__len = hugelen}))
+test("hid.register refuses an entry it cannot read", function()
+	refuses("lunatik_hid_entry", {{vendor = VENDOR}, 42}, "invalid id_table")
+	refuses("lunatik_hid_raise", {setmetatable({}, {__index = raise})}, "id_table entry")
+	refuses("lunatik_hid_walk", setmetatable({}, {__len = onelen, __index = raise}), "id_table entry")
+end)
+
+test("hid.register serves the next driver after a refusal", function()
+	register("lunatik_hid_after", ids(1))
 end)
 
