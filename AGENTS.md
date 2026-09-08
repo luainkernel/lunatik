@@ -439,6 +439,9 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
 * a test does not depend on what else runs on the host: when a host process — a network manager, say
   — can race it by acting on a resource the test created, make the test robust to any such process,
   not wired to silence one by name, which does not carry to another distro or to CI;
+* a case pins a refusal the API makes, never a capability it gave up: a notifier narrowed to the
+  initial namespace came with a case asserting that a device of another namespace is not reported,
+  so a lost capability became the contract and restoring it has to delete a green test;
 * coverage means the matrix of operation by type by outcome, including the successes, not a list of
   features and not only the error paths;
 * prove the test discriminates: disable the mechanism it covers, watch it fail, restore. Commit
