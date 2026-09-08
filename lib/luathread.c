@@ -223,17 +223,17 @@ static int luathread_run(lua_State *L)
 	luathread_pushargs(L, runtime, nargs);
 	thread->nargs = nargs;
 
+	struct task_struct *task = kthread_create(luathread_func, object, "%s", name);
+	if (IS_ERR(task)) {
+		luathread_popargs(runtime, nargs);
+		luaL_error(L, "failed to create a new thread");
+	}
+
 	lunatik_getobject(object);
 	lunatik_getobject(runtime);
 	thread->runtime = runtime;
-
-	thread->task = kthread_run(luathread_func, object, "%s", name);
-	if (IS_ERR(thread->task)) {
-		luathread_popargs(runtime, nargs);
-		lunatik_putobject(runtime);
-		lunatik_putobject(object);
-		luaL_error(L, "failed to create a new thread");
-	}
+	thread->task = task;
+	wake_up_process(task);
 
 	return 1; /* object */
 }
