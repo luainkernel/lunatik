@@ -70,6 +70,15 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 `comp`.
 
+- **context**: an object refused for its execution context leaves nothing
+  allocated. `crypto.shash("sha256")` and `crypto.comp("lz4")` from an armed
+  softirq runtime are refused, and the modules backing those algorithms -
+  named by holding one object of each kind alive and watching which of
+  `/proc/crypto`'s modules gain a reference - keep the reference counts they
+  had. Skips when no module backs either, and when the loaded `luacrypto` cannot
+  be shown to be the build this case was installed with, since only that one is
+  known to refuse before allocating.
+
 ### data
 
 - **bounds**: `data.new()` and `data:resize()` accept the sizes they serve,
