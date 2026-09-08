@@ -92,10 +92,19 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 
 ### hid
 
-- **register**: `hid.register()` accepts an `id_table` of one entry and of
-  `LUAHID_MAXIDS`, under a vendor no device on the bus carries, and refuses
-  both a longer table and a length fabricated by a `__len` metamethod.
-  Skips when the kernel has no HID bus.
+- **register**: what `hid.register()` makes of an `id_table`. It accepts one
+  of a single entry and one of `LUAHID_MAXIDS`, under a vendor no device on
+  the bus carries, and registers again after every refusal; the accepted
+  drivers reach `/sys/bus/hid/drivers` and leave it with the runtime. A
+  longer table, a length a `__len` metamethod fabricates, a length that is
+  not an integer, an entry that is not a table and an entry that raises
+  while it is read are each refused, and each refusal forces the refused
+  driver's finalizer. Skips when the kernel has no HID bus.
+- **idtable_leak**: an `id_table` whose entries raise from `__index` leaves
+  nothing allocated behind. The refusal is repeated until what a leak would
+  hold is tens of MiB in `SUnreclaim`, and the script then holds as many
+  live buffers of the same size; skips when the counter does not move for
+  that probe either.
 
 ### io
 
