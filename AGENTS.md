@@ -500,6 +500,12 @@ old factory — kept building and broke at the first packet.
   what it costs; prevalence says whether it is common, never whether it is right, and a tree can be
   wrong in a hundred places. When the only support for a line is a precedent, say so and judge it
   again.
+* The core and its bindings are not shaped by a consumer or by an example. An example that cannot
+  be written, or that reaches what it needs through a channel no contract states, is evidence of a
+  gap in the API; what fills that gap is decided from what the binding is for, and the commit and
+  the pull request argue it that way. Narrowing `notifier.netdevice` to the initial namespace fixed
+  the `ifquarantine` example, whose callback resolved a reported name there, and took away the
+  script that watches containers.
 
 ## Patches and commits
 
