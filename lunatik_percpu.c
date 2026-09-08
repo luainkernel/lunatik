@@ -33,9 +33,10 @@ static lunatik_object_t *lunatik_finddata(lunatik_percpu_t *percpu, const lunati
 static lunatik_object_t *lunatik_newdata(lua_State *L, lunatik_object_t *object, const lunatik_class_t *class, size_t size)
 {
 	lunatik_percpu_t *percpu = lunatik_topercpu(object);
+	size_t osize = percpu->ndata * sizeof(lunatik_object_t *);
 	lunatik_object_t *data;
 
-	percpu->data = lunatik_checknull(L, lunatik_realloc(L, percpu->data, (percpu->ndata + 1) * sizeof(lunatik_object_t *)));
+	percpu->data = lunatik_checknull(L, lunatik_realloc(L, percpu->data, osize, osize + sizeof(lunatik_object_t *)));
 	if ((data = lunatik_createobject(class, size, LUNATIK_OPT_NONE)) == NULL)
 		lunatik_enomem(L);
 	lunatik_getobject(object); /* stop releases it; collection never sees data outstanding */

@@ -141,13 +141,13 @@ static inline const char *lunatik_pushstring(lua_State *L, char *s, size_t len)
 
 #define lunatik_pushoptinteger(L, cond, val)	((cond) ? lua_pushinteger((L), (val)) : lua_pushnil((L)))
 
-static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t size)
+static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t osize, size_t nsize)
 {
 	LUNATIK_ALLOC(L, alloc, ud);
-	return alloc(ud, ptr, LUA_TNONE, size);
+	return alloc(ud, ptr, osize, nsize);
 }
 
-#define lunatik_malloc(L, s)	lunatik_realloc((L), NULL, (s))
+#define lunatik_malloc(L, s)	lunatik_realloc((L), NULL, LUA_TNONE, (s))
 #define lunatik_free(p)		kvfree(p)
 #define lunatik_gfp(runtime)	((runtime)->gfp)
 

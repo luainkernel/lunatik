@@ -150,7 +150,7 @@ static int luadata_resize(lua_State *L)
 	luadata_checkwritable(L, data);
 
 	if (data->opt & LUADATA_OPT_FREE)
-		data->ptr = lunatik_checknull(L, lunatik_realloc(L, data->ptr, new_size));
+		data->ptr = lunatik_checknull(L, lunatik_realloc(L, data->ptr, data->size, new_size));
 	else
 		luaL_error(L, "cannot resize external memory");
 

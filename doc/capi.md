@@ -562,13 +562,18 @@ Allocates `size` bytes using the Lua allocator. Returns `NULL` on failure.
 
 ### lunatik\_realloc
 ```C
-void *lunatik_realloc(lua_State *L, void *ptr, size_t size);
+void *lunatik_realloc(lua_State *L, void *ptr, size_t osize, size_t nsize);
 ```
-Reallocates `ptr` to `size` bytes using the Lua allocator.
+Reallocates `ptr`, currently `osize` bytes long, to `nsize` bytes using the Lua
+allocator. Returns `NULL` when `nsize` is zero, which frees `ptr`, and when the
+allocation fails, leaving `ptr` allocated; the exception is a shrink whose
+allocation fails, which returns `ptr` itself, still `osize` bytes long. When
+`ptr` is `NULL`, `osize` is not read as a size: either `0` or a type tag is
+accepted.
 
 ### lunatik\_free
 ```C
 void lunatik_free(void *ptr);
 ```
-Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`. Equivalent to `kfree`.
+Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`. Equivalent to `kvfree`.
 
