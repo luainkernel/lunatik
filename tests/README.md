@@ -99,7 +99,9 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   longer table, a length a `__len` metamethod fabricates, a length that is
   not an integer, an entry that is not a table and an entry that raises
   while it is read are each refused, and each refusal forces the refused
-  driver's finalizer. Skips when the kernel has no HID bus.
+  driver's finalizer. A name filling `NAME_MAX` with no room for its
+  terminator is refused too, and the longest that does leave room reaches
+  the bus intact. Skips when the kernel has no HID bus.
 - **idtable_leak**: an `id_table` whose entries raise from `__index` leaves
   nothing allocated behind. The refusal is repeated until what a leak would
   hold is tens of MiB in `SUnreclaim`, and the script then holds as many

@@ -11,6 +11,7 @@ local insert = table.insert
 local BUS      <const> = 0x03   -- BUS_USB
 local VENDOR   <const> = 0xf055 -- no device on the hid bus carries this vendor, so nothing binds
 local MAXIDS   <const> = 4096   -- LUAHID_MAXIDS, the longest id_table hid.register serves
+local MAXNAME  <const> = 255    -- NAME_MAX, the buffer the driver name and its terminator share
 local HUGE_IDS <const> = 1 << 40
 
 local function hugelen()
@@ -63,6 +64,13 @@ test("hid.register refuses an entry it cannot read", function()
 	refuses("lunatik_hid_entry", {{vendor = VENDOR}, 42}, "invalid id_table")
 	refuses("lunatik_hid_raise", {setmetatable({}, {__index = raise})}, "id_table entry")
 	refuses("lunatik_hid_walk", setmetatable({}, {__len = onelen, __index = raise}), "id_table entry")
+end)
+
+test("hid.register refuses a name that fills its buffer", function()
+	local ok, err = pcall(register, string.rep("x", MAXNAME), ids(1))
+	assert(not ok, "hid.register accepted a name with no room for its terminator")
+	assert(err:match("'name' is too long"), "hid.register raised something else: " .. err)
+	register(string.rep("x", MAXNAME - 1), ids(1))
 end)
 
 test("hid.register serves the next driver after a refusal", function()
