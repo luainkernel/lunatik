@@ -70,6 +70,12 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 `comp`.
 
+- **context**: an object refused for its execution context leaves nothing
+  allocated. `crypto.shash("sha256")` from an armed softirq runtime is
+  refused, and the module backing sha256 - named by holding one shash alive
+  and watching which of `/proc/crypto`'s modules gains a reference - keeps
+  the reference count it had. Skips when no module backs sha256.
+
 ### io
 
 - **test**: kernel `io` library (open/read/write/seek/lines/type); also

@@ -176,14 +176,16 @@ static int luathread_run(lua_State *L)
 	const char *name = luaL_checkstring(L, 2);
 	lunatik_object_t *object = luathread_new(L);
 	luathread_t *thread = object->private;
+	struct task_struct *task = kthread_create(luathread_func, object, "%s", name);
+
+	if (IS_ERR(task))
+		luaL_error(L, "failed to create a new thread");
 
 	lunatik_getobject(object);
 	lunatik_getobject(runtime);
 	thread->runtime = runtime;
-
-	thread->task = kthread_run(luathread_func, object, "%s", name);
-	if (IS_ERR(thread->task))
-		luaL_error(L, "failed to create a new thread");
+	thread->task = task;
+	wake_up_process(task);
 
 	return 1; /* object */
 }
