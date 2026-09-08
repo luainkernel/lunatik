@@ -227,7 +227,7 @@ static int luathread_run(lua_State *L)
 	lunatik_getobject(runtime);
 	thread->runtime = runtime;
 
-	thread->task = kthread_run(luathread_func, object, name);
+	thread->task = kthread_run(luathread_func, object, "%s", name);
 	if (IS_ERR(thread->task)) {
 		luathread_popargs(runtime, nargs);
 		lunatik_putobject(runtime);
