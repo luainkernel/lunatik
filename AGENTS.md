@@ -470,6 +470,12 @@ compiles against a Lua module and only fails when its code path runs: `skb.attr`
 `.new` and a pure attribute view, and `sniclassify`'s `skbattr(...)` / `skb:data()` — written for the
 old factory — kept building and broke at the first packet.
 
+The kernel a consumer builds on bounds what a change may use, and not every consumer sits inside
+the range this file declares: a product built on Lunatik can ship on an older vendor kernel, and
+`register_netdevice_notifier_net`, which arrived in v5.5, does not exist on the 5.4 one of them runs
+on. An API newer than a known consumer's kernel is a decision taken here, with the floor it sets
+named, not one discovered at that consumer's build.
+
 * Do not land an implementation you already intend to replace. A guarantee that holds only on some
   paths is not a guarantee: make it structural or do not offer it. Merging a half measure and opening
   a follow up that deletes it pollutes the history across pull requests the same way a commit that
