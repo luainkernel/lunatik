@@ -4,19 +4,13 @@
 --
 -- Kernel-side script for the newobject_oom test (see newobject_oom.sh).
 
-local rcu = require("rcu")
-local test = require("util").test
+local lunatik = require("lunatik")
+local test    = require("util").test
 
-local HUGE_BUCKETS <const> = 1 << 58
+local SCRIPT <const> = "tests/rcu/newobject_oom_atomic"
 
-test("rcu.table with huge size fails gracefully", function()
-	assert(not pcall(rcu.table, HUGE_BUCKETS), "huge allocation should have failed")
-	collectgarbage() -- force the failed object's finalizer to run now
-end)
-
-test("runtime usable after failed allocation", function()
-	local t = rcu.table(16)
-	t["n"] = 42
-	assert(t["n"] == 42, "table broken after failed allocation")
+test("a failed private allocation surfaces as an error", function()
+	local runtime <close> = lunatik.runtime(SCRIPT, "softirq")
+	runtime:resume() -- closing the runtime afterwards runs the failed object's finalizer
 end)
 
