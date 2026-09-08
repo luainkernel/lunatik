@@ -141,6 +141,10 @@ before a shell call like the review guard below, blocks an install, reload or ru
 worktree drops such a line, unless the command carries `CRASH_AB_OK=1`, set once the maintainer
 authorized the experiment and named the machine it may take down.
 
+A rule is what remains when nothing else can catch the mistake. Where the error is mechanical, the gate
+is the answer and the rule is that gate's documentation: a pull request that only writes down what went
+wrong, over rules that were already written and already broken, adds a paragraph and changes nothing.
+
 `pr-body.sh` takes a pull request body file and fails it on more than three paragraphs, an em dash
 or a "Test plan" section; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
 blocks a `gh` write to pulls that carries a body file the check fails on.
@@ -477,6 +481,10 @@ old factory — kept building and broke at the first packet.
 * A guard keys on a property that is true by construction where it is enforced, never on a proxy that
   merely correlates. That a registration is global is such a property. A netfilter hook number is not:
   the same hook runs in softirq or in process context depending on the path the packet took.
+* A decision taken with the maintainer is not reversed alone. When the investigation that follows points
+  the other way, that is a question to bring back, not a conclusion to announce: a rename agreed as
+  runtime came back as its opposite, argued from a name collision found on the way, and was published as
+  a pull request before anyone said so. Bring the finding, say what it would change, and wait.
 * A call the conventions here already settle is made, not escalated: decide it, note it in a line, and
   move on. A question is for a genuine fork — where the answer changes the outcome and no rule,
   precedent, or test resolves it. Asking whether to add a comment the tree's macros never carry spends
