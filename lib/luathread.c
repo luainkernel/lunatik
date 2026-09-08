@@ -10,6 +10,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kthread.h>
+#include <linux/sched/task.h>
 
 #include <lunatik.h>
 
@@ -47,18 +48,9 @@ static int luathread_func(void *data)
 {
 	lunatik_object_t *object = (lunatik_object_t *)data;
 	luathread_t *thread = (luathread_t *)object->private;
-	int ret, locked = 0;
+	int ret;
 
 	lunatik_run(thread->runtime, luathread_resume, ret, thread);
-
-	while (!kthread_should_stop())
-		if ((locked = lunatik_trylock(object)))
-			break;
-
-	thread->task = NULL;
-
-	if (locked)
-		lunatik_unlock(object);
 
 	lunatik_putobject(thread->runtime);
 	lunatik_putobject(object);
@@ -102,8 +94,9 @@ static int luathread_stop(lua_State *L)
 	else if (task != NULL) {
 		int result = kthread_stop(task);
 
+		thread->task = NULL;
+		put_task_struct(task);
 		if (result == -EINTR) {
-			thread->task = NULL;
 			luathread_popargs(runtime, thread->nargs);
 			lunatik_putobject(thread->runtime);
 			lunatik_putobject(object);
@@ -119,7 +112,10 @@ static int luathread_stop(lua_State *L)
 
 /***
 * Returns a task object for the kernel task associated with the thread.
-* Once the thread has exited the object has no task and its methods raise.
+* The thread holds a reference to it, so the object stays readable after the
+* body returned, reporting the task as it ended. `stop` releases that
+* reference: the object returned after a stop has no task, and its methods
+* raise "null pointer dereference".
 * @function task
 * @tparam thread self thread object.
 * @treturn task
@@ -134,6 +130,14 @@ static int luathread_task(lua_State *L)
 
 	luatask_new(L, thread->task);
 	return 1;
+}
+
+static void luathread_release(void *private)
+{
+	luathread_t *thread = (luathread_t *)private;
+
+	if (thread->task != NULL)
+		put_task_struct(thread->task);
 }
 
 static const luaL_Reg luathread_lib[] = {
@@ -154,6 +158,7 @@ LUNATIK_OPENER(thread);
 static const lunatik_class_t luathread_class = {
 	.name = "thread",
 	.methods = luathread_mt,
+	.release = luathread_release,
 	.opener = luaopen_thread,
 	.opt = LUNATIK_OPT_MONITOR,
 };
@@ -233,6 +238,7 @@ static int luathread_run(lua_State *L)
 	lunatik_getobject(runtime);
 	thread->runtime = runtime;
 	thread->task = task;
+	get_task_struct(task); /* kthread_stop reads the task after the body returned */
 	wake_up_process(task);
 
 	return 1; /* object */
@@ -254,6 +260,7 @@ static int luathread_current(lua_State *L)
 
 	thread->runtime = NULL;
 	thread->task = current;
+	get_task_struct(thread->task);
 	return 1; /* object */
 }
 
