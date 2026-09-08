@@ -91,11 +91,12 @@ end
 device.new(driver)
 
 local runtimes = runner.run(filter, "softirq", percpu)
-runtimes:resume(quarantined)
 
 driver.sentinel = setmetatable({}, {__gc = function()
 	runner.stop(filter)
 end})
+
+runtimes:resume(quarantined)
 
 notifier.netdevice(callback)
 loading = false
