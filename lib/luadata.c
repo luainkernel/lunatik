@@ -139,13 +139,13 @@ static int luadata_checksum(lua_State *L)
 
 /***
 * @function resize
-* @tparam integer new_size
-* @raise if read-only or not owned
+* @tparam integer new_size number of bytes, from 1 up to `INT_MAX`.
+* @raise if out of bounds, read-only, not owned, or the allocation fails
 */
 static int luadata_resize(lua_State *L)
 {
 	luadata_t *data = luadata_check(L, 1);
-	size_t new_size = (size_t)luaL_checkinteger(L, 2);
+	size_t new_size = (size_t)lunatik_checkinteger(L, 2, 1, INT_MAX);
 
 	luadata_checkwritable(L, data);
 
@@ -189,9 +189,9 @@ static void luadata_release(void *private)
 
 /***
 * @function new
-* @tparam integer size
+* @tparam integer size number of bytes, from 1 up to `INT_MAX`.
 * @treturn data
-* @raise if allocation fails
+* @raise if out of bounds or allocation fails
 */
 static const luaL_Reg luadata_lib[] = {
 	{"new", luadata_lnew},
@@ -353,7 +353,7 @@ static inline void luadata_set(luadata_t *data, void *ptr, size_t size, uint8_t 
 
 static int luadata_lnew(lua_State *L)
 {
-	size_t size = (size_t)luaL_checkinteger(L, 1);
+	size_t size = (size_t)lunatik_checkinteger(L, 1, 1, INT_MAX);
 	static const char *const modes[] = {"shared", "single", NULL};
 	int mode = luaL_checkoption(L, 2, "shared", modes);
 	lunatik_opt_t opt = mode == 1 ? LUNATIK_OPT_SINGLE : LUNATIK_OPT_MONITOR;

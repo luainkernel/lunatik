@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2024-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only 
 --
 
@@ -55,8 +55,8 @@ end
 
 ---
 -- Creates a new inbox (receive-only mailbox).
--- @param q (fifo|number) Either an existing FIFO object or a capacity for a new FIFO.
---   If a number, a new FIFO with this capacity will be created.
+-- @param q (fifo|number) Either an existing FIFO object or a capacity for a new FIFO, at least
+--   `string.packsize("T")` bytes: `receive()` pops a header of that size.
 -- @param e (completion) [optional] An existing completion object. If nil and `q` is a number,
 --   a new completion object will be created.
 -- @return (MailBox) A new inbox object.
@@ -69,8 +69,8 @@ end
 
 ---
 -- Creates a new outbox (send-only mailbox).
--- @param q (fifo|number) Either an existing FIFO object or a capacity for a new FIFO.
---   If a number, a new FIFO with this capacity will be created.
+-- @param q (fifo|number) Either an existing FIFO object or a capacity for a new FIFO, at least
+--   `string.packsize("T")` bytes: `receive()` pops a header of that size.
 -- @param e (completion) [optional] An existing completion object. If nil and `q` is a number,
 --   a new completion object will be created.
 -- @return (MailBox) A new outbox object.

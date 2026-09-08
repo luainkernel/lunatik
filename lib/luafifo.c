@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2024-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -47,9 +47,10 @@ static int luafifo_push(lua_State *L)
 * Pops data from the FIFO.
 * Retrieves a specified number of bytes from the FIFO.
 * @function pop
-* @tparam integer size maximum number of bytes to retrieve from the FIFO.
+* @tparam integer size maximum number of bytes to retrieve from the FIFO, up to its capacity.
 * @treturn string A string containing the bytes popped from the FIFO. The actual length of this string might be less than `size` if the FIFO contained fewer bytes.
 * @treturn integer actual number of bytes popped from the FIFO.
+* @raise Error if `size` is out of bounds.
 * @usage
 *   -- Assuming 'myfifo' is a fifo object
 *   local data, len = myfifo:pop(10)
@@ -61,7 +62,7 @@ static int luafifo_push(lua_State *L)
 static int luafifo_pop(lua_State *L)
 {
 	struct kfifo *fifo = luafifo_check(L, 1);
-	size_t size = luaL_checkinteger(L, 2);
+	size_t size = (size_t)lunatik_checkinteger(L, 2, 0, kfifo_size(fifo));
 	luaL_Buffer B;
 	char *lbuf = luaL_buffinitsize(L, &B, size);
 
@@ -93,9 +94,9 @@ static int luafifo_new(lua_State *L);
 * ideally be a power of two for kfifo's internal optimizations, though kfifo
 * will handle non-power-of-two sizes by rounding up.
 * @function new
-* @tparam integer size desired capacity of the FIFO in bytes.
+* @tparam integer size desired capacity of the FIFO in bytes, from 2 up to `KMALLOC_MAX_SIZE`.
 * @treturn fifo A new fifo object.
-* @raise Error if kfifo allocation fails (e.g., due to insufficient memory).
+* @raise Error if `size` is out of bounds, or if kfifo allocation fails (e.g., due to insufficient memory).
 * @usage
 *   local myfifo = fifo.new(1024) -- Creates a FIFO with a capacity of 1024 bytes
 * @within fifo
@@ -131,7 +132,7 @@ static const lunatik_class_t luafifo_class = {
 
 static int luafifo_new(lua_State *L)
 {
-	size_t size = luaL_checkinteger(L, 1);
+	size_t size = (size_t)lunatik_checkinteger(L, 1, 2, KMALLOC_MAX_SIZE);
 	lunatik_object_t *object = lunatik_newobject(L, &luafifo_class, sizeof(struct kfifo), LUNATIK_OPT_NONE);
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
 	int ret;
