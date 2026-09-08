@@ -5,6 +5,10 @@
 #
 # Runs all crypto tests and reports aggregated KTAP results.
 #
+# context: a crypto object refused for its execution context leaves nothing
+# allocated, measured on the reference a tfm holds on the module implementing
+# the algorithm.
+#
 # Usage: sudo bash tests/crypto/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -26,5 +30,10 @@ for t in $TESTS; do
 done
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
+RESULT=0
+[ $KTAP_FAIL -eq 0 ] || RESULT=1
+
+echo ""
+bash "$DIR/context.sh" || RESULT=1
+exit $RESULT
 
