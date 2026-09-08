@@ -14,10 +14,10 @@
 int luacrypto_##name##_new(lua_State *L)							\
 {												\
 	const char *algname = luaL_checkstring(L, 1);						\
+	lunatik_object_t *object = lunatik_newobject(L, &class, 0, LUNATIK_OPT_NONE);		\
 	T *tfm = alloc(algname, 0, 0);								\
 	if (IS_ERR(tfm))									\
 		lunatik_throw(L, PTR_ERR(tfm));							\
-	lunatik_object_t *object = lunatik_newobject(L, &class, 0, LUNATIK_OPT_NONE);		\
 	object->private = tfm;									\
 	return 1;										\
 }
