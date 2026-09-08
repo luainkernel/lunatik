@@ -149,6 +149,13 @@ wrong, over rules that were already written and already broken, adds a paragraph
 or a "Test plan" section; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
 blocks a `gh` write to pulls that carries a body file the check fails on.
 
+`consumers.sh` names the out-of-tree scripts that load a binding the changed files touch, reading the
+clones listed in `LUNATIK_CONSUMERS`; `consumers-guard.sh`, wired before a shell call, blocks opening or
+editing a pull request that changes such a binding until the command carries `CONSUMERS_OK=1`, set once
+those scripts were read. A product built on Lunatik is a consumer this tree cannot grep, and narrowing
+what a binding reports was proposed here as a fix until the script that reads that notifier turned up in
+another repository, using exactly what the change removed.
+
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments unless
 the command carries the `REVIEW_POST_OK` marker, set once the exact text has been shown to the
