@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2024-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -7,6 +7,7 @@
 #define luarcu_h
 
 #define LUARCU_DEFAULT_SIZE	(256)
+#define LUARCU_MAXSIZE		(rounddown_pow_of_two(SIZE_MAX / sizeof(struct hlist_head))) /* luarcu_sizeoftable() wraps above it */
 #define LUARCU_MAXKEY		(LUAL_BUFFERSIZE)
 
 lunatik_object_t *luarcu_newtable(size_t size, lunatik_opt_t opt);

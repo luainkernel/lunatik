@@ -77,9 +77,15 @@ static const lunatik_class_t luahid_class = {
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
+#define LUAHID_MAXIDS	(4096)
+
 static const struct hid_device_id *luahid_setidtable(lua_State *L, int idx)
 {
 	size_t len = luaL_len(L, idx);
+
+	if (len > LUAHID_MAXIDS)
+		luaL_error(L, "'id_table' is too long");
+
 	struct hid_device_id *user_table = lunatik_checkalloc(L, sizeof(struct hid_device_id) * (len + 1));
 
 	struct hid_device_id *cur_id = user_table;
@@ -280,8 +286,8 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 * @tparam table opts driver options: `name` (string), `id_table` (array of device ID tables,
 *   each with optional integer fields `bus`, `group`, `vendor`, `product`, `driver_data`)
 * @treturn hid_driver
-* @raise if required fields are missing, `id_table` is invalid, driver registration fails,
-*   or if called from a percpu runtime
+* @raise if required fields are missing, `id_table` is invalid or too long, driver registration
+*   fails, or if called from a percpu runtime
 */
 static int luahid_register(lua_State *L)
 {

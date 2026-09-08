@@ -300,7 +300,7 @@ lunatik_object_t *luarcu_newtable(size_t size, lunatik_opt_t opt)
 {
 	lunatik_object_t *object;
 
-	size = roundup_pow_of_two(size);
+	size = roundup_pow_of_two(clamp_t(size_t, size, 1, LUARCU_MAXSIZE));
 	if ((object = lunatik_createobject(&luarcu_class, luarcu_sizeoftable(size), opt)) != NULL)
 		luarcu_inittable((luarcu_table_t *)object->private, size);
 	return object;
@@ -310,8 +310,10 @@ EXPORT_SYMBOL(luarcu_newtable);
 /***
 * Creates a new RCU hash table.
 * @function table
-* @tparam[opt=256] integer size Number of hash buckets (rounded up to power of two).
+* @tparam[opt=256] integer size Number of hash buckets (rounded up to power of two), from 1 up to
+*   `LUARCU_MAXSIZE`, the largest count whose table can be sized; what memory serves is the allocator's.
 * @treturn rcu_table
+* @raise if out of bounds or the allocation fails
 * @usage
 *   local t = rcu.table()      -- 256 buckets (default)
 *   local t = rcu.table(8192)  -- 8192 buckets
@@ -319,7 +321,9 @@ EXPORT_SYMBOL(luarcu_newtable);
 */
 static int luarcu_table(lua_State *L)
 {
-	size_t size = roundup_pow_of_two(luaL_optinteger(L, 1, LUARCU_DEFAULT_SIZE));
+	lua_Integer buckets = luaL_optinteger(L, 1, LUARCU_DEFAULT_SIZE);
+	lunatik_checkbounds(L, 1, buckets, 1, LUARCU_MAXSIZE);
+	size_t size = roundup_pow_of_two(buckets);
 	lunatik_object_t *object = lunatik_newobject(L, &luarcu_class, luarcu_sizeoftable(size), LUNATIK_OPT_NONE);
 
 	luarcu_inittable((luarcu_table_t *)object->private, size);
