@@ -52,11 +52,12 @@ static void *lunatik_alloc(void *ud, void *optr, size_t osize, size_t nsize)
 
 	lunatik_object_t *runtime = (lunatik_object_t *)ud;
 	gfp_t gfp = lunatik_gfp(runtime);
+	gfp_t nowarn = gfp | __GFP_NOWARN; /* Lua raises on a NULL */
 
 	if (lunatik_cankrealloc(optr, nsize, gfp))
-		return krealloc(optr, nsize, gfp);
+		return krealloc(optr, nsize, nowarn);
 
-	void *nptr = gfp == GFP_KERNEL ? kvmalloc(nsize, gfp) : kmalloc(nsize, gfp);
+	void *nptr = gfp == GFP_KERNEL ? kvmalloc(nsize, nowarn) : kmalloc(nsize, nowarn);
 	if (nptr == NULL) /* if shrinking, it's safe to return optr */
 		return nsize <= osize ? optr : nptr;
 	else if (optr != NULL) {
