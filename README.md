@@ -342,7 +342,9 @@ sudo lunatik stop examples/ifquarantine/control    # stops both runtimes
 Pre-existing interfaces are covered as well: `register_netdevice_notifier`
 synchronously replays `NETDEV_REGISTER` (and `NETDEV_UP`) for each existing
 netdev when the notifier block is registered, so they enter quarantine at
-script start too.
+script start too. The replay spans every network namespace, and the example
+keeps the devices of the one its netfilter hook acts on, comparing the
+namespace each event carries against `linux.netns()`.
 
 ### filter
 

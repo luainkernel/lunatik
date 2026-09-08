@@ -13,6 +13,7 @@ local notify   = require("linux.notify")
 local stat     = require("linux.stat")
 
 local filter      <const> = "examples/ifquarantine/filter"
+local NETNS       <const> = linux.netns()
 local quarantined         = rcu.table()   -- tostring(ifindex) -> true
 local known               = {}            -- name -> ifindex
 
@@ -34,12 +35,12 @@ local function release(name)
 	end
 end
 
-local function callback(event, name)
+local function callback(event, name, ifindex, netns)
+	if netns ~= NETNS then   -- the netfilter hook only acts on the initial namespace
+		return notify.OK
+	end
 	if event == netdev.REGISTER then
-		local ok, idx = pcall(linux.ifindex, name)
-		if ok and idx then
-			quarantine(name, idx)
-		end
+		quarantine(name, ifindex)
 	elseif event == netdev.UNREGISTER then
 		release(name)
 		known[name] = nil
