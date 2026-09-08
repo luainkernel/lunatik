@@ -11,10 +11,10 @@ repo=${LUNATIK_REPO:-luainkernel/lunatik}
 numbers="$*"
 [ -n "$numbers" ] || numbers=$(gh api "repos/$repo/pulls" --paginate -q '.[].number' | sort -n)
 
-printf '%-6s %-26s %-24s %-5s %-7s %-9s %s\n' PR BRANCH BASE COMM FIXUPS CI LABELS
+printf '%-6s %-26s %-24s %-5s %-7s %-11s %-9s %s\n' PR BRANCH BASE COMM FIXUPS SIZE CI LABELS
 for n in $numbers; do
-	read -r branch base commits mergeable < <(gh api "repos/$repo/pulls/$n" \
-		-q '"\(.head.ref) \(.base.ref) \(.commits) \(.mergeable)"')
+	read -r branch base commits mergeable size < <(gh api "repos/$repo/pulls/$n" \
+		-q '"\(.head.ref) \(.base.ref) \(.commits) \(.mergeable) +\(.additions)/-\(.deletions)"')
 	fixups=$(gh api "repos/$repo/pulls/$n/commits" \
 		-q '[.[] | select(.commit.message | startswith("fixup!"))] | length')
 	labels=$(gh api "repos/$repo/pulls/$n" -q '[.labels[].name] | join(",")')
@@ -22,6 +22,6 @@ for n in $numbers; do
 	ci=$(gh api "repos/$repo/commits/$sha/check-runs" \
 		-q '[.check_runs[].conclusion] | if length == 0 then "none" else (unique | join(",")) end' 2>/dev/null)
 	[ "$mergeable" = "true" ] || base="$base(!)"
-	printf '%-6s %-26s %-24s %-5s %-7s %-9s %s\n' "#$n" "$branch" "$base" "$commits" "$fixups" "$ci" "${labels:--}"
+	printf '%-6s %-26s %-24s %-5s %-7s %-11s %-9s %s\n' "#$n" "$branch" "$base" "$commits" "$fixups" "$size" "$ci" "${labels:--}"
 done
 
