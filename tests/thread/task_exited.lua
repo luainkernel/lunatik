@@ -10,7 +10,6 @@ local lunatik = require("lunatik")
 local SCRIPT <const> = "tests/thread/exit"
 
 local t = lunatik._ENV.threads[SCRIPT]:task()
-local ok, err = pcall(t.pid, t)
-assert(not ok, "task():pid() of an exited thread should raise")
-assert(err:match("null pointer dereference"), "task():pid() of an exited thread raised something else: " .. err)
+assert(t:pid() > 0, "task():pid() of an exited thread should still report it")
+assert(type(t:comm()) == "string", "task():comm() of an exited thread should still report it")
 

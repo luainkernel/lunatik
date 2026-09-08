@@ -8,8 +8,8 @@
 # Case 1 (current): thread.current():task() is a usable task object (pid, comm, tgid).
 # Case 2 (running): the object of a spawned thread, reached through lunatik._ENV.threads,
 #   reports that thread: its comm is the thread name and its pid is not the caller's.
-# Case 3 (exited): once the thread body has returned, thread->task is NULL and the
-#   methods of the returned object raise instead of dereferencing it.
+# Case 3 (exited): once the thread body has returned, the object still reports that
+#   thread, because thread.run holds a reference to the task until it is collected.
 #
 # Usage: sudo bash tests/thread/task.sh
 
@@ -56,7 +56,7 @@ output=$(lunatik spawn "$EXIT" 2>&1)
 sleep $SLEEP
 run_script "$SCRIPT_EXITED"
 check_dmesg || { ktap_totals; exit 1; }
-ktap_pass "task() of an exited thread raises on use"
+ktap_pass "task() of an exited thread still reports it"
 
 ktap_totals
 
