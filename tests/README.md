@@ -70,6 +70,14 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 `comp`.
 
+### data
+
+- **resize_atomic**: a failed reallocation must not look like a success. A
+  vmalloc-backed buffer grown from a `GFP_ATOMIC` runtime asks the page
+  allocator for an order past `MAX_PAGE_ORDER`, so the allocation fails by
+  construction and `data:resize()` has to keep the size and the bytes it
+  had. Skips when the buffer did not land in `vmalloc`.
+
 ### io
 
 - **test**: kernel `io` library (open/read/write/seek/lines/type); also
