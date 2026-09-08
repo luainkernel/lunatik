@@ -20,13 +20,16 @@ ktap_fail()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_FAIL=$((KTAP_FAIL+1)); echo "
 ktap_skip()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_SKIP=$((KTAP_SKIP+1)); echo "ok $KTAP_COUNT $* # SKIP"; }
 ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:$KTAP_SKIP"; }
 
+# A Lua error, or a kernel complaint a script's input should not be able to provoke.
+KTAP_ERRORS='\.lua:[0-9]+:|WARNING:|UBSAN:'
+
 mark_dmesg() { dmesg -C 2>/dev/null; }
 dmesg_since() { dmesg; }
 check_dmesg() {
 	local errs
-	errs=$(dmesg_since | grep -E "\.lua:[0-9]+:" || true)
+	errs=$(dmesg_since | grep -E "$KTAP_ERRORS" || true)
 	[ -z "$errs" ] && return 0
-	ktap_fail "no Lua errors in kernel"
+	ktap_fail "no Lua errors or kernel warnings"
 	echo "# $errs"
 	return 1
 }
@@ -49,7 +52,7 @@ run_test() {
 	local output errs
 	mark_dmesg
 	output=$(lunatik run "$@" 2>&1)
-	errs=$(dmesg_since | grep -iE "^[^:]+: FAIL	|\.lua:[0-9]+:" || true)
+	errs=$(dmesg_since | grep -E "^[^:]+: (FAIL|fail)	|$KTAP_ERRORS" || true)
 	[ -z "$output" ] && [ -z "$errs" ] && return 0
 
 	[ -n "$output" ] && comment "$output"

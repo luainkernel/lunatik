@@ -72,11 +72,30 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 
 ### data
 
+- **bounds**: `data.new()` and `data:resize()` accept the sizes they serve,
+  round-trip a byte at the far end of the buffer, and refuse zero, a
+  negative and anything past `INT_MAX`; a refused resize leaves the object
+  on its old buffer.
 - **resize_atomic**: a failed reallocation must not look like a success. A
   vmalloc-backed buffer grown from a `GFP_ATOMIC` runtime asks the page
   allocator for an order past `MAX_PAGE_ORDER`, so the allocation fails by
   construction and `data:resize()` has to keep the size and the bytes it
   had. Skips when the buffer did not land in `vmalloc`.
+
+### fifo
+
+- **bounds**: `fifo.new()` accepts the capacities it serves and refuses
+  zero, one (kfifo's own floor), a negative and anything past
+  `KMALLOC_MAX_SIZE`, including a value `__kfifo_alloc()`'s `unsigned int`
+  truncated into a small fifo; `fifo:pop()` refuses a size past the
+  capacity, which it could never return.
+
+### hid
+
+- **register**: `hid.register()` accepts an `id_table` of one entry and of
+  `LUAHID_MAXIDS`, under a vendor no device on the bus carries, and refuses
+  both a longer table and a length fabricated by a `__len` metamethod.
+  Skips when the kernel has no HID bus.
 
 ### io
 
@@ -193,12 +212,20 @@ higher-level `netlink.*` modules built on top of it.
 - **map_foreign**: `rcu.map()` refuses an object of another class
   instead of walking its private data as a table.
 
+- **bounds**: `rcu.table()` defaults to a usable table, accepts the bucket
+  counts it serves, and refuses zero (`roundup_pow_of_two()` is undefined
+  there), a negative, and the counts whose byte size wraps; a count it can
+  size but no allocator serves is a memory error with no kernel warning
+  behind it.
+
 - **map_sync**: `rcu.map()` remains safe when called while another
   kthread is modifying the table.
 
 - **newobject_oom**: a failed private allocation in `lunatik_newobject()`
-  (forced via an absurd `rcu.table()` bucket count) surfaces as a graceful
-  error without the `__gc` finalizer running on uninitialized memory.
+  surfaces as a graceful error without the `__gc` finalizer running on
+  uninitialized memory. The failure is forced on the `GFP_ATOMIC` path,
+  where a bucket count past `KMALLOC_MAX_SIZE` cannot be served by
+  construction.
 - **bigtable_free**: a large `rcu.table()` whose private exceeds `KMALLOC_MAX`
   is backed by `vmalloc`; releasing it must free with `kvfree`, not `kfree`,
   so the teardown leaves the kernel alive.
