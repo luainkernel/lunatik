@@ -517,6 +517,10 @@ old factory — kept building and broke at the first packet.
 * Read the commit before pushing it, not only the working tree: `git show` the diff that is about to
   be published. Instrumentation added while debugging — a `pr_err`, a hardcoded branch — is invisible
   in a passing test and lands in the pull request.
+* After resolving a rebase or a merge, `git grep -n '^<<<<<<< '` before committing. `git add -A`
+  stages a conflict marker without complaining, and `git rebase --continue` runs no pre-commit hook,
+  so the markers reach the branch and surface far from the resolution: a `tests/run.sh` carrying one
+  dies at ``syntax error near unexpected token `<<<'``.
 * Change only what the task requires. Do not reformat untouched lines, do not move code, do not
   rename variables in passing. Compare `git diff` against `git diff -w` before committing to catch
   stray whitespace.
