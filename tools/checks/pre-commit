@@ -3,6 +3,16 @@
 # missing the trailing blank line the tree requires.
 # Install with: ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
+conflicted=$(git diff --cached --name-only --diff-filter=ACM -G'^(<{7}|={7}|>{7})( |$)')
+if [ -n "$conflicted" ]; then
+	echo "ERROR: Files staged with conflict markers:"
+	for f in $conflicted; do
+		echo "  $f"
+	done
+	echo "Resolve them: git grep -n '^<<<<<<< '"
+	exit 1
+fi
+
 bad=""
 for f in $(git diff --cached --name-only --diff-filter=ACM); do
 	case "$f" in
