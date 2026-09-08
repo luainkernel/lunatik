@@ -373,6 +373,9 @@ Regression tests for `luathread`.
 - **run_during_load**: `runner.spawn()` called from a script's top-level
   code must error instead of hanging the kernel.
 
+- **name**: the name `thread.run()` is given reaches the kernel task as
+  written, conversions included, instead of being taken as the format.
+
 - **task**: `thread:task()` returns a `task` object: a usable one for
   `thread.current()` (`pid`, `comm`, `tgid`); for a spawned thread, reached
   through `lunatik._ENV.threads`, one reporting that thread (its `comm` is the
