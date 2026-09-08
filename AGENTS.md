@@ -9,7 +9,11 @@ machine. Two rules follow from that and outrank everything else in this document
 
 1. **Verify, do not assume.** How the kernel behaves is read in its source, not inferred from a
    measurement: which CPU a hook runs on is answered by `NF_HOOK`'s callers, and a run on one host
-   confirms that reading, it does not replace it. Before using a kernel API, read its declaration in
+   confirms that reading, it does not replace it. The state of the work is read the same way: which pull
+   requests are open, what a branch carries, what is installed on the host. It comes from a command run
+   while the answer is being written, or it is given as unverified. A list of pull requests called ready
+   was assembled from memory here and was wrong on two of three. Before using a kernel API, read its
+   declaration in
    `/usr/src/linux-headers-$(uname -r)/include` and confirm it is exported in `Module.symvers`. A
    kernel interface read at runtime rather than linked — a `/sys` or `/proc` path and the format it
    returns, the `/dev/lunatik` protocol — is held to the same rule: confirm it against the source
@@ -155,6 +159,11 @@ editing a pull request that changes such a binding until the command carries `CO
 those scripts were read. A product built on Lunatik is a consumer this tree cannot grep, and narrowing
 what a binding reports was proposed here as a fix until the script that reads that notifier turned up in
 another repository, using exactly what the change removed.
+
+`pr-status.sh` prints the open pull requests as GitHub has them: base and whether it still merges,
+commits and how many are unsquashed fixups, the CI conclusion, and the labels. What it cannot see is
+whether anyone read one, so a review workflow labels what it finished with `workflow-reviewed`, and a
+pull request without that label has had no second reader.
 
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments unless
