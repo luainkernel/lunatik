@@ -25,7 +25,7 @@ typedef struct luanetfilter_hook_s {
 
 /***
 * Registered Netfilter hook. Garbage collecting this object unregisters the hook, or detaches
-* the instance from the hook its percpu script shares.
+* the runtime from the hook its percpu script shares.
 * @type netfilter_hook
 */
 typedef struct luanetfilter_s {
@@ -211,13 +211,13 @@ static const lunatik_class_t luanetfilter_class = {
 
 /***
 * Registers a Netfilter hook.
-* In a percpu script the instances share one hook: the first registration installs it, the
-* others attach their callbacks, and a packet reaches the instance of the CPU it arrived on.
+* In a percpu script the runtimes share one hook: the first registration installs it, the
+* others attach their callbacks, and a packet reaches the runtime of the CPU it arrived on.
 * @function register
 * @tparam table opts Hook options: `hook` (function), `pf`, `hooknum`, `priority` (integers),
 *   and optionally `mark` (integer, default 0).
 * @treturn netfilter_hook Registered hook handle.
-* @raise if the hook cannot be registered; in a percpu script, if this instance already
+* @raise if the hook cannot be registered; in a percpu script, if this runtime already
 *   registered the same `pf`, `hooknum`, `priority` and `mark`, or if called after module load
 */
 static int luanetfilter_register(lua_State *L)
@@ -234,7 +234,7 @@ static int luanetfilter_register(lua_State *L)
 	luanetfilter_hook_t *hook = percpu != NULL ? luanetfilter_sharehook(L, percpu, &spec) : luanetfilter_ownhook(L, nf, &spec);
 	luaskb_attach(L, nf, skb);
 	lunatik_registerobject(L, 1, object);
-	lunatik_register(L, -1, hook); /* the callback finds this instance's registration by the hook they share */
+	lunatik_register(L, -1, hook); /* the callback finds this runtime's registration by the hook they share */
 	return 1;
 }
 

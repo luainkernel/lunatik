@@ -13,7 +13,7 @@ local COUNT  <const> = 5
 
 local env = lunatik._ENV
 
-test("the marked requests were counted once, by one instance", function()
+test("the marked requests were counted once, by one runtime", function()
 	local counted = {}
 	rcu.map(env, function (key, count)
 		if key:sub(1, #PREFIX) == PREFIX then
@@ -22,7 +22,7 @@ test("the marked requests were counted once, by one instance", function()
 			assert(count == COUNT, key .. " counted " .. count .. " of " .. COUNT)
 		end
 	end)
-	assert(#counted == 1, #counted .. " instances counted")
+	assert(#counted == 1, #counted .. " runtimes counted")
 	env[counted[1]] = nil
 end)
 

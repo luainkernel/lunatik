@@ -78,8 +78,8 @@ struct lunatik_object_s;
 typedef struct lunatik_runtime_s {
 	struct lunatik_object_s *runtime;
 	bool ready;
-	int cpu;	/* percpu instance id; LUNATIK_CPU_NONE on a plain runtime */
-	struct lunatik_object_s *percpu;	/* the object owning a percpu instance; NULL on a plain runtime */
+	int cpu;	/* the CPU this runtime serves; LUNATIK_CPU_NONE on a plain runtime */
+	struct lunatik_object_s *percpu;	/* the object owning this runtime; NULL on a plain runtime */
 } lunatik_runtime_t;
 
 #undef LUA_EXTRASPACE

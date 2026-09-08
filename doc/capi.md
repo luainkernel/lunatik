@@ -119,7 +119,7 @@ If the Lua state has been closed, `ret` is set with `-ENXIO`;
 otherwise, `ret` is set with the result of `handler(L, ...)` call.
 Then, it restores the Lua stack and unlocks the `runtime` environment.
 A `percpu` object, which the caller keeps referenced across the call, is resolved first
-to the instance of the CPU the caller runs on, and the caller stays on that CPU until the
+to the runtime of the CPU the caller runs on, and the caller stays on that CPU until the
 call returns.
 It is defined as a macro.
 
@@ -194,16 +194,16 @@ only instantiated in a compatible runtime.
 ```C
 lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class, size_t size);
 ```
-Returns the object of `class` a `percpu` object holds for its instances: the first instance to ask
+Returns the object of `class` a `percpu` object holds for its runtimes: the first runtime to ask
 creates it, as `lunatik_createobject(class, size, LUNATIK_OPT_NONE)` does, with its private zeroed;
-the following ones get the same object, so every instance sees one. The `percpu` object owns it:
+the following ones get the same object, so every runtime sees one. The `percpu` object owns it:
 `percpu:stop()` closes it (`lunatik_closeprivate`, which runs the class's `release` in process
-context) before closing the instances, then drops it, and an object with such data outstanding is
-released by `stop`, never by collection. A registration a script makes once for all its instances,
+context) before closing the runtimes, then drops it, and an object with such data outstanding is
+released by `stop`, never by collection. A registration a script makes once for all its runtimes,
 a netfilter hook, say, lives in the private of such an object, with the class's `release`
-unregistering it. Only the script body may ask, while the instance loads; it raises a Lua error
-afterwards. Returns `NULL` on a plain runtime, which has no instances to share with;
-`lunatik_getpercpu(L)` tells the two apart, returning the `percpu` object owning the instance `L`,
+unregistering it. Only the script body may ask, while the runtime loads; it raises a Lua error
+afterwards. Returns `NULL` on a plain runtime, which has no runtimes to share with;
+`lunatik_getpercpu(L)` tells the two apart, returning the `percpu` object owning the runtime `L`,
 or `NULL`.
 
 ---

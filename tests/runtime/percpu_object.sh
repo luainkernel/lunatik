@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Regression test for the percpu object: lunatik.percpu() runs the script once per
-# possible CPU id, each instance seeing its own id; stop closes every instance and
+# possible CPU id, each runtime seeing its own id; stop closes every runtime and
 # the object can be created again; stop refuses an object of another class; and a
-# script that fails on one instance raises with its error instead of returning an object.
+# script that fails on one runtime raises with its error instead of returning an object.
 #
 # Usage: sudo bash tests/runtime/percpu_object.sh
 

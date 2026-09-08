@@ -3,8 +3,8 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 -- Kernel-side script for the percpu refcnt leak test (see refcnt_leak.sh):
--- every instance registers a hook and the last one errors, so the rollback
--- has hooks of earlier instances to release.
+-- every runtime registers a hook and the last one errors, so the rollback
+-- has hooks of earlier runtimes to release.
 
 local lunatik   = require("lunatik")
 local linux     = require("linux")
@@ -24,6 +24,6 @@ netfilter.register{
 }
 
 if lunatik.cpu() == linux.numcpus() - 1 then
-	error("intentional error on the last instance")
+	error("intentional error on the last runtime")
 end
 

@@ -197,7 +197,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   successful `netfilter.register()` call. The fix, under the runtime
   spinlock, nulls `runtime->private`, calls `lua_close(L)` to fire the
   hook finalizer (`nf_unregister_net_hook` + `symbol_put_addr`), and
-  then releases the runtime. The percpu case errors on the last instance, so
+  then releases the runtime. The percpu case errors on the last runtime, so
   the rollback has the hooks of the earlier ones, which the shared registration
   holds, to release; it needs more than one CPU and skips otherwise.
 
@@ -242,20 +242,20 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   as `rcu`) keeps the class metatables the first open created.
 
 - **percpu**: `run <script> percpu` registers one object holding a
-  runtime per possible CPU id, and runs the script once per instance,
+  runtime per possible CPU id, and runs the script once per runtime,
   each seeing its own id via `lunatik.cpu()`, which a plain runtime
   sees as `nil`; the script is listed once, by name; `stop` drops every
-  instance and lets it run again; `spawn` refuses percpu without
-  creating any runtime; and a script that fails on one instance rolls
+  runtime and lets it run again; `spawn` refuses percpu without
+  creating any runtime; and a script that fails on one runtime rolls
   back the ones already created before the run returns.
 
 - **percpu_object**: `lunatik.percpu()` runs the script once per possible
   CPU id, each runtime stamping its own id; `stop` closes every runtime
   and the object can be created again; `stop` refuses an object of another
-  class; a script that fails on one instance raises with its error instead of
+  class; a script that fails on one runtime raises with its error instead of
   returning an object.
 
-- **percpu_refuse**: a registration a percpu instance cannot own fails
+- **percpu_refuse**: a registration a percpu runtime cannot own fails
   at load, naming percpu, with a clean rollback, and the same script
   runs as a plain runtime: `device.new`, whose registration is global.
 
@@ -339,7 +339,7 @@ BTF, or `bpftool`, `clang` or `tc` is unavailable.
   suite's `packet.isping`, since the namespace emits autoconf traffic of its own.
 
 - **tc drop**: `action.ACT_SHOT` blocks the ping; the runtime is percpu,
-  covering the dispatch to a percpu instance.
+  covering the dispatch to a percpu runtime.
 
 - **tc reattach**: the script attaches one callback and then a second in the
   same runtime; the ping passes because only the last callback runs, exercising
@@ -393,7 +393,7 @@ BTF, or `bpftool` or `clang` is unavailable.
   runtime is plain, covering the plain-name kfunc lookup.
 
 - **xdp drop**: `action.DROP` blocks the ping; the runtime is percpu,
-  covering the dispatch to a percpu instance.
+  covering the dispatch to a percpu runtime.
 
 - **xdp detach**: the callback drops the first ping and calls `xdp.detach()`
   from inside the callback, letting other traffic through; traffic resumes
@@ -415,5 +415,5 @@ BTF, or `bpftool` or `clang` is unavailable.
 
 - **xdp percpu**: with the ping pinned to the last online CPU, which is where
   the veth runs the receive softirq, the callback of a percpu script reports
-  that CPU as its instance id, and no other; skipped on a single CPU.
+  that CPU as its own id, and no other; skipped on a single CPU.
 

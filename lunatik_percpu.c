@@ -16,7 +16,7 @@ LUNATIK_OPENER(lunatik);
 
 /***
 * Set of runtimes, one per CPU id, running the same script. A callback dispatched
-* through it reaches the instance of the CPU it fired on.
+* through it reaches the runtime of the CPU it fired on.
 * @type percpu
 */
 static lunatik_object_t *lunatik_finddata(lunatik_percpu_t *percpu, const lunatik_class_t *class)
@@ -64,7 +64,7 @@ static void lunatik_stopdata(lunatik_object_t *object)
 	unsigned int i;
 
 	for (i = 0; i < percpu->ndata; i++) {
-		lunatik_closeprivate(percpu->data[i]); /* the class's release runs here, before the instances close */
+		lunatik_closeprivate(percpu->data[i]); /* the class's release runs here, before the runtimes close */
 		lunatik_putobject(percpu->data[i]);
 		lunatik_putobject(object);
 	}
@@ -73,16 +73,16 @@ static void lunatik_stopdata(lunatik_object_t *object)
 	percpu->data = NULL;
 }
 
-#define lunatik_foreachinstance(percpu, cpu, runtime)	\
+#define lunatik_foreachruntime(percpu, cpu, runtime)	\
 	for_each_possible_cpu(cpu)			\
 		if ((runtime = *per_cpu_ptr((percpu)->runtimes, cpu)) != NULL)
 
-static void lunatik_closeinstances(lunatik_percpu_t *percpu)
+static void lunatik_closeruntimes(lunatik_percpu_t *percpu)
 {
 	lunatik_object_t *runtime;
 	int cpu;
 
-	lunatik_foreachinstance(percpu, cpu, runtime)
+	lunatik_foreachruntime(percpu, cpu, runtime)
 		lunatik_closeprivate(runtime);
 }
 
@@ -95,13 +95,13 @@ static void lunatik_releasepercpu(void *private)
 	if (percpu->runtimes == NULL)
 		return;
 
-	lunatik_foreachinstance(percpu, cpu, runtime)
+	lunatik_foreachruntime(percpu, cpu, runtime)
 		lunatik_putobject(runtime); /* may run in softirq: a put, never a stop */
 	free_percpu(percpu->runtimes);
 }
 
 /***
-* Closes the objects the instances share, then every instance, releasing their Lua states.
+* Closes the objects the runtimes share, then every runtime, releasing their Lua states.
 * @function stop
 */
 static int lunatik_stoppercpu(lua_State *L)
@@ -109,7 +109,7 @@ static int lunatik_stoppercpu(lua_State *L)
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &lunatik_percpu_class);
 
 	lunatik_stopdata(object);
-	lunatik_closeinstances(lunatik_topercpu(object));
+	lunatik_closeruntimes(lunatik_topercpu(object));
 	return 0;
 }
 
@@ -130,12 +130,12 @@ const lunatik_class_t lunatik_percpu_class = {
 
 /***
 * Creates one runtime per CPU id, each loading the given script in the calling context.
-* The instances are dispatched by CPU: see `lunatik.cpu` and `runner.run`.
+* The runtimes are dispatched by CPU: see `lunatik.cpu` and `runner.run`.
 * @function percpu
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context, as in `lunatik.runtime`
 * @treturn percpu
-* @raise if allocation fails or the script errors on load, after releasing the instances
+* @raise if allocation fails or the script errors on load, after releasing the runtimes
 *   already created
 * @within lunatik
 */
@@ -154,7 +154,7 @@ int lunatik_percpu(lua_State *L)
 	for_each_possible_cpu(cpu) {
 		if (lunatik_newruntime(per_cpu_ptr(percpu->runtimes, cpu), L, script, opt, object, cpu) != 0) {
 			lunatik_stopdata(object);
-			lunatik_closeprivate(object); /* release the instances now, not on collection */
+			lunatik_closeprivate(object); /* release the runtimes now, not on collection */
 			lua_error(L);
 		}
 	}

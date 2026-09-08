@@ -7,7 +7,7 @@
 local lunatik = require("lunatik")
 
 if lunatik.cpu() == 1 then
-	error("intentional error on the second instance")
+	error("intentional error on the second runtime")
 end
 
 return function() end

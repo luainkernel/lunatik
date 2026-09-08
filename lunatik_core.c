@@ -151,10 +151,10 @@ static int lunatik_lresume(lua_State *L)
 }
 
 /***
-* Returns the CPU id of a percpu runtime instance.
+* Returns the CPU id a percpu runtime serves.
 * Ranges from `0` to `linux.numcpus() - 1`; see `runner.run`.
 * @function cpu
-* @treturn integer instance CPU id, or `nil` on a plain runtime
+* @treturn integer CPU id, or `nil` on a plain runtime
 * @within lunatik
 */
 static int lunatik_cpu(lua_State *L)
