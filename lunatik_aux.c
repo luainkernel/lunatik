@@ -44,24 +44,31 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode)
 		goto error;
 	}
 
-	if (unlikely(filename == NULL) || IS_ERR(lf.file = filp_open(filename, O_RDONLY, 0600))) {
+	if (unlikely(filename == NULL)) {
 		lua_pushfstring(L, "cannot open %s", filename);
 		goto error;
 	}
 
-	lf.buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
-	if (lf.buffer == NULL) {
-		lua_pushfstring(L, "cannot allocate buffer for %s", filename);
-		goto close;
+	lua_pushfstring(L, "@%s", filename); /* nothing to release is held while this can raise */
+
+	if (IS_ERR(lf.file = filp_open(filename, O_RDONLY, 0600))) {
+		lua_pushfstring(L, "cannot open %s", filename);
+		goto remove;
 	}
 
-	lua_pushfstring(L, "@%s", filename);
-	status = lua_load(L, lunatik_loader, &lf, lua_tostring(L, -1), mode);
-	lua_remove(L, fnameindex);
+	lf.buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
+	if (lf.buffer == NULL) {
+		filp_close(lf.file, NULL);
+		lua_pushfstring(L, "cannot allocate buffer for %s", filename);
+		goto remove;
+	}
+
+	status = lua_load(L, lunatik_loader, &lf, lua_tostring(L, fnameindex), mode);
 
 	kfree(lf.buffer);
-close:
 	filp_close(lf.file, NULL);
+remove:
+	lua_remove(L, fnameindex); /* the chunk name */
 error:
 	return status;
 }
