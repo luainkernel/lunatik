@@ -149,6 +149,15 @@ wrong, over rules that were already written and already broken, adds a paragraph
 or a "Test plan" section; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
 blocks a `gh` write to pulls that carries a body file the check fails on.
 
+`tools/watchdog.sh` runs a script and stops it when the host loses the connectivity it had before the
+run, comparing against the loopback and the default route's gateway and holding nothing against the
+script that was already unreachable. `example-guard.sh`, wired before a shell call like the guards
+above, refuses `lunatik run` and `spawn` of anything under `examples/` that does not go through it,
+unless the command carries `NETWORK_LOSS_OK=1`. An example arms real hooks on the machine that runs
+it, and one that cuts the network off cannot be stopped afterwards, because the command that would
+stop it has nowhere to be typed: that has cost this tree two reboots. The watchdog covers the loss of
+connectivity, not a wedged device, which is what the lock guard above is for.
+
 `consumers.sh` names the out-of-tree scripts that load a binding the changed files touch, reading the
 clones listed in `LUNATIK_CONSUMERS`; `consumers-guard.sh`, wired before a shell call, blocks opening or
 editing a pull request that changes such a binding until the command carries `CONSUMERS_OK=1`, set once
