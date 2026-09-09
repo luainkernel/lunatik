@@ -16,6 +16,7 @@ local filter      <const> = "examples/ifquarantine/filter"
 local NETNS       <const> = linux.netns()
 local quarantined         = rcu.table()   -- tostring(ifindex) -> true
 local known               = {}            -- name -> ifindex
+local replaying           = true          -- the registration below replays REGISTER for every device
 
 local function info(...)
 	print("ifquarantine: " .. string.format(...))
@@ -40,7 +41,12 @@ local function callback(event, name, ifindex, netns)
 		return notify.OK
 	end
 	if event == netdev.REGISTER then
-		quarantine(name, ifindex)
+		if replaying then
+			known[name] = ifindex
+			info("%s (ifindex=%d) already present", name, ifindex)
+		else
+			quarantine(name, ifindex)
+		end
 	elseif event == netdev.UNREGISTER then
 		release(name)
 		known[name] = nil
@@ -88,4 +94,5 @@ driver.sentinel = setmetatable({}, {__gc = function()
 end})
 
 notifier.netdevice(callback)
+replaying = false
 

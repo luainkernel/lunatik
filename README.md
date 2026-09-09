@@ -334,17 +334,19 @@ execution contexts.
 sudo make examples_install                         # installs examples
 sudo lunatik run examples/ifquarantine/control     # starts control+filter
 sudo cat /dev/ifquarantine                         # lists known interfaces and verdict
-sudo sh -c "echo 'allow=eth0' > /dev/ifquarantine" # lift quarantine on eth0
-sudo sh -c "echo 'deny=eth0'  > /dev/ifquarantine" # re-apply quarantine
+sudo sh -c "echo 'deny=eth0'  > /dev/ifquarantine" # quarantine eth0
+sudo sh -c "echo 'allow=eth0' > /dev/ifquarantine" # lift the quarantine
 sudo lunatik stop examples/ifquarantine/control    # stops both runtimes
 ```
 
-Pre-existing interfaces are covered as well: `register_netdevice_notifier`
-synchronously replays `NETDEV_REGISTER` (and `NETDEV_UP`) for each existing
-netdev when the notifier block is registered, so they enter quarantine at
-script start too. The replay spans every network namespace, and the example
-keeps the devices of the one its netfilter hook acts on, comparing the
-namespace each event carries against `linux.netns()`.
+The interfaces that already exist are recorded and allowed, not quarantined:
+`register_netdevice_notifier` synchronously replays `NETDEV_REGISTER` (and
+`NETDEV_UP`) for each existing netdev when the notifier block is registered,
+and a policy that denied those would take the machine off the network, `lo`
+and the uplink included. They are listed by `cat /dev/ifquarantine` and can
+be quarantined with `deny=<name>`. The replay spans every network namespace,
+and the example keeps the devices of the one its netfilter hook acts on,
+comparing the namespace each event carries against `linux.netns()`.
 
 ### filter
 
