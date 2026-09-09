@@ -184,6 +184,7 @@ static int lualinux_lookup(lua_State *L)
 
 /***
 * Gets the interface index for a network device name.
+* The name is resolved in the namespace `netns` returns.
 *
 * @function ifindex
 * @tparam string interface_name network interface name (e.g., "eth0").
@@ -206,6 +207,7 @@ static int lualinux_ifindex(lua_State *L)
 
 /***
 * Gets the HW address for the network interface index.
+* The index is resolved in the namespace `netns` returns.
 *
 * @function ifaddr
 * @tparam integer ifindex interface index number.
@@ -227,6 +229,26 @@ static int lualinux_ifaddr(lua_State *L)
 	memcpy(addr, dev->dev_addr, len);
 	dev_put(dev);
 	luaL_pushresultsize(&B, len);
+	return 1;
+}
+
+/***
+* Gets the network namespace Lunatik's device lookups resolve in.
+* It is the initial namespace: the number a `net:[...]` link under
+* `/proc/<pid>/ns/net` names for a process of the machine itself. A
+* `notifier.netdevice` callback compares the `netns` it is given against this
+* to tell a device `ifindex` can resolve from one it cannot.
+*
+* @function netns
+* @treturn integer inode number of the network namespace.
+* @usage
+*   local NETNS <const> = linux.netns()
+*   -- inside a notifier.netdevice callback
+*   if netns == NETNS then print("own device") end
+*/
+static int lualinux_netns(lua_State *L)
+{
+	lua_pushinteger(L, (lua_Integer)init_net.ns.inum);
 	return 1;
 }
 
@@ -273,6 +295,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
 	{"ifaddr", lualinux_ifaddr},
+	{"netns", lualinux_netns},
 	{"errname", lualinux_errname},
 	{"numcpus", lualinux_numcpus},
 	{NULL, NULL}

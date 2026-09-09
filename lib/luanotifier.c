@@ -124,7 +124,9 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 	struct net_device *dev = netdev_notifier_info_to_dev(data);
 
 	lua_pushstring(L, dev->name);
-	return 1;
+	lua_pushinteger(L, (lua_Integer)dev->ifindex);
+	lua_pushinteger(L, (lua_Integer)dev_net(dev)->ns.inum);
+	return 3;
 }
 
 /***
@@ -132,9 +134,13 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 * runtime (the default).
 *
 * @function netdevice
-* @tparam function callback invoked as `callback(event, name)` — `event`
-*   is a `linux.netdev` code and `name` is the device name (e.g. `"eth0"`).
-*   Returns a `linux.notify` status code.
+* @tparam function callback invoked as `callback(event, name, ifindex, netns)`
+*   — `event` is a `linux.netdev` code, `name` is the device name (e.g.
+*   `"eth0"`), `ifindex` is the device's index and `netns` is the inode number
+*   of its network namespace. Every namespace is reported, and a name or an
+*   index identifies a device only within one, so a callback that means the
+*   machine's own devices compares `netns` against `linux.netns()`. Returns a
+*   `linux.notify` status code.
 * @treturn notifier
 * @raise if called from a percpu runtime
 * @within notifier

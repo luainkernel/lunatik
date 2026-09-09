@@ -165,6 +165,11 @@ higher-level `netlink.*` modules built on top of it.
   the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier`
   performs for existing devices.
 
+- **device_identity**: the netdevice chain is global, so the same device name
+  in the initial namespace and in another one must both be reported, each with
+  the `ifindex` and the namespace inode number that identify it, on the replay
+  and on live register and unregister.
+
 ### probe
 
 - **kprobe_concurrent**: registers kprobes on every syscall and runs
