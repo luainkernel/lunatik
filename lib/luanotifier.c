@@ -16,6 +16,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/netdevice.h>
+#include <linux/sched.h>
 #ifdef CONFIG_VT
 #include <linux/keyboard.h>
 #include <linux/vt_kern.h>
@@ -40,6 +41,7 @@ typedef struct luanotifier_s {
 	lunatik_object_t *runtime;
 	luanotifier_handler_t handler;
 	luanotifier_register_t unregister;
+	struct task_struct *registrant;
 } luanotifier_t;
 
 static const lunatik_class_t luanotifier_process_class;
@@ -68,10 +70,9 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 static int luanotifier_call(struct notifier_block *nb, unsigned long event, void *data)
 {
 	luanotifier_t *notifier = container_of(nb, luanotifier_t, nb);
-	bool islocked = !notifier->unregister; /* still inside register_fn? */
 	int ret;
 
-	if (islocked)
+	if (in_task() && notifier->registrant == current) /* the replay: locked by this task, or the body */
 		lunatik_handle(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
 	else
 		lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
@@ -146,10 +147,14 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 * @function netdevice
 * @tparam function callback invoked as `callback(event, name)` — `event`
 *   is a `linux.netdev` code and `name` is the device name (e.g. `"eth0"`).
-*   Returns a `linux.notify` status code. `notify.BAD` vetoes `REGISTER` and
-*   the events the kernel lets a notifier veto, and any code carrying
-*   `notify.STOP_MASK` stops the event before every globally registered
-*   notifier sees it.
+*   The registration itself delivers, inside this call, a `REGISTER` for each
+*   device the namespace already has, and an `UP` for each of those that is
+*   up; a script that means the devices appearing afterwards tells them apart
+*   with a flag it clears once this call returns, since no live event reaches
+*   the callback before the script body ends. Returns a `linux.notify` status
+*   code. `notify.BAD` vetoes `REGISTER` and the events the kernel lets a
+*   notifier veto, and any code carrying `notify.STOP_MASK` stops the event
+*   before every globally registered notifier sees it.
 * @treturn notifier
 * @raise if called from a percpu runtime
 * @within notifier
@@ -254,17 +259,19 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	lunatik_getobject(notifier->runtime);
 
 	notifier->nb.notifier_call = luanotifier_call;
-	notifier->unregister = NULL; /* sentinel: doubles as islocked marker during register_fn */
 	notifier->handler = handler_fn;
 
 	lunatik_registerobject(L, 1, object);
 
-	if (register_fn(&notifier->nb) != 0) {
+	notifier->registrant = current; /* the replay register_fn delivers runs on this task */
+	int err = register_fn(&notifier->nb);
+	notifier->registrant = NULL;
+	if (err != 0) {
 		lunatik_unregisterobject(L, object);
 		luaL_error(L, "couldn't create notifier");
 	}
 
-	notifier->unregister = unregister_fn; /* set AFTER register_fn so islocked works */
+	notifier->unregister = unregister_fn; /* release skips a block register_fn did not take */
 	return 1; /* object */
 }
 
