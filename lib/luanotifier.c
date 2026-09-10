@@ -113,12 +113,21 @@ static int luanotifier_stop(lua_State *L)
 static int luanotifier_new(lua_State *, luanotifier_register_t, luanotifier_register_t,
 	luanotifier_handler_t, const lunatik_class_t *);
 
-#define LUANOTIFIER_NEWCHAIN(name, class)					\
-static int luanotifier_##name(lua_State *L)					\
-{										\
-	return luanotifier_new(L, register_##name##_notifier,			\
-		unregister_##name##_notifier, luanotifier_##name##_handler,	\
-		(class));							\
+#define LUANOTIFIER_NEWCHAIN(name, class, register_fn, unregister_fn)			\
+static int luanotifier_##name(lua_State *L)						\
+{											\
+	return luanotifier_new(L, (register_fn), (unregister_fn),			\
+		luanotifier_##name##_handler, (class));					\
+}
+
+static int luanotifier_netdevice_register(struct notifier_block *nb)
+{
+	return register_netdevice_notifier_net(LUNATIK_NETNS, nb);
+}
+
+static int luanotifier_netdevice_unregister(struct notifier_block *nb)
+{
+	return unregister_netdevice_notifier_net(LUNATIK_NETNS, nb);
 }
 
 static int luanotifier_netdevice_handler(lua_State *L, void *data)
@@ -131,17 +140,22 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 
 /***
 * Registers a network-device notifier. Must be called from a process
-* runtime (the default).
+* runtime (the default). Only devices of the initial network namespace, the
+* one `linux.ifindex` resolves a name in, are reported.
 *
 * @function netdevice
 * @tparam function callback invoked as `callback(event, name)` — `event`
 *   is a `linux.netdev` code and `name` is the device name (e.g. `"eth0"`).
-*   Returns a `linux.notify` status code.
+*   Returns a `linux.notify` status code. `notify.BAD` vetoes `REGISTER` and
+*   the events the kernel lets a notifier veto, and any code carrying
+*   `notify.STOP_MASK` stops the event before every other notifier in the
+*   kernel sees it.
 * @treturn notifier
 * @raise if called from a percpu runtime
 * @within notifier
 */
-LUANOTIFIER_NEWCHAIN(netdevice, &luanotifier_process_class);
+LUANOTIFIER_NEWCHAIN(netdevice, &luanotifier_process_class, luanotifier_netdevice_register,
+	luanotifier_netdevice_unregister);
 
 #ifdef CONFIG_VT
 static int luanotifier_keyboard_handler(lua_State *L, void *data)
@@ -167,7 +181,8 @@ static int luanotifier_keyboard_handler(lua_State *L, void *data)
 * @raise if called from a percpu runtime
 * @within notifier
 */
-LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
+LUANOTIFIER_NEWCHAIN(keyboard, &luanotifier_hardirq_class, register_keyboard_notifier,
+	unregister_keyboard_notifier);
 
 static int luanotifier_vt_handler(lua_State *L, void *data)
 {
@@ -191,7 +206,7 @@ static int luanotifier_vt_handler(lua_State *L, void *data)
 * @raise if called from a percpu runtime
 * @within notifier
 */
-LUANOTIFIER_NEWCHAIN(vt, &luanotifier_hardirq_class);
+LUANOTIFIER_NEWCHAIN(vt, &luanotifier_hardirq_class, register_vt_notifier, unregister_vt_notifier);
 #endif
 
 static const luaL_Reg luanotifier_lib[] = {

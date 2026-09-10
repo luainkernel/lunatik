@@ -2,7 +2,7 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- Regression: register_netdevice_notifier synchronously replays NETDEV_REGISTER
+-- Regression: register_netdevice_notifier_net synchronously replays NETDEV_REGISTER
 -- (and NETDEV_UP) for each existing netdev under the new notifier_block. When
 -- `notifier.netdevice(cb)` is called directly from script init, the replay
 -- fires luanotifier_call while runtime->private was still NULL under the old
