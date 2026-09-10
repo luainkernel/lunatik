@@ -28,7 +28,7 @@ s32 BPF_STRUCT_OPS_SLEEPABLE(luasched_init)
 
 void BPF_STRUCT_OPS(luasched_dispatch, s32 cpu, struct task_struct *prev)
 {
-	scx_bpf_dsq_move_to_local(DSQ_DEFAULT);
+	scx_min_dsq_move_to_local(DSQ_DEFAULT);
 }
 
 void BPF_STRUCT_OPS(luasched_enqueue, struct task_struct *p, u64 enq_flags)
@@ -41,7 +41,7 @@ void BPF_STRUCT_OPS(luasched_enqueue, struct task_struct *p, u64 enq_flags)
 		cls.dsq = DSQ_DEFAULT;
 		cls.slice_ns = SCX_SLICE_DFL;
 	}
-	scx_bpf_dsq_insert(p, cls.dsq, cls.slice_ns, enq_flags);
+	scx_min_dsq_insert(p, cls.dsq, cls.slice_ns, enq_flags);
 }
 
 SEC(".struct_ops")
