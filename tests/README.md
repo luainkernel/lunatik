@@ -209,6 +209,13 @@ higher-level `netlink.*` modules built on top of it.
   register and on unregister only when created and deleted in the initial
   namespace.
 
+- **replay**: the callback's last argument, `replayed`, tells the events
+  `register_netdevice_notifier_net` delivers itself for the devices the
+  namespace already has from the live ones: a dummy device brought up before
+  the script runs is replayed as a `REGISTER` and an `UP`, both marked; one
+  created, brought up and deleted afterwards is reported live, none marked; and
+  no event is marked once the registration has returned.
+
 - **chain_continues**: a netdevice block whose runtime is being torn down
   returns `notify.DONE`, not the `-ENXIO` of `lunatik_run`, whose
   `NOTIFY_STOP_MASK` bit stopped the chain: a device created while one

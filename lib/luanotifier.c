@@ -16,6 +16,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/netdevice.h>
+#include <linux/sched.h>
 #ifdef CONFIG_VT
 #include <linux/keyboard.h>
 #include <linux/vt_kern.h>
@@ -25,7 +26,7 @@
 #include <lunatik.h>
 
 typedef int (*luanotifier_register_t)(struct notifier_block *nb);
-typedef int (*luanotifier_handler_t)(lua_State *L, void *data);
+typedef int (*luanotifier_handler_t)(lua_State *L, void *data, bool replayed);
 
 /***
 * Represents a kernel notifier object.
@@ -40,6 +41,7 @@ typedef struct luanotifier_s {
 	lunatik_object_t *runtime;
 	luanotifier_handler_t handler;
 	luanotifier_register_t unregister;
+	struct task_struct *registrant;
 } luanotifier_t;
 
 static const lunatik_class_t luanotifier_process_class;
@@ -48,7 +50,12 @@ static const lunatik_class_t luanotifier_hardirq_class;
 LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanotifier_process_class,
 	&luanotifier_hardirq_class);
 
-static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
+static inline bool luanotifier_isreplay(luanotifier_t *notifier)
+{
+	return in_task() && notifier->registrant == current;
+}
+
+static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data, bool replayed)
 {
 	int nargs = 1; /* event */
 
@@ -56,7 +63,7 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 		return NOTIFY_DONE; /* callback removed by stop() — silent no-op */
 
 	lua_pushinteger(L, (lua_Integer)event);
-	nargs += notifier->handler(L, data);
+	nargs += notifier->handler(L, data, replayed);
 	if (lua_pcall(L, nargs, 1, 0) != LUA_OK) { /* callback(event, ...) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 		return NOTIFY_OK;
@@ -68,13 +75,13 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 static int luanotifier_call(struct notifier_block *nb, unsigned long event, void *data)
 {
 	luanotifier_t *notifier = container_of(nb, luanotifier_t, nb);
-	bool islocked = !notifier->unregister; /* still inside register_fn? */
+	bool replayed = luanotifier_isreplay(notifier);
 	int ret;
 
-	if (islocked)
-		lunatik_handle(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
+	if (replayed) /* register_fn runs on the runtime's own task, which holds the lock or is still the body */
+		lunatik_handle(notifier->runtime, luanotifier_handler, ret, notifier, event, data, replayed);
 	else
-		lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
+		lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier, event, data, replayed);
 
 	return max(ret, NOTIFY_DONE); /* negative errno sets NOTIFY_STOP_MASK */
 }
@@ -130,12 +137,13 @@ static int luanotifier_netdevice_unregister(struct notifier_block *nb)
 	return unregister_netdevice_notifier_net(LUNATIK_NETNS, nb);
 }
 
-static int luanotifier_netdevice_handler(lua_State *L, void *data)
+static int luanotifier_netdevice_handler(lua_State *L, void *data, bool replayed)
 {
 	struct net_device *dev = netdev_notifier_info_to_dev(data);
 
 	lua_pushstring(L, dev->name);
-	return 1;
+	lua_pushboolean(L, replayed);
+	return 2;
 }
 
 /***
@@ -144,8 +152,11 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 * one `linux.ifindex` resolves a name in, are reported.
 *
 * @function netdevice
-* @tparam function callback invoked as `callback(event, name)` — `event`
-*   is a `linux.netdev` code and `name` is the device name (e.g. `"eth0"`).
+* @tparam function callback invoked as `callback(event, name, replayed)` —
+*   `event` is a `linux.netdev` code, `name` is the device name (e.g. `"eth0"`)
+*   and `replayed` is `true` for an event the registration delivers itself:
+*   a `REGISTER`, and an `UP` for a device that is up, for each device the
+*   namespace already has. A live event carries `false`.
 *   Returns a `linux.notify` status code. `notify.BAD` vetoes `REGISTER` and
 *   the events the kernel lets a notifier veto, and any code carrying
 *   `notify.STOP_MASK` stops the event before every other notifier in the
@@ -158,7 +169,7 @@ LUANOTIFIER_NEWCHAIN(netdevice, &luanotifier_process_class, luanotifier_netdevic
 	luanotifier_netdevice_unregister);
 
 #ifdef CONFIG_VT
-static int luanotifier_keyboard_handler(lua_State *L, void *data)
+static int luanotifier_keyboard_handler(lua_State *L, void *data, bool replayed)
 {
 	struct keyboard_notifier_param *param = (struct keyboard_notifier_param *)data;
 
@@ -184,7 +195,7 @@ static int luanotifier_keyboard_handler(lua_State *L, void *data)
 LUANOTIFIER_NEWCHAIN(keyboard, &luanotifier_hardirq_class, register_keyboard_notifier,
 	unregister_keyboard_notifier);
 
-static int luanotifier_vt_handler(lua_State *L, void *data)
+static int luanotifier_vt_handler(lua_State *L, void *data, bool replayed)
 {
 	struct vt_notifier_param *param = data;
 
@@ -254,17 +265,19 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	lunatik_getobject(notifier->runtime);
 
 	notifier->nb.notifier_call = luanotifier_call;
-	notifier->unregister = NULL; /* sentinel: doubles as islocked marker during register_fn */
 	notifier->handler = handler_fn;
 
 	lunatik_registerobject(L, 1, object);
 
-	if (register_fn(&notifier->nb) != 0) {
+	notifier->registrant = current; /* the replay register_fn delivers runs on this task */
+	int err = register_fn(&notifier->nb);
+	notifier->registrant = NULL;
+	if (err != 0) {
 		lunatik_unregisterobject(L, object);
 		luaL_error(L, "couldn't create notifier");
 	}
 
-	notifier->unregister = unregister_fn; /* set AFTER register_fn so islocked works */
+	notifier->unregister = unregister_fn; /* release skips a block register_fn did not take */
 	return 1; /* object */
 }
 
