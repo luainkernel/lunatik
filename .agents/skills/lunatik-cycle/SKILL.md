@@ -29,6 +29,11 @@ needs the maintainer's authorization first, and `CRASH_AB_OK=1` on the command r
 `lunatik test` unloads the modules when it finishes: `sudo lunatik reload` before a direct
 `bash tests/<suite>/<test>.sh` afterwards, or it skips with `not loaded`.
 
+An example is run through `sudo bash tools/watchdog.sh examples/<script> [softirq|hardirq] [percpu]`,
+which stops it if the host loses the connectivity it had; `example-guard.sh` refuses a bare
+`lunatik run examples/...`, and `NETWORK_LOSS_OK=1` on the command runs one bare on a machine whose
+connectivity is expendable.
+
 # One operation at a time
 
 Never run two lunatik operations concurrently (`test`, `run`, `reload`, a suite's run.sh): the

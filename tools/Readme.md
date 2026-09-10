@@ -27,3 +27,15 @@ tools/oops.sh > scratch/oops-$(date +%F).txt
 
 A saved dump, `journalctl -k -b -1 -o cat` after the reboot where the journal is persistent,
 is read the same way: `tools/oops.sh <dump>`.
+
+## watchdog.sh
+
+Runs a Lunatik script and stops it if the host loses the connectivity it had before the run,
+the loopback or the default route's gateway; a script that cuts the machine off cannot be
+stopped by hand afterwards.
+
+```sh
+sudo bash tools/watchdog.sh examples/ifquarantine/control
+sudo LUNATIK_WATCHDOG_GRACE=10 bash tools/watchdog.sh examples/filter/sni softirq percpu
+```
+
