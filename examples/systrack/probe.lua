@@ -6,7 +6,7 @@ local probe  = require("probe")
 local systab = require("syscall.table")
 local rcu    = require("rcu")
 
-local track
+local track = rcu.table()
 
 for symbol, address in pairs(systab) do
 	local function handler()
@@ -15,8 +15,8 @@ for symbol, address in pairs(systab) do
 	probe.new(address, {pre = handler})
 end
 
-local function attacher(_track)
-	track = _track
+local function attacher()
+	return track
 end
 return attacher
 
