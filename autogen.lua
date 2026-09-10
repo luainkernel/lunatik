@@ -385,17 +385,10 @@ local function intermediate_paths(mods)
 	return util.sorted(needs)
 end
 
+-- A u64 with the high bit set reaches the assembly as a negative decimal; hex keeps its bits.
 local function to_lua_number(val)
-	-- Negative decimal: assembler sign-extended a u64 with high bit set.
-	local neg = val:match("^%-(%d+)$")
-	if neg then
-		local n = math.tointeger(neg)
-		if n == nil then
-			return string.format("0x%016X", math.mininteger)
-		end
-		return string.format("0x%016X", -n)
-	end
-	return val
+	local n = math.tointeger(val)
+	return n and n < 0 and ("0x%016X"):format(n) or val
 end
 
 -- Write one sub-table block: init line (unless this is the top itself)
