@@ -37,6 +37,9 @@ only a reboot clears. Before starting one:
 
     ps -eo pid,stat,cmd | grep -E 'lua5.4.*lunatik|[[]lunatik]'   # any D state = wedged
 
+`lunatik-lock.sh` looks for the same processes before a shell call and refuses the second operation;
+`LUNATIK_LOCK_OK=1` on the command overrides it once what it lists is known to be stale.
+
 A lunatik command that timed out in your tool did not die: the sudo child keeps holding the
 device, and killing the wrapper does not kill it. Confirm the child is gone before relaunching;
 run long operations one at a time and wait for completion.
