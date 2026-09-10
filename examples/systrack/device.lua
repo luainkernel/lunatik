@@ -10,7 +10,7 @@ local runner = require("lunatik.runner")
 local s = require("linux.stat")
 local driver = {name = "systrack", mode = s.IRUGO}
 
-local track = rcu.table()
+local track
 
 local toggle = true
 function driver:read()
@@ -30,7 +30,7 @@ end
 device.new(driver)
 
 local probe = runner.run("examples/systrack/probe", "hardirq")
-probe:resume(track)
+track = probe:resume() -- the probes are armed with it, so it cannot be handed to them afterwards
 
 driver.sentinel = setmetatable({}, {__gc = function()
 	runner.stop("examples/systrack/probe")
