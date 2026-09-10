@@ -170,6 +170,13 @@ those scripts were read. A product built on Lunatik is a consumer this tree cann
 what a binding reports was proposed here as a fix until the script that reads that notifier turned up in
 another repository, using exactly what the change removed.
 
+`tools/pr-status.sh` prints the open pull requests as GitHub has them: base and whether it still merges,
+commits and how many are unsquashed fixups, the size, the CI conclusion, and the labels; `--ready` keeps
+the ones a maintainer can pick up. What GitHub cannot see is whether anyone read one, so the review
+workflow labels what it finished with `workflow-reviewed`, and a pull request without that label has
+had no second reader. Which pull requests are open, reviewed or ready is read from it, not from memory:
+a list called ready was assembled from memory here and was wrong on two of three.
+
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments unless
 the command carries the `REVIEW_POST_OK` marker, set once the exact text has been shown to the

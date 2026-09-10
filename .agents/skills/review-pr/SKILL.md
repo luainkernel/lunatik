@@ -37,4 +37,7 @@ marker to the command.
 - Fix a submitted review's body: `gh api -X PUT repos/.../pulls/<N>/reviews/<id> -F body=@file`.
 - A submitted review cannot be deleted, only dismissed. Getting the placement wrong means
   editing the body down to the verdict and re-posting each finding inline — rework, not repair.
+- Once the review is posted, label the pull request as read end to end:
+  `gh api -X POST repos/.../issues/<N>/labels -f 'labels[]=workflow-reviewed'`; `tools/pr-status.sh`
+  reads that label as the sign that someone read it.
 
