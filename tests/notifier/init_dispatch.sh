@@ -5,7 +5,7 @@
 #
 # Regression test for sync-dispatch during script init.
 #
-# register_netdevice_notifier replays NETDEV_REGISTER (+ NETDEV_UP) synchronously
+# register_netdevice_notifier_net replays NETDEV_REGISTER (+ NETDEV_UP) synchronously
 # for each existing netdev when a new notifier block is registered. Calling
 # notifier.netdevice(cb) directly at script init triggers this replay while the
 # script is still inside lua_pcall. Under the old design (private published only
