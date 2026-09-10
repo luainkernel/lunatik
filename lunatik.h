@@ -28,6 +28,8 @@ typedef u8 __bitwise lunatik_opt_t;
 #define LUNATIK_OPT_PERCPU	((__force lunatik_opt_t)(1U << 6))
 #define LUNATIK_OPT_NONE	((__force lunatik_opt_t)0)
 
+#define LUNATIK_NETNS	(&init_net) /* the network namespace every binding acts in */
+
 #define lunatik_isirq(opt)		((opt) & LUNATIK_OPT_IRQ)
 #define lunatik_issoftirq(opt)		((opt) & ((__force lunatik_opt_t)(1U << 1)))
 #define lunatik_ishardirq(opt)		((opt) & ((__force lunatik_opt_t)(1U << 2)))

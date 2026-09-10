@@ -131,7 +131,7 @@ static luanetfilter_hook_t *luanetfilter_newhook(lua_State *L, lunatik_object_t 
 	hook->nfops.priv = hook;
 	hook->runtime = runtime;
 
-	if ((ret = nf_register_net_hook(&init_net, &hook->nfops)) != 0) {
+	if ((ret = nf_register_net_hook(LUNATIK_NETNS, &hook->nfops)) != 0) {
 		lunatik_free(hook);
 		lunatik_throw(L, ret);
 	}
@@ -140,7 +140,7 @@ static luanetfilter_hook_t *luanetfilter_newhook(lua_State *L, lunatik_object_t 
 
 static void luanetfilter_freehook(luanetfilter_hook_t *hook)
 {
-	nf_unregister_net_hook(&init_net, &hook->nfops);
+	nf_unregister_net_hook(LUNATIK_NETNS, &hook->nfops);
 	lunatik_free(hook);
 }
 

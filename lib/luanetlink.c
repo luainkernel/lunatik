@@ -115,7 +115,7 @@ static int luanetlink_unicast(lua_State *L)
 	luaL_argcheck(L, portid != 0, 2, "invalid port id");
 	struct sk_buff *skb = luanetlink_message(L, &channel->family, cmd, payload, len, gfp);
 
-	lua_pushboolean(L, genlmsg_unicast(&init_net, skb, portid) >= 0);
+	lua_pushboolean(L, genlmsg_unicast(LUNATIK_NETNS, skb, portid) >= 0);
 	return 1;
 }
 
