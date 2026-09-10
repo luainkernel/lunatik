@@ -28,6 +28,7 @@
 #include <linux/btf.h>
 #include <linux/btf_ids.h>
 #include <linux/sched.h>
+#include <linux/sched/ext.h>
 
 LUNATIK_EBPF_START();
 
