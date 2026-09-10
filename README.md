@@ -400,8 +400,8 @@ sudo lunatik stop examples/ifquarantine/control    # stops both scripts
 
 Pre-existing interfaces are covered as well: `register_netdevice_notifier`
 synchronously replays `NETDEV_REGISTER` (and `NETDEV_UP`) for each existing
-netdev when the notifier block is registered, so they enter quarantine at
-script start too.
+netdev when the notifier block is registered, so those of the initial
+namespace enter quarantine at script start too.
 
 ### filter
 

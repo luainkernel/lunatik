@@ -25,6 +25,8 @@
 #include <lunatik.h>
 
 typedef int (*luanotifier_register_t)(struct notifier_block *nb);
+
+#define LUANOTIFIER_DECLINED	(-1) /* a handler returns it instead of a count of pushed values */
 typedef int (*luanotifier_handler_t)(lua_State *L, void *data);
 
 /***
@@ -50,14 +52,16 @@ LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanoti
 
 static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
 {
-	int nargs = 1; /* event */
-
 	if (lunatik_getregistry(L, notifier) != LUA_TFUNCTION)
 		return NOTIFY_DONE; /* callback removed by stop() — silent no-op */
 
 	lua_pushinteger(L, (lua_Integer)event);
-	nargs += notifier->handler(L, data);
-	if (lua_pcall(L, nargs, 1, 0) != LUA_OK) { /* callback(event, ...) */
+
+	int nargs = notifier->handler(L, data);
+	if (nargs == LUANOTIFIER_DECLINED)
+		return NOTIFY_DONE;
+
+	if (lua_pcall(L, nargs + 1, 1, 0) != LUA_OK) { /* callback(event, ...) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 		return NOTIFY_OK;
 	}
@@ -121,9 +125,14 @@ static int luanotifier_##name(lua_State *L)					\
 		(class));							\
 }
 
+#define luanotifier_isinitnet(dev)	net_eq(dev_net(dev), &init_net)
+
 static int luanotifier_netdevice_handler(lua_State *L, void *data)
 {
 	struct net_device *dev = netdev_notifier_info_to_dev(data);
+
+	if (!luanotifier_isinitnet(dev))
+		return LUANOTIFIER_DECLINED;
 
 	lua_pushstring(L, dev->name);
 	return 1;
@@ -131,7 +140,8 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 
 /***
 * Registers a network-device notifier. Must be called from a process
-* runtime (the default).
+* runtime (the default). Only devices of the initial network namespace, the
+* one `linux.ifindex` resolves a name in, are reported.
 *
 * @function netdevice
 * @tparam function callback invoked as `callback(event, name)` — `event`
