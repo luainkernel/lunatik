@@ -28,6 +28,18 @@ tools/oops.sh > scratch/oops-$(date +%F).txt
 A saved dump, `journalctl -k -b -1 -o cat` after the reboot where the journal is persistent,
 is read the same way: `tools/oops.sh <dump>`.
 
+## pr-status.sh
+
+Reports the open pull requests as GitHub has them: base and mergeability, commits and unsquashed
+fixups, size, CI conclusion and labels. `--ready` keeps the ones reviewed by a workflow, green on
+CI, with no fixup pending and mergeable.
+
+```sh
+GH_TOKEN=... bash tools/pr-status.sh            # every open pull request
+GH_TOKEN=... bash tools/pr-status.sh --ready    # what a maintainer can pick up
+GH_TOKEN=... bash tools/pr-status.sh 814 822    # these ones
+```
+
 ## watchdog.sh
 
 Runs a Lunatik script and stops it if the host loses the connectivity it had before the run,
