@@ -21,6 +21,11 @@ local function info(...)
 	print("ifquarantine: " .. string.format(...))
 end
 
+local function record(name, idx)
+	known[name] = idx
+	info("%s (ifindex=%d) already present", name, idx)
+end
+
 local function quarantine(name, idx)
 	known[name] = idx
 	quarantined[tostring(idx)] = true
@@ -35,11 +40,15 @@ local function release(name)
 	end
 end
 
-local function callback(event, name)
+local function callback(event, name, replayed)
 	if event == netdev.REGISTER then
 		local ok, idx = pcall(linux.ifindex, name)
 		if ok and idx then
-			quarantine(name, idx)
+			if replayed then
+				record(name, idx)
+			else
+				quarantine(name, idx)
+			end
 		end
 	elseif event == netdev.UNREGISTER then
 		release(name)
