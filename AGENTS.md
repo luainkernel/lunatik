@@ -743,12 +743,17 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
 * A defect found on the way is fixed, not reported and left: a pre-existing one, in code the change
   does not touch, becomes a commit of its own, or a pull request of its own when it stands apart, and
   the hand-back says which. Asking whether to fix it is asking the maintainer to decide what the
-  rules already decide.
+  rules already decide. "It is not this pull request's" names where the fix goes, never whether it is
+  owed: the finding leaves with a branch or an issue and the report carries its number, since a defect
+  handed back as prose is a defect nobody owns.
 * A finding is resolved, not parked. When something looks wrong, run it to ground — reproduce it, find
   the cause, then fix it or dismiss it. "I'll flag it to the author", "let's look into it separately",
   or asking whether to investigate is dropping it, not handling it. Deferral is for work that belongs
   in another pull request, captured as an issue linked from the comment that defers it — not for the
-  hard half of the finding in hand.
+  hard half of the finding in hand. A dismissal is held to a finding's own standard: runs that came
+  back clean do not dispose of a symptom that appeared once, because an absence measures the runs and
+  not the code. Either the mechanism is traced to why it cannot happen, or it is still a finding and
+  leaves as one.
 * Cover the whole change, and flag across all of it — the author's code and your own fixups alike.
   "It is the author's code" or "my line, not the feature" is never a reason to pass over a defect;
   what is scoped is the fixup, which touches only what a finding requires, not the finding. A review
