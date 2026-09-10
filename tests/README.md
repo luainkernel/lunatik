@@ -165,6 +165,12 @@ higher-level `netlink.*` modules built on top of it.
   the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier`
   performs for existing devices.
 
+- **chain_continues**: a netdevice block whose runtime is being torn down
+  returns `notify.DONE`, not the `-ENXIO` of `lunatik_run`, whose
+  `NOTIFY_STOP_MASK` bit stopped the chain: a device created while one
+  runtime holds its teardown reaches the block a second runtime registered
+  after it.
+
 ### probe
 
 - **kprobe_concurrent**: registers kprobes on every syscall and runs
