@@ -588,6 +588,11 @@ named, not one discovered at that consumer's build.
 * Corrections to a commit on your own branch are `git commit --fixup=<hash>`, not a standalone
   "address review comments" commit. Never fixup a commit that is already on `master`; that becomes a
   new commit on a new branch.
+* A fixup is pushed as soon as it is made. It adds a commit, so it fast-forwards the branch and moves
+  nothing a reviewer already read; what waits for the maintainer is the squash, and a rewrite is said
+  out loud. A fixup that lives only on the machine that wrote it is outside the review, and a cleared
+  worktree or a reboot takes it. The same holds for work handed to a reviewing agent: telling it not to
+  push leaves the push owed by whoever gave the instruction.
 * If a branch adds something in one commit and removes it in another, the second is a fixup of the
   first.
 * After squashing, re read the comments and commit bodies so they describe the final state rather than
