@@ -8,6 +8,8 @@
 * This library allows Lua scripts to register callback functions that are
 * invoked when specific kernel events occur, such as keyboard input,
 * network device status changes, or virtual terminal events.
+* A callback returns a `linux.notify` code; anything else, and an event that
+* reaches a runtime not ready to take it, counts as `notify.DONE`.
 *
 * @module notifier
 */
@@ -74,7 +76,7 @@ static int luanotifier_call(struct notifier_block *nb, unsigned long event, void
 	else
 		lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
 
-	return ret;
+	return max(ret, NOTIFY_DONE); /* negative errno sets NOTIFY_STOP_MASK */
 }
 
 static void luanotifier_release(void *private)
