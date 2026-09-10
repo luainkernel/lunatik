@@ -16,9 +16,15 @@ local filter      <const> = "examples/ifquarantine/filter"
 local percpu      <const> = true
 local quarantined         = rcu.table()   -- tostring(ifindex) -> true
 local known               = {}            -- name -> ifindex
+local loading             = true
 
 local function info(...)
 	print("ifquarantine: " .. string.format(...))
+end
+
+local function record(name, idx)
+	known[name] = idx
+	info("%s (ifindex=%d) already present", name, idx)
 end
 
 local function quarantine(name, idx)
@@ -39,7 +45,11 @@ local function callback(event, name)
 	if event == netdev.REGISTER then
 		local ok, idx = pcall(linux.ifindex, name)
 		if ok and idx then
-			quarantine(name, idx)
+			if loading then
+				record(name, idx)
+			else
+				quarantine(name, idx)
+			end
 		end
 	elseif event == netdev.UNREGISTER then
 		release(name)
@@ -88,4 +98,5 @@ driver.sentinel = setmetatable({}, {__gc = function()
 end})
 
 notifier.netdevice(callback)
+loading = false
 
