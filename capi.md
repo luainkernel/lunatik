@@ -445,7 +445,8 @@ Falls back to `opt` if the field is absent or nil.
 void lunatik_setstring(lua_State *L, int idx, hook, field, maxlen);
 ```
 Reads a required string field named `field` from the table at `idx` into `hook->field`,
-truncated to `maxlen` bytes. Raises a Lua error if the field is missing or not a string.
+a buffer of `maxlen` bytes holding the string and its terminator. Raises a Lua error if
+the field is missing, is not a string, or is too long.
 
 ---
 
