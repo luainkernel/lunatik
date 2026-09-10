@@ -154,6 +154,15 @@ reload, a run or a suite, while another operation is on it, naming the processes
 D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once
 what it lists is known to be stale.
 
+`tools/watchdog.sh` runs a script and stops it when the host loses the connectivity it had before the
+run, comparing against the loopback and the default route's gateway and holding nothing against the
+script that was already unreachable; a stop that does not return is a wedged device, which it reports
+and only a reboot clears. `example-guard.sh`, wired before a shell call, refuses `lunatik run` and
+`spawn` of anything under `examples/` that does not go through it, unless the command carries
+`NETWORK_LOSS_OK=1`: an example arms real hooks on the machine that runs it, and one that cuts the
+network off cannot be stopped afterwards, because the command that would stop it has nowhere to be
+typed. The guard keys on loading an example, not on the name of one already known to misbehave.
+
 `consumers.sh` names the out-of-tree scripts that load a binding the changed files touch, reading the
 clones listed in `LUNATIK_CONSUMERS`; `consumers-guard.sh`, wired before a shell call, blocks opening or
 editing a pull request that changes such a binding until the command carries `CONSUMERS_OK=1`, set once

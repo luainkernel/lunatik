@@ -12,7 +12,7 @@
 input=$(cat)
 
 case "$input" in
-	*"make install"*|*"lunatik reload"*|*"lunatik run"*|*"lunatik spawn"*|*"lunatik test"*|*"bash tests/"*|*"/run.sh"*) ;;
+	*"make install"*|*"lunatik reload"*|*"lunatik run"*|*"lunatik spawn"*|*"lunatik test"*|*"bash tests/"*|*"/run.sh"*|*"watchdog.sh"*) ;;
 	*) exit 0 ;;
 esac
 
