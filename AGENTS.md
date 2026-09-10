@@ -128,10 +128,10 @@ the last one.
 
 `tools/checks/` holds the mechanical checks: comment and LDoc style on framework files
 (`module-conventions.sh`), test scripts that cannot detect a failed load (`test-harness.sh`),
-cppcheck on userspace test C (`cppcheck-tests.sh`), and the trailing blank line rule (`pre-commit`).
-Each takes file paths and skips what does not apply, so any editor, assistant, or CI can run them.
-The `Checks` workflow runs them over a pull request's diff: the trailing blank line rule fails the
-run, the heuristic checks annotate it. Install the commit gate with:
+cppcheck on userspace test C (`cppcheck-tests.sh`), and the trailing blank line rule and the refusal
+of a staged conflict marker (`pre-commit`). Each takes file paths and skips what does not apply, so any
+editor, assistant, or CI can run them. The `Checks` workflow runs them over a pull request's diff:
+`pre-commit` fails the run, the heuristic checks annotate it. Install the commit gate with:
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
@@ -540,6 +540,10 @@ old factory — kept building and broke at the first packet.
 * Read the commit before pushing it, not only the working tree: `git show` the diff that is about to
   be published. Instrumentation added while debugging — a `pr_err`, a hardcoded branch — is invisible
   in a passing test and lands in the pull request.
+* After resolving a rebase or a merge, `git grep -n '^<<<<<<< '` before committing. `git add -A`
+  stages a conflict marker without complaining, and `git rebase --continue` runs no pre-commit hook,
+  so the markers reach the branch and surface far from the resolution: a `tests/run.sh` carrying one
+  dies at ``syntax error near unexpected token `<<<'``.
 * Change only what the task requires. Do not reformat untouched lines, do not move code, do not
   rename variables in passing. Compare `git diff` against `git diff -w` before committing to catch
   stray whitespace.
