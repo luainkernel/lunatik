@@ -102,9 +102,10 @@ on a `linux.*` constant, not a build error. Regenerate cleanly with
 
 A worktree that has not run `make` cannot install: `scripts_install` needs the autogen output and
 fails, and an install whose output was silenced fails unseen while the previous install stays in
-place, so every run after it tests the wrong tree. Keep the install's output visible, and before
-reading a result confirm that what sits under `/lib/modules/lua/` is the tree under test: its
-timestamp, or a grep for a symbol only the branch has.
+place, so every run after it tests the wrong tree. A silenced `make` does the same one step earlier:
+the chain stops at the build and the suite run next reports on the modules already installed. Keep the
+build's and the install's output visible, and before reading a result confirm that what sits under
+`/lib/modules/lua/` is the tree under test: its timestamp, or a grep for a symbol only the branch has.
 
 `lunatik test` reloads the modules before the suite and unloads them after it. A test script run
 directly afterwards (`bash tests/<suite>/<test>.sh`) skips with `not loaded` until the next
@@ -465,7 +466,10 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
 * coverage means the matrix of operation by type by outcome, including the successes, not a list of
   features and not only the error paths;
 * prove the test discriminates: disable the mechanism it covers, watch it fail, restore. Commit
-  first, since restoring is a `git checkout --` that takes any uncommitted work with it;
+  first, since restoring is a `git checkout --` that takes any uncommitted work with it. The defective
+  side has to compile: a header reverted while its callers still pass the argument it drops stops at
+  `too many arguments`, the suite then runs against the modules already installed, and that green run
+  reads as a test that does not discriminate;
 * a case whose stimulus only exists on a busy machine is forced, not waited for: the probe test picks a
   syscall an idle host never makes, which is why it never hit the creation window that crashed the host,
   and covering that window meant pinning the call to the CPU whose runtime is published last. A test
