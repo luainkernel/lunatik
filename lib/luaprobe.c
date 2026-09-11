@@ -212,10 +212,11 @@ static int luaprobe_enable(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luaprobe_class);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
+	luaprobe_kprobe_t *kprobe = probe->kprobe;
 	bool enable = lua_toboolean(L, 2);
 
-	luaL_argcheck(L, probe->kprobe != NULL, 1, LUAPROBE_ERR_SHARED);
-	struct kprobe *kp = &probe->kprobe->kp;
+	luaL_argcheck(L, kprobe != NULL, 1, LUAPROBE_ERR_SHARED);
+	struct kprobe *kp = &kprobe->kp;
 
 	if (kp->pre_handler == NULL)
 		return luaL_argerror(L, 1, LUNATIK_ERR_NULLPTR);
