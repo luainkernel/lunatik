@@ -162,13 +162,14 @@ local function repl(read_line)
 	local line = read_line("> ")
 	while line ~= nil do
 		local chunk = line
-		while is_incomplete(chunk) do
+		local expr = try_as_expr(chunk) -- a name or a field also reads as an unfinished assignment
+		while not expr and is_incomplete(chunk) do
 			local more = read_line(">> ")
 			if more == nil then break end
 			chunk = chunk .. "\n" .. more
+			expr = try_as_expr(chunk)
 		end
-		local send = try_as_expr(chunk) and ("return " .. chunk) or chunk
-		local res = dostring(send)
+		local res = dostring(expr and ("return " .. chunk) or chunk)
 		if res ~= "" then print(res) end
 		line = read_line("> ")
 	end
