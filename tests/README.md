@@ -224,10 +224,10 @@ higher-level `netlink.*` modules built on top of it.
   is dropped while the runtimes are still being created, and counted once they
   are up; one set holds a kprobe per target, and a second probe on the same
   symbol in one runtime is refused; `stop` and `enable` are refused in a percpu
-  runtime, where the object owns the kprobe; the same script probes as a plain
-  hardirq runtime; and a plain runtime stops its own probe, twice with no
-  effect, is refused an `enable` afterwards, and refuses a probe on a symbol
-  the kernel does not have.
+  runtime, where the object owns the kprobe; a probe from a handler, after the
+  script loaded, is refused; the same script probes as a plain hardirq runtime;
+  and a plain runtime stops its own probe, twice with no effect, is refused an
+  `enable` afterwards, and refuses a probe on a symbol the kernel does not have.
 
 ### rcu
 

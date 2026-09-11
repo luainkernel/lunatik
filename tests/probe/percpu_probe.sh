@@ -13,9 +13,11 @@
 # published last, is dropped, and the same call is counted once they are up; one
 # set holds a kprobe per target, and a second probe on the same symbol in one
 # runtime is refused; stop and enable are refused in a percpu runtime, where the
-# object owns the kprobe; the same script probes as a plain hardirq runtime; and
-# a plain runtime stops its own probe, twice with no effect, is refused an enable
-# afterwards, and refuses a probe on a symbol the kernel does not have.
+# object owns the kprobe; a probe from a handler, after the script loaded, is
+# refused before it could sleep in hardirq; the same script probes as a plain
+# hardirq runtime; and a plain runtime stops its own probe, twice with no effect,
+# is refused an enable afterwards, and refuses a probe on a symbol the kernel
+# does not have.
 #
 # Usage: sudo bash tests/probe/percpu_probe.sh
 
@@ -24,6 +26,7 @@ TWICE="tests/probe/percpu_probe_twice"
 STOP="tests/probe/percpu_probe_stop"
 PLAIN="tests/probe/percpu_probe_plain"
 EARLY="tests/probe/percpu_probe_early"
+LATE="tests/probe/percpu_probe_late"
 ARMED="percpu probe early: armed"
 TARGETS="percpu probe twice: two targets armed"
 KPROBES="/sys/kernel/debug/kprobes/list"
@@ -39,6 +42,7 @@ cleanup()
 	lunatik stop "$STOP" > /dev/null 2>&1
 	lunatik stop "$PLAIN" > /dev/null 2>&1
 	lunatik stop "$EARLY" > /dev/null 2>&1
+	lunatik stop "$LATE" > /dev/null 2>&1
 }
 
 # how many kprobes the kernel holds; nothing where debugfs does not say
@@ -69,7 +73,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 6
+ktap_plan 7
 
 command -v taskset > /dev/null 2>&1 && command -v setarch > /dev/null 2>&1 || {
 	echo "# SKIP: taskset or setarch not available"
@@ -77,6 +81,7 @@ command -v taskset > /dev/null 2>&1 && command -v setarch > /dev/null 2>&1 || {
 	ktap_skip "a call reaching the shared kprobe before the runtimes are published is dropped"
 	ktap_skip "one set holds a kprobe per target; a second probe on the same symbol is refused"
 	ktap_skip "stop and enable are refused in a percpu runtime"
+	ktap_skip "a probe from a handler, after load, is refused"
 	ktap_skip "the same script probes as a plain hardirq runtime"
 	ktap_skip "a plain runtime stops its probe once, refuses enable afterwards and refuses an unknown symbol"
 	ktap_totals
@@ -134,6 +139,16 @@ run_script "$STOP" hardirq percpu
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$STOP" > /dev/null 2>&1
 ktap_pass "stop and enable are refused in a percpu runtime"
+
+mark_dmesg
+run_script "$LATE" hardirq percpu
+trigger "$cpu"
+check_dmesg || { ktap_totals; exit 1; }
+lunatik stop "$LATE" > /dev/null 2>&1
+dmesg_since | grep -qF "percpu probe late: " || fail "the handler did not run"
+dmesg_since | grep -q "percpu probe late: not allowed after module load" || \
+	fail "the late probe was not refused: $(dmesg_since | grep 'percpu probe late')"
+ktap_pass "a probe from a handler, after load, is refused"
 
 mark_dmesg
 run_script "$SCRIPT" hardirq
