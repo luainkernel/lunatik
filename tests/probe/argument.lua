@@ -6,23 +6,30 @@
 
 local probe = require("probe")
 
+local getupvalue = debug.getupvalue
+
 local COUNT <const> = 8191 -- the size argument.sh reads
 
-local stale
+local staledump, staleargument
 local done = false
 
 local function pass(what)
 	print("probe argument: " .. what)
 end
 
-local function pre(_, _, argument)
+local function dropped(closure)
+	local _, regs = getupvalue(closure, 1)
+	return regs == nil
+end
+
+local function pre(_, dump, argument)
 	if done then
 		return
 	end
 
-	if stale ~= nil then
+	if staleargument ~= nil then
 		done = true
-		if not pcall(stale, 2) then
+		if not pcall(staleargument, 2) and dropped(staledump) then
 			pass("stale")
 		end
 		return
@@ -36,7 +43,7 @@ local function pre(_, _, argument)
 	if not pcall(argument, -1) then
 		pass("bounds")
 	end
-	stale = argument
+	staledump, staleargument = dump, argument
 end
 
 probe.new("vfs_read", {pre = pre})
