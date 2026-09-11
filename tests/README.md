@@ -215,6 +215,19 @@ higher-level `netlink.*` modules built on top of it.
   one load generator per CPU; `lunatik stop` must complete within 5s
   with no kernel errors under concurrent handler firings.
 
+- **percpu_probe**: the runtimes of a percpu script share one kprobe on
+  the `personality` syscall, which nothing else on an idle host calls: a
+  pinned `setarch` is handled exactly once, by the runtime of the CPU it
+  ran on, and no runtime is reached through a kprobe it did not register;
+  a call pinned to the CPU whose runtime is published last is dropped while
+  the runtimes are still being created, and counted once they are up;
+  one set holds a kprobe per target, and a second probe on the same symbol in
+  one runtime is refused; `stop` and `enable` are refused in a percpu runtime,
+  where the object owns the kprobe; the same script probes as a plain hardirq
+  runtime; and a plain runtime stops its own probe, twice with no effect, is
+  refused an `enable` afterwards, and refuses a probe on a symbol the kernel
+  does not have.
+
 ### rcu
 
 - **map_values**: `rcu.map()` iterates booleans, integers, userdata,
