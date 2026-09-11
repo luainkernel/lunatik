@@ -184,7 +184,7 @@ static const lunatik_class_t luanetfilter_class = {
 * @raise if the hook cannot be registered; in a percpu script, if this runtime already
 *   registered the same `pf`, `hooknum`, `priority` and `mark`, or if called after module load
 */
-static int luanetfilter_lregister(lua_State *L)
+static int luanetfilter_register(lua_State *L)
 {
 	luanetfilter_hook_t spec = {.nfops = {.hook = luanetfilter_hook}};
 	luanetfilter_checkspec(L, 1, &spec);
@@ -209,7 +209,7 @@ static int luanetfilter_lregister(lua_State *L)
 }
 
 static const luaL_Reg luanetfilter_lib[] = {
-	{"register", luanetfilter_lregister},
+	{"register", luanetfilter_register},
 	{NULL, NULL},
 };
 
