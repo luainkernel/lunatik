@@ -18,6 +18,7 @@
 typedef struct luaprobe_kprobe_s {
 	struct hlist_node node;
 	struct kprobe kp;
+	kprobe_opcode_t *addr;	/* the address asked for, NULL for a symbol: register_kprobe resolves kp.addr */
 	lunatik_object_t *runtime;
 } luaprobe_kprobe_t;
 
@@ -110,11 +111,13 @@ static void luaprobe_delete(luaprobe_kprobe_t *kprobe)
 	}
 }
 
-static bool luaprobe_match(const struct kprobe *kp, const struct kprobe *spec)
+static bool luaprobe_match(const luaprobe_kprobe_t *kprobe, const luaprobe_kprobe_t *spec)
 {
-	if (spec->symbol_name == NULL)
-		return kp->addr == spec->addr;
-	return kp->symbol_name != NULL && strcmp(kp->symbol_name, spec->symbol_name) == 0;
+	const char *symbol = kprobe->kp.symbol_name;
+
+	if (spec->kp.symbol_name == NULL)
+		return kprobe->addr == spec->addr;
+	return symbol != NULL && strcmp(symbol, spec->kp.symbol_name) == 0;
 }
 
 static luaprobe_kprobe_t *luaprobe_find(struct hlist_head *kprobes, const luaprobe_kprobe_t *spec)
@@ -122,7 +125,7 @@ static luaprobe_kprobe_t *luaprobe_find(struct hlist_head *kprobes, const luapro
 	luaprobe_kprobe_t *kprobe;
 
 	hlist_for_each_entry(kprobe, kprobes, node) {
-		if (luaprobe_match(&kprobe->kp, &spec->kp))
+		if (luaprobe_match(kprobe, spec))
 			return kprobe;
 	}
 	return NULL;
@@ -264,7 +267,7 @@ static const lunatik_class_t luaprobe_class = {
 static void luaprobe_checkspec(lua_State *L, int ix, luaprobe_kprobe_t *spec)
 {
 	if (lua_islightuserdata(L, ix))
-		spec->kp.addr = lua_touserdata(L, ix);
+		spec->addr = spec->kp.addr = lua_touserdata(L, ix);
 	else
 		spec->kp.symbol_name = luaL_checkstring(L, ix); /* anchored at ix until luaprobe_register copies it */
 }
