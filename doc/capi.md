@@ -226,7 +226,7 @@ holds for the registrations its runtimes share, as [`lunatik_percpudata`](#lunat
 creates it: a private that is a `struct hlist_head` of `T` entries linked through their
 `struct hlist_node node`, whose `release`, `prefix_release`, unlinks every entry and passes it to
 `free`. For example,
-`LUNATIK_PERCPUDATA(luaprobe_kprobes, "probe.kprobes", luaprobe_kprobe_t, luaprobe_free)`
+`LUNATIK_PERCPUDATA(luaprobe_kprobes, "probe.kprobes", luaprobe_kprobe_t, luaprobe_disarm)`
 defines `luaprobe_kprobes_class`.
 
 ---
