@@ -607,6 +607,10 @@ named, not one discovered at that consumer's build.
 * A force-push that restructures a branch is not done until the pull request title and body are
   re-read against it. They describe the branch; a rewrite that drops or replaces a mechanism turns
   them into fiction the reviewer reads first.
+* A report of a push names the ref it moved and, separately, what it was rebased onto. "Force-pushed
+  onto current master" reads as the one thing nobody may do, and a reader who has to parse a sentence
+  to find out whether `master` was rewritten has already been alarmed for nothing. Say which branch
+  took the push; the base is a different clause.
 * Do not commit directly to `master`.
 * Copyright years: a new file carries the current year; a modified file extends its range to include
   it.
