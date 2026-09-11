@@ -191,10 +191,11 @@ static int luaprobe_stop(lua_State *L)
 
 	luaL_argcheck(L, kprobe != NULL, 1, LUAPROBE_ERR_SHARED);
 	luaprobe_delete(kprobe);
-	lunatik_unregister(L, kprobe);
 
-	if (lunatik_toruntime(L) == kprobe->runtime)
+	if (lunatik_toruntime(L) == kprobe->runtime) {
+		lunatik_unregister(L, kprobe);
 		lunatik_unregisterobject(L, object);
+	}
 	return 0;
 }
 
