@@ -80,7 +80,7 @@ return {
 		include = { "DROP", "ACCEPT", "STOLEN", "QUEUE", "REPEAT", "STOP" } },
 	{ header = "linux/skbuff.h", prefix = "SKB_DROP_REASON_", module = "dropreason",
 		desc = "Socket buffer (skb) drop reasons, as `kfree_skb_reason()` receives them.",
-		exclude = "SKB_DROP_REASON_MAX" },
+		exclude = { "SKB_DROP_REASON_MAX", "SKB_DROP_REASON_SUBSYS_" } },
 	{ header = "linux/skbuff.h", prefix = "SKB_", module = "dropreason",
 		include = { "CONSUMED", "NOT_DROPPED_YET" } },
 	{ header = "uapi/linux/netfilter/nf_conntrack_common.h", prefix = "IP_CT_", module = "nf.ct.info",
