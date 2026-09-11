@@ -7,7 +7,7 @@
 --   > drops = require("examples.dropreason.report")
 --   > drops.NO_SOCKET
 --   1
---   > return drops.report()
+--   > drops.report()
 
 local rcu     = require("rcu")
 local lunatik = require("lunatik")

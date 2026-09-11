@@ -336,7 +336,7 @@ sudo lunatik                                          # opens the kernel REPL
 > drops = require("examples.dropreason.report")
 > drops.NO_SOCKET
 1
-> return drops.report()                               # counts by reason
+> drops.report()                                      # counts by reason
       1  NO_SOCKET
       6  TCP_OLD_DATA
     152  NOT_SPECIFIED

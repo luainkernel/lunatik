@@ -16,7 +16,7 @@
 --   > drops = require("examples.dropreason.report")
 --   > drops.NO_SOCKET
 --   1
---   > return drops.report()
+--   > drops.report()
 
 local probe      = require("probe")
 local rcu        = require("rcu")
