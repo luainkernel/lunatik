@@ -238,8 +238,6 @@ typedef struct lunatik_shared_s {
 
 lunatik_shared_t *lunatik_share(lua_State *L, lunatik_object_t *percpu, const lunatik_sharing_t *sharing,
 	const lunatik_shared_t *spec);
-lunatik_shared_t *lunatik_own(lua_State *L, lunatik_object_t *runtime, const lunatik_sharing_t *sharing,
-	const lunatik_shared_t *spec);
 ```
 One registration the runtimes of a `percpu` set share: the first call installs it, the others find
 it and attach to it, and a callback dispatched through `shared.runtime` reaches the runtime of the
@@ -257,10 +255,19 @@ typedef struct lunatik_sharing_s {
 ```
 
 `lunatik_share` copies `size` bytes of `spec`, sets the runtime and calls `arm`, which registers
-with the kernel and, if it cannot, frees the registration before raising. `lunatik_own` does the
-same for a plain runtime, which holds a reference of its own; a `percpu` object is held by its
-data instead. `class` is what [`LUNATIK_PERCPUDATA`](#lunatik_percpudata) defines, and its
-`release` frees the list.
+with the kernel and, if it cannot, frees the registration before raising. `class` is what
+[`LUNATIK_PERCPUDATA`](#lunatik_percpudata) defines, and its `release` frees the list, which is how
+a shared registration is freed; the `percpu` object is held by that data.
+
+### lunatik\_own
+```C
+lunatik_shared_t *lunatik_own(lua_State *L, lunatik_object_t *runtime, const lunatik_sharing_t *sharing,
+	const lunatik_shared_t *spec);
+```
+The same registration for a plain runtime, which has none to share with, so only `size` and `arm`
+are read of `sharing` and nothing is linked into a list: the runtime is held here rather than by a
+`percpu` object's data, and the caller keeps the pointer, freeing it and releasing the runtime when
+its own object is released.
 
 ---
 
