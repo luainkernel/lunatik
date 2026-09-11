@@ -1,12 +1,14 @@
-# Proposed Lua API: `fsnotify`
+# The Lua API: `fsnotify`
 
-This is a design proposal, not a specification. Names and shapes are open for review; the constraints
-behind them (in `kernel-notes.md`) are not. Anything here that turns out to conflict with a kernel
-constraint loses.
+This began as a proposal and records what was built. The reference for each method is the LDoc
+generated from `lib/luafsnotify.c`; what this document carries is the shape and the reasons behind
+it, and the kernel constraints that drove them are in `kernel-notes.md`. Where it and the code
+disagree, the code is right.
 
-One new kernel module, `fsnotify` (`lib/luafsnotify.c`), owning two object classes:
+One kernel module, `fsnotify` (`lib/luafsnotify.c`), owning three object classes:
 
-* `watch` — an `fsnotify_group` with its ops and its Lua callback;
+* `fsnotify` — the watch: an `fsnotify_group` with its ops and its Lua callback;
+* `fsnotify.mark` — the handle on one mark, which the kernel keys by the object it sits on;
 * `fsnotify.event` — the object handed to the callback, reset per event and cleared on return,
   following the registry pattern `lib/luanetfilter.c` uses for its `skb`.
 
@@ -15,7 +17,9 @@ One new kernel module, `fsnotify` (`lib/luafsnotify.c`), owning two object class
 * Event masks are integers from `linux.fs`, combined with `|`: `fs.OPEN | fs.MODIFY`.
 * Object kind selectors are strings, as `skb:data("mac")` already does: `"inode"`, `"mount"`, `"sb"`.
 * Paths are strings, resolved in the kernel with `kern_path`.
-* A missing optional kernel feature means a missing method, not a runtime error.
+* A kernel that cannot do what an argument asks for refuses that argument and names why — `"mount"`
+  before 6.10, a permission event without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS` — rather than dropping
+  the method: the method is there on every kernel, and the script gets something to branch on.
 * The whole module is process context only. Marking sleeps, and so does the handler.
 
 ## Creating a watch
@@ -51,30 +55,33 @@ it: one spelling, not two.
 |--------|---------|-------|
 | `watch:mark(path, mask[, kind])` | `mark` | `kind` defaults to `"inode"`; `"mount"` and `"sb"` mark the containing mount or superblock |
 | `watch:find(path[, kind])` | `mark` or `nil` | `fsnotify_find_mark`; what this watch already installed |
-| `watch:stop()` | | disarms the callback; the group is torn down on release |
+| `watch:stop()` | | removes every mark and drops the group; a second call does nothing |
 
     local mark = watch:mark("/tmp/scratch", fs.OPEN | fs.MODIFY | fs.CREATE | fs.DELETE)
     watch:mark("/tmp/scratch", fs.OPEN_PERM, "mount")
 
-`watch:stop()` follows the soft-stop convention the repository already uses, and `lib/luanotifier.c`
-is the model to copy: `stop` only clears the registered callback, so the handler becomes a silent
-no-op, and the teardown that can sleep happens in `release`, which always runs in process context
-(`lua_close` → GC → `release`).
+`watch:stop()` tears down: it removes every mark the watch placed, drops the callback out of the
+registry and puts the group. A watch never stopped is torn down the same way from `release`.
 
-That split matters here rather than being a formality: `fsnotify_wait_marks_destroyed()` is a flush and
-sleeps. Destroying the group from `stop` would put a sleeping call wherever a script chose to call it.
+What `stop` does not do is wait. `fsnotify_wait_marks_destroyed()` is a flush, and a mark can still be
+inside an event under fsnotify's SRCU — an event blocked on the runtime lock that `stop` is itself
+holding, so waiting there deadlocks. The group outlives the call instead, and `free_group_priv` frees
+the watch from fsnotify's own reaper once the last mark is gone. The flush belongs to module exit,
+where nothing holds the lock.
 
 ### Class shape
 
-Process context, so no `LUNATIK_OPT_SOFTIRQ`. `LUNATIK_OPT_SINGLE`, matching
-`luanotifier_process_class`, which is the closest analogue in the base. Errors follow the base
+Process context, so no `LUNATIK_OPT_SOFTIRQ`: `fsnotify.watch` raises from an interrupt-context
+runtime, and from a percpu one. All three classes carry `LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL`
+— private and non-shareable, with `object->private` set by the module rather than allocated with the
+object, since the group owns the watch and the watch owns its marks. Errors follow the base
 convention, negative errno raised through `lunatik_throw`/`pusherrname`.
 
 ## The `mark` object
 
 | Method | Returns | Notes |
 |--------|---------|-------|
-| `mark:mask([mask])` | integer | reads, or sets and recalculates |
+| `mark:mask([mask])` | integer | reads, or removes the mark and adds it again, the only thing that recalculates the object's mask |
 | `mark:ignore([mask])` | integer | the ignore mask, for events this mark should not report |
 | `mark:remove()` | | `fsnotify_destroy_mark` |
 
@@ -98,26 +105,29 @@ What is available depends on which data type the kernel attached to the event (`
 event does not carry the field, so a handler can be written once for several masks.
 
 `event:path()` is the expensive one: it needs `d_path` and a page sized buffer. It stays a method, so
-a handler that only matches on the name never pays for it.
+a handler that only matches on the name never pays for it. What it renders is the accessing task's own
+view of the path, `" (deleted)"` and all; `kernel-notes.md` has the citations.
 
 ## Permission events
 
     local function guard(mask, event)
-        if mask & fs.OPEN_EXEC_PERM ~= 0 and not allowed[event:name()] then
+        if mask & fs.OPEN_EXEC_PERM ~= 0 and not allowed:has(event:name()) then
             return fsnotify.action.DENY
         end
         return fsnotify.action.ALLOW
     end
 
     local watch = fsnotify.watch(guard)
-    watch:mark("/tmp/scratch", fs.OPEN_PERM | fs.OPEN_EXEC_PERM, "mount")
+    watch:mark("/tmp/scratch", fs.OPEN_PERM | fs.OPEN_EXEC_PERM | fs.EVENT_ON_CHILD)
 
 `fsnotify.action.ALLOW` is 0 and `fsnotify.action.DENY` is `-EPERM`, which is what the kernel expects
 back from `handle_event`. They are named constants in the module rather than raw numbers because
 returning a bare `-1` from a handler by accident is a denial, and because a boolean would invert
 badly: `nil` (a handler that forgot to return) must mean allow.
 
-Denial surfaces to the process as `EPERM` on the syscall.
+Denial surfaces to the process as `EPERM` on the syscall. A handler that wants another error answers
+that negative errno and the syscall fails with it; anything the kernel would not read as an errno,
+including a handler that returns nothing or raises, allows.
 
 Requires `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`. The `*_PERM` constants are present either way, since
 the config gates the permission hooks and not the defines, so their presence cannot be the test: the
@@ -131,77 +141,54 @@ or indirectly through `require`, a `print` to a watched log, or a Lunatik script
 mount — it re-enters, and with the runtime already locked by the outer call that is a deadlock rather
 than a wrong answer.
 
-The proposal is a guard by task identity in the group's private data:
+The guard is the runtime's own owner check, read in the dispatcher before anything runs:
 
-    if (group_priv->handler == current)
-            return 0;               /* allow, and do not recurse */
-    group_priv->handler = current;
-    ret = lunatik_run(...);
-    group_priv->handler = NULL;
+    if (lunatik_isowner(watch->runtime))
+            return LUAFSNOTIFY_ALLOW;   /* allow, and do not recurse */
 
-Task identity, not a per-CPU flag: the handler may sleep, so the guard has to survive a reschedule.
-The stored task is written and read only by the task itself in the nesting case, so no additional
-lock is needed, but this is exactly the kind of claim that gets a prototype and a test rather than a
-paragraph — phase 1 owns proving it.
+Task identity, and none of it the module's own state: the core records the task that holds the
+runtime lock when it takes it, so the check covers every way that task can already hold it — this
+callback opening a path it marks, a `thread` body, a `device` file operation, another module's
+callback in the same runtime. A `handler == current` field in the group's private data, which is what
+this document first proposed, would have caught only the first of those.
 
-The base already has a mechanism for the adjacent problem, and the prototype should be compared
-against it before settling. `luanotifier_call` detects that its callback is firing while the runtime
-lock is already held and calls `lunatik_handle` (no lock) instead of `lunatik_run` (takes it):
+The base has a mechanism for the adjacent problem, and it is the one not taken. `luanotifier_call`
+detects that its callback is firing while the runtime lock is already held and calls `lunatik_handle`
+(no lock) instead of `lunatik_run` (takes it):
 
     bool islocked = !notifier->unregister; /* still inside register_fn? */
     if (islocked) lunatik_handle(...); else lunatik_run(...);
 
 Reusing the held lock would let the nested handler actually run rather than being skipped. The reason
 to skip anyway is that nesting here is unbounded — the nested handler can open a watched file too —
-so the recursion has no floor. Say that in the code, because the alternative is one line away and the
-next reader will wonder.
+so the recursion has no floor. The code says so at the check, because the alternative is one line
+away and the next reader will wonder.
 
 **Serialization.** A process context runtime locks a mutex around the callback, so every watched access
 on the machine passes through one lock. A slow handler does not only slow the process that triggered
-it, it serializes all watched accesses. That is the mechanism behind "a slow handler is a slow system",
-and it is what phase 4 should measure.
+it, it serializes all watched accesses. That is the mechanism behind "a slow handler is a slow system".
+Nothing in the epic measured it: it is documented on the module as a contract, and the number is
+still owed.
 
 Two conventions on top of the guard, for the examples and the documentation:
 
 * never mark `/`, `/lib/modules/lua`, or the directory holding the script;
 * prefer a mount or inode mark on a scratch subtree to a superblock mark on the root filesystem.
 
-## Worked example: integrity monitor
+## Worked examples
 
-    local fsnotify = require("fsnotify")
-    local fs       = require("linux.fs")
+Both of them ship, one per regime, and the README says how to run each:
 
-    local WATCHED <const> = "/etc"
+* [`examples/fsmonitor.lua`](../../../examples/fsmonitor.lua), notification: an inode mark on one
+  directory with `EVENT_ON_CHILD`, and one log line per event naming the entry, its inode and the pid
+  that caused it.
+* [`examples/execguard.lua`](../../../examples/execguard.lua), permission: `FS_OPEN_EXEC_PERM` on the
+  same shape of mark, answering `DENY` for an entry a `set` does not name.
 
-    local function audit(mask, event)
-        if mask & (fs.MODIFY | fs.ATTRIB) ~= 0 then
-            print(string.format("changed: %s (ino %d, pid %d)",
-                event:name() or "?", event:ino() or 0, event:pid()))
-        end
-    end
-
-    local watch = fsnotify.watch(audit)
-    watch:mark(WATCHED, fs.MODIFY | fs.ATTRIB | fs.CREATE | fs.DELETE, "mount")
-
-## Worked example: exec allowlist
-
-    local fsnotify = require("fsnotify")
-    local fs       = require("linux.fs")
-    local set      = require("set")
-
-    local SCRATCH <const> = "/tmp/scratch"
-    local allowed  = set.new{"hello", "true"}
-
-    local function guard(mask, event)
-        local name = event:name()
-        if name and not allowed:has(name) then
-            return fsnotify.action.DENY
-        end
-        return fsnotify.action.ALLOW
-    end
-
-    local watch = fsnotify.watch(guard)
-    watch:mark(SCRATCH, fs.OPEN_EXEC_PERM, "mount")
+Each marks one directory and nothing wider, and that is the whole of what confines it: an inode mark
+reports, and refuses, for the entries of that one directory, where a `"mount"` or `"sb"` mark reaches
+every file of a mount or of a whole filesystem. A monitor over `/etc` reads well in a sketch and
+marks the root filesystem's mount in practice.
 
 The matching is Lua's, using `set`; the module supplies the event and takes the verdict. That split is
 the point of the binding.
@@ -218,10 +205,18 @@ than left for review:
 * **One callback per watch.** `notifier` is one callback per object; if you need two behaviours, make
   two watches. The kernel would allow one per mark, but that puts a dispatch in C that Lua does better.
 
-## Open questions for review
+## Decided while building
 
-1. Whether `event:pid()` should return a `task` object once `luatask` lands from the eBPF work,
-   rather than a bare integer.
-2. Whether `event:path()` should cache the resolved string for the duration of the event, since a
-   handler that tests it and then logs it pays `d_path` twice.
+Two questions this document left open for review, and what the code answered.
+
+1. **`event:pid()` is a bare integer, not a `task` object.** Everything the event exposes dies with
+   the dispatcher's frame: the object is reset per event and cleared when the callback returns, so a
+   handle that outlived the call would be the one thing a script could keep past it, which is exactly
+   what clearing the event is there to prevent. The number is `task_pid_nr(current)`, the same one
+   `task:pid()` reports, so a script that wants the object looks it up while the callback runs.
+2. **`event:path()` does not cache.** A handler that tests the path and then logs it pays `d_path`
+   twice; one that matches on `name` pays nothing, and that is the common shape — both examples take
+   it. A cache would be one more field to clear on the path whose one job is clearing what a kept
+   event must not read, and it would have to be cleared per event, since the object is reused for
+   every event of the watch.
 
