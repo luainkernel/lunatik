@@ -138,7 +138,7 @@ static luaprobe_kprobe_t *luaprobe_register(lua_State *L, lunatik_object_t *runt
 	kprobe->runtime = runtime;
 
 	if (kp->symbol_name != NULL) {
-		kp->symbol_name = kstrdup(kp->symbol_name, lunatik_gfp(runtime));
+		kp->symbol_name = kstrdup(kp->symbol_name, lunatik_gfp(lunatik_toruntime(L)));
 		if (kp->symbol_name == NULL) {
 			lunatik_free(kprobe);
 			lunatik_enomem(L);
