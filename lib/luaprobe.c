@@ -16,10 +16,9 @@
 #include <lunatik.h>
 
 typedef struct luaprobe_kprobe_s {
-	struct hlist_node node;
+	lunatik_shared_t shared;
 	struct kprobe kp;
 	kprobe_opcode_t *addr;	/* the address asked for, NULL for a symbol: register_kprobe resolves kp.addr */
-	lunatik_object_t *runtime;
 } luaprobe_kprobe_t;
 
 /***
@@ -78,7 +77,7 @@ static int __kprobes luaprobe_pre_handler(struct kprobe *kp, struct pt_regs *reg
 	luaprobe_kprobe_t *kprobe = container_of(kp, luaprobe_kprobe_t, kp);
 	int ret;
 
-	lunatik_run(kprobe->runtime, luaprobe_handler, ret, kprobe, "pre", regs);
+	lunatik_run(kprobe->shared.runtime, luaprobe_handler, ret, kprobe, "pre", regs);
 	(void)ret;
 	return 0;
 }
@@ -89,7 +88,7 @@ static void __kprobes luaprobe_post_handler(struct kprobe *kp, struct pt_regs *r
 	int ret;
 
 	/* flags always seems to be zero; see: https://docs.kernel.org/trace/kprobes.html#api-reference */
-	lunatik_run(kprobe->runtime, luaprobe_handler, ret, kprobe, "post", regs);
+	lunatik_run(kprobe->shared.runtime, luaprobe_handler, ret, kprobe, "post", regs);
 	(void)ret;
 }
 
@@ -111,34 +110,22 @@ static void luaprobe_delete(luaprobe_kprobe_t *kprobe)
 	}
 }
 
-static bool luaprobe_match(const luaprobe_kprobe_t *kprobe, const luaprobe_kprobe_t *spec)
+static bool luaprobe_match(const lunatik_shared_t *shared, const lunatik_shared_t *spec)
 {
+	const luaprobe_kprobe_t *kprobe = (const luaprobe_kprobe_t *)shared;
+	const luaprobe_kprobe_t *wanted = (const luaprobe_kprobe_t *)spec;
 	const char *symbol = kprobe->kp.symbol_name;
 
-	if (spec->kp.symbol_name == NULL)
-		return kprobe->addr == spec->addr;
-	return symbol != NULL && strcmp(symbol, spec->kp.symbol_name) == 0;
+	if (wanted->kp.symbol_name == NULL)
+		return kprobe->addr == wanted->addr;
+	return symbol != NULL && strcmp(symbol, wanted->kp.symbol_name) == 0;
 }
 
-static luaprobe_kprobe_t *luaprobe_find(struct hlist_head *kprobes, const luaprobe_kprobe_t *spec)
+static void luaprobe_arm(lua_State *L, lunatik_shared_t *shared)
 {
-	luaprobe_kprobe_t *kprobe;
-
-	hlist_for_each_entry(kprobe, kprobes, node) {
-		if (luaprobe_match(kprobe, spec))
-			return kprobe;
-	}
-	return NULL;
-}
-
-static luaprobe_kprobe_t *luaprobe_register(lua_State *L, lunatik_object_t *runtime, const luaprobe_kprobe_t *spec)
-{
-	luaprobe_kprobe_t *kprobe = lunatik_checkalloc(L, sizeof(luaprobe_kprobe_t));
+	luaprobe_kprobe_t *kprobe = (luaprobe_kprobe_t *)shared;
 	struct kprobe *kp = &kprobe->kp;
 	int ret;
-
-	*kprobe = *spec;
-	kprobe->runtime = runtime;
 
 	if (kp->symbol_name != NULL) {
 		kp->symbol_name = kstrdup(kp->symbol_name, lunatik_gfp(lunatik_toruntime(L)));
@@ -153,7 +140,6 @@ static luaprobe_kprobe_t *luaprobe_register(lua_State *L, lunatik_object_t *runt
 		lunatik_free(kprobe);
 		luaL_error(L, "failed to register probe (%d)", ret);
 	}
-	return kprobe;
 }
 
 static void luaprobe_free(luaprobe_kprobe_t *kprobe)
@@ -170,9 +156,9 @@ static void luaprobe_release(void *private)
 	luaprobe_kprobe_t *kprobe = probe->kprobe;
 
 	if (kprobe != NULL) {
-		lunatik_object_t *runtime = kprobe->runtime;
+		lunatik_object_t *runtime = kprobe->shared.runtime;
 
-		luaprobe_free(kprobe); /* unregister before the put: the callback reads kprobe->runtime */
+		luaprobe_free(kprobe); /* unregister before the put: the callback reads the runtime */
 		lunatik_putobject(runtime);
 	}
 }
@@ -195,7 +181,7 @@ static int luaprobe_stop(lua_State *L)
 	luaL_argcheck(L, kprobe != NULL, 1, LUAPROBE_ERR_SHARED);
 	luaprobe_delete(kprobe);
 
-	if (lunatik_toruntime(L) == kprobe->runtime) {
+	if (lunatik_toruntime(L) == kprobe->shared.runtime) {
 		lunatik_unregister(L, kprobe);
 		lunatik_unregisterobject(L, object);
 	}
@@ -270,32 +256,16 @@ static void luaprobe_checkspec(lua_State *L, int ix, luaprobe_kprobe_t *spec)
 	if (lua_islightuserdata(L, ix))
 		spec->addr = spec->kp.addr = lua_touserdata(L, ix);
 	else
-		spec->kp.symbol_name = luaL_checkstring(L, ix); /* anchored at ix until luaprobe_register copies it */
+		spec->kp.symbol_name = luaL_checkstring(L, ix); /* anchored at ix until the registration copies it */
 }
 
-static luaprobe_kprobe_t *luaprobe_share(lua_State *L, lunatik_object_t *percpu, const luaprobe_kprobe_t *spec)
-{
-	struct hlist_head *kprobes = lunatik_percpudata(L, &luaprobe_kprobes_class, sizeof(struct hlist_head))->private;
-	luaprobe_kprobe_t *kprobe = luaprobe_find(kprobes, spec);
-
-	if (kprobe == NULL) {
-		kprobe = luaprobe_register(L, percpu, spec);
-		hlist_add_head(&kprobe->node, kprobes);
-	}
-	else if (lunatik_getregistry(L, kprobe) != LUA_TNIL)
-		luaL_error(L, "probe already registered");
-	else
-		lua_pop(L, 1);
-	return kprobe;
-}
-
-static luaprobe_kprobe_t *luaprobe_own(lua_State *L, luaprobe_t *probe, lunatik_object_t *runtime,
-	const luaprobe_kprobe_t *spec)
-{
-	probe->kprobe = luaprobe_register(L, runtime, spec);
-	lunatik_getobject(runtime); /* a percpu object is held by its data; a plain runtime is held here */
-	return probe->kprobe;
-}
+static const lunatik_sharing_t luaprobe_sharing = {
+	.class = &luaprobe_kprobes_class,
+	.size = sizeof(luaprobe_kprobe_t),
+	.match = luaprobe_match,
+	.arm = luaprobe_arm,
+	.registered = "probe already registered",
+};
 
 static int luaprobe_new(lua_State *L)
 {
@@ -308,8 +278,12 @@ static int luaprobe_new(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t), LUNATIK_OPT_NONE);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 
-	luaprobe_kprobe_t *kprobe = percpu != NULL ? luaprobe_share(L, percpu, &spec) :
-		luaprobe_own(L, probe, runtime, &spec);
+	luaprobe_kprobe_t *kprobe = (luaprobe_kprobe_t *)(percpu != NULL ?
+		lunatik_share(L, percpu, &luaprobe_sharing, &spec.shared) :
+		lunatik_own(L, runtime, &luaprobe_sharing, &spec.shared));
+
+	if (percpu == NULL)
+		probe->kprobe = kprobe;
 
 	lunatik_registerobject(L, 2, object);
 	lunatik_register(L, 2, kprobe); /* the handler finds this runtime's handlers by the kprobe they share */

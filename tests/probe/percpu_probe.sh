@@ -12,23 +12,26 @@
 # the runtimes are still being created, pinned to the CPU whose runtime is
 # published last, is dropped, and the same call is counted once they are up; one
 # set holds a kprobe per target, and a second probe on the same symbol in one
-# runtime is refused; stop and enable are refused in a percpu runtime, where the
-# object owns the kprobe; a probe from a handler, after the script loaded, is
-# refused before it could sleep in hardirq; the same script probes as a plain
-# hardirq runtime; and a plain runtime stops its own probe, twice with no effect,
-# is refused an enable afterwards, and refuses a probe on a symbol the kernel
-# does not have.
+# runtime is refused; a probe the kernel refuses is freed, leaving the set with
+# only the kprobe it had already armed and the script unregistered; stop and
+# enable are refused in a percpu runtime, where the object owns the kprobe; a
+# probe from a handler, after the script loaded, is refused before it could
+# sleep in hardirq; the same script probes as a plain hardirq runtime; and a
+# plain runtime stops its own probe, twice with no effect, is refused an enable
+# afterwards, and refuses a probe on a symbol the kernel does not have.
 #
 # Usage: sudo bash tests/probe/percpu_probe.sh
 
 SCRIPT="tests/probe/percpu_probe"
 TWICE="tests/probe/percpu_probe_twice"
+UNKNOWN="tests/probe/percpu_probe_unknown"
 STOP="tests/probe/percpu_probe_stop"
 PLAIN="tests/probe/percpu_probe_plain"
 EARLY="tests/probe/percpu_probe_early"
 LATE="tests/probe/percpu_probe_late"
 ARMED="percpu probe early: armed"
 TARGETS="percpu probe twice: two targets armed"
+ARMED_ONE="percpu probe unknown: one target armed"
 KPROBES="/sys/kernel/debug/kprobes/list"
 COUNT=3
 TRIES=100
@@ -39,6 +42,7 @@ cleanup()
 {
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
 	lunatik stop "$TWICE" > /dev/null 2>&1
+	lunatik stop "$UNKNOWN" > /dev/null 2>&1
 	lunatik stop "$STOP" > /dev/null 2>&1
 	lunatik stop "$PLAIN" > /dev/null 2>&1
 	lunatik stop "$EARLY" > /dev/null 2>&1
@@ -73,13 +77,14 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 7
+ktap_plan 8
 
 command -v taskset > /dev/null 2>&1 && command -v setarch > /dev/null 2>&1 || {
 	echo "# SKIP: taskset or setarch not available"
 	ktap_skip "the runtimes share one kprobe: each call is handled once, by the runtime of the CPU it ran on"
 	ktap_skip "a call reaching the shared kprobe before the runtimes are published is dropped"
 	ktap_skip "one set holds a kprobe per target; a second probe on the same symbol is refused"
+	ktap_skip "a probe the kernel refuses is freed, and the set unwinds the one it had armed"
 	ktap_skip "stop and enable are refused in a percpu runtime"
 	ktap_skip "a probe from a handler, after load, is refused"
 	ktap_skip "the same script probes as a plain hardirq runtime"
@@ -133,6 +138,22 @@ case "$listed" in
 	*"$TWICE"*) fail "the refused run left the script registered: $listed" ;;
 esac
 ktap_pass "one set holds a kprobe per target; a second probe on the same symbol is refused"
+
+mark_dmesg
+idle=$(kprobes)
+output=$(lunatik run "$UNKNOWN" hardirq percpu 2>&1)
+left=$(kprobes)
+echo "$output" | grep -q "failed to register probe" || \
+	fail "a probe on a symbol the kernel does not have was accepted: $output"
+dmesg_since | grep -qF "$ARMED_ONE" || fail "the set did not arm a kprobe before the one the kernel refuses"
+listed=$(lunatik list)
+case "$listed" in
+	*"$UNKNOWN"*) fail "the refused run left the script registered: $listed" ;;
+esac
+if [ -n "$idle" ]; then
+	[ "$left" = "$idle" ] || fail "the refused run left $((left - idle)) kprobes armed"
+fi
+ktap_pass "a probe the kernel refuses is freed, and the set unwinds the one it had armed"
 
 mark_dmesg
 run_script "$STOP" hardirq percpu

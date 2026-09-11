@@ -223,11 +223,51 @@ or `NULL`.
 ```
 Defines `static const lunatik_class_t prefix_class`, named `cname`, for the data a `percpu` object
 holds for the registrations its runtimes share, as [`lunatik_percpudata`](#lunatik_percpudata)
-creates it: a private that is a `struct hlist_head` of `T` entries linked through their
-`struct hlist_node node`, whose `release`, `prefix_release`, unlinks every entry and passes it to
-`free`. For example,
+creates it: a private that is a `struct hlist_head` of `T` entries, each beginning with the
+[`lunatik_shared_t`](#lunatik_share) that links them, whose `release`, `prefix_release`, unlinks
+every entry and passes it to `free`. For example,
 `LUNATIK_PERCPUDATA(luaprobe_kprobes, "probe.kprobes", luaprobe_kprobe_t, luaprobe_free)`
 defines `luaprobe_kprobes_class`.
+
+### lunatik\_share
+```C
+typedef struct lunatik_shared_s {
+	struct hlist_node node;
+	lunatik_object_t *runtime;
+} lunatik_shared_t;
+
+lunatik_shared_t *lunatik_share(lua_State *L, lunatik_object_t *percpu, const lunatik_sharing_t *sharing,
+	const lunatik_shared_t *spec);
+```
+One registration the runtimes of a `percpu` set share: the first call installs it, the others find
+it and attach to it, and a callback dispatched through `shared.runtime` reaches the runtime of the
+CPU it fired on. A registration begins with a `lunatik_shared_t`, and `sharing` says how to handle
+it:
+
+```C
+typedef struct lunatik_sharing_s {
+	const lunatik_class_t *class;	/* percpu data holding the list of registrations */
+	size_t size;			/* of the registration, which begins with lunatik_shared_t */
+	lunatik_match_t match;		/* bool (*)(const lunatik_shared_t *, const lunatik_shared_t *) */
+	lunatik_arm_t arm;		/* void (*)(lua_State *, lunatik_shared_t *) */
+	const char *registered;		/* raised when this runtime already registered the same target */
+} lunatik_sharing_t;
+```
+
+`lunatik_share` copies `size` bytes of `spec`, sets the runtime and calls `arm`, which registers
+with the kernel and, if it cannot, frees the registration before raising. `class` is what
+[`LUNATIK_PERCPUDATA`](#lunatik_percpudata) defines, and its `release` frees the list, which is how
+a shared registration is freed; the `percpu` object is held by that data.
+
+### lunatik\_own
+```C
+lunatik_shared_t *lunatik_own(lua_State *L, lunatik_object_t *runtime, const lunatik_sharing_t *sharing,
+	const lunatik_shared_t *spec);
+```
+The same registration for a plain runtime, which has none to share with, so only `size` and `arm`
+are read of `sharing` and nothing is linked into a list: the runtime is held here rather than by a
+`percpu` object's data, and the caller keeps the pointer, freeing it and releasing the runtime when
+its own object is released.
 
 ---
 
