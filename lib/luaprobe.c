@@ -75,13 +75,12 @@ static int luaprobe_handler(lua_State *L, luaprobe_kprobe_t *kprobe, const char 
 {
 	struct kprobe *kp = &kprobe->kp;
 	const char *symbol = kp->symbol_name;
-	int base;
 
 	if (lunatik_getregistry(L, kprobe) != LUA_TTABLE) {
 		pr_err_ratelimited("couldn't find probe table\n");
 		goto out;
 	}
-	base = lua_gettop(L);
+	int base = lua_gettop(L);
 
 	luaprobe_pushregs(L, luaprobe_dump, regs);	/* base + 1 */
 	luaprobe_pushregs(L, luaprobe_argument, regs);	/* base + 2 */
