@@ -6,6 +6,7 @@
 #ifndef lunatik_percpu_h
 #define lunatik_percpu_h
 
+#include <linux/list.h>
 #include <linux/percpu.h>
 #include <linux/preempt.h>
 
@@ -50,6 +51,22 @@ extern const lunatik_class_t lunatik_percpu_class;
 
 int lunatik_percpu(lua_State *L);
 lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class, size_t size);
+
+#define LUNATIK_PERCPUDATA(prefix, cname, T, free)					\
+static void prefix##_release(void *private)					\
+{										\
+	T *entry;								\
+	struct hlist_node *next;						\
+										\
+	hlist_for_each_entry_safe(entry, next, (struct hlist_head *)private, node) {	\
+		hlist_del(&entry->node);					\
+		free(entry);							\
+	}									\
+}										\
+static const lunatik_class_t prefix##_class = {					\
+	.name = cname,								\
+	.release = prefix##_release,						\
+}
 
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 
