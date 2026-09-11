@@ -144,21 +144,7 @@ static void luanetfilter_freehook(luanetfilter_hook_t *hook)
 	lunatik_free(hook);
 }
 
-static void luanetfilter_stophooks(void *private)
-{
-	luanetfilter_hook_t *hook;
-	struct hlist_node *next;
-
-	hlist_for_each_entry_safe(hook, next, (struct hlist_head *)private, node) {
-		hlist_del(&hook->node);
-		luanetfilter_freehook(hook);
-	}
-}
-
-static const lunatik_class_t luanetfilter_hooks_class = {
-	.name = "netfilter.hooks",
-	.release = luanetfilter_stophooks,
-};
+LUNATIK_PERCPUDATA(luanetfilter_hooks, "netfilter.hooks", luanetfilter_hook_t, luanetfilter_freehook);
 
 static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *spec)
 {
