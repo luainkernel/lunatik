@@ -8,13 +8,13 @@
 # runtime of the CPU that received it, which is where the loopback delivers the
 # pinned ping; a marked packet reaching that hook while the runtimes are still
 # being created finds none published on its CPU, and is accepted without being
-# counted; a second registration of the same hook in one runtime is refused; a
-# registration from a callback, after the script loaded, is refused before it
-# could sleep in softirq; and the same script registers as a plain softirq
-# runtime. The exactly-once assertion runs on the shared hook, where it is
-# structural. The burst starts when the script reports the hook armed, and runs
-# inside the spin every runtime does before returning, so it arrives while no
-# runtime is published.
+# counted; one set holds a hook per target, and a second registration of the
+# same one in a runtime is refused; a registration from a callback, after the
+# script loaded, is refused before it could sleep in softirq; and the same
+# script registers as a plain softirq runtime. The exactly-once assertion runs
+# on the shared hook, where it is structural. The burst starts when the script
+# reports the hook armed, and runs inside the spin every runtime does before
+# returning, so it arrives while no runtime is published.
 #
 # Usage: sudo bash tests/runtime/percpu_netfilter.sh
 
@@ -24,6 +24,7 @@ TWICE="tests/runtime/percpu_netfilter_twice"
 LATE="tests/runtime/percpu_netfilter_late"
 EARLY="tests/runtime/percpu_netfilter_early"
 ARMED="percpu netfilter early: armed"
+TARGETS="percpu netfilter twice: two targets armed"
 MODULE="luanetfilter"
 MARK=208
 COUNT=5
@@ -72,7 +73,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
 	ktap_skip "the runtimes share one hook: each marked request is counted once, by the receiving CPU"
 	ktap_skip "a packet reaching the shared hook before the runtimes are published is accepted, uncounted"
-	ktap_skip "a second registration of the same hook in one runtime is refused"
+	ktap_skip "one set holds a hook per target; a second registration of the same one is refused"
 	ktap_skip "a registration from a callback, after load, is refused"
 	ktap_skip "the same script registers as a plain softirq runtime"
 	ktap_totals
@@ -98,13 +99,15 @@ dmesg_since | grep -qF "percpu netfilter: nf_percpu:$cpu $COUNT" || \
 lunatik stop "$EARLY" > /dev/null 2>&1
 ktap_pass "a packet reaching the shared hook before the runtimes are published is accepted, uncounted"
 
+mark_dmesg
 output=$(lunatik run "$TWICE" softirq percpu 2>&1)
 echo "$output" | grep -q "hook already registered" || fail "the second registration was not refused: $output"
+dmesg_since | grep -qF "$TARGETS" || fail "the hook on a second target was taken for the one already in the set"
 listed=$(lunatik list)
 case "$listed" in
 	*"$TWICE"*) fail "the refused run left the script registered: $listed" ;;
 esac
-ktap_pass "a second registration of the same hook in one runtime is refused"
+ktap_pass "one set holds a hook per target; a second registration of the same one is refused"
 
 mark_dmesg
 run_script "$LATE" softirq percpu
