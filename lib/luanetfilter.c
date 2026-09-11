@@ -110,7 +110,7 @@ static unsigned int luanetfilter_hook(void *priv, struct sk_buff *skb, const str
 	return luanetfilter_docall((luanetfilter_hook_t *)priv, skb);
 }
 
-static luanetfilter_hook_t *luanetfilter_findhook(struct hlist_head *hooks, const luanetfilter_hook_t *spec)
+static luanetfilter_hook_t *luanetfilter_find(struct hlist_head *hooks, const luanetfilter_hook_t *spec)
 {
 	luanetfilter_hook_t *hook;
 
@@ -122,7 +122,7 @@ static luanetfilter_hook_t *luanetfilter_findhook(struct hlist_head *hooks, cons
 	return NULL;
 }
 
-static luanetfilter_hook_t *luanetfilter_newhook(lua_State *L, lunatik_object_t *runtime, const luanetfilter_hook_t *spec)
+static luanetfilter_hook_t *luanetfilter_register(lua_State *L, lunatik_object_t *runtime, const luanetfilter_hook_t *spec)
 {
 	luanetfilter_hook_t *hook = lunatik_checkalloc(L, sizeof(luanetfilter_hook_t));
 	int ret;
@@ -138,13 +138,13 @@ static luanetfilter_hook_t *luanetfilter_newhook(lua_State *L, lunatik_object_t 
 	return hook;
 }
 
-static void luanetfilter_freehook(luanetfilter_hook_t *hook)
+static void luanetfilter_free(luanetfilter_hook_t *hook)
 {
 	nf_unregister_net_hook(&init_net, &hook->nfops);
 	lunatik_free(hook);
 }
 
-LUNATIK_PERCPUDATA(luanetfilter_hooks, "netfilter.hooks", luanetfilter_hook_t, luanetfilter_freehook);
+LUNATIK_PERCPUDATA(luanetfilter_hooks, "netfilter.hooks", luanetfilter_hook_t, luanetfilter_free);
 
 static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *spec)
 {
@@ -158,13 +158,13 @@ static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *sp
 	lunatik_optinteger(L, ix, spec, mark, 0);
 }
 
-static luanetfilter_hook_t *luanetfilter_sharehook(lua_State *L, lunatik_object_t *percpu, const luanetfilter_hook_t *spec)
+static luanetfilter_hook_t *luanetfilter_share(lua_State *L, lunatik_object_t *percpu, const luanetfilter_hook_t *spec)
 {
 	struct hlist_head *hooks = lunatik_percpudata(L, &luanetfilter_hooks_class, sizeof(struct hlist_head))->private;
-	luanetfilter_hook_t *hook = luanetfilter_findhook(hooks, spec);
+	luanetfilter_hook_t *hook = luanetfilter_find(hooks, spec);
 
 	if (hook == NULL) {
-		hook = luanetfilter_newhook(L, percpu, spec);
+		hook = luanetfilter_register(L, percpu, spec);
 		hlist_add_head(&hook->node, hooks);
 	}
 	else if (lunatik_getregistry(L, hook) != LUA_TNIL)
@@ -174,9 +174,9 @@ static luanetfilter_hook_t *luanetfilter_sharehook(lua_State *L, lunatik_object_
 	return hook;
 }
 
-static luanetfilter_hook_t *luanetfilter_ownhook(lua_State *L, luanetfilter_t *nf, const luanetfilter_hook_t *spec)
+static luanetfilter_hook_t *luanetfilter_own(lua_State *L, luanetfilter_t *nf, const luanetfilter_hook_t *spec)
 {
-	nf->hook = luanetfilter_newhook(L, nf->runtime, spec);
+	nf->hook = luanetfilter_register(L, nf->runtime, spec);
 	lunatik_getobject(nf->runtime); /* a percpu object is held by its data; a plain runtime is held here */
 	return nf->hook;
 }
@@ -206,7 +206,7 @@ static const lunatik_class_t luanetfilter_class = {
 * @raise if the hook cannot be registered; in a percpu script, if this runtime already
 *   registered the same `pf`, `hooknum`, `priority` and `mark`, or if called after module load
 */
-static int luanetfilter_register(lua_State *L)
+static int luanetfilter_lregister(lua_State *L)
 {
 	luanetfilter_hook_t spec = {.nfops = {.hook = luanetfilter_hook}};
 	luanetfilter_checkspec(L, 1, &spec);
@@ -217,7 +217,7 @@ static int luanetfilter_register(lua_State *L)
 	luanetfilter_t *nf = (luanetfilter_t *)object->private;
 	nf->runtime = runtime;
 
-	luanetfilter_hook_t *hook = percpu != NULL ? luanetfilter_sharehook(L, percpu, &spec) : luanetfilter_ownhook(L, nf, &spec);
+	luanetfilter_hook_t *hook = percpu != NULL ? luanetfilter_share(L, percpu, &spec) : luanetfilter_own(L, nf, &spec);
 	luaskb_attach(L, nf, skb);
 	lunatik_registerobject(L, 1, object);
 	lunatik_register(L, -1, hook); /* the callback finds this runtime's registration by the hook they share */
@@ -225,7 +225,7 @@ static int luanetfilter_register(lua_State *L)
 }
 
 static const luaL_Reg luanetfilter_lib[] = {
-	{"register", luanetfilter_register},
+	{"register", luanetfilter_lregister},
 	{NULL, NULL},
 };
 
@@ -234,7 +234,7 @@ static void luanetfilter_release(void *private)
 	luanetfilter_t *nf = (luanetfilter_t *)private;
 
 	if (nf->hook != NULL) {
-		luanetfilter_freehook(nf->hook);
+		luanetfilter_free(nf->hook);
 		lunatik_putobject(nf->runtime);
 	}
 	lunatik_detach(nf->runtime, nf, skb);
