@@ -11,6 +11,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kprobes.h>
 #include <linux/list.h>
+#include <linux/ptrace.h>
 #include <linux/string.h>
 
 #include <lunatik.h>
@@ -42,33 +43,64 @@ static int luaprobe_dump(lua_State *L)
 	return 0;
 }
 
+static int luaprobe_argument(lua_State *L)
+{
+#ifdef CONFIG_HAVE_FUNCTION_ARG_ACCESS_API
+	struct pt_regs *regs = lua_touserdata(L, lua_upvalueindex(1));
+	unsigned int n = (unsigned int)lunatik_checkinteger(L, 1, 0, UINT_MAX);
+
+	if (regs == NULL)
+		luaL_error(L, LUNATIK_ERR_NULLPTR);
+
+	lua_pushinteger(L, (lua_Integer)regs_get_kernel_argument(regs, n));
+	return 1;
+#else
+	return luaL_error(L, "couldn't read arguments on this architecture");
+#endif
+}
+
+static void luaprobe_pushregs(lua_State *L, lua_CFunction closure, struct pt_regs *regs)
+{
+	lua_pushlightuserdata(L, regs);
+	lua_pushcclosure(L, closure, 1);
+}
+
+static void luaprobe_dropregs(lua_State *L, int ix)
+{
+	lua_pushnil(L);
+	lua_setupvalue(L, ix, 1);
+}
+
 static int luaprobe_handler(lua_State *L, luaprobe_kprobe_t *kprobe, const char *handler, struct pt_regs *regs)
 {
 	struct kprobe *kp = &kprobe->kp;
 	const char *symbol = kp->symbol_name;
+	int base;
 
 	if (lunatik_getregistry(L, kprobe) != LUA_TTABLE) {
 		pr_err_ratelimited("couldn't find probe table\n");
 		goto out;
 	}
+	base = lua_gettop(L);
 
-	lunatik_optcfunction(L, -1, handler, lunatik_nop);
+	luaprobe_pushregs(L, luaprobe_dump, regs);	/* base + 1 */
+	luaprobe_pushregs(L, luaprobe_argument, regs);	/* base + 2 */
+
+	lunatik_optcfunction(L, base, handler, lunatik_nop);
 
 	if (symbol != NULL)
 		lua_pushstring(L, symbol);
 	else
 		lua_pushlightuserdata(L, kp->addr);
 
-	lua_pushlightuserdata(L, regs);
-	lua_pushcclosure(L, luaprobe_dump, 1);
-	lua_pushvalue(L, -1); /* save dump() on the stack */
-	lua_insert(L, -4); /* stack: dump, handler, symbol | addr, dump */
+	lua_pushvalue(L, base + 1);
+	lua_pushvalue(L, base + 2);
 
-	if (lua_pcall(L, 2, 0, 0) != LUA_OK) /* handler(symbol | addr, dump) */
+	if (lua_pcall(L, 3, 0, 0) != LUA_OK) /* handler(symbol | addr, dump, argument) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 
-	lua_pushnil(L);
-	lua_setupvalue(L, -2, 1); /* clean up regs */
+	luaprobe_dropregs(L, base + 1); /* regs are only live while the probed function is trapped */
+	luaprobe_dropregs(L, base + 2);
 out:
 	return 0;
 }
@@ -239,7 +271,10 @@ static int luaprobe_new(lua_State *L);
 * @function new
 * @tparam string|lightuserdata symbol kernel symbol name or address
 * @tparam table handlers table with optional `pre` and `post` callback functions;
-*   each receives the symbol (string or lightuserdata) and a `dump` closure
+*   each receives the symbol (string or lightuserdata), a `dump` closure and an
+*   `argument` closure. Both raise once the callback returns; `argument(n)` reads the
+*   n-th argument of the probed function, counting from zero, and raises where the
+*   architecture has no `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`
 * @treturn probe
 * @raise if registration fails; in a percpu script, if this runtime already probed the same
 *   symbol or address, or if called after module load
