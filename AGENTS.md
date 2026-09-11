@@ -293,6 +293,13 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * A name matches what the tree already calls the same thing; grep for it before choosing. A Lua stack
   index is `ix`, a callback `cb`. Importing `arg` or `callback_ref` where the base settled on a
   shorter word is a deviation.
+* A helper's name is the verb the tree already uses for that step, `match`, `find`, `register`,
+  `free`, `share`, `own`, `attach` and `detach` being the ones in place. The noun joins the verb
+  when that verb has more than one kind to act on — `luarcu_newentry` beside `luarcu_newtable`,
+  `luacrypto_aead_newrequest` beside `luacrypto_aead_new` — or when the mirror it pairs with
+  carries one, as `luadarken_freerequest` does beside `luadarken_setrequest`; it does not when it
+  only repeats what the type already says, which is what `luanetfilter_findhook` did in a file
+  whose only list holds hooks.
 * Kernel headers first, then a blank line, then `#include <lunatik.h>`. Do not remove that blank line.
 * `<lua.h>` and `<lauxlib.h>` are already pulled in by `lunatik.h`.
 * Every file ends with a trailing blank line. `tools/checks/pre-commit` rejects a commit that does
