@@ -271,11 +271,12 @@ static int luaprobe_new(lua_State *L);
 * @tparam string|lightuserdata symbol kernel symbol name or address
 * @tparam table handlers table with optional `pre` and `post` callback functions;
 *   each receives the symbol (string or lightuserdata), a `dump` closure and an
-*   `argument` closure. Both raise once the callback returns; `argument(n)` reads the
-*   n-th argument of the probed function, counting from zero, and raises where the
-*   architecture has no `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`. Past the argument
-*   registers an architecture defines it returns what `regs_get_kernel_argument()`
-*   gives there rather than raising
+*   `argument` closure, and both closures raise once the callback returns.
+*   `argument(n)` reads the n-th argument of the probed function, counting from zero,
+*   through `regs_get_kernel_argument()`, which guesses the register mapping: it raises
+*   where the architecture has no `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`, and otherwise
+*   returns whatever that accessor gives, which is not the argument past the registers
+*   the architecture passes arguments in, nor after a parameter 16 bytes or larger
 * @treturn probe
 * @raise if registration fails; in a percpu script, if this runtime already probed the same
 *   symbol or address, or if called after module load
