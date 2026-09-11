@@ -211,6 +211,11 @@ higher-level `netlink.*` modules built on top of it.
 
 ### probe
 
+- **argument**: the `argument` closure a handler receives, on its three
+  outcomes: a probe on `vfs_read` reads the byte count the caller asked for,
+  a negative index raises, and both it and the `dump` closure stop reaching
+  the registers once the handler that received them returned.
+
 - **kprobe_concurrent**: registers kprobes on every syscall and runs
   one load generator per CPU; `lunatik stop` must complete within 5s
   with no kernel errors under concurrent handler firings.
