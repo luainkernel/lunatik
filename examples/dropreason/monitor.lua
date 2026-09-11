@@ -2,11 +2,12 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- Answers "why is my packet dying?". A kprobe on kfree_skb_reason(), the choke
--- point every dropped skb goes through, reads the reason off the probed
--- function's arguments and counts the drops by name in an RCU table published
--- on the shared environment, where any runtime, the REPL included, reads it
--- live.
+-- Answers "why is my packet dying?". A kprobe on kfree_skb_reason(), where every
+-- kfree_skb() lands, reads the reason off the probed function's arguments and
+-- counts the drops by name in an RCU table published on the shared environment,
+-- where any runtime, the REPL included, reads it live. A drop freed from hardirq
+-- (dev_kfree_skb_any()) or as a segment list (kfree_skb_list()) never reaches it
+-- and is not counted.
 --
 -- Usage:
 --   sudo lunatik run examples/dropreason/monitor hardirq

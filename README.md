@@ -318,8 +318,10 @@ sudo lunatik stop examples/systrack/device            # stops device and probe r
 
 [dropreason](examples/dropreason/monitor.lua) answers "why is my packet dying?":
 a kprobe on `kfree_skb_reason()` reads the drop reason off the probed function's
-arguments and counts every skb drop by name (`linux.dropreason`) in an RCU table
-published on the shared environment (`lunatik._ENV`).
+arguments and counts the drops that reach it by name (`linux.dropreason`) in an
+RCU table published on the shared environment (`lunatik._ENV`). A drop freed from
+hardirq (`dev_kfree_skb_any()`) or as a segment list (`kfree_skb_list()`) takes
+another path and is not counted.
 [report](examples/dropreason/report.lua) reads those counts live from the REPL.
 The first drop matching `WATCH` also has its registers and call trace dumped to
 `dmesg`, which is what names the drop site.
