@@ -10,6 +10,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kprobes.h>
+#include <linux/list.h>
 #include <linux/string.h>
 
 #include <lunatik.h>
@@ -19,7 +20,10 @@
 * @type probe
 */
 typedef struct luaprobe_s {
+	struct hlist_node node;
+	struct kref kref;
 	struct kprobe kp;
+	kprobe_opcode_t *requested;	/* register_kprobe rewrites kp.addr: on x86 with IBT, past the ENDBR */
 	lunatik_object_t *runtime;
 } luaprobe_t;
 
@@ -50,7 +54,7 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 	if (symbol != NULL)
 		lua_pushstring(L, symbol);
 	else
-		lua_pushlightuserdata(L, kp->addr);
+		lua_pushlightuserdata(L, probe->requested);
 
 	lua_pushlightuserdata(L, regs);
 	lua_pushcclosure(L, luaprobe_dump, 1);
@@ -104,19 +108,89 @@ static void luaprobe_delete(luaprobe_t *probe)
 	}
 }
 
+static bool luaprobe_match(const luaprobe_t *probe, const luaprobe_t *spec)
+{
+	const char *symbol = probe->kp.symbol_name;
+
+	if (spec->kp.symbol_name == NULL)
+		return probe->requested == spec->requested;
+	return symbol != NULL && strcmp(symbol, spec->kp.symbol_name) == 0;
+}
+
+static luaprobe_t *luaprobe_find(struct hlist_head *kprobes, const luaprobe_t *spec)
+{
+	luaprobe_t *probe;
+
+	hlist_for_each_entry(probe, kprobes, node)
+		if (luaprobe_match(probe, spec))
+			return probe;
+	return NULL;
+}
+
+static luaprobe_t *luaprobe_register(lua_State *L, lunatik_object_t *runtime, const luaprobe_t *spec)
+{
+	luaprobe_t *probe = lunatik_checkalloc(L, sizeof(luaprobe_t));
+	struct kprobe *kp = &probe->kp;
+	int ret;
+
+	*probe = *spec;
+	probe->runtime = runtime;
+	kref_init(&probe->kref);
+
+	if (kp->symbol_name != NULL) {
+		kp->symbol_name = kstrdup(kp->symbol_name, lunatik_gfp(lunatik_toruntime(L)));
+		if (kp->symbol_name == NULL) {
+			lunatik_free(probe);
+			lunatik_enomem(L);
+		}
+	}
+
+	if ((ret = register_kprobe(kp)) != 0) {
+		kfree(kp->symbol_name);
+		lunatik_free(probe);
+		luaL_error(L, "failed to register probe (%d)", ret);
+	}
+	return probe;
+}
+
+static void luaprobe_free(struct kref *kref)
+{
+	luaprobe_t *probe = container_of(kref, luaprobe_t, kref);
+
+	luaprobe_delete(probe);
+	lunatik_free(probe);
+}
+
+#define luaprobe_put(probe)	kref_put(&(probe)->kref, luaprobe_free)
+
+#define luaprobe_isshared(probe)	lunatik_ispercpu((probe)->runtime->opt)
+
+static void luaprobe_disarm(luaprobe_t *probe)
+{
+	luaprobe_delete(probe); /* the set unregisters before its runtimes close, however many handles remain */
+	luaprobe_put(probe);
+}
+
+LUNATIK_PERCPUDATA(luaprobe_kprobes, "probe.kprobes", luaprobe_t, luaprobe_disarm);
+
 static void luaprobe_release(void *private)
 {
 	luaprobe_t *probe = (luaprobe_t *)private;
-	luaprobe_delete(probe);
-	if (probe->runtime)
-		lunatik_putobject(probe->runtime);
+	lunatik_object_t *runtime = probe->runtime;
+	bool owned = !luaprobe_isshared(probe); /* the percpu object outlives the runtimes it closes */
+
+	luaprobe_put(probe);
+	if (owned)
+		lunatik_putobject(runtime);
 }
+
+#define LUAPROBE_ERR_SHARED	"the percpu object owns this probe"
 
 /***
 * Unregisters and stops the probe.
 * @function stop
-* @raise if called after module load: unregister_kprobe sleeps, and the runtime is
-*   in hardirq by then
+* @raise if the percpu object owns this probe, or if called after module load:
+*   unregister_kprobe sleeps, and the runtime is in hardirq by then
 */
 static const lunatik_class_t luaprobe_class;
 
@@ -126,6 +200,7 @@ static int luaprobe_stop(lua_State *L)
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luaprobe_class);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 
+	luaL_argcheck(L, !luaprobe_isshared(probe), 1, LUAPROBE_ERR_SHARED);
 	luaprobe_delete(probe);
 	lunatik_unregisterobject(L, object);
 	return 0;
@@ -135,8 +210,9 @@ static int luaprobe_stop(lua_State *L)
 * Enables or disables the probe.
 * @function enable
 * @tparam boolean flag true to enable, false to disable
-* @raise if the probe has been stopped, or if called after module load:
-*   enable_kprobe and disable_kprobe sleep, and the runtime is in hardirq by then
+* @raise if the probe has been stopped, if the percpu object owns this probe, or if called
+*   after module load: enable_kprobe and disable_kprobe sleep, and the runtime is in hardirq
+*   by then
 */
 static int luaprobe_enable(lua_State *L)
 {
@@ -145,6 +221,8 @@ static int luaprobe_enable(lua_State *L)
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 	struct kprobe *kp = &probe->kp;
 	bool enable = lua_toboolean(L, 2);
+
+	luaL_argcheck(L, !luaprobe_isshared(probe), 1, LUAPROBE_ERR_SHARED);
 
 	if (kp->pre_handler == NULL)
 		return luaL_argerror(L, 1, LUNATIK_ERR_NULLPTR);
@@ -161,13 +239,17 @@ static int luaprobe_new(lua_State *L);
 
 /***
 * Creates and registers a new kprobe.
+* In a percpu script the runtimes share one kprobe per symbol or address: the first
+* registration installs it, the others attach their handlers, and a call reaches the
+* runtime of the CPU it ran on.
 * @function new
 * @tparam string|lightuserdata symbol kernel symbol name or address
 * @tparam table handlers table with optional `pre` and `post` callback functions;
-*   each receives the symbol (string or lightuserdata) and a `dump` closure
+*   each receives the symbol (string) or the address as given (lightuserdata) and a `dump` closure
 * @treturn probe
-* @raise if registration fails, if called from a percpu runtime, or if called after
-*   module load: register_kprobe sleeps, and the runtime is in hardirq by then
+* @raise if registration fails; in a percpu script, if this runtime already registered the same
+*   symbol or address; or if called after module load: register_kprobe sleeps, and the
+*   runtime is in hardirq by then
 */
 static const luaL_Reg luaprobe_lib[] = {
 	{"new", luaprobe_new},
@@ -187,45 +269,57 @@ static const lunatik_class_t luaprobe_class = {
 	.methods = luaprobe_mt,
 	.release = luaprobe_release,
 	.opener = luaopen_probe,
-	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
 };
+
+static void luaprobe_checkspec(lua_State *L, int ix, luaprobe_t *spec)
+{
+	if (lua_islightuserdata(L, ix))
+		spec->requested = spec->kp.addr = lua_touserdata(L, ix);
+	else
+		spec->kp.symbol_name = luaL_checkstring(L, ix); /* anchored at ix until luaprobe_register copies it */
+}
+
+static luaprobe_t *luaprobe_share(lua_State *L, lunatik_object_t *percpu, const luaprobe_t *spec)
+{
+	struct hlist_head *kprobes = lunatik_percpudata(L, &luaprobe_kprobes_class, sizeof(struct hlist_head))->private;
+	luaprobe_t *probe = luaprobe_find(kprobes, spec);
+
+	if (probe == NULL) {
+		probe = luaprobe_register(L, percpu, spec);
+		hlist_add_head(&probe->node, kprobes);
+	}
+	else if (lunatik_getregistry(L, probe) != LUA_TNIL)
+		luaL_error(L, "probe already registered");
+	else
+		lua_pop(L, 1);
+
+	kref_get(&probe->kref);
+	return probe;
+}
+
+static luaprobe_t *luaprobe_own(lua_State *L, lunatik_object_t *runtime, const luaprobe_t *spec)
+{
+	luaprobe_t *probe = luaprobe_register(L, runtime, spec);
+
+	lunatik_getobject(runtime); /* a percpu object is held by its data; a plain runtime is held here */
+	return probe;
+}
 
 static int luaprobe_new(lua_State *L)
 {
 	lunatik_checkarmed(L);
-	lunatik_checkpercpu(L);
-	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t), LUNATIK_OPT_NONE);
-	luaprobe_t *probe = (luaprobe_t *)object->private;
-	struct kprobe *kp = &probe->kp;
-	int ret;
-
-	probe->runtime = lunatik_checkruntime(L, LUNATIK_OPT_HARDIRQ);
-	lunatik_getobject(probe->runtime);
-
-	if (lua_islightuserdata(L, 1))
-		kp->addr = lua_touserdata(L, 1);
-	else {
-		size_t symbol_len;
-		const char *symbol_name = luaL_checklstring(L, 1, &symbol_len);
-
-		if ((kp->symbol_name = kstrndup(symbol_name, symbol_len, lunatik_gfp(probe->runtime))) == NULL)
-			lunatik_enomem(L);
-	}
-
+	luaprobe_t spec = {.kp = {.pre_handler = luaprobe_pre_handler, .post_handler = luaprobe_post_handler}};
+	luaprobe_checkspec(L, 1, &spec);
 	luaL_checktype(L, 2, LUA_TTABLE); /* handlers */
+	lunatik_object_t *runtime = lunatik_checkruntime(L, LUNATIK_OPT_HARDIRQ);
+	lunatik_object_t *percpu = lunatik_getpercpu(L);
 
-	kp->pre_handler = luaprobe_pre_handler;
-	kp->post_handler = luaprobe_post_handler;
+	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, 0, LUNATIK_OPT_NONE);
 
-	/* must precede register_kprobe: kprobe may fire immediately */
-	lunatik_registerobject(L, 2, object);
+	object->private = percpu != NULL ? luaprobe_share(L, percpu, &spec) : luaprobe_own(L, runtime, &spec);
 
-	if ((ret = register_kprobe(kp)) != 0) {
-		kp->pre_handler = NULL; /* shouldn't unregister on release() */
-		lunatik_unregisterobject(L, object);
-		luaL_error(L, "failed to register probe (%d)", ret);
-	}
-
+	lunatik_registerobject(L, 2, object); /* keyed by the kprobe, which is what the handler looks up */
 	return 1; /* object */
 }
 

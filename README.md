@@ -95,7 +95,7 @@ usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [
 * `status`: show which Lunatik kernel modules are currently loaded
 * `test [suite]`: run installed test suites (see [Testing](#testing))
 * `list`: show which runtime environments are currently running
-* `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook, and constructors whose registration is global fail at load in a percpu runtime
+* `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
 * `stop`: stop the runtime environment created to run the script `<script>`
 * `default`: start a _REPL (Read–Eval–Print Loop)_
