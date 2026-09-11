@@ -65,7 +65,7 @@ typedef struct lunatik_sharing_s {
 	const lunatik_class_t *class;	/* percpu data holding the list of registrations */
 	size_t size;			/* of the registration, which begins with lunatik_shared_t */
 	lunatik_match_t match;
-	lunatik_arm_t arm;		/* registers with the kernel; frees what it took before raising */
+	lunatik_arm_t arm;		/* registers with the kernel; frees the registration before raising */
 	const char *registered;		/* raised when this runtime already registered the same target */
 } lunatik_sharing_t;
 
