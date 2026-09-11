@@ -46,7 +46,7 @@ do {						\
 
 #define LUASOCKET_ADDRMAX	(sizeof_field(struct sockaddr_storage, __data))
 
-static int luasocket_new(lua_State *L);
+static int luasocket_lnew(lua_State *L);
 static int luasocket_accept(lua_State *L);
 
 #define LUASOCKET_ISUNIX(family)	((family) == AF_UNIX || (family) == AF_LOCAL)
@@ -445,7 +445,7 @@ static void luasocket_release(void *private)
 }
 
 static const luaL_Reg luasocket_lib[] = {
-	{"new", luasocket_new},
+	{"new", luasocket_lnew},
 	{NULL, NULL}
 };
 
@@ -474,7 +474,7 @@ static const lunatik_class_t luasocket_class = {
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
 };
 
-#define luasocket_newsocket(L)		(lunatik_newobject((L), &luasocket_class, 0, LUNATIK_OPT_NONE))
+#define luasocket_new(L)		(lunatik_newobject((L), &luasocket_class, 0, LUNATIK_OPT_NONE))
 #define luasocket_psocket(object)	((struct socket **)&object->private)
 
 /***
@@ -493,7 +493,7 @@ static int luasocket_accept(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
 	int flags = luaL_optinteger(L, 2, 0);
-	lunatik_object_t *object = luasocket_newsocket(L);
+	lunatik_object_t *object = luasocket_new(L);
 
 	lunatik_try(L, kernel_accept, socket, luasocket_psocket(object), flags);
 	return 1; /* object */
@@ -519,12 +519,12 @@ static int luasocket_accept(lua_State *L)
 * @see linux.socket.ipproto
 * @within socket
 */
-static int luasocket_new(lua_State *L)
+static int luasocket_lnew(lua_State *L)
 {
 	int family = luaL_checkinteger(L, 1);
 	int type = luaL_checkinteger(L, 2);
 	int proto = luaL_checkinteger(L, 3);
-	lunatik_object_t *object = luasocket_newsocket(L);
+	lunatik_object_t *object = luasocket_new(L);
 
 	lunatik_try(L, sock_create_kern, &init_net, family, type, proto, luasocket_psocket(object));
 	return 1; /* object */
