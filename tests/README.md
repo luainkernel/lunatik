@@ -211,6 +211,11 @@ higher-level `netlink.*` modules built on top of it.
 
 ### probe
 
+- **argument**: the `argument` closure a handler receives, on its three
+  outcomes: a probe on `vfs_read` reads the byte count the caller asked for,
+  a negative index raises, and both it and the `dump` closure stop reaching
+  the registers once the handler that received them returned.
+
 - **armed**: `probe.new`, `stop` and `enable` all reach a kprobe call that
   sleeps, so each is allowed while the script loads, in process context, and
   refused from a handler, where the runtime is in hardirq: the script registers,
