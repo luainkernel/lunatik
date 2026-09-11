@@ -59,6 +59,57 @@ lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class,
 }
 EXPORT_SYMBOL(lunatik_percpudata);
 
+static lunatik_shared_t *lunatik_findshared(struct hlist_head *head, const lunatik_sharing_t *sharing,
+	const lunatik_shared_t *spec)
+{
+	lunatik_shared_t *shared;
+
+	hlist_for_each_entry(shared, head, node) {
+		if (sharing->match(shared, spec))
+			return shared;
+	}
+	return NULL;
+}
+
+static lunatik_shared_t *lunatik_newshared(lua_State *L, lunatik_object_t *runtime,
+	const lunatik_sharing_t *sharing, const lunatik_shared_t *spec)
+{
+	lunatik_shared_t *shared = lunatik_checkalloc(L, sharing->size);
+
+	memcpy(shared, spec, sharing->size);
+	shared->runtime = runtime;
+	sharing->arm(L, shared);
+	return shared;
+}
+
+lunatik_shared_t *lunatik_own(lua_State *L, lunatik_object_t *runtime, const lunatik_sharing_t *sharing,
+	const lunatik_shared_t *spec)
+{
+	lunatik_shared_t *shared = lunatik_newshared(L, runtime, sharing, spec);
+
+	lunatik_getobject(runtime); /* a percpu object is held by its data; a plain runtime is held here */
+	return shared;
+}
+EXPORT_SYMBOL(lunatik_own);
+
+lunatik_shared_t *lunatik_share(lua_State *L, lunatik_object_t *percpu, const lunatik_sharing_t *sharing,
+	const lunatik_shared_t *spec)
+{
+	struct hlist_head *head = lunatik_percpudata(L, sharing->class, sizeof(struct hlist_head))->private;
+	lunatik_shared_t *shared = lunatik_findshared(head, sharing, spec);
+
+	if (shared == NULL) {
+		shared = lunatik_newshared(L, percpu, sharing, spec);
+		hlist_add_head(&shared->node, head);
+	}
+	else if (lunatik_getregistry(L, shared) != LUA_TNIL)
+		luaL_error(L, "%s", sharing->registered);
+	else
+		lua_pop(L, 1);
+	return shared;
+}
+EXPORT_SYMBOL(lunatik_share);
+
 static void lunatik_stopdata(lunatik_object_t *object)
 {
 	lunatik_percpu_t *percpu = lunatik_topercpu(object);
