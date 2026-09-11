@@ -283,7 +283,7 @@ static int luaprobe_new(lua_State *L)
 		lunatik_own(L, runtime, &luaprobe_sharing, &spec.shared));
 
 	if (percpu == NULL)
-		probe->kprobe = kprobe; /* the percpu object owns the shared one */
+		probe->kprobe = kprobe;
 
 	lunatik_registerobject(L, 2, object);
 	lunatik_register(L, 2, kprobe); /* the handler finds this runtime's handlers by the kprobe they share */

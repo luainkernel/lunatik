@@ -200,7 +200,7 @@ static int luanetfilter_register(lua_State *L)
 		lunatik_own(L, runtime, &luanetfilter_sharing, &spec.shared));
 
 	if (percpu == NULL)
-		nf->hook = hook; /* the percpu object owns the shared one */
+		nf->hook = hook;
 
 	luaskb_attach(L, nf, skb);
 	lunatik_registerobject(L, 1, object);
