@@ -757,7 +757,9 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   hard half of the finding in hand. A dismissal is held to a finding's own standard: runs that came
   back clean do not dispose of a symptom that appeared once, because an absence measures the runs and
   not the code. Either the mechanism is traced to why it cannot happen, or it is still a finding and
-  leaves as one.
+  leaves as one. Handing a call back to the maintainer is a deferral like any other and takes the same
+  issue: a design costed in a review thread, with its trade written out and no number on it, is lost
+  the day the pull request is merged, and the next reader pays for the analysis again.
 * Cover the whole change, and flag across all of it — the author's code and your own fixups alike.
   "It is the author's code" or "my line, not the feature" is never a reason to pass over a defect;
   what is scoped is the fixup, which touches only what a finding requires, not the finding. A review
