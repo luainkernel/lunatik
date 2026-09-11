@@ -28,9 +28,11 @@ function drops.report()
 	return table.concat(lines, "\n")
 end
 
-local function count(_, reason)
+local counts = {}
+
+function counts.__index(_, reason)
 	return track()[reason]
 end
 
-return setmetatable(drops, {__index = count})
+return setmetatable(drops, counts)
 
