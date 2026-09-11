@@ -273,7 +273,9 @@ static int luaprobe_new(lua_State *L);
 *   each receives the symbol (string or lightuserdata), a `dump` closure and an
 *   `argument` closure. Both raise once the callback returns; `argument(n)` reads the
 *   n-th argument of the probed function, counting from zero, and raises where the
-*   architecture has no `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`
+*   architecture has no `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`. Past the argument
+*   registers an architecture defines it returns what `regs_get_kernel_argument()`
+*   gives there rather than raising
 * @treturn probe
 * @raise if registration fails; in a percpu script, if this runtime already probed the same
 *   symbol or address, or if called after module load
