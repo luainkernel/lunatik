@@ -217,6 +217,18 @@ afterwards. Returns `NULL` on a plain runtime, which has no runtimes to share wi
 `lunatik_getpercpu(L)` tells the two apart, returning the `percpu` object owning the runtime `L`,
 or `NULL`.
 
+### LUNATIK\_PERCPUDATA
+```C
+#define LUNATIK_PERCPUDATA(prefix, cname, T, free)
+```
+Defines `static const lunatik_class_t prefix_class`, named `cname`, for the data a `percpu` object
+holds for the registrations its runtimes share, as [`lunatik_percpudata`](#lunatik_percpudata)
+creates it: a private that is a `struct hlist_head` of `T` entries linked through their
+`struct hlist_node node`, whose `release`, `prefix_release`, unlinks every entry and passes it to
+`free`. For example,
+`LUNATIK_PERCPUDATA(luaprobe_kprobes, "probe.kprobes", luaprobe_kprobe_t, luaprobe_disarm)`
+defines `luaprobe_kprobes_class`.
+
 ---
 
 ## Object Lifecycle
