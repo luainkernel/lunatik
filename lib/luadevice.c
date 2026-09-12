@@ -267,8 +267,7 @@ static int luadevice_stop(lua_State *L)
 	luadevice_delete(luadev);
 	lunatik_unlock(object);
 
-	if (lunatik_toruntime(L) == luadev->runtime)
-		lunatik_unregisterobject(L, object);
+	lunatik_unregisterobject(L, object);
 	return 0;
 }
 

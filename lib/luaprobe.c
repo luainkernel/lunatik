@@ -124,9 +124,7 @@ static int luaprobe_stop(lua_State *L)
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 
 	luaprobe_delete(probe);
-
-	if (lunatik_toruntime(L) == probe->runtime)
-		lunatik_unregisterobject(L, object);
+	lunatik_unregisterobject(L, object);
 	return 0;
 }
 
