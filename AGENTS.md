@@ -130,10 +130,12 @@ the last one.
 
 `tools/checks/` holds the mechanical checks: comment and LDoc style on framework files
 (`module-conventions.sh`), test scripts that cannot detect a failed load (`test-harness.sh`),
-cppcheck on userspace test C (`cppcheck-tests.sh`), and the trailing blank line rule and the refusal
-of a staged conflict marker (`pre-commit`). Each takes file paths and skips what does not apply, so any
-editor, assistant, or CI can run them. The `Checks` workflow runs them over a pull request's diff:
-`pre-commit` fails the run, the heuristic checks annotate it. Install the commit gate with:
+cppcheck on userspace test C (`cppcheck-tests.sh`), a core change riding inside a binding's commit
+(`core-subject.sh`, which reads that commit's subject on stdin), and the trailing blank line rule and
+the refusal of a staged conflict marker (`pre-commit`). Each takes file paths and skips what does not
+apply, so any editor, assistant, or CI can run them. The `Checks` workflow runs them over a pull
+request's diff, and `core-subject.sh` over each commit of it: `pre-commit` fails the run, the
+heuristic checks annotate it. Install the commit gate with:
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
