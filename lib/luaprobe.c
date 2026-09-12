@@ -292,7 +292,7 @@ static luaprobe_kprobe_t *luaprobe_share(lua_State *L, lunatik_object_t *percpu,
 	else
 		lua_pop(L, 1);
 
-	kref_get(&kprobe->kref); /* the set holds the first reference; this handle holds its own */
+	kref_get(&kprobe->kref);
 	return kprobe;
 }
 
