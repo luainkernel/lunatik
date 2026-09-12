@@ -52,7 +52,7 @@ lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class,
 		return NULL;
 
 	if (lunatik_isready(lunatik_toruntime(L)))
-		luaL_error(L, "not allowed after module load");
+		luaL_error(L, LUNATIK_ERR_ARMED);
 
 	lunatik_object_t *data = lunatik_finddata(lunatik_topercpu(object), class);
 	return data != NULL ? data : lunatik_newdata(L, object, class, size);

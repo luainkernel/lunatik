@@ -390,8 +390,7 @@ static const lunatik_class_t luabpf_queue_class = {
 static int luabpf_open(lua_State *L, const lunatik_class_t *class, enum bpf_map_type type,
 	const char *expected)
 {
-	if (unlikely(lunatik_cannotsleep(L, lunatik_isready(lunatik_toruntime(L)))))
-		luaL_argerror(L, 1, "not allowed after module load");
+	lunatik_checkarmed(L);
 
 	const char *pathname = luaL_checkstring(L, 1);
 	lunatik_object_t *object = lunatik_newobject(L, class, 0, LUNATIK_OPT_NONE);
@@ -413,10 +412,10 @@ static int luabpf_##name##_open(lua_State *L)						\
 * @function hash
 * @tparam string path Path to a pinned eBPF hash map.
 * @treturn bpf_hash Opened map handle.
-* @raise Error if the path does not resolve to a pinned eBPF hash map.
-* Path lookup may sleep, so on interrupt-context runtimes (softirq/hardirq)
-* the constructors are only allowed during script load; the returned handle
-* can then be used from handlers.
+* @raise Error if the path does not resolve to a pinned eBPF hash map, or if called
+* after module load: the path lookup sleeps, so on an interrupt-context runtime
+* (softirq/hardirq) the constructors are only allowed while the script body runs;
+* the returned handle can then be used from handlers.
 * @usage
 *   local bpf = require("bpf")
 *   local counter = bpf.hash("/sys/fs/bpf/counters")
