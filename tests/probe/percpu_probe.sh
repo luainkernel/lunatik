@@ -15,9 +15,11 @@
 # runtime is refused; stop and enable are refused in a percpu runtime, where the
 # object owns the kprobe; a probe from a handler, after the script loaded, is
 # refused before it could sleep in hardirq; the same script probes as a plain
-# hardirq runtime; and a plain runtime stops its own probe, twice with no effect,
-# is refused an enable afterwards, and refuses a probe on a symbol the kernel
-# does not have.
+# hardirq runtime, arming its own kprobe and unregistering it when it stops; a
+# plain runtime stops its own probe, twice with no effect, is refused an enable
+# afterwards, and refuses a probe on a symbol the kernel does not have; and a set
+# whose last runtime errors releases the kprobe the earlier ones shared, leaving
+# no kprobe armed, no script registered and no use-count on the probe module.
 #
 # Usage: sudo bash tests/probe/percpu_probe.sh
 
@@ -27,9 +29,11 @@ STOP="tests/probe/percpu_probe_stop"
 PLAIN="tests/probe/percpu_probe_plain"
 EARLY="tests/probe/percpu_probe_early"
 LATE="tests/probe/percpu_probe_late"
+ROLLBACK="tests/probe/percpu_probe_rollback"
 ARMED="percpu probe early: armed"
 TARGETS="percpu probe twice: two targets armed"
 KPROBES="/sys/kernel/debug/kprobes/list"
+REFCNT="/sys/module/luaprobe/refcnt"
 COUNT=3
 TRIES=100
 
@@ -43,6 +47,7 @@ cleanup()
 	lunatik stop "$PLAIN" > /dev/null 2>&1
 	lunatik stop "$EARLY" > /dev/null 2>&1
 	lunatik stop "$LATE" > /dev/null 2>&1
+	lunatik stop "$ROLLBACK" > /dev/null 2>&1
 }
 
 # how many kprobes the kernel holds; nothing where debugfs does not say
@@ -73,7 +78,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 7
+ktap_plan 8
 
 command -v taskset > /dev/null 2>&1 && command -v setarch > /dev/null 2>&1 || {
 	echo "# SKIP: taskset or setarch not available"
@@ -84,6 +89,7 @@ command -v taskset > /dev/null 2>&1 && command -v setarch > /dev/null 2>&1 || {
 	ktap_skip "a probe from a handler, after load, is refused"
 	ktap_skip "the same script probes as a plain hardirq runtime"
 	ktap_skip "a plain runtime stops its probe once, refuses enable afterwards and refuses an unknown symbol"
+	ktap_skip "a set whose last runtime errors releases the kprobe the earlier ones shared"
 	ktap_totals
 	exit 0
 }
@@ -151,19 +157,46 @@ dmesg_since | grep -q "percpu probe late: not allowed after module load" || \
 ktap_pass "a probe from a handler, after load, is refused"
 
 mark_dmesg
+idle=$(kprobes)
 run_script "$SCRIPT" hardirq
+armed=$(kprobes)
 trigger "$cpu"
 check_dmesg || { ktap_totals; exit 1; }
 plain=$(dmesg_since | grep -c "percpu probe: cpu plain$")
 lunatik stop "$SCRIPT" > /dev/null 2>&1
+stopped=$(kprobes)
 [ "$plain" = "$COUNT" ] || fail "the plain runtime counted $plain of $COUNT"
-ktap_pass "the same script probes as a plain hardirq runtime"
+if [ -n "$armed" ]; then
+	[ "$armed" = "$((idle + 1))" ] || fail "the plain runtime armed $((armed - idle)) kprobes"
+	[ "$stopped" = "$idle" ] || fail "stopping the plain runtime left $((stopped - idle)) kprobes armed"
+fi
+ktap_pass "the same script probes as a plain hardirq runtime, arming and unregistering its own kprobe"
 
 mark_dmesg
 run_script "$PLAIN" hardirq
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$PLAIN" > /dev/null 2>&1
 ktap_pass "a plain runtime stops its probe once, refuses enable afterwards and refuses an unknown symbol"
+
+mark_dmesg
+idle=$(kprobes)
+held=$(cat "$REFCNT" 2>/dev/null)
+output=$(lunatik run "$ROLLBACK" hardirq percpu 2>&1)
+echo "$output" | grep -q "refusing the last runtime" || fail "the set did not reach the intentional error: $output"
+check_dmesg || { ktap_totals; exit 1; }
+rolled=$(kprobes)
+released=$(cat "$REFCNT" 2>/dev/null)
+listed=$(lunatik list)
+case "$listed" in
+	*"$ROLLBACK"*) fail "the refused set left the script registered: $listed" ;;
+esac
+if [ -n "$idle" ]; then
+	[ "$rolled" = "$idle" ] || fail "the rollback left $((rolled - idle)) kprobes armed"
+fi
+if [ -n "$held" ]; then
+	[ "$released" = "$held" ] || fail "the rollback leaked luaprobe use-counts: $held -> $released"
+fi
+ktap_pass "a set whose last runtime errors releases the kprobe the earlier ones shared"
 
 ktap_totals
 
