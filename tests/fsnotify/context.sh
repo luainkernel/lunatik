@@ -4,10 +4,11 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # What the module refuses: a callback that is not a function, a path that does
-# not resolve, a permission event whose verdict this phase does not implement,
-# and the whole module from a softirq runtime — marking sleeps and so does the
-# callback, so the class carries no interrupt context and the constructor says
-# so rather than deadlocking later.
+# not resolve, and the whole module from a softirq runtime — marking sleeps and
+# so does the callback, so the class carries no interrupt context and the
+# constructor says so rather than deadlocking later. A permission mask is
+# refused only where the kernel was built without the hooks that would reach it,
+# so that case takes either answer and asserts the message names the config.
 #
 # A runtime takes as many watches as it likes: the reentrancy guard reads the
 # runtime lock's owner rather than a per-watch task, so a second watch is not a
