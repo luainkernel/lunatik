@@ -20,6 +20,9 @@ static inline void lunatik_freelock(lunatik_object_t *object)
 		mutex_destroy(&object->mutex);
 }
 
+#define lunatik_setowner(object, task)	WRITE_ONCE((object)->owner, (task))
+#define lunatik_isowner(object)		(READ_ONCE((object)->owner) == current)
+
 /* a bottom-half unlock with IRQs off runs the pending softirqs inline, inside a kprobe handler */
 #define lunatik_isirqsave(object)	(lunatik_ishardirq((object)->opt) || irqs_disabled())
 
@@ -31,10 +34,12 @@ static inline void lunatik_lock(lunatik_object_t *object)
 		spin_lock_irqsave(&object->spin, object->flags);
 	else
 		spin_lock_bh(&object->spin);
+	lunatik_setowner(object, current);
 }
 
 static inline void lunatik_unlock(lunatik_object_t *object)
 {
+	lunatik_setowner(object, NULL);
 	if (!lunatik_isirq(object->opt))
 		mutex_unlock(&object->mutex);
 	else if (lunatik_isirqsave(object))
@@ -45,13 +50,19 @@ static inline void lunatik_unlock(lunatik_object_t *object)
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
+	int locked;
+
 	if (likely(!lunatik_ismonitor(object->opt)))
 		return 1;
 	if (!lunatik_isirq(object->opt))
-		return mutex_trylock(&object->mutex);
-	if (lunatik_isirqsave(object))
-		return spin_trylock_irqsave(&object->spin, object->flags);
-	return spin_trylock_bh(&object->spin);
+		locked = mutex_trylock(&object->mutex);
+	else if (lunatik_isirqsave(object))
+		locked = spin_trylock_irqsave(&object->spin, object->flags);
+	else
+		locked = spin_trylock_bh(&object->spin);
+	if (locked)
+		lunatik_setowner(object, current);
+	return locked;
 }
 
 #endif
