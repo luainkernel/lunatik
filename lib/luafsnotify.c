@@ -18,9 +18,11 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/dcache.h>
 #include <linux/fsnotify_backend.h>
+#include <linux/limits.h>
 #include <linux/list.h>
 #include <linux/namei.h>
 #include <linux/path.h>
+#include <linux/pid.h>
 
 #include <lunatik.h>
 
@@ -33,6 +35,7 @@
 typedef struct luafsnotify_s {
 	struct fsnotify_group *group;
 	lunatik_object_t *runtime;
+	lunatik_object_t *event;
 	struct list_head marks;
 } luafsnotify_t;
 
@@ -41,25 +44,67 @@ typedef struct luafsnotify_mark_s {
 	struct list_head entry;
 } luafsnotify_mark_t;
 
+/* the dispatcher's frame, borrowed by the event object for the length of one call */
+typedef struct luafsnotify_event_s {
+	const void *data;
+	const struct qstr *name;
+	struct inode *dir;
+	int data_type;
+	pid_t pid;
+	__u32 mask;
+} luafsnotify_event_t;
+
 static const lunatik_class_t luafsnotify_class;
+static const lunatik_class_t luafsnotify_event_class;
 
 LUNATIK_PRIVATECHECKER(luafsnotify_check, luafsnotify_t *, &luafsnotify_class);
 
-static int luafsnotify_callback(lua_State *L, luafsnotify_t *watch, __u32 mask)
+LUNATIK_PRIVATECHECKER(luafsnotify_checkevent, luafsnotify_event_t *, &luafsnotify_event_class);
+
+static inline lunatik_object_t *luafsnotify_pushevent(lua_State *L, luafsnotify_t *watch,
+	luafsnotify_event_t *event)
 {
+	lunatik_object_t *object = watch->event;
+
+	if (lunatik_getregistry(L, object) != LUA_TUSERDATA) {
+		pr_err("couldn't find event\n");
+		return NULL;
+	}
+
+	object->private = event;
+	return object;
+}
+
+static int luafsnotify_callback(lua_State *L, luafsnotify_t *watch, luafsnotify_event_t *event)
+{
+	lunatik_object_t *object;
+
 	if (lunatik_getregistry(L, watch) != LUA_TFUNCTION)
 		return 0; /* callback removed by stop() */
 
-	lua_pushinteger(L, (lua_Integer)mask);
-	if (lua_pcall(L, 1, 0, 0) != LUA_OK) /* callback(mask) */
+	lua_pushinteger(L, (lua_Integer)event->mask);
+	if ((object = luafsnotify_pushevent(L, watch, event)) == NULL)
+		return 0;
+
+	if (lua_pcall(L, 2, 0, 0) != LUA_OK) /* callback(mask, event) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
+
+	object->private = NULL; /* the frame it points at goes next: a kept event raises instead */
 	return 0;
 }
 
-static int luafsnotify_event(struct fsnotify_mark *mark, u32 mask, struct inode *inode,
-	struct inode *dir, const struct qstr *name, u32 cookie)
+static int luafsnotify_handle(struct fsnotify_group *group, u32 mask, const void *data, int data_type,
+	struct inode *dir, const struct qstr *name, u32 cookie, struct fsnotify_iter_info *iter_info)
 {
-	luafsnotify_t *watch = (luafsnotify_t *)mark->group->private;
+	luafsnotify_t *watch = (luafsnotify_t *)group->private;
+	luafsnotify_event_t event = {
+		.data = data,
+		.name = name,
+		.dir = dir,
+		.data_type = data_type,
+		.pid = task_pid_nr(current), /* delivery is synchronous: this is the accessing task */
+		.mask = mask,
+	};
 	int ret;
 
 	/* whoever holds the runtime lock lands back here when it touches a marked
@@ -67,7 +112,7 @@ static int luafsnotify_event(struct fsnotify_mark *mark, u32 mask, struct inode 
 	if (lunatik_isowner(watch->runtime))
 		return 0;
 
-	lunatik_run(watch->runtime, luafsnotify_callback, ret, watch, mask);
+	lunatik_run(watch->runtime, luafsnotify_callback, ret, watch, &event);
 	(void)ret;
 	return 0; /* fsnotify only reads this for permission events */
 }
@@ -86,7 +131,9 @@ static void luafsnotify_freegroup(struct fsnotify_group *group)
 }
 
 static const struct fsnotify_ops luafsnotify_ops = {
-	.handle_inode_event = luafsnotify_event,
+	/* not handle_inode_event: only this variant is handed the event's data and its
+	 * type, which is where event:path() finds its struct path */
+	.handle_event = luafsnotify_handle,
 	.free_mark = luafsnotify_freemark,
 	.free_group_priv = luafsnotify_freegroup,
 };
@@ -103,6 +150,8 @@ static void luafsnotify_detach(luafsnotify_t *watch)
 		return;
 
 	watch->group = NULL;
+	if (watch->event != NULL) /* NULL when attaching one raised */
+		lunatik_detach(watch->runtime, watch, event); /* fsnotify_put_group below frees the watch */
 	list_for_each_entry_safe(mark, next, &watch->marks, entry) {
 		list_del(&mark->entry);
 		fsnotify_destroy_mark(&mark->mark, group);
@@ -185,6 +234,152 @@ static int luafsnotify_stop(lua_State *L)
 	return 0;
 }
 
+/***
+* The event a watch hands to its callback.
+* A userdata reused for every event of the watch that made it, holding what the
+* kernel passed the dispatcher. It is cleared when the callback returns, so a
+* script that keeps it and reads it afterwards gets an error rather than a
+* pointer into a stack frame that is gone.
+*
+* What an accessor can answer depends on what the kernel attached to the event:
+* an event on an open file carries a `struct path` and answers everything, while
+* a directory entry event carries only the entry's dentry or inode and has no
+* path. Each accessor returns `nil` for a field the event does not carry.
+* @type fsnotify_event
+*/
+
+/***
+* Returns the directory entry name the event is about.
+* Carried by the directory entry events (`CREATE`, `DELETE`, `MOVED_FROM`,
+* `MOVED_TO`) and by an event a parent directory marked with
+* `linux.fs.EVENT_ON_CHILD` is interested in; an event only the object's own
+* mark reports carries none.
+* @function name
+* @treturn string entry name, or `nil` when the event carries none
+* @raise if the event is used after its callback returned
+*/
+static int luafsnotify_name(lua_State *L)
+{
+	luafsnotify_event_t *event = luafsnotify_checkevent(L, 1);
+	const struct qstr *name = event->name;
+
+	if (name == NULL)
+		lua_pushnil(L);
+	else
+		lua_pushlstring(L, (const char *)name->name, name->len);
+	return 1;
+}
+
+/***
+* Returns the inode number of the object the event is about.
+* Absent only when the kernel attached neither an inode, a dentry nor a path to
+* the event, and for a directory entry whose inode the filesystem instantiates
+* after reporting the entry.
+* @function ino
+* @treturn integer inode number, or `nil` when the event carries no inode
+* @raise if the event is used after its callback returned
+*/
+static int luafsnotify_ino(lua_State *L)
+{
+	luafsnotify_event_t *event = luafsnotify_checkevent(L, 1);
+	struct inode *inode = fsnotify_data_inode(event->data, event->data_type);
+
+	lunatik_pushoptinteger(L, inode, inode->i_ino);
+	return 1;
+}
+
+/***
+* Returns the inode number of the directory the entry the event names lives in.
+* Carried by the directory entry events, and by an event on an object whose
+* parent directory watches its children, whether or not `name` is.
+* @function dir
+* @treturn integer inode number, or `nil` when the event names no directory
+* @raise if the event is used after its callback returned
+*/
+static int luafsnotify_dir(lua_State *L)
+{
+	luafsnotify_event_t *event = luafsnotify_checkevent(L, 1);
+
+	lunatik_pushoptinteger(L, event->dir, event->dir->i_ino);
+	return 1;
+}
+
+/***
+* Tells whether the event is about a directory.
+* Reads `linux.fs.ISDIR` off the mask, so it answers for every event.
+* @function isdir
+* @treturn boolean
+* @raise if the event is used after its callback returned
+*/
+static int luafsnotify_isdir(lua_State *L)
+{
+	luafsnotify_event_t *event = luafsnotify_checkevent(L, 1);
+
+	lua_pushboolean(L, (event->mask & FS_ISDIR) != 0);
+	return 1;
+}
+
+/***
+* Returns the pid of the task performing the access.
+* Delivery is synchronous, in the syscall of the process being watched, so this
+* is that process and not a bookkeeping artefact. It is a thread id, the same
+* number `task:pid()` reports.
+* @function pid
+* @treturn integer pid
+* @raise if the event is used after its callback returned
+*/
+static int luafsnotify_pid(lua_State *L)
+{
+	luafsnotify_event_t *event = luafsnotify_checkevent(L, 1);
+
+	lua_pushinteger(L, (lua_Integer)event->pid);
+	return 1;
+}
+
+/***
+* Returns the full path of the object the event is about.
+* Only an event the kernel raised from an open file carries a `struct path`;
+* a directory entry event does not, and answers `nil`. This is the expensive
+* accessor: it resolves the path into a `PATH_MAX` buffer on every call, so a
+* callback that matches on `name` never pays for it.
+*
+* The path is the one the accessing task sees: `d_path` renders it against that
+* task's own root, so a chrooted or containerised accessor gets its own view of
+* it, and a file already unlinked carries a trailing `" (deleted)"`.
+* @function path
+* @treturn string path, or `nil` when the event carries none
+* @raise if the path cannot be resolved, or if the event is used after its
+*   callback returned
+*/
+static int luafsnotify_path(lua_State *L)
+{
+	luafsnotify_event_t *event = luafsnotify_checkevent(L, 1);
+	const struct path *path = fsnotify_data_path(event->data, event->data_type);
+	luaL_Buffer B;
+	char *buffer, *resolved;
+	size_t len;
+
+	if (path == NULL) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	buffer = luaL_buffinitsize(L, &B, PATH_MAX); /* a Lua buffer: a raise below frees it */
+	resolved = d_path(path, buffer, PATH_MAX);
+	if (IS_ERR(resolved))
+		lunatik_throw(L, (int)PTR_ERR(resolved));
+
+	len = strlen(resolved);
+	memmove(buffer, resolved, len); /* d_path fills from the end of the buffer */
+	luaL_pushresultsize(&B, len);
+	return 1;
+}
+
+static inline lunatik_object_t *luafsnotify_newevent(lua_State *L)
+{
+	return lunatik_newobject(L, &luafsnotify_event_class, 0, LUNATIK_OPT_NONE);
+}
+
 static inline struct fsnotify_group *luafsnotify_allocgroup(void)
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
@@ -215,22 +410,27 @@ static luafsnotify_t *luafsnotify_newwatch(lua_State *L, lunatik_object_t *runti
 /***
 * Creates a watch.
 * Allocates an `fsnotify` group whose events are delivered to `callback`.
-* Nothing arrives until `watch:mark` places a mark.
+* Nothing arrives until `watch:mark` places a mark. An event reaches the
+* callback once per watch, however many of its marks match it: when a file and
+* its parent directory, marked with `linux.fs.EVENT_ON_CHILD`, are both marked
+* by the same watch, an event on the file arrives once, tagged
+* `EVENT_ON_CHILD` and carrying the entry's `name` and `dir`.
 *
 * An event whose delivery would need a lock its own task already holds is
 * dropped rather than run: this callback touching a path it marks, and equally
 * a `thread` body, a `device` file operation or another module's callback in
 * the same runtime.
 * @function watch
-* @tparam function callback invoked as `callback(mask)`, where `mask` is the
-*   event mask that fired, testable against `linux.fs` bits. Its return value
+* @tparam function callback invoked as `callback(mask, event)`, where `mask` is
+*   the event mask that fired, testable against `linux.fs` bits, and `event` is
+*   an `fsnotify_event` valid only for the length of the call. Its return value
 *   is ignored.
 * @treturn fsnotify_watch
 * @raise if the group cannot be allocated, if called from an interrupt-context
 *   runtime, or if called from a percpu runtime
 * @within fsnotify
 * @usage
-*   local watch = fsnotify.watch(function (mask) print(mask) end)
+*   local watch = fsnotify.watch(function (mask, event) print(mask, event:name()) end)
 *   watch:mark("/tmp/scratch", fs.OPEN)
 */
 static int luafsnotify_watch(lua_State *L)
@@ -240,8 +440,10 @@ static int luafsnotify_watch(lua_State *L)
 
 	lunatik_object_t *runtime = lunatik_checkruntime(L, luafsnotify_class.opt);
 	lunatik_object_t *object = lunatik_newobject(L, &luafsnotify_class, 0, LUNATIK_OPT_NONE);
+	luafsnotify_t *watch = luafsnotify_newwatch(L, runtime);
 
-	object->private = luafsnotify_newwatch(L, runtime);
+	object->private = watch;
+	lunatik_attach(L, watch, event, luafsnotify_newevent);
 	lunatik_registerobject(L, 1, object);
 	return 1; /* object */
 }
@@ -258,6 +460,17 @@ static const luaL_Reg luafsnotify_mt[] = {
 	{NULL, NULL}
 };
 
+static const luaL_Reg luafsnotify_event_mt[] = {
+	{"__gc", lunatik_deleteobject},
+	{"dir", luafsnotify_dir},
+	{"ino", luafsnotify_ino},
+	{"isdir", luafsnotify_isdir},
+	{"name", luafsnotify_name},
+	{"path", luafsnotify_path},
+	{"pid", luafsnotify_pid},
+	{NULL, NULL}
+};
+
 LUNATIK_OPENER(fsnotify);
 static const lunatik_class_t luafsnotify_class = {
 	.name = "fsnotify",
@@ -267,7 +480,13 @@ static const lunatik_class_t luafsnotify_class = {
 	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
 };
 
-LUNATIK_CLASSES(fsnotify, &luafsnotify_class);
+static const lunatik_class_t luafsnotify_event_class = {
+	.name = "fsnotify.event",
+	.methods = luafsnotify_event_mt,
+	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
+};
+
+LUNATIK_CLASSES(fsnotify, &luafsnotify_class, &luafsnotify_event_class);
 LUNATIK_NEWLIB(fsnotify, luafsnotify_lib, luafsnotify_classes);
 
 static int __init luafsnotify_init(void)
