@@ -196,6 +196,7 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_METATABLE	"metatable not found"
 #define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
+#define LUNATIK_ERR_ARMED	"not allowed after module load"
 
 #define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
 
@@ -222,6 +223,12 @@ static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class
 {
 	if (lunatik_cannotsleep(L, !lunatik_isirq(class->opt)))
 		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_CONTEXT);
+}
+
+static inline void lunatik_checkarmed(lua_State *L)
+{
+	if (unlikely(lunatik_cannotsleep(L, lunatik_isready(lunatik_toruntime(L)))))
+		luaL_error(L, LUNATIK_ERR_ARMED);
 }
 
 static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool monitor)
