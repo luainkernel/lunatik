@@ -179,7 +179,7 @@ static void luaprobe_release(void *private)
 {
 	luaprobe_kprobe_t *kprobe = (luaprobe_kprobe_t *)private;
 	lunatik_object_t *runtime = kprobe->runtime;
-	bool owned = !luaprobe_isshared(kprobe); /* the data holds a shared kprobe's object until stop closes both */
+	bool owned = !luaprobe_isshared(kprobe); /* the percpu object outlives the runtimes it closes */
 
 	luaprobe_put(kprobe); /* read before the put, which may free the kprobe */
 	if (owned)
