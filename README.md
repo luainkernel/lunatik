@@ -613,6 +613,35 @@ fsmonitor: modified file ino 13862 pid 2222341
 fsmonitor: deleted file ino 13862 pid 2222347
 ```
 
+### execguard
+
+[execguard](examples/execguard.lua) is an allowlist for `exec` over one directory: a permission event
+parks the `execve` inside the callback, which refuses it unless the entry's name is in the `set` it was
+built with.
+
+The mark is an inode mark on `SCOPE` carrying `EVENT_ON_CHILD`, so the only exec it can refuse is of an
+entry directly inside that directory. It is never a system wide default deny: a `"mount"` or `"sb"` mark
+reaches every file of a mount or of a whole filesystem, and a rule that denies there leaves the machine
+unable to run the programs that would undo it. Give it a scratch mount of its own, as below, so that the
+`umount` ends the rule even if the script cannot be stopped.
+
+#### Usage
+
+```
+sudo make examples_install                  # installs examples
+sudo mkdir -p -m 0755 /tmp/lunatik-execguard
+sudo mount -t tmpfs -o size=1M,mode=0755 lunatik-execguard /tmp/lunatik-execguard
+sudo cp /bin/true /bin/date /tmp/lunatik-execguard/
+sudo lunatik run examples/execguard         # runs execguard
+/tmp/lunatik-execguard/true                 # "true" is in the allowlist: it runs
+/tmp/lunatik-execguard/date                 # "date" is not
+bash: /tmp/lunatik-execguard/date: Operation not permitted
+sudo lunatik stop examples/execguard        # ends the rule
+sudo umount /tmp/lunatik-execguard          # and takes the mark with it
+sudo dmesg -t                               # prints what it refused
+execguard: denied date to pid 2222403
+```
+
 ## References
 
 ### Talks and Papers

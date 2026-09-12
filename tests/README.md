@@ -200,13 +200,14 @@ their own tmpfs there and mark that.
   created inside that subdirectory is not, which is how far `FS_EVENT_ON_CHILD`
   reaches, and nothing is reported at all once the example is stopped.
 
-The seven tests below cover the permission events, where the callback's return
-value decides whether the access happens. Each of them sources `perm.sh`, which
-mounts a tmpfs of its own under the scratch directory and marks only files on
-it, so a rule that denies reaches nothing the machine needs, and asks the module
-through `probe.lua` whether this kernel has the permission hooks at all, skipping
-the whole plan when it does not. Every one of them undoes its rule in the trap,
-and the deny tests read the denied file again after the watch is stopped.
+The tests below cover the permission events, where the callback's return value
+decides whether the access happens. Each of them sources `perm.sh`, which mounts
+a tmpfs of its own and asks the module through `probe.lua` whether this kernel
+has the permission hooks at all, skipping the whole plan when it does not. Every
+mark they place is on a tmpfs the test mounted, so a rule that denies reaches
+nothing the machine needs and the unmount takes the mark with it. Every one of
+them undoes its rule in the trap, and the deny tests read the denied file again
+after the watch is stopped.
 
 - **allow**: a callback returning `ALLOW` lets the open through, and the
   callback saw the open that produced the content the shell read. This is
@@ -242,6 +243,14 @@ and the deny tests read the denied file again after the watch is stopped.
 - **sleep**: a callback that calls `linux.schedule` finishes and the open waits
   for it, which is what makes a process-context runtime the right one for a
   hook that runs inside the accessing task's syscall.
+
+- **execguard**: the `execguard` example, run from where `examples_install` puts
+  it, over a tmpfs mounted at the directory the example marks. A program whose
+  name its allowlist carries runs, one it does not name is refused with `EPERM`,
+  and a copy of that refused program, same name, in a sibling directory runs:
+  the mark is on that one directory, so the rule cannot reach outside it. The
+  refusal names the entry and the pid it was refused to, and ends with the
+  example.
 
 ### hid
 
