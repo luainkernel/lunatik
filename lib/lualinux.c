@@ -196,7 +196,7 @@ static int lualinux_lookup(lua_State *L)
 static int lualinux_ifindex(lua_State *L)
 {
 	const char *ifname = luaL_checkstring(L, 1);
-	struct net_device *dev = dev_get_by_name(&init_net, ifname);
+	struct net_device *dev = dev_get_by_name(LUNATIK_NETNS, ifname);
 
 	luaL_argcheck(L, dev != NULL, 1, "device not found");
 	lua_pushinteger(L, dev->ifindex);
@@ -220,7 +220,7 @@ static int lualinux_ifaddr(lua_State *L)
 	int ifindex = luaL_checkinteger(L, 1);
 	luaL_Buffer B;
 	char *addr = luaL_buffinitsize(L, &B, MAX_ADDR_LEN);
-	struct net_device *dev = dev_get_by_index(&init_net, ifindex);
+	struct net_device *dev = dev_get_by_index(LUNATIK_NETNS, ifindex);
 
 	luaL_argcheck(L, dev != NULL, 1, "device not found");
 	size_t len = min_t(size_t, dev->addr_len, MAX_ADDR_LEN);

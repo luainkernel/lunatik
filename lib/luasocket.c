@@ -526,7 +526,7 @@ static int luasocket_new(lua_State *L)
 	int proto = luaL_checkinteger(L, 3);
 	lunatik_object_t *object = luasocket_newsocket(L);
 
-	lunatik_try(L, sock_create_kern, &init_net, family, type, proto, luasocket_psocket(object));
+	lunatik_try(L, sock_create_kern, LUNATIK_NETNS, family, type, proto, luasocket_psocket(object));
 	return 1; /* object */
 }
 

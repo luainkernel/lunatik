@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=$'\n'
-for t in "$DIR"/context_mismatch.sh "$DIR"/init_dispatch.sh "$DIR"/chain_continues.sh; do
+for t in "$DIR"/context_mismatch.sh "$DIR"/init_dispatch.sh "$DIR"/chain_continues.sh "$DIR"/netns_scope.sh "$DIR"/replay.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	bash "$t" || FAILED=$((FAILED+1))
 done

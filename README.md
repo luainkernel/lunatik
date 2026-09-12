@@ -340,10 +340,10 @@ sudo sh -c "echo 'deny=eth0'  > /dev/ifquarantine" # re-apply quarantine
 sudo lunatik stop examples/ifquarantine/control    # stops both scripts
 ```
 
-Pre-existing interfaces are covered as well: `register_netdevice_notifier`
-synchronously replays `NETDEV_REGISTER` (and `NETDEV_UP`) for each existing
-netdev when the notifier block is registered, so they enter quarantine at
-script start too.
+Pre-existing interfaces are covered as well: `register_netdevice_notifier_net`
+synchronously replays `NETDEV_REGISTER` (and `NETDEV_UP`) for each netdev the
+initial namespace already has when the notifier block is registered, so they
+enter quarantine at script start too.
 
 ### filter
 

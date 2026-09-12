@@ -219,6 +219,20 @@ or `NULL`.
 
 ---
 
+## Network Namespace
+
+### LUNATIK\_NETNS
+```C
+#define LUNATIK_NETNS (&init_net)
+```
+The network namespace every binding acts in. Device lookups, sockets, netfilter
+hooks and the netdevice notifier are all bound to the initial namespace, so a
+name or an index one binding hands a script resolves in the others. A binding
+that takes a `struct net *` passes this one rather than resolving a namespace
+of its own.
+
+---
+
 ## Object Lifecycle
 
 ### lunatik\_newobject
