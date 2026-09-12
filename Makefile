@@ -33,7 +33,7 @@ CONFIG_LUNATIK_RUN ?= m
 # Order matters: modules are loaded left-to-right and unloaded right-to-left (rmmod).
 # A module must appear AFTER all modules it depends on (e.g. SKB before NETFILTER).
 LUNATIK_MODULES := DEVICE LINUX NOTIFIER SOCKET NETLINK RCU SET TASK THREAD DATA PROBE SYSCALL XDP FIFO \
-	SKB TC NETFILTER COMPLETION CRYPTO CPU HID SIGNAL BYTEORDER DARKEN BPF
+	SKB TC NETFILTER COMPLETION CRYPTO CPU HID SIGNAL BYTEORDER DARKEN BPF SCHED
 
 $(foreach c,$(LUNATIK_MODULES),\
 	$(eval CONFIG_LUNATIK_$(c) ?= m))
@@ -172,6 +172,7 @@ tests_install:
 	${INSTALL} -m 0644 tests/netlink/channel_subscriber.c ${LUNATIK_TESTS_INSTALL_PATH}/netlink
 	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
 	${INSTALL} -m 0644 tests/tc/Makefile tests/tc/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/tc
+	${INSTALL} -m 0644 tests/sched/Makefile tests/sched/*.bpf.c tests/sched/*.bpf.h ${LUNATIK_TESTS_INSTALL_PATH}/sched
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 tests/socket/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket
