@@ -201,6 +201,17 @@ Returns the runtime associated with `L` and raises a Lua error if its context do
 process runtime. Typically called from `lunatik_new*` functions to enforce that a class is
 only instantiated in a compatible runtime.
 
+### lunatik\_checkarmed
+```C
+void lunatik_checkarmed(lua_State *L);
+```
+Raises a Lua error, `"not allowed after module load"`, when `L` belongs to an interrupt-context
+runtime that has finished loading. An IRQ runtime is process context only while its script body
+runs, so a call that may sleep is allowed there and must be refused afterwards, when the runtime
+lock is a spinlock: from a hook or a handler, and from the `resume` of such a runtime. Use it in
+an entry point that reaches a sleeping kernel call, where `lunatik_checkruntime` answers the
+different question of whether the class matches the runtime at all.
+
 ### lunatik\_percpudata
 ```C
 lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class, size_t size);

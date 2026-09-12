@@ -115,11 +115,14 @@ static void luaprobe_release(void *private)
 /***
 * Unregisters and stops the probe.
 * @function stop
+* @raise if called after module load: unregister_kprobe sleeps, and the runtime is
+*   in hardirq by then
 */
 static const lunatik_class_t luaprobe_class;
 
 static int luaprobe_stop(lua_State *L)
 {
+	lunatik_checkarmed(L);
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luaprobe_class);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 
@@ -134,10 +137,12 @@ static int luaprobe_stop(lua_State *L)
 * Enables or disables the probe.
 * @function enable
 * @tparam boolean flag true to enable, false to disable
-* @raise if the probe has been stopped
+* @raise if the probe has been stopped, or if called after module load:
+*   enable_kprobe and disable_kprobe sleep, and the runtime is in hardirq by then
 */
 static int luaprobe_enable(lua_State *L)
 {
+	lunatik_checkarmed(L);
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luaprobe_class);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
 	struct kprobe *kp = &probe->kp;
@@ -163,7 +168,8 @@ static int luaprobe_new(lua_State *L);
 * @tparam table handlers table with optional `pre` and `post` callback functions;
 *   each receives the symbol (string or lightuserdata) and a `dump` closure
 * @treturn probe
-* @raise if registration fails, or if called from a percpu runtime
+* @raise if registration fails, if called from a percpu runtime, or if called after
+*   module load: register_kprobe sleeps, and the runtime is in hardirq by then
 */
 static const luaL_Reg luaprobe_lib[] = {
 	{"new", luaprobe_new},
@@ -188,6 +194,7 @@ static const lunatik_class_t luaprobe_class = {
 
 static int luaprobe_new(lua_State *L)
 {
+	lunatik_checkarmed(L);
 	lunatik_checkpercpu(L);
 	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, sizeof(luaprobe_t), LUNATIK_OPT_NONE);
 	luaprobe_t *probe = (luaprobe_t *)object->private;
