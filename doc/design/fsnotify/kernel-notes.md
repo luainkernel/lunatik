@@ -125,6 +125,14 @@ Accessors are inlines in the same header: `fsnotify_data_inode`, `fsnotify_data_
 `fsnotify_data_dentry`, `fsnotify_data_sb`. `fsnotify_data_path` returns `NULL` for anything but
 `FSNOTIFY_EVENT_PATH`, which is why `event:path()` returns `nil` rather than raising.
 
+### What `d_path` renders
+
+`d_path` resolves against the accessing task's own root, `get_fs_root_rcu(current->fs, &root)`
+(`fs/d_path.c:286` at v6.12, `:287` at v5.15), and delivery is synchronous, so `current` is the task
+performing the access: a chrooted or containerised accessor gets the path as it sees it, not as the
+script's own namespace would spell it. An unlinked file carries a trailing ` (deleted)` inside the
+same string (`:288` and `:289`), which the function's own kernel-doc calls ambiguous.
+
 ### Group flags and priority
 
     #define FSNOTIFY_GROUP_USER  0x01  /* user allocated group: accounted allocation */
