@@ -1,0 +1,34 @@
+--
+-- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+-- Logs what changes in one directory: an entry created or deleted, a file
+-- written or its attributes changed, with the name, the inode number and the
+-- pid of whoever did it.
+
+local fsnotify = require("fsnotify")
+local fs       = require("linux.fs")
+
+local format = string.format
+
+local WATCHED <const> = "/tmp/lunatik-fsmonitor"
+local EVENTS  <const> = fs.CREATE | fs.DELETE | fs.MODIFY | fs.ATTRIB
+
+local labels = {
+	[fs.CREATE] = "created",
+	[fs.DELETE] = "deleted",
+	[fs.MODIFY] = "modified",
+	[fs.ATTRIB] = "attributes",
+}
+
+local function monitor(mask, event)
+	local bits = mask & EVENTS -- the mask also carries ISDIR and EVENT_ON_CHILD
+	local what = labels[bits] or format("%x", bits)
+
+	print(format("fsmonitor: %s %s ino %s pid %d",
+		what, event:name() or "?", event:ino() or "?", event:pid()))
+end
+
+local watch = fsnotify.watch(monitor)
+watch:mark(WATCHED, EVENTS | fs.EVENT_ON_CHILD)
+
