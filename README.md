@@ -183,7 +183,7 @@ The table below lists the available kernel Lua modules:
 | `darken` | AES-256-CTR encrypted script execution |
 | `lighten` | Lua interface for running encrypted scripts via `darken` |
 | `notifier` | Kernel notifier chain registration |
-| `fsnotify` | Filesystem notification: inode marks and their events |
+| `fsnotify` | Filesystem notification: inode, mount and superblock marks and their events |
 | `lunatik.runner` | Run, spawn, and stop scripts from within Lua |
 | `net` | Networking helpers |
 | `mailbox` | Asynchronous inter-runtime messaging |

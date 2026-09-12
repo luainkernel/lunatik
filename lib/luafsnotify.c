@@ -8,6 +8,11 @@
 * Places marks on filesystem objects and hands the events they report to a Lua
 * callback. Event masks are the `linux.fs` bits.
 *
+* A mark goes on one inode, on a mount, or on a whole filesystem. The last two
+* reach every file they cover, so a mark on the mount or the superblock of `/`
+* sends every access on the machine through the callback; mark a scratch
+* subtree.
+*
 * Delivery is synchronous: the callback runs inside the syscall of the process
 * performing the access, holding the runtime lock, so every watched access on
 * the machine is serialized behind it.
@@ -20,9 +25,11 @@
 #include <linux/fsnotify_backend.h>
 #include <linux/limits.h>
 #include <linux/list.h>
+#include <linux/mount.h>
 #include <linux/namei.h>
 #include <linux/path.h>
 #include <linux/pid.h>
+#include <linux/string.h>
 
 #include <lunatik.h>
 
@@ -41,8 +48,16 @@ typedef struct luafsnotify_s {
 
 typedef struct luafsnotify_mark_s {
 	struct fsnotify_mark mark;
+	lunatik_object_t *object;
 	struct list_head entry;
+	unsigned int type;
+	char pathname[];
 } luafsnotify_mark_t;
+
+typedef struct luafsnotify_kind_s {
+	const char *name;
+	unsigned int type;
+} luafsnotify_kind_t;
 
 /* the dispatcher's frame, borrowed by the event object for the length of one call */
 typedef struct luafsnotify_event_s {
@@ -56,8 +71,11 @@ typedef struct luafsnotify_event_s {
 
 static const lunatik_class_t luafsnotify_class;
 static const lunatik_class_t luafsnotify_event_class;
+static const lunatik_class_t luafsnotify_mark_class;
 
 LUNATIK_PRIVATECHECKER(luafsnotify_check, luafsnotify_t *, &luafsnotify_class);
+
+LUNATIK_PRIVATECHECKER(luafsnotify_checkmark, luafsnotify_mark_t *, &luafsnotify_mark_class);
 
 LUNATIK_PRIVATECHECKER(luafsnotify_checkevent, luafsnotify_event_t *, &luafsnotify_event_class);
 
@@ -138,6 +156,33 @@ static const struct fsnotify_ops luafsnotify_ops = {
 	.free_group_priv = luafsnotify_freegroup,
 };
 
+/* the registry holds the handle while the watch holds the mark, so a script may
+ * drop it and find it again */
+static inline void luafsnotify_bind(lua_State *L, int ix, lunatik_object_t *object, luafsnotify_mark_t *mark)
+{
+	object->private = mark;
+	mark->object = object;
+	lunatik_register(L, ix, mark);
+}
+
+static inline void luafsnotify_unbind(lua_State *L, luafsnotify_mark_t *mark)
+{
+	if (mark->object != NULL) /* NULL once the handle was collected */
+		mark->object->private = NULL; /* the record goes with the mark: a stale handle raises */
+	if (L != NULL) /* NULL on the release path, where the state is going away */
+		lunatik_unregister(L, mark);
+}
+
+static void luafsnotify_removemark(lua_State *L, luafsnotify_mark_t *mark)
+{
+	struct fsnotify_group *group = mark->mark.group;
+
+	luafsnotify_unbind(L, mark);
+	list_del(&mark->entry);
+	fsnotify_destroy_mark(&mark->mark, group);
+	fsnotify_put_mark(&mark->mark); /* the reference fsnotify_init_mark left us */
+}
+
 /* the group outlives this call: a mark can still be running an event under
  * fsnotify's SRCU, and waiting for it here would deadlock against the runtime
  * lock that event blocks on. free_group_priv frees the watch instead. */
@@ -152,11 +197,10 @@ static void luafsnotify_detach(luafsnotify_t *watch)
 	watch->group = NULL;
 	if (watch->event != NULL) /* NULL when attaching one raised */
 		lunatik_detach(watch->runtime, watch, event); /* fsnotify_put_group below frees the watch */
-	list_for_each_entry_safe(mark, next, &watch->marks, entry) {
-		list_del(&mark->entry);
-		fsnotify_destroy_mark(&mark->mark, group);
-		fsnotify_put_mark(&mark->mark); /* the reference fsnotify_init_mark left us */
-	}
+
+	lua_State *L = lunatik_getstate(watch->runtime); /* NULL once the runtime is closing */
+	list_for_each_entry_safe(mark, next, &watch->marks, entry)
+		luafsnotify_removemark(L, mark);
 	fsnotify_put_group(group);
 }
 
@@ -165,42 +209,85 @@ static void luafsnotify_release(void *private)
 	luafsnotify_detach((luafsnotify_t *)private);
 }
 
-/***
-* Places a mark on a filesystem object.
-* Resolves `path` and marks its inode for the events in `mask`. A mark on a
-* directory reports events on the files inside it only when `mask` carries
-* `linux.fs.EVENT_ON_CHILD`.
-* @function mark
-* @tparam string path path of the object to mark
-* @tparam integer mask event mask, a combination of `linux.fs` bits
-* @treturn nil
-* @raise if `path` does not resolve, if the mark cannot be added, if the watch
-*   has been stopped, or if `mask` carries a permission event
-* @usage watch:mark("/tmp/scratch/file", fs.OPEN | fs.MODIFY)
-*/
-static int luafsnotify_mark(lua_State *L)
+/* from 6.10 the mark API takes the object itself; before that the object's
+ * connector, and a mount's is reached through real_mount(), which fs/mount.h
+ * keeps to the kernel, so there a mount cannot be marked at all */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0))
+#define LUAFSNOTIFY_KINDS	"\"inode\", \"mount\" or \"sb\""
+#define luafsnotify_findmark(obj, type, group)	fsnotify_find_mark((obj), (type), (group))
+
+static inline void *luafsnotify_object(const struct path *path, unsigned int type)
 {
-	luafsnotify_t *watch = luafsnotify_check(L, 1);
-	const char *pathname = luaL_checkstring(L, 2);
-	__u32 mask = (__u32)luaL_checkinteger(L, 3);
-	luafsnotify_mark_t *mark;
+	switch (type) {
+	case FSNOTIFY_OBJ_TYPE_VFSMOUNT:
+		return path->mnt;
+	case FSNOTIFY_OBJ_TYPE_SB:
+		return path->mnt->mnt_sb;
+	default:
+		return d_inode(path->dentry);
+	}
+}
+#else
+#define LUAFSNOTIFY_KINDS	"\"inode\" or \"sb\""
+#define luafsnotify_findmark(obj, type, group)	fsnotify_find_mark((obj), (group))
+
+static inline fsnotify_connp_t *luafsnotify_object(const struct path *path, unsigned int type)
+{
+	return type == FSNOTIFY_OBJ_TYPE_SB ? &path->mnt->mnt_sb->s_fsnotify_marks :
+		&d_inode(path->dentry)->i_fsnotify_marks;
+}
+#endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
+#define luafsnotify_addmark(mark, obj, type)	fsnotify_add_mark((mark), (obj), (type), 0)
+#else
+#define luafsnotify_addmark(mark, obj, type)	fsnotify_add_mark((mark), (obj), (type), 0, NULL) /* no fsid */
+#endif
+
+static const luafsnotify_kind_t luafsnotify_kinds[] = {
+	{"inode", FSNOTIFY_OBJ_TYPE_INODE},
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0))
+	{"mount", FSNOTIFY_OBJ_TYPE_VFSMOUNT},
+#endif
+	{"sb", FSNOTIFY_OBJ_TYPE_SB},
+};
+
+static unsigned int luafsnotify_checkkind(lua_State *L, int ix)
+{
+	const char *kind = luaL_optstring(L, ix, "inode");
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(luafsnotify_kinds); i++)
+		if (strcmp(kind, luafsnotify_kinds[i].name) == 0)
+			return luafsnotify_kinds[i].type;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
+	if (strcmp(kind, "mount") == 0)
+		return luaL_argerror(L, ix, "\"mount\" needs a 6.10 kernel");
+#endif
+	return luaL_argerror(L, ix, "expected " LUAFSNOTIFY_KINDS);
+}
+
+static luafsnotify_mark_t *luafsnotify_attachmark(lua_State *L, luafsnotify_t *watch, const char *pathname,
+	__u32 mask, unsigned int type)
+{
+	size_t len = strlen(pathname);
+	luafsnotify_mark_t *mark = (luafsnotify_mark_t *)lunatik_checkzalloc(L, sizeof(luafsnotify_mark_t) + len + 1);
 	struct path path;
 	int ret;
-
-	/* the verdict such an event asks for is not implemented */
-	luaL_argcheck(L, !(mask & ALL_FSNOTIFY_PERM_EVENTS), 3, "permission events not supported");
-
-	mark = (luafsnotify_mark_t *)lunatik_checkzalloc(L, sizeof(luafsnotify_mark_t));
 
 	if ((ret = kern_path(pathname, LOOKUP_FOLLOW, &path)) != 0) {
 		lunatik_free(mark);
 		lunatik_throw(L, ret);
 	}
 
+	memcpy(mark->pathname, pathname, len);
+	mark->type = type;
 	fsnotify_init_mark(&mark->mark, watch->group);
 	mark->mark.mask = mask;
+	/* the ignore mask is the script's: the next write to the object must not clear it */
+	mark->mark.flags |= FSNOTIFY_MARK_FLAG_IGNORED_SURV_MODIFY;
 
-	ret = fsnotify_add_inode_mark(&mark->mark, d_inode(path.dentry), 0);
+	ret = luafsnotify_addmark(&mark->mark, luafsnotify_object(&path, type), type);
 	path_put(&path);
 
 	if (ret != 0) {
@@ -209,7 +296,81 @@ static int luafsnotify_mark(lua_State *L)
 	}
 
 	list_add(&mark->entry, &watch->marks);
-	return 0;
+	return mark;
+}
+
+/***
+* Places a mark on a filesystem object.
+* Resolves `path` and marks what `kind` names for the events in `mask`: the
+* inode it resolves to, the mount it is on, or its whole filesystem. An inode
+* mark on a directory reports events on the files directly inside it only when
+* `mask` carries `linux.fs.EVENT_ON_CHILD`, and never on anything deeper; a
+* mount or superblock mark reports every file it covers without it.
+* @function mark
+* @tparam string path path of the object to mark
+* @tparam integer mask event mask, a combination of `linux.fs` bits
+* @tparam[opt] string kind `"inode"` (default), `"mount"` or `"sb"`; `"mount"`
+*   needs a 6.10 kernel
+* @treturn fsnotify_mark the mark, which the watch keeps until it is removed
+* @raise if `path` does not resolve, if `kind` is not one this kernel offers,
+*   if this watch already marks the object, if the watch has been stopped, or
+*   if `mask` carries a permission event
+* @usage local mark = watch:mark("/tmp/scratch", fs.OPEN | fs.MODIFY, "mount")
+*/
+static int luafsnotify_mark(lua_State *L)
+{
+	luafsnotify_t *watch = luafsnotify_check(L, 1);
+	const char *pathname = luaL_checkstring(L, 2);
+	__u32 mask = (__u32)luaL_checkinteger(L, 3);
+	unsigned int type = luafsnotify_checkkind(L, 4);
+
+	/* the verdict such an event asks for is not implemented */
+	luaL_argcheck(L, !(mask & ALL_FSNOTIFY_PERM_EVENTS), 3, "permission events not supported");
+
+	lunatik_object_t *object = lunatik_newobject(L, &luafsnotify_mark_class, 0, LUNATIK_OPT_NONE);
+	luafsnotify_mark_t *mark = luafsnotify_attachmark(L, watch, pathname, mask, type);
+
+	luafsnotify_bind(L, -1, object, mark);
+	return 1; /* object */
+}
+
+/***
+* Finds the mark this watch placed on an object.
+* Resolves `path` and asks the kernel, which keys the marks by the object they
+* are on, so a script does not have to keep a table of its own.
+* @function find
+* @tparam string path path of the marked object
+* @tparam[opt] string kind `"inode"` (default), `"mount"` or `"sb"`; `"mount"`
+*   needs a 6.10 kernel
+* @treturn fsnotify_mark the mark this watch placed there, or `nil` when it has
+*   none
+* @raise if `path` does not resolve, if `kind` is not one this kernel offers,
+*   or if the watch has been stopped
+* @usage local mark = watch:find("/tmp/scratch", "mount")
+*/
+static int luafsnotify_find(lua_State *L)
+{
+	luafsnotify_t *watch = luafsnotify_check(L, 1);
+	const char *pathname = luaL_checkstring(L, 2);
+	unsigned int type = luafsnotify_checkkind(L, 3);
+	struct fsnotify_mark *found;
+	struct path path;
+	int ret;
+
+	if ((ret = kern_path(pathname, LOOKUP_FOLLOW, &path)) != 0)
+		lunatik_throw(L, ret);
+
+	found = luafsnotify_findmark(luafsnotify_object(&path, type), type, watch->group);
+	path_put(&path);
+
+	if (found == NULL) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	lunatik_getregistry(L, container_of(found, luafsnotify_mark_t, mark)); /* push the handle */
+	fsnotify_put_mark(found); /* the reference fsnotify_find_mark took */
+	return 1;
 }
 
 /***
@@ -232,6 +393,100 @@ static int luafsnotify_stop(lua_State *L)
 	object->private = NULL; /* the group frees the watch; release must not run on it */
 	luafsnotify_detach(watch);
 	return 0;
+}
+
+/***
+* A mark on a filesystem object.
+* A userdata `watch:mark` returns and `watch:find` hands back. The watch owns
+* the mark: dropping the handle leaves the mark in place, and `watch:stop`
+* removes every mark the watch placed. A handle whose mark is gone raises.
+* @type fsnotify_mark
+*/
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0))
+#define luafsnotify_ignoremask(mark)	((mark)->mark.ignore_mask)
+#else
+#define luafsnotify_ignoremask(mark)	((mark)->mark.ignored_mask) /* renamed in 6.0 */
+#endif
+
+/***
+* Reads the mark's event mask, or sets it.
+* Setting it removes the mark and adds it again, because the mask an object is
+* watched for is a sum over its marks that only the kernel's own add
+* recalculates: `path` is resolved once more, and an event in between is not
+* reported. The handle stays the same.
+* @function mask
+* @tparam[opt] integer mask the new event mask, a combination of `linux.fs` bits
+* @treturn integer the mark's event mask
+* @raise if the mark has been removed, if `mask` carries a permission event, or
+*   if the mark cannot be added again, because the path no longer resolves or
+*   the kernel refuses it, which leaves the mark removed
+* @usage mark:mask(mark:mask() | fs.MODIFY)
+*/
+static int luafsnotify_mask(lua_State *L)
+{
+	luafsnotify_mark_t *mark = luafsnotify_checkmark(L, 1);
+
+	if (!lua_isnoneornil(L, 2)) {
+		__u32 mask = (__u32)luaL_checkinteger(L, 2);
+		luafsnotify_t *watch = (luafsnotify_t *)mark->mark.group->private; /* the mark holds the group */
+		lunatik_object_t *object = mark->object;
+		unsigned int type = mark->type;
+
+		luaL_argcheck(L, !(mask & ALL_FSNOTIFY_PERM_EVENTS), 2, "permission events not supported");
+
+		const char *pathname = lua_pushstring(L, mark->pathname); /* the record goes with the mark */
+
+		luafsnotify_removemark(L, mark);
+		mark = luafsnotify_attachmark(L, watch, pathname, mask, type);
+		luafsnotify_bind(L, 1, object, mark); /* index 1 is the handle this method was called on */
+	}
+
+	lua_pushinteger(L, (lua_Integer)mark->mark.mask);
+	return 1;
+}
+
+/***
+* Reads the mark's ignore mask, or sets it.
+* An event in the ignore mask is not reported through this mark, whatever its
+* event mask carries, and the ignore mask a script sets holds until it sets
+* another: a write to the object does not clear it.
+* @function ignore
+* @tparam[opt] integer mask the events to ignore, a combination of `linux.fs` bits
+* @treturn integer the mark's ignore mask
+* @raise if the mark has been removed
+* @usage mark:ignore(fs.OPEN)
+*/
+static int luafsnotify_ignore(lua_State *L)
+{
+	luafsnotify_mark_t *mark = luafsnotify_checkmark(L, 1);
+
+	if (!lua_isnoneornil(L, 2))
+		luafsnotify_ignoremask(mark) = (__u32)luaL_checkinteger(L, 2);
+
+	lua_pushinteger(L, (lua_Integer)luafsnotify_ignoremask(mark));
+	return 1;
+}
+
+/***
+* Removes the mark.
+* No further event reaches the callback through it, and the watch drops it.
+* @function remove
+* @treturn nil
+* @raise if the mark has already been removed
+* @usage mark:remove()
+*/
+static int luafsnotify_remove(lua_State *L)
+{
+	luafsnotify_mark_t *mark = luafsnotify_checkmark(L, 1);
+
+	luafsnotify_removemark(L, mark);
+	return 0;
+}
+
+static void luafsnotify_releasemark(void *private)
+{
+	((luafsnotify_mark_t *)private)->object = NULL; /* the watch keeps the mark the handle leaves */
 }
 
 /***
@@ -455,8 +710,17 @@ static const luaL_Reg luafsnotify_lib[] = {
 
 static const luaL_Reg luafsnotify_mt[] = {
 	{"__gc", lunatik_deleteobject},
+	{"find", luafsnotify_find},
 	{"mark", luafsnotify_mark},
 	{"stop", luafsnotify_stop},
+	{NULL, NULL}
+};
+
+static const luaL_Reg luafsnotify_mark_mt[] = {
+	{"__gc", lunatik_deleteobject},
+	{"ignore", luafsnotify_ignore},
+	{"mask", luafsnotify_mask},
+	{"remove", luafsnotify_remove},
 	{NULL, NULL}
 };
 
@@ -486,7 +750,14 @@ static const lunatik_class_t luafsnotify_event_class = {
 	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
 };
 
-LUNATIK_CLASSES(fsnotify, &luafsnotify_class, &luafsnotify_event_class);
+static const lunatik_class_t luafsnotify_mark_class = {
+	.name = "fsnotify.mark",
+	.methods = luafsnotify_mark_mt,
+	.release = luafsnotify_releasemark,
+	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
+};
+
+LUNATIK_CLASSES(fsnotify, &luafsnotify_class, &luafsnotify_event_class, &luafsnotify_mark_class);
 LUNATIK_NEWLIB(fsnotify, luafsnotify_lib, luafsnotify_classes);
 
 static int __init luafsnotify_init(void)

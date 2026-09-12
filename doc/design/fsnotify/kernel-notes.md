@@ -42,7 +42,9 @@ Path resolution, plain `EXPORT_SYMBOL`:
     d_path                                struct path -> string, needs a caller supplied buffer
 
 **Not exported**: `fsnotify_detach_mark` and `fsnotify_free_mark` individually. Use
-`fsnotify_destroy_mark`, which does both.
+`fsnotify_destroy_mark`, which does both. Nor `fsnotify_recalc_mask`, `fsnotify_get_mark`,
+`fsnotify_conn_mask` and `fsnotify_clear_marks_by_group`, all of them declared in the same header:
+declared is not exported, and the list above is the whole of what a module gets.
 
 ## In-tree precedents
 
@@ -182,25 +184,64 @@ called. Set it explicitly on every kernel; it costs nothing on 6.8 and is requir
 `obj_type` is `FSNOTIFY_OBJ_TYPE_INODE`, `_VFSMOUNT` or `_SB`, which is how the same call marks a
 file, a mount or a whole filesystem. Convenience inline: `fsnotify_add_inode_mark`.
 
-The mark's mask is set on the mark (`mark->mask`) before adding, or updated afterwards followed by
-`fsnotify_recalc_mask` on the connector.
+The mark's mask is set on the mark (`mark->mask`) before adding.
+
+### Changing a live mark's mask
+
+`fsnotify_recalc_mask` is not exported, so a module cannot recalculate the object's aggregate mask
+after writing `mark->mask` — and that aggregate, which `fsnotify()` tests before any group is reached,
+is what decides whether an event is dispatched at all. Writing `mark->mask` alone therefore only
+narrows what a mark reports; a bit added that way never arrives.
+
+`fsnotify_add_mark` ends in `fsnotify_recalc_mask(mark->connector)` (`fs/notify/mark.c`, 6.12), so the
+exported route to a new mask is to destroy the mark and add it again. The destroy has to come first:
+`fsnotify_add_mark_list` refuses a second mark of the same group on the same object with `-EEXIST`
+unless the group carries `FSNOTIFY_GROUP_DUPS`.
+
+### The ignore mask
+
+`send_to_group` clears `mark->ignore_mask` on every `FS_MODIFY` unless the mark carries
+`FSNOTIFY_MARK_FLAG_IGNORED_SURV_MODIFY` (`fs/notify/fsnotify.c`, 6.12). That is fanotify's "ignore
+until the file changes", which an ignore mask a script asked for is not, so set the flag on the mark
+before adding it. Leaving `FSNOTIFY_MARK_FLAG_HAS_IGNORE_FLAGS` clear keeps the legacy reading, where
+the ignore mask names event types and the flags in it are the mark's own — which is what
+`mark:ignore(mask)` means. No recalculation is needed for it: an ignore mask only ever suppresses.
+
+### What umount does to a mark
+
+`fsnotify_sb_delete` sends `FS_UNMOUNT` to every watched inode of the superblock and detaches the marks
+on them and on the superblock itself; `__fsnotify_vfsmount_delete`, from `mntput`, does the same for a
+mount. Detaching drops only the reference `fsnotify_add_mark` took, so a mark whose module still holds
+the reference `fsnotify_init_mark` left stays allocated and merely becomes detached: a later
+`fsnotify_destroy_mark` on it returns without doing anything, and the module's own `fsnotify_put_mark`
+frees it. Marks do not pin the mount, and umount does not wait for them.
 
 ### Version drift, verified
 
-The one change inside the range this tree supports, 5.15 and later:
+Read from the `include/linux/fsnotify_backend.h` of each release named. Inside the range this tree
+supports, 5.15 and later:
 
 | Change | before | from |
 |--------|--------|------|
 | `fsnotify_alloc_group` | `(ops)` | `(ops, flags)`, 5.19 |
+| The mark's ignore mask | `mark->ignored_mask` | `mark->ignore_mask`, 6.0 |
+| `fsnotify_add_mark` | `(mark, connp, obj_type, add_flags, fsid)` | `(mark, connp, obj_type, add_flags)`, 6.8 |
+| `fsnotify_add_mark` second parameter | `fsnotify_connp_t *connp` | `void *obj`, the object itself, 6.10 |
+| `fsnotify_find_mark` | `(connp, group)` | `(obj, obj_type, group)`, 6.10 |
 
 `fsnotify_add_inode_mark(mark, inode, add_flags)` is an inline with the same signature across the whole
-range, so a binding that goes through it never sees the `connp_t` change below.
+range, so a binding that only marks inodes sees none of the last three.
+
+Before 6.10 a mount's connector is `&real_mount(mnt)->mnt_fsnotify_marks`, and `real_mount` is in
+`fs/mount.h`, which is not installed for modules. An inode's (`&inode->i_fsnotify_marks`) and a
+superblock's (`&sb->s_fsnotify_marks`) are public, so on those kernels a module can mark an inode and a
+filesystem but not a mount; `luafsnotify` drops `"mount"` from the kinds it accepts there rather than
+offering one that cannot work.
 
 The rest lands above 6.9 and matters only when targeting those kernels:
 
 | Change | 6.8 | from |
 |--------|-----|------|
-| `fsnotify_add_mark` second parameter | `fsnotify_connp_t *connp` (`&inode->i_fsnotify_marks`) | `void *obj` (the inode itself), 6.10 |
 | Group priority constants | `FS_PRIO_0/1/2`, defines inside the struct; field is `unsigned int` | `enum fsnotify_group_prio` (`FSNOTIFY_PRIO_NORMAL/CONTENT/PRE_CONTENT`), 6.10 |
 | Permission hooks | `fsnotify_open_perm`, `fsnotify_file_perm` | adds `fsnotify_mmap_perm`, `fsnotify_truncate_perm`; `fsnotify_file_area_perm` also tests `MAY_WRITE`/`MAY_ACCESS` |
 | Priority gating on the open path | none | `fsnotify_sb_has_priority_watchers` + `FMODE_NONOTIFY_PERM` |
