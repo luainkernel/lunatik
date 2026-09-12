@@ -211,6 +211,13 @@ higher-level `netlink.*` modules built on top of it.
 
 ### probe
 
+- **armed**: `probe.new`, `stop` and `enable` all reach a kprobe call that
+  sleeps, so each is allowed while the script loads, in process context, and
+  refused from a handler, where the runtime is in hardirq: the script registers,
+  toggles and stops a probe on the way in, then probes `vfs_read` and calls all
+  three from its own handler. Do not run it against a build without the guard,
+  which would reach `synchronize_rcu` with interrupts off.
+
 - **kprobe_concurrent**: registers kprobes on every syscall and runs
   one load generator per CPU; `lunatik stop` must complete within 5s
   with no kernel errors under concurrent handler firings.
