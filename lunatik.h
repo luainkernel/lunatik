@@ -11,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/mm.h>
 #include <linux/kref.h>
+#include <linux/sched.h>
 #include <linux/version.h>
 
 #include <lua.h>
@@ -84,6 +85,7 @@ typedef struct lunatik_object_s {
 		struct mutex mutex;
 		spinlock_t spin;
 	};
+	struct task_struct *owner;
 	lunatik_opt_t opt;
 	gfp_t gfp;
 	unsigned long flags;
@@ -240,6 +242,7 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 	object->opt = lunatik_inheritopt(class, opt);
 	object->gfp = lunatik_isirq(object->opt) ? GFP_ATOMIC : GFP_KERNEL;
 	lunatik_newlock(object);
+	object->owner = NULL;
 }
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
