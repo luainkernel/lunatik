@@ -84,14 +84,39 @@ Consequences for the binding:
   context runtime is correct and a `softirq` runtime is not;
 * it **re-enters** if the handler touches a watched path. See the guard in `api.md`.
 
-Where the perm hooks are called from, 6.8:
+From 6.8 all of this is behind `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`: without it the inline hooks
+compile to `return 0` and no group can deny anything. Before 6.8 `fsnotify_perm` is unconditional and
+`security_file_open` and `security_file_permission` call it either way, so a permission mark is
+reached with or without the config; `luafsnotify` refuses one without it on every kernel. It is `=y`
+on Ubuntu's 6.8 kernel and on Debian's 6.12.
 
-    security/security.c:3045    security_file_open()  -> fsnotify_open_perm(file)
-    fs/readdir.c:99             fsnotify_file_perm(file, MAY_READ)
-    include/linux/fsnotify.h    fsnotify_file_area_perm() is the FS_ACCESS_PERM entry point
+### Where the permission hooks fire, and what is locked there
 
-All of this is behind `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`; without it the inline hooks compile to
-`return 0` and no group can deny anything. It is `=y` on Ubuntu's 6.8 kernel.
+Read at v6.12. Three entry points, and one of them can be under a directory's `i_rwsem`:
+
+| Hook | Called from | `i_rwsem` |
+|------|-------------|-----------|
+| `fsnotify_open_perm` | `security_file_open()`, `security/security.c:3113`, from `do_dentry_open()`, `fs/open.c:945` | none on the ordinary path; the parent's, held by `open_last_lookups()`, when `lookup_open()` reaches `do_dentry_open` through a filesystem's `->atomic_open` (`fs/namei.c:3691`, write with `O_CREAT`, shared without) |
+| `fsnotify_file_area_perm` | `rw_verify_area()`, `fs/read_write.c:474`, before the filesystem's own locking | none |
+| `fsnotify_file_perm` | `iterate_dir()`, `fs/readdir.c:97`, before its `down_read_killable(&inode->i_rwsem)` | none |
+
+So a permission handler is exposed to the same hazard as a handler for a directory entry event, on
+the `->atomic_open` filesystems (nfs, fuse, ceph, gfs2 and the like) and not on ext4 or tmpfs. It is
+the narrow case of a wide one: `fsnotify_create`, `fsnotify_mkdir`, `fsnotify_unlink`,
+`fsnotify_link` and `fsnotify_move` all fire with the parent's `i_rwsem` held, always.
+
+### Resolving a path from inside a callback
+
+`kern_path` from a callback can therefore want a lock the callback's own task already holds:
+`lookup_slow` takes `inode_lock_shared(dir)` (`fs/namei.c:1748`), and a task holding that rwsem for
+write deadlocks on it, as does one holding it for read once a writer is queued.
+
+`LOOKUP_CACHED` removes the case rather than making it unlikely. `path_init` refuses a walk that is
+not in RCU mode (`fs/namei.c:2445`), `legitimize_links` fails every attempt to leave RCU mode during
+the walk (`fs/namei.c:733`), and `complete_walk` clears the flag and unlazies only once the last
+component has come out of the dcache (`fs/namei.c:896`); `lookup_slow` is reached only from ref-walk
+mode, so the walk either completes out of the dcache or returns `EAGAIN`. Verified identical at
+v5.15 and v6.12: the same sites, unchanged.
 
 ### `handle_event` versus `handle_inode_event`
 
@@ -108,10 +133,10 @@ the inode and the name, and the core does the iteration bookkeeping
 (`fsnotify_handle_inode_event`, `fs/notify/fsnotify.c:260`). It does **not** give you the
 `struct path`, and it is reached only for marks the core selected as inode-ish.
 
-The proposal starts on `handle_inode_event` for phases 1 to 3 and moves to `handle_event` for phase 4
-if the permission path needs the `path` or the iterator. Prototype before deciding: the two are not
-mutually exclusive across phases, but shipping both ops on the same group is not a design, it is an
-accident.
+`luafsnotify` is on `handle_event` from the event identity phase on: only that variant is handed the
+event's data and its type, which is where `event:path()` finds its `struct path`. It is also the
+variant the permission path needs, since its return value is the verdict. Shipping both ops on the
+same group is not a design, it is an accident.
 
 ### Data types: what the event actually carries
 
@@ -168,11 +193,23 @@ Write the assignment under a version guard, or define a local alias; do not use 
 before 6.10, where it does not exist.
 
 fanotify sets the value from the `FAN_CLASS_*` the user asked for. On 6.8 the dispatcher does not gate
-permission delivery on it, but on 6.14+ the open path consults
-`fsnotify_sb_has_priority_watchers(sb, FSNOTIFY_PRIO_CONTENT)` and marks the file
-`FMODE_NONOTIFY_PERM` when no such watcher exists — a group that wants permission events on those
-kernels must set the content priority before its marks are added, or its handler will simply never be
-called. Set it explicitly on every kernel; it costs nothing on 6.8 and is required later.
+permission delivery on it. From 6.10 `fsnotify_file()` does: it returns 0 for a permission mask
+unless `fsnotify_sb_has_priority_watchers(sb, FSNOTIFY_PRIO_CONTENT)`. From 6.14 the same question is
+asked once per open instead, by `file_set_fsnotify_mode_from_watchers()`, and cached in the file's
+`FMODE_NONOTIFY*` bits that `FMODE_FSNOTIFY_PERM()` reads.
+
+The counter behind that test is maintained by `fsnotify_update_sb_watchers()`, which reads
+`group->priority` when a mark is added (`fs/notify/mark.c`, 6.12). So the priority has to be set
+before the first mark, and cannot be changed while the group holds any: set it on every group rather
+than on the ones whose first mask happens to carry a permission event, since a mark's mask can gain
+one later. It costs nothing on 6.8. From 6.10 it is required, and it is not free: the counter is
+per superblock, so one mark by a content-priority group turns `fsnotify_file`'s permission path on
+for every open and read-side access on that filesystem, marks that never ask for a verdict included;
+an out-of-line `fsnotify_parent` call per access where an atomic read returned before, unmeasured.
+
+Verified on 6.12: a group left at `FSNOTIFY_PRIO_NORMAL` receives no permission event at all, and
+the open it was meant to gate succeeds — the failure is silent on both sides, which is why the test
+that covers the allow case asserts that the callback ran, not only that the open worked.
 
 ### Marks
 
@@ -244,7 +281,7 @@ The rest lands above 6.9 and matters only when targeting those kernels:
 |--------|-----|------|
 | Group priority constants | `FS_PRIO_0/1/2`, defines inside the struct; field is `unsigned int` | `enum fsnotify_group_prio` (`FSNOTIFY_PRIO_NORMAL/CONTENT/PRE_CONTENT`), 6.10 |
 | Permission hooks | `fsnotify_open_perm`, `fsnotify_file_perm` | adds `fsnotify_mmap_perm`, `fsnotify_truncate_perm`; `fsnotify_file_area_perm` also tests `MAY_WRITE`/`MAY_ACCESS` |
-| Priority gating on the open path | none | `fsnotify_sb_has_priority_watchers` + `FMODE_NONOTIFY_PERM` |
+| Priority gating on the open path | none | `fsnotify_file()` tests `fsnotify_sb_has_priority_watchers`, 6.10; the answer is cached per open in `FMODE_NONOTIFY*`, 6.14 |
 | Pre-content events | absent | `FSNOTIFY_PRIO_PRE_CONTENT`, HSM oriented |
 
 Follow the `LINUX_VERSION_CODE` guard style already used in `lib/luaxdp.c`. Do not paper over the
@@ -299,13 +336,19 @@ it a directory mark reports only events on the directory itself.
 | `CONFIG_FANOTIFY` | — (uapi only, not needed by a kernel group) | `y` |
 | `CONFIG_FANOTIFY_ACCESS_PERMISSIONS` | permission events | `y` |
 
-The permission hooks are compiled out without the third; guard the whole phase 4 surface on it and
-skip the tests rather than failing them.
+From 6.8 the permission hooks are compiled out without the third, and before it they are not, so the
+presence of a hook is no more a test than the presence of a constant; guard the whole phase 4 surface
+on the config itself and skip the tests rather than failing them.
 
 ## Sources
 
 * `fs/notify/fsnotify.c`, `fs/notify/group.c`, `fs/notify/mark.c`, `fs/notify/dnotify/dnotify.c`,
   `kernel/audit_watch.c` (Linux 6.8)
 * `include/linux/fsnotify_backend.h`, `include/linux/fsnotify.h` (6.8 and v6.15)
+* `fs/namei.c` and `fs/d_path.c` (v5.15 and v6.12), `fs/open.c`, `fs/read_write.c`, `fs/readdir.c`,
+  `security/security.c`, `fs/notify/fsnotify.c`, `fs/notify/mark.c` (v6.12),
+  `include/linux/fsnotify.h` and `include/linux/fs.h` (v6.10 and v6.14)
 * `Module.symvers` from `linux-headers-6.8.0-124-generic`
+* the running kernel of the machine this was developed on, `6.12.88+deb13-amd64`, whose headers are
+  `/usr/src/linux-headers-6.12.88+deb13-common/include`
 
