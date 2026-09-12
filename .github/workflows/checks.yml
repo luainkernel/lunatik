@@ -25,4 +25,9 @@ jobs:
           out=$(bash "tools/checks/$check.sh" $files 2>&1) || true
           test -n "$out" && echo "::warning title=$check::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
         done
+        # core-subject reads one commit: the staged diff above is the whole pull request
+        for commit in $(git rev-list "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"); do
+          out=$(git show -s --format=%s "$commit" | bash tools/checks/core-subject.sh $(git show --name-only --format= "$commit") 2>&1) || true
+          test -n "$out" && echo "::warning title=core-subject::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
+        done
         true
