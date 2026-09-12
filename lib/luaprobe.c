@@ -200,7 +200,6 @@ static int luaprobe_stop(lua_State *L)
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luaprobe_class);
 	luaprobe_kprobe_t *kprobe = (luaprobe_kprobe_t *)object->private;
 
-	lunatik_argchecknull(L, kprobe, 1);
 	luaL_argcheck(L, !luaprobe_isshared(kprobe), 1, LUAPROBE_ERR_SHARED);
 	luaprobe_delete(kprobe);
 
@@ -221,7 +220,6 @@ static int luaprobe_enable(lua_State *L)
 	luaprobe_kprobe_t *kprobe = (luaprobe_kprobe_t *)object->private;
 	bool enable = lua_toboolean(L, 2);
 
-	lunatik_argchecknull(L, kprobe, 1);
 	luaL_argcheck(L, !luaprobe_isshared(kprobe), 1, LUAPROBE_ERR_SHARED);
 	struct kprobe *kp = &kprobe->kp;
 
