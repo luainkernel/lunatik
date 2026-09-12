@@ -140,7 +140,10 @@ the test that places one mounts its own tmpfs there and marks that.
   there, the path inotify's one-shot watch takes to destroy its own mark. The
   mark removed on its first event delivers once; the mark set from `FS_OPEN`
   to `FS_MODIFY` on its first event delivers that open once, nothing for the
-  read after it, and the write.
+  read after it, and the write. Both resolve a path, and a callback's task may
+  hold the lock of the directory the event is about, so a path resolved there
+  stays in the directory cache: a name the shell never touches answers `EAGAIN`
+  instead of descending into that lock, while the two cached paths resolve.
 
 - **identity**: the matrix of event kind by accessor. A file open carries a
   `struct path`, so `name`, `ino`, `dir`, `isdir`, `pid` and `path` all answer;
