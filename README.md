@@ -586,6 +586,33 @@ cpu_usage_idle{cpu="cpu0"} 100.0000000000000000 1764094519529162
 ...
 ```
 
+### fsmonitor
+
+[fsmonitor](examples/fsmonitor.lua) uses the `fsnotify` module to log what changes in one directory: an
+entry created or deleted, a file written or its attributes changed, each line carrying the entry name,
+its inode number and the pid that did it.
+
+The mark is an inode mark on the directory `WATCHED` names, carrying `EVENT_ON_CHILD` so that events on
+the files inside it are reported too. That flag is one level deep: nothing under a subdirectory arrives.
+
+#### Usage
+
+```
+sudo make examples_install                  # installs examples
+mkdir -p /tmp/lunatik-fsmonitor             # the directory it watches
+sudo lunatik run examples/fsmonitor         # runs fsmonitor
+touch /tmp/lunatik-fsmonitor/file
+echo data > /tmp/lunatik-fsmonitor/file
+rm /tmp/lunatik-fsmonitor/file
+sudo lunatik stop examples/fsmonitor        # stops fsmonitor
+sudo dmesg -t                               # prints what it logged
+fsmonitor: created file ino 13862 pid 2222346
+fsmonitor: attributes file ino 13862 pid 2222346
+fsmonitor: modified file ino 13862 pid 2222341
+fsmonitor: modified file ino 13862 pid 2222341
+fsmonitor: deleted file ino 13862 pid 2222347
+```
+
 ## References
 
 ### Talks and Papers
