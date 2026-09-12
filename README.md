@@ -108,9 +108,9 @@ Install and run the test suites:
 sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (bpf, crypto, data, fifo,
-                            # hid, io, linux, monitor, netlink, notifier, probe,
-                            # rcu, runtime, set, skb, socket, struct, task, tc,
-                            # thread, xdp)
+                            # fsnotify, hid, io, linux, monitor, netlink,
+                            # notifier, probe, rcu, runtime, set, skb, socket,
+                            # struct, task, tc, thread, xdp)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them
@@ -183,6 +183,7 @@ The table below lists the available kernel Lua modules:
 | `darken` | AES-256-CTR encrypted script execution |
 | `lighten` | Lua interface for running encrypted scripts via `darken` |
 | `notifier` | Kernel notifier chain registration |
+| `fsnotify` | Filesystem notification: inode marks and their events |
 | `lunatik.runner` | Run, spawn, and stop scripts from within Lua |
 | `net` | Networking helpers |
 | `mailbox` | Asynchronous inter-runtime messaging |

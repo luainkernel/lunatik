@@ -188,5 +188,13 @@ config LUNATIK_BPF
 	help
 	  Access to pinned eBPF maps from Lua scripts.
 
+config LUNATIK_FSNOTIFY
+	tristate "Lunatik Filesystem Notification Support"
+	default m
+	depends on FSNOTIFY
+	help
+	  Filesystem event notification from Lua scripts: marks on inodes
+	  and the events they report delivered to a Lua callback.
+
 endif
  

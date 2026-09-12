@@ -191,6 +191,24 @@ Returns `true` if the script associated with `L` has finished loading (i.e., the
 chunk has returned). Use this to guard operations that must not run during module
 initialization — for example, spawning a kernel thread from a `runner.spawn` callback.
 
+### lunatik\_isowner
+```C
+bool lunatik_isowner(lunatik_object_t *object);
+```
+Returns `true` if the calling task holds `object`'s lock. `lunatik_lock` records the owner
+and `lunatik_unlock` clears it, so every holder is seen, whichever route it took into the
+lock. Use it in a kernel callback that can fire on a task already running Lua under the
+runtime it would dispatch to, where `lunatik_run` would deadlock rather than block: skip the
+event instead.
+
+The answer is exact for a process-context object, whose mutex is task-owned; a SOFTIRQ or
+HARDIRQ class takes a spinlock, owned by a CPU and not by a task, and records whichever task
+the softirq or hardirq interrupted. It answers about the object it is given, and `lunatik_run`
+locks the per-CPU instance `lunatik_pin` returns, so on a percpu runtime it is always `false`:
+refuse one with `lunatik_checkpercpu`, as `fsnotify.watch` does. And it sees the calling task
+only — Lua that blocks under the lock on a second task which then reaches the same lock is a
+cycle no owner check can name.
+
 ### lunatik\_checkruntime
 ```C
 lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt);

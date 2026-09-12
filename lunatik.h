@@ -11,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/mm.h>
 #include <linux/kref.h>
+#include <linux/sched.h>
 #include <linux/version.h>
 
 #include <lua.h>
@@ -48,8 +49,19 @@ do {									\
 
 #define lunatik_newlock(o)   lunatik_locker((o), mutex_init, spin_lock_init, spin_lock_init);
 #define lunatik_freelock(o)  lunatik_locker((o), mutex_destroy, (void), (void));
-#define lunatik_lock(o)      lunatik_locker((o), mutex_lock, spin_lock_bh, spin_lock_irqsave, (o)->flags)
-#define lunatik_unlock(o)    lunatik_locker((o), mutex_unlock, spin_unlock_bh, spin_unlock_irqrestore, (o)->flags)
+#define lunatik_setowner(o, task)	WRITE_ONCE((o)->owner, (task))
+
+#define lunatik_lock(o)								\
+do {										\
+	lunatik_locker((o), mutex_lock, spin_lock_bh, spin_lock_irqsave, (o)->flags);	\
+	lunatik_setowner((o), current);						\
+} while (0)
+
+#define lunatik_unlock(o)							\
+do {										\
+	lunatik_setowner((o), NULL);						\
+	lunatik_locker((o), mutex_unlock, spin_unlock_bh, spin_unlock_irqrestore, (o)->flags);	\
+} while (0)
 
 #define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
@@ -100,6 +112,7 @@ typedef struct lunatik_object_s {
 		struct mutex mutex;
 		spinlock_t spin;
 	};
+	struct task_struct *owner; /* only the holder writes it, so an unlocked read never mistakes a stranger for itself */
 	lunatik_opt_t opt;
 	gfp_t gfp;
 	unsigned long flags;
@@ -110,13 +123,21 @@ extern const lunatik_class_t lunatik_class;
 
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
+	int locked;
+
 	if (likely(!lunatik_ismonitor(object->opt)))
 		return 1;
-	if (lunatik_issoftirq(object->opt))
-		return spin_trylock(&object->spin);
-	if (lunatik_isirq(object->opt))
-		return spin_trylock_irqsave(&object->spin, object->flags);
-	return mutex_trylock(&object->mutex);
+	locked = lunatik_issoftirq(object->opt) ? spin_trylock(&object->spin) :
+		lunatik_isirq(object->opt) ? spin_trylock_irqsave(&object->spin, object->flags) :
+		mutex_trylock(&object->mutex);
+	if (locked)
+		lunatik_setowner(object, current);
+	return locked;
+}
+
+static inline bool lunatik_isowner(lunatik_object_t *object)
+{
+	return READ_ONCE(object->owner) == current;
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);
@@ -243,6 +264,7 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 	object->opt = lunatik_issingle(opt) ? inherited & ~LUNATIK_OPT_MONITOR : inherited;
 	object->gfp = lunatik_isirq(object->opt) ? GFP_ATOMIC : GFP_KERNEL;
 	lunatik_newlock(object);
+	object->owner = NULL;
 }
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
