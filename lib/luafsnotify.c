@@ -19,11 +19,22 @@
 * directory the event is about, so `watch:mark`, `watch:find` and `mark:mask`
 * called from a callback resolve their path from the directory cache alone.
 *
+* A permission event parks the syscall in the callback and takes its return
+* value as the answer: `fsnotify.action.ALLOW` lets the access happen,
+* `fsnotify.action.DENY` fails it with `EPERM`, and any other negative errno
+* fails it with that errno. Anything else allows, a callback that returns
+* nothing or raises included, so a rule that fails, or forgets to answer,
+* takes nothing away. An exec asks twice, `OPEN_EXEC_PERM` and then
+* `OPEN_PERM`, each through the marks that carry it, and a denial on the
+* first ends it there.
+*
 * @module fsnotify
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/dcache.h>
+#include <linux/err.h>
+#include <linux/errno.h>
 #include <linux/fsnotify_backend.h>
 #include <linux/limits.h>
 #include <linux/list.h>
@@ -64,6 +75,9 @@ typedef struct luafsnotify_event_s {
 	int data_type;
 	__u32 mask;
 } luafsnotify_event_t;
+
+#define LUAFSNOTIFY_ALLOW	0
+#define LUAFSNOTIFY_DENY	(-EPERM)
 
 static const lunatik_class_t luafsnotify_class;
 static const lunatik_class_t luafsnotify_event_class;
@@ -115,7 +129,15 @@ static inline lunatik_object_t *luafsnotify_pushevent(lua_State *L, luafsnotify_
 	return object;
 }
 
-static int luafsnotify_callback(lua_State *L, luafsnotify_t *watch, luafsnotify_event_t *event)
+static inline int luafsnotify_toverdict(lua_State *L)
+{
+	/* lua_tointeger would convert a string, e.g. "-1" */
+	lua_Integer verdict = lua_type(L, -1) == LUA_TNUMBER ? lua_tointeger(L, -1) : LUAFSNOTIFY_ALLOW;
+
+	return IS_ERR_VALUE(verdict) ? (int)verdict : LUAFSNOTIFY_ALLOW;
+}
+
+static int luafsnotify_callback(lua_State *L, luafsnotify_t *watch, luafsnotify_event_t *event, int *verdict)
 {
 	lunatik_object_t *object;
 
@@ -127,8 +149,10 @@ static int luafsnotify_callback(lua_State *L, luafsnotify_t *watch, luafsnotify_
 		return 0;
 
 	luafsnotify_setincallback(L, true);
-	if (lua_pcall(L, 2, 0, 0) != LUA_OK) /* callback(mask, event) */
+	if (lua_pcall(L, 2, 1, 0) != LUA_OK) /* callback(mask, event) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
+	else if (event->mask & ALL_FSNOTIFY_PERM_EVENTS)
+		*verdict = luafsnotify_toverdict(L);
 	luafsnotify_setincallback(L, false);
 
 	object->private = NULL; /* the frame it points at goes next: a kept event raises instead */
@@ -146,15 +170,16 @@ static int luafsnotify_handle(struct fsnotify_group *group, u32 mask, const void
 		.data_type = data_type,
 		.mask = mask,
 	};
+	int verdict = LUAFSNOTIFY_ALLOW;
 	int ret;
 
 	/* the lock holder lands back here on a marked path, and the nesting has no floor */
 	if (lunatik_isowner(watch->runtime))
-		return 0;
+		return LUAFSNOTIFY_ALLOW;
 
-	lunatik_run(watch->runtime, luafsnotify_callback, ret, watch, &event);
-	(void)ret;
-	return 0; /* fsnotify only reads this for permission events */
+	lunatik_run(watch->runtime, luafsnotify_callback, ret, watch, &event, &verdict);
+	(void)ret; /* a runtime that is not ready answers -ENXIO, a denial to fsnotify */
+	return verdict;
 }
 
 static void luafsnotify_freemark(struct fsnotify_mark *mark)
@@ -264,8 +289,9 @@ static inline __u32 luafsnotify_checkmask(lua_State *L, int ix)
 {
 	__u32 mask = (__u32)luaL_checkinteger(L, ix);
 
-	/* the verdict such an event asks for is not implemented */
-	luaL_argcheck(L, !(mask & ALL_FSNOTIFY_PERM_EVENTS), ix, "permission events not supported");
+	/* from 6.8 the permission hooks compile out without the config */
+	luaL_argcheck(L, IS_ENABLED(CONFIG_FANOTIFY_ACCESS_PERMISSIONS) || !(mask & ALL_FSNOTIFY_PERM_EVENTS),
+		ix, "permission events need CONFIG_FANOTIFY_ACCESS_PERMISSIONS");
 	return mask;
 }
 
@@ -317,7 +343,8 @@ static luafsnotify_mark_t *luafsnotify_attachmark(lua_State *L, luafsnotify_t *w
 * @raise if `path` does not resolve, `EAGAIN` when it is resolved from a
 *   callback and the directory cache alone cannot answer it, if `kind` is not
 *   one this kernel offers, if this watch already marks the object, if the
-*   watch has been stopped, or if `mask` carries a permission event
+*   watch has been stopped, or if `mask` carries a permission event on a kernel
+*   built without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`
 * @usage local mark = watch:mark("/tmp/scratch", fs.OPEN | fs.MODIFY, "mount")
 */
 static int luafsnotify_mark(lua_State *L)
@@ -408,10 +435,11 @@ static int luafsnotify_stop(lua_State *L)
 * @function mask
 * @tparam[opt] integer mask the new event mask, a combination of `linux.fs` bits
 * @treturn integer the mark's event mask
-* @raise if the mark has been removed, if `mask` carries a permission event, or
-*   if the mark cannot be added again, because the path no longer resolves,
-*   `EAGAIN` when a callback resolving it finds the directory cache alone cannot
-*   answer it, or the kernel refuses it, which leaves the mark removed
+* @raise if the mark has been removed, if `mask` carries a permission event on
+*   a kernel built without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`, or if the mark
+*   cannot be added again, because the path no longer resolves, `EAGAIN` when a
+*   callback resolving it finds the directory cache alone cannot answer it, or
+*   the kernel refuses it, which leaves the mark removed
 * @usage mark:mask(mark:mask() | fs.MODIFY)
 */
 static int luafsnotify_mask(lua_State *L)
@@ -625,6 +653,12 @@ static inline lunatik_object_t *luafsnotify_newevent(lua_State *L)
 	return lunatik_newobject(L, &luafsnotify_event_class, 0, LUNATIK_OPT_NONE);
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0))
+#define LUAFSNOTIFY_PRIO	FSNOTIFY_PRIO_CONTENT
+#else
+#define LUAFSNOTIFY_PRIO	FS_PRIO_1 /* the value FSNOTIFY_PRIO_CONTENT names from 6.10 */
+#endif
+
 static luafsnotify_t *luafsnotify_newwatch(lua_State *L, lunatik_object_t *runtime)
 {
 	luafsnotify_t *watch = (luafsnotify_t *)lunatik_checkzalloc(L, sizeof(luafsnotify_t));
@@ -635,6 +669,7 @@ static luafsnotify_t *luafsnotify_newwatch(lua_State *L, lunatik_object_t *runti
 		lunatik_throw(L, (int)PTR_ERR(group));
 	}
 
+	group->priority = LUAFSNOTIFY_PRIO; /* fsnotify_file gates permission events on it from 6.10 */
 	INIT_LIST_HEAD(&watch->marks);
 	watch->runtime = runtime;
 	watch->group = group;
@@ -659,8 +694,9 @@ static luafsnotify_t *luafsnotify_newwatch(lua_State *L, lunatik_object_t *runti
 * @function watch
 * @tparam function callback invoked as `callback(mask, event)`, where `mask` is
 *   the event mask that fired, testable against `linux.fs` bits, and `event` is
-*   an `fsnotify_event` valid only for the length of the call. Its return value
-*   is ignored.
+*   an `fsnotify_event` valid only for the length of the call. For a permission
+*   event its return value is the verdict, an `fsnotify.action`; for every other
+*   event it is ignored.
 * @treturn fsnotify_watch
 * @raise if the group cannot be allocated, if called from an interrupt-context
 *   runtime, or if called from a percpu runtime
@@ -740,7 +776,33 @@ static const lunatik_class_t luafsnotify_mark_class = {
 };
 
 LUNATIK_CLASSES(fsnotify, &luafsnotify_class, &luafsnotify_event_class, &luafsnotify_mark_class);
-LUNATIK_NEWLIB(fsnotify, luafsnotify_lib, luafsnotify_classes);
+
+#define luafsnotify_setaction(L, action)		\
+do {							\
+	lua_pushinteger(L, LUAFSNOTIFY_##action);	\
+	lua_setfield(L, -2, #action);			\
+} while (0)
+
+/***
+* What a callback answers a permission event with.
+* @table action
+* @field ALLOW let the access happen
+* @field DENY refuse it; the parked syscall fails with `EPERM`
+* @within fsnotify
+* @usage if event:path() == "/srv/secret" then return fsnotify.action.DENY end
+*/
+LUNATIK_OPENER(fsnotify)
+{
+	luaL_newlib(L, luafsnotify_lib);
+	lunatik_newclasses(L, luafsnotify_classes);
+
+	lua_createtable(L, 0, 2);
+	luafsnotify_setaction(L, ALLOW);
+	luafsnotify_setaction(L, DENY);
+	lua_setfield(L, -2, "action");
+	return 1;
+}
+EXPORT_SYMBOL_GPL(luaopen_fsnotify);
 
 static int __init luafsnotify_init(void)
 {

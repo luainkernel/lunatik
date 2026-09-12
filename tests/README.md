@@ -103,8 +103,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 
 Every mark in this suite goes on `/tmp/lunatik-fsnotify`, created and removed
 by the test: a mark outside a scratch subtree is what makes a machine unable to
-read its own files. A mount or superblock mark reaches every file it covers, so
-the test that places one mounts its own tmpfs there and marks that.
+read its own files. A mount or superblock mark reaches every file it covers, and
+a permission mark decides whether an access happens at all, so the tests that
+place either mount their own tmpfs there and mark that; the one exception is
+`context`, whose permission mark allows and only asks whether the mask is taken.
 
 - **open**: an inode mark reports `FS_OPEN` for the file it was placed on, with
   the mask the callback asserts, and reports nothing for a neighbour in the
@@ -199,9 +201,70 @@ the test that places one mounts its own tmpfs there and marks that.
 
 - **context**: `fsnotify.watch` refuses a callback that is not a function and a
   softirq runtime, and takes a second watch on a runtime that already has one;
-  `mark` raises the errno name for a path that does not resolve and refuses a
-  permission event. The shell counts the passing cases rather than looking only
-  for a failing one, so a case that never ran cannot pass.
+  `mark` raises the errno name for a path that does not resolve, and takes a
+  permission mask or names the config a kernel built without the hooks lacks.
+  The shell counts the passing cases rather than looking only for a failing one,
+  so a case that never ran cannot pass.
+
+The seven tests below cover the permission events, where the callback's return
+value decides whether the access happens. Each of them sources `perm.sh`, which
+mounts a tmpfs of its own under the scratch directory and marks only files on
+it, so a rule that denies reaches nothing the machine needs, and asks the module
+through `probe.lua` whether this kernel has the permission hooks at all, skipping
+the whole plan when it does not. Every one of them undoes its rule in the trap,
+and the deny tests read the denied file again after the watch is stopped.
+
+- **allow**: a callback returning `ALLOW` lets the open through, and the
+  callback saw the open that produced the content the shell read. This is
+  asserted first: a verdict path that denies everything passes any test that
+  only asserts denials.
+
+- **deny**: a callback returning `DENY` fails the open with `EPERM` while the
+  neighbouring file it does not name still opens, a third file answered
+  `-4095`, the last errno the kernel recognises, fails with that number, and
+  the denied file opens again once the watch is stopped.
+
+- **default**: everything that is not a deliberate denial allows. A callback
+  that returns nothing, one that returns `1`, one that returns a string and one
+  that returns `-1000000` all leave the open through: a positive answer would
+  be a kernel warning and `EINVAL` in `do_dentry_open`, or a fake byte count in
+  `vfs_read`, and one below `-MAX_ERRNO` a pointer `IS_ERR` does not
+  recognise. So do `math.maxinteger`, whose low 32 bits are `-1`, the
+  string `"-1"`, which `lua_tointeger` would take as one, and `-4096`, the
+  first value past the errno range.
+
+- **exec**: a mark for `FS_OPEN_EXEC_PERM` denies the exec of a program copied
+  onto the tmpfs while an ordinary read of the same file still succeeds, and the
+  program runs again once the watch is stopped.
+
+- **access**: a mark for `FS_ACCESS_PERM` leaves the open alone and denies the
+  read that follows it, which the shell separates by opening the file on a
+  descriptor of its own before reading from it.
+
+- **error**: a callback that raises allows the access and the raise is logged;
+  a second open still reaches the callback, so the first case cannot pass
+  because the watch was gone. This is the one test whose kernel log carries a
+  Lua error on purpose.
+
+- **sleep**: a callback that calls `linux.schedule` finishes and the open waits
+  for it, which is what makes a process-context runtime the right one for a
+  hook that runs inside the accessing task's syscall.
+
+- **upgrade**: a mark placed for `FS_OPEN` and set to `FS_OPEN_PERM` through
+  `mark:mask` denies the open, and the callback sees the permission event. This
+  is the case the group's priority is set for on every group: from 6.10 the
+  open path delivers a permission event only where a content-priority group
+  marked the object, counted when the mark was added, so a priority taken on
+  the first permission mask would leave this mark uncounted and the open would
+  succeed with nothing said. Before 6.10 it passes either way.
+
+- **directory**: a directory mark reaches a permission event two ways the file
+  marks do not exercise. `FS_OPEN_PERM` with `FS_EVENT_ON_CHILD` on a directory
+  denies the open of a file inside it, through the parent iterator, while the
+  directory's own open stays allowed and it still lists; `FS_ACCESS_PERM` on a
+  directory denies its listing, which `iterate_dir` asks for, while a file
+  inside still reads, since that mark carries no `FS_EVENT_ON_CHILD`. Both
+  directories are on the tmpfs, and the gated file opens again after the stop.
 
 ### hid
 
