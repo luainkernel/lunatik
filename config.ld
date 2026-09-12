@@ -30,6 +30,7 @@ file = {
 	'./lib/luadata.c',
 	'./lib/luadevice.c',
 	'./lib/luafifo.c',
+	'./lib/luafsnotify.c',
 	'./lib/luahid.c',
 	'./lib/lighten.lua',
 	'./lunatik_core.c',
