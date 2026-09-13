@@ -73,8 +73,11 @@ Hunt residues of the path: anything in the final diff that exists because of how
 than because the final shape needs it. Names first: for every identifier the diff introduces or renames,
 ask what it distinguishes from in the final tree and whether master already had a name for the same thing.
 Then comments, LDoc, commit bodies, the pull request body, READMEs and doc/capi.md: a sentence that answers
-a question an earlier shape raised is a residue. Then correctness: for every raise, what is held and who
-releases it; every get against its put; the execution context of every path; the teardown order.
+a question an earlier shape raised is a residue. Then what the change duplicates: a field that keeps its
+own copy of a value another field carries has decided the two can differ, so grep every reader of the
+original and say which of the two each one wants, and read an architecture this host cannot run for every
+use, not only the one the diff touches. Then correctness: for every raise, what is held and who releases
+it; every get against its put; the execution context of every path; the teardown order.
 
 Write each finding to the checkpoint as you close it. Fix what you can as fixups.
 `
