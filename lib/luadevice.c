@@ -70,10 +70,9 @@ static inline luadevice_t *luadevice_find(dev_t devt)
 {
 	luadevice_t *luadev = NULL;
 	luadevice_lock();
-	luadevice_foreach(luadev) {
+	luadevice_foreach(luadev)
 		if (luadev->devt == devt)
 			break;
-	}
 	luadevice_unlock();
 	return luadev;
 }
