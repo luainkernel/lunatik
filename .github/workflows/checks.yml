@@ -21,7 +21,7 @@ jobs:
       # heuristics that nudge a review; they annotate the run and do not fail it
       run: |
         files=$(git diff --cached --name-only --diff-filter=ACM)
-        for check in module-conventions comment-style test-harness cppcheck-tests rename-orphaned; do
+        for check in module-conventions comment-style shadowed-readers test-harness cppcheck-tests rename-orphaned; do
           out=$(bash "tools/checks/$check.sh" $files 2>&1) || true
           test -n "$out" && echo "::warning title=$check::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
         done
