@@ -9,20 +9,20 @@ description = 'Lunatik is a framework for scripting the Linux kernel with Lua.'
 -- The title for the generated documentation
 title = 'Lunatik API Documentation'
 
--- Source files to document.
--- LDoc will recursively scan directories.
--- By manually specifying order, we ensure menu order.
+-- Source files to document, listed by module name; LDoc scans directories
+-- recursively and sort_modules keeps the menu in that order.
+sort_modules = true
 file = {
 	'./lib/luabpf.c',
 	'./lib/bpf/map.lua',
 	'./lib/luabyteorder.c',
+	'./lib/class.lua',
 	'./lib/luacompletion.c',
 	'./lib/luacpu.c',
-	'./lib/class.lua',
+	'./lib/luacrypto_core.c',
 	'./lib/crypto/hkdf.lua',
 	'./lib/luacrypto_aead.c',
 	'./lib/luacrypto_comp.c',
-	'./lib/luacrypto_core.c',
 	'./lib/luacrypto_rng.c',
 	'./lib/luacrypto_shash.c',
 	'./lib/luacrypto_skcipher.c',
@@ -32,14 +32,16 @@ file = {
 	'./lib/luafifo.c',
 	'./lib/luahid.c',
 	'./lib/lighten.lua',
+	'./lib/lualinux.c',
+	'./lib/linux',
 	'./lunatik_core.c',
 	'./lunatik_percpu.c',
 	'./lib/lunatik/runner.lua',
-	'./lib/lualinux.c',
-	'./lib/linux',
 	'./lib/mailbox.lua',
 	'./lib/net.lua',
+	'./lib/luanetfilter.c',
 	'./lib/netlink.lua',
+	'./lib/luanetlink.c',
 	'./lib/netlink/genl.lua',
 	'./lib/netlink/message.lua',
 	'./lib/netlink/nl80211.lua',
@@ -55,17 +57,15 @@ file = {
 	'./lib/netlink/rt/route.lua',
 	'./lib/netlink/rt/rule.lua',
 	'./lib/netlink/session.lua',
-	'./lib/luanetfilter.c',
-	'./lib/luanetlink.c',
-	'./lib/luaskb.c',
-	'./lib/skb/attr.lua',
 	'./lib/luanotifier.c',
 	'./lib/luaprobe.c',
 	'./lib/luarcu.c',
 	'./lib/luasched.c',
-	'./lib/luasignal.c',
-	'./lib/luasocket.c',
 	'./lib/luaset.c',
+	'./lib/luasignal.c',
+	'./lib/luaskb.c',
+	'./lib/skb/attr.lua',
+	'./lib/luasocket.c',
 	'./lib/socket/inet.lua',
 	'./lib/socket/raw.lua',
 	'./lib/socket/unix.lua',
