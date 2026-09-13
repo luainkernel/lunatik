@@ -164,6 +164,7 @@ The table below lists the available kernel Lua modules:
 | `linux` | Kernel utilities: `schedule`, `time`, `random`, `stat` flags |
 | `task` | Linux task inspection: `comm`, `pid`, `tgid`, `prio`, `cpu`, `current` |
 | `thread` | Kernel threads: spawn, stop, `shouldstop` |
+| `cpu` | CPU counts and iteration: `num_online`, `stats`, `foreach_online` |
 | `socket` | Kernel sockets: TCP, UDP, AF\_PACKET, AF\_UNIX |
 | `netlink` | Netlink namespace: rtnetlink and generic-netlink sessions, softirq-safe channel |
 | `data` | Raw memory buffer for binary data read/write |
@@ -173,12 +174,15 @@ The table below lists the available kernel Lua modules:
 | `netfilter` | Netfilter hooks: register packet processing callbacks |
 | `skb` | Socket buffer (`sk_buff`): inspect and modify packets |
 | `xdp` | XDP (eXpress Data Path) hooks |
+| `tc` | TC (Traffic Control) hooks |
 | `sched` | sched_ext (extensible scheduler) hooks: dispatch queue and slice from Lua |
 | `bpf` | Pinned eBPF map access (hash, array, LRU hash, queue, stack) |
 | `crypto` | Kernel crypto API: hash, cipher, AEAD, RNG, compression |
 | `hid` | HID device drivers |
 | `probe` | Kernel probes (kprobe / tracepoint) |
+| `syscall` | System call addresses by number, for `probe` |
 | `fifo` | Kernel FIFO queues |
+| `completion` | Kernel completions: `new`, `complete`, `wait` |
 | `signal` | POSIX signal management |
 | `byteorder` | Network byte order conversions |
 | `darken` | AES-256-CTR encrypted script execution |
