@@ -133,7 +133,8 @@ the last one.
 counterfactual, the multi-line note inside code and the trailing comment past the width
 (`comment-style.sh`), test scripts that cannot detect a failed load (`test-harness.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
-(`rename-orphaned.sh`), and the trailing blank line rule and the refusal of a staged conflict marker
+(`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
+(`shadowed-readers.sh`), and the trailing blank line rule and the refusal of a staged conflict marker
 (`pre-commit`). Each takes file paths and skips what does not apply, so any
 editor, assistant, or CI can run them. The `Checks` workflow runs them over a pull request's diff:
 `pre-commit` fails the run, the heuristic checks annotate it. Install the commit gate with:
@@ -505,6 +506,15 @@ stacked or sibling pull requests that will rebase onto the change. A caller left
 compiles against a Lua module and only fails when its code path runs: `skb.attr` became a class with
 `.new` and a pure attribute view, and `sniclassify`'s `skbattr(...)` / `skb:data()` — written for the
 old factory — kept building and broke at the first packet.
+
+The same holds for a value, not only a name. A change that keeps its own copy of something another
+field carries, because the kernel rewrites the original, has decided the two can differ:
+`luaprobe_t` keeps the address the script gave in `requested` because `register_kprobe` rewrites
+`kp.addr`, on x86 with IBT past the ENDBR. From then on every reader of the original is a decision,
+which of the two it wants, and proving why the copy exists is where a review tends to stop; the
+handler four lines above kept handing the script `kp.addr`. Grep the readers of what the change
+duplicates and settle each one, and read an architecture the host cannot run for every use, not only
+the one the diff touches. `tools/checks/shadowed-readers.sh` lists the readers.
 
 The kernel a consumer builds on bounds what a change may use, and not every consumer sits inside
 the range this file declares: a product built on Lunatik can ship on an older vendor kernel, and
