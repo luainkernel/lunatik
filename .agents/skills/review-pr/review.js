@@ -4,15 +4,20 @@
 // Every phase appends what it finds to a checkpoint file the moment it finds it,
 // so a phase that dies leaves its findings on disk and its successor continues
 // from them instead of reading the branch again. The build phase runs only when
-// the head has not been validated already or a fixup changed the code.
+// the head has not been validated already, a fixup changed the code, or an example
+// the change touches has not been run on it.
 //
 // Usage: Workflow({scriptPath: '.agents/skills/review-pr/review.js', args: {...}})
 //   pr          pull request number
 //   branch      the author's branch, fetched and pushed by name
 //   head, base  the head to review and the base it sits on, as full or short SHAs
 //   scratch     an absolute directory for worktrees and the checkpoint
-//   validated   {suite: "pass:N fail:0 skip:0", core: "<srcversion>"} when the exact
-//               head already passed the suite, or null to build and run it here
+//   validated   {suite: "pass:N fail:0 skip:0", core: "<srcversion>", examples: [...]} when the exact
+//               head already passed the suite, with the examples run on it through
+//               tools/watchdog.sh, or null to build and run it here
+//   examples    the examples the change touches, as tools/checks/examples-touched.sh lists
+//               them over the changed files; the build phase runs whichever of them
+//               validated does not carry
 //   focus       what this round is for, in the maintainer's words
 //   effort      per-phase reasoning effort, default "high"
 
@@ -98,12 +103,18 @@ what the tests prove and what nothing on this kernel can see.
 Append each failing rule and each gap to the checkpoint as a finding; fix what you can as fixups.
 `
 
+const unrun = (a.examples || []).filter(e => !(a.validated?.examples || []).includes(e))
+
 const BUILD = COMMON + `
-PHASE: BUILD. The head is either not yet validated or a fixup changed the code. In a worktree at the current
-tip of \`${a.branch}\`: \`make\` clean, \`echo ubuntu | sudo -S -p '' env PWD=$PWD make install\`,
-\`sudo lunatik reload\`, \`sudo lunatik test\`, all inside your turn, never armed in the background. Run the
-examples the change touches through tools/watchdog.sh, not merely built. Report the totals and the core
-srcversion (\`/sys/module/lunatik/srcversion\` while loaded), and any kernel complaint in dmesg.
+PHASE: BUILD. The head is either not yet validated, a fixup changed the code, or an example the change touches
+has not been run on it. In a worktree at the current tip of \`${a.branch}\`: \`make\` clean,
+\`echo ubuntu | sudo -S -p '' env PWD=$PWD make install\`, \`sudo lunatik reload\`, \`sudo lunatik test\`, all
+inside your turn, never armed in the background. Run the examples the change touches through tools/watchdog.sh,
+not merely built, each one driven as its README says and stopped, with dmesg read after: the suite covers what a
+test author thought of, an example is the binding at the rate a user drives it.
+${unrun.length ? 'These have not been run on this head: ' + unrun.join(', ') + '.' : ''}
+Report the totals, the core srcversion (\`/sys/module/lunatik/srcversion\` while loaded), the examples run, and
+any kernel complaint in dmesg.
 `
 
 const FINDINGS = {
@@ -152,11 +163,11 @@ const rules = await agent(RULES, { label: `rules:${a.pr}`, phase: 'Rules', effor
 
 const changed = (hunt?.fixups?.length || 0) + (rules?.fixups?.length || 0) > 0
 let build = null
-if (!a.validated || changed) {
+if (!a.validated || changed || unrun.length) {
   phase('Build')
   build = await agent(BUILD, { label: `build:${a.pr}`, phase: 'Build', effort: 'medium', schema: BUILD_OUT })
 } else {
-  log(`build skipped: head ${a.head} already validated (${a.validated.suite}, core ${a.validated.core}) and no fixup changed it`)
+  log(`build skipped: head ${a.head} already validated (${a.validated.suite}, core ${a.validated.core}, examples ${(a.validated.examples || []).join(' ') || 'none'}) and no fixup changed it`)
 }
 
 return { checkpoint, hunt, rules, build, validated: build ? null : a.validated }

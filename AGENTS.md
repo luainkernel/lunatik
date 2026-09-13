@@ -134,7 +134,8 @@ counterfactual, the multi-line note inside code and the trailing comment past th
 (`comment-style.sh`), test scripts that cannot detect a failed load (`test-harness.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
-(`shadowed-readers.sh`), and the trailing blank line rule and the refusal of a staged conflict marker
+(`shadowed-readers.sh`), the examples that use a binding the change touches, which a review runs
+(`examples-touched.sh`), and the trailing blank line rule and the refusal of a staged conflict marker
 (`pre-commit`). Each takes file paths and skips what does not apply, so any
 editor, assistant, or CI can run them. The `Checks` workflow runs them over a pull request's diff:
 `pre-commit` fails the run, the heuristic checks annotate it. Install the commit gate with:
