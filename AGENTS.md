@@ -129,10 +129,12 @@ the last one.
 ### Checks
 
 `tools/checks/` holds the mechanical checks: comment and LDoc style on framework files
-(`module-conventions.sh`), test scripts that cannot detect a failed load (`test-harness.sh`),
-cppcheck on userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change
-removed (`rename-orphaned.sh`), and the trailing blank line rule and the refusal of a staged conflict
-marker (`pre-commit`). Each takes file paths and skips what does not apply, so any
+(`module-conventions.sh`), the comment rules below read over C, Lua and shell, the history, the
+counterfactual, the multi-line note inside code and the trailing comment past the width
+(`comment-style.sh`), test scripts that cannot detect a failed load (`test-harness.sh`), cppcheck on
+userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
+(`rename-orphaned.sh`), and the trailing blank line rule and the refusal of a staged conflict marker
+(`pre-commit`). Each takes file paths and skips what does not apply, so any
 editor, assistant, or CI can run them. The `Checks` workflow runs them over a pull request's diff:
 `pre-commit` fails the run, the heuristic checks annotate it. Install the commit gate with:
 
