@@ -288,7 +288,8 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 
 * C99: initialize at declaration.
 * `else` on its own line, never `} else {`.
-* Single statement `if` without braces.
+* Single statement `if` without braces, and a loop whose body is one statement, an `if` included, the
+  same.
 * Block comments `/* */`, never `//`.
 * Symbols in a library are prefixed `LUA<LIBNAME>_` or `lua<libname>_`.
 * The `l` prefix on a Lua binding (`lunatik_lruntime`) exists to disambiguate from a C function of

@@ -23,10 +23,9 @@ static lunatik_object_t *lunatik_finddata(lunatik_percpu_t *percpu, const lunati
 {
 	unsigned int i;
 
-	for (i = 0; i < percpu->ndata; i++) {
+	for (i = 0; i < percpu->ndata; i++)
 		if (percpu->data[i]->class == class)
 			return percpu->data[i];
-	}
 	return NULL;
 }
 
