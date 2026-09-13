@@ -23,6 +23,22 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
   types by outcomes, and read the tests against it, cell by cell. A test set taken as given because
   it came with the branch, or with the branch a rewrite replaces, is the review not done.
 
+# Reviewing as an agent that can die
+
+A review that lives only in one agent's context is lost the moment the provider drops that agent,
+and a long one is dropped often enough to plan for it. Three rules, and `review.js` beside this
+card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/review-pr/review.js', args})`):
+
+- Findings go to a checkpoint file as they close, one line each (`file:line | what | disposition`),
+  not to the final message; the message is assembled from the file, and a successor reads the file
+  first and continues from it instead of reading the branch again.
+- A review is phases, not one agent: hunt the findings, check the rules and the harness, then build
+  and run. Each phase returns a `schema`, so a crash loses one phase and the cache replays the ones
+  that completed under `resumeFromRunId`.
+- A head the suite already passed is not built again by the review: the totals and the core
+  srcversion go in the briefing (`args.validated`), and the build phase runs only when a fixup
+  changed the code.
+
 # Posting the review (only when asked; placement is decided BEFORE posting)
 
 Each finding goes inline on its line; the review body is only the verdict, opening with the
