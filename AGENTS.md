@@ -130,8 +130,9 @@ the last one.
 
 `tools/checks/` holds the mechanical checks: comment and LDoc style on framework files
 (`module-conventions.sh`), test scripts that cannot detect a failed load (`test-harness.sh`),
-cppcheck on userspace test C (`cppcheck-tests.sh`), and the trailing blank line rule and the refusal
-of a staged conflict marker (`pre-commit`). Each takes file paths and skips what does not apply, so any
+cppcheck on userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change
+removed (`rename-orphaned.sh`), and the trailing blank line rule and the refusal of a staged conflict
+marker (`pre-commit`). Each takes file paths and skips what does not apply, so any
 editor, assistant, or CI can run them. The `Checks` workflow runs them over a pull request's diff:
 `pre-commit` fails the run, the heuristic checks annotate it. Install the commit gate with:
 
@@ -595,8 +596,12 @@ named, not one discovered at that consumer's build.
   push leaves the push owed by whoever gave the instruction.
 * If a branch adds something in one commit and removes it in another, the second is a fixup of the
   first.
-* After squashing, re read the comments and commit bodies so they describe the final state rather than
-  the path taken.
+* After squashing, re read the comments, the commit bodies and the identifiers so they describe the
+  final state rather than the path taken. A name is a residue as easily as a sentence: a type renamed
+  to tell it apart from a sibling keeps that name after the sibling goes, and then the noun tells it
+  apart from nothing. For every name the branch introduces or changes, ask what it distinguishes from
+  in the final tree, and whether master already had a name for the same thing;
+  `tools/checks/rename-orphaned.sh` catches the typedef case.
 * Naming an existing literal is done by visiting every call site of what carries it: sweep for the
   function's callers or the field's users, not for the literal, which misses positional arguments.
 * Changing the value of a field visits every reader of it, in the code and in the field's doc, and
