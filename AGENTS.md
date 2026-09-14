@@ -563,6 +563,16 @@ and every later change has to serve both. Authorship is not a reason to keep cod
 recently it was merged; a commit that removes or subsumes something already on `master` names it in
 the body.
 
+The first shape of a fix is the smallest change that makes the observed defect unreachable, and
+every mechanism past it is named with what it buys that the small one does not. A structural
+answer the kernel offers is not the smaller one by being structural: #797 answered a foreign
+namespace's `lo` reaching a callback by moving the netdevice block to the per-namespace chain,
+which took a macro signature, two wrappers, an API newer than the tree's floor and a wider reach
+for a script's `notify.STOP`, when four lines that decline a device of another namespace in the
+handler fix the same defect with master's chain, and it took four review rounds to ask. Write the
+small shape down first, even when the larger one is chosen, so the choice is a comparison and not a
+default.
+
 Reshaping or renaming an API means updating every consumer, grepped for — including consumers in
 stacked or sibling pull requests that will rebase onto the change. A caller left on the old shape
 compiles against a Lua module and only fails when its code path runs: `skb.attr` became a class with
@@ -780,8 +790,9 @@ invoke, and fix that: a note that an `enum` is formatted inline asks for the for
    a clean history that none of them undoes, nothing left to squash, the pull request title and body
    describing the final state. On a harness or docs pull request you author, tidy it before returning
    it, unasked — what comes back is reviewed and merged, not tidied first.
-10. the simplification pass, before sending. For each helper, collection, or loop the change adds, name
-   what it buys over the minimal shape — weighing the whole cost, not the line count at one call site.
+10. the simplification pass, before sending. For each helper, collection, loop, or mechanism the
+   change adds, a registration path, an argument on an API, a name for a literal, name what it buys
+   over the minimal shape — weighing the whole cost, not the line count at one call site.
    A loop that vanishes locally by generating a build-time list can add more surface than it removes
    (an extra argument, an emitted table, a file to keep in sync); prefer the ground truth the system
    already exposes — the kernel's own "Used by" list, a field already on the struct — over a structure

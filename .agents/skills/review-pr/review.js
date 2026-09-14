@@ -76,7 +76,10 @@ PHASE: HUNT. Read the whole change cold, as one diff against \`${a.base}\`, ever
 and the pull request's threads (\`gh api --paginate repos/luainkernel/lunatik/pulls/${a.pr}/comments\`),
 which record what the maintainer cares about.
 
-Hunt residues of the path: anything in the final diff that exists because of how the branch grew rather
+Hunt the smallest shape first: for every mechanism the diff adds (a registration path, a new API argument,
+a helper, a name), write the smaller change that would leave the same defect unreachable and why it was not
+taken; where correctness is equal and the shape is smaller, that is a finding, shipped as the fixup that
+makes it. Then residues of the path: anything in the final diff that exists because of how the branch grew rather
 than because the final shape needs it. Names first: for every identifier the diff introduces or renames,
 ask what it distinguishes from in the final tree and whether master already had a name for the same thing.
 Then comments, LDoc, commit bodies, the pull request body, READMEs and doc/capi.md: a sentence that answers
