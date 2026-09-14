@@ -134,7 +134,8 @@ counterfactual, the multi-line note inside code and the trailing comment past th
 (`comment-style.sh`), test scripts that cannot detect a failed load (`test-harness.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
-(`shadowed-readers.sh`), and the trailing blank line rule and the refusal of a staged conflict marker
+(`shadowed-readers.sh`), the classes and callers a changed `lunatik.h` primitive reaches
+(`blast-radius.sh`), and the trailing blank line rule and the refusal of a staged conflict marker
 (`pre-commit`). Each takes file paths and skips what does not apply, so any
 editor, assistant, or CI can run them. The `Checks` workflow runs them over a pull request's diff:
 `pre-commit` fails the run, the heuristic checks annotate it. Install the commit gate with:
@@ -527,6 +528,16 @@ which of the two it wants, and proving why the copy exists is where a review ten
 handler four lines above kept handing the script `kp.addr`. Grep the readers of what the change
 duplicates and settle each one, and read an architecture the host cannot run for every use, not only
 the one the diff touches. `tools/checks/shadowed-readers.sh` lists the readers.
+
+A primitive in `lunatik.h` that every class inherits, the lock, the allocator, the context check, is
+changed for the caller that needs it, in the arm that caller takes. Widening it to every arm because
+that is simpler is a contract change for callers that were correct, and it goes in the first line of
+the commit body, naming the classes and paths it moves, never in a footnote of the pull request.
+#891's first shape fixed a kprobe handler writing an `rcu.table` by moving every softirq hook,
+netfilter and XDP included, from bottom halves off to interrupts off; the second keyed the choice on
+`irqs_disabled()`, the kernel's own rule, and left those hooks untouched. A change like that gets a
+second reviewer before the pull request opens, not after. `tools/checks/blast-radius.sh` lists what a
+changed primitive reaches.
 
 The kernel a consumer builds on bounds what a change may use, and not every consumer sits inside
 the range this file declares: a product built on Lunatik can ship on an older vendor kernel, and
