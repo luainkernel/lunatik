@@ -143,6 +143,12 @@ editor, assistant, or CI can run them. The `Checks` workflow runs them over a pu
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
+`core-subject.sh` reads commits rather than files, since a subject belongs to a commit: it takes
+commits or a rev-range (`bash tools/checks/core-subject.sh origin/master..HEAD`) and flags one that
+changes the core under a subject naming only a binding. The rule is not that core and a binding
+never mix, which *Patches and commits* sanctions, but that the subject says so; the lock-owner
+scheme in `lunatik.h` and `doc/capi.md` shipped inside "fsnotify: watch filesystem events from Lua".
+
 `guard-removed.sh` names the crash guards a C file drops against `HEAD` (a checker, an
 `argcheck`, a context check): removing one and running the test that covers it reproduces the
 crash the guard prevents, and on the shared host that is a forced reboot. `crash-guard.sh`, wired
