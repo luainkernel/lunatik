@@ -76,7 +76,10 @@ Then comments, LDoc, commit bodies, the pull request body, READMEs and doc/capi.
 a question an earlier shape raised is a residue. Then what the change duplicates: a field that keeps its
 own copy of a value another field carries has decided the two can differ, so grep every reader of the
 original and say which of the two each one wants, and read an architecture this host cannot run for every
-use, not only the one the diff touches. Then correctness: for every raise, what is held and who releases
+use, not only the one the diff touches. Then the reach of a core change: for every primitive the diff
+touches (\`CHECK_BASE=${a.base} bash tools/checks/blast-radius.sh lunatik.h lunatik_*.[ch]\`), name the arm
+the bug takes and the arms the fix moves; a fix that moves an arm the bug does not take is a finding,
+whatever the commit body says. Then correctness: for every raise, what is held and who releases
 it; every get against its put; the execution context of every path; the teardown order.
 
 Write each finding to the checkpoint as you close it. Fix what you can as fixups.
