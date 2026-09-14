@@ -63,8 +63,10 @@ ENVIRONMENT:
 A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on \`${a.branch}\`,
 pushed as soon as made
 (\`git push "https://x-access-token:$(cat /home/ubuntu/.config/gh-token)@github.com/luainkernel/lunatik.git" ${a.branch}:${a.branch}\`),
-and its SHA goes in the checkpoint line. A fixup that changes C must at least \`make\` clean before it is
-pushed; the suite is the Build phase's.
+and its SHA goes in the checkpoint line. Ask of each one whether the finding is answered by removing rather
+than adding: a fix that grows a layer over the one it found is the finding half read, and the shape that
+answers it is usually shorter than what is there. A fixup that changes C must at least \`make\` clean before
+it is pushed; the suite is the Build phase's.
 
 ${a.focus ? 'THIS ROUND, in the maintainer\'s words: ' + a.focus : ''}
 `
