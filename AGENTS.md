@@ -39,6 +39,9 @@ All documentation lives under `doc/`. There is exactly one documentation directo
 second top level one (`docs/`, `documentation/`, and the like). Design notes go in `doc/design/<topic>/`,
 the C API reference is `doc/capi.md`, and LDoc fills the rest of `doc/`.
 
+A module or an example that needs a second file gets a directory, not a prefixed sibling:
+`examples/systrack/probe.lua` beside `device.lua`, never `systrack_device.lua` beside `systrack.lua`.
+
 ## Build, install, test
 
     sudo apt install linux-headers-$(uname -r)     # after a kernel upgrade
@@ -76,7 +79,10 @@ What reaches a terminal after a machine dies is a fragment. The previous boot's 
 the journal, `journalctl -b -1 -k`, and it carries the registers of every oops in the cascade, which is
 what tells one faulting pointer from another. Read that before theorising from the excerpt, and resolve
 the faulting `pc` against the disassembly of the module that was loaded — the `Code:` line in the oops
-matches the build word for word, so it also proves which build crashed.
+matches the build word for word, so it also proves which build crashed. A name in the trace is
+resolved too, never read: `Comm:` is the task's own `comm`, which a thread sets for itself with
+`PR_SET_NAME`, so `ps` or `/proc/<pid>/exe` says what ran it, and a symbol is confirmed in
+`/proc/kallsyms`. A thread name read as a JVM's belonged to the assistant's own process.
 
 Never run two `lunatik` operations at once. Concurrent operations wedge `/dev/lunatik` and leave
 processes in D state. Check with `ps` before starting one.
@@ -87,7 +93,10 @@ reset a branch checked out elsewhere. A review, or a build of a branch not your 
 worktree created for it (`git worktree add`, then `git submodule update --init`) and removed at the
 end. A `git checkout` carries what is uncommitted onto the new HEAD, where an edit made against the
 old base reads as a change to the new one: switch branches in a tree with nothing pending, or read
-the other branch in a worktree of its own.
+the other branch in a worktree of its own. `git stash` has no place here at all: the stack belongs
+to the repository and not to the worktree, so `stash@{0}` is usually another session's work and the
+pop that follows spreads its conflicts over your tree. Set work aside with a commit, and compare two
+revisions with a worktree or `git show <ref>:<path>`.
 
 A tree with a conflict pending (`git status` showing `UU`) is not a test subject: a suite run over a
 half-applied rebase or cherry-pick measures neither side. Resolve and commit, then build.
@@ -146,8 +155,9 @@ editor, assistant, or CI can run them. The `Checks` workflow runs them over a pu
 `core-subject.sh` reads commits rather than files, since a subject belongs to a commit: it takes
 commits or a rev-range (`bash tools/checks/core-subject.sh origin/master..HEAD`) and flags one that
 changes the core under a subject naming only a binding. The rule is not that core and a binding
-never mix, which *Patches and commits* sanctions, but that the subject says so; the lock-owner
-scheme in `lunatik.h` and `doc/capi.md` shipped inside "fsnotify: watch filesystem events from Lua".
+never mix, which *Patches and commits* sanctions, but that the subject says so. A review of #848
+found the lock-owner scheme, `lunatik.h` and `doc/capi.md` both, inside a commit whose subject named
+only the binding.
 
 `guard-removed.sh` names the crash guards a C file drops against `HEAD` (a checker, an
 `argcheck`, a context check): removing one and running the test that covers it reproduces the
@@ -159,6 +169,8 @@ authorized the experiment and named the machine it may take down.
 A rule is what remains when nothing else can catch the mistake. Where the error is mechanical, the gate
 is the answer and the rule is that gate's documentation: a pull request that only writes down what went
 wrong, over rules that were already written and already broken, adds a paragraph and changes nothing.
+What an investigation teaches lands here, in a skill or in a check, in the same breath as the work that
+taught it; a lesson kept in one assistant's notes is one the next contributor pays for again.
 
 `pr-body.sh` takes a pull request body file and fails it on more than three paragraphs, an em dash
 or a "Test plan" section; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
@@ -183,7 +195,10 @@ clones listed in `LUNATIK_CONSUMERS`; `consumers-guard.sh`, wired before a shell
 editing a pull request that changes such a binding until the command carries `CONSUMERS_OK=1`, set once
 those scripts were read. A product built on Lunatik is a consumer this tree cannot grep, and narrowing
 what a binding reports was proposed here as a fix until the script that reads that notifier turned up in
-another repository, using exactly what the change removed.
+another repository, using exactly what the change removed. A failure reported from a consumer's build is
+read from that build's own configuration before any mechanism is theorised: an out-of-tree feed's
+alphabetical module list explained an unload that failed three times running, after three patches had
+been written against a refcount that was never the cause.
 
 `tools/pr-status.sh` prints the open pull requests as GitHub has them: base and whether it still merges,
 commits and how many are unsquashed fixups, the size, the CI conclusion, and the labels; `--ready` keeps
@@ -208,7 +223,11 @@ defers to this file as the authority and orders the steps; none replaces reading
 
 For Claude Code, `CLAUDE.md` imports this file, `.claude/settings.json` runs the command guards
 and the file checks as hooks, and `.claude/skills/` links to `.agents/skills/`; nothing there holds
-logic of its own.
+logic of its own. Those files, and an untracked `settings.local.json` beside them, bind every
+session opened on the checkout rather than the one that wrote them: a `permissions.deny` added
+there to sandbox one session's agents denied another session's commands, with no hook error to
+point at the cause. A sandbox belongs in an agent definition, or in a session started with its own
+permission mode.
 
 ### Running a script
 
@@ -327,7 +346,10 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
   not.
 * Lunatik has no floats. Do not check `lua_isinteger`.
 * Multi line macros use the `do { ... } while (0)` form.
-* Do not duplicate a struct defined by another module; use its exported API.
+* Do not duplicate a struct defined by another module; use its exported API. The same for
+  behaviour: look for the helper the tree already has before writing one. `lunatik_pusherrname`
+  already turns an errno into `EINVAL`, and `autogen`'s emitter already writes the config a Makefile
+  was about to write a second time.
 * Prefer a named `static inline` helper over an open coded repetition, and do not inline an existing
   named helper into its callers while refactoring; they exist for readability and symmetry.
 * A function does one thing; whether to do it is its caller's decision. An early return added at the
@@ -378,7 +400,13 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
   `__GFP_NOWARN`, since Lua turns the NULL into an error the script sees.
 * The minimal representation: a raw pointer where a struct would wrap one field, a fresh allocation
   where a cache would need invalidating, a function where a macro is not clearer. A structure earns
-  its place by what it buys, not by looking more complete.
+  its place by what it buys, not by looking more complete. A macro that grows an arm or an operation
+  to carry a new rule is the moment to write the functions instead: `lunatik_locker` took three
+  operations and four macros over it, and the rule came out as five functions and one predicate,
+  `lunatik_isirqsave`. A rule that takes one sentence to state takes one predicate to code.
+* An errno crosses the C code negative, as the kernel returns it: `lunatik_throw(L, -EINVAL)`, or the
+  raw return of the call that failed. The single normalisation is at the Lua boundary, where
+  `lunatik_pusherrname` takes the absolute value.
 * A `pr_err` on a path a callback reaches is `pr_err_ratelimited`, as `lunatik_ebpf.h` uses throughout:
   a handler that logs per packet or per syscall is a printk storm the moment a script starts failing,
   and it competes with the log that would explain the failure.
@@ -396,7 +424,9 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
 * No nested function definitions; helpers go at module level.
 * Hooks and callbacks are named `local function`s referenced by name, never anonymous functions inline
   in a table field.
-* Named constants at the top: `local PORT <const> = 5562`. No magic numbers.
+* Named constants at the top: `local PORT <const> = 5562`. No magic numbers, and no literal a file
+  spells twice: the script path `runner.run` and `runner.stop` both name is one local, or a rename
+  of the script leaves a dangling runtime behind.
 * CAPS `<const>` marks a scalar constant; a table used as a lookup, dispatch, or allow-list is a
   lowercase name by role — `codecs`, `tokens`, `fields` — never caps, even when it is `<const>`.
 * Prefer the standard library (`string.match`, `string.gsub`, `table.*`) over hand written loops.
@@ -410,12 +440,12 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
   false, `g()` runs too. Side effects and doubtful returns take if/else.
 * Name variables by role, not by structure: `proxy`, not `tbl`; `openproxy` to pair with `openqueue`,
   not `opentable`.
-* A module that makes objects returns a class or namespace table, never a bare function; that return
-  is for builders like `class` and `struct`. The object holds its underlying handle in a named field
-  — `socket`, `tfm` — not one prefixed with an underscore, and is constructed through `.new` or a
-  `:__call` method on the class, as `hkdf` and `inet` do, not a metatable wrapped around the module to
-  make it callable, which nothing in the tree does. The instance metatable is named for what it is,
-  not `mt`.
+* A module that makes objects returns a class or namespace table named for the module, never `M` and
+  never a bare function; that return is for builders like `class` and `struct`. The object holds its
+  underlying handle in a named field — `socket`, `tfm` — not one prefixed with an underscore, and is
+  constructed through `.new` or a `:__call` method on the class, as `hkdf` and `inet` do, not a
+  metatable wrapped around the module to make it callable, which nothing in the tree does. The
+  instance metatable is named for what it is, not `mt`.
 * A proxy's metamethods do not allocate per access. `bpf.map`'s `view` resolves a key in one lookup;
   an `__index` that builds a closure on every method fetch, or composes `"get" .. key`, pays that on
   every packet in a softirq path, and the composed name collides with a real method spelled the same.
@@ -426,14 +456,18 @@ Inside a CLI dostring, require once at startup and call by name afterwards:
     lunatik.foo = require("lunatik.foo")
     lunatik.foo.method(...)
 
-Never `require("foo").method()`.
+Never `require("foo").method()`. A kernel script does the same with a local:
+`local genl = require("linux.genl")` once, then `genl.id`, `genl.cmd` and `genl.attr`, never a
+`require` per field.
 
 ## Comments and documentation
 
 * Comments describe the present, not the history. No "was", "no longer", "used to".
 * No comments restating obvious kernel or Lua API usage. Non obvious rationale is welcome.
 * A comment is one line carrying the reason the code is not obvious, nothing the code below already
-  says. State the why; the what and the how are the code's job.
+  says. State the why; the what and the how are the code's job. A second clause defending the choice,
+  or walking the mechanism a second time, is neither and reads as doubt: `/* a bottom-half unlock with
+  IRQs off runs the pending softirqs inline, inside a kprobe handler */` gives the reason and stops.
 * A comment about a specific call goes on that call's line, not above the function signature.
 * When the surprise is the call itself, a `put` where the tree would `stop`, the comment on the
   call's line gives the one reason it is not the expected call, `/* last reference: a stop would
@@ -485,7 +519,14 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   and on the shared host it is a forced reboot. Its discrimination rests on the message it asserts.
   An experiment that does remove a guard is authorized by the maintainer beforehand, names the
   machine it may take down, and runs after the commit it is meant to prove; `crash-guard.sh` blocks
-  the install or run until `CRASH_AB_OK=1` says that happened;
+  the install or run until `CRASH_AB_OK=1` says that happened. Removing a guard is the experiment,
+  not running the fix: building and running a tree that adds or restores one is the ordinary cycle
+  and asks nobody;
+* the message a crash test asserts is read from the kernel that prints it, not from a generic error
+  pattern: `check_dmesg` matched `WARNING` and `UBSAN` and no oops at all, so the kprobe crash of
+  #843 killed the probed task and left the suite green. arm64 heads an oops with `Internal error:`
+  (`arch/arm64/kernel/traps.c`) and an unclaimed debug trap with `Unexpected kernel BRK exception at
+  EL1` (`debug-monitors.c`);
 * a case tears down before it reads its verdict: every program it attached, pin it made and script it
   started is undone before the first check, so a failing check leaves nothing for the next case to
   trip on. A case that returns from a check with its program still attached turns one failure into
@@ -509,9 +550,7 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   that passes because the race is rare is not covering the race;
 * a test for an exactly once property runs on the path where that property is structural, and the
   header says which path and why. The same assertion on a path that can migrate CPUs mid way passes
-  for the wrong reason;
-* a test that guards a kernel crash is not proved by removing the guard. Say that its discrimination
-  rests on the message it asserts, and prove the rest of the suite the usual way.
+  for the wrong reason.
 
 A test is not done until `tests/README.md` describes it, the suite's `run.sh` runs it, and, for a new
 suite, the top level `README.md` lists it. Same commit, or a fixup of it.
@@ -561,7 +600,9 @@ named, not one discovered at that consumer's build.
 * Removing a check as redundant is verified, not asserted: trace the invariant to whoever establishes
   it and confirm every path that sets the value does. `invoke`'s type check is redundant because
   `attach` validates the callback first, so it is always a function there; a `pcall` that would catch
-  a bad value anyway is a second reason, not the trace.
+  a bad value anyway is a second reason, not the trace. A binding's Lua half establishes invariants
+  the same way: where it guarantees a precondition, the C takes it, and what stays in C is the check
+  whose absence crashes the kernel. That is what the split is for, and re-validating in C undoes it.
 * A function's contract — that it only reads, that it never sleeps, what it returns — is read from its
   body, not inferred from its name or its place in a method table. `connmark` reads and writes through
   one overloaded method despite sitting among read-only accessors; calling it read-only from where it
@@ -576,6 +617,10 @@ named, not one discovered at that consumer's build.
   the other way, that is a question to bring back, not a conclusion to announce: a rename agreed as
   runtime came back as its opposite, argued from a name collision found on the way, and was published as
   a pull request before anyone said so. Bring the finding, say what it would change, and wait.
+* A fact the maintainer states is taken as given and acted on, not verified back: "#736 is merged"
+  ends a question rather than opening one, and re-arguing the point it settles spends the exchange
+  on what is already decided. A state you assert yourself is the other way round, and rule 1 governs
+  it: read it before writing it.
 * A call the conventions here already settle is made, not escalated: decide it, note it in a line, and
   move on. A question is for a genuine fork — where the answer changes the outcome and no rule,
   precedent, or test resolves it. Asking whether to add a comment the tree's macros never carry spends
@@ -626,11 +671,17 @@ named, not one discovered at that consumer's build.
   `tools/checks/pr-body.sh` holds a body file to this.
 * A pull request is one mechanism, read in one screen of diff and one paragraph of body. A body that
   needs a section per mechanism describes several pull requests: stack them, each on the one below.
+  The harness is the exception: the checks, rules and skill steps one incident produces travel in one
+  pull request, because they carry one reason and the CI line that runs them is one push. One
+  incident's four, opened separately, each needed a merge and a CI push of its own.
 * No session links or assistant footers in a commit or a pull request beyond the `Co-Authored-By`
   trailer. The project settings turn the link off; one that slipped in is removed with a reword.
 * A root cause named in a commit body or a pull request rests on a captured stack or a source-traced
   chain, not a correlated log line or a plausible mechanism. Until it is traced it is a hypothesis,
   labelled as one; a fix may land on the observed behaviour without naming a cause it has not proven.
+  A release note, a changelog or any summary derived from commits is held to the same rule against
+  its source: read each commit and use its words, since "deferred via a workqueue", written for a
+  switch to `LUNATIK_OPT_HARDIRQ`, is a claim about code nobody wrote.
 * Corrections to a commit on your own branch are `git commit --fixup=<hash>`, not a standalone
   "address review comments" commit. Never fixup a commit that is already on `master`; that becomes a
   new commit on a new branch.
@@ -663,7 +714,9 @@ named, not one discovered at that consumer's build.
   took the push; the base is a different clause.
 * Do not commit directly to `master`.
 * Copyright years: a new file carries the current year; a modified file extends its range to include
-  it.
+  it; and a file that factors code out of another carries that file's first year, found with
+  `git log -S` on the moved lines. `lib/class.lua` took the `:new` that `lib/socket/inet.lua` had
+  carried since 2023.
 
 ## Reviewing your own change
 
@@ -692,6 +745,10 @@ The hand-back lists each finding of your own review that the change does not app
 reason. A finding dropped in silence is found again by the maintainer, who then doubts the whole
 review; and "few sites" is not a reason against a rule that collapses a repeated pattern — three
 class tests written by hand where the checker takes the classes were that.
+
+A review comment names a principle, not a token. Read the words as written, say which principle they
+invoke, and fix that: a note that an `enum` is formatted inline asks for the formatting, not for a
+`#define`, and changing both leaves the reviewer to undo one.
 
 ## Before opening a pull request
 
@@ -789,7 +846,9 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   guards against. Non-determinism is the tell: a symptom that shows on one run and not the next, from
   the same inputs, is environment state, not a code path — the variable is the leftover, so control it
   (a fresh reload, a pinned CPU, the program cut down to the one call under test) rather than theorise
-  a bug. The minimal isolating reproduction settles in one run what reading the noisy end-to-end path
+  a bug. The converse is a tell as well: a symptom that reproduces on every run is the code's, and the
+  first code to read is the change's own, before the runtime, the kernel or the way it was invoked. The
+  minimal isolating reproduction settles in one run what reading the noisy end-to-end path
   never does. When the variable is a stimulus the host may or may not supply — a stray packet in a
   window — supply it yourself and reproduce the signature on demand, and log what the hook actually
   saw before naming the packet. A mechanism proved by injection is reported as that, not as the
@@ -869,6 +928,8 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   offered earlier is not authorization. Being told to post is not a license to post words the
   maintainer has not read: show the exact text, get the go-ahead on it, then post — the approval is of
   the wording, and "post it" or "where is it?" asks for the draft, not for it to already be public.
+  The exact text goes in the message that asks, whole and every round, never as a path to a file or
+  as "unchanged from the last one": what is not in front of the maintainer was not shown.
 * A code finding is posted inline, anchored on the line it addresses; the review body carries the
   verdict and opens addressing the author by handle. A finding in the body, away from its line,
   makes the reader hunt for where it applies — and a submitted review cannot be deleted, only
@@ -887,7 +948,9 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
 * The verdict states whether the pull request can merge as it stands: a finding that must be folded is
   a request for changes, however small; a comment review is for observations that do not gate. Once it
   is clean, the verdict is an Approve, not a comment — a comment saying it looks good leaves an earlier
-  request-for-changes standing and the gate closed. Say it plainly and flip the state.
+  request-for-changes standing and the gate closed. Say it plainly and flip the state. A pull request
+  the posting account authored takes neither state: GitHub answers 422 to an approval or a request
+  for changes on one's own, so that review is a comment whose first line is the verdict.
 * A further request-for-changes, when the PR already carries your changes-requested, does not surface:
   GitHub stores it and the API shows it, but the conversation gains no new item because the gate did
   not move — so it "posted" by every check you can run and is still invisible. When the gate is already
