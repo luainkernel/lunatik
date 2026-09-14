@@ -477,6 +477,11 @@ Never `require("foo").method()`. A kernel script does the same with a local:
 * Reaching for a comment is a signal to reconsider the code's clarity first: a name that states the
   intent, a helper that names the step, an enum instead of a bare constant. Comment what the code
   cannot be made to say, not what a clearer shape would.
+* A condition that needs a comment to say what it tests is a predicate that has not been named yet:
+  give it one in the `lunatik_isirq` family's shape, one expression over one argument, defined where
+  its reader is, with the line of reason on the definition and nothing on the use. #797 carried
+  `if (in_task() && notifier->registrant == current) /* the replay... */` until the maintainer asked
+  for `luanotifier_isreplay(notifier)`.
 * An internal `static inline` helper carries no block comment — `lunatik.h` keeps none on any of its
   own. A comment describing what such a helper does restates the code; the fix is removing it, not
   trimming it. A block survives only for a reason the code cannot state, as `checkkey`'s zero-size
