@@ -20,8 +20,9 @@ ktap_fail()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_FAIL=$((KTAP_FAIL+1)); echo "
 ktap_skip()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_SKIP=$((KTAP_SKIP+1)); echo "ok $KTAP_COUNT $* # SKIP"; }
 ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:$KTAP_SKIP"; }
 
-# A Lua error, or a kernel complaint a script's input should not be able to provoke.
-KTAP_ERRORS='\.lua:[0-9]+:|WARNING:|UBSAN:'
+# A Lua error, or a kernel complaint a script's input should not be able to provoke;
+# arm64 heads an oops with "Internal error:", and a debug trap nobody owns with the BRK line.
+KTAP_ERRORS='\.lua:[0-9]+:|WARNING:|UBSAN:|Internal error:|Unexpected kernel BRK'
 
 mark_dmesg() { dmesg -C 2>/dev/null; }
 dmesg_since() { dmesg; }
@@ -29,7 +30,7 @@ check_dmesg() {
 	local errs
 	errs=$(dmesg_since | grep -E "$KTAP_ERRORS" || true)
 	[ -z "$errs" ] && return 0
-	ktap_fail "no Lua errors or kernel warnings"
+	ktap_fail "no Lua errors, kernel warnings or oopses"
 	echo "# $errs"
 	return 1
 }
