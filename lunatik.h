@@ -29,27 +29,11 @@ typedef u8 __bitwise lunatik_opt_t;
 #define LUNATIK_OPT_NONE	((__force lunatik_opt_t)0)
 
 #define lunatik_isirq(opt)		((opt) & LUNATIK_OPT_IRQ)
-#define lunatik_issoftirq(opt)		((opt) & ((__force lunatik_opt_t)(1U << 1)))
 #define lunatik_ishardirq(opt)		((opt) & ((__force lunatik_opt_t)(1U << 2)))
 #define lunatik_ismonitor(opt)		((opt) & LUNATIK_OPT_MONITOR)
 #define lunatik_issingle(opt)		((opt) & LUNATIK_OPT_SINGLE)
 #define lunatik_isexternal(opt)		((opt) & LUNATIK_OPT_EXTERNAL)
 #define lunatik_ispercpu(opt)		((opt) & LUNATIK_OPT_PERCPU)
-
-#define lunatik_locker(o, mutex_op, softirq_op, hardirq_op, ...)	\
-do {									\
-	if (!lunatik_isirq((o)->opt))					\
-		mutex_op(&(o)->mutex);					\
-	else if (lunatik_ishardirq((o)->opt))				\
-		hardirq_op(&(o)->spin, ##__VA_ARGS__);			\
-	else								\
-		softirq_op(&(o)->spin);					\
-} while (0)
-
-#define lunatik_newlock(o)   lunatik_locker((o), mutex_init, spin_lock_init, spin_lock_init);
-#define lunatik_freelock(o)  lunatik_locker((o), mutex_destroy, (void), (void));
-#define lunatik_lock(o)      lunatik_locker((o), mutex_lock, spin_lock_bh, spin_lock_irqsave, (o)->flags)
-#define lunatik_unlock(o)    lunatik_locker((o), mutex_unlock, spin_unlock_bh, spin_unlock_irqrestore, (o)->flags)
 
 #define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
@@ -108,15 +92,52 @@ typedef struct lunatik_object_s {
 extern lunatik_object_t *lunatik_env;
 extern const lunatik_class_t lunatik_class;
 
+static inline void lunatik_newlock(lunatik_object_t *object)
+{
+	if (lunatik_isirq(object->opt))
+		spin_lock_init(&object->spin);
+	else
+		mutex_init(&object->mutex);
+}
+
+static inline void lunatik_freelock(lunatik_object_t *object)
+{
+	if (!lunatik_isirq(object->opt))
+		mutex_destroy(&object->mutex);
+}
+
+/* a bottom-half unlock with IRQs off runs the pending softirqs inline, inside a kprobe handler */
+#define lunatik_isirqsave(object)	(lunatik_ishardirq((object)->opt) || irqs_disabled())
+
+static inline void lunatik_lock(lunatik_object_t *object)
+{
+	if (!lunatik_isirq(object->opt))
+		mutex_lock(&object->mutex);
+	else if (lunatik_isirqsave(object))
+		spin_lock_irqsave(&object->spin, object->flags);
+	else
+		spin_lock_bh(&object->spin);
+}
+
+static inline void lunatik_unlock(lunatik_object_t *object)
+{
+	if (!lunatik_isirq(object->opt))
+		mutex_unlock(&object->mutex);
+	else if (lunatik_isirqsave(object))
+		spin_unlock_irqrestore(&object->spin, object->flags);
+	else
+		spin_unlock_bh(&object->spin);
+}
+
 static inline int lunatik_trylock(lunatik_object_t *object)
 {
 	if (likely(!lunatik_ismonitor(object->opt)))
 		return 1;
-	if (lunatik_issoftirq(object->opt))
-		return spin_trylock(&object->spin);
-	if (lunatik_isirq(object->opt))
+	if (!lunatik_isirq(object->opt))
+		return mutex_trylock(&object->mutex);
+	if (lunatik_isirqsave(object))
 		return spin_trylock_irqsave(&object->spin, object->flags);
-	return mutex_trylock(&object->mutex);
+	return spin_trylock_bh(&object->spin);
 }
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);

@@ -3,25 +3,29 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Regression test for the kprobe handler crash caused by spin_lock_bh in
-# exception context (closes #96).
+# Regression test for the kprobe handler crash caused by a bottom-half
+# unlock in exception context (#96, #843).
 #
 # Kprobe handlers fire via synchronous debug exception: irq_enter() is
-# never called, so in_interrupt() returns false, but preemption is
-# disabled throughout the kprobe handler execution.
+# never called, so in_interrupt() returns false and preempt_count stays at
+# task level, while preemption is disabled throughout the handler.
 #
-# With LUNATIK_OPT_SOFTIRQ, lunatik_run() holds the runtime with
-# spin_lock_bh. On unlock, spin_unlock_bh -> local_bh_enable ->
-# do_softirq() fires before setup_singlestep completes, corrupting
-# kprobe_ctlblk.
+# A lock released with spin_unlock_bh there runs the pending softirqs
+# inline: local_bh_enable -> do_softirq -> local_irq_enable, before
+# setup_singlestep completes. An RCU callback in that window corrupts
+# kprobe_ctlblk, and a handler that writes an rcu.table reaches it through
+# the object lock, which is why the handler here counts into one and, for
+# the monitored classes, into a data buffer.
 #
 # This test registers kprobes on all syscalls, then launches one
 # load-generating process per CPU so that concurrent handler firings across
-# CPUs are likely. After three seconds the runtime is stopped; lunatik stop
-# is wrapped in timeout to detect stop hangs.
+# CPUs are likely; each iteration forks and exits, which is what queues the
+# RCU callback that frees a task. After three seconds the runtime is
+# stopped; lunatik stop is wrapped in timeout to detect stop hangs.
 #
-# Without the fix the test triggers kernel errors in dmesg within the first
-# few seconds of load.
+# The failure is the oops of the probed task, "Unexpected kernel BRK
+# exception at EL1" and arm64's "Internal error:", which check_dmesg reads;
+# how often three seconds of load close the window is not measured.
 #
 # Usage: sudo bash tests/probe/kprobe_concurrent.sh
 
