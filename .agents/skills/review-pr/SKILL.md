@@ -35,9 +35,12 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
 - A review is phases, not one agent: hunt the findings, check the rules and the harness, then build
   and run. Each phase returns a `schema`, so a crash loses one phase and the cache replays the ones
   that completed under `resumeFromRunId`.
-- A head the suite already passed is not built again by the review: the totals and the core
-  srcversion go in the briefing (`args.validated`), and the build phase runs only when a fixup
-  changed the code.
+- A head the suite already passed is not built again by the review: the totals, the core
+  srcversion and the examples run on it go in the briefing (`args.validated`), and the build phase
+  runs only when a fixup changed the code or an example the change touches
+  (`tools/checks/examples-touched.sh` over the changed files, passed as `args.examples`) is not
+  among them. The suite is not the examples: #795 and #837 passed the probe suite and neither ran
+  systrack, whose first run on the merged code took the host down.
 
 # Posting the review (only when asked; placement is decided BEFORE posting)
 
