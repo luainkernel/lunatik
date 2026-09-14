@@ -223,9 +223,10 @@ higher-level `netlink.*` modules built on top of it.
   three from its own handler. Do not run it against a build without the guard,
   which would reach `synchronize_rcu` with interrupts off.
 
-- **kprobe_concurrent**: registers kprobes on every syscall and runs
-  one load generator per CPU; `lunatik stop` must complete within 5s
-  with no kernel errors under concurrent handler firings.
+- **kprobe_concurrent**: registers kprobes on every syscall, each handler
+  counting into an `rcu.table` and a `data` buffer, and runs one forking
+  load generator per CPU; `lunatik stop` must complete within 30 s with no
+  kernel errors under concurrent handler firings.
 
 - **percpu_probe**: the runtimes of a percpu script share one kprobe on
   the `personality` syscall, which nothing else on an idle host calls: a
