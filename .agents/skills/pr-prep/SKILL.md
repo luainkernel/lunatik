@@ -20,6 +20,8 @@ no "Test plan" section, no em dashes. On top of it:
   new shape leave a guard redundant.
 - The hand-back lists the findings of your own review the change does not apply, each with its
   reason; none is dropped in silence.
+- The hand-back names, for each mechanism the change adds, the smaller shape that was considered
+  and why it was not taken; a fix whose smaller shape was never written down is not ready.
 - The hand-back carries the test matrix: for each guard or mechanism the change adds, operations
   by types by outcomes, each cell with its test or the reason it is not covered.
 - Every example that uses a binding the change touches is run through its own `setup.sh` and
