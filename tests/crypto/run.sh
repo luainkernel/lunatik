@@ -7,7 +7,7 @@
 #
 # context: a crypto object refused for its execution context leaves nothing
 # allocated, measured on the reference a tfm holds on the module implementing
-# the algorithm.
+# the algorithm, for the two constructors that allocated one before the object.
 #
 # Usage: sudo bash tests/crypto/run.sh
 

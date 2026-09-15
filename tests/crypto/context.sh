@@ -3,16 +3,17 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Regression test for the tfm crypto.shash() allocated before the object that
-# has to hold it. lunatik_newobject() raises for a process-context class in an
-# interrupt-context runtime, so a shash asked for from an armed softirq runtime
-# left the tfm behind, and a tfm holds a reference on the module implementing
-# the algorithm for the rest of the boot.
+# Regression test for the tfm crypto.shash() and crypto.comp() allocated before
+# the object that has to hold it. lunatik_newobject() raises for a
+# process-context class in an interrupt-context runtime, so an object asked for
+# from an armed softirq runtime left the tfm behind, and a tfm holds a reference
+# on the module implementing the algorithm for the rest of the boot.
 #
-# The kernel's own refcount is the instrument. One shash held alive names the
-# module that backs sha256 here, whatever it is on this architecture: the one
-# /proc/crypto lists whose reference count rose while that shash lived. The
-# refusals then have to leave that count where they found it.
+# The kernel's own refcount is the instrument. One object of each kind held
+# alive names the modules that back sha256 and lz4 here, whatever they are on
+# this architecture: those /proc/crypto lists whose reference count rose while
+# the objects lived. The refusals then have to leave those counts where they
+# found them.
 #
 # Usage: sudo bash tests/crypto/context.sh
 
@@ -39,7 +40,7 @@ run_script "$HOLD"
 held=$(cat /proc/modules)
 lunatik stop "$HOLD" > /dev/null 2>&1
 
-# only a module /proc/crypto names can be the one a live shash pinned
+# only a module /proc/crypto names can be the one a live tfm pinned
 algmods=" $(awk '$1 == "module" {print $3}' /proc/crypto | sort -u | tr '\n' ' ')"
 providers=""
 while read -r name _ count _; do
@@ -63,9 +64,9 @@ if ! check_dmesg; then
 	ktap_totals
 	exit 1
 elif [ -z "$providers" ]; then
-	ktap_skip "crypto/context: no module backs sha256 here, so a leaked tfm counts nowhere"
+	ktap_skip "crypto/context: no module backs sha256 or lz4 here, so a leaked tfm counts nowhere"
 elif [ -n "$leaked" ]; then
-	ktap_fail "crypto/context: a refused shash left a reference on$leaked"
+	ktap_fail "crypto/context: a refused object left a reference on$leaked"
 else
 	ktap_pass "crypto/context"
 fi
