@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in "$DIR"/stream.sh "$DIR"/dgram.sh; do
+for t in "$DIR"/stream.sh "$DIR"/dgram.sh "$DIR"/abstract.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	SEP=$'\n'
 	bash "$t" || FAILED=$((FAILED+1))
