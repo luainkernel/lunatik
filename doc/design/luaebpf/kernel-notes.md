@@ -242,6 +242,36 @@ under `sudo`.
   ([net/core/dev.c#L11177-L11184](https://github.com/torvalds/linux/blob/v7.2/net/core/dev.c#L11177-L11184)),
   so loopback with queue 0 is a context every machine can supply, with no veth and no attach.
 
+## The packet a network program reads
+
+* **The reads a kernel script already has.** `LUADATA_NEWINT_GETTER` is
+  `*(T##_t *)luadata_checkbounds(...)` ([lib/luadata.c#L43-L51](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luadata.c#L43-L51)):
+  a host-byte-order load of the exact width, zero-extended for the unsigned names and
+  sign-extended for the signed ones. The method table
+  ([#L201-L336](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luadata.c#L201-L336)) publishes `getbyte` (an alias of `getuint8`),
+  `getint8`, `getuint8`, `getint16`, `getuint16`, `getint32`, `getuint32`, `getint64`,
+  `getnumber` (an alias of `getint64`) and `getstring`, plus `__len`. `LUADATA_NEWINT` is
+  instantiated for `int64` and not for `uint64` ([#L68-L74](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luadata.c#L68-L74)), so
+  there is no `getuint64`: a Lua integer is 64-bit signed, and an unsigned 64-bit value has no
+  distinct representation. A compiled function the interpreter cannot run has no oracle, so the
+  packet proxy publishes those names and no others.
+* **A signed read extends by hand.** eBPF's sign-extending load, `BPF_MEMSX` 0x80
+  ([include/uapi/linux/bpf.h#L22](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L22)),
+  landed in v6.6, and AGENTS.md's supported range starts at 5.15. A shift left followed by an
+  arithmetic shift right is two instructions and one shape on every supported kernel.
+* **An offset is bounded before the arithmetic.** The verifier refuses arithmetic between a
+  packet pointer and a register whose range it does not know, and `find_good_pkt_pointers`
+  gives the pointer no range at all once the offset the comparison carries runs past
+  `MAX_PACKET_OFF`
+  ([kernel/bpf/verifier.c#L15106-L15126](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L15106-L15126)),
+  which is 0xffff
+  ([include/linux/bpf_verifier.h#L1556](https://github.com/torvalds/linux/blob/v7.2/include/linux/bpf_verifier.h#L1556)).
+  The register the check compares is the access's own end, the pointer plus its width, so the
+  offset is tested unsigned against the last one that width can start at and only then added.
+  An offset above it is out of bounds on every packet a NIC or `BPF_PROG_TEST_RUN` can build,
+  and the interpreter raises there too, so the pairing the differential test asserts is
+  unchanged.
+
 ## BTF: what the object carries and what the log prints
 
 * `func_info` and `line_info` ride on `BPF_PROG_LOAD`; the requirements are that

@@ -79,12 +79,15 @@ Refusing is the normal outcome; the message says which line and why, in one line
 `xdp.program` hands the function a context proxy. Its fields are the `struct xdp_md` fields the
 verifier lets an XDP program read -- `ingress_ifindex` and `rx_queue_index`, neither writable --
 at the offsets the running kernel's own BTF reports, and `ctx:packet()` is the packet as a proxy
-with the method names of the `data` object a kernel script sees (`getbyte`, `getuint16`,
-`getuint32`, `getstring`, `#`). A field the struct does not carry is refused by name, so is a
-write the kernel would not take and one given something other than a number, and `ctx.data` and
-`ctx.data_end` are refused as the packet bounds they are: the only Lua-meaningful thing to do
-with them is their difference, which `#ctx:packet()` already spells. The same helper therefore
-reads the same bytes on both sides:
+with the method names of the `data` object a kernel script sees: `getbyte`, `getuint8`,
+`getint8`, `getuint16`, `getint16`, `getuint32`, `getint32`, `getint64`, `getnumber` and `#`
+(`getstring` arrives with the strings, in phase 5). There is no `getuint64`, because the kernel
+object has none: a Lua integer is 64-bit signed and an unsigned 64-bit value has no distinct
+representation, so a program that asks for it is refused with the method's name. A field the
+struct does not carry is refused by name too, so is a write the kernel would not take and one
+given something other than a number, and `ctx.data` and `ctx.data_end` are refused as the packet
+bounds they are: the only Lua-meaningful thing to do with them is their difference, which
+`#ctx:packet()` already spells. The same helper therefore reads the same bytes on both sides:
 
     local function u16(packet, at)
         return packet:getbyte(at) << 8 | packet:getbyte(at + 1)
@@ -92,9 +95,13 @@ reads the same bytes on both sides:
 
 is `examples/common/sni.lua`'s helper, unchanged, and it compiles.
 
-Every packet access carries a bounds check against `data_end`. An access that fails it does not
-raise (there is nothing to raise to): the function returns the program's **default verdict**, the
-type's safe answer (`PASS` for XDP, `ACT_OK` for TC), overridable in the constructor:
+The offset is an argument like any other, and an accessor called without one, or with one that
+is not a number, is refused at its line. Every packet access carries a bounds check against
+`data_end`, and tests its offset first against 65535 less its width, the last offset a read that
+wide can start at, since the verifier refuses arithmetic between a packet pointer and a register
+whose range it does not know. An access that fails either does not raise (there is nothing to
+raise to): the function returns the program's **default verdict**, the type's safe answer
+(`PASS` for XDP, `ACT_OK` for TC), overridable in the constructor:
 
     return xdp.program(function(ctx) ... end, {default = action.DROP})
 

@@ -193,6 +193,18 @@ interpreter raises, the compiled program owes its default verdict instead.
   having written those bytes at the offsets `luaebpf.vmlinux` reports; a write
   to an XDP field, a field the struct does not carry, and `ctx.data` are
   refused with their messages and lines.
+- **packet**: every accessor the kernel's `data` object publishes, `#`, an
+  offset an earlier read computed, a read inside `examples/common/sni.lua`'s
+  `u16` helper and an accessor asked for two results, where Lua fills the second
+  with nil, each over the five packets of `packets.lua`, against the interpreted
+  twin reading the same bytes with `string.unpack`; a method neither proxy has,
+  `getuint64` among them, is refused by name, and so is an accessor called
+  without an offset or with one that is not a number.
+- **bounds**: a read one byte past the last, one above the offset ceiling, and
+  one that lands in the whole ClientHello but past the truncated one, each
+  declared under either default so the answer is the verdict the file asked
+  for; with `LUAEBPF_DROP=bounds` the object is still written and the verifier
+  refuses it naming an invalid packet access.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.

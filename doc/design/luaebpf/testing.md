@@ -32,17 +32,19 @@ missing binary is a skip with a message naming `make`.
 3. *The wire.* The existing `xdp` and `tc` harness: a veth pair with its peer in a namespace, a
    ping, and a verdict that either blocks it or lets it through.
 
-**Packet corpora, checked in.** From phase 2, small hex files under `tests/luaebpf/packets/`: an
-ARP, an IPv4 ICMP echo, a TCP SYN to 443, a TLS ClientHello with an SNI, a truncated ClientHello.
-Every differential test runs over the whole corpus so the failure paths are exercised, not only
-the happy one. Phase 1 reads no packet, and its cases hand `prog run` the fourteen bytes
-`BPF_PROG_TEST_RUN` demands of an XDP program.
+**Packet corpora, checked in.** From phase 2, `tests/luaebpf/packets.lua` holds them as hex: an
+ARP, an IPv4 ICMP echo, a TCP SYN to 443, a TLS ClientHello with an SNI, a truncated
+ClientHello. The program file's body writes the bytes beside its oracle, as it already writes
+the oracle itself, so the compiled and the interpreted side read the same bytes and the corpus
+needs no install rule of its own. Every differential test runs over the whole corpus so the
+failure paths are exercised, not only the happy one. Phase 1 reads no packet, and its cases hand
+`prog run` the fourteen bytes `BPF_PROG_TEST_RUN` demands of an XDP program.
 
 **Proving the compiler discriminates.** Removing a mechanism from the emitter must fail the
 suite. The emitter exposes a test hook, `LUAEBPF_DROP`, an environment variable the CLI does not
 read, naming one mechanism to drop: `divisor` (the test before a division), `maygoto` (the header
 a loop without a proven bound needs), `lineinfo` (the `.BTF.ext` records), `verdict` (the write to
-`R0`), and from phase 2 the bounds check before a packet load. Each has a test that asserts the
+`R0`), and `bounds` (the `data_end` test before a packet load). Each has a test that asserts the
 verifier rejects the program, that the log lacks the Lua line, or that the arithmetic changes.
 The library reads the variable from `/proc/self/environ`, since the host Lua carries no `os`.
 
@@ -88,7 +90,7 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 
 | Test | Proves |
 |------|--------|
-| `packet.sh` | `getbyte`, `getuint16`, `getuint32` and `#` over the corpus match the interpreter's `data` reads |
+| `packet.sh` | every accessor the kernel's `data` object publishes, `#`, a computed offset and a read inside a called function, over the corpus, match the interpreter's reads of the same bytes; a method neither proxy has is refused by name |
 | `bounds.sh` | an access one byte past `data_end` takes the default verdict; the same program with the bounds check dropped by the test hook is rejected |
 | `ctx.sh` | `ctx.ingress_ifindex` and the `skb` fields read back what `prog run` supplies; an unknown field, a write the kernel refuses, and `ctx.data` are refused with their lines |
 | `mapget.sh` | a map seeded by `bpftool map update` decides the verdict; a missing key is `nil` and an untested use is refused at compile time |

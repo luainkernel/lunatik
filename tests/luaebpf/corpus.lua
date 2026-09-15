@@ -6,15 +6,49 @@ local class   = require("class")
 local vmlinux = require("luaebpf.vmlinux")
 local xdp     = require("bpf.xdp")
 
-local pack = string.pack
+local pack, unpack = string.pack, string.unpack
 
 local corpus = {}
 
 local rows = class{}
 
--- what a context's files are named, kept outside the twin so that a kernel struct may have a
--- member of any name
-local bases = setmetatable({}, {__mode = "k"})
+-- the packet as the kernel's data object reads it: string.unpack with a native-order format of
+-- the exact width, which is the load the emitter lowers each accessor to, rather than a second
+-- implementation of its shifts
+local packet = class{}
+
+-- what a twin is called and what it carries, kept outside it so that a kernel context struct may
+-- have a member of any name
+local states = setmetatable({}, {__mode = "k"})
+
+local function read(self, format, at)
+	if at < 0 then
+		error("offset out of bounds", 0)
+	end
+	return (unpack(format, self.bytes, at + 1))
+end
+
+function packet:getbyte(at) return read(self, "=I1", at) end
+function packet:getuint8(at) return read(self, "=I1", at) end
+function packet:getint8(at) return read(self, "=i1", at) end
+function packet:getuint16(at) return read(self, "=I2", at) end
+function packet:getint16(at) return read(self, "=i2", at) end
+function packet:getuint32(at) return read(self, "=I4", at) end
+function packet:getint32(at) return read(self, "=i4", at) end
+function packet:getint64(at) return read(self, "=i8", at) end
+function packet:getnumber(at) return read(self, "=i8", at) end
+
+function packet.__len(self)
+	return #self.bytes
+end
+
+-- the context the interpreted side is handed: the fields prog run was given, read as a compiled
+-- function reads them, and the packet behind :packet()
+local context = class{}
+
+function context:packet()
+	return states[self].packet
+end
 
 local function write(path, bytes)
 	local file = assert(io.open(path, "wb"))
@@ -38,21 +72,19 @@ local function contextbytes(what, fields)
 	return bytes
 end
 
----
--- The stimulus both sides are handed: the bytes `bpftool prog run` builds its context from and
--- the packet, written beside the object as `<name>.ctx` and `<name>.bin`, and the twin the body
--- runs the interpreted function against.
--- @function corpus.context
--- @tparam string name what the case calls this stimulus
--- @tparam string what the context struct `prog run` reads, `xdp_md` or `__sk_buff`
--- @tparam table fields the context fields to fill, by name
--- @tparam string bytes the packet
--- @treturn table the twin, which is `fields` itself
+-- the stimulus both sides are handed: the bytes bpftool prog run builds its context from and the
+-- packet, written beside the object as <name>.ctx and <name>.bin, and the twin the body runs the
+-- interpreted function against
 function corpus.context(name, what, fields, bytes)
+	if what == "xdp_md" then
+		-- bpf_prog_test_run_xdp sizes the packet from ctx_in.data_end, empty when it is zero (test_run.c)
+		fields.data_end = #bytes
+	end
 	write(name .. ".ctx", contextbytes(what, fields))
 	write(name .. ".bin", bytes)
-	bases[fields] = name
-	return fields
+	local twin = context:new(fields)
+	states[twin] = {name = name, packet = packet:new{bytes = bytes}}
+	return twin
 end
 
 local function answer(ok, value)
@@ -74,7 +106,7 @@ function rows:declare(name, fn, opts, ctx)
 	opts.name = name
 	local program = xdp.program(fn, opts)
 	self.out:write(name, "\t", answer(pcall(fn, ctx or 0)), "\t", program.default, "\t",
-		ctx ~= nil and bases[ctx] or "", "\n")
+		ctx ~= nil and states[ctx].name or "", "\n")
 end
 
 function rows:close()

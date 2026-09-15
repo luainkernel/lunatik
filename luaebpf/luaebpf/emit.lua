@@ -33,6 +33,7 @@ local SLOT     <const> = 8
 local MAXSTACK <const> = 512 -- MAX_BPF_STACK
 local MAXARGS  <const> = 4   -- MAX_BPF_FUNC_REG_ARGS, less the register the abort pointer takes
 local NBITS    <const> = 64
+local BYTE     <const> = 8   -- bits
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 local MININT   <const> = 1 << 63
@@ -49,10 +50,13 @@ local BOOL    <const> = 2
 local NIL     <const> = 4
 local CTX     <const> = 8
 local OTHER   <const> = 16
+local PACKET  <const> = 32
+local METHOD  <const> = 64
 local RUNTIME <const> = INT | BOOL | NIL -- a value the kernel holds as a word
-local PROXY   <const> = CTX              -- a pointer the kernel holds, read through a proxy
+local PROXY   <const> = CTX | PACKET     -- a pointer the kernel holds, read through a proxy
 
-local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context"}
+local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context",
+	[PACKET] = "packet", [METHOD] = "method"}
 
 local opnames = {}
 for name, op in pairs(opcodes) do
@@ -184,13 +188,16 @@ local function setimm(f, i, value)
 	end
 end
 
--- reads a Lua register into a scratch register the caller may then destroy
-local function into(f, pc, state, i, scratch)
-	local from = getreg(f, pc, state, i, scratch)
+local function move(f, from, scratch)
 	if from ~= scratch then
 		f.code:alu(alu.MOV, scratch, from)
 	end
 	return scratch
+end
+
+-- reads a Lua register into a scratch register the caller may then destroy
+local function into(f, pc, state, i, scratch)
+	return move(f, getreg(f, pc, state, i, scratch), scratch)
 end
 
 local function isinteger(value)
@@ -340,6 +347,109 @@ local function contextset(f, pc, ins, state, key)
 	f.code:store(fetch(f, ins.a, reg.R1), field.offset, src, field.size)
 end
 
+--- @section the packet
+
+-- MAX_PACKET_OFF: the verifier refuses arithmetic between a packet pointer and a register whose
+-- range it does not know, and find_good_pkt_pointers leaves a pointer no range at all once the
+-- offset's maximum plus the access would carry it past this. So an access tests its offset
+-- against the last one its width can start at. Anything above is out of bounds on every packet
+-- BPF_PROG_TEST_RUN or a NIC can build, and the interpreter raises there too.
+local PACKETMAX <const> = 65535
+
+-- the reads the kernel's own data object publishes (lib/luadata.c), and the load each becomes.
+-- There is no getuint64: a Lua integer is 64-bit signed and has no unsigned twin.
+local accessors = {
+	getbyte   = {size = 1, signed = false},
+	getuint8  = {size = 1, signed = false},
+	getint8   = {size = 1, signed = true},
+	getuint16 = {size = 2, signed = false},
+	getint16  = {size = 2, signed = true},
+	getuint32 = {size = 4, signed = false},
+	getint32  = {size = 4, signed = true},
+	getint64  = {size = 8, signed = true},
+	getnumber = {size = 8, signed = true},
+}
+
+-- an accessor is called with the receiver and the offset, both of which OP_CALL counts
+local ACCESSARGS <const> = 2
+
+-- data and data_end, which the kernel rewrites a four-byte context load of into a full pointer
+local function bounds(f)
+	local packet, fields = f.unit.context.packet, layout(f)
+	return fields[packet.base], fields[packet.limit]
+end
+
+-- BPF_MEMSX landed in v6.6 and the tree supports 5.15, so a signed read extends by hand
+local function extend(f, dst, size)
+	local shift = NBITS - size * BYTE
+	f.code:alui(alu.LSH, dst, shift)
+	f.code:alui(alu.ARSH, dst, shift)
+end
+
+-- One access, self-contained: data and data_end are re-read from the context rather than kept
+-- live, so the proxy is one register that survives a call and cannot go stale.
+local function packetread(f, pc, ins, state, access)
+	local code, base, limit = f.code, bounds(f)
+	into(f, pc, state, ins.a + 2, reg.R4)
+	local ptr = fetch(f, ins.a + 1, reg.R3)
+	code:load(reg.R1, ptr, base.offset, base.size)
+	code:load(reg.R2, ptr, limit.offset, limit.size)
+	code:branchi(jump.JGT, reg.R4, PACKETMAX - access.size, abort(f))
+	code:alu(alu.ADD, reg.R1, reg.R4)
+	if f.drop ~= "bounds" then
+		code:alu(alu.MOV, reg.R4, reg.R1)
+		code:alui(alu.ADD, reg.R4, access.size)
+		code:branch(jump.JGT, reg.R4, reg.R2, abort(f))
+	end
+	code:load(reg.R1, reg.R1, 0, access.size)
+	if access.signed and access.size * BYTE < NBITS then
+		extend(f, reg.R1, access.size)
+	end
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT}
+end
+
+-- the length is the distance between the bounds, which is what '#' on the kernel's data object
+-- answers and what the interpreted twin reads off the same bytes
+local function packetlen(f, ins, state)
+	local code, base, limit = f.code, bounds(f)
+	local ptr = fetch(f, ins.b, reg.R3)
+	code:load(reg.R1, ptr, base.offset, base.size)
+	code:load(reg.R2, ptr, limit.offset, limit.size)
+	code:alu(alu.SUB, reg.R2, reg.R1)
+	setreg(f, ins.a, reg.R2)
+	state[ins.a] = {t = INT}
+end
+
+-- the packet proxy is the context register under another type: one register, passed to a
+-- subprogram in one argument, with nothing to keep live across a call
+local function contextmethod(f, pc, ins, state, callee)
+	if callee.name ~= "packet" then
+		refuse(f, pc, "the context has no method '%s'", callee.name)
+	end
+	setreg(f, ins.a, fetch(f, ins.a + 1, reg.R1))
+	state[ins.a] = {t = PACKET, name = callee.name}
+end
+
+local function method(f, pc, ins, state, callee)
+	if callee.recv.t == CTX then
+		return contextmethod(f, pc, ins, state, callee)
+	end
+	local access = accessors[callee.name]
+	if access == nil then
+		refuse(f, pc, "the packet has no method '%s'", callee.name)
+	end
+	-- getreg takes any word, so an unchecked offset reads where the interpreter would raise
+	if ins.b - 1 < ACCESSARGS then
+		refuse(f, pc, "'%s' takes an offset", callee.name)
+	end
+	local at = state[ins.a + 2]
+	if not isinteger(at) then
+		refuse(f, pc, "'%s' takes a number, not a %s", callee.name, typename(at))
+	end
+	packetread(f, pc, ins, state, access)
+end
+
 --- @section loads
 
 local ops = {}
@@ -451,6 +561,24 @@ function ops.GETTABLE(f, pc, ins, state)
 		refuse(f, pc, "'%s' is indexed by a value the compiler cannot resolve", name)
 	end
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, key.k, name))
+end
+
+-- the receiver goes to A+1 and the method to A, which the call then reads back
+function ops.SELF(f, pc, ins, state)
+	local recv = state[ins.b]
+	if recv == nil or (recv.t & PROXY) == 0 then
+		refuse(f, pc, "a method call cannot be compiled")
+	end
+	moveslot(f, state, ins.a + 1, ins.b)
+	state[ins.a] = {t = METHOD, name = tostring(constant(f, pc, ins.c)), recv = recv}
+end
+
+function ops.LEN(f, pc, ins, state)
+	local value = state[ins.b]
+	if value == nil or value.t ~= PACKET then
+		refuse(f, pc, "'#' cannot be applied in a compiled function")
+	end
+	packetlen(f, ins, state)
 end
 
 --- @section arithmetic
@@ -1018,16 +1146,27 @@ function ops.RETURN1(f, pc, ins, state)
 	return returns(f, pc, state, ins.a)
 end
 
+-- a compiled call answers with one value, so Lua fills every further result asked for with nil
+local function filled(f, pc, ins, state)
+	for i = ins.a + 1, ins.a + ins.c - 2 do
+		resolve(f, pc, state, i, nil)
+	end
+end
+
 function ops.CALL(f, pc, ins, state)
 	local callee = state[ins.a]
+	if ins.b == 0 or ins.c == 0 then
+		refuse(f, pc, "a call with a variable number of values cannot be compiled")
+	end
+	if callee ~= nil and callee.t == METHOD then
+		method(f, pc, ins, state, callee)
+		return filled(f, pc, ins, state)
+	end
 	if callee == nil or type(callee.k) ~= "function" then
 		refuse(f, pc, "a call through a value the compiler cannot resolve")
 	end
 	if getinfo(callee.k, "S").what == "C" then
 		refuse(f, pc, "'%s' is not a Lua function this program file declares", callee.name or "?")
-	end
-	if ins.b == 0 or ins.c == 0 then
-		refuse(f, pc, "a call with a variable number of values cannot be compiled")
 	end
 	local nargs = ins.b - 1
 	if nargs > MAXARGS then
@@ -1035,15 +1174,17 @@ function ops.CALL(f, pc, ins, state)
 	end
 	local params = {}
 	for i = 1, nargs do
-		if not isinteger(state[ins.a + i]) then
-			refuse(f, pc, "argument #%d is a %s, and a compiled call passes numbers",
-				i, typename(state[ins.a + i]))
+		local value = state[ins.a + i]
+		local kind = value ~= nil and value.t or 0
+		if kind ~= INT and kind ~= PACKET then
+			refuse(f, pc, "argument #%d is a %s, and a compiled call passes numbers and packets",
+				i, typename(value))
 		end
-		params[i] = INT
+		params[i] = kind
 	end
 	local target = emit.subprogram(f, pc, callee.k, callee.name, params)
 	for i = 1, nargs do
-		into(f, pc, state, ins.a + i, reg.R0 + i)
+		move(f, fetch(f, ins.a + i, reg.R0 + i), reg.R0 + i)
 	end
 	f.code:storei(reg.FP, ABORTED, 0)
 	f.code:alu(alu.MOV, reg.R1 + nargs, reg.FP)
@@ -1055,10 +1196,7 @@ function ops.CALL(f, pc, ins, state)
 		setreg(f, ins.a, reg.R0)
 		state[ins.a] = {t = target.rettype}
 	end
-	-- a compiled function returns one value, so Lua fills every further result asked for with nil
-	for i = ins.a + 1, ins.a + ins.c - 2 do
-		resolve(f, pc, state, i, nil)
-	end
+	filled(f, pc, ins, state)
 end
 
 --- @section the walk
@@ -1070,8 +1208,6 @@ local refusals = {
 	SETI = "a table cannot be written in a compiled function",
 	NEWTABLE = "a table constructor cannot run in the kernel; build it in the file body",
 	SETLIST = "a table constructor cannot run in the kernel; build it in the file body",
-	SELF = "a method call cannot be compiled",
-	LEN = "'#' cannot be applied in a compiled function",
 	CONCAT = "'..' cannot be applied in a compiled function",
 	CLOSE = "a to-be-closed variable cannot be compiled",
 	TBC = "a to-be-closed variable cannot be compiled",
@@ -1208,7 +1344,8 @@ end
 -- @tparam table params the type of each argument
 -- @treturn table the callee's frame
 -- @raise `recursion through '<name>'`, `'<name>' is called with <n> arguments and compiled
---   with <m>`, or `'<name>' takes <n> arguments and is called with <m>`
+--   with <m>`, `'<name>' is called with a <type> and compiled with a <type>`, or `'<name>'
+--   takes <n> arguments and is called with <m>`
 function emit.subprogram(f, pc, fn, name, params)
 	local unit = f.unit
 	if unit.lowering[fn] then
@@ -1219,6 +1356,12 @@ function emit.subprogram(f, pc, fn, name, params)
 		if #compiled.params ~= #params then
 			refuse(f, pc, "'%s' is called with %d arguments and compiled with %d",
 				compiled.name, #params, #compiled.params)
+		end
+		for i = 1, #params do
+			if compiled.params[i] ~= params[i] then
+				refuse(f, pc, "'%s' is called with a %s and compiled with a %s", compiled.name,
+					typenames[params[i]], typenames[compiled.params[i]])
+			end
 		end
 		return compiled
 	end

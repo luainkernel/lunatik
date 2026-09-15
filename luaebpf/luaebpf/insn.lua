@@ -57,12 +57,14 @@ insn.alu = {
 	LSH = 0x60, RSH = 0x70, NEG = 0x80, MOD = 0x90, XOR = 0xa0, MOV = 0xb0, ARSH = 0xc0,
 }
 
---- Jump opcodes, `BPF_JEQ` and friends. Lua integers are signed, so only the signed relations
--- are correct here.
+--- Jump opcodes, `BPF_JEQ` and friends. Lua integers are signed, so a comparison the source
+-- wrote takes a signed relation. The unsigned ones are for the bounds check before a packet
+-- load, where the verifier reads the relation itself: a packet pointer and an offset are
+-- unsigned there, and a signed test would leave the pointer's range unproven.
 -- @table luaebpf.insn.jump
 insn.jump = {
-	JA = 0x00, JEQ = 0x10, JNE = 0x50, JSGT = 0x60, JSGE = 0x70,
-	JSLT = 0xc0, JSLE = 0xd0, JCOND = 0xe0, CALL = 0x80, EXIT = 0x90,
+	JA = 0x00, JEQ = 0x10, JGT = 0x20, JGE = 0x30, JNE = 0x50, JSGT = 0x60, JSGE = 0x70,
+	JLT = 0xa0, JLE = 0xb0, JSLT = 0xc0, JSLE = 0xd0, JCOND = 0xe0, CALL = 0x80, EXIT = 0x90,
 }
 
 --- Registers: `R0` to `R10`, with `FP` as the read-only frame pointer.
