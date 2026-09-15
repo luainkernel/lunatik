@@ -568,6 +568,12 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   layout codec); with the receive timeout set, a receive with no data returns
   (raises) instead of blocking forever.
 
+- **packet**: the AF_PACKET address a `socket:send()` with a destination builds.
+  A `SOCK_DGRAM` send on loopback names the protocol and the interface, and the
+  kernel reads the rest of `struct sockaddr_ll` from the same storage: the frame,
+  read back on a `SOCK_RAW` socket bound to the same ethertype, must carry as its
+  destination hardware address the zeros the binding declares.
+
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at
   construction.
