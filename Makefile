@@ -30,7 +30,8 @@ INSTALL = install -o root -g root
 HOSTCC ?= cc
 LUNATIKC := bin/lunatikc
 LUNATIKC_CORE := lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem lobject lopcodes \
-	lparser lstate lstring ltable ltm lundump lvm lzio lauxlib
+	lparser lstate lstring ltable ltm lundump lvm lzio lauxlib \
+	lbaselib lcorolib ldblib lstrlib ltablib lutf8lib lmathlib liolib linit loadlib
 LUNATIKC_SRCS := ${LUNATIKC}.c $(addprefix lua/,$(addsuffix .c,$(LUNATIKC_CORE)))
 LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
 

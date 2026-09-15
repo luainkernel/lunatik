@@ -148,6 +148,11 @@ sudo lunatik run hello
 `BYTECODE=1 make install` installs the kernel Lua libraries and the examples as stripped chunks
 instead of source.
 
+The state `lunatikc` compiles in carries the same standard libraries as a kernel runtime — `string`,
+`table`, `math`, `utf8`, `io`, `debug`, `coroutine` and `package`, every one but `os` — and `require`
+searches `/lib/modules/lua/`, overridable with `LUA_PATH`. As in the kernel, no C module can be
+loaded: there is no dynamic loader on either side.
+
 ### Testing
 
 Install and run the test suites:

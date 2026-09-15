@@ -99,6 +99,32 @@ unsigned int luaS_hash(const char *str, size_t l, unsigned int seed); /* require
 #undef current /* conflicts with Lua namespace */
 #endif
 #endif
+
+#else /* __KERNEL__: bin/lunatikc defines _KERNEL too, and lua/ fences these out under it */
+
+typedef struct lua_State lua_State;
+
+const char *lua_pushfstring(lua_State *L, const char *fmt, ...);
+
+static inline void *lsys_load(lua_State *L, const char *symbol, int seeglb)
+{
+	(void)(seeglb); /* not used */
+	lua_pushfstring(L, "%s: the host compiler loads no C modules", symbol);
+	return NULL;
+}
+
+#define lsys_sym(L,l,s)		((lua_CFunction)(l))
+#define lsys_unloadlib(l)
+
+int lunatikc_loadfile(lua_State *L, const char *filename, const char *mode);
+#define luaL_loadfilex(L,f,m)	lunatikc_loadfile((L),(f),(m))
+
+#undef LUA_ROOT
+#define LUA_ROOT	"/lib/modules/lua/"
+
+#undef LUA_PATH_DEFAULT
+#define LUA_PATH_DEFAULT  LUA_ROOT"?.lua;" LUA_ROOT"?/init.lua"
+
 #endif /* __KERNEL__ */
 
 #endif

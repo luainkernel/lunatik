@@ -19,6 +19,7 @@
 
 #include <lua.h>
 #include <lauxlib.h>
+#include <lualib.h>
 
 #define LUNATIKC_EXT	".luac"
 
@@ -57,6 +58,26 @@ static char *readfile(const char *path, size_t *size)
 	fclose(f);
 	*size = (size_t)n;
 	return buffer;
+}
+
+/* what lunatik_loadfile is to the kernel: lua/ fences the C library's luaL_loadfilex out under
+ * _KERNEL, so package's Lua searcher has none until the driver supplies one */
+int lunatikc_loadfile(lua_State *L, const char *filename, const char *mode)
+{
+	size_t size;
+	char *source = filename != NULL ? readfile(filename, &size) : NULL;
+
+	if (source == NULL) {
+		lua_pushfstring(L, "cannot open %s", filename);
+		return LUA_ERRFILE;
+	}
+
+	char name[PATH_MAX + 1];
+	snprintf(name, sizeof(name), "@%s", filename);
+
+	int status = luaL_loadbufferx(L, source, size, name, mode);
+	free(source);
+	return status;
 }
 
 static int writer(lua_State *L, const void *p, size_t size, void *ud)
@@ -152,6 +173,7 @@ int main(int argc, char **argv)
 	lua_State *L = luaL_newstate();
 	if (L == NULL)
 		fail("cannot create state");
+	luaL_openlibs(L);
 
 	for (; i < argc; i++) {
 		const char *input = argv[i];
