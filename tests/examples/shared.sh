@@ -6,7 +6,9 @@
 # Drives the spawned examples/shared daemon over its own port with a kernel-side
 # client: a GET of a key that was never assigned, and a GET of a key a SET
 # removed, must each answer with an empty line rather than take the thread body
-# down and leave the port bound with nobody in accept().
+# down and leave the port bound with nobody in accept(); and a GET of a key that
+# was set must answer with the value and nothing else, a rewrite to a shorter
+# value included, which only a byte-exact assertion tells from the whole slot.
 #
 # The peer that resets its session is a userspace one: luasocket's release shuts
 # the socket down before releasing it, so a lunatik client always says goodbye
@@ -60,7 +62,7 @@ PY
 }
 
 ktap_header
-ktap_plan 3
+ktap_plan 5
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -94,6 +96,12 @@ if command -v python3 > /dev/null 2>&1; then
 else
 	ktap_skip "shared: a peer that resets its session does not end the daemon"
 fi
+
+dmesg_since | grep -q "shared example: value ok" || fail "a GET did not answer with the value alone"
+ktap_pass "shared: a GET answers with the value and nothing else"
+
+dmesg_since | grep -q "shared example: rewrite ok" || fail "a rewritten key did not answer with the new value alone"
+ktap_pass "shared: a SET over a longer value answers with the shorter one alone"
 
 cleanup
 check_dmesg || { ktap_totals; exit 1; }
