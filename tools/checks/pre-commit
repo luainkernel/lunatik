@@ -1,6 +1,7 @@
 #!/bin/bash
 # Pre-commit hook: reject staged text files (C, Lua, Makefile, shell scripts)
-# missing the trailing blank line the tree requires.
+# missing the trailing blank line the tree requires, and kernel code calling a
+# string function the kernel has removed.
 # Install with: ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
 conflicted=$(git diff --cached --name-only --diff-filter=ACM -G'^(<{7}|={7}|>{7})( |$)')
@@ -33,6 +34,30 @@ if [ -n "$bad" ]; then
 		echo "  $f"
 	done
 	echo "Fix with: printf '\\n' >> <file>"
+	exit 1
+fi
+
+# strncpy and strlcpy are gone from <linux/string.h>, so a call left in kernel
+# code builds on the kernels that still declare them and stops the build on the
+# ones that do not. lua/ and klibc/ are userspace sources with their own libc.
+removed=""
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+	case "$f" in
+		lua/*|klibc/*) continue ;;
+		*.c|*.h)
+			if git show ":$f" | grep -qE '\b(strncpy|strlcpy)\b'; then
+				removed="$removed $f"
+			fi
+			;;
+	esac
+done
+
+if [ -n "$removed" ]; then
+	echo "ERROR: Files calling a string function the kernel removed:"
+	for f in $removed; do
+		echo "  $f"
+	done
+	echo "memcpy copies an exact length, strscpy terminates, strscpy_pad also zeroes the rest."
 	exit 1
 fi
 

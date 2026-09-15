@@ -54,6 +54,8 @@ static int luasocket_accept(lua_State *L);
 
 static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr_storage *addr, int ix)
 {
+	/* the kernel reads every byte of the length a branch returns, fields it never set included */
+	memset(addr, 0, sizeof(*addr));
 	addr->ss_family = luasocket_family(socket);
 	if (addr->ss_family == AF_INET) {
 		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
@@ -67,9 +69,10 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 		struct sockaddr_un *addr_un = (struct sockaddr_un *)addr;
 		const char *addr_data = luaL_checklstring(L, ix, &len);
 		luaL_argcheck(L, len + 1 <= UNIX_PATH_MAX, ix, "out of bounds");
-		strncpy(addr_un->sun_path, addr_data, len);
+		memcpy(addr_un->sun_path, addr_data, len);
 		addr_un->sun_path[len] = '\0';
-		return sizeof(struct sockaddr_un);
+		/* an abstract name is the declared bytes themselves; a pathname takes its terminator too */
+		return offsetof(struct sockaddr_un, sun_path) + len + (addr_data[0] != '\0');
 	}
 #endif
 	else if (addr->ss_family == AF_PACKET) {
@@ -80,7 +83,6 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 	}
 	else if (addr->ss_family == AF_NETLINK) {
 		struct sockaddr_nl *addr_nl = (struct sockaddr_nl *)addr;
-		addr_nl->nl_pad = 0;
 		addr_nl->nl_pid = (u32)luaL_optinteger(L, ix, 0);
 		addr_nl->nl_groups = (u32)luaL_optinteger(L, ix + 1, 0);
 		return sizeof(struct sockaddr_nl);
@@ -252,6 +254,9 @@ static int luasocket_receive(lua_State *L)
 *   - `AF_PACKET`: An integer representing the ethernet protocol in host byte order
 *     (e.g., `0x0003` for `ETH_P_ALL`, `0x88CC` for `ETH_P_LLDP`)
 *     The `port` argument is also required.
+*   - `AF_UNIX`: A filesystem path, or, when its first byte is NUL (e.g. `"\0name"`), a name in the
+*     abstract namespace, which is registered as the exact bytes given, so a peer of any kind reaches
+*     it by the same string. The empty string asks the kernel to pick a name (autobind).
 *   - Other families: A packed string directly representing parts of the family-specific address structure.
 *
 * @tparam[opt] integer port local port or interface index.

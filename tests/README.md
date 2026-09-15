@@ -445,12 +445,27 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   layout codec); with the receive timeout set, a receive with no data returns
   (raises) instead of blocking forever.
 
+- **packet**: the AF_PACKET address a `socket:send()` with a destination builds.
+  A `SOCK_DGRAM` send on loopback names the protocol and the interface, and the
+  kernel reads the rest of `struct sockaddr_ll` from the same storage: the frame,
+  read back on a `SOCK_RAW` socket bound to the same ethertype, must carry as its
+  destination hardware address the zeros the binding declares.
+
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at
   construction.
 
 - **unix/dgram**: `socket.unix` DGRAM server (`receivefrom` with
   `DONTWAIT`) and client (`sendto` using the stored path).
+
+- **unix/abstract**: AF_UNIX names in the abstract namespace (a leading NUL).
+  `/proc/net/unix` publishes the whole registered name, so the characters it
+  prints pin the address a bind declares: the name the script gave, and the
+  longest one `UNIX_PATH_MAX` admits. Also the refusals — a second bind of one
+  name, a name past `UNIX_PATH_MAX`, and the empty name, which autobinds and
+  connects to nothing — and, where `python3` is available, a userspace peer
+  connecting to the bound name, and a lunatik client reaching by connect and by
+  send the names that peer bound.
 
 ### struct
 
