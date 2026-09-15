@@ -4,9 +4,10 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Helpers the luaebpf cases share: the toolchain check that turns a missing tool into a skip,
-# the compile into a scratch directory, the load into a pin root, the differential run against
-# the oracle a program file's own body wrote while it compiled, and, for the loader cases, the
-# device they attach to and what a failed `lunatik run` may not leave behind.
+# the kfunc check that does the same for a case calling into a runtime, the compile into a
+# scratch directory, the load into a pin root, the differential run against the oracle a program
+# file's own body wrote while it compiled, and, for the loader cases, the device they attach to
+# and what a failed `lunatik run` may not leave behind.
 # Source this file, and tests/lib.sh, from each case.
 
 LUAEBPF_SRC=/lib/modules/lua/tests/luaebpf
@@ -47,6 +48,15 @@ luaebpf_reason() {
 	[ -r "$LUAEBPF_SRC/pass.bpf.lua" ] || { echo "the program files are not installed"; return; }
 	lua5.4 -e 'require("lunatik.loader")' 2>/dev/null \
 		|| { echo "lunatik.loader is not installed; run make install"; return; }
+}
+
+# why a case that loads a program calling into a runtime cannot run: the module publishes the
+# kfunc only from v6.4 on (lib/luaxdp.c), and a kernel below it publishes the BTF without it
+luaebpf_kfunc() {
+	local module="$1" name="$2"
+	[ -r "/sys/kernel/btf/$module" ] || { echo "$module publishes no BTF"; return; }
+	bpftool btf dump file "/sys/kernel/btf/$module" format raw 2>/dev/null \
+		| grep -q "FUNC '$name'" || echo "$module publishes no $name"
 }
 
 # the plan, the skips a missing tool turns every case into, and a scratch directory of its own

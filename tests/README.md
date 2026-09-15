@@ -284,6 +284,57 @@ interpreter raises, the compiled program owes its default verdict instead.
   own log, quoting `<file>.bpf.lua:<line>` from the object's `line_info`, and
   exit non-zero; **load** loads the same program file compiled without the test
   hook, so the grep discriminates.
+- **callback**: the escape hatch, four programs over two runtime proxies against
+  one kernel script, which answers PASS for an empty argument, DROP for the
+  magic and ABORTED for anything else; every program returns TX where the kfunc
+  answered `-1`, a verdict the callback never sets, so a row tells "no runtime
+  was dispatched" from "the callback refused the argument". `xdp.runtime()` with
+  no name reaches the callback, which says the key the compiler derived is the
+  one `lunatik run` registered and that all eight bytes of the argument arrived,
+  the magic's low 32 bits not being the magic; the same key spelled out reaches
+  the same callback; a call with no argument hands the kfunc a null pointer and
+  a zero size; another constant is told apart, which is what makes the DROP rows
+  mean something. The answer used as a number without a test, compared with a
+  number by `==` and by `<`, called from a function other than the program's
+  own, handed something that is not a number, and made from a program declared
+  without the context are refused with their messages and lines; the last would
+  otherwise reach the verifier as `R6 !read_ok`, which names no line of Lua. The
+  object is loaded with `bpftool` rather than staged beside the script, since a
+  run over a staged object asks for a device and what the case wants is the
+  runtime alone. A last row only compiles: one proxy declared through
+  `xdp.runtime` and called from an XDP and a TC program names both kfuncs in the
+  object's BTF, which is what says the kfunc a call lowers to is the program's
+  and not the namespace's.
+- **miss**: a call whose runtime cannot be dispatched. With nothing started the
+  call answers `nil` and the program takes the branch it wrote for it; with the
+  runtime started in softirq the same program over the same packet returns the
+  callback's verdict, which is what says the first row is the absence and not
+  the object; a runtime started with no execution context is a process-context
+  one, which the kfunc refuses to dispatch. A verdict of `-1` from a callback is
+  indistinguishable from no runtime at all, which is the trampoline's own
+  contract, so what tells that row from the first is the line the module logs.
+  A program that returns the answer on its nil branch returns the zero word a
+  returned nil is anywhere else, not the `-1` the kfunc handed back.
+- **partition**: `examples/sniclassify/classify.c` in Lua. The TC program looks
+  a flow up in a hash it declares, calls the kernel runtime only where the
+  lookup missed and the headers say the packet is worth it, and caches what the
+  callback decided. `BPF_PROG_TEST_RUN` reads a `__sk_buff`'s hash back as zero,
+  so the two packets of one `repeat 2` are one flow: two packets, one callback
+  line, and the priority the callback set from the argument it was handed is
+  what the pinned map holds and what `ctx_out` carries back. A SYN to the same
+  port and an ICMP echo add no callback line and leave the map empty, with the
+  runtime still up: the call is where the program put it, not on every packet.
+- **report**: `lunatikc bpf` lists every call into the kernel Lua runtime. A
+  program file with a call on two known lines, each naming a runtime of its own,
+  prints one line per call with its own line number and its own key;
+  `pass.bpf.lua`, which calls no runtime, prints nothing.
+- **nobtf**: what an unresolved kfunc says. `LUAEBPF_DROP=ksyms` leaves the
+  extern out of the object's `.ksyms` DATASEC, so libbpf cannot resolve it for
+  the same reason a missing module BTF cannot, and the failure never reaches the
+  kernel: there is no verifier log, only what libbpf itself said. Both
+  `bpftool prog loadall` and `lunatik run` name the kfunc, the run exits
+  non-zero and leaves no pin root, no runtime and nothing on the device, and the
+  same drop over a program file with no call into Lua still loads.
 
 ### monitor
 
