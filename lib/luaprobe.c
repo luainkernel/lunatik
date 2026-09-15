@@ -226,6 +226,8 @@ static void luaprobe_release(void *private)
 
 /***
 * Unregisters and stops the probe.
+* From a handler this raises: the way to stop delivering there is to return early on a flag
+* the script owns, and the kprobe is unregistered when the runtime stops.
 * @function stop
 * @raise if the percpu object owns this probe, or if called after module load:
 *   unregister_kprobe sleeps, and the runtime is in hardirq by then
