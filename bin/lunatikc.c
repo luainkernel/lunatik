@@ -101,15 +101,15 @@ static char *outname(const char *output, const char *input)
 	if (n > 4 && strcmp(base + n - 4, ".lua") == 0)
 		n -= 4;
 
-	const char *dir = output != NULL ? output : "";
-	char *name = malloc(strlen(dir) + 1 + n + sizeof(LUNATIKC_EXT));
+	size_t prefix = output != NULL ? strlen(output) + 1 : (size_t)(base - input);
+	char *name = malloc(prefix + n + sizeof(LUNATIKC_EXT));
 	if (name == NULL)
 		fail(strerror(ENOMEM));
 
 	if (output == NULL) /* next to the input */
 		sprintf(name, "%.*s%.*s" LUNATIKC_EXT, (int)(base - input), input, (int)n, base);
 	else
-		sprintf(name, "%s/%.*s" LUNATIKC_EXT, dir, (int)n, base);
+		sprintf(name, "%s/%.*s" LUNATIKC_EXT, output, (int)n, base);
 	return name;
 }
 

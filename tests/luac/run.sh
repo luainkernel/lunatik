@@ -8,6 +8,7 @@
 #   - a compiled chunk runs, full and stripped (-s), with integer semantics
 #   - a compiled library is found by require()
 #   - errors name the chunk name given with -n; stripped errors are "?:?:"
+#   - with no -o the chunk lands beside its input, whose own directory sizes the name
 #   - a chunk with a stock (float) number format is rejected by the header check
 #   - load() with mode "t" rejects a chunk inside the kernel
 #
@@ -20,16 +21,16 @@ SRC="$SCRIPTS_PATH/tests/luac"
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
-	rm -f "$SRC"/*_bc.lua "$SRC"/*_s.lua "$SRC"/stock.lua
+	rm -f "$SRC"/*_bc.lua "$SRC"/*_s.lua "$SRC"/stock.lua "$SRC"/*.luac
 }
 trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 8
+ktap_plan 9
 
 if ! command -v lunatikc >/dev/null; then
-	for i in $(seq 8); do ktap_skip "luac: lunatikc not installed"; done
+	for i in $(seq 9); do ktap_skip "luac: lunatikc not installed"; done
 	ktap_totals
 	exit 0
 fi
@@ -73,6 +74,11 @@ ktap_pass "luac: error names the chunk name and line"
 output=$(lunatik run tests/luac/err_s)
 echo "$output" | grep -q "^?:?: attempt to index a nil value" || fail "luac: stripped chunk error: $output"
 ktap_pass "luac: stripped error has no source or line"
+
+lunatikc "$SRC/hello.lua" || fail "luac: compile with no -o"
+[ -s "$SRC/hello.luac" ] || fail "luac: no -o wrote no chunk beside the input"
+rm -f "$SRC/hello.luac"
+ktap_pass "luac: with no -o the chunk lands beside its input"
 
 # a stock luac writes lua_Number as a double: patch the header probe (last 8 bytes of the
 # 4 size+value blocks) with the IEEE-754 image of -370.5
