@@ -724,6 +724,7 @@ local function runtimecall(f, pc, ins, state, callee)
 	end
 	code:set(reg.R5, nargs * SLOT)
 	code:kfunc(f.unit.kfunc)
+	insert(f.calls, {chunk = f.chunk, line = f.proto.lines[pc], key = key})
 	extend(f, reg.R0, ANSWERSIZE)
 	if ins.c > 1 then
 		setreg(f, ins.a, reg.R0)
@@ -1569,6 +1570,7 @@ local function walk(f)
 	f.labels = {}
 	f.aborted = nil
 	f.rettype = 0
+	f.calls = {}
 	for pc = 1, #f.proto.code do
 		f.labels[pc] = code:label()
 	end

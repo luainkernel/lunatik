@@ -214,7 +214,7 @@ local function write(declared, hook)
 	local object, types, cache = elf.new(), btf.new(), {}
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
-	local names, subprograms, order, called = {}, {}, {}, {}
+	local names, subprograms, order, called, summary = {}, {}, {}, {}, {}
 	-- a map's and a kfunc's name are taken first, so a relocation names exactly one symbol
 	for _, map in ipairs(maps.declared()) do
 		names[map.name] = true
@@ -229,6 +229,9 @@ local function write(declared, hook)
 		for i, frame in ipairs(emit.program(program)) do
 			local unit = i == 1 and entries or text
 			local at = place(types, unit, frame, cache, subprograms, called)
+			for _, call in ipairs(frame.calls) do
+				insert(summary, format("%s:%d: calls the runtime '%s'", call.chunk, call.line, call.key))
+			end
 			if i == 1 then
 				insert(order, {name = frame.name, section = program.section, value = at,
 					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL,
@@ -280,7 +283,7 @@ local function write(declared, hook)
 	local ext = types:ext(described)
 	object:section{name = ".BTF", type = elf.section.PROGBITS, flags = 0, data = types:pack(), align = 4}
 	object:section{name = ".BTF.ext", type = elf.section.PROGBITS, flags = 0, data = ext, align = 4}
-	return object:pack()
+	return object:pack(), summary
 end
 
 -- the key 'lunatik run' registers a script under: its path below the scripts root, without the
@@ -309,6 +312,8 @@ end
 -- @function luaebpf.compile
 -- @tparam string path the program file, usually named `<something>.bpf.lua`
 -- @treturn string the BPF ELF object
+-- @treturn table one line per call into the kernel Lua runtime, naming the file, the line and the
+--   runtime key, so a program that calls Lua on every packet is visible for what it is
 -- @raise `luaebpf.proto is missing` when the host provides no prototype accessor,
 --   `<file>:<line>: <reason>` for every construct the subset refuses, and
 --   `<path>: no program declared` when the body hands nothing to a constructor

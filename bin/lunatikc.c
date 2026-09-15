@@ -156,6 +156,18 @@ static void compile(lua_State *L, const char *input, const char *output, const c
 	lua_pop(L, 1);
 }
 
+/* one line per call into the kernel Lua runtime, which the compiler collected as it lowered them */
+static void report(lua_State *L, int ix)
+{
+	lua_Integer i, n = luaL_len(L, ix);
+
+	for (i = 1; i <= n; i++) {
+		lua_geti(L, ix, i);
+		printf("%s\n", lua_tostring(L, -1));
+		lua_pop(L, 1);
+	}
+}
+
 /* the translator is Lua (luaebpf/); the driver stands up the state it needs and writes what it
  * returns, so a refusal raises before any file exists */
 static void bpf(const char *input, const char *output)
@@ -174,11 +186,11 @@ static void bpf(const char *input, const char *output)
 
 	lua_getfield(L, -1, "compile");
 	lua_pushstring(L, input);
-	if (lua_pcall(L, 1, 1, 0) != LUA_OK)
+	if (lua_pcall(L, 1, 2, 0) != LUA_OK)
 		fail(lua_tostring(L, -1));
 
 	size_t size;
-	const char *object = lua_tolstring(L, -1, &size);
+	const char *object = lua_tolstring(L, -2, &size);
 	if (object == NULL)
 		fail("luaebpf.compile returned no object");
 
@@ -189,6 +201,7 @@ static void bpf(const char *input, const char *output)
 		fprintf(stderr, "%s: cannot write %s: %s\n", progname, output, strerror(errno));
 		exit(1);
 	}
+	report(L, -1);
 	lua_close(L);
 }
 
