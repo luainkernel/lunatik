@@ -8,7 +8,8 @@
 # Usage: sudo bash tests/fsnotify/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
-TESTS="open nomask child kinds mask marks inside identity overlap expired reentrancy thread lifetime context"
+TESTS="open nomask child kinds mask marks inside identity overlap expired reentrancy thread lifetime context\
+	allow deny default exec access error sleep"
 FAILED=0
 
 source "$DIR/../lib.sh"

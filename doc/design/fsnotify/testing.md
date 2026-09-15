@@ -117,7 +117,19 @@ that denies everything: a test suite that only asserts denials passes on a modul
 ## Manual verification before calling a phase done
 
 The suite runs on one kernel. The version drift table in `kernel-notes.md` covers three interfaces
-that changed inside 6.x, so phase 4 is not done until permission events have been seen working on
-both a 6.8 kernel and a 6.14 or newer one — the priority gating means a wrong `group->priority` shows
-up as "no events at all" on the newer kernel and as "works fine" on the older one.
+that changed inside 6.x, and the priority gating means a wrong `group->priority` shows up as "no
+events at all" on a 6.10 or newer kernel and as "works fine" on an older one.
+
+What has been seen working: 6.12 (`6.12.88+deb13-amd64`), which is on the gated side of that change,
+so the allow, deny, exec, access, default, error and sleep cases all exercise the priority as well as
+the verdict. Not yet run: a 6.8 kernel, where the gate does not exist and the same code has to keep
+working, and a 6.14 or newer one, where the gate's answer is cached per open. Both are version guards
+read from the source rather than executed, and they stay unverified until someone runs the suite
+there.
+
+The filesystem is the other axis. The directory lock `LOOKUP_CACHED` keeps a callback's walk away
+from is held on the open path only by the `->atomic_open` filesystems (nfs, fuse, ceph, gfs2), and on
+those a `d_revalidate` that wants to block turns even a cached path into `EAGAIN`; the suite mounts
+tmpfs, where neither happens. The guard's hazard and its cost both stay unverified until the suite
+has run over one of them.
 
