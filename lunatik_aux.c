@@ -101,8 +101,6 @@ void *lunatik_lookup(const char *symbol)
 
 		__lunatik_lookup = (unsigned long (*)(const char *))lunatik_cfi_entry(kp.addr);
 		unregister_kprobe(&kp);
-
-		BUG_ON(__lunatik_lookup == NULL);
 	}
 	return (void *)lunatik_cfi_call(__lunatik_lookup(symbol));
 #else /* CONFIG_KPROBES */
