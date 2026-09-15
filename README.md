@@ -203,8 +203,9 @@ sudo cp filter.bpf.o /lib/modules/lua/
 sudo lunatik run filter dev=eth0
 ```
 
-The object installs beside the script it belongs to, and `lunatik run` is what loads and attaches
-it: see [compiled programs](#compiled-programs).
+`make install` compiles every program file it installs and puts the object beside the script, so a
+program file under `examples/` or `tests/` needs no command of its own; `lunatik run` is what loads
+and attaches it: see [compiled programs](#compiled-programs).
 
 The compile-time modules, searched under `/lib/modules/lua/luaebpf/` and distinct from the kernel
 modules below:

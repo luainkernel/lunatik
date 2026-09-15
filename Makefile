@@ -44,6 +44,12 @@ LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
 LOADER := bin/loader.so
 LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared ${LUA_CFLAGS}
 
+# a program file's object installs beside the script it belongs to, so `lunatik run <script>`
+# finds it where the kernel finds the source
+define INSTALL_BPF
+	for f in $(1); do case "$$f" in *.bpf.lua) ${LUNATIKC} bpf -o $(2) $$f || exit 1;; esac; done
+endef
+
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
 ifeq ($(BYTECODE),1)
 define INSTALL_LUA
@@ -196,6 +202,10 @@ examples_install:
 		${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
 		$(call INSTALL_LUA,examples/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
 	done
+	$(call INSTALL_BPF,examples/*.lua,${SCRIPTS_INSTALL_PATH}/examples)
+	for d in $(EXAMPLE_DIRS); do \
+		$(call INSTALL_BPF,examples/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
+	done
 
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
@@ -217,6 +227,11 @@ tests_install:
 	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
 	${INSTALL} -m 0644 tests/tc/Makefile tests/tc/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/tc
 	${INSTALL} -m 0644 tests/sched/Makefile tests/sched/*.bpf.c tests/sched/*.bpf.h ${LUNATIK_TESTS_INSTALL_PATH}/sched
+	# tests/luaebpf compiles its own program files: a case there refuses one on purpose, and a
+	# corpus body writes its oracle beside the object while it compiles
+	for d in $(filter-out luaebpf,$(TEST_DIRS)); do \
+		$(call INSTALL_BPF,tests/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/tests/$$d); \
+	done
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 tests/socket/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket
