@@ -109,6 +109,28 @@ read its own files.
   child's open delivers nothing while the directory's own open still delivers
   `FS_OPEN | FS_ISDIR`, so the negative half cannot pass on a dead watch.
 
+- **identity**: the matrix of event kind by accessor. A file open carries a
+  `struct path`, so `name`, `ino`, `dir`, `isdir`, `pid` and `path` all answer;
+  a directory open is flagged `FS_ISDIR`; a create, a rename and a delete name
+  the entry and its directory and carry no path. Each case asserts every
+  accessor, the `nil` ones included, against what the shell already knows: the
+  inode numbers from `stat -c %i`, the pid from its own `$$`, and the path it
+  built. A stimulus the shell performs itself is matched by that pid, so another
+  process touching the scratch file cannot be read as it.
+
+- **overlap**: an event matched by two marks of one watch arrives once. The
+  watch dispatches through `handle_event`, called once per group with the event
+  as raised, not once per matching mark; a file marked together with its parent
+  directory (`FS_EVENT_ON_CHILD`) is delivered once, tagged `FS_EVENT_ON_CHILD`
+  and carrying its `name` and `dir`, and the directory's own open still arrives
+  once. The lines are counted by the shell's own pid.
+
+- **expired**: an event kept past the callback it was handed to raises when
+  read. Two watches in one runtime, so the prober reads the keeper's stashed
+  event while no event of the keeper's is in flight; reading it from a later
+  event of the same watch would find the object reset and alive. Its
+  discrimination rests on the message the prober asserts.
+
 - **reentrancy**: a callback that opens the file it watches returns instead of
   deadlocking on the runtime lock it already holds. Its discrimination rests on
   the message the callback prints and on the read returning within 10 seconds;
