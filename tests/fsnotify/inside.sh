@@ -12,6 +12,13 @@
 # FS_MODIFY on its first event, so the shell's second read of each must be
 # silent, and its write to the second must arrive.
 #
+# Both operations resolve a path, and the task the callback runs on may hold the
+# lock of the directory the event is about, so from a callback the walk stays in
+# the directory cache. inside.lua asks for a name the shell never touches, which
+# is therefore not cached: it answers EAGAIN rather than descending into a lock
+# its own task may hold. The two paths it does resolve are cached, which is why
+# the operations above still work.
+#
 # Usage: sudo bash tests/fsnotify/inside.sh
 
 SCRIPT="tests/fsnotify/inside"
@@ -31,7 +38,7 @@ mkdir -p -m 0700 "$SCRATCH"
 : > "$SCRATCH/remasked"
 
 ktap_header
-ktap_plan 5
+ktap_plan 6
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -65,6 +72,10 @@ ktap_pass "a mark set from inside its callback delivers the event it was set to"
 echo "$written" | grep -qF "inside test: $SCRATCH/remasked mask 20" && \
 	fail "the event set out of the mask from the callback still arrived"
 ktap_pass "a mark set from inside its callback stops delivering the event it was set out of"
+
+echo "$oneshot" | grep -qF "inside test: uncached EAGAIN" || \
+	fail "a path outside the directory cache did not answer EAGAIN: $(echo "$oneshot" | grep -F 'inside test: uncached')"
+ktap_pass "a path resolved from inside a callback stays in the directory cache"
 
 errs=$(printf '%s\n%s\n%s\n' "$oneshot" "$opened" "$written" | grep -E "\.lua:[0-9]+:" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
