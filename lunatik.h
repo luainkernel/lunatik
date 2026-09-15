@@ -223,7 +223,8 @@ static inline void lunatik_checkmetatable(lua_State *L, const lunatik_class_t *c
 static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool monitor)
 {
 	lua_pushlightuserdata(L, lunatik_monitormt(class, monitor));
-	lua_rawget(L, LUA_REGISTRYINDEX);
+	if (lua_rawget(L, LUA_REGISTRYINDEX) == LUA_TNIL)
+		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_METATABLE);
 	lua_setmetatable(L, -2);
 	lua_pushlightuserdata(L, (void *)class);
 	lua_setiuservalue(L, -2, 1); /* pop class */
