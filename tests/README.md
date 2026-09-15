@@ -258,7 +258,10 @@ higher-level `netlink.*` modules built on top of it.
   the set arms that one kprobe however many runtimes it has, and unregisters
   it when it stops; a call pinned to the CPU whose runtime is published last
   is dropped while the runtimes are still being created, and counted once they
-  are up; one set holds a kprobe per target, and a second probe on the same
+  are up; the same script run as a plain runtime drops a call that reaches its
+  kprobe before the script body returned, the path where readiness is the only
+  thing between arming and the handler;
+  one set holds a kprobe per target, and a second probe on the same
   symbol in one runtime is refused, leaving no kprobe armed; `stop` and `enable`
   are refused in a percpu runtime, where the object owns the kprobe; a probe from
   a handler, after the script loaded, is refused; the same script probes as a

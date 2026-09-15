@@ -10,7 +10,10 @@
 # it did not register; the set arms that one kprobe however many runtimes it
 # has, and unregisters it when it stops; a call reaching the shared kprobe while
 # the runtimes are still being created, pinned to the CPU whose runtime is
-# published last, is dropped, and the same call is counted once they are up; one
+# published last, is dropped, and the same call is counted once they are up; the
+# same script run as a plain runtime drops a call that reaches its kprobe before
+# the script body returned, the path where readiness is the only thing between
+# arming and the handler, since a plain runtime is published from the start; one
 # set holds a kprobe per target, and a second probe on the same symbol in one
 # runtime is refused, leaving no kprobe armed; stop and enable are refused in a
 # percpu runtime, where the object owns the kprobe; a probe from a handler, after
@@ -57,11 +60,13 @@ kprobes()
 	[ -r "$KPROBES" ] && grep -c "" "$KPROBES"
 }
 
+# COUNT calls to the probed syscall; a pinned one waits out a script body holding that CPU
 trigger()
 {
-	local cpu="$1" i
+	local pin i
+	[ -n "$1" ] && pin="taskset -c $1"
 	for ((i = 0; i < COUNT; i++)); do
-		taskset -c "$cpu" setarch "$(uname -m)" -R true > /dev/null 2>&1
+		$pin setarch "$(uname -m)" -R true > /dev/null 2>&1
 	done
 }
 
@@ -79,12 +84,13 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 8
+ktap_plan 9
 
 command -v taskset > /dev/null 2>&1 && command -v setarch > /dev/null 2>&1 || {
 	echo "# SKIP: taskset or setarch not available"
 	ktap_skip "the runtimes share one kprobe: each call is handled once, by the runtime of the CPU it ran on"
 	ktap_skip "a call reaching the shared kprobe before the runtimes are published is dropped"
+	ktap_skip "a call reaching a plain runtime's kprobe before the script body returns is dropped"
 	ktap_skip "one set holds a kprobe per target; a second probe on the same symbol is refused, leaving none armed"
 	ktap_skip "stop and enable are refused in a percpu runtime"
 	ktap_skip "a probe from a handler, after load, is refused"
@@ -130,6 +136,28 @@ lunatik stop "$EARLY" > /dev/null 2>&1
 [ "$early_hits" = "0" ] || fail "$early_hits calls were handled before the runtimes were published"
 [ "$late_hits" = "$COUNT" ] || fail "the same trigger counted $late_hits of $COUNT once the runtimes were published"
 ktap_pass "a call reaching the shared kprobe before the runtimes are published is dropped"
+
+mark_dmesg
+idle=$(kprobes)
+trigger_when_armed &
+early=$!
+run_script "$EARLY" hardirq
+wait $early
+armed=$(kprobes)
+check_dmesg || { ktap_totals; exit 1; }
+dmesg_since | grep -qF "couldn't find probe table" && fail "a kprobe fired before the runtime held its probe table"
+early_hits=$(dmesg_since | grep -c "percpu probe early: cpu plain$")
+trigger
+late_hits=$(dmesg_since | grep -c "percpu probe early: cpu plain$")
+lunatik stop "$EARLY" > /dev/null 2>&1
+stopped=$(kprobes)
+[ "$early_hits" = "0" ] || fail "$early_hits calls were handled before the plain runtime was ready"
+[ "$late_hits" = "$COUNT" ] || fail "the same trigger counted $late_hits of $COUNT once the plain runtime was ready"
+if [ -n "$armed" ]; then
+	[ "$armed" = "$((idle + 1))" ] || fail "the plain runtime armed $((armed - idle)) kprobes"
+	[ "$stopped" = "$idle" ] || fail "stopping the plain runtime left $((stopped - idle)) kprobes armed"
+fi
+ktap_pass "a call reaching a plain runtime's kprobe before the script body returns is dropped"
 
 mark_dmesg
 idle=$(kprobes)
