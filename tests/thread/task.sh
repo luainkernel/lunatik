@@ -8,14 +8,18 @@
 # Case 1 (current): thread.current():task() is a usable task object (pid, comm, tgid).
 # Case 2 (running): the object of a spawned thread, reached through lunatik._ENV.threads,
 #   reports that thread: its comm is the thread name and its pid is not the caller's.
-# Case 3 (exited): once the thread body has returned, thread->task is NULL and the
-#   methods of the returned object raise instead of dereferencing it.
+# Case 3 (exited): once the thread body has returned, the object still reports that
+#   thread, because thread.run holds a reference to the task until it is collected.
+# Case 4 (stopped): stopping that same exited thread, the path the reference is held
+#   for, leaves no kernel complaint, and the object task() returns afterwards has no
+#   task: stop() released the reference and cleared the pointer.
 #
 # Usage: sudo bash tests/thread/task.sh
 
 SCRIPT_CURRENT="tests/thread/task"
 SCRIPT_SPAWNED="tests/thread/task_spawned"
 SCRIPT_EXITED="tests/thread/task_exited"
+SCRIPT_STOPPED="tests/thread/task_stopped"
 DUMMY="tests/thread/dummy"
 EXIT="tests/thread/exit"
 SLEEP=1
@@ -26,6 +30,7 @@ cleanup() {
 	lunatik stop "$SCRIPT_CURRENT" 2>/dev/null
 	lunatik stop "$SCRIPT_SPAWNED" 2>/dev/null
 	lunatik stop "$SCRIPT_EXITED"  2>/dev/null
+	lunatik stop "$SCRIPT_STOPPED" 2>/dev/null
 	lunatik stop "$DUMMY"          2>/dev/null
 	lunatik stop "$EXIT"           2>/dev/null
 }
@@ -33,7 +38,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 3
+ktap_plan 4
 
 # Case 1: the current task
 mark_dmesg
@@ -56,7 +61,13 @@ output=$(lunatik spawn "$EXIT" 2>&1)
 sleep $SLEEP
 run_script "$SCRIPT_EXITED"
 check_dmesg || { ktap_totals; exit 1; }
-ktap_pass "task() of an exited thread raises on use"
+ktap_pass "task() of an exited thread still reports it"
+
+# Case 4: a thread stopped after its body has returned
+mark_dmesg
+run_script "$SCRIPT_STOPPED"
+check_dmesg || { ktap_totals; exit 1; }
+ktap_pass "stop() of an exited thread leaves the object with no task"
 
 ktap_totals
 
