@@ -121,12 +121,18 @@ a program write, and `skb:packet()`. `tc.program(fn, {egress = true})` puts the 
 
 ## Maps
 
-A program file declares the maps it uses with the specs `bpf.map` already takes in the kernel:
+A program file declares the maps it uses with the specs `bpf.map` already takes in the kernel,
+naming each one:
 
     local map = require("bpf.map")
 
-    local flows = map.hash{key = "I4", value = "I4", entries = 65536}
-    local hits  = map.array{key = "I4", value = "I8", entries = 1}
+    local flows = map.hash("flows", {key = "I4", value = "I4", entries = 65536})
+    local hits  = map.array("hits", {key = "I4", value = "I8", entries = 1})
+
+The name comes first, as it does in both siblings -- the kernel's `map.hash(pathname, ...)` opens
+by path, and `xdp.program(fn, opts)` takes the subject then a table. A map needs one whether or
+not a compiled function references it, since that is what the loader pins it under and what a
+kernel script opens it by, so it cannot be recovered from a reference.
 
 `bpf.map` on the host is the compile-time twin of `lib/bpf/map.lua`: the same spec strings, the
 same names, and it produces BTF-defined maps in the object instead of opening pinned ones. Inside
@@ -140,8 +146,12 @@ assignment updates, assigning `nil` deletes.
     end
 
 `flows[key]` has the type "value or nil", and the translator refuses to use it as a number until
-the function has tested it, which is what the verifier requires of the pointer underneath. A
-`struct` spec yields a proxy of fields rather than a scalar.
+the function has tested it, which is what the verifier requires of the pointer underneath. The
+test is `if cached then`, the form the verifier narrows the pointer at; `cached == nil` is
+refused with the same message, since a comparison does not reach that narrowing. A `struct` spec
+yields a proxy of fields rather than a scalar. A value is read with the spec of the map it came
+from, so a register that lookups in two different maps merge into is refused where it is read
+rather than lowered against one of them.
 
 The loader creates the maps and pins them under `/sys/fs/bpf/lunatik/<script>/<name>`, so the
 kernel script opens the same map by that path with the API it has today:

@@ -17,6 +17,7 @@
 -- @module luaebpf.emit
 
 local insn    = require("luaebpf.insn")
+local maps    = require("luaebpf.maps")
 local proto   = require("luaebpf.proto")
 local vmlinux = require("luaebpf.vmlinux")
 
@@ -38,11 +39,13 @@ local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 local MININT   <const> = 1 << 63
 
--- the words every frame reserves: the flag a callee raises through the pointer its caller passed,
--- and where the callee keeps that pointer, since R1-R5 do not survive a nested call
-local RESERVED <const> = 2
+-- the words every frame reserves: the flag a callee raises through the pointer its caller
+-- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
+-- the key a map helper is handed by address
+local RESERVED <const> = 3
 local ABORTED  <const> = -SLOT
 local CALLER   <const> = -SLOT * 2
+local KEY      <const> = -SLOT * 3
 
 -- what a Lua register may hold; OTHER is a value the compiler knows and the kernel never sees
 local INT     <const> = 1
@@ -52,11 +55,12 @@ local CTX     <const> = 8
 local OTHER   <const> = 16
 local PACKET  <const> = 32
 local METHOD  <const> = 64
+local MAYBE   <const> = 128              -- a map value the program has not tested yet
 local RUNTIME <const> = INT | BOOL | NIL -- a value the kernel holds as a word
-local PROXY   <const> = CTX | PACKET     -- a pointer the kernel holds, read through a proxy
+local PROXY   <const> = CTX | PACKET | MAYBE -- a pointer the kernel holds, read through a proxy
 
 local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context",
-	[PACKET] = "packet", [METHOD] = "method"}
+	[PACKET] = "packet", [METHOD] = "method", [MAYBE] = "map value"}
 
 local opnames = {}
 for name, op in pairs(opcodes) do
@@ -96,23 +100,24 @@ end
 
 --- @section the abstract state
 
--- the join of two abstract values: the types of both, and the compile-time value only where
--- every path agrees on it
+-- the join of two abstract values: the types of both, and the compile-time value and the map a
+-- lookup came from only where every path agrees on them
 local function join(a, b)
 	if a == nil or b == nil then
 		return a or b
 	end
-	if a.t == b.t and a.k == b.k then
+	if a.t == b.t and a.k == b.k and a.map == b.map then
 		return a
 	end
-	return {t = a.t | b.t, k = a.k == b.k and a.k or nil, name = a.name == b.name and a.name or nil}
+	return {t = a.t | b.t, k = a.k == b.k and a.k or nil, name = a.name == b.name and a.name or nil,
+		map = a.map == b.map and a.map or nil}
 end
 
 local function same(a, b)
 	if a == nil or b == nil then
 		return a == b
 	end
-	return a.t == b.t and a.k == b.k
+	return a.t == b.t and a.k == b.k and a.map == b.map
 end
 
 local function copy(state)
@@ -165,6 +170,9 @@ end
 local function getreg(f, pc, state, i, scratch)
 	local value = state[i]
 	local mask = value ~= nil and value.t or 0
+	if (mask & MAYBE) ~= 0 then
+		refuse(f, pc, "'%s' may be nil here; test it first", value.name or "a value")
+	end
 	if mask == 0 or (mask & ~RUNTIME) ~= 0 then
 		refuse(f, pc, "a %s has no value in the kernel here", typename(value))
 	end
@@ -432,12 +440,13 @@ local function contextmethod(f, pc, ins, state, callee)
 end
 
 local function method(f, pc, ins, state, callee)
-	if callee.recv.t == CTX then
+	local recv = callee.recv
+	if recv.t == CTX then
 		return contextmethod(f, pc, ins, state, callee)
 	end
-	local access = accessors[callee.name]
-	if access == nil then
-		refuse(f, pc, "the packet has no method '%s'", callee.name)
+	local access = recv.t == PACKET and accessors[callee.name]
+	if not access then
+		refuse(f, pc, "the %s has no method '%s'", typename(recv), callee.name)
 	end
 	-- getreg takes any word, so an unchecked offset reads where the interpreter would raise
 	if ins.b - 1 < ACCESSARGS then
@@ -448,6 +457,73 @@ local function method(f, pc, ins, state, callee)
 		refuse(f, pc, "'%s' takes a number, not a %s", callee.name, typename(at))
 	end
 	packetread(f, pc, ins, state, access)
+end
+
+--- @section maps
+
+local LOOKUP <const> = 1 -- BPF_FUNC_map_lookup_elem
+
+-- The helper takes the key by address, so it goes to the slot the frame reserves for it, zeroed
+-- first because a key narrower than a word leaves the rest of the slot to whatever was there.
+-- Lua registers live in R6-R9 and the frame, so the call clobbers nothing live.
+local function maplookup(f, ins, state, map, key)
+	local code = f.code
+	code:storei(reg.FP, KEY, 0)
+	code:store(reg.FP, KEY, key, map.key.size)
+	code:alu(alu.MOV, reg.R2, reg.FP)
+	code:alui(alu.ADD, reg.R2, KEY)
+	code:map(reg.R1, map.name)
+	code:helper(LOOKUP)
+	setreg(f, ins.a, reg.R0)
+	state[ins.a] = {t = MAYBE, map = map, name = map.name}
+end
+
+local function mapread(f, pc, ins, state, map)
+	if not isinteger(state[ins.c]) then
+		refuse(f, pc, "a map key is a number here")
+	end
+	maplookup(f, ins, state, map, getreg(f, pc, state, ins.c, reg.R3))
+end
+
+-- the map a lookup came from, or the refusal for a register two lookups merged into: a join
+-- drops what the paths disagree on, and which map a value is read with is one of those
+local function mapfrom(f, pc, value)
+	if value.map == nil then
+		refuse(f, pc, "a map value here comes from more than one map")
+	end
+	return value.map
+end
+
+-- the value behind a pointer the program has just found non-null, which is the only place the
+-- verifier lets it be read
+local function mapvalue(f, pc, state, i, value)
+	local spec = mapfrom(f, pc, value).value
+	f.code:load(reg.R1, fetch(f, i, reg.R1), 0, spec.size)
+	if spec.signed and spec.size * BYTE < NBITS then
+		extend(f, reg.R1, spec.size)
+	end
+	setreg(f, i, reg.R1)
+	state[i] = {t = INT, name = value.name}
+end
+
+-- a lookup is narrowed where the program tests it, and the read goes on the branch that found
+-- it good: the verifier refuses it anywhere else, and the other branch carries a nil
+local function testlookup(f, pc, ins, state)
+	local code, value = f.code, state[ins.a]
+	local target = jumptarget(f, pc + 1)
+	local truthy = ins.k and target or pc + 2
+	local falsy = ins.k and pc + 2 or target
+	local null = code:label()
+	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), 0, null)
+	local taken = copy(state)
+	mapvalue(f, pc, taken, ins.a, value)
+	code:jump(labelof(f, truthy))
+	reach(f, truthy, taken)
+	code:place(null)
+	code:jump(labelof(f, falsy))
+	state[ins.a] = {t = NIL, name = value.name}
+	reach(f, falsy, state)
+	return false
 end
 
 --- @section loads
@@ -521,6 +597,9 @@ end
 function ops.GETTABUP(f, pc, ins, state)
 	local env, upname = upvalue(f, pc, ins.b)
 	local key = tostring(constant(f, pc, ins.c))
+	if maps.declares(env) then
+		refuse(f, pc, "a map key is a number here")
+	end
 	local value = lookup(f, pc, {k = env}, key, upname)
 	if value == nil then
 		local read = upname == "_ENV" and format("global '%s'", key) or format("'%s.%s'", upname, key)
@@ -534,6 +613,9 @@ function ops.GETFIELD(f, pc, ins, state)
 	local container = state[ins.b]
 	if container ~= nil and container.t == CTX then
 		return contextget(f, pc, ins, state, key)
+	end
+	if container ~= nil and maps.declares(container.k) then
+		refuse(f, pc, "a map key is a number here")
 	end
 	local name = container ~= nil and container.name or "a table"
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, key, name), key)
@@ -549,6 +631,10 @@ end
 
 function ops.GETI(f, pc, ins, state)
 	local container = state[ins.b]
+	if container ~= nil and maps.declares(container.k) then
+		f.code:set(reg.R3, ins.c)
+		return maplookup(f, ins, state, container.k, reg.R3)
+	end
 	local name = container ~= nil and container.name or "a table"
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, ins.c, name))
 end
@@ -556,6 +642,9 @@ end
 function ops.GETTABLE(f, pc, ins, state)
 	local key = state[ins.c]
 	local container = state[ins.b]
+	if container ~= nil and maps.declares(container.k) then
+		return mapread(f, pc, ins, state, container.k)
+	end
 	local name = container ~= nil and container.name or "a table"
 	if key == nil or key.k == nil then
 		refuse(f, pc, "'%s' is indexed by a value the compiler cannot resolve", name)
@@ -791,7 +880,7 @@ local function truth(f, pc, state, i)
 	if mask == NIL then
 		return false
 	end
-	if mask == 0 or (mask & ~(BOOL | NIL)) ~= 0 then
+	if mask == 0 or (mask & ~(BOOL | NIL | MAYBE)) ~= 0 then
 		refuse(f, pc, "a %s has no truth value in a compiled function", typename(value))
 	end
 	return nil
@@ -873,6 +962,10 @@ end
 
 -- the answer Lua's '==' is pinned to, and nil where the registers carry it
 local function equality(f, pc, a, b)
+	local untested = (a ~= nil and (a.t & MAYBE) ~= 0 and a) or (b ~= nil and (b.t & MAYBE) ~= 0 and b)
+	if untested then
+		refuse(f, pc, "'%s' may be nil here; test it first", untested.name or "a value")
+	end
 	if exact(a) and exact(b) then
 		if a.t ~= b.t then
 			return false -- Lua's '==' is false across types
@@ -933,6 +1026,10 @@ function ops.EQK(f, pc, ins, state)
 end
 
 function ops.TEST(f, pc, ins, state)
+	local value = state[ins.a]
+	if value ~= nil and value.t == MAYBE then
+		return testlookup(f, pc, ins, state)
+	end
 	local known = truth(f, pc, state, ins.a)
 	if known ~= nil then
 		return settled(f, pc, state, known == ins.k)

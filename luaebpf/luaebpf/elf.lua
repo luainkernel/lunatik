@@ -23,8 +23,6 @@ local SYMSIZE     <const> = 24
 local RELSIZE     <const> = 16
 local EM_BPF      <const> = 247
 local ET_REL      <const> = 1
-local R_BPF_64_32 <const> = 10
-local STT_FUNC    <const> = 2
 
 local elf = {}
 
@@ -39,6 +37,15 @@ elf.flags = {WRITE = 0x1, ALLOC = 0x2, EXEC = 0x4}
 --- Symbol bindings, as `STB_*` names them.
 -- @table luaebpf.elf.bind
 elf.bind = {LOCAL = 0, GLOBAL = 1}
+
+--- Symbol types, as `STT_*` names them.
+-- @table luaebpf.elf.type
+elf.type = {OBJECT = 1, FUNC = 2}
+
+--- Relocation types: `IMM64` is `R_BPF_64_64`, which patches the immediate of an `ld_imm64`,
+-- and `IMM32` is `R_BPF_64_32`, which patches a 32-bit one.
+-- @table luaebpf.elf.relocation
+elf.relocation = {IMM64 = 1, IMM32 = 10}
 
 ---
 -- An object under construction.
@@ -86,9 +93,9 @@ function object:section(section)
 end
 
 ---
--- Appends a `STT_FUNC` symbol.
+-- Appends a symbol.
 -- @function luaebpf.elf.object:symbol
--- @tparam table symbol `{name, section, value, size, bind}`
+-- @tparam table symbol `{name, section, value, size, bind, type}`, `type` one of `elf.type`
 -- @treturn integer the symbol's index
 -- @raise a local symbol follows a global one
 function object:symbol(symbol)
@@ -99,20 +106,21 @@ function object:symbol(symbol)
 		self.nlocals = self.nlocals + 1
 	end
 	insert(self.symbols, pack("<I4I1I1I2I8I8", self:string(symbol.name),
-		(symbol.bind << 4) | STT_FUNC, 0, self.indexes[symbol.section], symbol.value, symbol.size))
+		(symbol.bind << 4) | symbol.type, 0, self.indexes[symbol.section], symbol.value,
+		symbol.size))
 	return #self.symbols - 1
 end
 
 ---
--- A relocation section for the calls in `name`, each entry `{at, symbol}` with `at` a byte
--- offset into the relocated section.
+-- A relocation section for `name`, each entry `{at, symbol, type}` with `at` a byte offset into
+-- the relocated section and `type` one of `elf.relocation`.
 -- @function luaebpf.elf.object:relocations
 -- @tparam string name the relocated section
 -- @tparam table entries
 function object:relocations(name, entries)
 	local records = {}
 	for _, entry in ipairs(entries) do
-		insert(records, pack("<I8I8", entry.at, (entry.symbol << 32) | R_BPF_64_32))
+		insert(records, pack("<I8I8", entry.at, (entry.symbol << 32) | entry.type))
 	end
 	self:section{name = ".rel" .. name, type = elf.section.REL, flags = 0, data = concat(records),
 		link = ".symtab", info = name, align = 8, entsize = RELSIZE}

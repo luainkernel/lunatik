@@ -10,6 +10,7 @@
 
 LUAEBPF_SRC=/lib/modules/lua/tests/luaebpf
 LUAEBPF_PINS=/sys/fs/bpf/luaebpf
+LUAEBPF_MAPS=/sys/fs/bpf/luaebpf/maps
 LUAEBPF_WORK=
 
 cleanup() {
@@ -54,15 +55,19 @@ luaebpf_compile() {
 		lunatikc bpf -o "$LUAEBPF_WORK/$name.bpf.o" "$LUAEBPF_SRC/$name.bpf.lua" ) 2>&1
 }
 
-# no type argument: the section a program's entry sits in is what libbpf reads its type from
+# no type argument: the section a program's entry sits in is what libbpf reads its type from.
+# The map directory is made here rather than once, since a case may clear the pin root between
+# two loads of its own.
 luaebpf_loadall() {
-	bpftool prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" 2>&1
+	mkdir -p "$LUAEBPF_MAPS"
+	bpftool prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" pinmaps "$LUAEBPF_MAPS" 2>&1
 }
 
 # the verifier's own log: the Lua line it quotes, the may_goto header before the kernel rewrites
 # it into a loop counter, and the instruction budget each program cost
 luaebpf_verbose() {
-	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" 2>&1
+	mkdir -p "$LUAEBPF_MAPS"
+	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" pinmaps "$LUAEBPF_MAPS" 2>&1
 }
 
 # one program over the packet and the context the row named, or over the fourteen bytes

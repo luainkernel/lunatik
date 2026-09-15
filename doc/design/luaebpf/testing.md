@@ -93,7 +93,7 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 | `packet.sh` | every accessor the kernel's `data` object publishes, `#`, a computed offset and a read inside a called function, over the corpus, match the interpreter's reads of the same bytes; a method neither proxy has is refused by name |
 | `bounds.sh` | an access one byte past `data_end` takes the default verdict; the same program with the bounds check dropped by the test hook is rejected |
 | `ctx.sh` | `ctx.ingress_ifindex` and the `skb` fields read back what `prog run` supplies, a `skb.priority` write comes back in `ctx_out`, and one object carrying both kinds loads with no type argument; an unknown field, a write the kernel refuses, a field given a boolean, and `ctx.data` are refused with their lines |
-| `mapget.sh` | a map seeded by `bpftool map update` decides the verdict; a missing key is `nil` and an untested use is refused at compile time |
+| `mapget.sh` | the object's maps are created and pinned by `bpftool prog loadall ... pinmaps`, a map seeded by `bpftool map update` decides the verdict, a missing key is `nil`, a lookup spilled to the frame narrows there too, and an untested use or a string key is refused at compile time |
 | `mapset.sh` | an update and a `nil` delete from the program are visible to `bpftool map lookup` |
 | `struct.sh` | a `struct` value spec yields field access with the right offsets and widths |
 | `btfview.sh` | `luaebpf.vmlinux` reports a kernel struct's size and its members' byte offsets as `bpftool btf dump` does, and drops the bitfields and unions a layout cannot describe |

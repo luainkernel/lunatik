@@ -15,6 +15,8 @@ sort_modules = true
 file = {
 	'./lib/luabpf.c',
 	'./lib/bpf/map.lua',
+	-- the compile-time bpf.map is deliberately absent: LDoc keys a page on the module name, and
+	-- merge folds it into the kernel bpf.map's page above, one page carrying both APIs
 	'./luaebpf/bpf/tc.lua',
 	'./luaebpf/bpf/xdp.lua',
 	'./lib/luabyteorder.c',
@@ -37,6 +39,7 @@ file = {
 	'./lib/lualinux.c',
 	'./lib/linux',
 	'./luaebpf/luaebpf.lua',
+	'./luaebpf/luaebpf/maps.lua',
 	'./luaebpf/luaebpf/vmlinux.lua',
 	'./lunatik_core.c',
 	'./lunatik_percpu.c',

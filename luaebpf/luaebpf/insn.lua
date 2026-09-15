@@ -203,6 +203,22 @@ function code:call(name)
 	return append(self, {code = JMP | insn.jump.CALL, dst = 0, src = PSEUDO_CALL, off = 0, imm = -1, call = name})
 end
 
+--- A call to the kernel helper of that number.
+-- @function luaebpf.insn.code:helper
+function code:helper(number)
+	return append(self, {code = JMP | insn.jump.CALL, dst = 0, src = 0, off = 0, imm = number})
+end
+
+--- `dst := the map registered under `name``. The object carries a relocation against the map's
+-- symbol, and libbpf replaces both the source register and the immediate with the map's file
+-- descriptor, as it does for the `ld_imm64` clang emits.
+-- @function luaebpf.insn.code:map
+function code:map(dst, name)
+	local at = append(self, {code = LD | DW, dst = dst, src = 0, off = 0, imm = 0, map = name})
+	append(self, {code = 0, dst = 0, src = 0, off = 0, imm = 0})
+	return at
+end
+
 --- Returns from the function, with the value in `R0`.
 -- @function luaebpf.insn.code:exit
 function code:exit()
@@ -230,18 +246,19 @@ function code:sourcelines()
 end
 
 ---
--- Where each call sits and what it calls, for the relocations the object carries.
+-- Where each relocation of one kind sits and what it names, for the object to record.
 -- @function luaebpf.insn.code:relocations
+-- @tparam string kind `"call"` for a BPF-to-BPF call, `"map"` for a map reference
 -- @treturn table `{at, name}` entries, `at` an index into the buffer
-function code:relocations()
-	local calls = {}
+function code:relocations(kind)
+	local found = {}
 	for i = 1, self.n do
-		local record = self.records[i]
-		if record.call ~= nil then
-			insert(calls, {at = i, name = record.call})
+		local name = self.records[i][kind]
+		if name ~= nil then
+			insert(found, {at = i, name = name})
 		end
 	end
-	return calls
+	return found
 end
 
 ---

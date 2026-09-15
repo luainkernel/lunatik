@@ -210,6 +210,16 @@ interpreter raises, the compiled program owes its default verdict instead.
   declared under either default so the answer is the verdict the file asked
   for; with `LUAEBPF_DROP=bounds` the object is still written and the verifier
   refuses it naming an invalid packet access.
+- **mapget**: the maps a program file declares are created and pinned by
+  `bpftool prog loadall ... pinmaps`, and every program is run against the empty
+  maps and against maps the case seeded from the shell: a key present in a hash,
+  a key absent from it, a key computed from the packet, an array index in range,
+  where a lookup answers a pointer to zeros and Lua reads 0 as true, one past
+  the array's entries, and a lookup whose pointer is spilled to the frame. The
+  program file's body writes what each owes either way, from the constants and
+  specs the programs were compiled against. An untested use, a string key, a
+  method call on a lookup and a register two lookups in different maps merge
+  into are refused with their messages and lines.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.

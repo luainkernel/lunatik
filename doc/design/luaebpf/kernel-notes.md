@@ -297,6 +297,31 @@ under `sudo`.
   and the interpreter raises there too, so the pairing the differential test asserts is
   unchanged.
 
+## A map the object declares
+
+* **What libbpf requires of a BTF-defined map.** A `.maps` ELF section; a `DATASEC` of that name
+  in `.BTF`, without which the load fails naming it
+  ([tools/lib/bpf/libbpf.c#L3023](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L3023)); per map a `VAR` whose linkage is
+  `BTF_VAR_GLOBAL_ALLOCATED`, whose name is the map's, whose type resolves to a `STRUCT`, and
+  whose `var_secinfo` satisfies `offset + size <= d_size` and `def->size <= vi->size`
+  ([#L2894-L2960](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L2894-L2960)). Each attribute is a member named `type`, `max_entries`,
+  `map_flags`, `key_size`, `value_size` or `numa_node` whose type is a `PTR` to an `ARRAY` whose
+  element count is the value ([#L2473](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L2473), [#L2578](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L2578)); `key_size` and
+  `value_size` are enough, and the `key`/`value` pointer-to-type members are an alternative the
+  emitter does not need. The section's bytes are read only for their length, so zeros of the
+  right size are enough.
+* **What libbpf requires of a map reference.** It never reads `ELF64_R_TYPE`: a relocation is
+  matched by its symbol and its instruction ([#L4832](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4832)), the map by
+  `map->sec_idx == sym->st_shndx && map->sec_offset == sym->st_value`
+  ([#L4746-L4751](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4746-L4751)), and the instruction must be an `ld_imm64`, whose source
+  register and immediate libbpf then sets to `BPF_PSEUDO_MAP_FD` and the map's file descriptor
+  ([#L6425-L6432](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L6425-L6432)). So the emitter writes a plain `ld_imm64 rX, 0` and a
+  relocation against the map's symbol, typed `R_BPF_64_64` for the tools that do read the type.
+* **BTF encoding.** `BTF_KIND_PTR` 2, `ARRAY` 3, `STRUCT` 4, `VAR` 14, `DATASEC` 15
+  ([include/uapi/linux/btf.h#L62-L75](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/btf.h#L62-L75)); `struct btf_array {type, index_type,
+  nelems}`, `struct btf_member {name_off, type, offset}`, `struct btf_var {linkage}` and
+  `struct btf_var_secinfo {type, offset, size}` ([#L110-L177](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/btf.h#L110-L177)).
+
 ## BTF: what the object carries and what the log prints
 
 * `func_info` and `line_info` ride on `BPF_PROG_LOAD`; the requirements are that
