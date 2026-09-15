@@ -236,6 +236,15 @@ higher-level `netlink.*` modules built on top of it.
   three from its own handler. Do not run it against a build without the guard,
   which would reach `synchronize_rcu` with interrupts off.
 
+- **handlers**: which handler a hit runs, over the four handlers tables
+  `probe.new` takes: only `pre`, only `post`, both, and neither. Each script
+  probes the `personality` syscall, which one `setarch` calls exactly once, so
+  the handler the table defines runs once and the one it does not never runs;
+  the empty table has nothing to print, so what it asserts is that `probe.new`
+  still succeeds, and every row checks the kprobe it armed on load and gave back
+  on stop. The post half of a hit had no coverage before: nothing in the tree
+  registered a `post` handler.
+
 - **kprobe_concurrent**: registers kprobes on every syscall, each handler
   counting into an `rcu.table` and a `data` buffer, and runs one forking
   load generator per CPU; `lunatik stop` must complete within 30 s with no
