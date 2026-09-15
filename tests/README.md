@@ -90,6 +90,47 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   truncated into a small fifo; `fifo:pop()` refuses a size past the
   capacity, which it could never return.
 
+### fsnotify
+
+Every mark in this suite goes on `/tmp/lunatik-fsnotify`, created and removed
+by the test: a mark outside a scratch subtree is what makes a machine unable to
+read its own files.
+
+- **open**: an inode mark reports `FS_OPEN` for the file it was placed on, with
+  the mask the callback asserts, and reports nothing for a neighbour in the
+  same directory.
+
+- **nomask**: an `FS_MODIFY` mark ignores an `FS_OPEN` on the same file, and
+  still delivers the `FS_MODIFY` that follows, so the negative half cannot pass
+  on a watch that stopped working.
+
+- **child**: a directory mark reports a child's `FS_OPEN`, tagged
+  `FS_EVENT_ON_CHILD`, only when its mask carries that flag; without it the
+  child's open delivers nothing while the directory's own open still delivers
+  `FS_OPEN | FS_ISDIR`, so the negative half cannot pass on a dead watch.
+
+- **reentrancy**: a callback that opens the file it watches returns instead of
+  deadlocking on the runtime lock it already holds. Its discrimination rests on
+  the message the callback prints and on the read returning within 10 seconds;
+  removing the guard reproduces an unkillable process, not a failed assertion.
+
+- **thread**: a spawned thread body, which holds the runtime lock for its whole
+  life, opens the path its own runtime watches and returns instead of blocking
+  on that lock. Its discrimination rests on the message the body prints and on
+  observer.lua seeing the open the guarded runtime skipped; removing the guard
+  reproduces an unstoppable kernel thread, not a failed assertion.
+
+- **lifetime**: a second `stop()` is a no-op and `mark` raises after it;
+  delivery ends at `stop()`; and a watch left unstopped is torn down by the
+  object's release, after which unlinking the marked inode raises no kernel
+  error.
+
+- **context**: `fsnotify.watch` refuses a callback that is not a function and a
+  softirq runtime, and takes a second watch on a runtime that already has one;
+  `mark` raises the errno name for a path that does not resolve and refuses a
+  permission event. The shell counts the passing cases rather than looking only
+  for a failing one, so a case that never ran cannot pass.
+
 ### hid
 
 - **register**: what `hid.register()` makes of an `id_table`. It accepts one
