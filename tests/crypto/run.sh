@@ -9,6 +9,11 @@
 # allocated, measured on the reference a tfm holds on the module implementing
 # the algorithm, for the two constructors that allocated one before the object.
 #
+# comp is served only where the kernel still has the crypto_comp API, which
+# Linux 6.15 removed: lib/luacrypto_comp.c compiles to nothing there and
+# crypto.comp is nil. hascomp asks the runtime for the binding, so the suite
+# skips that test instead of failing every case in it.
+#
 # Usage: sudo bash tests/crypto/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -17,11 +22,13 @@ source "$DIR/../lib.sh"
 
 TESTS="shash skcipher aead rng hkdf comp"
 TOTAL=$(echo $TESTS | wc -w)
+PROBE="tests/crypto/hascomp"
 
 cleanup() {
 	for t in $TESTS; do
 		lunatik stop "tests/crypto/$t" 2>/dev/null
 	done
+	lunatik stop "$PROBE" 2>/dev/null
 }
 trap cleanup EXIT
 cleanup
@@ -29,8 +36,17 @@ cleanup
 ktap_header
 ktap_plan $TOTAL
 
+probe=$(lunatik run "$PROBE" 2>&1)
+case "$probe" in
+	"") ;;
+	*"crypto.comp is not built"*) MISSING=comp ;;
+	*) comment "$probe"; fail "the comp probe did not run" ;;
+esac
+
 for t in $TESTS; do
-	if run_test "tests/crypto/$t"; then
+	if [ "$t" = "$MISSING" ]; then
+		ktap_skip "crypto/$t: the binding is not built on this kernel"
+	elif run_test "tests/crypto/$t"; then
 		ktap_pass "crypto/$t"
 	else
 		ktap_fail "crypto/$t"
