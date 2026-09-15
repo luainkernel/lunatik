@@ -215,21 +215,30 @@ without its bounds check, injected by a test hook) produces a verifier log that 
 
 What the corpora cost the verifier on 6.12.88, as `budget.sh` records them, against the million
 the verifier allows: the constant-verdict programs 4 processed instructions, the arithmetic rows
-22, the division rows 13, the branch rows 20, the calls 131, the constant-bound loops 249, and
-the loops under a `may_goto` header 319. The ceiling the case asserts is 20,000, two orders of
+22, the division rows 13, the branch rows 20, the constant-bound loops 249, the loops under a
+`may_goto` header 319, and the calls 253. The ceiling the case asserts is 20,000, two orders of
 magnitude above what the emitted shapes cost today and two below the limit.
 
 ### Phase 2: proxies, context, packet and maps
 
-The context proxy (`ctx.data`, `ctx.data_end`, `ctx.ingress_ifindex` for XDP; `skb` fields for
-TC), the packet proxy with the `data` object's method names (`getbyte`, `getuint16`, ...) and the
-bounds check every access carries, BTF struct views over kernel types read from
-`/sys/kernel/btf/vmlinux`, and map proxies declared with the `bpf.map` specs and emitted as
-BTF-defined maps. `nil` from a lookup is a type the translator forces the program to test.
+The context proxy (`ctx.ingress_ifindex` and `ctx.rx_queue_index` for XDP, the `skb` fields for
+TC, with `data` and `data_end` refused as the packet bounds they are), the packet proxy with the
+`data` object's method names (`getbyte`, `getuint16`, ...) and the bounds check every access
+carries, kernel struct layouts read from `/sys/kernel/btf/vmlinux`, and map proxies declared with
+the `bpf.map` specs and emitted as BTF-defined maps. `nil` from a lookup is a type the translator
+forces the program to test. A check that fails inside a called function reaches the program's
+default verdict through a flag the callee raises in its caller's frame, which costs the fifth
+argument register and leaves a compiled function four of its own.
 
 Tests: packet fields read through the proxy match the bytes handed to `bpftool prog run`; an
 access past `data_end` takes the failure path and returns the default verdict; a map seeded by
 `bpftool map update` decides the verdict.
+
+What the phase 2 corpora cost, beside the phase 1 figures above: the context rows 15 processed
+instructions, the packet rows 74, the out-of-bounds rows 23, the map reads 95, the map writes 35
+and the struct value rows 21. The packet proxy re-reads `data` and `data_end` on every access
+rather than keeping a pointer pair live, and the figures say what that costs: the heaviest packet
+program, nine accessors over one packet, sits at 74, two orders of magnitude under the ceiling.
 
 ### Phase 3: the loader
 
