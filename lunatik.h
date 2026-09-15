@@ -421,7 +421,7 @@ do {								\
 	const char *str = lua_tolstring(L, -1, &len);		\
 	if (len >= maxlen)					\
 		luaL_error(L, "'%s' is too long", #field);	\
-	strncpy((char *)hook->field, str, maxlen);		\
+	strscpy_pad((char *)hook->field, str, maxlen);		\
 	lua_pop(L, 1);						\
 } while (0)
 
