@@ -547,6 +547,15 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
 - **unix/dgram**: `socket.unix` DGRAM server (`receivefrom` with
   `DONTWAIT`) and client (`sendto` using the stored path).
 
+- **unix/abstract**: AF_UNIX names in the abstract namespace (a leading NUL).
+  `/proc/net/unix` publishes the whole registered name, so the characters it
+  prints pin the address a bind declares: the name the script gave, and the
+  longest one `UNIX_PATH_MAX` admits. Also the refusals — a second bind of one
+  name, a name past `UNIX_PATH_MAX`, and the empty name, which autobinds and
+  connects to nothing — and, where `python3` is available, a userspace peer
+  connecting to the bound name, and a lunatik client reaching by connect and by
+  send the names that peer bound.
+
 ### struct
 
 - **test**: the `struct` codec derives a `string.pack` format from a layout
