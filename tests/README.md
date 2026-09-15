@@ -220,6 +220,14 @@ interpreter raises, the compiled program owes its default verdict instead.
   specs the programs were compiled against. An untested use, a string key, a
   method call on a lookup and a register two lookups in different maps merge
   into are refused with their messages and lines.
+- **mapset**: the programs run first and the shell reads the pinned maps
+  afterwards, so what is asserted is what the kernel kept: an update under a key
+  the compiler folded in and one the program computed from the packet, a delete
+  of a seeded entry, a delete of a key that was never there, and an update of an
+  array entry, all against the bytes the program file's body wrote from the
+  constants and specs the programs were compiled with. A key spec that packs
+  more than one value, a name declared twice, a constructor called without a
+  name and a value that is not a number are refused.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.

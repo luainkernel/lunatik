@@ -41,11 +41,12 @@ local MININT   <const> = 1 << 63
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
 -- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
--- the key a map helper is handed by address
-local RESERVED <const> = 3
+-- the key and the value a map helper is handed by address
+local RESERVED <const> = 4
 local ABORTED  <const> = -SLOT
 local CALLER   <const> = -SLOT * 2
 local KEY      <const> = -SLOT * 3
+local VALUE    <const> = -SLOT * 4
 
 -- what a Lua register may hold; OTHER is a value the compiler knows and the kernel never sees
 local INT     <const> = 1
@@ -462,27 +463,84 @@ end
 --- @section maps
 
 local LOOKUP <const> = 1 -- BPF_FUNC_map_lookup_elem
+local UPDATE <const> = 2 -- BPF_FUNC_map_update_elem
+local DELETE <const> = 3 -- BPF_FUNC_map_delete_elem
+local ANY    <const> = 0 -- BPF_ANY, the flags an unconditional update takes
 
--- The helper takes the key by address, so it goes to the slot the frame reserves for it, zeroed
--- first because a key narrower than a word leaves the rest of the slot to whatever was there.
--- Lua registers live in R6-R9 and the frame, so the call clobbers nothing live.
-local function maplookup(f, ins, state, map, key)
+-- a map holds what its spec packs, and this phase packs numbers
+local function mapnumber(f, pc, what)
+	refuse(f, pc, "a map %s is a number here", what)
+end
+
+-- a helper takes the key and the value by address, so each goes to the slot its frame reserves,
+-- zeroed first because one narrower than a word leaves the rest of the slot to what was there
+local function mapslot(f, at, src, size)
+	f.code:storei(reg.FP, at, 0)
+	f.code:store(reg.FP, at, src, size)
+end
+
+-- the map in R1 and the key's address in R2, where every map helper wants them. Lua registers
+-- live in R6-R9 and the frame, so the call clobbers nothing live.
+local function maphelper(f, map)
 	local code = f.code
-	code:storei(reg.FP, KEY, 0)
-	code:store(reg.FP, KEY, key, map.key.size)
+	code:map(reg.R1, map.name)
 	code:alu(alu.MOV, reg.R2, reg.FP)
 	code:alui(alu.ADD, reg.R2, KEY)
-	code:map(reg.R1, map.name)
-	code:helper(LOOKUP)
+end
+
+local function maplookup(f, ins, state, map, key)
+	mapslot(f, KEY, key, map.key.size)
+	maphelper(f, map)
+	f.code:helper(LOOKUP)
 	setreg(f, ins.a, reg.R0)
 	state[ins.a] = {t = MAYBE, map = map, name = map.name}
 end
 
 local function mapread(f, pc, ins, state, map)
 	if not isinteger(state[ins.c]) then
-		refuse(f, pc, "a map key is a number here")
+		mapnumber(f, pc, "key")
 	end
 	maplookup(f, ins, state, map, getreg(f, pc, state, ins.c, reg.R3))
+end
+
+-- the value a store writes, or nil for the assignment that deletes the entry
+local function stored(f, pc, ins, state)
+	if ins.k then
+		local held = constant(f, pc, ins.c)
+		if held == nil then
+			return nil
+		end
+		if type(held) ~= "number" then
+			mapnumber(f, pc, "value")
+		end
+		f.code:set(reg.R4, held)
+		return reg.R4
+	end
+	local held = state[ins.c]
+	if held ~= nil and held.t == NIL then
+		return nil
+	end
+	if not isinteger(held) then
+		mapnumber(f, pc, "value")
+	end
+	return getreg(f, pc, state, ins.c, reg.R4)
+end
+
+local function mapstore(f, pc, ins, state, map, key)
+	local code = f.code
+	local value = stored(f, pc, ins, state)
+	mapslot(f, KEY, key, map.key.size)
+	if value == nil then
+		maphelper(f, map)
+		code:helper(DELETE)
+		return
+	end
+	mapslot(f, VALUE, value, map.value.size)
+	maphelper(f, map)
+	code:alu(alu.MOV, reg.R3, reg.FP)
+	code:alui(alu.ADD, reg.R3, VALUE)
+	code:set(reg.R4, ANY)
+	code:helper(UPDATE)
 end
 
 -- the map a lookup came from, or the refusal for a register two lookups merged into: a join
@@ -492,6 +550,15 @@ local function mapfrom(f, pc, value)
 		refuse(f, pc, "a map value here comes from more than one map")
 	end
 	return value.map
+end
+
+-- the map a write names, or the refusal for a table that is not one
+local function mapof(f, pc, state, i)
+	local container = state[i]
+	if container == nil or not maps.declares(container.k) then
+		refuse(f, pc, "a table cannot be written in a compiled function")
+	end
+	return container.k
 end
 
 -- the value behind a pointer the program has just found non-null, which is the only place the
@@ -598,7 +665,7 @@ function ops.GETTABUP(f, pc, ins, state)
 	local env, upname = upvalue(f, pc, ins.b)
 	local key = tostring(constant(f, pc, ins.c))
 	if maps.declares(env) then
-		refuse(f, pc, "a map key is a number here")
+		mapnumber(f, pc, "key")
 	end
 	local value = lookup(f, pc, {k = env}, key, upname)
 	if value == nil then
@@ -615,7 +682,7 @@ function ops.GETFIELD(f, pc, ins, state)
 		return contextget(f, pc, ins, state, key)
 	end
 	if container ~= nil and maps.declares(container.k) then
-		refuse(f, pc, "a map key is a number here")
+		mapnumber(f, pc, "key")
 	end
 	local name = container ~= nil and container.name or "a table"
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, key, name), key)
@@ -623,10 +690,33 @@ end
 
 function ops.SETFIELD(f, pc, ins, state)
 	local container = state[ins.a]
-	if container == nil or container.t ~= CTX then
-		refuse(f, pc, "a table cannot be written in a compiled function")
+	if container ~= nil and container.t == CTX then
+		return contextset(f, pc, ins, state, tostring(constant(f, pc, ins.b)))
 	end
-	contextset(f, pc, ins, state, tostring(constant(f, pc, ins.b)))
+	mapof(f, pc, state, ins.a)
+	mapnumber(f, pc, "key")
+end
+
+-- a global is a field of the _ENV upvalue, and so is any other upvalue table's
+function ops.SETTABUP(f, pc, ins, state)
+	if maps.declares((upvalue(f, pc, ins.a))) then
+		mapnumber(f, pc, "key")
+	end
+	refuse(f, pc, "a global cannot be assigned in a compiled function")
+end
+
+function ops.SETTABLE(f, pc, ins, state)
+	local map = mapof(f, pc, state, ins.a)
+	if not isinteger(state[ins.b]) then
+		mapnumber(f, pc, "key")
+	end
+	mapstore(f, pc, ins, state, map, getreg(f, pc, state, ins.b, reg.R3))
+end
+
+function ops.SETI(f, pc, ins, state)
+	local map = mapof(f, pc, state, ins.a)
+	f.code:set(reg.R3, ins.b)
+	mapstore(f, pc, ins, state, map, reg.R3)
 end
 
 function ops.GETI(f, pc, ins, state)
@@ -1300,9 +1390,6 @@ end
 
 local refusals = {
 	SETUPVAL = "an upvalue cannot be assigned in a compiled function",
-	SETTABUP = "a global cannot be assigned in a compiled function",
-	SETTABLE = "a table cannot be written in a compiled function",
-	SETI = "a table cannot be written in a compiled function",
 	NEWTABLE = "a table constructor cannot run in the kernel; build it in the file body",
 	SETLIST = "a table constructor cannot run in the kernel; build it in the file body",
 	CONCAT = "'..' cannot be applied in a compiled function",

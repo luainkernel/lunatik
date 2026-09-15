@@ -137,7 +137,8 @@ kernel script opens it by, so it cannot be recovered from a reference.
 `bpf.map` on the host is the compile-time twin of `lib/bpf/map.lua`: the same spec strings, the
 same names, and it produces BTF-defined maps in the object instead of opening pinned ones. Inside
 a compiled function a map is a table proxy with `bpf.map`'s semantics: indexing looks up,
-assignment updates, assigning `nil` deletes.
+assignment updates, assigning `nil` deletes. A key and a value are numbers, as the spec packs
+them; anything else is refused at the line that wrote it.
 
     local cached = flows[skb.hash]
     if cached then
