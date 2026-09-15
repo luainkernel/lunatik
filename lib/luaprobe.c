@@ -283,6 +283,9 @@ static int luaprobe_new(lua_State *L);
 * In a percpu script the runtimes share one kprobe per symbol or address: the first
 * registration installs it, the others attach their handlers, and a call reaches the
 * runtime of the CPU it ran on.
+* Probing a target another probe already holds does not fail: both handlers run on a hit,
+* so two symbols the kernel resolves to one address each count the other's calls. In a
+* percpu script, repeating a target of the set is refused instead.
 * @function new
 * @tparam string|lightuserdata symbol kernel symbol name or address
 * @tparam table handlers table with optional `pre` and `post` callback functions;
