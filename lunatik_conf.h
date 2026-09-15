@@ -122,8 +122,13 @@ int lunatikc_loadfile(lua_State *L, const char *filename, const char *mode);
 #undef LUA_ROOT
 #define LUA_ROOT	"/lib/modules/lua/"
 
+#define LUAEBPF_ROOT	LUA_ROOT"luaebpf/"
+
+/* the compile-time modules come first, so a twin of a kernel module shadows it on the host and
+ * nowhere else */
 #undef LUA_PATH_DEFAULT
-#define LUA_PATH_DEFAULT  LUA_ROOT"?.lua;" LUA_ROOT"?/init.lua"
+#define LUA_PATH_DEFAULT  LUAEBPF_ROOT"?.lua;" LUAEBPF_ROOT"?/init.lua;" \
+	LUA_ROOT"?.lua;" LUA_ROOT"?/init.lua"
 
 #endif /* __KERNEL__ */
 

@@ -126,7 +126,30 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   is rejected by the chunk header; `load(..., "t")` rejects a chunk in the
   kernel. Skips when `lunatikc` is not installed.
 
-### monitor
+### luaebpf
+
+Tests for the Lua to eBPF compiler. Each case compiles a program file with
+`lunatikc bpf`, loads what it emits on the running kernel and runs it with
+`bpftool prog run`; the object and the pins are removed in a `trap` that also
+runs once up front. Skips when `lunatikc` or `bpftool` is missing, or when
+`/sys/fs/bpf` is not mounted.
+
+- **host**: the state `lunatikc` stands up for a program file's body: the
+  standard libraries, `linux.xdp`, and `luaebpf.proto.read` on a known
+  function, whose `numparams`, `maxstacksize`, first opcode, first line,
+  source and argument mode the body asserts. A host with no prototype
+  accessor makes `compile` raise a message naming `luaebpf.proto`.
+- **pass**: a file declaring two programs; `loadall` pins one per
+  `xdp.program` call, `prog run` returns each verdict, the `license` section
+  reads `Dual MIT/GPL`, and the BTF carries one `FUNC` per program. With no
+  `-o` the object takes the input's own name.
+- **lineinfo**: the verifier's log quotes `<file>.bpf.lua:<line>`; with
+  `LUAEBPF_DROP=lineinfo` it carries no Lua line, and with
+  `LUAEBPF_DROP=verdict` the program never writes `R0`, is rejected, and the
+  rejection still names the Lua line.
+- **refuse**: every construct the phase 1 subset refuses, one program file per
+  row, asserted on its exact message and Lua line, on the non-zero exit, and
+  on no object being left behind.### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 
