@@ -8,8 +8,17 @@
 # syscall, which nothing else on an idle host calls, and one setarch calls it
 # exactly once, so the count is exact: the handler the table defines runs once, and
 # the one it does not never runs. The empty table has nothing to print, so what it
-# asserts is that probe.new still succeeds and arms one kprobe; every row checks
-# that kprobe, armed on load and gone on stop.
+# asserts is that probe.new still succeeds and arms one kprobe; each of those rows
+# checks that kprobe, armed on load and gone on stop.
+#
+# probe.new reads the table once, when it registers, to decide whether the kernel
+# installs a post handler, and reads it again on every hit to find the handler. So a
+# fifth row registers an empty table and adds both handlers to it afterwards: the pre
+# fires, since only the lookup on the hit decides it, and the post does not, since the
+# kernel was never given a post handler to call. A sixth runs a percpu script whose
+# runtimes disagree about one and asserts that the set is refused, leaving no kprobe
+# armed, rather than letting the first registration decide for the others. The sixth
+# needs a second runtime, so it skips where one CPU is possible.
 #
 # Only pre was covered before: nothing in the tree registered a post handler, so
 # the post half of every hit was untested. What these rows hold is the behaviour
@@ -24,6 +33,8 @@ PRE="tests/probe/handlers_pre"
 POST="tests/probe/handlers_post"
 BOTH="tests/probe/handlers_both"
 NONE="tests/probe/handlers_none"
+LATE="tests/probe/handlers_late"
+SET="tests/probe/handlers_set"
 KPROBES="/sys/kernel/debug/kprobes/list"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -34,6 +45,8 @@ cleanup()
 	lunatik stop "$POST" > /dev/null 2>&1
 	lunatik stop "$BOTH" > /dev/null 2>&1
 	lunatik stop "$NONE" > /dev/null 2>&1
+	lunatik stop "$LATE" > /dev/null 2>&1
+	lunatik stop "$SET" > /dev/null 2>&1
 }
 
 # how many kprobes the kernel holds; nothing where debugfs does not say
@@ -70,7 +83,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 4
+ktap_plan 6
 
 command -v setarch > /dev/null 2>&1 || {
 	echo "# SKIP: setarch not available"
@@ -78,6 +91,8 @@ command -v setarch > /dev/null 2>&1 || {
 	ktap_skip "a table with only a post handler runs it, and runs nothing on the pre hit"
 	ktap_skip "a table with both handlers runs each of them once"
 	ktap_skip "an empty handlers table arms a kprobe that runs nothing"
+	ktap_skip "handlers added to the table after probe.new: the pre fires, the post does not"
+	ktap_skip "a set whose runtimes disagree on the post handler is refused, leaving none armed"
 	ktap_totals
 	exit 0
 }
@@ -105,6 +120,33 @@ row "$NONE"
 [ "$post_hits" = "0" ] || fail "an empty handlers table ran a post handler $post_hits times"
 armed_one "the empty table"
 ktap_pass "an empty handlers table arms a kprobe that runs nothing"
+
+row "$LATE"
+[ "$pre_hits" = "1" ] || fail "a pre handler added after probe.new ran $pre_hits times on one call"
+[ "$post_hits" = "0" ] || fail "a post handler added after probe.new ran $post_hits times"
+armed_one "the late handlers"
+ktap_pass "handlers added to the table after probe.new: the pre fires, the post does not"
+
+if [ "$(sed 's/.*[-,]//' /sys/devices/system/cpu/possible)" = "0" ]; then
+	echo "# SKIP: one possible CPU, so a set has one runtime and nothing to disagree about"
+	ktap_skip "a set whose runtimes disagree on the post handler is refused, leaving none armed"
+else
+	mark_dmesg
+	idle=$(kprobes)
+	output=$(lunatik run "$SET" hardirq percpu 2>&1)
+	echo "$output" | grep -q "probe registered with a different post handler" || \
+		fail "the set was not refused: $output"
+	check_dmesg || { ktap_totals; exit 1; }
+	rolled=$(kprobes)
+	listed=$(lunatik list)
+	case "$listed" in
+		*"$SET"*) fail "the refused run left the script registered: $listed" ;;
+	esac
+	if [ -n "$idle" ]; then
+		[ "$rolled" = "$idle" ] || fail "the refused run left $((rolled - idle)) kprobes armed"
+	fi
+	ktap_pass "a set whose runtimes disagree on the post handler is refused, leaving none armed"
+fi
 
 ktap_totals
 
