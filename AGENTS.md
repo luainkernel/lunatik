@@ -464,6 +464,11 @@ Never `require("foo").method()`. A kernel script does the same with a local:
 
 * Comments describe the present, not the history. No "was", "no longer", "used to".
 * No comments restating obvious kernel or Lua API usage. Non obvious rationale is welcome.
+* A consumer does not document the API it calls: what a binding does belongs to its doc block and to
+  the README section of the example, and a copy in the script that calls it rots on the next change.
+  `examples/ifquarantine` carried `notifier.netdevice(callback) -- replays a REGISTER for each device
+  that already exists`, which `notifier.netdevice`'s own block and the example's README paragraph
+  already say.
 * A comment is one line carrying the reason the code is not obvious, nothing the code below already
   says. State the why; the what and the how are the code's job. A second clause defending the choice,
   or walking the mechanism a second time, is neither and reads as doubt: `/* a bottom-half unlock with
