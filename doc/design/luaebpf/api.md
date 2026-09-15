@@ -179,7 +179,7 @@ The escape hatch is a call the program writes, at the point it chooses:
 
     local HTTPS <const> = 443
 
-    local flows = map.hash{key = "I4", value = "I4", entries = 65536}
+    local flows = map.hash("flows", {key = "I4", value = "I4", entries = 65536})
     local lua   = tc.runtime()      -- the kernel script of the same name
 
     local function u16(packet, at)
@@ -210,18 +210,36 @@ The escape hatch is a call the program writes, at the point it chooses:
     end)
 
 That is `examples/sniclassify/classify.c`, in Lua. `tc.runtime(name)` names a kernel runtime by
-the key the kfunc looks up, defaulting to the script this program file belongs to; the call
-lowers to `bpf_luatc_run(key, key__sz, skb, &args, sizeof(args))` (or #561's name once it lands),
-with each argument packed as a native 64-bit integer in order. The kernel side is what it is
-today: `tc.attach(callback)`, `ctx:argument():getint64(0)` for the first argument, `ctx:action`
-for the verdict, `ctx:skb()` for the packet. A verdict of `-1` from the kfunc (no runtime under
-that name, or a raise in the callback) becomes `nil`.
+the key the kfunc looks up; the call lowers to `bpf_luatc_run(key, key__sz, skb, &args,
+sizeof(args))` (or #561's name once it lands), with each argument packed as a native 64-bit
+integer in order -- not a `string.pack` format, so the kernel side reads `getint64(0)` and its
+successors whatever the program passed. The kernel side is otherwise what it is today:
+`tc.attach(callback)`, `ctx:argument():getint64(0)` for the first argument, `ctx:action` for the
+verdict, `ctx:skb()` for the packet.
+
+The default key is the script this program file belongs to: its path with the scripts root
+(`/lib/modules/lua/`) and the `.bpf.lua` suffix removed, which is the name `lunatik run` registers
+a script under. A program file compiled from inside its own directory has no root to strip and
+gets a bare name, so one that cares names its runtime.
+
+A verdict of `-1` from the kfunc becomes `nil`, and the program must test it -- `if v then` or
+`v == nil` -- before reading it as a number, the way a map lookup is tested. `-1` is what the kfunc
+answers for no runtime under that name, for a process-context one, and for a raise in the
+callback, and a callback that sets `-1` itself is indistinguishable from all three: that is the
+trampoline's own contract, not something the compiler adds.
+
+The kfunc is the program type's, carried on the declaration beside the context, so `xdp.runtime`
+and `tc.runtime` differ only in which namespace publishes them: a runtime declared through one
+and called from the other program type still calls the right name.
 
 The compiler reports every such call in its summary, with the line, so a program that calls Lua
 on every packet is visible for what it is: the trampoline, generated.
 
 A program that calls into the runtime needs the module's BTF (`make btf_install`), as every stub
-in the tree does today. A program that does not needs nothing from the modules.
+in the tree does today, and needs the module loaded when the object is loaded, since that is where
+libbpf resolves the kfunc. `lunatik run` loads every configured module when `/dev/lunatik` is
+absent, which is the ordinary case; with the module gone the load fails with the message naming
+the kfunc. A program that calls no runtime needs nothing from the modules.
 
 ## Loading and attaching
 
@@ -306,9 +324,10 @@ that reaches it.
 3. Whether `getstring` into a fixed buffer should be spelled as today (`packet:getstring(at,
    len)`, with `len` bounded by the buffer) or as a new method that names the bound. The proposal
    keeps the name so `examples/common/sni.lua` compiles unchanged.
-4. Whether the per-argument marshalling of the runtime call (native 64-bit integers, in order)
+4. ~~Whether the per-argument marshalling of the runtime call (native 64-bit integers, in order)
    should instead take a `string.pack` format, so the kernel side can keep `getuint32(0)` where it
-   has it.
+   has it.~~ Settled as proposed: native 64-bit integers in order, and no format argument. A
+   kernel script written for a compiled caller reads `getint64(0)` and its successors.
 5. ~~Whether `lunatik run` should refuse a program file without a kernel script, or run the program
    alone with an empty runtime.~~ Settled as proposed, with no runtime at all rather than an empty
    one: a program that calls no Lua needs no script, and an execution context given to such a run
