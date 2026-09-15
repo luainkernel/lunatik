@@ -47,16 +47,9 @@ static int luathread_func(void *data)
 {
 	lunatik_object_t *object = (lunatik_object_t *)data;
 	luathread_t *thread = (luathread_t *)object->private;
-	int ret, locked = 0;
+	int ret;
 
 	lunatik_run(thread->runtime, luathread_resume, ret, thread);
-
-	while (!kthread_should_stop())
-		if ((locked = lunatik_trylock(object)))
-			break;
-
-	if (locked)
-		lunatik_unlock(object);
 
 	lunatik_putobject(thread->runtime);
 	lunatik_putobject(object);
