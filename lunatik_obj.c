@@ -20,6 +20,7 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 {
 	/* SOFTIRQ runtime requires a SOFTIRQ class */
 	lunatik_checkclass(L, class);
+	lunatik_checkmetatable(L, class, opt);
 
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
