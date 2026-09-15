@@ -67,7 +67,7 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 		struct sockaddr_un *addr_un = (struct sockaddr_un *)addr;
 		const char *addr_data = luaL_checklstring(L, ix, &len);
 		luaL_argcheck(L, len + 1 <= UNIX_PATH_MAX, ix, "out of bounds");
-		strncpy(addr_un->sun_path, addr_data, len);
+		memcpy(addr_un->sun_path, addr_data, len);
 		addr_un->sun_path[len] = '\0';
 		return sizeof(struct sockaddr_un);
 	}
