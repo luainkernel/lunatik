@@ -10,6 +10,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/kthread.h>
+#include <linux/sched/task.h>
 
 #include <lunatik.h>
 
