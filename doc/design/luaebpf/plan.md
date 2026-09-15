@@ -178,6 +178,34 @@ runtime model, `lunatikc`'s bytecode role.
 * **"Characterizing and Bridging the Diagnostic Gap in eBPF Verifier Rejections"** (Zheng et al.,
   arXiv 2607.02748): 47 % of rejections surface as a bare `EINVAL`. The reason the loader must be
   where the log is.
+* **This tree's trampoline** (`tools/bench/xdp.sh`, 2026-09-15): a 4-CPU QEMU guest
+  (`QEMU Virtual CPU version 2.5+`) running `6.12.88+deb13-amd64`, pktgen sending 64-byte frames
+  with `clone_skb 0` from the peer of a veth pair, the program attached on the host side, the median
+  of three ten-second windows per row. One generating CPU:
+
+  | row | pps | ns/packet | over native |
+  |-----|----:|----------:|------------:|
+  | native `XDP_PASS` | 493,734 | 2025.38 | - |
+  | verdict only, `softirq` | 377,097 | 2651.84 | 626 |
+  | verdict only, `softirq percpu` | 376,972 | 2652.72 | 627 |
+  | one packet byte read first, `softirq` | 325,859 | 3068.81 | 1043 |
+  | one packet byte read first, `softirq percpu` | 332,140 | 3010.78 | 985 |
+
+  A call into the VM that only sets the verdict costs about 625 ns per packet here, and reading one
+  byte through `ctx:packet()` adds about 390 ns more. Repeating the whole run moves both: four runs
+  of this tree on this host put the verdict row between 467 and 639 ns over native and the byte row
+  between 769 and 1043, so what the figures fix is the order of the cost on this link, not its last
+  digit. The plain and the `percpu` runtime land inside each other's spread while one CPU generates,
+  which is what `lunatik_percpu.h` says should happen: `percpu` changes which runtime object a CPU
+  locks, not the lock. Generating from three CPUs, with one receive queue per CPU, puts the hook on
+  three, and there the contention `percpu` removes appears: the native row reaches 1,427,383 pps
+  (700.58 ns), the verdict callback costs 314 ns against 229 with `percpu`, and the byte one 490
+  against 355.
+
+  What none of it measures is a NIC. The per-packet cost is a veth pair's, the generator and the
+  hook share the receiving CPU, and `XDP_PASS` hands every frame on to the stack, so the absolute
+  rate belongs to this link and not to a driver. What carries over is the difference between rows,
+  in which the generator's own per-packet cost cancels.
 
 ## Phases
 
