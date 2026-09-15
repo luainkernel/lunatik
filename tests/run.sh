@@ -48,6 +48,7 @@ run_suite "$DIR/probe/run.sh"
 run_suite "$DIR/hid/run.sh"
 run_suite "$DIR/notifier/run.sh"
 run_suite "$DIR/fsnotify/run.sh"
+run_suite "$DIR/examples/run.sh"
 
 echo ""
 echo "# Grand Totals: pass:$TOTAL_PASS fail:$TOTAL_FAIL skip:$TOTAL_SKIP"

@@ -54,8 +54,9 @@ local function handle(session)
 
 				shared[key] = slot
 			else
-				local value = shared[key]:getstring(0, size)
-				session:send(value .. "\n")
+				local slot = shared[key]
+				local reply = slot and slot:getstring(0, size) or ""
+				session:send(reply .. "\n")
 			end
 		end
 	until (not key or shouldstop())
