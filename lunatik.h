@@ -206,6 +206,20 @@ static inline void lunatik_checkarmed(lua_State *L)
 		luaL_error(L, LUNATIK_ERR_ARMED);
 }
 
+static inline lunatik_opt_t lunatik_inheritopt(const lunatik_class_t *class, lunatik_opt_t opt)
+{
+	lunatik_opt_t inherited = opt | class->opt;
+	return lunatik_issingle(opt) ? inherited & ~LUNATIK_OPT_MONITOR : inherited;
+}
+
+static inline void lunatik_checkmetatable(lua_State *L, const lunatik_class_t *class, bool monitor)
+{
+	lua_pushlightuserdata(L, lunatik_monitormt(class, monitor));
+	if (lua_rawget(L, LUA_REGISTRYINDEX) == LUA_TNIL)
+		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_METATABLE);
+	lua_pop(L, 1); /* metatable */
+}
+
 static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool monitor)
 {
 	lua_pushlightuserdata(L, lunatik_monitormt(class, monitor));
@@ -218,11 +232,10 @@ static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, 
 
 static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, lunatik_opt_t opt)
 {
-	lunatik_opt_t inherited = opt | class->opt;
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;
-	object->opt = lunatik_issingle(opt) ? inherited & ~LUNATIK_OPT_MONITOR : inherited;
+	object->opt = lunatik_inheritopt(class, opt);
 	object->gfp = lunatik_isirq(object->opt) ? GFP_ATOMIC : GFP_KERNEL;
 	lunatik_newlock(object);
 }

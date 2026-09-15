@@ -221,23 +221,19 @@ const lunatik_class_t luacrypto_shash_class = {
 int luacrypto_shash_new(lua_State *L)
 {
 	const char *algname = luaL_checkstring(L, 1);
+	lunatik_object_t *object = lunatik_newobject(L, &luacrypto_shash_class, 0, LUNATIK_OPT_NONE);
 	struct crypto_shash *tfm = crypto_alloc_shash(algname, 0, 0);
-	size_t desc_size;
-	struct shash_desc *sdesc;
-	lunatik_object_t *object;
 
 	if (IS_ERR(tfm))
 		lunatik_throw(L, PTR_ERR(tfm));
 
-	desc_size = sizeof(struct shash_desc) + crypto_shash_descsize(tfm);
-	sdesc = lunatik_malloc(L, desc_size);
+	size_t desc_size = sizeof(struct shash_desc) + crypto_shash_descsize(tfm);
+	struct shash_desc *sdesc = lunatik_malloc(L, desc_size);
 	if (!sdesc) {
 		crypto_free_shash(tfm);
 		lunatik_enomem(L);
 	}
 	sdesc->tfm = tfm;
-
-	object = lunatik_newobject(L, &luacrypto_shash_class, 0, LUNATIK_OPT_NONE);
 	object->private = sdesc;
 	return 1;
 }
