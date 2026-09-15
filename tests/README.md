@@ -184,6 +184,9 @@ interpreter raises, the compiled program owes its default verdict instead.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.
+- **budget**: the "processed N insns" figure the verifier prints for the
+  worst program of each corpus, reported as a comment and asserted under a
+  ceiling.
 
 ### monitor
 
