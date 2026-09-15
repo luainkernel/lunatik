@@ -48,14 +48,15 @@ local function handle(session)
 			if assign ~= "" then
 				local slot
 				if value ~= "" then
-					slot = shared[key] or data.new(size)
+					slot = data.new(#value)
 					slot:setstring(0, value)
 				end
 
 				shared[key] = slot
 			else
-				local value = shared[key]:getstring(0, size)
-				session:send(value .. "\n")
+				local slot = shared[key]
+				local reply = slot and slot:getstring(0) or ""
+				session:send(reply .. "\n")
 			end
 		end
 	until (not key or shouldstop())
@@ -66,7 +67,11 @@ local function daemon()
 	while (not shouldstop()) do
 		local ok, session = pcall(server.accept, server, sock.NONBLOCK)
 		if ok then
-			handle(session)
+			local handled, err = pcall(handle, session)
+			if not handled then
+				print("shared: " .. err)
+			end
+			session:close()
 		elseif session == "EAGAIN" then
 			linux.schedule(100)
 		end
