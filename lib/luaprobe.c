@@ -292,10 +292,13 @@ static int luaprobe_new(lua_State *L);
 *   the n-th argument of the probed function, counting from zero, through
 *   `regs_get_kernel_argument()`, which guesses the register mapping: what it returns is not
 *   the argument past the registers the architecture passes arguments in, nor after a
-*   parameter 16 bytes or larger
+*   parameter 16 bytes or larger. The table is read once, to decide whether the kernel
+*   installs a post handler, so a `post` added to it afterwards never fires; a `pre` added
+*   afterwards does
 * @treturn probe
 * @raise if registration fails; in a percpu script, if this runtime already registered the same
-*   symbol or address; or if called after module load: register_kprobe sleeps, and the
+*   symbol or address, or if another runtime of the set registered this target with a different
+*   post handler; or if called after module load: register_kprobe sleeps, and the
 *   runtime is in hardirq by then
 */
 static const luaL_Reg luaprobe_lib[] = {
@@ -338,6 +341,8 @@ static luaprobe_t *luaprobe_share(lua_State *L, lunatik_object_t *percpu, const 
 	}
 	else if (lunatik_getregistry(L, probe) != LUA_TNIL)
 		luaL_error(L, "probe already registered");
+	else if (spec->kp.post_handler != probe->kp.post_handler)
+		luaL_error(L, "probe registered with a different post handler");
 	else
 		lua_pop(L, 1);
 
@@ -356,9 +361,12 @@ static luaprobe_t *luaprobe_own(lua_State *L, lunatik_object_t *runtime, const l
 static int luaprobe_new(lua_State *L)
 {
 	lunatik_checkarmed(L);
-	luaprobe_t spec = {.kp = {.pre_handler = luaprobe_pre_handler, .post_handler = luaprobe_post_handler}};
+	luaprobe_t spec = {.kp = {.pre_handler = luaprobe_pre_handler}};
 	luaprobe_checkspec(L, 1, &spec);
 	luaL_checktype(L, 2, LUA_TTABLE); /* handlers */
+	/* the kernel charges for a post handler: no optimization, an ftrace IPMODIFY reservation */
+	spec.kp.post_handler = lua_getfield(L, 2, "post") == LUA_TFUNCTION ? luaprobe_post_handler : NULL;
+	lua_pop(L, 1);
 	lunatik_object_t *runtime = lunatik_checkruntime(L, LUNATIK_OPT_HARDIRQ);
 	lunatik_object_t *percpu = lunatik_getpercpu(L);
 
