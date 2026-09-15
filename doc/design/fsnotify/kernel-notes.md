@@ -144,7 +144,7 @@ the struct body, and the field is an `unsigned int`:
     #define FS_PRIO_2	2 /* fanotify pre-content access */
     unsigned int priority;
 
-From 6.15 the same three values are an enum and the field carries its type:
+From 6.10 the same three values are an enum and the field carries its type:
 
     enum fsnotify_group_prio {
             FSNOTIFY_PRIO_NORMAL = 0,       /* normal notifiers, no permissions */
@@ -155,7 +155,7 @@ From 6.15 the same three values are an enum and the field carries its type:
     enum fsnotify_group_prio priority;
 
 Write the assignment under a version guard, or define a local alias; do not use `FSNOTIFY_PRIO_CONTENT`
-on a 6.8 target, where it does not exist.
+before 6.10, where it does not exist.
 
 fanotify sets the value from the `FAN_CLASS_*` the user asked for. On 6.8 the dispatcher does not gate
 permission delivery on it, but on 6.14+ the open path consults
@@ -179,10 +179,21 @@ The mark's mask is set on the mark (`mark->mask`) before adding, or updated afte
 
 ### Version drift, verified
 
-| Change | 6.8 | 6.15 |
+The one change inside the range this tree supports, 5.15 and later:
+
+| Change | before | from |
+|--------|--------|------|
+| `fsnotify_alloc_group` | `(ops)` | `(ops, flags)`, 5.19 |
+
+`fsnotify_add_inode_mark(mark, inode, add_flags)` is an inline with the same signature across the whole
+range, so a binding that goes through it never sees the `connp_t` change below.
+
+The rest lands above 6.9 and matters only when targeting those kernels:
+
+| Change | 6.8 | from |
 |--------|-----|------|
-| `fsnotify_add_mark` second parameter | `fsnotify_connp_t *connp` (`&inode->i_fsnotify_marks`) | `void *obj` (the inode itself) |
-| Group priority constants | `FS_PRIO_0/1/2`, defines inside the struct; field is `unsigned int` | `enum fsnotify_group_prio` (`FSNOTIFY_PRIO_NORMAL/CONTENT/PRE_CONTENT`); field carries the enum type |
+| `fsnotify_add_mark` second parameter | `fsnotify_connp_t *connp` (`&inode->i_fsnotify_marks`) | `void *obj` (the inode itself), 6.10 |
+| Group priority constants | `FS_PRIO_0/1/2`, defines inside the struct; field is `unsigned int` | `enum fsnotify_group_prio` (`FSNOTIFY_PRIO_NORMAL/CONTENT/PRE_CONTENT`), 6.10 |
 | Permission hooks | `fsnotify_open_perm`, `fsnotify_file_perm` | adds `fsnotify_mmap_perm`, `fsnotify_truncate_perm`; `fsnotify_file_area_perm` also tests `MAY_WRITE`/`MAY_ACCESS` |
 | Priority gating on the open path | none | `fsnotify_sb_has_priority_watchers` + `FMODE_NONOTIFY_PERM` |
 | Pre-content events | absent | `FSNOTIFY_PRIO_PRE_CONTENT`, HSM oriented |
@@ -201,8 +212,10 @@ spec.
     FS_OPEN_PERM  FS_ACCESS_PERM  FS_OPEN_EXEC_PERM
     FS_EVENT_ON_CHILD  FS_RENAME  FS_ISDIR
 
-`ALL_FSNOTIFY_PERM_EVENTS` is the mask of the three `*_PERM` bits, and exists only under
-`CONFIG_FANOTIFY_ACCESS_PERMISSIONS`.
+`ALL_FSNOTIFY_PERM_EVENTS` is the mask of the three `*_PERM` bits. It and they are unconditional
+defines: the config gates the hooks in `include/linux/fsnotify.h`, not the constants. So the presence
+of `FS_OPEN_PERM` says nothing about whether a deny can be enforced, and a binding that needs to know
+tests the config in C rather than the constant.
 
 ### What a `FS_` prefix actually matches
 
