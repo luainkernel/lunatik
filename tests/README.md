@@ -92,11 +92,12 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 
 ### fsnotify
 
-Every mark in this suite goes on `/tmp/lunatik-fsnotify`, created and removed
-by the test: a mark outside a scratch subtree is what makes a machine unable to
-read its own files. A mount or superblock mark reaches every file it covers, and
-a permission mark decides whether an access happens at all, so the tests that
-place either mount their own tmpfs there and mark that.
+Every mark in this suite goes on a scratch directory the test creates and
+removes, `/tmp/lunatik-fsnotify` or the one the example under test names: a mark
+outside a scratch subtree is what makes a machine unable to read its own files.
+A mount or superblock mark reaches every file it covers, and a permission mark
+decides whether an access happens at all, so the tests that place either mount
+their own tmpfs there and mark that.
 
 - **open**: an inode mark reports `FS_OPEN` for the file it was placed on, with
   the mask the callback asserts, and reports nothing for a neighbour in the
@@ -190,6 +191,14 @@ place either mount their own tmpfs there and mark that.
   permission mask or names the config a kernel built without the hooks lacks.
   The shell counts the passing cases rather than looking only for a failing one,
   so a case that never ran cannot pass.
+
+- **fsmonitor**: the `fsmonitor` example, run from where `examples_install` puts
+  it, so what the test covers is what a reader of the README gets. It reports a
+  create, a write, an attribute change and a delete in the directory it watches,
+  each with the entry name and the inode number, and the two the shell performs
+  itself carry its own pid. A subdirectory created there is reported and the file
+  created inside that subdirectory is not, which is how far `FS_EVENT_ON_CHILD`
+  reaches, and nothing is reported at all once the example is stopped.
 
 The seven tests below cover the permission events, where the callback's return
 value decides whether the access happens. Each of them sources `perm.sh`, which
