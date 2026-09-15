@@ -23,9 +23,11 @@ local function count(address)
 	track[symbol] = (track[symbol] or 0) + 1
 end
 
+local handlers = {pre = count}
+
 for address, symbol in pairs(names) do
 	if symbol then
-		probe.new(address, {pre = count})
+		probe.new(address, handlers)
 	end
 end
 
