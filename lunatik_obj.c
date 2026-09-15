@@ -18,15 +18,18 @@
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt)
 {
+	bool monitor = lunatik_ismonitor(lunatik_inheritopt(class, opt));
+
 	/* SOFTIRQ runtime requires a SOFTIRQ class */
 	lunatik_checkclass(L, class);
+	lunatik_checkmetatable(L, class, monitor);
 
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 	lunatik_object_t *object = lunatik_checkalloc(L, sizeof(lunatik_object_t));
 
 	lunatik_setobject(object, class, opt);
 	*pobject = object; /* before setclass exposes it to __gc */
-	lunatik_setclass(L, class, lunatik_ismonitor(object->opt));
+	lunatik_setclass(L, class, monitor);
 
 	object->private = lunatik_isexternal(class->opt) ? NULL : lunatik_checkzalloc(L, size);
 	return object;
