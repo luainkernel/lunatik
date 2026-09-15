@@ -188,11 +188,16 @@ interpreter raises, the compiled program owes its default verdict instead.
   expose, `iphdr`'s whole-byte members, its bitfields and its anonymous union
   absent from the layout though the dump names them, and a struct the kernel
   does not publish raising a message that names it.
-- **ctx**: an XDP program reads `ctx.ingress_ifindex` and `ctx.rx_queue_index`
-  and answers what `prog run` was told to build the context from, the body
-  having written those bytes at the offsets `luaebpf.vmlinux` reports; a write
-  to an XDP field, a field the struct does not carry, and `ctx.data` are
-  refused with their messages and lines.
+- **ctx**: one program file declares both kinds, so the object carries an `xdp`
+  and a `tcx/ingress` section and `loadall` reads each program's type off the
+  section it sits in. The XDP programs read `ctx.ingress_ifindex` and
+  `ctx.rx_queue_index` and the TC ones `skb.len`, `skb.ifindex`,
+  `skb.ingress_ifindex`, `skb.priority` and `skb.hash`, each answering what
+  `prog run` was told to build the context from, the body having written those
+  bytes at the offsets `luaebpf.vmlinux` reports; a `skb.priority` write comes
+  back through the kernel's own context and in `ctx_out`; a write to an XDP
+  field, a write to `skb.len`, a field the struct does not carry, a field given
+  a boolean, and `ctx.data` are refused with their messages and lines.
 - **packet**: every accessor the kernel's `data` object publishes, `#`, an
   offset an earlier read computed, a read inside `examples/common/sni.lua`'s
   `u16` helper and an accessor asked for two results, where Lua fills the second

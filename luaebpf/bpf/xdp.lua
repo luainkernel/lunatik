@@ -24,6 +24,9 @@
 local programs = require("luaebpf.programs")
 local action   = require("linux.xdp")
 
+-- libbpf reads the program type back from the ELF section name (tools/lib/bpf/libbpf.c)
+local SECTION <const> = "xdp"
+
 -- what a program may read on its context, and the two members that are packet bounds rather
 -- than numbers. Nothing is writable: xdp_is_valid_access refuses a write unless the program is
 -- offloaded, and __is_valid_xdp_access takes only a four-byte read (net/core/filter.c).
@@ -54,7 +57,7 @@ function xdp.program(fn, opts)
 	if type(default) ~= "number" then
 		error("xdp.program's default verdict is not a number", 2)
 	end
-	return programs.declare{kind = "xdp", fn = fn, default = default, name = opts.name,
+	return programs.declare{section = SECTION, fn = fn, default = default, name = opts.name,
 		context = context}
 end
 

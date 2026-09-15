@@ -54,23 +54,25 @@ luaebpf_compile() {
 		lunatikc bpf -o "$LUAEBPF_WORK/$name.bpf.o" "$LUAEBPF_SRC/$name.bpf.lua" ) 2>&1
 }
 
+# no type argument: the section a program's entry sits in is what libbpf reads its type from
 luaebpf_loadall() {
-	bpftool prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" type xdp 2>&1
+	bpftool prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" 2>&1
 }
 
 # the verifier's own log: the Lua line it quotes, the may_goto header before the kernel rewrites
 # it into a loop counter, and the instruction budget each program cost
 luaebpf_verbose() {
-	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" type xdp 2>&1
+	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" 2>&1
 }
 
 # one program over the packet and the context the row named, or over the fourteen bytes
 # BPF_PROG_TEST_RUN demands of an XDP program where a row named none
 luaebpf_verdict() {
-	local name="$1" context="${2:-}" data="$LUAEBPF_WORK/packet.bin" args=()
+	local name="$1" context="${2:-}" out="${3:-}" data="$LUAEBPF_WORK/packet.bin" args=()
 	if [ -n "$context" ]; then
 		data="$LUAEBPF_WORK/$context.bin"
 		args=(ctx_in "$LUAEBPF_WORK/$context.ctx")
+		[ -n "$out" ] && args+=(ctx_out "$out")
 	fi
 	bpftool prog run pinned "$LUAEBPF_PINS/$name" data_in "$data" "${args[@]}" 2>&1 \
 		| grep -oP 'Return value: \K[0-9]+'

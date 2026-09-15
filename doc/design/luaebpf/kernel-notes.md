@@ -242,6 +242,31 @@ under `sudo`.
   ([net/core/dev.c#L11177-L11184](https://github.com/torvalds/linux/blob/v7.2/net/core/dev.c#L11177-L11184)),
   so loopback with queue 0 is a context every machine can supply, with no veth and no attach.
 
+* **A `__sk_buff` write is four bytes, and only some fields take one.**
+  `tc_cls_act_is_valid_access` allows a write to `mark`, `tc_index`, `priority`, `tc_classid`,
+  `cb[0..4]`, `tstamp` and `queue_mapping` and to nothing else
+  ([net/core/filter.c#L9273-L9292](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L9273-L9292));
+  `bpf_skb_is_valid_access`'s default arm takes a write only at `size_default`, four bytes
+  ([#L8952-L8962](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L8952-L8962)),
+  and `data`, `data_meta` and `data_end` are four-byte reads that yield packet pointers
+  ([#L8920-L8929](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L8920-L8929)).
+  That set is kernel policy rather than layout, so BTF cannot supply it and the program type's
+  module carries it.
+* **What `BPF_PROG_TEST_RUN` gives a TC program.** `convert___skb_to_skb` refuses a `ctx_in`
+  with anything non-zero outside `mark`, `priority`, `ingress_ifindex`, `ifindex`, `cb`,
+  `data_end`, `tstamp`, `wire_len`, `gso_segs`, `gso_size` and `hwtstamp`, and copies `mark`,
+  `priority`, `ingress_ifindex`, `tstamp` and `cb` into the skb
+  ([net/bpf/test_run.c#L925-L1003](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L925-L1003));
+  `convert_skb_to___skb` writes them back into `ctx_out`
+  ([#L1011](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L1011)), so a
+  `priority` write is observable. `skb->len` is the bytes handed in, and `ctx_in.len` must be
+  zero. **A hash cannot be supplied**: it sits in a range `ctx_in` must leave zero and the skb
+  the test run builds has none, so `skb.hash` answers 0.
+* **Section names.** libbpf maps `tcx/ingress` and `tcx/egress` to `SCHED_CLS` with the matching
+  `expected_attach_type`, `tc` to `SCHED_CLS` with none, and `xdp` to `XDP`
+  ([tools/lib/bpf/libbpf.c#L10101-L10146](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L10101-L10146)),
+  so an object whose entry sits in the right section needs no type argument on the way in.
+
 ## The packet a network program reads
 
 * **The reads a kernel script already has.** `LUADATA_NEWINT_GETTER` is

@@ -173,6 +173,7 @@ modules below:
 | Module | Description |
 |--------|-------------|
 | `luaebpf` | The compiler: `compile(path)` returns the BPF object a program file makes |
+| `bpf.tc` | Declares a TC program: `tc.program(fn, opts)` |
 | `bpf.xdp` | Declares an XDP program: `xdp.program(fn, opts)` |
 
 ### Testing

@@ -82,6 +82,10 @@ function corpus.context(name, what, fields, bytes)
 	end
 	write(name .. ".ctx", contextbytes(what, fields))
 	write(name .. ".bin", bytes)
+	if what == "__sk_buff" then
+		-- convert___skb_to_skb refuses a non-zero __sk_buff.len and sizes skb->len from the packet
+		fields.len = #bytes
+	end
 	local twin = context:new(fields)
 	states[twin] = {name = name, packet = packet:new{bytes = bytes}}
 	return twin
@@ -104,7 +108,7 @@ end
 function rows:declare(name, fn, opts, ctx)
 	opts = opts or {}
 	opts.name = name
-	local program = xdp.program(fn, opts)
+	local program = (opts.program or xdp.program)(fn, opts)
 	self.out:write(name, "\t", answer(pcall(fn, ctx or 0)), "\t", program.default, "\t",
 		ctx ~= nil and states[ctx].name or "", "\n")
 end

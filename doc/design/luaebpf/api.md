@@ -114,8 +114,10 @@ register argument, and why a compiled function takes four of its own. This is th
 analogue of what the trampoline does today, where a raising callback makes the kfunc return `-1`
 and the stub falls back.
 
-TC programs get `skb`, a proxy over the `__sk_buff` fields (`hash`, `priority` writable,
-`ifindex`, `len`) and `skb:packet()`.
+TC programs get `skb`, a proxy over the `__sk_buff` fields the kernel lets a program read --
+`len`, `hash`, `ifindex` and `ingress_ifindex` -- plus `priority`, the one of them it also lets
+a program write, and `skb:packet()`. `tc.program(fn, {egress = true})` puts the entry in
+`tcx/egress` rather than `tcx/ingress`, which is how libbpf reads the attach point back.
 
 ## Maps
 
