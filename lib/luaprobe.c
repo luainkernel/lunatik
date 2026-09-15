@@ -280,6 +280,11 @@ static int luaprobe_new(lua_State *L);
 * In a percpu script the runtimes share one kprobe per symbol or address: the first
 * registration installs it, the others attach their handlers, and a call reaches the
 * runtime of the CPU it ran on.
+* A target another kprobe already holds is aggregated by the kernel: the registration
+* succeeds and every handler attached to that address runs on a hit, so two symbols the
+* kernel resolves to one address each count the other's calls. The exception is a percpu
+* script repeating a target of its own: its runtimes file one handlers table per shared
+* kprobe, so the second registration is refused with `probe already registered`.
 * @function new
 * @tparam string|lightuserdata symbol kernel symbol name or address
 * @tparam table handlers table with optional `pre` and `post` callback functions;
