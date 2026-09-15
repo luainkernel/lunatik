@@ -96,7 +96,11 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 - **shared**: drives the spawned `examples/shared` daemon over its own port with
   a kernel-side client: a GET of a key that was never assigned and a GET of a
   key a SET removed each answer with an empty line, instead of taking the thread
-  body down and leaving the port bound with nobody in `accept()`.
+  body down and leaving the port bound with nobody in `accept()`; and a peer
+  that hangs up with its reply unread, which resets the session, leaves the
+  daemon answering the connection after it. That peer is a userspace one, since
+  a lunatik socket shuts down before it releases; the case skips without
+  `python3`.
 
 ### fifo
 

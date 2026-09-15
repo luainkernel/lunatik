@@ -8,6 +8,12 @@
 # removed, must each answer with an empty line rather than take the thread body
 # down and leave the port bound with nobody in accept().
 #
+# The peer that resets its session is a userspace one: luasocket's release shuts
+# the socket down before releasing it, so a lunatik client always says goodbye
+# with a FIN, which the daemon reads as a clean end of session. A close with the
+# reply still unread is what the daemon raises on, and only a later connection
+# getting an answer tells that it survived.
+#
 # Usage: sudo bash tests/examples/shared.sh
 
 SCRIPT="tests/examples/shared_client"
@@ -26,8 +32,35 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
+# closing with the reply unread zaps the connection with a reset, the
+# data_was_unread arm of tcp_close, instead of the FIN a drained socket sends
+reset_session() {
+	python3 - <<'PY'
+import socket, sys
+
+def connect():
+	return socket.create_connection(("127.0.0.1", 90), timeout=2)
+
+client = connect()
+client.sendall(b"rst=x\n")
+client.close()
+
+client = connect()
+client.sendall(b"rst\n")
+client.recv(4096, socket.MSG_PEEK)
+client.close()
+
+client = connect()
+client.sendall(b"rst\n")
+reply = client.recv(4096)
+client.close()
+
+sys.exit(0 if reply else 1)
+PY
+}
+
 ktap_header
-ktap_plan 2
+ktap_plan 3
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -47,7 +80,7 @@ done
 sleep $SLEEP
 
 run_script "$SCRIPT"
-cleanup
+lunatik stop "$SCRIPT" > /dev/null 2>&1
 
 dmesg_since | grep -q "shared example: unset ok" || fail "a GET of a key never assigned did not answer"
 ktap_pass "shared: a GET of a key that was never assigned answers with an empty line"
@@ -55,6 +88,14 @@ ktap_pass "shared: a GET of a key that was never assigned answers with an empty 
 dmesg_since | grep -q "shared example: removed ok" || fail "a GET of a key a SET removed did not answer"
 ktap_pass "shared: a GET of a key a SET removed answers with an empty line"
 
+if command -v python3 > /dev/null 2>&1; then
+	reset=$(reset_session 2>&1) || { comment "$reset"; fail "no answer after a peer reset its session"; }
+	ktap_pass "shared: a peer that resets its session does not end the daemon"
+else
+	ktap_skip "shared: a peer that resets its session does not end the daemon"
+fi
+
+cleanup
 check_dmesg || { ktap_totals; exit 1; }
 
 ktap_totals
