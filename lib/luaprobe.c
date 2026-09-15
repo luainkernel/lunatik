@@ -366,6 +366,7 @@ static int luaprobe_new(lua_State *L)
 
 	object->private = percpu != NULL ? luaprobe_share(L, percpu, &spec) : luaprobe_own(L, runtime, &spec);
 
+	/* register_kprobe already ran: lunatik_run drops every hit until the runtime is ready */
 	lunatik_registerobject(L, 2, object); /* keyed by the kprobe, which is what the handler looks up */
 	return 1; /* object */
 }
