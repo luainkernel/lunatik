@@ -231,9 +231,9 @@ higher-level `netlink.*` modules built on top of it.
   still succeeds, and each of those rows checks the kprobe it armed on load and
   gave back on stop. The post half of a hit had no coverage before: nothing in
   the tree registered a `post` handler. Two further rows cover what `probe.new`
-  reads from that table: a `post` added to it after `probe.new` does not fire,
-  and a percpu script whose runtimes disagree about one is refused, leaving no
-  kprobe armed.
+  reads from that table: of a `pre` and a `post` added to it after `probe.new`,
+  the `pre` fires and the `post` does not, and a percpu script whose runtimes
+  disagree about one is refused, leaving no kprobe armed.
 
 - **kprobe_concurrent**: registers kprobes on every syscall, each handler
   counting into an `rcu.table` and a `data` buffer, and runs one forking

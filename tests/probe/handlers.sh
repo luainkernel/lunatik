@@ -12,11 +12,13 @@
 # checks that kprobe, armed on load and gone on stop.
 #
 # probe.new reads the table once, when it registers, to decide whether the kernel
-# installs a post handler. So a fifth row adds a post to the table after probe.new
-# and asserts it does not fire, and a sixth runs a percpu script whose runtimes
-# disagree about one and asserts that the set is refused, leaving no kprobe armed,
-# rather than letting the first registration decide for the others. The sixth needs
-# a second runtime, so it skips where one CPU is possible.
+# installs a post handler, and reads it again on every hit to find the handler. So a
+# fifth row registers an empty table and adds both handlers to it afterwards: the pre
+# fires, since only the lookup on the hit decides it, and the post does not, since the
+# kernel was never given a post handler to call. A sixth runs a percpu script whose
+# runtimes disagree about one and asserts that the set is refused, leaving no kprobe
+# armed, rather than letting the first registration decide for the others. The sixth
+# needs a second runtime, so it skips where one CPU is possible.
 #
 # Only pre was covered before: nothing in the tree registered a post handler, so
 # the post half of every hit was untested. What these rows hold is the behaviour
@@ -89,7 +91,7 @@ command -v setarch > /dev/null 2>&1 || {
 	ktap_skip "a table with only a post handler runs it, and runs nothing on the pre hit"
 	ktap_skip "a table with both handlers runs each of them once"
 	ktap_skip "an empty handlers table arms a kprobe that runs nothing"
-	ktap_skip "a post handler added to the table after probe.new does not fire"
+	ktap_skip "handlers added to the table after probe.new: the pre fires, the post does not"
 	ktap_skip "a set whose runtimes disagree on the post handler is refused, leaving none armed"
 	ktap_totals
 	exit 0
@@ -120,10 +122,10 @@ armed_one "the empty table"
 ktap_pass "an empty handlers table arms a kprobe that runs nothing"
 
 row "$LATE"
-[ "$pre_hits" = "1" ] || fail "the pre handler ran $pre_hits times on one call"
+[ "$pre_hits" = "1" ] || fail "a pre handler added after probe.new ran $pre_hits times on one call"
 [ "$post_hits" = "0" ] || fail "a post handler added after probe.new ran $post_hits times"
-armed_one "the late post handler"
-ktap_pass "a post handler added to the table after probe.new does not fire"
+armed_one "the late handlers"
+ktap_pass "handlers added to the table after probe.new: the pre fires, the post does not"
 
 if [ "$(sed 's/.*[-,]//' /sys/devices/system/cpu/possible)" = "0" ]; then
 	echo "# SKIP: one possible CPU, so a set has one runtime and nothing to disagree about"
