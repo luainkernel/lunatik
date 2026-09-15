@@ -68,7 +68,8 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 ### crypto
 
 Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
-`comp`.
+`comp`. `comp` is skipped where `crypto.comp` is not built: `hascomp` asks
+the runtime for the binding, instead of the suite reading the kernel version.
 
 ### data
 
