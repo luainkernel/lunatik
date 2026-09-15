@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
+# /dev/lunatik is single and the installed tree under /lib/modules/lua is
+# shared, so two sessions that build, install and run at once measure each
+# other: one reloads the core while the other's suite is halfway, and
+# `lunatik test` runs whatever tests the last install left there. Checking
+# `ps` first does not help, since it answers for the instant it ran.
+#
+# This takes a lock for the whole cycle instead. It runs the command with
+# the lock held and releases it on exit, however the command ends:
+#
+#     bash tools/lunatik-host make install
+#     bash tools/lunatik-host sudo lunatik test
+#     bash tools/lunatik-host bash tools/watchdog.sh examples/systrack/device
+#
+# LUNATIK_HOST_WAIT=<seconds> bounds the wait, default 3600; 0 fails at once
+# when the host is taken. The holder's command and pid are printed while
+# waiting, so a stuck session is named rather than guessed.
+#
+# Usage: bash tools/lunatik-host <command>...
+
+LOCK=${LUNATIK_HOST_LOCK:-/tmp/lunatik-host.lock}
+WAIT=${LUNATIK_HOST_WAIT:-3600}
+
+[ $# -gt 0 ] || { echo "usage: $0 <command>..."; exit 1; }
+
+exec 9>> "$LOCK" || { echo "cannot open $LOCK"; exit 1; } # append: the holder's note is not truncated
+
+if ! flock -n 9; then
+	echo "lunatik host held by: $(cat "$LOCK.holder" 2>/dev/null || echo "another session")"
+	flock -w "$WAIT" 9 || { echo "still held after ${WAIT}s; not running"; exit 1; }
+fi
+
+echo "pid $$ ($USER): $*" > "$LOCK.holder"
+trap 'rm -f "$LOCK.holder"' EXIT
+"$@"
