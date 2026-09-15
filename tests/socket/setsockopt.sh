@@ -15,6 +15,12 @@ MODULE="luasocket"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
+cleanup() {
+	lunatik stop "$SCRIPT" 2>/dev/null
+}
+trap cleanup EXIT
+cleanup
+
 ktap_header
 ktap_plan 2
 
