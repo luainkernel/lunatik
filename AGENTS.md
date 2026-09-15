@@ -156,11 +156,11 @@ userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the 
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
 (`blast-radius.sh`), the examples that use a binding the change touches, which a review runs
-(`examples-touched.sh`), the machine a tracked file carries (`machine-leak.sh`), and the trailing blank
-line rule and the refusal of a staged conflict marker (`pre-commit`). Each takes file paths and skips
-what does not apply, so any editor, assistant, or CI can run them. The `Checks` workflow runs them over
-a pull request's diff: `pre-commit` and `machine-leak.sh` fail the run, the heuristic checks annotate
-it. Install the commit gate with:
+(`examples-touched.sh`), the machine a tracked file carries (`machine-leak.sh`), and the trailing
+blank line rule, the refusal of a staged conflict marker and of a string function the kernel removed
+(`pre-commit`). Each takes file paths and skips what does not apply, so any editor, assistant, or CI
+can run them. The `Checks` workflow runs them over a pull request's diff: `pre-commit` and
+`machine-leak.sh` fail the run, the heuristic checks annotate it. Install the commit gate with:
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
