@@ -54,6 +54,8 @@ static int luasocket_accept(lua_State *L);
 
 static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr_storage *addr, int ix)
 {
+	/* the kernel reads every byte of the length a branch returns, fields it never set included */
+	memset(addr, 0, sizeof(*addr));
 	addr->ss_family = luasocket_family(socket);
 	if (addr->ss_family == AF_INET) {
 		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
@@ -80,7 +82,6 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 	}
 	else if (addr->ss_family == AF_NETLINK) {
 		struct sockaddr_nl *addr_nl = (struct sockaddr_nl *)addr;
-		addr_nl->nl_pad = 0;
 		addr_nl->nl_pid = (u32)luaL_optinteger(L, ix, 0);
 		addr_nl->nl_groups = (u32)luaL_optinteger(L, ix + 1, 0);
 		return sizeof(struct sockaddr_nl);
