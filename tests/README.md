@@ -94,7 +94,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 
 Every mark in this suite goes on `/tmp/lunatik-fsnotify`, created and removed
 by the test: a mark outside a scratch subtree is what makes a machine unable to
-read its own files.
+read its own files. A mount or superblock mark reaches every file it covers, so
+the test that places one mounts its own tmpfs there and marks that.
 
 - **open**: an inode mark reports `FS_OPEN` for the file it was placed on, with
   the mask the callback asserts, and reports nothing for a neighbour in the
@@ -108,6 +109,38 @@ read its own files.
   `FS_EVENT_ON_CHILD`, only when its mask carries that flag; without it the
   child's open delivers nothing while the directory's own open still delivers
   `FS_OPEN | FS_ISDIR`, so the negative half cannot pass on a dead watch.
+
+- **kinds**: the three kinds of mark, on a tmpfs the test mounts under the
+  scratch directory and bind mounts a second time, skipped when that mount does
+  not appear. A mount mark reports a file opened under its mount and reports
+  neither a file outside it nor the same inode opened through the other mount;
+  a superblock mark reports that same open and nothing on another filesystem;
+  an invalid kind raises naming the valid ones. `watch:find` then returns the
+  mark of each kind by path and kind, and `nil` for a kind the watch did not
+  mark, and the tmpfs is unmounted under all three, which is the path where the
+  kernel clears a group's marks on its own before the watch walks them.
+
+- **mask**: a live mark's masks. A mark placed for `FS_OPEN` and set to
+  `FS_MODIFY` stops reporting the open and starts reporting the write, which
+  separates a recalculated object mask from a field written on the mark alone;
+  a second mark carrying both events and ignoring `FS_OPEN` reports only the
+  write, so the ignore mask suppresses what it names and nothing else, and a
+  read after that write is silent too, so a write does not clear it.
+
+- **marks**: the mark as an object. `watch:find` returns the mark the watch
+  placed, `nil` where it has none and `nil` after `remove`, a second mark on
+  the same object is refused with `EEXIST`, a removed mark
+  delivers nothing while its neighbour still delivers, and `stop` takes every
+  mark with it and leaves no usable handle. The whole test runs twice in a row
+  and counts the events of each round, so a mark or a group the first round
+  leaked shows as a second line rather than passing a presence test.
+
+- **inside**: a mark removed, and a mark's mask set, from inside the callback,
+  which runs in fsnotify's SRCU read section and takes the group's mark mutex
+  there, the path inotify's one-shot watch takes to destroy its own mark. The
+  mark removed on its first event delivers once; the mark set from `FS_OPEN`
+  to `FS_MODIFY` on its first event delivers that open once, nothing for the
+  read after it, and the write.
 
 - **identity**: the matrix of event kind by accessor. A file open carries a
   `struct path`, so `name`, `ino`, `dir`, `isdir`, `pid` and `path` all answer;
