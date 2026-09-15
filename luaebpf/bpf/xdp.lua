@@ -9,6 +9,9 @@
 -- The file body runs on the host under `lunatikc bpf`; the function it hands here is the
 -- program, compiled to eBPF and held to the subset the verifier can check. The verdicts are
 -- `linux.xdp`, the table the kernel scripts already use.
+--
+-- The program reads `ctx.ingress_ifindex` and `ctx.rx_queue_index`; XDP publishes no writable
+-- field, and `ctx.data`/`ctx.data_end` are the packet's bounds rather than numbers.
 -- @module bpf.xdp
 -- @usage
 -- local xdp    = require("bpf.xdp")
@@ -20,6 +23,16 @@
 
 local programs = require("luaebpf.programs")
 local action   = require("linux.xdp")
+
+-- what a program may read on its context, and the two members that are packet bounds rather
+-- than numbers. Nothing is writable: xdp_is_valid_access refuses a write unless the program is
+-- offloaded, and __is_valid_xdp_access takes only a four-byte read (net/core/filter.c).
+local context = {
+	struct = "xdp_md",
+	fields = {ingress_ifindex = true, rx_queue_index = true},
+	writable = {},
+	packet = {base = "data", limit = "data_end"},
+}
 
 local xdp = {}
 
@@ -41,7 +54,8 @@ function xdp.program(fn, opts)
 	if type(default) ~= "number" then
 		error("xdp.program's default verdict is not a number", 2)
 	end
-	return programs.declare{kind = "xdp", fn = fn, default = default, name = opts.name}
+	return programs.declare{kind = "xdp", fn = fn, default = default, name = opts.name,
+		context = context}
 end
 
 return xdp

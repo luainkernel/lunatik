@@ -77,7 +77,7 @@ row unknown_field "unknown_field.bpf.lua:5: 'action.TYPO' is not a compile-time 
 	$'\treturn action.TYPO' 'local action = require("linux.xdp")'
 row unknown_call "unknown_call.bpf.lua:5: a call through a value the compiler cannot resolve" \
 	$'\tlocal v = ctx(1)\n\treturn v'
-row context "context.bpf.lua:5: the program context cannot be read yet" \
+row context "context.bpf.lua:5: a context has no value in the kernel here" \
 	$'\treturn ctx'
 row self_call "self_call.bpf.lua:5: a method call cannot be compiled" \
 	$'\tlocal v = ports:len()\n\treturn v' 'local ports = {}'

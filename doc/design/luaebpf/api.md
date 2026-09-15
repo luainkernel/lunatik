@@ -77,9 +77,14 @@ Refusing is the normal outcome; the message says which line and why, in one line
 ## The context and the packet
 
 `xdp.program` hands the function a context proxy. Its fields are the `struct xdp_md` fields the
-verifier lets an XDP program read, and `ctx:packet()` is the packet as a proxy with the method
-names of the `data` object a kernel script sees (`getbyte`, `getuint16`, `getuint32`,
-`getstring`, `#`). The same helper therefore reads the same bytes on both sides:
+verifier lets an XDP program read -- `ingress_ifindex` and `rx_queue_index`, neither writable --
+at the offsets the running kernel's own BTF reports, and `ctx:packet()` is the packet as a proxy
+with the method names of the `data` object a kernel script sees (`getbyte`, `getuint16`,
+`getuint32`, `getstring`, `#`). A field the struct does not carry is refused by name, so is a
+write the kernel would not take and one given something other than a number, and `ctx.data` and
+`ctx.data_end` are refused as the packet bounds they are: the only Lua-meaningful thing to do
+with them is their difference, which `#ctx:packet()` already spells. The same helper therefore
+reads the same bytes on both sides:
 
     local function u16(packet, at)
         return packet:getbyte(at) << 8 | packet:getbyte(at + 1)

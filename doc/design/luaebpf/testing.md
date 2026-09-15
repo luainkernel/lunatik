@@ -90,7 +90,7 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 |------|--------|
 | `packet.sh` | `getbyte`, `getuint16`, `getuint32` and `#` over the corpus match the interpreter's `data` reads |
 | `bounds.sh` | an access one byte past `data_end` takes the default verdict; the same program with the bounds check dropped by the test hook is rejected |
-| `ctx.sh` | `ctx.ingress_ifindex` and the `skb` fields read back what `prog run` supplies |
+| `ctx.sh` | `ctx.ingress_ifindex` and the `skb` fields read back what `prog run` supplies; an unknown field, a write the kernel refuses, and `ctx.data` are refused with their lines |
 | `mapget.sh` | a map seeded by `bpftool map update` decides the verdict; a missing key is `nil` and an untested use is refused at compile time |
 | `mapset.sh` | an update and a `nil` delete from the program are visible to `bpftool map lookup` |
 | `struct.sh` | a `struct` value spec yields field access with the right offsets and widths |

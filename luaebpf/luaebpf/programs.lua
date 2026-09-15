@@ -26,7 +26,7 @@ end
 ---
 -- Records one program.
 -- @function luaebpf.programs.declare
--- @tparam table program `{kind, fn, default, name}`
+-- @tparam table program `{kind, fn, default, name, context}`
 -- @treturn table the same program
 function programs.declare(program)
 	insert(declared, program)

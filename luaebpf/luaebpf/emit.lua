@@ -16,8 +16,9 @@
 -- numeric `for` jumps backwards; the code of the last walk is what is kept.
 -- @module luaebpf.emit
 
-local insn  = require("luaebpf.insn")
-local proto = require("luaebpf.proto")
+local insn    = require("luaebpf.insn")
+local proto   = require("luaebpf.proto")
+local vmlinux = require("luaebpf.vmlinux")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes
@@ -48,7 +49,8 @@ local BOOL    <const> = 2
 local NIL     <const> = 4
 local CTX     <const> = 8
 local OTHER   <const> = 16
-local RUNTIME <const> = INT | BOOL | NIL
+local RUNTIME <const> = INT | BOOL | NIL -- a value the kernel holds as a word
+local PROXY   <const> = CTX              -- a pointer the kernel holds, read through a proxy
 
 local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context"}
 
@@ -147,20 +149,22 @@ local function offset(i)
 	return -SLOT * (i - NREGS + 1 + RESERVED)
 end
 
-local function getreg(f, pc, state, i, scratch)
-	local value = state[i]
-	local mask = value ~= nil and value.t or 0
-	if mask == CTX then
-		refuse(f, pc, "the program context cannot be read yet")
-	end
-	if mask == 0 or (mask & ~RUNTIME) ~= 0 then
-		refuse(f, pc, "a %s has no value in the kernel here", typename(value))
-	end
+-- the word a Lua register holds, whatever its type
+local function fetch(f, i, scratch)
 	if spilled(i) then
 		f.code:load(scratch, reg.FP, offset(i))
 		return scratch
 	end
 	return FIRST + i
+end
+
+local function getreg(f, pc, state, i, scratch)
+	local value = state[i]
+	local mask = value ~= nil and value.t or 0
+	if mask == 0 or (mask & ~RUNTIME) ~= 0 then
+		refuse(f, pc, "a %s has no value in the kernel here", typename(value))
+	end
+	return fetch(f, i, scratch)
 end
 
 local function setreg(f, i, src)
@@ -279,20 +283,77 @@ local function testjump(f, pc, state, op, dst, src)
 	return false
 end
 
+--- @section the context
+
+-- the running kernel's own layout of the context struct, read once per program
+local function layout(f)
+	local unit = f.unit
+	if unit.layout == nil then
+		unit.layout = {}
+		for _, field in ipairs(vmlinux.layout(unit.context.struct).fields) do
+			unit.layout[field.name] = field
+		end
+	end
+	return unit.layout
+end
+
+-- what a name reads on the context, refused where the kernel's own rules say a program may not
+local function contextfield(f, pc, key, writing)
+	local context = f.unit.context
+	if key == context.packet.base or key == context.packet.limit then
+		refuse(f, pc, "'%s' is a packet bound, not a number; '#' on the packet is its length", key)
+	end
+	local field = context.fields[key] and layout(f)[key]
+	if field == nil then
+		refuse(f, pc, "the context has no field '%s'", key)
+	end
+	if writing and not context.writable[key] then
+		refuse(f, pc, "the context field '%s' cannot be written", key)
+	end
+	return field
+end
+
+-- every field a context proxy exposes is an unsigned word, so the load needs no extension
+local function contextget(f, pc, ins, state, key)
+	local field = contextfield(f, pc, key, false)
+	f.code:load(reg.R2, fetch(f, ins.b, reg.R1), field.offset, field.size)
+	setreg(f, ins.a, reg.R2)
+	state[ins.a] = {t = INT, name = key}
+end
+
+local function contextset(f, pc, ins, state, key)
+	local field = contextfield(f, pc, key, true)
+	local src = reg.R2
+	if ins.k then
+		local value = constant(f, pc, ins.c)
+		if type(value) ~= "number" then
+			refuse(f, pc, "the context field '%s' takes a number, not a %s", key, type(value))
+		end
+		f.code:set(src, value)
+	else
+		if not isinteger(state[ins.c]) then
+			refuse(f, pc, "the context field '%s' takes a number, not a %s", key,
+				typename(state[ins.c]))
+		end
+		src = getreg(f, pc, state, ins.c, src)
+	end
+	f.code:store(fetch(f, ins.a, reg.R1), field.offset, src, field.size)
+end
+
 --- @section loads
 
 local ops = {}
 
-local function moveslot(f, pc, state, a, b)
+local function moveslot(f, state, a, b)
 	local value = state[b]
-	if value ~= nil and (value.t & RUNTIME) ~= 0 then
-		setreg(f, a, getreg(f, pc, state, b, reg.R1))
+	if value ~= nil and (value.t & (RUNTIME | PROXY)) ~= 0 then
+		setreg(f, a, fetch(f, b, reg.R1))
 	end
 	state[a] = value
 end
 
 function ops.MOVE(f, pc, ins, state)
-	moveslot(f, pc, state, ins.a, ins.b)
+	moveslot(f, state, ins.a, ins.b)
 end
 
 function ops.LOADI(f, pc, ins, state)
@@ -361,8 +422,19 @@ end
 function ops.GETFIELD(f, pc, ins, state)
 	local key = tostring(constant(f, pc, ins.c))
 	local container = state[ins.b]
+	if container ~= nil and container.t == CTX then
+		return contextget(f, pc, ins, state, key)
+	end
 	local name = container ~= nil and container.name or "a table"
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, key, name), key)
+end
+
+function ops.SETFIELD(f, pc, ins, state)
+	local container = state[ins.a]
+	if container == nil or container.t ~= CTX then
+		refuse(f, pc, "a table cannot be written in a compiled function")
+	end
+	contextset(f, pc, ins, state, tostring(constant(f, pc, ins.b)))
 end
 
 function ops.GETI(f, pc, ins, state)
@@ -749,7 +821,7 @@ function ops.TESTSET(f, pc, ins, state)
 			reach(f, pc + 2, state)
 			return false
 		end
-		moveslot(f, pc, state, ins.a, ins.b)
+		moveslot(f, state, ins.a, ins.b)
 		local target = jumptarget(f, pc + 1)
 		f.code:jump(labelof(f, target))
 		reach(f, target, state)
@@ -996,7 +1068,6 @@ local refusals = {
 	SETTABUP = "a global cannot be assigned in a compiled function",
 	SETTABLE = "a table cannot be written in a compiled function",
 	SETI = "a table cannot be written in a compiled function",
-	SETFIELD = "a table cannot be written in a compiled function",
 	NEWTABLE = "a table constructor cannot run in the kernel; build it in the file body",
 	SETLIST = "a table constructor cannot run in the kernel; build it in the file body",
 	SELF = "a method call cannot be compiled",
@@ -1163,14 +1234,14 @@ end
 ---
 -- Compiles one program: its function, and every function that function reaches.
 -- @function luaebpf.emit.program
--- @tparam table program `{name, fn, default, drop, names}`
+-- @tparam table program `{name, fn, default, drop, names, context}`
 -- @treturn table the frames, the program's own first
 -- @raise `a program takes one argument, the context`, and `<file>:<line>: <reason>` for every
 --   construct the subset refuses
 function emit.program(program)
 	local unit = {
 		functions = {}, order = {}, lowering = {}, names = program.names or {},
-		default = program.default, drop = program.drop,
+		default = program.default, drop = program.drop, context = program.context,
 	}
 	local read = proto.read(program.fn)
 	if read.numparams > 1 then

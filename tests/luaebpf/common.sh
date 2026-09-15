@@ -64,18 +64,25 @@ luaebpf_verbose() {
 	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" type xdp 2>&1
 }
 
+# one program over the packet and the context the row named, or over the fourteen bytes
+# BPF_PROG_TEST_RUN demands of an XDP program where a row named none
 luaebpf_verdict() {
-	bpftool prog run pinned "$LUAEBPF_PINS/$1" data_in "$LUAEBPF_WORK/packet.bin" 2>&1 \
+	local name="$1" context="${2:-}" data="$LUAEBPF_WORK/packet.bin" args=()
+	if [ -n "$context" ]; then
+		data="$LUAEBPF_WORK/$context.bin"
+		args=(ctx_in "$LUAEBPF_WORK/$context.ctx")
+	fi
+	bpftool prog run pinned "$LUAEBPF_PINS/$name" data_in "$data" "${args[@]}" 2>&1 \
 		| grep -oP 'Return value: \K[0-9]+'
 }
 
 # every row of the oracle against the program of the same name; where the interpreter raised,
 # the compiled program owes the default verdict that row declared instead
 luaebpf_differential() {
-	local name value default got mismatch=0
-	while IFS=$'\t' read -r name value default; do
+	local name value default context got mismatch=0
+	while IFS=$'\t' read -r name value default context; do
 		[ "$value" = "raises" ] && value="$default"
-		got=$(luaebpf_verdict "$name")
+		got=$(luaebpf_verdict "$name" "$context")
 		if [ "$got" != "$value" ]; then
 			echo "$name: returned '$got', the interpreter says '$value'"
 			mismatch=$((mismatch + 1))
