@@ -165,6 +165,13 @@ interpreter raises, the compiled program owes its default verdict instead.
   `TEST`/`TESTSET`, a returned boolean, Lua's truth, where `0` is true, and
   `==` against `nil`, `true`, `false` and a captured string, which only the
   two types answer for once the compiler no longer holds the value.
+- **forconst**: a numeric `for` whose bounds the compiler proves: forward,
+  zero-trip, descending, a step above one, a negative start and a nested
+  pair, none of them taking a `may_goto`.
+- **forvar**: a numeric `for` whose bounds the program computes: it takes a
+  `may_goto` header, verifies and terminates; without the header the verifier
+  rejects it; a step that is zero at compile time is refused. On a kernel
+  below v6.9 the case asserts the compiler's refusal instead.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.

@@ -27,6 +27,7 @@ local ALU64 <const> = 0x07
 local DW    <const> = 0x18
 local MEM   <const> = 0x60
 local SRC_X <const> = 0x08
+local MAY_GOTO    <const> = 0
 local SIZE  <const> = 8
 
 -- string.pack's i4 takes a signed word; the halves of a 64-bit immediate are unsigned
@@ -171,6 +172,12 @@ end
 -- @function luaebpf.insn.code:jump
 function code:jump(label)
 	return append(self, {code = JMP | insn.jump.JA, dst = 0, src = 0, imm = 0, target = label})
+end
+
+--- The `may_goto` header that buys a loop the verifier cannot bound its iteration budget.
+-- @function luaebpf.insn.code:maygoto
+function code:maygoto(label)
+	return append(self, {code = JMP | insn.jump.JCOND, dst = 0, src = MAY_GOTO, imm = 0, target = label})
 end
 
 --- Returns from the function, with the value in `R0`.
