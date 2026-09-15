@@ -30,6 +30,7 @@ local NREGS    <const> = 4   -- Lua registers 0..3 live in r6..r9; the rest spil
 local FIRST    <const> = reg.R6
 local SLOT     <const> = 8
 local MAXSTACK <const> = 512 -- MAX_BPF_STACK
+local MAXARGS  <const> = 5   -- MAX_BPF_FUNC_REG_ARGS
 local NBITS    <const> = 64
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
@@ -232,7 +233,10 @@ local function labelof(f, pc)
 end
 
 -- the tail a program takes where the interpreter would raise
-local function abort(f, pc)
+local function abort(f, pc, what)
+	if not f.isprogram then
+		refuse(f, pc, "%s inside a called function cannot take the program's default verdict", what)
+	end
 	if f.aborted == nil then
 		f.aborted = f.code:label()
 	end
@@ -382,7 +386,7 @@ local function floordiv(f, pc)
 	local code = f.code
 	local negate, done = code:label(), code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc))
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc, "a division"))
 	end
 	code:branchi(jump.JEQ, reg.R2, -1, negate)
 	code:alu(alu.MOV, reg.R3, reg.R1)
@@ -406,7 +410,7 @@ local function floormod(f, pc)
 	local code = f.code
 	local zero, done = code:label(), code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc))
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc, "a division"))
 	end
 	code:branchi(jump.JEQ, reg.R2, -1, zero)
 	code:sdiv(alu.MOD, reg.R1, reg.R2)
@@ -829,7 +833,7 @@ local function counting(f, pc, ins, state, a)
 	into(f, pc, state, a + 1, reg.R2)
 	into(f, pc, state, a + 2, reg.R3)
 	if state[a + 2].k == nil then
-		code:branchi(jump.JEQ, reg.R3, 0, abort(f, pc))
+		code:branchi(jump.JEQ, reg.R3, 0, abort(f, pc, "a 'for' step"))
 	end
 	code:alu(alu.MOV, reg.R5, reg.R3)
 	code:branchi(jump.JSLT, reg.R3, 0, descending)
@@ -911,7 +915,7 @@ local function returns(f, pc, state, i)
 	if i == nil then
 		f.rettype = f.rettype | NIL
 		if not dropped then
-			f.code:set(reg.R0, f.default)
+			f.code:set(reg.R0, f.isprogram and f.default or 0)
 		end
 	else
 		f.rettype = f.rettype | state[i].t
@@ -936,6 +940,44 @@ end
 
 function ops.RETURN1(f, pc, ins, state)
 	return returns(f, pc, state, ins.a)
+end
+
+function ops.CALL(f, pc, ins, state)
+	local callee = state[ins.a]
+	if callee == nil or type(callee.k) ~= "function" then
+		refuse(f, pc, "a call through a value the compiler cannot resolve")
+	end
+	if getinfo(callee.k, "S").what == "C" then
+		refuse(f, pc, "'%s' is not a Lua function this program file declares", callee.name or "?")
+	end
+	if ins.b == 0 or ins.c == 0 then
+		refuse(f, pc, "a call with a variable number of values cannot be compiled")
+	end
+	local nargs = ins.b - 1
+	if nargs > MAXARGS then
+		refuse(f, pc, "a compiled function takes at most %d arguments, not %d", MAXARGS, nargs)
+	end
+	local params = {}
+	for i = 1, nargs do
+		if not isinteger(state[ins.a + i]) then
+			refuse(f, pc, "argument #%d is a %s, and a compiled call passes numbers",
+				i, typename(state[ins.a + i]))
+		end
+		params[i] = INT
+	end
+	local target = emit.subprogram(f, pc, callee.k, callee.name, params)
+	for i = 1, nargs do
+		into(f, pc, state, ins.a + i, reg.R0 + i)
+	end
+	f.code:call(target.name)
+	if ins.c > 1 then
+		setreg(f, ins.a, reg.R0)
+		state[ins.a] = {t = target.rettype}
+	end
+	-- a compiled function returns one value, so Lua fills every further result asked for with nil
+	for i = ins.a + 1, ins.a + ins.c - 2 do
+		resolve(f, pc, state, i, nil)
+	end
 end
 
 --- @section the walk
@@ -1052,10 +1094,10 @@ local function identifier(unit, name)
 	return unique
 end
 
-local function frame(unit, fn, name, params)
+local function frame(unit, fn, read, name, params, isprogram)
 	local f = {
-		fn = fn, proto = proto.read(fn), unit = unit, params = params, drop = unit.drop,
-		default = unit.default, name = identifier(unit, name),
+		fn = fn, proto = read, unit = unit, params = params, drop = unit.drop,
+		default = unit.default, isprogram = isprogram, name = identifier(unit, name),
 	}
 	f.chunk = f.proto.source:gsub("^@", "")
 	unit.lowering[fn] = true
@@ -1064,6 +1106,39 @@ local function frame(unit, fn, name, params)
 	emit.lower(f)
 	unit.lowering[fn] = nil
 	return f
+end
+
+---
+-- Compiles the function a call resolved to, once per program, as a BPF-to-BPF subprogram.
+-- @function luaebpf.emit.subprogram
+-- @tparam table f the calling frame
+-- @tparam integer pc the call site, for the message
+-- @tparam function fn the callee
+-- @tparam[opt] string name what the caller knows the callee as
+-- @tparam table params the type of each argument
+-- @treturn table the callee's frame
+-- @raise `recursion through '<name>'`, `'<name>' is called with <n> arguments and compiled
+--   with <m>`, or `'<name>' takes <n> arguments and is called with <m>`
+function emit.subprogram(f, pc, fn, name, params)
+	local unit = f.unit
+	if unit.lowering[fn] then
+		refuse(f, pc, "recursion through '%s'", name or "a function")
+	end
+	local compiled = unit.functions[fn]
+	if compiled ~= nil then
+		if #compiled.params ~= #params then
+			refuse(f, pc, "'%s' is called with %d arguments and compiled with %d",
+				compiled.name, #params, #compiled.params)
+		end
+		return compiled
+	end
+	local read = proto.read(fn)
+	-- without this the prologue reads a register the call never set, and the verifier names it
+	if read.numparams > #params then
+		refuse(f, pc, "'%s' takes %d arguments and is called with %d", name or "a function",
+			read.numparams, #params)
+	end
+	return frame(unit, fn, read, name, params, false)
 end
 
 ---
@@ -1083,7 +1158,7 @@ function emit.program(program)
 		error(format("%s:%d: a program takes one argument, the context",
 			(read.source:gsub("^@", "")), read.linedefined), 0)
 	end
-	frame(unit, program.fn, program.name, {CTX})
+	frame(unit, program.fn, read, program.name, {CTX}, true)
 	return unit.order
 end
 

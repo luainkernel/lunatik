@@ -170,8 +170,17 @@ interpreter raises, the compiled program owes its default verdict instead.
   pair, none of them taking a `may_goto`.
 - **forvar**: a numeric `for` whose bounds the program computes: it takes a
   `may_goto` header, verifies and terminates; without the header the verifier
-  rejects it; a step that is zero at compile time is refused. On a kernel
-  below v6.9 the case asserts the compiler's refusal instead.
+  rejects it; a step that is zero at compile time is refused, and so is one a
+  called function gets at run time, since only the program's own frame reaches
+  the hook. On a kernel below v6.9 the case asserts the compiler's refusal
+  instead.
+- **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
+  call, two levels, five arguments, a shared helper, the deepest chain
+  `MAX_CALL_FRAMES` takes, a call asking for two results, where Lua fills the
+  second with nil, and a body that spills to the frame; one static BTF `FUNC`
+  per subprogram; six arguments, a call short of an argument the callee
+  declares, a division, which only the program's own frame can answer for, and
+  recursion refused with their lines.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.

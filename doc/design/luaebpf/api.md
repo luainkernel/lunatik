@@ -94,8 +94,10 @@ type's safe answer (`PASS` for XDP, `ACT_OK` for TC), overridable in the constru
     return xdp.program(function(ctx) ... end, {default = action.DROP})
 
 Division by zero and every other check the interpreter would turn into an error take the same
-path. This is the compiled analogue of what the trampoline does today, where a raising callback
-makes the kfunc return `-1` and the stub falls back.
+path. Only the program's own frame can take it: a subprogram returns to its caller rather than to
+the hook, so until a phase gives it a way out, such a check inside a called function is refused.
+This is the compiled analogue of what the trampoline does today, where a raising callback makes
+the kfunc return `-1` and the stub falls back.
 
 TC programs get `skb`, a proxy over the `__sk_buff` fields (`hash`, `priority` writable,
 `ifindex`, `len`) and `skb:packet()`.

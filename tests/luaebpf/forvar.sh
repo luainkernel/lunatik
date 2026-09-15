@@ -10,7 +10,8 @@
 #   - a step that is zero at run time takes the default verdict, which the interpreter raises on
 #   - with LUAEBPF_DROP=maygoto the header is gone and the verifier rejects the loop, which is
 #     what proves the header is emitted
-#   - a step that is zero at compile time is refused with its message and line
+#   - a step that is zero at compile time is refused with its message and line, and so is one a
+#     called function gets at run time, since only the program's own frame reaches the hook
 # On a kernel without may_goto (below v6.9) the loop cannot be emitted at all, so the case skips
 # the load and asserts the compiler's refusal instead.
 #
@@ -23,7 +24,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 4
+luaebpf_start 5
 
 cat > "$LUAEBPF_WORK/zerostep.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
@@ -39,6 +40,27 @@ LUA
 output=$(luaebpf_refuses zerostep "zerostep.bpf.lua:5: 'for' step is zero") \
 	|| { comment "$output"; fail "luaebpf: a zero step is not refused"; }
 ktap_pass "luaebpf: a 'for' whose step is zero at compile time is refused with its line"
+
+cat > "$LUAEBPF_WORK/calledstep.bpf.lua" <<'LUA'
+local xdp = require("bpf.xdp")
+
+local function sum(step)
+	local s = 0
+	for i = 1, 10, step do
+		s = s + i
+	end
+	return s
+end
+
+return xdp.program(function(ctx)
+	local v = sum(2)
+	return v
+end)
+LUA
+message="a 'for' step inside a called function cannot take the program's default verdict"
+output=$(luaebpf_refuses calledstep "calledstep.bpf.lua:5: $message") \
+	|| { comment "$output"; fail "luaebpf: a run-time step in a called function is not refused"; }
+ktap_pass "luaebpf: a 'for' whose step a called function gets at run time is refused with its line"
 
 release=$(uname -r | cut -d. -f1,2)
 if [ "$(printf '%s\n6.9\n' "$release" | sort -V | head -1)" != "6.9" ]; then

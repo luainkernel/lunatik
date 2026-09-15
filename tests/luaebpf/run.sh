@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in host pass lineinfo arith divzero branch forconst forvar refuse; do
+for t in host pass lineinfo arith divzero branch forconst forvar call refuse; do
 	echo "${SEP}# --- $t.sh ---"
 	SEP=$'\n'
 	bash "$DIR/$t.sh" || FAILED=$((FAILED+1))

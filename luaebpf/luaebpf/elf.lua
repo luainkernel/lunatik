@@ -4,11 +4,11 @@
 --
 
 ---
--- The relocatable ELF object libbpf loads: its sections and its symbol table.
+-- The relocatable ELF object libbpf loads: sections, a symbol table and the call relocations.
 --
 -- One string table serves both the section names and the symbol names. A symbol table lists its
 -- local symbols first and says in `sh_info` where the global ones begin, so `symbol` refuses a
--- local added after a global rather than renumbering what already names one by index.
+-- local added after a global rather than renumbering what a relocation already names.
 -- @module luaebpf.elf
 
 local class = require("class")
@@ -20,15 +20,17 @@ local insert = table.insert
 local EHSIZE      <const> = 64
 local SHENTSIZE   <const> = 64
 local SYMSIZE     <const> = 24
+local RELSIZE     <const> = 16
 local EM_BPF      <const> = 247
 local ET_REL      <const> = 1
+local R_BPF_64_32 <const> = 10
 local STT_FUNC    <const> = 2
 
 local elf = {}
 
 --- Section types, as `SHT_*` names them.
 -- @table luaebpf.elf.section
-elf.section = {PROGBITS = 1, SYMTAB = 2, STRTAB = 3}
+elf.section = {PROGBITS = 1, SYMTAB = 2, STRTAB = 3, REL = 9}
 
 --- Section flags, as `SHF_*` names them.
 -- @table luaebpf.elf.flags
@@ -99,6 +101,21 @@ function object:symbol(symbol)
 	insert(self.symbols, pack("<I4I1I1I2I8I8", self:string(symbol.name),
 		(symbol.bind << 4) | STT_FUNC, 0, self.indexes[symbol.section], symbol.value, symbol.size))
 	return #self.symbols - 1
+end
+
+---
+-- A relocation section for the calls in `name`, each entry `{at, symbol}` with `at` a byte
+-- offset into the relocated section.
+-- @function luaebpf.elf.object:relocations
+-- @tparam string name the relocated section
+-- @tparam table entries
+function object:relocations(name, entries)
+	local records = {}
+	for _, entry in ipairs(entries) do
+		insert(records, pack("<I8I8", entry.at, (entry.symbol << 32) | R_BPF_64_32))
+	end
+	self:section{name = ".rel" .. name, type = elf.section.REL, flags = 0, data = concat(records),
+		link = ".symtab", info = name, align = 8, entsize = RELSIZE}
 end
 
 local function place(self)

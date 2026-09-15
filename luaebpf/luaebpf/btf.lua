@@ -28,13 +28,14 @@ local KIND_INT        <const> = 1
 local KIND_FUNC       <const> = 12
 local KIND_FUNC_PROTO <const> = 13
 local SIGNED          <const> = 1
+local STATIC          <const> = 0
 local GLOBAL          <const> = 1
 
 local btf = {}
 
 --- Function linkage, as `BTF_FUNC_*` names it.
 -- @table luaebpf.btf.linkage
-btf.linkage = {GLOBAL = GLOBAL}
+btf.linkage = {STATIC = STATIC, GLOBAL = GLOBAL}
 
 ---
 -- A BTF section under construction.

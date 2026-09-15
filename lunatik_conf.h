@@ -119,6 +119,10 @@ static inline void *lsys_load(lua_State *L, const char *symbol, int seeglb)
 int lunatikc_loadfile(lua_State *L, const char *filename, const char *mode);
 #define luaL_loadfilex(L,f,m)	lunatikc_loadfile((L),(f),(m))
 
+/* the translator descends the call graph of what it compiles, and the 200 slots above are a
+ * kernel stack budget the host does not share; ldo.c's own default applies instead */
+#undef LUAI_MAXSTACK
+
 #undef LUA_ROOT
 #define LUA_ROOT	"/lib/modules/lua/"
 

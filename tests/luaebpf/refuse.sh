@@ -28,7 +28,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-ROWS=26
+ROWS=29
 
 luaebpf_start $ROWS
 
@@ -65,12 +65,18 @@ row closure "closure.bpf.lua:5: a closure cannot be created in a compiled functi
 	$'\tlocal f = function() return 1 end\n\treturn f()'
 row vararg "vararg.bpf.lua:4: a vararg function cannot be compiled" \
 	$'\tlocal n = select("#", ...)\n\treturn n' '' '...'
+row pcall_ "pcall_.bpf.lua:5: 'pcall' is not a Lua function this program file declares" \
+	$'\tlocal ok = pcall(ctx)\n\treturn 0'
+row coroutine_ "coroutine_.bpf.lua:5: 'wrap' is not a Lua function this program file declares" \
+	$'\tlocal c = wrap(ctx)\n\treturn 0' 'local wrap = coroutine.wrap'
 row metatable "metatable.bpf.lua:5: a method call cannot be compiled" \
 	$'\tlocal v = proxy:get()\n\treturn v' 'local proxy = setmetatable({}, {__index = function() end})'
 row unknown_global "unknown_global.bpf.lua:5: global 'nowhere' is not a compile-time value" \
 	$'\treturn nowhere'
 row unknown_field "unknown_field.bpf.lua:5: 'action.TYPO' is not a compile-time value" \
 	$'\treturn action.TYPO' 'local action = require("linux.xdp")'
+row unknown_call "unknown_call.bpf.lua:5: a call through a value the compiler cannot resolve" \
+	$'\tlocal v = ctx(1)\n\treturn v'
 row context "context.bpf.lua:5: the program context cannot be read yet" \
 	$'\treturn ctx'
 row self_call "self_call.bpf.lua:5: a method call cannot be compiled" \
