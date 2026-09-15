@@ -21,8 +21,13 @@ jobs:
       # heuristics that nudge a review; they annotate the run and do not fail it
       run: |
         files=$(git diff --cached --name-only --diff-filter=ACM)
-        for check in module-conventions comment-style shadowed-readers test-harness cppcheck-tests rename-orphaned; do
+        for check in module-conventions comment-style shadowed-readers blast-radius examples-touched test-harness cppcheck-tests rename-orphaned; do
           out=$(bash "tools/checks/$check.sh" $files 2>&1) || true
           test -n "$out" && echo "::warning title=$check::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
+        done
+        # core-subject reads commits: the staged diff above is the whole pull request
+        for commit in $(git rev-list "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"); do
+          out=$(bash tools/checks/core-subject.sh "$commit" 2>&1) || true
+          test -n "$out" && echo "::warning title=core-subject::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
         done
         true
