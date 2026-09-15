@@ -82,7 +82,7 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 	if (keylen >= LUARCU_MAXKEY || (entry = kmalloc(struct_size(entry, key, keylen + 1), GFP_ATOMIC)) == NULL)
 		return NULL;
 
-	strncpy(entry->key, key, keylen);
+	memcpy(entry->key, key, keylen);
 	entry->key[keylen] = '\0';
 	entry->value = *value;
 	if (lunatik_isuserdata(value))
@@ -258,8 +258,7 @@ static int luarcu_map(lua_State *L)
 	luarcu_foreach(table, bucket, n, entry) {
 		char key[LUARCU_MAXKEY];
 
-		strncpy(key, entry->key, LUARCU_MAXKEY);
-		key[LUARCU_MAXKEY - 1] = '\0';
+		strscpy(key, entry->key, LUARCU_MAXKEY);
 		lunatik_value_t value = entry->value;
 		if (lunatik_isuserdata(&value))
 			lunatik_getobject(value.object);
