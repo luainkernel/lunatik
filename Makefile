@@ -17,6 +17,8 @@ INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
 
 LUA ?= lua5.4
 LUA_PATH ?= $(shell $(LUA) -e 'print(package.path:match("([^;]*)/%?%.lua;"))')
+LUA_CPATH ?= $(shell $(LUA) -e 'print(package.cpath:match("([^;]*)/%?%.so;"))')
+LUA_CFLAGS ?= $(shell pkg-config --cflags $(LUA))
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
@@ -36,6 +38,11 @@ LUNATIKC_CORE := lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem lobject 
 	lbaselib lcorolib ldblib lstrlib ltablib lutf8lib lmathlib liolib linit loadlib
 LUNATIKC_SRCS := ${LUNATIKC}.c ${LUNATIKC}_proto.c $(addprefix lua/,$(addsuffix .c,$(LUNATIKC_CORE)))
 LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
+
+# the CLI's loader: a C module for the distribution's Lua, not the kernel's, so it takes the
+# host headers and links libbpf rather than lua/
+LOADER := bin/loader.so
+LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared ${LUA_CFLAGS}
 
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
 ifeq ($(BYTECODE),1)
@@ -84,17 +91,20 @@ AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 	tests_install tests_uninstall \
 	ebpf ebpf_install ebpf_uninstall
 
-all: lunatik_sym.h autogen ${LUNATIKC}
+all: lunatik_sym.h autogen ${LUNATIKC} ${LOADER}
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
 
 ${LUNATIKC}: ${LUNATIKC_SRCS} lunatik_conf.h
 	${HOSTCC} ${LUNATIKC_CFLAGS} -o $@ ${LUNATIKC_SRCS} -lm
 
+${LOADER}: bin/loader.c
+	${HOSTCC} ${LOADER_CFLAGS} -o $@ $< -lbpf
+
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD}/autogen clean
 	${MAKE} -C examples/filter clean
-	${RM} lunatik_sym.h ${LUNATIKC}
+	${RM} lunatik_sym.h ${LUNATIKC} ${LOADER}
 	${RM} -r lib/linux
 	${RM} autogen/lunatik/*.lua autogen/linux/*.lua \
 		autogen/dump_*.c autogen/dump_*.pp \
@@ -137,6 +147,7 @@ scripts_install:
 	${LN} ${SCRIPTS_INSTALL_PATH}/lunatik/config.lua ${LUA_PATH}/lunatik/config.lua
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 	${INSTALL} -D -m 0755 ${LUNATIKC} ${LUNATIK_INSTALL_PATH}/lunatikc
+	${INSTALL} -D -m 0755 ${LOADER} ${LUA_CPATH}/lunatik/loader.so
 	${MKDIR} ${LUAEBPF_INSTALL_PATH} ${LUAEBPF_INSTALL_PATH}/luaebpf ${LUAEBPF_INSTALL_PATH}/bpf
 	# the compiler's own library stays source: BYTECODE=1 strips, and a stripped compiler
 	# reports its refusals as "?:?:"
@@ -162,7 +173,7 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik ${LUNATIK_INSTALL_PATH}/lunatikc
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
-	${RM} -r ${LUA_PATH}/lunatik
+	${RM} -r ${LUA_PATH}/lunatik ${LUA_CPATH}/lunatik
 
 ebpf:
 	${MAKE} -C examples/filter

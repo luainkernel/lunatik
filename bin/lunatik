@@ -137,16 +137,177 @@ local function fallback_reader(prompt)
 	return io.read("l")
 end
 
+-- a run argument is the execution context, "percpu", or a deployment target the compiled
+-- program asks for, as `dev=eth0`
 local function options(...)
-	local context, percpu
+	local context, percpu, targets = nil, nil, {}
 	for _, opt in ipairs({...}) do
-		if opt == "percpu" then
+		local key, value = opt:match("^([%a_][%w_]*)=(.*)$")
+		if key ~= nil then
+			targets[key] = value
+		elseif opt == "percpu" then
 			percpu = true
 		else
 			context = opt
 		end
 	end
-	return context, percpu
+	return context, percpu, targets
+end
+
+local scripts_path = "/lib/modules/lua"
+local pins_path    = "/sys/fs/bpf/lunatik"
+
+-- a script name reaches the shell from here on, and it comes from the command line
+local function quote(path)
+	return "'" .. path:gsub("'", [['\'']]) .. "'"
+end
+
+local function exists(path)
+	return os.execute("[ -e " .. quote(path) .. " ]")
+end
+
+local function die(message)
+	io.stderr:write("lunatik: " .. message .. "\n")
+	os.exit(false)
+end
+
+local function check(value, err)
+	if value == nil then die(err) end
+	return value
+end
+
+-- the runner registers a script under its name with ".lua" dropped, so every path the CLI derives
+-- from one is derived from that name too, or a stop misses the root its run made
+local function trim(script)
+	return (script:gsub("%.lua$", ""))
+end
+
+-- the pin root of a script: its name becomes a path here, and the CLI removes what that names,
+-- so anything but a plain relative path gets no root rather than a quoted one
+local function rootpath(script)
+	if not script:match("^%w[%w%.%-_/]*$") or script:find("%.%.") ~= nil then
+		return nil, string.format("'%s' is not a script name", script)
+	end
+	return string.format("%s/%s", pins_path, script)
+end
+
+local function command(token, script, context, percpu)
+	local ret   = token == "list" and "return" or ""
+	local chunk = string.format("%s lunatik.runner.%s(%q, %s, %s)", ret, token, script,
+		context and string.format("%q", context) or "nil", percpu and "true" or "nil")
+	return dostring(chunk)
+end
+
+local function running(script)
+	for name in command("list"):gmatch("[^,%s]+") do
+		if name == script then return true end
+	end
+	return false
+end
+
+-- what the object asks the command line for, and nothing else; an unrecognized key is named
+-- first, since a misspelled one would otherwise be reported as the target it meant to supply
+local function checktargets(subject, targets, declared)
+	local asked = {}
+	for _, target in ipairs(declared) do
+		asked[target] = true
+	end
+	for key in pairs(targets) do
+		if not asked[key] then
+			die(string.format("%s takes no '%s'", subject, key))
+		end
+	end
+	for _, target in ipairs(declared) do
+		if targets[target] == nil then
+			die(string.format("%s needs %s=<value>", subject, target))
+		end
+	end
+end
+
+-- unpinning through the loader detaches in the call; dropping the pin alone only schedules it
+local function unpinlinks(root)
+	if not exists(root) then return end
+	local loader = require("lunatik.loader")
+	local failure
+	for link in readall(io.popen("ls " .. quote(root) .. "/*-link 2>/dev/null")):gmatch("%S+") do
+		local unpinned, err = loader.unpin(link)
+		if not unpinned then failure = failure or err end
+	end
+	return failure
+end
+
+-- a root holds pins and nothing else, so this leaves a path that merely parents other scripts' roots
+local function removeroot(root)
+	os.execute("rm -f " .. quote(root) .. "/* 2>/dev/null")
+	os.execute("rmdir " .. quote(root) .. " 2>/dev/null")
+end
+
+local function undo(script, root, started, message)
+	if started then
+		command("stop", script)
+	end
+	removeroot(root)
+	die(message)
+end
+
+-- the maps are pinned before the runtime starts, so the kernel script opens them, and the
+-- programs attach after it, so the first packet finds a callback
+local function run(script, context, percpu, targets)
+	local script = trim(script)
+	local object = string.format("%s/%s.bpf.o", scripts_path, script)
+	if not exists(object) then
+		checktargets(script, targets, {})
+		print(command("run", script, context, percpu))
+		return
+	end
+
+	local loader   = require("lunatik.loader")
+	local program  = check(loader.open(object))
+	local declared = check(program:targets())
+	local scripted = exists(string.format("%s/%s.lua", scripts_path, script))
+	local root     = check(rootpath(script))
+
+	checktargets(script, targets, declared)
+	if not scripted and (context ~= nil or percpu) then
+		die(string.format("%s has no kernel script for '%s'", script, context or "percpu"))
+	end
+
+	-- the runtime refuses this run anyway, and the root below is the live run's
+	if running(script) then
+		die(string.format("%s is already running", script))
+	end
+
+	-- a previous run's maps would be adopted by this load, and its links still hold the device
+	local failure = unpinlinks(root)
+	removeroot(root)
+	if failure then die(failure) end
+	os.execute("mkdir -p " .. quote(root))
+
+	local loaded, rejection = program:load(root)
+	if not loaded then
+		undo(script, root, false, rejection)
+	end
+	if scripted then
+		local result = command("run", script, context, percpu)
+		if result ~= "" then
+			undo(script, root, false, result)
+		end
+	end
+	local attached, reason = program:attach(root, targets.dev)
+	if not attached then
+		undo(script, root, scripted, reason)
+	end
+end
+
+-- the link pins go first, which detaches, then the runtime, then the maps with the root; a name
+-- no root can be derived from has none to take down, and the runtime is stopped all the same
+local function stop(script)
+	local script = trim(script)
+	local root = rootpath(script)
+	local failure = root and unpinlinks(root)
+	print(command("stop", script))
+	if root then removeroot(root) end
+	if failure then die(failure) end
 end
 
 local function try_as_expr(chunk)
@@ -200,11 +361,17 @@ if #arg >= 1 then
 		os.exit(false)
 	end
 	ensure_loaded()
-	local context, percpu = options(arg[3], arg[4])
-	local ret   = token == "list" and "return" or ""
-	local chunk = string.format("%s lunatik.runner.%s(%q, %s, %s)", ret, token, script,
-		context and string.format("%q", context) or "nil", percpu and "true" or "nil")
-	print(dostring(chunk))
+	local context, percpu, targets = options(table.unpack(arg, 3))
+	if token == "run" then
+		run(script, context, percpu, targets)
+	else
+		checktargets(script or token, targets, {})
+		if token == "stop" then
+			stop(script)
+		else
+			print(command(token, script, context, percpu))
+		end
+	end
 	os.exit()
 end
 

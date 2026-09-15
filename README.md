@@ -40,13 +40,13 @@ device.new(driver)
 Install dependencies (here for Debian/Ubuntu, to be adapted to one's distribution):
 
 ```sh
-sudo apt install git build-essential lua5.4 dwarves clang llvm libelf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
+sudo apt install git build-essential lua5.4 liblua5.4-dev dwarves clang llvm libelf-dev libbpf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
 ```
 
 Install dependencies (here for Arch Linux):
 
 ```sh
-sudo pacman -S git lua clang llvm m4 libpcap pkg-config build2 linux-tools linux-headers
+sudo pacman -S git lua clang llvm m4 libbpf libpcap pkg-config build2 linux-tools linux-headers
 ```
 
 The `lua-readline` package is optional. When installed, the REPL gains line editing and command history:
@@ -86,7 +86,7 @@ Lunatik 4.4  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 ### lunatik
 
 ```Shell
-usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu]
+usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu] [key=value ...]
 ```
 
 * `load`: load Lunatik kernel modules
@@ -95,10 +95,45 @@ usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [
 * `status`: show which Lunatik kernel modules are currently loaded
 * `test [suite]`: run installed test suites (see [Testing](#testing))
 * `list`: show which runtime environments are currently running
-* `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [percpu scripts](#percpu-scripts)
+* `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [percpu scripts](#percpu-scripts). A `key=value` argument names where a compiled program attaches: see [compiled programs](#compiled-programs)
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
-* `stop`: stop the runtime environment created to run the script `<script>`
+* `stop`: stop the runtime environment created to run the script `<script>`, and take down the compiled programs it loaded
 * `default`: start a _REPL (Read–Eval–Print Loop)_
+
+### compiled programs
+
+When `/lib/modules/lua/<script>.bpf.o` exists — the object compiled from `<script>.bpf.lua`, see
+[lunatikc](#lunatikc) — `lunatik run <script>` loads it, in this order:
+
+1. creates `/sys/fs/bpf/lunatik/<script>/`, taking down what a previous run left there — a link it
+   still holds is detached, not merely unlinked — and creates the maps the program file declares,
+   pinning each at `/sys/fs/bpf/lunatik/<script>/<name>`;
+2. starts the runtime for `<script>.lua`, if there is one, so the kernel script opens those maps by
+   that path;
+3. attaches every program the object declares and pins each link at
+   `/sys/fs/bpf/lunatik/<script>/<program>-link`, which is what keeps it attached once the command
+   has exited. The suffix is a hyphen because bpffs reserves a dot in a pin name, and a map name is
+   a C identifier, so the two cannot collide.
+
+The maps therefore exist before the script opens them, and the programs attach after the runtime is
+up, so the first packet finds a callback if the program calls one. A failure at any step undoes what
+the run made and exits non-zero, printing the verifier's log when the load is what failed.
+`lunatik stop <script>` runs it backwards: unpin the links, which detaches, stop the runtime, unpin
+the maps, and remove the root. A root holds pins and nothing else, so a teardown takes down the pins
+it finds and the directory holding them: a name that merely parents other scripts' roots, `tests`
+while `tests/xdp/filter` is deployed, is left as it was. A run of a script that is already running
+is refused before any of this, so the live deployment stays as it is.
+
+The program type and the hook come from the program file; the interface comes from the command line,
+as `dev=<ifname>`, which an XDP or TC program needs:
+
+```Shell
+sudo lunatik run filter softirq dev=eth0
+sudo lunatik stop filter
+```
+
+A script with an object and no `<script>.lua` runs the program alone, with no runtime, and takes no
+execution context; with no runtime to refuse it, a second run of such a script redeploys it.
 
 ### percpu scripts
 
@@ -164,8 +199,12 @@ can check. Anything outside it is an error naming the Lua file and line, and no 
 
 ```Shell
 lunatikc bpf filter.bpf.lua
-sudo bpftool prog load filter.bpf.o /sys/fs/bpf/filter type xdp
+sudo cp filter.bpf.o /lib/modules/lua/
+sudo lunatik run filter dev=eth0
 ```
+
+The object installs beside the script it belongs to, and `lunatik run` is what loads and attaches
+it: see [compiled programs](#compiled-programs).
 
 The compile-time modules, searched under `/lib/modules/lua/luaebpf/` and distinct from the kernel
 modules below:
