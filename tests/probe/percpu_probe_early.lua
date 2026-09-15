@@ -10,7 +10,7 @@ local systab  = require("syscall.table")
 
 local SPIN <const> = 100000000
 
-local cpu = lunatik.cpu()
+local cpu = lunatik.cpu() or "plain"
 
 local function count()
 	print("percpu probe early: cpu " .. tostring(cpu))
