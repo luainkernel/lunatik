@@ -182,6 +182,12 @@ interpreter raises, the compiled program owes its default verdict instead.
   one static BTF `FUNC` per subprogram; five arguments, since the fifth
   register carries the abort pointer, a call short of an argument the callee
   declares, and recursion refused with their lines.
+- **btfview**: `luaebpf.vmlinux` against `bpftool btf dump file
+  /sys/kernel/btf/vmlinux format raw`: the size of `xdp_md` and `__sk_buff` and
+  the byte offset and four-byte width of every field the context proxies
+  expose, `iphdr`'s whole-byte members, its bitfields and its anonymous union
+  absent from the layout though the dump names them, and a struct the kernel
+  does not publish raising a message that names it.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.

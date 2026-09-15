@@ -36,6 +36,7 @@ file = {
 	'./lib/lualinux.c',
 	'./lib/linux',
 	'./luaebpf/luaebpf.lua',
+	'./luaebpf/luaebpf/vmlinux.lua',
 	'./lunatik_core.c',
 	'./lunatik_percpu.c',
 	'./lib/lunatik/runner.lua',

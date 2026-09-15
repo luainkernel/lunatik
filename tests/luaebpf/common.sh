@@ -23,6 +23,7 @@ luaebpf_reason() {
 	command -v lunatikc >/dev/null || { echo "lunatikc is not installed; run make install"; return; }
 	command -v bpftool  >/dev/null || { echo "bpftool is not installed"; return; }
 	mountpoint -q /sys/fs/bpf      || { echo "/sys/fs/bpf is not mounted"; return; }
+	[ -r /sys/kernel/btf/vmlinux ] || { echo "the kernel publishes no BTF"; return; }
 	[ -r "$LUAEBPF_SRC/pass.bpf.lua" ] || { echo "the program files are not installed"; return; }
 }
 

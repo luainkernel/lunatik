@@ -94,7 +94,7 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 | `mapget.sh` | a map seeded by `bpftool map update` decides the verdict; a missing key is `nil` and an untested use is refused at compile time |
 | `mapset.sh` | an update and a `nil` delete from the program are visible to `bpftool map lookup` |
 | `struct.sh` | a `struct` value spec yields field access with the right offsets and widths |
-| `btfview.sh` | a kernel struct view reads a field at the offset `bpftool btf dump` reports |
+| `btfview.sh` | `luaebpf.vmlinux` reports a kernel struct's size and its members' byte offsets as `bpftool btf dump` does, and drops the bitfields and unions a layout cannot describe |
 
 ### Phase 3: the loader
 
