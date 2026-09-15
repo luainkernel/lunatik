@@ -48,14 +48,14 @@ local function handle(session)
 			if assign ~= "" then
 				local slot
 				if value ~= "" then
-					slot = shared[key] or data.new(size)
+					slot = data.new(#value)
 					slot:setstring(0, value)
 				end
 
 				shared[key] = slot
 			else
 				local slot = shared[key]
-				local reply = slot and slot:getstring(0, size) or ""
+				local reply = slot and slot:getstring(0) or ""
 				session:send(reply .. "\n")
 			end
 		end

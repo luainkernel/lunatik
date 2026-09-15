@@ -18,7 +18,7 @@ local LIMIT   <const> = 4096
 
 local timeval = struct(sk.layout.timeval)
 local cases = {}
-local order = {"unset", "removed"}
+local order = {"unset", "removed", "value", "rewrite"}
 
 local function connect()
 	local client = socket.new(sk.af.INET, sk.sock.STREAM, sk.ipproto.TCP)
@@ -53,6 +53,19 @@ function cases.removed()
 	set("rm=")
 	local reply = get("rm")
 	assert(reply == "\n", format("expected an empty line, got %d bytes", #reply))
+end
+
+function cases.value()
+	set("foo=bar")
+	local reply = get("foo")
+	assert(reply == "bar\n", format("expected the value and nothing else, got %d bytes", #reply))
+end
+
+function cases.rewrite()
+	set("big=barbecue")
+	set("big=bar")
+	local reply = get("big")
+	assert(reply == "bar\n", format("expected the shorter value alone, got %d bytes", #reply))
 end
 
 for _, name in ipairs(order) do
