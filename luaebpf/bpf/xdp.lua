@@ -12,6 +12,9 @@
 --
 -- The program reads `ctx.ingress_ifindex` and `ctx.rx_queue_index`; XDP publishes no writable
 -- field, and `ctx.data`/`ctx.data_end` are the packet's bounds rather than numbers.
+--
+-- `runtime(name)` is the escape hatch: a callable the program hands numbers to, which becomes a
+-- call into the kernel Lua runtime of that name.
 -- @module bpf.xdp
 -- @usage
 -- local xdp    = require("bpf.xdp")
@@ -22,10 +25,15 @@
 -- end, {default = action.PASS})
 
 local programs = require("luaebpf.programs")
+local runtimes = require("luaebpf.runtimes")
 local action   = require("linux.xdp")
 
 -- libbpf reads the program type back from the ELF section name (tools/lib/bpf/libbpf.c)
 local SECTION <const> = "xdp"
+
+-- the kfunc lib/luaxdp.c publishes for an XDP program, which libbpf resolves against the
+-- module's own BTF
+local KFUNC <const> = "bpf_luaxdp_run"
 
 -- what a program may read on its context, and the two members that are packet bounds rather
 -- than numbers. Nothing is writable: xdp_is_valid_access refuses a write unless the program is
@@ -58,7 +66,30 @@ function xdp.program(fn, opts)
 		error("xdp.program's default verdict is not a number", 2)
 	end
 	return programs.declare{section = SECTION, fn = fn, default = default, name = opts.name,
-		context = context}
+		context = context, kfunc = KFUNC}
+end
+
+---
+-- Declares the kernel Lua runtime a compiled function calls.
+--
+-- Inside a compiled function the value this returns is a callable: `runtime(a, b)` hands the
+-- runtime's callback each argument as a native 64-bit integer, in order, readable there as
+-- `ctx:argument():getint64(0)` and its successors, and answers the verdict the callback set, or
+-- `nil` where no runtime of that name could be dispatched. A program must test that answer
+-- before reading it as a number.
+-- @function bpf.xdp.runtime
+-- @tparam[opt] string name the key the runtime is registered under; by default the script the
+--   program file belongs to, which is its path below `/lib/modules/lua/` without the `.bpf.lua`
+--   suffix.
+-- @treturn table the callable
+-- @raise `xdp.runtime takes a name`
+-- @usage
+-- local lua = xdp.runtime()
+function xdp.runtime(name)
+	if name ~= nil and type(name) ~= "string" then
+		error("xdp.runtime takes a name", 2)
+	end
+	return runtimes.declare{key = name}
 end
 
 return xdp

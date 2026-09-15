@@ -40,7 +40,11 @@ elf.bind = {LOCAL = 0, GLOBAL = 1}
 
 --- Symbol types, as `STT_*` names them.
 -- @table luaebpf.elf.type
-elf.type = {OBJECT = 1, FUNC = 2}
+elf.type = {NOTYPE = 0, OBJECT = 1, FUNC = 2}
+
+--- The section an undefined symbol names, which is the null section at index 0.
+-- @field luaebpf.elf.UNDEF
+elf.UNDEF = ""
 
 --- Relocation types: `IMM64` is `R_BPF_64_64`, which patches the immediate of an `ld_imm64`,
 -- and `IMM32` is `R_BPF_64_32`, which patches a 32-bit one.
@@ -57,7 +61,7 @@ local object = class{}
 -- @function luaebpf.elf.new
 -- @treturn luaebpf.elf.object
 function elf.new()
-	return object:new{sections = {{name = "", data = ""}}, indexes = {}, nlocals = 1,
+	return object:new{sections = {{name = "", data = ""}}, indexes = {[elf.UNDEF] = 0}, nlocals = 1,
 		symbols = {pack("<I4I1I1I2I8I8", 0, 0, 0, 0, 0, 0)}, strings = {"\0"},
 		offsets = {[""] = 0}, length = 1}
 end
