@@ -220,6 +220,38 @@ local function abort(f, pc)
 	return f.aborted
 end
 
+local function jumptarget(f, pc)
+	local ins = f.proto.code[pc]
+	if ins == nil or ins.op ~= opcodes.JMP then
+		refuse(f, pc - 1, "a test is not followed by a jump")
+	end
+	local target = pc + ins.sj + 1
+	if target <= pc then
+		refuse(f, pc, "'while' and 'repeat' are not compiled yet")
+	end
+	return target
+end
+
+-- a test whose outcome the types already decide is the jump, or nothing at all
+local function settled(f, pc, state, taken)
+	if not taken then
+		reach(f, pc + 2, state)
+		return false
+	end
+	local target = jumptarget(f, pc + 1)
+	f.code:jump(labelof(f, target))
+	reach(f, target, state)
+	return false
+end
+
+local function testjump(f, pc, state, op, dst, src)
+	local target = jumptarget(f, pc + 1)
+	f.code:branch(op, dst, src, labelof(f, target))
+	reach(f, target, state)
+	reach(f, pc + 2, state)
+	return false
+end
+
 --- @section loads
 
 local ops = {}
@@ -521,11 +553,201 @@ function ops.BNOT(f, pc, ins, state)
 	state[ins.a] = {t = INT}
 end
 
+-- the truth of a register as Lua reads it: 0 is true, and only false and nil are not. nil when
+-- the types leave it to a test at run time.
+local function truth(f, pc, state, i)
+	local value = state[i]
+	local mask = value ~= nil and value.t or 0
+	if mask == INT then
+		return true
+	end
+	if mask == NIL then
+		return false
+	end
+	if mask == 0 or (mask & ~(BOOL | NIL)) ~= 0 then
+		refuse(f, pc, "a %s has no truth value in a compiled function", typename(value))
+	end
+	return nil
+end
+
+function ops.NOT(f, pc, ins, state)
+	local known = truth(f, pc, state, ins.b)
+	if known ~= nil then
+		resolve(f, pc, state, ins.a, not known)
+		return
+	end
+	local one, done = f.code:label(), f.code:label()
+	into(f, pc, state, ins.b, reg.R1)
+	f.code:branchi(jump.JEQ, reg.R1, 0, one)
+	f.code:set(reg.R2, 0)
+	f.code:jump(done)
+	f.code:place(one)
+	f.code:set(reg.R2, 1)
+	f.code:place(done)
+	setreg(f, ins.a, reg.R2)
+	state[ins.a] = {t = BOOL}
+end
+
 -- the metamethod opcode, which the VM skips when both operands were numbers; 'numbers' reads
 -- them where they are still live, since the opcode before this one writes over one of them
 local function skipped() end
 
 ops.MMBIN, ops.MMBINI, ops.MMBINK = skipped, skipped, skipped
+
+--- @section comparisons and branches
+
+local relations = {
+	EQ = {[true] = jump.JEQ, [false] = jump.JNE},
+	LT = {[true] = jump.JSLT, [false] = jump.JSGE},
+	LE = {[true] = jump.JSLE, [false] = jump.JSGT},
+	GT = {[true] = jump.JSGT, [false] = jump.JSLE},
+	GE = {[true] = jump.JSGE, [false] = jump.JSLT},
+}
+
+local function ordered(f, pc, relation, a, b)
+	if relation == "EQ" then
+		return
+	end
+	if not isinteger(a) or not isinteger(b) then
+		refuse(f, pc, "attempt to compare a %s with a %s", typename(a), typename(b))
+	end
+end
+
+-- whether the type names one Lua type. A join widens a register to several, and the bits say
+-- which for none of them: false, nil and the integer zero are one word.
+local function exact(value)
+	local mask = value ~= nil and value.t or 0
+	return mask ~= 0 and (mask & (mask - 1)) == 0
+end
+
+-- whether the compiler holds the value itself, rather than the register
+local function held(value)
+	return value ~= nil and (value.k ~= nil or value.t == NIL)
+end
+
+-- the type mask of a bytecode constant
+local function typeof(value)
+	local kind = type(value)
+	if kind == "number" then
+		return INT
+	end
+	if kind == "boolean" then
+		return BOOL
+	end
+	if value == nil then
+		return NIL
+	end
+	return OTHER
+end
+
+local function undecidable(f, pc, a, b)
+	refuse(f, pc, "a %s cannot be compared with a %s here", typename(a), typename(b))
+end
+
+-- the answer Lua's '==' is pinned to, and nil where the registers carry it
+local function equality(f, pc, a, b)
+	if exact(a) and exact(b) then
+		if a.t ~= b.t then
+			return false -- Lua's '==' is false across types
+		end
+		if a.t == INT or a.t == BOOL then
+			return nil
+		end
+	end
+	if held(a) and held(b) then
+		return a.k == b.k
+	end
+	undecidable(f, pc, a, b)
+end
+
+local function compare(f, pc, ins, state, relation, b)
+	local a = state[ins.a]
+	ordered(f, pc, relation, a, b)
+	if relation == "EQ" then
+		local answer = equality(f, pc, a, b)
+		if answer ~= nil then
+			return settled(f, pc, state, answer == ins.k)
+		end
+	end
+	into(f, pc, state, ins.a, reg.R1)
+	return testjump(f, pc, state, relations[relation][ins.k], reg.R1, getreg(f, pc, state, ins.b, reg.R2))
+end
+
+function ops.EQ(f, pc, ins, state) return compare(f, pc, ins, state, "EQ", state[ins.b]) end
+function ops.LT(f, pc, ins, state) return compare(f, pc, ins, state, "LT", state[ins.b]) end
+function ops.LE(f, pc, ins, state) return compare(f, pc, ins, state, "LE", state[ins.b]) end
+
+local function compareconst(f, pc, ins, state, relation, value)
+	local a, b = state[ins.a], {t = typeof(value), k = value}
+	ordered(f, pc, relation, a, b)
+	if relation == "EQ" then
+		local answer = equality(f, pc, a, b)
+		if answer ~= nil then
+			return settled(f, pc, state, answer == ins.k)
+		end
+	end
+	local operand = value
+	if b.t == BOOL then -- the register carries the 1 or 0 'resolve' stored for it
+		operand = value and 1 or 0
+	end
+	into(f, pc, state, ins.a, reg.R1)
+	f.code:set(reg.R2, operand)
+	return testjump(f, pc, state, relations[relation][ins.k], reg.R1, reg.R2)
+end
+
+function ops.EQI(f, pc, ins, state) return compareconst(f, pc, ins, state, "EQ", ins.sb) end
+function ops.LTI(f, pc, ins, state) return compareconst(f, pc, ins, state, "LT", ins.sb) end
+function ops.LEI(f, pc, ins, state) return compareconst(f, pc, ins, state, "LE", ins.sb) end
+function ops.GTI(f, pc, ins, state) return compareconst(f, pc, ins, state, "GT", ins.sb) end
+function ops.GEI(f, pc, ins, state) return compareconst(f, pc, ins, state, "GE", ins.sb) end
+
+function ops.EQK(f, pc, ins, state)
+	return compareconst(f, pc, ins, state, "EQ", constant(f, pc, ins.b))
+end
+
+function ops.TEST(f, pc, ins, state)
+	local known = truth(f, pc, state, ins.a)
+	if known ~= nil then
+		return settled(f, pc, state, known == ins.k)
+	end
+	into(f, pc, state, ins.a, reg.R1)
+	f.code:set(reg.R2, 0)
+	return testjump(f, pc, state, relations.EQ[not ins.k], reg.R1, reg.R2)
+end
+
+function ops.TESTSET(f, pc, ins, state)
+	local known = truth(f, pc, state, ins.b)
+	if known ~= nil then
+		if known ~= ins.k then
+			reach(f, pc + 2, state)
+			return false
+		end
+		moveslot(f, pc, state, ins.a, ins.b)
+		local target = jumptarget(f, pc + 1)
+		f.code:jump(labelof(f, target))
+		reach(f, target, state)
+		return false
+	end
+	local skip = f.code:label()
+	into(f, pc, state, ins.b, reg.R1)
+	f.code:branchi(ins.k and jump.JEQ or jump.JNE, reg.R1, 0, skip)
+	local taken = copy(state)
+	setreg(f, ins.a, reg.R1)
+	taken[ins.a] = state[ins.b]
+	local target = jumptarget(f, pc + 1)
+	f.code:jump(labelof(f, target))
+	f.code:place(skip)
+	reach(f, target, taken)
+	reach(f, pc + 2, state)
+	return false
+end
+
+function ops.JMP(f, pc, ins, state)
+	local target = jumptarget(f, pc)
+	f.code:jump(labelof(f, target))
+	reach(f, target, state)
+	return false
+end
 
 --- @section calls and returns
 

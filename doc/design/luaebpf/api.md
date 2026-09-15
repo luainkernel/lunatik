@@ -66,8 +66,9 @@ A compiled function is Lua where every value has a type the translator can prove
 Everything else is a compile error naming the line: runtime tables and strings, closures created
 at runtime, varargs, `pcall`, coroutines, metatables other than the proxies', a global that is
 not one of the compile-time modules, a call through a value the translator cannot resolve, a tail
-call, and a boolean or a `nil` where arithmetic requires a number. Refusing is the normal
-outcome; the message says which line and why, in one line:
+call, a boolean or a `nil` where arithmetic requires a number, and an `==` between values whose
+types the translator cannot pin, since a register carries `false`, `nil` and `0` as one word.
+Refusing is the normal outcome; the message says which line and why, in one line:
 
     sni.bpf.lua:31: 'host' may be nil here; test it first
     sni.bpf.lua:40: recursion through 'walk'

@@ -160,9 +160,16 @@ interpreter raises, the compiled program owes its default verdict instead.
   computes, take the default verdict; `mininteger // -1` and `x % -1` match
   the interpreter; with `LUAEBPF_DROP=divisor` the raw eBPF answers come
   through instead.
+- **branch**: every comparison in its register and immediate forms with a
+  negative against a positive, `if`/`elseif`/`else`, `and`, `or`, `not`,
+  `TEST`/`TESTSET`, a returned boolean, Lua's truth, where `0` is true, and
+  `==` against `nil`, `true`, `false` and a captured string, which only the
+  two types answer for once the compiler no longer holds the value.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
-  on no object being left behind.### monitor
+  on no object being left behind.
+
+### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 
