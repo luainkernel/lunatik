@@ -233,6 +233,15 @@ higher-level `netlink.*` modules built on top of it.
 
 ### probe
 
+- **aggregate**: a target another kprobe already holds is aggregated by the
+  kernel, and every handler attached to that address runs on a hit. One plain
+  hardirq runtime registers two probes on the `personality` syscall and one
+  `setarch` calls it once: the second `probe.new` succeeds, both handlers print
+  once, the kprobe list grows by two lines over one more address, since an
+  aggregate lists each member separately, and the stop gives all of it back. The
+  target is the same address twice, not two names the kernel resolves to one,
+  which is arm64-specific and needs an unimplemented syscall.
+
 - **argument**: the `argument` closure a handler receives, on its three
   outcomes: a probe on `vfs_read` reads the byte count the caller asked for,
   a negative index raises, and both it and the `dump` closure stop reaching
