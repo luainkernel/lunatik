@@ -126,6 +126,13 @@ the runtime for the binding, instead of the suite reading the kernel version.
   file's hold reads freed memory in each held case, so the test skips unless
   the loaded `luadevice` lists `luadevice_free` in `/proc/kallsyms`.
 
+### examples
+
+- **shared**: drives the spawned `examples/shared` daemon over its own port with
+  a kernel-side client: a GET of a key that was never assigned and a GET of a
+  key a SET removed each answer with an empty line, instead of taking the thread
+  body down and leaving the port bound with nobody in `accept()`.
+
 ### fifo
 
 - **bounds**: `fifo.new()` accepts the capacities it serves and refuses
