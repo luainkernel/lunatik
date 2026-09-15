@@ -86,10 +86,13 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 	int nclosures = ARRAY_SIZE(luaprobe_closures);
 	int i;
 
-	for (i = 0; i < nclosures; i++)
-		luaprobe_pushregs(L, luaprobe_closures[i], regs); /* base + 1 + i */
+	if (lua_getfield(L, base, handler) != LUA_TFUNCTION) /* base + 1 */
+		goto out;
 
-	lunatik_optcfunction(L, base, handler, lunatik_nop);
+	for (i = 0; i < nclosures; i++)
+		luaprobe_pushregs(L, luaprobe_closures[i], regs); /* base + 2 + i */
+
+	lua_pushvalue(L, base + 1);
 
 	if (symbol != NULL)
 		lua_pushstring(L, symbol);
@@ -97,13 +100,13 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 		lua_pushlightuserdata(L, probe->requested);
 
 	for (i = 0; i < nclosures; i++)
-		lua_pushvalue(L, base + 1 + i);
+		lua_pushvalue(L, base + 2 + i);
 
 	if (lua_pcall(L, 1 + nclosures, 0, 0) != LUA_OK) /* handler(symbol | addr, dump[, argument]) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 
 	for (i = 0; i < nclosures; i++)
-		luaprobe_dropregs(L, base + 1 + i); /* regs are only live while the probed function is trapped */
+		luaprobe_dropregs(L, base + 2 + i); /* regs are only live while the probed function is trapped */
 out:
 	return 0;
 }
