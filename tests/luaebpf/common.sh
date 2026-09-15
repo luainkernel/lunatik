@@ -4,7 +4,8 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Helpers the luaebpf cases share: the toolchain check that turns a missing tool into a skip,
-# the compile into a scratch directory and the load into a pin root.
+# the compile into a scratch directory, the load into a pin root, and the differential run
+# against the oracle a program file's own body wrote while it compiled.
 # Source this file, and tests/lib.sh, from each case.
 
 LUAEBPF_SRC=/lib/modules/lua/tests/luaebpf
@@ -65,6 +66,21 @@ luaebpf_verbose() {
 luaebpf_verdict() {
 	bpftool prog run pinned "$LUAEBPF_PINS/$1" data_in "$LUAEBPF_WORK/packet.bin" 2>&1 \
 		| grep -oP 'Return value: \K[0-9]+'
+}
+
+# every row of the oracle against the program of the same name; where the interpreter raised,
+# the compiled program owes its default verdict instead
+luaebpf_differential() {
+	local default="$1" name value got mismatch=0
+	while IFS=$'\t' read -r name value; do
+		[ "$value" = "raises" ] && value="$default"
+		got=$(luaebpf_verdict "$name")
+		if [ "$got" != "$value" ]; then
+			echo "$name: returned '$got', the interpreter says '$value'"
+			mismatch=$((mismatch + 1))
+		fi
+	done < "$LUAEBPF_WORK/oracle.txt"
+	[ "$mismatch" -eq 0 ]
 }
 
 # a refused construct: the message names the file and the line, the driver exits non-zero, and

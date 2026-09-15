@@ -134,6 +134,12 @@ Tests for the Lua to eBPF compiler. Each case compiles a program file with
 runs once up front. Skips when `lunatikc` or `bpftool` is missing, or when
 `/sys/fs/bpf` is not mounted.
 
+Every corpus case is differential: the program file's body calls the same
+functions it hands to `xdp.program` on the host and writes what each returned
+beside the object, and the case compares that with what the compiled program
+returns, truncated to the 32 bits `bpf_prog_run` gives back. Where the
+interpreter raises, the compiled program owes its default verdict instead.
+
 - **host**: the state `lunatikc` stands up for a program file's body: the
   standard libraries, `linux.xdp`, and `luaebpf.proto.read` on a known
   function, whose `numparams`, `maxstacksize`, first opcode, first line,
@@ -147,6 +153,13 @@ runs once up front. Skips when `lunatikc` or `bpftool` is missing, or when
   `LUAEBPF_DROP=lineinfo` it carries no Lua line, and with
   `LUAEBPF_DROP=verdict` the program never writes `R0`, is rejected, and the
   rejection still names the Lua line.
+- **arith**: every arithmetic and bitwise operator in its register, constant
+  and immediate forms over negatives, zero, `-1`, `mininteger`, `maxinteger`
+  and shift counts of 0, 1, 63, 64, 65 and `-1`.
+- **divzero**: `// 0` and `% 0`, by a constant divisor and by one the program
+  computes, take the default verdict; `mininteger // -1` and `x % -1` match
+  the interpreter; with `LUAEBPF_DROP=divisor` the raw eBPF answers come
+  through instead.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.### monitor

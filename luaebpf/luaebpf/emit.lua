@@ -30,6 +30,7 @@ local NREGS    <const> = 4   -- Lua registers 0..3 live in r6..r9; the rest spil
 local FIRST    <const> = reg.R6
 local SLOT     <const> = 8
 local MAXSTACK <const> = 512 -- MAX_BPF_STACK
+local NBITS    <const> = 64
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 
@@ -211,6 +212,14 @@ local function labelof(f, pc)
 	return label
 end
 
+-- the tail a program takes where the interpreter would raise
+local function abort(f, pc)
+	if f.aborted == nil then
+		f.aborted = f.code:label()
+	end
+	return f.aborted
+end
+
 --- @section loads
 
 local ops = {}
@@ -312,6 +321,211 @@ function ops.GETTABLE(f, pc, ins, state)
 	end
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, key.k, name))
 end
+
+--- @section arithmetic
+
+-- Lua's floor division: the quotient is corrected toward minus infinity when the operands'
+-- signs differ, a divisor of -1 is a negation (which mininteger needs), and a divisor of zero
+-- raises, so the program takes its default verdict
+local function floordiv(f, pc)
+	local code = f.code
+	local negate, done = code:label(), code:label()
+	if f.drop ~= "divisor" then
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc))
+	end
+	code:branchi(jump.JEQ, reg.R2, -1, negate)
+	code:alu(alu.MOV, reg.R3, reg.R1)
+	code:alu(alu.MOV, reg.R4, reg.R1)
+	code:sdiv(alu.MOD, reg.R4, reg.R2)
+	code:sdiv(alu.DIV, reg.R1, reg.R2)
+	code:branchi(jump.JEQ, reg.R4, 0, done)
+	code:alu(alu.XOR, reg.R3, reg.R2)
+	code:branchi(jump.JSGE, reg.R3, 0, done)
+	code:alui(alu.ADD, reg.R1, -1)
+	code:jump(done)
+	code:place(negate)
+	code:alu(alu.MOV, reg.R3, reg.R1)
+	code:set(reg.R1, 0)
+	code:alu(alu.SUB, reg.R1, reg.R3)
+	code:place(done)
+end
+
+-- Lua's modulo: the remainder takes the divisor's sign, and a divisor of -1 is zero
+local function floormod(f, pc)
+	local code = f.code
+	local zero, done = code:label(), code:label()
+	if f.drop ~= "divisor" then
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc))
+	end
+	code:branchi(jump.JEQ, reg.R2, -1, zero)
+	code:sdiv(alu.MOD, reg.R1, reg.R2)
+	code:branchi(jump.JEQ, reg.R1, 0, done)
+	code:alu(alu.MOV, reg.R3, reg.R1)
+	code:alu(alu.XOR, reg.R3, reg.R2)
+	code:branchi(jump.JSGE, reg.R3, 0, done)
+	code:alu(alu.ADD, reg.R1, reg.R2)
+	code:jump(done)
+	code:place(zero)
+	code:set(reg.R1, 0)
+	code:place(done)
+end
+
+-- luaV_shiftl: logical in both directions, zero past the word, and a negative count shifts the
+-- other way; eBPF masks the count to 63, so the range is tested rather than trusted
+local function shiftl(f)
+	local code = f.code
+	local right, zero, done = code:label(), code:label(), code:label()
+	code:branchi(jump.JSLT, reg.R2, 0, right)
+	code:branchi(jump.JSGE, reg.R2, NBITS, zero)
+	code:alu(alu.LSH, reg.R1, reg.R2)
+	code:jump(done)
+	code:place(right)
+	code:branchi(jump.JSLE, reg.R2, -NBITS, zero)
+	code:neg(reg.R2)
+	code:alu(alu.RSH, reg.R1, reg.R2)
+	code:jump(done)
+	code:place(zero)
+	code:set(reg.R1, 0)
+	code:place(done)
+end
+
+-- every binary operator over R1 and R2, leaving the result in R1
+local binops = {}
+
+function binops.ADD(f) f.code:alu(alu.ADD, reg.R1, reg.R2) end
+function binops.SUB(f) f.code:alu(alu.SUB, reg.R1, reg.R2) end
+function binops.MUL(f) f.code:alu(alu.MUL, reg.R1, reg.R2) end
+function binops.BAND(f) f.code:alu(alu.AND, reg.R1, reg.R2) end
+function binops.BOR(f) f.code:alu(alu.OR, reg.R1, reg.R2) end
+function binops.BXOR(f) f.code:alu(alu.XOR, reg.R1, reg.R2) end
+function binops.IDIV(f, pc) floordiv(f, pc) end
+function binops.MOD(f, pc) floormod(f, pc) end
+function binops.SHL(f) shiftl(f) end
+
+function binops.SHR(f)
+	f.code:neg(reg.R2)
+	shiftl(f)
+end
+
+-- the kernel calls no metamethod, so every operand an arithmetic opcode reads is a number
+local function numbers(f, pc, ...)
+	for _, value in ipairs({...}) do
+		if not isinteger(value) then
+			refuse(f, pc, "attempt to perform arithmetic on a %s value", typename(value))
+		end
+	end
+end
+
+-- R[A] := R[B] op R[C], and R[A] := R[B] op <constant>; a constant takes a register too, since
+-- eBPF's immediate is 32 bits and Lua's constants are not
+local function register(f, pc, ins, state, op)
+	into(f, pc, state, ins.b, reg.R1)
+	into(f, pc, state, ins.c, reg.R2)
+	numbers(f, pc, state[ins.b], state[ins.c])
+	binops[op](f, pc)
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT}
+end
+
+local function immediate(f, pc, ins, state, op, value)
+	into(f, pc, state, ins.b, reg.R1)
+	numbers(f, pc, state[ins.b])
+	f.code:set(reg.R2, value)
+	binops[op](f, pc)
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT}
+end
+
+local function numeric(f, pc, value)
+	if type(value) ~= "number" then
+		refuse(f, pc, "attempt to perform arithmetic on a %s constant", type(value))
+	end
+	return value
+end
+
+function ops.ADD(f, pc, ins, state) register(f, pc, ins, state, "ADD") end
+function ops.SUB(f, pc, ins, state) register(f, pc, ins, state, "SUB") end
+function ops.MUL(f, pc, ins, state) register(f, pc, ins, state, "MUL") end
+function ops.MOD(f, pc, ins, state) register(f, pc, ins, state, "MOD") end
+function ops.IDIV(f, pc, ins, state) register(f, pc, ins, state, "IDIV") end
+function ops.BAND(f, pc, ins, state) register(f, pc, ins, state, "BAND") end
+function ops.BOR(f, pc, ins, state) register(f, pc, ins, state, "BOR") end
+function ops.BXOR(f, pc, ins, state) register(f, pc, ins, state, "BXOR") end
+function ops.SHL(f, pc, ins, state) register(f, pc, ins, state, "SHL") end
+function ops.SHR(f, pc, ins, state) register(f, pc, ins, state, "SHR") end
+
+function ops.ADDK(f, pc, ins, state)
+	immediate(f, pc, ins, state, "ADD", numeric(f, pc, constant(f, pc, ins.c)))
+end
+
+function ops.SUBK(f, pc, ins, state)
+	immediate(f, pc, ins, state, "SUB", numeric(f, pc, constant(f, pc, ins.c)))
+end
+
+function ops.MULK(f, pc, ins, state)
+	immediate(f, pc, ins, state, "MUL", numeric(f, pc, constant(f, pc, ins.c)))
+end
+
+function ops.MODK(f, pc, ins, state)
+	immediate(f, pc, ins, state, "MOD", numeric(f, pc, constant(f, pc, ins.c)))
+end
+
+function ops.IDIVK(f, pc, ins, state)
+	immediate(f, pc, ins, state, "IDIV", numeric(f, pc, constant(f, pc, ins.c)))
+end
+
+function ops.BANDK(f, pc, ins, state)
+	immediate(f, pc, ins, state, "BAND", numeric(f, pc, constant(f, pc, ins.c)))
+end
+
+function ops.BORK(f, pc, ins, state)
+	immediate(f, pc, ins, state, "BOR", numeric(f, pc, constant(f, pc, ins.c)))
+end
+
+function ops.BXORK(f, pc, ins, state)
+	immediate(f, pc, ins, state, "BXOR", numeric(f, pc, constant(f, pc, ins.c)))
+end
+
+function ops.ADDI(f, pc, ins, state)
+	immediate(f, pc, ins, state, "ADD", ins.sc)
+end
+
+-- the constant is the left operand of a SHLI, and a SHRI's count is negated into a shift left
+function ops.SHLI(f, pc, ins, state)
+	into(f, pc, state, ins.b, reg.R2)
+	numbers(f, pc, state[ins.b])
+	f.code:set(reg.R1, ins.sc)
+	shiftl(f)
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT}
+end
+
+function ops.SHRI(f, pc, ins, state)
+	immediate(f, pc, ins, state, "SHL", -ins.sc)
+end
+
+function ops.UNM(f, pc, ins, state)
+	into(f, pc, state, ins.b, reg.R2)
+	numbers(f, pc, state[ins.b])
+	f.code:set(reg.R1, 0)
+	f.code:alu(alu.SUB, reg.R1, reg.R2)
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT}
+end
+
+function ops.BNOT(f, pc, ins, state)
+	into(f, pc, state, ins.b, reg.R1)
+	numbers(f, pc, state[ins.b])
+	f.code:alui(alu.XOR, reg.R1, -1)
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT}
+end
+
+-- the metamethod opcode, which the VM skips when both operands were numbers; 'numbers' reads
+-- them where they are still live, since the opcode before this one writes over one of them
+local function skipped() end
+
+ops.MMBIN, ops.MMBINI, ops.MMBINK = skipped, skipped, skipped
 
 --- @section calls and returns
 
