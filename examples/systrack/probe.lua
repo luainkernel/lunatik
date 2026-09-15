@@ -7,12 +7,23 @@ local systab = require("syscall.table")
 local rcu    = require("rcu")
 
 local track = rcu.table()
+local names = {}
 
 for symbol, address in pairs(systab) do
-	local function handler()
-		track[symbol] = (track[symbol] or 0) + 1
+	names[address] = names[address] == nil and symbol or false
+end
+
+local function count(address)
+	local symbol = names[address]
+	track[symbol] = (track[symbol] or 0) + 1
+end
+
+local handlers = {pre = count}
+
+for address, symbol in pairs(names) do
+	if symbol then
+		probe.new(address, handlers)
 	end
-	probe.new(address, {pre = handler})
 end
 
 return function()
