@@ -85,7 +85,16 @@ resolved too, never read: `Comm:` is the task's own `comm`, which a thread sets 
 `/proc/kallsyms`. A thread name read as a JVM's belonged to the assistant's own process.
 
 Never run two `lunatik` operations at once. Concurrent operations wedge `/dev/lunatik` and leave
-processes in D state. Check with `ps` before starting one.
+processes in D state. `ps` answers for the instant it ran, which is no help when another session
+starts a second later, so a build-install-run cycle takes the lock instead:
+
+    bash tools/lunatik-host sudo lunatik test
+    bash tools/lunatik-host bash tools/watchdog.sh examples/systrack/device
+
+It runs the command with the lock held, names the holder while it waits, and releases on exit
+however the command ends. The installed tree under `/lib/modules/lua` is shared too: a suite run
+whose totals do not match the tests in your own worktree is a mixed install, one session's modules
+against another's scripts, and it measures neither.
 
 A worktree named for a task may belong to another session on the same machine. Check
 `git worktree list` and the branch a worktree holds before a checkout or a reset there, and never

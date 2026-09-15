@@ -9,8 +9,15 @@ AGENTS.md, "Build, install, test", is the authority; this skill orders the workf
 
     make
     make C=1                 # sparse, for a change touching __percpu or another address space
-    sudo make install        # never a partial *_install
-    sudo lunatik reload      # never rmmod by hand
+    bash tools/lunatik-host bash -c 'sudo make install && sudo lunatik reload && sudo lunatik test'
+
+The lock covers install through test as one cycle, since the device and the installed tree under
+`/lib/modules/lua` are shared: another session that installs between your install and your run
+gives you its scripts against your modules. Inside the lock the steps are the usual ones, never a
+partial `*_install` and never `rmmod` by hand:
+
+    sudo make install
+    sudo lunatik reload
     sudo lunatik test [suite]
 
 `lunatik test` runs the INSTALLED suite, so `sudo make install` must precede it. When iterating
