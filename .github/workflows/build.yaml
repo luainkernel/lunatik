@@ -33,7 +33,15 @@ jobs:
           | grep -oE '"'"$ESC"'\.[0-9]+"' | tr -d '"' | head -1)
         test -n "$VERSION" || { echo "no maintained release for kernel series $SERIES"; exit 1; }
         echo "Fetching linux-$VERSION"
-        wget -q --tries=3 --timeout=60 "https://git.kernel.org/stable/t/linux-${VERSION}.tar.gz"
+        # the snapshot service answers a burst of jobs with an error page or a
+        # truncated body, which wget --tries does not retry and tar cannot read
+        for attempt in 1 2 3 4 5; do
+          rm -f "linux-${VERSION}.tar.gz"
+          wget -q --tries=1 --timeout=120 "https://git.kernel.org/stable/t/linux-${VERSION}.tar.gz" \
+            && tar tzf "linux-${VERSION}.tar.gz" >/dev/null 2>&1 && break
+          echo "attempt $attempt did not bring a readable tarball"
+          test "$attempt" != 5 && sleep $((attempt * 30))
+        done
         tar xf "linux-${VERSION}.tar.gz"
         cd "linux-${VERSION}"
         make mrproper
