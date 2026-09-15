@@ -135,7 +135,10 @@ not a compiled function references it, since that is what the loader pins it und
 kernel script opens it by, so it cannot be recovered from a reference.
 
 `bpf.map` on the host is the compile-time twin of `lib/bpf/map.lua`: the same spec strings, the
-same names, and it produces BTF-defined maps in the object instead of opening pinned ones. Inside
+same names, and it produces BTF-defined maps in the object instead of opening pinned ones. What
+the twin takes and the object cannot carry is refused at the declaration: a name BTF cannot spell,
+an array keyed by anything but the four bytes the kernel creates one with, and a spec naming a
+byte order other than the host's, which is the only one an eBPF load and store take. Inside
 a compiled function a map is a table proxy with `bpf.map`'s semantics: indexing looks up,
 assignment updates, assigning `nil` deletes. A key and a value are numbers, as the spec packs
 them; anything else is refused at the line that wrote it.
@@ -150,9 +153,10 @@ them; anything else is refused at the line that wrote it.
 the function has tested it, which is what the verifier requires of the pointer underneath. The
 test is `if cached then`, the form the verifier narrows the pointer at; `cached == nil` is
 refused with the same message, since a comparison does not reach that narrowing. A `struct` spec
-yields a proxy of fields rather than a scalar. A value is read with the spec of the map it came
-from, so a register that lookups in two different maps merge into is refused where it is read
-rather than lowered against one of them.
+yields a proxy of fields rather than a scalar, read-only until a phase needs otherwise: writing
+one, or a field of one, is refused at the line that does it. A value is read with the spec of the
+map it came from, so a register that lookups in two different maps merge into is refused where it
+is read rather than lowered against one of them.
 
 The loader creates the maps and pins them under `/sys/fs/bpf/lunatik/<script>/<name>`, so the
 kernel script opens the same map by that path with the API it has today:

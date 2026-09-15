@@ -11,7 +11,10 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in host pass lineinfo arith divzero branch forconst forvar call btfview ctx packet bounds mapget mapset refuse budget; do
+SUITES="host pass lineinfo arith divzero branch forconst forvar call"
+SUITES="$SUITES btfview ctx packet bounds mapget mapset struct refuse budget"
+
+for t in $SUITES; do
 	echo "${SEP}# --- $t.sh ---"
 	SEP=$'\n'
 	bash "$DIR/$t.sh" || FAILED=$((FAILED+1))

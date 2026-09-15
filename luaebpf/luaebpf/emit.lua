@@ -57,11 +57,13 @@ local OTHER   <const> = 16
 local PACKET  <const> = 32
 local METHOD  <const> = 64
 local MAYBE   <const> = 128              -- a map value the program has not tested yet
+local RECORD  <const> = 256              -- a struct map value, read a field at a time
 local RUNTIME <const> = INT | BOOL | NIL -- a value the kernel holds as a word
-local PROXY   <const> = CTX | PACKET | MAYBE -- a pointer the kernel holds, read through a proxy
+local PROXY   <const> = CTX | PACKET | MAYBE | RECORD -- a pointer the kernel holds, read through a proxy
 
 local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context",
-	[PACKET] = "packet", [METHOD] = "method", [MAYBE] = "map value"}
+	[PACKET] = "packet", [METHOD] = "method", [MAYBE] = "map value",
+	[RECORD] = "struct map value"}
 
 local opnames = {}
 for name, op in pairs(opcodes) do
@@ -528,6 +530,9 @@ end
 
 local function mapstore(f, pc, ins, state, map, key)
 	local code = f.code
+	if map.value.fields ~= nil then
+		refuse(f, pc, "a struct map value is read-only in a compiled function")
+	end
 	local value = stored(f, pc, ins, state)
 	mapslot(f, KEY, key, map.key.size)
 	if value == nil then
@@ -552,6 +557,20 @@ local function mapfrom(f, pc, value)
 	return value.map
 end
 
+-- one field of a struct value, at the offset and the width its codec carries
+local function mapfield(f, pc, ins, state, value, key)
+	local field = mapfrom(f, pc, value).value.fields[key]
+	if field == nil then
+		refuse(f, pc, "a map value has no field '%s'", key)
+	end
+	f.code:load(reg.R1, fetch(f, ins.b, reg.R1), field.offset, field.size)
+	if field.signed and field.size * BYTE < NBITS then
+		extend(f, reg.R1, field.size)
+	end
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT, name = key}
+end
+
 -- the map a write names, or the refusal for a table that is not one
 local function mapof(f, pc, state, i)
 	local container = state[i]
@@ -562,9 +581,15 @@ local function mapof(f, pc, state, i)
 end
 
 -- the value behind a pointer the program has just found non-null, which is the only place the
--- verifier lets it be read
+-- verifier lets it be read. A struct stays the pointer it is, and its fields are read one at a
+-- time from there.
 local function mapvalue(f, pc, state, i, value)
-	local spec = mapfrom(f, pc, value).value
+	local map = mapfrom(f, pc, value)
+	local spec = map.value
+	if spec.fields ~= nil then
+		state[i] = {t = RECORD, map = map, name = value.name}
+		return
+	end
 	f.code:load(reg.R1, fetch(f, i, reg.R1), 0, spec.size)
 	if spec.signed and spec.size * BYTE < NBITS then
 		extend(f, reg.R1, spec.size)
@@ -681,6 +706,9 @@ function ops.GETFIELD(f, pc, ins, state)
 	if container ~= nil and container.t == CTX then
 		return contextget(f, pc, ins, state, key)
 	end
+	if container ~= nil and container.t == RECORD then
+		return mapfield(f, pc, ins, state, container, key)
+	end
 	if container ~= nil and maps.declares(container.k) then
 		mapnumber(f, pc, "key")
 	end
@@ -692,6 +720,9 @@ function ops.SETFIELD(f, pc, ins, state)
 	local container = state[ins.a]
 	if container ~= nil and container.t == CTX then
 		return contextset(f, pc, ins, state, tostring(constant(f, pc, ins.b)))
+	end
+	if container ~= nil and container.t == RECORD then
+		refuse(f, pc, "a struct map value is read-only in a compiled function")
 	end
 	mapof(f, pc, state, ins.a)
 	mapnumber(f, pc, "key")

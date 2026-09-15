@@ -226,8 +226,19 @@ interpreter raises, the compiled program owes its default verdict instead.
   of a seeded entry, a delete of a key that was never there, and an update of an
   array entry, all against the bytes the program file's body wrote from the
   constants and specs the programs were compiled with. A key spec that packs
-  more than one value, a name declared twice, a constructor called without a
-  name and a value that is not a number are refused.
+  more than one value, one Lua can size but not read back, one whose width no
+  eBPF load covers, one in a byte order no eBPF load takes, a count of entries
+  the object cannot carry, a name BTF cannot spell, an array keyed by anything
+  but four bytes, a name declared twice, a constructor called without a name and
+  a value that is not a number are refused.
+- **struct**: a map whose value spec is a `struct` codec, read a field at a
+  time: one field of every width and signedness with a gap the codec reads as
+  padding, and a layout `luaebpf.vmlinux` read out of the running kernel's BTF
+  seeded with an IPv4 header, each answering what the same codec reads off the
+  bytes the case seeded. A write to a field or to the whole value, a field the
+  codec does not carry, a field whose width no eBPF load covers, a spec that is
+  neither a format nor a codec, and a field read through a value two struct maps
+  merge into are refused.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.

@@ -321,6 +321,20 @@ under `sudo`.
   ([include/uapi/linux/btf.h#L62-L75](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/btf.h#L62-L75)); `struct btf_array {type, index_type,
   nelems}`, `struct btf_member {name_off, type, offset}`, `struct btf_var {linkage}` and
   `struct btf_var_secinfo {type, offset, size}` ([#L110-L177](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/btf.h#L110-L177)).
+* **What a map may be called, and how an array is keyed.** The `VAR` and the `STRUCT` that carry
+  a map's attributes are named after it, and `btf_name_valid_identifier` takes a leading letter
+  or `_` and then letters, digits, `_` or `.`
+  ([kernel/bpf/btf.c#L880-L888](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/btf.c#L880-L888),
+  [#L3305-L3312](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/btf.c#L3305-L3312));
+  anything else costs the whole `.BTF` section, and with it the lines the verifier log quotes.
+  libbpf refuses an empty name before that
+  ([tools/lib/bpf/libbpf.c#L2914](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L2914)),
+  and a `.` survives the BTF but not the pin, which `sanitize_pin_path` rewrites because bpffs
+  disallows periods
+  ([#L9366-L9374](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L9366-L9374)).
+  `array_map_alloc_check` refuses a `key_size` other than four
+  ([kernel/bpf/arraymap.c#L53-L64](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/arraymap.c#L53-L64)),
+  on 5.15 as on 7.2.
 
 ## BTF: what the object carries and what the log prints
 
