@@ -58,7 +58,7 @@ A compiled function is Lua where every value has a type the translator can prove
 | `if`, `and`, `or`, `not` | fused compare-and-jump |
 | numeric `for` | a bounded loop when the bounds are constants, a `may_goto` header otherwise |
 | `while`, `repeat` | `may_goto` headers (phase 5) |
-| calls to functions the program file declares | BPF-to-BPF calls; no recursion, five register arguments |
+| calls to functions the program file declares | BPF-to-BPF calls; no recursion, four register arguments |
 | the context, the packet, a map, a struct view | proxies (next sections) |
 | `return` | the program's verdict |
 | constants captured from the body: numbers, booleans, strings used as bytes, tables of constants | folded at compile time |
@@ -94,10 +94,13 @@ type's safe answer (`PASS` for XDP, `ACT_OK` for TC), overridable in the constru
     return xdp.program(function(ctx) ... end, {default = action.DROP})
 
 Division by zero and every other check the interpreter would turn into an error take the same
-path. Only the program's own frame can take it: a subprogram returns to its caller rather than to
-the hook, so until a phase gives it a way out, such a check inside a called function is refused.
-This is the compiled analogue of what the trampoline does today, where a raising callback makes
-the kfunc return `-1` and the stub falls back.
+path, from any frame. A subprogram returns to its caller rather than to the hook, so every
+compiled function takes one argument beyond its own: a pointer to a word in its caller's frame. A
+check that fails there stores a one through it and returns; the caller reads the word and takes
+its own failure path, which is the default verdict in the program's own frame. That is the fifth
+register argument, and why a compiled function takes four of its own. This is the compiled
+analogue of what the trampoline does today, where a raising callback makes the kfunc return `-1`
+and the stub falls back.
 
 TC programs get `skb`, a proxy over the `__sk_buff` fields (`hash`, `priority` writable,
 `ifindex`, `len`) and `skb:packet()`.

@@ -28,7 +28,7 @@ log=$(luaebpf_verbose forconst)
 [ -e "$LUAEBPF_PINS/nested" ] || { comment "$log"; fail "luaebpf: the loops did not verify"; }
 ktap_pass "luaebpf: every constant-bound loop verifies"
 
-output=$(luaebpf_differential 2) || { comment "$output"; fail "luaebpf: a loop differs from the interpreter"; }
+output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a loop differs from the interpreter"; }
 ktap_pass "luaebpf: every constant-bound loop agrees with the interpreter"
 
 echo "$log" | grep -q "may_goto" \

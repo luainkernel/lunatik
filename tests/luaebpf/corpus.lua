@@ -26,8 +26,8 @@ end
 function rows:declare(name, fn, opts)
 	opts = opts or {}
 	opts.name = name
-	xdp.program(fn, opts)
-	self.out:write(name, "\t", answer(pcall(fn, 0)), "\n")
+	local program = xdp.program(fn, opts)
+	self.out:write(name, "\t", answer(pcall(fn, 0)), "\t", program.default, "\n")
 end
 
 function rows:close()

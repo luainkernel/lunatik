@@ -76,8 +76,8 @@ matching and failing, not a list of features.
 | `branch.sh` | `if`, `and`, `or`, `not` and every comparison over signed and unsigned edges match |
 | `forconst.sh` | a `for` with constant bounds runs the right count; a zero-trip and a descending loop included |
 | `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates; skips and asserts the refusal on a kernel without it |
-| `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram |
-| `refuse.sh` | each refused construct (runtime table, closure, vararg, `pcall`, unknown global, tail call, `while`, `repeat`) fails with its message and line, and nothing is written; recursion and the six-argument call sit in `call.sh`, beside the calls they are the edges of |
+| `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram; a check that fails inside one takes the program's default verdict through the flag each frame raises in its caller's |
+| `refuse.sh` | each refused construct (runtime table, closure, vararg, `pcall`, unknown global, tail call, `while`, `repeat`) fails with its message and line, and nothing is written; recursion and the five-argument call sit in `call.sh`, beside the calls they are the edges of |
 | `lineinfo.sh` | the object's `.BTF.ext` names the `.lua` file, and a program broken by the test hook is rejected with a log that quotes the Lua line |
 | `budget.sh` | the log's "processed N insns" line for the corpus programs, recorded and asserted under a ceiling, so a regression in emitted shape is caught before it reaches the 1M budget |
 

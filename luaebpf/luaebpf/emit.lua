@@ -30,11 +30,17 @@ local NREGS    <const> = 4   -- Lua registers 0..3 live in r6..r9; the rest spil
 local FIRST    <const> = reg.R6
 local SLOT     <const> = 8
 local MAXSTACK <const> = 512 -- MAX_BPF_STACK
-local MAXARGS  <const> = 5   -- MAX_BPF_FUNC_REG_ARGS
+local MAXARGS  <const> = 4   -- MAX_BPF_FUNC_REG_ARGS, less the register the abort pointer takes
 local NBITS    <const> = 64
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 local MININT   <const> = 1 << 63
+
+-- the words every frame reserves: the flag a callee raises through the pointer its caller passed,
+-- and where the callee keeps that pointer, since R1-R5 do not survive a nested call
+local RESERVED <const> = 2
+local ABORTED  <const> = -SLOT
+local CALLER   <const> = -SLOT * 2
 
 -- what a Lua register may hold; OTHER is a value the compiler knows and the kernel never sees
 local INT     <const> = 1
@@ -138,7 +144,7 @@ local function spilled(i)
 end
 
 local function offset(i)
-	return -SLOT * (i - NREGS + 1)
+	return -SLOT * (i - NREGS + 1 + RESERVED)
 end
 
 local function getreg(f, pc, state, i, scratch)
@@ -232,11 +238,9 @@ local function labelof(f, pc)
 	return label
 end
 
--- the tail a program takes where the interpreter would raise
-local function abort(f, pc, what)
-	if not f.isprogram then
-		refuse(f, pc, "%s inside a called function cannot take the program's default verdict", what)
-	end
+-- the tail taken where the interpreter would raise: the program's default verdict in its own
+-- frame, and the flag that carries the verdict one frame up everywhere else
+local function abort(f)
 	if f.aborted == nil then
 		f.aborted = f.code:label()
 	end
@@ -382,11 +386,11 @@ end
 -- Lua's floor division: the quotient is corrected toward minus infinity when the operands'
 -- signs differ, a divisor of -1 is a negation (which mininteger needs), and a divisor of zero
 -- raises, so the program takes its default verdict
-local function floordiv(f, pc)
+local function floordiv(f)
 	local code = f.code
 	local negate, done = code:label(), code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc, "a division"))
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
 	end
 	code:branchi(jump.JEQ, reg.R2, -1, negate)
 	code:alu(alu.MOV, reg.R3, reg.R1)
@@ -406,11 +410,11 @@ local function floordiv(f, pc)
 end
 
 -- Lua's modulo: the remainder takes the divisor's sign, and a divisor of -1 is zero
-local function floormod(f, pc)
+local function floormod(f)
 	local code = f.code
 	local zero, done = code:label(), code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc, "a division"))
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
 	end
 	code:branchi(jump.JEQ, reg.R2, -1, zero)
 	code:sdiv(alu.MOD, reg.R1, reg.R2)
@@ -453,8 +457,8 @@ function binops.MUL(f) f.code:alu(alu.MUL, reg.R1, reg.R2) end
 function binops.BAND(f) f.code:alu(alu.AND, reg.R1, reg.R2) end
 function binops.BOR(f) f.code:alu(alu.OR, reg.R1, reg.R2) end
 function binops.BXOR(f) f.code:alu(alu.XOR, reg.R1, reg.R2) end
-function binops.IDIV(f, pc) floordiv(f, pc) end
-function binops.MOD(f, pc) floormod(f, pc) end
+function binops.IDIV(f) floordiv(f) end
+function binops.MOD(f) floormod(f) end
 function binops.SHL(f) shiftl(f) end
 
 function binops.SHR(f)
@@ -477,7 +481,7 @@ local function register(f, pc, ins, state, op)
 	into(f, pc, state, ins.b, reg.R1)
 	into(f, pc, state, ins.c, reg.R2)
 	numbers(f, pc, state[ins.b], state[ins.c])
-	binops[op](f, pc)
+	binops[op](f)
 	setreg(f, ins.a, reg.R1)
 	state[ins.a] = {t = INT}
 end
@@ -486,7 +490,7 @@ local function immediate(f, pc, ins, state, op, value)
 	into(f, pc, state, ins.b, reg.R1)
 	numbers(f, pc, state[ins.b])
 	f.code:set(reg.R2, value)
-	binops[op](f, pc)
+	binops[op](f)
 	setreg(f, ins.a, reg.R1)
 	state[ins.a] = {t = INT}
 end
@@ -833,7 +837,7 @@ local function counting(f, pc, ins, state, a)
 	into(f, pc, state, a + 1, reg.R2)
 	into(f, pc, state, a + 2, reg.R3)
 	if state[a + 2].k == nil then
-		code:branchi(jump.JEQ, reg.R3, 0, abort(f, pc, "a 'for' step"))
+		code:branchi(jump.JEQ, reg.R3, 0, abort(f))
 	end
 	code:alu(alu.MOV, reg.R5, reg.R3)
 	code:branchi(jump.JSLT, reg.R3, 0, descending)
@@ -969,7 +973,12 @@ function ops.CALL(f, pc, ins, state)
 	for i = 1, nargs do
 		into(f, pc, state, ins.a + i, reg.R0 + i)
 	end
+	f.code:storei(reg.FP, ABORTED, 0)
+	f.code:alu(alu.MOV, reg.R1 + nargs, reg.FP)
+	f.code:alui(alu.ADD, reg.R1 + nargs, ABORTED)
 	f.code:call(target.name)
+	f.code:load(reg.R1, reg.FP, ABORTED)
+	f.code:branchi(jump.JNE, reg.R1, 0, abort(f))
 	if ins.c > 1 then
 		setreg(f, ins.a, reg.R0)
 		state[ins.a] = {t = target.rettype}
@@ -1024,6 +1033,9 @@ local function walk(f)
 	local start = f.entry[1] or {}
 	f.entry[1] = start
 	code:source(f.proto.linedefined)
+	if not f.isprogram then
+		code:store(reg.FP, CALLER, reg.R1 + #f.params)
+	end
 	for i = 0, f.proto.numparams - 1 do
 		setreg(f, i, reg.R1 + i)
 		start[i] = {t = f.params[i + 1]}
@@ -1047,8 +1059,15 @@ local function walk(f)
 	if f.aborted ~= nil then
 		code:source(f.proto.lastlinedefined)
 		code:place(f.aborted)
-		if f.drop ~= "verdict" then
-			code:set(reg.R0, f.default)
+		if f.isprogram then
+			if f.drop ~= "verdict" then
+				code:set(reg.R0, f.default)
+			end
+		else
+			code:load(reg.R1, reg.FP, CALLER)
+			code:storei(reg.R1, 0, 1)
+			-- the verifier cannot pair the flag with the path, so R0 is read on the fall-through too
+			code:set(reg.R0, 0)
 		end
 		code:exit()
 	end
@@ -1061,7 +1080,7 @@ end
 -- @tparam table f the frame: `fn`, `proto`, `chunk`, `params`, `default`, `isprogram`, `drop`
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses
 function emit.lower(f)
-	local frame = (f.proto.maxstacksize - NREGS) * SLOT
+	local frame = (f.proto.maxstacksize - NREGS + RESERVED) * SLOT
 	if frame > MAXSTACK then
 		refuse(f, 1, "the function needs %d bytes of stack, over the %d eBPF allows", frame, MAXSTACK)
 	end
