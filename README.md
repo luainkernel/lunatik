@@ -168,7 +168,7 @@ Install and run the test suites:
 sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (bpf, crypto, data, device,
-                            # fifo, fsnotify, hid, io, linux, lua, luac,
+                            # examples, fifo, fsnotify, hid, io, linux, lua, luac,
                             # monitor, netlink, notifier, probe, rcu, runtime,
                             # sched, set, skb, socket, struct, task, tc,
                             # thread, xdp)
@@ -339,6 +339,8 @@ nc 127.0.0.1 90                    # connects to shared
 foo=bar                            # assigns "bar" to foo
 foo                                # retrieves foo
 bar
+nokey                              # retrieves a key that was never assigned
+                                   # answers with an empty line
 ^C                                 # finishes the connection
 ```
 
