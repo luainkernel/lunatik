@@ -17,6 +17,7 @@ NETNS="lunatik_tc"
 HOST="10.198.0.1"
 TARGET="10.198.0.2"
 PIN="/sys/fs/bpf/lunatik_tc"
+COMPILED="/lib/modules/lua/tests/tc"
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
@@ -38,7 +39,7 @@ tc_unload()
 }
 
 ktap_header
-ktap_plan 6
+ktap_plan 8
 
 skip_all()
 {
@@ -49,8 +50,31 @@ skip_all()
 	ktap_skip "tc detach: callback stops firing and traffic resumes"
 	ktap_skip "tc attach: refuses a sleepable runtime"
 	ktap_skip "tc zero-key: a zero-sized key is rejected without a crash"
+	compiled_skip "$1"
 	ktap_totals
 	exit 0
+}
+
+compiled_skip()
+{
+	ktap_skip "tc compiled pass: a compiled program lets the ping through ($1)"
+	ktap_skip "tc compiled drop: a compiled program blocks the ping ($1)"
+}
+
+# what a compiled case needs beyond the suite's own tools: the objects `make install` compiled
+# from the program files, and the tcx attach, which is v6.6 in the kernel and 1.3.0 in libbpf.
+# The libbpf half is read where it is used: the loader refuses the section and says the version.
+compiled_reason()
+{
+	[ -r "$COMPILED/compiled_pass.bpf.o" ] || { echo "the compiled programs are not installed"; return; }
+	[ "$(printf '6.6\n%s\n' "$(uname -r)" | sort -V | head -1)" = "6.6" ] \
+		|| { echo "tcx needs kernel 6.6, this one is $(uname -r)"; return; }
+	lua5.4 -e 'require("lunatik.loader")' 2>/dev/null \
+		|| { echo "lunatik.loader is not installed"; return; }
+	lua5.4 -e 'local loader = require("lunatik.loader")
+		local object = assert(loader.open("'"$COMPILED"'/compiled_pass.bpf.o"))
+		local _, reason = object:targets()
+		io.write(reason or "")' 2>/dev/null
 }
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_all "$MODULE not loaded"
@@ -68,6 +92,8 @@ cleanup()
 	lunatik stop tests/tc/reattach > /dev/null 2>&1
 	lunatik stop tests/tc/detach > /dev/null 2>&1
 	lunatik stop tests/tc/attach_sleepable > /dev/null 2>&1
+	lunatik stop tests/tc/compiled_pass > /dev/null 2>&1
+	lunatik stop tests/tc/compiled_drop > /dev/null 2>&1
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
 }
@@ -164,6 +190,32 @@ zerokey_case()
 	ktap_pass "tc zero-key: a zero-sized key is rejected without a crash"
 }
 
+# the compiled twin of run_case: no C stub, no kernel script and no callback, so the verdict is
+# read off the wire and off the program the device reports. Both programs decide on the ping
+# alone, through the same tests/tc/packet.lua predicate the kernel callbacks use, since the
+# namespace emits autoconf traffic of its own.
+compiled_case()
+{
+	local script="$1" expect_reachable="$2" title="$3"
+	local output attached reached
+
+	output=$(lunatik run "tests/tc/$script" dev="$IFACE" 2>&1)
+	attached=$(bpftool net show dev "$IFACE" | grep -c "tcx/egress $script")
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
+	reached=$?
+	lunatik stop "tests/tc/$script" > /dev/null 2>&1
+
+	[ -z "$output" ] || { comment "$output"; ktap_fail "$title"; return 1; }
+	[ "$attached" -eq 1 ] || { ktap_fail "$title: $IFACE carries no tcx/egress $script"; return 1; }
+	if [ "$expect_reachable" = "yes" ] && [ "$reached" -ne 0 ]; then
+		ktap_fail "$title: expected ACT_OK but ping was blocked"; return 1
+	fi
+	if [ "$expect_reachable" = "no" ] && [ "$reached" -eq 0 ]; then
+		ktap_fail "$title: expected ACT_SHOT but ping got through"; return 1
+	fi
+	ktap_pass "$title"
+}
+
 run_case tc_pass.bpf.o pass.lua yes "tc pass" \
 	"tc pass test pass: packet and argument content verified" softirq
 run_case tc_drop.bpf.o drop.lua no "tc drop" \
@@ -179,6 +231,14 @@ lunatik stop tests/tc/attach_sleepable > /dev/null 2>&1
 ktap_pass "tc attach: refuses a sleepable runtime"
 
 zerokey_case
+
+reason=$(compiled_reason)
+if [ -n "$reason" ]; then
+	compiled_skip "$reason"
+else
+	compiled_case compiled_pass yes "tc compiled pass: a compiled program lets the ping through"
+	compiled_case compiled_drop no "tc compiled drop: a compiled program blocks the ping"
+fi
 
 ktap_totals
 

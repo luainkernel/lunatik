@@ -15,13 +15,14 @@ PEER="lunatik1"
 NETNS="lunatik_xdp"
 PIN="/sys/fs/bpf/xdp"
 TARGET="10.199.0.1"
+COMPILED="/lib/modules/lua/tests/xdp"
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 7
+ktap_plan 9
 
 skip_all()
 {
@@ -33,8 +34,23 @@ skip_all()
 	ktap_skip "xdp zero-key: a zero-sized key is rejected without a crash"
 	ktap_skip "xdp process: a process-context runtime under the key is not dispatched"
 	ktap_skip "xdp percpu: the callback runs on the instance of the receiving CPU"
+	compiled_skip "$1"
 	ktap_totals
 	exit 0
+}
+
+compiled_skip()
+{
+	ktap_skip "xdp compiled pass: a compiled program lets the ping through ($1)"
+	ktap_skip "xdp compiled drop: a compiled program blocks the ping ($1)"
+}
+
+# what a compiled case needs beyond the suite's own tools: the object `make install` compiled
+# from the program file, and the loader the CLI attaches it with
+compiled_reason()
+{
+	[ -r "$COMPILED/compiled_pass.bpf.o" ] || { echo "the compiled programs are not installed"; return; }
+	lua5.4 -e 'require("lunatik.loader")' 2>/dev/null || echo "lunatik.loader is not installed"
 }
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_all "$MODULE not loaded"
@@ -52,6 +68,8 @@ cleanup()
 	lunatik stop tests/xdp/attach_sleepable > /dev/null 2>&1
 	lunatik stop tests/xdp/process > /dev/null 2>&1
 	lunatik stop tests/xdp/percpu > /dev/null 2>&1
+	lunatik stop tests/xdp/compiled_pass > /dev/null 2>&1
+	lunatik stop tests/xdp/compiled_drop > /dev/null 2>&1
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
 }
@@ -208,6 +226,33 @@ percpu_case()
 	ktap_pass "$title"
 }
 
+# the compiled twin of run_case: no C stub, no kernel script and no callback, so the verdict is
+# read off the wire and off the program the device reports. Both programs decide on the ping
+# alone, through the same tests/xdp/packet.lua predicate the kernel callbacks use, since the
+# namespace emits autoconf traffic of its own.
+compiled_case()
+{
+	local script="$1" expect_reachable="$2" title="$3"
+	local output attached named reached
+
+	output=$(lunatik run "tests/xdp/$script" dev="$IFACE" 2>&1)
+	attached=$(bpftool net show dev "$IFACE" | grep -oP ' id \K[0-9]+')
+	named=$(bpftool prog show id "$attached" 2>/dev/null | grep -oP 'name \K\S+')
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+	reached=$?
+	lunatik stop "tests/xdp/$script" > /dev/null 2>&1
+
+	[ -z "$output" ] || { comment "$output"; ktap_fail "$title"; return 1; }
+	[ "$named" = "$script" ] || { ktap_fail "$title: $IFACE carries '$named'"; return 1; }
+	if [ "$expect_reachable" = "yes" ] && [ "$reached" -ne 0 ]; then
+		ktap_fail "$title: expected PASS but ping was blocked"; return 1
+	fi
+	if [ "$expect_reachable" = "no" ] && [ "$reached" -eq 0 ]; then
+		ktap_fail "$title: expected DROP but ping got through"; return 1
+	fi
+	ktap_pass "$title"
+}
+
 run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass" \
 	"xdp pass: verdict enforced, packet and argument content verified" softirq
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop" \
@@ -223,6 +268,14 @@ ktap_pass "xdp attach: refuses a sleepable runtime"
 zerokey_case
 process_case
 percpu_case
+
+reason=$(compiled_reason)
+if [ -n "$reason" ]; then
+	compiled_skip "$reason"
+else
+	compiled_case compiled_pass yes "xdp compiled pass: a compiled program lets the ping through"
+	compiled_case compiled_drop no "xdp compiled drop: a compiled program blocks the ping"
+fi
 
 ktap_totals
 

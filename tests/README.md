@@ -674,6 +674,16 @@ BTF, or `bpftool`, `clang` or `tc` is unavailable.
   drops on rejection, so a working guard blocks the ping, proving the
   kfunc ran and returned without crashing.
 
+- **tc compiled pass**, **tc compiled drop**: the same two verdicts from a
+  program compiled out of `compiled_pass.bpf.lua` and `compiled_drop.bpf.lua`,
+  with no C stub, no kernel script and no callback: `lunatik run ... dev=` loads,
+  attaches and pins it on tcx egress, `bpftool net show` names it there, the ping
+  decides the verdict and `lunatik stop` takes it down. Both programs read the
+  packet through `tests/tc/packet.lua`'s `isping`, the predicate the kernel
+  callbacks use, compiled as a subprogram. Skipped below kernel 6.6 or libbpf
+  1.3.0, which is where tcx begins, and where the objects or the CLI's loader are
+  not installed.
+
 ### thread
 
 Regression tests for `luathread`.
@@ -744,4 +754,13 @@ BTF, or `bpftool` or `clang` is unavailable.
 - **xdp percpu**: with the ping pinned to the last online CPU, which is where
   the veth runs the receive softirq, the callback of a percpu script reports
   that CPU as its own id, and no other; skipped on a single CPU.
+
+- **xdp compiled pass**, **xdp compiled drop**: the same two verdicts from a
+  program compiled out of `compiled_pass.bpf.lua` and `compiled_drop.bpf.lua`,
+  with no C stub, no kernel script and no callback: `lunatik run ... dev=` loads,
+  attaches and pins it, `bpftool prog show` names the program the device carries,
+  the ping decides the verdict and `lunatik stop` takes it down. Both programs
+  read the packet through `tests/xdp/packet.lua`'s `isping`, the predicate the
+  kernel callbacks use, compiled as a subprogram. Skipped where the objects or
+  the CLI's loader are not installed.
 
