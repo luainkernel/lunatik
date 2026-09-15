@@ -7,12 +7,26 @@ local systab = require("syscall.table")
 local rcu    = require("rcu")
 
 local track = rcu.table()
+local names = {}
 
+-- syscall numbers the kernel does not implement can share one entry point, where a hit belongs to no name
 for symbol, address in pairs(systab) do
-	local function handler()
-		track[symbol] = (track[symbol] or 0) + 1
+	if names[address] == nil then
+		names[address] = symbol
+	else
+		names[address] = false
 	end
-	probe.new(address, {pre = handler})
+end
+
+local function count(address)
+	local symbol = names[address]
+	track[symbol] = (track[symbol] or 0) + 1
+end
+
+for address, symbol in pairs(names) do
+	if symbol then
+		probe.new(address, {pre = count})
+	end
 end
 
 return function()
