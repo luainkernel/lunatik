@@ -233,15 +233,26 @@ When `<script>.bpf.o` exists, `run`:
 1. opens the object with libbpf, resolves the tree's kfuncs through the module BTF, creates the
    maps and pins them under `/sys/fs/bpf/lunatik/<script>/`;
 2. starts the runtime, as today, so the kernel script finds its maps;
-3. attaches the program to the target named on the command line (`dev=` for XDP and TC,
-   `cgroup=` for cgroup programs, nothing for an LSM hook, which the program names itself) and
-   pins the link under the same root.
+3. attaches every program the object declares to the target named on the command line (`dev=` for
+   XDP and TC, `cgroup=` for cgroup programs, nothing for an LSM hook, which the program names
+   itself) and pins each link at `/sys/fs/bpf/lunatik/<script>/<program>-link`. The suffix is a
+   hyphen because bpffs reserves a dot in a pin name; a map name and a program name are both C
+   identifiers, so nothing else keeps a link's pin and a map's apart in one root.
 
 The order matters: the maps exist before the script opens them, and the program attaches after
 the runtime is up, so its first packet finds a callback if it calls one. `stop` runs it backwards:
 unpin the link (which detaches), stop the runtime, unpin the maps. A failure at any step undoes
 the steps before it; a stale pin from a crashed run is removed by the next `run` of the same
-script, since the root is the script's.
+script, since the root is the script's. A run of a script already running is refused before that
+removal, since the root would be the live run's; where no runtime holds the root the run redeploys,
+detaching the link it finds rather than leaving its release scheduled. Every teardown here removes
+the pins the root holds and then the directory, never the tree below it: a root holds pins and
+nothing else, so a name that merely parents other scripts' roots is not a deployment, and a `stop`
+of one leaves them running.
+
+What the command line owes is read off the object before anything is created: a program whose
+section this phase cannot attach is refused by that section's name, an option the object does not
+ask for is refused by its own, and a missing one names what it is missing.
 
 The verifier's log is the error `run` prints when the load fails, and its `line_info` names the
 Lua file and line. `lunatik list` is unchanged.
@@ -284,19 +295,22 @@ that reaches it.
 
 ## Open questions for review
 
-1. Whether the deployment target belongs on the command line (`dev=eth0`) or in the program file
-   with a command-line override. The proposal keeps it out of the source because a program file
-   is installed once and attached wherever an operator says.
-2. Whether a map declared by a program file that a kernel script also declares (`map.hash(path,
+1. ~~Whether the deployment target belongs on the command line (`dev=eth0`) or in the program file
+   with a command-line override.~~ Settled as proposed: the target is a `key=value` argument to
+   `lunatik run`, and the object says which keys it asks for.
+2. ~~Whether a map declared by a program file that a kernel script also declares (`map.hash(path,
    ...)`) should be checked at `run` for a matching spec, or left to the size check `bpf.map`
-   already performs on open.
+   already performs on open.~~ Settled as the second: the loader creates the map from the program
+   file's declaration and the script's open checks its own spec against the map's sizes, so a
+   mismatch raises where the script reads it.
 3. Whether `getstring` into a fixed buffer should be spelled as today (`packet:getstring(at,
    len)`, with `len` bounded by the buffer) or as a new method that names the bound. The proposal
    keeps the name so `examples/common/sni.lua` compiles unchanged.
 4. Whether the per-argument marshalling of the runtime call (native 64-bit integers, in order)
    should instead take a `string.pack` format, so the kernel side can keep `getuint32(0)` where it
    has it.
-5. Whether `lunatik run` should refuse a program file without a kernel script, or run the program
-   alone with an empty runtime. The proposal runs it alone; a program that calls no Lua needs no
-   script.
+5. ~~Whether `lunatik run` should refuse a program file without a kernel script, or run the program
+   alone with an empty runtime.~~ Settled as proposed, with no runtime at all rather than an empty
+   one: a program that calls no Lua needs no script, and an execution context given to such a run
+   is refused, since there is nothing for it to apply to.
 

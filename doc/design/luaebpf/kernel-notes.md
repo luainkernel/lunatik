@@ -130,6 +130,76 @@ Capabilities are `current`'s: `bpf_prog_load` checks `CAP_BPF` at
 [#L3043](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/syscall.c#L3043). The CLI runs
 under `sudo`.
 
+## What the loader does with what it opened
+
+`lunatik.loader` (`bin/loader.c`) is the libbpf half of `lunatik run`. Five facts shape it.
+
+**The verifier log reaches the command line through the open options.** `bpf_object_open_opts`
+carries `kernel_log_buf`, `kernel_log_size` and `kernel_log_level`
+([libbpf.h#L146-L179](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.h#L146-L179)):
+with a buffer supplied and `log_level` left at 0, libbpf loads quietly and retries a failed load
+with `log_level = 1` into that buffer, which is what the CLI prints.
+
+**`pin_root_path` reaches no map the emitter writes.** It applies only to maps whose BTF
+definition declares `pinning`, and the emitter writes `type`, `max_entries`, `key_size` and
+`value_size` and nothing else
+([luaebpf/luaebpf.lua#L144-L147](https://github.com/luainkernel/lunatik/blob/fd4adeb9/luaebpf/luaebpf.lua#L144-L147)),
+so the loader sets each pin path with `bpf_map__set_pin_path` before the load.
+
+**A stale pin is adopted, not overwritten.** `bpf_object__create_maps` reuses whatever is pinned
+at a map's `pin_path` and only otherwise creates and auto-pins it
+([libbpf.c#L5645-L5658](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L5645-L5658)),
+so a crashed run's maps come back unless the root is removed first. `make_parent_dir` creates
+exactly one directory level
+([#L9142-L9160](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L9142-L9160))
+and a script name is itself a path, so the CLI makes the root with `mkdir -p`.
+
+**A verifier rejection happens with the maps already created.** `bpf_object_prepare` runs
+`bpf_object__create_maps` and the programs verify after it
+([#L9048-L9078](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L9048-L9078),
+[#L9080-L9128](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L9080-L9128)).
+Both arms unpin what they pinned before returning, and libbpf 1.5.0, the development host's,
+does the same
+([v1.5.0 libbpf.c#L8616-L8621](https://github.com/libbpf/libbpf/blob/v1.5.0/src/libbpf.c#L8616-L8621)).
+The loader does not lean on it: its undo removes the script's root, which also takes the
+directory libbpf never made.
+
+**The attach comes from the section name, the device from the command line.**
+`bpf_program_attach_fd` attaches with the program's expected attach type
+([#L13730-L13761](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L13730-L13761)),
+and `bpf_program__attach_xdp`
+([#L13781-L13785](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L13781-L13785))
+and `bpf_program__attach_tcx`
+([#L13816-L13848](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L13816-L13848))
+both take an ifindex, so `dev=` resolves through `if_nametoindex`.
+
+### A dot cannot be part of a pin name
+
+bpffs reserves dots: `bpf_lookup` answers `-EPERM` for any name containing one, in any directory
+with mode bits set
+([kernel/bpf/inode.c#L417-L422](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/inode.c#L417-L422),
+the same at [v5.15](https://github.com/torvalds/linux/blob/v5.15/kernel/bpf/inode.c#L375-L380)).
+So a link cannot be pinned as `<program>.link`; it is `<program>-link`. A map name is a C
+identifier ([luaebpf/bpf/map.lua#L43](https://github.com/luainkernel/lunatik/blob/fd4adeb9/luaebpf/bpf/map.lua#L43)),
+and so is a program name, so the hyphen is what keeps the two apart in one root.
+
+### Unpinning a link releases it later; detaching it does not
+
+Removing a link's pin drops a reference, and the release that detaches the program runs from a
+work item: `bpf_link_put` schedules it rather than freeing in place
+([kernel/bpf/syscall.c#L3424-L3442](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/syscall.c#L3424-L3442)),
+and the inode's own put reaches it from `bpf_destroy_inode`
+([inode.c#L837-L850](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/inode.c#L837-L850)).
+`BPF_LINK_DETACH` instead calls the link's `detach` in the syscall
+([syscall.c#L6039-L6058](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/syscall.c#L6039-L6058)),
+which XDP
+([net/core/dev.c#L10669-L10675](https://github.com/torvalds/linux/blob/v7.2/net/core/dev.c#L10669-L10675))
+and tcx
+([kernel/bpf/tcx.c#L289-L296](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/tcx.c#L289-L296))
+both implement. The CLI therefore detaches before it unpins wherever it takes a link down: a
+`lunatik stop` returns with the device already clear rather than with a release scheduled, and a
+`lunatik run` over a root a previous run left clears the device before it attaches to it again.
+
 ## The verifier the emitter designs against
 
 ### Limits
@@ -566,8 +636,13 @@ it may not (`kern_sys_bpf`).
   headers. Measured in phase 1 on the running kernel, not predicted here.
 * `register_bpf_struct_ops` at v6.8: present at v6.9 and absent at v6.7 by tag; v6.8 not checked.
   Not ranking-deciding, since struct_ops is a non goal.
-* Which distributions ship a libbpf with `bpf_program__attach_tcx` (1.3.0). The loader reports a
-  missing symbol as a skip in the suite and an error in the CLI.
+* Which distributions ship a libbpf with `bpf_program__attach_tcx` (1.3.0). The loader compiles
+  the tcx arm out below it and reports `tcx needs libbpf 1.3.0` when an object asks for that
+  attach; the suite skips on the same reason.
+* How long the work item an unlinked link pin schedules takes to run. On an idle development host
+  a re-attach immediately after the unlink succeeded on every one of fifteen tries, five by hand
+  after a stop and ten through a run that redeploys, so the deferral was not observed to lose a
+  race; the CLI detaches first so that it cannot.
 
 ## Sources
 
@@ -577,6 +652,9 @@ it may not (`kern_sys_bpf`).
   `Documentation/bpf/btf.rst`, `kfuncs.rst`, `standardization/instruction-set.rst`;
   `tools/lib/bpf/libbpf.c`, `libbpf.h`, `bpf.h`, `libbpf.map`, `linker.c`, `skel_internal.h`;
   `tools/bpf/bpftool/gen.c`, `prog.c`, `net.c`, all at Linux `v7.2`
+* `kernel/bpf/inode.c`, `kernel/bpf/tcx.c`, `net/core/dev.c` at `v7.2` and `v5.15`, for the pin
+  name rule and the link release; `src/libbpf.c` in `libbpf/libbpf` at `v1.5.0`, the development
+  host's
 * `lunatik_ebpf.h`, `lib/luaxdp.c`, `lib/luatc.c`, `lib/luabpf.c`, `lib/bpf/map.lua`, `bin/lunatik`,
   `lunatik_aux.c`, `Makefile`, `Kbuild`, `README.md`, `tests/xdp/`, `tests/tc/`, `examples/filter/`,
   `examples/sniclassify/` at `22c5afe2`; `doc/design/lsm-ebpf/` for the LSM and cgroup verdicts
