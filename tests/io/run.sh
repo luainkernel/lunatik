@@ -5,7 +5,7 @@
 #
 # Tests for the io library: open, read, write, seek, lines, type, edge cases.
 #
-# Usage: sudo bash tests/io/test.sh
+# Usage: sudo bash tests/io/run.sh
 
 SCRIPT="tests/io/test"
 SCRIPT_SOFTIRQ="tests/io/softirq"
