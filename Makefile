@@ -146,6 +146,7 @@ ebpf_uninstall:
 EXAMPLE_DIRS := $(patsubst examples/%/,%,$(wildcard examples/*/))
 
 examples_install:
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples
 	${INSTALL} -m 0644 examples/*.lua ${SCRIPTS_INSTALL_PATH}/examples
 	for d in $(EXAMPLE_DIRS); do \
@@ -161,6 +162,7 @@ examples_uninstall:
 TEST_DIRS := $(filter-out socket,$(patsubst tests/%/,%,$(wildcard tests/*/)))
 
 tests_install:
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests ${LUNATIK_TESTS_INSTALL_PATH}
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0755 tests/run.sh ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0644 tests/lib.sh ${LUNATIK_TESTS_INSTALL_PATH}
