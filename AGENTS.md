@@ -225,6 +225,11 @@ based on, naming them: they keep the commits the push drops, and those surface l
 of a commit that no longer exists, in a pull request nobody edited. `REWRITE_OK=1` runs it once that
 list is known to be stale.
 
+A check ships proved, the way a test does: run it against the mistake it is for, and against a case
+it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
+catches it. This file's own gate spent its first version skipping `lua/` and `klibc/` in a loop over
+the staged list, where a submodule is a gitlink and its files never appear.
+
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run or a suite, while another operation is on it, naming the processes it found; a process in
 D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once
