@@ -224,6 +224,11 @@ A write to a pull request's reviews or comments is that guard's and not this one
 runs past three paragraphs by design, and #851's held a rewrite of its own verdict until the path
 was read for what it was.
 
+`rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
+based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
+of a commit that no longer exists, in a pull request nobody edited. `REWRITE_OK=1` runs it once that
+list is known to be stale.
+
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run or a suite, while another operation is on it, naming the processes it found; a process in
 D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once
