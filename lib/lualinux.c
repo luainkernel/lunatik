@@ -166,6 +166,7 @@ static int lualinux_difftime(lua_State *L)
 * Looks up a kernel symbol by name.
 * Uses `kallsyms_lookup_name` (potentially via kprobes) to find the address
 * of a kernel symbol.
+* Safe to call from softirq and hardirq.
 *
 * @function lookup
 * @tparam string symbol_name kernel symbol name to look up.

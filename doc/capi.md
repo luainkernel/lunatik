@@ -619,3 +619,18 @@ void lunatik_free(void *ptr);
 ```
 Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`. Equivalent to `kvfree`.
 
+---
+
+## Symbols
+
+### lunatik\_lookup
+```C
+void *lunatik_lookup(const char *symbol);
+```
+Returns the address of the kernel symbol named `symbol`, or `NULL` when kallsyms does not carry
+it. Never sleeps, so it is callable from any context, a softirq or hardirq handler included:
+`kallsyms_lookup_name`, which the kernel does not export, is resolved through a kprobe once,
+while `lunatik.ko` loads. Each call searches the kernel's symbol table, so a handler resolves a
+name once and keeps the address rather than asking per event. Every lookup answers `NULL` when
+that resolution fails, as it does without `CONFIG_KPROBES` or `CONFIG_KALLSYMS`.
+
