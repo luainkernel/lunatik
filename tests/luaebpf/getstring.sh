@@ -18,9 +18,9 @@
 #   - with LUAEBPF_PROBE naming neither, an XDP read is refused by the helper's name and the
 #     kernel's, and a TC one still compiles: bpf_skb_load_bytes is older than every kernel the
 #     tree supports and carries no probe
-#   - a buffer used as a number, compared with a number, passed to a call, returned, concatenated,
-#     '#'-ed or handed to a string function is refused, and eight reads in one function run the
-#     frame past the 512 bytes eBPF allows
+#   - a buffer used as a number, compared with a number, passed to a call, returned by the program
+#     itself, concatenated, '#'-ed or handed to a string function is refused, and eight reads in
+#     one function run the frame past the 512 bytes eBPF allows
 # On a kernel publishing no bpf_xdp_load_bytes the compiler refuses the read, and the case skips.
 #
 # Usage: sudo bash tests/luaebpf/getstring.sh
@@ -126,7 +126,7 @@ row asorder "asorder.bpf.lua:7: attempt to compare a string with a number" \
 row asargument "asargument.bpf.lua:7: argument #1 is a string, and a compiled call passes numbers and packets" \
 	$'\tlocal s = p:getstring(0, 4)\n\tlocal v = width(s)\n\treturn v' \
 	'local function width(s) return 4 end'
-row returned "returned.bpf.lua:7: a string does not outlive the function that read it" \
+row returned "returned.bpf.lua:7: a program returns a verdict, not a string" \
 	$'\tlocal s = p:getstring(0, 4)\n\treturn s'
 row concatenated "concatenated.bpf.lua:7: '..' cannot be applied in a compiled function" \
 	$'\tlocal s = p:getstring(0, 4)\n\tlocal t = s .. suffix\n\treturn 1' 'local suffix = "x"'

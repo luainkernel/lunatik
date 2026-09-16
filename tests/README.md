@@ -281,6 +281,29 @@ interpreter raises, the compiled program owes its default verdict instead.
   than the key, a key spec wider than the buffer a string is read into and a
   string whose read the walk bounded two ways are refused. Skips where the
   kernel publishes no `bpf_xdp_load_bytes`.
+- **strret**: the string a compiled function answers through the buffer its
+  caller owns. A subprogram that reads a name and returns it, the same one
+  frame further, a subprogram that answers a name or nothing tested with `if
+  host then` and with `host == nil`, and a read that fails inside the callee,
+  each over the five packets of `packets.lua`: the interpreter's verdict, or
+  the default where it raises, which is what says the flag the callee raises
+  carries out of a call that also owed a string. A subprogram taking the three
+  arguments such a function may have of its own runs the same corpus, the
+  boundary the arity refusal below sits at, where the buffer takes the last
+  register a call has. A callee whose two returns each carry a buffer of their
+  own runs the same corpus, the ARP frame taking the second return and every
+  other packet the first, and only that second read answering the address the
+  caller compares against, so a copy from the wrong buffer is a different
+  verdict. The name a call answered keys the `c64` map the program file
+  declares, with no test where every path of the callee answers a string and
+  after a test where one of them answers nothing: both find the entry seeded
+  under `string.pack("c64", name)`, so what the callee copied out carries the
+  NUL tail as well as the bytes. A program returning a string, a function
+  returning a string on one path and a number on another, a string-returning
+  function taking four arguments of its own, the untested use of what such a
+  call answered, a middle function returning it untested and two call sites'
+  answers merged into one register are refused with their messages and lines.
+  Skips where the kernel publishes no `bpf_xdp_load_bytes`.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, and every program is run against the empty
   maps and against maps the case seeded from the shell: a key present in a hash,

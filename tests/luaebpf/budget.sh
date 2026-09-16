@@ -21,7 +21,7 @@ trap cleanup EXIT
 
 CEILING=20000
 
-CORPORA="pass arith divzero branch forconst forvar while iter call ctx packet bounds getstring strcmp strkey mapget mapset struct"
+CORPORA="pass arith divzero branch forconst forvar while iter call ctx packet bounds getstring strcmp strkey strret mapget mapset struct"
 
 luaebpf_start 1
 
