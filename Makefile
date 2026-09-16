@@ -21,7 +21,6 @@ LUA_CPATH ?= $(shell $(LUA) -e 'print(package.cpath:match("([^;]*)/%?%.so;"))')
 LUA_CFLAGS ?= $(shell pkg-config --cflags $(LUA))
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
-LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
 LUNATIK_TESTS_INSTALL_PATH = /usr/local/share/lunatik/tests
 MOONTASTIK_RELEASE ?= v0.1c
 LUA_API = lua/lua.h lua/lauxlib.h lua/lualib.h
@@ -101,8 +100,7 @@ AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 	scripts_install scripts_uninstall \
 	modules_install modules_uninstall btf_install \
 	examples_install examples_uninstall \
-	tests_install tests_uninstall \
-	ebpf ebpf_install ebpf_uninstall
+	tests_install tests_uninstall
 
 all: lunatik_sym.h autogen ${LUNATIKC} ${LOADER}
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
@@ -186,14 +184,6 @@ scripts_uninstall:
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik ${LUNATIK_INSTALL_PATH}/lunatikc
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
 	${RM} -r ${LUA_PATH}/lunatik ${LUA_CPATH}/lunatik
-
-ebpf:
-
-ebpf_install:
-	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
-
-ebpf_uninstall:
-	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}
 
 EXAMPLE_DIRS := $(patsubst examples/%/,%,$(wildcard examples/*/))
 
