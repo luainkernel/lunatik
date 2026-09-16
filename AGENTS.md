@@ -161,8 +161,9 @@ userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the 
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
 (`blast-radius.sh`), the examples that use a binding the change touches, which a review runs
-(`examples-touched.sh`), the machine a tracked file carries (`machine-leak.sh`), and the trailing
-blank line rule, the refusal of a staged conflict marker and of a string function the kernel removed
+(`examples-touched.sh`), a commit that carries a rule or a check inside a change of its own
+(`harness-mixed.sh`), the machine a tracked file carries (`machine-leak.sh`), and the trailing blank
+line rule, the refusal of a staged conflict marker and of a string function the kernel removed
 (`pre-commit`). Each takes file paths and skips what does not apply, so any editor, assistant, or CI
 can run them. The `Checks` workflow runs them over a pull request's diff: `pre-commit` and
 `machine-leak.sh` fail the run, the heuristic checks annotate it. Install the commit gate with:
@@ -822,7 +823,10 @@ named, not one discovered at that consumer's build.
   needs a section per mechanism describes several pull requests: stack them, each on the one below.
   The harness is the exception: the checks, rules and skill steps one incident produces travel in one
   pull request, because they carry one reason and the CI line that runs them is one push. One
-  incident's four, opened separately, each needed a merge and a CI push of its own.
+  incident's four, opened separately, each needed a merge and a CI push of its own. They travel with
+  each other, never inside an implementation: a rule that rides in a feature's commit lands unread,
+  and a maintainer who wants the fix and not the rule has nothing to pick.
+  `tools/checks/harness-mixed.sh` names a commit that mixes them.
 * No session links or assistant footers in a commit or a pull request beyond the `Co-Authored-By`
   trailer. The project settings turn the link off; one that slipped in is removed with a reword.
 * A root cause named in a commit body or a pull request rests on a captured stack or a source-traced
