@@ -52,6 +52,9 @@ static int luasocket_accept(lua_State *L);
 #define LUASOCKET_ISUNIX(family)	((family) == AF_UNIX || (family) == AF_LOCAL)
 #define luasocket_family(socket)	((socket)->sk->sk_family)
 
+/* these families spell an address with two arguments, the rest with one */
+#define luasocket_ispair(family)	((family) == AF_INET || (family) == AF_PACKET || (family) == AF_NETLINK)
+
 static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr_storage *addr, int ix)
 {
 	memset(addr, 0, sizeof(*addr));
@@ -342,9 +345,8 @@ static int luasocket_connect(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
 	struct sockaddr_storage addr;
-	int nargs = lua_gettop(L);
 	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
-	int flags = luaL_optinteger(L, nargs >= 4 ? 4 : 3, 0);
+	int flags = luaL_optinteger(L, luasocket_ispair(luasocket_family(socket)) ? 4 : 3, 0);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0))
 	lunatik_try(L, kernel_connect, socket, (struct sockaddr_unsized *)&addr, size, flags);
