@@ -57,8 +57,11 @@ does not poison the next.
 
 **Feature skips, not failures.** A kernel without `may_goto` skips the runtime-bound loop tests
 and asserts instead that the compiler refuses the loop with the documented message; a libbpf
-without `bpf_program__attach_tcx` skips the TC attach tests; a machine without `bpftool` or
-`clang` (needed once, for the runtime library at `make`) skips the suite with the reason.
+without `bpf_program__attach_tcx` skips the TC attach tests; a machine without `bpftool` skips the
+suite with the reason. Where the compiler probes the kernel for a lowering, `LUAEBPF_PROBE`
+replaces the probe's answer with a comma-separated allow-list of what it may use -- `loadbytes`,
+`maygoto`, `iter` -- read from `/proc/self/environ` beside `LUAEBPF_DROP`, so the refusal a kernel
+without the feature would take is exercised on a kernel that has it.
 
 ## Test matrix
 
@@ -123,13 +126,13 @@ The row this table called `run.sh` is `load.sh`: `tests/luaebpf/run.sh` is the s
 | `report.sh` | the compiler's summary lists every call into Lua with its line and its key, and prints nothing for a program file with none |
 | `nobtf.sh` | `LUAEBPF_DROP=ksyms` leaves the extern unresolvable, and both `bpftool prog loadall` and `lunatik run` name the kfunc, the run undoing itself; a program with no such call still loads |
 
-### Phase 5: the runtime library, strings and loops
+### Phase 5: strings and loops beyond `for`
 
 | Test | Proves |
 |------|--------|
-| `library.sh` | an object linked with the runtime library loads, and a library call verifies inside a subprogram |
-| `strcmp.sh` | a comparison against a string constant matches the interpreter over the corpus, including a prefix and an empty string |
-| `strkey.sh` | `getstring` into a `c64` map key finds an entry written by the kernel script |
+| `getstring.sh` | the read into a frame buffer over the corpus, its failure paths, the helper each program type calls with the buffer zeroed before it, the refusal on a kernel publishing no `bpf_xdp_load_bytes`, and every use of a string the frame cannot carry |
+| `strcmp.sh` | a comparison against a string constant matches the interpreter over the corpus, including a prefix, an empty string and a read whose NUL tail a length-blind compare would call equal |
+| `strkey.sh` | `getstring` into a `c64` map key finds an entry written by the kernel script, and a `c16` key reads the spec's width out of the same buffer |
 | `while.sh` | a `while` with a runtime bound terminates under `may_goto` and matches the interpreter |
 | `iter.sh` | the same loop lowered to the iterator kfuncs on a kernel without `may_goto` |
 

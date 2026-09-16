@@ -39,9 +39,8 @@ names, a map declaration, an offset. The functions it hands to a program constru
     end)
 
 That is the whole of `tests/xdp/xdp_pass.bpf.c`, minus the call into Lua. `xdp.program` records
-the function; `lunatikc` reads its bytecode, types it, emits it, links the runtime library and
-writes the object. The program returns an XDP verdict from `linux.xdp`, the same table the kernel
-scripts use.
+the function; `lunatikc` reads its bytecode, types it, emits it and writes the object. The
+program returns an XDP verdict from `linux.xdp`, the same table the kernel scripts use.
 
 The split mirrors the runtime model AGENTS.md describes: a kernel script's body runs once, in
 process context, and its hooks run later under stricter rules. Here the body runs once at compile
@@ -57,7 +56,9 @@ A compiled function is Lua where every value has a type the translator can prove
 | `+ - * // % & \| ~ << >>`, unary `-` and `~`, comparisons | `ALU64` ops with Lua's floor semantics; a division tests its divisor |
 | `if`, `and`, `or`, `not` | fused compare-and-jump |
 | numeric `for` | a bounded loop when the bounds are constants, a `may_goto` header otherwise |
-| `while`, `repeat` | `may_goto` headers (phase 5) |
+| `while`, `repeat` | a `may_goto` header, or the open-coded iterators on a kernel without one |
+| `packet:getstring(at, len)` | `bpf_skb_load_bytes` or `bpf_xdp_load_bytes` into a buffer of the frame |
+| `==` between such a string and a string constant | the read length against the constant's, then the bytes |
 | calls to functions the program file declares | BPF-to-BPF calls; no recursion, four register arguments |
 | the context, the packet, a map, a struct view | proxies (next sections) |
 | `return` | the program's verdict |
@@ -80,20 +81,40 @@ Refusing is the normal outcome; the message says which line and why, in one line
 verifier lets an XDP program read -- `ingress_ifindex` and `rx_queue_index`, neither writable --
 at the offsets the running kernel's own BTF reports, and `ctx:packet()` is the packet as a proxy
 with the method names of the `data` object a kernel script sees: `getbyte`, `getuint8`,
-`getint8`, `getuint16`, `getint16`, `getuint32`, `getint32`, `getint64`, `getnumber` and `#`
-(`getstring` arrives with the strings, in phase 5). There is no `getuint64`, because the kernel
-object has none: a Lua integer is 64-bit signed and an unsigned 64-bit value has no distinct
-representation, so a program that asks for it is refused with the method's name. A field the
-struct does not carry is refused by name too, so is a write the kernel would not take and one
-given something other than a number, and `ctx.data` and `ctx.data_end` are refused as the packet
-bounds they are: the only Lua-meaningful thing to do with them is their difference, which
-`#ctx:packet()` already spells. The same helper therefore reads the same bytes on both sides:
+`getint8`, `getuint16`, `getint16`, `getuint32`, `getint32`, `getint64`, `getnumber`, `getstring`
+and `#`. There is no `getuint64`, because the kernel object has none: a Lua integer is 64-bit
+signed and an unsigned 64-bit value has no distinct representation, so a program that asks for it
+is refused with the method's name. A field the struct does not carry is refused by name too, so
+is a write the kernel would not take and one given something other than a number, and `ctx.data`
+and `ctx.data_end` are refused as the packet bounds they are: the only Lua-meaningful thing to do
+with them is their difference, which `#ctx:packet()` already spells. The same helper therefore
+reads the same bytes on both sides:
 
     local function u16(packet, at)
         return packet:getbyte(at) << 8 | packet:getbyte(at + 1)
     end
 
 is `examples/common/sni.lua`'s helper, unchanged, and it compiles.
+
+`getstring(at, len)` answers the packet's bytes, read into a buffer of the reading function's
+frame: a fixed region of 64 bytes, zeroed before the read, holding what the length asked for. The
+compiler carries the region's offset and the Lua register carries the length, which is what makes
+the comparison below exact. The length is the **program's own**: the emitter tracks an upper bound
+on an integer register and narrows it where the program compares it against a constant, so
+
+    local n = packet:getbyte(at)
+    if n > 64 then return action.PASS end
+    local host = packet:getstring(at + 1, n)
+
+compiles, and a length the compiler cannot bound, or one bounded above 64, is an error naming the
+line. Nothing is clamped: a compiled program that silently read fewer bytes than its interpreted
+twin would be the disagreement the whole design exists to avoid. A buffer lives in the frame that
+read it, so a compiled function neither returns a string nor takes one; its only uses are `==`
+against a string constant, exact in length and bytes, and a `c<n>` map key. `getstring` with no
+length -- the kernel object's "to the end" form -- is refused, since the bound would be the
+packet's length, which is not a compile-time fact. An XDP program on a kernel that publishes no
+`bpf_xdp_load_bytes` (below v5.18) is refused by the helper's name and the kernel's, since the
+compiler runs on the machine that loads what it emits and can know.
 
 The offset is an argument like any other, and an accessor called without one, or with one that
 is not a number, is refused at its line. Every packet access carries a bounds check against
@@ -140,8 +161,21 @@ the twin takes and the object cannot carry is refused at the declaration: a name
 an array keyed by anything but the four bytes the kernel creates one with, and a spec naming a
 byte order other than the host's, which is the only one an eBPF load and store take. Inside
 a compiled function a map is a table proxy with `bpf.map`'s semantics: indexing looks up,
-assignment updates, assigning `nil` deletes. A key and a value are numbers, as the spec packs
-them; anything else is refused at the line that wrote it.
+assignment updates, assigning `nil` deletes. A value is a number, as the spec packs it; a key is
+a number, or a run of bytes where the spec says `c<n>` and the key is a string `getstring` read.
+Anything else is refused at the line that wrote it.
+
+A `c<n>` key is what lets a host name key a map both sides share:
+
+    local flows = map.hash("flows", {key = "c64", value = "I4", entries = 4096})
+
+The emitter hands the helper the buffer's own address rather than copying it into a key slot, and
+the width read is the spec's, not the buffer's, so a `c16` key reads sixteen of the sixty-four
+bytes. The buffer was zeroed before the read, so its tail is the NUL padding `string.pack("c64",
+name)` writes: the entry a kernel script wrote with the same spec is the entry the program finds.
+A string bounded wider than the key spec is refused, naming both widths -- the bound is a
+compile-time fact here, so there is nothing to truncate at run time -- and so is a spec wider
+than the sixty-four bytes a read fills, which the helper would go past into the frame.
 
     local cached = flows[skb.hash]
     if cached then
@@ -321,9 +355,14 @@ that reaches it.
    already performs on open.~~ Settled as the second: the loader creates the map from the program
    file's declaration and the script's open checks its own spec against the map's sizes, so a
    mismatch raises where the script reads it.
-3. Whether `getstring` into a fixed buffer should be spelled as today (`packet:getstring(at,
-   len)`, with `len` bounded by the buffer) or as a new method that names the bound. The proposal
-   keeps the name so `examples/common/sni.lua` compiles unchanged.
+3. ~~Whether `getstring` into a fixed buffer should be spelled as today (`packet:getstring(at,
+   len)`, with `len` bounded by the buffer) or as a new method that names the bound.~~ Settled as
+   proposed, with the bound the program's own rather than the buffer's: the name stays
+   `getstring`, and a length the compiler cannot bound is a compile error naming the line rather
+   than a clamp, since a clamp is a compiled program quietly disagreeing with its interpreted
+   twin. `examples/common/sni.lua` still does not compile whole, for a reason of its own: it
+   returns the string from a subprogram, and a buffer does not outlive its frame. Phase 6 owns
+   that.
 4. ~~Whether the per-argument marshalling of the runtime call (native 64-bit integers, in order)
    should instead take a `string.pack` format, so the kernel side can keep `getuint32(0)` where it
    has it.~~ Settled as proposed: native 64-bit integers in order, and no format argument. A

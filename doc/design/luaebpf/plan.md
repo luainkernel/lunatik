@@ -79,11 +79,11 @@ change in the facts behind it can reopen it.
 | Decision | Reason | What would reverse it |
 |----------|--------|----------------------|
 | The loader is the CLI over `bpf(2)`, not the module over `kern_sys_bpf` | The module path has no verifier log, no module BTF fd for the tree's kfuncs, no pinned object by path, and a symbol namespaced against it; the CLI has all four and runs on the same host, so it compiles against the same kernel (`kernel-notes.md`, first section) | A kernel that accepts a kernel log buffer and adds `BPF_BTF_GET_FD_BY_ID` and `BPF_OBJ_GET` to the allowlist; then the loader becomes a `bpf.prog` object in `lib/luabpf.c` and the CLI keeps the fallback |
-| One loader, one back end | AGENTS.md: two mechanisms doing one job. A second loader (kernel) buys runtimes that start without a CLI process, which the pinned program already serves; a second back end (C for clang) buys LLVM's verifier-friendly shapes, which the runtime library buys for the fixed algorithms without a second emitter | A verified shape the direct emitter cannot produce and the library cannot wrap |
+| One loader, one back end | AGENTS.md: two mechanisms doing one job. A second loader (kernel) buys runtimes that start without a CLI process, which the pinned program already serves; a second back end (C for clang) buys LLVM's verifier-friendly shapes, which the emitter produces itself for the shapes the subset needs | A verified shape the direct emitter cannot produce |
 | The compiler runs the kernel-configured Lua 5.5 (`lunatikc`), not the CLI's 5.4 | The translator folds constants and reads bytecode; doing that with the kernel's own arithmetic and opcode numbering makes the compiled program agree with the interpreted one by construction. This is #742's shape (a C driver the tree owns, which can host a translator); #743 builds upstream `luac.c` against the kernel configuration, a compiler driver the tree does not own | Nothing short of the kernel Lua leaving `_KERNEL` behind |
 | The compiler does not wait for a benchmark | Three of its four reasons are independent of speed: contexts the trampoline cannot reach, the verifier checking the user's own code, and no C on the user's side. Speed is the fourth, and the only one the number decides | Nothing; the number changes what the docs claim about speed, not whether the compiler is built |
 | The number is measured in phase 0 anyway | The design claims the per-call sequence of the trampoline as a cost; a cost claim without a number is a duplication, and the escape hatch's users need to know what a call into the VM costs on their hook | Not applicable |
-| A precompiled BPF runtime library is in | Fixed algorithms (string compare, bounded copies, header walks) are C compiled once by clang at `make` and linked into every program by libbpf's linker, so the emitter emits straight-line code and calls; DTrace 2.0 ships this shape (`kernel-notes.md`) | The library growing past what the emitter could have done in a few lines each: then move those into the emitter and shrink it |
+| A precompiled BPF runtime library is out | Every function it was scoped for was traced to no caller, to two emitted instructions, or to a kernel helper, so the library would have been a build dependency and a link step with nothing left to hold: the header walks the examples repeat have no caller, since phase 6 compiles `examples/common/sni.lua` itself rather than duplicating it in C; a byte swap is two instructions the emitter already emits, and `examples/common/sni.lua` writes one in Lua today; the only comparison the subset needs is against a **constant**, whose length is known while compiling, so it is one test of the read length and a word compare per eight bytes, straight-line; and a bounded copy is a kernel helper, `bpf_skb_load_bytes` or `bpf_xdp_load_bytes`, which the emitter calls by number. This is the reversal the row for the library already named, at its extreme: what the emitter could have done in a few lines each, done there | A verified shape the direct emitter cannot produce and no kernel helper or kfunc offers. The linking is not the obstacle: `bpftool gen object` accepts every object the emitter writes today, keeping the program section, `.maps`, the `.ksyms` extern, `.BTF` and `.BTF.ext`, and the merged BTF still carries the Lua file name and source lines |
 | The escape hatch is explicit, never inferred | A partition the compiler chooses silently falls back per packet and hides the cost; a refused construct is an error naming the line, and the program calls the runtime where it decides to (`api.md`) | A measured case where the compiler's split beats the author's; then offer inference as an opt-in, still reported |
 | The interpreter-as-a-BPF-program is out | The objective is that the verifier checks the user's program. An interpreter verified once and fed bytecode as data gives the verifier's guarantee about the interpreter, not about the program, and its speed is by construction an interpreter's. It is a different project | A measured verification budget and a per-packet number for such an interpreter; neither exists |
 | Lua-callable verified functions through a Lunatik `struct_ops` are a separate design | It needs Lunatik to define a program type of its own, with its own verifier ops and context; that is a kernel-side design this compiler would then feed, not part of it | Not applicable; it is deferred, not refused |
@@ -91,7 +91,7 @@ change in the facts behind it can reopen it.
 
 ## Shape of the work
 
-Four artefacts, none of them a kernel module:
+Three artefacts, none of them a kernel module:
 
 * **the translator**, a Lua library, `luaebpf/`, a peer of `lib/` and `autogen/` rather than a
   part of `lunatikc`: `luaebpf.compile(chunk)` loads the program file, captures the functions it
@@ -100,9 +100,6 @@ Four artefacts, none of them a kernel module:
   needs no C. `lunatikc` hosts it: a subcommand that stands up the kernel-configured Lua with the
   standard libraries and a prototype accessor and calls `luaebpf.compile`. The library is what the
   tests exercise and what any other host reuses; the driver is a dozen lines;
-* **the runtime library**, C under `luaebpf/rt/`, compiled by clang at `make`, shipped as one
-  BPF object and linked into each program by libbpf's static linker as a step `make` runs, not
-  code `lunatikc` links;
 * **the loader**, a libbpf C extension for the CLI's Lua: open, load, pin maps by name under a
   root, attach, pin the link, and the reverse;
 * **the tests**, `tests/luaebpf/`, plus the existing `xdp` and `tc` suites gaining compiled
@@ -159,7 +156,8 @@ runtime model, `lunatikc`'s bytecode role.
 * **ply** (Tobias Waldekranz): a direct emitter in C with a real IR and virtual registers, no
   LLVM, no loops, no BTF. The same point on the same curve.
 * **DTrace 2.0 for Linux** (Oracle): a hand-written BPF code generator plus a library of BPF
-  functions compiled once by `gcc-bpf` and linked at load. The runtime library here is that shape.
+  functions compiled once by `gcc-bpf` and linked at load. The library half is the shape this
+  design weighed and declined: its functions here are one helper call or a few instructions.
 * **bpftrace**: an LLVM frontend, 7.7k lines of C++ against an API that moves every major. The
   cost this design declines to pay.
 * **SystemTap's `stapbpf`**: a production direct emitter with loops only outside the kernel
@@ -272,15 +270,28 @@ instructions, against the same 20,000 ceiling. A call is three stores of the key
 argument, five registers, the call and the two shifts that sign-extend the answer; the key's
 stores are what a longer runtime name adds, and a call inside a loop pays them per iteration.
 
-### Phase 5: the runtime library, strings and loops beyond `for`
+### Phase 5: strings and loops beyond `for`
 
-The C library (bounded copy, compare, byte-order helpers, the header walks the examples repeat),
-linked by libbpf's linker at compile time; string constants and `getstring` into fixed buffers, so
-a host name can be a map key; `while` and `repeat` under `may_goto`; open-coded iterators where
-a kernel lacks `may_goto`.
+`packet:getstring(at, len)` into a buffer of the reading function's frame, lowered to
+`bpf_skb_load_bytes` in a TC program and `bpf_xdp_load_bytes` in an XDP one, over a buffer zeroed
+first; an upper bound on an integer register, narrowed where the program compares it against a
+constant, so a read whose length the compiler cannot bound is an error naming the line rather than
+a clamp the interpreted twin would disagree with; comparison against a string constant, length
+first and then the bytes; a `c<n>` map key built from such a read, which is what lets a host name
+key a map both sides open with the same spec; `while` and `repeat` under `may_goto`; open-coded
+iterators where a kernel lacks `may_goto`. The runtime library this phase was scoped to build is
+not built: see the decision row above.
 
-Tests: the linked object loads and its library calls verify; a string compare against a constant
-and a `c64`-keyed map lookup agree with the interpreter; a loop with a runtime bound terminates.
+The helper and the loop form are probed rather than read off the kernel's release, since
+`bpf_xdp_load_bytes` landed in v5.18 and the tree supports 5.15; `LUAEBPF_PROBE` replaces the
+probe's answer with an allow-list, which is what exercises every lowering and every refusal on one
+host.
+
+Tests: a string compare against a constant and a `c64`-keyed map lookup agree with the interpreter;
+a loop with a runtime bound terminates.
+
+What the phase 5 corpora cost, beside the figures above: the reads 62 processed instructions, the
+comparisons 81, the keyed lookups 68.
 
 ### Phase 6: examples and documentation
 
@@ -307,8 +318,8 @@ from it on, a user runs one.
   check; there is no syntax of its own and no annotation beyond the program constructor.
 * **A kernel-side loader.** `kern_sys_bpf` is namespaced against this use and returns no log
   (`kernel-notes.md`). Revisited only if that changes upstream.
-* **A C or LLVM back end.** The runtime library is the only C, compiled once. A second emitter is
-  two mechanisms doing one job.
+* **A C or LLVM back end.** The emitter writes every shape the subset needs, and a kernel helper
+  covers what would have been a C library. A second emitter is two mechanisms doing one job.
 * **Cross compilation.** The compiler runs on the machine that runs the program. A build host
   that compiles for another kernel needs CO-RE and is a different tool.
 * **Replacing the interpreter.** The kernel Lua VM stays the language for everything the subset
@@ -338,7 +349,7 @@ from it on, a user runs one.
 
 ## Definition of done, per phase
 
-1. `make` builds `lunatikc` and the runtime library clean, no new warnings;
+1. `make` builds `lunatikc` clean, no new warnings;
 2. LDoc comments on every new compile-time module, listed in `config.ld` in alphabetical order;
 3. a row in the README module table for the compile-time modules, and the XDP usage section
    updated when the loader lands;
