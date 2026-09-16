@@ -34,6 +34,7 @@ local KSYMS   <const> = ".ksyms"
 local LICENSE <const> = "Dual MIT/GPL"
 local HOSTED  <const> = "luaebpf.proto is missing; a program file compiles under 'lunatikc bpf'"
 local DROP    <const> = "LUAEBPF_DROP"
+local PROBE   <const> = "LUAEBPF_PROBE"
 local ROOT    <const> = "^/lib/modules/lua/"
 
 local emit, insn, elf, btf
@@ -59,15 +60,29 @@ local function readlines(path)
 	return lines
 end
 
--- the host Lua has no 'os', and the emitter's test hook is named by the environment
-local function drop()
+-- the host Lua has no 'os', and the emitter's test hooks are named by the environment
+local function environ(name)
 	local file = io.open("/proc/self/environ", "rb")
 	if file == nil then
 		return nil
 	end
-	local environ = file:read("a")
+	local bytes = file:read("a")
 	file:close()
-	return environ:match("%f[^%z]" .. DROP .. "=([^%z]*)")
+	return bytes:match("%f[^%z]" .. name .. "=([^%z]*)")
+end
+
+-- what the compiler may lower, named rather than probed for: a comma-separated allow-list, which
+-- is how a case exercises a lowering or a refusal the running kernel would not take
+local function allowed()
+	local named = environ(PROBE)
+	if named == nil then
+		return nil
+	end
+	local features = {}
+	for feature in named:gmatch("[^,]+") do
+		features[feature] = true
+	end
+	return features
 end
 
 local function sources(chunk, cache)
@@ -210,7 +225,7 @@ local function ksyms(types, declared, called, hook)
 	return symbols
 end
 
-local function write(declared, hook)
+local function write(declared, hook, features)
 	local object, types, cache = elf.new(), btf.new(), {}
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
@@ -224,6 +239,7 @@ local function write(declared, hook)
 	end
 	for _, program in ipairs(declared) do
 		program.drop = hook
+		program.allowed = features
 		program.names = names
 		local entries = section(units, sections, program.section)
 		for i, frame in ipairs(emit.program(program)) do
@@ -342,7 +358,7 @@ function luaebpf.compile(path)
 	for _, runtime in ipairs(runtimes.declared()) do
 		runtime.key = runtime.key or runtimekey(path)
 	end
-	return write(declared, drop())
+	return write(declared, environ(DROP), allowed())
 end
 
 return luaebpf

@@ -71,13 +71,15 @@ local METHOD  <const> = 64
 local MAYBE   <const> = 128              -- a map value the program has not tested yet
 local RECORD  <const> = 256              -- a struct map value, read a field at a time
 local ANSWER  <const> = 512              -- what a call into the kernel runtime answered
+local BUFFER  <const> = 1024             -- packet bytes a getstring read into the frame
 local RUNTIME  <const> = INT | BOOL | NIL | ANSWER -- a value the kernel holds as a word
 local PROXY    <const> = CTX | PACKET | MAYBE | RECORD -- a pointer the kernel holds, read through a proxy
 local UNTESTED <const> = MAYBE | ANSWER -- a word the program must test before the kernel reads it
+local CARRIED  <const> = RUNTIME | PROXY | BUFFER -- what a Lua register holds a word of its own for
 
 local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context",
 	[PACKET] = "packet", [METHOD] = "method", [MAYBE] = "map value",
-	[RECORD] = "struct map value", [ANSWER] = "runtime answer"}
+	[RECORD] = "struct map value", [ANSWER] = "runtime answer", [BUFFER] = "string"}
 
 local opnames = {}
 for name, op in pairs(opcodes) do
@@ -86,18 +88,21 @@ end
 
 local emit = {}
 
--- may_goto landed in v6.9, and the compiler runs on the machine that loads what it emits
+-- the compiler runs on the machine that loads what it emits, so the kernel it reads is the one
+-- it compiles for; the name is what a refusal quotes back
 local function release()
 	local f = io.open("/proc/sys/kernel/osrelease", "r")
 	if f == nil then
-		return 0, 0
+		return "unknown"
 	end
-	local major, minor = f:read("l"):match("^(%d+)%.(%d+)")
+	local line = f:read("l")
 	f:close()
-	return tonumber(major) or 0, tonumber(minor) or 0
+	return line or "unknown"
 end
 
-local major, minor = release()
+local kernel = release()
+local major, minor = kernel:match("^(%d+)%.(%d+)")
+major, minor = tonumber(major) or 0, tonumber(minor) or 0
 
 ---
 -- Whether the running kernel takes the `may_goto` a loop without a proven bound needs.
@@ -115,6 +120,32 @@ local function refuse(f, pc, reason, ...)
 	error(format("%s:%d: ", f.chunk, f.proto.lines[pc] or f.proto.linedefined) .. format(reason, ...), 0)
 end
 
+--- @section what the kernel offers
+
+-- What the compiler may lower here. The compiler runs on the machine that loads what it emits,
+-- so it asks the kernel rather than reading a release; LUAEBPF_PROBE replaces the answer, which
+-- is what exercises every lowering and every refusal on one host.
+local probes = {}
+
+-- a helper and a kfunc are both a FUNC in the kernel's own BTF, and the helper a getstring takes
+-- is the program type's
+function probes.loadbytes(f)
+	return vmlinux.publishes(f.unit.context.loadbytes.probe)
+end
+
+local function offers(f, feature)
+	local unit = f.unit
+	if unit.allowed ~= nil then
+		return unit.allowed[feature] == true
+	end
+	local answer = unit.offers[feature]
+	if answer == nil then
+		answer = probes[feature](f)
+		unit.offers[feature] = answer
+	end
+	return answer
+end
+
 -- a value the verifier only lets the kernel read where the program found it good: a map lookup's
 -- pointer, narrowed at the test, and the sentinel a call into the runtime answers
 local function tested(f, pc, a, b)
@@ -126,24 +157,26 @@ end
 
 --- @section the abstract state
 
--- the join of two abstract values: the types of both, and the compile-time value and the map a
--- lookup came from only where every path agrees on them
+-- the join of two abstract values: the types of both, and what the compiler holds itself only
+-- where every path agrees on it: the value, the map a lookup came from, the upper bound a
+-- comparison proved, and the frame buffer a string was read into
 local function join(a, b)
 	if a == nil or b == nil then
 		return a or b
 	end
-	if a.t == b.t and a.k == b.k and a.map == b.map then
+	if a.t == b.t and a.k == b.k and a.map == b.map and a.bound == b.bound and a.at == b.at then
 		return a
 	end
 	return {t = a.t | b.t, k = a.k == b.k and a.k or nil, name = a.name == b.name and a.name or nil,
-		map = a.map == b.map and a.map or nil}
+		map = a.map == b.map and a.map or nil, bound = a.bound == b.bound and a.bound or nil,
+		at = a.at == b.at and a.at or nil}
 end
 
 local function same(a, b)
 	if a == nil or b == nil then
 		return a == b
 	end
-	return a.t == b.t and a.k == b.k and a.map == b.map
+	return a.t == b.t and a.k == b.k and a.map == b.map and a.bound == b.bound and a.at == b.at
 end
 
 local function copy(state)
@@ -189,6 +222,20 @@ local function grow(f, pc, bytes)
 		refuse(f, pc, "the function needs %d bytes of stack, over the %d eBPF allows", bytes, MAXSTACK)
 	end
 	f.stack = bytes
+end
+
+-- the words below the frame one call site owns, for what an address is taken of: the arguments
+-- a kfunc is handed, and the bytes a getstring reads. One region per site, so a re-walk finds
+-- the same offset; a .data section would become a libbpf map whose name carries a dot, which
+-- bpffs refuses as a pin.
+local function region(f, pc, words)
+	local at = f.regions[pc]
+	if at == nil then
+		grow(f, pc, f.stack + words * SLOT)
+		at = -f.stack
+		f.regions[pc] = at
+	end
+	return at
 end
 
 -- the word a Lua register holds, whatever its type
@@ -321,11 +368,13 @@ local function settled(f, pc, state, taken)
 	return false
 end
 
-local function testjump(f, pc, state, op, dst, src)
+-- the jump is taken where the relation holds as the opcode's k says, so each arm carries what
+-- the comparison proved on it
+local function testjump(f, pc, state, op, dst, src, taken, fallen)
 	local target = jumptarget(f, pc + 1)
 	f.code:branch(op, dst, src, labelof(f, target))
-	reach(f, target, state)
-	reach(f, pc + 2, state)
+	reach(f, target, taken or state)
+	reach(f, pc + 2, fallen or state)
 	return false
 end
 
@@ -409,8 +458,15 @@ local accessors = {
 	getnumber = {size = 8, signed = true},
 }
 
--- an accessor is called with the receiver and the offset, both of which OP_CALL counts
+-- an accessor is called with the receiver and the offset, both of which OP_CALL counts, and
+-- getstring with a length besides
 local ACCESSARGS <const> = 2
+local STRINGARGS <const> = 3
+
+-- the read that answers bytes rather than a number, and the frame buffer it reads into: eight
+-- words of the 512 a frame has, which is what a c64 map key takes
+local STRING    <const> = "getstring"
+local STRINGMAX <const> = 64
 
 -- data and data_end, which the kernel rewrites a four-byte context load of into a full pointer
 local function bounds(f)
@@ -460,6 +516,57 @@ local function packetlen(f, ins, state)
 	state[ins.a] = {t = INT}
 end
 
+-- the helper that copies packet bytes into the frame, which is the program type's; only one of
+-- them is younger than the kernels the tree supports, and only that one is probed for
+local function loadbytes(f, pc)
+	local helper = f.unit.context.loadbytes
+	if helper.probe ~= nil and not offers(f, "loadbytes") then
+		refuse(f, pc, "'%s' needs %s, which this kernel (%s) lacks", STRING, helper.probe, kernel)
+	end
+	return helper.number
+end
+
+-- The bytes a program reads out of the packet, into a buffer of its frame: the compiler holds
+-- the buffer's offset and the Lua register carries what was read into it, so a comparison knows
+-- both. The helper is handed a length the program proved against a constant, since the verifier
+-- refuses one whose maximum it cannot see, and a buffer zeroed first, since with a length that
+-- is not a constant it requires the memory it could fill to be initialized.
+local function packetstring(f, pc, ins, state)
+	local code, words = f.code, STRINGMAX // SLOT
+	if ins.b - 1 < STRINGARGS then
+		refuse(f, pc, "'%s' takes an offset and a length", STRING)
+	end
+	local at, length = state[ins.a + 2], state[ins.a + 3]
+	if not isinteger(at) or not isinteger(length) then
+		refuse(f, pc, "'%s' takes numbers, not a %s and a %s", STRING, typename(at), typename(length))
+	end
+	local bound = length.k or length.bound
+	if bound == nil then
+		refuse(f, pc, "'%s' needs a length the program tested against a constant", STRING)
+	end
+	if bound > STRINGMAX then
+		refuse(f, pc, "'%s' reads at most %d bytes, and this length is bounded at %d",
+			STRING, STRINGMAX, bound)
+	end
+	local helper = loadbytes(f, pc)
+	local buffer = region(f, pc, words)
+	into(f, pc, state, ins.a + 2, reg.R2)
+	into(f, pc, state, ins.a + 3, reg.R4)
+	-- luadata_checkbounds raises below one byte, and ARG_CONST_SIZE refuses a zero-sized read
+	code:branchi(jump.JSLT, reg.R4, 1, abort(f))
+	code:branchi(jump.JGT, reg.R2, PACKETMAX - bound, abort(f))
+	for i = 0, words - 1 do
+		code:storei(reg.FP, buffer + i * SLOT, 0)
+	end
+	setreg(f, ins.a, reg.R4) -- the length is the value of the read, and R1-R5 do not survive the call
+	move(f, fetch(f, ins.a + 1, reg.R1), reg.R1)
+	code:alu(alu.MOV, reg.R3, reg.FP)
+	code:alui(alu.ADD, reg.R3, buffer)
+	code:helper(helper)
+	code:branchi(jump.JNE, reg.R0, 0, abort(f))
+	state[ins.a] = {t = BUFFER, at = buffer, bound = bound}
+end
+
 -- the packet proxy is the context register under another type: one register, passed to a
 -- subprogram in one argument, with nothing to keep live across a call
 local function contextmethod(f, pc, ins, state, callee)
@@ -474,6 +581,9 @@ local function method(f, pc, ins, state, callee)
 	local recv = callee.recv
 	if recv.t == CTX then
 		return contextmethod(f, pc, ins, state, callee)
+	end
+	if recv.t == PACKET and callee.name == STRING then
+		return packetstring(f, pc, ins, state)
 	end
 	local access = recv.t == PACKET and accessors[callee.name]
 	if not access then
@@ -669,18 +779,6 @@ local function testanswer(f, pc, ins, state, whennil)
 	return false
 end
 
--- the words a call hands the kfunc by address, below the frame and one region per call site: a
--- .data section would become a libbpf map whose name carries a dot, which bpffs refuses as a pin
-local function region(f, pc, words)
-	local at = f.regions[pc]
-	if at == nil then
-		grow(f, pc, f.stack + words * SLOT)
-		at = -f.stack
-		f.regions[pc] = at
-	end
-	return at
-end
-
 -- the escape hatch: the runtime key and every argument in the frame, the program's context in
 -- R3, and the int the kfunc answers sign-extended into the word the program then tests
 local function runtimecall(f, pc, ins, state, callee)
@@ -738,7 +836,7 @@ local ops = {}
 
 local function moveslot(f, state, a, b)
 	local value = state[b]
-	if value ~= nil and (value.t & (RUNTIME | PROXY)) ~= 0 then
+	if value ~= nil and (value.t & CARRIED) ~= 0 then
 		setreg(f, a, fetch(f, b, reg.R1))
 	end
 	state[a] = value
@@ -1155,6 +1253,30 @@ local relations = {
 	GE = {[true] = jump.JSGE, [false] = jump.JSLT},
 }
 
+-- the upper bound each arm of a comparison against a constant proves, as a delta on it: what
+-- bounds the length a getstring reads, where the program tested it itself
+local upperbound = {LT = {[true] = -1}, LE = {[true] = 0}, GT = {[false] = 0}, GE = {[false] = -1},
+	EQ = {[true] = 0}}
+
+local function narrowed(state, i, relation, value, holds)
+	local delta, a = upperbound[relation][holds], state[i]
+	if delta == nil or a == nil or a.t ~= INT or (a.bound ~= nil and a.bound <= value + delta) then
+		return state
+	end
+	local out = copy(state)
+	out[i] = {t = INT, k = a.k, name = a.name, bound = value + delta}
+	return out
+end
+
+-- the states the two arms of a test carry: the jump is taken where the relation holds as the
+-- opcode's k says, and the other arm is where it does not
+local function arms(state, i, relation, value, k)
+	if type(value) ~= "number" then
+		return state, state
+	end
+	return narrowed(state, i, relation, value, k), narrowed(state, i, relation, value, not k)
+end
+
 local function ordered(f, pc, relation, a, b)
 	tested(f, pc, a, b)
 	if relation == "EQ" then
@@ -1221,8 +1343,10 @@ local function compare(f, pc, ins, state, relation, b)
 			return settled(f, pc, state, answer == ins.k)
 		end
 	end
+	local taken, fallen = arms(state, ins.a, relation, b ~= nil and b.k or nil, ins.k)
 	into(f, pc, state, ins.a, reg.R1)
-	return testjump(f, pc, state, relations[relation][ins.k], reg.R1, getreg(f, pc, state, ins.b, reg.R2))
+	return testjump(f, pc, state, relations[relation][ins.k], reg.R1,
+		getreg(f, pc, state, ins.b, reg.R2), taken, fallen)
 end
 
 function ops.EQ(f, pc, ins, state) return compare(f, pc, ins, state, "EQ", state[ins.b]) end
@@ -1245,9 +1369,10 @@ local function compareconst(f, pc, ins, state, relation, value)
 	if b.t == BOOL then -- the register carries the 1 or 0 'resolve' stored for it
 		operand = value and 1 or 0
 	end
+	local taken, fallen = arms(state, ins.a, relation, value, ins.k)
 	into(f, pc, state, ins.a, reg.R1)
 	f.code:set(reg.R2, operand)
-	return testjump(f, pc, state, relations[relation][ins.k], reg.R1, reg.R2)
+	return testjump(f, pc, state, relations[relation][ins.k], reg.R1, reg.R2, taken, fallen)
 end
 
 function ops.EQI(f, pc, ins, state) return compareconst(f, pc, ins, state, "EQ", ins.sb) end
@@ -1457,7 +1582,11 @@ local function returns(f, pc, state, i)
 			f.code:set(reg.R0, f.isprogram and f.default or 0)
 		end
 	else
-		f.rettype = f.rettype | state[i].t
+		local value = state[i]
+		if value.t == BUFFER then
+			refuse(f, pc, "a string does not outlive the function that read it")
+		end
+		f.rettype = f.rettype | value.t
 		if not dropped then
 			f.code:alu(alu.MOV, reg.R0, getreg(f, pc, state, i, reg.R0))
 		end
@@ -1713,7 +1842,7 @@ end
 ---
 -- Compiles one program: its function, and every function that function reaches.
 -- @function luaebpf.emit.program
--- @tparam table program `{name, fn, default, drop, names, context, kfunc}`
+-- @tparam table program `{name, fn, default, drop, allowed, names, context, kfunc}`
 -- @treturn table the frames, the program's own first
 -- @raise `a program takes one argument, the context`, and `<file>:<line>: <reason>` for every
 --   construct the subset refuses
@@ -1721,7 +1850,7 @@ function emit.program(program)
 	local unit = {
 		functions = {}, order = {}, lowering = {}, names = program.names or {},
 		default = program.default, drop = program.drop, context = program.context,
-		kfunc = program.kfunc,
+		kfunc = program.kfunc, allowed = program.allowed, offers = {},
 	}
 	local read = proto.read(program.fn)
 	if read.numparams > 1 then

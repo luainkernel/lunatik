@@ -210,6 +210,20 @@ interpreter raises, the compiled program owes its default verdict instead.
   declared under either default so the answer is the verdict the file asked
   for; with `LUAEBPF_DROP=bounds` the object is still written and the verifier
   refuses it naming an invalid packet access.
+- **getstring**: the packet bytes a compiled function reads into a buffer of
+  its frame, over the five packets of `packets.lua`: a length the program
+  proved against the buffer's width, a length that is a constant, one that is
+  zero or negative at run time, a read past the packet, a negative offset and
+  a read inside a called function, each answering the interpreter's verdict or
+  the program's default where the interpreter raises. The XDP entry calls
+  `bpf_xdp_load_bytes` over a buffer whose eight words it zeroed first and the
+  TC one `bpf_skb_load_bytes`; with `LUAEBPF_PROBE` offering neither, the XDP
+  read is refused by the helper's name and the kernel's while the TC one still
+  compiles. A read with no length, one whose offset or length is not a number,
+  one the compiler cannot bound, one bounded above the buffer's width, a buffer
+  used as a number, compared with a number, passed to a call, returned,
+  concatenated, `#`-ed or handed to a string function, and eight reads in one
+  function are refused with their lines.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, and every program is run against the empty
   maps and against maps the case seeded from the shell: a key present in a hash,

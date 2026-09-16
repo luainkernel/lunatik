@@ -39,6 +39,7 @@ local TYPEDEF    <const> = 8
 local VOLATILE   <const> = 9
 local CONST      <const> = 10
 local RESTRICT   <const> = 11
+local FUNC       <const> = 12
 local FUNC_PROTO <const> = 13
 local VAR        <const> = 14
 local DATASEC    <const> = 15
@@ -80,13 +81,14 @@ local function name(self, at)
 	return (unpack("z", self.bytes, self.strings + at))
 end
 
--- one pass over the type section: where each id starts, and the id of each named struct
+-- one pass over the type section: where each id starts, and the id of each named struct and of
+-- each function the kernel publishes, which is what says whether a helper or a kfunc exists here
 local function index(bytes)
 	local magic, _, _, hdrlen, typeoff, typelen, stroff = unpack("<I2I1I1I4I4I4I4", bytes)
 	if magic ~= MAGIC or hdrlen < HDRLEN then
 		return nil
 	end
-	local self = {bytes = bytes, strings = hdrlen + stroff + 1, offsets = {}, structs = {}}
+	local self = {bytes = bytes, strings = hdrlen + stroff + 1, offsets = {}, structs = {}, funcs = {}}
 	local at, last, id = hdrlen + typeoff + 1, hdrlen + typeoff + typelen, 0
 	while at <= last do
 		local nameoff, info = unpack("<I4I4", bytes, at)
@@ -95,6 +97,8 @@ local function index(bytes)
 		self.offsets[id] = at
 		if kind == STRUCT then
 			self.structs[name(self, nameoff)] = id
+		elseif kind == FUNC then
+			self.funcs[name(self, nameoff)] = id
 		end
 		at = at + TYPESIZE + (tails[kind] or 0) + (records[kind] or 0) * vlen
 	end
@@ -157,7 +161,10 @@ local function reader()
 		local bytes = read(VMLINUX)
 		cached = bytes ~= nil and index(bytes) or false
 	end
-	return cached or nil
+	if cached == false then
+		error("the kernel publishes no BTF", 0)
+	end
+	return cached
 end
 
 ---
@@ -174,9 +181,6 @@ end
 --   no BTF header, and `the kernel BTF has no struct '<what>'`
 function vmlinux.layout(what)
 	local self = reader()
-	if self == nil then
-		error("the kernel publishes no BTF", 0)
-	end
 	local id = self.structs[what]
 	if id == nil then
 		error(("the kernel BTF has no struct '%s'"):format(what), 0)
@@ -184,6 +188,20 @@ function vmlinux.layout(what)
 	local at = self.offsets[id]
 	local _, info, size = unpack("<I4I4I4", self.bytes, at)
 	return {size = size, fields = members(self, at, info & 0xffff, info >> 31)}
+end
+
+---
+-- Whether the running kernel publishes a function of that name.
+--
+-- A helper and a kfunc both appear as a `BTF_KIND_FUNC` in the kernel's own BTF, so this is what
+-- says whether the compiler may lower a call to one on the machine it is compiling for.
+-- @function luaebpf.vmlinux.publishes
+-- @tparam string what the function's name, as `bpftool btf dump` prints it
+-- @treturn boolean
+-- @raise `the kernel publishes no BTF`, when `/sys/kernel/btf/vmlinux` cannot be read or carries
+--   no BTF header
+function vmlinux.publishes(what)
+	return reader().funcs[what] ~= nil
 end
 
 return vmlinux

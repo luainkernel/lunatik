@@ -42,11 +42,14 @@ local KFUNC <const> = "bpf_luatc_run"
 -- tc_cls_act_is_valid_access allows a write only to mark, tc_index, priority, tc_classid,
 -- cb[0..4], tstamp and queue_mapping, and a write is four bytes wide (net/core/filter.c); that
 -- set is kernel policy rather than layout, so BTF cannot supply it.
+-- bpf_skb_load_bytes, the helper a getstring lowers to, is v4.1, below every kernel the tree
+-- supports, so it carries no probe where the XDP twin does
 local context = {
 	struct = "__sk_buff",
 	fields = {len = true, hash = true, ifindex = true, ingress_ifindex = true, priority = true},
 	writable = {priority = true},
 	packet = {base = "data", limit = "data_end"},
+	loadbytes = {number = 26},
 }
 
 local tc = {}
