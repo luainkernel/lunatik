@@ -26,7 +26,7 @@ local function offset(argument)
 end
 
 local function filter_sni(ctx)
-	local host = sni(ctx:packet(), offset(ctx:argument()))
+	local host = sni.host(ctx:packet(), offset(ctx:argument()))
 	if host then
 		local verdict = blacklist[host] and "DROP" or "PASS"
 		log(host, verdict)

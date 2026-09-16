@@ -29,7 +29,7 @@ local function sniclassify(ctx)
 	local skb     = skbattr.new(raw)
 	local packet  = raw:data()
 	local payload = ctx:argument():getuint32(0)
-	local host    = sni(packet, payload)
+	local host    = sni.host(packet, payload)
 
 	if host then
 		local classid = policy:match(host)
