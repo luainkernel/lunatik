@@ -44,10 +44,17 @@ LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
 LOADER := bin/loader.so
 LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared ${LUA_CFLAGS}
 
-# a program file's object installs beside the script it belongs to, so `lunatik run <script>`
-# finds it where the kernel finds the source
+# A program file's object installs beside the script it belongs to, so `lunatik run <script>`
+# finds it where the kernel finds the source. The tree being installed goes first on the path, so
+# a module a program file shares with its kernel script compiles from this tree rather than from
+# whatever the last install left; the object is removed before the compile, so a refused one does
+# not outlive the tree it came from; and a program file the running kernel cannot host is reported
+# rather than failing the install, since which lowerings a kernel offers is no property of a tree.
 define INSTALL_BPF
-	for f in $(1); do case "$$f" in *.bpf.lua) ${LUNATIKC} bpf -o $(2) $$f || exit 1;; esac; done
+	for f in $(1); do case "$$f" in *.bpf.lua) \
+		o=$(2)/$$(basename $$f .lua).o; ${RM} $$o; \
+		LUA_PATH="${CURDIR}/?.lua;;" ${LUNATIKC} bpf -o $$o $$f || echo "$$f: no object installed";; \
+	esac; done
 endef
 
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names

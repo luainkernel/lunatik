@@ -2245,8 +2245,9 @@ end
 -- @tparam table params the type of each argument
 -- @treturn table the callee's frame
 -- @raise `recursion through '<name>'`, `'<name>' is called with <n> arguments and compiled
---   with <m>`, `'<name>' is called with a <type> and compiled with a <type>`, or `'<name>'
---   takes <n> arguments and is called with <m>`
+--   with <m>`, `'<name>' is called with a <type> and compiled with a <type>`, `'<name>' takes
+--   <n> arguments and is called with <m>`, or `'<name>' carries no source; a stripped function
+--   cannot be compiled`
 function emit.subprogram(f, pc, fn, name, params)
 	local unit = f.unit
 	if unit.lowering[fn] then
@@ -2267,6 +2268,10 @@ function emit.subprogram(f, pc, fn, name, params)
 		return compiled
 	end
 	local read = proto.read(fn)
+	if read.source == nil then
+		refuse(f, pc, "'%s' carries no source; a stripped function cannot be compiled",
+			name or "a function")
+	end
 	-- without this the prologue reads a register the call never set, and the verifier names it
 	if read.numparams > #params then
 		refuse(f, pc, "'%s' takes %d arguments and is called with %d", name or "a function",
@@ -2280,8 +2285,9 @@ end
 -- @function luaebpf.emit.program
 -- @tparam table program `{name, fn, default, drop, allowed, names, context, kfunc}`
 -- @treturn table the frames, the program's own first
--- @raise `a program takes one argument, the context`, and `<file>:<line>: <reason>` for every
---   construct the subset refuses
+-- @raise `'<name>' carries no source; a stripped function cannot be compiled`, `a program takes
+--   one argument, the context`, and `<file>:<line>: <reason>` for every construct the subset
+--   refuses
 function emit.program(program)
 	local unit = {
 		functions = {}, order = {}, lowering = {}, names = program.names or {},
@@ -2289,6 +2295,10 @@ function emit.program(program)
 		kfunc = program.kfunc, allowed = program.allowed, offers = {},
 	}
 	local read = proto.read(program.fn)
+	if read.source == nil then
+		error(format("'%s' carries no source; a stripped function cannot be compiled",
+			program.name), 0)
+	end
 	if read.numparams > 1 then
 		error(format("%s:%d: a program takes one argument, the context",
 			(read.source:gsub("^@", "")), read.linedefined), 0)

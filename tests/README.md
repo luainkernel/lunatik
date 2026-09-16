@@ -211,7 +211,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   verdict, and a callee that reaches nothing but its abort tail still loads;
   one static BTF `FUNC` per subprogram; five arguments, since the fifth
   register carries the abort pointer, a call short of an argument the callee
-  declares, and recursion refused with their lines.
+  declares, recursion, and a module installed as a stripped chunk, which
+  carries no source for the compiler to read, reached by a call, refused with
+  their lines; the same chunk handed over as the program itself is refused by
+  its name, having no call site for a line to point at.
 - **btfview**: `luaebpf.vmlinux` against `bpftool btf dump file
   /sys/kernel/btf/vmlinux format raw`: the size of `xdp_md` and `__sk_buff` and
   the byte offset and four-byte width of every field the context proxies
