@@ -20,6 +20,14 @@
 //               validated does not carry
 //   focus       what this round is for, in the maintainer's words
 //   effort      per-phase reasoning effort, default "high"
+// and the machine, which defaults to the one this was written on:
+//   repo        the checkout the phases read and branch from
+//   worktrees   the directory whose lunatik_* worktrees belong to other sessions
+//   tokenfile   the file holding the GitHub token
+//   sudo        the prefix that gets root, "" where none is needed
+//   host        one line of architecture, kernel and kernel source, for the prompt
+//   consumers   LUNATIK_CONSUMERS for consumers.sh
+//   gh          false where the gh CLI is absent, so the REST calls go through curl
 
 export const meta = {
   name: 'review-pr',
@@ -30,14 +38,28 @@ export const meta = {
 const a = args
 const effort = a.effort || 'high'
 const checkpoint = `${a.scratch}/review${a.pr}/REVIEW.md`
+// The machine is an argument, not a sentence in the prompt: another host passes its own
+// paths and the same phases run there. The defaults are the machine this was written on,
+// so a run that passes none of them behaves as it always did.
+const repo = a.repo || '/home/ubuntu/claude/lunatik'
+const worktrees = a.worktrees || '/home/ubuntu/claude'
+const tokenfile = a.tokenfile || '/home/ubuntu/.config/gh-token'
+const sudo = a.sudo === undefined ? `echo ubuntu | sudo -S -p ''` : a.sudo
+const host = a.host || 'aarch64, kernel 6.8.0-138. Kernel source: /home/ubuntu/linux-hwe-6.8-6.8.0/ . Vendored Lua 5.5.'
+const consumers = a.consumers || '/home/ubuntu/claude/dome_master:/home/ubuntu/claude/dome_private'
+// gh is not on every machine; the same REST call goes through curl where it is absent.
+const api = (path) => a.gh === false
+  ? `curl -sS -H "Authorization: Bearer $(cat ${tokenfile})" "https://api.github.com/${path}"`
+  : `gh api ${path}`
+
 
 const COMMON = `
-You are reviewing pull request #${a.pr} of Lunatik (Lua in the Linux kernel), repo /home/ubuntu/claude/lunatik:
+You are reviewing pull request #${a.pr} of Lunatik (Lua in the Linux kernel), repo ${repo}:
 branch \`${a.branch}\`, head \`${a.head}\`, base \`${a.base}\`. Work at maximum thoroughness within your phase.
 
 READ FIRST, they are the authority and override anything below:
-- /home/ubuntu/claude/lunatik/AGENTS.md, all of it
-- /home/ubuntu/claude/lunatik/CLAUDE.local.md
+- ${repo}/AGENTS.md, all of it
+- ${repo}/CLAUDE.local.md, where the machine has one
 
 CHECKPOINT, before anything else: the file ${checkpoint} is the review's memory across phases and across
 a phase that dies. If it exists, read it and continue from it; do not redo what it records. Append every
@@ -46,23 +68,23 @@ finding the moment you close it, one line each:
 Your final answer is assembled from that file, not the other way round.
 
 ENVIRONMENT:
-- sudo password is "ubuntu": \`echo ubuntu | sudo -S -p '' <cmd>\`.
+- sudo runs as ${sudo === "" ? "sudo <cmd>, no password" : sudo + " <cmd>"}.
 - Work in a worktree of your own under ${a.scratch}/, created with an ABSOLUTE path
-  (\`git -C /home/ubuntu/claude/lunatik worktree add <abs path> <ref>\`, then \`git submodule update --init\`),
+  (\`git -C ${repo} worktree add <abs path> <ref>\`, then \`git submodule update --init\`),
   named review${a.pr}-<phase>. Never touch a worktree that is not yours; every lunatik_* worktree under
-  /home/ubuntu/claude/ belongs to someone else.
+  ${worktrees}/ belongs to someone else.
 - NEVER \`git stash\` anywhere in this repository: the stash stack is shared and \`stash@{0}\` is another
   agent's work. Compare revisions with a throwaway worktree or \`git show <ref>:<path>\`.
 - /dev/lunatik is single: never two lunatik operations at once, check with ps first. NEVER run
   \`lunatik run examples/ifquarantine/control\` bare; any example goes through \`sudo bash tools/watchdog.sh\`.
   \`tests/probe/armed.sh\` must never run against a build without \`lunatik_checkarmed\`.
-- NEVER commit to master, never \`git checkout master\`. GitHub: \`export GH_TOKEN=$(cat /home/ubuntu/.config/gh-token)\`
-  then \`gh api ...\` (\`gh pr view\` fails, no read:org; pass --paginate). DO NOT POST ANYTHING TO GITHUB.
-- aarch64, kernel 6.8.0-138. Kernel source: /home/ubuntu/linux-hwe-6.8-6.8.0/ . Vendored Lua 5.5.
+- NEVER commit to master, never \`git checkout master\`. GitHub reads go as
+  \`${api("repos/luainkernel/lunatik/<path>")}\` (with gh, \`gh pr view\` fails for want of read:org; pass
+  --paginate). DO NOT POST ANYTHING TO GITHUB.\n- ${host}
 
 A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on \`${a.branch}\`,
 pushed as soon as made
-(\`git push "https://x-access-token:$(cat /home/ubuntu/.config/gh-token)@github.com/luainkernel/lunatik.git" ${a.branch}:${a.branch}\`),
+(\`git push "https://x-access-token:$(cat ${tokenfile})@github.com/luainkernel/lunatik.git" ${a.branch}:${a.branch}\`),
 and its SHA goes in the checkpoint line. Ask of each one whether the finding is answered by removing rather
 than adding: a fix that grows a layer over the one it found is the finding half read, and the shape that
 answers it is usually shorter than what is there. A fixup that changes C must at least \`make\` clean before
@@ -73,7 +95,7 @@ ${a.focus ? 'THIS ROUND, in the maintainer\'s words: ' + a.focus : ''}
 
 const HUNT = COMMON + `
 PHASE: HUNT. Read the whole change cold, as one diff against \`${a.base}\`, every changed file end to end,
-and the pull request's threads (\`gh api --paginate repos/luainkernel/lunatik/pulls/${a.pr}/comments\`),
+and the pull request's threads (\`${api(`--paginate repos/luainkernel/lunatik/pulls/${a.pr}/comments`)}\`),
 which record what the maintainer cares about.
 
 Hunt the smallest shape first: for every mechanism the diff adds (a registration path, a new API argument,
@@ -103,7 +125,7 @@ Tests, Deciding what to change, Patches and commits, Before opening a pull reque
 applies or not, and if it applies, pass or fail, with the line. Where a rule can be checked by a grep or a
 script, run it rather than read for it. Run every check in tools/checks/ over the full changeset
 (\`git diff --name-only ${a.base}..${a.head}\`), with
-LUNATIK_CONSUMERS=/home/ubuntu/claude/dome_master:/home/ubuntu/claude/dome_private for consumers.sh and
+LUNATIK_CONSUMERS=${consumers} for consumers.sh and
 pr-body.sh on the pull request body; where a check complains about something master already does, say so
 with the evidence. Write the coverage matrix, operation by type by outcome including the successes, and say
 what the tests prove and what nothing on this kernel can see.
