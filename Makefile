@@ -116,7 +116,6 @@ ${LOADER}: bin/loader.c
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD}/autogen clean
-	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h ${LUNATIKC} ${LOADER}
 	${RM} -r lib/linux
 	${RM} autogen/lunatik/*.lua autogen/linux/*.lua \
@@ -189,12 +188,10 @@ scripts_uninstall:
 	${RM} -r ${LUA_PATH}/lunatik ${LUA_CPATH}/lunatik
 
 ebpf:
-	${MAKE} -C examples/filter
 	${MAKE} -C examples/sniclassify
 
 ebpf_install:
 	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
-	${INSTALL} -m 0644 examples/filter/https.o ${LUNATIK_EBPF_INSTALL_PATH}/
 	${INSTALL} -m 0644 examples/sniclassify/classify.o ${LUNATIK_EBPF_INSTALL_PATH}/
 
 ebpf_uninstall:

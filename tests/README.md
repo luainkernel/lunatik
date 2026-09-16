@@ -432,6 +432,22 @@ interpreter raises, the compiled program owes its default verdict instead.
   `bpftool prog loadall` and `lunatik run` name the kfunc, the run exits
   non-zero and leaves no pin root, no runtime and nothing on the device, and the
   same drop over a program file with no call into Lua still loads.
+- **example_filter**: examples/filter deployed as the tree ships it. The
+  kernel-side fixture builds two ClientHello frames, one naming the blocked
+  host and one naming another, puts them on `filter1` with a raw socket and
+  taps `filter0` with a second one under a bounded receive, matching on the
+  host name's own bytes so that whatever else the machine puts on the pair is
+  ignored rather than silenced. With nothing attached the tap sees both, which
+  is what makes it evidence of a drop rather than of a frame that never
+  arrived; with the filter deployed by `lunatik run ... dev=filter0` the
+  blocked name's frame is gone and the other one is not, since generic XDP
+  leaves by `goto out` before the `ptype_all` taps and the native path drops
+  before `napi_gro_receive`. The blocklist map then holds one hit under the
+  blocked name and no entry at all under the other, which says the program
+  parsed the name rather than dropping for some other reason, and the CLI's
+  stop leaves no pin root, no runtime and nothing on the device. Skips where
+  the compiled object is not installed, which is what a kernel publishing no
+  `bpf_xdp_load_bytes` leaves behind.
 
 ### monitor
 

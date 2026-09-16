@@ -2,39 +2,23 @@
 -- SPDX-FileCopyrightText: (c) 2024-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
+-- The blocklist of the SNI filter; examples/filter/sni.bpf.lua is the program that reads it.
 
-local xdp    = require("xdp")
-local action = require("linux.xdp")
-local sni    = require("examples.common.sni")
+local map = require("bpf.map")
 
-local function set(t)
-	local s = {}
-	for _, key in ipairs(t) do s[key] = true end
-	return s
-end
+local BLOCKED <const> = "/sys/fs/bpf/lunatik/examples/filter/sni/blocked"
+local KEY     <const> = "c64"
+local VALUE   <const> = "I8"
+local UNSEEN  <const> = 0
 
-local blacklist = set{
+local blocklist = {
 	"ebpf.io",
 }
 
-local function log(host, verdict)
-	print(string.format("filter_sni: %s %s", host, verdict))
-end
+-- the loader pinned the map before this ran, so it opens by the path the program declared it under
+local blocked <close> = map.hash(BLOCKED, KEY, VALUE)
 
-local function offset(argument)
-	return argument:getbyte(0) << 8 | argument:getbyte(1)
+for _, host in ipairs(blocklist) do
+	blocked[host] = UNSEEN
 end
-
-local function filter_sni(ctx)
-	local host = sni.host(ctx:packet(), offset(ctx:argument()))
-	if host then
-		local verdict = blacklist[host] and "DROP" or "PASS"
-		log(host, verdict)
-		ctx:action(action[verdict])
-		return
-	end
-	ctx:action(action.PASS)
-end
-
-xdp.attach(filter_sni)
 

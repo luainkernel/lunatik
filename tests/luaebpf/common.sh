@@ -13,10 +13,15 @@
 LUAEBPF_SRC=/lib/modules/lua/tests/luaebpf
 LUAEBPF_PINS=/sys/fs/bpf/luaebpf
 LUAEBPF_MAPS=/sys/fs/bpf/luaebpf/maps
-LUAEBPF_ROOT=/sys/fs/bpf/lunatik/tests/luaebpf
+LUAEBPF_DEPLOY=/sys/fs/bpf/lunatik
+LUAEBPF_ROOT=$LUAEBPF_DEPLOY/tests/luaebpf
 LUAEBPF_DEV=luaebpf0
 LUAEBPF_PEER=luaebpf1
 LUAEBPF_WORK=
+# the example cases deploy the tree's own examples, each on a veth pair of its own
+LUAEBPF_FILTER=examples/filter/sni
+LUAEBPF_FILTERDEV=filter0
+LUAEBPF_FILTERPEER=filter1
 
 # whatever a loader case left running, and only that: `lunatik stop` probes the modules, and
 # every case in the suite runs this cleanup twice
@@ -31,9 +36,11 @@ luaebpf_stopall() {
 
 cleanup() {
 	luaebpf_stopall
-	rm -rf "$LUAEBPF_PINS" "$LUAEBPF_ROOT"
+	lunatik stop "$LUAEBPF_FILTER" > /dev/null 2>&1
+	rm -rf "$LUAEBPF_PINS" "$LUAEBPF_ROOT" "$LUAEBPF_DEPLOY/$LUAEBPF_FILTER"
 	rm -f "$LUAEBPF_SRC"/*.bpf.o
 	ip link del "$LUAEBPF_DEV" 2>/dev/null
+	ip link del "$LUAEBPF_FILTERDEV" 2>/dev/null
 	[ -n "$LUAEBPF_WORK" ] && rm -rf "$LUAEBPF_WORK"
 	return 0
 }
@@ -165,19 +172,22 @@ luaebpf_install() {
 		lunatikc bpf -o "$LUAEBPF_SRC/$name.bpf.o" "$LUAEBPF_SRC/$name.bpf.lua" ) 2>&1
 }
 
-# a veth pair of the suite's own, so a loader case never races tests/xdp on lunatik0
+# a veth pair of the suite's own, so a loader case never races tests/xdp on lunatik0; an example
+# case names a pair of its own, since it deploys on the device a loader case is already using
 luaebpf_device() {
-	ip link add "$LUAEBPF_DEV" type veth peer name "$LUAEBPF_PEER" 2>&1 || return 1
-	ip link set "$LUAEBPF_DEV" up
-	ip link set "$LUAEBPF_PEER" up
+	local dev="${1:-$LUAEBPF_DEV}" peer="${2:-$LUAEBPF_PEER}"
+	ip link add "$dev" type veth peer name "$peer" 2>&1 || return 1
+	ip link set "$dev" up
+	ip link set "$peer" up
 }
 
-# what a run may not leave behind when it fails
+# what a run of <script> may not leave behind when it fails, on the device it attached to
 luaebpf_residue() {
-	local left=
-	[ -d "$LUAEBPF_ROOT/$1" ] && left="$left a pin root"
-	lunatik list | grep -q "tests/luaebpf/$1" && left="$left a runtime"
-	[ -n "$(bpftool net show dev "$LUAEBPF_DEV" | sed -n 2p)" ] && left="$left a program on $LUAEBPF_DEV"
+	local script="$1" dev="${2:-$LUAEBPF_DEV}" left=
+	[ -d "$LUAEBPF_DEPLOY/$script" ] && left="$left a pin root"
+	lunatik list | grep -q "$script" && left="$left a runtime"
+	# a tcx program sits under `tc:`, so this is the device's own entry and not a fixed line
+	bpftool net show dev "$dev" | grep -q "^$dev(" && left="$left a program on $dev"
 	echo "$left"
 }
 
@@ -189,7 +199,7 @@ luaebpf_undone() {
 	shift 3
 	output=$(lunatik run "tests/luaebpf/$name" "$@" 2>&1)
 	status=$?
-	left=$(luaebpf_residue "$name")
+	left=$(luaebpf_residue "tests/luaebpf/$name")
 	lunatik stop "tests/luaebpf/$name" > /dev/null 2>&1
 	rm -rf "${LUAEBPF_ROOT:?}/$name"
 	if [ -z "$output" ]; then
