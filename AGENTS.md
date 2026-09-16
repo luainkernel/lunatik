@@ -926,7 +926,9 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
 * A review holds new code to the conventions this file records; it does not impose preferences beyond
   them. Where the tree itself is inconsistent and a style seems worth settling, that is an exclusive
   pull request that fixes the whole tree and records the convention here — never a finding on someone's
-  feature work. A name that deliberately mirrors a kernel symbol keeps its spelling: `TC_H_MAKE` ported
+  feature work. That pull request is opened, not named: moving a finding out of the review is where it
+  goes, not whether it happens, and a round that names one without opening it, or an issue without
+  filing it, dropped the finding it was carrying. A name that deliberately mirrors a kernel symbol keeps its spelling: `TC_H_MAKE` ported
   from the kernel macro stays upper-case though Lua functions are lower-case, because the recognition
   is the point. Check what a name mirrors, and read the author's stated reason, before calling it a
   violation.
