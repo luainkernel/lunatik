@@ -224,6 +224,17 @@ interpreter raises, the compiled program owes its default verdict instead.
   used as a number, compared with a number, passed to a call, returned,
   concatenated, `#`-ed or handed to a string function, and eight reads in one
   function are refused with their lines.
+- **strcmp**: a string a compiled function read compared with a string
+  constant: equal, the constant as a constant of the bytecode and as a value the
+  body computed, a constant that is a prefix of the read, a read that is a
+  prefix of the constant, the empty constant, `~=`, and a comparison inside a
+  called function, each over the five packets of `packets.lua`. A constant
+  longer than the bound the program proved is settled while compiling, so the
+  object carries no comparison for it; a read of two bytes more than the host
+  name, whose tail is NUL, is not equal to the name, which is the row a
+  comparison of the bytes alone fails. Two strings compared with each other, a
+  string two reads merged into and one whose read the walk bounded two ways are
+  refused.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, and every program is run against the empty
   maps and against maps the case seeded from the shell: a key present in a hash,

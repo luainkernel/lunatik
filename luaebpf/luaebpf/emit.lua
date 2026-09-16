@@ -290,6 +290,21 @@ local function isinteger(value)
 	return value ~= nil and value.t == INT
 end
 
+local function isbuffer(value)
+	return value ~= nil and value.t == BUFFER
+end
+
+-- the one read a string here came from: 'join' widens the buffer and the bound to nil where two
+-- paths disagree, and neither a comparison nor a key can be emitted without both
+local function oneread(f, pc, value)
+	if value.at == nil then
+		refuse(f, pc, "a string here was read into more than one buffer")
+	end
+	if value.bound == nil then
+		refuse(f, pc, "a string here was read under more than one bound")
+	end
+end
+
 -- a value the file body computed becomes a constant of the program; only what the kernel can
 -- hold takes a register
 local function resolve(f, pc, state, i, value, name)
@@ -1314,6 +1329,54 @@ local function typeof(value)
 	return OTHER
 end
 
+-- A string equals a constant where the length the read answered is the constant's and every byte
+-- agrees. The buffer was zeroed before the read, so the constant is padded to whole words and
+-- compared one word at a time; a packet carrying the constant followed by NULs reads longer, and
+-- is not equal to it.
+local function stringequal(f, pc, ins, state, i, value, text)
+	local code, words = f.code, (#text + SLOT - 1) // SLOT
+	oneread(f, pc, value)
+	if #text > value.bound then -- longer than the read can be, so the two are never equal
+		settled(f, pc, state, false == ins.k)
+		return
+	end
+	local padded = text .. ("\0"):rep(words * SLOT - #text)
+	local target, differs = jumptarget(f, pc + 1), code:label()
+	local equal, other = ins.k and target or pc + 2, ins.k and pc + 2 or target
+	move(f, fetch(f, i, reg.R1), reg.R1)
+	code:set(reg.R2, #text)
+	code:branch(jump.JNE, reg.R1, reg.R2, differs)
+	for w = 1, words do
+		code:load(reg.R1, reg.FP, value.at + (w - 1) * SLOT)
+		code:set(reg.R2, unpack("=i8", padded, (w - 1) * SLOT + 1))
+		code:branch(jump.JNE, reg.R1, reg.R2, differs)
+	end
+	code:jump(labelof(f, equal))
+	code:place(differs)
+	code:jump(labelof(f, other))
+	reach(f, equal, state)
+	reach(f, other, state)
+end
+
+-- '==' against a string constant, which is a string's only comparison: Lua takes the string in
+-- either operand, and the constant reaches the comparison as a bytecode constant or as a value
+-- the file body computed. Answers whether this was that comparison, since it reaches its own arms.
+local function stringeq(f, pc, ins, state, a, b)
+	if isbuffer(a) and isbuffer(b) then
+		refuse(f, pc, "two strings cannot be compared in a compiled function")
+	end
+	local i, value, text
+	if isbuffer(a) and held(b) and type(b.k) == "string" then
+		i, value, text = ins.a, a, b.k
+	elseif isbuffer(b) and held(a) and type(a.k) == "string" then
+		i, value, text = ins.b, b, a.k
+	else
+		return false
+	end
+	stringequal(f, pc, ins, state, i, value, text)
+	return true
+end
+
 local function undecidable(f, pc, a, b)
 	refuse(f, pc, "a %s cannot be compared with a %s here", typename(a), typename(b))
 end
@@ -1336,6 +1399,9 @@ end
 
 local function compare(f, pc, ins, state, relation, b)
 	local a = state[ins.a]
+	if relation == "EQ" and stringeq(f, pc, ins, state, a, b) then
+		return false
+	end
 	ordered(f, pc, relation, a, b)
 	if relation == "EQ" then
 		local answer = equality(f, pc, a, b)
@@ -1357,6 +1423,9 @@ local function compareconst(f, pc, ins, state, relation, value)
 	local a, b = state[ins.a], {t = typeof(value), k = value}
 	if relation == "EQ" and b.t == NIL and a ~= nil and a.t == ANSWER then
 		return testanswer(f, pc, ins, state, ins.k)
+	end
+	if relation == "EQ" and stringeq(f, pc, ins, state, a, b) then
+		return false
 	end
 	ordered(f, pc, relation, a, b)
 	if relation == "EQ" then
@@ -1583,7 +1652,7 @@ local function returns(f, pc, state, i)
 		end
 	else
 		local value = state[i]
-		if value.t == BUFFER then
+		if isbuffer(value) then
 			refuse(f, pc, "a string does not outlive the function that read it")
 		end
 		f.rettype = f.rettype | value.t
