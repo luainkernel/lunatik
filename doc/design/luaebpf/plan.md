@@ -291,7 +291,9 @@ Tests: a string compare against a constant and a `c64`-keyed map lookup agree wi
 a loop with a runtime bound terminates.
 
 What the phase 5 corpora cost, beside the figures above: the reads 62 processed instructions, the
-comparisons 81, the keyed lookups 68, the loops beyond `for` 357.
+comparisons 81, the keyed lookups 68, the loops beyond `for` 357, and the same loops under the
+iterator lowering 381, with the `while` corpus itself costing 708 there against 357 under a
+`may_goto` header. The ceiling the case asserts is the same 20,000.
 
 ### Phase 6: examples and documentation
 

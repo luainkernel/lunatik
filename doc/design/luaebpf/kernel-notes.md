@@ -374,6 +374,36 @@ both implement. The CLI therefore detaches before it unpins wherever it takes a 
   and the interpreter raises there too, so the pairing the differential test asserts is
   unchanged.
 
+### The iterator a loop takes where there is no may_goto
+
+* **The three kfuncs, and who may call them.** `bpf_iter_num_new`, `bpf_iter_num_next` and
+  `bpf_iter_num_destroy` are registered `KF_ITER_NEW`, `KF_ITER_NEXT | KF_RET_NULL` and
+  `KF_ITER_DESTROY` in `common_btf_ids`
+  ([kernel/bpf/helpers.c#L4887-L4889](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/helpers.c#L4887-L4889)),
+  and that set is registered under `BPF_PROG_TYPE_UNSPEC`
+  ([#L5003](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/helpers.c#L5003)), which makes
+  them callable from every program type, XDP and `SCHED_CLS` included. The iterators landed in
+  v6.4 and `may_goto` in v6.9, so 6.6 and 6.8, both LTS, have the first and not the second.
+* **What they are declared as.** `int bpf_iter_num_new(struct bpf_iter_num *it, int start, int
+  end)`, `int *bpf_iter_num_next(struct bpf_iter_num *it)` and `void bpf_iter_num_destroy(struct
+  bpf_iter_num *it)`
+  ([kernel/bpf/bpf_iter.c#L770](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/bpf_iter.c#L770),
+  [#L801](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/bpf_iter.c#L801),
+  [#L820](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/bpf_iter.c#L820)). `new` answers
+  an `int` and not a void, which is what a prototype libbpf accepts has to say too. `struct
+  bpf_iter_num` is one `__u64`
+  ([uapi/linux/bpf.h#L7699](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L7699)),
+  so the state is one word of the frame.
+* **An iterator live at an exit is refused.** `KF_ITER_NEW` acquires a reference, and one still
+  held where the program exits is "Unreleased reference id=%d alloc_insn=%d"
+  ([kernel/bpf/verifier.c#L9966](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9966)),
+  so every way out of a loop owes a `destroy`: a jump, a branch, the fall-through past a back
+  edge, a `return`, and the tail a failed check takes. That the object loads at all is what says
+  the emitter got them all, and it is what `iter.sh` asserts. The message was read off a load
+  while the lowering was being written -- "Unreleased reference id=9 alloc_insn=62", from a
+  failed check in each of two nested loops reaching one tail -- and no case asserts on it, since
+  none produces it.
+
 ### The bytes a program copies out of the packet
 
 * **The two helpers.** `bpf_skb_load_bytes` is helper 26
