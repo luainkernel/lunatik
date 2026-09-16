@@ -68,12 +68,14 @@ before the next `reload`. The eBPF modules also need the running kernel's BTF at
 do not load; and the `bpftool` wrapper needs `linux-tools-$(uname -r)`, or every BPF program fails
 to load.
 
-A wedged device — a `lunatik` process in D state, usually below an oops in `dmesg` — is cleared only
-by a reboot, and the reboot is the maintainer's to trigger: other sessions share the host. Before
-asking, capture what the reboot erases with `tools/oops.sh`, write down which suites were pending
-and which build was installed, and run nothing else against the device. After it, the suite that
-oopsed runs twice: a second oops is a bug to trace, a clean pair is a symptom without its cause,
-said as such. The lunatik-cycle skill orders both halves.
+A wedged device — a `lunatik` process that stays in D state, usually below an oops in `dmesg` — is
+cleared only by a reboot, and the reboot is the maintainer's to trigger: other sessions share the
+host. Before asking, capture what the reboot erases with `tools/oops.sh`, write down which suites
+were pending and which build was installed, and run nothing else against the device. After it, the
+suite that oopsed runs twice: a second oops is a bug to trace, a clean pair is a symptom without its
+cause, said as such. The lunatik-cycle skill orders both halves. One process in D on one look is not
+that: an ordinary `lunatik stop` sits there while the kernel works, so what names a wedge is the one
+still in D on the next look.
 
 What reaches a terminal after a machine dies is a fragment. The previous boot's kernel log survives in
 the journal, `journalctl -b -1 -k`, and it carries the registers of every oops in the cascade, which is
