@@ -93,26 +93,24 @@ EXPORT_SYMBOL(lunatik_pusherrname);
 
 #include "lunatik_cfi.h"
 
-#ifdef CONFIG_KPROBES
 static unsigned long (*__lunatik_lookup)(const char *) = NULL;
+
+void lunatik_resolve(void)
+{
+#ifdef CONFIG_KPROBES
+	struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
+
+	if (register_kprobe(&kp) != 0)
+		return;
+
+	__lunatik_lookup = (unsigned long (*)(const char *))lunatik_cfi_entry(kp.addr);
+	unregister_kprobe(&kp);
 #endif /* CONFIG_KPROBES */
+}
 
 void *lunatik_lookup(const char *symbol)
 {
-#ifdef CONFIG_KPROBES
-	if (__lunatik_lookup == NULL) {
-		struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
-
-		if (register_kprobe(&kp) != 0)
-			return NULL;
-
-		__lunatik_lookup = (unsigned long (*)(const char *))lunatik_cfi_entry(kp.addr);
-		unregister_kprobe(&kp);
-	}
-	return (void *)lunatik_cfi_call(__lunatik_lookup(symbol));
-#else /* CONFIG_KPROBES */
-	return NULL;
-#endif /* CONFIG_KPROBES */
+	return __lunatik_lookup == NULL ? NULL : (void *)lunatik_cfi_call(__lunatik_lookup(symbol));
 }
 EXPORT_SYMBOL(lunatik_lookup);
 #endif /* MODULE */

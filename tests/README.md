@@ -412,8 +412,9 @@ after the watch is stopped.
 
 - **lookup**: `linux.lookup` answers `nil` for a symbol kallsyms does not
   carry and a lightuserdata for one it does, and rejects a non-string
-  argument; skipped without `CONFIG_KPROBES`, which is how the module reaches
-  `kallsyms_lookup_name`.
+  argument; a `softirq` and a `hardirq` runtime resumed past their body, the
+  armed state a hook calls from, each resolve a symbol and get `nil` for an
+  absent one; skipped without `CONFIG_KPROBES`, which the resolution needs.
 
 ### lua
 
