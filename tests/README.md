@@ -235,6 +235,20 @@ interpreter raises, the compiled program owes its default verdict instead.
   comparison of the bytes alone fails. Two strings compared with each other, a
   string two reads merged into and one whose read the walk bounded two ways are
   refused.
+- **strkey**: a `c<n>` map key a compiled function builds with `getstring`. The
+  maps the program file declares are pinned by `bpftool prog loadall ...
+  pinmaps`, a kernel script opens two of them by their pin paths with the same
+  `c64` and `c16` specs and writes the host name the ClientHello carries, and
+  the compiled program finds the entry under the key it read out of the packet,
+  which is what says the buffer was zeroed and the read length exact. The `c16`
+  row proves the width the helper reads is the key spec's and not the buffer's;
+  bytes the map was never keyed with take the miss path, a lookup after a failed
+  read takes the default verdict, and an update from the compiled side is what
+  `bpftool map lookup pinned` finds under the padded key. A bytes spec as a map
+  value, a key spec of no bytes at all, a string constant and a number where a
+  bytes key is declared, a string where a number key is, a string bounded wider
+  than the key, a key spec wider than the buffer a string is read into and a
+  string whose read the walk bounded two ways are refused.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, and every program is run against the empty
   maps and against maps the case seeded from the shell: a key present in a hash,

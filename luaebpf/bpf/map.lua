@@ -15,7 +15,9 @@
 -- indexing looks up, assignment updates, assigning `nil` deletes. A lookup has the type "value
 -- or nil", and the translator refuses to use it as a number until the function has tested it,
 -- which is what the verifier requires of the pointer underneath. A `struct` value spec yields a
--- proxy of fields rather than a number, read-only in this phase.
+-- proxy of fields rather than a number, read-only in this phase. A `c<n>` key is the bytes a
+-- `getstring` read into the frame, and nothing else: the kernel script writing the same map with
+-- the same spec sees one key, since `string.pack` pads with the NULs the buffer was zeroed to.
 -- @module bpf.map
 -- @usage
 -- local map = require("bpf.map")
@@ -66,10 +68,25 @@ local function scalar(spec)
 	return {size = size, signed = signed, native = native}
 end
 
--- the width in a spec that no eBPF load covers, or nil where every one of them is covered
+-- a spec the kernel reads as a run of bytes rather than as a number, which is what a `c<n>`
+-- format packs. Only a key may be one: a compiled function reads a value as a number, and reads
+-- a key nowhere -- it hands the helper the buffer a getstring filled.
+local function bytes(spec)
+	if type(spec) ~= "string" then
+		return nil
+	end
+	local read, size, values, value = pcall(measure, spec)
+	if not read or values ~= 2 or type(value) ~= "string" then
+		return nil
+	end
+	return {size = size, bytes = true, native = true}
+end
+
+-- the width in a spec that no eBPF load covers, or nil where every one of them is covered; a run
+-- of bytes is passed by address and never loaded, so no width refuses it
 local function unreadable(spec)
 	for _, field in pairs(spec.fields or {spec}) do
-		if not loadable[field.size] then
+		if not field.bytes and not loadable[field.size] then
 			return field.size
 		end
 	end
@@ -94,7 +111,7 @@ local function declare(kind, name, spec)
 	if not name:match(IDENTIFIER) then
 		error(("a map name is a C identifier, not '%s'"):format(name), 3)
 	end
-	local key = scalar(spec.key)
+	local key = scalar(spec.key) or bytes(spec.key)
 	if key == nil then
 		error("a map key spec packs one value", 3)
 	end
@@ -109,6 +126,10 @@ local function declare(kind, name, spec)
 	local width = unreadable(key) or unreadable(value)
 	if width ~= nil then
 		error(("a map reads 1, 2, 4 or 8 bytes at a time, not %d"):format(width), 3)
+	end
+	-- only a c<n> can be zero bytes wide, and the kernel creates no map with a zero-byte key
+	if key.size < 1 then
+		error("a map key is at least one byte", 3)
 	end
 	if kind == "array" and key.size ~= INDEX then
 		error(("an array map is keyed by %d bytes, not %d"):format(INDEX, key.size), 3)
@@ -129,13 +150,15 @@ end
 -- @function bpf.map.hash
 -- @tparam string name what the object calls it, and what the loader pins it under
 -- @tparam table spec `{key, value, entries}`; `key` is a `string.pack` format of one fixed-size
---   number, `value` is one of those or a `struct` codec, and `entries` is the map's capacity
+--   number or of a run of bytes (`c<n>`, which a compiled function fills with `getstring`),
+--   `value` is a format of one number or a `struct` codec, and `entries` is the map's capacity
 -- @treturn table the declared map, a table proxy inside a compiled function
 -- @raise `map.hash takes a name and a spec`, `a map name is a C identifier, not '<name>'`, `a
 --   map key spec packs one value`, `a map value spec packs one value or is a struct codec`, `a
 --   map is read in the host's byte order, not '<spec>'`, `a map reads 1, 2, 4 or 8 bytes at a
---   time, not <n>`, `a map holds between 1 and 4294967295 entries, not <n>`, or `'<name>' is
---   declared twice`
+--   time, not <n>`, `a map key is at least one byte`, `a map holds between 1 and 4294967295
+--   entries, not <n>`, or `'<name>' is declared twice`. A `c<n>` key is exempt from the width
+--   rule, since it is never loaded.
 function map.hash(name, spec)
 	return declare("hash", name, spec)
 end

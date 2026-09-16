@@ -622,9 +622,17 @@ local UPDATE <const> = 2 -- BPF_FUNC_map_update_elem
 local DELETE <const> = 3 -- BPF_FUNC_map_delete_elem
 local ANY    <const> = 0 -- BPF_ANY, the flags an unconditional update takes
 
--- a map holds what its spec packs, and this phase packs numbers
+-- a map holds what its spec packs: a number, or, for a key, the bytes a getstring read
 local function mapnumber(f, pc, what)
 	refuse(f, pc, "a map %s is a number here", what)
+end
+
+-- what the map's own key spec asks for, where the program indexed with something else
+local function mapkeykind(f, pc, map)
+	if map.key.bytes then
+		refuse(f, pc, "a map key is a string read from the packet")
+	end
+	mapnumber(f, pc, "key")
 end
 
 -- a helper takes the key and the value by address, so each goes to the slot its frame reserves,
@@ -636,26 +644,58 @@ end
 
 -- the map in R1 and the key's address in R2, where every map helper wants them. Lua registers
 -- live in R6-R9 and the frame, so the call clobbers nothing live.
-local function maphelper(f, map)
+local function maphelper(f, map, at)
 	local code = f.code
 	code:map(reg.R1, map.name)
 	code:alu(alu.MOV, reg.R2, reg.FP)
-	code:alui(alu.ADD, reg.R2, KEY)
+	code:alui(alu.ADD, reg.R2, at)
 end
 
-local function maplookup(f, ins, state, map, key)
-	mapslot(f, KEY, key, map.key.size)
-	maphelper(f, map)
+-- a bytes key is read where getstring left it, already padded with the NULs string.pack writes
+-- there, so the helper reads the key spec's own width out of the buffer
+local function bufferkey(f, pc, map, value)
+	oneread(f, pc, value)
+	if map.key.size > STRINGMAX then
+		refuse(f, pc, "a map key of %d bytes is wider than the %d a string is read into",
+			map.key.size, STRINGMAX)
+	end
+	if value.bound > map.key.size then
+		refuse(f, pc, "a string of up to %d bytes cannot key a map of %d", value.bound, map.key.size)
+	end
+	return value.at
+end
+
+-- where the helper reads the key: the buffer, or the slot the frame reserves for a number
+local function mapkey(f, pc, state, map, i)
+	local value = state[i]
+	if map.key.bytes then
+		if not isbuffer(value) then
+			mapkeykind(f, pc, map)
+		end
+		return bufferkey(f, pc, map, value)
+	end
+	if not isinteger(value) then
+		mapkeykind(f, pc, map)
+	end
+	mapslot(f, KEY, getreg(f, pc, state, i, reg.R3), map.key.size)
+	return KEY
+end
+
+-- the key an opcode carries as an index of its own, which is a number whatever the spec says
+local function indexkey(f, pc, map, index)
+	if map.key.bytes then
+		mapkeykind(f, pc, map)
+	end
+	f.code:set(reg.R3, index)
+	mapslot(f, KEY, reg.R3, map.key.size)
+	return KEY
+end
+
+local function maplookup(f, ins, state, map, at)
+	maphelper(f, map, at)
 	f.code:helper(LOOKUP)
 	setreg(f, ins.a, reg.R0)
 	state[ins.a] = {t = MAYBE, map = map, name = map.name}
-end
-
-local function mapread(f, pc, ins, state, map)
-	if not isinteger(state[ins.c]) then
-		mapnumber(f, pc, "key")
-	end
-	maplookup(f, ins, state, map, getreg(f, pc, state, ins.c, reg.R3))
 end
 
 -- the value a store writes, or nil for the assignment that deletes the entry
@@ -681,20 +721,19 @@ local function stored(f, pc, ins, state)
 	return getreg(f, pc, state, ins.c, reg.R4)
 end
 
-local function mapstore(f, pc, ins, state, map, key)
+local function mapstore(f, pc, ins, state, map, at)
 	local code = f.code
 	if map.value.fields ~= nil then
 		refuse(f, pc, "a struct map value is read-only in a compiled function")
 	end
 	local value = stored(f, pc, ins, state)
-	mapslot(f, KEY, key, map.key.size)
 	if value == nil then
-		maphelper(f, map)
+		maphelper(f, map, at)
 		code:helper(DELETE)
 		return
 	end
 	mapslot(f, VALUE, value, map.value.size)
-	maphelper(f, map)
+	maphelper(f, map, at)
 	code:alu(alu.MOV, reg.R3, reg.FP)
 	code:alui(alu.ADD, reg.R3, VALUE)
 	code:set(reg.R4, ANY)
@@ -917,7 +956,7 @@ function ops.GETTABUP(f, pc, ins, state)
 	local env, upname = upvalue(f, pc, ins.b)
 	local key = tostring(constant(f, pc, ins.c))
 	if maps.declares(env) then
-		mapnumber(f, pc, "key")
+		mapkeykind(f, pc, env)
 	end
 	local value = lookup(f, pc, {k = env}, key, upname)
 	if value == nil then
@@ -937,7 +976,7 @@ function ops.GETFIELD(f, pc, ins, state)
 		return mapfield(f, pc, ins, state, container, key)
 	end
 	if container ~= nil and maps.declares(container.k) then
-		mapnumber(f, pc, "key")
+		mapkeykind(f, pc, container.k)
 	end
 	local name = container ~= nil and container.name or "a table"
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, key, name), key)
@@ -951,37 +990,32 @@ function ops.SETFIELD(f, pc, ins, state)
 	if container ~= nil and container.t == RECORD then
 		refuse(f, pc, "a struct map value is read-only in a compiled function")
 	end
-	mapof(f, pc, state, ins.a)
-	mapnumber(f, pc, "key")
+	mapkeykind(f, pc, mapof(f, pc, state, ins.a))
 end
 
 -- a global is a field of the _ENV upvalue, and so is any other upvalue table's
 function ops.SETTABUP(f, pc, ins, state)
-	if maps.declares((upvalue(f, pc, ins.a))) then
-		mapnumber(f, pc, "key")
+	local env = upvalue(f, pc, ins.a)
+	if maps.declares(env) then
+		mapkeykind(f, pc, env)
 	end
 	refuse(f, pc, "a global cannot be assigned in a compiled function")
 end
 
 function ops.SETTABLE(f, pc, ins, state)
 	local map = mapof(f, pc, state, ins.a)
-	if not isinteger(state[ins.b]) then
-		mapnumber(f, pc, "key")
-	end
-	mapstore(f, pc, ins, state, map, getreg(f, pc, state, ins.b, reg.R3))
+	mapstore(f, pc, ins, state, map, mapkey(f, pc, state, map, ins.b))
 end
 
 function ops.SETI(f, pc, ins, state)
 	local map = mapof(f, pc, state, ins.a)
-	f.code:set(reg.R3, ins.b)
-	mapstore(f, pc, ins, state, map, reg.R3)
+	mapstore(f, pc, ins, state, map, indexkey(f, pc, map, ins.b))
 end
 
 function ops.GETI(f, pc, ins, state)
 	local container = state[ins.b]
 	if container ~= nil and maps.declares(container.k) then
-		f.code:set(reg.R3, ins.c)
-		return maplookup(f, ins, state, container.k, reg.R3)
+		return maplookup(f, ins, state, container.k, indexkey(f, pc, container.k, ins.c))
 	end
 	local name = container ~= nil and container.name or "a table"
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, ins.c, name))
@@ -991,7 +1025,8 @@ function ops.GETTABLE(f, pc, ins, state)
 	local key = state[ins.c]
 	local container = state[ins.b]
 	if container ~= nil and maps.declares(container.k) then
-		return mapread(f, pc, ins, state, container.k)
+		local map = container.k
+		return maplookup(f, ins, state, map, mapkey(f, pc, state, map, ins.c))
 	end
 	local name = container ~= nil and container.name or "a table"
 	if key == nil or key.k == nil then
