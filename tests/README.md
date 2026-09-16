@@ -340,8 +340,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.
 - **budget**: the "processed N insns" figure the verifier prints for the
-  worst program of each corpus, reported as a comment and asserted under a
-  ceiling.
+  worst program of each corpus and of each compiled example, reported as a
+  comment and asserted under a ceiling. The example objects are read from
+  where `make install` put them beside their scripts, never recompiled, so
+  what the row measures is what a deployment loads.
 - **load**: `lunatik run` on a script whose object is staged beside it pins the
   map the program file declares under `/sys/fs/bpf/lunatik/<script>/`, registers
   the runtime, and pins the link whose program the device then reports. The

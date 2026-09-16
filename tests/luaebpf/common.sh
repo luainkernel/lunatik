@@ -114,10 +114,12 @@ luaebpf_loadall() {
 }
 
 # the verifier's own log: the Lua line it quotes, the may_goto header before the kernel rewrites
-# it into a loop counter, and the instruction budget each program cost
+# it into a loop counter, and the instruction budget each program cost. The object is the scratch
+# directory's, or the one a caller names the directory of, which is how an installed one is read
+# rather than recompiled.
 luaebpf_verbose() {
 	mkdir -p "$LUAEBPF_MAPS"
-	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" pinmaps "$LUAEBPF_MAPS" 2>&1
+	bpftool -d prog loadall "${2:-$LUAEBPF_WORK}/$1.bpf.o" "$LUAEBPF_PINS" pinmaps "$LUAEBPF_MAPS" 2>&1
 }
 
 # one program over the packet and the context the row named, or over the fourteen bytes
