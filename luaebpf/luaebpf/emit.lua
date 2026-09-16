@@ -18,6 +18,7 @@
 
 local insn     = require("luaebpf.insn")
 local maps     = require("luaebpf.maps")
+local probe    = require("luaebpf.probe")
 local proto    = require("luaebpf.proto")
 local runtimes = require("luaebpf.runtimes")
 local vmlinux  = require("luaebpf.vmlinux")
@@ -104,11 +105,6 @@ local kernel = release()
 local major, minor = kernel:match("^(%d+)%.(%d+)")
 major, minor = tonumber(major) or 0, tonumber(minor) or 0
 
----
--- Whether the running kernel takes the `may_goto` a loop without a proven bound needs.
--- @field luaebpf.emit.maygoto
-emit.maygoto = major > 6 or (major == 6 and minor >= 9)
-
 local function typename(value)
 	if value == nil then
 		return "undefined value"
@@ -131,6 +127,17 @@ local probes = {}
 -- is the program type's
 function probes.loadbytes(f)
 	return vmlinux.publishes(f.unit.context.loadbytes.probe)
+end
+
+-- may_goto has no name in any BTF, so the question is a load of the instruction itself; a load
+-- that needed a privilege this compile has not says nothing about it, and the release the kernel
+-- reports is what answers then
+function probes.maygoto()
+	local told = probe.maygoto()
+	if told == nil then
+		return major > 6 or (major == 6 and minor >= 9)
+	end
+	return told
 end
 
 local function offers(f, feature)
@@ -1654,7 +1661,7 @@ function ops.FORLOOP(f, pc, ins, state)
 	local a, code = ins.a, f.code
 	local after = labelof(f, pc + 1)
 	if not f.bounded[pc] then
-		if not emit.maygoto then
+		if not offers(f, "maygoto") then
 			refuse(f, pc, "a 'for' the compiler cannot bound needs may_goto, which this kernel lacks")
 		end
 		if f.drop ~= "maygoto" then

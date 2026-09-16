@@ -141,10 +141,14 @@ returns, truncated to the 32 bits `bpf_prog_run` gives back. Where the
 interpreter raises, the compiled program owes its default verdict instead.
 
 - **host**: the state `lunatikc` stands up for a program file's body: the
-  standard libraries, `linux.xdp`, and `luaebpf.proto.read` on a known
-  function, whose `numparams`, `maxstacksize`, first opcode, first line,
-  source and argument mode the body asserts. A host with no prototype
-  accessor makes `compile` raise a message naming `luaebpf.proto`.
+  standard libraries, `linux.xdp`, `luaebpf.proto.read` on a known function,
+  whose `numparams`, `maxstacksize`, first opcode, first line, source and
+  argument mode the body asserts, and `luaebpf.probe.maygoto`, which loads the
+  instruction and agrees with the release the kernel reports wherever it can
+  answer at all. A host with no prototype accessor, and one with no probe, make
+  `compile` raise a message naming what is missing; an unprivileged compile,
+  whose probe load gets `EPERM`, falls back to that release and still compiles
+  a loop the compiler cannot bound.
 - **pass**: a file declaring two programs; `loadall` pins one per
   `xdp.program` call, `prog run` returns each verdict, the `license` section
   reads `Dual MIT/GPL`, and the BTF carries one `FUNC` per program. With no
@@ -171,8 +175,10 @@ interpreter raises, the compiled program owes its default verdict instead.
 - **forvar**: a numeric `for` whose bounds the program computes: it takes a
   `may_goto` header, verifies and terminates; without the header the verifier
   rejects it; a step a called function gets at run time takes the default
-  verdict, and one that is zero at compile time is refused. On a kernel below
-  v6.9 the case asserts the compiler's refusal instead.
+  verdict, and one that is zero at compile time is refused. With `LUAEBPF_PROBE`
+  offering the compiler no loop form the loop is refused with its reason, on
+  every kernel; where the compiler says this one has no `may_goto`, the load
+  rows skip.
 - **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
   call, two levels, four arguments, a shared helper, the deepest chain
   `MAX_CALL_FRAMES` takes with every level able to abort, a call asking for two

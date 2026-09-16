@@ -28,17 +28,18 @@ local concat = table.concat
 local format = string.format
 
 local PROTO   <const> = "luaebpf.proto"
+local PROBE   <const> = "luaebpf.probe"
 local TEXT    <const> = ".text"
 local MAPS    <const> = ".maps"
 local KSYMS   <const> = ".ksyms"
 local LICENSE <const> = "Dual MIT/GPL"
-local HOSTED  <const> = "luaebpf.proto is missing; a program file compiles under 'lunatikc bpf'"
+local HOSTED  <const> = "%s is missing; a program file compiles under 'lunatikc bpf'"
 local DROP    <const> = "LUAEBPF_DROP"
-local PROBE   <const> = "LUAEBPF_PROBE"
+local ALLOWED <const> = "LUAEBPF_PROBE"
 local ROOT    <const> = "^/lib/modules/lua/"
 
 local emit, insn, elf, btf
-if package.loaded[PROTO] ~= nil then
+if package.loaded[PROTO] ~= nil and package.loaded[PROBE] ~= nil then
 	emit = require("luaebpf.emit")
 	insn = require("luaebpf.insn")
 	elf  = require("luaebpf.elf")
@@ -46,6 +47,14 @@ if package.loaded[PROTO] ~= nil then
 end
 
 local luaebpf = {}
+
+-- the driver preloads what the translator cannot stand up for itself, and a host missing one of
+-- them gets its name rather than a nil index somewhere below
+local function hosted(name)
+	if package.loaded[name] == nil then
+		error(format(HOSTED, name), 0)
+	end
+end
 
 local function readlines(path)
 	local file = io.open(path, "r")
@@ -74,7 +83,7 @@ end
 -- what the compiler may lower, named rather than probed for: a comma-separated allow-list, which
 -- is how a case exercises a lowering or a refusal the running kernel would not take
 local function allowed()
-	local named = environ(PROBE)
+	local named = environ(ALLOWED)
 	if named == nil then
 		return nil
 	end
@@ -330,13 +339,13 @@ end
 -- @treturn string the BPF ELF object
 -- @treturn table one line per call into the kernel Lua runtime, naming the file, the line and the
 --   runtime key, so a program that calls Lua on every packet is visible for what it is
--- @raise `luaebpf.proto is missing` when the host provides no prototype accessor,
+-- @raise `luaebpf.proto is missing` or `luaebpf.probe is missing` when the host preloaded no
+--   prototype accessor or no kernel probe,
 --   `<file>:<line>: <reason>` for every construct the subset refuses, and
 --   `<path>: no program declared` when the body hands nothing to a constructor
 function luaebpf.compile(path)
-	if emit == nil then
-		error(HOSTED, 0)
-	end
+	hosted(PROTO)
+	hosted(PROBE)
 	local chunk, err = loadfile(path)
 	if chunk == nil then
 		error(err, 0)

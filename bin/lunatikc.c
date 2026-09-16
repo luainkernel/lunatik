@@ -23,8 +23,10 @@
 #include <lualib.h>
 
 #define LUNATIKC_PROTO	"luaebpf.proto"
+#define LUNATIKC_PROBE	"luaebpf.probe"
 
 int luaopen_luaebpf_proto(lua_State *L);
+int luaopen_luaebpf_probe(lua_State *L);
 
 #define LUNATIKC_EXT	".luac"
 #define LUNATIKC_BPF_EXT	".o"
@@ -177,7 +179,8 @@ static void bpf(const char *input, const char *output)
 		fail("cannot create state");
 	luaL_openlibs(L);
 	luaL_requiref(L, LUNATIKC_PROTO, luaopen_luaebpf_proto, 0);
-	lua_pop(L, 1);
+	luaL_requiref(L, LUNATIKC_PROBE, luaopen_luaebpf_probe, 0);
+	lua_pop(L, 2);
 
 	lua_getglobal(L, "require");
 	lua_pushliteral(L, "luaebpf");
