@@ -22,6 +22,9 @@ LUAEBPF_WORK=
 LUAEBPF_FILTER=examples/filter/sni
 LUAEBPF_FILTERDEV=filter0
 LUAEBPF_FILTERPEER=filter1
+LUAEBPF_CLASSIFY=examples/sniclassify/sni
+LUAEBPF_CLASSIFYDEV=classify0
+LUAEBPF_CLASSIFYPEER=classify1
 
 # whatever a loader case left running, and only that: `lunatik stop` probes the modules, and
 # every case in the suite runs this cleanup twice
@@ -37,10 +40,13 @@ luaebpf_stopall() {
 cleanup() {
 	luaebpf_stopall
 	lunatik stop "$LUAEBPF_FILTER" > /dev/null 2>&1
-	rm -rf "$LUAEBPF_PINS" "$LUAEBPF_ROOT" "$LUAEBPF_DEPLOY/$LUAEBPF_FILTER"
+	lunatik stop "$LUAEBPF_CLASSIFY" > /dev/null 2>&1
+	rm -rf "$LUAEBPF_PINS" "$LUAEBPF_ROOT" "$LUAEBPF_DEPLOY/$LUAEBPF_FILTER" \
+		"$LUAEBPF_DEPLOY/$LUAEBPF_CLASSIFY"
 	rm -f "$LUAEBPF_SRC"/*.bpf.o
 	ip link del "$LUAEBPF_DEV" 2>/dev/null
 	ip link del "$LUAEBPF_FILTERDEV" 2>/dev/null
+	ip link del "$LUAEBPF_CLASSIFYDEV" 2>/dev/null
 	[ -n "$LUAEBPF_WORK" ] && rm -rf "$LUAEBPF_WORK"
 	return 0
 }

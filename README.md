@@ -626,19 +626,20 @@ sudo examples/tcpreject/cleanup.sh
 
 ### sniclassify
 
-[sniclassify](examples/sniclassify) is a kernel extension composed by
-a TC/eBPF classifier program attached on egress,
-a Lua kernel script to classify [SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) traffic.
-This kernel extension extracts server name and assigns traffic
-classes according to a Lua [policy table](examples/sniclassify/sni.lua#L26).
+[sniclassify](examples/sniclassify) assigns outbound traffic to a traffic class according to a
+Lua [policy table](examples/sniclassify/sni.lua#L19). Both halves are Lua: the TC egress program
+[sni.bpf.lua](examples/sniclassify/sni.bpf.lua) is compiled to eBPF by `lunatikc` during `make
+install` and decides a flow it has already seen from a map of its own; the first packet of one
+is where it calls the kernel script [sni.lua](examples/sniclassify/sni.lua), which reads the
+[SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) TLS extension and sets the
+priority htb then classifies on.
 
 Install the classifier:
 
 ```sh
-sudo make btf_install         # needed to export the 'bpf_luatc_run' kfunc
-sudo make examples_install    # installs examples
-make ebpf                     # builds the TC/eBPF program
-sudo make ebpf_install        # installs the TC/eBPF program
+sudo make btf_install    # the 'bpf_luatc_run' kfunc the program calls is resolved against the
+make clean && make       # module's BTF, embedded when the .ko is linked, so a built tree is rebuilt
+sudo make install        # installs the scripts and compiles the program files
 ```
 
 Run the classifier and set up the HTB classes on an interface:
@@ -651,12 +652,9 @@ Tear it down with:
 sudo ./examples/sniclassify/cleanup.sh eth0
 ```
 
-The classifier inspects outbound TLS ClientHello packets, extracts the SNI
-field, and assigns a traffic class according to the Lua policy table.
-
 Verify and test:
 ```
-sudo tc filter show dev eth0
+sudo tc -s class show dev eth0
 sudo journalctl -ft kernel
 ```
 

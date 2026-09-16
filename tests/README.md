@@ -412,15 +412,16 @@ interpreter raises, the compiled program owes its default verdict instead.
   contract, so what tells that row from the first is the line the module logs.
   A program that returns the answer on its nil branch returns the zero word a
   returned nil is anywhere else, not the `-1` the kfunc handed back.
-- **partition**: `examples/sniclassify/classify.c` in Lua. The TC program looks
-  a flow up in a hash it declares, calls the kernel runtime only where the
-  lookup missed and the headers say the packet is worth it, and caches what the
-  callback decided. `BPF_PROG_TEST_RUN` reads a `__sk_buff`'s hash back as zero,
-  so the two packets of one `repeat 2` are one flow: two packets, one callback
-  line, and the priority the callback set from the argument it was handed is
-  what the pinned map holds and what `ctx_out` carries back. A SYN to the same
-  port and an ICMP echo add no callback line and leave the map empty, with the
-  runtime still up: the call is where the program put it, not on every packet.
+- **partition**: the shape `examples/sniclassify/sni.bpf.lua` deploys. The TC
+  program looks a flow up in a hash it declares, calls the kernel runtime only
+  where the lookup missed and the headers say the packet is worth it, and
+  caches what the callback decided. `BPF_PROG_TEST_RUN` reads a `__sk_buff`'s
+  hash back as zero, so the two packets of one `repeat 2` are one flow: two
+  packets, one callback line, and the priority the callback set from the
+  argument it was handed is what the pinned map holds and what `ctx_out`
+  carries back. A SYN to the same port and an ICMP echo add no callback line
+  and leave the map empty, with the runtime still up: the call is where the
+  program put it, not on every packet.
 - **report**: `lunatikc bpf` lists every call into the kernel Lua runtime. A
   program file with a call on two known lines, each naming a runtime of its own,
   prints one line per call with its own line number and its own key;
@@ -448,6 +449,26 @@ interpreter raises, the compiled program owes its default verdict instead.
   stop leaves no pin root, no runtime and nothing on the device. Skips where
   the compiled object is not installed, which is what a kernel publishing no
   `bpf_xdp_load_bytes` leaves behind.
+- **example_sniclassify**: examples/sniclassify deployed as the tree ships it,
+  with the htb classes `setup.sh` installs on a veth pair of the case's own.
+  The kernel-side fixture puts an ICMP echo and then two ClientHellos of one
+  flow on `classify0` with a raw socket, so they leave through tcx egress and
+  then htb; a locally generated skb reaches `sch_handle_egress` before
+  `netdev_core_pick_tx` computes its hash, so all three carry hash zero and
+  are one flow to the program. Exactly one `sniclassify:` line comes back: the
+  first ClientHello called Lua, the second was decided from the map, and the
+  echo the header walk rejects never reached the call. The flow map then holds
+  the classid the callback set, which says the compiled side read
+  `skb.priority` back after the call, and as a delta around the sends the
+  class the policy names counts at least both ClientHellos while the
+  prioritised class counts none, which is what says htb classified on the
+  priority the program set. The policy class is a lower bound because the flow
+  key is the skb hash, zero for every locally generated frame, so a stray one
+  leaving in the window takes the classid the first ClientHello cached. The
+  CLI's stop leaves no pin root, no runtime and nothing on the device. Skips
+  where the object is not installed, where `luatc` publishes no
+  `bpf_luatc_run`, where `tc` is missing, or where the kernel will not add an
+  htb qdisc.
 
 ### monitor
 

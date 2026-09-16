@@ -188,11 +188,9 @@ scripts_uninstall:
 	${RM} -r ${LUA_PATH}/lunatik ${LUA_CPATH}/lunatik
 
 ebpf:
-	${MAKE} -C examples/sniclassify
 
 ebpf_install:
 	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
-	${INSTALL} -m 0644 examples/sniclassify/classify.o ${LUNATIK_EBPF_INSTALL_PATH}/
 
 ebpf_uninstall:
 	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}

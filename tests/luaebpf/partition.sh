@@ -3,11 +3,11 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Tests the shape the escape hatch exists for: `examples/sniclassify/classify.c` in Lua. The TC
-# program looks a flow up in a hash it declares, calls the kernel runtime only where the lookup
-# missed and the headers say the packet is worth it, and caches what the callback decided. The
-# oracle is `BPF_PROG_TEST_RUN`, whose `__sk_buff` reads its hash back as zero, so the two
-# packets of one `repeat 2` are one flow: the first misses and the second hits.
+# Tests the shape the escape hatch exists for, the one `examples/sniclassify/sni.bpf.lua`
+# deploys: the TC program looks a flow up in a hash it declares, calls the kernel runtime only
+# where the lookup missed and the headers say the packet is worth it, and caches what the
+# callback decided. The oracle is `BPF_PROG_TEST_RUN`, whose `__sk_buff` reads its hash back as
+# zero, so the two packets of one `repeat 2` are one flow: the first misses and the second hits.
 #   - two packets of the ClientHello, one callback line: the second was decided from the map
 #   - the priority the callback set from the argument it was handed is what the pinned map holds
 #     and what `ctx_out` carries back, which is what says the argument reached Lua and the
