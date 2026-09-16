@@ -212,19 +212,21 @@ static inline lunatik_opt_t lunatik_inheritopt(const lunatik_class_t *class, lun
 	return lunatik_issingle(opt) ? inherited & ~LUNATIK_OPT_MONITOR : inherited;
 }
 
+static inline void lunatik_pushmetatable(lua_State *L, const lunatik_class_t *class, bool monitor)
+{
+	if (lua_rawgetp(L, LUA_REGISTRYINDEX, lunatik_monitormt(class, monitor)) == LUA_TNIL)
+		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_METATABLE);
+}
+
 static inline void lunatik_checkmetatable(lua_State *L, const lunatik_class_t *class, bool monitor)
 {
-	lua_pushlightuserdata(L, lunatik_monitormt(class, monitor));
-	if (lua_rawget(L, LUA_REGISTRYINDEX) == LUA_TNIL)
-		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_METATABLE);
+	lunatik_pushmetatable(L, class, monitor);
 	lua_pop(L, 1); /* metatable */
 }
 
 static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool monitor)
 {
-	lua_pushlightuserdata(L, lunatik_monitormt(class, monitor));
-	if (lua_rawget(L, LUA_REGISTRYINDEX) == LUA_TNIL)
-		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_METATABLE);
+	lunatik_pushmetatable(L, class, monitor);
 	lua_setmetatable(L, -2);
 	lua_pushlightuserdata(L, (void *)class);
 	lua_setiuservalue(L, -2, 1); /* pop class */
@@ -282,7 +284,6 @@ static inline bool lunatik_hasindex(lua_State *L, int index)
 
 static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, bool monitored)
 {
-	lua_pushlightuserdata(L, lunatik_monitormt(class, monitored));
 	lua_newtable(L); /* mt = {} */
 	luaL_setfuncs(L, class->methods, 0);
 	lua_pushstring(L, class->name);
@@ -293,7 +294,7 @@ static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, 
 		lua_pushvalue(L, -1);  /* push mt */
 		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
 	}
-	lua_rawset(L, LUA_REGISTRYINDEX); /* registry[key] = mt */
+	lua_rawsetp(L, LUA_REGISTRYINDEX, lunatik_monitormt(class, monitored)); /* registry[key] = mt */
 }
 
 static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)

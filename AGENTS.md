@@ -367,6 +367,9 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
   header already has, and the caller that loops over the work tests it. `lunatik_newclass` grew such
   a guard and gave it back to `lunatik_newclasses` through `lunatik_hasclass`.
 * When a two line pattern repeats in every method, collapse it into one helper or macro.
+* A pointer-keyed registry slot is read with `lua_rawgetp` and written with `lua_rawsetp`, never
+  with `lua_pushlightuserdata` followed by `lua_rawget` or `lua_rawset`. The pair spells one
+  operation as two, and on the write it leaves the key on the stack under whatever runs between them.
 * A helper meant to be shared is held to a higher design bar than a one-off, because everything
   built on it inherits its shape: a pair mirrors, so whatever one half acquires or registers its
   partner releases or unregisters, and an argument on one appears on the other; a family of helpers
