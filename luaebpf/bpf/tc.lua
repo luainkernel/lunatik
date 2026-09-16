@@ -11,8 +11,33 @@
 -- `linux.tc`, the table the kernel scripts already use.
 --
 -- The program reads `skb.len`, `skb.hash`, `skb.ifindex` and `skb.ingress_ifindex`, and writes
--- `skb.priority`; `skb.data`/`skb.data_end` are the packet's bounds rather than numbers, and
--- `skb:packet()` is the packet.
+-- `skb.priority`; `skb.data`/`skb.data_end` are the packet's bounds rather than numbers.
+--
+-- `skb:packet()` is the packet: a proxy carrying the method names of the `data` object a kernel
+-- script sees, so one helper reads the same bytes on both sides. Every read lowers to a single
+-- eBPF load of its own width, under a test of the offset against the last one a read that wide
+-- can start at and a test of the address against the packet's end:
+--
+--  * `getbyte` and `getuint8`, a one-byte load; `getuint16`, `getuint32`, two and four bytes;
+--    `getint64` and `getnumber`, eight;
+--  * `getint8`, `getint16` and `getint32`, the same load followed by the shift pair that
+--    sign-extends it, since `BPF_MEMSX` landed in v6.6 and the tree supports 5.15;
+--  * `getstring(at, len)`, a call to `bpf_skb_load_bytes` over sixty-four bytes of the reading
+--    function's frame, zeroed first;
+--  * `#packet`, the distance between the packet's bounds.
+--
+-- There is no `getuint64`, because the kernel object has none: a Lua integer is 64-bit signed and
+-- an unsigned one has no distinct representation. A read that fails either test does not raise --
+-- there is nothing to raise to -- and the program takes its default verdict instead.
+--
+-- What the proxy refuses, each naming its line: a method neither it nor the context publishes, by
+-- name; an accessor called with no offset, or with one that is not a number; a `getstring` with no
+-- length, with a length the compiler cannot bound against a constant, or with one bounded above
+-- the sixty-four bytes it reads into. What a read answered is a string the compiler holds the
+-- frame offset of, and its only uses are `==` against a string constant, a `c<n>` map key and a
+-- `return` from a function the program calls; anything else, arithmetic and `..` and `#` among
+-- them, is refused where it is written, and the program's own `return` of one is refused as a
+-- verdict it is not.
 --
 -- `runtime(name)` is the escape hatch: a callable the program hands numbers to, which becomes a
 -- call into the kernel Lua runtime of that name.
