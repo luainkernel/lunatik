@@ -14,6 +14,10 @@ source "$DIR/../lib.sh"
 TESTS="random fs"
 TOTAL=$(echo $TESTS | wc -w)
 
+cleanup() { for t in $TESTS; do lunatik stop "tests/linux/$t" > /dev/null 2>&1; done; }
+trap cleanup EXIT
+cleanup
+
 ktap_header
 ktap_plan $TOTAL
 
