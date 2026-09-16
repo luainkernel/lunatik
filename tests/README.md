@@ -624,6 +624,16 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   three from its own handler. Do not run it against a build without the guard,
   which would reach `synchronize_rcu` with interrupts off.
 
+- **dropreason**: the kprobe target the kernel's drop path offers and the
+  argument its reason arrives in, which moved together at v6.11, where
+  `kfree_skb_reason` became a static inline over `sk_skb_reason_drop`: the
+  script probes whichever symbol `linux.lookup` finds, and the shell checks
+  that name against `/proc/kallsyms` and that the handler counts the
+  `NO_SOCKET` drops of a batch of datagrams sent to a closed UDP port, which
+  a handler reading the wrong argument counts none of. Skipped without
+  `CONFIG_KPROBES` or `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`, on a kernel that
+  carries neither symbol, and when something holds the port.
+
 - **handlers**: which handler a hit runs, over the four handlers tables
   `probe.new` takes: only `pre`, only `post`, both, and neither. Each script
   probes the `personality` syscall, which one `setarch` calls exactly once, so
