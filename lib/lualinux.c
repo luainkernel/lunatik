@@ -169,7 +169,7 @@ static int lualinux_difftime(lua_State *L)
 *
 * @function lookup
 * @tparam string symbol_name kernel symbol name to look up.
-* @treturn lightuserdata symbol address if found, otherwise `nil` (represented as a NULL lightuserdata).
+* @treturn lightuserdata symbol address if found, otherwise `nil`.
 * @usage
 *   local addr = linux.lookup("jiffies")
 *   if addr then print("Address of jiffies:", addr) end
@@ -177,8 +177,9 @@ static int lualinux_difftime(lua_State *L)
 static int lualinux_lookup(lua_State *L)
 {
 	const char *symbol = luaL_checkstring(L, 1);
+	void *addr = lunatik_lookup(symbol);
 
-	lua_pushlightuserdata(L, lunatik_lookup(symbol));
+	addr != NULL ? lua_pushlightuserdata(L, addr) : lua_pushnil(L);
 	return 1;
 }
 
