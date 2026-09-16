@@ -97,7 +97,7 @@ end
 
 ---
 -- Gets the local address (path) of the socket.
--- @return (string) The local socket path.
+-- @return (string) The local path, carrying its leading NUL when the name is an abstract one.
 -- @see socket.getsockname
 function unix:getsockname()
 	return self.socket:getsockname()
@@ -105,7 +105,7 @@ end
 
 ---
 -- Gets the remote address (path) the socket is connected to.
--- @return (string) The remote socket path.
+-- @return (string) The remote path, carrying its leading NUL when the name is an abstract one.
 -- @see socket.getpeername
 function unix:getpeername()
 	return self.socket:getpeername()
@@ -147,8 +147,9 @@ unix.dgram = unix:new{type = sock.DGRAM}
 -- Receives data from a DGRAM socket along with the sender's path.
 -- @param len (number) [optional] Maximum number of bytes to receive.
 -- @param flags (number) [optional] Receive flags.
--- @return (string or nil) The received data.
--- @return (string or nil) The sender's socket path.
+-- @return (string) The received data.
+-- @return (string or nil) The sender's path, carrying its leading NUL when the name is an abstract
+--   one, and nil when the peer is unbound and the kernel names no sender.
 -- @see socket.receive
 function unix.dgram:receivefrom(len, flags)
 	return self:receive(len, flags, true)

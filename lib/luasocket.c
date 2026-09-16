@@ -95,9 +95,15 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 	}
 }
 
-static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr)
+/* the length a pathname reports counts its terminator; an abstract name is the reported bytes themselves */
+#define luasocket_ispathname(addr_un, len)	((len) > 0 && (addr_un)->sun_path[0] != '\0')
+
+static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr, size_t size)
 {
 	int n;
+	if (size < sizeof(addr->ss_family))
+		return 0;
+
 	if (addr->ss_family == AF_INET) {
 		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
 		lua_pushinteger(L, (lua_Integer)ntohl(addr_in->sin_addr.s_addr));
@@ -107,7 +113,8 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr)
 #ifdef CONFIG_UNIX
 	else if (LUASOCKET_ISUNIX(addr->ss_family)) {
 		struct sockaddr_un *addr_un = (struct sockaddr_un *)addr;
-		lua_pushstring(L, addr_un->sun_path);
+		size_t len = size - offsetof(struct sockaddr_un, sun_path);
+		lua_pushlstring(L, addr_un->sun_path, len - luasocket_ispathname(addr_un, len));
 		n = 1;
 	}
 #endif
@@ -118,7 +125,7 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr)
 		n = 2;
 	}
 	else {
-		lua_pushlstring(L, (const char *)addr->__data, LUASOCKET_ADDRMAX);
+		lua_pushlstring(L, (const char *)addr->__data, size - sizeof(addr->ss_family));
 		n = 1;
 	}
 	return n;
@@ -197,9 +204,13 @@ static int luasocket_send(lua_State *L)
 * @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
 *   and port (for `AF_INET`). This is typically used with connectionless sockets (`SOCK_DGRAM`).
 * @treturn string received message (as a string of bytes).
-* @treturn[opt] integer|string addr If `from` is true, the sender's address.
+* @treturn[opt] integer|string addr If `from` is true and the protocol named a sender, its address.
+*   TCP names none, and neither does an `AF_UNIX` peer that never bound; nothing follows the message
+*   then.
 *   - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
-*   - For other families: A packed string representing the sender's address.
+*   - For `AF_UNIX`: The sender's name, carrying its leading NUL when the name is an abstract one.
+*   - For other families: A packed string of the sender's address past the family, of the length the
+*     protocol reports.
 * @treturn[opt] integer port If `from` is true and the family is `AF_INET`, the sender's port number.
 * @raise Error if the receive operation fails.
 * @usage
@@ -230,13 +241,14 @@ static int luasocket_receive(lua_State *L)
 	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
 	vec.iov_len = len;
 
+	/* msg_namelen is an output: the zero going in is what says the protocol named no address */
 	if (unlikely(from))
-		luasocket_msgaddr(msg, addr, sizeof(addr));
+		msg.msg_name = &addr;
 
 	lunatik_tryret(L, ret, kernel_recvmsg, socket, &msg, &vec, 1, len, flags);
 	luaL_pushresultsize(&B, ret);
 
-	return unlikely(from) ? luasocket_pushaddr(L, (struct sockaddr_storage *)msg.msg_name) + 1 : 1;
+	return unlikely(from) ? luasocket_pushaddr(L, &addr, msg.msg_namelen) + 1 : 1;
 }
 
 /***
@@ -349,8 +361,10 @@ static int luasocket_get##what(lua_State *L)					\
 {										\
 	struct socket *socket = luasocket_check(L, 1);				\
 	struct sockaddr_storage addr;						\
-	lunatik_try(L, kernel_get##what, socket, (struct sockaddr *)&addr);	\
-	return luasocket_pushaddr(L, &addr);					\
+	int size;								\
+	lunatik_tryret(L, size, kernel_get##what, socket,			\
+		(struct sockaddr *)&addr);					\
+	return luasocket_pushaddr(L, &addr, size);				\
 }
 
 /***
@@ -360,7 +374,10 @@ static int luasocket_get##what(lua_State *L)					\
 * @treturn integer|string addr local address.
 *
 * - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
-* - For other families: A packed string representing the local address.
+* - For `AF_UNIX`: The bound name, carrying its leading NUL when the name is an abstract one, and the
+*   empty string when the socket is unbound.
+* - For other families: A packed string of the address bytes past the family, of the length the kernel
+*   reports, which for `AF_PACKET` follows the interface's hardware address length.
 * @treturn[opt] integer port If the family is `AF_INET`, the local port number.
 * @raise Error if the operation fails.
 * @usage
@@ -379,7 +396,10 @@ LUASOCKET_NEWGETTER(sockname);
 * @treturn integer|string addr peer's address.
 *
 * - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
-* - For other families: A packed string representing the peer's address.
+* - For `AF_UNIX`: The peer's name, carrying its leading NUL when the name is an abstract one, and the
+*   empty string when the peer is unbound.
+* - For other families: A packed string of the address bytes past the family, of the length the kernel
+*   reports.
 * @treturn[opt] integer port If the family is `AF_INET`, the peer's port number.
 * @raise Error if the operation fails (e.g., socket not connected).
 * @usage
