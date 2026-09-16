@@ -148,7 +148,8 @@ interpreter raises, the compiled program owes its default verdict instead.
   answer at all. A host with no prototype accessor, and one with no probe, make
   `compile` raise a message naming what is missing; an unprivileged compile,
   whose probe load gets `EPERM`, falls back to that release and still compiles
-  a loop the compiler cannot bound.
+  a loop the compiler cannot bound, a row that skips on a kernel where no
+  privilege bounds one.
 - **pass**: a file declaring two programs; `loadall` pins one per
   `xdp.program` call, `prog run` returns each verdict, the `license` section
   reads `Dual MIT/GPL`, and the BTF carries one `FUNC` per program. With no
@@ -186,7 +187,22 @@ interpreter raises, the compiled program owes its default verdict instead.
   takes no back edge and no header, which the loop counter the kernel patches a
   `may_goto` into is what shows; with `LUAEBPF_DROP=maygoto` the verifier
   rejects the loop, with `LUAEBPF_PROBE` offering no loop form the backward jump
-  is refused, and a loop nothing leaves is refused too.
+  is refused, and a loop nothing leaves is refused too. The case reads the
+  may_goto lowering, so it skips where the compiler takes the iterators instead,
+  or bounds no loop at all.
+- **iter**: the lowering a kernel with the open-coded iterators and without
+  `may_goto` takes, forced with `LUAEBPF_PROBE`: the loops of **while** plus a
+  return out of a loop body, a check that fails inside one, a loop whose head is
+  entered by a jump rather than by a fall-through, a `repeat` whose body opens
+  with a loop of its own, so that both back edges land on one head, and a
+  numeric `for` the compiler cannot bound. The object names the three
+  `bpf_iter_num_*` kfuncs and calls them, every program loads -- which is what
+  says every edge into a loop created its iterator and every path out destroyed
+  the one it left, since a live one at an exit is an unreleased reference and a
+  next of one nothing made is refused -- and every row answers what the
+  interpreter answers. Without the override the object names no iterator, since
+  this kernel has `may_goto`. Skips where the kernel's BTF publishes no
+  `bpf_iter_num_new`.
 - **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
   call, two levels, four arguments, a shared helper, the deepest chain
   `MAX_CALL_FRAMES` takes with every level able to abort, a call asking for two
@@ -234,10 +250,11 @@ interpreter raises, the compiled program owes its default verdict instead.
   TC one `bpf_skb_load_bytes`; with `LUAEBPF_PROBE` offering neither, the XDP
   read is refused by the helper's name and the kernel's while the TC one still
   compiles. A read with no length, one whose offset or length is not a number,
-  one the compiler cannot bound, one bounded above the buffer's width, a buffer
-  used as a number, compared with a number, passed to a call, returned,
+  one the compiler cannot bound, one bounded above the buffer's width, a
+  buffer used as a number, compared with a number, passed to a call, returned,
   concatenated, `#`-ed or handed to a string function, and eight reads in one
-  function are refused with their lines.
+  function are refused with their lines. Skips where the kernel publishes no
+  `bpf_xdp_load_bytes`.
 - **strcmp**: a string a compiled function read compared with a string
   constant: equal, the constant as a constant of the bytecode and as a value the
   body computed, a constant that is a prefix of the read, a read that is a
@@ -248,7 +265,7 @@ interpreter raises, the compiled program owes its default verdict instead.
   name, whose tail is NUL, is not equal to the name, which is the row a
   comparison of the bytes alone fails. Two strings compared with each other, a
   string two reads merged into and one whose read the walk bounded two ways are
-  refused.
+  refused. Skips where the kernel publishes no `bpf_xdp_load_bytes`.
 - **strkey**: a `c<n>` map key a compiled function builds with `getstring`. The
   maps the program file declares are pinned by `bpftool prog loadall ...
   pinmaps`, a kernel script opens two of them by their pin paths with the same
@@ -262,7 +279,8 @@ interpreter raises, the compiled program owes its default verdict instead.
   value, a key spec of no bytes at all, a string constant and a number where a
   bytes key is declared, a string where a number key is, a string bounded wider
   than the key, a key spec wider than the buffer a string is read into and a
-  string whose read the walk bounded two ways are refused.
+  string whose read the walk bounded two ways are refused. Skips where the
+  kernel publishes no `bpf_xdp_load_bytes`.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, and every program is run against the empty
   maps and against maps the case seeded from the shell: a key present in a hash,

@@ -21,7 +21,7 @@ trap cleanup EXIT
 
 CEILING=20000
 
-CORPORA="pass arith divzero branch forconst forvar while call ctx packet bounds getstring strcmp strkey mapget mapset struct"
+CORPORA="pass arith divzero branch forconst forvar while iter call ctx packet bounds getstring strcmp strkey mapget mapset struct"
 
 luaebpf_start 1
 
@@ -38,6 +38,19 @@ for name in $CORPORA; do
 	comment "$name: $most insns processed, worst program of the corpus"
 	[ "$most" -gt "$worst" ] && worst=$most
 done
+
+# the shape a kernel with the iterators and without may_goto gets, whose cost the same ceiling
+# has to cover, since the compiler picks it there and nowhere else
+if [ -z "$(luaebpf_kfunc vmlinux bpf_iter_num_new)" ]; then
+	output=$(luaebpf_compile while "" loadbytes,iter) \
+		|| { comment "$output"; fail "luaebpf: the iterator build failed"; }
+	log=$(luaebpf_verbose while)
+	rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
+	most=$(echo "$log" | grep -oP 'processed \K[0-9]+' | sort -n | tail -1)
+	[ -n "$most" ] || { comment "$log"; fail "luaebpf: the iterator build printed no instruction count"; }
+	comment "while under the iterator lowering: $most insns processed, worst program of the corpus"
+	[ "$most" -gt "$worst" ] && worst=$most
+fi
 
 [ "$worst" -le "$CEILING" ] || fail "luaebpf: the worst corpus program cost $worst insns, over the $CEILING ceiling"
 ktap_pass "luaebpf: every corpus program verifies under $CEILING processed instructions"
