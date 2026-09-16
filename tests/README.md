@@ -471,6 +471,13 @@ interpreter raises, the compiled program owes its default verdict instead.
   where the object is not installed, where `luatc` publishes no
   `bpf_luatc_run`, where `tc` is missing, or where the kernel will not add an
   htb qdisc.
+- **example_speed**: the phase 0 bench, `tools/bench/xdp.sh`, run with a
+  one-second window and one run per row, its table reported as KTAP comments
+  and the case passing when every row of it produced a packets-per-second
+  figure. Informational, never a gate: a rate measured under that window is not
+  the figure the design notes quote, which comes from a full manual run. Skips
+  naming the script where the tree does not carry it, which is every tree the
+  bench branch is not merged into.
 
 ### monitor
 

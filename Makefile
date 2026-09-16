@@ -224,6 +224,12 @@ tests_install:
 	for d in $(filter-out luaebpf,$(TEST_DIRS)); do \
 		$(call INSTALL_BPF,tests/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/tests/$$d); \
 	done
+	# the phase 0 bench where a tree carries it, beside the suites that would run it; the guard
+	# is a no-op in a tree without it, and tests/luaebpf/example_speed.sh skips naming the script
+	$(if $(wildcard tools/bench/xdp.sh),${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/bench && \
+		${INSTALL} -m 0755 tools/bench/xdp.sh ${LUNATIK_TESTS_INSTALL_PATH}/bench && \
+		${INSTALL} -m 0644 $(filter-out tools/bench/xdp.sh,$(wildcard tools/bench/*)) \
+			${LUNATIK_TESTS_INSTALL_PATH}/bench)
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 tests/socket/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket
