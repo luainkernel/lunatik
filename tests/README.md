@@ -581,6 +581,16 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   read back on a `SOCK_RAW` socket bound to the same ethertype, must carry as its
   destination hardware address the zeros the binding declares.
 
+- **address**: what `getsockname()`, `getpeername()` and `receive(..., true)`
+  answer with, per family. The kernel reports how many bytes it filled and the
+  answer is those bytes: 16 for an AF_PACKET socket bound to loopback, 10 for an
+  unbound one, 18 for a received frame and 26 for an AF_INET6 socket, each
+  unpacked field by field, against the 126 of the whole storage. AF_INET and
+  AF_NETLINK guard the arms that answer with integers, an unconnected
+  `getpeername()` is refused with `ENOTCONN`, and a connected TCP socket, which
+  names no sender, answers with the message alone. The AF_PACKET and AF_INET6
+  cases skip where the kernel does not carry the family.
+
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at
   construction.
@@ -596,6 +606,15 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   connects to nothing — and, where `python3` is available, a userspace peer
   connecting to the bound name, and a lunatik client reaching by connect and by
   send the names that peer bound.
+
+- **unix/address**: the AF_UNIX name `getsockname()`, `getpeername()` and
+  `receivefrom()` answer with. The kernel counts a pathname's terminator and an
+  abstract name's bytes alone, so a pathname comes back as the script spelled it, an
+  abstract name keeps its leading NUL, an autobound one is the NUL and the five
+  hexadecimal digits the kernel picked, and an unbound socket is the empty string.
+  `getpeername()` answers with those same names read across a connection, and a
+  connected stream, unlike TCP, names its sender whenever that peer bound. A receive
+  from a peer the kernel names no address for answers with the message alone.
 
 ### struct
 
