@@ -179,6 +179,14 @@ interpreter raises, the compiled program owes its default verdict instead.
   offering the compiler no loop form the loop is refused with its reason, on
   every kernel; where the compiler says this one has no `may_goto`, the load
   rows skip.
+- **while**: the loops a numeric `for` does not cover: a `while` and a `repeat`
+  whose limit the program computes, a `break` out of the body and a nested pair,
+  each taking a `may_goto` header at the jump that closes it, verifying, and
+  terminating with the interpreter's answer. A condition the compiler settles
+  takes no back edge and no header, which the loop counter the kernel patches a
+  `may_goto` into is what shows; with `LUAEBPF_DROP=maygoto` the verifier
+  rejects the loop, with `LUAEBPF_PROBE` offering no loop form the backward jump
+  is refused, and a loop nothing leaves is refused too.
 - **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
   call, two levels, four arguments, a shared helper, the deepest chain
   `MAX_CALL_FRAMES` takes with every level able to abort, a call asking for two
