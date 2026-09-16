@@ -17,14 +17,18 @@
 # when a primitive changed; what to say about it is the commit body's job.
 #
 # The base is HEAD, the pull request's base once its diff is staged; on a
-# committed branch pass it:
+# committed branch that is the commit against itself, so pass the base:
 #
 #     CHECK_BASE=origin/master bash tools/checks/blast-radius.sh lunatik.h
+#
+# A run where no core file given changed against the base says so, since a check
+# that passes because it compared nothing reads like one that found nothing.
 #
 # Usage: bash tools/checks/blast-radius.sh <file>...
 
 base=${CHECK_BASE:-HEAD}
 status=0
+seen=0
 
 classes() { # the classes carrying a flag: "name (file)"
 	grep -lE '\.opt = ' lunatik_*.c lib/*.c 2>/dev/null | while IFS= read -r f; do
@@ -57,6 +61,7 @@ for file in "$@"; do
 	case "$file" in lunatik.h|lunatik_*.[ch]) ;; *) continue ;; esac
 	diff=$(git diff -U0 "$base" -- "$file" 2>/dev/null)
 	[ -n "$diff" ] || continue
+	seen=1
 	after=$([ -f "$file" ] && defs "$(sed -nE 's/^@@ -[0-9]+(,[0-9]+)? \+([0-9]+)(,([0-9]+))? .*/\2 \4/p' <<< "$diff")" < "$file")
 	before=$(git show "$base:$file" 2>/dev/null | defs "$(sed -nE 's/^@@ -([0-9]+)(,([0-9]+))? \+.*/\1 \3/p' <<< "$diff")")
 	for name in $(sort -u <<< "$after
@@ -84,5 +89,6 @@ $before"); do
 done
 
 [ $status -eq 0 ] || echo "say in the commit body which of these change behaviour, and keep the change to the arm the fix needs"
+[ $seen -eq 1 ] || echo "no core file given changed against $base; on a committed branch pass CHECK_BASE" >&2
 exit $status
 
