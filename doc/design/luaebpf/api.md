@@ -173,11 +173,11 @@ The escape hatch is a call the program writes, at the point it chooses:
 
 That is `examples/sniclassify/classify.c`, in Lua. `tc.runtime(name)` names a kernel runtime by
 the key the kfunc looks up, defaulting to the script this program file belongs to; the call
-lowers to `bpf_luatc_run(key, key__sz, skb, &args, sizeof(args))` (or #561's name once it lands),
-with each argument packed as a native 64-bit integer in order. The kernel side is what it is
-today: `tc.attach(callback)`, `ctx:argument():getint64(0)` for the first argument, `ctx:action`
-for the verdict, `ctx:skb()` for the packet. A verdict of `-1` from the kfunc (no runtime under
-that name, or a raise in the callback) becomes `nil`.
+lowers to `bpf_luatc_run(key, key__sz, skb, &args, sizeof(args))`, with each argument packed as a
+native 64-bit integer in order. The kernel side is what it is today: `tc.attach(callback)`,
+`ctx:argument():getint64(0)` for the first argument, `ctx:action` for the verdict, `ctx:skb()` for
+the packet. A verdict of `-1` from the kfunc (no runtime under that name, or a raise in the
+callback) becomes `nil`.
 
 The compiler reports every such call in its summary, with the line, so a program that calls Lua
 on every packet is visible for what it is: the trampoline, generated.

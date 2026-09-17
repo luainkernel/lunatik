@@ -80,10 +80,11 @@ change in the facts behind it can reopen it.
 |----------|--------|----------------------|
 | The loader is the CLI over `bpf(2)`, not the module over `kern_sys_bpf` | The module path has no verifier log, no module BTF fd for the tree's kfuncs, no pinned object by path, and a symbol namespaced against it; the CLI has all four and runs on the same host, so it compiles against the same kernel (`kernel-notes.md`, first section) | A kernel that accepts a kernel log buffer and adds `BPF_BTF_GET_FD_BY_ID` and `BPF_OBJ_GET` to the allowlist; then the loader becomes a `bpf.prog` object in `lib/luabpf.c` and the CLI keeps the fallback |
 | One loader, one back end | AGENTS.md: two mechanisms doing one job. A second loader (kernel) buys runtimes that start without a CLI process, which the pinned program already serves; a second back end (C for clang) buys LLVM's verifier-friendly shapes, which the runtime library buys for the fixed algorithms without a second emitter | A verified shape the direct emitter cannot produce and the library cannot wrap |
-| The compiler runs the kernel-configured Lua 5.5 (`lunatikc`), not the CLI's 5.4 | The translator folds constants and reads bytecode; doing that with the kernel's own arithmetic and opcode numbering makes the compiled program agree with the interpreted one by construction. This is #742's shape (a C driver the tree owns, which can host a translator); #743 builds upstream `luac.c` against the kernel configuration, a compiler driver the tree does not own | Nothing short of the kernel Lua leaving `_KERNEL` behind |
+| The compiler runs the kernel-configured Lua 5.5 (`lunatikc`), not the CLI's 5.4 | The translator folds constants and reads bytecode; doing that with the kernel's own arithmetic and opcode numbering makes the compiled program agree with the interpreted one by construction. Phase 0 settled the shape: #742, a C driver the tree owns, which stands up the state and `require`s the translator; #743 builds upstream `luac.c` against the kernel configuration, a compiler driver the tree does not own, and is the maintainer's to close. Neither is merged, so a branch that needs the driver stacks on #742 and says so | Nothing short of the kernel Lua leaving `_KERNEL` behind |
 | The compiler does not wait for a benchmark | Three of its four reasons are independent of speed: contexts the trampoline cannot reach, the verifier checking the user's own code, and no C on the user's side. Speed is the fourth, and the only one the number decides | Nothing; the number changes what the docs claim about speed, not whether the compiler is built |
 | The number is measured in phase 0 anyway | The design claims the per-call sequence of the trampoline as a cost; a cost claim without a number is a duplication, and the escape hatch's users need to know what a call into the VM costs on their hook | Not applicable |
 | A precompiled BPF runtime library is in | Fixed algorithms (string compare, bounded copies, header walks) are C compiled once by clang at `make` and linked into every program by libbpf's linker, so the emitter emits straight-line code and calls; DTrace 2.0 ships this shape (`kernel-notes.md`) | The library growing past what the emitter could have done in a few lines each: then move those into the emitter and shrink it |
+| The escape hatch calls the kfunc name the modules publish | `bpf_luaxdp_run` and `bpf_luatc_run` are what a program links against today, so phases 1 to 3 do not wait for #561, which factors the kernel-side lookup and dispatch into one `lunatik_bpf_run` and publishes no new kfunc; phase 4 emits whatever name is published when it lands | Not applicable: the name is read from what the module publishes, whatever it is |
 | The escape hatch is explicit, never inferred | A partition the compiler chooses silently falls back per packet and hides the cost; a refused construct is an error naming the line, and the program calls the runtime where it decides to (`api.md`) | A measured case where the compiler's split beats the author's; then offer inference as an opt-in, still reported |
 | The interpreter-as-a-BPF-program is out | The objective is that the verifier checks the user's program. An interpreter verified once and fed bytecode as data gives the verifier's guarantee about the interpreter, not about the program, and its speed is by construction an interpreter's. It is a different project | A measured verification budget and a per-packet number for such an interpreter; neither exists |
 | Lua-callable verified functions through a Lunatik `struct_ops` are a separate design | It needs Lunatik to define a program type of its own, with its own verifier ops and context; that is a kernel-side design this compiler would then feed, not part of it | Not applicable; it is deferred, not refused |
@@ -178,6 +179,34 @@ runtime model, `lunatikc`'s bytecode role.
 * **"Characterizing and Bridging the Diagnostic Gap in eBPF Verifier Rejections"** (Zheng et al.,
   arXiv 2607.02748): 47 % of rejections surface as a bare `EINVAL`. The reason the loader must be
   where the log is.
+* **This tree's trampoline** (`tools/bench/xdp.sh`, 2026-09-15): a 4-CPU QEMU guest
+  (`QEMU Virtual CPU version 2.5+`) running `6.12.88+deb13-amd64`, pktgen sending 64-byte frames
+  with `clone_skb 0` from the peer of a veth pair, the program attached on the host side, the median
+  of three ten-second windows per row. One generating CPU:
+
+  | row | pps | ns/packet | over native |
+  |-----|----:|----------:|------------:|
+  | native `XDP_PASS` | 493,734 | 2025.38 | - |
+  | verdict only, `softirq` | 377,097 | 2651.84 | 626 |
+  | verdict only, `softirq percpu` | 376,972 | 2652.72 | 627 |
+  | one packet byte read first, `softirq` | 325,859 | 3068.81 | 1043 |
+  | one packet byte read first, `softirq percpu` | 332,140 | 3010.78 | 985 |
+
+  A call into the VM that only sets the verdict costs about 625 ns per packet here, and reading one
+  byte through `ctx:packet()` adds about 390 ns more. Repeating the whole run moves both: four runs
+  of this tree on this host put the verdict row between 467 and 639 ns over native and the byte row
+  between 769 and 1043, so what the figures fix is the order of the cost on this link, not its last
+  digit. The plain and the `percpu` runtime land inside each other's spread while one CPU generates,
+  which is what `lunatik_percpu.h` says should happen: `percpu` changes which runtime object a CPU
+  locks, not the lock. Generating from three CPUs, with one receive queue per CPU, puts the hook on
+  three, and there the contention `percpu` removes appears: the native row reaches 1,427,383 pps
+  (700.58 ns), the verdict callback costs 314 ns against 229 with `percpu`, and the byte one 490
+  against 355.
+
+  What none of it measures is a NIC. The per-packet cost is a veth pair's, the generator and the
+  hook share the receiving CPU, and `XDP_PASS` hands every frame on to the stack, so the absolute
+  rate belongs to this link and not to a driver. What carries over is the difference between rows,
+  in which the generator's own per-packet cost cancels.
 
 ## Phases
 
@@ -185,16 +214,14 @@ Each phase is one or more self contained pull requests.
 
 ### Phase 0: the number and the dependency decisions
 
-Measure the trampoline on the tree's own XDP path: a native `XDP_PASS` program against
-`xdp_pass.bpf.c` calling a Lua callback that sets the verdict, on the `tests/xdp` veth pair, with
-a packet generator, reporting packets per second and CPU. The script lives under `tools/`, its
-numbers go into these documents, and the same script measures every later phase.
+`tools/bench/xdp.sh` measures the trampoline on the tree's own XDP path: a native `XDP_PASS`
+program against the same program calling `bpf_luaxdp_run`, with a callback that only sets the
+verdict and one that reads a packet byte first, each in a plain and in a percpu runtime, on the
+veth shape `tests/xdp` uses and with pktgen as the generator. "Prior art" carries the numbers and
+the caveats; the same script measures every later phase, one row per program it is given.
 
-Settle, with the maintainer: that `lunatikc` lands in #742's shape (a C driver in the tree, which
-this design extends by one subcommand; with the translator a library, the driver's whole job is to
-stand up the state and `require` it, which #742 gives in a dozen lines and #743's upstream `luac.c`
-cannot host), and that #561 lands before phase 4 (the escape hatch calls whatever name the module
-publishes, so phases 1 to 3 do not wait for it).
+Both dependency decisions are recorded in "Decisions": the shape `lunatikc` lands in, and that the
+escape hatch calls the kfunc name the modules publish.
 
 ### Phase 1: the translator and the object
 
@@ -304,7 +331,6 @@ from it on, a user runs one.
 | The emitter produces a shape the verifier rejects on some kernel | The subset is chosen so every shape is one the verifier accepts by construction; the suite loads every emitted program on the running kernel; the loop form is probed, not assumed |
 | The verification budget is exhausted by `may_goto` loops in a real program | Measured in phase 1 with the budget line the log prints ("processed N insns"); global subprograms and iterators are the documented remedies |
 | The subset proves too small for the programs the maintainer wants | The escape hatch keeps the whole language one call away; a program that calls Lua on every packet is the status quo generated instead of hand written, and the compiler reports every such call |
-| `lunatikc` lands in #743's shape, or not at all | Phase 0 settles it; the translator needs a host state running the kernel's Lua with the libraries, which #742's driver provides in a dozen lines |
 | The compiler grows into `lunatikc` and the two become one tool | The translator is a library with its own API and tests, `luaebpf/`; `lunatikc` hosts it through one subcommand. A separate binary was weighed and declined: it would be a second host build of the kernel's Lua to keep in step with the kernel configuration, for a boundary the library already draws |
 | libbpf on the target lacks `bpf_program__attach_tcx` (1.3.0) | The loader reports the missing attach as an error naming the version; the suite skips |
 | A stale pinned program or link survives a failed run | `lunatik stop` and the suite cleanup unpin everything under the script's root, up front and in the trap |
