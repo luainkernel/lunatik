@@ -8,7 +8,7 @@
 # Usage: sudo bash tests/tls/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
-TESTS="pack key"
+TESTS="pack key loopback record_type bounded_recv"
 FAILED=0
 
 SEP=$'\n'

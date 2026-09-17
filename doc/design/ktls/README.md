@@ -28,10 +28,10 @@ Three facts shape everything here, and are worth carrying from the start:
 1. **The kernel does the TLS record layer, not the handshake.** There is no TLS handshake
    implementation in the kernel, by design. So this binding is not a kernel TLS stack; it keys
    sockets and moves plaintext, and the handshake comes from userspace (`tlshd`, or an application).
-2. **This is incremental, and it is written from scratch.** `socket:setsockopt` is on `master`;
-   nothing else here exists anywhere in the repository. Each phase is a shippable pull request:
+2. **This is incremental, and it is written from scratch.** Each phase is a shippable pull request:
    the option namespaces and the keying first, then the plaintext data path, the handshake upcall
-   and the tunnel.
+   and the tunnel. The first three are in the tree; nothing above them exists anywhere in the
+   repository.
 3. **kTLS is a TCP ULP.** We ride the kernel's existing `tls` upper-layer protocol; we do not write a
    Lua ULP. A generic "Lua is a ULP" binding is a worthwhile *separate* project (see the non goals in
    `plan.md`), not part of this one.

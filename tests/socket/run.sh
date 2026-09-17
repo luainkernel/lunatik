@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in "$DIR"/setsockopt.sh "$DIR"/connect.sh "$DIR"/ulp.sh "$DIR"/unix/run.sh; do
+for t in "$DIR"/setsockopt.sh "$DIR"/connect.sh "$DIR"/record.sh "$DIR"/scmrights.sh "$DIR"/ulp.sh "$DIR"/unix/run.sh; do
 	name="${t#"$DIR"/}"; name="${name%/run.sh}"; name="${name%.sh}"
 	echo "${SEP}# --- $name ---"
 	SEP=$'\n'

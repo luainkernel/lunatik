@@ -27,6 +27,7 @@
 #include <linux/net.h>
 #include <linux/un.h>
 #include <linux/netlink.h>
+#include <uapi/linux/tls.h>
 #include <net/sock.h>
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(6, 1, 0))
 #include <linux/l2tp.h>
@@ -44,6 +45,18 @@ do {						\
 	msg.msg_name = &addr;			\
 } while (0)
 
+/* the union aligns a one-byte ancillary payload as a cmsghdr */
+typedef union {
+	struct cmsghdr cmsg;
+	u8 buf[CMSG_SPACE(sizeof(u8))];
+} luasocket_control_t;
+
+#define luasocket_msgcontrol(msg, control)	\
+do {						\
+	msg.msg_controllen = sizeof(control);	\
+	msg.msg_control = &control;		\
+} while (0)
+
 #define LUASOCKET_ADDRMAX	(sizeof_field(struct sockaddr_storage, __data))
 
 static int luasocket_lnew(lua_State *L);
@@ -54,6 +67,9 @@ static int luasocket_accept(lua_State *L);
 
 /* these families spell an address with two arguments, the rest with one */
 #define luasocket_ispair(family)	((family) == AF_INET || (family) == AF_PACKET || (family) == AF_NETLINK)
+
+/* the tls ULP rides these; a control buffer elsewhere reaches scm_detach_fds, which warns in kernel space */
+#define luasocket_isinet(family)	((family) == AF_INET || (family) == AF_INET6)
 
 static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr_storage *addr, int ix)
 {
@@ -132,6 +148,27 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *, &luasocket_class);
 
 #define luasocket_setmsg(m)		memset(&(m), 0, sizeof(m))
 
+static void luasocket_sendvec(lua_State *L, struct socket *socket, struct msghdr *msg,
+	const char *message, size_t len)
+{
+	struct kvec vec = {.iov_base = (void *)message, .iov_len = len};
+	int ret;
+
+	lunatik_tryret(L, ret, kernel_sendmsg, socket, msg, &vec, 1, len);
+	lua_pushinteger(L, ret);
+}
+
+static void luasocket_receivevec(lua_State *L, struct socket *socket, struct msghdr *msg,
+	size_t len, int flags)
+{
+	luaL_Buffer B;
+	struct kvec vec = {.iov_base = (void *)luaL_buffinitsize(L, &B, len), .iov_len = len};
+	int ret;
+
+	lunatik_tryret(L, ret, kernel_recvmsg, socket, msg, &vec, 1, len, flags);
+	luaL_pushresultsize(&B, ret);
+}
+
 /***
 * A kernel socket, returned by `socket.new()`.
 * @type socket
@@ -167,16 +204,12 @@ static int luasocket_send(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
 	size_t len;
-	struct kvec vec;
+	const char *message = luaL_checklstring(L, 2, &len);
 	struct msghdr msg;
 	struct sockaddr_storage addr;
 	int nargs = lua_gettop(L);
-	int ret;
 
 	luasocket_setmsg(msg);
-
-	vec.iov_base = (void *)luaL_checklstring(L, 2, &len);
-	vec.iov_len = len;
 
 	/* netlink needs an explicit destination to set NETLINK_SKB_DST */
 	if (unlikely(nargs >= 3) || luasocket_family(socket) == AF_NETLINK) {
@@ -184,13 +217,54 @@ static int luasocket_send(lua_State *L)
 		luasocket_msgaddr(msg, addr, size);
 	}
 
-	lunatik_tryret(L, ret, kernel_sendmsg, socket, &msg, &vec, 1, len);
-	lua_pushinteger(L, ret);
+	luasocket_sendvec(L, socket, &msg, message, len);
+	return 1;
+}
+
+/***
+* Sends a message as a TLS record of a chosen type.
+* The type travels as a `TLS_SET_RECORD_TYPE` control message at `SOL_TLS`, which only
+* the `tls` ULP reads: on any other socket the message goes out as ordinary bytes.
+*
+* @function sendrecord
+* @tparam integer record TLS content type, 0 to 255 (e.g., `tls.record.ALERT`).
+* @tparam string message message to send.
+* @treturn integer number of bytes sent.
+* @raise Error if the send operation fails, or `bad argument #2 ... out of bounds` when
+*   `record` is outside 0 to 255.
+* @usage
+*   -- a close_notify alert: level warning, description close_notify
+*   conn:sendrecord(tls.record.ALERT, "\1\0")
+* @see tls.record
+*/
+static int luasocket_sendrecord(lua_State *L)
+{
+	struct socket *socket = luasocket_check(L, 1);
+	u8 record = (u8)lunatik_checkinteger(L, 2, 0, U8_MAX);
+	size_t len;
+	const char *message = luaL_checklstring(L, 3, &len);
+	struct msghdr msg;
+	luasocket_control_t control;
+	struct cmsghdr *cmsg = &control.cmsg;
+
+	luasocket_setmsg(msg);
+	memset(&control, 0, sizeof(control)); /* no stack past cmsg_len reaches the kernel */
+	luasocket_msgcontrol(msg, control);
+
+	cmsg->cmsg_level = SOL_TLS;
+	cmsg->cmsg_type = TLS_SET_RECORD_TYPE;
+	cmsg->cmsg_len = CMSG_LEN(sizeof(record));
+	*(u8 *)CMSG_DATA(cmsg) = record;
+
+	luasocket_sendvec(L, socket, &msg, message, len);
 	return 1;
 }
 
 /***
 * Receives a message from the socket.
+* On a socket keyed for kTLS this carries no control buffer, so a record the kernel
+* does not report as application data fails the read with `EIO`; `receiverecord` is
+* the read that carries one.
 *
 * @function receive
 * @tparam integer length maximum number of bytes to receive.
@@ -214,31 +288,70 @@ static int luasocket_send(lua_State *L)
 *   if data then print("Received from " .. net.ntoa(sender_ip_int) .. ":" .. sender_port .. ": " .. data) end
 * @see linux.socket.msg
 * @see net.ntoa
+* @see receiverecord
 */
 static int luasocket_receive(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
 	size_t len = (size_t)luaL_checkinteger(L, 2);
-	luaL_Buffer B;
-	struct kvec vec;
 	struct msghdr msg;
 	struct sockaddr_storage addr;
 	int flags = luaL_optinteger(L, 3, 0);
 	int from = lua_toboolean(L, 4);
-	int ret;
 
 	luasocket_setmsg(msg);
-
-	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
-	vec.iov_len = len;
 
 	if (unlikely(from))
 		luasocket_msgaddr(msg, addr, sizeof(addr));
 
-	lunatik_tryret(L, ret, kernel_recvmsg, socket, &msg, &vec, 1, len, flags);
-	luaL_pushresultsize(&B, ret);
+	luasocket_receivevec(L, socket, &msg, len, flags);
 
 	return unlikely(from) ? luasocket_pushaddr(L, (struct sockaddr_storage *)msg.msg_name) + 1 : 1;
+}
+
+/* put_cmsg advances msg_control and shortens msg_controllen, so the header is read where it was given */
+static bool luasocket_hasrecord(struct msghdr *msg, luasocket_control_t *control)
+{
+	return msg->msg_controllen != sizeof(*control) && control->cmsg.cmsg_level == SOL_TLS &&
+		control->cmsg.cmsg_type == TLS_GET_RECORD_TYPE;
+}
+
+/***
+* Receives a message and the type of the TLS record it arrived in.
+* Carries the control buffer `receive` does not, so an alert or a handshake record is
+* reported instead of failing the read with `EIO`.
+*
+* @function receiverecord
+* @tparam integer length maximum number of bytes to receive.
+* @tparam[opt=0] integer flags Optional message flags (e.g., `linux.socket.msg.DONTWAIT`).
+*   See the `linux.socket.msg` table for available flags. These can be OR'd together.
+* @treturn string received message (as a string of bytes).
+* @treturn integer TLS content type of the record, `nil` when the kernel attached none,
+*   which is every socket not keyed for kTLS.
+* @raise Error if the receive operation fails.
+* @usage
+*   local data, record = conn:receiverecord(4096)
+*   if record == tls.record.ALERT then print("alert", data:byte(1, 2)) end
+* @see linux.socket.msg
+* @see tls.record
+*/
+static int luasocket_receiverecord(lua_State *L)
+{
+	struct socket *socket = luasocket_check(L, 1);
+	size_t len = (size_t)luaL_checkinteger(L, 2);
+	struct msghdr msg;
+	luasocket_control_t control;
+	int flags = luaL_optinteger(L, 3, 0);
+	bool inet = luasocket_isinet(luasocket_family(socket));
+
+	luasocket_setmsg(msg);
+	if (inet)
+		luasocket_msgcontrol(msg, control);
+
+	luasocket_receivevec(L, socket, &msg, len, flags);
+	inet && luasocket_hasrecord(&msg, &control) ?
+		lua_pushinteger(L, (lua_Integer)*(u8 *)CMSG_DATA(&control.cmsg)) : lua_pushnil(L);
+	return 2;
 }
 
 /***
@@ -456,7 +569,9 @@ static const luaL_Reg luasocket_mt[] = {
 	{"__close", lunatik_closeobject},
 	{"close", lunatik_closeobject},
 	{"send", luasocket_send},
+	{"sendrecord", luasocket_sendrecord},
 	{"receive", luasocket_receive},
+	{"receiverecord", luasocket_receiverecord},
 	{"bind", luasocket_bind},
 	{"listen", luasocket_listen},
 	{"accept", luasocket_accept},

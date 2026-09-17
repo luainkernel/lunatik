@@ -535,6 +535,27 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   given past the port must still reach the kernel, and an AF_UNIX path, spelled as
   one argument, keeps the argument past it for the flags.
 
+- **record**: `socket:receiverecord()` and `socket:sendrecord()` on a socket
+  carrying no ULP, which is what they do when nothing decodes their control
+  message: the receive reports the bytes and no record type, and the send
+  hands the payload over unchanged, since `sock_cmsg_send` skips every
+  control message whose level is not `SOL_SOCKET`. A record type wider than
+  the byte it travels in is refused naming the argument, and `MSG_DONTWAIT`
+  on an empty socket raises `EAGAIN`, which says the flags argument reaches
+  `kernel_recvmsg` on the new path. Needs no `CONFIG_TLS` and no ULP.
+
+- **scmrights**: `socket:receiverecord()` on an AF_UNIX socket whose peer
+  passes a descriptor. A control buffer on that read keeps `__scm_recv_common`
+  from its early exit and reaches `scm_detach_fds`, which warns on a
+  kernel-space caller and returns before `__scm_destroy`, leaking every file
+  it was handed, so the read carries one only where a TLS record type can
+  arrive. The read reports no record type, and the descriptor it dropped is
+  released: the peer passes the write end of a pipe and reads the other end,
+  which reports EOF only once the last reference is gone. `check_dmesg`
+  catches the `WARNING` too. A userspace peer built with `gcc` passes the
+  descriptor, since no kernel binding sends `SCM_RIGHTS`; skipped without
+  `gcc`.
+
 - **ulp**: `SOL_TCP`/`TCP_ULP` with the name `tls` raises `ENOTCONN` on a
   socket that was never connected, takes on one connected to a loopback
   listener bound to port 0, and raises `EEXIST` the second time, which is
@@ -645,7 +666,8 @@ Regression tests for `luathread`.
 
 ### tls
 
-Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with.
+Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with,
+and the plaintext data path a keyed socket becomes.
 
 - **pack**: every cipher `linux.tls.cipher` carries packs to the length its
   `tls12_crypto_info_*` struct has, the size `gcc` measures for it over the
@@ -657,8 +679,9 @@ Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with.
   `linux.tls.cipher` carries. A version the kernel does not implement still
   packs, since judging it is `validate_crypto_info`'s. The module surface is
   pinned too: `tls.pack`, the two version numbers `uapi/linux/tls.h` composes
-  from the halves autogen cannot read, and nothing else. Pure Lua: needs no
-  socket, no `CONFIG_TLS` and no ULP.
+  from the halves autogen cannot read, the seven record types `net/tls_prot.h`
+  names, `tls.close_notify`, and nothing else. Pure Lua: needs no socket, no
+  `CONFIG_TLS` and no ULP.
 
 - **key**: what the kernel makes of that blob. Each case connects a client to
   its own loopback listener bound to port 0. Without the `tls` ULP on the
@@ -674,6 +697,42 @@ Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with.
   ChaCha20-Poly1305 case alone where the install answers `ENOENT` because the
   kernel builds no `rfc7539(chacha20,poly1305)`, and the ARIA case alone where
   the uapi header predates that cipher.
+
+- **loopback**: the plaintext data path a keyed socket becomes. Over a pair
+  whose two ends carry the same session on both directions, a send on one side
+  comes back decrypted on the other with the record type reported as
+  application data, which is what says the record layer ran at all. The
+  reverse direction proves both ends were keyed and not only the one written
+  first; TLS 1.2 and the zero-salt cipher are the version and cipher cells;
+  and a record read in two calls carries its type on the second read too,
+  which `process_rx_list` attaches and a binding that only looked at the first
+  record of a receive would miss. Skipped whole where the `tls` ULP is neither
+  registered nor loadable, and the ChaCha20-Poly1305 case alone where the
+  install answers `ENOENT`.
+
+- **record_type**: the control records `socket:sendrecord()` emits and
+  `socket:receiverecord()` reports, over a loopback pair keyed on both
+  directions with the same fixed vectors. An alert sent with the record type
+  set arrives as an alert, which says the TX control message reached
+  `tls_process_cmsg`: without it `tls_sw_sendmsg` leaves the record at
+  application data. `tls.close_notify()` emits the two bytes the kernel's own
+  `tls_alert_send` does, at warning level. That same close_notify read with
+  plain `socket:receive()` raises `EIO`, the gap this closes, while
+  application data read the same way still returns, so the `EIO` is about
+  control records and not about keyed sockets. Skipped whole where the `tls`
+  ULP is neither registered nor loadable.
+
+- **bounded_recv**: that a receive on a keyed socket comes back, the property
+  a kernel thread relaying plaintext rests on: `tls_rx_rec_wait` waits on
+  `sk_wait_event` and never looks at `kthread_should_stop`, so an unbounded
+  receive there is a thread that cannot be stopped. `MSG_DONTWAIT` answers
+  `EAGAIN` without waiting, `SO_RCVTIMEO` answers `EAGAIN` after the timeout,
+  and the session still carries plaintext afterwards. Both waits are measured
+  and the elapsed time is printed, so "returns promptly" is a number.
+  `tests/socket/setsockopt` already bounds a plain socket's receive; this one
+  is on a keyed socket, where the wait is the strparser's and not
+  `tcp_recvmsg`'s. Skipped whole where the `tls` ULP is neither registered
+  nor loadable.
 
 ### xdp
 
