@@ -190,8 +190,11 @@ static void luadata_release(void *private)
 /***
 * @function new
 * @tparam integer size number of bytes, from 1 up to `INT_MAX`.
+* @tparam[opt] string mode `"shared"` (default) or `"single"`; a `"single"` buffer cannot be
+*   passed to another runtime.
 * @treturn data
-* @raise if out of bounds or allocation fails
+* @raise if out of bounds, the mode is invalid, or allocation fails
+* @within data
 */
 static const luaL_Reg luadata_lib[] = {
 	{"new", luadata_lnew},
