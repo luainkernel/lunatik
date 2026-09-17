@@ -225,14 +225,14 @@ supports, 5.15 and later:
 |--------|--------|------|
 | `fsnotify_alloc_group` | `(ops)` | `(ops, flags)`, 5.19 |
 | The mark's ignore mask | `mark->ignored_mask` | `mark->ignore_mask`, 6.0 |
+| `fsnotify_add_mark` | `(mark, connp, obj_type, add_flags, fsid)` | `(mark, connp, obj_type, add_flags)`, 6.8 |
+| `fsnotify_add_mark` second parameter | `fsnotify_connp_t *connp` | `void *obj`, the object itself, 6.10 |
+| `fsnotify_find_mark` | `(connp, group)` | `(obj, obj_type, group)`, 6.10 |
 
 Stable branches carry these changes back: 5.15.220, the 5.15 the tree builds against, has both the
 `flags` argument and `ignore_mask`, so `LINUX_VERSION_CODE` cannot tell the two forms apart. The module
 detects each by the macro that arrived with it, `FSNOTIFY_GROUP_USER` for the argument and
 `FSNOTIFY_MARK_FLAG_HAS_IGNORE_FLAGS` for the field, which are present on every kernel that has the change.
-| `fsnotify_add_mark` | `(mark, connp, obj_type, add_flags, fsid)` | `(mark, connp, obj_type, add_flags)`, 6.8 |
-| `fsnotify_add_mark` second parameter | `fsnotify_connp_t *connp` | `void *obj`, the object itself, 6.10 |
-| `fsnotify_find_mark` | `(connp, group)` | `(obj, obj_type, group)`, 6.10 |
 
 `fsnotify_add_inode_mark(mark, inode, add_flags)` is an inline with the same signature across the whole
 range, so a binding that only marks inodes sees none of the last three.
