@@ -184,7 +184,8 @@ taught it; a lesson kept in one assistant's notes is one the next contributor pa
 
 `pr-body.sh` takes a pull request body file and fails it on more than three paragraphs, an em dash
 or a "Test plan" section; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
-blocks a `gh` write to pulls that carries a body file the check fails on.
+blocks a `gh` write to pulls that carries a body file the check fails on, or that `machine-leak.sh`
+finds the machine in; a body it cannot read is refused rather than skipped, as in the review guard below.
 
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run or a suite, while another operation is on it, naming the processes it found; a process in
@@ -232,7 +233,9 @@ to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews 
 the command carries the `REVIEW_POST_OK` marker, set once the exact text has been shown to the
 maintainer and approved, or when the text gives a fixup reference as a backtick'd SHA, which
 renders as code and does not link. The marker forces the show-then-post step; it cannot check that
-the text was shown, only that it was set on purpose.
+the text was shown, only that it was set on purpose. The text goes through `machine-leak.sh` before
+the marker is read, since the marker approves the wording and not what the wording carries, and text
+the guard cannot read, passed inline or on stdin, is refused rather than skipped.
 
 ### Skills
 
