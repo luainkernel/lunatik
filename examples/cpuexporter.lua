@@ -150,7 +150,7 @@ local function handle_client(session)
 end
 
 -- Initial sample
-last_stats = cpu_stats()
+last_stats, last_total_stats = cpu_stats()
 
 local function daemon()
 	print("cpud [daemon]: started")
