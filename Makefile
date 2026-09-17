@@ -84,7 +84,7 @@ AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 all: lunatik_sym.h autogen ${LUNATIKC}
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
 
-${LUNATIKC}: ${LUNATIKC_SRCS} lunatik_conf.h
+${LUNATIKC}: ${LUNATIKC_SRCS} $(wildcard lua/*.h) lunatik_conf.h
 	${HOSTCC} ${LUNATIKC_CFLAGS} -o $@ ${LUNATIKC_SRCS}
 
 clean:
