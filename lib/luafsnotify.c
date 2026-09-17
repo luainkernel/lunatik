@@ -177,20 +177,10 @@ static int luafsnotify_stop(lua_State *L)
 	return 0;
 }
 
-static inline struct fsnotify_group *luafsnotify_allocgroup(void)
-{
-/* the flags came with the macro, backported into 5.15.y past a version guard; GROUP_USER accounts a userspace fd */
-#ifdef FSNOTIFY_GROUP_USER
-	return fsnotify_alloc_group(&luafsnotify_ops, 0);
-#else
-	return fsnotify_alloc_group(&luafsnotify_ops);
-#endif
-}
-
 static luafsnotify_t *luafsnotify_newwatch(lua_State *L, lunatik_object_t *runtime)
 {
 	luafsnotify_t *watch = (luafsnotify_t *)lunatik_checkzalloc(L, sizeof(luafsnotify_t));
-	struct fsnotify_group *group = luafsnotify_allocgroup();
+	struct fsnotify_group *group = fsnotify_alloc_group(&luafsnotify_ops, 0);
 
 	if (IS_ERR(group)) {
 		lunatik_free(watch);
