@@ -169,6 +169,12 @@ never mix, which *Patches and commits* sanctions, but that the subject says so. 
 found the lock-owner scheme, `lunatik.h` and `doc/capi.md` both, inside a commit whose subject named
 only the binding.
 
+`body-identifiers.sh` reads commits the same way and names the identifiers a body carries that appear
+neither in the commit's diff nor in the code at that commit: what a folded fixup removed, the body
+written before the squash still explains. #848's body kept a paragraph on a `FSNOTIFY_GROUP_USER`
+guard the fixup had dropped, and the re-read after the squash passed it. A kernel symbol a body cites
+for what the code does not do is named too, so the report is read, not obeyed.
+
 `guard-removed.sh` names the crash guards a C file drops against `HEAD` (a checker, an
 `argcheck`, a context check): removing one and running the test that covers it reproduces the
 crash the guard prevents, and on the shared host that is a forced reboot. `crash-guard.sh`, wired
@@ -745,7 +751,8 @@ named, not one discovered at that consumer's build.
   to tell it apart from a sibling keeps that name after the sibling goes, and then the noun tells it
   apart from nothing. For every name the branch introduces or changes, ask what it distinguishes from
   in the final tree, and whether master already had a name for the same thing;
-  `tools/checks/rename-orphaned.sh` catches the typedef case.
+  `tools/checks/rename-orphaned.sh` catches the typedef case, and `tools/checks/body-identifiers.sh`
+  the paragraph that still explains a mechanism a folded fixup removed.
 * Naming an existing literal is done by visiting every call site of what carries it: sweep for the
   function's callers or the field's users, not for the literal, which misses positional arguments.
 * Changing the value of a field visits every reader of it, in the code and in the field's doc, and
