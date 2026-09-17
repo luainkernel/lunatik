@@ -72,3 +72,21 @@ fail() {
 	exit 1
 }
 
+# Holds a session open on a TCP port or a socket path and sends nothing, which is
+# what an unbounded receive in a thread body waits on. It outlives any case, so
+# the caller takes $! and kills it once the case has read its verdict.
+hold_session() {
+	python3 -c '
+import socket, sys, time
+
+target = sys.argv[1]
+if target.startswith("/"):
+	peer = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+	peer.settimeout(5)
+	peer.connect(target)
+else:
+	peer = socket.create_connection(("127.0.0.1", int(target)), timeout=5)
+time.sleep(300)
+' "$1" &
+}
+
