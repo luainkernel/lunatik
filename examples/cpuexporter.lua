@@ -9,9 +9,11 @@ local unix    = require("socket.unix")
 local linux   = require("linux")
 local cpu     = require("cpu")
 local socket  = require("socket")
+local sk      = require("linux.socket")
 
 local shouldstop = thread.shouldstop
-local NONBLOCK   = require("linux.socket").sock.NONBLOCK
+local NONBLOCK   = sk.sock.NONBLOCK
+local DONTWAIT   = sk.msg.DONTWAIT
 
 local server = unix.stream("/tmp/cpuexporter.sock")
 server:bind()
@@ -119,9 +121,21 @@ end
 
 local function handle_client(session)
 	-- Read the request
-	local request, err = session:receive(1024)
+	local request
+	repeat
+		local ok, received = pcall(session.receive, session, 1024, DONTWAIT)
+		if ok then
+			request = received
+		elseif received == "EAGAIN" then
+			linux.schedule(100)
+		else
+			error(received, 0)
+		end
+	until request or shouldstop()
+
+	-- nothing arrived before the daemon was asked to stop
 	if not request then
-		error(err)
+		return
 	end
 
 	-- Check if this is an HTTP request
