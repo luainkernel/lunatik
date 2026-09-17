@@ -56,7 +56,7 @@ A compiled function is Lua where every value has a type the translator can prove
 | `+ - * // % & \| ~ << >>`, unary `-` and `~`, comparisons | `ALU64` ops with Lua's floor semantics; a division tests its divisor |
 | `if`, `and`, `or`, `not` | fused compare-and-jump |
 | numeric `for` | a bounded loop when the bounds are constants, a `may_goto` header otherwise |
-| `while`, `repeat` | a `may_goto` header, or the open-coded iterators on a kernel without one |
+| `while`, `repeat` | a `may_goto` header at the jump that closes the loop, or the open-coded iterators on a kernel without one |
 | `packet:getstring(at, len)` | `bpf_skb_load_bytes` or `bpf_xdp_load_bytes` into a buffer of the frame |
 | `==` between such a string and a string constant | the read length against the constant's, then the bytes |
 | calls to functions the program file declares | BPF-to-BPF calls; no recursion, four register arguments |
@@ -67,8 +67,10 @@ A compiled function is Lua where every value has a type the translator can prove
 Everything else is a compile error naming the line: runtime tables and strings, closures created
 at runtime, varargs, `pcall`, coroutines, metatables other than the proxies', a global that is
 not one of the compile-time modules, a call through a value the translator cannot resolve, a tail
-call, a boolean or a `nil` where arithmetic requires a number, and an `==` between values whose
-types the translator cannot pin, since a register carries `false`, `nil` and `0` as one word.
+call, a boolean or a `nil` where arithmetic requires a number, an `==` between values whose
+types the translator cannot pin, since a register carries `false`, `nil` and `0` as one word, and
+a loop nothing leaves, which has no instruction after its back edge for the iteration budget to
+reach.
 Refusing is the normal outcome; the message says which line and why, in one line:
 
     sni.bpf.lua:31: 'host' may be nil here; test it first

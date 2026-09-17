@@ -291,7 +291,7 @@ Tests: a string compare against a constant and a `c64`-keyed map lookup agree wi
 a loop with a runtime bound terminates.
 
 What the phase 5 corpora cost, beside the figures above: the reads 62 processed instructions, the
-comparisons 81, the keyed lookups 68.
+comparisons 81, the keyed lookups 68, the loops beyond `for` 357.
 
 ### Phase 6: examples and documentation
 

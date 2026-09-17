@@ -18,6 +18,7 @@
 
 local insn     = require("luaebpf.insn")
 local maps     = require("luaebpf.maps")
+local probe    = require("luaebpf.probe")
 local proto    = require("luaebpf.proto")
 local runtimes = require("luaebpf.runtimes")
 local vmlinux  = require("luaebpf.vmlinux")
@@ -104,11 +105,6 @@ local kernel = release()
 local major, minor = kernel:match("^(%d+)%.(%d+)")
 major, minor = tonumber(major) or 0, tonumber(minor) or 0
 
----
--- Whether the running kernel takes the `may_goto` a loop without a proven bound needs.
--- @field luaebpf.emit.maygoto
-emit.maygoto = major > 6 or (major == 6 and minor >= 9)
-
 local function typename(value)
 	if value == nil then
 		return "undefined value"
@@ -131,6 +127,17 @@ local probes = {}
 -- is the program type's
 function probes.loadbytes(f)
 	return vmlinux.publishes(f.unit.context.loadbytes.probe)
+end
+
+-- may_goto has no name in any BTF, so the question is a load of the instruction itself; a load
+-- that needed a privilege this compile has not says nothing about it, and the release the kernel
+-- reports is what answers then
+function probes.maygoto()
+	local told = probe.maygoto()
+	if told == nil then
+		return major > 6 or (major == 6 and minor >= 9)
+	end
+	return told
 end
 
 local function offers(f, feature)
@@ -359,6 +366,20 @@ local function abort(f)
 	return f.aborted
 end
 
+-- the header a loop the verifier cannot count needs, at the jump that closes it: the budget
+-- leaves by the instruction after that jump, which is the exit of a 'for', a 'while' and a
+-- 'repeat' alike, and the walk is what says afterwards whether anything reaches it
+local function maygoto(f, pc)
+	if not offers(f, "maygoto") then
+		refuse(f, pc, "a loop the compiler cannot bound needs may_goto, which this kernel lacks")
+	end
+	if f.drop ~= "maygoto" then
+		f.headers[pc + 1] = pc
+		f.code:maygoto(labelof(f, pc + 1))
+	end
+end
+
+-- where the jump at pc goes, and the header a backward one needs on the way
 local function jumptarget(f, pc)
 	local ins = f.proto.code[pc]
 	if ins == nil or ins.op ~= opcodes.JMP then
@@ -366,7 +387,7 @@ local function jumptarget(f, pc)
 	end
 	local target = pc + ins.sj + 1
 	if target <= pc then
-		refuse(f, pc, "'while' and 'repeat' are not compiled yet")
+		maygoto(f, pc)
 	end
 	return target
 end
@@ -1654,12 +1675,7 @@ function ops.FORLOOP(f, pc, ins, state)
 	local a, code = ins.a, f.code
 	local after = labelof(f, pc + 1)
 	if not f.bounded[pc] then
-		if not emit.maygoto then
-			refuse(f, pc, "a 'for' the compiler cannot bound needs may_goto, which this kernel lacks")
-		end
-		if f.drop ~= "maygoto" then
-			code:maygoto(after)
-		end
+		maygoto(f, pc)
 	end
 	into(f, pc, state, a, reg.R1)
 	code:branchi(jump.JEQ, reg.R1, 0, after)
@@ -1801,6 +1817,7 @@ local function walk(f)
 	local code = insn.new()
 	f.code = code
 	f.labels = {}
+	f.headers = {}
 	f.aborted = nil
 	f.rettype = 0
 	f.calls = {}
@@ -1831,6 +1848,12 @@ local function walk(f)
 			if handler(f, pc, ins, state) ~= false then
 				reach(f, pc + 1, state)
 			end
+		end
+	end
+	-- a loop nothing leaves has nowhere for the budget to go, and only the walk knows what it reached
+	for exit, at in pairs(f.headers) do
+		if f.entry[exit] == nil then
+			refuse(f, at, "a loop with no exit cannot be compiled")
 		end
 	end
 	if f.aborted ~= nil then

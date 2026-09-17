@@ -13,8 +13,11 @@
 #   - a step a called function gets at run time takes the default verdict too, through the flag
 #     the callee raises in its caller's frame
 #   - a step that is zero at compile time is refused with its message and line
-# On a kernel without may_goto (below v6.9) the loop cannot be emitted at all, so the case skips
-# the load and asserts the compiler's refusal instead.
+#   - with LUAEBPF_PROBE offering the compiler no loop form the loop cannot be emitted at all, and
+#     is refused with the reason: that row runs on every kernel, where the kernel's own answer
+#     would only run it below v6.9
+# On a kernel the compiler says has no may_goto the load rows skip, and what says so is the
+# compiler's own refusal rather than the release the kernel reports.
 #
 # Usage: sudo bash tests/luaebpf/forvar.sh
 
@@ -25,7 +28,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 4
+luaebpf_start 5
 
 cat > "$LUAEBPF_WORK/zerostep.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
@@ -42,21 +45,21 @@ output=$(luaebpf_refuses zerostep "zerostep.bpf.lua:5: 'for' step is zero") \
 	|| { comment "$output"; fail "luaebpf: a zero step is not refused"; }
 ktap_pass "luaebpf: a 'for' whose step is zero at compile time is refused with its line"
 
-release=$(uname -r | cut -d. -f1,2)
-if [ "$(printf '%s\n6.9\n' "$release" | sort -V | head -1)" != "6.9" ]; then
-	output=$(luaebpf_compile forvar 2>&1)
+output=$(luaebpf_compile forvar "" loadbytes 2>&1)
+echo "$output" | grep -q "may_goto, which this kernel lacks" \
+	|| { comment "$output"; fail "luaebpf: an unbounded loop is not refused without may_goto"; }
+ktap_pass "luaebpf: with no loop form offered an unbounded loop is refused with its reason"
+
+output=$(luaebpf_compile forvar)
+if [ $? -ne 0 ]; then
 	echo "$output" | grep -q "may_goto, which this kernel lacks" \
-		|| { comment "$output"; fail "luaebpf: an unbounded loop is not refused without may_goto"; }
-	ktap_pass "luaebpf: without may_goto an unbounded loop is refused with its reason"
-	ktap_skip "luaebpf: the kernel has no may_goto"
-	ktap_skip "luaebpf: the kernel has no may_goto"
+		|| { comment "$output"; fail "luaebpf: forvar.bpf.lua did not compile"; }
+	for i in $(seq 3); do ktap_skip "luaebpf: the compiler says this kernel has no may_goto"; done
 	check_dmesg
 	ktap_totals
 	[ $KTAP_FAIL -eq 0 ]
 	exit $?
 fi
-
-output=$(luaebpf_compile forvar) || { comment "$output"; fail "luaebpf: forvar.bpf.lua did not compile"; }
 log=$(luaebpf_verbose forvar)
 [ -e "$LUAEBPF_PINS/varlimit2" ] || { comment "$log"; fail "luaebpf: the loops did not verify"; }
 echo "$log" | grep -q "may_goto" \

@@ -243,7 +243,14 @@ both implement. The CLI therefore detaches before it unpins wherever it takes a 
   and `OP_FORLOOP` counts it down
   ([lopcodes.h#L333-L334](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lopcodes.h#L333-L334)):
   a counted loop by construction. Constant bounds become a bounded loop; anything else gets a
-  `may_goto` header.
+  `may_goto` header, at the jump that closes the loop, leaving by the instruction after it. Lua
+  compiles the exit of a `while`, of a `repeat` and of a numeric `for` to exactly that
+  instruction, so the placement is one rule for the three. An offset of zero is refused
+  ("invalid may_goto off 0 imm 0"), so the shortest program the instruction fits in is four:
+  a verdict, the header, the exit it jumps over, and the exit it jumps to. That program is what
+  `luaebpf.probe` loads to ask whether the kernel takes the instruction at all, as a
+  `BPF_PROG_TYPE_SOCKET_FILTER`, whose own rules are checked after the opcode; an `EPERM` says
+  nothing about the instruction, and the release the kernel reports answers instead.
 * **Exceptions are one way.** `bpf_throw`
   ([helpers.c#L3388](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/helpers.c#L3388))
   unwinds to the program's exception callback and never returns. `pcall` cannot be compiled; the

@@ -12,7 +12,7 @@
 # vararg function, pcall, a coroutine, a metatable, an unresolvable global and an unresolvable
 # field of a compile-time module, which are one opcode and read back as what the source says, a
 # call through an unresolvable value, the context, '..', '#', a method call, a tail call, an upvalue
-# assignment, a to-be-closed variable, a generic for, while, repeat, a program declared with an
+# assignment, a to-be-closed variable, a generic for, a program declared with an
 # argument beyond the context, arithmetic on a boolean at each shape the emitter checks on its
 # own: the two opcodes the VM follows with no metamethod, a binary opcode with both operands
 # live, one whose result is written over the operand it read, and a shift whose constant is on
@@ -28,7 +28,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-ROWS=29
+ROWS=27
 
 luaebpf_start $ROWS
 
@@ -89,10 +89,6 @@ row toclose "toclose.bpf.lua:5: a to-be-closed variable cannot be compiled" \
 	$'\tlocal h <close> = handle\n\treturn 0' 'local handle = setmetatable({}, {__close = function() end})'
 row generic_for "generic_for.bpf.lua:5: a generic 'for' cannot be compiled" \
 	$'\tfor k, v in next, ports do return v end\n\treturn 0' 'local ports = {1}'
-row while_ "while_.bpf.lua:7: 'while' and 'repeat' are not compiled yet" \
-	$'\tlocal n = 0\n\twhile n < 4 do\n\t\tn = n + 1\n\tend\n\treturn n'
-row repeat_ "repeat_.bpf.lua:8: 'while' and 'repeat' are not compiled yet" \
-	$'\tlocal n = 0\n\trepeat\n\t\tn = n + 1\n\tuntil n > 3\n\treturn n'
 row twoargs "twoargs.bpf.lua:4: a program takes one argument, the context" \
 	$'\treturn extra' '' 'ctx, extra'
 row unmbool "unmbool.bpf.lua:6: attempt to perform arithmetic on a boolean value" \
