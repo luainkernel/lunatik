@@ -8,7 +8,7 @@
 # Usage: sudo bash tests/tls/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
-TESTS="pack"
+TESTS="pack key"
 FAILED=0
 
 SEP=$'\n'
