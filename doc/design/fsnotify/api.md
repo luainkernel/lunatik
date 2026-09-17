@@ -144,8 +144,9 @@ than a wrong answer.
 
 The guard is the runtime's own owner check, read in the dispatcher before anything runs:
 
+    /* the lock holder lands back here on a marked path, and the nesting has no floor */
     if (lunatik_isowner(watch->runtime))
-            return LUAFSNOTIFY_ALLOW;   /* allow, and do not recurse */
+            return LUAFSNOTIFY_ALLOW;
 
 Task identity, and none of it the module's own state: the core records the task that holds the
 runtime lock when it takes it, so the check covers every way that task can already hold it — this
