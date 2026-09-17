@@ -19,7 +19,7 @@ esac
 
 {
 	echo "example-guard: load an example through the watchdog, which stops it if the host loses the connectivity it had:"
-	echo "  sudo bash tools/watchdog.sh <script> [softirq|hardirq] [percpu]"
+	echo "  sudo bash tools/watchdog.sh <script> [spawn|softirq|hardirq] [percpu]"
 	echo "example-guard: an example that takes the network down cannot be stopped by hand afterwards. Re-run with NETWORK_LOSS_OK=1 as a command prefix only on a machine whose connectivity is expendable."
 } >&2
 exit 2
