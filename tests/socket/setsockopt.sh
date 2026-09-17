@@ -8,6 +8,10 @@
 # the timeval layout codec); with the receive timeout set, a receive with no
 # data must return (raise) instead of blocking forever.
 #
+# Then the two refusals, both on the AF_NETLINK socket the script already
+# holds: a level its protocol handler does not own, and an option name that
+# handler does not know. Each must raise ENOPROTOOPT rather than pass silently.
+#
 # Usage: sudo bash tests/socket/setsockopt.sh
 
 SCRIPT="tests/socket/setsockopt"
@@ -16,7 +20,7 @@ MODULE="luasocket"
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 ktap_header
-ktap_plan 2
+ktap_plan 4
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -33,6 +37,12 @@ ktap_pass "setsockopt: integer value sets an int option (SO_RCVBUF)"
 
 dmesg_since | grep -q "socket setsockopt: bounded receive returned" || fail "receive did not time out"
 ktap_pass "setsockopt: packed struct value bounds a blocking receive (SO_RCVTIMEO)"
+
+dmesg_since | grep -q "socket setsockopt: unknown level refused" || fail "unknown level was not refused"
+ktap_pass "setsockopt: a level the protocol handler does not own raises ENOPROTOOPT"
+
+dmesg_since | grep -q "socket setsockopt: unknown option name refused" || fail "unknown option name was not refused"
+ktap_pass "setsockopt: an option name the handler does not know raises ENOPROTOOPT"
 
 ktap_totals
 

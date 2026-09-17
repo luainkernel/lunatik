@@ -510,7 +510,9 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
 - **setsockopt**: `socket:setsockopt()` sets an integer option (`SO_RCVBUF`)
   and a packed struct option (`SO_RCVTIMEO_NEW` built with the `timeval`
   layout codec); with the receive timeout set, a receive with no data returns
-  (raises) instead of blocking forever.
+  (raises) instead of blocking forever. A level the socket's protocol handler
+  does not own, and an option name that handler does not know, each raise
+  `ENOPROTOOPT`.
 
 - **connect**: which argument `socket:connect()` reads as its flags. An AF_INET
   address is spelled as two arguments, so a call with no flags must not have its
