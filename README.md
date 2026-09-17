@@ -501,29 +501,31 @@ machine off the network, `lo` and the uplink included. They are listed by `cat
 
 ### filter
 
-[filter](examples/filter) is a kernel extension composed by
-a XDP/eBPF program to filter HTTPS sessions and
-a Lua kernel script to filter [SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) TLS extension.
-This kernel extension drops any HTTPS request destinated to a
-[blacklisted](examples/filter/sni.lua#L35) server.
+[filter](examples/filter) is a kernel extension that drops any HTTPS request destinated to a
+[blocklisted](examples/filter/sni.lua#L14) server. Both halves are Lua: the XDP program
+[sni.bpf.lua](examples/filter/sni.bpf.lua) is compiled to eBPF by `lunatikc` during `make
+install` and reads the [SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) TLS
+extension itself, calling into no runtime; the kernel script
+[sni.lua](examples/filter/sni.lua) is the control plane, writing the blocklist into the map the
+program decides from and counts its drops in.
 
 #### Usage
 
-Usage requires `libbpf` and `bpftool` installed.
+Usage requires `libbpf` installed.
 
-Come back to this repository, install and load the filter:
+Come back to this repository, install and deploy the filter:
 
 ```sh
 cd ${LUNATIK_DIR}/lunatik    # cf. above
-sudo make btf_install        # needed to export the 'bpf_luaxdp_run' kfunc
-sudo make examples_install   # installs examples
-make ebpf                    # builds the XDP/eBPF program
-sudo make ebpf_install       # installs the XDP/eBPF program
-# Run the Lua kernel script, one runtime per CPU
-sudo lunatik run examples/filter/sni softirq percpu
-# Load the compiled XDP/eBPF program and attach to interface <ifname>
-sudo bpftool prog load examples/filter/https.o /sys/fs/bpf/lunatik_filter type xdp
-sudo bpftool net attach xdp pinned /sys/fs/bpf/lunatik_filter dev <ifname>
+sudo make install            # installs the scripts and compiles the program files
+# Write the blocklist, load the program and attach it to interface <ifname>
+sudo lunatik run examples/filter/sni dev=<ifname>
+```
+
+Take it down with:
+
+```sh
+sudo lunatik stop examples/filter/sni
 ```
 
 For example, testing is easy thanks to [docker](https://www.docker.com).
@@ -531,17 +533,22 @@ Assuming docker is installed and running:
 
 - in a terminal:
 ```sh
-sudo bpftool prog load example/filter/https.o /sys/fs/bpf/lunatik_filter type xdp
-sudo bpftool net attach xdp pinned /sys/fs/bpf/lunatik_filter dev docker0
-sudo journalctl -ft kernel
+sudo lunatik run examples/filter/sni dev=docker0
 ```
 - in another one:
 ```sh
 docker run --rm -it alpine/curl https://ebpf.io
 ```
 
-The system logs (in the first terminal) should display `filter_sni: ebpf.io DROP`, and the
-`docker run…` should return `curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ebpf.io:443`.
+The `docker run…` should return `curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection
+to ebpf.io:443`, and the map says how many requests the program took:
+
+```sh
+printf '%s\n' \
+  'lunatik.map = require("bpf.map")' \
+  'local blocked <close> = lunatik.map.hash("/sys/fs/bpf/lunatik/examples/filter/sni/blocked", "c64", "I8") return blocked["ebpf.io"]' \
+  | sudo lunatik
+```
 
 ### filter in MoonScript
 
@@ -619,19 +626,20 @@ sudo examples/tcpreject/cleanup.sh
 
 ### sniclassify
 
-[sniclassify](examples/sniclassify) is a kernel extension composed by
-a TC/eBPF classifier program attached on egress,
-a Lua kernel script to classify [SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) traffic.
-This kernel extension extracts server name and assigns traffic
-classes according to a Lua [policy table](examples/sniclassify/sni.lua#L26).
+[sniclassify](examples/sniclassify) assigns outbound traffic to a traffic class according to a
+Lua [policy table](examples/sniclassify/sni.lua#L19). Both halves are Lua: the TC egress program
+[sni.bpf.lua](examples/sniclassify/sni.bpf.lua) is compiled to eBPF by `lunatikc` during `make
+install` and decides a flow it has already seen from a map of its own; the first packet of one
+is where it calls the kernel script [sni.lua](examples/sniclassify/sni.lua), which reads the
+[SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) TLS extension and sets the
+priority htb then classifies on.
 
 Install the classifier:
 
 ```sh
-sudo make btf_install         # needed to export the 'bpf_luatc_run' kfunc
-sudo make examples_install    # installs examples
-make ebpf                     # builds the TC/eBPF program
-sudo make ebpf_install        # installs the TC/eBPF program
+sudo make btf_install    # the 'bpf_luatc_run' kfunc the program calls is resolved against the
+make clean && make       # module's BTF, embedded when the .ko is linked, so a built tree is rebuilt
+sudo make install        # installs the scripts and compiles the program files
 ```
 
 Run the classifier and set up the HTB classes on an interface:
@@ -644,12 +652,9 @@ Tear it down with:
 sudo ./examples/sniclassify/cleanup.sh eth0
 ```
 
-The classifier inspects outbound TLS ClientHello packets, extracts the SNI
-field, and assigns a traffic class according to the Lua policy table.
-
 Verify and test:
 ```
-sudo tc filter show dev eth0
+sudo tc -s class show dev eth0
 sudo journalctl -ft kernel
 ```
 

@@ -245,8 +245,8 @@ The CLI loads `<script>.bpf.o` when it exists: creates and pins the maps under
 command line, pins the link; `stop` reverses it. `make install` compiles program files with
 `lunatikc`, beside the scripts they belong to. The `xdp` and `tc` suites gain compiled programs
 beside the C stubs that must stay; the README's `lunatikc bpf` block loses its `bpftool prog load`
-line. `make ebpf` and `LUNATIK_EBPF_INSTALL_PATH` stay: their only consumers are the two examples'
-C stubs, whose whole body is the kfunc call, so they go in phase 6 with the examples they serve.
+line. `make ebpf` and `LUNATIK_EBPF_INSTALL_PATH` stay in this phase: their only consumers are the
+two examples' C stubs, whose whole body is the kfunc call.
 
 Tests: `lunatik run` then `lunatik stop` leaves nothing pinned; a run with a missing target fails
 before the runtime starts; the existing `xdp` and `tc` cases pass with a compiled program.
@@ -297,10 +297,34 @@ iterator lowering 381, with the `while` corpus itself costing 708 there against 
 
 ### Phase 6: examples and documentation
 
-`examples/filter` rewritten with the SNI parser compiled whole (`examples/common/sni.lua` as the
-source, shared with the interpreted path), `examples/sniclassify` with its map and its call into
-Lua, the README module and usage sections, the LDoc for the compile-time modules, and the API
-cleanup the examples expose. The phase 0 script produces the numbers these documents then quote.
+`examples/filter` is the SNI filter compiled whole. `examples/common/sni.lua` became a namespace
+of `host` and `u16` bounding the name it reads with a constant of its own, one source for the
+compiled program and for the kernel scripts that still interpret it, and the XDP program walks the
+headers, parses the extension and decides from a `c64`-keyed hash the kernel script writes the
+policy into and the program counts its drops in. `examples/sniclassify` is the classifier in Lua:
+the map lookup, the header walk and the call into the runtime, the first packet of a flow paying
+for the call and the rest decided from the map. Both C stubs, their Makefiles and the `make ebpf`,
+`make ebpf_install` and `LUNATIK_EBPF_INSTALL_PATH` targets that built and installed them are
+gone, and `make install` compiles a program file against the tree it is installing rather than
+against whatever the last install left, reporting a refusal instead of failing, since which
+lowerings a kernel offers is no property of a tree.
+
+What the examples cost the compiler is one mechanism: a compiled function answers a string through
+a buffer its caller owns, passed in the argument after the abort pointer, which is the shape phase
+2 landed for that pointer one register further. It costs a fifth reserved word in every frame and
+leaves a string-returning function three argument registers of its own.
+
+What the two objects cost the verifier, as `budget.sh` reads them off the objects `make install`
+put beside their scripts rather than off a recompile: the filter 3,417 processed instructions and
+the classifier 260, against the same 20,000 ceiling. The filter is the heaviest program the tree
+emits by an order of magnitude, and it is a seventeen-iteration constant-bound loop making two
+subprogram calls an iteration, plus a sixty-four-byte helper read on the path that found a name.
+
+No speed figure is quoted here. `tests/luaebpf/example_speed.sh` runs the phase 0 script and
+reports its table as comments, and skips naming `tools/bench/xdp.sh` where a tree does not carry
+it, which is any tree that phase 0 has not landed in: a figure produced by a merge, plus a row for
+the compiled filter that exists on neither branch, is one no reader can check out and re-run,
+which is what a figure in this document is for.
 
 ## Sizing
 

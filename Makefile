@@ -21,7 +21,6 @@ LUA_CPATH ?= $(shell $(LUA) -e 'print(package.cpath:match("([^;]*)/%?%.so;"))')
 LUA_CFLAGS ?= $(shell pkg-config --cflags $(LUA))
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
-LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
 LUNATIK_TESTS_INSTALL_PATH = /usr/local/share/lunatik/tests
 MOONTASTIK_RELEASE ?= v0.1c
 LUA_API = lua/lua.h lua/lauxlib.h lua/lualib.h
@@ -44,10 +43,17 @@ LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
 LOADER := bin/loader.so
 LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared ${LUA_CFLAGS}
 
-# a program file's object installs beside the script it belongs to, so `lunatik run <script>`
-# finds it where the kernel finds the source
+# A program file's object installs beside the script it belongs to, so `lunatik run <script>`
+# finds it where the kernel finds the source. The tree being installed goes first on the path, so
+# a module a program file shares with its kernel script compiles from this tree rather than from
+# whatever the last install left; the object is removed before the compile, so a refused one does
+# not outlive the tree it came from; and a program file the running kernel cannot host is reported
+# rather than failing the install, since which lowerings a kernel offers is no property of a tree.
 define INSTALL_BPF
-	for f in $(1); do case "$$f" in *.bpf.lua) ${LUNATIKC} bpf -o $(2) $$f || exit 1;; esac; done
+	for f in $(1); do case "$$f" in *.bpf.lua) \
+		o=$(2)/$$(basename $$f .lua).o; ${RM} $$o; \
+		LUA_PATH="${CURDIR}/?.lua;;" ${LUNATIKC} bpf -o $$o $$f || echo "$$f: no object installed";; \
+	esac; done
 endef
 
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
@@ -94,8 +100,7 @@ AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 	scripts_install scripts_uninstall \
 	modules_install modules_uninstall btf_install \
 	examples_install examples_uninstall \
-	tests_install tests_uninstall \
-	ebpf ebpf_install ebpf_uninstall
+	tests_install tests_uninstall
 
 all: lunatik_sym.h autogen ${LUNATIKC} ${LOADER}
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
@@ -109,7 +114,6 @@ ${LOADER}: bin/loader.c
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD}/autogen clean
-	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h ${LUNATIKC} ${LOADER}
 	${RM} -r lib/linux
 	${RM} autogen/lunatik/*.lua autogen/linux/*.lua \
@@ -181,18 +185,6 @@ scripts_uninstall:
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
 	${RM} -r ${LUA_PATH}/lunatik ${LUA_CPATH}/lunatik
 
-ebpf:
-	${MAKE} -C examples/filter
-	${MAKE} -C examples/sniclassify
-
-ebpf_install:
-	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
-	${INSTALL} -m 0644 examples/filter/https.o ${LUNATIK_EBPF_INSTALL_PATH}/
-	${INSTALL} -m 0644 examples/sniclassify/classify.o ${LUNATIK_EBPF_INSTALL_PATH}/
-
-ebpf_uninstall:
-	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}
-
 EXAMPLE_DIRS := $(patsubst examples/%/,%,$(wildcard examples/*/))
 
 examples_install:
@@ -232,6 +224,12 @@ tests_install:
 	for d in $(filter-out luaebpf,$(TEST_DIRS)); do \
 		$(call INSTALL_BPF,tests/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/tests/$$d); \
 	done
+	# the phase 0 bench where a tree carries it, beside the suites that would run it; the guard
+	# is a no-op in a tree without it, and tests/luaebpf/example_speed.sh skips naming the script
+	$(if $(wildcard tools/bench/xdp.sh),${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/bench && \
+		${INSTALL} -m 0755 tools/bench/xdp.sh ${LUNATIK_TESTS_INSTALL_PATH}/bench && \
+		${INSTALL} -m 0644 $(filter-out tools/bench/xdp.sh,$(wildcard tools/bench/*)) \
+			${LUNATIK_TESTS_INSTALL_PATH}/bench)
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 tests/socket/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket

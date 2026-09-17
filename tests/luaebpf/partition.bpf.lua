@@ -31,8 +31,8 @@ local function u16(packet, at)
 	return packet:getbyte(at) << 8 | packet:getbyte(at + 1)
 end
 
--- examples/sniclassify/classify.c, in Lua: the map decides a flow already seen, and only the
--- first packet of one pays for the call into Lua
+-- the shape examples/sniclassify/sni.bpf.lua deploys: the map decides a flow already seen, and
+-- only the first packet of one pays for the call into Lua
 local function classify(skb)
 	local cached = flows[skb.hash]
 	if cached then

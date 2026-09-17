@@ -64,13 +64,15 @@ local ITERMAX     <const> = 8 * 1024 * 1024 -- BPF_MAX_LOOPS, the budget may_got
 local VOID        <const> = 0               -- btf_void, the type id an answer of nothing takes
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
--- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
--- the key and the value a map helper is handed by address
-local RESERVED <const> = 4
+-- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, the
+-- key and the value a map helper is handed by address, and where a callee that answers a string
+-- keeps the buffer its caller passed
+local RESERVED <const> = 5
 local ABORTED  <const> = -SLOT
 local CALLER   <const> = -SLOT * 2
 local KEY      <const> = -SLOT * 3
 local VALUE    <const> = -SLOT * 4
+local OUTBUF   <const> = -SLOT * 5
 
 -- what a Lua register may hold; OTHER is a value the compiler knows and the kernel never sees
 local INT     <const> = 1
@@ -84,14 +86,16 @@ local MAYBE   <const> = 128              -- a map value the program has not test
 local RECORD  <const> = 256              -- a struct map value, read a field at a time
 local ANSWER  <const> = 512              -- what a call into the kernel runtime answered
 local BUFFER  <const> = 1024             -- packet bytes a getstring read into the frame
+local COPIED  <const> = 2048             -- a string a callee copied into a buffer of this frame
 local RUNTIME  <const> = INT | BOOL | NIL | ANSWER -- a value the kernel holds as a word
 local PROXY    <const> = CTX | PACKET | MAYBE | RECORD -- a pointer the kernel holds, read through a proxy
-local UNTESTED <const> = MAYBE | ANSWER -- a word the program must test before the kernel reads it
-local CARRIED  <const> = RUNTIME | PROXY | BUFFER -- what a Lua register holds a word of its own for
+local UNTESTED <const> = MAYBE | ANSWER | COPIED -- a word the program must test before the kernel reads it
+local CARRIED  <const> = RUNTIME | PROXY | BUFFER | COPIED -- what a Lua register holds a word of its own for
 
 local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context",
 	[PACKET] = "packet", [METHOD] = "method", [MAYBE] = "map value",
-	[RECORD] = "struct map value", [ANSWER] = "runtime answer", [BUFFER] = "string"}
+	[RECORD] = "struct map value", [ANSWER] = "runtime answer", [BUFFER] = "string",
+	[COPIED] = "string"}
 
 local opnames = {}
 for name, op in pairs(opcodes) do
@@ -813,6 +817,27 @@ local function packetstring(f, pc, ins, state)
 	state[ins.a] = {t = BUFFER, at = buffer, bound = bound}
 end
 
+-- A string a callee copied into this frame, narrowed where the program tests it: a read of fewer
+-- than one byte aborts above, so the length the register carries is never zero and the test is
+-- exact. whennil says which arm the opcode's jump is.
+local function teststring(f, pc, ins, state, whennil)
+	local code, value = f.code, state[ins.a]
+	local target = jumptarget(f, pc + 1)
+	local read = whennil and pc + 2 or target
+	local absent = whennil and target or pc + 2
+	local missing = code:label()
+	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), 0, missing)
+	local taken = copy(state)
+	taken[ins.a] = {t = BUFFER, at = value.at, bound = value.bound, name = value.name}
+	jumpout(f, pc + 1, read)
+	reach(f, read, taken)
+	code:place(missing)
+	jumpout(f, pc + 1, absent)
+	state[ins.a] = {t = NIL, name = value.name}
+	reach(f, absent, state)
+	return false
+end
+
 -- the packet proxy is the context register under another type: one register, passed to a
 -- subprogram in one argument, with nothing to keep live across a call
 local function contextmethod(f, pc, ins, state, callee)
@@ -899,6 +924,7 @@ end
 -- where the helper reads the key: the buffer, or the slot the frame reserves for a number
 local function mapkey(f, pc, state, map, i)
 	local value = state[i]
+	tested(f, pc, value)
 	if map.key.bytes then
 		if not isbuffer(value) then
 			mapkeykind(f, pc, map)
@@ -1690,6 +1716,9 @@ local function compareconst(f, pc, ins, state, relation, value)
 	if relation == "EQ" and b.t == NIL and a ~= nil and a.t == ANSWER then
 		return testanswer(f, pc, ins, state, ins.k)
 	end
+	if relation == "EQ" and b.t == NIL and a ~= nil and a.t == COPIED then
+		return teststring(f, pc, ins, state, ins.k)
+	end
 	if relation == "EQ" and stringeq(f, pc, ins, state, a, b) then
 		return false
 	end
@@ -1727,6 +1756,9 @@ function ops.TEST(f, pc, ins, state)
 	end
 	if value ~= nil and value.t == ANSWER then
 		return testanswer(f, pc, ins, state, not ins.k)
+	end
+	if value ~= nil and value.t == COPIED then
+		return teststring(f, pc, ins, state, not ins.k)
 	end
 	local known = truth(f, pc, state, ins.a)
 	if known ~= nil then
@@ -1903,10 +1935,31 @@ end
 
 --- @section calls and returns
 
+-- The answer a string-returning function leaves: the buffer it read into, copied word by word
+-- through the pointer its caller passed, and the length in R0, which getreg does not hand out.
+local function copyout(f, pc, state, i, dropped)
+	local code, value = f.code, state[i]
+	oneread(f, pc, value)
+	f.retbound = max(f.retbound or 0, value.bound)
+	if not f.answers then
+		f.answers = true
+		f.changed = true -- the prologue of this round spilled no pointer to copy through
+	end
+	code:load(reg.R1, reg.FP, OUTBUF)
+	for w = 0, STRINGMAX // SLOT - 1 do
+		code:load(reg.R2, reg.FP, value.at + w * SLOT)
+		code:store(reg.R1, w * SLOT, reg.R2)
+	end
+	if not dropped then
+		code:alu(alu.MOV, reg.R0, fetch(f, i, reg.R0))
+	end
+end
+
 local function returns(f, pc, state, i)
 	local dropped = f.drop == "verdict"
-	if i ~= nil and isbuffer(state[i]) then
-		refuse(f, pc, "a string does not outlive the function that read it")
+	local answers = i ~= nil and isbuffer(state[i])
+	if answers and f.isprogram then
+		refuse(f, pc, "a program returns a verdict, not a string")
 	end
 	destroy(f, within(f, pc)) -- the call clobbers R0-R5, so the verdict is written after it
 	if i == nil then
@@ -1916,9 +1969,17 @@ local function returns(f, pc, state, i)
 		end
 	else
 		f.rettype = f.rettype | state[i].t
-		if not dropped then
+		if answers then
+			copyout(f, pc, state, i, dropped)
+		elseif not dropped then
 			f.code:alu(alu.MOV, reg.R0, getreg(f, pc, state, i, reg.R0))
 		end
+	end
+	-- a caller reads a length where a number would be the value, so one function answers one kind
+	local other = f.rettype & ~(BUFFER | NIL)
+	if (f.rettype & BUFFER) ~= 0 and other ~= 0 then
+		refuse(f, pc, "a function that returns a string cannot also return a %s",
+			typenames[other] or "value")
 	end
 	f.code:exit()
 	return false
@@ -1937,6 +1998,19 @@ end
 
 function ops.RETURN1(f, pc, ins, state)
 	return returns(f, pc, state, ins.a)
+end
+
+-- The buffer a string-returning callee copies its answer into: a region of the caller's own,
+-- zeroed first because the verifier cannot pair a length of zero with the path that left the
+-- words unwritten, and its address in the argument after the abort pointer.
+local function outbuffer(f, pc, nargs)
+	local code, at = f.code, region(f, pc, STRINGMAX // SLOT)
+	for w = 0, STRINGMAX // SLOT - 1 do
+		code:storei(reg.FP, at + w * SLOT, 0)
+	end
+	code:alu(alu.MOV, reg.R1 + nargs + 1, reg.FP)
+	code:alui(alu.ADD, reg.R1 + nargs + 1, at)
+	return at
 end
 
 -- a compiled call answers with one value, so Lua fills every further result asked for with nil
@@ -1980,18 +2054,33 @@ function ops.CALL(f, pc, ins, state)
 		params[i] = kind
 	end
 	local target = emit.subprogram(f, pc, callee.k, callee.name, params)
+	-- the buffer costs the register after the abort pointer, and only this call knows it is owed
+	local answers, buffer = (target.rettype & BUFFER) ~= 0
+	if answers and nargs > MAXARGS - 1 then
+		refuse(f, pc, "a function that returns a string takes at most %d arguments, not %d",
+			MAXARGS - 1, nargs)
+	end
 	for i = 1, nargs do
 		move(f, fetch(f, ins.a + i, reg.R0 + i), reg.R0 + i)
 	end
 	f.code:storei(reg.FP, ABORTED, 0)
 	f.code:alu(alu.MOV, reg.R1 + nargs, reg.FP)
 	f.code:alui(alu.ADD, reg.R1 + nargs, ABORTED)
+	if answers then
+		buffer = outbuffer(f, pc, nargs)
+	end
 	f.code:call(target.name)
 	f.code:load(reg.R1, reg.FP, ABORTED)
 	f.code:branchi(jump.JNE, reg.R1, 0, abort(f, pc))
 	if ins.c > 1 then
 		setreg(f, ins.a, reg.R0)
-		state[ins.a] = {t = target.rettype}
+		if answers then
+			-- a length of zero is the nil to test for, and a callee answering on every path leaves none
+			state[ins.a] = {t = target.rettype == BUFFER and BUFFER or COPIED, at = buffer,
+				bound = target.retbound, name = callee.name}
+		else
+			state[ins.a] = {t = target.rettype}
+		end
 	end
 	filled(f, pc, ins, state)
 end
@@ -2031,6 +2120,7 @@ local function walk(f)
 	f.aborted = {}
 	f.aborts = {}
 	f.rettype = 0
+	f.retbound = nil
 	f.calls = {}
 	for pc = 1, #f.proto.code do
 		f.labels[pc] = code:label()
@@ -2040,6 +2130,9 @@ local function walk(f)
 	code:source(f.proto.linedefined)
 	if not f.isprogram then
 		code:store(reg.FP, CALLER, reg.R1 + #f.params)
+		if f.answers then
+			code:store(reg.FP, OUTBUF, reg.R1 + #f.params + 1)
+		end
 	end
 	for i = 0, f.proto.numparams - 1 do
 		setreg(f, i, reg.R1 + i)
@@ -2152,8 +2245,9 @@ end
 -- @tparam table params the type of each argument
 -- @treturn table the callee's frame
 -- @raise `recursion through '<name>'`, `'<name>' is called with <n> arguments and compiled
---   with <m>`, `'<name>' is called with a <type> and compiled with a <type>`, or `'<name>'
---   takes <n> arguments and is called with <m>`
+--   with <m>`, `'<name>' is called with a <type> and compiled with a <type>`, `'<name>' takes
+--   <n> arguments and is called with <m>`, or `'<name>' carries no source; a stripped function
+--   cannot be compiled`
 function emit.subprogram(f, pc, fn, name, params)
 	local unit = f.unit
 	if unit.lowering[fn] then
@@ -2174,6 +2268,10 @@ function emit.subprogram(f, pc, fn, name, params)
 		return compiled
 	end
 	local read = proto.read(fn)
+	if read.source == nil then
+		refuse(f, pc, "'%s' carries no source; a stripped function cannot be compiled",
+			name or "a function")
+	end
 	-- without this the prologue reads a register the call never set, and the verifier names it
 	if read.numparams > #params then
 		refuse(f, pc, "'%s' takes %d arguments and is called with %d", name or "a function",
@@ -2187,8 +2285,9 @@ end
 -- @function luaebpf.emit.program
 -- @tparam table program `{name, fn, default, drop, allowed, names, context, kfunc}`
 -- @treturn table the frames, the program's own first
--- @raise `a program takes one argument, the context`, and `<file>:<line>: <reason>` for every
---   construct the subset refuses
+-- @raise `'<name>' carries no source; a stripped function cannot be compiled`, `a program takes
+--   one argument, the context`, and `<file>:<line>: <reason>` for every construct the subset
+--   refuses
 function emit.program(program)
 	local unit = {
 		functions = {}, order = {}, lowering = {}, names = program.names or {},
@@ -2196,6 +2295,10 @@ function emit.program(program)
 		kfunc = program.kfunc, allowed = program.allowed, offers = {},
 	}
 	local read = proto.read(program.fn)
+	if read.source == nil then
+		error(format("'%s' carries no source; a stripped function cannot be compiled",
+			program.name), 0)
+	end
 	if read.numparams > 1 then
 		error(format("%s:%d: a program takes one argument, the context",
 			(read.source:gsub("^@", "")), read.linedefined), 0)

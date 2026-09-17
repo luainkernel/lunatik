@@ -59,7 +59,8 @@ A compiled function is Lua where every value has a type the translator can prove
 | `while`, `repeat` | a `may_goto` header at the jump that closes the loop, or the open-coded iterators on a kernel without one |
 | `packet:getstring(at, len)` | `bpf_skb_load_bytes` or `bpf_xdp_load_bytes` into a buffer of the frame |
 | `==` between such a string and a string constant | the read length against the constant's, then the bytes |
-| calls to functions the program file declares | BPF-to-BPF calls; no recursion, four register arguments |
+| a function that answers such a string, or nothing | the callee copies its buffer through a pointer its caller passed and answers the length |
+| calls to functions the program file declares | BPF-to-BPF calls; no recursion, four register arguments, three for one that answers a string |
 | the context, the packet, a map, a struct view | proxies (next sections) |
 | `return` | the program's verdict |
 | constants captured from the body: numbers, booleans, strings used as bytes, tables of constants | folded at compile time |
@@ -110,13 +111,32 @@ on an integer register and narrows it where the program compares it against a co
 
 compiles, and a length the compiler cannot bound, or one bounded above 64, is an error naming the
 line. Nothing is clamped: a compiled program that silently read fewer bytes than its interpreted
-twin would be the disagreement the whole design exists to avoid. A buffer lives in the frame that
-read it, so a compiled function neither returns a string nor takes one; its only uses are `==`
-against a string constant, exact in length and bytes, and a `c<n>` map key. `getstring` with no
-length -- the kernel object's "to the end" form -- is refused, since the bound would be the
-packet's length, which is not a compile-time fact. An XDP program on a kernel that publishes no
+twin would be the disagreement the whole design exists to avoid. `getstring` with no length -- the
+kernel object's "to the end" form -- is refused, since the bound would be the packet's length,
+which is not a compile-time fact. An XDP program on a kernel that publishes no
 `bpf_xdp_load_bytes` (below v5.18) is refused by the helper's name and the kernel's, since the
 compiler runs on the machine that loads what it emits and can know.
+
+A buffer lives in the frame that read it, so a function that answers a string copies it into one
+its caller owns: the caller zeroes a region of its own and passes the region's address in the
+argument after the abort pointer, the callee's `return` copies the eight words through that
+pointer and answers the length in `R0`, and the caller reads the string out of its own frame. So a
+compiled function returns a string and does not take one -- `argument #N is a string, and a
+compiled call passes numbers and packets` is what an argument is refused with -- and a
+string-returning function has three argument registers of its own rather than four, a call with a
+fourth being refused by a message naming the cause. Its uses are `==` against a string constant,
+exact in length and bytes, and a `c<n>` map key.
+
+A read of fewer than one byte aborts, so a length is never zero and `R0 == 0` is `nil` exactly.
+A function that answers a name on one path and nothing on another therefore has the type "string
+or nil", and both `if host then` and `host == nil` narrow it, the way a map lookup and a runtime
+answer are narrowed -- the register is a length, not a pointer, so no verifier rule forces the
+test to one form. Using what such a call answered without a test is `'host' may be nil here; test
+it first`, naming the callee as a lookup's message names the map, and returning it untested from
+another function is refused the same way. A function that answers a string on one path and a
+number on another is refused with `a function that returns a string cannot also return a number`,
+since a caller reads a length where a number would be the value itself; and the program's own
+return of one is `a program returns a verdict, not a string`.
 
 The offset is an argument like any other, and an accessor called without one, or with one that
 is not a number, is refused at its line. Every packet access carries a bounds check against
@@ -133,9 +153,11 @@ path, from any frame. A subprogram returns to its caller rather than to the hook
 compiled function takes one argument beyond its own: a pointer to a word in its caller's frame. A
 check that fails there stores a one through it and returns; the caller reads the word and takes
 its own failure path, which is the default verdict in the program's own frame. That is the fifth
-register argument, and why a compiled function takes four of its own. This is the compiled
-analogue of what the trampoline does today, where a raising callback makes the kfunc return `-1`
-and the stub falls back.
+register argument, and why a compiled function takes four of its own; a function that answers a
+string spends the register after it on the buffer, and has three. Both are checked against the
+frame they point into rather than the current one, which is a property of the verifier itself
+(`kernel-notes.md`). This is the compiled analogue of what the trampoline does today, where a
+raising callback makes the kfunc return `-1` and the stub falls back.
 
 TC programs get `skb`, a proxy over the `__sk_buff` fields the kernel lets a program read --
 `len`, `hash`, `ifindex` and `ingress_ifindex` -- plus `priority`, the one of them it also lets
@@ -362,9 +384,9 @@ that reaches it.
    proposed, with the bound the program's own rather than the buffer's: the name stays
    `getstring`, and a length the compiler cannot bound is a compile error naming the line rather
    than a clamp, since a clamp is a compiled program quietly disagreeing with its interpreted
-   twin. `examples/common/sni.lua` still does not compile whole, for a reason of its own: it
-   returns the string from a subprogram, and a buffer does not outlive its frame. Phase 6 owns
-   that.
+   twin. What was left of it -- `examples/common/sni.lua` returning the string from a subprogram
+   -- is settled above: a compiled function answers a string through a buffer its caller passed,
+   and that file compiles whole.
 4. ~~Whether the per-argument marshalling of the runtime call (native 64-bit integers, in order)
    should instead take a `string.pack` format, so the kernel side can keep `getuint32(0)` where it
    has it.~~ Settled as proposed: native 64-bit integers in order, and no format argument. A

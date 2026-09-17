@@ -211,7 +211,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   verdict, and a callee that reaches nothing but its abort tail still loads;
   one static BTF `FUNC` per subprogram; five arguments, since the fifth
   register carries the abort pointer, a call short of an argument the callee
-  declares, and recursion refused with their lines.
+  declares, recursion, and a module installed as a stripped chunk, which
+  carries no source for the compiler to read, reached by a call, refused with
+  their lines; the same chunk handed over as the program itself is refused by
+  its name, having no call site for a line to point at.
 - **btfview**: `luaebpf.vmlinux` against `bpftool btf dump file
   /sys/kernel/btf/vmlinux format raw`: the size of `xdp_md` and `__sk_buff` and
   the byte offset and four-byte width of every field the context proxies
@@ -281,6 +284,29 @@ interpreter raises, the compiled program owes its default verdict instead.
   than the key, a key spec wider than the buffer a string is read into and a
   string whose read the walk bounded two ways are refused. Skips where the
   kernel publishes no `bpf_xdp_load_bytes`.
+- **strret**: the string a compiled function answers through the buffer its
+  caller owns. A subprogram that reads a name and returns it, the same one
+  frame further, a subprogram that answers a name or nothing tested with `if
+  host then` and with `host == nil`, and a read that fails inside the callee,
+  each over the five packets of `packets.lua`: the interpreter's verdict, or
+  the default where it raises, which is what says the flag the callee raises
+  carries out of a call that also owed a string. A subprogram taking the three
+  arguments such a function may have of its own runs the same corpus, the
+  boundary the arity refusal below sits at, where the buffer takes the last
+  register a call has. A callee whose two returns each carry a buffer of their
+  own runs the same corpus, the ARP frame taking the second return and every
+  other packet the first, and only that second read answering the address the
+  caller compares against, so a copy from the wrong buffer is a different
+  verdict. The name a call answered keys the `c64` map the program file
+  declares, with no test where every path of the callee answers a string and
+  after a test where one of them answers nothing: both find the entry seeded
+  under `string.pack("c64", name)`, so what the callee copied out carries the
+  NUL tail as well as the bytes. A program returning a string, a function
+  returning a string on one path and a number on another, a string-returning
+  function taking four arguments of its own, the untested use of what such a
+  call answered, a middle function returning it untested and two call sites'
+  answers merged into one register are refused with their messages and lines.
+  Skips where the kernel publishes no `bpf_xdp_load_bytes`.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, and every program is run against the empty
   maps and against maps the case seeded from the shell: a key present in a hash,
@@ -314,8 +340,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.
 - **budget**: the "processed N insns" figure the verifier prints for the
-  worst program of each corpus, reported as a comment and asserted under a
-  ceiling.
+  worst program of each corpus and of each compiled example, reported as a
+  comment and asserted under a ceiling. The example objects are read from
+  where `make install` put them beside their scripts, never recompiled, so
+  what the row measures is what a deployment loads.
 - **load**: `lunatik run` on a script whose object is staged beside it pins the
   map the program file declares under `/sys/fs/bpf/lunatik/<script>/`, registers
   the runtime, and pins the link whose program the device then reports. The
@@ -386,15 +414,16 @@ interpreter raises, the compiled program owes its default verdict instead.
   contract, so what tells that row from the first is the line the module logs.
   A program that returns the answer on its nil branch returns the zero word a
   returned nil is anywhere else, not the `-1` the kfunc handed back.
-- **partition**: `examples/sniclassify/classify.c` in Lua. The TC program looks
-  a flow up in a hash it declares, calls the kernel runtime only where the
-  lookup missed and the headers say the packet is worth it, and caches what the
-  callback decided. `BPF_PROG_TEST_RUN` reads a `__sk_buff`'s hash back as zero,
-  so the two packets of one `repeat 2` are one flow: two packets, one callback
-  line, and the priority the callback set from the argument it was handed is
-  what the pinned map holds and what `ctx_out` carries back. A SYN to the same
-  port and an ICMP echo add no callback line and leave the map empty, with the
-  runtime still up: the call is where the program put it, not on every packet.
+- **partition**: the shape `examples/sniclassify/sni.bpf.lua` deploys. The TC
+  program looks a flow up in a hash it declares, calls the kernel runtime only
+  where the lookup missed and the headers say the packet is worth it, and
+  caches what the callback decided. `BPF_PROG_TEST_RUN` reads a `__sk_buff`'s
+  hash back as zero, so the two packets of one `repeat 2` are one flow: two
+  packets, one callback line, and the priority the callback set from the
+  argument it was handed is what the pinned map holds and what `ctx_out`
+  carries back. A SYN to the same port and an ICMP echo add no callback line
+  and leave the map empty, with the runtime still up: the call is where the
+  program put it, not on every packet.
 - **report**: `lunatikc bpf` lists every call into the kernel Lua runtime. A
   program file with a call on two known lines, each naming a runtime of its own,
   prints one line per call with its own line number and its own key;
@@ -406,6 +435,49 @@ interpreter raises, the compiled program owes its default verdict instead.
   `bpftool prog loadall` and `lunatik run` name the kfunc, the run exits
   non-zero and leaves no pin root, no runtime and nothing on the device, and the
   same drop over a program file with no call into Lua still loads.
+- **example_filter**: examples/filter deployed as the tree ships it. The
+  kernel-side fixture builds two ClientHello frames, one naming the blocked
+  host and one naming another, puts them on `filter1` with a raw socket and
+  taps `filter0` with a second one under a bounded receive, matching on the
+  host name's own bytes so that whatever else the machine puts on the pair is
+  ignored rather than silenced. With nothing attached the tap sees both, which
+  is what makes it evidence of a drop rather than of a frame that never
+  arrived; with the filter deployed by `lunatik run ... dev=filter0` the
+  blocked name's frame is gone and the other one is not, since generic XDP
+  leaves by `goto out` before the `ptype_all` taps and the native path drops
+  before `napi_gro_receive`. The blocklist map then holds one hit under the
+  blocked name and no entry at all under the other, which says the program
+  parsed the name rather than dropping for some other reason, and the CLI's
+  stop leaves no pin root, no runtime and nothing on the device. Skips where
+  the compiled object is not installed, which is what a kernel publishing no
+  `bpf_xdp_load_bytes` leaves behind.
+- **example_sniclassify**: examples/sniclassify deployed as the tree ships it,
+  with the htb classes `setup.sh` installs on a veth pair of the case's own.
+  The kernel-side fixture puts an ICMP echo and then two ClientHellos of one
+  flow on `classify0` with a raw socket, so they leave through tcx egress and
+  then htb; a locally generated skb reaches `sch_handle_egress` before
+  `netdev_core_pick_tx` computes its hash, so all three carry hash zero and
+  are one flow to the program. Exactly one `sniclassify:` line comes back: the
+  first ClientHello called Lua, the second was decided from the map, and the
+  echo the header walk rejects never reached the call. The flow map then holds
+  the classid the callback set, which says the compiled side read
+  `skb.priority` back after the call, and as a delta around the sends the
+  class the policy names counts at least both ClientHellos while the
+  prioritised class counts none, which is what says htb classified on the
+  priority the program set. The policy class is a lower bound because the flow
+  key is the skb hash, zero for every locally generated frame, so a stray one
+  leaving in the window takes the classid the first ClientHello cached. The
+  CLI's stop leaves no pin root, no runtime and nothing on the device. Skips
+  where the object is not installed, where `luatc` publishes no
+  `bpf_luatc_run`, where `tc` is missing, or where the kernel will not add an
+  htb qdisc.
+- **example_speed**: the phase 0 bench, `tools/bench/xdp.sh`, run with a
+  one-second window and one run per row, its table reported as KTAP comments
+  and the case passing when every row of it produced a packets-per-second
+  figure. Informational, never a gate: a rate measured under that window is not
+  the figure the design notes quote, which comes from a full manual run. Skips
+  naming the script where the tree does not carry it, which is every tree the
+  bench branch is not merged into.
 
 ### monitor
 

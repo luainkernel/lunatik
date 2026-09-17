@@ -219,6 +219,14 @@ both implement. The CLI therefore detaches before it unpins wherever it takes a 
 
 * **No recursion.** "recursive call from %s() to %s()" at
   [verifier.c#L2954](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L2954).
+* **A pointer is checked against the frame it belongs to, not the current one.** `func(env, reg)`
+  answers `env->cur_state->frame[reg->frameno]`
+  ([kernel/bpf/verifier.c#L583-L589](https://github.com/torvalds/linux/blob/v6.12/kernel/bpf/verifier.c#L583-L589), at `v6.12`,
+  the running kernel's series), and `check_stack_write` takes its `bpf_func_state` from that call
+  ([#L5163-L5175](https://github.com/torvalds/linux/blob/v6.12/kernel/bpf/verifier.c#L5163-L5175)). So a callee writing through a
+  pointer its caller passed is checked against the caller's stack: that is what lets the abort
+  flag live one frame up, and what lets a function answer a string by copying it into a buffer
+  its caller owns.
 * **No call through a register.** Calls are `BPF_PSEUDO_CALL` to a subprogram
   ([include/uapi/linux/bpf.h#L1390](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L1390)),
   `BPF_PSEUDO_KFUNC_CALL` to a BTF id
@@ -449,6 +457,38 @@ both implement. The CLI therefore detaches before it unpins wherever it takes a 
   ([#L6725](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L6725)). The zeros
   are also what makes a `c<n>` map key's tail agree with `string.pack`'s padding, which is the one
   reason the comment on that line states.
+
+## The wire a case drives a program on
+
+The example cases deploy the programs the tree ships and put frames on a veth pair of their own,
+so what they may conclude is read off the paths those frames take. All at `v6.12`, the running
+kernel's series.
+
+* **A raw socket's frame takes the ordinary transmit path.** `packet_xmit` calls `dev_queue_xmit`
+  unless `PACKET_SOCK_QDISC_BYPASS` is set
+  ([net/packet/af_packet.c#L273-L276](https://github.com/torvalds/linux/blob/v6.12/net/packet/af_packet.c#L273-L276)), and
+  `lib/luasocket.c` never sets it, so a frame a kernel script sends through `socket.raw` reaches
+  the qdisc like any other.
+* **A tcx egress program runs before the transmit path computes a hash.** In `__dev_queue_xmit`,
+  `sch_handle_egress` is called at
+  [net/core/dev.c#L4374](https://github.com/torvalds/linux/blob/v6.12/net/core/dev.c#L4374) and `netdev_core_pick_tx` at
+  [#L4392](https://github.com/torvalds/linux/blob/v6.12/net/core/dev.c#L4392); the hash is computed under the second, by
+  `skb_tx_hash`'s `skb_get_hash` ([#L3274](https://github.com/torvalds/linux/blob/v6.12/net/core/dev.c#L3274)), reached from
+  `netdev_pick_tx` ([#L4277](https://github.com/torvalds/linux/blob/v6.12/net/core/dev.c#L4277)). `af_packet` sets no hash of its
+  own, so a locally generated frame reaches the egress program with `skb->hash` at zero and every
+  frame of such a run is one flow to a program keyed on it. `BPF_PROG_TEST_RUN` gives
+  `tests/luaebpf/partition.sh` the same property off the same field; the example's case reaches it
+  on the real path, which is why it owns its device.
+* **A frame XDP dropped never reaches a tap.** In `__netif_receive_skb_core`, generic XDP runs at
+  [net/core/dev.c#L5486-L5498](https://github.com/torvalds/linux/blob/v6.12/net/core/dev.c#L5486-L5498) and a verdict other than
+  `XDP_PASS` leaves by `goto out` at [#L5496](https://github.com/torvalds/linux/blob/v6.12/net/core/dev.c#L5496), before the two
+  `ptype_all` loops at [#L5512](https://github.com/torvalds/linux/blob/v6.12/net/core/dev.c#L5512) and
+  [#L5518](https://github.com/torvalds/linux/blob/v6.12/net/core/dev.c#L5518). In native mode `veth_xdp_rcv_skb`
+  ([drivers/net/veth.c#L762](https://github.com/torvalds/linux/blob/v6.12/drivers/net/veth.c#L762)) drops on `XDP_DROP`
+  ([#L825](https://github.com/torvalds/linux/blob/v6.12/drivers/net/veth.c#L825)) and only a surviving skb reaches
+  `napi_gro_receive` ([#L906-L911](https://github.com/torvalds/linux/blob/v6.12/drivers/net/veth.c#L906-L911)). So an `AF_PACKET`
+  socket bound to the receiving device is evidence of a drop under either mode, which is the
+  property `tests/xdp`'s ping already rests on.
 
 ## A map the object declares
 

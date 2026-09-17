@@ -14,9 +14,11 @@
 #     on the caller's fall-through without pairing the flag with the path; and a second pair of
 #     rows declares the other default, so the answer is the verdict the file asked for
 #   - the object carries one BTF FUNC per subprogram, named as the file names it
-#   - five arguments, fewer arguments than the callee declares, and direct or mutual recursion
-#     are refused with their messages and lines. The fifth register carries the abort pointer,
-#     so four is what a compiled function takes
+#   - five arguments, fewer arguments than the callee declares, direct or mutual recursion, and a
+#     module installed as a stripped chunk reached by a call are refused with their messages and
+#     lines; the same chunk handed over as the program itself is refused by its name, having no
+#     call site for a line to point at. The fifth register carries the abort pointer, so four is
+#     what a compiled function takes
 # A lost spill is a wrong number rather than a silent pass, since the spilled row's answer is
 # compared with the interpreter's like every other.
 #
@@ -29,7 +31,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 6
+luaebpf_start 8
 
 output=$(luaebpf_compile call) || { comment "$output"; fail "luaebpf: call.bpf.lua did not compile"; }
 output=$(luaebpf_loadall call) || { comment "$output"; fail "luaebpf: the calls did not verify"; }
@@ -97,6 +99,49 @@ LUA
 output=$(luaebpf_refuses recurse "recurse.bpf.lua:7: recursion through 'walk'") \
 	|| { comment "$output"; fail "luaebpf: recursion is not refused"; }
 ktap_pass "luaebpf: recursion is refused with its line"
+
+# BYTECODE=1 installs a kernel script as a stripped chunk, which carries no source for a compiled
+# function to be read from; the row builds one and puts it ahead of the installed roots
+cat > "$LUAEBPF_WORK/helper.lua" <<'LUA'
+local helper = {}
+
+function helper.width(a, b)
+	return a + b
+end
+
+function helper.prog(ctx)
+	return 2
+end
+
+return helper
+LUA
+lunatikc -s -o "$LUAEBPF_WORK/stripped.lua" "$LUAEBPF_WORK/helper.lua" \
+	|| fail "luaebpf: the case could not strip a module"
+cat > "$LUAEBPF_WORK/nosource.bpf.lua" <<'LUA'
+local xdp      = require("bpf.xdp")
+local stripped = require("stripped")
+
+return xdp.program(function(ctx)
+	local v = stripped.width(1, 2)
+	return v
+end)
+LUA
+output=$(export LUA_PATH="$LUAEBPF_WORK/?.lua;;"; luaebpf_refuses nosource \
+	"nosource.bpf.lua:5: 'width' carries no source; a stripped function cannot be compiled") \
+	|| { comment "$output"; fail "luaebpf: a call into a stripped module is not refused"; }
+ktap_pass "luaebpf: a call into a module stripped of its source is refused with its line"
+
+# the same module handing over the program itself, which has no call site for a line to name
+cat > "$LUAEBPF_WORK/noprogram.bpf.lua" <<'LUA'
+local xdp      = require("bpf.xdp")
+local stripped = require("stripped")
+
+return xdp.program(stripped.prog, {name = "fromstripped"})
+LUA
+output=$(export LUA_PATH="$LUAEBPF_WORK/?.lua;;"; luaebpf_refuses noprogram \
+	"'fromstripped' carries no source; a stripped function cannot be compiled") \
+	|| { comment "$output"; fail "luaebpf: a program taken from a stripped module is not refused"; }
+ktap_pass "luaebpf: a program whose own function carries no source is refused by its name"
 
 check_dmesg
 ktap_totals

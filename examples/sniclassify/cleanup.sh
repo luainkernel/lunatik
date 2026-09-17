@@ -7,8 +7,5 @@ set -eux
 IF=${1:?usage: cleanup.sh <iface>}
 
 lunatik stop examples/sniclassify/sni
-tc filter del dev "$IF" egress 2>/dev/null
-tc qdisc del dev "$IF" clsact 2>/dev/null
-tc qdisc del dev "$IF" root  2>/dev/null
-rm -f /sys/fs/bpf/sniclassify
+tc qdisc del dev "$IF" root 2>/dev/null || true
 

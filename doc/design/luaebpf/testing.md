@@ -130,7 +130,7 @@ The row this table called `run.sh` is `load.sh`: `tests/luaebpf/run.sh` is the s
 
 | Test | Proves |
 |------|--------|
-| `getstring.sh` | the read into a frame buffer over the corpus, its failure paths, the helper each program type calls with the buffer zeroed before it, the refusal on a kernel publishing no `bpf_xdp_load_bytes`, and every use of a string the frame cannot carry |
+| `getstring.sh` | the read into a frame buffer over the corpus, its failure paths, the helper each program type calls with the buffer zeroed before it, the refusal on a kernel publishing no `bpf_xdp_load_bytes`, and every use of a string the subset does not allow |
 | `strcmp.sh` | a comparison against a string constant matches the interpreter over the corpus, including a prefix, an empty string and a read whose NUL tail a length-blind compare would call equal |
 | `strkey.sh` | `getstring` into a `c64` map key finds an entry written by the kernel script, and a `c16` key reads the spec's width out of the same buffer |
 | `while.sh` | a `while` with a runtime bound terminates under `may_goto` and matches the interpreter |
@@ -140,9 +140,10 @@ The row this table called `run.sh` is `load.sh`: `tests/luaebpf/run.sh` is the s
 
 | Test | Proves |
 |------|--------|
-| `example_filter.sh` | the SNI filter compiled whole blocks the listed host on the veth pair and passes another |
-| `example_sniclassify.sh` | the classifier sets the priority from the map on a cached flow and from Lua on a new one |
-| `example_speed.sh` | the phase 0 script runs against the compiled filter; informational, not a gate |
+| `strret.sh` | a function answers a string through the buffer its caller passed: the read returned, the same one frame further, a callee taking the three arguments such a function may have of its own, a callee whose two returns each carry a buffer of their own, a call answering a name or nothing narrowed by `if host then` and by `host == nil`, and a read that fails inside the callee, each against the interpreter over the corpus; what such a call answered keying a `c64` map with a test and without one; and the six shapes the compiler refuses |
+| `example_filter.sh` | the SNI filter compiled whole blocks the listed host on a veth pair of its own and passes another, and the blocklist map counts what it dropped |
+| `example_sniclassify.sh` | the classifier calls Lua on the first packet of a flow and decides the rest from the map, and htb classifies both on the priority the callback set |
+| `example_speed.sh` | the phase 0 script runs and every row of its table produced a rate; informational, not a gate, and it skips naming the script where a tree does not carry it |
 
 ## Conventions to follow
 

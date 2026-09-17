@@ -3,6 +3,7 @@
 -- SPDX-FileCopyrightText: (c) 2024-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
+-- The policy of the SNI classifier; examples/sniclassify/sni.bpf.lua is the program that calls it.
 -- Based on https://github.com/luainkernel/lunatik/blob/master/examples/filter/sni.lua
 
 local tc      = require("tc")
@@ -28,8 +29,8 @@ local function sniclassify(ctx)
 	local raw     = ctx:skb()
 	local skb     = skbattr.new(raw)
 	local packet  = raw:data()
-	local payload = ctx:argument():getuint32(0)
-	local host    = sni(packet, payload)
+	local payload = ctx:argument():getint64(0)
+	local host    = sni.host(packet, payload)
 
 	if host then
 		local classid = policy:match(host)
