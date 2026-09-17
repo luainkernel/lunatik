@@ -10,9 +10,5 @@
 #define strcoll(l,r)	strcmp((l),(r))
 #define strerror(n)	"I/O error"
 
-#if defined(CONFIG_FORTIFY_SOURCE) && !defined(unsafe_memcpy)
-#define unsafe_memcpy(dst, src, bytes, justification)	__builtin_memcpy(dst, src, bytes)
-#endif
-
 #endif
 

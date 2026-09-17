@@ -28,9 +28,6 @@
 #include <linux/un.h>
 #include <linux/netlink.h>
 #include <net/sock.h>
-#if (LINUX_VERSION_CODE <= KERNEL_VERSION(6, 1, 0))
-#include <linux/l2tp.h>
-#endif
 
 #include <lunatik.h>
 

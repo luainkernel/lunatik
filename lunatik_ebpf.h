@@ -127,7 +127,6 @@ do { \
 		.set   = &bpf_lua##subsys##_set, \
 	};
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 #define LUNATIK_EBPF_NEWLIB(subsys, lib, class) \
 	LUNATIK_CLASSES(subsys, class); \
 	LUNATIK_NEWLIB(subsys, lib, lua##subsys##_classes)
@@ -143,21 +142,6 @@ static void __exit lua##subsys##_exit(void) \
 	if (lunatik_ebpf_runtimes != NULL) \
 		lunatik_putobject(lunatik_ebpf_runtimes); \
 }
-#else
-#define LUNATIK_EBPF_NEWLIB(subsys, lib, class) \
-	static const lunatik_class_t *lua##subsys##_classes[] = { NULL }; \
-	LUNATIK_NEWLIB(subsys, lib, lua##subsys##_classes)
-
-#define LUNATIK_EBPF_KFUNC_INIT(subsys, prog_type) \
-static int __init lua##subsys##_init(void) \
-{ \
-	return 0; \
-}
-#define LUNATIK_EBPF_EXIT(subsys) \
-static void __exit lua##subsys##_exit(void) \
-{ \
-}
-#endif
 
 #endif
 

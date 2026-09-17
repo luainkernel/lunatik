@@ -15,12 +15,10 @@ local masks = {
 	MOVED_FROM = 0x00000040, MOVED_TO = 0x00000080, CREATE = 0x00000100,
 	DELETE = 0x00000200, DELETE_SELF = 0x00000400, MOVE_SELF = 0x00000800,
 	OPEN_EXEC = 0x00001000, UNMOUNT = 0x00002000, Q_OVERFLOW = 0x00004000,
-	OPEN_PERM = 0x00010000, ACCESS_PERM = 0x00020000, OPEN_EXEC_PERM = 0x00040000,
-	EVENT_ON_CHILD = 0x08000000, ISDIR = 0x40000000,
+	ERROR = 0x00008000, OPEN_PERM = 0x00010000, ACCESS_PERM = 0x00020000,
+	OPEN_EXEC_PERM = 0x00040000, EVENT_ON_CHILD = 0x08000000, RENAME = 0x10000000,
+	ISDIR = 0x40000000,
 }
-
--- absent from the header before 5.16 (ERROR) and 5.17 (RENAME)
-local recent = { ERROR = 0x00008000, RENAME = 0x10000000 }
 
 -- composites and private names the include list leaves out
 local dropped = { "MOVE", "IN_IGNORED", "DN_MULTISHOT", "EVENTS_POSS_ON_CHILD" }
@@ -28,9 +26,6 @@ local dropped = { "MOVE", "IN_IGNORED", "DN_MULTISHOT", "EVENTS_POSS_ON_CHILD" }
 test("linux.fs carries every event mask at its uapi value", function()
 	for name, value in pairs(masks) do
 		assert(fs[name] == value, name .. ": " .. tostring(fs[name]))
-	end
-	for name, value in pairs(recent) do
-		assert(fs[name] == nil or fs[name] == value, name .. ": " .. tostring(fs[name]))
 	end
 end)
 
