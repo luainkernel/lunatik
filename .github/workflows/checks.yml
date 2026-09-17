@@ -15,6 +15,9 @@ jobs:
     - name: Stage the pull request's diff
       # pre-commit reads the index, so the diff against the base is staged as a commit would be
       run: git reset -q --soft "origin/${{ github.base_ref }}"
+    - name: Machine paths and credentials
+      # a leak fails the run under its own name; pre-commit runs the same gate again below
+      run: CHECK_STAGED=1 bash tools/checks/machine-leak.sh $(git diff --cached --name-only --diff-filter=ACM)
     - name: Trailing blank line
       run: bash tools/checks/pre-commit
     - name: Advisory checks
