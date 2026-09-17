@@ -722,6 +722,18 @@ and the plaintext data path a keyed socket becomes.
   control records and not about keyed sockets. Skipped whole where the `tls`
   ULP is neither registered nor loadable.
 
+- **bounded_recv**: that a receive on a keyed socket comes back, the property
+  a kernel thread relaying plaintext rests on: `tls_rx_rec_wait` waits on
+  `sk_wait_event` and never looks at `kthread_should_stop`, so an unbounded
+  receive there is a thread that cannot be stopped. `MSG_DONTWAIT` answers
+  `EAGAIN` without waiting, `SO_RCVTIMEO` answers `EAGAIN` after the timeout,
+  and the session still carries plaintext afterwards. Both waits are measured
+  and the elapsed time is printed, so "returns promptly" is a number.
+  `tests/socket/setsockopt` already bounds a plain socket's receive; this one
+  is on a keyed socket, where the wait is the strparser's and not
+  `tcp_recvmsg`'s. Skipped whole where the `tls` ULP is neither registered
+  nor loadable.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call
