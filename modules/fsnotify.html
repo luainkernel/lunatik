@@ -34,6 +34,7 @@
 <h2>Contents</h2>
 <ul>
 <li><a href="#Class_fsnotify_watch">Class fsnotify_watch </a></li>
+<li><a href="#Class_fsnotify_event">Class fsnotify_event </a></li>
 <li><a href="#fsnotify">fsnotify</a></li>
 </ul>
 
@@ -157,6 +158,33 @@
 	<td class="summary">Stops the watch.</td>
 	</tr>
 </table>
+<h2><a href="#Class_fsnotify_event">Class fsnotify_event </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_event:dir">fsnotify_event:dir ()</a></td>
+	<td class="summary">Returns the inode number of the directory the entry the event names lives in.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_event:ino">fsnotify_event:ino ()</a></td>
+	<td class="summary">Returns the inode number of the object the event is about.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_event:isdir">fsnotify_event:isdir ()</a></td>
+	<td class="summary">Tells whether the event is about a directory.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_event:name">fsnotify_event:name ()</a></td>
+	<td class="summary">Returns the directory entry name the event is about.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_event:path">fsnotify_event:path ()</a></td>
+	<td class="summary">Returns the full path of the object the event is about.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_event:pid">fsnotify_event:pid ()</a></td>
+	<td class="summary">Returns the pid of the task performing the access.</td>
+	</tr>
+</table>
 <h2><a href="#fsnotify">fsnotify</a></h2>
 <table class="function_list">
 	<tr>
@@ -183,7 +211,7 @@
     </dt>
     <dd>
     Places a mark on a filesystem object.
- Resolves <code>path</code> and marks its inode for the events in <code>mask</code>. A mark on a
+ Resolves <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> and marks its inode for the events in <code>mask</code>. A mark on a
  directory reports events on the files inside it only when <code>mask</code> carries
  <code>linux.fs.EVENT_ON_CHILD</code>.
 
@@ -210,7 +238,7 @@
     </ol>
 
     <h3>Raises:</h3>
-    if <code>path</code> does not resolve, if the mark cannot be added, if the watch
+    if <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> does not resolve, if the mark cannot be added, if the watch
    has been stopped, or if <code>mask</code> carries a permission event
 
 
@@ -249,6 +277,179 @@
 
 </dd>
 </dl>
+    <h2 class="section-header has-description"><a name="Class_fsnotify_event"></a>Class fsnotify_event </h2>
+
+          <div class="section-description">
+          The event a watch hands to its callback.
+ A userdata reused for every event of the watch that made it, holding what the
+ kernel passed the dispatcher. It is cleared when the callback returns, so a
+ script that keeps it and reads it afterwards gets an error rather than a
+ pointer into a stack frame that is gone.</p>
+
+<p> What an accessor can answer depends on what the kernel attached to the event:
+ an event on an open file carries a <code>struct path</code> and answers everything, while
+ a directory entry event carries only the entry's dentry or inode and has no
+ path. Each accessor returns <code>nil</code> for a field the event does not carry.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "fsnotify_event:dir"></a>
+    <strong>fsnotify_event:dir ()</strong>
+    </dt>
+    <dd>
+    Returns the inode number of the directory the entry the event names lives in.
+ Carried by the directory entry events, the old directory for <code>RENAME</code>, and by
+ an event on an object whose parent directory watches its children, whether or
+ not <a href="../modules/fsnotify.html#fsnotify_event:name">name</a> is.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        inode number, or <code>nil</code> when the event names no directory
+    </ol>
+
+    <h3>Raises:</h3>
+    if the event is used after its callback returned
+
+
+
+</dd>
+    <dt>
+    <a name = "fsnotify_event:ino"></a>
+    <strong>fsnotify_event:ino ()</strong>
+    </dt>
+    <dd>
+    Returns the inode number of the object the event is about.
+ Absent only when the kernel attached neither an inode, a dentry nor a path to
+ the event, and for a directory entry whose inode the filesystem instantiates
+ after reporting the entry.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        inode number, or <code>nil</code> when the event carries no inode
+    </ol>
+
+    <h3>Raises:</h3>
+    if the event is used after its callback returned
+
+
+
+</dd>
+    <dt>
+    <a name = "fsnotify_event:isdir"></a>
+    <strong>fsnotify_event:isdir ()</strong>
+    </dt>
+    <dd>
+    Tells whether the event is about a directory.
+ Reads <code>linux.fs.ISDIR</code> off the mask, so it answers for every event.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    if the event is used after its callback returned
+
+
+
+</dd>
+    <dt>
+    <a name = "fsnotify_event:name"></a>
+    <strong>fsnotify_event:name ()</strong>
+    </dt>
+    <dd>
+    Returns the directory entry name the event is about.
+ Carried by the directory entry events (<code>CREATE</code>, <code>DELETE</code>, <code>MOVED_FROM</code>,
+ <code>MOVED_TO</code>, and <code>RENAME</code>, whose name is the old one) and by an event a parent
+ directory marked with <code>linux.fs.EVENT_ON_CHILD</code> is interested in; an event
+ only the object's own mark reports carries none.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        entry name, or <code>nil</code> when the event carries none
+    </ol>
+
+    <h3>Raises:</h3>
+    if the event is used after its callback returned
+
+
+
+</dd>
+    <dt>
+    <a name = "fsnotify_event:path"></a>
+    <strong>fsnotify_event:path ()</strong>
+    </dt>
+    <dd>
+    Returns the full path of the object the event is about.
+ Only an event the kernel raised from an open file carries a <code>struct path</code>;
+ a directory entry event does not, and answers <code>nil</code>. This is the expensive
+ accessor: it resolves the path into a <code>PATH_MAX</code> buffer on every call, so a
+ callback that matches on <a href="../modules/fsnotify.html#fsnotify_event:name">name</a> never pays for it.</p>
+
+<p> The path is the one the accessing task sees: <code>d_path</code> renders it against that
+ task's own root, so a chrooted or containerised accessor gets its own view of
+ it, and a file already unlinked carries a trailing <code>&quot; (deleted)&quot;</code>.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        path, or <code>nil</code> when the event carries none
+    </ol>
+
+    <h3>Raises:</h3>
+    if the path cannot be resolved, or if the event is used after its
+   callback returned
+
+
+
+</dd>
+    <dt>
+    <a name = "fsnotify_event:pid"></a>
+    <strong>fsnotify_event:pid ()</strong>
+    </dt>
+    <dd>
+    Returns the pid of the task performing the access.
+ Delivery is synchronous, in the syscall of the process being watched, so this
+ is that process and not a bookkeeping artefact. It is a thread id, the same
+ number <code>task:pid()</code> reports.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        pid
+    </ol>
+
+    <h3>Raises:</h3>
+    if the event is used after its callback returned
+
+
+
+</dd>
+</dl>
     <h2 class="section-header "><a name="fsnotify"></a>fsnotify</h2>
 
     <dl class="function">
@@ -259,7 +460,11 @@
     <dd>
     Creates a watch.
  Allocates an <a href="../modules/fsnotify.html#">fsnotify</a> group whose events are delivered to <code>callback</code>.
- Nothing arrives until <code>watch:mark</code> places a mark.</p>
+ Nothing arrives until <code>watch:mark</code> places a mark. An event reaches the
+ callback once per watch, however many of its marks match it: when a file and
+ its parent directory, marked with <code>linux.fs.EVENT_ON_CHILD</code>, are both marked
+ by the same watch, an event on the file arrives once, tagged
+ <code>EVENT_ON_CHILD</code> and carrying the entry's <a href="../modules/fsnotify.html#fsnotify_event:name">name</a> and <a href="../modules/fsnotify.html#fsnotify_event:dir">dir</a>.</p>
 
 <p> An event whose delivery would need a lock its own task already holds is
  dropped rather than run: this callback touching a path it marks, and equally
@@ -271,8 +476,9 @@
     <ul>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
-         invoked as <code>callback(mask)</code>, where <code>mask</code> is the
-   event mask that fired, testable against <a href="../modules/linux.fs.html#">linux.fs</a> bits. Its return value
+         invoked as <code>callback(mask, event)</code>, where <code>mask</code> is
+   the event mask that fired, testable against <a href="../modules/linux.fs.html#">linux.fs</a> bits, and <code>event</code> is
+   an <a href="../modules/fsnotify.html#fsnotify_event">fsnotify_event</a> valid only for the length of the call. Its return value
    is ignored.
         </li>
     </ul>
@@ -293,7 +499,7 @@
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example"><span class="keyword">local</span> watch = fsnotify.<span class="function-name">watch</span>(<span class="keyword">function</span> (mask) <span class="global">print</span>(mask) <span class="keyword">end</span>)
+        <pre class="example"><span class="keyword">local</span> watch = fsnotify.<span class="function-name">watch</span>(<span class="keyword">function</span> (mask, event) <span class="global">print</span>(mask, event:<span class="function-name">name</span>()) <span class="keyword">end</span>)
 watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch"</span>, fs.OPEN)</pre>
     </ul>
 
@@ -305,7 +511,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-17 13:13:00 </i>
+<i style="float:right;">Last updated 2026-09-17 14:03:38 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
