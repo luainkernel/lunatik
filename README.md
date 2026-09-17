@@ -7,7 +7,7 @@ to load and run scripts and manage runtime environments from the user space;
 a [C API](doc/capi.md) to load and run scripts and manage runtime environments from the kernel;
 and [Lua APIs](#lunatik-lua-apis) for binding kernel facilities to Lua scripts.
 
-> Note: Lunatik supports Linux Kernel versions 5.15 and later
+> Note: Lunatik supports Linux Kernel versions 6.6 and later
 
 Feel free to join us on [Matrix](https://matrix.to/#/#lunatik:matrix.org).
 
@@ -72,7 +72,7 @@ compiled on kernel upgrade.
 
 ### OpenWRT
 
-Install Lunatik from our [package feed](https://github.com/luainkernel/openwrt_feed/tree/openwrt-23.05).
+Install Lunatik from our [package feed](https://github.com/luainkernel/openwrt_feed).
 
 ## Usage
 
@@ -199,9 +199,9 @@ The table below lists the available kernel Lua modules:
 | `skb` | Socket buffer (`sk_buff`): inspect and modify packets |
 | `xdp` | XDP (eXpress Data Path) hooks |
 | `tc` | TC (Traffic Control) hooks |
-| `sched` | sched_ext (extensible scheduler) hooks: dispatch queue and slice from Lua |
+| `sched` | sched_ext (extensible scheduler) hooks: dispatch queue and slice from Lua; 6.12 and later, with `CONFIG_SCHED_CLASS_EXT` |
 | `bpf` | Pinned eBPF map access (hash, array, LRU hash, queue, stack) |
-| `crypto` | Kernel crypto API: hash, cipher, AEAD, RNG, compression |
+| `crypto` | Kernel crypto API: hash, cipher, AEAD, RNG, compression (below 6.15) |
 | `hid` | HID device drivers |
 | `probe` | Kernel probes (kprobe / tracepoint) |
 | `syscall` | System call addresses by number, for `probe` |

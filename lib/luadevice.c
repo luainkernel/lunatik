@@ -394,11 +394,7 @@ static int luadevice_new(lua_State *L)
 LUNATIK_CLASSES(device, &luadevice_class);
 LUNATIK_NEWLIB(device, luadevice_lib, luadevice_classes);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
 static char *luadevice_devnode(const struct device *dev, umode_t *mode)
-#else
-static char *luadevice_devnode(struct device *dev, umode_t *mode)
-#endif
 {
 	luadevice_t *luadev = (luadevice_t *)dev_get_drvdata(dev);
 
@@ -409,11 +405,7 @@ static char *luadevice_devnode(struct device *dev, umode_t *mode)
 
 static int __init luadevice_init(void)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	luadevice_devclass = class_create("luadevice");
-#else
-	luadevice_devclass = class_create(THIS_MODULE, "luadevice");
-#endif
 	if (IS_ERR(luadevice_devclass)) {
 		pr_err("failed to create luadevice class\n");
 		return PTR_ERR(luadevice_devclass);

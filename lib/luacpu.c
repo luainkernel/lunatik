@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2025 Enderson Maia <endersonmaia@gmail.com
+* SPDX-FileCopyrightText: (c) 2025-2026 Enderson Maia <endersonmaia@gmail.com>
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -74,7 +74,7 @@ static int luacpu_stats(lua_State *L)
 	luacpu_setstat(L, -1, kcs, steal, STEAL);
 	luacpu_setstat(L, -1, kcs, guest, GUEST);
 	luacpu_setstat(L, -1, kcs, guest_nice, GUEST_NICE);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)) && defined(CONFIG_SCHED_CORE)
+#ifdef CONFIG_SCHED_CORE
 	luacpu_setstat(L, -1, kcs, forceidle, FORCEIDLE);
 #endif
 	return 1;

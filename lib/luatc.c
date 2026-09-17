@@ -19,17 +19,15 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/bpf.h>
+#include <linux/btf.h>
+#include <linux/btf_ids.h>
+#include <net/pkt_cls.h>
 
 #include <lunatik.h>
 #include <lunatik_ebpf.h>
 
 #include "luadata.h"
 #include "luaskb.h"
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
-#include <linux/btf.h>
-#include <linux/btf_ids.h>
-#include <net/pkt_cls.h>
 
 LUNATIK_EBPF_START();
 
@@ -252,13 +250,10 @@ static int luatc_attach(lua_State *L)
 	lunatik_ebpf_bind(L, 1, &ctx->cb);
 	return 0;
 }
-#endif
 
 static const luaL_Reg luatc_lib[] = {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 	{"attach", luatc_attach},
 	{"detach", luatc_detach},
-#endif
 	{NULL, NULL}
 };
 
