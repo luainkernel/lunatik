@@ -37,6 +37,13 @@ check_dmesg() {
 
 comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
 
+# A case whose failure mode needs a kernel newer than the tree's floor skips below it.
+kernel_atleast() {
+	local want="$1" have
+	have=$(uname -r | cut -d. -f1,2)
+	[ "$(printf '%s\n%s\n' "$want" "$have" | sort -V | head -1)" = "$want" ]
+}
+
 # a script that fails reports on the output, not on the exit status.
 run_script() {
 	local output

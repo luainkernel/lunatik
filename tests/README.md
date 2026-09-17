@@ -128,6 +128,15 @@ the runtime for the binding, instead of the suite reading the kernel version.
 
 ### examples
 
+- **cpuexporter**: drives the spawned `examples/cpuexporter` daemon over its own
+  socket: a request is answered with the OpenMetrics text the example exists to
+  serve, and a peer that connects and says nothing leaves the daemon to stop on
+  its own terms instead of having the stop tear its receive out from under it,
+  which is what the absence of an "error handling client" line says. That second
+  case needs the `TIF_NOTIFY_SIGNAL` `kthread_stop()` has set since v6.1 to fail
+  rather than wedge the host, so it skips below that. The peers are userspace
+  ones, since a session has to stay open across the stop; skips without
+  `python3`.
 - **echod**: drives the spawned `examples/echod` daemon over its own port: what a
   client sends comes back byte for byte, a second client is served while the
   first one holds its session and sends nothing, and the worker of a session
