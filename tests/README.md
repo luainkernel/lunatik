@@ -643,6 +643,23 @@ Regression tests for `luathread`.
   exited thread leaves no kernel complaint, and the object `task()` returns
   after the stop has no task: its methods raise.
 
+### tls
+
+Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with.
+
+- **pack**: every cipher `linux.tls.cipher` carries packs to the length its
+  `tls12_crypto_info_*` struct has, the size `gcc` measures for it over the
+  uapi header; the header and the key material land at the offsets those
+  structs place them at, which a packer that only got the length right
+  would miss; a part that is not exactly the cipher's size is refused naming
+  it, the salt of the zero-salt cipher included; and a cipher id outside
+  `TLS_CIPHER_MIN..MAX` is refused, so the set `pack` accepts is exactly what
+  `linux.tls.cipher` carries. A version the kernel does not implement still
+  packs, since judging it is `validate_crypto_info`'s. The module surface is
+  pinned too: `tls.pack`, the two version numbers `uapi/linux/tls.h` composes
+  from the halves autogen cannot read, and nothing else. Pure Lua: needs no
+  socket, no `CONFIG_TLS` and no ULP.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call
