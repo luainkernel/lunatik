@@ -140,6 +140,66 @@ read its own files.
   permission event. The shell counts the passing cases rather than looking only
   for a failing one, so a case that never ran cannot pass.
 
+### handshake
+
+Tests for the `handshake` module, the upcall that asks the `tlshd` agent to
+perform a TLS handshake on a socket. No agent is installed on the development
+host, so what the suite covers is the request reaching the kernel's queue and
+the refusals on either side of it; a completed handshake is not covered here.
+
+- **upcall**: that the request reaches `handshake_req_submit` carrying the
+  `struct file` the agent is handed. Which refusal comes back is the whole
+  reading: submit answers `EINVAL` for a socket with no file and `ESRCH` only
+  past that test, from `genl_has_listeners`, so `ESRCH` says the file was
+  attached. A socket that was never connected answers `ENOTCONN` instead,
+  which is the binding's own guard; a second hello on the same socket answers
+  `ESRCH` again with a clean kernel log, the reading that the attach is
+  idempotent and orphaned no file; and a server x509 hello reaches submit the
+  same way. Five identities reach it too, the accepted end of the bound
+  `options` refuses six at and the only case anywhere that runs the peerid copy
+  loop through to a submit; and a client x509 and a server psk hello are the
+  two arms no other case selects, which with the three above them are every
+  hello the two functions can pick. With no agent each answers `ESRCH`, so what
+  they pin is that the arm is reachable and submits, not which one was taken.
+  Skipped whole where `tlshd` is installed or running.
+
+- **options**: how the options pick the hello, and what is refused before one
+  is picked. A server hello with no credentials is refused because the kernel
+  publishes no anonymous server hello; more identities than `ta_my_peerids`
+  holds, a `cert` with no `privkey`, and `peerids` beside a `cert`, which name
+  different handshakes, are the binding's own refusals, ahead of the copy loop
+  and of a submit that would fail only at an agent. An empty identity list is
+  the one case that reaches the kernel, where `tls_client_hello_psk` refuses it
+  with `EINVAL` before allocating, which is also the reading that the psk arm
+  was selected. Four cases cover the types and the bounds rather than the
+  combinations, a peerid of the wrong type, a peerid and a `timeout` each wider
+  than the field that carries it, and an option field of the wrong type, every
+  one of which would otherwise reach the kernel truncated or as a zero. Two more
+  are argument 1 rather than the options, an object of another class and a closed
+  socket, which `luasocket_openfile` refuses before it reads a private through
+  this class's pointer. No case reaches submit, so an installed agent changes
+  nothing.
+
+- **context**: that a runtime which may not sleep is refused at the call. The
+  upcall takes a mutex and waits on a completion, and `lunatik_checkruntime`
+  is its first statement, so a softirq runtime gets `runtime context mismatch`
+  rather than a deadlock. The call passes no socket at all, which is what
+  discriminates: without the check the same call answers `bad argument #1`,
+  and a socket cannot stand in for it because `socket.new` refuses the same
+  runtime one line earlier.
+
+- **timeout**: the only path that reaches a queued request, the completion
+  wait and `tls_handshake_cancel`. The subscriber this host does not otherwise
+  supply is built from the tree's own modules: a `netlink.genl` session that
+  reads the `tlshd` group id out of a `CTRL_CMD_GETFAMILY` reply and joins the
+  group, which is what `genl_has_listeners` answers on. Nothing accepts the
+  request, so the wait runs out with `ETIMEDOUT`, a second hello on the same
+  socket answers `EBUSY` because the cancel leaves the request keyed on it
+  until it is destroyed, and the socket still closes afterwards. Closing the
+  session and repeating the call on a fresh socket brings `ESRCH` back, which
+  says the subscriber was the variable. Skipped whole where `tlshd` is
+  installed or running.
+
 ### hid
 
 - **register**: what `hid.register()` makes of an `id_table`. It accepts one
