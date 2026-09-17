@@ -1,8 +1,7 @@
 # Kernel notes: kernel TLS binding
 
-Reference sheet for the `ktls` binding. Verified against Linux 6.8
-(`/home/ubuntu/linux-hwe-6.8-6.8.0`, and the running kernel's `Module.symvers`), with version drift
-noted. Re-check on the kernel you build for.
+Reference sheet for the `ktls` binding. Verified against the Linux 6.8 sources and the running kernel's
+`Module.symvers`, with version drift noted. Re-check on the kernel you build for.
 
 ## The one fact that shapes everything
 

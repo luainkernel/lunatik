@@ -1,9 +1,9 @@
 # Kernel notes: LSM through eBPF
 
-Reference sheet for `lualsm`. Everything below was checked against Linux 6.8
-(`/home/ubuntu/linux-hwe-6.8-6.8.0` sources, `/usr/src/linux-headers-6.8.0-124-generic`, its
-`Module.symvers`, and the running `/sys/kernel/security/lsm`), and compared against upstream v6.12
-and v6.15 where the mechanism changed. Re-check on the kernel you target.
+Reference sheet for `lualsm`. Everything below was checked against the Linux 6.8 sources,
+`/usr/src/linux-headers-6.8.0-124-generic`, its `Module.symvers`, and the running
+`/sys/kernel/security/lsm`, and compared against upstream v6.12 and v6.15 where the mechanism changed.
+Re-check on the kernel you target.
 
 ## Why eBPF: the LSM framework is closed to modules
 
