@@ -36,7 +36,7 @@ against that prototype.
   LUA_INTEGER`, …) with kernel-only material (`printk`, `<linux/module.h>`, `lunatik_loadfile`,
   the `LUA_EXTRASPACE` struct), so it cannot be included by a host build as is.
 * Verified on the prototype: the Lua core (`lapi … lzio`, `lauxlib`) built on the host with
-  `-D_KERNEL -DLUA_USE_LINUX` and the shared part of `lunatik_conf.h` yields a ~200 KB static
+  `-D_KERNEL` and the shared part of `lunatik_conf.h` yields a ~200 KB static
   compiler whose chunks, installed under `/lib/modules/lua/<name>.lua`, run in the kernel, full and
   stripped. With every kernel Lua library and example installed as stripped chunks (`BYTECODE=1`),
   the whole suite passes (117/117, 6.8.0-136 aarch64), `driver.lua` included — so `lunatik_run`
@@ -84,20 +84,23 @@ compile; a foreign `.luac` fed by mistake is a parse error, not a silently copie
 
 ### Phase 1 — the compiler (`bin/lunatikc.c`, `lunatik_conf.h`, `Makefile`) — prototyped
 
-* `lunatik_conf.h`: fence kernel-only parts with `#ifdef __KERNEL__`. Shared on both sides:
-  `LUAI_UACNUMBER`, `LUA_NUMBER`, `LUA_NUMBER_FMT`, `l_randomizePivot`, `LUAL_BUFFERSIZE`,
-  `LUAI_MAXSTACK`, `LUNATIK_GCCOUNT`, `lua_getlocaledecpoint` (so the host parser ignores the
-  locale). Kernel only: `<linux/random.h>` / `luai_makeseed`, `lua_write*`, `l_signalT`, `panic`,
-  `<linux/module.h>` and `lsys_*`, `lunatik_loadfile`/`luaL_loadfilex`, `LUA_ROOT`/`LUA_PATH_DEFAULT`,
-  `lunatik_runtime_t`/`LUA_EXTRASPACE`, `luaS_hash`, the `current` undef.
+* `lunatik_conf.h`: fence the kernel-only part with `#ifdef __KERNEL__`, moving nothing. Shared
+  on both sides, and the only thing that shapes a chunk: `LUAI_UACNUMBER`, `LUA_NUMBER`,
+  `LUA_NUMBER_FMT` (`l_randomizePivot` precedes the fence too and reaches no host object). Kernel
+  only, everything after it: `<linux/random.h>` / `luai_makeseed`, `lua_getlocaledecpoint`,
+  `lua_write*`, `l_signalT`, `LUAL_BUFFERSIZE`, `panic`, `<linux/module.h>` and `lsys_*`,
+  `lunatik_loadfile`/`luaL_loadfilex`, `LUA_ROOT`/`LUA_PATH_DEFAULT`, `LUAI_MAXSTACK`,
+  `lunatik_runtime_t`/`LUA_EXTRASPACE`, `luaS_hash`, `LUNATIK_GCCOUNT`, the `current` undef. The
+  chunks are byte-identical with the limits shared or not; kept kernel-only, the host state is
+  not bounded by `LUAI_MAXSTACK 200`.
 * `bin/lunatikc.c`: `lunatikc [-s] [-o out] [-n chunkname] in.lua…`. Reads the file, parses with
   `"t"`, `lua_dump` with `strip`; writer tolerates empty blocks; default output `<in>.luac` next to
   the input (`-o` is a directory when there are several inputs), default chunk name `@<in>` (so
   errors point at the source the developer edits, and `-n` lets an installer set
   `@/lib/modules/lua/<name>.lua`). Exit non-zero on any error, message on stderr. ~160 lines.
 * `Makefile`: `lunatikc` target compiling `bin/lunatikc.c` plus the `lua/` core list (no
-  `lbaselib`/`loadlib`/`linit`/`liolib`) with `$(HOSTCC)` `-std=gnu99 -O2 -D_KERNEL
-  -DLUA_USE_LINUX -I. -Ilua`; part of `all`; `clean` removes it; `scripts_install` installs it to
+  `lbaselib`/`loadlib`/`linit`/`liolib`) with `$(HOSTCC)` `-std=gnu99 -O2 -D_KERNEL -I. -Ilua`;
+  part of `all`; `clean` removes it; `scripts_install` installs it to
   `LUNATIK_INSTALL_PATH` next to `lunatik`; `scripts_uninstall` removes it.
 * One commit for the header fence (no behavior change: same `lunatik.ko` text size with and
   without it), one for the tool and its wiring, docs in the same commit (README usage section).

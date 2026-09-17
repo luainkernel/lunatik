@@ -145,10 +145,10 @@ stays. Not part of the first phases.
 A host compiler needs only the core: `lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem
 lobject lopcodes lparser lstate lstring ltable ltm lundump lvm lzio lauxlib` — **not** `lbaselib`,
 `loadlib`, `linit`, `liolib`, which under `_KERNEL` reference `luaL_loadfilex`/`lsys_*` provided by
-`lunatik_conf.h`. Built with `-D_KERNEL -DLUA_USE_LINUX` and a `lunatik_conf.h` whose kernel-only
-parts (`printk`, `<linux/module.h>`, `<linux/random.h>`, `lunatik_loadfile`, `LUA_EXTRASPACE`
-struct) are fenced with `#ifdef __KERNEL__`, the result is a ~200 KB static binary whose output the
-kernel runs (verified: full and stripped chunks, `7/2 == 3`).
+`lunatik_conf.h`. Built with `-D_KERNEL` and a `lunatik_conf.h` whose kernel-only part (everything
+from `<linux/random.h>` on: `printk`, `<linux/module.h>`, `lunatik_loadfile`, `LUA_EXTRASPACE`
+struct, the limits) is fenced with `#ifdef __KERNEL__`, the result is a ~200 KB static binary whose
+output the kernel runs (verified: full and stripped chunks, `7/2 == 3`).
 
 Details that bit during the prototype:
 
