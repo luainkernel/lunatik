@@ -178,6 +178,14 @@ read its own files.
   would take (`TCP_CM_INQ`, `TCP_MSS_DEFAULT`, `TCP_NLA_PAD`,
   `TCP_CA_Open`, `TCP_FLAG_SYN`, ...) are absent; `linux.socket.sol`
   resolves the levels `setsockopt` routes on, `SOCKET`, `TCP` and `TLS`.
+- **tls**: `linux.tls` carries the four `SOL_TLS` option names and the four
+  halves the TLS version numbers are composed from; `linux.tls.cipher` carries
+  every cipher id at its `uapi/linux/tls.h` value, each distinct and inside the
+  `TLS_CIPHER_MIN..MAX` range `get_cipher_desc` resolves (`ARIA_GCM_128`/`_256`
+  arrived in 6.1, so they are asserted absent or at 57/58); `linux.tls.size`
+  gives all four key material sizes of every cipher, the zero salt of
+  `CHACHA20_POLY1305` being the only one that is not positive; and
+  `linux.tls.layout.crypto_info` is the 4-byte `{version, cipher_type}` header.
 
 ### monitor
 

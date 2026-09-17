@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fs socket"
+TESTS="random fs socket tls"
 TOTAL=$(echo $TESTS | wc -w)
 
 ktap_header
