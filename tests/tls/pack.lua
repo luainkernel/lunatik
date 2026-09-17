@@ -28,9 +28,14 @@ local measured = {
 	SM4_GCM = 40, SM4_CCM = 40, ARIA_GCM_128 = 40, ARIA_GCM_256 = 56,
 }
 
--- what the module is documented to carry, and the two numbers TLS_VERSION_NUMBER composes
-local surface = { pack = "function", version = "table" }
+-- what the module is documented to carry, the two numbers TLS_VERSION_NUMBER
+-- composes, and the content types net/tls_prot.h names
+local surface = { pack = "function", version = "table", record = "table", close_notify = "function" }
 local versions = { TLS_1_2 = 0x0303, TLS_1_3 = 0x0304 }
+local records = {
+	CHANGE_CIPHER_SPEC = 20, ALERT = 21, HANDSHAKE = 22, DATA = 23,
+	HEARTBEAT = 24, TLS12_CID = 25, ACK = 26,
+}
 
 local crypto_info = struct(ltls.layout.crypto_info)
 
@@ -50,7 +55,8 @@ local function refuses(message, ...)
 	assert(err:find(message, 1, true), "expected '" .. message .. "', got " .. tostring(err))
 end
 
--- the module is the packer and the two version numbers, and carries nothing else
+-- the module is the packer, the two version numbers, the record types and the
+-- close_notify helper, and carries nothing else
 for name, kind in pairs(surface) do
 	assert(type(tls[name]) == kind, name .. " is a " .. type(tls[name]))
 end
@@ -63,8 +69,14 @@ end
 for name in pairs(tls.version) do
 	assert(versions[name] ~= nil, "tls.version also carries " .. name)
 end
+for name, value in pairs(records) do
+	assert(tls.record[name] == value, name .. ": " .. tostring(tls.record[name]))
+end
+for name in pairs(tls.record) do
+	assert(records[name] ~= nil, "tls.record also carries " .. name)
+end
 
-print("tls pack: the module carries the packer and the two versions")
+print("tls pack: the module carries the packer, the versions and the record types")
 
 -- every cipher's blob is the length do_tls_setsockopt_conf demands of it
 for cipher, name in pairs(names) do

@@ -666,7 +666,8 @@ Regression tests for `luathread`.
 
 ### tls
 
-Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with.
+Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with,
+and the plaintext data path a keyed socket becomes.
 
 - **pack**: every cipher `linux.tls.cipher` carries packs to the length its
   `tls12_crypto_info_*` struct has, the size `gcc` measures for it over the
@@ -678,8 +679,9 @@ Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with.
   `linux.tls.cipher` carries. A version the kernel does not implement still
   packs, since judging it is `validate_crypto_info`'s. The module surface is
   pinned too: `tls.pack`, the two version numbers `uapi/linux/tls.h` composes
-  from the halves autogen cannot read, and nothing else. Pure Lua: needs no
-  socket, no `CONFIG_TLS` and no ULP.
+  from the halves autogen cannot read, the seven record types `net/tls_prot.h`
+  names, `tls.close_notify`, and nothing else. Pure Lua: needs no socket, no
+  `CONFIG_TLS` and no ULP.
 
 - **key**: what the kernel makes of that blob. Each case connects a client to
   its own loopback listener bound to port 0. Without the `tls` ULP on the
@@ -695,6 +697,18 @@ Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with.
   ChaCha20-Poly1305 case alone where the install answers `ENOENT` because the
   kernel builds no `rfc7539(chacha20,poly1305)`, and the ARIA case alone where
   the uapi header predates that cipher.
+
+- **record_type**: the control records `socket:sendrecord()` emits and
+  `socket:receiverecord()` reports, over a loopback pair keyed on both
+  directions with the same fixed vectors. An alert sent with the record type
+  set arrives as an alert, which says the TX control message reached
+  `tls_process_cmsg`: without it `tls_sw_sendmsg` leaves the record at
+  application data. `tls.close_notify()` emits the two bytes the kernel's own
+  `tls_alert_send` does, at warning level. That same close_notify read with
+  plain `socket:receive()` raises `EIO`, the gap this closes, while
+  application data read the same way still returns, so the `EIO` is about
+  control records and not about keyed sockets. Skipped whole where the `tls`
+  ULP is neither registered nor loadable.
 
 ### xdp
 

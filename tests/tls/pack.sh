@@ -9,7 +9,8 @@
 # tls12_crypto_info_* structs place them at, a part of the wrong length is
 # refused naming it, and a cipher outside TLS_CIPHER_MIN..MAX is refused. The
 # module itself is pinned too: tls.pack, the two version numbers uapi/linux/tls.h
-# composes from halves autogen cannot read, and nothing else.
+# composes from halves autogen cannot read, the seven record types, the
+# close_notify helper, and nothing else.
 #
 # Pure Lua: no socket, no CONFIG_TLS and no ULP, so nothing here is skipped.
 #
@@ -34,9 +35,9 @@ mark_dmesg
 run_script "$SCRIPT"
 check_dmesg || { ktap_totals; exit 1; }
 
-dmesg_since | grep -q "tls pack: the module carries the packer and the two versions" ||
+dmesg_since | grep -q "tls pack: the module carries the packer, the versions and the record types" ||
 	fail "the tls module is not the surface it documents"
-ktap_pass "pack: the module carries tls.pack and the two version numbers, and nothing else"
+ktap_pass "pack: the module carries tls.pack, the versions, the record types and close_notify, and nothing else"
 
 dmesg_since | grep -q "tls pack: every cipher sized" || fail "a cipher packed to the wrong length"
 ktap_pass "pack: every cipher packs to the length its crypto_info struct has"
