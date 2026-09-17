@@ -8,10 +8,12 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
 
 # Reading and driving the branch
 
-- `git fetch origin pull/<N>/head:review/<N>` brings the author's head; check it out in a worktree
-  of its own (`git worktree add <scratch>/w<N> review/<N>`, then `git submodule update --init`),
-  since a worktree named for a task may be another session's; build and run it with the
-  lunatik-cycle skill.
+- `git fetch origin +pull/<N>/head:review/<N>` brings the author's head; the `+` takes a head a
+  squash or a rebase rewrote, which a plain fetch declines without a word, so the fetched SHA is
+  checked against `gh api repos/.../pulls/<N> --jq .head.sha` before anything is diffed. Check it out
+  in a worktree of its own (`git worktree add <scratch>/w<N> review/<N>`, then
+  `git submodule update --init`), since a worktree named for a task may be another session's; build
+  and run it with the lunatik-cycle skill.
 - Read the pull request through the REST API, which needs no `read:org` scope. The spellings below
   assume the `gh` CLI; where the machine has none, the same call is
   `curl -sS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/<path>"`, and `review.js`
@@ -24,7 +26,23 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
 
 - Write the matrix the change is held to: for each guard or mechanism it adds, the operations by
   types by outcomes, and read the tests against it, cell by cell. A test set taken as given because
-  it came with the branch, or with the branch a rewrite replaces, is the review not done.
+  it came with the branch, or with the branch a rewrite replaces, is the review not done. A cell the
+  suite leaves uncovered and the review does not fill leaves as an issue, and the review body carries
+  its number.
+- Run the passes, not only the rules: the simplification pass over every field, helper, wrapper and
+  comment the diff adds (what does it buy over the minimal shape), the shape pass grepping the file's
+  siblings for the form the tree uses, and, for a guard or a primitive added to the core, the sweep
+  over every binding with the same shape. Each pass is its own read of the diff; the first round of
+  #848 and #849 ran the rules and left all three for a second.
+
+# Fixups
+
+- A fixup is made on `review/<N>` and pushed onto the pull request's branch, a fast-forward:
+  `git push <url> HEAD:refs/heads/<branch>`; then `gh api repos/.../pulls/<N>/commits` is what says it
+  is on the pull request, since the pull request lists that branch alone. `review/<N>` left on its
+  own is invisible there.
+- Answer a maintainer's comment in its thread, `gh api -X POST repos/.../pulls/<N>/comments -F
+  in_reply_to=<comment id> -F body=@file`, quoting the line it answers.
 
 # Reviewing as an agent that can die
 
