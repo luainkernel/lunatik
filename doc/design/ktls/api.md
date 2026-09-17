@@ -1,9 +1,9 @@
 # Proposed Lua API: `ktls`
 
 This is a design proposal, not a specification. Names and shapes are open for review; the kernel
-constraints behind them (`kernel-notes.md`) are not. Phases 1 and 2 are in the tree, the
-`linux.socket.tcp` and `linux.tls` namespaces and the `tls` packer over the `socket:setsockopt`
-`master` already had; the rest is proposal.
+constraints behind them (`kernel-notes.md`) are not. Phases 1 to 3 are in the tree, the
+`linux.socket.tcp` and `linux.tls` namespaces, the `tls` module over the `socket:setsockopt`
+`master` already had, and the record-type methods on the socket class; the rest is proposal.
 
 Four pieces, low to high level:
 
@@ -19,7 +19,8 @@ Four pieces, low to high level:
   `tls12_crypto_info_*` layout `setsockopt(SOL_TLS)` expects.
 * Everything here is process-context: keying, handshake and the relay loop run in a `run` (process) or
   `spawn` runtime, never softirq. The kernel does the record crypto; Lua never touches a cipher.
-* A kTLS socket is an ordinary Lunatik `socket` object once keyed; `send`/`receive` carry plaintext.
+* A kTLS socket is an ordinary Lunatik `socket` object once keyed; `send`/`receive` carry plaintext,
+  and `sendrecord`/`receiverecord` carry plaintext plus the record type it travelled in.
 
 ## Phase 1 — the ULP option
 
@@ -60,20 +61,25 @@ come from somewhere — a userspace handshake (phase 4) or, for tests, fixed vec
 
 ## Phase 3 — plaintext I/O and control records
 
-Once keyed, `sock:receive` returns decrypted plaintext and `sock:send` takes plaintext. Two additions
-this phase makes real:
+Once keyed, `sock:receive` returns decrypted plaintext and `sock:send` takes plaintext. Application
+data needs nothing more; a control record needs a second pair of methods:
 
-    local data, record = sock:receive(n)     -- record defaults to "data"
+    local data, record = sock:receiverecord(n [, flags])   -- record is nil when none arrived
+    local sent = sock:sendrecord(record, message)
 
-`receive` carries a `msg_control` buffer so a non-application record surfaces as a second return
-(`"alert"`, `"handshake"`, …) instead of failing the read with `-EIO`. A returned alert can be
-inspected (level, description) so a close_notify is a clean end of stream rather than an error.
+`receiverecord` carries the `msg_control` buffer `receive` does not, so an alert or a handshake record
+surfaces as the second return instead of failing the read with `-EIO`; the record type is the kernel's
+own byte, named by `tls.record`. That buffer is not free: with `msg_control` set, an `AF_UNIX` read of
+`SCM_RIGHTS` reaches a `WARN_ON_ONCE` in `scm_detach_fds` and leaks the files it was handed. So it
+stays off `receive`, whose callers would also gain a return they did not ask for, and `receiverecord`
+takes it only on `AF_INET` and `AF_INET6`, the families the ULP rides.
 
-    sock:send(payload)                       -- application data
-    sock:close_notify()                      -- send a close_notify alert record
+    sock:send(payload)                                     -- application data
+    tls.close_notify(sock)                                 -- the close_notify alert record
 
-`close_notify` sends a control record via the `TLS_SET_RECORD_TYPE` cmsg. Receives are bounded
-(`sock:timeout(ms)` or a non-blocking flag) so a relay loop in a kthread stays stoppable.
+`close_notify` is `sendrecord(tls.record.ALERT, "\1\0")`, in `tls` rather than on the socket class,
+so TLS vocabulary stays out of the class every protocol shares. Receives are bounded
+(`SO_RCVTIMEO_NEW`, or `linux.socket.msg.DONTWAIT`) so a relay loop in a kthread stays stoppable.
 
 ## Phase 4 — `handshake`: delegating to `tlshd`
 
@@ -113,10 +119,12 @@ The use case, in Lua. A spawned kthread relays plaintext between two sockets; on
 
     local thread = require("thread")
     local linux  = require("linux")
+    local tls    = require("tls")
+    local sk     = require("linux.socket")
 
     local function relay(a, b, transform)
-        local data, record = a:receive(4096)
-        if data and record == "data" then
+        local ok, data, record = pcall(a.receiverecord, a, 4096, sk.msg.DONTWAIT)
+        if ok and record == tls.record.DATA then
             b:send(transform and transform(data) or data)
         end
     end
@@ -135,8 +143,10 @@ separate netfilter/XDP hook; the byte-moving loop stays here, in a sleepable kth
 
 ## Open questions for review
 
-1. Whether `receive` returns `(data, record)` (proposed) or exposes the record type through a separate
-   accessor. The two-return form reads well and matches how a caller must branch on control records.
+1. ~~Whether `receive` returns `(data, record)` or exposes the record type through a separate
+   accessor.~~ Answered by phase 3: a separate `sock:receiverecord`, because a control buffer on
+   `receive` changes what an `AF_UNIX` read does with `SCM_RIGHTS` and changes the arity of a call
+   every existing script makes.
 2. Whether `tls.pack` should take a table (`{version=, cipher=, iv=, key=, …}`) rather than positional
    arguments; positional is what it ships, a table reads better with many fields.
 3. Whether `handshake.client`/`server` belong in their own `handshake` module or under `ktls`. They

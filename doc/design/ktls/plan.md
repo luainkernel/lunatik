@@ -32,9 +32,10 @@ has been reworked heavily since 5.4, a per-socket raw `lua_State` predates the w
 model, and the report itself measured it slower than userspace Lua + kTLS. It is a design reference,
 not a base.
 
-**The in-tree-native approach that patches nothing** is what this project builds, and only its first
-piece is in the repository today: `lib/luasocket.c` carries `sock:setsockopt(level, optname, optval)`
-(`42c543ad4`), with `linux.socket.sol` and `linux.socket.so` emitted by `autogen/specs.lua`.
+**The in-tree-native approach that patches nothing** is what this project builds, and phases 1 to 3
+are in the repository today: `lib/luasocket.c` carries `sock:setsockopt(level, optname, optval)`
+(`42c543ad4`) and the record-type methods, with `linux.socket.tcp` and `linux.tls` emitted by
+`autogen/specs.lua` and `lib/tls.lua` over them.
 
 Earlier notes described a parked `claude_tls` branch holding a `lib/luatls.c` packer, a
 `lib/luahandshake.c` upcall binding and a `lib/ktls.lua` client, to be rebased in. No such branch
@@ -45,8 +46,8 @@ every phase below writes its own code.
 
 | Expected result | Gap |
 |-----------------|-----|
-| Key a socket for kTLS | `sock:setsockopt` is on `master`; the `TCP_ULP` constant has no autogen spec, and no packer builds the `tls12_crypto_info_*` blob. |
-| Plaintext I/O with control records | No binding reads decrypted data with a `msg_control` buffer, so TLS control records (alert, close_notify) would error `-EIO` rather than being surfaced. |
+| Key a socket for kTLS | Closed by phases 1 and 2: `linux.socket.tcp.ULP` names the option and `tls.pack` builds the `tls12_crypto_info_*` blob over `sock:setsockopt`. |
+| Plaintext I/O with control records | Closed by phase 3: `sock:receiverecord` carries the `msg_control` buffer and `sock:sendrecord` emits a record of a chosen type, with `tls.record` and `tls.close_notify` over them. |
 | Handshake upcall | Nothing binds `tls_client_hello_*`, and the socket+file plumbing it needs is not spelled out. |
 | The tunnel | Nothing splices plaintext between two sockets. |
 | Tests and examples | Nothing covers keying with fixed vectors, alerts, or a tunnel. |
@@ -111,10 +112,11 @@ second install, `-EINVAL` on a wrong length or an unimplemented version).
 ### Phase 3: plaintext I/O with control records
 
 Read decrypted plaintext and write plaintext over the keyed socket, with bounded receives, and — the
-new part — a `msg_control` buffer so a received alert or close_notify is surfaced (via
-`tls_get_record_type` / `tls_alert_recv`) rather than turning into `-EIO`. Sending a non-data record
-(a controlled close_notify) via the `TLS_SET_RECORD_TYPE` cmsg is included. This is the phase that
-makes the socket usable as a data path, not just keyable.
+new part — `sock:receiverecord`, which carries a `msg_control` buffer so a received alert or
+close_notify is surfaced rather than turning into `-EIO`, and `sock:sendrecord`, which emits a record
+of a chosen type through the `TLS_SET_RECORD_TYPE` cmsg. The binding reads and writes that cmsg
+itself: the kernel's decoders are 6.6 and `CONFIG_NET_HANDSHAKE`, and its emitter is not exported at
+all. This is the phase that makes the socket usable as a data path, not just keyable.
 
 ### Phase 4: the handshake upcall
 
@@ -172,7 +174,7 @@ dependency (keys installed directly). Phase 4 onward brings in `tlshd` for real 
 | Risk | Mitigation |
 |------|-----------|
 | An unbounded `recv` in a kthread hangs the machine (the strparser does not check `kthread_should_stop`) | Every receive is bounded (`MSG_DONTWAIT` / `SO_RCVTIMEO_NEW`) and the loop polls `shouldstop()`; this is a hard rule, tested in phase 5. |
-| Control records error `-EIO` without a `msg_control` buffer | Phase 3 makes the plaintext read path always carry a control buffer; tested with a close_notify. |
+| Control records error `-EIO` without a `msg_control` buffer | Phase 3 adds a read that carries one, `sock:receiverecord`; plain `receive` still meets the `-EIO`, which is documented on both and pinned by a test. |
 | Handshake upcall needs a `struct socket` with a `struct file` and a running `tlshd` | Phase 4 builds the file plumbing explicitly; tests skip when `tlshd` is absent, and the phase-3 path (manual keys) needs neither. |
 | TLS 1.3 KeyUpdate is unsupported before kernel 6.14 | Documented; long-lived 1.3 sessions that re-key are out of scope on older kernels, and tests note it. |
 | kTLS key/nonce reuse is not checked by the kernel | Documented as a caller responsibility; the packer does not invent sequence numbers. |

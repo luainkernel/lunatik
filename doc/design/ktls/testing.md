@@ -47,13 +47,16 @@ could not name.
 
 | Test | Proves |
 |------|--------|
-| `loopback.sh` | with matching keys on both ends of a loopback pair, plaintext sent on A returns decrypted on B, both ciphers |
-| `record_type.sh` | `receive` returns `"data"` for application data; a received close_notify surfaces as an `"alert"` record instead of `-EIO`; the alert decodes to close_notify |
-| `close_notify.sh` | `sock:close_notify()` emits a control record the peer reads as an alert |
-| `bounded_recv.sh` | a bounded `receive` on an empty socket returns promptly (timeout / would-block), not blocking forever — the property a kthread relay depends on |
+| `tests/socket/record.sh` | the two methods on a socket with no ULP: no record type reported, the control message ignored, the record type bounded to a byte, and `MSG_DONTWAIT` honoured. Needs no `CONFIG_TLS` |
+| `tests/socket/scmrights.sh` | `receiverecord` on an `AF_UNIX` socket whose peer passes a descriptor carries no control buffer, so `scm_detach_fds` neither warns nor leaks the file: the peer passes the write end of a pipe and sees EOF on the other end. Needs no `CONFIG_TLS` |
+| `loopback.sh` | with matching keys on both ends of a loopback pair, plaintext sent on A returns decrypted on B and reports `tls.record.DATA`; both directions, both versions, both available ciphers, and a record read in two calls |
+| `record_type.sh` | a record sent with the alert type arrives as an alert, `tls.close_notify` emits what `tls_alert_send` does, the same alert read with plain `receive` raises `EIO`, and application data read that way still returns |
+| `bounded_recv.sh` | a bounded `receiverecord` on an empty keyed socket returns promptly (`MSG_DONTWAIT`) or after its `SO_RCVTIMEO` (both measured), not blocking forever — the property a kthread relay depends on — and the session still carries plaintext afterwards |
 
 `loopback.sh` and `record_type.sh` carry the phase: the first proves the data path works with no
-userspace TLS at all, the second proves control records do not break reads.
+userspace TLS at all, the second proves control records do not break reads. Sending the alert is the
+stimulus the receive case needs, so `close_notify` is a case of `record_type.sh` and not a file of its
+own, which would key the same session twice.
 
 ### Phase 4: handshake (skips without `tlshd`)
 

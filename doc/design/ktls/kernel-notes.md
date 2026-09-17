@@ -102,12 +102,36 @@ Once keyed, write plaintext with `kernel_sendmsg` (`net/socket.c:787`) and read 
 * **A control buffer is mandatory to see record types.** `tls_record_content_type` attaches a
   `TLS_GET_RECORD_TYPE` cmsg on the first record of a `recvmsg` (`tls_sw.c:1752`); if a non-DATA
   record arrives and the caller supplied no `msg_control`, the read fails `-EIO` (`tls_sw.c:1766`).
-  `kernel_recvmsg` does not set up `msg_control`, so the plaintext read path needs a custom `recvmsg`
-  carrying a control buffer. `tls_get_record_type` and `tls_alert_recv` (`net/handshake/alert.c`,
-  both `EXPORT_SYMBOL`) decode the cmsg and the alert.
+  `kernel_recvmsg` (`:1093`) sets `msg_control_is_user` and the iterator and touches neither
+  `msg_control` nor `msg_controllen`, so the caller fills them on the `struct msghdr` it already
+  builds — no custom `recvmsg`. `net/sunrpc/xprtsock.c:389`'s `xs_sock_recv_cmsg` is the sibling to
+  copy: a stack `union { struct cmsghdr cmsg; u8 buf[CMSG_SPACE(sizeof(u8))]; }`, and
+  `msg_controllen != sizeof(u)` afterwards as the "a cmsg arrived" test, since `put_cmsg`
+  (`net/core/scm.c:231`) advances `msg_control` and shortens `msg_controllen` by `CMSG_SPACE(len)`.
+  The header is therefore read at the base that was handed in, never at `msg_control` after the call.
+* **The decoding helpers are out of reach.** `tls_get_record_type` and `tls_alert_recv` are declared
+  in `include/net/handshake.h:45-46` and exported plainly, but `net/handshake/alert.c` and
+  `include/net/tls_prot.h` both arrived in **6.6** and are built only under `CONFIG_NET_HANDSHAKE`.
+  Linking them would raise this binding's floor from 6.0 for three lines of `cmsg_level`/`cmsg_type`
+  comparison and two bytes the script already holds, so the binding does both itself, and
+  `net/tls_prot.h`'s `TLS_RECORD_TYPE_*` names cannot come from `autogen` either: they are a table in
+  `lib/tls.lua`, keyed as a spec over that header would key them.
 * **Setting a TX record type** (to emit a close_notify or other non-data record) uses a
   `TLS_SET_RECORD_TYPE` cmsg at `SOL_TLS`; `tls_process_cmsg` (`tls_main.c:238`) parses it, flushing
-  any open record. Default is `TLS_RECORD_TYPE_DATA`.
+  any open record. Default is `TLS_RECORD_TYPE_DATA`. The kernel's own emitter is `tls_alert_send`
+  (`net/handshake/alert.c`), which is the one alert symbol that is **not** in `Module.symvers` while
+  its siblings are, so a binding builds that cmsg rather than calling it.
+* **A control buffer on a generic receive is not free**, which is why the record-type read is a
+  method of its own and not an extension of `socket:receive`. With `msg_control` non-NULL,
+  `__scm_recv_common` (`include/net/scm.h:172`) stops taking its early exit and reaches
+  `scm_detach_fds`, whose first statement is `if (WARN_ON_ONCE(!msg->msg_control_is_user)) return;`
+  (`net/core/scm.c:330`) — and `kernel_recvmsg` sets `msg_control_is_user = false`. That return is
+  before `__scm_destroy` (`:368`), so an `AF_UNIX` socket receiving `SCM_RIGHTS` goes from "fds
+  dropped, `MSG_CTRUNC` set" to a kernel `WARNING:` and every file of the message leaked.
+  The same branch also writes an `SCM_CREDENTIALS` cmsg under `SOCK_PASSCRED`.
+* **A `SOL_TLS` cmsg on a socket with no ULP is ignored, not refused.** `tcp_sendmsg_locked` passes a
+  non-empty control buffer to `sock_cmsg_send` (`net/core/sock.c:2947`), which walks it and
+  `continue`s on every level but `SOL_SOCKET`, so the payload goes out as ordinary bytes.
 * **kvec sends are always copied** — `tls_sw_sendmsg_locked` treats `is_kvec` specially
   (`tls_sw.c:1103`); kernel plaintext writes do not take the zerocopy/splice path. Fine, just not
   zero-copy.
@@ -162,6 +186,7 @@ Hard constraints:
 | ChaCha20-Poly1305 | ~5.7 | present |
 | ARIA-GCM-128/256 (`TLS_CIPHER_ARIA_GCM_*`) | 6.1 | present; the only constant here younger than the 6.0 floor |
 | handshake upcall (`net/handshake`, `tlshd`) | 6.4 / 6.5 | present |
+| alert helpers (`net/handshake/alert.c`, `net/tls_prot.h`) | 6.6 | present; above the 6.0 floor, so not linked |
 | TLS 1.3 **KeyUpdate** / re-keying on RX | **6.14** | **absent in 6.12** — a long-lived 1.3 session that re-keys breaks; document and scope out |
 | zerocopy `sendfile` for device offload TX | 6.11 | not needed here |
 
@@ -176,6 +201,10 @@ Hard constraints:
   (`do_sock_setsockopt`, exported at `:2340`)
 * handshake upcall: `include/net/handshake.h`, `net/handshake/tlshd.c` (exports), `request.c:223`
   (`handshake_req_submit`), doc `Documentation/networking/tls-handshake.rst`
-* alert/record readers: `net/handshake/alert.c` (`tls_get_record_type`, `tls_alert_recv`, exported)
+* alert/record readers: `net/handshake/alert.c` (`tls_get_record_type`, `tls_alert_recv`, exported;
+  `tls_alert_send`, not exported), `include/net/tls_prot.h` (the `TLS_RECORD_TYPE_*` and `TLS_ALERT_*`
+  names)
+* ancillary data: `net/core/scm.c:231` (`put_cmsg`), `:320` (`scm_detach_fds`),
+  `net/sunrpc/xprtsock.c:389` (`xs_sock_recv_cmsg`), `net/core/sock.c:2947` (`sock_cmsg_send`)
 * UAPI: `include/uapi/linux/tls.h`
 
