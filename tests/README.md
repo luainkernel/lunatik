@@ -699,9 +699,12 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   given past the port must still reach the kernel, and an AF_UNIX path, spelled as
   one argument, must not have the path itself read as the flags.
 
-- **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
-  client (connect/send/receive), both using the path stored at
-  construction.
+- **unix/stream**: `socket.unix` STREAM server (bind/listen/accept, `receive`
+  with `DONTWAIT`) and client (connect/send/receive), both using the path
+  stored at construction; and a peer that connects and says nothing, which
+  leaves the server stoppable rather than parked in its receive. That last
+  case needs the `TIF_NOTIFY_SIGNAL` `kthread_stop()` has set since v6.1 to
+  fail rather than wedge the host, so it skips below that.
 
 - **unix/dgram**: `socket.unix` DGRAM server (`receivefrom` with
   `DONTWAIT`) and client (`sendto` using the stored path).
