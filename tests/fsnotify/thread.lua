@@ -6,8 +6,6 @@
 
 local fsnotify = require("fsnotify")
 local fs       = require("linux.fs")
-local linux    = require("linux")
-local thread   = require("thread")
 
 local WATCHED <const> = "/tmp/lunatik-fsnotify/watched"
 
@@ -19,9 +17,6 @@ local function body()
 	local file = assert(io.open(WATCHED))
 	file:close()
 	print("fsnotify thread test pass: the open returned inside the thread body")
-	while not thread.shouldstop() do
-		linux.schedule(100)
-	end
 end
 
 local watch = fsnotify.watch(report)
