@@ -8,9 +8,10 @@ local raw    = require("socket.raw")
 local linux  = require("linux")
 local thread = require("thread")
 local eth    = require("linux.eth")
+local socket = require("linux.socket")
 
 local shouldstop = thread.shouldstop
-local DONTWAIT   = require("linux.socket").msg.DONTWAIT
+local DONTWAIT   = socket.msg.DONTWAIT
 
 -- LLDP multicast destination
 local ETH_DST_MAC = string.char(0x01,0x80,0xc2,0x00,0x00,0x0e)
@@ -68,67 +69,95 @@ local function build_lldp_frame(chassis_id)
 	return table.concat(pdu)
 end
 
+local function macaddr(addr)
+	if #addr ~= 6 then
+		return
+	end
+	return string.format("%02x:%02x:%02x:%02x:%02x:%02x", addr:byte(1, 6))
+end
+
+local function identifier(payload)
+	if #payload < 2 then
+		return
+	end
+	local subtype = payload:byte(1)
+	local value = payload:sub(2)
+	if subtype == 3 or subtype == 4 then
+		return macaddr(value)
+	end
+	return value
+end
+
+local function next_tlv(pdu, i)
+	if i + 1 > #pdu then
+		return
+	end
+	local word = string.unpack(">I2", pdu, i)
+	local t = word >> 9
+	local len = word & 0x1ff
+	if i + 1 + len > #pdu then
+		return
+	end
+	return t, pdu:sub(i + 2, i + 1 + len), i + 2 + len
+end
+
+local function chassis_id(nbr, payload)
+	nbr.chassis = identifier(payload)
+end
+
+local function port_id(nbr, payload)
+	nbr.port = identifier(payload)
+end
+
+local function take_ttl(nbr, payload)
+	if #payload == 2 then
+		nbr.ttl = string.unpack(">I2", payload)
+	end
+end
+
+local function system_name(nbr, payload)
+	nbr.name = payload
+end
+
+local decode = {
+	[1] = chassis_id,
+	[2] = port_id,
+	[3] = take_ttl,
+	[5] = system_name,
+}
+
 local function parse_lldp(frame)
 	if #frame < 14 then
 		return
 	end
-	local src_mac = frame:sub(7, 12)
+	local src = frame:sub(7, 12)
 	local ethtype = string.unpack(">I2", frame, 13)
 	if ethtype ~= eth.LLDP then
 		return
 	end
 
 	local pdu = frame:sub(15)
+	local nbr = {}
 	local i = 1
-	local seq = 0
-	local chassis, port, ttl, name
-
-	while i + 1 <= #pdu do
-		local word = string.unpack(">I2", pdu, i)
-		local t = word >> 9
-		local len = word & 0x1ff
-		if i + 1 + len > #pdu then
+	while true do
+		local t, payload, j = next_tlv(pdu, i)
+		if t == nil then
 			return
 		end
-		local payload = pdu:sub(i + 2, i + 1 + len)
 		if t == 0 then
 			break
 		end
-		seq = seq + 1
-		if seq == 1 and t ~= 1 then
-			return
+		local take = decode[t]
+		if take ~= nil then
+			take(nbr, payload)
 		end
-		if seq == 2 and t ~= 2 then
-			return
-		end
-		if seq == 3 and t ~= 3 then
-			return
-		end
-		if t == 1 then
-			if #payload < 2 then
-				return
-			end
-			chassis = payload:sub(2)
-		elseif t == 2 then
-			if #payload < 2 then
-				return
-			end
-			port = payload:sub(2)
-		elseif t == 3 then
-			if #payload ~= 2 then
-				return
-			end
-			ttl = string.unpack(">I2", payload)
-		elseif t == 5 then
-			name = payload
-		end
-		i = i + 2 + len
+		i = j
 	end
 
-	if chassis == nil or port == nil or ttl == nil then
+	if nbr.chassis == nil or nbr.port == nil or nbr.ttl == nil then
 		return
 	end
-	return chassis, port, name or "", src_mac
+	return nbr.chassis, nbr.port, nbr.name or "", src
 end
 
 local function remember_neighbor(neighbors, chassis, port, name)
