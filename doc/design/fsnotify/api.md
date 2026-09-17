@@ -111,7 +111,8 @@ view of the path, `" (deleted)"` and all; `kernel-notes.md` has the citations.
 ## Permission events
 
     local function guard(mask, event)
-        if mask & fs.OPEN_EXEC_PERM ~= 0 and not allowed:has(event:name()) then
+        local name = event:name()
+        if mask & fs.OPEN_EXEC_PERM ~= 0 and name and not allowed:has(name) then
             return fsnotify.action.DENY
         end
         return fsnotify.action.ALLOW
