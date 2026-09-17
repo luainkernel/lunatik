@@ -10,6 +10,8 @@
 #   - errors name the chunk name given with -n; stripped errors are "?:?:"
 #   - a chunk with a stock (float) number format is rejected by the header check
 #   - load() with mode "t" rejects a chunk inside the kernel
+#   - the tool's own refusals leave no output: a syntax error, a binary input, several inputs
+#     with -n; and the default output is <input>.luac next to the input
 #
 # Usage: sudo bash tests/luac/run.sh
 
@@ -20,19 +22,16 @@ SRC="$SCRIPTS_PATH/tests/luac"
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
-	rm -f "$SRC"/*_bc.lua "$SRC"/*_s.lua "$SRC"/stock.lua
+	rm -f "$SRC"/*_bc.lua "$SRC"/*_s.lua "$SRC"/stock.lua "$SRC"/bad.lua "$SRC"/*.luac
 }
 trap cleanup EXIT
 cleanup
 
-ktap_header
-ktap_plan 8
+skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
+command -v lunatikc >/dev/null || skip "luac: lunatikc not installed"
 
-if ! command -v lunatikc >/dev/null; then
-	for i in $(seq 8); do ktap_skip "luac: lunatikc not installed"; done
-	ktap_totals
-	exit 0
-fi
+ktap_header
+ktap_plan 12
 
 # name the chunks as the kernel will see them, so that error messages point at the installed file
 compile() {
@@ -87,6 +86,25 @@ run_script "tests/luac/textmode"
 check_dmesg || { ktap_totals; exit 1; }
 dmesg_since | grep -q "luac: text-only load rejects bytecode" || fail "luac: textmode did not run"
 ktap_pass "luac: load() with mode t rejects a chunk"
+
+printf 'local x = = 1\n' > "$SRC/bad.lua"
+output=$(lunatikc "$SRC/bad.lua" 2>&1) && fail "luac: syntax error accepted"
+echo "$output" | grep -q "^lunatikc: $SRC/bad.lua:1: " || fail "luac: syntax error message: $output"
+[ ! -e "$SRC/bad.luac" ] || fail "luac: syntax error left an output"
+ktap_pass "luac: a syntax error names the file and line and leaves no output"
+
+output=$(lunatikc "$SRC/hello_bc.lua" 2>&1) && fail "luac: binary input accepted"
+echo "$output" | grep -q "binary chunk" || fail "luac: binary input message: $output"
+[ ! -e "$SRC/hello_bc.luac" ] || fail "luac: binary input left an output"
+ktap_pass "luac: a binary input is refused"
+
+lunatikc -n "=x" "$SRC/hello.lua" "$SRC/lib.lua" 2>/dev/null && fail "luac: several inputs with -n accepted"
+[ ! -e "$SRC/hello.luac" ] && [ ! -e "$SRC/lib.luac" ] || fail "luac: refused inputs left an output"
+ktap_pass "luac: several inputs with -n are refused"
+
+lunatikc "$SRC/hello.lua" || fail "luac: default output"
+[ -f "$SRC/hello.luac" ] || fail "luac: hello.luac not written next to the input"
+ktap_pass "luac: the default output is <input>.luac next to the input"
 
 ktap_totals
 
