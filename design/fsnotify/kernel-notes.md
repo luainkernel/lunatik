@@ -233,8 +233,9 @@ group struct, which `cpp -dD` emits at column zero like any other define. A spec
 * **`FS_IN_IGNORED`** is inotify's internal overload of the `FS_ERROR` bit and **`FS_DN_MULTISHOT`** is
   dnotify's. Neither is meaningful to this binding;
 * the composites (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_EVENTS_POSS_TO_PARENT`, the
-  `ALL_FSNOTIFY_*` masks) drop out on their own: their values are expressions, and `autogen.lua` keeps
-  only defines whose value is an integer expression.
+  `ALL_FSNOTIFY_*` masks) are kept out by the `include` list, not by `autogen.lua`. Its
+  `is_integer_expr` rejects a function-like macro call and a lowercase letter outside a hex literal,
+  and an or of two names is neither, so `(FS_MOVED_FROM | FS_MOVED_TO)` reaches the table.
 
 So no change to `autogen.lua` is needed for the values themselves; the mask constants are plain hex
 literals and resolve like any other. What is needed is an `include` list, the way `nf.action` does it.
