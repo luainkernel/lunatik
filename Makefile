@@ -37,7 +37,7 @@ LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -I. -Ilua
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
 ifeq ($(BYTECODE),1)
 define INSTALL_LUA
-	for f in $(1); do ${LUNATIKC} -s -o $(2)/$$(basename $$f) $$f || exit 1; done
+	for f in $(1); do t=$$(mktemp) && ${LUNATIKC} -s -o $$t $$f && ${INSTALL} -m 0644 $$t $(2)/$$(basename $$f); rc=$$?; ${RM} $$t; [ $$rc -eq 0 ] || exit 1; done
 endef
 else
 define INSTALL_LUA
