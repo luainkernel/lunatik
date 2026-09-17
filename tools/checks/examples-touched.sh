@@ -11,7 +11,7 @@
 # hit; its first run on the merged code took the host down.
 #
 # For each file given that defines a Lua module (lib/lua<name>.c through
-# LUNATIK_NEWLIB, or a Lua library under lib/), prints the examples that require
+# LUNATIK_NEWLIB or LUNATIK_EBPF_NEWLIB, or a Lua library under lib/), prints the examples that require
 # that module, directly or through a script they run, so the reviewer and the
 # Build phase know what to run. Exits 1 when there is something to run.
 #
@@ -22,7 +22,7 @@ status=0
 module() {
 	case "$1" in
 		lib/luacrypto_*.c) echo crypto ;;
-		lib/lua*.c) sed -nE 's/^LUNATIK_NEWLIB\(([a-z0-9_]+),.*/\1/p' "$1" | head -1 ;;
+		lib/lua*.c) sed -nE 's/^LUNATIK_(EBPF_)?NEWLIB\(([a-z0-9_]+),.*/\2/p' "$1" | head -1 ;;
 		lib/*.lua) local m=${1#lib/}; m=${m%.lua}; echo "${m//\//.}" ;;
 	esac
 }
