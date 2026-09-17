@@ -12,7 +12,10 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
   of its own (`git worktree add <scratch>/w<N> review/<N>`, then `git submodule update --init`),
   since a worktree named for a task may be another session's; build and run it with the
   lunatik-cycle skill.
-- Read the pull request through the REST API, which needs no `read:org` scope:
+- Read the pull request through the REST API, which needs no `read:org` scope. The spellings below
+  assume the `gh` CLI; where the machine has none, the same call is
+  `curl -sS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/<path>"`, and `review.js`
+  takes `gh: false` to write them that way.
   `gh api repos/luainkernel/lunatik/pulls/<N>` for the PR,
   `gh api repos/.../issues/<N>/comments` and `gh api repos/.../pulls/<N>/comments` for the
   conversation, `gh api -X PATCH repos/.../pulls/<N> -f title=... -F body=@file` to edit.

@@ -22,6 +22,7 @@
 //   effort      per-phase reasoning effort, default "high"
 //   repo        the checkout the phases work in, default the repository they start in
 //   sudo        how a command gets root, default `sudo`
+//   gh          false where the gh CLI is absent, so the REST calls go through curl
 
 export const meta = {
   name: 'review-pr',
@@ -35,6 +36,10 @@ const checkpoint = `${a.scratch}/review${a.pr}/REVIEW.md`
 // the prompt is read by an agent with a shell, so the default resolves on the machine that runs it
 const repo = a.repo || '$(git rev-parse --show-toplevel)'
 const sudo = a.sudo || 'sudo'
+// gh is not on every machine; the same REST call goes through curl where it is absent
+const api = (path) => a.gh === false
+  ? `curl -sS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/${path}?per_page=100"`
+  : `gh api --paginate ${path}`
 
 const COMMON = `
 You are reviewing pull request #${a.pr} of Lunatik (Lua in the Linux kernel), in the checkout at \`${repo}\`:
@@ -62,9 +67,9 @@ ENVIRONMENT:
 - /dev/lunatik is single: never two lunatik operations at once, check with ps first. NEVER run
   \`lunatik run examples/ifquarantine/control\` bare; any example goes through \`${sudo} bash tools/watchdog.sh\`.
   \`tests/probe/armed.sh\` must never run against a build without \`lunatik_checkarmed\`.
-- NEVER commit to master, never \`git checkout master\`. GitHub reads go through \`gh api ...\` with \`GH_TOKEN\`
-  from the environment (\`gh pr view\` fails, no read:org; pass --paginate); where \`GH_TOKEN\` is unset, report
-  that the conversation could not be read. DO NOT POST ANYTHING TO GITHUB.
+- NEVER commit to master, never \`git checkout master\`. GitHub reads go through
+  \`${api('<path>')}\` with \`GH_TOKEN\` from the environment${a.gh === false ? '' : ' (`gh pr view` fails, no read:org)'};
+  where \`GH_TOKEN\` is unset, report that the conversation could not be read. DO NOT POST ANYTHING TO GITHUB.
 - Read the host before assuming one (\`uname -srm\`): a kernel interface is verified against
   \`/usr/src/linux-headers-$(uname -r)/include\` and the running kernel's \`Module.symvers\`, and against a full
   source tree where CLAUDE.local.md names one. Vendored Lua 5.5.
@@ -81,7 +86,7 @@ ${a.focus ? 'THIS ROUND, in the maintainer\'s words: ' + a.focus : ''}
 
 const HUNT = COMMON + `
 PHASE: HUNT. Read the whole change cold, as one diff against \`${a.base}\`, every changed file end to end,
-and the pull request's threads (\`gh api --paginate repos/luainkernel/lunatik/pulls/${a.pr}/comments\`),
+and the pull request's threads (\`${api(`repos/luainkernel/lunatik/pulls/${a.pr}/comments`)}\`),
 which record what the maintainer cares about.
 
 Hunt the smallest shape first: for every mechanism the diff adds (a registration path, a new API argument,
