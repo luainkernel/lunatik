@@ -46,13 +46,13 @@ output=$(luaebpf_refuses zerostep "zerostep.bpf.lua:5: 'for' step is zero") \
 ktap_pass "luaebpf: a 'for' whose step is zero at compile time is refused with its line"
 
 output=$(luaebpf_compile forvar "" loadbytes 2>&1)
-echo "$output" | grep -q "may_goto, which this kernel lacks" \
+echo "$output" | grep -q "which this kernel lacks" \
 	|| { comment "$output"; fail "luaebpf: an unbounded loop is not refused without may_goto"; }
 ktap_pass "luaebpf: with no loop form offered an unbounded loop is refused with its reason"
 
 output=$(luaebpf_compile forvar)
 if [ $? -ne 0 ]; then
-	echo "$output" | grep -q "may_goto, which this kernel lacks" \
+	echo "$output" | grep -q "which this kernel lacks" \
 		|| { comment "$output"; fail "luaebpf: forvar.bpf.lua did not compile"; }
 	for i in $(seq 3); do ktap_skip "luaebpf: the compiler says this kernel has no may_goto"; done
 	check_dmesg

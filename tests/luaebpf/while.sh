@@ -95,7 +95,8 @@ row() {
 	fi
 }
 
-row noform "noform.bpf.lua:10: a loop the compiler cannot bound needs may_goto, which this kernel lacks" \
+row noform \
+	"noform.bpf.lua:10: a loop the compiler cannot bound needs may_goto or an iterator, which this kernel lacks" \
 	$'\tlocal s = 0\n\tlocal i = 1\n\twhile i <= one + 1 do\n\t\ts = s + i\n\t\ti = i + 1\n\tend\n\treturn s' \
 	loadbytes
 row noexit "noexit.bpf.lua:8: a loop with no exit cannot be compiled" \

@@ -215,18 +215,27 @@ end
 
 -- Every kfunc a call named: a FUNC of extern linkage listed in a DATASEC named ".ksyms", whose
 -- bytes libbpf never looks for in the ELF, and an undefined symbol for the relocation to name.
--- The kfunc is the program type's, so the context its prototype takes is the program's own.
+-- The prototype is whoever declared the call's: the escape hatch's is the program type's, so the
+-- context it takes is the program's own, and the emitter's own carry theirs.
 local function ksyms(types, declared, called, hook)
-	local entries, symbols, seen = {}, {}, {}
+	local externs, entries, symbols, seen = {}, {}, {}, {}
 	for _, program in ipairs(declared) do
 		local kfunc = program.kfunc
 		if called[kfunc] and not seen[kfunc] then
 			seen[kfunc] = true
-			insert(entries, {type = types:func(kfunc, btf.linkage.EXTERN,
-				prototype(types, program.context.struct)), offset = 0, size = 0})
-			insert(symbols, {name = kfunc, section = elf.UNDEF, value = 0, size = 0,
-				bind = elf.bind.GLOBAL, type = elf.type.NOTYPE})
+			insert(externs, {name = kfunc, signature = prototype(types, program.context.struct)})
 		end
+	end
+	for _, kfunc in ipairs(emit.kfuncs) do
+		if called[kfunc.name] then
+			insert(externs, {name = kfunc.name, signature = kfunc.signature(types)})
+		end
+	end
+	for _, kfunc in ipairs(externs) do
+		insert(entries, {type = types:func(kfunc.name, btf.linkage.EXTERN, kfunc.signature),
+			offset = 0, size = 0})
+		insert(symbols, {name = kfunc.name, section = elf.UNDEF, value = 0, size = 0,
+			bind = elf.bind.GLOBAL, type = elf.type.NOTYPE})
 	end
 	if #entries > 0 and hook ~= "ksyms" then
 		types:datasec(KSYMS, entries)

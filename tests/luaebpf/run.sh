@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-SUITES="host pass lineinfo arith divzero branch forconst forvar while call"
+SUITES="host pass lineinfo arith divzero branch forconst forvar while iter call"
 SUITES="$SUITES btfview ctx packet bounds getstring strcmp strkey mapget mapset struct refuse budget"
 SUITES="$SUITES load stop undo notarget verifierlog callback miss partition report nobtf"
 

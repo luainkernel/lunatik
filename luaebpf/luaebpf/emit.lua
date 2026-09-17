@@ -52,6 +52,17 @@ local ANSWERSIZE <const> = 4
 local NORUNTIME  <const> = -1
 local KEYNUL     <const> = 1
 
+-- the open-coded iterators, which bound a loop on a kernel that has them and not may_goto:
+-- 'next' answers NULL after the iterations 'new' was given, and a live one at an exit is an
+-- unreleased reference the verifier refuses (kernel/bpf/helpers.c)
+local ITERNEW     <const> = "bpf_iter_num_new"
+local ITERNEXT    <const> = "bpf_iter_num_next"
+local ITERDESTROY <const> = "bpf_iter_num_destroy"
+local ITERSTATE   <const> = "bpf_iter_num"
+local ITERWORDS   <const> = 1               -- sizeof(struct bpf_iter_num), in words
+local ITERMAX     <const> = 8 * 1024 * 1024 -- BPF_MAX_LOOPS, the budget may_goto spends too
+local VOID        <const> = 0               -- btf_void, the type id an answer of nothing takes
+
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
 -- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
 -- the key and the value a map helper is handed by address
@@ -88,6 +99,31 @@ for name, op in pairs(opcodes) do
 end
 
 local emit = {}
+
+local function iterstate(types)
+	return types:pointer((types:struct(ITERSTATE, {})))
+end
+
+local function iternew(types)
+	return {result = types.int, params = {iterstate(types), types.int, types.int}}
+end
+
+local function iternext(types)
+	return {result = types:pointer(types.int), params = {iterstate(types)}}
+end
+
+local function iterdestroy(types)
+	return {result = VOID, params = {iterstate(types)}}
+end
+
+---
+-- The kfuncs the emitter calls on its own account, in the order an object names them, each with
+-- the prototype libbpf resolves the call against. libbpf compares it with the kernel's kind by
+-- kind, so a PTR to an empty STRUCT stands for the iterator's state and type 0 for the void two
+-- of them answer (tools/lib/bpf/relo_core.c).
+-- @table luaebpf.emit.kfuncs
+emit.kfuncs = {{name = ITERNEW, signature = iternew}, {name = ITERNEXT, signature = iternext},
+	{name = ITERDESTROY, signature = iterdestroy}}
 
 -- the compiler runs on the machine that loads what it emits, so the kernel it reads is the one
 -- it compiles for; the name is what a refusal quotes back
@@ -127,6 +163,10 @@ local probes = {}
 -- is the program type's
 function probes.loadbytes(f)
 	return vmlinux.publishes(f.unit.context.loadbytes.probe)
+end
+
+function probes.iter()
+	return vmlinux.publishes(ITERNEW)
 end
 
 -- may_goto has no name in any BTF, so the question is a load of the instruction itself; a load
@@ -231,15 +271,19 @@ local function grow(f, pc, bytes)
 	f.stack = bytes
 end
 
--- the words below the frame one call site owns, for what an address is taken of: the arguments
--- a kfunc is handed, and the bytes a getstring reads. One region per site, so a re-walk finds
--- the same offset; a .data section would become a libbpf map whose name carries a dot, which
--- bpffs refuses as a pin.
+-- the next words below the frame, which is what it grows downwards into
+local function reserve(f, pc, words)
+	grow(f, pc, f.stack + words * SLOT)
+	return -f.stack
+end
+
+-- the words one call site owns, for what an address is taken of: the arguments a kfunc is handed,
+-- and the bytes a getstring reads. One region per site, so a re-walk finds the same offset; a
+-- .data section would become a libbpf map whose name carries a dot, which bpffs refuses as a pin.
 local function region(f, pc, words)
 	local at = f.regions[pc]
 	if at == nil then
-		grow(f, pc, f.stack + words * SLOT)
-		at = -f.stack
+		at = reserve(f, pc, words)
 		f.regions[pc] = at
 	end
 	return at
@@ -357,29 +401,194 @@ local function labelof(f, pc)
 	return label
 end
 
--- the tail taken where the interpreter would raise: the program's default verdict in its own
--- frame, and the flag that carries the verdict one frame up everywhere else
-local function abort(f)
-	if f.aborted == nil then
-		f.aborted = f.code:label()
+-- A loop is the range between the instruction a back edge jumps to and the jump itself; Lua's
+-- control flow nests, so that range says which loops an instruction sits in and which ones a
+-- transfer out of it leaves. The compiler holds them because the walk discovers a loop at its
+-- back edge, which is after everything the loop encloses.
+local function loopof(f, head)
+	for _, loop in ipairs(f.loops) do
+		if loop.head == head then
+			return loop
+		end
 	end
-	return f.aborted
+end
+
+-- every loop pc sits in, and the head of the innermost of them: loops nest, so that head is what
+-- the whole set is known by
+local function within(f, pc)
+	local found, innermost = {}, 0
+	for _, loop in ipairs(f.loops) do
+		if pc >= loop.head and pc <= loop.at then
+			insert(found, loop)
+			innermost = max(innermost, loop.head)
+		end
+	end
+	return found, innermost
+end
+
+local function leaving(f, from, to)
+	local found = {}
+	for _, loop in ipairs(within(f, from)) do
+		if to < loop.head or to > loop.at then
+			insert(found, loop)
+		end
+	end
+	return found
+end
+
+-- the label a back edge lands on, which is the cycle below the creation of the loop's iterator:
+-- an edge from outside the loop lands on the head's own label and runs that creation first
+local function cycleof(f, head)
+	local label = f.cycles[head]
+	if label == nil then
+		label = f.code:label()
+		f.cycles[head] = label
+	end
+	return label
+end
+
+local function targetof(f, at, target)
+	if target <= at and loopof(f, target) ~= nil then
+		return cycleof(f, target)
+	end
+	return labelof(f, target)
+end
+
+-- an iterator live where the program exits is an unreleased reference, so every way out of a
+-- loop destroys the one it leaves; the call clobbers R0-R5, and nothing live sits there
+local function destroy(f, loops)
+	local code = f.code
+	for _, loop in ipairs(loops) do
+		code:alu(alu.MOV, reg.R1, reg.FP)
+		code:alui(alu.ADD, reg.R1, loop.slot)
+		code:kfunc(ITERDESTROY)
+	end
+end
+
+-- the tail taken where the interpreter would raise: the program's default verdict in its own
+-- frame, and the flag that carries the verdict one frame up everywhere else. One tail per set of
+-- loops that reach it, since what it leaves is what it owes a destroy to.
+local function abort(f, pc)
+	local loops, key = within(f, pc)
+	local tail = f.aborted[key]
+	if tail == nil then
+		tail = {label = f.code:label(), loops = loops}
+		f.aborted[key] = tail
+		insert(f.aborts, tail)
+	end
+	return tail.label
 end
 
 -- the header a loop the verifier cannot count needs, at the jump that closes it: the budget
 -- leaves by the instruction after that jump, which is the exit of a 'for', a 'while' and a
 -- 'repeat' alike, and the walk is what says afterwards whether anything reaches it
 local function maygoto(f, pc)
-	if not offers(f, "maygoto") then
-		refuse(f, pc, "a loop the compiler cannot bound needs may_goto, which this kernel lacks")
-	end
 	if f.drop ~= "maygoto" then
 		f.headers[pc + 1] = pc
 		f.code:maygoto(labelof(f, pc + 1))
 	end
 end
 
--- where the jump at pc goes, and the header a backward one needs on the way
+-- The same bound where the kernel has no may_goto: an iterator per loop, whose next the loop
+-- asks for once an iteration and which answers nothing after the budget may_goto spends. The
+-- walk reaches a back edge after everything the loop encloses, so the loop is recorded here on
+-- one round and built at its head on the next. A second back edge to one head -- a 'repeat' or
+-- an unbounded 'for' whose body opens with a loop of its own -- extends the range rather than
+-- making a second loop: both jumps re-enter the one cycle, so one iterator bounds the pair.
+local function iterate(f, pc, target)
+	local loop = loopof(f, target)
+	if loop ~= nil then
+		if pc > loop.at then
+			loop.at = pc
+			f.changed = true
+		end
+		return
+	end
+	insert(f.loops, {head = target, at = pc, slot = reserve(f, pc, ITERWORDS)})
+	f.changed = true
+end
+
+-- the iterator is created at the head, where every edge from outside the loop lands; the loop's
+-- own back edge lands below this, so it re-enters the cycle rather than the creation
+local function creating(f, loop)
+	if loop == nil then
+		return
+	end
+	local code = f.code
+	code:alu(alu.MOV, reg.R1, reg.FP)
+	code:alui(alu.ADD, reg.R1, loop.slot)
+	code:set(reg.R2, 0)
+	code:set(reg.R3, ITERMAX)
+	code:kfunc(ITERNEW)
+end
+
+-- Its next is asked at the top of the cycle rather than at the jump that closes it, where the
+-- call would clobber the operands of the test the jump belongs to: R1-R5 are the emitter's
+-- scratch within one instruction, and this sits between two. A loop out of iterations leaves by
+-- the instruction after its back edge, which is where may_goto leaves too.
+local function asking(f, loop)
+	if loop == nil then
+		return
+	end
+	local code = f.code
+	local more = code:label()
+	f.headers[loop.at + 1] = loop.at
+	code:place(cycleof(f, loop.head))
+	code:alu(alu.MOV, reg.R1, reg.FP)
+	code:alui(alu.ADD, reg.R1, loop.slot)
+	code:kfunc(ITERNEXT)
+	code:branchi(jump.JNE, reg.R0, 0, more)
+	destroy(f, {loop})
+	code:jump(labelof(f, loop.at + 1))
+	code:place(more)
+end
+
+-- what the jump closing a loop is bounded by, whichever of the two the kernel offers
+local function backedge(f, pc, target)
+	if offers(f, "maygoto") then
+		return maygoto(f, pc)
+	end
+	if offers(f, "iter") then
+		return iterate(f, pc, target)
+	end
+	refuse(f, pc, "a loop the compiler cannot bound needs may_goto or an iterator, which this kernel lacks")
+end
+
+-- a jump out of a loop destroys the iterators it leaves on the way
+local function jumpout(f, at, target)
+	destroy(f, leaving(f, at, target))
+	f.code:jump(targetof(f, at, target))
+end
+
+-- one branch, by register or by immediate, since a conditional out of a loop is emitted twice
+local function branchat(code, op, dst, src, imm, label)
+	if src ~= nil then
+		return code:branch(op, dst, src, label)
+	end
+	return code:branchi(op, dst, imm, label)
+end
+
+-- what each relation the emitter branches on is the negation of
+local opposite = {[jump.JEQ] = jump.JNE, [jump.JNE] = jump.JEQ, [jump.JGT] = jump.JLE,
+	[jump.JLE] = jump.JGT, [jump.JGE] = jump.JLT, [jump.JLT] = jump.JGE,
+	[jump.JSGT] = jump.JSLE, [jump.JSLE] = jump.JSGT, [jump.JSGE] = jump.JSLT,
+	[jump.JSLT] = jump.JSGE}
+
+-- a conditional whose taken edge leaves a loop: a branch carries no code of its own, so the
+-- test is inverted over a block that destroys and then jumps
+local function branchout(f, at, target, op, dst, src, imm)
+	local code, loops = f.code, leaving(f, at, target)
+	if #loops == 0 then
+		return branchat(code, op, dst, src, imm, targetof(f, at, target))
+	end
+	local stay = code:label()
+	branchat(code, opposite[op], dst, src, imm, stay)
+	destroy(f, loops)
+	code:jump(targetof(f, at, target))
+	code:place(stay)
+end
+
+-- where the jump at pc goes, and what a backward one is bounded by on the way
 local function jumptarget(f, pc)
 	local ins = f.proto.code[pc]
 	if ins == nil or ins.op ~= opcodes.JMP then
@@ -387,7 +596,7 @@ local function jumptarget(f, pc)
 	end
 	local target = pc + ins.sj + 1
 	if target <= pc then
-		maygoto(f, pc)
+		backedge(f, pc, target)
 	end
 	return target
 end
@@ -399,7 +608,7 @@ local function settled(f, pc, state, taken)
 		return false
 	end
 	local target = jumptarget(f, pc + 1)
-	f.code:jump(labelof(f, target))
+	jumpout(f, pc + 1, target)
 	reach(f, target, state)
 	return false
 end
@@ -408,7 +617,8 @@ end
 -- the comparison proved on it
 local function testjump(f, pc, state, op, dst, src, taken, fallen)
 	local target = jumptarget(f, pc + 1)
-	f.code:branch(op, dst, src, labelof(f, target))
+	branchout(f, pc + 1, target, op, dst, src)
+	destroy(f, leaving(f, pc + 1, pc + 2)) -- the fall-through leaves a loop a back edge closes
 	reach(f, target, taken or state)
 	reach(f, pc + 2, fallen or state)
 	return false
@@ -525,12 +735,12 @@ local function packetread(f, pc, ins, state, access)
 	local ptr = fetch(f, ins.a + 1, reg.R3)
 	code:load(reg.R1, ptr, base.offset, base.size)
 	code:load(reg.R2, ptr, limit.offset, limit.size)
-	code:branchi(jump.JGT, reg.R4, PACKETMAX - access.size, abort(f))
+	code:branchi(jump.JGT, reg.R4, PACKETMAX - access.size, abort(f, pc))
 	code:alu(alu.ADD, reg.R1, reg.R4)
 	if f.drop ~= "bounds" then
 		code:alu(alu.MOV, reg.R4, reg.R1)
 		code:alui(alu.ADD, reg.R4, access.size)
-		code:branch(jump.JGT, reg.R4, reg.R2, abort(f))
+		code:branch(jump.JGT, reg.R4, reg.R2, abort(f, pc))
 	end
 	code:load(reg.R1, reg.R1, 0, access.size)
 	if access.signed and access.size * BYTE < NBITS then
@@ -589,8 +799,8 @@ local function packetstring(f, pc, ins, state)
 	into(f, pc, state, ins.a + 2, reg.R2)
 	into(f, pc, state, ins.a + 3, reg.R4)
 	-- luadata_checkbounds raises below one byte, and ARG_CONST_SIZE refuses a zero-sized read
-	code:branchi(jump.JSLT, reg.R4, 1, abort(f))
-	code:branchi(jump.JGT, reg.R2, PACKETMAX - bound, abort(f))
+	code:branchi(jump.JSLT, reg.R4, 1, abort(f, pc))
+	code:branchi(jump.JGT, reg.R2, PACKETMAX - bound, abort(f, pc))
 	for i = 0, words - 1 do
 		code:storei(reg.FP, buffer + i * SLOT, 0)
 	end
@@ -599,7 +809,7 @@ local function packetstring(f, pc, ins, state)
 	code:alu(alu.MOV, reg.R3, reg.FP)
 	code:alui(alu.ADD, reg.R3, buffer)
 	code:helper(helper)
-	code:branchi(jump.JNE, reg.R0, 0, abort(f))
+	code:branchi(jump.JNE, reg.R0, 0, abort(f, pc))
 	state[ins.a] = {t = BUFFER, at = buffer, bound = bound}
 end
 
@@ -822,10 +1032,10 @@ local function testlookup(f, pc, ins, state)
 	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), 0, null)
 	local taken = copy(state)
 	mapvalue(f, pc, taken, ins.a, value)
-	code:jump(labelof(f, truthy))
+	jumpout(f, pc + 1, truthy)
 	reach(f, truthy, taken)
 	code:place(null)
-	code:jump(labelof(f, falsy))
+	jumpout(f, pc + 1, falsy)
 	state[ins.a] = {t = NIL, name = value.name}
 	reach(f, falsy, state)
 	return false
@@ -844,11 +1054,11 @@ local function testanswer(f, pc, ins, state, whennil)
 	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), NORUNTIME, missing)
 	local taken = copy(state)
 	taken[ins.a] = {t = INT, name = value.name}
-	code:jump(labelof(f, number))
+	jumpout(f, pc + 1, number)
 	reach(f, number, taken)
 	code:place(missing)
 	setimm(f, ins.a, 0) -- the register still carries the sentinel, and the emitter's nil is a zero word
-	code:jump(labelof(f, absent))
+	jumpout(f, pc + 1, absent)
 	state[ins.a] = {t = NIL, name = value.name}
 	reach(f, absent, state)
 	return false
@@ -949,7 +1159,7 @@ end
 
 function ops.LFALSESKIP(f, pc, ins, state)
 	resolve(f, pc, state, ins.a, false)
-	f.code:jump(labelof(f, pc + 2))
+	jumpout(f, pc, pc + 2)
 	reach(f, pc + 2, state)
 	return false
 end
@@ -1079,11 +1289,11 @@ end
 -- Lua's floor division: the quotient is corrected toward minus infinity when the operands'
 -- signs differ, a divisor of -1 is a negation (which mininteger needs), and a divisor of zero
 -- raises, so the program takes its default verdict
-local function floordiv(f)
+local function floordiv(f, pc)
 	local code = f.code
 	local negate, done = code:label(), code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc))
 	end
 	code:branchi(jump.JEQ, reg.R2, -1, negate)
 	code:alu(alu.MOV, reg.R3, reg.R1)
@@ -1103,11 +1313,11 @@ local function floordiv(f)
 end
 
 -- Lua's modulo: the remainder takes the divisor's sign, and a divisor of -1 is zero
-local function floormod(f)
+local function floormod(f, pc)
 	local code = f.code
 	local zero, done = code:label(), code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc))
 	end
 	code:branchi(jump.JEQ, reg.R2, -1, zero)
 	code:sdiv(alu.MOD, reg.R1, reg.R2)
@@ -1150,8 +1360,8 @@ function binops.MUL(f) f.code:alu(alu.MUL, reg.R1, reg.R2) end
 function binops.BAND(f) f.code:alu(alu.AND, reg.R1, reg.R2) end
 function binops.BOR(f) f.code:alu(alu.OR, reg.R1, reg.R2) end
 function binops.BXOR(f) f.code:alu(alu.XOR, reg.R1, reg.R2) end
-function binops.IDIV(f) floordiv(f) end
-function binops.MOD(f) floormod(f) end
+function binops.IDIV(f, pc) floordiv(f, pc) end
+function binops.MOD(f, pc) floormod(f, pc) end
 function binops.SHL(f) shiftl(f) end
 
 function binops.SHR(f)
@@ -1174,7 +1384,7 @@ local function register(f, pc, ins, state, op)
 	into(f, pc, state, ins.b, reg.R1)
 	into(f, pc, state, ins.c, reg.R2)
 	numbers(f, pc, state[ins.b], state[ins.c])
-	binops[op](f)
+	binops[op](f, pc)
 	setreg(f, ins.a, reg.R1)
 	state[ins.a] = {t = INT}
 end
@@ -1183,7 +1393,7 @@ local function immediate(f, pc, ins, state, op, value)
 	into(f, pc, state, ins.b, reg.R1)
 	numbers(f, pc, state[ins.b])
 	f.code:set(reg.R2, value)
-	binops[op](f)
+	binops[op](f, pc)
 	setreg(f, ins.a, reg.R1)
 	state[ins.a] = {t = INT}
 end
@@ -1407,9 +1617,9 @@ local function stringequal(f, pc, ins, state, i, value, text)
 		code:set(reg.R2, unpack("=i8", padded, (w - 1) * SLOT + 1))
 		code:branch(jump.JNE, reg.R1, reg.R2, differs)
 	end
-	code:jump(labelof(f, equal))
+	jumpout(f, pc + 1, equal)
 	code:place(differs)
-	code:jump(labelof(f, other))
+	jumpout(f, pc + 1, other)
 	reach(f, equal, state)
 	reach(f, other, state)
 end
@@ -1536,7 +1746,7 @@ function ops.TESTSET(f, pc, ins, state)
 		end
 		moveslot(f, state, ins.a, ins.b)
 		local target = jumptarget(f, pc + 1)
-		f.code:jump(labelof(f, target))
+		jumpout(f, pc + 1, target)
 		reach(f, target, state)
 		return false
 	end
@@ -1547,7 +1757,7 @@ function ops.TESTSET(f, pc, ins, state)
 	setreg(f, ins.a, reg.R1)
 	taken[ins.a] = state[ins.b]
 	local target = jumptarget(f, pc + 1)
-	f.code:jump(labelof(f, target))
+	jumpout(f, pc + 1, target)
 	f.code:place(skip)
 	reach(f, target, taken)
 	reach(f, pc + 2, state)
@@ -1556,7 +1766,7 @@ end
 
 function ops.JMP(f, pc, ins, state)
 	local target = jumptarget(f, pc)
-	f.code:jump(labelof(f, target))
+	jumpout(f, pc, target)
 	reach(f, target, state)
 	return false
 end
@@ -1598,7 +1808,7 @@ end
 local function counted(f, pc, ins, state, a)
 	local init, limit, step = state[a].k, state[a + 1].k, state[a + 2].k
 	if (step > 0 and init > limit) or (step < 0 and init < limit) then
-		f.code:jump(labelof(f, pc + ins.bx + 2))
+		jumpout(f, pc, pc + ins.bx + 2)
 		reach(f, pc + ins.bx + 2, state)
 		return true
 	end
@@ -1616,21 +1826,21 @@ end
 -- limit by overflowing it
 local function counting(f, pc, ins, state, a)
 	local code = f.code
-	local skip = labelof(f, pc + ins.bx + 2)
+	local skip = pc + ins.bx + 2
 	local descending, divide, store = code:label(), code:label(), code:label()
 	into(f, pc, state, a, reg.R1)
 	into(f, pc, state, a + 1, reg.R2)
 	into(f, pc, state, a + 2, reg.R3)
 	if state[a + 2].k == nil then
-		code:branchi(jump.JEQ, reg.R3, 0, abort(f))
+		code:branchi(jump.JEQ, reg.R3, 0, abort(f, pc))
 	end
 	code:alu(alu.MOV, reg.R5, reg.R3)
 	code:branchi(jump.JSLT, reg.R3, 0, descending)
-	code:branch(jump.JSGT, reg.R1, reg.R2, skip)
+	branchout(f, pc, skip, jump.JSGT, reg.R1, reg.R2)
 	code:alu(alu.SUB, reg.R2, reg.R1)
 	code:jump(divide)
 	code:place(descending)
-	code:branch(jump.JSLT, reg.R1, reg.R2, skip)
+	branchout(f, pc, skip, jump.JSLT, reg.R1, reg.R2)
 	code:alu(alu.MOV, reg.R4, reg.R1)
 	code:alu(alu.SUB, reg.R4, reg.R2)
 	code:alu(alu.MOV, reg.R2, reg.R4)
@@ -1673,18 +1883,17 @@ end
 
 function ops.FORLOOP(f, pc, ins, state)
 	local a, code = ins.a, f.code
-	local after = labelof(f, pc + 1)
 	if not f.bounded[pc] then
-		maygoto(f, pc)
+		backedge(f, pc, pc + 1 - ins.bx)
 	end
 	into(f, pc, state, a, reg.R1)
-	code:branchi(jump.JEQ, reg.R1, 0, after)
+	branchout(f, pc, pc + 1, jump.JEQ, reg.R1, nil, 0)
 	code:alui(alu.ADD, reg.R1, -1)
 	setreg(f, a, reg.R1)
 	into(f, pc, state, a + 2, reg.R2)
 	code:alu(alu.ADD, reg.R2, getreg(f, pc, state, a + 1, reg.R3))
 	setreg(f, a + 2, reg.R2)
-	code:jump(labelof(f, pc + 1 - ins.bx))
+	jumpout(f, pc, pc + 1 - ins.bx)
 	state[a] = {t = INT}
 	state[a + 2] = {t = INT}
 	reach(f, pc + 1 - ins.bx, state)
@@ -1696,17 +1905,17 @@ end
 
 local function returns(f, pc, state, i)
 	local dropped = f.drop == "verdict"
+	if i ~= nil and isbuffer(state[i]) then
+		refuse(f, pc, "a string does not outlive the function that read it")
+	end
+	destroy(f, within(f, pc)) -- the call clobbers R0-R5, so the verdict is written after it
 	if i == nil then
 		f.rettype = f.rettype | NIL
 		if not dropped then
 			f.code:set(reg.R0, f.isprogram and f.default or 0)
 		end
 	else
-		local value = state[i]
-		if isbuffer(value) then
-			refuse(f, pc, "a string does not outlive the function that read it")
-		end
-		f.rettype = f.rettype | value.t
+		f.rettype = f.rettype | state[i].t
 		if not dropped then
 			f.code:alu(alu.MOV, reg.R0, getreg(f, pc, state, i, reg.R0))
 		end
@@ -1779,7 +1988,7 @@ function ops.CALL(f, pc, ins, state)
 	f.code:alui(alu.ADD, reg.R1 + nargs, ABORTED)
 	f.code:call(target.name)
 	f.code:load(reg.R1, reg.FP, ABORTED)
-	f.code:branchi(jump.JNE, reg.R1, 0, abort(f))
+	f.code:branchi(jump.JNE, reg.R1, 0, abort(f, pc))
 	if ins.c > 1 then
 		setreg(f, ins.a, reg.R0)
 		state[ins.a] = {t = target.rettype}
@@ -1817,8 +2026,10 @@ local function walk(f)
 	local code = insn.new()
 	f.code = code
 	f.labels = {}
+	f.cycles = {}
 	f.headers = {}
-	f.aborted = nil
+	f.aborted = {}
+	f.aborts = {}
 	f.rettype = 0
 	f.calls = {}
 	for pc = 1, #f.proto.code do
@@ -1839,8 +2050,11 @@ local function walk(f)
 		if entry ~= nil then
 			local state, ins = copy(entry), f.proto.code[pc]
 			local handler = handlers[ins.op]
-			code:place(f.labels[pc])
+			local loop = loopof(f, pc)
 			code:source(f.proto.lines[pc])
+			code:place(f.labels[pc])
+			creating(f, loop)
+			asking(f, loop)
 			if handler == nil then
 				local opname = opnames[ins.op]
 				refuse(f, pc, "%s", refusals[opname] or opname .. " cannot be compiled")
@@ -1856,9 +2070,10 @@ local function walk(f)
 			refuse(f, at, "a loop with no exit cannot be compiled")
 		end
 	end
-	if f.aborted ~= nil then
+	for _, tail in ipairs(f.aborts) do
 		code:source(f.proto.lastlinedefined)
-		code:place(f.aborted)
+		code:place(tail.label)
+		destroy(f, tail.loops)
 		if f.isprogram then
 			if f.drop ~= "verdict" then
 				code:set(reg.R0, f.default)
@@ -1888,6 +2103,7 @@ function emit.lower(f)
 	f.entry = {}
 	f.bounded = {}
 	f.regions = {}
+	f.loops = {}
 	for _ = 1, ROUNDS do
 		f.changed = false
 		walk(f)

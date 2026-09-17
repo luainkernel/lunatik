@@ -134,7 +134,7 @@ The row this table called `run.sh` is `load.sh`: `tests/luaebpf/run.sh` is the s
 | `strcmp.sh` | a comparison against a string constant matches the interpreter over the corpus, including a prefix, an empty string and a read whose NUL tail a length-blind compare would call equal |
 | `strkey.sh` | `getstring` into a `c64` map key finds an entry written by the kernel script, and a `c16` key reads the spec's width out of the same buffer |
 | `while.sh` | a `while` with a runtime bound terminates under `may_goto` and matches the interpreter |
-| `iter.sh` | the same loop lowered to the iterator kfuncs on a kernel without `may_goto` |
+| `iter.sh` | the same loops lowered to the iterator kfuncs, forced with `LUAEBPF_PROBE` so the lowering a 6.6 or 6.8 kernel takes runs here: a return out of a loop body, a break, a nested pair and a failed check all load, which is what says every path out destroyed the iterator it left |
 
 ### Phase 6: examples
 
