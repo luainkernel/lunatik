@@ -128,6 +128,15 @@ the runtime for the binding, instead of the suite reading the kernel version.
 
 ### examples
 
+- **echod**: drives the spawned `examples/echod` daemon over its own port: what a
+  client sends comes back byte for byte, a second client is served while the
+  first one holds its session and sends nothing, and the worker of a session
+  whose peer went silent ends when the daemon does. Nobody ever calls
+  `kthread_stop()` on a worker, the daemon discards the thread object it makes
+  per connection, so only the worker's own poll of the control byte ends it and
+  a parked one keeps executing `luathread.ko` text the next reload frees. The
+  peers are userspace ones, since a session has to stay open across the stop;
+  skips without `python3`.
 - **shared**: drives the spawned `examples/shared` daemon over its own port with
   a kernel-side client: a GET of a key that was never assigned and a GET of a
   key a SET removed each answer with an empty line, instead of taking the thread
