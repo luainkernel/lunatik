@@ -527,6 +527,13 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   given past the port must still reach the kernel, and an AF_UNIX path, spelled as
   one argument, keeps the argument past it for the flags.
 
+- **ulp**: `SOL_TCP`/`TCP_ULP` with the name `tls` raises `ENOTCONN` on a
+  socket that was never connected, takes on one connected to a loopback
+  listener bound to port 0, and raises `EEXIST` the second time, which is
+  what says the first attach took: a script has no `getsockopt` to read
+  the ULP name back with. Skipped where the `tls` ULP is neither
+  registered nor loadable.
+
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at
   construction.
