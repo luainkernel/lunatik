@@ -43,7 +43,7 @@ fi
 
 for f in $files; do
 	[ -f "$f" ] && continue
-	echo "review-post-guard: the text of a post is read from a file, and $f is not one." >&2
+	echo "review-post-guard: the text of a post is read from a file, and $f is not one. A path written as a shell variable arrives here unexpanded: spell it out." >&2
 	exit 2
 done
 

@@ -21,7 +21,7 @@ if [ -z "$file" ]; then
 	exit 2
 fi
 if [ ! -f "$file" ]; then
-	echo "pr-body-guard: the body of a pull request is read from a file, and $file is not one." >&2
+	echo "pr-body-guard: the body of a pull request is read from a file, and $file is not one. A path written as a shell variable arrives here unexpanded: spell it out." >&2
 	exit 2
 fi
 
