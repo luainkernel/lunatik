@@ -535,6 +535,27 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   given past the port must still reach the kernel, and an AF_UNIX path, spelled as
   one argument, keeps the argument past it for the flags.
 
+- **record**: `socket:receiverecord()` and `socket:sendrecord()` on a socket
+  carrying no ULP, which is what they do when nothing decodes their control
+  message: the receive reports the bytes and no record type, and the send
+  hands the payload over unchanged, since `sock_cmsg_send` skips every
+  control message whose level is not `SOL_SOCKET`. A record type wider than
+  the byte it travels in is refused naming the argument, and `MSG_DONTWAIT`
+  on an empty socket raises `EAGAIN`, which says the flags argument reaches
+  `kernel_recvmsg` on the new path. Needs no `CONFIG_TLS` and no ULP.
+
+- **scmrights**: `socket:receiverecord()` on an AF_UNIX socket whose peer
+  passes a descriptor. A control buffer on that read keeps `__scm_recv_common`
+  from its early exit and reaches `scm_detach_fds`, which warns on a
+  kernel-space caller and returns before `__scm_destroy`, leaking every file
+  it was handed, so the read carries one only where a TLS record type can
+  arrive. The read reports no record type, and the descriptor it dropped is
+  released: the peer passes the write end of a pipe and reads the other end,
+  which reports EOF only once the last reference is gone. `check_dmesg`
+  catches the `WARNING` too. A userspace peer built with `gcc` passes the
+  descriptor, since no kernel binding sends `SCM_RIGHTS`; skipped without
+  `gcc`.
+
 - **ulp**: `SOL_TCP`/`TCP_ULP` with the name `tls` raises `ENOTCONN` on a
   socket that was never connected, takes on one connected to a loopback
   listener bound to port 0, and raises `EEXIST` the second time, which is
