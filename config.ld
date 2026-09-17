@@ -31,6 +31,7 @@ file = {
 	'./lib/luadevice.c',
 	'./lib/luafifo.c',
 	'./lib/luafsnotify.c',
+	'./lib/luahandshake.c',
 	'./lib/luahid.c',
 	'./lib/lighten.lua',
 	'./lib/lualinux.c',

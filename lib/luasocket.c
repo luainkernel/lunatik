@@ -24,6 +24,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/version.h>
 #include <linux/string.h>
+#include <linux/file.h>
 #include <linux/net.h>
 #include <linux/un.h>
 #include <linux/netlink.h>
@@ -34,6 +35,8 @@
 #endif
 
 #include <lunatik.h>
+
+#include "luasocket.h"
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 7, 0)
 typedef int (*luasocket_setter_t)(struct socket *, int, int, sockptr_t, unsigned int);
@@ -556,7 +559,8 @@ static void luasocket_release(void *private)
 {
 	struct socket *sock = (struct socket *)private;
 	kernel_sock_shutdown(sock, SHUT_RDWR);
-	sock_release(sock);
+	/* a filed socket is the file's to release */
+	sock->file != NULL ? fput(sock->file) : sock_release(sock);
 }
 
 static const luaL_Reg luasocket_lib[] = {
@@ -649,6 +653,31 @@ static int luasocket_lnew(lua_State *L)
 
 LUNATIK_CLASSES(socket, &luasocket_class);
 LUNATIK_NEWLIB(socket, luasocket_lib, luasocket_classes);
+
+struct socket *luasocket_openfile(lua_State *L, int ix)
+{
+	lunatik_object_t *object = lunatik_checkobjectclass(L, ix, &luasocket_class);
+	struct file *file = NULL;
+	struct socket *sock;
+
+	/* close runs the release outside this lock, so the private is read and the file referenced under it */
+	lunatik_lock(object);
+	sock = (struct socket *)object->private;
+	if (sock != NULL) {
+		file = sock->file != NULL ? sock->file : sock_alloc_file(sock, 0, NULL);
+		if (IS_ERR(file))
+			object->private = NULL; /* sock_alloc_file released the socket: the release must not do it again */
+		else
+			get_file(file);
+	}
+	lunatik_unlock(object); /* raising under the lock would skip the unlock */
+
+	lunatik_argchecknull(L, sock, ix);
+	if (IS_ERR(file))
+		lunatik_throw(L, (int)PTR_ERR(file));
+	return sock;
+}
+EXPORT_SYMBOL(luasocket_openfile);
 
 static int __init luasocket_init(void)
 {

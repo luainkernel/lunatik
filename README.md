@@ -214,6 +214,7 @@ The table below lists the available kernel Lua modules:
 | `lighten` | Lua interface for running encrypted scripts via `darken` |
 | `notifier` | Kernel notifier chain registration |
 | `fsnotify` | Filesystem notification: inode marks and their events |
+| `handshake` | TLS handshakes performed on a socket by the `tlshd` agent |
 | `lunatik.runner` | Run, spawn, and stop scripts from within Lua |
 | `net` | Networking helpers |
 | `mailbox` | Asynchronous inter-runtime messaging |
