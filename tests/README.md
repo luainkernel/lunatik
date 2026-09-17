@@ -155,7 +155,11 @@ the runtime for the binding, instead of the suite reading the kernel version.
   a lunatik socket shuts down before it releases; the case skips without
   `python3`. A GET of a key that was set answers with the value and nothing
   else, over a rewrite to a shorter value too, which the byte-exact assertion
-  tells from a reply carrying the whole slot.
+  tells from a reply carrying the whole slot. A peer that connects and says
+  nothing leaves the daemon to stop on its own terms rather than have the stop
+  raise out of its request loop; that case needs the `TIF_NOTIFY_SIGNAL`
+  `kthread_stop()` has set since v6.1 to fail rather than wedge the host, so it
+  skips below that.
 
 ### fifo
 
