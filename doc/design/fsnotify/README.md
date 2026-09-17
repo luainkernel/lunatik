@@ -10,7 +10,7 @@ without reverse engineering `fs/notify/` first.
 
 | Document | What it is for |
 |----------|----------------|
-| [plan.md](plan.md) | Current state, gap analysis, phases, sizing, non goals, definition of done |
+| [plan.md](plan.md) | The plan as written before the work: the state then, gap analysis, phases, sizing, non goals, definition of done |
 | [api.md](api.md) | The Lua API for the `fsnotify` module: what was built, and the reasons behind it |
 | [kernel-notes.md](kernel-notes.md) | Verified kernel API reference: symbols, signatures, context rules, version drift |
 | [testing.md](testing.md) | Test strategy and the test matrix |
