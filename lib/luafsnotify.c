@@ -98,10 +98,6 @@ static void luafsnotify_detach(luafsnotify_t *watch)
 	struct fsnotify_group *group = watch->group;
 	luafsnotify_mark_t *mark, *next;
 
-	if (group == NULL)
-		return;
-
-	watch->group = NULL;
 	list_for_each_entry_safe(mark, next, &watch->marks, entry) {
 		list_del(&mark->entry);
 		fsnotify_destroy_mark(&mark->mark, group);
