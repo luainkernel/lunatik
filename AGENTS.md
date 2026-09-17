@@ -923,7 +923,9 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   the hand-back says which. Asking whether to fix it is asking the maintainer to decide what the
   rules already decide. "It is not this pull request's" names where the fix goes, never whether it is
   owed: the finding leaves with a branch or an issue and the report carries its number, since a defect
-  handed back as prose is a defect nobody owns.
+  handed back as prose is a defect nobody owns. Before the fix is written, `tools/pr-status.sh` says
+  whether an open pull request already carries one: a second fix of the same defect collides with the
+  first and is dropped, and #976 wrote two of them, at a review round each.
 * A finding is resolved, not parked. When something looks wrong, run it to ground — reproduce it, find
   the cause, then fix it or dismiss it. "I'll flag it to the author", "let's look into it separately",
   or asking whether to investigate is dropping it, not handling it. Deferral is for work that belongs
