@@ -478,6 +478,72 @@ and its `tc` twin are the whole kernel side of the escape hatch. Facts the emitt
   ([lib/luaxdp.c#L27](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luaxdp.c#L27)).
   Issue #561 factors the per-module copies into one `lunatik_bpf_run`; the emitter calls whatever
   name the module publishes, resolved through the module's BTF.
+* The callee NUL-terminates the key it was handed, `key[key__sz - 1] = '\0'`
+  ([lunatik_ebpf.h#L22-L28](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lunatik_ebpf.h#L22-L28)),
+  so the key must be writable memory of at least that many bytes: a frame slot is, `.rodata`
+  would not be, which is why the C stubs keep the name in a `static char`.
+* A zero `key__sz`, a `NULL` `arg` and a zero `arg__sz` all pass the verifier, which is what
+  `tests/xdp/xdp_zerokey.bpf.c` loads today
+  ([#L19](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/tests/xdp/xdp_zerokey.bpf.c#L19)),
+  so a call with no arguments needs no special case and the kfunc's own guard is what refuses the
+  zero key.
+
+### What libbpf requires of the extern
+
+The emitter writes by hand what clang writes for an `extern ... __ksym` declaration. At v7.2:
+
+* The `.symtab` entry is `st_shndx == SHN_UNDEF`, bind `STB_GLOBAL` or `STB_WEAK`, type
+  `STT_NOTYPE` ([sym_is_extern, libbpf.c#L4093-L4100](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4093-L4100)).
+* The BTF entry is a `FUNC` of the same name with `BTF_FUNC_EXTERN` linkage
+  ([find_extern_btf_id, #L4119-L4150](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4119-L4150)), and it must be
+  listed in a `DATASEC` named `.ksyms`
+  ([find_extern_sec_btf_id, #L4152-L4174](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4152-L4174);
+  [KSYMS_SEC, #L547](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L547);
+  [the `.ksyms` branch, #L4401-L4406](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4401-L4406)).
+* No ELF section of that name is needed: `btf_fixup_datasec` skips the ELF size lookup for
+  `.kconfig` and `.ksyms` ([#L3418-L3440](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L3418-L3440)), and
+  `readelf -S` on a clang object confirms it.
+* libbpf then rewrites the `.ksyms` DATASEC itself: it adds a `dummy_ksym` VAR of the first
+  32-bit integer type it finds in the object's own BTF
+  ([add_dummy_ksym_var, #L4260-L4296](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4260-L4296);
+  [find_int_btf_id, #L4244-L4258](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4244-L4258)), replaces each
+  var_secinfo's type with it, fills any unnamed parameter of the extern's proto from the dummy's
+  name, and turns the `FUNC` `BTF_FUNC_GLOBAL`
+  ([#L4459-L4476](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4459-L4476)). The emitter's BTF already carries
+  `int` as type id 1 and names every parameter, so both lookups are satisfied and the refill never
+  fires.
+* Resolution is `bpf_core_types_are_compat` over the two `FUNC_PROTO`s
+  ([bpf_object__resolve_ksym_func_btf_id, #L8757-L8790](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L8757-L8790)),
+  whose contract beyond the root ignores names entirely, treats any two STRUCTs as compatible,
+  ignores an INT's size and signedness, and recurses through a `PTR` into what it points at --
+  only the kinds must match
+  ([__bpf_core_types_are_compat, relo_core.c#L145-L224](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/relo_core.c#L145-L224)).
+  So a `PTR` to any `INT` stands for `char *`, an `INT` for each `size_t`, a `PTR` to an empty
+  `STRUCT` for the context, and a `PTR` to type id 0 for `void *` -- a `PTR` to an `INT` there
+  would fail, `UNKN` against `INT`.
+* The relocation: libbpf reads only the instruction's opcode, `BPF_JMP | BPF_CALL` against an
+  extern symbol, to record `RELO_EXTERN_CALL`
+  ([#L4634-L4657](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4634-L4657)), and then writes
+  `src_reg = BPF_PSEUDO_KFUNC_CALL`, `imm = kernel_btf_id` and `off = btf_fd_idx` on the
+  instruction itself ([#L6480-L6490](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L6480-L6490)). It never reads
+  the relocation's type, and it puts the module BTF fd into `fd_array` by itself
+  ([#L8790-L8812](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L8790-L8812)). The emitted call therefore carries
+  the `-1` immediate the buffer already writes.
+* The failure when the kfunc is nowhere to be found is
+  `extern (func ksym) '<name>': not found in kernel or module BTFs`
+  ([#L8770-L8776](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L8770-L8776)), a `pr_warn`: it reaches the caller
+  only through libbpf's print callback, and the errno is `ESRCH`.
+
+### The answer is sign-extended by the caller
+
+The verifier marks a kfunc's scalar return `mark_reg_unknown` and records only that the answer is
+`t->size` bytes wide
+([verifier.c#L13140-L13145](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L13140-L13145)), so for an `int` the upper
+32 bits of `R0` carry nothing. A caller reading the answer as a signed value owes the sign
+extension, which is what clang emits for `ret < 0 ? XDP_PASS : ret`
+([tests/xdp/xdp_pass.bpf.c#L20](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/tests/xdp/xdp_pass.bpf.c#L20)):
+`r0 <<= 0x20; r0 s>>= 0x20` before the comparison, in `llvm-objdump -d` of a clang object of that
+shape. The emitter owes the same two instructions.
 
 ## Toolchain
 

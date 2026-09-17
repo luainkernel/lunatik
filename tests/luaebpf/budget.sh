@@ -25,6 +25,9 @@ CORPORA="pass arith divzero branch forconst forvar call ctx packet bounds mapget
 
 luaebpf_start 1
 
+# the escape hatch's own cost, where the module publishes the kfunc its programs call
+[ -z "$(luaebpf_kfunc luaxdp bpf_luaxdp_run)" ] && CORPORA="$CORPORA callback"
+
 worst=0
 for name in $CORPORA; do
 	output=$(luaebpf_compile "$name") || { comment "$output"; fail "luaebpf: $name.bpf.lua did not compile"; }

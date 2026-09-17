@@ -40,6 +40,7 @@ file = {
 	'./lib/linux',
 	'./luaebpf/luaebpf.lua',
 	'./luaebpf/luaebpf/maps.lua',
+	'./luaebpf/luaebpf/runtimes.lua',
 	'./luaebpf/luaebpf/vmlinux.lua',
 	'./lunatik_core.c',
 	'./lunatik_percpu.c',

@@ -209,6 +209,14 @@ function code:helper(number)
 	return append(self, {code = JMP | insn.jump.CALL, dst = 0, src = 0, off = 0, imm = number})
 end
 
+--- A call to the kfunc registered under `name`. The object carries a relocation against the
+-- kfunc's undefined symbol, and libbpf writes the source register, the immediate and the offset
+-- itself, from the module BTF it resolved the extern in (tools/lib/bpf/libbpf.c).
+-- @function luaebpf.insn.code:kfunc
+function code:kfunc(name)
+	return append(self, {code = JMP | insn.jump.CALL, dst = 0, src = 0, off = 0, imm = -1, kfunc = name})
+end
+
 --- `dst := the map registered under `name``. The object carries a relocation against the map's
 -- symbol, and libbpf replaces both the source register and the immediate with the map's file
 -- descriptor, as it does for the `ld_imm64` clang emits.
@@ -248,7 +256,8 @@ end
 ---
 -- Where each relocation of one kind sits and what it names, for the object to record.
 -- @function luaebpf.insn.code:relocations
--- @tparam string kind `"call"` for a BPF-to-BPF call, `"map"` for a map reference
+-- @tparam string kind `"call"` for a BPF-to-BPF call, `"map"` for a map reference, `"kfunc"`
+--   for a call into the kernel
 -- @treturn table `{at, name}` entries, `at` an index into the buffer
 function code:relocations(kind)
 	local found = {}

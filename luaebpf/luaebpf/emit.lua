@@ -16,15 +16,18 @@
 -- numeric `for` jumps backwards; the code of the last walk is what is kept.
 -- @module luaebpf.emit
 
-local insn    = require("luaebpf.insn")
-local maps    = require("luaebpf.maps")
-local proto   = require("luaebpf.proto")
-local vmlinux = require("luaebpf.vmlinux")
+local insn     = require("luaebpf.insn")
+local maps     = require("luaebpf.maps")
+local proto    = require("luaebpf.proto")
+local runtimes = require("luaebpf.runtimes")
+local vmlinux  = require("luaebpf.vmlinux")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes
 local format     = string.format
+local unpack     = string.unpack
 local insert     = table.insert
+local max        = math.max
 local getinfo    = debug.getinfo
 local getupvalue = debug.getupvalue
 
@@ -38,6 +41,15 @@ local BYTE     <const> = 8   -- bits
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 local MININT   <const> = 1 << 63
+
+-- the program's context is its own parameter, Lua register 0
+local CTXREG <const> = 0
+
+-- what the kfunc the escape hatch calls does: answers an int, with -1 where Lua would answer
+-- nil, and NUL-terminates the key it was handed in place (lunatik_ebpf.h)
+local ANSWERSIZE <const> = 4
+local NORUNTIME  <const> = -1
+local KEYNUL     <const> = 1
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
 -- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
@@ -58,12 +70,14 @@ local PACKET  <const> = 32
 local METHOD  <const> = 64
 local MAYBE   <const> = 128              -- a map value the program has not tested yet
 local RECORD  <const> = 256              -- a struct map value, read a field at a time
-local RUNTIME <const> = INT | BOOL | NIL -- a value the kernel holds as a word
-local PROXY   <const> = CTX | PACKET | MAYBE | RECORD -- a pointer the kernel holds, read through a proxy
+local ANSWER  <const> = 512              -- what a call into the kernel runtime answered
+local RUNTIME  <const> = INT | BOOL | NIL | ANSWER -- a value the kernel holds as a word
+local PROXY    <const> = CTX | PACKET | MAYBE | RECORD -- a pointer the kernel holds, read through a proxy
+local UNTESTED <const> = MAYBE | ANSWER -- a word the program must test before the kernel reads it
 
 local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context",
 	[PACKET] = "packet", [METHOD] = "method", [MAYBE] = "map value",
-	[RECORD] = "struct map value"}
+	[RECORD] = "struct map value", [ANSWER] = "runtime answer"}
 
 local opnames = {}
 for name, op in pairs(opcodes) do
@@ -99,6 +113,15 @@ end
 
 local function refuse(f, pc, reason, ...)
 	error(format("%s:%d: ", f.chunk, f.proto.lines[pc] or f.proto.linedefined) .. format(reason, ...), 0)
+end
+
+-- a value the verifier only lets the kernel read where the program found it good: a map lookup's
+-- pointer, narrowed at the test, and the sentinel a call into the runtime answers
+local function tested(f, pc, a, b)
+	local value = (a ~= nil and (a.t & UNTESTED) ~= 0 and a) or (b ~= nil and (b.t & UNTESTED) ~= 0 and b)
+	if value then
+		refuse(f, pc, "'%s' may be nil here; test it first", value.name or "a value")
+	end
 end
 
 --- @section the abstract state
@@ -161,6 +184,13 @@ local function offset(i)
 	return -SLOT * (i - NREGS + 1 + RESERVED)
 end
 
+local function grow(f, pc, bytes)
+	if bytes > MAXSTACK then
+		refuse(f, pc, "the function needs %d bytes of stack, over the %d eBPF allows", bytes, MAXSTACK)
+	end
+	f.stack = bytes
+end
+
 -- the word a Lua register holds, whatever its type
 local function fetch(f, i, scratch)
 	if spilled(i) then
@@ -173,9 +203,7 @@ end
 local function getreg(f, pc, state, i, scratch)
 	local value = state[i]
 	local mask = value ~= nil and value.t or 0
-	if (mask & MAYBE) ~= 0 then
-		refuse(f, pc, "'%s' may be nil here; test it first", value.name or "a value")
-	end
+	tested(f, pc, value)
 	if mask == 0 or (mask & ~RUNTIME) ~= 0 then
 		refuse(f, pc, "a %s has no value in the kernel here", typename(value))
 	end
@@ -618,6 +646,92 @@ local function testlookup(f, pc, ins, state)
 	return false
 end
 
+--- @section the kernel runtime
+
+-- Lua's nil is the only false value the kfunc can answer, so 'if v then' and 'v == nil' are the
+-- same test against the -1 it answers; whennil says which arm the opcode's jump is
+local function testanswer(f, pc, ins, state, whennil)
+	local code, value = f.code, state[ins.a]
+	local target = jumptarget(f, pc + 1)
+	local number = whennil and pc + 2 or target
+	local absent = whennil and target or pc + 2
+	local missing = code:label()
+	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), NORUNTIME, missing)
+	local taken = copy(state)
+	taken[ins.a] = {t = INT, name = value.name}
+	code:jump(labelof(f, number))
+	reach(f, number, taken)
+	code:place(missing)
+	setimm(f, ins.a, 0) -- the register still carries the sentinel, and the emitter's nil is a zero word
+	code:jump(labelof(f, absent))
+	state[ins.a] = {t = NIL, name = value.name}
+	reach(f, absent, state)
+	return false
+end
+
+-- the words a call hands the kfunc by address, below the frame and one region per call site: a
+-- .data section would become a libbpf map whose name carries a dot, which bpffs refuses as a pin
+local function region(f, pc, words)
+	local at = f.regions[pc]
+	if at == nil then
+		grow(f, pc, f.stack + words * SLOT)
+		at = -f.stack
+		f.regions[pc] = at
+	end
+	return at
+end
+
+-- the escape hatch: the runtime key and every argument in the frame, the program's context in
+-- R3, and the int the kfunc answers sign-extended into the word the program then tests
+local function runtimecall(f, pc, ins, state, callee)
+	local code, nargs, ctx = f.code, ins.b - 1, state[CTXREG]
+	if not f.isprogram then
+		refuse(f, pc, "'%s' can only be called from the program's own function",
+			callee.name or "a runtime")
+	end
+	if ctx == nil or ctx.t ~= CTX then
+		refuse(f, pc, "a call into the runtime takes the context, which this program does not")
+	end
+	for i = 1, nargs do
+		if not isinteger(state[ins.a + i]) then
+			refuse(f, pc, "argument #%d is a %s, and a call into the runtime passes numbers",
+				i, typename(state[ins.a + i]))
+		end
+	end
+	local key = callee.k.key
+	-- the kfunc NUL-terminates the key in place, so the buffer holds one byte more than the name
+	local words = (#key + KEYNUL + SLOT - 1) // SLOT
+	local at = region(f, pc, words + nargs)
+	local args = at + words * SLOT
+	-- the store is in the host's byte order, so each word is read out of the key in that order
+	local padded = key .. ("\0"):rep(words * SLOT - #key)
+	for i = 1, words do
+		code:set(reg.R1, unpack("=i8", padded, (i - 1) * SLOT + 1))
+		code:store(reg.FP, at + (i - 1) * SLOT, reg.R1)
+	end
+	for i = 1, nargs do
+		code:store(reg.FP, args + (i - 1) * SLOT, getreg(f, pc, state, ins.a + i, reg.R1))
+	end
+	move(f, fetch(f, CTXREG, reg.R3), reg.R3)
+	code:alu(alu.MOV, reg.R1, reg.FP)
+	code:alui(alu.ADD, reg.R1, at)
+	code:set(reg.R2, #key + KEYNUL)
+	if nargs == 0 then
+		code:set(reg.R4, 0) -- the verifier takes a null pointer where the size is zero
+	else
+		code:alu(alu.MOV, reg.R4, reg.FP)
+		code:alui(alu.ADD, reg.R4, args)
+	end
+	code:set(reg.R5, nargs * SLOT)
+	code:kfunc(f.unit.kfunc)
+	insert(f.calls, {chunk = f.chunk, line = f.proto.lines[pc], key = key})
+	extend(f, reg.R0, ANSWERSIZE)
+	if ins.c > 1 then
+		setreg(f, ins.a, reg.R0)
+		state[ins.a] = {t = ANSWER, name = callee.name}
+	end
+end
+
 --- @section loads
 
 local ops = {}
@@ -1001,7 +1115,7 @@ local function truth(f, pc, state, i)
 	if mask == NIL then
 		return false
 	end
-	if mask == 0 or (mask & ~(BOOL | NIL | MAYBE)) ~= 0 then
+	if mask == 0 or (mask & ~(BOOL | NIL | UNTESTED)) ~= 0 then
 		refuse(f, pc, "a %s has no truth value in a compiled function", typename(value))
 	end
 	return nil
@@ -1042,6 +1156,7 @@ local relations = {
 }
 
 local function ordered(f, pc, relation, a, b)
+	tested(f, pc, a, b)
 	if relation == "EQ" then
 		return
 	end
@@ -1083,10 +1198,6 @@ end
 
 -- the answer Lua's '==' is pinned to, and nil where the registers carry it
 local function equality(f, pc, a, b)
-	local untested = (a ~= nil and (a.t & MAYBE) ~= 0 and a) or (b ~= nil and (b.t & MAYBE) ~= 0 and b)
-	if untested then
-		refuse(f, pc, "'%s' may be nil here; test it first", untested.name or "a value")
-	end
 	if exact(a) and exact(b) then
 		if a.t ~= b.t then
 			return false -- Lua's '==' is false across types
@@ -1120,6 +1231,9 @@ function ops.LE(f, pc, ins, state) return compare(f, pc, ins, state, "LE", state
 
 local function compareconst(f, pc, ins, state, relation, value)
 	local a, b = state[ins.a], {t = typeof(value), k = value}
+	if relation == "EQ" and b.t == NIL and a ~= nil and a.t == ANSWER then
+		return testanswer(f, pc, ins, state, ins.k)
+	end
 	ordered(f, pc, relation, a, b)
 	if relation == "EQ" then
 		local answer = equality(f, pc, a, b)
@@ -1150,6 +1264,9 @@ function ops.TEST(f, pc, ins, state)
 	local value = state[ins.a]
 	if value ~= nil and value.t == MAYBE then
 		return testlookup(f, pc, ins, state)
+	end
+	if value ~= nil and value.t == ANSWER then
+		return testanswer(f, pc, ins, state, not ins.k)
 	end
 	local known = truth(f, pc, state, ins.a)
 	if known ~= nil then
@@ -1380,6 +1497,10 @@ function ops.CALL(f, pc, ins, state)
 		method(f, pc, ins, state, callee)
 		return filled(f, pc, ins, state)
 	end
+	if callee ~= nil and runtimes.declares(callee.k) then
+		runtimecall(f, pc, ins, state, callee)
+		return filled(f, pc, ins, state)
+	end
 	if callee == nil or type(callee.k) ~= "function" then
 		refuse(f, pc, "a call through a value the compiler cannot resolve")
 	end
@@ -1449,6 +1570,7 @@ local function walk(f)
 	f.labels = {}
 	f.aborted = nil
 	f.rettype = 0
+	f.calls = {}
 	for pc = 1, #f.proto.code do
 		f.labels[pc] = code:label()
 	end
@@ -1502,15 +1624,14 @@ end
 -- @tparam table f the frame: `fn`, `proto`, `chunk`, `params`, `default`, `isprogram`, `drop`
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses
 function emit.lower(f)
-	local frame = (f.proto.maxstacksize - NREGS + RESERVED) * SLOT
-	if frame > MAXSTACK then
-		refuse(f, 1, "the function needs %d bytes of stack, over the %d eBPF allows", frame, MAXSTACK)
-	end
+	-- below NREGS no register spills, and the words every frame reserves are its whole depth
+	grow(f, 1, max((f.proto.maxstacksize - NREGS + RESERVED) * SLOT, RESERVED * SLOT))
 	if f.proto.isvararg then
 		refuse(f, 1, "a vararg function cannot be compiled")
 	end
 	f.entry = {}
 	f.bounded = {}
+	f.regions = {}
 	for _ = 1, ROUNDS do
 		f.changed = false
 		walk(f)
@@ -1592,7 +1713,7 @@ end
 ---
 -- Compiles one program: its function, and every function that function reaches.
 -- @function luaebpf.emit.program
--- @tparam table program `{name, fn, default, drop, names, context}`
+-- @tparam table program `{name, fn, default, drop, names, context, kfunc}`
 -- @treturn table the frames, the program's own first
 -- @raise `a program takes one argument, the context`, and `<file>:<line>: <reason>` for every
 --   construct the subset refuses
@@ -1600,6 +1721,7 @@ function emit.program(program)
 	local unit = {
 		functions = {}, order = {}, lowering = {}, names = program.names or {},
 		default = program.default, drop = program.drop, context = program.context,
+		kfunc = program.kfunc,
 	}
 	local read = proto.read(program.fn)
 	if read.numparams > 1 then

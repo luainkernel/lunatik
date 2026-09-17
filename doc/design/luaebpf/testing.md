@@ -44,8 +44,10 @@ failure paths are exercised, not only the happy one. Phase 1 reads no packet, an
 suite. The emitter exposes a test hook, `LUAEBPF_DROP`, an environment variable the CLI does not
 read, naming one mechanism to drop: `divisor` (the test before a division), `maygoto` (the header
 a loop without a proven bound needs), `lineinfo` (the `.BTF.ext` records), `verdict` (the write to
-`R0`), and `bounds` (the `data_end` test before a packet load). Each has a test that asserts the
-verifier rejects the program, that the log lacks the Lua line, or that the arithmetic changes.
+`R0`), `bounds` (the `data_end` test before a packet load), and `ksyms` (the extern's entry in the
+`.ksyms` DATASEC, which is how a case reaches the unresolved-kfunc path without stripping the host
+of its module BTF). Each has a test that asserts the verifier rejects the program, that the log
+lacks the Lua line, or that the arithmetic changes.
 The library reads the variable from `/proc/self/environ`, since the host Lua carries no `os`.
 
 **Pinned object cleanup.** Programs, maps and links pinned by a test outlive it. The cleanup
@@ -115,11 +117,11 @@ The row this table called `run.sh` is `load.sh`: `tests/luaebpf/run.sh` is the s
 
 | Test | Proves |
 |------|--------|
-| `callback.sh` | a compiled program that calls `runtime(n)` reaches the callback, which reads `n` from `ctx:argument()` and sets a verdict the program returns |
-| `miss.sh` | a call whose runtime is not loaded yields `nil`, and the program takes its default |
-| `partition.sh` | `sniclassify` in Lua: the first packet of a flow calls Lua, the second is decided from the map, counted through an `rcu.table` delta |
-| `report.sh` | the compiler's summary lists every call into Lua with its line |
-| `nobtf.sh` | without module BTF the load fails naming the kfunc, and a program with no such call loads |
+| `callback.sh` | four programs over two runtime proxies against one kernel script: the derived key and the key spelled out both reach the callback, which reads all eight bytes of the argument with `ctx:argument():getint64(0)` and sets the verdict the program returns; a call with no argument, and one the callback rejects; the six shapes the compiler refuses; and one proxy called from an XDP and a TC program, whose object has to name both kfuncs |
+| `miss.sh` | the runtime the only variable: absent, up in softirq, and started in process context, which the kfunc will not dispatch and says so in `dmesg`; and the nil a call answers returned, which is the zero word a nil is everywhere else and not the kfunc's `-1` |
+| `partition.sh` | `sniclassify` in Lua: a `repeat 2` over one flow is a map miss and a map hit with exactly one callback line, counted through an `rcu.table`, and the priority the callback set is what the pinned map holds and what `ctx_out` carries; a packet the header walk rejects never reaches Lua |
+| `report.sh` | the compiler's summary lists every call into Lua with its line and its key, and prints nothing for a program file with none |
+| `nobtf.sh` | `LUAEBPF_DROP=ksyms` leaves the extern unresolvable, and both `bpftool prog loadall` and `lunatik run` name the kfunc, the run undoing itself; a program with no such call still loads |
 
 ### Phase 5: the runtime library, strings and loops
 

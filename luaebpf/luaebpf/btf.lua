@@ -35,15 +35,17 @@ local KIND_DATASEC    <const> = 15
 local SIGNED          <const> = 1
 local STATIC          <const> = 0
 local GLOBAL          <const> = 1
+local EXTERN          <const> = 2
 local ALLOCATED       <const> = 1 -- BTF_VAR_GLOBAL_ALLOCATED
 local BYTE            <const> = 8
 local WORD            <const> = 8 -- a map attribute is a pointer, which is what libbpf reads
 
 local btf = {}
 
---- Function linkage, as `BTF_FUNC_*` names it.
+--- Function linkage, as `BTF_FUNC_*` names it. `EXTERN` is what libbpf reads a kfunc call's
+-- prototype out of, and it resolves that against the kernel's own by kind alone.
 -- @table luaebpf.btf.linkage
-btf.linkage = {STATIC = STATIC, GLOBAL = GLOBAL}
+btf.linkage = {STATIC = STATIC, GLOBAL = GLOBAL, EXTERN = EXTERN}
 
 ---
 -- A BTF section under construction.
@@ -110,16 +112,15 @@ end
 -- expects of a prototype that names any of them.
 -- @function luaebpf.btf.types:func
 -- @tparam string name
--- @tparam integer nparams
--- @tparam integer linkage `btf.linkage.STATIC` or `.GLOBAL`
--- @tparam table signature `{result, param}` type ids
+-- @tparam integer linkage one of `btf.linkage`
+-- @tparam table signature `{result, params}`, the result a type id and `params` one per parameter
 -- @treturn integer the `FUNC` type id
-function types:func(name, nparams, linkage, signature)
+function types:func(name, linkage, signature)
 	local params = {}
-	for i = 1, nparams do
-		insert(params, pack("<I4I4", self:string("a" .. i), signature.param))
+	for i, id in ipairs(signature.params) do
+		insert(params, pack("<I4I4", self:string("a" .. i), id))
 	end
-	local proto = self:add(pack("<I4I4I4", 0, typeinfo(KIND_FUNC_PROTO, nparams), signature.result)
+	local proto = self:add(pack("<I4I4I4", 0, typeinfo(KIND_FUNC_PROTO, #params), signature.result)
 		.. concat(params))
 	return self:add(pack("<I4I4I4", self:string(name), typeinfo(KIND_FUNC, linkage), proto))
 end

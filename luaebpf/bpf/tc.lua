@@ -13,6 +13,9 @@
 -- The program reads `skb.len`, `skb.hash`, `skb.ifindex` and `skb.ingress_ifindex`, and writes
 -- `skb.priority`; `skb.data`/`skb.data_end` are the packet's bounds rather than numbers, and
 -- `skb:packet()` is the packet.
+--
+-- `runtime(name)` is the escape hatch: a callable the program hands numbers to, which becomes a
+-- call into the kernel Lua runtime of that name.
 -- @module bpf.tc
 -- @usage
 -- local tc     = require("bpf.tc")
@@ -23,12 +26,17 @@
 -- end, {egress = true})
 
 local programs = require("luaebpf.programs")
+local runtimes = require("luaebpf.runtimes")
 local action   = require("linux.tc")
 
 -- libbpf reads the program type and its attach point back from the ELF section name
 -- (tools/lib/bpf/libbpf.c)
 local INGRESS <const> = "tcx/ingress"
 local EGRESS  <const> = "tcx/egress"
+
+-- the kfunc lib/luatc.c publishes for a TC program, which libbpf resolves against the module's
+-- own BTF
+local KFUNC <const> = "bpf_luatc_run"
 
 -- what a program may read on its context, and the one field of them the kernel lets it write.
 -- tc_cls_act_is_valid_access allows a write only to mark, tc_index, priority, tc_classid,
@@ -63,7 +71,30 @@ function tc.program(fn, opts)
 		error("tc.program's default verdict is not a number", 2)
 	end
 	return programs.declare{section = opts.egress and EGRESS or INGRESS, fn = fn,
-		default = default, name = opts.name, context = context}
+		default = default, name = opts.name, context = context, kfunc = KFUNC}
+end
+
+---
+-- Declares the kernel Lua runtime a compiled function calls.
+--
+-- Inside a compiled function the value this returns is a callable: `runtime(a, b)` hands the
+-- runtime's callback each argument as a native 64-bit integer, in order, readable there as
+-- `ctx:argument():getint64(0)` and its successors, and answers the verdict the callback set, or
+-- `nil` where no runtime of that name could be dispatched. A program must test that answer
+-- before reading it as a number.
+-- @function bpf.tc.runtime
+-- @tparam[opt] string name the key the runtime is registered under; by default the script the
+--   program file belongs to, which is its path below `/lib/modules/lua/` without the `.bpf.lua`
+--   suffix.
+-- @treturn table the callable
+-- @raise `tc.runtime takes a name`
+-- @usage
+-- local lua = tc.runtime()
+function tc.runtime(name)
+	if name ~= nil and type(name) ~= "string" then
+		error("tc.runtime takes a name", 2)
+	end
+	return runtimes.declare{key = name}
 end
 
 return tc

@@ -18,6 +18,7 @@
 #include <limits.h>
 #include <net/if.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <bpf/libbpf.h>
@@ -33,6 +34,10 @@
 
 /* one libbpf message, the size libbpf itself formats into */
 #define LUALOADER_MESSAGESIZE	128
+
+/* libbpf's own warnings about one operation: several lines at worst, and the only account of a
+ * failure that never reached the kernel, such as a kfunc no BTF publishes */
+#define LUALOADER_WARNINGS	(1 << 10)
 
 /* what tells a link's pin from a map's in the same root: bpf_lookup refuses a dot in a bpffs
  * name (kernel/bpf/inode.c), and a map name is a C identifier, so a hyphen cannot collide */
@@ -71,6 +76,39 @@ static const char *lualoader_strerror(int err)
 	return message;
 }
 
+static char lualoader_warnings[LUALOADER_WARNINGS];
+static size_t lualoader_warned = 0;
+
+static int lualoader_print(enum libbpf_print_level level, const char *format, va_list args)
+{
+	size_t left = sizeof(lualoader_warnings) - lualoader_warned;
+
+	if (level > LIBBPF_WARN || left <= 1)
+		return 0;
+
+	int n = vsnprintf(lualoader_warnings + lualoader_warned, left, format, args);
+	if (n > 0) /* vsnprintf answers the length it needed, which the truncation caps */
+		lualoader_warned += (size_t)n < left ? (size_t)n : left - 1;
+	return n;
+}
+
+/* the warnings belong to the operation that provoked them, so the next one starts with none */
+static void lualoader_clear(void)
+{
+	lualoader_warned = 0;
+}
+
+/* what a failure is reported as: the kernel's verifier log where the load reached the kernel,
+ * what libbpf said where it did not, and the errno its own codes are mixed into otherwise */
+static const char *lualoader_diagnosis(const char *log)
+{
+	if (log != NULL && log[0] != '\0')
+		return log;
+	if (lualoader_warned != 0)
+		return lualoader_warnings;
+	return lualoader_strerror(errno);
+}
+
 /* __gc is reachable from Lua, so a method may find the object already closed */
 static lualoader_object_t *lualoader_check(lua_State *L)
 {
@@ -89,9 +127,10 @@ static int lualoader_open(lua_State *L)
 
 	loaded->object = NULL; /* the open has not answered yet, and the metatable below arms __gc */
 	luaL_setmetatable(L, LUALOADER_OBJECT);
+	lualoader_clear();
 	loaded->object = bpf_object__open_file(path, &opts);
 	if (loaded->object == NULL)
-		return lualoader_failure(L, "couldn't open %s: %s", path, lualoader_strerror(errno));
+		return lualoader_failure(L, "couldn't open %s: %s", path, lualoader_diagnosis(NULL));
 	return 1;
 }
 
@@ -148,9 +187,10 @@ static int lualoader_load(lua_State *L)
 			return lualoader_failure(L, "couldn't pin '%s': %s", name, lualoader_strerror(errno));
 	}
 	loaded->log[0] = '\0';
+	lualoader_clear();
 	/* log_level 0 with a buffer makes libbpf retry a failed load verbosely into it */
 	if (bpf_object__load(loaded->object) != 0)
-		return lualoader_failure(L, "%s", loaded->log[0] != '\0' ? loaded->log : lualoader_strerror(errno));
+		return lualoader_failure(L, "%s", lualoader_diagnosis(loaded->log));
 	lua_pushboolean(L, 1);
 	return 1;
 }
@@ -270,8 +310,8 @@ static const luaL_Reg lualoader_lib[] = {
 
 int luaopen_lunatik_loader(lua_State *L)
 {
-	/* every failure comes back as a value; libbpf's own stderr would be a second report */
-	libbpf_set_print(NULL);
+	/* a failure comes back as a value, so libbpf's own messages are captured, not left on stderr */
+	libbpf_set_print(lualoader_print);
 	luaL_newmetatable(L, LUALOADER_OBJECT);
 	luaL_setfuncs(L, lualoader_mt, 0);
 	lua_pushvalue(L, -1);

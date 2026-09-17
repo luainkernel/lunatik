@@ -21,6 +21,7 @@
 
 local maps     = require("luaebpf.maps")
 local programs = require("luaebpf.programs")
+local runtimes = require("luaebpf.runtimes")
 
 local insert = table.insert
 local concat = table.concat
@@ -29,9 +30,11 @@ local format = string.format
 local PROTO   <const> = "luaebpf.proto"
 local TEXT    <const> = ".text"
 local MAPS    <const> = ".maps"
+local KSYMS   <const> = ".ksyms"
 local LICENSE <const> = "Dual MIT/GPL"
 local HOSTED  <const> = "luaebpf.proto is missing; a program file compiles under 'lunatikc bpf'"
 local DROP    <const> = "LUAEBPF_DROP"
+local ROOT    <const> = "^/lib/modules/lua/"
 
 local emit, insn, elf, btf
 if package.loaded[PROTO] ~= nil then
@@ -77,10 +80,13 @@ local function sources(chunk, cache)
 end
 
 local function funcinfo(types, frame, at)
-	local signature = frame.isprogram and {result = types.int, param = types.long}
-		or {result = types.long, param = types.long}
+	local params = {}
+	for _ = 1, #frame.params do
+		insert(params, types.long)
+	end
+	local signature = {result = frame.isprogram and types.int or types.long, params = params}
 	local linkage = frame.isprogram and btf.linkage.GLOBAL or btf.linkage.STATIC
-	return btf.funcinfo(at, types:func(frame.name, #frame.params, linkage, signature))
+	return btf.funcinfo(at, types:func(frame.name, linkage, signature))
 end
 
 local function lineinfo(types, frame, at, cache)
@@ -114,7 +120,7 @@ local function section(units, sections, name)
 	return unit
 end
 
-local function place(types, unit, frame, cache, subprograms)
+local function place(types, unit, frame, cache, subprograms, called)
 	local at = unit.at
 	insert(unit.code, frame.code:pack())
 	insert(unit.funcs, funcinfo(types, frame, at))
@@ -128,6 +134,11 @@ local function place(types, unit, frame, cache, subprograms)
 	for _, use in ipairs(frame.code:relocations("map")) do
 		insert(unit.relocations, {at = at + (use.at - 1) * insn.SIZE, name = use.name,
 			type = elf.relocation.IMM64})
+	end
+	for _, use in ipairs(frame.code:relocations("kfunc")) do
+		insert(unit.relocations, {at = at + (use.at - 1) * insn.SIZE, name = use.name,
+			type = elf.relocation.IMM32})
+		called[use.name] = true
 	end
 	unit.at = at + frame.code:len() * insn.SIZE
 	if not frame.isprogram then
@@ -169,14 +180,47 @@ local function maplayout(object, types, declared)
 	return symbols
 end
 
+-- The prototype libbpf resolves a kfunc call against, which it compares with the kernel's own
+-- kind by kind: names, integer widths and a struct's members are all ignored, so a PTR to an
+-- empty STRUCT stands for the context and a PTR to type 0 for the void the argument goes as
+-- (tools/lib/bpf/relo_core.c).
+local function prototype(types, context)
+	return {result = types.int, params = {types:pointer(types.int), types.long,
+		types:pointer((types:struct(context, {}))), types:pointer(0), types.long}}
+end
+
+-- Every kfunc a call named: a FUNC of extern linkage listed in a DATASEC named ".ksyms", whose
+-- bytes libbpf never looks for in the ELF, and an undefined symbol for the relocation to name.
+-- The kfunc is the program type's, so the context its prototype takes is the program's own.
+local function ksyms(types, declared, called, hook)
+	local entries, symbols, seen = {}, {}, {}
+	for _, program in ipairs(declared) do
+		local kfunc = program.kfunc
+		if called[kfunc] and not seen[kfunc] then
+			seen[kfunc] = true
+			insert(entries, {type = types:func(kfunc, btf.linkage.EXTERN,
+				prototype(types, program.context.struct)), offset = 0, size = 0})
+			insert(symbols, {name = kfunc, section = elf.UNDEF, value = 0, size = 0,
+				bind = elf.bind.GLOBAL, type = elf.type.NOTYPE})
+		end
+	end
+	if #entries > 0 and hook ~= "ksyms" then
+		types:datasec(KSYMS, entries)
+	end
+	return symbols
+end
+
 local function write(declared, hook)
 	local object, types, cache = elf.new(), btf.new(), {}
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
-	local names, subprograms, order = {}, {}, {}
-	-- a map's name is taken before any function is named, so a relocation names exactly one symbol
+	local names, subprograms, order, called, summary = {}, {}, {}, {}, {}
+	-- a map's and a kfunc's name are taken first, so a relocation names exactly one symbol
 	for _, map in ipairs(maps.declared()) do
 		names[map.name] = true
+	end
+	for _, program in ipairs(declared) do
+		names[program.kfunc] = true
 	end
 	for _, program in ipairs(declared) do
 		program.drop = hook
@@ -184,7 +228,10 @@ local function write(declared, hook)
 		local entries = section(units, sections, program.section)
 		for i, frame in ipairs(emit.program(program)) do
 			local unit = i == 1 and entries or text
-			local at = place(types, unit, frame, cache, subprograms)
+			local at = place(types, unit, frame, cache, subprograms, called)
+			for _, call in ipairs(frame.calls) do
+				insert(summary, format("%s:%d: calls the runtime '%s'", call.chunk, call.line, call.key))
+			end
 			if i == 1 then
 				insert(order, {name = frame.name, section = program.section, value = at,
 					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL,
@@ -201,6 +248,7 @@ local function write(declared, hook)
 		end
 	end
 	local mapsymbols = maplayout(object, types, maps.declared())
+	local externs = ksyms(types, declared, called, hook)
 	for _, subprogram in ipairs(subprograms) do
 		indexes[subprogram.name] = object:symbol(subprogram)
 	end
@@ -208,6 +256,9 @@ local function write(declared, hook)
 		object:symbol(entry)
 	end
 	for _, symbol in ipairs(mapsymbols) do
+		indexes[symbol.name] = object:symbol(symbol)
+	end
+	for _, symbol in ipairs(externs) do
 		indexes[symbol.name] = object:symbol(symbol)
 	end
 	for _, unit in ipairs(units) do
@@ -232,7 +283,13 @@ local function write(declared, hook)
 	local ext = types:ext(described)
 	object:section{name = ".BTF", type = elf.section.PROGBITS, flags = 0, data = types:pack(), align = 4}
 	object:section{name = ".BTF.ext", type = elf.section.PROGBITS, flags = 0, data = ext, align = 4}
-	return object:pack()
+	return object:pack(), summary
+end
+
+-- the key 'lunatik run' registers a script under: its path below the scripts root, without the
+-- suffix a program file carries (bin/lunatik)
+local function runtimekey(path)
+	return (path:gsub(ROOT, ""):gsub("%.bpf%.lua$", ""):gsub("%.lua$", ""))
 end
 
 local function name(program, chunk, taken)
@@ -255,6 +312,8 @@ end
 -- @function luaebpf.compile
 -- @tparam string path the program file, usually named `<something>.bpf.lua`
 -- @treturn string the BPF ELF object
+-- @treturn table one line per call into the kernel Lua runtime, naming the file, the line and the
+--   runtime key, so a program that calls Lua on every packet is visible for what it is
 -- @raise `luaebpf.proto is missing` when the host provides no prototype accessor,
 --   `<file>:<line>: <reason>` for every construct the subset refuses, and
 --   `<path>: no program declared` when the body hands nothing to a constructor
@@ -268,6 +327,7 @@ function luaebpf.compile(path)
 	end
 	programs.reset()
 	maps.reset()
+	runtimes.reset()
 	local ok, message = pcall(chunk)
 	if not ok then
 		error(message, 0)
@@ -278,6 +338,9 @@ function luaebpf.compile(path)
 	end
 	for _, program in ipairs(declared) do
 		program.name = name(program, path, taken)
+	end
+	for _, runtime in ipairs(runtimes.declared()) do
+		runtime.key = runtime.key or runtimekey(path)
 	end
 	return write(declared, drop())
 end

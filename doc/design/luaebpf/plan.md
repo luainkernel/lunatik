@@ -256,12 +256,21 @@ before the runtime starts; the existing `xdp` and `tc` cases pass with a compile
 ### Phase 4: the escape hatch
 
 The callable proxy over the kernel runtime: `runtime(args...)` lowers to the kfunc call with the
-arguments packed into `arg`, the return value mapped to `nil` on `-1`. The kernel side is what
-`xdp.attach` and `tc.attach` are today (or #561's `lunatik_bpf_run` once it lands); the callback
-reads `ctx:argument()` as it does now. `btf_install` becomes a requirement of this phase only.
+arguments packed into `arg`, the return value mapped to `nil` on `-1`, and the answer a type the
+program must test before reading it as a number. The kernel side is what `xdp.attach` and
+`tc.attach` are today (or #561's `lunatik_bpf_run` once it lands); the callback reads
+`ctx:argument()` as it does now. `btf_install` becomes a requirement of this phase only. The
+object grows what libbpf reads a kfunc call out of -- a BTF `FUNC` of extern linkage in a `.ksyms`
+DATASEC, an undefined symbol and an `R_BPF_64_32` relocation -- and `lunatik run` reports what
+libbpf said, since a kfunc it cannot resolve never reaches the kernel and leaves no verifier log.
 
 Tests: a compiled program that defers to Lua on a miss sees the callback's verdict; the callback
 receives the packed arguments; a program whose runtime is not loaded takes the default verdict.
+
+What the escape hatch costs, beside the figures above: the `callback` corpus 29 processed
+instructions, against the same 20,000 ceiling. A call is three stores of the key, one store per
+argument, five registers, the call and the two shifts that sign-extend the answer; the key's
+stores are what a longer runtime name adds, and a call inside a loop pays them per iteration.
 
 ### Phase 5: the runtime library, strings and loops beyond `for`
 

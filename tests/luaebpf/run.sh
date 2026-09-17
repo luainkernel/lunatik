@@ -13,7 +13,7 @@ FAILED=0
 SEP=""
 SUITES="host pass lineinfo arith divzero branch forconst forvar call"
 SUITES="$SUITES btfview ctx packet bounds mapget mapset struct refuse budget"
-SUITES="$SUITES load stop undo notarget verifierlog"
+SUITES="$SUITES load stop undo notarget verifierlog callback miss partition report nobtf"
 
 for t in $SUITES; do
 	echo "${SEP}# --- $t.sh ---"
