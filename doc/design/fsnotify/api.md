@@ -17,6 +17,8 @@ One kernel module, `fsnotify` (`lib/luafsnotify.c`), owning three object classes
 * Event masks are integers from `linux.fs`, combined with `|`: `fs.OPEN | fs.MODIFY`.
 * Object kind selectors are strings, as `skb:data("mac")` already does: `"inode"`, `"mount"`, `"sb"`.
 * Paths are strings, resolved in the kernel with `kern_path`.
+* The binding targets 6.x kernels; the interfaces that changed inside that range, at 6.8 and 6.10,
+  are guarded by version.
 * A kernel that cannot do what an argument asks for refuses that argument and names why — `"mount"`
   before 6.10, a permission event without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS` — rather than dropping
   the method: the method is there on every kernel, and the script gets something to branch on.
