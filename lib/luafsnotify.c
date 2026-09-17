@@ -90,9 +90,6 @@ static const struct fsnotify_ops luafsnotify_ops = {
 	.free_group_priv = luafsnotify_freegroup,
 };
 
-/* the group outlives this call: a mark can still be running an event under
- * fsnotify's SRCU, and waiting for it here would deadlock against the runtime
- * lock that event blocks on. free_group_priv frees the watch instead. */
 static void luafsnotify_detach(luafsnotify_t *watch)
 {
 	struct fsnotify_group *group = watch->group;
@@ -103,7 +100,7 @@ static void luafsnotify_detach(luafsnotify_t *watch)
 		fsnotify_destroy_mark(&mark->mark, group);
 		fsnotify_put_mark(&mark->mark); /* the reference fsnotify_init_mark left us */
 	}
-	fsnotify_put_group(group);
+	fsnotify_put_group(group); /* not destroy_group: it waits for an event blocked on the runtime lock */
 }
 
 static void luafsnotify_release(void *private)
