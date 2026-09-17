@@ -20,6 +20,8 @@
 //               validated does not carry
 //   focus       what this round is for, in the maintainer's words
 //   effort      per-phase reasoning effort, default "high"
+//   repo        the checkout the phases work in, default the repository they start in
+//   sudo        how a command gets root, default `sudo`
 
 export const meta = {
   name: 'review-pr',
@@ -30,14 +32,17 @@ export const meta = {
 const a = args
 const effort = a.effort || 'high'
 const checkpoint = `${a.scratch}/review${a.pr}/REVIEW.md`
+// the prompt is read by an agent with a shell, so the default resolves on the machine that runs it
+const repo = a.repo || '$(git rev-parse --show-toplevel)'
+const sudo = a.sudo || 'sudo'
 
 const COMMON = `
-You are reviewing pull request #${a.pr} of Lunatik (Lua in the Linux kernel), repo /home/ubuntu/claude/lunatik:
+You are reviewing pull request #${a.pr} of Lunatik (Lua in the Linux kernel), in the checkout at \`${repo}\`:
 branch \`${a.branch}\`, head \`${a.head}\`, base \`${a.base}\`. Work at maximum thoroughness within your phase.
 
 READ FIRST, they are the authority and override anything below:
-- /home/ubuntu/claude/lunatik/AGENTS.md, all of it
-- /home/ubuntu/claude/lunatik/CLAUDE.local.md
+- AGENTS.md at the repository root, all of it
+- CLAUDE.local.md beside it, where the machine has one
 
 CHECKPOINT, before anything else: the file ${checkpoint} is the review's memory across phases and across
 a phase that dies. If it exists, read it and continue from it; do not redo what it records. Append every
@@ -46,27 +51,30 @@ finding the moment you close it, one line each:
 Your final answer is assembled from that file, not the other way round.
 
 ENVIRONMENT:
-- sudo password is "ubuntu": \`echo ubuntu | sudo -S -p '' <cmd>\`.
+- Root commands run as \`${sudo} <cmd>\`; confirm that works without a prompt (\`${sudo} true\`) before
+  the Build phase, and where it does not, say so and skip the build rather than ask for a password.
 - Work in a worktree of your own under ${a.scratch}/, created with an ABSOLUTE path
-  (\`git -C /home/ubuntu/claude/lunatik worktree add <abs path> <ref>\`, then \`git submodule update --init\`),
-  named review${a.pr}-<phase>. Never touch a worktree that is not yours; every lunatik_* worktree under
-  /home/ubuntu/claude/ belongs to someone else.
+  (\`git -C ${repo} worktree add <abs path> <ref>\`, then \`git submodule update --init\`),
+  named review${a.pr}-<phase>. Never touch a worktree that is not yours: a worktree named for a task may
+  belong to another session, so read \`git worktree list\` and the branch a worktree holds before touching one.
 - NEVER \`git stash\` anywhere in this repository: the stash stack is shared and \`stash@{0}\` is another
   agent's work. Compare revisions with a throwaway worktree or \`git show <ref>:<path>\`.
 - /dev/lunatik is single: never two lunatik operations at once, check with ps first. NEVER run
-  \`lunatik run examples/ifquarantine/control\` bare; any example goes through \`sudo bash tools/watchdog.sh\`.
+  \`lunatik run examples/ifquarantine/control\` bare; any example goes through \`${sudo} bash tools/watchdog.sh\`.
   \`tests/probe/armed.sh\` must never run against a build without \`lunatik_checkarmed\`.
-- NEVER commit to master, never \`git checkout master\`. GitHub: \`export GH_TOKEN=$(cat /home/ubuntu/.config/gh-token)\`
-  then \`gh api ...\` (\`gh pr view\` fails, no read:org; pass --paginate). DO NOT POST ANYTHING TO GITHUB.
-- aarch64, kernel 6.8.0-138. Kernel source: /home/ubuntu/linux-hwe-6.8-6.8.0/ . Vendored Lua 5.5.
+- NEVER commit to master, never \`git checkout master\`. GitHub reads go through \`gh api ...\` with \`GH_TOKEN\`
+  from the environment (\`gh pr view\` fails, no read:org; pass --paginate); where \`GH_TOKEN\` is unset, report
+  that the conversation could not be read. DO NOT POST ANYTHING TO GITHUB.
+- Read the host before assuming one (\`uname -srm\`): a kernel interface is verified against
+  \`/usr/src/linux-headers-$(uname -r)/include\` and the running kernel's \`Module.symvers\`, and against a full
+  source tree where CLAUDE.local.md names one. Vendored Lua 5.5.
 
 A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on \`${a.branch}\`,
-pushed as soon as made
-(\`git push "https://x-access-token:$(cat /home/ubuntu/.config/gh-token)@github.com/luainkernel/lunatik.git" ${a.branch}:${a.branch}\`),
-and its SHA goes in the checkpoint line. Ask of each one whether the finding is answered by removing rather
-than adding: a fix that grows a layer over the one it found is the finding half read, and the shape that
-answers it is usually shorter than what is there. A fixup that changes C must at least \`make\` clean before
-it is pushed; the suite is the Build phase's.
+pushed as soon as made (\`git push origin ${a.branch}:${a.branch}\`; where \`origin\` is not writable from
+this machine, CLAUDE.local.md says how it pushes), and its SHA goes in the checkpoint line. Ask of each one
+whether the finding is answered by removing rather than adding: a fix that grows a layer over the one it
+found is the finding half read, and the shape that answers it is usually shorter than what is there. A fixup
+that changes C must at least \`make\` clean before it is pushed; the suite is the Build phase's.
 
 ${a.focus ? 'THIS ROUND, in the maintainer\'s words: ' + a.focus : ''}
 `
@@ -102,11 +110,11 @@ Go through AGENTS.md section by section (Object model, C style, Lua style, Comme
 Tests, Deciding what to change, Patches and commits, Before opening a pull request) and for each rule say
 applies or not, and if it applies, pass or fail, with the line. Where a rule can be checked by a grep or a
 script, run it rather than read for it. Run every check in tools/checks/ over the full changeset
-(\`git diff --name-only ${a.base}..${a.head}\`), with
-LUNATIK_CONSUMERS=/home/ubuntu/claude/dome_master:/home/ubuntu/claude/dome_private for consumers.sh and
-pr-body.sh on the pull request body; where a check complains about something master already does, say so
-with the evidence. Write the coverage matrix, operation by type by outcome including the successes, and say
-what the tests prove and what nothing on this kernel can see.
+(\`git diff --name-only ${a.base}..${a.head}\`), and pr-body.sh on the pull request body; consumers.sh reads
+\`LUNATIK_CONSUMERS\` from the environment and is silent where it is unset, so report that the consumer check
+did not run rather than that no consumer was found. Where a check complains about something master already
+does, say so with the evidence. Write the coverage matrix, operation by type by outcome including the
+successes, and say what the tests prove and what nothing on this kernel can see.
 
 Append each failing rule and each gap to the checkpoint as a finding; fix what you can as fixups.
 `
@@ -116,7 +124,7 @@ const unrun = (a.examples || []).filter(e => !(a.validated?.examples || []).incl
 const BUILD = COMMON + `
 PHASE: BUILD. The head is either not yet validated, a fixup changed the code, or an example the change touches
 has not been run on it. In a worktree at the current tip of \`${a.branch}\`: \`make\` clean,
-\`echo ubuntu | sudo -S -p '' env PWD=$PWD make install\`, \`sudo lunatik reload\`, \`sudo lunatik test\`, all
+\`${sudo} env PWD=$PWD make install\`, \`${sudo} lunatik reload\`, \`${sudo} lunatik test\`, all
 inside your turn, never armed in the background. Run the examples the change touches through tools/watchdog.sh,
 not merely built, each one driven as its README says and stopped, with dmesg read after: the suite covers what a
 test author thought of, an example is the binding at the rate a user drives it.
