@@ -10,6 +10,7 @@ KTAP_COUNT=0
 KTAP_PASS=0
 KTAP_FAIL=0
 KTAP_SKIP=0
+KTAP_ERRORS='(\.lua:[0-9]+|\?:\?):'
 
 ktap_header() { echo "KTAP version 1"; }
 ktap_plan()   { echo "1..$1"; }
@@ -22,7 +23,7 @@ mark_dmesg() { dmesg -C 2>/dev/null; }
 dmesg_since() { dmesg; }
 check_dmesg() {
 	local errs
-	errs=$(dmesg_since | grep -E "(\.lua:[0-9]+|\?:\?):" || true)
+	errs=$(dmesg_since | grep -E "$KTAP_ERRORS" || true)
 	[ -z "$errs" ] && return 0
 	ktap_fail "no Lua errors in kernel"
 	echo "# $errs"
@@ -47,7 +48,7 @@ run_test() {
 	local output errs
 	mark_dmesg
 	output=$(lunatik run "$@" 2>&1)
-	errs=$(dmesg_since | grep -iE "^[^:]+: FAIL	|\.lua:[0-9]+:" || true)
+	errs=$(dmesg_since | grep -iE "^[^:]+: FAIL	|$KTAP_ERRORS" || true)
 	[ -z "$output" ] && [ -z "$errs" ] && return 0
 
 	[ -n "$output" ] && comment "$output"
