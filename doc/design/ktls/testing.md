@@ -4,7 +4,7 @@ Lunatik's tests are shell scripts emitting KTAP, driving a kernel Lua script and
 or on what userspace observes. `tests/socket/` is the closest existing model; read it and `tests/lib.sh`
 (`run_test`, `mark_dmesg`, `dmesg_since`, `check_dmesg`, `ktap_skip`) first.
 
-Run everything with `sudo lunatik test`, one suite with `sudo lunatik test ktls`.
+Run everything with `sudo lunatik test`, one suite with `sudo lunatik test tls`.
 
 ## What this suite needs that others do not
 
@@ -34,16 +34,14 @@ could not name.
 
 | Test | Proves |
 |------|--------|
-| `ulp.sh` | `sk.tcp.ULP` resolves; `setsockopt(sol.TCP, tcp.ULP, "tls")` on a connected socket attaches the ULP; on an unconnected socket it raises `ENOTCONN` |
+| `tests/socket/ulp.sh` | `sk.tcp.ULP` resolves; `setsockopt(sol.TCP, tcp.ULP, "tls")` on a connected socket attaches the ULP; on an unconnected socket it raises `ENOTCONN` |
 
 ### Phase 2: keying
 
 | Test | Proves |
 |------|--------|
-| `pack.sh` | `tls.pack` produces a blob of the exact size the kernel wants for each cipher; a wrong-length or unknown cipher raises |
-| `key_gcm.sh` | attach ULP + install TLS 1.3 AES-GCM-128 TX and RX with fixed vectors succeeds |
-| `key_chacha.sh` | same for ChaCha20-Poly1305 (salt size 0 handled) |
-| `key_errors.sh` | installing before connect raises `ENOTCONN`; installing a direction twice raises `EBUSY` |
+| `tests/tls/pack.sh` | `tls.pack` produces a blob of the exact size the kernel wants for each cipher; a part of the wrong length, or an unknown cipher, raises naming it |
+| `tests/tls/key.sh` | attach ULP + install TLS 1.3 and TLS 1.2 AES-GCM-128 TX and RX with fixed vectors succeeds, and so does ChaCha20-Poly1305 (salt size 0); keying a socket with no ULP raises `ENOPROTOOPT`, a direction installed twice raises `EBUSY`, and a wrong length, an unimplemented version, a second cipher on the other direction or ARIA-GCM outside TLS 1.2 each raise `EINVAL` |
 
 ### Phase 3: plaintext I/O
 
@@ -89,7 +87,7 @@ hung machine, so prove `stop` before adding TLS.
 * mark `dmesg` before the run, read only what came after, and `check_dmesg` at the end;
 * clean up sockets and stop threads in a `trap`, and run the cleanup once up front;
 * `lunatik run` exits 0 even when the script fails to load — assert on output, never on exit status;
-* one `.sh` per row, wired into `tests/ktls/run.sh` and described in `tests/README.md`, same commit as
+* one `.sh` per row, wired into its suite's `run.sh` and described in `tests/README.md`, same commit as
   the code it tests.
 
 ## A note on the loopback keying trick

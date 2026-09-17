@@ -1,7 +1,7 @@
 # Plan: kernel TLS binding
 
 Execution plan for the `ktls` binding. Built incrementally: each phase is a shippable pull request,
-and the early phases rebase existing parked work rather than starting from zero.
+and every phase past `socket:setsockopt` is new code.
 
 ## Expected results
 
@@ -32,33 +32,24 @@ has been reworked heavily since 5.4, a per-socket raw `lua_State` predates the w
 model, and the report itself measured it slower than userspace Lua + kTLS. It is a design reference,
 not a base.
 
-**The parked `claude_tls` branch** (unmerged, last touched 2026-03) is the modern, in-tree-native
-approach that patches nothing:
+**The in-tree-native approach that patches nothing** is what this project builds, and only its first
+piece is in the repository today: `lib/luasocket.c` carries `sock:setsockopt(level, optname, optval)`
+(`42c543ad4`), with `linux.socket.sol` and `linux.socket.so` emitted by `autogen/specs.lua`.
 
-* `lib/luasocket.c` adds `sock:setsockopt(level, optname, optval)` plus the option-level constant
-  namespaces, including `TCP_ULP`. **The method itself has since landed on `master`** (`42c543ad4`),
-  with `linux.socket.sol` and `linux.socket.so` emitted by `autogen/specs.lua`; what `master` still
-  lacks is `TCP_ULP`, which no spec covers.
-* `lib/luatls.c` provides `tls.pack(version, cipher, iv, key, salt, rec_seq)`, which builds the
-  `tls12_crypto_info_*` binary blob for `setsockopt(SOL_TLS)`, plus the constants; AES-GCM-128/256 and
-  ChaCha20-Poly1305, TLS 1.2/1.3, version-gated.
-* `lib/luahandshake.c` binds the kernel handshake upcall (`tls_client_hello_x509` /
-  `tls_server_hello_x509`), blocking on a completion while `tlshd` runs the handshake.
-* `lib/ktls.lua` is a high level `ktls.connect(ip, port, peername, timeout)`.
-
-What `claude_tls` does **not** have, and what this project adds, is the data path: it does client-side
-session establishment and then plain `send`/`receive`, but no plaintext relay, no tunnel, and no
-control-record handling. It also needs rebasing onto the current tree.
+Earlier notes described a parked `claude_tls` branch holding a `lib/luatls.c` packer, a
+`lib/luahandshake.c` upcall binding and a `lib/ktls.lua` client, to be rebased in. No such branch
+exists on the remote and `git log --all` knows none of those paths, so nothing can be taken from it:
+every phase below writes its own code.
 
 ## What is missing
 
 | Expected result | Gap |
 |-----------------|-----|
-| Key a socket for kTLS | `sock:setsockopt` is on `master`; the `TCP_ULP` constant has no autogen spec, and the `tls.pack` packer exists only on the stale `claude_tls` branch. |
+| Key a socket for kTLS | `sock:setsockopt` is on `master`; the `TCP_ULP` constant has no autogen spec, and no packer builds the `tls12_crypto_info_*` blob. |
 | Plaintext I/O with control records | No binding reads decrypted data with a `msg_control` buffer, so TLS control records (alert, close_notify) would error `-EIO` rather than being surfaced. |
-| Handshake upcall | The `luahandshake` binding exists on `claude_tls` but against an old base and without the socket+file plumbing spelled out. |
+| Handshake upcall | Nothing binds `tls_client_hello_*`, and the socket+file plumbing it needs is not spelled out. |
 | The tunnel | Nothing splices plaintext between two sockets. |
-| Tests and examples | The `claude_tls` tests cover connect; nothing covers keying with fixed vectors, alerts, or a tunnel. |
+| Tests and examples | Nothing covers keying with fixed vectors, alerts, or a tunnel. |
 
 Supporting gaps:
 
@@ -113,8 +104,9 @@ Deliverables: the `TCP_` spec, tests, README and `config.ld` updates.
 
 The `tls` module: the `SOL_TLS` / `TLS_TX` / `TLS_RX` constants and `tls.pack(version, cipher, iv,
 key, salt, rec_seq)` producing the `tls12_crypto_info_*` blob. Attach the ULP
-(`sock:setsockopt(sk.sol.TCP, sk.tcp.ULP, "tls")`) and install a session from Lua. Rebase `luatls.c`. Cover the
-cipher/version matrix and the error cases (`-ENOTCONN` before connect, `-EBUSY` on a second install).
+(`sock:setsockopt(sk.sol.TCP, sk.tcp.ULP, "tls")`) and install a session from Lua. Cover the
+cipher/version matrix and the error cases (`-ENOPROTOOPT` with no ULP on the socket, `-EBUSY` on a
+second install, `-EINVAL` on a wrong length or an unimplemented version).
 
 ### Phase 3: plaintext I/O with control records
 
@@ -128,9 +120,8 @@ makes the socket usable as a data path, not just keyable.
 
 The `handshake` module binding `tls_client_hello_*` / `tls_server_hello_*`: build a connected socket
 with a `struct file`, fill `tls_handshake_args`, submit, and wait on a completion in a sleepable
-runtime while `tlshd` negotiates and keys the socket. Mute `sk_data_ready` for the duration. Rebase
-`luahandshake.c` and `ktls.lua`; land the `ktls.connect` client example. Tests skip cleanly when
-`tlshd` is not installed.
+runtime while `tlshd` negotiates and keys the socket. Mute `sk_data_ready` for the duration. Land the
+`ktls.connect` client example. Tests skip cleanly when `tlshd` is not installed.
 
 ### Phase 5: the TLS tunnel
 
@@ -180,7 +171,6 @@ dependency (keys installed directly). Phase 4 onward brings in `tlshd` for real 
 
 | Risk | Mitigation |
 |------|-----------|
-| `claude_tls` is hundreds of commits stale and its socket changes no longer apply | Take its pieces one phase at a time, not as one drop, and re-verify each against the current `lib/luasocket.c`, where `setsockopt` already lives. |
 | An unbounded `recv` in a kthread hangs the machine (the strparser does not check `kthread_should_stop`) | Every receive is bounded (`MSG_DONTWAIT` / `SO_RCVTIMEO_NEW`) and the loop polls `shouldstop()`; this is a hard rule, tested in phase 5. |
 | Control records error `-EIO` without a `msg_control` buffer | Phase 3 makes the plaintext read path always carry a control buffer; tested with a close_notify. |
 | Handshake upcall needs a `struct socket` with a `struct file` and a running `tlshd` | Phase 4 builds the file plumbing explicitly; tests skip when `tlshd` is absent, and the phase-3 path (manual keys) needs neither. |
@@ -196,5 +186,5 @@ dependency (keys installed directly). Phase 4 onward brings in `tlshd` for real 
 5. the test skips (not fails) when the kernel lacks the config, or when `tlshd` is absent;
 6. the full suite still passes: `sudo lunatik test`;
 7. error paths audited: for every raise, whatever was acquired is released;
-8. commits are small and each one stands alone; a rebased import is a distinct, reviewable commit.
+8. commits are small and each one stands alone.
 

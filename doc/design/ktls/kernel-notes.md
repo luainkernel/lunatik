@@ -1,7 +1,8 @@
 # Kernel notes: kernel TLS binding
 
-Reference sheet for the `ktls` binding. Verified against the Linux 6.8 sources and the running kernel's
-`Module.symvers`, with version drift noted. Re-check on the kernel you build for.
+Reference sheet for the `ktls` binding. Every line number below is read at tag **v6.12**, the series of
+the development kernel, against the running kernel's `Module.symvers`, with version drift noted.
+Re-check on the kernel you build for.
 
 ## The one fact that shapes everything
 
@@ -19,6 +20,13 @@ to make the kernel negotiate TLS.
 | `CONFIG_TLS` (`tls.ko`) | kTLS itself | `=m`, module present |
 | `CONFIG_TLS_DEVICE` | NIC offload (not required) | `=y` |
 | `CONFIG_NET_HANDSHAKE` | the handshake upcall | `=y`, built in |
+| `CONFIG_CRYPTO_GCM`, `CONFIG_CRYPTO_CCM` | the AES sessions | `=m` |
+| `CONFIG_CRYPTO_CHACHA20POLY1305` | the ChaCha20-Poly1305 session | `=m` |
+| `CONFIG_CRYPTO_SM4_GENERIC`, `CONFIG_CRYPTO_ARIA` | the SM4 and ARIA sessions | **not set** |
+
+The AEAD is allocated when the keys are installed, so the last row is a limit on what can be tested
+here: `linux.tls.cipher` names SM4 and ARIA, and installing one of those sessions on this box fails
+at `crypto_alloc_aead`.
 
 `tlshd` (from Oracle's `ktls-utils`) is **not installed** on the development box. The handshake path
 (phase 4) therefore cannot be exercised here without installing it; the keying and plaintext paths
@@ -26,17 +34,31 @@ to make the kernel negotiate TLS.
 
 ## Keying — the two-step setsockopt path
 
-1. `setsockopt(sk, SOL_TCP, TCP_ULP, "tls", 4)` → `tls_init` (`net/tls/tls_main.c:948`), which
-   **requires `sk->sk_state == TCP_ESTABLISHED`** (`-ENOTCONN` otherwise): the socket must already be
-   connected and handshaken. It attaches the `tls_context` and swaps `sk_prot`.
+1. `setsockopt(sk, SOL_TCP, TCP_ULP, "tls", 4)` → `tls_init` (`net/tls/tls_main.c:945`), which
+   **requires `sk->sk_state == TCP_ESTABLISHED`** (`-ENOTCONN` otherwise, `:963`): the socket must
+   already be connected and handshaken. It attaches the `tls_context` and swaps `sk_prot`.
 2. `setsockopt(sk, SOL_TLS, TLS_TX | TLS_RX, &crypto_info, len)` → `do_tls_setsockopt_conf`
-   (`tls_main.c:612`). It copies the 4-byte header `struct tls_crypto_info { __u16 version;
-   __u16 cipher_type; }`, looks up the cipher, requires `optlen` to equal that cipher's struct size
-   exactly, and copies the rest. A second install on the same direction returns `-EBUSY`
-   (`tls_main.c:637`).
+   (`tls_main.c:612`), which refuses in this order: an `optlen` below the 4-byte header
+   `struct tls_crypto_info { __u16 version; __u16 cipher_type; }` with `-EINVAL` (`:623`); a
+   direction already keyed with `-EBUSY` (`:638`); whatever `validate_crypto_info` refuses (`:646`,
+   below); a cipher outside `TLS_CIPHER_MIN..MAX`, for which `get_cipher_desc` returns NULL, with
+   `-EINVAL` (`:651`); and an `optlen` that is not that cipher's struct size exactly, again `-EINVAL`
+   (`:656`). What follows the header is then copied flat (`:661`), so the payload is the header and
+   then `iv`, `key`, `salt`, `rec_seq`, with no per-field placement.
+
+`validate_crypto_info` (`tls_main.c:587`) adds three refusals, all `-EINVAL`: a version that is
+neither `TLS_1_2_VERSION` nor `TLS_1_3_VERSION` (`:590`); ARIA-GCM under anything but TLS 1.2
+(`:594`); and, once the other direction carries a session, a version or cipher that differs from it
+(`:603`). Judging the version is the kernel's, which is why the packer does not.
+
+**Keying a socket that carries no `tls` ULP raises `-ENOPROTOOPT`, not `-ENOTCONN`.** `SOL_TLS` is
+not `SOL_TCP`, so `tcp_setsockopt` (`net/ipv4/tcp.c:4027`) hands it to `ip_setsockopt`, which refuses
+every level but `SOL_IP` (`net/ipv4/ip_sockglue.c:1414`). `-ENOTCONN` belongs to the ULP attach
+alone. On a socket that does carry the ULP, an option name other than the four at `SOL_TLS` is
+`-ENOPROTOOPT` as well, from `do_tls_setsockopt`'s default arm (`:793`).
 
 `uapi/linux/tls.h`: option names `TLS_TX=1`, `TLS_RX=2`, `TLS_TX_ZEROCOPY_RO=3`,
-`TLS_RX_EXPECT_NO_PAD=4`. Versions: TLS 1.2 `0x0303`, TLS 1.3 `0x0304`. Ciphers in 6.8: AES-GCM-128
+`TLS_RX_EXPECT_NO_PAD=4`. Versions: TLS 1.2 `0x0303`, TLS 1.3 `0x0304`. Ciphers in 6.12: AES-GCM-128
 (51), AES-GCM-256 (52), AES-CCM-128 (53), CHACHA20-POLY1305 (54, salt 0 / IV 12), SM4-GCM (55),
 SM4-CCM (56), ARIA-GCM-128 (57), ARIA-GCM-256 (58). Each cipher's `tls12_crypto_info_*` carries
 `iv`, `key`, `salt`, `rec_seq` after the common header — this is what `tls.pack` assembles.
@@ -57,11 +79,12 @@ kTLS API, but it is structurally supported and is exactly what `tlshd` does over
 
 ## The ULP framework, and why we ride the `tls` ULP
 
-kTLS is a TCP Upper Layer Protocol. `struct tcp_ulp_ops` (`include/net/tcp.h:2532`) has `init`,
+kTLS is a TCP Upper Layer Protocol. `struct tcp_ulp_ops` (`include/net/tcp.h:2559`) has `init`,
 `update`, `release`, `clone`, `get_info`, a `name[TCP_ULP_NAME_MAX]` (16), and `owner`; it does **not**
 list `sendmsg`/`recvmsg`. A ULP intercepts the data path by having its `init` swap `sk->sk_prot` to a
 `struct proto` with its own `sendmsg`/`recvmsg` — which is exactly what `tls` does
-(`tcp_register_ulp(&tcp_tls_ulp_ops)`, `.name="tls"`, `tls_main.c:1123`; `update_sk_prot` at `:131`).
+(`tcp_register_ulp(&tcp_tls_ulp_ops)` at `tls_main.c:1145`, the ops at `:1120` with `.name="tls"`;
+`update_sk_prot` at `:131`).
 `tcp_register_ulp` / `tcp_unregister_ulp` are `EXPORT_SYMBOL_GPL`.
 
 A socket carries **exactly one ULP**. This binding attaches the kernel's `tls` ULP and uses it; it
@@ -73,12 +96,12 @@ it cannot share a socket with `tls`, so it does not compose into this one. Kept 
 
 ## Plaintext I/O from a `struct socket *`
 
-Once keyed, write plaintext with `kernel_sendmsg` (`net/socket.c:788`) and read decrypted data with
-`kernel_recvmsg` (`:1088`); they land in `tls_sw_sendmsg` / `tls_sw_recvmsg`. Gotchas, all verified:
+Once keyed, write plaintext with `kernel_sendmsg` (`net/socket.c:787`) and read decrypted data with
+`kernel_recvmsg` (`:1093`); they land in `tls_sw_sendmsg` / `tls_sw_recvmsg`. Gotchas, all verified:
 
 * **A control buffer is mandatory to see record types.** `tls_record_content_type` attaches a
-  `TLS_GET_RECORD_TYPE` cmsg on the first record of a `recvmsg` (`tls_sw.c:1756`); if a non-DATA
-  record arrives and the caller supplied no `msg_control`, the read fails `-EIO` (`tls_sw.c:1768`).
+  `TLS_GET_RECORD_TYPE` cmsg on the first record of a `recvmsg` (`tls_sw.c:1752`); if a non-DATA
+  record arrives and the caller supplied no `msg_control`, the read fails `-EIO` (`tls_sw.c:1766`).
   `kernel_recvmsg` does not set up `msg_control`, so the plaintext read path needs a custom `recvmsg`
   carrying a control buffer. `tls_get_record_type` and `tls_alert_recv` (`net/handshake/alert.c`,
   both `EXPORT_SYMBOL`) decode the cmsg and the alert.
@@ -89,7 +112,8 @@ Once keyed, write plaintext with `kernel_sendmsg` (`net/socket.c:788`) and read 
   (`tls_sw.c:1103`); kernel plaintext writes do not take the zerocopy/splice path. Fine, just not
   zero-copy.
 * **RX waits on the strparser.** `tls_sw_recvmsg` blocks in `tls_rx_rec_wait` honoring
-  `MSG_DONTWAIT`/`MSG_WAITALL` (`tls_sw.c:2015`); the wait does **not** check `kthread_should_stop`.
+  `MSG_DONTWAIT`/`MSG_WAITALL` (`tls_sw.c:1308`, called at `:2009`); the wait does **not** check
+  `kthread_should_stop`.
   So a relay loop must pass `MSG_DONTWAIT` or a receive timeout and poll `shouldstop()` — an unbounded
   read here is the classic unstoppable-kthread hazard.
 
@@ -132,22 +156,24 @@ Hard constraints:
 
 ## Version drift
 
-| Feature | Landed | Note for 6.8 |
-|---------|--------|--------------|
+| Feature | Landed | Note for 6.12 |
+|---------|--------|---------------|
 | TLS 1.3 | 5.1 | present |
 | ChaCha20-Poly1305 | ~5.7 | present |
+| ARIA-GCM-128/256 (`TLS_CIPHER_ARIA_GCM_*`) | 6.1 | present; the only constant here younger than the 6.0 floor |
 | handshake upcall (`net/handshake`, `tlshd`) | 6.4 / 6.5 | present |
-| TLS 1.3 **KeyUpdate** / re-keying on RX | **6.14** | **absent in 6.8** — a long-lived 1.3 session that re-keys breaks; document and scope out |
+| TLS 1.3 **KeyUpdate** / re-keying on RX | **6.14** | **absent in 6.12** — a long-lived 1.3 session that re-keys breaks; document and scope out |
 | zerocopy `sendfile` for device offload TX | 6.11 | not needed here |
 
 ## Key file references
 
-* keying / setsockopt: `net/tls/tls_main.c:948` (`tls_init`, ESTABLISHED), `:612`
-  (`do_tls_setsockopt_conf`), `:238` (`tls_process_cmsg`)
-* record type cmsg: `net/tls/tls_sw.c:1756` (`tls_record_content_type`), `:1768` (`-EIO` guard)
-* SW paths: `tls_sw_sendmsg` `:1226`, `tls_sw_recvmsg` `:1954`
-* ULP: `include/net/tcp.h:2532` (`tcp_ulp_ops`), `net/tls/tls_main.c:1123` (register)
-* kernel socket I/O: `net/socket.c:788` (`kernel_sendmsg`), `:1088` (`kernel_recvmsg`)
+* keying / setsockopt: `net/tls/tls_main.c:945` (`tls_init`, ESTABLISHED), `:587`
+  (`validate_crypto_info`), `:612` (`do_tls_setsockopt_conf`), `:238` (`tls_process_cmsg`)
+* record type cmsg: `net/tls/tls_sw.c:1752` (`tls_record_content_type`), `:1766` (`-EIO` guard)
+* SW paths: `tls_sw_sendmsg` `:1226`, `tls_sw_recvmsg` `:1950`
+* ULP: `include/net/tcp.h:2559` (`tcp_ulp_ops`), `net/tls/tls_main.c:1120` (ops), `:1145` (register)
+* kernel socket I/O: `net/socket.c:787` (`kernel_sendmsg`), `:1093` (`kernel_recvmsg`), `:2301`
+  (`do_sock_setsockopt`, exported at `:2340`)
 * handshake upcall: `include/net/handshake.h`, `net/handshake/tlshd.c` (exports), `request.c:223`
   (`handshake_req_submit`), doc `Documentation/networking/tls-handshake.rst`
 * alert/record readers: `net/handshake/alert.c` (`tls_get_record_type`, `tls_alert_recv`, exported)
