@@ -17,6 +17,8 @@ INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
 
 LUA ?= lua5.4
 LUA_PATH ?= $(shell $(LUA) -e 'print(package.path:match("([^;]*)/%?%.lua;"))')
+LUA_CPATH ?= $(shell $(LUA) -e 'print(package.cpath:match("([^;]*)/%?%.so;"))')
+LUA_CFLAGS ?= $(shell pkg-config --cflags $(LUA))
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
@@ -36,6 +38,17 @@ LUNATIKC_CORE := lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem lobject 
 	lbaselib lcorolib ldblib lstrlib ltablib lutf8lib lmathlib liolib linit loadlib
 LUNATIKC_SRCS := ${LUNATIKC}.c ${LUNATIKC}_proto.c $(addprefix lua/,$(addsuffix .c,$(LUNATIKC_CORE)))
 LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
+
+# the CLI's loader: a C module for the distribution's Lua, not the kernel's, so it takes the
+# host headers and links libbpf rather than lua/
+LOADER := bin/loader.so
+LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared ${LUA_CFLAGS}
+
+# a program file's object installs beside the script it belongs to, so `lunatik run <script>`
+# finds it where the kernel finds the source
+define INSTALL_BPF
+	for f in $(1); do case "$$f" in *.bpf.lua) ${LUNATIKC} bpf -o $(2) $$f || exit 1;; esac; done
+endef
 
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
 ifeq ($(BYTECODE),1)
@@ -84,17 +97,20 @@ AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 	tests_install tests_uninstall \
 	ebpf ebpf_install ebpf_uninstall
 
-all: lunatik_sym.h autogen ${LUNATIKC}
+all: lunatik_sym.h autogen ${LUNATIKC} ${LOADER}
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
 
 ${LUNATIKC}: ${LUNATIKC_SRCS} lunatik_conf.h
 	${HOSTCC} ${LUNATIKC_CFLAGS} -o $@ ${LUNATIKC_SRCS} -lm
 
+${LOADER}: bin/loader.c
+	${HOSTCC} ${LOADER_CFLAGS} -o $@ $< -lbpf
+
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD}/autogen clean
 	${MAKE} -C examples/filter clean
-	${RM} lunatik_sym.h ${LUNATIKC}
+	${RM} lunatik_sym.h ${LUNATIKC} ${LOADER}
 	${RM} -r lib/linux
 	${RM} autogen/lunatik/*.lua autogen/linux/*.lua \
 		autogen/dump_*.c autogen/dump_*.pp \
@@ -137,6 +153,7 @@ scripts_install:
 	${LN} ${SCRIPTS_INSTALL_PATH}/lunatik/config.lua ${LUA_PATH}/lunatik/config.lua
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 	${INSTALL} -D -m 0755 ${LUNATIKC} ${LUNATIK_INSTALL_PATH}/lunatikc
+	${INSTALL} -D -m 0755 ${LOADER} ${LUA_CPATH}/lunatik/loader.so
 	${MKDIR} ${LUAEBPF_INSTALL_PATH} ${LUAEBPF_INSTALL_PATH}/luaebpf ${LUAEBPF_INSTALL_PATH}/bpf
 	# the compiler's own library stays source: BYTECODE=1 strips, and a stripped compiler
 	# reports its refusals as "?:?:"
@@ -162,7 +179,7 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik ${LUNATIK_INSTALL_PATH}/lunatikc
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
-	${RM} -r ${LUA_PATH}/lunatik
+	${RM} -r ${LUA_PATH}/lunatik ${LUA_CPATH}/lunatik
 
 ebpf:
 	${MAKE} -C examples/filter
@@ -185,6 +202,10 @@ examples_install:
 		${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
 		$(call INSTALL_LUA,examples/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
 	done
+	$(call INSTALL_BPF,examples/*.lua,${SCRIPTS_INSTALL_PATH}/examples)
+	for d in $(EXAMPLE_DIRS); do \
+		$(call INSTALL_BPF,examples/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
+	done
 
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
@@ -206,6 +227,11 @@ tests_install:
 	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
 	${INSTALL} -m 0644 tests/tc/Makefile tests/tc/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/tc
 	${INSTALL} -m 0644 tests/sched/Makefile tests/sched/*.bpf.c tests/sched/*.bpf.h ${LUNATIK_TESTS_INSTALL_PATH}/sched
+	# tests/luaebpf compiles its own program files: a case there refuses one on purpose, and a
+	# corpus body writes its oracle beside the object while it compiles
+	for d in $(filter-out luaebpf,$(TEST_DIRS)); do \
+		$(call INSTALL_BPF,tests/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/tests/$$d); \
+	done
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
 	${INSTALL} -m 0644 tests/socket/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket

@@ -245,6 +245,45 @@ interpreter raises, the compiled program owes its default verdict instead.
 - **budget**: the "processed N insns" figure the verifier prints for the
   worst program of each corpus, reported as a comment and asserted under a
   ceiling.
+- **load**: `lunatik run` on a script whose object is staged beside it pins the
+  map the program file declares under `/sys/fs/bpf/lunatik/<script>/`, registers
+  the runtime, and pins the link whose program the device then reports. The
+  order is read off the kernel script's own line: it opens the map by its pin
+  path, which it could only do if the map was pinned before the runtime started.
+  A script with an object and no `.lua` runs the program alone, with no runtime.
+- **stop**: `lunatik stop` leaves nothing under the script's root, nothing on
+  the device and no runtime, and a run after it pins and attaches again. A run
+  over the root a crashed run left removes it rather than adopting its maps,
+  which the case stages as a map of the declared name with a capacity the
+  program file does not declare: libbpf refuses to reuse it, so the run succeeds
+  only by removing the root first.
+  A root that is still live is not removed: a run over a script that is already
+  running is refused, with its root and its attachment untouched. Where no
+  runtime holds the root — a program with no kernel script — the run redeploys
+  instead, taking the old program off the device itself; the new program id the
+  device reports is what proves it. A name that only parents a live root is
+  not a deployment: a stop of `tests/luaebpf` while `tests/luaebpf/loader` is
+  running leaves that root, its runtime and its attachment alone. Every path
+  the CLI derives comes from the name the runner registers, the one it was
+  given with the `.lua` dropped: a stop spelled with that suffix takes the
+  deployment down all the same, and a stop of a name no pin root can be
+  derived from — `./tests/luaebpf/plain` — still stops the runtime, since a
+  script with no root has none to take down.
+- **undo**: a run that fails at any step leaves no pin root, no runtime and
+  nothing on the device: a program the verifier rejects after libbpf has already
+  created and pinned the maps, a kernel script that raises with the object
+  loaded, a device that does not exist, and two XDP programs going to one
+  device, where the second attach fails with the first already attached and
+  pinned.
+- **notarget**: what the command line owes a compiled program, refused before
+  anything is created: an XDP program with no `dev=`, an option the object does
+  not ask for, and an execution context for a script with no kernel side. A
+  script with no object at all runs exactly as it did before, registering a
+  runtime and creating no pin root.
+- **verifierlog**: a rejected program makes `lunatik run` print the verifier's
+  own log, quoting `<file>.bpf.lua:<line>` from the object's `line_info`, and
+  exit non-zero; **load** loads the same program file compiled without the test
+  hook, so the grep discriminates.
 
 ### monitor
 
@@ -635,6 +674,16 @@ BTF, or `bpftool`, `clang` or `tc` is unavailable.
   drops on rejection, so a working guard blocks the ping, proving the
   kfunc ran and returned without crashing.
 
+- **tc compiled pass**, **tc compiled drop**: the same two verdicts from a
+  program compiled out of `compiled_pass.bpf.lua` and `compiled_drop.bpf.lua`,
+  with no C stub, no kernel script and no callback: `lunatik run ... dev=` loads,
+  attaches and pins it on tcx egress, `bpftool net show` names it there, the ping
+  decides the verdict and `lunatik stop` takes it down. Both programs read the
+  packet through `tests/tc/packet.lua`'s `isping`, the predicate the kernel
+  callbacks use, compiled as a subprogram. Skipped below kernel 6.6 or libbpf
+  1.3.0, which is where tcx begins, and where the objects or the CLI's loader are
+  not installed.
+
 ### thread
 
 Regression tests for `luathread`.
@@ -705,4 +754,13 @@ BTF, or `bpftool` or `clang` is unavailable.
 - **xdp percpu**: with the ping pinned to the last online CPU, which is where
   the veth runs the receive softirq, the callback of a percpu script reports
   that CPU as its own id, and no other; skipped on a single CPU.
+
+- **xdp compiled pass**, **xdp compiled drop**: the same two verdicts from a
+  program compiled out of `compiled_pass.bpf.lua` and `compiled_drop.bpf.lua`,
+  with no C stub, no kernel script and no callback: `lunatik run ... dev=` loads,
+  attaches and pins it, `bpftool prog show` names the program the device carries,
+  the ping decides the verdict and `lunatik stop` takes it down. Both programs
+  read the packet through `tests/xdp/packet.lua`'s `isping`, the predicate the
+  kernel callbacks use, compiled as a subprogram. Skipped where the objects or
+  the CLI's loader are not installed.
 

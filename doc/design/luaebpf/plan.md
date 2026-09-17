@@ -245,8 +245,10 @@ program, nine accessors over one packet, sits at 74, two orders of magnitude und
 The CLI loads `<script>.bpf.o` when it exists: creates and pins the maps under
 `/sys/fs/bpf/lunatik/<script>/`, starts the runtime, attaches with the target given on the
 command line, pins the link; `stop` reverses it. `make install` compiles program files with
-`lunatikc`. The `xdp` and `tc` suites gain compiled programs beside the C stubs that must stay;
-the README's XDP section loses its `bpftool` lines.
+`lunatikc`, beside the scripts they belong to. The `xdp` and `tc` suites gain compiled programs
+beside the C stubs that must stay; the README's `lunatikc bpf` block loses its `bpftool prog load`
+line. `make ebpf` and `LUNATIK_EBPF_INSTALL_PATH` stay: their only consumers are the two examples'
+C stubs, whose whole body is the kfunc call, so they go in phase 6 with the examples they serve.
 
 Tests: `lunatik run` then `lunatik stop` leaves nothing pinned; a run with a missing target fails
 before the runtime starts; the existing `xdp` and `tc` cases pass with a compiled program.

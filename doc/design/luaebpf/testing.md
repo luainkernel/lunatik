@@ -102,11 +102,14 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 
 | Test | Proves |
 |------|--------|
-| `run.sh` | `lunatik run` on a script with a program file pins the maps, starts the runtime, attaches and pins the link, in that order (checked by what exists after a failure injected at each step) |
-| `stop.sh` | `lunatik stop` leaves nothing under the script's pin root, and a second `run` after a killed one succeeds |
-| `notarget.sh` | a run without `dev=` for an XDP program fails before the runtime starts, with a message naming the option |
-| `xdp_compiled.sh`, `tc_compiled.sh` | the `xdp` and `tc` suites' pass and drop cases with a compiled program in place of the C stub |
+| `load.sh` | `lunatik run` on a script with a program file pins the maps, starts the runtime, attaches and pins the link, in that order. The order is read off the kernel script's own line: it opens the map by its pin path, which it could only do if the map was pinned before the runtime started. A script with an object and no `.lua` runs the program alone |
+| `stop.sh` | `lunatik stop` leaves nothing under the script's pin root, nothing on the device and no runtime; a `run` after it attaches again, and a `run` over the root a crashed one left removes it rather than adopting its maps. A root that is still live is not removed: a `run` of a script already running is refused, and where no runtime holds the root the `run` redeploys, taking the old program off the device itself; a `stop` of a name that only parents a live root leaves that root alone, a `stop` spelled with the `.lua` the runner drops takes the deployment down, and a `stop` of a name no root can be derived from still reaches the runtime |
+| `undo.sh` | a run that fails at any step leaves no pin root, no runtime and nothing attached: one row per step, with the stimulus that fails it |
+| `notarget.sh` | a run without `dev=` for an XDP program fails before the runtime starts, with a message naming the option; so does an option the object does not ask for, and an execution context for a script with no kernel side. A script with no object runs exactly as it did before |
 | `verifierlog.sh` | a program the verifier rejects makes `run` print the log with the Lua line and exit non-zero |
+| `xdp compiled pass`/`drop`, `tc compiled pass`/`drop` | the `xdp` and `tc` suites' pass and drop cases from a compiled program, beside the C stubs rather than in place of them: the stubs are what exercises the kfunc, which no compiled program calls until phase 4 |
+
+The row this table called `run.sh` is `load.sh`: `tests/luaebpf/run.sh` is the suite runner.
 
 ### Phase 4: the escape hatch
 
