@@ -59,17 +59,22 @@ luaebpf_kfunc() {
 		| grep -q "FUNC '$name'" || echo "$module publishes no $name"
 }
 
+# the whole plan skipped for one reason: the plan is printed before a case knows whether the
+# kernel offers what it exercises, and a kernel that does not owes a skip rather than a failure
+luaebpf_skipall() {
+	local i
+	for i in $(seq "$1"); do ktap_skip "luaebpf: $2"; done
+	ktap_totals
+	exit 0
+}
+
 # the plan, the skips a missing tool turns every case into, and a scratch directory of its own
 luaebpf_start() {
-	local reason i
+	local reason
 	ktap_header
 	ktap_plan "$1"
 	reason=$(luaebpf_reason)
-	if [ -n "$reason" ]; then
-		for i in $(seq "$1"); do ktap_skip "luaebpf: $reason"; done
-		ktap_totals
-		exit 0
-	fi
+	[ -n "$reason" ] && luaebpf_skipall "$1" "$reason"
 	cleanup
 	LUAEBPF_WORK=$(mktemp -d)
 	mkdir -p "$LUAEBPF_PINS"
@@ -79,10 +84,11 @@ luaebpf_start() {
 }
 
 # compiles an installed program file; the body runs here, so its oracle lands in the scratch
-# directory beside the object
+# directory beside the object. The probe override is passed only where a row names one, since an
+# empty allow-list would be one that offers the compiler nothing.
 luaebpf_compile() {
 	local name="$1"
-	( cd "$LUAEBPF_WORK" && LUAEBPF_DROP="${2:-}" \
+	( cd "$LUAEBPF_WORK" && env LUAEBPF_DROP="${2:-}" ${3:+LUAEBPF_PROBE=$3} \
 		lunatikc bpf -o "$LUAEBPF_WORK/$name.bpf.o" "$LUAEBPF_SRC/$name.bpf.lua" ) 2>&1
 }
 
@@ -134,7 +140,7 @@ luaebpf_differential() {
 luaebpf_refuses() {
 	local name="$1" pattern="$2" out
 	rm -f "$LUAEBPF_WORK/$name.bpf.o"
-	out=$(cd "$LUAEBPF_WORK" && lunatikc bpf -o "$LUAEBPF_WORK/$name.bpf.o" \
+	out=$(cd "$LUAEBPF_WORK" && env ${3:+LUAEBPF_PROBE=$3} lunatikc bpf -o "$LUAEBPF_WORK/$name.bpf.o" \
 		"$LUAEBPF_WORK/$name.bpf.lua" 2>&1)
 	if [ $? -eq 0 ]; then
 		echo "$name: compiled, and the construct should have been refused"

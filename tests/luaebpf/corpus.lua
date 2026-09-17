@@ -38,6 +38,15 @@ function packet:getint32(at) return read(self, "=i4", at) end
 function packet:getint64(at) return read(self, "=i8", at) end
 function packet:getnumber(at) return read(self, "=i8", at) end
 
+-- luadata_checkbounds wants an offset of its own, a length of at least one byte and both inside
+-- the data; the compiled twin has no length of its own, so neither has this one
+function packet:getstring(at, len)
+	if at < 0 or len < 1 or at + len > #self.bytes then
+		error("out of bounds", 0)
+	end
+	return self.bytes:sub(at + 1, at + len)
+end
+
 function packet.__len(self)
 	return #self.bytes
 end

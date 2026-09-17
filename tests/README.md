@@ -210,6 +210,45 @@ interpreter raises, the compiled program owes its default verdict instead.
   declared under either default so the answer is the verdict the file asked
   for; with `LUAEBPF_DROP=bounds` the object is still written and the verifier
   refuses it naming an invalid packet access.
+- **getstring**: the packet bytes a compiled function reads into a buffer of
+  its frame, over the five packets of `packets.lua`: a length the program
+  proved against the buffer's width, a length that is a constant, one that is
+  zero or negative at run time, a read past the packet, a negative offset and
+  a read inside a called function, each answering the interpreter's verdict or
+  the program's default where the interpreter raises. The XDP entry calls
+  `bpf_xdp_load_bytes` over a buffer whose eight words it zeroed first and the
+  TC one `bpf_skb_load_bytes`; with `LUAEBPF_PROBE` offering neither, the XDP
+  read is refused by the helper's name and the kernel's while the TC one still
+  compiles. A read with no length, one whose offset or length is not a number,
+  one the compiler cannot bound, one bounded above the buffer's width, a buffer
+  used as a number, compared with a number, passed to a call, returned,
+  concatenated, `#`-ed or handed to a string function, and eight reads in one
+  function are refused with their lines.
+- **strcmp**: a string a compiled function read compared with a string
+  constant: equal, the constant as a constant of the bytecode and as a value the
+  body computed, a constant that is a prefix of the read, a read that is a
+  prefix of the constant, the empty constant, `~=`, and a comparison inside a
+  called function, each over the five packets of `packets.lua`. A constant
+  longer than the bound the program proved is settled while compiling, so the
+  object carries no comparison for it; a read of two bytes more than the host
+  name, whose tail is NUL, is not equal to the name, which is the row a
+  comparison of the bytes alone fails. Two strings compared with each other, a
+  string two reads merged into and one whose read the walk bounded two ways are
+  refused.
+- **strkey**: a `c<n>` map key a compiled function builds with `getstring`. The
+  maps the program file declares are pinned by `bpftool prog loadall ...
+  pinmaps`, a kernel script opens two of them by their pin paths with the same
+  `c64` and `c16` specs and writes the host name the ClientHello carries, and
+  the compiled program finds the entry under the key it read out of the packet,
+  which is what says the buffer was zeroed and the read length exact. The `c16`
+  row proves the width the helper reads is the key spec's and not the buffer's;
+  bytes the map was never keyed with take the miss path, a lookup after a failed
+  read takes the default verdict, and an update from the compiled side is what
+  `bpftool map lookup pinned` finds under the padded key. A bytes spec as a map
+  value, a key spec of no bytes at all, a string constant and a number where a
+  bytes key is declared, a string where a number key is, a string bounded wider
+  than the key, a key spec wider than the buffer a string is read into and a
+  string whose read the walk bounded two ways are refused.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, and every program is run against the empty
   maps and against maps the case seeded from the shell: a key present in a hash,

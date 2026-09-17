@@ -38,11 +38,14 @@ local KFUNC <const> = "bpf_luaxdp_run"
 -- what a program may read on its context, and the two members that are packet bounds rather
 -- than numbers. Nothing is writable: xdp_is_valid_access refuses a write unless the program is
 -- offloaded, and __is_valid_xdp_access takes only a four-byte read (net/core/filter.c).
+-- bpf_xdp_load_bytes, the helper a getstring lowers to, landed in v5.18 and the tree supports
+-- 5.15, so the compiler asks the running kernel's own BTF for it rather than assuming it
 local context = {
 	struct = "xdp_md",
 	fields = {ingress_ifindex = true, rx_queue_index = true},
 	writable = {},
 	packet = {base = "data", limit = "data_end"},
+	loadbytes = {number = 189, probe = "bpf_xdp_load_bytes"},
 }
 
 local xdp = {}

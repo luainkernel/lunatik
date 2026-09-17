@@ -367,6 +367,52 @@ both implement. The CLI therefore detaches before it unpins wherever it takes a 
   and the interpreter raises there too, so the pairing the differential test asserts is
   unchanged.
 
+### The bytes a program copies out of the packet
+
+* **The two helpers.** `bpf_skb_load_bytes` is helper 26
+  ([uapi/linux/bpf.h#L5959](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L5959),
+  documented at
+  [#L2532](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L2532)) and
+  `bpf_xdp_load_bytes` helper 189
+  ([#L6122](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L6122),
+  [#L5591](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L5591)), both
+  `(ctx, offset, buf, len)` answering 0 or a negative error. Both protos are `arg1
+  ARG_PTR_TO_CTX, arg2 ARG_ANYTHING, arg3 ARG_PTR_TO_UNINIT_MEM, arg4 ARG_CONST_SIZE`
+  ([net/core/filter.c#L1777](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L1777),
+  [#L4190](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L4190)), and
+  `xdp_func_proto` returns the XDP one unconditionally
+  ([#L8622](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L8622)).
+* **Their releases differ, and one of them decides a refusal.** `bpf_skb_load_bytes` is v4.1,
+  below every kernel AGENTS.md supports. `bpf_xdp_load_bytes` first appears in v5.18's uapi header
+  ([include/uapi/linux/bpf.h#L5337](https://github.com/torvalds/linux/blob/v5.18/include/uapi/linux/bpf.h#L5337));
+  v5.15's carries neither the number nor the name
+  ([v5.15 uapi/linux/bpf.h](https://github.com/torvalds/linux/blob/v5.15/include/uapi/linux/bpf.h)).
+  So the XDP one is probed for -- the running kernel's BTF publishes a `BTF_KIND_FUNC` per helper,
+  which is the same question `tests/luaebpf/common.sh` asks of a module -- and the TC one is not.
+* **What the length register must satisfy.** `check_mem_size_reg`
+  ([kernel/bpf/verifier.c#L6831](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L6831))
+  rejects a minimum below zero ("min value is negative, either use unsigned or 'var &= const'",
+  [#L6859](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L6859)), a minimum of
+  zero under `ARG_CONST_SIZE` ("invalid zero-sized read",
+  [#L6865](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L6865)) and an
+  unbounded maximum ("unbounded memory access, use 'var &= const' or 'if (var < const)'",
+  [#L6871](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L6871)). The emitter
+  tests the length against one and takes the failure path below it, which is also what
+  `luadata_checkbounds` does
+  ([lib/luadata.c#L34-L38](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luadata.c#L34-L38));
+  the upper bound is the one the program itself proved, so a length the compiler cannot bound is
+  a compile error rather than a load-time one.
+* **The buffer is zeroed because the verifier says so.** In the same function, `meta` is set to
+  `NULL` where the size register is not a constant
+  ([#L6856](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L6856)), which turns
+  raw mode off, and `check_stack_range_initialized`
+  ([#L6595](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L6595)) then
+  requires every slot the helper could fill to be initialized, failing with "invalid read from
+  stack"
+  ([#L6725](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L6725)). The zeros
+  are also what makes a `c<n>` map key's tail agree with `string.pack`'s padding, which is the one
+  reason the comment on that line states.
+
 ## A map the object declares
 
 * **What libbpf requires of a BTF-defined map.** A `.maps` ELF section; a `DATASEC` of that name
@@ -619,22 +665,35 @@ and nothing else, which is why the loader is libbpf and not a shell-out. The tre
 `bpftool` (`linux-tools-$(uname -r)`,
 [README.md#L43](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/README.md#L43)).
 
-### clang, for the runtime library only
+### clang, and the linker the design does not use
 
 The LLVM BPF backend never emits `may_goto` from IR: the instruction has an empty selection
 pattern
 ([llvm/lib/Target/BPF/BPFInstrInfo.td#L310](https://github.com/llvm/llvm-project/blob/llvmorg-23.1.1/llvm/lib/Target/BPF/BPFInstrInfo.td#L310))
 and reaches the output only as inline assembly. Its default CPU is v3
 ([clang/lib/Basic/Targets/BPF.cpp#L51-L52](https://github.com/llvm/llvm-project/blob/llvmorg-23.1.1/clang/lib/Basic/Targets/BPF.cpp#L51-L52)).
-The design uses clang for the C runtime library the emitter links against (`plan.md`, "The
-runtime library"), built at `make` time the way `examples/filter` and `examples/sniclassify` are
-built today
-([Makefile#L134-L136](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/Makefile#L134-L136)).
-Writing a program needs no clang.
+Nothing in the design needs clang: writing a program needs none, and the C runtime library it was
+once scoped for is not built (`plan.md`, the decision row).
 
-DTrace 2.0 for Linux is the precedent for this split: a hand-written BPF code generator for the
-user's program (`libdtrace/dt_cg.c`, 269,002 bytes at the pinned revision) plus a library of BPF
-functions written in C and assembly under `bpf/` and built with `gcc-bpf`
+The linking was measured before that was settled, and it is not what decided it. `bpftool gen
+object` (libbpf's `bpf_linker__*`) accepts every object the emitter writes today -- the
+`tests/luaebpf/*.bpf.lua` corpora, each one -- keeping the `xdp`/`tcx` section, `.maps`, the
+`.ksyms` extern, `.BTF` and `.BTF.ext`, and the merged BTF still carries the Lua file name and
+source lines. *Unverified*: that a linked object loads, since `BPF_PROG_LOAD` needs privilege
+that session did not have. libbpf marks a `__hidden` global subprogram's BTF `FUNC` static
+([libbpf.c#L975-L982](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L975-L982),
+[#L3631-L3650](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L3631-L3650)),
+which is the only shape in which a library function may take a packet pointer; the linker demands
+a BTF type for every global or extern ELF symbol
+([linker.c#L1907](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/linker.c#L1907)) and
+compares an extern's type with the definition's by kind and size
+([#L1520-L1592](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/linker.c#L1520-L1592));
+`bpf_linker__add_file` takes a path, not a buffer
+([libbpf.h#L1945-L1947](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.h#L1945-L1947)).
+
+DTrace 2.0 for Linux is the precedent for the split that was weighed: a hand-written BPF code
+generator for the user's program (`libdtrace/dt_cg.c`, 269,002 bytes at the pinned revision) plus
+a library of BPF functions written in C and assembly under `bpf/` and built with `gcc-bpf`
 ([bpf/Build](https://github.com/oracle/dtrace/blob/61fea621160ea4b6302874c62a723da105b44883/bpf/Build),
 [README.md#L101-L102](https://github.com/oracle/dtrace/blob/61fea621160ea4b6302874c62a723da105b44883/README.md#L101-L102)).
 
