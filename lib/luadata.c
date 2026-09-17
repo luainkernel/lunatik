@@ -138,6 +138,7 @@ static int luadata_checksum(lua_State *L)
 }
 
 /***
+* Resizes the buffer; the bytes it keeps survive and the bytes a growth adds read as zeros.
 * @function resize
 * @tparam integer new_size number of bytes, from 1 up to `INT_MAX`.
 * @raise if out of bounds, read-only, not owned, or the allocation fails
@@ -153,6 +154,9 @@ static int luadata_resize(lua_State *L)
 		data->ptr = lunatik_checknull(L, lunatik_realloc(L, data->ptr, data->size, new_size));
 	else
 		luaL_error(L, "cannot resize external memory");
+
+	if (new_size > data->size)
+		memset(data->ptr + data->size, 0, new_size - data->size);
 
 	data->size = new_size;
 	return 0;
@@ -188,6 +192,7 @@ static void luadata_release(void *private)
 }
 
 /***
+* Allocates a buffer of `size` bytes, zeroed.
 * @function new
 * @tparam integer size number of bytes, from 1 up to `INT_MAX`.
 * @tparam[opt] string mode `"shared"` (default) or `"single"`; a `"single"` buffer cannot be
@@ -363,7 +368,7 @@ static int luadata_lnew(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), opt);
 	luadata_t *data = (luadata_t *)object->private;
 
-	luadata_set(data, lunatik_checkalloc(L, size), size, LUADATA_OPT_FREE);
+	luadata_set(data, lunatik_checkzalloc(L, size), size, LUADATA_OPT_FREE);
 	return 1; /* object */
 }
 

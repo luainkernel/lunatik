@@ -90,6 +90,14 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   allocator for an order past `MAX_PAGE_ORDER`, so the allocation fails by
   construction and `data:resize()` has to keep the size and the bytes it
   had. Skips when the buffer did not land in `vmalloc`.
+- **zeroed**: an owned buffer holds no byte the script did not write.
+  `data.new()` and a `data:resize()` that grows come back zeroed, on the
+  `krealloc` and the `kvmalloc` arm of the allocator and from an atomic
+  runtime. A round poisons its buffers and frees them so the next round
+  allocates over them, and a shrink followed by a growth back into the block
+  it kept reads the buffer's own bytes and needs no such luck. Skips on a
+  kernel that zeroes every allocation itself, where a fixed `data.new()` and
+  a broken one read the same.
 
 ### fifo
 
