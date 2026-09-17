@@ -64,7 +64,7 @@ echo "$self" | grep -qF "fsnotify nochild test pass" || \
 	fail "no FS_OPEN for the marked directory itself: $(echo "$self" | grep -F 'fsnotify nochild test')"
 ktap_pass "a directory mark without FS_EVENT_ON_CHILD still reports its own FS_OPEN"
 
-errs=$(printf '%s\n%s\n%s\n' "$child" "$unmarked" "$self" | grep -E "\.lua:[0-9]+:" || true)
+errs=$(printf '%s\n%s\n%s\n' "$child" "$unmarked" "$self" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
 ktap_pass "no Lua errors in kernel"
 

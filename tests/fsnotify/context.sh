@@ -39,7 +39,7 @@ cleanup
 mkdir -p -m 0700 "$SCRATCH"
 
 ktap_header
-ktap_plan 2
+ktap_plan 3
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -58,6 +58,10 @@ ktap_pass "watch and mark report what they reject and still take a directory"
 echo "$softirq" | grep -qF "runtime context mismatch" || \
 	fail "expected 'runtime context mismatch' from a softirq runtime, got: $softirq"
 ktap_pass "fsnotify.watch refuses a softirq runtime"
+
+errs=$(echo "$refusals" | grep -E "$KTAP_ERRORS" || true)
+[ -n "$errs" ] && fail "Lua error in kernel: $errs"
+ktap_pass "no Lua errors in kernel"
 
 ktap_totals
 [ $KTAP_FAIL -eq 0 ]

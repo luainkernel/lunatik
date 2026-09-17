@@ -52,7 +52,7 @@ echo "$neighbour" | grep -qF "fsnotify open test" && \
 	fail "the callback ran for an unmarked neighbour"
 ktap_pass "an unmarked neighbour reports nothing"
 
-errs=$(printf '%s\n%s\n' "$marked" "$neighbour" | grep -E "\.lua:[0-9]+:" || true)
+errs=$(printf '%s\n%s\n' "$marked" "$neighbour" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
 ktap_pass "no Lua errors in kernel"
 

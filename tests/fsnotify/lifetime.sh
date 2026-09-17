@@ -60,8 +60,7 @@ echo "$released" | grep -qF "fsnotify orphan test pass" || \
 	fail "the orphan watch did not arm: $(echo "$released" | grep -F 'fsnotify orphan test')"
 ktap_pass "a watch that is never stopped is released with its runtime"
 
-oops=$(printf '%s\n%s\n' "$stopped" "$released" | \
-	grep -E "Oops:|BUG:|kernel BUG at|NULL pointer dereference|general protection|\.lua:[0-9]+:" || true)
+oops=$(printf '%s\n%s\n' "$stopped" "$released" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$oops" ] && fail "kernel error during teardown: ${oops%%$'\n'*}"
 ktap_pass "no kernel error while unlinking the marked inode"
 

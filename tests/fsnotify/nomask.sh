@@ -49,7 +49,7 @@ echo "$masked" | grep -qF "fsnotify nomask test pass" || \
 	fail "no FS_MODIFY for the marked file: $(echo "$masked" | grep -F 'fsnotify nomask test')"
 ktap_pass "an event inside the mark's mask still reaches the callback"
 
-errs=$(printf '%s\n%s\n' "$unmasked" "$masked" | grep -E "\.lua:[0-9]+:" || true)
+errs=$(printf '%s\n%s\n' "$unmasked" "$masked" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
 ktap_pass "no Lua errors in kernel"
 

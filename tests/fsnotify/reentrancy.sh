@@ -39,7 +39,7 @@ mkdir -p -m 0700 "$SCRATCH"
 : > "$SCRATCH/watched"
 
 ktap_header
-ktap_plan 4
+ktap_plan 5
 
 mark_dmesg
 run_script "$OBSERVER"
@@ -66,6 +66,10 @@ ktap_pass "the nested event was skipped, not delivered"
 seen=$(echo "$output" | grep -cF "fsnotify observer test note")
 [ "$seen" -eq 2 ] || fail "the observer saw $seen opens, expected the read plus the callback's"
 ktap_pass "the skipped event did reach fsnotify, the observer saw both opens"
+
+errs=$(echo "$output" | grep -E "$KTAP_ERRORS" || true)
+[ -n "$errs" ] && fail "Lua error in kernel: $errs"
+ktap_pass "no Lua errors in kernel"
 
 ktap_totals
 [ $KTAP_FAIL -eq 0 ]
