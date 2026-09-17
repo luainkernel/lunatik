@@ -16,8 +16,10 @@
 -- numeric `for` jumps backwards; the code of the last walk is what is kept.
 -- @module luaebpf.emit
 
-local insn  = require("luaebpf.insn")
-local proto = require("luaebpf.proto")
+local insn    = require("luaebpf.insn")
+local maps    = require("luaebpf.maps")
+local proto   = require("luaebpf.proto")
+local vmlinux = require("luaebpf.vmlinux")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes
@@ -30,11 +32,21 @@ local NREGS    <const> = 4   -- Lua registers 0..3 live in r6..r9; the rest spil
 local FIRST    <const> = reg.R6
 local SLOT     <const> = 8
 local MAXSTACK <const> = 512 -- MAX_BPF_STACK
-local MAXARGS  <const> = 5   -- MAX_BPF_FUNC_REG_ARGS
+local MAXARGS  <const> = 4   -- MAX_BPF_FUNC_REG_ARGS, less the register the abort pointer takes
 local NBITS    <const> = 64
+local BYTE     <const> = 8   -- bits
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 local MININT   <const> = 1 << 63
+
+-- the words every frame reserves: the flag a callee raises through the pointer its caller
+-- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
+-- the key and the value a map helper is handed by address
+local RESERVED <const> = 4
+local ABORTED  <const> = -SLOT
+local CALLER   <const> = -SLOT * 2
+local KEY      <const> = -SLOT * 3
+local VALUE    <const> = -SLOT * 4
 
 -- what a Lua register may hold; OTHER is a value the compiler knows and the kernel never sees
 local INT     <const> = 1
@@ -42,9 +54,16 @@ local BOOL    <const> = 2
 local NIL     <const> = 4
 local CTX     <const> = 8
 local OTHER   <const> = 16
-local RUNTIME <const> = INT | BOOL | NIL
+local PACKET  <const> = 32
+local METHOD  <const> = 64
+local MAYBE   <const> = 128              -- a map value the program has not tested yet
+local RECORD  <const> = 256              -- a struct map value, read a field at a time
+local RUNTIME <const> = INT | BOOL | NIL -- a value the kernel holds as a word
+local PROXY   <const> = CTX | PACKET | MAYBE | RECORD -- a pointer the kernel holds, read through a proxy
 
-local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context"}
+local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context",
+	[PACKET] = "packet", [METHOD] = "method", [MAYBE] = "map value",
+	[RECORD] = "struct map value"}
 
 local opnames = {}
 for name, op in pairs(opcodes) do
@@ -84,23 +103,24 @@ end
 
 --- @section the abstract state
 
--- the join of two abstract values: the types of both, and the compile-time value only where
--- every path agrees on it
+-- the join of two abstract values: the types of both, and the compile-time value and the map a
+-- lookup came from only where every path agrees on them
 local function join(a, b)
 	if a == nil or b == nil then
 		return a or b
 	end
-	if a.t == b.t and a.k == b.k then
+	if a.t == b.t and a.k == b.k and a.map == b.map then
 		return a
 	end
-	return {t = a.t | b.t, k = a.k == b.k and a.k or nil, name = a.name == b.name and a.name or nil}
+	return {t = a.t | b.t, k = a.k == b.k and a.k or nil, name = a.name == b.name and a.name or nil,
+		map = a.map == b.map and a.map or nil}
 end
 
 local function same(a, b)
 	if a == nil or b == nil then
 		return a == b
 	end
-	return a.t == b.t and a.k == b.k
+	return a.t == b.t and a.k == b.k and a.map == b.map
 end
 
 local function copy(state)
@@ -138,23 +158,28 @@ local function spilled(i)
 end
 
 local function offset(i)
-	return -SLOT * (i - NREGS + 1)
+	return -SLOT * (i - NREGS + 1 + RESERVED)
 end
 
-local function getreg(f, pc, state, i, scratch)
-	local value = state[i]
-	local mask = value ~= nil and value.t or 0
-	if mask == CTX then
-		refuse(f, pc, "the program context cannot be read yet")
-	end
-	if mask == 0 or (mask & ~RUNTIME) ~= 0 then
-		refuse(f, pc, "a %s has no value in the kernel here", typename(value))
-	end
+-- the word a Lua register holds, whatever its type
+local function fetch(f, i, scratch)
 	if spilled(i) then
 		f.code:load(scratch, reg.FP, offset(i))
 		return scratch
 	end
 	return FIRST + i
+end
+
+local function getreg(f, pc, state, i, scratch)
+	local value = state[i]
+	local mask = value ~= nil and value.t or 0
+	if (mask & MAYBE) ~= 0 then
+		refuse(f, pc, "'%s' may be nil here; test it first", value.name or "a value")
+	end
+	if mask == 0 or (mask & ~RUNTIME) ~= 0 then
+		refuse(f, pc, "a %s has no value in the kernel here", typename(value))
+	end
+	return fetch(f, i, scratch)
 end
 
 local function setreg(f, i, src)
@@ -174,13 +199,16 @@ local function setimm(f, i, value)
 	end
 end
 
--- reads a Lua register into a scratch register the caller may then destroy
-local function into(f, pc, state, i, scratch)
-	local from = getreg(f, pc, state, i, scratch)
+local function move(f, from, scratch)
 	if from ~= scratch then
 		f.code:alu(alu.MOV, scratch, from)
 	end
 	return scratch
+end
+
+-- reads a Lua register into a scratch register the caller may then destroy
+local function into(f, pc, state, i, scratch)
+	return move(f, getreg(f, pc, state, i, scratch), scratch)
 end
 
 local function isinteger(value)
@@ -232,11 +260,9 @@ local function labelof(f, pc)
 	return label
 end
 
--- the tail a program takes where the interpreter would raise
-local function abort(f, pc, what)
-	if not f.isprogram then
-		refuse(f, pc, "%s inside a called function cannot take the program's default verdict", what)
-	end
+-- the tail taken where the interpreter would raise: the program's default verdict in its own
+-- frame, and the flag that carries the verdict one frame up everywhere else
+local function abort(f)
 	if f.aborted == nil then
 		f.aborted = f.code:label()
 	end
@@ -275,20 +301,337 @@ local function testjump(f, pc, state, op, dst, src)
 	return false
 end
 
+--- @section the context
+
+-- the running kernel's own layout of the context struct, read once per program
+local function layout(f)
+	local unit = f.unit
+	if unit.layout == nil then
+		unit.layout = {}
+		for _, field in ipairs(vmlinux.layout(unit.context.struct).fields) do
+			unit.layout[field.name] = field
+		end
+	end
+	return unit.layout
+end
+
+-- what a name reads on the context, refused where the kernel's own rules say a program may not
+local function contextfield(f, pc, key, writing)
+	local context = f.unit.context
+	if key == context.packet.base or key == context.packet.limit then
+		refuse(f, pc, "'%s' is a packet bound, not a number; '#' on the packet is its length", key)
+	end
+	local field = context.fields[key] and layout(f)[key]
+	if field == nil then
+		refuse(f, pc, "the context has no field '%s'", key)
+	end
+	if writing and not context.writable[key] then
+		refuse(f, pc, "the context field '%s' cannot be written", key)
+	end
+	return field
+end
+
+-- every field a context proxy exposes is an unsigned word, so the load needs no extension
+local function contextget(f, pc, ins, state, key)
+	local field = contextfield(f, pc, key, false)
+	f.code:load(reg.R2, fetch(f, ins.b, reg.R1), field.offset, field.size)
+	setreg(f, ins.a, reg.R2)
+	state[ins.a] = {t = INT, name = key}
+end
+
+local function contextset(f, pc, ins, state, key)
+	local field = contextfield(f, pc, key, true)
+	local src = reg.R2
+	if ins.k then
+		local value = constant(f, pc, ins.c)
+		if type(value) ~= "number" then
+			refuse(f, pc, "the context field '%s' takes a number, not a %s", key, type(value))
+		end
+		f.code:set(src, value)
+	else
+		if not isinteger(state[ins.c]) then
+			refuse(f, pc, "the context field '%s' takes a number, not a %s", key,
+				typename(state[ins.c]))
+		end
+		src = getreg(f, pc, state, ins.c, src)
+	end
+	f.code:store(fetch(f, ins.a, reg.R1), field.offset, src, field.size)
+end
+
+--- @section the packet
+
+-- MAX_PACKET_OFF: the verifier refuses arithmetic between a packet pointer and a register whose
+-- range it does not know, and find_good_pkt_pointers leaves a pointer no range at all once the
+-- offset's maximum plus the access would carry it past this. So an access tests its offset
+-- against the last one its width can start at. Anything above is out of bounds on every packet
+-- BPF_PROG_TEST_RUN or a NIC can build, and the interpreter raises there too.
+local PACKETMAX <const> = 65535
+
+-- the reads the kernel's own data object publishes (lib/luadata.c), and the load each becomes.
+-- There is no getuint64: a Lua integer is 64-bit signed and has no unsigned twin.
+local accessors = {
+	getbyte   = {size = 1, signed = false},
+	getuint8  = {size = 1, signed = false},
+	getint8   = {size = 1, signed = true},
+	getuint16 = {size = 2, signed = false},
+	getint16  = {size = 2, signed = true},
+	getuint32 = {size = 4, signed = false},
+	getint32  = {size = 4, signed = true},
+	getint64  = {size = 8, signed = true},
+	getnumber = {size = 8, signed = true},
+}
+
+-- an accessor is called with the receiver and the offset, both of which OP_CALL counts
+local ACCESSARGS <const> = 2
+
+-- data and data_end, which the kernel rewrites a four-byte context load of into a full pointer
+local function bounds(f)
+	local packet, fields = f.unit.context.packet, layout(f)
+	return fields[packet.base], fields[packet.limit]
+end
+
+-- BPF_MEMSX landed in v6.6 and the tree supports 5.15, so a signed read extends by hand
+local function extend(f, dst, size)
+	local shift = NBITS - size * BYTE
+	f.code:alui(alu.LSH, dst, shift)
+	f.code:alui(alu.ARSH, dst, shift)
+end
+
+-- One access, self-contained: data and data_end are re-read from the context rather than kept
+-- live, so the proxy is one register that survives a call and cannot go stale.
+local function packetread(f, pc, ins, state, access)
+	local code, base, limit = f.code, bounds(f)
+	into(f, pc, state, ins.a + 2, reg.R4)
+	local ptr = fetch(f, ins.a + 1, reg.R3)
+	code:load(reg.R1, ptr, base.offset, base.size)
+	code:load(reg.R2, ptr, limit.offset, limit.size)
+	code:branchi(jump.JGT, reg.R4, PACKETMAX - access.size, abort(f))
+	code:alu(alu.ADD, reg.R1, reg.R4)
+	if f.drop ~= "bounds" then
+		code:alu(alu.MOV, reg.R4, reg.R1)
+		code:alui(alu.ADD, reg.R4, access.size)
+		code:branch(jump.JGT, reg.R4, reg.R2, abort(f))
+	end
+	code:load(reg.R1, reg.R1, 0, access.size)
+	if access.signed and access.size * BYTE < NBITS then
+		extend(f, reg.R1, access.size)
+	end
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT}
+end
+
+-- the length is the distance between the bounds, which is what '#' on the kernel's data object
+-- answers and what the interpreted twin reads off the same bytes
+local function packetlen(f, ins, state)
+	local code, base, limit = f.code, bounds(f)
+	local ptr = fetch(f, ins.b, reg.R3)
+	code:load(reg.R1, ptr, base.offset, base.size)
+	code:load(reg.R2, ptr, limit.offset, limit.size)
+	code:alu(alu.SUB, reg.R2, reg.R1)
+	setreg(f, ins.a, reg.R2)
+	state[ins.a] = {t = INT}
+end
+
+-- the packet proxy is the context register under another type: one register, passed to a
+-- subprogram in one argument, with nothing to keep live across a call
+local function contextmethod(f, pc, ins, state, callee)
+	if callee.name ~= "packet" then
+		refuse(f, pc, "the context has no method '%s'", callee.name)
+	end
+	setreg(f, ins.a, fetch(f, ins.a + 1, reg.R1))
+	state[ins.a] = {t = PACKET, name = callee.name}
+end
+
+local function method(f, pc, ins, state, callee)
+	local recv = callee.recv
+	if recv.t == CTX then
+		return contextmethod(f, pc, ins, state, callee)
+	end
+	local access = recv.t == PACKET and accessors[callee.name]
+	if not access then
+		refuse(f, pc, "the %s has no method '%s'", typename(recv), callee.name)
+	end
+	-- getreg takes any word, so an unchecked offset reads where the interpreter would raise
+	if ins.b - 1 < ACCESSARGS then
+		refuse(f, pc, "'%s' takes an offset", callee.name)
+	end
+	local at = state[ins.a + 2]
+	if not isinteger(at) then
+		refuse(f, pc, "'%s' takes a number, not a %s", callee.name, typename(at))
+	end
+	packetread(f, pc, ins, state, access)
+end
+
+--- @section maps
+
+local LOOKUP <const> = 1 -- BPF_FUNC_map_lookup_elem
+local UPDATE <const> = 2 -- BPF_FUNC_map_update_elem
+local DELETE <const> = 3 -- BPF_FUNC_map_delete_elem
+local ANY    <const> = 0 -- BPF_ANY, the flags an unconditional update takes
+
+-- a map holds what its spec packs, and this phase packs numbers
+local function mapnumber(f, pc, what)
+	refuse(f, pc, "a map %s is a number here", what)
+end
+
+-- a helper takes the key and the value by address, so each goes to the slot its frame reserves,
+-- zeroed first because one narrower than a word leaves the rest of the slot to what was there
+local function mapslot(f, at, src, size)
+	f.code:storei(reg.FP, at, 0)
+	f.code:store(reg.FP, at, src, size)
+end
+
+-- the map in R1 and the key's address in R2, where every map helper wants them. Lua registers
+-- live in R6-R9 and the frame, so the call clobbers nothing live.
+local function maphelper(f, map)
+	local code = f.code
+	code:map(reg.R1, map.name)
+	code:alu(alu.MOV, reg.R2, reg.FP)
+	code:alui(alu.ADD, reg.R2, KEY)
+end
+
+local function maplookup(f, ins, state, map, key)
+	mapslot(f, KEY, key, map.key.size)
+	maphelper(f, map)
+	f.code:helper(LOOKUP)
+	setreg(f, ins.a, reg.R0)
+	state[ins.a] = {t = MAYBE, map = map, name = map.name}
+end
+
+local function mapread(f, pc, ins, state, map)
+	if not isinteger(state[ins.c]) then
+		mapnumber(f, pc, "key")
+	end
+	maplookup(f, ins, state, map, getreg(f, pc, state, ins.c, reg.R3))
+end
+
+-- the value a store writes, or nil for the assignment that deletes the entry
+local function stored(f, pc, ins, state)
+	if ins.k then
+		local held = constant(f, pc, ins.c)
+		if held == nil then
+			return nil
+		end
+		if type(held) ~= "number" then
+			mapnumber(f, pc, "value")
+		end
+		f.code:set(reg.R4, held)
+		return reg.R4
+	end
+	local held = state[ins.c]
+	if held ~= nil and held.t == NIL then
+		return nil
+	end
+	if not isinteger(held) then
+		mapnumber(f, pc, "value")
+	end
+	return getreg(f, pc, state, ins.c, reg.R4)
+end
+
+local function mapstore(f, pc, ins, state, map, key)
+	local code = f.code
+	if map.value.fields ~= nil then
+		refuse(f, pc, "a struct map value is read-only in a compiled function")
+	end
+	local value = stored(f, pc, ins, state)
+	mapslot(f, KEY, key, map.key.size)
+	if value == nil then
+		maphelper(f, map)
+		code:helper(DELETE)
+		return
+	end
+	mapslot(f, VALUE, value, map.value.size)
+	maphelper(f, map)
+	code:alu(alu.MOV, reg.R3, reg.FP)
+	code:alui(alu.ADD, reg.R3, VALUE)
+	code:set(reg.R4, ANY)
+	code:helper(UPDATE)
+end
+
+-- the map a lookup came from, or the refusal for a register two lookups merged into: a join
+-- drops what the paths disagree on, and which map a value is read with is one of those
+local function mapfrom(f, pc, value)
+	if value.map == nil then
+		refuse(f, pc, "a map value here comes from more than one map")
+	end
+	return value.map
+end
+
+-- one field of a struct value, at the offset and the width its codec carries
+local function mapfield(f, pc, ins, state, value, key)
+	local field = mapfrom(f, pc, value).value.fields[key]
+	if field == nil then
+		refuse(f, pc, "a map value has no field '%s'", key)
+	end
+	f.code:load(reg.R1, fetch(f, ins.b, reg.R1), field.offset, field.size)
+	if field.signed and field.size * BYTE < NBITS then
+		extend(f, reg.R1, field.size)
+	end
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT, name = key}
+end
+
+-- the map a write names, or the refusal for a table that is not one
+local function mapof(f, pc, state, i)
+	local container = state[i]
+	if container == nil or not maps.declares(container.k) then
+		refuse(f, pc, "a table cannot be written in a compiled function")
+	end
+	return container.k
+end
+
+-- the value behind a pointer the program has just found non-null, which is the only place the
+-- verifier lets it be read. A struct stays the pointer it is, and its fields are read one at a
+-- time from there.
+local function mapvalue(f, pc, state, i, value)
+	local map = mapfrom(f, pc, value)
+	local spec = map.value
+	if spec.fields ~= nil then
+		state[i] = {t = RECORD, map = map, name = value.name}
+		return
+	end
+	f.code:load(reg.R1, fetch(f, i, reg.R1), 0, spec.size)
+	if spec.signed and spec.size * BYTE < NBITS then
+		extend(f, reg.R1, spec.size)
+	end
+	setreg(f, i, reg.R1)
+	state[i] = {t = INT, name = value.name}
+end
+
+-- a lookup is narrowed where the program tests it, and the read goes on the branch that found
+-- it good: the verifier refuses it anywhere else, and the other branch carries a nil
+local function testlookup(f, pc, ins, state)
+	local code, value = f.code, state[ins.a]
+	local target = jumptarget(f, pc + 1)
+	local truthy = ins.k and target or pc + 2
+	local falsy = ins.k and pc + 2 or target
+	local null = code:label()
+	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), 0, null)
+	local taken = copy(state)
+	mapvalue(f, pc, taken, ins.a, value)
+	code:jump(labelof(f, truthy))
+	reach(f, truthy, taken)
+	code:place(null)
+	code:jump(labelof(f, falsy))
+	state[ins.a] = {t = NIL, name = value.name}
+	reach(f, falsy, state)
+	return false
+end
+
 --- @section loads
 
 local ops = {}
 
-local function moveslot(f, pc, state, a, b)
+local function moveslot(f, state, a, b)
 	local value = state[b]
-	if value ~= nil and (value.t & RUNTIME) ~= 0 then
-		setreg(f, a, getreg(f, pc, state, b, reg.R1))
+	if value ~= nil and (value.t & (RUNTIME | PROXY)) ~= 0 then
+		setreg(f, a, fetch(f, b, reg.R1))
 	end
 	state[a] = value
 end
 
 function ops.MOVE(f, pc, ins, state)
-	moveslot(f, pc, state, ins.a, ins.b)
+	moveslot(f, state, ins.a, ins.b)
 end
 
 function ops.LOADI(f, pc, ins, state)
@@ -346,6 +689,9 @@ end
 function ops.GETTABUP(f, pc, ins, state)
 	local env, upname = upvalue(f, pc, ins.b)
 	local key = tostring(constant(f, pc, ins.c))
+	if maps.declares(env) then
+		mapnumber(f, pc, "key")
+	end
 	local value = lookup(f, pc, {k = env}, key, upname)
 	if value == nil then
 		local read = upname == "_ENV" and format("global '%s'", key) or format("'%s.%s'", upname, key)
@@ -357,12 +703,59 @@ end
 function ops.GETFIELD(f, pc, ins, state)
 	local key = tostring(constant(f, pc, ins.c))
 	local container = state[ins.b]
+	if container ~= nil and container.t == CTX then
+		return contextget(f, pc, ins, state, key)
+	end
+	if container ~= nil and container.t == RECORD then
+		return mapfield(f, pc, ins, state, container, key)
+	end
+	if container ~= nil and maps.declares(container.k) then
+		mapnumber(f, pc, "key")
+	end
 	local name = container ~= nil and container.name or "a table"
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, key, name), key)
 end
 
+function ops.SETFIELD(f, pc, ins, state)
+	local container = state[ins.a]
+	if container ~= nil and container.t == CTX then
+		return contextset(f, pc, ins, state, tostring(constant(f, pc, ins.b)))
+	end
+	if container ~= nil and container.t == RECORD then
+		refuse(f, pc, "a struct map value is read-only in a compiled function")
+	end
+	mapof(f, pc, state, ins.a)
+	mapnumber(f, pc, "key")
+end
+
+-- a global is a field of the _ENV upvalue, and so is any other upvalue table's
+function ops.SETTABUP(f, pc, ins, state)
+	if maps.declares((upvalue(f, pc, ins.a))) then
+		mapnumber(f, pc, "key")
+	end
+	refuse(f, pc, "a global cannot be assigned in a compiled function")
+end
+
+function ops.SETTABLE(f, pc, ins, state)
+	local map = mapof(f, pc, state, ins.a)
+	if not isinteger(state[ins.b]) then
+		mapnumber(f, pc, "key")
+	end
+	mapstore(f, pc, ins, state, map, getreg(f, pc, state, ins.b, reg.R3))
+end
+
+function ops.SETI(f, pc, ins, state)
+	local map = mapof(f, pc, state, ins.a)
+	f.code:set(reg.R3, ins.b)
+	mapstore(f, pc, ins, state, map, reg.R3)
+end
+
 function ops.GETI(f, pc, ins, state)
 	local container = state[ins.b]
+	if container ~= nil and maps.declares(container.k) then
+		f.code:set(reg.R3, ins.c)
+		return maplookup(f, ins, state, container.k, reg.R3)
+	end
 	local name = container ~= nil and container.name or "a table"
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, ins.c, name))
 end
@@ -370,6 +763,9 @@ end
 function ops.GETTABLE(f, pc, ins, state)
 	local key = state[ins.c]
 	local container = state[ins.b]
+	if container ~= nil and maps.declares(container.k) then
+		return mapread(f, pc, ins, state, container.k)
+	end
 	local name = container ~= nil and container.name or "a table"
 	if key == nil or key.k == nil then
 		refuse(f, pc, "'%s' is indexed by a value the compiler cannot resolve", name)
@@ -377,16 +773,34 @@ function ops.GETTABLE(f, pc, ins, state)
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, key.k, name))
 end
 
+-- the receiver goes to A+1 and the method to A, which the call then reads back
+function ops.SELF(f, pc, ins, state)
+	local recv = state[ins.b]
+	if recv == nil or (recv.t & PROXY) == 0 then
+		refuse(f, pc, "a method call cannot be compiled")
+	end
+	moveslot(f, state, ins.a + 1, ins.b)
+	state[ins.a] = {t = METHOD, name = tostring(constant(f, pc, ins.c)), recv = recv}
+end
+
+function ops.LEN(f, pc, ins, state)
+	local value = state[ins.b]
+	if value == nil or value.t ~= PACKET then
+		refuse(f, pc, "'#' cannot be applied in a compiled function")
+	end
+	packetlen(f, ins, state)
+end
+
 --- @section arithmetic
 
 -- Lua's floor division: the quotient is corrected toward minus infinity when the operands'
 -- signs differ, a divisor of -1 is a negation (which mininteger needs), and a divisor of zero
 -- raises, so the program takes its default verdict
-local function floordiv(f, pc)
+local function floordiv(f)
 	local code = f.code
 	local negate, done = code:label(), code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc, "a division"))
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
 	end
 	code:branchi(jump.JEQ, reg.R2, -1, negate)
 	code:alu(alu.MOV, reg.R3, reg.R1)
@@ -406,11 +820,11 @@ local function floordiv(f, pc)
 end
 
 -- Lua's modulo: the remainder takes the divisor's sign, and a divisor of -1 is zero
-local function floormod(f, pc)
+local function floormod(f)
 	local code = f.code
 	local zero, done = code:label(), code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f, pc, "a division"))
+		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
 	end
 	code:branchi(jump.JEQ, reg.R2, -1, zero)
 	code:sdiv(alu.MOD, reg.R1, reg.R2)
@@ -453,8 +867,8 @@ function binops.MUL(f) f.code:alu(alu.MUL, reg.R1, reg.R2) end
 function binops.BAND(f) f.code:alu(alu.AND, reg.R1, reg.R2) end
 function binops.BOR(f) f.code:alu(alu.OR, reg.R1, reg.R2) end
 function binops.BXOR(f) f.code:alu(alu.XOR, reg.R1, reg.R2) end
-function binops.IDIV(f, pc) floordiv(f, pc) end
-function binops.MOD(f, pc) floormod(f, pc) end
+function binops.IDIV(f) floordiv(f) end
+function binops.MOD(f) floormod(f) end
 function binops.SHL(f) shiftl(f) end
 
 function binops.SHR(f)
@@ -477,7 +891,7 @@ local function register(f, pc, ins, state, op)
 	into(f, pc, state, ins.b, reg.R1)
 	into(f, pc, state, ins.c, reg.R2)
 	numbers(f, pc, state[ins.b], state[ins.c])
-	binops[op](f, pc)
+	binops[op](f)
 	setreg(f, ins.a, reg.R1)
 	state[ins.a] = {t = INT}
 end
@@ -486,7 +900,7 @@ local function immediate(f, pc, ins, state, op, value)
 	into(f, pc, state, ins.b, reg.R1)
 	numbers(f, pc, state[ins.b])
 	f.code:set(reg.R2, value)
-	binops[op](f, pc)
+	binops[op](f)
 	setreg(f, ins.a, reg.R1)
 	state[ins.a] = {t = INT}
 end
@@ -587,7 +1001,7 @@ local function truth(f, pc, state, i)
 	if mask == NIL then
 		return false
 	end
-	if mask == 0 or (mask & ~(BOOL | NIL)) ~= 0 then
+	if mask == 0 or (mask & ~(BOOL | NIL | MAYBE)) ~= 0 then
 		refuse(f, pc, "a %s has no truth value in a compiled function", typename(value))
 	end
 	return nil
@@ -669,6 +1083,10 @@ end
 
 -- the answer Lua's '==' is pinned to, and nil where the registers carry it
 local function equality(f, pc, a, b)
+	local untested = (a ~= nil and (a.t & MAYBE) ~= 0 and a) or (b ~= nil and (b.t & MAYBE) ~= 0 and b)
+	if untested then
+		refuse(f, pc, "'%s' may be nil here; test it first", untested.name or "a value")
+	end
 	if exact(a) and exact(b) then
 		if a.t ~= b.t then
 			return false -- Lua's '==' is false across types
@@ -729,6 +1147,10 @@ function ops.EQK(f, pc, ins, state)
 end
 
 function ops.TEST(f, pc, ins, state)
+	local value = state[ins.a]
+	if value ~= nil and value.t == MAYBE then
+		return testlookup(f, pc, ins, state)
+	end
 	local known = truth(f, pc, state, ins.a)
 	if known ~= nil then
 		return settled(f, pc, state, known == ins.k)
@@ -745,7 +1167,7 @@ function ops.TESTSET(f, pc, ins, state)
 			reach(f, pc + 2, state)
 			return false
 		end
-		moveslot(f, pc, state, ins.a, ins.b)
+		moveslot(f, state, ins.a, ins.b)
 		local target = jumptarget(f, pc + 1)
 		f.code:jump(labelof(f, target))
 		reach(f, target, state)
@@ -833,7 +1255,7 @@ local function counting(f, pc, ins, state, a)
 	into(f, pc, state, a + 1, reg.R2)
 	into(f, pc, state, a + 2, reg.R3)
 	if state[a + 2].k == nil then
-		code:branchi(jump.JEQ, reg.R3, 0, abort(f, pc, "a 'for' step"))
+		code:branchi(jump.JEQ, reg.R3, 0, abort(f))
 	end
 	code:alu(alu.MOV, reg.R5, reg.R3)
 	code:branchi(jump.JSLT, reg.R3, 0, descending)
@@ -942,16 +1364,27 @@ function ops.RETURN1(f, pc, ins, state)
 	return returns(f, pc, state, ins.a)
 end
 
+-- a compiled call answers with one value, so Lua fills every further result asked for with nil
+local function filled(f, pc, ins, state)
+	for i = ins.a + 1, ins.a + ins.c - 2 do
+		resolve(f, pc, state, i, nil)
+	end
+end
+
 function ops.CALL(f, pc, ins, state)
 	local callee = state[ins.a]
+	if ins.b == 0 or ins.c == 0 then
+		refuse(f, pc, "a call with a variable number of values cannot be compiled")
+	end
+	if callee ~= nil and callee.t == METHOD then
+		method(f, pc, ins, state, callee)
+		return filled(f, pc, ins, state)
+	end
 	if callee == nil or type(callee.k) ~= "function" then
 		refuse(f, pc, "a call through a value the compiler cannot resolve")
 	end
 	if getinfo(callee.k, "S").what == "C" then
 		refuse(f, pc, "'%s' is not a Lua function this program file declares", callee.name or "?")
-	end
-	if ins.b == 0 or ins.c == 0 then
-		refuse(f, pc, "a call with a variable number of values cannot be compiled")
 	end
 	local nargs = ins.b - 1
 	if nargs > MAXARGS then
@@ -959,39 +1392,37 @@ function ops.CALL(f, pc, ins, state)
 	end
 	local params = {}
 	for i = 1, nargs do
-		if not isinteger(state[ins.a + i]) then
-			refuse(f, pc, "argument #%d is a %s, and a compiled call passes numbers",
-				i, typename(state[ins.a + i]))
+		local value = state[ins.a + i]
+		local kind = value ~= nil and value.t or 0
+		if kind ~= INT and kind ~= PACKET then
+			refuse(f, pc, "argument #%d is a %s, and a compiled call passes numbers and packets",
+				i, typename(value))
 		end
-		params[i] = INT
+		params[i] = kind
 	end
 	local target = emit.subprogram(f, pc, callee.k, callee.name, params)
 	for i = 1, nargs do
-		into(f, pc, state, ins.a + i, reg.R0 + i)
+		move(f, fetch(f, ins.a + i, reg.R0 + i), reg.R0 + i)
 	end
+	f.code:storei(reg.FP, ABORTED, 0)
+	f.code:alu(alu.MOV, reg.R1 + nargs, reg.FP)
+	f.code:alui(alu.ADD, reg.R1 + nargs, ABORTED)
 	f.code:call(target.name)
+	f.code:load(reg.R1, reg.FP, ABORTED)
+	f.code:branchi(jump.JNE, reg.R1, 0, abort(f))
 	if ins.c > 1 then
 		setreg(f, ins.a, reg.R0)
 		state[ins.a] = {t = target.rettype}
 	end
-	-- a compiled function returns one value, so Lua fills every further result asked for with nil
-	for i = ins.a + 1, ins.a + ins.c - 2 do
-		resolve(f, pc, state, i, nil)
-	end
+	filled(f, pc, ins, state)
 end
 
 --- @section the walk
 
 local refusals = {
 	SETUPVAL = "an upvalue cannot be assigned in a compiled function",
-	SETTABUP = "a global cannot be assigned in a compiled function",
-	SETTABLE = "a table cannot be written in a compiled function",
-	SETI = "a table cannot be written in a compiled function",
-	SETFIELD = "a table cannot be written in a compiled function",
 	NEWTABLE = "a table constructor cannot run in the kernel; build it in the file body",
 	SETLIST = "a table constructor cannot run in the kernel; build it in the file body",
-	SELF = "a method call cannot be compiled",
-	LEN = "'#' cannot be applied in a compiled function",
 	CONCAT = "'..' cannot be applied in a compiled function",
 	CLOSE = "a to-be-closed variable cannot be compiled",
 	TBC = "a to-be-closed variable cannot be compiled",
@@ -1024,6 +1455,9 @@ local function walk(f)
 	local start = f.entry[1] or {}
 	f.entry[1] = start
 	code:source(f.proto.linedefined)
+	if not f.isprogram then
+		code:store(reg.FP, CALLER, reg.R1 + #f.params)
+	end
 	for i = 0, f.proto.numparams - 1 do
 		setreg(f, i, reg.R1 + i)
 		start[i] = {t = f.params[i + 1]}
@@ -1047,8 +1481,15 @@ local function walk(f)
 	if f.aborted ~= nil then
 		code:source(f.proto.lastlinedefined)
 		code:place(f.aborted)
-		if f.drop ~= "verdict" then
-			code:set(reg.R0, f.default)
+		if f.isprogram then
+			if f.drop ~= "verdict" then
+				code:set(reg.R0, f.default)
+			end
+		else
+			code:load(reg.R1, reg.FP, CALLER)
+			code:storei(reg.R1, 0, 1)
+			-- the verifier cannot pair the flag with the path, so R0 is read on the fall-through too
+			code:set(reg.R0, 0)
 		end
 		code:exit()
 	end
@@ -1061,7 +1502,7 @@ end
 -- @tparam table f the frame: `fn`, `proto`, `chunk`, `params`, `default`, `isprogram`, `drop`
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses
 function emit.lower(f)
-	local frame = (f.proto.maxstacksize - NREGS) * SLOT
+	local frame = (f.proto.maxstacksize - NREGS + RESERVED) * SLOT
 	if frame > MAXSTACK then
 		refuse(f, 1, "the function needs %d bytes of stack, over the %d eBPF allows", frame, MAXSTACK)
 	end
@@ -1118,7 +1559,8 @@ end
 -- @tparam table params the type of each argument
 -- @treturn table the callee's frame
 -- @raise `recursion through '<name>'`, `'<name>' is called with <n> arguments and compiled
---   with <m>`, or `'<name>' takes <n> arguments and is called with <m>`
+--   with <m>`, `'<name>' is called with a <type> and compiled with a <type>`, or `'<name>'
+--   takes <n> arguments and is called with <m>`
 function emit.subprogram(f, pc, fn, name, params)
 	local unit = f.unit
 	if unit.lowering[fn] then
@@ -1129,6 +1571,12 @@ function emit.subprogram(f, pc, fn, name, params)
 		if #compiled.params ~= #params then
 			refuse(f, pc, "'%s' is called with %d arguments and compiled with %d",
 				compiled.name, #params, #compiled.params)
+		end
+		for i = 1, #params do
+			if compiled.params[i] ~= params[i] then
+				refuse(f, pc, "'%s' is called with a %s and compiled with a %s", compiled.name,
+					typenames[params[i]], typenames[compiled.params[i]])
+			end
 		end
 		return compiled
 	end
@@ -1144,14 +1592,14 @@ end
 ---
 -- Compiles one program: its function, and every function that function reaches.
 -- @function luaebpf.emit.program
--- @tparam table program `{name, fn, default, drop, names}`
+-- @tparam table program `{name, fn, default, drop, names, context}`
 -- @treturn table the frames, the program's own first
 -- @raise `a program takes one argument, the context`, and `<file>:<line>: <reason>` for every
 --   construct the subset refuses
 function emit.program(program)
 	local unit = {
 		functions = {}, order = {}, lowering = {}, names = program.names or {},
-		default = program.default, drop = program.drop,
+		default = program.default, drop = program.drop, context = program.context,
 	}
 	local read = proto.read(program.fn)
 	if read.numparams > 1 then

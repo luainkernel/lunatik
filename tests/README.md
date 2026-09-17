@@ -170,17 +170,75 @@ interpreter raises, the compiled program owes its default verdict instead.
   pair, none of them taking a `may_goto`.
 - **forvar**: a numeric `for` whose bounds the program computes: it takes a
   `may_goto` header, verifies and terminates; without the header the verifier
-  rejects it; a step that is zero at compile time is refused, and so is one a
-  called function gets at run time, since only the program's own frame reaches
-  the hook. On a kernel below v6.9 the case asserts the compiler's refusal
-  instead.
+  rejects it; a step a called function gets at run time takes the default
+  verdict, and one that is zero at compile time is refused. On a kernel below
+  v6.9 the case asserts the compiler's refusal instead.
 - **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
-  call, two levels, five arguments, a shared helper, the deepest chain
-  `MAX_CALL_FRAMES` takes, a call asking for two results, where Lua fills the
-  second with nil, and a body that spills to the frame; one static BTF `FUNC`
-  per subprogram; six arguments, a call short of an argument the callee
-  declares, a division, which only the program's own frame can answer for, and
-  recursion refused with their lines.
+  call, two levels, four arguments, a shared helper, the deepest chain
+  `MAX_CALL_FRAMES` takes with every level able to abort, a call asking for two
+  results, where Lua fills the second with nil, and a body that spills to the
+  frame; a division inside a called function takes the program's default
+  verdict, and a callee that reaches nothing but its abort tail still loads;
+  one static BTF `FUNC` per subprogram; five arguments, since the fifth
+  register carries the abort pointer, a call short of an argument the callee
+  declares, and recursion refused with their lines.
+- **btfview**: `luaebpf.vmlinux` against `bpftool btf dump file
+  /sys/kernel/btf/vmlinux format raw`: the size of `xdp_md` and `__sk_buff` and
+  the byte offset and four-byte width of every field the context proxies
+  expose, `iphdr`'s whole-byte members, its bitfields and its anonymous union
+  absent from the layout though the dump names them, and a struct the kernel
+  does not publish raising a message that names it.
+- **ctx**: one program file declares both kinds, so the object carries an `xdp`
+  and a `tcx/ingress` section and `loadall` reads each program's type off the
+  section it sits in. The XDP programs read `ctx.ingress_ifindex` and
+  `ctx.rx_queue_index` and the TC ones `skb.len`, `skb.ifindex`,
+  `skb.ingress_ifindex`, `skb.priority` and `skb.hash`, each answering what
+  `prog run` was told to build the context from, the body having written those
+  bytes at the offsets `luaebpf.vmlinux` reports; a `skb.priority` write comes
+  back through the kernel's own context and in `ctx_out`; a write to an XDP
+  field, a write to `skb.len`, a field the struct does not carry, a field given
+  a boolean, and `ctx.data` are refused with their messages and lines.
+- **packet**: every accessor the kernel's `data` object publishes, `#`, an
+  offset an earlier read computed, a read inside `examples/common/sni.lua`'s
+  `u16` helper and an accessor asked for two results, where Lua fills the second
+  with nil, each over the five packets of `packets.lua`, against the interpreted
+  twin reading the same bytes with `string.unpack`; a method neither proxy has,
+  `getuint64` among them, is refused by name, and so is an accessor called
+  without an offset or with one that is not a number.
+- **bounds**: a read one byte past the last, one above the offset ceiling, and
+  one that lands in the whole ClientHello but past the truncated one, each
+  declared under either default so the answer is the verdict the file asked
+  for; with `LUAEBPF_DROP=bounds` the object is still written and the verifier
+  refuses it naming an invalid packet access.
+- **mapget**: the maps a program file declares are created and pinned by
+  `bpftool prog loadall ... pinmaps`, and every program is run against the empty
+  maps and against maps the case seeded from the shell: a key present in a hash,
+  a key absent from it, a key computed from the packet, an array index in range,
+  where a lookup answers a pointer to zeros and Lua reads 0 as true, one past
+  the array's entries, and a lookup whose pointer is spilled to the frame. The
+  program file's body writes what each owes either way, from the constants and
+  specs the programs were compiled against. An untested use, a string key, a
+  method call on a lookup and a register two lookups in different maps merge
+  into are refused with their messages and lines.
+- **mapset**: the programs run first and the shell reads the pinned maps
+  afterwards, so what is asserted is what the kernel kept: an update under a key
+  the compiler folded in and one the program computed from the packet, a delete
+  of a seeded entry, a delete of a key that was never there, and an update of an
+  array entry, all against the bytes the program file's body wrote from the
+  constants and specs the programs were compiled with. A key spec that packs
+  more than one value, one Lua can size but not read back, one whose width no
+  eBPF load covers, one in a byte order no eBPF load takes, a count of entries
+  the object cannot carry, a name BTF cannot spell, an array keyed by anything
+  but four bytes, a name declared twice, a constructor called without a name and
+  a value that is not a number are refused.
+- **struct**: a map whose value spec is a `struct` codec, read a field at a
+  time: one field of every width and signedness with a gap the codec reads as
+  padding, and a layout `luaebpf.vmlinux` read out of the running kernel's BTF
+  seeded with an IPv4 header, each answering what the same codec reads off the
+  bytes the case seeded. A write to a field or to the whole value, a field the
+  codec does not carry, a field whose width no eBPF load covers, a spec that is
+  neither a format nor a codec, and a field read through a value two struct maps
+  merge into are refused.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind.

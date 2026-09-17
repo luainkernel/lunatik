@@ -58,7 +58,7 @@ A compiled function is Lua where every value has a type the translator can prove
 | `if`, `and`, `or`, `not` | fused compare-and-jump |
 | numeric `for` | a bounded loop when the bounds are constants, a `may_goto` header otherwise |
 | `while`, `repeat` | `may_goto` headers (phase 5) |
-| calls to functions the program file declares | BPF-to-BPF calls; no recursion, five register arguments |
+| calls to functions the program file declares | BPF-to-BPF calls; no recursion, four register arguments |
 | the context, the packet, a map, a struct view | proxies (next sections) |
 | `return` | the program's verdict |
 | constants captured from the body: numbers, booleans, strings used as bytes, tables of constants | folded at compile time |
@@ -77,9 +77,17 @@ Refusing is the normal outcome; the message says which line and why, in one line
 ## The context and the packet
 
 `xdp.program` hands the function a context proxy. Its fields are the `struct xdp_md` fields the
-verifier lets an XDP program read, and `ctx:packet()` is the packet as a proxy with the method
-names of the `data` object a kernel script sees (`getbyte`, `getuint16`, `getuint32`,
-`getstring`, `#`). The same helper therefore reads the same bytes on both sides:
+verifier lets an XDP program read -- `ingress_ifindex` and `rx_queue_index`, neither writable --
+at the offsets the running kernel's own BTF reports, and `ctx:packet()` is the packet as a proxy
+with the method names of the `data` object a kernel script sees: `getbyte`, `getuint8`,
+`getint8`, `getuint16`, `getint16`, `getuint32`, `getint32`, `getint64`, `getnumber` and `#`
+(`getstring` arrives with the strings, in phase 5). There is no `getuint64`, because the kernel
+object has none: a Lua integer is 64-bit signed and an unsigned 64-bit value has no distinct
+representation, so a program that asks for it is refused with the method's name. A field the
+struct does not carry is refused by name too, so is a write the kernel would not take and one
+given something other than a number, and `ctx.data` and `ctx.data_end` are refused as the packet
+bounds they are: the only Lua-meaningful thing to do with them is their difference, which
+`#ctx:packet()` already spells. The same helper therefore reads the same bytes on both sides:
 
     local function u16(packet, at)
         return packet:getbyte(at) << 8 | packet:getbyte(at + 1)
@@ -87,34 +95,53 @@ names of the `data` object a kernel script sees (`getbyte`, `getuint16`, `getuin
 
 is `examples/common/sni.lua`'s helper, unchanged, and it compiles.
 
-Every packet access carries a bounds check against `data_end`. An access that fails it does not
-raise (there is nothing to raise to): the function returns the program's **default verdict**, the
-type's safe answer (`PASS` for XDP, `ACT_OK` for TC), overridable in the constructor:
+The offset is an argument like any other, and an accessor called without one, or with one that
+is not a number, is refused at its line. Every packet access carries a bounds check against
+`data_end`, and tests its offset first against 65535 less its width, the last offset a read that
+wide can start at, since the verifier refuses arithmetic between a packet pointer and a register
+whose range it does not know. An access that fails either does not raise (there is nothing to
+raise to): the function returns the program's **default verdict**, the type's safe answer
+(`PASS` for XDP, `ACT_OK` for TC), overridable in the constructor:
 
     return xdp.program(function(ctx) ... end, {default = action.DROP})
 
 Division by zero and every other check the interpreter would turn into an error take the same
-path. Only the program's own frame can take it: a subprogram returns to its caller rather than to
-the hook, so until a phase gives it a way out, such a check inside a called function is refused.
-This is the compiled analogue of what the trampoline does today, where a raising callback makes
-the kfunc return `-1` and the stub falls back.
+path, from any frame. A subprogram returns to its caller rather than to the hook, so every
+compiled function takes one argument beyond its own: a pointer to a word in its caller's frame. A
+check that fails there stores a one through it and returns; the caller reads the word and takes
+its own failure path, which is the default verdict in the program's own frame. That is the fifth
+register argument, and why a compiled function takes four of its own. This is the compiled
+analogue of what the trampoline does today, where a raising callback makes the kfunc return `-1`
+and the stub falls back.
 
-TC programs get `skb`, a proxy over the `__sk_buff` fields (`hash`, `priority` writable,
-`ifindex`, `len`) and `skb:packet()`.
+TC programs get `skb`, a proxy over the `__sk_buff` fields the kernel lets a program read --
+`len`, `hash`, `ifindex` and `ingress_ifindex` -- plus `priority`, the one of them it also lets
+a program write, and `skb:packet()`. `tc.program(fn, {egress = true})` puts the entry in
+`tcx/egress` rather than `tcx/ingress`, which is how libbpf reads the attach point back.
 
 ## Maps
 
-A program file declares the maps it uses with the specs `bpf.map` already takes in the kernel:
+A program file declares the maps it uses with the specs `bpf.map` already takes in the kernel,
+naming each one:
 
     local map = require("bpf.map")
 
-    local flows = map.hash{key = "I4", value = "I4", entries = 65536}
-    local hits  = map.array{key = "I4", value = "I8", entries = 1}
+    local flows = map.hash("flows", {key = "I4", value = "I4", entries = 65536})
+    local hits  = map.array("hits", {key = "I4", value = "I8", entries = 1})
+
+The name comes first, as it does in both siblings -- the kernel's `map.hash(pathname, ...)` opens
+by path, and `xdp.program(fn, opts)` takes the subject then a table. A map needs one whether or
+not a compiled function references it, since that is what the loader pins it under and what a
+kernel script opens it by, so it cannot be recovered from a reference.
 
 `bpf.map` on the host is the compile-time twin of `lib/bpf/map.lua`: the same spec strings, the
-same names, and it produces BTF-defined maps in the object instead of opening pinned ones. Inside
+same names, and it produces BTF-defined maps in the object instead of opening pinned ones. What
+the twin takes and the object cannot carry is refused at the declaration: a name BTF cannot spell,
+an array keyed by anything but the four bytes the kernel creates one with, and a spec naming a
+byte order other than the host's, which is the only one an eBPF load and store take. Inside
 a compiled function a map is a table proxy with `bpf.map`'s semantics: indexing looks up,
-assignment updates, assigning `nil` deletes.
+assignment updates, assigning `nil` deletes. A key and a value are numbers, as the spec packs
+them; anything else is refused at the line that wrote it.
 
     local cached = flows[skb.hash]
     if cached then
@@ -123,8 +150,13 @@ assignment updates, assigning `nil` deletes.
     end
 
 `flows[key]` has the type "value or nil", and the translator refuses to use it as a number until
-the function has tested it, which is what the verifier requires of the pointer underneath. A
-`struct` spec yields a proxy of fields rather than a scalar.
+the function has tested it, which is what the verifier requires of the pointer underneath. The
+test is `if cached then`, the form the verifier narrows the pointer at; `cached == nil` is
+refused with the same message, since a comparison does not reach that narrowing. A `struct` spec
+yields a proxy of fields rather than a scalar, read-only until a phase needs otherwise: writing
+one, or a field of one, is refused at the line that does it. A value is read with the spec of the
+map it came from, so a register that lookups in two different maps merge into is refused where it
+is read rather than lowered against one of them.
 
 The loader creates the maps and pins them under `/sys/fs/bpf/lunatik/<script>/<name>`, so the
 kernel script opens the same map by that path with the API it has today:

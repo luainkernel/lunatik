@@ -21,15 +21,23 @@ local insert = table.insert
 -- instruction classes and fields: uapi/linux/bpf.h, uapi/linux/bpf_common.h
 local LD    <const> = 0x00
 local LDX   <const> = 0x01
+local ST    <const> = 0x02
 local STX   <const> = 0x03
 local JMP   <const> = 0x05
 local ALU64 <const> = 0x07
+local W     <const> = 0x00
+local H     <const> = 0x08
+local B     <const> = 0x10
 local DW    <const> = 0x18
 local MEM   <const> = 0x60
 local SRC_X <const> = 0x08
 local PSEUDO_CALL <const> = 1
 local MAY_GOTO    <const> = 0
 local SIZE  <const> = 8
+local WORD  <const> = 8
+
+-- the field an access of that many bytes carries, BPF_B and friends
+local widths = {[1] = B, [2] = H, [4] = W, [8] = DW}
 
 -- string.pack's i4 takes a signed word; the halves of a 64-bit immediate are unsigned
 local function word(value)
@@ -49,12 +57,14 @@ insn.alu = {
 	LSH = 0x60, RSH = 0x70, NEG = 0x80, MOD = 0x90, XOR = 0xa0, MOV = 0xb0, ARSH = 0xc0,
 }
 
---- Jump opcodes, `BPF_JEQ` and friends. Lua integers are signed, so only the signed relations
--- are correct here.
+--- Jump opcodes, `BPF_JEQ` and friends. Lua integers are signed, so a comparison the source
+-- wrote takes a signed relation. The unsigned ones are for the bounds check before a packet
+-- load, where the verifier reads the relation itself: a packet pointer and an offset are
+-- unsigned there, and a signed test would leave the pointer's range unproven.
 -- @table luaebpf.insn.jump
 insn.jump = {
-	JA = 0x00, JEQ = 0x10, JNE = 0x50, JSGT = 0x60, JSGE = 0x70,
-	JSLT = 0xc0, JSLE = 0xd0, JCOND = 0xe0, CALL = 0x80, EXIT = 0x90,
+	JA = 0x00, JEQ = 0x10, JGT = 0x20, JGE = 0x30, JNE = 0x50, JSGT = 0x60, JSGE = 0x70,
+	JLT = 0xa0, JLE = 0xb0, JSLT = 0xc0, JSLE = 0xd0, JCOND = 0xe0, CALL = 0x80, EXIT = 0x90,
 }
 
 --- Registers: `R0` to `R10`, with `FP` as the read-only frame pointer.
@@ -145,16 +155,22 @@ function code:set(dst, imm)
 	return at
 end
 
---- `dst := *(u64 *)(src + off)`.
+--- `dst := *(u<8n> *)(src + off)`, zero-extended; `n` is eight bytes by default.
 -- @function luaebpf.insn.code:load
-function code:load(dst, src, off)
-	return append(self, {code = LDX | DW | MEM, dst = dst, src = src, off = off, imm = 0})
+function code:load(dst, src, off, n)
+	return append(self, {code = LDX | widths[n or WORD] | MEM, dst = dst, src = src, off = off, imm = 0})
 end
 
---- `*(u64 *)(dst + off) := src`.
+--- `*(u<8n> *)(dst + off) := src`; `n` is eight bytes by default.
 -- @function luaebpf.insn.code:store
-function code:store(dst, off, src)
-	return append(self, {code = STX | DW | MEM, dst = dst, src = src, off = off, imm = 0})
+function code:store(dst, off, src, n)
+	return append(self, {code = STX | widths[n or WORD] | MEM, dst = dst, src = src, off = off, imm = 0})
+end
+
+--- `*(u64 *)(dst + off) := imm`; `imm` must fit in 32 signed bits.
+-- @function luaebpf.insn.code:storei
+function code:storei(dst, off, imm)
+	return append(self, {code = ST | DW | MEM, dst = dst, src = 0, off = off, imm = imm})
 end
 
 --- Jumps to `label` when `dst op src` holds.
@@ -187,6 +203,22 @@ function code:call(name)
 	return append(self, {code = JMP | insn.jump.CALL, dst = 0, src = PSEUDO_CALL, off = 0, imm = -1, call = name})
 end
 
+--- A call to the kernel helper of that number.
+-- @function luaebpf.insn.code:helper
+function code:helper(number)
+	return append(self, {code = JMP | insn.jump.CALL, dst = 0, src = 0, off = 0, imm = number})
+end
+
+--- `dst := the map registered under `name``. The object carries a relocation against the map's
+-- symbol, and libbpf replaces both the source register and the immediate with the map's file
+-- descriptor, as it does for the `ld_imm64` clang emits.
+-- @function luaebpf.insn.code:map
+function code:map(dst, name)
+	local at = append(self, {code = LD | DW, dst = dst, src = 0, off = 0, imm = 0, map = name})
+	append(self, {code = 0, dst = 0, src = 0, off = 0, imm = 0})
+	return at
+end
+
 --- Returns from the function, with the value in `R0`.
 -- @function luaebpf.insn.code:exit
 function code:exit()
@@ -214,18 +246,19 @@ function code:sourcelines()
 end
 
 ---
--- Where each call sits and what it calls, for the relocations the object carries.
+-- Where each relocation of one kind sits and what it names, for the object to record.
 -- @function luaebpf.insn.code:relocations
+-- @tparam string kind `"call"` for a BPF-to-BPF call, `"map"` for a map reference
 -- @treturn table `{at, name}` entries, `at` an index into the buffer
-function code:relocations()
-	local calls = {}
+function code:relocations(kind)
+	local found = {}
 	for i = 1, self.n do
-		local record = self.records[i]
-		if record.call ~= nil then
-			insert(calls, {at = i, name = record.call})
+		local name = self.records[i][kind]
+		if name ~= nil then
+			insert(found, {at = i, name = name})
 		end
 	end
-	return calls
+	return found
 end
 
 ---

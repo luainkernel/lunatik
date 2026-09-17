@@ -25,11 +25,19 @@ local FUNCREC <const> = 8
 local LINEREC <const> = 16
 
 local KIND_INT        <const> = 1
+local KIND_PTR        <const> = 2
+local KIND_ARRAY      <const> = 3
+local KIND_STRUCT     <const> = 4
 local KIND_FUNC       <const> = 12
 local KIND_FUNC_PROTO <const> = 13
+local KIND_VAR        <const> = 14
+local KIND_DATASEC    <const> = 15
 local SIGNED          <const> = 1
 local STATIC          <const> = 0
 local GLOBAL          <const> = 1
+local ALLOCATED       <const> = 1 -- BTF_VAR_GLOBAL_ALLOCATED
+local BYTE            <const> = 8
+local WORD            <const> = 8 -- a map attribute is a pointer, which is what libbpf reads
 
 local btf = {}
 
@@ -114,6 +122,71 @@ function types:func(name, nparams, linkage, signature)
 	local proto = self:add(pack("<I4I4I4", 0, typeinfo(KIND_FUNC_PROTO, nparams), signature.result)
 		.. concat(params))
 	return self:add(pack("<I4I4I4", self:string(name), typeinfo(KIND_FUNC, linkage), proto))
+end
+
+---
+-- A pointer to `id`.
+-- @function luaebpf.btf.types:pointer
+-- @tparam integer id
+-- @treturn integer its type id
+function types:pointer(id)
+	return self:add(pack("<I4I4I4", 0, typeinfo(KIND_PTR, 0), id))
+end
+
+---
+-- An array of `n` elements of `id`, indexed by `self.int`. libbpf reads a BTF-defined map's
+-- attributes out of the element count of such an array, so `n` is the number that matters.
+-- @function luaebpf.btf.types:array
+-- @tparam integer id
+-- @tparam integer n
+-- @treturn integer its type id
+function types:array(id, n)
+	return self:add(pack("<I4I4I4", 0, typeinfo(KIND_ARRAY, 0), 0)
+		.. pack("<I4I4I4", id, self.int, n))
+end
+
+---
+-- A struct of `members`, each `{name, type}`, laid out one word apart.
+-- @function luaebpf.btf.types:struct
+-- @tparam string name
+-- @tparam table members
+-- @treturn integer the `STRUCT` type id
+-- @treturn integer its size in bytes
+function types:struct(name, members)
+	local fields, size = {}, #members * WORD
+	for i, member in ipairs(members) do
+		insert(fields, pack("<I4I4I4", self:string(member.name), member.type,
+			(i - 1) * WORD * BYTE))
+	end
+	return self:add(pack("<I4I4I4", self:string(name), typeinfo(KIND_STRUCT, #members), size)
+		.. concat(fields)), size
+end
+
+---
+-- A variable of `id` allocated in a section.
+-- @function luaebpf.btf.types:var
+-- @tparam string name
+-- @tparam integer id
+-- @treturn integer its type id
+function types:var(name, id)
+	return self:add(pack("<I4I4I4", self:string(name), typeinfo(KIND_VAR, 0), id)
+		.. pack("<I4", ALLOCATED))
+end
+
+---
+-- A data section holding `entries`, each `{type, offset, size}`.
+-- @function luaebpf.btf.types:datasec
+-- @tparam string name
+-- @tparam table entries
+-- @treturn integer its type id
+function types:datasec(name, entries)
+	local records, size = {}, 0
+	for _, entry in ipairs(entries) do
+		insert(records, pack("<I4I4I4", entry.type, entry.offset, entry.size))
+		size = size + entry.size
+	end
+	return self:add(pack("<I4I4I4", self:string(name), typeinfo(KIND_DATASEC, #entries), size)
+		.. concat(records))
 end
 
 ---

@@ -26,7 +26,7 @@ output=$(luaebpf_compile divzero) || { comment "$output"; fail "luaebpf: divzero
 output=$(luaebpf_loadall divzero) || { comment "$output"; fail "luaebpf: the corpus did not verify"; }
 ktap_pass "luaebpf: every division row verifies"
 
-output=$(luaebpf_differential 4) || { comment "$output"; fail "luaebpf: a division differs from the interpreter"; }
+output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a division differs from the interpreter"; }
 ktap_pass "luaebpf: a division by zero takes the default verdict, and the rest match the interpreter"
 
 rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"

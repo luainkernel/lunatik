@@ -178,6 +178,23 @@ under `sudo`.
   ([helpers.c#L3388](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/helpers.c#L3388))
   unwinds to the program's exception callback and never returns. `pcall` cannot be compiled; the
   design does not emit `bpf_throw` either, a failed check returns the program's default verdict.
+* **A callee answers through R0 and through the caller's stack, and nothing else.**
+  `set_callee_state` copies R1-R5 into the callee, types and ranges included, so `PTR_TO_CTX`,
+  `PTR_TO_PACKET` and `PTR_TO_STACK` all propagate
+  ([verifier.c#L9478-L9490](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9478-L9490));
+  R0 and R6-R9 arrive uninitialised, and the callee may write into its caller's stack
+  ([#L9106-L9109](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9106-L9109)).
+  `prepare_func_exit` hands the caller whatever R0 held at the callee's exit
+  ([#L9762-L9763](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9762-L9763)),
+  and the verifier explores every exit against every path after the call, so an exit that leaves
+  R0 uninitialised is rejected at the caller's first use of it, "R%d !read_ok"
+  ([#L3110](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L3110)). This is
+  why a failed check in a subprogram raises a flag in the caller's frame and still sets R0.
+  Passing a stack pointer to a *static* subprogram is safe against the BTF argument check:
+  `btf_check_subprog_call` only marks a static subprogram unreliable on a mismatch, where a
+  global one fails the load
+  ([#L9248-L9274](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9248-L9274)),
+  so the emitter keeps declaring every parameter `long` in `.BTF`.
 * **Division and modulo by zero do not trap.** `ALU64` division by zero sets the destination to
   zero and modulo by zero leaves the dividend
   ([Documentation/bpf/standardization/instruction-set.rst#L351-L357](https://github.com/torvalds/linux/blob/v7.2/Documentation/bpf/standardization/instruction-set.rst#L351-L357)).
@@ -203,6 +220,121 @@ under `sudo`.
   process-context runtime
   ([lunatik_ebpf.h#L35-L40](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lunatik_ebpf.h#L35-L40)),
   and an IRQ-context runtime may not sleep. A compiled program loaded sleepable may.
+
+## The context a network program reads
+
+* **Every XDP context access is exactly four bytes, and none is a write.**
+  `__is_valid_xdp_access` rejects a size other than `sizeof(__u32)` and any offset the size does
+  not divide
+  ([net/core/filter.c#L9341-L9351](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L9341-L9351));
+  `xdp_is_valid_access` refuses `egress_ifindex` outside a devmap program, refuses every write
+  unless the program is offloaded, and refuses an `LDSX` load of `data`, `data_meta` or
+  `data_end`
+  ([#L9353-L9395](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L9353-L9395)).
+  Those three yield `PTR_TO_PACKET`, `PTR_TO_PACKET_META` and `PTR_TO_PACKET_END`, so the
+  four-byte load `convert_ctx_access` rewrites gives the program a full pointer.
+* **What `BPF_PROG_TEST_RUN` gives an XDP program.** `xdp_convert_md_to_buff` refuses a non-zero
+  `egress_ifindex`, refuses an `rx_queue_index` without an `ingress_ifindex`, and for a non-zero
+  `ingress_ifindex` requires the device to exist in the caller's netns, the queue index to be
+  below `real_num_rx_queues`, and that queue's `xdp_rxq` to be registered
+  ([net/bpf/test_run.c#L1274-L1317](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L1274-L1317)).
+  Every device registers its generic rx queues' `xdp_rxq` in `netif_alloc_rx_queues`
+  ([net/core/dev.c#L11177-L11184](https://github.com/torvalds/linux/blob/v7.2/net/core/dev.c#L11177-L11184)),
+  so loopback with queue 0 is a context every machine can supply, with no veth and no attach.
+
+* **A `__sk_buff` write is four bytes, and only some fields take one.**
+  `tc_cls_act_is_valid_access` allows a write to `mark`, `tc_index`, `priority`, `tc_classid`,
+  `cb[0..4]`, `tstamp` and `queue_mapping` and to nothing else
+  ([net/core/filter.c#L9273-L9292](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L9273-L9292));
+  `bpf_skb_is_valid_access`'s default arm takes a write only at `size_default`, four bytes
+  ([#L8952-L8962](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L8952-L8962)),
+  and `data`, `data_meta` and `data_end` are four-byte reads that yield packet pointers
+  ([#L8920-L8929](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L8920-L8929)).
+  That set is kernel policy rather than layout, so BTF cannot supply it and the program type's
+  module carries it.
+* **What `BPF_PROG_TEST_RUN` gives a TC program.** `convert___skb_to_skb` refuses a `ctx_in`
+  with anything non-zero outside `mark`, `priority`, `ingress_ifindex`, `ifindex`, `cb`,
+  `data_end`, `tstamp`, `wire_len`, `gso_segs`, `gso_size` and `hwtstamp`, and copies `mark`,
+  `priority`, `ingress_ifindex`, `tstamp` and `cb` into the skb
+  ([net/bpf/test_run.c#L925-L1003](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L925-L1003));
+  `convert_skb_to___skb` writes them back into `ctx_out`
+  ([#L1011](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L1011)), so a
+  `priority` write is observable. `skb->len` is the bytes handed in, and `ctx_in.len` must be
+  zero. **A hash cannot be supplied**: it sits in a range `ctx_in` must leave zero and the skb
+  the test run builds has none, so `skb.hash` answers 0.
+* **Section names.** libbpf maps `tcx/ingress` and `tcx/egress` to `SCHED_CLS` with the matching
+  `expected_attach_type`, `tc` to `SCHED_CLS` with none, and `xdp` to `XDP`
+  ([tools/lib/bpf/libbpf.c#L10101-L10146](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L10101-L10146)),
+  so an object whose entry sits in the right section needs no type argument on the way in.
+
+## The packet a network program reads
+
+* **The reads a kernel script already has.** `LUADATA_NEWINT_GETTER` is
+  `*(T##_t *)luadata_checkbounds(...)` ([lib/luadata.c#L43-L51](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luadata.c#L43-L51)):
+  a host-byte-order load of the exact width, zero-extended for the unsigned names and
+  sign-extended for the signed ones. The method table
+  ([#L201-L336](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luadata.c#L201-L336)) publishes `getbyte` (an alias of `getuint8`),
+  `getint8`, `getuint8`, `getint16`, `getuint16`, `getint32`, `getuint32`, `getint64`,
+  `getnumber` (an alias of `getint64`) and `getstring`, plus `__len`. `LUADATA_NEWINT` is
+  instantiated for `int64` and not for `uint64` ([#L68-L74](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luadata.c#L68-L74)), so
+  there is no `getuint64`: a Lua integer is 64-bit signed, and an unsigned 64-bit value has no
+  distinct representation. A compiled function the interpreter cannot run has no oracle, so the
+  packet proxy publishes those names and no others.
+* **A signed read extends by hand.** eBPF's sign-extending load, `BPF_MEMSX` 0x80
+  ([include/uapi/linux/bpf.h#L22](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L22)),
+  landed in v6.6, and AGENTS.md's supported range starts at 5.15. A shift left followed by an
+  arithmetic shift right is two instructions and one shape on every supported kernel.
+* **An offset is bounded before the arithmetic.** The verifier refuses arithmetic between a
+  packet pointer and a register whose range it does not know, and `find_good_pkt_pointers`
+  gives the pointer no range at all once the offset the comparison carries runs past
+  `MAX_PACKET_OFF`
+  ([kernel/bpf/verifier.c#L15106-L15126](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L15106-L15126)),
+  which is 0xffff
+  ([include/linux/bpf_verifier.h#L1556](https://github.com/torvalds/linux/blob/v7.2/include/linux/bpf_verifier.h#L1556)).
+  The register the check compares is the access's own end, the pointer plus its width, so the
+  offset is tested unsigned against the last one that width can start at and only then added.
+  An offset above it is out of bounds on every packet a NIC or `BPF_PROG_TEST_RUN` can build,
+  and the interpreter raises there too, so the pairing the differential test asserts is
+  unchanged.
+
+## A map the object declares
+
+* **What libbpf requires of a BTF-defined map.** A `.maps` ELF section; a `DATASEC` of that name
+  in `.BTF`, without which the load fails naming it
+  ([tools/lib/bpf/libbpf.c#L3023](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L3023)); per map a `VAR` whose linkage is
+  `BTF_VAR_GLOBAL_ALLOCATED`, whose name is the map's, whose type resolves to a `STRUCT`, and
+  whose `var_secinfo` satisfies `offset + size <= d_size` and `def->size <= vi->size`
+  ([#L2894-L2960](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L2894-L2960)). Each attribute is a member named `type`, `max_entries`,
+  `map_flags`, `key_size`, `value_size` or `numa_node` whose type is a `PTR` to an `ARRAY` whose
+  element count is the value ([#L2473](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L2473), [#L2578](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L2578)); `key_size` and
+  `value_size` are enough, and the `key`/`value` pointer-to-type members are an alternative the
+  emitter does not need. The section's bytes are read only for their length, so zeros of the
+  right size are enough.
+* **What libbpf requires of a map reference.** It never reads `ELF64_R_TYPE`: a relocation is
+  matched by its symbol and its instruction ([#L4832](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4832)), the map by
+  `map->sec_idx == sym->st_shndx && map->sec_offset == sym->st_value`
+  ([#L4746-L4751](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L4746-L4751)), and the instruction must be an `ld_imm64`, whose source
+  register and immediate libbpf then sets to `BPF_PSEUDO_MAP_FD` and the map's file descriptor
+  ([#L6425-L6432](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L6425-L6432)). So the emitter writes a plain `ld_imm64 rX, 0` and a
+  relocation against the map's symbol, typed `R_BPF_64_64` for the tools that do read the type.
+* **BTF encoding.** `BTF_KIND_PTR` 2, `ARRAY` 3, `STRUCT` 4, `VAR` 14, `DATASEC` 15
+  ([include/uapi/linux/btf.h#L62-L75](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/btf.h#L62-L75)); `struct btf_array {type, index_type,
+  nelems}`, `struct btf_member {name_off, type, offset}`, `struct btf_var {linkage}` and
+  `struct btf_var_secinfo {type, offset, size}` ([#L110-L177](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/btf.h#L110-L177)).
+* **What a map may be called, and how an array is keyed.** The `VAR` and the `STRUCT` that carry
+  a map's attributes are named after it, and `btf_name_valid_identifier` takes a leading letter
+  or `_` and then letters, digits, `_` or `.`
+  ([kernel/bpf/btf.c#L880-L888](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/btf.c#L880-L888),
+  [#L3305-L3312](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/btf.c#L3305-L3312));
+  anything else costs the whole `.BTF` section, and with it the lines the verifier log quotes.
+  libbpf refuses an empty name before that
+  ([tools/lib/bpf/libbpf.c#L2914](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L2914)),
+  and a `.` survives the BTF but not the pin, which `sanitize_pin_path` rewrites because bpffs
+  disallows periods
+  ([#L9366-L9374](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L9366-L9374)).
+  `array_map_alloc_check` refuses a `key_size` other than four
+  ([kernel/bpf/arraymap.c#L53-L64](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/arraymap.c#L53-L64)),
+  on 5.15 as on 7.2.
 
 ## BTF: what the object carries and what the log prints
 

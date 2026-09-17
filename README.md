@@ -173,6 +173,8 @@ modules below:
 | Module | Description |
 |--------|-------------|
 | `luaebpf` | The compiler: `compile(path)` returns the BPF object a program file makes |
+| `bpf.map` | Declares a map: `map.hash(name, spec)` and its peers |
+| `bpf.tc` | Declares a TC program: `tc.program(fn, opts)` |
 | `bpf.xdp` | Declares an XDP program: `xdp.program(fn, opts)` |
 
 ### Testing

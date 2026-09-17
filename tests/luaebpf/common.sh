@@ -10,6 +10,7 @@
 
 LUAEBPF_SRC=/lib/modules/lua/tests/luaebpf
 LUAEBPF_PINS=/sys/fs/bpf/luaebpf
+LUAEBPF_MAPS=/sys/fs/bpf/luaebpf/maps
 LUAEBPF_WORK=
 
 cleanup() {
@@ -23,6 +24,7 @@ luaebpf_reason() {
 	command -v lunatikc >/dev/null || { echo "lunatikc is not installed; run make install"; return; }
 	command -v bpftool  >/dev/null || { echo "bpftool is not installed"; return; }
 	mountpoint -q /sys/fs/bpf      || { echo "/sys/fs/bpf is not mounted"; return; }
+	[ -r /sys/kernel/btf/vmlinux ] || { echo "the kernel publishes no BTF"; return; }
 	[ -r "$LUAEBPF_SRC/pass.bpf.lua" ] || { echo "the program files are not installed"; return; }
 }
 
@@ -53,28 +55,41 @@ luaebpf_compile() {
 		lunatikc bpf -o "$LUAEBPF_WORK/$name.bpf.o" "$LUAEBPF_SRC/$name.bpf.lua" ) 2>&1
 }
 
+# no type argument: the section a program's entry sits in is what libbpf reads its type from.
+# The map directory is made here rather than once, since a case may clear the pin root between
+# two loads of its own.
 luaebpf_loadall() {
-	bpftool prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" type xdp 2>&1
+	mkdir -p "$LUAEBPF_MAPS"
+	bpftool prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" pinmaps "$LUAEBPF_MAPS" 2>&1
 }
 
 # the verifier's own log: the Lua line it quotes, the may_goto header before the kernel rewrites
 # it into a loop counter, and the instruction budget each program cost
 luaebpf_verbose() {
-	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" type xdp 2>&1
+	mkdir -p "$LUAEBPF_MAPS"
+	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" pinmaps "$LUAEBPF_MAPS" 2>&1
 }
 
+# one program over the packet and the context the row named, or over the fourteen bytes
+# BPF_PROG_TEST_RUN demands of an XDP program where a row named none
 luaebpf_verdict() {
-	bpftool prog run pinned "$LUAEBPF_PINS/$1" data_in "$LUAEBPF_WORK/packet.bin" 2>&1 \
+	local name="$1" context="${2:-}" out="${3:-}" data="$LUAEBPF_WORK/packet.bin" args=()
+	if [ -n "$context" ]; then
+		data="$LUAEBPF_WORK/$context.bin"
+		args=(ctx_in "$LUAEBPF_WORK/$context.ctx")
+		[ -n "$out" ] && args+=(ctx_out "$out")
+	fi
+	bpftool prog run pinned "$LUAEBPF_PINS/$name" data_in "$data" "${args[@]}" 2>&1 \
 		| grep -oP 'Return value: \K[0-9]+'
 }
 
 # every row of the oracle against the program of the same name; where the interpreter raised,
-# the compiled program owes its default verdict instead
+# the compiled program owes the default verdict that row declared instead
 luaebpf_differential() {
-	local default="$1" name value got mismatch=0
-	while IFS=$'\t' read -r name value; do
+	local name value default context got mismatch=0
+	while IFS=$'\t' read -r name value default context; do
 		[ "$value" = "raises" ] && value="$default"
-		got=$(luaebpf_verdict "$name")
+		got=$(luaebpf_verdict "$name" "$context")
 		if [ "$got" != "$value" ]; then
 			echo "$name: returned '$got', the interpreter says '$value'"
 			mismatch=$((mismatch + 1))

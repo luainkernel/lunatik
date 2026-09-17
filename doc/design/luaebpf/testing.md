@@ -32,17 +32,19 @@ missing binary is a skip with a message naming `make`.
 3. *The wire.* The existing `xdp` and `tc` harness: a veth pair with its peer in a namespace, a
    ping, and a verdict that either blocks it or lets it through.
 
-**Packet corpora, checked in.** From phase 2, small hex files under `tests/luaebpf/packets/`: an
-ARP, an IPv4 ICMP echo, a TCP SYN to 443, a TLS ClientHello with an SNI, a truncated ClientHello.
-Every differential test runs over the whole corpus so the failure paths are exercised, not only
-the happy one. Phase 1 reads no packet, and its cases hand `prog run` the fourteen bytes
-`BPF_PROG_TEST_RUN` demands of an XDP program.
+**Packet corpora, checked in.** From phase 2, `tests/luaebpf/packets.lua` holds them as hex: an
+ARP, an IPv4 ICMP echo, a TCP SYN to 443, a TLS ClientHello with an SNI, a truncated
+ClientHello. The program file's body writes the bytes beside its oracle, as it already writes
+the oracle itself, so the compiled and the interpreted side read the same bytes and the corpus
+needs no install rule of its own. Every differential test runs over the whole corpus so the
+failure paths are exercised, not only the happy one. Phase 1 reads no packet, and its cases hand
+`prog run` the fourteen bytes `BPF_PROG_TEST_RUN` demands of an XDP program.
 
 **Proving the compiler discriminates.** Removing a mechanism from the emitter must fail the
 suite. The emitter exposes a test hook, `LUAEBPF_DROP`, an environment variable the CLI does not
 read, naming one mechanism to drop: `divisor` (the test before a division), `maygoto` (the header
 a loop without a proven bound needs), `lineinfo` (the `.BTF.ext` records), `verdict` (the write to
-`R0`), and from phase 2 the bounds check before a packet load. Each has a test that asserts the
+`R0`), and `bounds` (the `data_end` test before a packet load). Each has a test that asserts the
 verifier rejects the program, that the log lacks the Lua line, or that the arithmetic changes.
 The library reads the variable from `/proc/self/environ`, since the host Lua carries no `os`.
 
@@ -76,8 +78,8 @@ matching and failing, not a list of features.
 | `branch.sh` | `if`, `and`, `or`, `not` and every comparison over signed and unsigned edges match |
 | `forconst.sh` | a `for` with constant bounds runs the right count; a zero-trip and a descending loop included |
 | `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates; skips and asserts the refusal on a kernel without it |
-| `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram |
-| `refuse.sh` | each refused construct (runtime table, closure, vararg, `pcall`, unknown global, tail call, `while`, `repeat`) fails with its message and line, and nothing is written; recursion and the six-argument call sit in `call.sh`, beside the calls they are the edges of |
+| `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram; a check that fails inside one takes the program's default verdict through the flag each frame raises in its caller's |
+| `refuse.sh` | each refused construct (runtime table, closure, vararg, `pcall`, unknown global, tail call, `while`, `repeat`) fails with its message and line, and nothing is written; recursion and the five-argument call sit in `call.sh`, beside the calls they are the edges of |
 | `lineinfo.sh` | the object's `.BTF.ext` names the `.lua` file, and a program broken by the test hook is rejected with a log that quotes the Lua line |
 | `budget.sh` | the log's "processed N insns" line for the corpus programs, recorded and asserted under a ceiling, so a regression in emitted shape is caught before it reaches the 1M budget |
 
@@ -88,13 +90,13 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 
 | Test | Proves |
 |------|--------|
-| `packet.sh` | `getbyte`, `getuint16`, `getuint32` and `#` over the corpus match the interpreter's `data` reads |
+| `packet.sh` | every accessor the kernel's `data` object publishes, `#`, a computed offset and a read inside a called function, over the corpus, match the interpreter's reads of the same bytes; a method neither proxy has is refused by name |
 | `bounds.sh` | an access one byte past `data_end` takes the default verdict; the same program with the bounds check dropped by the test hook is rejected |
-| `ctx.sh` | `ctx.ingress_ifindex` and the `skb` fields read back what `prog run` supplies |
-| `mapget.sh` | a map seeded by `bpftool map update` decides the verdict; a missing key is `nil` and an untested use is refused at compile time |
-| `mapset.sh` | an update and a `nil` delete from the program are visible to `bpftool map lookup` |
-| `struct.sh` | a `struct` value spec yields field access with the right offsets and widths |
-| `btfview.sh` | a kernel struct view reads a field at the offset `bpftool btf dump` reports |
+| `ctx.sh` | `ctx.ingress_ifindex` and the `skb` fields read back what `prog run` supplies, a `skb.priority` write comes back in `ctx_out`, and one object carrying both kinds loads with no type argument; an unknown field, a write the kernel refuses, a field given a boolean, and `ctx.data` are refused with their lines |
+| `mapget.sh` | the object's maps are created and pinned by `bpftool prog loadall ... pinmaps`, a map seeded by `bpftool map update` decides the verdict, a missing key is `nil`, a lookup spilled to the frame narrows there too, and an untested use or a string key is refused at compile time |
+| `mapset.sh` | an update, an update under a key the program computed, a `nil` delete and a delete of a key that was never there are what `bpftool map lookup` finds afterwards; a bad key spec, a name declared twice, a constructor without a name and a value that is not a number are refused |
+| `struct.sh` | a `struct` value spec yields field access with the right offsets and widths, one field per width and signedness plus a layout read out of the kernel's own BTF; a write to a field or to the whole value, an unknown field and a spec that is neither a format nor a codec are refused |
+| `btfview.sh` | `luaebpf.vmlinux` reports a kernel struct's size and its members' byte offsets as `bpftool btf dump` does, and drops the bitfields and unions a layout cannot describe |
 
 ### Phase 3: the loader
 
