@@ -117,13 +117,14 @@ and integer-only number format; chunks from the distribution `luac` are rejected
 A chunk is installed and run under the usual `.lua` name; the kernel detects it by its signature:
 
 ```Shell
-lunatikc -s -o hello.lua hello.lua    # overwrite with the stripped chunk
-sudo cp hello.lua /lib/modules/lua/
+lunatikc -s hello.lua                 # writes hello.luac next to the source
+sudo cp hello.luac /lib/modules/lua/hello.lua
 sudo lunatik run hello
 ```
 
 `BYTECODE=1 make install` installs the kernel Lua libraries and the examples as stripped chunks
-instead of source.
+instead of source; a stripped chunk keeps no source name or line numbers, so a kernel error raised
+from one reads `?:?: <message>`.
 
 ### Testing
 
