@@ -178,6 +178,14 @@ read its own files.
   would take (`TCP_CM_INQ`, `TCP_MSS_DEFAULT`, `TCP_NLA_PAD`,
   `TCP_CA_Open`, `TCP_FLAG_SYN`, ...) are absent; `linux.socket.sol`
   resolves the levels `setsockopt` routes on, `SOCKET`, `TCP` and `TLS`.
+- **tls**: `linux.tls` carries the four `SOL_TLS` option names and the four
+  halves the TLS version numbers are composed from; `linux.tls.cipher` carries
+  every cipher id at its `uapi/linux/tls.h` value, each distinct and inside the
+  `TLS_CIPHER_MIN..MAX` range `get_cipher_desc` resolves (`ARIA_GCM_128`/`_256`
+  arrived in 6.1, so they are asserted absent or at 57/58); `linux.tls.size`
+  gives all four key material sizes of every cipher, the zero salt of
+  `CHACHA20_POLY1305` being the only one that is not positive; and
+  `linux.tls.layout.crypto_info` is the 4-byte `{version, cipher_type}` header.
 
 ### monitor
 
@@ -634,6 +642,38 @@ Regression tests for `luathread`.
   reference to the task until the thread object is collected. Stopping that
   exited thread leaves no kernel complaint, and the object `task()` returns
   after the stop has no task: its methods raise.
+
+### tls
+
+Tests for the `tls` module, the `crypto_info` a kTLS session is keyed with.
+
+- **pack**: every cipher `linux.tls.cipher` carries packs to the length its
+  `tls12_crypto_info_*` struct has, the size `gcc` measures for it over the
+  uapi header; the header and the key material land at the offsets those
+  structs place them at, which a packer that only got the length right
+  would miss; a part that is not exactly the cipher's size is refused naming
+  it, the salt of the zero-salt cipher included; and a cipher id outside
+  `TLS_CIPHER_MIN..MAX` is refused, so the set `pack` accepts is exactly what
+  `linux.tls.cipher` carries. A version the kernel does not implement still
+  packs, since judging it is `validate_crypto_info`'s. The module surface is
+  pinned too: `tls.pack`, the two version numbers `uapi/linux/tls.h` composes
+  from the halves autogen cannot read, and nothing else. Pure Lua: needs no
+  socket, no `CONFIG_TLS` and no ULP.
+
+- **key**: what the kernel makes of that blob. Each case connects a client to
+  its own loopback listener bound to port 0. Without the `tls` ULP on the
+  socket, `SOL_TLS` falls through to `ip_setsockopt` and raises `ENOPROTOOPT`;
+  with it, a TLS 1.3 AES-GCM-128 session installs on both directions and a
+  TLS 1.2 one installs too; a direction that is already keyed raises `EBUSY`,
+  which is the only reading a script has that the first install took; and a
+  blob one byte short of the cipher's struct, a version the kernel does not
+  implement, a second cipher on the other direction, and ARIA-GCM under TLS 1.3
+  each raise `EINVAL`. `validate_crypto_info` decides that last one before any
+  AEAD is allocated, so it runs on a kernel that builds no `gcm(aria)` either.
+  Skipped whole where the `tls` ULP is neither registered nor loadable; the
+  ChaCha20-Poly1305 case alone where the install answers `ENOENT` because the
+  kernel builds no `rfc7539(chacha20,poly1305)`, and the ARIA case alone where
+  the uapi header predates that cipher.
 
 ### xdp
 

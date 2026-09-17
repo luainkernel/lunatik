@@ -1,14 +1,15 @@
 # Proposed Lua API: `ktls`
 
 This is a design proposal, not a specification. Names and shapes are open for review; the kernel
-constraints behind them (`kernel-notes.md`) are not. Some of this exists already on the parked
-`claude_tls` branch and is rebased in; the rest is new.
+constraints behind them (`kernel-notes.md`) are not. Phases 1 and 2 are in the tree, the
+`linux.socket.tcp` and `linux.tls` namespaces and the `tls` packer over the `socket:setsockopt`
+`master` already had; the rest is proposal.
 
 Four pieces, low to high level:
 
 * the `linux.socket.tcp` option namespace, over the `socket:setsockopt` `master` already has — a
   generic socket facility (phase 1);
-* `tls` — kTLS constants and the `crypto_info` packer (phase 2);
+* `linux.tls` — the kTLS constant namespaces, and `tls` — the `crypto_info` packer (phase 2);
 * `handshake` — the kernel handshake upcall to `tlshd` (phase 4);
 * `ktls` — high level helpers and the tunnel (phases 4–5), in Lua.
 
@@ -25,7 +26,7 @@ Four pieces, low to high level:
     local sk = require("linux.socket")
 
     sock:setsockopt(sk.sol.TCP, sk.tcp.ULP, "tls")     -- attach the tls ULP
-    sock:setsockopt(sk.sol.TLS, tls.TX, crypto_info)   -- install keys (phase 2)
+    sock:setsockopt(sk.sol.TLS, ltls.TX, crypto_info)  -- install keys (phase 2)
 
 `sock:setsockopt(level, optname, optval)` is already on `master` and maps to the kernel `setsockopt`,
 passing `optval` as a string payload (the kernel side uses `KERNEL_SOCKPTR`, so a Lua string becomes
@@ -37,20 +38,25 @@ TLS specific, and TLS is its first user.
 
     local tls = require("tls")
 
-    local info = tls.pack(tls.version.TLS_1_3, tls.cipher.AES_GCM_128,
+    local ltls = require("linux.tls")
+
+    local info = tls.pack(tls.version.TLS_1_3, ltls.cipher.AES_GCM_128,
                           iv, key, salt, rec_seq)
     sock:setsockopt(sk.sol.TCP, sk.tcp.ULP, "tls")
-    sock:setsockopt(sk.sol.TLS, tls.TX, info)                  -- transmit direction
-    sock:setsockopt(sk.sol.TLS, tls.RX, info_rx)               -- receive direction
+    sock:setsockopt(sk.sol.TLS, ltls.TX, info)                 -- transmit direction
+    sock:setsockopt(sk.sol.TLS, ltls.RX, info_rx)              -- receive direction
 
 `tls.pack(version, cipher, iv, key, salt, rec_seq)` returns the packed `tls12_crypto_info_*` for the
-chosen cipher, sized exactly as the kernel requires (a wrong length is rejected). Constants:
-`tls.version.{TLS_1_2, TLS_1_3}`, `tls.cipher.{AES_GCM_128, AES_GCM_256, CHACHA20_POLY1305, …}`,
-`tls.{TX, RX}`. Missing salt for ChaCha20 (salt size 0) is handled by the packer.
+chosen cipher, sized exactly as the kernel requires (a wrong length is rejected). The kernel
+constants live where every other kernel constant does: `linux.tls` carries `TX` and `RX`,
+`linux.tls.cipher` the cipher types and `linux.tls.size` their key material sizes, all from
+`autogen`, which leaves `tls.version.{TLS_1_2, TLS_1_3}` on the module because the header composes
+those two through a function-like macro autogen cannot read. A salt left out for ChaCha20 (salt size
+0) is handled by the packer.
 
 The socket must already be connected (the ULP attach requires `TCP_ESTABLISHED`); installing a
-direction twice raises (`-EBUSY`). Keys come from somewhere — a userspace handshake (phase 4) or, for
-tests, fixed vectors.
+direction twice raises (`-EBUSY`), and keying a socket with no ULP on it raises `-ENOPROTOOPT`. Keys
+come from somewhere — a userspace handshake (phase 4) or, for tests, fixed vectors.
 
 ## Phase 3 — plaintext I/O and control records
 
@@ -132,7 +138,7 @@ separate netfilter/XDP hook; the byte-moving loop stays here, in a sleepable kth
 1. Whether `receive` returns `(data, record)` (proposed) or exposes the record type through a separate
    accessor. The two-return form reads well and matches how a caller must branch on control records.
 2. Whether `tls.pack` should take a table (`{version=, cipher=, iv=, key=, …}`) rather than positional
-   arguments; positional mirrors the existing `claude_tls` shape, a table reads better with many fields.
+   arguments; positional is what it ships, a table reads better with many fields.
 3. Whether `handshake.client`/`server` belong in their own `handshake` module or under `ktls`. They
    are usable without kTLS keying being visible, which argues for a separate module.
 4. Whether the tunnel ships as a library helper (`ktls.tunnel(a, b, opts)` returning the thread body)

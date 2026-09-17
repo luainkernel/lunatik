@@ -133,8 +133,8 @@ sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (bpf, crypto, data, fifo,
                             # fsnotify, hid, io, linux, monitor, netlink,
-                            # notifier, probe, rcu, runtime, set, skb, socket,
-                            # struct, task, tc, thread, xdp)
+                            # notifier, probe, rcu, runtime, sched, set, skb,
+                            # socket, struct, task, tc, thread, tls, xdp)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them
@@ -190,6 +190,7 @@ The table below lists the available kernel Lua modules:
 | `thread` | Kernel threads: spawn, stop, `shouldstop` |
 | `cpu` | CPU counts and iteration: `num_online`, `stats`, `foreach_online` |
 | `socket` | Kernel sockets: TCP, UDP, AF\_PACKET, AF\_UNIX |
+| `tls` | Kernel TLS keying material: the `crypto_info` blob a kTLS session is installed with |
 | `netlink` | Netlink namespace: rtnetlink and generic-netlink sessions, softirq-safe channel |
 | `data` | Raw memory buffer for binary data read/write |
 | `device` | Character device drivers |
