@@ -698,6 +698,18 @@ and the plaintext data path a keyed socket becomes.
   kernel builds no `rfc7539(chacha20,poly1305)`, and the ARIA case alone where
   the uapi header predates that cipher.
 
+- **loopback**: the plaintext data path a keyed socket becomes. Over a pair
+  whose two ends carry the same session on both directions, a send on one side
+  comes back decrypted on the other with the record type reported as
+  application data, which is what says the record layer ran at all. The
+  reverse direction proves both ends were keyed and not only the one written
+  first; TLS 1.2 and the zero-salt cipher are the version and cipher cells;
+  and a record read in two calls carries its type on the second read too,
+  which `process_rx_list` attaches and a binding that only looked at the first
+  record of a receive would miss. Skipped whole where the `tls` ULP is neither
+  registered nor loadable, and the ChaCha20-Poly1305 case alone where the
+  install answers `ENOENT`.
+
 - **record_type**: the control records `socket:sendrecord()` emits and
   `socket:receiverecord()` reports, over a loopback pair keyed on both
   directions with the same fixed vectors. An alert sent with the record type
