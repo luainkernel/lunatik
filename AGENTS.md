@@ -180,7 +180,9 @@ for what the code does not do is named too, so the report is read, not obeyed.
 crash the guard prevents, and on the shared host that is a forced reboot. `crash-guard.sh`, wired
 before a shell call like the review guard below, blocks an install, reload or run while any
 worktree drops such a line, unless the command carries `CRASH_AB_OK=1`, set once the maintainer
-authorized the experiment and named the machine it may take down.
+authorized the experiment and named the machine it may take down. It reads every worktree of the
+checkout, so one another session left dirty blocks this session's install too; its owner cleans it,
+and a review says its run was blocked rather than overriding a guard that was not about its tree.
 
 A rule is what remains when nothing else can catch the mistake. Where the error is mechanical, the gate
 is the answer and the rule is that gate's documentation: a pull request that only writes down what went
@@ -436,6 +438,10 @@ afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than
   to carry a new rule is the moment to write the functions instead: `lunatik_locker` took three
   operations and four macros over it, and the rule came out as five functions and one predicate,
   `lunatik_isirqsave`. A rule that takes one sentence to state takes one predicate to code.
+* A field that stores what its reader can compute when it runs is a copy, not a field: the fsnotify
+  event's frame kept the accessing task's pid for an accessor that only ever runs inside the callback,
+  in that task, where `current` answers. The same holds for a wrapper written to fit a macro whose
+  varargs already take the call, `lunatik_attach(L, obj, field, lunatik_newobject, &class, 0, opt)`.
 * An errno crosses the C code negative, as the kernel returns it: `lunatik_throw(L, -EINVAL)`, or the
   raw return of the call that failed. The single normalisation is at the Lua boundary, where
   `lunatik_pusherrname` takes the absolute value.
@@ -739,11 +745,14 @@ named, not one discovered at that consumer's build.
 * Corrections to a commit on your own branch are `git commit --fixup=<hash>`, not a standalone
   "address review comments" commit. Never fixup a commit that is already on `master`; that becomes a
   new commit on a new branch.
-* A fixup is pushed as soon as it is made. It adds a commit, so it fast-forwards the branch and moves
-  nothing a reviewer already read; what waits for the maintainer is the squash, and a rewrite is said
-  out loud. A fixup that lives only on the machine that wrote it is outside the review, and a cleared
-  worktree or a reboot takes it. The same holds for work handed to a reviewing agent: telling it not to
-  push leaves the push owed by whoever gave the instruction.
+* A fixup is pushed as soon as it is made, onto the pull request's own branch. It adds a commit, so it
+  fast-forwards the branch and moves nothing a reviewer already read; what waits for the maintainer is
+  the squash, and a rewrite is said out loud. A fixup that lives only on the machine that wrote it is
+  outside the review, and a cleared worktree or a reboot takes it; one that lives only on `review/<n>`
+  is outside it too, since the pull request lists its own branch's commits and nothing else, and
+  "the fixups are on the pull request" is said after `gh api repos/.../pulls/<n>/commits` lists them,
+  not before. The same holds for work handed to a reviewing agent: telling it not to push leaves the
+  push owed by whoever gave the instruction.
 * If a branch adds something in one commit and removes it in another, the second is a fixup of the
   first.
 * After squashing, re read the comments, the commit bodies and the identifiers so they describe the
@@ -930,6 +939,15 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   what is scoped is the fixup, which touches only what a finding requires, not the finding. A review
   that reads the one file it expected the bug in and skips the rest is half a review, and the half it
   skipped is where the reader assumes it looked.
+* A review runs the passes of *Before opening a pull request* over the diff as passes of its own, not
+  only the rules it can cite: the simplification pass, field by field and helper by helper, asking
+  what each buys over the minimal shape, and the shape pass, grepping the file's own siblings for the
+  form the tree uses. The first round on #848 and #849 ran only the rules and left for a second round
+  a predicate written as a function in a header of macros, a comment on one member of a struct whose
+  members carry none, a wrapper a vararg made unnecessary, and a frame field the accessor could read
+  from `current`. A guard added to the core for one binding is read against every binding with the
+  same shape before the verdict, module by module, and a consumer found leaves as an issue: `device`
+  dispatches its file operations the way `fsnotify` dispatches events, and #959 says so.
 * A review holds new code to the conventions this file records; it does not impose preferences beyond
   them. Where the tree itself is inconsistent and a style seems worth settling, that is an exclusive
   pull request that fixes the whole tree and records the convention here — never a finding on someone's
@@ -1030,8 +1048,11 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   file left unopened, the fixup whose comment drifted from what it does. The self-audit the code gets
   is owed to the review too.
 * A re-review re-fetches the author's branch and reads what changed there — not the review branch you
-  built last round. Diff the author's new head against what you last saw: re-reading your own fixups
-  reviews your work, not theirs, and misses what they folded wrong, spelled differently, or left out.
-  Confirming that prior findings were folded and the build is green is where a re-review starts, not
-  where it ends.
+  built last round. A head rewritten by a squash or a rebase is fetched with a forced refspec,
+  `+pull/<n>/head:refs/pr/<n>`: a plain fetch declines the non-fast-forward without a word and leaves
+  the old head in place, and every comparison after it reads the wrong commit, so the fetched head is
+  checked against the pull request's before any diff. Diff the author's new head against what you
+  last saw: re-reading your own fixups reviews your work, not theirs, and misses what they folded
+  wrong, spelled differently, or left out. Confirming that prior findings were folded and the build is
+  green is where a re-review starts, not where it ends.
 
