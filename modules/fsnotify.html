@@ -33,7 +33,8 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Class_rule">Class rule </a></li>
+<li><a href="#Class_fsnotify_watch">Class fsnotify_watch </a></li>
+<li><a href="#fsnotify">fsnotify</a></li>
 </ul>
 
 
@@ -50,7 +51,7 @@
   <li><a href="../modules/data.html">data</a></li>
   <li><a href="../modules/device.html">device</a></li>
   <li><a href="../modules/fifo.html">fifo</a></li>
-  <li><a href="../modules/fsnotify.html">fsnotify</a></li>
+  <li><strong>fsnotify</strong></li>
   <li><a href="../modules/hid.html">hid</a></li>
   <li><a href="../modules/lighten.html">lighten</a></li>
   <li><a href="../modules/linux.html">linux</a></li>
@@ -95,7 +96,7 @@
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
   <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
-  <li><strong>netlink.rt.rule</strong></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
   <li><a href="../modules/notifier.html">notifier</a></li>
   <li><a href="../modules/probe.html">probe</a></li>
@@ -135,36 +136,32 @@
 
 <div id="content">
 
-<h1>Module <code>netlink.rt.rule</code></h1>
-<p>FIB rule (policy routing) interface.</p>
-<p> A <a href="../modules/netlink.session.html#">netlink.session</a> specialization over
- the <code>NETLINK_ROUTE</code> protocol: create an instance with <code>netlink.rt.rule()</code>,
- then add, delete and list FIB rules; the underlying socket is closed by
- <code>close()</code> (or the to-be-closed <code>__close</code>). All methods block and require a
- sleepable runtime.</p>
-    <h3>See also:</h3>
-    <ul>
-         <a href="../modules/netlink.rt.object.html#">netlink.rt.object</a>
-    </ul>
+<h1>Module <code>fsnotify</code></h1>
+<p>Filesystem notification.</p>
+<p> Places marks on filesystem objects and hands the events they report to a Lua
+ callback. Event masks are the <a href="../modules/linux.fs.html#">linux.fs</a> bits.</p>
+
+<p> Delivery is synchronous: the callback runs inside the syscall of the process
+ performing the access, holding the runtime lock, so every watched access on
+ the machine is serialized behind it.</p>
 
 
-<h2><a href="#Class_rule">Class rule </a></h2>
+<h2><a href="#Class_fsnotify_watch">Class fsnotify_watch </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#rule:add">rule:add (opts)</a></td>
-	<td class="summary">Adds a FIB rule directing matching lookups to a routing table.</td>
+	<td class="name" nowrap><a href="#fsnotify_watch:mark">fsnotify_watch:mark (path, mask)</a></td>
+	<td class="summary">Places a mark on a filesystem object.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#rule:del">rule:del (opts)</a></td>
-	<td class="summary">Deletes a FIB rule matching the given parameters.</td>
+	<td class="name" nowrap><a href="#fsnotify_watch:stop">fsnotify_watch:stop ()</a></td>
+	<td class="summary">Stops the watch.</td>
 	</tr>
+</table>
+<h2><a href="#fsnotify">fsnotify</a></h2>
+<table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#rule:list">rule:list ([family=AF_UNSPEC])</a></td>
-	<td class="summary">Lists all FIB rules from the kernel.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#rule:new">rule:new ([o])</a></td>
-	<td class="summary">Creates a new rule object.</td>
+	<td class="name" nowrap><a href="#watch">watch (callback)</a></td>
+	<td class="summary">Creates a watch.</td>
 	</tr>
 </table>
 
@@ -172,111 +169,133 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Class_rule"></a>Class rule </h2>
+    <h2 class="section-header has-description"><a name="Class_fsnotify_watch"></a>Class fsnotify_watch </h2>
+
+          <div class="section-description">
+          Watches filesystem objects.
+ A userdata returned by <code>fsnotify.watch()</code>, owning an <a href="../modules/fsnotify.html#">fsnotify</a> group and
+ every mark placed through it.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "fsnotify_watch:mark"></a>
+    <strong>fsnotify_watch:mark (path, mask)</strong>
+    </dt>
+    <dd>
+    Places a mark on a filesystem object.
+ Resolves <code>path</code> and marks its inode for the events in <code>mask</code>. A mark on a
+ directory reports events on the files inside it only when <code>mask</code> carries
+ <code>linux.fs.EVENT_ON_CHILD</code>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         path of the object to mark
+        </li>
+        <li><span class="parameter">mask</span>
+            <span class="types"><span class="type">integer</span></span>
+         event mask, a combination of <a href="../modules/linux.fs.html#">linux.fs</a> bits
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    if <code>path</code> does not resolve, if the mark cannot be added, if the watch
+   has been stopped, or if <code>mask</code> carries a permission event
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch/file"</span>, fs.OPEN | fs.MODIFY)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "fsnotify_watch:stop"></a>
+    <strong>fsnotify_watch:stop ()</strong>
+    </dt>
+    <dd>
+    Stops the watch.
+ Removes every mark it placed and releases its group, so no further event
+ reaches the callback. Calling it again does nothing.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">watch:<span class="function-name">stop</span>()</pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="fsnotify"></a>fsnotify</h2>
 
     <dl class="function">
     <dt>
-    <a name = "rule:add"></a>
-    <strong>rule:add (opts)</strong>
+    <a name = "watch"></a>
+    <strong>watch (callback)</strong>
     </dt>
     <dd>
-    Adds a FIB rule directing matching lookups to a routing table.
+    Creates a watch.
+ Allocates an <a href="../modules/fsnotify.html#">fsnotify</a> group whose events are delivered to <code>callback</code>.
+ Nothing arrives until <code>watch:mark</code> places a mark.</p>
+
+<p> An event whose delivery would need a lock its own task already holds is
+ dropped rather than run: this callback touching a path it marks, and equally
+ a <a href="../modules/thread.html#">thread</a> body, a <a href="../modules/device.html#">device</a> file operation or another module's callback in
+ the same runtime.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">opts</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         rule parameters: optional <code>family</code> (default <code>AF_INET</code>),
-   <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a>, <code>priority</code>, <code>fwmark</code>, <code>protocol</code>, <code>action</code> (default <code>FR_ACT_TO_TBL</code>).
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "rule:del"></a>
-    <strong>rule:del (opts)</strong>
-    </dt>
-    <dd>
-    Deletes a FIB rule matching the given parameters.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">opts</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         rule parameters: optional <code>family</code> (default <code>AF_INET</code>),
-   <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a>, <code>priority</code>, <code>fwmark</code>.
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "rule:list"></a>
-    <strong>rule:list ([family=AF_UNSPEC])</strong>
-    </dt>
-    <dd>
-    Lists all FIB rules from the kernel.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">family</span>
-            <span class="types"><span class="type">integer</span></span>
-         address family.
-         (<em>default</em> AF_UNSPEC)
+        <li><span class="parameter">callback</span>
+            <span class="types"><span class="type">function</span></span>
+         invoked as <code>callback(mask)</code>, where <code>mask</code> is the
+   event mask that fired, testable against <a href="../modules/linux.fs.html#">linux.fs</a> bits. Its return value
+   is ignored.
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        list of rule tables.
+           <span class="types"><span class="type">fsnotify_watch</span></span>
+
+
+
     </ol>
 
+    <h3>Raises:</h3>
+    if the group cannot be allocated, if called from an interrupt-context
+   runtime, or if called from a percpu runtime
 
 
-
-</dd>
-    <dt>
-    <a name = "rule:new"></a>
-    <strong>rule:new ([o])</strong>
-    </dt>
-    <dd>
-    Creates a new rule object.
-
-
-    <h3>Parameters:</h3>
+    <h3>Usage:</h3>
     <ul>
-        <li><span class="parameter">o</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         an initial object table.
-         (<em>optional</em>)
-        </li>
+        <pre class="example"><span class="keyword">local</span> watch = fsnotify.<span class="function-name">watch</span>(<span class="keyword">function</span> (mask) <span class="global">print</span>(mask) <span class="keyword">end</span>)
+watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch"</span>, fs.OPEN)</pre>
     </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/netlink.rt.rule.html#rule">rule</a></span>
-        the new rule object.
-    </ol>
-
-
-    <h3>See also:</h3>
-    <ul>
-         <a href="../modules/class.html#">class</a>
-    </ul>
-
 
 </dd>
 </dl>
