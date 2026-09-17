@@ -154,10 +154,11 @@ userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the 
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
 (`blast-radius.sh`), the examples that use a binding the change touches, which a review runs
-(`examples-touched.sh`), and the trailing blank line rule and the refusal of a staged conflict marker
-(`pre-commit`). Each takes file paths and skips what does not apply, so any
-editor, assistant, or CI can run them. The `Checks` workflow runs them over a pull request's diff:
-`pre-commit` fails the run, the heuristic checks annotate it. Install the commit gate with:
+(`examples-touched.sh`), the machine a tracked file carries (`machine-leak.sh`), and the trailing blank
+line rule and the refusal of a staged conflict marker (`pre-commit`). Each takes file paths and skips
+what does not apply, so any editor, assistant, or CI can run them. The `Checks` workflow runs them over
+a pull request's diff: `pre-commit` and `machine-leak.sh` fail the run, the heuristic checks annotate
+it. Install the commit gate with:
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
@@ -208,6 +209,16 @@ another repository, using exactly what the change removed. A failure reported fr
 read from that build's own configuration before any mechanism is theorised: an out-of-tree feed's
 alphabetical module list explained an unload that failed three times running, after three patches had
 been written against a refcount that was never the cause.
+
+`machine-leak.sh` reads a tracked file for what belongs to the machine it was written on: an absolute
+path in a home directory, a password handed to sudo, a credential read out of a file or carried inside a
+URL, a literal shaped like a token, and the name of a private repository, which it takes from
+`LUNATIK_CONSUMERS` and never spells itself, so that rule is silent where the variable is unset. It is a
+gate and not a nudge, so it fails the commit and the run rather than annotating them: what is committed
+is read by everyone who clones, and a credential committed once is a credential rotated. It reports the
+file, the line and the rule, never the text it matched, which would otherwise reach a terminal and a CI
+log. What belongs to one machine lives in that machine's environment or in its untracked
+`CLAUDE.local.md`, and reaches the tree as an argument whose default names no host.
 
 `tools/pr-status.sh` prints the open pull requests as GitHub has them: base and whether it still merges,
 commits and how many are unsquashed fixups, the size, the CI conclusion, and the labels; `--ready` keeps
