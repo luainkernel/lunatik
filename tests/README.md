@@ -172,6 +172,12 @@ read its own files.
   and the composite and private names the curated `include` list drops
   (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_IN_IGNORED`,
   `FS_DN_MULTISHOT`) are absent.
+- **socket**: `linux.socket.tcp` carries every TCP option name at its
+  `uapi/linux/tcp.h` value, each entry is a distinct positive option
+  number, and the aliases and non-option constants a bare `TCP_` prefix
+  would take (`TCP_CM_INQ`, `TCP_MSS_DEFAULT`, `TCP_NLA_PAD`,
+  `TCP_CA_Open`, `TCP_FLAG_SYN`, ...) are absent; `linux.socket.sol`
+  resolves the levels `setsockopt` routes on, `SOCKET`, `TCP` and `TLS`.
 
 ### monitor
 
