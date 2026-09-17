@@ -200,6 +200,13 @@ the refusals on either side of it; a completed handshake is not covered here.
   says the subscriber was the variable. Skipped whole where `tlshd` is
   installed or running.
 
+- **socket_tls**: that `socket.tls.connect` is the three calls it composes. With
+  no agent the hello is where it stops, so `ESRCH` says the `socket.new` and
+  the `connect` before it ran and the socket reached the upcall connected and
+  filed; a name the module spells wrong raises a Lua error and never reaches an
+  errno. The keyed socket it hands back needs a completed handshake to prove,
+  so this too is skipped whole where `tlshd` is installed or running.
+
 ### hid
 
 - **register**: what `hid.register()` makes of an `id_table`. It accepts one

@@ -70,6 +70,7 @@ file = {
 	'./lib/luasocket.c',
 	'./lib/socket/inet.lua',
 	'./lib/socket/raw.lua',
+	'./lib/socket/tls.lua',
 	'./lib/socket/unix.lua',
 	'./lib/struct.lua',
 	'./lib/luasyscall.c',
