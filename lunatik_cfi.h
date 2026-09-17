@@ -21,6 +21,11 @@
 #define is_endbr	__is_endbr
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
+#define rdmsrq(msr, val)	rdmsrl((msr), (val))
+#define wrmsrq(msr, val)	wrmsrl((msr), (val))
+#endif
+
 static inline void *lunatik_cfi_entry(void *addr)
 {
 	u32 *prefix = (u32 *)((unsigned long)addr - ENDBR_INSN_SIZE);
@@ -34,8 +39,8 @@ static inline u64 lunatik_cfi_disable(void)
 
 	if (!cpu_feature_enabled(X86_FEATURE_IBT))
 		return 0;
-	rdmsrl(MSR_IA32_S_CET, msr);
-	wrmsrl(MSR_IA32_S_CET, msr & ~CET_ENDBR_EN);
+	rdmsrq(MSR_IA32_S_CET, msr);
+	wrmsrq(MSR_IA32_S_CET, msr & ~CET_ENDBR_EN);
 	return msr;
 }
 
@@ -45,8 +50,8 @@ static inline void lunatik_cfi_restore(u64 saved)
 
 	if (!cpu_feature_enabled(X86_FEATURE_IBT))
 		return;
-	rdmsrl(MSR_IA32_S_CET, msr);
-	wrmsrl(MSR_IA32_S_CET, (msr & ~CET_ENDBR_EN) | (saved & CET_ENDBR_EN));
+	rdmsrq(MSR_IA32_S_CET, msr);
+	wrmsrq(MSR_IA32_S_CET, (msr & ~CET_ENDBR_EN) | (saved & CET_ENDBR_EN));
 }
 
 #define lunatik_cfi_call(expr) ({					\
