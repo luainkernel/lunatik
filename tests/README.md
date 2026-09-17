@@ -126,6 +126,68 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   is rejected by the chunk header; `load(..., "t")` rejects a chunk in the
   kernel. Skips when `lunatikc` is not installed.
 
+### luaebpf
+
+Tests for the Lua to eBPF compiler. Each case compiles a program file with
+`lunatikc bpf`, loads what it emits on the running kernel and runs it with
+`bpftool prog run`; the object and the pins are removed in a `trap` that also
+runs once up front. Skips when `lunatikc` or `bpftool` is missing, or when
+`/sys/fs/bpf` is not mounted.
+
+Every corpus case is differential: the program file's body calls the same
+functions it hands to `xdp.program` on the host and writes what each returned
+beside the object, and the case compares that with what the compiled program
+returns, truncated to the 32 bits `bpf_prog_run` gives back. Where the
+interpreter raises, the compiled program owes its default verdict instead.
+
+- **host**: the state `lunatikc` stands up for a program file's body: the
+  standard libraries, `linux.xdp`, and `luaebpf.proto.read` on a known
+  function, whose `numparams`, `maxstacksize`, first opcode, first line,
+  source and argument mode the body asserts. A host with no prototype
+  accessor makes `compile` raise a message naming `luaebpf.proto`.
+- **pass**: a file declaring two programs; `loadall` pins one per
+  `xdp.program` call, `prog run` returns each verdict, the `license` section
+  reads `Dual MIT/GPL`, and the BTF carries one `FUNC` per program. With no
+  `-o` the object takes the input's own name.
+- **lineinfo**: the verifier's log quotes `<file>.bpf.lua:<line>`; with
+  `LUAEBPF_DROP=lineinfo` it carries no Lua line, and with
+  `LUAEBPF_DROP=verdict` the program never writes `R0`, is rejected, and the
+  rejection still names the Lua line.
+- **arith**: every arithmetic and bitwise operator in its register, constant
+  and immediate forms over negatives, zero, `-1`, `mininteger`, `maxinteger`
+  and shift counts of 0, 1, 63, 64, 65 and `-1`.
+- **divzero**: `// 0` and `% 0`, by a constant divisor and by one the program
+  computes, take the default verdict; `mininteger // -1` and `x % -1` match
+  the interpreter; with `LUAEBPF_DROP=divisor` the raw eBPF answers come
+  through instead.
+- **branch**: every comparison in its register and immediate forms with a
+  negative against a positive, `if`/`elseif`/`else`, `and`, `or`, `not`,
+  `TEST`/`TESTSET`, a returned boolean, Lua's truth, where `0` is true, and
+  `==` against `nil`, `true`, `false` and a captured string, which only the
+  two types answer for once the compiler no longer holds the value.
+- **forconst**: a numeric `for` whose bounds the compiler proves: forward,
+  zero-trip, descending, a step above one, a negative start and a nested
+  pair, none of them taking a `may_goto`.
+- **forvar**: a numeric `for` whose bounds the program computes: it takes a
+  `may_goto` header, verifies and terminates; without the header the verifier
+  rejects it; a step that is zero at compile time is refused, and so is one a
+  called function gets at run time, since only the program's own frame reaches
+  the hook. On a kernel below v6.9 the case asserts the compiler's refusal
+  instead.
+- **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
+  call, two levels, five arguments, a shared helper, the deepest chain
+  `MAX_CALL_FRAMES` takes, a call asking for two results, where Lua fills the
+  second with nil, and a body that spills to the frame; one static BTF `FUNC`
+  per subprogram; six arguments, a call short of an argument the callee
+  declares, a division, which only the program's own frame can answer for, and
+  recursion refused with their lines.
+- **refuse**: every construct the phase 1 subset refuses, one program file per
+  row, asserted on its exact message and Lua line, on the non-zero exit, and
+  on no object being left behind.
+- **budget**: the "processed N insns" figure the verifier prints for the
+  worst program of each corpus, reported as a comment and asserted under a
+  ceiling.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).

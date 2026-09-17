@@ -11,6 +11,8 @@ BTF_INSTALL_PATH = ${MODULES_RELEASE_PATH}/build
 MODULES_BUILD_PATH ?= ${BTF_INSTALL_PATH}
 MODULES_INSTALL_PATH := ${MODULES_RELEASE_PATH}/kernel
 SCRIPTS_INSTALL_PATH := ${MODULES_PATH}/lua
+# the compile-time modules: a host root of their own, ahead of the kernel scripts on lunatikc's path
+LUAEBPF_INSTALL_PATH := ${SCRIPTS_INSTALL_PATH}/luaebpf
 INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
 
 LUA ?= lua5.4
@@ -30,8 +32,9 @@ INSTALL = install -o root -g root
 HOSTCC ?= cc
 LUNATIKC := bin/lunatikc
 LUNATIKC_CORE := lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem lobject lopcodes \
-	lparser lstate lstring ltable ltm lundump lvm lzio lauxlib
-LUNATIKC_SRCS := ${LUNATIKC}.c $(addprefix lua/,$(addsuffix .c,$(LUNATIKC_CORE)))
+	lparser lstate lstring ltable ltm lundump lvm lzio lauxlib \
+	lbaselib lcorolib ldblib lstrlib ltablib lutf8lib lmathlib liolib linit loadlib
+LUNATIKC_SRCS := ${LUNATIKC}.c ${LUNATIKC}_proto.c $(addprefix lua/,$(addsuffix .c,$(LUNATIKC_CORE)))
 LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
 
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
@@ -134,6 +137,12 @@ scripts_install:
 	${LN} ${SCRIPTS_INSTALL_PATH}/lunatik/config.lua ${LUA_PATH}/lunatik/config.lua
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 	${INSTALL} -D -m 0755 ${LUNATIKC} ${LUNATIK_INSTALL_PATH}/lunatikc
+	${MKDIR} ${LUAEBPF_INSTALL_PATH} ${LUAEBPF_INSTALL_PATH}/luaebpf ${LUAEBPF_INSTALL_PATH}/bpf
+	# the compiler's own library stays source: BYTECODE=1 strips, and a stripped compiler
+	# reports its refusals as "?:?:"
+	${INSTALL} -m 0644 luaebpf/*.lua ${LUAEBPF_INSTALL_PATH}
+	${INSTALL} -m 0644 luaebpf/luaebpf/*.lua ${LUAEBPF_INSTALL_PATH}/luaebpf
+	${INSTALL} -m 0644 luaebpf/bpf/*.lua ${LUAEBPF_INSTALL_PATH}/bpf
 
 scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
@@ -152,6 +161,7 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/bpf
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik ${LUNATIK_INSTALL_PATH}/lunatikc
+	${RM} -r ${LUAEBPF_INSTALL_PATH}
 	${RM} -r ${LUA_PATH}/lunatik
 
 ebpf:

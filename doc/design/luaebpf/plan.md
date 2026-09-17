@@ -213,6 +213,12 @@ functions run through `bpftool prog run` agree with the same functions interpret
 a refused construct fails with the documented message; a deliberately broken emission (a load
 without its bounds check, injected by a test hook) produces a verifier log that names the Lua line.
 
+What the corpora cost the verifier on 6.12.88, as `budget.sh` records them, against the million
+the verifier allows: the constant-verdict programs 4 processed instructions, the arithmetic rows
+22, the division rows 13, the branch rows 20, the calls 131, the constant-bound loops 249, and
+the loops under a `may_goto` header 319. The ceiling the case asserts is 20,000, two orders of
+magnitude above what the emitted shapes cost today and two below the limit.
+
 ### Phase 2: proxies, context, packet and maps
 
 The context proxy (`ctx.data`, `ctx.data_end`, `ctx.ingress_ifindex` for XDP; `skb` fields for

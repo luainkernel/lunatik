@@ -99,6 +99,41 @@ unsigned int luaS_hash(const char *str, size_t l, unsigned int seed); /* require
 #undef current /* conflicts with Lua namespace */
 #endif
 #endif
+
+#else /* __KERNEL__: bin/lunatikc defines _KERNEL too, and lua/ fences these out under it */
+
+typedef struct lua_State lua_State;
+
+const char *lua_pushfstring(lua_State *L, const char *fmt, ...);
+
+static inline void *lsys_load(lua_State *L, const char *symbol, int seeglb)
+{
+	(void)(seeglb); /* not used */
+	lua_pushfstring(L, "%s: the host compiler loads no C modules", symbol);
+	return NULL;
+}
+
+#define lsys_sym(L,l,s)		((lua_CFunction)(l))
+#define lsys_unloadlib(l)
+
+int lunatikc_loadfile(lua_State *L, const char *filename, const char *mode);
+#define luaL_loadfilex(L,f,m)	lunatikc_loadfile((L),(f),(m))
+
+/* the translator descends the call graph of what it compiles, and the 200 slots above are a
+ * kernel stack budget the host does not share; ldo.c's own default applies instead */
+#undef LUAI_MAXSTACK
+
+#undef LUA_ROOT
+#define LUA_ROOT	"/lib/modules/lua/"
+
+#define LUAEBPF_ROOT	LUA_ROOT"luaebpf/"
+
+/* the compile-time modules come first, so a twin of a kernel module shadows it on the host and
+ * nowhere else */
+#undef LUA_PATH_DEFAULT
+#define LUA_PATH_DEFAULT  LUAEBPF_ROOT"?.lua;" LUAEBPF_ROOT"?/init.lua;" \
+	LUA_ROOT"?.lua;" LUA_ROOT"?/init.lua"
+
 #endif /* __KERNEL__ */
 
 #endif

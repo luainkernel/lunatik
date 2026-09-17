@@ -148,6 +148,33 @@ sudo lunatik run hello
 `BYTECODE=1 make install` installs the kernel Lua libraries and the examples as stripped chunks
 instead of source.
 
+The state `lunatikc` compiles in carries the same standard libraries as a kernel runtime — `string`,
+`table`, `math`, `utf8`, `io`, `debug`, `coroutine` and `package`, every one but `os` — and `require`
+searches `/lib/modules/lua/luaebpf/` and then `/lib/modules/lua/`, overridable with `LUA_PATH`. As in
+the kernel, no C module can be loaded: there is no dynamic loader on either side.
+
+```Shell
+lunatikc bpf [-o output] input.bpf.lua
+```
+
+Compiles a **program file** into a BPF ELF object, `input.bpf.o` by default. A program file's body
+is compile-time Lua: it runs once, here, and hands the functions it declares to a program
+constructor; those functions are the program, compiled to eBPF and held to the subset the verifier
+can check. Anything outside it is an error naming the Lua file and line, and no object is written.
+
+```Shell
+lunatikc bpf filter.bpf.lua
+sudo bpftool prog load filter.bpf.o /sys/fs/bpf/filter type xdp
+```
+
+The compile-time modules, searched under `/lib/modules/lua/luaebpf/` and distinct from the kernel
+modules below:
+
+| Module | Description |
+|--------|-------------|
+| `luaebpf` | The compiler: `compile(path)` returns the BPF object a program file makes |
+| `bpf.xdp` | Declares an XDP program: `xdp.program(fn, opts)` |
+
 ### Testing
 
 Install and run the test suites:
@@ -156,9 +183,9 @@ Install and run the test suites:
 sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (bpf, crypto, data, fifo,
-                            # hid, io, linux, luac, monitor, netlink, notifier,
-                            # probe, rcu, runtime, set, skb, socket, struct, task,
-                            # tc, thread, xdp)
+                            # hid, io, linux, luac, luaebpf, monitor, netlink,
+                            # notifier, probe, rcu, runtime, set, skb, socket,
+                            # struct, task, tc, thread, xdp)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them

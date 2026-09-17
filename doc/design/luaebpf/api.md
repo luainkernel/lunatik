@@ -13,9 +13,12 @@ beside it:
     examples/filter/sni.bpf.lua    the program file: compiled by lunatikc into sni.bpf.o
 
 `lunatikc bpf sni.bpf.lua` produces `sni.bpf.o`, a BPF ELF object that `bpftool prog load` accepts
-like any other. `make install` compiles every program file it installs and puts the object beside
-the script, under `/lib/modules/lua/`, so `lunatik run examples/filter/sni` finds
-`/lib/modules/lua/examples/filter/sni.bpf.o` the way the kernel finds `sni.lua`.
+like any other. The driver is the only part that touches a file: `luaebpf.compile(path)` returns
+the object as a string and raises on a refusal, so a program that does not compile leaves no
+object behind by construction rather than by a cleanup path. `make install` compiles every program
+file it installs and puts the object beside the script, under `/lib/modules/lua/`, so
+`lunatik run examples/filter/sni` finds `/lib/modules/lua/examples/filter/sni.bpf.o` the way the
+kernel finds `sni.lua`.
 
 A program file may exist without a kernel script (a program that never calls into Lua), and a
 kernel script may exist without a program file (everything the tree runs today).
@@ -62,9 +65,10 @@ A compiled function is Lua where every value has a type the translator can prove
 
 Everything else is a compile error naming the line: runtime tables and strings, closures created
 at runtime, varargs, `pcall`, coroutines, metatables other than the proxies', a global that is
-not one of the compile-time modules, a call through a value the translator cannot resolve, and a
-`nil` used where a number is required. Refusing is the normal outcome; the message says which
-line and why, in one line:
+not one of the compile-time modules, a call through a value the translator cannot resolve, a tail
+call, a boolean or a `nil` where arithmetic requires a number, and an `==` between values whose
+types the translator cannot pin, since a register carries `false`, `nil` and `0` as one word.
+Refusing is the normal outcome; the message says which line and why, in one line:
 
     sni.bpf.lua:31: 'host' may be nil here; test it first
     sni.bpf.lua:40: recursion through 'walk'
@@ -87,11 +91,13 @@ Every packet access carries a bounds check against `data_end`. An access that fa
 raise (there is nothing to raise to): the function returns the program's **default verdict**, the
 type's safe answer (`PASS` for XDP, `ACT_OK` for TC), overridable in the constructor:
 
-    return xdp.program{default = action.DROP}(function(ctx) ... end)
+    return xdp.program(function(ctx) ... end, {default = action.DROP})
 
 Division by zero and every other check the interpreter would turn into an error take the same
-path. This is the compiled analogue of what the trampoline does today, where a raising callback
-makes the kfunc return `-1` and the stub falls back.
+path. Only the program's own frame can take it: a subprogram returns to its caller rather than to
+the hook, so until a phase gives it a way out, such a check inside a called function is refused.
+This is the compiled analogue of what the trampoline does today, where a raising callback makes
+the kfunc return `-1` and the stub falls back.
 
 TC programs get `skb`, a proxy over the `__sk_buff` fields (`hash`, `priority` writable,
 `ifindex`, `len`) and `skb:packet()`.
