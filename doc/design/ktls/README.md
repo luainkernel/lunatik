@@ -11,9 +11,9 @@ without first learning where kTLS ends and the TLS handshake begins.
 | Document | What it is for |
 |----------|----------------|
 | [plan.md](plan.md) | Current state (including the prior work), gap analysis, the incremental phases, non goals, risks, definition of done |
-| [api.md](api.md) | Proposed Lua API: the ULP option over `socket:setsockopt`, the `tls` keying module, the `handshake` upcall module, `ktls` high level helpers, and the tunnel, with worked examples |
+| [api.md](api.md) | Proposed Lua API: the ULP option over `socket:setsockopt`, the `tls` keying module, the `handshake` upcall module, the `socket.tls` client, and the tunnel, with worked examples |
 | [kernel-notes.md](kernel-notes.md) | Verified kernel reference: the two-step keying, exported symbols, the ULP framework and why we ride the `tls` ULP, plaintext I/O gotchas, version drift |
-| [testing.md](testing.md) | Test strategy — keying a loopback session with known vectors (no `tlshd`), and skipping the real handshake when the daemon is absent |
+| [testing.md](testing.md) | Test strategy — keying a loopback session with known vectors (no `tlshd`), and skipping whatever the presence or absence of the daemon would decide |
 
 Start with `plan.md`. Read `kernel-notes.md` before writing any C.
 
@@ -30,7 +30,7 @@ Three facts shape everything here, and are worth carrying from the start:
    sockets and moves plaintext, and the handshake comes from userspace (`tlshd`, or an application).
 2. **This is incremental, and it is written from scratch.** Each phase is a shippable pull request:
    the option namespaces and the keying first, then the plaintext data path, the handshake upcall
-   and the tunnel. The first three are in the tree; nothing above them exists anywhere in the
+   and the tunnel. The first four are in the tree; nothing above them exists anywhere in the
    repository.
 3. **kTLS is a TCP ULP.** We ride the kernel's existing `tls` upper-layer protocol; we do not write a
    Lua ULP. A generic "Lua is a ULP" binding is a worthwhile *separate* project (see the non goals in

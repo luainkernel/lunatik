@@ -1,9 +1,10 @@
 # Proposed Lua API: `ktls`
 
 This is a design proposal, not a specification. Names and shapes are open for review; the kernel
-constraints behind them (`kernel-notes.md`) are not. Phases 1 to 3 are in the tree, the
+constraints behind them (`kernel-notes.md`) are not. Phases 1 to 4 are in the tree, the
 `linux.socket.tcp` and `linux.tls` namespaces, the `tls` module over the `socket:setsockopt`
-`master` already had, and the record-type methods on the socket class; the rest is proposal.
+`master` already had, the record-type methods on the socket class, and the `handshake` module with
+`socket.tls` over it; the rest is proposal.
 
 Four pieces, low to high level:
 
@@ -11,7 +12,7 @@ Four pieces, low to high level:
   generic socket facility (phase 1);
 * `linux.tls` — the kTLS constant namespaces, and `tls` — the `crypto_info` packer (phase 2);
 * `handshake` — the kernel handshake upcall to `tlshd` (phase 4);
-* `ktls` — high level helpers and the tunnel (phases 4–5), in Lua.
+* `socket.tls` — the client over the two (phase 4), and the tunnel (phase 5), in Lua.
 
 ## Conventions
 
@@ -86,7 +87,7 @@ so TLS vocabulary stays out of the class every protocol shares. Receives are bou
     local handshake = require("handshake")
 
     -- process/spawn runtime only; blocks until tlshd answers
-    local ok, peerid = handshake.client(sock, {
+    local peerid = handshake.client(sock, {
         peername = "example.com",            -- SNI
         timeout  = 5000,
         cert     = my_cert_serial,           -- optional x509 (keyring serials)
@@ -95,23 +96,29 @@ so TLS vocabulary stays out of the class every protocol shares. Receives are bou
 
 `handshake.client(sock, opts)` fills `tls_handshake_args`, calls the exported `tls_client_hello_x509`
 (or `_anon` / `_psk` by which options are present), and waits on a completion while `tlshd` performs
-the handshake in userspace and installs the kTLS keys on the socket. On return the socket is keyed;
-`sock:receive`/`sock:send` carry plaintext. `handshake.server(sock, opts)` mirrors it for the server
-side. Requires `tlshd` running in the socket's network namespace.
+the handshake in userspace and installs the kTLS keys on the socket. It returns the peer identity the
+session authenticated, `0` for a session carrying none, and raises the errno otherwise, the way every
+other binding reports a kernel failure. On return the socket is keyed; `sock:receive`/`sock:send`
+carry plaintext. `handshake.server(sock, opts)` mirrors it for the server side, without the anonymous
+arm the kernel does not publish. Requires `tlshd` running in the socket's network namespace.
 
-The socket handed in must be connected and must have a `struct file` attached (the binding sets this
-up). `sk_data_ready` is muted for the duration so nothing races `tlshd` on the byte stream.
+The socket handed in must be connected and must have a `struct file` attached, which the binding does
+through `luasocket_openfile`. The `tls` ULP is the agent's to attach, not this binding's, and nothing
+here touches `sk_data_ready`: the in-tree consumers suppress only their own receive path and keep the
+protocol default, which is what wakes `tlshd`'s own reads on the file it was handed.
 
-## Phase 4 — `ktls`: the high level client
+## Phase 4 — `socket.tls`: the high level client
 
-    local ktls = require("ktls")
+    local tls = require("socket.tls")
 
-    local sock = ktls.connect("93.184.216.34", 443, "example.com", 5000)
-    sock:send("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
-    print(sock:receive(4096))
+    local conn <close> = tls.connect("93.184.216.34", 443, {peername = "example.com", timeout = 5000})
+    conn:send("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+    print(conn:receive(4096))
 
-`ktls.connect(ip, port, peername, timeout)` is `socket.new` → `connect` → attach ULP →
-`handshake.client` → a keyed socket, in one call. Pure Lua over the pieces above.
+`tls.connect(address, port, opts)` is `socket.new` → `connect` → `handshake.client` → a keyed socket,
+in one call, with `opts` passed through so the option vocabulary is spelled once. Pure Lua over the
+pieces above, and a `socket.*` submodule because that is the tree's shape for a higher-level
+abstraction over the raw `socket`, beside `socket.inet` and `socket.raw`.
 
 ## Phase 5 — the tunnel
 
@@ -149,8 +156,11 @@ separate netfilter/XDP hook; the byte-moving loop stays here, in a sleepable kth
    every existing script makes.
 2. Whether `tls.pack` should take a table (`{version=, cipher=, iv=, key=, …}`) rather than positional
    arguments; positional is what it ships, a table reads better with many fields.
-3. Whether `handshake.client`/`server` belong in their own `handshake` module or under `ktls`. They
-   are usable without kTLS keying being visible, which argues for a separate module.
-4. Whether the tunnel ships as a library helper (`ktls.tunnel(a, b, opts)` returning the thread body)
-   or only as an example. A helper is convenient; an example keeps the loop visible and tweakable.
+3. ~~Whether `handshake.client`/`server` belong in their own `handshake` module or under `ktls`.~~
+   Answered by phase 4: their own module and its own `.ko`, because the symbols are
+   `CONFIG_NET_HANDSHAKE` and folding them into `luasocket.ko` would make every socket user depend on
+   that config. There is no `ktls` module; the client over them is `socket.tls`.
+4. Whether the tunnel ships as a library helper (a `tunnel(a, b, opts)` returning the thread body,
+   wherever phase 5 puts it) or only as an example. A helper is convenient; an example keeps the loop
+   visible and tweakable.
 
