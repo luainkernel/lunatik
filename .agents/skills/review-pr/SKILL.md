@@ -54,7 +54,7 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
 # Reviewing as an agent that can die
 
 A review that lives only in one agent's context is lost the moment the provider drops that agent,
-and a long one is dropped often enough to plan for it. Three rules, and `review.js` beside this
+and a long one is dropped often enough to plan for it. The rules below, and `review.js` beside this
 card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/review-pr/review.js', args})`):
 
 - Findings go to a checkpoint file as they close, one line each (`file:line | what | disposition`),
@@ -69,6 +69,20 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
   (`tools/checks/examples-touched.sh` over the changed files, passed as `args.examples`) is not
   among them. The suite is not the examples: #795 and #837 passed the probe suite and neither ran
   systrack, whose first run on the merged code took the host down.
+- A phase writes its own answer back into the checkpoint before it returns, not only the findings as
+  it closes them, so an agent dropped between its last tool call and the runner's record still leaves
+  the verdict on disk.
+- A fixup is a commit before it is anything else. Where the host refuses a push from an agent
+  (`args.push: false`), it stays a commit on `review<pr>-fixups` and the session that launched the
+  review pushes it, naming the SHAs the phase reported. A refused command is written down and not
+  tried again: six retries of one refused push is how a nine hour run returned nothing for the third
+  pull request it was reviewing.
+
+What a dead run left is read before it is launched again: `<transcriptDir>/journal.jsonl` carries a
+`result` line for every phase that finished, the checkpoints carry what each one wrote, and the fixup
+branches carry the commits. Editing only the failing unit's arguments in the persisted script and
+relaunching with `resumeFromRunId` replays the rest from the cache; a phase that completed is not run
+again to be safe, which is the cost the checkpoint exists to avoid.
 
 A fan-out of agents is bounded before it is launched, not after: one unit as a pilot and timed, a
 wall-clock cap, and an inactivity monitor over the agents' own logs with the launching session left
