@@ -801,6 +801,26 @@ and the plaintext data path a keyed socket becomes.
   `tcp_recvmsg`'s. Skipped whole where the `tls` ULP is neither registered
   nor loadable.
 
+### tunnel
+
+Tests for the `tunnel` module, the relay a spawned kernel thread runs between
+two connected sockets. Every case builds the same topology: the relay binds one
+loopback listener in its script body and accepts both its ends from it, while a
+peer script holds the two far ends, so a payload written on one far end comes
+back out of the other. Each peer call is bounded, by `SO_RCVTIMEO` on a receive
+and `SO_SNDTIMEO` on a send, so a relay that moves nothing fails the test
+instead of leaving the device wedged.
+
+- **plain**: the relay between two plain sockets, and the stoppability the rest
+  of the suite rests on. A payload crosses in each direction; `stop` on a
+  running relay is measured and the elapsed milliseconds are printed, since a
+  body that does not come back round its loop is one `kthread_stop` waits on,
+  so the number is the proof and not the absence of a hang; a second spawn
+  after that stop rebinds the port and relays again, which a leaked listener or
+  a leaked registration would refuse; closing a peer ends the relay by itself,
+  which a relay that ignores the zero-length read never does; and a softirq
+  runtime is refused, the relay being a kernel thread over sleepable calls.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call
