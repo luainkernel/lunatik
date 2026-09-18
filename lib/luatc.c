@@ -178,7 +178,7 @@ LUNATIK_EBPF_KFUNC_DEFINE_SET(tc, bpf_luatc_run);
 */
 static int luatc_detach(lua_State *L)
 {
-	luatc_ctx_t *lctx = lunatik_ebpf_getctx(L);
+	luatc_ctx_t *lctx = lunatik_ebpf_findctx(L);
 
 	if (lctx == NULL)
 		return 0;

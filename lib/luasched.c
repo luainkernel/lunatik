@@ -183,7 +183,7 @@ LUNATIK_EBPF_KFUNC_DEFINE_SET(sched, bpf_luasched_run);
 */
 static int luasched_detach(lua_State *L)
 {
-	luasched_ctx_t *lctx = lunatik_ebpf_getctx(L);
+	luasched_ctx_t *lctx = lunatik_ebpf_findctx(L);
 
 	if (lctx == NULL)
 		return 0;

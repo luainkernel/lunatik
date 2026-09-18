@@ -173,7 +173,7 @@ LUNATIK_EBPF_KFUNC_DEFINE_SET(xdp, bpf_luaxdp_run);
 */
 static int luaxdp_detach(lua_State *L)
 {
-	luaxdp_ctx_t *lctx = lunatik_ebpf_getctx(L);
+	luaxdp_ctx_t *lctx = lunatik_ebpf_findctx(L);
 
 	if (lctx == NULL)
 		return 0;

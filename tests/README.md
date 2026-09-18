@@ -778,7 +778,9 @@ Regression tests for `luatc`. The suite builds real TC/eBPF programs that call
 `bpf_luatc_run`, attaches them with `tc` on the egress of a veth pair
 whose peer sits in a network namespace, with the neighbor entries pinned so
 ARP never competes with ICMP for the verdict; skipped when the module lacks
-BTF, or `bpftool`, `clang` or `tc` is unavailable.
+BTF, or `bpftool`, `clang` or `tc` is unavailable. The pass, drop and reattach
+cases also fail on a "no callback attached" line: `tc.attach` detaches whatever
+was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc pass**: the callback inspects `ctx:skb()` (IPv4 ethertype and the
   ICMP protocol byte of the ping) and `ctx:argument()` (a magic word the
@@ -797,7 +799,8 @@ BTF, or `bpftool`, `clang` or `tc` is unavailable.
 - **tc detach**: the callback drops the first ping and calls `tc.detach()`
   from inside the callback, letting other traffic through; traffic resumes
   because `bpf_luatc_run` then returns `-1` and the eBPF program falls back
-  to `TC_ACT_OK`.
+  to `TC_ACT_OK`, and the kfunc, which reaches the runtime with nothing
+  attached, reports "no callback attached".
 
 - **tc attach**: `tc.attach` refuses a sleepable runtime with "runtime
   context mismatch".
@@ -850,7 +853,9 @@ Regression tests for `luaxdp`. The suite builds real XDP programs that call
 `bpf_luaxdp_run`, pins them via `bpftool` and attaches them to a veth pair
 whose peer sits in a network namespace, with the neighbor entries pinned so
 ARP never competes with ICMP for the verdict; skipped when the module lacks
-BTF, or `bpftool` or `clang` is unavailable.
+BTF, or `bpftool` or `clang` is unavailable. The pass and drop cases also fail
+on a "no callback attached" line: `xdp.attach` detaches whatever was bound
+before, and a first attach, which finds nothing, logs nothing.
 
 - **xdp pass**: the callback inspects `ctx:packet()` (IPv4 ethertype and the
   ICMP protocol byte of the ping) and `ctx:argument()` (a magic passed by the
@@ -863,7 +868,8 @@ BTF, or `bpftool` or `clang` is unavailable.
 - **xdp detach**: the callback drops the first ping and calls `xdp.detach()`
   from inside the callback, letting other traffic through; traffic resumes
   because `bpf_luaxdp_run` then returns `-1` and the eBPF program falls back
-  to `XDP_PASS`.
+  to `XDP_PASS`, and the kfunc, which reaches the runtime with nothing
+  attached, reports "no callback attached".
 
 - **xdp attach**: `xdp.attach` refuses a sleepable runtime with "runtime
   context mismatch".
