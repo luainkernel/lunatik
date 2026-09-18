@@ -192,6 +192,7 @@ The table below lists the available kernel Lua modules:
 | `cpu` | CPU counts and iteration: `num_online`, `stats`, `foreach_online` |
 | `socket` | Kernel sockets: TCP, UDP, AF\_PACKET, AF\_UNIX |
 | `tls` | Kernel TLS: the `crypto_info` blob a session is keyed with, the record types, `close_notify` |
+| `tunnel` | A kernel thread relaying plaintext between two sockets, either of them keyed for kTLS |
 | `netlink` | Netlink namespace: rtnetlink and generic-netlink sessions, softirq-safe channel |
 | `data` | Raw memory buffer for binary data read/write |
 | `device` | Character device drivers |

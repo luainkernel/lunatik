@@ -95,6 +95,7 @@ scripts_install:
 	${INSTALL} -m 0644 lib/net.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/struct.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/tls.lua ${SCRIPTS_INSTALL_PATH}/
+	${INSTALL} -m 0644 lib/tunnel.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/netlink.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/util.lua ${SCRIPTS_INSTALL_PATH}/
 	${INSTALL} -m 0644 lib/lighten.lua ${SCRIPTS_INSTALL_PATH}/
@@ -120,6 +121,7 @@ scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/net.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/struct.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/tls.lua
+	${RM} ${SCRIPTS_INSTALL_PATH}/tunnel.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/netlink.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/util.lua
 	${RM} ${SCRIPTS_INSTALL_PATH}/lighten.lua
