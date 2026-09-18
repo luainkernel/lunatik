@@ -20,16 +20,14 @@ case "$input" in
 	*CRASH_AB_OK=1*) exit 0 ;;
 esac
 
-guards='lunatik_argcheckclass|lunatik_argchecknull|lunatik_checkobject|lunatik_checkpobject|LUNATIK_PRIVATECHECKER'
-guards="$guards|luaL_argcheck|luaL_argexpected|luaL_checktype|luaL_checkudata|lunatik_checkruntime"
-guards="$guards|lunatik_checkpercpu|lunatik_checkcontext|lunatik_checkclass|lunatik_cannotsleep"
+. "$(dirname "$0")/guards.sh"
 
 project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
 [ -d "$project" ] || exit 0
 
 removed=$(git -C "$project" worktree list --porcelain 2>/dev/null | awk '/^worktree /{print $2}' | while read -r tree; do
 	[ -d "$tree" ] || continue
-	git -C "$tree" diff HEAD -U0 -- '*.c' '*.h' 2>/dev/null | grep -E '^-[^-]' | grep -E "$guards" | sed "s|^|$tree: |"
+	dropped_guards "$tree" '*.c' '*.h' | sed "s|^|$tree: |"
 done)
 [ -z "$removed" ] && exit 0
 

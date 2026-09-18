@@ -183,6 +183,10 @@ worktree drops such a line, unless the command carries `CRASH_AB_OK=1`, set once
 authorized the experiment and named the machine it may take down. It reads every worktree of the
 checkout, so one another session left dirty blocks this session's install too; its owner cleans it,
 and a review says its run was blocked rather than overriding a guard that was not about its tree.
+A guard that only moved, into a helper the methods now share or onto another index, is paired with
+the added line that took it in and not reported; both checks read `guards.sh`, where the pattern
+and the pairing live, since the argcheck #850's review folded into one helper read as two guards
+dropped until the commit cleared it.
 
 A rule is what remains when nothing else can catch the mistake. Where the error is mechanical, the gate
 is the answer and the rule is that gate's documentation: a pull request that only writes down what went
