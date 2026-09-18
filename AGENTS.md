@@ -188,6 +188,15 @@ the added line that took it in and not reported; both checks read `guards.sh`, w
 and the pairing live, since the argcheck #850's review folded into one helper read as two guards
 dropped until the commit cleared it.
 
+`idioms.sh` reads a C file for what a review round on #850 passed over and the maintainer then
+asked for: a `luaL_argerror` as the body of an `if`, which is a wrong value at an index and
+`luaL_argcheck`'s; a check followed by `lunatik_throw` with nothing between, which `lunatik_try`
+already spells when nothing is held; a `luaL_argcheck` condition repeated across methods, which is
+one helper; and a version a feature needs written as one release, "needs a 6.10 kernel", where the
+message means that release and every one after it. It annotates rather than fails, since the
+release-then-throw shape is not `lunatik_try`'s and the line between the check and the throw is
+what the reader decides on.
+
 A rule is what remains when nothing else can catch the mistake. Where the error is mechanical, the gate
 is the answer and the rule is that gate's documentation: a pull request that only writes down what went
 wrong, over rules that were already written and already broken, adds a paragraph and changes nothing.
