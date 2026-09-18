@@ -801,6 +801,83 @@ and the plaintext data path a keyed socket becomes.
   `tcp_recvmsg`'s. Skipped whole where the `tls` ULP is neither registered
   nor loadable.
 
+### tunnel
+
+Tests for the `tunnel` module, the relay a spawned kernel thread runs between
+two connected sockets. Every case builds the same topology: the relay binds one
+loopback listener in its script body and accepts both its ends from it, while a
+peer script holds the two far ends, so a payload written on one far end comes
+back out of the other. Each peer call is bounded, by `SO_RCVTIMEO` on a receive
+and `SO_SNDTIMEO` on a send, so a relay that moves nothing fails the test
+instead of leaving the device wedged.
+
+- **plain**: the relay between two plain sockets, and the stoppability the rest
+  of the suite rests on. A payload crosses in each direction; `stop` on a
+  running relay is measured and the elapsed milliseconds are printed, since a
+  body that does not come back round its loop is one `kthread_stop` waits on,
+  so the number is the proof and not the absence of a hang; a second spawn
+  after that stop rebinds the port and relays again, which a leaked listener or
+  a leaked registration would refuse; closing a peer ends the relay by itself,
+  which a relay that ignores the zero-length read never does; and a softirq
+  runtime is refused, the relay being a kernel thread over sleepable calls.
+
+- **stall**: that a relay whose destination stopped reading can still be
+  stopped. The peer locks a small receive buffer on the far end of the relay's
+  send, never reads it, and pushes until its own bounded sends stop making
+  progress; the relay is then inside a send it cannot finish on every pass, and
+  the absence of its end-of-file marker says it had not ended before the
+  measured `stop`. What returns that send on a kernel from 6.1 is not the
+  `SO_SNDTIMEO` `tunnel.body` installs but the `TIF_NOTIFY_SIGNAL` that
+  `kthread_stop` raises, which `sk_stream_wait_memory`'s `signal_pending` check
+  reads; below 6.1 there is no such flag and `wait_woken` returns its timeout
+  unchanged once the thread is asked to stop, so the bound ends that wait no
+  more than the missing signal does. The first case pins the property, not the
+  mechanism, and nothing in it discriminates on the bound; what the bound buys
+  is **bounded**'s to pin. That signal ends the send with `EINTR` and nothing
+  copied, which is the stop and not a failure, so the second case is that the
+  body returns from it rather than propagating it: the end-of-relay marker is
+  printed after `tunnel.body` returns, and a relay that died there never prints
+  it. This relay takes a send bound two hundred times the idle yield, so the
+  stop lands inside the send and not between two of them.
+
+- **bounded**: what bounding the send buys, which `stall` cannot pin because
+  from 6.1 the stop is returned by a signal and not by the bound. The relay
+  takes its ends from a listener whose small `SO_RCVBUF` and `SO_SNDBUF` they
+  inherit, so the peer fills the whole path and leaves the relay inside a send
+  it cannot finish on every pass; a payload then crosses the other way, which
+  an unbounded send would hold up, the pass never reaching it. The second case
+  is the remainder a short send leaves pending: the peer drains the far end and
+  the byte counts are compared, which catches a remainder dropped and a
+  remainder sent twice, the payload being one repeated byte. The third case
+  reads that remainder through `opts.transform`: the hook counts what it was
+  handed from the stalled direction and the total is the bytes the peer pushed,
+  a payload being transformed once and the tail a short send left behind not
+  put through it again. An option that is not positive is refused where it
+  arrives: a timeout because `SO_SNDTIMEO` reads a zero as no bound at all and
+  a negative as no wait, a size because a receive of no bytes answers an empty
+  string, which the relay reads as the peer's orderly close and ends on.
+
+- **tls**: the relay with one end keyed for kTLS, which is the tunnel the epic
+  is for: plaintext in on the plain side, a TLS record out on the keyed one, and
+  the decrypted plaintext back the other way. Both keyed ends take
+  `tests/tls/session.lua`'s fixed vectors, so no handshake and no `tlshd` are
+  involved. The record type is asserted and not only the bytes, since on an
+  unkeyed link `receiverecord` reports `nil` and reading 23 is what says the
+  record layer ran; and a record the kernel types as something other than
+  application data is read and dropped while the data behind it still arrives.
+  A `close_notify` is deliberately not the stimulus: what a keyed socket does
+  with reads after an alert is pinned nowhere in the tree. Skipped whole where
+  the `tls` ULP is neither registered nor loadable.
+
+- **inspect**: `opts.transform`, the point of relaying in Lua at all. The hook
+  sees every payload with the socket it came from, what it returns is what goes
+  out, and returning nothing drops the payload from the stream. The relay's hook
+  upper-cases what came from the A side and passes what came from B through, so
+  one direction asserts the rewrite and the other asserts it was not applied; a
+  hook wired to both directions, or to neither, fails one of the two. The drop
+  is read as an absence, which only counts because the two round trips before it
+  say the relay was carrying bytes.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call

@@ -33,11 +33,11 @@ has been reworked heavily since 5.4, a per-socket raw `lua_State` predates the w
 model, and the report itself measured it slower than userspace Lua + kTLS. It is a design reference,
 not a base.
 
-**The in-tree-native approach that patches nothing** is what this project builds, and phases 1 to 4
+**The in-tree-native approach that patches nothing** is what this project builds, and phases 1 to 5
 are in the repository today: `lib/luasocket.c` carries `sock:setsockopt(level, optname, optval)`
 (`42c543ad4`) and the record-type methods, with `linux.socket.tcp` and `linux.tls` emitted by
-`autogen/specs.lua` and `lib/tls.lua` over them; `lib/luahandshake.c` binds the upcall and
-`lib/socket/tls.lua` is the client over it.
+`autogen/specs.lua` and `lib/tls.lua` over them; `lib/luahandshake.c` binds the upcall,
+`lib/socket/tls.lua` is the client over it, and `lib/tunnel.lua` is the relay.
 
 Earlier notes described a parked `claude_tls` branch holding a `lib/luatls.c` packer, a
 `lib/luahandshake.c` upcall binding and a `lib/ktls.lua` client, to be rebased in. No such branch
@@ -51,8 +51,8 @@ every phase below writes its own code.
 | Key a socket for kTLS | Closed by phases 1 and 2: `linux.socket.tcp.ULP` names the option and `tls.pack` builds the `tls12_crypto_info_*` blob over `sock:setsockopt`. |
 | Plaintext I/O with control records | Closed by phase 3: `sock:receiverecord` carries the `msg_control` buffer and `sock:sendrecord` emits a record of a chosen type, with `tls.record` and `tls.close_notify` over them. |
 | Handshake upcall | Closed by phase 4: `handshake.client` and `handshake.server` fill `tls_handshake_args` and wait the completion out, over the `struct file` `luasocket_openfile` attaches. |
-| The tunnel | Nothing splices plaintext between two sockets. |
-| Tests and examples | Closed through phase 4: `tests/tls/` keys with fixed vectors and exercises the data path and alerts, `tests/handshake/` covers the upcall, and `examples/tls_connect.lua` is the client. Nothing covers a tunnel. |
+| The tunnel | Closed by phase 5: `tunnel.body(a, b, opts)` returns the thread body a `spawn` script returns, relaying what `receiverecord` reports as application data or as no record at all, with an optional transform on each payload. |
+| Tests and examples | Closed through phase 5: `tests/tls/` keys with fixed vectors and exercises the data path and alerts, `tests/handshake/` covers the upcall, `tests/tunnel/` covers the relay plain, stalled, bounded, keyed and inspected, and `examples/tls_connect.lua` is the client. The tunnel example is phase 6's. |
 
 Supporting gaps:
 
@@ -132,9 +132,10 @@ example. The tests read which refusal the upcall gives on a host carrying no age
 ### Phase 5: the TLS tunnel
 
 The use case: a spawned kernel thread that relays plaintext between two sockets — bounded `recv` on
-side A, optional plaintext inspection or rewrite in Lua, `send` on side B (which re-encrypts if it is
-a kTLS TX socket), symmetrically B to A, polling `thread.shouldstop()` each pass and yielding with
-`linux.schedule()`. One or both sides may be kTLS. Steering (which flows enter the tunnel) can come
+side A, optional plaintext inspection or rewrite in Lua, bounded `send` on side B (which re-encrypts
+if it is a kTLS TX socket), symmetrically B to A, polling `thread.shouldstop()` each pass and
+yielding with `linux.schedule()`. One or both sides may be kTLS. The send is bounded by
+`SO_SNDTIMEO`, since `socket:send` takes no flags. Steering (which flows enter the tunnel) can come
 from a netfilter/XDP hook, but the relay stays in the kthread.
 
 ### Phase 6: examples and documentation
@@ -177,7 +178,7 @@ dependency (keys installed directly). Phase 4 onward brings in `tlshd` for real 
 
 | Risk | Mitigation |
 |------|-----------|
-| An unbounded `recv` in a kthread hangs the machine (the strparser does not check `kthread_should_stop`) | Every receive is bounded (`MSG_DONTWAIT` / `SO_RCVTIMEO_NEW`) and the loop polls `shouldstop()`; this is a hard rule, tested in phase 5. |
+| An unbounded socket wait in a kthread holds the whole relay, and below 6.1, where `kthread_stop` raises no `TIF_NOTIFY_SIGNAL` for the wait's `signal_pending` arm to read, nothing returns it at all | Every receive is bounded (`MSG_DONTWAIT` / `SO_RCVTIMEO_NEW`) and every send by `SO_SNDTIMEO_NEW`, and the loop polls `shouldstop()`; this is a hard rule. It buys a pass that ends, not a wait the stop returns from: below 6.1 `wait_woken` stops decrementing the bound once `kthread_should_stop` is set, so a relay stopped inside a send to a destination that never reads is not joined there. `tests/tunnel/stall.sh` pins that a stalled relay stops and `tests/tunnel/bounded.sh` that a stalled direction leaves the other one moving. |
 | Control records error `-EIO` without a `msg_control` buffer | Phase 3 adds a read that carries one, `sock:receiverecord`; plain `receive` still meets the `-EIO`, which is documented on both and pinned by a test. |
 | Handshake upcall needs a `struct socket` with a `struct file` and a running `tlshd` | Phase 4 attaches the file and keeps it, releasing a filed socket through `fput`; its tests cover the submit path with no agent and skip where an installed one would answer, and the phase-3 path (manual keys) needs neither. |
 | TLS 1.3 KeyUpdate is unsupported before kernel 6.14 | Documented; long-lived 1.3 sessions that re-key are out of scope on older kernels, and tests note it. |

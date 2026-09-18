@@ -79,6 +79,7 @@ file = {
 	'./lib/luatc.c',
 	'./lib/luathread.c',
 	'./lib/tls.lua',
+	'./lib/tunnel.lua',
 	'./lib/luaxdp.c',
 }
 

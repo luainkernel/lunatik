@@ -76,12 +76,15 @@ agent would accept the request and change every outcome. A completed handshake, 
 
 | Test | Proves |
 |------|--------|
-| `tunnel_plain.sh` | a spawned tunnel relays bytes between two plain sockets; `stop` actually stops it (bounded recv + `shouldstop`), run twice with no leak |
-| `tunnel_tls.sh` | a tunnel with a kTLS side relays plaintext in and re-encrypted out; the far end reads correct data (fixed vectors, no `tlshd`) |
-| `tunnel_inspect.sh` | a plaintext transform in the relay is observed on the far end (proves the inspection point) |
+| `tests/tunnel/plain.sh` | a spawned tunnel relays bytes between two plain sockets both ways; `stop` returns, measured; a second spawn rebinds the port and the name; a peer closing ends the relay; a softirq runtime is refused |
+| `tests/tunnel/stall.sh` | a relay whose destination stopped reading is still stopped, holding a remainder it cannot deliver, and its body returns from the send that stop interrupted rather than propagating the `EINTR` the signal ends it with; it names which kernel makes the stop the bound's doing and which the signal's |
+| `tests/tunnel/bounded.sh` | a direction stalled against a destination that stopped reading leaves the other one moving, which is what the send bound buys; the remainder a short send left pending is delivered once the far end drains and put through `opts.transform` only once; an option that is not positive, a send timeout or a receive size, is refused |
+| `tests/tunnel/tls.sh` | a tunnel with a kTLS side relays plaintext in and re-encrypted out, reported as application data; a record of another type is dropped and the data behind it is not (fixed vectors, no `tlshd`) |
+| `tests/tunnel/inspect.sh` | a plaintext transform is observed on the far end, applies to the direction its `from` picks, and drops the payload when it returns nothing |
 
-`tunnel_plain.sh` is the stoppability test and must run first: a tunnel that cannot be stopped is a
-hung machine, so prove `stop` before adding TLS.
+`plain.sh` is the stoppability test and runs first: a tunnel that cannot be stopped is a hung
+machine, so prove `stop` before adding TLS. `stall.sh` and `bounded.sh` run after it and before the
+keyed cases, since they are the ones that would take the host down if the send were not bounded.
 
 ### Phase 6: examples
 
