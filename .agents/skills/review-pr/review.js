@@ -20,6 +20,8 @@
 //               validated does not carry
 //   focus       what this round is for, in the maintainer's words
 //   effort      per-phase reasoning effort, default "high"
+//   push        false where a push from an agent is refused on this machine, so a fixup stays a
+//               commit on review<pr>-fixups and the session that launched the review pushes it
 //   repo        the checkout the phases work in, default the repository they start in
 //   sudo        how a command gets root, default `sudo`
 //   gh          false where the gh CLI is absent, so the REST calls go through curl
@@ -41,6 +43,15 @@ const api = (path) => a.gh === false
   ? `curl -sS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/${path}?per_page=100"`
   : `gh api --paginate ${path}`
 
+// a push from an agent is refused on some machines, so the fixup stays a commit and its launcher pushes
+const FIXUP = a.push === false
+  ? `A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on the local
+branch review${a.pr}-fixups, taken from \`${a.branch}\`. Push nothing: the session that launched this
+review pushes, and your answer names every SHA it made.`
+  : `A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on
+\`${a.branch}\`, pushed as soon as made (\`git push origin ${a.branch}:${a.branch}\`; where \`origin\`
+is not writable from this machine, CLAUDE.local.md says how it pushes).`
+
 const COMMON = `
 You are reviewing pull request #${a.pr} of Lunatik (Lua in the Linux kernel), in the checkout at \`${repo}\`:
 branch \`${a.branch}\`, head \`${a.head}\`, base \`${a.base}\`. Work at maximum thoroughness within your phase.
@@ -53,7 +64,9 @@ CHECKPOINT, before anything else: the file ${checkpoint} is the review's memory 
 a phase that dies. If it exists, read it and continue from it; do not redo what it records. Append every
 finding the moment you close it, one line each:
 \`file:line | what | disposition\` where disposition is \`fixup <sha>\`, \`stays: <reason>\` or \`issue: <title>\`.
-Your final answer is assembled from that file, not the other way round.
+Your final answer is assembled from that file, not the other way round, and goes back into it under a heading
+for your phase before you return, so a death between your last tool call and the runner's record still leaves
+the verdict on disk.
 
 ENVIRONMENT:
 - Root commands run as \`${sudo} <cmd>\`; confirm that works without a prompt (\`${sudo} true\`) before
@@ -70,16 +83,16 @@ ENVIRONMENT:
 - NEVER commit to master, never \`git checkout master\`. GitHub reads go through
   \`${api('<path>')}\` with \`GH_TOKEN\` from the environment${a.gh === false ? '' : ' (`gh pr view` fails, no read:org)'};
   where \`GH_TOKEN\` is unset, report that the conversation could not be read. DO NOT POST ANYTHING TO GITHUB.
+- A command the host's policy refuses is written in the checkpoint and not tried again: six retries of one
+  refused push is how a nine hour run returned nothing for the pull request it was on.
 - Read the host before assuming one (\`uname -srm\`): a kernel interface is verified against
   \`/usr/src/linux-headers-$(uname -r)/include\` and the running kernel's \`Module.symvers\`, and against a full
   source tree where CLAUDE.local.md names one. Vendored Lua 5.5.
 
-A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on \`${a.branch}\`,
-pushed as soon as made (\`git push origin ${a.branch}:${a.branch}\`; where \`origin\` is not writable from
-this machine, CLAUDE.local.md says how it pushes), and its SHA goes in the checkpoint line. Ask of each one
+${FIXUP} Its SHA goes in the checkpoint line. Ask of each one
 whether the finding is answered by removing rather than adding: a fix that grows a layer over the one it
 found is the finding half read, and the shape that answers it is usually shorter than what is there. A fixup
-that changes C must at least \`make\` clean before it is pushed; the suite is the Build phase's.
+that changes C must at least \`make\` clean before it leaves your phase; the suite is the Build phase's.
 
 ${a.focus ? 'THIS ROUND, in the maintainer\'s words: ' + a.focus : ''}
 `
