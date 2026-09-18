@@ -34,6 +34,7 @@
 <h2>Contents</h2>
 <ul>
 <li><a href="#Class_fsnotify_watch">Class fsnotify_watch </a></li>
+<li><a href="#Class_fsnotify_mark">Class fsnotify_mark </a></li>
 <li><a href="#Class_fsnotify_event">Class fsnotify_event </a></li>
 <li><a href="#fsnotify">fsnotify</a></li>
 </ul>
@@ -142,6 +143,11 @@
 <p> Places marks on filesystem objects and hands the events they report to a Lua
  callback. Event masks are the <a href="../modules/linux.fs.html#">linux.fs</a> bits.</p>
 
+<p> A mark goes on one inode, on a mount, or on a whole filesystem. The last two
+ reach every file they cover, so a mark on the mount or the superblock of <code>/</code>
+ sends every access on the machine through the callback; mark a scratch
+ subtree.</p>
+
 <p> Delivery is synchronous: the callback runs inside the syscall of the process
  performing the access, holding the runtime lock, so every watched access on
  the machine is serialized behind it.</p>
@@ -150,12 +156,31 @@
 <h2><a href="#Class_fsnotify_watch">Class fsnotify_watch </a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#fsnotify_watch:mark">fsnotify_watch:mark (path, mask)</a></td>
+	<td class="name" nowrap><a href="#fsnotify_watch:find">fsnotify_watch:find (path[, kind])</a></td>
+	<td class="summary">Finds the mark this watch placed on an object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_watch:mark">fsnotify_watch:mark (path, mask[, kind])</a></td>
 	<td class="summary">Places a mark on a filesystem object.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#fsnotify_watch:stop">fsnotify_watch:stop ()</a></td>
 	<td class="summary">Stops the watch.</td>
+	</tr>
+</table>
+<h2><a href="#Class_fsnotify_mark">Class fsnotify_mark </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_mark:ignore">fsnotify_mark:ignore ([mask])</a></td>
+	<td class="summary">Reads the mark's ignore mask, or sets it.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_mark:mask">fsnotify_mark:mask ([mask])</a></td>
+	<td class="summary">Reads the mark's event mask, or sets it.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#fsnotify_mark:remove">fsnotify_mark:remove ()</a></td>
+	<td class="summary">Removes the mark.</td>
 	</tr>
 </table>
 <h2><a href="#Class_fsnotify_event">Class fsnotify_event </a></h2>
@@ -206,14 +231,59 @@
           </div>
     <dl class="function">
     <dt>
+    <a name = "fsnotify_watch:find"></a>
+    <strong>fsnotify_watch:find (path[, kind])</strong>
+    </dt>
+    <dd>
+    Finds the mark this watch placed on an object.
+ Resolves <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> and asks the kernel, which keys the marks by the object they
+ are on, so a script does not have to keep a table of its own.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         path of the marked object
+        </li>
+        <li><span class="parameter">kind</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         <code>&quot;inode&quot;</code> (default), <code>&quot;mount&quot;</code> or <code>&quot;sb&quot;</code>; <code>&quot;mount&quot;</code>
+   needs kernel 6.10 or later
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">fsnotify_mark</span></span>
+        the mark this watch placed there, or <code>nil</code> when it has
+   none
+    </ol>
+
+    <h3>Raises:</h3>
+    if <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> does not resolve, if <code>kind</code> is not one this kernel offers,
+   or if the watch has been stopped
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> mark = watch:<span class="function-name">find</span>(<span class="string">"/tmp/scratch"</span>, <span class="string">"mount"</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
     <a name = "fsnotify_watch:mark"></a>
-    <strong>fsnotify_watch:mark (path, mask)</strong>
+    <strong>fsnotify_watch:mark (path, mask[, kind])</strong>
     </dt>
     <dd>
     Places a mark on a filesystem object.
- Resolves <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> and marks its inode for the events in <code>mask</code>. A mark on a
- directory reports events on the files inside it only when <code>mask</code> carries
- <code>linux.fs.EVENT_ON_CHILD</code>.
+ Resolves <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> and marks what <code>kind</code> names for the events in <a href="../modules/fsnotify.html#fsnotify_mark:mask">mask</a>: the
+ inode it resolves to, the mount it is on, or its whole filesystem. An inode
+ mark on a directory reports events on the files directly inside it only when
+ <a href="../modules/fsnotify.html#fsnotify_mark:mask">mask</a> carries <code>linux.fs.EVENT_ON_CHILD</code>, and never on anything deeper; a
+ mount or superblock mark reports every file it covers without it.
 
 
     <h3>Parameters:</h3>
@@ -226,25 +296,30 @@
             <span class="types"><span class="type">integer</span></span>
          event mask, a combination of <a href="../modules/linux.fs.html#">linux.fs</a> bits
         </li>
+        <li><span class="parameter">kind</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         <code>&quot;inode&quot;</code> (default), <code>&quot;mount&quot;</code> or <code>&quot;sb&quot;</code>; <code>&quot;mount&quot;</code>
+   needs kernel 6.10 or later
+         (<em>optional</em>)
+        </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><span class="type">nil</span></span>
-
-
-
+           <span class="types"><span class="type">fsnotify_mark</span></span>
+        the mark, which the watch keeps until it is removed
     </ol>
 
     <h3>Raises:</h3>
-    if <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> does not resolve, if the mark cannot be added, if the watch
-   has been stopped, or if <code>mask</code> carries a permission event
+     if <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> does not resolve, if <code>kind</code> is not one this kernel offers,
+   if this watch already marks the object, if the watch has been stopped, or
+   if <a href="../modules/fsnotify.html#fsnotify_mark:mask">mask</a> carries a permission event
 
 
     <h3>Usage:</h3>
     <ul>
-        <pre class="example">watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch/file"</span>, fs.OPEN | fs.MODIFY)</pre>
+        <pre class="example"><span class="keyword">local</span> mark = watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch"</span>, fs.OPEN | fs.MODIFY, <span class="string">"mount"</span>)</pre>
     </ul>
 
 </dd>
@@ -273,6 +348,122 @@
     <h3>Usage:</h3>
     <ul>
         <pre class="example">watch:<span class="function-name">stop</span>()</pre>
+    </ul>
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_fsnotify_mark"></a>Class fsnotify_mark </h2>
+
+          <div class="section-description">
+          A mark on a filesystem object.
+ A userdata <code>watch:mark</code> returns and <code>watch:find</code> hands back. The watch owns
+ the mark: dropping the handle leaves the mark in place, and <code>watch:stop</code>
+ removes every mark the watch placed. A handle whose mark is gone raises.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "fsnotify_mark:ignore"></a>
+    <strong>fsnotify_mark:ignore ([mask])</strong>
+    </dt>
+    <dd>
+    Reads the mark's ignore mask, or sets it.
+ An event in the ignore mask is not reported through this mark, whatever its
+ event mask carries, and the ignore mask a script sets holds until it sets
+ another: a write to the object does not clear it.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mask</span>
+            <span class="types"><span class="type">integer</span></span>
+         the events to ignore, a combination of <a href="../modules/linux.fs.html#">linux.fs</a> bits
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        the mark's ignore mask
+    </ol>
+
+    <h3>Raises:</h3>
+    if the mark has been removed
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">mark:<span class="function-name">ignore</span>(fs.OPEN)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "fsnotify_mark:mask"></a>
+    <strong>fsnotify_mark:mask ([mask])</strong>
+    </dt>
+    <dd>
+    Reads the mark's event mask, or sets it.
+ Setting it removes the mark and adds it again, because the mask an object is
+ watched for is a sum over its marks that only the kernel's own add
+ recalculates: <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> is resolved once more, and an event in between is not
+ reported. The handle stays the same.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mask</span>
+            <span class="types"><span class="type">integer</span></span>
+         the new event mask, a combination of <a href="../modules/linux.fs.html#">linux.fs</a> bits
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        the mark's event mask
+    </ol>
+
+    <h3>Raises:</h3>
+     if the mark has been removed, if <a href="../modules/fsnotify.html#fsnotify_mark:mask">mask</a> carries a permission event, or
+   if the mark cannot be added again, because the path no longer resolves or
+   the kernel refuses it, which leaves the mark removed
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">mark:<span class="function-name">mask</span>(mark:<span class="function-name">mask</span>() | fs.MODIFY)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "fsnotify_mark:remove"></a>
+    <strong>fsnotify_mark:remove ()</strong>
+    </dt>
+    <dd>
+    Removes the mark.
+ No further event reaches the callback through it, and the watch drops it.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+
+
+    </ol>
+
+    <h3>Raises:</h3>
+    if the mark has already been removed
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">mark:<span class="function-name">remove</span>()</pre>
     </ul>
 
 </dd>
@@ -476,7 +667,7 @@
     <ul>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
-         invoked as <code>callback(mask, event)</code>, where <code>mask</code> is
+         invoked as <code>callback(mask, event)</code>, where <a href="../modules/fsnotify.html#fsnotify_mark:mask">mask</a> is
    the event mask that fired, testable against <a href="../modules/linux.fs.html#">linux.fs</a> bits, and <code>event</code> is
    an <a href="../modules/fsnotify.html#fsnotify_event">fsnotify_event</a> valid only for the length of the call. Its return value
    is ignored.
@@ -511,7 +702,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-18 10:59:50 </i>
+<i style="float:right;">Last updated 2026-09-18 11:26:22 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
