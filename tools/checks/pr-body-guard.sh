@@ -9,6 +9,7 @@
 input=$(cat)
 
 case "$input" in
+	*"gh api"*pulls*/reviews*|*"gh api"*pulls*/comments*) exit 0 ;; # a review or a comment body is review-post-guard's
 	*"gh api"*pulls*body=*|*"gh pr create"*--body*|*"gh pr edit"*--body*) ;;
 	*) exit 0 ;;
 esac
