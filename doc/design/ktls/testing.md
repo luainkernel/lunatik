@@ -41,7 +41,7 @@ could not name.
 | Test | Proves |
 |------|--------|
 | `tests/tls/pack.sh` | `tls.pack` produces a blob of the exact size the kernel wants for each cipher; a part of the wrong length, or an unknown cipher, raises naming it |
-| `tests/tls/key.sh` | attach ULP + install TLS 1.3 and TLS 1.2 AES-GCM-128 TX and RX with fixed vectors succeeds, and so does ChaCha20-Poly1305 (salt size 0); keying a socket with no ULP raises `ENOPROTOOPT`, a direction installed twice raises `EBUSY`, and a wrong length, an unimplemented version, a second cipher on the other direction or ARIA-GCM outside TLS 1.2 each raise `EINVAL` |
+| `tests/tls/key.sh` | attach ULP + install TLS 1.3 and TLS 1.2 AES-GCM-128 TX and RX with fixed vectors succeeds, and so does ChaCha20-Poly1305 (salt size 0); keying a socket with no ULP raises `ENOPROTOOPT`, a TLS 1.2 direction installed twice raises `EBUSY` while a TLS 1.3 one raises it below 6.14 and re-keys from it, and a wrong length, an unimplemented version, a second cipher on the other direction or ARIA-GCM outside TLS 1.2 each raise `EINVAL` |
 
 ### Phase 3: plaintext I/O
 

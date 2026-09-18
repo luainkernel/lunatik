@@ -663,7 +663,10 @@ ULP and installs the keys, so the script only reads and writes plaintext.
 `tlshd` has to be installed and running, or the upcall answers `ESRCH`. Below
 6.14 the kernel does not process a TLS 1.3 KeyUpdate, so a session whose peer
 sends one stops being readable; a server that never rekeys, or TLS 1.2, avoids
-it.
+it. From 6.14 a receive on such a session answers `EKEYEXPIRED` instead, and
+the new keys go in over the same `setsockopt(SOL_TLS)` that installed the
+first, which re-keys a TLS 1.3 direction and answers `EBUSY` on any other
+version.
 
 #### Usage
 

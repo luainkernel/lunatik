@@ -768,12 +768,16 @@ and the plaintext data path a keyed socket becomes.
   its own loopback listener bound to port 0. Without the `tls` ULP on the
   socket, `SOL_TLS` falls through to `ip_setsockopt` and raises `ENOPROTOOPT`;
   with it, a TLS 1.3 AES-GCM-128 session installs on both directions and a
-  TLS 1.2 one installs too; a direction that is already keyed raises `EBUSY`,
-  which is the only reading a script has that the first install took; and a
-  blob one byte short of the cipher's struct, a version the kernel does not
-  implement, a second cipher on the other direction, and ARIA-GCM under TLS 1.3
-  each raise `EINVAL`. `validate_crypto_info` decides that last one before any
-  AEAD is allocated, so it runs on a kernel that builds no `gcm(aria)` either.
+  TLS 1.2 one installs too; a direction already keyed for TLS 1.2 raises
+  `EBUSY`, which is the only reading a script has that the first install took,
+  while one keyed for TLS 1.3 raises it below 6.14 and from there re-keys
+  instead, the entry check in `do_tls_setsockopt_conf` refusing every version
+  but 1.3, so the case takes either answer and the run reports which this
+  kernel gave; and a blob one byte short of the cipher's struct, a version the
+  kernel does not implement, a second cipher on the other direction, and
+  ARIA-GCM under TLS 1.3 each raise `EINVAL`. `validate_crypto_info` decides
+  that last one before any AEAD is allocated, so it runs on a kernel that
+  builds no `gcm(aria)` either.
   Skipped whole where the `tls` ULP is neither registered nor loadable; the
   ChaCha20-Poly1305 case alone where the install answers `ENOENT` because the
   kernel builds no `rfc7539(chacha20,poly1305)`, and the ARIA case alone where

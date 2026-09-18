@@ -57,8 +57,10 @@ those two through a function-like macro autogen cannot read. A salt left out for
 0) is handled by the packer.
 
 The socket must already be connected (the ULP attach requires `TCP_ESTABLISHED`); installing a
-direction twice raises (`-EBUSY`), and keying a socket with no ULP on it raises `-ENOPROTOOPT`. Keys
-come from somewhere — a userspace handshake (phase 4) or, for tests, fixed vectors.
+direction twice raises `-EBUSY`, except that from 6.14 a direction keyed for TLS 1.3 re-keys instead
+when the new blob carries the same version and cipher; and keying a socket with no ULP on it raises
+`-ENOPROTOOPT`. Keys come from somewhere — a userspace handshake (phase 4) or, for tests, fixed
+vectors.
 
 ## Phase 3 — plaintext I/O and control records
 

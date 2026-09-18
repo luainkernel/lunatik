@@ -110,7 +110,8 @@ The `tls` module: the `SOL_TLS` / `TLS_TX` / `TLS_RX` constants and `tls.pack(ve
 key, salt, rec_seq)` producing the `tls12_crypto_info_*` blob. Attach the ULP
 (`sock:setsockopt(sk.sol.TCP, sk.tcp.ULP, "tls")`) and install a session from Lua. Cover the
 cipher/version matrix and the error cases (`-ENOPROTOOPT` with no ULP on the socket, `-EBUSY` on a
-second install, `-EINVAL` on a wrong length or an unimplemented version).
+second install, which from 6.14 a TLS 1.3 direction answers with a rekey instead, `-EINVAL` on a
+wrong length or an unimplemented version).
 
 ### Phase 3: plaintext I/O with control records
 

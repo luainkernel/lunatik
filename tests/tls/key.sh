@@ -10,6 +10,16 @@
 # implement, a second cipher on the other direction, and ARIA-GCM under anything
 # but TLS 1.2 each answer EINVAL.
 #
+# That EBUSY is unconditional for every version but 1.3: from 6.14
+# do_tls_setsockopt_conf re-keys a keyed TLS 1.3 direction handed the same
+# version and cipher, and refuses the others. The TLS 1.2 case is the one that
+# keeps pinning the refusal; the TLS 1.3 case takes either answer and the run
+# reports which this kernel gave. The refusal a rekey brings with it, EINVAL
+# where the new blob's version or cipher differs from the one in place, has no
+# case: below 6.14 a second install answers EBUSY before the blob is read at
+# all, and the EINVAL the second-cipher case pins is validate_crypto_info's,
+# which a rekey does not run.
+#
 # Each case connects a client to its own listener bound to port 0, so the test
 # takes no fixed port from the host. The ULP attach autoloads tls.ko through
 # request_module, which sleeps, so the script runs in process context.
@@ -37,8 +47,9 @@ cleanup
 MARKERS=(
 	"an unkeyed socket refuses SOL_TLS"
 	"TX and RX installed"
-	"a direction installs once"
+	"a second TLS 1.3 install"
 	"TLS 1.2 installed"
+	"a TLS 1.2 direction installs once"
 	"the zero-salt cipher installed"
 	"a short blob refused"
 	"an unimplemented version refused"
@@ -48,8 +59,9 @@ MARKERS=(
 CASES=(
 	"key: keying a socket whose ULP was never attached raises ENOPROTOOPT"
 	"key: a TLS 1.3 AES-GCM-128 session installs on both directions"
-	"key: a direction that is already keyed raises EBUSY"
+	"key: a keyed TLS 1.3 direction raises EBUSY below 6.14 and re-keys from it"
 	"key: a TLS 1.2 session installs"
+	"key: a direction that is already keyed for TLS 1.2 raises EBUSY"
 	"key: the zero-salt cipher installs"
 	"key: a blob one byte short of the cipher's struct raises EINVAL"
 	"key: a version the kernel does not implement raises EINVAL"
@@ -60,12 +72,12 @@ CASES=(
 # a case the kernel can decline for a reason of its own: the marker the script
 # prints in place of the case's own, and what makes that a skip
 SKIPMARKERS=(
-	[4]="the zero-salt cipher is unavailable (ENOENT)"
-	[8]="ARIA is absent from this kernel's uapi"
+	[5]="the zero-salt cipher is unavailable (ENOENT)"
+	[9]="ARIA is absent from this kernel's uapi"
 )
 SKIPREASONS=(
-	[4]="the kernel builds no rfc7539(chacha20,poly1305)"
-	[8]="uapi/linux/tls.h carries no ARIA cipher before 6.1"
+	[5]="the kernel builds no rfc7539(chacha20,poly1305)"
+	[9]="uapi/linux/tls.h carries no ARIA cipher before 6.1"
 )
 
 ktap_header
@@ -90,6 +102,9 @@ grep -qw tls /proc/sys/net/ipv4/tcp_available_ulp 2> /dev/null ||
 mark_dmesg
 run_script "$SCRIPT"
 check_dmesg || { ktap_totals; exit 1; }
+
+# which of the two answers this kernel gave the TLS 1.3 rekey, both being a pass
+comment "$(dmesg_since | grep -o 'a second TLS 1.3 install.*')"
 
 for i in "${!CASES[@]}"; do
 	if [ -n "${SKIPMARKERS[$i]}" ] && dmesg_since | grep -q "tls key: ${SKIPMARKERS[$i]}"; then
