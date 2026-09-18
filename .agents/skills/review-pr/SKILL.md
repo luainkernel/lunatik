@@ -37,6 +37,10 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
 
 # Fixups
 
+- `bash tools/checks/idioms.sh` over the C files the diff touches and
+  `bash tools/checks/author-email.sh origin/master..HEAD` over the branch are passes of the first
+  round, not of the second: #850's maintainer asked for the argcheck, the `lunatik_try` and the
+  shared helper the first round had read past.
 - A fixup is made on `review/<N>` and pushed onto the pull request's branch, a fast-forward:
   `git push <url> HEAD:refs/heads/<branch>`; then `gh api repos/.../pulls/<N>/commits` is what says it
   is on the pull request, since the pull request lists that branch alone. `review/<N>` left on its

@@ -197,6 +197,12 @@ message means that release and every one after it. It annotates rather than fail
 release-then-throw shape is not `lunatik_try`'s and the line between the check and the throw is
 what the reader decides on.
 
+`author-email.sh` reads a rev-range and names a commit whose author email is not the one the base
+uses most for that author's name: a rebase or a squash done from another checkout signs the result
+with that checkout's identity, and #850 reached its review under an address the history knows from
+three commits against several hundred. A review and a pull request's preparation run it over
+`origin/master..HEAD` before anything is pushed.
+
 A rule is what remains when nothing else can catch the mistake. Where the error is mechanical, the gate
 is the answer and the rule is that gate's documentation: a pull request that only writes down what went
 wrong, over rules that were already written and already broken, adds a paragraph and changes nothing.

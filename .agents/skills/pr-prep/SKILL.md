@@ -13,6 +13,9 @@ no "Test plan" section, no em dashes. On top of it:
   land on types, not functions.
 - Compare `git diff` against `git diff -w` for stray whitespace; `bash tools/checks/pre-commit`
   covers the trailing blank line on staged files.
+- `bash tools/checks/idioms.sh` over the C files the diff touches, and
+  `bash tools/checks/author-email.sh origin/master..HEAD` over the branch after any rebase or
+  squash, which signs the result with the checkout's own identity.
 - Fixup commits stay unsquashed unless squashing was explicitly requested; the maintainer
   reviews them before they are folded.
 - Every function the diff touches is re-read whole before the hand-back: is a new branch this
