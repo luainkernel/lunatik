@@ -8,7 +8,7 @@
 # Usage: sudo bash tests/handshake/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
-TESTS="upcall options context timeout socket_tls"
+TESTS="upcall options context timeout socket_tls example_connect"
 FAILED=0
 
 SEP=$'\n'

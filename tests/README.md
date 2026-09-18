@@ -207,6 +207,20 @@ the refusals on either side of it; a completed handshake is not covered here.
   errno. The keyed socket it hands back needs a completed handshake to prove,
   so this too is skipped whole where `tlshd` is installed or running.
 
+- **example_connect**: the `examples/tls_connect` script as the tree installs
+  it, which is what makes this the example's test and not **socket_tls** a
+  second time: that one drives a test script through the same three calls,
+  this one drives the file the tree ships, and the example is what rots when a
+  binding it calls is reshaped. A listener holds the port the example dials for
+  the length of the run, since a socket that never connected answers
+  `ECONNREFUSED` before the upcall is reached at all. The run has to say exactly
+  `ESRCH`: a broken example answers with a loader or a Lua error instead of the
+  bare errno, which is the rot this case exists to catch. It catches it down to
+  the hello only: with no agent the example stops there, so the `setsockopt`,
+  the send and the receive it makes on the keyed socket are never reached.
+  Skipped whole where the example is not installed, and where `tlshd` is
+  installed or running.
+
 ### hid
 
 - **register**: what `hid.register()` makes of an `id_table`. It accepts one
