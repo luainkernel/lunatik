@@ -40,14 +40,22 @@ static inline lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key
 	return NULL;
 }
 
-static inline void *lunatik_ebpf_getctx(lua_State *L)
+static inline void *lunatik_ebpf_findctx(lua_State *L)
 {
 	if (lunatik_getregistry(L, &lunatik_ebpf_env_key) != LUA_TUSERDATA) {
 		lua_pop(L, 1);
-		pr_err_ratelimited("no callback attached (cpu %d)\n", lunatik_getcpu(L));
 		return NULL;
 	}
 	return lunatik_toobject(L, -1)->private;
+}
+
+static inline void *lunatik_ebpf_getctx(lua_State *L)
+{
+	void *ctx = lunatik_ebpf_findctx(L);
+
+	if (ctx == NULL)
+		pr_err_ratelimited("no callback attached (cpu %d)\n", lunatik_getcpu(L));
+	return ctx;
 }
 
 static inline int lunatik_ebpf_invoke(lua_State *L, int cb)
