@@ -19,7 +19,8 @@
 # (kernel/sched/wait.c), so current_timeo stops decrementing and the !*timeo_p
 # exit is never reached: the bound ends that wait no more than the missing
 # signal does. The first case therefore pins the property and not the mechanism,
-# and nothing in it discriminates on the bound.
+# and nothing in it discriminates on the bound; what the bound does buy is
+# bounded.sh's, where a stalled direction leaves the other one moving.
 #
 # That signal ends the send with EINTR and nothing copied, which is the stop and
 # not a failure: the second case is that the body returns from it rather than
