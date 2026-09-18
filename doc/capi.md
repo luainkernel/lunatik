@@ -184,9 +184,9 @@ Defined as a macro.
 
 ### lunatik\_isready
 ```C
-bool lunatik_isready(lua_State *L);
+bool lunatik_isready(lunatik_object_t *runtime);
 ```
-Returns `true` if the script associated with `L` has finished loading (i.e., the top-level
+Returns `true` if the script associated with `runtime` has finished loading (i.e., the top-level
 chunk has returned). Use this to guard operations that must not run during module
 initialization — for example, spawning a kernel thread from a `runner.spawn` callback.
 
