@@ -878,6 +878,25 @@ instead of leaving the device wedged.
   is read as an absence, which only counts because the two round trips before it
   say the relay was carrying bytes.
 
+- **example_tunnel**: the `examples/tlstunnel` pair as the tree installs it,
+  which is what makes this the example's test and not a sixth relay case: the
+  example is what rots when a binding it calls is reshaped. Both example
+  scripts are spawned, a client script connects to the example's own plain port
+  and the kernel log carries what crossed. The upstream printed the request,
+  and printed the record type it arrived in, which on a leg that is not keyed
+  would be `nil` rather than 23; the client printed the canned reply; and the
+  relay's transform saw the payload going each way. Each half then meets a
+  connection it cannot serve — plaintext at the upstream's port, and a relay
+  whose upstream has been stopped — and the client after them is served all the
+  same, since one connection's failure is not the loop's. Both stops are
+  measured together and the elapsed milliseconds are printed, as **plain** does
+  for the module. A listener of the test's own then takes the relay's port and
+  the spawn is tried again: each listener is bound in its script body, so a
+  port already in use answers the spawn and does not die inside the thread.
+  Two clients at once are not covered, the example serving one connection at a
+  time by design. Skipped whole where the example is not installed, or where
+  the `tls` ULP is neither registered nor loadable.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call
