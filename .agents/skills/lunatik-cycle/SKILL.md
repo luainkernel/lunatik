@@ -41,9 +41,10 @@ and its size is read before it runs: a `tee` under a `sudo` that takes its passw
 the rest of that stdin as the file and writes it empty, and `lunatik run` of an empty script exits
 0 and prints nothing, which reads as a clean run. Remove the script right after.
 
-An example is run through `sudo bash tools/watchdog.sh examples/<script> [softirq|hardirq] [percpu]`,
-which stops it if the host loses the connectivity it had; `example-guard.sh` refuses a bare
-`lunatik run examples/...`, and `NETWORK_LOSS_OK=1` on the command runs one bare on a machine whose
+An example is run through `sudo bash tools/watchdog.sh examples/<script> [spawn|softirq|hardirq] [percpu]`,
+which stops it if the host loses the connectivity it had; an example that returns a thread body takes
+`spawn` there, or its function is never called. `example-guard.sh` refuses a bare `lunatik run` or
+`spawn` of an example, and `NETWORK_LOSS_OK=1` on the command runs one bare on a machine whose
 connectivity is expendable.
 
 # One operation at a time

@@ -49,5 +49,6 @@ stopped by hand afterwards.
 ```sh
 sudo bash tools/watchdog.sh examples/ifquarantine/control
 sudo LUNATIK_WATCHDOG_GRACE=10 bash tools/watchdog.sh examples/filter/sni softirq percpu
+sudo bash tools/watchdog.sh examples/echod/daemon spawn  # a script that returns a thread body
 ```
 
