@@ -50,15 +50,19 @@ function session.connectpair()
 	return client, server
 end
 
--- one session on both directions of both ends; raises what the kernel refused
+-- one session on both directions of one end; raises what the kernel refused
 -- with, a cipher whose AEAD it does not build included
-function session.install(client, server, version, cipher)
+function session.key(sock, version, cipher)
 	local blob = payload(version, cipher)
-	for _, sock in ipairs({client, server}) do
-		sock:setsockopt(sk.sol.TCP, sk.tcp.ULP, ULPNAME)
-		sock:setsockopt(sk.sol.TLS, ltls.TX, blob)
-		sock:setsockopt(sk.sol.TLS, ltls.RX, blob)
-	end
+	sock:setsockopt(sk.sol.TCP, sk.tcp.ULP, ULPNAME)
+	sock:setsockopt(sk.sol.TLS, ltls.TX, blob)
+	sock:setsockopt(sk.sol.TLS, ltls.RX, blob)
+end
+
+-- the same session on both ends, so each side's TX matches the other's RX
+function session.install(client, server, version, cipher)
+	session.key(client, version, cipher)
+	session.key(server, version, cipher)
 end
 
 function session.closepair(client, server)

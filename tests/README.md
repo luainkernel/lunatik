@@ -840,6 +840,18 @@ instead of leaving the device wedged.
   times the idle yield, so the stop lands inside the send and not between two
   of them.
 
+- **tls**: the relay with one end keyed for kTLS, which is the tunnel the epic
+  is for: plaintext in on the plain side, a TLS record out on the keyed one, and
+  the decrypted plaintext back the other way. Both keyed ends take
+  `tests/tls/session.lua`'s fixed vectors, so no handshake and no `tlshd` are
+  involved. The record type is asserted and not only the bytes, since on an
+  unkeyed link `receiverecord` reports `nil` and reading 23 is what says the
+  record layer ran; and a record the kernel types as something other than
+  application data is read and dropped while the data behind it still arrives.
+  A `close_notify` is deliberately not the stimulus: what a keyed socket does
+  with reads after an alert is pinned nowhere in the tree. Skipped whole where
+  the `tls` ULP is neither registered nor loadable.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call

@@ -8,7 +8,7 @@
 # Usage: sudo bash tests/tunnel/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
-TESTS="plain stall"
+TESTS="plain stall tls"
 FAILED=0
 
 SEP=$'\n'
