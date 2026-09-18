@@ -215,6 +215,9 @@ taught it; a lesson kept in one assistant's notes is one the next contributor pa
 or a "Test plan" section; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
 blocks a `gh` write to pulls that carries a body file the check fails on, or that `machine-leak.sh`
 finds the machine in; a body it cannot read is refused rather than skipped, as in the review guard below.
+A write to a pull request's reviews or comments is that guard's and not this one's: a review body
+runs past three paragraphs by design, and #851's held a rewrite of its own verdict until the path
+was read for what it was.
 
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run or a suite, while another operation is on it, naming the processes it found; a process in
