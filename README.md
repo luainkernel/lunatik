@@ -676,6 +676,42 @@ sudo lunatik run examples/tls_connect         # connects and prints the reply
 sudo journalctl -ft kernel
 ```
 
+### tlstunnel
+
+[tlstunnel](examples/tlstunnel)
+is a TLS tunnel in Lua, built on `tunnel.body`. `tunnel.lua` accepts a plaintext
+client on 127.0.0.1:6926, opens a kTLS leg to `upstream.lua` on 127.0.0.1:6927
+and relays between the two, printing the first line of every payload that
+crosses. `upstream.lua` is the far end of that leg: it keys its own side, prints
+the request with the TLS record type it arrived in, and answers a canned reply.
+Both are spawned kernel threads; `common.lua` carries the ports and the keying
+they share.
+
+The two ends are keyed with fixed vectors, each side's transmit key being the
+other's receive key, so this needs no handshake and no `tlshd` — the trick the
+kernel's own kTLS selftest uses. Those vectors are a demonstration that both
+ends carry, never a session: a real session's keys come from a handshake, which
+is what `tls_connect` above shows. The relay serves one connection at a time,
+and it moves one buffer per read, so what crosses is what the socket delivered,
+with no reassembly beyond that. What it does need is the `tls` ULP: the keying
+attaches it, autoloading `tls.ko`, and a kernel built without `CONFIG_TLS`
+answers `ENOENT` on the first connection either half keys.
+
+#### Usage
+
+```
+sudo make examples_install                      # installs examples
+sudo lunatik spawn examples/tlstunnel/upstream  # the keyed far end
+sudo lunatik spawn examples/tlstunnel/tunnel    # the relay
+printf 'GET /tunnel HTTP/1.0\r\n\r\n' | nc 127.0.0.1 6926
+HTTP/1.0 200 OK
+
+hello from the kTLS upstream
+sudo journalctl -ft kernel
+sudo lunatik stop examples/tlstunnel/tunnel
+sudo lunatik stop examples/tlstunnel/upstream
+```
+
 ## References
 
 ### Talks and Papers
