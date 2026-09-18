@@ -215,7 +215,8 @@ higher-level `netlink.*` modules built on top of it.
 - **message**: builds a message with attributes and parses it back, asserting
   the round-trip preserves the type and attribute values; and the edges:
   malformed wire data parses to nothing, empty attribute sets round-trip
-  empty, and a non-u32 number value raises.
+  empty, and a non-u32 number value raises; and that a parse given no position
+  starts at the body's first byte, the position being documented optional.
 - **session**: over a fake socket, `dump()` terminates (does not hang) on an
   empty read; `talk()` drains the reply up to the kernel acknowledgment,
   keeping a data reply and passing a zero error code; and `talk()` raises the

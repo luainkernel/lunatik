@@ -98,10 +98,10 @@ end
 -- attributes, or parses them back from a message body starting at `pos`.
 -- A `number` value is packed as a `u32`; a `string` is used verbatim.
 -- @tparam table|string attrs attribute table (serialize) or message body (parse).
--- @tparam[opt] integer pos 1-based position of the first attribute (parse).
+-- @tparam[opt] integer pos 1-based position of the first attribute (parse), the first byte by default.
 -- @treturn string|table the serialized attributes, or the parsed table.
 function message.attrs(attrs, pos)
-	return type(attrs) == "string" and parse_attrs(attrs, pos) or encode_attrs(attrs)
+	return type(attrs) == "string" and parse_attrs(attrs, pos or 1) or encode_attrs(attrs)
 end
 
 ---
