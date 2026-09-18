@@ -33,11 +33,12 @@ has been reworked heavily since 5.4, a per-socket raw `lua_State` predates the w
 model, and the report itself measured it slower than userspace Lua + kTLS. It is a design reference,
 not a base.
 
-**The in-tree-native approach that patches nothing** is what this project builds, and phases 1 to 5
-are in the repository today: `lib/luasocket.c` carries `sock:setsockopt(level, optname, optval)`
+**The in-tree-native approach that patches nothing** is what this project builds, and every phase of
+it is in the repository today: `lib/luasocket.c` carries `sock:setsockopt(level, optname, optval)`
 (`42c543ad4`) and the record-type methods, with `linux.socket.tcp` and `linux.tls` emitted by
 `autogen/specs.lua` and `lib/tls.lua` over them; `lib/luahandshake.c` binds the upcall,
-`lib/socket/tls.lua` is the client over it, and `lib/tunnel.lua` is the relay.
+`lib/socket/tls.lua` is the client over it, `lib/tunnel.lua` is the relay, and `examples/tls_connect`
+and `examples/tlstunnel` are the two scripts built on them.
 
 Earlier notes described a parked `claude_tls` branch holding a `lib/luatls.c` packer, a
 `lib/luahandshake.c` upcall binding and a `lib/ktls.lua` client, to be rebased in. No such branch
@@ -52,7 +53,7 @@ every phase below writes its own code.
 | Plaintext I/O with control records | Closed by phase 3: `sock:receiverecord` carries the `msg_control` buffer and `sock:sendrecord` emits a record of a chosen type, with `tls.record` and `tls.close_notify` over them. |
 | Handshake upcall | Closed by phase 4: `handshake.client` and `handshake.server` fill `tls_handshake_args` and wait the completion out, over the `struct file` `luasocket_openfile` attaches. |
 | The tunnel | Closed by phase 5: `tunnel.body(a, b, opts)` returns the thread body a `spawn` script returns, relaying what `receiverecord` reports as application data or as no record at all, with an optional transform on each payload. |
-| Tests and examples | Closed through phase 5: `tests/tls/` keys with fixed vectors and exercises the data path and alerts, `tests/handshake/` covers the upcall, `tests/tunnel/` covers the relay plain, stalled, bounded, keyed and inspected, and `examples/tls_connect.lua` is the client. The tunnel example is phase 6's. |
+| Tests and examples | Closed by phase 6: `tests/tls/` keys with fixed vectors and exercises the data path and alerts, `tests/handshake/` covers the upcall, `tests/tunnel/` covers the relay plain, stalled, bounded, keyed and inspected, `examples/tls_connect.lua` is the client and `examples/tlstunnel/` the tunnel, and each of the two examples is driven as installed by a case of the suite its module belongs to. |
 
 Supporting gaps:
 
@@ -110,7 +111,8 @@ The `tls` module: the `SOL_TLS` / `TLS_TX` / `TLS_RX` constants and `tls.pack(ve
 key, salt, rec_seq)` producing the `tls12_crypto_info_*` blob. Attach the ULP
 (`sock:setsockopt(sk.sol.TCP, sk.tcp.ULP, "tls")`) and install a session from Lua. Cover the
 cipher/version matrix and the error cases (`-ENOPROTOOPT` with no ULP on the socket, `-EBUSY` on a
-second install, `-EINVAL` on a wrong length or an unimplemented version).
+second install, which from 6.14 a TLS 1.3 direction answers with a rekey instead, `-EINVAL` on a
+wrong length or an unimplemented version).
 
 ### Phase 3: plaintext I/O with control records
 
@@ -140,9 +142,13 @@ from a netfilter/XDP hook, but the relay stays in the kthread.
 
 ### Phase 6: examples and documentation
 
-A client example and a tunnel example, a documentation pass, and the API cleanup the examples expose.
-The tunnel example is honest about its limits (single buffer per read, no reassembly beyond what the
-socket delivers), and documents the `tlshd` dependency and the TLS 1.3 KeyUpdate caveat.
+`examples/tls_connect` is the client over `socket.tls`, and `examples/tlstunnel` the tunnel: a relay
+between a plaintext client and a kTLS upstream that a second script answers, both ends keyed from
+fixed vectors, so it runs wherever the `tls` ULP does and asks for no agent. A test in the suite of
+the module each one demonstrates drives it as the tree installs it. The README carries the limits —
+the fixed vectors are a demonstration and never a session, one connection at a time, one buffer per
+read with no reassembly beyond what the socket delivers — and the `tlshd` dependency and the TLS 1.3
+KeyUpdate caveat stay on the client example, where they belong.
 
 ## Sizing
 

@@ -207,6 +207,20 @@ the refusals on either side of it; a completed handshake is not covered here.
   errno. The keyed socket it hands back needs a completed handshake to prove,
   so this too is skipped whole where `tlshd` is installed or running.
 
+- **example_connect**: the `examples/tls_connect` script as the tree installs
+  it, which is what makes this the example's test and not **socket_tls** a
+  second time: that one drives a test script through the same three calls,
+  this one drives the file the tree ships, and the example is what rots when a
+  binding it calls is reshaped. A listener holds the port the example dials for
+  the length of the run, since a socket that never connected answers
+  `ECONNREFUSED` before the upcall is reached at all. The run has to say exactly
+  `ESRCH`: a broken example answers with a loader or a Lua error instead of the
+  bare errno, which is the rot this case exists to catch. It catches it down to
+  the hello only: with no agent the example stops there, so the `setsockopt`,
+  the send and the receive it makes on the keyed socket are never reached.
+  Skipped whole where the example is not installed, and where `tlshd` is
+  installed or running.
+
 ### hid
 
 - **register**: what `hid.register()` makes of an `id_table`. It accepts one
@@ -754,12 +768,16 @@ and the plaintext data path a keyed socket becomes.
   its own loopback listener bound to port 0. Without the `tls` ULP on the
   socket, `SOL_TLS` falls through to `ip_setsockopt` and raises `ENOPROTOOPT`;
   with it, a TLS 1.3 AES-GCM-128 session installs on both directions and a
-  TLS 1.2 one installs too; a direction that is already keyed raises `EBUSY`,
-  which is the only reading a script has that the first install took; and a
-  blob one byte short of the cipher's struct, a version the kernel does not
-  implement, a second cipher on the other direction, and ARIA-GCM under TLS 1.3
-  each raise `EINVAL`. `validate_crypto_info` decides that last one before any
-  AEAD is allocated, so it runs on a kernel that builds no `gcm(aria)` either.
+  TLS 1.2 one installs too; a direction already keyed for TLS 1.2 raises
+  `EBUSY`, which is the only reading a script has that the first install took,
+  while one keyed for TLS 1.3 raises it below 6.14 and from there re-keys
+  instead, the entry check in `do_tls_setsockopt_conf` refusing every version
+  but 1.3, so the case takes either answer and the run reports which this
+  kernel gave; and a blob one byte short of the cipher's struct, a version the
+  kernel does not implement, a second cipher on the other direction, and
+  ARIA-GCM under TLS 1.3 each raise `EINVAL`. `validate_crypto_info` decides
+  that last one before any AEAD is allocated, so it runs on a kernel that
+  builds no `gcm(aria)` either.
   Skipped whole where the `tls` ULP is neither registered nor loadable; the
   ChaCha20-Poly1305 case alone where the install answers `ENOENT` because the
   kernel builds no `rfc7539(chacha20,poly1305)`, and the ARIA case alone where
@@ -877,6 +895,25 @@ instead of leaving the device wedged.
   hook wired to both directions, or to neither, fails one of the two. The drop
   is read as an absence, which only counts because the two round trips before it
   say the relay was carrying bytes.
+
+- **example_tunnel**: the `examples/tlstunnel` pair as the tree installs it,
+  which is what makes this the example's test and not a sixth relay case: the
+  example is what rots when a binding it calls is reshaped. Both example
+  scripts are spawned, a client script connects to the example's own plain port
+  and the kernel log carries what crossed. The upstream printed the request,
+  and printed the record type it arrived in, which on a leg that is not keyed
+  would be `nil` rather than 23; the client printed the canned reply; and the
+  relay's transform saw the payload going each way. Each half then meets a
+  connection it cannot serve — plaintext at the upstream's port, and a relay
+  whose upstream has been stopped — and the client after them is served all the
+  same, since one connection's failure is not the loop's. Both stops are
+  measured together and the elapsed milliseconds are printed, as **plain** does
+  for the module. A listener of the test's own then takes the relay's port and
+  the spawn is tried again: each listener is bound in its script body, so a
+  port already in use answers the spawn and does not die inside the thread.
+  Two clients at once are not covered, the example serving one connection at a
+  time by design. Skipped whole where the example is not installed, or where
+  the `tls` ULP is neither registered nor loadable.
 
 ### xdp
 

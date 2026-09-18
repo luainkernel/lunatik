@@ -41,7 +41,9 @@ key vectors on a loopback pair.
 2. `setsockopt(sk, SOL_TLS, TLS_TX | TLS_RX, &crypto_info, len)` → `do_tls_setsockopt_conf`
    (`tls_main.c:612`), which refuses in this order: an `optlen` below the 4-byte header
    `struct tls_crypto_info { __u16 version; __u16 cipher_type; }` with `-EINVAL` (`:623`); a
-   direction already keyed with `-EBUSY` (`:638`); whatever `validate_crypto_info` refuses (`:646`,
+   direction already keyed with `-EBUSY` (`:638`), which from 6.14 refuses only a version other than
+   TLS 1.3 and re-keys a 1.3 direction whose new blob repeats its version and cipher (v6.14
+   `tls_main.c:643`, `-EINVAL` when either differs); whatever `validate_crypto_info` refuses (`:646`,
    below); a cipher outside `TLS_CIPHER_MIN..MAX`, for which `get_cipher_desc` returns NULL, with
    `-EINVAL` (`:651`); and an `optlen` that is not that cipher's struct size exactly, again `-EINVAL`
    (`:656`). What follows the header is then copied flat (`:661`), so the payload is the header and

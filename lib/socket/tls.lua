@@ -7,11 +7,13 @@
 -- TLS client sockets. Connects a TCP socket and has the `tlshd` agent
 -- negotiate a session on it, so what comes back is a socket already keyed for
 -- kTLS: reads and writes on it carry plaintext. The agent attaches the `tls`
--- ULP and installs the keys itself, so nothing here does.
+-- ULP and installs the keys itself, so nothing here does, and the content type
+-- a record on it arrives in is one `tls.record` names.
 --
 -- @module socket.tls
 -- @see socket
 -- @see handshake
+-- @see tls
 --
 local socket    = require("socket")
 local net       = require("net")

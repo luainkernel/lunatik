@@ -8,9 +8,12 @@
 -- ULP is keyed with, the two version numbers the kernel accepts, and the record
 -- types `socket:sendrecord` and `socket:receiverecord` carry. Negotiating the
 -- keys is userspace's; this only assembles the payload the second `setsockopt`
--- takes.
+-- takes. `socket.tls` is where a negotiated session's keys come from instead,
+-- and `tunnel` is what moves the plaintext once a socket carries one.
 -- @module tls
 -- @see socket
+-- @see socket.tls
+-- @see tunnel
 -- @usage
 -- local tls  = require("tls")
 -- local sk   = require("linux.socket")
@@ -71,8 +74,9 @@ tls.version = { TLS_1_2 = versionnumber("1_2"), TLS_1_3 = versionnumber("1_3") }
 ---
 -- The TLS content types, as `socket:sendrecord` takes one and
 -- `socket:receiverecord` reports one. Written here rather than generated:
--- `net/tls_prot.h`, which names them, arrived in 6.6, above the oldest kernel
--- this module supports.
+-- `net/tls_prot.h`, which names them, arrived in 6.6, so a generated table
+-- would be empty on every kernel below that, while the values are the wire's
+-- and the same on all of them.
 -- @table record
 -- @field CHANGE_CIPHER_SPEC `20`
 -- @field ALERT `21`

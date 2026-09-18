@@ -88,24 +88,34 @@ closepair(client, server)
 assert(not ok and err == "ENOPROTOOPT", "keying with no ULP should raise ENOPROTOOPT, got " .. tostring(err))
 print("tls key: an unkeyed socket refuses SOL_TLS")
 
--- both directions of one session install, and each of them only once: the
--- EBUSY below is the only reading Lua has that the first install took
+-- both directions of one session install, and the answer below is the only
+-- reading Lua has that the first install took
 client, server = ulppair()
 installboth(client, aes128)
 print("tls key: TX and RX installed")
 
+-- from 6.14 do_tls_setsockopt_conf lets a keyed TLS 1.3 direction re-key with
+-- the same version and cipher instead of refusing, so both answers are the
+-- kernel's and the case names the one it gave
 local txok, txerr = pcall(install, client, ltls.TX, aes128)
 local rxok, rxerr = pcall(install, client, ltls.RX, aes128)
 closepair(client, server)
-assert(not txok and txerr == "EBUSY", "a second TX install should raise EBUSY, got " .. tostring(txerr))
-assert(not rxok and rxerr == "EBUSY", "a second RX install should raise EBUSY, got " .. tostring(rxerr))
-print("tls key: a direction installs once")
+assert(txok or txerr == "EBUSY", "a second TX install should raise EBUSY or re-key, got " .. tostring(txerr))
+assert(rxok or rxerr == "EBUSY", "a second RX install should raise EBUSY or re-key, got " .. tostring(rxerr))
+print("tls key: a second TLS 1.3 install " .. (txok and "re-keyed" or "was refused with EBUSY"))
 
 -- the other version validate_crypto_info accepts
+local aes128_12 = payload(TLS12, AES128)
 client, server = ulppair()
-install(client, ltls.TX, payload(TLS12, AES128))
-closepair(client, server)
+install(client, ltls.TX, aes128_12)
 print("tls key: TLS 1.2 installed")
+
+-- the entry check above refuses every version but 1.3, so on a TLS 1.2
+-- direction the refusal holds on every kernel
+ok, err = pcall(install, client, ltls.TX, aes128_12)
+closepair(client, server)
+assert(not ok and err == "EBUSY", "a second TLS 1.2 install should raise EBUSY, got " .. tostring(err))
+print("tls key: a TLS 1.2 direction installs once")
 
 -- the zero-salt cipher: its AEAD is allocated at install time, so a kernel that
 -- does not build it answers ENOENT here and nowhere else

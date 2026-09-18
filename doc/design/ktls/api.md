@@ -1,10 +1,10 @@
-# Proposed Lua API: `ktls`
+# The Lua API: `ktls`
 
-This is a design proposal, not a specification. Names and shapes are open for review; the kernel
-constraints behind them (`kernel-notes.md`) are not. Phases 1 to 5 are in the tree, the
-`linux.socket.tcp` and `linux.tls` namespaces, the `tls` module over the `socket:setsockopt`
-`master` already had, the record-type methods on the socket class, the `handshake` module with
-`socket.tls` over it, and the `tunnel` module; the rest is proposal.
+Everything below is in the tree: the `linux.socket.tcp` and `linux.tls` namespaces, the `tls` module
+over the `socket:setsockopt` `master` already had, the record-type methods on the socket class, the
+`handshake` module with `socket.tls` over it, the `tunnel` module, and the examples on both. What
+each page of the generated documentation says is the contract; this records the shape the pieces were
+designed to, against the kernel constraints behind them (`kernel-notes.md`).
 
 Four pieces, low to high level:
 
@@ -57,8 +57,10 @@ those two through a function-like macro autogen cannot read. A salt left out for
 0) is handled by the packer.
 
 The socket must already be connected (the ULP attach requires `TCP_ESTABLISHED`); installing a
-direction twice raises (`-EBUSY`), and keying a socket with no ULP on it raises `-ENOPROTOOPT`. Keys
-come from somewhere — a userspace handshake (phase 4) or, for tests, fixed vectors.
+direction twice raises `-EBUSY`, except that from 6.14 a direction keyed for TLS 1.3 re-keys instead
+when the new blob carries the same version and cipher; and keying a socket with no ULP on it raises
+`-ENOPROTOOPT`. Keys come from somewhere — a userspace handshake (phase 4) or, for tests, fixed
+vectors.
 
 ## Phase 3 — plaintext I/O and control records
 
@@ -88,17 +90,21 @@ so TLS vocabulary stays out of the class every protocol shares. Receives are bou
 
     -- process/spawn runtime only; blocks until tlshd answers
     local peerid = handshake.client(sock, {
-        peername = "example.com",            -- SNI
-        timeout  = 5000,
-        cert     = my_cert_serial,           -- optional x509 (keyring serials)
+        peername = "example.com",            -- SNI, and the name whose certificate is checked
+        timeout  = 5000,                     -- milliseconds; left out, the wait is indefinite
+        keyring  = my_keyring_serial,        -- where the agent looks keys up
+        cert     = my_cert_serial,           -- x.509 keyring serials, both or neither
         privkey  = my_key_serial,
+        peerids  = {my_psk_serial},          -- pre-shared key identities, at most five
     })
 
 `handshake.client(sock, opts)` fills `tls_handshake_args`, calls the exported `tls_client_hello_x509`
-(or `_anon` / `_psk` by which options are present), and waits on a completion while `tlshd` performs
-the handshake in userspace and installs the kTLS keys on the socket. It returns the peer identity the
-session authenticated, `0` for a session carrying none, and raises the errno otherwise, the way every
-other binding reports a kernel failure. On return the socket is keyed; `sock:receive`/`sock:send`
+(or `_anon` / `_psk` by which options are present: `peerids` asks for a pre-shared key and excludes
+`cert`, `cert` with `privkey` asks for x.509, and neither for an anonymous session), and waits on a
+completion while `tlshd` performs the handshake in userspace and installs the kTLS keys on the socket.
+Every option is optional, the anonymous client hello taking none at all. It returns the peer identity
+the session authenticated, `0` for a session carrying none, and raises the errno otherwise, the way
+every binding reports a kernel failure. On return the socket is keyed; `sock:receive`/`sock:send`
 carry plaintext. `handshake.server(sock, opts)` mirrors it for the server side, without the anonymous
 arm the kernel does not publish. Requires `tlshd` running in the socket's network namespace.
 
@@ -149,8 +155,11 @@ separate netfilter/XDP hook; the byte-moving loop stays here, in a sleepable kth
    accessor.~~ Answered by phase 3: a separate `sock:receiverecord`, because a control buffer on
    `receive` changes what an `AF_UNIX` read does with `SCM_RIGHTS` and changes the arity of a call
    every existing script makes.
-2. Whether `tls.pack` should take a table (`{version=, cipher=, iv=, key=, …}`) rather than positional
-   arguments; positional is what it ships, a table reads better with many fields.
+2. ~~Whether `tls.pack` should take a table (`{version=, cipher=, iv=, key=, …}`) rather than
+   positional arguments.~~ Answered by phase 2: positional, and in the order the parts are laid out
+   in the blob, so the call reads as the struct it builds. Every part is required for the cipher
+   named, and one of the wrong size is refused naming it, which is the mistake a table's field names
+   would otherwise be there to catch.
 3. ~~Whether `handshake.client`/`server` belong in their own `handshake` module or under `ktls`.~~
    Answered by phase 4: their own module and its own `.ko`, because the symbols are
    `CONFIG_NET_HANDSHAKE` and folding them into `luasocket.ko` would make every socket user depend on
@@ -158,7 +167,7 @@ separate netfilter/XDP hook; the byte-moving loop stays here, in a sleepable kth
 4. ~~Whether the tunnel ships as a library helper (a `tunnel(a, b, opts)` returning the thread body,
    wherever phase 5 puts it) or only as an example.~~ Answered by phase 5: a module, `tunnel`, whose
    one function is `tunnel.body`. The loop's failure mode is a machine that needs a reboot, and the
-   epic wants four copies of it — the tests, and the example phase 6 writes — so it is written and
-   tested once. It is its own module and not part of `tls` because the relay needs `thread`, which
+   epic wants four copies of it — the tests, and `examples/tlstunnel` — so it is written and tested
+   once. It is its own module and not part of `tls` because the relay needs `thread`, which
    every `tls` user would then pull.
 

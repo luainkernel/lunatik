@@ -21,6 +21,7 @@
 --
 -- @module tunnel
 -- @see socket
+-- @see socket.tls
 -- @see thread
 -- @see tls
 -- @usage
