@@ -92,7 +92,9 @@ starts a second later, so a build-install-run cycle takes the lock instead:
     bash tools/lunatik-host bash tools/watchdog.sh examples/systrack/device
 
 It runs the command with the lock held, names the holder while it waits, and releases on exit
-however the command ends. The installed tree under `/lib/modules/lua` is shared too: a suite run
+however the command ends. The lock lives in a directory of its own under `/tmp`, not in `/tmp`
+itself, where `protected_regular` denies root a file another user created: the wrapper runs as the
+user in one session and under `sudo` in the next, and the second must find the first's lock. The installed tree under `/lib/modules/lua` is shared too: a suite run
 whose totals do not match the tests in your own worktree is a mixed install, one session's modules
 against another's scripts, and it measures neither.
 
