@@ -852,6 +852,15 @@ instead of leaving the device wedged.
   with reads after an alert is pinned nowhere in the tree. Skipped whole where
   the `tls` ULP is neither registered nor loadable.
 
+- **inspect**: `opts.transform`, the point of relaying in Lua at all. The hook
+  sees every payload with the socket it came from, what it returns is what goes
+  out, and returning nothing drops the payload from the stream. The relay's hook
+  upper-cases what came from the A side and passes what came from B through, so
+  one direction asserts the rewrite and the other asserts it was not applied; a
+  hook wired to both directions, or to neither, fails one of the two. The drop
+  is read as an absence, which only counts because the two round trips before it
+  say the relay was carrying bytes.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call
