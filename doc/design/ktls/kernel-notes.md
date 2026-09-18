@@ -137,10 +137,30 @@ Once keyed, write plaintext with `kernel_sendmsg` (`net/socket.c:787`) and read 
   (`tls_sw.c:1103`); kernel plaintext writes do not take the zerocopy/splice path. Fine, just not
   zero-copy.
 * **RX waits on the strparser.** `tls_sw_recvmsg` blocks in `tls_rx_rec_wait` honoring
-  `MSG_DONTWAIT`/`MSG_WAITALL` (`tls_sw.c:1308`, called at `:2009`); the wait does **not** check
-  `kthread_should_stop`.
+  `MSG_DONTWAIT`/`MSG_WAITALL` (`tls_sw.c:1308`, called at `:2009`); the wait itself tests neither
+  `kthread_should_stop` nor a bound of its own.
   So a relay loop must pass `MSG_DONTWAIT` or a receive timeout and poll `shouldstop()` — an unbounded
   read here is the classic unstoppable-kthread hazard.
+* **TX has no per-call bound at all.** `tls_sw_sendmsg` and `tcp_sendmsg` wait for room in
+  `sk_stream_wait_memory` (`net/core/stream.c:118`), which reads `sk_sndtimeo`, and the
+  `struct msghdr` `kernel_sendmsg` builds carries no `MSG_DONTWAIT`. `SO_SNDTIMEO` is therefore
+  the only bound a caller that does not build its own `msghdr` can put on a send.
+* **`kthread_stop` became a signal in 6.1.** It sets `TIF_NOTIFY_SIGNAL` on the task
+  (`kernel/kthread.c:707` at v6.1, absent at v5.15), which `signal_pending` reads, so the
+  `signal_pending` arm of `sk_stream_wait_memory` (`net/core/stream.c:137`) and of `tls_rx_rec_wait`
+  (`tls_sw.c:1355`) ends the wait with `-EINTR` and whatever was copied — the errno itself where
+  nothing had been copied yet, `do_error` returning a count only `if (copied + copied_syn)`
+  (`net/ipv4/tcp.c:1333` at v6.12), so a send a stop finds waiting on a destination that never reads
+  answers the stop as an error. Below 6.1 there is no such flag, and `wait_woken`
+  (`kernel/sched/wait.c:452` at v5.15) returns its timeout unchanged once
+  `kthread_should_stop` is set, so `sk_wait_event` (`include/net/sock.h:1091` at v5.15) writes back
+  the same `current_timeo`, the `!*timeo_p` exit at `net/core/stream.c:135` is never reached, and the
+  loop spins. `SO_SNDTIMEO` ends that wait no more than the missing signal does, so below 6.1 a relay
+  stopped while a send to a destination that never reads is waiting is not joined there. What the
+  bounds buy on every kernel is a pass that ends: one direction stalled does not hold the other, and
+  `shouldstop` is polled. Measured on 6.12: a send blocked against a stalled peer with a 10 s
+  `SO_SNDTIMEO` returned 2048 bytes the moment the thread was stopped, which is the signal arriving
+  and not the bound elapsing.
 
 ## The handshake upcall — module-facing and exported
 
@@ -225,6 +245,7 @@ Hard constraints:
 | TLS 1.3 | 5.1 | present |
 | ChaCha20-Poly1305 | ~5.7 | present |
 | ARIA-GCM-128/256 (`TLS_CIPHER_ARIA_GCM_*`) | 6.1 | present; the only constant here younger than the 6.0 floor |
+| `kthread_stop` raising `TIF_NOTIFY_SIGNAL` | 6.1 | present; below it only the bounds end a socket wait in a kthread |
 | handshake upcall (`net/handshake`, `tlshd`) | 6.4 / 6.5 | present |
 | alert helpers (`net/handshake/alert.c`, `net/tls_prot.h`) | 6.6 | present; above the 6.0 floor, so not linked |
 | TLS 1.3 **KeyUpdate** / re-keying on RX | **6.14** | **absent in 6.12** — a long-lived 1.3 session that re-keys breaks; document and scope out |
@@ -239,6 +260,9 @@ Hard constraints:
 * ULP: `include/net/tcp.h:2559` (`tcp_ulp_ops`), `net/tls/tls_main.c:1120` (ops), `:1145` (register)
 * kernel socket I/O: `net/socket.c:787` (`kernel_sendmsg`), `:1093` (`kernel_recvmsg`), `:2301`
   (`do_sock_setsockopt`, exported at `:2340`)
+* stopping a kthread out of a socket wait: `net/core/stream.c:118` (`sk_stream_wait_memory`), `:137`
+  (its `signal_pending` arm), `kernel/kthread.c:699` (`kthread_stop`), `kernel/sched/wait.c:413`
+  (`wait_woken`)
 * handshake upcall: `include/net/handshake.h`, `net/handshake/tlshd.c` (exports), `request.c:223`
   (`handshake_req_submit`), `:286` (`handshake_complete`), `:313` (`handshake_req_cancel`),
   `net/handshake/netlink.c:47` (`genl_has_listeners`), `:125` (`fd_install`), doc

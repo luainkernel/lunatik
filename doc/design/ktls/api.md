@@ -1,10 +1,10 @@
 # Proposed Lua API: `ktls`
 
 This is a design proposal, not a specification. Names and shapes are open for review; the kernel
-constraints behind them (`kernel-notes.md`) are not. Phases 1 to 4 are in the tree, the
+constraints behind them (`kernel-notes.md`) are not. Phases 1 to 5 are in the tree, the
 `linux.socket.tcp` and `linux.tls` namespaces, the `tls` module over the `socket:setsockopt`
-`master` already had, the record-type methods on the socket class, and the `handshake` module with
-`socket.tls` over it; the rest is proposal.
+`master` already had, the record-type methods on the socket class, the `handshake` module with
+`socket.tls` over it, and the `tunnel` module; the rest is proposal.
 
 Four pieces, low to high level:
 
@@ -12,7 +12,7 @@ Four pieces, low to high level:
   generic socket facility (phase 1);
 * `linux.tls` — the kTLS constant namespaces, and `tls` — the `crypto_info` packer (phase 2);
 * `handshake` — the kernel handshake upcall to `tlshd` (phase 4);
-* `socket.tls` — the client over the two (phase 4), and the tunnel (phase 5), in Lua.
+* `socket.tls` — the client over the two (phase 4), and `tunnel` — the relay (phase 5), in Lua.
 
 ## Conventions
 
@@ -122,29 +122,24 @@ abstraction over the raw `socket`, beside `socket.inet` and `socket.raw`.
 
 ## Phase 5 — the tunnel
 
-The use case, in Lua. A spawned kthread relays plaintext between two sockets; one or both may be kTLS.
+The use case, in Lua, and what shipped: `tunnel.body(a, b, opts)` returns the function a `spawn`
+script returns as its thread body.
 
-    local thread = require("thread")
-    local linux  = require("linux")
-    local tls    = require("tls")
-    local sk     = require("linux.socket")
+    local tunnel = require("tunnel")
 
-    local function relay(a, b, transform)
-        local ok, data, record = pcall(a.receiverecord, a, 4096, sk.msg.DONTWAIT)
-        if ok and record == tls.record.DATA then
-            b:send(transform and transform(data) or data)
-        end
-    end
+    return tunnel.body(client, upstream, {transform = inspect})
 
-    return function()
-        while not thread.shouldstop() do
-            relay(client, upstream, inspect)     -- decrypted in, re-encrypted out
-            relay(upstream, client)
-            linux.schedule(10)
-        end
-    end
+Each pass polls `shouldstop()`, moves one record each way and yields with `linux.schedule(opts.idle)`
+only when neither direction had anything; the body returns when the thread is stopped or a peer
+closes. A payload is forwarded when its record type is `tls.record.DATA` **or `nil`** — a socket with
+no `tls` ULP reports `nil`, so a relay that forwarded only on `DATA` would carry nothing between two
+plain sockets. Any other type is read and not forwarded: its bytes sent on as application data would
+corrupt the far stream.
 
-Both receives are bounded; the loop polls `shouldstop()`. `inspect` is where plaintext policy or
+Both receives carry `MSG_DONTWAIT`, and the sends carry the `SO_SNDTIMEO` `tunnel.body` installs on
+both sockets, since `socket:send` takes no flags and that is the only bound a script can put on a
+send. `inspect` is called as `transform(data, from)`, where `from` is the source socket, so a hook
+can act on one direction; returning nothing drops the payload. That hook is where plaintext policy or
 rewriting lives — the point of doing it in Lua. Which flows enter the tunnel can be decided by a
 separate netfilter/XDP hook; the byte-moving loop stays here, in a sleepable kthread.
 
@@ -160,7 +155,10 @@ separate netfilter/XDP hook; the byte-moving loop stays here, in a sleepable kth
    Answered by phase 4: their own module and its own `.ko`, because the symbols are
    `CONFIG_NET_HANDSHAKE` and folding them into `luasocket.ko` would make every socket user depend on
    that config. There is no `ktls` module; the client over them is `socket.tls`.
-4. Whether the tunnel ships as a library helper (a `tunnel(a, b, opts)` returning the thread body,
-   wherever phase 5 puts it) or only as an example. A helper is convenient; an example keeps the loop
-   visible and tweakable.
+4. ~~Whether the tunnel ships as a library helper (a `tunnel(a, b, opts)` returning the thread body,
+   wherever phase 5 puts it) or only as an example.~~ Answered by phase 5: a module, `tunnel`, whose
+   one function is `tunnel.body`. The loop's failure mode is a machine that needs a reboot, and the
+   epic wants four copies of it — the tests, and the example phase 6 writes — so it is written and
+   tested once. It is its own module and not part of `tls` because the relay needs `thread`, which
+   every `tls` user would then pull.
 
