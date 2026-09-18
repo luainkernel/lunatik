@@ -47,14 +47,12 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 
 mark_dmesg
 run_script "$SCRIPT"
+cleanup
 check_dmesg || { ktap_totals; exit 1; }
 
 expect "an address and a port alone connect" "socket connect: an AF_INET port is not read as the flags"
 expect "a flag past the port reaches the kernel" "socket connect: a flag given past the port reaches the kernel"
 expect "a path alone connects" "socket connect: an AF_UNIX path keeps the argument past it for the flags"
-
-cleanup
-check_dmesg || { ktap_totals; exit 1; }
 
 ktap_totals
 
