@@ -13,8 +13,10 @@
 # The first case discriminates on that port; on an architecture whose O_NONBLOCK is
 # not 0o4000, alpha and parisc among them, it passes without discriminating. The
 # second pins that a flag given past the port still reaches the kernel, which a fix
-# that simply ignored the third argument would fail. The AF_UNIX case guards the
-# families whose address is one argument.
+# that simply ignored the third argument would fail. The AF_UNIX case pins that a
+# one-argument family's index lands past the path and not on it. A flag given to
+# such a family is uncovered: the only outcome that differs needs a full backlog,
+# and a connect that does not see the flag then waits holding the runtime lock.
 #
 # Usage: sudo bash tests/socket/connect.sh
 

@@ -517,7 +517,7 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   port read as one: the test connects to port 6922, whose value carries the
   `O_NONBLOCK` bit, and a port read as flags answers `EINPROGRESS` instead. A flag
   given past the port must still reach the kernel, and an AF_UNIX path, spelled as
-  one argument, keeps the argument past it for the flags.
+  one argument, must not have the path itself read as the flags.
 
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at
