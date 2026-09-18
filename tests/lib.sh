@@ -23,12 +23,16 @@ ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:$KTAP_SKIP"
 # A Lua error, or a kernel complaint a script's input should not be able to provoke;
 # arm64 heads an oops with "Internal error:", and a debug trap nobody owns with the BRK line.
 KTAP_ERRORS='\.lua:[0-9]+:|WARNING:|UBSAN:|Internal error:|Unexpected kernel BRK'
+# A thread body raising a bare errno carries no position for the pattern above to match, and
+# luathread spells its death and its three benign stops alike, so the level is what parts them.
+KTAP_ERRORS_ERR='luathread: \['
 
 mark_dmesg() { dmesg -C 2>/dev/null; }
 dmesg_since() { dmesg; }
 check_dmesg() {
 	local errs
 	errs=$(dmesg_since | grep -E "$KTAP_ERRORS" || true)
+	errs="$errs$(dmesg --level=err 2>/dev/null | grep -E "$KTAP_ERRORS_ERR" || true)"
 	[ -z "$errs" ] && return 0
 	ktap_fail "no Lua errors, kernel warnings or oopses"
 	echo "# $errs"
