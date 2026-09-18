@@ -11,6 +11,8 @@ local sk     = require("linux.socket")
 local timeval    = struct(sk.layout.timeval)
 local TIMEOUT_MS = 100
 local RCVBUF     = 32768
+-- past NETLINK_GET_STRICT_CHK, the last option name the netlink handler knows
+local NOSUCHOPT  = 255
 
 local sock = socket.new(sk.af.NETLINK, sk.sock.RAW, 0)
 
@@ -21,8 +23,19 @@ print("socket setsockopt: integer option set")
 -- string value: a packed struct payload; no data ever arrives, so a bounded
 -- receive must return (raise), not hang
 sock:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
-local ok = pcall(sock.receive, sock, 16)
-sock:close()
+local ok, err = pcall(sock.receive, sock, 16)
 assert(not ok, "receive should have timed out")
 print("socket setsockopt: bounded receive returned")
+
+-- a level the socket's protocol handler does not own: the option name is one
+-- it would take at SOL_SOCKET, so the level alone is what refuses it
+ok, err = pcall(sock.setsockopt, sock, sk.sol.TCP, sk.so.RCVBUF, RCVBUF)
+assert(not ok and err == "ENOPROTOOPT", "unknown level should raise ENOPROTOOPT, got " .. tostring(err))
+print("socket setsockopt: unknown level refused")
+
+ok, err = pcall(sock.setsockopt, sock, sk.sol.NETLINK, NOSUCHOPT, 0)
+assert(not ok and err == "ENOPROTOOPT", "unknown option name should raise ENOPROTOOPT, got " .. tostring(err))
+print("socket setsockopt: unknown option name refused")
+
+sock:close()
 

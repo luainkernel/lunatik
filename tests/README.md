@@ -172,6 +172,12 @@ read its own files.
   and the composite and private names the curated `include` list drops
   (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_IN_IGNORED`,
   `FS_DN_MULTISHOT`) are absent.
+- **socket**: `linux.socket.tcp` carries every TCP option name at its
+  `uapi/linux/tcp.h` value, each entry is a distinct positive option
+  number, and the aliases and non-option constants a bare `TCP_` prefix
+  would take (`TCP_CM_INQ`, `TCP_MSS_DEFAULT`, `TCP_NLA_PAD`,
+  `TCP_CA_Open`, `TCP_FLAG_SYN`, ...) are absent; `linux.socket.sol`
+  resolves the levels `setsockopt` routes on, `SOCKET`, `TCP` and `TLS`.
 
 ### monitor
 
@@ -510,7 +516,9 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
 - **setsockopt**: `socket:setsockopt()` sets an integer option (`SO_RCVBUF`)
   and a packed struct option (`SO_RCVTIMEO_NEW` built with the `timeval`
   layout codec); with the receive timeout set, a receive with no data returns
-  (raises) instead of blocking forever.
+  (raises) instead of blocking forever. A level the socket's protocol handler
+  does not own, and an option name that handler does not know, each raise
+  `ENOPROTOOPT`.
 
 - **connect**: which argument `socket:connect()` reads as its flags. An AF_INET
   address is spelled as two arguments, so a call with no flags must not have its
@@ -518,6 +526,13 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   `O_NONBLOCK` bit, and a port read as flags answers `EINPROGRESS` instead. A flag
   given past the port must still reach the kernel, and an AF_UNIX path, spelled as
   one argument, must not have the path itself read as the flags.
+
+- **ulp**: `SOL_TCP`/`TCP_ULP` with the name `tls` raises `ENOTCONN` on a
+  socket that was never connected, takes on one connected to a loopback
+  listener bound to port 0, and raises `EEXIST` the second time, which is
+  what says the first attach took: a script has no `getsockopt` to read
+  the ULP name back with. Skipped where the `tls` ULP is neither
+  registered nor loadable.
 
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at
