@@ -88,10 +88,19 @@ keyed cases, since they are the ones that would take the host down if the send w
 
 ### Phase 6: examples
 
+Each example is driven by a case of the suite its module belongs to, rather than by a suite of their
+own: there is no `examples` module to test, and a case that drives `examples/tls_connect` is reading
+the same upcall `tests/handshake/` already reads.
+
 | Test | Proves |
 |------|--------|
-| `example_connect.sh` | the client example runs against a local TLS server (skips without `tlshd`) |
-| `example_tunnel.sh` | the tunnel example forwards a request and stops cleanly (fixed-vector kTLS, no `tlshd`) |
+| `tests/handshake/example_connect.sh` | the `examples/tls_connect` script the tree installs reaches the upcall: with a listener holding the port it dials and no agent on the host, the run says exactly `ESRCH`. Skips where `tlshd` is installed or running, and where the example is not installed |
+| `tests/tunnel/example_tunnel.sh` | the `examples/tlstunnel` pair the tree installs relays a request to its keyed upstream, which reports the record type it arrived in, carries the reply back, puts both payloads through the transform, and stops within a measured bound. Skips where the example is not installed, or the `tls` ULP is neither registered nor loadable |
+
+`example_connect.sh` skips **with** an agent, the way `upcall.sh` and `socket_tls.sh` do: with none
+the upcall answers `ESRCH` deterministically, which is a real assertion about the example, and an
+installed agent is what would change the outcome. A case that only ever skips, on every host in
+reach, proves nothing.
 
 ## Conventions to follow
 
