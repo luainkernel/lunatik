@@ -61,7 +61,7 @@ logged "] $MESSAGE" || fail "a thread body that raises a table is not in the ker
 ktap_pass "a thread body that raises a table is logged with the message"
 
 cleanup
-check_dmesg && ktap_pass "no Lua errors, kernel warnings or oopses"
+check_dmesg "luathread: \[[0-9a-f]+\] $MESSAGE$" && ktap_pass "no Lua errors, kernel warnings or oopses"
 
 ktap_totals
 

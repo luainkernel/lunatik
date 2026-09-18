@@ -2089,6 +2089,14 @@ Regression tests for `luathread`.
   creator there makes that stop, so the test skips unless the loaded `lunatik`
   lists `lunatik_deferirq` in `/proc/kallsyms`.
 
+- **died**: a body raising a bare errno re-raises at level 0, so its message
+  carries no position and the Lua pattern cannot match it; `luathread`'s own
+  log is what names the death, at error level. Its three benign stops carry the
+  same text at warning level, and the second case writes one of those itself,
+  since a thread stopped before it was ever scheduled is not on demand. Without
+  the first every suite that spawns stays green over a thread that died;
+  without the second a check on the text alone fails `name.sh` at random.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call

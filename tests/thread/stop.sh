@@ -41,6 +41,7 @@
 # Usage: sudo bash tests/thread/stop.sh
 
 SCRIPT="tests/thread/stop"
+RAISED="luathread: \[[0-9a-f]+\] the body raises$"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 source "$(dirname "$(readlink -f "$0")")/driver.sh"
@@ -64,7 +65,7 @@ verdict "raised" "stop returns false when the body raised"
 verdict "finalized" "a stop from a finalizer of the runtime the stop closes returns true"
 verdict "concurrent" "a stop of a thread another stop holds returns true at once, and task reads no task"
 
-check_dmesg && ktap_pass "no Lua errors in kernel"
+check_dmesg "$RAISED" && ktap_pass "no Lua errors in kernel"
 
 ktap_totals
 
