@@ -821,6 +821,25 @@ instead of leaving the device wedged.
   which a relay that ignores the zero-length read never does; and a softirq
   runtime is refused, the relay being a kernel thread over sleepable calls.
 
+- **stall**: that a relay whose destination stopped reading can still be
+  stopped. The peer locks a small receive buffer on the far end of the relay's
+  send, never reads it, and pushes until its own bounded sends stop making
+  progress; the relay is then inside a send it cannot finish on every pass, and
+  the absence of its end-of-file marker says it had not ended before the
+  measured `stop`. What returns that send on a kernel from 6.1 is not the
+  `SO_SNDTIMEO` `tunnel.body` installs but the `TIF_NOTIFY_SIGNAL` that
+  `kthread_stop` raises, which `sk_stream_wait_memory`'s `signal_pending` check
+  reads; below 6.1 there is no such flag and `wait_woken` returns its timeout
+  unchanged once the thread is asked to stop, so the bound ends that wait no
+  more than the missing signal does. The first case pins the property, not the
+  mechanism, and nothing in it discriminates on the bound. That signal ends the
+  send with `EINTR` and nothing copied, which is the stop and not a failure, so
+  the second case is that the body returns from it rather than propagating it:
+  the end-of-relay marker is printed after `tunnel.body` returns, and a relay
+  that died there never prints it. This relay takes a send bound two hundred
+  times the idle yield, so the stop lands inside the send and not between two
+  of them.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call
