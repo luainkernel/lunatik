@@ -37,6 +37,9 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
 
 # Fixups
 
+- One finding in the working tree at a time: edit, commit, next. Two findings edited together are
+  told apart afterwards by a reset and a cherry-pick, which is where a hunk lands in the wrong
+  fixup.
 - `bash tools/checks/idioms.sh` over the C files the diff touches and
   `bash tools/checks/author-email.sh origin/master..HEAD` over the branch are passes of the first
   round, not of the second: #850's maintainer asked for the argcheck, the `lunatik_try` and the
