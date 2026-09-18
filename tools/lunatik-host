@@ -22,12 +22,15 @@
 #
 # Usage: bash tools/lunatik-host <command>...
 
-LOCK=${LUNATIK_HOST_LOCK:-/tmp/lunatik-host.lock}
+LOCK=${LUNATIK_HOST_LOCK:-/tmp/lunatik-host/lock}
 WAIT=${LUNATIK_HOST_WAIT:-3600}
 
 [ $# -gt 0 ] || { echo "usage: $0 <command>..."; exit 1; }
 
-exec 9>> "$LOCK" || { echo "cannot open $LOCK"; exit 1; } # append: the holder's note is not truncated
+# a directory of its own, not the sticky /tmp: there protected_regular denies root a file another
+# user created, and the wrapper runs as the user in one session and under sudo in the next
+umask 000
+mkdir -p "$(dirname "$LOCK")" && exec 9>> "$LOCK" || { echo "cannot open $LOCK"; exit 1; }
 
 if ! flock -n 9; then
 	echo "lunatik host held by: $(cat "$LOCK.holder" 2>/dev/null || echo "another session")"
