@@ -15,10 +15,10 @@ pair and exercise send/receive. This is exactly how the kernel's own kTLS selfte
 written on one end comes back decrypted on the other, with no negotiation. Use a published test vector
 (or any fixed key) for AES-GCM-128 and ChaCha20-Poly1305.
 
-**A skip gate for `tlshd`.** The handshake path (phase 4) needs the `tlshd` daemon and auth material in
-keyrings. The suite's `run.sh` checks for it once and reports `ktap_skip` per planned handshake test
-when it is absent, so a green run on a box without `tlshd` shows skips rather than a false pass. The
-development box does not have it.
+**A skip gate for `tlshd`.** Whether the daemon runs decides what the upcall answers, so a case that
+assumes no agent skips when one is installed or running, and a case that needs a completed handshake
+skips when one is not. Each script reports `ktap_skip` per case it drops, so a green run shows skips
+rather than a false pass. The development box does not have it.
 
 **A config gate for `CONFIG_TLS`.** Skip cleanly if `tls.ko` is unavailable.
 
@@ -58,13 +58,19 @@ userspace TLS at all, the second proves control records do not break reads. Send
 stimulus the receive case needs, so `close_notify` is a case of `record_type.sh` and not a file of its
 own, which would key the same session twice.
 
-### Phase 4: handshake (skips without `tlshd`)
+### Phase 4: handshake (no agent on the development box)
 
 | Test | Proves |
 |------|--------|
-| `handshake_anon.sh` | `handshake.client` on a connected socket to a local TLS server completes and yields a keyed socket (anon/encryption-only); skips if `tlshd` is absent |
-| `handshake_timeout.sh` | a handshake to a non-responding peer times out cleanly and the socket is usable/closable, not wedged |
-| `connect.sh` | `ktls.connect` performs connect + ULP + handshake and returns a socket that sends/receives plaintext against a local TLS echo server; skips without `tlshd` |
+| `tests/handshake/upcall.sh` | the request reaches `handshake_req_submit` carrying the `struct file` the agent is handed: `ESRCH` rather than `EINVAL` says the file is there, a socket never connected raises `ENOTCONN`, and a second hello on the same socket answers `ESRCH` again with a clean kernel log |
+| `tests/handshake/options.sh` | which hello the options pick, and what is refused before one is picked: a server hello with no credentials, more identities than `ta_my_peerids` holds, a `cert` with no `privkey`, an empty identity list the kernel's own psk arm refuses with `EINVAL`, and the option types and bounds that would otherwise reach the kernel truncated or as a zero |
+| `tests/handshake/context.sh` | a runtime that may not sleep is refused at the call with `runtime context mismatch`, rather than left to deadlock on the completion |
+| `tests/handshake/timeout.sh` | with a subscriber on the family's `tlshd` multicast group the submit succeeds, the wait runs out with `ETIMEDOUT`, the socket still closes, and closing the subscriber brings `ESRCH` back |
+| `tests/handshake/socket_tls.sh` | `socket.tls.connect` is the three calls it composes: with no agent the hello is where it stops, so `ESRCH` says the `socket.new` and the `connect` before it ran and the socket reached the upcall connected and filed, where a name the module spells wrong raises a Lua error and never reaches an errno |
+
+`upcall.sh`, `timeout.sh` and `socket_tls.sh` skip whole where `tlshd` is installed or running: an
+agent would accept the request and change every outcome. A completed handshake, and the keyed socket
+`socket.tls.connect` hands back, wait for a box carrying `ktls-utils`.
 
 ### Phase 5: the tunnel
 
@@ -86,7 +92,8 @@ hung machine, so prove `stop` before adding TLS.
 
 ## Conventions to follow
 
-* skip, do not fail, when the kernel lacks `CONFIG_TLS`, or when `tlshd` is absent;
+* skip, do not fail, when the kernel lacks `CONFIG_TLS`, or when whether `tlshd` runs decides the
+  outcome instead of the code;
 * mark `dmesg` before the run, read only what came after, and `check_dmesg` at the end;
 * clean up sockets and stop threads in a `trap`, and run the cleanup once up front;
 * `lunatik run` exits 0 even when the script fails to load — assert on output, never on exit status;
@@ -97,6 +104,7 @@ hung machine, so prove `stop` before adding TLS.
 
 The fixed-vector loopback pattern lets phases 1–3 and the TLS tunnel be tested with **no** `tlshd`, no
 certificates, and no real peer — the same shortcut the kernel selftest uses. It exercises the record
-layer and the whole Lua data path honestly; only the handshake delegation genuinely needs the daemon,
-and those tests skip when it is missing. Keep the vectors in the test, not in the library.
+layer and the whole Lua data path honestly; only a completed handshake genuinely needs the daemon,
+and the upcall itself is covered by which refusal comes back. Keep the vectors in the test, not in
+the library.
 

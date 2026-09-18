@@ -28,9 +28,10 @@ The AEAD is allocated when the keys are installed, so the last row is a limit on
 here: `linux.tls.cipher` names SM4 and ARIA, and installing one of those sessions on this box fails
 at `crypto_alloc_aead`.
 
-`tlshd` (from Oracle's `ktls-utils`) is **not installed** on the development box. The handshake path
-(phase 4) therefore cannot be exercised here without installing it; the keying and plaintext paths
-(phases 2–3) can, using fixed key vectors on a loopback pair.
+`tlshd` (from Oracle's `ktls-utils`) is **not installed** on the development box. A completed
+handshake therefore cannot be exercised here; what can, and is, is the submit path and which refusal
+comes back (phase 4). The keying and plaintext paths (phases 2–3) need no agent at all, using fixed
+key vectors on a loopback pair.
 
 ## Keying — the two-step setsockopt path
 
@@ -168,11 +169,50 @@ callback `tls_done_func_t(void *data, int status, key_serial_t peerid)` fires on
 Hard constraints:
 
 * `handshake_req_submit` returns `-EINVAL` without `sock->file` (`net/handshake/request.c:230`): the
-  binding must attach a `struct file` to the socket before submitting.
+  binding must attach a `struct file` to the socket before submitting, and the agent is handed that
+  same file (`fd_install(fd, get_file(sock->file))`, `netlink.c:125`). Past that test, a host with no
+  agent answers `-ESRCH` from `genl_has_listeners` (`netlink.c:47`), so which of the two comes back
+  says whether the file was attached.
+* **The file is permanent.** `sock_alloc_file` (`net/socket.c:461`) stores it in `sock->file` and
+  **releases the socket itself on failure** (`:471`), so a failed attach leaves a dangling private to
+  clear; and `__sock_release` returns without `iput` while `sock->file` is set (`:669`), leaving the
+  socket for the file's own put. A socket that took a file is released with `fput(sock->file)`, never
+  `sock_release` — `drivers/nvme/host/tcp.c:1390` is the precedent. `fput` defers through
+  `task_work_add` or the `delayed_fput` workqueue (`fs/file_table.c:480`), so it is safe from any
+  context.
 * The submit contract is clean: 0 guarantees exactly one callback; a negative return guarantees no
   callback and the request is already freed — safe to build a state machine on.
-* Mute `sk_data_ready` for the handshake and resume normal recv only after the callback
-  (`tls-handshake.rst`), so nothing races `tlshd`.
+* **A pending request holds the `sk`, not the socket.** `handshake_req_submit` ends with
+  `sock_hold(req->hr_sk)` (`request.c:272`) and nothing more, while `handshake_nl_accept_doit` takes
+  the socket back out of it — `sock = req->hr_sk->sk_socket` then
+  `fd_install(fd, get_file(sock->file))` (`netlink.c:112`, `:125`) — with no check between them. A
+  close meanwhile runs `__sock_release` → `inet_release` → `tcp_close`, whose `sock_orphan`
+  (`net/ipv4/tcp.c:3137`) NULLs `sk->sk_socket`. A consumer whose socket another thread can close
+  therefore holds the file reference for the whole request, not for the submit alone.
+* `tls_handshake_cancel` answers false when `handshake_complete` already won
+  `HANDSHAKE_F_REQ_COMPLETED` (`request.c:313`), which still owes exactly one callback. A caller whose
+  completion lives on its own stack waits that callback out rather than returning on the false. The
+  cancel never destroys the request, so it stays keyed on the socket in `handshake_rhashtbl` until
+  `handshake_sk_destruct` (`:86`) runs, and the next submit answers `-EBUSY` (`:257`): a retry after a
+  timeout needs a socket of its own.
+* The callback's `status` reaches the consumer through `tls_handshake_done`'s `-status`
+  (`tlshd.c:107`), so the agent's own errno arrives negative while
+  `handshake_nl_accept_doit`'s internal `handshake_complete(req, -EIO, NULL)` (`netlink.c:131`) comes
+  back out positive. `-abs(status)` covers both.
+* `tls_client_hello_psk` refuses `ta_num_peerids` outside 1..5 with `-EINVAL` before it allocates
+  (`tlshd.c:340`); `tls_server_hello_psk` takes `ta_my_peerids[0]` and checks nothing.
+* `ta_peername` is stored by pointer (`tlshd.c:53`) and read when the agent accepts (`:222`), after
+  the submitting call has returned, so the caller keeps the string alive.
+* **The ULP is the agent's to attach.** `Documentation/networking/tls-handshake.rst:37` — `tlshd`
+  promotes the socket and installs the keys itself, and neither in-tree consumer mentions `TCP_ULP` at
+  v6.12. A ULP already on the socket makes the agent's own attach `-EEXIST`.
+* **`sk_data_ready` is not the consumer's to mute.** The documentation asks a consumer to suppress its
+  own receive path, and that is what the consumers do: `xs_data_ready`
+  (`net/sunrpc/xprtsock.c:1449`) calls the protocol default first and only then skips queueing its own
+  worker, and NVMe-TCP installs `nvme_tcp_data_ready` only after `nvme_tcp_start_tls` returns
+  (`drivers/nvme/host/tcp.c:1862`, reached from `nvme_tcp_start_queue`, against the handshake at
+  `:1790`). Lunatik installs none, and a no-op one would stop
+  waking `tlshd`'s own blocking reads on the file it was handed.
 * In-tree consumers submit then `wait_for_completion_interruptible_timeout` — in Lunatik this is a
   **sleepable** (`spawn`/process) runtime, never softirq.
 * `tlshd` must run in the socket's network namespace; auth material (certs, PSKs) lives in kernel
@@ -200,7 +240,11 @@ Hard constraints:
 * kernel socket I/O: `net/socket.c:787` (`kernel_sendmsg`), `:1093` (`kernel_recvmsg`), `:2301`
   (`do_sock_setsockopt`, exported at `:2340`)
 * handshake upcall: `include/net/handshake.h`, `net/handshake/tlshd.c` (exports), `request.c:223`
-  (`handshake_req_submit`), doc `Documentation/networking/tls-handshake.rst`
+  (`handshake_req_submit`), `:286` (`handshake_complete`), `:313` (`handshake_req_cancel`),
+  `net/handshake/netlink.c:47` (`genl_has_listeners`), `:125` (`fd_install`), doc
+  `Documentation/networking/tls-handshake.rst`
+* the socket's file: `net/socket.c:461` (`sock_alloc_file`), `:649` (`__sock_release`),
+  `fs/file_table.c:480` (`fput`)
 * alert/record readers: `net/handshake/alert.c` (`tls_get_record_type`, `tls_alert_recv`, exported;
   `tls_alert_send`, not exported), `include/net/tls_prot.h` (the `TLS_RECORD_TYPE_*` and `TLS_ALERT_*`
   names)

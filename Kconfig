@@ -203,5 +203,13 @@ config LUNATIK_FSNOTIFY
 	  Filesystem event notification from Lua scripts: marks on inodes
 	  and the events they report delivered to a Lua callback.
 
+config LUNATIK_HANDSHAKE
+	tristate "Lunatik TLS Handshake Support"
+	default m
+	depends on NET_HANDSHAKE
+	help
+	  TLS handshakes performed on a Lua socket by the userspace
+	  agent (tlshd), which keys the socket for kTLS.
+
 endif
 

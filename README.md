@@ -132,9 +132,10 @@ Install and run the test suites:
 sudo make install
 sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (bpf, crypto, data, fifo,
-                            # fsnotify, hid, io, linux, monitor, netlink,
-                            # notifier, probe, rcu, runtime, sched, set, skb,
-                            # socket, struct, task, tc, thread, tls, xdp)
+                            # fsnotify, handshake, hid, io, linux, monitor,
+                            # netlink, notifier, probe, rcu, runtime, sched,
+                            # set, skb, socket, struct, task, tc, thread, tls,
+                            # xdp)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them
@@ -214,6 +215,7 @@ The table below lists the available kernel Lua modules:
 | `lighten` | Lua interface for running encrypted scripts via `darken` |
 | `notifier` | Kernel notifier chain registration |
 | `fsnotify` | Filesystem notification: inode marks and their events |
+| `handshake` | TLS handshakes performed on a socket by the `tlshd` agent |
 | `lunatik.runner` | Run, spawn, and stop scripts from within Lua |
 | `net` | Networking helpers |
 | `mailbox` | Asynchronous inter-runtime messaging |
@@ -646,6 +648,31 @@ cpu_usage_system{cpu="cpu0"} 0.0000000000000000 1764094519529162
 cpu_usage_idle{cpu="cpu1"} 100.0000000000000000 1764094519529162
 cpu_usage_idle{cpu="cpu0"} 100.0000000000000000 1764094519529162
 ...
+```
+
+### tls_connect
+
+[tls_connect](examples/tls_connect.lua)
+is a kernel script that opens a TLS connection with `socket.tls`, sends an HTTP
+request over it and prints the first line of the reply. The handshake is
+performed by [tlshd](https://github.com/oracle/ktls-utils), the userspace agent
+the kernel asks through its handshake upcall; the agent also attaches the `tls`
+ULP and installs the keys, so the script only reads and writes plaintext.
+
+`tlshd` has to be installed and running, or the upcall answers `ESRCH`. Below
+6.14 the kernel does not process a TLS 1.3 KeyUpdate, so a session whose peer
+sends one stops being readable; a server that never rekeys, or TLS 1.2, avoids
+it.
+
+#### Usage
+
+```
+sudo apt install ktls-utils                   # installs tlshd
+sudo systemctl start tlshd
+openssl s_server -accept 4433 -cert cert.pem -key key.pem -www &
+sudo make examples_install                    # installs examples
+sudo lunatik run examples/tls_connect         # connects and prints the reply
+sudo journalctl -ft kernel
 ```
 
 ## References

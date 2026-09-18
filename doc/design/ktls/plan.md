@@ -15,9 +15,10 @@ and every phase past `socket:setsockopt` is new code.
    keyed socket — no in-kernel handshake, no forked `net/tls`.
 4. Composing the above: a TLS tunnel written in Lua — a spawned kernel thread that splices decrypted
    plaintext between two sockets (one or both kTLS), the in-kernel TLS tunnel use case.
-5. Examples plus a KTAP suite: a client `ktls.connect` example and a tunnel example, plus tests that
-   key a loopback kTLS session with known vectors (no `tlshd` required) and exercise send, receive and
-   alerts; the real-handshake test skips when the daemon is absent.
+5. Examples plus a KTAP suite: a client `socket.tls.connect` example and a tunnel example, plus
+   tests that key a loopback kTLS session with known vectors (no `tlshd` required) and exercise send,
+   receive and alerts; the handshake tests read which refusal the upcall gives and skip where an
+   installed daemon would answer instead.
 
 ## Where we are today
 
@@ -32,10 +33,11 @@ has been reworked heavily since 5.4, a per-socket raw `lua_State` predates the w
 model, and the report itself measured it slower than userspace Lua + kTLS. It is a design reference,
 not a base.
 
-**The in-tree-native approach that patches nothing** is what this project builds, and phases 1 to 3
+**The in-tree-native approach that patches nothing** is what this project builds, and phases 1 to 4
 are in the repository today: `lib/luasocket.c` carries `sock:setsockopt(level, optname, optval)`
 (`42c543ad4`) and the record-type methods, with `linux.socket.tcp` and `linux.tls` emitted by
-`autogen/specs.lua` and `lib/tls.lua` over them.
+`autogen/specs.lua` and `lib/tls.lua` over them; `lib/luahandshake.c` binds the upcall and
+`lib/socket/tls.lua` is the client over it.
 
 Earlier notes described a parked `claude_tls` branch holding a `lib/luatls.c` packer, a
 `lib/luahandshake.c` upcall binding and a `lib/ktls.lua` client, to be rebased in. No such branch
@@ -48,19 +50,20 @@ every phase below writes its own code.
 |-----------------|-----|
 | Key a socket for kTLS | Closed by phases 1 and 2: `linux.socket.tcp.ULP` names the option and `tls.pack` builds the `tls12_crypto_info_*` blob over `sock:setsockopt`. |
 | Plaintext I/O with control records | Closed by phase 3: `sock:receiverecord` carries the `msg_control` buffer and `sock:sendrecord` emits a record of a chosen type, with `tls.record` and `tls.close_notify` over them. |
-| Handshake upcall | Nothing binds `tls_client_hello_*`, and the socket+file plumbing it needs is not spelled out. |
+| Handshake upcall | Closed by phase 4: `handshake.client` and `handshake.server` fill `tls_handshake_args` and wait the completion out, over the `struct file` `luasocket_openfile` attaches. |
 | The tunnel | Nothing splices plaintext between two sockets. |
-| Tests and examples | Nothing covers keying with fixed vectors, alerts, or a tunnel. |
+| Tests and examples | Closed through phase 4: `tests/tls/` keys with fixed vectors and exercises the data path and alerts, `tests/handshake/` covers the upcall, and `examples/tls_connect.lua` is the client. Nothing covers a tunnel. |
 
 Supporting gaps:
 
 * `linux.socket.sol.TLS` is already emitted, since `SOL_TLS` is in `linux/socket.h` and the `SOL_`
   spec covers it; `TCP_ULP` (`uapi/linux/tcp.h`) and `TLS_TX` / `TLS_RX` (`uapi/linux/tls.h`) have
   no spec;
-* the handshake upcall needs a connected `struct socket` **with a `struct file` attached**, which the
-  socket binding must be able to provide;
-* `tlshd` is not part of the repo's test environment, so the real-handshake path is not testable
-  without installing `ktls-utils`.
+* the handshake upcall needs a connected `struct socket` **with a `struct file` attached**, and that
+  file is permanent: `__sock_release` leaves a filed socket to the file, so a socket that took one is
+  released through `fput` and never `sock_release`;
+* `tlshd` is not part of the repo's test environment, so a completed handshake is not testable
+  without installing `ktls-utils`; the submit path and the refusals around it are.
 
 ## Shape of the work
 
@@ -120,10 +123,11 @@ all. This is the phase that makes the socket usable as a data path, not just key
 
 ### Phase 4: the handshake upcall
 
-The `handshake` module binding `tls_client_hello_*` / `tls_server_hello_*`: build a connected socket
-with a `struct file`, fill `tls_handshake_args`, submit, and wait on a completion in a sleepable
-runtime while `tlshd` negotiates and keys the socket. Mute `sk_data_ready` for the duration. Land the
-`ktls.connect` client example. Tests skip cleanly when `tlshd` is not installed.
+The `handshake` module binding `tls_client_hello_*` / `tls_server_hello_*`: attach a `struct file` to
+the connected socket, fill `tls_handshake_args`, submit, and wait on a completion in a sleepable
+runtime while `tlshd` negotiates and keys the socket. The agent attaches the `tls` ULP itself, so the
+binding does not, and it installs no `sk_data_ready` of its own. Land the `socket.tls.connect` client
+example. The tests read which refusal the upcall gives on a host carrying no agent.
 
 ### Phase 5: the TLS tunnel
 
@@ -175,7 +179,7 @@ dependency (keys installed directly). Phase 4 onward brings in `tlshd` for real 
 |------|-----------|
 | An unbounded `recv` in a kthread hangs the machine (the strparser does not check `kthread_should_stop`) | Every receive is bounded (`MSG_DONTWAIT` / `SO_RCVTIMEO_NEW`) and the loop polls `shouldstop()`; this is a hard rule, tested in phase 5. |
 | Control records error `-EIO` without a `msg_control` buffer | Phase 3 adds a read that carries one, `sock:receiverecord`; plain `receive` still meets the `-EIO`, which is documented on both and pinned by a test. |
-| Handshake upcall needs a `struct socket` with a `struct file` and a running `tlshd` | Phase 4 builds the file plumbing explicitly; tests skip when `tlshd` is absent, and the phase-3 path (manual keys) needs neither. |
+| Handshake upcall needs a `struct socket` with a `struct file` and a running `tlshd` | Phase 4 attaches the file and keeps it, releasing a filed socket through `fput`; its tests cover the submit path with no agent and skip where an installed one would answer, and the phase-3 path (manual keys) needs neither. |
 | TLS 1.3 KeyUpdate is unsupported before kernel 6.14 | Documented; long-lived 1.3 sessions that re-key are out of scope on older kernels, and tests note it. |
 | kTLS key/nonce reuse is not checked by the kernel | Documented as a caller responsibility; the packer does not invent sequence numbers. |
 
@@ -185,7 +189,8 @@ dependency (keys installed directly). Phase 4 onward brings in `tlshd` for real 
 2. LDoc on every new function and object type; new modules listed in `config.ld` in alphabetical order;
 3. a row in the README module table;
 4. a test in the right suite, wired into its `run.sh`, and described in `tests/README.md`;
-5. the test skips (not fails) when the kernel lacks the config, or when `tlshd` is absent;
+5. the test skips (not fails) when the kernel lacks the config, or when whether `tlshd` runs decides
+   the outcome instead of the code;
 6. the full suite still passes: `sudo lunatik test`;
 7. error paths audited: for every raise, whatever was acquired is released;
 8. commits are small and each one stands alone.
