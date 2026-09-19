@@ -55,3 +55,4 @@ cd ../../../ && make clean && make -j"${CPU_CORES}" libxdp &&\
 cd xdp-loader && make && sudo make install || exit 1
 
 rm -r /usr/local/src/"linux-${KERNEL_VERSION}"
+
