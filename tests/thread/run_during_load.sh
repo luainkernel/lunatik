@@ -3,7 +3,8 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Regression test: calling runner.spawn() during module load must not hang.
+# Regression test: calling runner.spawn() during module load must not hang,
+# and the runtime the refused spawn created must not stay registered.
 #
 # Prior to the fix, thread.run() (invoked by runner.spawn) called kthread_run()
 # which blocks in wait_for_completion() during script load, hanging the system.
@@ -13,13 +14,14 @@
 # Usage: sudo bash tests/thread/run_during_load.sh
 
 SCRIPT="tests/thread/run_during_load"
+DUMMY="tests/thread/dummy"
 TIMEOUT=5
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
 	lunatik stop "$SCRIPT"          2>/dev/null
-	lunatik stop "tests/thread/dummy" 2>/dev/null
+	lunatik stop "$DUMMY"           2>/dev/null
 }
 trap cleanup EXIT
 cleanup
@@ -34,6 +36,10 @@ echo "$output" | sed 's/^/# (expected) /'
 
 echo "$output" | grep -q "not allowed during module load" || \
 	fail "expected 'not allowed during module load' error not found"
+listed=$(lunatik list)
+case "$listed" in
+	*"$DUMMY"*) fail "the refused spawn left the runtime registered: $listed" ;;
+esac
 ktap_pass "runner.spawn() during module load returns error instead of hanging"
 
 ktap_totals

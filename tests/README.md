@@ -645,6 +645,12 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   at load, naming percpu, with a clean rollback, and the same script
   runs as a plain runtime: `device.new`, whose registration is global.
 
+- **spawn_refuse**: a spawn whose thread cannot start leaves nothing
+  registered. A runtime created for `softirq` or `hardirq` is refused by
+  `thread.run`, which cannot start a thread on an IRQ runtime, and `lunatik
+  list` must be empty afterwards; the same script spawns and stops as a
+  process runtime.
+
 - **percpu_netfilter**: the runtimes of a percpu script share one
   `LOCAL_IN` hook: with the ping pinned to the last online CPU, each marked
   request is counted exactly once, by the runtime of that CPU; a burst that
@@ -830,7 +836,8 @@ Regression tests for `luathread`.
   objects than `LUA_MINSTACK`, which the body sees in order.
 
 - **run_during_load**: `runner.spawn()` called from a script's top-level
-  code must error instead of hanging the kernel.
+  code must error instead of hanging the kernel, and leave the runtime it
+  created unregistered.
 
 - **name**: the name `thread.run()` is given reaches the kernel task as
   written, conversions included, instead of being taken as the format.
