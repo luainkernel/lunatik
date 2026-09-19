@@ -484,6 +484,12 @@ the state, where a boolean stored on an existing node cannot.
   event's frame kept the accessing task's pid for an accessor that only ever runs inside the callback,
   in that task, where `current` answers. The same holds for a wrapper written to fit a macro whose
   varargs already take the call, `lunatik_attach(L, obj, field, lunatik_newobject, &class, 0, opt)`.
+* A kernel version guard puts the current kernel's code in its `#if` arm and the older kernel's in
+  `#else`, tested with `>=` on the version that introduced the API, or on the macro that arrived
+  with it where a stable series backports the change: raising the floor then deletes `#else` arms
+  and touches no line that stays. `lunatik_pusherrname` is the shape, `errname` in the `#if` arm
+  and the `%pe` fallback below it; `#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 19, 0))` with the
+  current call in `#else` is the inversion `idioms.sh` names.
 * An errno crosses the C code negative, as the kernel returns it: `lunatik_throw(L, -EINVAL)`, or the
   raw return of the call that failed. The single normalisation is at the Lua boundary, where
   `lunatik_pusherrname` takes the absolute value.
