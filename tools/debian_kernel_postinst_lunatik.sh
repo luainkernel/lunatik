@@ -9,11 +9,11 @@ KERNEL_VERSION_MAJOR=$(echo "${KERNEL_VERSION}" | grep -o '^[0-9]*')
 CPU_CORES=$(grep -m1 'cpu cores' /proc/cpuinfo | grep -o '[0-9]*$' || echo 1)
 echo "Installing Lunatik for kernel version ${KERNEL_VERSION} release {$KERNEL_RELEASE}"
 
-echo "Checking git linux-headers-${KERNEL_RELEASE} lua5.4 clang llvm libelf-dev libpcap-dev pahole are installed..."
+echo "Checking git linux-headers-${KERNEL_RELEASE} lua5.5 clang llvm libelf-dev libpcap-dev pahole are installed..."
 dpkg --get-selections | grep 'git\s' | grep install &&\
 dpkg --get-selections | grep "linux-headers-${KERNEL_RELEASE}\s" | grep install &&\
 #dpkg --get-selections | grep 'linux-tools-generic\s' | grep install &&\
-dpkg --get-selections | grep 'lua5.4\s' | grep install &&\
+dpkg --get-selections | grep 'lua5.5\s' | grep install &&\
 dpkg --get-selections | grep 'clang\s' | grep install &&\
 dpkg --get-selections | grep 'llvm\s' | grep install &&\
 dpkg --get-selections | grep 'libelf-dev' | grep install &&\
@@ -55,3 +55,4 @@ cd ../../../ && make clean && make -j"${CPU_CORES}" libxdp &&\
 cd xdp-loader && make && sudo make install || exit 1
 
 rm -r /usr/local/src/"linux-${KERNEL_VERSION}"
+
