@@ -105,7 +105,7 @@ worktree created for it (`git worktree add`, then `git submodule update --init`)
 end, with `rm -rf` and `git worktree prune`, since `git worktree remove` refuses a tree with
 submodules. Each one left behind carries a build on the disk every session shares, and a build that
 stops halfway on a full disk leaves the previous install in place for the suite to measure:
-`tools/checks/disk.sh` fails below a free-space threshold and names the largest scratch worktrees, and
+`tools/checks/disk.sh` fails below a free-space threshold and names the largest worktrees, and
 `tools/lunatik-host` runs it as a warning before every cycle. A `git checkout` carries what is uncommitted onto the new HEAD, where an edit made against the
 old base reads as a change to the new one: switch branches in a tree with nothing pending, or read
 the other branch in a worktree of its own. `git stash` has no place here at all: the stack belongs
