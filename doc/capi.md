@@ -423,6 +423,32 @@ Pushes the value stored in `LUA_REGISTRYINDEX` at `key` and returns it as a Luna
 registered (an `skb`, a handle) reads it through this rather than through `lunatik_toobject`,
 which does not check.
 
+### lunatik\_setflag
+```C
+void lunatik_setflag(lua_State *L, const void *key, bool on);
+```
+Stores `on` in `LUA_REGISTRYINDEX` at `key`, where a binding keeps a fact its own dispatcher sets
+and its own code reads, such as a callback of this state being on the stack. The key is the
+binding's own `static const char`, so one binding's callback does not answer for another's, and the
+registry is one per state, so every coroutine of it reads the same slot. A dispatcher that sets the
+flag outside a protected call seeds the key in its constructor, with `lunatik_seedflag`.
+
+### lunatik\_getflag
+```C
+bool lunatik_getflag(lua_State *L, const void *key);
+```
+Returns the flag stored at `key`, `false` where nothing is stored, and leaves the stack as it found
+it.
+
+### lunatik\_seedflag
+```C
+void lunatik_seedflag(lua_State *L, const void *key);
+```
+Writes the flag back to itself, so the registry node exists without what it says changing and the
+writes made at that key afterwards cannot insert. It is the write that can insert, rehash, fail to
+allocate and abort the state, so a constructor calls it, where a protected call is on the stack. It
+preserves the value because a constructor reached from inside the callback must leave the flag set.
+
 ### lunatik\_attach
 ```C
 void lunatik_attach(lua_State *L, obj, field, new_fn, ...);
