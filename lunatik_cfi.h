@@ -17,8 +17,8 @@
 #include <linux/irqflags.h>
 #include <linux/version.h>
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
-#define is_endbr	__is_endbr
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
+#define __is_endbr	is_endbr
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
@@ -29,7 +29,7 @@
 static inline void *lunatik_cfi_entry(void *addr)
 {
 	u32 *prefix = (u32 *)((unsigned long)addr - ENDBR_INSN_SIZE);
-	return is_endbr(*prefix) ? (void *)prefix : addr;
+	return __is_endbr(*prefix) ? (void *)prefix : addr;
 }
 
 /* MSR_IA32_S_CET is per-CPU; caller must pin the task. */
