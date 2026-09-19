@@ -397,6 +397,17 @@ higher-level `netlink.*` modules built on top of it.
   the flag; one created, brought up and deleted afterwards is reported live,
   none under it; and none is flagged once the registration has returned.
 
+- **inside**: `notifier.netdevice` from inside a netdevice callback is refused,
+  in both the contexts the callback runs in: the replay the registration
+  delivers on its own task, and a live event on another task. A coroutine
+  resumed from the callback is refused too, since the flag lives in the Lua
+  registry every coroutine of the state shares and not in the per-coroutine
+  extra space; a registration made once the callback has returned, or raised, is
+  accepted, and `stop()` from inside the callback is accepted and ends delivery.
+  A tree without the guard wedges the host rather than failing the test, so it
+  never runs against one: the discrimination is the message it asserts, and those
+  last three cases.
+
 - **chain_continues**: a netdevice block whose runtime is being torn down
   returns `notify.DONE`, not the `-ENXIO` of `lunatik_run`, whose
   `NOTIFY_STOP_MASK` bit stopped the chain: a device created while one
