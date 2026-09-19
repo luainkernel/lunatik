@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Checks a pull request body against AGENTS.md, "Patches and commits": at most three
-# paragraphs, the first one the failure or the need, no em dash and no "Test plan"
-# section. Takes the body file; prints what fails and exits 1, silent otherwise. The
-# footer an assistant appends (a line opening with an emoji) does not count.
+# paragraphs, the first one the failure or the need, no em dash, no "Test plan" section,
+# and no failure named as a flake (untraced.sh). Takes the body file; prints what fails
+# and exits 1, silent otherwise. The footer an assistant appends (a line opening with an
+# emoji) does not count.
 
 status=0
 for file in "$@"; do
