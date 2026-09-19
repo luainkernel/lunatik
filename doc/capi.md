@@ -394,6 +394,20 @@ luafoo_reset(o, ...);                       // update the wrapped pointer
 lunatik_detach(runtime, obj, field)         // unregisters and nulls obj->field
 ```
 
+### lunatik\_register
+```C
+void lunatik_register(lua_State *L, int ix, const void *key);
+```
+Stores the value at stack index `ix` in `LUA_REGISTRYINDEX` at `key` and leaves the stack as it
+found it. `key` is an address the caller owns for the life of the entry: an object's `private`, or
+a `static const char` the binding declares for a slot of its own.
+
+### lunatik\_unregister
+```C
+void lunatik_unregister(lua_State *L, const void *key);
+```
+Removes the value stored in `LUA_REGISTRYINDEX` at `key`.
+
 ### lunatik\_registerobject
 ```C
 void lunatik_registerobject(lua_State *L, int ix, lunatik_object_t *object);
