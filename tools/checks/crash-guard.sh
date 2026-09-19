@@ -11,9 +11,11 @@
 
 input=$(cat)
 
+. "$(dirname "$0")/commands.sh"
+
 case "$input" in
-	*"make install"*|*"lunatik reload"*|*"lunatik run"*|*"lunatik spawn"*|*"lunatik test"*|*"bash tests/"*|*"/run.sh"*|*"watchdog.sh"*) ;;
-	*) exit 0 ;;
+	*"make install"*|*"lunatik reload"*|*"lunatik run"*|*"lunatik spawn"*|*"lunatik test"*|*"bash tests/"*|*"watchdog.sh"*) ;;
+	*) runs_suite "$input" || exit 0 ;;
 esac
 
 case "$input" in

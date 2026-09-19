@@ -222,7 +222,10 @@ was read for what it was.
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run or a suite, while another operation is on it, naming the processes it found; a process in
 D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once
-what it lists is known to be stale.
+what it lists is known to be stale. What a command runs is read by `commands.sh`, which the lock and
+`crash-guard.sh` share: a suite's `run.sh` counts when it is the command, bare or under `sudo`, `bash`
+or `sh`, and not when a path to it is handed to `git` or to a check, which the bare substring read as a
+run four times in one afternoon.
 
 `tools/watchdog.sh` runs a script and stops it when the host loses the connectivity it had before the
 run, comparing against the loopback and the default route's gateway and holding nothing against the
