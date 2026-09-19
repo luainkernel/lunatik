@@ -430,7 +430,8 @@ void lunatik_setflag(lua_State *L, const void *key, bool on);
 Stores `on` in `LUA_REGISTRYINDEX` at `key`, where a binding keeps a fact its own dispatcher sets
 and its own code reads, such as a callback of this state being on the stack. The key is the
 binding's own `static const char`, so one binding's callback does not answer for another's, and the
-registry is one per state, so every coroutine of it reads the same slot.
+registry is one per state, so every coroutine of it reads the same slot. A dispatcher that sets the
+flag outside a protected call seeds the key in its constructor, with `lunatik_seedflag`.
 
 ### lunatik\_getflag
 ```C
@@ -443,11 +444,10 @@ it.
 ```C
 void lunatik_seedflag(lua_State *L, const void *key);
 ```
-Writes the flag back to itself, so the registry node exists without what it says changing. A
-dispatcher sets the flag around its `lua_pcall`, outside any protected call, where a first
-insertion that rehashes and fails to allocate aborts the state; a constructor calls this, where a
-protected call is on the stack. It preserves the value because a constructor reached from inside
-the callback must leave the flag set.
+Writes the flag back to itself, so the registry node exists without what it says changing and the
+writes made at that key afterwards cannot insert. It is the write that can insert, rehash, fail to
+allocate and abort the state, so a constructor calls it, where a protected call is on the stack. It
+preserves the value because a constructor reached from inside the callback must leave the flag set.
 
 ### lunatik\_attach
 ```C
