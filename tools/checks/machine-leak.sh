@@ -41,6 +41,7 @@ if [ -n "$LUNATIK_CONSUMERS" ]; then
 		consumers="$consumers|$(printf '%s' "$dir" | quote)"
 		base=$(basename "$dir")
 		printf '%s\n' "$tracked" | grep -qxF "$base" && continue
+		git grep -qIF -e "$base" HEAD >/dev/null 2>&1 && continue
 		consumers="$consumers|(^|[^[:alnum:]_])$(printf '%s' "$base" | quote)([^[:alnum:]_]|$)"
 	done
 	consumers=${consumers#|}
