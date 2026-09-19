@@ -68,12 +68,14 @@ before the next `reload`. The eBPF modules also need the running kernel's BTF at
 do not load; and the `bpftool` wrapper needs `linux-tools-$(uname -r)`, or every BPF program fails
 to load.
 
-A wedged device — a `lunatik` process in D state, usually below an oops in `dmesg` — is cleared only
-by a reboot, and the reboot is the maintainer's to trigger: other sessions share the host. Before
-asking, capture what the reboot erases with `tools/oops.sh`, write down which suites were pending
-and which build was installed, and run nothing else against the device. After it, the suite that
-oopsed runs twice: a second oops is a bug to trace, a clean pair is a symptom without its cause,
-said as such. The lunatik-cycle skill orders both halves.
+A wedged device — a `lunatik` process that stays in D state, usually below an oops in `dmesg` — is
+cleared only by a reboot, and the reboot is the maintainer's to trigger: other sessions share the
+host. Before asking, capture what the reboot erases with `tools/oops.sh`, write down which suites
+were pending and which build was installed, and run nothing else against the device. After it, the
+suite that oopsed runs twice: a second oops is a bug to trace, a clean pair is a symptom without its
+cause, said as such. The lunatik-cycle skill orders both halves. One process in D on one look is not
+that: an ordinary `lunatik stop` sits there while the kernel works, so what names a wedge is the one
+still in D on the next look.
 
 What reaches a terminal after a machine dies is a fragment. The previous boot's kernel log survives in
 the journal, `journalctl -b -1 -k`, and it carries the registers of every oops in the cascade, which is
@@ -156,11 +158,12 @@ userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the 
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
 (`blast-radius.sh`), the examples that use a binding the change touches, which a review runs
-(`examples-touched.sh`), the machine a tracked file carries (`machine-leak.sh`), and the trailing blank
-line rule and the refusal of a staged conflict marker (`pre-commit`). Each takes file paths and skips
-what does not apply, so any editor, assistant, or CI can run them. The `Checks` workflow runs them over
-a pull request's diff: `pre-commit` and `machine-leak.sh` fail the run, the heuristic checks annotate
-it. Install the commit gate with:
+(`examples-touched.sh`), a commit that carries a rule or a check inside a change of its own
+(`harness-mixed.sh`), the machine a tracked file carries (`machine-leak.sh`), and the trailing blank
+line rule, the refusal of a staged conflict marker and of a string function the kernel removed
+(`pre-commit`). Each takes file paths and skips what does not apply, so any editor, assistant, or CI
+can run them. The `Checks` workflow runs them over a pull request's diff: `pre-commit` and
+`machine-leak.sh` fail the run, the heuristic checks annotate it. Install the commit gate with:
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
@@ -218,6 +221,16 @@ finds the machine in; a body it cannot read is refused rather than skipped, as i
 A write to a pull request's reviews or comments is that guard's and not this one's: a review body
 runs past three paragraphs by design, and #851's held a rewrite of its own verdict until the path
 was read for what it was.
+
+`rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
+based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
+of a commit that no longer exists, in a pull request nobody edited. `REWRITE_OK=1` runs it once that
+list is known to be stale.
+
+A check ships proved, the way a test does: run it against the mistake it is for, and against a case
+it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
+catches it. This file's own gate spent its first version skipping `lua/` and `klibc/` in a loop over
+the staged list, where a submodule is a gitlink and its files never appear.
 
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run or a suite, while another operation is on it, naming the processes it found; a process in
@@ -789,7 +802,10 @@ named, not one discovered at that consumer's build.
   needs a section per mechanism describes several pull requests: stack them, each on the one below.
   The harness is the exception: the checks, rules and skill steps one incident produces travel in one
   pull request, because they carry one reason and the CI line that runs them is one push. One
-  incident's four, opened separately, each needed a merge and a CI push of its own.
+  incident's four, opened separately, each needed a merge and a CI push of its own. They travel with
+  each other, never inside an implementation: a rule that rides in a feature's commit lands unread,
+  and a maintainer who wants the fix and not the rule has nothing to pick.
+  `tools/checks/harness-mixed.sh` names a commit that mixes them.
 * No session links or assistant footers in a commit or a pull request beyond the `Co-Authored-By`
   trailer. The project settings turn the link off; one that slipped in is removed with a reword.
 * A root cause named in a commit body or a pull request rests on a captured stack or a source-traced
