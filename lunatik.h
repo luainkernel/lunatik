@@ -194,7 +194,7 @@ static inline lunatik_opt_t lunatik_checkcontext(lua_State *L, int ix)
 }
 
 #define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.opt))
-#define lunatik_monitormt(class, monitor)	((monitor) ? (void *)&(class)->opt : (void *)(class))
+#define lunatik_monitormt(class, monitor)	((monitor) ? (const void *)&(class)->opt : (const void *)(class))
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
@@ -411,7 +411,7 @@ LUNATIK_CHECKER(checker, T, luaL_argexpected(L, lunatik_isoneof(object->class, c
 
 #define lunatik_getregistry(L, key)	lua_rawgetp((L), LUA_REGISTRYINDEX, (key))
 
-static inline lunatik_object_t *lunatik_getregistryobject(lua_State *L, void *key)
+static inline lunatik_object_t *lunatik_getregistryobject(lua_State *L, const void *key)
 {
 	lunatik_object_t **pobject = lunatik_getregistry(L, key) == LUA_TUSERDATA ? lunatik_testobject(L, -1) : NULL;
 	return pobject != NULL ? *pobject : NULL;
@@ -460,13 +460,13 @@ static inline lua_Integer lunatik_checkinteger(lua_State *L, int idx, lua_Intege
 	return v;
 }
 
-static inline void lunatik_register(lua_State *L, int ix, void *key)
+static inline void lunatik_register(lua_State *L, int ix, const void *key)
 {
 	lua_pushvalue(L, ix);
 	lua_rawsetp(L, LUA_REGISTRYINDEX, key); /* pop value */
 }
 
-static inline void lunatik_unregister(lua_State *L, void *key)
+static inline void lunatik_unregister(lua_State *L, const void *key)
 {
 	lua_pushnil(L);
 	lua_rawsetp(L, LUA_REGISTRYINDEX, key); /* pop nil */
