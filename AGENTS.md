@@ -106,12 +106,13 @@ end, with `rm -rf` and `git worktree prune`, since `git worktree remove` refuses
 submodules. Each one left behind carries a build on the disk every session shares, and a build that
 stops halfway on a full disk leaves the previous install in place for the suite to measure:
 `tools/checks/disk.sh` fails below a free-space threshold and names the largest worktrees, and
-`tools/lunatik-host` runs it as a warning before every cycle. A `git checkout` carries what is uncommitted onto the new HEAD, where an edit made against the
-old base reads as a change to the new one: switch branches in a tree with nothing pending, or read
-the other branch in a worktree of its own. `git stash` has no place here at all: the stack belongs
-to the repository and not to the worktree, so `stash@{0}` is usually another session's work and the
-pop that follows spreads its conflicts over your tree. Set work aside with a commit, and compare two
-revisions with a worktree or `git show <ref>:<path>`.
+`tools/lunatik-host` runs it as a warning before every cycle. A `git checkout` carries what is
+uncommitted onto the new HEAD, where an edit made against the old base reads as a change to the new
+one: switch branches in a tree with nothing pending, or read the other branch in a worktree of its
+own. `git stash` has no place here at all: the stack belongs to the repository and not to the
+worktree, so `stash@{0}` is usually another session's work and the pop that follows spreads its
+conflicts over your tree. Set work aside with a commit, and compare two revisions with a worktree or
+`git show <ref>:<path>`.
 
 A tree with a conflict pending (`git status` showing `UU`) is not a test subject: a suite run over a
 half-applied rebase or cherry-pick measures neither side. Resolve and commit, then build.
