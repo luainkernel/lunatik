@@ -31,8 +31,5 @@ end
 
 local watch = fsnotify.watch(monitor)
 
--- CREATE and DELETE are the directory's own events; MODIFY and ATTRIB happen on
--- the files inside it and reach this mark only through EVENT_ON_CHILD, which is
--- one level deep: nothing under a subdirectory is reported.
 watch:mark(WATCHED, EVENTS | fs.EVENT_ON_CHILD)
 
