@@ -56,7 +56,7 @@ code, and the ring buffer is no record, since every test clears it at its start.
 every unit's lines, and the window around the test's own prints is where a host process acting on
 what the test created shows up:
 
-    sudo bash tools/journal.sh "nl80211_station: added"      # every unit, 3 s around the last match
+    bash tools/journal.sh "nl80211_station: added"      # every unit, 3 s around the last match; adm or sudo
 
 Read which of the test's prints came out and which did not, then what NetworkManager, networkd,
 wpa_supplicant or udev did to the interface, the device or the file in that window; the errno the

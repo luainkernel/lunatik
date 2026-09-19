@@ -9,9 +9,9 @@
 # and wpa_supplicant taking the AP interface tests/netlink/nl80211_station had
 # just brought up (#1010) were there, and nowhere in the KTAP output. The suite
 # clears the ring buffer at every test, so dmesg is not the record; the journal is.
-# Needs the journal's read permission, which is sudo here.
+# Needs the journal's read permission: the adm group grants it, sudo otherwise.
 #
-# Usage: sudo bash tools/journal.sh <pattern> [seconds before and after, default 3]
+# Usage: bash tools/journal.sh <pattern> [seconds before and after, default 3]
 
 pattern=$1
 span=${2:-3}
