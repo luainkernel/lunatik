@@ -9,8 +9,8 @@
 # name only, so a homonym from elsewhere is indistinguishable and resolves onto
 # the wrong device.
 #
-# The path is the per-netns chain of the initial namespace: the replay is
-# delivered inside register_netdevice_notifier_net, and a live REGISTER or
+# The path is the global chain, which the devices of every namespace reach: the
+# replay is delivered inside register_netdevice_notifier, and a live REGISTER or
 # UNREGISTER is delivered under RTNL before the ip command that caused it
 # returns, so each assertion reads what the callback already printed. Every
 # device the test creates has a homonym on the other side, so what the script
