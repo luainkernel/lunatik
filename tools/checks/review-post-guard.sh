@@ -55,6 +55,12 @@ if [ -n "$leaked" ]; then
 	exit 2
 fi
 
+untraced=$(for f in $files; do bash "$(dirname "$0")/untraced.sh" "$f"; done)
+if [ -n "$untraced" ]; then
+	echo "review-post-guard: $untraced" >&2
+	exit 2
+fi
+
 if printf '%s' "$input" | grep -Eq '`[0-9a-f]{7,40}'; then
 	echo "review-post-guard: a fixup reference is a backtick'd SHA, which GitHub renders as code, not a link. Use a full commit URL: https://github.com/<owner>/<repo>/commit/<sha>" >&2
 	exit 2

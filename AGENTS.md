@@ -272,6 +272,14 @@ the text was shown, only that it was set on purpose. The text goes through `mach
 the marker is read, since the marker approves the wording and not what the wording carries, and text
 the guard cannot read, passed inline or on stdin, is refused rather than skipped.
 
+`untraced.sh` reads a text about to be published, a review, a comment, a pull request body, for the
+word that names a failure nobody read: a failure that comes and goes is read in the journal around the
+failing run, `tools/journal.sh` prints every unit's lines in that window, and the text names the
+mechanism or carries a hypothesis with what was not captured. `pr-body.sh` and `review-post-guard.sh`
+run it. The review of #1016 called `nl80211_station`'s failure a flake on the strength of a rerun that
+passed; the journal had NetworkManager and wpa_supplicant taking the interface the test had just
+brought up.
+
 ### Skills
 
 `.agents/skills/` packages the recurring workflows — the build/test cycle, a new binding, a new
@@ -976,7 +984,15 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   never does. When the variable is a stimulus the host may or may not supply — a stray packet in a
   window — supply it yourself and reproduce the signature on demand, and log what the hook actually
   saw before naming the packet. A mechanism proved by injection is reported as that, not as the
-  trigger of the run that failed, which was not captured.
+  trigger of the run that failed, which was not captured. A failure the suite showed once is read in
+  the journal before anything runs again: the KTAP line carries an errno and the test's own prints
+  say how far it got, and the window around them, every unit and not only the kernel
+  (`tools/journal.sh`), shows who else acted on what the test created. `nl80211_station` failed
+  with `ENOENT` after "added" and before "authorized", and the journal had NetworkManager
+  registering the AP interface the test had brought up and wpa_supplicant taking it down, which
+  flushes the station; a rerun that passed had wpa_supplicant arriving after the test deleted the
+  interface. A rerun measures the rerun; the word for a failure nobody read is what
+  `untraced.sh` refuses.
 * A defect found on the way is fixed, not reported and left: a pre-existing one, in code the change
   does not touch, becomes a commit of its own, or a pull request of its own when it stands apart, and
   the hand-back says which. Asking whether to fix it is asking the maintainer to decide what the

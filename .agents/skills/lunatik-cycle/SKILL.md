@@ -47,6 +47,21 @@ which stops it if the host loses the connectivity it had; an example that return
 `spawn` of an example, and `NETWORK_LOSS_OK=1` on the command runs one bare on a machine whose
 connectivity is expendable.
 
+# When a test fails
+
+A failure is read before anything is run again: a rerun that passes measures the rerun, not the
+code, and the ring buffer is no record, since every test clears it at its start. The journal keeps
+every unit's lines, and the window around the test's own prints is where a host process acting on
+what the test created shows up:
+
+    bash tools/journal.sh "nl80211_station: added"      # every unit, 3 s around the last match; adm or sudo
+
+Read which of the test's prints came out and which did not, then what NetworkManager, networkd,
+wpa_supplicant or udev did to the interface, the device or the file in that window; the errno the
+KTAP line carries is then matched to the kernel function that returns it on the path between the
+last print and the missing one. The hand-back names that mechanism, or carries the failure as a
+hypothesis with what was not captured; `tools/checks/untraced.sh` refuses the word that skips both.
+
 # One operation at a time
 
 Never run two lunatik operations concurrently (`test`, `run`, `reload`, a suite's run.sh): the
