@@ -29,6 +29,5 @@ local function monitor(mask, event)
 end
 
 local watch = fsnotify.watch(monitor)
-
 watch:mark(WATCHED, EVENTS | fs.EVENT_ON_CHILD)
 
