@@ -428,9 +428,9 @@ which does not check.
 void lunatik_setflag(lua_State *L, const void *key, bool on);
 ```
 Stores `on` in `LUA_REGISTRYINDEX` at `key`, where a binding keeps a fact its own dispatcher sets
-and its own code reads, as `fsnotify` and `notifier` keep "a callback of this state is on the
-stack". The key is the binding's own `static const char`, so one binding's callback does not answer
-for another's, and the registry is one per state, so every coroutine of it reads the same slot.
+and its own code reads, such as a callback of this state being on the stack. The key is the
+binding's own `static const char`, so one binding's callback does not answer for another's, and the
+registry is one per state, so every coroutine of it reads the same slot.
 
 ### lunatik\_getflag
 ```C
