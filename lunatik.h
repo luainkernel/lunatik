@@ -194,7 +194,7 @@ static inline lunatik_opt_t lunatik_checkcontext(lua_State *L, int ix)
 }
 
 #define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.opt))
-#define lunatik_monitormt(class, monitor)	((monitor) ? (void *)&(class)->opt : (void *)(class))
+#define lunatik_monitormt(class, monitor)	((monitor) ? (const void *)&(class)->opt : (const void *)(class))
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
