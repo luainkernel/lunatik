@@ -91,6 +91,19 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   construction and `data:resize()` has to keep the size and the bytes it
   had. Skips when the buffer did not land in `vmalloc`.
 
+### examples
+
+- **shared**: drives the spawned `examples/shared` daemon over its own port with
+  a kernel-side client: a GET of a key that was never assigned and a GET of a
+  key a SET removed each answer with an empty line, instead of taking the thread
+  body down and leaving the port bound with nobody in `accept()`; and a peer
+  that hangs up with its reply unread, which resets the session, leaves the
+  daemon answering the connection after it. That peer is a userspace one, since
+  a lunatik socket shuts down before it releases; the case skips without
+  `python3`. A GET of a key that was set answers with the value and nothing
+  else, over a rewrite to a shorter value too, which the byte-exact assertion
+  tells from a reply carrying the whole slot.
+
 ### fifo
 
 - **bounds**: `fifo.new()` accepts the capacities it serves and refuses
