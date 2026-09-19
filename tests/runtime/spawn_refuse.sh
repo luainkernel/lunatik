@@ -47,15 +47,20 @@ ktap_pass "spawn: a softirq runtime is refused and leaves nothing registered"
 refuse hardirq
 ktap_pass "spawn: a hardirq runtime is refused and leaves nothing registered"
 
-lunatik spawn "$SCRIPT" > /dev/null 2>&1
+output=$(lunatik spawn "$SCRIPT" 2>&1)
+[ -n "$output" ] && fail "the process spawn failed: $output"
 listed=$(lunatik list)
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 case "$listed" in
 	*"$SCRIPT"*) ;;
 	*) fail "the process spawn did not register the script: $listed" ;;
 esac
+listed=$(lunatik list)
+case "$listed" in
+	*"$SCRIPT"*) fail "the process spawn was not stopped: $listed" ;;
+esac
 check_dmesg || { ktap_totals; exit 1; }
-ktap_pass "spawn: the same script spawns as a process runtime"
+ktap_pass "spawn: the same script spawns and stops as a process runtime"
 
 ktap_totals
 
