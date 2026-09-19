@@ -93,6 +93,24 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 
 ### examples
 
+- **cpuexporter**: drives the spawned `examples/cpuexporter` daemon over its own
+  socket: a request is answered with the OpenMetrics text the example exists to
+  serve, and a peer that connects and says nothing leaves the daemon to stop on
+  its own terms instead of having the stop tear its receive out from under it,
+  which is what the absence of an "error handling client" line says. That second
+  case needs the `TIF_NOTIFY_SIGNAL` `kthread_stop()` has set since v6.1 to fail
+  rather than wedge the host, so it skips below that. The peers are userspace
+  ones, since a session has to stay open across the stop; skips without
+  `python3`.
+- **echod**: drives the spawned `examples/echod` daemon over its own port: what a
+  client sends comes back byte for byte, a second client is served while the
+  first one holds its session and sends nothing, and the worker of a session
+  whose peer went silent ends when the daemon does. Nobody ever calls
+  `kthread_stop()` on a worker, the daemon discards the thread object it makes
+  per connection, so only the worker's own poll of the control byte ends it and
+  a parked one keeps executing `luathread.ko` text the next reload frees. The
+  peers are userspace ones, since a session has to stay open across the stop;
+  skips without `python3`.
 - **shared**: drives the spawned `examples/shared` daemon over its own port with
   a kernel-side client: a GET of a key that was never assigned and a GET of a
   key a SET removed each answer with an empty line, instead of taking the thread
@@ -102,7 +120,11 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   a lunatik socket shuts down before it releases; the case skips without
   `python3`. A GET of a key that was set answers with the value and nothing
   else, over a rewrite to a shorter value too, which the byte-exact assertion
-  tells from a reply carrying the whole slot.
+  tells from a reply carrying the whole slot. A peer that connects and says
+  nothing leaves the daemon to stop on its own terms rather than have the stop
+  raise out of its request loop; that case needs the `TIF_NOTIFY_SIGNAL`
+  `kthread_stop()` has set since v6.1 to fail rather than wedge the host, so it
+  skips below that.
 
 ### fifo
 
@@ -677,9 +699,12 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   given past the port must still reach the kernel, and an AF_UNIX path, spelled as
   one argument, must not have the path itself read as the flags.
 
-- **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
-  client (connect/send/receive), both using the path stored at
-  construction.
+- **unix/stream**: `socket.unix` STREAM server (bind/listen/accept, `receive`
+  with `DONTWAIT`) and client (connect/send/receive), both using the path
+  stored at construction; and a peer that connects and says nothing, which
+  leaves the server stoppable rather than parked in its receive. That last
+  case needs the `TIF_NOTIFY_SIGNAL` `kthread_stop()` has set since v6.1 to
+  fail rather than wedge the host, so it skips below that.
 
 - **unix/dgram**: `socket.unix` DGRAM server (`receivefrom` with
   `DONTWAIT`) and client (`sendto` using the stored path).

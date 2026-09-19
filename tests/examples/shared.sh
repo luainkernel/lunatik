@@ -10,6 +10,13 @@
 # was set must answer with the value and nothing else, a rewrite to a shorter
 # value included, which only a byte-exact assertion tells from the whole slot.
 #
+# A peer that connects and says nothing must leave the daemon to stop on its own
+# terms. An unbounded receive there parks the body: from v6.1 kthread_stop() sets
+# TIF_NOTIFY_SIGNAL (a7c01fa93aeb) and the receive raises ERESTARTSYS out of the
+# request loop, which the case reads; below v6.1 nothing sets that flag and the
+# stop waits forever inside write(2) on /dev/lunatik, so the case skips there
+# rather than wedge the host.
+#
 # The peer that resets its session is a userspace one: luasocket's release shuts
 # the socket down before releasing it, so a lunatik client always says goodbye
 # with a FIN, which the daemon reads as a clean end of session. A close with the
@@ -21,13 +28,18 @@
 SCRIPT="tests/examples/shared_client"
 EXAMPLE="examples/shared"
 MODULE="luasocket"
+PORT=90
+STOPPABLE="6.1"
 SLEEP=1
 BINDS=15
 BIND_WAIT=5
+PEER=""
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
+	[ -n "$PEER" ] && kill "$PEER" 2>/dev/null
+	PEER=""
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
 	lunatik stop "$EXAMPLE" > /dev/null 2>&1
 }
@@ -37,11 +49,11 @@ cleanup
 # closing with the reply unread zaps the connection with a reset, the
 # data_was_unread arm of tcp_close, instead of the FIN a drained socket sends
 reset_session() {
-	python3 - <<'PY'
+	python3 - "$PORT" <<'PY'
 import socket, sys
 
 def connect():
-	return socket.create_connection(("127.0.0.1", 90), timeout=2)
+	return socket.create_connection(("127.0.0.1", int(sys.argv[1])), timeout=2)
 
 client = connect()
 client.sendall(b"rst=x\n")
@@ -61,8 +73,12 @@ sys.exit(0 if reply else 1)
 PY
 }
 
+# what the daemon prints for a session it raised on; the reset case makes one of
+# its own, so the stop is read as a count that does not grow
+raises() { dmesg_since | grep -c "shared: " || true; }
+
 ktap_header
-ktap_plan 5
+ktap_plan 6
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -102,6 +118,22 @@ ktap_pass "shared: a GET answers with the value and nothing else"
 
 dmesg_since | grep -q "shared example: rewrite ok" || fail "a rewritten key did not answer with the new value alone"
 ktap_pass "shared: a SET over a longer value answers with the shorter one alone"
+
+if kernel_atleast "$STOPPABLE" && command -v python3 > /dev/null 2>&1; then
+	raised=$(raises)
+	hold_session "$PORT"
+	PEER=$!
+	sleep $SLEEP
+	lunatik stop "$EXAMPLE" > /dev/null 2>&1
+	sleep $SLEEP
+	torn=$(raises)
+	ended=$(dmesg_since | grep "stopping shared" || true)
+	kill "$PEER" 2>/dev/null; PEER=""
+	[ "$torn" = "$raised" ] && [ -n "$ended" ] || { comment "$(dmesg_since | grep 'shared: ')"; fail "the stop tore the daemon out of its receive"; }
+	ktap_pass "shared: a peer that says nothing does not make the stop an error"
+else
+	ktap_skip "shared: a peer that says nothing does not make the stop an error"
+fi
 
 cleanup
 check_dmesg || { ktap_totals; exit 1; }

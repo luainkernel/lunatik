@@ -5,7 +5,8 @@
 #
 # Runs all examples tests and reports aggregated KTAP results.
 #
-# An example is driven here only if it binds loopback and arms no kernel hook:
+# An example is driven here only if it binds loopback or a socket path and arms
+# no kernel hook:
 # tools/checks/example-guard.sh does not see a spawn issued from inside a suite,
 # so what a driven example may do to the host is a criterion written down here.
 #
@@ -15,7 +16,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in "$DIR"/shared.sh; do
+for t in "$DIR"/cpuexporter.sh "$DIR"/echod.sh "$DIR"/shared.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	SEP=$'\n'
 	bash "$t" || FAILED=$((FAILED+1))
