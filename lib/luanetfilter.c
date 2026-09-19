@@ -149,9 +149,6 @@ LUNATIK_PERCPUDATA(luanetfilter_hooks, "netfilter.hooks", luanetfilter_hook_t, l
 static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *spec)
 {
 	luaL_checktype(L, ix, LUA_TTABLE);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
-	spec->nfops.hook_ops_type = NF_HOOK_OP_UNDEFINED;
-#endif
 	lunatik_setinteger(L, ix, (&spec->nfops), pf);
 	lunatik_setinteger(L, ix, (&spec->nfops), hooknum);
 	lunatik_setinteger(L, ix, (&spec->nfops), priority);
