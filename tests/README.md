@@ -381,7 +381,7 @@ higher-level `netlink.*` modules built on top of it.
   context mismatch" without oopsing during `__gc`.
 
 - **init_dispatch**: `notifier.netdevice(cb)` at script init must handle
-  the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier_net`
+  the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier`
   performs for the devices the namespace already has.
 
 - **netns_scope**: `notifier.netdevice` reports only the devices of the
@@ -391,7 +391,7 @@ higher-level `netlink.*` modules built on top of it.
   namespace.
 
 - **replay**: a flag the script clears once `notifier.netdevice` returns
-  tells the events `register_netdevice_notifier_net` delivers itself for the
+  tells the events `register_netdevice_notifier` delivers itself for the
   devices the namespace already has from the live ones: a dummy device brought
   up before the script runs is replayed as a `REGISTER` and an `UP`, both under
   the flag; one created, brought up and deleted afterwards is reported live,

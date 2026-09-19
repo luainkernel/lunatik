@@ -4,13 +4,13 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # A script tells the events the registration replays from the live ones with a
-# flag it clears once notifier.netdevice returns: register_netdevice_notifier_net
+# flag it clears once notifier.netdevice returns: register_netdevice_notifier
 # delivers a REGISTER, and an UP for a device that is up, for every device the
 # namespace already has, inside the registration call and under the same name
 # and code a live event carries, and no live event reaches the callback before
 # the script body ends, so the flag is exact. ifquarantine relies on it.
 #
-# The replay is delivered inside register_netdevice_notifier_net and a live
+# The replay is delivered inside register_netdevice_notifier and a live
 # event under RTNL before the ip command that caused it returns, so each
 # assertion reads what the callback already printed. A dummy device brought up
 # before the script runs is replayed as a REGISTER and an UP, both printed with
