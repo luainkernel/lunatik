@@ -22,5 +22,6 @@ last=$(journalctl -q -k -o short-iso --grep="$pattern" 2>/dev/null | tail -1 | c
 [ -n "$last" ] || { echo "no kernel line matches $pattern"; exit 1; }
 at=$(date -d "$last" +%s)
 
+echo "journal: the last match is at $last; a rerun after the failure puts the failing run before it" >&2
 journalctl -q -o short-iso --since "@$((at - span))" --until "@$((at + span))"
 
