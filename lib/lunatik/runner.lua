@@ -72,14 +72,19 @@ end
 -- The spawned script is expected to return a function, which will then be executed in the new thread.
 -- @tparam string script path or name of the Lua script to spawn.
 -- @treturn userdata kernel thread object.
--- @raise error if the script is already running or `percpu` is set.
+-- @raise error if the script is already running, `percpu` is set, or the thread cannot
+--   start, in which case the runtime it created is stopped and unregistered.
 function runner.spawn(script, context, ispercpu)
 	if ispercpu then
 		error("spawn does not support percpu scripts")
 	end
 	local runtime = runner.run(script, context)
 	local name = string.match(script, "(%w*/*%w*)$")
-	local t = thread.run(runtime, name)
+	local started, t = pcall(thread.run, runtime, name)
+	if not started then
+		runner.stop(script)
+		error(t, 0)
+	end
 	env.threads[script] = t
 	return t
 end
