@@ -79,7 +79,7 @@ grep -q "fsmonitor:" <<< "$quiet" && \
 	fail "the example still reported after it was stopped: $(grep -F 'fsmonitor:' <<< "$quiet")"
 ktap_pass "the example stops reporting when it is stopped"
 
-errs=$(printf '%s\n' "$output" "$quiet" | grep -E "\.lua:[0-9]+:" || true)
+errs=$(printf '%s\n' "$output" "$quiet" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
 ktap_pass "no Lua errors in kernel"
 
