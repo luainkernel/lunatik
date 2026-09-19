@@ -70,11 +70,12 @@ end
 -- First, it runs the script using `runner.run`, then creates a new kernel thread
 -- to execute the runtime. The thread is named based on the script's filename.
 -- The spawned script is expected to return a function, which will then be executed in the new thread.
--- @tparam string script path or name of the Lua script to spawn.
+-- @tparam string script path or name of the Lua script to spawn. The ".lua" extension will be trimmed.
 -- @treturn userdata kernel thread object.
 -- @raise error if the script is already running, `percpu` is set, or the thread cannot
 --   start, in which case the runtime it created is stopped and unregistered.
 function runner.spawn(script, context, ispercpu)
+	local script = trim(script)
 	if ispercpu then
 		error("spawn does not support percpu scripts")
 	end

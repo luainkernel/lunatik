@@ -653,6 +653,11 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   list` must be empty afterwards; the same script spawns and stops as a
   process runtime.
 
+- **spawn_suffix**: a script spawned with its `.lua` suffix registers its
+  thread under the trimmed name `runner.stop` looks up, so the stop reaches
+  the thread before it closes the runtime, whose lock the body holds while
+  it runs.
+
 - **percpu_netfilter**: the runtimes of a percpu script share one
   `LOCAL_IN` hook: with the ping pinned to the last online CPU, each marked
   request is counted exactly once, by the runtime of that CPU; a burst that
