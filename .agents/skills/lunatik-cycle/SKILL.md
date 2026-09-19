@@ -70,7 +70,7 @@ Never run two lunatik operations concurrently (`test`, `run`, `reload`, a suite'
 device serializes, and concurrent operations deadlock into unkillable D-state processes that
 only a reboot clears. Before starting one:
 
-    ps -eo pid,stat,cmd | grep -E 'lua5.4.*lunatik|[[]lunatik]'   # any D state = wedged
+    ps -eo pid,stat,cmd | grep -E 'lua5.5.*lunatik|[[]lunatik]'   # any D state = wedged
 
 `lunatik-lock.sh` looks for the same processes before a shell call and refuses the second operation;
 `LUNATIK_LOCK_OK=1` on the command overrides it once what it lists is known to be stale.

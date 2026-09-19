@@ -906,7 +906,7 @@ invoke, and fix that: a note that an `enum` is formatted inline asks for the for
    a cast between the two, is a warning here and a build error there. The `lunatik_percpuruntimes`
    cast and `object->private = runtimes` were both;
 2. `sudo make install && sudo lunatik reload && sudo lunatik test` passes;
-3. new API is documented and listed in `config.ld` and the README, and `make doc-site LUA=lua5.4`,
+3. new API is documented and listed in `config.ld` and the README, and `make doc-site LUA=lua5.5`,
    the CI target, exits zero: a C file that contributes to a module another file declares carries
    `@module` with the same name, which `merge = true` in `config.ld` folds, since `@submodule`
    deduces its section name from a path under `lib/`;

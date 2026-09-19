@@ -21,7 +21,13 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libncurses-dev clang llvm pkg-config libpcap-dev lua5.4 lua5.4-dev m4
+        sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libncurses-dev clang llvm pkg-config libpcap-dev m4
+    - name: Setup Lua 5.5
+      run: |
+        # the runner image predates the first distribution release carrying lua5.5
+        curl -sSL --retry 3 https://www.lua.org/ftp/lua-5.5.1.tar.gz | tar xz
+        make -C lua-5.5.1
+        sudo install -m 0755 lua-5.5.1/src/lua /usr/bin/lua5.5
     - name: Setup kernel ${{ matrix.kernel-version }}
       run: |
         SERIES="${{ matrix.kernel-version }}"

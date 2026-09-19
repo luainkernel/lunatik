@@ -2,7 +2,7 @@
 # PreToolUse (Bash) hook: one lunatik operation at a time. Concurrent ones wedge
 # /dev/lunatik and leave processes in D state, which only a reboot clears, so a
 # command that touches the device is refused (exit 2) while another is running:
-# a CLI process, which the shebang shows as lua5.4 .../sbin/lunatik and, once its
+# a CLI process, which the shebang shows as lua5.5 .../sbin/lunatik and, once its
 # command line is gone, as [lunatik]; or a test script, installed or in the tree.
 # Reads the tool command on stdin. Pass LUNATIK_LOCK_OK=1 to override, once the
 # processes it names are known to be stale.

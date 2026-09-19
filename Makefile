@@ -13,7 +13,7 @@ MODULES_INSTALL_PATH := ${MODULES_RELEASE_PATH}/kernel
 SCRIPTS_INSTALL_PATH := ${MODULES_PATH}/lua
 INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
 
-LUA ?= lua5.4
+LUA ?= lua5.5
 LUA_PATH ?= $(shell $(LUA) -e 'print(package.path:match("([^;]*)/%?%.lua;"))')
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
