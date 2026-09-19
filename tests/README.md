@@ -299,6 +299,11 @@ and the deny tests read the denied file again after the watch is stopped.
   (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_IN_IGNORED`,
   `FS_DN_MULTISHOT`) are absent.
 
+- **lookup**: `linux.lookup` answers `nil` for a symbol kallsyms does not
+  carry and a lightuserdata for one it does, and rejects a non-string
+  argument; skipped without `CONFIG_KPROBES`, which is how the module reaches
+  `kallsyms_lookup_name`.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).
