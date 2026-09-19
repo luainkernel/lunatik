@@ -318,7 +318,7 @@ higher-level `netlink.*` modules built on top of it.
   context mismatch" without oopsing during `__gc`.
 
 - **init_dispatch**: `notifier.netdevice(cb)` at script init must handle
-  the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier_net`
+  the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier`
   performs for the devices the namespace already has.
 
 - **netns_scope**: `notifier.netdevice` reports only the devices of the
@@ -328,11 +328,22 @@ higher-level `netlink.*` modules built on top of it.
   namespace.
 
 - **replay**: a flag the script clears once `notifier.netdevice` returns
-  tells the events `register_netdevice_notifier_net` delivers itself for the
+  tells the events `register_netdevice_notifier` delivers itself for the
   devices the namespace already has from the live ones: a dummy device brought
   up before the script runs is replayed as a `REGISTER` and an `UP`, both under
   the flag; one created, brought up and deleted afterwards is reported live,
   none under it; and none is flagged once the registration has returned.
+
+- **inside**: `notifier.netdevice` from inside a netdevice callback is refused,
+  in both the contexts the callback runs in: the replay the registration
+  delivers on its own task, and a live event on another task. A coroutine
+  resumed from the callback is refused too, since the flag lives in the Lua
+  registry every coroutine of the state shares and not in the per-coroutine
+  extra space; a registration made once the callback has returned, or raised, is
+  accepted, and `stop()` from inside the callback is accepted and ends delivery.
+  A tree without the guard wedges the host rather than failing the test, so it
+  never runs against one: the discrimination is the message it asserts, and those
+  last three cases.
 
 - **chain_continues**: a netdevice block whose runtime is being torn down
   returns `notify.DONE`, not the `-ENXIO` of `lunatik_run`, whose
