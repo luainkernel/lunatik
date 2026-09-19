@@ -1,16 +1,27 @@
 #!/usr/bin/env bash
 # Names the idioms a C diff is read for and a review round passed over on #850: a raise
-# the tree spells with one call, a guard repeated across methods, and a version a feature
-# needs named as one release. Takes file paths; silent on files that carry none. The
-# report is read, not obeyed: a check-then-throw that releases something first is not
-# lunatik_try's, and the line between the two is what the reader looks at.
+# the tree spells with one call, a guard repeated across methods, a version a feature
+# needs named as one release, and a kernel version guard whose first arm is the older
+# kernel's, which raising the floor would have to rewrite rather than delete. Takes file
+# paths; silent on files that carry none, and on the Lua fork under lua/, whose guards
+# keep upstream first. The report is read, not obeyed: a check-then-throw that releases
+# something first is not lunatik_try's, and the line between the two is what the reader
+# looks at.
 
 for file in "$@"; do
-	case "$file" in *.c|*.h) ;; *) continue ;; esac
+	case "$file" in */lua/*|lua/*) continue ;; *.c|*.h) ;; *) continue ;; esac
 	awk -v f="$file" '
 	function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
 	{
 		line = trim($0)
+		if (line ~ /^#[ \t]*if/) {
+			depth++
+			inverted[depth] = (line ~ /LINUX_VERSION_CODE[ \t]*<=?[ \t]*KERNEL_VERSION/) ? NR : 0
+		}
+		else if (line ~ /^#[ \t]*else/ && inverted[depth])
+			printf "%s:%d: version guard from line %d puts the older kernel first: current kernel in the if arm, fallback in else\n", f, NR, inverted[depth]
+		else if (line ~ /^#[ \t]*endif/)
+			depth--
 		if (prev ~ /^if \(.*\)$/ && line ~ /^return luaL_argerror\(/)
 			printf "%s:%d: luaL_argerror as the body of an if: a wrong value at an index is luaL_argcheck\n", f, NR
 		if (prev ~ /^if \(\(ret = [a-z_]+\(.*\)\) (!=|<) 0\)$/ && line ~ /^lunatik_throw\(L, ret\);$/)
