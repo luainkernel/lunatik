@@ -9,9 +9,11 @@
 # puts it, so this test covers what a reader of the README gets rather than a
 # copy of it. The stimuli are the four events it names, driven in the directory
 # its WATCHED constant points at, and the two the shell performs itself are
-# matched by its own pid. The subdirectory case is the other half: EVENT_ON_CHILD
-# reaches the entries of the marked directory and no deeper, so the subdirectory's
-# own creation is reported and the file created inside it is not.
+# matched by its own pid. The subdirectory case is what lies below the marked
+# directory: the subdirectory's own creation is a directory entry event of the
+# marked directory, reported with or without EVENT_ON_CHILD, and the file created
+# and written inside it is an entry, and a child, of the subdirectory, which is
+# unmarked, so neither arrives.
 #
 # Usage: sudo bash tests/fsnotify/fsmonitor.sh
 
@@ -42,6 +44,7 @@ chmod 600 "$WATCHED/file"
 mkdir "$WATCHED/sub"
 subino=$(stat -c %i "$WATCHED/sub")
 : > "$WATCHED/sub/deep"
+echo data > "$WATCHED/sub/deep"
 rm -f "$WATCHED/file"
 output=$(dmesg_since)
 

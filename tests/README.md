@@ -211,9 +211,11 @@ permission mark allows and only asks whether the mask is taken.
   it, so what the test covers is what a reader of the README gets. It reports a
   create, a write, an attribute change and a delete in the directory it watches,
   each with the entry name and the inode number, and the two the shell performs
-  itself carry its own pid. A subdirectory created there is reported and the file
-  created inside that subdirectory is not, which is how far `FS_EVENT_ON_CHILD`
-  reaches, and nothing is reported at all once the example is stopped.
+  itself carry its own pid. A subdirectory created there is reported, a directory
+  entry event of the marked directory, and neither the file created inside that
+  subdirectory nor a write to it is, since the subdirectory carries no mark and
+  `FS_EVENT_ON_CHILD` reaches one level; nothing is reported at all once the
+  example is stopped.
 
 The seven tests below cover the permission events, where the callback's return
 value decides whether the access happens. Each of them sources `perm.sh`, which
