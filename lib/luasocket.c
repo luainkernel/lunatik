@@ -530,7 +530,7 @@ static int luasocket_accept(lua_State *L)
 * @tparam integer type socket type (e.g., `linux.socket.sock.STREAM`).
 * @tparam integer protocol protocol (e.g., `linux.socket.ipproto.TCP`).
 *   For `AF_PACKET` sockets, `protocol` is typically an `ETH_P_*` value in network byte order
-*   (e.g., `linux.hton16(0x0003)` for `ETH_P_ALL`).
+*   (e.g., `byteorder.hton16(0x0003)` for `ETH_P_ALL`).
 * @treturn socket A new socket object.
 * @raise Error if socket creation fails.
 * @usage

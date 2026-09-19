@@ -14,6 +14,12 @@
 # packet_snd refuses whatever exceeds 8. The destination is the contract rather
 # than a second discriminator, since stack can hold zeros.
 #
+# The last two cases pin the protocol socket.new documents, which packet_create
+# takes as a __be16: an unbound socket created with the ethertype in network
+# order receives the frame, one created with it in host order is registered for
+# the swapped number and hears nothing. That is the contract socket.raw converts
+# for, and the pair discriminates because the frame carries only one ethertype.
+#
 # Usage: sudo bash tests/socket/packet.sh
 
 SCRIPT="tests/socket/packet"
@@ -29,7 +35,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 2
+ktap_plan 4
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -52,6 +58,12 @@ ktap_pass "packet: a DGRAM send names the protocol and the interface of the fram
 
 dmesg_since | grep -q "socket packet: destination 00:00:00:00:00:00" || fail "unexpected destination: $(dmesg_since | grep 'socket packet: destination')"
 ktap_pass "packet: the destination hardware address is the one the binding declares"
+
+dmesg_since | grep -q "socket packet: network order reaches the unbound socket" || fail "the network order socket did not receive the frame"
+ktap_pass "packet: a socket created with the ethertype in network order receives it"
+
+dmesg_since | grep -q "socket packet: host order misses it" || fail "the host order socket received a frame it is not registered for"
+ktap_pass "packet: a socket created with the ethertype in host order does not"
 
 ktap_totals
 

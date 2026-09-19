@@ -579,7 +579,10 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   A `SOCK_DGRAM` send on loopback names the protocol and the interface, and the
   kernel reads the rest of `struct sockaddr_ll` from the same storage: the frame,
   read back on a `SOCK_RAW` socket bound to the same ethertype, must carry as its
-  destination hardware address the zeros the binding declares.
+  destination hardware address the zeros the binding declares. The same frame
+  pins the protocol `socket.new` takes, which reaches `packet_create` as a
+  `__be16`: an unbound socket created with the ethertype in network order
+  receives it, one created with it in host order does not.
 
 - **address**: what `getsockname()`, `getpeername()` and `receive(..., true)`
   answer with, per family. The kernel reports how many bytes it filled and the
