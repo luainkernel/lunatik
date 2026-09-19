@@ -82,8 +82,8 @@ void lunatik_pusherrname(lua_State *L, int err)
     lua_pushstring(L, name ? name : "unknown");
 #else
     char buf[LUAL_BUFFERSIZE];
-    snprintf(buf, sizeof(buf), "%pe", ERR_PTR(-err));
-    lua_pushstring(L, buf[1] == 'E' ? buf + 1 : "unknown"); /* %pe keeps the sign, e.g. "-ENOENT" */
+    snprintf(buf, sizeof(buf), "%pe", ERR_PTR(-err)); /* %pe keeps the sign, e.g. "-ENOENT" */
+    lua_pushstring(L, buf[1] == 'E' ? buf + 1 : "unknown");
 #endif
 }
 EXPORT_SYMBOL(lunatik_pusherrname);
