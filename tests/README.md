@@ -683,7 +683,8 @@ Regression tests for `luathread`.
   objects than `LUA_MINSTACK`, which the body sees in order.
 
 - **run_during_load**: `runner.spawn()` called from a script's top-level
-  code must error instead of hanging the kernel.
+  code must error instead of hanging the kernel, and leave the runtime it
+  created unregistered.
 
 - **name**: the name `thread.run()` is given reaches the kernel task as
   written, conversions included, instead of being taken as the format.
