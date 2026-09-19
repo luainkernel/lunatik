@@ -12,7 +12,7 @@ beside it:
     examples/filter/sni.lua        the kernel script, as today: runs in the kernel Lua VM
     examples/filter/sni.bpf.lua    the program file: compiled by lunatikc into sni.bpf.o
 
-`lunatikc sni.bpf.lua` produces `sni.bpf.o`, a BPF ELF object that `bpftool prog load` accepts
+`lunatikc bpf sni.bpf.lua` produces `sni.bpf.o`, a BPF ELF object that `bpftool prog load` accepts
 like any other. `make install` compiles every program file it installs and puts the object beside
 the script, under `/lib/modules/lua/`, so `lunatik run examples/filter/sni` finds
 `/lib/modules/lua/examples/filter/sni.bpf.o` the way the kernel finds `sni.lua`.
