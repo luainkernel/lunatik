@@ -12,15 +12,17 @@
 # contexts the callback runs in: the replay the registration delivers on its own
 # task, and a live event on another task. It asks again from a coroutine resumed
 # inside the callback, which shares the state's registry, and once more after the
-# callback returned, where it is accepted; and it stops a second notifier from
-# inside that notifier's own callback, which makes no kernel call and stays
-# legal.
+# callbacks returned, where it is accepted; a third one raises from its replay,
+# with no position in its message, so that last registration reads the flag on
+# the dispatcher's error path as well. And it stops a second notifier from inside
+# that notifier's own callback, which makes no kernel call and stays legal.
 #
 # A tree without the guard does not fail this test, it wedges the host: the
 # registration waits on the two locks the callback's own task holds and the task
 # stays in D state with both, which no stop clears. So this test runs only on a
 # tree that carries the guard and discriminates by the message it asserts, never
-# by an A/B. The accepted registration is what pins the flag being cleared, the
+# by an A/B. The accepted registration is what pins the flag being cleared, on
+# the path where the callback returns and on the one where it raises; the
 # coroutine is what pins it living in the registry rather than in a per-coroutine
 # copy, and the stop is what pins the refusal reaching the constructor alone.
 #
@@ -51,7 +53,7 @@ skip_all()
 	echo "# SKIP: $1"
 	ktap_skip "a registration from the replay callback is refused"
 	ktap_skip "a coroutine resumed from the callback is refused too"
-	ktap_skip "a registration after the callback returned is allowed"
+	ktap_skip "a registration after a callback returned, and after one that raised, is allowed"
 	ktap_skip "a registration from a live callback is refused"
 	ktap_skip "stop() from inside the callback is allowed and ends delivery"
 	ktap_skip "no Lua errors in kernel"
@@ -76,8 +78,10 @@ ktap_pass "a registration from the replay callback is refused"
 [ "$(reported "coroutine $REFUSAL")" = 1 ] || fail "a registration from a coroutine of the callback was not refused"
 ktap_pass "a coroutine resumed from the callback is refused too"
 
-[ "$(reported "after registered")" = 1 ] || fail "a registration made after the callback returned was refused"
-ktap_pass "a registration after the callback returned is allowed"
+raised=$(reported raised)
+[ "$raised" = 1 ] || fail "the callback that raises ran $raised times, expected 1"
+[ "$(reported "after registered")" = 1 ] || fail "a registration made after the callbacks returned was refused"
+ktap_pass "a registration after a callback returned, and after one that raised, is allowed"
 
 ip link add "$NEWDEV" type dummy || fail "cannot create $NEWDEV"
 ip link set "$NEWDEV" up || fail "cannot bring $NEWDEV up"

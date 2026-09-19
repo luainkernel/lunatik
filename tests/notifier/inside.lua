@@ -7,8 +7,10 @@
 local notifier = require("notifier")
 local notify   = require("linux.notify")
 
+local PREFIX <const> = "notifier inside test: "
+
 local function report(what)
-	print(string.format("notifier inside test: %s", what))
+	print(PREFIX .. what)
 end
 
 local function nop()
@@ -23,6 +25,7 @@ end
 local loading = true
 local probed  = false
 local lived   = false
+local raised  = false
 local stopper
 
 local function cb()
@@ -46,8 +49,17 @@ local function stop()
 	return notify.OK
 end
 
+local function raiser()
+	if not raised then
+		raised = true
+		error(PREFIX .. "raised", 0) -- a position in the message would fail check_dmesg
+	end
+	return notify.OK
+end
+
 notifier.netdevice(cb)
 stopper = notifier.netdevice(stop)
+notifier.netdevice(raiser)
 loading = false
 report("after " .. probe())
 

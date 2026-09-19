@@ -339,10 +339,10 @@ higher-level `netlink.*` modules built on top of it.
   delivers on its own task, and a live event on another task. A coroutine
   resumed from the callback is refused too, since the flag lives in the Lua
   registry every coroutine of the state shares and not in the per-coroutine
-  extra space; a registration made once the callback has returned is accepted,
-  and `stop()` from inside the callback is accepted and ends delivery. A tree
-  without the guard wedges the host rather than failing the test, so it never
-  runs against one: the discrimination is the message it asserts, and those
+  extra space; a registration made once the callback has returned, or raised, is
+  accepted, and `stop()` from inside the callback is accepted and ends delivery.
+  A tree without the guard wedges the host rather than failing the test, so it
+  never runs against one: the discrimination is the message it asserts, and those
   last three cases.
 
 - **chain_continues**: a netdevice block whose runtime is being torn down
