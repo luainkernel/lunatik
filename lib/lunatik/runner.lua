@@ -85,7 +85,7 @@ function runner.spawn(script, context, ispercpu)
 		runner.stop(script)
 		error(t, 0)
 	end
-	env.threads[script] = t
+	env.threads[trim(script)] = t
 	return t
 end
 
