@@ -219,6 +219,20 @@ the test that places one mounts its own tmpfs there and marks that.
 - **test**: kernel `io` library (open/read/write/seek/lines/type); also
   asserts `io` is absent from softirq runtimes.
 
+### language
+
+Holds the vendored Lua to the contract the top-level README documents, so a
+bump of `lua/` that drops a kernel guard fails here instead of compiling.
+
+- **floats**: no float literal, exponent, hexadecimal float or `^` compiles;
+  `/` is integer division and dispatches `__idiv`; `math` keeps only its
+  integer half; `tonumber` refuses a float; `string.format` refuses every
+  float conversion; `string.pack` refuses `f` and `d` and packs `n` as an
+  integer.
+- **identifiers**: `_VERSION` is `"Lua 5.5-kernel"`, `collectgarbage("count")`
+  answers in bytes, `package.path` resolves under `/lib/modules/lua/`, and
+  `os` and `debug.debug` are absent.
+
 ### linux
 
 - **random**: `linux.random` ranged draws stay within `[m, n]`, covering

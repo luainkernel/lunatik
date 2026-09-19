@@ -25,6 +25,7 @@ run_suite() {
 	return $ret
 }
 
+run_suite "$DIR/language/run.sh"
 run_suite "$DIR/monitor/run.sh"
 run_suite "$DIR/thread/run.sh"
 run_suite "$DIR/task/run.sh"
