@@ -24,7 +24,7 @@ local labels = {
 local function monitor(mask, event)
 	local what = labels[mask & EVENTS] or format("%x", mask) -- the mask also carries ISDIR and EVENT_ON_CHILD
 
-	-- the name comes with the event; event:path() would resolve one per call
+	-- event:path() would resolve a path per event
 	print(format("fsmonitor: %s %s ino %s pid %d",
 		what, event:name() or "?", event:ino() or "?", event:pid()))
 end
