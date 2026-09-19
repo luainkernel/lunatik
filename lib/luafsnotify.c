@@ -77,26 +77,11 @@ LUNATIK_PRIVATECHECKER(luafsnotify_checkevent, luafsnotify_event_t *, &luafsnoti
 
 static const char luafsnotify_incallback_key;
 
-static inline void luafsnotify_setincallback(lua_State *L, bool on)
-{
-	lua_pushboolean(L, on);
-	lua_rawsetp(L, LUA_REGISTRYINDEX, &luafsnotify_incallback_key);
-}
-
-static inline bool luafsnotify_incallback(lua_State *L)
-{
-	lunatik_getregistry(L, &luafsnotify_incallback_key);
-	bool on = lua_toboolean(L, -1);
-
-	lua_pop(L, 1);
-	return on;
-}
-
 static inline int luafsnotify_kernpath(lua_State *L, const char *pathname, struct path *path)
 {
 	unsigned int flags = LOOKUP_FOLLOW;
 
-	if (luafsnotify_incallback(L))
+	if (lunatik_getflag(L, &luafsnotify_incallback_key))
 		flags |= LOOKUP_CACHED; /* the task may hold the directory lock a dcache miss takes */
 	return kern_path(pathname, flags, path);
 }
@@ -126,10 +111,10 @@ static int luafsnotify_callback(lua_State *L, luafsnotify_t *watch, luafsnotify_
 	if ((object = luafsnotify_pushevent(L, watch, event)) == NULL)
 		return 0;
 
-	luafsnotify_setincallback(L, true);
+	lunatik_setflag(L, &luafsnotify_incallback_key, true);
 	if (lua_pcall(L, 2, 0, 0) != LUA_OK) /* callback(mask, event) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
-	luafsnotify_setincallback(L, false);
+	lunatik_setflag(L, &luafsnotify_incallback_key, false);
 
 	object->private = NULL; /* the frame it points at goes next: a kept event raises instead */
 	return 0;
@@ -675,7 +660,7 @@ static int luafsnotify_watch(lua_State *L)
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
 	lunatik_object_t *runtime = lunatik_checkruntime(L, luafsnotify_class.opt);
-	luafsnotify_setincallback(L, luafsnotify_incallback(L)); /* the callback writes it outside any pcall */
+	lunatik_seedflag(L, &luafsnotify_incallback_key);
 	lunatik_object_t *object = lunatik_newobject(L, &luafsnotify_class, 0, LUNATIK_OPT_NONE);
 	luafsnotify_t *watch = luafsnotify_newwatch(L, runtime);
 
