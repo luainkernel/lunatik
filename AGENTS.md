@@ -102,7 +102,11 @@ A worktree named for a task may belong to another session on the same machine. C
 `git worktree list` and the branch a worktree holds before a checkout or a reset there, and never
 reset a branch checked out elsewhere. A review, or a build of a branch not your own, runs in a
 worktree created for it (`git worktree add`, then `git submodule update --init`) and removed at the
-end. A `git checkout` carries what is uncommitted onto the new HEAD, where an edit made against the
+end, with `rm -rf` and `git worktree prune`, since `git worktree remove` refuses a tree with
+submodules. Each one left behind carries a build on the disk every session shares, and a build that
+stops halfway on a full disk leaves the previous install in place for the suite to measure:
+`tools/checks/disk.sh` fails below a free-space threshold and names the largest scratch worktrees, and
+`tools/lunatik-host` runs it as a warning before every cycle. A `git checkout` carries what is uncommitted onto the new HEAD, where an edit made against the
 old base reads as a change to the new one: switch branches in a tree with nothing pending, or read
 the other branch in a worktree of its own. `git stash` has no place here at all: the stack belongs
 to the repository and not to the worktree, so `stash@{0}` is usually another session's work and the

@@ -27,7 +27,9 @@ install, or the installed suite drifts from the tree.
 
 A worktree installs only after `make`: `scripts_install` needs the autogen output. Keep the
 install's output visible, and confirm what landed under `/lib/modules/lua/` (timestamp, or a
-grep for a symbol only the branch has) before trusting a run against it.
+grep for a symbol only the branch has) before trusting a run against it. `tools/lunatik-host` runs
+`tools/checks/disk.sh` first: a build that stops halfway on a full disk leaves the previous install in
+place, and the suite then measures that one; the check names the scratch worktrees to remove.
 
 A tree that drops a crash guard (a checker, an `argcheck`) is not installed or run on the shared
 host: the test covering the guard reproduces the crash. `crash-guard.sh` blocks it; an experiment

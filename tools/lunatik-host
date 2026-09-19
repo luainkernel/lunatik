@@ -39,4 +39,5 @@ fi
 
 echo "pid $$ ($USER): $*" > "$LOCK.holder"
 trap 'rm -f "$LOCK.holder"' EXIT
+bash "$(dirname "$0")/checks/disk.sh" >&2 # a warning: a suite needs no space, an install and a build do
 "$@"
