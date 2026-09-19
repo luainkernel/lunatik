@@ -20,6 +20,7 @@
 //               validated does not carry
 //   focus       what this round is for, in the maintainer's words
 //   effort      per-phase reasoning effort, default "high"
+//   model       the model each phase runs on, default the session's
 //   push        false where a push from an agent is refused on this machine, so a fixup stays a
 //               commit on review<pr>-fixups and the session that launched the review pushes it
 //   repo        the checkout the phases work in, default the repository they start in
@@ -34,6 +35,7 @@ export const meta = {
 
 const a = args
 const effort = a.effort || 'high'
+const model = a.model ? { model: a.model } : {}
 const checkpoint = `${a.scratch}/review${a.pr}/REVIEW.md`
 // the prompt is read by an agent with a shell, so the default resolves on the machine that runs it
 const repo = a.repo || '$(git rev-parse --show-toplevel)'
@@ -190,16 +192,16 @@ const BUILD_OUT = {
 }
 
 phase('Hunt')
-const hunt = await agent(HUNT, { label: `hunt:${a.pr}`, phase: 'Hunt', effort, schema: FINDINGS })
+const hunt = await agent(HUNT, { label: `hunt:${a.pr}`, phase: 'Hunt', effort, schema: FINDINGS, ...model })
 
 phase('Rules')
-const rules = await agent(RULES, { label: `rules:${a.pr}`, phase: 'Rules', effort, schema: RULES_OUT })
+const rules = await agent(RULES, { label: `rules:${a.pr}`, phase: 'Rules', effort, schema: RULES_OUT, ...model })
 
 const changed = (hunt?.fixups?.length || 0) + (rules?.fixups?.length || 0) > 0
 let build = null
 if (!a.validated || changed || unrun.length) {
   phase('Build')
-  build = await agent(BUILD, { label: `build:${a.pr}`, phase: 'Build', effort: 'medium', schema: BUILD_OUT })
+  build = await agent(BUILD, { label: `build:${a.pr}`, phase: 'Build', effort: 'medium', schema: BUILD_OUT, ...model })
 } else {
   log(`build skipped: head ${a.head} already validated (${a.validated.suite}, core ${a.validated.core}, examples ${(a.validated.examples || []).join(' ') || 'none'}) and no fixup changed it`)
 }
