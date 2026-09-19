@@ -61,7 +61,8 @@ end
 -- @param ... Varargs passed directly to the underlying `socket:receive()`.
 -- Typically `(len, flags, raw_ip_for_udp)`.
 -- @return Varargs returned by the underlying `socket:receive()`.
--- Typically `(data, ip_address, port)` or `(data, error_message)`.
+-- Typically `(data, ip_address, port)`.
+-- @raise error on failure
 -- @see socket.receive
 function inet:receive(...)
 	return self.socket:receive(...)
@@ -87,7 +88,7 @@ end
 -- The address '*' is treated as `INADDR_ANY` (0.0.0.0).
 -- @param addr (string) The IP address to bind to. Use '*' for any address.
 -- @param port (number) The port number to bind to.
--- @return (boolean or nil) True on success, or nil and an error message on failure.
+-- @raise error on failure
 -- @see socket.bind
 function inet:bind(addr, port)
 	local ip = addr ~= '*' and net.aton(addr) or 0
@@ -99,7 +100,7 @@ end
 -- @param addr (string) The remote IP address.
 -- @param port (number) The remote port.
 -- @param flags (number) [optional] Connection flags.
--- @return (boolean or nil) True on success, or nil and an error message on failure.
+-- @raise error on failure
 -- @see socket.connect
 function inet:connect(addr, port, flags)
 	self.socket:connect(net.aton(addr), port, flags)
@@ -153,7 +154,7 @@ inet.tcp = inet:new{type = sock.STREAM, proto = ipproto.TCP}
 ---
 -- Listens for incoming connections on a TCP socket.
 -- @param backlog (number) The maximum length of the queue of pending connections.
--- @return (boolean or nil) True on success, or nil and an error message on failure.
+-- @raise error on failure
 -- @see socket.listen
 function inet.tcp:listen(backlog)
 	self.socket:listen(backlog)
@@ -162,7 +163,8 @@ end
 ---
 -- Accepts an incoming connection on a listening TCP socket.
 -- @param flags (number) [optional] Flags for the accept operation.
--- @return (table or nil) A new socket object for the accepted connection, or nil and an error message.
+-- @return (socket) The accepted connection, as a plain `socket` object.
+-- @raise error on failure
 -- @see socket.accept
 function inet.tcp:accept(flags)
 	return self.socket:accept(flags)
@@ -183,9 +185,10 @@ inet.udp = inet:new{type = sock.DGRAM, proto = ipproto.UDP}
 -- from `net.aton` format to a string using `net.ntoa`.
 -- @param len (number) [optional] The maximum number of bytes to receive.
 -- @param flags (number) [optional] Flags for the receive operation.
--- @return (string or nil) The received data, or nil on error.
--- @return (string or nil) The sender's IP address, or an error message.
--- @return (number or nil) The sender's port number.
+-- @return (string) The received data.
+-- @return (string) The sender's IP address.
+-- @return (number) The sender's port number.
+-- @raise error on failure
 -- @see socket.receive
 function inet.udp:receivefrom(len, flags)
 	local msg, ip, port = self:receive(len, flags, true)
@@ -198,7 +201,8 @@ end
 -- @param msg (string) The message to send.
 -- @param addr (string) The destination IP address.
 -- @param port (number) The destination port.
--- @return (boolean or nil) True on success, or nil and an error message on failure.
+-- @return (number) Number of bytes sent.
+-- @raise error on failure
 -- @see inet.send
 -- @see socket.send
 inet.udp.sendto = inet.udp.send -- Alias for send
