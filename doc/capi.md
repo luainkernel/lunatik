@@ -409,14 +409,14 @@ Removes `object` and its `private` pointer from the registry, allowing GC to col
 
 ### lunatik\_getregistry
 ```C
-int lunatik_getregistry(lua_State *L, void *key);
+int lunatik_getregistry(lua_State *L, const void *key);
 ```
 Pushes the value stored in `LUA_REGISTRYINDEX` at `key` onto the Lua stack and returns
 its type. Defined as a macro wrapping `lua_rawgetp`.
 
 ### lunatik\_getregistryobject
 ```C
-lunatik_object_t *lunatik_getregistryobject(lua_State *L, void *key);
+lunatik_object_t *lunatik_getregistryobject(lua_State *L, const void *key);
 ```
 Pushes the value stored in `LUA_REGISTRYINDEX` at `key` and returns it as a Lunatik object, or
 `NULL` when there is none or it is no Lunatik object: a hook that reaches for the object it
