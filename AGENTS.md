@@ -102,12 +102,17 @@ A worktree named for a task may belong to another session on the same machine. C
 `git worktree list` and the branch a worktree holds before a checkout or a reset there, and never
 reset a branch checked out elsewhere. A review, or a build of a branch not your own, runs in a
 worktree created for it (`git worktree add`, then `git submodule update --init`) and removed at the
-end. A `git checkout` carries what is uncommitted onto the new HEAD, where an edit made against the
-old base reads as a change to the new one: switch branches in a tree with nothing pending, or read
-the other branch in a worktree of its own. `git stash` has no place here at all: the stack belongs
-to the repository and not to the worktree, so `stash@{0}` is usually another session's work and the
-pop that follows spreads its conflicts over your tree. Set work aside with a commit, and compare two
-revisions with a worktree or `git show <ref>:<path>`.
+end, with `rm -rf` and `git worktree prune`, since `git worktree remove` refuses a tree with
+submodules. Each one left behind carries a build on the disk every session shares, and a build that
+stops halfway on a full disk leaves the previous install in place for the suite to measure:
+`tools/checks/disk.sh` fails below a free-space threshold and names the largest worktrees, and
+`tools/lunatik-host` runs it as a warning before every cycle. A `git checkout` carries what is
+uncommitted onto the new HEAD, where an edit made against the old base reads as a change to the new
+one: switch branches in a tree with nothing pending, or read the other branch in a worktree of its
+own. `git stash` has no place here at all: the stack belongs to the repository and not to the
+worktree, so `stash@{0}` is usually another session's work and the pop that follows spreads its
+conflicts over your tree. Set work aside with a commit, and compare two revisions with a worktree or
+`git show <ref>:<path>`.
 
 A tree with a conflict pending (`git status` showing `UU`) is not a test subject: a suite run over a
 half-applied rebase or cherry-pick measures neither side. Resolve and commit, then build.
@@ -222,7 +227,10 @@ was read for what it was.
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run or a suite, while another operation is on it, naming the processes it found; a process in
 D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once
-what it lists is known to be stale.
+what it lists is known to be stale. What a command runs is read by `commands.sh`, which the lock and
+`crash-guard.sh` share: a suite's `run.sh` counts when it is the command, bare or under `sudo`, `bash`
+or `sh`, and not when a path to it is handed to `git` or to a check, which the bare substring read as a
+run four times in one afternoon.
 
 `tools/watchdog.sh` runs a script and stops it when the host loses the connectivity it had before the
 run, comparing against the loopback and the default route's gateway and holding nothing against the
@@ -268,6 +276,14 @@ renders as code and does not link. The marker forces the show-then-post step; it
 the text was shown, only that it was set on purpose. The text goes through `machine-leak.sh` before
 the marker is read, since the marker approves the wording and not what the wording carries, and text
 the guard cannot read, passed inline or on stdin, is refused rather than skipped.
+
+`untraced.sh` reads a text about to be published, a review, a comment, a pull request body, for the
+word that names a failure nobody read: a failure that comes and goes is read in the journal around the
+failing run, `tools/journal.sh` prints every unit's lines in that window, and the text names the
+mechanism or carries a hypothesis with what was not captured. `pr-body.sh` and `review-post-guard.sh`
+run it. The review of #1016 called `nl80211_station`'s failure a flake on the strength of a rerun that
+passed; the journal had NetworkManager and wpa_supplicant taking the interface the test had just
+brought up.
 
 ### Skills
 
@@ -973,7 +989,15 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   never does. When the variable is a stimulus the host may or may not supply — a stray packet in a
   window — supply it yourself and reproduce the signature on demand, and log what the hook actually
   saw before naming the packet. A mechanism proved by injection is reported as that, not as the
-  trigger of the run that failed, which was not captured.
+  trigger of the run that failed, which was not captured. A failure the suite showed once is read in
+  the journal before anything runs again: the KTAP line carries an errno and the test's own prints
+  say how far it got, and the window around them, every unit and not only the kernel
+  (`tools/journal.sh`), shows who else acted on what the test created. `nl80211_station` failed
+  with `ENOENT` after "added" and before "authorized", and the journal had NetworkManager
+  registering the AP interface the test had brought up and wpa_supplicant taking it down, which
+  flushes the station; a rerun that passed had wpa_supplicant arriving after the test deleted the
+  interface. A rerun measures the rerun; the word for a failure nobody read is what
+  `untraced.sh` refuses.
 * A defect found on the way is fixed, not reported and left: a pre-existing one, in code the change
   does not touch, becomes a commit of its own, or a pull request of its own when it stands apart, and
   the hand-back says which. Asking whether to fix it is asking the maintainer to decide what the
