@@ -20,6 +20,7 @@ for file in "$@"; do
 		echo "$file: carries a Test plan section"
 		status=1
 	fi
+	bash "$(dirname "$0")/untraced.sh" "$file" || status=1
 done
 exit $status
 

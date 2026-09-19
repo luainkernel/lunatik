@@ -103,6 +103,12 @@ text, get the OK, then prefix the marker to the command.
 
 - Review with inline comments in one shot:
   `gh api -X POST repos/.../pulls/<N>/reviews -f commit_id=<head sha> -f event=COMMENT -f body=@<verdict>` with a JSON `comments` array (`path`, `line`, `side: "RIGHT"`, `body`) — build the payload with `--input file.json`.
+  GitHub resolves each `line` against the diff of `commit_id`, so a line only a fixup touches
+  anchors at the head, not at the author's commit: the review of #969 answered 422 "Line could
+  not be resolved" at the author's commit for a README row its fixup had changed.
+- A failure the branch's suite showed is in the journal before it is in the review
+  (`sudo bash tools/journal.sh "<the test's print>"`, the lunatik-cycle skill); the review names
+  the mechanism or the hypothesis, and `review-post-guard.sh` refuses the word that skips both.
 - A single inline comment after the fact:
   `gh api -X POST repos/.../pulls/<N>/comments -f commit_id=<head sha> -f path=... -F line=... -f side=RIGHT -F body=@file`.
 - Fix a submitted review's body: `gh api -X PUT repos/.../pulls/<N>/reviews/<id> -F body=@file`.
