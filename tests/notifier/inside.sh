@@ -31,7 +31,7 @@
 SCRIPT="tests/notifier/inside"
 OLDDEV="inside0"
 NEWDEV="inside1"
-REFUSAL="not allowed from a netdevice callback"
+REFUSAL="not allowed from a notifier callback"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 

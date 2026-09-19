@@ -178,14 +178,14 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 *   the callback before the script body ends. Returns a `linux.notify` status
 *   code.
 * @treturn notifier
-* @raise if called from a percpu runtime, or from a netdevice callback
+* @raise if called from a percpu runtime, or from a notifier callback
 * @within notifier
 */
 static int luanotifier_netdevice(lua_State *L)
 {
 	/* the registrar waits on the namespace rwsem and RTNL this task already holds */
 	if (luanotifier_incallback(L))
-		luaL_error(L, "not allowed from a netdevice callback");
+		luaL_error(L, "not allowed from a notifier callback");
 
 	return luanotifier_new(L, register_netdevice_notifier, unregister_netdevice_notifier,
 		luanotifier_netdevice_handler, &luanotifier_process_class);
