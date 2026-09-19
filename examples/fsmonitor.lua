@@ -22,7 +22,8 @@ local labels = {
 }
 
 local function monitor(mask, event)
-	local what = labels[mask & EVENTS] or format("%x", mask) -- the mask also carries ISDIR and EVENT_ON_CHILD
+	local bits = mask & EVENTS -- the mask also carries ISDIR and EVENT_ON_CHILD
+	local what = labels[bits] or format("%x", bits)
 
 	print(format("fsmonitor: %s %s ino %s pid %d",
 		what, event:name() or "?", event:ino() or "?", event:pid()))
