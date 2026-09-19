@@ -330,6 +330,7 @@ LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL);
 
 static int __init lunatik_init(void)
 {
+	lunatik_resolve(); /* register_kprobe sleeps; lunatik_lookup must not */
 	return 0;
 }
 

@@ -37,11 +37,13 @@
 #include <linux/module.h>
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
 void *lunatik_lookup(const char *symbol);
+void lunatik_resolve(void);
 #define lsys_loadlib(l)		__symbol_get((l))
 #define lsys_unloadlib(l)	symbol_put_addr((l))
 #else
 #include <linux/kallsyms.h>
 #define lunatik_lookup(s)	((void *)kallsyms_lookup_name((l)))
+#define lunatik_resolve()
 #define lsys_loadlib(l)		lunatik_lookup(l)
 #define lsys_unloadlib(l)
 #endif
