@@ -484,6 +484,26 @@ static inline void lunatik_unregisterobject(lua_State *L, lunatik_object_t *obje
 	lunatik_unregister(L, object); /* remove object, now it might be GC'ed */
 }
 
+static inline void lunatik_setflag(lua_State *L, const void *key, bool on)
+{
+	lua_pushboolean(L, on);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, key);
+}
+
+static inline bool lunatik_getflag(lua_State *L, const void *key)
+{
+	lunatik_getregistry(L, key);
+	bool on = lua_toboolean(L, -1);
+
+	lua_pop(L, 1);
+	return on;
+}
+
+static inline void lunatik_seedflag(lua_State *L, const void *key)
+{
+	lunatik_setflag(L, key, lunatik_getflag(L, key));
+}
+
 #define lunatik_attach(L, obj, field, new_fn, ...)	\
 do {							\
 	obj->field = new_fn((L), ##__VA_ARGS__);	\
