@@ -299,6 +299,11 @@ and the deny tests read the denied file again after the watch is stopped.
   (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_IN_IGNORED`,
   `FS_DN_MULTISHOT`) are absent.
 
+- **lookup**: `linux.lookup` answers `nil` for a symbol kallsyms does not
+  carry and a lightuserdata for one it does, and rejects a non-string
+  argument; skipped without `CONFIG_KPROBES`, which is how the module reaches
+  `kallsyms_lookup_name`.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).
@@ -425,6 +430,16 @@ higher-level `netlink.*` modules built on top of it.
   toggles and stops a probe on the way in, then probes `vfs_read` and calls all
   three from its own handler. Do not run it against a build without the guard,
   which would reach `synchronize_rcu` with interrupts off.
+
+- **dropreason**: the kprobe target the kernel's drop path offers and the
+  argument its reason arrives in, which moved together at v6.11, where
+  `kfree_skb_reason` became a static inline over `sk_skb_reason_drop`: the
+  script probes whichever symbol `linux.lookup` finds, and the shell checks
+  that name against `/proc/kallsyms` and that the handler counts the
+  `NO_SOCKET` drops of a batch of datagrams sent to a closed UDP port, which
+  a handler reading the wrong argument counts none of. Skipped without
+  `CONFIG_KPROBES` or `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`, on a kernel that
+  carries neither symbol, and when something holds the port.
 
 - **handlers**: which handler a hit runs, over the four handlers tables
   `probe.new` takes: only `pre`, only `post`, both, and neither. Each script

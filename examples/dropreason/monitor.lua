@@ -2,12 +2,13 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- Answers "why is my packet dying?". A kprobe on kfree_skb_reason(), where every
--- kfree_skb() lands, reads the reason off the probed function's arguments and
+-- Answers "why is my packet dying?". A kprobe on the out-of-line drop path, where
+-- every kfree_skb() lands, reads the reason off the probed function's arguments and
 -- counts the drops by name in an RCU table published on the shared environment,
 -- where any runtime, the REPL included, reads it live. A drop freed from hardirq
 -- (dev_kfree_skb_any()) or as a segment list (kfree_skb_list()) never reaches it
--- and is not counted.
+-- and is not counted. That path takes a reason from v5.17 on, and nothing here
+-- works before it. tests/probe/dropreason.lua probes the same pair.
 --
 -- Usage:
 --   sudo lunatik run examples/dropreason/monitor hardirq
@@ -20,6 +21,7 @@
 
 local probe      = require("probe")
 local rcu        = require("rcu")
+local linux      = require("linux")
 local dropreason = require("linux.dropreason")
 local env        = require("lunatik")._ENV
 
@@ -27,7 +29,25 @@ local env        = require("lunatik")._ENV
 -- dmesg, which is what names the drop site; any name in linux.dropreason does
 local WATCH <const> = "NO_SOCKET"
 
-local REASON <const> = 1 -- kfree_skb_reason(skb, reason)
+-- the drop path, newest name first: v6.11 turned kfree_skb_reason(skb, reason)
+-- into a static inline over sk_skb_reason_drop(sk, skb, reason)
+local targets = {
+	{symbol = "sk_skb_reason_drop", reason = 2},
+	{symbol = "kfree_skb_reason", reason = 1},
+}
+
+local function find()
+	local tried = {}
+	for _, target in ipairs(targets) do
+		if linux.lookup(target.symbol) then
+			return target.symbol, target.reason
+		end
+		table.insert(tried, target.symbol)
+	end
+	error("couldn't find " .. table.concat(tried, " or "))
+end
+
+local SYMBOL <const>, REASON <const> = find()
 local CONSUMED <const> = dropreason.CONSUMED -- freed, not dropped
 
 local names = {}
@@ -60,5 +80,6 @@ local function unpublish()
 	env.dropreason = nil
 end
 
-probe.new("kfree_skb_reason", {pre = pre, sentinel = setmetatable({}, {__gc = unpublish})})
+print("dropreason: probing " .. SYMBOL)
+probe.new(SYMBOL, {pre = pre, sentinel = setmetatable({}, {__gc = unpublish})})
 
