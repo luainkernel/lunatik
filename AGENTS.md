@@ -553,7 +553,15 @@ Never `require("foo").method()`. A kernel script does the same with a local:
   says. State the why; the what and the how are the code's job. A second clause defending the choice,
   or walking the mechanism a second time, is neither and reads as doubt: `/* a bottom-half unlock with
   IRQs off runs the pending softirqs inline, inside a kprobe handler */` gives the reason and stops.
-* A comment about a specific call goes on that call's line, not above the function signature.
+* A comment about a specific call goes on that call's line, not above the function signature, and
+  the call is the one the fact is about: `%pe keeps the sign` is about the `snprintf` that formats
+  the errno, and the `buf + 1` on the line below reads on from it; put on the `lua_pushstring`
+  instead, it reads as a note about pushing a string, and #990 merged that way before it was
+  noticed.
+* A literal in a comment is either the rule or marked as one instance of it. `/* "-ENOENT":
+  errname keeps the sign */` read as a case special to that errno until the maintainer asked
+  whether it was only an example; `/* %pe keeps the sign, e.g. "-ENOENT" */` says the rule and
+  shows one value of it. A bare example reads as the whole.
 * When the surprise is the call itself, a `put` where the tree would `stop`, the comment on the
   call's line gives the one reason it is not the expected call, `/* last reference: a stop would
   lock, and this can run in softirq */`; when the alternative is the other arm of the same `if`,
