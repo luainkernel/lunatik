@@ -26,7 +26,7 @@
 -- `util` holds file/shell helpers shared across phases.
 --
 -- @script autogen
--- @usage lua5.4 autogen.lua <KBUILD> <KERNEL_RELEASE> <LUNATIK_MODULES>
+-- @usage lua5.5 autogen.lua <KBUILD> <KERNEL_RELEASE> <LUNATIK_MODULES>
 
 local KBUILD, KERNEL, LUNATIK_MODULES = arg[1], arg[2], arg[3]
 
@@ -441,7 +441,7 @@ function emit.config()
 end
 
 if not (KBUILD and KERNEL and LUNATIK_MODULES) then
-	util.die("usage: lua5.4 %s <KBUILD> <KERNEL_RELEASE> <LUNATIK_MODULES>", arg[0])
+	util.die("usage: lua5.5 %s <KBUILD> <KERNEL_RELEASE> <LUNATIK_MODULES>", arg[0])
 end
 
 local dumps = enumerate.plan()

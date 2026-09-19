@@ -40,13 +40,22 @@ device.new(driver)
 Install dependencies (here for Debian/Ubuntu, to be adapted to one's distribution):
 
 ```sh
-sudo apt install git build-essential lua5.4 dwarves clang llvm libelf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
+sudo apt install git build-essential lua5.5 dwarves clang llvm libelf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
 ```
 
 Install dependencies (here for Arch Linux):
 
 ```sh
 sudo pacman -S git lua clang llvm m4 libpcap pkg-config build2 linux-tools linux-headers
+```
+
+Ubuntu packages Lua 5.5 from 26.04 and Debian from testing. Where the distribution does not carry
+it yet, build the interpreter from source:
+
+```sh
+curl -sSLO https://www.lua.org/ftp/lua-5.5.1.tar.gz
+tar xf lua-5.5.1.tar.gz && make -C lua-5.5.1
+sudo install -m 0755 lua-5.5.1/src/lua /usr/bin/lua5.5
 ```
 
 The `lua-readline` package is optional. When installed, the REPL gains line editing and command history:

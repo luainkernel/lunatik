@@ -18,7 +18,7 @@
 -- runtime path at `/lib/modules/lua/linux/`.
 --
 -- @script autogen/ldoc
--- @usage lua5.4 autogen/ldoc.lua [<out-dir>]
+-- @usage lua5.5 autogen/ldoc.lua [<out-dir>]
 
 local OUT = arg[1] or "lib/linux"
 local SPECS = "autogen/specs.lua"
