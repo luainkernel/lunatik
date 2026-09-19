@@ -13,7 +13,10 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
   checked against `gh api repos/.../pulls/<N> --jq .head.sha` before anything is diffed. Check it out
   in a worktree of its own (`git worktree add <scratch>/w<N> review/<N>`, then
   `git submodule update --init`), since a worktree named for a task may be another session's; build
-  and run it with the lunatik-cycle skill.
+  and run it with the lunatik-cycle skill. The worktree goes when the review is posted, unless the
+  launching session asked to keep it: `rm -rf <tree> && git worktree prune`, since `git worktree
+  remove` refuses one with submodules, and each one left behind carries a build on a disk the
+  sessions share.
 - Read the pull request through the REST API, which needs no `read:org` scope. The spellings below
   assume the `gh` CLI; where the machine has none, the same call is
   `curl -sS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/<path>"`, and `review.js`
