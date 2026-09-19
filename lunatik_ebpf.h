@@ -8,7 +8,7 @@
 
 #include "lib/luarcu.h"
 
-static char lunatik_ebpf_env_key;
+static const char lunatik_ebpf_env_key;
 static lunatik_object_t *lunatik_ebpf_runtimes = NULL;
 
 static inline lunatik_object_t *lunatik_ebpf_getruntimes(void)
