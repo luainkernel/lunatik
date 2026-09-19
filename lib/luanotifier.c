@@ -55,6 +55,23 @@ LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanoti
 /* an event delivered inside register_fn, on the task that registered the block */
 #define luanotifier_isreplay(notifier)	(in_task() && (notifier)->registrant == current)
 
+static const char luanotifier_incallback_key;
+
+static inline void luanotifier_setincallback(lua_State *L, bool on)
+{
+	lua_pushboolean(L, on);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, &luanotifier_incallback_key);
+}
+
+static inline bool luanotifier_incallback(lua_State *L)
+{
+	lunatik_getregistry(L, &luanotifier_incallback_key);
+	bool on = lua_toboolean(L, -1);
+
+	lua_pop(L, 1);
+	return on;
+}
+
 static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
 {
 	if (lunatik_getregistry(L, notifier) != LUA_TFUNCTION)
@@ -66,7 +83,11 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 	if (nargs == LUANOTIFIER_DECLINED)
 		return NOTIFY_DONE;
 
-	if (lua_pcall(L, nargs + 1, 1, 0) != LUA_OK) { /* callback(event, ...) */
+	luanotifier_setincallback(L, true);
+	int status = lua_pcall(L, nargs + 1, 1, 0); /* callback(event, ...) */
+	luanotifier_setincallback(L, false);
+
+	if (status != LUA_OK) {
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 		return NOTIFY_OK;
 	}
@@ -157,10 +178,18 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 *   the callback before the script body ends. Returns a `linux.notify` status
 *   code.
 * @treturn notifier
-* @raise if called from a percpu runtime
+* @raise if called from a percpu runtime, or from a netdevice callback
 * @within notifier
 */
-LUANOTIFIER_NEWCHAIN(netdevice, &luanotifier_process_class);
+static int luanotifier_netdevice(lua_State *L)
+{
+	/* the registrar waits on the namespace rwsem and RTNL this task already holds */
+	if (luanotifier_incallback(L))
+		luaL_error(L, "not allowed from a netdevice callback");
+
+	return luanotifier_new(L, register_netdevice_notifier, unregister_netdevice_notifier,
+		luanotifier_netdevice_handler, &luanotifier_process_class);
+}
 
 #ifdef CONFIG_VT
 static int luanotifier_keyboard_handler(lua_State *L, void *data)
@@ -251,6 +280,7 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
+	luanotifier_setincallback(L, luanotifier_incallback(L)); /* the callback writes it outside any pcall */
 	lunatik_object_t *object = lunatik_newobject(L, class, sizeof(luanotifier_t), LUNATIK_OPT_NONE);
 	luanotifier_t *notifier = (luanotifier_t *)object->private;
 

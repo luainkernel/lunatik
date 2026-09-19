@@ -1,0 +1,53 @@
+--
+-- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+-- Kernel-side script for the notifier inside test (see inside.sh).
+
+local notifier = require("notifier")
+local notify   = require("linux.notify")
+
+local function report(what)
+	print(string.format("notifier inside test: %s", what))
+end
+
+local function nop()
+	return notify.OK
+end
+
+local function probe()
+	local ok, err = pcall(notifier.netdevice, nop)
+	return ok and "registered" or tostring(err)
+end
+
+local loading = true
+local probed  = false
+local lived   = false
+local stopper
+
+local function cb()
+	if loading and not probed then
+		probed = true
+		report("replay " .. probe())
+		local _, refusal = coroutine.resume(coroutine.create(probe))
+		report("coroutine " .. tostring(refusal))
+	elseif not loading and not lived then
+		lived = true
+		report("live " .. probe())
+	end
+	return notify.OK
+end
+
+local function stop()
+	if stopper then -- the replay reaches this before notifier.netdevice returns
+		report("stop")
+		stopper:stop()
+	end
+	return notify.OK
+end
+
+notifier.netdevice(cb)
+stopper = notifier.netdevice(stop)
+loading = false
+report("after " .. probe())
+
