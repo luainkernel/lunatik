@@ -302,7 +302,7 @@ EXPORT_SYMBOL(lunatik_runtime);
 * @function runtime
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context: `"process"` (sleepable,
-*   GFP\_KERNEL, mutex), `"softirq"` (atomic, GFP\_ATOMIC, spinlock), or `"irq"`
+*   GFP\_KERNEL, mutex), `"softirq"` (atomic, GFP\_ATOMIC, spinlock), or `"hardirq"`
 *   (atomic, GFP\_ATOMIC, spinlock with IRQs disabled).
 *   Use `"softirq"` for hooks that fire in softirq context (netfilter, XDP).
 *   Use `"hardirq"` for hooks that fire in hardirq context (kprobes).
