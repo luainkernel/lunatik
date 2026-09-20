@@ -394,6 +394,20 @@ luafoo_reset(o, ...);                       // update the wrapped pointer
 lunatik_detach(runtime, obj, field)         // unregisters and nulls obj->field
 ```
 
+### lunatik\_register
+```C
+void lunatik_register(lua_State *L, int ix, const void *key);
+```
+Stores the value at stack index `ix` in `LUA_REGISTRYINDEX` at `key` and leaves the stack as it
+found it. `key` is an address the caller owns for the life of the entry: an object's `private`, or
+a `static const char` the binding declares for a slot of its own.
+
+### lunatik\_unregister
+```C
+void lunatik_unregister(lua_State *L, const void *key);
+```
+Removes the value stored in `LUA_REGISTRYINDEX` at `key`.
+
 ### lunatik\_registerobject
 ```C
 void lunatik_registerobject(lua_State *L, int ix, lunatik_object_t *object);
@@ -409,14 +423,14 @@ Removes `object` and its `private` pointer from the registry, allowing GC to col
 
 ### lunatik\_getregistry
 ```C
-int lunatik_getregistry(lua_State *L, void *key);
+int lunatik_getregistry(lua_State *L, const void *key);
 ```
 Pushes the value stored in `LUA_REGISTRYINDEX` at `key` onto the Lua stack and returns
 its type. Defined as a macro wrapping `lua_rawgetp`.
 
 ### lunatik\_getregistryobject
 ```C
-lunatik_object_t *lunatik_getregistryobject(lua_State *L, void *key);
+lunatik_object_t *lunatik_getregistryobject(lua_State *L, const void *key);
 ```
 Pushes the value stored in `LUA_REGISTRYINDEX` at `key` and returns it as a Lunatik object, or
 `NULL` when there is none or it is no Lunatik object: a hook that reaches for the object it
