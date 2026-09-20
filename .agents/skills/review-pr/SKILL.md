@@ -106,7 +106,7 @@ or inline comment lacks that line: show the exact text, get the OK, then prefix 
 command.
 
 - Review with inline comments in one shot:
-  `gh api -X POST repos/.../pulls/<N>/reviews -f commit_id=<head sha> -f event=COMMENT -f body=@<verdict>` with a JSON `comments` array (`path`, `line`, `side: "RIGHT"`, `body`) — build the payload with `--input file.json`.
+  `gh api -X POST repos/.../pulls/<N>/reviews -f commit_id=<head sha> -f event=COMMENT -F body=@<verdict>` with a JSON `comments` array (`path`, `line`, `side: "RIGHT"`, `body`) — build the payload with `--input file.json`.
   GitHub resolves each `line` against the diff of `commit_id`, so a line only a fixup touches
   anchors at the head, not at the author's commit: the review of #969 answered 422 "Line could
   not be resolved" at the author's commit for a README row its fixup had changed.
