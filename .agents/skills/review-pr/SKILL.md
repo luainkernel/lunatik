@@ -50,7 +50,8 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
 - A fixup is made on `review/<N>` and pushed onto the pull request's branch, a fast-forward:
   `git push <url> HEAD:refs/heads/<branch>`; then `gh api repos/.../pulls/<N>/commits` is what says it
   is on the pull request, since the pull request lists that branch alone. `review/<N>` left on its
-  own is invisible there.
+  own is invisible there. The push is a command of its own, never chained after a rebase: one that
+  stops on a conflict leaves HEAD on the base, and the push publishes that; `push-guard.sh` refuses it.
 - Answer a maintainer's comment in its thread, `gh api -X POST repos/.../pulls/<N>/comments -F
   in_reply_to=<comment id> -F body=@file`, quoting the line it answers.
 
