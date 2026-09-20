@@ -275,7 +275,10 @@ maintainer and approved, or when the text gives a fixup reference as a backtick'
 renders as code and does not link. The marker forces the show-then-post step; it cannot check that
 the text was shown, only that it was set on purpose. The text goes through `machine-leak.sh` before
 the marker is read, since the marker approves the wording and not what the wording carries, and text
-the guard cannot read, passed inline or on stdin, is refused rather than skipped.
+the guard cannot read, passed inline or on stdin, is refused rather than skipped. Every text it lets
+through opens with `(posted by an agent, not by @<handle>)`, the review body and each inline comment
+alike, since the account is the maintainer's: the review of #854 went out with the line on the body
+and on none of its five inline comments, which stand alone in the conversation.
 
 `untraced.sh` reads a text about to be published, a review, a comment, a pull request body, for the
 word that names a failure nobody read: a failure that comes and goes is read in the journal around the
@@ -1087,14 +1090,14 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   The exact text goes in the message that asks, whole and every round, never as a path to a file or
   as "unchanged from the last one": what is not in front of the maintainer was not shown.
 * A code finding is posted inline, anchored on the line it addresses; the review body carries the
-  verdict and opens addressing the author by handle. A finding in the body, away from its line,
-  makes the reader hunt for where it applies — and a submitted review cannot be deleted, only
-  dismissed, so the placement is decided before posting, not repaired after.
+  verdict and addresses the author by handle. A finding in the body, away from its line, makes the
+  reader hunt for where it applies — and a submitted review cannot be deleted, only dismissed, so the
+  placement is decided before posting, not repaired after.
 * Each comment links its fixup as a full commit URL — never a backtick'd SHA, which renders as code and
-  does not link. A reply to an author's comment @-mentions the author and opens with a quote of the
-  line it answers: an issue comment does not thread and need not even notify them, so the @-mention
-  reaches them and the quote makes it a reply, not a stray remark. A request for changes is not a place
-  for praise; padding buries the change being asked for.
+  does not link. A reply to an author's comment @-mentions the author and quotes the line it answers
+  under the opening that says an agent wrote it: an issue comment does not thread and need not even
+  notify them, so the @-mention reaches them and the quote makes it a reply, not a stray remark. A
+  request for changes is not a place for praise; padding buries the change being asked for.
 * Write a finding plainly and no longer than it needs to be: the defect, the fix, and the trace,
   without metaphor, restatement, or throat-clearing. Padding buries the finding the way praise does.
 * A claim that rests on source outside the diff — a kernel accessor, a sibling module, a spec — links
