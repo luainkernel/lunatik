@@ -285,6 +285,15 @@ run it. The review of #1016 called `nl80211_station`'s failure a flake on the st
 passed; the journal had NetworkManager and wpa_supplicant taking the interface the test had just
 brought up.
 
+`push-guard.sh`, wired before a shell call, refuses a `git push` in a command that also runs a
+rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any of those in progress:
+the one that stops on a conflict leaves HEAD on the base with the branch's commits still to apply,
+and a push chained after it publishes that base as the branch. `git rebase --onto master <parent>
+2>&1 | tail -2 && git push` did that to #1012, the pipe hiding the stop, and the pull request's
+branch was `master` until the next push. The push is a command of its own, after `git status` has
+been read; `PUSH_OK=1` overrides the guard for a push meant while a rebase stays paused in another
+tree.
+
 ### Skills
 
 `.agents/skills/` packages the recurring workflows — the build/test cycle, a new binding, a new
