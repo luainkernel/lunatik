@@ -14,8 +14,8 @@
 # skips the whole plan and leaves; a raise from the probe that does not name the
 # config fails it instead.
 #
-# Sourced by allow.sh, deny.sh, default.sh, exec.sh, access.sh, error.sh and
-# sleep.sh, each of which stops PROBE and SCRIPT and unmounts MOUNT in its trap.
+# Sourced by every permission test, each of which stops PROBE and SCRIPT and
+# unmounts MOUNT in its trap.
 
 PROBE="tests/fsnotify/probe"
 SCRATCH="/tmp/lunatik-fsnotify"
