@@ -11,6 +11,7 @@
 #   - -l lists a compiled chunk
 #   - a syntax error names the file and line; -p parses without writing a chunk; 250 inputs compile
 #     in one call, since the host build does not take the kernel's LUAI_MAXSTACK
+#   - lunatik compile forwards its arguments to lunatikc and returns its exit status
 #   - a chunk with a stock (float) number format is rejected by the header check, in the kernel and
 #     as an input to lunatikc
 #   - load() with mode "t" rejects a chunk inside the kernel
@@ -37,7 +38,7 @@ skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
 command -v lunatikc >/dev/null || skip "luac: lunatikc not installed"
 
 ktap_header
-ktap_plan 13
+ktap_plan 14
 
 compile() {
 	local name="$1" strip="$2"; shift 2
@@ -58,6 +59,10 @@ ktap_pass "luac: a syntax error names the file and line"
 
 (cd "$TMP" && lunatikc -p "$SRC/hello.lua" && [ ! -e luac.out ]) || fail "luac: -p failed or wrote a chunk"
 ktap_pass "luac: -p parses without writing a chunk"
+
+lunatik compile -p "$SRC/hello.lua" || fail "luac: lunatik compile did not run lunatikc"
+lunatik compile -p "$TMP/bad.lua" 2>/dev/null && fail "luac: lunatik compile hid the failure"
+ktap_pass "luac: lunatik compile forwards the arguments and the exit status"
 
 for i in $(seq 250); do printf 'return %d\n' "$i" > "$TMP/f$i.lua"; done
 lunatikc -p "$TMP"/f*.lua || fail "luac: 250 inputs refused"
