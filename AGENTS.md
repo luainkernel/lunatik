@@ -24,6 +24,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | Path | What lives there |
 |------|------------------|
 | `lunatik_*.c`, `lunatik.h` | core runtime, object model, C API |
+| `lua/` | the Lua fork, upstream's git mirror plus the `_KERNEL` patch; `luac.c` comes from the release tarball, which the mirror does not carry, so a bump re-imports it |
 | `lib/lua*.c` | kernel modules, one `.ko` each, exposing a Lua module |
 | `lib/*.lua`, `lib/*/*.lua` | kernel side Lua libraries, installed to `/lib/modules/lua/` |
 | `autogen/` | build time generation of `linux.*` constant tables from kernel headers |
