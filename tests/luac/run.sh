@@ -27,14 +27,12 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
+skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
+
+command -v lunatikc >/dev/null || skip "luac: lunatikc not installed"
+
 ktap_header
 ktap_plan 9
-
-if ! command -v lunatikc >/dev/null; then
-	for i in $(seq 9); do ktap_skip "luac: lunatikc not installed"; done
-	ktap_totals
-	exit 0
-fi
 
 compile() {
 	local name="$1" strip="$2"; shift 2
