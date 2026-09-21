@@ -324,7 +324,9 @@ after the watch is stopped.
 - **run**: the bytecode compiler `lunatikc`: compiled chunks (full and
   stripped) run under `lunatik run` and `require`; error messages carry the
   source path and line, or `?:?:` when stripped; `-l` lists a compiled
-  chunk; a stock (float) number format is rejected by the chunk header;
+  chunk; a syntax error names the file and line, `-p` writes no chunk, and
+  250 inputs compile in one call; a stock (float) number format is rejected
+  by the chunk header, in the kernel and as an input to `lunatikc`;
   `load(..., "t")` rejects a chunk in the kernel. Skips when `lunatikc` is
   not installed.
 
