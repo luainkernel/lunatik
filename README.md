@@ -134,16 +134,19 @@ as `lunatik.ko`, so its chunks match the kernel's opcode set and integer-only nu
 chunks from the distribution `luac` are rejected by the kernel. The options are `luac`'s
 (`-l` list, `-o` output, `-p` parse only, `-s` strip debug information, `-v` version).
 
-A chunk is installed and run under the usual `.lua` name; the kernel detects it by its signature:
+A chunk is installed and run under the usual `.lua` name; the kernel detects it by its signature.
+Several inputs make one chunk that runs them in order, as with `luac`, so compile one file per
+call. `-s` drops the source name and the line numbers, so a stripped chunk reports an error as
+`?:?: ...`; keep the full chunk while developing:
 
 ```Shell
-lunatikc -s -o hello.lua hello.lua    # overwrite with the stripped chunk
-sudo cp hello.lua /lib/modules/lua/
+lunatikc -o hello.luac hello.lua
+sudo install -m 0644 hello.luac /lib/modules/lua/hello.lua
 sudo lunatik run hello
 ```
 
 `BYTECODE=1 make install` installs the kernel Lua libraries and the examples as stripped chunks
-instead of source.
+instead of source, so an error raised from one of them reads `?:?:`.
 
 ### Testing
 
