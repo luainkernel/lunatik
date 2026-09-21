@@ -35,16 +35,10 @@ LUNATIKC_SRCS := $(addprefix lua/,$(addsuffix .c,$(LUNATIKC_CORE)))
 LUNATIKC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUNATIKC -I. -Ilua
 
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
-ifeq ($(BYTECODE),1)
 define INSTALL_LUA
-	for f in $(1); do t=$$(mktemp) && ${LUNATIKC} -s -o $$t $$f && ${INSTALL} -m 0644 $$t $(2)/$$(basename $$f); \
-		s=$$?; rm -f $$t; [ $$s -eq 0 ] || exit 1; done
+	${INSTALL} -m 0644 $(1) $(2) \
+	$(if $(filter 1,$(BYTECODE)),&& for f in $(1); do ${LUNATIKC} -s -o $(2)/$$(basename $$f) $(2)/$$(basename $$f) || exit 1; done)
 endef
-else
-define INSTALL_LUA
-	${INSTALL} -m 0644 $(1) $(2)
-endef
-endif
 
 CONFIG_LUNATIK ?= m
 CONFIG_LUNATIK_RUNTIME ?= y
