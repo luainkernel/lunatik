@@ -21,6 +21,7 @@ SRC="$SCRIPTS_PATH/tests/luac"
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
+	for s in hello_bc hello_s user textmode; do lunatik stop "tests/luac/$s" 2>/dev/null; done
 	rm -f "$SRC"/*_bc.lua "$SRC"/*_s.lua "$SRC"/stock.lua
 }
 trap cleanup EXIT
