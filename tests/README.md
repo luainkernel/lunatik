@@ -319,6 +319,24 @@ after the watch is stopped.
   (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_IN_IGNORED`,
   `FS_DN_MULTISHOT`) are absent.
 
+### lua
+
+Holds the vendored Lua to the contract the top-level README documents, so a
+bump of `lua/` that drops a kernel guard fails here instead of compiling.
+
+- **floats**: no float literal, exponent, hexadecimal float or `^` compiles;
+  `/` is integer division on a constant, a register and a coerced string,
+  raises on zero and dispatches `__idiv`; `__div` and `__pow` are not
+  metamethods, on a table or on a string; `math` keeps only its integer
+  half; `tonumber` refuses every float spelling; `string.format` refuses
+  every float conversion; `string.pack` refuses `f` and `d` and packs and
+  unpacks `n` as an integer.
+- **identifiers**: `_VERSION` is `"Lua 5.5-kernel"`, `collectgarbage("count")`
+  answers in bytes, `package.path` resolves under `/lib/modules/lua/`, `os`
+  and `debug.debug` are absent, `io` has no default stream, pipe or
+  `setvbuf`, and `package` has no `cpath` and resolves a C module in the
+  kernel symbol table.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction).
