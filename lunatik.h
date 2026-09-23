@@ -176,6 +176,7 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
 #define LUNATIK_ERR_ARMED	"not allowed after module load"
 #define LUNATIK_ERR_RTNL	"not allowed under RTNL"
+#define LUNATIK_ERR_FINALIZER	"not allowed outside a finalizer"
 
 #define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
 

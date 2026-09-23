@@ -114,8 +114,14 @@ void lunatik_releaseobject(struct kref *kref)
 }
 EXPORT_SYMBOL(lunatik_releaseobject);
 
+/* -1 only inside a finalizer the collector runs, and while the state closes */
+#define lunatik_isfinalizer(L)	(lua_gc((L), LUA_GCISRUNNING) < 0)
+
 int lunatik_deleteobject(lua_State *L)
 {
+	if (!lunatik_isfinalizer(L))
+		luaL_error(L, LUNATIK_ERR_FINALIZER);
+
 	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
 	lunatik_object_t *object = *pobject;
 
