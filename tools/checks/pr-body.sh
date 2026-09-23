@@ -9,8 +9,6 @@
 
 . "$(dirname "$0")/closing.sh"
 
-ties='(^|[.:;] +)(Part|Top|Bottom) of[^.#]*#[0-9]+|Answers ([^.#]* )?#[0-9]+|[Rr]eported as #[0-9]+'
-
 status=0
 for file in "$@"; do
 	body=$(grep -v '^🤖' "$file")
@@ -27,7 +25,7 @@ for file in "$@"; do
 		echo "$file: carries a Test plan section"
 		status=1
 	fi
-	if printf '%s\n' "$body" | grep -Eq "$ties" && ! printf '%s\n' "$body" | grep -Eiq "$(closes)|$(leaves)"; then
+	if printf '%s\n' "$body" | grep -Eq "$(ties)" && ! printf '%s\n' "$body" | grep -Eiq "$(closes)|$(leaves)"; then
 		echo "$file: tied to an issue, closes none: Closes #N, or #N, which it does not close"
 		status=1
 	fi
