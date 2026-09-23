@@ -37,6 +37,7 @@ static struct class *luadevice_devclass;
 */
 typedef struct luadevice_s {
 	struct list_head entry;
+	struct kref kref;
 	lunatik_object_t *runtime;
 	struct cdev *cdev;
 	dev_t devt;
@@ -66,15 +67,29 @@ static inline void luadevice_listdel(luadevice_t *luadev)
 	luadevice_unlock();
 }
 
+static noinline void luadevice_free(struct kref *kref) /* tests/device counts frees at this symbol */
+{
+	luadevice_t *luadev = container_of(kref, luadevice_t, kref);
+
+	if (luadev->runtime) /* NULL if setruntime errored in init */
+		lunatik_putobject(luadev->runtime);
+	lunatik_free(luadev);
+}
+
+#define luadevice_put(luadev)	kref_put(&(luadev)->kref, luadevice_free)
+
 static inline luadevice_t *luadevice_find(dev_t devt)
 {
-	luadevice_t *luadev = NULL;
+	luadevice_t *luadev, *found = NULL;
 	luadevice_lock();
 	luadevice_foreach(luadev)
-		if (luadev->devt == devt)
+		if (luadev->devt == devt) {
+			found = luadev;
+			kref_get(&found->kref);
 			break;
+		}
 	luadevice_unlock();
-	return luadev;
+	return found;
 }
 
 static int luadevice_new(lua_State *L);
@@ -84,10 +99,8 @@ static int luadevice_fop(lua_State *L, luadevice_t *luadev, const char *fop, int
 	int base = lua_gettop(L) - nargs;
 	int ret = -ENXIO;
 
-	if (lunatik_getregistry(L, luadev) != LUA_TTABLE) {
-		pr_err_ratelimited("%s: couldn't find driver\n", fop);
+	if (lunatik_getregistry(L, luadev) != LUA_TTABLE) /* stopped */
 		goto err;
-	}
 
 	lunatik_optcfunction(L, -1, fop, lunatik_nop);
 
@@ -173,9 +186,10 @@ static int luadevice_fop_open(struct inode *inode, struct file *f)
 	if ((luadev = luadevice_find(inode->i_rdev)) == NULL)
 		return -ENXIO;
 
-	lunatik_getobject(luadev->runtime);
 	f->private_data = luadev;
 	luadevice_run(luadevice_doopen, ret, f);
+	if (ret != 0)
+		luadevice_put(luadev);
 	return ret;
 }
 
@@ -198,6 +212,7 @@ static int luadevice_fop_release(struct inode *inode, struct file *f)
 	int ret;
 
 	luadevice_run(luadevice_dorelease, ret, f);
+	luadevice_put(luadevice_fromfile(f));
 	return ret;
 }
 
@@ -231,8 +246,7 @@ static void luadevice_release(void *private)
 
 	/* device might have never been stopped */
 	luadevice_delete(luadev);
-	if (luadev->runtime) /* NULL if setruntime errored in init */
-		lunatik_putobject(luadev->runtime);
+	luadevice_put(luadev);
 }
 
 /***
@@ -342,7 +356,7 @@ static const lunatik_class_t luadevice_class = {
 	.methods = luadevice_mt,
 	.release = luadevice_release,
 	.opener = luaopen_device,
-	.opt = LUNATIK_OPT_SINGLE,
+	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
 };
 
 static int luadevice_new(lua_State *L)
@@ -359,10 +373,10 @@ static int luadevice_new(lua_State *L)
 	lunatik_checkfield(L, 1, "name", LUA_TSTRING);
 	name = lua_tostring(L, -1);
 
-	object = lunatik_newobject(L, &luadevice_class, sizeof(luadevice_t), LUNATIK_OPT_NONE);
-	luadev = (luadevice_t *)object->private;
-
-	memset(luadev, 0, sizeof(luadevice_t));
+	object = lunatik_newobject(L, &luadevice_class, 0, LUNATIK_OPT_NONE);
+	luadev = (luadevice_t *)lunatik_checkzalloc(L, sizeof(luadevice_t));
+	kref_init(&luadev->kref);
+	object->private = luadev;
 
 	lunatik_setruntime(L, device, luadev);
 	lunatik_getobject(luadev->runtime);

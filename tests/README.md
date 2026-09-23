@@ -99,6 +99,27 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   kernel that zeroes every allocation itself, where a fixed `data.new()` and
   a broken one read the same.
 
+### device
+
+- **held**: an open file holds the device's memory from its open to its
+  close, and a refused open gives it back at once, while the node goes with
+  `dev:stop()` or with the runtime, whatever is open. A kprobe on
+  `luadevice_free`, read from `kprobe_profile`, counts the devices whose
+  memory went. A live device reads and writes, and an open its callback
+  refuses fails with `ECANCELED` and holds nothing, so its device goes with
+  its runtime. A device stopped and collected from its own write while a
+  file holds it leaves `/dev` and sysfs at once; the file reads and writes
+  `ENXIO`, reopening it through `/proc` finds no device, and the memory goes
+  at its close and not before. A device stopped and collected from its own
+  open, between the share the open took and its callback, leaves that open a
+  file that reads `ENXIO` and holds the memory until its close. A runtime
+  stopped while a file holds its device removes the node, and the file
+  reads, writes and reopens `ENXIO`; the script starts again under the same
+  name with that file still open, the file reads `ENXIO` rather than reach
+  the new device, and the memory goes at its close. A build without the
+  file's hold reads freed memory in each held case, so the test skips unless
+  the loaded `luadevice` lists `luadevice_free` in `/proc/kallsyms`.
+
 ### fifo
 
 - **bounds**: `fifo.new()` accepts the capacities it serves and refuses
