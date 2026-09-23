@@ -299,6 +299,11 @@ EXPORT_SYMBOL(lunatik_runtime);
 
 /***
 * Creates a new Lunatik runtime executing the given script.
+* The runtime closes on `stop()`, when a to-be-closed variable holding it goes out of scope, or
+* when its last reference is dropped. A hook its script registers with the kernel holds a
+* reference to the runtime, so dropping the handle does not close a runtime a hook still holds:
+* it stays open, its hooks in place and the modules its script required loaded, until `stop()`,
+* which cannot be called once its last handle is gone. A script stops the runtimes it creates.
 * @function runtime
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context: `"process"` (sleepable,
