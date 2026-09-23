@@ -28,6 +28,10 @@
 # the other. The other unlisted shell asks for that name too, and is refused it
 # with the allowlist as the reason, the check made first.
 #
+# The example asks whether the kernel takes a permission mask by placing its mark
+# under pcall, so a raise that is not the missing config has to fail the load
+# still: run once the scope is gone, the example fails with ENOENT.
+#
 # The scope is a tmpfs this test mounts at the path the example names, so the
 # rule reaches nothing the machine needs and the unmount in the trap takes the
 # mark with it even if the script cannot be stopped. perm.sh brings its own
@@ -66,11 +70,11 @@ release() {
 	wait "$2"
 }
 
-perm_begin 15 "fsnotify/execguard"
+perm_begin 16 "fsnotify/execguard"
 
 mkdir -p -m 0700 "$SCOPE" "$OUTSIDE"
 mount -t tmpfs -o size=1M,mode=0700 lunatik-execguard "$SCOPE" 2>/dev/null
-mountpoint -q "$SCOPE" || perm_skip 15 "fsnotify/execguard: no tmpfs for the scope the example marks"
+mountpoint -q "$SCOPE" || perm_skip 16 "fsnotify/execguard: no tmpfs for the scope the example marks"
 mkdir "$SCOPE/sub" || fail "could not make a directory on the tmpfs"
 
 cp /bin/true "$SCOPE/true" || fail "could not copy a program onto the tmpfs"
@@ -180,6 +184,12 @@ grep -qF "execguard: denied blocked to pid $namedblocked: not in the allowlist" 
 grep -qF "execguard: denied blocked to pid $unnamedblocked: not in the allowlist" <<< "$pidoutput" || \
 	fail "the rule did not give the allowlist as the reason to $unnamedblocked: $(grep -F 'execguard:' <<< "$pidoutput")"
 ktap_pass "a name the allowlist does not carry is refused with the allowlist as its reason, listed pid or not"
+
+umount "$SCOPE" && rmdir "$SCOPE" || fail "could not take the scope away"
+missing=$(lunatik run "$SCRIPT" 2>&1)
+lunatik stop "$SCRIPT" 2>/dev/null
+grep -qF "ENOENT" <<< "$missing" || fail "the example did not fail to load without its scope: $missing"
+ktap_pass "a raise other than the missing config still fails the load"
 
 errs=$(printf '%s\n' "$output" "$pidoutput" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"

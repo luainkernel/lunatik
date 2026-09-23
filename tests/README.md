@@ -329,7 +329,10 @@ after the watch is stopped.
   refused to an unlisted shell with the allowlist as the reason, the check made
   first, each shell exec'ing in place so the pid that
   asks is the listed one, and a listed shell is still refused a name the
-  allowlist does not carry.
+  allowlist does not carry. Run once its scope is gone, the example fails to
+  load with `ENOENT`: asking whether the kernel takes a permission mask
+  swallows no other error. What it says on a kernel without the hooks is not
+  covered, since the suite skips there.
 
 ### hid
 
