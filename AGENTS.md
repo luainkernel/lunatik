@@ -828,6 +828,10 @@ named, not one discovered at that consumer's build.
   it depends on. Three short paragraphs at most. How the problem was found, what was measured and
   what was tried belong in the commits; a body a reviewer has to study is not a summary.
   `tools/checks/pr-body.sh` holds a body file to this.
+* A pull request that replaces another says so in the body, `Alternative to #N`, and the merge of
+  the replacement closes #N in the same breath: one left open is a claim about the queue nobody made.
+  `tools/pr-status.sh` marks an open pull request a merged body names that way as superseded and
+  keeps it out of `--ready`. #742 stayed open after #743 merged.
 * A pull request is one mechanism, read in one screen of diff and one paragraph of body. A body that
   needs a section per mechanism describes several pull requests: stack them, each on the one below.
   The harness is the exception: the checks, rules and skill steps one incident produces travel in one
