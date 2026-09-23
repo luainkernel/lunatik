@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# PreToolUse (Bash) hook: a GitHub review, a review body, or a PR comment is
-# posted only after its exact text was shown to the maintainer and approved,
-# and a fixup it references is a full commit URL, since a backtick'd SHA
-# renders as code and does not link. This blocks (exit 2) a gh write to
-# reviews/comments that lacks the REVIEW_POST_OK marker, set by hand once the
-# text has an OK, or that carries a backtick'd SHA; silent (exit 0) on
-# everything else. The marker forces the show-then-post step; it cannot check
-# that the text was shown, only that it was set on purpose.
+# PreToolUse (Bash) hook: a GitHub review, a review body, or a PR comment on a
+# pull request the posting account did not open is posted only after its exact
+# text was shown to the maintainer and approved, and a fixup it references is a
+# full commit URL, since a backtick'd SHA renders as code and does not link. This
+# blocks (exit 2) a gh write to reviews/comments that lacks the REVIEW_POST_OK
+# marker, set by hand once the text has an OK, or that carries a backtick'd SHA;
+# silent (exit 0) on everything else. The marker forces the show-then-post step;
+# it cannot check that the text was shown, only that it was set on purpose. A
+# pull request the posting account opened is the maintainer's own, and its review
+# needs no marker: the author is asked of GitHub with the token in GH_TOKEN or
+# the one the command reads with GH_TOKEN=$(cat <file>), and when neither
+# answers the marker is required as before.
 # Matches the raw hook input, which embeds the command verbatim.
 #
 # The text of a post is read from the files the command names (body=@<file>,
@@ -86,6 +90,25 @@ case "$input" in
 	*REVIEW_POST_OK=1*) exit 0 ;;
 esac
 
-echo "review-post-guard: show the exact text, get the maintainer's OK, then re-run with REVIEW_POST_OK=1 as a command prefix." >&2
+# the maintainer's own pull request, one the posting account opened, takes its review without the
+# show-then-post round; GitHub is asked with the credential the command itself carries
+isownpull() {
+	local target token
+	target=$(printf '%s' "$input" | grep -oE 'repos/[^/[:space:]"]+/[^/[:space:]"]+/(pulls|issues)/[0-9]+/(reviews|comments)' | head -n 1)
+	[ -n "$target" ] || return 1
+	token=$GH_TOKEN
+	[ -n "$token" ] || token=$(cat "$(printf '%s' "$input" | grep -oE 'GH_TOKEN=\$\(cat [^)"]+\)' | head -n 1 |
+		sed -E 's/^GH_TOKEN=\$\(cat (.*)\)$/\1/')" 2>/dev/null)
+	local repo number author login
+	repo=$(printf '%s' "$target" | cut -d/ -f2-3)
+	number=$(printf '%s' "$target" | cut -d/ -f5)
+	# a failed call prints GitHub's error body, the same for both, so only a call that succeeded counts
+	author=$(GH_TOKEN=$token gh api "repos/$repo/issues/$number" --jq 'select(.pull_request) | .user.login' 2>/dev/null) || return 1
+	login=$(GH_TOKEN=$token gh api user --jq .login 2>/dev/null) || return 1
+	[ -n "$author" ] && [ "$author" = "$login" ]
+}
+isownpull && exit 0
+
+echo "review-post-guard: on a pull request the posting account did not open, show the exact text, get the maintainer's OK, then re-run with REVIEW_POST_OK=1 as a command prefix." >&2
 exit 2
 
