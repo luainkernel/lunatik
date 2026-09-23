@@ -5,9 +5,14 @@
 # workflows leave behind, and the merged pull request that names it as the one
 # it replaced ("Alternative to #N" in the body), which is one to close.
 #
+# A pull request based on another branch names the pull request of that base:
+# after:#N while it is open, base-merged:#N once it merged, which means the
+# stacked one is retargeted to the default branch and restacked before it is
+# merged (the merged skill), or GitHub merges it into the stale base.
+#
 # With --ready, lists only what a maintainer can pick up: reviewed by a workflow,
-# green on CI, no unsquashed fixup, mergeable as GitHub has computed it, and
-# not replaced by a merged one.
+# green on CI, no unsquashed fixup, mergeable as GitHub has computed it, based on
+# the default branch, and not replaced by a merged one.
 #
 # Usage: GH_TOKEN=... bash tools/pr-status.sh [--ready] [<number>...]
 
@@ -18,6 +23,7 @@ ready=0
 [ "$1" = "--ready" ] && { ready=1; shift; }
 numbers="$*"
 [ -n "$numbers" ] || numbers=$(gh api "repos/$repo/pulls" --paginate -q '.[].number' | sort -n)
+default=$(gh api "repos/$repo" -q .default_branch)
 
 printf "$fmt" PR BRANCH BASE COMM FIXUPS SIZE CI LABELS
 for n in $numbers; do
@@ -35,11 +41,16 @@ for n in $numbers; do
 	superseded=$(gh api -X GET search/issues -f q="repo:$repo is:pr is:merged \"Alternative to #$n\"" \
 		-q "[.items[].number | select(. != $n) | \"#\\(.)\"] | join(\",\")" 2>/dev/null)
 
+	stack=""
+	[ "$base" = "$default" ] || stack=$(gh api "repos/$repo/pulls?head=${repo%%/*}:$base&state=all" \
+		-q '.[0] // empty | if .merged_at then "base-merged:#\(.number)" else "after:#\(.number)" end' 2>/dev/null)
+
 	if [ "$ready" = 1 ]; then
-		[ "$mergeable" = "true" ] && [ "$fixups" = 0 ] && [ "$ci" = "success" ] && [ -z "$superseded" ] || continue
+		[ "$mergeable" = "true" ] && [ "$fixups" = 0 ] && [ "$ci" = "success" ] && [ -z "$superseded" ] &&
+			[ "$base" = "$default" ] || continue
 		case "$labels" in *workflow-reviewed*) ;; *) continue ;; esac
 	fi
 	case "$mergeable" in true) ;; null) base="$base(?)" ;; *) base="$base(!)" ;; esac
-	printf "$fmt" "#$n" "$branch" "$base" "$commits" "$fixups" "$size" "$ci" "${labels:--}${superseded:+ superseded-by:$superseded}"
+	printf "$fmt" "#$n" "$branch" "$base" "$commits" "$fixups" "$size" "$ci" "${labels:--}${superseded:+ superseded-by:$superseded}${stack:+ $stack}"
 done
 
