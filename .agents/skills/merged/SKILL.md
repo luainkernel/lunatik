@@ -13,7 +13,9 @@ the steps. A merge reported by the maintainer is taken as given.
 
 The pull request merges by rebase: its commits land on master with new SHAs, and every branch
 stacked on it still carries the old ones. The recorded `head.sha` is the old tip, the base every
-restack below starts from.
+restack below starts from. The checkout sessions start in follows the new master, with
+`git merge --ff-only origin/master` there when it has no commit of its own and nothing tracked
+changed; `checkout-behind.sh` names it at the next session's start when it does not.
 
 # 2. Retarget first
 

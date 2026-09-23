@@ -350,7 +350,14 @@ logic of its own. Those files, and an untracked `settings.local.json` beside the
 session opened on the checkout rather than the one that wrote them: a `permissions.deny` added
 there to sandbox one session's agents denied another session's commands, with no hook error to
 point at the cause. A sandbox belongs in an agent definition, or in a session started with its own
-permission mode.
+permission mode. The checkout sessions start in is what every session and every agent it launches
+loads, this file, the skills and the guards, so it follows master: `checkout-behind.sh`, which
+`.claude/settings.json` runs as a session starts, prints how far its HEAD is behind `origin/master`
+and the `git merge --ff-only origin/master` that brings it level, and the session runs that merge
+when the checkout has no commit of its own and nothing tracked changed. It fetches nothing, since the
+remote-tracking ref is shared by every worktree's fetch. The checkout once sat 114 commits behind
+master while every workflow of a day ran from it, its agents reading a stale AGENTS.md and running
+stale guards.
 
 An agent that works on this tree runs through the Workflow tool, whose `agent()` takes the model and
 the reasoning effort, and the maintainer's opt-in to workflows stands here: the Agent tool takes a
