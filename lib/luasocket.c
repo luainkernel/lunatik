@@ -332,7 +332,9 @@ static int luasocket_listen(lua_State *L)
 *     The `port` argument is also required.
 *   - Other families: A packed string representing the family-specific destination address.
 * @tparam[opt] integer port destination port number (required and used only if the family is `AF_INET`).
-* @tparam[opt=0] integer flags Optional connection flags.
+* @tparam[opt=0] integer flags file status flags: `O_NONBLOCK` makes a connect that cannot
+*   complete at once raise instead of waiting for it. `linux.socket.sock.NONBLOCK` carries
+*   `O_NONBLOCK` on every architecture but alpha and parisc.
 * @treturn nil
 * @raise Error if the connect operation fails (e.g., connection refused, host unreachable).
 * @usage
@@ -505,8 +507,9 @@ static const lunatik_class_t luasocket_class = {
 *
 * @function accept
 * @tparam socket self listening socket object.
-* @tparam[opt=0] integer flags Optional flags to apply to the newly accepted socket
-*   (e.g., `linux.socket.sock.NONBLOCK`, `linux.socket.sock.CLOEXEC`).
+* @tparam[opt=0] integer flags file status flags: `O_NONBLOCK` makes the call raise when no
+*   connection is pending instead of waiting for one. `linux.socket.sock.NONBLOCK` carries
+*   `O_NONBLOCK` on every architecture but alpha and parisc.
 * @treturn socket A new socket object representing the accepted connection.
 * @raise Error if the accept operation fails.
 */
