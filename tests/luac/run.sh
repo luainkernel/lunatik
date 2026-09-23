@@ -14,6 +14,8 @@
 #   - lunatik compile forwards its arguments to lunatic and returns its exit status
 #   - a chunk with a stock (float) number format is rejected by the header check, in the kernel and
 #     as an input to lunatic
+#   - -e with the host's byte order gives the default output; -e with the other order is rejected
+#     by the kernel's header check
 #   - load() with mode "t" rejects a chunk inside the kernel
 #
 # Usage: sudo bash tests/luac/run.sh
@@ -26,7 +28,7 @@ source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
 	for s in hello_bc hello_s user textmode; do lunatik stop "tests/luac/$s" 2>/dev/null; done
-	rm -f "$SRC"/*_bc.lua "$SRC"/*_s.lua "$SRC"/stock.lua
+	rm -f "$SRC"/*_bc.lua "$SRC"/*_s.lua "$SRC"/stock.lua "$SRC"/*_order.lua
 	[ -z "$TMP" ] || rm -rf "$TMP"
 }
 trap cleanup EXIT
@@ -38,7 +40,13 @@ skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
 command -v lunatic >/dev/null || skip "luac: lunatic not installed"
 
 ktap_header
-ktap_plan 14
+ktap_plan 16
+
+if [ "$(printf '\001\000' | od -An -td2 | tr -d ' ')" = 1 ]; then
+	HOST_ORDER=little FOREIGN_ORDER=big
+else
+	HOST_ORDER=big FOREIGN_ORDER=little
+fi
 
 compile() {
 	local name="$1" strip="$2"; shift 2
@@ -109,6 +117,15 @@ ktap_pass "luac: stock number format is rejected"
 output=$(lunatic -l "$SRC/stock.lua" 2>&1) && fail "luac: stock chunk accepted as input"
 echo "$output" | grep -q "Lua number format mismatch" || fail "luac: stock chunk as input: $output"
 ktap_pass "luac: stock number format is rejected as input"
+
+lunatic -e "$HOST_ORDER" -o "$SRC/host_order.lua" "$SRC/hello.lua" || fail "luac: compile -e $HOST_ORDER"
+cmp -s "$SRC/host_order.lua" "$SRC/hello_bc.lua" || fail "luac: -e $HOST_ORDER differs from the default output"
+ktap_pass "luac: the host's byte order gives the default output"
+
+lunatic -e "$FOREIGN_ORDER" -o "$SRC/foreign_order.lua" "$SRC/hello.lua" || fail "luac: compile -e $FOREIGN_ORDER"
+output=$(lunatik run tests/luac/foreign_order)
+echo "$output" | grep -q "int format mismatch" || fail "luac: the other byte order was accepted: $output"
+ktap_pass "luac: the other byte order is rejected by the header"
 
 mark_dmesg
 run_script "tests/luac/textmode"
