@@ -220,10 +220,10 @@ whose kernel callback runs with RTNL held, as `notifier.netdevice`'s does, sets 
 RTNL is held by one task at a time, so one pointer serves every runtime and every coroutine, and
 the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
 kernel call that takes RTNL, such as `register_netdevice_notifier`, which would wait on the lock its
-own task holds: refuse the call with `lunatik_checkrtnl`, or, in a `release`, which a collection
-runs and which cannot refuse, defer it to a task that does not hold the lock. It sees the calling
-task only: Lua on a second task that waits for RTNL while this one waits for that task is a cycle
-it cannot name. Defined as macros.
+own task holds: refuse the call with `lunatik_checkrtnl`. A `release` cannot refuse, so the entry
+points that run one on the calling task refuse instead: `runtime:stop()` and its `__close` under
+RTNL, and `__gc` from a script anywhere. It sees the calling task only: Lua on a second task that
+waits for RTNL while this one waits for that task is a cycle it cannot name. Defined as macros.
 
 ### lunatik\_checkruntime
 ```C

@@ -14,7 +14,8 @@
 #define lunatik_ismetamethod(reg)          \
 	((!strncmp(reg->name, "__", 2)) ||     \
 	(reg)->func == lunatik_deleteobject || \
-	(reg)->func == lunatik_closeobject)
+	(reg)->func == lunatik_closeobject ||  \
+	(reg)->func == lunatik_lstop)
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt)
 {

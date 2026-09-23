@@ -188,11 +188,20 @@ static const luaL_Reg lunatik_stub_lib[] = {
 /***
 * Stops the runtime and releases all associated kernel resources.
 * @function stop
+* @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
+*   its task runs: the releases the close runs cannot refuse, and a netdevice block's
+*   unregistration waits on the lock that task holds
 */
+int lunatik_lstop(lua_State *L)
+{
+	lunatik_checkrtnl(L);
+	return lunatik_closeobject(L);
+}
+
 static const luaL_Reg lunatik_mt[] = {
 	{"__gc", lunatik_deleteobject},
-	{"__close", lunatik_closeobject},
-	{"stop", lunatik_closeobject},
+	{"__close", lunatik_lstop},
+	{"stop", lunatik_lstop},
 	{"resume", lunatik_lresume},
 	{NULL, NULL}
 };
