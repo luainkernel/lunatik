@@ -590,7 +590,9 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   kprobe before the script body returned, the path where readiness is the only
   thing between arming and the handler;
   one set holds a kprobe per target, and a second probe on the same
-  symbol in one runtime is refused, leaving no kprobe armed; `stop` and `enable`
+  symbol in one runtime is refused, leaving no kprobe armed; a probe the kernel
+  refuses in a set that already armed one leaves no kprobe armed, no script
+  registered and no use-count on the probe module; `stop` and `enable`
   are refused in a percpu runtime, where the object owns the kprobe; a probe from
   a handler, after the script loaded, is refused; the same script probes as a
   plain hardirq runtime, arming its own kprobe and unregistering it when it

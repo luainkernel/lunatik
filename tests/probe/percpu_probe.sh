@@ -15,7 +15,9 @@
 # the script body returned, the path where readiness is the only thing between
 # arming and the handler, since a plain runtime is published from the start; one
 # set holds a kprobe per target, and a second probe on the same symbol in one
-# runtime is refused, leaving no kprobe armed; stop and enable are refused in a
+# runtime is refused, leaving no kprobe armed; a probe the kernel refuses in a
+# set that already armed one leaves no kprobe armed, no script registered and no
+# use-count on the probe module; stop and enable are refused in a
 # percpu runtime, where the object owns the kprobe; a probe from a handler, after
 # the script loaded, is refused before it could sleep in hardirq; the same script
 # probes as a plain hardirq runtime, arming its own kprobe and unregistering it
@@ -29,6 +31,7 @@
 
 SCRIPT="tests/probe/percpu_probe"
 TWICE="tests/probe/percpu_probe_twice"
+UNKNOWN="tests/probe/percpu_probe_unknown"
 STOP="tests/probe/percpu_probe_stop"
 PLAIN="tests/probe/percpu_probe_plain"
 EARLY="tests/probe/percpu_probe_early"
@@ -36,6 +39,7 @@ LATE="tests/probe/percpu_probe_late"
 ROLLBACK="tests/probe/percpu_probe_rollback"
 ARMED="percpu probe early: armed"
 TARGETS="percpu probe twice: two targets armed"
+ARMED_ONE="percpu probe unknown: one target armed"
 KPROBES="/sys/kernel/debug/kprobes/list"
 REFCNT="/sys/module/luaprobe/refcnt"
 COUNT=3
@@ -47,6 +51,7 @@ cleanup()
 {
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
 	lunatik stop "$TWICE" > /dev/null 2>&1
+	lunatik stop "$UNKNOWN" > /dev/null 2>&1
 	lunatik stop "$STOP" > /dev/null 2>&1
 	lunatik stop "$PLAIN" > /dev/null 2>&1
 	lunatik stop "$EARLY" > /dev/null 2>&1
@@ -84,7 +89,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 9
+ktap_plan 10
 
 command -v taskset > /dev/null 2>&1 && command -v setarch > /dev/null 2>&1 || {
 	echo "# SKIP: taskset or setarch not available"
@@ -92,6 +97,7 @@ command -v taskset > /dev/null 2>&1 && command -v setarch > /dev/null 2>&1 || {
 	ktap_skip "a call reaching the shared kprobe before the runtimes are published is dropped"
 	ktap_skip "a call reaching a plain runtime's kprobe before the script body returns is dropped"
 	ktap_skip "one set holds a kprobe per target; a second probe on the same symbol is refused, leaving none armed"
+	ktap_skip "a probe the kernel refuses in a set releases the kprobe the set had armed"
 	ktap_skip "stop and enable are refused in a percpu runtime"
 	ktap_skip "a probe from a handler, after load, is refused"
 	ktap_skip "the same script probes as a plain hardirq runtime, arming and unregistering its own kprobe"
@@ -174,6 +180,27 @@ if [ -n "$idle" ]; then
 	[ "$rolled" = "$idle" ] || fail "the refused run left $((rolled - idle)) kprobes armed"
 fi
 ktap_pass "one set holds a kprobe per target; a second probe on the same symbol is refused, leaving none armed"
+
+mark_dmesg
+idle=$(kprobes)
+held=$(cat "$REFCNT" 2>/dev/null)
+output=$(lunatik run "$UNKNOWN" hardirq percpu 2>&1)
+echo "$output" | grep -q "failed to register probe" || fail "a probe on a symbol the kernel does not have was accepted: $output"
+check_dmesg || { ktap_totals; exit 1; }
+left=$(kprobes)
+released=$(cat "$REFCNT" 2>/dev/null)
+dmesg_since | grep -qF "$ARMED_ONE" || fail "the set did not arm a kprobe before the one the kernel refuses"
+listed=$(lunatik list)
+case "$listed" in
+	*"$UNKNOWN"*) fail "the refused run left the script registered: $listed" ;;
+esac
+if [ -n "$idle" ]; then
+	[ "$left" = "$idle" ] || fail "the refused run left $((left - idle)) kprobes armed"
+fi
+if [ -n "$held" ]; then
+	[ "$released" = "$held" ] || fail "the refused run leaked luaprobe use-counts: $held -> $released"
+fi
+ktap_pass "a probe the kernel refuses in a set releases the kprobe the set had armed"
 
 mark_dmesg
 run_script "$STOP" hardirq percpu
