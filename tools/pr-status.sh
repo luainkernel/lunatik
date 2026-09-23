@@ -22,14 +22,18 @@ numbers="$*"
 printf "$fmt" PR BRANCH BASE COMM FIXUPS SIZE CI LABELS
 for n in $numbers; do
 	pr=$(gh api "repos/$repo/pulls/$n" \
-		-q '[.head.ref, .base.ref, (.commits|tostring), (.mergeable|tostring), "+\(.additions)/-\(.deletions)", .head.sha, ([.labels[].name] | join(",") // "")] | @tsv') || continue
-	IFS=$'\t' read -r branch base commits mergeable size sha labels <<< "$pr"
+		-q '[.head.ref, .base.ref, (.commits|tostring), (.mergeable|tostring), "+\(.additions)/-\(.deletions)", .head.sha, (if .merged_at then "merged" else .state end), ([.labels[].name] | join(",") // "")] | @tsv') || continue
+	IFS=$'\t' read -r branch base commits mergeable size sha state labels <<< "$pr"
+	if [ "$state" != open ]; then
+		[ "$ready" = 1 ] || printf "$fmt" "#$n" "$branch" "$base" - - - - "$state"
+		continue
+	fi
 	fixups=$(gh api "repos/$repo/pulls/$n/commits" \
 		-q '[.[] | select(.commit.message | startswith("fixup!"))] | length')
 	ci=$(gh api "repos/$repo/commits/$sha/check-runs" \
 		-q '[.check_runs[].conclusion] | if length == 0 then "none" else (unique | join(",")) end' 2>/dev/null)
 	superseded=$(gh api -X GET search/issues -f q="repo:$repo is:pr is:merged \"Alternative to #$n\"" \
-		-q '[.items[].number | "#\(.)"] | join(",")' 2>/dev/null)
+		-q "[.items[].number | select(. != $n) | \"#\\(.)\"] | join(\",\")" 2>/dev/null)
 
 	if [ "$ready" = 1 ]; then
 		[ "$mergeable" = "true" ] && [ "$fixups" = 0 ] && [ "$ci" = "success" ] && [ -z "$superseded" ] || continue
