@@ -370,6 +370,9 @@ handed what the implementer already ran on the host so that it runs again only w
 the implementer did not run. The implementer's prompt names the rule a step needs and restates
 none: every agent loads this file, and a rule pasted into a prompt is a copy the next change here
 does not reach.
+What the implementer and the review leave as issues, their `findings_left`, the workflow files as its
+last stage, each under its severity label or appended to the open issue it belongs to, so no finding
+waits on a session to copy it out and the numbers come back with the result.
 
 ### Running a script
 
