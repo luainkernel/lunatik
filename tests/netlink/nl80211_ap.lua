@@ -6,6 +6,7 @@
 
 local netlink = require("netlink")
 local iftype  = require("linux.nl80211").iftype
+local pid     = require("tests.netns_pid")
 
 local NAME <const> = "lunatikap0"
 local SSID <const> = "lunatik-test"
@@ -33,8 +34,8 @@ end
 
 local ifindex, mac
 do
-	local wiphy     <close> = netlink.nl80211.wiphy()
-	local interface <close> = netlink.nl80211.interface()
+	local wiphy     <close> = netlink.nl80211.wiphy(pid)
+	local interface <close> = netlink.nl80211.interface(pid)
 	ifindex = interface:add{wiphy = wiphy:list()[1].wiphy, name = NAME, iftype = iftype.AP}
 	for _, iface in ipairs(interface:list()) do
 		if iface.ifindex == ifindex then mac = iface.mac end
@@ -42,10 +43,10 @@ do
 end
 assert(mac, "AP interface has no MAC")
 
-local link <close> = netlink.rt.link()
+local link <close> = netlink.rt.link(pid)
 link:set{ifindex = ifindex, up = true}
 
-local ap <close> = netlink.nl80211.ap()
+local ap <close> = netlink.nl80211.ap(pid)
 local params = {ifindex = ifindex, freq = FREQ, beacon_interval = BINT, dtim = 2,
 	ssid = SSID, head = beacon_head(mac)}
 ap:start(params)
@@ -60,7 +61,7 @@ print("netlink nl80211_ap: AP stopped")
 
 link:set{ifindex = ifindex, up = false}
 do
-	local interface <close> = netlink.nl80211.interface()
+	local interface <close> = netlink.nl80211.interface(pid)
 	interface:del{ifindex = ifindex}
 end
 

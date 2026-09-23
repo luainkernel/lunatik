@@ -492,6 +492,12 @@ higher-level `netlink.*` modules built on top of it.
   `set{authorized = true}` is accepted (the `STA_FLAGS2` path), and `del()`
   removes it (skips without `mac80211_hwsim`).
 
+The three tests that create the AP interface move the simulated wiphy into a
+network namespace of their own, and every session of their scripts takes the
+pid of the process kept there, so no process of the initial namespace, a
+network manager's included, acts on the interface under the test; the wiphy
+comes back when the namespace goes (they skip without `iw` or `nsenter`).
+
 ### notifier
 
 - **context_mismatch**: calling a hardirq-class constructor (e.g.

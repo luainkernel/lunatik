@@ -6,6 +6,7 @@
 
 local netlink = require("netlink")
 local iftype  = require("linux.nl80211").iftype
+local pid     = require("tests.netns_pid")
 
 local NAME  <const> = "lunatikap0"
 local SSID  <const> = "lunatik-test"
@@ -23,19 +24,19 @@ end
 -- an AP interface, up and beaconing, is the precondition for adding a station
 local ifindex, mac
 do
-	local wiphy     <close> = netlink.nl80211.wiphy()
-	local interface <close> = netlink.nl80211.interface()
+	local wiphy     <close> = netlink.nl80211.wiphy(pid)
+	local interface <close> = netlink.nl80211.interface(pid)
 	ifindex = interface:add{wiphy = wiphy:list()[1].wiphy, name = NAME, iftype = iftype.AP}
 	for _, iface in ipairs(interface:list()) do
 		if iface.ifindex == ifindex then mac = iface.mac end
 	end
 end
-netlink.rt.link():set{ifindex = ifindex, up = true}
-local ap <close> = netlink.nl80211.ap()
+netlink.rt.link(pid):set{ifindex = ifindex, up = true}
+local ap <close> = netlink.nl80211.ap(pid)
 ap:start{ifindex = ifindex, freq = 2412, beacon_interval = 100, dtim = 2,
 	ssid = SSID, head = beacon_head(mac)}
 
-local station <close> = netlink.nl80211.station()
+local station <close> = netlink.nl80211.station(pid)
 
 local function present()
 	for _, s in ipairs(station:list(ifindex)) do

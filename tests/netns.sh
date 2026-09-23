@@ -9,8 +9,12 @@
 # A kernel script reaches a namespace through the pid of a task inside it, the
 # pid socket.new takes, so netns_up creates the named namespace and keeps a
 # process there, NSPID, which enters that namespace and no other; the test hands
-# the pid to its script as the module PIDMOD. netns_down undoes all of it, and
-# runs in the trap and once up front.
+# the pid to its script as the module PIDMOD. netns_wiphy moves the first
+# mac80211_hwsim wiphy there with its interfaces, WIPHY, so what a test creates
+# on it is out of reach of every process of the initial namespace, a network
+# manager's included. netns_down undoes all of it, and runs in the trap and once
+# up front; the wiphy comes back when the namespace is dismantled, which
+# cleanup_net does from a workqueue, so it waits for that.
 
 PIDMOD="/lib/modules/lua/tests/netns_pid.lua"
 # bounds a process a killed run leaves holding the namespace
@@ -31,10 +35,31 @@ netns_up() {
 	return 1
 }
 
+netns_wiphy() {
+	local phy
+
+	for phy in /sys/class/ieee80211/*; do
+		case "$(readlink -f "$phy/device")" in
+		*/mac80211_hwsim/*)
+			WIPHY=$(basename "$phy")
+			iw phy "$WIPHY" set netns name "$NETNS"
+			return
+			;;
+		esac
+	done
+	return 1
+}
+
 netns_down() {
 	rm -f "$PIDMOD"
 	[ -n "$NSPID" ] && kill "$NSPID" 2> /dev/null
 	ip netns pids "$NETNS" 2> /dev/null | xargs -r kill 2> /dev/null
 	ip netns del "$NETNS" 2> /dev/null
+	[ -n "$WIPHY" ] || return 0
+	for _ in $(seq 1 100); do
+		[ -e "/sys/class/ieee80211/$WIPHY" ] && return 0
+		sleep 0.1
+	done
+	return 1
 }
 
