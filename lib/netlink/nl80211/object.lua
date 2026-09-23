@@ -23,9 +23,12 @@ local object = genl:new{}
 
 ---
 -- Opens the genl socket, then resolves and caches the `"nl80211"` family id.
+-- @tparam[opt] integer pid a task whose network namespace the object reaches, which holds the wiphys
+--   and interfaces nl80211 answers for; the initial network namespace when absent.
 -- @treturn object a new nl80211 object.
-function object:__call()
-	local o = session.__call(self)
+-- @see netlink.session
+function object:__call(pid)
+	local o = session.__call(self, pid)
 	o.id = o:family("nl80211")
 	return o
 end

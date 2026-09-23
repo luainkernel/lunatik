@@ -500,6 +500,33 @@ static const lunatik_class_t luasocket_class = {
 #define luasocket_new(L)		(lunatik_newobject((L), &luasocket_class, 0, LUNATIK_OPT_NONE))
 #define luasocket_psocket(object)	((struct socket **)&object->private)
 
+/* a kernel socket holds no reference on its namespace, and a TCP one outlives its release with timers armed */
+#if defined(LUNATIK_SK_NET_REFCNT_UPGRADE)
+#define luasocket_upgrade(sk)		sk_net_refcnt_upgrade(sk)
+#define luasocket_getnetbypid(pid)	get_net_ns_by_pid(pid)
+#elif defined(LUNATIK_NET_PASSIVE_DEC)
+/* the upgrade drops a passive reference through net_passive_dec, which is not exported: init_net only */
+#define luasocket_upgrade(sk)
+#define luasocket_getnetbypid(pid)	ERR_PTR(-EOPNOTSUPP)
+#else
+#define luasocket_getnetbypid(pid)	get_net_ns_by_pid(pid)
+/* sk_net_refcnt_upgrade as net/smc/af_smc.c open-coded it before v6.14 */
+static inline void luasocket_upgrade(struct sock *sk)
+{
+	struct net *net = sock_net(sk);
+
+	__netns_tracker_free(net, &sk->ns_tracker, false);
+	sk->sk_net_refcnt = 1;
+	get_net_track(net, &sk->ns_tracker, GFP_KERNEL);
+	sock_inuse_add(net, 1);
+}
+#endif
+
+#define LUASOCKET_PID_NONE	0
+
+#define luasocket_getnet(pid)	\
+	((pid) == LUASOCKET_PID_NONE ? get_net(&init_net) : luasocket_getnetbypid(pid))
+
 /***
 * Accepts a connection on a listening socket.
 * This function is used with connection-oriented sockets (e.g., `SOCK_STREAM`)
@@ -533,11 +560,21 @@ static int luasocket_accept(lua_State *L)
 * @tparam integer protocol protocol (e.g., `linux.socket.ipproto.TCP`).
 *   For `AF_PACKET` sockets, `protocol` is typically an `ETH_P_*` value in network byte order
 *   (e.g., `byteorder.hton16(0x0003)` for `ETH_P_ALL`).
+* @tparam[opt] integer pid a task whose network namespace the socket is created in, instead of the
+*   initial one. The pid is resolved in the pid namespace of the task making the call: the `lunatik`
+*   process for a script's body, the initial one for a kernel thread. The socket holds its network
+*   namespace until the kernel frees the socket, which for a TCP connection still shutting down comes
+*   after its close, so the namespace outlives the task. The rest of Lunatik (`linux.ifindex`,
+*   `netfilter`, `notifier`) keeps to the initial network namespace.
 * @treturn socket A new socket object.
-* @raise Error if socket creation fails.
+* @raise Error if socket creation fails, `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel
+*   whose sockets cannot hold a namespace of their own.
 * @usage
 *   -- TCP/IPv4 socket
 *   local tcp_sock = socket.new(linux.socket.af.INET, linux.socket.sock.STREAM, linux.socket.ipproto.TCP)
+*
+*   -- rtnetlink socket in the network namespace of the task 1234
+*   local rtnl = socket.new(linux.socket.af.NETLINK, linux.socket.sock.RAW, linux.netlink.proto.ROUTE, 1234)
 * @see linux.socket.af
 * @see linux.socket.sock
 * @see linux.socket.ipproto
@@ -548,9 +585,21 @@ static int luasocket_lnew(lua_State *L)
 	int family = luaL_checkinteger(L, 1);
 	int type = luaL_checkinteger(L, 2);
 	int proto = luaL_checkinteger(L, 3);
+	pid_t pid = lua_isnoneornil(L, 4) ? LUASOCKET_PID_NONE : (pid_t)lunatik_checkinteger(L, 4, 1, PID_MAX_LIMIT);
 	lunatik_object_t *object = luasocket_new(L);
+	struct socket **psocket = luasocket_psocket(object);
+	struct net *net = luasocket_getnet(pid);
+	int ret;
 
-	lunatik_try(L, sock_create_kern, &init_net, family, type, proto, luasocket_psocket(object));
+	if (IS_ERR(net))
+		lunatik_throw(L, PTR_ERR(net));
+
+	if ((ret = sock_create_kern(net, family, type, proto, psocket)) < 0) {
+		put_net(net);
+		lunatik_throw(L, ret);
+	}
+	luasocket_upgrade((*psocket)->sk);
+	put_net(net);
 	return 1; /* object */
 }
 
