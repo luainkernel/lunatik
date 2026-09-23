@@ -15,12 +15,15 @@ local RESOLVER <const> = SCRATCH .. "/resolver"
 local MARKED   <const> = SCRATCH .. "/marked"
 local OTHER    <const> = SCRATCH .. "/other"
 local HALTED   <const> = SCRATCH .. "/halted"
+local MOVED    <const> = SCRATCH .. "/moved"
+local RENAMED  <const> = SCRATCH .. "/renamed"
 local CREATED  <const> = "created"
 
 local watch
 local remasked
 local other
 local othermark
+local movedmark
 local stopper
 
 local function outcome(what, ok, err)
@@ -41,6 +44,8 @@ local function report(mask, event)
 		outcome("other uncached", pcall(other.find, other, UNCACHED))
 		local ok, found = pcall(other.find, other, OTHER)
 		outcome("other cached", ok and found == othermark, found)
+	elseif path == RENAMED then
+		outcome("remask moved", pcall(movedmark.mask, movedmark, fs.MODIFY))
 	elseif event:name() == CREATED then
 		outcome("locked", pcall(watch.find, watch, UNCACHED))
 	end
@@ -57,6 +62,7 @@ watch:mark(ONESHOT, fs.OPEN)
 remasked = watch:mark(REMASKED, fs.OPEN)
 watch:mark(RESOLVER, fs.OPEN)
 watch:mark(SCRATCH, fs.CREATE)
+movedmark = watch:mark(MOVED, fs.OPEN)
 
 other = fsnotify.watch(report)
 othermark = other:mark(OTHER, fs.OPEN)

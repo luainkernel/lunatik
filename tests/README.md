@@ -180,7 +180,10 @@ permission mark allows and only asks whether the mask is taken.
   an open's callback, `watch:mark` places a mark on a cached path that then
   delivers, and answers `EAGAIN` for the uncached name; another watch of the
   same runtime asked from that callback answers `EAGAIN` for it too, since the
-  flag belongs to the runtime. A watch stopped from inside its own callback,
+  flag belongs to the runtime. A file renamed before its open leaves the name
+  its mark was placed with out of the cache, so `mark:mask` set from that open's
+  callback answers `EAGAIN` and leaves the mark removed, the second open
+  silent. A watch stopped from inside its own callback,
   which removes its marks in the same read section, returns from `stop`,
   delivers nothing afterwards, and leaves a runtime that still tears down
   cleanly.
