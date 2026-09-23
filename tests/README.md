@@ -319,14 +319,17 @@ after the watch is stopped.
   name its allowlist carries runs, one it does not name is refused with `EPERM`,
   and a copy of that refused program, same name, runs from a sibling directory
   and from a subdirectory of the scope: the mark is on that one directory, so
-  the rule reaches neither outside it nor below it. The refusal names the entry
-  and the pid it was refused to, and ends with the example. A script the
-  allowlist names is refused when its interpreter is a copy of `sh` in the
-  scope, and the refusal names `sh`: the kernel opens the interpreter for exec
-  too. Run again with a pid list in the scope, the same allowed program runs
-  for a shell the list names and is refused to one it does not, each shell
-  exec'ing in place so the pid that asks is the listed one, and a listed shell
-  is still refused a name the allowlist does not carry.
+  the rule reaches neither outside it nor below it. The refusal names the entry,
+  the pid it was refused to and the allowlist as its reason, and ends with the
+  example. A script the allowlist names is refused when its interpreter is a
+  copy of `sh` in the scope, and the refusal names `sh`: the kernel opens the
+  interpreter for exec too. Run again with a pid list in the scope, the same
+  allowed program runs for a shell the list names and is refused to one it does
+  not, with the pid as the reason, and a name the allowlist does not carry is
+  refused to an unlisted shell with the allowlist as the reason, the check made
+  first, each shell exec'ing in place so the pid that
+  asks is the listed one, and a listed shell is still refused a name the
+  allowlist does not carry.
 
 ### hid
 

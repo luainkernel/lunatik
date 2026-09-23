@@ -20,12 +20,13 @@
 # asked about it under its own name, which is the name the refusal carries.
 #
 # The pid list is a second run of the example, with the list written into the
-# scope before it starts. Three shells wait on a fifo each and exec in place
+# scope before it starts. Four shells wait on a fifo each and exec in place
 # once released, so the pid that asks is the one the list was written with; two
 # of them are listed. The same allowed program runs for a listed shell and is
-# refused to the unlisted one, and a listed shell is still refused a name the
+# refused to an unlisted one, and a listed shell is still refused a name the
 # allowlist does not carry, so the two lists combine rather than one replacing
-# the other.
+# the other. The other unlisted shell asks for that name too, and is refused it
+# with the allowlist as the reason, the check made first.
 #
 # The scope is a tmpfs this test mounts at the path the example names, so the
 # rule reaches nothing the machine needs and the unmount in the trap takes the
@@ -65,11 +66,11 @@ release() {
 	wait "$2"
 }
 
-perm_begin 14 "fsnotify/execguard"
+perm_begin 15 "fsnotify/execguard"
 
 mkdir -p -m 0700 "$SCOPE" "$OUTSIDE"
 mount -t tmpfs -o size=1M,mode=0700 lunatik-execguard "$SCOPE" 2>/dev/null
-mountpoint -q "$SCOPE" || perm_skip 14 "fsnotify/execguard: no tmpfs for the scope the example marks"
+mountpoint -q "$SCOPE" || perm_skip 15 "fsnotify/execguard: no tmpfs for the scope the example marks"
 mkdir "$SCOPE/sub" || fail "could not make a directory on the tmpfs"
 
 cp /bin/true "$SCOPE/true" || fail "could not copy a program onto the tmpfs"
@@ -117,15 +118,15 @@ ktap_pass "the same name outside the marked directory still runs"
 [ "$belowstatus" -eq 0 ] || fail "the same name below the marked directory did not run: $below"
 ktap_pass "the same name one level below the marked directory still runs"
 
-grep -qF "execguard: denied blocked to pid $pid" <<< "$output" || \
+grep -qF "execguard: denied blocked to pid $pid: not in the allowlist" <<< "$output" || \
 	fail "the rule did not name what it refused to $pid: $(grep -F 'execguard:' <<< "$output")"
-ktap_pass "the refusal names the entry and the pid it was refused to"
+ktap_pass "the refusal names the entry, the pid it was refused to and the allowlist as its reason"
 
 [ "$interpretedstatus" -ne 0 ] || fail "a script whose interpreter lives in the scope ran"
 grep -qi "not permitted" <<< "$interpreted" || fail "the refused script failed with: $interpreted"
 ktap_pass "a script the allowlist names is refused with EPERM when its interpreter lives in the scope"
 
-grep -qE "execguard: denied sh to pid [0-9]+" <<< "$output" || \
+grep -qE "execguard: denied sh to pid [0-9]+: not in the allowlist" <<< "$output" || \
 	fail "the rule did not name the interpreter: $(grep -F 'execguard:' <<< "$output")"
 grep -qF "execguard: denied false" <<< "$output" && fail "the rule named the script, which the allowlist carries"
 ktap_pass "the refusal names the interpreter, not the script"
@@ -139,7 +140,9 @@ waiter unnamed "$SCOPE/true"
 unnamed=$!
 waiter namedblocked "$SCOPE/blocked"
 namedblocked=$!
-WAITERS="$named $unnamed $namedblocked"
+waiter unnamedblocked "$SCOPE/blocked"
+unnamedblocked=$!
+WAITERS="$named $unnamed $namedblocked $unnamedblocked"
 printf '%s\n' "$named" "$namedblocked" > "$SCOPE/pids" || fail "could not write the pid list"
 
 mark_dmesg
@@ -150,6 +153,8 @@ release unnamed "$unnamed"
 unnamedstatus=$?
 release namedblocked "$namedblocked"
 namedblockedstatus=$?
+release unnamedblocked "$unnamedblocked"
+unnamedblockedstatus=$?
 WAITERS=""
 pidoutput=$(dmesg_since)
 
@@ -162,12 +167,19 @@ ktap_pass "a pid the list names runs a program the allowlist names"
 grep -qi "not permitted" "$SCRATCH/unnamed.out" || fail "the refused exec failed with: $(cat "$SCRATCH/unnamed.out")"
 ktap_pass "the same program is refused with EPERM to a pid the list does not name"
 
-grep -qF "execguard: denied true to pid $unnamed" <<< "$pidoutput" || \
+grep -qF "execguard: denied true to pid $unnamed: pid not allowed" <<< "$pidoutput" || \
 	fail "the rule did not name the pid it refused: $(grep -F 'execguard:' <<< "$pidoutput")"
-ktap_pass "the refusal names the pid the list does not carry"
+ktap_pass "the refusal names the pid the list does not carry, and says so"
 
 [ "$namedblockedstatus" -ne 0 ] || fail "a pid the list names ran a name the allowlist does not carry"
 ktap_pass "a pid the list names is still refused a name the allowlist does not carry"
+
+grep -qF "execguard: denied blocked to pid $namedblocked: not in the allowlist" <<< "$pidoutput" || \
+	fail "the rule did not give the allowlist as the reason: $(grep -F 'execguard:' <<< "$pidoutput")"
+[ "$unnamedblockedstatus" -ne 0 ] || fail "a pid the list does not name ran a name the allowlist does not carry"
+grep -qF "execguard: denied blocked to pid $unnamedblocked: not in the allowlist" <<< "$pidoutput" || \
+	fail "the rule did not give the allowlist as the reason to $unnamedblocked: $(grep -F 'execguard:' <<< "$pidoutput")"
+ktap_pass "a name the allowlist does not carry is refused with the allowlist as its reason, listed pid or not"
 
 errs=$(printf '%s\n' "$output" "$pidoutput" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"

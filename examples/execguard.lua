@@ -36,14 +36,24 @@ end
 
 local pids = readpids(PIDS)
 
+local function refusal(name, pid)
+	if not allowed:has(name) then
+		return "not in the allowlist"
+	end
+	if pids ~= nil and not pids[pid] then
+		return "pid not allowed"
+	end
+end
+
 local function guard(_, event)
 	local name, pid = event:name(), event:pid()
+	local reason = refusal(name, pid)
 
-	if allowed:has(name) and (pids == nil or pids[pid]) then
+	if reason == nil then
 		return fsnotify.action.ALLOW
 	end
 
-	print(format("execguard: denied %s to pid %d", name, pid))
+	print(format("execguard: denied %s to pid %d: %s", name, pid, reason))
 	return fsnotify.action.DENY
 end
 

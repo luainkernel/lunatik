@@ -727,7 +727,7 @@ built with.
 A second list names who may run them: when the scope holds a file `pids` as the script starts, one pid per
 line, the exec is refused to every pid it does not name. That pid is the one of the thread calling `execve`,
 which after a `fork` is the child's: a shell the list names runs a program there only with `exec`, which
-keeps its pid.
+keeps its pid. Each refusal is logged with its reason, `not in the allowlist` or `pid not allowed`.
 
 The mark is an inode mark on `SCOPE` carrying `EVENT_ON_CHILD`, so the only exec it can refuse is of an
 entry directly inside that directory. It is never a system wide default deny: a `"mount"` or `"sb"` mark
@@ -764,7 +764,7 @@ bash: /tmp/lunatik-execguard/date: Operation not permitted
 sudo lunatik stop examples/execguard        # ends the rule
 sudo umount /tmp/lunatik-execguard          # and takes the mark with it
 sudo dmesg -t                               # prints what it refused
-execguard: denied date to pid 2222403
+execguard: denied date to pid 2222403: not in the allowlist
 ```
 
 With a pid list:
@@ -781,7 +781,7 @@ exec /tmp/lunatik-execguard/true            # runs in the listed pid, and ends t
 sudo lunatik stop examples/execguard
 sudo umount /tmp/lunatik-execguard
 sudo dmesg -t
-execguard: denied true to pid 2222510
+execguard: denied true to pid 2222510: pid not allowed
 ```
 
 ## References
