@@ -1203,9 +1203,8 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   branch, the base pull request grows a commit nobody reviewed there, and the stacked one closes
   as merged with nothing on `master`. A verdict on a stacked pull request says "after #N". After its
   base merges it waits too, until it is retargeted: GitHub leaves it on the merged branch, and
-  #1041, merged seconds after #1040, landed there and not on `master`. The `Stack` check fails
-  while a pull request's base is not the default branch, `tools/pr-status.sh` names a base that
-  merged, and the merged skill retargets and restacks what a merge leaves behind.
+  #1041, merged seconds after #1040, landed there and not on `master`. `tools/pr-status.sh` names
+  a base that merged, and the merged skill retargets and restacks what a merge leaves behind.
 * Approving is the reviewer's to state; merging is the maintainer's to trigger. Even a clean, approved
   PR is not merged on the reviewer's initiative — pushing or merging to `master` is irreversible and
   public, and the click is the maintainer's alone. A question about state — "can we merge?", "is it
