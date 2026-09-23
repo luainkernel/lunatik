@@ -11,12 +11,9 @@ input=$(cat)
 
 . "$(dirname "$0")/commands.sh"
 
-case "$input" in
-	*"lunatik test"*|*"lunatik reload"*|*"lunatik load"*|*"lunatik unload"*|\
-	*"lunatik run"*|*"lunatik spawn"*|*"lunatik stop"*|*"make install"*|\
-	*"bash tests/"*|*"watchdog.sh"*) ;;
-	*) runs_suite "$input" || exit 0 ;;
-esac
+cmds=$(commands "$input")
+runs_lunatik "$cmds" '(test|reload|load|unload|run|spawn|stop)( |$)' || runs_install "$cmds" ||
+	runs_test "$cmds" || runs_watchdog "$cmds" || exit 0
 case "$input" in
 	*LUNATIK_LOCK_OK=1*) exit 0 ;;
 esac
