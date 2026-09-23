@@ -3,8 +3,8 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# A mark removed, a mark's mask changed, and a watch stopped, from inside the
-# callback.
+# A mark removed, a mark's mask changed, marks placed, and a watch stopped, from
+# inside the callback.
 #
 # The callback runs inside fsnotify's SRCU read section, and both operations
 # take the group's mark mutex there; inotify's one-shot watch destroys its mark
@@ -26,6 +26,14 @@
 # answers EAGAIN there too. A tree without the flag wedges the host on this
 # case, since the walk takes the lock its own task holds, so it runs only on a
 # tree that carries the flag and discriminates by the message, never by an A/B.
+#
+# The resolver's open, delivered with no directory lock held, places marks from
+# the callback: the cached name the shell created resolves, and its later open
+# arrives through the new mark, while the name the shell never touches answers
+# EAGAIN as find does. The flag that keeps the walk in the cache belongs to the
+# runtime, not to the watch, so another watch of the same runtime asked from
+# the first watch's callback answers EAGAIN for that name too, and still finds
+# its own mark on a cached one.
 #
 # The halted file has a watch of its own in the same runtime, which stops itself
 # from its callback. The stop removes every mark of its group inside that read
@@ -50,10 +58,13 @@ cleanup
 mkdir -p -m 0700 "$SCRATCH"
 : > "$SCRATCH/oneshot"
 : > "$SCRATCH/remasked"
+: > "$SCRATCH/resolver"
+: > "$SCRATCH/marked"
+: > "$SCRATCH/other"
 : > "$SCRATCH/halted"
 
 ktap_header
-ktap_plan 10
+ktap_plan 13
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -73,6 +84,14 @@ written=$(dmesg_since)
 mark_dmesg
 : > "$SCRATCH/created"
 created=$(dmesg_since)
+
+mark_dmesg
+cat "$SCRATCH/resolver" > /dev/null
+resolved=$(dmesg_since)
+
+mark_dmesg
+cat "$SCRATCH/marked" > /dev/null
+marked=$(dmesg_since)
 
 mark_dmesg
 cat "$SCRATCH/halted" > /dev/null
@@ -108,6 +127,22 @@ echo "$created" | grep -qF "inside test: locked EAGAIN" || \
 	fail "a path resolved under the directory lock did not answer EAGAIN: $(echo "$created" | grep -F 'inside test: locked')"
 ktap_pass "a path resolved from a callback under the directory lock stays in the directory cache"
 
+echo "$resolved" | grep -qF "inside test: mark cached resolved" || \
+	fail "a cached path marked from the callback did not resolve: $(echo "$resolved" | grep -F 'inside test: mark')"
+seen=$(echo "$marked" | grep -cF "inside test: $SCRATCH/marked mask 20")
+[ "$seen" -eq 1 ] || fail "the mark placed from the callback delivered $seen opens, expected 1"
+ktap_pass "a mark placed from inside a callback on a cached path delivers"
+
+echo "$resolved" | grep -qF "inside test: mark uncached EAGAIN" || \
+	fail "an uncached path marked from the callback did not answer EAGAIN: $(echo "$resolved" | grep -F 'inside test: mark')"
+ktap_pass "a mark placed from inside a callback stays in the directory cache"
+
+echo "$resolved" | grep -qF "inside test: other uncached EAGAIN" || \
+	fail "a second watch resolving from the first's callback left the cache: $(echo "$resolved" | grep -F 'inside test: other')"
+echo "$resolved" | grep -qF "inside test: other cached resolved" || \
+	fail "a second watch did not find its mark from the first's callback: $(echo "$resolved" | grep -F 'inside test: other')"
+ktap_pass "a second watch of the runtime resolves from the first watch's callback within the directory cache"
+
 seen=$(echo "$halted" | grep -cF "inside test: stop returned")
 [ "$seen" -eq 1 ] || fail "stop from inside the callback returned $seen times, expected 1: $(echo "$halted" | grep -F 'fsnotify inside test')"
 ktap_pass "a watch stopped from inside its callback returns from stop"
@@ -123,7 +158,8 @@ errs=$(echo "$stopped" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "kernel error stopping the runtime whose watch stopped itself: ${errs%%$'\n'*}"
 ktap_pass "the runtime whose watch stopped itself tears down cleanly"
 
-errs=$(printf '%s\n%s\n%s\n%s\n%s\n' "$oneshot" "$opened" "$written" "$created" "$halted" | grep -E "$KTAP_ERRORS" || true)
+errs=$(printf '%s\n' "$oneshot" "$opened" "$written" "$created" "$resolved" "$marked" "$halted" | \
+	grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
 ktap_pass "no Lua errors in kernel"
 

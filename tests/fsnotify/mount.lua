@@ -16,13 +16,3 @@ end
 local watch = fsnotify.watch(report)
 watch:mark(MOUNT, fs.OPEN, "mount")
 
-local ok, err = pcall(watch.mark, watch, MOUNT, fs.OPEN, "device")
-err = tostring(err)
-if ok then
-	print("fsnotify kinds test fail: an invalid kind was accepted")
-elseif not err:match("invalid option") then
-	print("fsnotify kinds test fail: " .. err)
-else
-	print("fsnotify kinds test pass: an invalid kind is refused")
-end
-

@@ -124,14 +124,15 @@ permission mark allows and only asks whether the mask is taken.
 
 - **kinds**: the three kinds of mark, on a tmpfs the test mounts under the
   scratch directory and bind mounts a second time, skipped when that mount does
-  not appear and before 6.10, where the binding has no mount kind. A mount mark
-  reports a file opened under its mount and reports
-  neither a file outside it nor the same inode opened through the other mount;
-  a superblock mark reports that same open and nothing on another filesystem;
-  an invalid kind is refused. `watch:find` then returns the
-  mark of each kind by path and kind, and `nil` for a kind the watch did not
-  mark, and the tmpfs is unmounted under all three, which is the path where the
-  kernel clears a group's marks on its own before the watch walks them.
+  not appear. Before 6.10, where the binding has no mount kind, `mark` and
+  `find` refuse that kind with the message the binding documents, pointed at
+  that tmpfs, and the rest skips. A mount mark reports a file opened under its
+  mount and reports neither a file outside it nor the same inode opened through
+  the other mount; a superblock mark reports that same open and nothing on
+  another filesystem. `watch:find` then returns the mark of each kind by path
+  and kind, and `nil` for a kind the watch did not mark, and the tmpfs is
+  unmounted under all three, which is the path where the kernel clears a
+  group's marks on its own before the watch walks them.
 
 - **mask**: a live mark's masks. A mark placed for `FS_OPEN` and set to
   `FS_MODIFY` stops reporting the open and starts reporting the write, which
@@ -142,11 +143,18 @@ permission mark allows and only asks whether the mask is taken.
 
 - **marks**: the mark as an object. `watch:find` returns the mark the watch
   placed, `nil` where it has none and `nil` after `remove`, a second mark on
-  the same object is refused with `EEXIST`, a removed mark
-  delivers nothing while its neighbour still delivers, and `stop` takes every
+  the same object is refused with `EEXIST`, a removed mark's handle raises and
+  the mark delivers nothing while its neighbour does, and `stop` takes every
   mark with it and leaves no usable handle. The whole test runs twice in a row
   and counts the events of each round, so a mark or a group the first round
   leaked shows as a second line rather than passing a presence test.
+
+- **vanished**: `mark:mask` removes the mark and adds it again from its path,
+  so a path the shell moved away raises `ENOENT`, leaves the handle dead and
+  leaves the inode unmarked, whose open through the new name is then silent.
+  The call comes from the read handler of a device the script creates, outside
+  any callback, where the walk is not confined to the directory cache and the
+  missing name answers `ENOENT` whatever the filesystem keeps of it.
 
 - **inside**: a mark removed, and a mark's mask set, from inside the callback,
   which runs in fsnotify's SRCU read section and takes the group's mark mutex
@@ -160,10 +168,14 @@ permission mark allows and only asks whether the mask is taken.
   open events arrive with no directory lock held, so a mark on the scratch
   directory for `FS_CREATE`, which fires inside the parent's lock, resolves the
   same name from its callback and answers `EAGAIN` there; a tree without the
-  flag wedges the host on that case, so it discriminates by the message. A
-  watch stopped from inside its own callback, which removes its marks in the
-  same read section, returns from `stop`, delivers nothing afterwards, and
-  leaves a runtime that still tears down cleanly.
+  flag wedges the host on that case, so it discriminates by the message. From
+  an open's callback, `watch:mark` places a mark on a cached path that then
+  delivers, and answers `EAGAIN` for the uncached name; another watch of the
+  same runtime asked from that callback answers `EAGAIN` for it too, since the
+  flag belongs to the runtime. A watch stopped from inside its own callback,
+  which removes its marks in the same read section, returns from `stop`,
+  delivers nothing afterwards, and leaves a runtime that still tears down
+  cleanly.
 
 - **raise**: a callback that raises on a notification event is logged under the
   module's name, and the next event on the same mark still reaches it, so the
@@ -216,9 +228,10 @@ permission mark allows and only asks whether the mask is taken.
 
 - **context**: `fsnotify.watch` refuses a callback that is not a function, a
   softirq runtime and a percpu runtime, and takes a second watch on a runtime
-  that already has one;
-  `mark` raises the errno name for a path that does not resolve, and takes a
-  permission mask or names the config a kernel built without the hooks lacks.
+  that already has one; `mark` and `find` raise the errno name for a path that
+  does not resolve and refuse an invalid kind, and `mark` and `mark:mask` take a
+  permission mask or name the config a kernel built without the hooks lacks,
+  `mark:mask` keeping the mark's mask when it refuses.
   The shell counts the passing cases rather than looking only for a failing one,
   so a case that never ran cannot pass.
 

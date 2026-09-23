@@ -7,9 +7,10 @@
 # watch that placed it.
 #
 # marks.lua marks two files, asks the watch for each of them back, marks one
-# of them a second time and expects the refusal, and removes the other; the
-# shell then reads both, so a mark that survived its removal shows as an event
-# and the remaining one proves the watch is still delivering.
+# of them a second time and expects the refusal, and removes the other, whose
+# handle must raise afterwards; the shell then reads both, so a mark that
+# survived its removal shows as an event and the remaining one proves the
+# watch is still delivering.
 # stopped.lua marks two files and stops the watch, which must leave neither the
 # marks nor a usable handle.
 #
@@ -56,9 +57,9 @@ for round in 1 2; do
 	lunatik stop "$STOPPED" 2>/dev/null
 
 	found=$(echo "$marked" | grep -cF "fsnotify marks test pass:")
-	[ "$found" -eq 4 ] || \
+	[ "$found" -eq 5 ] || \
 		fail "round $round: find: $(echo "$marked" | grep -F 'fsnotify marks test' | tr '\n' ';')"
-	ktap_pass "round $round: find returns the mark, nil where there is none, nil after remove; a second mark is refused"
+	ktap_pass "round $round: find returns the mark, nil where there is none, nil after remove; a second mark is refused; a removed mark's handle raises"
 
 	kept=$(echo "$marked" | grep -cF "marks test: open $SCRATCH/kept")
 	[ "$kept" -eq 1 ] || fail "round $round: the kept mark delivered $kept events, expected 1"
