@@ -5,6 +5,10 @@
 -- An allowlist for exec over one directory: the mark is on that directory's
 -- inode, where a mount or superblock mark would deny across a whole filesystem,
 -- the programs that undo the rule included.
+--
+-- A gate, not a sandbox: it fails open, and it decides after the LSMs' open
+-- hooks, Landlock's among them, so it can only refuse what they allowed; an
+-- LSM that decides the exec later, as AppArmor does, can still refuse it.
 
 local fsnotify = require("fsnotify")
 local fs       = require("linux.fs")
