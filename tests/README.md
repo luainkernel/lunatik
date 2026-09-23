@@ -915,9 +915,9 @@ Regression tests for `luaxdp`. The suite builds real XDP programs that call
 `bpf_luaxdp_run`, pins them via `bpftool` and attaches them to a veth pair
 whose peer sits in a network namespace, with the neighbor entries pinned so
 ARP never competes with ICMP for the verdict; skipped when the module lacks
-BTF, or `bpftool` or `clang` is unavailable. The pass and drop cases also fail
-on a "no callback attached" line: `xdp.attach` detaches whatever was bound
-before, and a first attach, which finds nothing, logs nothing.
+BTF, or `bpftool` or `clang` is unavailable. The pass, drop and reattach cases
+also fail on a "no callback attached" line: `xdp.attach` detaches whatever was
+bound before, and a first attach, which finds nothing, logs nothing.
 
 - **xdp pass**: the callback inspects `ctx:packet()` (IPv4 ethertype and the
   ICMP protocol byte of the ping) and `ctx:argument()` (a magic passed by the
@@ -926,6 +926,10 @@ before, and a first attach, which finds nothing, logs nothing.
 
 - **xdp drop**: `action.DROP` blocks the ping; the runtime is percpu,
   covering the dispatch to a percpu runtime.
+
+- **xdp reattach**: the script attaches one callback and then a second in the
+  same runtime; the ping passes because only the last callback runs, exercising
+  the re-attach path.
 
 - **xdp detach**: the callback drops the first ping and calls `xdp.detach()`
   from inside the callback, letting other traffic through; traffic resumes
