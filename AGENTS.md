@@ -24,7 +24,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | Path | What lives there |
 |------|------------------|
 | `lunatik_*.c`, `lunatik.h` | core runtime, object model, C API |
-| `lua/` | the Lua fork (luainkernel/lua): upstream's git mirror plus the `_KERNEL` patch |
+| `lua/` | the Lua fork (luainkernel/lua): upstream's git mirror plus the `_KERNEL` patch, which only modifies, `#ifndef _KERNEL` with upstream first; code the kernel side needs is added on the Lunatik side, `luac/` included, never to the fork |
 | `luac/` | the luac fork (luainkernel/luac): the release tarball's `luac.c`, which the git mirror does not carry, plus the `_KERNEL` patch; a bump is an "update to Lua x.y.z" commit made from the tarball |
 | `lib/lua*.c` | kernel modules, one `.ko` each, exposing a Lua module |
 | `lib/*.lua`, `lib/*/*.lua` | kernel side Lua libraries, installed to `/lib/modules/lua/` |
