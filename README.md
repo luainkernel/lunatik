@@ -171,8 +171,6 @@ sudo lunatik test thread    # run a specific suite (bpf, crypto, data, fifo,
                             # fsnotify, hid, io, linux, lua, luac, monitor,
                             # netlink, notifier, probe, rcu, runtime, set, skb,
                             # socket, struct, task, tc, thread, xdp)
-                            # notifier, probe, rcu, runtime, set, skb, socket,
-                            # struct, task, tc, thread, xdp)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them
