@@ -32,6 +32,9 @@ no "Test plan" section, no em dashes. On top of it:
 - The body opens with the failure or the need in one plain sentence, then what the change does,
   then what it depends on: three short paragraphs at most; `bash tools/checks/pr-body.sh <file>`
   before posting it.
+- A pull request that finishes a phase of an epic carries `Closes #<phase issue>` on a line of its
+  own, and one that finishes none says `#<epic>, which it does not close`: a body that only says it
+  is part of the epic, or answers an issue, closes nothing when it merges, and `pr-body.sh` fails it.
 - A push, forced or not, is a command of its own, after the rebase before it is read as finished
   in `git status`; chained after one that stopped on a conflict, it publishes the base as the branch.
 - After any force-push, re-read the title and body against the branch as it now stands.
