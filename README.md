@@ -142,8 +142,9 @@ usage: lunatic [options] [filenames]
 `lunatic` is `luac` built with the host compiler from the same `lua/` sources and configuration
 as `lunatik.ko`, so its chunks match the kernel's opcode set and integer-only number format;
 chunks from the distribution `luac` are rejected by the kernel. The options are `luac`'s
-(`-l` list, `-o` output, `-p` parse only, `-s` strip debug information, `-v` version), and
-`lunatik compile` runs it with the same arguments.
+(`-l` list, `-o` output, `-p` parse only, `-s` strip debug information, `-v` version) plus
+`-e big|little`, the byte order of the target when it is not the host's, and `lunatik compile` runs
+it with the same arguments.
 
 A chunk is installed and run under the usual `.lua` name; the kernel detects it by its signature.
 Several inputs make one chunk that runs them in order, as with `luac`, so compile one file per
