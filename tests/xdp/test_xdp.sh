@@ -21,13 +21,14 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 7
+ktap_plan 8
 
 skip_all()
 {
 	echo "# SKIP: $1"
 	ktap_skip "xdp pass: verdict enforced, packet and argument content verified"
 	ktap_skip "xdp drop: verdict enforced correctly"
+	ktap_skip "xdp reattach: only the last attached callback runs"
 	ktap_skip "xdp detach: callback stops firing and traffic resumes"
 	ktap_skip "xdp attach: refuses a sleepable runtime"
 	ktap_skip "xdp zero-key: a zero-sized key is rejected without a crash"
@@ -45,9 +46,10 @@ command -v clang > /dev/null 2>&1 || skip_all "clang not available"
 cleanup()
 {
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
-	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_detach" "${PIN}_zerokey" "${PIN}_process" "${PIN}_percpu"
+	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_reattach" "${PIN}_detach" "${PIN}_zerokey" "${PIN}_process" "${PIN}_percpu"
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
+	lunatik stop tests/xdp/reattach > /dev/null 2>&1
 	lunatik stop tests/xdp/detach > /dev/null 2>&1
 	lunatik stop tests/xdp/attach_sleepable > /dev/null 2>&1
 	lunatik stop tests/xdp/process > /dev/null 2>&1
@@ -214,6 +216,8 @@ run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass" \
 	"xdp pass: verdict enforced, packet and argument content verified" softirq
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop" \
 	"xdp drop: verdict enforced correctly" softirq percpu
+run_case xdp_reattach.bpf.o "${PIN}_reattach" reattach.lua yes "xdp reattach" \
+	"xdp reattach: only the last attached callback runs" softirq
 detach_case
 
 mark_dmesg
