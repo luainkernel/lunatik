@@ -26,7 +26,10 @@
 * nothing or raises included, so a rule that fails, or forgets to answer,
 * takes nothing away. An exec asks twice, `OPEN_EXEC_PERM` and then
 * `OPEN_PERM`, each through the marks that carry it, and a denial on the
-* first ends it there.
+* first ends it there. The kernel asks once the LSMs' open and read hooks have
+* allowed the access, and a check an LSM makes later, AppArmor's on an exec
+* among them, still applies, so a verdict can refuse what they let through and
+* never let through what they refuse.
 *
 * @module fsnotify
 */
