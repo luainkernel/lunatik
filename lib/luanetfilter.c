@@ -24,8 +24,9 @@ typedef struct luanetfilter_hook_s {
 } luanetfilter_hook_t;
 
 /***
-* Registered Netfilter hook. Garbage collecting this object unregisters the hook, or detaches
-* the runtime from the hook its percpu script shares.
+* Registered Netfilter hook. `netfilter.register` keeps this object for its runtime, so dropping
+* it does not unregister the hook: the hook stays until the runtime closes, which `stop()` does,
+* and the one hook a percpu script's runtimes share goes when the percpu set stops.
 * @type netfilter_hook
 */
 typedef struct luanetfilter_s {
