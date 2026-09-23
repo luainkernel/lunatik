@@ -6,6 +6,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <lua.h>
 #include <lauxlib.h>
+#include <lstate.h>
 
 #include "lunatik.h"
 
@@ -114,8 +115,14 @@ void lunatik_releaseobject(struct kref *kref)
 }
 EXPORT_SYMBOL(lunatik_releaseobject);
 
+/* GCTM marks the frame it calls a finalizer from; the Lua API has no call that tells it apart */
+#define lunatik_isfinalizer(L)	((L)->ci->previous->callstatus & CIST_FIN)
+
 int lunatik_deleteobject(lua_State *L)
 {
+	if (!lunatik_isfinalizer(L))
+		luaL_error(L, LUNATIK_ERR_FINALIZER);
+
 	lunatik_object_t **pobject = lunatik_checkpobject(L, 1);
 	lunatik_object_t *object = *pobject;
 

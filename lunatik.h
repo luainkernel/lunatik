@@ -171,6 +171,7 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_NULLPTR	"null pointer dereference"
 #define LUNATIK_ERR_SINGLE	"cannot share SINGLE object"
 #define LUNATIK_ERR_METATABLE	"metatable not found"
+#define LUNATIK_ERR_FINALIZER	"not called as a finalizer"
 #define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
 #define LUNATIK_ERR_ARMED	"not allowed after module load"
