@@ -160,7 +160,16 @@ permission mark allows and only asks whether the mask is taken.
   open events arrive with no directory lock held, so a mark on the scratch
   directory for `FS_CREATE`, which fires inside the parent's lock, resolves the
   same name from its callback and answers `EAGAIN` there; a tree without the
-  flag wedges the host on that case, so it discriminates by the message.
+  flag wedges the host on that case, so it discriminates by the message. A
+  watch stopped from inside its own callback, which removes its marks in the
+  same read section, returns from `stop`, delivers nothing afterwards, and
+  leaves a runtime that still tears down cleanly.
+
+- **raise**: a callback that raises on a notification event is logged under the
+  module's name, and the next event on the same mark still reaches it, so the
+  first case cannot pass because the watch was gone. `error` asserts the same
+  of a permission event and skips without the hooks; this one runs on every
+  kernel.
 
 - **identity**: the matrix of event kind by accessor. A file open carries a
   `struct path`, so `name`, `ino`, `dir`, `isdir`, `pid` and `path` all answer;
@@ -200,8 +209,9 @@ permission mark allows and only asks whether the mask is taken.
   object's release, after which unlinking the marked inode raises no kernel
   error.
 
-- **context**: `fsnotify.watch` refuses a callback that is not a function and a
-  softirq runtime, and takes a second watch on a runtime that already has one;
+- **context**: `fsnotify.watch` refuses a callback that is not a function, a
+  softirq runtime and a percpu runtime, and takes a second watch on a runtime
+  that already has one;
   `mark` raises the errno name for a path that does not resolve, and takes a
   permission mask or names the config a kernel built without the hooks lacks.
   The shell counts the passing cases rather than looking only for a failing one,
@@ -255,8 +265,8 @@ after the watch is stopped.
 
 - **error**: a callback that raises allows the access and the raise is logged;
   a second open still reaches the callback, so the first case cannot pass
-  because the watch was gone. This is the one test whose kernel log carries a
-  Lua error on purpose.
+  because the watch was gone. Its kernel log carries a Lua error on purpose,
+  as `raise`'s does.
 
 - **sleep**: a callback that calls `linux.schedule` finishes and the open waits
   for it, which is what makes a process-context runtime the right one for a
