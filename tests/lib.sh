@@ -18,7 +18,7 @@ ktap_plan()   { echo "1..$1"; }
 ktap_pass()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_PASS=$((KTAP_PASS+1)); echo "ok $KTAP_COUNT $*"; }
 ktap_fail()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_FAIL=$((KTAP_FAIL+1)); echo "not ok $KTAP_COUNT $*"; }
 ktap_skip()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_SKIP=$((KTAP_SKIP+1)); echo "ok $KTAP_COUNT $* # SKIP"; }
-ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:$KTAP_SKIP"; }
+ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:$KTAP_SKIP"; [ "$KTAP_FAIL" -eq 0 ]; }
 
 # A Lua error, or a kernel complaint a script's input should not be able to provoke;
 # arm64 heads an oops with "Internal error:", and a debug trap nobody owns with the BRK line.

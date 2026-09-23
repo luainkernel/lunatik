@@ -37,5 +37,4 @@ if check_dmesg; then
 fi
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 

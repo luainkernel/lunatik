@@ -78,9 +78,8 @@ else
 	ktap_fail "hid/register: $count drivers outlived their runtime under $DRIVERS"
 fi
 
-ktap_totals
 RESULT=0
-[ $KTAP_FAIL -eq 0 ] || RESULT=1
+ktap_totals || RESULT=1
 
 echo ""
 bash "$DIR/idtable_leak.sh" || RESULT=1

@@ -34,5 +34,4 @@ for t in $TESTS; do
 done
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 

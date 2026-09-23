@@ -164,5 +164,4 @@ errs=$(printf '%s\n' "$oneshot" "$opened" "$written" "$created" "$resolved" "$ma
 ktap_pass "no Lua errors in kernel"
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 

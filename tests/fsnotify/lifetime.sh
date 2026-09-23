@@ -65,5 +65,4 @@ oops=$(printf '%s\n%s\n' "$stopped" "$released" | grep -E "$KTAP_ERRORS" || true
 ktap_pass "no kernel error while unlinking the marked inode"
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 

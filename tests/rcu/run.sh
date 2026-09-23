@@ -39,9 +39,8 @@ for t in $TESTS; do
 	fi
 done
 
-ktap_totals
 RESULT=0
-[ $KTAP_FAIL -eq 0 ] || RESULT=1
+ktap_totals || RESULT=1
 
 echo ""
 bash "$DIR/map_sync.sh" || RESULT=1
