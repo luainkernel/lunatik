@@ -504,13 +504,18 @@ higher-level `netlink.*` modules built on top of it.
 - **inside**: `notifier.netdevice` from inside a netdevice callback is refused,
   in both the contexts the callback runs in: the replay the registration
   delivers on its own task, and a live event on another task. A coroutine
-  resumed from the callback is refused too, since the flag lives in the Lua
-  registry every coroutine of the state shares and not in the per-coroutine
-  extra space; a registration made once the callback has returned, or raised, is
-  accepted, and `stop()` from inside the callback is accepted and ends delivery.
+  resumed from the callback, the body of a runtime the callback creates and a
+  runtime the callback resumes are refused too, since the refusal keys on the
+  task that holds RTNL and not on a Lua state; a registration made once the
+  callback has returned, or raised, is accepted, and `stop()` from inside the
+  callback is accepted and ends delivery.
   A tree without the guard wedges the host rather than failing the test, so it
   never runs against one: the discrimination is the message it asserts, and those
-  last three cases.
+  last three cases; it skips unless the loaded `luanotifier` lists
+  `luanotifier_netdevice_call`, which sets the task, in `/proc/kallsyms`. The
+  runtimes it resumes register only once resumed, so they hold no block, which
+  would keep them alive past the script: stopping the script leaves
+  `luanotifier`'s use count as it was.
 
 - **chain_continues**: a netdevice block whose runtime is being torn down
   returns `notify.DONE`, not the `-ENXIO` of `lunatik_run`, whose
@@ -789,6 +794,17 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   `O_NONBLOCK` bit, and a port read as flags answers `EINPROGRESS` instead. A flag
   given past the port must still reach the kernel, and an AF_UNIX path, spelled as
   one argument, must not have the path itself read as the flags.
+
+- **rtnl**: what a socket refuses under RTNL, probed from the replay of a
+  `notifier.netdevice` registration: a `netlink.rt` request, whose rtnetlink
+  handler runs on the sending task and takes RTNL; a receive on a netlink
+  socket, which can continue a dump under RTNL; and an option past
+  `SOL_SOCKET`, which reaches the protocol, whose multicast memberships take
+  RTNL. A `SOL_SOCKET` option and a UDP send are accepted there, and the
+  request is accepted once the registration returned. A tree without the
+  refusal wedges the host, so the test skips unless the loaded `luanotifier`
+  lists `luanotifier_netdevice_call`, which sets the task the refusal reads, in
+  `/proc/kallsyms`.
 
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at

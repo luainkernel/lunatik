@@ -28,6 +28,8 @@
 #ifdef LUNATIK_RUNTIME
 lunatik_object_t *lunatik_env;
 EXPORT_SYMBOL(lunatik_env);
+struct task_struct *lunatik_rtnl;	/* one task holds RTNL at a time */
+EXPORT_SYMBOL(lunatik_rtnl);
 EXPORT_SYMBOL(luaS_hash);	/* required by luarcu */
 
 static inline void lunatik_setversion(lua_State *L)

@@ -135,6 +135,12 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *, &luasocket_class);
 
 #define luasocket_setmsg(m)		memset(&(m), 0, sizeof(m))
 
+static inline void luasocket_checkrtnl(lua_State *L, struct socket *socket)
+{
+	if (luasocket_family(socket) == AF_NETLINK) /* the kernel runs a request, and a dump, on this task */
+		lunatik_checkrtnl(L);
+}
+
 /***
 * A kernel socket, returned by `socket.new()`.
 * @type socket
@@ -157,7 +163,8 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *, &luasocket_class);
 *   (e.g., MAC address for `AF_PACKET`). The exact format depends on the family.
 * @tparam[opt] integer port destination port number (required if `addr` is an IPv4 address for `AF_INET`).
 * @treturn integer number of bytes sent.
-* @raise Error if the send operation fails or if address parameters are incorrect for the socket type.
+* @raise Error if the send operation fails or if address parameters are incorrect for the socket type,
+*   or on a netlink socket under RTNL, as from a netdevice callback.
 * @usage
 *   -- For a connected TCP socket:
 *   local bytes_sent = tcp_conn_sock:send("Hello, server!")
@@ -176,6 +183,7 @@ static int luasocket_send(lua_State *L)
 	int nargs = lua_gettop(L);
 	int ret;
 
+	luasocket_checkrtnl(L, socket);
 	luasocket_setmsg(msg);
 
 	vec.iov_base = (void *)luaL_checklstring(L, 2, &len);
@@ -210,7 +218,8 @@ static int luasocket_send(lua_State *L)
 *   - For other families: A packed string of the sender's address past the family, of the length the
 *     protocol reports.
 * @treturn[opt] integer port If `from` is true and the family is `AF_INET`, the sender's port number.
-* @raise Error if the receive operation fails.
+* @raise Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
+*   callback.
 * @usage
 *   -- For a connected TCP socket:
 *   local data = tcp_conn_sock:receive(1024)
@@ -234,6 +243,7 @@ static int luasocket_receive(lua_State *L)
 	int from = lua_toboolean(L, 4);
 	int ret;
 
+	luasocket_checkrtnl(L, socket);
 	luasocket_setmsg(msg);
 
 	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
@@ -418,7 +428,8 @@ LUASOCKET_NEWGETTER(peername);
 * @tparam integer optname option name (e.g., `linux.socket.so.RCVTIMEO_NEW`).
 * @tparam integer|string value option value: an integer for the common `int`
 *   payload, or a string carrying the option's packed binary payload.
-* @raise Error if the operation fails.
+* @raise Error if the operation fails, or at a level other than `SOL_SOCKET` under RTNL, as from a
+*   netdevice callback.
 * @usage
 *   -- bound blocking receives to 500 ms (a `struct __kernel_sock_timeval`)
 *   sock:setsockopt(sol.SOCKET, so.RCVTIMEO_NEW, timeval:pack(0, 500000))
@@ -431,6 +442,9 @@ static int luasocket_setsockopt(lua_State *L)
 	int value;
 	size_t len;
 	const char *optval;
+
+	if (level != SOL_SOCKET) /* a protocol's options can take RTNL, for a multicast membership among others */
+		lunatik_checkrtnl(L);
 
 	if (lua_type(L, 4) == LUA_TSTRING)
 		optval = lua_tolstring(L, 4, &len);

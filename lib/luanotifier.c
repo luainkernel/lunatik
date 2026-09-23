@@ -55,8 +55,6 @@ LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanoti
 /* an event delivered inside register_fn, on the task that registered the block */
 #define luanotifier_isreplay(notifier)	(in_task() && (notifier)->registrant == current)
 
-static const char luanotifier_incallback;
-
 static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
 {
 	if (lunatik_getregistry(L, notifier) != LUA_TFUNCTION)
@@ -68,11 +66,7 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 	if (nargs == LUANOTIFIER_DECLINED)
 		return NOTIFY_DONE;
 
-	lunatik_setflag(L, &luanotifier_incallback, true);
-	int status = lua_pcall(L, nargs + 1, 1, 0); /* callback(event, ...) */
-	lunatik_setflag(L, &luanotifier_incallback, false);
-
-	if (status != LUA_OK) {
+	if (lua_pcall(L, nargs + 1, 1, 0) != LUA_OK) { /* callback(event, ...) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 		return NOTIFY_OK;
 	}
@@ -125,14 +119,14 @@ static int luanotifier_stop(lua_State *L)
 }
 
 static int luanotifier_new(lua_State *, luanotifier_register_t, luanotifier_register_t,
-	luanotifier_handler_t, const lunatik_class_t *);
+	luanotifier_handler_t, notifier_fn_t, const lunatik_class_t *);
 
 #define LUANOTIFIER_NEWCHAIN(name, class)					\
 static int luanotifier_##name(lua_State *L)					\
 {										\
 	return luanotifier_new(L, register_##name##_notifier,			\
 		unregister_##name##_notifier, luanotifier_##name##_handler,	\
-		(class));							\
+		luanotifier_call, (class));					\
 }
 
 #define luanotifier_isinitnet(dev)	net_eq(dev_net(dev), &init_net)
@@ -148,10 +142,19 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 	return 1;
 }
 
+static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long event, void *data)
+{
+	lunatik_setrtnl(current); /* the chain and the replays of (un)registration run under RTNL */
+	int ret = luanotifier_call(nb, event, data);
+	lunatik_setrtnl(NULL);
+	return ret;
+}
+
 /***
 * Registers a network-device notifier. Must be called from a process
 * runtime (the default). Only devices of the initial network namespace, the
-* one `linux.ifindex` resolves a name in, are reported.
+* one `linux.ifindex` resolves a name in, are reported. The callback runs under
+* RTNL.
 *
 * @function netdevice
 * @tparam function callback invoked as `callback(event, name)` — `event`
@@ -163,17 +166,17 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 *   the callback before the script body ends. Returns a `linux.notify` status
 *   code.
 * @treturn notifier
-* @raise if called from a percpu runtime, or from a notifier callback
+* @raise if called from a percpu runtime, or under RTNL: from a netdevice
+*   callback, and from any runtime or coroutine the callback runs
 * @within notifier
 */
 static int luanotifier_netdevice(lua_State *L)
 {
 	/* register_netdevice_notifier waits on the namespace rwsem and RTNL this task already holds */
-	if (lunatik_getflag(L, &luanotifier_incallback))
-		luaL_error(L, "not allowed from a notifier callback");
+	lunatik_checkrtnl(L);
 
 	return luanotifier_new(L, register_netdevice_notifier, unregister_netdevice_notifier,
-		luanotifier_netdevice_handler, &luanotifier_process_class);
+		luanotifier_netdevice_handler, luanotifier_netdevice_call, &luanotifier_process_class);
 }
 
 #ifdef CONFIG_VT
@@ -260,19 +263,18 @@ static const lunatik_class_t luanotifier_hardirq_class = {
 };
 
 static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, luanotifier_register_t unregister_fn,
-	luanotifier_handler_t handler_fn, const lunatik_class_t *class)
+	luanotifier_handler_t handler_fn, notifier_fn_t call_fn, const lunatik_class_t *class)
 {
 	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	lunatik_seedflag(L, &luanotifier_incallback);
 	lunatik_object_t *object = lunatik_newobject(L, class, sizeof(luanotifier_t), LUNATIK_OPT_NONE);
 	luanotifier_t *notifier = (luanotifier_t *)object->private;
 
 	notifier->runtime = lunatik_checkruntime(L, class->opt);
 	lunatik_getobject(notifier->runtime);
 
-	notifier->nb.notifier_call = luanotifier_call;
+	notifier->nb.notifier_call = call_fn;
 	notifier->handler = handler_fn;
 
 	lunatik_registerobject(L, 1, object);
