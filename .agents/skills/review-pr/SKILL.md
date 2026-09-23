@@ -133,6 +133,7 @@ author from GitHub with the credential the command carries.
 
 When the maintainer reports a merge, run `GH_TOKEN=... bash tools/issues.sh <epic>` over the epic
 the pull request is part of, or over the issue it answers, and hand him, in the same message, what
-the merge closed, what stays open and what the report flags. Closing an issue and moving its card
-on the board are his writes, not the session's.
+the merge closed, what stays open and what the report flags. What the merge finished and GitHub left
+open, an issue the pull request named without a closing keyword or an epic whose issues are all
+closed, the session closes, with a comment that says what finished it; the board moves the card.
 
