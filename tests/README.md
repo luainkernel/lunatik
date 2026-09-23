@@ -737,9 +737,11 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   request is counted exactly once, by the runtime of that CPU; a burst that
   reaches the hook while the runtimes are still being created is accepted
   without being counted; one set holds a hook per target, and a second
-  registration of the same one in a runtime is refused; a registration from a
-  callback, after load, is refused; and the same script registers as a plain
-  softirq runtime.
+  registration of the same one in a runtime is refused; a hook the kernel
+  refuses in a set that already armed one leaves no hook armed and no script
+  registered; a registration from a callback, after load, is refused; the same
+  script registers as a plain softirq runtime; and a plain runtime the kernel
+  refuses a hook releases the one it had armed.
 
 ### sched
 

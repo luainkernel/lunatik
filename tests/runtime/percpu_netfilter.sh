@@ -9,10 +9,13 @@
 # pinned ping; a marked packet reaching that hook while the runtimes are still
 # being created finds none published on its CPU, and is accepted without being
 # counted; one set holds a hook per target, and a second registration of the
-# same one in a runtime is refused; a registration from a callback, after the
-# script loaded, is refused before it could sleep in softirq; and the same
-# script registers as a plain softirq runtime. The exactly-once assertion runs
-# on the shared hook, where it is structural. The burst starts when the script
+# same one in a runtime is refused; a hook the kernel refuses in a set that
+# already armed one leaves no hook armed and no script registered; a
+# registration from a callback, after the script loaded, is refused before it
+# could sleep in softirq; the same script registers as a plain softirq runtime,
+# and a plain runtime the kernel refuses a hook releases the one it had armed.
+# The exactly-once assertion runs on the shared hook, where it is structural.
+# The burst starts when the script
 # reports the hook armed, and runs inside the spin every runtime does before
 # returning, so it arrives while no runtime is published.
 #
@@ -21,10 +24,12 @@
 SCRIPT="tests/runtime/percpu_netfilter"
 CHECK="tests/runtime/percpu_netfilter_check"
 TWICE="tests/runtime/percpu_netfilter_twice"
+REFUSED="tests/runtime/percpu_netfilter_refused"
 LATE="tests/runtime/percpu_netfilter_late"
 EARLY="tests/runtime/percpu_netfilter_early"
 ARMED="percpu netfilter early: armed"
 TARGETS="percpu netfilter twice: two targets armed"
+ARMED_ONE="percpu netfilter refused: one target armed"
 MODULE="luanetfilter"
 MARK=208
 COUNT=5
@@ -38,8 +43,15 @@ cleanup()
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
 	lunatik stop "$CHECK" > /dev/null 2>&1
 	lunatik stop "$TWICE" > /dev/null 2>&1
+	lunatik stop "$REFUSED" > /dev/null 2>&1
 	lunatik stop "$LATE" > /dev/null 2>&1
 	lunatik stop "$EARLY" > /dev/null 2>&1
+}
+
+# how many hooks this module holds; nothing where nft cannot list them
+hooks()
+{
+	nft list hooks > /dev/null 2>&1 && nft list hooks | grep -c "luanetfilter_hook"
 }
 
 burst_when_armed()
@@ -67,15 +79,17 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 5
+ktap_plan 7
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
 	ktap_skip "the runtimes share one hook: each marked request is counted once, by the receiving CPU"
 	ktap_skip "a packet reaching the shared hook before the runtimes are published is accepted, uncounted"
 	ktap_skip "one set holds a hook per target; a second registration of the same one is refused"
+	ktap_skip "a hook the kernel refuses in a set releases the hook the set had armed"
 	ktap_skip "a registration from a callback, after load, is refused"
 	ktap_skip "the same script registers as a plain softirq runtime"
+	ktap_skip "a hook the kernel refuses in a plain runtime releases the hook it had armed"
 	ktap_totals
 	exit 0
 }
@@ -110,6 +124,22 @@ esac
 ktap_pass "one set holds a hook per target; a second registration of the same one is refused"
 
 mark_dmesg
+idle=$(hooks)
+output=$(lunatik run "$REFUSED" softirq percpu 2>&1)
+echo "$output" | grep -q "EINVAL" || fail "a netdev hook with no device was accepted: $output"
+check_dmesg || { ktap_totals; exit 1; }
+left=$(hooks)
+dmesg_since | grep -qF "$ARMED_ONE" || fail "the set did not arm a hook before the one the kernel refuses"
+listed=$(lunatik list)
+case "$listed" in
+	*"$REFUSED"*) fail "the refused run left the script registered: $listed" ;;
+esac
+if [ -n "$idle" ]; then
+	[ "$left" = "$idle" ] || fail "the refused run left $((left - idle)) hooks armed"
+fi
+ktap_pass "a hook the kernel refuses in a set releases the hook the set had armed"
+
+mark_dmesg
 run_script "$LATE" softirq percpu
 taskset -c "$cpu" ping -c 1 -m $MARK 127.0.0.1 > /dev/null 2>&1
 lunatik stop "$LATE" > /dev/null 2>&1
@@ -124,6 +154,21 @@ dmesg_since | grep -qF "percpu netfilter: nf_percpu:plain $COUNT" || \
 	fail "the plain runtime did not count the packets: $(dmesg_since | grep 'percpu netfilter')"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 ktap_pass "the same script registers as a plain softirq runtime"
+
+mark_dmesg
+idle=$(hooks)
+output=$(lunatik run "$REFUSED" softirq 2>&1)
+echo "$output" | grep -q "EINVAL" || fail "a netdev hook with no device was accepted by a plain runtime: $output"
+check_dmesg || { ktap_totals; exit 1; }
+left=$(hooks)
+listed=$(lunatik list)
+case "$listed" in
+	*"$REFUSED"*) fail "the refused plain run left the script registered: $listed" ;;
+esac
+if [ -n "$idle" ]; then
+	[ "$left" = "$idle" ] || fail "the refused plain run left $((left - idle)) hooks armed"
+fi
+ktap_pass "a hook the kernel refuses in a plain runtime releases the hook it had armed"
 
 ktap_totals
 
