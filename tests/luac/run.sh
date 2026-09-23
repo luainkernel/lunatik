@@ -103,7 +103,7 @@ output=$(lunatik run tests/luac/err_s)
 echo "$output" | grep -q "^?:?: attempt to index a nil value" || fail "luac: stripped chunk error: $output"
 ktap_pass "luac: stripped error has no source or line"
 
-lunatic -l "$SRC/hello_bc.lua" | grep -q "^main <" || fail "luac: -l did not list the chunk"
+lunatic -l -p "$SRC/hello_bc.lua" | grep -q "^main <" || fail "luac: -l did not list the chunk"
 ktap_pass "luac: -l lists a compiled chunk"
 
 # a stock luac writes lua_Number as a double: patch the header probe (last 8 bytes of the
