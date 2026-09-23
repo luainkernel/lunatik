@@ -71,6 +71,16 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/checkout-behind.sh\" \"$CLAUDE_PROJECT_DIR\""
+          }
+        ]
+      }
     ]
   },
   "attribution": {
