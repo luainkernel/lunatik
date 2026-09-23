@@ -724,6 +724,11 @@ prints `?`.
 parks the `execve` inside the callback, which refuses it unless the entry's name is in the `set` it was
 built with.
 
+A second list names who may run them: when the scope holds a file `pids` as the script starts, one pid per
+line, the exec is refused to every pid it does not name. That pid is the one of the thread calling `execve`,
+which after a `fork` is the child's: a shell the list names runs a program there only with `exec`, which
+keeps its pid.
+
 The mark is an inode mark on `SCOPE` carrying `EVENT_ON_CHILD`, so the only exec it can refuse is of an
 entry directly inside that directory. It is never a system wide default deny: a `"mount"` or `"sb"` mark
 reaches every file of a mount or of a whole filesystem, and a rule that denies there leaves the machine
@@ -750,6 +755,23 @@ sudo lunatik stop examples/execguard        # ends the rule
 sudo umount /tmp/lunatik-execguard          # and takes the mark with it
 sudo dmesg -t                               # prints what it refused
 execguard: denied date to pid 2222403
+```
+
+With a pid list:
+
+```
+sudo mount -t tmpfs -o size=1M,mode=0755 lunatik-execguard /tmp/lunatik-execguard
+sudo cp /bin/true /tmp/lunatik-execguard/
+bash                                        # a shell for the list to name
+echo $$ | sudo tee /tmp/lunatik-execguard/pids
+sudo lunatik run examples/execguard         # reads the list as it starts
+/tmp/lunatik-execguard/true                 # the child the shell forks has a pid of its own
+bash: /tmp/lunatik-execguard/true: Operation not permitted
+exec /tmp/lunatik-execguard/true            # runs in the listed pid, and ends that shell
+sudo lunatik stop examples/execguard
+sudo umount /tmp/lunatik-execguard
+sudo dmesg -t
+execguard: denied true to pid 2222510
 ```
 
 ## References

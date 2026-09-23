@@ -17,17 +17,33 @@ local set      = require("set")
 local format = string.format
 
 local SCOPE <const> = "/tmp/lunatik-execguard"
+local PIDS  <const> = SCOPE .. "/pids"
 
 local allowed = set.new({"true", "false"})
 
-local function guard(_, event)
-	local name = event:name()
+local function readpids(path)
+	local file <close> = io.open(path)
+	if file == nil then
+		return nil
+	end
 
-	if allowed:has(name) then
+	local listed = {}
+	for pid in file:lines("n") do
+		listed[pid] = true
+	end
+	return listed
+end
+
+local pids = readpids(PIDS)
+
+local function guard(_, event)
+	local name, pid = event:name(), event:pid()
+
+	if allowed:has(name) and (pids == nil or pids[pid]) then
 		return fsnotify.action.ALLOW
 	end
 
-	print(format("execguard: denied %s to pid %d", name, event:pid()))
+	print(format("execguard: denied %s to pid %d", name, pid))
 	return fsnotify.action.DENY
 end
 
