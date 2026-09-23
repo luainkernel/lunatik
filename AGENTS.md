@@ -56,12 +56,15 @@ A module or an example that needs a second file gets a directory, not a prefixed
 Use `sudo make install`, not the partial `*_install` targets. Use `sudo lunatik reload`, never
 `rmmod`: the CLI knows the dependency order and unloads cleanly.
 
-`lunatik reload` cannot always replace the core module while something still holds it. If you changed
-`lunatik.ko` itself and the behaviour did not change, verify rather than assume the new core is live:
-`cat /sys/module/lunatik/srcversion` against `modinfo -F srcversion` of the installed `.ko` says
-whether the running core is the one just built. A kernel thread outliving its runtime is one way to
-pin it, and nothing short of a reboot gets it back, so a test that spawns one gives its body work
-that ends rather than a loop waiting to be stopped.
+`lunatik reload` cannot replace a module while something still holds it, and `make install` writes
+the new file beside the one still loaded. After loading, `reload` compares each loaded module's
+`srcversion` with the installed file's and refuses with `couldn't replace <modules>: loaded from
+another build`, which stops `lunatik test` before the suite; `lunatik status` names the same
+modules. Before that refusal existed, a notifier build pinned on the shared host stayed loaded
+through seven minutes of other sessions' reloads, their suites ran against its core, and a test
+written for its successor ran against it and hung the host on RTNL. A kernel thread outliving its
+runtime is one way to pin a module, and nothing short of a reboot gets it back, so a test that
+spawns one gives its body work that ends rather than a loop waiting to be stopped.
 
 After a kernel upgrade the installed modules were built for the previous kernel and fail to load with
 `Exec format error` (a vermagic mismatch). Reinstall the headers, `make clean && make`, and reinstall
@@ -693,6 +696,11 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   side has to compile: a header reverted while its callers still pass the argument it drops stops at
   `too many arguments`, the suite then runs against the modules already installed, and that green run
   reads as a test that does not discriminate;
+* a test that wedges the host when the fix is absent, rather than failing, checks before its stimulus
+  that the loaded module carries the fix, by a symbol only the fixed build has in `/proc/kallsyms`,
+  and skips when it does not: `lunatik reload` refuses a module it could not replace, but a test run
+  by hand runs against whatever is loaded. The deferred unregistration of a netdevice notifier was
+  first exercised against the build without it;
 * a case whose stimulus only exists on a busy machine is forced, not waited for: the probe test picks a
   syscall an idle host never makes, which is why it never hit the creation window that crashed the host,
   and covering that window meant pinning the call to the CPU whose runtime is published last. A test
@@ -859,6 +867,12 @@ named, not one discovered at that consumer's build.
   "the fixups are on the pull request" is said after `gh api repos/.../pulls/<n>/commits` lists them,
   not before. The same holds for work handed to a reviewing agent: telling it not to push leaves the
   push owed by whoever gave the instruction.
+* Work an agent does for a workflow outlives the agent. Its branch is pushed at each commit, pull
+  request or not, and what it measured and decided goes to a checkpoint file, a line per step, that
+  the agent relaunched in its place reads before anything else; the workflow then resumes with the
+  finished agents from its cache and the unfinished ones from their branch and checkpoint. A hang
+  that took the shared host down cost four reviews in progress, which had written nothing down, and
+  no commit.
 * If a branch adds something in one commit and removes it in another, the second is a fixup of the
   first.
 * After squashing, re read the comments, the commit bodies and the identifiers so they describe the

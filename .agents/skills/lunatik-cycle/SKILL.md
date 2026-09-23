@@ -38,6 +38,11 @@ needs the maintainer's authorization first, and `CRASH_AB_OK=1` on the command r
 `lunatik test` unloads the modules when it finishes: `sudo lunatik reload` before a direct
 `bash tests/<suite>/<test>.sh` afterwards, or it skips with `not loaded`.
 
+`lunatik reload` refuses with `couldn't replace <modules>: loaded from another build` when something
+still holds a module it had to replace, and no suite runs until it passes. The holder is in `lsmod`'s
+`Used by` column or in `lunatik list`; stop it and reload. A module nothing names is pinned until a
+reboot, which is the maintainer's.
+
 A scratch script under `/lib/modules/lua` is written with the editor and copied in with `sudo cp`,
 and its size is read before it runs: a `tee` under a `sudo` that takes its password on stdin gets
 the rest of that stdin as the file and writes it empty, and `lunatik run` of an empty script exits
