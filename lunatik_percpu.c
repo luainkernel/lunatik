@@ -151,11 +151,14 @@ static int lunatik_resumepercpu(lua_State *L)
 /***
 * Closes the objects the runtimes share, then every runtime, releasing their Lua states.
 * @function stop
+* @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
+*   its task runs, as the runtime's `stop` does: the releases the close runs cannot refuse
 */
 static int lunatik_stoppercpu(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &lunatik_percpu_class);
 
+	lunatik_checkrtnl(L);
 	lunatik_stopdata(object);
 	lunatik_closeruntimes(lunatik_topercpu(object));
 	return 0;

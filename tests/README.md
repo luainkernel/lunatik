@@ -537,6 +537,19 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   would keep them alive past the script: stopping the script leaves
   `luanotifier`'s use count as it was.
 
+- **stop**: `runtime:stop()`, and the `__close` of a runtime held by a `<close>`
+  local, from inside a netdevice callback are refused, on the replay and on a
+  live event, since the close runs every release of the state on the callback's
+  task and a netdevice block's unregistration waits on the RTNL that task
+  holds; the child it would have stopped reports the event that follows, and a
+  stop once the callback returned is accepted. A percpu set's `stop()` and
+  `__close` are refused from the same callbacks and accepted afterwards; its
+  runtimes hold no block, so a build without that refusal closes them without
+  wedging and the message is what discriminates. A tree without the runtime's
+  refusal wedges the host, so the test skips unless the loaded `lunatik` lists
+  `lunatik_lstop` in `/proc/kallsyms`. The child is started through the
+  runner, so the cleanup stops it by name whatever a case leaves.
+
 - **chain_continues**: a netdevice block whose runtime is being torn down
   returns `notify.DONE`, not the `-ENXIO` of `lunatik_run`, whose
   `NOTIFY_STOP_MASK` bit stopped the chain: a device created while one
