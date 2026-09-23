@@ -58,5 +58,9 @@ local function guard(_, event)
 end
 
 local watch = fsnotify.watch(guard)
-watch:mark(SCOPE, fs.OPEN_EXEC_PERM | fs.EVENT_ON_CHILD)
+local ok, err = pcall(watch.mark, watch, SCOPE, fs.OPEN_EXEC_PERM | fs.EVENT_ON_CHILD)
+if not ok then
+	assert(err:find("CONFIG_FANOTIFY_ACCESS_PERMISSIONS", 1, true), err)
+	print("execguard: this kernel takes no permission events, nothing is guarded")
+end
 

@@ -749,6 +749,9 @@ with `open_by_handle_at` after the cache dropped its entry, and run with `execve
 never asked about. That takes `CAP_DAC_READ_SEARCH`, and a filesystem that drops entries: the tmpfs below
 keeps every entry it holds in the cache.
 
+On a kernel built without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`, which has no permission events, the script
+still loads: it says so in the log and guards nothing.
+
 #### Usage
 
 ```
