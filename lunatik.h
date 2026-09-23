@@ -263,6 +263,7 @@ void lunatik_releaseobject(struct kref *kref);
 void lunatik_closeprivate(lunatik_object_t *object);
 int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
+int lunatik_lstop(lua_State *L);
 void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 
 #define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
