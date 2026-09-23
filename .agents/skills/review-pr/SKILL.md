@@ -102,9 +102,11 @@ requests here, and GitHub answers 422 to `APPROVE` or `REQUEST_CHANGES` on one's
 `COMMENT` and the verdict is the body's first line. Because that account is the maintainer's, every
 text an agent posts under it, the body and each inline comment, opens with
 `(posted by an agent, not by @<handle>)`, so a reader knows who wrote the words.
-`tools/checks/review-post-guard.sh` refuses a post that lacks `REVIEW_POST_OK=1`, and one whose body
-or inline comment lacks that line: show the exact text, get the OK, then prefix the marker to the
-command.
+`tools/checks/review-post-guard.sh` refuses a post whose body or inline comment lacks that line, and,
+on a pull request the posting account did not open, one that lacks `REVIEW_POST_OK=1`: there, show
+the exact text, get the OK, then prefix the marker to the command. On a pull request the account
+opened, the maintainer's own, the review he asked for is posted as written; the guard reads the
+author from GitHub with the credential the command carries.
 
 - Review with inline comments in one shot:
   `gh api -X POST repos/.../pulls/<N>/reviews -f commit_id=<head sha> -f event=COMMENT -F body=@<verdict>` with a JSON `comments` array (`path`, `line`, `side: "RIGHT"`, `body`) — build the payload with `--input file.json`.

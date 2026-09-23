@@ -287,11 +287,14 @@ had no second reader. Which pull requests are open, reviewed or ready is read fr
 a list called ready was assembled from memory here and was wrong on two of three.
 
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
-to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments unless
-the command carries the `REVIEW_POST_OK` marker, set once the exact text has been shown to the
-maintainer and approved, or when the text gives a fixup reference as a backtick'd SHA, which
-renders as code and does not link. The marker forces the show-then-post step; it cannot check that
-the text was shown, only that it was set on purpose. The text goes through `machine-leak.sh` before
+to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments on a
+pull request the posting account did not open unless the command carries the `REVIEW_POST_OK`
+marker, set once the exact text has been shown to the maintainer and approved, or when the text
+gives a fixup reference as a backtick'd SHA, which renders as code and does not link. The marker
+forces the show-then-post step; it cannot check that the text was shown, only that it was set on
+purpose. A pull request the posting account opened is the maintainer's own, and its review needs no
+marker: the guard asks GitHub who opened it, with the credential the command carries, and asks for
+the marker whenever it cannot tell. The text goes through `machine-leak.sh` before
 the marker is read, since the marker approves the wording and not what the wording carries, and text
 the guard cannot read, passed inline or on stdin, is refused rather than skipped. Every text it lets
 through opens with `(posted by an agent, not by @<handle>)`, the review body and each inline comment
@@ -1133,7 +1136,9 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   maintainer has not read: show the exact text, get the go-ahead on it, then post — the approval is of
   the wording, and "post it" or "where is it?" asks for the draft, not for it to already be public.
   The exact text goes in the message that asks, whole and every round, never as a path to a file or
-  as "unchanged from the last one": what is not in front of the maintainer was not shown.
+  as "unchanged from the last one": what is not in front of the maintainer was not shown. The
+  round is for another author's pull request: on one the maintainer's account opened, his or an
+  agent's under it, a review he asked for is posted as written, since the words land on his own work.
 * A code finding is posted inline, anchored on the line it addresses; the review body carries the
   verdict and addresses the author by handle. A finding in the body, away from its line, makes the
   reader hunt for where it applies — and a submitted review cannot be deleted, only dismissed, so the
