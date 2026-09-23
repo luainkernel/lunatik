@@ -186,7 +186,12 @@ permission mark allows and only asks whether the mask is taken.
   accessor, the `nil` ones included, against what the shell already knows: the
   inode numbers from `stat -c %i`, the pid from its own `$$`, and the path it
   built. A stimulus the shell performs itself is matched by that pid, so another
-  process touching the scratch file cannot be read as it.
+  process touching the scratch file cannot be read as it. `FS_RENAME`, which
+  `handle_event` receives with no same-parent filter, names the old entry, its
+  directory and the moved inode for a move within the marked directory and for
+  one out of it; a write to a file already unlinked reports a path ending in
+  ` (deleted)`; and a file buried past `PATH_MAX` makes `event:path()` raise
+  `ENAMETOOLONG`.
 
 - **overlap**: an event matched by two marks of one watch arrives once. The
   watch dispatches through `handle_event`, called once per group with the event
