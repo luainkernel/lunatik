@@ -18,13 +18,13 @@
 //               its commits on the branch and opens nothing, and no review runs
 //   repo, sudo, gh   as review.js takes them, and passed to it
 //
-// It returns the implementer's answer, the review's, and findings_left, what either one leaves as an
-// issue, with a title and a body that can be filed as they stand.
+// Its last stage files findings_left, what either one leaves as an issue, and it returns the
+// implementer's answer, the review's, the issues that now hold each entry, and any entry left unfiled.
 
 export const meta = {
   name: 'implement-issue',
   description: 'Implement an issue, open its pull request, and review it with the review workflow',
-  phases: [{ title: 'Implement' }],
+  phases: [{ title: 'Implement' }, { title: 'File' }],
 }
 
 const a = args || {}
@@ -34,6 +34,7 @@ for (const key of ['issue', 'effort', 'scratch'])
 const base = a.base || 'master'
 const model = a.model ? { model: a.model } : {}
 const checkpoint = `${a.scratch}/issue${a.issue}/IMPLEMENT.md`
+const fileCheckpoint = `${a.scratch}/issue${a.issue}/FILED.md`
 const REVIEW = '.agents/skills/review-pr/review.js'
 const github = a.gh === false
   ? 'curl against https://api.github.com with `Authorization: Bearer $GH_TOKEN`, as the review-pr skill spells it'
@@ -78,6 +79,32 @@ covers, goes in findings_left with a body that can be filed as it stands, its se
 "Findings" names, and its home the open issue it belongs to, where one exists; nothing is left in prose alone.
 `
 
+const FILE = (entries, source) => `
+You file what the implementation of issue #${a.issue} and its review left, as issues of luainkernel/lunatik,
+through GitHub's REST API, ${github}. You post nothing on a pull request, no review and no comment.
+
+CHECKPOINT: ${fileCheckpoint} records every entry already filed, one line each,
+\`<index> | <title> | #<issue> | created\` or \`... | updated\`. Read it first and skip an entry whose index and
+title it records, since an entry filed twice is a duplicate someone closes by hand; append the line the moment
+the issue holds it.
+
+For each entry:
+- write its body to a file and run tools/checks/machine-leak.sh and tools/checks/untraced.sh over it; a line
+  either one names is rewritten before anything is posted;
+- an entry whose home is an open issue goes to that issue: its body is appended to the issue's own under a
+  line \`Update: <title> (#${source})\`, and the issue carries one severity label, the higher of its own and
+  the entry's;
+- an entry that reports what an open issue already reports, read in that issue and not guessed from its
+  title, goes to it the same way;
+- any other entry opens an issue with its title, its body as it stands and the label
+  \`severity: <its severity>\`.
+
+Your answer names, for every entry by its index, the issue that now holds it.
+
+ENTRIES:
+${JSON.stringify(entries.map((entry, index) => ({ index, ...entry })), null, 2)}
+`
+
 const LEFT = { type: 'array', items: { type: 'object', properties: {
   title: { type: 'string' }, body: { type: 'string' }, severity: { type: 'string', enum: ['high', 'medium', 'low'] },
   home: { type: 'integer', description: 'the open issue this finding belongs to' },
@@ -103,6 +130,12 @@ const IMPLEMENTED = {
   },
   required: ['pr', 'branch', 'head', 'base', 'commits', 'examples', 'validated', 'findings_left', 'notes'],
 }
+
+const FILED = { type: 'object', properties: {
+  filed: { type: 'array', items: { type: 'object', properties: {
+    index: { type: 'integer' }, number: { type: 'integer' }, action: { type: 'string', enum: ['created', 'updated'] },
+  }, required: ['index', 'number', 'action'] } },
+}, required: ['filed'] }
 
 phase('Implement')
 const implemented = await agent(IMPLEMENT, {
@@ -131,5 +164,18 @@ if (implemented?.pr) {
 }
 
 const findings_left = [implemented, review].flatMap(r => r?.findings_left || [])
-return { issue: a.issue, implemented, review, findings_left }
+let filed = []
+if (findings_left.length) {
+  phase('File')
+  const filing = await agent(FILE(findings_left, implemented?.pr || a.issue), {
+    label: `file:${a.issue}`, phase: 'File', effort: a.effort, schema: FILED, ...model,
+  })
+  filed = filing?.filed || []
+}
+const unfiled = findings_left.filter((_, index) => !filed.some(f => f.index === index))
+if (unfiled.length) {
+  log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}`)
+}
+const issues = [...new Set(filed.map(f => f.number))]
+return { issue: a.issue, implemented, review, findings_left, filed, issues, unfiled }
 
