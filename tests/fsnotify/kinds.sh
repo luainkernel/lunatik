@@ -7,8 +7,11 @@
 #
 # A mount and a superblock mark reach every file they cover, so this test
 # creates its own tmpfs under the scratch directory and marks that, never a
-# filesystem the machine needs; it skips if the mount does not appear, and
-# before 6.10, where the binding has no mount kind. The same tmpfs is bind
+# filesystem the machine needs; it skips if the mount does not appear. Before
+# 6.10 the binding has no mount kind: nomount.lua asserts only that mark and
+# find refuse it with the message the binding documents, pointed at that same
+# tmpfs rather than a filesystem the machine needs, and everything else skips
+# there. The same tmpfs is bind
 # mounted a second time, which is what separates the two kinds: a mount mark
 # sees only the mount it was placed on, while a superblock mark sees the same
 # inode opened through either.
@@ -23,6 +26,7 @@
 SCRIPT="tests/fsnotify/mount"
 SB="tests/fsnotify/sb"
 WIDE="tests/fsnotify/wide"
+NOMOUNT="tests/fsnotify/nomount"
 SCRATCH="/tmp/lunatik-fsnotify"
 MOUNT="$SCRATCH/mnt"
 BIND="$SCRATCH/bind"
@@ -33,6 +37,7 @@ cleanup() {
 	lunatik stop "$SCRIPT" 2>/dev/null
 	lunatik stop "$SB" 2>/dev/null
 	lunatik stop "$WIDE" 2>/dev/null
+	lunatik stop "$NOMOUNT" 2>/dev/null
 	umount "$BIND" 2>/dev/null
 	umount "$MOUNT" 2>/dev/null
 	rm -rf "$SCRATCH"
@@ -43,12 +48,6 @@ cleanup
 ktap_header
 ktap_plan 8
 
-if ! printf '6.10\n%s\n' "$(uname -r)" | sort -CV; then
-	for _ in $(seq 8); do ktap_skip "fsnotify/kinds: no mount kind before 6.10"; done
-	ktap_totals
-	exit 0
-fi
-
 mkdir -p -m 0700 "$MOUNT" "$BIND"
 : > "$SCRATCH/outside"
 
@@ -58,6 +57,25 @@ if ! mount -t tmpfs -o size=1M,mode=0700 lunatik-fsnotify "$MOUNT" 2>/dev/null |
 	ktap_totals
 	exit 0
 fi
+
+if ! printf '6.10\n%s\n' "$(uname -r)" | sort -CV; then
+	mark_dmesg
+	run_script "$NOMOUNT"
+	refused=$(dmesg_since)
+	lunatik stop "$NOMOUNT" 2>/dev/null
+
+	found=$(echo "$refused" | grep -cF "fsnotify kinds test pass:")
+	[ "$found" -eq 2 ] || \
+		fail "the mount kind before 6.10: $(echo "$refused" | grep -F 'fsnotify kinds test' | tr '\n' ';')"
+	errs=$(echo "$refused" | grep -E "$KTAP_ERRORS" || true)
+	[ -n "$errs" ] && fail "Lua error in kernel: $errs"
+	ktap_pass "mark and find refuse the mount kind before 6.10"
+
+	for _ in $(seq 7); do ktap_skip "fsnotify/kinds: no mount kind before 6.10"; done
+	ktap_totals
+	exit 0
+fi
+ktap_skip "mark and find refuse the mount kind before 6.10: this kernel has it"
 
 mkdir -p "$MOUNT/sub"
 : > "$MOUNT/sub/inside"
@@ -111,10 +129,6 @@ fi
 echo "$super" | grep -qF "sb open $SCRATCH/outside" && \
 	fail "a superblock mark reported a file on another filesystem"
 ktap_pass "a superblock mark reports nothing on another filesystem"
-
-echo "$mounted" | grep -qF "fsnotify kinds test pass: an invalid kind" || \
-	fail "the invalid kind was not refused: $(echo "$mounted" | grep -F 'fsnotify kinds test')"
-ktap_pass "an invalid kind is refused"
 
 found=$(echo "$unmounted" | grep -cF "fsnotify kinds test pass: find")
 [ "$found" -eq 4 ] || \

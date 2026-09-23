@@ -8,7 +8,7 @@
 # Usage: sudo bash tests/fsnotify/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
-TESTS="open nomask child kinds mask marks inside raise identity overlap expired reentrancy thread lifetime context\
+TESTS="open nomask child kinds mask marks vanished inside raise identity overlap expired reentrancy thread lifetime context\
 	allow deny default exec access error sleep upgrade directory fsmonitor execguard"
 FAILED=0
 

@@ -32,3 +32,6 @@ check("a second mark on the same object is refused", not ok and tostring(err):ma
 dropped:remove()
 check("find returns nil for a removed mark", watch:find(DROPPED) == nil)
 
+ok, err = pcall(dropped.mask, dropped)
+check("a removed mark's handle raises", not ok and tostring(err):match("null pointer dereference") ~= nil)
+

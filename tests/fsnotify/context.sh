@@ -10,6 +10,9 @@
 # at the constructor too, with the core's percpu refusal. A permission mask is
 # refused only where the kernel was built without the hooks that would reach it,
 # so that case takes either answer and asserts the message names the config.
+# find refuses a path that does not resolve and an invalid kind as mark does,
+# and mark:mask checks a permission mask the way mark does, before it removes
+# the mark, so a refusal leaves the mark with the mask it had.
 #
 # A runtime takes as many watches as it likes: the reentrancy guard reads the
 # runtime lock's owner rather than a per-watch task, so a second watch is not a
@@ -26,7 +29,7 @@
 SCRIPT="tests/fsnotify/context"
 REFUSED="tests/fsnotify/refused"
 SCRATCH="/tmp/lunatik-fsnotify"
-CASES=5
+CASES=9
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -59,7 +62,7 @@ refused=$(dmesg_since)
 passed=$(echo "$refusals" | grep -c "PASS	")
 [ "$passed" -eq "$CASES" ] || \
 	fail "$passed of $CASES cases passed: $(echo "$refusals" | grep "FAIL	")"
-ktap_pass "watch and mark report what they reject and still take a directory"
+ktap_pass "watch, mark, mask and find report what they reject and still take a directory"
 
 echo "$softirq" | grep -qF "runtime context mismatch" || \
 	fail "expected 'runtime context mismatch' from a softirq runtime, got: $softirq"
