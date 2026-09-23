@@ -565,6 +565,13 @@ the state, where a boolean stored on an existing node cannot.
   and touches no line that stays. `lunatik_pusherrname` is the shape, `errname` in the `#if` arm
   and the `%pe` fallback below it; `#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 19, 0))` with the
   current call in `#else` is the inversion `idioms.sh` names.
+* Every arm of a version guard or a header probe is safe on the kernels it selects: where a kernel
+  lacks what the safe shape needs, that arm refuses with an errno the script sees rather than taking
+  the unsafe path, and what each arm does is said in the binding's documentation, where the author
+  of a script reads, and not only in the commit body. #1038's first shape called
+  `sk_net_refcnt_upgrade` under an `#ifdef`, and its other arm left a closed TCP socket without a
+  reference on its namespace, where an orphan's timer can run on a freed one, on kernels inside
+  the tree's own floor.
 * An errno crosses the C code negative, as the kernel returns it: `lunatik_throw(L, -EINVAL)`, or the
   raw return of the call that failed. The single normalisation is at the Lua boundary, where
   `lunatik_pusherrname` takes the absolute value.
