@@ -319,6 +319,12 @@ static luafsnotify_mark_t *luafsnotify_attachmark(lua_State *L, luafsnotify_t *w
 * mark on a directory reports events on the files directly inside it only when
 * `mask` carries `linux.fs.EVENT_ON_CHILD`, and never on anything deeper; a
 * mount or superblock mark reports every file it covers without it.
+*
+* `EVENT_ON_CHILD` reaches a file through its parent in the directory cache. A
+* file reached through a disconnected dentry, opened by handle with
+* `open_by_handle_at` after the cache dropped its entry, has no parent there:
+* its events reach its own inode mark and the mount and superblock marks only,
+* never the directory's.
 * @function mark
 * @tparam string path path of the object to mark
 * @tparam integer mask event mask, a combination of `linux.fs` bits
