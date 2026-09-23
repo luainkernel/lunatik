@@ -297,9 +297,10 @@ says `Closes #N` or someone closes it by hand: the ten pull requests of the fsno
 were part of #657 and answered its phases, and #659 to #664 stayed open on Todo after every one of
 them merged, as #1001 did after #1005. A pull request that finishes a phase carries `Closes #<phase
 issue>`, one that finishes none says `#<epic>, which it does not close`, and `pr-body.sh` fails a body
-that says Part of, Top of, Bottom of, Answers or reported as and does neither. After the maintainer reports a merge, the
-session runs `tools/issues.sh` over the epic and hands him, in the same message, what the merge closed
-and what stays open, since closing an issue and moving a card are his writes.
+that says Part of, Top of, Bottom of, Answers or reported as and does neither. After the maintainer
+reports a merge, the session runs `tools/issues.sh` over the epic, closes what the merge finished and
+GitHub left open, an issue the pull request only named or an epic whose issues are all closed, and
+hands him in the same message what closed and what stays open; the board moves a card with its issue.
 
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments on a
