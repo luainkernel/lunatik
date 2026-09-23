@@ -352,6 +352,13 @@ there to sandbox one session's agents denied another session's commands, with no
 point at the cause. A sandbox belongs in an agent definition, or in a session started with its own
 permission mode.
 
+An agent that works on this tree runs through the Workflow tool, whose `agent()` takes the model and
+the reasoning effort, and the maintainer's opt-in to workflows stands here: the Agent tool takes a
+model and no effort, and three agents asked for at `xhigh` ran at the default through it, a review
+among them. `agent-guard.sh`, wired before the Agent tool, refuses every type but a read-only search
+and the Claude Code guide; `workflow-effort-guard.sh`, wired before the Workflow tool, refuses a script
+whose `agent()` calls never name an effort.
+
 ### Running a script
 
     lunatik run <script> [softirq|hardirq]   # one shot

@@ -33,6 +33,24 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/push-guard.sh\""
           }
         ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/agent-guard.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/workflow-effort-guard.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
