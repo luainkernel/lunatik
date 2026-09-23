@@ -14,6 +14,8 @@ TMPFILE="/tmp/lunatik_io_test"
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
+	lunatik stop "$SCRIPT" 2>/dev/null
+	lunatik stop "$SCRIPT_SOFTIRQ" 2>/dev/null
 	rm -f "$TMPFILE"
 }
 trap cleanup EXIT

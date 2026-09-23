@@ -18,6 +18,14 @@ source "$DIR/../lib.sh"
 TESTS="shash skcipher aead rng hkdf comp"
 TOTAL=$(echo $TESTS | wc -w)
 
+cleanup() {
+	for t in $TESTS; do
+		lunatik stop "tests/crypto/$t" 2>/dev/null
+	done
+}
+trap cleanup EXIT
+cleanup
+
 ktap_header
 ktap_plan $TOTAL
 
