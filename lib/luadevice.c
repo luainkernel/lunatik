@@ -376,6 +376,7 @@ static int luadevice_new(lua_State *L)
 	object = lunatik_newobject(L, &luadevice_class, 0, LUNATIK_OPT_NONE);
 	luadev = (luadevice_t *)lunatik_checkzalloc(L, sizeof(luadevice_t));
 	kref_init(&luadev->kref);
+	INIT_LIST_HEAD(&luadev->entry); /* a raise before the device is listed deletes it unlisted */
 	object->private = luadev;
 
 	lunatik_setruntime(L, device, luadev);
