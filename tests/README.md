@@ -320,11 +320,13 @@ after the watch is stopped.
   and a copy of that refused program, same name, runs from a sibling directory
   and from a subdirectory of the scope: the mark is on that one directory, so
   the rule reaches neither outside it nor below it. The refusal names the entry
-  and the pid it was refused to, and ends with the example. Run again with a
-  pid list in the scope, the same allowed program runs for a shell the list
-  names and is refused to one it does not, each shell exec'ing in place so the
-  pid that asks is the listed one, and a listed shell is still refused a name
-  the allowlist does not carry.
+  and the pid it was refused to, and ends with the example. A script the
+  allowlist names is refused when its interpreter is a copy of `sh` in the
+  scope, and the refusal names `sh`: the kernel opens the interpreter for exec
+  too. Run again with a pid list in the scope, the same allowed program runs
+  for a shell the list names and is refused to one it does not, each shell
+  exec'ing in place so the pid that asks is the listed one, and a listed shell
+  is still refused a name the allowlist does not carry.
 
 ### hid
 

@@ -15,6 +15,10 @@
 # first, since a verdict path that denies everything passes any test that only
 # asserts denials.
 #
+# A script the allowlist names is refused when its #! names a copy of sh inside
+# the scope: the kernel opens the interpreter for exec too, and the rule is
+# asked about it under its own name, which is the name the refusal carries.
+#
 # The pid list is a second run of the example, with the list written into the
 # scope before it starts. Three shells wait on a fifo each and exec in place
 # once released, so the pid that asks is the one the list was written with; two
@@ -61,19 +65,23 @@ release() {
 	wait "$2"
 }
 
-perm_begin 12 "fsnotify/execguard"
+perm_begin 14 "fsnotify/execguard"
 
 mkdir -p -m 0700 "$SCOPE" "$OUTSIDE"
 mount -t tmpfs -o size=1M,mode=0700 lunatik-execguard "$SCOPE" 2>/dev/null
-mountpoint -q "$SCOPE" || perm_skip 12 "fsnotify/execguard: no tmpfs for the scope the example marks"
+mountpoint -q "$SCOPE" || perm_skip 14 "fsnotify/execguard: no tmpfs for the scope the example marks"
 mkdir "$SCOPE/sub" || fail "could not make a directory on the tmpfs"
 
 cp /bin/true "$SCOPE/true" || fail "could not copy a program onto the tmpfs"
 cp /bin/true "$SCOPE/blocked" || fail "could not copy a program onto the tmpfs"
 cp /bin/true "$OUTSIDE/blocked" || fail "could not copy a program outside the scope"
 cp /bin/true "$SCOPE/sub/blocked" || fail "could not copy a program below the scope"
+cp /bin/sh "$SCOPE/sh" || fail "could not copy an interpreter onto the tmpfs"
+printf '#!%s\nexit 0\n' "$SCOPE/sh" > "$SCOPE/false" && chmod +x "$SCOPE/false" || \
+	fail "could not write a script onto the tmpfs"
 
 "$SCOPE/blocked" || fail "the copied program does not run before anything marks it"
+"$SCOPE/false" || fail "the script does not run before anything marks it"
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -86,6 +94,8 @@ outside=$("$OUTSIDE/blocked" 2>&1)
 outsidestatus=$?
 below=$("$SCOPE/sub/blocked" 2>&1)
 belowstatus=$?
+interpreted=$("$SCOPE/false" 2>&1)
+interpretedstatus=$?
 output=$(dmesg_since)
 
 lunatik stop "$SCRIPT" 2>/dev/null
@@ -110,6 +120,15 @@ ktap_pass "the same name one level below the marked directory still runs"
 grep -qF "execguard: denied blocked to pid $pid" <<< "$output" || \
 	fail "the rule did not name what it refused to $pid: $(grep -F 'execguard:' <<< "$output")"
 ktap_pass "the refusal names the entry and the pid it was refused to"
+
+[ "$interpretedstatus" -ne 0 ] || fail "a script whose interpreter lives in the scope ran"
+grep -qi "not permitted" <<< "$interpreted" || fail "the refused script failed with: $interpreted"
+ktap_pass "a script the allowlist names is refused with EPERM when its interpreter lives in the scope"
+
+grep -qE "execguard: denied sh to pid [0-9]+" <<< "$output" || \
+	fail "the rule did not name the interpreter: $(grep -F 'execguard:' <<< "$output")"
+grep -qF "execguard: denied false" <<< "$output" && fail "the rule named the script, which the allowlist carries"
+ktap_pass "the refusal names the interpreter, not the script"
 
 [ "$after" -eq 0 ] || fail "the refused program did not run after the example was stopped (exit $after)"
 ktap_pass "the rule ends with the example that made it"
