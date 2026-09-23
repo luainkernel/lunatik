@@ -56,6 +56,18 @@ local function refcount(module)
 	return tonumber(readall(io.open("/sys/module/" .. module .. "/refcnt")))
 end
 
+local function stale_modules()
+	local stale = {}
+	for m in (holders() .. " lunatik"):gmatch("%S+") do
+		local loaded = readall(io.open("/sys/module/" .. m .. "/srcversion"))
+		local installed = readall(io.popen("modinfo -F srcversion " .. m .. " 2>/dev/null"))
+		if loaded ~= installed then
+			table.insert(stale, m)
+		end
+	end
+	return stale
+end
+
 local function unload_unused()
 	local removed = 0
 	for m in (holders() .. " lunatik"):gmatch("%S+") do
@@ -79,11 +91,18 @@ end
 local function reload_modules()
 	unload_modules()
 	load_modules()
+	local stale = stale_modules()
+	if #stale > 0 then
+		error("couldn't replace " .. table.concat(stale, ", ") .. ": loaded from another build")
+	end
 end
 
 local function status_modules()
 	for _, m in ipairs(modules) do
 		sh("echo $MODULE is loaded || echo $MODULE is not loaded", m, true)
+	end
+	for _, m in ipairs(stale_modules()) do
+		print(m .. " is not the installed build")
 	end
 end
 
