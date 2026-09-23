@@ -16,6 +16,18 @@ To check it works:
 sudo dpkg-reconfigure linux-image-`uname -r`
 ```
 
+## issues.sh
+
+Reports the issues an epic tracks as GitHub has them: the epic and each issue whose body says it
+is part of it, its state, and the pull requests whose body names it, with what each body does to
+it. It flags an open issue a merged pull request names, and a merged pull request tied to an issue
+in the words `pr-body.sh` reads that closes none.
+
+```sh
+GH_TOKEN=... bash tools/issues.sh 657     # the fsnotify epic and its phases
+GH_TOKEN=... bash tools/issues.sh 1001    # one issue and the pull requests that name it
+```
+
 ## oops.sh
 
 Captures the last kernel oops before a reboot takes it away: the `dmesg` block, the instructions

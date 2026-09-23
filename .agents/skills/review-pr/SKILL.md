@@ -129,3 +129,10 @@ author from GitHub with the credential the command carries.
   `gh api -X POST repos/.../issues/<N>/labels -f 'labels[]=workflow-reviewed'`; `tools/pr-status.sh`
   reads that label as the sign that someone read it.
 
+# After the merge
+
+When the maintainer reports a merge, run `GH_TOKEN=... bash tools/issues.sh <epic>` over the epic
+the pull request is part of, or over the issue it answers, and hand him, in the same message, what
+the merge closed, what stays open and what the report flags. Closing an issue and moving its card
+on the board are his writes, not the session's.
+
