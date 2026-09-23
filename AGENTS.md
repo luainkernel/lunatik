@@ -242,10 +242,13 @@ the staged list, where a submodule is a gitlink and its files never appear.
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run or a suite, while another operation is on it, naming the processes it found; a process in
 D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once
-what it lists is known to be stale. What a command runs is read by `commands.sh`, which the lock and
-`crash-guard.sh` share: a suite's `run.sh` counts when it is the command, bare or under `sudo`, `bash`
-or `sh`, and not when a path to it is handed to `git` or to a check, which the bare substring read as a
-run four times in one afternoon.
+what it lists is known to be stale. What a command runs is read by `commands.sh`, which the command
+guards share: a CLI verb, `make install`, a test script or `watchdog.sh` counts when it is the command,
+read through `sudo` and `env` with their options, `tools/lunatik-host` and a shell's `-c` string, and
+not when it is handed to `git`, `grep` or a check or written into a file by a heredoc, which the bare
+substring read as an operation four times in one afternoon. A cycle a script file runs names nothing a
+text can read, so it goes through `tools/lunatik-host`, whose lock orders it against the cycles that
+take it too.
 
 `tools/watchdog.sh` runs a script and stops it when the host loses the connectivity it had before the
 run, comparing against the loopback and the default route's gateway and holding nothing against the

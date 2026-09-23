@@ -7,16 +7,15 @@
 # hand once the maintainer authorized the experiment and named the machine it may
 # take down. Silent (exit 0) on everything else. The marker forces the ask; it cannot
 # check that the answer was yes, only that it was set on purpose.
-# Matches the raw hook input, which embeds the command verbatim.
+# What the command runs is read by commands.sh, from the raw hook input.
 
 input=$(cat)
 
 . "$(dirname "$0")/commands.sh"
 
-case "$input" in
-	*"make install"*|*"lunatik reload"*|*"lunatik run"*|*"lunatik spawn"*|*"lunatik test"*|*"bash tests/"*|*"watchdog.sh"*) ;;
-	*) runs_suite "$input" || exit 0 ;;
-esac
+cmds=$(commands "$input")
+runs_lunatik "$cmds" '(reload|run|spawn|test)( |$)' || runs_install "$cmds" || runs_test "$cmds" ||
+	runs_watchdog "$cmds" || exit 0
 
 case "$input" in
 	*CRASH_AB_OK=1*) exit 0 ;;
