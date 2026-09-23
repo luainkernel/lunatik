@@ -212,6 +212,22 @@ refuse one with `lunatik_checkpercpu`, as `fsnotify.watch` does. And it sees the
 only — Lua that blocks under the lock on a second task which then reaches the same lock is a
 cycle no owner check can name.
 
+### lunatik\_isrtnl
+```C
+bool lunatik_isrtnl(void);
+void lunatik_setrtnl(struct task_struct *task);
+```
+`lunatik_isrtnl` returns `true` if the calling task is dispatching a callback under RTNL. A binding
+whose kernel callback runs with RTNL held, as `notifier.netdevice`'s does, sets the task with
+`lunatik_setrtnl(current)` before it runs Lua there and clears it with `lunatik_setrtnl(NULL)` after.
+RTNL is held by one task at a time, so one pointer serves every runtime and every coroutine, and
+the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
+kernel call that takes RTNL, such as `register_netdevice_notifier`, which would wait on the lock its
+own task holds: refuse the call with `lunatik_checkrtnl`, or, in a `release`, which a collection
+runs and which cannot refuse, defer it to a task that does not hold the lock. It sees the calling
+task only: Lua on a second task that waits for RTNL while this one waits for that task is a cycle
+it cannot name. Defined as macros.
+
 ### lunatik\_checkruntime
 ```C
 lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt);
@@ -232,6 +248,14 @@ runs, so a call that may sleep is allowed there and must be refused afterwards, 
 lock is a spinlock: from a hook or a handler, and from the `resume` of such a runtime. Use it in
 an entry point that reaches a sleeping kernel call, where `lunatik_checkruntime` answers the
 different question of whether the class matches the runtime at all.
+
+### lunatik\_checkrtnl
+```C
+void lunatik_checkrtnl(lua_State *L);
+```
+Raises a Lua error, `"not allowed under RTNL"`, when [`lunatik_isrtnl`](#lunatik_isrtnl) holds: from
+a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs. Use it in
+an entry point that reaches a kernel call taking RTNL.
 
 ### lunatik\_percpudata
 ```C
