@@ -693,6 +693,8 @@ its inode number and the pid that did it.
 
 The mark is an inode mark on the directory `WATCHED` names, carrying `EVENT_ON_CHILD` so that events on
 the files inside it are reported too. That flag is one level deep: nothing under a subdirectory arrives.
+It also reaches a file only through its parent in the directory cache, so a write to a file opened by handle
+with `open_by_handle_at` after the cache dropped its entry, or a change to its attributes, is not reported.
 
 #### Usage
 
@@ -727,6 +729,11 @@ entry directly inside that directory. It is never a system wide default deny: a 
 reaches every file of a mount or of a whole filesystem, and a rule that denies there leaves the machine
 unable to run the programs that would undo it. Give it a scratch mount of its own, as below, so that the
 `umount` ends the rule even if the script cannot be stopped.
+
+`EVENT_ON_CHILD` reaches the entry through its parent in the directory cache, so a program opened by handle
+with `open_by_handle_at` after the cache dropped its entry, and run with `execveat` and `AT_EMPTY_PATH`, is
+never asked about. That takes `CAP_DAC_READ_SEARCH`, and a filesystem that drops entries: the tmpfs below
+keeps every entry it holds in the cache.
 
 #### Usage
 
