@@ -359,6 +359,13 @@ among them. `agent-guard.sh`, wired before the Agent tool, refuses every type bu
 and the Claude Code guide; `workflow-effort-guard.sh`, wired before the Workflow tool, refuses a script
 whose `agent()` calls never name an effort.
 
+An issue goes to agents through the implement-issue skill's workflow: an implementer opens the pull
+request, and review-pr's workflow runs over it nested, so a review runs one way whoever launches it,
+handed what the implementer already ran on the host so that it runs again only what a fixup changed or
+the implementer did not run. The implementer's prompt names the rule a step needs and restates
+none: every agent loads this file, and a rule pasted into a prompt is a copy the next change here
+does not reach.
+
 ### Running a script
 
     lunatik run <script> [softirq|hardirq]   # one shot
