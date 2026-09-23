@@ -6,14 +6,15 @@
 
 local netlink = require("netlink")
 local iftype  = require("linux.nl80211").iftype
+local pid     = require("tests.netns_pid")
 
 local NAME <const> = "lunatikap0"
 
-local interface <close> = netlink.nl80211.interface()
+local interface <close> = netlink.nl80211.interface(pid)
 
 local wiphy_idx
 do
-	local wiphy <close> = netlink.nl80211.wiphy()
+	local wiphy <close> = netlink.nl80211.wiphy(pid)
 	wiphy_idx = wiphy:list()[1].wiphy
 end
 
