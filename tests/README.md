@@ -739,6 +739,14 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   callback, after load, is refused; and the same script registers as a plain
   softirq runtime.
 
+- **finalizer**: `__gc` called from a script is refused, as a method, through
+  `getmetatable`, through `pcall` and from the `__gc` of a table of the script's
+  own, which the collector runs with its own steps stopped: any of them runs the
+  class release in the script's own context, past the registry pin that keeps a
+  registered object for the close. The collector's own call, from a GC step
+  inside a debug hook, on a dropped object and at the close, is accepted and
+  leaves no `__gc` warning.
+
 ### sched
 
 Regression tests for `luasched`: the attach guards, and the dispatch path
