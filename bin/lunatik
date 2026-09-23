@@ -127,8 +127,9 @@ local function test_modules()
 	end
 	reload_modules()
 	ensure_loaded()
-	os.execute("bash " .. target)
+	local ok, _, code = os.execute("bash " .. target)
 	unload_modules()
+	return ok or code
 end
 
 local function compile_scripts()
@@ -215,8 +216,7 @@ end
 
 local cmd = commands[arg[1]]
 if cmd then
-	cmd()
-	os.exit()
+	os.exit(cmd())
 end
 
 if #arg >= 1 then
