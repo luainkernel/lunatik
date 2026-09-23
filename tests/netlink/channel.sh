@@ -9,7 +9,11 @@
 # received traffic (NET_RX softirq), both multicasts to the group and unicasts
 # to a fixed port id. A userspace subscriber (built with gcc) binds to that port
 # id and joins the group, and receives both messages, proving kernel-to-
-# userspace multicast and unicast delivery from softirq.
+# userspace multicast and unicast delivery from softirq. On its first packet the
+# hook also calls netlink.channel, which registers a family and sleeps, and must
+# be refused there; the name is empty so that a build without that refusal raises
+# on the name instead of registering a family from softirq. The same script run
+# percpu is refused at load, since every runtime would register the one family.
 #
 # Usage: sudo bash tests/netlink/channel.sh
 
@@ -33,7 +37,7 @@ SUB_OUT="$(mktemp)"
 SUB_ERR="$(mktemp)"
 
 ktap_header
-ktap_plan 3
+ktap_plan 5
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -45,6 +49,11 @@ command -v gcc  > /dev/null 2>&1 || skip "channel: gcc unavailable"
 command -v genl > /dev/null 2>&1 || skip "channel: genl tool unavailable"
 
 gcc -O2 -o "$SUB_BIN" "$DIR/channel_subscriber.c" 2>/dev/null || skip "channel: subscriber failed to build"
+
+output=$(lunatik run "$SCRIPT" softirq percpu 2>&1)
+echo "$output" | grep -q "not allowed in a percpu runtime" || fail "percpu run did not refuse the channel: $output"
+genl ctrl get name "$FAMILY" > /dev/null 2>&1 && fail "the refused percpu run left $FAMILY registered"
+ktap_pass "channel: a percpu runtime is refused at load"
 
 mark_dmesg
 run_script "$SCRIPT" softirq
@@ -76,6 +85,9 @@ ktap_pass "channel: userspace received a multicast sent from a softirq hook"
 
 grep -q "channel unicast ok" "$SUB_OUT" || fail "subscriber did not receive the softirq unicast"
 ktap_pass "channel: userspace received a unicast sent from a softirq hook"
+
+dmesg_since | grep -q "netlink channel: new from a hook is refused" || fail "netlink.channel was not refused from a hook"
+ktap_pass "channel: netlink.channel from a softirq hook raises"
 
 ktap_totals
 

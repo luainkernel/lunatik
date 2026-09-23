@@ -452,8 +452,9 @@ higher-level `netlink.*` modules built on top of it.
   netfilter hook that, on received traffic (NET_RX softirq), both multicasts to
   the group and unicasts to a fixed port id; a userspace subscriber bound to
   that port id and joined to the group receives both, proving kernel-to-
-  userspace multicast and unicast delivery from softirq (skips without
-  `gcc`/`genl`).
+  userspace multicast and unicast delivery from softirq; on its first packet the
+  hook calls `netlink.channel`, which must raise there, and the same script run
+  percpu is refused at load (skips without `gcc`/`genl`).
 - **nl80211**: loads `mac80211_hwsim` (simulated wifi), then
   `netlink.nl80211.interface` lists the simulated `wlan` interfaces over the
   nl80211 generic netlink family
