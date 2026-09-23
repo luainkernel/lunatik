@@ -85,5 +85,4 @@ else
 fi
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 

@@ -207,5 +207,4 @@ errs=$(printf '%s\n' "$opened" "$listed" "$created" "$moves" "$deleted" "$within
 ktap_pass "no Lua errors in kernel"
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 

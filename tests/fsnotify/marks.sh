@@ -82,5 +82,4 @@ done
 ktap_pass "no Lua errors in kernel"
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 

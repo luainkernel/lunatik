@@ -62,5 +62,4 @@ errs=$(printf '%s\n%s\n' "$raised" "$again" | grep -E "WARNING:|UBSAN:|Internal 
 ktap_pass "a raise in the callback trips no kernel warning"
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 

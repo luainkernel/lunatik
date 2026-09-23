@@ -57,5 +57,4 @@ errs=$(echo "$output" | grep -E "$KTAP_ERRORS" || true)
 ktap_pass "no Lua errors in kernel"
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 

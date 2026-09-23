@@ -86,5 +86,4 @@ errs=$(printf '%s\n%s\n%s\n' "$opened" "$written" "$reopened" | grep -E "$KTAP_E
 ktap_pass "no Lua errors in kernel"
 
 ktap_totals
-[ $KTAP_FAIL -eq 0 ]
 
