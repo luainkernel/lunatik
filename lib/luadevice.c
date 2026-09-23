@@ -365,7 +365,6 @@ static int luadevice_new(lua_State *L)
 	luadevice_t *luadev;
 	struct device *device;
 	const char *name;
-	int ret;
 
 	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE); /* driver */
@@ -382,14 +381,11 @@ static int luadevice_new(lua_State *L)
 	lunatik_setruntime(L, device, luadev);
 	lunatik_getobject(luadev->runtime);
 
-	if ((ret = alloc_chrdev_region(&luadev->devt, 0, 1, name) != 0))
-		luaL_error(L, "failed to allocate char device region (%d)", ret);
+	lunatik_try(L, alloc_chrdev_region, &luadev->devt, 0, 1, name);
 
-	if ((luadev->cdev = cdev_alloc()) == NULL)
-		luaL_error(L, "failed to allocate cdev");
+	luadev->cdev = lunatik_checknull(L, cdev_alloc());
 	luadev->cdev->ops = &luadevice_fops;
-	if ((ret = cdev_add(luadev->cdev, luadev->devt, 1)) != 0)
-		luaL_error(L, "failed to add cdev (%d)", ret);
+	lunatik_try(L, cdev_add, luadev->cdev, luadev->devt, 1);
 
 	lunatik_optinteger(L, 1, luadev, mode, 0);
 
@@ -399,7 +395,7 @@ static int luadevice_new(lua_State *L)
 	device = device_create(luadevice_devclass, NULL, luadev->devt, luadev, name); /* calls devnode */
 	if (IS_ERR(device)) {
 		lunatik_unregisterobject(L, object);
-		luaL_error(L, "failed to create a new device (%d)", PTR_ERR(device));
+		lunatik_throw(L, PTR_ERR(device));
 	}
 	lua_remove(L, -2); /* remove name */
 
