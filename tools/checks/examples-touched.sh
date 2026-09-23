@@ -11,7 +11,7 @@
 # hit; its first run on the merged code took the host down.
 #
 # For each file given that defines a Lua module (lib/lua<name>.c through
-# LUNATIK_NEWLIB, or a Lua library under lib/), prints the examples that require
+# LUNATIK_NEWLIB or LUNATIK_EBPF_NEWLIB, or a Lua library under lib/), prints the examples that require
 # that module, directly or through a script they run, so the reviewer and the
 # Build phase know what to run. Exits 1 when there is something to run.
 #
