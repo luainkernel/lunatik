@@ -68,6 +68,10 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
 - Findings go to a checkpoint file as they close, one line each (`file:line | what | disposition`),
   not to the final message; the message is assembled from the file, and a successor reads the file
   first and continues from it instead of reading the branch again.
+- A finding a phase leaves as an issue goes in its answer's `findings_left` too, a title and a body
+  that can be filed as they stand, its severity and the open issue it belongs to where there is one;
+  `review.js` returns them together, so they are filed from its answer and not copied out of the
+  checkpoint.
 - A review is phases, not one agent: hunt the findings, check the rules and the harness, then build
   and run. Each phase returns a `schema`, so a crash loses one phase and the cache replays the ones
   that completed under `resumeFromRunId`.

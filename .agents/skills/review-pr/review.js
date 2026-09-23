@@ -26,6 +26,9 @@
 //   repo        the checkout the phases work in, default the repository they start in
 //   sudo        how a command gets root, default `sudo`
 //   gh          false where the gh CLI is absent, so the REST calls go through curl
+//
+// It returns each phase's answer and findings_left, every finding a phase leaves as an issue,
+// with a title and a body that can be filed as they stand.
 
 export const meta = {
   name: 'review-pr',
@@ -66,6 +69,9 @@ CHECKPOINT, before anything else: the file ${checkpoint} is the review's memory 
 a phase that dies. If it exists, read it and continue from it; do not redo what it records. Append every
 finding the moment you close it, one line each:
 \`file:line | what | disposition\` where disposition is \`fixup <sha>\`, \`stays: <reason>\` or \`issue: <title>\`.
+An \`issue:\` line is also an entry of your answer's findings_left, whose body can be filed as it stands: what
+the code does and where, the trace, the fix where there is one; its severity is the label AGENTS.md "Findings"
+names, and its home the open issue it belongs to, where one exists.
 Your final answer is assembled from that file, not the other way round, and goes back into it under a heading
 for your phase before you return, so a death between your last tool call and the runner's record still leaves
 the verdict on disk.
@@ -153,6 +159,11 @@ Report the totals, the core srcversion (\`/sys/module/lunatik/srcversion\` while
 any kernel complaint in dmesg.
 `
 
+const LEFT = { type: 'array', items: { type: 'object', properties: {
+  title: { type: 'string' }, body: { type: 'string' }, severity: { type: 'string', enum: ['high', 'medium', 'low'] },
+  home: { type: 'integer', description: 'the open issue this finding belongs to' },
+}, required: ['title', 'body', 'severity'] } }
+
 const FINDINGS = {
   type: 'object',
   properties: {
@@ -161,9 +172,10 @@ const FINDINGS = {
       file: { type: 'string' }, line: { type: 'integer' }, what: { type: 'string' }, disposition: { type: 'string' },
     }, required: ['file', 'what', 'disposition'] } },
     fixups: { type: 'array', items: { type: 'string' } },
+    findings_left: LEFT,
     notes: { type: 'string' },
   },
-  required: ['ready', 'findings', 'fixups', 'notes'],
+  required: ['ready', 'findings', 'fixups', 'findings_left', 'notes'],
 }
 
 const RULES_OUT = {
@@ -178,8 +190,9 @@ const RULES_OUT = {
     coverage: { type: 'string' },
     findings: FINDINGS.properties.findings,
     fixups: FINDINGS.properties.fixups,
+    findings_left: LEFT,
   },
-  required: ['rules', 'checks', 'coverage', 'findings', 'fixups'],
+  required: ['rules', 'checks', 'coverage', 'findings', 'fixups', 'findings_left'],
 }
 
 const BUILD_OUT = {
@@ -187,8 +200,9 @@ const BUILD_OUT = {
   properties: {
     totals: { type: 'string' }, core: { type: 'string' }, head: { type: 'string' },
     examples: { type: 'array', items: { type: 'string' } }, clean: { type: 'boolean' }, notes: { type: 'string' },
+    findings_left: LEFT,
   },
-  required: ['totals', 'core', 'head', 'clean'],
+  required: ['totals', 'core', 'head', 'clean', 'findings_left'],
 }
 
 phase('Hunt')
@@ -206,5 +220,6 @@ if (!a.validated || changed || unrun.length) {
   log(`build skipped: head ${a.head} already validated (${a.validated.suite}, core ${a.validated.core}, examples ${(a.validated.examples || []).join(' ') || 'none'}) and no fixup changed it`)
 }
 
-return { checkpoint, hunt, rules, build, validated: build ? null : a.validated }
+const findings_left = [hunt, rules, build].flatMap(p => p?.findings_left || [])
+return { checkpoint, hunt, rules, build, validated: build ? null : a.validated, findings_left }
 

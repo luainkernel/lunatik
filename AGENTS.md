@@ -1063,7 +1063,10 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   when a reachable path reaches it; short of that it is a contract or parity gap, said as one. A cost
   claim — "overhead", "slow", "expensive" — is a measurement, not an adjective: unmeasured, what you
   have is a duplication or an extra call, named as that, not as a hot path. When a number would decide
-  the point and is not in hand, say it was not measured.
+  the point and is not in hand, say it was not measured. A finding left as an issue carries its
+  severity as the repository's label: `severity: high`, a hang or a crash a script or a user can
+  reach; `severity: medium`, a leak, a silent error or an exposure without an immediate crash;
+  `severity: low`, documentation, tests or cleanup.
 * A symptom seen while poking by hand is not a finding until a clean run reproduces it. Reload to a
   fresh slate, run once, apply one stimulus, read the result — that is authoritative; a scratch
   fighting leftover state is not. An absence of errors counts only if you exercised the path that
