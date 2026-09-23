@@ -35,6 +35,11 @@
 # the first watch's callback answers EAGAIN for that name too, and still finds
 # its own mark on a cached one.
 #
+# The moved file is renamed by the shell before its open, which leaves the name
+# its mark was placed with out of the directory cache, so setting its mask from
+# the callback resolves that name again and answers EAGAIN; the mark it removed
+# first stays removed, and the second open is silent.
+#
 # The halted file has a watch of its own in the same runtime, which stops itself
 # from its callback. The stop removes every mark of its group inside that read
 # section too, and detaches the event object the dispatcher still holds, so the
@@ -62,9 +67,10 @@ mkdir -p -m 0700 "$SCRATCH"
 : > "$SCRATCH/marked"
 : > "$SCRATCH/other"
 : > "$SCRATCH/halted"
+: > "$SCRATCH/moved"
 
 ktap_header
-ktap_plan 13
+ktap_plan 14
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -92,6 +98,12 @@ resolved=$(dmesg_since)
 mark_dmesg
 cat "$SCRATCH/marked" > /dev/null
 marked=$(dmesg_since)
+
+mark_dmesg
+mv "$SCRATCH/moved" "$SCRATCH/renamed"
+cat "$SCRATCH/renamed" > /dev/null
+cat "$SCRATCH/renamed" > /dev/null
+moved=$(dmesg_since)
 
 mark_dmesg
 cat "$SCRATCH/halted" > /dev/null
@@ -143,6 +155,12 @@ echo "$resolved" | grep -qF "inside test: other cached resolved" || \
 	fail "a second watch did not find its mark from the first's callback: $(echo "$resolved" | grep -F 'inside test: other')"
 ktap_pass "a second watch of the runtime resolves from the first watch's callback within the directory cache"
 
+echo "$moved" | grep -qF "inside test: remask moved EAGAIN" || \
+	fail "a renamed path set from the callback did not answer EAGAIN: $(echo "$moved" | grep -F 'inside test: remask')"
+seen=$(echo "$moved" | grep -cF "inside test: $SCRATCH/renamed mask 20")
+[ "$seen" -eq 1 ] || fail "the mark whose path no longer resolved delivered $seen opens, expected 1"
+ktap_pass "a mask set from inside a callback on a renamed path answers EAGAIN and leaves the mark removed"
+
 seen=$(echo "$halted" | grep -cF "inside test: stop returned")
 [ "$seen" -eq 1 ] || fail "stop from inside the callback returned $seen times, expected 1: $(echo "$halted" | grep -F 'fsnotify inside test')"
 ktap_pass "a watch stopped from inside its callback returns from stop"
@@ -158,7 +176,7 @@ errs=$(echo "$stopped" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "kernel error stopping the runtime whose watch stopped itself: ${errs%%$'\n'*}"
 ktap_pass "the runtime whose watch stopped itself tears down cleanly"
 
-errs=$(printf '%s\n' "$oneshot" "$opened" "$written" "$created" "$resolved" "$marked" "$halted" | \
+errs=$(printf '%s\n' "$oneshot" "$opened" "$written" "$created" "$resolved" "$marked" "$moved" "$halted" | \
 	grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
 ktap_pass "no Lua errors in kernel"
