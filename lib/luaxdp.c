@@ -163,8 +163,8 @@ LUNATIK_EBPF_KFUNC_DEFINE_SET(xdp, bpf_luaxdp_run);
 
 /***
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
-* After calling this, `bpf_luaxdp_run` calls targeting this runtime will no longer
-* invoke a Lua function (they will likely return an error or default action).
+* After calling this, `bpf_luaxdp_run` calls targeting this runtime invoke no Lua function:
+* they log `no callback attached`, return `-1` and leave the verdict to the eBPF program.
 * @function detach
 * @treturn nil
 * @usage
