@@ -227,8 +227,8 @@ The table below lists the available kernel Lua modules:
 | `task` | Linux task inspection: `comm`, `pid`, `tgid`, `prio`, `cpu`, `current` |
 | `thread` | Kernel threads: spawn, stop, `shouldstop` |
 | `cpu` | CPU counts and iteration: `num_online`, `stats`, `foreach_online` |
-| `socket` | Kernel sockets: TCP, UDP, AF\_PACKET, AF\_UNIX |
-| `netlink` | Netlink namespace: rtnetlink and generic-netlink sessions, softirq-safe channel |
+| `socket` | Kernel sockets: TCP, UDP, AF\_PACKET, AF\_UNIX, in the initial network namespace or a task's |
+| `netlink` | Netlink namespace: rtnetlink and generic-netlink sessions, in the initial network namespace or a task's; softirq-safe channel |
 | `data` | Raw memory buffer for binary data read/write |
 | `device` | Character device drivers |
 | `rcu` | RCU-protected shared hash table |

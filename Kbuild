@@ -21,6 +21,17 @@ LUNATIK_FLAGS := -D_LUNATIK -D_KERNEL -I${PWD}/$(KLIBC_INC)
 asflags-y += $(LUNATIK_FLAGS)
 ccflags-y += $(LUNATIK_FLAGS) -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
 	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/include -I${PWD}/lua
+# presence, not version: stable series took the helper with the passive namespace reference it drops
+LUNATIK_SOCK_H := $(srctree)/include/net/sock.h
+LUNATIK_NET_NAMESPACE_H := $(srctree)/include/net/net_namespace.h
+ifneq ($(shell test -r $(LUNATIK_SOCK_H) -a -r $(LUNATIK_NET_NAMESPACE_H) && echo y),y)
+$(error couldn't read $(LUNATIK_SOCK_H) or $(LUNATIK_NET_NAMESPACE_H))
+endif
+lunatik_declares = $(shell grep -q -w $(1) $(2) && echo y)
+LUNATIK_SK_NET_REFCNT_UPGRADE := $(call lunatik_declares,sk_net_refcnt_upgrade,$(LUNATIK_SOCK_H))
+LUNATIK_NET_PASSIVE_DEC := $(call lunatik_declares,net_passive_dec,$(LUNATIK_NET_NAMESPACE_H))
+ccflags-y += $(if $(LUNATIK_SK_NET_REFCNT_UPGRADE),-DLUNATIK_SK_NET_REFCNT_UPGRADE) \
+	$(if $(LUNATIK_NET_PASSIVE_DEC),-DLUNATIK_NET_PASSIVE_DEC)
 subdir-ccflags-y += $(ccflags-y)
 
 obj-$(CONFIG_LUNATIK) += lunatik.o

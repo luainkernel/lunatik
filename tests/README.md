@@ -437,6 +437,20 @@ higher-level `netlink.*` modules built on top of it.
 - **link_updown**: `rt.link():set()` brings a down dummy interface up and
   asserts `IFF_UP` appears in its dump flags, then brings it down and asserts
   the flag is cleared.
+- **link_netns**: the pid a session takes (`socket.new`'s fourth argument):
+  `rt.link()` without one lists the initial namespace, `lo` and not the dummy
+  device the test put in a namespace of its own; `rt.link(pid)` with the pid of
+  a process kept there lists that dummy; the pid of a reaped process raises
+  `ESRCH`, a pid out of range raises, and so does a protocol past `MAX_LINKS`
+  in that namespace. The script then kills the process, the last task in a
+  namespace whose name the test already deleted, and lists the dummy again
+  through the session it holds: the socket keeps its namespace alive. Once the
+  script has closed its sockets, the one the kernel refused having kept no
+  reference, the namespace goes, and with it the veth pair the test gave it,
+  whose end in the initial namespace disappears (skips without `nsenter`,
+  network namespaces, the dummy driver or veth). On a kernel where `socket.new`
+  refuses a task's namespace with `EOPNOTSUPP`, the script says so and the
+  five namespace cases skip on that message.
 - **addr_list**: `rt.addr():list(AF_INET)` lists addresses; asserts `127.0.0.1`
   is present on loopback with `prefix_len == 8`.
 - **route_list**: `rt.route():list()` returns at least one route with its
@@ -789,6 +803,19 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   `O_NONBLOCK` bit, and a port read as flags answers `EINPROGRESS` instead. A flag
   given past the port must still reach the kernel, and an AF_UNIX path, spelled as
   one argument, must not have the path itself read as the flags.
+
+- **orphan**: a socket holds its network namespace for as long as the kernel
+  keeps the socket, not only for as long as the script does. A TCP socket closed
+  with its FIN unanswered stays in the kernel as an orphan, retransmitting the
+  FIN on a timer until `net.ipv4.tcp_orphan_retries` gives up. The script opens
+  a listener and a client over the loopback of a namespace of the test's own,
+  where an nft rule drops every FIN and RST, connects and accepts, kills the
+  last task in the namespace, whose name the test already deleted, and closes
+  the sockets. The veth end the test left in the initial namespace still exists
+  once the script is stopped, since the two orphans hold the namespace, and goes
+  once the retries run out and the kernel frees them (skips without `nsenter`,
+  `nft`, network namespaces or veth; on a kernel where `socket.new` refuses a
+  task's namespace with `EOPNOTSUPP`, the three cases skip on that message).
 
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at
