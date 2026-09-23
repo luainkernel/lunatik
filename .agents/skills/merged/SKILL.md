@@ -23,8 +23,7 @@ restack below starts from.
 Each pull request based on the merged branch moves to master before anything else touches it.
 Left on the merged branch it merges into that branch and never reaches master, which is what #1041
 did one merge after #1040; and a merged branch deleted before its stacked pull requests move closes
-them. The `Stack` check fails while a pull request's base is not the default branch, and the retarget
-runs it again.
+them.
 
 # 3. Restack
 
