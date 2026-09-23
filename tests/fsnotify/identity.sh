@@ -22,10 +22,23 @@
 # another process opening the same scratch file in the window cannot be read as
 # ours.
 #
+# Three events need marks of their own. $SCRATCH/from is marked for FS_RENAME,
+# which the kernel reports on the old directory with the old name and the moved
+# dentry; the binding takes it through handle_event, which has no same-parent
+# filter, so a move out of the directory arrives as a move within it does. A
+# file the shell holds open, unlinks and then writes to reports a path d_path
+# renders with a trailing " (deleted)". A file whose directory the shell buries
+# under names of NAME_MAX bytes, one level at a time so that no path it passes
+# nears PATH_MAX, reports a write through a descriptor opened before the burial,
+# and its path no longer fits the PATH_MAX buffer d_path fills: event:path()
+# raises ENAMETOOLONG, which identity.lua prints in place of the path.
+#
 # Usage: sudo bash tests/fsnotify/identity.sh
 
 SCRIPT="tests/fsnotify/identity"
 SCRATCH="/tmp/lunatik-fsnotify"
+PATH_MAX=4096
+NAME_MAX=255
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -47,12 +60,20 @@ check() {
 
 mkdir -p -m 0700 "$SCRATCH"
 : > "$SCRATCH/watched"
+mkdir -p "$SCRATCH/from" "$SCRATCH/to" "$SCRATCH/pit/sunk"
+: > "$SCRATCH/from/before"
+: > "$SCRATCH/gone"
+: > "$SCRATCH/pit/sunk/buried"
 
 dirino=$(stat -c %i "$SCRATCH")
 fileino=$(stat -c %i "$SCRATCH/watched")
+fromino=$(stat -c %i "$SCRATCH/from")
+movedino=$(stat -c %i "$SCRATCH/from/before")
+goneino=$(stat -c %i "$SCRATCH/gone")
+buriedino=$(stat -c %i "$SCRATCH/pit/sunk/buried")
 
 ktap_header
-ktap_plan 6
+ktap_plan 10
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -122,9 +143,66 @@ check "$line" isdir false "a delete"
 check "$line" path nil "a delete"
 ktap_pass "a delete still names the unlinked entry and its inode"
 
+mark_dmesg
+mv "$SCRATCH/from/before" "$SCRATCH/from/renamed"
+within=$(dmesg_since)
+line=$(row "$within" 10000000)
+[ -n "$line" ] || fail "no FS_RENAME for a move within the marked directory"
+check "$line" name before "a rename within a directory"
+check "$line" ino "$movedino" "a rename within a directory"
+check "$line" dir "$fromino" "a rename within a directory"
+check "$line" isdir false "a rename within a directory"
+check "$line" path nil "a rename within a directory"
+ktap_pass "FS_RENAME names the old entry, its directory and the moved inode"
+
+mark_dmesg
+mv "$SCRATCH/from/renamed" "$SCRATCH/to/moved"
+across=$(dmesg_since)
+line=$(row "$across" 10000000)
+[ -n "$line" ] || fail "no FS_RENAME for a move out of the marked directory"
+check "$line" name renamed "a rename across directories"
+check "$line" ino "$movedino" "a rename across directories"
+check "$line" dir "$fromino" "a rename across directories"
+check "$line" isdir false "a rename across directories"
+check "$line" path nil "a rename across directories"
+ktap_pass "FS_RENAME arrives for a move across directories too"
+
+mark_dmesg
+exec 3>> "$SCRATCH/gone"
+rm -f "$SCRATCH/gone"
+echo gone >&3
+exec 3>&-
+unlinked=$(dmesg_since)
+line=$(row "$unlinked" 2 "$$")
+[ -n "$line" ] || fail "no FS_MODIFY for the unlinked file"
+check "$line" name nil "a write to an unlinked file"
+check "$line" ino "$goneino" "a write to an unlinked file"
+check "$line" dir nil "a write to an unlinked file"
+check "$line" isdir false "a write to an unlinked file"
+[[ "$line" == *" path=$SCRATCH/gone (deleted)" ]] || \
+	fail "a write to an unlinked file: path = '${line##* path=}', expected '$SCRATCH/gone (deleted)'"
+ktap_pass "the path of an unlinked file carries a trailing (deleted)"
+
+long=$(printf "%${NAME_MAX}s" "" | tr ' ' x)
+exec 4>> "$SCRATCH/pit/sunk/buried"
+for _ in $(seq $((PATH_MAX / (NAME_MAX + 1) + 1))); do
+	mkdir "$SCRATCH/pit/wrap" && mv "$SCRATCH/pit/sunk" "$SCRATCH/pit/wrap/$long" && \
+		mv "$SCRATCH/pit/wrap" "$SCRATCH/pit/sunk" || fail "could not bury the marked file"
+done
+mark_dmesg
+echo buried >&4
+exec 4>&-
+buried=$(dmesg_since)
+line=$(row "$buried" 2 "$$")
+[ -n "$line" ] || fail "no FS_MODIFY for the buried file"
+check "$line" ino "$buriedino" "a write to a file past PATH_MAX"
+check "$line" path raised:ENAMETOOLONG "a write to a file past PATH_MAX"
+ktap_pass "the path of a file past PATH_MAX raises ENAMETOOLONG"
+
 lunatik stop "$SCRIPT" 2>/dev/null
 
-errs=$(printf '%s\n' "$opened" "$listed" "$created" "$moves" "$deleted" | grep -E "$KTAP_ERRORS" || true)
+errs=$(printf '%s\n' "$opened" "$listed" "$created" "$moves" "$deleted" "$within" "$across" "$unlinked" "$buried" | \
+	grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
 ktap_pass "no Lua errors in kernel"
 
