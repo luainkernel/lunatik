@@ -19,18 +19,17 @@ esac
 
 . "$(dirname "$0")/commands.sh"
 
-text=$(command_text "$input")
 cmds=$(commands "$input")
 # git past its global options, -C and -c with the word each takes, as commands prints it
 git='^([^ ]*/)?git( -[Cc] [^ ]+| -[^ ]+)*'
 printf '%s\n' "$cmds" | grep -Eq "$git push( |\$)" || exit 0
 
-if printf '%s' "$text" | grep -Eq '(^|[;&|(])[[:space:]]*git[[:space:]]+(rebase|merge|cherry-pick|am|revert)([[:space:]]|$)'; then
+if printf '%s\n' "$cmds" | grep -Eq "$git (rebase|merge|cherry-pick|am|revert)( |\$)"; then
 	echo "push-guard: the command runs a rebase, merge, cherry-pick, am or revert and a push; one that stops on a conflict leaves HEAD on the base, and the push publishes that as the branch. Read git status, then push as a command of its own." >&2
 	exit 2
 fi
 
-case "$text" in
+case "$(command_text "$input")" in
 	*PUSH_OK=1*) exit 0 ;;
 esac
 
