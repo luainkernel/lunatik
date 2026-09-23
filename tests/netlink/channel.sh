@@ -20,15 +20,17 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-SUB_BIN="$(mktemp)"
-SUB_OUT="$(mktemp)"
-SUB_ERR="$(mktemp)"
 cleanup() {
 	kill "$SUB_PID" 2>/dev/null
 	lunatik stop "$SCRIPT" 2>/dev/null
 	rm -f "$SUB_BIN" "$SUB_OUT" "$SUB_ERR"
 }
 trap cleanup EXIT
+cleanup
+
+SUB_BIN="$(mktemp)"
+SUB_OUT="$(mktemp)"
+SUB_ERR="$(mktemp)"
 
 ktap_header
 ktap_plan 3

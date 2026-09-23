@@ -20,10 +20,12 @@ SMALL_PRIO=32101
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
+	lunatik stop "$SCRIPT" 2>/dev/null
 	ip rule del priority "$PRIO" 2>/dev/null
 	ip rule del priority "$SMALL_PRIO" 2>/dev/null
 }
 trap cleanup EXIT
+cleanup
 
 ktap_header
 ktap_plan 5

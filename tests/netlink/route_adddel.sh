@@ -17,8 +17,12 @@ TABLE=1000
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
-cleanup() { ip route flush table "$TABLE" 2>/dev/null; }
+cleanup() {
+	lunatik stop "$SCRIPT" 2>/dev/null
+	ip route flush table "$TABLE" 2>/dev/null
+}
 trap cleanup EXIT
+cleanup
 
 ktap_header
 ktap_plan 3

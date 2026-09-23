@@ -15,8 +15,12 @@ NAME="lunatikdummy0"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
-cleanup() { ip link del "$NAME" 2>/dev/null; }
+cleanup() {
+	lunatik stop "$SCRIPT" 2>/dev/null
+	ip link del "$NAME" 2>/dev/null
+}
 trap cleanup EXIT
+cleanup
 
 ktap_header
 ktap_plan 2
