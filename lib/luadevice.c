@@ -250,20 +250,15 @@ static void luadevice_release(void *private)
 }
 
 /***
-* Stops and releases a character device driver from the system.
-* This method is called on a device object returned by `device.new()`.
-* Once stopped, the device file (`/dev/<name>`) will be removed and
-* the associated resources released.
-*
-* This method provides an explicit way to release the device. The device
-* is also released when `close` is called (e.g., via Lua 5.4's to-be-closed
-* mechanism if `__close` is defined and triggered for the object, which typically
-* calls this same underlying function) or eventually when the device object is
-* garbage collected (via `__gc`). The `stop` and `close` methods offer more
-* deterministic cleanup than relying solely on garbage collection.
+* Stops a character device driver and removes it from the system.
+* This method is called on a device object returned by `device.new()`: the
+* device file (`/dev/<name>`) and its region go with it. Without `stop`, the
+* device lives until its runtime stops, since `device.new` keeps the object for
+* the runtime. A file still open on the device gets ENXIO from read and write
+* until it is closed.
 * @function stop
 * @treturn nil Does not return any value to Lua.
-* @raise Error May raise an error if the underlying C function encounters a critical issue during cleanup and calls `lua_error`.
+* @raise if the argument is not a device.
 * @usage
 *   -- Assuming 'dev' is a device object:
 *   dev:stop()
@@ -337,7 +332,7 @@ static int luadevice_stop(lua_State *L)
 *     end
 *   }
 *   local dev_obj = device.new(my_driver)
-*   -- To clean up: dev_obj:stop() or let it be garbage collected.
+*   -- To remove it: dev_obj:stop(), or stop the runtime.
 */
 static const luaL_Reg luadevice_lib[] = {
 	{"new", luadevice_new},
