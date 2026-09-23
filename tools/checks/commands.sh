@@ -230,3 +230,38 @@ runs_watchdog() {
 	printf '%s\n' "$1" | grep -Eq '^([^ ]*/)?watchdog\.sh( |$)'
 }
 
+# the gh commands among <cmds> that write where the extended regex <path> points: gh pr with a verb
+# matching <verbs>, or gh api on a matching endpoint with a method other than GET, or with a field
+# and no method, which gh sends as a POST
+gh_writes() {
+	printf '%s\n' "$1" | awk -v verbs="^($2)\$" -v path="$3" '
+	$1 !~ /^([^ ]*\/)?gh$/ {
+		next
+	}
+	$2 == "pr" && $3 ~ verbs {
+		print
+		next
+	}
+	$2 == "api" {
+		method = ""
+		fields = hit = 0
+		for (i = 3; i <= NF; i++)
+			if ($i == "-X" || $i == "--method")
+				method = toupper($(++i))
+			else if ($i ~ /^(-X|--method=)./)
+				method = toupper(substr($i, $i ~ /^-X/ ? 3 : 10))
+			else if ($i ~ /^(-f|-F|--field|--raw-field|--input)$/) {
+				fields = 1
+				i++
+			}
+			else if ($i ~ /^(-[fF]|--field=|--raw-field=|--input=)./)
+				fields = 1
+			else if ($i ~ /^(-H|--header|-q|--jq|-t|--template|-p|--preview|--hostname|--cache)$/)
+				i++
+			else if ($i !~ /^-/ && $i ~ path)
+				hit = 1
+		if (hit && (method != "" ? method != "GET" : fields))
+			print
+	}'
+}
+

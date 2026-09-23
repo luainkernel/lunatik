@@ -11,7 +11,8 @@
 # needs no marker: the author is asked of GitHub with the token in GH_TOKEN or
 # the one the command reads with GH_TOKEN=$(cat <file>), and when neither
 # answers the marker is required as before.
-# Matches the raw hook input, which embeds the command verbatim.
+# Reads the command field of the raw hook input through commands.sh: the
+# description beside it and the commands chained with the post are not the post.
 #
 # The text of a post is read from the files the command names (body=@<file>,
 # --body-file, --input) and run through machine-leak.sh, since a review comment
@@ -24,23 +25,24 @@
 
 input=$(cat)
 
+# a cheap bail on the raw input, which carries the description too; the command itself decides below
 case "$input" in
 	*"gh api"*reviews*|*"gh api"*comments*|*"gh pr review"*|*"gh pr comment"*) ;;
 	*) exit 0 ;;
 esac
 
-# a read carries no body, field, or method flag; only a write is guarded
-case "$input" in
-	*"-X POST"*|*"-X PATCH"*|*"-X PUT"*|*"--method"*|*"-f "*|*"-F "*|*"--field"*|*"--raw-field"*|*"--input"*|*"gh pr review"*|*"gh pr comment"*) ;;
-	*) exit 0 ;;
-esac
+. "$(dirname "$0")/commands.sh"
+
+posts=$(gh_writes "$(commands "$input")" 'review|comment' \
+	'^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/(pulls|issues)/([0-9]+/)?(reviews|comments)(/|$)')
+[ -n "$posts" ] || exit 0
 
 flag="(body=@|--body-file[ =]|--input[ =])"
 # the quotes gh is written with are not part of the path: skipped before it, excluded from it
-files=$(printf '%s' "$input" | grep -oE "$flag[\"'\\\\]*[^[:space:]\"'\\\\]+" | sed -E "s/^$flag[\"'\\\\]*//")
+files=$(printf '%s' "$posts" | grep -oE "$flag[\"'\\\\]*[^[:space:]\"'\\\\]+" | sed -E "s/^$flag[\"'\\\\]*//")
 
 if [ -z "$files" ]; then
-	case "$input" in
+	case "$posts" in
 		*body=*|*"--body "*|*"--body="*)
 			echo "review-post-guard: the text of a post is read from a file: pass it as -F body=@<file>." >&2
 			exit 2 ;;
@@ -81,12 +83,12 @@ if [ -n "$unsigned" ]; then
 	exit 2
 fi
 
-if printf '%s' "$input" | grep -Eq '`[0-9a-f]{7,40}'; then
+if printf '%s' "$posts" | grep -Eq '`[0-9a-f]{7,40}'; then
 	echo "review-post-guard: a fixup reference is a backtick'd SHA, which GitHub renders as code, not a link. Use a full commit URL: https://github.com/<owner>/<repo>/commit/<sha>" >&2
 	exit 2
 fi
 
-case "$input" in
+case "$(command_text "$input")" in
 	*REVIEW_POST_OK=1*) exit 0 ;;
 esac
 
@@ -94,10 +96,10 @@ esac
 # show-then-post round; GitHub is asked with the credential the command itself carries
 isownpull() {
 	local target token
-	target=$(printf '%s' "$input" | grep -oE 'repos/[^/[:space:]"]+/[^/[:space:]"]+/(pulls|issues)/[0-9]+/(reviews|comments)' | head -n 1)
+	target=$(printf '%s' "$posts" | grep -oE 'repos/[^/[:space:]"]+/[^/[:space:]"]+/(pulls|issues)/[0-9]+/(reviews|comments)' | head -n 1)
 	[ -n "$target" ] || return 1
 	token=$GH_TOKEN
-	[ -n "$token" ] || token=$(cat "$(printf '%s' "$input" | grep -oE 'GH_TOKEN=\$\(cat [^)"]+\)' | head -n 1 |
+	[ -n "$token" ] || token=$(cat "$(command_text "$input" | grep -oE 'GH_TOKEN=\$\(cat [^)"]+\)' | head -n 1 |
 		sed -E 's/^GH_TOKEN=\$\(cat (.*)\)$/\1/')" 2>/dev/null)
 	local repo number author login
 	repo=$(printf '%s' "$target" | cut -d/ -f2-3)
