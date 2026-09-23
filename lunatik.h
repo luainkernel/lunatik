@@ -92,6 +92,7 @@ typedef struct lunatik_object_s {
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
+extern struct task_struct *lunatik_rtnl;
 extern const lunatik_class_t lunatik_class;
 
 #include "lunatik_lock.h"
@@ -175,6 +176,7 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
 #define LUNATIK_ERR_ARMED	"not allowed after module load"
+#define LUNATIK_ERR_RTNL	"not allowed under RTNL"
 
 #define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
 
@@ -207,6 +209,15 @@ static inline void lunatik_checkarmed(lua_State *L)
 {
 	if (unlikely(lunatik_cannotsleep(L, lunatik_isready(lunatik_toruntime(L)))))
 		luaL_error(L, LUNATIK_ERR_ARMED);
+}
+
+#define lunatik_setrtnl(task)	WRITE_ONCE(lunatik_rtnl, (task))
+#define lunatik_isrtnl()	(READ_ONCE(lunatik_rtnl) == current)
+
+static inline void lunatik_checkrtnl(lua_State *L)
+{
+	if (lunatik_isrtnl())
+		luaL_error(L, LUNATIK_ERR_RTNL);
 }
 
 static inline lunatik_opt_t lunatik_inheritopt(const lunatik_class_t *class, lunatik_opt_t opt)
