@@ -12,16 +12,25 @@ local nf        = require("linux.nf")
 local CMD, PAYLOAD = 1, 1        -- arbitrary genl command and attribute type
 local UNICAST_PORT = 0x4c554e41  -- fixed port id the subscriber binds to
 local ABSENT_PORT  = 0x7fffffff  -- unbound port id: a unicast to it must drop
+local ARMED = "not allowed after module load"
 
 local channel = netlink.channel("lunatiktest")
 local mcast = message.attrs{[PAYLOAD] = "channel multicast ok"}
 local ucast = message.attrs{[PAYLOAD] = "channel unicast ok"}
+local done = false
 
 -- a header-only unicast to an absent port id is a dropped frame: false, no raise
 assert(channel:unicast(ABSENT_PORT, CMD) == false)
 print("netlink channel: unicast to absent peer returns false")
 
 local function channel_hook(skb)
+	if not done then
+		done = true
+		local ok, err = pcall(netlink.channel, "")
+		if not ok and err:find(ARMED, 1, true) then
+			print("netlink channel: new from a hook is refused")
+		end
+	end
 	channel:multicast(CMD, mcast)
 	channel:unicast(UNICAST_PORT, CMD, ucast)
 	return nf.action.ACCEPT
