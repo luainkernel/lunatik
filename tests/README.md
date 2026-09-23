@@ -345,7 +345,9 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   chunk; a syntax error names the file and line, `-p` writes no chunk, and
   250 inputs compile in one call; `lunatik compile` forwards its arguments
   and `lunatic`'s exit status; a stock (float) number format is rejected
-  by the chunk header, in the kernel and as an input to `lunatic`;
+  by the chunk header, in the kernel and as an input to `lunatic`; `-e` with
+  the host's byte order gives the default output and with the other order a
+  chunk the kernel's header check rejects;
   `load(..., "t")` rejects a chunk in the kernel. Skips when `lunatic` is
   not installed.
 
