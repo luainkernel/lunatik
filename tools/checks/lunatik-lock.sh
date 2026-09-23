@@ -20,7 +20,7 @@ esac
 
 busy=$(ps -eo pid,stat,args | awk '
 	$3 == "[lunatik]" || ($3 ~ /lua/ && $4 ~ /bin\/lunatik$/) ||
-	($3 ~ /(^|\/)(ba)?sh$/ && $4 ~ /tests\/([a-z]+\/)*[a-z_]+\.sh$/) { print "  " $0 }')
+	($3 ~ /(^|\/)(ba)?sh$/ && $4 ~ /tests\/([a-z0-9_]+\/)*[a-z0-9_]+\.sh$/) { print "  " $0 }')
 [ -n "$busy" ] || exit 0
 
 {
