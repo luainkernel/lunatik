@@ -14,6 +14,7 @@ without first discovering that an out-of-tree module cannot be an LSM.
 | [api.md](api.md) | Proposed Lua API for the `lsm` and `cgroup` modules, with worked examples |
 | [kernel-notes.md](kernel-notes.md) | Verified kernel API reference: why eBPF, the kfunc contract, attach rules, config and boot requirements |
 | [testing.md](testing.md) | Test strategy, the boot-dependent skip logic, and the test matrix |
+| [landlock.md](landlock.md) | Landlock's ruleset model read against the policy, scope and sandbox phases, with recommendations |
 
 Start with `plan.md`. Read `kernel-notes.md` before writing any C — in particular the first section,
 which explains why this project is built on eBPF rather than on a security module of our own.
