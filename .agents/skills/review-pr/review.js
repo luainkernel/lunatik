@@ -4,8 +4,8 @@
 // Every phase appends what it finds to a checkpoint file the moment it finds it,
 // so a phase that dies leaves its findings on disk and its successor continues
 // from them instead of reading the branch again. The build phase runs only when
-// the head has not been validated already, a fixup changed the code, or an example
-// the change touches has not been run on it.
+// the head has not been validated already, a fixup changed the code or a phase died
+// before saying whether one did, or an example the change touches has not been run on it.
 //
 // Usage: Workflow({scriptPath: '.agents/skills/review-pr/review.js', args: {...}})
 //   pr          pull request number
@@ -211,7 +211,7 @@ const hunt = await agent(HUNT, { label: `hunt:${a.pr}`, phase: 'Hunt', effort, s
 phase('Rules')
 const rules = await agent(RULES, { label: `rules:${a.pr}`, phase: 'Rules', effort, schema: RULES_OUT, ...model })
 
-const changed = (hunt?.fixups?.length || 0) + (rules?.fixups?.length || 0) > 0
+const changed = !hunt || !rules || hunt.fixups.length + rules.fixups.length > 0
 let build = null
 if (!a.validated || changed || unrun.length) {
   phase('Build')
