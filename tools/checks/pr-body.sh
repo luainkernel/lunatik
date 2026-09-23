@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 # Checks a pull request body against AGENTS.md, "Patches and commits": at most three
 # paragraphs, the first one the failure or the need, no em dash, no "Test plan" section,
-# and no failure named as a flake (untraced.sh). Takes the body file; prints what fails
-# and exits 1, silent otherwise. The footer an assistant appends (a line opening with an
-# emoji) does not count.
+# no failure named as a flake (untraced.sh), and a body tied to an issue in words GitHub
+# does not act on (Part of, Top of, Bottom of, Answers, reported as) closes one or names
+# the one it leaves open (closing.sh). Takes the body file; prints what fails and exits 1,
+# silent otherwise. The footer an assistant appends (a line opening with an emoji) does not
+# count.
+
+. "$(dirname "$0")/closing.sh"
+
+ties='(^|[.:;] +)(Part|Top|Bottom) of[^.#]*#[0-9]+|Answers ([^.#]* )?#[0-9]+|[Rr]eported as #[0-9]+'
 
 status=0
 for file in "$@"; do
@@ -19,6 +25,10 @@ for file in "$@"; do
 	fi
 	if printf '%s' "$body" | grep -qi 'test plan'; then
 		echo "$file: carries a Test plan section"
+		status=1
+	fi
+	if printf '%s\n' "$body" | grep -Eq "$ties" && ! printf '%s\n' "$body" | grep -Eiq "$(closes)|$(leaves)"; then
+		echo "$file: tied to an issue, closes none: Closes #N, or #N, which it does not close"
 		status=1
 	fi
 	bash "$(dirname "$0")/untraced.sh" "$file" || status=1

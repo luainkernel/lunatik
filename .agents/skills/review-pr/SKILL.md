@@ -37,6 +37,10 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
   siblings for the form the tree uses, and, for a guard or a primitive added to the core, the sweep
   over every binding with the same shape. Each pass is its own read of the diff; the first round of
   #848 and #849 ran the rules and left all three for a second.
+- The body closes what the pull request finishes: `Closes #<phase issue>` for a phase of an epic, or
+  `#<epic>, which it does not close`. `bash tools/checks/pr-body.sh` over the body fails one that
+  ties itself to an issue and does neither; the ten bodies of the fsnotify stack did, and its phase
+  issues stayed open after every merge.
 
 # Fixups
 

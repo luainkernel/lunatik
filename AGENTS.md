@@ -289,6 +289,13 @@ workflow labels what it finished with `workflow-reviewed`, and a pull request wi
 had no second reader. Which pull requests are open, reviewed or ready is read from it, not from memory:
 a list called ready was assembled from memory here and was wrong on two of three.
 
+An issue closes, and its card on the project board moves to Done, only when a merged pull request
+says `Closes #N` or someone closes it by hand: the ten pull requests of the fsnotify stack said they
+were part of #657 and answered its phases, and #659 to #664 stayed open on Todo after every one of
+them merged, as #1001 did after #1005. A pull request that finishes a phase carries `Closes #<phase
+issue>`, one that finishes none says `#<epic>, which it does not close`, and `pr-body.sh` fails a body
+that says Part of, Answers or reported as and does neither.
+
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments on a
 pull request the posting account did not open unless the command carries the `REVIEW_POST_OK`
