@@ -1,11 +1,13 @@
 #!/bin/bash
 # Reports the state of the open pull requests, so a claim about them is read
 # rather than remembered: base, mergeability, commit count and how many of those
-# are unsquashed fixups, the size, the CI conclusion, and the labels the review
-# workflows leave behind.
+# are unsquashed fixups, the size, the CI conclusion, the labels the review
+# workflows leave behind, and the merged pull request that names it as the one
+# it replaced ("Alternative to #N" in the body), which is one to close.
 #
 # With --ready, lists only what a maintainer can pick up: reviewed by a workflow,
-# green on CI, no unsquashed fixup, and mergeable as GitHub has computed it.
+# green on CI, no unsquashed fixup, mergeable as GitHub has computed it, and
+# not replaced by a merged one.
 #
 # Usage: GH_TOKEN=... bash tools/pr-status.sh [--ready] [<number>...]
 
@@ -26,12 +28,14 @@ for n in $numbers; do
 		-q '[.[] | select(.commit.message | startswith("fixup!"))] | length')
 	ci=$(gh api "repos/$repo/commits/$sha/check-runs" \
 		-q '[.check_runs[].conclusion] | if length == 0 then "none" else (unique | join(",")) end' 2>/dev/null)
+	superseded=$(gh api -X GET search/issues -f q="repo:$repo is:pr is:merged \"Alternative to #$n\"" \
+		-q '[.items[].number | "#\(.)"] | join(",")' 2>/dev/null)
 
 	if [ "$ready" = 1 ]; then
-		[ "$mergeable" = "true" ] && [ "$fixups" = 0 ] && [ "$ci" = "success" ] || continue
+		[ "$mergeable" = "true" ] && [ "$fixups" = 0 ] && [ "$ci" = "success" ] && [ -z "$superseded" ] || continue
 		case "$labels" in *workflow-reviewed*) ;; *) continue ;; esac
 	fi
 	case "$mergeable" in true) ;; null) base="$base(?)" ;; *) base="$base(!)" ;; esac
-	printf "$fmt" "#$n" "$branch" "$base" "$commits" "$fixups" "$size" "$ci" "${labels:--}"
+	printf "$fmt" "#$n" "$branch" "$base" "$commits" "$fixups" "$size" "$ci" "${labels:--}${superseded:+ superseded-by:$superseded}"
 done
 
