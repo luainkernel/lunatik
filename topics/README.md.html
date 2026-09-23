@@ -881,7 +881,9 @@ entry created or deleted, a file written or its attributes changed, each line ca
 its inode number and the pid that did it.</p>
 
 <p>The mark is an inode mark on the directory <code>WATCHED</code> names, carrying <code>EVENT_ON_CHILD</code> so that events on
-the files inside it are reported too. That flag is one level deep: nothing under a subdirectory arrives.</p>
+the files inside it are reported too. That flag is one level deep: nothing under a subdirectory arrives.
+It also reaches a file only through its parent in the directory cache, so a write to a file opened by handle
+with <code>open_by_handle_at</code> after the cache dropped its entry, or a change to its attributes, is not reported.</p>
 
 <h4>Usage</h4>
 
@@ -911,11 +913,34 @@ prints <code>?</code>.</p>
 parks the <code>execve</code> inside the callback, which refuses it unless the entry's name is in the <a href="../modules/set.html#">set</a> it was
 built with.</p>
 
+<p>A second list names who may run them: when the scope holds a file <code>pids</code> as the script starts, one pid per
+line, the exec is refused to every pid it does not name. That pid is the one of the thread calling <code>execve</code>,
+which after a <code>fork</code> is the child's: a shell the list names runs a program there only with <code>exec</code>, which
+keeps its pid. Each refusal is logged with its reason, <code>not in the allowlist</code> or <code>pid not allowed</code>.</p>
+
 <p>The mark is an inode mark on <code>SCOPE</code> carrying <code>EVENT_ON_CHILD</code>, so the only exec it can refuse is of an
 entry directly inside that directory. It is never a system wide default deny: a <code>&quot;mount&quot;</code> or <code>&quot;sb&quot;</code> mark
 reaches every file of a mount or of a whole filesystem, and a rule that denies there leaves the machine
 unable to run the programs that would undo it. Give it a scratch mount of its own, as below, so that the
 <code>umount</code> ends the rule even if the script cannot be stopped.</p>
+
+<p>An exec opens more than the program for exec. Inside <code>execve</code> the kernel opens a script's interpreter, the
+path on its <code>#!</code> line, and an ELF program's loader, the one absolute path <code>ldd</code> prints without <code>=&gt;</code>, the
+same way, and each asks the rule under its own name: a script whose interpreter lives in the scope is
+refused unless that name is in the allowlist too. <code>strace -e openat</code> shows none of those opens; what it
+shows, the loader reading its cache and the libraries and an interpreter reading its script, are reads that
+never reach the rule. Landlock asks for its execute right at the same opens, so the programs, their loaders
+and their interpreters are the list a Landlock ruleset grants it on as well. That is also why the rule stays
+on a directory of its own: on the one holding <code>sh</code> or the loader, every script or every dynamically linked
+program on the machine would have to pass the allowlist.</p>
+
+<p><code>EVENT_ON_CHILD</code> reaches the entry through its parent in the directory cache, so a program opened by handle
+with <code>open_by_handle_at</code> after the cache dropped its entry, and run with <code>execveat</code> and <code>AT_EMPTY_PATH</code>, is
+never asked about. That takes <code>CAP_DAC_READ_SEARCH</code>, and a filesystem that drops entries: the tmpfs below
+keeps every entry it holds in the cache.</p>
+
+<p>On a kernel built without <code>CONFIG_FANOTIFY_ACCESS_PERMISSIONS</code>, which has no permission events, the script
+still loads: it says so in the log and guards nothing.</p>
 
 <h4>Usage</h4>
 
@@ -930,7 +955,24 @@ unable to run the programs that would undo it. Give it a scratch mount of its ow
  sudo lunatik stop examples/execguard        # ends the rule
  sudo umount /tmp/lunatik-execguard          # and takes the mark with it
  sudo dmesg -t                               # prints what it refused
- execguard: denied date to pid 2222403
+ execguard: denied date to pid 2222403: not in the allowlist
+</code></pre>
+
+
+<p>With a pid list:</p>
+
+<pre><code> sudo mount -t tmpfs -o size=1M,mode=0755 lunatik-execguard /tmp/lunatik-execguard
+ sudo cp /bin/true /tmp/lunatik-execguard/
+ bash                                        # a shell for the list to name
+ echo $$ | sudo tee /tmp/lunatik-execguard/pids
+ sudo lunatik run examples/execguard         # reads the list as it starts
+ /tmp/lunatik-execguard/true                 # the child the shell forks has a pid of its own
+ bash: /tmp/lunatik-execguard/true: Operation not permitted
+ exec /tmp/lunatik-execguard/true            # runs in the listed pid, and ends that shell
+ sudo lunatik stop examples/execguard
+ sudo umount /tmp/lunatik-execguard
+ sudo dmesg -t
+ execguard: denied true to pid 2222510: pid not allowed
 </code></pre>
 
 
@@ -986,7 +1028,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-23 17:47:10 </i>
+<i style="float:right;">Last updated 2026-09-23 17:47:41 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
