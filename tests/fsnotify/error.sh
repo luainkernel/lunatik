@@ -12,8 +12,8 @@
 # having been torn down by the error, which would make the first case pass for
 # the wrong reason.
 #
-# This is the one test in the suite whose kernel log carries a Lua error on
-# purpose, so it asserts on that message instead of asserting there is none.
+# This test's kernel log carries a Lua error on purpose, as raise.sh's does, so
+# it asserts on that message instead of asserting there is none.
 #
 # Usage: sudo bash tests/fsnotify/error.sh
 

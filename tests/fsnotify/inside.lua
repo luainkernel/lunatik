@@ -11,10 +11,12 @@ local SCRATCH  <const> = "/tmp/lunatik-fsnotify"
 local ONESHOT  <const> = SCRATCH .. "/oneshot"
 local REMASKED <const> = SCRATCH .. "/remasked"
 local UNCACHED <const> = SCRATCH .. "/uncached"
+local HALTED   <const> = SCRATCH .. "/halted"
 local CREATED  <const> = "created"
 
 local watch
 local remasked
+local stopper
 
 local function report(mask, event)
 	local path = event:path() or "?"
@@ -31,8 +33,17 @@ local function report(mask, event)
 	end
 end
 
+local function halt(mask, event)
+	print(string.format("fsnotify inside test: halting on %s", event:path() or "?"))
+	stopper:stop()
+	print("fsnotify inside test: stop returned")
+end
+
 watch = fsnotify.watch(report)
 watch:mark(ONESHOT, fs.OPEN)
 remasked = watch:mark(REMASKED, fs.OPEN)
 watch:mark(SCRATCH, fs.CREATE)
+
+stopper = fsnotify.watch(halt)
+stopper:mark(HALTED, fs.OPEN)
 

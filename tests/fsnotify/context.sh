@@ -6,7 +6,8 @@
 # What the module refuses: a callback that is not a function, a path that does
 # not resolve, and the whole module from a softirq runtime — marking sleeps and
 # so does the callback, so the class carries no interrupt context and the
-# constructor says so rather than deadlocking later. A permission mask is
+# constructor says so rather than deadlocking later. A percpu runtime is refused
+# at the constructor too, with the core's percpu refusal. A permission mask is
 # refused only where the kernel was built without the hooks that would reach it,
 # so that case takes either answer and asserts the message names the config.
 #
@@ -17,13 +18,13 @@
 # context.lua drives all of that plus the successes they are measured against
 # through pcall and reports each with util.test. The shell counts its PASS lines
 # rather than only looking for a FAIL: a case that never ran leaves neither.
-# softirq.lua is a separate script because the runtime context is chosen on the
-# lunatik run command line.
+# refused.lua is a separate script because the runtime context and the percpu
+# option are chosen on the lunatik run command line; it runs once as each.
 #
 # Usage: sudo bash tests/fsnotify/context.sh
 
 SCRIPT="tests/fsnotify/context"
-SOFTIRQ="tests/fsnotify/softirq"
+REFUSED="tests/fsnotify/refused"
 SCRATCH="/tmp/lunatik-fsnotify"
 CASES=5
 
@@ -31,7 +32,7 @@ source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
 	lunatik stop "$SCRIPT" 2>/dev/null
-	lunatik stop "$SOFTIRQ" 2>/dev/null
+	lunatik stop "$REFUSED" 2>/dev/null
 	rm -rf "$SCRATCH"
 }
 trap cleanup EXIT
@@ -40,7 +41,7 @@ cleanup
 mkdir -p -m 0700 "$SCRATCH"
 
 ktap_header
-ktap_plan 3
+ktap_plan 4
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -48,8 +49,12 @@ refusals=$(dmesg_since)
 lunatik stop "$SCRIPT" 2>/dev/null
 
 mark_dmesg
-softirq=$(lunatik run "$SOFTIRQ" softirq 2>&1)
-lunatik stop "$SOFTIRQ" 2>/dev/null
+softirq=$(lunatik run "$REFUSED" softirq 2>&1)
+lunatik stop "$REFUSED" 2>/dev/null
+
+percpu=$(lunatik run "$REFUSED" percpu 2>&1)
+lunatik stop "$REFUSED" 2>/dev/null
+refused=$(dmesg_since)
 
 passed=$(echo "$refusals" | grep -c "PASS	")
 [ "$passed" -eq "$CASES" ] || \
@@ -60,7 +65,11 @@ echo "$softirq" | grep -qF "runtime context mismatch" || \
 	fail "expected 'runtime context mismatch' from a softirq runtime, got: $softirq"
 ktap_pass "fsnotify.watch refuses a softirq runtime"
 
-errs=$(echo "$refusals" | grep -E "$KTAP_ERRORS" || true)
+echo "$percpu" | grep -qF "not allowed in a percpu runtime" || \
+	fail "expected 'not allowed in a percpu runtime' from a percpu runtime, got: $percpu"
+ktap_pass "fsnotify.watch refuses a percpu runtime"
+
+errs=$(printf '%s\n%s\n' "$refusals" "$refused" | grep -E "$KTAP_ERRORS" || true)
 [ -n "$errs" ] && fail "Lua error in kernel: $errs"
 ktap_pass "no Lua errors in kernel"
 
