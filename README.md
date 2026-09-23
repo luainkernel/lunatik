@@ -734,6 +734,16 @@ reaches every file of a mount or of a whole filesystem, and a rule that denies t
 unable to run the programs that would undo it. Give it a scratch mount of its own, as below, so that the
 `umount` ends the rule even if the script cannot be stopped.
 
+An exec opens more than the program for exec. Inside `execve` the kernel opens a script's interpreter, the
+path on its `#!` line, and an ELF program's loader, the one absolute path `ldd` prints without `=>`, the
+same way, and each asks the rule under its own name: a script whose interpreter lives in the scope is
+refused unless that name is in the allowlist too. `strace -e openat` shows none of those opens; what it
+shows, the loader reading its cache and the libraries and an interpreter reading its script, are reads that
+never reach the rule. Landlock asks for its execute right at the same opens, so the programs, their loaders
+and their interpreters are the list a Landlock ruleset grants it on as well. That is also why the rule stays
+on a directory of its own: on the one holding `sh` or the loader, every script or every dynamically linked
+program on the machine would have to pass the allowlist.
+
 `EVENT_ON_CHILD` reaches the entry through its parent in the directory cache, so a program opened by handle
 with `open_by_handle_at` after the cache dropped its entry, and run with `execveat` and `AT_EMPTY_PATH`, is
 never asked about. That takes `CAP_DAC_READ_SEARCH`, and a filesystem that drops entries: the tmpfs below
