@@ -180,6 +180,11 @@ const lunatik_class_t lunatik_percpu_class = {
 /***
 * Creates one runtime per CPU id, each loading the given script in the calling context.
 * The runtimes are dispatched by CPU: see `lunatik.cpu` and `runner.run`.
+* They close on `stop()`, when a to-be-closed variable holding the set goes out of scope, or when
+* the last reference to the set is dropped. A hook its script registers with the kernel is one
+* the runtimes share, and it holds the set until `stop()`, so dropping the handle does not close a
+* set whose script registered one, and `stop()` cannot be called once its last handle is gone. A
+* script stops the sets it creates.
 * @function percpu
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context, as in `lunatik.runtime`

@@ -107,6 +107,9 @@ Once the reference counter is decremented to zero, the
 and the memory allocated for the `runtime` environment are released.
 If the `runtime` environment has been released, it returns `1`;
 otherwise, it returns `0`.
+A hook the script registers with the kernel holds a reference of its own,
+so it is _lunatik\_stop()_, and not a [lunatik\_putobject()](#lunatik_putobject)
+of the caller's reference, that closes a `runtime` a hook still holds.
 
 ### lunatik\_copyobjects
 ```C
