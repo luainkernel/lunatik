@@ -265,3 +265,11 @@ gh_writes() {
 	}'
 }
 
+# the GitHub token the command in the hook input <input> runs with: GH_TOKEN from the environment, or
+# the file the command reads it from with GH_TOKEN=$(cat <file>)
+gh_token() {
+	[ -n "$GH_TOKEN" ] && { printf '%s' "$GH_TOKEN"; return; }
+	cat "$(command_text "$1" | grep -oE 'GH_TOKEN=\$\(cat [^)"]+\)' | head -n 1 |
+		sed -E 's/^GH_TOKEN=\$\(cat (.*)\)$/\1/')" 2>/dev/null
+}
+
