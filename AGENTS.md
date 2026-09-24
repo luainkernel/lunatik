@@ -237,6 +237,11 @@ based on, naming them: they keep the commits the push drops, and those surface l
 of a commit that no longer exists, in a pull request nobody edited. `REWRITE_OK=1` runs it once that
 list is known to be stale.
 
+`stacked-guard.sh`, wired before a shell call, refuses opening a pull request on a base other than
+`master` unless it opens as a draft. GitHub does not merge a draft, and nothing else stops a stacked
+pull request merged before its base from going into the base's branch: #1103 did, after the CI check
+#1047 added for #1041 went in #1064 for failing every stacked push.
+
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
 it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
 catches it. This file's own gate spent its first version skipping `lua/` and `klibc/` in a loop over
@@ -1201,7 +1206,8 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   copies to drift.
 * A stacked pull request is merged after its base, never before: GitHub merges it into the base
   branch, the base pull request grows a commit nobody reviewed there, and the stacked one closes
-  as merged with nothing on `master`. A verdict on a stacked pull request says "after #N". After its
+  as merged with nothing on `master`. A verdict on a stacked pull request says "after #N", and until
+  then it stays the draft it opened as, which the merged skill marks ready once it retargets it. After its
   base merges it waits too, until it is retargeted: GitHub leaves it on the merged branch, and
   #1041, merged seconds after #1040, landed there and not on `master`. `tools/pr-status.sh` names
   a base that merged, and the merged skill retargets and restacks what a merge leaves behind.
