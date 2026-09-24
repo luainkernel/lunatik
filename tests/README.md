@@ -105,7 +105,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   close, and a refused open gives it back at once, while the node goes with
   `dev:stop()` or with the runtime, whatever is open. A kprobe on
   `luadevice_free`, read from `kprobe_profile`, counts the devices whose
-  memory went. A live device reads and writes, and an open its callback
+  memory went, and one on `lunatik_releaseobject` the Lunatik objects freed.
+  A live device reads and writes, and an open its callback
   refuses fails with `ECANCELED` and holds nothing, so its device goes with
   its runtime. A device stopped and collected from its own write while a
   file holds it leaves `/dev` and sysfs at once; the file reads and writes
@@ -117,7 +118,9 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   reads, writes and reopens `ENXIO`; the script starts again under the same
   name with that file still open, the file reads `ENXIO` rather than reach
   the new device, a reopen of it through `/proc` is refused with `ENXIO`
-  when the new device took its number, and the memory goes at its close.
+  when the new device took its number, and the memory goes at its close,
+  the stopped runtime's object with it, once the driver runtime has collected
+  the copy of its handle that `lunatik stop` left there.
   A build without the
   file's hold reads freed memory in each held case, so the test skips unless
   the loaded `luadevice` lists `luadevice_free` in `/proc/kallsyms`.

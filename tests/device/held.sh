@@ -12,7 +12,7 @@
 # memory from its open to its close, and a refused open gives it back at once;
 # the node goes with the stop or with the runtime, whatever is open. A kprobe on
 # luadevice_free, read from kprobe_profile, counts the devices whose memory
-# went:
+# went, and one on lunatik_releaseobject the Lunatik objects freed:
 #
 # - a live device reads and writes, and an open its callback refuses fails with
 #   ECANCELED and holds nothing: that device goes with its runtime;
@@ -26,7 +26,9 @@
 #   file reads, writes and reopens ENXIO; the script starts again under the
 #   same name with that file still open, the file reads ENXIO rather than reach
 #   the new device, a reopen of it through /proc is refused with ENXIO when the
-#   new device took its number, and the memory goes at its close.
+#   new device took its number, and the memory goes at its close, the stopped
+#   runtime's object with it, once the driver runtime has collected the copy of
+#   its handle that lunatik stop left there.
 #
 # A build without the file's hold reads freed memory in each held case, so the
 # test skips unless the loaded luadevice lists luadevice_free in /proc/kallsyms.
@@ -40,6 +42,7 @@ REFUSED="lunatik_refused"
 TRACING="/sys/kernel/tracing"
 INSTANCE="$TRACING/instances/lunatik_device"
 PROBE="lunatik_device/luadevice_free"
+OBJECTS="lunatik_device/lunatik_releaseobject"
 ENXIO="No such device or address"
 ECANCELED="Operation canceled"
 
@@ -53,10 +56,14 @@ cleanup() {
 	exec 3<&- 4<&- 5<&-
 	lunatik stop "$SCRIPT" 2>/dev/null
 	if [ -d "$INSTANCE" ]; then
-		echo 0 > "$INSTANCE/events/$PROBE/enable" 2>/dev/null
+		for probe in "$PROBE" "$OBJECTS"; do
+			echo 0 > "$INSTANCE/events/$probe/enable" 2>/dev/null
+		done
 		rmdir "$INSTANCE"
 	fi
-	grep -q ":$PROBE " "$TRACING/kprobe_events" 2>/dev/null && echo "-:$PROBE" >> "$TRACING/kprobe_events"
+	for probe in "$PROBE" "$OBJECTS"; do
+		grep -q ":$probe " "$TRACING/kprobe_events" 2>/dev/null && echo "-:$probe" >> "$TRACING/kprobe_events"
+	done
 }
 trap cleanup EXIT
 cleanup
@@ -64,9 +71,13 @@ cleanup
 grep -Eq " luadevice_free[[:space:]]\[luadevice\]$" /proc/kallsyms 2>/dev/null ||
 	skip_all "no luadevice_free in the loaded luadevice: a held file would read freed memory"
 echo "p:$PROBE luadevice_free" >> "$TRACING/kprobe_events" 2>/dev/null || skip_all "no kprobe events in tracefs"
+echo "p:$OBJECTS lunatik_releaseobject" >> "$TRACING/kprobe_events" 2>/dev/null ||
+	skip_all "couldn't place a kprobe on lunatik_releaseobject"
 mkdir "$INSTANCE" && echo 1 > "$INSTANCE/events/$PROBE/enable" || skip_all "couldn't enable the kprobe on luadevice_free"
+echo 1 > "$INSTANCE/events/$OBJECTS/enable" || skip_all "couldn't enable the kprobe on lunatik_releaseobject"
 
-frees() { awk -v event="${PROBE#*/}" '$1 == event { print $2 }' "$TRACING/kprobe_profile"; }
+hits() { awk -v event="${1#*/}" '$1 == event { print $2 }' "$TRACING/kprobe_profile"; }
+frees() { hits "$PROBE"; }
 
 # fails unless the command fails with the error named
 refuses() {
@@ -142,10 +153,13 @@ else
 	ktap_skip "the device started again did not take the number of the one the file holds"
 fi
 
+printf 'collectgarbage()\n' | lunatik > /dev/null # drops the copy of the handle lunatik stop left in the driver
+objects=$(hits "$OBJECTS")
 [ "$(frees)" -eq $((base + 2)) ] || fail "a device's memory went while a file held it across its runtime's stop"
 exec 4<&-
 [ "$(frees)" -eq $((base + 3)) ] || fail "a device's memory did not go at the close of the file held across its runtime's stop"
-ktap_pass "a device's memory goes at the close of the file held across its runtime's stop, and not before"
+[ "$(hits "$OBJECTS")" -eq $((objects + 1)) ] || fail "the runtime stopped while a file held its device was not freed at that file's close"
+ktap_pass "a device's memory, and its stopped runtime's object, go at the close of the file held across the stop, and not before"
 
 lunatik stop "$SCRIPT" > /dev/null
 check_dmesg && ktap_pass "no Lua errors, kernel warnings or oopses"
