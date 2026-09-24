@@ -144,9 +144,10 @@ static int luanotifier_netdevice_handler(lua_State *L, void *data)
 
 static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long event, void *data)
 {
+	struct task_struct *holder = READ_ONCE(lunatik_rtnl);
 	lunatik_setrtnl(current); /* the chain and the replays of (un)registration run under RTNL */
 	int ret = luanotifier_call(nb, event, data);
-	lunatik_setrtnl(NULL);
+	lunatik_setrtnl(holder);
 	return ret;
 }
 
