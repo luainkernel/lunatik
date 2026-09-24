@@ -4,7 +4,8 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # The comment rules of AGENTS.md, "Comments and documentation", read over C, Lua
-# and shell alike: a comment describes the present, not the history; it says why
+# and shell alike: a comment describes the present, not the history; a release it
+# names is the range the code serves, above the entry it applies to; it says why
 # the code is what it is, not what would happen if something changed; inside code
 # it is one line; and it does not push the line past the tree's width. The file
 # header, LDoc blocks and doc-only comments are outside the rules; so are the
@@ -66,16 +67,29 @@ for file in "$@"; do
 		}
 		if (t == "" && !whole(line) && line !~ /^[[:space:]]*$/) seen_code = 1
 
+		release = "(^|[^a-z0-9])(v[0-9]+\\.[0-9]+|(linux|kernel) [0-9]+\\.[0-9]+)"
 		if (t != "") {
 			# the header before the first code line may tell the story a test guards against
 			history = "(^|[^a-z])(no longer|used to|previously|formerly|any ?more|under the old)([^a-z]|$)"
+			change = "(^|[^a-z])(turned|became|renamed|replaced|removed|dropped|moved|introduced|added|changed)([^a-z]|$)"
 			counterfactual = "(cannot|can.t|could not|couldn.t) [a-z ]*(afterwards|later)|would (have|otherwise)"
 			if (incode() && t ~ history)
 				flag(NR, "describes the history, not the present (AGENTS.md: no \"no longer\", \"used to\")")
+			if (incode() && t ~ release && t ~ change)
+				flag(NR, "a release and what changed in it is the history; say the range the line serves, \"v6.11 and later: ...\"")
 			if (incode() && t ~ counterfactual)
 				flag(NR, "says what would happen if something changed; say why the code is what it is")
 			if (!whole(line) && length(line) > width)
 				flag(NR, "trailing comment past " width " columns; one reason, shorter, or on its own line")
+		}
+
+		# a release named above the opening of a table belongs above the entry it applies to
+		if (line ~ /^[[:space:]]*$/) versioned = 0
+		else if (whole(line)) { if (t ~ release) versioned = NR }
+		else {
+			if (versioned && line ~ /=[[:space:]]*\{[[:space:]]*$/)
+				flag(versioned, "a release named above a table; put each range above the entry it applies to")
+			versioned = 0
 		}
 
 		# a comment of more than one line inside code (the header and doc blocks are skipped)

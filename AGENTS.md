@@ -161,8 +161,9 @@ the last one.
 ### Checks
 
 `tools/checks/` holds the mechanical checks: comment and LDoc style on framework files
-(`module-conventions.sh`), the comment rules below read over C, Lua and shell, the history, the
-counterfactual, the multi-line note inside code and the trailing comment past the width
+(`module-conventions.sh`), the comment rules below read over C, Lua and shell, the history, a
+release named with what changed in it or above a table, the counterfactual, the multi-line note
+inside code and the trailing comment past the width
 (`comment-style.sh`), test scripts that cannot detect a failed load (`test-harness.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
@@ -680,6 +681,14 @@ Never `require("foo").method()`. A kernel script does the same with a local:
   the errno, and the `buf + 1` on the line below reads on from it; put on the `lua_pushstring`
   instead, it reads as a note about pushing a string, and #990 merged that way before it was
   noticed.
+* Code that serves a range of kernels says the range, above the line it applies to: `-- v6.11 and
+  later: sk_skb_reason_drop(sk, skb, reason)` above that entry of a table, `-- v6.10 and earlier:
+  kfree_skb_reason(skb, reason)` above the other. What changed at the release, `v6.11 turned
+  kfree_skb_reason into a static inline over sk_skb_reason_drop`, is history and goes in the commit
+  body; written above the table instead, with an order its entries did not need, it left the reader
+  to work out which entry served which kernel, and the review of #929 called it ready to merge before
+  the maintainer asked for the range on each entry. `comment-style.sh` names a comment that pairs a
+  release with a verb of change, and one that names a release above the opening of a table.
 * A literal in a comment is either the rule or marked as one instance of it. `/* "-ENOENT":
   errname keeps the sign */` read as a case special to that errno until the maintainer asked
   whether it was only an example; `/* %pe keeps the sign, e.g. "-ENOENT" */` says the rule and
