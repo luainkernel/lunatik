@@ -59,11 +59,7 @@ is not writable from this machine, CLAUDE.local.md says how it pushes).`
 
 const COMMON = `
 You are reviewing pull request #${a.pr} of Lunatik (Lua in the Linux kernel), in the checkout at \`${repo}\`:
-branch \`${a.branch}\`, head \`${a.head}\`, base \`${a.base}\`. Work at maximum thoroughness within your phase.
-
-READ FIRST, they are the authority and override anything below:
-- AGENTS.md at the repository root, all of it
-- CLAUDE.local.md beside it, where the machine has one
+branch \`${a.branch}\`, head \`${a.head}\`, base \`${a.base}\`.
 
 CHECKPOINT, before anything else: the file ${checkpoint} is the review's memory across phases and across
 a phase that dies. If it exists, read it and continue from it; do not redo what it records. Append every
@@ -81,21 +77,13 @@ ENVIRONMENT:
   the Build phase, and where it does not, say so and skip the build rather than ask for a password.
 - Work in a worktree of your own under ${a.scratch}/, created with an ABSOLUTE path
   (\`git -C ${repo} worktree add <abs path> <ref>\`, then \`git submodule update --init\`),
-  named review${a.pr}-<phase>. Never touch a worktree that is not yours: a worktree named for a task may
-  belong to another session, so read \`git worktree list\` and the branch a worktree holds before touching one.
-- NEVER \`git stash\` anywhere in this repository: the stash stack is shared and \`stash@{0}\` is another
-  agent's work. Compare revisions with a throwaway worktree or \`git show <ref>:<path>\`.
-- /dev/lunatik is single: never two lunatik operations at once, check with ps first. NEVER run
-  \`lunatik run examples/ifquarantine/control\` bare; any example goes through \`${sudo} bash tools/watchdog.sh\`.
-  \`tests/probe/armed.sh\` must never run against a build without \`lunatik_checkarmed\`.
-- NEVER commit to master, never \`git checkout master\`. GitHub reads go through
+  named review${a.pr}-<phase>. The worktrees, the stash, the device and the examples are shared, as AGENTS.md
+  "Build, install, test" and the guards it describes say.
+- GitHub reads go through
   \`${api('<path>')}\` with \`GH_TOKEN\` from the environment${a.gh === false ? '' : ' (`gh pr view` fails, no read:org)'};
   where \`GH_TOKEN\` is unset, report that the conversation could not be read. DO NOT POST ANYTHING TO GITHUB.
 - A command the host's policy refuses is written in the checkpoint and not tried again: six retries of one
   refused push is how a nine hour run returned nothing for the pull request it was on.
-- Read the host before assuming one (\`uname -srm\`): a kernel interface is verified against
-  \`/usr/src/linux-headers-$(uname -r)/include\` and the running kernel's \`Module.symvers\`, and against a full
-  source tree where CLAUDE.local.md names one. Vendored Lua 5.5.
 
 ${FIXUP} Its SHA goes in the checkpoint line. Ask of each one
 whether the finding is answered by removing rather than adding: a fix that grows a layer over the one it
