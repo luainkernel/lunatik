@@ -238,7 +238,10 @@ carries: an update appended to #418 was refused over the build log its reporter 
 no edit's to rewrite. When GitHub does not answer, the whole body is read. This guard and the review
 guard read a write in every spelling gh takes of it: `new` beside `create`, `-R` before the verb, `-F`
 and `-b` on `gh pr` and `gh issue`, a field attached to its flag, and the JSON `gh api --input` sends,
-whose other fields go through `machine-leak.sh` too; `gh issue comment` is the review guard's.
+whose other fields go through `machine-leak.sh` too; `gh issue comment` is the review guard's. A
+write whose text no guard reads is refused: one through curl to GitHub's API, and a GraphQL mutation
+other than the textless ones the skills run. GitHub is written through gh, and where gh is absent the
+implement-issue workflow reads through curl and writes nothing.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate

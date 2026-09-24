@@ -16,7 +16,8 @@
 //   model       the model every agent runs on, default the session's
 //   push        false where a push from an agent is refused on this machine: the implementer leaves
 //               its commits on the branch and opens nothing, and no review runs
-//   repo, sudo, gh   as review.js takes them, and passed to it
+//   repo, sudo, gh   as review.js takes them, and passed to it; with gh false the agents write nothing to
+//               GitHub, and the pull request and the filing are the session's
 //
 // Its last stage files findings_left, what either one leaves as an issue, and it returns the
 // implementer's answer, the review's, the issues that now hold each entry, and any entry left unfiled.
@@ -36,14 +37,15 @@ const model = a.model ? { model: a.model } : {}
 const checkpoint = `${a.scratch}/issue${a.issue}/IMPLEMENT.md`
 const fileCheckpoint = `${a.scratch}/issue${a.issue}/FILED.md`
 const REVIEW = '.agents/skills/review-pr/review.js'
+// where gh is absent curl reads GitHub and writes nothing to it, since no guard reads a write through curl
 const github = a.gh === false
-  ? 'curl against https://api.github.com with `Authorization: Bearer $GH_TOKEN`, as the review-pr skill spells it'
+  ? 'curl against https://api.github.com with `Authorization: Bearer $GH_TOKEN`, as the review-pr skill spells it, to read only'
   : '`gh api`, as the review-pr skill spells it'
 
 const PUSH = a.push === false
   ? 'Push nothing: the session that launched this workflow pushes the branch.'
   : 'Push each commit as a command of its own, as you make it.'
-const OPEN = a.push === false
+const OPEN = a.push === false || a.gh === false
   ? `Open no pull request, and keep the branch for the session, which opens it; your answer's pr is 0.`
   : `Open the pull request against \`${base}\` with a body that passes tools/checks/pr-body.sh and carries
    \`Closes #${a.issue}\` on a line of its own, then remove your worktree.`
@@ -51,7 +53,7 @@ const OPEN = a.push === false
 const IMPLEMENT = `
 You implement issue #${a.issue} of Lunatik, in a worktree of your own under ${a.scratch}/ on
 ${a.branch ? `the branch \`${a.branch}\`` : 'a branch named for the change'}, started from \`origin/${base}\` as
-fetched now. GitHub is read and written through its REST API, ${github}.
+fetched now. GitHub is read, and written where gh is present, through its REST API, ${github}.
 ${a.notes ? '\nFROM THE SESSION THAT LAUNCHED THIS: ' + a.notes + '\n' : ''}
 CHECKPOINT: ${checkpoint} is your memory across a death (AGENTS.md, "Patches and commits", on work an
 agent does for a workflow). If it exists, read it first and continue from it. Append a line per step as
@@ -165,7 +167,9 @@ if (implemented?.pr) {
 
 const findings_left = [implemented, review].flatMap(r => r?.findings_left || [])
 let filed = []
-if (findings_left.length) {
+if (a.gh === false && findings_left.length)
+  log('gh is absent: the session files what the agents left')
+else if (findings_left.length) {
   phase('File')
   const filing = await agent(FILE(findings_left, implemented?.pr || a.issue), {
     label: `file:${a.issue}`, phase: 'File', effort: a.effort, schema: FILED, ...model,
