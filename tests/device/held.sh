@@ -25,7 +25,8 @@
 # - a runtime stopped while a file holds its device removes the node, and the
 #   file reads, writes and reopens ENXIO; the script starts again under the
 #   same name with that file still open, the file reads ENXIO rather than reach
-#   the new device, and the memory goes at its close.
+#   the new device, a reopen of it through /proc is refused with ENXIO when the
+#   new device took its number, and the memory goes at its close.
 #
 # A build without the file's hold reads freed memory in each held case, so the
 # test skips unless the loaded luadevice lists luadevice_free in /proc/kallsyms.
@@ -78,7 +79,7 @@ refuses() {
 writeheld() { printf x >&"$1"; }
 
 ktap_header
-ktap_plan 11
+ktap_plan 12
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -121,6 +122,7 @@ ktap_pass "a refused open holds nothing: its device goes with its runtime"
 run_script "$SCRIPT"
 base=$(frees)
 exec 4<> "/dev/$HELD"
+number=$(stat -c %t:%T "/dev/$HELD")
 lunatik stop "$SCRIPT" > /dev/null
 [ ! -e "/dev/$HELD" ] && [ ! -e "/sys/class/luadevice/$HELD" ] || fail "a runtime stop left the node of a device a file holds"
 refuses "$ENXIO" cat <&4 || fail "a file held across its runtime's stop did not read ENXIO"
@@ -132,6 +134,13 @@ run_script "$SCRIPT"
 [ "$(cat "/dev/$HELD")" = "held" ] || fail "the device started again under its name does not read"
 refuses "$ENXIO" cat <&4 || fail "a file held across its runtime's stop reached the device started again"
 ktap_pass "the device starts again under its name while the old file is open, and the old file does not reach it"
+
+if [ "$(stat -c %t:%T "/dev/$HELD")" = "$number" ]; then
+	refuses "$ENXIO" cat /proc/self/fd/4 || fail "a reopen of a file held across its runtime's stop opened the device that took its number"
+	ktap_pass "a reopen of a file held across its runtime's stop does not open the device that took its number"
+else
+	ktap_skip "the device started again did not take the number of the one the file holds"
+fi
 
 [ "$(frees)" -eq $((base + 2)) ] || fail "a device's memory went while a file held it across its runtime's stop"
 exec 4<&-
