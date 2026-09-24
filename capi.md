@@ -47,7 +47,7 @@ Describes a Lunatik object class.
 
 ### lunatik\_runtime
 ```C
-int lunatik_runtime(lunatik_object_t **pruntime, const char *script, bool sleep);
+int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);
 ```
 _lunatik\_runtime()_ creates a new `runtime` environment then loads and runs the script
 `/lib/modules/lua/<script>.lua` as the entry point for this environment.
@@ -59,13 +59,19 @@ Lua [userdata](https://www.lua.org/manual/5.5/manual.html#2.1)
 which also hold
 a [lock type](https://docs.kernel.org/locking/locktypes.html) and
 a [reference counter](https://www.kernel.org/doc/Documentation/kref.txt).
-If `sleep` is _true_, _lunatik\_runtime()_ will use a
+`opt` selects the context the `runtime` environment runs in.
+With `LUNATIK_OPT_NONE`, _lunatik\_runtime()_ will use a
 [mutex](https://docs.kernel.org/locking/mutex-design.html)
 for locking the `runtime` environment and the
 [GFP\_KERNEL](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html)
 flag for allocating new memory later on
 [lunatik\_run()](#lunatik_run) calls.
-Otherwise, it will use a [spinlock](https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t) and [GFP\_ATOMIC](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html).
+With `LUNATIK_OPT_SOFTIRQ` or `LUNATIK_OPT_HARDIRQ`, it will use a
+[spinlock](https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t),
+taken with bottom halves off, or with interrupts off for `LUNATIK_OPT_HARDIRQ` and wherever
+interrupts are already off, and
+[GFP\_ATOMIC](https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html)
+once the script has loaded.
 _lunatik\_runtime()_ opens the Lua standard libraries
 [present on Lunatik](https://github.com/luainkernel/lunatik#c-api).
 If successful, _lunatik\_runtime()_ sets the address pointed by `pruntime` and
@@ -73,7 +79,7 @@ If successful, _lunatik\_runtime()_ sets the address pointed by `pruntime` and
 with a pointer for the new created `runtime` environment,
 sets the _reference counter_ to `1` and then returns `0`.
 Otherwise, it returns `-ENOMEM`, if insufficient memory is available;
-or `-EINVAL`, if it fails to load or run the `script`.
+or `-ENOEXEC`, if it fails to load or run the `script`.
 
 #### Example
 ```Lua
@@ -88,7 +94,7 @@ static lunatik_object_t *runtime;
 
 static int __init mydevice_init(void)
 {
-	return lunatik_runtime(&runtime, "mydevice", true);
+	return lunatik_runtime(&runtime, "mydevice", LUNATIK_OPT_NONE);
 }
 ```
 
