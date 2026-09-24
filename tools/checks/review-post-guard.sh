@@ -33,7 +33,7 @@ esac
 
 . "$(dirname "$0")/commands.sh"
 
-posts=$(gh_writes "$(commands "$input")" 'review|comment' \
+posts=$(gh_writes "$(commands "$input")" 'pr (review|comment)' \
 	'^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/(pulls|issues)/([0-9]+/)?(reviews|comments)(/|$)')
 [ -n "$posts" ] || exit 0
 

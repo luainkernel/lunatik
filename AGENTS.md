@@ -230,7 +230,9 @@ blocks a `gh` write to pulls that carries a body file the check fails on, or tha
 finds the machine in; a body it cannot read is refused rather than skipped, as in the review guard below.
 A write to a pull request's reviews or comments is that guard's and not this one's: a review body
 runs past three paragraphs by design, and #851's held a rewrite of its own verdict until the path
-was read for what it was.
+was read for what it was. A write to issues takes this guard too, since the implement-issue workflow
+opens and edits issues from what its agents leave and its prompt asking for the checks enforced none;
+`untraced.sh` stands in there for `pr-body.sh`, whose paragraphs and Closes line are a pull request's.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
@@ -328,8 +330,9 @@ and on none of its five inline comments, which stand alone in the conversation.
 `untraced.sh` reads a text about to be published, a review, a comment, a pull request body, for the
 word that names a failure nobody read: a failure that comes and goes is read in the journal around the
 failing run, `tools/journal.sh` prints every unit's lines in that window, and the text names the
-mechanism or carries a hypothesis with what was not captured. `pr-body.sh` and `review-post-guard.sh`
-run it. The review of #1016 called `nl80211_station`'s failure a flake on the strength of a rerun that
+mechanism or carries a hypothesis with what was not captured. `pr-body.sh`, `review-post-guard.sh`
+and, on an issue body, `pr-body-guard.sh` run it. The review of #1016 called `nl80211_station`'s
+failure a flake on the strength of a rerun that
 passed; the journal had NetworkManager and wpa_supplicant taking the interface the test had just
 brought up.
 
