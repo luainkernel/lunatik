@@ -31,6 +31,7 @@ TESTS=(
 	spawn_suffix.sh
 	percpu_netfilter.sh
 	finalizer.sh
+	collected.sh
 )
 
 SEP=""
