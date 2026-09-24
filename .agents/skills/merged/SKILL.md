@@ -25,6 +25,12 @@ Left on the merged branch it merges into that branch and never reaches master, w
 did one merge after #1040; and a merged branch deleted before its stacked pull requests move closes
 them.
 
+A stacked pull request opens as a draft, which GitHub does not merge; on master it is marked
+ready, through GraphQL since REST has no endpoint for it:
+
+    gh api graphql -f query='mutation($id: ID!) { markPullRequestReadyForReview(input: {pullRequestId: $id}) { pullRequest { isDraft } } }' \
+        -f id="$(gh api repos/<owner>/<repo>/pulls/<M> --jq .node_id)"
+
 # 3. Restack
 
 In a worktree of the stacked branch, record its head, then:

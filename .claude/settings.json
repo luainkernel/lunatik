@@ -26,6 +26,10 @@
           },
           {
             "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/stacked-guard.sh\""
+          },
+          {
+            "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/consumers-guard.sh\""
           },
           {
