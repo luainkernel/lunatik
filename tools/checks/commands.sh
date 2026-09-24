@@ -234,7 +234,7 @@ runs_watchdog() {
 # matching <verbs>, or gh api on a matching endpoint with a method other than GET, or with a field
 # and no method, which gh sends as a POST
 gh_writes() {
-	printf '%s\n' "$1" | awk -v verbs="^($2)\$" -v path="$3" '
+	printf '%s\n' "$1" | path="$3" awk -v verbs="^($2)\$" '
 	$1 !~ /^([^ ]*\/)?gh$/ {
 		next
 	}
@@ -258,7 +258,7 @@ gh_writes() {
 				fields = 1
 			else if ($i ~ /^(-H|--header|-q|--jq|-t|--template|-p|--preview|--hostname|--cache)$/)
 				i++
-			else if ($i !~ /^-/ && $i ~ path)
+			else if ($i !~ /^-/ && $i ~ ENVIRON["path"]) # -v would read the backslashes in it as escapes
 				hit = 1
 		if (hit && (method != "" ? method != "GET" : fields))
 			print
