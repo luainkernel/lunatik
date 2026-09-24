@@ -4,8 +4,10 @@
 // Every phase appends what it finds to a checkpoint file the moment it finds it,
 // so a phase that dies leaves its findings on disk and its successor continues
 // from them instead of reading the branch again. The build phase runs only when
-// the head has not been validated already, a fixup changed the code or a phase died
-// before saying whether one did, or an example the change touches has not been run on it.
+// the head has not been validated already, an example the change touches has not been
+// run on it, or the branch moved past the validated head in a file the build, the
+// install or the suite reads; a fixup to documentation or the harness leaves the
+// validated run standing.
 //
 // Usage: Workflow({scriptPath: '.agents/skills/review-pr/review.js', args: {...}})
 //   pr          pull request number
@@ -134,15 +136,20 @@ Append each failing rule and each gap to the checkpoint as a finding; fix what y
 `
 
 const unrun = (a.examples || []).filter(e => !(a.validated?.examples || []).includes(e))
+const UNBUILT = 'a Markdown file, or a path under doc/, .agents/, .claude/, .github/ or tools/checks/, or config.ld'
 
 const BUILD = COMMON + `
-PHASE: BUILD. The head is either not yet validated, a fixup changed the code, or an example the change touches
+PHASE: BUILD. The head is either not yet validated, moved by a fixup, or an example the change touches
 has not been run on it. In a worktree at the current tip of \`${a.branch}\`: \`make\` clean,
 \`${sudo} env PWD=$PWD make install\`, \`${sudo} lunatik reload\`, \`${sudo} lunatik test\`, all
 inside your turn, never armed in the background. Run the examples the change touches through tools/watchdog.sh,
 not merely built, each one driven as its README says and stopped, with dmesg read after: the suite covers what a
 test author thought of, an example is the binding at the rate a user drives it.
 ${unrun.length ? 'These have not been run on this head: ' + unrun.join(', ') + '.' : ''}
+${a.validated && !unrun.length ? `Before any of that: \`${a.head}\` already passed (${a.validated.suite}, core ${a.validated.core}),
+so list what the branch changed since, \`git diff --name-only ${a.head} <the tip>\`. When every path is ${UNBUILT},
+which the build, the install and the suite never read, run nothing: answer skipped true, with the tip as head, the
+validated totals and core, and the paths in notes.` : ''}
 Report the totals, the core srcversion (\`/sys/module/lunatik/srcversion\` while loaded), the examples run, and
 any kernel complaint in dmesg.
 `
@@ -187,6 +194,7 @@ const BUILD_OUT = {
   type: 'object',
   properties: {
     totals: { type: 'string' }, core: { type: 'string' }, head: { type: 'string' },
+    skipped: { type: 'boolean', description: 'true when only unbuilt paths moved past the validated head' },
     examples: { type: 'array', items: { type: 'string' } }, clean: { type: 'boolean' }, notes: { type: 'string' },
     findings_left: LEFT,
   },
@@ -204,10 +212,12 @@ let build = null
 if (!a.validated || changed || unrun.length) {
   phase('Build')
   build = await agent(BUILD, { label: `build:${a.pr}`, phase: 'Build', effort: 'medium', schema: BUILD_OUT, ...model })
+  if (build?.skipped)
+    log(`build skipped: ${a.head} validated, and the branch moved past it only in paths the build does not read`)
 } else {
   log(`build skipped: head ${a.head} already validated (${a.validated.suite}, core ${a.validated.core}, examples ${(a.validated.examples || []).join(' ') || 'none'}) and no fixup changed it`)
 }
 
 const findings_left = [hunt, rules, build].flatMap(p => p?.findings_left || [])
-return { checkpoint, hunt, rules, build, validated: build ? null : a.validated, findings_left }
+return { checkpoint, hunt, rules, build, validated: build && !build.skipped ? null : a.validated, findings_left }
 

@@ -77,10 +77,10 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
   that completed under `resumeFromRunId`.
 - A head the suite already passed is not built again by the review: the totals, the core
   srcversion and the examples run on it go in the briefing (`args.validated`), and the build phase
-  runs only when a fixup changed the code or an example the change touches
-  (`tools/checks/examples-touched.sh` over the changed files, passed as `args.examples`) is not
-  among them. The suite is not the examples: #795 and #837 passed the probe suite and neither ran
-  systrack, whose first run on the merged code took the host down.
+  runs only when a fixup changed a file the build, the install or the suite reads, or an example
+  the change touches (`tools/checks/examples-touched.sh` over the changed files, passed as
+  `args.examples`) is not among them. The suite is not the examples: #795 and #837 passed the probe
+  suite and neither ran systrack, whose first run on the merged code took the host down.
 - A phase writes its own answer back into the checkpoint before it returns, not only the findings as
   it closes them, so an agent dropped between its last tool call and the runner's record still leaves
   the verdict on disk.
