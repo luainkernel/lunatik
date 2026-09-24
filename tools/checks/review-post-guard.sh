@@ -27,27 +27,29 @@ input=$(cat)
 
 # a cheap bail on the raw input, which carries the description too; the command itself decides below
 case "$input" in
-	*"gh api"*reviews*|*"gh api"*comments*|*"gh pr review"*|*"gh pr comment"*) ;;
+	*"gh api"*reviews*|*"gh api"*comments*|*"gh pr "*|*"gh issue "*) ;;
 	*) exit 0 ;;
 esac
 
 . "$(dirname "$0")/commands.sh"
 
-posts=$(gh_writes "$(commands "$input")" 'pr (review|comment)' \
+posts=$(gh_writes "$(commands "$input")" 'pr (review|comment)|issue comment' \
 	'^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/(pulls|issues)/([0-9]+/)?(reviews|comments)(/|$)')
 [ -n "$posts" ] || exit 0
 
-flag="(body=@|--body-file[ =]|--input[ =])"
-# the quotes gh is written with are not part of the path: skipped before it, excluded from it
-files=$(printf '%s' "$posts" | grep -oE "$flag[\"'\\\\]*[^[:space:]\"'\\\\]+" | sed -E "s/^$flag[\"'\\\\]*//")
-
-if [ -z "$files" ]; then
-	case "$posts" in
-		*body=*|*"--body "*|*"--body="*)
-			echo "review-post-guard: the text of a post is read from a file: pass it as -F body=@<file>." >&2
-			exit 2 ;;
+files=
+while IFS= read -r post; do
+	body=$(gh_body "$post")
+	case $body in
+	"") ;;
+	inline)
+		[ "$(printf '%s' "$post" | awk '{ print $2 }')" = api ] && body='-F body=@<file>' || body='--body-file <file>'
+		echo "review-post-guard: the text of a post is read from a file: pass it as $body." >&2
+		exit 2 ;;
+	*)
+		files="$files ${body#* }" ;;
 	esac
-fi
+done <<< "$posts"
 
 for f in $files; do
 	[ -f "$f" ] && continue

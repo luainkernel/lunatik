@@ -231,14 +231,19 @@ runs_watchdog() {
 }
 
 # the gh commands among <cmds> that write where the extended regex <path> points: a gh command whose
-# noun and verb match <cli>, as `pr create`, or gh api on a matching endpoint with a method other than
-# GET, or with a field and no method, which gh sends as a POST
+# noun and verb match <cli>, as `pr create`, past a -R before the verb, or gh api on a matching endpoint
+# with a method other than GET, or with a field and no method, which gh sends as a POST
 gh_writes() {
 	printf '%s\n' "$1" | path="$3" awk -v cli="^($2)\$" '
 	$1 !~ /^([^ ]*\/)?gh$/ {
 		next
 	}
-	($2 " " $3) ~ cli {
+	{
+		verb = 3
+		while ($verb ~ /^(-R|--repo)$/ || $verb ~ /^--repo=/)
+			verb += $verb ~ /^--repo=/ ? 1 : 2
+	}
+	($2 " " $verb) ~ cli {
 		print
 		next
 	}
@@ -271,5 +276,61 @@ gh_token() {
 	[ -n "$GH_TOKEN" ] && { printf '%s' "$GH_TOKEN"; return; }
 	cat "$(command_text "$1" | grep -oE 'GH_TOKEN=\$\(cat [^)"]+\)' | head -n 1 |
 		sed -E 's/^GH_TOKEN=\$\(cat (.*)\)$/\1/')" 2>/dev/null
+}
+
+# what carries the text of the gh write <post>: "file <path>", "input <path>" for the JSON gh api sends
+# whole, "inline" for text on the command line, nothing for a write without text; the flags are the
+# form's, since -F names a file to gh pr and gh issue and a field to gh api
+gh_body() {
+	printf '%s\n' "$1" | awk '
+	function bare(s) {
+		gsub(/^["\047\\]+|["\047\\]+$/, "", s)
+		return s
+	}
+	# a gh api field, body=@<file> read from the file when typed, body=<text> otherwise
+	function field(v, typed) {
+		v = bare(v)
+		if (v !~ /^body=/)
+			return 0
+		v = substr(v, 6)
+		print (typed && v ~ /^@/ ? "file " bare(substr(v, 2)) : "inline")
+		return 1
+	}
+	$2 == "api" {
+		for (i = 3; i <= NF; i++)
+			if ($i ~ /^(-F|--field|-f|--raw-field)$/) {
+				if (field($(i + 1), $i ~ /^(-F|--field)$/))
+					exit
+				i++
+			}
+			else if ($i ~ /^(-[Ff]|--field=|--raw-field=)./) {
+				if (field(substr($i, $i ~ /^-[Ff]/ ? 3 : $i ~ /^--field=/ ? 9 : 13), $i ~ /^(-F|--field=)/))
+					exit
+			}
+			else if ($i == "--input") {
+				print "input " bare($(i + 1))
+				exit
+			}
+			else if ($i ~ /^--input=/) {
+				print "input " bare(substr($i, 9))
+				exit
+			}
+		exit
+	}
+	{
+		for (i = 3; i <= NF; i++)
+			if ($i == "-F" || $i == "--body-file") {
+				print "file " bare($(i + 1))
+				exit
+			}
+			else if ($i ~ /^--body-file=/) {
+				print "file " bare(substr($i, 13))
+				exit
+			}
+			else if ($i ~ /^(-b|--body)$/ || $i ~ /^(-b.|--body=)/) {
+				print "inline"
+				exit
+			}
+	}'
 }
 
