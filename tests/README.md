@@ -805,10 +805,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **finalizer**: `__gc` called from a script is refused, as a method, through
   `getmetatable`, through `pcall` and from the `__gc` of a table of the script's
   own, which the collector runs with its own steps stopped: any of them runs the
-  class release in the script's own context, past the registry pin that keeps a
-  registered object for the close. The collector's own call, from a GC step
-  inside a debug hook, on a dropped object and at the close, is accepted and
-  leaves no `__gc` warning.
+  class release in the script's own context. The collector's own call, from a
+  GC step inside a debug hook, on a dropped object and at the close, is accepted
+  and leaves no `__gc` warning.
 
 - **collected**: a runtime, and a percpu set, whose last handle the collector
   takes closes. Its child requires `byteorder`, which holds the module until
@@ -816,6 +815,16 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   the child run on its own raises it by one until its stop, and a driver that
   creates a runtime and a percpu set of it, keeps neither handle and collects
   leaves it where it was when its body returns.
+
+- **owned**: a registered object is the runtime's until its close, not the
+  registry's and not its finalizer's. A script that drops a device's handle,
+  clears every registry slot naming it through `debug.getregistry` and
+  collects keeps the device until the runtime stops; one that clears `__gc`
+  off the class metatable, or swaps a device's metatable for an empty one with
+  `debug.setmetatable`, so the collector runs no finalizer, loses the devices
+  at the stop all the same. The second half skips unless the loaded core lists
+  `lunatik_closeobjects`, since without it a device with no finalizer outlives
+  its module.
 
 ### sched
 

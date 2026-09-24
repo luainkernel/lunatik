@@ -8,9 +8,8 @@
 # Every class metatable is its own __index, so the __gc it carries is reachable
 # as a method, obj:__gc(), and through getmetatable(obj).__gc(obj). Either call
 # drops the reference the userdata holds and, when that is the last one, runs the
-# class release in whatever context the script is in, past the registry pin that
-# keeps a registered object for lua_close. finalizer.lua calls __gc on a data
-# object as a method, through the metatable, through pcall, and from the __gc of
+# class release in whatever context the script is in. finalizer.lua calls __gc
+# on a data object as a method, through the metatable, through pcall, and from the __gc of
 # a table of its own, which the collector runs with its own steps stopped, and
 # asserts the refusal on all four; then it drops an object under a debug line
 # hook and grows a table, where the hook's own GC checkpoint is the only one

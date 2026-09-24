@@ -32,6 +32,7 @@ TESTS=(
 	percpu_netfilter.sh
 	finalizer.sh
 	collected.sh
+	owned.sh
 )
 
 SEP=""

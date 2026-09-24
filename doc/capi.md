@@ -445,14 +445,41 @@ Removes the value stored in `LUA_REGISTRYINDEX` at `key`.
 ```C
 void lunatik_registerobject(lua_State *L, int ix, lunatik_object_t *object);
 ```
-Pins `object` and its `private` pointer in `LUA_REGISTRYINDEX`, preventing garbage
-collection. `ix` is typically the index of the opts table passed to the registration function.
+Stores the value at stack index `ix` in `LUA_REGISTRYINDEX` at `object->private`, where the
+callback looks it up, and hands `object` to its runtime with `lunatik_ownobject`. `ix` is
+typically the index of the opts table passed to the registration function.
 
 ### lunatik\_unregisterobject
 ```C
 void lunatik_unregisterobject(lua_State *L, lunatik_object_t *object);
 ```
-Removes `object` and its `private` pointer from the registry, allowing GC to collect them.
+Removes the value stored at `object->private` from the registry and gives `object` back to its
+handle with `lunatik_disownobject`.
+
+### lunatik\_ownobject
+```C
+void lunatik_ownobject(lua_State *L, lunatik_object_t *object);
+```
+Makes the reference the handle holds the runtime's: the runtime releases `object` at its close,
+on the closing task, before the collector runs and whether or not it runs the handle's `__gc`,
+so a release that sleeps runs there and nowhere else. The registry and the class metatable are a
+script's to reach, through `debug.getregistry` and `getmetatable`, and the objects a runtime
+owns are on a list a script cannot name. For a `SINGLE` object created in the runtime of `L`,
+which is where every registered object is created.
+
+### lunatik\_disownobject
+```C
+void lunatik_disownobject(lunatik_object_t *object);
+```
+Gives the reference back to the handle, whose `__gc` then puts it as for any other object. The
+caller holds the handle, as a `stop` method and a constructor's error path do. Does nothing for
+an object the runtime does not own.
+
+### lunatik\_isowned
+```C
+bool lunatik_isowned(lunatik_object_t *object);
+```
+Whether a runtime owns `object`.
 
 ### lunatik\_getregistry
 ```C

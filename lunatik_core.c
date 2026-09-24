@@ -77,10 +77,34 @@ static inline void lunatik_runerror(lua_State *L, const char *errmsg)
 		pr_err("%s\n", errmsg);
 }
 
+/* tests/runtime reads this symbol */
+static noinline __noclone void lunatik_closeobjects(struct hlist_head *owned)
+{
+	lunatik_object_t *object;
+
+	hlist_for_each_entry(object, owned, node)
+		lunatik_closeprivate(object); /* the release runs here, whatever a script did to __gc */
+}
+
+static void lunatik_putobjects(struct hlist_head *owned)
+{
+	lunatik_object_t *object;
+	struct hlist_node *next;
+
+	hlist_for_each_entry_safe(object, next, owned, node) {
+		hlist_del_init(&object->node);
+		lunatik_putobject(object);
+	}
+}
+
 static void lunatik_releaseruntime(void *private)
 {
 	lua_State *L = (lua_State *)private;
+	struct hlist_head *owned = &lunatik_toruntime(L)->owned;
+
+	lunatik_closeobjects(owned);
 	lua_close(L);
+	lunatik_putobjects(owned); /* after the handles: a finalizer reads the object its handle points at */
 }
 
 int lunatik_stop(lunatik_object_t *runtime)
@@ -286,9 +310,7 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 	lua_pushlightuserdata(L, (void *)script);
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
 		lunatik_runerror(Lfrom, lua_tostring(L, -1));
-		runtime->private = NULL;
-		lua_close(L); /* hooks hold extra krefs; putobject alone won't reach 0 */
-		lunatik_putobject(runtime);
+		lunatik_stop(runtime); /* hooks hold extra krefs; putobject alone won't reach 0 */
 		return -ENOEXEC;
 	}
 

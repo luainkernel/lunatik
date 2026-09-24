@@ -171,7 +171,7 @@ static int luanetlink_channel_new(lua_State *L)
 	lunatik_try(L, genl_register_family, &channel->family);
 	channel->registered = true;
 
-	lunatik_register(L, -1, object); /* pin: release sleeps, must run at teardown */
+	lunatik_ownobject(L, object); /* the release sleeps, so it runs at the close */
 	return 1; /* object */
 }
 

@@ -128,7 +128,8 @@ int lunatik_deleteobject(lua_State *L)
 	lunatik_object_t *object = *pobject;
 
 	BUG_ON(!object);
-	lunatik_putobject(object);
+	if (!lunatik_isowned(object)) /* the runtime puts what it owns at its close */
+		lunatik_putobject(object);
 	*pobject = NULL;
 	return 0;
 }

@@ -6,6 +6,7 @@
 #ifndef lunatik_h
 #define lunatik_h
 
+#include <linux/list.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
@@ -86,6 +87,8 @@ typedef struct lunatik_object_s {
 		spinlock_t spin;
 	};
 	struct task_struct *owner;
+	struct hlist_node node;
+	struct hlist_head owned;
 	lunatik_opt_t opt;
 	gfp_t gfp;
 	unsigned long flags;
@@ -255,6 +258,8 @@ static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_cla
 	object->gfp = lunatik_isirq(object->opt) ? GFP_ATOMIC : GFP_KERNEL;
 	lunatik_newlock(object);
 	object->owner = NULL;
+	INIT_HLIST_NODE(&object->node);
+	INIT_HLIST_HEAD(&object->owned);
 }
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
@@ -485,16 +490,29 @@ static inline void lunatik_unregister(lua_State *L, const void *key)
 	lua_rawsetp(L, LUA_REGISTRYINDEX, key); /* pop nil */
 }
 
+#define lunatik_isowned(object)		(!hlist_unhashed(&(object)->node))
+
+static inline void lunatik_ownobject(lua_State *L, lunatik_object_t *object)
+{
+	/* the handle's reference is the runtime's until the close */
+	hlist_add_head(&object->node, &lunatik_toruntime(L)->owned);
+}
+
+static inline void lunatik_disownobject(lunatik_object_t *object)
+{
+	hlist_del_init(&object->node); /* the handle's again */
+}
+
 static inline void lunatik_registerobject(lua_State *L, int ix, lunatik_object_t *object)
 {
-	lunatik_register(L, ix, object->private); /* private */
-	lunatik_register(L, -1, object); /* prevent object from being GC'ed (unless stopped) */
+	lunatik_register(L, ix, object->private); /* what the callback looks up */
+	lunatik_ownobject(L, object);
 }
 
 static inline void lunatik_unregisterobject(lua_State *L, lunatik_object_t *object)
 {
-	lunatik_unregister(L, object->private); /* remove private */
-	lunatik_unregister(L, object); /* remove object, now it might be GC'ed */
+	lunatik_unregister(L, object->private);
+	lunatik_disownobject(object);
 }
 
 static inline void lunatik_setflag(lua_State *L, const void *key, bool on)
