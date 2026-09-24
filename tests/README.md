@@ -792,6 +792,13 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   inside a debug hook, on a dropped object and at the close, is accepted and
   leaves no `__gc` warning.
 
+- **collected**: a runtime, and a percpu set, whose last handle the collector
+  takes closes. Its child requires `byteorder`, which holds the module until
+  the child's state closes, so the module's refcnt counts the children open:
+  the child run on its own raises it by one until its stop, and a driver that
+  creates a runtime and a percpu set of it, keeps neither handle and collects
+  leaves it where it was when its body returns.
+
 ### sched
 
 Regression tests for `luasched`: the attach guards, and the dispatch path
