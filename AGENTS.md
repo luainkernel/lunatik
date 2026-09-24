@@ -233,6 +233,9 @@ runs past three paragraphs by design, and #851's held a rewrite of its own verdi
 was read for what it was. A write to issues takes this guard too, since the implement-issue workflow
 opens and edits issues from what its agents leave and its prompt asking for the checks enforced none;
 `untraced.sh` stands in there for `pr-body.sh`, whose paragraphs and Closes line are a pull request's.
+An edit is read for the lines it adds to the body GitHub has, asked with the credential the command
+carries: an update appended to #418 was refused over the build log its reporter had posted, which is
+no edit's to rewrite. When GitHub does not answer, the whole body is read.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate

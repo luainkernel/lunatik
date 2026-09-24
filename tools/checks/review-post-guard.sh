@@ -98,9 +98,7 @@ isownpull() {
 	local target token
 	target=$(printf '%s' "$posts" | grep -oE 'repos/[^/[:space:]"]+/[^/[:space:]"]+/(pulls|issues)/[0-9]+/(reviews|comments)' | head -n 1)
 	[ -n "$target" ] || return 1
-	token=$GH_TOKEN
-	[ -n "$token" ] || token=$(cat "$(command_text "$input" | grep -oE 'GH_TOKEN=\$\(cat [^)"]+\)' | head -n 1 |
-		sed -E 's/^GH_TOKEN=\$\(cat (.*)\)$/\1/')" 2>/dev/null)
+	token=$(gh_token "$input")
 	local repo number author login
 	repo=$(printf '%s' "$target" | cut -d/ -f2-3)
 	number=$(printf '%s' "$target" | cut -d/ -f5)
