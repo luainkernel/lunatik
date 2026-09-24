@@ -19,7 +19,8 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
 - The review is `review.js` of the review-pr skill, run nested over the pull request, so a review runs
   one way whoever launches it. The implementer's totals, core srcversion and the examples it ran go to
   it as `validated` when they were read on the head it hands over, and the review builds and runs again
-  only when a fixup changed that head or an example the change touches is not among them.
+  only when a fixup changed a file the build, the install or the suite reads, or an example the change
+  touches is not among them.
 - Where a push from an agent is refused (`push: false`), the implementer leaves its commits on the
   branch and no review runs: the session pushes, opens the pull request, and launches `review.js` with
   the implementer's `validated`.
