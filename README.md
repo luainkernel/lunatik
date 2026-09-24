@@ -195,7 +195,7 @@ and the type _number_ has only the subtype _integer_.
 ### Lua API
 
 Lunatik **does not** support the [os](https://www.lua.org/manual/5.5/manual.html#6.9) library,
-floating-point arithmetic (`__div`, `__pow`), or `debug.debug`.
+floating-point arithmetic (`__div`, `__pow`), `debug.debug` or `debug.getregistry`.
 The `math` library is present but all floating-point functions are absent —
 only integer operations are supported.
 

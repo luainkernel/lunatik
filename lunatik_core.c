@@ -224,6 +224,15 @@ static inline void lunatik_setready(lunatik_object_t *runtime)
 	lunatik_unlock(runtime);
 }
 
+/* the registry holds the pins that keep an object for the close */
+static inline void lunatik_hideregistry(lua_State *L)
+{
+	lua_getglobal(L, "debug");
+	lua_pushnil(L);
+	lua_setfield(L, -2, "getregistry");
+	lua_pop(L, 1); /* debug library */
+}
+
 static int lunatik_runscript(lua_State *L)
 {
 	const char *script = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, lua_touserdata(L, 1));
@@ -245,6 +254,7 @@ static int lunatik_runscript(lua_State *L)
 		lua_setfield(L, -2, "_ENV");
 	}
 	lua_pop(L, 1); /* lunatik library */
+	lunatik_hideregistry(L);
 
 	if (lunatik_loadfile(L, script, NULL) != LUA_OK)
 		lua_error(L);

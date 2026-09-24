@@ -410,8 +410,8 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   every float conversion; `string.pack` refuses `f` and `d` and packs and
   unpacks `n` as an integer.
 - **identifiers**: `_VERSION` is `"Lua 5.5-kernel"`, `collectgarbage("count")`
-  answers in bytes, `package.path` resolves under `/lib/modules/lua/`, `os`
-  and `debug.debug` are absent, `io` has no default stream, pipe or
+  answers in bytes, `package.path` resolves under `/lib/modules/lua/`, `os`,
+  `debug.debug` and `debug.getregistry` are absent, `io` has no default stream, pipe or
   `setvbuf`, and `package` has no `cpath` and resolves a C module in the
   kernel symbol table.
 

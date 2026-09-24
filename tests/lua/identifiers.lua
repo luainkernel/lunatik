@@ -32,6 +32,10 @@ test("the entry points a module cannot have are absent", function()
 	assert(debug.debug == nil, "debug.debug is present")
 end)
 
+test("the registry is out of a script's reach", function()
+	assert(debug.getregistry == nil, "debug.getregistry is present")
+end)
+
 test("io has no default stream, pipe or buffering control", function()
 	for _, name in ipairs(streams) do
 		assert(io[name] == nil, "io." .. name .. " is present")
