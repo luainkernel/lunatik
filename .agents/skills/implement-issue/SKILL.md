@@ -24,6 +24,9 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
 - Where a push from an agent is refused (`push: false`), the implementer leaves its commits on the
   branch and no review runs: the session pushes, opens the pull request, and launches `review.js` with
   the implementer's `validated`.
+- Where gh is absent (`gh: false`), the agents read GitHub through curl and write nothing to it, since no
+  guard reads a write through curl: the implementer opens no pull request, and the filing stage leaves
+  every entry `unfiled` for the session.
 - The last stage files `findings_left`, what the implementer and the review leave as issues: an entry
   opens an issue with its `severity:` label, or goes under an `Update:` line into the open issue it
   names as its home or reports again. It posts nothing on a pull request. What it did not file comes
