@@ -224,8 +224,9 @@ wrong, over rules that were already written and already broken, adds a paragraph
 What an investigation teaches lands here, in a skill or in a check, in the same breath as the work that
 taught it; a lesson kept in one assistant's notes is one the next contributor pays for again.
 
-`pr-body.sh` takes a pull request body file and fails it on more than three paragraphs, an em dash
-or a "Test plan" section; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
+`pr-body.sh` takes a pull request body file and fails it on more than three paragraphs, an em dash,
+a "Test plan" section or an assistant's footer, which #1119 carried past it while the script skipped
+the line; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
 blocks a `gh` write to pulls that carries a body file the check fails on, or that `machine-leak.sh`
 finds the machine in; a body it cannot read is refused rather than skipped, as in the review guard below.
 A write to a pull request's reviews or comments is that guard's and not this one's: a review body
