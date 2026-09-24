@@ -63,7 +63,7 @@ static inline void luadevice_listadd(luadevice_t *luadev)
 static inline void luadevice_listdel(luadevice_t *luadev)
 {
 	luadevice_lock();
-	list_del(&luadev->entry);
+	list_del_init(&luadev->entry);
 	luadevice_unlock();
 }
 
@@ -78,12 +78,12 @@ static noinline void luadevice_free(struct kref *kref) /* tests/device counts fr
 
 #define luadevice_put(luadev)	kref_put(&(luadev)->kref, luadevice_free)
 
-static inline luadevice_t *luadevice_find(dev_t devt)
+static inline luadevice_t *luadevice_find(struct cdev *cdev)
 {
 	luadevice_t *luadev, *found = NULL;
 	luadevice_lock();
 	luadevice_foreach(luadev)
-		if (luadev->devt == devt) {
+		if (luadev->cdev == cdev) {
 			found = luadev;
 			kref_get(&found->kref);
 			break;
@@ -183,7 +183,7 @@ static int luadevice_fop_open(struct inode *inode, struct file *f)
 	luadevice_t *luadev;
 	int ret;
 
-	if ((luadev = luadevice_find(inode->i_rdev)) == NULL)
+	if ((luadev = luadevice_find(inode->i_cdev)) == NULL)
 		return -ENXIO;
 
 	f->private_data = luadev;
@@ -227,13 +227,13 @@ static struct file_operations luadevice_fops =
 
 static void luadevice_delete(luadevice_t *luadev)
 {
+	luadevice_listdel(luadev); /* first: luadevice_find reads the cdev cleared next */
 	if (luadev->cdev != NULL) {
 		cdev_del(luadev->cdev);
 		luadev->cdev = NULL;
 	}
 
 	if (luadev->devt != 0) {
-		luadevice_listdel(luadev);
 		device_destroy(luadevice_devclass, luadev->devt);
 		unregister_chrdev_region(luadev->devt, 1);
 		luadev->devt = 0;

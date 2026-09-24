@@ -117,7 +117,9 @@ the runtime for the binding, instead of the suite reading the kernel version.
   stopped while a file holds its device removes the node, and the file
   reads, writes and reopens `ENXIO`; the script starts again under the same
   name with that file still open, the file reads `ENXIO` rather than reach
-  the new device, and the memory goes at its close. A build without the
+  the new device, a reopen of it through `/proc` is refused with `ENXIO`
+  when the new device took its number, and the memory goes at its close.
+  A build without the
   file's hold reads freed memory in each held case, so the test skips unless
   the loaded `luadevice` lists `luadevice_free` in `/proc/kallsyms`.
 
