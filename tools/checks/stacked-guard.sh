@@ -9,13 +9,13 @@ input=$(cat)
 
 # a cheap bail on the raw input, which carries the description too; the command itself decides below
 case "$input" in
-	*"gh api"*pulls*base*|*"gh pr create"*) ;;
+	*"gh api"*pulls*base*|*"gh pr "*) ;;
 	*) exit 0 ;;
 esac
 
 . "$(dirname "$0")/commands.sh"
 
-creates=$(gh_writes "$(commands "$input")" 'pr create' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls$')
+creates=$(gh_writes "$(commands "$input")" 'pr (create|new)' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls$')
 [ -n "$creates" ] || exit 0
 
 quote="[\"'\\\\]*"

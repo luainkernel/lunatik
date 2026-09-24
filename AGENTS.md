@@ -235,7 +235,10 @@ opens and edits issues from what its agents leave and its prompt asking for the 
 `untraced.sh` stands in there for `pr-body.sh`, whose paragraphs and Closes line are a pull request's.
 An edit is read for the lines it adds to the body GitHub has, asked with the credential the command
 carries: an update appended to #418 was refused over the build log its reporter had posted, which is
-no edit's to rewrite. When GitHub does not answer, the whole body is read.
+no edit's to rewrite. When GitHub does not answer, the whole body is read. This guard and the review
+guard read a write in every spelling gh takes of it: `new` beside `create`, `-R` before the verb, `-F`
+and `-b` on `gh pr` and `gh issue`, a field attached to its flag, and the JSON `gh api --input` sends,
+whose other fields go through `machine-leak.sh` too; `gh issue comment` is the review guard's.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
