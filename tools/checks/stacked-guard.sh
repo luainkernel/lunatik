@@ -15,7 +15,7 @@ esac
 
 . "$(dirname "$0")/commands.sh"
 
-creates=$(gh_writes "$(commands "$input")" 'create' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls$')
+creates=$(gh_writes "$(commands "$input")" 'pr create' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls$')
 [ -n "$creates" ] || exit 0
 
 quote="[\"'\\\\]*"

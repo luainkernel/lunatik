@@ -230,15 +230,15 @@ runs_watchdog() {
 	printf '%s\n' "$1" | grep -Eq '^([^ ]*/)?watchdog\.sh( |$)'
 }
 
-# the gh commands among <cmds> that write where the extended regex <path> points: gh pr with a verb
-# matching <verbs>, or gh api on a matching endpoint with a method other than GET, or with a field
-# and no method, which gh sends as a POST
+# the gh commands among <cmds> that write where the extended regex <path> points: a gh command whose
+# noun and verb match <cli>, as `pr create`, or gh api on a matching endpoint with a method other than
+# GET, or with a field and no method, which gh sends as a POST
 gh_writes() {
-	printf '%s\n' "$1" | path="$3" awk -v verbs="^($2)\$" '
+	printf '%s\n' "$1" | path="$3" awk -v cli="^($2)\$" '
 	$1 !~ /^([^ ]*\/)?gh$/ {
 		next
 	}
-	$2 == "pr" && $3 ~ verbs {
+	($2 " " $3) ~ cli {
 		print
 		next
 	}
