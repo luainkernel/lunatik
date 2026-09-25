@@ -96,9 +96,11 @@ device.new(driver)
 
 local runtimes = runner.run(filter, "softirq", percpu)
 
-driver.sentinel = setmetatable({}, {__gc = function()
+local function stopfilter()
 	runner.stop(filter)
-end})
+end
+
+driver.sentinel = setmetatable({}, {__gc = stopfilter})
 
 runtimes:resume(quarantined)
 
