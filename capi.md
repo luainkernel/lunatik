@@ -369,12 +369,23 @@ void lunatik_getobject(lunatik_object_t *object);
 ```
 Increments the [reference counter](https://www.kernel.org/doc/Documentation/kref.txt) of `object`.
 
+### lunatik\_getobject\_rcu
+```C
+bool lunatik_getobject_rcu(lunatik_object_t *object);
+```
+Takes a reference on an object found under `rcu_read_lock()` without one held, as an
+`rcu.table` entry hands its readers, and returns `true`; returns `false`, taking none, when the
+count is zero: the object is being released, and the reader treats it as absent. The object's
+memory outlives the grace period after its release, which is what lets the count be read there.
+`lunatik_getobject` is for a holder of a reference.
+
 ### lunatik\_putobject
 ```C
 int lunatik_putobject(lunatik_object_t *object);
 ```
 Decrements the [reference counter](https://www.kernel.org/doc/Documentation/kref.txt) of `object`.
-If the object has been released, returns `1`; otherwise returns `0`.
+If the object has been released, returns `1`; otherwise returns `0`. The release runs at once, on
+the calling task; the object's memory is freed after an RCU grace period.
 
 ---
 
