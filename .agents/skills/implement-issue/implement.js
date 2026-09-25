@@ -60,7 +60,8 @@ agent does for a workflow). If it exists, read it first and continue from it. Ap
 you take it, what you read, decided, committed, ran and measured, and your answer before you return.
 
 1. Read the issue and its comments, and the code and the kernel source they name; a cause is traced
-   before it is written down (AGENTS.md rule 1).
+   before it is written down (AGENTS.md rule 1). An issue whose stimulus is a script out of contract
+   (AGENTS.md, "Deciding what to change") closes as not a defect, with no pull request.
 2. Write the smallest shape that makes the defect unreachable, or meets the need, in the checkpoint
    before any other, and take a larger one only for what it buys (AGENTS.md, "Deciding what to change").
 3. Commit as "Patches and commits" asks: one change per commit, the harness apart from the code, tests
