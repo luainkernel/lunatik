@@ -116,6 +116,9 @@ the bug takes and the arms the fix moves; a fix that moves an arm the bug does n
 whatever the commit body says. Then correctness: for every raise, what is held and who releases
 it; every get against its put; the execution context of every path; the teardown order.
 
+A finding whose stimulus is a script out of contract (AGENTS.md, "Deciding what to change") is dismissed,
+neither fixed nor left as an issue.
+
 Write each finding to the checkpoint as you close it. Fix what you can as fixups.
 `
 

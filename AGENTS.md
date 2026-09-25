@@ -243,7 +243,11 @@ and `-b` on `gh pr` and `gh issue`, a field attached to its flag, and the JSON `
 whose other fields go through `machine-leak.sh` too; `gh issue comment` is the review guard's. A
 write whose text no guard reads is refused: one through curl to GitHub's API, and a GraphQL mutation
 other than the textless ones the skills run. GitHub is written through gh, and where gh is absent the
-implement-issue workflow reads through curl and writes nothing.
+implement-issue workflow reads through curl and writes nothing. An issue a write opens is read by
+`contract.sh` too, which refuses a finding whose stimulus reaches into the runtime's own bookkeeping,
+out of contract by the honest-mistake bullet of *Deciding what to change*: #1067 and #1106 were filed
+that way and each drew a pull request. `CONTRACT_OK=1` opens it where a script using the API as
+documented reaches the same path.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate

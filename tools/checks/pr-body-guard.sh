@@ -151,6 +151,11 @@ repo='^(https://api\.github\.com)?/?repos/[^/]+/[^/]+'
 # a review or a comment is review-post-guard's, on an endpoint below the pull request's or the issue's
 check "$(gh_writes "$cmds" 'pr (create|new|edit)' "$repo/pulls(/[0-9]+)?\$")" pr-body.sh
 check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" untraced.sh added
+# a new issue is a finding, read for a stimulus out of contract; an edit or a comment may argue about one
+case "$(command_text "$input")" in
+	*CONTRACT_OK=1*) ;;
+	*) check "$(gh_writes "$cmds" 'issue (create|new)' "$repo/issues\$")" contract.sh ;;
+esac
 unread "$cmds"
 exit 0
 

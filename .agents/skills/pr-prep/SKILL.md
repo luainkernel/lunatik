@@ -7,6 +7,8 @@ Run AGENTS.md, "Before opening a pull request" (every item) and the pull request
 under "Patches and commits": title and body say what and why, nothing the commits already say,
 no "Test plan" section, no em dashes. On top of it:
 
+- A fix answers a finding a script using the API as documented reaches; one whose stimulus is a
+  script out of contract (AGENTS.md, "Deciding what to change") closes as not a defect instead.
 - When a doc block, `@type`, `@treturn` or `config.ld` changed, run `make doc-site LUA=lua5.5`, the
   CI target, and read its exit status: LDoc quits on a module it cannot place with a line that
   says neither "warning" nor "error", so a grep for those passes a failed run. Then check the links
