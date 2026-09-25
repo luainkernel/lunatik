@@ -7,7 +7,8 @@
 * RCU-synchronized hash table.
 * Provides a concurrent hash table using Read-Copy-Update (RCU) synchronization.
 * Reads are lockless; writes are serialized. Keys are strings, values can be
-* booleans, integers, lunatik objects, or `nil` (to delete an entry).
+* booleans, integers, lunatik objects, or `nil` (to delete an entry). A read that
+* meets a writer releasing the entry's object sees the entry gone.
 *
 * See `examples/shared.lua` for a practical example.
 * @module rcu
@@ -112,8 +113,8 @@ void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lu
 		value->type = LUA_TNIL;
 	else {
 		*value = entry->value;
-		if (lunatik_isuserdata(value))
-			lunatik_getobject(value->object);
+		if (lunatik_isuserdata(value) && !lunatik_getobject_rcu(value->object))
+			value->type = LUA_TNIL;
 	}
 	rcu_read_unlock();
 }
@@ -155,7 +156,8 @@ EXPORT_SYMBOL(luarcu_setvalue);
 * Retrieves a value from the table (RCU-protected, lockless).
 * @function __index
 * @tparam string key
-* @treturn boolean|integer|object|nil
+* @treturn boolean|integer|object|nil `nil` for a key without an entry, and for one whose
+*   object a writer is releasing
 */
 static int luarcu_index(lua_State *L)
 {
@@ -242,7 +244,8 @@ static inline int luarcu_map_call(lua_State *L, int cb, const char *key, lunatik
 * Iterates over the table calling `callback(key, value)` for each entry.
 * Iteration is RCU-protected; order is not guaranteed.
 * @function map
-* @tparam function callback `function(key, value)`.
+* @tparam function callback `function(key, value)`; an entry whose object a writer is
+*   releasing is skipped.
 * @raise Error if callback raises.
 */
 static int luarcu_map(lua_State *L)
@@ -260,8 +263,8 @@ static int luarcu_map(lua_State *L)
 
 		strscpy(key, entry->key, LUARCU_MAXKEY);
 		lunatik_value_t value = entry->value;
-		if (lunatik_isuserdata(&value))
-			lunatik_getobject(value.object);
+		if (lunatik_isuserdata(&value) && !lunatik_getobject_rcu(value.object))
+			continue;
 
 		rcu_read_unlock();
 		int ret = luarcu_map_call(L, 1, key, &value);

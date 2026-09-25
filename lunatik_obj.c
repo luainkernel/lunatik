@@ -110,9 +110,15 @@ void lunatik_releaseobject(struct kref *kref)
 		lunatik_releaseprivate(object->class, private);
 
 	lunatik_freelock(object);
-	kfree(object);
+	kfree_rcu(object, rcu); /* a reader that found the object under rcu_read_lock may still read its count */
 }
 EXPORT_SYMBOL(lunatik_releaseobject);
+
+bool lunatik_getobject_rcu(lunatik_object_t *object)
+{
+	return kref_get_unless_zero(&object->kref);
+}
+EXPORT_SYMBOL(lunatik_getobject_rcu);
 
 int lunatik_deleteobject(lua_State *L)
 {

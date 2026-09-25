@@ -725,6 +725,17 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   `CONFIG_DEBUG_ATOMIC_SLEEP`; the children hold nothing that sleeps on close,
   so that build fails the test and not the host.
 
+- **object_grace**: a reader takes its reference on an entry's object under
+  `rcu_read_lock` alone, and a writer replacing the entry puts the object's
+  last reference at once: the object's memory outlives the grace period and
+  the reader takes the reference unless the count is zero, reading the entry
+  as gone. A reader thread reads one key, by index and through `rcu.map`, and
+  touches the object each hands it, while a writer thread replaces that key's
+  `data` object on every iteration, for a few seconds; every read is a usable
+  object or nil, the reader saw the entry replaced while it read, and `dmesg`
+  carries no refcount warning or oops. A stress, not a forced window; skips
+  unless the loaded core carries `lunatik_getobject_rcu`.
+
 ### runtime
 
 Regression tests for `lunatik_newruntime` and cross-runtime plumbing.

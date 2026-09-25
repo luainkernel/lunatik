@@ -93,6 +93,7 @@ typedef struct lunatik_object_s {
 	lunatik_opt_t opt;
 	gfp_t gfp;
 	unsigned long flags;
+	struct rcu_head rcu;
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;
@@ -286,6 +287,7 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 #define lunatik_toobject(L, i)		(*(lunatik_object_t **)lua_touserdata((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
+bool lunatik_getobject_rcu(lunatik_object_t *object);
 
 static inline void lunatik_require(lua_State *L, const lunatik_class_t *class)
 {
