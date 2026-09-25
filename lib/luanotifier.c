@@ -26,8 +26,6 @@
 
 #include <lunatik.h>
 
-#define LUANOTIFIER_DECLINED	(-1)
-
 typedef int (*luanotifier_register_t)(struct notifier_block *nb);
 typedef int (*luanotifier_handler_t)(lua_State *L, void *data);
 
@@ -64,9 +62,6 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 	lua_pushinteger(L, (lua_Integer)event);
 
 	int nargs = notifier->handler(L, data);
-	if (nargs == LUANOTIFIER_DECLINED)
-		return NOTIFY_DONE;
-
 	if (lua_pcall(L, nargs + 1, 1, 0) != LUA_OK) { /* callback(event, ...) */
 		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
 		return NOTIFY_OK;
@@ -130,17 +125,13 @@ static int luanotifier_##name(lua_State *L)					\
 		luanotifier_call, (class));					\
 }
 
-#define luanotifier_isinitnet(dev)	net_eq(dev_net(dev), &init_net)
-
 static int luanotifier_netdevice_handler(lua_State *L, void *data)
 {
 	struct net_device *dev = netdev_notifier_info_to_dev(data);
 
-	if (!luanotifier_isinitnet(dev))
-		return LUANOTIFIER_DECLINED;
-
 	lua_pushstring(L, dev->name);
-	return 1;
+	lua_pushinteger(L, dev_net(dev)->ns.inum);
+	return 2;
 }
 
 static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long event, void *data)
@@ -154,15 +145,18 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 
 /***
 * Registers a network-device notifier. Must be called from a process
-* runtime (the default). Only devices of the initial network namespace, the
-* one `linux.ifindex` resolves a name in, are reported. The callback runs under
-* RTNL.
+* runtime (the default). The devices of every network namespace are reported,
+* each with the inode number of its namespace: `linux.ifindex` resolves a name
+* in the initial namespace only, so a script keeps the devices that name
+* resolves by comparing that number with `linux.netns()`. The callback runs
+* under RTNL.
 *
 * @function netdevice
-* @tparam function callback invoked as `callback(event, name)` — `event`
-*   is a `linux.netdev` code and `name` is the device name (e.g. `"eth0"`).
+* @tparam function callback invoked as `callback(event, name, netns)` — `event`
+*   is a `linux.netdev` code, `name` is the device name (e.g. `"eth0"`) and
+*   `netns` the inode number of its network namespace, as `linux.netns` gives it.
 *   The registration itself delivers, inside this call, a `REGISTER` for each
-*   device the namespace already has, and an `UP` for each of those that is
+*   device every namespace already has, and an `UP` for each of those that is
 *   up; a script that means the devices appearing afterwards tells them apart
 *   with a flag it clears once this call returns, since no live event reaches
 *   the callback before the script body ends. Returns a `linux.notify` status

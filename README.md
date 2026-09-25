@@ -475,19 +475,23 @@ sudo lunatik stop examples/ifquarantine/control    # stops both scripts
 
 The interfaces that already exist are recorded and allowed, not quarantined:
 `register_netdevice_notifier` synchronously replays `NETDEV_REGISTER` (and
-`NETDEV_UP`) for each netdev the initial namespace already has when the notifier
+`NETDEV_UP`) for each netdev every namespace already has when the notifier
 block is registered, inside `notifier.netdevice`, so the script records what
 arrives before that call returns, and a policy that denied those would take the
 machine off the network, `lo` and the uplink included. They are listed by `cat
-/dev/ifquarantine` and can be quarantined with `deny=<name>`.
+/dev/ifquarantine` and can be quarantined with `deny=<name>`. The callback is
+handed each device's namespace with its name, and the script keeps the devices
+of its own, which `linux.netns()` names: a container's `lo` is reported too,
+and its name would resolve onto the host's through `linux.ifindex`.
 
 ### linkflap
 
 [linkflap](examples/linkflap/watch.lua) detects an interface that flaps: a
 `notifier.netdevice` callback keeps each interface's UP and DOWN transitions of
-the last 10 seconds, and once one interface reaches 5 it multicasts a flapping
-event, the interface name and the transition count as generic netlink
-attributes, on the `linkflap` family of a `netlink.channel`.
+the last 10 seconds, the initial namespace's only since a homonym elsewhere
+would announce under the same name, and once one interface reaches 5 it
+multicasts a flapping event, the interface name and the transition count as
+generic netlink attributes, on the `linkflap` family of a `netlink.channel`.
 [subscriber](examples/linkflap/subscriber.c) joins that family's multicast group
 from userspace and prints each event. The callback runs holding RTNL, which a
 multicast does not take, so one runtime does both. Registering the notifier

@@ -24,6 +24,7 @@ local LIMIT  <const> = 5                -- transitions within WINDOW to flag fla
 local FLAP   <const> = 1                -- channel genl command
 local IFNAME <const> = 1                -- event attribute types
 local COUNT  <const> = 2
+local home   <const> = linux.netns()    -- the namespace the announced names belong to
 
 local channel  = netlink.channel("linkflap")
 local history  = {}  -- ifname -> { transition timestamps }
@@ -46,7 +47,10 @@ local function announce(name, count)
 	channel:multicast(FLAP, message.attrs{[IFNAME] = name, [COUNT] = count})
 end
 
-local function callback(event, name)
+local function callback(event, name, netns)
+	if netns ~= home then -- the event carries the name alone, which another namespace can repeat
+		return notify.OK
+	end
 	if transitions[event] then
 		local count = record(name)
 		if count < LIMIT then

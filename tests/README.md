@@ -562,11 +562,17 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier`
   performs for the devices the namespace already has.
 
-- **netns_scope**: `notifier.netdevice` reports only the devices of the
-  initial network namespace. With a second namespace holding a homonym of
-  every device, `lo` is replayed once, and a dummy device is reported on
-  register and on unregister only when created and deleted in the initial
-  namespace.
+- **netns_scope**: `notifier.netdevice` reports the devices of every network
+  namespace, each with the inode number of its namespace, which `linux.netns()`
+  gives for the initial one and `linux.netns(pid)` for a task's: pid 1's is the
+  initial namespace's, the pid of the process kept in a second namespace gives
+  that one's, a reaped pid raises `ESRCH` and pid 0 is out of bounds. With that
+  namespace holding a homonym of every device, `lo` is replayed once per
+  namespace with its own number, a dummy device created and deleted on both
+  sides is reported on register and on unregister with the number of its side,
+  and one moved across is unregistered with the number of the namespace it
+  leaves and registered with the number of the one it joins (skips without
+  `nsenter`).
 
 - **replay**: a flag the script clears once `notifier.netdevice` returns
   tells the events `register_netdevice_notifier` delivers itself for the
