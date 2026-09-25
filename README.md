@@ -170,8 +170,8 @@ sudo lunatik test           # run all suites
 sudo lunatik test thread    # run a specific suite (bpf, crypto, data, device,
                             # examples, fifo, fsnotify, hid, io, linux, lua, luac,
                             # monitor, netlink, notifier, probe, rcu, runtime,
-                            # sched, set, skb, socket, struct, task, tc,
-                            # thread, xdp)
+                            # sched, set, signal, skb, socket, struct, task,
+                            # tc, thread, xdp)
 ```
 
 `lunatik test` reloads the modules before the run and unloads them
