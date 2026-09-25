@@ -234,8 +234,8 @@ RTNL is held by one task at a time, so one pointer serves every runtime and ever
 the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
 kernel call that takes RTNL, such as `register_netdevice_notifier`, which would wait on the lock its
 own task holds: refuse the call with `lunatik_checkrtnl`. A `release` cannot refuse, so the entry
-point that runs one on the calling task refuses instead: `runtime:stop()` and `percpu:stop()`, and
-their `__close`, under RTNL. It sees the calling task only: Lua on a second task that waits for
+point that runs one on the calling task, a `stop()` or a `close()` and its `__close`, refuses
+instead under RTNL. It sees the calling task only: Lua on a second task that waits for
 RTNL while this one waits for that task is a cycle it cannot name. Defined as macros.
 
 ### lunatik\_checkruntime
