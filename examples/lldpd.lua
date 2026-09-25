@@ -19,6 +19,7 @@ local ETH_DST_MAC = string.char(0x01,0x80,0xc2,0x00,0x00,0x0e)
 local LLDP_CAP_STATION_ONLY = 0x0080
 local RX_LEN <const> = 2048
 local POLL_MS <const> = 10
+local NS_PER_S <const> = 1000000000
 
 local config = {
 	interface = "veth0",
@@ -157,13 +158,29 @@ local function parse_lldp(frame)
 	if nbr.chassis == nil or nbr.port == nil or nbr.ttl == nil then
 		return
 	end
-	return nbr.chassis, nbr.port, nbr.name or "", src
+	return nbr.chassis, nbr.port, nbr.name or "", src, nbr.ttl
 end
 
-local function remember_neighbor(neighbors, chassis, port, name)
+local function remember_neighbor(neighbors, chassis, port, name, ttl, now)
 	local key = chassis .. "@" .. port
-	neighbors[key] = { port = port, name = name }
+	if ttl == 0 then
+		if neighbors[key] ~= nil then
+			neighbors[key] = nil
+			print(string.format("[lldpd] neighbor dropped port=%s name=%s", port, name))
+		end
+		return
+	end
+	neighbors[key] = { port = port, name = name, ttl = ttl, last_seen = now }
 	print(string.format("[lldpd] neighbor port=%s name=%s", port, name))
+end
+
+local function expire_neighbors(neighbors, now)
+	for key, nbr in pairs(neighbors) do
+		if (now - nbr.last_seen) >= nbr.ttl * NS_PER_S then
+			neighbors[key] = nil
+			print(string.format("[lldpd] neighbor dropped port=%s name=%s", nbr.port, nbr.name))
+		end
+	end
 end
 
 local ifindex = linux.ifindex(config.interface)
@@ -177,12 +194,13 @@ local function worker()
 	local last_tx = 0
 
 	while (not shouldstop()) do
+		local now = linux.time()
 		local ok, data = pcall(sock.receive, sock, RX_LEN, DONTWAIT)
 		if ok then
 			print(string.format("[lldpd] rx %d bytes on ifindex=%d", #data, ifindex))
-			local chassis, port, name, src = parse_lldp(data)
+			local chassis, port, name, src, ttl = parse_lldp(data)
 			if chassis ~= nil and src ~= src_mac then
-				remember_neighbor(neighbors, chassis, port, name)
+				remember_neighbor(neighbors, chassis, port, name, ttl, now)
 			end
 		else
 			if data ~= "EAGAIN" then
@@ -190,7 +208,7 @@ local function worker()
 			end
 		end
 
-		local now = linux.time()
+		expire_neighbors(neighbors, now)
 		if last_tx == 0 or (now - last_tx) >= tx_interval_ns then
 			sock:send(lldp_frame)
 			print(string.format("[lldpd] frame sent on ifindex=%d (%d bytes)", ifindex, #lldp_frame))
