@@ -35,7 +35,9 @@ Describes a Lunatik object class.
     the interrupt state. Required for classes whose handlers fire in hardirq context (e.g. kprobes).
   - `LUNATIK_OPT_MONITOR` *(capability)*: the class supports a monitored metatable that wraps Lua
     method calls with the object lock, enabling safe concurrent access from multiple runtimes.
-    Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`.
+    Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`. A
+    metamethod, and a method named `close`, are left unwrapped: a close takes the lock itself,
+    through `lunatik_closeprivate`, and would wait on the one the wrapper holds.
   - `LUNATIK_OPT_SINGLE` *(constraint)*: all instances are private and non-shareable by default.
     Like `SOFTIRQ`, this is always inherited and cannot be overridden per instance.
   - `LUNATIK_OPT_EXTERNAL` *(constraint)*: `object->private` holds an external pointer — Lunatik
@@ -232,8 +234,8 @@ RTNL is held by one task at a time, so one pointer serves every runtime and ever
 the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
 kernel call that takes RTNL, such as `register_netdevice_notifier`, which would wait on the lock its
 own task holds: refuse the call with `lunatik_checkrtnl`. A `release` cannot refuse, so the entry
-point that runs one on the calling task refuses instead: `runtime:stop()` and `percpu:stop()`, and
-their `__close`, under RTNL. It sees the calling task only: Lua on a second task that waits for
+point that runs one on the calling task, a `stop()` or a `close()` and its `__close`, refuses
+instead under RTNL. It sees the calling task only: Lua on a second task that waits for
 RTNL while this one waits for that task is a cycle it cannot name. Defined as macros.
 
 ### lunatik\_checkruntime
