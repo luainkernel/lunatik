@@ -860,6 +860,15 @@ named, not one discovered at that consumer's build.
 * A guard keys on a property that is true by construction where it is enforced, never on a proxy that
   merely correlates. That a registration is global is such a property. A netfilter hook number is not:
   the same hook runs in softirq or in process context depending on the path the packet took.
+* A guard in the core is for the honest mistake: the wrong object at an index, a size no binding can
+  serve, a call that sleeps from a hook. The registry, a class metatable and an object's `__gc` are
+  the runtime's own bookkeeping, and a script that reaches into them, `obj:__gc()`,
+  `debug.getregistry()`, `getmetatable(obj).__gc = nil`, is out of contract, as one that spins in a
+  hook is: root loaded it on the machine it breaks, and no guard closes that. A finding whose stimulus
+  is such a script closes as not a defect, whatever it traces from there. #1054, #1067 and #1106 were
+  that, each found while fixing the one before, and #1065, #1107 and #1130 answered them with a
+  Lua-internal header in the core, a `debug` stripped of one function and a list on every object,
+  before the family was read as one and #1065 reverted.
 * A decision taken with the maintainer is not reversed alone. When the investigation that follows points
   the other way, that is a question to bring back, not a conclusion to announce: a rename agreed as
   runtime came back as its opposite, argued from a name collision found on the way, and was published as
