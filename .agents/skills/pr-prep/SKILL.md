@@ -28,9 +28,18 @@ no "Test plan" section, no em dashes. On top of it:
 - The hand-back names, for each mechanism the change adds, the smaller shape that was considered
   and why it was not taken; a fix whose smaller shape was never written down is not ready.
 - The hand-back carries the test matrix: for each guard or mechanism the change adds, operations
-  by types by outcomes, each cell with its test or the reason it is not covered.
+  by types by outcomes, each cell with its test or the reason it is not covered. A refusal's matrix
+  is the resource's, every route from Lua to the lock or the call it protects, found by grepping
+  what acquires it, not the entry point's that showed the hang.
+- A test that skips on a build without the fix, and the message it says `check_dmesg` reads, go
+  through `bash tools/checks/test-harness.sh`; and the run with the fix absent is made and its
+  failure read, not argued from the header.
 - Every example that uses a binding the change touches is run through its own `setup.sh` and
-  `cleanup.sh`, and the hand-back says of each whether it ran, only loaded, or was not run, and why.
+  `cleanup.sh`, and the hand-back says of each whether it ran, only loaded, or was not run, and why;
+  the list is `bash tools/checks/examples-touched.sh` over the changed files, taken on the branch's
+  base when the change is written, and `bash tools/checks/examples-named.sh <body> <changed files>`
+  fails a body that leaves one of them unnamed, which `pr-body-guard.sh` runs when the pull request
+  opens.
 - The body opens with the failure or the need in one plain sentence, then what the change does,
   then what it depends on: three short paragraphs at most; `bash tools/checks/pr-body.sh <file>`
   before posting it.

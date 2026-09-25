@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Names the idioms a C diff is read for and a review round passed over on #850: a raise
 # the tree spells with one call, a guard repeated across methods, a version a feature
-# needs named as one release, and a kernel version guard whose first arm is the older
-# kernel's, which raising the floor would have to rewrite rather than delete. Takes file
+# needs named as one release, a kernel version guard whose first arm is the older
+# kernel's, which raising the floor would have to rewrite rather than delete, and a pid
+# cast from luaL_checkinteger, which #1140's linux.netns truncated. Takes file
 # paths; silent on files that carry none, and on the Lua fork under lua/, whose guards
 # keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -37,6 +38,8 @@ for file in "$@"; do
 		}
 		if (line ~ /needs an? [0-9]+\.[0-9]+ kernel/)
 			printf "%s:%d: a version a feature needs reads as that one release: \"kernel X.Y or later\"\n", f, NR
+		if (line ~ /\(pid_t\)[ \t]*luaL_(check|opt)integer\(/)
+			printf "%s:%d: a pid cast from luaL_checkinteger truncates before the kernel sees it: lunatik_checkinteger(L, ix, 1, PID_MAX_LIMIT), as socket.new bounds it\n", f, NR
 		prev = line
 	}' "$file"
 done
