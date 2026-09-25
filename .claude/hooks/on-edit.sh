@@ -12,7 +12,7 @@ file=$(printf '%s' "$input" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\
 dir=$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2>/dev/null)
 [ -n "$dir" ] && [ -d "$dir/tools/checks" ] || exit 0
 
-findings=$(for check in machine-leak module-conventions comment-style test-harness cppcheck-tests extraspace; do
+findings=$(for check in machine-leak module-conventions comment-style lua-style test-harness cppcheck-tests extraspace; do
 	bash "$dir/tools/checks/$check.sh" "$file" 2>&1
 done; bash "$dir/tools/checks/guard-removed.sh" "$file" 2>&1)
 
