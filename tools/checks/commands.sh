@@ -216,6 +216,11 @@ runs_lunatik() {
 	printf '%s\n' "$1" | grep -Eq "^([^ ]*/)?lunatik $2"
 }
 
+# the CLI as the command with no verb, the REPL, or with -e or -i: a chunk written to the device
+runs_repl() {
+	printf '%s\n' "$1" | grep -Eq '^([^ ]*/)?lunatik( -(e|i)( |$)| --(eval|interactive)( |=|$)|$)'
+}
+
 runs_install() {
 	printf '%s\n' "$1" | grep -Eq '^([^ ]*/)?make( .*)? install( |$)'
 }
