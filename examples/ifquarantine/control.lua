@@ -14,6 +14,7 @@ local stat     = require("linux.stat")
 
 local filter      <const> = "examples/ifquarantine/filter"
 local percpu      <const> = true
+local home        <const> = linux.netns() -- the namespace linux.ifindex resolves a name in
 local quarantined         = rcu.table()   -- tostring(ifindex) -> true
 local known               = {}            -- name -> ifindex
 local loading             = true
@@ -41,7 +42,10 @@ local function release(name)
 	end
 end
 
-local function callback(event, name)
+local function callback(event, name, netns)
+	if netns ~= home then -- a device of another namespace: its name resolves onto the wrong one here
+		return notify.OK
+	end
 	if event == netdev.REGISTER then
 		local ok, idx = pcall(linux.ifindex, name)
 		if ok and idx then

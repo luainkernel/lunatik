@@ -632,7 +632,7 @@ static int luasocket_accept(lua_State *L)
 *   process for a script's body, the initial one for a kernel thread. The socket holds its network
 *   namespace until the kernel frees the socket, which for a TCP connection still shutting down comes
 *   after its close, so the namespace outlives the task. The rest of Lunatik (`linux.ifindex`,
-*   `netfilter`, `notifier`) keeps to the initial network namespace.
+*   `netfilter`) keeps to the initial network namespace.
 * @treturn socket A new socket object. A socket a netdevice callback may collect is closed by the
 *   script first, not dropped: its release cannot refuse where the collector drops it.
 * @raise Error if socket creation fails, `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel

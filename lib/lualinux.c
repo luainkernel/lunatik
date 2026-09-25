@@ -18,6 +18,7 @@
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
 #include <linux/netdevice.h>
+#include <net/net_namespace.h>
 
 #include <lunatik.h>
 
@@ -233,6 +234,38 @@ static int lualinux_ifaddr(lua_State *L)
 }
 
 /***
+* Gets the inode number that identifies a network namespace, the one `/proc/<pid>/ns/net`
+* links to and `lsns` prints.
+* Without a pid it is the initial namespace's, where `linux.ifindex` resolves a name; a device
+* `notifier.netdevice` reports is in that namespace when the number it hands the callback is
+* this one.
+*
+* @function netns
+* @tparam[opt] integer pid a task whose network namespace to identify, resolved in the pid
+*   namespace of the task making the call: the `lunatik` process for a script's body, the
+*   initial one for a kernel thread.
+* @treturn integer inode number of the namespace.
+* @raise `ESRCH` if no task has that pid.
+* @usage
+*   local home = linux.netns()
+*/
+static int lualinux_netns(lua_State *L)
+{
+	if (lua_isnoneornil(L, 1)) {
+		lua_pushinteger(L, init_net.ns.inum);
+		return 1;
+	}
+
+	pid_t pid = (pid_t)lunatik_checkinteger(L, 1, 1, PID_MAX_LIMIT);
+	struct net *net = get_net_ns_by_pid(pid);
+	if (IS_ERR(net))
+		lunatik_throw(L, (int)PTR_ERR(net));
+	lua_pushinteger(L, net->ns.inum);
+	put_net(net);
+	return 1;
+}
+
+/***
 * Returns the symbolic name of a kernel error number.
 * For example, it converts `2` to `"ENOENT"`.
 *
@@ -275,6 +308,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
 	{"ifaddr", lualinux_ifaddr},
+	{"netns", lualinux_netns},
 	{"errname", lualinux_errname},
 	{"numcpus", lualinux_numcpus},
 	{NULL, NULL}
