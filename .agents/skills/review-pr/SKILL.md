@@ -47,10 +47,11 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
 - One finding in the working tree at a time: edit, commit, next. Two findings edited together are
   told apart afterwards by a reset and a cherry-pick, which is where a hunk lands in the wrong
   fixup.
-- `bash tools/checks/idioms.sh` over the C files the diff touches and
-  `bash tools/checks/author-email.sh origin/master..HEAD` over the branch are passes of the first
-  round, not of the second: #850's maintainer asked for the argcheck, the `lunatik_try` and the
-  shared helper the first round had read past.
+- `bash tools/checks/idioms.sh` over the C files the diff touches, `bash tools/checks/lua-style.sh`
+  over its Lua files, and `bash tools/checks/author-email.sh origin/master..HEAD` over the branch are
+  passes of the first round, not of the second: #850's maintainer asked for the argcheck, the
+  `lunatik_try` and the shared helper the first round had read past, and #618's for the dispatch
+  and the route spelled once that a review calling it ready had read past.
 - A fixup is made on `review/<N>` and pushed onto the pull request's branch, a fast-forward:
   `git push <url> HEAD:refs/heads/<branch>`; then `gh api repos/.../pulls/<N>/commits` is what says it
   is on the pull request, since the pull request lists that branch alone. `review/<N>` left on its

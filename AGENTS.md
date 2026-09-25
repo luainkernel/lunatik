@@ -164,7 +164,8 @@ the last one.
 (`module-conventions.sh`), the comment rules below read over C, Lua and shell, the history, a
 release named with what changed in it or above a table, the counterfactual, the multi-line note
 inside code and the trailing comment past the width
-(`comment-style.sh`), test scripts that cannot detect a failed load (`test-harness.sh`), cppcheck on
+(`comment-style.sh`), the branches, argument tables and inline functions the Lua style rules settle
+(`lua-style.sh`), test scripts that cannot detect a failed load (`test-harness.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
@@ -212,6 +213,15 @@ one helper; and a version a feature needs written as one release, "needs a 6.10 
 message means that release and every one after it. It annotates rather than fails, since the
 release-then-throw shape is not `lunatik_try`'s and the line between the check and the throw is
 what the reader decides on.
+
+`lua-style.sh` reads a Lua file for the shape rules of "Lua style" that a review of #618 passed over
+and called ready: an `if`/`elseif` whose branches repeat the same steps, which is a dispatch table
+or a helper; one table of arguments spelled at two call sites, which is declared once; and a
+function written inline as a table field, which is a named local function. The example's reactor
+added and deleted one route through two branches that each spelled the route and a message, and
+the maintainer asked for `reroute.down` and `reroute.up` over one `backup` table. It runs at edit
+time and over a pull request's diff and annotates rather than fails, since two registrations that
+share three fields can be two different hooks.
 
 `author-email.sh` reads a rev-range and names a commit whose author email is not the one the base
 uses most for that author's name: a rebase or a squash done from another checkout signs the result
