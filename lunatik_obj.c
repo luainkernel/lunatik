@@ -143,6 +143,7 @@ static int lunatik_monitor(lua_State *L)
 	int ret, n = lua_gettop(L);
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
 
+	lunatik_checkowner(L, object); /* the runtime's resume runs Lua that can reach this handle again */
 	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
 	lua_insert(L, 1); /* stack: method, object, args */
 

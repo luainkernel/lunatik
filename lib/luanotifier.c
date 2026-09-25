@@ -9,7 +9,8 @@
 * invoked when specific kernel events occur, such as keyboard input,
 * network device status changes, or virtual terminal events.
 * A callback returns a `linux.notify` code; anything else, and an event that
-* reaches a runtime not ready to take it, counts as `notify.DONE`.
+* reaches a runtime not ready to take it, or that the runtime's own code raises
+* from under its lock, counts as `notify.DONE`.
 *
 * @module notifier
 */

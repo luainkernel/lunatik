@@ -161,12 +161,8 @@ static int luafsnotify_handle(struct fsnotify_group *group, u32 mask, const void
 	int verdict = LUAFSNOTIFY_ALLOW;
 	int ret;
 
-	/* the lock holder lands back here on a marked path, and the nesting has no floor */
-	if (lunatik_isowner(watch->runtime))
-		return LUAFSNOTIFY_ALLOW;
-
 	lunatik_run(watch->runtime, luafsnotify_callback, ret, watch, &event, &verdict);
-	(void)ret; /* a runtime that is not ready answers -ENXIO, a denial to fsnotify */
+	(void)ret; /* not ready, or this task holds its lock: an errno, and the event passes */
 	return verdict;
 }
 

@@ -139,7 +139,8 @@ int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs)
 * @treturn vararg objects passed to the next `coroutine.yield()`, or returned by the script
 * @raise "invalid object" or "cannot share SINGLE object" if a value cannot cross, numbering the
 *   arguments on the way in and the yielded values on the way back, or the error raised on
-*   resumption
+*   resumption; "not allowed from the runtime itself" from under the runtime's own lock, the
+*   contexts `stop` names, where the resumption would wait on it
 */
 static int lunatik_lresume(lua_State *L)
 {
@@ -190,12 +191,18 @@ static const luaL_Reg lunatik_stub_lib[] = {
 * @function stop
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
 *   its task runs: the releases the close runs cannot refuse, and a netdevice block's
-*   unregistration waits on the lock that task holds
+*   unregistration waits on the lock that task holds; "not allowed from the runtime itself"
+*   from the runtime's own callback, a `device` file operation, a `thread` body or a resumed
+*   body, where the close would wait on the lock that task holds
 */
 int lunatik_lstop(lua_State *L)
 {
+	lunatik_object_t *runtime = lunatik_checkobject(L, 1);
+
 	lunatik_checkrtnl(L);
-	return lunatik_closeobject(L);
+	lunatik_checkowner(L, runtime);
+	lunatik_closeprivate(runtime);
+	return 0;
 }
 
 static const luaL_Reg lunatik_mt[] = {
