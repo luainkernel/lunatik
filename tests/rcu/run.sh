@@ -52,5 +52,7 @@ echo ""
 bash "$DIR/bigtable_free.sh" || RESULT=1
 echo ""
 bash "$DIR/entry_release.sh" || RESULT=1
+echo ""
+bash "$DIR/object_grace.sh" || RESULT=1
 exit $RESULT
 
