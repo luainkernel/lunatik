@@ -870,6 +870,24 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   reports once; the report in `dmesg`, with no Lua error, is the proof. The
   scheduler is unregistered before its runtime stops.
 
+### signal
+
+Covers the `signal` module (`luasignal`): the bounds on a signal number, a
+command and a pid, and what a valid call does.
+
+- **signal/mask**: `sigmask` blocks and unblocks `TERM` for the task that runs
+  the script, and `sigstate` reads it back as blocked, allowed and not pending;
+  a signal of 0 or past the set, and a command past `SIG_UNBLOCK`, raise `out
+  of bounds` instead of reaching `sigaddset`, whose shift is undefined there.
+
+- **signal/kill**: with a child sleeping in the background and a pid the shell
+  has reaped, `kill(child, 0)` probes the child, `kill(reaped)` raises `ESRCH`,
+  a pid of 0, one past `PID_MAX_LIMIT` and one that would truncate to the
+  child's, and a signal that would truncate to `TERM`, raise `out of bounds`,
+  and `kill(child, TERM)` returns true; the shell then sees the child end on
+  `SIGTERM`. The truncation cases target the child on every build, so a module
+  without the bound signals the child and fails the case, never a stranger.
+
 ### set
 
 - **set**: `set.new` sorting unsorted input and binary-search membership

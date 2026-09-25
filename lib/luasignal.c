@@ -6,6 +6,7 @@
 #include <linux/module.h>
 #include <linux/sched/signal.h>
 #include <linux/pid.h>
+#include <linux/threads.h>
 #include <linux/signal.h>
 #include <linux/errno.h>
 
@@ -20,17 +21,18 @@
 * Modifies signal mask for current task.
 *
 * @function sigmask
-* @tparam integer sig Signal number.
+* @tparam integer sig Signal number, 1 to `_NSIG`.
 * @tparam[opt] integer cmd SIG_BLOCK (0, default) or SIG_UNBLOCK (1).
-* @raise Error if the signal is invalid or the operation is not permitted.
+* @raise Error if the signal or the command is out of bounds, or the operation is not permitted.
 */
 static int luasignal_sigmask(lua_State *L)
 {
 	sigset_t newmask;
 	sigemptyset(&newmask);
 
-	int signum = luaL_checkinteger(L, 1);
-	int cmd = luaL_optinteger(L, 2, 0);
+	int signum = lunatik_checkinteger(L, 1, 1, _NSIG);
+	lua_Integer cmd = luaL_optinteger(L, 2, SIG_BLOCK);
+	lunatik_checkbounds(L, 2, cmd, SIG_BLOCK, SIG_UNBLOCK);
 
 	sigaddset(&newmask, signum);
 
@@ -54,9 +56,10 @@ static int luasignal_sigpending(lua_State *L)
 * Checks signal state for current task.
 *
 * @function sigstate
-* @tparam integer sig Signal number.
+* @tparam integer sig Signal number, 1 to `_NSIG`.
 * @tparam[opt] string state `"blocked"` (default), `"pending"`, or `"allowed"`.
 * @treturn boolean
+* @raise Error if the signal is out of bounds.
 * @usage
 * local sig = require("linux.signal")
 * signal.sigstate(15) -- check if SIGTERM is blocked
@@ -76,7 +79,7 @@ static int luasignal_sigstate(lua_State *L)
 		[SIGSTATE_ALLOWED] = "allowed",
 	};
 
-	int signum = luaL_checkinteger(L, 1);
+	int signum = lunatik_checkinteger(L, 1, 1, _NSIG);
 	enum sigstate_cmd cmd = (enum sigstate_cmd)luaL_checkoption(L, 2, "blocked", sigstate_opts);
 
 	bool result;
@@ -99,19 +102,22 @@ static int luasignal_sigstate(lua_State *L)
 * Sends a signal to a process.
 *
 * @function kill
-* @tparam integer pid Target process ID.
-* @tparam[opt] integer sig Signal to send (default: `KILL`, from `linux.signal`).
+* @tparam integer pid Target process ID, 1 to `PID_MAX_LIMIT`.
+* @tparam[opt] integer sig Signal to send, 0 to `_NSIG` (default: `KILL`, from `linux.signal`);
+*   0 sends nothing and checks the process and the permission.
 * @treturn boolean `true` on success.
-* @raise Error if the process is not found or the operation is not permitted.
+* @raise Error if the pid or the signal is out of bounds, the process is not found or the
+*   operation is not permitted.
 */
 static int luasignal_kill(lua_State *L)
 {
-	pid_t nr = (pid_t)luaL_checkinteger(L, 1);
-	int sig = luaL_optinteger(L, 2, SIGKILL);
+	pid_t nr = lunatik_checkinteger(L, 1, 1, PID_MAX_LIMIT);
+	lua_Integer sig = luaL_optinteger(L, 2, SIGKILL);
+	lunatik_checkbounds(L, 2, sig, 0, _NSIG);
 	struct pid *pid = find_get_pid(nr);
 
 	if (pid == NULL)
-		lunatik_throw(L, ESRCH);
+		lunatik_throw(L, -ESRCH);
 
 	int ret = kill_pid(pid, sig, 1);
 	put_pid(pid);
