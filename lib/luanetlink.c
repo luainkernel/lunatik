@@ -146,7 +146,9 @@ static const lunatik_class_t luanetlink_channel_class = {
 * @function new
 * @tparam string name Generic netlink family name (up to `GENL_NAMSIZ-1` bytes).
 * @treturn netlink.channel A new channel object.
-* @raise if called after module load or in a percpu runtime, if the name is
+* @raise if called after module load or in a percpu runtime; "not allowed under RTNL"
+*   from a netdevice callback, in whatever runtime or coroutine its task runs, since the
+*   registration takes a lock a request holds while it waits on RTNL; if the name is
 *   empty or too long, or if family registration fails.
 * @within netlink.channel
 */
@@ -154,6 +156,7 @@ static int luanetlink_channel_new(lua_State *L)
 {
 	lunatik_checkarmed(L);
 	lunatik_checkpercpu(L);
+	lunatik_checkrtnl(L);
 	size_t len;
 	const char *name = luaL_checklstring(L, 1, &len);
 	luaL_argcheck(L, len > 0 && len < GENL_NAMSIZ, 1, "invalid family name length");
