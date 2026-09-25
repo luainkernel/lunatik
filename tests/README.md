@@ -700,6 +700,17 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   is backed by `vmalloc`; releasing it must free with `kvfree`, not `kfree`,
   so the teardown leaves the kernel alive.
 
+- **entry_release**: the value an entry drops is released after the table's
+  spinlock, on the writing task. Two children, each holding `byteorder`, are
+  stored as the only reference their entries hold; removing one entry and
+  replacing the other closes each child there, and the module's use count is
+  back when the body returns. A kprobe on `lunatik_releaseobject` says where
+  each close ran: a hit taken with bottom halves off carries `b` in its flags,
+  `D` where the handler also masks interrupts, so a build that puts under the
+  lock fails the read on any kernel, with or without
+  `CONFIG_DEBUG_ATOMIC_SLEEP`; the children hold nothing that sleeps on close,
+  so that build fails the test and not the host.
+
 ### runtime
 
 Regression tests for `lunatik_newruntime` and cross-runtime plumbing.

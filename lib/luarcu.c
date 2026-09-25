@@ -121,7 +121,6 @@ EXPORT_SYMBOL(luarcu_getvalue);
 
 int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value)
 {
-	int ret = 0;
 	luarcu_table_t *tab = (luarcu_table_t *)table->private;
 	luarcu_entry_t *old;
 	unsigned int index = luarcu_hash(tab, key, keylen);
@@ -133,24 +132,22 @@ int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lun
 	if (value->type != LUA_TNIL) {
 		luarcu_entry_t *new = luarcu_newentry(key, keylen, value);
 		if (new == NULL) {
-			ret = -ENOMEM;
-			goto unlock;
+			lunatik_unlock(table);
+			return -ENOMEM;
 		}
 
 		if (!old)
 			hlist_add_head_rcu(&new->hlist, tab->hlist + index);
-		else {
+		else
 			hlist_replace_rcu(&old->hlist, &new->hlist);
-			luarcu_free(old);
-		}
 	}
-	else if (old) {
+	else if (old)
 		hlist_del_rcu(&old->hlist);
-		luarcu_free(old);
-	}
-unlock:
 	lunatik_unlock(table);
-	return ret;
+
+	if (old != NULL)
+		luarcu_free(old); /* the value's put may close a runtime or a socket, which sleeps */
+	return 0;
 }
 EXPORT_SYMBOL(luarcu_setvalue);
 
@@ -174,7 +171,10 @@ static int luarcu_index(lua_State *L)
 
 /***
 * Sets or removes a value in the table (serialized).
-* Assigning `nil` removes the entry.
+* Assigning `nil` removes the entry. The value an assignment replaces or removes is
+* released on the assigning task once the table's lock is dropped, so a runtime or a
+* socket whose last reference the entry held closes there, in the writer's own context:
+* in softirq when a softirq runtime writes the table, with IRQs off when a hardirq one does.
 * @function __newindex
 * @tparam string key
 * @tparam boolean|integer|object|nil value
