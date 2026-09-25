@@ -462,6 +462,14 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 Tests for netlink: the `AF_NETLINK` address family in `socket`, and the
 higher-level `netlink.*` modules built on top of it.
 
+- **rtnl**: `netlink.channel` from a netdevice callback is refused, probed
+  from the replay of a `notifier.netdevice` registration: registering the
+  family takes a lock a request holds while its handler may wait on the RTNL
+  that task holds. A channel is accepted once the registration returned. A
+  build without the refusal hangs only if such a request is in flight, which
+  the test cannot rule out, so it skips unless the loaded `luanetlink` is the
+  installed one.
+
 - **socket**: opens an `AF_NETLINK` socket; a bind/`getsockname` round-trip
   exercises the address translation, and an `RTM_GETLINK` dump exercises send
   (which attaches the kernel destination) and receive.
@@ -934,7 +942,17 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   socket, which can continue a dump under RTNL; and an option past
   `SOL_SOCKET`, which reaches the protocol, whose multicast memberships take
   RTNL. A `SOL_SOCKET` option and a UDP send are accepted there, and the
-  request is accepted once the registration returned. A tree without the
+  request is accepted once the registration returned. A close runs the release
+  on the calling task, so from the replay a UDP socket with no membership
+  closes, by `close()`, by a `<close>` local going out of scope, and by both
+  on one socket, the second a no-op; an
+  `AF_PACKET` socket, a `NETLINK_GENERIC` one, a UDP socket that joined a
+  multicast group before the registration and an `AF_INET6` one that joined an
+  IPv4 group through `SOL_IP`, whose release ends in `inet_release`, are
+  refused, the last two skipped where no group can be joined; the bind of a
+  generic netlink socket to a group is refused and of an rtnetlink one
+  accepted; and every socket the callback leaves open is closed once the
+  registration returned. A tree without the
   refusal wedges the host, so the test skips unless the loaded `luanotifier`
   lists `luanotifier_netdevice_call`, which sets the task the refusal reads, in
   `/proc/kallsyms`, and unless the loaded `luasocket`, whose refusal has no
@@ -1034,6 +1052,14 @@ Regression tests for `luathread`.
 - **shouldstop**: `thread.shouldstop()` returns `false` in a `run`
   (non-kthread) context without crashing, and `true` in a `spawn`
   (kthread) context when stop is requested.
+
+- **rtnl**: `thread:stop()` from a netdevice callback is refused, probed from
+  the replay of a `notifier.netdevice` registration by a spawned driver, since
+  a thread is started from a thread: the stop waits for the body, and a body
+  may wait on the RTNL that task holds. The stop is accepted once the
+  registration returned. The body polls `shouldstop` and takes no
+  RTNL, so a build without the refusal accepts the stop from the callback and
+  fails the assertion rather than hanging; the test runs on any build.
 
 - **foreign_object**: `thread.run()` refuses an object of another class
   instead of using its private data as a Lua state.

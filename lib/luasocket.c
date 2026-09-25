@@ -27,7 +27,9 @@
 #include <linux/net.h>
 #include <linux/un.h>
 #include <linux/netlink.h>
+#include <linux/ipv6.h>
 #include <net/sock.h>
+#include <net/inet_sock.h>
 
 #include <lunatik.h>
 
@@ -140,6 +142,31 @@ static inline void luasocket_checkrtnl(lua_State *L, struct socket *socket)
 	if (luasocket_family(socket) == AF_NETLINK) /* the kernel runs a request, and a dump, on this task */
 		lunatik_checkrtnl(L);
 }
+
+static inline bool luasocket_takesrtnl(struct socket *socket)
+{
+	struct sock *sk = socket->sk;
+
+	switch (luasocket_family(socket)) {
+	case AF_INET6:
+		if (IS_ENABLED(CONFIG_IPV6) &&
+			(rcu_access_pointer(inet6_sk(sk)->ipv6_mc_list) != NULL || inet6_sk(sk)->ipv6_ac_list != NULL))
+			return true;
+		fallthrough; /* inet6_release ends in inet_release: an IPv4 group joined through SOL_IP */
+	case AF_INET:
+		return rcu_access_pointer(inet_sk(sk)->mc_list) != NULL;
+	case AF_PACKET:
+		return true; /* its membership list is private to net/packet */
+	case AF_NETLINK:
+		return sk->sk_protocol == NETLINK_GENERIC; /* its release walks the families under cb_lock */
+	}
+	return false;
+}
+
+/* only a generic netlink socket bound to a group runs genl_bind, which walks the families under cb_lock */
+#define luasocket_isgenlgroup(socket, addr)	\
+	(luasocket_family(socket) == AF_NETLINK && (socket)->sk->sk_protocol == NETLINK_GENERIC && \
+	((struct sockaddr_nl *)(addr))->nl_groups != 0)
 
 /***
 * A kernel socket, returned by `socket.new()`.
@@ -283,7 +310,9 @@ static int luasocket_receive(lua_State *L)
 *   - `AF_PACKET`: Network interface index (e.g., from `linux.ifindex("eth0")`).
 *
 * @treturn nil
-* @raise Error if the bind operation fails (e.g., address already in use, invalid address).
+* @raise Error if the bind operation fails (e.g., address already in use, invalid address), or
+*   "not allowed under RTNL" on a generic netlink socket bound to a group from a netdevice
+*   callback: that bind takes a lock a request holds while it waits on RTNL.
 * @usage
 *   -- Bind TCP/IPv4 socket to localhost, port 8080
 *   tcp_server_sock:bind(net.aton("127.0.0.1"), 8080)
@@ -298,6 +327,9 @@ static int luasocket_bind(lua_State *L)
 	struct socket *socket = luasocket_check(L, 1);
 	struct sockaddr_storage addr;
 	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
+
+	if (luasocket_isgenlgroup(socket, &addr))
+		lunatik_checkrtnl(L);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0))
 	lunatik_try(L, kernel_bind, socket, (struct sockaddr_unsized *)&addr, size);
 #else
@@ -464,21 +496,42 @@ static int luasocket_setsockopt(lua_State *L)
 	return 0;
 }
 
-/***
-* Closes the socket.
-* This shuts down the socket for both reading and writing and releases
-* associated kernel resources.
-* This method is also called automatically when the socket object is garbage collected
-* or via Lua 5.4's to-be-closed mechanism.
-*
-* @function close
-* @treturn nil
-*/
 static void luasocket_release(void *private)
 {
 	struct socket *sock = (struct socket *)private;
 	kernel_sock_shutdown(sock, SHUT_RDWR);
 	sock_release(sock);
+}
+
+/***
+* Closes the socket.
+* This shuts down the socket for both reading and writing and releases
+* associated kernel resources. A to-be-closed variable holding the socket closes it the
+* same way; a collected socket runs the release with no close, and no refusal.
+*
+* @function close
+* @treturn nil
+* @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
+*   its task runs, on a socket whose release takes RTNL, which that task holds, or a lock a
+*   request holds while it waits on RTNL: an `AF_INET` or `AF_INET6` socket with a multicast or
+*   anycast membership, an `AF_PACKET` socket, and a `NETLINK_GENERIC` one
+*/
+static int luasocket_close(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luasocket_class);
+
+	lunatik_lock(object); /* one hold reads the membership and takes the socket: no sharer's join between */
+	struct socket *socket = (struct socket *)object->private;
+	if (socket != NULL && luasocket_takesrtnl(socket) && lunatik_isrtnl()) {
+		lunatik_unlock(object);
+		luaL_error(L, LUNATIK_ERR_RTNL);
+	}
+	object->private = NULL;
+	lunatik_unlock(object);
+
+	if (socket != NULL)
+		luasocket_release(socket);
+	return 0;
 }
 
 static const luaL_Reg luasocket_lib[] = {
@@ -488,8 +541,8 @@ static const luaL_Reg luasocket_lib[] = {
 
 static const luaL_Reg luasocket_mt[] = {
 	{"__gc", lunatik_deleteobject},
-	{"__close", lunatik_closeobject},
-	{"close", lunatik_closeobject},
+	{"__close", luasocket_close},
+	{"close", luasocket_close},
 	{"send", luasocket_send},
 	{"receive", luasocket_receive},
 	{"bind", luasocket_bind},
@@ -580,7 +633,8 @@ static int luasocket_accept(lua_State *L)
 *   namespace until the kernel frees the socket, which for a TCP connection still shutting down comes
 *   after its close, so the namespace outlives the task. The rest of Lunatik (`linux.ifindex`,
 *   `netfilter`, `notifier`) keeps to the initial network namespace.
-* @treturn socket A new socket object.
+* @treturn socket A new socket object. A socket a netdevice callback may collect is closed by the
+*   script first, not dropped: its release cannot refuse where the collector drops it.
 * @raise Error if socket creation fails, `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel
 *   whose sockets cannot hold a namespace of their own.
 * @usage
