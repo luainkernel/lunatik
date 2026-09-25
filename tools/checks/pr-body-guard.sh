@@ -146,10 +146,45 @@ unread() {
 	$1 ~ /^([^ ]*\/)?gh$/ && $2 == "api" && $3 == "graphql"')"
 }
 
+# a pull request opened on a branch names every example its change touches (examples-named.sh); the
+# head is read from the write, `head=<branch>` or the JSON's head, and resolved in this checkout
+examples() {
+	local post body file head base files findings project
+	project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
+	while IFS= read -r post; do
+		[ -n "$post" ] || continue
+		body=$(gh_body "$post")
+		case $body in ""|inline) continue ;; esac
+		file=${body#* }
+		[ -f "$file" ] || continue
+		if [ "${body%% *}" = input ]; then
+			head=$(jq -r '.head // empty' "$file" 2> /dev/null)
+			jq -r '.body // empty' "$file" > "$tmp/examples-body" 2> /dev/null
+			file=$tmp/examples-body
+		else
+			head=$(printf '%s' "$post" | grep -oE -- "(-f|-F|--raw-field|--field)[ =]head=[\"']?[^[:space:]\"']+" | head -n 1 | sed "s/.*head=[\"']\{0,1\}//")
+		fi
+		[ -n "$head" ] || continue
+		if ! base=$(git -C "$project" merge-base origin/master "$head" 2> /dev/null); then
+			echo "pr-body-guard: the head $head is not a ref this checkout can read, so the examples its change touches cannot be listed; fetch it, or pass EXAMPLES_OK=1 once the body says of each what it did." >&2
+			exit 2
+		fi
+		files=$(git -C "$project" diff --name-only "$base" "$head")
+		findings=$(cd "$project" && bash "$(dirname "$0")/examples-named.sh" "$file" $files) && continue
+		echo "pr-body-guard: ${findings//$tmp\/examples-body/the body}" >&2
+		echo "pr-body-guard: say of each what it did, ran, only loaded or not run and why, or pass EXAMPLES_OK=1 once the body does." >&2
+		exit 2
+	done <<< "$1"
+}
+
 cmds=$(commands "$input")
 repo='^(https://api\.github\.com)?/?repos/[^/]+/[^/]+'
 # a review or a comment is review-post-guard's, on an endpoint below the pull request's or the issue's
 check "$(gh_writes "$cmds" 'pr (create|new|edit)' "$repo/pulls(/[0-9]+)?\$")" pr-body.sh
+case "$(command_text "$input")" in
+	*EXAMPLES_OK=1*) ;;
+	*) examples "$(gh_writes "$cmds" 'pr (create|new)' "$repo/pulls\$")" ;;
+esac
 check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" untraced.sh added
 # a new issue is a finding, read for a stimulus out of contract; an edit or a comment may argue about one
 case "$(command_text "$input")" in

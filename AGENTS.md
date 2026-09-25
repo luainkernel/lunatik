@@ -593,6 +593,14 @@ the state, where a boolean stored on an existing node cannot.
 * An assignment used as a value inside a condition is parenthesised: `<` binds tighter than `=`, so
   `n = f() < 0` stores the comparison and not the count. That one went unnoticed for two years and left
   `runtime:resume` returning nothing while its documentation promised the values.
+* An integer that names a kernel identity, a pid, is bounded with `lunatik_checkinteger` before the
+  cast the kernel's type takes, as `socket.new` bounds the pid it resolves a namespace by:
+  `(pid_t)luaL_optinteger` read `2^32 + 1` as pid 1 in `linux.netns`, and `tools/checks/idioms.sh`
+  names the cast.
+* A method the monitor leaves unwrapped, a `close` or a `stop`, reads the object's private under the
+  object lock, and what it decides on that read it does under the same hold: `luasocket_close` first
+  read the socket outside the lock, where a sharer's close had freed it, then under a hold of its
+  own and closed under `lunatik_closeprivate`'s, where a sharer's join slipped between the two.
 * A size, length or count that arrives from Lua is bounded with `lunatik_checkbounds`, for what the
   binding itself can serve: `roundup_pow_of_two` is undefined at zero, `__kfifo_alloc` truncates to an
   unsigned int, and the multiplication that sizes an object wraps before any allocator sees it. What
@@ -789,12 +797,22 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   first, since restoring is a `git checkout --` that takes any uncommitted work with it. The defective
   side has to compile: a header reverted while its callers still pass the argument it drops stops at
   `too many arguments`, the suite then runs against the modules already installed, and that green run
-  reads as a test that does not discriminate;
+  reads as a test that does not discriminate. The proof is run, not argued: a message the header
+  says `check_dmesg` reads is one `KTAP_ERRORS` in `tests/lib.sh` matches, and the line the
+  defective build prints is one that build printed. `tests/rcu/entry_release` said `check_dmesg`
+  would read the BUG line of a sleep under the table's lock, which the pattern does not carry and
+  the case never provokes, and proved nothing until a kprobe read where each release ran;
+  `tools/checks/test-harness.sh` names a claimed message the pattern does not match;
 * a test that wedges the host when the fix is absent, rather than failing, checks before its stimulus
   that the loaded module carries the fix, by a symbol only the fixed build has in `/proc/kallsyms`,
-  and skips when it does not: `lunatik reload` refuses a module it could not replace, but a test run
-  by hand runs against whatever is loaded. The deferred unregistration of a netdevice notifier was
-  first exercised against the build without it;
+  or, where the check is inline and has no symbol, by its message read from the module file
+  (`grep -aF "$REFUSAL" "$(modinfo -n <module>)"`), and skips when it does not: `lunatik reload`
+  refuses a module it could not replace, but a test run by hand runs against whatever is loaded. A
+  comparison of `srcversion` alone proves that the loaded module is the installed file and nothing
+  about the file, so a checkout ahead of its install runs the case against the old module; the
+  deferred unregistration of a netdevice notifier was first exercised against the build without it,
+  and `tests/runtime/self_stop` first skipped on `srcversion`, copied from a sibling.
+  `tools/checks/test-harness.sh` names a skip that reads `srcversion` and nothing else;
 * a case whose stimulus only exists on a busy machine is forced, not waited for: the probe test picks a
   syscall an idle host never makes, which is why it never hit the creation window that crashed the host,
   and covering that window meant pinning the call to the CPU whose runtime is published last. A test
@@ -828,7 +846,13 @@ Reshaping or renaming an API means updating every consumer, grepped for — incl
 stacked or sibling pull requests that will rebase onto the change. A caller left on the old shape
 compiles against a Lua module and only fails when its code path runs: `skb.attr` became a class with
 `.new` and a pure attribute view, and `sniclassify`'s `skbattr(...)` / `skb:data()` — written for the
-old factory — kept building and broke at the first packet.
+old factory — kept building and broke at the first packet. The grep is taken on the branch's own
+base when the change is written, not from a read made earlier in the session: #1140 changed what a
+netdevice callback is handed with a grep two merges older than `linkflap` and `netfailover`, and
+updated one example of the three that read the name. Every example
+`tools/checks/examples-touched.sh` lists for the changed files is named in the pull request body
+with what it did, ran, only loaded or not run and why; `tools/checks/examples-named.sh` fails a
+body that leaves one unnamed, and `pr-body-guard.sh` runs it when a pull request opens.
 
 The same holds for a value, not only a name. A change that keeps its own copy of something another
 field carries, because the kernel rewrites the original, has decided the two can differ:
@@ -874,6 +898,12 @@ named, not one discovered at that consumer's build.
 * A guard keys on a property that is true by construction where it is enforced, never on a proxy that
   merely correlates. That a registration is global is such a property. A netfilter hook number is not:
   the same hook runs in softirq or in process context depending on the path the packet took.
+* A refusal is written for the resource, not for the entry point that showed the hang: the matrix it
+  is held to lists every route from Lua to the lock or the call it protects, found by grepping what
+  acquires it, `lunatik_lock`, `lunatik_closeprivate`, `lunatik_run` or the kernel call, and each
+  route names its refusal or why it needs none. #1135 refused `runtime:stop()` for the runtime's own
+  lock and left `runtime:resume()`, `percpu:resume()` and `thread.run`, which take it too, for the
+  review to find.
 * A guard in the core is for the honest mistake: the wrong object at an index, a size no binding can
   serve, a call that sleeps from a hook. The registry, a class metatable and an object's `__gc` are
   the runtime's own bookkeeping, and a script that reaches into them, `obj:__gc()`,
