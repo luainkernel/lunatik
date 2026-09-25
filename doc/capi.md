@@ -35,7 +35,9 @@ Describes a Lunatik object class.
     the interrupt state. Required for classes whose handlers fire in hardirq context (e.g. kprobes).
   - `LUNATIK_OPT_MONITOR` *(capability)*: the class supports a monitored metatable that wraps Lua
     method calls with the object lock, enabling safe concurrent access from multiple runtimes.
-    Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`.
+    Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`. A
+    metamethod, and a method named `close`, are left unwrapped: a close takes the lock itself,
+    through `lunatik_closeprivate`, and would wait on the one the wrapper holds.
   - `LUNATIK_OPT_SINGLE` *(constraint)*: all instances are private and non-shareable by default.
     Like `SOFTIRQ`, this is always inherited and cannot be overridden per instance.
   - `LUNATIK_OPT_EXTERNAL` *(constraint)*: `object->private` holds an external pointer — Lunatik
