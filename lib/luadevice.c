@@ -10,6 +10,11 @@
 * by providing callback functions for standard file operations like
 * `open`, `read`, `write`, and `release`.
 *
+* A file operation runs under the lock of the runtime that made the device,
+* on the task performing it, so one the runtime's own code performs, a
+* callback or a `thread` body opening the node it made, fails with `EDEADLK`:
+* it would wait on the lock its task holds.
+*
 * @module device
 */
 

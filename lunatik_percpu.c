@@ -117,6 +117,15 @@ static int lunatik_resumeruntime(lua_State *L, lunatik_object_t *runtime, int na
 	return nresults;
 }
 
+static inline void lunatik_checkowners(lua_State *L, lunatik_percpu_t *percpu)
+{
+	lunatik_object_t *runtime;
+	int cpu;
+
+	lunatik_foreachruntime(percpu, cpu, runtime)
+		lunatik_checkowner(L, runtime);
+}
+
 /***
 * Resumes every runtime, as `runtime:resume` does, delivering the same objects to each. Nothing
 * comes back: a broadcast has no single set of values to return, so what a runtime yields is
@@ -127,7 +136,8 @@ static int lunatik_resumeruntime(lua_State *L, lunatik_object_t *runtime, int na
 *   first runtime that refuses a value it cannot carry or raises on resumption, naming its CPU,
 *   with the runtimes after it not resumed. A runtime that refuses a value stays where it yielded;
 *   one that raises is dead, so every later resume delivers to the CPUs before it again and fails
-*   on it again
+*   on it again; "not allowed from the runtime itself" from under the lock of one of the set's
+*   runtimes, the contexts `stop` names, where its resumption would wait on that lock
 */
 static int lunatik_resumepercpu(lua_State *L)
 {
@@ -138,6 +148,7 @@ static int lunatik_resumepercpu(lua_State *L)
 	lunatik_object_t *runtime;
 	int cpu;
 
+	lunatik_checkowners(L, percpu);
 	lunatik_foreachruntime(percpu, cpu, runtime) {
 		int status = lunatik_resumeruntime(L, runtime, nargs, error);
 
@@ -152,13 +163,16 @@ static int lunatik_resumepercpu(lua_State *L)
 * Closes the objects the runtimes share, then every runtime, releasing their Lua states.
 * @function stop
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
-*   its task runs, as the runtime's `stop` does: the releases the close runs cannot refuse
+*   its task runs, as the runtime's `stop` does: the releases the close runs cannot refuse;
+*   "not allowed from the runtime itself" from a callback or a resumed body of one of the
+*   set's runtimes, where its close would wait on the lock that task holds
 */
 static int lunatik_stoppercpu(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &lunatik_percpu_class);
 
 	lunatik_checkrtnl(L);
+	lunatik_checkowners(L, lunatik_topercpu(object));
 	lunatik_stopdata(object);
 	lunatik_closeruntimes(lunatik_topercpu(object));
 	return 0;

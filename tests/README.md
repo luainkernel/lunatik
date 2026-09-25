@@ -820,6 +820,19 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   creates a runtime and a percpu set of it, keeps neither handle and collects
   leaves it where it was when its body returns.
 
+- **self_stop**: a runtime cannot be stopped, resumed, threaded or dispatched
+  to from under its own lock. A child resumed with its own handle, and a percpu
+  set resumed with its own, call `stop()` and `resume()` on it from the resumed
+  body, the runtime `thread.run` on itself too, and get "not allowed from the
+  runtime itself"; the driver stops both afterwards, off the lock, and is
+  accepted. A device's `read` stops, resumes and threads the runtime that made
+  it through the runner's registry and gets the same refusals, opens its own
+  node through `io.open` and fails, since `lunatik_run` answers `EDEADLK` to a
+  dispatch on the task that holds the runtime's lock, and opens the node of a
+  device another runtime made and succeeds. Without the checks each case waits on
+  the lock its own task holds, so the test skips unless the loaded core is the
+  installed one and that file carries the refusal.
+
 ### sched
 
 Regression tests for `luasched`: the attach guards, and the dispatch path

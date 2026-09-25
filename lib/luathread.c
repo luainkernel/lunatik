@@ -209,7 +209,9 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 * @treturn thread A new thread object.
 * @raise Error if called during module load, if the runtime is not sleepable or has been stopped,
 *   if a value passed to the body is not a Lunatik object or is a `SINGLE` one, if the arguments
-*   couldn't be passed, or if thread creation fails.
+*   couldn't be passed, or if thread creation fails; "not allowed from the runtime itself" from
+*   under the runtime's own lock, the contexts `runtime:stop` names, where passing the arguments
+*   would wait on it.
 * @see lunatik.runtime
 */
 static int luathread_run(lua_State *L)
@@ -217,6 +219,7 @@ static int luathread_run(lua_State *L)
 	luaL_argcheck(L, lunatik_isready(lunatik_toruntime(L)), 1, "not allowed during module load");
 	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_class);
 	luaL_argcheck(L, !lunatik_isirq(runtime->opt), 1, "IRQ runtime cannot spawn threads");
+	lunatik_checkowner(L, runtime); /* the arguments cross under its lock */
 	const char *name = luaL_checkstring(L, 2);
 	int nargs = lua_gettop(L) - LUATHREAD_ARGIX + 1;
 

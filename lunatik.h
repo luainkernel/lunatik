@@ -59,10 +59,14 @@ do {										\
 	lunatik_object_t *_runtime = lunatik_pin(_object);			\
 	ret = -ENXIO;								\
 	if (likely(_runtime != NULL)) {						\
-		lunatik_lock(_runtime);						\
-		if (likely(lunatik_isready(_runtime)))				\
-			lunatik_handle(_runtime, handler, ret, ## __VA_ARGS__);	\
-		lunatik_unlock(_runtime);					\
+		if (unlikely(lunatik_isowner(_runtime)))			\
+			ret = -EDEADLK; /* a dispatch from under the lock it would take */	\
+		else {								\
+			lunatik_lock(_runtime);					\
+			if (likely(lunatik_isready(_runtime)))			\
+				lunatik_handle(_runtime, handler, ret, ## __VA_ARGS__);	\
+			lunatik_unlock(_runtime);				\
+		}								\
 	}									\
 	lunatik_unpin(_object);							\
 } while(0)
@@ -176,6 +180,7 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
 #define LUNATIK_ERR_ARMED	"not allowed after module load"
 #define LUNATIK_ERR_RTNL	"not allowed under RTNL"
+#define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 
 #define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
 
@@ -217,6 +222,12 @@ static inline void lunatik_checkrtnl(lua_State *L)
 {
 	if (lunatik_isrtnl())
 		luaL_error(L, LUNATIK_ERR_RTNL);
+}
+
+static inline void lunatik_checkowner(lua_State *L, lunatik_object_t *runtime)
+{
+	if (lunatik_isowner(runtime))
+		luaL_error(L, LUNATIK_ERR_OWNER);
 }
 
 static inline lunatik_opt_t lunatik_inheritopt(const lunatik_class_t *class, lunatik_opt_t opt)

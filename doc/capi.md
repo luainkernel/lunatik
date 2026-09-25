@@ -134,8 +134,9 @@ void lunatik_run(lunatik_object_t *runtime, <inttype> (*handler)(...), <inttype>
 ```
 _lunatik\_run()_ locks the `runtime` environment and calls the `handler`
 passing the associated Lua state as the first argument followed by the variadic arguments.
-If the Lua state has been closed, `ret` is set with `-ENXIO`;
-otherwise, `ret` is set with the result of `handler(L, ...)` call.
+If the Lua state has been closed, `ret` is set with `-ENXIO`; if the calling task already holds
+the runtime's lock, a dispatch from the runtime's own code, with `-EDEADLK`, and the handler does
+not run; otherwise, `ret` is set with the result of `handler(L, ...)` call.
 Then, it restores the Lua stack and unlocks the `runtime` environment.
 A `percpu` object, which the caller keeps referenced across the call, is resolved first
 to the runtime of the CPU the caller runs on, and the caller stays on that CPU until the
@@ -206,15 +207,16 @@ bool lunatik_isowner(lunatik_object_t *object);
 Returns `true` if the calling task holds `object`'s lock. `lunatik_lock` records the owner
 and `lunatik_unlock` clears it, so every holder is seen, whichever route it took into the
 lock. The read takes no lock: only the holder writes the field, so the only value that can
-make the test true is the reader's own. Use it in a kernel callback that can fire on a task
-already running Lua under the runtime it would dispatch to, where `lunatik_run` would
-deadlock rather than block: skip the event instead.
+make the test true is the reader's own. `lunatik_run` reads it before it locks and answers
+`-EDEADLK` to a dispatch on the task that holds the lock, and
+[`lunatik_checkowner`](#lunatik_checkowner) refuses an entry point that would take the lock
+its own task holds; a binding that dispatches without `lunatik_run` reads it itself.
 
 The answer is exact for a process-context object, whose mutex is task-owned; a SOFTIRQ or
 HARDIRQ class takes a spinlock, owned by a CPU and not by a task, and records whichever task
-the softirq or hardirq interrupted. It answers about the object it is given, and `lunatik_run`
-locks the per-CPU instance `lunatik_pin` returns, so on a percpu runtime it is always `false`:
-refuse one with `lunatik_checkpercpu`, as `fsnotify.watch` does. And it sees the calling task
+the softirq or hardirq interrupted. It answers about the object it is given: a percpu set's own
+lock, which no dispatch takes, so `lunatik_run` reads it on the per-CPU instance `lunatik_pin`
+returns and `percpu:stop()` asks each runtime of the set in turn. And it sees the calling task
 only — Lua that blocks under the lock on a second task which then reaches the same lock is a
 cycle no owner check can name.
 
@@ -262,6 +264,18 @@ void lunatik_checkrtnl(lua_State *L);
 Raises a Lua error, `"not allowed under RTNL"`, when [`lunatik_isrtnl`](#lunatik_isrtnl) holds: from
 a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs. Use it in
 an entry point that reaches a kernel call taking RTNL.
+
+### lunatik\_checkowner
+```C
+void lunatik_checkowner(lua_State *L, lunatik_object_t *runtime);
+```
+Raises a Lua error, `"not allowed from the runtime itself"`, when [`lunatik_isowner`](#lunatik_isowner)
+holds for `runtime`: the calling task is inside it, a callback, a file operation, a thread body or a
+resumed body, and an entry point that takes its lock would wait on itself. `runtime:stop()` and
+`percpu:stop()` use it, since the close locks the runtime it closes; so do a monitored method,
+which locks the object it runs on and is `runtime:resume()`'s route into the lock, `percpu:resume()`,
+which locks each runtime it resumes, and `thread.run`, which passes the body's arguments under the
+runtime's lock.
 
 ### lunatik\_percpudata
 ```C
