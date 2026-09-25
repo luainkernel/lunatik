@@ -314,7 +314,9 @@ EXPORT_SYMBOL(lunatik_runtime);
 * when its last reference is dropped. A hook its script registers with the kernel holds a
 * reference to the runtime, so dropping the handle does not close a runtime a hook still holds:
 * it stays open, its hooks in place and the modules its script required loaded, until `stop()`,
-* which cannot be called once its last handle is gone. A script stops the runtimes it creates.
+* which cannot be called once its last handle is gone. A script stops the runtimes it creates;
+* one a netdevice callback may collect it stops before, since the close runs where the collector
+* drops the handle and cannot refuse there.
 * @function runtime
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context: `"process"` (sleepable,
