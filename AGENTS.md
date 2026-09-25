@@ -275,7 +275,8 @@ catches it. This file's own gate spent its first version skipping `lua/` and `kl
 the staged list, where a submodule is a gitlink and its files never appear.
 
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
-reload, a run or a suite, while another operation is on it, naming the processes it found; a process in
+reload, a run, a `list`, the REPL on a pipe or with `-e`, or a suite, while another operation is on
+it, naming the processes it found; a process in
 D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once
 what it lists is known to be stale. What a command runs is read by `commands.sh`, which the command
 guards share: a CLI verb, `make install`, a test script or `watchdog.sh` counts when it is the command,
