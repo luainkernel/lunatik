@@ -16,13 +16,23 @@
 # byte size wraps; a count it can size but no allocator serves is the allocator's
 # memory error, with no kernel warning behind it.
 #
+# map_next: rcu.map() reads a bucket's keys once and looks each one up before its
+# call, so the pointer to the next entry it read before the callback ran is never
+# dereferenced after it, where a grace period may have passed. An empty table is
+# visited nowhere and one entry among empty buckets once; a key with an embedded
+# NUL, the empty key and the longest key reach the callback whole; an error the
+# callback raises is rcu.map()'s, with no visit after it. On a one-bucket table a
+# callback removes, replaces and adds entries, and, when the loaded luarcu carries
+# luarcu_copykeys (linux.lookup), one removes the others and sleeps past a grace
+# period, and one collects the table nothing but the call holds.
+#
 # Usage: sudo bash tests/rcu/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="map_values map_foreign bounds index_whole"
+TESTS="map_values map_foreign bounds index_whole map_next"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {

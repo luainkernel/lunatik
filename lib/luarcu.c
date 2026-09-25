@@ -81,11 +81,10 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 {
 	luarcu_entry_t *entry;
 
-	if (keylen >= LUARCU_MAXKEY || (entry = kmalloc(struct_size(entry, key, keylen + 1), GFP_ATOMIC)) == NULL)
+	if (keylen >= LUARCU_MAXKEY || (entry = kmalloc(struct_size(entry, key, keylen), GFP_ATOMIC)) == NULL)
 		return NULL;
 
 	memcpy(entry->key, key, keylen);
-	entry->key[keylen] = '\0';
 	entry->keylen = keylen;
 	entry->value = *value;
 	if (lunatik_isuserdata(value))
@@ -104,14 +103,13 @@ static const lunatik_class_t luarcu_class;
 
 LUNATIK_PRIVATECHECKER(luarcu_checktable, luarcu_table_t *, &luarcu_class);
 
-void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value)
+static inline void luarcu_findvalue(luarcu_table_t *table, const char *key, size_t keylen, lunatik_value_t *value)
 {
-	luarcu_table_t *_table = (luarcu_table_t *)table->private;
-	unsigned int index = luarcu_hash(_table, key, keylen);
+	unsigned int index = luarcu_hash(table, key, keylen);
 	luarcu_entry_t *entry;
 
 	rcu_read_lock();
-	if ((entry = luarcu_lookup(_table, index, key, keylen)) == NULL)
+	if ((entry = luarcu_lookup(table, index, key, keylen)) == NULL)
 		value->type = LUA_TNIL;
 	else {
 		*value = entry->value;
@@ -119,6 +117,11 @@ void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lu
 			value->type = LUA_TNIL;
 	}
 	rcu_read_unlock();
+}
+
+void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value)
+{
+	luarcu_findvalue((luarcu_table_t *)table->private, key, keylen, value);
 }
 EXPORT_SYMBOL(luarcu_getvalue);
 
@@ -216,65 +219,105 @@ static inline void luarcu_inittable(luarcu_table_t *table, size_t size)
 	table->seed = luarcu_seed();
 }
 
-static int luarcu_map_handle(lua_State *L)
+/* a key in the walk's buffer: its length, which LUARCU_MAXKEY keeps within a byte, then its bytes */
+typedef u8 luarcu_keylen_t;
+static_assert(LUARCU_MAXKEY - 1 <= U8_MAX);
+
+static inline void luarcu_pack(char *dst, const char *key, luarcu_keylen_t keylen)
 {
-	const char *key = (const char *)lua_touserdata(L, 2);
-	lunatik_value_t *value = (lunatik_value_t *)lua_touserdata(L, 3);
-
-	BUG_ON(!key || !value);
-
-	lua_pop(L, 2); /* key, value */
-
-	lua_pushstring(L, key);
-	lunatik_pushvalue(L, value);
-	lua_call(L, 2, 0);
-
-	return 0;
+	memcpy(dst, &keylen, sizeof(keylen));
+	memcpy(dst + sizeof(keylen), key, keylen);
 }
 
-static inline int luarcu_map_call(lua_State *L, int cb, const char *key, lunatik_value_t *value)
+static inline const char *luarcu_unpack(const char *src, luarcu_keylen_t *keylen)
 {
-	lua_pushcfunction(L, luarcu_map_handle);
+	memcpy(keylen, src, sizeof(*keylen));
+	return src + sizeof(*keylen);
+}
+
+/* noinline keeps the symbol in kallsyms, where tests/rcu/map_next reads whether the module carries the walk */
+static noinline size_t luarcu_copykeys(luarcu_table_t *table, unsigned int bucket, char *keys, size_t size)
+{
+	luarcu_entry_t *entry;
+	size_t need = 0;
+
+	rcu_read_lock();
+	hlist_for_each_entry_rcu(entry, table->hlist + bucket, hlist) {
+		size_t len = sizeof(luarcu_keylen_t) + entry->keylen;
+
+		if (need + len <= size)
+			luarcu_pack(keys + need, entry->key, entry->keylen);
+		need += len;
+	}
+	rcu_read_unlock();
+	return need;
+}
+
+static size_t luarcu_readkeys(lua_State *L, int ix, luarcu_table_t *table, unsigned int bucket)
+{
+	char *keys = (char *)lua_touserdata(L, ix);
+	size_t size = lua_rawlen(L, ix);
+	size_t need = luarcu_copykeys(table, bucket, keys, size);
+
+	while (need > size) { /* a writer may have added to the bucket since the read */
+		keys = (char *)lua_newuserdatauv(L, need, 0);
+		lua_replace(L, ix);
+		size = need;
+		need = luarcu_copykeys(table, bucket, keys, size);
+	}
+	return need;
+}
+
+static inline void luarcu_map_call(lua_State *L, int cb, luarcu_table_t *table, const char *key, size_t keylen)
+{
+	lunatik_value_t value;
+
 	lua_pushvalue(L, cb);
-	lua_pushlightuserdata(L, (void *)key);
-	lua_pushlightuserdata(L, value);
-
-	return lua_pcall(L, 3, 0, 0); /* handle(cb, key, value) */
+	lua_pushlstring(L, key, keylen); /* before the lookup, so its raise holds no reference */
+	luarcu_findvalue(table, key, keylen, &value);
+	if (value.type == LUA_TNIL)
+		lua_pop(L, 2); /* cb, key */
+	else {
+		lunatik_pushvalue(L, &value);
+		lua_call(L, 2, 0); /* cb(key, value) */
+	}
 }
+
+enum luarcu_map_slots { LUARCU_MAP_TABLE = 1, LUARCU_MAP_CB, LUARCU_MAP_KEYS };
 
 /***
 * Iterates over the table calling `callback(key, value)` for each entry.
-* Iteration is RCU-protected; order is not guaranteed.
+* Iteration is RCU-protected; order is not guaranteed. The walk reads a bucket's keys once and
+* looks each one up before its call: an entry the callback removes is not visited, one it
+* replaces is visited with its new value, and one it adds is visited only if its bucket is
+* still ahead.
 * @function map
 * @tparam function callback `function(key, value)`; an entry whose object a writer is
 *   releasing is skipped.
-* @raise Error if callback raises.
+* @raise Error if callback raises, or if the keys of a bucket cannot be allocated.
 */
 static int luarcu_map(lua_State *L)
 {
-	luarcu_table_t *table = luarcu_checktable(L, 1);
+	luarcu_table_t *table = luarcu_checktable(L, LUARCU_MAP_TABLE);
 	unsigned int bucket;
-	luarcu_entry_t *n, *entry;
 
-	luaL_checktype(L, 2, LUA_TFUNCTION); /* cb */
-	lua_remove(L, 1); /* table */
+	luaL_checktype(L, LUARCU_MAP_CB, LUA_TFUNCTION);
+	lua_settop(L, LUARCU_MAP_CB);
+	lua_newuserdatauv(L, 0, 0); /* LUARCU_MAP_KEYS */
 
-	rcu_read_lock();
-	luarcu_foreach(table, bucket, n, entry) {
-		char key[LUARCU_MAXKEY];
+	for (bucket = 0; bucket < table->size; bucket++) {
+		size_t used = luarcu_readkeys(L, LUARCU_MAP_KEYS, table, bucket);
+		const char *keys = (const char *)lua_touserdata(L, LUARCU_MAP_KEYS);
+		const char *end = keys + used;
 
-		strscpy(key, entry->key, LUARCU_MAXKEY);
-		lunatik_value_t value = entry->value;
-		if (lunatik_isuserdata(&value) && !lunatik_getobject_rcu(value.object))
-			continue;
+		while (keys < end) {
+			luarcu_keylen_t keylen;
+			const char *key = luarcu_unpack(keys, &keylen);
 
-		rcu_read_unlock();
-		int ret = luarcu_map_call(L, 1, key, &value);
-		if (ret != LUA_OK)
-			lua_error(L);
-		rcu_read_lock();
+			luarcu_map_call(L, LUARCU_MAP_CB, table, key, keylen);
+			keys = key + keylen;
+		}
 	}
-	rcu_read_unlock();
 	return 0;
 }
 

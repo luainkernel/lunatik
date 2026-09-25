@@ -111,8 +111,8 @@ function runner.list()
 end
 
 --- Shuts down all running scripts and their threads.
--- Stops each script as the iteration reaches it: `runner.stop` removes the
--- entry the callback was given, which is all `rcu.map` allows.
+-- Stops each script as the iteration reaches it; `runner.stop` removes the
+-- entry the callback was given.
 function runner.shutdown()
 	rcu.map(env.runtimes, runner.stop)
 end
