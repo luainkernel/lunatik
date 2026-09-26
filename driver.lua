@@ -7,27 +7,24 @@ local device = require("device")
 
 local driver = {name = "lunatik"}
 
-function driver:read()
-	local result = self.result
-	self.result = nil
-	return result
+function driver:read(len, off, file)
+	local result = file.result or ""
+	file.result = result:sub(len + 1)
+	return result:sub(1, len)
 end
 
-local function result(_, ...)
+local function result(ok, ...)
 	local n = select('#', ...)
 	local t = {}
 	for i = 1, n do
 		t[i] = tostring(select(i, ...))
 	end
-	return table.concat(t, '\t')
+	return tostring(ok) .. '\t' .. table.concat(t, '\t')
 end
 
-function driver:write(buf)
-	local ok, err = load(buf)
-	if ok then
-		err = result(pcall(ok))
-	end
-	self.result = err
+function driver:write(buf, off, file)
+	local chunk, err = load(buf)
+	file.result = chunk and result(pcall(chunk)) or result(false, err)
 end
 
 device.new(driver)

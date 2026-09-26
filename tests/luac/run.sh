@@ -94,12 +94,12 @@ check_dmesg || { ktap_totals; exit 1; }
 dmesg_since | grep -q "luac: require of a compiled library" || fail "luac: require did not load the chunk"
 ktap_pass "luac: require() loads a compiled library"
 
-output=$(lunatik run tests/luac/err_bc)
+output=$(lunatik run tests/luac/err_bc 2>&1)
 echo "$output" | grep -q "^$SRC/err.lua:8: attempt to index a nil value (local 't')" \
 	|| fail "luac: full chunk error: $output"
 ktap_pass "luac: error names the source path and line"
 
-output=$(lunatik run tests/luac/err_s)
+output=$(lunatik run tests/luac/err_s 2>&1)
 echo "$output" | grep -q "^?:?: attempt to index a nil value" || fail "luac: stripped chunk error: $output"
 ktap_pass "luac: stripped error has no source or line"
 
@@ -110,7 +110,7 @@ ktap_pass "luac: -l lists a compiled chunk"
 # 4 size+value blocks) with the IEEE-754 image of -370.5
 cp "$SRC/hello_bc.lua" "$SRC/stock.lua"
 printf '\x00\x00\x00\x00\x00\x28\x77\xc0' | dd of="$SRC/stock.lua" bs=1 seek=32 conv=notrunc status=none
-output=$(lunatik run tests/luac/stock)
+output=$(lunatik run tests/luac/stock 2>&1)
 echo "$output" | grep -q "Lua number format mismatch" || fail "luac: stock chunk accepted: $output"
 ktap_pass "luac: stock number format is rejected"
 
@@ -123,7 +123,7 @@ cmp -s "$SRC/host_order.lua" "$SRC/hello_bc.lua" || fail "luac: -e $HOST_ORDER d
 ktap_pass "luac: the host's byte order gives the default output"
 
 lunatic -e "$FOREIGN_ORDER" -o "$SRC/foreign_order.lua" "$SRC/hello.lua" || fail "luac: compile -e $FOREIGN_ORDER"
-output=$(lunatik run tests/luac/foreign_order)
+output=$(lunatik run tests/luac/foreign_order 2>&1)
 echo "$output" | grep -q "int format mismatch" || fail "luac: the other byte order was accepted: $output"
 ktap_pass "luac: the other byte order is rejected by the header"
 
