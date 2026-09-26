@@ -156,7 +156,7 @@ static int l_read(lua_State *L, char *buf, size_t len, loff_t *off)
 	lua_pushinteger(L, len);
 	lua_pushinteger(L, *off);
 	if (lua_pcall(L, 2, 2, 0) != LUA_OK) { /* calls myread(len, off) */
-		pr_err("%s\n", lua_tostring(L, -1));
+		pr_err("%s\n", lunatik_errmsg(L));
 		return -ECANCELED;
 	}
 
@@ -560,6 +560,15 @@ Calls `op(...)`. If the return value is negative, calls `lunatik_throw`. Defined
 void lunatik_tryret(lua_State *L, ret, op, ...);
 ```
 Like `lunatik_try`, but stores the return value in `ret` before checking. Defined as a macro.
+
+### lunatik\_errmsg
+```C
+const char *lunatik_errmsg(lua_State *L);
+```
+Returns the error on top of the stack of `L` when it is a string, and `"error object is not a string"`
+otherwise, without converting it: `lua_tostring` converts a number in place, which allocates, and an
+allocation that fails outside a protected call raises with no handler, a `BUG()`; any other value reads
+as `NULL`. After a protected call or a resume fails, the error is read through it.
 
 ---
 

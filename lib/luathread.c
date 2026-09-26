@@ -36,7 +36,7 @@ static int luathread_resume(lua_State *L, luathread_t *thread)
 	int nresults;
 	int status = lua_resume(L, NULL, thread->nargs, &nresults);
 	if (status != LUA_OK && status != LUA_YIELD) {
-		pr_err("[%p] %s\n", thread, lua_tostring(L, -1));
+		pr_err("[%p] %s\n", thread, lunatik_errmsg(L));
 		lua_pop(L, 1);
 		return -ENOEXEC;
 	}
