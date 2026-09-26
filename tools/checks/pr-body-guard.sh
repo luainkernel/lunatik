@@ -177,6 +177,24 @@ examples() {
 	done <<< "$1"
 }
 
+# a new issue carries its severity as the repository's label (AGENTS.md, "Findings"): passed as a field of gh
+# api, labels[]=, as gh issue's --label or -l, or in the JSON gh api sends
+severity() {
+	local post body
+	while IFS= read -r post; do
+		[ -n "$post" ] || continue
+		body=$(gh_body "$post")
+		if [ "${body%% *}" = input ]; then
+			jq -e '[.labels[]? | strings | select(test("^severity: (low|medium|high)$"))] | length > 0' "${body#* }" \
+				> /dev/null 2>&1 && continue
+		elif printf '%s' "$post" | grep -qE '(labels\[\]=|--label[ =]|(^| )-l )([^ ,]*,)*severity: (low|medium|high)( |,|$)'; then
+			continue
+		fi
+		echo "pr-body-guard: a new issue carries its severity as a label, severity: low, medium or high (AGENTS.md, \"Findings\"): pass -f 'labels[]=severity: <level>' to gh api, or --label to gh issue." >&2
+		exit 2
+	done <<< "$1"
+}
+
 cmds=$(commands "$input")
 repo='^(https://api\.github\.com)?/?repos/[^/]+/[^/]+'
 # a review or a comment is review-post-guard's, on an endpoint below the pull request's or the issue's
@@ -191,6 +209,7 @@ case "$(command_text "$input")" in
 	*CONTRACT_OK=1*) ;;
 	*) check "$(gh_writes "$cmds" 'issue (create|new)' "$repo/issues\$")" contract.sh ;;
 esac
+severity "$(gh_writes "$cmds" 'issue (create|new)' "$repo/issues\$")"
 unread "$cmds"
 exit 0
 
