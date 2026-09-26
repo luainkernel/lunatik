@@ -293,7 +293,7 @@ catches it. This file's own gate spent its first version skipping `lua/` and `kl
 the staged list, where a submodule is a gitlink and its files never appear.
 
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
-reload, a run, a `list`, the REPL on a pipe or with `-e`, or a suite, while another operation is on
+reload, a run, a `list`, `-V`, the REPL on a pipe or with `-e`, or a suite, while another operation is on
 it, naming the processes it found; a process in
 D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once
 what it lists is known to be stale. What a command runs is read by `commands.sh`, which the command
@@ -438,8 +438,8 @@ waits on a session to copy it out and the numbers come back with the result.
 Scripts are resolved under `/lib/modules/lua/`. The CLI loads the kernel modules a script needs by
 itself, through `require()`. Never tell a user to `modprobe lua*` by hand.
 
-`lunatik run`, `spawn`, `stop` and `list` exit 1 when the kernel refuses them, with its message on
-stderr and nothing on stdout.
+`lunatik run`, `spawn`, `stop` and `list` exit 1 when the kernel refuses them, with `lunatik:` and
+its message on stderr and nothing on stdout, and a wrong invocation exits 2 with the usage on stderr.
 
 ## Execution contexts
 
