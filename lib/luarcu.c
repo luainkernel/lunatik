@@ -18,6 +18,7 @@
 #include <linux/spinlock.h>
 #include <linux/hashtable.h>
 #include <linux/random.h>
+#include <linux/srcu.h>
 
 #include <lunatik.h>
 
@@ -64,6 +65,8 @@ typedef struct luarcu_table_s {
 			pos && ({ n = luarcu_entry(hlist_next_rcu(&(pos)->hlist), pos); 1; });	\
 			pos = n)
 
+DEFINE_STATIC_SRCU(luarcu_srcu);
+
 static int luarcu_table(lua_State *L);
 
 static inline luarcu_entry_t *luarcu_lookup(luarcu_table_t *table, unsigned int index,
@@ -81,11 +84,10 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 {
 	luarcu_entry_t *entry;
 
-	if (keylen >= LUARCU_MAXKEY || (entry = kmalloc(struct_size(entry, key, keylen + 1), GFP_ATOMIC)) == NULL)
+	if (keylen >= LUARCU_MAXKEY || (entry = kmalloc(struct_size(entry, key, keylen), GFP_ATOMIC)) == NULL)
 		return NULL;
 
 	memcpy(entry->key, key, keylen);
-	entry->key[keylen] = '\0';
 	entry->keylen = keylen;
 	entry->value = *value;
 	if (lunatik_isuserdata(value))
@@ -93,16 +95,38 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 	return entry;
 }
 
+static void luarcu_freeentry(struct rcu_head *head)
+{
+	kfree_rcu(container_of(head, luarcu_entry_t, rcu), rcu); /* then the lockless readers' grace period */
+}
+
 static inline void luarcu_free(luarcu_entry_t *entry)
 {
 	if (lunatik_isuserdata(&entry->value))
 		lunatik_putobject(entry->value.object);
-	kfree_rcu(entry, rcu);
+	call_srcu(&luarcu_srcu, &entry->rcu, luarcu_freeentry);
+}
+
+static inline void luarcu_unlink(luarcu_entry_t *old, luarcu_entry_t *new)
+{
+	if (new) {
+		hlist_replace_rcu(&old->hlist, &new->hlist);
+		WRITE_ONCE(old->hlist.pprev, NULL); /* the tail of hlist_del_init_rcu, which hlist_replace_rcu lacks */
+	}
+	else
+		hlist_del_init_rcu(&old->hlist);
 }
 
 static const lunatik_class_t luarcu_class;
 
 LUNATIK_PRIVATECHECKER(luarcu_checktable, luarcu_table_t *, &luarcu_class);
+
+static inline void luarcu_readvalue(luarcu_entry_t *entry, lunatik_value_t *value)
+{
+	*value = entry->value;
+	if (lunatik_isuserdata(value) && !lunatik_getobject_rcu(value->object))
+		value->type = LUA_TNIL;
+}
 
 void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value)
 {
@@ -113,11 +137,8 @@ void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lu
 	rcu_read_lock();
 	if ((entry = luarcu_lookup(_table, index, key, keylen)) == NULL)
 		value->type = LUA_TNIL;
-	else {
-		*value = entry->value;
-		if (lunatik_isuserdata(value) && !lunatik_getobject_rcu(value->object))
-			value->type = LUA_TNIL;
-	}
+	else
+		luarcu_readvalue(entry, value);
 	rcu_read_unlock();
 }
 EXPORT_SYMBOL(luarcu_getvalue);
@@ -142,10 +163,10 @@ int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lun
 		if (!old)
 			hlist_add_head_rcu(&new->hlist, tab->hlist + index);
 		else
-			hlist_replace_rcu(&old->hlist, &new->hlist);
+			luarcu_unlink(old, new);
 	}
 	else if (old)
-		hlist_del_rcu(&old->hlist);
+		luarcu_unlink(old, NULL);
 	lunatik_unlock(table);
 
 	if (old != NULL)
@@ -218,33 +239,47 @@ static inline void luarcu_inittable(luarcu_table_t *table, size_t size)
 
 static int luarcu_map_handle(lua_State *L)
 {
-	const char *key = (const char *)lua_touserdata(L, 2);
+	luarcu_entry_t *entry = (luarcu_entry_t *)lua_touserdata(L, 2);
 	lunatik_value_t *value = (lunatik_value_t *)lua_touserdata(L, 3);
 
-	BUG_ON(!key || !value);
+	BUG_ON(!entry || !value);
 
-	lua_pop(L, 2); /* key, value */
+	lua_pop(L, 2); /* entry, value */
 
-	lua_pushstring(L, key);
-	lunatik_pushvalue(L, value);
+	lunatik_pushvalue(L, value); /* first, so that a raise below leaves the reference with the clone */
+	lua_pushlstring(L, entry->key, entry->keylen);
+	lua_insert(L, -2); /* key, value */
 	lua_call(L, 2, 0);
 
 	return 0;
 }
 
-static inline int luarcu_map_call(lua_State *L, int cb, const char *key, lunatik_value_t *value)
+static inline int luarcu_map_call(lua_State *L, int cb, luarcu_entry_t *entry, lunatik_value_t *value)
 {
 	lua_pushcfunction(L, luarcu_map_handle);
 	lua_pushvalue(L, cb);
-	lua_pushlightuserdata(L, (void *)key);
+	lua_pushlightuserdata(L, entry);
 	lua_pushlightuserdata(L, value);
 
-	return lua_pcall(L, 3, 0, 0); /* handle(cb, key, value) */
+	return lua_pcall(L, 3, 0, 0); /* handle(cb, entry, value) */
+}
+
+static inline void luarcu_readentry(luarcu_entry_t *entry, lunatik_value_t *value)
+{
+	rcu_read_lock(); /* an unhashed entry's object is freed behind the unhash, after this section */
+	if (hlist_unhashed_lockless(&entry->hlist))
+		value->type = LUA_TNIL;
+	else
+		luarcu_readvalue(entry, value);
+	rcu_read_unlock();
 }
 
 /***
 * Iterates over the table calling `callback(key, value)` for each entry.
-* Iteration is RCU-protected; order is not guaranteed.
+* The walk runs inside an SRCU read-side critical section, so the callback may sleep
+* and a writer on any runtime may change the table meanwhile: an entry removed or
+* replaced under the walk may still be reached and is then skipped, one added is
+* visited only if its bucket is still ahead, and the order is not guaranteed.
 * @function map
 * @tparam function callback `function(key, value)`; an entry whose object a writer is
 *   releasing is skipped.
@@ -254,27 +289,26 @@ static int luarcu_map(lua_State *L)
 {
 	luarcu_table_t *table = luarcu_checktable(L, 1);
 	unsigned int bucket;
-	luarcu_entry_t *n, *entry;
+	luarcu_entry_t *entry;
+	int idx, ret = LUA_OK;
 
 	luaL_checktype(L, 2, LUA_TFUNCTION); /* cb */
-	lua_remove(L, 1); /* table */
 
-	rcu_read_lock();
-	luarcu_foreach(table, bucket, n, entry) {
-		char key[LUARCU_MAXKEY];
+	idx = srcu_read_lock(&luarcu_srcu);
+	for (bucket = 0; bucket < table->size && ret == LUA_OK; bucket++)
+		hlist_for_each_entry_srcu(entry, table->hlist + bucket, hlist, srcu_read_lock_held(&luarcu_srcu)) {
+			lunatik_value_t value;
 
-		strscpy(key, entry->key, LUARCU_MAXKEY);
-		lunatik_value_t value = entry->value;
-		if (lunatik_isuserdata(&value) && !lunatik_getobject_rcu(value.object))
-			continue;
+			luarcu_readentry(entry, &value);
+			if (value.type == LUA_TNIL)
+				continue;
 
-		rcu_read_unlock();
-		int ret = luarcu_map_call(L, 1, key, &value);
-		if (ret != LUA_OK)
-			lua_error(L);
-		rcu_read_lock();
-	}
-	rcu_read_unlock();
+			if ((ret = luarcu_map_call(L, 2, entry, &value)) != LUA_OK)
+				break;
+		}
+	srcu_read_unlock(&luarcu_srcu, idx);
+	if (ret != LUA_OK)
+		lua_error(L);
 	return 0;
 }
 
@@ -344,6 +378,7 @@ static int __init luarcu_init(void)
 
 static void __exit luarcu_exit(void)
 {
+	srcu_barrier(&luarcu_srcu); /* the queued luarcu_freeentry calls run module text */
 }
 
 module_init(luarcu_init);
