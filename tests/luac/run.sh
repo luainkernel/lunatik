@@ -95,12 +95,12 @@ dmesg_since | grep -q "luac: require of a compiled library" || fail "luac: requi
 ktap_pass "luac: require() loads a compiled library"
 
 output=$(lunatik run tests/luac/err_bc 2>&1)
-echo "$output" | grep -q "^$SRC/err.lua:8: attempt to index a nil value (local 't')" \
+echo "$output" | grep -q "^lunatik: $SRC/err.lua:8: attempt to index a nil value (local 't')" \
 	|| fail "luac: full chunk error: $output"
 ktap_pass "luac: error names the source path and line"
 
 output=$(lunatik run tests/luac/err_s 2>&1)
-echo "$output" | grep -q "^?:?: attempt to index a nil value" || fail "luac: stripped chunk error: $output"
+echo "$output" | grep -q "^lunatik: ?:?: attempt to index a nil value" || fail "luac: stripped chunk error: $output"
 ktap_pass "luac: stripped error has no source or line"
 
 lunatic -l -p "$SRC/hello_bc.lua" | grep -q "^main <" || fail "luac: -l did not list the chunk"

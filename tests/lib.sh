@@ -61,6 +61,16 @@ run_test() {
 	return 1
 }
 
+# runs the CLI, keeping its status in $status, its stdout in $out and its stderr in $err
+cli() {
+	local errfile
+	errfile=$(mktemp)
+	out=$(lunatik "$@" 2>"$errfile")
+	status=$?
+	err=$(cat "$errfile")
+	rm -f "$errfile"
+}
+
 # Each test script must define cleanup().
 # fail <description> stops the script, calls cleanup, and exits non-zero.
 fail() {
