@@ -541,6 +541,11 @@ after the watch is stopped.
   (`RT_TABLE_MAX`), is positive; a signed one below zero (`TC_ACT_UNSPEC`,
   the `NF_IP_PRI_*` and `NF_BR_PRI_*` priorities down to `INT_MIN`) keeps its
   sign; and one within `INT_MAX` is unchanged.
+- **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, and in
+  the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
+  body, the armed state a hook calls from, each refuses with "not allowed after module load". A
+  build without the refusal sleeps under the armed runtime's spinlock, so the test skips unless
+  the loaded `lualinux` is the installed one and carries it.
 
 ### lua
 
