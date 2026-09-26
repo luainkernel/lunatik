@@ -275,7 +275,9 @@ implement-issue workflow reads through curl and writes nothing. An issue a write
 `contract.sh` too, which refuses a finding whose stimulus reaches into the runtime's own bookkeeping,
 out of contract by the honest-mistake bullet of *Deciding what to change*: #1067 and #1106 were filed
 that way and each drew a pull request. `CONTRACT_OK=1` opens it where a script using the API as
-documented reaches the same path.
+documented reaches the same path. A new issue carries its severity as the repository's label, which
+the guard refuses to open it without: 129 issues were open with none when the maintainer asked for
+one on every issue.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
