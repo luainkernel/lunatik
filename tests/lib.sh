@@ -37,7 +37,7 @@ check_dmesg() {
 
 comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
 
-# a script that fails reports on the output, not on the exit status.
+# a script that fails reports its error on the output.
 run_script() {
 	local output
 	output=$(lunatik run "$@" 2>&1)

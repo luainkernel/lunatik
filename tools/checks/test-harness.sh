@@ -1,8 +1,8 @@
 #!/bin/bash
-# Checks a test script under tests/ for what it cannot detect: the exit-status
-# blind spot, a script that fails to load reports on the output of `lunatik run`,
-# which exits 0 in that case, so an exit-status or dmesg check alone reports a
-# broken require as a pass; a skip on srcversion alone, which proves the loaded
+# Checks a test script under tests/ for what it cannot detect: a script run with
+# `lunatik run` whose failure to load nothing reads, neither the exit status nor
+# the output, so a broken require reports as a pass, a dmesg check alone included;
+# a skip on srcversion alone, which proves the loaded
 # module is the installed file and not that the file carries the fix, the way
 # tests/runtime/self_stop first skipped; and a message the header says
 # check_dmesg reads that tests/lib.sh's KTAP_ERRORS does not match, the BUG line
@@ -28,18 +28,20 @@ check() {
 "; }
 
 	# covered when the script uses run_script/run_test (tests/lib.sh, which fail
-	# on any output), when it tests the captured output for emptiness, or when it
-	# asserts the output it expects (grep ... || fail): all three notice a script
-	# that printed a loader error instead of running. Matching `file.lua:N:` on
-	# top of that is fine, as a dmesg signal; what it cannot do is stand alone.
+	# on any output), when it tests the output captured with 2>&1 for emptiness,
+	# when it asserts the output it expects (grep ... || fail), or when it reads the
+	# exit status of the run: each notices a script that failed to load. Matching
+	# `file.lua:N:` on top of that is fine, as a dmesg signal; what it cannot do is
+	# stand alone.
 	if grep -q 'lunatik run' "$file" &&
 		! grep -qE '\brun_script\b|\brun_test\b' "$file" &&
-		! grep -qE '\[ -[nz] "\$\{?out' "$file" &&
+		! grep -qE 'lunatik run[^|&#]*(\|\||&&)|if !? *lunatik run' "$file" &&
+		! { grep -qE '\[ -[nz] "\$\{?out' "$file" && grep -qE 'lunatik run.*2>&1' "$file"; } &&
 		! grep -qE 'grep -q[a-zA-Z]*[[:space:]].*\|\|' "$file"; then
 		if grep -qE 'grep -[a-zA-Z]*E?[a-zA-Z]*[[:space:]]*"?.\\\.lua:\[0-9\]' "$file"; then
-			add "detects errors by matching \`file.lua:N:\`, which a failed require does not print; check for any output instead"
+			add "detects errors by matching \`file.lua:N:\`, which a failed require does not print; check the exit status or any output instead"
 		else
-			add "runs a script without checking its output: \`lunatik run\` exits 0 when the script fails to load, so this reports a pass. Capture the output (2>&1) and treat any output as a failure, or use run_script/run_test from tests/lib.sh"
+			add "runs a script without checking whether it loaded, so a failed load reports a pass. Check the exit status (lunatik run ... || fail), capture the output (2>&1) and treat any as a failure, or use run_script/run_test from tests/lib.sh"
 		fi
 	fi
 

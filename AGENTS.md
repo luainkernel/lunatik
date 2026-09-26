@@ -438,8 +438,8 @@ waits on a session to copy it out and the numbers come back with the result.
 Scripts are resolved under `/lib/modules/lua/`. The CLI loads the kernel modules a script needs by
 itself, through `require()`. Never tell a user to `modprobe lua*` by hand.
 
-`lunatik run` exits 0 even when the script fails to load; the error only appears on stdout. Test
-harnesses must assert on output, not on exit status.
+`lunatik run`, `spawn`, `stop` and `list` exit 1 when the kernel refuses them, with its message on
+stderr and nothing on stdout.
 
 ## Execution contexts
 
