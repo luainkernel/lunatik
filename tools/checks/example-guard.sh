@@ -11,14 +11,14 @@ input=$(cat)
 
 . "$(dirname "$0")/commands.sh"
 
-runs_lunatik "$(commands "$input")" '(run|spawn) examples/' || exit 0
+runs_lunatik "$(commands "$input")" '(run|spawn)( .*)? examples/' || exit 0
 case "$input" in
 	*NETWORK_LOSS_OK=1*) exit 0 ;;
 esac
 
 {
 	echo "example-guard: load an example through the watchdog, which stops it if the host loses the connectivity it had:"
-	echo "  sudo bash tools/watchdog.sh <script> [spawn|softirq|hardirq] [percpu]"
+	echo "  sudo bash tools/watchdog.sh <script> [spawn | [--context=softirq|hardirq] [--percpu]]"
 	echo "example-guard: an example that takes the network down cannot be stopped by hand afterwards. Re-run with NETWORK_LOSS_OK=1 as a command prefix only on a machine whose connectivity is expendable."
 } >&2
 exit 2
