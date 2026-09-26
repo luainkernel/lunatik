@@ -8,7 +8,7 @@
 # Usage: sudo bash tests/device/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
-TESTS="held"
+TESTS="held returns"
 FAILED=0
 
 SEP=$'\n'

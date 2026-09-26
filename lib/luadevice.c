@@ -13,7 +13,9 @@
 * A file operation runs under the lock of the runtime that made the device,
 * on the task performing it, so one the runtime's own code performs, a
 * callback or a `thread` body opening the node it made, fails with `EDEADLK`:
-* it would wait on the lock its task holds.
+* it would wait on the lock its task holds. A callback that raises, or that
+* returns a length or an offset that is not an integer, fails its operation
+* with `ECANCELED`, and the error goes to the kernel log.
 *
 * @module device
 */
@@ -99,92 +101,133 @@ static inline luadevice_t *luadevice_find(struct cdev *cdev)
 
 static int luadevice_new(lua_State *L);
 
-static int luadevice_fop(lua_State *L, luadevice_t *luadev, const char *fop, int nargs, int nresults)
+typedef struct luadevice_ctx_s {
+	struct file *f;
+	const char *fop;
+	char *buf;
+	size_t len;
+	loff_t *off;
+	ssize_t ret;
+} luadevice_ctx_t;
+
+#define luadevice_fromfile(f)	((luadevice_t *)(f)->private_data)
+
+static lua_Integer luadevice_optinteger(lua_State *L, int ix, const char *name, lua_Integer def)
+{
+	lua_Integer n;
+	int isnum;
+
+	if (lua_isnoneornil(L, ix))
+		return def;
+	n = lua_tointegerx(L, ix, &isnum);
+	if (!isnum)
+		luaL_error(L, "%s is not an integer", name);
+	return n;
+}
+
+static int luadevice_fop(lua_State *L, luadevice_ctx_t *ctx, int nargs, int nresults)
 {
 	int base = lua_gettop(L) - nargs;
-	int ret = -ENXIO;
 
-	if (lunatik_getregistry(L, luadev) != LUA_TTABLE) /* stopped */
-		goto err;
+	if (lunatik_getregistry(L, luadevice_fromfile(ctx->f)) != LUA_TTABLE) /* stopped */
+		return -ENXIO;
 
-	lunatik_optcfunction(L, -1, fop, lunatik_nop);
+	lunatik_optcfunction(L, -1, ctx->fop, lunatik_nop);
 
 	lua_insert(L, base + 1); /* fop */
 	lua_insert(L, base + 2); /* driver */
-
-	if (lua_pcall(L, nargs + 1, nresults, 0) != LUA_OK) { /* fop(driver, arg1, ...) */
-		pr_err_ratelimited("%s: %s\n", lunatik_errmsg(L), fop);
-		ret = -ECANCELED;
-		goto err;
-	}
+	lua_call(L, nargs + 1, nresults); /* fop(driver, arg1, ...) */
 	return 0;
-err:
-	lua_settop(L, base); /* pop everything, including args */
-	return ret;
 }
 
-static int luadevice_doopen(lua_State *L, luadevice_t *luadev)
+static int luadevice_doopen(lua_State *L)
 {
-	return luadevice_fop(L, luadev, "open", 0, 0);
+	luadevice_ctx_t *ctx = lua_touserdata(L, 1);
+
+	ctx->ret = luadevice_fop(L, ctx, 0, 0);
+	return 0;
 }
 
-static ssize_t luadevice_doread(lua_State *L, luadevice_t *luadev, char *buf, size_t len, loff_t *off)
+static int luadevice_doread(lua_State *L)
 {
-	ssize_t ret;
+	luadevice_ctx_t *ctx = lua_touserdata(L, 1);
 	size_t llen;
 	const char *lbuf;
+	loff_t off;
 
-	lua_pushinteger(L, len);
-	lua_pushinteger(L, *off);
-	if ((ret = luadevice_fop(L, luadev, "read", 2, 2)) != 0)
-		return ret;
+	lua_pushinteger(L, ctx->len);
+	lua_pushinteger(L, *ctx->off);
+	if ((ctx->ret = luadevice_fop(L, ctx, 2, 2)) != 0)
+		return 0;
 
 	lbuf = lua_tolstring(L, -2, &llen);
-	llen = min(len, llen);
-	if (copy_to_user(buf, lbuf, llen) != 0)
-		return -EFAULT;
+	llen = min(ctx->len, llen);
+	off = (loff_t)luadevice_optinteger(L, -1, "offset", *ctx->off + llen);
+	if (copy_to_user(ctx->buf, lbuf, llen) != 0) {
+		ctx->ret = -EFAULT;
+		return 0;
+	}
 
-	*off = (loff_t)luaL_optinteger(L, -1, *off + llen);
-	return (ssize_t)llen;
+	*ctx->off = off;
+	ctx->ret = (ssize_t)llen;
+	return 0;
 }
 
-static ssize_t luadevice_dowrite(lua_State *L, luadevice_t *luadev, const char *buf, size_t len, loff_t *off)
+static int luadevice_dowrite(lua_State *L)
 {
-	ssize_t ret;
+	luadevice_ctx_t *ctx = lua_touserdata(L, 1);
 	luaL_Buffer B;
 	size_t llen;
 	char *lbuf;
 
-	lbuf = luaL_buffinitsize(L, &B, len);
+	lbuf = luaL_buffinitsize(L, &B, ctx->len);
 
-	if (copy_from_user(lbuf, buf, len) != 0) {
+	if (copy_from_user(lbuf, ctx->buf, ctx->len) != 0) {
 		luaL_pushresultsize(&B, 0);
-		return -EFAULT;
+		ctx->ret = -EFAULT;
+		return 0;
 	}
 
-	luaL_pushresultsize(&B, len);
-	lua_pushinteger(L, *off);
-	if ((ret = luadevice_fop(L, luadev, "write", 2, 2)) != 0)
-		return ret;
+	luaL_pushresultsize(&B, ctx->len);
+	lua_pushinteger(L, *ctx->off);
+	if ((ctx->ret = luadevice_fop(L, ctx, 2, 2)) != 0)
+		return 0;
 
-	llen = (size_t)luaL_optinteger(L, -2, len);
-	llen = min(len, llen);
-	*off = (loff_t)luaL_optinteger(L, -1, *off + llen);
-	return (ssize_t)llen;
+	llen = (size_t)luadevice_optinteger(L, -2, "length", ctx->len);
+	llen = min(ctx->len, llen);
+	*ctx->off = (loff_t)luadevice_optinteger(L, -1, "offset", *ctx->off + llen);
+	ctx->ret = (ssize_t)llen;
+	return 0;
 }
 
-static int luadevice_dorelease(lua_State *L, luadevice_t *luadev)
+static int luadevice_dorelease(lua_State *L)
 {
-	return luadevice_fop(L, luadev, "release", 0, 0);
+	luadevice_ctx_t *ctx = lua_touserdata(L, 1);
+
+	ctx->ret = luadevice_fop(L, ctx, 0, 0);
+	return 0;
 }
 
-#define luadevice_fromfile(f)	((luadevice_t *)(f)->private_data)
-#define luadevice_run(handler, ret, f, ...)					\
-		lunatik_run(luadevice_fromfile(f)->runtime, (handler),	\
-			(ret), luadevice_fromfile(f), ## __VA_ARGS__)
+/* tests/device finds the protected dispatch at this symbol */
+static noinline ssize_t luadevice_pcall(lua_State *L, lua_CFunction op, luadevice_ctx_t *ctx)
+{
+	if (lunatik_cpcall(L, op, ctx) != LUA_OK) {
+		pr_err_ratelimited("%s: %s\n", lunatik_errmsg(L), ctx->fop);
+		return -ECANCELED;
+	}
+	return ctx->ret;
+}
+
+#define luadevice_run(op, ret, ctx)							\
+do {											\
+	(ctx)->fop = #op;								\
+	lunatik_run(luadevice_fromfile((ctx)->f)->runtime, luadevice_pcall,		\
+		ret, luadevice_do##op, ctx);						\
+} while (0)
 
 static int luadevice_fop_open(struct inode *inode, struct file *f)
 {
+	luadevice_ctx_t ctx = {.f = f};
 	luadevice_t *luadev;
 	int ret;
 
@@ -192,7 +235,7 @@ static int luadevice_fop_open(struct inode *inode, struct file *f)
 		return -ENXIO;
 
 	f->private_data = luadev;
-	luadevice_run(luadevice_doopen, ret, f);
+	luadevice_run(open, ret, &ctx);
 	if (ret != 0)
 		luadevice_put(luadev);
 	return ret;
@@ -200,23 +243,28 @@ static int luadevice_fop_open(struct inode *inode, struct file *f)
 
 static ssize_t luadevice_fop_read(struct file *f, char *buf, size_t len, loff_t *off)
 {
+	luadevice_ctx_t ctx = {.f = f, .buf = buf, .len = len, .off = off};
 	ssize_t ret;
-	luadevice_run(luadevice_doread, ret, f, buf, len, off);
+
+	luadevice_run(read, ret, &ctx);
 	return ret;
 }
 
 static ssize_t luadevice_fop_write(struct file *f, const char *buf, size_t len, loff_t* off)
 {
+	luadevice_ctx_t ctx = {.f = f, .buf = (char *)buf, .len = len, .off = off};
 	ssize_t ret;
-	luadevice_run(luadevice_dowrite, ret, f, buf, len, off);
+
+	luadevice_run(write, ret, &ctx);
 	return ret;
 }
 
 static int luadevice_fop_release(struct inode *inode, struct file *f)
 {
+	luadevice_ctx_t ctx = {.f = f};
 	int ret;
 
-	luadevice_run(luadevice_dorelease, ret, f);
+	luadevice_run(release, ret, &ctx);
 	luadevice_put(luadevice_fromfile(f));
 	return ret;
 }

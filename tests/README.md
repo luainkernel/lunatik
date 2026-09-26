@@ -125,6 +125,19 @@ the runtime for the binding, instead of the suite reading the kernel version.
   A build without the
   file's hold reads freed memory in each held case, so the test skips unless
   the loaded `luadevice` lists `luadevice_free` in `/proc/kallsyms`.
+- **returns**: a callback that raises, or whose return the binding cannot use,
+  fails its operation, and the runtime answers the next one. A read or a write
+  whose callback returns an offset that is not an integer, and a write whose
+  callback returns such a length, each fail with `ECANCELED` and log the error
+  naming the value and the operation; a read or a write whose callback raises
+  fails with `ECANCELED`, and its error and the release's are logged with the
+  operation; where `python3` is there to pass one, a read or a write through
+  a buffer at an unmapped address fails with `EFAULT`; a read and a write of
+  the same runtime's other device, whose callbacks return an offset and a
+  length, then succeed. A build that reads
+  those returns outside a protected call raises with no handler, which is a
+  `BUG`, so the test skips unless the loaded `luadevice` lists
+  `luadevice_pcall` in `/proc/kallsyms`.
 
 ### examples
 
