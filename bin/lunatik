@@ -182,14 +182,19 @@ local usage = [=[
 usage: lunatik [-h | -V]
        lunatik [-i] [-e <chunk>]
        lunatik load | unload | reload | status
-       lunatik run <script> [process | softirq | hardirq] [percpu]
-       lunatik spawn | stop <script>
+       lunatik run [-c process | softirq | hardirq] [-p] <script>
+       lunatik spawn <script>
+       lunatik stop <script>...
        lunatik list
        lunatik test [<suite>]
        lunatik compile [<lunatic argument>...]]=]
 
-local function fail(message)
+local function report(message)
 	io.stderr:write("lunatik: ", message, "\n")
+end
+
+local function fail(message)
+	report(message)
 	os.exit(false)
 end
 
@@ -244,12 +249,19 @@ local function start_repl()
 	repl(read_line)
 end
 
+local function request(chunk, ...)
+	local ok, result = dostring(string.format(chunk, ...))
+	if not ok then fail(result) end
+	return result
+end
+
 local function eval(chunk)
 	ensure_loaded()
-	local ok, result = dostring(chunk)
-	if not ok then fail(result) end
+	local result = request("%s", chunk)
 	if result ~= "" then print(result) end
 end
+
+local contexts = {process = true, softirq = true, hardirq = true}
 
 local options = {}
 
@@ -272,22 +284,39 @@ function options.eval(parsed, chunk)
 	parsed.chunk = chunk
 end
 
+function options.context(parsed, word)
+	if not contexts[word] then
+		misuse(word .. " is not a context: process, softirq or hardirq")
+	end
+	parsed.context = word
+end
+
+function options.percpu(parsed)
+	parsed.percpu = true
+end
+
 local spellings = {
 	["-h"] = "help", ["--help"] = "help",
 	["-V"] = "version", ["--version"] = "version",
 	["-i"] = "interactive", ["--interactive"] = "interactive",
 	["-e"] = "eval", ["--eval"] = "eval",
+	["-c"] = "context", ["--context"] = "context",
+	["-p"] = "percpu", ["--percpu"] = "percpu",
 }
 
-local valued = {eval = true}
+local valued = {eval = true, context = true}
+local general = {help = true, version = true, interactive = true, eval = true}
+local modifying = {context = true, percpu = true, ["--"] = true}
 
-local function parse(parsed)
-	local i = 1
+local function parse(i, accepted, parsed)
 	while arg[i] ~= nil and arg[i]:sub(1, 1) == "-" do
+		if arg[i] == "--" and accepted["--"] then
+			return i + 1
+		end
 		local spelling, value = arg[i]:match("^(%-%-[^=]+)=(.*)$")
 		spelling = spelling or arg[i]
 		local name = spellings[spelling]
-		if name == nil then
+		if name == nil or not accepted[name] then
 			misuse("unknown option " .. spelling)
 		elseif valued[name] and value == nil then
 			i = i + 1
@@ -301,35 +330,63 @@ local function parse(parsed)
 	return i
 end
 
-local contexts = {process = true, softirq = true, hardirq = true}
-local scripted = {run = true, spawn = true, stop = true, list = false}
-
-local function modifiers(verb, ...)
-	if verb ~= "run" and select("#", ...) > 0 then
-		misuse(verb .. " takes no context and no percpu")
-	end
-	local context, percpu
+-- the words after the script that options replace, still read for one release
+local function modifiers(parsed, ...)
 	for _, word in ipairs({...}) do
-		if word == "percpu" then
-			percpu = true
-		elseif contexts[word] then
-			context = word
-		else
-			misuse(word .. " is not a context: process, softirq or hardirq")
-		end
+		local name = word == "percpu" and "percpu" or "context"
+		local option = name == "percpu" and "-p" or "-c " .. word
+		options[name](parsed, word)
+		report(string.format("%s after the script is deprecated, use %s", word, option))
 	end
-	return context, percpu
 end
 
-local function call(verb, script, context, percpu)
-	local ret = verb == "list" and "return" or ""
-	eval(string.format("%s lunatik.runner.%s(%q, %s, %s)", ret, verb, script,
-		context and string.format("%q", context) or "nil", percpu and "true" or "nil"))
+local function unmodified(verb, parsed, ...)
+	if parsed.context or parsed.percpu or select("#", ...) > 0 then
+		misuse(verb .. " takes no context and no percpu")
+	end
+end
+
+local runners = {}
+
+function runners.run(parsed, script, ...)
+	if script == nil then misuse("run takes a script") end
+	modifiers(parsed, ...)
+	ensure_loaded()
+	request("lunatik.runner.run(%q, %q, %q)", script, parsed.context, parsed.percpu)
+end
+
+function runners.spawn(parsed, script, ...)
+	if script == nil then misuse("spawn takes a script") end
+	unmodified("spawn", parsed, ...)
+	ensure_loaded()
+	request("lunatik.runner.spawn(%q)", script)
+end
+
+function runners.stop(parsed, ...)
+	unmodified("stop", parsed)
+	if select("#", ...) == 0 then misuse("stop takes a script") end
+	ensure_loaded()
+	local stopped = true
+	for _, script in ipairs({...}) do
+		if request("return lunatik.runner.stop(%q)", script) == "false" then
+			report(script .. " is not running")
+			stopped = false
+		end
+	end
+	os.exit(stopped)
+end
+
+function runners.list(parsed, script)
+	unmodified("list", parsed)
+	if script ~= nil then misuse("list takes no script") end
+	ensure_loaded()
+	local scripts = request("return lunatik.runner.list()")
+	if scripts ~= "" then print((scripts:gsub(", ", "\n"))) end
 end
 
 local function main()
 	local parsed = {}
-	local i = parse(parsed)
+	local i = parse(1, general, parsed)
 	local verb = arg[i]
 	if verb ~= nil and (parsed.chunk ~= nil or parsed.interactive) then
 		misuse((parsed.chunk and "-e" or "-i") .. " takes no command")
@@ -346,17 +403,12 @@ local function main()
 	if command ~= nil then
 		os.exit(command(table.unpack(arg, i + 1)))
 	end
-	local takes = scripted[verb]
-	if takes == nil then
+	local handler = runners[verb]
+	if handler == nil then
 		misuse("unknown command " .. verb)
 	end
-	local script = arg[i + 1]
-	if takes and script == nil then
-		misuse(verb .. " takes a script")
-	elseif not takes and script ~= nil then
-		misuse(verb .. " takes no script")
-	end
-	call(verb, script, modifiers(verb, table.unpack(arg, i + 2)))
+	i = parse(i + 1, modifying, parsed)
+	handler(parsed, table.unpack(arg, i))
 end
 
 local ok, err = pcall(main)

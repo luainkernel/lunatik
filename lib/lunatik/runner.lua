@@ -93,10 +93,13 @@ end
 --- Stops a running script and its associated thread, if any.
 -- It attempts to stop the thread first, then the runtime.
 -- @tparam string script name of the script to stop. The ".lua" extension will be trimmed.
+-- @treturn boolean whether the script was running.
 function runner.stop(script)
 	local script = trim(script)
+	local running = env.runtimes[script] ~= nil
 	stop(env.threads, script)
 	stop(env.runtimes, script)
+	return running
 end
 
 --- Lists the names of all currently running scripts.

@@ -30,7 +30,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 
 mark_dmesg
 
-run_script "$SCRIPT" softirq
+run_script --context=softirq "$SCRIPT"
 
 ping -c 1 -W 1 127.0.0.1 > /dev/null 2>&1 || true
 

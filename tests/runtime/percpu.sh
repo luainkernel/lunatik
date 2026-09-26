@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Regression test for percpu runtimes: `run <script> percpu` registers one
+# Regression test for percpu runtimes: `run --percpu <script>` registers one
 # object holding one runtime per possible CPU id, and the script runs once per
 # runtime; the script is listed once, by name; stopping it drops every
 # runtime and lets it run again; `spawn` refuses percpu without creating any
@@ -33,7 +33,7 @@ ktap_plan 5
 
 mark_dmesg
 
-run_script "$SCRIPT" percpu
+run_script --percpu "$SCRIPT"
 run_script "$CHECK"
 check_dmesg || { ktap_totals; exit 1; }
 ktap_pass "one runtime per possible CPU id"
@@ -42,9 +42,9 @@ lunatik stop "$CHECK" > /dev/null 2>&1
 
 listed=$(lunatik list)
 case "$listed" in
-	*"$SCRIPT,"*"$SCRIPT"*) fail "list shows an entry per runtime: $listed" ;;
-	*"$SCRIPT"*)            ktap_pass "the script is listed once, by name" ;;
-	*)                      fail "the script is not listed: $listed" ;;
+	*"$SCRIPT"$'\n'*"$SCRIPT"*) fail "list shows an entry per runtime: $listed" ;;
+	*"$SCRIPT"*)                ktap_pass "the script is listed once, by name" ;;
+	*)                          fail "the script is not listed: $listed" ;;
 esac
 
 lunatik stop "$SCRIPT" > /dev/null 2>&1
@@ -52,7 +52,7 @@ listed=$(lunatik list)
 case "$listed" in
 	*"$SCRIPT"*) fail "stop left the script running: $listed" ;;
 esac
-run_script "$SCRIPT" percpu
+run_script --percpu "$SCRIPT"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 ktap_pass "stop drops every runtime and lets the script run again"
 
@@ -67,7 +67,7 @@ ktap_pass "spawn refuses percpu without creating runtimes"
 
 # the rollback needs a second runtime to fail, so it runs only with >1 possible CPU
 if [ "$(nproc --all)" -ge 2 ]; then
-	output=$(lunatik run "$FAIL_SCRIPT" percpu 2>&1)
+	output=$(lunatik run --percpu "$FAIL_SCRIPT" 2>&1)
 	echo "$output" | grep -q "intentional error on the second runtime" || \
 		fail "the percpu run did not fail as intended: $output"
 	listed=$(lunatik list)

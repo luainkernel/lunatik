@@ -58,7 +58,7 @@ command -v setarch > /dev/null 2>&1 || {
 mark_dmesg
 idle=$(kprobes)
 idle_addresses=$(addresses)
-run_script "$SCRIPT" hardirq
+run_script --context=hardirq "$SCRIPT"
 armed=$(kprobes)
 armed_addresses=$(addresses)
 setarch "$(uname -m)" -R true > /dev/null 2>&1

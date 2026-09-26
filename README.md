@@ -98,8 +98,9 @@ Lunatik 4.4  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 usage: lunatik [-h | -V]
        lunatik [-i] [-e <chunk>]
        lunatik load | unload | reload | status
-       lunatik run <script> [process | softirq | hardirq] [percpu]
-       lunatik spawn | stop <script>
+       lunatik run [-c process | softirq | hardirq] [-p] <script>
+       lunatik spawn <script>
+       lunatik stop <script>...
        lunatik list
        lunatik test [<suite>]
        lunatik compile [<lunatic argument>...]
@@ -109,6 +110,8 @@ usage: lunatik [-h | -V]
 * `-V`, `--version`: print the version of the loaded Lunatik, or fail when it is not loaded
 * `-e <chunk>`, `--eval=<chunk>`: run the chunk in the kernel and print what it returns
 * `-i`, `--interactive`: enter the REPL after `-e`
+* `-c <context>`, `--context=<context>`: the context `run` creates the runtime in
+* `-p`, `--percpu`: `run` creates one runtime per CPU id
 
 * `load`: load Lunatik kernel modules
 * `unload`: unload Lunatik kernel modules
@@ -116,19 +119,21 @@ usage: lunatik [-h | -V]
 * `status`: show which Lunatik kernel modules are currently loaded
 * `test [suite]`: run installed test suites (see [Testing](#testing))
 * `compile <arguments>`: run `lunatic` with the given arguments (see [lunatic](#lunatic))
-* `list`: show which runtime environments are currently running
-* `run [process|softirq|hardirq] [percpu]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`, in process context by default; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [percpu scripts](#percpu-scripts)
+* `list`: show which runtime environments are currently running, one script a line
+* `run [-c softirq | hardirq] [-p] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [percpu scripts](#percpu-scripts)
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
-* `stop`: stop the runtime environment created to run the script `<script>`
+* `stop <script>...`: stop the runtime environment created to run each script, failing on a script nothing runs
 * `default`: start a _REPL (Read–Eval–Print Loop)_, with its banner and prompts on a terminal; on a
   pipe it runs each line it reads and prints only what the lines return
 
 An operation the kernel refuses exits 1 with `lunatik: <message>` on stderr and nothing on stdout,
-and a wrong invocation exits 2 with the usage on stderr.
+and a wrong invocation exits 2 with the usage on stderr. The words `process`, `softirq`, `hardirq`
+and `percpu` after the script of `run` are still read for one release, each with a line on stderr
+naming the option that replaces it.
 
 ### percpu scripts
 
-`lunatik run <script> [softirq|hardirq] percpu` creates one runtime per CPU id and
+`lunatik run [--context=softirq | hardirq] --percpu <script>` creates one runtime per CPU id and
 dispatches a callback to the runtime of the CPU it fires on. The runtimes share the
 registrations a script makes once for all of them, a netfilter hook and a kprobe, and each reads
 its own id with `lunatik.cpu()`.
@@ -312,15 +317,15 @@ the keyboard will be _locked_; that is, the system will stop processing any key 
 until the user types the same key sequence again.
 
 The keyboard notifier fires in hardirq context, so keylocker must run in a
-`hardirq` runtime (passed as the third argument to `lunatik run`).
+`hardirq` runtime (passed to `lunatik run` as `--context=hardirq`).
 
 #### Usage
 
 ```
-sudo make examples_install                         # installs examples
-sudo lunatik run examples/keylocker hardirq        # runs keylocker
-<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>     # locks keyboard
-<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>     # unlocks keyboard
+sudo make examples_install                             # installs examples
+sudo lunatik run --context=hardirq examples/keylocker  # runs keylocker
+<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>         # locks keyboard
+<↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>         # unlocks keyboard
 ```
 
 ### tap
@@ -420,14 +425,14 @@ is what names the drop site.
 #### Usage
 
 ```
-sudo make examples_install                            # installs examples
-sudo lunatik run examples/dropreason/monitor hardirq  # arms the kprobe
-echo x > /dev/udp/127.0.0.1/9999                      # trigger a NO_SOCKET drop
-sudo lunatik                                          # opens the kernel REPL
+sudo make examples_install                                      # installs examples
+sudo lunatik run --context=hardirq examples/dropreason/monitor  # arms the kprobe
+echo x > /dev/udp/127.0.0.1/9999                                # trigger a NO_SOCKET drop
+sudo lunatik                                                    # opens the kernel REPL
 > drops = require("examples.dropreason.report")
 > drops.NO_SOCKET
 1
-> drops.report()                                      # counts by reason
+> drops.report()                                                # counts by reason
       1  NO_SOCKET
       6  TCP_OLD_DATA
     152  NOT_SPECIFIED
@@ -549,7 +554,7 @@ sudo make examples_install   # installs examples
 make ebpf                    # builds the XDP/eBPF program
 sudo make ebpf_install       # installs the XDP/eBPF program
 # Run the Lua kernel script, one runtime per CPU
-sudo lunatik run examples/filter/sni softirq percpu
+sudo lunatik run --context=softirq --percpu examples/filter/sni
 # Load the compiled XDP/eBPF program and attach to interface <ifname>
 sudo bpftool prog load examples/filter/https.o /sys/fs/bpf/lunatik_filter type xdp
 sudo bpftool net attach xdp pinned /sys/fs/bpf/lunatik_filter dev <ifname>
@@ -585,8 +590,8 @@ This script drops any outbound DNS packet with question matching the blacklist p
 
 ```
 sudo make examples_install              # installs examples
-sudo lunatik run examples/dnsblock/nf_dnsblock softirq	# runs the Lua kernel script
-sudo lunatik run examples/dnsblock/nf_dnsblock softirq percpu	# or one runtime per CPU, sharing the hook
+sudo lunatik run --context=softirq examples/dnsblock/nf_dnsblock	# runs the Lua kernel script
+sudo lunatik run --context=softirq --percpu examples/dnsblock/nf_dnsblock	# or one runtime per CPU, sharing the hook
 ```
 
 ### dnsdoctor
@@ -605,8 +610,8 @@ examples/dnsdoctor/setup.sh             # sets up the environment
 dig lunatik.com
 
 # run the Lua kernel script
-sudo lunatik run examples/dnsdoctor/nf_dnsdoctor softirq
-sudo lunatik run examples/dnsdoctor/nf_dnsdoctor softirq percpu	# or one runtime per CPU, sharing the hook
+sudo lunatik run --context=softirq examples/dnsdoctor/nf_dnsdoctor
+sudo lunatik run --context=softirq --percpu examples/dnsdoctor/nf_dnsdoctor	# or one runtime per CPU, sharing the hook
 
 # test the setup, a response with IP 10.1.2.3 should be returned
 dig lunatik.com
@@ -704,7 +709,7 @@ It supports gestures: swiping right locks the mouse, and swiping left unlocks it
 
 ```
 sudo make examples_install 			# installs examples
-sudo lunatik run examples/gesture softirq 	# runs gesture
+sudo lunatik run --context=softirq examples/gesture 	# runs gesture
 # In QEMU window:
 # Drag right to lock the mouse
 # Drag left to unlock the mouse
@@ -720,7 +725,7 @@ It fixes the report descriptor for the device (`0x2717`:`0x5014`).
 
 ```
 sudo make examples_install 		# installs examples
-sudo lunatik run examples/xiaomi softirq 	# runs xiaomi driver
+sudo lunatik run --context=softirq examples/xiaomi 	# runs xiaomi driver
 ```
 
 Then insert the Xiaomi Silent Mouse with bluetooth mode on and it should work properly.

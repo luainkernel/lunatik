@@ -220,7 +220,7 @@ static int luasched_detach(lua_State *L)
 * @treturn nil
 * @raise Error if the current runtime is sleepable or if internal setup fails.
 * @usage
-*   -- Lua script (e.g., "my_sched_handler.lua" which is run via `lunatik run my_sched_handler.lua hardirq`)
+*   -- Lua script (e.g., "my_sched_handler.lua" which is run via `lunatik run --context=hardirq my_sched_handler.lua`)
 *   local sched = require("sched")
 *   local scx = require("linux.scx")
 *

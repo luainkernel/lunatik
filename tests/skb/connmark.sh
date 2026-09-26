@@ -56,7 +56,7 @@ nft add rule ip "$NFT_TABLE" raw udp dport $PORT_NOTRACK notrack 2>/dev/null
 nft add chain ip "$NFT_TABLE" c '{ type filter hook output priority -100 ; }' 2>/dev/null
 nft add rule ip "$NFT_TABLE" c ct state new counter 2>/dev/null || skip_all "conntrack unavailable on host"
 
-run_script "$SCRIPT" softirq
+run_script --context=softirq "$SCRIPT"
 
 # One datagram to each port (no listener needed).
 echo x > "/dev/udp/127.0.0.1/$PORT" 2>/dev/null

@@ -105,7 +105,7 @@ cpu=$(sed 's/.*[-,]//' /sys/devices/system/cpu/online)
 
 mark_dmesg
 idle=$(kprobes)
-run_script "$SCRIPT" hardirq percpu
+run_script --context=hardirq --percpu "$SCRIPT"
 armed=$(kprobes)
 trigger "$cpu"
 check_dmesg || { ktap_totals; exit 1; }
@@ -125,7 +125,7 @@ ktap_pass "the runtimes share one kprobe: each call is handled once, by the runt
 mark_dmesg
 trigger_when_armed "$cpu" &
 early=$!
-run_script "$EARLY" hardirq percpu
+run_script --context=hardirq --percpu "$EARLY"
 wait $early
 check_dmesg || { ktap_totals; exit 1; }
 dmesg_since | grep -qF "couldn't find probe table" && fail "a kprobe fired for a runtime that did not register it"
@@ -141,7 +141,7 @@ mark_dmesg
 idle=$(kprobes)
 trigger_when_armed &
 early=$!
-run_script "$EARLY" hardirq
+run_script --context=hardirq "$EARLY"
 wait $early
 armed=$(kprobes)
 check_dmesg || { ktap_totals; exit 1; }
@@ -161,7 +161,7 @@ ktap_pass "a call reaching a plain runtime's kprobe before the script body retur
 
 mark_dmesg
 idle=$(kprobes)
-output=$(lunatik run "$TWICE" hardirq percpu 2>&1)
+output=$(lunatik run --context=hardirq --percpu "$TWICE" 2>&1)
 echo "$output" | grep -q "probe already registered" || fail "the second registration was not refused: $output"
 check_dmesg || { ktap_totals; exit 1; }
 rolled=$(kprobes)
@@ -176,13 +176,13 @@ fi
 ktap_pass "one set holds a kprobe per target; a second probe on the same symbol is refused, leaving none armed"
 
 mark_dmesg
-run_script "$STOP" hardirq percpu
+run_script --context=hardirq --percpu "$STOP"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$STOP" > /dev/null 2>&1
 ktap_pass "stop and enable are refused in a percpu runtime"
 
 mark_dmesg
-run_script "$LATE" hardirq percpu
+run_script --context=hardirq --percpu "$LATE"
 trigger "$cpu"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$LATE" > /dev/null 2>&1
@@ -193,7 +193,7 @@ ktap_pass "a probe from a handler, after load, is refused"
 
 mark_dmesg
 idle=$(kprobes)
-run_script "$SCRIPT" hardirq
+run_script --context=hardirq "$SCRIPT"
 armed=$(kprobes)
 trigger "$cpu"
 check_dmesg || { ktap_totals; exit 1; }
@@ -208,7 +208,7 @@ fi
 ktap_pass "the same script probes as a plain hardirq runtime, arming and unregistering its own kprobe"
 
 mark_dmesg
-run_script "$PLAIN" hardirq
+run_script --context=hardirq "$PLAIN"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$PLAIN" > /dev/null 2>&1
 ktap_pass "a plain runtime stops its probe once, refuses enable afterwards and refuses an unknown symbol"
@@ -216,7 +216,7 @@ ktap_pass "a plain runtime stops its probe once, refuses enable afterwards and r
 mark_dmesg
 idle=$(kprobes)
 held=$(cat "$REFCNT" 2>/dev/null)
-output=$(lunatik run "$ROLLBACK" hardirq percpu 2>&1)
+output=$(lunatik run --context=hardirq --percpu "$ROLLBACK" 2>&1)
 echo "$output" | grep -q "refusing the last runtime" || fail "the set did not reach the intentional error: $output"
 check_dmesg || { ktap_totals; exit 1; }
 rolled=$(kprobes)

@@ -71,7 +71,7 @@ for t in $TESTS; do
 	fi
 done
 
-if run_test "$SOFTIRQ_SCRIPT" softirq; then
+if run_test --context=softirq "$SOFTIRQ_SCRIPT"; then
 	ktap_pass "bpf/map_softirq"
 else
 	ktap_fail "bpf/map_softirq"

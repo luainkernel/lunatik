@@ -64,14 +64,14 @@ else
 	ktap_fail "sched attach: refuses a sleepable runtime"
 fi
 
-if run_test "$REATTACH" hardirq; then
+if run_test --context=hardirq "$REATTACH"; then
 	ktap_pass "sched reattach: a hardirq runtime attaches, re-attaches and detaches"
 else
 	ktap_fail "sched reattach: a hardirq runtime attaches, re-attaches and detaches"
 fi
 
 # the callback fires on the host's own enqueues; a moment of registration is enough for one
-if run_test "$PASS" hardirq && bpftool struct_ops register "$DIR/sched_pass.bpf.o" > /dev/null; then
+if run_test --context=hardirq "$PASS" && bpftool struct_ops register "$DIR/sched_pass.bpf.o" > /dev/null; then
 	sleep $SETTLE
 	bpftool struct_ops unregister name "$OPS"
 	if dmesg_since | grep -q "sched pass test pass" && ! dmesg_since | grep -qE "\.lua:[0-9]+:"; then

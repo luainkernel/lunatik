@@ -42,7 +42,7 @@ if [ -r "$CONFIG" ] && ! grep -q '^CONFIG_HAVE_FUNCTION_ARG_ACCESS_API=y' "$CONF
 fi
 
 mark_dmesg
-run_script "$SCRIPT" hardirq
+run_script --context=hardirq "$SCRIPT"
 dd if=/dev/zero of=/dev/null bs=$COUNT count=1 > /dev/null 2>&1
 dd if=/dev/zero of=/dev/null bs=512 count=1 > /dev/null 2>&1
 sleep 1

@@ -216,7 +216,7 @@ static int luatc_detach(lua_State *L)
 * @treturn nil
 * @raise Error if the current runtime is sleepable or if internal setup fails.
 * @usage
-*   -- Lua script (e.g., "my_tc_handler.lua" which is run via `lunatik run my_tc_handler.lua softirq`)
+*   -- Lua script (e.g., "my_tc_handler.lua" which is run via `lunatik run --context=softirq my_tc_handler.lua`)
 *   local tc = require("tc")
 *   local action = require("linux.tc")
 *

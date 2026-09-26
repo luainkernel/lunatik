@@ -34,7 +34,7 @@ ktap_header
 ktap_plan 4
 
 mark_dmesg
-run_script "$SCRIPT" hardirq
+run_script --context=hardirq "$SCRIPT"
 dd if=/dev/zero of=/dev/null bs=512 count=1 > /dev/null 2>&1
 sleep 1
 lunatik stop "$SCRIPT" > /dev/null 2>&1
