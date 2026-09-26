@@ -119,7 +119,13 @@ one: switch branches in a tree with nothing pending, or read the other branch in
 own. `git stash` has no place here at all: the stack belongs to the repository and not to the
 worktree, so `stash@{0}` is usually another session's work and the pop that follows spreads its
 conflicts over your tree. Set work aside with a commit, and compare two revisions with a worktree or
-`git show <ref>:<path>`.
+`git show <ref>:<path>`. What a worktree holds built and not run is code nobody ran: a cycle run in
+a worktree not your own installs its author's untested edit, and an edit left built while its author
+waits on a question is a crash any session can trigger. An edit is built, installed and run in one
+step, or reverted before the session pauses; the reshape of `rcu.map` on #1158 sat built and unrun
+while its author reported, a cycle from outside the session installed it, and its write through a
+NULL buffer took the host down. A session's scratch worktrees live under `scratch/wt/`, since the
+reboot such a crash forces clears `/tmp` and every tree it held.
 
 A tree with a conflict pending (`git status` showing `UU`) is not a test subject: a suite run over a
 half-applied rebase or cherry-pick measures neither side. Resolve and commit, then build.
