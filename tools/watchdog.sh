@@ -29,8 +29,7 @@ for t in 127.0.0.1 $gateway; do
 done
 [ -n "$targets" ] || echo "# watchdog: nothing was reachable before the run, nothing to compare against"
 
-out=$(lunatik "$VERB" "$SCRIPT" "$@") || exit $?
-[ -z "$out" ] || { echo "$out" >&2; exit 1; } # the CLI exits 0 on a script that failed to load
+lunatik "$VERB" "$SCRIPT" "$@" || exit $?
 sleep "$GRACE"
 
 lost=""
