@@ -121,7 +121,7 @@ static inline int luahid_pcall(lua_State *L, lua_CFunction op, luahid_ctx_t *ctx
 
 	ctx->ret = 0;
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK)
-		hid_err(ctx->hdev, "%s: %s\n", ctx->cb, lua_tostring(L, -1));
+		hid_err(ctx->hdev, "%s: %s\n", ctx->cb, lunatik_errmsg(L));
 	return ctx->ret;
 }
 

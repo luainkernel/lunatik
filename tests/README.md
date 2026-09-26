@@ -869,6 +869,16 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   the lock its own task holds, so the test skips unless the loaded core is the
   installed one and that file carries the refusal.
 
+- **errobj**: an error object that is not a string reaches the caller and the
+  kernel log as "error object is not a string", read without converting it. A
+  script that raises a table as it loads is refused by `lunatik.runtime` with
+  that message, and a body that raises one when resumed by `resume`; a device
+  `read` that raises one fails with `ECANCELED` and logs the message with the
+  operation; and a spawned thread body that raises one logs the message.
+  Converting such an object allocates, and an allocation that fails outside a
+  protected call is a `BUG`; the test sees the message, since that failure
+  needs the allocation to fail at the instant of the log.
+
 ### sched
 
 Regression tests for `luasched`: the attach guards, and the dispatch path

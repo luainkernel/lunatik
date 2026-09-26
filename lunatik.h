@@ -166,6 +166,11 @@ do {							\
 	lunatik_tryret(L, ret, op, __VA_ARGS__);	\
 } while (0)
 
+static inline const char *lunatik_errmsg(lua_State *L)
+{
+	return lua_type(L, -1) == LUA_TSTRING ? lua_tostring(L, -1) : "error object is not a string";
+}
+
 static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
 {
 	int _type = lua_getfield(L, idx, field);

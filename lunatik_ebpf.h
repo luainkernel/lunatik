@@ -63,7 +63,7 @@ static inline int lunatik_ebpf_invoke(lua_State *L, int cb)
 	lua_rawgeti(L, LUA_REGISTRYINDEX, cb);
 	lua_insert(L, -2);
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
-		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
+		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
 		lua_pop(L, 1);
 		return -1;
 	}

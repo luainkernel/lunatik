@@ -32,6 +32,7 @@ TESTS=(
 	percpu_netfilter.sh
 	collected.sh
 	self_stop.sh
+	errobj.sh
 )
 
 SEP=""

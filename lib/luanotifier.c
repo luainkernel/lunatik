@@ -63,7 +63,7 @@ static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned l
 
 	int nargs = notifier->handler(L, data);
 	if (lua_pcall(L, nargs + 1, 1, 0) != LUA_OK) { /* callback(event, ...) */
-		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
+		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
 		return NOTIFY_OK;
 	}
 
