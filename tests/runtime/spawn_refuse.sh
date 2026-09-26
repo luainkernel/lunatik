@@ -24,7 +24,7 @@ refuse()
 {
 	local context="$1"
 	local output listed
-	output=$(lunatik spawn "$SCRIPT" "$context" 2>&1)
+	output=$(lunatik -e "lunatik.runner.spawn('$SCRIPT', '$context')" 2>&1)
 	echo "$output" | grep -q "IRQ runtime cannot spawn threads" || \
 		fail "a $context spawn was not refused: $output"
 	listed=$(lunatik list)
