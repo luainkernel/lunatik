@@ -198,6 +198,16 @@ written before the squash still explains. #848's body kept a paragraph on a `FSN
 guard the fixup had dropped, and the re-read after the squash passed it. A kernel symbol a body cites
 for what the code does not do is named too, so the report is read, not obeyed.
 
+`kernel-answer.sh` reads commits the same way and names one that builds a mechanism over a kernel
+primitive, RCU, a lock, a reference count or deferred work, with a new function or field, in a body
+that cites neither a `Documentation/` page nor one of that family's own facilities: the kernel has
+usually answered the problem already, and the comparison belongs in the body where the reviewer reads.
+#1158 answered a walk whose callback sleeps under RCU with a snapshot of the keys, a re-lookup of each
+and then a deferred-free list, over four review rounds and a crashed host, when
+`Documentation/RCU/whatisRCU.rst` says "Will readers need to block? If so, you need SRCU" and
+`lib/rhashtable.c` states what a walk that drops the lock between elements gets. It annotates, since
+a body can cite the page and still not read it.
+
 `guard-removed.sh` names the crash guards a C file drops against `HEAD` (a checker, an
 `argcheck`, a context check): removing one and running the test that covers it reproduces the
 crash the guard prevents, and on the shared host that is a forced reboot. `crash-guard.sh`, wired
@@ -860,6 +870,15 @@ for a script's `notify.STOP`, when four lines that decline a device of another n
 handler fix the same defect with master's chain, and it took four review rounds to ask. Write the
 small shape down first, even when the larger one is chosen, so the choice is a comparison and not a
 default.
+
+The comparison starts in the kernel. Before a mechanism is written over a kernel primitive, the
+kernel's own answer to the same problem is read, `Documentation/` for the family and the primitive's
+users under `lib/` and `kernel/`, and the commit body names the facility the shape was compared with,
+or the page that offers none: a reader that must block has SRCU, a walk that drops the lock has the
+contract the comment on `rhashtable_walk_enter` states, and a deferral of frees while readers sleep,
+written by hand, is SRCU again. #1158's walk went through a per-bucket snapshot, a re-lookup per key
+and a pending list before anyone opened `whatisRCU.rst`; `tools/checks/kernel-answer.sh` names a
+commit whose body carries no such comparison.
 
 Reshaping or renaming an API means updating every consumer, grepped for — including consumers in
 stacked or sibling pull requests that will rebase onto the change. A caller left on the old shape

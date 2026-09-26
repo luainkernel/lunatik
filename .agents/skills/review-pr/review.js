@@ -103,7 +103,11 @@ which record what the maintainer cares about.
 Hunt the smallest shape first: for every mechanism the diff adds (a registration path, a new API argument,
 a helper, a name), write the smaller change that would leave the same defect unreachable and why it was not
 taken; where correctness is equal and the shape is smaller, that is a finding, shipped as the fixup that
-makes it. Then residues of the path: anything in the final diff that exists because of how the branch grew rather
+makes it. For every mechanism the diff builds over a kernel primitive, name the kernel's own answer to the
+problem it solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's
+shape and not that one; a facility the kernel provides, written again, is a finding, as #1158's snapshot,
+re-lookup and deferred-free list were SRCU. Then residues of the path: anything in the final diff that exists
+because of how the branch grew rather
 than because the final shape needs it. Names first: for every identifier the diff introduces or renames,
 ask what it distinguishes from in the final tree and whether master already had a name for the same thing.
 Then comments, LDoc, commit bodies, the pull request body, READMEs and doc/capi.md: a sentence that answers
@@ -130,7 +134,8 @@ Tests, Deciding what to change, Patches and commits, Before opening a pull reque
 applies or not, and if it applies, pass or fail, with the line. Where a rule can be checked by a grep or a
 script, run it rather than read for it. Run every check in tools/checks/ over the full changeset
 (\`git diff --name-only ${a.base}..${a.head}\`), function-shape.sh among them with CHECK_BASE=${a.base}, and
-pr-body.sh on the pull request body; every line function-shape.sh prints is answered in the checkpoint,
+pr-body.sh on the pull request body; kernel-answer.sh over \`${a.base}..${a.head}\`, whose every line is answered
+in the checkpoint with the facility the commit was compared with; every line function-shape.sh prints is answered in the checkpoint,
 with the jobs of the function it names listed one by one and either the fixup that splits them or why
 they are one, since the first shape of #1158's map, four of its signals at once, passed a rules phase
 that read the C style rules and not the function; consumers.sh reads
