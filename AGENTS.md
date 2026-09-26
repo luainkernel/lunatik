@@ -646,6 +646,11 @@ the state, where a boolean stored on an existing node cannot.
   event's frame kept the accessing task's pid for an accessor that only ever runs inside the callback,
   in that task, where `current` answers. The same holds for a wrapper written to fit a macro whose
   varargs already take the call, `lunatik_attach(L, obj, field, lunatik_newobject, &class, 0, opt)`.
+* A field beside an embedded kernel object is asked first what the object already records:
+  `hlist_del_init_rcu` leaves `pprev` NULL for `hlist_unhashed_lockless` to read, `list_del_init`
+  leaves the node empty for `list_empty`, a `kref` carries its count and a timer answers
+  `timer_pending`. #1179's first shape kept a `bool unlinked` beside the `hlist_node` that says it;
+  `tools/checks/kernel-answer.sh` names such a field.
 * A kernel version guard puts the current kernel's code in its `#if` arm and the older kernel's in
   `#else`, tested with `>=` on the version that introduced the API, or on the macro that arrived
   with it where a stable series backports the change: raising the floor then deletes `#else` arms
