@@ -129,7 +129,11 @@ Go through AGENTS.md section by section (Object model, C style, Lua style, Comme
 Tests, Deciding what to change, Patches and commits, Before opening a pull request) and for each rule say
 applies or not, and if it applies, pass or fail, with the line. Where a rule can be checked by a grep or a
 script, run it rather than read for it. Run every check in tools/checks/ over the full changeset
-(\`git diff --name-only ${a.base}..${a.head}\`), and pr-body.sh on the pull request body; consumers.sh reads
+(\`git diff --name-only ${a.base}..${a.head}\`), function-shape.sh among them with CHECK_BASE=${a.base}, and
+pr-body.sh on the pull request body; every line function-shape.sh prints is answered in the checkpoint,
+with the jobs of the function it names listed one by one and either the fixup that splits them or why
+they are one, since the first shape of #1158's map, four of its signals at once, passed a rules phase
+that read the C style rules and not the function; consumers.sh reads
 \`LUNATIK_CONSUMERS\` from the environment and is silent where it is unset, so report that the consumer check
 did not run rather than that no consumer was found. Where a check complains about something master already
 does, say so with the evidence. Write the coverage matrix, operation by type by outcome including the
