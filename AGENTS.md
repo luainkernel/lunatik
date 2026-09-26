@@ -220,6 +220,18 @@ message means that release and every one after it. It annotates rather than fail
 release-then-throw shape is not `lunatik_try`'s and the line between the check and the throw is
 what the reader decides on.
 
+`function-shape.sh` reads a C file for the shapes of a function the review of #1158 passed and the
+maintainer then called out, in the functions the diff against `CHECK_BASE` touches: a lock taken at
+more than one site of one function, where the section between is a helper of its own; an allocation
+and a raise in one function, where a buffer a raise passes is freed on every raise path and a
+userdata the collector frees is the shape; a function past forty lines or nested past two blocks,
+which is more than one job; and a per-item buffer sized by a maximum, `n * LUARCU_MAXKEY`, which is
+packed by each item's length. The walk of `rcu.map` on #1158 carried all four, took the lock at two
+sites with an allocation between, freed its buffer on the raise path and sized a kilobyte per key,
+and the review's rules phase read the C style rules and not the function. The check annotates: a lock
+retaken after a wait is a shape the reader decides on, and the review answers each line it prints with
+the function's jobs listed and the fixup that splits them or the reason they are one.
+
 `lua-style.sh` reads a Lua file for the shape rules of "Lua style" that a review of #618 passed over
 and called ready: an `if`/`elseif` whose branches repeat the same steps, which is a dispatch table
 or a helper; one table of arguments spelled at two call sites, which is declared once; and a
