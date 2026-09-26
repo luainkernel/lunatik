@@ -57,7 +57,7 @@ onbus() {
 	echo $count
 }
 
-if run_test "$SCRIPT" softirq; then
+if run_test --context=softirq "$SCRIPT"; then
 	ktap_pass "hid/register"
 else
 	ktap_fail "hid/register"

@@ -88,7 +88,7 @@ run_case()
 		{ ktap_fail "$label: failed to attach XDP program"; bpftool prog unpin "$pin"; return 1; }
 
 	mark_dmesg
-	run_script "tests/xdp/$script" "$@"
+	run_script "$@" "tests/xdp/$script"
 
 	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
 	local reached=$?
@@ -120,7 +120,7 @@ detach_case()
 		{ ktap_fail "xdp detach: failed to attach XDP program"; bpftool prog unpin "${PIN}_detach"; return 1; }
 
 	mark_dmesg
-	run_script "tests/xdp/detach" softirq
+	run_script --context=softirq "tests/xdp/detach"
 
 	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
 	local dropped=$?
@@ -197,7 +197,7 @@ percpu_case()
 		{ ktap_fail "xdp percpu: failed to attach XDP program"; bpftool prog unpin "${PIN}_percpu"; return 1; }
 
 	mark_dmesg
-	run_script "tests/xdp/percpu" softirq percpu
+	run_script --context=softirq --percpu "tests/xdp/percpu"
 	taskset -c "$cpu" ip netns exec "$NETNS" ping -c 3 -W 2 "$TARGET" > /dev/null 2>&1
 
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
@@ -213,11 +213,11 @@ percpu_case()
 }
 
 run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass" \
-	"xdp pass: verdict enforced, packet and argument content verified" softirq
+	"xdp pass: verdict enforced, packet and argument content verified" --context=softirq
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop" \
-	"xdp drop: verdict enforced correctly" softirq percpu
+	"xdp drop: verdict enforced correctly" --context=softirq --percpu
 run_case xdp_reattach.bpf.o "${PIN}_reattach" reattach.lua yes "xdp reattach" \
-	"xdp reattach: only the last attached callback runs" softirq
+	"xdp reattach: only the last attached callback runs" --context=softirq
 detach_case
 
 mark_dmesg

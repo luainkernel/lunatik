@@ -19,14 +19,14 @@ is what names the drop site.
 ## Usage
 
 ```
-sudo make examples_install                            # installs examples
-sudo lunatik run examples/dropreason/monitor hardirq  # arms the kprobe
-echo x > /dev/udp/127.0.0.1/9999                      # trigger a NO_SOCKET drop
-sudo lunatik                                          # opens the kernel REPL
+sudo make examples_install                                      # installs examples
+sudo lunatik run --context=hardirq examples/dropreason/monitor  # arms the kprobe
+echo x > /dev/udp/127.0.0.1/9999                                # trigger a NO_SOCKET drop
+sudo lunatik                                                    # opens the kernel REPL
 > drops = require("examples.dropreason.report")
 > drops.NO_SOCKET
 1
-> drops.report()                                      # counts by reason
+> drops.report()                                                # counts by reason
       1  NO_SOCKET
       6  TCP_OLD_DATA
     152  NOT_SPECIFIED

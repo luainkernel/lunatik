@@ -14,8 +14,8 @@ examples/dnsdoctor/setup.sh             # sets up the environment
 dig lunatik.com
 
 # run the Lua kernel script
-sudo lunatik run examples/dnsdoctor/nf_dnsdoctor softirq
-sudo lunatik run examples/dnsdoctor/nf_dnsdoctor softirq percpu	# or one runtime per CPU, sharing the hook
+sudo lunatik run --context=softirq examples/dnsdoctor/nf_dnsdoctor
+sudo lunatik run --context=softirq --percpu examples/dnsdoctor/nf_dnsdoctor	# or one runtime per CPU, sharing the hook
 
 # test the setup, a response with IP 10.1.2.3 should be returned
 dig lunatik.com

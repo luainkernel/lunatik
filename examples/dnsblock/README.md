@@ -7,7 +7,7 @@ This script drops any outbound DNS packet with question matching the blacklist p
 
 ```
 sudo make examples_install              # installs examples
-sudo lunatik run examples/dnsblock/nf_dnsblock softirq	# runs the Lua kernel script
-sudo lunatik run examples/dnsblock/nf_dnsblock softirq percpu	# or one runtime per CPU, sharing the hook
+sudo lunatik run --context=softirq examples/dnsblock/nf_dnsblock	# runs the Lua kernel script
+sudo lunatik run --context=softirq --percpu examples/dnsblock/nf_dnsblock	# or one runtime per CPU, sharing the hook
 ```
 

@@ -31,7 +31,7 @@ check_dmesg || { ktap_totals; exit 1; }
 ktap_pass "io: open/read/write/seek/lines/type and edge cases"
 
 mark_dmesg
-run_script "$SCRIPT_SOFTIRQ" softirq
+run_script --context=softirq "$SCRIPT_SOFTIRQ"
 check_dmesg || { ktap_totals; exit 1; }
 ktap_pass "io: not available in softirq runtime"
 

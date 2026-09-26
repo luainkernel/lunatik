@@ -50,13 +50,13 @@ command -v genl > /dev/null 2>&1 || skip "channel: genl tool unavailable"
 
 gcc -O2 -o "$SUB_BIN" "$DIR/channel_subscriber.c" 2>/dev/null || skip "channel: subscriber failed to build"
 
-output=$(lunatik run "$SCRIPT" softirq percpu 2>&1)
+output=$(lunatik run --context=softirq --percpu "$SCRIPT" 2>&1)
 echo "$output" | grep -q "not allowed in a percpu runtime" || fail "percpu run did not refuse the channel: $output"
 genl ctrl get name "$FAMILY" > /dev/null 2>&1 && fail "the refused percpu run left $FAMILY registered"
 ktap_pass "channel: a percpu runtime is refused at load"
 
 mark_dmesg
-run_script "$SCRIPT" softirq
+run_script --context=softirq "$SCRIPT"
 check_dmesg || { ktap_totals; exit 1; }
 
 dmesg_since | grep -q "netlink channel: unicast to absent peer returns false" || fail "unicast did not return false"

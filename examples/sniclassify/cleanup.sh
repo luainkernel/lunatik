@@ -6,7 +6,7 @@ set -eux
 
 IF=${1:?usage: cleanup.sh <iface>}
 
-lunatik stop examples/sniclassify/sni
+lunatik stop examples/sniclassify/sni || true # a reload or a failed setup leaves nothing to stop
 tc filter del dev "$IF" egress 2>/dev/null
 tc qdisc del dev "$IF" clsact 2>/dev/null
 tc qdisc del dev "$IF" root  2>/dev/null

@@ -52,10 +52,10 @@ refusals=$(dmesg_since)
 lunatik stop "$SCRIPT" 2>/dev/null
 
 mark_dmesg
-softirq=$(lunatik run "$REFUSED" softirq 2>&1)
+softirq=$(lunatik run --context=softirq "$REFUSED" 2>&1)
 lunatik stop "$REFUSED" 2>/dev/null
 
-percpu=$(lunatik run "$REFUSED" percpu 2>&1)
+percpu=$(lunatik run --percpu "$REFUSED" 2>&1)
 lunatik stop "$REFUSED" 2>/dev/null
 refused=$(dmesg_since)
 
