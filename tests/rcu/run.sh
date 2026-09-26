@@ -14,7 +14,8 @@
 # with it. It accepts the counts it serves, defaults to a usable table, and refuses
 # zero (roundup_pow_of_two() is undefined there), a negative, and the counts whose
 # byte size wraps; a count it can size but no allocator serves is the allocator's
-# memory error, with no kernel warning behind it.
+# memory error, with no kernel warning behind it. A key under LUARCU_MAXKEY bytes
+# is stored and one at it is out of bounds where it arrives, not a memory error.
 #
 # map_next: rcu.map() reads a bucket's keys once and looks each one up before its
 # call, so the pointer to the next entry it read before the callback ran is never
