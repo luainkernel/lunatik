@@ -73,7 +73,7 @@ release() {
 perm_begin 16 "fsnotify/execguard"
 
 mkdir -p -m 0700 "$SCOPE" "$OUTSIDE"
-mount -t tmpfs -o size=1M,mode=0700 lunatik-execguard "$SCOPE" 2>/dev/null
+mount -t tmpfs -o mode=0700 lunatik-execguard "$SCOPE" 2>/dev/null
 mountpoint -q "$SCOPE" || perm_skip 16 "fsnotify/execguard: no tmpfs for the scope the example marks"
 mkdir "$SCOPE/sub" || fail "could not make a directory on the tmpfs"
 
