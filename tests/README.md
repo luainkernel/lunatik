@@ -415,6 +415,10 @@ after the watch is stopped.
   argument; a `softirq` and a `hardirq` runtime resumed past their body, the
   armed state a hook calls from, each resolve a symbol and get `nil` for an
   absent one; skipped without `CONFIG_KPROBES`, which the resolution needs.
+- **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, and in
+  the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
+  body, the armed state a hook calls from, each refuses with "not allowed after module load",
+  since the sleep would run in softirq or hardirq.
 
 ### lua
 

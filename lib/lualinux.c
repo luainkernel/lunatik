@@ -85,7 +85,8 @@ static int lualinux_random(lua_State *L)
 * See `linux.task` for possible values. Defaults to `TASK_INTERRUPTIBLE`.
 * @treturn integer remaining time in milliseconds
 * if the sleep was interrupted before the full timeout, or 0 if the full timeout elapsed.
-* @raise Error if an invalid task state is provided.
+* @raise Error if an invalid task state is provided, and "not allowed after module load" from an
+*   interrupt-context runtime past its body, where the sleep would run in softirq or hardirq.
 * @usage
 *   local task = require("linux.task")
 *   linux.schedule(1000) -- Sleep for 1 second (interruptible)
@@ -93,6 +94,8 @@ static int lualinux_random(lua_State *L)
 */
 static int lualinux_schedule(lua_State *L)
 {
+	lunatik_checkarmed(L);
+
 	lua_Integer timeout = luaL_optinteger(L, 1, MAX_SCHEDULE_TIMEOUT);
 	lua_Integer state = luaL_optinteger(L, 2, TASK_INTERRUPTIBLE);
 
