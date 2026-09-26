@@ -190,6 +190,7 @@ tests_install:
 		${INSTALL} -m 0644 tests/$$d/*.lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 	done
 	${INSTALL} -m 0644 tests/netlink/channel_subscriber.c ${LUNATIK_TESTS_INSTALL_PATH}/netlink
+	${INSTALL} -m 0644 tests/device/fault.c ${LUNATIK_TESTS_INSTALL_PATH}/device
 	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
 	${INSTALL} -m 0644 tests/tc/Makefile tests/tc/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/tc
 	${INSTALL} -m 0644 tests/sched/Makefile tests/sched/*.bpf.c tests/sched/*.bpf.h ${LUNATIK_TESTS_INSTALL_PATH}/sched
