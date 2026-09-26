@@ -80,7 +80,7 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct 
 		goto out;
 
 	if (lua_pcall(L, 1, 2, 0) != LUA_OK) {
-		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
+		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
 		lua_pop(L, 1);
 		goto clear;
 	}

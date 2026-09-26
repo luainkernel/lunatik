@@ -114,6 +114,13 @@ static inline int lunatik_nop(lua_State *L)
 	return 0;
 }
 
+static inline int lunatik_cpcall(lua_State *L, lua_CFunction f, void *ud)
+{
+	lua_pushcfunction(L, f);
+	lua_pushlightuserdata(L, ud);
+	return lua_pcall(L, 1, 0, 0);
+}
+
 #define LUNATIK_ALLOC(L, a, u)	void *u = NULL; lua_Alloc a = lua_getallocf(L, &u)
 static inline const char *lunatik_pushstring(lua_State *L, char *s, size_t len)
 {
@@ -165,6 +172,11 @@ do {							\
 	int ret;					\
 	lunatik_tryret(L, ret, op, __VA_ARGS__);	\
 } while (0)
+
+static inline const char *lunatik_errmsg(lua_State *L)
+{
+	return lua_type(L, -1) == LUA_TSTRING ? lua_tostring(L, -1) : "error object is not a string";
+}
 
 static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
 {

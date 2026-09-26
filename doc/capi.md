@@ -147,37 +147,59 @@ It is defined as a macro.
 
 #### Example
 ```C
-static int l_read(lua_State *L, char *buf, size_t len, loff_t *off)
+typedef struct myread_s {
+	char __user *buf;
+	size_t len;
+	loff_t *off;
+	ssize_t ret;
+} myread_t;
+
+static int l_read(lua_State *L)
 {
+	myread_t *ctx = lua_touserdata(L, 1);
 	size_t llen;
 	const char *lbuf;
+	loff_t off;
 
 	lua_getglobal(L, "myread");
-	lua_pushinteger(L, len);
-	lua_pushinteger(L, *off);
-	if (lua_pcall(L, 2, 2, 0) != LUA_OK) { /* calls myread(len, off) */
-		pr_err("%s\n", lua_tostring(L, -1));
-		return -ECANCELED;
-	}
+	lua_pushinteger(L, ctx->len);
+	lua_pushinteger(L, *ctx->off);
+	lua_call(L, 2, 2); /* calls myread(len, off) */
 
 	lbuf = lua_tolstring(L, -2, &llen);
-	llen = min(len, llen);
-	if (copy_to_user(buf, lbuf, llen) != 0)
-		return -EFAULT;
+	llen = min(ctx->len, llen);
+	off = (loff_t)luaL_optinteger(L, -1, *ctx->off + llen);
+	if (copy_to_user(ctx->buf, lbuf, llen) != 0) {
+		ctx->ret = -EFAULT;
+		return 0;
+	}
 
-	*off = (loff_t)luaL_optinteger(L, -1, *off + llen);
-	return (ssize_t)llen;
+	*ctx->off = off;
+	ctx->ret = (ssize_t)llen;
+	return 0;
 }
 
-static ssize_t mydevice_read(struct file *f, char *buf, size_t len, loff_t *off)
+static ssize_t p_read(lua_State *L, myread_t *ctx)
+{
+	if (lunatik_cpcall(L, l_read, ctx) != LUA_OK) {
+		pr_err("%s\n", lunatik_errmsg(L));
+		return -ECANCELED;
+	}
+	return ctx->ret;
+}
+
+static ssize_t mydevice_read(struct file *f, char __user *buf, size_t len, loff_t *off)
 {
 	ssize_t ret;
 	lunatik_object_t *runtime = (lunatik_object_t *)f->private_data;
+	myread_t ctx = {.buf = buf, .len = len, .off = off};
 
-	lunatik_run(runtime, l_read, ret, buf, len, off);
+	lunatik_run(runtime, p_read, ret, &ctx);
 	return ret;
 }
 ```
+Everything that can raise, the callback, reading what it returned and any allocation, runs inside `l_read`,
+under the protected call: a raise with no handler is a `BUG()`.
 
 ### lunatik\_handle
 ```C
@@ -185,6 +207,17 @@ void lunatik_handle(lunatik_object_t *runtime, <inttype> (*handler)(...), <intty
 ```
 Like `lunatik_run`, but without acquiring the runtime lock. Use this when the lock is
 already held, or when calling from within a `lunatik_run` handler. Defined as a macro.
+
+### lunatik\_cpcall
+```C
+int lunatik_cpcall(lua_State *L, lua_CFunction f, void *ud);
+```
+Calls the C function `f` in protected mode with `ud` as its only argument, a light userdata, as
+Lua 5.1's `lua_cpcall` did, and returns the status of the
+[protected call](https://www.lua.org/manual/5.5/manual.html#lua_pcall), leaving the error on the
+stack when it fails; what `f` returns is dropped. A handler of `lunatik_run` whose work can raise passes its
+arguments and its result in a context `ud` points to and does that work in `f`, as the example of
+`lunatik_run` does.
 
 ### lunatik\_toruntime
 ```C
@@ -560,6 +593,15 @@ Calls `op(...)`. If the return value is negative, calls `lunatik_throw`. Defined
 void lunatik_tryret(lua_State *L, ret, op, ...);
 ```
 Like `lunatik_try`, but stores the return value in `ret` before checking. Defined as a macro.
+
+### lunatik\_errmsg
+```C
+const char *lunatik_errmsg(lua_State *L);
+```
+Returns the error on top of the stack of `L` when it is a string, and `"error object is not a string"`
+otherwise, without converting it: `lua_tostring` converts a number in place, which allocates, and an
+allocation that fails outside a protected call raises with no handler, a `BUG()`; any other value reads
+as `NULL`. After a protected call or a resume fails, the error is read through it.
 
 ---
 

@@ -149,7 +149,7 @@ static int lunatik_lresume(lua_State *L)
 	int nresults = lunatik_resume(Lto, L, 2, nargs);
 
 	if (nresults < 0) {
-		lua_pushfstring(L, "%s\n", lua_tostring(Lto, -1));
+		lua_pushfstring(L, "%s\n", lunatik_errmsg(Lto));
 		lua_pop(Lto, 1); /* error message */
 		lua_error(L);
 	}
@@ -292,7 +292,7 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 	lua_pushcfunction(L, lunatik_runscript);
 	lua_pushlightuserdata(L, (void *)script);
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
-		lunatik_runerror(Lfrom, lua_tostring(L, -1));
+		lunatik_runerror(Lfrom, lunatik_errmsg(L));
 		runtime->private = NULL;
 		lua_close(L); /* hooks hold extra krefs; putobject alone won't reach 0 */
 		lunatik_putobject(runtime);

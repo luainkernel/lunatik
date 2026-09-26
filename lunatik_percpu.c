@@ -110,7 +110,7 @@ static int lunatik_resumeruntime(lua_State *L, lunatik_object_t *runtime, int na
 
 		nresults = lunatik_resume(Lto, L, 2, nargs);
 		if (nresults < 0) /* the caller raises: a longjmp here would skip the unlock */
-			strscpy(error, lua_tostring(Lto, -1) ?: "error object is not a string", LUAL_BUFFERSIZE);
+			strscpy(error, lunatik_errmsg(Lto), LUAL_BUFFERSIZE);
 		lua_pop(Lto, nresults < 0 ? 1 : nresults); /* the message, or the yield a broadcast drops */
 	}
 	lunatik_unlock(runtime);

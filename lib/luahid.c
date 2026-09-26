@@ -116,12 +116,9 @@ do {						\
 
 static inline int luahid_pcall(lua_State *L, lua_CFunction op, luahid_ctx_t *ctx)
 {
-	lua_pushcfunction(L, op);
-	lua_pushlightuserdata(L, ctx);
-
 	ctx->ret = 0;
-	if (lua_pcall(L, 1, 0, 0) != LUA_OK)
-		hid_err(ctx->hdev, "%s: %s\n", ctx->cb, lua_tostring(L, -1));
+	if (lunatik_cpcall(L, op, ctx) != LUA_OK)
+		hid_err(ctx->hdev, "%s: %s\n", ctx->cb, lunatik_errmsg(L));
 	return ctx->ret;
 }
 

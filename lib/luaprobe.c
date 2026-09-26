@@ -103,7 +103,7 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 		lua_pushvalue(L, base + 2 + i);
 
 	if (lua_pcall(L, 1 + nclosures, 0, 0) != LUA_OK) /* handler(symbol | addr, dump[, argument]) */
-		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
+		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
 
 	for (i = 0; i < nclosures; i++)
 		luaprobe_dropregs(L, base + 2 + i); /* regs are only live while the probed function is trapped */

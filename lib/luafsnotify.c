@@ -138,7 +138,7 @@ static int luafsnotify_callback(lua_State *L, luafsnotify_t *watch, luafsnotify_
 
 	lunatik_setflag(L, &luafsnotify_incallback, true);
 	if (lua_pcall(L, 2, 1, 0) != LUA_OK) /* callback(mask, event) */
-		pr_err_ratelimited("%s\n", lua_tostring(L, -1));
+		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
 	else if (event->mask & ALL_FSNOTIFY_PERM_EVENTS)
 		*verdict = luafsnotify_toverdict(L);
 	lunatik_setflag(L, &luafsnotify_incallback, false);
