@@ -11,7 +11,10 @@ and the wiring the file does not enumerate.
    `/usr/src/linux-headers-$(uname -r)/include` and confirm every symbol is exported in
    `Module.symvers`. For anything context-sensitive (may it run in softirq? does teardown
    sleep?) find an in-tree precedent in the kernel source; a header signature is not evidence
-   of context safety. Read the two closest existing bindings end to end and mirror the whole
+   of context safety. Before a mechanism is designed over a kernel primitive, a walk, a
+   deferral, a reference scheme, read the kernel's own answer under `Documentation/` and its users
+   under `lib/`, and name it in the commit body; `tools/checks/kernel-answer.sh` reads the body for it.
+   Read the two closest existing bindings end to end and mirror the whole
    file: `lib/luasocket.c` (objects + try macros), `lib/luarcu.c` (registry + callbacks),
    `lib/luanetfilter.c` (per-hook skb registry), `lib/luadata.c` (shared data).
 2. **Shape.** Sleeping cleanup (unregister_*, synchronize_*) only runs in process context:

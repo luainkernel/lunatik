@@ -48,7 +48,8 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
   told apart afterwards by a reset and a cherry-pick, which is where a hunk lands in the wrong
   fixup.
 - `bash tools/checks/idioms.sh` over the C files the diff touches, `bash tools/checks/lua-style.sh`
-  over its Lua files, and `bash tools/checks/author-email.sh origin/master..HEAD` over the branch are
+  over its Lua files, `bash tools/checks/author-email.sh origin/master..HEAD` and
+  `bash tools/checks/kernel-answer.sh origin/master..HEAD` over the branch are
   passes of the first round, not of the second: #850's maintainer asked for the argcheck, the
   `lunatik_try` and the shared helper the first round had read past, and #618's for the dispatch
   and the route spelled once that a review calling it ready had read past.

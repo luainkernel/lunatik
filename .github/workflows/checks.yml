@@ -33,4 +33,9 @@ jobs:
           out=$(bash tools/checks/core-subject.sh "$commit" 2>&1) || true
           test -n "$out" && echo "::warning title=core-subject::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
         done
+        # kernel-answer reads the same commits, for a mechanism over a kernel primitive whose body names no kernel answer
+        for commit in $(git rev-list "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"); do
+          out=$(bash tools/checks/kernel-answer.sh "$commit" 2>&1) || true
+          test -n "$out" && echo "::warning title=kernel-answer::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
+        done
         true
