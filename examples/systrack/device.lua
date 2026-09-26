@@ -8,6 +8,7 @@ local rcu    = require("rcu")
 local runner = require("lunatik.runner")
 
 local s = require("linux.stat")
+local script = "examples/systrack/probe"
 local driver = {name = "systrack", mode = s.IRUGO}
 
 local track
@@ -29,11 +30,13 @@ end
 
 device.new(driver)
 
-local probe = runner.run("examples/systrack/probe", "hardirq")
+local probe = runner.run(script, "hardirq")
 
-driver.sentinel = setmetatable({}, {__gc = function()
-	runner.stop("examples/systrack/probe")
-end})
+local function stopprobe()
+	runner.stop(script)
+end
+
+driver.sentinel = setmetatable({}, {__gc = stopprobe})
 
 track = probe:resume()
 
