@@ -323,12 +323,12 @@ files, blocking on nothing: the exit status and the errors on stderr, `runner` r
 0, the usage on stderr with exit 2, a context outside the three refused there with exit 2 while
 it is still the word after the script, `-h`, `-V`, `-e` and `-i`, the REPL on a pipe, and
 `tests/cli` with the cases above that do not need the options; AGENTS.md's "Running a script"
-stops saying that a failed run exits 0. What moves every caller waits for a decision of its own
-(#1160): the options before the operand with their release of deprecation, `stop` of a name
-nothing runs failing, and `list` one name a line. They buy the conventions the references keep,
-and they cost the call sites, the documentation, `commands.sh`, `tools/watchdog.sh` and what an
-out-of-tree consumer reads of `list`, as the costs above count them; the defect in the bare
-words, a context the kernel refuses while the CLI exits 0, is the first part's without them.
+stops saying that a failed run exits 0. What moves every caller goes after it (#1160): the
+options before the operand with their release of deprecation, `stop` of a name nothing runs
+failing, and `list` one name a line. They buy the conventions the references keep, and they cost
+the call sites, the documentation, `commands.sh`, `tools/watchdog.sh` and what an out-of-tree
+consumer reads of `list`, as the costs above count them; the defect in the bare words, a context
+the kernel refuses while the CLI exits 0, is the first part's without them.
 
 ## Phases
 
@@ -347,7 +347,10 @@ words, a context the kernel refuses while the CLI exits 0, is the first part's w
    `-e` and `-i`, the REPL on a pipe, `tests/cli`, which is the suite #845 asks for, and
    AGENTS.md's "Running a script". Userspace and `runner.lua`; the status in the reply is phase
    1's when that lands first. Depends on nothing.
-3. **The comparison**, written above: it declines the family. The queue and the worker of shape
+3. **The options**, the part of the command line that moves every caller (above): `-c` and `-p`
+   before the script with the words after it read for one release, `stop` that fails, `list`
+   one a line, the call sites, `commands.sh` and `tools/watchdog.sh`. Depends on 2.
+4. **The comparison**, written above: it declines the family. The queue and the worker of shape
    2 and the family itself, the two phases a build would have opened, are not built.
 
 ## The locks, traced
@@ -365,8 +368,7 @@ holds RTNL, needs a `doit` that waits: this one does not.
 ## What is not decided here
 
 Whether a capability gates a request at the device's `open`, `CAP_SYS_MODULE` or
-`CAP_SYS_ADMIN`, beside the node's mode; the options before the operand, `stop` that fails and
-`list` one a line (#1160), and with them the release at which the bare-word spellings of `run`
+`CAP_SYS_ADMIN`, beside the node's mode; the release at which the bare-word spellings of `run`
 are dropped; and whether `--json` and the columns of `list` come, with a `runner` that keeps
 each runtime's context and percpu flag. Each is one line to settle when its pull request opens.
 

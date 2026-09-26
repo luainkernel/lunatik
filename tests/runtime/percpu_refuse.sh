@@ -24,7 +24,7 @@ refuse()
 	local script="$1"
 	shift
 	local output listed
-	output=$(lunatik run "$script" "$@" percpu 2>&1)
+	output=$(lunatik run --percpu "$@" "$script" 2>&1)
 	echo "$output" | grep -q "not allowed in a percpu runtime" || \
 		fail "percpu run did not refuse the registration: $output"
 	listed=$(lunatik list)

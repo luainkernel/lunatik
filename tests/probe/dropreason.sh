@@ -62,7 +62,7 @@ if command -v ss > /dev/null && [ -n "$(ss -uHln "sport = :$PORT" 2>/dev/null)" 
 fi
 
 mark_dmesg
-run_script "$SCRIPT" hardirq
+run_script --context=hardirq "$SCRIPT"
 for _ in $(seq $BATCH); do
 	echo x > "/dev/udp/127.0.0.1/$PORT" || fail "the shell could not send a datagram to 127.0.0.1:$PORT"
 done

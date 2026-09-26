@@ -430,8 +430,8 @@ waits on a session to copy it out and the numbers come back with the result.
 
 ### Running a script
 
-    lunatik run <script> [softirq|hardirq]   # one shot
-    lunatik spawn <script>                   # in a kernel thread, always sleepable
+    lunatik run [--context=softirq|hardirq] <script>   # one shot
+    lunatik spawn <script>                             # in a kernel thread, always sleepable
     lunatik stop <script>
     lunatik list
 
@@ -448,8 +448,8 @@ A runtime is created in one of three contexts, and this decides what its code ma
 | Context | How | Allocation | Lock | May sleep |
 |---------|-----|-----------|------|-----------|
 | process | default, and always for `spawn` | `GFP_KERNEL` | mutex | yes |
-| softirq | `lunatik run <script> softirq` | `GFP_ATOMIC` | `spin_lock_bh`; `spin_lock_irqsave` with IRQs already off | no |
-| hardirq | `lunatik run <script> hardirq` | `GFP_ATOMIC` | `spin_lock_irqsave`, always | no |
+| softirq | `lunatik run --context=softirq <script>` | `GFP_ATOMIC` | `spin_lock_bh`; `spin_lock_irqsave` with IRQs already off | no |
+| hardirq | `lunatik run --context=hardirq <script>` | `GFP_ATOMIC` | `spin_lock_irqsave`, always | no |
 
 Netfilter and XDP hooks fire in softirq, kprobes in hardirq; those scripts need the matching context.
 A softirq object reached with IRQs already off, as an `rcu.table` written from a kprobe handler is,

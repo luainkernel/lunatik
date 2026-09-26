@@ -151,17 +151,24 @@ its REPL.
 
 - **usage**: `-h` and `--help` print the usage on stdout, exit 0; an unknown
   option, an unknown command, a verb without its script, `list` with one, `-e`
-  without a chunk, a value given to `--help`, and a chunk or `-i` given with a
-  command each exit 2 with a line naming it and the usage on stderr; `-V` and
+  without a chunk, a value given to `--help`, a chunk or `-i` given with a
+  command, an option on the wrong side of the verb, `-c` without a context, a
+  value given to `--percpu`, and a context or percpu given to `stop` or `list`
+  each exit 2 with a line naming it and the usage on stderr; `-V` and
   `--version` print the loaded version, and with the modules unloaded `-V`
   exits 1, not loaded.
 - **verbs**: a run or a spawn of a script that is missing, and a run of one
   that raises at load, exit 1 with its error on stderr and nothing on stdout;
   a run exits 0 with nothing printed, and a second exits 1, already running,
-  with no position of the runner's; a word `run` cannot read as a context, and
-  any word given to `spawn` after its script, exit 2 and never reach the
-  kernel; a run in process context and its stop exit 0; a spawn exits 0,
-  `list` exits 0 and names it, and its stop exits 0 and removes it.
+  with no position of the runner's; a context `run` cannot read, as `-c` or as
+  the word after the script, and a context, `percpu` or any other word given
+  to `spawn`, exit 2 and never reach the kernel; `-c` and `-p`, `--context=`
+  and `--percpu`, and `--` before the script run it, listed once; the words
+  after the script still run it, each with a line on stderr naming the option
+  that replaces it; `list` prints one script a line; a stop of two running
+  scripts removes both, and a stop of one nothing runs exits 1, not running,
+  after stopping the others it was given; a spawn exits 0, `list` names it,
+  and its stop exits 0 and removes it.
 - **repl**: `-e` and `--eval=` print the chunk's values, exit 0, and exit 1 with
   the message on stderr for a chunk that raises or does not load; a piped
   session prints what its lines return and nothing else, no banner and no
@@ -870,7 +877,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   `_ENV` object registers `luarcu` as `rcu.table`, the script's `require`
   as `rcu`) keeps the class metatables the first open created.
 
-- **percpu**: `run <script> percpu` registers one object holding a
+- **percpu**: `run --percpu <script>` registers one object holding a
   runtime per possible CPU id, and runs the script once per runtime,
   each seeing its own id via `lunatik.cpu()`, which a plain runtime
   sees as `nil`; the script is listed once, by name; `stop` drops every

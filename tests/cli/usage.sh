@@ -8,9 +8,10 @@
 #
 # - -h and --help print the usage on stdout, exit 0;
 # - an unknown option, an unknown command, a verb without its script, list with
-#   one, -e without a chunk, a value given to --help, and a chunk or -i given with
-#   a command each exit 2 with a line naming it and the usage on stderr, and
-#   nothing on stdout;
+#   one, -e without a chunk, a value given to --help, a chunk or -i given with a
+#   command, an option on the wrong side of the verb, -c without a context, a
+#   value given to --percpu, and a context or percpu given to stop or list each
+#   exit 2 with a line naming it and the usage on stderr, and nothing on stdout;
 # - -V and --version print the loaded version, exit 0, and with the modules
 #   unloaded -V exits 1, not loaded; the modules are loaded again after it.
 #
@@ -55,6 +56,12 @@ misused "-e takes a value" -e
 misused "--help takes no value" --help=x
 misused "-e takes no command" -e "return 1" list
 misused "-i takes no command" -i list
+misused "unknown option -c" -c softirq run tests/cli/idle
+misused "unknown option -e" run -e "return 1" tests/cli/idle
+misused "-c takes a value" run -c
+misused "--percpu takes no value" run --percpu=x tests/cli/idle
+misused "stop takes no context and no percpu" stop -p tests/cli/idle
+misused "list takes no context and no percpu" list -c softirq
 ktap_pass "what the CLI cannot read exits 2 with a line naming it and the usage on stderr"
 
 version=$(lunatik -e "return _LUNATIK_VERSION")

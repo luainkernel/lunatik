@@ -51,7 +51,7 @@ ktap_plan 2
 
 mark_dmesg
 
-run_script "$SCRIPT" hardirq
+run_script --context=hardirq "$SCRIPT"
 
 # One load process per CPU to maximise the chance of concurrent handler
 # firings on the same runtime across CPUs.

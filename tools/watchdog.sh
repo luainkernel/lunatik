@@ -7,17 +7,17 @@
 # and the gateway of the default route when there is one. A check that already
 # failed is not held against the script.
 #
-# Usage: sudo bash tools/watchdog.sh <script> [spawn|softirq|hardirq] [percpu]
+# Usage: sudo bash tools/watchdog.sh <script> [spawn | [--context=softirq|hardirq] [--percpu]]
 #        LUNATIK_WATCHDOG_GRACE=<seconds> before the check, default 3
 
 GRACE=${LUNATIK_WATCHDOG_GRACE:-3}
 SCRIPT=$1
 
-[ -n "$SCRIPT" ] || { echo "usage: $0 <script> [spawn|softirq|hardirq] [percpu]" >&2; exit 2; }
+[ -n "$SCRIPT" ] || { echo "usage: $0 <script> [spawn | [--context=softirq|hardirq] [--percpu]]" >&2; exit 2; }
 shift
 
 VERB=run
-[ "$1" = spawn ] && { VERB=spawn; shift; } # spawn takes no context word of its own
+[ "$1" = spawn ] && { VERB=spawn; shift; } # spawn takes no context of its own
 
 reachable() { ping -c 1 -W 1 "$1" > /dev/null 2>&1; }
 
@@ -29,7 +29,7 @@ for t in 127.0.0.1 $gateway; do
 done
 [ -n "$targets" ] || echo "# watchdog: nothing was reachable before the run, nothing to compare against"
 
-lunatik "$VERB" "$SCRIPT" "$@" || exit $?
+lunatik "$VERB" "$@" "$SCRIPT" || exit $?
 sleep "$GRACE"
 
 lost=""

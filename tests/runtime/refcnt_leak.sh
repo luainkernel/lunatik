@@ -43,7 +43,7 @@ mark_dmesg
 
 # run the script in a non-sleepable runtime (required for netfilter hooks);
 # the failure below is the intentional one
-output=$(lunatik run "$SCRIPT" softirq 2>&1)
+output=$(lunatik run --context=softirq "$SCRIPT" 2>&1)
 echo "$output" | grep -q "intentional error after first register" || \
 	fail "script did not reach the intentional error: $output"
 
@@ -62,7 +62,7 @@ ktap_pass "$MODULE refcnt restored after failed script"
 }
 
 mark_dmesg
-output=$(lunatik run "$PERCPU" softirq percpu 2>&1)
+output=$(lunatik run --context=softirq --percpu "$PERCPU" 2>&1)
 echo "$output" | grep -q "intentional error on the last runtime" || \
 	fail "percpu script did not reach the intentional error: $output"
 check_dmesg || { ktap_totals; exit 1; }
