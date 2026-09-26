@@ -696,6 +696,11 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
 - **map_foreign**: `rcu.map()` refuses an object of another class
   instead of walking its private data as a table.
 
+- **index_whole**: an index matches the whole key. On a one-bucket table, a
+  prefix of a stored key reads `nil` and an assignment to it adds an entry
+  instead of replacing the longer one, the empty key reads `nil` until it is
+  set, and two keys alike up to an embedded NUL are told apart.
+
 - **bounds**: `rcu.table()` defaults to a usable table, accepts the bucket
   counts it serves, and refuses zero (`roundup_pow_of_two()` is undefined
   there), a negative, and the counts whose byte size wraps; a count it can
