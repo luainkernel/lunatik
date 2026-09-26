@@ -144,7 +144,10 @@ static int luadevice_doopen(lua_State *L)
 {
 	luadevice_ctx_t *ctx = lua_touserdata(L, 1);
 
-	ctx->ret = luadevice_fop(L, ctx, 0, 0);
+	lua_newtable(L); /* file */
+	lua_pushvalue(L, -1);
+	if ((ctx->ret = luadevice_fop(L, ctx, 1, 0)) == 0)
+		lunatik_register(L, -1, ctx->f); /* a failed open gets no release to drop it */
 	return 0;
 }
 
@@ -157,7 +160,8 @@ static int luadevice_doread(lua_State *L)
 
 	lua_pushinteger(L, ctx->len);
 	lua_pushinteger(L, *ctx->off);
-	if ((ctx->ret = luadevice_fop(L, ctx, 2, 2)) != 0)
+	lunatik_getregistry(L, ctx->f); /* file */
+	if ((ctx->ret = luadevice_fop(L, ctx, 3, 2)) != 0)
 		return 0;
 
 	lbuf = lua_tolstring(L, -2, &llen);
@@ -190,7 +194,8 @@ static int luadevice_dowrite(lua_State *L)
 
 	luaL_pushresultsize(&B, ctx->len);
 	lua_pushinteger(L, *ctx->off);
-	if ((ctx->ret = luadevice_fop(L, ctx, 2, 2)) != 0)
+	lunatik_getregistry(L, ctx->f); /* file */
+	if ((ctx->ret = luadevice_fop(L, ctx, 3, 2)) != 0)
 		return 0;
 
 	llen = (size_t)luadevice_optinteger(L, -2, "length", ctx->len);
@@ -204,7 +209,9 @@ static int luadevice_dorelease(lua_State *L)
 {
 	luadevice_ctx_t *ctx = lua_touserdata(L, 1);
 
-	ctx->ret = luadevice_fop(L, ctx, 0, 0);
+	lunatik_getregistry(L, ctx->f); /* file */
+	lunatik_unregister(L, ctx->f); /* before the callback, which may raise */
+	ctx->ret = luadevice_fop(L, ctx, 1, 0);
 	return 0;
 }
 
@@ -345,26 +352,30 @@ static int luadevice_stop(lua_State *L)
 *   - `name` (string): The name of the device. This name will be used to create
 *     the device file `/dev/<name>`.
 *
-*   It **might** optionally contain the following fields (callback functions):
+*   It **might** optionally contain the following fields (callback functions),
+*   each of which receives, after its own arguments, `file`: a table private to
+*   one open of the device, the same in every callback that open reaches from
+*   its `open` to its `release`, where the driver keeps what belongs to that
+*   open.
 *
 *   - `open` (function): Callback for the `open(2)` system call.
-*     Signature: `function(driver_table)`. Expected to return nothing.
+*     Signature: `function(driver_table, file)`. Expected to return nothing.
 *   - `read` (function): Callback for the `read(2)` system call.
-*     Signature: `function(driver_table, length, offset) -> string [, updated_offset]`.
+*     Signature: `function(driver_table, length, offset, file) -> string [, updated_offset]`.
 *     Receives the driver table, the requested read length (integer), and the current
 *     file offset (integer). Should return the data as a string and optionally the
 *     updated file offset (integer). If `updated_offset` is not returned, the offset
 *     is advanced by the length of the returned string (or the requested length if
 *     the string is longer).
 *   - `write` (function): Callback for the `write(2)` system call.
-*     Signature: `function(driver_table, buffer_string, offset) -> [written_length] [, updated_offset]`.
+*     Signature: `function(driver_table, buffer_string, offset, file) -> [written_length] [, updated_offset]`.
 *     Receives the driver table, the data to write as a string, and the current file
 *     offset (integer). May return the number of bytes successfully written (integer)
 *     and optionally the updated file offset (integer). If `written_length` is not
 *     returned, it's assumed all provided data was written. If `updated_offset` is
 *     not returned, the offset is advanced by the `written_length`.
 *   - `release` (function): Callback for the `release(2)` system call (called when the
-*     last file descriptor is closed). Signature: `function(driver_table)`.
+*     last file descriptor is closed). Signature: `function(driver_table, file)`.
 *     Expected to return nothing.
 *   - `mode` (integer): Optional file mode flags (e.g., permissions) for the device file.
 *     Use constants from `linux.stat` (e.g., `stat.IRUGO`).

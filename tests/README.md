@@ -138,6 +138,11 @@ the runtime for the binding, instead of the suite reading the kernel version.
   those returns outside a protected call raises with no handler, which is a
   `BUG`, so the test skips unless the loaded `luadevice` lists
   `luadevice_pcall` in `/proc/kallsyms`.
+- **file**: each open of a device has a state of its own, which every callback
+  of that open receives from its open to its release. Two files open at once
+  each read what they wrote; a file that wrote nothing reads nothing; release
+  receives the file its open numbered, which a callback written without the
+  file reads back.
 
 ### examples
 
