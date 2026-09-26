@@ -201,15 +201,16 @@ static int luarcu_index(lua_State *L)
 * socket whose last reference the entry held closes there, in the writer's own context:
 * in softirq when a softirq runtime writes the table, with IRQs off when a hardirq one does.
 * @function __newindex
-* @tparam string key
+* @tparam string key up to `LUARCU_MAXKEY` bytes, exclusive
 * @tparam boolean|integer|object|nil value
-* @raise Error on memory allocation failure.
+* @raise Error if the key is out of bounds, or on memory allocation failure.
 */
 static int luarcu_newindex(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobjectclass(L, 1, &luarcu_class);
 	size_t keylen;
 	const char *key = luaL_checklstring(L, 2, &keylen);
+	lunatik_checkbounds(L, 2, keylen, 0, LUARCU_MAXKEY - 1);
 
 	lunatik_value_t value;
 	lunatik_checkvalue(L, 3, &value);

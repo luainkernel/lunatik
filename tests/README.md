@@ -718,7 +718,8 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   counts it serves, and refuses zero (`roundup_pow_of_two()` is undefined
   there), a negative, and the counts whose byte size wraps; a count it can
   size but no allocator serves is a memory error with no kernel warning
-  behind it.
+  behind it. A key under `LUARCU_MAXKEY` bytes is stored and one at it is
+  out of bounds where it arrives, not a memory error.
 
 - **map_sync**: `rcu.map()` remains safe when called while another
   kthread is modifying the table.

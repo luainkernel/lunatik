@@ -10,6 +10,7 @@ local test = require("util").test
 local MAXSIZE <const> = 1 << 60 -- LUARCU_MAXSIZE, past which sizing the table wraps on a 64-bit kernel
 local UNSERVED <const> = 1 << 58 -- sizeable, and past what any allocator serves
 
+local MAXKEY <const> = 256 -- LUARCU_MAXKEY, LUAL_BUFFERSIZE as lunatik_conf.h sets it
 local accepted <const> = {1, 2, 3, 256, 4096, 1 << 20}
 local refused  <const> = {0, -1, MAXSIZE + 1, 1 << 61, math.maxinteger, math.mininteger}
 
@@ -43,6 +44,16 @@ test("rcu.table leaves a count it can size to the allocator", function()
 	local ok, err = pcall(rcu.table, UNSERVED)
 	assert(not ok, "rcu.table served " .. UNSERVED .. " buckets")
 	assert(err:match("not enough memory"), "rcu.table raised something else: " .. err)
+end)
+
+test("rcu.table accepts a key under LUARCU_MAXKEY and refuses one at it", function()
+	local t = rcu.table()
+	local key = ("k"):rep(MAXKEY - 1)
+	t[key] = 1
+	assert(t[key] == 1, "the longest key lost its entry")
+	local ok, err = pcall(function() t[key .. "k"] = 1 end)
+	assert(not ok, "rcu.table accepted a key of " .. MAXKEY .. " bytes")
+	assert(err:match("out of bounds"), "the key raised something else: " .. err)
 end)
 
 test("rcu.table refuses a value that is no integer", function()
