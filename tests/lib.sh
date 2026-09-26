@@ -37,6 +37,13 @@ check_dmesg() {
 
 comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
 
+# A case whose failure mode needs a kernel newer than the tree's floor skips below it.
+kernel_atleast() {
+	local want="$1" have
+	have=$(uname -r | cut -d. -f1,2)
+	[ "$(printf '%s\n%s\n' "$want" "$have" | sort -V | head -1)" = "$want" ]
+}
+
 # a script that fails reports on the output, not on the exit status.
 run_script() {
 	local output
@@ -70,5 +77,23 @@ fail() {
 	cleanup 2>/dev/null || true
 	ktap_totals
 	exit 1
+}
+
+# Holds a session open on a TCP port or a socket path and sends nothing, which is
+# what an unbounded receive in a thread body waits on. It outlives any case, so
+# the caller takes $! and kills it once the case has read its verdict.
+hold_session() {
+	python3 -c '
+import socket, sys, time
+
+target = sys.argv[1]
+if target.startswith("/"):
+	peer = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+	peer.settimeout(5)
+	peer.connect(target)
+else:
+	peer = socket.create_connection(("127.0.0.1", int(target)), timeout=5)
+time.sleep(300)
+' "$1" &
 }
 
