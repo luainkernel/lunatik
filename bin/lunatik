@@ -37,14 +37,14 @@ local function load_modules()
 		sh("modprobe $MODULE", m)
 	end
 	if not probe() then
-		error("couldn't create " .. device)
+		error("couldn't create " .. device, 0)
 	end
 	local ok, result = dostring[[
 		lunatik = require("lunatik")
 		lunatik.runner = require("lunatik.runner")
 		lunatik.runner.startup()
 	]]
-	if not ok then error(result) end
+	if not ok then error(result, 0) end
 end
 
 local function readall(handle)
@@ -85,7 +85,7 @@ end
 local function unload_modules()
 	if probe() then
 		local ok, result = dostring("lunatik.runner.shutdown()")
-		if not ok then error(result) end
+		if not ok then error(result, 0) end
 	end
 	repeat
 		local removed = unload_unused()
@@ -97,7 +97,7 @@ local function reload_modules()
 	load_modules()
 	local stale = stale_modules()
 	if #stale > 0 then
-		error("couldn't replace " .. table.concat(stale, ", ") .. ": loaded from another build")
+		error("couldn't replace " .. table.concat(stale, ", ") .. ": loaded from another build", 0)
 	end
 end
 
@@ -117,17 +117,16 @@ local function ensure_loaded()
 		lunatik.runner = lunatik.runner or require("lunatik.runner")
 		lunatik.runner.startup()
 	]]
-	if not ok then error(result) end
+	if not ok then error(result, 0) end
 end
 
 local tests_path = "/usr/local/share/lunatik/tests"
 
-local function test_modules()
-	local suite  = arg[2]
+local function test_modules(suite)
 	local target = suite and (tests_path .. "/" .. suite .. "/run.sh")
 	                      or (tests_path .. "/run.sh")
 	if not os.execute("[ -f " .. target .. " ]") then
-		error("tests not installed; run: sudo make tests_install")
+		error("tests not installed; run: sudo make tests_install", 0)
 	end
 	reload_modules()
 	ensure_loaded()
@@ -136,10 +135,10 @@ local function test_modules()
 	return ok or code
 end
 
-local function compile_scripts()
+local function compile_scripts(...)
 	local args = {}
-	for i = 2, #arg do
-		table.insert(args, "'" .. arg[i]:gsub("'", "'\\''") .. "'")
+	for _, word in ipairs({...}) do
+		table.insert(args, "'" .. word:gsub("'", "'\\''") .. "'")
 	end
 	local ok, _, code = os.execute("lunatic " .. table.concat(args, " "))
 	os.exit(ok or code)
@@ -171,16 +170,32 @@ local function fallback_reader(prompt)
 	return io.read("l")
 end
 
-local function options(...)
-	local context, percpu
-	for _, opt in ipairs({...}) do
-		if opt == "percpu" then
-			percpu = true
-		else
-			context = opt
-		end
-	end
-	return context, percpu
+local function piped_reader()
+	return io.read("l")
+end
+
+local function isterminal()
+	return os.execute("[ -t 0 ]")
+end
+
+local usage = [=[
+usage: lunatik [-h | -V]
+       lunatik [-i] [-e <chunk>]
+       lunatik load | unload | reload | status
+       lunatik run <script> [process | softirq | hardirq] [percpu]
+       lunatik spawn | stop <script>
+       lunatik list
+       lunatik test [<suite>]
+       lunatik compile [<lunatic argument>...]]=]
+
+local function fail(message)
+	io.stderr:write("lunatik: ", message, "\n")
+	os.exit(false)
+end
+
+local function misuse(message)
+	io.stderr:write("lunatik: ", message, "\n", usage, "\n")
+	os.exit(2)
 end
 
 local function try_as_expr(chunk)
@@ -203,48 +218,149 @@ local function repl(read_line)
 			chunk = chunk .. "\n" .. more
 			expr = try_as_expr(chunk)
 		end
-		local _, res = dostring(expr and ("return " .. chunk) or chunk)
-		if res ~= "" then print(res) end
+		local ok, res = dostring(expr and ("return " .. chunk) or chunk)
+		if not ok then
+			io.stderr:write(res, "\n")
+		elseif res ~= "" then
+			print(res)
+		end
 		line = read_line("> ")
 	end
 end
 
+local function version()
+	local _, result = dostring("return _LUNATIK_VERSION")
+	return result
+end
+
 local function start_repl()
 	ensure_loaded()
-	local _, version = dostring("return _LUNATIK_VERSION")
-	print(version .. "  " .. copyright)
+	if not isterminal() then
+		return repl(piped_reader)
+	end
+	print(version() .. "  " .. copyright)
 	local ok, read_line = pcall(readline_reader)
 	if not ok then read_line = fallback_reader end
 	repl(read_line)
 end
 
-local cmd = commands[arg[1]]
-if cmd then
-	os.exit(cmd())
+local function eval(chunk)
+	ensure_loaded()
+	local ok, result = dostring(chunk)
+	if not ok then fail(result) end
+	if result ~= "" then print(result) end
 end
 
-if #arg >= 1 then
-	local token  = arg[1]
-	local script = arg[2]
-	local tokens = {run = true, spawn = true, stop = true, list = true}
-	local needs_script = {run = true, spawn = true, stop = true}
-	if not tokens[token] or (needs_script[token] and not script) then
-		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu] [compile <arguments>]")
-		os.exit(false)
-	end
-	ensure_loaded()
-	local context, percpu = options(arg[3], arg[4])
-	local ret   = token == "list" and "return" or ""
-	local chunk = string.format("%s lunatik.runner.%s(%q, %s, %s)", ret, token, script,
-		context and string.format("%q", context) or "nil", percpu and "true" or "nil")
-	local ok, result = dostring(chunk)
-	if not ok then
-		io.stderr:write(result, "\n")
-		os.exit(false)
-	end
-	if result ~= "" then print(result) end
+local options = {}
+
+function options.help()
+	print(usage)
 	os.exit()
 end
 
-start_repl()
+function options.version()
+	if not probe() then fail("not loaded") end
+	print(version())
+	os.exit()
+end
+
+function options.interactive(parsed)
+	parsed.interactive = true
+end
+
+function options.eval(parsed, chunk)
+	parsed.chunk = chunk
+end
+
+local spellings = {
+	["-h"] = "help", ["--help"] = "help",
+	["-V"] = "version", ["--version"] = "version",
+	["-i"] = "interactive", ["--interactive"] = "interactive",
+	["-e"] = "eval", ["--eval"] = "eval",
+}
+
+local valued = {eval = true}
+
+local function parse(parsed)
+	local i = 1
+	while arg[i] ~= nil and arg[i]:sub(1, 1) == "-" do
+		local spelling, value = arg[i]:match("^(%-%-[^=]+)=(.*)$")
+		spelling = spelling or arg[i]
+		local name = spellings[spelling]
+		if name == nil then
+			misuse("unknown option " .. spelling)
+		elseif valued[name] and value == nil then
+			i = i + 1
+			value = arg[i] or misuse(spelling .. " takes a value")
+		elseif not valued[name] and value ~= nil then
+			misuse(spelling .. " takes no value")
+		end
+		options[name](parsed, value)
+		i = i + 1
+	end
+	return i
+end
+
+local contexts = {process = true, softirq = true, hardirq = true}
+local scripted = {run = true, spawn = true, stop = true, list = false}
+
+local function modifiers(verb, ...)
+	if verb ~= "run" and select("#", ...) > 0 then
+		misuse(verb .. " takes no context and no percpu")
+	end
+	local context, percpu
+	for _, word in ipairs({...}) do
+		if word == "percpu" then
+			percpu = true
+		elseif contexts[word] then
+			context = word
+		else
+			misuse(word .. " is not a context: process, softirq or hardirq")
+		end
+	end
+	return context, percpu
+end
+
+local function call(verb, script, context, percpu)
+	local ret = verb == "list" and "return" or ""
+	eval(string.format("%s lunatik.runner.%s(%q, %s, %s)", ret, verb, script,
+		context and string.format("%q", context) or "nil", percpu and "true" or "nil"))
+end
+
+local function main()
+	local parsed = {}
+	local i = parse(parsed)
+	local verb = arg[i]
+	if verb ~= nil and (parsed.chunk ~= nil or parsed.interactive) then
+		misuse((parsed.chunk and "-e" or "-i") .. " takes no command")
+	end
+	if parsed.chunk ~= nil then
+		eval(parsed.chunk)
+		if parsed.interactive then start_repl() end
+		return
+	end
+	if verb == nil then
+		return start_repl()
+	end
+	local command = commands[verb]
+	if command ~= nil then
+		os.exit(command(table.unpack(arg, i + 1)))
+	end
+	local takes = scripted[verb]
+	if takes == nil then
+		misuse("unknown command " .. verb)
+	end
+	local script = arg[i + 1]
+	if takes and script == nil then
+		misuse(verb .. " takes a script")
+	elseif not takes and script ~= nil then
+		misuse(verb .. " takes no script")
+	end
+	call(verb, script, modifiers(verb, table.unpack(arg, i + 2)))
+end
+
+local ok, err = pcall(main)
+if not ok then
+	fail(err)
+end
 

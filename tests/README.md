@@ -144,6 +144,30 @@ the runtime for the binding, instead of the suite reading the kernel version.
   receives the file its open numbered, which a callback written without the
   file reads back.
 
+### cli
+
+Tests for `bin/lunatik`, the command line tool: its usage, its exit status and
+its REPL.
+
+- **usage**: `-h` and `--help` print the usage on stdout, exit 0; an unknown
+  option, an unknown command, a verb without its script, `list` with one, `-e`
+  without a chunk, a value given to `--help`, and a chunk or `-i` given with a
+  command each exit 2 with a line naming it and the usage on stderr; `-V` and
+  `--version` print the loaded version, and with the modules unloaded `-V`
+  exits 1, not loaded.
+- **verbs**: a run or a spawn of a script that is missing, and a run of one
+  that raises at load, exit 1 with its error on stderr and nothing on stdout;
+  a run exits 0 with nothing printed, and a second exits 1, already running,
+  with no position of the runner's; a word `run` cannot read as a context, and
+  any word given to `spawn` after its script, exit 2 and never reach the
+  kernel; a run in process context and its stop exit 0; a spawn exits 0,
+  `list` exits 0 and names it, and its stop exits 0 and removes it.
+- **repl**: `-e` and `--eval=` print the chunk's values, exit 0, and exit 1 with
+  the message on stderr for a chunk that raises or does not load; a piped
+  session prints what its lines return and nothing else, no banner and no
+  prompt, and a line that raises prints its message on stderr and the session
+  goes on; `-i` after `-e` enters the REPL with what the chunk left.
+
 ### control
 
 Tests for `/dev/lunatik`, the device the CLI manages Lunatik through, and the

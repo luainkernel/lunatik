@@ -56,7 +56,7 @@ run_script "$SCRIPT" percpu
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 ktap_pass "stop drops every runtime and lets the script run again"
 
-output=$(lunatik spawn "$SCRIPT" percpu 2>&1)
+output=$(lunatik -e "lunatik.runner.spawn('$SCRIPT', nil, true)" 2>&1)
 echo "$output" | grep -q "spawn does not support percpu" || \
 	fail "spawn accepted percpu: $output"
 listed=$(lunatik list)

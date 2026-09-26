@@ -4,7 +4,7 @@
 # command that touches the device is refused (exit 2) while another is running:
 # a CLI process, which the shebang shows as lua5.5 .../sbin/lunatik and, once its
 # command line is gone, as [lunatik]; or a test script, installed or in the tree.
-# A list and the REPL, on a pipe or with -e, write a chunk to the device like a run.
+# A list, -V and the REPL, on a pipe or with -e, write a chunk to the device like a run.
 # Reads the tool command on stdin. Pass LUNATIK_LOCK_OK=1 to override, once the
 # processes it names are known to be stale.
 
@@ -13,7 +13,7 @@ input=$(cat)
 . "$(dirname "$0")/commands.sh"
 
 cmds=$(commands "$input")
-runs_lunatik "$cmds" '(test|reload|load|unload|run|spawn|stop|list)( |$)' || runs_repl "$cmds" ||
+runs_lunatik "$cmds" '(test|reload|load|unload|run|spawn|stop|list|-V|--version)( |$)' || runs_repl "$cmds" ||
 	runs_install "$cmds" || runs_test "$cmds" || runs_watchdog "$cmds" || exit 0
 case "$input" in
 	*LUNATIK_LOCK_OK=1*) exit 0 ;;
