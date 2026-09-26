@@ -16,7 +16,10 @@
 # A commit that adds primitives of a family (RCU, locking, reference counts,
 # deferred work) together with a new function or field, the shape of a
 # mechanism and not of a one-line fix, is named when its body carries neither a
-# Documentation/ path nor one of the family's own facilities. Over the last 300
+# Documentation/ path nor one of the family's own facilities. A field added beside an
+# embedded kernel object, a bool unlinked beside the hlist_node whose unlink
+# already leaves pprev NULL for hlist_unhashed_lockless, is named with what the
+# object records: #1179's first shape carried that field. Over the last 300
 # commits of master it fires on two, the lock operations of lunatik_lock.h and
 # the kprobe a percpu script's runtimes share, both mechanisms of the kind it
 # asks about. Heuristic: it nudges a review, it does not rewrite.
@@ -64,6 +67,31 @@ for commit in $(git rev-list --no-walk "${@:-HEAD}"); do
 	done
 done
 
-[ $status -eq 0 ] || echo "a mechanism over a kernel primitive names in its body the kernel's own answer to the problem, or the Documentation/ page that has none"
+# a field added beside an embedded kernel object that records the same fact itself
+nodes='struct hlist_node|struct list_head|struct kref|refcount_t|struct timer_list|struct (delayed_)?work'
+states='^[+]\t(bool|int|unsigned int|unsigned|u8|u16|u32|u64|atomic_t|long) (un|is_|has_)?(linked|hashed|removed|deleted|registered|queued|pending|running|active|alive|dead|freed|busy|stopped|closed|done)[a-z_]*;$'
+
+for commit in $(git rev-list --no-walk "${@:-HEAD}"); do
+	while IFS='|' read -r field node; do
+		case "$node" in
+			*hlist_node*) says="hlist_del_init_rcu leaves pprev NULL for hlist_unhashed_lockless" ;;
+			*list_head*) says="list_del_init leaves the node empty for list_empty" ;;
+			*kref*|*refcount_t*) says="kref_read and refcount_read" ;;
+			*timer_list*) says="timer_pending" ;;
+			*) says="work_pending and delayed_work_pending" ;;
+		esac
+		subject=$(git show -s --format=%s "$commit")
+		printf '%s "%s" adds %s beside %s, which records that itself: %s\n' \
+			"${commit:0:9}" "$subject" "${field#+	}" "$(sed -E 's/^[-+ ]?\t//; s/ [a-z_]+;$//' <<< "$node")" "$says"
+		status=1
+	done < <(git show --format= -U6 "$commit" -- '*.c' '*.h' | awk -v states="$states" -v nodes="$nodes" '
+		function flush() { if (field != "" && node != "") print field "|" node; field = ""; node = "" }
+		/^@@/ { flush(); next }
+		$0 ~ states { field = $0 }
+		$0 ~ nodes { node = $0 }
+		END { flush() }')
+done
+
+[ $status -eq 0 ] || echo "a mechanism over a kernel primitive names in its body the kernel's own answer to the problem, or the Documentation/ page that has none; a field beside a kernel object is what the object records"
 exit $status
 
