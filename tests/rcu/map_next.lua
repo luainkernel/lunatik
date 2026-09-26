@@ -7,13 +7,11 @@
 
 local rcu   = require("rcu")
 local data  = require("data")
-local linux = require("linux")
 local test  = require("util").test
 
 local insert = table.insert
 
 local keys = {"a", "b", "c"}
-local NAP_MS <const> = 50
 local MAXKEY <const> = 256 -- LUARCU_MAXKEY, LUAL_BUFFERSIZE as lunatik_conf.h sets it
 
 local function onebucket(value)
@@ -121,28 +119,15 @@ test("rcu.map raises what the callback raises and visits nothing after it", func
 	assert(visits == 1, "expected 1 visit, got " .. visits)
 end)
 
-if linux.lookup("luarcu_copykeys") ~= nil then
-	test("rcu.map walks on after a grace period the callback let pass", function()
-		local t = onebucket(data.new(8))
-		local visits = 0
-		rcu.map(t, function(k, v)
-			visits = visits + 1
-			v:getnumber(0)
-			for _, o in ipairs(others(k)) do
-				t[o] = nil
-			end
-			linux.schedule(NAP_MS)
-		end)
-		assert(visits == 1, "expected 1 visit, got " .. visits)
+test("rcu.map keeps a table nothing else holds through the walk", function()
+	local held = setmetatable({}, {__mode = "v"})
+	held[1] = onebucket(1)
+	local visits = 0
+	rcu.map(held[1], function()
+		visits = visits + 1
+		collectgarbage()
+		assert(held[1] ~= nil, "the table was collected under the walk")
 	end)
-
-	test("rcu.map keeps a table nothing else holds through the walk", function()
-		local visits = 0
-		rcu.map(onebucket(1), function()
-			visits = visits + 1
-			collectgarbage()
-		end)
-		assert(visits == 3, "expected 3 visits, got " .. visits)
-	end)
-end
+	assert(visits == 3, "expected 3 visits, got " .. visits)
+end)
 

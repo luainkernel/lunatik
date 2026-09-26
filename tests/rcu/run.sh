@@ -23,9 +23,8 @@
 # visited nowhere and one entry among empty buckets once; a key with an embedded
 # NUL, the empty key and the longest key reach the callback whole; an error the
 # callback raises is rcu.map()'s, with no visit after it. On a one-bucket table a
-# callback removes, replaces and adds entries, and, when the loaded luarcu carries
-# luarcu_copykeys (linux.lookup), one removes the others and sleeps past a grace
-# period, and one collects the table nothing but the call holds.
+# callback removes, replaces and adds entries, and one collects the table nothing
+# but the call holds, which stays through the collection and is visited whole.
 #
 # Usage: sudo bash tests/rcu/run.sh
 

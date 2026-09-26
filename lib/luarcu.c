@@ -220,31 +220,26 @@ static inline void luarcu_inittable(luarcu_table_t *table, size_t size)
 	table->seed = luarcu_seed();
 }
 
-/* a key in the walk's buffer: its length, which LUARCU_MAXKEY keeps within a byte, then its bytes */
-typedef u8 luarcu_keylen_t;
-static_assert(LUARCU_MAXKEY - 1 <= U8_MAX);
-
-static inline void luarcu_pack(char *dst, const char *key, luarcu_keylen_t keylen)
+static inline void luarcu_pack(char *dst, const char *key, size_t keylen)
 {
 	memcpy(dst, &keylen, sizeof(keylen));
 	memcpy(dst + sizeof(keylen), key, keylen);
 }
 
-static inline const char *luarcu_unpack(const char *src, luarcu_keylen_t *keylen)
+static inline const char *luarcu_unpack(const char *src, size_t *keylen)
 {
 	memcpy(keylen, src, sizeof(*keylen));
 	return src + sizeof(*keylen);
 }
 
-/* noinline keeps the symbol in kallsyms, where tests/rcu/map_next reads whether the module carries the walk */
-static noinline size_t luarcu_copykeys(luarcu_table_t *table, unsigned int bucket, char *keys, size_t size)
+static size_t luarcu_copykeys(luarcu_table_t *table, unsigned int bucket, char *keys, size_t size)
 {
 	luarcu_entry_t *entry;
 	size_t need = 0;
 
 	rcu_read_lock();
 	hlist_for_each_entry_rcu(entry, table->hlist + bucket, hlist) {
-		size_t len = sizeof(luarcu_keylen_t) + entry->keylen;
+		size_t len = sizeof(entry->keylen) + entry->keylen;
 
 		if (need + len <= size)
 			luarcu_pack(keys + need, entry->key, entry->keylen);
@@ -312,7 +307,7 @@ static int luarcu_map(lua_State *L)
 		const char *end = keys + used;
 
 		while (keys < end) {
-			luarcu_keylen_t keylen;
+			size_t keylen;
 			const char *key = luarcu_unpack(keys, &keylen);
 
 			luarcu_map_call(L, LUARCU_MAP_CB, table, key, keylen);

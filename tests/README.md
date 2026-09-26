@@ -710,11 +710,9 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   visit after it. On a one-bucket table: a callback that removes the other
   entries is called once; one that replaces them sees the replacement's value
   on every later visit; one that adds an entry to the bucket does not see it
-  visited; and, when the loaded `luarcu` carries `luarcu_copykeys`
-  (`linux.lookup`), a callback that removes the others and sleeps, letting a
-  grace period pass, leaves the walk to end with no further visit, and a table
-  nothing but the call holds is visited whole through a collection the
-  callback forces.
+  visited; and a table nothing but the call holds stays through a collection the
+  callback forces, which it checks through a weak reference, and is visited
+  whole.
 
 - **bounds**: `rcu.table()` defaults to a usable table, accepts the bucket
   counts it serves, and refuses zero (`roundup_pow_of_two()` is undefined
