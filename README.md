@@ -711,15 +711,18 @@ Then insert the Xiaomi Silent Mouse with bluetooth mode on and it should work pr
 
 ### lldpd
 
-[lldpd](examples/lldpd.lua) shows how to implement a simple LLDP transmitter in kernel space using Lunatik.
-It periodically emits LLDP frames on a given interface using an AF_PACKET socket.
+[lldpd](examples/lldpd.lua) sends and receives LLDP on one AF_PACKET socket. It remembers neighbors by
+`chassis@port` (port, system name, TTL) and forgets them when the advertised TTL elapses, or at once
+when a frame carries TTL 0. The remaining TTL in seconds is an `rcu.table` on `lunatik._ENV.lldpd`.
+A receive timeout of one second bounds `lunatik stop` and is the tick used for expiry.
+[report](examples/lldpd/report.lua) reads that table from the REPL.
 
 #### Usage
 
 ```
 sudo make examples_install                  # installs examples
 
-# the LLDP daemon sends frames on a single Ethernet interface
+# the LLDP daemon sends and receives on a single Ethernet interface
 # you may use an existing interface, or create a virtual one for testing
 
 # create a veth pair (the example uses veth0 by default)
@@ -729,8 +732,13 @@ ip link set veth1 up
 
 sudo lunatik spawn examples/lldpd           # runs lldpd
 
-# verify LLDP frames are being transmitted
+# verify LLDP frames are being transmitted and received
 sudo tcpdump -i veth0 -e ether proto 0x88cc -vv
+
+# view remaining TTL per neighbor from another terminal
+sudo lunatik                               # opens the kernel REPL
+> n = require("examples.lldpd.report")
+> n.report()
 ```
 
 ### cpuexporter
