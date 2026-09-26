@@ -27,6 +27,7 @@ typedef struct luarcu_entry_s {
 	lunatik_value_t value;
 	struct hlist_node hlist;
 	struct rcu_head rcu;
+	size_t keylen;
 	char key[];
 } luarcu_entry_t;
 
@@ -71,7 +72,7 @@ static inline luarcu_entry_t *luarcu_lookup(luarcu_table_t *table, unsigned int 
 	luarcu_entry_t *entry;
 
 	hlist_for_each_entry_rcu(entry, table->hlist + index, hlist)
-		if (strncmp(entry->key, key, keylen) == 0)
+		if (entry->keylen == keylen && memcmp(entry->key, key, keylen) == 0)
 			return entry;
 	return NULL;
 }
@@ -85,6 +86,7 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 
 	memcpy(entry->key, key, keylen);
 	entry->key[keylen] = '\0';
+	entry->keylen = keylen;
 	entry->value = *value;
 	if (lunatik_isuserdata(value))
 		lunatik_getobject(value->object);
