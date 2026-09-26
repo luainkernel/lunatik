@@ -15,12 +15,16 @@ local function probe()
 end
 
 local function dostring(chunk)
-	do
-		local loader <close> = assert(io.open(device, "r+"))
-		loader:write(chunk)
+	local session <close> = assert(io.open(device, "r+"))
+	session:setvbuf("no") -- the driver runs each write as a chunk
+	assert(session:write(chunk))
+	session:flush()
+	local reply = assert(session:read("a"))
+	local status, result = reply:match("^(%a+)\t(.*)$")
+	if status == nil then -- a driver loaded from a build that replies without the status
+		return true, reply
 	end
-	local reader <close> = assert(io.open(device, "r"))
-	return reader:read("a")
+	return status == "true", result
 end
 
 local function sh(command, module, loaded)
@@ -35,12 +39,12 @@ local function load_modules()
 	if not probe() then
 		error("couldn't create " .. device)
 	end
-	local result = dostring[[
+	local ok, result = dostring[[
 		lunatik = require("lunatik")
 		lunatik.runner = require("lunatik.runner")
 		lunatik.runner.startup()
 	]]
-	if result ~= "" then error(result) end
+	if not ok then error(result) end
 end
 
 local function readall(handle)
@@ -80,8 +84,8 @@ end
 
 local function unload_modules()
 	if probe() then
-		local result = dostring("lunatik.runner.shutdown()")
-		if result ~= "" then error(result) end
+		local ok, result = dostring("lunatik.runner.shutdown()")
+		if not ok then error(result) end
 	end
 	repeat
 		local removed = unload_unused()
@@ -108,12 +112,12 @@ end
 
 local function ensure_loaded()
 	if not probe() then load_modules() end
-	local result = dostring[[
+	local ok, result = dostring[[
 		lunatik = lunatik or require("lunatik")
 		lunatik.runner = lunatik.runner or require("lunatik.runner")
 		lunatik.runner.startup()
 	]]
-	if result ~= "" then error(result) end
+	if not ok then error(result) end
 end
 
 local tests_path = "/usr/local/share/lunatik/tests"
@@ -199,7 +203,7 @@ local function repl(read_line)
 			chunk = chunk .. "\n" .. more
 			expr = try_as_expr(chunk)
 		end
-		local res = dostring(expr and ("return " .. chunk) or chunk)
+		local _, res = dostring(expr and ("return " .. chunk) or chunk)
 		if res ~= "" then print(res) end
 		line = read_line("> ")
 	end
@@ -207,7 +211,7 @@ end
 
 local function start_repl()
 	ensure_loaded()
-	local version = dostring("return _LUNATIK_VERSION")
+	local _, version = dostring("return _LUNATIK_VERSION")
 	print(version .. "  " .. copyright)
 	local ok, read_line = pcall(readline_reader)
 	if not ok then read_line = fallback_reader end
@@ -233,7 +237,12 @@ if #arg >= 1 then
 	local ret   = token == "list" and "return" or ""
 	local chunk = string.format("%s lunatik.runner.%s(%q, %s, %s)", ret, token, script,
 		context and string.format("%q", context) or "nil", percpu and "true" or "nil")
-	print(dostring(chunk))
+	local ok, result = dostring(chunk)
+	if not ok then
+		io.stderr:write(result, "\n")
+		os.exit(false)
+	end
+	if result ~= "" then print(result) end
 	os.exit()
 end
 

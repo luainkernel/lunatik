@@ -144,6 +144,23 @@ the runtime for the binding, instead of the suite reading the kernel version.
   receives the file its open numbered, which a callback written without the
   file reads back.
 
+### control
+
+Tests for `/dev/lunatik`, the device the CLI manages Lunatik through, and the
+status the CLI exits by.
+
+- **session**: each open of `/dev/lunatik` is a session. Two sessions whose
+  requests interleave, each written before either is read, each read their own
+  reply; a reply longer than one read of `cat` arrives whole; a session that
+  wrote nothing reads nothing; a reply carries the status before the values,
+  `true` and the values of a chunk that returns, `false` and the message of one
+  that raises or does not load.
+- **status**: the CLI exits by the status the driver replies with. A run of a
+  script that does not exist exits 1 with its error on stderr and nothing on
+  stdout; a run exits 0 with nothing on either; a second run exits 1, already
+  running; `list` exits 0 and names a running script, and a stop exits 0 and
+  removes it; the REPL prints a value longer than one read whole.
+
 ### examples
 
 - **shared**: drives the spawned `examples/shared` daemon over its own port with
