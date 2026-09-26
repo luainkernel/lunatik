@@ -12,19 +12,18 @@ local driver = {name = "systrack", mode = s.IRUGO}
 
 local track
 
-local toggle = true
-function driver:read()
-	if not toggle then
-		toggle = true
-		return ""
-	end
-	toggle = false
+local function snapshot()
 	local log = {}
 	rcu.map(track, function(symbol, count)
 		table.insert(log, symbol .. ": " .. tostring(count))
 	end)
 	table.sort(log)
 	return table.concat(log, "\n") .. "\n"
+end
+
+function driver:read(len, off, file)
+	file.log = file.log or snapshot()
+	return file.log:sub(off + 1, off + len)
 end
 
 device.new(driver)
