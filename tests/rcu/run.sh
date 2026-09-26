@@ -5,6 +5,11 @@
 #
 # Runs rcu regression tests and reports aggregated KTAP results.
 #
+# index_whole: an index matches the whole key. On a one-bucket table, a prefix of a
+# stored key reads nil and an assignment to it adds an entry instead of replacing the
+# longer one, the empty key reads nil until it is set, and two keys alike up to an
+# embedded NUL are told apart.
+#
 # bounds: rcu.table() takes its bucket count from Lua and sizes the object's private
 # with it. It accepts the counts it serves, defaults to a usable table, and refuses
 # zero (roundup_pow_of_two() is undefined there), a negative, and the counts whose
@@ -17,7 +22,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="map_values map_foreign bounds"
+TESTS="map_values map_foreign bounds index_whole"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {
