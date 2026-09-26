@@ -187,7 +187,8 @@ tests_install:
 	for d in $(TEST_DIRS); do \
 		${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/$$d ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 		${INSTALL} -m 0755 tests/$$d/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/$$d; \
-		${INSTALL} -m 0644 tests/$$d/*.lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
+		lua=$$(ls tests/$$d/*.lua 2>/dev/null); \
+		[ -z "$$lua" ] || ${INSTALL} -m 0644 $$lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 	done
 	${INSTALL} -m 0644 tests/netlink/channel_subscriber.c ${LUNATIK_TESTS_INSTALL_PATH}/netlink
 	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
