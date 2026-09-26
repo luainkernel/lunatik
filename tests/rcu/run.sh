@@ -17,7 +17,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="map_values map_foreign bounds"
+TESTS="map_values map_foreign bounds index_whole"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {
