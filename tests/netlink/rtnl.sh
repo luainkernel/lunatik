@@ -15,7 +15,7 @@
 # accepted. A build without the refusal registers the family under RTNL and
 # hangs only if such a request is in flight at that instant, which the test
 # cannot rule out on a host it does not own, so it skips unless the loaded
-# luanetlink is the installed one.
+# luanetlink is the installed one and the installed file carries the refusal.
 #
 # Usage: sudo bash tests/netlink/rtnl.sh
 
@@ -41,8 +41,9 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	ktap_totals
 	exit 0
 }
-[ "$(cat /sys/module/$MODULE/srcversion)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] || {
-	echo "# SKIP: the loaded $MODULE is not the installed one: it may register a family under RTNL"
+[ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] &&
+	grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)" || {
+	echo "# SKIP: the loaded $MODULE does not carry the refusal: it may register a family under RTNL"
 	ktap_totals
 	exit 0
 }
