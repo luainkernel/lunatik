@@ -24,16 +24,8 @@ source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 cleanup() {
 	lunatik stop "$SCRIPT" 2>/dev/null
 }
-ERR=$(mktemp)
-trap 'cleanup; rm -f "$ERR"' EXIT
+trap cleanup EXIT
 cleanup
-
-# runs the CLI, keeping its status in $status, its stdout in $out and its stderr in $err
-cli() {
-	out=$(lunatik "$@" 2>"$ERR")
-	status=$?
-	err=$(cat "$ERR")
-}
 
 ktap_header
 ktap_plan 6

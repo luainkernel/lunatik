@@ -59,7 +59,7 @@ end
 function runner.run(script, context, ispercpu)
 	local script = trim(script)
 	if env.runtimes[script] then
-		error(string.format("%s is already running", script))
+		error(string.format("%s is already running", script), 0)
 	end
 	local runtime = ispercpu and lunatik.percpu(script, context) or lunatik.runtime(script, context)
 	env.runtimes[script] = runtime
@@ -77,7 +77,7 @@ end
 function runner.spawn(script, context, ispercpu)
 	local script = trim(script)
 	if ispercpu then
-		error("spawn does not support percpu scripts")
+		error("spawn does not support percpu scripts", 0)
 	end
 	local runtime = runner.run(script, context)
 	local name = string.match(script, "(%w*/*%w*)$")
@@ -123,7 +123,7 @@ local function restore(name)
 		return rcu.table()
 	end
 	if type(current) ~= "userdata" then
-		error(string.format("_ENV.%s is not an rcu table; unload and load the modules", name))
+		error(string.format("_ENV.%s is not an rcu table; unload and load the modules", name), 0)
 	end
 	return current
 end
