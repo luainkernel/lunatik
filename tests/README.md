@@ -701,6 +701,19 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   instead of replacing the longer one, the empty key reads `nil` until it is
   set, and two keys alike up to an embedded NUL are told apart.
 
+- **map_next**: `rcu.map()` walks inside an SRCU read-side critical section,
+  so the callback may sleep, and it skips an entry a writer unlinked under it.
+  On a one-bucket table, a callback that removes the other entries on its
+  first visit is called once, one that replaces them is never handed a value
+  they lost, and one that adds an entry is called for the three the table had; a key with an embedded NUL reaches
+  the callback whole; an error the callback raises is `rcu.map()`'s, with no
+  visit after it; and a table nothing but the call holds stays through a
+  collection the callback forces, which it checks through a weak reference,
+  and is visited whole.
+- **map_grace**: the callback removes the other entries and sleeps past a
+  grace period on its first visit, and the walk ends with that visit; skipped
+  unless the loaded `luarcu` carries `luarcu_freeentry`, the SRCU callback,
+  since without it the walk resumes from an entry freed under it.
 - **bounds**: `rcu.table()` defaults to a usable table, accepts the bucket
   counts it serves, and refuses zero (`roundup_pow_of_two()` is undefined
   there), a negative, and the counts whose byte size wraps; a count it can

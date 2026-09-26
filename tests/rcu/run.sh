@@ -10,6 +10,17 @@
 # longer one, the empty key reads nil until it is set, and two keys alike up to an
 # embedded NUL are told apart.
 #
+# map_next: rcu.map() walks inside an SRCU read-side critical section and skips an
+# entry a writer unlinked under it. On a one-bucket table a callback that removes the
+# other entries is called once, one that replaces them is never handed a value they
+# lost, and one that adds an entry is called for the three the table had; a key with an embedded NUL reaches the callback whole; an error the
+# callback raises is rcu.map()'s, with no visit after it; and a table nothing but
+# the call holds is visited whole through a collection the callback forces.
+#
+# map_grace: the callback removes the other entries and sleeps past a grace
+# period; the walk ends with that visit (map_grace.sh, skipped on a module
+# without luarcu_freeentry).
+#
 # bounds: rcu.table() takes its bucket count from Lua and sizes the object's private
 # with it. It accepts the counts it serves, defaults to a usable table, and refuses
 # zero (roundup_pow_of_two() is undefined there), a negative, and the counts whose
@@ -22,7 +33,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="map_values map_foreign bounds index_whole"
+TESTS="map_values map_foreign bounds index_whole map_next"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {
@@ -59,5 +70,7 @@ echo ""
 bash "$DIR/entry_release.sh" || RESULT=1
 echo ""
 bash "$DIR/object_grace.sh" || RESULT=1
+echo ""
+bash "$DIR/map_grace.sh" || RESULT=1
 exit $RESULT
 
