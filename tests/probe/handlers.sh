@@ -61,7 +61,7 @@ row()
 {
 	mark_dmesg
 	idle=$(kprobes)
-	run_script "$1" hardirq
+	run_script --context=hardirq "$1"
 	armed=$(kprobes)
 	setarch "$(uname -m)" -R true > /dev/null 2>&1
 	sleep 1
@@ -133,7 +133,7 @@ if [ "$(sed 's/.*[-,]//' /sys/devices/system/cpu/possible)" = "0" ]; then
 else
 	mark_dmesg
 	idle=$(kprobes)
-	output=$(lunatik run "$SET" hardirq percpu 2>&1)
+	output=$(lunatik run --context=hardirq --percpu "$SET" 2>&1)
 	echo "$output" | grep -q "probe registered with a different post handler" || \
 		fail "the set was not refused: $output"
 	check_dmesg || { ktap_totals; exit 1; }

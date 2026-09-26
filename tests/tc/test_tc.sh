@@ -100,7 +100,7 @@ run_case()
 		{ ktap_fail "$label: failed to load/attach TC program"; return 1; }
 
 	mark_dmesg
-	run_script "tests/tc/$script" "$@"
+	run_script "$@" "tests/tc/$script"
 
 	# egress from the host toward the namespaced peer is what the classifier sees
 	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
@@ -130,7 +130,7 @@ detach_case()
 		{ ktap_fail "tc detach: failed to load/attach TC program"; return 1; }
 
 	mark_dmesg
-	run_script "tests/tc/detach" softirq
+	run_script --context=softirq "tests/tc/detach"
 
 	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
 	local dropped=$?
@@ -167,11 +167,11 @@ zerokey_case()
 }
 
 run_case tc_pass.bpf.o pass.lua yes "tc pass" \
-	"tc pass test pass: packet and argument content verified" softirq
+	"tc pass test pass: packet and argument content verified" --context=softirq
 run_case tc_drop.bpf.o drop.lua no "tc drop" \
-	"tc drop test pass: verdict set to drop" softirq percpu
+	"tc drop test pass: verdict set to drop" --context=softirq --percpu
 run_case tc_reattach.bpf.o reattach.lua yes "tc reattach" \
-	"tc reattach test pass: re-attach installed the last callback" softirq
+	"tc reattach test pass: re-attach installed the last callback" --context=softirq
 detach_case
 
 mark_dmesg

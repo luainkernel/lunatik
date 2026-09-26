@@ -81,7 +81,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 }
 
 cpu=$(sed 's/.*[-,]//' /sys/devices/system/cpu/online)
-run_script "$SCRIPT" softirq percpu
+run_script --context=softirq --percpu "$SCRIPT"
 count_pinned "$cpu"
 dmesg_since | grep -qF "percpu netfilter: nf_percpu:$cpu $COUNT" || \
 	fail "the packets were not counted by the runtime of CPU $cpu: $(dmesg_since | grep 'percpu netfilter')"
@@ -91,7 +91,7 @@ ktap_pass "the runtimes share one hook: each marked request is counted once, by 
 mark_dmesg
 burst_when_armed &
 burst=$!
-run_script "$EARLY" softirq percpu
+run_script --context=softirq --percpu "$EARLY"
 wait $burst || fail "a marked ping was lost while the runtimes were being created"
 count_pinned "$cpu"
 dmesg_since | grep -qF "percpu netfilter: nf_percpu:$cpu $COUNT" || \
@@ -100,7 +100,7 @@ lunatik stop "$EARLY" > /dev/null 2>&1
 ktap_pass "a packet reaching the shared hook before the runtimes are published is accepted, uncounted"
 
 mark_dmesg
-output=$(lunatik run "$TWICE" softirq percpu 2>&1)
+output=$(lunatik run --context=softirq --percpu "$TWICE" 2>&1)
 echo "$output" | grep -q "hook already registered" || fail "the second registration was not refused: $output"
 dmesg_since | grep -qF "$TARGETS" || fail "the hook on a second target was taken for the one already in the set"
 listed=$(lunatik list)
@@ -110,7 +110,7 @@ esac
 ktap_pass "one set holds a hook per target; a second registration of the same one is refused"
 
 mark_dmesg
-run_script "$LATE" softirq percpu
+run_script --context=softirq --percpu "$LATE"
 taskset -c "$cpu" ping -c 1 -m $MARK 127.0.0.1 > /dev/null 2>&1
 lunatik stop "$LATE" > /dev/null 2>&1
 dmesg_since | grep -qF "percpu netfilter late: " || fail "the callback did not run"
@@ -118,7 +118,7 @@ dmesg_since | grep -q "percpu netfilter late: .*not allowed after module load" |
 	fail "the late registration was not refused: $(dmesg_since | grep 'percpu netfilter late')"
 ktap_pass "a registration from a callback, after load, is refused"
 
-run_script "$SCRIPT" softirq
+run_script --context=softirq "$SCRIPT"
 count_pinned "$cpu"
 dmesg_since | grep -qF "percpu netfilter: nf_percpu:plain $COUNT" || \
 	fail "the plain runtime did not count the packets: $(dmesg_since | grep 'percpu netfilter')"

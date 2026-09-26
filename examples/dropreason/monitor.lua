@@ -10,7 +10,7 @@
 -- and is not counted. tests/probe/dropreason.lua probes the same pair.
 --
 -- Usage:
---   sudo lunatik run examples/dropreason/monitor hardirq
+--   sudo lunatik run --context=hardirq examples/dropreason/monitor
 --   echo x > /dev/udp/127.0.0.1/9999              # trigger a NO_SOCKET drop
 --   sudo lunatik                                  # opens the kernel REPL
 --   > drops = require("examples.dropreason.report")

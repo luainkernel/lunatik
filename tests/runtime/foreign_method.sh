@@ -35,7 +35,7 @@ lunatik stop "$SCRIPT" > /dev/null 2>&1
 ktap_pass "the methods of device, notifier and rcu.table refuse an object of another class"
 
 mark_dmesg
-run_script "$PROBE" hardirq
+run_script --context=hardirq "$PROBE"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$PROBE" > /dev/null 2>&1
 ktap_pass "the probe methods refuse an object of another class"

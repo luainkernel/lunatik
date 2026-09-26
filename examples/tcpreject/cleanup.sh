@@ -4,7 +4,7 @@
 
 set -eux
 
-lunatik stop examples/tcpreject/nf_tcpreject
+lunatik stop examples/tcpreject/nf_tcpreject || true # a reload or a failed setup leaves nothing to stop
 nft delete table ip tcpreject
 nft delete table ip6 tcpreject
 ip link del veth-tcpreject

@@ -29,7 +29,7 @@ else
 	ktap_fail "task/task"
 fi
 
-if run_test "$SCRIPT_SOFTIRQ" softirq; then
+if run_test --context=softirq "$SCRIPT_SOFTIRQ"; then
 	ktap_pass "task/softirq"
 else
 	ktap_fail "task/softirq"

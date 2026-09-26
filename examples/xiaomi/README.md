@@ -8,7 +8,7 @@ It fixes the report descriptor for the device (`0x2717`:`0x5014`).
 
 ```
 sudo make examples_install 		# installs examples
-sudo lunatik run examples/xiaomi/driver softirq 	# runs xiaomi driver
+sudo lunatik run --context=softirq examples/xiaomi/driver 	# runs xiaomi driver
 ```
 
 Then insert the Xiaomi Silent Mouse with bluetooth mode on and it should work properly.

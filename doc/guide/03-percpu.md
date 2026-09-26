@@ -1,6 +1,6 @@
 # Per-CPU scripts
 
-`lunatik run <script> [softirq|hardirq] percpu` creates one runtime per CPU id and
+`lunatik run [--context=softirq | hardirq] --percpu <script>` creates one runtime per CPU id and
 dispatches a callback to the runtime of the CPU it fires on. The runtimes share the
 registrations a script makes once for all of them, a netfilter hook and a kprobe, and each reads
 its own id with `lunatik.cpu()`.

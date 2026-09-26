@@ -6,8 +6,9 @@
 usage: lunatik [-h | -V]
        lunatik [-i] [-e <chunk>]
        lunatik load | unload | reload | status
-       lunatik run <script> [process | softirq | hardirq] [percpu]
-       lunatik spawn | stop <script>
+       lunatik run [-c process | softirq | hardirq] [-p] <script>
+       lunatik spawn <script>
+       lunatik stop <script>...
        lunatik list
        lunatik test [<suite>]
        lunatik compile [<lunatic argument>...]
@@ -17,6 +18,8 @@ usage: lunatik [-h | -V]
 * `-V`, `--version`: print the version of the loaded Lunatik, or fail when it is not loaded
 * `-e <chunk>`, `--eval=<chunk>`: run the chunk in the kernel and print what it returns
 * `-i`, `--interactive`: enter the REPL after `-e`
+* `-c <context>`, `--context=<context>`: the context `run` creates the runtime in
+* `-p`, `--percpu`: `run` creates one runtime per CPU id
 
 * `load`: load Lunatik kernel modules
 * `unload`: unload Lunatik kernel modules
@@ -24,15 +27,17 @@ usage: lunatik [-h | -V]
 * `status`: show which Lunatik kernel modules are currently loaded
 * `test [suite]`: run installed test suites (see [Development](06-development.md))
 * `compile <arguments>`: run `lunatic` with the given arguments (see [lunatic](#lunatic))
-* `list`: show which runtime environments are currently running
-* `run [process|softirq|hardirq] [percpu]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`, in process context by default; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md)
+* `list`: show which runtime environments are currently running, one script a line
+* `run [-c softirq | hardirq] [-p] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md)
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
-* `stop`: stop the runtime environment created to run the script `<script>`
+* `stop <script>...`: stop the runtime environment created to run each script, failing on a script nothing runs
 * `default`: start a _REPL (Read–Eval–Print Loop)_, with its banner and prompts on a terminal; on a
   pipe it runs each line it reads and prints only what the lines return
 
 An operation the kernel refuses exits 1 with `lunatik: <message>` on stderr and nothing on stdout,
-and a wrong invocation exits 2 with the usage on stderr.
+and a wrong invocation exits 2 with the usage on stderr. The words `process`, `softirq`, `hardirq`
+and `percpu` after the script of `run` are still read for one release, each with a line on stderr
+naming the option that replaces it.
 
 ## Execution contexts
 
@@ -41,8 +46,8 @@ A runtime is created in one of three contexts, and this decides what its code ma
 | Context | How | Allocation | Lock | May sleep |
 |---------|-----|-----------|------|-----------|
 | process | default, and always for `spawn` | `GFP_KERNEL` | mutex | yes |
-| softirq | `lunatik run <script> softirq` | `GFP_ATOMIC` | `spin_lock_bh`; `spin_lock_irqsave` with IRQs already off | no |
-| hardirq | `lunatik run <script> hardirq` | `GFP_ATOMIC` | `spin_lock_irqsave`, always | no |
+| softirq | `lunatik run --context=softirq <script>` | `GFP_ATOMIC` | `spin_lock_bh`; `spin_lock_irqsave` with IRQs already off | no |
+| hardirq | `lunatik run --context=hardirq <script>` | `GFP_ATOMIC` | `spin_lock_irqsave`, always | no |
 
 Netfilter and XDP hooks fire in softirq, kprobes in hardirq; those scripts need the matching context.
 The script body itself runs once, in process context, before the runtime is armed, so registering
