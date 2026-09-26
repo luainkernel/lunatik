@@ -208,6 +208,13 @@ and then a deferred-free list, over four review rounds and a crashed host, when
 `lib/rhashtable.c` states what a walk that drops the lock between elements gets. It annotates, since
 a body can cite the page and still not read it.
 
+`terminator.sh` reads a C file for a store that terminates an array, `x[n] = '\0'`, and names it when
+no call in the file that reads a C string takes that array: a byte written for one reader stays
+written after the reader goes. #1179's walk stopped reading the entry's key through `strscpy` and
+left the NUL the entry stored after it, and the byte allocated for it, through two review passes that
+read the store as part of the entry and not as a value with a reader. It annotates, since the reader
+can sit in another file behind a pointer the array is handed to.
+
 `guard-removed.sh` names the crash guards a C file drops against `HEAD` (a checker, an
 `argcheck`, a context check): removing one and running the test that covers it reproduces the
 crash the guard prevents, and on the shared host that is a forced reboot. `crash-guard.sh`, wired
@@ -988,6 +995,10 @@ named, not one discovered at that consumer's build.
 * A change to a function is read against the whole function, not the lines it touches: re-read it
   and take the simplification the change enables. A guard left standing that the new shape made
   redundant — `!cond || check(cond)` where the call now sits inside `if (cond)` — is a partial fix.
+* A change that removes the last reader of a value removes what was written for it: the walk on
+  #1179 stopped reading the entry's key as a C string and left the NUL terminator and the byte
+  allocated for it. For every read the diff removes, ask what was stored, sized or kept only for that
+  read; `tools/checks/terminator.sh` names the NUL case.
 * Read the commit before pushing it, not only the working tree: `git show` the diff that is about to
   be published. Instrumentation added while debugging — a `pr_err`, a hardcoded branch — is invisible
   in a passing test and lands in the pull request.

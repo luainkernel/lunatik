@@ -107,7 +107,9 @@ makes it. For every mechanism the diff builds over a kernel primitive, name the 
 problem it solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's
 shape and not that one; a facility the kernel provides, written again, is a finding, as #1158's snapshot,
 re-lookup and deferred-free list were SRCU. For every field the diff adds beside an embedded kernel object, say what the
-object already records, as an hlist_node does through hlist_unhashed_lockless. Then residues of the path: anything in the final diff that exists
+object already records, as an hlist_node does through hlist_unhashed_lockless. For every read the
+diff removes, name what was stored, sized or kept only for that read, as the NUL the entry kept after its
+last strscpy was. Then residues of the path: anything in the final diff that exists
 because of how the branch grew rather
 than because the final shape needs it. Names first: for every identifier the diff introduces or renames,
 ask what it distinguishes from in the final tree and whether master already had a name for the same thing.
