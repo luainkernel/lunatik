@@ -24,7 +24,9 @@ device.new(driver)
 local notifier = runner.run(script, "hardirq")
 notifier:resume(log)
 
-driver.sentinel = setmetatable({}, {__gc = function()
+local function stopnotifier()
 	runner.stop(script)
-end})
+end
+
+driver.sentinel = setmetatable({}, {__gc = stopnotifier})
 
