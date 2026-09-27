@@ -313,13 +313,14 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   carries `id`, `type`, `size`, `application` and `maxfield`. What a callback returns is
 *   ignored, and its error goes to the kernel log.
 * @treturn hid_driver
-* @raise if required fields are missing, `id_table` is invalid or too long, driver registration
-*   fails, or if called from a percpu runtime; `runtime context mismatch` unless the runtime
-*   is softirq
+* @raise if called after module load or from a percpu runtime; if required fields are missing,
+*   `id_table` is invalid or too long, or driver registration fails; `runtime context mismatch`
+*   unless the runtime is softirq
 * @within hid
 */
 static int luahid_register(lua_State *L)
 {
+	lunatik_checkarmed(L);
 	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE);
 

@@ -83,5 +83,8 @@ ktap_totals || RESULT=1
 
 echo ""
 bash "$DIR/idtable_leak.sh" || RESULT=1
+
+echo ""
+bash "$DIR/context.sh" || RESULT=1
 exit $RESULT
 
