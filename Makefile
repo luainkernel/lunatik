@@ -166,7 +166,6 @@ EXAMPLE_DIRS := $(patsubst examples/%/,%,$(wildcard examples/*/))
 examples_install:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples
-	$(call INSTALL_LUA,examples/*.lua,${SCRIPTS_INSTALL_PATH}/examples)
 	for d in $(EXAMPLE_DIRS); do \
 		${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
 		$(call INSTALL_LUA,examples/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \

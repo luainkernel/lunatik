@@ -25,7 +25,7 @@ sudo tail -f /dev/spyglass                 # prints the key log
 
 ## keylocker
 
-[keylocker](../../examples/keylocker.lua)
+[keylocker](../../examples/keylocker/notifier.lua)
 is a kernel script that implements
 [Konami Code](https://en.wikipedia.org/wiki/Konami_Code)
 for locking and unlocking the console keyboard.
@@ -40,14 +40,14 @@ The keyboard notifier fires in hardirq context, so keylocker must run in a
 
 ```
 sudo make examples_install                         # installs examples
-sudo lunatik run examples/keylocker hardirq        # runs keylocker
+sudo lunatik run examples/keylocker/notifier hardirq # runs keylocker
 <↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>     # locks keyboard
 <↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>     # unlocks keyboard
 ```
 
 ## tap
 
-[tap](../../examples/tap.lua)
+[tap](../../examples/tap/device.lua)
 is a kernel script that implements a _sniffer_ using `AF_PACKET` socket.
 It prints destination and source MAC addresses followed by Ethernet type and the frame size.
 
@@ -55,13 +55,13 @@ It prints destination and source MAC addresses followed by Ethernet type and the
 
 ```
 sudo make examples_install    # installs examples
-sudo lunatik run examples/tap # runs tap
+sudo lunatik run examples/tap/device # runs tap
 cat /dev/tap
 ```
 
 ## shared
 
-[shared](../../examples/shared.lua)
+[shared](../../examples/shared/daemon.lua)
 is a kernel script that implements an in-memory key-value store using
 [rcu](https://luainkernel.github.io/lunatik/modules/rcu.html),
 [data](https://luainkernel.github.io/lunatik/modules/data.html),
@@ -72,7 +72,7 @@ is a kernel script that implements an in-memory key-value store using
 
 ```
 sudo make examples_install         # installs examples
-sudo lunatik spawn examples/shared # spawns shared
+sudo lunatik spawn examples/shared/daemon # spawns shared
 nc 127.0.0.1 90                    # connects to shared
 foo=bar                            # assigns "bar" to foo
 foo                                # retrieves foo
@@ -406,7 +406,7 @@ sudo journalctl -ft kernel
 
 ## gesture
 
-[gesture](../../examples/gesture.lua)
+[gesture](../../examples/gesture/driver.lua)
 is a kernel script that implements a HID driver for QEMU USB Mouse (0627:0001).
 It supports gestures: swiping right locks the mouse, and swiping left unlocks it.
 
@@ -426,7 +426,7 @@ It supports gestures: swiping right locks the mouse, and swiping left unlocks it
 
 ```
 sudo make examples_install 			# installs examples
-sudo lunatik run examples/gesture softirq 	# runs gesture
+sudo lunatik run examples/gesture/driver softirq 	# runs gesture
 # In QEMU window:
 # Drag right to lock the mouse
 # Drag left to unlock the mouse
@@ -434,7 +434,7 @@ sudo lunatik run examples/gesture softirq 	# runs gesture
 
 ## xiaomi
 
-[xiaomi](../../examples/xiaomi.lua)
+[xiaomi](../../examples/xiaomi/driver.lua)
 is a kernel script that ports the Xiaomi Silent Mouse driver to Lua using `luahid`.
 It fixes the report descriptor for the device (`0x2717`:`0x5014`).
 
@@ -442,14 +442,14 @@ It fixes the report descriptor for the device (`0x2717`:`0x5014`).
 
 ```
 sudo make examples_install 		# installs examples
-sudo lunatik run examples/xiaomi softirq 	# runs xiaomi driver
+sudo lunatik run examples/xiaomi/driver softirq 	# runs xiaomi driver
 ```
 
 Then insert the Xiaomi Silent Mouse with bluetooth mode on and it should work properly.
 
 ## lldpd
 
-[lldpd](../../examples/lldpd.lua) shows how to implement a simple LLDP transmitter in kernel space using Lunatik.
+[lldpd](../../examples/lldpd/daemon.lua) shows how to implement a simple LLDP transmitter in kernel space using Lunatik.
 It periodically emits LLDP frames on a given interface using an AF_PACKET socket.
 
 ### Usage
@@ -465,7 +465,7 @@ ip link add veth0 type veth peer name veth1
 ip link set veth0 up
 ip link set veth1 up
 
-sudo lunatik spawn examples/lldpd           # runs lldpd
+sudo lunatik spawn examples/lldpd/daemon    # runs lldpd
 
 # verify LLDP frames are being transmitted
 sudo tcpdump -i veth0 -e ether proto 0x88cc -vv
@@ -473,13 +473,13 @@ sudo tcpdump -i veth0 -e ether proto 0x88cc -vv
 
 ## cpuexporter
 
-[cpuexporter](../../examples/cpuexporter.lua) will gather CPU usage statistics and expose using [OpenMetrics text format](https://github.com/prometheus/OpenMetrics/blob/main/specification/OpenMetrics.md#text-format) at the abstract UNIX socket `cpuexporter`, which leaves no file behind a stop.
+[cpuexporter](../../examples/cpuexporter/daemon.lua) will gather CPU usage statistics and expose using [OpenMetrics text format](https://github.com/prometheus/OpenMetrics/blob/main/specification/OpenMetrics.md#text-format) at the abstract UNIX socket `cpuexporter`, which leaves no file behind a stop.
 
 ### Usage
 
 ```shell
 sudo make examples_install         	# installs examples
-sudo lunatik spawn examples/cpuexporter # runs cpuexporter
+sudo lunatik spawn examples/cpuexporter/daemon # runs cpuexporter
 sudo socat - ABSTRACT-CONNECT:cpuexporter <<<""
 # TYPE cpu_usage_system gauge
 cpu_usage_system{cpu="cpu1"} 0.0000000000000000 1764094519529162
@@ -492,7 +492,7 @@ cpu_usage_idle{cpu="cpu0"} 100.0000000000000000 1764094519529162
 
 ## fsmonitor
 
-[fsmonitor](../../examples/fsmonitor.lua) uses the `fsnotify` module to log what changes in one directory: an
+[fsmonitor](../../examples/fsmonitor/monitor.lua) uses the `fsnotify` module to log what changes in one directory: an
 entry created or deleted, a file written or its attributes changed, each line carrying the entry name,
 its inode number and the pid that did it.
 
@@ -506,11 +506,11 @@ with `open_by_handle_at` after the cache dropped its entry, or a change to its a
 ```
 sudo make examples_install                  # installs examples
 mkdir -p /tmp/lunatik-fsmonitor             # the directory it watches
-sudo lunatik run examples/fsmonitor         # runs fsmonitor
+sudo lunatik run examples/fsmonitor/monitor # runs fsmonitor
 touch /tmp/lunatik-fsmonitor/file
 echo data > /tmp/lunatik-fsmonitor/file
 rm /tmp/lunatik-fsmonitor/file
-sudo lunatik stop examples/fsmonitor        # stops fsmonitor
+sudo lunatik stop examples/fsmonitor/monitor # stops fsmonitor
 sudo dmesg -t                               # prints what it logged
 fsmonitor: created file ino 13862 pid 2222346
 fsmonitor: attributes file ino 13862 pid 2222346
@@ -525,7 +525,7 @@ prints `?`.
 
 ## execguard
 
-[execguard](../../examples/execguard.lua) is an allowlist for `exec` over one directory: a permission event
+[execguard](../../examples/execguard/guard.lua) is an allowlist for `exec` over one directory: a permission event
 parks the `execve` inside the callback, which refuses it unless the entry's name is in the `set` it was
 built with.
 
@@ -565,11 +565,11 @@ sudo make examples_install                  # installs examples
 sudo mkdir -p -m 0755 /tmp/lunatik-execguard
 sudo mount -t tmpfs -o size=1M,mode=0755 lunatik-execguard /tmp/lunatik-execguard
 sudo cp /bin/true /bin/date /tmp/lunatik-execguard/
-sudo lunatik run examples/execguard         # runs execguard
+sudo lunatik run examples/execguard/guard   # runs execguard
 /tmp/lunatik-execguard/true                 # "true" is in the allowlist: it runs
 /tmp/lunatik-execguard/date                 # "date" is not
 bash: /tmp/lunatik-execguard/date: Operation not permitted
-sudo lunatik stop examples/execguard        # ends the rule
+sudo lunatik stop examples/execguard/guard  # ends the rule
 sudo umount /tmp/lunatik-execguard          # and takes the mark with it
 sudo dmesg -t                               # prints what it refused
 execguard: denied date to pid 2222403: not in the allowlist
@@ -582,11 +582,11 @@ sudo mount -t tmpfs -o size=1M,mode=0755 lunatik-execguard /tmp/lunatik-execguar
 sudo cp /bin/true /tmp/lunatik-execguard/
 bash                                        # a shell for the list to name
 echo $$ | sudo tee /tmp/lunatik-execguard/pids
-sudo lunatik run examples/execguard         # reads the list as it starts
+sudo lunatik run examples/execguard/guard   # reads the list as it starts
 /tmp/lunatik-execguard/true                 # the child the shell forks has a pid of its own
 bash: /tmp/lunatik-execguard/true: Operation not permitted
 exec /tmp/lunatik-execguard/true            # runs in the listed pid, and ends that shell
-sudo lunatik stop examples/execguard
+sudo lunatik stop examples/execguard/guard
 sudo umount /tmp/lunatik-execguard
 sudo dmesg -t
 execguard: denied true to pid 2222510: pid not allowed

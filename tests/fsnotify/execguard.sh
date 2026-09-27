@@ -39,7 +39,7 @@
 #
 # Usage: sudo bash tests/fsnotify/execguard.sh
 
-SCRIPT="examples/execguard"
+SCRIPT="examples/execguard/guard"
 SCOPE="/tmp/lunatik-execguard"
 OUTSIDE="/tmp/lunatik-execguard-outside"
 WAITERS=""
