@@ -190,22 +190,33 @@ usage: lunatik [-h | -V]
 <ul>
 <li><code>-h</code>, <code>&ndash;help</code>: print the usage</li>
 <li><code>-V</code>, <code>&ndash;version</code>: print the version of the loaded Lunatik, or fail when it is not loaded</li>
-<li><code>-e &lt;chunk&gt;</code>, <code>&ndash;eval=&lt;chunk&gt;</code>: run the chunk in the kernel and print what it returns</li>
+<li><code>-e &lt;chunk&gt;</code>, <code>&ndash;eval=&lt;chunk&gt;</code>: run the chunk in the kernel and print what it returns, as
+<code>sudo lunatik -e &apos;return _VERSION&apos;</code> does; unlike a REPL line, an expression needs its <code>return</code></li>
 <li><code>-i</code>, <code>&ndash;interactive</code>: enter the REPL after <code>-e</code></li>
 <li><code>-c &lt;context&gt;</code>, <code>&ndash;context=&lt;context&gt;</code>: the context <code>run</code> creates the runtime in</li>
 <li><p><code>-p</code>, <code>&ndash;percpu</code>: <code>run</code> creates one runtime per CPU id</p></li>
-<li><p><a href="https://www.lua.org/manual/5.5/manual.html#pdf-load">load</a>: load Lunatik kernel modules</p></li>
-<li><code>unload</code>: unload Lunatik kernel modules</li>
-<li><code>reload</code>: reload Lunatik kernel modules</li>
-<li><code>status</code>: show which Lunatik kernel modules are currently loaded</li>
+<li><p><code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
+<code>modprobe</code> prints its error on stderr and the load goes on, so read <code>lunatik status</code> and the kernel log</p></li>
+<li><code>unload</code>: stop every running script, then unload Lunatik kernel modules</li>
+<li><code>reload</code>: stop every running script and reload Lunatik kernel modules, failing with
+<code>couldn&apos;t replace &lt;modules&gt;: loaded from another build</code> when a module that could not be unloaded
+is not the installed file</li>
+<li><code>status</code>: show which Lunatik kernel modules are currently loaded, and name a loaded module that
+is not the installed build</li>
 <li><code>test [suite]</code>: run installed test suites (see <a href="../topics/06-development.md.html">Development</a>)</li>
 <li><code>compile &lt;arguments&gt;</code>: run <code>lunatic</code> with the given arguments (see <a href="#lunatic">lunatic</a>)</li>
 <li><code>list</code>: show which runtime environments are currently running, one script a line</li>
 <li><code>run [-c softirq | hardirq] [-p] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>&ndash;context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>&ndash;context=hardirq</code> for hooks that fire in hardirq context (kprobes); optionally pass <code>&ndash;percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
-<li><code>spawn</code>: create a new runtime environment and spawn a thread to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code></li>
+<li><code>spawn &lt;script&gt;</code>: create a new runtime environment for the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>,
+always in process context, and run the function it returns in a kernel thread; it takes no
+context and no percpu, and the function follows the rules of <em>Kernel threads</em> below</li>
 <li><code>stop &lt;script&gt;&hellip;</code>: stop the runtime environment created to run each script, failing on a script nothing runs</li>
-<li><code>default</code>: start a <em>REPL (Read–Eval–Print Loop)</em>, with its banner and prompts on a terminal; on a
-pipe it runs each line it reads and prints only what the lines return</li>
+<li>no command, <code>sudo lunatik</code>: start a <em>REPL (Read–Eval–Print Loop)</em>, with its banner and prompts on
+a terminal; on a pipe it runs each line it reads and prints only what the lines return. Each
+entry is a chunk of its own, so a <code>local</code> is gone on the next line while a global stays; an entry
+that is not complete yet continues on the next line. Every invocation of the CLI, <code>-e</code> included,
+runs its chunks in one process-context runtime, so a hook that needs softirq or hardirq is
+registered from a script started with <code>lunatik run &ndash;context=&lt;context&gt;</code></li>
 </ul>
 
 
@@ -256,9 +267,36 @@ naming the option that replaces it.</p>
 </table>
 
 
-<p>Netfilter and XDP hooks fire in softirq, kprobes in hardirq; those scripts need the matching context.
-The script body itself runs once, in process context, before the runtime is armed, so registering
-hooks at its top level may sleep. Everything that runs later, from a hook, may not.</p>
+<p>A binding that registers a hook checks that the runtime registering it has the context the hook
+fires in, and raises <code>runtime context mismatch</code> from a runtime of another context. A class whose
+objects may sleep is a process-context class, and creating one of its objects from a softirq or
+hardirq runtime raises <code>&apos;&lt;class&gt;&apos;: process-context class in interrupt-context runtime</code>.</p>
+
+<p>The script body itself runs once, in process context, before the runtime is armed, so registering
+hooks at its top level may sleep. Everything that runs later, from a hook, may not. A runtime is
+armed once its script body returns; from then on, in a softirq or hardirq runtime, a call that
+sleeps, such as creating or stopping a kprobe, raises <code>not allowed after module load</code>.</p>
+
+<p><a name="Kernel_threads"></a></p>
+
+<h2 id="kernel-threads">Kernel threads</h2>
+
+<p>A script for <code>spawn</code> returns the thread body. The body polls <code>thread.shouldstop()</code> and yields, and
+bounds every call that blocks with a timeout: <code>lunatik stop</code> waits for the body to return, and a body
+that never returns keeps it waiting. An error the body raises goes to the kernel log.</p>
+
+<pre>
+<span class="keyword">local</span> thread = <span class="global">require</span>(<span class="string">"thread"</span>)
+<span class="keyword">local</span> linux  = <span class="global">require</span>(<span class="string">"linux"</span>)
+
+<span class="keyword">return</span> <span class="keyword">function</span>()
+    <span class="keyword">while</span> <span class="keyword">not</span> thread.<span class="function-name">shouldstop</span>() <span class="keyword">do</span>
+        <span class="comment">-- non blocking work only
+</span>     linux.<span class="function-name">schedule</span>(<span class="number">100</span>)
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre>
+
 
 <p><a name="lunatic"></a></p>
 
@@ -272,7 +310,7 @@ usage: lunatic [options] [filenames]
 <p><code>lunatic</code> is <code>luac</code> built with the host compiler from the same <code>lua/</code> sources and configuration
 as <code>lunatik.ko</code>, so its chunks match the kernel&rsquo;s opcode set and integer-only number format;
 chunks from the distribution <code>luac</code> are rejected by the kernel. The options are <code>luac</code>&rsquo;s
-(<code>-l</code> list, <a href="../topics/02-running-scripts.md.html#dumbo">-o</a> output, <code>-p</code> parse only, <code>-s</code> strip debug information, <code>-v</code> version) plus
+(<code>-l</code> list, <code>-o</code> output, <code>-p</code> parse only, <code>-s</code> strip debug information, <code>-v</code> version) plus
 <code>-e big|little</code>, the byte order of the target when it is not the host&rsquo;s, and <code>lunatik compile</code> runs
 it with the same arguments.</p>
 
@@ -288,7 +326,7 @@ sudo lunatik run hello
 </pre>
 
 
-<p><code>BYTECODE=1 make install</code> installs the kernel Lua libraries and the examples as stripped chunks
+<p><code>sudo make install BYTECODE=1</code>, after <code>make</code>, installs the kernel Lua libraries and the examples as stripped chunks
 instead of source, so an error raised from one of them reads <code>?:?:</code>.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/01-getting-started.md.html"><span>Previous</span>Getting started</a>
@@ -307,7 +345,7 @@ instead of source, so an error raised from one of them reads <code>?:?:</code>.<
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:58:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:00:15</span>
 </div>
 </footer>
 </body>

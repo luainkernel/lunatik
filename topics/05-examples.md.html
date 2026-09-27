@@ -171,7 +171,17 @@
     <h1 id="examples">Examples</h1>
 
 <p>Each example lives in a directory of <code>examples/</code>, with a README that says what it does and how to
-run it. <code>sudo make install</code> puts them under <code>/lib/modules/lua/examples/</code>.</p>
+run it. <code>sudo make install</code> puts them under <code>/lib/modules/lua/examples/</code>, and an example runs under
+that path as its README names, <code>sudo lunatik run [&ndash;context=&lt;context&gt;] examples/&lt;dir&gt;/&lt;script&gt;</code>, or
+<code>sudo lunatik spawn examples/&lt;dir&gt;/&lt;script&gt;</code> for a script that returns a thread body.</p>
+
+<p><code>filter</code> and <code>sniclassify</code> also load an eBPF program, which needs <code>sudo make btf_install</code> before
+<code>make</code>, then <code>make ebpf</code>; their READMEs load the program from the source tree with <code>bpftool</code>.
+<code>ifquarantine</code>, <code>tcpreject</code>, <code>dnsblock</code> and
+<code>dnsdoctor</code> act on the host&rsquo;s own traffic, and <code>ifquarantine</code> can cut the host off: run them from the
+source tree through <code>tools/watchdog.sh</code>, which stops the script when the host has lost its
+connectivity a few seconds after the start, as in
+<code>sudo bash tools/watchdog.sh examples/ifquarantine/control</code>.</p>
 
 <p><a name="Packet_filtering_and_classification"></a></p>
 
@@ -269,7 +279,7 @@ swipe.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:58:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:00:15</span>
 </div>
 </footer>
 </body>

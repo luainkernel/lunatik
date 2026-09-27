@@ -180,12 +180,13 @@ sudo apt install git build-essential lua5.<span class="number">5</span> dwarves 
 <p>Install dependencies (here for Arch Linux):</p>
 
 <pre>
-sudo pacman -S git lua clang llvm m4 libpcap pkg-config build2 linux-tools linux-headers
+sudo pacman -S git lua clang llvm m4 libpcap pkg-config base-devel pahole libelf linux-tools linux-headers
 </pre>
 
 
-<p>Ubuntu packages Lua 5.5 from 26.04 and Debian from testing. Where the distribution does not carry
-it yet, build the interpreter from source:</p>
+<p>The command line tool runs under <code>/usr/bin/lua5.5</code>, and the build calls <code>lua5.5</code>. Ubuntu packages
+Lua 5.5 from 26.04 and Debian from testing. Where the distribution does not carry it yet, build the
+interpreter from source:</p>
 
 <pre>
 curl -sSLO https://www.lua.org/ftp/lua-<span class="number">5.5</span>.<span class="number">1.</span>tar.gz
@@ -201,21 +202,72 @@ sudo apt install lua-readline  # Debian/Ubuntu
 </pre>
 
 
-<p>Compile and install <a href="../modules/lunatik.html#">lunatik</a>:</p>
+<p>Compile and install Lunatik:</p>
 
 <pre>
 LUNATIK_DIR=~/lunatik  # to be adapted
 <span class="function-name">mkdir</span> <span class="string">"${LUNATIK_DIR}"</span> ; <span class="function-name">cd</span> <span class="string">"${LUNATIK_DIR}"</span>
 git clone <span class="comment">--depth 1 --recurse-submodules https://github.com/luainkernel/lunatik.git
 </span>cd lunatik
+sudo make btf_install
 make
 sudo make install
 </pre>
 
 
-<p>Once done, the <code>debian_kernel_postinst_lunatik.sh</code> script from tools/ may be copied into
-<code>/etc/kernel/postinst.d/</code>: this ensures <a href="../modules/lunatik.html#">lunatik</a> (and also the <a href="../modules/xdp.html#">xdp</a> needed libs) will get
-compiled on kernel upgrade.</p>
+<p><code>sudo make btf_install</code> copies the running kernel&rsquo;s BTF, <code>/sys/kernel/btf/vmlinux</code>, into the
+headers the modules build against. Without it the modules are built with no BTF of their own:
+<a href="../modules/xdp.html#">xdp</a> and <a href="../modules/tc.html#">tc</a>, and <a href="../modules/sched.html#">sched</a> on a kernel with sched_ext, still load, but log <code>missing module BTF</code> in
+the kernel log and leave their kfunc unregistered, so an eBPF program that calls one, such as
+<code>bpf_luaxdp_run</code>, fails to load.</p>
+
+<p><a name="Check_the_install"></a></p>
+
+<h2 id="check-the-install">Check the install</h2>
+
+<pre>
+sudo lunatik <span class="global">load</span>      # loads the modules
+sudo lunatik status    # one line per <span class="global">module</span>: &lt;<span class="global">module</span>&gt; is loaded
+sudo lunatik -V        # the version of the loaded Lunatik
+</pre>
+
+
+<p><a name="After_a_kernel_upgrade"></a></p>
+
+<h2 id="after-a-kernel-upgrade">After a kernel upgrade</h2>
+
+<p>The modules are installed for one kernel release, under <code>/lib/modules/$(uname -r)</code>, so on a new
+kernel <code>sudo lunatik</code> fails with <code>lunatik: couldn&apos;t create /dev/lunatik</code>. Install the new kernel&rsquo;s
+headers and tools, then rebuild:</p>
+
+<pre>
+sudo apt install linux-headers-$(uname -r) linux-tools-$(uname -r)  # Debian/Ubuntu
+make clean
+sudo make btf_install
+make
+sudo make install
+</pre>
+
+
+<p>On Debian and Ubuntu, a kernel hook can do this on every upgrade: <a href="https://github.com/luainkernel/lunatik/blob/master/tools/Readme.md">tools/Readme.md</a>
+installs <code>tools/debian_kernel_postinst_lunatik.sh</code> as <code>/etc/kernel/postinst.d/zz-update-lunatik</code>.
+The hook builds its own clone of master under <code>/opt/lunatik</code>, not your checkout. It downloads the
+kernel sources to build <code>resolve_btfids</code> and <code>bpftool</code>, and replaces <code>/usr/sbin/bpftool</code> with the one
+it built; it builds <code>xdp-loader</code> from xdp-tools under <code>/opt/xdp-tools</code>. A failure in it fails the
+kernel package&rsquo;s configuration.</p>
+
+<p><a name="Uninstall"></a></p>
+
+<h2 id="uninstall">Uninstall</h2>
+
+<pre>
+sudo lunatik unload
+sudo make uninstall
+</pre>
+
+
+<p>Run <code>sudo make ebpf_uninstall</code> too if you installed the eBPF programs with <code>sudo make ebpf_install</code>,
+and remove <code>/etc/kernel/postinst.d/zz-update-lunatik</code> if you installed the hook.</p>
 
 <p><a name="OpenWRT"></a></p>
 
@@ -250,7 +302,7 @@ compiled on kernel upgrade.</p>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:58:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:00:15</span>
 </div>
 </footer>
 </body>

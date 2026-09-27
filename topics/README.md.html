@@ -206,13 +206,17 @@ to generate random ASCII printable characters:</p>
 </pre>
 
 
+<p>After <code>sudo make install</code>, save it as <code>/lib/modules/lua/passwd.lua</code>, as root. Then
+<code>sudo lunatik run passwd</code> creates <code>/dev/passwd</code>, <code>head -c 16 /dev/passwd</code> reads a password from it,
+and <code>sudo lunatik stop passwd</code> removes it.</p>
+
 <p><a name="Get_started"></a></p>
 
 <h2 id="get-started">Get started</h2>
 
 <pre>
 git clone <span class="comment">--depth 1 --recurse-submodules https://github.com/luainkernel/lunatik.git
-</span>cd lunatik &amp;&amp; make &amp;&amp; sudo make install
+</span>cd lunatik &amp;&amp; sudo make btf_install &amp;&amp; make &amp;&amp; sudo make install
 sudo lunatik    # a REPL whose lines run <span class="keyword">in</span> the kernel
 </pre>
 
@@ -225,7 +229,7 @@ sudo lunatik    # a REPL whose lines run <span class="keyword">in</span> the ker
 
 <ul>
 <li><a href="../topics/01-getting-started.md.html">Getting started</a>: install, build, first script</li>
-<li><a href="../topics/02-running-scripts.md.html">Running scripts</a>: the <a href="../modules/lunatik.html#">lunatik</a> command, execution contexts, <code>lunatic</code></li>
+<li><a href="../topics/02-running-scripts.md.html">Running scripts</a>: the command line tool, execution contexts, <code>lunatic</code></li>
 <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a>: one runtime per CPU, and where state belongs</li>
 <li><a href="../topics/04-lua.md.html">Lua in the kernel</a>: what differs from userspace Lua</li>
 <li><a href="../topics/05-examples.md.html">Examples</a>: device drivers, packet filters, probes, filesystem guards</li>
@@ -241,7 +245,7 @@ sudo lunatik    # a REPL whose lines run <span class="keyword">in</span> the ker
 <p>Lunatik is dual-licensed under <a href="https://github.com/luainkernel/lunatik/blob/master/LICENSE-MIT">MIT</a> or <a href="https://github.com/luainkernel/lunatik/blob/master/LICENSE-GPL">GPL-2.0-only</a>.</p>
 
 <p><a href="https://github.com/luainkernel/lua">Lua</a> submodule is licensed under MIT.
-For more details, see its <a href="https://github.com/luainkernel/lua/blob/lunatik/lua.h#L530-L556">Copyright Notice</a>.</p>
+For more details, see its <a href="https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lua.h#L546-L571">Copyright Notice</a>.</p>
 
 <p><a href="https://github.com/luainkernel/klibc">Klibc</a> submodule is dual-licensed under BSD 3-Clause or GPL-2.0-only.
 For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lunatik/usr/klibc/LICENSE">LICENCE</a> file.</p>
@@ -258,7 +262,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:58:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:00:15</span>
 </div>
 </footer>
 </body>

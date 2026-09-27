@@ -1,7 +1,17 @@
 # Examples
 
 Each example lives in a directory of `examples/`, with a README that says what it does and how to
-run it. `sudo make install` puts them under `/lib/modules/lua/examples/`.
+run it. `sudo make install` puts them under `/lib/modules/lua/examples/`, and an example runs under
+that path as its README names, `sudo lunatik run [--context=<context>] examples/<dir>/<script>`, or
+`sudo lunatik spawn examples/<dir>/<script>` for a script that returns a thread body.
+
+`filter` and `sniclassify` also load an eBPF program, which needs `sudo make btf_install` before
+`make`, then `make ebpf`; their READMEs load the program from the source tree with `bpftool`.
+`ifquarantine`, `tcpreject`, `dnsblock` and
+`dnsdoctor` act on the host's own traffic, and `ifquarantine` can cut the host off: run them from the
+source tree through `tools/watchdog.sh`, which stops the script when the host has lost its
+connectivity a few seconds after the start, as in
+`sudo bash tools/watchdog.sh examples/ifquarantine/control`.
 
 ## Packet filtering and classification
 

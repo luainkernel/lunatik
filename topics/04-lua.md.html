@@ -181,7 +181,9 @@ to run in the kernel.</p>
 <p>Lunatik <strong>does not</strong> support floating-point arithmetic,
 thus it <strong>does not</strong> support <code>__div</code> nor <code>__pow</code>
 <a href="https://www.lua.org/manual/5.5/manual.html#2.4">metamethods</a>
-and the type <em>number</em> has only the subtype <em>integer</em>.</p>
+and the type <em>number</em> has only the subtype <em>integer</em>, a 64-bit integer. The <code>/</code> operator is floor
+division, the same as <code>//</code>, so <code>7 / 2</code> is <code>3</code>; <code>^</code> is not an operator; and a numeral with a decimal
+point or an exponent, <code>1.5</code> or <code>1e3</code>, does not parse. A fraction takes fixed point.</p>
 
 <p><a name="Lua_API"></a></p>
 
@@ -189,8 +191,10 @@ and the type <em>number</em> has only the subtype <em>integer</em>.</p>
 
 <p>Lunatik <strong>does not</strong> support the <a href="https://www.lua.org/manual/5.5/manual.html#6.9">os</a> library,
 floating-point arithmetic (<code>__div</code>, <code>__pow</code>), or <a href="https://www.lua.org/manual/5.5/manual.html#pdf-debug.debug">debug.debug</a>.
-The <a href="https://www.lua.org/manual/5.5/manual.html#6.7">math</a> library is present but all floating-point functions are absent —
-only integer operations are supported.</p>
+The <a href="https://www.lua.org/manual/5.5/manual.html#6.7">math</a> library keeps <code>abs</code>, <code>max</code>, <code>min</code>, <code>tointeger</code>, <code>ult</code>, <code>maxinteger</code> and <code>mininteger</code>.
+The rest is absent, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.random">math.random</a> (use <a href="../modules/linux.html#random">linux.random</a>), <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.floor">math.floor</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.type">math.type</a> (use
+<code>type(x) == &quot;number&quot;</code>) among them. <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.format">string.format</a> has no <code>%a</code>, <code>%e</code>, <code>%f</code> or <code>%g</code> conversion,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.unpack">string.unpack</a> have no <code>f</code> or <code>d</code> option, and their <code>n</code> is a 64-bit integer.</p>
 
 <p>The <a href="https://www.lua.org/manual/5.5/manual.html#6.8">io</a> library is supported with the
 following limitations: there are no default streams (<a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.stdin">io.stdin</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.stdout">io.stdout</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.stderr">io.stderr</a>),
@@ -198,14 +202,33 @@ no default input/output (<a href="https://www.lua.org/manual/5.5/manual.html#pdf
 (<a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.popen">io.popen</a>), no temporary files (<a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.tmpfile">io.tmpfile</a>), and no buffering control (<a href="https://www.lua.org/manual/5.5/manual.html#pdf-file:setvbuf">file:setvbuf</a>).
 The available functions are <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.open">io.open</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.lines">io.lines</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.type">io.type</a>, and the file handle methods
 <code>read</code>, <code>write</code>, <code>lines</code>, <code>flush</code>, <code>seek</code>, and <code>close</code>.
-On failure, error messages always read <code>&quot;I/O error&quot;</code> regardless of the underlying errno.</p>
+On failure no errno reaches the script: <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.open">io.open</a> returns <code>nil</code>, <code>&quot;&lt;file&gt;: (no extra info)&quot;</code> and
+<code>0</code>, and a function that raises, such as <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.lines">io.lines</a>, says <code>I/O error</code>.</p>
 
 <p>Lunatik <strong>modifies</strong> the following identifiers:
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION">_VERSION</a>: is defined as <code>&quot;Lua 5.5-kernel&quot;</code>.
-* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-collectgarbage">collectgarbage(&ldquo;count&rdquo;)</a>: returns the total memory in use by Lua in <strong>bytes</strong>, instead of <em>Kbytes</em>.
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-collectgarbage"><code>collectgarbage(&quot;count&quot;)</code></a>: returns the total memory in use by Lua in <strong>bytes</strong>, instead of <em>Kbytes</em>.
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a>: is defined as <code>&quot;/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua&quot;</code>.
-* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>: only supports built-in or already linked C modules, that is, Lunatik <strong>cannot</strong> load kernel modules dynamically.
-  In a softirq or hardirq runtime, a hook requires only what the script body loaded: once the runtime is armed, a <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> that would search <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a>, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath">package.searchpath</a>, raise <code>not allowed after module load</code>, since opening a file sleeps.</p>
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>: finds a Lua file on <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a>, or the opener <code>luaopen_&lt;name&gt;</code> a loaded Lunatik module exports; it <strong>cannot</strong> load kernel modules. The CLI loads every module the build produced, and <code>CONFIG_LUNATIK_&lt;NAME&gt; := n</code> in the Makefile leaves one out; requiring a C module that is not loaded raises an error naming <code>luaopen_&lt;name&gt; not found in kernel symbol table</code>.
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-print">print</a>: writes to the kernel log (<code>dmesg -w</code> or <code>journalctl -k -f</code>), not to a terminal, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-warn">warn</a> writes there too, as <code>Lua warning: &lt;message&gt;</code> at <code>KERN_ERR</code>. The REPL and <code>-e</code> bring back only what a chunk returns.</p>
+
+<p>Lunatik <strong>adds</strong> the global <code>_LUNATIK_VERSION</code>, the Lunatik release.</p>
+
+<p>A coroutine&rsquo;s Lua stack holds at most 200 slots (<code>LUAI_MAXSTACK</code>), which bounds recursion and the
+values <a href="https://www.lua.org/manual/5.5/manual.html#pdf-table.unpack">table.unpack</a> and a vararg carry: past it, recursion raises <code>stack overflow</code> and
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-table.unpack">table.unpack</a> raises <code>too many results to unpack</code>.</p>
+
+<p><a name="Softirq_and_hardirq_runtimes"></a></p>
+
+<h2 id="softirq-and-hardirq-runtimes">Softirq and hardirq runtimes</h2>
+
+<p>In a runtime created in softirq or hardirq context, <a href="https://www.lua.org/manual/5.5/manual.html#6.8">io</a> is nil and the <a href="../modules/lunatik.html#">lunatik</a> table holds only
+<code>cpu()</code> and <code>_ENV</code>, so <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> and <a href="../modules/lunatik.html#percpu">lunatik.percpu</a> are absent. A Lua library is required
+at the top level of the script, since opening a file sleeps: once the runtime is armed, a <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>
+of a module the body did not load, and
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath">package.searchpath</a>, raise
+<code>not allowed after module load</code>, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-loadfile">loadfile</a> fails, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-dofile">dofile</a> raises, with
+<code>cannot load file on non-sleepable runtime</code>.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/03-percpu.md.html"><span>Previous</span>Per-CPU scripts</a>
     <a class="next" href="../topics/05-examples.md.html"><span>Next</span>Examples</a>
@@ -223,7 +246,7 @@ On failure, error messages always read <code>&quot;I/O error&quot;</code> regard
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:58:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:00:15</span>
 </div>
 </footer>
 </body>

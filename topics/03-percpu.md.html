@@ -191,6 +191,24 @@ reaches the runtime of the CPU the probed call ran on.</p>
 published in <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a> or the conntrack mark; the runtime holds what is per-CPU, a counter or
 a cache. An <code>rcu.table()</code> the script body creates is not shared: the body runs once per runtime, so
 each gets its own.</p>
+
+<p><code>lunatik run</code> creates one runtime per possible CPU and runs their bodies one after another, so a
+body publishes the shared table when it finds none, and the bodies after it take that one:</p>
+
+<pre>
+<span class="keyword">local</span> lunatik = <span class="global">require</span>(<span class="string">"lunatik"</span>)
+<span class="keyword">local</span> rcu     = <span class="global">require</span>(<span class="string">"rcu"</span>)
+
+<span class="keyword">local</span> env = lunatik._ENV
+env.flows = env.flows <span class="keyword">or</span> rcu.<span class="global">table</span>()
+<span class="keyword">local</span> flows = env.flows
+</pre>
+
+
+<p>The table stays in <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a> after the runtimes stop, until a script sets <code>env.flows</code> to nil.</p>
+
+<p>A binding whose global registration the runtimes cannot share refuses a percpu runtime with
+<code>not allowed in a percpu runtime</code>, which its <code>@raise</code> says.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/02-running-scripts.md.html"><span>Previous</span>Running scripts</a>
     <a class="next" href="../topics/04-lua.md.html"><span>Next</span>Lua in the kernel</a>
@@ -208,7 +226,7 @@ each gets its own.</p>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:58:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:00:15</span>
 </div>
 </footer>
 </body>
