@@ -36,36 +36,52 @@ server:listen()
 
 local shouldstop = thread.shouldstop
 local task = require("linux.task")
-local sock = require("linux.socket").sock
+local sk = require("linux.socket")
+local NONBLOCK = sk.sock.NONBLOCK
+local DONTWAIT = sk.msg.DONTWAIT
 
 local size = 1024
 
-local function handle(session)
-	repeat
-		local request = session:receive(size)
-		local key, assign, value = string.match(request, "(%w+)(=*)(%w*)\n")
-		if key then
-			if assign ~= "" then
-				local slot
-				if value ~= "" then
-					slot = data.new(#value)
-					slot:setstring(0, value)
-				end
+local function serve(session, request)
+	local key, assign, value = string.match(request, "(%w+)(=*)(%w*)\n")
+	if not key then
+		return false
+	end
 
-				shared[key] = slot
-			else
-				local slot = shared[key]
-				local reply = slot and slot:getstring(0) or ""
-				session:send(reply .. "\n")
-			end
+	if assign ~= "" then
+		local slot
+		if value ~= "" then
+			slot = data.new(#value)
+			slot:setstring(0, value)
 		end
-	until (not key or shouldstop())
+
+		shared[key] = slot
+	else
+		local slot = shared[key]
+		local reply = slot and slot:getstring(0) or ""
+		session:send(reply .. "\n")
+	end
+	return true
+end
+
+local function handle(session)
+	local done
+	repeat
+		local ok, request = pcall(session.receive, session, size, DONTWAIT)
+		if ok then
+			done = not serve(session, request)
+		elseif request == "EAGAIN" then
+			linux.schedule(100)
+		else
+			error(request, 0)
+		end
+	until (done or shouldstop())
 end
 
 local function daemon()
 	print("starting shared...")
 	while (not shouldstop()) do
-		local ok, session = pcall(server.accept, server, sock.NONBLOCK)
+		local ok, session = pcall(server.accept, server, NONBLOCK)
 		if ok then
 			local handled, err = pcall(handle, session)
 			if not handled then
