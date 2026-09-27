@@ -19,7 +19,11 @@ jobs:
     - name: Setup Lua Rocks
       uses: leafo/gh-actions-luarocks@v4
     - name: Setup dependencies
-      run: luarocks install ldoc
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmarkdown2-dev
+        luarocks install ldoc
+        luarocks install discount DISCOUNT_INCDIR=/usr/include/$(gcc -print-multiarch) DISCOUNT_LIBDIR=/usr/lib/$(gcc -print-multiarch)
     - name: Build docs
       run: make doc-site LUA=lua
     - name: Deploy
