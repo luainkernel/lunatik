@@ -122,10 +122,14 @@ static int luaskb_vlan(lua_State *L)
 	luaL_argcheck(L, skb_linearize((lskb)->skb) == 0, (ix), "skb linearization failed")
 
 /***
+* Linearizes the skb and returns a view from where `layer` starts to the end of
+* the packet. "net" starts at `skb->data`, which is the network header in a
+* netfilter hook and the MAC header in a tc callback; "mac" starts at the MAC
+* header.
 * @function data
-* @tparam[opt] string layer "net" (default, L3) or "mac" (L2, includes MAC header)
+* @tparam[opt] string layer "net" (default) or "mac"
 * @treturn data
-* @raise if linearization fails, MAC header is not set, or layer is invalid
+* @raise if linearization fails, MAC header is not set or is past the tail, or layer is invalid
 */
 static int luaskb_data(lua_State *L)
 {
@@ -137,14 +141,13 @@ static int luaskb_data(lua_State *L)
 	static const char *const layers[] = {"net", "mac", NULL};
 	bool mac = luaL_checkoption(L, 2, "net", layers);
 
-	void *ptr = skb->data;
-	size_t size = skb_headlen(skb);
-
 	if (mac) {
 		luaL_argcheck(L, skb_mac_header_was_set(skb), 2, "MAC header not set");
-		ptr  += skb_mac_offset(skb);
-		size += skb_mac_header_len(skb);
+		luaL_argcheck(L, skb_mac_header(skb) <= skb_tail_pointer(skb), 2, "MAC header past the tail");
 	}
+
+	unsigned char *ptr = mac ? skb_mac_header(skb) : skb->data;
+	size_t size = skb_tail_pointer(skb) - ptr;
 
 	if (data)
 		lunatik_getregistry(L, data); /* push data */

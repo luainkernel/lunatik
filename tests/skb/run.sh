@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in "$DIR"/connmark.sh "$DIR"/forward.sh "$DIR"/resize.sh; do
+for t in "$DIR"/connmark.sh "$DIR"/forward.sh "$DIR"/resize.sh "$DIR"/data.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	SEP=$'\n'
 	bash "$t" || FAILED=$((FAILED+1))
