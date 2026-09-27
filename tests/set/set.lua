@@ -46,6 +46,11 @@ test("set.new rejects a non-string member", function()
 	assert(not pcall(function() set.new({"ok", 42}) end), "non-string member should raise")
 end)
 
+test("set.new rejects a map", function()
+	local ok, err = pcall(set.new, {["a.b"] = 1})
+	assert(not ok and err:find("not a sequence", 1, true), "expected the refusal, got " .. tostring(err))
+end)
+
 test("set.labeled match returns a member's labels", function()
 	local s = set.labeled({["alpha"] = 1, ["bravo"] = 2, ["charlie"] = 4, ["delta"] = 8})
 	assert(s:match("charlie") == 4, "charlie labels")
