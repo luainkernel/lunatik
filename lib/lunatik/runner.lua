@@ -46,7 +46,8 @@ end
 -- Creates a new Lunatik runtime for the given script and registers it.
 -- Throws an error if a script with the same name is already running.
 -- @tparam string script path or name of the Lua script to run. The ".lua" extension will be trimmed.
--- @tparam[opt] string context Execution context: `"process"` (default) or `"softirq"` (for netfilter/XDP hooks).
+-- @tparam[opt] string context Execution context: `"process"` (default), `"softirq"` (netfilter, XDP)
+--   or `"hardirq"` (kprobes).
 -- @tparam[opt] boolean ispercpu create one runtime per CPU id, dispatched by the CPU a
 --   callback fires on; the script runs once per runtime and can read its id with
 --   `lunatik.cpu()`. The runtimes share a netfilter hook and a kprobe; constructors
@@ -72,6 +73,9 @@ end
 -- `echod/daemon` for `examples/echod/daemon`.
 -- The spawned script is expected to return a function, which will then be executed in the new thread.
 -- @tparam string script path or name of the Lua script to spawn. The ".lua" extension will be trimmed.
+-- @tparam[opt] string context Execution context, `"process"` (default): a softirq or hardirq
+--   runtime raises `IRQ runtime cannot spawn threads`.
+-- @tparam[opt] boolean ispercpu refused: spawn does not support percpu scripts.
 -- @treturn userdata kernel thread object.
 -- @raise error if the script is already running, `percpu` is set, or the thread cannot
 --   start, in which case the runtime it created is stopped and unregistered.
