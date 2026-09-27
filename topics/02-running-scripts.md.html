@@ -188,13 +188,13 @@ usage: lunatik [-h | -V]
 
 
 <ul>
-<li><code>-h</code>, <code>&ndash;help</code>: print the usage</li>
-<li><code>-V</code>, <code>&ndash;version</code>: print the version of the loaded Lunatik, or fail when it is not loaded</li>
-<li><code>-e &lt;chunk&gt;</code>, <code>&ndash;eval=&lt;chunk&gt;</code>: run the chunk in the kernel and print what it returns, as
+<li><code>-h</code>, <code>--help</code>: print the usage</li>
+<li><code>-V</code>, <code>--version</code>: print the version of the loaded Lunatik, or fail when it is not loaded</li>
+<li><code>-e &lt;chunk&gt;</code>, <code>--eval=&lt;chunk&gt;</code>: run the chunk in the kernel and print what it returns, as
 <code>sudo lunatik -e &apos;return _VERSION&apos;</code> does; unlike a REPL line, an expression needs its <code>return</code></li>
-<li><code>-i</code>, <code>&ndash;interactive</code>: enter the REPL after <code>-e</code></li>
-<li><code>-c &lt;context&gt;</code>, <code>&ndash;context=&lt;context&gt;</code>: the context <code>run</code> creates the runtime in</li>
-<li><p><code>-p</code>, <code>&ndash;percpu</code>: <code>run</code> creates one runtime per CPU id</p></li>
+<li><code>-i</code>, <code>--interactive</code>: enter the REPL after <code>-e</code></li>
+<li><code>-c &lt;context&gt;</code>, <code>--context=&lt;context&gt;</code>: the context <code>run</code> creates the runtime in</li>
+<li><p><code>-p</code>, <code>--percpu</code>: <code>run</code> creates one runtime per CPU id</p></li>
 <li><p><code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
 <code>modprobe</code> prints its error on stderr and the load goes on, so read <code>lunatik status</code> and the kernel log</p></li>
 <li><code>unload</code>: stop every running script, then unload Lunatik kernel modules</li>
@@ -206,17 +206,17 @@ is not the installed build</li>
 <li><code>test [suite]</code>: run installed test suites (see <a href="../topics/06-development.md.html">Development</a>)</li>
 <li><code>compile &lt;arguments&gt;</code>: run <code>lunatic</code> with the given arguments (see <a href="#lunatic">lunatic</a>)</li>
 <li><code>list</code>: show which runtime environments are currently running, one script a line</li>
-<li><code>run [-c softirq | hardirq] [-p] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>&ndash;context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>&ndash;context=hardirq</code> for hooks that fire in hardirq context (kprobes); optionally pass <code>&ndash;percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+<li><code>run [-c softirq | hardirq] [-p] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>--context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>--context=hardirq</code> for hooks that fire in hardirq context (kprobes); optionally pass <code>--percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
 <li><code>spawn &lt;script&gt;</code>: create a new runtime environment for the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>,
 always in process context, and run the function it returns in a kernel thread; it takes no
 context and no percpu, and the function follows the rules of <em>Kernel threads</em> below</li>
-<li><code>stop &lt;script&gt;&hellip;</code>: stop the runtime environment created to run each script, failing on a script nothing runs</li>
+<li><code>stop &lt;script&gt;...</code>: stop the runtime environment created to run each script, failing on a script nothing runs</li>
 <li>no command, <code>sudo lunatik</code>: start a <em>REPL (Read–Eval–Print Loop)</em>, with its banner and prompts on
 a terminal; on a pipe it runs each line it reads and prints only what the lines return. Each
 entry is a chunk of its own, so a <code>local</code> is gone on the next line while a global stays; an entry
 that is not complete yet continues on the next line. Every invocation of the CLI, <code>-e</code> included,
 runs its chunks in one process-context runtime, so a hook that needs softirq or hardirq is
-registered from a script started with <code>lunatik run &ndash;context=&lt;context&gt;</code></li>
+registered from a script started with <code>lunatik run --context=&lt;context&gt;</code></li>
 </ul>
 
 
@@ -251,14 +251,14 @@ naming the option that replaces it.</p>
 </tr>
 <tr>
 <td> softirq </td>
-<td> <code>lunatik run &ndash;context=softirq &lt;script&gt;</code> </td>
+<td> <code>lunatik run --context=softirq &lt;script&gt;</code> </td>
 <td> <code>GFP_ATOMIC</code> </td>
 <td> <code>spin_lock_bh</code>; <code>spin_lock_irqsave</code> with IRQs already off </td>
 <td> no </td>
 </tr>
 <tr>
 <td> hardirq </td>
-<td> <code>lunatik run &ndash;context=hardirq &lt;script&gt;</code> </td>
+<td> <code>lunatik run --context=hardirq &lt;script&gt;</code> </td>
 <td> <code>GFP_ATOMIC</code> </td>
 <td> <code>spin_lock_irqsave</code>, always </td>
 <td> no </td>
@@ -317,7 +317,7 @@ it with the same arguments.</p>
 <p>A chunk is installed and run under the usual <code>.lua</code> name; the kernel detects it by its signature.
 Several inputs make one chunk that runs them in order, as with <code>luac</code>, so compile one file per
 call. <code>-s</code> drops the source name and the line numbers, so a stripped chunk reports an error as
-<code>?:?: &hellip;</code>; keep the full chunk while developing:</p>
+<code>?:?: ...</code>; keep the full chunk while developing:</p>
 
 <pre>
 lunatik compile -o hello.luac hello.lua
@@ -345,7 +345,7 @@ instead of source, so an error raised from one of them reads <code>?:?:</code>.<
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:20:36</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
 </div>
 </footer>
 </body>

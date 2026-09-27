@@ -471,7 +471,7 @@ passing the associated Lua state as the first argument followed by the variadic 
 the script body is still running, as it is when a hook armed from the body fires, and, for a
 <code>percpu</code> object, when the runtime of this CPU is not published yet; if the calling task already
 holds the runtime&rsquo;s lock, a dispatch from the runtime&rsquo;s own code, with <code>-EDEADLK</code>, and the handler
-does not run either; otherwise, <code>ret</code> is set with the result of <code>handler(L, &hellip;)</code> call.
+does not run either; otherwise, <code>ret</code> is set with the result of <code>handler(L, ...)</code> call.
 Then, it restores the Lua stack and unlocks the <code>runtime</code> environment.
 A process runtime is locked with a mutex, so <em>lunatik_run()</em> on it is called from a context that
 may sleep.
@@ -547,7 +547,7 @@ under the protected call: a raise with no handler is a <code>BUG()</code>.</p>
 </pre>
 
 
-<p>Runs <code>handler(L, &hellip;)</code> on <code>runtime</code>&rsquo;s state and restores the stack. Unlike <code>lunatik_run</code>, it
+<p>Runs <code>handler(L, ...)</code> on <code>runtime</code>&rsquo;s state and restores the stack. Unlike <code>lunatik_run</code>, it
 takes no lock, does not resolve a <code>percpu</code> object, and does not check that the state is open or
 ready: the caller already runs inside the runtime, holding its lock or in its script body, and
 passes a plain runtime whose state it knows is open. Defined as a macro.</p>
@@ -1049,8 +1049,8 @@ another runtime.</p>
 <code>object-&gt;private</code> cast to <code>T</code>, after proving three things about the value at <code>ix</code>, each with a
 Lua error: it is a Lunatik object (<code>lunatik_checkobject</code>), it is of the class <code>cls</code>, whose
 <code>name</code> the type error quotes, and its private is set, which rules out a closed object. The
-second form is for a family of classes sharing one checker: <code>&hellip;</code> lists the classes it accepts,
-and <code>tname</code> is the name the type error quotes. The first form&rsquo;s optional <code>&hellip;</code> are further
+second form is for a family of classes sharing one checker: <code>...</code> lists the classes it accepts,
+and <code>tname</code> is the name the type error quotes. The first form&rsquo;s optional <code>...</code> are further
 validation statements, run with <code>L</code>, <code>ix</code>, <code>object</code> and <code>private</code> in scope, before <code>return
 private</code>.</p>
 
@@ -1256,7 +1256,7 @@ preserves the value because a constructor reached from inside the callback must 
 </pre>
 
 
-<p>Creates a new object by calling <code>new_fn(L, &hellip;)</code>, stores it in <code>LUA_REGISTRYINDEX</code> keyed by
+<p>Creates a new object by calling <code>new_fn(L, ...)</code>, stores it in <code>LUA_REGISTRYINDEX</code> keyed by
 the returned pointer, sets <code>obj-&gt;field</code> to the result, and pops the userdata from the stack.
 Defined as a macro.</p>
 
@@ -1304,7 +1304,7 @@ and <code>&quot;unknown&quot;</code> for a value with no name. The tree passes i
 </pre>
 
 
-<p>Calls <code>op(&hellip;)</code>. If the return value is negative, calls <code>lunatik_throw</code>. Defined as a macro.</p>
+<p>Calls <code>op(...)</code>. If the return value is negative, calls <code>lunatik_throw</code>. Defined as a macro.</p>
 
 <h3 id="lunatik_tryret">lunatik_tryret</h3>
 
@@ -1484,13 +1484,13 @@ raises, it drops that reference first.</p>
 
 <p>Declares a <code>static const lunatik_class_t *</code> array of class pointers with an
 implicit trailing <code>NULL</code> sentinel. The array is named <code>lua&lt;name&gt;_classes</code> —
-the same token used in <code>LUNATIK_NEWLIB(&lt;name&gt;, &hellip;, lua&lt;name&gt;_classes, &hellip;)</code>,
+the same token used in <code>LUNATIK_NEWLIB(&lt;name&gt;, ..., lua&lt;name&gt;_classes, ...)</code>,
 so both macros compose without the author naming the array explicitly.</p>
 
 <ul>
 <li><code>name</code>: module name suffix; must match the <code>libname</code> of the companion
 <code>LUNATIK_NEWLIB</code> call.</li>
-<li><code>&hellip;</code>: one or more <code>const lunatik_class_t *</code> pointers. The macro appends
+<li><code>...</code>: one or more <code>const lunatik_class_t *</code> pointers. The macro appends
 the terminator, so authors must <strong>not</strong> include a trailing <code>NULL</code>.</li>
 </ul>
 
@@ -1851,7 +1851,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:20:36</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
 </div>
 </footer>
 </body>
