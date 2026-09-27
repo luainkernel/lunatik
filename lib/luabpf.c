@@ -19,6 +19,10 @@
 * match the map's configured key and value sizes. Queues and stacks
 * have no keys, so only `value_size` applies to them.
 *
+* Needs `CONFIG_BPF_SYSCALL` and a map pinned on bpffs, as `bpftool map pin`
+* leaves one. The flags `update` and `push` take come from `require("linux.bpf")`:
+* `ANY`, `NOEXIST` and `EXIST`.
+*
 * @module bpf
 */
 
@@ -137,7 +141,7 @@ static long luabpf_map_copyvalue(struct bpf_map *map, const char *key, char *val
 * @function lookup
 * @tparam string key Packed key.
 * @treturn string value Packed value, or `nil` if the key is not present.
-* @raise Error if the operation fails.
+* @raise `invalid key size` when the key does not match the map, or the kernel's errno.
 */
 static int luabpf_map_lookup(lua_State *L)
 {
@@ -162,7 +166,8 @@ static int luabpf_map_lookup(lua_State *L)
 *   - `BPF_EXIST`: Update an existing element only if the key exists.
 * @treturn boolean success; `false` when the flag condition is not met
 * (`BPF_EXIST` on an absent key, `BPF_NOEXIST` on a present one).
-* @raise Error if the operation is not permitted by the map.
+* @raise `invalid key size` or `invalid value size` when a string does not match the map, or
+*   the kernel's errno, such as `E2BIG` when a hash map is full or `EINVAL` for bad flags.
 */
 static int luabpf_map_update(lua_State *L)
 {
@@ -181,7 +186,8 @@ static int luabpf_map_update(lua_State *L)
 * @function delete
 * @tparam string key Packed key.
 * @treturn boolean success
-* @raise Error if the operation is not permitted by the map.
+* @raise `invalid key size` when the key does not match the map, or the kernel's errno,
+*   such as `EINVAL` on an array map.
 */
 static int luabpf_map_delete(lua_State *L)
 {
@@ -198,7 +204,8 @@ static int luabpf_map_delete(lua_State *L)
 * @function remove
 * @tparam string key Packed key.
 * @treturn string value Packed value, or `nil` if the key is not present.
-* @raise Error if the operation is not supported by the map (e.g. array maps).
+* @raise `invalid key size` when the key does not match the map, `EOPNOTSUPP` when the
+*   map does not support it (e.g. array maps), or the kernel's errno.
 */
 static int luabpf_map_remove(lua_State *L)
 {
@@ -218,10 +225,13 @@ static int luabpf_map_remove(lua_State *L)
 /***
 * Returns the next key in the map.
 * Mirrors Lua's `next(t, key)`, so it can drive a generic `for` directly.
+* On hash and LRU hash maps, `next` given a key the map does not hold starts again from
+* the first key, so deleting entries during the walk, or an eBPF program deleting them
+* meanwhile, can visit keys again; collect the keys first when the loop deletes.
 * @function next
 * @tparam[opt] string key Packed key; returns the first key if nothing is passed.
 * @treturn string next_key Packed next key, or `nil` if there are no more keys.
-* @raise Error if the operation fails.
+* @raise `invalid key size` when the key does not match the map, or the kernel's errno.
 * @usage
 *   local hash = require("bpf").hash
 *   local flow = hash("/sys/fs/bpf/flow_cache")
@@ -271,7 +281,8 @@ static int luabpf_map_next(lua_State *L)
 * overwrite the oldest element once the map is full.
 * @treturn boolean success; `false` when the map is full and `BPF_EXIST`
 * was not given.
-* @raise Error on invalid flags.
+* @raise `invalid value size` when the value does not match the map, or the kernel's
+*   errno, such as `EINVAL` for bad flags.
 */
 static int luabpf_map_push(lua_State *L)
 {
@@ -412,8 +423,9 @@ static int luabpf_##name##_open(lua_State *L)						\
 * @function hash
 * @tparam string path Path to a pinned eBPF hash map.
 * @treturn bpf_hash Opened map handle.
-* @raise Error if the path does not resolve to a pinned eBPF hash map, or if called
-* after module load: the path lookup sleeps, so on an interrupt-context runtime
+* @raise Error if the path does not resolve to a pinned eBPF hash map, or
+* `not allowed after module load` once the runtime is armed (its script body has
+* returned): the path lookup sleeps, so on an interrupt-context runtime
 * (softirq/hardirq) the constructors are only allowed while the script body runs;
 * the returned handle can then be used from handlers.
 * @usage

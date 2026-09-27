@@ -23,6 +23,9 @@
 --
 -- Conditional updates (`BPF_NOEXIST`/`BPF_EXIST`) and the boolean results
 -- belong to the raw API.
+--
+-- As in `bpf`, a softirq or hardirq runtime opens maps only while its script body
+-- runs; the proxies can then be used from handlers.
 -- @module bpf.map
 -- @see bpf
 -- @usage
@@ -204,7 +207,9 @@ end
 
 ---
 -- Opens a pinned array map as a table.
--- Keys are the `u32` indices of the array.
+-- Keys are the `u32` indices of the array. Array elements always exist: every index
+-- below `max_entries` reads a value, zero-filled if never set, and assigning `nil`
+-- raises `EINVAL`; write a zero value instead.
 -- @function array
 -- @tparam string pathname Path to the pinned map.
 -- @tparam string|table keyspec `string.pack` format or `struct` codec for the key.
@@ -255,6 +260,11 @@ end
 -- map key: indexing looks values up, assignment updates, assigning `nil`
 -- deletes, `pairs` iterates, and closing the variable (`<close>`) releases
 -- the map. `close` and `info` are module functions.
+--
+-- On hash and LRU hash maps, the walk starts again from the first key when the key it
+-- stands on leaves the map, so deleting entries inside a `pairs` loop, or an eBPF
+-- program deleting them meanwhile, can visit keys again; collect the keys first when
+-- the loop deletes.
 -- @type map_hash
 
 ---
