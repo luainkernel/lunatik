@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fs lookup"
+TESTS="random fs lookup constants"
 TOTAL=$(echo $TESTS | wc -w)
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil

@@ -7,6 +7,7 @@
 
 local fs = require("linux.fs")
 local test = require("util").test
+local check = require("tests.linux.check")
 
 -- the FS_* bits are pinned by the FAN_* and IN_* uapi values they line up with
 local masks = {
@@ -24,9 +25,7 @@ local masks = {
 local dropped = { "MOVE", "IN_IGNORED", "DN_MULTISHOT", "EVENTS_POSS_ON_CHILD" }
 
 test("linux.fs carries every event mask at its uapi value", function()
-	for name, value in pairs(masks) do
-		assert(fs[name] == value, name .. ": " .. tostring(fs[name]))
-	end
+	check.carries("fs", fs, masks)
 end)
 
 test("every linux.fs entry is one bit and no bit repeats", function()

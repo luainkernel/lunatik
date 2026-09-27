@@ -535,6 +535,12 @@ after the watch is stopped.
   argument; a `softirq` and a `hardirq` runtime resumed past their body, the
   armed state a hook calls from, each resolve a symbol and get `nil` for an
   absent one; skipped without `CONFIG_KPROBES`, which the resolution needs.
+- **constants**: a `linux.*` constant carries the value the kernel's type
+  gives it: an unsigned 32-bit one past `INT_MAX`, from a `#define`
+  (`TC_H_ROOT`, `TC_H_INGRESS`, `TC_H_MAJ_MASK`) and from an enum
+  (`RT_TABLE_MAX`), is positive; a signed one below zero (`TC_ACT_UNSPEC`,
+  the `NF_IP_PRI_*` and `NF_BR_PRI_*` priorities down to `INT_MIN`) keeps its
+  sign; and one within `INT_MAX` is unchanged.
 
 ### lua
 

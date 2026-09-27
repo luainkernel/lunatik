@@ -13,7 +13,7 @@
 --     autogen/dump_N.pp            (directives preserved, enums expanded)
 --       │  scan for prefix in #define lines + enum bodies
 --       ▼
---     autogen/extract.c            (#include + DEFINE(name, name) per candidate)
+--     autogen/extract.c            (#include + DEFINE(name, (long long)(name)) per candidate)
 --       │  kbuild: cc -S
 --       ▼
 --     autogen/extract.s            (`.ascii "->sym val"` per DEFINE, asm-offsets pattern)
@@ -228,7 +228,7 @@ local function struct_probes(spec)
 end
 
 --- Write `extract.c`: include every unique header and emit a
--- `DEFINE(name, name)` for each candidate (or struct layout probes). The
+-- `DEFINE(name, (long long)(name))` for each candidate (or struct layout probes). The
 -- resulting `.s` file carries resolved integer values as assembly immediates
 -- (see linux/kbuild.h).
 -- @tparam {table,...} dumps
@@ -245,7 +245,8 @@ function extract.write(dumps, candidates)
 		else
 			table.insert(parts, ('\tCOMMENT("module %s %s");\n'):format(spec.module, spec.prefix))
 			for _, name in ipairs(candidates[spec]) do
-				table.insert(parts, ("\tDEFINE(%s, %s);\n"):format(name, name))
+				-- an immediate is printed sign-extended from its type's width
+				table.insert(parts, ("\tDEFINE(%s, (long long)(%s));\n"):format(name, name))
 			end
 		end
 	end
