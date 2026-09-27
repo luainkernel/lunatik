@@ -13,8 +13,12 @@ local check    = require("tests.runtime.check")
 
 local function nop() end
 
+local function empty()
+	return ""
+end
+
 test("device:stop refuses an object of another class", function()
-	local driver = {name = "foreign_method", mode = stat.IRUGO, read = function() return "" end}
+	local driver = {name = "foreign_method", mode = stat.IRUGO, read = empty}
 	local dev = device.new(driver)
 	check.refused("device:stop", getmetatable(dev).stop)
 	dev:stop()
