@@ -17,6 +17,7 @@
 
 lunatik_object_t *luadata_new(lua_State *L, lunatik_opt_t opt);
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
+void luadata_setowner(lunatik_object_t *object, lunatik_object_t *owner);
 
 static inline void luadata_close(lunatik_object_t *object)
 {
