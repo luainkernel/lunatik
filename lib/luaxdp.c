@@ -13,6 +13,12 @@
 * The primary mechanism involves an XDP program calling the `bpf_luaxdp_run`
 * kfunc, which in turn invokes a Lua callback function previously registered
 * using `xdp.attach`.
+*
+* The module registers its kfunc through BTF: it needs a kernel built with `CONFIG_DEBUG_INFO_BTF`
+* and a build made after `make btf_install`, and without the module BTF it does not load. The
+* eBPF program is loaded apart, with bpftool, as an XDP program that declares
+* `bpf_luaxdp_run` as a `__ksym`, as
+* [examples/filter](https://github.com/luainkernel/lunatik/blob/master/examples/filter) does.
 * @module xdp
 */
 
@@ -188,12 +194,13 @@ static int luaxdp_detach(lua_State *L)
 * Registers a Lua callback function to be invoked by an XDP/eBPF program.
 * When an XDP program calls the `bpf_luaxdp_run` kfunc, Lunatik will execute
 * the registered Lua `callback` associated with the current Lunatik runtime.
-* The runtime invoking this function must be non-sleepable.
+* The runtime must be softirq, `lunatik run -c softirq <script>`.
 *
 * The `bpf_luaxdp_run` kfunc is called from an eBPF program with the following signature:
 * `int bpf_luaxdp_run(char *key, size_t key_sz, struct xdp_md *xdp_md, void *arg, size_t arg_sz)`
 *
-* - `key`: A string identifying the Lunatik runtime (e.g., the script name like "examples/filter/sni").
+* - `key`: A string identifying the Lunatik runtime: the script path under `/lib/modules/lua`
+*   without its `.lua` extension, as given to `lunatik run` (e.g. "examples/filter/sni").
 *   This key is used to look up the runtime in Lunatik's internal table of active runtimes.
 * - `key_sz`: Length of the key string (including the null terminator).
 * - `xdp_md`: The XDP metadata context (`struct xdp_md *`).
@@ -209,9 +216,9 @@ static int luaxdp_detach(lua_State *L)
 *   The callback need not return a value. If it sets no action, `bpf_luaxdp_run`
 *   returns `-1` and the verdict is left to the eBPF program.
 * @treturn nil
-* @raise Error if the current runtime is sleepable or if internal setup fails.
+* @raise `runtime context mismatch` outside a softirq runtime, or if internal setup fails.
 * @usage
-*   -- Lua script (e.g., "my_xdp_handler.lua" which is run via `lunatik run --context=softirq my_xdp_handler.lua`)
+*   -- Lua script my_xdp_handler.lua, run with `lunatik run -c softirq my_xdp_handler`
 *   local xdp = require("xdp")
 *   local action = require("linux.xdp")
 *
@@ -223,7 +230,7 @@ static int luaxdp_detach(lua_State *L)
 *   xdp.attach(my_packet_processor)
 *
 *   -- In eBPF C code, to call the above Lua function:
-*   -- char rt_key[] = "my_xdp_handler.lua"; // Key matches the script name
+*   -- char rt_key[] = "my_xdp_handler"; // the script name without .lua
 *   -- int verdict = bpf_luaxdp_run(rt_key, sizeof(rt_key), ctx, NULL, 0);
 * @see data
 * @within xdp

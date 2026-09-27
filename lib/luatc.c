@@ -14,6 +14,12 @@
 * The primary mechanism involves a TC program calling the `bpf_luatc_run`
 * kfunc, which in turn invokes a Lua callback function previously registered
 * using `tc.attach()`.
+*
+* The module registers its kfunc through BTF: it needs a kernel built with `CONFIG_DEBUG_INFO_BTF`
+* and a build made after `make btf_install`, and without the module BTF it does not load. The
+* eBPF program is loaded apart, with bpftool, as a SCHED_CLS (`classifier`) program that declares
+* `bpf_luatc_run` as a `__ksym`, as
+* [examples/sniclassify](https://github.com/luainkernel/lunatik/blob/master/examples/sniclassify) does.
 * @module tc
 */
 
@@ -193,12 +199,13 @@ static int luatc_detach(lua_State *L)
 * Registers a Lua callback function to be invoked by a TC/eBPF program.
 * When a TC program calls the `bpf_luatc_run` kfunc, Lunatik will execute
 * the registered Lua `callback` associated with the current Lunatik runtime.
-* The runtime invoking this function must be non-sleepable.
+* The runtime must be softirq, `lunatik run -c softirq <script>`.
 *
 * The `bpf_luatc_run` kfunc is called from an eBPF program with the following signature:
 * `int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *sk_buff, void *arg, size_t arg__sz)`
 *
-* - `key`: A string identifying the Lunatik runtime (e.g., the script name like "examples/sniclassify/sni").
+* - `key`: A string identifying the Lunatik runtime: the script path under `/lib/modules/lua`
+*   without its `.lua` extension, as given to `lunatik run` (e.g. "examples/sniclassify/sni").
 *   This key is used to look up the runtime in Lunatik's internal table of active runtimes.
 * - `key_sz`: Length of the key string (including the null terminator).
 * - `sk_buff`: The TC metadata context (`struct __sk_buff *`).
@@ -214,9 +221,9 @@ static int luatc_detach(lua_State *L)
 *   The callback need not return a value. If it sets no action, `bpf_luatc_run`
 *   returns `-1` and the verdict is left to the eBPF program.
 * @treturn nil
-* @raise Error if the current runtime is sleepable or if internal setup fails.
+* @raise `runtime context mismatch` outside a softirq runtime, or if internal setup fails.
 * @usage
-*   -- Lua script (e.g., "my_tc_handler.lua" which is run via `lunatik run --context=softirq my_tc_handler.lua`)
+*   -- Lua script my_tc_handler.lua, run with `lunatik run -c softirq my_tc_handler`
 *   local tc = require("tc")
 *   local action = require("linux.tc")
 *
@@ -229,7 +236,7 @@ static int luatc_detach(lua_State *L)
 *   tc.attach(my_traffic_shaper)
 *
 *   -- In eBPF C code, to call the above Lua function:
-*   -- char rt_key[] = "my_tc_handler.lua"; // Key matches the script name
+*   -- char rt_key[] = "my_tc_handler"; // the script name without .lua
 *   -- int verdict = bpf_luatc_run(rt_key, sizeof(rt_key), skb, NULL, 0);
 * @see skb
 * @see data
