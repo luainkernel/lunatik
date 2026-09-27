@@ -37,6 +37,11 @@ end
 
 cases.linear = cases.shrink
 
+function cases.regrow(len, skb)
+	skb:resize(len - DELTA)
+	return len
+end
+
 local refusals = {
 	overgrow = "insufficient tailroom",
 	negative = "out of bounds",
@@ -49,18 +54,22 @@ local pending = {
 	[PRIORITY + 4] = "overgrow",
 	[PRIORITY + 5] = "linear",
 	[PRIORITY + 6] = "negative",
+	[PRIORITY + 7] = "regrow",
 }
 
-local function verdict(skb, name, want, ok, err)
+local function verdict(skb, name, from, want, ok, err)
 	local refusal = refusals[name]
 	if refusal ~= nil then
 		return (not ok and err:find(refusal, 1, true)) and "ok" or ("FAIL did not refuse: " .. tostring(err))
 	elseif not ok then
 		return "FAIL " .. err
 	end
-	local len, datalen = #skb, #skb:data()
+	local data = skb:data()
+	local len, datalen = #skb, #data
 	if len ~= want or datalen ~= want then
 		return "FAIL length " .. len .. ", data " .. datalen .. ", want " .. want
+	elseif want > from and data:getstring(from, want - from):find("[^\0]") then
+		return "FAIL grown bytes not zeroed"
 	end
 	return "ok"
 end
@@ -73,9 +82,10 @@ local function resize_hook(skb)
 		return nf.action.ACCEPT
 	end
 	pending[priority] = nil
-	local want = cases[name](len)
+	local want = cases[name](len, skb)
+	local from = #skb
 	local ok, err = pcall(skb.resize, skb, want)
-	print("skb resize: " .. name .. " " .. verdict(skb, name, want, ok, err))
+	print("skb resize: " .. name .. " " .. verdict(skb, name, from, want, ok, err))
 	return nf.action.DROP
 end
 

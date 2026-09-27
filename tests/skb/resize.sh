@@ -13,9 +13,12 @@
 # any tailroom, which raises "insufficient tailroom", and a negative length, which
 # raises "out of bounds". A UDP datagram of the same size is linear, since
 # ip_append_data keeps a datagram under SKB_MAX_ALLOC in the head, and takes a
-# shrink. Each case that resizes reads back #skb and #skb:data() at the requested
-# length, and dmesg carries no WARNING. The payload is larger than the head's
-# free space, so linearizing reallocates the head with 128 spare bytes
+# shrink; a second one is shrunk and grown back over its own payload, which is
+# never zero, so a grow that leaves those bytes in place fails whether or not the
+# kernel zeroes its allocations (init_on_alloc). Each case that resizes reads back
+# #skb and #skb:data() at the requested length, a grow reads the bytes it added as
+# zeros, and dmesg carries no WARNING. The payload is larger than the head's free
+# space, so linearizing reallocates the head with 128 spare bytes
 # (__pskb_pull_tail), which the grow stays under. The hook drops the packet it
 # resized; TCP resends it untouched, and the UDP send fails with EPERM, so the
 # senders' errors are discarded.
@@ -29,7 +32,7 @@ SCRIPT="tests/skb/resize"
 PORT=5564
 PAYLOAD=2048          # PAYLOAD in resize.lua
 PRIORITY=$((0x12360000)) # PRIORITY in resize.lua
-CASES="shrink head grow overgrow linear negative"
+CASES="shrink head grow overgrow linear negative regrow"
 NCASES=$(echo $CASES | wc -w)
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -64,8 +67,8 @@ for _ in $(seq 20); do [ -n "$(ss -tHln "sport = :$PORT" 2>/dev/null)" ] && brea
 i=1
 for c in $CASES; do
 	proto=TCP
-	[ "$c" = linear ] && proto=UDP
-	head -c "$PAYLOAD" /dev/zero | timeout 5 socat -u - "$proto:127.0.0.1:$PORT,priority=$((PRIORITY + i))" 2>/dev/null
+	case $c in linear|regrow) proto=UDP ;; esac
+	head -c "$PAYLOAD" /dev/zero | tr '\0' x | timeout 5 socat -u - "$proto:127.0.0.1:$PORT,priority=$((PRIORITY + i))" 2>/dev/null
 	i=$((i + 1))
 done
 
