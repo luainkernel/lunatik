@@ -322,7 +322,7 @@
     <ul>
         <li><span class="parameter">cpu</span>
             <span class="types"><span class="type">integer</span></span>
-         CPU number (0-based)
+         CPU number, from <code>0</code> to <code>linux.numcpus() - 1</code>
         </li>
     </ul>
 
@@ -335,7 +335,7 @@
     </ol>
 
     <h3>Raises</h3>
-    if CPU is offline
+    &ldquo;out of bounds&rdquo; if cpu is outside that range, &ldquo;CPU is offline&rdquo; if it is not online
 
 
 
@@ -354,7 +354,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:48:50</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:56:44</span>
 </div>
 </footer>
 </body>
