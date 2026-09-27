@@ -414,7 +414,9 @@ brought up.
 `decision.sh` reads the same texts, where the same three run it, for a decision handed to the
 maintainer without the question, two options and a recommendation (*Deciding what to change*): it
 keys on the phrase that hands one over, "the maintainer's call", "é decisão sua", "levo isso a
-você", and asks the text around it for the three.
+você", and asks the text around it for the three. A reply in the session is where the maintainer
+read "é decisão sua", so `.claude/hooks/on-stop.sh`, the Stop hook, runs it over the reply a turn
+ends on and sends one that fails back once, passing the stop after it (`stop_hook_active`).
 
 `push-guard.sh`, wired before a shell call, refuses a `git push` in a command that also runs a
 rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any of those in progress:
