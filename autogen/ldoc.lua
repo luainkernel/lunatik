@@ -51,6 +51,21 @@ local function doclines(spec, top)
 		("Mirrors `%s*` defines in `<%s>`."):format(spec.prefix, spec.header)
 end
 
+local function keyrule(spec, name)
+	if spec.struct then return nil end
+	return ("Keys are the kernel names with the prefix stripped: `%s<NAME>` is `%s.<NAME>`.")
+		:format(spec.prefix, name)
+end
+
+local function describe(spec, top, name)
+	local default, source = doclines(spec, top)
+	local lines = { spec.desc or default, source, keyrule(spec, name) }
+	if spec.optional then
+		table.insert(lines, ("Empty on a kernel without `<%s>`."):format(spec.header))
+	end
+	return lines
+end
+
 local function write_block(f, lines)
 	f:write("---\n")
 	for _, line in ipairs(lines) do f:write("-- ", line, "\n") end
@@ -63,21 +78,32 @@ for _, top in ipairs(order) do
 	local group = tops[top]
 	local f <close> = assert(io.open(OUT .. "/" .. top .. ".lua", "w"))
 
-	f:write(HEADER)
-	write_block(f, {
+	local module = {
 		"Linux kernel constants exposed under `linux." .. top .. "`.",
 		"Values are populated at build time from the kernel headers.",
-		"@module linux." .. top,
-	})
+	}
+	local seen = {}
+	for _, s in ipairs(group) do
+		if s.module == top and not seen[top] then
+			seen[top] = true
+			local lines = describe(s, top, "linux." .. top)
+			table.move(lines, 1, #lines, #module + 1, module)
+		end
+	end
+	table.insert(module, "@module linux." .. top)
+	table.insert(module, ("@usage local %s = require(\"linux.%s\")"):format(top, top))
+
+	f:write(HEADER)
+	write_block(f, module)
 	f:write(("local %s = {}\n"):format(top))
 
-	local seen = {}
 	for _, s in ipairs(group) do
 		if not seen[s.module] then
 			seen[s.module] = true
-			local name = s.module == top and "constants" or s.module:sub(#top + 2)
-			local default, source = doclines(s, top)
-			write_block(f, { s.desc or default, source, "@table " .. name })
+			local name = s.module:sub(#top + 2)
+			local lines = describe(s, top, "linux." .. s.module)
+			table.insert(lines, "@table " .. name)
+			write_block(f, lines)
 			f:write(("%s.%s = {}\n"):format(top, name))
 		end
 	end

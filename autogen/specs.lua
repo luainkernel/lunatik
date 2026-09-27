@@ -52,7 +52,7 @@ return {
 	{ header = "linux/sched.h", prefix = "TASK_", module = "task",
 		desc = "Task state flags." },
 	{ header = "linux/sched/ext.h", prefix = "SCX_", module = "scx", optional = true,
-		desc = "Extensible Scheduler flags." },
+		desc = "Extensible Scheduler (sched_ext) flags, from 6.12 on." },
 	{ header = "linux/net.h", prefix = "SOCK_", module = "socket.sock",
 		desc = "Socket types (SOCK_STREAM, SOCK_DGRAM, ...)." },
 	{ header = "linux/socket.h", prefix = "AF_", module = "socket.af",
