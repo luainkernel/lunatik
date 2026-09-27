@@ -174,10 +174,10 @@ static int luaskb_data(lua_State *L)
 }
 
 /***
-* Expands (skb_put) or shrinks (skb_trim) the skb data area.
-* The skb is linearized first, so `n` is the length of the whole packet, which
-* `#skb` returns afterwards. In a tc callback the skb is not linearized, and a
-* non-linear one raises.
+* Expands (skb_put_zero) or shrinks (skb_trim) the skb data area; the bytes an
+* expansion adds read as zeros. The skb is linearized first, so `n` is the
+* length of the whole packet, which `#skb` returns afterwards. In a tc callback
+* the skb is not linearized, and a non-linear one raises.
 * @function resize
 * @tparam integer n desired size in bytes, from 0 up to `UINT_MAX`
 * @raise if out of bounds, if the skb is not linear, in a tc callback or after a failed
@@ -194,7 +194,7 @@ static int luaskb_resize(lua_State *L)
 	if (new_size > cur_size) {
 		size_t needed = new_size - cur_size;
 		luaL_argcheck(L, skb_tailroom(skb) >= needed, 2, "insufficient tailroom");
-		skb_put(skb, needed);
+		skb_put_zero(skb, needed);
 	}
 	else if (new_size < cur_size)
 		skb_trim(skb, new_size);
