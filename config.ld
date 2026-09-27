@@ -93,6 +93,8 @@ template = './doc/style'
 -- The template renders README.md as the home page and the other topics as the guide.
 topics = {'README.md'}
 
+manual_url 'https://www.lua.org/manual/5.5/manual.html'
+
 boilerplate = true
 
 -- Merge documentation for modules that might be split across multiple files
