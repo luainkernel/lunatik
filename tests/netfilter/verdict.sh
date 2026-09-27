@@ -99,10 +99,7 @@ else
 	expect 224 queue drops "a callback that returns QUEUE queues the packet, dropped with no listener"
 fi
 
-mark_dmesg
-ping_marked 218 && fail "a returned mark was not stored in the packet: it went through"
-dmesg_since | grep -qE "${PREFIX}remarked\$" || fail "the hook on the returned mark did not run"
-ktap_pass "a mark returned beside the verdict is stored in the packet"
+expect 218 remarked drops "a mark returned beside the verdict is stored in the packet"
 
 lunatik stop "$SCRIPT" 2>/dev/null
 check_dmesg || { ktap_totals; exit 1; }
