@@ -140,7 +140,9 @@ int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs)
 * @raise "invalid object" or "cannot share SINGLE object" if a value cannot cross, numbering the
 *   arguments on the way in and the yielded values on the way back, or the error raised on
 *   resumption; "not allowed from the runtime itself" from under the runtime's own lock, the
-*   contexts `stop` names, where the resumption would wait on it
+*   contexts `stop` names, where the resumption would wait on it; "EINTR" if the stop of the
+*   calling kernel thread, or a fatal signal to any other task, ends its wait for the runtime's
+*   lock
 */
 static int lunatik_lresume(lua_State *L)
 {
@@ -193,7 +195,9 @@ static const luaL_Reg lunatik_stub_lib[] = {
 *   its task runs: the releases the close runs cannot refuse, and a netdevice block's
 *   unregistration waits on the lock that task holds; "not allowed from the runtime itself"
 *   from the runtime's own callback, a `device` file operation, a `thread` body or a resumed
-*   body, where the close would wait on the lock that task holds
+*   body, where the close would wait on the lock that task holds; "EINTR" if the stop of the
+*   calling kernel thread, or a fatal signal to any other task, ends its wait for the runtime's
+*   lock
 */
 int lunatik_lstop(lua_State *L)
 {
@@ -201,7 +205,7 @@ int lunatik_lstop(lua_State *L)
 
 	lunatik_checkrtnl(L);
 	lunatik_checkowner(L, runtime);
-	lunatik_closeprivate(runtime);
+	lunatik_try(L, lunatik_closekillable, runtime);
 	return 0;
 }
 

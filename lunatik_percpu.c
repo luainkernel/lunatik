@@ -77,13 +77,15 @@ static void lunatik_stopdata(lunatik_object_t *object)
 	for_each_possible_cpu(cpu)			\
 		if ((runtime = *per_cpu_ptr((percpu)->runtimes, cpu)) != NULL)
 
-static void lunatik_closeruntimes(lunatik_percpu_t *percpu)
+static int lunatik_closeruntimes(lunatik_percpu_t *percpu)
 {
 	lunatik_object_t *runtime;
-	int cpu;
+	int cpu, ret = 0;
 
 	lunatik_foreachruntime(percpu, cpu, runtime)
-		lunatik_closeprivate(runtime);
+		if ((ret = lunatik_closekillable(runtime)) != 0)
+			break;
+	return ret;
 }
 
 static void lunatik_releasepercpu(void *private)
@@ -104,7 +106,7 @@ static int lunatik_resumeruntime(lua_State *L, lunatik_object_t *runtime, int na
 {
 	int nresults = -ENXIO;
 
-	lunatik_lock(runtime); /* a runtime dispatches as soon as its script registers a hook */
+	lunatik_try(L, lunatik_lockkillable, runtime); /* dispatches once its script registers a hook */
 	if (likely(lunatik_isready(runtime))) {
 		lua_State *Lto = lunatik_getstate(runtime);
 
@@ -137,7 +139,9 @@ static inline void lunatik_checkowners(lua_State *L, lunatik_percpu_t *percpu)
 *   with the runtimes after it not resumed. A runtime that refuses a value stays where it yielded;
 *   one that raises is dead, so every later resume delivers to the CPUs before it again and fails
 *   on it again; "not allowed from the runtime itself" from under the lock of one of the set's
-*   runtimes, the contexts `stop` names, where its resumption would wait on that lock
+*   runtimes, the contexts `stop` names, where its resumption would wait on that lock;
+*   "EINTR" if the stop of the calling kernel thread, or a fatal signal to any other task,
+*   ends its wait for the lock of one of the set's runtimes, the runtimes after it not resumed
 */
 static int lunatik_resumepercpu(lua_State *L)
 {
@@ -165,7 +169,9 @@ static int lunatik_resumepercpu(lua_State *L)
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
 *   its task runs, as the runtime's `stop` does: the releases the close runs cannot refuse;
 *   "not allowed from the runtime itself" from a callback or a resumed body of one of the
-*   set's runtimes, where its close would wait on the lock that task holds
+*   set's runtimes, where its close would wait on the lock that task holds;
+*   "EINTR" if the stop of the calling kernel thread, or a fatal signal to any other task,
+*   ends its wait for the lock of one of the set's runtimes, the runtimes before it closed
 */
 static int lunatik_stoppercpu(lua_State *L)
 {
@@ -174,7 +180,7 @@ static int lunatik_stoppercpu(lua_State *L)
 	lunatik_checkrtnl(L);
 	lunatik_checkowners(L, lunatik_topercpu(object));
 	lunatik_stopdata(object);
-	lunatik_closeruntimes(lunatik_topercpu(object));
+	lunatik_try(L, lunatik_closeruntimes, lunatik_topercpu(object));
 	return 0;
 }
 

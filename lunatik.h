@@ -35,6 +35,7 @@ typedef u8 __bitwise lunatik_opt_t;
 #define lunatik_issingle(opt)		((opt) & LUNATIK_OPT_SINGLE)
 #define lunatik_isexternal(opt)		((opt) & LUNATIK_OPT_EXTERNAL)
 #define lunatik_ispercpu(opt)		((opt) & LUNATIK_OPT_PERCPU)
+#define lunatik_iskthread()		(current->flags & PF_KTHREAD)
 
 #define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
@@ -285,6 +286,7 @@ lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
 void lunatik_closeprivate(lunatik_object_t *object);
+int lunatik_closekillable(lunatik_object_t *object);
 int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
 int lunatik_lstop(lua_State *L);

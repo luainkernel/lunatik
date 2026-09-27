@@ -966,6 +966,19 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   protected call is a `BUG`; the test sees the message, since that failure
   needs the allocation to fail at the instant of the log.
 
+- **killable**: a wait on a runtime's lock that a script starts ends with
+  `EINTR` when its kernel thread is stopped or its task takes a fatal signal.
+  A spawned holder keeps its runtime's lock, and that of the first runtime of
+  a percpu set whose body sleeps, for ten seconds. A spawned waiter stopped
+  from the command line leaves `resume`, `thread.run`, `stop` and the set's
+  `resume` and `stop`; a device read that resumes the holder's runtime leaves
+  when its reader is killed; and a thread that waits on the lock of the
+  devices' runtime is stopped by a read that holds that lock. The test skips
+  unless the loaded core carries `lunatik_closekillable`, the symbol only the
+  fixed build has, since a build whose waits ignore a stop would wait forever
+  on the stop from under the lock; that stop also runs only after the first
+  two cases passed, which such a build fails once the holder lets go.
+
 ### sched
 
 Regression tests for `luasched`: the attach guards, and the dispatch path

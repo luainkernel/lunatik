@@ -33,6 +33,7 @@ TESTS=(
 	collected.sh
 	self_stop.sh
 	errobj.sh
+	killable.sh
 )
 
 SEP=""
