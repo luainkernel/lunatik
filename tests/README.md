@@ -1041,6 +1041,18 @@ command and a pid, and what a valid call does.
   read and write without conntrack. Conntrack is engaged via an nft `ct state`
   rule; skips cleanly if `nf_conntrack` is unavailable.
 
+- **forward**: a ping over an ipip tunnel reaches `LOCAL_OUT` with the outer
+  packet's MAC header at the inner IPv4 header, past `skb->data`: `skb:forward()`
+  raises "MAC header past the data" and the hook drops the packet. A ping to the
+  loopback address reaches `PRE_ROUTING` on `lo` with its MAC header before
+  `skb->data`: `forward()` sends a clone back out through `lo`, and the hook sees
+  it arrive. The tunnel's remote end is its local one, so a second ping over it
+  comes back decapsulated to `PRE_ROUTING` on the tunnel with its MAC header at
+  `skb->data`: `forward()` sends a clone back into the tunnel, and the hook sees
+  that one arrive too. The tunnel runs over loopback; its cases skip without
+  `ipip`, and unless the loaded `luaskb` is the installed one and carries the
+  refusal, since a module without it panics the host.
+
 ### socket
 
 - **setsockopt**: `socket:setsockopt()` sets an integer option (`SO_RCVBUF`)
