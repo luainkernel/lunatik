@@ -56,6 +56,6 @@ nft add rule ip6 tcpreject forward \
 lunatik run --context=softirq examples/tcpreject/nf_tcpreject
 
 echo "setup done"
-echo "test IPv4: ip netns exec $NETNS curl --connect-timeout 2 https://$DNS4"
-echo "test IPv6: ip netns exec $NETNS curl --connect-timeout 2 https://[$DNS6]"
+echo "test IPv4: sudo ip netns exec $NETNS curl --connect-timeout 2 https://$DNS4"
+echo "test IPv6: sudo ip netns exec $NETNS curl --connect-timeout 2 https://[$DNS6]"
 
