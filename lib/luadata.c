@@ -78,15 +78,25 @@ LUADATA_NEWINT(int64);
 * This is a userdata object returned by `data.new()` and by the modules that
 * expose kernel memory (as `skb:data()`), read and written through the
 * `getuint*`/`setuint*` accessors below.
+*
+* Offsets start at 0, and the integer accessors use host byte order: convert a
+* network field with `byteorder`, as `byteorder.ntoh16(d:getuint16(12))`. A data
+* object a binding hands to a callback, or `skb:data()` returns for that
+* callback's skb, views kernel memory only while that callback runs: afterwards
+* its length is 0 and every access raises "out of bounds", so copy what you keep
+* with `getstring`. `skb:copy():data()` views the copy's own buffer, valid only
+* while the copy lives. A write to a view a binding marks read only raises
+* "read only".
 * @type data
 */
 
 /***
+* Reads `length` bytes at `offset` as a string.
 * @function getstring
 * @tparam integer offset
 * @tparam[opt] integer length number of bytes; default: from offset to end
 * @treturn string
-* @raise if out of bounds
+* @raise "out of bounds", a zero length included, as at an offset equal to the size
 */
 static int luadata_getstring(lua_State *L)
 {
@@ -100,10 +110,11 @@ static int luadata_getstring(lua_State *L)
 }
 
 /***
+* Writes the bytes of `s` at `offset`.
 * @function setstring
 * @tparam integer offset
 * @tparam string s
-* @raise if out of bounds or read-only
+* @raise "out of bounds", an empty `s` included, or "read only"
 */
 static int luadata_setstring(lua_State *L)
 {
@@ -119,9 +130,12 @@ static int luadata_setstring(lua_State *L)
 }
 
 /***
+* Returns the Internet checksum of the `length` bytes at `offset`.
+* It is their 16-bit ones'-complement sum, folded and complemented as `csum_fold` does, so a region
+* that holds its correct checksum gives 0.
 * @function checksum
-* @tparam[opt] integer offset
-* @tparam[opt] integer length
+* @tparam[opt=0] integer offset
+* @tparam[opt] integer length number of bytes; default: from offset to end
 * @treturn integer
 * @raise if out of bounds
 */
@@ -211,6 +225,7 @@ static const luaL_Reg luadata_mt[] = {
 	{"__len", luadata_length},
 	{"__tostring", luadata_tostring},
 /***
+* Reads an unsigned 8-bit integer at `offset`; an alias of `getuint8`.
 * @function getbyte
 * @tparam integer offset
 * @treturn integer
@@ -218,6 +233,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getbyte", luadata_getuint8},
 /***
+* Writes an 8-bit integer at `offset`; an alias of `setuint8`.
 * @function setbyte
 * @tparam integer offset
 * @tparam integer value
@@ -225,6 +241,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"setbyte", luadata_setuint8},
 /***
+* Reads a signed 8-bit integer at `offset`.
 * @function getint8
 * @tparam integer offset
 * @treturn integer
@@ -232,6 +249,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getint8", luadata_getint8},
 /***
+* Writes a signed 8-bit integer at `offset`.
 * @function setint8
 * @tparam integer offset
 * @tparam integer value
@@ -239,6 +257,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"setint8", luadata_setint8},
 /***
+* Reads an unsigned 8-bit integer at `offset`.
 * @function getuint8
 * @tparam integer offset
 * @treturn integer
@@ -246,6 +265,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getuint8", luadata_getuint8},
 /***
+* Writes an unsigned 8-bit integer at `offset`.
 * @function setuint8
 * @tparam integer offset
 * @tparam integer value
@@ -253,6 +273,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"setuint8", luadata_setuint8},
 /***
+* Reads a signed 16-bit integer at `offset`.
 * @function getint16
 * @tparam integer offset
 * @treturn integer
@@ -260,6 +281,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getint16", luadata_getint16},
 /***
+* Writes a signed 16-bit integer at `offset`.
 * @function setint16
 * @tparam integer offset
 * @tparam integer value
@@ -267,6 +289,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"setint16", luadata_setint16},
 /***
+* Reads an unsigned 16-bit integer at `offset`.
 * @function getuint16
 * @tparam integer offset
 * @treturn integer
@@ -274,6 +297,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getuint16", luadata_getuint16},
 /***
+* Writes an unsigned 16-bit integer at `offset`.
 * @function setuint16
 * @tparam integer offset
 * @tparam integer value
@@ -281,6 +305,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"setuint16", luadata_setuint16},
 /***
+* Reads a signed 32-bit integer at `offset`.
 * @function getint32
 * @tparam integer offset
 * @treturn integer
@@ -288,6 +313,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getint32", luadata_getint32},
 /***
+* Writes a signed 32-bit integer at `offset`.
 * @function setint32
 * @tparam integer offset
 * @tparam integer value
@@ -295,6 +321,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"setint32", luadata_setint32},
 /***
+* Reads an unsigned 32-bit integer at `offset`.
 * @function getuint32
 * @tparam integer offset
 * @treturn integer
@@ -302,6 +329,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getuint32", luadata_getuint32},
 /***
+* Writes an unsigned 32-bit integer at `offset`.
 * @function setuint32
 * @tparam integer offset
 * @tparam integer value
@@ -309,6 +337,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"setuint32", luadata_setuint32},
 /***
+* Reads a signed 64-bit integer at `offset`.
 * @function getint64
 * @tparam integer offset
 * @treturn integer
@@ -316,6 +345,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getint64", luadata_getint64},
 /***
+* Writes a signed 64-bit integer at `offset`.
 * @function setint64
 * @tparam integer offset
 * @tparam integer value
@@ -323,6 +353,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"setint64", luadata_setint64},
 /***
+* Reads a signed 64-bit integer at `offset`; an alias of `getint64`.
 * @function getnumber
 * @tparam integer offset
 * @treturn integer
@@ -330,6 +361,7 @@ static const luaL_Reg luadata_mt[] = {
 */
 	{"getnumber", luadata_getint64},
 /***
+* Writes a signed 64-bit integer at `offset`; an alias of `setint64`.
 * @function setnumber
 * @tparam integer offset
 * @tparam integer value
