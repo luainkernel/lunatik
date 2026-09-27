@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -8,6 +8,7 @@ local linux = require "linux"
 local rcu = require "rcu"
 local data = require "data"
 local thread = require "thread"
+local pace = require("tests.rcu.pace")
 
 local function milliseconds()
 	return linux.time() / 1000000
@@ -29,6 +30,8 @@ return function()
 				whitelist[k] = nil
 			end
 		end)
+
+		pace.yield()
 	end
 
 end

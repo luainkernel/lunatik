@@ -9,6 +9,7 @@ local lunatik = require("lunatik")
 local data    = require("data")
 local thread  = require("thread")
 local linux   = require("linux")
+local pace    = require("tests.rcu.pace")
 
 local KEY <const> = "slot"
 local RUN_MS <const> = 10000
@@ -27,6 +28,7 @@ return function()
 		local d = data.new(SIZE)
 		d:setnumber(0, n)
 		grace[KEY] = d
+		pace.yield()
 	end
 	grace[KEY] = nil
 end
