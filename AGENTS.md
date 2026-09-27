@@ -71,9 +71,9 @@ spawns one gives its body work that ends rather than a loop waiting to be stoppe
 After a kernel upgrade the installed modules were built for the previous kernel and fail to load with
 `Exec format error` (a vermagic mismatch). Reinstall the headers, `make clean && make`, and reinstall
 before the next `reload`. The eBPF modules also need the running kernel's BTF at build time,
-`sudo make btf_install` before `make`, or they log `missing module BTF, cannot register kfuncs` and
-do not load; and the `bpftool` wrapper needs `linux-tools-$(uname -r)`, or every BPF program fails
-to load.
+`sudo make btf_install` before `make`, or they load without their kfunc, logging `missing module
+BTF`, and every BPF program that calls it fails to load; and the `bpftool` wrapper needs
+`linux-tools-$(uname -r)`, or every BPF program fails to load.
 
 A wedged device — a `lunatik` process that stays in D state, usually below an oops in `dmesg` — is
 cleared only by a reboot, and the reboot is the maintainer's to trigger: other sessions share the
