@@ -233,7 +233,8 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#inet:new">inet:new ([o])</a></td>
-	<td class="summary">Creates a new inet socket object.</td>
+	<td class="summary">Derives a specialization of the class, as <a href="../modules/socket.inet.html#inet.tcp">inet.tcp</a> and <a href="../modules/socket.inet.html#inet.udp">inet.udp</a> are, or wraps a table in
+ it.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#inet:receive">inet:receive (...)</a></td>
@@ -356,7 +357,7 @@
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">len</span>
-         (number) [optional] The maximum number of bytes to receive.
+         (number) The maximum number of bytes to receive.
         </li>
         <li><span class="parameter">flags</span>
          (number) [optional] Flags for the receive operation.
@@ -559,7 +560,8 @@
 </dd>
     <dt id="inet:new"><a name="inet:new"></a><strong>inet:new ([o])</strong></dt>
     <dd>
-    Creates a new inet socket object.
+    Derives a specialization of the class, as <a href="../modules/socket.inet.html#inet.tcp">inet.tcp</a> and <a href="../modules/socket.inet.html#inet.udp">inet.udp</a> are, or wraps a table in
+ it.  It opens no socket: calling the class does, <code>inet.tcp()</code>.
 
 
     <h3>Parameters</h3>
@@ -575,7 +577,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/socket.inet.html#inet">inet</a></span>
-        the new socket object.
+        the derived class or the wrapped table.
     </ol>
 
 
@@ -589,22 +591,23 @@
     <dt id="inet:receive"><a name="inet:receive"></a><strong>inet:receive (...)</strong></dt>
     <dd>
     Receives data from the socket.
- For UDP, if the <a href="../modules/socket.raw.html">raw</a> parameter (third boolean) is true, it returns the raw IP address.
+ With <code>from</code> true it also returns the sender, its IPv4 address as an integer and its port;
+ <a href="../modules/socket.inet.html#inet.udp:receivefrom">inet.udp:receivefrom</a> returns the address as a string.
 
 
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">...</span>
-         Varargs passed directly to the underlying <code>socket:receive()</code>.
- Typically <code>(len, flags, raw_ip_for_udp)</code>.
+         Varargs passed directly to the underlying <code>socket:receive()</code>:
+ <code>(len[, flags[, from]])</code>.
         </li>
     </ul>
 
     <h3>Returns</h3>
     <ol>
 
-        Varargs returned by the underlying <code>socket:receive()</code>.
- Typically <code>(data, ip_address, port)</code>.
+        Varargs returned by the underlying <code>socket:receive()</code>:
+ <code>(data[, ip_address, port])</code>.
     </ol>
 
     <h3>Raises</h3>
@@ -667,7 +670,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

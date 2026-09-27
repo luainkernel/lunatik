@@ -172,6 +172,29 @@
 <h1>skb<span class="kind">Module</span></h1>
 <p class="lead">Linux socket buffer interface.</p>
 
+    <h2 id="usage">Usage</h2>
+        <pre class="example">-- lunatik run -c softirq &lt;script&gt;: raises the priority of the UDP packets the host sends
+local netfilter = require(&quot;netfilter&quot;)
+local nf        = require(&quot;linux.nf&quot;)
+
+local PROTOCOL &lt;const&gt; = 9
+local UDP &lt;const&gt;      = 17
+local PRIORITY &lt;const&gt; = 6
+
+local function prioritize(skb)
+  if skb:data():getuint8(PROTOCOL) == UDP then
+    skb:priority(PRIORITY)
+  end
+  return nf.action.ACCEPT
+end
+
+netfilter.register{
+  hook     = prioritize,
+  pf       = nf.proto.IPV4,
+  hooknum  = nf.inet.LOCAL_OUT,
+  priority = nf.ip.pri.FILTER,
+}
+</pre>
 
 <h2 id="Class_skb">Class skb </h2>
 <div class="tbl"><table class="function_list">
@@ -227,7 +250,11 @@
           <div class="section-description">
           Represents a socket buffer (<code>sk_buff</code>).
  This is a userdata object handed to the hooks that receive packets; it is
- <code>SINGLE</code>, so it cannot be shared with another runtime.
+ <code>SINGLE</code>, so it cannot be shared with another runtime.</p>
+
+<p> A <a href="../modules/netfilter.html#">netfilter</a> hook callback receives one and <code>tc_ctx:skb()</code> returns one, valid only while that
+ callback runs: once it returns, every method raises <code>skb is not set</code>, and the <a href="../modules/data.html#">data</a> that
+ <code>skb:data()</code> returned is cleared too. <code>skb:copy()</code> keeps a packet past the callback.
           </div>
     <dl class="function">
     <dt id="skb:__len"><a name="skb:__len"></a><strong>skb:__len ()</strong></dt>
@@ -250,6 +277,9 @@
     <dt id="skb:checksum"><a name="skb:checksum"></a><strong>skb:checksum ()</strong></dt>
     <dd>
     Recomputes IP and transport-layer (TCP/UDP) checksums.
+ On IPv4 it recomputes the header checksum and the TCP or UDP checksum; on IPv6, the TCP or UDP
+ checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, and an
+ IPv6 packet with extension headers, is left unchanged.
 
 
 
@@ -262,6 +292,8 @@
     <dd>
     Gets or sets the conntrack mark: with no argument reads it, with <code>value</code> sets
  it.  Returns the current (or new) mark, or nil if no conntrack is associated.
+ Present only on a kernel built with <code>CONFIG_NF_CONNTRACK_MARK</code>: elsewhere the method is nil,
+ and a script that may run there tests <a href="../modules/skb.html#skb:connmark">skb.connmark</a> before calling it.
 
 
     <h3>Parameters</h3>
@@ -335,6 +367,8 @@
     <dt id="skb:forward"><a name="skb:forward"></a><strong>skb:forward ()</strong></dt>
     <dd>
     Forwards the skb out through its ingress device.
+ It transmits a clone out of <code>skb-&gt;dev</code>; the original is untouched and still takes the hook&rsquo;s
+ verdict, so a callback that forwards a packet returns <code>DROP</code> to not send it twice.
 
 
 
@@ -465,7 +499,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

@@ -178,11 +178,16 @@
  sleepable runtime.
     <h3>See also</h3>
     <ul>
-         <a href="../modules/netlink.rt.object.html#">netlink.rt.object</a>
+         <li><a href="../modules/netlink.rt.object.html#">netlink.rt.object</a></li>
+         <li><a href="../modules/netlink.session.html#">netlink.session</a></li>
     </ul>
 
 <h2 id="Class_rule">Class rule </h2>
 <div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#rule:__call">rule:__call ([pid])</a></td>
+	<td class="summary">Opens a session, calling the class: <code>netlink.rt.rule([pid])</code>.</td>
+	</tr>
 	<tr>
 	<td class="name"><a href="#rule:add">rule:add (opts)</a></td>
 	<td class="summary">Adds a FIB rule directing matching lookups to a routing table.</td>
@@ -197,13 +202,46 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#rule:new">rule:new ([o])</a></td>
-	<td class="summary">Creates a new rule object.</td>
+	<td class="summary">Wraps a table in the class, or derives a class from it.</td>
 	</tr>
 </table></div>
 
     <h2 class="section-header" id="Class_rule-details"><a name="Class_rule"></a><a name="rule"></a>Class rule  in detail</h2>
 
     <dl class="function">
+    <dt id="rule:__call"><a name="rule:__call"></a><strong>rule:__call ([pid])</strong></dt>
+    <dd>
+    Opens a session, calling the class: <code>netlink.rt.rule([pid])</code>.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">pid</span>
+            <span class="types"><span class="type">integer</span></span>
+         a task whose network namespace the session talks to, as <a href="../modules/socket.html#new">socket.new</a>
+   takes it; the initial network namespace when absent.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.rt.rule.html#rule">rule</a></span>
+        a new rule object.
+    </ol>
+
+    <h3>Raises</h3>
+    <code>ESRCH</code> if no task has that pid, or <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a
+   namespace of their own.
+
+    <h3>See also</h3>
+    <ul>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
+    </ul>
+
+
+</dd>
     <dt id="rule:add"><a name="rule:add"></a><strong>rule:add (opts)</strong></dt>
     <dd>
     Adds a FIB rule directing matching lookups to a routing table.
@@ -219,6 +257,8 @@
     </ul>
 
 
+    <h3>Raises</h3>
+    the name of the errno a netlink error reply carries, <code>EEXIST</code> when the rule exists.
 
 
 
@@ -238,6 +278,8 @@
     </ul>
 
 
+    <h3>Raises</h3>
+    the name of the errno a netlink error reply carries, <code>ENOENT</code> when no rule matches.
 
 
 
@@ -260,7 +302,9 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        list of rule tables.
+         list of rule tables, each with <code>family</code>, <code>action</code>, <code>flags</code>, <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a>, <code>priority</code>
+   and <code>fwmark</code>; <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a> is the header&rsquo;s when the reply lacks the <code>TABLE</code> attribute, and any other
+   field whose attribute the reply lacks is nil.
     </ol>
 
 
@@ -269,7 +313,8 @@
 </dd>
     <dt id="rule:new"><a name="rule:new"></a><strong>rule:new ([o])</strong></dt>
     <dd>
-    Creates a new rule object.
+    Wraps a table in the class, or derives a class from it.  It opens no socket: calling the class
+ does, <code>netlink.rt.rule()</code>.
 
 
     <h3>Parameters</h3>
@@ -285,7 +330,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/netlink.rt.rule.html#rule">rule</a></span>
-        the new rule object.
+        the wrapped table or the derived class.
     </ol>
 
 
@@ -310,7 +355,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

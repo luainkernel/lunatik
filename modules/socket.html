@@ -178,8 +178,13 @@
  <a href="https://summerofcode.withgoogle.com/archive/2018/projects/5993341447569408">GSoC project</a>.</p>
 
 <p> It allows operations such as creating sockets, binding, listening, connecting,
- sending, and receiving data. The library also exposes constants for address
- families, socket types, IP protocols, and message flags.</p>
+ sending, and receiving data. The constants for address families, socket types,
+ protocols, message flags and option levels and names are in <a href="../modules/linux.socket.html#">linux.socket</a>
+ (<code>af</code>, <code>sock</code>, <code>ipproto</code>, <code>msg</code>, <code>sol</code>, <code>so</code>).</p>
+
+<p> Sockets sleep: a script creates and uses them in a process runtime, the default, or in a
+ spawned thread. In a softirq or hardirq runtime, <a href="../modules/socket.html#new">socket.new</a> and <a href="../modules/socket.html#socket:accept">accept</a> raise
+ <code>&apos;socket&apos;: process-context class in interrupt-context runtime</code>.</p>
 
 <p> For higher-level IPv4 TCP/UDP socket operations with string-based IP addresses
  (e.g., &ldquo;127.0.0.1&rdquo;), consider using the <a href="../modules/socket.inet.html#">socket.inet</a> library.
@@ -191,7 +196,7 @@
 <h2 id="Class_socket">Class socket </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#socket:accept">socket:accept (self[, flags=0])</a></td>
+	<td class="name"><a href="#socket:accept">socket:accept ([flags=0])</a></td>
 	<td class="summary">Accepts a connection on a listening socket.</td>
 	</tr>
 	<tr>
@@ -242,22 +247,34 @@
     <h2 class="section-header" id="Class_socket-details"><a name="Class_socket"></a>Class socket  in detail</h2>
 
           <div class="section-description">
-          A kernel socket, returned by <code>socket.new()</code>.
+          A kernel socket, returned by <code>socket.new()</code>.</p>
+
+<p> A method that takes an address reads it the way the family the socket was created with spells it:</p>
+
+<ul>
+<li><code>AF_INET</code>: two integers, the IPv4 address (e.g. from <code>net.aton()</code>) and the port.</li>
+<li><code>AF_PACKET</code>: two integers, the ethertype in host byte order and the interface index.</li>
+<li><code>AF_NETLINK</code>: two optional integers, the port id and the multicast groups, both 0 by default.</li>
+<li><code>AF_UNIX</code>: a string, a filesystem path or, with a leading NUL, an abstract name.</li>
+<li>Other families: a packed string of the address bytes past the family.</li>
+</ul>
+
+
+<p> A method that returns an address returns it the same way, except for <code>AF_PACKET</code>, which returns
+ the packed string.
           </div>
     <dl class="function">
-    <dt id="socket:accept"><a name="socket:accept"></a><strong>socket:accept (self[, flags=0])</strong></dt>
+    <dt id="socket:accept"><a name="socket:accept"></a><strong>socket:accept ([flags=0])</strong></dt>
     <dd>
     Accepts a connection on a listening socket.
  This function is used with connection-oriented sockets (e.g., <code>SOCK_STREAM</code>)
  that have been put into the listening state by <code>sock:listen()</code>.
+ The call blocks until a connection arrives, with no timeout of its own, unless <code>flags</code> carries
+ <code>O_NONBLOCK</code> or <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> set a receive timeout; <a href="../modules/socket.html#socket:receive">receive</a> says how a stop ends the wait.
 
 
     <h3>Parameters</h3>
     <ul>
-        <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="../modules/socket.html#socket">socket</a></span>
-         listening socket object.
-        </li>
         <li><span class="parameter">flags</span>
             <span class="types"><span class="type">integer</span></span>
          file status flags: <code>O_NONBLOCK</code> makes the call raise when no
@@ -291,7 +308,8 @@
     <ul>
         <li><span class="parameter">addr</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        <p> local address to bind to. Interpretation depends on <code>socket.sk.sk_family</code>:</p>
+        <p> local address to bind to. Interpretation depends on the family the
+   socket was created with:</p>
 
 <ul>
 <li> <code>AF_INET</code> (IPv4): An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).
@@ -300,6 +318,7 @@
 <li> <code>AF_PACKET</code>: An integer representing the ethernet protocol in host byte order
  (e.g., <code>0x0003</code> for <code>ETH_P_ALL</code>, <code>0x88CC</code> for <code>ETH_P_LLDP</code>)
  The <code>port</code> argument is also required.</li>
+<li> <code>AF_NETLINK</code>: The port id, 0 to let the kernel pick one; <code>port</code> carries the multicast groups.</li>
 <li> <code>AF_UNIX</code>: A filesystem path, or, when its first byte is NUL (e.g. <code>&quot;\0name&quot;</code>), a name in the
  abstract namespace, which is registered as the exact bytes given, so a peer of any kind reaches
  it by the same string. The empty string asks the kernel to pick a name (autobind).</li>
@@ -312,6 +331,7 @@
          local port or interface index.
    - <code>AF_INET</code>: TCP/UDP port number.
    - <code>AF_PACKET</code>: Network interface index (e.g., from <code>linux.ifindex(&quot;eth0&quot;)</code>).
+   - <code>AF_NETLINK</code>: Multicast groups to join.
          (<em>optional</em>)
         </li>
     </ul>
@@ -380,18 +400,20 @@
         <li><span class="parameter">addr</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         <p> destination address to connect to.
-   Interpretation depends on <code>socket.sk.sk_family</code>:</p>
+   Interpretation depends on the family the socket was created with:</p>
 
 <ul>
 <li> <code>AF_INET</code> (IPv4): An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).
  The <code>port</code> argument is also required.</li>
-<li> Other families: A packed string representing the family-specific destination address.</li>
+<li> <code>AF_PACKET</code> and <code>AF_NETLINK</code>: The first of the two integers the <a href="../modules/socket.html#">socket</a> type describes.</li>
+<li> Other families: The address as the <a href="../modules/socket.html#">socket</a> type describes it.</li>
 </ul>
 
         </li>
         <li><span class="parameter">port</span>
             <span class="types"><span class="type">integer</span></span>
-         destination port number (required and used only if the family is <code>AF_INET</code>).
+         the address&rsquo;s second integer, for <code>AF_INET</code>, <code>AF_PACKET</code> and
+   <code>AF_NETLINK</code>; for any other family, <code>flags</code> takes this place.
          (<em>optional</em>)
         </li>
         <li><span class="parameter">flags</span>
@@ -437,13 +459,15 @@
 <li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
 <li>For <code>AF_UNIX</code>: The peer&rsquo;s name, carrying its leading NUL when the name is an abstract one, and the
 empty string when the peer is unbound.</li>
+<li>For <code>AF_NETLINK</code>: The peer&rsquo;s port id.</li>
 <li>For other families: A packed string of the address bytes past the family, of the length the kernel
 reports.</li>
 </ul>
 </li>
         <li>
            <span class="types"><span class="type">integer</span></span>
-        port If the family is <code>AF_INET</code>, the peer&rsquo;s port number.</li>
+        port The peer&rsquo;s port number for <code>AF_INET</code>, and its multicast groups for
+   <code>AF_NETLINK</code>.</li>
     </ol>
 
     <h3>Raises</h3>
@@ -451,8 +475,9 @@ reports.</li>
 
 
     <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> peer_ip_int, peer_port = connected_socket:<span class="function-name">getpeername</span>()
-<span class="keyword">if</span> connected_socket.sk.sk_family == linux.socket.af.INET <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Connected to "</span> .. net.<span class="function-name">ntoa</span>(peer_ip_int) .. <span class="string">":"</span> .. peer_port) <span class="keyword">end</span></pre>
+        <pre class="example"><span class="comment">-- a connected AF_INET socket
+</span><span class="keyword">local</span> peer_ip_int, peer_port = connected_socket:<span class="function-name">getpeername</span>()
+<span class="global">print</span>(<span class="string">"Connected to "</span> .. net.<span class="function-name">ntoa</span>(peer_ip_int) .. <span class="string">":"</span> .. peer_port)</pre>
 
 </dd>
     <dt id="socket:getsockname"><a name="socket:getsockname"></a><strong>socket:getsockname ()</strong></dt>
@@ -471,13 +496,15 @@ reports.</li>
 <li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
 <li>For <code>AF_UNIX</code>: The bound name, carrying its leading NUL when the name is an abstract one, and the
 empty string when the socket is unbound.</li>
+<li>For <code>AF_NETLINK</code>: The port id.</li>
 <li>For other families: A packed string of the address bytes past the family, of the length the kernel
 reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware address length.</li>
 </ul>
 </li>
         <li>
            <span class="types"><span class="type">integer</span></span>
-        port If the family is <code>AF_INET</code>, the local port number.</li>
+        port The local port number for <code>AF_INET</code>, and the multicast groups for
+   <code>AF_NETLINK</code>.</li>
     </ol>
 
     <h3>Raises</h3>
@@ -485,8 +512,9 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
 
 
     <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> local_ip_int, local_port = my_socket:<span class="function-name">getsockname</span>()
-<span class="keyword">if</span> my_socket.sk.sk_family == linux.socket.af.INET <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Bound to "</span> .. net.<span class="function-name">ntoa</span>(local_ip_int) .. <span class="string">":"</span> .. local_port) <span class="keyword">end</span></pre>
+        <pre class="example"><span class="comment">-- an AF_INET socket
+</span><span class="keyword">local</span> local_ip_int, local_port = my_socket:<span class="function-name">getsockname</span>()
+<span class="global">print</span>(<span class="string">"Bound to "</span> .. net.<span class="function-name">ntoa</span>(local_ip_int) .. <span class="string">":"</span> .. local_port)</pre>
 
 </dd>
     <dt id="socket:listen"><a name="socket:listen"></a><strong>socket:listen ([backlog])</strong></dt>
@@ -524,6 +552,11 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
     <dt id="socket:receive"><a name="socket:receive"></a><strong>socket:receive (length[, flags=0[, from=false]])</strong></dt>
     <dd>
     Receives a message from the socket.
+ The call blocks until a message arrives, with no timeout of its own, unless <code>flags</code> carries
+ <code>linux.socket.msg.DONTWAIT</code> or <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> set a receive timeout
+ (<code>linux.socket.so.RCVTIMEO_NEW</code>); either makes a wait with nothing to read raise <code>EAGAIN</code>.
+ A <code>lunatik stop</code> of the spawned thread that waits ends its wait; a thread nothing stops, as a
+ worker a body starts with <code>thread.run()</code>, bounds every wait.
 
 
     <h3>Parameters</h3>
@@ -541,7 +574,8 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
         <li><span class="parameter">from</span>
             <span class="types"><span class="type">boolean</span></span>
          If <code>true</code>, the function also returns the sender&rsquo;s address
-   and port (for <code>AF_INET</code>). This is typically used with connectionless sockets (<code>SOCK_DGRAM</code>).
+   (two values for <code>AF_INET</code> and <code>AF_NETLINK</code>). This is typically used with connectionless
+   sockets (<code>SOCK_DGRAM</code>).
          (<em>default</em> false)
         </li>
     </ul>
@@ -558,11 +592,13 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
    then.
    - For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).
    - For <code>AF_UNIX</code>: The sender&rsquo;s name, carrying its leading NUL when the name is an abstract one.
+   - For <code>AF_NETLINK</code>: The sender&rsquo;s port id.
    - For other families: A packed string of the sender&rsquo;s address past the family, of the length the
      protocol reports.</li>
         <li>
            <span class="types"><span class="type">integer</span></span>
-        port If <code>from</code> is true and the family is <code>AF_INET</code>, the sender&rsquo;s port number.</li>
+        port If <code>from</code> is true, the sender&rsquo;s port number for <code>AF_INET</code>, and its
+   multicast groups for <code>AF_NETLINK</code>.</li>
     </ol>
 
     <h3>Raises</h3>
@@ -593,6 +629,7 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
  as the connection is already established.
  For connectionless sockets (<code>SOCK_DGRAM</code>), <code>addr</code> and <code>port</code> (if applicable for the
  address family) specify the destination.
+ A netlink socket always sends to an address, the kernel&rsquo;s (port id 0) when none is given.
 
 
     <h3>Parameters</h3>
@@ -603,19 +640,20 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
         </li>
         <li><span class="parameter">addr</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        <p> destination address.</p>
+        <p> destination address, as the <a href="../modules/socket.html#">socket</a> type describes it.</p>
 
 <ul>
 <li>For <code>AF_INET</code> (IPv4) sockets: An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).</li>
-<li>For other address families (e.g., <code>AF_PACKET</code>): A packed string representing the destination address
-(e.g., MAC address for <code>AF_PACKET</code>). The exact format depends on the family.</li>
+<li>For <code>AF_PACKET</code>: the ethertype, in host byte order.</li>
+<li>For <code>AF_NETLINK</code>: the destination port id.</li>
 </ul>
 
          (<em>optional</em>)
         </li>
         <li><span class="parameter">port</span>
             <span class="types"><span class="type">integer</span></span>
-         destination port number (required if <code>addr</code> is an IPv4 address for <code>AF_INET</code>).
+         the address&rsquo;s second integer: the destination port number for
+   <code>AF_INET</code>, the interface index for <code>AF_PACKET</code>, the multicast groups for <code>AF_NETLINK</code>.
          (<em>optional</em>)
         </li>
     </ul>
@@ -671,8 +709,9 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
 
 
     <h3>Raises</h3>
-    Error if the operation fails, or at a level other than <code>SOL_SOCKET</code> under RTNL, as from a
-   netdevice callback.
+     Error if the operation fails, or at a level other than <code>SOL_SOCKET</code> under RTNL, as from a
+   netdevice callback; <code>unsupported option level</code> on a kernel before 6.7, at a level the socket&rsquo;s
+   protocol has no <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> for.
 
 
     <h3>Usage</h3>
@@ -727,8 +766,9 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
     </ol>
 
     <h3>Raises</h3>
-    Error if socket creation fails, <code>ESRCH</code> if no task has that pid, or <code>EOPNOTSUPP</code> on a kernel
-   whose sockets cannot hold a namespace of their own.
+     Error if socket creation fails, <code>ESRCH</code> if no task has that pid, <code>EOPNOTSUPP</code> on a kernel
+   whose sockets cannot hold a namespace of their own, or
+   <code>&apos;socket&apos;: process-context class in interrupt-context runtime</code> in a softirq or hardirq runtime.
 
     <h3>See also</h3>
     <ul>
@@ -759,7 +799,7 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

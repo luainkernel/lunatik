@@ -172,7 +172,9 @@
 <h1>netlink.nl80211<span class="kind">Module</span></h1>
 <p class="lead">The nl80211 (wireless) namespace.</p>
  Groups the nl80211 object classes, each a
- <a href="../modules/netlink.genl.html#">netlink.genl</a> session bound to the <code>&quot;nl80211&quot;</code> family.
+ <a href="../modules/netlink.genl.html#">netlink.genl</a> session bound to the <code>&quot;nl80211&quot;</code> family. It needs a kernel with cfg80211
+ (<code>CONFIG_CFG80211</code>), which the kernel loads on the family lookup when it is a module; without
+ it, creating an object raises <code>ENOENT</code>.
 
 <h2 id="Tables">Tables</h2>
 <div class="tbl"><table class="function_list">
@@ -275,7 +277,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

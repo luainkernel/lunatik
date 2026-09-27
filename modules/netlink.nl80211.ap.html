@@ -178,14 +178,19 @@
  sleepable runtime.
     <h3>See also</h3>
     <ul>
-         <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a>
+         <li><a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a></li>
+         <li><a href="../modules/netlink.session.html#">netlink.session</a></li>
     </ul>
 
 <h2 id="Class_ap">Class ap </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
+	<td class="name"><a href="#ap:__call">ap:__call ([pid])</a></td>
+	<td class="summary">Opens a session, calling the class: <code>netlink.nl80211.ap([pid])</code>.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#ap:new">ap:new ([o])</a></td>
-	<td class="summary">Creates a new ap object.</td>
+	<td class="summary">Wraps a table in the class, or derives a class from it.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#ap:start">ap:start (opts)</a></td>
@@ -200,9 +205,43 @@
     <h2 class="section-header" id="Class_ap-details"><a name="Class_ap"></a><a name="ap"></a>Class ap  in detail</h2>
 
     <dl class="function">
+    <dt id="ap:__call"><a name="ap:__call"></a><strong>ap:__call ([pid])</strong></dt>
+    <dd>
+    Opens a session, calling the class: <code>netlink.nl80211.ap([pid])</code>.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">pid</span>
+            <span class="types"><span class="type">integer</span></span>
+         a task whose network namespace the object reaches, which holds the wiphys
+   and interfaces nl80211 answers for; the initial network namespace when absent.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.nl80211.ap.html#ap">ap</a></span>
+        a new ap object.
+    </ol>
+
+    <h3>Raises</h3>
+    <code>ESRCH</code> if no task has that pid, <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a
+   namespace of their own, or <code>ENOENT</code> when the nl80211 family is not registered.
+
+    <h3>See also</h3>
+    <ul>
+         <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a>
+    </ul>
+
+
+</dd>
     <dt id="ap:new"><a name="ap:new"></a><strong>ap:new ([o])</strong></dt>
     <dd>
-    Creates a new ap object.
+    Wraps a table in the class, or derives a class from it.  It opens no socket: calling the class
+ does, <code>netlink.nl80211.ap()</code>.
 
 
     <h3>Parameters</h3>
@@ -218,7 +257,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/netlink.nl80211.ap.html#ap">ap</a></span>
-        the new ap object.
+        the wrapped table or the derived class.
     </ol>
 
 
@@ -287,7 +326,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

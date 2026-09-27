@@ -176,7 +176,8 @@
  network device status changes, or virtual terminal events.
  A callback returns a <a href="../modules/linux.notify.html#">linux.notify</a> code; anything else, and an event that
  reaches a runtime not ready to take it, or that the runtime&rsquo;s own code raises
- from under its lock, counts as <code>notify.DONE</code>.
+ from under its lock, counts as <code>notify.DONE</code>. A callback that raises is logged, and counts as
+ <code>notify.OK</code>.
 
 <h2 id="Class_notifier">Class notifier </h2>
 <div class="tbl"><table class="function_list">
@@ -263,7 +264,8 @@
     </ol>
 
     <h3>Raises</h3>
-    if called from a percpu runtime
+    if called from a percpu runtime; <code>runtime context mismatch</code> outside a hardirq runtime;
+   <code>couldn&apos;t create notifier</code> when the kernel refuses the registration
 
 
 
@@ -302,8 +304,10 @@
     </ol>
 
     <h3>Raises</h3>
-    if called from a percpu runtime, or under RTNL: from a netdevice
-   callback, and from any runtime or coroutine the callback runs
+     if called from a percpu runtime, or under RTNL: from a netdevice
+   callback, and from any runtime or coroutine the callback runs;
+   <code>&apos;notifier&apos;: process-context class in interrupt-context runtime</code> in a softirq or hardirq
+   runtime; <code>couldn&apos;t create notifier</code> when the kernel refuses the registration
 
 
 
@@ -333,7 +337,8 @@
     </ol>
 
     <h3>Raises</h3>
-    if called from a percpu runtime
+    if called from a percpu runtime; <code>runtime context mismatch</code> outside a hardirq runtime;
+   <code>couldn&apos;t create notifier</code> when the kernel refuses the registration
 
 
 
@@ -352,7 +357,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

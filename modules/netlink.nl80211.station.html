@@ -178,11 +178,16 @@
  require a sleepable runtime.
     <h3>See also</h3>
     <ul>
-         <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a>
+         <li><a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a></li>
+         <li><a href="../modules/netlink.session.html#">netlink.session</a></li>
     </ul>
 
 <h2 id="Class_station">Class station </h2>
 <div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#station:__call">station:__call ([pid])</a></td>
+	<td class="summary">Opens a session, calling the class: <code>netlink.nl80211.station([pid])</code>.</td>
+	</tr>
 	<tr>
 	<td class="name"><a href="#station:add">station:add (opts)</a></td>
 	<td class="summary">Adds a station to an AP interface.</td>
@@ -197,7 +202,7 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#station:new">station:new ([o])</a></td>
-	<td class="summary">Creates a new station object.</td>
+	<td class="summary">Wraps a table in the class, or derives a class from it.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#station:set">station:set (opts)</a></td>
@@ -208,6 +213,39 @@
     <h2 class="section-header" id="Class_station-details"><a name="Class_station"></a><a name="station"></a>Class station  in detail</h2>
 
     <dl class="function">
+    <dt id="station:__call"><a name="station:__call"></a><strong>station:__call ([pid])</strong></dt>
+    <dd>
+    Opens a session, calling the class: <code>netlink.nl80211.station([pid])</code>.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">pid</span>
+            <span class="types"><span class="type">integer</span></span>
+         a task whose network namespace the object reaches, which holds the wiphys
+   and interfaces nl80211 answers for; the initial network namespace when absent.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.nl80211.station.html#station">station</a></span>
+        a new station object.
+    </ol>
+
+    <h3>Raises</h3>
+    <code>ESRCH</code> if no task has that pid, <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a
+   namespace of their own, or <code>ENOENT</code> when the nl80211 family is not registered.
+
+    <h3>See also</h3>
+    <ul>
+         <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a>
+    </ul>
+
+
+</dd>
     <dt id="station:add"><a name="station:add"></a><strong>station:add (opts)</strong></dt>
     <dd>
     Adds a station to an AP interface.
@@ -275,7 +313,8 @@
 </dd>
     <dt id="station:new"><a name="station:new"></a><strong>station:new ([o])</strong></dt>
     <dd>
-    Creates a new station object.
+    Wraps a table in the class, or derives a class from it.  It opens no socket: calling the class
+ does, <code>netlink.nl80211.station()</code>.
 
 
     <h3>Parameters</h3>
@@ -291,7 +330,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/netlink.nl80211.station.html#station">station</a></span>
-        the new station object.
+        the wrapped table or the derived class.
     </ol>
 
 
@@ -336,7 +375,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

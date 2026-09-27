@@ -179,7 +179,13 @@
 
 <p> The primary mechanism involves a TC program calling the <code>bpf_luatc_run</code>
  kfunc, which in turn invokes a Lua callback function previously registered
- using <code>tc.attach()</code>.
+ using <code>tc.attach()</code>.</p>
+
+<p> The module registers its kfunc through BTF: it needs a kernel built with <code>CONFIG_DEBUG_INFO_BTF</code>
+ and a build made after <code>make btf_install</code>, and without the module BTF it does not load. The
+ eBPF program is loaded apart, with bpftool, as a SCHED_CLS (<code>classifier</code>) program that declares
+ <code>bpf_luatc_run</code> as a <code>__ksym</code>, as
+ <a href="https://github.com/luainkernel/lunatik/blob/master/examples/sniclassify">examples/sniclassify</a> does.
 
 <h2 id="Class_tc_ctx">Class tc_ctx </h2>
 <div class="tbl"><table class="function_list">
@@ -277,13 +283,14 @@
     <p>Registers a Lua callback function to be invoked by a TC/eBPF program.
  When a TC program calls the <code>bpf_luatc_run</code> kfunc, Lunatik will execute
  the registered Lua <code>callback</code> associated with the current Lunatik runtime.
- The runtime invoking this function must be non-sleepable.</p>
+ The runtime must be softirq, <code>lunatik run -c softirq &lt;script&gt;</code>.</p>
 
 <p> The <code>bpf_luatc_run</code> kfunc is called from an eBPF program with the following signature:
  <code>int bpf_luatc_run(char <em>key, size_t key__sz, struct __sk_buff </em>sk_buff, void *arg, size_t arg__sz)</code></p>
 
 <ul>
-<li><code>key</code>: A string identifying the Lunatik runtime (e.g., the script name like &ldquo;examples/sniclassify/sni&rdquo;).
+<li><code>key</code>: A string identifying the Lunatik runtime: the script path under <code>/lib/modules/lua</code>
+without its <code>.lua</code> extension, as given to <code>lunatik run</code> (e.g. &ldquo;examples/sniclassify/sni&rdquo;).
 This key is used to look up the runtime in Lunatik&rsquo;s internal table of active runtimes.</li>
 <li><code>key_sz</code>: Length of the key string (including the null terminator).</li>
 <li><code>sk_buff</code>: The TC metadata context (<code>struct __sk_buff *</code>).</li>
@@ -315,7 +322,7 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
     </ol>
 
     <h3>Raises</h3>
-    Error if the current runtime is sleepable or if internal setup fails.
+    <code>runtime context mismatch</code> outside a softirq runtime, or if internal setup fails.
 
     <h3>See also</h3>
     <ul>
@@ -324,7 +331,7 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
     </ul>
 
     <h3>Usage</h3>
-        <pre class="example"><span class="comment">-- Lua script (e.g., "my_tc_handler.lua" which is run via <code>lunatik run --context=softirq my_tc_handler.lua</code>)
+        <pre class="example"><span class="comment">-- Lua script my_tc_handler.lua, run with <code>lunatik run -c softirq my_tc_handler</code>
 </span><span class="keyword">local</span> tc = <span class="global">require</span>(<span class="string">"tc"</span>)
 <span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.tc"</span>)
 
@@ -337,7 +344,7 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
 tc.<span class="function-name">attach</span>(my_traffic_shaper)
 
 <span class="comment">-- In eBPF C code, to call the above Lua function:
-</span><span class="comment">-- char rt_key[] = "my_tc_handler.lua"; // Key matches the script name
+</span><span class="comment">-- char rt_key[] = "my_tc_handler"; // the script name without .lua
 </span><span class="comment">-- int verdict = bpf_luatc_run(rt_key, sizeof(rt_key), skb, NULL, 0);</span></pre>
 
 </dd>
@@ -376,7 +383,7 @@ tc.<span class="function-name">attach</span>(my_traffic_shaper)
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

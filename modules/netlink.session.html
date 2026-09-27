@@ -175,7 +175,9 @@
  the transaction discipline on it: <a href="../modules/netlink.session.html#session:talk">talk</a> and <a href="../modules/netlink.session.html#session:dump">dump</a> send one request and
  drain its complete reply, raising on a kernel error reply (<code>NLMSG_ERROR</code>).
  Protocol modules (rtnetlink, generic netlink) derive from this class.
- All methods block and require a sleepable runtime.
+ All methods block and require a sleepable runtime. From a <a href="../modules/notifier.html#netdevice">notifier.netdevice</a> callback, in
+ whatever runtime or coroutine its task runs, every request raises <code>not allowed under RTNL</code>:
+ a script defers it to a thread, or to after the callback returns.
     <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#">socket</a>
@@ -197,7 +199,8 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#session:new">session:new ([o])</a></td>
-	<td class="summary">Creates a new session object.</td>
+	<td class="summary">Derives a protocol class from the session, as <a href="../modules/netlink.genl.html#">netlink.genl</a> and <a href="../modules/netlink.rt.object.html#">netlink.rt.object</a> are, or
+ wraps a table in it.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#session:request">session:request (mtype, flags, payload)</a></td>
@@ -292,7 +295,9 @@
 </dd>
     <dt id="session:new"><a name="session:new"></a><strong>session:new ([o])</strong></dt>
     <dd>
-    Creates a new session object.
+    Derives a protocol class from the session, as <a href="../modules/netlink.genl.html#">netlink.genl</a> and <a href="../modules/netlink.rt.object.html#">netlink.rt.object</a> are, or
+ wraps a table in it.  It opens no socket: calling a derived class does, e.g. <code>netlink.rt.route()</code>
+ or <code>netlink.genl()</code>.
 
 
     <h3>Parameters</h3>
@@ -308,7 +313,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/netlink.session.html#session">session</a></span>
-        the new session object.
+        the derived class or the wrapped table.
     </ol>
 
 
@@ -395,7 +400,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

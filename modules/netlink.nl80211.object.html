@@ -220,6 +220,9 @@
         a new nl80211 object.
     </ol>
 
+    <h3>Raises</h3>
+    <code>ESRCH</code> if no task has that pid, <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a
+   namespace of their own, or <code>ENOENT</code> when the nl80211 family is not registered.
 
     <h3>See also</h3>
     <ul>
@@ -268,7 +271,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

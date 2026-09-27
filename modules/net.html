@@ -193,6 +193,8 @@
     <dd>
     Converts an IPv4 address string to its integer representation.
  &ldquo;Address to Number&rdquo;
+ The string is not validated: each run of digits is the next octet, masked to 8 bits, and
+ anything between them is skipped; a missing trailing octet reads as 0, and a fifth one raises.
 
 
     <h3>Parameters</h3>
@@ -253,7 +255,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

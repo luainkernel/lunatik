@@ -178,18 +178,23 @@
  block and require a sleepable runtime.
     <h3>See also</h3>
     <ul>
-         <a href="../modules/netlink.rt.object.html#">netlink.rt.object</a>
+         <li><a href="../modules/netlink.rt.object.html#">netlink.rt.object</a></li>
+         <li><a href="../modules/netlink.session.html#">netlink.session</a></li>
     </ul>
 
 <h2 id="Class_link">Class link </h2>
 <div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#link:__call">link:__call ([pid])</a></td>
+	<td class="summary">Opens a session, calling the class: <code>netlink.rt.link([pid])</code>.</td>
+	</tr>
 	<tr>
 	<td class="name"><a href="#link:list">link:list ()</a></td>
 	<td class="summary">Lists all network interfaces from the kernel.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#link:new">link:new ([o])</a></td>
-	<td class="summary">Creates a new link object.</td>
+	<td class="summary">Wraps a table in the class, or derives a class from it.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#link:set">link:set (opts)</a></td>
@@ -200,6 +205,39 @@
     <h2 class="section-header" id="Class_link-details"><a name="Class_link"></a><a name="link"></a>Class link  in detail</h2>
 
     <dl class="function">
+    <dt id="link:__call"><a name="link:__call"></a><strong>link:__call ([pid])</strong></dt>
+    <dd>
+    Opens a session, calling the class: <code>netlink.rt.link([pid])</code>.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">pid</span>
+            <span class="types"><span class="type">integer</span></span>
+         a task whose network namespace the session talks to, as <a href="../modules/socket.html#new">socket.new</a>
+   takes it; the initial network namespace when absent.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.rt.link.html#link">link</a></span>
+        a new link object.
+    </ol>
+
+    <h3>Raises</h3>
+    <code>ESRCH</code> if no task has that pid, or <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a
+   namespace of their own.
+
+    <h3>See also</h3>
+    <ul>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
+    </ul>
+
+
+</dd>
     <dt id="link:list"><a name="link:list"></a><strong>link:list ()</strong></dt>
     <dd>
     Lists all network interfaces from the kernel.
@@ -210,7 +248,8 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        list of link tables.
+        list of link tables, each with <code>family</code>, <code>ltype</code>, <code>ifindex</code>, <code>flags</code>, <code>change</code>,
+   <code>name</code> and <code>mtu</code>; a field whose attribute the reply lacks is nil.
     </ol>
 
 
@@ -219,7 +258,8 @@
 </dd>
     <dt id="link:new"><a name="link:new"></a><strong>link:new ([o])</strong></dt>
     <dd>
-    Creates a new link object.
+    Wraps a table in the class, or derives a class from it.  It opens no socket: calling the class
+ does, <code>netlink.rt.link()</code>.
 
 
     <h3>Parameters</h3>
@@ -235,7 +275,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/netlink.rt.link.html#link">link</a></span>
-        the new link object.
+        the wrapped table or the derived class.
     </ol>
 
 
@@ -280,7 +320,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

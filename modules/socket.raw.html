@@ -181,7 +181,7 @@
 <div class="tbl"><table class="function_list">
 	<tr>
 	<td class="name"><a href="#bind">bind (proto, ifindex)</a></td>
-	<td class="summary">Creates and binds a raw packet socket for receiving frames.</td>
+	<td class="summary">Creates a raw packet socket bound to an EtherType and an interface.</td>
 	</tr>
 </table></div>
 
@@ -190,7 +190,9 @@
     <dl class="function">
     <dt id="bind"><a name="bind"></a><strong>bind (proto, ifindex)</strong></dt>
     <dd>
-    Creates and binds a raw packet socket for receiving frames.
+    Creates a raw packet socket bound to an EtherType and an interface.
+ It receives the frames of that EtherType, and sends a frame, which starts at the Ethernet
+ header, with <code>socket:send(frame, proto, ifindex)</code>, the EtherType in host byte order.
 
 
     <h3>Parameters</h3>
@@ -220,7 +222,8 @@
 
     <h3>Usage</h3>
         <pre class="example"><span class="keyword">local</span> rx &lt;close&gt; = raw.<span class="function-name">bind</span>(<span class="number">0x0003</span>)
-<span class="keyword">local</span> tx &lt;close&gt; = raw.<span class="function-name">bind</span>(<span class="number">0x88cc</span>, ifindex)</pre>
+<span class="keyword">local</span> tx &lt;close&gt; = raw.<span class="function-name">bind</span>(<span class="number">0x88cc</span>, ifindex)
+tx:<span class="function-name">send</span>(frame, <span class="number">0x88cc</span>, ifindex)</pre>
 
 </dd>
 </dl>
@@ -237,7 +240,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

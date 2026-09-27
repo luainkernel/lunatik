@@ -173,24 +173,46 @@
 <p class="lead">Attribute view over an <a href="../modules/skb.html#">skb</a>: reads and writes packet fields as table keys
  (<code>view.mark</code>, <code>view.priority</code>) instead of method calls.</p>
  The wrapped packet
- stays reachable as <code>view.skb</code>.
+ stays reachable as <code>view.skb</code>. Reading or writing a key other than <code>mark</code> and
+ <code>priority</code> raises <code>skb has no attribute &apos;&lt;key&gt;&apos;</code>.
     <h3>See also</h3>
     <ul>
          <a href="../modules/skb.html#">skb</a>
     </ul>
+    <h2 id="usage">Usage</h2>
+        <pre class="example">-- lunatik run -c softirq &lt;script&gt;: sets the priority of the IPv4 packets the host sends
+local netfilter = require(&quot;netfilter&quot;)
+local attr      = require(&quot;skb.attr&quot;)
+local nf        = require(&quot;linux.nf&quot;)
 
-<h2 id="Methods">Methods</h2>
+local PRIORITY &lt;const&gt; = 3
+
+local function classify(skb)
+  local view = attr.new(skb)
+  view.priority = PRIORITY
+  return nf.action.ACCEPT
+end
+
+netfilter.register{
+  hook     = classify,
+  pf       = nf.proto.IPV4,
+  hooknum  = nf.inet.LOCAL_OUT,
+  priority = nf.ip.pri.FILTER,
+}
+</pre>
+
+<h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#skb.attr:new">skb.attr:new (skb)</a></td>
+	<td class="name"><a href="#skb.attr.new">skb.attr.new (skb)</a></td>
 	<td class="summary">Wraps an <a href="../modules/skb.html#">skb</a> in an attribute view.</td>
 	</tr>
 </table></div>
 
-    <h2 class="section-header" id="Methods-details"><a name="Methods"></a>Methods in detail</h2>
+    <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
-    <dt id="skb.attr:new"><a name="skb.attr:new"></a><strong>skb.attr:new (skb)</strong></dt>
+    <dt id="skb.attr.new"><a name="skb.attr.new"></a><strong>skb.attr.new (skb)</strong></dt>
     <dd>
     Wraps an <a href="../modules/skb.html#">skb</a> in an attribute view.
 
@@ -228,7 +250,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

@@ -235,7 +235,8 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#unix:new">unix:new ([o])</a></td>
-	<td class="summary">Creates a new unix socket object.</td>
+	<td class="summary">Derives a specialization of the class, as <a href="../modules/socket.unix.html#unix.stream">unix.stream</a> and <a href="../modules/socket.unix.html#unix.dgram">unix.dgram</a> are, or wraps a table
+ in it.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#unix:receive">unix:receive (...)</a></td>
@@ -280,7 +281,7 @@
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">len</span>
-         (number) [optional] Maximum number of bytes to receive.
+         (number) Maximum number of bytes to receive.
         </li>
         <li><span class="parameter">flags</span>
          (number) [optional] Receive flags.
@@ -411,8 +412,7 @@
     <ul>
         <li><span class="parameter">path</span>
          (string) [optional] Default UNIX socket path stored in the object.
-   Reused automatically by <a href="../modules/socket.unix.html#unix:bind">bind</a>, <a href="../modules/socket.unix.html#unix:connect">connect</a>, <a href="../modules/socket.unix.html#unix:send">send</a>, <a href="../modules/socket.unix.html#unix.dgram:sendto">sendto</a>, and <a href="../modules/socket.unix.html#unix.dgram:receivefrom">receivefrom</a>
-   when no explicit path is given.
+   Reused by <a href="../modules/socket.unix.html#unix:bind">bind</a>, <a href="../modules/socket.unix.html#unix:connect">connect</a> and <code>dgram:sendto</code> when no explicit path is given.
         </li>
     </ul>
 
@@ -533,7 +533,8 @@
 </dd>
     <dt id="unix:new"><a name="unix:new"></a><strong>unix:new ([o])</strong></dt>
     <dd>
-    Creates a new unix socket object.
+    Derives a specialization of the class, as <a href="../modules/socket.unix.html#unix.stream">unix.stream</a> and <a href="../modules/socket.unix.html#unix.dgram">unix.dgram</a> are, or wraps a table
+ in it.  It opens no socket: calling the class does, <code>unix.stream(path)</code>.
 
 
     <h3>Parameters</h3>
@@ -549,7 +550,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/socket.unix.html#unix">unix</a></span>
-        the new socket object.
+        the derived class or the wrapped table.
     </ol>
 
 
@@ -633,7 +634,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

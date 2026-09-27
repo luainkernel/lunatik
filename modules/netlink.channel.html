@@ -177,6 +177,31 @@
  <a href="../modules/netlink.message.html#">netlink.message</a>) and sent as-is; request/response netlink is otherwise done
  in Lua over the <a href="../modules/socket.html#">socket</a> module. Only this softirq-capable send path needs a
  dedicated kernel object.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">-- lunatik run -c softirq &lt;script&gt;: multicasts a notice for each IPv4 packet the host receives
+local netlink   = require(&quot;netlink&quot;)
+local message   = require(&quot;netlink.message&quot;)
+local netfilter = require(&quot;netfilter&quot;)
+local nf        = require(&quot;linux.nf&quot;)
+
+local CMD &lt;const&gt;    = 1
+local NOTICE &lt;const&gt; = 1
+
+local channel = netlink.channel(&quot;mychannel&quot;)
+local notice  = message.attrs{[NOTICE] = &quot;packet&quot;}
+
+local function notify(skb)
+  channel:multicast(CMD, notice)
+  return nf.action.ACCEPT
+end
+
+netfilter.register{
+  hook     = notify,
+  pf       = nf.proto.IPV4,
+  hooknum  = nf.inet.PRE_ROUTING,
+  priority = nf.ip.pri.FILTER,
+}
+</pre>
 
 <h2 id="Class_netlink_channel">Class netlink.channel </h2>
 <div class="tbl"><table class="function_list">
@@ -248,7 +273,7 @@
     <ul>
         <li><span class="parameter">portid</span>
             <span class="types"><span class="type">integer</span></span>
-         Destination netlink port id.
+         Destination netlink port id, of a socket in the initial network namespace.
         </li>
         <li><span class="parameter">cmd</span>
             <span class="types"><span class="type">integer</span></span>
@@ -282,9 +307,10 @@
     <dt id="new"><a name="new"></a><strong>new (name)</strong></dt>
     <dd>
     Creates a generic netlink channel.
- Registers a generic netlink family <code>name</code> with a single multicast group;
- userspace resolves the family by name (e.g. via <a href="../modules/netlink.genl.html#">netlink.genl</a>) to learn the
- group it must join. Like a netfilter hook, it must be created at script load
+ Registers a generic netlink family <code>name</code> with a single multicast group, named
+ <a href="../modules/lunatik.html#">lunatik</a>; userspace resolves the family by name (e.g. via <a href="../modules/netlink.genl.html#">netlink.genl</a>, or
+ <code>genl ctrl get name &lt;name&gt;</code>) to learn that group&rsquo;s id, and joins it with
+ <code>NETLINK_ADD_MEMBERSHIP</code>. Like a netfilter hook, it must be created at script load
  (process context); the returned channel lives for the runtime and its
  <a href="../modules/netlink.channel.html#netlink.channel:multicast">multicast</a>/<a href="../modules/netlink.channel.html#netlink.channel:unicast">unicast</a> may then be called from softirq.
 
@@ -327,7 +353,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

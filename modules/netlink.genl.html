@@ -196,7 +196,8 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#genl:new">genl:new ([o])</a></td>
-	<td class="summary">Creates a new genl object.</td>
+	<td class="summary">Derives a class from the generic netlink session, as <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a> is, or wraps a
+ table in it.</td>
 	</tr>
 </table></div>
 
@@ -302,14 +303,16 @@
     </ol>
 
     <h3>Raises</h3>
-    if the family does not exist.
+    the name of the errno the controller answers: <code>ENOENT</code> when no family has that name,
+   <code>EINVAL</code> when the name is longer than <code>GENL_NAMSIZ - 1</code> bytes.
 
 
 
 </dd>
     <dt id="genl:new"><a name="genl:new"></a><strong>genl:new ([o])</strong></dt>
     <dd>
-    Creates a new genl object.
+    Derives a class from the generic netlink session, as <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a> is, or wraps a
+ table in it.  It opens no socket: calling the class does, <code>netlink.genl()</code>.
 
 
     <h3>Parameters</h3>
@@ -325,7 +328,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/netlink.genl.html#genl">genl</a></span>
-        the new genl object.
+        the derived class or the wrapped table.
     </ol>
 
 
@@ -350,7 +353,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

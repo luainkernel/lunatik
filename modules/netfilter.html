@@ -171,25 +171,43 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-packets">Packets and eBPF</a></div>
 <h1>netfilter<span class="kind">Module</span></h1>
 <p class="lead">Lua interface to the Linux Netfilter framework.</p>
+ A script that registers hooks runs in a softirq runtime, <code>lunatik run -c softirq &lt;script&gt;</code>; see
+ <a href="../topics/02-running-scripts.md.html#Execution_contexts">execution contexts</a>. Hooks are
+ registered in the initial network namespace only: packets of another namespace do not reach
+ them.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">-- lunatik run -c softirq &lt;script&gt;: drops the locally generated IPv4 packets marked 0x10,
+-- as `sudo ping -m 16 127.0.0.1` sends them
+local netfilter = require(&quot;netfilter&quot;)
+local nf        = require(&quot;linux.nf&quot;)
 
+local MARK &lt;const&gt; = 0x10
 
-<h2 id="Class_netfilter_hook">Class netfilter_hook </h2>
+local function drop(skb)
+  return nf.action.DROP
+end
+
+netfilter.register{
+  hook     = drop,
+  pf       = nf.proto.IPV4,
+  hooknum  = nf.inet.LOCAL_OUT,
+  priority = nf.ip.pri.FILTER,
+  mark     = MARK,
+}
+</pre>
+
+<h2 id="netfilter">netfilter</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#netfilter_hook:register">netfilter_hook:register (opts)</a></td>
+	<td class="name"><a href="#register">register (opts)</a></td>
 	<td class="summary">Registers a Netfilter hook.</td>
 	</tr>
 </table></div>
 
-    <h2 class="section-header" id="Class_netfilter_hook-details"><a name="Class_netfilter_hook"></a><a name="netfilter_hook"></a>Class netfilter_hook  in detail</h2>
+    <h2 class="section-header" id="netfilter-details"><a name="netfilter"></a>netfilter in detail</h2>
 
-          <div class="section-description">
-          Registered Netfilter hook.  <a href="../modules/netfilter.html#netfilter_hook:register">netfilter.register</a> keeps this object for its runtime, so dropping
- it does not unregister the hook: the hook stays until the runtime closes, which <code>stop()</code> does,
- and the one hook a percpu script&rsquo;s runtimes share goes when the percpu set stops.
-          </div>
     <dl class="function">
-    <dt id="netfilter_hook:register"><a name="netfilter_hook:register"></a><strong>netfilter_hook:register (opts)</strong></dt>
+    <dt id="register"><a name="register"></a><strong>register (opts)</strong></dt>
     <dd>
     Registers a Netfilter hook.
  In a percpu script the runtimes share one hook: the first registration installs it, the
@@ -201,9 +219,12 @@
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          Hook options: <code>hook</code> (function), <code>pf</code>, <code>hooknum</code>, <code>priority</code> (integers),
-   and optionally <code>mark</code> (integer, default 0). <code>pf</code> takes a <a href="../modules/linux.nf.html#proto">linux.nf.proto</a> value, <code>hooknum</code> a
-   hook of that family, as <a href="../modules/linux.nf.html#inet">linux.nf.inet</a> or <a href="../modules/linux.nf.html#br">linux.nf.br</a> list them, and <code>priority</code> a
-   <code>linux.nf.ip.pri</code> or <code>linux.nf.br.pri</code> value.</p>
+   and optionally <code>mark</code> (integer, default 0), which selects the packets the hook sees: the
+   callback runs only for a packet whose <code>skb:mark()</code> equals it, and every other packet is
+   accepted without reaching Lua, so with the default 0 a packet something else marked skips
+   the hook. <code>pf</code> takes a <a href="../modules/linux.nf.html#proto">linux.nf.proto</a> value, <code>hooknum</code> a hook of that family, as
+   <a href="../modules/linux.nf.html#inet">linux.nf.inet</a> or <a href="../modules/linux.nf.html#br">linux.nf.br</a> list them, and <code>priority</code> a <code>linux.nf.ip.pri</code> or
+   <code>linux.nf.br.pri</code> value.</p>
 
 <p>   <code>hook(skb)</code> returns the packet&rsquo;s verdict, a <a href="../modules/linux.nf.html#action">linux.nf.action</a> value, and optionally a mark
    to set on the packet. A callback that returns no verdict, or a value outside
@@ -215,12 +236,16 @@
     <ol>
 
            <span class="types"><span class="type">netfilter_hook</span></span>
-        Registered hook handle.
+         Registered hook handle. <a href="../modules/netfilter.html#register">netfilter.register</a> keeps this object for its
+   runtime, so dropping it does not unregister the hook: the hook stays until the runtime closes,
+   which <code>stop()</code> does, and the one hook a percpu script&rsquo;s runtimes share goes when the percpu set
+   stops.
     </ol>
 
     <h3>Raises</h3>
-    if called after module load; if the hook cannot be registered; in a percpu script, if
-   this runtime already registered the same <code>pf</code>, <code>hooknum</code>, <code>priority</code> and <code>mark</code>
+     if called after module load; <code>runtime context mismatch</code> outside a softirq runtime; if the
+   hook cannot be registered; in a percpu script, if this runtime already registered the same
+   <code>pf</code>, <code>hooknum</code>, <code>priority</code> and <code>mark</code>
 
 
     <h3>Usage</h3>
@@ -255,7 +280,7 @@ netfilter.<span class="function-name">register</span>{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

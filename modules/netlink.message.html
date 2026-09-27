@@ -209,6 +209,9 @@
     Attribute codec: serializes a <code>{[type] = value}</code> table into netlink
  attributes, or parses them back from a message body starting at <code>pos</code>.
  A <code>number</code> value is packed as a <a href="../modules/netlink.message.html#u32">u32</a>; a <a href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> is used verbatim.
+ A parsed key is the raw attribute type, flag bits included: a nested attribute whose sender set
+ <code>NLA_F_NESTED</code> appears under <code>type | 0x8000</code>. A nested payload stays a string, which
+ <code>message.attrs(value, 1)</code> parses in turn.
 
 
     <h3>Parameters</h3>
@@ -360,7 +363,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>

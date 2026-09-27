@@ -178,24 +178,62 @@
  sleepable runtime.
     <h3>See also</h3>
     <ul>
-         <a href="../modules/netlink.rt.object.html#">netlink.rt.object</a>
+         <li><a href="../modules/netlink.rt.object.html#">netlink.rt.object</a></li>
+         <li><a href="../modules/netlink.session.html#">netlink.session</a></li>
     </ul>
 
 <h2 id="Class_addr">Class addr </h2>
 <div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#addr:__call">addr:__call ([pid])</a></td>
+	<td class="summary">Opens a session, calling the class: <code>netlink.rt.addr([pid])</code>.</td>
+	</tr>
 	<tr>
 	<td class="name"><a href="#addr:list">addr:list ([family=AF_UNSPEC])</a></td>
 	<td class="summary">Lists all interface addresses from the kernel.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#addr:new">addr:new ([o])</a></td>
-	<td class="summary">Creates a new addr object.</td>
+	<td class="summary">Wraps a table in the class, or derives a class from it.</td>
 	</tr>
 </table></div>
 
     <h2 class="section-header" id="Class_addr-details"><a name="Class_addr"></a><a name="addr"></a>Class addr  in detail</h2>
 
     <dl class="function">
+    <dt id="addr:__call"><a name="addr:__call"></a><strong>addr:__call ([pid])</strong></dt>
+    <dd>
+    Opens a session, calling the class: <code>netlink.rt.addr([pid])</code>.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">pid</span>
+            <span class="types"><span class="type">integer</span></span>
+         a task whose network namespace the session talks to, as <a href="../modules/socket.html#new">socket.new</a>
+   takes it; the initial network namespace when absent.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/netlink.rt.addr.html#addr">addr</a></span>
+        a new addr object.
+    </ol>
+
+    <h3>Raises</h3>
+    <code>ESRCH</code> if no task has that pid, or <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a
+   namespace of their own.
+
+    <h3>See also</h3>
+    <ul>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
+    </ul>
+
+
+</dd>
     <dt id="addr:list"><a name="addr:list"></a><strong>addr:list ([family=AF_UNSPEC])</strong></dt>
     <dd>
     Lists all interface addresses from the kernel.
@@ -214,7 +252,9 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        list of address tables.
+         list of address tables, each with <code>family</code>, <code>prefix_len</code>, <code>scope</code>, <code>ifindex</code>,
+   <code>address</code> and <code>label</code>; <code>address</code> is the address bytes in network byte order; a field whose
+   attribute the reply lacks is nil.
     </ol>
 
 
@@ -223,7 +263,8 @@
 </dd>
     <dt id="addr:new"><a name="addr:new"></a><strong>addr:new ([o])</strong></dt>
     <dd>
-    Creates a new addr object.
+    Wraps a table in the class, or derives a class from it.  It opens no socket: calling the class
+ does, <code>netlink.rt.addr()</code>.
 
 
     <h3>Parameters</h3>
@@ -239,7 +280,7 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/netlink.rt.addr.html#addr">addr</a></span>
-        the new addr object.
+        the wrapped table or the derived class.
     </ol>
 
 
@@ -264,7 +305,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
 </div>
 </footer>
 </body>
