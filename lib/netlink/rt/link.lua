@@ -12,6 +12,7 @@
 --
 -- @module netlink.rt.link
 -- @see netlink.rt.object
+-- @see netlink.session
 --
 
 local object  = require("netlink.rt.object")
@@ -30,10 +31,11 @@ local IFINFO_LEN = ifinfomsg.size
 -- @type link
 
 ---
--- Creates a new link object.
+-- Wraps a table in the class, or derives a class from it. It opens no socket: calling the class
+-- does, `netlink.rt.link()`.
 -- @function link:new
 -- @tparam[opt] table o an initial object table.
--- @treturn link the new link object.
+-- @treturn link the wrapped table or the derived class.
 -- @see class
 local link = object:new{
 	GET = rtnl.rtm.GETLINK, NEW = rtnl.rtm.NEWLINK, SET = rtnl.rtm.SETLINK,
@@ -55,9 +57,20 @@ function link:decode(body)
 end
 
 ---
+-- Opens a session, calling the class: `netlink.rt.link([pid])`.
+-- @function link:__call
+-- @tparam[opt] integer pid a task whose network namespace the session talks to, as `socket.new`
+--   takes it; the initial network namespace when absent.
+-- @treturn link a new link object.
+-- @raise `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel whose sockets cannot hold a
+--   namespace of their own.
+-- @see netlink.session
+
+---
 -- Lists all network interfaces from the kernel.
 -- @function link:list
--- @treturn table list of link tables.
+-- @treturn table list of link tables, each with `family`, `ltype`, `ifindex`, `flags`, `change`,
+--   `name` and `mtu`; a field whose attribute the reply lacks is nil.
 
 ---
 -- Sets an interface's administrative up state.

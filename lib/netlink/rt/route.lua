@@ -12,6 +12,7 @@
 --
 -- @module netlink.rt.route
 -- @see netlink.rt.object
+-- @see netlink.session
 --
 
 local object  = require("netlink.rt.object")
@@ -31,10 +32,11 @@ local RTMSG_LEN = rtmsg.size
 -- @type route
 
 ---
--- Creates a new route object.
+-- Wraps a table in the class, or derives a class from it. It opens no socket: calling the class
+-- does, `netlink.rt.route()`.
 -- @function route:new
 -- @tparam[opt] table o an initial object table.
--- @treturn route the new route object.
+-- @treturn route the wrapped table or the derived class.
 -- @see class
 local route = object:new{
 	GET = rtnl.rtm.GETROUTE, NEW = rtnl.rtm.NEWROUTE, DEL = rtnl.rtm.DELROUTE,
@@ -59,10 +61,23 @@ function route:decode(body)
 end
 
 ---
+-- Opens a session, calling the class: `netlink.rt.route([pid])`.
+-- @function route:__call
+-- @tparam[opt] integer pid a task whose network namespace the session talks to, as `socket.new`
+--   takes it; the initial network namespace when absent.
+-- @treturn route a new route object.
+-- @raise `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel whose sockets cannot hold a
+--   namespace of their own.
+-- @see netlink.session
+
+---
 -- Lists all routes from the kernel routing tables.
 -- @function route:list
 -- @tparam[opt=AF_UNSPEC] integer family address family.
--- @treturn table list of route tables.
+-- @treturn table list of route tables, each with `family`, `dst_len`, `src_len`, `tos`, `table`,
+--   `protocol`, `scope`, `rtype`, `flags`, `dst`, `gateway`, `oif` and `priority`; `dst` and
+--   `gateway` are the address bytes in network byte order; `table` is the header's when the reply
+--   lacks the `TABLE` attribute, and any other field whose attribute the reply lacks is nil.
 
 local function route_attrs(route, opts)
 	return message.attrs{
@@ -76,7 +91,10 @@ end
 ---
 -- Adds a route to the kernel routing table.
 -- @tparam table opts route parameters: optional `family` (default `AF_INET`),
---   `dst_len`, `dst`, `gateway`, `oif`, `table`, `protocol`, `scope`, `rtype`.
+--   `dst_len`, `dst`, `gateway`, `oif`, `table`, `protocol`, `scope`, `rtype`. `dst` and
+--   `gateway` are the address bytes in network byte order, e.g.
+--   `string.pack(">I4", net.aton("192.0.2.0"))`, never an integer.
+-- @raise the name of the errno a netlink error reply carries, `EEXIST` when the route exists.
 function route:add(opts)
 	local header = rtmsg:pack(opts.family or sk.af.INET, opts.dst_len or 0, 0, 0,
 		self:headertable(opts.table or rtnl.table.MAIN), opts.protocol or rtnl.rtprot.STATIC,
@@ -87,7 +105,8 @@ end
 ---
 -- Deletes a route from the kernel routing table.
 -- @tparam table opts route parameters: optional `family` (default `AF_INET`),
---   `dst_len`, `dst`, `oif`, `table`.
+--   `dst_len`, `dst`, `oif`, `table`, as `add` takes them.
+-- @raise the name of the errno a netlink error reply carries, `ESRCH` when no route matches.
 function route:del(opts)
 	-- scope NOWHERE is the deletion wildcard: match the route whatever its scope
 	local header = rtmsg:pack(opts.family or sk.af.INET, opts.dst_len or 0, 0, 0,
