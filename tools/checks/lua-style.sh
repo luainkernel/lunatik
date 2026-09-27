@@ -6,8 +6,8 @@
 # The shape rules of AGENTS.md, "Lua style", that a line-based read can find: an
 # if/elseif whose branches repeat the same steps, which is a dispatch table or a
 # helper; one table of arguments spelled at two call sites, which is declared
-# once; a function written inline as a table field, which is a named local
-# function; and a block of four lines or more that the change adds against
+# once; a function of more than one statement written inline as a table field,
+# which is a named local function; and a block of four lines or more that the change adds against
 # CHECK_BASE and a script beside it carries too, which is a module both require:
 # #1198 first spelled one pause in the four kernel thread bodies of tests/rcu.
 #
@@ -118,9 +118,16 @@ for file in "$@"; do
 		sub(/--.*$/, "", line)
 		d = indent(line)
 
-		# a function written as the value of a table field
-		if (line ~ /[{,][[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*function[[:space:]]*\(/)
-			flag(NR, "a function inline in a table field; a named local function referenced by name (AGENTS.md, Lua style)")
+		# a function written as the value of a table field, read at its end: a body of one statement stays
+		if (inline && d == inlined && line ~ /^[[:space:]]*end([^A-Za-z0-9_]|$)/) {
+			if (NR - inline > 2)
+				flag(inline, "a function of more than one statement inline in a table field; a named local function referenced by name (AGENTS.md, Lua style)")
+			inline = 0
+		}
+		if (line ~ /[{,][[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*function[[:space:]]*\(/ &&
+		    line !~ /[^A-Za-z0-9_]end([^A-Za-z0-9_]|$)/) {
+			inline = NR; inlined = d
+		}
 
 		# the argument table of a call, collected to its closing brace
 		if (!intable && match(line, /[A-Za-z0-9_\])][[:space:]]*\(?[[:space:]]*\{/)) {
