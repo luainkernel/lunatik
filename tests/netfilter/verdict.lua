@@ -12,6 +12,7 @@ local action = nf.action
 local PREFIX   <const> = "netfilter verdict: "
 local RAISED   <const> = PREFIX .. "raised"
 local REMARKED <const> = 219
+local WRAP     <const> = 1 << 32
 
 local cases = {}
 
@@ -28,6 +29,14 @@ end
 
 function cases.range()
 	return action.STOP + 1
+end
+
+function cases.wrap()
+	return action.DROP + WRAP
+end
+
+function cases.negative()
+	return action.DROP - WRAP
 end
 
 function cases.raise()
@@ -60,6 +69,8 @@ local marks = {
 	[217]      = "accept",
 	[218]      = "remark",
 	[REMARKED] = "remarked",
+	[220]      = "wrap",
+	[221]      = "negative",
 }
 
 -- a hook later than the one that stores the mark, so the packet reaches it marked

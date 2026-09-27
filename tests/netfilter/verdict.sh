@@ -6,11 +6,12 @@
 # Tests what a netfilter hook's callback returns. One LOCAL_OUT hook per mark,
 # each answering with one case, and one marked ping to 127.0.0.1 per case: a
 # callback that returns nothing, a value that is not a number, a verdict spelled
-# as a string, a number outside the verdicts, or that raises, lets the packet
-# through, as ACCEPT does; DROP drops it; and a mark returned beside the verdict
-# is stored in the packet, which a later hook matching that mark then drops. Each
-# case also reads back the line its callback printed, so a ping that went through
-# proves an answer and not a hook that never ran.
+# as a string, a number outside the verdicts, above or below them, even one a
+# cast to a C int would read as DROP, or that raises, lets the packet through, as
+# ACCEPT does; DROP drops it; and a mark returned beside the verdict is stored in
+# the packet, which a later hook matching that mark then drops. Each case also
+# reads back the line its callback printed, so a ping that went through proves
+# an answer and not a hook that never ran.
 #
 # Usage: sudo bash tests/netfilter/verdict.sh
 
@@ -50,7 +51,7 @@ expect() {
 }
 
 ktap_header
-ktap_plan 9
+ktap_plan 11
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -66,6 +67,8 @@ expect 211 none passes "a callback that returns nothing accepts the packet"
 expect 212 boolean passes "a callback that returns a value that is not a number accepts the packet"
 expect 213 string passes "a callback that returns a verdict as a string accepts the packet"
 expect 214 range passes "a callback that returns a number outside the verdicts accepts the packet"
+expect 220 wrap passes "a callback that returns a number past what a C int holds accepts the packet"
+expect 221 negative passes "a callback that returns a negative number accepts the packet"
 
 expect 215 raise passes "a callback that raises accepts the packet"
 dmesg_since | grep -qF "$RAISED" || fail "the raise was not logged"

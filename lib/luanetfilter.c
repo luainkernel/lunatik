@@ -106,8 +106,9 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct 
 
 	if (!lua_isnil(L, -1))
 		skb->mark = (u32)lua_tointeger(L, -1);
-	if (lua_type(L, -2) == LUA_TNUMBER)
-		ret = (int)lua_tointeger(L, -2);
+	lua_Integer verdict = lua_tointeger(L, -2);
+	if (lua_type(L, -2) == LUA_TNUMBER && verdict >= NF_DROP && verdict <= NF_MAX_VERDICT)
+		ret = (int)verdict;
 clear:
 	luaskb_clear(object);
 out:
@@ -123,7 +124,7 @@ static inline unsigned int luanetfilter_docall(luanetfilter_hook_t *hook, struct
 		return policy;
 
 	lunatik_run(hook->runtime, luanetfilter_hook_cb, ret, hook, skb);
-	return (ret < 0 || ret > NF_MAX_VERDICT) ? policy : ret;
+	return ret < 0 ? policy : ret;
 }
 
 static unsigned int luanetfilter_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
