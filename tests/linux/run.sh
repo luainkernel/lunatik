@@ -5,13 +5,20 @@
 #
 # Runs all linux tests and reports aggregated KTAP results.
 #
+# netns: linux.netns resolves pid 1 in a process runtime, in its body and resumed
+# past it, and in the body of a softirq and a hardirq runtime; resumed past theirs,
+# the armed state a hook calls from, each answers the call without a pid and
+# refuses a pid. The case runs on a build without the refusal too: the resume takes
+# the runtime's lock in process context, which cannot have interrupted a holder of
+# the task's lock on its CPU, so such a build resolves the pid and fails, not spins.
+#
 # Usage: sudo bash tests/linux/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fs lookup constants schedule"
+TESTS="random fs lookup constants schedule netns"
 TOTAL=$(echo $TESTS | wc -w)
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil

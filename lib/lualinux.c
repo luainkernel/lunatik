@@ -255,7 +255,9 @@ static int lualinux_ifaddr(lua_State *L)
 *   namespace of the task making the call: the `lunatik` process for a script's body, the
 *   initial one for a kernel thread.
 * @treturn integer inode number of the namespace.
-* @raise `ESRCH` if no task has that pid.
+* @raise `ESRCH` if no task has that pid, and "not allowed after module load" for a pid from an
+*   interrupt-context runtime past its body, where the task's lock would be taken in softirq or
+*   hardirq.
 * @usage
 *   local home = linux.netns()
 */
@@ -266,6 +268,7 @@ static int lualinux_netns(lua_State *L)
 		return 1;
 	}
 
+	lunatik_checkarmed(L);
 	pid_t pid = (pid_t)lunatik_checkinteger(L, 1, 1, PID_MAX_LIMIT);
 	struct net *net = get_net_ns_by_pid(pid);
 	if (IS_ERR(net))
