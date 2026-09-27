@@ -5,9 +5,10 @@
 
 /***
 * Various Linux kernel facilities.
-* This library includes functions for random number generation, task scheduling,
-* time retrieval, kernel symbol lookup, network interface information,
-* access to kernel constants like file modes, task states, and error numbers.
+* This library includes functions for random number generation, sleeping, tracing,
+* time retrieval, kernel symbol lookup, network interface and namespace ids, errno
+* names and the CPU count. Kernel constants live in the `linux.*` modules, as
+* `require("linux.stat")` for file modes and `require("linux.task")` for task states.
 *
 * @module linux
 */
@@ -81,8 +82,8 @@ static int lualinux_random(lua_State *L)
 * @function schedule
 * @tparam[opt] integer timeout Duration in milliseconds to sleep.
 * Defaults to `MAX_SCHEDULE_TIMEOUT` (effectively indefinite sleep until woken).
-* @tparam[opt] integer state task state to set before sleeping.
-* See `linux.task` for possible values. Defaults to `TASK_INTERRUPTIBLE`.
+* @tparam[opt] integer state task state to set before sleeping: `linux.task.INTERRUPTIBLE` (the
+* default), `UNINTERRUPTIBLE`, `KILLABLE` or `IDLE`; any other raises "invalid task state".
 * @treturn integer remaining time in milliseconds
 * if the sleep was interrupted before the full timeout, or 0 if the full timeout elapsed.
 * @raise Error if an invalid task state is provided.
@@ -116,8 +117,8 @@ static int lualinux_schedule(lua_State *L)
 * If omitted, does not change the state.
 * @treturn boolean current kernel tracing state (`true` if on, `false` if off) *after* any change.
 * @usage
-*   local was_tracing = linux.tracing(true) -- Enable tracing
-*   if was_tracing then print("Tracing is now on") end
+*   local is_on = linux.tracing(true) -- Enable tracing
+*   if is_on then print("Tracing is now on") end
 *   local current_state = linux.tracing()   -- Get current state
 *   linux.tracing(false)                    -- Disable tracing
 */
@@ -166,7 +167,9 @@ static int lualinux_difftime(lua_State *L)
 /***
 * Looks up a kernel symbol by name.
 * Uses `kallsyms_lookup_name` (potentially via kprobes) to find the address
-* of a kernel symbol.
+* of a kernel symbol. In a module build, the usual one, that function is resolved through a
+* kprobe when `lunatik` loads: without `CONFIG_KPROBES`, or if that kprobe fails to register,
+* every lookup returns `nil`.
 * Safe to call from softirq and hardirq.
 *
 * @function lookup
@@ -187,6 +190,8 @@ static int lualinux_lookup(lua_State *L)
 
 /***
 * Gets the interface index for a network device name.
+* Resolved in the initial network namespace: a device of another namespace raises "device not
+* found" (see `linux.netns`).
 *
 * @function ifindex
 * @tparam string interface_name network interface name (e.g., "eth0").
@@ -209,6 +214,8 @@ static int lualinux_ifindex(lua_State *L)
 
 /***
 * Gets the HW address for the network interface index.
+* Resolved in the initial network namespace: a device of another namespace raises "device not
+* found" (see `linux.netns`).
 *
 * @function ifaddr
 * @tparam integer ifindex interface index number.
@@ -271,8 +278,8 @@ static int lualinux_netns(lua_State *L)
 *
 * @function errname
 * @tparam integer err error number (e.g., 2).
-* @treturn string symbolic error name (e.g., "ENOENT").
-* Returns "unknown" (or the error number as a string) if the name cannot be resolved.
+* @treturn string symbolic error name (e.g., "ENOENT"), or "unknown" if the name cannot be
+* resolved. The sign of `err` is ignored.
 * @usage
 * local name = linux.errname(2)
 * print("Error name:", name) -- "ENOENT"
