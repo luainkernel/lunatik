@@ -514,10 +514,14 @@ Violating any of these hangs the machine:
         end
     end
 
-Unbounded blocking calls in a kernel thread make it unstoppable: the thread body runs holding the
-runtime lock, and `stop()` waits for the body to return, which a `sock:receive()` with no timeout never
-does — the socket layer does not check `kthread_should_stop()`. To wait indefinitely, bound each call
-(a receive timeout, or `MSG_DONTWAIT`) and poll `shouldstop()` in the loop.
+The thread body runs holding the runtime lock, and `stop()` waits for it to return. A stop ends a wait
+that reads signals: `kthread_stop()` sets `TIF_NOTIFY_SIGNAL` on the task before it wakes it, so a
+`sock:receive()` with no timeout returns `ERESTARTSYS` and a `linux.schedule()` returns early. Two
+things it does not end, and each makes the thread unstoppable: a wait that goes back to sleep without
+reading a signal, a mutex among them, and a thread nothing stops at all, as a worker another body
+starts with `thread.run()` and drops is. Such a worker bounds each wait, a receive timeout or
+`MSG_DONTWAIT`, and reads what tells it to end between them, the way `examples/echod`'s workers read
+the byte their daemon clears.
 
 A body that races another thread, a stress, pauses once per slice of its running rather than once
 per turn: `linux.schedule()` sleeps until a timer fires whatever the timeout, 0 included, and a
