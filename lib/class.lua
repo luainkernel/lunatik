@@ -27,6 +27,9 @@ end
 
 ---
 -- Makes `class` an instantiable class by attaching the shared `:new`.
+-- `class:new(o)` sets `__index` and `__close` on the class, the latter from `close` as it is at
+-- that call, then makes the class the metatable of `o`.
+-- @function class
 -- @tparam[opt] table class the class table (defaults to a fresh table).
 -- @treturn table the same table, ready to receive methods and be instantiated.
 return function(class)
