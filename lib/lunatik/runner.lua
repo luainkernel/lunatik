@@ -108,13 +108,14 @@ end
 
 --- Lists the names of all currently running scripts.
 -- Iterates over the `env.runtimes` RCU table to collect script names.
--- @treturn string A comma-separated string of running script names, or an empty string if no scripts are running.
+-- @treturn table the names of the running scripts, sorted.
 function runner.list()
 	local list = {}
 	rcu.map(env.runtimes, function (script)
 		table.insert(list, script)
 	end)
-	return table.concat(list, ', ')
+	table.sort(list)
+	return list
 end
 
 --- Shuts down all running scripts and their threads.

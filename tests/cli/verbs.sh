@@ -19,7 +19,7 @@
 #   once per CPU id, listed once; -- ends the options before the script;
 # - the words after the script still run it, each with a line on stderr naming
 #   the option that replaces it;
-# - list prints one script a line;
+# - list prints one script a line, in order of name;
 # - a stop of two running scripts exits 0 and removes both; a stop of a script
 #   nothing runs exits 1, not running, and of two scripts one of which runs,
 #   stops that one and exits 1;
@@ -109,10 +109,10 @@ ktap_pass "the words after the script still run it, each naming the option that 
 cli run "$SCRIPT"
 cli run "$OTHER"
 cli list
-listed=$(printf '%s\n' "$out" | grep -xF -e "$OTHER" -e "$SCRIPT" | sort)
+listed=$(printf '%s\n' "$out" | grep -xF -e "$OTHER" -e "$SCRIPT")
 [ "$status" -eq 0 ] && [ "$listed" = "$(printf '%s\n%s\n' "$OTHER" "$SCRIPT" | sort)" ] ||
-	fail "list exited $status with '$out', not one script a line"
-ktap_pass "list prints one script a line"
+	fail "list exited $status with '$out', not one script a line in order of name"
+ktap_pass "list prints one script a line, in order of name"
 
 cli stop "$SCRIPT" "$OTHER"
 listed=$(lunatik list)

@@ -207,10 +207,10 @@ its REPL.
   to `spawn`, exit 2 and never reach the kernel; `-c` and `-p`, `--context=`
   and `--percpu`, and `--` before the script run it, listed once; the words
   after the script still run it, each with a line on stderr naming the option
-  that replaces it; `list` prints one script a line; a stop of two running
-  scripts removes both, and a stop of one nothing runs exits 1, not running,
-  after stopping the others it was given; a spawn exits 0, `list` names it,
-  and its stop exits 0 and removes it.
+  that replaces it; `list` prints one script a line, in order of name; a stop
+  of two running scripts removes both, and a stop of one nothing runs exits 1,
+  not running, after stopping the others it was given; a spawn exits 0, `list`
+  names it, and its stop exits 0 and removes it.
 - **repl**: `-e` and `--eval=` print the chunk's values, exit 0, and exit 1 with
   the message on stderr for a chunk that raises or does not load; a piped
   session prints what its lines return and nothing else, no banner and no
