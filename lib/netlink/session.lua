@@ -8,7 +8,9 @@
 -- the transaction discipline on it: `talk` and `dump` send one request and
 -- drain its complete reply, raising on a kernel error reply (`NLMSG_ERROR`).
 -- Protocol modules (rtnetlink, generic netlink) derive from this class.
--- All methods block and require a sleepable runtime.
+-- All methods block and require a sleepable runtime. From a `notifier.netdevice` callback, in
+-- whatever runtime or coroutine its task runs, every request raises `not allowed under RTNL`:
+-- a script defers it to a thread, or to after the callback returns.
 --
 -- @module netlink.session
 -- @see socket
@@ -40,10 +42,12 @@ local BUFSIZE = 65536
 -- @type session
 
 ---
--- Creates a new session object.
+-- Derives a protocol class from the session, as `netlink.genl` and `netlink.rt.object` are, or
+-- wraps a table in it. It opens no socket: calling a derived class does, e.g. `netlink.rt.route()`
+-- or `netlink.genl()`.
 -- @function session:new
 -- @tparam[opt] table o an initial object table.
--- @treturn session the new session object.
+-- @treturn session the derived class or the wrapped table.
 -- @see class
 local session = class{}
 
