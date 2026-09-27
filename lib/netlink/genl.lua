@@ -36,10 +36,11 @@ local NOOP, ERROR, DONE, OVERRUN = nl.type.NOOP, nl.type.ERROR, nl.type.DONE, nl
 -- @type genl
 
 ---
--- Creates a new genl object.
+-- Derives a class from the generic netlink session, as `netlink.nl80211.object` is, or wraps a
+-- table in it. It opens no socket: calling the class does, `netlink.genl()`.
 -- @function genl:new
 -- @tparam[opt] table o an initial object table.
--- @treturn genl the new genl object.
+-- @treturn genl the derived class or the wrapped table.
 -- @see class
 local genl = session:new{proto = nl.proto.GENERIC}
 
@@ -92,7 +93,8 @@ end
 -- Resolves a generic netlink family name to its (dynamically assigned) id.
 -- @tparam string name family name (e.g. `"nlctrl"`, `"nl80211"`).
 -- @treturn integer the family id.
--- @raise if the family does not exist.
+-- @raise the name of the errno the controller answers: `ENOENT` when no family has that name,
+--   `EINVAL` when the name is longer than `GENL_NAMSIZ - 1` bytes.
 function genl:family(name)
 	for _, msg in ipairs(self:call(ctrl.id.CTRL, ctrl.cmd.GETFAMILY, nil,
 			message.attrs{[ctrl.attr.FAMILY_NAME] = pack("z", name)})) do
