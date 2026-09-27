@@ -5,7 +5,8 @@
 
 --- HMAC-based Extract-and-Expand Key Derivation Function (HKDF) based on RFC 5869.
 -- This module provides functions to perform HKDF operations, utilizing the
--- underlying `crypto` C module for HMAC calculations.
+-- underlying `crypto` C module for HMAC calculations. Like every crypto object, an instance is
+-- created in a process runtime alone.
 -- @classmod crypto.hkdf
 
 local shash = require("crypto").shash
@@ -17,7 +18,8 @@ local char, rep, sub = string.char, string.rep, string.sub
 local HKDF = {}
 
 --- Closes the HKDF instance and releases the underlying HMAC transform.
--- This method is also called by the garbage collector.
+-- It also runs when a to-be-closed variable holding the instance goes out of scope. Without it, the
+-- transform is freed when it is collected.
 -- @function HKDF:close
 function HKDF:close()
 	self.tfm:__close()
@@ -66,7 +68,8 @@ end
 -- @function HKDF:expand
 -- @tparam string prk Pseudorandom Key.
 -- @tparam[opt] string info Optional context and application-specific information. Defaults to an empty string if nil.
--- @tparam number length desired length in bytes for the Output Keying Material (OKM).
+-- @tparam number length desired length in bytes for the Output Keying Material (OKM), at most 255
+--   times the digest size.
 -- @treturn string Output Keying Material of the specified `length`.
 function HKDF:expand(prk, info, length)
 	info = info or ""
