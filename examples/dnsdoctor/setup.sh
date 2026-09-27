@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: (c) 2024 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
+# SPDX-FileCopyrightText: (c) 2024-2026 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 
 #!/bin/bash
@@ -27,35 +27,13 @@ sudo ip -n ns2 link set veth3 up
 sudo ip link set veth2 up
 sudo ip link set veth4 up
 
-# make a directory to setup dns server
-mkdir dnstest
-cd dnstest
-python -m venv .venv
-source .venv/bin/activate
-pip install dnserver
-
 # backup resolv config
 echo "Backing up resolver config to /etc/resolver.conf.lunatik"
 sudo cp -f /etc/resolv.conf /etc/resolv.conf.lunatik && \
 sudo sed -i 's/nameserver/#nameserver/g' /etc/resolv.conf && \
 echo "nameserver 10.1.1.3" | sudo tee -a /etc/resolv.conf && \
 
-# add zone info and run dns server in ns1
-echo """
-[[zones]]
-host = 'lunatik.com'
-type = 'A'
-answer = '192.168.10.1'
-
-[[zones]]
-host = 'lunatik.com'
-type = 'NS'
-answer = 'ns1.lunatik.com.'
-
-[[zones]]
-host = 'lunatik.com'
-type = 'NS'
-answer = 'ns2.lunatik.com.'
-""" > zones.toml
-sudo ip netns exec ns1 .venv/bin/dnserver --no-upstream zones.toml
+# run the dns server in ns1, answering lunatik.com with 192.168.10.1
+sudo ip netns exec ns1 dnsmasq --keep-in-foreground --no-resolv --no-hosts --bind-interfaces \
+	--listen-address=10.1.1.3 --pid-file= --address=/lunatik.com/192.168.10.1
 
