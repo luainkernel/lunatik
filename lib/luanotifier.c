@@ -87,8 +87,7 @@ static void luanotifier_release(void *private)
 {
 	luanotifier_t *notifier = (luanotifier_t *)private;
 
-	/* release always runs in process context (lua_close -> GC -> release),
-	 * so unregister_*_notifier can safely sleep on synchronize_rcu */
+	/* release runs from lua_close, in process context, where unregister may sleep */
 	if (notifier->unregister)
 		notifier->unregister(&notifier->nb);
 	if (notifier->runtime) /* NULL if checkruntime errored in init */
