@@ -12,17 +12,36 @@
 -- Mailboxes are unidirectional (`inbox` for receiving only, `outbox` for sending only).
 -- Messages are serialized as strings.
 --
+-- The receiver creates the inbox and hands its `queue` and `event` to the other runtime, as
+-- through `runtime:resume`, where the sender builds `mailbox.outbox(queue, event)`: a mailbox
+-- built on an existing fifo needs its completion too. `send` works in any context; `receive`
+-- sleeps, and a softirq or hardirq runtime refuses it.
+--
 -- @module mailbox
 -- @see fifo
 -- @see completion
+-- @usage
+-- -- receiver.lua, run with `lunatik run receiver`
+-- local lunatik = require("lunatik")
+-- local mailbox = require("mailbox")
+--
+-- local inbox = mailbox.inbox(4096)
+-- local sender <close> = lunatik.runtime("sender")
+-- sender:resume(inbox.queue, inbox.event)
+-- print(inbox:receive(1000)) -- hello 5
+--
+-- -- sender.lua
+-- local mailbox = require("mailbox")
+--
+-- local function send(queue, event)
+-- 	mailbox.outbox(queue, event):send("hello")
+-- end
+-- return send
 --
 
 local fifo       = require("fifo")
 local completion = require("completion")
 
----
--- The main mailbox table.
--- @table mailbox
 local mailbox = {} 
 
 ---
@@ -61,8 +80,9 @@ end
 --   a new completion object will be created.
 -- @return (MailBox) A new inbox object.
 -- @usage
---   local my_inbox = mailbox.inbox(10) -- Inbox with capacity for 10 messages
+--   local my_inbox = mailbox.inbox(4096) -- 4096 bytes; a message takes its length plus a size_t
 --   local msg = my_inbox:receive()
+-- @within mailbox
 function mailbox.inbox(q, e)
 	return new(q, e, 'receive', 'send')
 end
@@ -75,8 +95,9 @@ end
 --   a new completion object will be created.
 -- @return (MailBox) A new outbox object.
 -- @usage
---   local my_outbox = mailbox.outbox(10) -- Outbox with capacity for 10 messages
+--   local my_outbox = mailbox.outbox(4096) -- 4096 bytes; a message takes its length plus a size_t
 --   my_outbox:send("hello")
+-- @within mailbox
 function mailbox.outbox(q, e)
 	return new(q, e, 'send', 'receive')
 end
@@ -88,13 +109,14 @@ local sizeoft = string.packsize("T")
 -- This function will block until a message is available or the timeout expires.
 -- Not available on outboxes.
 -- @function MailBox:receive
--- @tparam[opt] number timeout maximum time to wait in jiffies.
+-- @tparam[opt] number timeout maximum time to wait in milliseconds.
 --   If omitted or negative, waits indefinitely. If 0, returns immediately.
--- @treturn[1] string received message.
--- @treturn[1] nil If no message is received (e.g., FIFO is empty after event or on timeout).
--- @treturn[2] string Error message if the wait times out or another error occurs.
--- @raise Error if called on an outbox, or if the underlying event wait fails,
---   or if a malformed message is encountered.
+-- @treturn string|nil the message, or `nil` if the event fired with the queue empty.
+-- @treturn integer the message's length, beside a message.
+-- @raise "send-only mailbox" on an outbox; an error ending in "timeout" when the wait elapses,
+--   timeout 0 on an empty mailbox included, or in "interrupt" when a signal or `thread:stop()`
+--   interrupts it; "malformed message" on a truncated header; "runtime context mismatch" from a
+--   softirq or hardirq runtime.
 function MailBox:receive(timeout)
 	local ok, err = self.event:wait(timeout)
 	if not ok then error(err) end
