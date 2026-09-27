@@ -12,6 +12,8 @@ process context; spyglass splits across two runtimes
 ([`device.lua`](device.lua) in process and
 [`notifier.lua`](notifier.lua) in hardirq) sharing captured
 chars via a [`fifo`](../../lib/luafifo.c).
+It needs a kernel built with `CONFIG_VT`, and only the keys of a local keyboard
+reach the notifier, not input over ssh or a pty.
 
 ## Usage
 
@@ -19,5 +21,6 @@ chars via a [`fifo`](../../lib/luafifo.c).
 sudo make install                         # installs Lunatik and the examples
 sudo lunatik run examples/spyglass/device  # runs spyglass
 sudo tail -f /dev/spyglass                 # prints the key log
+sudo lunatik stop examples/spyglass/device # stops spyglass
 ```
 
