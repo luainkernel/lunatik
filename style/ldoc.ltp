@@ -334,7 +334,7 @@ $(anchor((relink(body, m.file.filename, ''):gsub('href="%.%./', 'href="'))))
 #   end
 #  end
 # end
-<h1>API reference</h1>
+<h1 id="api-reference">API reference</h1>
 
 # if ldoc.full_description then
   <p>$(M(ldoc.full_description,nil))</p>
