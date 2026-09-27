@@ -25,10 +25,11 @@ local class  = require("class")
 -- @field localhost (string) The loopback address '127.0.0.1'.
 
 ---
--- Creates a new inet socket object.
+-- Derives a specialization of the class, as `inet.tcp` and `inet.udp` are, or wraps a table in
+-- it. It opens no socket: calling the class does, `inet.tcp()`.
 -- @function inet:new
 -- @tparam[opt] table o an initial object table.
--- @treturn inet the new socket object.
+-- @treturn inet the derived class or the wrapped table.
 -- @see class
 local inet = class{localhost = '127.0.0.1'}
 
@@ -57,11 +58,12 @@ end
 
 ---
 -- Receives data from the socket.
--- For UDP, if the `raw` parameter (third boolean) is true, it returns the raw IP address.
--- @param ... Varargs passed directly to the underlying `socket:receive()`.
--- Typically `(len, flags, raw_ip_for_udp)`.
--- @return Varargs returned by the underlying `socket:receive()`.
--- Typically `(data, ip_address, port)`.
+-- With `from` true it also returns the sender, its IPv4 address as an integer and its port;
+-- `inet.udp:receivefrom` returns the address as a string.
+-- @param ... Varargs passed directly to the underlying `socket:receive()`:
+-- `(len[, flags[, from]])`.
+-- @return Varargs returned by the underlying `socket:receive()`:
+-- `(data[, ip_address, port])`.
 -- @raise error on failure
 -- @see socket.receive
 function inet:receive(...)
@@ -183,7 +185,7 @@ inet.udp = inet:new{type = sock.DGRAM, proto = ipproto.UDP}
 -- Receives data from a UDP socket, along with the sender's address.
 -- This is a wrapper around `inet:receive` that converts the raw IP address
 -- from `net.aton` format to a string using `net.ntoa`.
--- @param len (number) [optional] The maximum number of bytes to receive.
+-- @param len (number) The maximum number of bytes to receive.
 -- @param flags (number) [optional] Flags for the receive operation.
 -- @return (string) The received data.
 -- @return (string) The sender's IP address.
