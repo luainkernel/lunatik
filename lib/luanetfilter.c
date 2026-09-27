@@ -226,8 +226,8 @@ static const lunatik_class_t luanetfilter_class = {
 *   callback runs only for a packet whose `skb:mark()` equals it, and every other packet is
 *   accepted without reaching Lua, so with the default 0 a packet something else marked skips
 *   the hook. `pf` takes a `linux.nf.proto` value, `hooknum` a hook of that family, as
-*   `linux.nf.inet` or `linux.nf.br` list them, and `priority` a `linux.nf.ip.pri` or
-*   `linux.nf.br.pri` value.
+*   `linux.nf.inet`, `linux.nf.arp` or `linux.nf.br` list them, and `priority` a
+*   `linux.nf.ip.pri` or `linux.nf.br.pri` value.
 *
 *   `hook(skb)` returns the packet's verdict, `DROP`, `ACCEPT` or `QUEUE` of `linux.nf.action`,
 *   and optionally a mark to set on the packet. A callback that returns no verdict, or that
