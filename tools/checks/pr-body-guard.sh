@@ -131,7 +131,7 @@ unread() {
 		names=$(printf '%s' "$query" | grep -oE '[A-Za-z][A-Za-z0-9]*[[:space:]]*\(' | tr -d '( \t' |
 			grep -vxE "mutation|$textless" | sort -u | tr '\n' ' ')
 		[ -z "$names" ] && continue
-		echo "pr-body-guard: a GraphQL mutation that can carry text ($names) goes through gh's REST form instead, where the guards read it." >&2
+		echo "pr-body-guard: a GraphQL mutation that can carry text ($names) goes through gh's REST form, or its own command where REST has none (gh pr ready --undo for a draft), where the guards read it." >&2
 		exit 2
 	done <<< "$(printf '%s\n' "$1" | awk '
 	$1 ~ /^([^ ]*\/)?curl$/ && /api\.github\.com/ {

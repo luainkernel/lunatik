@@ -318,7 +318,9 @@ list is known to be stale.
 `stacked-guard.sh`, wired before a shell call, refuses opening a pull request on a base other than
 `master` unless it opens as a draft. GitHub does not merge a draft, and nothing else stops a stacked
 pull request merged before its base from going into the base's branch: #1103 did, after the CI check
-#1047 added for #1041 went in #1064 for failing every stacked push.
+#1047 added for #1041 went in #1064 for failing every stacked push. A pull request moved onto such a
+base is a draft already, which the guard asks GitHub, `gh pr ready --undo <n>` first: #1168 was moved
+onto #1187's branch after it opened, and nothing made it a draft.
 
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
 it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
