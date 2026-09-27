@@ -72,11 +72,6 @@ static ssize_t luaset_find(const luaset_t *set, const char *s, uint32_t len)
 	return -1;
 }
 
-/***
-* Returns the number of members.
-* @function __len
-* @treturn integer the number of members.
-*/
 static int luaset_length(lua_State *L)
 {
 	luaset_t *set = luaset_check(L, 1);
@@ -93,7 +88,7 @@ static void luaset_release(void *private)
 }
 
 /***
-* A built plain `set`, returned by `set.new`.
+* A built plain `set`, returned by `set.new`; `#s` is its number of members.
 * @type set
 */
 
@@ -188,6 +183,7 @@ static void luaset_build(lua_State *L, luaset_t *set, lua_Integer cap)
 * @raise Error on a non-string member, if the keys exceed 4 GiB, or on
 * allocation failure.
 * @usage local s = set.new({ "alpha", "bravo" })
+* @within set
 */
 static int luaset_new(lua_State *L)
 {
@@ -222,7 +218,7 @@ static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
 }
 
 /***
-* A built labeled `set`, returned by `set.labeled`.
+* A built labeled `set`, returned by `set.labeled`; `#s` is its number of members.
 * @type set.labeled
 */
 
@@ -320,6 +316,7 @@ static void luaset_store(uint32_t *off, char *blob, uint32_t *labels, const luas
 * exceed 4 GiB, or on allocation failure.
 * @usage local s = set.labeled({ ["a.b.c"] = 1, ["b.c"] = 2, ["c"] = 4 })
 * local labels = s:match("a.b.c")  --> 7, the union 1 | 2 | 4
+* @within set
 */
 static int luaset_labeled(lua_State *L)
 {
