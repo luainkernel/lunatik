@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1><a href="../index.html">Lunatik</a></h1>
+
+<ul>
+  <li><a href="../index.html">Home</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Talks_and_Papers">Talks and Papers </a></li>
+<li><a href="#Articles">Articles </a></li>
+<li><a href="#GSoC_Projects">GSoC Projects </a></li>
+</ul>
+
+
+<h2>Guide</h2>
+<ul class="">
+  <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
+  <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
+  <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+  <li><a href="../topics/04-lua.md.html">Lua in the kernel</a></li>
+  <li><a href="../topics/05-examples.md.html">Examples</a></li>
+  <li><a href="../topics/06-development.md.html">Development</a></li>
+  <li><strong>Resources</strong></li>
+  <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
+</ul>
+<h2>Lua API</h2>
+<ul class="nowrap">
+  <li><a href="../modules/bpf.html">bpf</a></li>
+  <li><a href="../modules/bpf.map.html">bpf.map</a></li>
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/fsnotify.html">fsnotify</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.fs.html">linux.fs</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.scx.html">linux.scx</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+    <h1 id="resources">Resources</h1>
+
+<p><a name="Talks_and_Papers"></a></p>
+
+<h2 id="talks-and-papers">Talks and Papers</h2>
+
+<ul>
+<li><a href="https://netdevconf.info/0x17/sessions/talk/scripting-the-linux-routing-table-with-lua.html">Scripting the Linux Routing Table with Lua</a> — Netdev 0x17 (2023)</li>
+<li><a href="https://legacy.netdevconf.info/0x14/session.html?talk-linux-network-scripting-with-lua">Linux Network Scripting with Lua</a> — Netdev 0x14 (2020)</li>
+<li><a href="https://www.youtube.com/watch?v=-ufBgy044HI">Lua no Núcleo</a> — Lua Workshop 2023, PUC-Rio (Portuguese)</li>
+<li><a href="https://www.netbsd.org/~lneto/dls14.pdf">Scriptable Operating Systems with Lua</a> — DLS 2014</li>
+<li><a href="https://events.canonical.com/event/89/contributions/506/attachments/265/393/Lua%20in%20Kernel%20-%20OOSC%202024%20%282%29.pdf">Lua in Kernel</a> — Opportunity Open Source Conference 2024</li>
+</ul>
+
+
+<p><a name="Articles"></a></p>
+
+<h2 id="articles">Articles</h2>
+
+<ul>
+<li><a href="https://medium.com/@lourival.neto/from-the-kernel-to-the-moon-a-journey-into-lunatik-bindings-c2cac8816f9e">From the Kernel to the Moon: A Journey into Lunatik Bindings</a> — Medium (2025)</li>
+<li><a href="https://medium.com/@lourival.neto/is-ebpf-driving-you-crazy-let-it-run-lunatik-instead-4aca7d63e6fd">Is eBPF driving you crazy? Let it run Lunatik instead!</a> — Medium (2024)</li>
+<li><a href="https://lwn.net/Articles/830154/">Lua in the kernel?</a> — LWN.net (2020)</li>
+</ul>
+
+
+<p><a name="GSoC_Projects"></a></p>
+
+<h2 id="gsoc-projects">GSoC Projects</h2>
+
+<ul>
+<li><a href="https://github.com/qrsikno2/GSoC2025">LuaHID</a> — LabLua (2025), Jieming Zhou</li>
+<li><a href="https://summerofcode.withgoogle.com/archive/2024/projects/BIJAPZjf">Lunatik binding for Netfilter</a> — LabLua (2024), Mohammad Shehar Yaar Tausif</li>
+<li><a href="https://luainkernel.github.io/ktls/">Lua hook on kTLS</a> — LabLua (2020), Xinzhe Wang</li>
+<li><a href="https://github.com/luainkernel/lunatik/pull/20">Lunatik States Management</a> — LabLua (2020), Matheus Rodrigues</li>
+<li><a href="https://victornogueirario.github.io/xdplua/">XDP Lua</a> — LabLua (2019), Victor Nogueira</li>
+<li><a href="https://github.com/cmessias/lunatik">RCU binding for Lunatik</a> — LabLua (2018), Caio Messias</li>
+<li><a href="https://github.com/luainkernel/lunatik/pull/4">Lunatik Socket Library</a> — LabLua (2018), Chengzhi Tan</li>
+<li><a href="https://www.google-melange.com/archive/gsoc/2015/orgs/lablua/projects/gmesalazar.html">Port Lua Test Suite to the NetBSD Kernel</a> — LabLua (2015), Guilherme Salazar</li>
+<li><a href="http://netbsd-soc.sourceforge.net/projects/luakern/">Lua scripting in the NetBSD kernel</a> — The NetBSD Foundation (2010), Lourival Vieira Neto</li>
+</ul>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-09-27 16:10:47 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
+

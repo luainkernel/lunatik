@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1><a href="../index.html">Lunatik</a></h1>
+
+<ul>
+  <li><a href="../index.html">Home</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#The_lunatik_command">The lunatik command </a></li>
+<li><a href="#Execution_contexts">Execution contexts </a></li>
+<li><a href="#lunatic">lunatic </a></li>
+</ul>
+
+
+<h2>Guide</h2>
+<ul class="">
+  <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
+  <li><strong>Running scripts</strong></li>
+  <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+  <li><a href="../topics/04-lua.md.html">Lua in the kernel</a></li>
+  <li><a href="../topics/05-examples.md.html">Examples</a></li>
+  <li><a href="../topics/06-development.md.html">Development</a></li>
+  <li><a href="../topics/07-resources.md.html">Resources</a></li>
+  <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
+</ul>
+<h2>Lua API</h2>
+<ul class="nowrap">
+  <li><a href="../modules/bpf.html">bpf</a></li>
+  <li><a href="../modules/bpf.map.html">bpf.map</a></li>
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/fsnotify.html">fsnotify</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.fs.html">linux.fs</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.scx.html">linux.scx</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+    <h1 id="running-scripts">Running scripts</h1>
+
+<p><a name="The_lunatik_command"></a></p>
+
+<h2 id="the-lunatik-command">The lunatik command</h2>
+
+<pre>
+usage: lunatik [<span class="global">load</span>|unload|reload|status|test|list] [run|spawn|stop &lt;script&gt;] [percpu] [compile &lt;arguments&gt;]
+</pre>
+
+
+<ul>
+<li><a href="https://www.lua.org/manual/5.5/manual.html#pdf-load">load</a>: load Lunatik kernel modules</li>
+<li><code>unload</code>: unload Lunatik kernel modules</li>
+<li><code>reload</code>: reload Lunatik kernel modules</li>
+<li><code>status</code>: show which Lunatik kernel modules are currently loaded</li>
+<li><code>test [suite]</code>: run installed test suites (see <a href="../topics/06-development.md.html">Development</a>)</li>
+<li><code>compile &lt;arguments&gt;</code>: run <code>lunatic</code> with the given arguments (see <a href="#lunatic">lunatic</a>)</li>
+<li><code>list</code>: show which runtime environments are currently running</li>
+<li><code>run [softirq|hardirq]</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>hardirq</code> for hooks that fire in hardirq context (kprobes); optionally pass <code>percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+<li><code>spawn</code>: create a new runtime environment and spawn a thread to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code></li>
+<li><code>stop</code>: stop the runtime environment created to run the script <code>&lt;script&gt;</code></li>
+<li><code>default</code>: start a <em>REPL (Read–Eval–Print Loop)</em></li>
+</ul>
+
+
+<p><a name="Execution_contexts"></a></p>
+
+<h2 id="execution-contexts">Execution contexts</h2>
+
+<p>A runtime is created in one of three contexts, and this decides what its code may do:</p>
+
+<table>
+<thead>
+<tr>
+<th> Context </th>
+<th> How </th>
+<th> Allocation </th>
+<th> Lock </th>
+<th> May sleep </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> process </td>
+<td> default, and always for <code>spawn</code> </td>
+<td> <code>GFP_KERNEL</code> </td>
+<td> mutex </td>
+<td> yes </td>
+</tr>
+<tr>
+<td> softirq </td>
+<td> <code>lunatik run &lt;script&gt; softirq</code> </td>
+<td> <code>GFP_ATOMIC</code> </td>
+<td> <code>spin_lock_bh</code>; <code>spin_lock_irqsave</code> with IRQs already off </td>
+<td> no </td>
+</tr>
+<tr>
+<td> hardirq </td>
+<td> <code>lunatik run &lt;script&gt; hardirq</code> </td>
+<td> <code>GFP_ATOMIC</code> </td>
+<td> <code>spin_lock_irqsave</code>, always </td>
+<td> no </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Netfilter and XDP hooks fire in softirq, kprobes in hardirq; those scripts need the matching context.
+The script body itself runs once, in process context, before the runtime is armed, so registering
+hooks at its top level may sleep. Everything that runs later, from a hook, may not.</p>
+
+<p><a name="lunatic"></a></p>
+
+<h2 id="lunatic">lunatic</h2>
+
+<pre>
+usage: lunatic [options] [filenames]
+</pre>
+
+
+<p><code>lunatic</code> is <code>luac</code> built with the host compiler from the same <code>lua/</code> sources and configuration
+as <code>lunatik.ko</code>, so its chunks match the kernel&rsquo;s opcode set and integer-only number format;
+chunks from the distribution <code>luac</code> are rejected by the kernel. The options are <code>luac</code>&rsquo;s
+(<code>-l</code> list, <a href="../topics/02-running-scripts.md.html#dumbo">-o</a> output, <code>-p</code> parse only, <code>-s</code> strip debug information, <code>-v</code> version) plus
+<code>-e big|little</code>, the byte order of the target when it is not the host&rsquo;s, and <code>lunatik compile</code> runs
+it with the same arguments.</p>
+
+<p>A chunk is installed and run under the usual <code>.lua</code> name; the kernel detects it by its signature.
+Several inputs make one chunk that runs them in order, as with <code>luac</code>, so compile one file per
+call. <code>-s</code> drops the source name and the line numbers, so a stripped chunk reports an error as
+<code>?:?: &hellip;</code>; keep the full chunk while developing:</p>
+
+<pre>
+lunatik compile -o hello.luac hello.lua
+sudo install -m <span class="number">0644</span> hello.luac /lib/modules/lua/hello.lua
+sudo lunatik run hello
+</pre>
+
+
+<p><code>BYTECODE=1 make install</code> installs the kernel Lua libraries and the examples as stripped chunks
+instead of source, so an error raised from one of them reads <code>?:?:</code>.</p>
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-09-27 16:10:47 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
+

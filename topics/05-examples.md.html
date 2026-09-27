@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1><a href="../index.html">Lunatik</a></h1>
+
+<ul>
+  <li><a href="../index.html">Home</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#spyglass">spyglass </a></li>
+<li><a href="#keylocker">keylocker </a></li>
+<li><a href="#tap">tap </a></li>
+<li><a href="#shared">shared </a></li>
+<li><a href="#echod">echod </a></li>
+<li><a href="#systrack">systrack </a></li>
+<li><a href="#dropreason">dropreason </a></li>
+<li><a href="#netfailover">netfailover </a></li>
+<li><a href="#ifquarantine">ifquarantine </a></li>
+<li><a href="#linkflap">linkflap </a></li>
+<li><a href="#filter">filter </a></li>
+<li><a href="#filter_in_MoonScript">filter in MoonScript </a></li>
+<li><a href="#dnsblock">dnsblock </a></li>
+<li><a href="#dnsdoctor">dnsdoctor </a></li>
+<li><a href="#tcpreject">tcpreject </a></li>
+<li><a href="#sniclassify">sniclassify </a></li>
+<li><a href="#gesture">gesture </a></li>
+<li><a href="#xiaomi">xiaomi </a></li>
+<li><a href="#lldpd">lldpd </a></li>
+<li><a href="#cpuexporter">cpuexporter </a></li>
+<li><a href="#fsmonitor">fsmonitor </a></li>
+<li><a href="#execguard">execguard </a></li>
+</ul>
+
+
+<h2>Guide</h2>
+<ul class="">
+  <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
+  <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
+  <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+  <li><a href="../topics/04-lua.md.html">Lua in the kernel</a></li>
+  <li><strong>Examples</strong></li>
+  <li><a href="../topics/06-development.md.html">Development</a></li>
+  <li><a href="../topics/07-resources.md.html">Resources</a></li>
+  <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
+</ul>
+<h2>Lua API</h2>
+<ul class="nowrap">
+  <li><a href="../modules/bpf.html">bpf</a></li>
+  <li><a href="../modules/bpf.map.html">bpf.map</a></li>
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/fsnotify.html">fsnotify</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.fs.html">linux.fs</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.scx.html">linux.scx</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+    <h1 id="examples">Examples</h1>
+
+<p><a name="spyglass"></a></p>
+
+<h2 id="spyglass">spyglass</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/spyglass">spyglass</a>
+is a kernel script that implements a <em>keylogger</em> inspired by the
+<a href="https://github.com/jarun/spy">spy</a> kernel module.
+This kernel script logs the <em>keysym</em> of the pressed keys in a device (<code>/dev/spyglass</code>).
+If the <em>keysym</em> is a printable character, <code>spyglass</code> logs the <em>keysym</em> itself;
+otherwise, it logs a mnemonic of the ASCII code, (e.g., <code>&lt;del&gt;</code> stands for <code>127</code>).</p>
+
+<p>The keyboard notifier fires in hardirq context, whereas the device requires
+process context; spyglass splits across two runtimes
+(<a href="https://github.com/luainkernel/lunatik/blob/master/examples/spyglass/device.lua"><code>device.lua</code></a> in process and
+<a href="https://github.com/luainkernel/lunatik/blob/master/examples/spyglass/notifier.lua"><code>notifier.lua</code></a> in hardirq) sharing captured
+chars via a <a href="https://github.com/luainkernel/lunatik/blob/master/lib/luafifo.c">&lt;a href=&ldquo;../modules/fifo.html#&rdquo;>fifo</a></a>.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                 # installs examples
+ sudo lunatik run examples/spyglass/device  # runs spyglass
+ sudo tail -f /dev/spyglass                 # prints the key log
+</code></pre>
+
+<p><a name="keylocker"></a></p>
+
+<h2 id="keylocker">keylocker</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/keylocker.lua">keylocker</a>
+is a kernel script that implements
+<a href="https://en.wikipedia.org/wiki/Konami_Code">Konami Code</a>
+for locking and unlocking the console keyboard.
+When the user types <code>↑ ↑ ↓ ↓ ← → ← → LCTRL LALT</code>,
+the keyboard will be <em>locked</em>; that is, the system will stop processing any key pressed
+until the user types the same key sequence again.</p>
+
+<p>The keyboard notifier fires in hardirq context, so keylocker must run in a
+<code>hardirq</code> runtime (passed as the third argument to <code>lunatik run</code>).</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                         # installs examples
+ sudo lunatik run examples/keylocker hardirq        # runs keylocker
+ &lt;↑&gt; &lt;↑&gt; &lt;↓&gt; &lt;↓&gt; &lt;←&gt; &lt;→&gt; &lt;←&gt; &lt;→&gt; &lt;LCTRL&gt; &lt;LALT&gt;     # locks keyboard
+ &lt;↑&gt; &lt;↑&gt; &lt;↓&gt; &lt;↓&gt; &lt;←&gt; &lt;→&gt; &lt;←&gt; &lt;→&gt; &lt;LCTRL&gt; &lt;LALT&gt;     # unlocks keyboard
+</code></pre>
+
+<p><a name="tap"></a></p>
+
+<h2 id="tap">tap</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/tap.lua">tap</a>
+is a kernel script that implements a <em>sniffer</em> using <code>AF_PACKET</code> socket.
+It prints destination and source MAC addresses followed by Ethernet type and the frame size.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install    # installs examples
+ sudo lunatik run examples/tap # runs tap
+ cat /dev/tap
+</code></pre>
+
+<p><a name="shared"></a></p>
+
+<h2 id="shared">shared</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/shared.lua">shared</a>
+is a kernel script that implements an in-memory key-value store using
+<a href="https://luainkernel.github.io/lunatik/modules/rcu.html">rcu</a>,
+<a href="https://luainkernel.github.io/lunatik/modules/data.html">data</a>,
+<a href="https://luainkernel.github.io/lunatik/modules/socket.html">socket</a> and
+<a href="https://luainkernel.github.io/lunatik/modules/thread.html">thread</a>.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install         # installs examples
+ sudo lunatik spawn examples/shared # spawns shared
+ nc 127.0.0.1 90                    # connects to shared
+ foo=bar                            # assigns "bar" to foo
+ foo                                # retrieves foo
+ bar
+ nokey                              # retrieves a key that was never assigned
+                                    # answers with an empty line
+ ^C                                 # finishes the connection
+</code></pre>
+
+<p><a name="echod"></a></p>
+
+<h2 id="echod">echod</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/echod">echod</a>
+is an echo server implemented as kernel scripts.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install               # installs examples
+ sudo lunatik spawn examples/echod/daemon # runs echod
+ nc 127.0.0.1 1337
+ hello kernel!
+ hello kernel!
+</code></pre>
+
+<p><a name="systrack"></a></p>
+
+<h2 id="systrack">systrack</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/systrack/probe.lua">systrack</a>
+is a kernel script that uses kprobes to count every system call on the
+running architecture. <a href="https://github.com/luainkernel/lunatik/blob/master/examples/systrack/device.lua">systrack/device</a>
+exposes the live counters as a character device readable with <code>cat</code>.</p>
+
+<p>The device runtime creates the probe runtime via <code>runner.run</code>, passing the
+RCU counter table via <code>runtime:resume()</code>. Stopping the device runtime also
+stops the probe runtime.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                            # installs examples
+ sudo lunatik run examples/systrack/device             # starts device and probe runtimes
+ cat /dev/systrack
+ close: 473
+ openat: 515
+ read: 1066
+ write: 438
+ sudo lunatik stop examples/systrack/device            # stops device and probe runtimes
+</code></pre>
+
+<p><a name="dropreason"></a></p>
+
+<h2 id="dropreason">dropreason</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/dropreason/monitor.lua">dropreason</a> answers &ldquo;why is my packet dying?&rdquo;:
+a kprobe on the out-of-line drop path reads the drop reason off the probed
+function&rsquo;s arguments and counts the drops that reach it by name
+(<a href="../modules/linux.dropreason.html#">linux.dropreason</a>) in an RCU table published on the shared environment
+(<a href="../modules/lunatik.html#_ENV">lunatik._ENV</a>). That path is <code>sk_skb_reason_drop(sk, skb, reason)</code> from v6.11,
+where <code>kfree_skb_reason(skb, reason)</code> became a static inline over it, so the
+script probes whichever symbol <code>linux.lookup()</code> finds and reads the reason from
+the argument that goes with it; when neither exists, it names both instead of
+failing as a registration error. A drop freed from hardirq
+(<code>dev_kfree_skb_any()</code>) or as a segment list (<code>kfree_skb_list()</code>) takes another
+path and is not counted.
+<a href="https://github.com/luainkernel/lunatik/blob/master/examples/dropreason/report.lua">report</a> reads those counts live from the REPL.
+The script logs the symbol it settled on to <code>dmesg</code> as it arms, and the first
+drop matching <code>WATCH</code> also has its registers and call trace dumped there, which
+is what names the drop site.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                            # installs examples
+ sudo lunatik run examples/dropreason/monitor hardirq  # arms the kprobe
+ echo x &gt; /dev/udp/127.0.0.1/9999                      # trigger a NO_SOCKET drop
+ sudo lunatik                                          # opens the kernel REPL
+ &gt; drops = require("examples.dropreason.report")
+ &gt; drops.NO_SOCKET
+ 1
+ &gt; drops.report()                                      # counts by reason
+       1  NO_SOCKET
+       6  TCP_OLD_DATA
+     152  NOT_SPECIFIED
+ sudo lunatik stop examples/dropreason/monitor
+</code></pre>
+
+<p><a name="netfailover"></a></p>
+
+<h2 id="netfailover">netfailover</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/netfailover">netfailover</a> reroutes in reaction to a link: when the
+watched interface (<code>dummy0</code>) goes down, a backup route to 192.0.2.1 is installed
+in table 200 with <a href="../modules/netlink.rt.html#">netlink.rt</a>, and removed when the link comes back up; each
+change is announced on the <code>netfailover</code> family of a <a href="../modules/netlink.channel.html#">netlink.channel</a>.
+<a href="https://github.com/luainkernel/lunatik/blob/master/examples/netfailover/control.lua">control</a> owns <a href="../modules/notifier.html#netdevice">notifier.netdevice</a>, whose
+callback runs under RTNL, where a <a href="../modules/netlink.rt.html#">netlink.rt</a> request is refused, so it only
+records the link state in an <a href="../modules/rcu.html#table">rcu.table</a>; <a href="https://github.com/luainkernel/lunatik/blob/master/examples/netfailover/reactor.lua">reactor</a>,
+a spawned thread, polls that table and reprograms the route. They are two
+runtimes because one would deadlock: the reactor holding the runtime lock while
+it waits for RTNL, as the callback holds RTNL waiting for the runtime lock.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                          # installs examples
+ sudo ip link add dummy0 type dummy &amp;&amp; sudo ip link set dummy0 up
+ sudo lunatik run examples/netfailover/control       # records the link state
+ sudo lunatik spawn examples/netfailover/reactor     # reroutes on it
+ sudo ip link set dummy0 down                        # installs the backup route
+ ip route show table 200
+ 192.0.2.1 dev lo proto static scope link
+ sudo ip link set dummy0 up                          # removes it
+ sudo lunatik stop examples/netfailover/reactor
+ sudo lunatik stop examples/netfailover/control
+ sudo ip link del dummy0
+</code></pre>
+
+<p><a name="ifquarantine"></a></p>
+
+<h2 id="ifquarantine">ifquarantine</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/ifquarantine">ifquarantine</a> composes two notifier chains to build
+an interface-level default-deny policy: every new network interface
+(NETDEV_REGISTER) is automatically added to a shared RCU set whose contents
+a netfilter hook uses to decide the verdict on each packet. An interface is
+released from quarantine by writing <code>allow=&lt;name&gt;</code> to <code>/dev/ifquarantine</code>;
+re-denied with <code>deny=&lt;name&gt;</code>; inspected with <code>cat /dev/ifquarantine</code>.</p>
+
+<p>The control runtime (process context) owns <a href="../modules/notifier.html#netdevice">notifier.netdevice</a> and the
+device; it runs the netfilter hook as a softirq percpu script, one runtime
+per CPU sharing the hook, and hands each the quarantine set via <a href="../modules/rcu.html#table">rcu.table</a>
+through <code>percpu:resume()</code>. Illustrates cross-subsystem composition between
+two notifier chains of different execution contexts.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                         # installs examples
+ sudo lunatik run examples/ifquarantine/control     # starts control+filter
+ sudo cat /dev/ifquarantine                         # lists known interfaces and verdict
+ sudo sh -c "echo 'deny=eth0'  &gt; /dev/ifquarantine" # quarantine eth0
+ sudo sh -c "echo 'allow=eth0' &gt; /dev/ifquarantine" # lift the quarantine
+ sudo lunatik stop examples/ifquarantine/control    # stops both scripts
+</code></pre>
+
+<p>The interfaces that already exist are recorded and allowed, not quarantined:
+<code>register_netdevice_notifier</code> synchronously replays <code>NETDEV_REGISTER</code> (and
+<code>NETDEV_UP</code>) for each netdev every namespace already has when the notifier
+block is registered, inside <a href="../modules/notifier.html#netdevice">notifier.netdevice</a>, so the script records what
+arrives before that call returns, and a policy that denied those would take the
+machine off the network, <code>lo</code> and the uplink included. They are listed by <code>cat
+/dev/ifquarantine&lt;code&gt; and can be quarantined with &lt;/code&gt;deny=&lt;name&gt;</code>. The callback is
+handed each device&rsquo;s namespace with its name, and the script keeps the devices
+of its own, which <code>linux.netns()</code> names: a container&rsquo;s <code>lo</code> is reported too,
+and its name would resolve onto the host&rsquo;s through <a href="../modules/linux.html#ifindex">linux.ifindex</a>.</p>
+
+<p><a name="linkflap"></a></p>
+
+<h2 id="linkflap">linkflap</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/linkflap/watch.lua">linkflap</a> detects an interface that flaps: a
+<a href="../modules/notifier.html#netdevice">notifier.netdevice</a> callback keeps each interface&rsquo;s UP and DOWN transitions of
+the last 10 seconds, the initial namespace&rsquo;s only since a homonym elsewhere
+would announce under the same name, and once one interface reaches 5 it
+multicasts a flapping event, the interface name and the transition count as
+generic netlink attributes, on the <code>linkflap</code> family of a <a href="../modules/netlink.channel.html#">netlink.channel</a>.
+<a href="https://github.com/luainkernel/lunatik/blob/master/examples/linkflap/subscriber.c">subscriber</a> joins that family&rsquo;s multicast group
+from userspace and prints each event. The callback runs holding RTNL, which a
+multicast does not take, so one runtime does both. Registering the notifier
+replays an <code>UP</code> for each interface that already exists, one transition each.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                             # installs examples
+ sudo lunatik run examples/linkflap/watch               # arms the notifier
+ cc -O2 examples/linkflap/subscriber.c -o linkflap-sub  # builds the subscriber
+ GRP=$(genl ctrl get name linkflap | grep -oiE 'ID-0x[0-9a-f]+' | sed 's/^ID-//i')
+ sudo ./linkflap-sub "$GRP" &amp;                           # prints each event
+ sudo ip link add dummy0 type dummy
+ for i in 1 2 3; do sudo ip link set dummy0 up; sudo ip link set dummy0 down; done
+ linkflap: dummy0 flapping (5 transitions)
+ sudo ip link del dummy0
+ sudo lunatik stop examples/linkflap/watch
+</code></pre>
+
+<p><a name="filter"></a></p>
+
+<h2 id="filter">filter</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/filter">filter</a> is a kernel extension composed by
+a XDP/eBPF program to filter HTTPS sessions and
+a Lua kernel script to filter <a href="https://datatracker.ietf.org/doc/html/rfc3546#section-3.1">SNI</a> TLS extension.
+This kernel extension drops any HTTPS request destinated to a
+<a href="https://github.com/luainkernel/lunatik/blob/master/examples/filter/sni.lua#L35">blacklisted</a> server.</p>
+
+<h3 id="usage">Usage</h3>
+
+<p>Usage requires <code>libbpf</code> and <code>bpftool</code> installed.</p>
+
+<p>Come back to this repository, install and load the filter:</p>
+
+<pre>
+cd ${LUNATIK_DIR}/lunatik    # cf. above
+sudo make btf_install        # needed to export <span class="function-name">the</span> <span class="string">'bpf_luaxdp_run'</span> kfunc
+sudo make examples_install   # installs examples
+make ebpf                    # builds the XDP/eBPF program
+sudo make ebpf_install       # installs the XDP/eBPF program
+# Run the Lua kernel script, one runtime per CPU
+sudo lunatik run examples/filter/sni softirq percpu
+# Load the compiled XDP/eBPF program <span class="keyword">and</span> attach to interface &lt;ifname&gt;
+sudo bpftool prog <span class="global">load</span> examples/filter/https.o /sys/fs/bpf/lunatik_filter <span class="global">type</span> xdp
+sudo bpftool net attach xdp pinned /sys/fs/bpf/lunatik_filter dev &lt;ifname&gt;
+</pre>
+
+
+<p>For example, testing is easy thanks to <a href="https://www.docker.com">docker</a>.
+Assuming docker is installed and running:</p>
+
+<ul>
+<li>in a terminal:</li>
+</ul>
+
+
+<pre>
+sudo bpftool prog <span class="global">load</span> example/filter/https.o /sys/fs/bpf/lunatik_filter <span class="global">type</span> xdp
+sudo bpftool net attach xdp pinned /sys/fs/bpf/lunatik_filter dev docker0
+sudo journalctl -ft kernel
+</pre>
+
+
+<ul>
+<li>in another one:</li>
+</ul>
+
+
+<pre>
+docker run <span class="comment">--rm -it alpine/curl https://ebpf.io</span>
+</pre>
+
+
+<p>The system logs (in the first terminal) should display <code>filter_sni: ebpf.io DROP</code>, and the
+<code>docker run…</code> should return <code>curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ebpf.io:443</code>.</p>
+
+<p><a name="filter_in_MoonScript"></a></p>
+
+<h2 id="filter-in-moonscript">filter in MoonScript</h2>
+
+<p><a href="https://github.com/luainkernel/snihook">This other sni filter</a> uses netfilter api.</p>
+
+<p><a name="dnsblock"></a></p>
+
+<h2 id="dnsblock">dnsblock</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/dnsblock">dnsblock</a> is a kernel script that uses the netfilter framework (<a href="https://luainkernel.github.io/lunatik/modules/netfilter.html">luanetfilter</a>) to filter DNS packets.
+This script drops any outbound DNS packet with question matching the blacklist provided by the user. By default, it will block DNS resolutions for the domains <code>github.com</code> and <code>gitlab.com</code>.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install              # installs examples
+ sudo lunatik run examples/dnsblock/nf_dnsblock softirq # runs the Lua kernel script
+ sudo lunatik run examples/dnsblock/nf_dnsblock softirq percpu  # or one runtime per CPU, sharing the hook
+</code></pre>
+
+<p><a name="dnsdoctor"></a></p>
+
+<h2 id="dnsdoctor">dnsdoctor</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/dnsdoctor">dnsdoctor</a> is a kernel script that uses the netfilter framework (<a href="https://luainkernel.github.io/lunatik/modules/netfilter.html">luanetfilter</a>) to change the DNS response
+from Public IP to a Private IP if the destination IP matches the one provided by the user. For example, if the user
+wants to change the DNS response from <code>192.168.10.1</code> to <code>10.1.2.3</code> for the domain <code>lunatik.com</code> if the query is being sent to <code>10.1.1.2</code> (a private client), this script can be used.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install              # installs examples
+ examples/dnsdoctor/setup.sh             # sets up the environment
+
+ # test the setup, a response with IP 192.168.10.1 should be returned
+ dig lunatik.com
+
+ # run the Lua kernel script
+ sudo lunatik run examples/dnsdoctor/nf_dnsdoctor softirq
+ sudo lunatik run examples/dnsdoctor/nf_dnsdoctor softirq percpu    # or one runtime per CPU, sharing the hook
+
+ # test the setup, a response with IP 10.1.2.3 should be returned
+ dig lunatik.com
+
+ # cleanup
+ sudo lunatik unload
+ examples/dnsdoctor/cleanup.sh
+</code></pre>
+
+<p><a name="tcpreject"></a></p>
+
+<h2 id="tcpreject">tcpreject</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/tcpreject">tcpreject</a> is a kernel script that uses the
+netfilter framework (<a href="https://luainkernel.github.io/lunatik/modules/netfilter.html">luanetfilter</a>)
+and the socket buffer API (<a href="https://luainkernel.github.io/lunatik/modules/skb.html">luaskb</a>)
+to inject a TCP RST toward the origin of forwarded packets.</p>
+
+<p>It intercepts packets marked by an <code>nft</code> rule, builds a RST+ACK by
+copying the original packet, inverting IP, MAC, and port addresses,
+trimming the payload, and recomputing the checksums.
+It supports both IPv4 and IPv6.
+By default, it rejects forwarded HTTPS (TCP/443) connections to <code>8.8.8.8</code> (IPv4)
+and <code>2001:4860:4860::8888</code> (IPv6).</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install              # installs examples
+ sudo examples/tcpreject/setup.sh        # sets up namespace, nft mark rule, and loads the hook
+
+ # connection is reset immediately (IPv4)
+ ip netns exec tcpreject curl --connect-timeout 2 https://8.8.8.8
+
+ # connection is reset immediately (IPv6)
+ ip netns exec tcpreject curl --connect-timeout 2 https://[2001:4860:4860::8888]
+
+ # cleanup
+ sudo examples/tcpreject/cleanup.sh
+</code></pre>
+
+<p><a name="sniclassify"></a></p>
+
+<h2 id="sniclassify">sniclassify</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/sniclassify">sniclassify</a> is a kernel extension composed by
+a TC/eBPF classifier program attached on egress,
+a Lua kernel script to classify <a href="https://datatracker.ietf.org/doc/html/rfc3546#section-3.1">SNI</a> traffic.
+This kernel extension extracts server name and assigns traffic
+classes according to a Lua <a href="https://github.com/luainkernel/lunatik/blob/master/examples/sniclassify/sni.lua#L26">policy table</a>.</p>
+
+<p>Install the classifier:</p>
+
+<pre>
+sudo make btf_install         # needed to export <span class="function-name">the</span> <span class="string">'bpf_luatc_run'</span> kfunc
+sudo make examples_install    # installs examples
+make ebpf                     # builds the TC/eBPF program
+sudo make ebpf_install        # installs the TC/eBPF program
+</pre>
+
+
+<p>Run the classifier and set up the HTB classes on an interface:</p>
+
+<pre>
+sudo ./examples/sniclassify/setup.sh eth0
+</pre>
+
+
+<p>Tear it down with:</p>
+
+<pre>
+sudo ./examples/sniclassify/cleanup.sh eth0
+</pre>
+
+
+<p>The classifier inspects outbound TLS ClientHello packets, extracts the SNI
+field, and assigns a traffic class according to the Lua policy table.</p>
+
+<p>Verify and test:
+     sudo tc filter show dev eth0
+     sudo journalctl -ft kernel</p>
+
+<p><a name="gesture"></a></p>
+
+<h2 id="gesture">gesture</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/gesture.lua">gesture</a>
+is a kernel script that implements a HID driver for QEMU USB Mouse (0627:0001).
+It supports gestures: swiping right locks the mouse, and swiping left unlocks it.</p>
+
+<h3 id="usage">Usage</h3>
+
+<ol>
+<li><p>You need to change the display protocal into <code>VNC</code> and enable USB mouse device in QEMU, the following configuration can help you disable PS2 mouse &amp; enable USB mouse:</p>
+
+<p>  <features>
+     <!-- ... -->
+     <ps2 state="off"/>
+     <!-- ... -->
+  </features></p></li>
+<li><p>run the gesture script:</p>
+
+<p>  sudo make examples_install             # installs examples
+  sudo lunatik run examples/gesture softirq  # runs gesture
+  # In QEMU window:
+  # Drag right to lock the mouse
+  # Drag left to unlock the mouse</p></li>
+</ol>
+
+
+<p><a name="xiaomi"></a></p>
+
+<h2 id="xiaomi">xiaomi</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/xiaomi.lua">xiaomi</a>
+is a kernel script that ports the Xiaomi Silent Mouse driver to Lua using <code>luahid</code>.
+It fixes the report descriptor for the device (<code>0x2717</code>:<code>0x5014</code>).</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install         # installs examples
+ sudo lunatik run examples/xiaomi softirq   # runs xiaomi driver
+</code></pre>
+
+<p>Then insert the Xiaomi Silent Mouse with bluetooth mode on and it should work properly.</p>
+
+<p><a name="lldpd"></a></p>
+
+<h2 id="lldpd">lldpd</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/lldpd.lua">lldpd</a> shows how to implement a simple LLDP transmitter in kernel space using Lunatik.
+It periodically emits LLDP frames on a given interface using an AF_PACKET socket.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                  # installs examples
+
+ # the LLDP daemon sends frames on a single Ethernet interface
+ # you may use an existing interface, or create a virtual one for testing
+
+ # create a veth pair (the example uses veth0 by default)
+ ip link add veth0 type veth peer name veth1
+ ip link set veth0 up
+ ip link set veth1 up
+
+ sudo lunatik spawn examples/lldpd           # runs lldpd
+
+ # verify LLDP frames are being transmitted
+ sudo tcpdump -i veth0 -e ether proto 0x88cc -vv
+</code></pre>
+
+<p><a name="cpuexporter"></a></p>
+
+<h2 id="cpuexporter">cpuexporter</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/cpuexporter.lua">cpuexporter</a> will gather CPU usage statistics and expose using <a href="https://github.com/prometheus/OpenMetrics/blob/main/specification/OpenMetrics.md#text-format">OpenMetrics text format</a> at the abstract UNIX socket <code>cpuexporter</code>, which leaves no file behind a stop.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre>
+sudo make examples_install          # installs examples
+sudo lunatik spawn examples/cpuexporter # runs cpuexporter
+sudo socat - ABSTRACT-CONNECT:cpuexporter &lt;&lt;&lt;<span class="string">""</span>
+# TYPE cpu_usage_system gauge
+<span class="function-name">cpu_usage_system</span>{cpu=<span class="string">"cpu1"</span>} <span class="number">0.0000000000000000</span> <span class="number">1764094519529162</span>
+<span class="function-name">cpu_usage_system</span>{cpu=<span class="string">"cpu0"</span>} <span class="number">0.0000000000000000</span> <span class="number">1764094519529162</span>
+# TYPE cpu_usage_idle gauge
+<span class="function-name">cpu_usage_idle</span>{cpu=<span class="string">"cpu1"</span>} <span class="number">100.0000000000000000</span> <span class="number">1764094519529162</span>
+<span class="function-name">cpu_usage_idle</span>{cpu=<span class="string">"cpu0"</span>} <span class="number">100.0000000000000000</span> <span class="number">1764094519529162</span>
+...
+</pre>
+
+
+<p><a name="fsmonitor"></a></p>
+
+<h2 id="fsmonitor">fsmonitor</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/fsmonitor.lua">fsmonitor</a> uses the <a href="../modules/fsnotify.html#">fsnotify</a> module to log what changes in one directory: an
+entry created or deleted, a file written or its attributes changed, each line carrying the entry name,
+its inode number and the pid that did it.</p>
+
+<p>The mark is an inode mark on the directory <code>WATCHED</code> names, carrying <code>EVENT_ON_CHILD</code> so that events on
+the files inside it are reported too. That flag is one level deep: nothing under a subdirectory arrives.
+It also reaches a file only through its parent in the directory cache, so a write to a file opened by handle
+with <code>open_by_handle_at</code> after the cache dropped its entry, or a change to its attributes, is not reported.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                  # installs examples
+ mkdir -p /tmp/lunatik-fsmonitor             # the directory it watches
+ sudo lunatik run examples/fsmonitor         # runs fsmonitor
+ touch /tmp/lunatik-fsmonitor/file
+ echo data &gt; /tmp/lunatik-fsmonitor/file
+ rm /tmp/lunatik-fsmonitor/file
+ sudo lunatik stop examples/fsmonitor        # stops fsmonitor
+ sudo dmesg -t                               # prints what it logged
+ fsmonitor: created file ino 13862 pid 2222346
+ fsmonitor: attributes file ino 13862 pid 2222346
+ fsmonitor: modified file ino 13862 pid 2222341
+ fsmonitor: modified file ino 13862 pid 2222341
+ fsmonitor: deleted file ino 13862 pid 2222347
+</code></pre>
+
+<p>The shell&rsquo;s redirection truncates the file on open and then writes it, so one command logs two
+modifications; an event on the directory itself, its own <code>chmod</code> or <code>touch</code>, carries no entry name and
+prints <code>?</code>.</p>
+
+<p><a name="execguard"></a></p>
+
+<h2 id="execguard">execguard</h2>
+
+<p><a href="https://github.com/luainkernel/lunatik/blob/master/examples/execguard.lua">execguard</a> is an allowlist for <code>exec</code> over one directory: a permission event
+parks the <code>execve</code> inside the callback, which refuses it unless the entry&rsquo;s name is in the <a href="../modules/set.html#">set</a> it was
+built with.</p>
+
+<p>A second list names who may run them: when the scope holds a file <code>pids</code> as the script starts, one pid per
+line, the exec is refused to every pid it does not name. That pid is the one of the thread calling <code>execve</code>,
+which after a <code>fork</code> is the child&rsquo;s: a shell the list names runs a program there only with <code>exec</code>, which
+keeps its pid. Each refusal is logged with its reason, <code>not in the allowlist</code> or <code>pid not allowed</code>.</p>
+
+<p>The mark is an inode mark on <code>SCOPE</code> carrying <code>EVENT_ON_CHILD</code>, so the only exec it can refuse is of an
+entry directly inside that directory. It is never a system wide default deny: a <code>&quot;mount&quot;</code> or <code>&quot;sb&quot;</code> mark
+reaches every file of a mount or of a whole filesystem, and a rule that denies there leaves the machine
+unable to run the programs that would undo it. Give it a scratch mount of its own, as below, so that the
+<code>umount</code> ends the rule even if the script cannot be stopped.</p>
+
+<p>An exec opens more than the program for exec. Inside <code>execve</code> the kernel opens a script&rsquo;s interpreter, the
+path on its <code>#!</code> line, and an ELF program&rsquo;s loader, the one absolute path <code>ldd</code> prints without <code>=&gt;</code>, the
+same way, and each asks the rule under its own name: a script whose interpreter lives in the scope is
+refused unless that name is in the allowlist too. <code>strace -e openat</code> shows none of those opens; what it
+shows, the loader reading its cache and the libraries and an interpreter reading its script, are reads that
+never reach the rule. Landlock asks for its execute right at the same opens, so the programs, their loaders
+and their interpreters are the list a Landlock ruleset grants it on as well. That is also why the rule stays
+on a directory of its own: on the one holding <code>sh</code> or the loader, every script or every dynamically linked
+program on the machine would have to pass the allowlist.</p>
+
+<p><code>EVENT_ON_CHILD</code> reaches the entry through its parent in the directory cache, so a program opened by handle
+with <code>open_by_handle_at</code> after the cache dropped its entry, and run with <code>execveat</code> and <code>AT_EMPTY_PATH</code>, is
+never asked about. That takes <code>CAP_DAC_READ_SEARCH</code>, and a filesystem that drops entries: the tmpfs below
+keeps every entry it holds in the cache.</p>
+
+<p>On a kernel built without <code>CONFIG_FANOTIFY_ACCESS_PERMISSIONS</code>, which has no permission events, the script
+still loads: it says so in the log and guards nothing.</p>
+
+<h3 id="usage">Usage</h3>
+
+<pre><code> sudo make examples_install                  # installs examples
+ sudo mkdir -p -m 0755 /tmp/lunatik-execguard
+ sudo mount -t tmpfs -o size=1M,mode=0755 lunatik-execguard /tmp/lunatik-execguard
+ sudo cp /bin/true /bin/date /tmp/lunatik-execguard/
+ sudo lunatik run examples/execguard         # runs execguard
+ /tmp/lunatik-execguard/true                 # "true" is in the allowlist: it runs
+ /tmp/lunatik-execguard/date                 # "date" is not
+ bash: /tmp/lunatik-execguard/date: Operation not permitted
+ sudo lunatik stop examples/execguard        # ends the rule
+ sudo umount /tmp/lunatik-execguard          # and takes the mark with it
+ sudo dmesg -t                               # prints what it refused
+ execguard: denied date to pid 2222403: not in the allowlist
+</code></pre>
+
+<p>With a pid list:</p>
+
+<pre><code> sudo mount -t tmpfs -o size=1M,mode=0755 lunatik-execguard /tmp/lunatik-execguard
+ sudo cp /bin/true /tmp/lunatik-execguard/
+ bash                                        # a shell for the list to name
+ echo $$ | sudo tee /tmp/lunatik-execguard/pids
+ sudo lunatik run examples/execguard         # reads the list as it starts
+ /tmp/lunatik-execguard/true                 # the child the shell forks has a pid of its own
+ bash: /tmp/lunatik-execguard/true: Operation not permitted
+ exec /tmp/lunatik-execguard/true            # runs in the listed pid, and ends that shell
+ sudo lunatik stop examples/execguard
+ sudo umount /tmp/lunatik-execguard
+ sudo dmesg -t
+ execguard: denied true to pid 2222510: pid not allowed
+</code></pre>
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-09-27 16:10:47 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
+

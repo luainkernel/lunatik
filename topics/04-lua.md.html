@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1><a href="../index.html">Lunatik</a></h1>
+
+<ul>
+  <li><a href="../index.html">Home</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Floating_point_numbers">Floating-point numbers </a></li>
+<li><a href="#Lua_API">Lua API </a></li>
+</ul>
+
+
+<h2>Guide</h2>
+<ul class="">
+  <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
+  <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
+  <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+  <li><strong>Lua in the kernel</strong></li>
+  <li><a href="../topics/05-examples.md.html">Examples</a></li>
+  <li><a href="../topics/06-development.md.html">Development</a></li>
+  <li><a href="../topics/07-resources.md.html">Resources</a></li>
+  <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
+</ul>
+<h2>Lua API</h2>
+<ul class="nowrap">
+  <li><a href="../modules/bpf.html">bpf</a></li>
+  <li><a href="../modules/bpf.map.html">bpf.map</a></li>
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/fsnotify.html">fsnotify</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.fs.html">linux.fs</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.scx.html">linux.scx</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+    <h1 id="lua-in-the-kernel">Lua in the kernel</h1>
+
+<p>Lunatik 4.4 is based on
+<a href="https://github.com/luainkernel/lua">Lua 5.5 adapted</a>
+to run in the kernel.</p>
+
+<p><a name="Floating_point_numbers"></a></p>
+
+<h2 id="floating-point-numbers">Floating-point numbers</h2>
+
+<p>Lunatik <strong>does not</strong> support floating-point arithmetic,
+thus it <strong>does not</strong> support <code>__div</code> nor <code>__pow</code>
+<a href="https://www.lua.org/manual/5.5/manual.html#2.4">metamethods</a>
+and the type <em>number</em> has only the subtype <em>integer</em>.</p>
+
+<p><a name="Lua_API"></a></p>
+
+<h2 id="lua-api">Lua API</h2>
+
+<p>Lunatik <strong>does not</strong> support the <a href="https://www.lua.org/manual/5.5/manual.html#6.9">os</a> library,
+floating-point arithmetic (<code>__div</code>, <code>__pow</code>), or <a href="https://www.lua.org/manual/5.5/manual.html#pdf-debug.debug">debug.debug</a>.
+The <a href="https://www.lua.org/manual/5.5/manual.html#6.7">math</a> library is present but all floating-point functions are absent —
+only integer operations are supported.</p>
+
+<p>The <a href="https://www.lua.org/manual/5.5/manual.html#6.8">io</a> library is supported with the
+following limitations: there are no default streams (<a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.stdin">io.stdin</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.stdout">io.stdout</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.stderr">io.stderr</a>),
+no default input/output (<a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.read">io.read</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.write">io.write</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.input">io.input</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.output">io.output</a>), no process pipes
+(<a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.popen">io.popen</a>), no temporary files (<a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.tmpfile">io.tmpfile</a>), and no buffering control (<a href="https://www.lua.org/manual/5.5/manual.html#pdf-file:setvbuf">file:setvbuf</a>).
+The available functions are <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.open">io.open</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.lines">io.lines</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.type">io.type</a>, and the file handle methods
+<code>read</code>, <code>write</code>, <code>lines</code>, <code>flush</code>, <code>seek</code>, and <code>close</code>.
+On failure, error messages always read <code>&quot;I/O error&quot;</code> regardless of the underlying errno.</p>
+
+<p>Lunatik <strong>modifies</strong> the following identifiers:
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION">_VERSION</a>: is defined as <code>&quot;Lua 5.5-kernel&quot;</code>.
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-collectgarbage">collectgarbage(&ldquo;count&rdquo;)</a>: returns the total memory in use by Lua in <strong>bytes</strong>, instead of <em>Kbytes</em>.
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a>: is defined as <code>&quot;/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua&quot;</code>.
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>: only supports built-in or already linked C modules, that is, Lunatik <strong>cannot</strong> load kernel modules dynamically.</p>
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-09-27 16:10:47 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
+

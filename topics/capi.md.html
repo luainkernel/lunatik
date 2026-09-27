@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Lunatik API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1><a href="../index.html">Lunatik</a></h1>
+
+<ul>
+  <li><a href="../index.html">Home</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Types">Types </a></li>
+<li><a href="#Runtime">Runtime </a></li>
+<li><a href="#Object_Lifecycle">Object Lifecycle </a></li>
+<li><a href="#Object_Access">Object Access </a></li>
+<li><a href="#Registry_and_Attach_Detach">Registry and Attach/Detach </a></li>
+<li><a href="#Error_Handling">Error Handling </a></li>
+<li><a href="#Table_Fields">Table Fields </a></li>
+<li><a href="#Module_Definition">Module Definition </a></li>
+<li><a href="#Memory">Memory </a></li>
+<li><a href="#Symbols">Symbols </a></li>
+</ul>
+
+
+<h2>Guide</h2>
+<ul class="">
+  <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
+  <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
+  <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+  <li><a href="../topics/04-lua.md.html">Lua in the kernel</a></li>
+  <li><a href="../topics/05-examples.md.html">Examples</a></li>
+  <li><a href="../topics/06-development.md.html">Development</a></li>
+  <li><a href="../topics/07-resources.md.html">Resources</a></li>
+  <li><strong>Lunatik C API</strong></li>
+</ul>
+<h2>Lua API</h2>
+<ul class="nowrap">
+  <li><a href="../modules/bpf.html">bpf</a></li>
+  <li><a href="../modules/bpf.map.html">bpf.map</a></li>
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/fsnotify.html">fsnotify</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.fs.html">linux.fs</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.scx.html">linux.scx</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+    <h1 id="lunatik-c-api">Lunatik C API</h1>
+
+<pre>
+#include &lt;lunatik.h&gt;
+</pre>
+
+
+<p><a name="Types"></a></p>
+
+<h2 id="types">Types</h2>
+
+<h3 id="lunatik_class_t">lunatik_class_t</h3>
+
+<pre>
+<span class="keyword">typedef</span> <span class="keyword">void</span> (*lunatik_release_t)(<span class="keyword">void</span> *);
+
+<span class="keyword">typedef</span> <span class="keyword">struct</span> <span class="function-name">lunatik_class_s</span> {
+    <span class="keyword">const</span> <span class="keyword">char</span>        *name;
+    <span class="keyword">const</span> luaL_Reg    *methods;
+    lunatik_release_t  release;
+    lunatik_opt_t      opt;
+} lunatik_class_t;
+</pre>
+
+
+<p>Describes a Lunatik object class.</p>
+
+<ul>
+<li><code>name</code>: the class&rsquo;s type name, quoted by type errors and <code>__name</code>; <code>lunatik_require</code> also
+registers the library under it when an object of the class enters another state, so a script&rsquo;s
+own <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> of the library may open it a second time, which keeps the classes already opened.</li>
+<li><code>methods</code>: <code>NULL</code>-terminated array of Lua methods registered in the metatable.</li>
+<li><code>release</code>: called when the object&rsquo;s reference counter reaches zero; may be <code>NULL</code>.</li>
+<li><code>opt</code>: bitmask of <code>LUNATIK_OPT_*</code> flags controlling class behaviour. Flags are inherited by
+every instance via <code>object-&gt;opt = opt | class-&gt;opt</code> (see <code>lunatik_newobject</code>). Flags differ
+in whether they act as <strong>constraints</strong> or <strong>capabilities</strong>:
+
+<ul>
+<li><code>LUNATIK_OPT_SOFTIRQ</code> <em>(constraint)</em>: all instances use <code>GFP_ATOMIC</code> and a spinlock:</li>
+</ul>
+</li>
+</ul>
+
+
+<pre>
+<span class="backtick"><code>spin_lock_bh</code></span>, <span class="keyword">or</span> <span class="backtick"><code>spin_lock_irqsave</code></span> when interrupts are already off; absence means mutex <span class="keyword">and</span>
+<span class="backtick"><code>GFP_KERNEL</code></span>. Use <span class="keyword">for</span> classes whose handlers fire <span class="keyword">in</span> softirq <span class="function-name">context</span> (netfilter, XDP). Because
+this flag is always inherited, a SOFTIRQ class can never produce a non-SOFTIRQ instance.
+</pre>
+
+
+<ul>
+<li><code>LUNATIK_OPT_HARDIRQ</code> <em>(constraint)</em>: like <code>SOFTIRQ</code>, but always <code>spin_lock_irqsave</code>, whatever</li>
+</ul>
+
+
+<pre>
+the interrupt state. Required <span class="keyword">for</span> classes whose handlers fire <span class="keyword">in</span> hardirq <span class="function-name">context</span> (e.g. kprobes).
+</pre>
+
+
+<ul>
+<li><code>LUNATIK_OPT_MONITOR</code> <em>(capability)</em>: the class supports a monitored metatable that wraps Lua</li>
+</ul>
+
+
+<pre>
+method calls with the object lock, enabling safe concurrent access from multiple runtimes.
+Inherited by default but cancelled when an instance is created with <span class="backtick"><code>LUNATIK_OPT_SINGLE</code></span>. A
+metamethod, <span class="keyword">and</span> a method named <span class="backtick"><code>close</code></span>, are left unwrapped: a close takes the lock itself,
+through <span class="backtick"><code>lunatik_closeprivate</code></span>, <span class="keyword">and</span> would wait on the one the wrapper holds.
+</pre>
+
+
+<ul>
+<li><code>LUNATIK_OPT_SINGLE</code> <em>(constraint)</em>: all instances are private and non-shareable by default.</li>
+</ul>
+
+
+<pre>
+Like <span class="backtick"><code>SOFTIRQ</code></span>, this is always inherited <span class="keyword">and</span> cannot be overridden per instance.
+</pre>
+
+
+<ul>
+<li><code>LUNATIK_OPT_EXTERNAL</code> <em>(constraint)</em>: <code>object-&gt;private</code> holds an external pointer — Lunatik</li>
+</ul>
+
+
+<pre>
+will <span class="keyword">not</span> free it on release.
+</pre>
+
+
+<hr />
+
+<p><a name="Runtime"></a></p>
+
+<h2 id="runtime">Runtime</h2>
+
+<h3 id="lunatik_runtime">lunatik_runtime</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_runtime</span>(lunatik_object_t **pruntime, <span class="keyword">const</span> <span class="keyword">char</span> *script, lunatik_opt_t opt);
+</pre>
+
+
+<p><em>lunatik_runtime()</em> creates a new <code>runtime</code> environment then loads and runs the script
+<code>/lib/modules/lua/&lt;script&gt;.lua</code> as the entry point for this environment.
+It <em>must</em> only be called from <em>process context</em>.
+The <code>runtime</code> environment is a Lunatik object that holds
+a <a href="https://www.lua.org/manual/5.5/manual.html#lua_State">Lua state</a>.
+Lunatik objects are special
+Lua <a href="https://www.lua.org/manual/5.5/manual.html#2.1">userdata</a>
+which also hold
+a <a href="https://docs.kernel.org/locking/locktypes.html">lock type</a> and
+a <a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>.
+<code>opt</code> selects the context the <code>runtime</code> environment runs in.
+With <code>LUNATIK_OPT_NONE</code>, <em>lunatik_runtime()</em> will use a
+<a href="https://docs.kernel.org/locking/mutex-design.html">mutex</a>
+for locking the <code>runtime</code> environment and the
+<a href="https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html">GFP_KERNEL</a>
+flag for allocating new memory later on
+<a href="#lunatik_run">lunatik_run()</a> calls.
+With <code>LUNATIK_OPT_SOFTIRQ</code> or <code>LUNATIK_OPT_HARDIRQ</code>, it will use a
+<a href="https://docs.kernel.org/locking/locktypes.html#raw-spinlock-t-and-spinlock-t">spinlock</a>,
+taken with bottom halves off, or with interrupts off for <code>LUNATIK_OPT_HARDIRQ</code> and wherever
+interrupts are already off, and
+<a href="https://www.kernel.org/doc/html/latest/core-api/memory-allocation.html">GFP_ATOMIC</a>
+once the script has loaded.
+<em>lunatik_runtime()</em> opens the Lua standard libraries
+<a href="https://github.com/luainkernel/lunatik#c-api">present on Lunatik</a>.
+If successful, <em>lunatik_runtime()</em> sets the address pointed by <code>pruntime</code> and
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_getextraspace">Lua&rsquo;s extra space</a>
+with a pointer for the new created <code>runtime</code> environment,
+sets the <em>reference counter</em> to <code>1</code> and then returns <code>0</code>.
+Otherwise, it returns <code>-ENOMEM</code>, if insufficient memory is available;
+or <code>-ENOEXEC</code>, if it fails to load or run the <code>script</code>.</p>
+
+<h4 id="example">Example</h4>
+
+<pre>
+<span class="comment">-- /lib/modules/lua/mydevice.lua
+</span><span class="keyword">function</span> <span class="function-name">myread</span>(len, off)
+    <span class="keyword">return</span> <span class="string">"42"</span>
+<span class="keyword">end</span>
+</pre>
+
+
+
+
+<pre>
+<span class="keyword">static</span> lunatik_object_t *runtime;
+
+<span class="keyword">static</span> <span class="keyword">int</span> __init <span class="function-name">mydevice_init</span>(<span class="keyword">void</span>)
+{
+    <span class="keyword">return</span> <span class="function-name">lunatik_runtime</span>(&amp;runtime, <span class="string">"mydevice"</span>, LUNATIK_OPT_NONE);
+}
+</pre>
+
+
+<h3 id="lunatik_stop">lunatik_stop</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_stop</span>(lunatik_object_t *runtime);
+</pre>
+
+
+<p><em>lunatik_stop()</em>
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_close">closes</a>
+the
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_State">Lua state</a>
+created for this <code>runtime</code> environment and decrements the
+<a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a>.
+Once the reference counter is decremented to zero, the
+<a href="https://docs.kernel.org/locking/locktypes.html">lock type</a>
+and the memory allocated for the <code>runtime</code> environment are released.
+If the <code>runtime</code> environment has been released, it returns <code>1</code>;
+otherwise, it returns <code>0</code>.
+A hook the script registers with the kernel holds a reference of its own,
+so it is <em>lunatik_stop()</em>, and not a <a href="#lunatik_putobject">lunatik_putobject()</a>
+of the caller&rsquo;s reference, that closes a <code>runtime</code> a hook still holds.</p>
+
+<h3 id="lunatik_copyobjects">lunatik_copyobjects</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_copyobjects</span>(lua_State *Lto, lua_State *Lfrom, <span class="keyword">int</span> ixfrom, <span class="keyword">int</span> nobjects);
+</pre>
+
+
+<p>Clones onto <code>Lto</code>, in order, the <code>nobjects</code> Lunatik objects <code>Lfrom</code> holds from <code>ixfrom</code>, which may
+be negative to count from <code>Lfrom</code>&rsquo;s top. It carries objects and nothing else: a value that is not a
+Lunatik object fails it with <code>invalid object</code>, an object marked <code>SINGLE</code> with
+<code>cannot share SINGLE object</code>. On failure it returns the status of the
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_pcall">protected call</a> and leaves the message on
+<code>Lto</code>, which the caller pops; on success it returns <code>LUA_OK</code>.</p>
+
+<h3 id="lunatik_run">lunatik_run</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_run</span>(lunatik_object_t *runtime, &lt;inttype&gt; (*handler)(...), &lt;inttype&gt; &amp;ret, ...);
+</pre>
+
+
+<p><em>lunatik_run()</em> locks the <code>runtime</code> environment and calls the <code>handler</code>
+passing the associated Lua state as the first argument followed by the variadic arguments.
+If the Lua state has been closed, <code>ret</code> is set with <code>-ENXIO</code>; if the calling task already holds
+the runtime&rsquo;s lock, a dispatch from the runtime&rsquo;s own code, with <code>-EDEADLK</code>, and the handler does
+not run; otherwise, <code>ret</code> is set with the result of <code>handler(L, &hellip;)</code> call.
+Then, it restores the Lua stack and unlocks the <code>runtime</code> environment.
+A <code>percpu</code> object, which the caller keeps referenced across the call, is resolved first
+to the runtime of the CPU the caller runs on, and the caller stays on that CPU until the
+call returns.
+It is defined as a macro.</p>
+
+<h4 id="example">Example</h4>
+
+<pre>
+<span class="keyword">typedef</span> <span class="keyword">struct</span> <span class="function-name">myread_s</span> {
+    <span class="keyword">char</span> __user *buf;
+    size_t len;
+    loff_t *off;
+    ssize_t ret;
+} myread_t;
+
+<span class="keyword">static</span> <span class="keyword">int</span> <span class="function-name">l_read</span>(lua_State *L)
+{
+    myread_t *ctx = <span class="function-name">lua_touserdata</span>(L, <span class="number">1</span>);
+    size_t llen;
+    <span class="keyword">const</span> <span class="keyword">char</span> *lbuf;
+    loff_t off;
+
+    <span class="function-name">lua_getglobal</span>(L, <span class="string">"myread"</span>);
+    <span class="function-name">lua_pushinteger</span>(L, ctx-&gt;len);
+    <span class="function-name">lua_pushinteger</span>(L, *ctx-&gt;off);
+    <span class="function-name">lua_call</span>(L, <span class="number">2</span>, <span class="number">2</span>); <span class="comment">/* calls myread(len, off) */</span>
+
+    lbuf = <span class="function-name">lua_tolstring</span>(L, -<span class="number">2</span>, &amp;llen);
+    llen = <span class="function-name">min</span>(ctx-&gt;len, llen);
+    off = (loff_t)<span class="function-name">luaL_optinteger</span>(L, -<span class="number">1</span>, *ctx-&gt;off + llen);
+    <span class="keyword">if</span> (<span class="function-name">copy_to_user</span>(ctx-&gt;buf, lbuf, llen) != <span class="number">0</span>) {
+        ctx-&gt;ret = -EFAULT;
+        <span class="keyword">return</span> <span class="number">0</span>;
+    }
+
+    *ctx-&gt;off = off;
+    ctx-&gt;ret = (ssize_t)llen;
+    <span class="keyword">return</span> <span class="number">0</span>;
+}
+
+<span class="keyword">static</span> ssize_t <span class="function-name">p_read</span>(lua_State *L, myread_t *ctx)
+{
+    <span class="keyword">if</span> (<span class="function-name">lunatik_cpcall</span>(L, l_read, ctx) != LUA_OK) {
+        <span class="function-name">pr_err</span>(<span class="string">"%s\n"</span>, <span class="function-name">lunatik_errmsg</span>(L));
+        <span class="keyword">return</span> -ECANCELED;
+    }
+    <span class="keyword">return</span> ctx-&gt;ret;
+}
+
+<span class="keyword">static</span> ssize_t <span class="function-name">mydevice_read</span>(<span class="keyword">struct</span> file *f, <span class="keyword">char</span> __user *buf, size_t len, loff_t *off)
+{
+    ssize_t ret;
+    lunatik_object_t *runtime = (lunatik_object_t *)f-&gt;private_data;
+    myread_t ctx = {.buf = buf, .len = len, .off = off};
+
+    <span class="function-name">lunatik_run</span>(runtime, p_read, ret, &amp;ctx);
+    <span class="keyword">return</span> ret;
+}
+</pre>
+
+
+<p>Everything that can raise, the callback, reading what it returned and any allocation, runs inside <code>l_read</code>,
+under the protected call: a raise with no handler is a <code>BUG()</code>.</p>
+
+<h3 id="lunatik_handle">lunatik_handle</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_handle</span>(lunatik_object_t *runtime, &lt;inttype&gt; (*handler)(...), &lt;inttype&gt; &amp;ret, ...);
+</pre>
+
+
+<p>Like <code>lunatik_run</code>, but without acquiring the runtime lock. Use this when the lock is
+already held, or when calling from within a <code>lunatik_run</code> handler. Defined as a macro.</p>
+
+<h3 id="lunatik_cpcall">lunatik_cpcall</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_cpcall</span>(lua_State *L, lua_CFunction f, <span class="keyword">void</span> *ud);
+</pre>
+
+
+<p>Calls the C function <code>f</code> in protected mode with <code>ud</code> as its only argument, a light userdata, as
+Lua 5.1&rsquo;s <code>lua_cpcall</code> did, and returns the status of the
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_pcall">protected call</a>, leaving the error on the
+stack when it fails; what <code>f</code> returns is dropped. A handler of <code>lunatik_run</code> whose work can raise passes its
+arguments and its result in a context <code>ud</code> points to and does that work in <code>f</code>, as the example of
+<code>lunatik_run</code> does.</p>
+
+<h3 id="lunatik_toruntime">lunatik_toruntime</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_toruntime</span>(lua_State *L);
+</pre>
+
+
+<p>Returns the <code>runtime</code> environment referenced by <code>L</code>&rsquo;s
+<a href="https://www.lua.org/manual/5.5/manual.html#lua_getextraspace">extra space</a>.
+Defined as a macro.</p>
+
+<h3 id="lunatik_isready">lunatik_isready</h3>
+
+<pre>
+<span class="keyword">bool</span> <span class="function-name">lunatik_isready</span>(lunatik_object_t *runtime);
+</pre>
+
+
+<p>Returns <code>true</code> if the script associated with <code>runtime</code> has finished loading (i.e., the top-level
+chunk has returned). Use this to guard operations that must not run during module
+initialization — for example, spawning a kernel thread from a <code>runner.spawn</code> callback.</p>
+
+<h3 id="lunatik_isowner">lunatik_isowner</h3>
+
+<pre>
+<span class="keyword">bool</span> <span class="function-name">lunatik_isowner</span>(lunatik_object_t *object);
+</pre>
+
+
+<p>Returns <code>true</code> if the calling task holds <code>object</code>&rsquo;s lock. <code>lunatik_lock</code> records the owner
+and <code>lunatik_unlock</code> clears it, so every holder is seen, whichever route it took into the
+lock. The read takes no lock: only the holder writes the field, so the only value that can
+make the test true is the reader&rsquo;s own. <code>lunatik_run</code> reads it before it locks and answers
+<code>-EDEADLK</code> to a dispatch on the task that holds the lock, and
+<a href="#lunatik_checkowner"><code>lunatik_checkowner</code></a> refuses an entry point that would take the lock
+its own task holds; a binding that dispatches without <code>lunatik_run</code> reads it itself.</p>
+
+<p>The answer is exact for a process-context object, whose mutex is task-owned; a SOFTIRQ or
+HARDIRQ class takes a spinlock, owned by a CPU and not by a task, and records whichever task
+the softirq or hardirq interrupted. It answers about the object it is given: a percpu set&rsquo;s own
+lock, which no dispatch takes, so <code>lunatik_run</code> reads it on the per-CPU instance <code>lunatik_pin</code>
+returns and <code>percpu:stop()</code> asks each runtime of the set in turn. And it sees the calling task
+only — Lua that blocks under the lock on a second task which then reaches the same lock is a
+cycle no owner check can name.</p>
+
+<h3 id="lunatik_isrtnl">lunatik_isrtnl</h3>
+
+<pre>
+<span class="keyword">bool</span> <span class="function-name">lunatik_isrtnl</span>(<span class="keyword">void</span>);
+<span class="keyword">void</span> <span class="function-name">lunatik_setrtnl</span>(<span class="keyword">struct</span> task_struct *task);
+</pre>
+
+
+<p><code>lunatik_isrtnl</code> returns <code>true</code> if the calling task is dispatching a callback under RTNL. A binding
+whose kernel callback runs with RTNL held, as <a href="../modules/notifier.html#netdevice">notifier.netdevice</a>&rsquo;s does, sets the task with
+<code>lunatik_setrtnl(current)</code> before it runs Lua there and clears it with <code>lunatik_setrtnl(NULL)</code> after.
+RTNL is held by one task at a time, so one pointer serves every runtime and every coroutine, and
+the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
+kernel call that takes RTNL, such as <code>register_netdevice_notifier</code>, which would wait on the lock its
+own task holds: refuse the call with <code>lunatik_checkrtnl</code>. A <code>release</code> cannot refuse, so the entry
+point that runs one on the calling task, a <code>stop()</code> or a <code>close()</code> and its <code>__close</code>, refuses
+instead under RTNL. It sees the calling task only: Lua on a second task that waits for
+RTNL while this one waits for that task is a cycle it cannot name. Defined as macros.</p>
+
+<h3 id="lunatik_checkruntime">lunatik_checkruntime</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_checkruntime</span>(lua_State *L, lunatik_opt_t opt);
+</pre>
+
+
+<p>Returns the runtime associated with <code>L</code> and raises a Lua error if its context does not match
+<code>opt</code>. Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a
+<code>softirq</code> runtime, a HARDIRQ class in a <code>hardirq</code> runtime, and a process-context class in a
+process runtime. Typically called from <code>lunatik_new*</code> functions to enforce that a class is
+only instantiated in a compatible runtime.</p>
+
+<h3 id="lunatik_checkarmed">lunatik_checkarmed</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_checkarmed</span>(lua_State *L);
+</pre>
+
+
+<p>Raises a Lua error, <code>&quot;not allowed after module load&quot;</code>, when <code>L</code> belongs to an interrupt-context
+runtime that has finished loading. An IRQ runtime is process context only while its script body
+runs, so a call that may sleep is allowed there and must be refused afterwards, when the runtime
+lock is a spinlock: from a hook or a handler, and from the <code>resume</code> of such a runtime. Use it in
+an entry point that reaches a sleeping kernel call, where <code>lunatik_checkruntime</code> answers the
+different question of whether the class matches the runtime at all.</p>
+
+<h3 id="lunatik_checkrtnl">lunatik_checkrtnl</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_checkrtnl</span>(lua_State *L);
+</pre>
+
+
+<p>Raises a Lua error, <code>&quot;not allowed under RTNL&quot;</code>, when <a href="#lunatik_isrtnl"><code>lunatik_isrtnl</code></a> holds: from
+a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs. Use it in
+an entry point that reaches a kernel call taking RTNL.</p>
+
+<h3 id="lunatik_checkowner">lunatik_checkowner</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_checkowner</span>(lua_State *L, lunatik_object_t *runtime);
+</pre>
+
+
+<p>Raises a Lua error, <code>&quot;not allowed from the runtime itself&quot;</code>, when <a href="#lunatik_isowner"><code>lunatik_isowner</code></a>
+holds for <code>runtime</code>: the calling task is inside it, a callback, a file operation, a thread body or a
+resumed body, and an entry point that takes its lock would wait on itself. <code>runtime:stop()</code> and
+<code>percpu:stop()</code> use it, since the close locks the runtime it closes; so do a monitored method,
+which locks the object it runs on and is <code>runtime:resume()</code>&rsquo;s route into the lock, <code>percpu:resume()</code>,
+which locks each runtime it resumes, and <a href="../modules/thread.html#thread:run">thread.run</a>, which passes the body&rsquo;s arguments under the
+runtime&rsquo;s lock.</p>
+
+<h3 id="lunatik_percpudata">lunatik_percpudata</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_percpudata</span>(lua_State *L, <span class="keyword">const</span> lunatik_class_t *<span class="keyword">class</span>, size_t size);
+</pre>
+
+
+<p>Returns the object of <a href="../modules/class.html#">class</a> a <code>percpu</code> object holds for its runtimes: the first runtime to ask
+creates it, as <code>lunatik_createobject(class, size, LUNATIK_OPT_NONE)</code> does, with its private zeroed;
+the following ones get the same object, so every runtime sees one. The <code>percpu</code> object owns it:
+<code>percpu:stop()</code> closes it (<code>lunatik_closeprivate</code>, which runs the class&rsquo;s <code>release</code> in process
+context) before closing the runtimes, then drops it, and an object with such data outstanding is
+released by <code>stop</code>, never by collection. A registration a script makes once for all its runtimes,
+a netfilter hook, say, lives in the private of such an object, with the class&rsquo;s <code>release</code>
+unregistering it. Only the script body may ask, while the runtime loads; it raises a Lua error
+afterwards. Returns <code>NULL</code> on a plain runtime, which has no runtimes to share with;
+<code>lunatik_getpercpu(L)</code> tells the two apart, returning the <code>percpu</code> object owning the runtime <code>L</code>,
+or <code>NULL</code>.</p>
+
+<h3 id="lunatik_percpudata">LUNATIK_PERCPUDATA</h3>
+
+<pre>
+#define LUNATIK_PERCPUDATA(prefix, cname, T, free)
+</pre>
+
+
+<p>Defines <code>static const lunatik_class_t prefix_class</code>, named <code>cname</code>, for the data a <code>percpu</code> object
+holds for the registrations its runtimes share, as <a href="#lunatik_percpudata"><code>lunatik_percpudata</code></a>
+creates it: a private that is a <code>struct hlist_head</code> of <code>T</code> entries linked through their
+<code>struct hlist_node node</code>, whose <code>release</code>, <code>prefix_release</code>, unlinks every entry and passes it to
+<code>free</code>. For example,
+<code>LUNATIK_PERCPUDATA(luaprobe_kprobes, &quot;probe.kprobes&quot;, luaprobe_t, luaprobe_disarm)</code>
+defines <code>luaprobe_kprobes_class</code>.</p>
+
+<hr />
+
+<p><a name="Object_Lifecycle"></a></p>
+
+<h2 id="object-lifecycle">Object Lifecycle</h2>
+
+<h3 id="lunatik_newobject">lunatik_newobject</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_newobject</span>(lua_State *L, <span class="keyword">const</span> lunatik_class_t *<span class="keyword">class</span>, size_t size, lunatik_opt_t opt);
+</pre>
+
+
+<p><em>lunatik_newobject()</em> allocates a new Lunatik object and pushes a userdata
+containing a pointer to the object onto the Lua stack.</p>
+
+<p><code>object-&gt;opt</code> is computed as <code>opt | class-&gt;opt</code>: all class flags are inherited by the instance.
+<code>opt</code> may add flags on top (e.g. <code>LUNATIK_OPT_SOFTIRQ</code> or <code>LUNATIK_OPT_HARDIRQ</code> for a non-sleepable runtime instance).</p>
+
+<ul>
+<li>Pass <code>LUNATIK_OPT_MONITOR</code> to wrap method calls with the object lock, enabling safe concurrent
+access from multiple runtimes.</li>
+<li>Pass <code>LUNATIK_OPT_SINGLE</code> for a private, non-shareable instance. The object cannot be cloned or
+passed to another runtime via <code>_ENV</code> or <code>resume</code>. <code>SINGLE</code> cancels <code>MONITOR</code> inheritance: a
+<code>SINGLE</code> instance of a <code>MONITOR</code> class does <strong>not</strong> get monitor wrappers, since non-shared
+objects do not need them.</li>
+<li>Pass <code>LUNATIK_OPT_NONE</code> (<code>0</code>) to inherit only the class flags.</li>
+</ul>
+
+
+<p>It allocates <code>size</code> bytes for the object&rsquo;s private data, unless <code>LUNATIK_OPT_EXTERNAL</code> is set in
+<code>class-&gt;opt</code>, in which case <code>object-&gt;private</code> is expected to be set by the caller.</p>
+
+<h3 id="lunatik_createobject">lunatik_createobject</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_createobject</span>(<span class="keyword">const</span> lunatik_class_t *<span class="keyword">class</span>, size_t size, lunatik_opt_t opt);
+</pre>
+
+
+<p><em>lunatik_createobject()</em> creates a Lunatik object independently of any Lua
+state. This is intended for objects created in C that will be shared
+with Lua runtimes later via <code>lunatik_cloneobject</code>.</p>
+
+<p>Like <code>lunatik_newobject</code>, <code>object-&gt;opt</code> is computed as <code>opt | class-&gt;opt</code>.
+Sleep mode is determined by <code>LUNATIK_OPT_SOFTIRQ</code> in <code>object-&gt;opt</code>.
+Returns a pointer to the <code>lunatik_object_t</code> on success, or <code>NULL</code> if memory allocation fails.</p>
+
+<h3 id="lunatik_cloneobject">lunatik_cloneobject</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_cloneobject</span>(lua_State *L, lunatik_object_t *object);
+</pre>
+
+
+<p><em>lunatik_cloneobject()</em> pushes <code>object</code> onto the Lua stack as a userdata with the correct
+metatable. It calls <code>lunatik_require(L, class-&gt;name)</code> internally to ensure the class
+metatable is registered even if the script never called <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> itself.
+The object must not have <code>LUNATIK_OPT_SINGLE</code> set; otherwise a Lua error is raised.</p>
+
+<p>Use together with <code>lunatik_createobject</code> for C-owned objects that must be passed to Lua:</p>
+
+<pre>
+obj = <span class="function-name">lunatik_createobject</span>(&amp;luafoo_class, <span class="keyword">sizeof</span>(foo_t), LUNATIK_OPT_MONITOR);
+<span class="function-name">lunatik_run</span>(runtime, my_handler, ret, obj);
+
+<span class="comment">/* inside my_handler: */</span>
+<span class="function-name">lunatik_cloneobject</span>(L, obj);   <span class="comment">/* pushes userdata, increments refcount */</span>
+<span class="function-name">lunatik_getobject</span>(obj);
+</pre>
+
+
+<h3 id="lunatik_getobject">lunatik_getobject</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_getobject</span>(lunatik_object_t *object);
+</pre>
+
+
+<p>Increments the <a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a> of <code>object</code>.</p>
+
+<h3 id="lunatik_getobject_rcu">lunatik_getobject_rcu</h3>
+
+<pre>
+<span class="keyword">bool</span> <span class="function-name">lunatik_getobject_rcu</span>(lunatik_object_t *object);
+</pre>
+
+
+<p>Takes a reference on an object found under <code>rcu_read_lock()</code> without one held, as an
+<a href="../modules/rcu.html#table">rcu.table</a> entry hands its readers, and returns <code>true</code>; returns <code>false</code>, taking none, when the
+count is zero: the object is being released, and the reader treats it as absent. The object&rsquo;s
+memory outlives the grace period after its release, which is what lets the count be read there.
+<code>lunatik_getobject</code> is for a holder of a reference.</p>
+
+<h3 id="lunatik_putobject">lunatik_putobject</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_putobject</span>(lunatik_object_t *object);
+</pre>
+
+
+<p>Decrements the <a href="https://www.kernel.org/doc/Documentation/kref.txt">reference counter</a> of <code>object</code>.
+If the object has been released, returns <code>1</code>; otherwise returns <code>0</code>. The release runs at once, on
+the calling task; the object&rsquo;s memory is freed after an RCU grace period.</p>
+
+<hr />
+
+<p><a name="Object_Access"></a></p>
+
+<h2 id="object-access">Object Access</h2>
+
+<h3 id="lunatik_checkobject">lunatik_checkobject</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_checkobject</span>(lua_State *L, <span class="keyword">int</span> i);
+</pre>
+
+
+<p>Returns the Lunatik object at stack position <code>i</code>. Raises a Lua error if the value is not a
+Lunatik object. Defined as a macro.</p>
+
+<h3 id="lunatik_toobject">lunatik_toobject</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_toobject</span>(lua_State *L, <span class="keyword">int</span> i);
+</pre>
+
+
+<p>Returns the Lunatik object at stack position <code>i</code> without type checking. Returns <code>NULL</code> if
+the value is not a userdata. Defined as a macro.</p>
+
+<h3 id="lunatik_privatechecker">LUNATIK_PRIVATECHECKER</h3>
+
+<pre>
+#define LUNATIK_PRIVATECHECKER(checker, T, cls, ...)
+#define LUNATIK_PRIVATECHECKERS(checker, T, tname, ...)
+</pre>
+
+
+<p>Generates a <code>static inline</code> function <code>T checker(lua_State *L, int ix)</code> that returns
+<code>object-&gt;private</code> cast to <code>T</code>, after proving three things about the value at <code>ix</code>, each with a
+Lua error: it is a Lunatik object (<code>lunatik_checkobject</code>), it is of the class <code>cls</code>, whose
+<code>name</code> the type error quotes, and its private is set, which rules out a closed object. The
+second form is for a family of classes sharing one checker: <code>&hellip;</code> lists the classes it accepts,
+and <code>tname</code> is the name the type error quotes. The first form&rsquo;s optional <code>&hellip;</code> are further
+validation statements, run with <code>L</code>, <code>ix</code>, <code>object</code> and <code>private</code> in scope, before <code>return
+private</code>.</p>
+
+<h3 id="lunatik_argcheckclass">lunatik_argcheckclass</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_argcheckclass</span>(lua_State *L, <span class="keyword">int</span> ix, lunatik_object_t *object, <span class="keyword">const</span> lunatik_class_t *cls);
+</pre>
+
+
+<p>Raises a type error naming <code>cls-&gt;name</code> unless <code>object</code>, the Lunatik object at <code>ix</code>, is of that
+class. Defined as a macro.</p>
+
+<h3 id="lunatik_checkobjectclass">lunatik_checkobjectclass</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_checkobjectclass</span>(lua_State *L, <span class="keyword">int</span> ix, <span class="keyword">const</span> lunatik_class_t *cls);
+</pre>
+
+
+<p>Returns the Lunatik object at <code>ix</code> after proving it is one and is of the class <code>cls</code>, raising a
+Lua error otherwise: the checkers above, for a method that needs the object itself, not only its
+private.</p>
+
+<hr />
+
+<p><a name="Registry_and_Attach_Detach"></a></p>
+
+<h2 id="registry-and-attachdetach">Registry and Attach/Detach</h2>
+
+<p>The registry pattern keeps pre-allocated objects alive across <code>lunatik_run</code> calls without
+exposing them to the GC:</p>
+
+<pre><code> // Registration (once, at hook setup):
+ lunatik_attach(L, obj, field, luafoo_new)   // creates object, stores in registry, sets obj-&gt;field
+
+ // Use (on each callback):
+ lunatik_getregistry(L, obj-&gt;field)          // pushes userdata
+ lunatik_object_t *o = lunatik_toobject(L, -1);
+ luafoo_reset(o, ...);                       // update the wrapped pointer
+
+ // Teardown (on unregister):
+ lunatik_detach(runtime, obj, field)         // unregisters and nulls obj-&gt;field
+</code></pre>
+
+<h3 id="lunatik_register">lunatik_register</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_register</span>(lua_State *L, <span class="keyword">int</span> ix, <span class="keyword">const</span> <span class="keyword">void</span> *key);
+</pre>
+
+
+<p>Stores the value at stack index <code>ix</code> in <code>LUA_REGISTRYINDEX</code> at <code>key</code> and leaves the stack as it
+found it. <code>key</code> is an address the caller owns for the life of the entry: an object&rsquo;s <code>private</code>, or
+a <code>static const char</code> the binding declares for a slot of its own.</p>
+
+<h3 id="lunatik_unregister">lunatik_unregister</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_unregister</span>(lua_State *L, <span class="keyword">const</span> <span class="keyword">void</span> *key);
+</pre>
+
+
+<p>Removes the value stored in <code>LUA_REGISTRYINDEX</code> at <code>key</code>.</p>
+
+<h3 id="lunatik_registerobject">lunatik_registerobject</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_registerobject</span>(lua_State *L, <span class="keyword">int</span> ix, lunatik_object_t *object);
+</pre>
+
+
+<p>Pins <code>object</code> and its <code>private</code> pointer in <code>LUA_REGISTRYINDEX</code>, preventing garbage
+collection. <code>ix</code> is typically the index of the opts table passed to the registration function.</p>
+
+<h3 id="lunatik_unregisterobject">lunatik_unregisterobject</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_unregisterobject</span>(lua_State *L, lunatik_object_t *object);
+</pre>
+
+
+<p>Removes <code>object</code> and its <code>private</code> pointer from the registry, allowing GC to collect them.</p>
+
+<h3 id="lunatik_getregistry">lunatik_getregistry</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_getregistry</span>(lua_State *L, <span class="keyword">const</span> <span class="keyword">void</span> *key);
+</pre>
+
+
+<p>Pushes the value stored in <code>LUA_REGISTRYINDEX</code> at <code>key</code> onto the Lua stack and returns
+its type. Defined as a macro wrapping <code>lua_rawgetp</code>.</p>
+
+<h3 id="lunatik_getregistryobject">lunatik_getregistryobject</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">lunatik_getregistryobject</span>(lua_State *L, <span class="keyword">const</span> <span class="keyword">void</span> *key);
+</pre>
+
+
+<p>Pushes the value stored in <code>LUA_REGISTRYINDEX</code> at <code>key</code> and returns it as a Lunatik object, or
+<code>NULL</code> when there is none or it is no Lunatik object: a hook that reaches for the object it
+registered (an <a href="../modules/skb.html#">skb</a>, a handle) reads it through this rather than through <code>lunatik_toobject</code>,
+which does not check.</p>
+
+<h3 id="lunatik_setflag">lunatik_setflag</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_setflag</span>(lua_State *L, <span class="keyword">const</span> <span class="keyword">void</span> *key, <span class="keyword">bool</span> on);
+</pre>
+
+
+<p>Stores <code>on</code> in <code>LUA_REGISTRYINDEX</code> at <code>key</code>, where a binding keeps a fact its own dispatcher sets
+and its own code reads, such as a callback of this state being on the stack. The key is the
+binding&rsquo;s own <code>static const char</code>, so one binding&rsquo;s callback does not answer for another&rsquo;s, and the
+registry is one per state, so every coroutine of it reads the same slot. A dispatcher that sets the
+flag outside a protected call seeds the key in its constructor, with <code>lunatik_seedflag</code>.</p>
+
+<h3 id="lunatik_getflag">lunatik_getflag</h3>
+
+<pre>
+<span class="keyword">bool</span> <span class="function-name">lunatik_getflag</span>(lua_State *L, <span class="keyword">const</span> <span class="keyword">void</span> *key);
+</pre>
+
+
+<p>Returns the flag stored at <code>key</code>, <code>false</code> where nothing is stored, and leaves the stack as it found
+it.</p>
+
+<h3 id="lunatik_seedflag">lunatik_seedflag</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_seedflag</span>(lua_State *L, <span class="keyword">const</span> <span class="keyword">void</span> *key);
+</pre>
+
+
+<p>Writes the flag back to itself, so the registry node exists without what it says changing and the
+writes made at that key afterwards cannot insert. It is the write that can insert, rehash, fail to
+allocate and abort the state, so a constructor calls it, where a protected call is on the stack. It
+preserves the value because a constructor reached from inside the callback must leave the flag set.</p>
+
+<h3 id="lunatik_attach">lunatik_attach</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_attach</span>(lua_State *L, obj, field, new_fn, ...);
+</pre>
+
+
+<p>Creates a new object by calling <code>new_fn(L, &hellip;)</code>, stores it in <code>LUA_REGISTRYINDEX</code> keyed by
+the returned pointer, sets <code>obj-&gt;field</code> to the result, and pops the userdata from the stack.
+Defined as a macro.</p>
+
+<h3 id="lunatik_detach">lunatik_detach</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_detach</span>(lunatik_object_t *runtime, obj, field);
+</pre>
+
+
+<p>Unregisters <code>obj-&gt;field</code> from the registry and sets <code>obj-&gt;field = NULL</code>. Safe to call when
+the Lua state may already be closed (e.g., from <code>release</code> after <code>lunatik_stop</code>). Defined as a macro.</p>
+
+<hr />
+
+<p><a name="Error_Handling"></a></p>
+
+<h2 id="error-handling">Error Handling</h2>
+
+<h3 id="lunatik_throw">lunatik_throw</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_throw</span>(lua_State *L, <span class="keyword">int</span> ret);
+</pre>
+
+
+<p>Pushes the POSIX error name for <code>-ret</code> (e.g., <code>&quot;ENOMEM&quot;</code>) as a string and calls <code>lua_error</code>.
+Used to convert negative kernel error codes into Lua errors.</p>
+
+<h3 id="lunatik_try">lunatik_try</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_try</span>(lua_State *L, op, ...);
+</pre>
+
+
+<p>Calls <code>op(&hellip;)</code>. If the return value is negative, calls <code>lunatik_throw</code>. Defined as a macro.</p>
+
+<h3 id="lunatik_tryret">lunatik_tryret</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_tryret</span>(lua_State *L, ret, op, ...);
+</pre>
+
+
+<p>Like <code>lunatik_try</code>, but stores the return value in <code>ret</code> before checking. Defined as a macro.</p>
+
+<h3 id="lunatik_errmsg">lunatik_errmsg</h3>
+
+<pre>
+<span class="keyword">const</span> <span class="keyword">char</span> *<span class="function-name">lunatik_errmsg</span>(lua_State *L);
+</pre>
+
+
+<p>Returns the error on top of the stack of <code>L</code> when it is a string, and <code>&quot;error object is not a string&quot;</code>
+otherwise, without converting it: <code>lua_tostring</code> converts a number in place, which allocates, and an
+allocation that fails outside a protected call raises with no handler, a <code>BUG()</code>; any other value reads
+as <code>NULL</code>. After a protected call or a resume fails, the error is read through it.</p>
+
+<hr />
+
+<p><a name="Table_Fields"></a></p>
+
+<h2 id="table-fields">Table Fields</h2>
+
+<p>These macros read fields from a Lua table at stack index <code>idx</code> into a C struct.</p>
+
+<h3 id="lunatik_setinteger">lunatik_setinteger</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_setinteger</span>(lua_State *L, <span class="keyword">int</span> idx, hook, field);
+</pre>
+
+
+<p>Reads a required integer field named <code>field</code> from the table at <code>idx</code> into <code>hook-&gt;field</code>.
+Raises a Lua error if the field is missing or not a number.</p>
+
+<h3 id="lunatik_optinteger">lunatik_optinteger</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_optinteger</span>(lua_State *L, <span class="keyword">int</span> idx, priv, field, opt);
+</pre>
+
+
+<p>Reads an optional integer field named <code>field</code> from the table at <code>idx</code> into <code>priv-&gt;field</code>.
+Falls back to <code>opt</code> if the field is absent or nil.</p>
+
+<h3 id="lunatik_setstring">lunatik_setstring</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_setstring</span>(lua_State *L, <span class="keyword">int</span> idx, hook, field, maxlen);
+</pre>
+
+
+<p>Reads a required string field named <code>field</code> from the table at <code>idx</code> into <code>hook-&gt;field</code>,
+a buffer of <code>maxlen</code> bytes holding the string and its terminator. Raises a Lua error if
+the field is missing, is not a string, or is too long.</p>
+
+<hr />
+
+<p><a name="Module_Definition"></a></p>
+
+<h2 id="module-definition">Module Definition</h2>
+
+<h3 id="lunatik_classes">LUNATIK_CLASSES</h3>
+
+<pre>
+#define LUNATIK_CLASSES(name, ...)
+</pre>
+
+
+<p>Declares a <code>static const lunatik_class_t *</code> array of class pointers with an
+implicit trailing <code>NULL</code> sentinel. The array is named <code>lua&lt;name&gt;_classes</code> —
+the same token used in <code>LUNATIK_NEWLIB(&lt;name&gt;, &hellip;, lua&lt;name&gt;_classes, &hellip;)</code>,
+so both macros compose without the author naming the array explicitly.</p>
+
+<ul>
+<li><code>name</code>: module name suffix; must match the <code>libname</code> of the companion
+<code>LUNATIK_NEWLIB</code> call.</li>
+<li><code>&hellip;</code>: one or more <code>const lunatik_class_t *</code> pointers. The macro appends
+the terminator, so authors must <strong>not</strong> include a trailing <code>NULL</code>.</li>
+</ul>
+
+
+<p>A module may list classes with different execution contexts (e.g. a HARDIRQ
+class alongside a process-context class) in the same array; see the note
+under <a href="#lunatik_newlib"><code>LUNATIK_NEWLIB</code></a> for how context enforcement is
+handled at object creation.</p>
+
+<h4 id="when-to-use">When to use</h4>
+
+<p>Prefer <code>LUNATIK_CLASSES</code> for the common case of a fixed class list: it
+removes boilerplate, enforces the <code>static const</code> qualifiers, and makes
+forgetting the <code>NULL</code> sentinel impossible.</p>
+
+<p>Write the array out by hand when any item is guarded by a preprocessor
+directive — <code>#if</code>/<code>#endif</code> inside a macro argument list is undefined
+behavior in C99 (§6.10.3/11), so the helper cannot express conditional
+inclusion:</p>
+
+<pre>
+<span class="keyword">static</span> <span class="keyword">const</span> lunatik_class_t *luafoo_classes[] = {
+    &amp;luafoo_class,
+#if (LINUX_VERSION_CODE &lt; KERNEL_VERSION(6, 15, 0))
+    &amp;luafoo_legacy_class,
+#endif
+    NULL
+};
+<span class="function-name">LUNATIK_NEWLIB</span>(foo, luafoo_lib, luafoo_classes);
+</pre>
+
+
+<p>The naming convention (<code>lua&lt;libname&gt;_classes</code>) is a convention of the helper,
+not a requirement of <code>LUNATIK_NEWLIB</code>: any NULL-terminated array works.</p>
+
+<h3 id="lunatik_newlib">LUNATIK_NEWLIB</h3>
+
+<pre>
+#define LUNATIK_NEWLIB(libname, funcs, classes)
+</pre>
+
+
+<p>Defines and exports the <code>luaopen_&lt;libname&gt;</code> entry point using <code>EXPORT_SYMBOL_GPL</code>.</p>
+
+<ul>
+<li><code>funcs</code>: <code>luaL_Reg[]</code> of Lua-callable functions (the module table).</li>
+<li><code>classes</code>: NULL-terminated <code>const lunatik_class_t **</code> array declared with
+<code>LUNATIK_CLASSES</code>, or <code>NULL</code> if the module defines no object type.</li>
+</ul>
+
+
+<p>When <code>classes != NULL</code>, <code>LUNATIK_NEWLIB</code> registers the metatable(s) for every
+class in the array.</p>
+
+<p>Metatable registration is context-agnostic: a module may expose classes of
+different execution contexts (e.g. a HARDIRQ class alongside a process-context
+class) and <code>luaopen_&lt;libname&gt;</code> succeeds in any runtime. Context enforcement
+happens later, at object creation time — <code>lunatik_newobject</code> rejects a
+process-context class in an IRQ runtime, and each constructor should call
+<a href="#lunatik_checkruntime"><code>lunatik_checkruntime</code></a> to reject exact mismatches
+(e.g. a SOFTIRQ class in a HARDIRQ runtime). This lets a single module serve
+runtimes of different contexts: each runtime sees every class registered, but
+can only instantiate the ones whose context matches its own.</p>
+
+<h4 id="example--single-class">Example — single class</h4>
+
+<pre>
+<span class="keyword">static</span> <span class="keyword">const</span> luaL_Reg luafoo_lib[] = {
+    {<span class="string">"new"</span>, luafoo_new},
+    {NULL, NULL},
+};
+
+<span class="function-name">LUNATIK_CLASSES</span>(foo, &amp;luafoo_class);
+<span class="function-name">LUNATIK_NEWLIB</span>(foo, luafoo_lib, luafoo_classes);
+</pre>
+
+
+<h4 id="example--multiple-classes-different-contexts">Example — multiple classes, different contexts</h4>
+
+<pre>
+<span class="keyword">static</span> <span class="keyword">const</span> lunatik_class_t luafoo_process_class = {
+    .name = <span class="string">"foo"</span>, .methods = luafoo_mt, .release = luafoo_release,
+    .opt = LUNATIK_OPT_SINGLE,
+};
+
+<span class="keyword">static</span> <span class="keyword">const</span> lunatik_class_t luafoo_hardirq_class = {
+    .name = <span class="string">"foo"</span>, .methods = luafoo_mt, .release = luafoo_release,
+    .opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+};
+
+<span class="function-name">LUNATIK_CLASSES</span>(foo, &amp;luafoo_process_class, &amp;luafoo_hardirq_class);
+<span class="function-name">LUNATIK_NEWLIB</span>(foo, luafoo_lib, luafoo_classes);
+</pre>
+
+
+<p><code>require(&quot;foo&quot;)</code> succeeds in any runtime — both metatables are registered.
+Each class can only be instantiated from a runtime whose context matches
+its <code>opt</code>; the constructor enforces this via
+<a href="#lunatik_checkruntime"><code>lunatik_checkruntime</code></a>.</p>
+
+<hr />
+
+<p><a name="Memory"></a></p>
+
+<h2 id="memory">Memory</h2>
+
+<h3 id="lunatik_malloc">lunatik_malloc</h3>
+
+<pre>
+<span class="keyword">void</span> *<span class="function-name">lunatik_malloc</span>(lua_State *L, size_t size);
+</pre>
+
+
+<p>Allocates <code>size</code> bytes using the Lua allocator. Returns <code>NULL</code> on failure.</p>
+
+<h3 id="lunatik_realloc">lunatik_realloc</h3>
+
+<pre>
+<span class="keyword">void</span> *<span class="function-name">lunatik_realloc</span>(lua_State *L, <span class="keyword">void</span> *ptr, size_t osize, size_t nsize);
+</pre>
+
+
+<p>Reallocates <code>ptr</code>, currently <code>osize</code> bytes long, to <code>nsize</code> bytes using the Lua
+allocator. Returns <code>NULL</code> when <code>nsize</code> is zero, which frees <code>ptr</code>, and when the
+allocation fails, leaving <code>ptr</code> allocated; the exception is a shrink whose
+allocation fails, which returns <code>ptr</code> itself, still <code>osize</code> bytes long. When
+<code>ptr</code> is <code>NULL</code>, <code>osize</code> is not read as a size: either <code>0</code> or a type tag is
+accepted.</p>
+
+<h3 id="lunatik_free">lunatik_free</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_free</span>(<span class="keyword">void</span> *ptr);
+</pre>
+
+
+<p>Frees memory allocated by <code>lunatik_malloc</code> or <code>lunatik_realloc</code>. Equivalent to <code>kvfree</code>.</p>
+
+<hr />
+
+<p><a name="Symbols"></a></p>
+
+<h2 id="symbols">Symbols</h2>
+
+<h3 id="lunatik_lookup">lunatik_lookup</h3>
+
+<pre>
+<span class="keyword">void</span> *<span class="function-name">lunatik_lookup</span>(<span class="keyword">const</span> <span class="keyword">char</span> *symbol);
+</pre>
+
+
+<p>Returns the address of the kernel symbol named <code>symbol</code>, or <code>NULL</code> when kallsyms does not carry
+it. Never sleeps, so it is callable from any context, a softirq or hardirq handler included:
+<code>kallsyms_lookup_name</code>, which the kernel does not export, is resolved through a kprobe once,
+while <code>lunatik.ko</code> loads. Each call searches the kernel&rsquo;s symbol table, so a handler resolves a
+name once and keeps the address rather than asking per event. Every lookup answers <code>NULL</code> when
+that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>CONFIG_KALLSYMS</code>.</p>
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-09-27 16:10:47 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
+
