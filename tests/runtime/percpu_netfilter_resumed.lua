@@ -8,10 +8,10 @@ local lunatik   = require("lunatik")
 local netfilter = require("netfilter")
 local nfcount   = require("tests.runtime.nfcount")
 
-local function attach()
+local function register()
 	local ok, err = pcall(netfilter.register, nfcount.localin(nfcount.count, nfcount.MARK))
 	print("percpu netfilter resume: " .. tostring(lunatik.cpu() or "plain") .. " " .. tostring(ok and "registered" or err))
 end
 
-return attach
+return register
 
