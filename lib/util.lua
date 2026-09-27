@@ -1,9 +1,10 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
 --- Utility functions.
+-- `bin2hex` and `hex2bin` convert binary strings; `log` and `test` are helpers for test scripts.
 -- @module util
 
 local util = {}
@@ -28,7 +29,7 @@ end
 --- Logs a message with a specific prefix.
 -- @function log
 -- @tparam string what prefix for the log message (e.g., "info", "error").
--- @tparam ... Additional arguments to log, which will be concatenated with tabs.
+-- @param ... additional values to log, concatenated with tabs.
 -- @usage util.log("info", "This is a message")
 -- @usage util.log("error", "An error occurred", "Error message")
 function util.log(what, ...)
