@@ -58,7 +58,7 @@ run_script --context=softirq "$SCRIPT"
 
 socat -u "TCP-LISTEN:$PORT,reuseaddr,fork" OPEN:/dev/null &
 LISTENER=$!
-sleep 0.5
+for _ in $(seq 20); do [ -n "$(ss -tHln "sport = :$PORT" 2>/dev/null)" ] && break; sleep 0.1; done
 
 i=1
 for c in $CASES; do
