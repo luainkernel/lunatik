@@ -172,7 +172,7 @@ release named with what changed in it or above a table, the counterfactual, the 
 inside code and the trailing comment past the width
 (`comment-style.sh`), the branches, argument tables and inline functions the Lua style rules settle
 (`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script skips
-(`test-harness.sh`), cppcheck on
+(`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
@@ -262,7 +262,10 @@ share three fields can be two different hooks.
 `test-harness.sh` reads a test's Lua script as well as its `.sh`, for a case the script runs under a
 condition: when the condition is false the case reports nothing and the script's one KTAP line
 counts it as passed, which `tests/runtime/percpu_object` did on a single CPU, as #1166 found, so
-the skip is decided in the `.sh`, where it is a `# SKIP` line.
+the skip is decided in the `.sh`, where it is a `# SKIP` line. `kthread.sh` names a loop on
+`thread.shouldstop()` whose body has no pause it can see, the shape of the four `tests/rcu` bodies
+#1167 found; it knows a pause by its name, in the loop or in a function of the same file the loop
+calls, so one behind another module reads as none, and the review decides.
 
 `author-email.sh` reads a rev-range and names a commit whose author email is not the one the base
 uses most for that author's name: a rebase or a squash done from another checkout signs the result
@@ -512,6 +515,11 @@ Unbounded blocking calls in a kernel thread make it unstoppable: the thread body
 runtime lock, and `stop()` waits for the body to return, which a `sock:receive()` with no timeout never
 does — the socket layer does not check `kthread_should_stop()`. To wait indefinitely, bound each call
 (a receive timeout, or `MSG_DONTWAIT`) and poll `shouldstop()` in the loop.
+
+A body that races another thread, a stress, pauses once per slice of its running rather than once
+per turn: `linux.schedule()` sleeps until a timer fires whatever the timeout, 0 included, and a
+pause per turn left `tests/rcu/object_grace` without a single read of the zero count it stresses,
+where one per 10 ms kept about as many as a loop with none.
 
 ## Object model
 
