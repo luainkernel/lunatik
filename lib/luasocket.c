@@ -12,8 +12,13 @@
 * [GSoC project](https://summerofcode.withgoogle.com/archive/2018/projects/5993341447569408).
 *
 * It allows operations such as creating sockets, binding, listening, connecting,
-* sending, and receiving data. The library also exposes constants for address
-* families, socket types, IP protocols, and message flags.
+* sending, and receiving data. The constants for address families, socket types,
+* protocols, message flags and option levels and names are in `linux.socket`
+* (`af`, `sock`, `ipproto`, `msg`, `sol`, `so`).
+*
+* Sockets sleep: a script creates and uses them in a process runtime, the default, or in a
+* spawned thread. In a softirq or hardirq runtime, `socket.new` and `accept` raise
+* `'socket': process-context class in interrupt-context runtime`.
 *
 * For higher-level IPv4 TCP/UDP socket operations with string-based IP addresses
 * (e.g., "127.0.0.1"), consider using the `socket.inet` library.
@@ -170,6 +175,17 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 
 /***
 * A kernel socket, returned by `socket.new()`.
+*
+* A method that takes an address reads it the way the family the socket was created with spells it:
+*
+* - `AF_INET`: two integers, the IPv4 address (e.g. from `net.aton()`) and the port.
+* - `AF_PACKET`: two integers, the ethertype in host byte order and the interface index.
+* - `AF_NETLINK`: two optional integers, the port id and the multicast groups, both 0 by default.
+* - `AF_UNIX`: a string, a filesystem path or, with a leading NUL, an abstract name.
+* - Other families: a packed string of the address bytes past the family.
+*
+* A method that returns an address returns it the same way, except for `AF_PACKET`, which returns
+* the packed string.
 * @type socket
 */
 
@@ -180,15 +196,17 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 * as the connection is already established.
 * For connectionless sockets (`SOCK_DGRAM`), `addr` and `port` (if applicable for the
 * address family) specify the destination.
+* A netlink socket always sends to an address, the kernel's (port id 0) when none is given.
 *
 * @function send
 * @tparam string message message to send.
-* @tparam[opt] integer|string addr destination address.
+* @tparam[opt] integer|string addr destination address, as the `socket` type describes it.
 *
 * - For `AF_INET` (IPv4) sockets: An integer representing the IPv4 address (e.g., from `net.aton()`).
-* - For other address families (e.g., `AF_PACKET`): A packed string representing the destination address
-*   (e.g., MAC address for `AF_PACKET`). The exact format depends on the family.
-* @tparam[opt] integer port destination port number (required if `addr` is an IPv4 address for `AF_INET`).
+* - For `AF_PACKET`: the ethertype, in host byte order.
+* - For `AF_NETLINK`: the destination port id.
+* @tparam[opt] integer port the address's second integer: the destination port number for
+*   `AF_INET`, the interface index for `AF_PACKET`, the multicast groups for `AF_NETLINK`.
 * @treturn integer number of bytes sent.
 * @raise Error if the send operation fails or if address parameters are incorrect for the socket type,
 *   or on a netlink socket under RTNL, as from a netdevice callback.
@@ -229,22 +247,30 @@ static int luasocket_send(lua_State *L)
 
 /***
 * Receives a message from the socket.
+* The call blocks until a message arrives, with no timeout of its own, unless `flags` carries
+* `linux.socket.msg.DONTWAIT` or `setsockopt` set a receive timeout
+* (`linux.socket.so.RCVTIMEO_NEW`); either makes a wait with nothing to read raise `EAGAIN`.
+* A `lunatik stop` of the spawned thread that waits ends its wait; a thread nothing stops, as a
+* worker a body starts with `thread.run()`, bounds every wait.
 *
 * @function receive
 * @tparam integer length maximum number of bytes to receive.
 * @tparam[opt=0] integer flags Optional message flags (e.g., `linux.socket.msg.PEEK`).
 *   See the `linux.socket.msg` table for available flags. These can be OR'd together.
 * @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
-*   and port (for `AF_INET`). This is typically used with connectionless sockets (`SOCK_DGRAM`).
+*   (two values for `AF_INET` and `AF_NETLINK`). This is typically used with connectionless
+*   sockets (`SOCK_DGRAM`).
 * @treturn string received message (as a string of bytes).
 * @treturn[opt] integer|string addr If `from` is true and the protocol named a sender, its address.
 *   TCP names none, and neither does an `AF_UNIX` peer that never bound; nothing follows the message
 *   then.
 *   - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
 *   - For `AF_UNIX`: The sender's name, carrying its leading NUL when the name is an abstract one.
+*   - For `AF_NETLINK`: The sender's port id.
 *   - For other families: A packed string of the sender's address past the family, of the length the
 *     protocol reports.
-* @treturn[opt] integer port If `from` is true and the family is `AF_INET`, the sender's port number.
+* @treturn[opt] integer port If `from` is true, the sender's port number for `AF_INET`, and its
+*   multicast groups for `AF_NETLINK`.
 * @raise Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
 *   callback.
 * @usage
@@ -292,7 +318,8 @@ static int luasocket_receive(lua_State *L)
 * connectionless sockets to specify a local port/interface for receiving.
 *
 * @function bind
-* @tparam integer|string addr local address to bind to. Interpretation depends on `socket.sk.sk_family`:
+* @tparam integer|string addr local address to bind to. Interpretation depends on the family the
+*   socket was created with:
 *
 *   - `AF_INET` (IPv4): An integer representing the IPv4 address (e.g., from `net.aton()`).
 *     Use `0` (or `net.aton("0.0.0.0")`) to bind to all available interfaces.
@@ -300,6 +327,7 @@ static int luasocket_receive(lua_State *L)
 *   - `AF_PACKET`: An integer representing the ethernet protocol in host byte order
 *     (e.g., `0x0003` for `ETH_P_ALL`, `0x88CC` for `ETH_P_LLDP`)
 *     The `port` argument is also required.
+*   - `AF_NETLINK`: The port id, 0 to let the kernel pick one; `port` carries the multicast groups.
 *   - `AF_UNIX`: A filesystem path, or, when its first byte is NUL (e.g. `"\0name"`), a name in the
 *     abstract namespace, which is registered as the exact bytes given, so a peer of any kind reaches
 *     it by the same string. The empty string asks the kernel to pick a name (autobind).
@@ -308,6 +336,7 @@ static int luasocket_receive(lua_State *L)
 * @tparam[opt] integer port local port or interface index.
 *   - `AF_INET`: TCP/UDP port number.
 *   - `AF_PACKET`: Network interface index (e.g., from `linux.ifindex("eth0")`).
+*   - `AF_NETLINK`: Multicast groups to join.
 *
 * @treturn nil
 * @raise Error if the bind operation fails (e.g., address already in use, invalid address), or
@@ -368,12 +397,14 @@ static int luasocket_listen(lua_State *L)
 *
 * @function connect
 * @tparam integer|string addr destination address to connect to.
-*   Interpretation depends on `socket.sk.sk_family`:
+*   Interpretation depends on the family the socket was created with:
 *
 *   - `AF_INET` (IPv4): An integer representing the IPv4 address (e.g., from `net.aton()`).
 *     The `port` argument is also required.
-*   - Other families: A packed string representing the family-specific destination address.
-* @tparam[opt] integer port destination port number (required and used only if the family is `AF_INET`).
+*   - `AF_PACKET` and `AF_NETLINK`: The first of the two integers the `socket` type describes.
+*   - Other families: The address as the `socket` type describes it.
+* @tparam[opt] integer port the address's second integer, for `AF_INET`, `AF_PACKET` and
+*   `AF_NETLINK`; for any other family, `flags` takes this place.
 * @tparam[opt=0] integer flags file status flags: `O_NONBLOCK` makes a connect that cannot
 *   complete at once raise instead of waiting for it. `linux.socket.sock.NONBLOCK` carries
 *   `O_NONBLOCK` on every architecture but alpha and parisc.
@@ -417,13 +448,16 @@ static int luasocket_get##what(lua_State *L)					\
 * - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
 * - For `AF_UNIX`: The bound name, carrying its leading NUL when the name is an abstract one, and the
 *   empty string when the socket is unbound.
+* - For `AF_NETLINK`: The port id.
 * - For other families: A packed string of the address bytes past the family, of the length the kernel
 *   reports, which for `AF_PACKET` follows the interface's hardware address length.
-* @treturn[opt] integer port If the family is `AF_INET`, the local port number.
+* @treturn[opt] integer port The local port number for `AF_INET`, and the multicast groups for
+*   `AF_NETLINK`.
 * @raise Error if the operation fails.
 * @usage
+*   -- an AF_INET socket
 *   local local_ip_int, local_port = my_socket:getsockname()
-*   if my_socket.sk.sk_family == linux.socket.af.INET then print("Bound to " .. net.ntoa(local_ip_int) .. ":" .. local_port) end
+*   print("Bound to " .. net.ntoa(local_ip_int) .. ":" .. local_port)
 */
 LUASOCKET_NEWGETTER(sockname);
 
@@ -439,13 +473,16 @@ LUASOCKET_NEWGETTER(sockname);
 * - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
 * - For `AF_UNIX`: The peer's name, carrying its leading NUL when the name is an abstract one, and the
 *   empty string when the peer is unbound.
+* - For `AF_NETLINK`: The peer's port id.
 * - For other families: A packed string of the address bytes past the family, of the length the kernel
 *   reports.
-* @treturn[opt] integer port If the family is `AF_INET`, the peer's port number.
+* @treturn[opt] integer port The peer's port number for `AF_INET`, and its multicast groups for
+*   `AF_NETLINK`.
 * @raise Error if the operation fails (e.g., socket not connected).
 * @usage
+*   -- a connected AF_INET socket
 *   local peer_ip_int, peer_port = connected_socket:getpeername()
-*   if connected_socket.sk.sk_family == linux.socket.af.INET then print("Connected to " .. net.ntoa(peer_ip_int) .. ":" .. peer_port) end
+*   print("Connected to " .. net.ntoa(peer_ip_int) .. ":" .. peer_port)
 */
 LUASOCKET_NEWGETTER(peername);
 
@@ -461,7 +498,8 @@ LUASOCKET_NEWGETTER(peername);
 * @tparam integer|string value option value: an integer for the common `int`
 *   payload, or a string carrying the option's packed binary payload.
 * @raise Error if the operation fails, or at a level other than `SOL_SOCKET` under RTNL, as from a
-*   netdevice callback.
+*   netdevice callback; `unsupported option level` on a kernel before 6.7, at a level the socket's
+*   protocol has no `setsockopt` for.
 * @usage
 *   -- bound blocking receives to 500 ms (a `struct __kernel_sock_timeval`)
 *   sock:setsockopt(sol.SOCKET, so.RCVTIMEO_NEW, timeval:pack(0, 500000))
@@ -598,9 +636,10 @@ static inline void luasocket_upgrade(struct sock *sk)
 * Accepts a connection on a listening socket.
 * This function is used with connection-oriented sockets (e.g., `SOCK_STREAM`)
 * that have been put into the listening state by `sock:listen()`.
+* The call blocks until a connection arrives, with no timeout of its own, unless `flags` carries
+* `O_NONBLOCK` or `setsockopt` set a receive timeout; `receive` says how a stop ends the wait.
 *
 * @function accept
-* @tparam socket self listening socket object.
 * @tparam[opt=0] integer flags file status flags: `O_NONBLOCK` makes the call raise when no
 *   connection is pending instead of waiting for one. `linux.socket.sock.NONBLOCK` carries
 *   `O_NONBLOCK` on every architecture but alpha and parisc.
@@ -635,8 +674,9 @@ static int luasocket_accept(lua_State *L)
 *   `netfilter`) keeps to the initial network namespace.
 * @treturn socket A new socket object. A socket a netdevice callback may collect is closed by the
 *   script first, not dropped: its release cannot refuse where the collector drops it.
-* @raise Error if socket creation fails, `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel
-*   whose sockets cannot hold a namespace of their own.
+* @raise Error if socket creation fails, `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel
+*   whose sockets cannot hold a namespace of their own, or
+*   `'socket': process-context class in interrupt-context runtime` in a softirq or hardirq runtime.
 * @usage
 *   -- TCP/IPv4 socket
 *   local tcp_sock = socket.new(linux.socket.af.INET, linux.socket.sock.STREAM, linux.socket.ipproto.TCP)
