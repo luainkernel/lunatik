@@ -53,7 +53,7 @@ kernel threads and more. A command line tool loads and manages them from user sp
         <a class="btn" href="https://github.com/luainkernel/lunatik">GitHub</a>
     </div>
     <ul class="facts">
-        <li><strong>76</strong> Lua modules</li>
+        <li><strong>77</strong> Lua modules</li>
         <li>Linux <strong>6.6</strong> and later</li>
         <li>Process, softirq and hardirq hooks</li>
     </ul>
@@ -215,6 +215,10 @@ kernel threads and more. A command line tool loads and manages them from user sp
   <li><a href="modules/linux.tc.html">linux.tc</a></li>
   <li><a href="modules/linux.vt.html">linux.vt</a></li>
   <li><a href="modules/linux.xdp.html">linux.xdp</a></li>
+</ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="modules/util.html">util</a></li>
 </ul>
 </aside>
 
@@ -610,7 +614,8 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 <div class="tbl"><table class="module_list">
 	<tr>
 		<td class="name"><a href="modules/byteorder.html">byteorder</a></td>
-		<td class="summary">Byte Order Conversion</td>
+		<td class="summary">Converts integers between host, big-endian (network) and little-endian byte order, typically
+ around the <a href="modules/data.html#">data</a> accessors, which read and write in host order.</td>
 	</tr>
 	<tr>
 		<td class="name"><a href="modules/class.html">class</a></td>
@@ -684,7 +689,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 	</tr>
 	<tr>
 		<td class="name"><a href="modules/signal.html">signal</a></td>
-		<td class="summary">POSIX Signals</td>
+		<td class="summary">Reads and changes the signal state of the calling task, and sends signals.</td>
 	</tr>
 	<tr>
 		<td class="name"><a href="modules/task.html">task</a></td>
@@ -778,6 +783,13 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.xdp.html#">linux.xdp</a>.</td>
 	</tr>
 </table></div>
+<h3 id="api-other">Other</h3>
+<div class="tbl"><table class="module_list">
+	<tr>
+		<td class="name"><a href="modules/util.html">util</a></td>
+		<td class="summary">Utility functions.</td>
+	</tr>
+</table></div>
 
 </main>
 
@@ -790,7 +802,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -171,9 +175,10 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-system">System</a></div>
 <h1>linux<span class="kind">Module</span></h1>
 <p class="lead">Various Linux kernel facilities.</p>
- This library includes functions for random number generation, task scheduling,
- time retrieval, kernel symbol lookup, network interface information,
- access to kernel constants like file modes, task states, and error numbers.
+ This library includes functions for random number generation, sleeping, tracing,
+ time retrieval, kernel symbol lookup, network interface and namespace ids, errno
+ names and the CPU count. Kernel constants live in the <code>linux.*</code> modules, as
+ <code>require(&quot;linux.stat&quot;)</code> for file modes and <code>require(&quot;linux.task&quot;)</code> for task states.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -273,8 +278,8 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        symbolic error name (e.g., &ldquo;ENOENT&rdquo;).
- Returns &ldquo;unknown&rdquo; (or the error number as a string) if the name cannot be resolved.
+        symbolic error name (e.g., &ldquo;ENOENT&rdquo;), or &ldquo;unknown&rdquo; if the name cannot be
+ resolved. The sign of <code>err</code> is ignored.
     </ol>
 
 
@@ -287,6 +292,8 @@
     <dt id="ifaddr"><a name="ifaddr"></a><strong>ifaddr (ifindex)</strong></dt>
     <dd>
     Gets the HW address for the network interface index.
+ Resolved in the initial network namespace: a device of another namespace raises &ldquo;device not
+ found&rdquo; (see <a href="../modules/linux.html#netns">linux.netns</a>).
 
 
     <h3>Parameters</h3>
@@ -316,6 +323,8 @@
     <dt id="ifindex"><a name="ifindex"></a><strong>ifindex (interface_name)</strong></dt>
     <dd>
     Gets the interface index for a network device name.
+ Resolved in the initial network namespace: a device of another namespace raises &ldquo;device not
+ found&rdquo; (see <a href="../modules/linux.html#netns">linux.netns</a>).
 
 
     <h3>Parameters</h3>
@@ -346,7 +355,9 @@
     <dd>
     Looks up a kernel symbol by name.
  Uses <code>kallsyms_lookup_name</code> (potentially via kprobes) to find the address
- of a kernel symbol.
+ of a kernel symbol. In a module build, the usual one, that function is resolved through a
+ kprobe when <a href="../modules/lunatik.html#">lunatik</a> loads: without <code>CONFIG_KPROBES</code>, or if that kprobe fails to register,
+ every lookup returns <code>nil</code>.
  Safe to call from softirq and hardirq.
 
 
@@ -486,8 +497,8 @@
         </li>
         <li><span class="parameter">state</span>
             <span class="types"><span class="type">integer</span></span>
-         task state to set before sleeping.
- See <a href="../modules/linux.task.html#">linux.task</a> for possible values. Defaults to <code>TASK_INTERRUPTIBLE</code>.
+         task state to set before sleeping: <code>linux.task.INTERRUPTIBLE</code> (the
+ default), <code>UNINTERRUPTIBLE</code>, <code>KILLABLE</code> or <code>IDLE</code>; any other raises &ldquo;invalid task state&rdquo;.
          (<em>optional</em>)
         </li>
     </ul>
@@ -554,8 +565,8 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 
 
     <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> was_tracing = linux.<span class="function-name">tracing</span>(<span class="keyword">true</span>) <span class="comment">-- Enable tracing
-</span><span class="keyword">if</span> was_tracing <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Tracing is now on"</span>) <span class="keyword">end</span>
+        <pre class="example"><span class="keyword">local</span> is_on = linux.<span class="function-name">tracing</span>(<span class="keyword">true</span>) <span class="comment">-- Enable tracing
+</span><span class="keyword">if</span> is_on <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Tracing is now on"</span>) <span class="keyword">end</span>
 <span class="keyword">local</span> current_state = linux.<span class="function-name">tracing</span>()   <span class="comment">-- Get current state
 </span>linux.<span class="function-name">tracing</span>(<span class="keyword">false</span>)                    <span class="comment">-- Disable tracing</span></pre>
 
@@ -574,7 +585,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

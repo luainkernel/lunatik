@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -183,15 +187,15 @@
 	<td class="summary">Lists the names of all currently running scripts.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#run">run (script[, context[, ispercpu]])</a></td>
-	<td class="summary">Runs a Lunatik script in the current context.</td>
+	<td class="name"><a href="#run">run (script[, context="process"[, ispercpu]])</a></td>
+	<td class="summary">Runs a script in a new runtime of the given context and registers it under its name.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#shutdown">shutdown ()</a></td>
 	<td class="summary">Shuts down all running scripts and their threads.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#spawn">spawn (script[, context[, ispercpu]])</a></td>
+	<td class="name"><a href="#spawn">spawn (script[, context="process"[, ispercpu]])</a></td>
 	<td class="summary">Spawns a Lunatik script in a new kernel thread.</td>
 	</tr>
 	<tr>
@@ -225,11 +229,9 @@
 
 
 </dd>
-    <dt id="run"><a name="run"></a><strong>run (script[, context[, ispercpu]])</strong></dt>
+    <dt id="run"><a name="run"></a><strong>run (script[, context="process"[, ispercpu]])</strong></dt>
     <dd>
-    Runs a Lunatik script in the current context.
- Creates a new Lunatik runtime for the given script and registers it.
- Throws an error if a script with the same name is already running.
+    Runs a script in a new runtime of the given context and registers it under its name.
 
 
     <h3>Parameters</h3>
@@ -240,9 +242,9 @@
         </li>
         <li><span class="parameter">context</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         Execution context: <code>&quot;process&quot;</code> (default), <code>&quot;softirq&quot;</code> (netfilter, XDP)
-   or <code>&quot;hardirq&quot;</code> (kprobes).
-         (<em>optional</em>)
+         execution context, as in <a href="../modules/lunatik.html#runtime">lunatik.runtime</a>: <code>&quot;process&quot;</code>,
+   <code>&quot;softirq&quot;</code> (netfilter, XDP) or <code>&quot;hardirq&quot;</code> (kprobes).
+         (<em>default</em> "process")
         </li>
         <li><span class="parameter">ispercpu</span>
             <span class="types"><span class="type">boolean</span></span>
@@ -260,12 +262,13 @@
     <h3>Returns</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        created Lunatik runtime object, or the percpu object when <code>ispercpu</code> is set.
+           <span class="types"><span class="type">runtime</span> or <span class="type">percpu</span></span>
+        the runtime, or the percpu set when <code>ispercpu</code> is set.
     </ol>
 
     <h3>Raises</h3>
-    error if the script is already running.
+    <code>&quot;&lt;script&gt; is already running&quot;</code>, <code>&quot;invalid option &apos;&lt;context&gt;&apos;&quot;</code>, or the error the script raises on
+   load.
 
 
 
@@ -283,7 +286,7 @@
 
 
 </dd>
-    <dt id="spawn"><a name="spawn"></a><strong>spawn (script[, context[, ispercpu]])</strong></dt>
+    <dt id="spawn"><a name="spawn"></a><strong>spawn (script[, context="process"[, ispercpu]])</strong></dt>
     <dd>
     Spawns a Lunatik script in a new kernel thread.
  First, it runs the script using <a href="../modules/lunatik.runner.html#run">runner.run</a>, then creates a new kernel thread
@@ -300,13 +303,13 @@
         </li>
         <li><span class="parameter">context</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         Execution context, <code>&quot;process&quot;</code> (default): a softirq or hardirq
-   runtime raises <code>IRQ runtime cannot spawn threads</code>.
-         (<em>optional</em>)
+         execution context of the runtime; only <code>&quot;process&quot;</code> can
+   spawn: a softirq or hardirq runtime raises <code>IRQ runtime cannot spawn threads</code>.
+         (<em>default</em> "process")
         </li>
         <li><span class="parameter">ispercpu</span>
             <span class="types"><span class="type">boolean</span></span>
-         refused: spawn does not support percpu scripts.
+         must be false, or spawn raises <code>spawn does not support percpu scripts</code>.
          (<em>optional</em>)
         </li>
     </ul>
@@ -314,7 +317,7 @@
     <h3>Returns</h3>
     <ol>
 
-           <span class="types"><span class="type">userdata</span></span>
+           <span class="types"><span class="type">thread</span></span>
         kernel thread object.
     </ol>
 
@@ -380,7 +383,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

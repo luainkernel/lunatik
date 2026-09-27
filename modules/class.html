@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -185,7 +189,45 @@ function Point:sum() return self.x + self.y end
 local point &lt;close&gt; = Point:new{x = 1, y = 2}   -- point:sum() == 3
 </pre>
 
+<h2 id="Functions">Functions</h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#class">class ([class])</a></td>
+	<td class="summary">Makes <a href="../modules/class.html#">class</a> an instantiable class by attaching the shared <code>:new</code>.</td>
+	</tr>
+</table></div>
 
+    <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
+
+    <dl class="function">
+    <dt id="class"><a name="class"></a><strong>class ([class])</strong></dt>
+    <dd>
+    Makes <a href="../modules/class.html#">class</a> an instantiable class by attaching the shared <code>:new</code>.
+ <code>class:new(o)</code> sets <code>__index</code> and <code>__close</code> on the class, the latter from <code>close</code> as it is at
+ that call, then makes the class the metatable of <code>o</code>.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">class</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         the class table (defaults to a fresh table).
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        the same table, ready to receive methods and be instantiated.
+    </ol>
+
+
+
+
+</dd>
+</dl>
 
 
 </main>
@@ -199,7 +241,7 @@ local point &lt;close&gt; = Point:new{x = 1, y = 2}   -- point:sum() == 3
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

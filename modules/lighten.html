@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -171,8 +175,23 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-crypto">Cryptography</a></div>
 <h1>lighten<span class="kind">Module</span></h1>
 <p class="lead">Encrypted Lua script support (AES-256-CTR).</p>
- This module provides functions to run encrypted Lua scripts
- using the <a href="../modules/darken.html#">darken</a> C module.
+<p> This module provides functions to run encrypted Lua scripts
+ using the <a href="../modules/darken.html#">darken</a> C module.</p>
+
+<p> The key is the module <code>light</code>, <code>/lib/modules/lua/light.lua</code>, which returns the hex-encoded
+ 32-byte key; without it, <code>require(&quot;lighten&quot;)</code> raises &ldquo;error loading module &lsquo;light&rsquo; from file &lsquo;light&rsquo;&rdquo;.
+ <code>tools/shade.sh darken [-s &lt;secret&gt;] &lt;script&gt;.lua</code> encrypts a script into <code>&lt;script&gt;.dark.lua</code>,
+ which calls <a href="../modules/lighten.html#run">lighten.run</a>, and prints the secret, 64 hex characters;
+ <code>tools/shade.sh lighten &lt;secret&gt;</code> writes <code>light.lua</code> from it. With <code>-t</code> both derive the key from
+ the current 30 second step, so <code>light.lua</code> and the dark script are generated in the same step:</p>
+
+<pre>
+SECRET=$(tools/shade.sh darken hello.lua)
+tools/shade.sh <span class="function-name">lighten</span> <span class="string">"$SECRET"</span>
+sudo cp light.lua hello.dark.lua /lib/modules/lua/
+sudo lunatik run hello.dark
+</pre>
+
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -226,7 +245,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -172,6 +176,9 @@
 <h1>linux.socket<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.socket.html#">linux.socket</a>.</p>
  Values are populated at build time from the kernel headers.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">local socket = require(&quot;linux.socket&quot;)
+</pre>
 
 <h2 id="Tables">Tables</h2>
 <div class="tbl"><table class="function_list">
@@ -212,6 +219,7 @@
     <dd>
     Socket address families.
  Mirrors <code>AF_*</code> defines in <code>&lt;linux/socket.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>AF_&lt;NAME&gt;</code> is <code>linux.socket.af.&lt;NAME&gt;</code>.
 
 
 
@@ -224,6 +232,7 @@
     <dd>
     IP-layer protocol numbers.
  Mirrors <code>IPPROTO_*</code> defines in <code>&lt;uapi/linux/in.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>IPPROTO_&lt;NAME&gt;</code> is <code>linux.socket.ipproto.&lt;NAME&gt;</code>.
 
 
 
@@ -248,6 +257,7 @@
     <dd>
     Message flags for send/recv.
  Mirrors <code>MSG_*</code> defines in <code>&lt;linux/socket.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>MSG_&lt;NAME&gt;</code> is <code>linux.socket.msg.&lt;NAME&gt;</code>.
 
 
 
@@ -260,6 +270,7 @@
     <dd>
     Socket-level option names (SO_<em>).
  Mirrors <code>SO_</em></code> defines in <code>&lt;uapi/asm-generic/socket.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>SO_&lt;NAME&gt;</code> is <code>linux.socket.so.&lt;NAME&gt;</code>.
 
 
 
@@ -272,6 +283,7 @@
     <dd>
     Socket types (SOCK_STREAM, SOCK_DGRAM, &hellip;).
  Mirrors <code>SOCK_*</code> defines in <code>&lt;linux/net.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>SOCK_&lt;NAME&gt;</code> is <code>linux.socket.sock.&lt;NAME&gt;</code>.
 
 
 
@@ -284,6 +296,7 @@
     <dd>
     Socket option levels (SOL_<em>).
  Mirrors <code>SOL_</em></code> defines in <code>&lt;linux/socket.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>SOL_&lt;NAME&gt;</code> is <code>linux.socket.sol.&lt;NAME&gt;</code>.
 
 
 
@@ -306,7 +319,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

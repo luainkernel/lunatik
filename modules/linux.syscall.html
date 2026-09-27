@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -172,6 +176,9 @@
 <h1>linux.syscall<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.syscall.html#">linux.syscall</a>.</p>
  Values are populated at build time from the kernel headers.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">local syscall = require(&quot;linux.syscall&quot;)
+</pre>
 
 <h2 id="Tables">Tables</h2>
 <div class="tbl"><table class="function_list">
@@ -188,6 +195,7 @@
     <dd>
     System call numbers (<code>__NR_<em></code>) for the build arch.
  Mirrors <code>__NR_</em></code> defines in <code>&lt;asm/unistd.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>__NR_&lt;NAME&gt;</code> is <code>linux.syscall.numbers.&lt;NAME&gt;</code>.
 
 
 
@@ -210,7 +218,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

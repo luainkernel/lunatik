@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -175,6 +179,10 @@
 
 <h2 id="Methods">Methods</h2>
 <div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#crypto_aead:algname">crypto_aead:algname ()</a></td>
+	<td class="summary">Returns the driver-independent name of the algorithm the transform was allocated with.</td>
+	</tr>
 	<tr>
 	<td class="name"><a href="#crypto_aead:authsize">crypto_aead:authsize ()</a></td>
 	<td class="summary">Returns the authentication tag size in bytes.</td>
@@ -192,10 +200,6 @@
 	<td class="summary">Returns the required IV size in bytes.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#crypto_aead:new">crypto_aead:new (algname)</a></td>
-	<td class="summary">Creates a new AEAD transform object.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#crypto_aead:setauthsize">crypto_aead:setauthsize (tagsize)</a></td>
 	<td class="summary">Sets the authentication tag size.</td>
 	</tr>
@@ -208,6 +212,23 @@
     <h2 class="section-header" id="Methods-details"><a name="Methods"></a>Methods in detail</h2>
 
     <dl class="function">
+    <dt id="crypto_aead:algname"><a name="crypto_aead:algname"></a><strong>crypto_aead:algname ()</strong></dt>
+    <dd>
+    Returns the driver-independent name of the algorithm the transform was allocated with.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+
+    </ol>
+
+
+
+
+</dd>
     <dt id="crypto_aead:authsize"><a name="crypto_aead:authsize"></a><strong>crypto_aead:authsize ()</strong></dt>
     <dd>
     Returns the authentication tag size in bytes.
@@ -314,35 +335,6 @@
 
 
 </dd>
-    <dt id="crypto_aead:new"><a name="crypto_aead:new"></a><strong>crypto_aead:new (algname)</strong></dt>
-    <dd>
-    Creates a new AEAD transform object.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">algname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         algorithm name (e.g., &ldquo;gcm(aes)&rdquo;, &ldquo;ccm(aes)&rdquo;)
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">crypto_aead</span></span>
-
-    </ol>
-
-    <h3>Raises</h3>
-    on allocation failure
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> aead = <span class="global">require</span>(<span class="string">"crypto"</span>).aead
-<span class="keyword">local</span> cipher = <span class="function-name">aead</span>(<span class="string">"gcm(aes)"</span>)</pre>
-
-</dd>
     <dt id="crypto_aead:setauthsize"><a name="crypto_aead:setauthsize"></a><strong>crypto_aead:setauthsize (tagsize)</strong></dt>
     <dd>
     Sets the authentication tag size.
@@ -397,7 +389,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

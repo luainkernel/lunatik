@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -175,6 +179,10 @@
 
 <h2 id="Methods">Methods</h2>
 <div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#crypto_shash:algname">crypto_shash:algname ()</a></td>
+	<td class="summary">Returns the driver-independent name of the algorithm the transform was allocated with.</td>
+	</tr>
 	<tr>
 	<td class="name"><a href="#crypto_shash:digest">crypto_shash:digest (data)</a></td>
 	<td class="summary">Computes the digest of data in a single call.</td>
@@ -204,10 +212,6 @@
 	<td class="summary">Initializes the hash state for incremental hashing.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#crypto_shash:new">crypto_shash:new (algname)</a></td>
-	<td class="summary">Creates a new SHASH object.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#crypto_shash:setkey">crypto_shash:setkey (key)</a></td>
 	<td class="summary">Sets the key (required for HMAC algorithms).</td>
 	</tr>
@@ -220,6 +224,23 @@
     <h2 class="section-header" id="Methods-details"><a name="Methods"></a>Methods in detail</h2>
 
     <dl class="function">
+    <dt id="crypto_shash:algname"><a name="crypto_shash:algname"></a><strong>crypto_shash:algname ()</strong></dt>
+    <dd>
+    Returns the driver-independent name of the algorithm the transform was allocated with.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+
+    </ol>
+
+
+
+
+</dd>
     <dt id="crypto_shash:digest"><a name="crypto_shash:digest"></a><strong>crypto_shash:digest (data)</strong></dt>
     <dd>
     Computes the digest of data in a single call.
@@ -358,35 +379,6 @@
 
 
 </dd>
-    <dt id="crypto_shash:new"><a name="crypto_shash:new"></a><strong>crypto_shash:new (algname)</strong></dt>
-    <dd>
-    Creates a new SHASH object.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">algname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         algorithm name (e.g., &ldquo;sha256&rdquo;, &ldquo;hmac(sha256)&rdquo;)
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">crypto_shash</span></span>
-
-    </ol>
-
-    <h3>Raises</h3>
-    on allocation failure
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> shash = <span class="global">require</span>(<span class="string">"crypto"</span>).shash
-<span class="keyword">local</span> h = <span class="function-name">shash</span>(<span class="string">"sha256"</span>)</pre>
-
-</dd>
     <dt id="crypto_shash:setkey"><a name="crypto_shash:setkey"></a><strong>crypto_shash:setkey (key)</strong></dt>
     <dd>
     Sets the key (required for HMAC algorithms).
@@ -441,7 +433,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -175,21 +179,37 @@
  to send and receive messages to/from each other. It uses a FIFO queue
  for message storage and a completion object for synchronization.</p>
 
-<p> Mailboxes are unidirectional (<a href="../modules/mailbox.html#mailbox:inbox">inbox</a> for receiving only, <a href="../modules/mailbox.html#mailbox:outbox">outbox</a> for sending only).
- Messages are serialized as strings.
+<p> Mailboxes are unidirectional (<a href="../modules/mailbox.html#inbox">inbox</a> for receiving only, <a href="../modules/mailbox.html#outbox">outbox</a> for sending only).
+ Messages are serialized as strings.</p>
+
+<p> The receiver creates the inbox and hands its <code>queue</code> and <code>event</code> to the other runtime, as
+ through <code>runtime:resume</code>, where the sender builds <code>mailbox.outbox(queue, event)</code>: a mailbox
+ built on an existing fifo needs its completion too. <a href="../modules/mailbox.html#MailBox:send">send</a> works in any context; <a href="../modules/mailbox.html#MailBox:receive">receive</a>
+ sleeps, and a softirq or hardirq runtime refuses it.
     <h3>See also</h3>
     <ul>
          <li><a href="../modules/fifo.html#">fifo</a></li>
          <li><a href="../modules/completion.html#">completion</a></li>
     </ul>
+    <h2 id="usage">Usage</h2>
+        <pre class="example">-- receiver.lua, run with `lunatik run receiver`
+local lunatik = require(&quot;lunatik&quot;)
+local mailbox = require(&quot;mailbox&quot;)
 
-<h2 id="Tables">Tables</h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#mailbox">mailbox</a></td>
-	<td class="summary">The main mailbox table.</td>
-	</tr>
-</table></div>
+local inbox = mailbox.inbox(4096)
+local sender &lt;close&gt; = lunatik.runtime(&quot;sender&quot;)
+sender:resume(inbox.queue, inbox.event)
+print(inbox:receive(1000)) -- hello 5
+
+-- sender.lua
+local mailbox = require(&quot;mailbox&quot;)
+
+local function send(queue, event)
+	mailbox.outbox(queue, event):send(&quot;hello&quot;)
+end
+return send
+</pre>
+
 <h2 id="Class_MailBox">Class MailBox </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
@@ -200,31 +220,19 @@
 	<td class="name"><a href="#MailBox:send">MailBox:send (message)</a></td>
 	<td class="summary">Sends a message to the mailbox.</td>
 	</tr>
+</table></div>
+<h2 id="mailbox">mailbox</h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#mailbox:inbox">mailbox:inbox (q, e)</a></td>
+	<td class="name"><a href="#inbox">inbox (q, e)</a></td>
 	<td class="summary">Creates a new inbox (receive-only mailbox).</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#mailbox:outbox">mailbox:outbox (q, e)</a></td>
+	<td class="name"><a href="#outbox">outbox (q, e)</a></td>
 	<td class="summary">Creates a new outbox (send-only mailbox).</td>
 	</tr>
 </table></div>
 
-    <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
-
-    <dl class="function">
-    <dt id="mailbox"><a name="mailbox"></a><strong>mailbox</strong></dt>
-    <dd>
-    The main mailbox table.
-
-
-
-
-
-
-
-</dd>
-</dl>
     <h2 class="section-header" id="Class_MailBox-details"><a name="Class_MailBox"></a><a name="MailBox"></a>Class MailBox  in detail</h2>
 
           <div class="section-description">
@@ -243,7 +251,7 @@
     <ul>
         <li><span class="parameter">timeout</span>
             <span class="types"><span class="type">number</span></span>
-         maximum time to wait in jiffies.
+         maximum time to wait in milliseconds.
    If omitted or negative, waits indefinitely. If 0, returns immediately.
          (<em>optional</em>)
         </li>
@@ -252,22 +260,18 @@
     <h3>Returns</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        received message.</li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <span class="type">nil</span></span>
+        the message, or <code>nil</code> if the event fired with the queue empty.</li>
         <li>
-           <span class="types"><span class="type">nil</span></span>
-        If no message is received (e.g., FIFO is empty after event or on timeout).</li>
-    </ol>
-     <h3>Or</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        Error message if the wait times out or another error occurs.
+           <span class="types"><span class="type">integer</span></span>
+        the message&rsquo;s length, beside a message.</li>
     </ol>
 
     <h3>Raises</h3>
-    Error if called on an outbox, or if the underlying event wait fails,
-   or if a malformed message is encountered.
+     &ldquo;send-only mailbox&rdquo; on an outbox; an error ending in &ldquo;timeout&rdquo; when the wait elapses,
+   timeout 0 on an empty mailbox included, or in &ldquo;interrupt&rdquo; when a signal or <code>thread:stop()</code>
+   interrupts it; &ldquo;malformed message&rdquo; on a truncated header; &ldquo;runtime context mismatch&rdquo; from a
+   softirq or hardirq runtime.
 
 
 
@@ -293,7 +297,11 @@
 
 
 </dd>
-    <dt id="mailbox:inbox"><a name="mailbox:inbox"></a><strong>mailbox:inbox (q, e)</strong></dt>
+</dl>
+    <h2 class="section-header" id="mailbox-details"><a name="mailbox"></a>mailbox in detail</h2>
+
+    <dl class="function">
+    <dt id="inbox"><a name="inbox"></a><strong>inbox (q, e)</strong></dt>
     <dd>
     Creates a new inbox (receive-only mailbox).
 
@@ -319,11 +327,11 @@
 
 
     <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> my_inbox = mailbox.<span class="function-name">inbox</span>(<span class="number">10</span>) <span class="comment">-- Inbox with capacity for 10 messages
+        <pre class="example"><span class="keyword">local</span> my_inbox = mailbox.<span class="function-name">inbox</span>(<span class="number">4096</span>) <span class="comment">-- 4096 bytes; a message takes its length plus a size_t
 </span><span class="keyword">local</span> msg = my_inbox:<span class="function-name">receive</span>()</pre>
 
 </dd>
-    <dt id="mailbox:outbox"><a name="mailbox:outbox"></a><strong>mailbox:outbox (q, e)</strong></dt>
+    <dt id="outbox"><a name="outbox"></a><strong>outbox (q, e)</strong></dt>
     <dd>
     Creates a new outbox (send-only mailbox).
 
@@ -349,7 +357,7 @@
 
 
     <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> my_outbox = mailbox.<span class="function-name">outbox</span>(<span class="number">10</span>) <span class="comment">-- Outbox with capacity for 10 messages
+        <pre class="example"><span class="keyword">local</span> my_outbox = mailbox.<span class="function-name">outbox</span>(<span class="number">4096</span>) <span class="comment">-- 4096 bytes; a message takes its length plus a size_t
 </span>my_outbox:<span class="function-name">send</span>(<span class="string">"hello"</span>)</pre>
 
 </dd>
@@ -367,7 +375,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -184,48 +188,48 @@
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#data:checksum">data:checksum ([offset[, length]])</a></td>
-	<td class="summary"></td>
+	<td class="name"><a href="#data:checksum">data:checksum ([offset=0[, length]])</a></td>
+	<td class="summary">Returns the Internet checksum of the <code>length</code> bytes at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getbyte">data:getbyte (offset)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads an unsigned 8-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:getuint8">getuint8</a>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getint16">data:getint16 (offset)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads a signed 16-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getint32">data:getint32 (offset)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads a signed 32-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getint64">data:getint64 (offset)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads a signed 64-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getint8">data:getint8 (offset)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads a signed 8-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getnumber">data:getnumber (offset)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads a signed 64-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:getint64">getint64</a>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getstring">data:getstring (offset[, length])</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads <code>length</code> bytes at <code>offset</code> as a string.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getuint16">data:getuint16 (offset)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads an unsigned 16-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getuint32">data:getuint32 (offset)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads an unsigned 32-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:getuint8">data:getuint8 (offset)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Reads an unsigned 8-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:resize">data:resize (new_size)</a></td>
@@ -233,43 +237,43 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setbyte">data:setbyte (offset, value)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes an 8-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:setuint8">setuint8</a>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setint16">data:setint16 (offset, value)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes a signed 16-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setint32">data:setint32 (offset, value)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes a signed 32-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setint64">data:setint64 (offset, value)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes a signed 64-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setint8">data:setint8 (offset, value)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes a signed 8-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setnumber">data:setnumber (offset, value)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes a signed 64-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:setint64">setint64</a>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setstring">data:setstring (offset, s)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes the bytes of <code>s</code> at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setuint16">data:setuint16 (offset, value)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes an unsigned 16-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setuint32">data:setuint32 (offset, value)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes an unsigned 32-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setuint8">data:setuint8 (offset, value)</a></td>
-	<td class="summary"></td>
+	<td class="summary">Writes an unsigned 8-bit integer at <code>offset</code>.</td>
 	</tr>
 </table></div>
 <h2 id="data">data</h2>
@@ -286,7 +290,16 @@
           Represents a byte buffer.
  This is a userdata object returned by <code>data.new()</code> and by the modules that
  expose kernel memory (as <code>skb:data()</code>), read and written through the
- <code>getuint<em></code>/<code>setuint</em></code> accessors below.
+ <code>getuint<em></code>/<code>setuint</em></code> accessors below.</p>
+
+<p> Offsets start at 0, and the integer accessors use host byte order: convert a
+ network field with <a href="../modules/byteorder.html#">byteorder</a>, as <code>byteorder.ntoh16(d:getuint16(12))</code>. A data
+ object a binding hands to a callback, or <code>skb:data()</code> returns for that
+ callback&rsquo;s skb, views kernel memory only while that callback runs: afterwards
+ its length is 0 and every access raises &ldquo;out of bounds&rdquo;, so copy what you keep
+ with <a href="../modules/data.html#data:getstring">getstring</a>. <code>skb:copy():data()</code> views the copy&rsquo;s own buffer, valid only
+ while the copy lives. A write to a view a binding marks read only raises
+ &ldquo;read only&rdquo;.
           </div>
     <dl class="function">
     <dt id="data:__len"><a name="data:__len"></a><strong>data:__len ()</strong></dt>
@@ -323,9 +336,11 @@
 
 
 </dd>
-    <dt id="data:checksum"><a name="data:checksum"></a><strong>data:checksum ([offset[, length]])</strong></dt>
+    <dt id="data:checksum"><a name="data:checksum"></a><strong>data:checksum ([offset=0[, length]])</strong></dt>
     <dd>
-
+    Returns the Internet checksum of the <code>length</code> bytes at <code>offset</code>.
+ It is their 16-bit ones'-complement sum, folded and complemented as <code>csum_fold</code> does, so a region
+ that holds its correct checksum gives 0.
 
 
     <h3>Parameters</h3>
@@ -333,11 +348,11 @@
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
 
-         (<em>optional</em>)
+         (<em>default</em> 0)
         </li>
         <li><span class="parameter">length</span>
             <span class="types"><span class="type">integer</span></span>
-
+         number of bytes; default: from offset to end
          (<em>optional</em>)
         </li>
     </ul>
@@ -357,7 +372,7 @@
 </dd>
     <dt id="data:getbyte"><a name="data:getbyte"></a><strong>data:getbyte (offset)</strong></dt>
     <dd>
-
+    Reads an unsigned 8-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:getuint8">getuint8</a>.
 
 
     <h3>Parameters</h3>
@@ -383,7 +398,7 @@
 </dd>
     <dt id="data:getint16"><a name="data:getint16"></a><strong>data:getint16 (offset)</strong></dt>
     <dd>
-
+    Reads a signed 16-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -409,7 +424,7 @@
 </dd>
     <dt id="data:getint32"><a name="data:getint32"></a><strong>data:getint32 (offset)</strong></dt>
     <dd>
-
+    Reads a signed 32-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -435,7 +450,7 @@
 </dd>
     <dt id="data:getint64"><a name="data:getint64"></a><strong>data:getint64 (offset)</strong></dt>
     <dd>
-
+    Reads a signed 64-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -461,7 +476,7 @@
 </dd>
     <dt id="data:getint8"><a name="data:getint8"></a><strong>data:getint8 (offset)</strong></dt>
     <dd>
-
+    Reads a signed 8-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -487,7 +502,7 @@
 </dd>
     <dt id="data:getnumber"><a name="data:getnumber"></a><strong>data:getnumber (offset)</strong></dt>
     <dd>
-
+    Reads a signed 64-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:getint64">getint64</a>.
 
 
     <h3>Parameters</h3>
@@ -513,7 +528,7 @@
 </dd>
     <dt id="data:getstring"><a name="data:getstring"></a><strong>data:getstring (offset[, length])</strong></dt>
     <dd>
-
+    Reads <code>length</code> bytes at <code>offset</code> as a string.
 
 
     <h3>Parameters</h3>
@@ -537,14 +552,14 @@
     </ol>
 
     <h3>Raises</h3>
-    if out of bounds
+    &ldquo;out of bounds&rdquo;, a zero length included, as at an offset equal to the size
 
 
 
 </dd>
     <dt id="data:getuint16"><a name="data:getuint16"></a><strong>data:getuint16 (offset)</strong></dt>
     <dd>
-
+    Reads an unsigned 16-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -570,7 +585,7 @@
 </dd>
     <dt id="data:getuint32"><a name="data:getuint32"></a><strong>data:getuint32 (offset)</strong></dt>
     <dd>
-
+    Reads an unsigned 32-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -596,7 +611,7 @@
 </dd>
     <dt id="data:getuint8"><a name="data:getuint8"></a><strong>data:getuint8 (offset)</strong></dt>
     <dd>
-
+    Reads an unsigned 8-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -642,7 +657,7 @@
 </dd>
     <dt id="data:setbyte"><a name="data:setbyte"></a><strong>data:setbyte (offset, value)</strong></dt>
     <dd>
-
+    Writes an 8-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:setuint8">setuint8</a>.
 
 
     <h3>Parameters</h3>
@@ -666,7 +681,7 @@
 </dd>
     <dt id="data:setint16"><a name="data:setint16"></a><strong>data:setint16 (offset, value)</strong></dt>
     <dd>
-
+    Writes a signed 16-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -690,7 +705,7 @@
 </dd>
     <dt id="data:setint32"><a name="data:setint32"></a><strong>data:setint32 (offset, value)</strong></dt>
     <dd>
-
+    Writes a signed 32-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -714,7 +729,7 @@
 </dd>
     <dt id="data:setint64"><a name="data:setint64"></a><strong>data:setint64 (offset, value)</strong></dt>
     <dd>
-
+    Writes a signed 64-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -738,7 +753,7 @@
 </dd>
     <dt id="data:setint8"><a name="data:setint8"></a><strong>data:setint8 (offset, value)</strong></dt>
     <dd>
-
+    Writes a signed 8-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -762,7 +777,7 @@
 </dd>
     <dt id="data:setnumber"><a name="data:setnumber"></a><strong>data:setnumber (offset, value)</strong></dt>
     <dd>
-
+    Writes a signed 64-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:setint64">setint64</a>.
 
 
     <h3>Parameters</h3>
@@ -786,7 +801,7 @@
 </dd>
     <dt id="data:setstring"><a name="data:setstring"></a><strong>data:setstring (offset, s)</strong></dt>
     <dd>
-
+    Writes the bytes of <code>s</code> at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -803,14 +818,14 @@
 
 
     <h3>Raises</h3>
-    if out of bounds or read-only
+    &ldquo;out of bounds&rdquo;, an empty <code>s</code> included, or &ldquo;read only&rdquo;
 
 
 
 </dd>
     <dt id="data:setuint16"><a name="data:setuint16"></a><strong>data:setuint16 (offset, value)</strong></dt>
     <dd>
-
+    Writes an unsigned 16-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -834,7 +849,7 @@
 </dd>
     <dt id="data:setuint32"><a name="data:setuint32"></a><strong>data:setuint32 (offset, value)</strong></dt>
     <dd>
-
+    Writes an unsigned 32-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -858,7 +873,7 @@
 </dd>
     <dt id="data:setuint8"><a name="data:setuint8"></a><strong>data:setuint8 (offset, value)</strong></dt>
     <dd>
-
+    Writes an unsigned 8-bit integer at <code>offset</code>.
 
 
     <h3>Parameters</h3>
@@ -930,7 +945,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

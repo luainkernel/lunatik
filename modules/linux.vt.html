@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html" aria-current="page">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -172,31 +176,14 @@
 <h1>linux.vt<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.vt.html#">linux.vt</a>.</p>
  Values are populated at build time from the kernel headers.
-
-<h2 id="Tables">Tables</h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#constants">constants</a></td>
-	<td class="summary">Virtual terminal notifier event types.</td>
-	</tr>
-</table></div>
-
-    <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
-
-    <dl class="function">
-    <dt id="constants"><a name="constants"></a><strong>constants</strong></dt>
-    <dd>
-    Virtual terminal notifier event types.
+ Virtual terminal notifier event types.
  Mirrors <code>VT_*</code> defines in <code>&lt;linux/vt.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>VT_&lt;NAME&gt;</code> is <code>linux.vt.&lt;NAME&gt;</code>.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">local vt = require(&quot;linux.vt&quot;)
+</pre>
 
 
-
-
-
-
-
-</dd>
-</dl>
 
 
 </main>
@@ -210,7 +197,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

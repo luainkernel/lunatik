@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -190,6 +194,9 @@
     <dt id="run"><a name="run"></a><strong>run (ciphertext, iv, key)</strong></dt>
     <dd>
     Decrypts and executes an encrypted Lua script.
+ The decrypted script must be Lua source, and it runs with the runtime&rsquo;s global environment. It
+ allocates a crypto transform, which may sleep: call it from a process runtime or from a script
+ body, never from a softirq or hardirq callback.
 
 
     <h3>Parameters</h3>
@@ -215,7 +222,10 @@
     </ol>
 
     <h3>Raises</h3>
-    Error if decryption fails or IV/key length is invalid.
+     &ldquo;IV must be 16 bytes&rdquo;, &ldquo;key must be 32 bytes&rdquo;, the errno name of a failed transform
+   allocation, key setting or decryption, &ldquo;not enough memory&rdquo;, the load error of the decrypted
+   text (a syntax error from &ldquo;darken&rdquo; when the key or IV is wrong, &ldquo;attempt to load a binary chunk
+   (mode is &rsquo;t')&rdquo; for a precompiled script), or the error the script raises.
 
 
 
@@ -234,7 +244,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

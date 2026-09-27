@@ -164,14 +164,29 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-system">System</a></div>
 <h1>signal<span class="kind">Module</span></h1>
-<p class="lead">POSIX Signals</p>
+<p class="lead">Reads and changes the signal state of the calling task, and sends signals.</p>
+ <a href="../modules/signal.html#sigmask">sigmask</a>, <a href="../modules/signal.html#sigpending">sigpending</a> and <a href="../modules/signal.html#sigstate">sigstate</a> act on the calling task, which is meaningful in a process
+ runtime, typically in a kernel thread&rsquo;s body. In a softirq or hardirq callback the calling task is
+ whichever one the interrupt found running, and <a href="../modules/signal.html#sigmask">sigmask</a> must not be called there. <a href="../modules/signal.html#kill">kill</a>
+ resolves the pid in the calling task&rsquo;s pid namespace.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">local signal = require(&quot;signal&quot;)
+local sig    = require(&quot;linux.signal&quot;)
 
+signal.sigmask(sig.USR1)                 -- block SIGUSR1
+print(signal.sigstate(sig.USR1))         -- true
+signal.sigmask(sig.USR1, sig._UNBLOCK)
+</pre>
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -210,7 +225,7 @@
         <li><span class="parameter">sig</span>
             <span class="types"><span class="type">integer</span></span>
          Signal to send, 0 to <code>_NSIG</code> (default: <code>KILL</code>, from <a href="../modules/linux.signal.html#">linux.signal</a>);
-   0 sends nothing and checks the process and the permission.
+   0 sends nothing and checks that the process exists.
          (<em>optional</em>)
         </li>
     </ul>
@@ -223,8 +238,8 @@
     </ol>
 
     <h3>Raises</h3>
-    Error if the pid or the signal is out of bounds, the process is not found or the
-   operation is not permitted.
+    Error if the pid or the signal is out of bounds; &ldquo;ESRCH&rdquo; if no process has that pid. The
+   signal is sent with the kernel&rsquo;s privilege, so no permission check applies.
 
 
 
@@ -232,6 +247,7 @@
     <dt id="sigmask"><a name="sigmask"></a><strong>sigmask (sig[, cmd])</strong></dt>
     <dd>
     Modifies signal mask for current task.
+ Unlike the system call, it blocks <code>SIGKILL</code> and <code>SIGSTOP</code> too.
 
 
     <h3>Parameters</h3>
@@ -249,7 +265,7 @@
 
 
     <h3>Raises</h3>
-    Error if the signal or the command is out of bounds, or the operation is not permitted.
+    Error if the signal or the command is out of bounds.
 
 
 
@@ -284,7 +300,9 @@
         </li>
         <li><span class="parameter">state</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         <code>&quot;blocked&quot;</code> (default), <code>&quot;pending&quot;</code>, or <code>&quot;allowed&quot;</code>.
+         <code>&quot;blocked&quot;</code> (default), <code>&quot;pending&quot;</code>, or <code>&quot;allowed&quot;</code>. <code>&quot;pending&quot;</code> reads
+   the thread&rsquo;s private pending set: a signal sent to the process, as <a href="../modules/signal.html#kill">kill</a> sends it, sits in the
+   shared set and reads as not pending, so <a href="../modules/signal.html#sigpending">sigpending</a> is the check for it.
          (<em>optional</em>)
         </li>
     </ul>
@@ -301,8 +319,9 @@
 
 
     <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> sig = <span class="global">require</span>(<span class="string">"linux.signal"</span>)
-signal.<span class="function-name">sigstate</span>(<span class="number">15</span>) <span class="comment">-- check if SIGTERM is blocked
+        <pre class="example"><span class="keyword">local</span> signal = <span class="global">require</span>(<span class="string">"signal"</span>)
+<span class="keyword">local</span> sig    = <span class="global">require</span>(<span class="string">"linux.signal"</span>)
+signal.<span class="function-name">sigstate</span>(sig.TERM) <span class="comment">-- check if SIGTERM is blocked
 </span>signal.<span class="function-name">sigstate</span>(sig.TERM, <span class="string">"pending"</span>)</pre>
 
 </dd>
@@ -320,7 +339,7 @@ signal.<span class="function-name">sigstate</span>(<span class="number">15</span
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

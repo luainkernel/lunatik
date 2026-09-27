@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -177,15 +181,11 @@
 <div class="tbl"><table class="function_list">
 	<tr>
 	<td class="name"><a href="#task:comm">task:comm ()</a></td>
-	<td class="summary">Returns the command name (comm) of the task, i.e., the executable.</td>
+	<td class="summary">Returns the name (comm) of the task, at most 15 characters.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#task:cpu">task:cpu ()</a></td>
 	<td class="summary">Returns the CPU the task last ran on.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#task:current">task:current ()</a></td>
-	<td class="summary">Gets an object representing the current kernel task.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#task:pid">task:pid ()</a></td>
@@ -200,8 +200,15 @@
 	<td class="summary">Returns the thread group ID (TGID) of the task.</td>
 	</tr>
 </table></div>
+<h2 id="task">task</h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#current">current ()</a></td>
+	<td class="summary">Gets an object representing the current kernel task.</td>
+	</tr>
+</table></div>
 
-    <h2 class="section-header" id="Class_task-details"><a name="Class_task"></a><a name="task"></a>Class task  in detail</h2>
+    <h2 class="section-header" id="Class_task-details"><a name="Class_task"></a>Class task  in detail</h2>
 
           <div class="section-description">
           A Linux task.
@@ -209,8 +216,9 @@
     <dl class="function">
     <dt id="task:comm"><a name="task:comm"></a><strong>task:comm ()</strong></dt>
     <dd>
-    Returns the command name (comm) of the task, i.e., the executable.
- This is truncated to TASK_COMM_LEN (16) characters by the kernel.
+    Returns the name (comm) of the task, at most 15 characters.
+ It is the executable&rsquo;s basename unless the task renamed itself, as a kernel thread or a
+ <code>PR_SET_NAME</code> caller does.
 
 
 
@@ -242,27 +250,6 @@
 
 
 </dd>
-    <dt id="task:current"><a name="task:current"></a><strong>task:current ()</strong></dt>
-    <dd>
-    Gets an object representing the current kernel task.
-
-
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/task.html#task">task</a></span>
-        task object for the current task.
-    </ol>
-
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> task = <span class="global">require</span>(<span class="string">"task"</span>)
-<span class="keyword">local</span> t = task.<span class="function-name">current</span>()
-<span class="global">print</span>(t:<span class="function-name">pid</span>(), t:<span class="function-name">comm</span>())</pre>
-
-</dd>
     <dt id="task:pid"><a name="task:pid"></a><strong>task:pid ()</strong></dt>
     <dd>
     Returns the process ID (PID) of the task.
@@ -284,8 +271,8 @@
     <dt id="task:prio"><a name="task:prio"></a><strong>task:prio ()</strong></dt>
     <dd>
     Returns the dynamic priority of the task.
- Ranges from 0 (highest) to 139 (lowest); normal tasks are 100-139,
- real-time tasks are 0-99.
+ Ranges from -1 (highest) to 139 (lowest): deadline tasks are -1, real-time tasks are 0-99 and
+ normal tasks are 100-139.
 
 
 
@@ -320,6 +307,32 @@
 
 </dd>
 </dl>
+    <h2 class="section-header" id="task-details"><a name="task"></a>task in detail</h2>
+
+    <dl class="function">
+    <dt id="current"><a name="current"></a><strong>current ()</strong></dt>
+    <dd>
+    Gets an object representing the current kernel task.
+ In a softirq or hardirq callback that is the task the interrupt found running.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/task.html#task">task</a></span>
+        task object for the current task.
+    </ol>
+
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">local</span> task = <span class="global">require</span>(<span class="string">"task"</span>)
+<span class="keyword">local</span> t = task.<span class="function-name">current</span>()
+<span class="global">print</span>(t:<span class="function-name">pid</span>(), t:<span class="function-name">comm</span>())</pre>
+
+</dd>
+</dl>
 
 
 </main>
@@ -333,7 +346,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

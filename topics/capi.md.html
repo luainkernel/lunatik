@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -615,7 +619,7 @@ checks it with <code>lunatik_checkobjectclass(L, ix, &amp;lunatik_class)</code>.
 
 
 <p>Returns <code>true</code> once <code>runtime</code> is armed, its script body returned, and until it is closed.
-<a href="../modules/thread.html#thread:run">thread.run</a> uses it to refuse creating a thread from the script body of the runtime that calls
+<a href="../modules/thread.html#run">thread.run</a> uses it to refuse creating a thread from the script body of the runtime that calls
 it, with <code>not allowed during module load</code>.</p>
 
 <h3 id="lunatik_isowner">lunatik_isowner</h3>
@@ -640,7 +644,7 @@ lock, which no dispatch takes, so <code>lunatik_run</code> reads it on the per-C
 returns and <code>percpu:stop()</code> asks each runtime of the set in turn. And it sees the calling task
 only — Lua that blocks under the lock on a second task which then reaches the same lock is a
 cycle no owner check can name. The entries a script reaches, the monitor, <code>stop</code>, <code>resume</code> and
-<a href="../modules/thread.html#thread:run">thread.run</a>, take a runtime&rsquo;s lock with <code>lunatik_lockkillable</code>, so the stop of a kernel thread
+<a href="../modules/thread.html#run">thread.run</a>, take a runtime&rsquo;s lock with <code>lunatik_lockkillable</code>, so the stop of a kernel thread
 in that cycle, or a fatal signal to another task in it, ends its wait; a dispatch through
 <code>lunatik_run</code> is not one of them and waits for the lock regardless.</p>
 
@@ -670,11 +674,11 @@ RTNL while this one waits for that task is a cycle it cannot name. Defined as ma
 </pre>
 
 
-<p>Returns <code>true</code> if the calling task is a kernel thread, one <a href="../modules/thread.html#thread:run">thread.run</a> or the kernel started, and
+<p>Returns <code>true</code> if the calling task is a kernel thread, one <a href="../modules/thread.html#run">thread.run</a> or the kernel started, and
 not a task that entered from userspace, a <a href="../modules/device.html#">device</a> file operation&rsquo;s or the CLI&rsquo;s. What ends a wait
 differs by the answer: a kernel thread is stopped, which sets the flag an interruptible wait reads
 and no fatal signal, so <code>lunatik_lockkillable</code> waits interruptibly there and killably elsewhere,
-and <a href="../modules/thread.html#thread:shouldstop">thread.shouldstop</a> asks <code>kthread_should_stop</code> only there. Defined as a macro.</p>
+and <a href="../modules/thread.html#shouldstop">thread.shouldstop</a> asks <code>kthread_should_stop</code> only there. Defined as a macro.</p>
 
 <h3 id="lunatik_checkruntime">lunatik_checkruntime</h3>
 
@@ -770,7 +774,7 @@ holds for <code>runtime</code>: the calling task is inside it, a callback, a fil
 resumed body, and an entry point that takes its lock would wait on itself. <code>runtime:stop()</code> and
 <code>percpu:stop()</code> use it, since the close locks the runtime it closes; so do a monitored method,
 which locks the object it runs on and is <code>runtime:resume()</code>&rsquo;s route into the lock, <code>percpu:resume()</code>,
-which locks each runtime it resumes, and <a href="../modules/thread.html#thread:run">thread.run</a>, which passes the body&rsquo;s arguments under the
+which locks each runtime it resumes, and <a href="../modules/thread.html#run">thread.run</a>, which passes the body&rsquo;s arguments under the
 runtime&rsquo;s lock.</p>
 
 <h3 id="lunatik_percpudata">lunatik_percpudata</h3>
@@ -1851,7 +1855,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

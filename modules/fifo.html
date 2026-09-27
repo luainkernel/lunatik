@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -171,25 +175,24 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-runtime">Runtime</a></div>
 <h1>fifo<span class="kind">Module</span></h1>
 <p class="lead">kfifo (kernel FIFO) implementation.</p>
- This library allows creating and managing fixed-size, lockless FIFO queues
- for byte streams, suitable for producer-consumer scenarios within the kernel.
+ This library allows creating and managing fixed-size FIFO queues for byte
+ streams, suitable for producer-consumer scenarios within the kernel. Each call
+ takes the object&rsquo;s lock, so one fifo can be shared between runtimes, as through
+ <code>runtime:resume</code>, and used from softirq.
 
-<h2 id="Functions">Functions</h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#pop">pop (size)</a></td>
-	<td class="summary">Pops data from the FIFO.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#push">push (data)</a></td>
-	<td class="summary">Pushes data into the FIFO.</td>
-	</tr>
-</table></div>
 <h2 id="Class_fifo">Class fifo </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
 	<td class="name"><a href="#fifo:close">fifo:close ()</a></td>
 	<td class="summary">Closes and releases the FIFO object.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#fifo:pop">fifo:pop (size)</a></td>
+	<td class="summary">Pops data from the FIFO.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#fifo:push">fifo:push (data)</a></td>
+	<td class="summary">Pushes data into the FIFO.</td>
 	</tr>
 </table></div>
 <h2 id="fifo">fifo</h2>
@@ -200,10 +203,35 @@
 	</tr>
 </table></div>
 
-    <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
+    <h2 class="section-header" id="Class_fifo-details"><a name="Class_fifo"></a>Class fifo  in detail</h2>
 
+          <div class="section-description">
+          Represents a kernel FIFO (kfifo) object.
+ This is a userdata object returned by <code>fifo.new()</code>. It encapsulates
+ a <code>struct kfifo</code> from the Linux kernel, providing a first-in, first-out
+ byte queue.
+          </div>
     <dl class="function">
-    <dt id="pop"><a name="pop"></a><strong>pop (size)</strong></dt>
+    <dt id="fifo:close"><a name="fifo:close"></a><strong>fifo:close ()</strong></dt>
+    <dd>
+    Closes and releases the FIFO object.
+ It also runs when a to-be-closed variable holding the object goes out of scope. Later calls raise
+ &ldquo;null pointer dereference&rdquo;.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt id="fifo:pop"><a name="fifo:pop"></a><strong>fifo:pop (size)</strong></dt>
     <dd>
     Pops data from the FIFO.
  Retrieves a specified number of bytes from the FIFO.
@@ -232,7 +260,7 @@
 
     <h3>See also</h3>
     <ul>
-         <a href="../modules/fifo.html#push">fifo.push</a>
+         <a href="../modules/fifo.html#fifo:push">fifo.push</a>
     </ul>
 
     <h3>Usage</h3>
@@ -243,7 +271,7 @@
 <span class="keyword">end</span></pre>
 
 </dd>
-    <dt id="push"><a name="push"></a><strong>push (data)</strong></dt>
+    <dt id="fifo:push"><a name="fifo:push"></a><strong>fifo:push (data)</strong></dt>
     <dd>
     Pushes data into the FIFO.
  Copies a string of bytes into the FIFO.
@@ -269,40 +297,12 @@
 
     <h3>See also</h3>
     <ul>
-         <a href="../modules/fifo.html#pop">fifo.pop</a>
+         <a href="../modules/fifo.html#fifo:pop">fifo.pop</a>
     </ul>
 
     <h3>Usage</h3>
         <pre class="example"><span class="comment">-- Assuming 'myfifo' is a fifo object
 </span>myfifo:<span class="function-name">push</span>(<span class="string">"hello"</span>)</pre>
-
-</dd>
-</dl>
-    <h2 class="section-header" id="Class_fifo-details"><a name="Class_fifo"></a>Class fifo  in detail</h2>
-
-          <div class="section-description">
-          Represents a kernel FIFO (kfifo) object.
- This is a userdata object returned by <code>fifo.new()</code>. It encapsulates
- a <code>struct kfifo</code> from the Linux kernel, providing a first-in, first-out
- byte queue.
-          </div>
-    <dl class="function">
-    <dt id="fifo:close"><a name="fifo:close"></a><strong>fifo:close ()</strong></dt>
-    <dd>
-    Closes and releases the FIFO object.
- This is an alias for the <code>__close</code> and <code>__gc</code> metamethods.
-
-
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">nil</span></span>
-
-    </ol>
-
-
-
 
 </dd>
 </dl>
@@ -354,7 +354,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

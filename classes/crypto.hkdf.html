@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -172,7 +176,8 @@
 <h1>crypto.hkdf<span class="kind">Class</span></h1>
 <p class="lead">HMAC-based Extract-and-Expand Key Derivation Function (HKDF) based on RFC 5869.</p>
  This module provides functions to perform HKDF operations, utilizing the
- underlying <a href="../modules/crypto.html#">crypto</a> C module for HMAC calculations.
+ underlying <a href="../modules/crypto.html#">crypto</a> C module for HMAC calculations. Like every crypto object, an instance is
+ created in a process runtime alone.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -235,7 +240,8 @@
     <dt id="HKDF:close"><a name="HKDF:close"></a><strong>HKDF:close ()</strong></dt>
     <dd>
     Closes the HKDF instance and releases the underlying HMAC transform.
- This method is also called by the garbage collector.
+ It also runs when a to-be-closed variable holding the instance goes out of scope. Without it, the
+ transform is freed when it is collected.
 
 
 
@@ -262,7 +268,8 @@
         </li>
         <li><span class="parameter">length</span>
             <span class="types"><span class="type">number</span></span>
-         desired length in bytes for the Output Keying Material (OKM).
+         desired length in bytes for the Output Keying Material (OKM), at most 255
+   times the digest size.
         </li>
     </ul>
 
@@ -386,7 +393,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

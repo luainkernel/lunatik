@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -172,6 +176,9 @@
 <h1>linux.nf<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.nf.html#">linux.nf</a>.</p>
  Values are populated at build time from the kernel headers.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">local nf = require(&quot;linux.nf&quot;)
+</pre>
 
 <h2 id="Tables">Tables</h2>
 <div class="tbl"><table class="function_list">
@@ -232,6 +239,7 @@
     <dd>
     Netfilter hook verdicts.
  Mirrors <code>NF_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NF_&lt;NAME&gt;</code> is <code>linux.nf.action.&lt;NAME&gt;</code>.
 
 
 
@@ -244,6 +252,7 @@
     <dd>
     Netfilter hook positions in the ARP family.
  Mirrors <code>NF_ARP_*</code> defines in <code>&lt;uapi/linux/netfilter_arp.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NF_ARP_&lt;NAME&gt;</code> is <code>linux.nf.arp.&lt;NAME&gt;</code>.
 
 
 
@@ -256,6 +265,7 @@
     <dd>
     Netfilter hook positions in the BRIDGE family.
  Mirrors <code>NF_BR_*</code> defines in <code>&lt;uapi/linux/netfilter_bridge.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NF_BR_&lt;NAME&gt;</code> is <code>linux.nf.br.&lt;NAME&gt;</code>.
 
 
 
@@ -268,6 +278,7 @@
     <dd>
     Netfilter hook priorities in the BRIDGE family.
  Mirrors <code>NF_BR_PRI_*</code> defines in <code>&lt;uapi/linux/netfilter_bridge.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NF_BR_PRI_&lt;NAME&gt;</code> is <code>linux.nf.br.pri.&lt;NAME&gt;</code>.
 
 
 
@@ -280,6 +291,7 @@
     <dd>
     Conntrack tuple directions.
  Mirrors <code>IP_CT_DIR_*</code> defines in <code>&lt;uapi/linux/netfilter/nf_conntrack_tuple_common.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>IP_CT_DIR_&lt;NAME&gt;</code> is <code>linux.nf.ct.dir.&lt;NAME&gt;</code>.
 
 
 
@@ -292,6 +304,7 @@
     <dd>
     Conntrack per-packet states (IS_REPLY is the reply-direction threshold, not a state).
  Mirrors <code>IP_CT_*</code> defines in <code>&lt;uapi/linux/netfilter/nf_conntrack_common.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>IP_CT_&lt;NAME&gt;</code> is <code>linux.nf.ct.info.&lt;NAME&gt;</code>.
 
 
 
@@ -304,6 +317,7 @@
     <dd>
     Conntrack status flags (NAT_CLASH is the in-kernel meaning of the obsolete UNTRACKED bit).
  Mirrors <code>IPS_*</code> defines in <code>&lt;uapi/linux/netfilter/nf_conntrack_common.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>IPS_&lt;NAME&gt;</code> is <code>linux.nf.ct.status.&lt;NAME&gt;</code>.
 
 
 
@@ -316,6 +330,7 @@
     <dd>
     TCP conntrack states (SYN_SENT2 is the live name for the obsolete LISTEN).
  Mirrors <code>TCP_CONNTRACK_*</code> defines in <code>&lt;uapi/linux/netfilter/nf_conntrack_tcp.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>TCP_CONNTRACK_&lt;NAME&gt;</code> is <code>linux.nf.ct.tcp.&lt;NAME&gt;</code>.
 
 
 
@@ -328,6 +343,7 @@
     <dd>
     Netfilter hook positions in the INET family.
  Mirrors <code>NF_INET_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NF_INET_&lt;NAME&gt;</code> is <code>linux.nf.inet.&lt;NAME&gt;</code>.
 
 
 
@@ -340,6 +356,7 @@
     <dd>
     Netfilter hook priorities in the IP family.
  Mirrors <code>NF_IP_PRI_*</code> defines in <code>&lt;uapi/linux/netfilter_ipv4.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NF_IP_PRI_&lt;NAME&gt;</code> is <code>linux.nf.ip.pri.&lt;NAME&gt;</code>.
 
 
 
@@ -352,6 +369,7 @@
     <dd>
     Netfilter hook positions in the NETDEV family.
  Mirrors <code>NF_NETDEV_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NF_NETDEV_&lt;NAME&gt;</code> is <code>linux.nf.netdev.&lt;NAME&gt;</code>.
 
 
 
@@ -364,6 +382,7 @@
     <dd>
     Netfilter protocol families.
  Mirrors <code>NFPROTO_*</code> defines in <code>&lt;uapi/linux/netfilter.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NFPROTO_&lt;NAME&gt;</code> is <code>linux.nf.proto.&lt;NAME&gt;</code>.
 
 
 
@@ -386,7 +405,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

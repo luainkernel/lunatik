@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -172,6 +176,9 @@
 <h1>linux.nl80211<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.nl80211.html#">linux.nl80211</a>.</p>
  Values are populated at build time from the kernel headers.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">local nl80211 = require(&quot;linux.nl80211&quot;)
+</pre>
 
 <h2 id="Tables">Tables</h2>
 <div class="tbl"><table class="function_list">
@@ -200,6 +207,7 @@
     <dd>
     nl80211 attributes (NL80211_ATTR_<em>).
  Mirrors <code>NL80211_ATTR_</em></code> defines in <code>&lt;uapi/linux/nl80211.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NL80211_ATTR_&lt;NAME&gt;</code> is <code>linux.nl80211.attr.&lt;NAME&gt;</code>.
 
 
 
@@ -212,6 +220,7 @@
     <dd>
     nl80211 commands (NL80211_CMD_<em>).
  Mirrors <code>NL80211_CMD_</em></code> defines in <code>&lt;uapi/linux/nl80211.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NL80211_CMD_&lt;NAME&gt;</code> is <code>linux.nl80211.cmd.&lt;NAME&gt;</code>.
 
 
 
@@ -224,6 +233,7 @@
     <dd>
     nl80211 interface types (NL80211_IFTYPE_<em>).
  Mirrors <code>NL80211_IFTYPE_</em></code> defines in <code>&lt;uapi/linux/nl80211.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NL80211_IFTYPE_&lt;NAME&gt;</code> is <code>linux.nl80211.iftype.&lt;NAME&gt;</code>.
 
 
 
@@ -236,6 +246,7 @@
     <dd>
     nl80211 station flags (NL80211_STA_FLAG_<em>), bit positions for STA_FLAGS2.
  Mirrors <code>NL80211_STA_FLAG_</em></code> defines in <code>&lt;uapi/linux/nl80211.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NL80211_STA_FLAG_&lt;NAME&gt;</code> is <code>linux.nl80211.staflag.&lt;NAME&gt;</code>.
 
 
 
@@ -258,7 +269,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

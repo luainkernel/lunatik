@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -171,7 +175,9 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-system">System</a></div>
 <h1>cpu<span class="kind">Module</span></h1>
 <p class="lead">Lua interface to Linux CPU abstractions.</p>
-
+ A possible CPU is one the system can ever bring up, a present one is plugged in, and an online
+ one runs tasks. <code>linux.numcpus()</code> is one past the highest possible CPU id, the same count as
+ <a href="../modules/cpu.html#num_possible">num_possible</a> when those ids have no gaps.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -189,19 +195,19 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#num_online">num_online ()</a></td>
-	<td class="summary"></td>
+	<td class="summary">Returns the number of online CPUs.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#num_possible">num_possible ()</a></td>
-	<td class="summary"></td>
+	<td class="summary">Returns the number of possible CPUs.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#num_present">num_present ()</a></td>
-	<td class="summary"></td>
+	<td class="summary">Returns the number of present CPUs.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#stats">stats (cpu)</a></td>
-	<td class="summary">Returns CPU time statistics for a given CPU.</td>
+	<td class="summary">Returns the time a CPU spent in each state since boot, in nanoseconds.</td>
 	</tr>
 </table></div>
 
@@ -264,7 +270,7 @@
 </dd>
     <dt id="num_online"><a name="num_online"></a><strong>num_online ()</strong></dt>
     <dd>
-
+    Returns the number of online CPUs.
 
 
 
@@ -281,7 +287,7 @@
 </dd>
     <dt id="num_possible"><a name="num_possible"></a><strong>num_possible ()</strong></dt>
     <dd>
-
+    Returns the number of possible CPUs.
 
 
 
@@ -298,7 +304,7 @@
 </dd>
     <dt id="num_present"><a name="num_present"></a><strong>num_present ()</strong></dt>
     <dd>
-
+    Returns the number of present CPUs.
 
 
 
@@ -315,7 +321,9 @@
 </dd>
     <dt id="stats"><a name="stats"></a><strong>stats (cpu)</strong></dt>
     <dd>
-    Returns CPU time statistics for a given CPU.
+    Returns the time a CPU spent in each state since boot, in nanoseconds.
+ <code>idle</code> and <code>iowait</code> are what the tick accounts, which lags <code>/proc/stat</code> on a
+ tickless CPU while it idles.
 
 
     <h3>Parameters</h3>
@@ -354,7 +362,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

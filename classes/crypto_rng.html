@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -176,20 +180,20 @@
 <h2 id="Methods">Methods</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#crypto_rng:generate">crypto_rng:generate (n[, seed])</a></td>
-	<td class="summary">Generates random bytes, optionally reseeding first.</td>
+	<td class="name"><a href="#crypto_rng:algname">crypto_rng:algname ()</a></td>
+	<td class="summary">Returns the driver-independent name of the algorithm the transform was allocated with.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#crypto_rng:generate">crypto_rng:generate (n[, additional])</a></td>
+	<td class="summary">Generates random bytes.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#crypto_rng:getbytes">crypto_rng:getbytes (n)</a></td>
-	<td class="summary">Generates random bytes without reseeding.</td>
+	<td class="summary">Generates random bytes with no additional input.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#crypto_rng:info">crypto_rng:info ()</a></td>
 	<td class="summary">Returns algorithm information.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#crypto_rng:new">crypto_rng:new ([algname])</a></td>
-	<td class="summary">Creates a new RNG object.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#crypto_rng:reset">crypto_rng:reset (seed)</a></td>
@@ -200,9 +204,28 @@
     <h2 class="section-header" id="Methods-details"><a name="Methods"></a>Methods in detail</h2>
 
     <dl class="function">
-    <dt id="crypto_rng:generate"><a name="crypto_rng:generate"></a><strong>crypto_rng:generate (n[, seed])</strong></dt>
+    <dt id="crypto_rng:algname"><a name="crypto_rng:algname"></a><strong>crypto_rng:algname ()</strong></dt>
     <dd>
-    Generates random bytes, optionally reseeding first.
+    Returns the driver-independent name of the algorithm the transform was allocated with.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt id="crypto_rng:generate"><a name="crypto_rng:generate"></a><strong>crypto_rng:generate (n[, additional])</strong></dt>
+    <dd>
+    Generates random bytes.
+ The optional string reaches the algorithm as additional input for this call, which drbg mixes
+ into its output. It does not reseed: <a href="../classes/crypto_rng.html#crypto_rng:reset">reset</a> does.
 
 
     <h3>Parameters</h3>
@@ -211,9 +234,9 @@
             <span class="types"><span class="type">integer</span></span>
          number of bytes to generate
         </li>
-        <li><span class="parameter">seed</span>
+        <li><span class="parameter">additional</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         optional seed data
+         additional input
          (<em>optional</em>)
         </li>
     </ul>
@@ -233,7 +256,7 @@
 </dd>
     <dt id="crypto_rng:getbytes"><a name="crypto_rng:getbytes"></a><strong>crypto_rng:getbytes (n)</strong></dt>
     <dd>
-    Generates random bytes without reseeding.
+    Generates random bytes with no additional input.
 
 
     <h3>Parameters</h3>
@@ -274,36 +297,6 @@
 
 
 </dd>
-    <dt id="crypto_rng:new"><a name="crypto_rng:new"></a><strong>crypto_rng:new ([algname])</strong></dt>
-    <dd>
-    Creates a new RNG object.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">algname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         algorithm name; defaults to &ldquo;stdrng&rdquo;
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">crypto_rng</span></span>
-
-    </ol>
-
-    <h3>Raises</h3>
-    on allocation or initialization failure
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> rng = <span class="global">require</span>(<span class="string">"crypto"</span>).rng
-<span class="keyword">local</span> r = <span class="function-name">rng</span>()  <span class="comment">-- uses "stdrng"</span></pre>
-
-</dd>
     <dt id="crypto_rng:reset"><a name="crypto_rng:reset"></a><strong>crypto_rng:reset (seed)</strong></dt>
     <dd>
     Reseeds the RNG.
@@ -338,7 +331,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>

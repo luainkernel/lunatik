@@ -164,6 +164,10 @@
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
 </aside>
 
 <main class="content" id="content">
@@ -182,10 +186,6 @@
 	<tr>
 	<td class="name"><a href="#crypto_comp:decompress">crypto_comp:decompress (data, max_len)</a></td>
 	<td class="summary">Decompresses data.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#crypto_comp:new">crypto_comp:new (algname)</a></td>
-	<td class="summary">Creates a new COMP transform object.</td>
 	</tr>
 </table></div>
 
@@ -252,35 +252,6 @@
 
 
 </dd>
-    <dt id="crypto_comp:new"><a name="crypto_comp:new"></a><strong>crypto_comp:new (algname)</strong></dt>
-    <dd>
-    Creates a new COMP transform object.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">algname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         algorithm name (e.g., &ldquo;lz4&rdquo;, &ldquo;deflate&rdquo;)
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">crypto_comp</span></span>
-
-    </ol>
-
-    <h3>Raises</h3>
-    on allocation failure
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> comp = <span class="global">require</span>(<span class="string">"crypto"</span>).comp
-<span class="keyword">local</span> c = <span class="function-name">comp</span>(<span class="string">"lz4"</span>)</pre>
-
-</dd>
 </dl>
 
 
@@ -295,7 +266,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:25:27</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
 </div>
 </footer>
 </body>
