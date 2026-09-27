@@ -4,9 +4,9 @@
 --
 -- Kernel-side script for the percpu runtime test (see percpu.sh).
 
-local lunatik = require("lunatik")
+local stamp = require("tests.runtime.stamp")
 
-lunatik._ENV["percpu_cpu:" .. lunatik.cpu()] = true
+stamp.leave()
 
 return function() end
 

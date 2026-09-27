@@ -7,12 +7,7 @@
 local lunatik = require("lunatik")
 local data     = require("data")
 local rcu      = require("rcu")
-
-local function assert_error(fn, pattern)
-	local ok, err = pcall(fn)
-	assert(not ok, "expected error but got none")
-	assert(err:find(pattern), "unexpected error: " .. tostring(err))
-end
+local check    = require("tests.runtime.check")
 
 local function assert_ok(fn)
 	local ok, err = pcall(fn)
@@ -22,13 +17,13 @@ end
 local recv = lunatik.runtime("tests/runtime/opt_guards_recv")
 
 -- SINGLE via resume: must be rejected (use a disposable runtime — SINGLE error kills the coroutine)
-assert_error(function()
+check.raises(function()
 	local tmp = lunatik.runtime("tests/runtime/opt_guards_recv")
 	tmp:resume(data.new(4, "single"))
 end, "cannot share SINGLE object")
 
 -- SINGLE via _ENV: must be rejected
-assert_error(function()
+check.raises(function()
 	lunatik._ENV["opt_guard_test"] = data.new(4, "single")
 end, "cannot share SINGLE object")
 
@@ -73,7 +68,7 @@ assert_ok(function()
 end)
 
 -- Invalid mode: must error
-assert_error(function()
+check.raises(function()
 	data.new(4, "invalid")
 end, "invalid option")
 

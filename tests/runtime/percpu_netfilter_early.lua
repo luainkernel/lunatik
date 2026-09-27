@@ -4,28 +4,12 @@
 --
 -- Kernel-side script for the percpu netfilter test, a packet during creation (see percpu_netfilter.sh).
 
-local lunatik   = require("lunatik")
 local netfilter = require("netfilter")
-local nf        = require("linux.nf")
+local nfcount   = require("tests.runtime.nfcount")
 
-local MARK <const> = 208
 local SPIN <const> = 100000000
 
-local env = lunatik._ENV
-local key = "nf_percpu:" .. lunatik.cpu()
-
-local function count(skb)
-	env[key] = (env[key] or 0) + 1
-	return nf.action.ACCEPT
-end
-
-netfilter.register{
-	hook     = count,
-	pf       = nf.proto.INET,
-	hooknum  = nf.inet.LOCAL_IN,
-	priority = nf.ip.pri.FILTER,
-	mark     = MARK,
-}
+netfilter.register(nfcount.localin(nfcount.count, nfcount.MARK))
 
 print("percpu netfilter early: armed")
 

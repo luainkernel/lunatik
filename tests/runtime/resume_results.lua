@@ -6,22 +6,15 @@
 
 local lunatik = require("lunatik")
 local data    = require("data")
+local check   = require("tests.runtime.check")
+local values  = require("tests.runtime.resume_values")
 
-local ANSWER <const> = 42
-local FIRST <const> = 1
-local SECOND <const> = 2
-local MANY <const> = 32
-
-local function assert_error(fn, pattern)
-	local ok, err = pcall(fn)
-	assert(not ok, "expected error but got none")
-	assert(err:find(pattern), "unexpected error: " .. tostring(err))
-end
+local ANSWER <const>, FIRST <const>, SECOND <const>, MANY <const> = values.ANSWER, values.FIRST, values.SECOND, values.MANY
 
 local rt = lunatik.runtime("tests/runtime/resume_results_recv")
 
 -- a value that is not an object never crosses, and leaves the runtime untouched
-assert_error(function() rt:resume(ANSWER) end, "invalid object")
+check.raises(function() rt:resume(ANSWER) end, "invalid object")
 
 -- one object yielded, on a resume carrying two arguments: the value comes off the resumed stack
 local one = rt:resume(data.new(FIRST), data.new(SECOND))
@@ -43,15 +36,15 @@ for i = 1, MANY do
 end
 
 -- a yielded value that is not an object, with the runtime still suspended after it
-assert_error(function() rt:resume() end, "invalid object")
+check.raises(function() rt:resume() end, "invalid object")
 
 -- a yielded SINGLE object, with the runtime still suspended after it
-assert_error(function() rt:resume() end, "cannot share SINGLE object")
+check.raises(function() rt:resume() end, "cannot share SINGLE object")
 
 -- the object the script returns
 local last = rt:resume()
 assert(last:getbyte(0) == ANSWER, "resume did not return the object the script returned")
 
 -- the runtime is dead once its body has returned
-assert_error(function() rt:resume() end, "cannot resume dead coroutine")
+check.raises(function() rt:resume() end, "cannot resume dead coroutine")
 

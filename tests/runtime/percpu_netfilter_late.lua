@@ -6,8 +6,7 @@
 
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
-
-local MARK <const> = 208
+local nfcount   = require("tests.runtime.nfcount")
 
 local function accept(skb)
 	return nf.action.ACCEPT
@@ -26,11 +25,5 @@ local function register_late(skb)
 	return nf.action.ACCEPT
 end
 
-netfilter.register{
-	hook     = register_late,
-	pf       = nf.proto.INET,
-	hooknum  = nf.inet.LOCAL_IN,
-	priority = nf.ip.pri.FILTER,
-	mark     = MARK,
-}
+netfilter.register(nfcount.localin(register_late, nfcount.MARK))
 
