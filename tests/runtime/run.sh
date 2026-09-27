@@ -29,6 +29,7 @@ TESTS=(
 	percpu_refuse.sh
 	spawn_refuse.sh
 	spawn_suffix.sh
+	spawn_name.sh
 	percpu_netfilter.sh
 	collected.sh
 	self_stop.sh

@@ -926,6 +926,12 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   the thread before it closes the runtime, whose lock the body holds while
   it runs.
 
+- **spawn_name**: a spawned script whose name carries an underscore names its
+  thread after the last two components of its path, `runtime/my_body` for
+  `tests/runtime/my_body`, and not after the text past the underscore; the
+  check reads the task's comm through the thread `lunatik._ENV.threads`
+  holds.
+
 - **percpu_netfilter**: the runtimes of a percpu script share one
   `LOCAL_IN` hook: with the ping pinned to the last online CPU, each marked
   request is counted exactly once, by the runtime of that CPU; a burst that

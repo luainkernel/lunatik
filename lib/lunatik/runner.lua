@@ -68,7 +68,8 @@ end
 
 --- Spawns a Lunatik script in a new kernel thread.
 -- First, it runs the script using `runner.run`, then creates a new kernel thread
--- to execute the runtime. The thread is named based on the script's filename.
+-- to execute the runtime. The thread is named after the last two components of the script's path,
+-- `echod/daemon` for `examples/echod/daemon`.
 -- The spawned script is expected to return a function, which will then be executed in the new thread.
 -- @tparam string script path or name of the Lua script to spawn. The ".lua" extension will be trimmed.
 -- @treturn userdata kernel thread object.
@@ -80,7 +81,7 @@ function runner.spawn(script, context, ispercpu)
 		error("spawn does not support percpu scripts", 0)
 	end
 	local runtime = runner.run(script, context)
-	local name = string.match(script, "(%w*/*%w*)$")
+	local name = string.match(script, "([^/]*/?[^/]*)$")
 	local started, t = pcall(thread.run, runtime, name)
 	if not started then
 		runner.stop(script)
