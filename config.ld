@@ -87,13 +87,11 @@ dir = 'doc'
 -- The markup of comments and topics: discount renders tables, which the built-in markdown leaves as text.
 format = 'discount'
 
--- For HTML output, you can specify a style.
--- style = '!fixed' -- A common built-in style
--- style = '!menu'  -- Another built-in style with a navigation menu
--- new_style = true -- Use with '!menu' for a more modern look
+style = './doc/style'
+template = './doc/style'
 
--- If you have a README.md file you'd like to use as the main page content:
-readme = 'README.md'
+-- The template renders README.md as the home page and the other topics as the guide.
+topics = {'README.md'}
 
 boilerplate = true
 
