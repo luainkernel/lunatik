@@ -39,8 +39,13 @@ local function build_format(layout)
 end
 
 ---
+-- Codec a layout builds, packing its fields in native byte order. Its `size` field holds the
+-- struct's size in bytes.
+-- @type codec
+
+---
 -- Serializes the field values (in offset order) into the struct's bytes.
--- @function struct:pack
+-- @function codec:pack
 -- @param ... the field values
 -- @treturn string
 function struct:pack(...)
@@ -49,7 +54,7 @@ end
 
 ---
 -- Deserializes the struct's fields from a buffer.
--- @function struct:unpack
+-- @function codec:unpack
 -- @tparam string buf
 -- @tparam[opt] integer pos starting offset (1-based)
 -- @return the field values in offset order, then the position past the struct
@@ -59,7 +64,7 @@ end
 
 ---
 -- Returns the size in bytes of a named field.
--- @function struct:fieldsize
+-- @function codec:fieldsize
 -- @tparam string name the field name.
 -- @treturn integer|nil the field size, or `nil` if the layout has no such field.
 function struct:fieldsize(name)
@@ -70,8 +75,11 @@ end
 
 ---
 -- Builds a codec from a layout descriptor.
+-- @function struct
 -- @tparam table layout `{ size = bytes, fields = { {name, offset, size, signed}, ... } }`
--- @treturn struct a codec exposing `:pack`, `:unpack`, `:fieldsize` and a `size` field.
+-- @treturn codec a codec exposing `:pack`, `:unpack`, `:fieldsize` and a `size` field.
+-- @raise "struct: derived format does not match the layout size (overlapping fields?)"
+-- @within struct
 return function(layout)
 	local format = build_format(layout)
 	assert(packsize(format) == layout.size,
