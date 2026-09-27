@@ -37,6 +37,23 @@ static inline void lunatik_lock(lunatik_object_t *object)
 	lunatik_setowner(object, current);
 }
 
+static inline int lunatik_lockmutex(struct mutex *mutex)
+{
+	/* a killable wait does not end on a stop */
+	return lunatik_iskthread() ? mutex_lock_interruptible(mutex) : mutex_lock_killable(mutex);
+}
+
+static inline int lunatik_lockkillable(lunatik_object_t *object)
+{
+	int ret = 0;
+
+	if (lunatik_isirq(object->opt))
+		lunatik_lock(object);
+	else if ((ret = lunatik_lockmutex(&object->mutex)) == 0)
+		lunatik_setowner(object, current);
+	return ret;
+}
+
 static inline void lunatik_unlock(lunatik_object_t *object)
 {
 	lunatik_setowner(object, NULL);

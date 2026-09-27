@@ -70,13 +70,14 @@ static int luathread_func(void *data)
 */
 static int luathread_shouldstop(lua_State *L)
 {
-	lua_pushboolean(L, (current->flags & PF_KTHREAD) ? (int)kthread_should_stop() : 0);
+	lua_pushboolean(L, lunatik_iskthread() ? (int)kthread_should_stop() : 0);
 	return 1;
 }
 
 /***
 * Stops a running kernel thread.
-* Signals the thread to stop and waits for it to exit.
+* Signals the thread to stop and waits for it to exit. A body waiting for a runtime's lock,
+* or for the lock a shared object's method takes, leaves that wait with "EINTR".
 * @function stop
 * @tparam thread self thread object to stop.
 * @treturn nil
@@ -188,7 +189,7 @@ static void luathread_pushargs(lua_State *L, lunatik_object_t *runtime, int narg
 	lua_State *Lto;
 	int status = LUA_OK;
 
-	lunatik_lock(runtime);
+	lunatik_try(L, lunatik_lockkillable, runtime);
 	Lto = lunatik_isready(runtime) ? lunatik_getstate(runtime) : NULL;
 	if (Lto != NULL && nargs > 0 && (status = lunatik_copyobjects(Lto, L, LUATHREAD_ARGIX, nargs)) != LUA_OK)
 		lua_pop(Lto, 1); /* error message */
@@ -222,7 +223,8 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 *   if a value passed to the body is not a Lunatik object or is a `SINGLE` one, if the arguments
 *   couldn't be passed, or if thread creation fails; "not allowed from the runtime itself" from
 *   under the runtime's own lock, the contexts `runtime:stop` names, where passing the arguments
-*   would wait on it.
+*   would wait on it; "EINTR" if the stop of the calling kernel thread, or a fatal signal to any
+*   other task, ends its wait for the runtime's lock.
 * @see lunatik.runtime
 */
 static int luathread_run(lua_State *L)

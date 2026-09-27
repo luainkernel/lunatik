@@ -80,19 +80,32 @@ static inline void lunatik_releaseprivate(const lunatik_class_t *class, void *pr
 		lunatik_free(private);
 }
 
-void lunatik_closeprivate(lunatik_object_t *object)
+static void lunatik_closelocked(lunatik_object_t *object)
 {
-	void *private;
+	void *private = object->private;
 
-	lunatik_lock(object);
-	private = object->private;
 	object->private = NULL;
 	lunatik_unlock(object);
 
 	if (private != NULL)
 		lunatik_releaseprivate(object->class, private);
 }
+
+void lunatik_closeprivate(lunatik_object_t *object)
+{
+	lunatik_lock(object);
+	lunatik_closelocked(object);
+}
 EXPORT_SYMBOL(lunatik_closeprivate);
+
+int lunatik_closekillable(lunatik_object_t *object)
+{
+	int ret = lunatik_lockkillable(object);
+
+	if (ret == 0)
+		lunatik_closelocked(object);
+	return ret;
+}
 
 int lunatik_closeobject(lua_State *L)
 {
@@ -152,8 +165,8 @@ static int lunatik_monitor(lua_State *L)
 	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
 	lua_insert(L, 1); /* stack: method, object, args */
 
+	lunatik_try(L, lunatik_lockkillable, object);
 	lua_gc(L, LUA_GCSTOP);
-	lunatik_lock(object);
 	ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	lunatik_unlock(object);
 	lua_gc(L, LUA_GCRESTART);
