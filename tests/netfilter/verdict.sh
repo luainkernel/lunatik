@@ -33,7 +33,7 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-# ping <mark>: one marked echo request to the loopback
+# ping_marked <mark>: one marked echo request to the loopback
 ping_marked() {
 	ping -c 1 -W 1 -m "$1" 127.0.0.1 > /dev/null 2>&1
 }
