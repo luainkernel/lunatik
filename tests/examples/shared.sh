@@ -10,8 +10,9 @@
 # was set must answer with the value and nothing else, a rewrite to a shorter
 # value included, which only a byte-exact assertion tells from the whole slot.
 #
-# The peer that resets its session is a userspace one: luasocket's release shuts
-# the socket down before releasing it, so a lunatik client always says goodbye
+# The peer that resets its session is a userspace one, shared_reset.c, which the
+# test builds with gcc and skips without: luasocket's release shuts the socket
+# down before releasing it, so a lunatik client always says goodbye
 # with a FIN, which the daemon reads as a clean end of session. A close with the
 # reply still unread is what the daemon raises on, and only a later connection
 # getting an answer tells that it survived.
@@ -24,42 +25,18 @@ MODULE="luasocket"
 SLEEP=1
 BINDS=15
 BIND_WAIT=5
+DIR="$(dirname "$(readlink -f "$0")")"
+RESET_BIN="$(mktemp)"
 
-source "$(dirname "$(readlink -f "$0")")/../lib.sh"
+source "$DIR/../lib.sh"
 
 cleanup() {
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
 	lunatik stop "$EXAMPLE" > /dev/null 2>&1
+	rm -f "$RESET_BIN"
 }
 trap cleanup EXIT
 cleanup
-
-# closing with the reply unread zaps the connection with a reset, the
-# data_was_unread arm of tcp_close, instead of the FIN a drained socket sends
-reset_session() {
-	python3 - <<'PY'
-import socket, sys
-
-def connect():
-	return socket.create_connection(("127.0.0.1", 90), timeout=2)
-
-client = connect()
-client.sendall(b"rst=x\n")
-client.close()
-
-client = connect()
-client.sendall(b"rst\n")
-client.recv(4096, socket.MSG_PEEK)
-client.close()
-
-client = connect()
-client.sendall(b"rst\n")
-reply = client.recv(4096)
-client.close()
-
-sys.exit(0 if reply else 1)
-PY
-}
 
 ktap_header
 ktap_plan 5
@@ -90,8 +67,8 @@ ktap_pass "shared: a GET of a key that was never assigned answers with an empty 
 dmesg_since | grep -q "shared example: removed ok" || fail "a GET of a key a SET removed did not answer"
 ktap_pass "shared: a GET of a key a SET removed answers with an empty line"
 
-if command -v python3 > /dev/null 2>&1; then
-	reset=$(reset_session 2>&1) || { comment "$reset"; fail "no answer after a peer reset its session"; }
+if build_peer "$DIR/shared_reset.c" "$RESET_BIN"; then
+	reset=$("$RESET_BIN" 2>&1) || { comment "$reset"; fail "no answer after a peer reset its session"; }
 	ktap_pass "shared: a peer that resets its session does not end the daemon"
 else
 	ktap_skip "shared: a peer that resets its session does not end the daemon"
