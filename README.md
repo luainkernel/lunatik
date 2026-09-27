@@ -6,7 +6,9 @@ Netfilter, XDP and TC hooks, kprobes, fsnotify, sched_ext, eBPF maps, sockets, n
 kernel threads and more. A command line tool loads and manages them from user space, and a
 [C API](doc/capi.md) lets kernel modules do the same.
 
-Lunatik supports Linux 6.6 and later. Join us on [Matrix](https://matrix.to/#/#lunatik:matrix.org).
+Lunatik supports Linux 6.6 and later. Its documentation is at
+[luainkernel.github.io/lunatik](https://luainkernel.github.io/lunatik/). Join us on
+[Matrix](https://matrix.to/#/#lunatik:matrix.org).
 
 
 Here is an example of a character device driver written in Lua using Lunatik
@@ -50,7 +52,7 @@ Dependencies, OpenWRT and the first steps are in [Getting started](doc/guide/01-
 * [Per-CPU scripts](doc/guide/03-percpu.md): one runtime per CPU, and where state belongs
 * [Lua in the kernel](doc/guide/04-lua.md): what differs from userspace Lua
 * [Examples](doc/guide/05-examples.md): device drivers, packet filters, probes, filesystem guards
-* [Lua API reference](https://luainkernel.github.io/lunatik/) and [C API](doc/capi.md)
+* [Lua API reference](https://luainkernel.github.io/lunatik/#api-reference) and [C API](doc/capi.md)
 * [Development](doc/guide/06-development.md) and [Resources](doc/guide/07-resources.md): tests, contributing, talks and papers
 
 ## License
