@@ -1267,19 +1267,21 @@ command and a pid, and what a valid call does.
   `ipip`, and unless the loaded `luaskb` is the installed one and carries the
   refusal, since a module without it panics the host.
 
-- **data**: a ping over an ipip tunnel reaches `LOCAL_OUT` twice. On the inner
-  packet, which has no MAC header yet, `skb:data("mac")` raises "MAC header not
-  set". The outer packet has its MAC header at the inner IPv4 header: `#skb:data()`
-  equals `#skb` and `#skb:data("mac")` is shorter by the outer header, both views
-  ending at the tail. Taken together, the two are two views: the "net" view keeps
-  its length and the outer header's protocol after the "mac" view is taken, on the
-  packet and on a copy of it. Trimmed below the outer header with `skb:resize`, the
-  packet makes `skb:data("mac")` raise "MAC header past the tail". A second ping's
-  first callback finds both views of the outer packet with length 0, and, after a
-  full collection, both views of the copy it dropped, reading their lengths alone,
-  so a build that leaves one set fails without reading the packet it viewed. The
-  hook never reads a "mac" view, so a build without the refusals fails without an
-  out-of-bounds access. The tunnel runs over loopback; skips without `ipip`.
+- **data**: a ping to the loopback address reaches `LOCAL_OUT` with no MAC header
+  yet, where `skb:data("mac")` raises "MAC header not set", and `PRE_ROUTING` on
+  `lo`, where `#skb:data("mac")` is `#skb` plus the Ethernet header. A ping over an
+  ipip tunnel reaches `LOCAL_OUT` with the outer packet's MAC header at the inner
+  IPv4 header: `#skb:data()` equals `#skb` and `#skb:data("mac")` is shorter by the
+  outer header, both views ending at the tail. Taken together, the two are two
+  views: the "net" view keeps its length and the outer header's protocol after the
+  "mac" view is taken, on the packet and on a copy of it. Trimmed below the outer
+  header with `skb:resize`, the packet makes `skb:data("mac")` raise "MAC header
+  past the tail". A second tunnel ping's first callback finds both views of the
+  outer packet with length 0, and, after a full collection, both views of the copy
+  it dropped, reading their lengths alone, so a build that leaves one set fails
+  without reading the packet it viewed. The hooks never read a "mac" view, so a
+  build without the refusals fails without an out-of-bounds access. The tunnel runs
+  over loopback; its cases skip without `ipip`.
 
 - **copy**: a veth pair joins the initial namespace to one of the test's own, the
   initial end aggregating UDP with fraglist GRO and the other segmenting UDP in
