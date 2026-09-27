@@ -134,9 +134,10 @@ static lunatik_object_t *luaskb_pushview(lua_State *L, lunatik_object_t **view)
 
 /***
 * Linearizes the skb and returns a view from where `layer` starts to the end of
-* the packet. "net" starts at `skb->data`, which is the network header in a
-* netfilter hook and the MAC header in a tc callback; "mac" starts at the MAC
-* header. In a tc callback the skb is not linearized, and a non-linear one raises.
+* the packet. "net" starts at `skb->data`, which is the network header in an
+* IPv4 or IPv6 netfilter hook and the MAC header in a tc callback; "mac" starts
+* at the MAC header. In a tc callback the skb is not linearized, and a non-linear
+* one raises.
 *
 * The skb keeps one view per layer: the "net" and "mac" views are two objects, and a
 * second call for a layer returns the same view, ending at the tail as it is then: a
