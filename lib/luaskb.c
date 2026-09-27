@@ -327,12 +327,10 @@ static const luaL_Reg luaskb_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(skb);
 static const lunatik_class_t luaskb_class = {
 	.name    = "skb",
 	.methods = luaskb_mt,
 	.release = luaskb_release,
-	.opener = luaopen_skb,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 

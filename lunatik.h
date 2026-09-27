@@ -78,7 +78,6 @@ typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
 	lunatik_release_t release;
-	lua_CFunction opener;
 	lunatik_opt_t opt;
 } lunatik_class_t;
 
@@ -303,14 +302,6 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
 bool lunatik_getobject_rcu(lunatik_object_t *object);
 
-static inline void lunatik_require(lua_State *L, const lunatik_class_t *class)
-{
-	if (class->opener) {
-		luaL_requiref(L, class->name, class->opener, 0);
-		lua_pop(L, 1);
-	}
-}
-
 static inline void lunatik_pushobject(lua_State *L, lunatik_object_t *object)
 {
 	lunatik_cloneobject(L, object);
@@ -396,16 +387,19 @@ static inline bool lunatik_hasclass(lua_State *L, const lunatik_class_t *class)
 	return type != LUA_TNIL;
 }
 
+static inline void lunatik_require(lua_State *L, const lunatik_class_t *class)
+{
+	if (lunatik_hasclass(L, class))
+		return;
+	if (lunatik_ismonitor(class->opt))
+		lunatik_newclass(L, class, true);
+	lunatik_newclass(L, class, false);
+}
+
 static inline void lunatik_newclasses(lua_State *L, const lunatik_class_t **classes)
 {
-	for (; *classes; classes++) {
-		const lunatik_class_t *cls = *classes;
-		if (lunatik_hasclass(L, cls)) /* opened again under another name */
-			continue;
-		if (lunatik_ismonitor(cls->opt))
-			lunatik_newclass(L, cls, true);
-		lunatik_newclass(L, cls, false);
-	}
+	for (; *classes; classes++)
+		lunatik_require(L, *classes);
 }
 
 #define LUNATIK_OPENER(libname)		int luaopen_##libname(lua_State *L)

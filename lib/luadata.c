@@ -375,12 +375,10 @@ static const luaL_Reg luadata_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(data);
 static const lunatik_class_t luadata_class = {
 	.name = "data",
 	.methods = luadata_mt,
 	.release = luadata_release,
-	.opener = luaopen_data,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_MONITOR,
 };
 

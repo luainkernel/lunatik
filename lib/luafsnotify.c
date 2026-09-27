@@ -752,7 +752,6 @@ static const lunatik_class_t luafsnotify_class = {
 	.name = "fsnotify",
 	.methods = luafsnotify_mt,
 	.release = luafsnotify_release,
-	.opener = luaopen_fsnotify,
 	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
 };
 

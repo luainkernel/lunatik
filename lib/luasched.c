@@ -115,12 +115,10 @@ static void luasched_release(void *private)
 		luatask_close(lctx->task_obj);
 }
 
-LUNATIK_OPENER(sched);
 static const lunatik_class_t luasched_class = {
 	.name    = "sched.ctx",
 	.methods = luasched_mt,
 	.release = luasched_release,
-	.opener  = luaopen_sched,
 	.opt     = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
 };
 

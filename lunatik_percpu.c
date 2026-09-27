@@ -12,8 +12,6 @@
 
 #include <lunatik.h>
 
-LUNATIK_OPENER(lunatik);
-
 /***
 * Set of runtimes, one per CPU id, running the same script. A callback dispatched
 * through it reaches the runtime of the CPU it fired on.
@@ -197,7 +195,6 @@ const lunatik_class_t lunatik_percpu_class = {
 	.name = "percpu",
 	.methods = lunatik_percpu_mt,
 	.release = lunatik_releasepercpu,
-	.opener = luaopen_lunatik,
 	.opt = LUNATIK_OPT_PERCPU,
 };
 

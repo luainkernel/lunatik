@@ -344,12 +344,10 @@ static const luaL_Reg luaprobe_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(probe);
 static const lunatik_class_t luaprobe_class = {
 	.name = "probe",
 	.methods = luaprobe_mt,
 	.release = luaprobe_release,
-	.opener = luaopen_probe,
 	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
 };
 

@@ -243,7 +243,6 @@ const lunatik_class_t lunatik_class = {
 	.name = "runtime",
 	.methods = lunatik_mt,
 	.release = lunatik_releaseruntime,
-	.opener = luaopen_lunatik,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
 };
 EXPORT_SYMBOL(lunatik_class);

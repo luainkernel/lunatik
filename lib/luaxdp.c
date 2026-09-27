@@ -111,12 +111,10 @@ static void luaxdp_release(void *private)
 		luadata_close(lctx->argument);
 }
 
-LUNATIK_OPENER(xdp);
 static const lunatik_class_t luaxdp_class = {
 	.name    = "xdp.ctx",
 	.methods = luaxdp_mt,
 	.release = luaxdp_release,
-	.opener  = luaopen_xdp,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 

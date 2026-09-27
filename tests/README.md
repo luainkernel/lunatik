@@ -971,13 +971,19 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   stored in `_ENV`; exercised through a `LOCAL_OUT` netfilter hook on
   loopback.
 
-- **require_cloneobject**: `lunatik_cloneobject` loads the class into
-  the receiving runtime via `class->opener` (`luaL_requiref`), even when
-  that runtime never called `require()` for the module.
+- **require_cloneobject**: an object resumed into a runtime that never
+  called `require()` for its module arrives with its class metatables,
+  which `lunatik_cloneobject` creates there from the class's methods
+  without opening the library or adding a `package.loaded` entry: `data`
+  into a softirq runtime, where the clone must not sleep, and
+  `set.labeled`, the crypto classes and the `bpf` maps into a process
+  one. The `crypto_comp` case skips where the kernel has no crypto_comp
+  API (6.15 and later), the `bpf` one where bpftool cannot pin a map.
 
-- **require_reopen**: a library opened again under another name (the
-  `_ENV` object registers `luarcu` as `rcu.table`, the script's `require`
-  as `rcu`) keeps the class metatables the first open created.
+- **require_reopen**: a library opened in a state that already has its
+  classes (the `_ENV` object's clone creates the `rcu.table` metatables,
+  the script's `require("rcu")` opens `luarcu` afterwards) keeps the
+  metatables the clone created, and `package.loaded` has no `rcu.table`.
 
 - **percpu**: `run --percpu <script>` registers one object holding a
   runtime per possible CPU id, and runs the script once per runtime,
