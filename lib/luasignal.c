@@ -13,17 +13,29 @@
 #include <lunatik.h>
 
 /***
-* POSIX Signals
+* Reads and changes the signal state of the calling task, and sends signals.
+* `sigmask`, `sigpending` and `sigstate` act on the calling task, which is meaningful in a process
+* runtime, typically in a kernel thread's body. In a softirq or hardirq callback the calling task is
+* whichever one the interrupt found running, and `sigmask` must not be called there. `kill`
+* resolves the pid in the calling task's pid namespace.
 * @module signal
+* @usage
+*   local signal = require("signal")
+*   local sig    = require("linux.signal")
+*
+*   signal.sigmask(sig.USR1)                 -- block SIGUSR1
+*   print(signal.sigstate(sig.USR1))         -- true
+*   signal.sigmask(sig.USR1, sig._UNBLOCK)
 */
 
 /***
 * Modifies signal mask for current task.
+* Unlike the system call, it blocks `SIGKILL` and `SIGSTOP` too.
 *
 * @function sigmask
 * @tparam integer sig Signal number, 1 to `_NSIG`.
 * @tparam[opt] integer cmd SIG_BLOCK (0, default) or SIG_UNBLOCK (1).
-* @raise Error if the signal or the command is out of bounds, or the operation is not permitted.
+* @raise Error if the signal or the command is out of bounds.
 */
 static int luasignal_sigmask(lua_State *L)
 {
@@ -57,12 +69,15 @@ static int luasignal_sigpending(lua_State *L)
 *
 * @function sigstate
 * @tparam integer sig Signal number, 1 to `_NSIG`.
-* @tparam[opt] string state `"blocked"` (default), `"pending"`, or `"allowed"`.
+* @tparam[opt] string state `"blocked"` (default), `"pending"`, or `"allowed"`. `"pending"` reads
+*   the thread's private pending set: a signal sent to the process, as `kill` sends it, sits in the
+*   shared set and reads as not pending, so `sigpending` is the check for it.
 * @treturn boolean
 * @raise Error if the signal is out of bounds.
 * @usage
-* local sig = require("linux.signal")
-* signal.sigstate(15) -- check if SIGTERM is blocked
+* local signal = require("signal")
+* local sig    = require("linux.signal")
+* signal.sigstate(sig.TERM) -- check if SIGTERM is blocked
 * signal.sigstate(sig.TERM, "pending")
 */
 static int luasignal_sigstate(lua_State *L)
@@ -104,10 +119,10 @@ static int luasignal_sigstate(lua_State *L)
 * @function kill
 * @tparam integer pid Target process ID, 1 to `PID_MAX_LIMIT`.
 * @tparam[opt] integer sig Signal to send, 0 to `_NSIG` (default: `KILL`, from `linux.signal`);
-*   0 sends nothing and checks the process and the permission.
+*   0 sends nothing and checks that the process exists.
 * @treturn boolean `true` on success.
-* @raise Error if the pid or the signal is out of bounds, the process is not found or the
-*   operation is not permitted.
+* @raise Error if the pid or the signal is out of bounds; "ESRCH" if no process has that pid. The
+*   signal is sent with the kernel's privilege, so no permission check applies.
 */
 static int luasignal_kill(lua_State *L)
 {
