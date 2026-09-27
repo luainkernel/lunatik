@@ -186,7 +186,7 @@ static int luaskb_checksum(lua_State *L)
 /***
 * Forwards the skb out through its ingress device.
 * @function forward
-* @raise if skb has no device, MAC header is not set, or clone fails
+* @raise if skb has no device, MAC header is not set or is past the data, or clone fails
 */
 static int luaskb_forward(lua_State *L)
 {
@@ -196,6 +196,7 @@ static int luaskb_forward(lua_State *L)
 
 	luaL_argcheck(L, dev != NULL, 1, "skb has no device");
 	luaL_argcheck(L, skb_mac_header_was_set(skb), 1, "MAC header not set");
+	luaL_argcheck(L, skb_mac_header(skb) <= skb->data, 1, "MAC header past the data");
 
 	struct sk_buff *nskb = lunatik_checknull(L, skb_clone(skb, GFP_ATOMIC));
 
