@@ -7,7 +7,12 @@
 * RCU-synchronized hash table.
 * Provides a concurrent hash table using Read-Copy-Update (RCU) synchronization.
 * Reads are lockless; writes are serialized. Keys are strings, values can be
-* booleans, integers, lunatik objects, or `nil` (to delete an entry). A read that
+* booleans, integers, shareable lunatik objects, or `nil` (to delete an entry). A
+* SINGLE object, such as a `device`, a `probe` or a `hid` driver, raises
+* `cannot share SINGLE object`, and a string or a table raises `unsupported type`.
+* Reading an object returns a new handle on the same kernel object; from a softirq or
+* hardirq runtime, one whose class needs process context raises
+* `'<class>': process-context class in interrupt-context runtime`. A read that
 * meets a writer releasing the entry's object sees the entry gone.
 *
 * See `examples/shared/daemon.lua` for a practical example.
@@ -33,8 +38,18 @@ typedef struct luarcu_entry_s {
 } luarcu_entry_t;
 
 /***
-* RCU hash table object.
-* Supports table-like access via `__index` and `__newindex`.
+* RCU hash table object, indexed as a Lua table.
+*
+* `t[key]` reads the value (RCU-protected, lockless): `nil` for a key without an
+* entry, and for one whose object a writer is releasing.
+*
+* `t[key] = value` sets the value, and `nil` removes the entry (serialized). A key
+* takes up to 255 bytes, and a longer one raises `out of bounds`; a failed
+* allocation raises `not enough memory`. The value an assignment replaces or removes
+* is released on the assigning task once the table's lock is dropped, so a runtime or a
+* socket whose last reference the entry held closes there, in the writer's own
+* context: in softirq when a softirq runtime writes the table, with IRQs off when a
+* hardirq one does.
 * @type rcu_table
 * @usage
 *  local t = rcu.table()
@@ -175,13 +190,6 @@ int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lun
 }
 EXPORT_SYMBOL(luarcu_setvalue);
 
-/***
-* Retrieves a value from the table (RCU-protected, lockless).
-* @function __index
-* @tparam string key
-* @treturn boolean|integer|object|nil `nil` for a key without an entry, and for one whose
-*   object a writer is releasing
-*/
 static int luarcu_index(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobjectclass(L, 1, &luarcu_class);
@@ -194,17 +202,6 @@ static int luarcu_index(lua_State *L)
 	return 1; /* value */
 }
 
-/***
-* Sets or removes a value in the table (serialized).
-* Assigning `nil` removes the entry. The value an assignment replaces or removes is
-* released on the assigning task once the table's lock is dropped, so a runtime or a
-* socket whose last reference the entry held closes there, in the writer's own context:
-* in softirq when a softirq runtime writes the table, with IRQs off when a hardirq one does.
-* @function __newindex
-* @tparam string key up to `LUARCU_MAXKEY` bytes, exclusive
-* @tparam boolean|integer|object|nil value
-* @raise Error if the key is out of bounds, or on memory allocation failure.
-*/
 static int luarcu_newindex(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobjectclass(L, 1, &luarcu_class);
@@ -277,14 +274,18 @@ static inline void luarcu_readentry(luarcu_entry_t *entry, lunatik_value_t *valu
 
 /***
 * Iterates over the table calling `callback(key, value)` for each entry.
-* The walk runs inside an SRCU read-side critical section, so the callback may sleep
-* and a writer on any runtime may change the table meanwhile: an entry removed or
-* replaced under the walk may still be reached and is then skipped, one added is
-* visited only if its bucket is still ahead, and the order is not guaranteed.
+* The walk runs inside an SRCU read-side critical section, which allows the callback
+* to sleep; whether it may is its runtime's context, as for any code of a softirq or
+* hardirq runtime. A writer on any runtime may change the table meanwhile: an entry
+* removed or replaced under the walk may still be reached and is then skipped, one
+* added is visited only if its bucket is still ahead, and the order is not guaranteed.
 * @function map
+* @tparam rcu_table t the table to walk
 * @tparam function callback `function(key, value)`; an entry whose object a writer is
 *   releasing is skipped.
 * @raise Error if callback raises.
+* @usage rcu.map(t, function (key, value) print(key, value) end)
+* @within rcu
 */
 static int luarcu_map(lua_State *L)
 {
@@ -350,7 +351,7 @@ EXPORT_SYMBOL(luarcu_newtable);
 * Creates a new RCU hash table.
 * @function table
 * @tparam[opt=256] integer size Number of hash buckets (rounded up to power of two), from 1 up to
-*   `LUARCU_MAXSIZE`, the largest count whose table can be sized; what memory serves is the allocator's.
+*   the largest count whose table size does not overflow; what memory serves is the allocator's.
 * @treturn rcu_table
 * @raise if out of bounds or the allocation fails
 * @usage
