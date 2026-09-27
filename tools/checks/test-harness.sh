@@ -6,19 +6,39 @@
 # module is the installed file and not that the file carries the fix, the way
 # tests/runtime/self_stop first skipped; and a message the header says
 # check_dmesg reads that tests/lib.sh's KTAP_ERRORS does not match, the BUG line
-# tests/rcu/entry_release first claimed. Heuristic: it nudges a review, it does
-# not rewrite.
+# tests/rcu/entry_release first claimed. In a test's Lua script, it names a case
+# run under a condition, which reports nothing when the condition is false while
+# the script's one KTAP line counts it as passed, the way tests/runtime/percpu_object
+# ran its failing case only on more than one CPU, as #1166 found. Heuristic: it nudges
+# a review, it does not rewrite.
 # Usage: test-harness.sh <file>...
 # Prints the findings; exits 1 when there are any. Files outside its scope
 # are skipped silently, so callers can pass any path.
 
 rc=0
 
+checkcases() {
+	awk -v file="$1" '
+	function indent(s) { match(s, /^\t*/); return RLENGTH }
+	{
+		line = $0; sub(/--.*$/, "", line); d = indent(line)
+		while (n > 0 && line ~ /[^[:space:]]/ && d <= open[n] && line !~ /^[[:space:]]*(else|elseif)([^A-Za-z0-9_]|$)/) n--
+		if (line ~ /^[[:space:]]*if[[:space:]].*[[:space:]]then[[:space:]]*$/) { open[++n] = d; next }
+		if (n > 0 && line ~ /^[[:space:]]*(util\.)?test[[:space:]]*\(/) {
+			printf "%s:%d: a case run under a condition, which the script'\''s KTAP line counts as passed when it does not run; skip it in the .sh\n", file, NR
+			found = 1
+		}
+	}
+	END { exit !found }' "$1" && return 1
+	return 0
+}
+
 check() {
 	local file="$1" issues=""
 
 	case "$file" in
 		*/lib.sh|*/run.sh|lib.sh|run.sh) return 0 ;; # the library and the runners, not tests
+		*/tests/*.lua|tests/*.lua) [ -f "$file" ] || return 0; checkcases "$file"; return ;;
 		*/tests/*.sh|tests/*.sh) ;;
 		*) return 0 ;;
 	esac

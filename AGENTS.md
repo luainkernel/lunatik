@@ -171,7 +171,8 @@ the last one.
 release named with what changed in it or above a table, the counterfactual, the multi-line note
 inside code and the trailing comment past the width
 (`comment-style.sh`), the branches, argument tables and inline functions the Lua style rules settle
-(`lua-style.sh`), test scripts that cannot detect a failed load (`test-harness.sh`), cppcheck on
+(`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script skips
+(`test-harness.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
@@ -257,6 +258,11 @@ added and deleted one route through two branches that each spelled the route and
 the maintainer asked for `reroute.down` and `reroute.up` over one `backup` table. It runs at edit
 time and over a pull request's diff and annotates rather than fails, since two registrations that
 share three fields can be two different hooks.
+
+`test-harness.sh` reads a test's Lua script as well as its `.sh`, for a case the script runs under a
+condition: when the condition is false the case reports nothing and the script's one KTAP line
+counts it as passed, which `tests/runtime/percpu_object` did on a single CPU, as #1166 found, so
+the skip is decided in the `.sh`, where it is a `# SKIP` line.
 
 `author-email.sh` reads a rev-range and names a commit whose author email is not the one the base
 uses most for that author's name: a rebase or a squash done from another checkout signs the result
