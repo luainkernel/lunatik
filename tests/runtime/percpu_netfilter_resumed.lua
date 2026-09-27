@@ -7,10 +7,15 @@
 local lunatik   = require("lunatik")
 local netfilter = require("netfilter")
 local nfcount   = require("tests.runtime.nfcount")
+local verdict   = require("tests.runtime.verdict")
+
+local PREFIX <const> = "percpu netfilter resume: "
+
+local hook = nfcount.localin(nfcount.count, nfcount.MARK)
+local cpu = lunatik.cpu() or "plain"
 
 local function register()
-	local ok, err = pcall(netfilter.register, nfcount.localin(nfcount.count, nfcount.MARK))
-	print("percpu netfilter resume: " .. tostring(lunatik.cpu() or "plain") .. " " .. tostring(ok and "registered" or err))
+	verdict.report(PREFIX, cpu, pcall(netfilter.register, hook))
 end
 
 return register
