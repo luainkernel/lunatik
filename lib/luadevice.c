@@ -10,8 +10,9 @@
 * by providing callback functions for standard file operations like
 * `open`, `read`, `write`, and `release`.
 *
-* A file operation runs under the lock of the runtime that made the device,
-* on the task performing it, so one the runtime's own code performs, a
+* A file operation runs on the task performing it, in process context, so its
+* callback may sleep. It runs under the lock of the runtime that made the device,
+* so one the runtime's own code performs, a
 * callback or a `thread` body opening the node it made, fails with `EDEADLK`:
 * it would wait on the lock its task holds. A callback that raises, or that
 * returns a length or an offset that is not an integer, fails its operation
@@ -374,29 +375,39 @@ static int luadevice_stop(lua_State *L)
 *     and optionally the updated file offset (integer). If `written_length` is not
 *     returned, it's assumed all provided data was written. If `updated_offset` is
 *     not returned, the offset is advanced by the `written_length`.
-*   - `release` (function): Callback for the `release(2)` system call (called when the
-*     last file descriptor is closed). Signature: `function(driver_table, file)`.
+*   - `release` (function): runs when the last reference to an open file is closed,
+*     the final close(2). Signature: `function(driver_table, file)`.
 *     Expected to return nothing.
+*
+*   A read returns end of file when its callback returns an empty string or `nil`.
+*
+*   It **might** also contain the field:
+*
 *   - `mode` (integer): Optional file mode flags (e.g., permissions) for the device file.
 *     Use constants from `linux.stat` (e.g., `stat.IRUGO`).
-* @treturn userdata A Lunatik object representing the newly created device.
+* @treturn device A Lunatik object representing the newly created device.
 *   This object can be used to explicitly stop the device using the `:stop()` method.
 * @raise Error if the device cannot be allocated or registered in the kernel,
-*   if the `name` field is missing or not a string, or if called from a percpu runtime.
+*   if the `name` field is missing or not a string, or if called from a percpu runtime;
+*   `'device': process-context class in interrupt-context runtime` in a softirq or
+*   hardirq runtime (run it in process context, the default of `lunatik run`).
 * @usage
 *   local device = require("device")
 *   local stat   = require("linux.stat")
 *
+*   local function read(drv, len, off)
+*     local data = "Hello from " .. drv.name .. "!\n"
+*     return data:sub(off + 1, off + len)
+*   end
+*
 *   local my_driver = {
 *     name = "my_lua_device",
 *     mode = stat.IRUGO, -- Read-only for all
-*     read = function(drv, len, off)
-*       local data = "Hello from " .. drv.name .. " at offset " .. tostring(off) .. "!"
-*       return data:sub(1, len), off + #data
-*     end
+*     read = read,
 *   }
 *   local dev_obj = device.new(my_driver)
 *   -- To remove it: dev_obj:stop(), or stop the runtime.
+* @within device
 */
 static const luaL_Reg luadevice_lib[] = {
 	{"new", luadevice_new},
