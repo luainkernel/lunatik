@@ -188,8 +188,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   the same runtime's other device, whose callbacks return an offset and a
   length, then succeed. A build that reads
   those returns outside a protected call raises with no handler, which is a
-  `BUG`, so the test skips unless the loaded `luadevice` lists
-  `luadevice_pcall` in `/proc/kallsyms`.
+  `BUG`, so the test skips unless the loaded `luadevice` is the installed one
+  and that file carries the error such a return raises.
 - **file**: each open of a device has a state of its own, which every callback
   of that open receives from its open to its release. Two files open at once
   each read what they wrote; a file that wrote nothing reads nothing; release

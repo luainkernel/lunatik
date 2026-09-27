@@ -57,7 +57,6 @@ typedef struct luahid_ctx_s {
 	const struct hid_device_id *id;
 	u8 *data;
 	size_t size;
-	int ret;
 } luahid_ctx_t;
 
 static void luahid_release(void *private)
@@ -133,18 +132,11 @@ do {						\
 	lua_setfield(L, idx - 1, #field);	\
 } while (0)
 
-static inline int luahid_pcall(lua_State *L, lua_CFunction op, luahid_ctx_t *ctx)
-{
-	ctx->ret = 0;
-	if (lunatik_cpcall(L, op, ctx) != LUA_OK)
-		hid_err(ctx->hdev, "%s: %s\n", ctx->cb, lunatik_errmsg(L));
-	return ctx->ret;
-}
-
 #define luahid_run(op, ctx, hid, hdev, ret)					\
 do {										\
 	(ctx)->cb = #op; (ctx)->hid = hid; (ctx)->hdev = hdev;			\
-	lunatik_run(hid->runtime, luahid_pcall, ret, luahid_do##op, ctx);	\
+	lunatik_run(hid->runtime, lunatik_catch, ret, luahid_do##op, ctx,	\
+		(ctx)->cb);							\
 } while (0)
 
 #define luahid_pushid(L, id, extra)		\
@@ -186,10 +178,8 @@ static inline lunatik_object_t *luahid_pushdata(lua_State *L, luahid_ctx_t *ctx)
 {
 	lunatik_object_t *obj = lunatik_getregistryobject(L, ctx->hid->data);
 
-	if (unlikely(obj == NULL)) {
-		ctx->ret = -ENXIO;
+	if (unlikely(obj == NULL))
 		luaL_error(L, "couldn't find data");
-	}
 
 	luadata_reset(obj, ctx->data, ctx->size, LUADATA_OPT_NONE);
 	return obj;
@@ -200,10 +190,8 @@ static void luahid_op(lua_State *L, luahid_ctx_t *ctx, int nargs)
 	luahid_t *hid = ctx->hid;
 	int base = lua_gettop(L) - nargs;
 
-	if (luahid_checkdriver(L, hid)) { /* stack: args, hid */
-		ctx->ret = -ENXIO;
+	if (luahid_checkdriver(L, hid)) /* stack: args, hid */
 		luaL_error(L, "couldn't find driver");
-	}
 
 	lunatik_optcfunction(L, -1, ctx->cb, lunatik_nop); /* stack: args, hid, hid.cb */
 
@@ -211,10 +199,7 @@ static void luahid_op(lua_State *L, luahid_ctx_t *ctx, int nargs)
 	lua_insert(L, base + 2); /* hid */
 	lua_settop(L, base + 2 + nargs); /* stack: hid.cb, hid, args */
 
-	if (lua_pcall(L, nargs + 1, 0, 0) != LUA_OK) { /* ops.cb(hid, args) */
-		ctx->ret = -ECANCELED;
-		lua_error(L);
-	}
+	lua_call(L, nargs + 1, 0); /* ops.cb(hid, args) */
 }
 
 static int luahid_doprobe(lua_State *L)

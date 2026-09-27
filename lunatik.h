@@ -178,6 +178,15 @@ static inline const char *lunatik_errmsg(lua_State *L)
 	return lua_type(L, -1) == LUA_TSTRING ? lua_tostring(L, -1) : "error object is not a string";
 }
 
+static inline int lunatik_catch(lua_State *L, lua_CFunction f, void *ud, const char *name)
+{
+	if (lunatik_cpcall(L, f, ud) != LUA_OK) {
+		pr_err_ratelimited("%s: %s\n", lunatik_errmsg(L), name);
+		return -ECANCELED;
+	}
+	return 0;
+}
+
 static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
 {
 	int _type = lua_getfield(L, idx, field);
