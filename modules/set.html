@@ -3,37 +3,47 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Lunatik API Documentation</title>
+    <title>set · Lunatik</title>
+    <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+    <script>try { var t = localStorage.getItem('lunatik-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }</script>
+    <script src="../search.js" defer=""></script>
+    <script src="../site.js" defer=""></script>
 </head>
-<body>
+<body data-root="../">
 
-<div id="container">
+<header class="topbar">
+    <button class="icon-btn nav-toggle" id="nav" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="../index.html">
+        <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
+        <span>Lunatik</span>
+    </a>
+    <div class="search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <kbd>/</kbd>
+        <ul class="results" id="results" hidden=""></ul>
+    </div>
+    <nav class="top-links" aria-label="Site">
+        <a href="../topics/01-getting-started.md.html">Guide</a>
+        <a href="../index.html#api-reference">API</a>
+        <a href="https://github.com/luainkernel/lunatik">GitHub</a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">
+            <svg class="theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="theme-icon-dark" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+    </nav>
+</header>
 
 
-<div id="main">
+<div class="layout">
 
-
-<!-- Menu -->
-
-<div id="navigation">
-<br/>
-<h1><a href="../index.html">Lunatik</a></h1>
-
-<ul>
-  <li><a href="../index.html">Home</a></li>
-</ul>
-
-<h2>Contents</h2>
-<ul>
-<li><a href="#Functions">Functions</a></li>
-<li><a href="#Class_set">Class set </a></li>
-<li><a href="#Class_set_labeled">Class set.labeled </a></li>
-</ul>
-
-
+<aside class="sidebar" id="sidebar" aria-label="Documentation">
 <h2>Guide</h2>
-<ul class="">
+<ul>
   <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
   <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
   <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
@@ -44,22 +54,94 @@
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
-<ul class="nowrap">
+<h3>Runtime</h3>
+<ul class="mono">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+</ul>
+<h3>Packets and eBPF</h3>
+<ul class="mono">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
-  <li><a href="../modules/byteorder.html">byteorder</a></li>
-  <li><a href="../modules/class.html">class</a></li>
-  <li><a href="../modules/completion.html">completion</a></li>
-  <li><a href="../modules/cpu.html">cpu</a></li>
-  <li><a href="../modules/crypto.html">crypto</a></li>
-  <li><a href="../modules/darken.html">darken</a></li>
-  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
+</ul>
+<h3>Sockets and netlink</h3>
+<ul class="mono">
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+</ul>
+<h3>Tracing and scheduling</h3>
+<ul class="mono">
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+</ul>
+<h3>Devices and events</h3>
+<ul class="mono">
   <li><a href="../modules/device.html">device</a></li>
-  <li><a href="../modules/fifo.html">fifo</a></li>
   <li><a href="../modules/fsnotify.html">fsnotify</a></li>
   <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+</ul>
+<h3>Data</h3>
+<ul class="mono">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html" aria-current="page">set</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+</ul>
+<h3>Cryptography</h3>
+<ul class="mono">
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
   <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h3>System</h3>
+<ul class="mono">
+  <li><a href="../modules/cpu.html">cpu</a></li>
   <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+</ul>
+<h3>Constants</h3>
+<ul class="mono">
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -81,65 +163,15 @@
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
-  <li><a href="../modules/lunatik.html">lunatik</a></li>
-  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
-  <li><a href="../modules/mailbox.html">mailbox</a></li>
-  <li><a href="../modules/net.html">net</a></li>
-  <li><a href="../modules/netfilter.html">netfilter</a></li>
-  <li><a href="../modules/netlink.html">netlink</a></li>
-  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
-  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
-  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
-  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
-  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
-  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
-  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
-  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
-  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
-  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
-  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
-  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
-  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
-  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
-  <li><a href="../modules/notifier.html">notifier</a></li>
-  <li><a href="../modules/probe.html">probe</a></li>
-  <li><a href="../modules/rcu.html">rcu</a></li>
-  <li><a href="../modules/sched.html">sched</a></li>
-  <li><strong>set</strong></li>
-  <li><a href="../modules/signal.html">signal</a></li>
-  <li><a href="../modules/skb.html">skb</a></li>
-  <li><a href="../modules/socket.html">socket</a></li>
-  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
-  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
-  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
-  <li><a href="../modules/struct.html">struct</a></li>
-  <li><a href="../modules/syscall.html">syscall</a></li>
-  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
-  <li><a href="../modules/task.html">task</a></li>
-  <li><a href="../modules/tc.html">tc</a></li>
-  <li><a href="../modules/thread.html">thread</a></li>
-  <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
-  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
-  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
-</ul>
+</aside>
 
-</div>
+<main class="content" id="content">
 
-<div id="content">
-
-<h1>Module <code>set</code></h1>
-<p>A <a href="../modules/set.html#">set</a> is a compact, immutable set of strings, queried by binary search.</p>
-<p> It stores many short strings as a sorted blob of key bytes plus a uint32 offset
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-data">Data</a></div>
+<h1>set<span class="kind">Module</span></h1>
+<p class="lead">A <a href="../modules/set.html#">set</a> is a compact, immutable set of strings, queried by binary search.</p>
+ It stores many short strings as a sorted blob of key bytes plus a uint32 offset
  array, with no per-key allocation, so it costs about <code>length + 4</code> bytes per key,
  instead of the hash node and slab rounding a Lua or <a href="../modules/rcu.html#">rcu</a> table pays per key.
  Built once, it is then read-only: lookups take no lock and allocate nothing, safe
@@ -150,60 +182,52 @@
  <a href="../modules/set.html#set.labeled">set.labeled</a> builds a labeled set: each member carries a 32-bit label bitmask, and
  <a href="../modules/set.html#set.labeled:match">set:match</a> walks a key by <code>.</code> returning the bitwise OR of the labels of every member
  that is a suffix of it (0 when nothing matches); one binary search per <code>.</code>-separated
- level, <code>O(d log n)</code> for a <code>d</code>-level key.</p>
-    <h3>See also:</h3>
+ level, <code>O(d log n)</code> for a <code>d</code>-level key.
+    <h3>See also</h3>
     <ul>
          <a href="../modules/rcu.html#">rcu</a>
     </ul>
 
-
-<h2><a href="#Functions">Functions</a></h2>
-<table class="function_list">
+<h2 id="Functions">Functions</h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#__len">__len ()</a></td>
+	<td class="name"><a href="#__len">__len ()</a></td>
 	<td class="summary">Returns the number of members.</td>
 	</tr>
-</table>
-<h2><a href="#Class_set">Class set </a></h2>
-<table class="function_list">
+</table></div>
+<h2 id="Class_set">Class set </h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#set:has">set:has (s)</a></td>
+	<td class="name"><a href="#set:has">set:has (s)</a></td>
 	<td class="summary">Returns whether a string is in the set.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#set:new">set:new (strings)</a></td>
+	<td class="name"><a href="#set:new">set:new (strings)</a></td>
 	<td class="summary">Builds a plain set from an array of strings.</td>
 	</tr>
-</table>
-<h2><a href="#Class_set_labeled">Class set.labeled </a></h2>
-<table class="function_list">
+</table></div>
+<h2 id="Class_set_labeled">Class set.labeled </h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#set.labeled:labeled">set.labeled:labeled (t)</a></td>
+	<td class="name"><a href="#set.labeled:labeled">set.labeled:labeled (t)</a></td>
 	<td class="summary">Builds a labeled set from a table of members, each with a label bitmask.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#set.labeled:match">set.labeled:match (s)</a></td>
+	<td class="name"><a href="#set.labeled:match">set.labeled:match (s)</a></td>
 	<td class="summary">Returns the union of the labels of <code>s</code> and its suffixes, or 0.</td>
 	</tr>
-</table>
+</table></div>
 
-<br/>
-<br/>
-
-
-    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+    <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
-    <dt>
-    <a name = "__len"></a>
-    <strong>__len ()</strong>
-    </dt>
+    <dt id="__len"><a name="__len"></a><strong>__len ()</strong></dt>
     <dd>
     Returns the number of members.
 
 
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
@@ -215,21 +239,18 @@
 
 </dd>
 </dl>
-    <h2 class="section-header has-description"><a name="Class_set"></a>Class set </h2>
+    <h2 class="section-header" id="Class_set-details"><a name="Class_set"></a><a name="set"></a>Class set  in detail</h2>
 
           <div class="section-description">
           A built plain <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#set:new">set.new</a>.
           </div>
     <dl class="function">
-    <dt>
-    <a name = "set:has"></a>
-    <strong>set:has (s)</strong>
-    </dt>
+    <dt id="set:has"><a name="set:has"></a><strong>set:has (s)</strong></dt>
     <dd>
     Returns whether a string is in the set.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">s</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
@@ -237,7 +258,7 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">boolean</span></span>
@@ -248,10 +269,7 @@
 
 
 </dd>
-    <dt>
-    <a name = "set:new"></a>
-    <strong>set:new (strings)</strong>
-    </dt>
+    <dt id="set:new"><a name="set:new"></a><strong>set:new (strings)</strong></dt>
     <dd>
     Builds a plain set from an array of strings.</p>
 
@@ -261,7 +279,7 @@
  runtime, or any runtime&rsquo;s load).
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">strings</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">{string,...}</a></span>
@@ -269,35 +287,30 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><a class="type" href="../modules/set.html#set">set</a></span>
         the built set.
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     Error on a non-string member, if the keys exceed 4 GiB, or on
  allocation failure.
 
 
-    <h3>Usage:</h3>
-    <ul>
+    <h3>Usage</h3>
         <pre class="example"><span class="keyword">local</span> s = set.<span class="function-name">new</span>({ <span class="string">"alpha"</span>, <span class="string">"bravo"</span> })</pre>
-    </ul>
 
 </dd>
 </dl>
-    <h2 class="section-header has-description"><a name="Class_set_labeled"></a>Class set.labeled </h2>
+    <h2 class="section-header" id="Class_set_labeled-details"><a name="Class_set_labeled"></a><a name="set.labeled"></a>Class set.labeled  in detail</h2>
 
           <div class="section-description">
           A built labeled <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#set.labeled">set.labeled</a>.
           </div>
     <dl class="function">
-    <dt>
-    <a name = "set.labeled:labeled"></a>
-    <strong>set.labeled:labeled (t)</strong>
-    </dt>
+    <dt id="set.labeled:labeled"><a name="set.labeled:labeled"></a><strong>set.labeled:labeled (t)</strong></dt>
     <dd>
     Builds a labeled set from a table of members, each with a label bitmask.</p>
 
@@ -305,7 +318,7 @@
  runtime&rsquo;s load).
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">t</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">{[string]=integer}</a></span>
@@ -313,29 +326,24 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><a class="type" href="../modules/set.html#set.labeled">set.labeled</a></span>
         the built labeled set.
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     Error on a non-string member, a label outside <code>[1, 2<sup>32</sup>)</code>, if the members
  exceed 4 GiB, or on allocation failure.
 
 
-    <h3>Usage:</h3>
-    <ul>
+    <h3>Usage</h3>
         <pre class="example"><span class="keyword">local</span> s = set.<span class="function-name">labeled</span>({ [<span class="string">"a.b.c"</span>] = <span class="number">1</span>, [<span class="string">"b.c"</span>] = <span class="number">2</span>, [<span class="string">"c"</span>] = <span class="number">4</span> })
  <span class="keyword">local</span> labels = s:<span class="function-name">match</span>(<span class="string">"a.b.c"</span>)  <span class="comment">--&gt; 7, the union 1 | 2 | 4</span></pre>
-    </ul>
 
 </dd>
-    <dt>
-    <a name = "set.labeled:match"></a>
-    <strong>set.labeled:match (s)</strong>
-    </dt>
+    <dt id="set.labeled:match"><a name="set.labeled:match"></a><strong>set.labeled:match (s)</strong></dt>
     <dd>
     Returns the union of the labels of <code>s</code> and its suffixes, or 0.</p>
 
@@ -343,7 +351,7 @@
  every level that is a member. This roots the hierarchy on the right.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">s</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
@@ -351,7 +359,7 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
@@ -365,13 +373,20 @@
 </dl>
 
 
-</div> <!-- id="content" -->
-</div> <!-- id="main" -->
-<div id="about">
-<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 17:59:31 </i>
-</div> <!-- id="about" -->
-</div> <!-- id="container" -->
+</main>
+
+<aside class="toc" aria-label="On this page">
+<nav id="toc"><h2>On this page</h2></nav>
+</aside>
+
+</div>
+
+<footer class="site-footer">
+<div>
+<span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:00:07</span>
+</div>
+</footer>
 </body>
 </html>
 

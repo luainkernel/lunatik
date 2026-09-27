@@ -3,35 +3,47 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Lunatik API Documentation</title>
+    <title>socket.inet · Lunatik</title>
+    <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+    <script>try { var t = localStorage.getItem('lunatik-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }</script>
+    <script src="../search.js" defer=""></script>
+    <script src="../site.js" defer=""></script>
 </head>
-<body>
+<body data-root="../">
 
-<div id="container">
+<header class="topbar">
+    <button class="icon-btn nav-toggle" id="nav" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="../index.html">
+        <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
+        <span>Lunatik</span>
+    </a>
+    <div class="search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <kbd>/</kbd>
+        <ul class="results" id="results" hidden=""></ul>
+    </div>
+    <nav class="top-links" aria-label="Site">
+        <a href="../topics/01-getting-started.md.html">Guide</a>
+        <a href="../index.html#api-reference">API</a>
+        <a href="https://github.com/luainkernel/lunatik">GitHub</a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">
+            <svg class="theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="theme-icon-dark" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+    </nav>
+</header>
 
 
-<div id="main">
+<div class="layout">
 
-
-<!-- Menu -->
-
-<div id="navigation">
-<br/>
-<h1><a href="../index.html">Lunatik</a></h1>
-
-<ul>
-  <li><a href="../index.html">Home</a></li>
-</ul>
-
-<h2>Contents</h2>
-<ul>
-<li><a href="#Class_inet">Class inet </a></li>
-</ul>
-
-
+<aside class="sidebar" id="sidebar" aria-label="Documentation">
 <h2>Guide</h2>
-<ul class="">
+<ul>
   <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
   <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
   <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
@@ -42,22 +54,94 @@
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
-<ul class="nowrap">
+<h3>Runtime</h3>
+<ul class="mono">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+</ul>
+<h3>Packets and eBPF</h3>
+<ul class="mono">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
-  <li><a href="../modules/byteorder.html">byteorder</a></li>
-  <li><a href="../modules/class.html">class</a></li>
-  <li><a href="../modules/completion.html">completion</a></li>
-  <li><a href="../modules/cpu.html">cpu</a></li>
-  <li><a href="../modules/crypto.html">crypto</a></li>
-  <li><a href="../modules/darken.html">darken</a></li>
-  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
+</ul>
+<h3>Sockets and netlink</h3>
+<ul class="mono">
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html" aria-current="page">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+</ul>
+<h3>Tracing and scheduling</h3>
+<ul class="mono">
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+</ul>
+<h3>Devices and events</h3>
+<ul class="mono">
   <li><a href="../modules/device.html">device</a></li>
-  <li><a href="../modules/fifo.html">fifo</a></li>
   <li><a href="../modules/fsnotify.html">fsnotify</a></li>
   <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+</ul>
+<h3>Data</h3>
+<ul class="mono">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+</ul>
+<h3>Cryptography</h3>
+<ul class="mono">
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
   <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h3>System</h3>
+<ul class="mono">
+  <li><a href="../modules/cpu.html">cpu</a></li>
   <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+</ul>
+<h3>Constants</h3>
+<ul class="mono">
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -79,160 +163,102 @@
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
-  <li><a href="../modules/lunatik.html">lunatik</a></li>
-  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
-  <li><a href="../modules/mailbox.html">mailbox</a></li>
-  <li><a href="../modules/net.html">net</a></li>
-  <li><a href="../modules/netfilter.html">netfilter</a></li>
-  <li><a href="../modules/netlink.html">netlink</a></li>
-  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
-  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
-  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
-  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
-  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
-  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
-  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
-  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
-  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
-  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
-  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
-  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
-  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
-  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
-  <li><a href="../modules/notifier.html">notifier</a></li>
-  <li><a href="../modules/probe.html">probe</a></li>
-  <li><a href="../modules/rcu.html">rcu</a></li>
-  <li><a href="../modules/sched.html">sched</a></li>
-  <li><a href="../modules/set.html">set</a></li>
-  <li><a href="../modules/signal.html">signal</a></li>
-  <li><a href="../modules/skb.html">skb</a></li>
-  <li><a href="../modules/socket.html">socket</a></li>
-  <li><strong>socket.inet</strong></li>
-  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
-  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
-  <li><a href="../modules/struct.html">struct</a></li>
-  <li><a href="../modules/syscall.html">syscall</a></li>
-  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
-  <li><a href="../modules/task.html">task</a></li>
-  <li><a href="../modules/tc.html">tc</a></li>
-  <li><a href="../modules/thread.html">thread</a></li>
-  <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
-  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
-  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
-</ul>
+</aside>
 
-</div>
+<main class="content" id="content">
 
-<div id="content">
-
-<h1>Module <code>socket.inet</code></h1>
-<p>Internet (AF_INET) socket operations.</p>
-<p> This module provides a higher-level abstraction over the raw <a href="../modules/socket.html#">socket</a> and <a href="../modules/net.html#">net</a>
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-network">Sockets and netlink</a></div>
+<h1>socket.inet<span class="kind">Module</span></h1>
+<p class="lead">Internet (AF_INET) socket operations.</p>
+ This module provides a higher-level abstraction over the raw <a href="../modules/socket.html#">socket</a> and <a href="../modules/net.html#">net</a>
  modules for creating and managing INET (IPv4) sockets, including TCP and UDP.</p>
 
 <p> It simplifies common socket operations like binding, connecting, sending,
- and receiving data.</p>
-    <h3>See also:</h3>
+ and receiving data.
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#">socket</a>
     </ul>
 
-
-<h2><a href="#Class_inet">Class inet </a></h2>
-<table class="function_list">
+<h2 id="Class_inet">Class inet </h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#inet.tcp">inet.tcp</a></td>
+	<td class="name"><a href="#inet.tcp">inet.tcp</a></td>
 	<td class="summary">TCP socket specialization.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet.tcp:accept">inet.tcp:accept (flags)</a></td>
+	<td class="name"><a href="#inet.tcp:accept">inet.tcp:accept (flags)</a></td>
 	<td class="summary">Accepts an incoming connection on a listening TCP socket.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet.tcp:listen">inet.tcp:listen (backlog)</a></td>
+	<td class="name"><a href="#inet.tcp:listen">inet.tcp:listen (backlog)</a></td>
 	<td class="summary">Listens for incoming connections on a TCP socket.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet.udp">inet.udp</a></td>
+	<td class="name"><a href="#inet.udp">inet.udp</a></td>
 	<td class="summary">UDP socket specialization.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet.udp:receivefrom">inet.udp:receivefrom (len, flags)</a></td>
+	<td class="name"><a href="#inet.udp:receivefrom">inet.udp:receivefrom (len, flags)</a></td>
 	<td class="summary">Receives data from a UDP socket, along with the sender&rsquo;s address.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet.udp:sendto">inet.udp:sendto (msg, addr, port)</a></td>
+	<td class="name"><a href="#inet.udp:sendto">inet.udp:sendto (msg, addr, port)</a></td>
 	<td class="summary">Alias for <code>inet.udp:send</code>.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet:__call">inet:__call ()</a></td>
+	<td class="name"><a href="#inet:__call">inet:__call ()</a></td>
 	<td class="summary">Metamethod to create a new socket instance when <code>inet()</code> or <code>inet.tcp()</code> or <code>inet.udp()</code> is called.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet:bind">inet:bind (addr, port)</a></td>
+	<td class="name"><a href="#inet:bind">inet:bind (addr, port)</a></td>
 	<td class="summary">Binds the socket to a specific address and port.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet:close">inet:close ()</a></td>
+	<td class="name"><a href="#inet:close">inet:close ()</a></td>
 	<td class="summary">Closes the underlying socket.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet:connect">inet:connect (addr, port, flags)</a></td>
+	<td class="name"><a href="#inet:connect">inet:connect (addr, port, flags)</a></td>
 	<td class="summary">Connects the socket to a remote address and port.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet:getpeername">inet:getpeername ()</a></td>
+	<td class="name"><a href="#inet:getpeername">inet:getpeername ()</a></td>
 	<td class="summary">Gets the remote address (IP and port) to which the socket is connected.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet:getsockname">inet:getsockname ()</a></td>
+	<td class="name"><a href="#inet:getsockname">inet:getsockname ()</a></td>
 	<td class="summary">Gets the local address (IP and port) to which the socket is bound.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet:new">inet:new ([o])</a></td>
+	<td class="name"><a href="#inet:new">inet:new ([o])</a></td>
 	<td class="summary">Creates a new inet socket object.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet:receive">inet:receive (...)</a></td>
+	<td class="name"><a href="#inet:receive">inet:receive (...)</a></td>
 	<td class="summary">Receives data from the socket.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#inet:send">inet:send (msg, addr, port)</a></td>
+	<td class="name"><a href="#inet:send">inet:send (msg, addr, port)</a></td>
 	<td class="summary">Sends data through the socket.</td>
 	</tr>
-</table>
+</table></div>
 
-<br/>
-<br/>
-
-
-    <h2 class="section-header has-description"><a name="Class_inet"></a>Class inet </h2>
+    <h2 class="section-header" id="Class_inet-details"><a name="Class_inet"></a><a name="inet"></a>Class inet  in detail</h2>
 
           <div class="section-description">
           Base class for socket types.
           </div>
     <dl class="function">
-    <dt>
-    <a name = "inet.tcp"></a>
-    <strong>inet.tcp</strong>
-    </dt>
+    <dt id="inet.tcp"><a name="inet.tcp"></a><strong>inet.tcp</strong></dt>
     <dd>
     TCP socket specialization.
  Provides methods specific to TCP sockets (e.g., <a href="../modules/socket.inet.html#inet.tcp:listen">listen</a>, <a href="../modules/socket.inet.html#inet.tcp:accept">accept</a>).
  Create TCP sockets using <code>inet.tcp()</code>.
 
 
-    <h3>Fields:</h3>
+    <h3>Fields</h3>
     <ul>
         <li><span class="parameter">type</span>
          The socket type (e.g., <code>linux.socket.sock.STREAM</code>).
@@ -247,46 +273,40 @@
 
 
 </dd>
-    <dt>
-    <a name = "inet.tcp:accept"></a>
-    <strong>inet.tcp:accept (flags)</strong>
-    </dt>
+    <dt id="inet.tcp:accept"><a name="inet.tcp:accept"></a><strong>inet.tcp:accept (flags)</strong></dt>
     <dd>
     Accepts an incoming connection on a listening TCP socket.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">flags</span>
          (number) [optional] Flags for the accept operation.
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
         (socket) The accepted connection, as a plain <a href="../modules/socket.html#">socket</a> object.
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     error on failure
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:accept">socket.accept</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet.tcp:listen"></a>
-    <strong>inet.tcp:listen (backlog)</strong>
-    </dt>
+    <dt id="inet.tcp:listen"><a name="inet.tcp:listen"></a><strong>inet.tcp:listen (backlog)</strong></dt>
     <dd>
     Listens for incoming connections on a TCP socket.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">backlog</span>
          (number) The maximum length of the queue of pending connections.
@@ -294,27 +314,24 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     error on failure
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:listen">socket.listen</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet.udp"></a>
-    <strong>inet.udp</strong>
-    </dt>
+    <dt id="inet.udp"><a name="inet.udp"></a><strong>inet.udp</strong></dt>
     <dd>
     UDP socket specialization.
  Provides methods specific to UDP sockets (e.g., <a href="../modules/socket.inet.html#inet.udp:receivefrom">receivefrom</a>, <a href="../modules/socket.inet.html#inet.udp:sendto">sendto</a>).
  Create UDP sockets using <code>inet.udp()</code>.
 
 
-    <h3>Fields:</h3>
+    <h3>Fields</h3>
     <ul>
         <li><span class="parameter">type</span>
          The socket type (e.g., <code>linux.socket.sock.DGRAM</code>).
@@ -329,17 +346,14 @@
 
 
 </dd>
-    <dt>
-    <a name = "inet.udp:receivefrom"></a>
-    <strong>inet.udp:receivefrom (len, flags)</strong>
-    </dt>
+    <dt id="inet.udp:receivefrom"><a name="inet.udp:receivefrom"></a><strong>inet.udp:receivefrom (len, flags)</strong></dt>
     <dd>
     Receives data from a UDP socket, along with the sender&rsquo;s address.
  This is a wrapper around <a href="../modules/socket.inet.html#inet:receive">inet:receive</a> that converts the raw IP address
  from <a href="../modules/net.html#aton">net.aton</a> format to a string using <a href="../modules/net.html#ntoa">net.ntoa</a>.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">len</span>
          (number) [optional] The maximum number of bytes to receive.
@@ -349,7 +363,7 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
         <li>
         (string) The received data.</li>
@@ -359,25 +373,22 @@
         (number) The sender&rsquo;s port number.</li>
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     error on failure
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:receive">socket.receive</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet.udp:sendto"></a>
-    <strong>inet.udp:sendto (msg, addr, port)</strong>
-    </dt>
+    <dt id="inet.udp:sendto"><a name="inet.udp:sendto"></a><strong>inet.udp:sendto (msg, addr, port)</strong></dt>
     <dd>
     Alias for <code>inet.udp:send</code>.  Sends data to a specific address and port using UDP.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">msg</span>
          (string) The message to send.
@@ -390,16 +401,16 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
         (number) Number of bytes sent.
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     error on failure
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <li><a href="../modules/socket.inet.html#inet:send">inet.send</a></li>
          <li><a href="../modules/socket.html#socket:send">socket.send</a></li>
@@ -407,45 +418,37 @@
 
 
 </dd>
-    <dt>
-    <a name = "inet:__call"></a>
-    <strong>inet:__call ()</strong>
-    </dt>
+    <dt id="inet:__call"><a name="inet:__call"></a><strong>inet:__call ()</strong></dt>
     <dd>
     Metamethod to create a new socket instance when <code>inet()</code> or <code>inet.tcp()</code> or <code>inet.udp()</code> is called.
  This is the primary way to create new socket instances (e.g., <code>local sock = inet.tcp()</code>).
 
 
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
         (table) A new socket object (e.g., a TCP or UDP socket object).
     </ol>
 
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#new">socket.new</a>
     </ul>
 
-    <h3>Usage:</h3>
-    <ul>
+    <h3>Usage</h3>
         <pre class="example"><span class="keyword">local</span> tcp_socket = inet.<span class="function-name">tcp</span>()
 <span class="keyword">local</span> udp_socket = inet.<span class="function-name">udp</span>()</pre>
-    </ul>
 
 </dd>
-    <dt>
-    <a name = "inet:bind"></a>
-    <strong>inet:bind (addr, port)</strong>
-    </dt>
+    <dt id="inet:bind"><a name="inet:bind"></a><strong>inet:bind (addr, port)</strong></dt>
     <dd>
     Binds the socket to a specific address and port.
  The address &lsquo;*&rsquo; is treated as <code>INADDR_ANY</code> (0.0.0.0).
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">addr</span>
          (string) The IP address to bind to. Use &lsquo;*&rsquo; for any address.
@@ -456,20 +459,17 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     error on failure
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:bind">socket.bind</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet:close"></a>
-    <strong>inet:close ()</strong>
-    </dt>
+    <dt id="inet:close"><a name="inet:close"></a><strong>inet:close ()</strong></dt>
     <dd>
     Closes the underlying socket.
 
@@ -477,22 +477,19 @@
 
 
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:close">socket.close</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet:connect"></a>
-    <strong>inet:connect (addr, port, flags)</strong>
-    </dt>
+    <dt id="inet:connect"><a name="inet:connect"></a><strong>inet:connect (addr, port, flags)</strong></dt>
     <dd>
     Connects the socket to a remote address and port.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">addr</span>
          (string) The remote IP address.
@@ -506,26 +503,23 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     error on failure
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:connect">socket.connect</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet:getpeername"></a>
-    <strong>inet:getpeername ()</strong>
-    </dt>
+    <dt id="inet:getpeername"><a name="inet:getpeername"></a><strong>inet:getpeername ()</strong></dt>
     <dd>
     Gets the remote address (IP and port) to which the socket is connected.
 
 
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
         <li>
         (string) Remote IP address.</li>
@@ -534,23 +528,20 @@
     </ol>
 
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:getpeername">socket.getpeername</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet:getsockname"></a>
-    <strong>inet:getsockname ()</strong>
-    </dt>
+    <dt id="inet:getsockname"><a name="inet:getsockname"></a><strong>inet:getsockname ()</strong></dt>
     <dd>
     Gets the local address (IP and port) to which the socket is bound.
 
 
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
         <li>
         (string) Local IP address.</li>
@@ -559,22 +550,19 @@
     </ol>
 
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:getsockname">socket.getsockname</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet:new"></a>
-    <strong>inet:new ([o])</strong>
-    </dt>
+    <dt id="inet:new"><a name="inet:new"></a><strong>inet:new ([o])</strong></dt>
     <dd>
     Creates a new inet socket object.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">o</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
@@ -583,7 +571,7 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><a class="type" href="../modules/socket.inet.html#inet">inet</a></span>
@@ -591,23 +579,20 @@
     </ol>
 
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/class.html#">class</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet:receive"></a>
-    <strong>inet:receive (...)</strong>
-    </dt>
+    <dt id="inet:receive"><a name="inet:receive"></a><strong>inet:receive (...)</strong></dt>
     <dd>
     Receives data from the socket.
  For UDP, if the <a href="../modules/socket.raw.html">raw</a> parameter (third boolean) is true, it returns the raw IP address.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">...</span>
          Varargs passed directly to the underlying <code>socket:receive()</code>.
@@ -615,34 +600,31 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
         Varargs returned by the underlying <code>socket:receive()</code>.
  Typically <code>(data, ip_address, port)</code>.
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     error on failure
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:receive">socket.receive</a>
     </ul>
 
 
 </dd>
-    <dt>
-    <a name = "inet:send"></a>
-    <strong>inet:send (msg, addr, port)</strong>
-    </dt>
+    <dt id="inet:send"><a name="inet:send"></a><strong>inet:send (msg, addr, port)</strong></dt>
     <dd>
     Sends data through the socket.
  If <code>addr</code> and <code>port</code> are provided (typical for UDP), the address is converted
  using <a href="../modules/net.html#aton">net.aton</a> before sending.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">msg</span>
          (string) The message to send.
@@ -655,16 +637,16 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
         (number) Number of bytes sent on success
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     error on failure
 
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#socket:send">socket.send</a>
     </ul>
@@ -674,13 +656,20 @@
 </dl>
 
 
-</div> <!-- id="content" -->
-</div> <!-- id="main" -->
-<div id="about">
-<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 17:59:31 </i>
-</div> <!-- id="about" -->
-</div> <!-- id="container" -->
+</main>
+
+<aside class="toc" aria-label="On this page">
+<nav id="toc"><h2>On this page</h2></nav>
+</aside>
+
+</div>
+
+<footer class="site-footer">
+<div>
+<span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:00:07</span>
+</div>
+</footer>
 </body>
 </html>
 

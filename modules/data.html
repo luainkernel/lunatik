@@ -3,36 +3,47 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Lunatik API Documentation</title>
+    <title>data · Lunatik</title>
+    <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+    <script>try { var t = localStorage.getItem('lunatik-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }</script>
+    <script src="../search.js" defer=""></script>
+    <script src="../site.js" defer=""></script>
 </head>
-<body>
+<body data-root="../">
 
-<div id="container">
+<header class="topbar">
+    <button class="icon-btn nav-toggle" id="nav" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="../index.html">
+        <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
+        <span>Lunatik</span>
+    </a>
+    <div class="search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <kbd>/</kbd>
+        <ul class="results" id="results" hidden=""></ul>
+    </div>
+    <nav class="top-links" aria-label="Site">
+        <a href="../topics/01-getting-started.md.html">Guide</a>
+        <a href="../index.html#api-reference">API</a>
+        <a href="https://github.com/luainkernel/lunatik">GitHub</a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">
+            <svg class="theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="theme-icon-dark" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+    </nav>
+</header>
 
 
-<div id="main">
+<div class="layout">
 
-
-<!-- Menu -->
-
-<div id="navigation">
-<br/>
-<h1><a href="../index.html">Lunatik</a></h1>
-
-<ul>
-  <li><a href="../index.html">Home</a></li>
-</ul>
-
-<h2>Contents</h2>
-<ul>
-<li><a href="#Class_data">Class data </a></li>
-<li><a href="#data">data</a></li>
-</ul>
-
-
+<aside class="sidebar" id="sidebar" aria-label="Documentation">
 <h2>Guide</h2>
-<ul class="">
+<ul>
   <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
   <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
   <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
@@ -43,22 +54,94 @@
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
-<ul class="nowrap">
+<h3>Runtime</h3>
+<ul class="mono">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+</ul>
+<h3>Packets and eBPF</h3>
+<ul class="mono">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
-  <li><a href="../modules/byteorder.html">byteorder</a></li>
-  <li><a href="../modules/class.html">class</a></li>
-  <li><a href="../modules/completion.html">completion</a></li>
-  <li><a href="../modules/cpu.html">cpu</a></li>
-  <li><a href="../modules/crypto.html">crypto</a></li>
-  <li><a href="../modules/darken.html">darken</a></li>
-  <li><strong>data</strong></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
+</ul>
+<h3>Sockets and netlink</h3>
+<ul class="mono">
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+</ul>
+<h3>Tracing and scheduling</h3>
+<ul class="mono">
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+</ul>
+<h3>Devices and events</h3>
+<ul class="mono">
   <li><a href="../modules/device.html">device</a></li>
-  <li><a href="../modules/fifo.html">fifo</a></li>
   <li><a href="../modules/fsnotify.html">fsnotify</a></li>
   <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+</ul>
+<h3>Data</h3>
+<ul class="mono">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/data.html" aria-current="page">data</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+</ul>
+<h3>Cryptography</h3>
+<ul class="mono">
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
   <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h3>System</h3>
+<ul class="mono">
+  <li><a href="../modules/cpu.html">cpu</a></li>
   <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+</ul>
+<h3>Constants</h3>
+<ul class="mono">
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -80,179 +163,124 @@
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
-  <li><a href="../modules/lunatik.html">lunatik</a></li>
-  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
-  <li><a href="../modules/mailbox.html">mailbox</a></li>
-  <li><a href="../modules/net.html">net</a></li>
-  <li><a href="../modules/netfilter.html">netfilter</a></li>
-  <li><a href="../modules/netlink.html">netlink</a></li>
-  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
-  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
-  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
-  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
-  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
-  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
-  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
-  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
-  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
-  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
-  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
-  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
-  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
-  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
-  <li><a href="../modules/notifier.html">notifier</a></li>
-  <li><a href="../modules/probe.html">probe</a></li>
-  <li><a href="../modules/rcu.html">rcu</a></li>
-  <li><a href="../modules/sched.html">sched</a></li>
-  <li><a href="../modules/set.html">set</a></li>
-  <li><a href="../modules/signal.html">signal</a></li>
-  <li><a href="../modules/skb.html">skb</a></li>
-  <li><a href="../modules/socket.html">socket</a></li>
-  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
-  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
-  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
-  <li><a href="../modules/struct.html">struct</a></li>
-  <li><a href="../modules/syscall.html">syscall</a></li>
-  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
-  <li><a href="../modules/task.html">task</a></li>
-  <li><a href="../modules/tc.html">tc</a></li>
-  <li><a href="../modules/thread.html">thread</a></li>
-  <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
-  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
-  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
-</ul>
+</aside>
 
-</div>
+<main class="content" id="content">
 
-<div id="content">
-
-<h1>Module <code>data</code></h1>
-<p>Direct memory access and manipulation.</p>
-<p></p>
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-data">Data</a></div>
+<h1>data<span class="kind">Module</span></h1>
+<p class="lead">Direct memory access and manipulation.</p>
 
 
-<h2><a href="#Class_data">Class data </a></h2>
-<table class="function_list">
+<h2 id="Class_data">Class data </h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#data:__len">data:__len ()</a></td>
+	<td class="name"><a href="#data:__len">data:__len ()</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:__tostring">data:__tostring ()</a></td>
+	<td class="name"><a href="#data:__tostring">data:__tostring ()</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:checksum">data:checksum ([offset[, length]])</a></td>
+	<td class="name"><a href="#data:checksum">data:checksum ([offset[, length]])</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getbyte">data:getbyte (offset)</a></td>
+	<td class="name"><a href="#data:getbyte">data:getbyte (offset)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getint16">data:getint16 (offset)</a></td>
+	<td class="name"><a href="#data:getint16">data:getint16 (offset)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getint32">data:getint32 (offset)</a></td>
+	<td class="name"><a href="#data:getint32">data:getint32 (offset)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getint64">data:getint64 (offset)</a></td>
+	<td class="name"><a href="#data:getint64">data:getint64 (offset)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getint8">data:getint8 (offset)</a></td>
+	<td class="name"><a href="#data:getint8">data:getint8 (offset)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getnumber">data:getnumber (offset)</a></td>
+	<td class="name"><a href="#data:getnumber">data:getnumber (offset)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getstring">data:getstring (offset[, length])</a></td>
+	<td class="name"><a href="#data:getstring">data:getstring (offset[, length])</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getuint16">data:getuint16 (offset)</a></td>
+	<td class="name"><a href="#data:getuint16">data:getuint16 (offset)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getuint32">data:getuint32 (offset)</a></td>
+	<td class="name"><a href="#data:getuint32">data:getuint32 (offset)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:getuint8">data:getuint8 (offset)</a></td>
+	<td class="name"><a href="#data:getuint8">data:getuint8 (offset)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:resize">data:resize (new_size)</a></td>
+	<td class="name"><a href="#data:resize">data:resize (new_size)</a></td>
 	<td class="summary">Resizes the buffer; the bytes it keeps survive and the bytes a growth adds read as zeros.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setbyte">data:setbyte (offset, value)</a></td>
+	<td class="name"><a href="#data:setbyte">data:setbyte (offset, value)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setint16">data:setint16 (offset, value)</a></td>
+	<td class="name"><a href="#data:setint16">data:setint16 (offset, value)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setint32">data:setint32 (offset, value)</a></td>
+	<td class="name"><a href="#data:setint32">data:setint32 (offset, value)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setint64">data:setint64 (offset, value)</a></td>
+	<td class="name"><a href="#data:setint64">data:setint64 (offset, value)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setint8">data:setint8 (offset, value)</a></td>
+	<td class="name"><a href="#data:setint8">data:setint8 (offset, value)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setnumber">data:setnumber (offset, value)</a></td>
+	<td class="name"><a href="#data:setnumber">data:setnumber (offset, value)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setstring">data:setstring (offset, s)</a></td>
+	<td class="name"><a href="#data:setstring">data:setstring (offset, s)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setuint16">data:setuint16 (offset, value)</a></td>
+	<td class="name"><a href="#data:setuint16">data:setuint16 (offset, value)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setuint32">data:setuint32 (offset, value)</a></td>
+	<td class="name"><a href="#data:setuint32">data:setuint32 (offset, value)</a></td>
 	<td class="summary"></td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#data:setuint8">data:setuint8 (offset, value)</a></td>
+	<td class="name"><a href="#data:setuint8">data:setuint8 (offset, value)</a></td>
 	<td class="summary"></td>
 	</tr>
-</table>
-<h2><a href="#data">data</a></h2>
-<table class="function_list">
+</table></div>
+<h2 id="data">data</h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#new">new (size[, mode])</a></td>
+	<td class="name"><a href="#new">new (size[, mode])</a></td>
 	<td class="summary">Allocates a buffer of <code>size</code> bytes, zeroed.</td>
 	</tr>
-</table>
+</table></div>
 
-<br/>
-<br/>
-
-
-    <h2 class="section-header has-description"><a name="Class_data"></a>Class data </h2>
+    <h2 class="section-header" id="Class_data-details"><a name="Class_data"></a>Class data  in detail</h2>
 
           <div class="section-description">
           Represents a byte buffer.
@@ -261,16 +289,13 @@
  <code>getuint<em></code>/<code>setuint</em></code> accessors below.
           </div>
     <dl class="function">
-    <dt>
-    <a name = "data:__len"></a>
-    <strong>data:__len ()</strong>
-    </dt>
+    <dt id="data:__len"><a name="data:__len"></a><strong>data:__len ()</strong></dt>
     <dd>
 
 
 
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
@@ -281,16 +306,13 @@
 
 
 </dd>
-    <dt>
-    <a name = "data:__tostring"></a>
-    <strong>data:__tostring ()</strong>
-    </dt>
+    <dt id="data:__tostring"><a name="data:__tostring"></a><strong>data:__tostring ()</strong></dt>
     <dd>
 
 
 
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
@@ -301,15 +323,12 @@
 
 
 </dd>
-    <dt>
-    <a name = "data:checksum"></a>
-    <strong>data:checksum ([offset[, length]])</strong>
-    </dt>
+    <dt id="data:checksum"><a name="data:checksum"></a><strong>data:checksum ([offset[, length]])</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -323,28 +342,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getbyte"></a>
-    <strong>data:getbyte (offset)</strong>
-    </dt>
+    <dt id="data:getbyte"><a name="data:getbyte"></a><strong>data:getbyte (offset)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -352,28 +368,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getint16"></a>
-    <strong>data:getint16 (offset)</strong>
-    </dt>
+    <dt id="data:getint16"><a name="data:getint16"></a><strong>data:getint16 (offset)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -381,28 +394,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getint32"></a>
-    <strong>data:getint32 (offset)</strong>
-    </dt>
+    <dt id="data:getint32"><a name="data:getint32"></a><strong>data:getint32 (offset)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -410,28 +420,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getint64"></a>
-    <strong>data:getint64 (offset)</strong>
-    </dt>
+    <dt id="data:getint64"><a name="data:getint64"></a><strong>data:getint64 (offset)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -439,28 +446,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getint8"></a>
-    <strong>data:getint8 (offset)</strong>
-    </dt>
+    <dt id="data:getint8"><a name="data:getint8"></a><strong>data:getint8 (offset)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -468,28 +472,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getnumber"></a>
-    <strong>data:getnumber (offset)</strong>
-    </dt>
+    <dt id="data:getnumber"><a name="data:getnumber"></a><strong>data:getnumber (offset)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -497,28 +498,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getstring"></a>
-    <strong>data:getstring (offset[, length])</strong>
-    </dt>
+    <dt id="data:getstring"><a name="data:getstring"></a><strong>data:getstring (offset[, length])</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -531,28 +529,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getuint16"></a>
-    <strong>data:getuint16 (offset)</strong>
-    </dt>
+    <dt id="data:getuint16"><a name="data:getuint16"></a><strong>data:getuint16 (offset)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -560,28 +555,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getuint32"></a>
-    <strong>data:getuint32 (offset)</strong>
-    </dt>
+    <dt id="data:getuint32"><a name="data:getuint32"></a><strong>data:getuint32 (offset)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -589,28 +581,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:getuint8"></a>
-    <strong>data:getuint8 (offset)</strong>
-    </dt>
+    <dt id="data:getuint8"><a name="data:getuint8"></a><strong>data:getuint8 (offset)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -618,28 +607,25 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds
 
 
 
 </dd>
-    <dt>
-    <a name = "data:resize"></a>
-    <strong>data:resize (new_size)</strong>
-    </dt>
+    <dt id="data:resize"><a name="data:resize"></a><strong>data:resize (new_size)</strong></dt>
     <dd>
     Resizes the buffer; the bytes it keeps survive and the bytes a growth adds read as zeros.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">new_size</span>
             <span class="types"><span class="type">integer</span></span>
@@ -648,21 +634,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds, read-only, not owned, or the allocation fails
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setbyte"></a>
-    <strong>data:setbyte (offset, value)</strong>
-    </dt>
+    <dt id="data:setbyte"><a name="data:setbyte"></a><strong>data:setbyte (offset, value)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -675,21 +658,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setint16"></a>
-    <strong>data:setint16 (offset, value)</strong>
-    </dt>
+    <dt id="data:setint16"><a name="data:setint16"></a><strong>data:setint16 (offset, value)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -702,21 +682,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setint32"></a>
-    <strong>data:setint32 (offset, value)</strong>
-    </dt>
+    <dt id="data:setint32"><a name="data:setint32"></a><strong>data:setint32 (offset, value)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -729,21 +706,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setint64"></a>
-    <strong>data:setint64 (offset, value)</strong>
-    </dt>
+    <dt id="data:setint64"><a name="data:setint64"></a><strong>data:setint64 (offset, value)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -756,21 +730,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setint8"></a>
-    <strong>data:setint8 (offset, value)</strong>
-    </dt>
+    <dt id="data:setint8"><a name="data:setint8"></a><strong>data:setint8 (offset, value)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -783,21 +754,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setnumber"></a>
-    <strong>data:setnumber (offset, value)</strong>
-    </dt>
+    <dt id="data:setnumber"><a name="data:setnumber"></a><strong>data:setnumber (offset, value)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -810,21 +778,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setstring"></a>
-    <strong>data:setstring (offset, s)</strong>
-    </dt>
+    <dt id="data:setstring"><a name="data:setstring"></a><strong>data:setstring (offset, s)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -837,21 +802,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setuint16"></a>
-    <strong>data:setuint16 (offset, value)</strong>
-    </dt>
+    <dt id="data:setuint16"><a name="data:setuint16"></a><strong>data:setuint16 (offset, value)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -864,21 +826,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setuint32"></a>
-    <strong>data:setuint32 (offset, value)</strong>
-    </dt>
+    <dt id="data:setuint32"><a name="data:setuint32"></a><strong>data:setuint32 (offset, value)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -891,21 +850,18 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
-    <dt>
-    <a name = "data:setuint8"></a>
-    <strong>data:setuint8 (offset, value)</strong>
-    </dt>
+    <dt id="data:setuint8"><a name="data:setuint8"></a><strong>data:setuint8 (offset, value)</strong></dt>
     <dd>
 
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">offset</span>
             <span class="types"><span class="type">integer</span></span>
@@ -918,25 +874,22 @@
     </ul>
 
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds or read-only
 
 
 
 </dd>
 </dl>
-    <h2 class="section-header "><a name="data"></a>data</h2>
+    <h2 class="section-header" id="data-details"><a name="data"></a>data in detail</h2>
 
     <dl class="function">
-    <dt>
-    <a name = "new"></a>
-    <strong>new (size[, mode])</strong>
-    </dt>
+    <dt id="new"><a name="new"></a><strong>new (size[, mode])</strong></dt>
     <dd>
     Allocates a buffer of <code>size</code> bytes, zeroed.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">size</span>
             <span class="types"><span class="type">integer</span></span>
@@ -950,14 +903,14 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><a class="type" href="../modules/data.html#data">data</a></span>
 
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     if out of bounds, the mode is invalid, or allocation fails
 
 
@@ -966,13 +919,20 @@
 </dl>
 
 
-</div> <!-- id="content" -->
-</div> <!-- id="main" -->
-<div id="about">
-<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 17:59:31 </i>
-</div> <!-- id="about" -->
-</div> <!-- id="container" -->
+</main>
+
+<aside class="toc" aria-label="On this page">
+<nav id="toc"><h2>On this page</h2></nav>
+</aside>
+
+</div>
+
+<footer class="site-footer">
+<div>
+<span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:00:07</span>
+</div>
+</footer>
 </body>
 </html>
 

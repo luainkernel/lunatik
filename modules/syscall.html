@@ -3,35 +3,47 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Lunatik API Documentation</title>
+    <title>syscall · Lunatik</title>
+    <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+    <script>try { var t = localStorage.getItem('lunatik-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }</script>
+    <script src="../search.js" defer=""></script>
+    <script src="../site.js" defer=""></script>
 </head>
-<body>
+<body data-root="../">
 
-<div id="container">
+<header class="topbar">
+    <button class="icon-btn nav-toggle" id="nav" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="../index.html">
+        <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
+        <span>Lunatik</span>
+    </a>
+    <div class="search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <kbd>/</kbd>
+        <ul class="results" id="results" hidden=""></ul>
+    </div>
+    <nav class="top-links" aria-label="Site">
+        <a href="../topics/01-getting-started.md.html">Guide</a>
+        <a href="../index.html#api-reference">API</a>
+        <a href="https://github.com/luainkernel/lunatik">GitHub</a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">
+            <svg class="theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="theme-icon-dark" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+    </nav>
+</header>
 
 
-<div id="main">
+<div class="layout">
 
-
-<!-- Menu -->
-
-<div id="navigation">
-<br/>
-<h1><a href="../index.html">Lunatik</a></h1>
-
-<ul>
-  <li><a href="../index.html">Home</a></li>
-</ul>
-
-<h2>Contents</h2>
-<ul>
-<li><a href="#syscall">syscall</a></li>
-</ul>
-
-
+<aside class="sidebar" id="sidebar" aria-label="Documentation">
 <h2>Guide</h2>
-<ul class="">
+<ul>
   <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
   <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
   <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
@@ -42,22 +54,94 @@
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
-<ul class="nowrap">
+<h3>Runtime</h3>
+<ul class="mono">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+</ul>
+<h3>Packets and eBPF</h3>
+<ul class="mono">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
-  <li><a href="../modules/byteorder.html">byteorder</a></li>
-  <li><a href="../modules/class.html">class</a></li>
-  <li><a href="../modules/completion.html">completion</a></li>
-  <li><a href="../modules/cpu.html">cpu</a></li>
-  <li><a href="../modules/crypto.html">crypto</a></li>
-  <li><a href="../modules/darken.html">darken</a></li>
-  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
+</ul>
+<h3>Sockets and netlink</h3>
+<ul class="mono">
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+</ul>
+<h3>Tracing and scheduling</h3>
+<ul class="mono">
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/syscall.html" aria-current="page">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+</ul>
+<h3>Devices and events</h3>
+<ul class="mono">
   <li><a href="../modules/device.html">device</a></li>
-  <li><a href="../modules/fifo.html">fifo</a></li>
   <li><a href="../modules/fsnotify.html">fsnotify</a></li>
   <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+</ul>
+<h3>Data</h3>
+<ul class="mono">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+</ul>
+<h3>Cryptography</h3>
+<ul class="mono">
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
   <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h3>System</h3>
+<ul class="mono">
+  <li><a href="../modules/cpu.html">cpu</a></li>
   <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+</ul>
+<h3>Constants</h3>
+<ul class="mono">
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -79,95 +163,37 @@
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
-  <li><a href="../modules/lunatik.html">lunatik</a></li>
-  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
-  <li><a href="../modules/mailbox.html">mailbox</a></li>
-  <li><a href="../modules/net.html">net</a></li>
-  <li><a href="../modules/netfilter.html">netfilter</a></li>
-  <li><a href="../modules/netlink.html">netlink</a></li>
-  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
-  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
-  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
-  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
-  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
-  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
-  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
-  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
-  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
-  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
-  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
-  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
-  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
-  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
-  <li><a href="../modules/notifier.html">notifier</a></li>
-  <li><a href="../modules/probe.html">probe</a></li>
-  <li><a href="../modules/rcu.html">rcu</a></li>
-  <li><a href="../modules/sched.html">sched</a></li>
-  <li><a href="../modules/set.html">set</a></li>
-  <li><a href="../modules/signal.html">signal</a></li>
-  <li><a href="../modules/skb.html">skb</a></li>
-  <li><a href="../modules/socket.html">socket</a></li>
-  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
-  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
-  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
-  <li><a href="../modules/struct.html">struct</a></li>
-  <li><strong>syscall</strong></li>
-  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
-  <li><a href="../modules/task.html">task</a></li>
-  <li><a href="../modules/tc.html">tc</a></li>
-  <li><a href="../modules/thread.html">thread</a></li>
-  <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
-  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
-  <li><a href="../classes/skb.attr.html">skb.attr</a></li>
-</ul>
+</aside>
 
-</div>
+<main class="content" id="content">
 
-<div id="content">
-
-<h1>Module <code>syscall</code></h1>
-<p>Accessing kernel system call information.</p>
-<p> Retrieves the kernel address of a system call given its number.
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-tracing">Tracing and scheduling</a></div>
+<h1>syscall<span class="kind">Module</span></h1>
+<p class="lead">Accessing kernel system call information.</p>
+ Retrieves the kernel address of a system call given its number.
  System call numbers are available as a separate autogenerated table at
  <a href="../modules/linux.syscall.html#numbers">linux.syscall.numbers</a>.
  This is particularly useful for kernel probing (see <a href="../modules/probe.html#">probe</a>)
- or other low-level kernel interactions.</p>
+ or other low-level kernel interactions.
 
-
-<h2><a href="#syscall">syscall</a></h2>
-<table class="function_list">
+<h2 id="syscall">syscall</h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#address">address (syscall_number)</a></td>
+	<td class="name"><a href="#address">address (syscall_number)</a></td>
 	<td class="summary">Retrieves the kernel address of a system call.</td>
 	</tr>
-</table>
+</table></div>
 
-<br/>
-<br/>
-
-
-    <h2 class="section-header "><a name="syscall"></a>syscall</h2>
+    <h2 class="section-header" id="syscall-details"><a name="syscall"></a>syscall in detail</h2>
 
     <dl class="function">
-    <dt>
-    <a name = "address"></a>
-    <strong>address (syscall_number)</strong>
-    </dt>
+    <dt id="address"><a name="address"></a><strong>address (syscall_number)</strong></dt>
     <dd>
     Retrieves the kernel address of a system call.
 
 
-    <h3>Parameters:</h3>
+    <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">syscall_number</span>
             <span class="types"><span class="type">integer</span></span>
@@ -175,35 +201,40 @@
         </li>
     </ul>
 
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">lightuserdata</span></span>
         kernel address of the system call entry point, or <code>nil</code> if the number is invalid or the address cannot be determined.
     </ol>
 
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     Error if <code>syscall_number</code> is out of bounds.
 
 
-    <h3>Usage:</h3>
-    <ul>
+    <h3>Usage</h3>
         <pre class="example"><span class="keyword">local</span> syscall = <span class="global">require</span>(<span class="string">"syscall"</span>)
 <span class="keyword">local</span> numbers = <span class="global">require</span>(<span class="string">"linux.syscall"</span>).numbers
 <span class="keyword">local</span> openat_addr = syscall.<span class="function-name">address</span>(numbers.openat)</pre>
-    </ul>
 
 </dd>
 </dl>
 
 
-</div> <!-- id="content" -->
-</div> <!-- id="main" -->
-<div id="about">
-<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 17:59:31 </i>
-</div> <!-- id="about" -->
-</div> <!-- id="container" -->
+</main>
+
+<aside class="toc" aria-label="On this page">
+<nav id="toc"><h2>On this page</h2></nav>
+</aside>
+
+</div>
+
+<footer class="site-footer">
+<div>
+<span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:00:07</span>
+</div>
+</footer>
 </body>
 </html>
 

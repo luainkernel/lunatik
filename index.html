@@ -3,28 +3,99 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Lunatik API Documentation</title>
+    <title>Lunatik</title>
+    <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="ldoc.css" type="text/css" />
+    <script>try { var t = localStorage.getItem('lunatik-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }</script>
+    <script src="search.js" defer=""></script>
+    <script src="site.js" defer=""></script>
 </head>
-<body>
+<body data-root="">
 
-<div id="container">
+<header class="topbar">
+    <button class="icon-btn nav-toggle" id="nav" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="index.html">
+        <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
+        <span>Lunatik</span>
+    </a>
+    <div class="search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <kbd>/</kbd>
+        <ul class="results" id="results" hidden=""></ul>
+    </div>
+    <nav class="top-links" aria-label="Site">
+        <a href="topics/01-getting-started.md.html">Guide</a>
+        <a href="index.html#api-reference">API</a>
+        <a href="https://github.com/luainkernel/lunatik">GitHub</a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">
+            <svg class="theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="theme-icon-dark" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+    </nav>
+</header>
 
+<section class="hero">
+<div class="hero-inner">
+<div class="hero-text">
+    <h1>Script the Linux kernel <span class="moon-word">with Lua</span></h1>
+    <p class="hero-lead">Lunatik is a framework for scripting the Linux kernel with <a href="https://www.lua.org/">Lua</a>.
+Scripts run inside the kernel and reach its facilities through Lua modules: character devices,
+Netfilter, XDP and TC hooks, kprobes, fsnotify, sched_ext, eBPF maps, sockets, netlink, crypto,
+kernel threads and more. A command line tool loads and manages them from user space, and a
+<a href="topics/capi.md.html">C API</a> lets kernel modules do the same.</p>
+    <div class="hero-actions">
+        <a class="btn primary" href="topics/01-getting-started.md.html">Get started</a>
+        <a class="btn" href="#api-reference">API reference</a>
+        <a class="btn" href="https://github.com/luainkernel/lunatik">GitHub</a>
+    </div>
+    <ul class="facts">
+        <li><strong>76</strong> Lua modules</li>
+        <li>Linux <strong>6.6</strong> and later</li>
+        <li>Process, softirq and hardirq hooks</li>
+    </ul>
+</div>
+<figure class="window">
+    <figcaption><span>examples/systrack/probe.lua</span><a href="https://github.com/luainkernel/lunatik/tree/master/examples/systrack">About this example</a></figcaption>
+    <pre class="example"><span class="keyword">local</span> probe  = <span class="global">require</span>(<span class="string">"probe"</span>)
+<span class="keyword">local</span> systab = <span class="global">require</span>(<span class="string">"syscall.table"</span>)
+<span class="keyword">local</span> rcu    = <span class="global">require</span>(<span class="string">"rcu"</span>)
 
-<div id="main">
+<span class="keyword">local</span> track = rcu.<span class="global">table</span>()
+<span class="keyword">local</span> names = {}
 
+<span class="keyword">for</span> symbol, address <span class="keyword">in</span> <span class="global">pairs</span>(systab) <span class="keyword">do</span>
+	names[address] = names[address] == <span class="keyword">nil</span> <span class="keyword">and</span> symbol <span class="keyword">or</span> <span class="keyword">false</span>
+<span class="keyword">end</span>
 
-<!-- Menu -->
+<span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">count</span>(address)
+	<span class="keyword">local</span> symbol = names[address]
+	track[symbol] = (track[symbol] <span class="keyword">or</span> <span class="number">0</span>) + <span class="number">1</span>
+<span class="keyword">end</span>
 
-<div id="navigation">
-<br/>
-<h1><a href="index.html">Lunatik</a></h1>
+<span class="keyword">local</span> handlers = {pre = count}
 
+<span class="keyword">for</span> address, symbol <span class="keyword">in</span> <span class="global">pairs</span>(names) <span class="keyword">do</span>
+	<span class="keyword">if</span> symbol <span class="keyword">then</span>
+		probe.<span class="function-name">new</span>(address, handlers)
+	<span class="keyword">end</span>
+<span class="keyword">end</span>
 
+<span class="keyword">return</span> <span class="keyword">function</span>()
+	<span class="keyword">return</span> track
+<span class="keyword">end</span></pre>
+</figure>
+</div>
+</section>
 
+<div class="layout">
 
+<aside class="sidebar" id="sidebar" aria-label="Documentation">
 <h2>Guide</h2>
-<ul class="">
+<ul>
   <li><a href="topics/01-getting-started.md.html">Getting started</a></li>
   <li><a href="topics/02-running-scripts.md.html">Running scripts</a></li>
   <li><a href="topics/03-percpu.md.html">Per-CPU scripts</a></li>
@@ -35,22 +106,94 @@
   <li><a href="topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
-<ul class="nowrap">
+<h3>Runtime</h3>
+<ul class="mono">
+  <li><a href="modules/completion.html">completion</a></li>
+  <li><a href="modules/fifo.html">fifo</a></li>
+  <li><a href="modules/lunatik.html">lunatik</a></li>
+  <li><a href="modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="modules/mailbox.html">mailbox</a></li>
+  <li><a href="modules/thread.html">thread</a></li>
+</ul>
+<h3>Packets and eBPF</h3>
+<ul class="mono">
   <li><a href="modules/bpf.html">bpf</a></li>
   <li><a href="modules/bpf.map.html">bpf.map</a></li>
-  <li><a href="modules/byteorder.html">byteorder</a></li>
-  <li><a href="modules/class.html">class</a></li>
-  <li><a href="modules/completion.html">completion</a></li>
-  <li><a href="modules/cpu.html">cpu</a></li>
-  <li><a href="modules/crypto.html">crypto</a></li>
-  <li><a href="modules/darken.html">darken</a></li>
-  <li><a href="modules/data.html">data</a></li>
+  <li><a href="modules/netfilter.html">netfilter</a></li>
+  <li><a href="modules/skb.html">skb</a></li>
+  <li><a href="modules/tc.html">tc</a></li>
+  <li><a href="modules/xdp.html">xdp</a></li>
+  <li><a href="classes/skb.attr.html">skb.attr</a></li>
+</ul>
+<h3>Sockets and netlink</h3>
+<ul class="mono">
+  <li><a href="modules/net.html">net</a></li>
+  <li><a href="modules/netlink.html">netlink</a></li>
+  <li><a href="modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
+  <li><a href="modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="modules/netlink.rt.object.html">netlink.rt.object</a></li>
+  <li><a href="modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="modules/socket.html">socket</a></li>
+  <li><a href="modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="modules/socket.unix.html">socket.unix</a></li>
+</ul>
+<h3>Tracing and scheduling</h3>
+<ul class="mono">
+  <li><a href="modules/probe.html">probe</a></li>
+  <li><a href="modules/sched.html">sched</a></li>
+  <li><a href="modules/syscall.html">syscall</a></li>
+  <li><a href="modules/syscall.table.html">syscall.table</a></li>
+</ul>
+<h3>Devices and events</h3>
+<ul class="mono">
   <li><a href="modules/device.html">device</a></li>
-  <li><a href="modules/fifo.html">fifo</a></li>
   <li><a href="modules/fsnotify.html">fsnotify</a></li>
   <li><a href="modules/hid.html">hid</a></li>
+  <li><a href="modules/notifier.html">notifier</a></li>
+</ul>
+<h3>Data</h3>
+<ul class="mono">
+  <li><a href="modules/byteorder.html">byteorder</a></li>
+  <li><a href="modules/class.html">class</a></li>
+  <li><a href="modules/data.html">data</a></li>
+  <li><a href="modules/rcu.html">rcu</a></li>
+  <li><a href="modules/set.html">set</a></li>
+  <li><a href="modules/struct.html">struct</a></li>
+</ul>
+<h3>Cryptography</h3>
+<ul class="mono">
+  <li><a href="modules/crypto.html">crypto</a></li>
+  <li><a href="modules/darken.html">darken</a></li>
   <li><a href="modules/lighten.html">lighten</a></li>
+  <li><a href="classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h3>System</h3>
+<ul class="mono">
+  <li><a href="modules/cpu.html">cpu</a></li>
   <li><a href="modules/linux.html">linux</a></li>
+  <li><a href="modules/signal.html">signal</a></li>
+  <li><a href="modules/task.html">task</a></li>
+</ul>
+<h3>Constants</h3>
+<ul class="mono">
   <li><a href="modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="modules/linux.eth.html">linux.eth</a></li>
@@ -72,69 +215,126 @@
   <li><a href="modules/linux.tc.html">linux.tc</a></li>
   <li><a href="modules/linux.vt.html">linux.vt</a></li>
   <li><a href="modules/linux.xdp.html">linux.xdp</a></li>
-  <li><a href="modules/lunatik.html">lunatik</a></li>
-  <li><a href="modules/lunatik.runner.html">lunatik.runner</a></li>
-  <li><a href="modules/mailbox.html">mailbox</a></li>
-  <li><a href="modules/net.html">net</a></li>
-  <li><a href="modules/netfilter.html">netfilter</a></li>
-  <li><a href="modules/netlink.html">netlink</a></li>
-  <li><a href="modules/netlink.channel.html">netlink.channel</a></li>
-  <li><a href="modules/netlink.genl.html">netlink.genl</a></li>
-  <li><a href="modules/netlink.message.html">netlink.message</a></li>
-  <li><a href="modules/netlink.nl80211.html">netlink.nl80211</a></li>
-  <li><a href="modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
-  <li><a href="modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
-  <li><a href="modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
-  <li><a href="modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
-  <li><a href="modules/netlink.rt.html">netlink.rt</a></li>
-  <li><a href="modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
-  <li><a href="modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="modules/netlink.rt.object.html">netlink.rt.object</a></li>
-  <li><a href="modules/netlink.rt.route.html">netlink.rt.route</a></li>
-  <li><a href="modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
-  <li><a href="modules/netlink.session.html">netlink.session</a></li>
-  <li><a href="modules/notifier.html">notifier</a></li>
-  <li><a href="modules/probe.html">probe</a></li>
-  <li><a href="modules/rcu.html">rcu</a></li>
-  <li><a href="modules/sched.html">sched</a></li>
-  <li><a href="modules/set.html">set</a></li>
-  <li><a href="modules/signal.html">signal</a></li>
-  <li><a href="modules/skb.html">skb</a></li>
-  <li><a href="modules/socket.html">socket</a></li>
-  <li><a href="modules/socket.inet.html">socket.inet</a></li>
-  <li><a href="modules/socket.raw.html">socket.raw</a></li>
-  <li><a href="modules/socket.unix.html">socket.unix</a></li>
-  <li><a href="modules/struct.html">struct</a></li>
-  <li><a href="modules/syscall.html">syscall</a></li>
-  <li><a href="modules/syscall.table.html">syscall.table</a></li>
-  <li><a href="modules/task.html">task</a></li>
-  <li><a href="modules/tc.html">tc</a></li>
-  <li><a href="modules/thread.html">thread</a></li>
-  <li><a href="modules/xdp.html">xdp</a></li>
 </ul>
-<h2>Classes</h2>
-<ul class="nowrap">
-  <li><a href="classes/crypto.hkdf.html">crypto.hkdf</a></li>
-  <li><a href="classes/crypto_aead.html">crypto_aead</a></li>
-  <li><a href="classes/crypto_comp.html">crypto_comp</a></li>
-  <li><a href="classes/crypto_rng.html">crypto_rng</a></li>
-  <li><a href="classes/crypto_shash.html">crypto_shash</a></li>
-  <li><a href="classes/crypto_skcipher.html">crypto_skcipher</a></li>
-  <li><a href="classes/skb.attr.html">skb.attr</a></li>
-</ul>
+</aside>
 
+<main class="content" id="content">
+
+<div class="areas">
+    <a class="area" href="#api-runtime">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg></span>
+        <h3>Runtime</h3>
+        <p>Runtimes, kernel threads and the channels between them.</p>
+        <div class="mods">
+            <span>completion</span>
+            <span>fifo</span>
+            <span>lunatik</span>
+            <span>lunatik.runner</span>
+            <span>mailbox</span>
+            <span class="more">+1</span>
+        </div>
+    </a>
+    <a class="area" href="#api-packets">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"/></svg></span>
+        <h3>Packets and eBPF</h3>
+        <p>Netfilter, XDP and TC hooks, socket buffers and eBPF maps.</p>
+        <div class="mods">
+            <span>bpf</span>
+            <span>bpf.map</span>
+            <span>netfilter</span>
+            <span>skb</span>
+            <span>tc</span>
+            <span class="more">+2</span>
+        </div>
+    </a>
+    <a class="area" href="#api-network">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg></span>
+        <h3>Sockets and netlink</h3>
+        <p>Kernel sockets, and rtnetlink and generic netlink sessions.</p>
+        <div class="mods">
+            <span>net</span>
+            <span>netlink</span>
+            <span>netlink.channel</span>
+            <span>netlink.genl</span>
+            <span>netlink.message</span>
+            <span class="more">+17</span>
+        </div>
+    </a>
+    <a class="area" href="#api-tracing">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></span>
+        <h3>Tracing and scheduling</h3>
+        <p>Kprobes, system call addresses and sched_ext.</p>
+        <div class="mods">
+            <span>probe</span>
+            <span>sched</span>
+            <span>syscall</span>
+            <span>syscall.table</span>
+        </div>
+    </a>
+    <a class="area" href="#api-devices">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg></span>
+        <h3>Devices and events</h3>
+        <p>Character devices, HID drivers, notifier chains and fsnotify.</p>
+        <div class="mods">
+            <span>device</span>
+            <span>fsnotify</span>
+            <span>hid</span>
+            <span>notifier</span>
+        </div>
+    </a>
+    <a class="area" href="#api-data">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
+        <h3>Data</h3>
+        <p>Memory buffers, RCU tables, sets, byte order and records.</p>
+        <div class="mods">
+            <span>byteorder</span>
+            <span>class</span>
+            <span>data</span>
+            <span>rcu</span>
+            <span>set</span>
+            <span class="more">+1</span>
+        </div>
+    </a>
+    <a class="area" href="#api-crypto">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8.5 11V7.5a3.5 3.5 0 0 1 7 0V11"/></svg></span>
+        <h3>Cryptography</h3>
+        <p>The kernel crypto API and encrypted scripts.</p>
+        <div class="mods">
+            <span>crypto</span>
+            <span>darken</span>
+            <span>lighten</span>
+            <span>crypto.hkdf</span>
+            <span>crypto_aead</span>
+            <span class="more">+4</span>
+        </div>
+    </a>
+    <a class="area" href="#api-system">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM7 10l3 2.5L7 15M12.5 15H17"/></svg></span>
+        <h3>System</h3>
+        <p>The kernel as a whole: time, CPUs, tasks and signals.</p>
+        <div class="mods">
+            <span>cpu</span>
+            <span>linux</span>
+            <span>signal</span>
+            <span>task</span>
+        </div>
+    </a>
+    <a class="area" href="#api-constants">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3L8 21M16 3l-2 18M4 9h16M4 15h16"/></svg></span>
+        <h3>Constants</h3>
+        <p>Kernel constants, generated from its headers at build time.</p>
+        <div class="mods">
+            <span>linux.bpf</span>
+            <span>linux.dropreason</span>
+            <span>linux.eth</span>
+            <span>linux.fs</span>
+            <span>linux.genl</span>
+            <span class="more">+16</span>
+        </div>
+    </a>
 </div>
 
-<div id="content">
 
-<h1 id="lunatik">Lunatik</h1>
-
-<p>Lunatik is a framework for scripting the Linux kernel with <a href="https://www.lua.org/">Lua</a>.
-Scripts run inside the kernel and reach its facilities through Lua modules: character devices,
-Netfilter, XDP and TC hooks, kprobes, fsnotify, sched_ext, eBPF maps, sockets, netlink, crypto,
-kernel threads and more. A command line tool loads and manages them from user space, and a
-<a href="topics/capi.md.html">C API</a> lets kernel modules do the same.</p>
 
 <p>Lunatik supports Linux 6.6 and later. Its documentation is at
 <a href="https://luainkernel.github.io/lunatik/">luainkernel.github.io/lunatik</a>. Join us on
@@ -205,362 +405,389 @@ For more details, see its <a href="https://github.com/luainkernel/lua/blob/lunat
 
 <p><a href="https://github.com/luainkernel/klibc">Klibc</a> submodule is dual-licensed under BSD 3-Clause or GPL-2.0-only.
 For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lunatik/usr/klibc/LICENSE">LICENCE</a> file.</p>
-<h1 id="api-reference">API reference</h1>
 
-
-<h2>Lua API</h2>
-<table class="module_list">
+<h2 id="api-reference">API reference</h2>
+<h3 id="api-runtime">Runtime</h3>
+<div class="tbl"><table class="module_list">
 	<tr>
-		<td class="name"  nowrap><a href="modules/bpf.html">bpf</a></td>
-		<td class="summary">Lua interface to eBPF.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/bpf.map.html">bpf.map</a></td>
-		<td class="summary">High-level view over pinned eBPF maps.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/byteorder.html">byteorder</a></td>
-		<td class="summary">Byte Order Conversion</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/class.html">class</a></td>
-		<td class="summary">Minimal class helper for the OOP-style modules (e.g.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/completion.html">completion</a></td>
+		<td class="name"><a href="modules/completion.html">completion</a></td>
 		<td class="summary">Lua bindings for kernel completion mechanisms.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/cpu.html">cpu</a></td>
-		<td class="summary">Lua interface to Linux CPU abstractions.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/crypto.html">crypto</a></td>
-		<td class="summary">Lua interface to the Linux Crypto API.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/darken.html">darken</a></td>
-		<td class="summary">Encrypted Lua script execution using AES-256-CTR.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/data.html">data</a></td>
-		<td class="summary">Direct memory access and manipulation.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/device.html">device</a></td>
-		<td class="summary">Low-level Lua interface for creating Linux character device drivers.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/fifo.html">fifo</a></td>
+		<td class="name"><a href="modules/fifo.html">fifo</a></td>
 		<td class="summary">kfifo (kernel FIFO) implementation.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/fsnotify.html">fsnotify</a></td>
-		<td class="summary">Filesystem notification.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/hid.html">hid</a></td>
-		<td class="summary">Lua interface to the Linux HID subsystem.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/lighten.html">lighten</a></td>
-		<td class="summary">Encrypted Lua script support (AES-256-CTR).</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.html">linux</a></td>
-		<td class="summary">Various Linux kernel facilities.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.bpf.html">linux.bpf</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.bpf.html#">linux.bpf</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.dropreason.html">linux.dropreason</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.dropreason.html#">linux.dropreason</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.eth.html">linux.eth</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.eth.html#">linux.eth</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.fs.html">linux.fs</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.fs.html#">linux.fs</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.genl.html">linux.genl</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.genl.html#">linux.genl</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.kbd.html">linux.kbd</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.kbd.html#">linux.kbd</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.netdev.html">linux.netdev</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.netdev.html#">linux.netdev</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.netlink.html">linux.netlink</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.netlink.html#">linux.netlink</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.nf.html">linux.nf</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.nf.html#">linux.nf</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.nl80211.html">linux.nl80211</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.nl80211.html#">linux.nl80211</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.notify.html">linux.notify</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.notify.html#">linux.notify</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.rtnetlink.html">linux.rtnetlink</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.rtnetlink.html#">linux.rtnetlink</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.scx.html">linux.scx</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.scx.html#">linux.scx</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.signal.html">linux.signal</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.signal.html#">linux.signal</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.socket.html">linux.socket</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.socket.html#">linux.socket</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.stat.html">linux.stat</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.stat.html#">linux.stat</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.syscall.html">linux.syscall</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.syscall.html#">linux.syscall</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.task.html">linux.task</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.task.html#">linux.task</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.tc.html">linux.tc</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.tc.html#">linux.tc</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.vt.html">linux.vt</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.vt.html#">linux.vt</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/linux.xdp.html">linux.xdp</a></td>
-		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.xdp.html#">linux.xdp</a>.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/lunatik.html">lunatik</a></td>
+		<td class="name"><a href="modules/lunatik.html">lunatik</a></td>
 		<td class="summary">Manages Lunatik runtimes — isolated Lua states running in the kernel.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/lunatik.runner.html">lunatik.runner</a></td>
+		<td class="name"><a href="modules/lunatik.runner.html">lunatik.runner</a></td>
 		<td class="summary">Manages the execution and lifecycle of Lunatik scripts.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/mailbox.html">mailbox</a></td>
+		<td class="name"><a href="modules/mailbox.html">mailbox</a></td>
 		<td class="summary">Inter-runtime communication mechanism using FIFOs and completions.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/net.html">net</a></td>
-		<td class="summary">Network utility functions.</td>
+		<td class="name"><a href="modules/thread.html">thread</a></td>
+		<td class="summary">Kernel thread primitives.</td>
+	</tr>
+</table></div>
+<h3 id="api-packets">Packets and eBPF</h3>
+<div class="tbl"><table class="module_list">
+	<tr>
+		<td class="name"><a href="modules/bpf.html">bpf</a></td>
+		<td class="summary">Lua interface to eBPF.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netfilter.html">netfilter</a></td>
+		<td class="name"><a href="modules/bpf.map.html">bpf.map</a></td>
+		<td class="summary">High-level view over pinned eBPF maps.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/netfilter.html">netfilter</a></td>
 		<td class="summary">Lua interface to the Linux Netfilter framework.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.html">netlink</a></td>
+		<td class="name"><a href="modules/skb.html">skb</a></td>
+		<td class="summary">Linux socket buffer interface.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/tc.html">tc</a></td>
+		<td class="summary">Linux Traffic Control (TC) integration.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/xdp.html">xdp</a></td>
+		<td class="summary">eXpress Data Path (XDP) integration.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="classes/skb.attr.html">skb.attr</a></td>
+		<td class="summary">Attribute view over an <a href="modules/skb.html#">skb</a>: reads and writes packet fields as table keys
+ (<code>view.mark</code>, <code>view.priority</code>) instead of method calls.</td>
+	</tr>
+</table></div>
+<h3 id="api-network">Sockets and netlink</h3>
+<div class="tbl"><table class="module_list">
+	<tr>
+		<td class="name"><a href="modules/net.html">net</a></td>
+		<td class="summary">Network utility functions.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/netlink.html">netlink</a></td>
 		<td class="summary">The netlink namespace.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.channel.html">netlink.channel</a></td>
+		<td class="name"><a href="modules/netlink.channel.html">netlink.channel</a></td>
 		<td class="summary">Generic netlink channel: a generic netlink family with one multicast group
  whose <code>multicast</code>/<code>unicast</code> are safe from softirq (netfilter hooks, XDP), for
  kernel-to-userspace delivery.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.genl.html">netlink.genl</a></td>
+		<td class="name"><a href="modules/netlink.genl.html">netlink.genl</a></td>
 		<td class="summary">Generic netlink (<code>NETLINK_GENERIC</code>) interface.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.message.html">netlink.message</a></td>
+		<td class="name"><a href="modules/netlink.message.html">netlink.message</a></td>
 		<td class="summary">Netlink wire codec shared by the netlink modules.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.nl80211.html">netlink.nl80211</a></td>
+		<td class="name"><a href="modules/netlink.nl80211.html">netlink.nl80211</a></td>
 		<td class="summary">The nl80211 (wireless) namespace.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></td>
+		<td class="name"><a href="modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></td>
 		<td class="summary">Access Point control.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></td>
+		<td class="name"><a href="modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></td>
 		<td class="summary">Wireless interface management.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.nl80211.object.html">netlink.nl80211.object</a></td>
+		<td class="name"><a href="modules/netlink.nl80211.object.html">netlink.nl80211.object</a></td>
 		<td class="summary">Base class for the nl80211 object classes (<code>wiphy</code>, <code>interface</code>, &hellip;): a
  <a href="modules/netlink.genl.html#">netlink.genl</a> session bound to the <code>&quot;nl80211&quot;</code> family, caching its id and
  carrying the shared dump-decode loop.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.nl80211.station.html">netlink.nl80211.station</a></td>
+		<td class="name"><a href="modules/netlink.nl80211.station.html">netlink.nl80211.station</a></td>
 		<td class="summary">Station management.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></td>
+		<td class="name"><a href="modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></td>
 		<td class="summary">Wireless PHY (wiphy) listing.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.rt.html">netlink.rt</a></td>
+		<td class="name"><a href="modules/netlink.rt.html">netlink.rt</a></td>
 		<td class="summary">The rtnetlink namespace.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.rt.addr.html">netlink.rt.addr</a></td>
+		<td class="name"><a href="modules/netlink.rt.addr.html">netlink.rt.addr</a></td>
 		<td class="summary">Interface address listing.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.rt.link.html">netlink.rt.link</a></td>
+		<td class="name"><a href="modules/netlink.rt.link.html">netlink.rt.link</a></td>
 		<td class="summary">Network interface (link) management.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.rt.object.html">netlink.rt.object</a></td>
+		<td class="name"><a href="modules/netlink.rt.object.html">netlink.rt.object</a></td>
 		<td class="summary">Base class for the rtnetlink object classes (<code>route</code>, <code>link</code>, <code>addr</code>,
  <code>rule</code>): a <a href="modules/netlink.session.html#">netlink.session</a> over the <code>NETLINK_ROUTE</code> protocol carrying the
  shared dump loop and the routing-table id split.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.rt.route.html">netlink.rt.route</a></td>
+		<td class="name"><a href="modules/netlink.rt.route.html">netlink.rt.route</a></td>
 		<td class="summary">Kernel routing table interface.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.rt.rule.html">netlink.rt.rule</a></td>
+		<td class="name"><a href="modules/netlink.rt.rule.html">netlink.rt.rule</a></td>
 		<td class="summary">FIB rule (policy routing) interface.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/netlink.session.html">netlink.session</a></td>
+		<td class="name"><a href="modules/netlink.session.html">netlink.session</a></td>
 		<td class="summary">Netlink request/response session.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/notifier.html">notifier</a></td>
-		<td class="summary">Notifier chain mechanism.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/probe.html">probe</a></td>
-		<td class="summary">kprobes interface.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/rcu.html">rcu</a></td>
-		<td class="summary">RCU-synchronized hash table.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/sched.html">sched</a></td>
-		<td class="summary">Linux Extensible Scheduler (sched_ext) integration.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/set.html">set</a></td>
-		<td class="summary">A <a href="modules/set.html#">set</a> is a compact, immutable set of strings, queried by binary search.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/signal.html">signal</a></td>
-		<td class="summary">POSIX Signals</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/skb.html">skb</a></td>
-		<td class="summary">Linux socket buffer interface.</td>
-	</tr>
-	<tr>
-		<td class="name"  nowrap><a href="modules/socket.html">socket</a></td>
+		<td class="name"><a href="modules/socket.html">socket</a></td>
 		<td class="summary">Low-level Lua interface for kernel networking sockets.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/socket.inet.html">socket.inet</a></td>
+		<td class="name"><a href="modules/socket.inet.html">socket.inet</a></td>
 		<td class="summary">Internet (AF_INET) socket operations.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/socket.raw.html">socket.raw</a></td>
+		<td class="name"><a href="modules/socket.raw.html">socket.raw</a></td>
 		<td class="summary">RAW AF_PACKET socket operations.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/socket.unix.html">socket.unix</a></td>
+		<td class="name"><a href="modules/socket.unix.html">socket.unix</a></td>
 		<td class="summary">UNIX domain socket (AF_UNIX) operations.</td>
 	</tr>
+</table></div>
+<h3 id="api-tracing">Tracing and scheduling</h3>
+<div class="tbl"><table class="module_list">
 	<tr>
-		<td class="name"  nowrap><a href="modules/struct.html">struct</a></td>
-		<td class="summary">Binary codec for fixed C struct layouts.</td>
+		<td class="name"><a href="modules/probe.html">probe</a></td>
+		<td class="summary">kprobes interface.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/syscall.html">syscall</a></td>
+		<td class="name"><a href="modules/sched.html">sched</a></td>
+		<td class="summary">Linux Extensible Scheduler (sched_ext) integration.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/syscall.html">syscall</a></td>
 		<td class="summary">Accessing kernel system call information.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/syscall.table.html">syscall.table</a></td>
+		<td class="name"><a href="modules/syscall.table.html">syscall.table</a></td>
 		<td class="summary">A table mapping system call names to their kernel addresses.</td>
 	</tr>
+</table></div>
+<h3 id="api-devices">Devices and events</h3>
+<div class="tbl"><table class="module_list">
 	<tr>
-		<td class="name"  nowrap><a href="modules/task.html">task</a></td>
-		<td class="summary">Linux task interface.</td>
+		<td class="name"><a href="modules/device.html">device</a></td>
+		<td class="summary">Low-level Lua interface for creating Linux character device drivers.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/tc.html">tc</a></td>
-		<td class="summary">Linux Traffic Control (TC) integration.</td>
+		<td class="name"><a href="modules/fsnotify.html">fsnotify</a></td>
+		<td class="summary">Filesystem notification.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/thread.html">thread</a></td>
-		<td class="summary">Kernel thread primitives.</td>
+		<td class="name"><a href="modules/hid.html">hid</a></td>
+		<td class="summary">Lua interface to the Linux HID subsystem.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="modules/xdp.html">xdp</a></td>
-		<td class="summary">eXpress Data Path (XDP) integration.</td>
+		<td class="name"><a href="modules/notifier.html">notifier</a></td>
+		<td class="summary">Notifier chain mechanism.</td>
 	</tr>
-</table>
-<h2>Classes</h2>
-<table class="module_list">
+</table></div>
+<h3 id="api-data">Data</h3>
+<div class="tbl"><table class="module_list">
 	<tr>
-		<td class="name"  nowrap><a href="classes/crypto.hkdf.html">crypto.hkdf</a></td>
+		<td class="name"><a href="modules/byteorder.html">byteorder</a></td>
+		<td class="summary">Byte Order Conversion</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/class.html">class</a></td>
+		<td class="summary">Minimal class helper for the OOP-style modules (e.g.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/data.html">data</a></td>
+		<td class="summary">Direct memory access and manipulation.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/rcu.html">rcu</a></td>
+		<td class="summary">RCU-synchronized hash table.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/set.html">set</a></td>
+		<td class="summary">A <a href="modules/set.html#">set</a> is a compact, immutable set of strings, queried by binary search.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/struct.html">struct</a></td>
+		<td class="summary">Binary codec for fixed C struct layouts.</td>
+	</tr>
+</table></div>
+<h3 id="api-crypto">Cryptography</h3>
+<div class="tbl"><table class="module_list">
+	<tr>
+		<td class="name"><a href="modules/crypto.html">crypto</a></td>
+		<td class="summary">Lua interface to the Linux Crypto API.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/darken.html">darken</a></td>
+		<td class="summary">Encrypted Lua script execution using AES-256-CTR.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/lighten.html">lighten</a></td>
+		<td class="summary">Encrypted Lua script support (AES-256-CTR).</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="classes/crypto.hkdf.html">crypto.hkdf</a></td>
 		<td class="summary">HMAC-based Extract-and-Expand Key Derivation Function (HKDF) based on RFC 5869.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="classes/crypto_aead.html">crypto_aead</a></td>
+		<td class="name"><a href="classes/crypto_aead.html">crypto_aead</a></td>
 		<td class="summary">Lua interface to AEAD (Authenticated Encryption with Associated Data) ciphers.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="classes/crypto_comp.html">crypto_comp</a></td>
+		<td class="name"><a href="classes/crypto_comp.html">crypto_comp</a></td>
 		<td class="summary">Lua interface to synchronous compression algorithms.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="classes/crypto_rng.html">crypto_rng</a></td>
+		<td class="name"><a href="classes/crypto_rng.html">crypto_rng</a></td>
 		<td class="summary">Lua interface to synchronous Random Number Generators (RNG).</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="classes/crypto_shash.html">crypto_shash</a></td>
+		<td class="name"><a href="classes/crypto_shash.html">crypto_shash</a></td>
 		<td class="summary">Lua interface to synchronous message digest (hash) algorithms, including HMAC.</td>
 	</tr>
 	<tr>
-		<td class="name"  nowrap><a href="classes/crypto_skcipher.html">crypto_skcipher</a></td>
+		<td class="name"><a href="classes/crypto_skcipher.html">crypto_skcipher</a></td>
 		<td class="summary">Lua interface to symmetric-key ciphers (SKCIPHER).</td>
 	</tr>
+</table></div>
+<h3 id="api-system">System</h3>
+<div class="tbl"><table class="module_list">
 	<tr>
-		<td class="name"  nowrap><a href="classes/skb.attr.html">skb.attr</a></td>
-		<td class="summary">Attribute view over an <a href="modules/skb.html#">skb</a>: reads and writes packet fields as table keys
- (<code>view.mark</code>, <code>view.priority</code>) instead of method calls.</td>
+		<td class="name"><a href="modules/cpu.html">cpu</a></td>
+		<td class="summary">Lua interface to Linux CPU abstractions.</td>
 	</tr>
-</table>
+	<tr>
+		<td class="name"><a href="modules/linux.html">linux</a></td>
+		<td class="summary">Various Linux kernel facilities.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/signal.html">signal</a></td>
+		<td class="summary">POSIX Signals</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/task.html">task</a></td>
+		<td class="summary">Linux task interface.</td>
+	</tr>
+</table></div>
+<h3 id="api-constants">Constants</h3>
+<div class="tbl"><table class="module_list">
+	<tr>
+		<td class="name"><a href="modules/linux.bpf.html">linux.bpf</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.bpf.html#">linux.bpf</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.dropreason.html">linux.dropreason</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.dropreason.html#">linux.dropreason</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.eth.html">linux.eth</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.eth.html#">linux.eth</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.fs.html">linux.fs</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.fs.html#">linux.fs</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.genl.html">linux.genl</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.genl.html#">linux.genl</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.kbd.html">linux.kbd</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.kbd.html#">linux.kbd</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.netdev.html">linux.netdev</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.netdev.html#">linux.netdev</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.netlink.html">linux.netlink</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.netlink.html#">linux.netlink</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.nf.html">linux.nf</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.nf.html#">linux.nf</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.nl80211.html">linux.nl80211</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.nl80211.html#">linux.nl80211</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.notify.html">linux.notify</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.notify.html#">linux.notify</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.rtnetlink.html">linux.rtnetlink</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.rtnetlink.html#">linux.rtnetlink</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.scx.html">linux.scx</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.scx.html#">linux.scx</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.signal.html">linux.signal</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.signal.html#">linux.signal</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.socket.html">linux.socket</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.socket.html#">linux.socket</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.stat.html">linux.stat</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.stat.html#">linux.stat</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.syscall.html">linux.syscall</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.syscall.html#">linux.syscall</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.task.html">linux.task</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.task.html#">linux.task</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.tc.html">linux.tc</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.tc.html#">linux.tc</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.vt.html">linux.vt</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.vt.html#">linux.vt</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.xdp.html">linux.xdp</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.xdp.html#">linux.xdp</a>.</td>
+	</tr>
+</table></div>
 
-</div> <!-- id="content" -->
-</div> <!-- id="main" -->
-<div id="about">
-<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 17:59:31 </i>
-</div> <!-- id="about" -->
-</div> <!-- id="container" -->
+</main>
+
+<aside class="toc" aria-label="On this page">
+<nav id="toc"><h2>On this page</h2></nav>
+</aside>
+
+</div>
+
+<footer class="site-footer">
+<div>
+<span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 22:00:07</span>
+</div>
+</footer>
 </body>
 </html>
 
