@@ -22,8 +22,7 @@ and the wiring the file does not enumerate.
    the registry and returns early, `release` does the real unregister at runtime teardown. A
    helper goes to `lunatik.h` only with two or more real users.
 3. **Wire the build**, in alphabetical position in every list: `Kbuild`, `Kconfig`
-   (`config LUNATIK_<NAME>`), `Makefile` (`LUNATIK_MODULES`), `config.ld`, the README module
-   table.
+   (`config LUNATIK_<NAME>`), `Makefile` (`LUNATIK_MODULES`), `config.ld`.
 4. **Docs and tests** per AGENTS.md; a suite under `tests/<name>/` (see the new-test skill).
 5. **Verify** with the lunatik-cycle skill; grep every new symbol for a caller.
 
