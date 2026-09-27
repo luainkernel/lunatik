@@ -14,7 +14,7 @@ The keyboard notifier fires in hardirq context, so keylocker must run in a
 ## Usage
 
 ```
-sudo make examples_install                                      # installs examples
+sudo make install                                              # installs Lunatik and the examples
 sudo lunatik run --context=hardirq examples/keylocker/notifier  # runs keylocker
 <↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>                  # locks keyboard
 <↑> <↑> <↓> <↓> <←> <→> <←> <→> <LCTRL> <LALT>                  # unlocks keyboard

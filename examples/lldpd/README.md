@@ -6,7 +6,7 @@ It periodically emits LLDP frames on a given interface using an AF_PACKET socket
 ## Usage
 
 ```
-sudo make examples_install                  # installs examples
+sudo make install                          # installs Lunatik and the examples
 
 # the LLDP daemon sends frames on a single Ethernet interface
 # you may use an existing interface, or create a virtual one for testing

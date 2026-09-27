@@ -36,7 +36,7 @@ still loads: it says so in the log and guards nothing.
 ## Usage
 
 ```
-sudo make examples_install                  # installs examples
+sudo make install                          # installs Lunatik and the examples
 sudo mkdir -p -m 0755 /tmp/lunatik-execguard
 sudo mount -t tmpfs -o size=1M,mode=0755 lunatik-execguard /tmp/lunatik-execguard
 sudo cp /bin/true /bin/date /tmp/lunatik-execguard/

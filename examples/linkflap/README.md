@@ -14,7 +14,7 @@ replays an `UP` for each interface that already exists, one transition each.
 ## Usage
 
 ```
-sudo make examples_install                             # installs examples
+sudo make install                                     # installs Lunatik and the examples
 sudo lunatik run examples/linkflap/watch               # arms the notifier
 cc -O2 examples/linkflap/subscriber.c -o linkflap-sub  # builds the subscriber
 GRP=$(genl ctrl get name linkflap | grep -oiE 'ID-0x[0-9a-f]+' | sed 's/^ID-//i')

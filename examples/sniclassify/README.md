@@ -10,7 +10,7 @@ Install the classifier:
 
 ```sh
 sudo make btf_install         # needed to export the 'bpf_luatc_run' kfunc
-sudo make examples_install    # installs examples
+sudo make install            # installs Lunatik and the examples
 make ebpf                     # builds the TC/eBPF program
 sudo make ebpf_install        # installs the TC/eBPF program
 ```
