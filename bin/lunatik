@@ -380,8 +380,8 @@ function runners.list(parsed, script)
 	unmodified("list", parsed)
 	if script ~= nil then misuse("list takes no script") end
 	ensure_loaded()
-	local scripts = request("return lunatik.runner.list()")
-	if scripts ~= "" then print((scripts:gsub(", ", "\n"))) end
+	local scripts = request("return table.concat(lunatik.runner.list(), '\\n')")
+	if scripts ~= "" then print(scripts) end
 end
 
 local function main()
