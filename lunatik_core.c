@@ -5,6 +5,8 @@
 
 /***
 * Manages Lunatik runtimes — isolated Lua states running in the kernel.
+* In a softirq or hardirq runtime the module holds only `cpu` and `_ENV`: `runtime` and `percpu`
+* exist in a process runtime alone, and the `io` library is not opened there.
 * @module lunatik
 */
 
@@ -20,7 +22,8 @@
 #include "lunatik_sym.h"
 
 /***
-* Shared global environment; scripts exchange objects (e.g. RCU tables) through it.
+* Shared `rcu.table` through which scripts exchange objects, as the runner does with its
+* `runtimes` and `threads` tables. It is present once the `lunatik_run` module is loaded.
 * @field _ENV
 * @within lunatik
 */
@@ -133,16 +136,33 @@ int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs)
 
 /***
 * Resumes a yielded runtime, analogous to `coroutine.resume`.
-* Only Lunatik objects cross between the runtimes, in either direction.
+* The runtime's script returns a function: the first resume calls it with the objects as its
+* arguments, and each later one delivers them as the return values of the `coroutine.yield()` it
+* is suspended in. Only Lunatik objects cross between the runtimes, in either direction.
 * @function resume
-* @param ... objects delivered to the script as return values of `coroutine.yield()`
-* @treturn vararg objects passed to the next `coroutine.yield()`, or returned by the script
-* @raise "invalid object" or "cannot share SINGLE object" if a value cannot cross, numbering the
+* @param ... objects passed to the function, or returned by its `coroutine.yield()`
+* @treturn vararg objects passed to the next `coroutine.yield()`, or returned by the function
+* @raise "null pointer dereference" if the runtime has been stopped; "invalid object" or
+*   "cannot share SINGLE object" if a value cannot cross, numbering the
 *   arguments on the way in and the yielded values on the way back, or the error raised on
 *   resumption; "not allowed from the runtime itself" from under the runtime's own lock, the
 *   contexts `stop` names, where the resumption would wait on it; "EINTR" if the stop of the
 *   calling kernel thread, or a fatal signal to any other task, ends its wait for the runtime's
 *   lock
+* @usage
+*   -- echo.lua, a runtime that hands back what it receives
+*   local function echo(object)
+*   	while true do
+*   		object = coroutine.yield(object)
+*   	end
+*   end
+*   return echo
+*
+*   -- the script that drives it
+*   local lunatik = require("lunatik")
+*   local data    = require("data")
+*   local runtime <close> = lunatik.runtime("echo")
+*   local back = runtime:resume(data.new(4)) -- calls echo, which yields the object back
 */
 static int lunatik_lresume(lua_State *L)
 {
@@ -353,7 +373,7 @@ EXPORT_SYMBOL(lunatik_runtime);
 * it stays open, its hooks in place and the modules its script required loaded, until `stop()`,
 * which cannot be called once its last handle is gone. A script stops the runtimes it creates;
 * one a netdevice callback may collect it stops before, since the close runs where the collector
-* drops the handle and cannot refuse there.
+* drops the handle and cannot refuse there. Only a process runtime's `lunatik` module has it.
 * @function runtime
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context: `"process"` (sleepable,
