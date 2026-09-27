@@ -14,15 +14,12 @@ typedef struct lunatik_class_s {
 	const char        *name;
 	const luaL_Reg    *methods;
 	lunatik_release_t  release;
-	lua_CFunction      opener;
 	lunatik_opt_t      opt;
 } lunatik_class_t;
 ```
 Describes a Lunatik object class.
 
-- `name`: the class's type name, quoted by type errors and `__name`; `lunatik_require` also
-  registers the library under it when an object of the class enters another state, so a script's
-  own `require` of the library may open it a second time, which keeps the classes already opened.
+- `name`: the class's type name, quoted by type errors and `__name`.
 - `methods`: `NULL`-terminated array of Lua methods registered in the metatable. It carries
   `{"__gc", lunatik_deleteobject}`, which drops the reference the userdata holds: without it, the
   object and its private are never released. `{"__close", lunatik_closeobject}` and
@@ -33,11 +30,6 @@ Describes a Lunatik object class.
   `lunatik_stop` run, and the drop of the last reference; Lunatik then frees the private, unless
   the class is `LUNATIK_OPT_EXTERNAL`. It runs on the task that closed the object or dropped that
   reference. May be `NULL`.
-- `opener`: the library's `luaopen_<libname>`, declared ahead of the class with
-  [`LUNATIK_OPENER`](#lunatik_opener). `lunatik_cloneobject`, and so `lunatik_pushobject` and
-  `lunatik_copyobjects`, runs it through `lunatik_require(L, class)`, so the metatable exists in a
-  state whose script never required the library; with `NULL`, cloning into such a state raises
-  `'<name>': metatable not found`.
 - `opt`: bitmask of `LUNATIK_OPT_*` flags controlling class behaviour. Flags are inherited by
   every instance via `object->opt = opt | class->opt` (see `lunatik_newobject`). Flags differ
   in whether they act as **constraints** or **capabilities**:
@@ -191,8 +183,7 @@ Clones onto `Lto`, in order, the `nobjects` Lunatik objects `Lfrom` holds from `
 be negative to count from `Lfrom`'s top. It carries objects and nothing else: a value that is not a
 Lunatik object fails it with `invalid object`; an object marked `SINGLE` with
 `'<class>': cannot share SINGLE object`; a process-context object copied into a softirq or
-hardirq runtime with `'<class>': process-context class in interrupt-context runtime`; an object
-whose class's library cannot be opened in `Lto` with `'<class>': metatable not found`; and more
+hardirq runtime with `'<class>': process-context class in interrupt-context runtime`; and more
 objects than `Lto`'s stack takes with `too many objects`. On failure it returns the status of the
 [protected call](https://www.lua.org/manual/5.5/manual.html#lua_pcall) and leaves the message on
 `Lto`, which the caller pops; on success it returns `LUA_OK`.
@@ -532,8 +523,8 @@ zeroed and comes from the runtime's allocator, `GFP_ATOMIC` in a softirq or hard
 it is armed; it is freed with `kvfree` after `release`.
 
 Raises `'<name>': process-context class in interrupt-context runtime`; `'<name>': metatable not
-found` when the class's library was not opened in this state, which
-`lunatik_require(L, class)` opens beforehand; and `not enough memory`.
+found` when the class's metatables are not in this state's registry, which
+[`lunatik_require`](#lunatik_require) creates beforehand; and `not enough memory`.
 
 ### lunatik\_createobject
 ```C
@@ -550,6 +541,16 @@ only where the caller may sleep. The private is `size` zeroed bytes; the call is
 `LUNATIK_OPT_EXTERNAL` class, whose private it would allocate and never free.
 Returns a pointer to the `lunatik_object_t` on success, or `NULL` if memory allocation fails.
 
+### lunatik\_require
+```C
+void lunatik_require(lua_State *L, const lunatik_class_t *class);
+```
+Creates the class's metatables in the registry of `L` from its `methods`, the monitored one too
+for a `LUNATIK_OPT_MONITOR` class, unless `L` has them already. It opens no library and adds no
+`package.loaded` entry. A function that creates an object of its class in a state whose script
+may not have required the library calls it before [`lunatik_newobject`](#lunatik_newobject), as
+`luadata_new` does. Raises `not enough memory`.
+
 ### lunatik\_cloneobject
 ```C
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
@@ -557,12 +558,12 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 _lunatik\_cloneobject()_ pushes `object` onto the Lua stack as a userdata with the correct
 metatable, and takes no reference: the userdata's `__gc` drops one, which the caller hands over
 or takes, as [`lunatik_pushobject`](#lunatik_pushobject) does. It calls
-`lunatik_require(L, class)` internally to ensure the class metatable is registered even if the
-script never called `require` itself.
+[`lunatik_require`](#lunatik_require) first, so the object reaches a state whose script never
+required its library.
 Raises `'<name>': cannot share SINGLE object` for a `LUNATIK_OPT_SINGLE` object,
 `'<name>': process-context class in interrupt-context runtime`, `'<name>': metatable not found`
-for a class with no `opener` whose library `L` never opened, and `not enough memory`; so it runs
-under a protected call.
+for a `LUNATIK_OPT_MONITOR` object of a class that does not carry the flag, and `not enough
+memory`; so it runs under a protected call.
 
 ### lunatik\_pushobject
 ```C
@@ -984,8 +985,9 @@ raises, it drops that reference first.
 #define LUNATIK_OPENER(libname)
 ```
 Declares `int luaopen_<libname>(lua_State *L)`, the opener
-[`LUNATIK_NEWLIB`](#lunatik_newlib) defines, so a class written before it can name it in its
-`opener`: `LUNATIK_OPENER(foo);` ahead of `.opener = luaopen_foo`.
+[`LUNATIK_NEWLIB`](#lunatik_newlib) defines, for code that names it ahead of its definition; with
+a body, it defines an opener written by hand, whose declaration is `LUNATIK_OPENER(foo);` ahead
+of it.
 
 ### LUNATIK\_CLASSES
 ```C
@@ -1042,7 +1044,7 @@ Defines and exports the `luaopen_<libname>` entry point using `EXPORT_SYMBOL_GPL
   `LUNATIK_CLASSES`, or `NULL` if the module defines no object type.
 
 When `classes != NULL`, `LUNATIK_NEWLIB` registers the metatable(s) for every
-class in the array.
+class in the array through [`lunatik_require`](#lunatik_require).
 
 Metatable registration is context-agnostic: a module may expose classes of
 different execution contexts (e.g. a HARDIRQ class alongside a process-context
@@ -1088,8 +1090,8 @@ its `opt`; the constructor enforces this via
 
 ### Writing a binding
 A kernel module exposing a Lua library `foo` whose objects count: the private structure, its
-checker, a method table carrying `__gc` and `__close`, the class with its `opener`, a constructor,
-and the module's entry points.
+checker, a method table carrying `__gc` and `__close`, the class, a constructor, and the module's
+entry points.
 ```C
 #include <linux/module.h>
 
@@ -1119,11 +1121,9 @@ static const luaL_Reg luafoo_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(foo);
 static const lunatik_class_t luafoo_class = {
 	.name = "foo",
 	.methods = luafoo_mt,
-	.opener = luaopen_foo,
 	.opt = LUNATIK_OPT_MONITOR,
 };
 

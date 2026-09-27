@@ -113,12 +113,10 @@ static void luatc_release(void *private)
 		luadata_close(lctx->argument);
 }
 
-LUNATIK_OPENER(tc);
 static const lunatik_class_t luatc_class = {
 	.name    = "tc.ctx",
 	.methods = luatc_mt,
 	.release = luatc_release,
-	.opener  = luaopen_tc,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 

@@ -8,7 +8,7 @@
 * Template for a kernel module exposing a Lua library: copy it to
 * `lib/lua<name>.c`, rename the `luaskel_` prefix, and grow it following
 * AGENTS.md. The no-op object class wires the whole object model: checker,
-* methods, release, opener.
+* methods, release.
 * @module skel
 */
 
@@ -74,12 +74,10 @@ static const luaL_Reg luaskel_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(skel);
 static const lunatik_class_t luaskel_class = {
 	.name = "skel",
 	.methods = luaskel_mt,
 	.release = luaskel_release,
-	.opener = luaopen_skel,
 	.opt = LUNATIK_OPT_MONITOR,
 };
 

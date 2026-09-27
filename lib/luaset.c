@@ -382,12 +382,10 @@ static const luaL_Reg luaset_labeled_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(set);
 static const lunatik_class_t luaset_class = {
 	.name = "set",
 	.methods = luaset_mt,
 	.release = luaset_release,
-	.opener = luaopen_set,
 	.opt = LUNATIK_OPT_SOFTIRQ,
 };
 

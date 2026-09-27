@@ -135,12 +135,10 @@ static const luaL_Reg luatask_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(task);
 static const lunatik_class_t luatask_class = {
 	.name    = "task",
 	.methods = luatask_mt,
 	.release = luatask_release,
-	.opener  = luaopen_task,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_EXTERNAL,
 };
 

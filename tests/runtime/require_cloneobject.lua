@@ -2,17 +2,17 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- Kernel-side script for the require_cloneobject regression test (see require_cloneobject.sh).
+-- Kernel-side script for the require_cloneobject test (see require_cloneobject.sh).
 
-local lunatik = require("lunatik")
-local data    = require("data")
+local crypto = require("crypto")
+local data   = require("data")
+local set    = require("set")
+local check  = require("tests.runtime.check")
 
-local d = data.new(4)
-d:setuint32(0, 0xdeadbeef)
-
-local rt = lunatik.runtime("tests/runtime/require_cloneobject_recv", "softirq")
-local ok, err = pcall(rt.resume, rt, d)
-if not ok then
-	error("lunatik_require failed: " .. tostring(err))
-end
+check.clones(data.new(4), "softirq")
+check.clones(set.labeled({key = 1}))
+check.clones(crypto.shash("sha256"))
+check.clones(crypto.skcipher("cbc(aes)"))
+check.clones(crypto.aead("gcm(aes)"))
+check.clones(crypto.rng("stdrng"))
 

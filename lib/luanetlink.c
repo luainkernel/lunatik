@@ -150,13 +150,10 @@ static const luaL_Reg luanetlink_channel_mt[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_OPENER(netlink_channel);
-
 static const lunatik_class_t luanetlink_channel_class = {
 	.name    = "netlink.channel",
 	.methods = luanetlink_channel_mt,
 	.release = luanetlink_channel_release,
-	.opener  = luaopen_netlink_channel,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 };
 
