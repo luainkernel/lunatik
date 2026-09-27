@@ -66,7 +66,8 @@ esac
 ktap_pass "spawn refuses percpu without creating runtimes"
 
 # the rollback needs a second runtime to fail, so it runs only with >1 possible CPU
-if [ "$(nproc --all)" -ge 2 ]; then
+last=$(sed 's/.*[-,]//' /sys/devices/system/cpu/possible) # nproc --all counts only the present ones
+if [ "$last" -ge 1 ]; then
 	output=$(lunatik run "$FAIL_SCRIPT" percpu 2>&1)
 	echo "$output" | grep -q "intentional error on the second runtime" || \
 		fail "the percpu run did not fail as intended: $output"
