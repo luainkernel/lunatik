@@ -6,6 +6,19 @@
 --- Encrypted Lua script support (AES-256-CTR).
 -- This module provides functions to run encrypted Lua scripts
 -- using the `darken` C module.
+--
+-- The key is the module `light`, `/lib/modules/lua/light.lua`, which returns the hex-encoded
+-- 32-byte key; without it, `require("lighten")` raises "error loading module 'light' from file 'light'".
+-- `tools/shade.sh darken [-s <secret>] <script>.lua` encrypts a script into `<script>.dark.lua`,
+-- which calls `lighten.run`, and prints the secret, 64 hex characters;
+-- `tools/shade.sh lighten <secret>` writes `light.lua` from it. With `-t` both derive the key from
+-- the current 30 second step, so `light.lua` and the dark script are generated in the same step:
+--
+--     SECRET=$(tools/shade.sh darken hello.lua)
+--     tools/shade.sh lighten "$SECRET"
+--     sudo cp light.lua hello.dark.lua /lib/modules/lua/
+--     sudo lunatik run hello.dark
+--
 -- @module lighten
 
 local light = require("light")
