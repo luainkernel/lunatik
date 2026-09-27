@@ -37,7 +37,9 @@ Describes a Lunatik object class.
     method calls with the object lock, enabling safe concurrent access from multiple runtimes.
     Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`. A
     metamethod, and a method named `close`, are left unwrapped: a close takes the lock itself,
-    through `lunatik_closeprivate`, and would wait on the one the wrapper holds.
+    through `lunatik_closeprivate`, and would wait on the one the wrapper holds. The wrapper waits
+    for the lock with `lunatik_lockkillable`: the stop of a kernel thread, or a fatal signal to any
+    other task, ends the wait and the call raises `EINTR`.
   - `LUNATIK_OPT_SINGLE` *(constraint)*: all instances are private and non-shareable by default.
     Like `SOFTIRQ`, this is always inherited and cannot be overridden per instance.
   - `LUNATIK_OPT_EXTERNAL` *(constraint)*: `object->private` holds an external pointer — Lunatik
@@ -253,7 +255,10 @@ the softirq or hardirq interrupted. It answers about the object it is given: a p
 lock, which no dispatch takes, so `lunatik_run` reads it on the per-CPU instance `lunatik_pin`
 returns and `percpu:stop()` asks each runtime of the set in turn. And it sees the calling task
 only — Lua that blocks under the lock on a second task which then reaches the same lock is a
-cycle no owner check can name.
+cycle no owner check can name. The entries a script reaches, the monitor, `stop`, `resume` and
+`thread.run`, take a runtime's lock with `lunatik_lockkillable`, so the stop of a kernel thread
+in that cycle, or a fatal signal to another task in it, ends its wait; a dispatch through
+`lunatik_run` is not one of them and waits for the lock regardless.
 
 ### lunatik\_isrtnl
 ```C
@@ -270,6 +275,16 @@ own task holds: refuse the call with `lunatik_checkrtnl`. A `release` cannot ref
 point that runs one on the calling task, a `stop()` or a `close()` and its `__close`, refuses
 instead under RTNL. It sees the calling task only: Lua on a second task that waits for
 RTNL while this one waits for that task is a cycle it cannot name. Defined as macros.
+
+### lunatik\_iskthread
+```C
+bool lunatik_iskthread(void);
+```
+Returns `true` if the calling task is a kernel thread, one `thread.run` or the kernel started, and
+not a task that entered from userspace, a `device` file operation's or the CLI's. What ends a wait
+differs by the answer: a kernel thread is stopped, which sets the flag an interruptible wait reads
+and no fatal signal, so `lunatik_lockkillable` waits interruptibly there and killably elsewhere,
+and `thread.shouldstop` asks `kthread_should_stop` only there. Defined as a macro.
 
 ### lunatik\_checkruntime
 ```C
