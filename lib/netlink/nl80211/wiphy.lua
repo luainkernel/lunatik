@@ -11,6 +11,7 @@
 --
 -- @module netlink.nl80211.wiphy
 -- @see netlink.nl80211.object
+-- @see netlink.session
 --
 
 local object  = require("netlink.nl80211.object")
@@ -26,12 +27,23 @@ local u32, str = message.u32, message.str
 -- @type wiphy
 
 ---
--- Creates a new wiphy object.
+-- Wraps a table in the class, or derives a class from it. It opens no socket: calling the class
+-- does, `netlink.nl80211.wiphy()`.
 -- @function wiphy:new
 -- @tparam[opt] table o an initial object table.
--- @treturn wiphy the new wiphy object.
+-- @treturn wiphy the wrapped table or the derived class.
 -- @see class
 local wiphy = object:new{GET = cmd.GET_WIPHY, NEW = cmd.NEW_WIPHY}
+
+---
+-- Opens a session, calling the class: `netlink.nl80211.wiphy([pid])`.
+-- @function wiphy:__call
+-- @tparam[opt] integer pid a task whose network namespace the object reaches, which holds the wiphys
+--   and interfaces nl80211 answers for; the initial network namespace when absent.
+-- @treturn wiphy a new wiphy object.
+-- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
+--   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
+-- @see netlink.nl80211.object
 
 ---
 -- Lists the wireless PHYs (wiphys) known to the kernel.

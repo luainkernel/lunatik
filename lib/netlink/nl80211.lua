@@ -5,7 +5,9 @@
 
 ---
 -- The nl80211 (wireless) namespace. Groups the nl80211 object classes, each a
--- `netlink.genl` session bound to the `"nl80211"` family.
+-- `netlink.genl` session bound to the `"nl80211"` family. It needs a kernel with cfg80211
+-- (`CONFIG_CFG80211`), which the kernel loads on the family lookup when it is a module; without
+-- it, creating an object raises `ENOENT`.
 -- @module netlink.nl80211
 
 local wiphy     = require("netlink.nl80211.wiphy")

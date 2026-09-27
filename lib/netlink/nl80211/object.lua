@@ -26,6 +26,8 @@ local object = genl:new{}
 -- @tparam[opt] integer pid a task whose network namespace the object reaches, which holds the wiphys
 --   and interfaces nl80211 answers for; the initial network namespace when absent.
 -- @treturn object a new nl80211 object.
+-- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
+--   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
 -- @see netlink.session
 function object:__call(pid)
 	local o = session.__call(self, pid)
