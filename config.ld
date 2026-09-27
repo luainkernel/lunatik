@@ -76,6 +76,7 @@ file = {
 	'./lib/luatask.c',
 	'./lib/luatc.c',
 	'./lib/luathread.c',
+	'./lib/util.lua',
 	'./lib/luaxdp.c',
 }
 
