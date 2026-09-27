@@ -251,27 +251,19 @@ static int l_read(lua_State *L)
 	return 0;
 }
 
-static ssize_t p_read(lua_State *L, myread_t *ctx)
-{
-	if (lunatik_cpcall(L, l_read, ctx) != LUA_OK) {
-		pr_err("%s\n", lunatik_errmsg(L));
-		return -ECANCELED;
-	}
-	return ctx->ret;
-}
-
 static ssize_t mydevice_read(struct file *f, char __user *buf, size_t len, loff_t *off)
 {
 	ssize_t ret;
 	lunatik_object_t *runtime = (lunatik_object_t *)f->private_data;
 	myread_t ctx = {.buf = buf, .len = len, .off = off};
 
-	lunatik_run(runtime, p_read, ret, &ctx);
-	return ret;
+	lunatik_run(runtime, lunatik_catch, ret, l_read, &ctx, "read");
+	return ret == 0 ? ctx.ret : ret;
 }
 ```
-Everything that can raise, the callback, reading what it returned and any allocation, runs inside `l_read`,
-under the protected call: a raise with no handler is a `BUG()`.
+Everything that can raise, the callback, pushing its arguments, reading what it returned and any
+allocation, runs inside `l_read`, under the protected call [`lunatik_catch`](#lunatik_catch) makes: a
+raise with no handler is a `BUG()`.
 
 ### lunatik\_handle
 ```C
@@ -291,7 +283,18 @@ Lua 5.1's `lua_cpcall` did, and returns the status of the
 [protected call](https://www.lua.org/manual/5.5/manual.html#lua_pcall), leaving the error on the
 stack when it fails; what `f` returns is dropped. A handler of `lunatik_run` whose work can raise passes its
 arguments and its result in a context `ud` points to and does that work in `f`, as the example of
-`lunatik_run` does.
+`lunatik_run` does through [`lunatik_catch`](#lunatik_catch).
+
+### lunatik\_catch
+```C
+int lunatik_catch(lua_State *L, lua_CFunction f, void *ud, const char *name);
+```
+Calls `f` with `ud` through [`lunatik_cpcall`](#lunatik_cpcall) and returns `0`; when `f` raises, it logs
+the error read through [`lunatik_errmsg`](#lunatik_errmsg) followed by `name`, rate limited and under the
+`pr_fmt` of the file that calls it, and returns `-ECANCELED`. It is the handler a binding gives
+`lunatik_run` or `lunatik_handle` for a callback: `f` pushes the callback's arguments, calls it and reads
+what it returns, taking its input from `ud` and leaving its result there, and `name` says which callback
+failed, as `read` does in the example of `lunatik_run`.
 
 ### lunatik\_toruntime
 ```C

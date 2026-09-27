@@ -216,21 +216,13 @@ static int luadevice_dorelease(lua_State *L)
 	return 0;
 }
 
-/* tests/device finds the protected dispatch at this symbol */
-static noinline ssize_t luadevice_pcall(lua_State *L, lua_CFunction op, luadevice_ctx_t *ctx)
-{
-	if (lunatik_cpcall(L, op, ctx) != LUA_OK) {
-		pr_err_ratelimited("%s: %s\n", lunatik_errmsg(L), ctx->fop);
-		return -ECANCELED;
-	}
-	return ctx->ret;
-}
-
 #define luadevice_run(op, ret, ctx)							\
 do {											\
 	(ctx)->fop = #op;								\
-	lunatik_run(luadevice_fromfile((ctx)->f)->runtime, luadevice_pcall,		\
-		ret, luadevice_do##op, ctx);						\
+	lunatik_run(luadevice_fromfile((ctx)->f)->runtime, lunatik_catch,		\
+		ret, luadevice_do##op, ctx, (ctx)->fop);				\
+	if (ret == 0)									\
+		ret = (ctx)->ret;							\
 } while (0)
 
 static int luadevice_fop_open(struct inode *inode, struct file *f)

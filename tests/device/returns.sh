@@ -25,12 +25,16 @@
 #   was given back.
 #
 # A build that reads those returns outside a protected call raises with no
-# handler, which is a BUG, so the test skips unless the loaded luadevice lists
-# luadevice_pcall in /proc/kallsyms.
+# handler, which is a BUG, so the test skips unless the loaded luadevice is the
+# installed one and that file carries the error such a return raises: the
+# protected call is lunatik_catch, inline, so no symbol of it is in
+# /proc/kallsyms.
 #
 # Usage: sudo bash tests/device/returns.sh
 
 SCRIPT="tests/device/returns"
+MODULE="luadevice"
+PROTECTED="is not an integer"
 OFFSET="lunatik_offset"
 LENGTH="lunatik_length"
 RAISED="lunatik_raised"
@@ -54,8 +58,10 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-grep -Eq " luadevice_pcall[[:space:]]\[luadevice\]$" /proc/kallsyms 2>/dev/null ||
-	skip_all "no luadevice_pcall in the loaded luadevice: a callback's return would raise with no handler"
+[ "$(cat /sys/module/$MODULE/srcversion 2>/dev/null)" = "$(modinfo -F srcversion $MODULE 2>/dev/null)" ] ||
+	skip_all "the loaded $MODULE is not the installed one: a callback's return could raise with no handler"
+grep -qaF "$PROTECTED" "$(modinfo -n $MODULE 2>/dev/null)" ||
+	skip_all "the installed $MODULE does not carry the protected call: a callback's return would raise with no handler"
 
 # fails unless the command fails with the error named
 refuses() {
