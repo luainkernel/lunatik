@@ -177,6 +177,7 @@ examples_uninstall:
 # Flat test subdirs follow the pattern `.sh -> TESTS/<x>, .lua -> SCRIPTS/tests/<x>`.
 # `socket/` is nested (unix/ underneath) and handled separately below.
 TEST_DIRS := $(filter-out socket,$(patsubst tests/%/,%,$(wildcard tests/*/)))
+TEST_PEERS := $(filter-out %.bpf.c,$(wildcard tests/*/*.c tests/*/*/*.c))
 
 tests_install:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests ${LUNATIK_TESTS_INSTALL_PATH}
@@ -188,8 +189,6 @@ tests_install:
 		${INSTALL} -m 0755 tests/$$d/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/$$d; \
 		${INSTALL} -m 0644 tests/$$d/*.lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 	done
-	${INSTALL} -m 0644 tests/netlink/channel_subscriber.c ${LUNATIK_TESTS_INSTALL_PATH}/netlink
-	${INSTALL} -m 0644 tests/device/fault.c ${LUNATIK_TESTS_INSTALL_PATH}/device
 	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
 	${INSTALL} -m 0644 tests/tc/Makefile tests/tc/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/tc
 	${INSTALL} -m 0644 tests/sched/Makefile tests/sched/*.bpf.c tests/sched/*.bpf.h ${LUNATIK_TESTS_INSTALL_PATH}/sched
@@ -198,7 +197,7 @@ tests_install:
 	${INSTALL} -m 0644 tests/socket/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket
 	${INSTALL} -m 0755 tests/socket/unix/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix
 	${INSTALL} -m 0644 tests/socket/unix/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
-	${INSTALL} -m 0644 tests/socket/unix/abstract_peer.c ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix
+	for f in $(TEST_PEERS); do ${INSTALL} -m 0644 $$f ${LUNATIK_TESTS_INSTALL_PATH}/$${f#tests/}; done
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests

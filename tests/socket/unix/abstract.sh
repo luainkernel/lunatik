@@ -96,8 +96,7 @@ skip_peer() {
 	exit 0
 }
 
-command -v gcc > /dev/null 2>&1 || skip_peer "no gcc"
-gcc -O2 -o "$PEER_BIN" "$DIR/abstract_peer.c" 2>/dev/null || skip_peer "peer failed to build"
+build_peer "$DIR/abstract_peer.c" "$PEER_BIN" || skip_peer "no peer, without gcc or failing to build"
 
 reply=$("$PEER_BIN" connect "$NAME" 2>&1)
 [ "$reply" = "pong" ] || fail "peer got '$reply' from the bound name, expected 'pong'"

@@ -96,12 +96,12 @@ refuses "$ECANCELED" writeto "$RAISED" || fail "a write whose callback raises di
 logged raised read && logged raised write && logged raised release || fail "a raising callback's error is not in the kernel log"
 ktap_pass "a read or a write whose callback raises fails with ECANCELED, and each error, the release's too, is logged"
 
-if command -v gcc > /dev/null 2>&1 && gcc -O2 -o "$FAULT_BIN" "$DIR/fault.c" 2>/dev/null; then
+if build_peer "$DIR/fault.c" "$FAULT_BIN"; then
 	[ "$("$FAULT_BIN" "/dev/$SOUND")" = "read: $EFAULT"$'\n'"write: $EFAULT" ] ||
 		fail "a read or a write through an unmapped buffer did not fail with EFAULT"
 	ktap_pass "a read or a write through an unmapped buffer fails with EFAULT"
 else
-	ktap_skip "no gcc to build the peer that passes an unmapped buffer"
+	ktap_skip "no peer to pass an unmapped buffer, without gcc or failing to build"
 fi
 
 [ "$(cat "/dev/$SOUND")" = "$CONTENT" ] && writeto "$SOUND" ||
