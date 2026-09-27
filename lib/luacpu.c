@@ -48,14 +48,14 @@ do {									\
 /***
 * Returns CPU time statistics for a given CPU.
 * @function stats
-* @tparam integer cpu CPU number (0-based)
+* @tparam integer cpu CPU number, from `0` to `linux.numcpus() - 1`
 * @treturn table fields: `user`, `nice`, `system`, `idle`, `iowait`, `irq`,
 *   `softirq`, `steal`, `guest`, `guest_nice`, `forceidle` (if CONFIG_SCHED_CORE)
-* @raise if CPU is offline
+* @raise "out of bounds" if cpu is outside that range, "CPU is offline" if it is not online
 */
 static int luacpu_stats(lua_State *L)
 {
-	unsigned int cpu = luaL_checkinteger(L, 1);
+	unsigned int cpu = (unsigned int)lunatik_checkinteger(L, 1, 0, nr_cpu_ids - 1);
 	struct kernel_cpustat kcs;
 
 	luaL_argcheck(L, cpu_online(cpu), 1, "CPU is offline");
