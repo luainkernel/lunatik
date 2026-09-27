@@ -16,23 +16,34 @@ usage: lunatik [-h | -V]
 
 * `-h`, `--help`: print the usage
 * `-V`, `--version`: print the version of the loaded Lunatik, or fail when it is not loaded
-* `-e <chunk>`, `--eval=<chunk>`: run the chunk in the kernel and print what it returns
+* `-e <chunk>`, `--eval=<chunk>`: run the chunk in the kernel and print what it returns, as
+  `sudo lunatik -e 'return _VERSION'` does; unlike a REPL line, an expression needs its `return`
 * `-i`, `--interactive`: enter the REPL after `-e`
 * `-c <context>`, `--context=<context>`: the context `run` creates the runtime in
 * `-p`, `--percpu`: `run` creates one runtime per CPU id
 
-* `load`: load Lunatik kernel modules
-* `unload`: unload Lunatik kernel modules
-* `reload`: reload Lunatik kernel modules
-* `status`: show which Lunatik kernel modules are currently loaded
+* <code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
+  `modprobe` prints its error on stderr and the load goes on, so read `lunatik status` and the kernel log
+* `unload`: stop every running script, then unload Lunatik kernel modules
+* `reload`: stop every running script and reload Lunatik kernel modules, failing with
+  `couldn't replace <modules>: loaded from another build` when a module that could not be unloaded
+  is not the installed file
+* `status`: show which Lunatik kernel modules are currently loaded, and name a loaded module that
+  is not the installed build
 * `test [suite]`: run installed test suites (see [Development](06-development.md))
 * `compile <arguments>`: run `lunatic` with the given arguments (see [lunatic](#lunatic))
 * `list`: show which runtime environments are currently running, one script a line
 * `run [-c softirq | hardirq] [-p] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md)
-* `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
+* `spawn <script>`: create a new runtime environment for the script `/lib/modules/lua/<script>.lua`,
+  always in process context, and run the function it returns in a kernel thread; it takes no
+  context and no percpu, and the function follows the rules of *Kernel threads* below
 * `stop <script>...`: stop the runtime environment created to run each script, failing on a script nothing runs
-* `default`: start a _REPL (Read–Eval–Print Loop)_, with its banner and prompts on a terminal; on a
-  pipe it runs each line it reads and prints only what the lines return
+* no command, `sudo lunatik`: start a _REPL (Read–Eval–Print Loop)_, with its banner and prompts on
+  a terminal; on a pipe it runs each line it reads and prints only what the lines return. Each
+  entry is a chunk of its own, so a `local` is gone on the next line while a global stays; an entry
+  that is not complete yet continues on the next line. Every invocation of the CLI, `-e` included,
+  runs its chunks in one process-context runtime, so a hook that needs softirq or hardirq is
+  registered from a script started with `lunatik run --context=<context>`
 
 An operation the kernel refuses exits 1 with `lunatik: <message>` on stderr and nothing on stdout,
 and a wrong invocation exits 2 with the usage on stderr. The words `process`, `softirq`, `hardirq`
@@ -49,9 +60,33 @@ A runtime is created in one of three contexts, and this decides what its code ma
 | softirq | `lunatik run --context=softirq <script>` | `GFP_ATOMIC` | `spin_lock_bh`; `spin_lock_irqsave` with IRQs already off | no |
 | hardirq | `lunatik run --context=hardirq <script>` | `GFP_ATOMIC` | `spin_lock_irqsave`, always | no |
 
-Netfilter and XDP hooks fire in softirq, kprobes in hardirq; those scripts need the matching context.
+A binding that registers a hook checks that the runtime registering it has the context the hook
+fires in, and raises `runtime context mismatch` from a runtime of another context. A class whose
+objects may sleep is a process-context class, and creating one of its objects from a softirq or
+hardirq runtime raises `'<class>': process-context class in interrupt-context runtime`.
+
 The script body itself runs once, in process context, before the runtime is armed, so registering
-hooks at its top level may sleep. Everything that runs later, from a hook, may not.
+hooks at its top level may sleep. Everything that runs later, from a hook, may not. A runtime is
+armed once its script body returns; from then on, in a softirq or hardirq runtime, a call that
+sleeps, such as creating or stopping a kprobe, raises `not allowed after module load`.
+
+## Kernel threads
+
+A script for `spawn` returns the thread body. The body polls `thread.shouldstop()` and yields, and
+bounds every call that blocks with a timeout: `lunatik stop` waits for the body to return, and a body
+that never returns keeps it waiting. An error the body raises goes to the kernel log.
+
+```Lua
+local thread = require("thread")
+local linux  = require("linux")
+
+return function()
+	while not thread.shouldstop() do
+		-- non blocking work only
+		linux.schedule(100)
+	end
+end
+```
 
 ## lunatic
 
@@ -62,7 +97,7 @@ usage: lunatic [options] [filenames]
 `lunatic` is `luac` built with the host compiler from the same `lua/` sources and configuration
 as `lunatik.ko`, so its chunks match the kernel's opcode set and integer-only number format;
 chunks from the distribution `luac` are rejected by the kernel. The options are `luac`'s
-(`-l` list, `-o` output, `-p` parse only, `-s` strip debug information, `-v` version) plus
+(`-l` list, <code>-o</code> output, `-p` parse only, `-s` strip debug information, `-v` version) plus
 `-e big|little`, the byte order of the target when it is not the host's, and `lunatik compile` runs
 it with the same arguments.
 
@@ -77,7 +112,7 @@ sudo install -m 0644 hello.luac /lib/modules/lua/hello.lua
 sudo lunatik run hello
 ```
 
-`BYTECODE=1 make install` installs the kernel Lua libraries and the examples as stripped chunks
+`sudo make install BYTECODE=1`, after `make`, installs the kernel Lua libraries and the examples as stripped chunks
 instead of source, so an error raised from one of them reads `?:?:`.
 
 
