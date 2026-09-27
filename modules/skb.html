@@ -221,7 +221,8 @@ netfilter.register{
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:data">skb:data ([layer])</a></td>
-	<td class="summary"></td>
+	<td class="summary">Linearizes the skb and returns a view from where <code>layer</code> starts to the end of
+ the packet.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:forward">skb:forward ()</a></td>
@@ -343,14 +344,17 @@ netfilter.register{
 </dd>
     <dt id="skb:data"><a name="skb:data"></a><strong>skb:data ([layer])</strong></dt>
     <dd>
-
+    Linearizes the skb and returns a view from where <code>layer</code> starts to the end of
+ the packet.  &ldquo;net&rdquo; starts at <code>skb-&gt;data</code>, which is the network header in a
+ netfilter hook and the MAC header in a tc callback; &ldquo;mac&rdquo; starts at the MAC
+ header.
 
 
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">layer</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         &ldquo;net&rdquo; (default, L3) or &ldquo;mac&rdquo; (L2, includes MAC header)
+         &ldquo;net&rdquo; (default) or &ldquo;mac&rdquo;
          (<em>optional</em>)
         </li>
     </ul>
@@ -363,7 +367,7 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-    if linearization fails, MAC header is not set, or layer is invalid
+    if linearization fails, MAC header is not set or is past the tail, or layer is invalid
 
 
 
@@ -503,7 +507,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:26:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:30:58</span>
 </div>
 </footer>
 </body>

@@ -343,7 +343,7 @@ window.LUNATIK_SEARCH = [
 ["skb:checksum ()","modules/skb.html#skb:checksum","skb · Recomputes IP and transport-layer (TCP/UDP) checksums."],
 ["skb:connmark ([value])","modules/skb.html#skb:connmark","skb · Gets or sets the conntrack mark: with no argument reads it, with value sets it."],
 ["skb:copy ()","modules/skb.html#skb:copy","skb · Returns an independent copy of the skb with its own data buffer."],
-["skb:data ([layer])","modules/skb.html#skb:data","skb · "],
+["skb:data ([layer])","modules/skb.html#skb:data","skb · Linearizes the skb and returns a view from where layer starts to the end of the packet."],
 ["skb:forward ()","modules/skb.html#skb:forward","skb · Forwards the skb out through its ingress device."],
 ["skb:ifindex ()","modules/skb.html#skb:ifindex","skb · "],
 ["skb:mark ([value])","modules/skb.html#skb:mark","skb · Gets or sets the packet mark: with no argument reads it, with value sets it."],
