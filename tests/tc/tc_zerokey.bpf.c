@@ -18,8 +18,7 @@ SEC("classifier")
 int test_tc_zerokey(struct __sk_buff *skb)
 {
 	/* drop on rejection, so a working guard blocks the ping and proves the kfunc ran */
-	int ret;
-	ret = bpf_luatc_run(runtime, 0, skb, NULL, 0);
+	int ret = bpf_luatc_run(runtime, 0, skb, NULL, 0);
 	return ret < 0 ? TC_ACT_SHOT : TC_ACT_OK;
 }
 

@@ -15,8 +15,7 @@ SEC("xdp")
 int test_xdp_zerokey(struct xdp_md *ctx)
 {
 	/* drop on rejection, so a working guard blocks the ping and proves the kfunc ran */
-	int ret;
-	ret = bpf_luaxdp_run(runtime, 0, ctx, NULL, 0);
+	int ret = bpf_luaxdp_run(runtime, 0, ctx, NULL, 0);
 	return ret < 0 ? XDP_DROP : XDP_PASS;
 }
 

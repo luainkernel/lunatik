@@ -14,8 +14,7 @@ static char runtime[] = "tests/xdp/percpu";
 SEC("xdp")
 int test_xdp_percpu(struct xdp_md *ctx)
 {
-	int ret;
-	ret = bpf_luaxdp_run(runtime, sizeof(runtime), ctx, NULL, 0);
+	int ret = bpf_luaxdp_run(runtime, sizeof(runtime), ctx, NULL, 0);
 	return ret < 0 ? XDP_PASS : ret;
 }
 

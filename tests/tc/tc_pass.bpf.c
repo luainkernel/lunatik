@@ -17,8 +17,7 @@ SEC("classifier")
 int test_tc_pass(struct __sk_buff *skb)
 {
 	__u32 magic = 0x4C554E41; /* "LUNA", asserted by pass.lua */
-	int ret;
-	ret = bpf_luatc_run(runtime, sizeof(runtime), skb, &magic, sizeof(magic));
+	int ret = bpf_luatc_run(runtime, sizeof(runtime), skb, &magic, sizeof(magic));
 	return ret < 0 ? TC_ACT_OK : ret;
 }
 

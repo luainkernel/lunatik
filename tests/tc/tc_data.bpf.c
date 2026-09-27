@@ -16,8 +16,7 @@ int const TC_ACT_OK = 0;
 SEC("classifier")
 int test_tc_data(struct __sk_buff *skb)
 {
-	int ret;
-	ret = bpf_luatc_run(runtime, sizeof(runtime), skb, NULL, 0);
+	int ret = bpf_luatc_run(runtime, sizeof(runtime), skb, NULL, 0);
 	return ret < 0 ? TC_ACT_OK : ret;
 }
 
