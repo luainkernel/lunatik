@@ -250,7 +250,7 @@ window.LUNATIK_SEARCH = [
 ["nl80211","modules/netlink.html#nl80211","netlink · The nl80211 (wireless) namespace; groups the nl80211 object classes."],
 ["rt","modules/netlink.html#rt","netlink · The rtnetlink namespace; groups the NETLINK_ROUTE object classes."],
 ["netlink.message","modules/netlink.message.html","Module · Netlink wire codec shared by the netlink modules."],
-["attrs (attrs[, pos])","modules/netlink.message.html#attrs","netlink.message · Attribute codec: serializes a {[type] = value} table into netlink attributes, or parses them back from a message body starting at pos."],
+["attrs (attrs[, pos=1])","modules/netlink.message.html#attrs","netlink.message · Attribute codec: serializes a {[type] = value} table into netlink attributes, or parses them back from a message body starting at pos."],
 ["encode (mtype, flags, seq, payload)","modules/netlink.message.html#encode","netlink.message · Builds a complete netlink message."],
 ["parse (buf)","modules/netlink.message.html#parse","netlink.message · Parses a buffer into a list of {type, flags, body} messages, where body holds the bytes after the nlmsghdr (family header and attributes)."],
 ["str ([value])","modules/netlink.message.html#str","netlink.message · Decodes a NUL-terminated string attribute value."],
