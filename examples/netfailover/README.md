@@ -3,7 +3,10 @@
 **netfailover** reroutes in reaction to a link: when the
 watched interface (`dummy0`) goes down, a backup route to 192.0.2.1 is installed
 in table 200 with `netlink.rt`, and removed when the link comes back up; each
-change is announced on the `netfailover` family of a `netlink.channel`.
+change is announced as a line of text, such as `dummy0 down: backup route installed`,
+sent as the raw generic netlink body of command 1 to the one multicast group of the
+`netfailover` family of a `netlink.channel`, and printed to `dmesg` as
+`netfailover: dummy0 down: backup route installed`, the easiest place to watch it.
 [control](control.lua) owns `notifier.netdevice`, whose
 callback runs under RTNL, where a `netlink.rt` request is refused, so it only
 records the link state in an `rcu.table`; [reactor](reactor.lua),
