@@ -6,19 +6,12 @@
 
 local probe  = require("probe")
 local systab = require("syscall.table")
-
-local function pre()
-	print("probe handlers: pre")
-end
-
-local function post()
-	print("probe handlers: post")
-end
+local prints = require("tests.probe.prints")
 
 local handlers = {}
 
 probe.new(systab["personality"], handlers)
 
-handlers.pre = pre
-handlers.post = post
+handlers.pre = prints.pre
+handlers.post = prints.post
 
