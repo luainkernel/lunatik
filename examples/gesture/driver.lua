@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- Driver for QEMU's USB mouse with gesture (dragging),
+-- Driver for QEMU's USB tablet with gesture (dragging),
 -- swiping right to lock the mouse and swiping left to unlock it.
 
 local hid = require("hid")
