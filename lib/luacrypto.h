@@ -31,7 +31,7 @@ static void luacrypto_##name##_release(void *private)		\
 }
 
 /* Per-tfm fixed-size state (request, IV) allocated once at creation, so
- * encrypt/decrypt never allocates on the hot path (e.g. softirq). */
+ * encrypt/decrypt never allocates on the hot path. */
 typedef struct luacrypto_ctx_s {
 	void *tfm;
 	void *request;

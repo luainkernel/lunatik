@@ -178,6 +178,11 @@ static int luacrypto_shash_import(lua_State *L)
 	return 0;
 }
 
+/***
+* Returns the driver-independent name of the algorithm the transform was allocated with.
+* @function algname
+* @treturn string
+*/
 static int luacrypto_shash_algname(lua_State *L)
 {
 	struct shash_desc *sdesc = luacrypto_shash_check(L, 1);
@@ -208,16 +213,6 @@ const lunatik_class_t luacrypto_shash_class = {
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
 };
 
-/***
-* Creates a new SHASH object.
-* @function new
-* @tparam string algname algorithm name (e.g., "sha256", "hmac(sha256)")
-* @treturn crypto_shash
-* @raise on allocation failure
-* @usage
-*   local shash = require("crypto").shash
-*   local h = shash("sha256")
-*/
 int luacrypto_shash_new(lua_State *L)
 {
 	const char *algname = luaL_checkstring(L, 1);

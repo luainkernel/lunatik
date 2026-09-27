@@ -22,10 +22,12 @@ LUNATIK_PRIVATECHECKER(luacrypto_rng_check, struct crypto_rng *, &luacrypto_rng_
 LUACRYPTO_RELEASER(rng, struct crypto_rng, crypto_free_rng);
 
 /***
-* Generates random bytes, optionally reseeding first.
+* Generates random bytes.
+* The optional string reaches the algorithm as additional input for this call, which drbg mixes
+* into its output. It does not reseed: `reset` does.
 * @function generate
 * @tparam integer n number of bytes to generate
-* @tparam[opt] string seed optional seed data
+* @tparam[opt] string additional additional input
 * @treturn string random bytes
 * @raise on generation failure
 */
@@ -61,7 +63,7 @@ static int luacrypto_rng_reset(lua_State *L)
 }
 
 /***
-* Generates random bytes without reseeding.
+* Generates random bytes with no additional input.
 * @function getbytes
 * @tparam integer n number of bytes to generate
 * @treturn string random bytes
@@ -100,6 +102,11 @@ static int luacrypto_rng_info(lua_State *L)
 	return 1;
 }
 
+/***
+* Returns the driver-independent name of the algorithm the transform was allocated with.
+* @function algname
+* @treturn string
+*/
 static int luacrypto_rng_algname(lua_State *L)
 {
 	struct crypto_rng *tfm = luacrypto_rng_check(L, 1);
@@ -125,16 +132,6 @@ const lunatik_class_t luacrypto_rng_class = {
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
 };
 
-/***
-* Creates a new RNG object.
-* @function new
-* @tparam[opt] string algname algorithm name; defaults to "stdrng"
-* @treturn crypto_rng
-* @raise on allocation or initialization failure
-* @usage
-*   local rng = require("crypto").rng
-*   local r = rng()  -- uses "stdrng"
-*/
 int luacrypto_rng_new(lua_State *L)
 {
 	const char *algname = luaL_optstring(L, 1, "stdrng");

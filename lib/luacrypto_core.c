@@ -5,7 +5,74 @@
 
 /***
 * Lua interface to the Linux Crypto API.
+* Crypto objects are created in a process runtime alone: in a softirq or hardirq runtime a
+* constructor raises "'crypto_shash': process-context class in interrupt-context runtime", naming
+* its class. Errors are raised as errno names: "ENOENT" for an unknown algorithm, "EINVAL" for a
+* wrong IV, key or state length or a block cipher input that is not a multiple of `blocksize()`,
+* "EBADMSG" for an AEAD tag mismatch, "ENOMEM" when the kernel cannot allocate the transform, and
+* "not enough memory" when the binding cannot allocate its own state or output.
 * @module crypto
+*/
+
+/***
+* Creates a synchronous hash transform.
+* @function shash
+* @tparam string algname algorithm name (e.g., "sha256", "hmac(sha256)")
+* @treturn crypto_shash
+* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
+*   failure
+* @usage
+*   local shash = require("crypto").shash
+*   local h = shash("sha256")
+*/
+
+/***
+* Creates a symmetric-key cipher transform.
+* @function skcipher
+* @tparam string algname algorithm name (e.g., "cbc(aes)", "ctr(aes)")
+* @treturn crypto_skcipher
+* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
+*   failure
+* @usage
+*   local skcipher = require("crypto").skcipher
+*   local cipher = skcipher("cbc(aes)")
+*/
+
+/***
+* Creates an AEAD cipher transform.
+* @function aead
+* @tparam string algname algorithm name (e.g., "gcm(aes)", "ccm(aes)")
+* @treturn crypto_aead
+* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
+*   failure
+* @usage
+*   local aead = require("crypto").aead
+*   local cipher = aead("gcm(aes)")
+*/
+
+/***
+* Creates a random number generator.
+* @function rng
+* @tparam[opt="stdrng"] string algname algorithm name
+* @treturn crypto_rng
+* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
+*   failure, or the errno of the seeding it runs at creation
+* @usage
+*   local rng = require("crypto").rng
+*   local r = rng()
+*/
+
+/***
+* Creates a compression transform. Absent on 6.15 and later, whose kernel has no synchronous
+* compression API.
+* @function comp
+* @tparam string algname algorithm name (e.g., "lz4", "deflate")
+* @treturn crypto_comp
+* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
+*   failure
+* @usage
+*   local comp = require("crypto").comp
+*   local c = comp("lz4")
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
