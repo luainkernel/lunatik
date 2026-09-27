@@ -12,6 +12,7 @@
 --
 -- @module netlink.rt.rule
 -- @see netlink.rt.object
+-- @see netlink.session
 --
 
 local object  = require("netlink.rt.object")
@@ -32,10 +33,11 @@ local FIB_RULE_LEN = fib_rule.size
 -- @type rule
 
 ---
--- Creates a new rule object.
+-- Wraps a table in the class, or derives a class from it. It opens no socket: calling the class
+-- does, `netlink.rt.rule()`.
 -- @function rule:new
 -- @tparam[opt] table o an initial object table.
--- @treturn rule the new rule object.
+-- @treturn rule the wrapped table or the derived class.
 -- @see class
 local rule = object:new{
 	GET = rtnl.rtm.GETRULE, NEW = rtnl.rtm.NEWRULE, DEL = rtnl.rtm.DELRULE,
@@ -58,10 +60,22 @@ function rule:decode(body)
 end
 
 ---
+-- Opens a session, calling the class: `netlink.rt.rule([pid])`.
+-- @function rule:__call
+-- @tparam[opt] integer pid a task whose network namespace the session talks to, as `socket.new`
+--   takes it; the initial network namespace when absent.
+-- @treturn rule a new rule object.
+-- @raise `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel whose sockets cannot hold a
+--   namespace of their own.
+-- @see netlink.session
+
+---
 -- Lists all FIB rules from the kernel.
 -- @function rule:list
 -- @tparam[opt=AF_UNSPEC] integer family address family.
--- @treturn table list of rule tables.
+-- @treturn table list of rule tables, each with `family`, `action`, `flags`, `table`, `priority`
+--   and `fwmark`; `table` is the header's when the reply lacks the `TABLE` attribute, and any other
+--   field whose attribute the reply lacks is nil.
 
 -- add and delete send the same rule; only the message type and flags differ
 local function rule_message(rule, opts)
@@ -79,6 +93,7 @@ end
 -- Adds a FIB rule directing matching lookups to a routing table.
 -- @tparam table opts rule parameters: optional `family` (default `AF_INET`),
 --   `table`, `priority`, `fwmark`, `protocol`, `action` (default `FR_ACT_TO_TBL`).
+-- @raise the name of the errno a netlink error reply carries, `EEXIST` when the rule exists.
 function rule:add(opts)
 	self:talk(self.NEW, nl.flag.CREATE | nl.flag.EXCL, rule_message(self, opts))
 end
@@ -87,6 +102,7 @@ end
 -- Deletes a FIB rule matching the given parameters.
 -- @tparam table opts rule parameters: optional `family` (default `AF_INET`),
 --   `table`, `priority`, `fwmark`.
+-- @raise the name of the errno a netlink error reply carries, `ENOENT` when no rule matches.
 function rule:del(opts)
 	self:talk(self.DEL, nil, rule_message(self, opts))
 end

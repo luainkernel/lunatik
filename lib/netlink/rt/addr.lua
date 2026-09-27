@@ -12,6 +12,7 @@
 --
 -- @module netlink.rt.addr
 -- @see netlink.rt.object
+-- @see netlink.session
 --
 
 local object  = require("netlink.rt.object")
@@ -30,10 +31,11 @@ local IFADDR_LEN = ifaddrmsg.size
 -- @type addr
 
 ---
--- Creates a new addr object.
+-- Wraps a table in the class, or derives a class from it. It opens no socket: calling the class
+-- does, `netlink.rt.addr()`.
 -- @function addr:new
 -- @tparam[opt] table o an initial object table.
--- @treturn addr the new addr object.
+-- @treturn addr the wrapped table or the derived class.
 -- @see class
 local addr = object:new{GET = rtnl.rtm.GETADDR, NEW = rtnl.rtm.NEWADDR}
 
@@ -52,10 +54,22 @@ function addr:decode(body)
 end
 
 ---
+-- Opens a session, calling the class: `netlink.rt.addr([pid])`.
+-- @function addr:__call
+-- @tparam[opt] integer pid a task whose network namespace the session talks to, as `socket.new`
+--   takes it; the initial network namespace when absent.
+-- @treturn addr a new addr object.
+-- @raise `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel whose sockets cannot hold a
+--   namespace of their own.
+-- @see netlink.session
+
+---
 -- Lists all interface addresses from the kernel.
 -- @function addr:list
 -- @tparam[opt=AF_UNSPEC] integer family address family.
--- @treturn table list of address tables.
+-- @treturn table list of address tables, each with `family`, `prefix_len`, `scope`, `ifindex`,
+--   `address` and `label`; `address` is the address bytes in network byte order; a field whose
+--   attribute the reply lacks is nil.
 
 return addr
 
