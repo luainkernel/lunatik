@@ -20,7 +20,9 @@ local sock = require("linux.socket").sock
 local raw = {}
 
 ---
--- Creates and binds a raw packet socket for receiving frames.
+-- Creates a raw packet socket bound to an EtherType and an interface.
+-- It receives the frames of that EtherType, and sends a frame, which starts at the Ethernet
+-- header, with `socket:send(frame, proto, ifindex)`, the EtherType in host byte order.
 -- @param proto (number) EtherType (defaults to ETH_P_ALL).
 -- @param ifindex (number) [optional] Interface index (defaults to listen all interfaces).
 -- @return A new raw packet socket bound for proto and ifindex.
@@ -28,6 +30,7 @@ local raw = {}
 -- @usage
 --   local rx <close> = raw.bind(0x0003)
 --   local tx <close> = raw.bind(0x88cc, ifindex)
+--   tx:send(frame, 0x88cc, ifindex)
 -- @see socket.new
 -- @see socket.bind
 function raw.bind(proto, ifindex)
