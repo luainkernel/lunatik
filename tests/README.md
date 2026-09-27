@@ -1103,7 +1103,7 @@ command and a pid, and what a valid call does.
   prints pin the address a bind declares: the name the script gave, and the
   longest one `UNIX_PATH_MAX` admits. Also the refusals — a second bind of one
   name, a name past `UNIX_PATH_MAX`, and the empty name, which autobinds and
-  connects to nothing — and, where `python3` is available, a userspace peer
+  connects to nothing — and, where there is `gcc`, a userspace peer
   connecting to the bound name, and a lunatik client reaching by connect and by
   send the names that peer bound.
 
