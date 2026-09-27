@@ -12,7 +12,8 @@ sudo lunatik test thread    # run a specific suite
 
 `lunatik test` reloads the modules before the run and unloads them
 afterwards, so each invocation exercises the currently-installed kernel
-code. See [tests/README.md](../../tests/README.md) for the full list of suites
+code. Both stop every running script, so do not run the suites on a machine
+whose scripts must stay up. See [tests/README.md](../../tests/README.md) for the full list of suites
 and individual tests.
 
 ## Contributing
