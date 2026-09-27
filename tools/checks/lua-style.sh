@@ -34,7 +34,7 @@ repeated() {
 	lines=$(added "$file")
 	[ -n "$lines" ] || return 1
 	for sibling in "$(dirname "$file")"/*.lua; do
-		[ "$sibling" != "$file" ] && [ -f "$sibling" ] && siblings+=("$sibling")
+		! [ "$sibling" -ef "$file" ] && [ -f "$sibling" ] && siblings+=("$sibling")
 	done
 	[ ${#siblings[@]} -gt 0 ] || return 1
 
