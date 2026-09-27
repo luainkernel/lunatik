@@ -39,13 +39,11 @@ ktap_header
 ktap_plan $TOTAL
 
 [ ! -e /sys/module/$MODULE ] ||
-	[ "$(cat /sys/module/$MODULE/srcversion)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] || {
-	echo "# SKIP: the loaded $MODULE is not the installed one: an unbounded id would read past the online mask"
-	ktap_totals
-	exit 0
-}
-grep -qaF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)" || {
-	echo "# SKIP: the installed $MODULE does not carry the bound: an unbounded id would read past the online mask"
+	[ "$(cat /sys/module/$MODULE/srcversion)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] &&
+	grep -qaF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)" || {
+	for t in $TESTS; do
+		ktap_skip "cpu/$t: the $MODULE it runs against does not carry the bound: an unbounded id would read past the online mask"
+	done
 	ktap_totals
 	exit 0
 }
