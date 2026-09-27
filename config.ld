@@ -84,10 +84,8 @@ file = {
 -- The directory where LDoc will output the generated documentation.
 dir = 'doc'
 
--- The output format. Common options: 'markdown', 'html'.
--- 'markdown' is good for GitHub pages or further processing.
--- 'html' generates a browsable website.
-format = 'markdown'
+-- The markup of comments and topics: discount renders tables, which the built-in markdown leaves as text.
+format = 'discount'
 
 -- For HTML output, you can specify a style.
 -- style = '!fixed' -- A common built-in style
