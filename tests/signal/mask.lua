@@ -7,6 +7,7 @@
 
 local signal = require("signal")
 local sig    = require("linux.signal")
+local bounds = require("tests.signal.bounds")
 
 local SIG_UNBLOCK <const> = 1
 local HUGE <const> = 1 << 40
@@ -22,17 +23,12 @@ assert(signal.sigstate(sig.TERM, "allowed") == true, "TERM should read as allowe
 assert(signal.sigstate(sig.TERM, "pending") == false, "TERM should not be pending")
 assert(signal.sigpending() == false, "nothing should be pending")
 
-local function refused(f, ...)
-	local ok, err = pcall(f, ...)
-	return not ok and err:match("out of bounds") ~= nil, err
-end
-
 for _, n in ipairs({0, HUGE}) do
-	local ok, err = refused(signal.sigmask, n)
+	local ok, err = bounds.refused(signal.sigmask, n)
 	assert(ok, "sigmask(" .. n .. ") should be out of bounds, got " .. tostring(err))
-	ok, err = refused(signal.sigstate, n)
+	ok, err = bounds.refused(signal.sigstate, n)
 	assert(ok, "sigstate(" .. n .. ") should be out of bounds, got " .. tostring(err))
 end
-local ok, err = refused(signal.sigmask, sig.TERM, SIG_UNBLOCK + 1)
+local ok, err = bounds.refused(signal.sigmask, sig.TERM, SIG_UNBLOCK + 1)
 assert(ok, "a command past SIG_UNBLOCK should be out of bounds, got " .. tostring(err))
 
