@@ -12,6 +12,8 @@
 * The primary mechanism involves an sched_ext program calling the `bpf_luasched_run`
 * kfunc, which in turn invokes a Lua callback function previously registered
 * using `sched.attach()`.
+*
+* Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`.
 * @module sched
 */
 

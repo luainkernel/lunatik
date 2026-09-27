@@ -5,6 +5,7 @@
 
 /***
 * Lua interface to synchronous compression algorithms.
+* Not built on 6.15 and later, whose kernel has no synchronous compression API.
 * @classmod crypto_comp
 */
 
