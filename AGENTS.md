@@ -255,7 +255,8 @@ the function's jobs listed and the fixup that splits them or the reason they are
 `lua-style.sh` reads a Lua file for the shape rules of "Lua style" that a review of #618 passed over
 and called ready: an `if`/`elseif` whose branches repeat the same steps, which is a dispatch table
 or a helper; one table of arguments spelled at two call sites, which is declared once; and a
-function written inline as a table field, which is a named local function. The example's reactor
+function of more than one statement written inline as a table field, which is a named local
+function. The example's reactor
 added and deleted one route through two branches that each spelled the route and a message, and
 the maintainer asked for `reroute.down` and `reroute.up` over one `backup` table. It runs at edit
 time and over a pull request's diff and annotates rather than fails, since two registrations that
@@ -726,7 +727,8 @@ the state, where a boolean stored on an existing node cannot.
 * Code two scripts of one directory repeat goes in a module beside them that both require: the data
   suite's buffer checks live in `tests/data/zeroing.lua`, required as `tests.data.zeroing`.
 * Hooks and callbacks are named `local function`s referenced by name, never anonymous functions inline
-  in a table field.
+  in a table field. A closure of one statement stays where it is used, as a sentinel's `__gc` that
+  stops its child does: named, it only moves that statement away from the one place it is read.
 * Named constants at the top: `local PORT <const> = 5562`. No magic numbers, and no literal a file
   spells twice: the script path `runner.run` and `runner.stop` both name is one local, or a rename
   of the script leaves a dangling runtime behind.
