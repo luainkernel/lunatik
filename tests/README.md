@@ -840,9 +840,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 - **percpu_object**: `lunatik.percpu()` runs the script once per possible
   CPU id, each runtime stamping its own id; `stop` closes every runtime
-  and the object can be created again; `stop` refuses an object of another
-  class; a script that fails on one runtime raises with its error instead of
-  returning an object.
+  and the object can be created again; and `stop` refuses an object of
+  another class.
 
 - **percpu_refuse**: a registration a percpu runtime cannot own fails
   at load, naming percpu, with a clean rollback, and the same script

@@ -5,8 +5,7 @@
 #
 # Regression test for the percpu object: lunatik.percpu() runs the script once per
 # possible CPU id, each runtime seeing its own id; stop closes every runtime and
-# the object can be created again; stop refuses an object of another class; and a
-# script that fails on one runtime raises with its error instead of returning an object.
+# the object can be created again; and stop refuses an object of another class.
 #
 # Usage: sudo bash tests/runtime/percpu_object.sh
 
@@ -29,7 +28,7 @@ mark_dmesg
 run_script "$SCRIPT"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$SCRIPT" > /dev/null 2>&1
-ktap_pass "lunatik.percpu runs the script per CPU id, stops, reruns, checks its class and rolls back"
+ktap_pass "lunatik.percpu runs the script per CPU id, stops, reruns and checks its class"
 
 ktap_totals
 
