@@ -411,6 +411,11 @@ failure a flake on the strength of a rerun that
 passed; the journal had NetworkManager and wpa_supplicant taking the interface the test had just
 brought up.
 
+`decision.sh` reads the same texts, where the same three run it, for a decision handed to the
+maintainer without the question, two options and a recommendation (*Deciding what to change*): it
+keys on the phrase that hands one over, "the maintainer's call", "é decisão sua", "levo isso a
+você", and asks the text around it for the three.
+
 `push-guard.sh`, wired before a shell call, refuses a `git push` in a command that also runs a
 rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any of those in progress:
 the one that stops on a conflict leaves HEAD on the base with the branch's commits still to apply,
@@ -992,6 +997,11 @@ named, not one discovered at that consumer's build.
   the other way, that is a question to bring back, not a conclusion to announce: a rename agreed as
   runtime came back as its opposite, argued from a name collision found on the way, and was published as
   a pull request before anyone said so. Bring the finding, say what it would change, and wait.
+* A decision brought to the maintainer, in a reply as in an issue, a review or a pull request, is one
+  he takes in one read: `Decision:` and the question in a line, the options lettered `A)`, `B)`, each
+  with what it changes, and `Recommendation:` with the option and its reason. "Its rewording is the
+  maintainer's" names who decides and not what: #1205 was filed that way, the reply that reported it
+  said "é decisão sua", and the maintainer had to ask what his decision was.
 * A fact the maintainer states is taken as given and acted on, not verified back: "#736 is merged"
   ends a question rather than opening one, and re-arguing the point it settles spends the exchange
   on what is already decided. A state you assert yourself is the other way round, and rule 1 governs

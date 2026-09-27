@@ -204,6 +204,7 @@ case "$(command_text "$input")" in
 	*) examples "$(gh_writes "$cmds" 'pr (create|new)' "$repo/pulls\$")" ;;
 esac
 check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" untraced.sh added
+check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" decision.sh added
 # a new issue is a finding, read for a stimulus out of contract; an edit or a comment may argue about one
 case "$(command_text "$input")" in
 	*CONTRACT_OK=1*) ;;

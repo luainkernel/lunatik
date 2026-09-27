@@ -34,6 +34,7 @@ for file in "$@"; do
 		status=1
 	fi
 	bash "$(dirname "$0")/untraced.sh" "$file" || status=1
+	bash "$(dirname "$0")/decision.sh" "$file" || status=1
 done
 exit $status
 

@@ -71,6 +71,12 @@ if [ -n "$untraced" ]; then
 	exit 2
 fi
 
+undecided=$(for f in $files; do bash "$(dirname "$0")/decision.sh" "$f"; done)
+if [ -n "$undecided" ]; then
+	echo "review-post-guard: $undecided" >&2
+	exit 2
+fi
+
 # the account is the maintainer's, so every text opens by saying an agent wrote it
 agentline='\(posted by an agent, not by @'
 unsigned=$(for f in $files; do
