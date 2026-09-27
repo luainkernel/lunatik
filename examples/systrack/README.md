@@ -12,7 +12,7 @@ stops the probe runtime.
 ## Usage
 
 ```
-sudo make examples_install                            # installs examples
+sudo make install                                    # installs Lunatik and the examples
 sudo lunatik run examples/systrack/device             # starts device and probe runtimes
 cat /dev/systrack
 close: 473

@@ -12,7 +12,7 @@ with `open_by_handle_at` after the cache dropped its entry, or a change to its a
 ## Usage
 
 ```
-sudo make examples_install                  # installs examples
+sudo make install                          # installs Lunatik and the examples
 mkdir -p /tmp/lunatik-fsmonitor             # the directory it watches
 sudo lunatik run examples/fsmonitor/monitor # runs fsmonitor
 touch /tmp/lunatik-fsmonitor/file

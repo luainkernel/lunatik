@@ -7,7 +7,7 @@ It fixes the report descriptor for the device (`0x2717`:`0x5014`).
 ## Usage
 
 ```
-sudo make examples_install 		# installs examples
+sudo make install         		# installs Lunatik and the examples
 sudo lunatik run --context=softirq examples/xiaomi/driver 	# runs xiaomi driver
 ```
 

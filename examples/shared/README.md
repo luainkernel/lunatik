@@ -10,7 +10,7 @@ is a kernel script that implements an in-memory key-value store using
 ## Usage
 
 ```
-sudo make examples_install         # installs examples
+sudo make install                 # installs Lunatik and the examples
 sudo lunatik spawn examples/shared/daemon # spawns shared
 nc 127.0.0.1 90                    # connects to shared
 foo=bar                            # assigns "bar" to foo

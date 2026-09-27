@@ -19,7 +19,7 @@ is what names the drop site.
 ## Usage
 
 ```
-sudo make examples_install                                      # installs examples
+sudo make install                                              # installs Lunatik and the examples
 sudo lunatik run --context=hardirq examples/dropreason/monitor  # arms the kprobe
 echo x > /dev/udp/127.0.0.1/9999                                # trigger a NO_SOCKET drop
 sudo lunatik                                                    # opens the kernel REPL

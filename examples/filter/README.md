@@ -15,7 +15,7 @@ Come back to this repository, install and load the filter:
 ```sh
 cd ${LUNATIK_DIR}/lunatik    # cf. above
 sudo make btf_install        # needed to export the 'bpf_luaxdp_run' kfunc
-sudo make examples_install   # installs examples
+sudo make install           # installs Lunatik and the examples
 make ebpf                    # builds the XDP/eBPF program
 sudo make ebpf_install       # installs the XDP/eBPF program
 # Run the Lua kernel script, one runtime per CPU

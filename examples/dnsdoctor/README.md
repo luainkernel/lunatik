@@ -7,7 +7,7 @@ wants to change the DNS response from `192.168.10.1` to `10.1.2.3` for the domai
 ## Usage
 
 ```
-sudo make examples_install              # installs examples
+sudo make install                      # installs Lunatik and the examples
 examples/dnsdoctor/setup.sh             # sets up the environment, dnsmasq serving the zone
 
 # test the setup, a response with IP 192.168.10.1 should be returned

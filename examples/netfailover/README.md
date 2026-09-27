@@ -14,7 +14,7 @@ it waits for RTNL, as the callback holds RTNL waiting for the runtime lock.
 ## Usage
 
 ```
-sudo make examples_install                          # installs examples
+sudo make install                                  # installs Lunatik and the examples
 sudo ip link add dummy0 type dummy && sudo ip link set dummy0 up
 sudo lunatik run examples/netfailover/control       # records the link state
 sudo lunatik spawn examples/netfailover/reactor     # reroutes on it

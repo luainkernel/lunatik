@@ -16,7 +16,7 @@ two notifier chains of different execution contexts.
 ## Usage
 
 ```
-sudo make examples_install                         # installs examples
+sudo make install                                 # installs Lunatik and the examples
 sudo lunatik run examples/ifquarantine/control     # starts control+filter
 sudo cat /dev/ifquarantine                         # lists known interfaces and verdict
 sudo sh -c "echo 'deny=eth0'  > /dev/ifquarantine" # quarantine eth0

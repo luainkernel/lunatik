@@ -15,7 +15,7 @@ and `2001:4860:4860::8888` (IPv6).
 ## Usage
 
 ```
-sudo make examples_install              # installs examples
+sudo make install                      # installs Lunatik and the examples
 sudo examples/tcpreject/setup.sh        # sets up namespace, nft mark rule, and loads the hook
 
 # connection is reset immediately (IPv4)

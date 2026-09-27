@@ -7,7 +7,7 @@ It prints destination and source MAC addresses followed by Ethernet type and the
 ## Usage
 
 ```
-sudo make examples_install    # installs examples
+sudo make install            # installs Lunatik and the examples
 sudo lunatik run examples/tap/device # runs tap
 cat /dev/tap
 ```

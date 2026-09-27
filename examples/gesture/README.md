@@ -19,7 +19,7 @@ It supports gestures: swiping right locks the mouse, and swiping left unlocks it
 2. run the gesture script:
 
 ```
-sudo make examples_install 			# installs examples
+sudo make install         			# installs Lunatik and the examples
 sudo lunatik run --context=softirq examples/gesture/driver 	# runs gesture
 # In QEMU window:
 # Drag right to lock the mouse

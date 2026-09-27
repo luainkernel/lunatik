@@ -5,7 +5,7 @@
 ## Usage
 
 ```shell
-sudo make examples_install         	# installs examples
+sudo make install                 	# installs Lunatik and the examples
 sudo lunatik spawn examples/cpuexporter/daemon # runs cpuexporter
 sudo socat - ABSTRACT-CONNECT:cpuexporter <<<""
 # TYPE cpu_usage_system gauge
