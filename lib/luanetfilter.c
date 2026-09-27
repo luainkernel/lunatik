@@ -87,7 +87,8 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct 
 
 	if (!lua_isnil(L, -1))
 		skb->mark = (u32)lua_tointeger(L, -1);
-	ret = (int)lua_tointeger(L, -2);
+	if (lua_type(L, -2) == LUA_TNUMBER)
+		ret = (int)lua_tointeger(L, -2);
 clear:
 	luaskb_clear(object);
 out:
@@ -199,10 +200,32 @@ static const lunatik_class_t luanetfilter_class = {
 * others attach their callbacks, and a packet reaches the runtime of the CPU it arrived on.
 * @function register
 * @tparam table opts Hook options: `hook` (function), `pf`, `hooknum`, `priority` (integers),
-*   and optionally `mark` (integer, default 0).
+*   and optionally `mark` (integer, default 0). `pf` takes a `linux.nf.proto` value, `hooknum` a
+*   hook of that family, as `linux.nf.inet` or `linux.nf.br` list them, and `priority` a
+*   `linux.nf.ip.pri` or `linux.nf.br.pri` value.
+*
+*   `hook(skb)` returns the packet's verdict, a `linux.nf.action` value, and optionally a mark
+*   to set on the packet. A callback that returns no verdict, or a value outside
+*   `linux.nf.action`, or that raises, accepts the packet.
 * @treturn netfilter_hook Registered hook handle.
 * @raise if the hook cannot be registered; in a percpu script, if this runtime already
 *   registered the same `pf`, `hooknum`, `priority` and `mark`, or if called after module load
+* @usage
+*   local netfilter = require("netfilter")
+*   local nf        = require("linux.nf")
+*
+*   local QUARANTINED <const> = 2 -- ifindex
+*
+*   local function quarantine(skb)
+*     return skb:ifindex() == QUARANTINED and nf.action.DROP or nf.action.ACCEPT
+*   end
+*
+*   netfilter.register{
+*     hook     = quarantine,
+*     pf       = nf.proto.INET,
+*     hooknum  = nf.inet.PRE_ROUTING,
+*     priority = nf.ip.pri.FILTER,
+*   }
 */
 static int luanetfilter_lregister(lua_State *L)
 {
