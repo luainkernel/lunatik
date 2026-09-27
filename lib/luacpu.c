@@ -5,6 +5,9 @@
 
 /***
 * Lua interface to Linux CPU abstractions.
+* A possible CPU is one the system can ever bring up, a present one is plugged in, and an online
+* one runs tasks. `linux.numcpus()` is one past the highest possible CPU id, the same count as
+* `num_possible` when those ids have no gaps.
 * @module cpu
 */
 
@@ -22,18 +25,21 @@ static int luacpu_num_##name(lua_State *L)			\
 }
 
 /***
+* Returns the number of possible CPUs.
 * @function num_possible
 * @treturn integer number of possible CPUs
 */
 LUACPU_NUM(possible)
 
 /***
+* Returns the number of present CPUs.
 * @function num_present
 * @treturn integer number of present CPUs
 */
 LUACPU_NUM(present)
 
 /***
+* Returns the number of online CPUs.
 * @function num_online
 * @treturn integer number of online CPUs
 */
@@ -46,7 +52,9 @@ do {									\
 } while (0)
 
 /***
-* Returns CPU time statistics for a given CPU.
+* Returns the time a CPU spent in each state since boot, in nanoseconds.
+* `idle` and `iowait` are what the tick accounts, which lags `/proc/stat` on a
+* tickless CPU while it idles.
 * @function stats
 * @tparam integer cpu CPU number, from `0` to `linux.numcpus() - 1`
 * @treturn table fields: `user`, `nice`, `system`, `idle`, `iowait`, `irq`,
