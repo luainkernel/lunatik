@@ -7,13 +7,9 @@
 local queue = require("bpf").queue
 local bpf = require("linux.bpf")
 local test = require("util").test
+local pinned = require("tests.bpf.pinned")
 
 local path = "/sys/fs/bpf/test_map_queue"
-
-local function drain(m)
-	while m:pop() do
-	end
-end
 
 test("bpf.queue push and peek returns inserted value", function()
 	local m = queue(path)
@@ -25,7 +21,7 @@ end)
 
 test("bpf.queue peek does not remove value", function()
 	local m = queue(path)
-	drain(m)
+	pinned.drain(m)
 	assert(m:push("foo"))
 	assert(m:peek() == "foo")
 	assert(m:peek() == "foo")
@@ -34,7 +30,7 @@ end)
 
 test("bpf.queue pop removes values in FIFO order", function()
 	local m = queue(path)
-	drain(m)
+	pinned.drain(m)
 	assert(m:push("foo"))
 	assert(m:push("bar"))
 	assert(m:push("baz"))
@@ -46,21 +42,21 @@ end)
 
 test("bpf.queue pop on empty queue returns nil", function()
 	local m = queue(path)
-	drain(m)
+	pinned.drain(m)
 	assert(m:pop() == nil, "expected nil from empty queue")
 	m:close()
 end)
 
 test("bpf.queue peek on empty queue returns nil", function()
 	local m = queue(path)
-	drain(m)
+	pinned.drain(m)
 	assert(m:peek() == nil, "expected nil from empty queue")
 	m:close()
 end)
 
 test("bpf.queue push full queue returns false", function()
 	local m = queue(path)
-	drain(m)
+	pinned.drain(m)
 	for i = 1, #m do
 		assert(m:push("xyz"))
 	end
@@ -70,7 +66,7 @@ end)
 
 test("bpf.queue push BPF_EXIST overwrites the oldest when full", function()
 	local m = queue(path)
-	drain(m)
+	pinned.drain(m)
 	assert(m:push("aaa"))
 	for i = 2, #m do
 		assert(m:push("bbb"))
@@ -78,13 +74,13 @@ test("bpf.queue push BPF_EXIST overwrites the oldest when full", function()
 	assert(m:push("ccc", bpf.EXIST))
 	local value = m:pop()
 	assert(value == "bbb", "expected oldest 'aaa' dropped, got: " .. tostring(value))
-	drain(m)
+	pinned.drain(m)
 	m:close()
 end)
 
 test("bpf.queue push NOEXIST raises", function()
 	local m = queue(path)
-	drain(m)
+	pinned.drain(m)
 	assert(not pcall(m.push, m, "xyz", bpf.NOEXIST), "expected error: NOEXIST is not a push flag")
 	m:close()
 end)
@@ -103,12 +99,7 @@ end)
 
 test("bpf.queue info reports map properties", function()
 	local m = queue(path)
-	local info = m:info()
-	assert(info.type == bpf.MAP_TYPE_QUEUE, "expected queue map type")
-	assert(info.key_size == 0, "expected key_size 0")
-	assert(info.value_size == 3, "expected value_size 3")
-	assert(info.max_entries == 128, "expected max_entries 128")
-	assert(#m == 128, "expected #m == max_entries")
+	pinned.checkinfo(m, bpf.MAP_TYPE_QUEUE, 0)
 	m:close()
 end)
 
