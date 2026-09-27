@@ -10,7 +10,8 @@
 * network device status changes, or virtual terminal events.
 * A callback returns a `linux.notify` code; anything else, and an event that
 * reaches a runtime not ready to take it, or that the runtime's own code raises
-* from under its lock, counts as `notify.DONE`.
+* from under its lock, counts as `notify.DONE`. A callback that raises is logged, and counts as
+* `notify.OK`.
 *
 * @module notifier
 */
@@ -162,7 +163,9 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 *   code.
 * @treturn notifier
 * @raise if called from a percpu runtime, or under RTNL: from a netdevice
-*   callback, and from any runtime or coroutine the callback runs
+*   callback, and from any runtime or coroutine the callback runs;
+*   `'notifier': process-context class in interrupt-context runtime` in a softirq or hardirq
+*   runtime; `couldn't create notifier` when the kernel refuses the registration
 * @within notifier
 */
 static int luanotifier_netdevice(lua_State *L)
@@ -195,7 +198,8 @@ static int luanotifier_keyboard_handler(lua_State *L, void *data)
 *   `shift` is a boolean (modifier held), and `value` is the keycode or
 *   keysym depending on `event`. Returns a `linux.notify` status code.
 * @treturn notifier
-* @raise if called from a percpu runtime
+* @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
+*   `couldn't create notifier` when the kernel refuses the registration
 * @within notifier
 */
 LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
@@ -219,7 +223,8 @@ static int luanotifier_vt_handler(lua_State *L, void *data)
 *   `vc_num` is the virtual console number. Returns a `linux.notify`
 *   status code.
 * @treturn notifier
-* @raise if called from a percpu runtime
+* @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
+*   `couldn't create notifier` when the kernel refuses the registration
 * @within notifier
 */
 LUANOTIFIER_NEWCHAIN(vt, &luanotifier_hardirq_class);
