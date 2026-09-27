@@ -10,6 +10,7 @@ local rcu     = require("rcu")
 local runner  = require("lunatik.runner")
 local thread  = require("thread")
 local linux   = require("linux")
+local pace    = require("tests.rcu.pace")
 
 local WRITER <const> = "tests/rcu/object_grace_writer"
 local KEY <const> = "slot"
@@ -45,6 +46,7 @@ return function()
 		if n ~= nil and n ~= last then
 			last, seen = n, seen + 1
 		end
+		pace.yield()
 	end
 	if seen < 2 then
 		print("object_grace: the reader saw " .. seen .. " objects, never one replaced")

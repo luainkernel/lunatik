@@ -16,6 +16,7 @@ local linux = require "linux"
 local rcu = require "rcu"
 local runner = require "lunatik.runner"
 local thread = require "thread"
+local pace = require("tests.rcu.pace")
 
 local function milliseconds()
 	return linux.time() / 1000000
@@ -38,6 +39,8 @@ return function()
 			last_print = now
 			print(string.format("map_sync: reader found entry written %dms ago", now - entry:getnumber(0)))
 		end
+
+		pace.yield()
 	end
 
 	lunatik._ENV.whitelist = nil
