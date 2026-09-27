@@ -15,45 +15,35 @@ local MARK       <const> = 1278 -- MARK in data.sh
 
 local kept = {}
 
+local function report(cell, ok, format, ...)
+	print("skb data: " .. cell .. (ok and " ok" or " FAIL " .. string.format(format, ...)))
+end
+
 local function refuses(skb, cell, refusal)
 	local ok, err = pcall(skb.data, skb, "mac")
 	if ok then -- the view is never read: its size is what the refusal is for
-		print("skb data: " .. cell .. " FAIL a view")
-	elseif err:find(refusal, 1, true) then
-		print("skb data: " .. cell .. " ok")
+		report(cell, false, "a view")
 	else
-		print("skb data: " .. cell .. " FAIL " .. err)
+		report(cell, err:find(refusal, 1, true), "%s", err)
 	end
 end
 
 local function ends(skb)
 	local len, net, mac = #skb, #skb:data(), #skb:data("mac")
-	if net == len and mac == len - OUTER_HLEN then
-		print("skb data: tail ok")
-	else
-		print(string.format("skb data: tail FAIL skb %d, net view %d, mac view %d", len, net, mac))
-	end
+	report("tail", net == len and mac == len - OUTER_HLEN, "skb %d, net view %d, mac view %d", len, net, mac)
 end
 
 local function layers(skb, cell)
 	local net, mac = skb:data(), skb:data("mac")
 	local len, netlen, maclen, proto = #skb, #net, #mac, net:getuint8(IP_PROTO)
-	if netlen == len and maclen == len - OUTER_HLEN and proto == ipproto.IPIP then
-		print("skb data: " .. cell .. " ok")
-	else
-		print(string.format("skb data: %s FAIL skb %d, net view %d, mac view %d, net protocol %d",
-			cell, len, netlen, maclen, proto))
-	end
+	report(cell, netlen == len and maclen == len - OUTER_HLEN and proto == ipproto.IPIP,
+		"skb %d, net view %d, mac view %d, net protocol %d", len, netlen, maclen, proto)
 	return net, mac
 end
 
 local function cleared(cell, net, mac)
 	local netlen, maclen = #net, #mac -- not read: a view left set points into a packet that is gone
-	if netlen == 0 and maclen == 0 then
-		print("skb data: " .. cell .. " ok")
-	else
-		print(string.format("skb data: %s FAIL net view %d, mac view %d", cell, netlen, maclen))
-	end
+	report(cell, netlen == 0 and maclen == 0, "net view %d, mac view %d", netlen, maclen)
 end
 
 local function hook(skb)
