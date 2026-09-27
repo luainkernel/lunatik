@@ -149,8 +149,10 @@ static int luaskb_data(lua_State *L)
 
 	if (data)
 		lunatik_getregistry(L, data); /* push data */
-	else /* copy: allocate on demand; release() has no lua_State to unregister */
+	else { /* copy: allocate on demand; release() has no lua_State to unregister */
 		data = luadata_new(L, LUNATIK_OPT_SINGLE); /* push data */
+		luadata_setowner(data, lunatik_toobject(L, 1));
+	}
 	luadata_reset(data, ptr, size, LUADATA_OPT_NONE);
 	return 1;
 }
@@ -339,6 +341,8 @@ static const lunatik_class_t luaskb_class = {
 * The skb is linearized before copying to avoid failures on fragmented skbs
 * (e.g. bridged traffic with paged data). In a tc callback the skb is not
 * linearized, and a non-linear one raises.
+* Each `data()` call on the copy returns a new view that keeps the copy alive,
+* so a view stays valid after the copy itself is dropped.
 * @function copy
 * @treturn skb
 * @raise if skb is FRAGLIST GSO, if the skb is not linear, in a tc callback or after a failed

@@ -1221,6 +1221,16 @@ command and a pid, and what a valid call does.
   another type, which GRO passes as it came, and its copy has the length of the
   original too. Skips without veth, `socat` or `ethtool`, or on a veth without
   fraglist GRO.
+- **copy_view**: a data view of an skb copy keeps the copy alive. A `LOCAL_OUT`
+  netfilter hook takes one step per marked ping, each ending in a full
+  collection, and a kprobe on `luaskb_release` counts the skb objects freed: a
+  copy dropped with no view goes at once, which shows the kprobe counts it; a
+  copy kept while its view is dropped stays, and so does that copy when it is
+  dropped while two new views of it are kept; each view then reads the bytes the
+  copy held, and the copy goes when the last of them is dropped; a copy whose
+  view is kept goes when the runtime stops. A build whose view holds no
+  reference fails at the step that drops the copy and sends no further ping, so
+  no view of a freed copy is read.
 
 ### socket
 
