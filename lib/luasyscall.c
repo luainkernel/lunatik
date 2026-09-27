@@ -11,6 +11,13 @@
 * This is particularly useful for kernel probing (see `probe`)
 * or other low-level kernel interactions.
 *
+* On architectures with syscall wrappers, arm64 and x86_64 among them, an entry is the
+* wrapper, `__arm64_sys_<name>` or `__x64_sys_<name>`, whose only argument is a
+* `struct pt_regs *`: a probe on it reads that pointer as `argument(0)`, not the system
+* call's arguments.
+*
+* The module does not load (`ENXIO`) where `sys_call_table` cannot be looked up.
+*
 * @module syscall
 */
 
@@ -25,7 +32,7 @@ static unsigned long **luasyscall_table;
 * Retrieves the kernel address of a system call.
 * @function address
 * @tparam integer syscall_number system call number (e.g., `__NR_openat`).
-* @treturn lightuserdata kernel address of the system call entry point, or `nil` if the number is invalid or the address cannot be determined.
+* @treturn lightuserdata the `sys_call_table` entry for the number.
 * @raise Error if `syscall_number` is out of bounds.
 * @usage
 *   local syscall = require("syscall")

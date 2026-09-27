@@ -110,7 +110,7 @@ config LUNATIK_SYSCALL
 	tristate "Lunatik Syscall Support"
 	default m
 	help
-	  System call tracking and manipulation.
+	  System call table addresses, by number.
 
 config LUNATIK_XDP
 	tristate "Lunatik XDP Support"
