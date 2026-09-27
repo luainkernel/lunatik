@@ -141,7 +141,7 @@
 <p> This library provides support for creating and managing various types of
  sockets within the Linux kernel, enabling network communication directly
  from Lua scripts running in kernel space. It is inspired by
- <a href="https://github.com/tcz717">Chengzhi Tan</a>'s
+ <a href="https://github.com/tcz717">Chengzhi Tan</a>&rsquo;s
  <a href="https://summerofcode.withgoogle.com/archive/2018/projects/5993341447569408">GSoC project</a>.</p>
 
 <p> It allows operations such as creating sockets, binding, listening, connecting,
@@ -149,7 +149,7 @@
  families, socket types, IP protocols, and message flags.</p>
 
 <p> For higher-level IPv4 TCP/UDP socket operations with string-based IP addresses
- (e.g., "127.0.0.1"), consider using the <a href="../modules/socket.inet.html#">socket.inet</a> library.</p>
+ (e.g., &ldquo;127.0.0.1&rdquo;), consider using the <a href="../modules/socket.inet.html#">socket.inet</a> library.</p>
     <h3>See also:</h3>
     <ul>
          <a href="../modules/socket.inet.html#">socket.inet</a>
@@ -269,22 +269,20 @@
     <ul>
         <li><span class="parameter">addr</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-
-<p> local address to bind to. Interpretation depends on <code>socket.sk.sk_family</code>:</p>
+        <p> local address to bind to. Interpretation depends on <code>socket.sk.sk_family</code>:</p>
 
 <ul>
-    <li><code>AF_INET</code> (IPv4): An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).
-     Use <code>0</code> (or <code>net.aton(&quot;0.0.0.0&quot;)</code>) to bind to all available interfaces.
-     The <code>port</code> argument is also required.</li>
-    <li><code>AF_PACKET</code>: An integer representing the ethernet protocol in host byte order
-     (e.g., <code>0x0003</code> for <code>ETH_P_ALL</code>, <code>0x88CC</code> for <code>ETH_P_LLDP</code>)
-     The <code>port</code> argument is also required.</li>
-    <li><code>AF_UNIX</code>: A filesystem path, or, when its first byte is NUL (e.g. <code>&quot;\0name&quot;</code>), a name in the
-     abstract namespace, which is registered as the exact bytes given, so a peer of any kind reaches
-     it by the same string. The empty string asks the kernel to pick a name (autobind).</li>
-    <li>Other families: A packed string directly representing parts of the family-specific address structure.</li>
+<li> <code>AF_INET</code> (IPv4): An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).
+ Use <code>0</code> (or <code>net.aton(&quot;0.0.0.0&quot;)</code>) to bind to all available interfaces.
+ The <code>port</code> argument is also required.</li>
+<li> <code>AF_PACKET</code>: An integer representing the ethernet protocol in host byte order
+ (e.g., <code>0x0003</code> for <code>ETH_P_ALL</code>, <code>0x88CC</code> for <code>ETH_P_LLDP</code>)
+ The <code>port</code> argument is also required.</li>
+<li> <code>AF_UNIX</code>: A filesystem path, or, when its first byte is NUL (e.g. <code>&quot;\0name&quot;</code>), a name in the
+ abstract namespace, which is registered as the exact bytes given, so a peer of any kind reaches
+ it by the same string. The empty string asks the kernel to pick a name (autobind).</li>
+<li> Other families: A packed string directly representing parts of the family-specific address structure.</li>
 </ul>
-
 
         </li>
         <li><span class="parameter">port</span>
@@ -301,13 +299,11 @@
 
            <span class="types"><span class="type">nil</span></span>
 
-
-
     </ol>
 
     <h3>Raises:</h3>
      Error if the bind operation fails (e.g., address already in use, invalid address), or
-   "not allowed under RTNL" on a generic netlink socket bound to a group from a netdevice
+   &ldquo;not allowed under RTNL&rdquo; on a generic netlink socket bound to a group from a netdevice
    callback: that bind takes a lock a request holds while it waits on RTNL.
 
     <h3>See also:</h3>
@@ -343,12 +339,10 @@
 
            <span class="types"><span class="type">nil</span></span>
 
-
-
     </ol>
 
     <h3>Raises:</h3>
-     "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
+     &ldquo;not allowed under RTNL&rdquo; from a netdevice callback, in whatever runtime or coroutine
    its task runs, on a socket whose release takes RTNL, which that task holds, or a lock a
    request holds while it waits on RTNL: an <code>AF_INET</code> or <code>AF_INET6</code> socket with a multicast or
    anycast membership, an <code>AF_PACKET</code> socket, and a <code>NETLINK_GENERIC</code> one
@@ -371,14 +365,13 @@
     <ul>
         <li><span class="parameter">addr</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-
-<p> destination address to connect to.
+        <p> destination address to connect to.
    Interpretation depends on <code>socket.sk.sk_family</code>:</p>
 
 <ul>
-    <li><code>AF_INET</code> (IPv4): An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).
-     The <code>port</code> argument is also required.</li>
-    <li>Other families: A packed string representing the family-specific destination address.</li>
+<li> <code>AF_INET</code> (IPv4): An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).
+ The <code>port</code> argument is also required.</li>
+<li> Other families: A packed string representing the family-specific destination address.</li>
 </ul>
 
         </li>
@@ -400,8 +393,6 @@
     <ol>
 
            <span class="types"><span class="type">nil</span></span>
-
-
 
     </ol>
 
@@ -431,20 +422,19 @@
     <ol>
         <li>
            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-
-<p> addr peer's address.</p>
+        <p> addr peer&rsquo;s address.</p>
 
 <ul>
-    <li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
-    <li>For <code>AF_UNIX</code>: The peer's name, carrying its leading NUL when the name is an abstract one, and the
-    empty string when the peer is unbound.</li>
-    <li>For other families: A packed string of the address bytes past the family, of the length the kernel
-    reports.</li>
+<li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
+<li>For <code>AF_UNIX</code>: The peer&rsquo;s name, carrying its leading NUL when the name is an abstract one, and the
+empty string when the peer is unbound.</li>
+<li>For other families: A packed string of the address bytes past the family, of the length the kernel
+reports.</li>
 </ul>
 </li>
         <li>
            <span class="types"><span class="type">integer</span></span>
-        port If the family is <code>AF_INET</code>, the peer's port number.</li>
+        port If the family is <code>AF_INET</code>, the peer&rsquo;s port number.</li>
     </ol>
 
     <h3>Raises:</h3>
@@ -471,15 +461,14 @@
     <ol>
         <li>
            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-
-<p> addr local address.</p>
+        <p> addr local address.</p>
 
 <ul>
-    <li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
-    <li>For <code>AF_UNIX</code>: The bound name, carrying its leading NUL when the name is an abstract one, and the
-    empty string when the socket is unbound.</li>
-    <li>For other families: A packed string of the address bytes past the family, of the length the kernel
-    reports, which for <code>AF_PACKET</code> follows the interface's hardware address length.</li>
+<li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
+<li>For <code>AF_UNIX</code>: The bound name, carrying its leading NUL when the name is an abstract one, and the
+empty string when the socket is unbound.</li>
+<li>For other families: A packed string of the address bytes past the family, of the length the kernel
+reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware address length.</li>
 </ul>
 </li>
         <li>
@@ -523,8 +512,6 @@
 
            <span class="types"><span class="type">nil</span></span>
 
-
-
     </ol>
 
     <h3>Raises:</h3>
@@ -554,12 +541,12 @@
         <li><span class="parameter">flags</span>
             <span class="types"><span class="type">integer</span></span>
          Optional message flags (e.g., <code>linux.socket.msg.PEEK</code>).
-   See the <a href="../modules/linux.socket.html#msg">linux.socket.msg</a> table for available flags. These can be OR'd together.
+   See the <a href="../modules/linux.socket.html#msg">linux.socket.msg</a> table for available flags. These can be OR&rsquo;d together.
          (<em>default</em> 0)
         </li>
         <li><span class="parameter">from</span>
             <span class="types"><span class="type">boolean</span></span>
-         If <code>true</code>, the function also returns the sender's address
+         If <code>true</code>, the function also returns the sender&rsquo;s address
    and port (for <code>AF_INET</code>). This is typically used with connectionless sockets (<code>SOCK_DGRAM</code>).
          (<em>default</em> false)
         </li>
@@ -572,19 +559,16 @@
         received message (as a string of bytes).</li>
         <li>
            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-
-<p> addr If <code>from</code> is true and the protocol named a sender, its address.
+         addr If <code>from</code> is true and the protocol named a sender, its address.
    TCP names none, and neither does an <code>AF_UNIX</code> peer that never bound; nothing follows the message
    then.
    - For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).
-   - For <code>AF_UNIX</code>: The sender's name, carrying its leading NUL when the name is an abstract one.
-   - For other families: A packed string of the sender's address past the family, of the length the</p>
-<pre><code> protocol reports.
-</code></pre>
-</li>
+   - For <code>AF_UNIX</code>: The sender&rsquo;s name, carrying its leading NUL when the name is an abstract one.
+   - For other families: A packed string of the sender&rsquo;s address past the family, of the length the
+     protocol reports.</li>
         <li>
            <span class="types"><span class="type">integer</span></span>
-        port If <code>from</code> is true and the family is <code>AF_INET</code>, the sender's port number.</li>
+        port If <code>from</code> is true and the family is <code>AF_INET</code>, the sender&rsquo;s port number.</li>
     </ol>
 
     <h3>Raises:</h3>
@@ -614,7 +598,7 @@
     <strong>socket:send (message[, addr[, port]])</strong>
     </dt>
     <dd>
-    Sends a message through the socket. </p>
+    Sends a message through the socket.</p>
 
 <p> For connection-oriented sockets (<code>SOCK_STREAM</code>), <code>addr</code> and <code>port</code> are usually omitted
  as the connection is already established.
@@ -630,13 +614,12 @@
         </li>
         <li><span class="parameter">addr</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-
-<p> destination address.</p>
+        <p> destination address.</p>
 
 <ul>
-    <li>For <code>AF_INET</code> (IPv4) sockets: An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).</li>
-    <li>For other address families (e.g., <code>AF_PACKET</code>): A packed string representing the destination address
-    (e.g., MAC address for <code>AF_PACKET</code>). The exact format depends on the family.</li>
+<li>For <code>AF_INET</code> (IPv4) sockets: An integer representing the IPv4 address (e.g., from <code>net.aton()</code>).</li>
+<li>For other address families (e.g., <code>AF_PACKET</code>): A packed string representing the destination address
+(e.g., MAC address for <code>AF_PACKET</code>). The exact format depends on the family.</li>
 </ul>
 
          (<em>optional</em>)
@@ -681,7 +664,7 @@
     <dd>
     Sets a socket option.
  <code>SOL_SOCKET</code> options are handled by the network core; any other level is
- passed to the socket's protocol handler, mirroring the <code>setsockopt(2)</code>
+ passed to the socket&rsquo;s protocol handler, mirroring the <code>setsockopt(2)</code>
  routing.
 
 
@@ -698,7 +681,7 @@
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
          option value: an integer for the common <code>int</code>
-   payload, or a string carrying the option's packed binary payload.
+   payload, or a string carrying the option&rsquo;s packed binary payload.
         </li>
     </ul>
 
@@ -748,7 +731,7 @@
             <span class="types"><span class="type">integer</span></span>
          a task whose network namespace the socket is created in, instead of the
    initial one. The pid is resolved in the pid namespace of the task making the call: the <a href="../modules/lunatik.html#">lunatik</a>
-   process for a script's body, the initial one for a kernel thread. The socket holds its network
+   process for a script&rsquo;s body, the initial one for a kernel thread. The socket holds its network
    namespace until the kernel frees the socket, which for a TCP connection still shutting down comes
    after its close, so the namespace outlives the task. The rest of Lunatik (<a href="../modules/linux.html#ifindex">linux.ifindex</a>,
    <a href="../modules/netfilter.html#">netfilter</a>) keeps to the initial network namespace.
@@ -792,7 +775,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 15:52:26 </i>
+<i style="float:right;">Last updated 2026-09-27 15:55:03 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

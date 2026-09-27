@@ -142,7 +142,7 @@
  <code>open</code>, <code>read</code>, <code>write</code>, and <code>release</code>.</p>
 
 <p> A file operation runs under the lock of the runtime that made the device,
- on the task performing it, so one the runtime's own code performs, a
+ on the task performing it, so one the runtime&rsquo;s own code performs, a
  callback or a <a href="../modules/thread.html#">thread</a> body opening the node it made, fails with <code>EDEADLK</code>:
  it would wait on the lock its task holds.</p>
 
@@ -187,39 +187,39 @@
     <ul>
         <li><span class="parameter">driver</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-
-<p> A table defining the device driver's properties and callbacks.
+        <p> A table defining the device driver&rsquo;s properties and callbacks.
    It <strong>must</strong> contain the field:</p>
 
 <ul>
-    <li><code>name</code> (string): The name of the device. This name will be used to create
-     the device file <code>/dev/&lt;name&gt;</code>.</li>
+<li> <code>name</code> (string): The name of the device. This name will be used to create
+ the device file <code>/dev/&lt;name&gt;</code>.</li>
 </ul>
+
 
 <p>   It <strong>might</strong> optionally contain the following fields (callback functions):</p>
 
 <ul>
-    <li><code>open</code> (function): Callback for the <code>open(2)</code> system call.
-     Signature: <code>function(driver_table)</code>. Expected to return nothing.</li>
-    <li><code>read</code> (function): Callback for the <code>read(2)</code> system call.
-     Signature: <code>function(driver_table, length, offset) -&gt; string [, updated_offset]</code>.
-     Receives the driver table, the requested read length (integer), and the current
-     file offset (integer). Should return the data as a string and optionally the
-     updated file offset (integer). If <code>updated_offset</code> is not returned, the offset
-     is advanced by the length of the returned string (or the requested length if
-     the string is longer).</li>
-    <li><code>write</code> (function): Callback for the <code>write(2)</code> system call.
-     Signature: <code>function(driver_table, buffer_string, offset) -&gt; [written_length] [, updated_offset]</code>.
-     Receives the driver table, the data to write as a string, and the current file
-     offset (integer). May return the number of bytes successfully written (integer)
-     and optionally the updated file offset (integer). If <code>written_length</code> is not
-     returned, it's assumed all provided data was written. If <code>updated_offset</code> is
-     not returned, the offset is advanced by the <code>written_length</code>.</li>
-    <li><code>release</code> (function): Callback for the <code>release(2)</code> system call (called when the
-     last file descriptor is closed). Signature: <code>function(driver_table)</code>.
-     Expected to return nothing.</li>
-    <li><code>mode</code> (integer): Optional file mode flags (e.g., permissions) for the device file.
-     Use constants from <a href="../modules/linux.stat.html#">linux.stat</a> (e.g., <code>stat.IRUGO</code>).</li>
+<li> <code>open</code> (function): Callback for the <code>open(2)</code> system call.
+ Signature: <code>function(driver_table)</code>. Expected to return nothing.</li>
+<li> <code>read</code> (function): Callback for the <code>read(2)</code> system call.
+ Signature: <code>function(driver_table, length, offset) -&gt; string [, updated_offset]</code>.
+ Receives the driver table, the requested read length (integer), and the current
+ file offset (integer). Should return the data as a string and optionally the
+ updated file offset (integer). If <code>updated_offset</code> is not returned, the offset
+ is advanced by the length of the returned string (or the requested length if
+ the string is longer).</li>
+<li> <code>write</code> (function): Callback for the <code>write(2)</code> system call.
+ Signature: <code>function(driver_table, buffer_string, offset) -&gt; [written_length] [, updated_offset]</code>.
+ Receives the driver table, the data to write as a string, and the current file
+ offset (integer). May return the number of bytes successfully written (integer)
+ and optionally the updated file offset (integer). If <code>written_length</code> is not
+ returned, it&rsquo;s assumed all provided data was written. If <code>updated_offset</code> is
+ not returned, the offset is advanced by the <code>written_length</code>.</li>
+<li> <code>release</code> (function): Callback for the <code>release(2)</code> system call (called when the
+ last file descriptor is closed). Signature: <code>function(driver_table)</code>.
+ Expected to return nothing.</li>
+<li> <code>mode</code> (integer): Optional file mode flags (e.g., permissions) for the device file.
+ Use constants from <a href="../modules/linux.stat.html#">linux.stat</a> (e.g., <code>stat.IRUGO</code>).</li>
 </ul>
 
         </li>
@@ -299,7 +299,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 15:52:26 </i>
+<i style="float:right;">Last updated 2026-09-27 15:55:03 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

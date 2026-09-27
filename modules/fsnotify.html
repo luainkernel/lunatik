@@ -162,7 +162,7 @@
  takes nothing away. An exec asks twice, <code>OPEN_EXEC_PERM</code> and then
  <code>OPEN_PERM</code>, each through the marks that carry it, and a denial on the
  first ends it there. The kernel asks once the LSMs' open and read hooks have
- allowed the access, and a check an LSM makes later, AppArmor's on an exec
+ allowed the access, and a check an LSM makes later, AppArmor&rsquo;s on an exec
  among them, still applies, so a verdict can refuse what they let through and
  never let through what they refuse.</p>
 
@@ -186,11 +186,11 @@
 <table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#fsnotify_mark:ignore">fsnotify_mark:ignore ([mask])</a></td>
-	<td class="summary">Reads the mark's ignore mask, or sets it.</td>
+	<td class="summary">Reads the mark&rsquo;s ignore mask, or sets it.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#fsnotify_mark:mask">fsnotify_mark:mask ([mask])</a></td>
-	<td class="summary">Reads the mark's event mask, or sets it.</td>
+	<td class="summary">Reads the mark&rsquo;s event mask, or sets it.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#fsnotify_mark:remove">fsnotify_mark:remove ()</a></td>
@@ -308,7 +308,7 @@
  file reached through a disconnected dentry, opened by handle with
  <code>open_by_handle_at</code> after the cache dropped its entry, has no parent there:
  its events reach its own inode mark and the mount and superblock marks only,
- never the directory's.
+ never the directory&rsquo;s.
 
 
     <h3>Parameters:</h3>
@@ -366,8 +366,6 @@
 
            <span class="types"><span class="type">nil</span></span>
 
-
-
     </ol>
 
 
@@ -393,7 +391,7 @@
     <strong>fsnotify_mark:ignore ([mask])</strong>
     </dt>
     <dd>
-    Reads the mark's ignore mask, or sets it.
+    Reads the mark&rsquo;s ignore mask, or sets it.
  An event in the ignore mask is not reported through this mark, whatever its
  event mask carries, and the ignore mask a script sets holds until it sets
  another: a write to the object does not clear it.
@@ -412,7 +410,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        the mark's ignore mask
+        the mark&rsquo;s ignore mask
     </ol>
 
     <h3>Raises:</h3>
@@ -430,9 +428,9 @@
     <strong>fsnotify_mark:mask ([mask])</strong>
     </dt>
     <dd>
-    Reads the mark's event mask, or sets it.
+    Reads the mark&rsquo;s event mask, or sets it.
  Setting it removes the mark and adds it again, because the mask an object is
- watched for is a sum over its marks that only the kernel's own add
+ watched for is a sum over its marks that only the kernel&rsquo;s own add
  recalculates: <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> is resolved once more, and an event in between is not
  reported. The handle stays the same.
 
@@ -450,7 +448,7 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        the mark's event mask
+        the mark&rsquo;s event mask
     </ol>
 
     <h3>Raises:</h3>
@@ -482,8 +480,6 @@
 
            <span class="types"><span class="type">nil</span></span>
 
-
-
     </ol>
 
     <h3>Raises:</h3>
@@ -508,7 +504,7 @@
 
 <p> What an accessor can answer depends on what the kernel attached to the event:
  an event on an open file carries a <code>struct path</code> and answers everything, while
- a directory entry event carries only the entry's dentry or inode and has no
+ a directory entry event carries only the entry&rsquo;s dentry or inode and has no
  path. Each accessor returns <code>nil</code> for a field the event does not carry.
           </div>
     <dl class="function">
@@ -577,8 +573,6 @@
 
            <span class="types"><span class="type">boolean</span></span>
 
-
-
     </ol>
 
     <h3>Raises:</h3>
@@ -596,7 +590,7 @@
  Carried by the directory entry events (<code>CREATE</code>, <code>DELETE</code>, <code>MOVED_FROM</code>,
  <code>MOVED_TO</code>, and <code>RENAME</code>, whose name is the old one) and by an event a parent
  directory marked with <code>linux.fs.EVENT_ON_CHILD</code> is interested in; an event
- only the object's own mark reports carries none.
+ only the object&rsquo;s own mark reports carries none.
 
 
 
@@ -625,7 +619,7 @@
  callback that matches on <a href="../modules/fsnotify.html#fsnotify_event:name">name</a> never pays for it.</p>
 
 <p> The path is the one the accessing task sees: <code>d_path</code> renders it against that
- task's own root, so a chrooted or containerised accessor gets its own view of
+ task&rsquo;s own root, so a chrooted or containerised accessor gets its own view of
  it, and a file already unlinked carries a trailing <code>&quot; (deleted)&quot;</code>.
 
 
@@ -711,11 +705,11 @@
  callback once per watch, however many of its marks match it: when a file and
  its parent directory, marked with <code>linux.fs.EVENT_ON_CHILD</code>, are both marked
  by the same watch, an event on the file arrives once, tagged
- <code>EVENT_ON_CHILD</code> and carrying the entry's <a href="../modules/fsnotify.html#fsnotify_event:name">name</a> and <a href="../modules/fsnotify.html#fsnotify_event:dir">dir</a>.</p>
+ <code>EVENT_ON_CHILD</code> and carrying the entry&rsquo;s <a href="../modules/fsnotify.html#fsnotify_event:name">name</a> and <a href="../modules/fsnotify.html#fsnotify_event:dir">dir</a>.</p>
 
 <p> An event whose delivery would need a lock its own task already holds is
  dropped rather than run: this callback touching a path it marks, and equally
- a <a href="../modules/thread.html#">thread</a> body, a <a href="../modules/device.html#">device</a> file operation or another module's callback in
+ a <a href="../modules/thread.html#">thread</a> body, a <a href="../modules/device.html#">device</a> file operation or another module&rsquo;s callback in
  the same runtime.
 
 
@@ -735,8 +729,6 @@
     <ol>
 
            <span class="types"><span class="type">fsnotify_watch</span></span>
-
-
 
     </ol>
 
@@ -759,7 +751,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 15:52:26 </i>
+<i style="float:right;">Last updated 2026-09-27 15:55:03 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
