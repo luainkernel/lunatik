@@ -827,10 +827,10 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 - **foreign_checker**: a method of every class a process runtime can
   construct (`data`, `fifo`, `completion`, `set`, `crypto_shash`, `task`,
-  `runtime`), called through the class's metatable, refuses an object of
-  another class naming both classes, refuses `nil` and refuses a userdata
-  of another library; `rcu.map` refuses `nil`; and a method on a closed
-  runtime or fifo is refused instead of dereferencing its NULL private.
+  `thread`, `runtime`), called through the class's metatable, refuses an
+  object of another class naming both classes, refuses `nil` and refuses a
+  userdata of another library; `rcu.map` refuses `nil`; and a method on a
+  closed runtime or fifo is refused instead of dereferencing its NULL private.
 
 - **resume_percpu**: `percpu:resume()` delivers the objects it is given to
   every runtime of a process set and of a softirq one, each marking its own

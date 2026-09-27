@@ -5,11 +5,11 @@
 #
 # Regression test for the checker matrix: a method of every class a process
 # runtime can construct (data, fifo, completion, set, crypto_shash, task,
-# runtime), called through the class's metatable, refuses an object of another
-# class naming both classes, which proves the metatables carry __name, refuses
-# nil and a userdata of another library (io's) as no object at all; rcu.map
-# refuses nil the same way; and a method on a closed runtime or fifo, whose
-# private is gone, is refused instead of dereferencing NULL.
+# thread, runtime), called through the class's metatable, refuses an object of
+# another class naming both classes, which proves the metatables carry __name,
+# refuses nil and a userdata of another library (io's) as no object at all;
+# rcu.map refuses nil the same way; and a method on a closed runtime or fifo,
+# whose private is gone, is refused instead of dereferencing NULL.
 #
 # Usage: sudo bash tests/runtime/foreign_checker.sh
 

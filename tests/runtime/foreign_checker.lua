@@ -24,6 +24,8 @@ local cases = {
 	{name = "set",          object = set.new{"a"},                foreign = data.new(8),  method = "has",        args = {"a"}},
 	{name = "crypto_shash", object = crypto.shash("sha256"),  foreign = data.new(8),  method = "digestsize", args = {}},
 	{name = "task",         object = thread.current():task(),     foreign = data.new(8),  method = "pid",        args = {}},
+	{name = "thread",       object = thread.current(),            foreign = data.new(8),  method = "stop",       args = {}},
+	{name = "thread",       object = thread.current(),            foreign = data.new(8),  method = "task",       args = {}},
 	{name = "runtime",      object = lunatik.runtime(SCRIPT),     foreign = data.new(8),  method = "resume",     args = {1}},
 }
 

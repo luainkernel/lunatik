@@ -30,6 +30,7 @@ typedef struct luathread_s {
 static int luathread_run(lua_State *L);
 static int luathread_current(lua_State *L);
 static void luathread_popargs(lunatik_object_t *runtime, int nargs);
+static const lunatik_class_t luathread_class;
 
 static int luathread_resume(lua_State *L, luathread_t *thread)
 {
@@ -88,7 +89,7 @@ static int luathread_shouldstop(lua_State *L)
 static int luathread_stop(lua_State *L)
 {
 	lunatik_checkrtnl(L);
-	lunatik_object_t *object = lunatik_toobject(L, 1);
+	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luathread_class);
 	luathread_t *thread = (luathread_t *)object->private;
 	lunatik_object_t *runtime = thread->runtime;
 	struct task_struct *task = thread->task;
@@ -129,7 +130,7 @@ static int luathread_stop(lua_State *L)
 */
 static int luathread_task(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_toobject(L, 1);
+	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luathread_class);
 	luathread_t *thread = (luathread_t *)object->private;
 
 	luatask_new(L, thread->task);
