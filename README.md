@@ -240,7 +240,7 @@ The table below lists the available kernel Lua modules:
 | `bpf` | Pinned eBPF map access (hash, array, LRU hash, queue, stack) |
 | `crypto` | Kernel crypto API: hash, cipher, AEAD, RNG, compression (below 6.15) |
 | `hid` | HID device drivers |
-| `probe` | Kernel probes (kprobe / tracepoint) |
+| `probe` | Kernel probes (kprobes) |
 | `syscall` | System call addresses by number, for `probe` |
 | `fifo` | Kernel FIFO queues |
 | `completion` | Kernel completions: `new`, `complete`, `wait` |
