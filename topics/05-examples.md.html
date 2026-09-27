@@ -189,15 +189,16 @@ connectivity a few seconds after the start, as in
 
 <ul>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/filter">filter</a>: an XDP/eBPF program and a Lua script that filter HTTPS sessions by
-their SNI TLS extension.</li>
+their SNI TLS extension. Needs clang, the libbpf headers, <code>bpftool</code> and a kernel with BTF.</li>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/dnsblock">dnsblock</a>: a netfilter hook that drops outbound DNS queries for blacklisted
 domains.</li>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/dnsdoctor">dnsdoctor</a>: a netfilter hook that rewrites the address in a DNS response
-for a private client.</li>
+for a private client. Needs <code>dnsmasq</code> and <code>dig</code>, and its <code>setup.sh</code> rewrites <code>/etc/resolv.conf</code>.</li>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/tcpreject">tcpreject</a>: a netfilter hook that injects a TCP RST toward the origin of
-forwarded packets an <code>nft</code> rule marks.</li>
+forwarded packets an <code>nft</code> rule marks. Needs <code>nft</code>, and its <code>setup.sh</code> turns forwarding on.</li>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/sniclassify">sniclassify</a>: a TC/eBPF classifier on egress that classifies TLS
-traffic by SNI after a Lua policy table.</li>
+traffic by SNI after a Lua policy table. Needs what filter needs, and its <code>setup.sh</code> replaces the
+interface&rsquo;s root qdisc with an HTB capped at 100 mbit.</li>
 </ul>
 
 
@@ -224,8 +225,8 @@ netlink event.</li>
 <ul>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/echod">echod</a>: an echo server as kernel scripts.</li>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/shared">shared</a>: an in-memory key-value store over an <a href="../modules/rcu.html#">rcu</a> table, served on a socket.</li>
-<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/cpuexporter">cpuexporter</a>: CPU usage statistics in OpenMetrics text format on a UNIX
-socket.</li>
+<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/cpuexporter">cpuexporter</a>: CPU usage statistics in the Prometheus text format on an
+abstract UNIX socket.</li>
 </ul>
 
 
@@ -234,9 +235,10 @@ socket.</li>
 <h2 id="tracing">Tracing</h2>
 
 <ul>
-<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/systrack">systrack</a>: counts every system call with kprobes.</li>
+<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/systrack">systrack</a>: counts system calls with kprobes, one probe per syscall entry
+point no other syscall shares. Needs <code>CONFIG_KPROBES</code>.</li>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/dropreason">dropreason</a>: answers &ldquo;why is my packet dying?&rdquo; by counting drops by
-reason.</li>
+reason. Needs <code>CONFIG_KPROBES</code>.</li>
 </ul>
 
 
@@ -245,10 +247,11 @@ reason.</li>
 <h2 id="input-devices">Input devices</h2>
 
 <ul>
-<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/spyglass">spyglass</a>: a keylogger inspired by the spy kernel module.</li>
-<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/keylocker">keylocker</a>: locks and unlocks the console keyboard on the Konami Code.</li>
-<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/gesture">gesture</a>: a HID driver for QEMU&rsquo;s USB mouse that locks and unlocks it on a
-swipe.</li>
+<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/spyglass">spyglass</a>: a keylogger inspired by the spy kernel module. Needs <code>CONFIG_VT</code>.</li>
+<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/keylocker">keylocker</a>: locks and unlocks the console keyboard on the Konami Code.
+Needs <code>CONFIG_VT</code>.</li>
+<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/gesture">gesture</a>: a HID driver for QEMU&rsquo;s USB tablet that locks and unlocks the
+pointer on a swipe.</li>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/xiaomi">xiaomi</a>: the Xiaomi Silent Mouse driver ported to Lua.</li>
 </ul>
 
@@ -279,7 +282,7 @@ swipe.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:01:11</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:03:00</span>
 </div>
 </footer>
 </body>
