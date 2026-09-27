@@ -6,16 +6,68 @@
 # The shape rules of AGENTS.md, "Lua style", that a line-based read can find: an
 # if/elseif whose branches repeat the same steps, which is a dispatch table or a
 # helper; one table of arguments spelled at two call sites, which is declared
-# once; and a function written inline as a table field, which is a named local
-# function.
+# once; a function written inline as a table field, which is a named local
+# function; and a block of four lines or more that the change adds against
+# CHECK_BASE and a script beside it carries too, which is a module both require:
+# #1198 first spelled one pause in the four kernel thread bodies of tests/rcu.
 #
 # Heuristic: it nudges at edit time and in review, it does not rewrite. Prints
 # one finding per line and exits 1 when there are any; files outside its scope
 # are skipped silently, so callers can pass any path.
 #
-# Usage: bash tools/checks/lua-style.sh <file>...
+# Usage: [CHECK_BASE=origin/master] bash tools/checks/lua-style.sh <file>...
 
 status=0
+base=${CHECK_BASE:-HEAD}
+
+# the lines the change adds to a file, or "all" for one git does not track
+added() {
+	local dir name
+	dir=$(dirname "$1"); name=$(basename "$1")
+	git -C "$dir" ls-files --error-unmatch "$name" > /dev/null 2>&1 || { echo all; return; }
+	git -C "$dir" diff -U0 "$base" -- "$name" 2> /dev/null |
+		awk '/^@@/ { split($3, h, /[+,]/); n = (h[3] == "" ? 1 : h[3]); for (i = 0; i < n; i++) print h[2] + i }'
+}
+
+repeated() {
+	local file="$1" lines sibling siblings=()
+	lines=$(added "$file")
+	[ -n "$lines" ] || return 1
+	for sibling in "$(dirname "$file")"/*.lua; do
+		[ "$sibling" != "$file" ] && [ -f "$sibling" ] && siblings+=("$sibling")
+	done
+	[ ${#siblings[@]} -gt 0 ] || return 1
+
+	awk -v file="$file" -v added="$lines" '
+	BEGIN {
+		K = 4
+		if (added == "all") every = 1
+		else { m = split(added, a, "\n"); for (i = 1; i <= m; i++) mine[a[i]] = 1 }
+	}
+	FNR == 1 { n = 0 }
+	{
+		s = $0; sub(/--.*$/, "", s); gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); gsub(/[[:space:]]+/, " ", s)
+		if (s == "" || s ~ /^local [A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*require/) next
+		n++; txt[n] = s; at[n] = FNR; new[n] = (FILENAME == file && (every || (FNR in mine)))
+		if (n < K) next
+
+		# a window of K lines, too short to be more than boilerplate under 12 columns a line
+		w = ""; size = 0; fresh = 1
+		for (i = n - K + 1; i <= n; i++) { w = w "\n" txt[i]; size += length(txt[i]); if (!new[i]) fresh = 0 }
+		if (size < 12 * K) next
+
+		if (FILENAME != file) { if (!(w in seen)) seen[w] = FILENAME ":" at[n - K + 1]; next }
+		if (fresh && (w in seen)) {
+			split(seen[w], where, ":")
+			if (!(where[1] in told)) {
+				printf "%s:%d: repeats %s; a block two scripts share goes in a module beside them (AGENTS.md, Lua style)\n", file, at[n - K + 1], seen[w]
+				told[where[1]] = 1; found = 1
+			}
+		}
+	}
+	END { exit !found }
+	' "${siblings[@]}" "$file"
+}
 
 for file in "$@"; do
 	case "$file" in
@@ -103,6 +155,7 @@ for file in "$@"; do
 	}
 	END { exit !found }
 	' "$file" && status=1
+	repeated "$file" && status=1
 done
 
 exit $status
