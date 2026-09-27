@@ -5,7 +5,23 @@
 
 /***
 * Kernel thread primitives.
+* Thread objects are created in a process runtime alone: in a softirq or hardirq runtime
+* `thread.current` raises "'thread': process-context class in interrupt-context runtime", and
+* `thread.run` has no runtime object to take there. `shouldstop` answers `false` outside a kernel
+* thread, and `stop` on an object from `thread.current`, or on a thread already stopped, only logs
+* a warning.
 * @module thread
+* @usage
+*   -- body.lua, run with `lunatik spawn body`
+*   local thread = require("thread")
+*   local linux  = require("linux")
+*
+*   local function body()
+*   	while not thread.shouldstop() do
+*   		linux.schedule(100)
+*   	end
+*   end
+*   return body
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -61,6 +77,7 @@ static int luathread_func(void *data)
 /***
 * Checks if the current thread has been signaled to stop.
 * @function shouldstop
+* @within thread
 * @treturn boolean `true` if the thread should stop, `false` otherwise.
 * @usage
 * while not thread.shouldstop() do
@@ -79,7 +96,6 @@ static int luathread_shouldstop(lua_State *L)
 * Signals the thread to stop and waits for it to exit. A body waiting for a runtime's lock,
 * or for the lock a shared object's method takes, leaves that wait with "EINTR".
 * @function stop
-* @tparam thread self thread object to stop.
 * @treturn nil
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
 *   its task runs: the stop waits for the body, and a body that registers a netdevice notifier,
@@ -127,7 +143,6 @@ static int luathread_stop(lua_State *L)
 * reference: the object returned after a stop has no task, and its methods
 * raise "null pointer dereference".
 * @function task
-* @tparam thread self thread object.
 * @treturn task
 * @usage
 * local t = my_thread:task()
@@ -219,13 +234,15 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 * @tparam string name A descriptive name for the kernel thread.
 * @param ... Lunatik objects passed to the thread body.
 * @treturn thread A new thread object.
-* @raise Error if called during module load, if the runtime is not sleepable or has been stopped,
-*   if a value passed to the body is not a Lunatik object or is a `SINGLE` one, if the arguments
-*   couldn't be passed, or if thread creation fails; "not allowed from the runtime itself" from
+* @raise "not allowed during module load" from a script body; "IRQ runtime cannot spawn threads"
+*   for a softirq or hardirq runtime; "stopped runtime"; "invalid object" or "cannot share SINGLE
+*   object" for a value passed to the body; "couldn't pass the thread arguments"; "failed to create
+*   a new thread"; "not allowed from the runtime itself" from
 *   under the runtime's own lock, the contexts `runtime:stop` names, where passing the arguments
 *   would wait on it; "EINTR" if the stop of the calling kernel thread, or a fatal signal to any
 *   other task, ends its wait for the runtime's lock.
 * @see lunatik.runtime
+* @within thread
 */
 static int luathread_run(lua_State *L)
 {
@@ -265,6 +282,7 @@ static int luathread_run(lua_State *L)
 * If the current task was not created by `thread.run()`, the returned
 * object will not have an associated Lunatik runtime.
 * @function current
+* @within thread
 * @treturn thread A thread object for the current task.
 * @usage
 * local t = thread.current()
