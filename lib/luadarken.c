@@ -96,12 +96,18 @@ static void luadarken_decrypt(lua_State *L, luadarken_request_t *r)
 
 /***
 * Decrypts and executes an encrypted Lua script.
+* The decrypted script must be Lua source, and it runs with the runtime's global environment. It
+* allocates a crypto transform, which may sleep: call it from a process runtime or from a script
+* body, never from a softirq or hardirq callback.
 * @function run
 * @tparam string ciphertext encrypted Lua script (binary).
 * @tparam string iv 16-byte initialization vector (binary).
 * @tparam string key 32-byte AES-256 key (binary).
 * @return The return values from the executed script.
-* @raise Error if decryption fails or IV/key length is invalid.
+* @raise "IV must be 16 bytes", "key must be 32 bytes", the errno name of a failed transform
+*   allocation, key setting or decryption, "not enough memory", the load error of the decrypted
+*   text (a syntax error from "darken" when the key or IV is wrong, "attempt to load a binary chunk
+*   (mode is 't')" for a precompiled script), or the error the script raises.
 */
 static int luadarken_run(lua_State *L)
 {
