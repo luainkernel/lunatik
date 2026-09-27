@@ -113,6 +113,15 @@ static int luaset_has(lua_State *L)
 	return 1;
 }
 
+static bool luaset_isempty(lua_State *L, int ix)
+{
+	lua_pushnil(L);
+	if (lua_next(L, ix) == 0)
+		return true;
+	lua_pop(L, 2); /* key and value */
+	return false;
+}
+
 static void luaset_sort(lua_State *L, int ix)
 {
 	lua_getglobal(L, "table");
@@ -185,8 +194,8 @@ static void luaset_build(lua_State *L, luaset_t *set, lua_Integer cap)
 * @function new
 * @tparam {string,...} strings the member strings, in any order.
 * @treturn set the built set.
-* @raise Error on a non-string member, if the keys exceed 4 GiB, or on
-* allocation failure.
+* @raise Error on a table with entries and no sequence (`set.labeled` takes a map), a
+* non-string member, if the keys exceed 4 GiB, or on allocation failure.
 * @usage local s = set.new({ "alpha", "bravo" })
 */
 static int luaset_new(lua_State *L)
@@ -195,6 +204,7 @@ static int luaset_new(lua_State *L)
 	luaset_t *set;
 
 	luaL_checktype(L, 1, LUA_TTABLE);
+	luaL_argcheck(L, lua_rawlen(L, 1) > 0 || luaset_isempty(L, 1), 1, "not a sequence, set.labeled takes a map");
 	luaset_sort(L, 1);
 
 	object = lunatik_newobject(L, &luaset_class, sizeof(luaset_t), LUNATIK_OPT_NONE);

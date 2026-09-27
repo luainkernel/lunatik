@@ -1095,7 +1095,8 @@ command and a pid, and what a valid call does.
 
 - **set**: `set.new` sorting unsorted input and binary-search membership
   (`has`); size (`#`); duplicates kept; the empty-set and empty-string-member
-  edges; and the raise on a non-string member. For the labeled flavor:
+  edges; and the raises on a non-string member and on a map, the shape
+  `set.labeled` takes. For the labeled flavor:
   `set.labeled` mapping members to labels and `match` returning the bitwise OR
   over the matching suffix hierarchy (0 on a miss); members that suffix one
   another; a label crossed as a bitmask on the Lua side; labels across the 32-bit
