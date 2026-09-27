@@ -14,8 +14,8 @@ modules=""
 for f in "$@"; do
 	case "$f" in
 		lib/lua*.c)   modules="$modules $(basename "$f" .c | sed 's/^lua//')" ;;
+		lib/*/*.lua)  modules="$modules $(echo "$f" | sed 's|^lib/||; s|\.lua$||; s|/|.|g')" ;;
 		lib/*.lua)    modules="$modules $(basename "$f" .lua)" ;;
-		lib/*/*.lua)  modules="$modules $(echo "$f" | sed 's|^lib/||; s|\.lua$||')" ;;
 	esac
 done
 [ -n "$modules" ] || exit 0
@@ -24,7 +24,7 @@ found=""
 for m in $modules; do
 	for dir in $(echo "$LUNATIK_CONSUMERS" | tr ':' ' '); do
 		[ -d "$dir" ] || continue
-		hits=$(grep -rln "require(\"$m\")\|require('$m')" "$dir" --include='*.lua' 2>/dev/null)
+		hits=$(grep -rln "require(\"$m\")\|require('$m')\|require\"$m\"\|require'$m'" "$dir" --include='*.lua' 2>/dev/null)
 		[ -n "$hits" ] && found="$found\n  $m: $(echo $hits | tr '\n' ' ')"
 	done
 done
