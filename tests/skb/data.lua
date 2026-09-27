@@ -9,6 +9,7 @@ local nf        = require("linux.nf")
 local ipproto   = require("linux.socket").ipproto
 
 local IP_PROTO   <const> = 9
+local ETH_HLEN   <const> = 14 -- the Ethernet header of a frame lo received
 local OUTER_HLEN <const> = 20 -- the outer IPv4 header, which the MAC header sits past
 local TRUNCATED  <const> = 10 -- shorter than the outer IPv4 header
 local MARK       <const> = 1278 -- MARK in data.sh
@@ -46,7 +47,13 @@ local function cleared(cell, net, mac)
 	report(cell, netlen == 0 and maclen == 0, "net view %d, mac view %d", netlen, maclen)
 end
 
-local function hook(skb)
+local function received(skb)
+	local len, mac = #skb, #skb:data("mac")
+	report("received", mac == len + ETH_HLEN, "skb %d, mac view %d", len, mac)
+	return nf.action.ACCEPT
+end
+
+local function sent(skb)
 	if kept.net then
 		cleared("cleared", kept.net, kept.mac)
 		collectgarbage() -- frees the copy the outer packet's callback dropped
@@ -65,11 +72,16 @@ local function hook(skb)
 	return nf.action.DROP
 end
 
-netfilter.register{
-	hook     = hook,
-	pf       = nf.proto.INET,
-	hooknum  = nf.inet.LOCAL_OUT,
-	priority = nf.ip.pri.FILTER,
-	mark     = MARK,
-}
+local function register(hook, hooknum)
+	netfilter.register{
+		hook     = hook,
+		pf       = nf.proto.INET,
+		hooknum  = hooknum,
+		priority = nf.ip.pri.FILTER,
+		mark     = MARK,
+	}
+end
+
+register(sent, nf.inet.LOCAL_OUT)
+register(received, nf.inet.PRE_ROUTING)
 
