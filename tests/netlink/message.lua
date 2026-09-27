@@ -28,3 +28,6 @@ assert(message.attrs{} == "" and next(message.attrs("", 1)) == nil, "empty attri
 assert(not pcall(message.attrs, {[U32ATTR] = -1}), "non-u32 number should raise")
 print("netlink message: edge cases ok")
 
+assert(message.attrs(payload)[U32ATTR] == attrs[U32ATTR], "an omitted position should parse from the first byte")
+print("netlink message: default position ok")
+
