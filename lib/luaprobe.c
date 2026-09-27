@@ -227,6 +227,12 @@ static void luaprobe_release(void *private)
 
 #define LUAPROBE_ERR_SHARED	"the percpu object owns this probe"
 
+static const lunatik_class_t luaprobe_class;
+
+LUNATIK_PRIVATECHECKER(luaprobe_checkowned, luaprobe_t *, &luaprobe_class,
+	luaL_argcheck(L, !luaprobe_isshared(private), ix, LUAPROBE_ERR_SHARED);
+);
+
 /***
 * Unregisters and stops the probe.
 * From a handler this raises: the way to stop delivering there is to return early on a flag
@@ -235,17 +241,11 @@ static void luaprobe_release(void *private)
 * @raise if the percpu object owns this probe, or if called after module load:
 *   unregister_kprobe sleeps, and the runtime is in hardirq by then
 */
-static const lunatik_class_t luaprobe_class;
-
 static int luaprobe_stop(lua_State *L)
 {
 	lunatik_checkarmed(L);
-	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luaprobe_class);
-	luaprobe_t *probe = (luaprobe_t *)object->private;
-
-	luaL_argcheck(L, !luaprobe_isshared(probe), 1, LUAPROBE_ERR_SHARED);
-	luaprobe_delete(probe);
-	lunatik_unregisterobject(L, object);
+	luaprobe_delete(luaprobe_checkowned(L, 1));
+	lunatik_unregisterobject(L, lunatik_toobject(L, 1));
 	return 0;
 }
 
@@ -260,15 +260,11 @@ static int luaprobe_stop(lua_State *L)
 static int luaprobe_enable(lua_State *L)
 {
 	lunatik_checkarmed(L);
-	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luaprobe_class);
-	luaprobe_t *probe = (luaprobe_t *)object->private;
+	luaprobe_t *probe = luaprobe_checkowned(L, 1);
 	struct kprobe *kp = &probe->kp;
 	bool enable = lua_toboolean(L, 2);
 
-	luaL_argcheck(L, !luaprobe_isshared(probe), 1, LUAPROBE_ERR_SHARED);
-
-	if (kp->pre_handler == NULL)
-		return luaL_argerror(L, 1, LUNATIK_ERR_NULLPTR);
+	luaL_argcheck(L, kp->pre_handler != NULL, 1, LUNATIK_ERR_NULLPTR);
 
 	if (enable)
 		enable_kprobe(kp);
