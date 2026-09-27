@@ -5,9 +5,30 @@
 
 --- Attribute view over an `skb`: reads and writes packet fields as table keys
 -- (`view.mark`, `view.priority`) instead of method calls. The wrapped packet
--- stays reachable as `view.skb`.
+-- stays reachable as `view.skb`. Reading or writing a key other than `mark` and
+-- `priority` raises `skb has no attribute '<key>'`.
 -- @classmod skb.attr
 -- @see skb
+-- @usage
+--   -- lunatik run -c softirq <script>: sets the priority of the IPv4 packets the host sends
+--   local netfilter = require("netfilter")
+--   local attr      = require("skb.attr")
+--   local nf        = require("linux.nf")
+--
+--   local PRIORITY <const> = 3
+--
+--   local function classify(skb)
+--     local view = attr.new(skb)
+--     view.priority = PRIORITY
+--     return nf.action.ACCEPT
+--   end
+--
+--   netfilter.register{
+--     hook     = classify,
+--     pf       = nf.proto.IPV4,
+--     hooknum  = nf.inet.LOCAL_OUT,
+--     priority = nf.ip.pri.FILTER,
+--   }
 
 local fields <const> = {
 	mark     = true,
@@ -40,6 +61,7 @@ end
 
 --- Wraps an `skb` in an attribute view.
 -- @function attr.new
+-- @static
 -- @tparam skb skb the packet to view.
 -- @treturn attr the attribute view.
 function attr.new(skb)
