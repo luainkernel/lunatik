@@ -9,16 +9,11 @@ local lunatik = require("lunatik")
 local rcu     = require("rcu")
 local runner  = require("lunatik.runner")
 local thread  = require("thread")
-local linux   = require("linux")
 local pace    = require("tests.rcu.pace")
 
 local WRITER <const> = "tests/rcu/object_grace_writer"
 local KEY <const> = "slot"
 local RUN_MS <const> = 10000
-
-local function milliseconds()
-	return linux.time() // 1000000
-end
 
 local function touch(_, d)
 	d:getnumber(0)
@@ -35,9 +30,9 @@ return function()
 	runner.spawn(WRITER)
 
 	local grace = lunatik._ENV.grace
-	local deadline = milliseconds() + RUN_MS
+	local deadline = pace.milliseconds() + RUN_MS
 	local last, seen = nil, 0
-	while not thread.shouldstop() and milliseconds() < deadline do
+	while not thread.shouldstop() and pace.milliseconds() < deadline do
 		local ok, n = pcall(read, grace)
 		if not ok then
 			print("object_grace: " .. tostring(n))

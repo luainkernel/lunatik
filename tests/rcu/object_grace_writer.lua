@@ -8,22 +8,17 @@
 local lunatik = require("lunatik")
 local data    = require("data")
 local thread  = require("thread")
-local linux   = require("linux")
 local pace    = require("tests.rcu.pace")
 
 local KEY <const> = "slot"
 local RUN_MS <const> = 10000
 local SIZE <const> = 8
 
-local function milliseconds()
-	return linux.time() // 1000000
-end
-
 return function()
 	local grace = lunatik._ENV.grace
-	local deadline = milliseconds() + RUN_MS
+	local deadline = pace.milliseconds() + RUN_MS
 	local n = 0
-	while not thread.shouldstop() and milliseconds() < deadline do
+	while not thread.shouldstop() and pace.milliseconds() < deadline do
 		n = n + 1
 		local d = data.new(SIZE)
 		d:setnumber(0, n)
