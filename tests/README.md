@@ -542,6 +542,17 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
   finalizes a dropped AF_PACKET socket. Must not trigger "scheduling
   while atomic".
 
+### netfilter
+
+- **verdict**: what a hook's callback returns decides the packet. One `LOCAL_OUT`
+  hook per mark and one marked ping to the loopback per case: a callback that
+  returns nothing, a value that is not a number, a verdict spelled as a string,
+  a number outside the verdicts, or that raises accepts the packet, as `ACCEPT`
+  does; `DROP` drops it; a mark returned beside the verdict is stored in the
+  packet, which a later hook on that mark then drops. Each case reads back the
+  line its callback printed, so a packet that went through is an answer and not
+  a hook that never ran.
+
 ### netlink
 
 Tests for netlink: the `AF_NETLINK` address family in `socket`, and the
