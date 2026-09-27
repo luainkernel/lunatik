@@ -35,11 +35,15 @@ end
 device.new(driver)
 ```
 
+After `sudo make install`, save it as `/lib/modules/lua/passwd.lua`, as root. Then
+`sudo lunatik run passwd` creates `/dev/passwd`, `head -c 16 /dev/passwd` reads a password from it,
+and `sudo lunatik stop passwd` removes it.
+
 ## Get started
 
 ```sh
 git clone --depth 1 --recurse-submodules https://github.com/luainkernel/lunatik.git
-cd lunatik && make && sudo make install
+cd lunatik && sudo make btf_install && make && sudo make install
 sudo lunatik    # a REPL whose lines run in the kernel
 ```
 
@@ -48,7 +52,7 @@ Dependencies, OpenWRT and the first steps are in [Getting started](doc/guide/01-
 ## Documentation
 
 * [Getting started](doc/guide/01-getting-started.md): install, build, first script
-* [Running scripts](doc/guide/02-running-scripts.md): the `lunatik` command, execution contexts, `lunatic`
+* [Running scripts](doc/guide/02-running-scripts.md): the command line tool, execution contexts, `lunatic`
 * [Per-CPU scripts](doc/guide/03-percpu.md): one runtime per CPU, and where state belongs
 * [Lua in the kernel](doc/guide/04-lua.md): what differs from userspace Lua
 * [Examples](doc/guide/05-examples.md): device drivers, packet filters, probes, filesystem guards
@@ -60,7 +64,7 @@ Dependencies, OpenWRT and the first steps are in [Getting started](doc/guide/01-
 Lunatik is dual-licensed under [MIT](LICENSE-MIT) or [GPL-2.0-only](LICENSE-GPL).
 
 [Lua](https://github.com/luainkernel/lua) submodule is licensed under MIT.
-For more details, see its [Copyright Notice](https://github.com/luainkernel/lua/blob/lunatik/lua.h#L530-L556).
+For more details, see its [Copyright Notice](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lua.h#L546-L571).
 
 [Klibc](https://github.com/luainkernel/klibc) submodule is dual-licensed under BSD 3-Clause or GPL-2.0-only.
 For more details, see its [LICENCE](https://github.com/luainkernel/klibc/blob/lunatik/usr/klibc/LICENSE) file.
