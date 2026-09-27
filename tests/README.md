@@ -654,8 +654,13 @@ higher-level `netlink.*` modules built on top of it.
   network namespaces, the dummy driver or veth). On a kernel where `socket.new`
   refuses a task's namespace with `EOPNOTSUPP`, the script says so and the
   five namespace cases skip on that message.
-- **addr_list**: `rt.addr():list(AF_INET)` lists addresses; asserts `127.0.0.1`
-  is present on loopback with `prefix_len == 8`.
+- **addr_list**: `rt.addr():list()` lists addresses; asserts `127.0.0.1` is
+  present on loopback with `prefix_len == 8` and no `peer`. On a dummy
+  interface, `192.0.2.1 peer 192.0.2.2` and `2001:db8::1 peer 2001:db8::2`
+  report the local address as `address` and the other end as `peer`;
+  `192.0.2.3 peer 0.0.0.0`, which the kernel dumps without `IFA_ADDRESS`, and
+  `2001:db8::3/64`, which it dumps without `IFA_LOCAL`, report their address
+  without a `peer` (skips without the dummy driver or IPv6).
 - **route_list**: `rt.route():list()` returns at least one route with its
   `family`, `scope` and `rtype` fields populated.
 - **route_adddel**: `rt.route():add()` creates a dummy `192.0.2.0/24` route via
