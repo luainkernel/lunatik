@@ -101,7 +101,7 @@ config LUNATIK_SKB
 	  Requires Lunatik Data support.
 
 config LUNATIK_PROBE
-	tristate "Lunatik Probe (Kprobe/Kretprobe) Support"
+	tristate "Lunatik Probe (kprobe) Support"
 	default m
 	help
 	  Dynamic tracing support using kprobes.
