@@ -122,6 +122,15 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   be shown to be the build this case was installed with, since only that one is
   known to refuse before allocating.
 
+### darken
+
+- **context**: `darken.run` decrypts and runs a chunk in a process runtime,
+  in its body and resumed past it, and in the body of a `softirq` and a
+  `hardirq` runtime, which runs in process context; resumed past the body,
+  the armed state a hook calls from, each refuses with "not allowed after
+  module load", since allocating the transform sleeps. Skips unless the
+  loaded `luadarken` is the installed one and carries the refusal.
+
 ### data
 
 - **bounds**: `data.new()` and `data:resize()` accept the sizes they serve,

@@ -104,13 +104,16 @@ static void luadarken_decrypt(lua_State *L, luadarken_request_t *r)
 * @tparam string iv 16-byte initialization vector (binary).
 * @tparam string key 32-byte AES-256 key (binary).
 * @return The return values from the executed script.
-* @raise "IV must be 16 bytes", "key must be 32 bytes", the errno name of a failed transform
-*   allocation, key setting or decryption, "not enough memory", the load error of the decrypted
-*   text (a syntax error from "darken" when the key or IV is wrong, "attempt to load a binary chunk
-*   (mode is 't')" for a precompiled script), or the error the script raises.
+* @raise "IV must be 16 bytes", "key must be 32 bytes", "not allowed after module load" from an
+*   interrupt-context runtime past its body, the errno name of a failed transform allocation, key
+*   setting or decryption, "not enough memory", the load error of the decrypted text (a syntax
+*   error from "darken" when the key or IV is wrong, "attempt to load a binary chunk (mode is 't')"
+*   for a precompiled script), or the error the script raises.
 */
 static int luadarken_run(lua_State *L)
 {
+	lunatik_checkarmed(L);
+
 	size_t ct_len, iv_len, key_len;
 	const char *ct = luaL_checklstring(L, 1, &ct_len);
 	const char *iv = luaL_checklstring(L, 2, &iv_len);
