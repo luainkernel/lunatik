@@ -22,3 +22,20 @@ published in `lunatik._ENV` or the conntrack mark; the runtime holds what is per
 a cache. An `rcu.table()` the script body creates is not shared: the body runs once per runtime, so
 each gets its own.
 
+`lunatik run` creates one runtime per possible CPU and runs their bodies one after another, so a
+body publishes the shared table when it finds none, and the bodies after it take that one:
+
+```Lua
+local lunatik = require("lunatik")
+local rcu     = require("rcu")
+
+local env = lunatik._ENV
+env.flows = env.flows or rcu.table()
+local flows = env.flows
+```
+
+The table stays in `lunatik._ENV` after the runtimes stop, until a script sets `env.flows` to nil.
+
+A binding whose global registration the runtimes cannot share refuses a percpu runtime with
+`not allowed in a percpu runtime`, which its `@raise` says.
+
