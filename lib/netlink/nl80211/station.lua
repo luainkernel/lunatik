@@ -12,6 +12,7 @@
 --
 -- @module netlink.nl80211.station
 -- @see netlink.nl80211.object
+-- @see netlink.session
 --
 
 local object  = require("netlink.nl80211.object")
@@ -30,10 +31,11 @@ local AUTHORIZED = 1 << staflag.AUTHORIZED
 -- @type station
 
 ---
--- Creates a new station object.
+-- Wraps a table in the class, or derives a class from it. It opens no socket: calling the class
+-- does, `netlink.nl80211.station()`.
 -- @function station:new
 -- @tparam[opt] table o an initial object table.
--- @treturn station the new station object.
+-- @treturn station the wrapped table or the derived class.
 -- @see class
 local station = object:new{
 	GET = cmd.GET_STATION, NEW = cmd.NEW_STATION,
@@ -43,6 +45,16 @@ local station = object:new{
 function station:decode(attrs)
 	return { mac = attrs[attr.MAC] }
 end
+
+---
+-- Opens a session, calling the class: `netlink.nl80211.station([pid])`.
+-- @function station:__call
+-- @tparam[opt] integer pid a task whose network namespace the object reaches, which holds the wiphys
+--   and interfaces nl80211 answers for; the initial network namespace when absent.
+-- @treturn station a new station object.
+-- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
+--   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
+-- @see netlink.nl80211.object
 
 ---
 -- Lists the stations of an AP interface.

@@ -12,6 +12,7 @@
 --
 -- @module netlink.nl80211.ap
 -- @see netlink.nl80211.object
+-- @see netlink.session
 --
 
 local object  = require("netlink.nl80211.object")
@@ -24,12 +25,23 @@ local attr = require("linux.nl80211").attr
 -- @type ap
 
 ---
--- Creates a new ap object.
+-- Wraps a table in the class, or derives a class from it. It opens no socket: calling the class
+-- does, `netlink.nl80211.ap()`.
 -- @function ap:new
 -- @tparam[opt] table o an initial object table.
--- @treturn ap the new ap object.
+-- @treturn ap the wrapped table or the derived class.
 -- @see class
 local ap = object:new{START = cmd.START_AP, STOP = cmd.STOP_AP}
+
+---
+-- Opens a session, calling the class: `netlink.nl80211.ap([pid])`.
+-- @function ap:__call
+-- @tparam[opt] integer pid a task whose network namespace the object reaches, which holds the wiphys
+--   and interfaces nl80211 answers for; the initial network namespace when absent.
+-- @treturn ap a new ap object.
+-- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
+--   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
+-- @see netlink.nl80211.object
 
 ---
 -- Starts beaconing on an AP-mode interface (which must already be up).

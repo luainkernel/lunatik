@@ -12,6 +12,7 @@
 --
 -- @module netlink.nl80211.interface
 -- @see netlink.nl80211.object
+-- @see netlink.session
 --
 
 local object  = require("netlink.nl80211.object")
@@ -27,10 +28,11 @@ local u32, str = message.u32, message.str
 -- @type interface
 
 ---
--- Creates a new interface object.
+-- Wraps a table in the class, or derives a class from it. It opens no socket: calling the class
+-- does, `netlink.nl80211.interface()`.
 -- @function interface:new
 -- @tparam[opt] table o an initial object table.
--- @treturn interface the new interface object.
+-- @treturn interface the wrapped table or the derived class.
 -- @see class
 local interface = object:new{
 	GET = cmd.GET_INTERFACE, NEW = cmd.NEW_INTERFACE, DEL = cmd.DEL_INTERFACE,
@@ -45,6 +47,16 @@ function interface:decode(attrs)
 		mac     = attrs[attr.MAC],
 	}
 end
+
+---
+-- Opens a session, calling the class: `netlink.nl80211.interface([pid])`.
+-- @function interface:__call
+-- @tparam[opt] integer pid a task whose network namespace the object reaches, which holds the wiphys
+--   and interfaces nl80211 answers for; the initial network namespace when absent.
+-- @treturn interface a new interface object.
+-- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
+--   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
+-- @see netlink.nl80211.object
 
 ---
 -- Lists the wireless interfaces known to the kernel.
