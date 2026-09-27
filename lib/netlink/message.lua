@@ -97,6 +97,9 @@ end
 -- Attribute codec: serializes a `{[type] = value}` table into netlink
 -- attributes, or parses them back from a message body starting at `pos`.
 -- A `number` value is packed as a `u32`; a `string` is used verbatim.
+-- A parsed key is the raw attribute type, flag bits included: a nested attribute whose sender set
+-- `NLA_F_NESTED` appears under `type | 0x8000`. A nested payload stays a string, which
+-- `message.attrs(value, 1)` parses in turn.
 -- @tparam table|string attrs attribute table (serialize) or message body (parse).
 -- @tparam[opt=1] integer pos 1-based position of the first attribute (parse).
 -- @treturn string|table the serialized attributes, or the parsed table.
