@@ -29,6 +29,7 @@ PORT=5564
 PAYLOAD=2048          # PAYLOAD in resize.lua
 PRIORITY=$((0x12360000)) # PRIORITY in resize.lua
 CASES="shrink head grow overgrow linear"
+NCASES=$(echo $CASES | wc -w)
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -43,7 +44,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 6
+ktap_plan $((NCASES + 1))
 
 if ! command -v socat > /dev/null 2>&1; then
 	for c in $CASES; do ktap_skip "resize $c — socat unavailable"; done
@@ -68,7 +69,7 @@ for c in $CASES; do
 done
 
 for _ in $(seq 20); do
-	[ "$(dmesg_since | grep -c "skb resize: ")" -ge 5 ] && break
+	[ "$(dmesg_since | grep -c "skb resize: ")" -ge "$NCASES" ] && break
 	sleep 0.5
 done
 
