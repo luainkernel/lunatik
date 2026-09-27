@@ -598,10 +598,14 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 
 - **verdict**: what a hook's callback returns decides the packet. One `LOCAL_OUT`
   hook per mark and one marked ping to the loopback per case: a callback that
-  returns nothing, a value that is not a number, a verdict spelled as a string,
-  a number outside the verdicts, or that raises accepts the packet, as `ACCEPT`
-  does; `DROP` drops it; a mark returned beside the verdict is stored in the
-  packet, which a later hook on that mark then drops. Each case reads back the
+  returns nothing, or that raises, accepts the packet, as `ACCEPT` does; one that
+  returns a value that is not a number, a verdict spelled as a string, a number
+  outside the verdicts, `1 << 32`, whose low 32 bits are `DROP`, or `STOLEN`,
+  `REPEAT` or `STOP`, which the kernel would neither free nor pass on, accepts it
+  too and logs `invalid verdict`, which no other case logs; `DROP` drops it;
+  `QUEUE` hands it to queue 0, which drops it when nothing listens there, and the
+  case skips when something does; a mark returned beside the verdict is stored in
+  the packet, which a later hook on that mark then drops. Each case reads back the
   line its callback printed, so a packet that went through is an answer and not
   a hook that never ran.
 

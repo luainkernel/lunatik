@@ -83,6 +83,8 @@ static inline lunatik_object_t *luanetfilter_pushskb(lua_State *L, luanetfilter_
 	return object;
 }
 
+#define luanetfilter_isverdict(v)	((v) == NF_DROP || (v) == NF_ACCEPT || (v) == NF_QUEUE)
+
 static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct sk_buff *skb)
 {
 	lunatik_object_t *object = NULL;
@@ -106,8 +108,11 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct 
 
 	if (!lua_isnil(L, -1))
 		skb->mark = (u32)lua_tointeger(L, -1);
-	if (lua_type(L, -2) == LUA_TNUMBER)
-		ret = (int)lua_tointeger(L, -2);
+	lua_Integer verdict = lua_tointeger(L, -2);
+	if (lua_type(L, -2) == LUA_TNUMBER && luanetfilter_isverdict(verdict))
+		ret = (int)verdict;
+	else if (!lua_isnil(L, -2))
+		pr_err_ratelimited("invalid verdict\n");
 clear:
 	luaskb_clear(object);
 out:
@@ -123,7 +128,7 @@ static inline unsigned int luanetfilter_docall(luanetfilter_hook_t *hook, struct
 		return policy;
 
 	lunatik_run(hook->runtime, luanetfilter_hook_cb, ret, hook, skb);
-	return (ret < 0 || ret > NF_MAX_VERDICT) ? policy : ret;
+	return ret < 0 ? policy : ret;
 }
 
 static unsigned int luanetfilter_hook(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
@@ -224,9 +229,10 @@ static const lunatik_class_t luanetfilter_class = {
 *   `linux.nf.inet` or `linux.nf.br` list them, and `priority` a `linux.nf.ip.pri` or
 *   `linux.nf.br.pri` value.
 *
-*   `hook(skb)` returns the packet's verdict, a `linux.nf.action` value, and optionally a mark
-*   to set on the packet. A callback that returns no verdict, or a value outside
-*   `linux.nf.action`, or that raises, accepts the packet.
+*   `hook(skb)` returns the packet's verdict, `DROP`, `ACCEPT` or `QUEUE` of `linux.nf.action`,
+*   and optionally a mark to set on the packet. A callback that returns no verdict, or that
+*   raises, accepts the packet; one that returns any other value, `STOLEN`, `REPEAT` and `STOP`
+*   included, accepts it too and logs `invalid verdict`.
 * @treturn netfilter_hook Registered hook handle. `netfilter.register` keeps this object for its
 *   runtime, so dropping it does not unregister the hook: the hook stays until the runtime closes,
 *   which `stop()` does, and the one hook a percpu script's runtimes share goes when the percpu set
