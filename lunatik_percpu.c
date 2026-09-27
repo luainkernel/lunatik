@@ -129,11 +129,12 @@ static inline void lunatik_checkowners(lua_State *L, lunatik_percpu_t *percpu)
 }
 
 /***
-* Resumes every runtime, as `runtime:resume` does, delivering the same objects to each. Nothing
-* comes back: a broadcast has no single set of values to return, so what a runtime yields is
-* dropped.
+* Resumes every runtime, as `runtime:resume` does, delivering the same objects to each.
+* The first resume calls the function each runtime's script returned with them as its arguments,
+* and each later one returns them from the `coroutine.yield()` it is suspended in. Nothing comes
+* back: a broadcast has no single set of values to return, so what a runtime yields is dropped.
 * @function resume
-* @param ... objects delivered to each runtime as the return values of its `coroutine.yield()`
+* @param ... objects passed to each runtime's function, or returned by its `coroutine.yield()`
 * @raise "null pointer dereference" if the object has been stopped; otherwise the error of the
 *   first runtime that refuses a value it cannot carry or raises on resumption, naming its CPU,
 *   with the runtimes after it not resumed. A runtime that refuses a value stays where it yielded;
@@ -207,7 +208,7 @@ const lunatik_class_t lunatik_percpu_class = {
 * the last reference to the set is dropped. A hook its script registers with the kernel is one
 * the runtimes share, and it holds the set until `stop()`, so dropping the handle does not close a
 * set whose script registered one, and `stop()` cannot be called once its last handle is gone. A
-* script stops the sets it creates.
+* script stops the sets it creates. Only a process runtime's `lunatik` module has it.
 * @function percpu
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context, as in `lunatik.runtime`
