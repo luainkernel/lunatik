@@ -18,6 +18,11 @@ is what names the drop site.
 
 ## Usage
 
+Needs a kernel with `CONFIG_KPROBES` on an architecture that selects
+`CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`, as x86 and arm64 do, since the script reads
+the reason through the probe's `argument`. The trigger line is a bash
+redirection.
+
 ```
 sudo make install                                              # installs Lunatik and the examples
 sudo lunatik run --context=hardirq examples/dropreason/monitor  # arms the kprobe
