@@ -13,6 +13,14 @@
 # identifiers: _VERSION, collectgarbage("count") in bytes, package.path, no
 #              cpath and require through the kernel symbol table, the io
 #              shape, and the entry points a module cannot carry.
+# require:     a softirq and a hardirq runtime resumed past their body, the
+#              armed state a hook calls from, get back a module the body
+#              loaded and are refused a require that would search
+#              package.path, and package.searchpath, with "not allowed after
+#              module load", since opening a file sleeps; the body allows
+#              both. The body empties package.path, so a build without the
+#              refusal opens no file from the callback and answers "not
+#              found" there, as the body's own require does.
 #
 # Usage: sudo bash tests/lua/run.sh
 
@@ -20,7 +28,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="floats identifiers"
+TESTS="floats identifiers require"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup()

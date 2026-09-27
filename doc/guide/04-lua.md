@@ -31,5 +31,6 @@ Lunatik **modifies** the following identifiers:
 * [collectgarbage("count")](https://www.lua.org/manual/5.5/manual.html#pdf-collectgarbage): returns the total memory in use by Lua in **bytes**, instead of _Kbytes_.
 * [package.path](https://www.lua.org/manual/5.5/manual.html#pdf-package.path): is defined as `"/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua"`.
 * [require](https://www.lua.org/manual/5.5/manual.html#pdf-require): only supports built-in or already linked C modules, that is, Lunatik **cannot** load kernel modules dynamically.
+  In a softirq or hardirq runtime, a hook requires only what the script body loaded: once the runtime is armed, a `require` that would search `package.path`, and [package.searchpath](https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath), raise `not allowed after module load`, since opening a file sleeps.
 
 

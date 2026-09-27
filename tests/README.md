@@ -501,6 +501,12 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   and `debug.debug` are absent, `io` has no default stream, pipe or
   `setvbuf`, and `package` has no `cpath` and resolves a C module in the
   kernel symbol table.
+- **require**: a `softirq` and a `hardirq` runtime resumed past their body,
+  the armed state a hook calls from, get back a module the body loaded and
+  are refused, with `not allowed after module load`, a `require` that would
+  search `package.path` and `package.searchpath`, since opening a file
+  sleeps; the body allows both. The body empties `package.path`, so a build
+  without the refusal opens no file from the callback and answers `not found`.
 
 ### luac
 

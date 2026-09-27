@@ -235,6 +235,31 @@ static inline void lunatik_setready(lunatik_object_t *runtime)
 	lunatik_unlock(runtime);
 }
 
+static int lunatik_callsleepable(lua_State *L)
+{
+	lunatik_checkarmed(L);
+	lua_pushvalue(L, lua_upvalueindex(1));
+	lua_insert(L, 1);
+	lua_call(L, lua_gettop(L) - 1, LUA_MULTRET);
+	return lua_gettop(L);
+}
+
+#define LUNATIK_SEARCHER_LUA	2	/* package.searchers: preload, Lua, C */
+
+static void lunatik_guardpackage(lua_State *L) /* the entries that reach readable(), which opens a file */
+{
+	lua_getglobal(L, LUA_LOADLIBNAME);
+	lua_getfield(L, -1, "searchpath");
+	lua_pushcclosure(L, lunatik_callsleepable, 1);
+	lua_setfield(L, -2, "searchpath");
+
+	lua_getfield(L, -1, "searchers");
+	lua_rawgeti(L, -1, LUNATIK_SEARCHER_LUA);
+	lua_pushcclosure(L, lunatik_callsleepable, 1);
+	lua_rawseti(L, -2, LUNATIK_SEARCHER_LUA);
+	lua_pop(L, 2); /* searchers and package */
+}
+
 static int lunatik_runscript(lua_State *L)
 {
 	const char *script = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, lua_touserdata(L, 1));
@@ -248,6 +273,7 @@ static int lunatik_runscript(lua_State *L)
 	}
 	else {
 		luaL_openselectedlibs(L, ~LUA_IOLIBK, 0);
+		lunatik_guardpackage(L);
 		luaL_requiref(L, "lunatik", luaopen_lunatik_stub, 0);
 	}
 
