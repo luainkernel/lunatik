@@ -193,6 +193,17 @@ status the CLI exits by.
   running; `list` exits 0 and names a running script, and a stop exits 0 and
   removes it; the REPL prints a value longer than one read whole.
 
+### cpu
+
+- **stats**: `cpu.stats()` answers every online CPU with its counters and
+  refuses an id outside `[0, linux.numcpus())` as out of bounds: -1, the first
+  id past the possible ones, 2^32, whose low 32 bits are CPU 0, and the
+  integer extremes. The refusal comes before `cpu_online()`, whose bit
+  lookup reads past the mask for an id the cast leaves at or past `NR_CPUS`, as
+  it does -1 and `math.maxinteger`. A build without the bound reads past the
+  mask for -1 rather than failing, so the suite skips unless the `luacpu` it
+  runs against carries the `out of bounds` refusal.
+
 ### examples
 
 - **shared**: drives the spawned `examples/shared/daemon` over its own port with
