@@ -401,6 +401,11 @@ local function main()
 	end
 	local command = commands[verb]
 	if command ~= nil then
+		local signature = debug.getinfo(command, "u")
+		local extra = arg[i + 1 + signature.nparams]
+		if extra ~= nil and not signature.isvararg then
+			misuse("extra operand " .. extra)
+		end
 		os.exit(command(table.unpack(arg, i + 1)))
 	end
 	local handler = runners[verb]

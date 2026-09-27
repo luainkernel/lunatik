@@ -191,12 +191,13 @@ Tests for `bin/lunatik`, the command line tool: its usage, its exit status and
 its REPL.
 
 - **usage**: `-h` and `--help` print the usage on stdout, exit 0; an unknown
-  option, an unknown command, a verb without its script, `list` with one, `-e`
-  without a chunk, a value given to `--help`, a chunk or `-i` given with a
-  command, an option on the wrong side of the verb, `-c` without a context, a
-  value given to `--percpu`, and a context or percpu given to `stop` or `list`
-  each exit 2 with a line naming it and the usage on stderr; `-V` and
-  `--version` print the loaded version, and with the modules unloaded `-V`
+  option, an unknown command, a verb without its script, `list` with one, a
+  word after `load`, `unload`, `reload` or `status`, a second suite given to
+  `test`, `-e` without a chunk, a value given to `--help`, a chunk or `-i` given
+  with a command, an option on the wrong side of the verb, `-c` without a
+  context, a value given to `--percpu`, and a context or percpu given to `stop`
+  or `list` each exit 2 with a line naming it and the usage on stderr; `-V`
+  and `--version` print the loaded version, and with the modules unloaded `-V`
   exits 1, not loaded.
 - **verbs**: a run or a spawn of a script that is missing, and a run of one
   that raises at load, exit 1 with its error on stderr and nothing on stdout;

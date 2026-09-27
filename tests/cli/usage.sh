@@ -8,8 +8,9 @@
 #
 # - -h and --help print the usage on stdout, exit 0;
 # - an unknown option, an unknown command, a verb without its script, list with
-#   one, -e without a chunk, a value given to --help, a chunk or -i given with a
-#   command, an option on the wrong side of the verb, -c without a context, a
+#   one, a word after load, unload, reload or status, a second suite given to
+#   test, -e without a chunk, a value given to --help, a chunk or -i given with
+#   a command, an option on the wrong side of the verb, -c without a context, a
 #   value given to --percpu, and a context or percpu given to stop or list each
 #   exit 2 with a line naming it and the usage on stderr, and nothing on stdout;
 # - -V and --version print the loaded version, exit 0, and with the modules
@@ -52,6 +53,10 @@ misused "unknown option -x" -x
 misused "unknown command foo" foo
 misused "run takes a script" run
 misused "list takes no script" list tests/cli/idle
+for verb in load unload reload status; do
+	misused "extra operand x" "$verb" x
+done
+misused "extra operand b" test a b
 misused "-e takes a value" -e
 misused "--help takes no value" --help=x
 misused "-e takes no command" -e "return 1" list
