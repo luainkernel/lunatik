@@ -102,24 +102,30 @@ static inline void luaprobe_dropregs(lua_State *L, int ix)
 	lua_setupvalue(L, ix, 1);
 }
 
-static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler, struct pt_regs *regs)
+typedef struct luaprobe_ctx_s {
+	luaprobe_t *probe;
+	const char *handler;
+	struct pt_regs *regs;
+} luaprobe_ctx_t;
+
+static int luaprobe_dohandler(lua_State *L)
 {
+	luaprobe_ctx_t *ctx = lua_touserdata(L, 1);
+	luaprobe_t *probe = ctx->probe;
 	struct kprobe *kp = &probe->kp;
 	const char *symbol = kp->symbol_name;
 
-	if (lunatik_getregistry(L, probe) != LUA_TTABLE) {
-		pr_err_ratelimited("couldn't find probe table\n");
-		goto out;
-	}
+	if (lunatik_getregistry(L, probe) != LUA_TTABLE)
+		luaL_error(L, "couldn't find probe table");
 	int base = lua_gettop(L);
 	int nclosures = ARRAY_SIZE(luaprobe_closures);
 	int i;
 
-	if (lua_getfield(L, base, handler) != LUA_TFUNCTION) /* base + 1 */
-		goto out;
+	if (lua_getfield(L, base, ctx->handler) != LUA_TFUNCTION) /* base + 1 */
+		return 0;
 
 	for (i = 0; i < nclosures; i++)
-		luaprobe_pushregs(L, luaprobe_closures[i], regs); /* base + 2 + i */
+		luaprobe_pushregs(L, luaprobe_closures[i], ctx->regs); /* base + 2 + i */
 
 	lua_pushvalue(L, base + 1);
 
@@ -131,33 +137,34 @@ static int luaprobe_handler(lua_State *L, luaprobe_t *probe, const char *handler
 	for (i = 0; i < nclosures; i++)
 		lua_pushvalue(L, base + 2 + i);
 
-	if (lua_pcall(L, 1 + nclosures, 0, 0) != LUA_OK) /* handler(symbol | addr, dump[, argument]) */
-		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
+	int status = lua_pcall(L, 1 + nclosures, 0, 0); /* handler(symbol | addr, dump[, argument]) */
 
 	for (i = 0; i < nclosures; i++)
 		luaprobe_dropregs(L, base + 2 + i); /* regs are only live while the probed function is trapped */
-out:
+	if (status != LUA_OK)
+		lua_error(L);
 	return 0;
+}
+
+static inline void luaprobe_run(luaprobe_t *probe, const char *handler, struct pt_regs *regs)
+{
+	luaprobe_ctx_t ctx = {.probe = probe, .handler = handler, .regs = regs};
+	int ret;
+
+	lunatik_run(probe->runtime, lunatik_catch, ret, luaprobe_dohandler, &ctx, handler);
+	(void)ret;
 }
 
 static int __kprobes luaprobe_pre_handler(struct kprobe *kp, struct pt_regs *regs)
 {
-	luaprobe_t *probe = container_of(kp, luaprobe_t, kp);
-	int ret;
-
-	lunatik_run(probe->runtime, luaprobe_handler, ret, probe, "pre", regs);
-	(void)ret;
+	luaprobe_run(container_of(kp, luaprobe_t, kp), "pre", regs);
 	return 0;
 }
 
 static void __kprobes luaprobe_post_handler(struct kprobe *kp, struct pt_regs *regs, unsigned long flags)
 {
-	luaprobe_t *probe = container_of(kp, luaprobe_t, kp);
-	int ret;
-
 	/* flags always seems to be zero; see: https://docs.kernel.org/trace/kprobes.html#api-reference */
-	lunatik_run(probe->runtime, luaprobe_handler, ret, probe, "post", regs);
-	(void)ret;
+	luaprobe_run(container_of(kp, luaprobe_t, kp), "post", regs);
 }
 
 static void luaprobe_delete(luaprobe_t *probe)

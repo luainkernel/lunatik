@@ -878,6 +878,17 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   shared, leaving no kprobe armed, no script registered and no use-count on the
   probe module.
 
+- **raise**: a hit looks its handler up, pushes the handler's arguments and
+  runs it in one protected call. Two probes on the `personality` syscall, which
+  two `setarch` call once each: a `pre` and a `post` handler that raise on the
+  first hit have each error logged once with the handler's name, and the `dump`
+  closure the `pre` kept no longer reaches the registers on the second; a
+  handlers table whose `__index` raises when the first hit looks up `pre` has
+  its error logged once with the handler's name, and the second hit runs the
+  handler. A build that looks the handler up outside a protected call raises
+  with no handler, a `BUG` in hardirq, so the test skips unless the loaded
+  `luaprobe` lists `luaprobe_dohandler` in `/proc/kallsyms`.
+
 ### rcu
 
 - **map_values**: `rcu.map()` iterates booleans, integers, userdata,
