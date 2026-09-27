@@ -1,8 +1,10 @@
 # systrack
 
 [systrack](probe.lua)
-is a kernel script that uses kprobes to count every system call on the
-running architecture. [systrack/device](device.lua)
+is a kernel script that uses kprobes to count each system call of the running
+architecture whose entry point no other entry of the syscall table shares: aliases
+and the not-implemented stub are skipped. It needs a kernel with `CONFIG_KPROBES`.
+[systrack/device](device.lua)
 exposes the live counters as a character device readable with `cat`.
 
 The device runtime creates the probe runtime via `runner.run`, passing the
