@@ -547,15 +547,16 @@ where one per 10 ms kept about as many as a loop with none.
 `lunatik_newobject(L, class, size, opt)` allocates and pushes a userdata;
 `lunatik_createobject(class, size, ...)` allocates without a Lua state.
 
-* `.pointer = true` means `object->private` is a pointer Lunatik does not own and will not free. The
-  `release` callback still runs.
+* `LUNATIK_OPT_EXTERNAL` in the class's `opt` means `object->private` is a pointer Lunatik does not
+  own and will not free. The `release` callback still runs.
 * Cleanup belongs in an explicit `detach`/`stop`, not hidden in `release`. `release` should be a noop
   unless there is no alternative.
 * Do not name a C internal allocator `luaXXX_new`. That name implies the object is constructible from
   Lua. Use `luaXXX_attach` when it is not.
 * Large allocations use `kvmalloc`, and therefore must be freed with `kvfree`, never `kfree`.
 * Objects a C module pre allocates but exposes to Lua use `lunatik_createobject` plus
-  `lunatik_cloneobject`, which requires `.shared = true`.
+  `lunatik_pushobject`, which clones under a reference of its own and refuses a
+  `LUNATIK_OPT_SINGLE` object.
 
 A registration a percpu script makes once for all its runtimes, a hook or a kernel thread, lives
 in the private of an object from `lunatik_percpudata`, of a class the binding declares for it, whose
