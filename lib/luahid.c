@@ -4,7 +4,28 @@
 */
 
 /***
-* Lua interface to the Linux HID subsystem.
+* Writes a HID driver in Lua: it matches devices by `id_table`, and can fix a
+* device's report descriptor and rewrite its raw reports.
+*
+* The driver's runtime is softirq: the script runs with
+* `lunatik run -c softirq <script>`, other contexts raise
+* `runtime context mismatch`, and the callbacks, which run under that runtime's
+* lock, must not sleep. The driver stays registered until the runtime stops.
+*
+* See `examples/gesture` and `examples/xiaomi`.
+* @usage
+*   -- run with `lunatik run -c softirq <script>`
+*   local hid = require("hid")
+*
+*   local function raw_event(driver, hdev, report, raw)
+*     print(hdev.name, report.id, #raw)
+*   end
+*
+*   hid.register({
+*     name = "luahid_trace",
+*     id_table = {{bus = 0x05, vendor = 0x2717, product = 0x5014}},
+*     raw_event = raw_event,
+*   })
 * @module hid
 */
 
@@ -274,12 +295,30 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 
 /***
 * Registers a new HID driver.
+* The `opts` table is the driver: each callback it carries receives it as its first
+* argument, and one it does not carry does nothing.
 * @function register
 * @tparam table opts driver options: `name` (string), `id_table` (array of device ID tables,
-*   each with optional integer fields `bus`, `group`, `vendor`, `product`, `driver_data`)
+*   each with optional integer fields `bus`, `group`, `vendor`, `product`, `driver_data`),
+*   and the optional callbacks:
+*
+*   - `probe(driver, id)`: a device matched; `id` is the matching entry, with `bus`,
+*     `group`, `vendor`, `product` and `driver_data`. An error fails the probe with
+*     `ECANCELED`.
+*   - `report_fixup(driver, hdev, rdesc)`: `rdesc` is a `data` over the report
+*     descriptor, edited in place, of fixed size and valid only during the call.
+*   - `raw_event(driver, hdev, report, raw)`: `raw` is a `data` over the report, edited
+*     in place and valid only during the call. An error makes the HID core drop the
+*     report.
+*
+*   `hdev` carries `bus`, `group`, `vendor`, `product`, `version` and `name`; `report`
+*   carries `id`, `type`, `size`, `application` and `maxfield`. What a callback returns is
+*   ignored, and its error goes to the kernel log.
 * @treturn hid_driver
 * @raise if required fields are missing, `id_table` is invalid or too long, driver registration
-*   fails, or if called from a percpu runtime
+*   fails, or if called from a percpu runtime; `runtime context mismatch` unless the runtime
+*   is softirq
+* @within hid
 */
 static int luahid_register(lua_State *L)
 {
