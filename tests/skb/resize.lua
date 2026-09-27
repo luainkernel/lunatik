@@ -7,7 +7,7 @@
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
 
-local PRIORITY <const> = 0x12360000 -- resize.sh's socat priorities are PRIORITY + 1 to 5
+local PRIORITY <const> = 0x12360000 -- resize.sh's senders take PRIORITY plus their case's place in CASES
 local PAYLOAD  <const> = 2048
 local DELTA    <const> = 16
 local HEAD     <const> = 38 -- through the TCP checksum field, short of the TCP/IP headers in the linear head
@@ -31,10 +31,15 @@ function cases.overgrow(len)
 	return len + OVERGROW
 end
 
+function cases.negative()
+	return -1
+end
+
 cases.linear = cases.shrink
 
 local refusals = {
 	overgrow = "insufficient tailroom",
+	negative = "out of bounds",
 }
 
 local pending = {
@@ -43,6 +48,7 @@ local pending = {
 	[PRIORITY + 3] = "grow",
 	[PRIORITY + 4] = "overgrow",
 	[PRIORITY + 5] = "linear",
+	[PRIORITY + 6] = "negative",
 }
 
 local function verdict(skb, name, want, ok, err)

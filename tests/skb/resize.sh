@@ -5,19 +5,20 @@
 #
 # Tests skb:resize on non-linear and linear skbs.
 #
-# A LOCAL_OUT netfilter hook resizes the first data segment of four TCP
+# A LOCAL_OUT netfilter hook resizes the first data segment of five TCP
 # connections over loopback. tcp_sendmsg copies a segment's payload into page
 # fragments and keeps only the headers in the linear head, so every such segment
 # is non-linear. Each sender sets its own SO_PRIORITY, which picks the case: a
-# shrink inside the payload, a shrink below the linear head, a grow, and a grow
-# past any tailroom, which raises "insufficient tailroom". A UDP datagram of the
-# same size is linear, since ip_append_data keeps a datagram under SKB_MAX_ALLOC
-# in the head, and takes a shrink. Each case that resizes reads back #skb and
-# #skb:data() at the requested length, and dmesg carries no WARNING. The payload
-# is larger than the head's free space, so linearizing reallocates the head with
-# 128 spare bytes (__pskb_pull_tail), which the grow stays under. The hook drops
-# the packet it resized; TCP resends it untouched, and the UDP send fails with
-# EPERM, so the senders' errors are discarded.
+# shrink inside the payload, a shrink below the linear head, a grow, a grow past
+# any tailroom, which raises "insufficient tailroom", and a negative length, which
+# raises "out of bounds". A UDP datagram of the same size is linear, since
+# ip_append_data keeps a datagram under SKB_MAX_ALLOC in the head, and takes a
+# shrink. Each case that resizes reads back #skb and #skb:data() at the requested
+# length, and dmesg carries no WARNING. The payload is larger than the head's
+# free space, so linearizing reallocates the head with 128 spare bytes
+# (__pskb_pull_tail), which the grow stays under. The hook drops the packet it
+# resized; TCP resends it untouched, and the UDP send fails with EPERM, so the
+# senders' errors are discarded.
 #
 # The priorities are outside 0..6, which only a process with CAP_NET_ADMIN or
 # CAP_NET_RAW may set, so no other process on the host picks a case.
@@ -28,7 +29,7 @@ SCRIPT="tests/skb/resize"
 PORT=5564
 PAYLOAD=2048          # PAYLOAD in resize.lua
 PRIORITY=$((0x12360000)) # PRIORITY in resize.lua
-CASES="shrink head grow overgrow linear"
+CASES="shrink head grow overgrow linear negative"
 NCASES=$(echo $CASES | wc -w)
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
