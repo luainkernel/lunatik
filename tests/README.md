@@ -8,6 +8,23 @@ Integration tests for lunatik kernel modules. Output follows
 - Lunatik installed: `sudo make install`
 - Root privileges
 
+Optional tools, without which the suites that need them skip:
+
+- `bpftool`, from `linux-tools-$(uname -r)`: bpf, sched, tc, xdp
+- `clang`: sched, tc, xdp
+- `tc`: tc
+- `gcc`, which builds the userspace peers: device, examples, netlink, socket
+- `genl`: netlink
+- `iw` and the `mac80211_hwsim` module: netlink
+- `nsenter`: netlink, notifier, socket
+- `nft`: skb, socket
+- `setarch`: probe
+- `taskset`: probe, xdp
+- `lunatic`: luac
+
+The sched, tc and xdp suites also need the modules built with the kernel's
+BTF: run `sudo make btf_install` before `make`.
+
 ## Running
 
 All suites (reloads the modules before and unloads after):
@@ -68,9 +85,32 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 ### crypto
 
 Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
-`comp`. `comp` is skipped where `crypto.comp` is not built: `hascomp` asks
-the runtime for the binding, instead of the suite reading the kernel version.
+`comp`.
 
+- **shash**: `sha256` and `hmac(sha256)` report a 32-byte digest and match
+  known digests in one shot, in `init`/`update`/`final` parts and through
+  `finup`, and a state exported from one hasher and imported into another
+  finishes to the same digest.
+- **skcipher**: `cbc(aes)` encrypts and decrypts a known vector and reports a
+  16-byte IV and block, refuses a short key, a short IV and data that is not a
+  whole number of blocks with `EINVAL`, survives 5000 round trips, and
+  `ecb(aes)` round-trips with no IV.
+- **aead**: `gcm(aes)` encrypts and decrypts a known vector with associated
+  data and reports a 12-byte IV and the tag size it was set to, refuses a
+  short key, an invalid tag size and a short IV with `EINVAL`, answers a
+  truncated or tampered tag with `EBADMSG`, and round-trips without associated
+  data, with an empty plaintext, and 5000 times.
+- **rng**: `stdrng` gives the number of bytes asked for through `generate`
+  and `getbytes`, also after a reset with or without a seed, refuses 0 bytes
+  as out of bounds, and reports its driver name and seed size.
+- **hkdf**: `hkdf` matches the SHA-256 vectors of RFC 5869, and `extract` and
+  `expand` match the client initial secret, key and IV of the QUIC worked
+  example at quic.xargs.org.
+- **comp**: `lz4` compresses to fewer bytes and decompresses back into an
+  exact or a larger buffer; an empty string with a size of 0 is refused as out
+  of bounds, and a buffer one byte short of the output with `EINVAL`. Skipped
+  where `crypto.comp` is not built: `hascomp` asks the runtime for the
+  binding, instead of the suite reading the kernel version.
 - **context**: an object refused for its execution context leaves nothing
   allocated. `crypto.shash("sha256")` and `crypto.comp("lz4")` from an armed
   softirq runtime are refused, and the modules backing those algorithms -
@@ -723,8 +763,8 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   the handler the table defines runs once and the one it does not never runs;
   the empty table has nothing to print, so what it asserts is that `probe.new`
   still succeeds, and each of those rows checks the kprobe it armed on load and
-  gave back on stop. The post half of a hit had no coverage before: nothing in
-  the tree registered a `post` handler. Two further rows cover what `probe.new`
+  gave back on stop. This is the only test that registers a `post` handler.
+  Two further rows cover what `probe.new`
   reads from that table: of a `pre` and a `post` added to it after `probe.new`,
   the `pre` fires and the `post` does not, and a percpu script whose runtimes
   disagree about one is refused, leaving no kprobe armed.
