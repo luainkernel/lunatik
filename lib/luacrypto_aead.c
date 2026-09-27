@@ -190,6 +190,11 @@ static int luacrypto_aead_decrypt(lua_State *L)
 	return luacrypto_aead_finish(L, &request, buffer, ret, output_len);
 }
 
+/***
+* Returns the driver-independent name of the algorithm the transform was allocated with.
+* @function algname
+* @treturn string
+*/
 static int luacrypto_aead_algname(lua_State *L)
 {
 	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
@@ -217,15 +222,5 @@ const lunatik_class_t luacrypto_aead_class = {
 	.opt = LUNATIK_OPT_MONITOR,
 };
 
-/***
-* Creates a new AEAD transform object.
-* @function new
-* @tparam string algname algorithm name (e.g., "gcm(aes)", "ccm(aes)")
-* @treturn crypto_aead
-* @raise on allocation failure
-* @usage
-*   local aead = require("crypto").aead
-*   local cipher = aead("gcm(aes)")
-*/
 LUACRYPTO_NEWCTX(aead, struct crypto_aead, crypto_alloc_aead, luacrypto_aead_class);
 

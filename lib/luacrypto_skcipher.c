@@ -139,6 +139,11 @@ static int luacrypto_skcipher_decrypt(lua_State *L)
 	return luacrypto_skcipher_crypt(L, crypto_skcipher_decrypt);
 }
 
+/***
+* Returns the driver-independent name of the algorithm the transform was allocated with.
+* @function algname
+* @treturn string
+*/
 static int luacrypto_skcipher_algname(lua_State *L)
 {
 	struct crypto_skcipher *tfm = luacrypto_skcipher_check(L, 1);
@@ -165,15 +170,5 @@ const lunatik_class_t luacrypto_skcipher_class = {
 	.opt = LUNATIK_OPT_MONITOR,
 };
 
-/***
-* Creates a new SKCIPHER transform object.
-* @function new
-* @tparam string algname algorithm name (e.g., "cbc(aes)", "ctr(aes)")
-* @treturn crypto_skcipher
-* @raise on allocation failure
-* @usage
-*   local skcipher = require("crypto").skcipher
-*   local cipher = skcipher("cbc(aes)")
-*/
 LUACRYPTO_NEWCTX(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class);
 

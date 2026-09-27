@@ -77,16 +77,6 @@ const lunatik_class_t luacrypto_comp_class = {
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
 };
 
-/***
-* Creates a new COMP transform object.
-* @function new
-* @tparam string algname algorithm name (e.g., "lz4", "deflate")
-* @treturn crypto_comp
-* @raise on allocation failure
-* @usage
-*   local comp = require("crypto").comp
-*   local c = comp("lz4")
-*/
 LUACRYPTO_NEW(comp, struct crypto_comp, crypto_alloc_comp, luacrypto_comp_class);
 
 #endif
