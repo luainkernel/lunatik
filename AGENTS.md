@@ -170,9 +170,9 @@ the last one.
 (`module-conventions.sh`), the comment rules below read over C, Lua and shell, the history, a
 release named with what changed in it or above a table, the counterfactual, the multi-line note
 inside code and the trailing comment past the width
-(`comment-style.sh`), the branches, argument tables and inline functions the Lua style rules settle
-(`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script skips
-(`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
+(`comment-style.sh`), the branches, argument tables, inline functions and repeated blocks the Lua style
+rules settle (`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script
+skips (`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
@@ -257,7 +257,10 @@ function written inline as a table field, which is a named local function. The e
 added and deleted one route through two branches that each spelled the route and a message, and
 the maintainer asked for `reroute.down` and `reroute.up` over one `backup` table. It runs at edit
 time and over a pull request's diff and annotates rather than fails, since two registrations that
-share three fields can be two different hooks.
+share three fields can be two different hooks. It also names a block of four lines or more that a
+change adds, read against `CHECK_BASE`, and a script beside it already carries: #1198 spelled one
+pause in the four kernel thread bodies of `tests/rcu`, through its own pre-publication pass, and
+went into a module they share only when the maintainer asked why the code was copied.
 
 `test-harness.sh` reads a test's Lua script as well as its `.sh`, for a case the script runs under a
 condition: when the condition is false the case reports nothing and the script's one KTAP line
@@ -705,6 +708,8 @@ the state, where a boolean stored on an existing node cannot.
 * `require("x")` with parentheses.
 * Use `table.insert`, not `t[#t+1] = v`.
 * No nested function definitions; helpers go at module level.
+* Code two scripts of one directory repeat goes in a module beside them that both require: the data
+  suite's buffer checks live in `tests/data/zeroing.lua`, required as `tests.data.zeroing`.
 * Hooks and callbacks are named `local function`s referenced by name, never anonymous functions inline
   in a table field.
 * Named constants at the top: `local PORT <const> = 5562`. No magic numbers, and no literal a file
