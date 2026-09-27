@@ -18,21 +18,17 @@ local runner = require "lunatik.runner"
 local thread = require "thread"
 local pace = require("tests.rcu.pace")
 
-local function milliseconds()
-	return linux.time() / 1000000
-end
-
 return function()
 	lunatik._ENV.whitelist = rcu.table(1024)
 	runner.spawn "tests/rcu/map_sync_clean"
 
 	local whitelist = lunatik._ENV.whitelist
-	local start = milliseconds()
+	local start = pace.milliseconds()
 	local last_print = start
 	local now = start
 
 	while (not thread.shouldstop()) and (now - start < 60000) do
-		now = milliseconds()
+		now = pace.milliseconds()
 		local entry = whitelist[now - linux.random(1, 1000)]
 
 		if entry and now - last_print > 1000 then
