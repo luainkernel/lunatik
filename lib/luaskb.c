@@ -178,15 +178,15 @@ static int luaskb_data(lua_State *L)
 * `#skb` returns afterwards. In a tc callback the skb is not linearized, and a
 * non-linear one raises.
 * @function resize
-* @tparam integer n desired size in bytes
-* @raise if the skb is not linear, in a tc callback or after a failed linearization, or if the
-* tailroom is insufficient for expansion
+* @tparam integer n desired size in bytes, from 0 up to `UINT_MAX`
+* @raise if out of bounds, if the skb is not linear, in a tc callback or after a failed
+* linearization, or if the tailroom is insufficient for expansion
 */
 static int luaskb_resize(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct sk_buff *skb = lskb->skb;
-	size_t new_size = (size_t)luaL_checkinteger(L, 2);
+	size_t new_size = (size_t)lunatik_checkinteger(L, 2, 0, UINT_MAX);
 	luaskb_checklinear(L, lskb, 1);
 	size_t cur_size = skb->len;
 

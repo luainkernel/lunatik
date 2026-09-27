@@ -1250,10 +1250,11 @@ command and a pid, and what a valid call does.
 - **resize**: a `LOCAL_OUT` netfilter hook resizes non-linear skbs, the TCP
   segments over loopback whose payload sits in page fragments, one case per
   sender picked by its `SO_PRIORITY`: a shrink inside the payload, a shrink
-  below the linear head, a grow, and a grow past any tailroom, which raises
-  `insufficient tailroom`; a linear skb, a UDP datagram of the same size, takes
-  a shrink. Each resize reads back `#skb` and `#skb:data()` at the requested
-  length, and dmesg carries no `WARNING`. Skips without `socat`.
+  below the linear head, a grow, a grow past any tailroom, which raises
+  `insufficient tailroom`, and a negative length, which raises `out of bounds`;
+  a linear skb, a UDP datagram of the same size, takes a shrink. Each resize
+  reads back `#skb` and `#skb:data()` at the requested length, and dmesg
+  carries no `WARNING`. Skips without `socat`.
 
 - **forward**: a ping over an ipip tunnel reaches `LOCAL_OUT` with the outer
   packet's MAC header at the inner IPv4 header, past `skb->data`: `skb:forward()`
