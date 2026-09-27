@@ -7,6 +7,9 @@
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
 local nfcount   = require("tests.runtime.nfcount")
+local verdict   = require("tests.runtime.verdict")
+
+local PREFIX <const> = "percpu netfilter late: "
 
 local function accept(skb)
 	return nf.action.ACCEPT
@@ -20,8 +23,7 @@ local late = {
 }
 
 local function register_late(skb)
-	local ok, err = pcall(netfilter.register, late)
-	print("percpu netfilter late: " .. tostring(ok and "registered" or err))
+	verdict.report(PREFIX, "register", pcall(netfilter.register, late))
 	return nf.action.ACCEPT
 end
 
