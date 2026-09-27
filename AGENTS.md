@@ -34,12 +34,14 @@ machine. Two rules follow from that and outrank everything else in this document
 | `examples/` | example kernel scripts |
 | `tools/` | maintenance scripts, and the mechanical convention checks in `tools/checks/` |
 | `.agents/skills/` | the recurring workflows packaged as agent skills (open `SKILL.md` format) |
-| `doc/` | all documentation: the hand written C API reference (`doc/capi.md`), design notes (`doc/design/`), and generated LDoc output (everything else, gitignored) |
+| `doc/` | all documentation: the guide pages (`doc/guide/`), the hand written C API reference (`doc/capi.md`), design notes (`doc/design/`), the site's style (`doc/style/`), and generated LDoc output (everything else, gitignored) |
 | `doc/design/` | design notes for work in progress: gap analysis, proposed APIs, verified kernel references, test strategy |
 
 All documentation lives under `doc/`. There is exactly one documentation directory: never create a
-second top level one (`docs/`, `documentation/`, and the like). Design notes go in `doc/design/<topic>/`,
-the C API reference is `doc/capi.md`, and LDoc fills the rest of `doc/`.
+second top level one (`docs/`, `documentation/`, and the like). A guide page goes in `doc/guide/` and in
+the `topics` of `config.ld`, design notes go in `doc/design/<topic>/`, the C API reference is
+`doc/capi.md`, and LDoc fills the rest of `doc/`. The README is the site's home page: what it does not
+say in a few lines links to a guide page.
 
 A module or an example that needs a second file gets a directory, not a prefixed sibling:
 `examples/systrack/probe.lua` beside `device.lua`, never `systrack_device.lua` beside `systrack.lua`.
@@ -504,7 +506,7 @@ rather than letting it deadlock the machine.
 Which runtime of a percpu script a callback reaches is the CPU it fires on, and nothing else ties a
 flow to one of them: the packets of one connection reach several. State that must see a whole flow
 belongs in what the runtimes share, the runtime holds what is per-CPU. Which CPU each path lands on
-is traced in the README's percpu scripts section.
+is traced in `doc/guide/03-percpu.md`.
 
 ### Kernel threads
 
@@ -764,7 +766,7 @@ Never `require("foo").method()`. A kernel script does the same with a local:
 * Comments describe the present, not the history. No "was", "no longer", "used to".
 * No comments restating obvious kernel or Lua API usage. Non obvious rationale is welcome.
 * A consumer does not document the API it calls: what a binding does belongs to its doc block and to
-  the README section of the example, and a copy in the script that calls it rots on the next change.
+  the example's own `README.md`, and a copy in the script that calls it rots on the next change.
   `examples/ifquarantine` carried `notifier.netdevice(callback) -- replays a REGISTER for each device
   that already exists`, which `notifier.netdevice`'s own block and the example's README paragraph
   already say.
@@ -814,8 +816,8 @@ Never `require("foo").method()`. A kernel script does the same with a local:
   `@function <class>:<method>` block there, with no function under it. A `--` comment placed directly
   before a `---` doc block silences that block; keep any rationale note above the doc block or inside
   the function.
-* A new module needs an entry in `config.ld`, inserted in alphabetical order, and a row in the README
-  module table.
+* A new module needs an entry in `config.ld`, inserted in alphabetical order; the site lists it from
+  there.
 * Do not insert code between a doc block and the function it documents.
 * A doc block states the contract, not how it was found. Keep the debugging story — the crash that
   motivated a guard, the scenario that produced a stale state — in the commit body, where history
@@ -894,8 +896,8 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   header says which path and why. The same assertion on a path that can migrate CPUs mid way passes
   for the wrong reason.
 
-A test is not done until `tests/README.md` describes it, the suite's `run.sh` runs it, and, for a new
-suite, the top level `README.md` lists it. Same commit, or a fixup of it.
+A test is not done until `tests/README.md` describes it and the suite's `run.sh` runs it, a new suite
+included. Same commit, or a fixup of it.
 
 ## Deciding what to change
 
@@ -1166,7 +1168,7 @@ invoke, and fix that: a note that an `enum` is formatted inline asks for the for
    a cast between the two, is a warning here and a build error there. The `lunatik_percpuruntimes`
    cast and `object->private = runtimes` were both;
 2. `sudo make install && sudo lunatik reload && sudo lunatik test` passes;
-3. new API is documented and listed in `config.ld` and the README, and `make doc-site LUA=lua5.5`,
+3. new API is documented and listed in `config.ld`, and `make doc-site LUA=lua5.5`,
    the CI target, exits zero: a C file that contributes to a module another file declares carries
    `@module` with the same name, which `merge = true` in `config.ld` folds, since `@submodule`
    deduces its section name from a path under `lib/`;
