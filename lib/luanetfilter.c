@@ -5,7 +5,32 @@
 
 /***
 * Lua interface to the Linux Netfilter framework.
+*
+* A script that registers hooks runs in a softirq runtime, `lunatik run -c softirq <script>`; see
+* [execution contexts](../topics/02-running-scripts.md.html#Execution_contexts). Hooks are
+* registered in the initial network namespace only: packets of another namespace do not reach
+* them.
+*
 * @module netfilter
+* @usage
+*   -- lunatik run -c softirq <script>: drops the locally generated IPv4 packets marked 0x10,
+*   -- as `sudo ping -m 16 127.0.0.1` sends them
+*   local netfilter = require("netfilter")
+*   local nf        = require("linux.nf")
+*
+*   local MARK <const> = 0x10
+*
+*   local function drop(skb)
+*     return nf.action.DROP
+*   end
+*
+*   netfilter.register{
+*     hook     = drop,
+*     pf       = nf.proto.IPV4,
+*     hooknum  = nf.inet.LOCAL_OUT,
+*     priority = nf.ip.pri.FILTER,
+*     mark     = MARK,
+*   }
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -23,12 +48,6 @@ typedef struct luanetfilter_hook_s {
 	u32 mark;
 } luanetfilter_hook_t;
 
-/***
-* Registered Netfilter hook. `netfilter.register` keeps this object for its runtime, so dropping
-* it does not unregister the hook: the hook stays until the runtime closes, which `stop()` does,
-* and the one hook a percpu script's runtimes share goes when the percpu set stops.
-* @type netfilter_hook
-*/
 typedef struct luanetfilter_s {
 	luanetfilter_hook_t *hook;	/* NULL when the percpu object owns the hook */
 	lunatik_object_t *runtime;
@@ -200,16 +219,23 @@ static const lunatik_class_t luanetfilter_class = {
 * others attach their callbacks, and a packet reaches the runtime of the CPU it arrived on.
 * @function register
 * @tparam table opts Hook options: `hook` (function), `pf`, `hooknum`, `priority` (integers),
-*   and optionally `mark` (integer, default 0). `pf` takes a `linux.nf.proto` value, `hooknum` a
-*   hook of that family, as `linux.nf.inet` or `linux.nf.br` list them, and `priority` a
-*   `linux.nf.ip.pri` or `linux.nf.br.pri` value.
+*   and optionally `mark` (integer, default 0), which selects the packets the hook sees: the
+*   callback runs only for a packet whose `skb:mark()` equals it, and every other packet is
+*   accepted without reaching Lua, so with the default 0 a packet something else marked skips
+*   the hook. `pf` takes a `linux.nf.proto` value, `hooknum` a hook of that family, as
+*   `linux.nf.inet` or `linux.nf.br` list them, and `priority` a `linux.nf.ip.pri` or
+*   `linux.nf.br.pri` value.
 *
 *   `hook(skb)` returns the packet's verdict, a `linux.nf.action` value, and optionally a mark
 *   to set on the packet. A callback that returns no verdict, or a value outside
 *   `linux.nf.action`, or that raises, accepts the packet.
-* @treturn netfilter_hook Registered hook handle.
-* @raise if called after module load; if the hook cannot be registered; in a percpu script, if
-*   this runtime already registered the same `pf`, `hooknum`, `priority` and `mark`
+* @treturn netfilter_hook Registered hook handle. `netfilter.register` keeps this object for its
+*   runtime, so dropping it does not unregister the hook: the hook stays until the runtime closes,
+*   which `stop()` does, and the one hook a percpu script's runtimes share goes when the percpu set
+*   stops.
+* @raise if called after module load; `runtime context mismatch` outside a softirq runtime; if the
+*   hook cannot be registered; in a percpu script, if this runtime already registered the same
+*   `pf`, `hooknum`, `priority` and `mark`
 * @usage
 *   local netfilter = require("netfilter")
 *   local nf        = require("linux.nf")
@@ -226,6 +252,7 @@ static const lunatik_class_t luanetfilter_class = {
 *     hooknum  = nf.inet.PRE_ROUTING,
 *     priority = nf.ip.pri.FILTER,
 *   }
+* @within netfilter
 */
 static int luanetfilter_lregister(lua_State *L)
 {
