@@ -42,12 +42,10 @@ local function stop(registry, script)
 	end
 end
 
---- Runs a Lunatik script in the current context.
--- Creates a new Lunatik runtime for the given script and registers it.
--- Throws an error if a script with the same name is already running.
+--- Runs a script in a new runtime of the given context and registers it under its name.
 -- @tparam string script path or name of the Lua script to run. The ".lua" extension will be trimmed.
--- @tparam[opt] string context Execution context: `"process"` (default), `"softirq"` (netfilter, XDP)
---   or `"hardirq"` (kprobes).
+-- @tparam[opt="process"] string context execution context, as in `lunatik.runtime`: `"process"`,
+--   `"softirq"` (netfilter, XDP) or `"hardirq"` (kprobes).
 -- @tparam[opt] boolean ispercpu create one runtime per CPU id, dispatched by the CPU a
 --   callback fires on; the script runs once per runtime and can read its id with
 --   `lunatik.cpu()`. The runtimes share a netfilter hook and a kprobe; constructors
@@ -55,8 +53,9 @@ end
 --   connection: which one a packet reaches is the CPU the hook runs on, so the
 --   packets of one flow reach several runtimes. Per-flow state belongs in something
 --   the runtimes share, per-CPU state in the runtime.
--- @treturn table created Lunatik runtime object, or the percpu object when `ispercpu` is set.
--- @raise error if the script is already running.
+-- @treturn runtime|percpu the runtime, or the percpu set when `ispercpu` is set.
+-- @raise `"<script> is already running"`, `"invalid option '<context>'"`, or the error the script raises on
+--   load.
 function runner.run(script, context, ispercpu)
 	local script = trim(script)
 	if env.runtimes[script] then
@@ -73,10 +72,10 @@ end
 -- `echod/daemon` for `examples/echod/daemon`.
 -- The spawned script is expected to return a function, which will then be executed in the new thread.
 -- @tparam string script path or name of the Lua script to spawn. The ".lua" extension will be trimmed.
--- @tparam[opt] string context Execution context, `"process"` (default): a softirq or hardirq
---   runtime raises `IRQ runtime cannot spawn threads`.
--- @tparam[opt] boolean ispercpu refused: spawn does not support percpu scripts.
--- @treturn userdata kernel thread object.
+-- @tparam[opt="process"] string context execution context of the runtime; only `"process"` can
+--   spawn: a softirq or hardirq runtime raises `IRQ runtime cannot spawn threads`.
+-- @tparam[opt] boolean ispercpu must be false, or spawn raises `spawn does not support percpu scripts`.
+-- @treturn thread kernel thread object.
 -- @raise error if the script is already running, `percpu` is set, or the thread cannot
 --   start, in which case the runtime it created is stopped and unregistered.
 function runner.spawn(script, context, ispercpu)
