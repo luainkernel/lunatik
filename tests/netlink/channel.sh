@@ -45,10 +45,9 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	exit 0
 }
 skip() { ktap_skip "$1"; ktap_totals; exit 0; }
-command -v gcc  > /dev/null 2>&1 || skip "channel: gcc unavailable"
 command -v genl > /dev/null 2>&1 || skip "channel: genl tool unavailable"
 
-gcc -O2 -o "$SUB_BIN" "$DIR/channel_subscriber.c" 2>/dev/null || skip "channel: subscriber failed to build"
+build_peer "$DIR/channel_subscriber.c" "$SUB_BIN" || skip "channel: no subscriber, without gcc or failing to build"
 
 output=$(lunatik run --context=softirq --percpu "$SCRIPT" 2>&1)
 echo "$output" | grep -q "not allowed in a percpu runtime" || fail "percpu run did not refuse the channel: $output"

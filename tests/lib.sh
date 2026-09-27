@@ -37,6 +37,9 @@ check_dmesg() {
 
 comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
 
+# builds the C peer <source> into <binary>; fails where there is no gcc or it does not build
+build_peer() { command -v gcc > /dev/null 2>&1 && gcc -O2 -o "$2" "$1" 2>/dev/null; }
+
 # a script that fails reports its error on the output.
 run_script() {
 	local output
