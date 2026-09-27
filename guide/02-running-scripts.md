@@ -3,8 +3,20 @@
 ## The lunatik command
 
 ```Shell
-usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu] [compile <arguments>]
+usage: lunatik [-h | -V]
+       lunatik [-i] [-e <chunk>]
+       lunatik load | unload | reload | status
+       lunatik run <script> [process | softirq | hardirq] [percpu]
+       lunatik spawn | stop <script>
+       lunatik list
+       lunatik test [<suite>]
+       lunatik compile [<lunatic argument>...]
 ```
+
+* `-h`, `--help`: print the usage
+* `-V`, `--version`: print the version of the loaded Lunatik, or fail when it is not loaded
+* `-e <chunk>`, `--eval=<chunk>`: run the chunk in the kernel and print what it returns
+* `-i`, `--interactive`: enter the REPL after `-e`
 
 * `load`: load Lunatik kernel modules
 * `unload`: unload Lunatik kernel modules
@@ -13,10 +25,14 @@ usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [
 * `test [suite]`: run installed test suites (see [Development](06-development.md))
 * `compile <arguments>`: run `lunatic` with the given arguments (see [lunatic](#lunatic))
 * `list`: show which runtime environments are currently running
-* `run [softirq|hardirq]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md)
+* `run [process|softirq|hardirq] [percpu]`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`, in process context by default; pass `softirq` for hooks that fire in softirq context (netfilter, XDP), or `hardirq` for hooks that fire in hardirq context (kprobes); optionally pass `percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md)
 * `spawn`: create a new runtime environment and spawn a thread to run the script `/lib/modules/lua/<script>.lua`
 * `stop`: stop the runtime environment created to run the script `<script>`
-* `default`: start a _REPL (Read–Eval–Print Loop)_
+* `default`: start a _REPL (Read–Eval–Print Loop)_, with its banner and prompts on a terminal; on a
+  pipe it runs each line it reads and prints only what the lines return
+
+An operation the kernel refuses exits 1 with `lunatik: <message>` on stderr and nothing on stdout,
+and a wrong invocation exits 2 with the usage on stderr.
 
 ## Execution contexts
 
