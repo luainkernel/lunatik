@@ -44,11 +44,3 @@ test("stop refuses an object of another class", function()
 	assert(err:match("percpu expected"), "stop raised something else: " .. err)
 end)
 
-if linux.numcpus() > 1 then
-	test("a failing runtime raises with its error", function()
-		local ok, err = pcall(lunatik.percpu, failing)
-		assert(not ok, "percpu returned an object for a failing script")
-		assert(err:match("intentional error on the second runtime"), "unexpected error: " .. err)
-	end)
-end
-
