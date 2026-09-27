@@ -7,6 +7,7 @@
 local hash = require("bpf").hash
 local bpf = require("linux.bpf")
 local test = require("util").test
+local pinned = require("tests.bpf.pinned")
 
 local path = "/sys/fs/bpf/test_map"
 local percpu_path = "/sys/fs/bpf/test_map_percpu"
@@ -122,12 +123,7 @@ end)
 
 test("bpf.hash info and length report the map properties", function()
 	local m = hash(path)
-	local info = m:info()
-	assert(info.type == bpf.MAP_TYPE_HASH, "expected hash map type")
-	assert(info.key_size == 3, "expected key_size 3")
-	assert(info.value_size == 3, "expected value_size 3")
-	assert(info.max_entries == 128, "expected max_entries 128")
-	assert(#m == 128, "expected #m == max_entries")
+	pinned.checkinfo(m, bpf.MAP_TYPE_HASH, 3)
 	m:close()
 end)
 

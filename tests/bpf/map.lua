@@ -8,6 +8,7 @@ local map = require("bpf.map")
 local struct = require("struct")
 local bpf = require("linux.bpf")
 local test = require("util").test
+local pinned = require("tests.bpf.pinned")
 
 local tbl_path   = "/sys/fs/bpf/test_map_tbl"
 local map_path   = "/sys/fs/bpf/test_map"
@@ -15,11 +16,6 @@ local array_path = "/sys/fs/bpf/test_map_array"
 local lru_path   = "/sys/fs/bpf/test_map_lru"
 local queue_path = "/sys/fs/bpf/test_map_queue"
 local stack_path = "/sys/fs/bpf/test_map_stack"
-
-local function drain(m)
-	while m:pop() do
-	end
-end
 
 test("bpf.map hash scalar integer round-trip", function()
 	local t <close> = map.hash(tbl_path, "I4", "I4")
@@ -126,7 +122,7 @@ end)
 
 test("bpf.map queue pops in FIFO order", function()
 	local q <close> = map.queue(queue_path, "c3")
-	drain(q)
+	pinned.drain(q)
 	assert(q:push("foo"))
 	assert(q:push("bar"))
 	assert(q:pop() == "foo", "expected first pushed value")
@@ -135,7 +131,7 @@ end)
 
 test("bpf.map stack pops in LIFO order", function()
 	local s <close> = map.stack(stack_path, "c3")
-	drain(s)
+	pinned.drain(s)
 	assert(s:push("foo"))
 	assert(s:push("bar"))
 	assert(s:pop() == "bar", "expected last pushed value")
@@ -144,33 +140,33 @@ end)
 
 test("bpf.map queue peek does not remove the value", function()
 	local q <close> = map.queue(queue_path, "c3")
-	drain(q)
+	pinned.drain(q)
 	assert(q:push("foo"))
 	assert(q:peek() == "foo")
 	assert(q:peek() == "foo")
-	drain(q)
+	pinned.drain(q)
 end)
 
 test("bpf.map queue pop and peek on empty return nil", function()
 	local q <close> = map.queue(queue_path, "c3")
-	drain(q)
+	pinned.drain(q)
 	assert(q:pop() == nil, "expected nil from empty queue")
 	assert(q:peek() == nil, "expected nil from empty queue")
 end)
 
 test("bpf.map queue push on a full map returns false", function()
 	local q <close> = map.queue(queue_path, "c3")
-	drain(q)
+	pinned.drain(q)
 	for _ = 1, q:info().max_entries do
 		assert(q:push("xyz"))
 	end
 	assert(q:push("ovr") == false, "expected false when the map is full")
-	drain(q)
+	pinned.drain(q)
 end)
 
 test("bpf.map queue values follow the spec", function()
 	local q <close> = map.queue(queue_path, "I1I2")
-	drain(q)
+	pinned.drain(q)
 	assert(q:push({7, 258}))
 	local v = q:pop()
 	assert(v[1] == 7 and v[2] == 258, "expected {7, 258}")
