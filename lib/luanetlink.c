@@ -12,6 +12,30 @@
 * dedicated kernel object.
 *
 * @module netlink.channel
+* @usage
+*   -- lunatik run -c softirq <script>: multicasts a notice for each IPv4 packet the host receives
+*   local netlink   = require("netlink")
+*   local message   = require("netlink.message")
+*   local netfilter = require("netfilter")
+*   local nf        = require("linux.nf")
+*
+*   local CMD <const>    = 1
+*   local NOTICE <const> = 1
+*
+*   local channel = netlink.channel("mychannel")
+*   local notice  = message.attrs{[NOTICE] = "packet"}
+*
+*   local function notify(skb)
+*     channel:multicast(CMD, notice)
+*     return nf.action.ACCEPT
+*   end
+*
+*   netfilter.register{
+*     hook     = notify,
+*     pf       = nf.proto.IPV4,
+*     hooknum  = nf.inet.PRE_ROUTING,
+*     priority = nf.ip.pri.FILTER,
+*   }
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -96,7 +120,7 @@ static int luanetlink_multicast(lua_State *L)
 * Unicasts a message to a single userspace subscriber by port id.
 * Safe to call from softirq.
 * @function unicast
-* @tparam integer portid Destination netlink port id.
+* @tparam integer portid Destination netlink port id, of a socket in the initial network namespace.
 * @tparam integer cmd Generic netlink command.
 * @tparam[opt] string payload Message body (e.g. from `netlink.message`).
 * @treturn boolean whether it was queued to the port id (`false` if the port
@@ -138,9 +162,10 @@ static const lunatik_class_t luanetlink_channel_class = {
 
 /***
 * Creates a generic netlink channel.
-* Registers a generic netlink family `name` with a single multicast group;
-* userspace resolves the family by name (e.g. via `netlink.genl`) to learn the
-* group it must join. Like a netfilter hook, it must be created at script load
+* Registers a generic netlink family `name` with a single multicast group, named
+* `lunatik`; userspace resolves the family by name (e.g. via `netlink.genl`, or
+* `genl ctrl get name <name>`) to learn that group's id, and joins it with
+* `NETLINK_ADD_MEMBERSHIP`. Like a netfilter hook, it must be created at script load
 * (process context); the returned channel lives for the runtime and its
 * `multicast`/`unicast` may then be called from softirq.
 * @function new
