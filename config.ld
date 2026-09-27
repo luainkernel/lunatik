@@ -91,7 +91,18 @@ style = './doc/style'
 template = './doc/style'
 
 -- The template renders README.md as the home page and the other topics as the guide.
-topics = {'README.md'}
+topics = {
+	'README.md',
+	'./doc/guide/01-getting-started.md',
+	'./doc/guide/02-running-scripts.md',
+	'./doc/guide/03-percpu.md',
+	'./doc/guide/04-lua.md',
+	'./doc/guide/05-examples.md',
+	'./doc/guide/06-development.md',
+	'./doc/guide/07-resources.md',
+	'./doc/capi.md',
+}
+use_markdown_titles = true
 
 manual_url 'https://www.lua.org/manual/5.5/manual.html'
 
