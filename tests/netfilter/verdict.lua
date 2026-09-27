@@ -12,6 +12,7 @@ local action = nf.action
 local PREFIX   <const> = "netfilter verdict: "
 local RAISED   <const> = PREFIX .. "raised"
 local REMARKED <const> = 219
+local WRAPPED  <const> = 1 << 32 -- DROP in its low 32 bits
 
 local cases = {}
 
@@ -30,6 +31,22 @@ function cases.range()
 	return action.STOP + 1
 end
 
+function cases.wrap()
+	return WRAPPED
+end
+
+function cases.stolen()
+	return action.STOLEN
+end
+
+function cases.repeated()
+	return action.REPEAT
+end
+
+function cases.stop()
+	return action.STOP
+end
+
 function cases.raise()
 	error(RAISED, 0)
 end
@@ -40,6 +57,10 @@ end
 
 function cases.accept()
 	return action.ACCEPT
+end
+
+function cases.queue()
+	return action.QUEUE
 end
 
 function cases.remark()
@@ -60,6 +81,11 @@ local marks = {
 	[217]      = "accept",
 	[218]      = "remark",
 	[REMARKED] = "remarked",
+	[220]      = "wrap",
+	[221]      = "stolen",
+	[222]      = "repeated",
+	[223]      = "stop",
+	[224]      = "queue",
 }
 
 -- a hook later than the one that stores the mark, so the packet reaches it marked
