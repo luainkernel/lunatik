@@ -27,10 +27,11 @@ local sock = require("linux.socket").sock
 -- @type unix
 
 ---
--- Creates a new unix socket object.
+-- Derives a specialization of the class, as `unix.stream` and `unix.dgram` are, or wraps a table
+-- in it. It opens no socket: calling the class does, `unix.stream(path)`.
 -- @function unix:new
 -- @tparam[opt] table o an initial object table.
--- @treturn unix the new socket object.
+-- @treturn unix the derived class or the wrapped table.
 -- @see class
 local unix = class{}
 
@@ -38,8 +39,7 @@ local unix = class{}
 -- Creates a new UNIX domain socket instance.
 -- This is the primary way to create instances (e.g. `local s = unix.stream(path)`).
 -- @param path (string) [optional] Default UNIX socket path stored in the object.
---   Reused automatically by `bind`, `connect`, `send`, `sendto`, and `receivefrom`
---   when no explicit path is given.
+--   Reused by `bind`, `connect` and `dgram:sendto` when no explicit path is given.
 -- @return (table) A new unix socket object.
 -- @see socket.new
 function unix:__call(path)
@@ -147,7 +147,7 @@ unix.dgram = unix:new{type = sock.DGRAM}
 
 ---
 -- Receives data from a DGRAM socket along with the sender's path.
--- @param len (number) [optional] Maximum number of bytes to receive.
+-- @param len (number) Maximum number of bytes to receive.
 -- @param flags (number) [optional] Receive flags.
 -- @return (string) The received data.
 -- @return (string) The sender's path, carrying its leading NUL when the name is an abstract one;
