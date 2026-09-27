@@ -87,6 +87,14 @@ dir = 'doc'
 -- The markup of comments and topics: discount renders tables, which the built-in markdown leaves as text.
 format = 'discount'
 
+-- LDoc writes a backticked name out as <code> before discount runs, so SmartyPants reaches inside it.
+local unsmart = {ndash = '--', mdash = '---', hellip = '...'}
+postprocess_html = function(html)
+	return (html:gsub('<code>(.-)</code>', function(code)
+		return '<code>' .. code:gsub('&(%a+);', unsmart) .. '</code>'
+	end))
+end
+
 style = './doc/style'
 template = './doc/style'
 
