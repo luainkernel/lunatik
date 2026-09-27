@@ -4,7 +4,34 @@
 */
 
 /***
-* kprobes interface.
+* Places kprobes on kernel functions and runs Lua handlers when they are hit.
+*
+* A probe goes on a kernel symbol, or on an address as `syscall.address`,
+* `syscall.table` and `linux.lookup` return one. Its `pre` handler runs before the
+* probed instruction and its `post` handler after it. What a handler returns is
+* ignored, so a probe observes the function and cannot skip it, and the error of a
+* handler that raises goes to the kernel log. `dump()` prints the registers of the
+* probed CPU to the kernel log.
+*
+* Handlers run in hardirq context, so the script runs with
+* `lunatik run -c hardirq <script>` and its handlers must not sleep.
+*
+* See `examples/systrack` and `examples/dropreason`.
+* @usage
+*   -- run with `lunatik run -c hardirq <script>`
+*   local probe = require("probe")
+*
+*   local reported = false
+*
+*   local function pre(symbol, dump)
+*     if not reported then
+*       reported = true
+*       print(symbol)
+*       dump()
+*     end
+*   end
+*
+*   probe.new("do_sys_openat2", {pre = pre})
 * @module probe
 */
 
@@ -238,8 +265,9 @@ LUNATIK_PRIVATECHECKER(luaprobe_checkowned, luaprobe_t *, &luaprobe_class,
 * From a handler this raises: the way to stop delivering there is to return early on a flag
 * the script owns, and the kprobe is unregistered when the runtime stops.
 * @function stop
-* @raise if the percpu object owns this probe, or if called after module load:
-*   unregister_kprobe sleeps, and the runtime is in hardirq by then
+* @raise if the percpu object owns this probe, or `not allowed after module load` once the
+*   runtime is armed (its script body has returned): unregister_kprobe sleeps, and the
+*   runtime is in hardirq by then
 */
 static int luaprobe_stop(lua_State *L)
 {
@@ -253,9 +281,9 @@ static int luaprobe_stop(lua_State *L)
 * Enables or disables the probe.
 * @function enable
 * @tparam boolean flag true to enable, false to disable
-* @raise if the probe has been stopped, if the percpu object owns this probe, or if called
-*   after module load: enable_kprobe and disable_kprobe sleep, and the runtime is in hardirq
-*   by then
+* @raise if the probe has been stopped, if the percpu object owns this probe, or
+*   `not allowed after module load` once the runtime is armed (its script body has
+*   returned): enable_kprobe and disable_kprobe sleep, and the runtime is in hardirq by then
 */
 static int luaprobe_enable(lua_State *L)
 {
@@ -297,10 +325,12 @@ static int luaprobe_new(lua_State *L);
 *   installs a post handler, so a `post` added to it afterwards never fires; a `pre` added
 *   afterwards does
 * @treturn probe
-* @raise if registration fails; in a percpu script, if this runtime already registered the same
-*   symbol or address, or if another runtime of the set registered this target with a different
-*   post handler; or if called after module load: register_kprobe sleeps, and the
-*   runtime is in hardirq by then
+* @raise `runtime context mismatch` unless the runtime is hardirq; if registration fails; in a
+*   percpu script, if this runtime already registered the same symbol or address, or if another
+*   runtime of the set registered this target with a different post handler; or
+*   `not allowed after module load` once the runtime is armed (its script body has returned):
+*   register_kprobe sleeps, and the runtime is in hardirq by then
+* @within probe
 */
 static const luaL_Reg luaprobe_lib[] = {
 	{"new", luaprobe_new},
