@@ -961,8 +961,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   reaches the hook while the runtimes are still being created is accepted
   without being counted; one set holds a hook per target, and a second
   registration of the same one in a runtime is refused; a registration from a
-  callback, after load, is refused; and the same script registers as a plain
-  softirq runtime.
+  callback, after load, is refused, in a percpu script and in a plain softirq
+  runtime, and so is one from a body a driver resumes; and the same script
+  registers as a plain softirq runtime.
 
 - **collected**: a runtime, and a percpu set, whose last handle the collector
   takes closes. Its child requires `byteorder`, which holds the module until

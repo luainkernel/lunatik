@@ -208,8 +208,8 @@ static const lunatik_class_t luanetfilter_class = {
 *   to set on the packet. A callback that returns no verdict, or a value outside
 *   `linux.nf.action`, or that raises, accepts the packet.
 * @treturn netfilter_hook Registered hook handle.
-* @raise if the hook cannot be registered; in a percpu script, if this runtime already
-*   registered the same `pf`, `hooknum`, `priority` and `mark`, or if called after module load
+* @raise if called after module load; if the hook cannot be registered; in a percpu script, if
+*   this runtime already registered the same `pf`, `hooknum`, `priority` and `mark`
 * @usage
 *   local netfilter = require("netfilter")
 *   local nf        = require("linux.nf")
@@ -229,6 +229,7 @@ static const lunatik_class_t luanetfilter_class = {
 */
 static int luanetfilter_lregister(lua_State *L)
 {
+	lunatik_checkarmed(L);
 	luanetfilter_hook_t spec = {.nfops = {.hook = luanetfilter_hook}};
 	luanetfilter_checkspec(L, 1, &spec);
 	lunatik_object_t *runtime = lunatik_checkruntime(L, luanetfilter_class.opt);
