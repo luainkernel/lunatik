@@ -2,7 +2,7 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- Kernel-side client for the examples/shared test (see shared.sh).
+-- Kernel-side client for the examples/shared/daemon test (see shared.sh).
 
 local socket = require("socket")
 local net    = require("net")

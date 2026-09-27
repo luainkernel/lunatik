@@ -17,7 +17,7 @@
 #
 # Usage: sudo bash tests/fsnotify/fsmonitor.sh
 
-SCRIPT="examples/fsmonitor"
+SCRIPT="examples/fsmonitor/monitor"
 WATCHED="/tmp/lunatik-fsmonitor"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"

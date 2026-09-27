@@ -10,7 +10,7 @@
 * booleans, integers, lunatik objects, or `nil` (to delete an entry). A read that
 * meets a writer releasing the entry's object sees the entry gone.
 *
-* See `examples/shared.lua` for a practical example.
+* See `examples/shared/daemon.lua` for a practical example.
 * @module rcu
 */
 

@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Drives the spawned examples/shared daemon over its own port with a kernel-side
+# Drives the spawned examples/shared/daemon over its own port with a kernel-side
 # client: a GET of a key that was never assigned, and a GET of a key a SET
 # removed, must each answer with an empty line rather than take the thread body
 # down and leave the port bound with nobody in accept(); and a GET of a key that
@@ -19,7 +19,7 @@
 # Usage: sudo bash tests/examples/shared.sh
 
 SCRIPT="tests/examples/shared_client"
-EXAMPLE="examples/shared"
+EXAMPLE="examples/shared/daemon"
 MODULE="luasocket"
 SLEEP=1
 BINDS=15

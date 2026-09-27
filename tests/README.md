@@ -142,7 +142,7 @@ the runtime for the binding, instead of the suite reading the kernel version.
 
 ### examples
 
-- **shared**: drives the spawned `examples/shared` daemon over its own port with
+- **shared**: drives the spawned `examples/shared/daemon` over its own port with
   a kernel-side client: a GET of a key that was never assigned and a GET of a
   key a SET removed each answer with an empty line, instead of taking the thread
   body down and leaving the port bound with nobody in `accept()`; and a peer
