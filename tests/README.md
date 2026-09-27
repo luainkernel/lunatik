@@ -514,6 +514,11 @@ after the watch is stopped.
   hold is tens of MiB in `SUnreclaim`, and the script then holds as many
   live buffers of the same size; skips when the counter does not move for
   that probe either.
+- **context**: `hid.register()` registers from the body of a `softirq`
+  runtime, which runs in process context; resumed past the body, the armed
+  state a `probe` or `raw_event` callback runs in, it refuses with "not
+  allowed after module load", since registering a driver sleeps. Skips
+  unless the loaded `luahid` is the installed one and carries the refusal.
 
 ### io
 
