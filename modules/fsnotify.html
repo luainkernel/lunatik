@@ -172,7 +172,11 @@
 <h1>fsnotify<span class="kind">Module</span></h1>
 <p class="lead">Filesystem notification.</p>
  Places marks on filesystem objects and hands the events they report to a Lua
- callback. Event masks are the <a href="../modules/linux.fs.html#">linux.fs</a> bits.</p>
+ callback. Event masks are the <a href="../modules/linux.fs.html#">linux.fs</a> bits, named without the <code>FS_</code> prefix:
+ <code>ACCESS</code>, <code>MODIFY</code>, <code>ATTRIB</code>, <code>CLOSE_WRITE</code>, <code>CLOSE_NOWRITE</code>, <code>OPEN</code>, <code>MOVED_FROM</code>,
+ <code>MOVED_TO</code>, <code>CREATE</code>, <code>DELETE</code>, <code>DELETE_SELF</code>, <code>MOVE_SELF</code>, <code>OPEN_EXEC</code>, <code>UNMOUNT</code>,
+ <code>Q_OVERFLOW</code>, <code>ERROR</code> and <code>RENAME</code>; the flags <code>EVENT_ON_CHILD</code> and <code>ISDIR</code>; and the
+ permission events <code>OPEN_PERM</code>, <code>ACCESS_PERM</code> and <code>OPEN_EXEC_PERM</code>.</p>
 
 <p> A mark goes on one inode, on a mount, or on a whole filesystem. The last two
  reach every file they cover, so a mark on the mount or the superblock of <code>/</code>
@@ -726,7 +730,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:01</span>
 </div>
 </footer>
 </body>

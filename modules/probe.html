@@ -170,8 +170,34 @@
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-tracing">Tracing and scheduling</a></div>
 <h1>probe<span class="kind">Module</span></h1>
-<p class="lead">kprobes interface.</p>
+<p class="lead">Places kprobes on kernel functions and runs Lua handlers when they are hit.</p>
+ A probe goes on a kernel symbol, or on an address as <a href="../modules/syscall.html#address">syscall.address</a>,
+ <a href="../modules/syscall.table.html#">syscall.table</a> and <a href="../modules/linux.html#lookup">linux.lookup</a> return one. Its <code>pre</code> handler runs before the
+ probed instruction and its <code>post</code> handler after it. What a handler returns is
+ ignored, so a probe observes the function and cannot skip it, and the error of a
+ handler that raises goes to the kernel log. <code>dump()</code> prints the registers of the
+ probed CPU to the kernel log.</p>
 
+<p> Handlers run in hardirq context, so the script runs with
+ <code>lunatik run -c hardirq &lt;script&gt;</code> and its handlers must not sleep.</p>
+
+<p> See <code>examples/systrack</code> and <code>examples/dropreason</code>.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">-- run with `lunatik run -c hardirq &lt;script&gt;`
+local probe = require(&quot;probe&quot;)
+
+local reported = false
+
+local function pre(symbol, dump)
+  if not reported then
+    reported = true
+    print(symbol)
+    dump()
+  end
+end
+
+probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
+</pre>
 
 <h2 id="Class_probe">Class probe </h2>
 <div class="tbl"><table class="function_list">
@@ -180,16 +206,19 @@
 	<td class="summary">Enables or disables the probe.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#probe:new">probe:new (symbol, handlers)</a></td>
-	<td class="summary">Creates and registers a new kprobe.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#probe:stop">probe:stop ()</a></td>
 	<td class="summary">Unregisters and stops the probe.</td>
 	</tr>
 </table></div>
+<h2 id="probe">probe</h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#new">new (symbol, handlers)</a></td>
+	<td class="summary">Creates and registers a new kprobe.</td>
+	</tr>
+</table></div>
 
-    <h2 class="section-header" id="Class_probe-details"><a name="Class_probe"></a><a name="probe"></a>Class probe  in detail</h2>
+    <h2 class="section-header" id="Class_probe-details"><a name="Class_probe"></a>Class probe  in detail</h2>
 
           <div class="section-description">
           Represents a registered kprobe.
@@ -210,14 +239,35 @@
 
 
     <h3>Raises</h3>
-     if the probe has been stopped, if the percpu object owns this probe, or if called
-   after module load: enable_kprobe and disable_kprobe sleep, and the runtime is in hardirq
-   by then
+     if the probe has been stopped, if the percpu object owns this probe, or
+   <code>not allowed after module load</code> once the runtime is armed (its script body has
+   returned): enable_kprobe and disable_kprobe sleep, and the runtime is in hardirq by then
 
 
 
 </dd>
-    <dt id="probe:new"><a name="probe:new"></a><strong>probe:new (symbol, handlers)</strong></dt>
+    <dt id="probe:stop"><a name="probe:stop"></a><strong>probe:stop ()</strong></dt>
+    <dd>
+    Unregisters and stops the probe.
+ From a handler this raises: the way to stop delivering there is to return early on a flag
+ the script owns, and the kprobe is unregistered when the runtime stops.
+
+
+
+
+    <h3>Raises</h3>
+     if the percpu object owns this probe, or <code>not allowed after module load</code> once the
+   runtime is armed (its script body has returned): unregister_kprobe sleeps, and the
+   runtime is in hardirq by then
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header" id="probe-details"><a name="probe"></a>probe in detail</h2>
+
+    <dl class="function">
+    <dt id="new"><a name="new"></a><strong>new (symbol, handlers)</strong></dt>
     <dd>
     Creates and registers a new kprobe.
  In a percpu script the runtimes share one kprobe per symbol or address: the first
@@ -257,26 +307,11 @@
     </ol>
 
     <h3>Raises</h3>
-     if registration fails; in a percpu script, if this runtime already registered the same
-   symbol or address, or if another runtime of the set registered this target with a different
-   post handler; or if called after module load: register_kprobe sleeps, and the
-   runtime is in hardirq by then
-
-
-
-</dd>
-    <dt id="probe:stop"><a name="probe:stop"></a><strong>probe:stop ()</strong></dt>
-    <dd>
-    Unregisters and stops the probe.
- From a handler this raises: the way to stop delivering there is to return early on a flag
- the script owns, and the kprobe is unregistered when the runtime stops.
-
-
-
-
-    <h3>Raises</h3>
-    if the percpu object owns this probe, or if called after module load:
-   unregister_kprobe sleeps, and the runtime is in hardirq by then
+     <code>runtime context mismatch</code> unless the runtime is hardirq; if registration fails; in a
+   percpu script, if this runtime already registered the same symbol or address, or if another
+   runtime of the set registered this target with a different post handler; or
+   <code>not allowed after module load</code> once the runtime is armed (its script body has returned):
+   register_kprobe sleeps, and the runtime is in hardirq by then
 
 
 
@@ -295,7 +330,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:01</span>
 </div>
 </footer>
 </body>

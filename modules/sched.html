@@ -179,7 +179,13 @@
  kfunc, which in turn invokes a Lua callback function previously registered
  using <code>sched.attach()</code>.</p>
 
-<p> Needs 6.12 and later, with <code>CONFIG_SCHED_CLASS_EXT</code>.
+<p> Needs 6.12 and later, with <code>CONFIG_SCHED_CLASS_EXT</code>; without it the module loads
+ and exports nothing, so <a href="../modules/sched.html#attach">sched.attach</a> is <code>nil</code>. The kfunc needs the module&rsquo;s BTF:
+ run <code>sudo make btf_install</code> before <code>make</code>, or the kernel logs
+ <code>missing module BTF, cannot register kfuncs</code> and an eBPF program that calls
+ <code>bpf_luasched_run</code> does not load. The eBPF side is a sched_ext <code>struct_ops</code>
+ scheduler; <code>tests/sched/sched_pass.bpf.c</code> with <code>tests/sched/pass.lua</code> is a worked
+ pair.
 
 <h2 id="Class_sched_ctx">Class sched_ctx </h2>
 <div class="tbl"><table class="function_list">
@@ -255,6 +261,9 @@
     <dt id="sched_ctx:task"><a name="sched_ctx:task"></a><strong>sched_ctx:task ()</strong></dt>
     <dd>
     Returns the object for the current task.
+ The same task object is reused for every callback: it is valid only during the
+ callback that returned it, and later it raises or reads the task of the callback
+ then running.
 
 
 
@@ -275,22 +284,31 @@
     <dl class="function">
     <dt id="attach"><a name="attach"></a><strong>attach (callback)</strong></dt>
     <dd>
-    <p>Registers a Lua callback function to be invoked by a sched_ext eBPF program.
+    Registers a Lua callback function to be invoked by a sched_ext eBPF program.
  When a sched_ext program calls the <code>bpf_luasched_run</code> kfunc, Lunatik will execute
  the registered Lua <code>callback</code> associated with the current Lunatik runtime.
- The runtime invoking this function must be non-sleepable.</p>
+ The runtime must be a hardirq one (<code>lunatik run -c hardirq &lt;script&gt;</code>).
+ Calling it again replaces the previous callback.</p>
 
-<p> The <code>bpf_luasched_run</code> kfunc is called from an eBPF program with the following signature:
- <code>int bpf_luasched_run(const char <em>key, size_t key__sz, struct task_struct </em>task_struct, struct task_class *cls)</code></p>
+<p> The eBPF program declares the kfunc as:</p>
+
+<pre><code> extern int bpf_luasched_run(const char *key, size_t key__sz,
+     struct task_struct *task, struct task_class *cls) __ksym;
+</code></pre>
 
 <ul>
-<li><code>key</code>: A string identifying the Lunatik runtime (e.g., the script name like &ldquo;examples/workload/workload&rdquo;).
-This key is used to look up the runtime in Lunatik&rsquo;s internal table of active runtimes.</li>
-<li><code>key_sz</code>: Length of the key string (including the null terminator).</li>
-<li><code>task_struct</code>: The task context (<code>struct task_struct *</code>).</li>
-<li><code>cls</code>: The scheduling decision (dsq and slice).</li>
+<li><code>key</code>: the name of the Lunatik runtime, the script as given to <code>lunatik run</code>
+without <code>.lua</code> (e.g. &ldquo;sched/policy&rdquo;; a path keeps its directory). It is looked up
+in Lunatik&rsquo;s table of active runtimes.</li>
+<li><code>key__sz</code>: <code>sizeof</code> the key array, the NUL terminator included.</li>
+<li>the task pointer: the task being scheduled.</li>
+<li><code>cls</code>: where the decision is written, a struct of two <code>u64</code>, the dispatch queue
+and then the slice.</li>
 </ul>
 
+
+<p> It returns 0 once <code>cls</code> is filled, whether or not a callback ran, and -1 when <code>cls</code>
+ is NULL.
 
 
     <h3>Parameters</h3>
@@ -315,7 +333,7 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
     </ol>
 
     <h3>Raises</h3>
-    Error if the current runtime is sleepable or if internal setup fails.
+    <code>runtime context mismatch</code> unless the runtime is hardirq, or on allocation failure.
 
     <h3>See also</h3>
     <ul>
@@ -323,7 +341,7 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
     </ul>
 
     <h3>Usage</h3>
-        <pre class="example"><span class="comment">-- Lua script (e.g., "my_sched_handler.lua" which is run via <code>lunatik run --context=hardirq my_sched_handler.lua</code>)
+        <pre class="example"><span class="comment">-- sched/policy.lua, run with <code>lunatik run -c hardirq sched/policy</code>
 </span><span class="keyword">local</span> sched = <span class="global">require</span>(<span class="string">"sched"</span>)
 <span class="keyword">local</span> scx = <span class="global">require</span>(<span class="string">"linux.scx"</span>)
 
@@ -338,7 +356,7 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
 sched.<span class="function-name">attach</span>(my_scheduler)
 
 <span class="comment">-- In eBPF C code, to call the above Lua function:
-</span><span class="comment">-- char rt_key[] = "my_sched_handler.lua"; // Key matches the script name
+</span><span class="comment">-- char rt_key[] = "sched/policy"; // the script, without .lua
 </span><span class="comment">-- int ret = bpf_luasched_run(rt_key, sizeof(rt_key), p, cls);</span></pre>
 
 </dd>
@@ -378,7 +396,7 @@ sched.<span class="function-name">attach</span>(my_scheduler)
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:01</span>
 </div>
 </footer>
 </body>

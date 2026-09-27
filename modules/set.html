@@ -177,7 +177,7 @@
  Built once, it is then read-only: lookups take no lock and allocate nothing, safe
  from softirq.</p>
 
-<p> <a href="../modules/set.html#set:new">set.new</a> builds a plain set, tested for exact membership with <a href="../modules/set.html#set:has">set:has</a>: a single
+<p> <a href="../modules/set.html#new">set.new</a> builds a plain set, tested for exact membership with <a href="../modules/set.html#set:has">set:has</a>: a single
  binary search, <code>O(log n)</code>.
  <a href="../modules/set.html#set.labeled">set.labeled</a> builds a labeled set: each member carries a 32-bit label bitmask, and
  <a href="../modules/set.html#set.labeled:match">set:match</a> walks a key by <code>.</code> returning the bitwise OR of the labels of every member
@@ -188,61 +188,36 @@
          <a href="../modules/rcu.html#">rcu</a>
     </ul>
 
-<h2 id="Functions">Functions</h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#__len">__len ()</a></td>
-	<td class="summary">Returns the number of members.</td>
-	</tr>
-</table></div>
 <h2 id="Class_set">Class set </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
 	<td class="name"><a href="#set:has">set:has (s)</a></td>
 	<td class="summary">Returns whether a string is in the set.</td>
 	</tr>
+</table></div>
+<h2 id="set">set</h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#set:new">set:new (strings)</a></td>
+	<td class="name"><a href="#labeled">labeled (t)</a></td>
+	<td class="summary">Builds a labeled set from a table of members, each with a label bitmask.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#new">new (strings)</a></td>
 	<td class="summary">Builds a plain set from an array of strings.</td>
 	</tr>
 </table></div>
 <h2 id="Class_set_labeled">Class set.labeled </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#set.labeled:labeled">set.labeled:labeled (t)</a></td>
-	<td class="summary">Builds a labeled set from a table of members, each with a label bitmask.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#set.labeled:match">set.labeled:match (s)</a></td>
 	<td class="summary">Returns the union of the labels of <code>s</code> and its suffixes, or 0.</td>
 	</tr>
 </table></div>
 
-    <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
-
-    <dl class="function">
-    <dt id="__len"><a name="__len"></a><strong>__len ()</strong></dt>
-    <dd>
-    Returns the number of members.
-
-
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        the number of members.
-    </ol>
-
-
-
-
-</dd>
-</dl>
-    <h2 class="section-header" id="Class_set-details"><a name="Class_set"></a><a name="set"></a>Class set  in detail</h2>
+    <h2 class="section-header" id="Class_set-details"><a name="Class_set"></a>Class set  in detail</h2>
 
           <div class="section-description">
-          A built plain <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#set:new">set.new</a>.
+          A built plain <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#new">set.new</a>; <code>#s</code> is its number of members.
           </div>
     <dl class="function">
     <dt id="set:has"><a name="set:has"></a><strong>set:has (s)</strong></dt>
@@ -269,7 +244,44 @@
 
 
 </dd>
-    <dt id="set:new"><a name="set:new"></a><strong>set:new (strings)</strong></dt>
+</dl>
+    <h2 class="section-header" id="set-details"><a name="set"></a>set in detail</h2>
+
+    <dl class="function">
+    <dt id="labeled"><a name="labeled"></a><strong>labeled (t)</strong></dt>
+    <dd>
+    Builds a labeled set from a table of members, each with a label bitmask.</p>
+
+<p> It allocates, so call it where it can sleep (a process-context runtime, or any
+ runtime&rsquo;s load).
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">{[string]=integer}</a></span>
+         the member/labels pairs; labels are in <code>[1, 2<sup>32</sup>)</code>.
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/set.html#set.labeled">set.labeled</a></span>
+        the built labeled set.
+    </ol>
+
+    <h3>Raises</h3>
+    Error on a non-string member, a label outside <code>[1, 2<sup>32</sup>)</code>, if the members
+ exceed 4 GiB, or on allocation failure.
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">local</span> s = set.<span class="function-name">labeled</span>({ [<span class="string">"a.b.c"</span>] = <span class="number">1</span>, [<span class="string">"b.c"</span>] = <span class="number">2</span>, [<span class="string">"c"</span>] = <span class="number">4</span> })
+ <span class="keyword">local</span> labels = s:<span class="function-name">match</span>(<span class="string">"a.b.c"</span>)  <span class="comment">--&gt; 7, the union 1 | 2 | 4</span></pre>
+
+</dd>
+    <dt id="new"><a name="new"></a><strong>new (strings)</strong></dt>
     <dd>
     Builds a plain set from an array of strings.</p>
 
@@ -307,42 +319,9 @@
     <h2 class="section-header" id="Class_set_labeled-details"><a name="Class_set_labeled"></a><a name="set.labeled"></a>Class set.labeled  in detail</h2>
 
           <div class="section-description">
-          A built labeled <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#set.labeled">set.labeled</a>.
+          A built labeled <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#set.labeled">set.labeled</a>; <code>#s</code> is its number of members.
           </div>
     <dl class="function">
-    <dt id="set.labeled:labeled"><a name="set.labeled:labeled"></a><strong>set.labeled:labeled (t)</strong></dt>
-    <dd>
-    Builds a labeled set from a table of members, each with a label bitmask.</p>
-
-<p> It allocates, so call it where it can sleep (a process-context runtime, or any
- runtime&rsquo;s load).
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">t</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">{[string]=integer}</a></span>
-         the member/labels pairs; labels are in <code>[1, 2<sup>32</sup>)</code>.
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/set.html#set.labeled">set.labeled</a></span>
-        the built labeled set.
-    </ol>
-
-    <h3>Raises</h3>
-    Error on a non-string member, a label outside <code>[1, 2<sup>32</sup>)</code>, if the members
- exceed 4 GiB, or on allocation failure.
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> s = set.<span class="function-name">labeled</span>({ [<span class="string">"a.b.c"</span>] = <span class="number">1</span>, [<span class="string">"b.c"</span>] = <span class="number">2</span>, [<span class="string">"c"</span>] = <span class="number">4</span> })
- <span class="keyword">local</span> labels = s:<span class="function-name">match</span>(<span class="string">"a.b.c"</span>)  <span class="comment">--&gt; 7, the union 1 | 2 | 4</span></pre>
-
-</dd>
     <dt id="set.labeled:match"><a name="set.labeled:match"></a><strong>set.labeled:match (s)</strong></dt>
     <dd>
     Returns the union of the labels of <code>s</code> and its suffixes, or 0.</p>
@@ -384,7 +363,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:01</span>
 </div>
 </footer>
 </body>

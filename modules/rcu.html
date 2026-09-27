@@ -173,111 +173,47 @@
 <p class="lead">RCU-synchronized hash table.</p>
  Provides a concurrent hash table using Read-Copy-Update (RCU) synchronization.
  Reads are lockless; writes are serialized. Keys are strings, values can be
- booleans, integers, lunatik objects, or <code>nil</code> (to delete an entry). A read that
+ booleans, integers, shareable lunatik objects, or <code>nil</code> (to delete an entry). A
+ SINGLE object, such as a <a href="../modules/device.html#">device</a>, a <a href="../modules/probe.html#">probe</a> or a <a href="../modules/hid.html#">hid</a> driver, raises
+ <code>cannot share SINGLE object</code>, and a string or a table raises <code>unsupported type</code>.
+ Reading an object returns a new handle on the same kernel object; from a softirq or
+ hardirq runtime, one whose class needs process context raises
+ <code>&apos;&lt;class&gt;&apos;: process-context class in interrupt-context runtime</code>. A read that
  meets a writer releasing the entry&rsquo;s object sees the entry gone.</p>
 
 <p> See <code>examples/shared/daemon.lua</code> for a practical example.
 
-<h2 id="Class_rcu_table">Class rcu_table </h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#rcu_table:__index">rcu_table:__index (key)</a></td>
-	<td class="summary">Retrieves a value from the table (RCU-protected, lockless).</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#rcu_table:__newindex">rcu_table:__newindex (key, value)</a></td>
-	<td class="summary">Sets or removes a value in the table (serialized).</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#rcu_table:map">rcu_table:map (callback)</a></td>
-	<td class="summary">Iterates over the table calling <code>callback(key, value)</code> for each entry.</td>
-	</tr>
-</table></div>
 <h2 id="rcu">rcu</h2>
 <div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#map">map (t, callback)</a></td>
+	<td class="summary">Iterates over the table calling <code>callback(key, value)</code> for each entry.</td>
+	</tr>
 	<tr>
 	<td class="name"><a href="#table">table ([size=256])</a></td>
 	<td class="summary">Creates a new RCU hash table.</td>
 	</tr>
 </table></div>
 
-    <h2 class="section-header" id="Class_rcu_table-details"><a name="Class_rcu_table"></a><a name="rcu_table"></a>Class rcu_table  in detail</h2>
+    <h2 class="section-header" id="rcu-details"><a name="rcu"></a>rcu in detail</h2>
 
-          <div class="section-description">
-          RCU hash table object.
- Supports table-like access via <a href="../modules/rcu.html#rcu_table:__index">__index</a> and <a href="../modules/rcu.html#rcu_table:__newindex">__newindex</a>.
-          </div>
-            <pre class="example"><span class="keyword">local</span> t = rcu.<span class="global">table</span>()
-t[<span class="string">"key"</span>] = <span class="keyword">true</span>        <span class="comment">-- boolean
-</span>t[<span class="string">"n"</span>]   = <span class="number">42</span>          <span class="comment">-- integer
-</span>t[<span class="string">"obj"</span>] = data.<span class="function-name">new</span>(<span class="number">8</span>) <span class="comment">-- object
-</span><span class="global">print</span>(t[<span class="string">"key"</span>])        <span class="comment">-- true
-</span>t[<span class="string">"key"</span>] = <span class="keyword">nil</span>         <span class="comment">-- delete</span></pre>
     <dl class="function">
-    <dt id="rcu_table:__index"><a name="rcu_table:__index"></a><strong>rcu_table:__index (key)</strong></dt>
-    <dd>
-    Retrieves a value from the table (RCU-protected, lockless).
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">key</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span>, <span class="type">integer</span>, <span class="type">object</span> or <span class="type">nil</span></span>
-        <code>nil</code> for a key without an entry, and for one whose
-   object a writer is releasing
-    </ol>
-
-
-
-
-</dd>
-    <dt id="rcu_table:__newindex"><a name="rcu_table:__newindex"></a><strong>rcu_table:__newindex (key, value)</strong></dt>
-    <dd>
-    Sets or removes a value in the table (serialized).
- Assigning <code>nil</code> removes the entry. The value an assignment replaces or removes is
- released on the assigning task once the table&rsquo;s lock is dropped, so a runtime or a
- socket whose last reference the entry held closes there, in the writer&rsquo;s own context:
- in softirq when a softirq runtime writes the table, with IRQs off when a hardirq one does.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">key</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         up to <code>LUARCU_MAXKEY</code> bytes, exclusive
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">boolean</span>, <span class="type">integer</span>, <span class="type">object</span> or <span class="type">nil</span></span>
-
-        </li>
-    </ul>
-
-
-    <h3>Raises</h3>
-    Error if the key is out of bounds, or on memory allocation failure.
-
-
-
-</dd>
-    <dt id="rcu_table:map"><a name="rcu_table:map"></a><strong>rcu_table:map (callback)</strong></dt>
+    <dt id="map"><a name="map"></a><strong>map (t, callback)</strong></dt>
     <dd>
     Iterates over the table calling <code>callback(key, value)</code> for each entry.
- The walk runs inside an SRCU read-side critical section, so the callback may sleep
- and a writer on any runtime may change the table meanwhile: an entry removed or
- replaced under the walk may still be reached and is then skipped, one added is
- visited only if its bucket is still ahead, and the order is not guaranteed.
+ The walk runs inside an SRCU read-side critical section, which allows the callback
+ to sleep; whether it may is its runtime&rsquo;s context, as for any code of a softirq or
+ hardirq runtime. A writer on any runtime may change the table meanwhile: an entry
+ removed or replaced under the walk may still be reached and is then skipped, one
+ added is visited only if its bucket is still ahead, and the order is not guaranteed.
 
 
     <h3>Parameters</h3>
     <ul>
+        <li><span class="parameter">t</span>
+            <span class="types"><span class="type">rcu_table</span></span>
+         the table to walk
+        </li>
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
          <code>function(key, value)</code>; an entry whose object a writer is
@@ -290,12 +226,10 @@ t[<span class="string">"key"</span>] = <span class="keyword">true</span>        
     Error if callback raises.
 
 
+    <h3>Usage</h3>
+        <pre class="example">rcu.<span class="function-name">map</span>(t, <span class="keyword">function</span> (key, value) <span class="global">print</span>(key, value) <span class="keyword">end</span>)</pre>
 
 </dd>
-</dl>
-    <h2 class="section-header" id="rcu-details"><a name="rcu"></a>rcu in detail</h2>
-
-    <dl class="function">
     <dt id="table"><a name="table"></a><strong>table ([size=256])</strong></dt>
     <dd>
     Creates a new RCU hash table.
@@ -306,7 +240,7 @@ t[<span class="string">"key"</span>] = <span class="keyword">true</span>        
         <li><span class="parameter">size</span>
             <span class="types"><span class="type">integer</span></span>
          Number of hash buckets (rounded up to power of two), from 1 up to
-   <code>LUARCU_MAXSIZE</code>, the largest count whose table can be sized; what memory serves is the allocator&rsquo;s.
+   the largest count whose table size does not overflow; what memory serves is the allocator&rsquo;s.
          (<em>default</em> 256)
         </li>
     </ul>
@@ -341,7 +275,7 @@ t[<span class="string">"key"</span>] = <span class="keyword">true</span>        
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:01</span>
 </div>
 </footer>
 </body>

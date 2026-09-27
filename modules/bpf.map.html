@@ -184,11 +184,14 @@
  in field order.</p>
 
 <p> Operations on a table proxy come from outside it (<a href="../modules/bpf.map.html#close">close</a> and <a href="../modules/bpf.map.html#info">info</a> are
- module functions, as in Lua&rsquo;s <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a> library or <a href="../modules/rcu.html#rcu_table:map">rcu.map</a>), so any key the
+ module functions, as in Lua&rsquo;s <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a> library or <a href="../modules/rcu.html#map">rcu.map</a>), so any key the
  spec can encode is a valid map key.</p>
 
 <p> Conditional updates (<code>BPF_NOEXIST</code>/<code>BPF_EXIST</code>) and the boolean results
- belong to the raw API.
+ belong to the raw API.</p>
+
+<p> As in <a href="../modules/bpf.html#">bpf</a>, a softirq or hardirq runtime opens maps only while its script body
+ runs; the proxies can then be used from handlers.
     <h3>See also</h3>
     <ul>
          <a href="../modules/bpf.html#">bpf</a>
@@ -268,7 +271,9 @@ print(events:pop())
     <dt id="array"><a name="array"></a><strong>array (pathname, keyspec, valuespec)</strong></dt>
     <dd>
     Opens a pinned array map as a table.
- Keys are the <code>u32</code> indices of the array.
+ Keys are the <code>u32</code> indices of the array. Array elements always exist: every index
+ below <code>max_entries</code> reads a value, zero-filled if never set, and assigning <code>nil</code>
+ raises <code>EINVAL</code>; write a zero value instead.
 
 
     <h3>Parameters</h3>
@@ -582,7 +587,7 @@ print(events:pop())
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:01</span>
 </div>
 </footer>
 </body>

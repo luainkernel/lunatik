@@ -182,7 +182,11 @@
 
 <p> Keys and values are exchanged as packed Lua strings whose sizes must
  match the map&rsquo;s configured key and value sizes. Queues and stacks
- have no keys, so only <code>value_size</code> applies to them.
+ have no keys, so only <code>value_size</code> applies to them.</p>
+
+<p> Needs <code>CONFIG_BPF_SYSCALL</code> and a map pinned on bpffs, as <code>bpftool map pin</code>
+ leaves one. The flags <a href="../modules/bpf.html#bpf_hash:update">update</a> and <a href="../modules/bpf.html#bpf_queue:push">push</a> take come from <code>require(&quot;linux.bpf&quot;)</code>:
+ <code>ANY</code>, <code>NOEXIST</code> and <code>EXIST</code>.
 
 <h2 id="Class_bpf_hash">Class bpf_hash </h2>
 <div class="tbl"><table class="function_list">
@@ -296,7 +300,8 @@
     </ol>
 
     <h3>Raises</h3>
-    Error if the operation is not permitted by the map.
+    <code>invalid key size</code> when the key does not match the map, or the kernel&rsquo;s errno,
+   such as <code>EINVAL</code> on an array map.
 
 
 
@@ -340,7 +345,7 @@
     </ol>
 
     <h3>Raises</h3>
-    Error if the operation fails.
+    <code>invalid key size</code> when the key does not match the map, or the kernel&rsquo;s errno.
 
 
 
@@ -349,6 +354,9 @@
     <dd>
     Returns the next key in the map.
  Mirrors Lua&rsquo;s <code>next(t, key)</code>, so it can drive a generic <code>for</code> directly.
+ On hash and LRU hash maps, <a href="../modules/bpf.html#bpf_hash:next">next</a> given a key the map does not hold starts again from
+ the first key, so deleting entries during the walk, or an eBPF program deleting them
+ meanwhile, can visit keys again; collect the keys first when the loop deletes.
 
 
     <h3>Parameters</h3>
@@ -368,7 +376,7 @@
     </ol>
 
     <h3>Raises</h3>
-    Error if the operation fails.
+    <code>invalid key size</code> when the key does not match the map, or the kernel&rsquo;s errno.
 
 
     <h3>Usage</h3>
@@ -401,7 +409,8 @@ flow:<span class="function-name">close</span>()</pre>
     </ol>
 
     <h3>Raises</h3>
-    Error if the operation is not supported by the map (e.g. array maps).
+    <code>invalid key size</code> when the key does not match the map, <code>EOPNOTSUPP</code> when the
+   map does not support it (e.g. array maps), or the kernel&rsquo;s errno.
 
 
 
@@ -440,7 +449,8 @@ flow:<span class="function-name">close</span>()</pre>
     </ol>
 
     <h3>Raises</h3>
-    Error if the operation is not permitted by the map.
+    <code>invalid key size</code> or <code>invalid value size</code> when a string does not match the map, or
+   the kernel&rsquo;s errno, such as <code>E2BIG</code> when a hash map is full or <code>EINVAL</code> for bad flags.
 
 
 
@@ -517,7 +527,8 @@ flow:<span class="function-name">close</span>()</pre>
     </ol>
 
     <h3>Raises</h3>
-    Error on invalid flags.
+    <code>invalid value size</code> when the value does not match the map, or the kernel&rsquo;s
+   errno, such as <code>EINVAL</code> for bad flags.
 
 
 
@@ -575,8 +586,9 @@ flow:<span class="function-name">close</span>()</pre>
     </ol>
 
     <h3>Raises</h3>
-     Error if the path does not resolve to a pinned eBPF hash map, or if called
- after module load: the path lookup sleeps, so on an interrupt-context runtime
+     Error if the path does not resolve to a pinned eBPF hash map, or
+ <code>not allowed after module load</code> once the runtime is armed (its script body has
+ returned): the path lookup sleeps, so on an interrupt-context runtime
  (softirq/hardirq) the constructors are only allowed while the script body runs;
  the returned handle can then be used from handlers.
 
@@ -698,7 +710,7 @@ counter:<span class="function-name">close</span>()</pre>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:01</span>
 </div>
 </footer>
 </body>

@@ -170,26 +170,45 @@
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-devices">Devices and events</a></div>
 <h1>hid<span class="kind">Module</span></h1>
-<p class="lead">Lua interface to the Linux HID subsystem.</p>
+<p class="lead">Writes a HID driver in Lua: it matches devices by <code>id_table</code>, and can fix a
+ device&rsquo;s report descriptor and rewrite its raw reports.</p>
+ The driver&rsquo;s runtime is softirq: the script runs with
+ <code>lunatik run -c softirq &lt;script&gt;</code>, other contexts raise
+ <code>runtime context mismatch</code>, and the callbacks, which run under that runtime&rsquo;s
+ lock, must not sleep. The driver stays registered until the runtime stops.</p>
 
+<p> See <code>examples/gesture</code> and <code>examples/xiaomi</code>.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">-- run with `lunatik run -c softirq &lt;script&gt;`
+local hid = require(&quot;hid&quot;)
 
-<h2 id="Class_hid_driver">Class hid_driver </h2>
+local function raw_event(driver, hdev, report, raw)
+  print(hdev.name, report.id, #raw)
+end
+
+hid.register({
+  name = &quot;luahid_trace&quot;,
+  id_table = {{bus = 0x05, vendor = 0x2717, product = 0x5014}},
+  raw_event = raw_event,
+})
+</pre>
+
+<h2 id="hid">hid</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#hid_driver:register">hid_driver:register (opts)</a></td>
+	<td class="name"><a href="#register">register (opts)</a></td>
 	<td class="summary">Registers a new HID driver.</td>
 	</tr>
 </table></div>
 
-    <h2 class="section-header" id="Class_hid_driver-details"><a name="Class_hid_driver"></a><a name="hid_driver"></a>Class hid_driver  in detail</h2>
+    <h2 class="section-header" id="hid-details"><a name="hid"></a>hid in detail</h2>
 
-          <div class="section-description">
-          Represents a registered HID driver.
-          </div>
     <dl class="function">
-    <dt id="hid_driver:register"><a name="hid_driver:register"></a><strong>hid_driver:register (opts)</strong></dt>
+    <dt id="register"><a name="register"></a><strong>register (opts)</strong></dt>
     <dd>
     Registers a new HID driver.
+ The <code>opts</code> table is the driver: each callback it carries receives it as its first
+ argument, and one it does not carry does nothing.
 
 
     <h3>Parameters</h3>
@@ -197,7 +216,24 @@
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          driver options: <code>name</code> (string), <code>id_table</code> (array of device ID tables,
-   each with optional integer fields <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code>, <code>driver_data</code>)
+   each with optional integer fields <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code>, <code>driver_data</code>),
+   and the optional callbacks:</p>
+
+<ul>
+<li> <code>probe(driver, id)</code>: a device matched; <code>id</code> is the matching entry, with <code>bus</code>,
+ <code>group</code>, <code>vendor</code>, <code>product</code> and <code>driver_data</code>. An error fails the probe with
+ <code>ECANCELED</code>.</li>
+<li> <code>report_fixup(driver, hdev, rdesc)</code>: <code>rdesc</code> is a <a href="../modules/data.html#">data</a> over the report
+ descriptor, edited in place, of fixed size and valid only during the call.</li>
+<li> <code>raw_event(driver, hdev, report, raw)</code>: <code>raw</code> is a <a href="../modules/data.html#">data</a> over the report, edited
+ in place and valid only during the call. An error makes the HID core drop the
+ report.</li>
+</ul>
+
+
+<p>   <code>hdev</code> carries <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code>, <code>version</code> and <code>name</code>; <code>report</code>
+   carries <code>id</code>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>, <code>size</code>, <code>application</code> and <code>maxfield</code>. What a callback returns is
+   ignored, and its error goes to the kernel log.
         </li>
     </ul>
 
@@ -209,8 +245,9 @@
     </ol>
 
     <h3>Raises</h3>
-    if required fields are missing, <code>id_table</code> is invalid or too long, driver registration
-   fails, or if called from a percpu runtime
+     if required fields are missing, <code>id_table</code> is invalid or too long, driver registration
+   fails, or if called from a percpu runtime; <code>runtime context mismatch</code> unless the runtime
+   is softirq
 
 
 
@@ -229,7 +266,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:01</span>
 </div>
 </footer>
 </body>

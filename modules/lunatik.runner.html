@@ -191,7 +191,7 @@
 	<td class="summary">Shuts down all running scripts and their threads.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#spawn">spawn (script)</a></td>
+	<td class="name"><a href="#spawn">spawn (script[, context[, ispercpu]])</a></td>
 	<td class="summary">Spawns a Lunatik script in a new kernel thread.</td>
 	</tr>
 	<tr>
@@ -240,7 +240,8 @@
         </li>
         <li><span class="parameter">context</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         Execution context: <code>&quot;process&quot;</code> (default) or <code>&quot;softirq&quot;</code> (for netfilter/XDP hooks).
+         Execution context: <code>&quot;process&quot;</code> (default), <code>&quot;softirq&quot;</code> (netfilter, XDP)
+   or <code>&quot;hardirq&quot;</code> (kprobes).
          (<em>optional</em>)
         </li>
         <li><span class="parameter">ispercpu</span>
@@ -273,7 +274,7 @@
     <dd>
     Shuts down all running scripts and their threads.
  Stops each script as the iteration reaches it: <a href="../modules/lunatik.runner.html#stop">runner.stop</a> removes the
- entry the callback was given, which is all <a href="../modules/rcu.html#rcu_table:map">rcu.map</a> allows.
+ entry the callback was given, which is all <a href="../modules/rcu.html#map">rcu.map</a> allows.
 
 
 
@@ -282,7 +283,7 @@
 
 
 </dd>
-    <dt id="spawn"><a name="spawn"></a><strong>spawn (script)</strong></dt>
+    <dt id="spawn"><a name="spawn"></a><strong>spawn (script[, context[, ispercpu]])</strong></dt>
     <dd>
     Spawns a Lunatik script in a new kernel thread.
  First, it runs the script using <a href="../modules/lunatik.runner.html#run">runner.run</a>, then creates a new kernel thread
@@ -296,6 +297,17 @@
         <li><span class="parameter">script</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          path or name of the Lua script to spawn. The &ldquo;.lua&rdquo; extension will be trimmed.
+        </li>
+        <li><span class="parameter">context</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         Execution context, <code>&quot;process&quot;</code> (default): a softirq or hardirq
+   runtime raises <code>IRQ runtime cannot spawn threads</code>.
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">ispercpu</span>
+            <span class="types"><span class="type">boolean</span></span>
+         refused: spawn does not support percpu scripts.
+         (<em>optional</em>)
         </li>
     </ul>
 
@@ -368,7 +380,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:21:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:22:01</span>
 </div>
 </footer>
 </body>
