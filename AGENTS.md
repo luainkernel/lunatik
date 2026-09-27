@@ -1151,8 +1151,8 @@ named, not one discovered at that consumer's build.
 * Naming an existing literal is done by visiting every call site of what carries it: sweep for the
   function's callers or the field's users, not for the literal, which misses positional arguments.
 * Changing the value of a field visits every reader of it, in the code and in the field's doc, and
-  asks what each does with the value: `class->name` is the type name a type error quotes and the
-  key `lunatik_require` registers the library under, and renaming `rcu` to `rcu.table` for the
+  asks what each does with the value: `class->name` is the type name a type error quotes and was the
+  key a clone registered the class's library under, and renaming `rcu` to `rcu.table` for the
   first opened `luarcu` twice in every runtime through the second. A reader that merely compiles
   against the new value is not accounted for.
 * A force-push that restructures a branch is not done until the pull request title and body are
