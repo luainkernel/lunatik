@@ -141,6 +141,18 @@ local function compile_scripts()
 	os.exit(ok or code)
 end
 
+local usage = "usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu] [compile <arguments>]"
+
+-- how many words after the verb each of `commands` reads; a missing entry
+-- (compile) takes any number
+local operand_limits = {
+	load   = 0,
+	unload = 0,
+	reload = 0,
+	status = 0,
+	test   = 1,
+}
+
 local commands = {
 	load   = load_modules,
 	unload = unload_modules,
@@ -216,6 +228,11 @@ end
 
 local cmd = commands[arg[1]]
 if cmd then
+	local limit = operand_limits[arg[1]]
+	if limit and #arg - 1 > limit then
+		print(usage)
+		os.exit(false)
+	end
 	os.exit(cmd())
 end
 
@@ -225,7 +242,7 @@ if #arg >= 1 then
 	local tokens = {run = true, spawn = true, stop = true, list = true}
 	local needs_script = {run = true, spawn = true, stop = true}
 	if not tokens[token] or (needs_script[token] and not script) then
-		print("usage: lunatik [load|unload|reload|status|test|list] [run|spawn|stop <script>] [percpu] [compile <arguments>]")
+		print(usage)
 		os.exit(false)
 	end
 	ensure_loaded()
