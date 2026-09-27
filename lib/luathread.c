@@ -81,7 +81,10 @@ static int luathread_shouldstop(lua_State *L)
 * @treturn nil
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
 *   its task runs: the stop waits for the body, and a body that registers a netdevice notifier,
-*   sends a netlink request or joins a multicast group waits on the RTNL that task holds
+*   sends a netlink request or joins a multicast group waits on the RTNL that task holds;
+*   "not allowed from the runtime itself" from under the lock of the thread's runtime, the
+*   contexts `runtime:stop` names, the thread's own body among them, where the stop would wait
+*   on a body that runs under that lock
 * @usage
 * my_thread:stop()
 */
@@ -96,6 +99,7 @@ static int luathread_stop(lua_State *L)
 	if (runtime == NULL)
 		pr_warn("[%p] thread wasn't created by us\n", thread);
 	else if (task != NULL) {
+		lunatik_checkowner(L, runtime); /* the body runs under its lock */
 		int result = kthread_stop(task);
 
 		thread->task = NULL;
