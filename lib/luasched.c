@@ -13,7 +13,13 @@
 * kfunc, which in turn invokes a Lua callback function previously registered
 * using `sched.attach()`.
 *
-* Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`.
+* Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`; without it the module loads
+* and exports nothing, so `sched.attach` is `nil`. The kfunc needs the module's BTF:
+* run `sudo make btf_install` before `make`, or the kernel logs
+* `missing module BTF, cannot register kfuncs` and an eBPF program that calls
+* `bpf_luasched_run` does not load. The eBPF side is a sched_ext `struct_ops`
+* scheduler; `tests/sched/sched_pass.bpf.c` with `tests/sched/pass.lua` is a worked
+* pair.
 * @module sched
 */
 
@@ -57,6 +63,9 @@ LUNATIK_PRIVATECHECKER(luasched_ctx_check, luasched_ctx_t *, &luasched_class,
 
 /***
 * Returns the object for the current task.
+* The same task object is reused for every callback: it is valid only during the
+* callback that returned it, and later it raises or reads the task of the callback
+* then running.
 * @function sched_ctx:task
 * @treturn task
 */
@@ -200,16 +209,24 @@ static int luasched_detach(lua_State *L)
 * Registers a Lua callback function to be invoked by a sched_ext eBPF program.
 * When a sched_ext program calls the `bpf_luasched_run` kfunc, Lunatik will execute
 * the registered Lua `callback` associated with the current Lunatik runtime.
-* The runtime invoking this function must be non-sleepable.
+* The runtime must be a hardirq one (`lunatik run -c hardirq <script>`).
+* Calling it again replaces the previous callback.
 *
-* The `bpf_luasched_run` kfunc is called from an eBPF program with the following signature:
-* `int bpf_luasched_run(const char *key, size_t key__sz, struct task_struct *task_struct, struct task_class *cls)`
+* The eBPF program declares the kfunc as:
 *
-* - `key`: A string identifying the Lunatik runtime (e.g., the script name like "examples/workload/workload").
-*   This key is used to look up the runtime in Lunatik's internal table of active runtimes.
-* - `key_sz`: Length of the key string (including the null terminator).
-* - `task_struct`: The task context (`struct task_struct *`).
-* - `cls`: The scheduling decision (dsq and slice).
+*     extern int bpf_luasched_run(const char *key, size_t key__sz,
+*         struct task_struct *task, struct task_class *cls) __ksym;
+*
+* - `key`: the name of the Lunatik runtime, the script as given to `lunatik run`
+*   without `.lua` (e.g. "sched/policy"; a path keeps its directory). It is looked up
+*   in Lunatik's table of active runtimes.
+* - `key__sz`: `sizeof` the key array, the NUL terminator included.
+* - the task pointer: the task being scheduled.
+* - `cls`: where the decision is written, a struct of two `u64`, the dispatch queue
+*   and then the slice.
+*
+* It returns 0 once `cls` is filled, whether or not a callback ran, and -1 when `cls`
+* is NULL.
 *
 * @function attach
 * @tparam function callback Lua function to call. It receives one argument:
@@ -220,9 +237,9 @@ static int luasched_detach(lua_State *L)
 *   The callback need not return a value. If it sets no dispatch queue, `bpf_luasched_run`
 *   sets SCX_DSQ_GLOBAL and the verdict is left to the eBPF program.
 * @treturn nil
-* @raise Error if the current runtime is sleepable or if internal setup fails.
+* @raise `runtime context mismatch` unless the runtime is hardirq, or on allocation failure.
 * @usage
-*   -- Lua script (e.g., "my_sched_handler.lua" which is run via `lunatik run --context=hardirq my_sched_handler.lua`)
+*   -- sched/policy.lua, run with `lunatik run -c hardirq sched/policy`
 *   local sched = require("sched")
 *   local scx = require("linux.scx")
 *
@@ -237,7 +254,7 @@ static int luasched_detach(lua_State *L)
 *   sched.attach(my_scheduler)
 *
 *   -- In eBPF C code, to call the above Lua function:
-*   -- char rt_key[] = "my_sched_handler.lua"; // Key matches the script name
+*   -- char rt_key[] = "sched/policy"; // the script, without .lua
 *   -- int ret = bpf_luasched_run(rt_key, sizeof(rt_key), p, cls);
 * @see task
 * @within sched
