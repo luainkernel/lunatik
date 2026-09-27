@@ -5,8 +5,10 @@
 
 /***
 * kfifo (kernel FIFO) implementation.
-* This library allows creating and managing fixed-size, lockless FIFO queues
-* for byte streams, suitable for producer-consumer scenarios within the kernel.
+* This library allows creating and managing fixed-size FIFO queues for byte
+* streams, suitable for producer-consumer scenarios within the kernel. Each call
+* takes the object's lock, so one fifo can be shared between runtimes, as through
+* `runtime:resume`, and used from softirq.
 *
 * @module fifo
 */
@@ -19,6 +21,14 @@
 static const lunatik_class_t luafifo_class;
 
 LUNATIK_PRIVATECHECKER(luafifo_check, struct kfifo *, &luafifo_class);
+
+/***
+* Represents a kernel FIFO (kfifo) object.
+* This is a userdata object returned by `fifo.new()`. It encapsulates
+* a `struct kfifo` from the Linux kernel, providing a first-in, first-out
+* byte queue.
+* @type fifo
+*/
 
 /***
 * Pushes data into the FIFO.
@@ -81,14 +91,6 @@ static void luafifo_release(void *private)
 static int luafifo_new(lua_State *L);
 
 /***
-* Represents a kernel FIFO (kfifo) object.
-* This is a userdata object returned by `fifo.new()`. It encapsulates
-* a `struct kfifo` from the Linux kernel, providing a first-in, first-out
-* byte queue.
-* @type fifo
-*/
-
-/***
 * Creates a new kernel FIFO (kfifo) object.
 * Allocates and initializes a kfifo of the specified size. The size should
 * ideally be a power of two for kfifo's internal optimizations, though kfifo
@@ -108,7 +110,8 @@ static const luaL_Reg luafifo_lib[] = {
 
 /***
 * Closes and releases the FIFO object.
-* This is an alias for the `__close` and `__gc` metamethods.
+* It also runs when a to-be-closed variable holding the object goes out of scope. Later calls raise
+* "null pointer dereference".
 * @function close
 * @treturn nil
 */
