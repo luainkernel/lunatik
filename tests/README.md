@@ -1161,6 +1161,15 @@ Regression tests for `luathread`.
   RTNL, so a build without the refusal accepts the stop from the callback and
   fails the assertion rather than hanging; the test runs on any build.
 
+- **self_stop**: `thread:stop()` from under the lock of the thread's runtime is
+  refused, since the body runs under that lock and the stop waits for it. A
+  spawned driver threads a runtime whose body yields and resumes it with the
+  thread object: the stop from the resumed body is refused, and the one from
+  the driver's body accepted. A spawned script whose body calls `runner.stop`
+  on its own name is refused, and the command line stops it. A build without
+  the refusal accepts the resumed stop, whose thread has already returned, and
+  the test ends there, before the self stop that build would wait on forever.
+
 - **foreign_object**: `thread.run()` refuses an object of another class
   instead of using its private data as a Lua state.
 
