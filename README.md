@@ -735,14 +735,14 @@ sudo tcpdump -i veth0 -e ether proto 0x88cc -vv
 
 ### cpuexporter
 
-[cpuexporter](examples/cpuexporter.lua) will gather CPU usage statistics and expose using [OpenMetrics text format](https://github.com/prometheus/OpenMetrics/blob/main/specification/OpenMetrics.md#text-format) at a UNIX socket file.
+[cpuexporter](examples/cpuexporter.lua) will gather CPU usage statistics and expose using [OpenMetrics text format](https://github.com/prometheus/OpenMetrics/blob/main/specification/OpenMetrics.md#text-format) at the abstract UNIX socket `cpuexporter`, which leaves no file behind a stop.
 
 #### Usage
 
 ```shell
 sudo make examples_install         	# installs examples
 sudo lunatik spawn examples/cpuexporter # runs cpuexporter
-sudo socat - UNIX-CONNECT:/tmp/cpuexporter.sock <<<""
+sudo socat - ABSTRACT-CONNECT:cpuexporter <<<""
 # TYPE cpu_usage_system gauge
 cpu_usage_system{cpu="cpu1"} 0.0000000000000000 1764094519529162
 cpu_usage_system{cpu="cpu0"} 0.0000000000000000 1764094519529162
