@@ -6,6 +6,28 @@
 /***
 * Linux socket buffer interface.
 * @module skb
+* @usage
+*   -- lunatik run -c softirq <script>: raises the priority of the UDP packets the host sends
+*   local netfilter = require("netfilter")
+*   local nf        = require("linux.nf")
+*
+*   local PROTOCOL <const> = 9
+*   local UDP <const>      = 17
+*   local PRIORITY <const> = 6
+*
+*   local function prioritize(skb)
+*     if skb:data():getuint8(PROTOCOL) == UDP then
+*       skb:priority(PRIORITY)
+*     end
+*     return nf.action.ACCEPT
+*   end
+*
+*   netfilter.register{
+*     hook     = prioritize,
+*     pf       = nf.proto.IPV4,
+*     hooknum  = nf.inet.LOCAL_OUT,
+*     priority = nf.ip.pri.FILTER,
+*   }
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -54,6 +76,10 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *, &luaskb_class,
 * Represents a socket buffer (`sk_buff`).
 * This is a userdata object handed to the hooks that receive packets; it is
 * `SINGLE`, so it cannot be shared with another runtime.
+*
+* A `netfilter` hook callback receives one and `tc_ctx:skb()` returns one, valid only while that
+* callback runs: once it returns, every method raises `skb is not set`, and the `data` that
+* `skb:data()` returned is cleared too. `skb:copy()` keeps a packet past the callback.
 * @type skb
 */
 
@@ -164,6 +190,9 @@ static inline void luaskb_csum(struct sk_buff *skb, u8 proto, __sum16 csum)
 
 /***
 * Recomputes IP and transport-layer (TCP/UDP) checksums.
+* On IPv4 it recomputes the header checksum and the TCP or UDP checksum; on IPv6, the TCP or UDP
+* checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, and an
+* IPv6 packet with extension headers, is left unchanged.
 * @function checksum
 */
 static int luaskb_checksum(lua_State *L)
@@ -188,6 +217,8 @@ static int luaskb_checksum(lua_State *L)
 
 /***
 * Forwards the skb out through its ingress device.
+* It transmits a clone out of `skb->dev`; the original is untouched and still takes the hook's
+* verdict, so a callback that forwards a packet returns `DROP` to not send it twice.
 * @function forward
 * @raise if skb has no device, MAC header is not set or is past the data, or clone fails
 */
@@ -212,6 +243,8 @@ static int luaskb_forward(lua_State *L)
 /***
 * Gets or sets the conntrack mark: with no argument reads it, with `value` sets
 * it. Returns the current (or new) mark, or nil if no conntrack is associated.
+* Present only on a kernel built with `CONFIG_NF_CONNTRACK_MARK`: elsewhere the method is nil,
+* and a script that may run there tests `skb.connmark` before calling it.
 * @function connmark
 * @tparam[opt] integer value 32-bit mark to set
 * @treturn integer 32-bit connmark, or nil if no conntrack is associated
