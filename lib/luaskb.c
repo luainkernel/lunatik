@@ -130,16 +130,19 @@ static int luaskb_data(lua_State *L)
 
 /***
 * Expands (skb_put) or shrinks (skb_trim) the skb data area.
+* The skb is linearized first, so `n` is the length of the whole packet, which
+* `#skb` returns afterwards.
 * @function resize
 * @tparam integer n desired size in bytes
-* @raise if insufficient tailroom for expansion
+* @raise if linearization fails, or insufficient tailroom for expansion
 */
 static int luaskb_resize(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct sk_buff *skb = lskb->skb;
 	size_t new_size = (size_t)luaL_checkinteger(L, 2);
-	size_t cur_size = skb_headlen(skb);
+	luaskb_checklinearize(L, lskb, 1);
+	size_t cur_size = skb->len;
 
 	if (new_size > cur_size) {
 		size_t needed = new_size - cur_size;
