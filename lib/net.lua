@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2023-2025 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -15,6 +15,8 @@ local net = {}
 ---
 -- Converts an IPv4 address string to its integer representation.
 -- "Address to Number"
+-- The string is not validated: each run of digits is the next octet, masked to 8 bits, and
+-- anything between them is skipped; a missing trailing octet reads as 0, and a fifth one raises.
 -- @param addr (string) The IPv4 address string (e.g., "127.0.0.1").
 -- @return (number) The IPv4 address as an integer.
 -- @usage
