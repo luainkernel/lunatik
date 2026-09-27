@@ -8,10 +8,10 @@
 * This library allows Lua scripts to register callback functions that are
 * invoked when specific kernel events occur, such as keyboard input,
 * network device status changes, or virtual terminal events.
-* A callback returns a `linux.notify` code; anything else, and an event that
-* reaches a runtime not ready to take it, or that the runtime's own code raises
-* from under its lock, counts as `notify.DONE`. A callback that raises is logged, and counts as
-* `notify.OK`.
+* A callback returns a `linux.notify` code; anything else, a callback that
+* raises, which is logged, and an event that reaches a runtime not ready to take
+* it, or that the runtime's own code raises from under its lock, counts as
+* `notify.DONE`.
 *
 * @module notifier
 */
@@ -55,33 +55,42 @@ LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanoti
 /* an event delivered inside register_fn, on the task that registered the block */
 #define luanotifier_isreplay(notifier)	(in_task() && (notifier)->registrant == current)
 
-static int luanotifier_handler(lua_State *L, luanotifier_t *notifier, unsigned long event, void *data)
+typedef struct luanotifier_ctx_s {
+	luanotifier_t *notifier;
+	unsigned long event;
+	void *data;
+	int ret;
+} luanotifier_ctx_t;
+
+static int luanotifier_docall(lua_State *L)
 {
+	luanotifier_ctx_t *ctx = lua_touserdata(L, 1);
+	luanotifier_t *notifier = ctx->notifier;
+
 	if (lunatik_getregistry(L, notifier) != LUA_TFUNCTION)
-		return NOTIFY_DONE; /* callback removed by stop() — silent no-op */
+		return 0; /* callback removed by stop() — silent no-op */
 
-	lua_pushinteger(L, (lua_Integer)event);
+	lua_pushinteger(L, (lua_Integer)ctx->event);
 
-	int nargs = notifier->handler(L, data);
-	if (lua_pcall(L, nargs + 1, 1, 0) != LUA_OK) { /* callback(event, ...) */
-		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
-		return NOTIFY_OK;
-	}
-
-	return lua_tointeger(L, -1);
+	int nargs = notifier->handler(L, ctx->data);
+	lua_call(L, nargs + 1, 1); /* callback(event, ...) */
+	ctx->ret = lua_tointeger(L, -1);
+	return 0;
 }
 
 static int luanotifier_call(struct notifier_block *nb, unsigned long event, void *data)
 {
 	luanotifier_t *notifier = container_of(nb, luanotifier_t, nb);
+	luanotifier_ctx_t ctx = {.notifier = notifier, .event = event, .data = data, .ret = NOTIFY_DONE};
 	int ret;
 
 	if (luanotifier_isreplay(notifier))
-		lunatik_handle(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
+		lunatik_handle(notifier->runtime, lunatik_catch, ret, luanotifier_docall, &ctx, "callback");
 	else
-		lunatik_run(notifier->runtime, luanotifier_handler, ret, notifier, event, data);
+		lunatik_run(notifier->runtime, lunatik_catch, ret, luanotifier_docall, &ctx, "callback");
 
-	return max(ret, NOTIFY_DONE); /* negative errno sets NOTIFY_STOP_MASK */
+	(void)ret; /* not ready, under its own lock or raised: the callback returned nothing */
+	return max(ctx.ret, NOTIFY_DONE); /* a negative return would set NOTIFY_STOP_MASK */
 }
 
 static void luanotifier_release(void *private)
