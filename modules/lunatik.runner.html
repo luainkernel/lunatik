@@ -286,7 +286,8 @@
     <dd>
     Spawns a Lunatik script in a new kernel thread.
  First, it runs the script using <a href="../modules/lunatik.runner.html#run">runner.run</a>, then creates a new kernel thread
- to execute the runtime. The thread is named based on the script&rsquo;s filename.
+ to execute the runtime. The thread is named after the last two components of the script&rsquo;s path,
+ <code>echod/daemon</code> for <code>examples/echod/daemon</code>.
  The spawned script is expected to return a function, which will then be executed in the new thread.
 
 
@@ -367,7 +368,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:03:00</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-27 23:09:43</span>
 </div>
 </footer>
 </body>
