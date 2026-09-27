@@ -5,21 +5,16 @@
 -- Kernel-side script for the percpu runtime test (see percpu.sh).
 
 local lunatik = require("lunatik")
-local linux   = require("linux")
 local test    = require("util").test
+local stamp   = require("tests.runtime.stamp")
 
 local script <const> = "tests/runtime/percpu"
-local stamp  <const> = "percpu_cpu:"
 
 local env = lunatik._ENV
 
 test("percpu registers one object, running the script on every CPU id", function()
 	assert(env.runtimes[script] ~= nil, "the percpu script is not registered")
-	assert(env[stamp .. linux.numcpus()] == nil, "a runtime ran beyond the last CPU id")
-	for cpu = 0, linux.numcpus() - 1 do
-		assert(env[stamp .. cpu], "no runtime stamped CPU " .. cpu)
-		env[stamp .. cpu] = nil
-	end
+	stamp.check()
 end)
 
 test("a plain runtime has no CPU id", function()

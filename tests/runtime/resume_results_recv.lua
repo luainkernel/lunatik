@@ -5,12 +5,10 @@
 -- Receiver sub-script for the resume_results test (see resume_results.sh);
 -- yields, and finally returns, what the driver expects to get back.
 
-local data = require("data")
+local data   = require("data")
+local values = require("tests.runtime.resume_values")
 
-local ANSWER <const> = 42
-local FIRST <const> = 1
-local SECOND <const> = 2
-local MANY <const> = 32
+local ANSWER <const>, FIRST <const>, SECOND <const>, MANY <const> = values.ANSWER, values.FIRST, values.SECOND, values.MANY
 
 local function byte(value)
 	local d = data.new(1)

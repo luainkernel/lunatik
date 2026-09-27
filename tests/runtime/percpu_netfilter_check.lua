@@ -7,8 +7,9 @@
 local lunatik = require("lunatik")
 local rcu     = require("rcu")
 local test    = require("util").test
+local nfcount = require("tests.runtime.nfcount")
 
-local PREFIX <const> = "nf_percpu:"
+local PREFIX <const> = nfcount.PREFIX
 local COUNT  <const> = 5
 
 local env = lunatik._ENV
