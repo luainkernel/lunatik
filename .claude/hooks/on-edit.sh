@@ -12,9 +12,10 @@ file=$(printf '%s' "$input" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\
 dir=$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2>/dev/null)
 [ -n "$dir" ] && [ -d "$dir/tools/checks" ] || exit 0
 
-findings=$(for check in machine-leak module-conventions comment-style lua-style kthread test-harness cppcheck-tests extraspace; do
-	bash "$dir/tools/checks/$check.sh" "$file" 2>&1
-done; bash "$dir/tools/checks/guard-removed.sh" "$file" 2>&1)
+# a tree older than a check lacks it, and runs the checks it has
+findings=$(for check in machine-leak module-conventions comment-style lua-style kthread test-harness cppcheck-tests extraspace guard-removed; do
+	[ -f "$dir/tools/checks/$check.sh" ] && bash "$dir/tools/checks/$check.sh" "$file" 2>&1
+done)
 
 # a tracked file carries what earlier edits left; nudge only on the lines this one added
 rel=$(git -C "$dir" ls-files --error-unmatch --full-name "$file" 2>/dev/null) && {
