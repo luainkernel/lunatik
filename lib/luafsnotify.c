@@ -6,7 +6,11 @@
 /***
 * Filesystem notification.
 * Places marks on filesystem objects and hands the events they report to a Lua
-* callback. Event masks are the `linux.fs` bits.
+* callback. Event masks are the `linux.fs` bits, named without the `FS_` prefix:
+* `ACCESS`, `MODIFY`, `ATTRIB`, `CLOSE_WRITE`, `CLOSE_NOWRITE`, `OPEN`, `MOVED_FROM`,
+* `MOVED_TO`, `CREATE`, `DELETE`, `DELETE_SELF`, `MOVE_SELF`, `OPEN_EXEC`, `UNMOUNT`,
+* `Q_OVERFLOW`, `ERROR` and `RENAME`; the flags `EVENT_ON_CHILD` and `ISDIR`; and the
+* permission events `OPEN_PERM`, `ACCESS_PERM` and `OPEN_EXEC_PERM`.
 *
 * A mark goes on one inode, on a mount, or on a whole filesystem. The last two
 * reach every file they cover, so a mark on the mount or the superblock of `/`
