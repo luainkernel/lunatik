@@ -568,6 +568,12 @@ after the watch is stopped.
   body, the armed state a hook calls from, each refuses with "not allowed after module load". A
   build without the refusal sleeps under the armed runtime's spinlock, so the test skips unless
   the loaded `lualinux` is the installed one and carries it.
+- **netns**: `linux.netns` resolves pid 1 to the initial namespace in a
+  process runtime, in its body and resumed past it, and in the body of a
+  `softirq` and a `hardirq` runtime, which runs in process context; resumed
+  past the body, the armed state a hook calls from, each answers the call
+  without a pid and refuses one with a pid with "not allowed after module
+  load", since resolving it takes the task's lock.
 
 ### lua
 
