@@ -4,8 +4,14 @@
 --
 
 local thread = require("thread")
+local struct = require("struct")
+local sk     = require("linux.socket")
 
 local shouldstop = thread.shouldstop
+local timeval = struct(sk.layout.timeval)
+
+local SIZE       <const> = 1024
+local TIMEOUT_MS <const> = 100 -- nothing stops a worker: an idle client holds a receive this long at most
 
 local function info(id, message)
 	local prefix = "echod [worker #" .. id .. "]"
@@ -17,7 +23,13 @@ local function alive(control)
 end
 
 local function echo(session)
-	local message = session:receive(1024)
+	local ok, message = pcall(session.receive, session, SIZE)
+	if not ok then
+		if message ~= "EAGAIN" then
+			error(message, 0)
+		end
+		return false
+	end
 	session:send(message)
 	return message == ""
 end
@@ -26,6 +38,7 @@ local function worker(control, session)
 	local id = control:getbyte(0)
 
 	info(id, "started")
+	session:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
 	repeat
 		local ok, err = pcall(echo, session)
 		if not ok then
