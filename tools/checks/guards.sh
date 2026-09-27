@@ -1,15 +1,44 @@
 # Sourced by guard-removed.sh and crash-guard.sh: the lines that carry a crash guard, and
-# the ones a tree drops against HEAD. A guard that only moved, into a helper or onto another
-# index, is paired with the added line that took it in and not reported: #850's review moved
-# an argcheck two methods shared into one helper and both guards read as dropped.
+# the ones a tree drops against HEAD. A guard that only moved, into a helper, onto another
+# index or into a LUNATIK_PRIVATECHECKER, is paired with the added line that took it in and
+# not reported: #850's review moved an argcheck two methods shared into one helper and both
+# guards read as dropped, and #1199's checker took a class check and an argcheck in as #1233.
 
 guards='lunatik_argcheckclass|lunatik_argchecknull|lunatik_checkobject|lunatik_checkpobject|LUNATIK_PRIVATECHECKER'
 guards="$guards|luaL_argcheck|luaL_argexpected|luaL_checktype|luaL_checkudata|lunatik_checkruntime"
 guards="$guards|lunatik_checkpercpu|lunatik_checkcontext|lunatik_checkclass|lunatik_cannotsleep"
 
-# the guard as a shape: the index it reads and the spacing around it are not the guard
+# the guard as a shape: the index it reads and the spacing around it are not the guard, and a
+# class check is the class it checks, however the checker spells it
 guard_shape() {
-	sed -E 's/^[-+][[:space:]]*//; s/[[:space:]]+/ /g; s/, (ix|idx|[0-9]+)([,)])/, N\2/g'
+	sed -E 's/^[-+][[:space:]]*//; s/[[:space:]]+/ /g; s/, (ix|idx|[0-9]+)([,)])/, N\2/g' |
+	sed -E 's/.*(lunatik_checkobjectclass\(L, N, |lunatik_argcheckclass\(L, N, [A-Za-z_]+, |LUNATIK_PRIVATECHECKER\([A-Za-z0-9_]+, [^,]+, )(&[A-Za-z0-9_]+).*/checkclass \2/'
+}
+
+# whether <shape> is one of the added <shapes> that read the object's private as `private`, the
+# name a LUNATIK_PRIVATECHECKER's body has for it, where the removed line named it otherwise
+private_shape() {
+	printf '%s\n' "$2" | awk -v shape="$1" '
+	function esc(s,   out, i, c) {
+		for (i = 1; i <= length(s); i++) {
+			c = substr(s, i, 1)
+			out = out (index("\\^$.[]|()*+?{}", c) ? "\\" c : c)
+		}
+		return out
+	}
+	{
+		rest = $0; re = ""
+		while (match(rest, /(^|[^A-Za-z0-9_])private([^A-Za-z0-9_]|$)/)) {
+			m = substr(rest, RSTART, RLENGTH)
+			lead = m ~ /^private/ ? "" : substr(m, 1, 1)
+			trail = m ~ /private$/ ? "" : substr(m, length(m), 1)
+			re = re esc(substr(rest, 1, RSTART - 1) lead) "[A-Za-z_][A-Za-z0-9_]*"
+			rest = trail substr(rest, RSTART + RLENGTH)
+		}
+		if (re != "" && shape ~ ("^" re esc(rest) "$"))
+			found = 1
+	}
+	END { exit !found }'
 }
 
 # the guard lines <tree> drops against HEAD under <paths>, minus those an added line took in
@@ -21,7 +50,7 @@ dropped_guards() {
 	added=$(printf '%s\n' "$diff" | grep -E '^\+' | guard_shape)
 	printf '%s\n' "$diff" | grep -E '^-' | while IFS= read -r line; do
 		shape=$(printf '%s\n' "$line" | guard_shape)
-		printf '%s\n' "$added" | grep -qxF -- "$shape" || printf '%s\n' "$line"
+		printf '%s\n' "$added" | grep -qxF -- "$shape" || private_shape "$shape" "$added" || printf '%s\n' "$line"
 	done
 }
 
