@@ -2,48 +2,79 @@
 # -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # -- SPDX-License-Identifier: MIT
 # -- derived from LDoc's html/ldoc_ltp.lua, https://github.com/lunarmodules/ldoc/blob/master/COPYRIGHT
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="$(ldoc.doc_charset)"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>$(ldoc.title)</title>
-    <link rel="stylesheet" href="$(ldoc.css)" type="text/css" />
-# if ldoc.custom_css then -- add custom CSS file if configured.
-    <link rel="stylesheet" href="$(ldoc.custom_css)" type="text/css" />
-# end
-</head>
-<body>
-
-<div id="container">
-
-
-<div id="main">
-
 # local no_spaces = ldoc.no_spaces
 # local use_li = ldoc.use_li
 # local display_name = ldoc.display_name
 # local iter = ldoc.modules.iter
 # local function M(txt,item) return ldoc.markup(txt,item,ldoc.plain) end
-# local nowrap = ldoc.wrap and '' or 'nowrap'
-# local labels = {Topics = 'Guide', Modules = 'Lua API'}
-# local function label(kind) return labels[kind] or kind end
 # local HOME = 'README.md'
-# local REPO = 'https://github.com/luainkernel/lunatik/blob/master/'
+# local GITHUB = 'https://github.com/luainkernel/lunatik'
+# -- the Lunatik mark: the planet with its hole, drawn once for the header and the favicon
+# local LOGO = 'M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'
+# local REPO = GITHUB .. '/blob/master/'
+# local up = module and '../' or ''
 # local function dirname(file) return file:match('^(.*)/[^/]*$') or '' end
-# local root, topics, guide = nil, {}, false
+# local root, topics, guide, api = nil, {}, {}, {}
 # for kind, mods in ldoc.kinds() do
 #  for m in mods() do
 #   if m.name == HOME then root = dirname(m.file.filename) end
 #  end
 # end
 # for kind, mods in ldoc.kinds() do
-#  if kind == 'Topics' and root then
-#   for m in mods() do
-#    topics[m.file.filename:sub(#root + 2)] = m.name
-#    guide = guide or m.name ~= HOME
+#  for m in mods() do
+#   if kind == 'Topics' then
+#    if root then topics[m.file.filename:sub(#root + 2)] = m.name end
+#    if m.name ~= HOME then guide[#guide + 1] = m end
+#   else
+#    api[#api + 1] = m
 #   end
 #  end
+# end
+# -- the areas the API is grouped by, in the menu, on the home page and in the index; a module no
+# -- pattern takes goes to the last one
+# local AREAS = {
+#  {'runtime', 'Runtime', 'Runtimes, kernel threads and the channels between them.',
+#   {'^lunatik$', '^lunatik%.', '^thread$', '^completion$', '^mailbox$', '^fifo$'},
+#   'M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5'},
+#  {'packets', 'Packets and eBPF', 'Netfilter, XDP and TC hooks, socket buffers and eBPF maps.',
+#   {'^netfilter$', '^xdp$', '^tc$', '^skb', '^bpf'},
+#   'M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4'},
+#  {'network', 'Sockets and netlink', 'Kernel sockets, and rtnetlink and generic netlink sessions.',
+#   {'^socket', '^net$', '^netlink'},
+#   'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18'},
+#  {'tracing', 'Tracing and scheduling', 'Kprobes, system call addresses and sched_ext.',
+#   {'^probe$', '^syscall', '^sched$'},
+#   'M3 12h4l3-7 4 14 3-7h4'},
+#  {'devices', 'Devices and events', 'Character devices, HID drivers, notifier chains and fsnotify.',
+#   {'^device$', '^hid$', '^notifier$', '^fsnotify$'},
+#   'M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4'},
+#  {'data', 'Data', 'Memory buffers, RCU tables, sets, byte order and records.',
+#   {'^data$', '^rcu$', '^set$', '^byteorder$', '^struct$', '^class$'},
+#   'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3'},
+#  {'crypto', 'Cryptography', 'The kernel crypto API and encrypted scripts.',
+#   {'^crypto', '^darken$', '^lighten$'},
+#   'M6 11h12v10H6zM8.5 11V7.5a3.5 3.5 0 0 1 7 0V11'},
+#  {'system', 'System', 'The kernel as a whole: time, CPUs, tasks and signals.',
+#   {'^linux$', '^cpu$', '^task$', '^signal$'},
+#   'M3 5h18v14H3zM7 10l3 2.5L7 15M12.5 15H17'},
+#  {'constants', 'Constants', 'Kernel constants, generated from its headers at build time.',
+#   {'^linux%.'},
+#   'M10 3L8 21M16 3l-2 18M4 9h16M4 15h16'},
+#  {'other', 'Other', 'Modules outside the areas above.', {}, 'M5 12h.01M12 12h.01M19 12h.01'},
+# }
+# local members = {}
+# local function areaof(name)
+#  for i, area in ldoc.ipairs(AREAS) do
+#   for _, pattern in ldoc.ipairs(area[4]) do
+#    if name:match(pattern) then return i end
+#   end
+#  end
+#  return #AREAS
+# end
+# for _, m in ldoc.ipairs(api) do
+#  local i = areaof(m.name)
+#  members[i] = members[i] or {}
+#  members[i][#members[i] + 1] = m
 # end
 # local function resolve(dir, path)
 #  local target = (dir == '' and path or dir .. '/' .. path):gsub('/%./', '/'):gsub('^%./', '')
@@ -71,77 +102,154 @@
 #   return 'href="' .. (topic and up .. 'topics/' .. topic .. '.html' or REPO .. target) .. frag .. '"'
 #  end))
 # end
-
-<!-- Menu -->
-
-<div id="navigation">
-<br/>
-<h1><a href="$(module and '../' or '')$(ldoc.output).html">$(ldoc.project)</a></h1>
-
-# if not ldoc.single and module then -- reference back to project index
-<ul>
-  <li><a href="../$(ldoc.output).html">Home</a></li>
-</ul>
-# end
-
-# --------- contents of module -------------
-# if module and not ldoc.no_summary and #module.items > 0 then
-<h2>Contents</h2>
-<ul>
-# for kind,items in module.kinds() do
-<li><a href="#$(no_spaces(kind))">$(kind)</a></li>
-# end
-</ul>
-# end
-
-
-# if ldoc.no_summary and module and not ldoc.one then -- bang out the functions on the side
-# for kind, items in module.kinds() do
-<h2>$(kind)</h2>
-<ul class="nowrap">
-# for item in items() do
-    <li><a href="#$(item.name)">$(display_name(item))</a></li>
-# end
-</ul>
-# end
-# end
-# -------- contents of project ----------
-# local this_mod = module and module.name
-# for pass = 1, 2 do
-# for kind, mods, type in ldoc.kinds() do
-#  if (kind == 'Topics') == (pass == 1) and ldoc.allowed_in_contents(type,module) and (kind ~= 'Topics' or guide) then
-<h2>$(label(kind))</h2>
-<ul class="$(kind=='Topics' and '' or 'nowrap')">
-#  for mod in mods() do local name = display_name(mod)
-#   if mod.name ~= HOME then
-#   if mod.name == this_mod then
-  <li><strong>$(name)</strong></li>
-#   else
-  <li><a href="$(ldoc.ref_to_module(mod))">$(name)</a></li>
+# local istopic = module and ldoc.body ~= nil
+# local current = module and areaof(module.name)
+# local title = module and (istopic and display_name(module) or module.name) or nil
+# -- the home page: the README's first paragraph leads the hero, and an example shows what a script looks like
+# local SHOWCASE = 'examples/systrack/probe.lua'
+# local home, intro, floor, showcase, nmodules = nil, nil, nil, nil, 0
+# if not module then
+#  for kind, mods in ldoc.kinds() do
+#   for m in mods() do
+#    if kind == 'Modules' then nmodules = nmodules + 1 end
+#    if m.name == HOME then
+#     home = (relink(m.postprocess and m.postprocess(m.body) or m.body, m.file.filename, ''):gsub('href="%.%./', 'href="'))
+#     home = home:gsub('^%s*<h1[^>]*>.-</h1>', '')
+#     intro = home:match('^%s*<p>(.-)</p>')
+#     if intro then home = home:gsub('^%s*<p>.-</p>', '', 1) end
+#     floor = home:match('Linux (%d+%.%d+) and later')
+#    end
 #   end
-#   end
+#  end
+#  local code, n = ldoc.include_file(SHOWCASE), 0
+#  repeat code, n = code:gsub('^%-%-[^\n]*\n', '', 1) until n == 0
+#  showcase = ldoc.prettify((code:gsub('^%s+', ''):gsub('%s+$', '')))
+# end
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="$(ldoc.doc_charset)"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>$(title and (title .. ' · ') or '')$(ldoc.project)</title>
+    <meta name="description" content="$(ldoc.description)"/>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='$(LOGO)'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
+    <link rel="stylesheet" href="$(ldoc.css)" type="text/css" />
+    <script>try { var t = localStorage.getItem('lunatik-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }</script>
+    <script src="$(up)search.js" defer=""></script>
+    <script src="$(up)site.js" defer=""></script>
+</head>
+<body data-root="$(up)">
+
+<header class="topbar">
+    <button class="icon-btn nav-toggle" id="nav" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="$(up)index.html">
+        <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="$(LOGO)"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
+        <span>$(ldoc.project)</span>
+    </a>
+    <div class="search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <kbd>/</kbd>
+        <ul class="results" id="results" hidden=""></ul>
+    </div>
+    <nav class="top-links" aria-label="Site">
+# if guide[1] then
+        <a href="$(up)topics/$(guide[1].name).html">Guide</a>
+# end
+        <a href="$(up)index.html#api-reference">API</a>
+        <a href="$(GITHUB)">GitHub</a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">
+            <svg class="theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="theme-icon-dark" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+    </nav>
+</header>
+
+# if not module then
+<section class="hero">
+<div class="hero-inner">
+<div class="hero-text">
+    <h1>Script the Linux kernel <span class="moon-word">with Lua</span></h1>
+    <p class="hero-lead">$(intro or ldoc.description)</p>
+    <div class="hero-actions">
+# if guide[1] then
+        <a class="btn primary" href="topics/$(guide[1].name).html">Get started</a>
+# end
+        <a class="btn" href="#api-reference">API reference</a>
+        <a class="btn" href="$(GITHUB)">GitHub</a>
+    </div>
+    <ul class="facts">
+        <li><strong>$(nmodules)</strong> Lua modules</li>
+# if floor then
+        <li>Linux <strong>$(floor)</strong> and later</li>
+# end
+        <li>Process, softirq and hardirq hooks</li>
+    </ul>
+</div>
+<figure class="window">
+    <figcaption><span>$(SHOWCASE)</span><a href="$(GITHUB)/tree/master/$(dirname(SHOWCASE))">About this example</a></figcaption>
+    <pre class="example">$(showcase)</pre>
+</figure>
+</div>
+</section>
+# end
+
+<div class="layout">
+
+<aside class="sidebar" id="sidebar" aria-label="Documentation">
+# if #guide > 0 then
+<h2>Guide</h2>
+<ul>
+#  for _, m in ldoc.ipairs(guide) do
+  <li><a href="$(ldoc.ref_to_module(m))"$(module and m.name == module.name and ' aria-current="page"' or '')>$(display_name(m))</a></li>
 #  end
 </ul>
 # end
+<h2>Lua API</h2>
+# for i, area in ldoc.ipairs(AREAS) do
+#  if members[i] then
+<h3>$(area[2])</h3>
+<ul class="mono">
+#   for _, m in ldoc.ipairs(members[i]) do
+  <li><a href="$(ldoc.ref_to_module(m))"$(module and m.name == module.name and ' aria-current="page"' or '')>$(m.name)</a></li>
+#   end
+</ul>
+#  end
 # end
-# end
+</aside>
 
-</div>
+<main class="content" id="content">
 
-<div id="content">
-
-# if ldoc.body then -- verbatim HTML as contents; 'non-code' entries
+# if istopic then -- a page of the guide
+#   local position
+#   for i, m in ldoc.ipairs(guide) do if m.name == module.name then position = i end end
     $(anchor(relink(ldoc.body, module.file.filename, '../')))
+#   if position then
+<nav class="pager" aria-label="Guide pages">
+#     if guide[position - 1] then local prev = guide[position - 1]
+    <a class="prev" href="$(ldoc.ref_to_module(prev))"><span>Previous</span>$(display_name(prev))</a>
+#     end
+#     if guide[position + 1] then local next = guide[position + 1]
+    <a class="next" href="$(ldoc.ref_to_module(next))"><span>Next</span>$(display_name(next))</a>
+#     end
+</nav>
+#   end
+#   if root then
+<a class="edit" href="$(GITHUB)/edit/master/$(module.file.filename:sub(#root + 2))">Edit this page on GitHub</a>
+#   end
 # elseif module then -- module documentation
-<h1>$(ldoc.module_typename(module)) <code>$(module.name)</code></h1>
-<p>$(M(module.summary,module))</p>
-<p>$(M(module.description,module))</p>
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-$(AREAS[current][1])">$(AREAS[current][2])</a></div>
+<h1>$(module.name)<span class="kind">$(ldoc.module_typename(module))</span></h1>
+<p class="lead">$(M(module.summary,module))</p>
+$(M(module.description,module))
 #   if module.tags.include then
         $(M(ldoc.include_file(module.tags.include)))
 #   end
 #   if module.see then
 #     local li,il = use_li(module.see)
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
 #     for see in iter(module.see) do
          $(li)<a href="$(ldoc.href(see))">$(see.label)</a>$(il)
@@ -149,16 +257,12 @@
     </ul>
 #   end -- if see
 #   if module.usage then
-#     local li,il = use_li(module.usage)
-    <h3>Usage:</h3>
-    <ul>
+    <h2 id="usage">Usage</h2>
 #     for usage in iter(module.usage) do
-        $(li)<pre class="example">$(ldoc.escape(usage))</pre>$(il)
+        <pre class="example">$(ldoc.escape(usage))</pre>
 #     end -- for
-    </ul>
 #   end -- if usage
 #   if module.info then
-    <h3>Info:</h3>
     <ul>
 #     for tag, value in module.info:iter() do
         <li><strong>$(tag)</strong>: $(M(value,module))</li>
@@ -166,34 +270,29 @@
     </ul>
 #   end -- if module.info
 
-
 # if not ldoc.no_summary then
-# -- bang out the tables of item types for this module (e.g Functions, Tables, etc)
 # for kind,items in module.kinds() do
-<h2><a href="#$(no_spaces(kind))">$(kind)</a></h2>
-<table class="function_list">
+<h2 id="$(no_spaces(kind))">$(kind)</h2>
+<div class="tbl"><table class="function_list">
 #  for item in items() do
 	<tr>
-	<td class="name" $(nowrap)><a href="#$(item.name)">$(display_name(item))</a></td>
+	<td class="name"><a href="#$(item.name)">$(display_name(item))</a></td>
 	<td class="summary">$(M(item.summary,item))</td>
 	</tr>
 #  end -- for items
-</table>
+</table></div>
 #end -- for kinds
-
-<br/>
-<br/>
-
 #end -- if not no_summary
 
-# --- currently works for both Functions and Tables. The params field either contains
-# --- function parameters or table fields.
 # local show_return = not ldoc.no_return_or_parms
 # local show_parms = show_return
+# local sections = {}
+# for kind in module.kinds() do sections[no_spaces(kind)] = true end
 # for kind, items in module.kinds() do
 #   local kitem = module.kinds:get_item(kind)
 #   local has_description = kitem and ldoc.descript(kitem) ~= ""
-    <h2 class="section-header $(has_description and 'has-description')"><a name="$(no_spaces(kind))"></a>$(kind)</h2>
+#   local class = kitem and kitem.type == 'type' and not sections[kitem.name] and kitem.name
+    <h2 class="section-header" id="$(no_spaces(kind))-details"><a name="$(no_spaces(kind))"></a>$(class and '<a name="' .. class .. '"></a>' or '')$(kind) in detail</h2>
     $(M(module.kinds:get_section_description(kind),nil))
 #   if kitem then
 #       if has_description then
@@ -202,19 +301,12 @@
           </div>
 #       end
 #       if kitem.usage then
-            <h3>Usage:</h3>
             <pre class="example">$(ldoc.prettify(kitem.usage[1]))</pre>
 #        end
 #   end
     <dl class="function">
 #  for item in items() do
-    <dt>
-    <a name = "$(item.name)"></a>
-    <strong>$(display_name(item))</strong>
-#   if ldoc.prettify_files and ldoc.is_file_prettified[item.module.file.filename] then
-    <a style="float:right;" href="$(ldoc.source_ref(item))">line $(item.lineno)</a>
-#  end
-    </dt>
+    <dt id="$(item.name)"><a name="$(item.name)"></a><strong>$(display_name(item))</strong></dt>
     <dd>
     $(M(ldoc.descript(item),item))
 
@@ -223,21 +315,19 @@
 #     local tag = item.tags[custom[1]]
 #     if tag and not custom.hidden then
 #      local li,il = use_li(tag)
-    <h3>$(custom.title or custom[1]):</h3>
+    <h3>$(custom.title or custom[1])</h3>
     <ul>
 #      for value in iter(tag) do
          $(li)$(custom.format and custom.format(value) or M(value))$(il)
 #      end -- for
-#     end -- if tag
     </ul>
+#     end -- if tag
 #    end -- iter tags
 #   end
 
 #  if show_parms and item.params and #item.params > 0 then
 #    local subnames = module.kinds:type_of(item).subnames
-#    if subnames then
-    <h3>$(subnames):</h3>
-#    end
+    <h3>$(subnames or 'Parameters')</h3>
     <ul>
 #   for parm in iter(item.params) do
 #     local param,sublist = item:subparam(parm)
@@ -270,7 +360,7 @@
 #   end -- if params
 
 #  if show_return and item.retgroups then local groups = item.retgroups
-    <h3>Returns:</h3>
+    <h3>Returns</h3>
 #   for i,group in ldoc.ipairs(groups) do local li,il = use_li(group)
     <ol>
 #   for r in group:iter() do local type, ctypes = item:return_type(r); local rt = ldoc.typename(type)
@@ -297,13 +387,13 @@
 #   end -- if returns
 
 #   if show_return and item.raise then
-    <h3>Raises:</h3>
+    <h3>Raises</h3>
     $(M(item.raise,item))
 #   end
 
 #   if item.see then
 #     local li,il = use_li(item.see)
-    <h3>See also:</h3>
+    <h3>See also</h3>
     <ul>
 #     for see in iter(item.see) do
          $(li)<a href="$(ldoc.href(see))">$(see.label)</a>$(il)
@@ -312,13 +402,10 @@
 #   end -- if see
 
 #   if item.usage then
-#     local li,il = use_li(item.usage)
-    <h3>Usage:</h3>
-    <ul>
+    <h3>Usage</h3>
 #     for usage in iter(item.usage) do
-        $(li)<pre class="example">$(ldoc.prettify(usage))</pre>$(il)
+        <pre class="example">$(ldoc.prettify(usage))</pre>
 #     end -- for
-    </ul>
 #   end -- if usage
 
 </dd>
@@ -326,43 +413,59 @@
 </dl>
 # end -- for kinds
 
-# else -- if module; project-level contents
-# for kind, mods in ldoc.kinds() do
-#  for m in mods() do
-#   if m.name == HOME then local body = m.postprocess and m.postprocess(m.body) or m.body
-$(anchor((relink(body, m.file.filename, ''):gsub('href="%.%./', 'href="'))))
+# else -- the home page
+<div class="areas">
+# for i, area in ldoc.ipairs(AREAS) do
+#  if members[i] and area[1] ~= 'other' then
+    <a class="area" href="#api-$(area[1])">
+        <span class="area-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="$(area[5])"/></svg></span>
+        <h3>$(area[2])</h3>
+        <p>$(area[3])</p>
+        <div class="mods">
+#   for n, m in ldoc.ipairs(members[i]) do if n <= 5 then
+            <span>$(m.name)</span>
+#   end end
+#   if #members[i] > 5 then
+            <span class="more">+$(#members[i] - 5)</span>
 #   end
+        </div>
+    </a>
 #  end
 # end
-<h1 id="api-reference">API reference</h1>
+</div>
 
-# if ldoc.full_description then
-  <p>$(M(ldoc.full_description,nil))</p>
-# end
+$(anchor(home or ''))
 
-# for kind, mods in ldoc.kinds() do
-# if kind ~= 'Topics' then
-<h2>$(label(kind))</h2>
-# kind = kind:lower()
-<table class="module_list">
-# for m in mods() do
+<h2 id="api-reference">API reference</h2>
+# for i, area in ldoc.ipairs(AREAS) do
+#  if members[i] then
+<h3 id="api-$(area[1])">$(area[2])</h3>
+<div class="tbl"><table class="module_list">
+#   for _, m in ldoc.ipairs(members[i]) do
 	<tr>
-		<td class="name"  $(nowrap)><a href="$(no_spaces(kind))/$(m.name).html">$(m.name)</a></td>
+		<td class="name"><a href="$(ldoc.ref_to_module(m))">$(m.name)</a></td>
 		<td class="summary">$(M(ldoc.strip_header(m.summary),m))</td>
 	</tr>
-#  end -- for modules
-</table>
-# end -- if not Topics
-# end -- for kinds
+#   end
+</table></div>
+#  end
+# end
 # end -- if module
 
-</div> <!-- id="content" -->
-</div> <!-- id="main" -->
-<div id="about">
-<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc $(ldoc.version)</a></i>
-<i style="float:right;">Last updated $(ldoc.updatetime) </i>
-</div> <!-- id="about" -->
-</div> <!-- id="container" -->
+</main>
+
+<aside class="toc" aria-label="On this page">
+<nav id="toc"><h2>On this page</h2></nav>
+</aside>
+
+</div>
+
+<footer class="site-footer">
+<div>
+<span>$(ldoc.project) · MIT or GPL-2.0-only · <a href="$(GITHUB)">$((GITHUB:gsub('^https://', '')))</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc $(ldoc.version)</a> · $(ldoc.updatetime)</span>
+</div>
+</footer>
 </body>
 </html>
 
