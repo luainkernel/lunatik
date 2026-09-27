@@ -1137,6 +1137,15 @@ command and a pid, and what a valid call does.
   `ipip`, and unless the loaded `luaskb` is the installed one and carries the
   refusal, since a module without it panics the host.
 
+- **data**: a ping over an ipip tunnel reaches `LOCAL_OUT` twice. On the inner
+  packet, which has no MAC header yet, `skb:data("mac")` raises "MAC header not
+  set". The outer packet has its MAC header at the inner IPv4 header: `#skb:data()`
+  equals `#skb` and `#skb:data("mac")` is shorter by the outer header, both views
+  ending at the tail; trimmed below the outer header with `skb:resize`, it makes
+  `skb:data("mac")` raise "MAC header past the tail". The hook never reads a "mac"
+  view, so a build without the refusals fails without an out-of-bounds access. The
+  tunnel runs over loopback; skips without `ipip`.
+
 ### socket
 
 - **setsockopt**: `socket:setsockopt()` sets an integer option (`SO_RCVBUF`)
@@ -1291,6 +1300,10 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   instead of underflowing the length into an out-of-bounds access. The program
   drops on rejection, so a working guard blocks the ping, proving the
   kfunc ran and returned without crashing.
+
+- **tc data**: on the echo reply, whose `skb->data` sits at the MAC header in
+  the classifier, `#skb:data()` and `#skb:data("mac")` both equal `#skb`, the
+  frame's length: each view ends at the packet's tail.
 
 ### thread
 

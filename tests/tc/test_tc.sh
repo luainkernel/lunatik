@@ -38,7 +38,7 @@ tc_unload()
 }
 
 ktap_header
-ktap_plan 6
+ktap_plan 7
 
 skip_all()
 {
@@ -49,6 +49,7 @@ skip_all()
 	ktap_skip "tc detach: callback stops firing and traffic resumes"
 	ktap_skip "tc attach: refuses a sleepable runtime"
 	ktap_skip "tc zero-key: a zero-sized key is rejected without a crash"
+	ktap_skip "tc data: the net and mac views end at the frame's tail"
 	ktap_totals
 	exit 0
 }
@@ -68,6 +69,7 @@ cleanup()
 	lunatik stop tests/tc/reattach > /dev/null 2>&1
 	lunatik stop tests/tc/detach > /dev/null 2>&1
 	lunatik stop tests/tc/attach_sleepable > /dev/null 2>&1
+	lunatik stop tests/tc/data > /dev/null 2>&1
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
 }
@@ -181,6 +183,9 @@ lunatik stop tests/tc/attach_sleepable > /dev/null 2>&1
 ktap_pass "tc attach: refuses a sleepable runtime"
 
 zerokey_case
+
+run_case tc_data.bpf.o data.lua yes "tc data" \
+	"tc data: the net and mac views end at the frame's tail" --context=softirq
 
 ktap_totals
 
