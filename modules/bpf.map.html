@@ -1,20 +1,14 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Lunatik API Documentation</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
 
 <div id="container">
-
-<div id="product">
-	<div id="product_logo"></div>
-	<div id="product_name"><big><b></b></big></div>
-	<div id="product_description"></div>
-</div> <!-- id="product" -->
 
 
 <div id="main">
@@ -24,11 +18,10 @@
 
 <div id="navigation">
 <br/>
-<h1>Lunatik</h1>
-
+<h1><a href="../index.html">Lunatik</a></h1>
 
 <ul>
-  <li><a href="../index.html">Index</a></li>
+  <li><a href="../index.html">Home</a></li>
 </ul>
 
 <h2>Contents</h2>
@@ -38,7 +31,7 @@
 </ul>
 
 
-<h2>Modules</h2>
+<h2>Lua API</h2>
 <ul class="nowrap">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><strong>bpf.map</strong></li>
@@ -127,10 +120,6 @@
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
   <li><a href="../classes/skb.attr.html">skb.attr</a></li>
 </ul>
-<h2>Topics</h2>
-<ul class="">
-  <li><a href="../topics/README.md.html">README</a></li>
-</ul>
 
 </div>
 
@@ -140,18 +129,18 @@
 <p>High-level view over pinned eBPF maps.</p>
 <p> Each constructor mirrors the one in <a href="../modules/bpf.html#">bpf</a>, taking the packing spec of what
  the map holds. Key-value maps become table proxies: indexing looks values
- up, assignment updates, assigning <code>nil</code> deletes, and <a href="https://www.lua.org/manual/5.4/manual.html#pdf-pairs">pairs</a> iterates.
+ up, assignment updates, assigning <code>nil</code> deletes, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-pairs">pairs</a> iterates.
  Keyless maps become objects, with <a href="../modules/bpf.map.html#map_queue:push">push</a>, <a href="../modules/bpf.map.html#map_queue:pop">pop</a> and <a href="../modules/bpf.map.html#map_queue:peek">peek</a>.</p>
 
 <p> Keys and values are opaque fixed-size buffers to eBPF. A spec is either a
- <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format (e.g. <code>&quot;I4&quot;</code>, <code>&quot;c6&quot;</code>) or a <a href="../modules/struct.html#">struct</a> codec, and says both
+ <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format (e.g. <code>&quot;I4&quot;</code>, <code>&quot;c6&quot;</code>) or a <a href="../modules/struct.html#">struct</a> codec, and says both
  how many bytes it takes, validated against the map on open, and how to read
  them. Specs that pack a single value take and return it as a scalar;
  multi-value formats and <a href="../modules/struct.html#">struct</a> codecs take and return an array of values,
  in field order.</p>
 
 <p> Operations on a table proxy come from outside it (<a href="../modules/bpf.map.html#close">close</a> and <a href="../modules/bpf.map.html#info">info</a> are
- module functions, as in Lua&rsquo;s <a href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a> library or <a href="../modules/rcu.html#rcu_table:map">rcu.map</a>), so any key the
+ module functions, as in Lua&rsquo;s <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a> library or <a href="../modules/rcu.html#rcu_table:map">rcu.map</a>), so any key the
  spec can encode is a valid map key.</p>
 
 <p> Conditional updates (<code>BPF_NOEXIST</code>/<code>BPF_EXIST</code>) and the boolean results
@@ -251,16 +240,16 @@ print(events:pop())
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">pathname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Path to the pinned map.
         </li>
         <li><span class="parameter">keyspec</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the key.
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the key.
         </li>
         <li><span class="parameter">valuespec</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
         </li>
     </ul>
 
@@ -310,16 +299,16 @@ print(events:pop())
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">pathname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Path to the pinned map.
         </li>
         <li><span class="parameter">keyspec</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the key.
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the key.
         </li>
         <li><span class="parameter">valuespec</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
         </li>
     </ul>
 
@@ -355,8 +344,8 @@ print(events:pop())
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        <a href="https://www.lua.org/manual/5.4/manual.html#pdf-type">type</a>, <code>key_size</code>, <code>value_size</code> and <code>max_entries</code>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>, <code>key_size</code>, <code>value_size</code> and <code>max_entries</code>
     </ol>
 
 
@@ -374,16 +363,16 @@ print(events:pop())
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">pathname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Path to the pinned map.
         </li>
         <li><span class="parameter">keyspec</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the key.
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the key.
         </li>
         <li><span class="parameter">valuespec</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
         </li>
     </ul>
 
@@ -411,12 +400,12 @@ print(events:pop())
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">pathname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Path to the pinned map.
         </li>
         <li><span class="parameter">valuespec</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
         </li>
     </ul>
 
@@ -444,12 +433,12 @@ print(events:pop())
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">pathname</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Path to the pinned map.
         </li>
         <li><span class="parameter">valuespec</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         <a href="https://www.lua.org/manual/5.4/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format or <a href="../modules/struct.html#">struct</a> codec for the value.
         </li>
     </ul>
 
@@ -500,8 +489,8 @@ print(events:pop())
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-        <a href="https://www.lua.org/manual/5.4/manual.html#pdf-type">type</a>, <code>key_size</code>, <code>value_size</code> and <code>max_entries</code>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>, <code>key_size</code>, <code>value_size</code> and <code>max_entries</code>
     </ol>
 
 
@@ -584,9 +573,10 @@ print(events:pop())
 </div> <!-- id="content" -->
 </div> <!-- id="main" -->
 <div id="about">
-<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 15:55:03 </i>
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-09-27 16:08:13 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
 </html>
+

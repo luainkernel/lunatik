@@ -1,20 +1,14 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Lunatik API Documentation</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
 
 <div id="container">
-
-<div id="product">
-	<div id="product_logo"></div>
-	<div id="product_name"><big><b></b></big></div>
-	<div id="product_description"></div>
-</div> <!-- id="product" -->
 
 
 <div id="main">
@@ -24,11 +18,10 @@
 
 <div id="navigation">
 <br/>
-<h1>Lunatik</h1>
-
+<h1><a href="../index.html">Lunatik</a></h1>
 
 <ul>
-  <li><a href="../index.html">Index</a></li>
+  <li><a href="../index.html">Home</a></li>
 </ul>
 
 <h2>Contents</h2>
@@ -47,7 +40,7 @@
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
   <li><a href="../classes/skb.attr.html">skb.attr</a></li>
 </ul>
-<h2>Modules</h2>
+<h2>Lua API</h2>
 <ul class="nowrap">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
@@ -126,10 +119,6 @@
   <li><a href="../modules/thread.html">thread</a></li>
   <li><a href="../modules/xdp.html">xdp</a></li>
 </ul>
-<h2>Topics</h2>
-<ul class="">
-  <li><a href="../topics/README.md.html">README</a></li>
-</ul>
 
 </div>
 
@@ -187,7 +176,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">alg</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          base hash algorithm name (e.g., &ldquo;sha256&rdquo;, &ldquo;sha512&rdquo;).
  The &ldquo;hmac(&rdquo; prefix will be added automatically.
         </li>
@@ -234,11 +223,11 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">prk</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Pseudorandom Key.
         </li>
         <li><span class="parameter">info</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Optional context and application-specific information. Defaults to an empty string if nil.
          (<em>optional</em>)
         </li>
@@ -251,7 +240,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         Output Keying Material of the specified <code>length</code>.
     </ol>
 
@@ -270,12 +259,12 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">salt</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Optional salt value. If nil or not provided, a salt of <code>hash_len</code> zeros is used.
          (<em>optional</em>)
         </li>
         <li><span class="parameter">ikm</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Input Keying Material.
         </li>
     </ul>
@@ -283,7 +272,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         Pseudorandom Key (PRK).
     </ol>
 
@@ -302,16 +291,16 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">salt</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Optional salt value.
          (<em>optional</em>)
         </li>
         <li><span class="parameter">ikm</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Input Keying Material.
         </li>
         <li><span class="parameter">info</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          Optional context and application-specific information.
          (<em>optional</em>)
         </li>
@@ -324,7 +313,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         Output Keying Material.
     </ol>
 
@@ -343,11 +332,11 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">key</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          HMAC key.
         </li>
         <li><span class="parameter">data</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          data to hash.
         </li>
     </ul>
@@ -355,7 +344,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         HMAC digest.
     </ol>
 
@@ -369,9 +358,10 @@
 </div> <!-- id="content" -->
 </div> <!-- id="main" -->
 <div id="about">
-<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 15:55:03 </i>
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-09-27 16:08:13 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
 </html>
+

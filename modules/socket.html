@@ -1,20 +1,14 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Lunatik API Documentation</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
 
 <div id="container">
-
-<div id="product">
-	<div id="product_logo"></div>
-	<div id="product_name"><big><b></b></big></div>
-	<div id="product_description"></div>
-</div> <!-- id="product" -->
 
 
 <div id="main">
@@ -24,11 +18,10 @@
 
 <div id="navigation">
 <br/>
-<h1>Lunatik</h1>
-
+<h1><a href="../index.html">Lunatik</a></h1>
 
 <ul>
-  <li><a href="../index.html">Index</a></li>
+  <li><a href="../index.html">Home</a></li>
 </ul>
 
 <h2>Contents</h2>
@@ -38,7 +31,7 @@
 </ul>
 
 
-<h2>Modules</h2>
+<h2>Lua API</h2>
 <ul class="nowrap">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
@@ -126,10 +119,6 @@
   <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
   <li><a href="../classes/skb.attr.html">skb.attr</a></li>
-</ul>
-<h2>Topics</h2>
-<ul class="">
-  <li><a href="../topics/README.md.html">README</a></li>
 </ul>
 
 </div>
@@ -268,7 +257,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">addr</span>
-            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         <p> local address to bind to. Interpretation depends on <code>socket.sk.sk_family</code>:</p>
 
 <ul>
@@ -364,7 +353,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">addr</span>
-            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         <p> destination address to connect to.
    Interpretation depends on <code>socket.sk.sk_family</code>:</p>
 
@@ -421,7 +410,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         <p> addr peer&rsquo;s address.</p>
 
 <ul>
@@ -460,7 +449,7 @@ reports.</li>
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         <p> addr local address.</p>
 
 <ul>
@@ -555,10 +544,10 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         received message (as a string of bytes).</li>
         <li>
-           <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          addr If <code>from</code> is true and the protocol named a sender, its address.
    TCP names none, and neither does an <code>AF_UNIX</code> peer that never bound; nothing follows the message
    then.
@@ -609,11 +598,11 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">message</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          message to send.
         </li>
         <li><span class="parameter">addr</span>
-            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
         <p> destination address.</p>
 
 <ul>
@@ -679,7 +668,7 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
          option name (e.g., <code>linux.socket.so.RCVTIMEO_NEW</code>).
         </li>
         <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          option value: an integer for the common <code>int</code>
    payload, or a string carrying the option&rsquo;s packed binary payload.
         </li>
@@ -774,9 +763,10 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
 </div> <!-- id="content" -->
 </div> <!-- id="main" -->
 <div id="about">
-<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 15:55:03 </i>
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-09-27 16:08:13 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
 </html>
+

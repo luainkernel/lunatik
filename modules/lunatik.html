@@ -1,20 +1,14 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Lunatik API Documentation</title>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
 </head>
 <body>
 
 <div id="container">
-
-<div id="product">
-	<div id="product_logo"></div>
-	<div id="product_name"><big><b></b></big></div>
-	<div id="product_description"></div>
-</div> <!-- id="product" -->
 
 
 <div id="main">
@@ -24,11 +18,10 @@
 
 <div id="navigation">
 <br/>
-<h1>Lunatik</h1>
-
+<h1><a href="../index.html">Lunatik</a></h1>
 
 <ul>
-  <li><a href="../index.html">Index</a></li>
+  <li><a href="../index.html">Home</a></li>
 </ul>
 
 <h2>Contents</h2>
@@ -39,7 +32,7 @@
 </ul>
 
 
-<h2>Modules</h2>
+<h2>Lua API</h2>
 <ul class="nowrap">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
@@ -128,10 +121,6 @@
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
   <li><a href="../classes/skb.attr.html">skb.attr</a></li>
 </ul>
-<h2>Topics</h2>
-<ul class="">
-  <li><a href="../topics/README.md.html">README</a></li>
-</ul>
 
 </div>
 
@@ -165,7 +154,7 @@
 <table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#runtime:resume">runtime:resume (...)</a></td>
-	<td class="summary">Resumes a yielded runtime, analogous to <a href="https://www.lua.org/manual/5.4/manual.html#pdf-coroutine.resume">coroutine.resume</a>.</td>
+	<td class="summary">Resumes a yielded runtime, analogous to <a href="https://www.lua.org/manual/5.5/manual.html#pdf-coroutine.resume">coroutine.resume</a>.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#runtime:stop">runtime:stop ()</a></td>
@@ -248,11 +237,11 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">script</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          script name (e.g., <code>&quot;mymod&quot;</code> loads <code>/lib/modules/lua/mymod.lua</code>)
         </li>
         <li><span class="parameter">context</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          execution context, as in <a href="../modules/lunatik.html#runtime">lunatik.runtime</a>
          (<em>default</em> "process")
         </li>
@@ -290,11 +279,11 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">script</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          script name (e.g., <code>&quot;mymod&quot;</code> loads <code>/lib/modules/lua/mymod.lua</code>)
         </li>
         <li><span class="parameter">context</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          execution context: <code>&quot;process&quot;</code> (sleepable,
    GFP_KERNEL, mutex), <code>&quot;softirq&quot;</code> (atomic, GFP_ATOMIC, spinlock), or <code>&quot;hardirq&quot;</code>
    (atomic, GFP_ATOMIC, spinlock with IRQs disabled).
@@ -329,7 +318,7 @@
     <strong>runtime:resume (...)</strong>
     </dt>
     <dd>
-    Resumes a yielded runtime, analogous to <a href="https://www.lua.org/manual/5.4/manual.html#pdf-coroutine.resume">coroutine.resume</a>.
+    Resumes a yielded runtime, analogous to <a href="https://www.lua.org/manual/5.5/manual.html#pdf-coroutine.resume">coroutine.resume</a>.
  Only Lunatik objects cross between the runtimes, in either direction.
 
 
@@ -351,7 +340,7 @@
      &ldquo;invalid object&rdquo; or &ldquo;cannot share SINGLE object&rdquo; if a value cannot cross, numbering the
    arguments on the way in and the yielded values on the way back, or the error raised on
    resumption; &ldquo;not allowed from the runtime itself&rdquo; from under the runtime&rsquo;s own lock, the
-   contexts <a href="../modules/lunatik.html#runtime:stop">stop</a> names, where the resumption would wait on it
+   contexts <a href="../modules/lunatik.html#percpu:stop">stop</a> names, where the resumption would wait on it
 
 
 
@@ -408,7 +397,7 @@
    with the runtimes after it not resumed. A runtime that refuses a value stays where it yielded;
    one that raises is dead, so every later resume delivers to the CPUs before it again and fails
    on it again; &ldquo;not allowed from the runtime itself&rdquo; from under the lock of one of the set&rsquo;s
-   runtimes, the contexts <a href="../modules/lunatik.html#runtime:stop">stop</a> names, where its resumption would wait on that lock
+   runtimes, the contexts <a href="../modules/lunatik.html#percpu:stop">stop</a> names, where its resumption would wait on that lock
 
 
 
@@ -425,7 +414,7 @@
 
     <h3>Raises:</h3>
      &ldquo;not allowed under RTNL&rdquo; from a netdevice callback, in whatever runtime or coroutine
-   its task runs, as the runtime&rsquo;s <a href="../modules/lunatik.html#runtime:stop">stop</a> does: the releases the close runs cannot refuse;
+   its task runs, as the runtime&rsquo;s <a href="../modules/lunatik.html#percpu:stop">stop</a> does: the releases the close runs cannot refuse;
    &ldquo;not allowed from the runtime itself&rdquo; from a callback or a resumed body of one of the
    set&rsquo;s runtimes, where its close would wait on the lock that task holds
 
@@ -438,9 +427,10 @@
 </div> <!-- id="content" -->
 </div> <!-- id="main" -->
 <div id="about">
-<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-09-27 15:55:03 </i>
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-09-27 16:08:13 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
 </html>
+
