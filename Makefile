@@ -260,4 +260,7 @@ doc-stubs:
 
 doc-site: doc-stubs
 	ldoc .
+	cp doc/style/site.js doc/site.js
+	cp -r doc/style/fonts doc/
+	"$(LUA)" doc/style/search.lua doc
 
