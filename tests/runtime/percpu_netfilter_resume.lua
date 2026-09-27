@@ -6,12 +6,12 @@
 
 local lunatik = require("lunatik")
 
-local ATTACH  <const> = "tests/runtime/percpu_netfilter_attach"
+local RESUMED <const> = "tests/runtime/percpu_netfilter_resumed"
 local CONTEXT <const> = "softirq"
 
-local runtime <close> = lunatik.runtime(ATTACH, CONTEXT)
+local runtime <close> = lunatik.runtime(RESUMED, CONTEXT)
 runtime:resume()
 
-local runtimes <close> = lunatik.percpu(ATTACH, CONTEXT)
+local runtimes <close> = lunatik.percpu(RESUMED, CONTEXT)
 runtimes:resume()
 
