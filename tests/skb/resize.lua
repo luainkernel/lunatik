@@ -10,7 +10,7 @@ local nf        = require("linux.nf")
 local PRIORITY <const> = 0x12360000 -- resize.sh's socat priorities are PRIORITY + 1 to 5
 local PAYLOAD  <const> = 2048
 local DELTA    <const> = 16
-local HEAD     <const> = 20 -- an IPv4 header, shorter than the TCP/IP headers in the linear head
+local HEAD     <const> = 38 -- through the TCP checksum field, short of the TCP/IP headers in the linear head
 local OVERGROW <const> = 65536 -- more than any head holds past its tail
 
 local cases = {}
