@@ -7,19 +7,12 @@
 local lunatik = require("lunatik")
 local probe   = require("probe")
 local systab  = require("syscall.table")
+local prints  = require("tests.probe.prints")
 
-local function pre()
-	print("probe handlers: pre")
-end
-
-local function post()
-	print("probe handlers: post")
-end
-
-local handlers = {pre = pre}
+local handlers = {pre = prints.pre}
 
 if lunatik.cpu() > 0 then
-	handlers.post = post
+	handlers.post = prints.post
 end
 
 probe.new(systab["personality"], handlers)
