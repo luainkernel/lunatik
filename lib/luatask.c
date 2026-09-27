@@ -29,8 +29,9 @@ LUNATIK_PRIVATECHECKER(luatask_check, struct task_struct *, &luatask_class);
 */
 
 /***
-* Returns the command name (comm) of the task, i.e., the executable.
-* This is truncated to TASK_COMM_LEN (16) characters by the kernel.
+* Returns the name (comm) of the task, at most 15 characters.
+* It is the executable's basename unless the task renamed itself, as a kernel thread or a
+* `PR_SET_NAME` caller does.
 * @function comm
 * @treturn string command name of the task
 */
@@ -72,8 +73,8 @@ static int luatask_tgid(lua_State *L)
 
 /***
 * Returns the dynamic priority of the task.
-* Ranges from 0 (highest) to 139 (lowest); normal tasks are 100-139,
-* real-time tasks are 0-99.
+* Ranges from -1 (highest) to 139 (lowest): deadline tasks are -1, real-time tasks are 0-99 and
+* normal tasks are 100-139.
 * @function prio
 * @treturn integer priority of the task
 */
@@ -98,7 +99,9 @@ static int luatask_cpu(lua_State *L)
 
 /***
 * Gets an object representing the current kernel task.
+* In a softirq or hardirq callback that is the task the interrupt found running.
 * @function current
+* @within task
 * @treturn task task object for the current task.
 * @usage
 * local task = require("task")
