@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 local rng = require("crypto").rng
@@ -11,6 +11,13 @@ test("RNG generate 32 bytes", function()
 	local random = r:generate(32)
 	assert(type(random) == "string")
 	assert(#random == 32)
+end)
+
+test("RNG generate 16 bytes with additional input", function()
+	local r = rng"stdrng"
+	local random = r:generate(16, "additional input")
+	assert(type(random) == "string")
+	assert(#random == 16)
 end)
 
 test("RNG generate 0 bytes (error)", function()
@@ -37,12 +44,20 @@ test("RNG reset with seed", function()
 	assert(#random == 16)
 end)
 
-test("RNG info", function()
+test("RNG additional input or seed that is not a string (error)", function()
 	local r = rng"stdrng"
-	local info = r:info()
-	assert(type(info) == "table", "info should return a table")
-	assert(type(info.driver_name) == "string", "info.driver_name should be a string")
-	assert(type(info.seedsize) == "number", "info.seedsize should be a number")
+	local status, err = pcall(r.generate, r, 16, {})
+	assert(not status, "rng:generate(16, {}) must return an error")
+	assert(err:find"string expected", "Error for a table should indicate 'string expected', got: " .. tostring(err))
+	status, err = pcall(r.reset, r, {})
+	assert(not status, "rng:reset({}) must return an error")
+	assert(err:find"string expected", "Error for a table should indicate 'string expected', got: " .. tostring(err))
+end)
+
+test("RNG seedsize", function()
+	local r = rng"stdrng"
+	local size = r:seedsize()
+	assert(size == 0, "stdrng is a DRBG, which requires no seed, got a seed size of " .. tostring(size))
 end)
 
 test("RNG getbytes 0 bytes (error)", function()

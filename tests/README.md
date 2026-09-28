@@ -100,9 +100,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   short key, an invalid tag size and a short IV with `EINVAL`, answers a
   truncated or tampered tag with `EBADMSG`, and round-trips without associated
   data, with an empty plaintext, and 5000 times.
-- **rng**: `stdrng` gives the number of bytes asked for through `generate`
-  and `getbytes`, also after a reset with or without a seed, refuses 0 bytes
-  as out of bounds, and reports its driver name and seed size.
+- **rng**: `stdrng` gives the number of bytes asked for through `generate`,
+  with or without additional input, and `getbytes`, also after a reset with or
+  without a seed, refuses 0 bytes as out of bounds and an additional input or
+  a seed that is not a string, and reports a seed size of 0, a DRBG's.
 - **hkdf**: `hkdf` matches the SHA-256 vectors of RFC 5869, and `extract` and
   `expand` match the client initial secret, key and IV of the QUIC worked
   example at quic.xargs.org.
