@@ -175,8 +175,8 @@
 <h1>linux<span class="kind">Module</span></h1>
 <p class="lead">Various Linux kernel facilities.</p>
  This library includes functions for random number generation, sleeping, tracing,
- time retrieval, kernel symbol lookup, network interface and namespace ids, errno
- names and the CPU count. Kernel constants live in the <code>linux.*</code> modules, as
+ time retrieval, kernel symbol lookup, network interface and namespace ids and errno
+ names. Kernel constants live in the <code>linux.*</code> modules, as
  <code>require(&quot;linux.stat&quot;)</code> for file modes and <code>require(&quot;linux.task&quot;)</code> for task states.
 
 <h2 id="Functions">Functions</h2>
@@ -201,10 +201,6 @@
 	<td class="name"><a href="#netns">netns ([pid])</a></td>
 	<td class="summary">Gets the inode number that identifies a network namespace, the one <code>/proc/&lt;pid&gt;/ns/net</code>
  links to and <code>lsns</code> prints.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#numcpus">numcpus ()</a></td>
-	<td class="summary">Returns the number of possible CPU ids.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#random">random ([m[, n]])</a></td>
@@ -385,27 +381,6 @@
         <pre class="example"><span class="keyword">local</span> home = linux.<span class="function-name">netns</span>()</pre>
 
 </dd>
-    <dt id="numcpus"><a name="numcpus"></a><strong>numcpus ()</strong></dt>
-    <dd>
-    Returns the number of possible CPU ids.
- CPU ids range from <code>0</code> to <code>numcpus() - 1</code>; the online ones are a subset,
- so an id in that range may be offline.
-
-
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        number of possible CPU ids
-    </ol>
-
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">for</span> cpu = <span class="number">0</span>, linux.<span class="function-name">numcpus</span>() - <span class="number">1</span> <span class="keyword">do</span> <span class="global">print</span>(cpu) <span class="keyword">end</span></pre>
-
-</dd>
     <dt id="random"><a name="random"></a><strong>random ([m[, n]])</strong></dt>
     <dd>
     Generates pseudo-random integers.
@@ -552,7 +527,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 14:07:48</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 14:30:09</span>
 </div>
 </footer>
 </body>

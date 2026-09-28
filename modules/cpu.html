@@ -175,22 +175,14 @@
 <h1>cpu<span class="kind">Module</span></h1>
 <p class="lead">Lua interface to Linux CPU abstractions.</p>
  A possible CPU is one the system can ever bring up, a present one is plugged in, and an online
- one runs tasks. <code>linux.numcpus()</code> is one past the highest possible CPU id, the same count as
- <a href="../modules/cpu.html#num_possible">num_possible</a> when those ids have no gaps.
+ one runs tasks. <code>maxid()</code> is the highest possible CPU id, one less than <a href="../modules/cpu.html#num_possible">num_possible</a> when
+ those ids have no gaps.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#foreach_online">foreach_online (callback)</a></td>
-	<td class="summary">Calls a function for each online CPU.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#foreach_possible">foreach_possible (callback)</a></td>
-	<td class="summary">Calls a function for each possible CPU.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#foreach_present">foreach_present (callback)</a></td>
-	<td class="summary">Calls a function for each present CPU.</td>
+	<td class="name"><a href="#maxid">maxid ()</a></td>
+	<td class="summary">Returns the highest possible CPU id, the kernel&rsquo;s <code>nr_cpu_ids - 1</code>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#num_online">num_online ()</a></td>
@@ -205,6 +197,18 @@
 	<td class="summary">Returns the number of present CPUs.</td>
 	</tr>
 	<tr>
+	<td class="name"><a href="#online">online ()</a></td>
+	<td class="summary">Iterates over the online CPUs, in ascending order.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#possible">possible ()</a></td>
+	<td class="summary">Iterates over the possible CPUs, in ascending order.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#present">present ()</a></td>
+	<td class="summary">Iterates over the present CPUs, in ascending order.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#stats">stats (cpu)</a></td>
 	<td class="summary">Returns the time a CPU spent in each state since boot, in nanoseconds.</td>
 	</tr>
@@ -213,55 +217,18 @@
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
-    <dt id="foreach_online"><a name="foreach_online"></a><strong>foreach_online (callback)</strong></dt>
+    <dt id="maxid"><a name="maxid"></a><strong>maxid ()</strong></dt>
     <dd>
-    Calls a function for each online CPU.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">callback</span>
-            <span class="types"><span class="type">function</span></span>
-         called with the CPU number
-        </li>
-    </ul>
+    Returns the highest possible CPU id, the kernel&rsquo;s <code>nr_cpu_ids - 1</code>.
 
 
 
+    <h3>Returns</h3>
+    <ol>
 
-
-</dd>
-    <dt id="foreach_possible"><a name="foreach_possible"></a><strong>foreach_possible (callback)</strong></dt>
-    <dd>
-    Calls a function for each possible CPU.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">callback</span>
-            <span class="types"><span class="type">function</span></span>
-         called with the CPU number
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt id="foreach_present"><a name="foreach_present"></a><strong>foreach_present (callback)</strong></dt>
-    <dd>
-    Calls a function for each present CPU.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">callback</span>
-            <span class="types"><span class="type">function</span></span>
-         called with the CPU number
-        </li>
-    </ul>
-
+           <span class="types"><span class="type">integer</span></span>
+        the highest possible CPU id
+    </ol>
 
 
 
@@ -318,6 +285,63 @@
 
 
 </dd>
+    <dt id="online"><a name="online"></a><strong>online ()</strong></dt>
+    <dd>
+    Iterates over the online CPUs, in ascending order.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        iterator for the generic <code>for</code>, yielding each online CPU id
+    </ol>
+
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">for</span> id <span class="keyword">in</span> cpu.<span class="function-name">online</span>() <span class="keyword">do</span> <span class="global">print</span>(id) <span class="keyword">end</span></pre>
+
+</dd>
+    <dt id="possible"><a name="possible"></a><strong>possible ()</strong></dt>
+    <dd>
+    Iterates over the possible CPUs, in ascending order.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        iterator for the generic <code>for</code>, yielding each possible CPU id
+    </ol>
+
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">for</span> id <span class="keyword">in</span> cpu.<span class="function-name">possible</span>() <span class="keyword">do</span> <span class="global">print</span>(id) <span class="keyword">end</span></pre>
+
+</dd>
+    <dt id="present"><a name="present"></a><strong>present ()</strong></dt>
+    <dd>
+    Iterates over the present CPUs, in ascending order.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        iterator for the generic <code>for</code>, yielding each present CPU id
+    </ol>
+
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">for</span> id <span class="keyword">in</span> cpu.<span class="function-name">present</span>() <span class="keyword">do</span> <span class="global">print</span>(id) <span class="keyword">end</span></pre>
+
+</dd>
     <dt id="stats"><a name="stats"></a><strong>stats (cpu)</strong></dt>
     <dd>
     Returns the time a CPU spent in each state since boot, in nanoseconds.
@@ -329,7 +353,7 @@
     <ul>
         <li><span class="parameter">cpu</span>
             <span class="types"><span class="type">integer</span></span>
-         CPU number, from <code>0</code> to <code>linux.numcpus() - 1</code>
+         CPU number, from <code>0</code> to <code>maxid()</code>
         </li>
     </ul>
 
@@ -361,7 +385,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 14:07:48</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 14:30:09</span>
 </div>
 </footer>
 </body>
