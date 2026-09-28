@@ -10,8 +10,10 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
 
 - The implementer traces the issue, writes the smallest shape down before any other, commits and
   pushes as it goes, runs the host through `tools/lunatik-host`, and opens the pull request that
-  closes the issue. Its prompt names the rule each step needs and restates none, since every agent
-  loads AGENTS.md and the machine's CLAUDE.local.md; what belongs to the machine, a credential or how
+  closes the issue. Its answer's `smallest`, the shape beside the size of the diff and what each
+  mechanism past it buys, goes to the review, and the hand-back of the pull request carries it with
+  the hunt's own reading. Its prompt names the rule each step needs and restates none, since every
+  agent loads AGENTS.md and the machine's CLAUDE.local.md; what belongs to the machine, a credential or how
   it gets root, stays in the latter, and `machine-leak.sh` keeps it out of the tree.
 - `notes` carries what only the session knows: what the maintainer asked for, what was already traced,
   what the issue leaves out. A rule pasted there is a copy of AGENTS.md its next change does not reach.

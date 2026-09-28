@@ -64,6 +64,8 @@ you take it, what you read, decided, committed, ran and measured, and your answe
    (AGENTS.md, "Deciding what to change") closes as not a defect, with no pull request.
 2. Write the smallest shape that makes the defect unreachable, or meets the need, in the checkpoint
    before any other, and take a larger one only for what it buys (AGENTS.md, "Deciding what to change").
+   Your answer's smallest carries that shape beside the diff you open, and names what each mechanism
+   past it buys; the review and the maintainer read the pull request against it.
 3. Commit as "Patches and commits" asks: one change per commit, the harness apart from the code, tests
    wired and described (the new-test skill), each doc where its reader looks.
    ${PUSH}
@@ -117,6 +119,15 @@ const LEFT = { type: 'array', items: { type: 'object', properties: {
   home: { type: 'integer', description: 'the open issue this finding belongs to' },
 }, required: ['title', 'body', 'severity', 'contract'] } }
 
+const SMALLEST = { type: 'object', properties: {
+  shape: { type: 'string', description: 'the smallest change that makes the defect unreachable, or meets the need' },
+  lines: { type: 'integer', description: 'the lines that change adds and removes' },
+  diff: { type: 'integer', description: 'the lines the pull request adds and removes' },
+  beyond: { type: 'array', items: { type: 'object', properties: {
+    mechanism: { type: 'string' }, buys: { type: 'string', description: 'what it buys that the smallest shape does not' },
+  }, required: ['mechanism', 'buys'] } },
+}, required: ['shape', 'lines', 'diff', 'beyond'] }
+
 const IMPLEMENTED = {
   type: 'object',
   properties: {
@@ -132,10 +143,11 @@ const IMPLEMENTED = {
       core: { type: 'string', description: 'the core srcversion while loaded' },
       examples: { type: 'array', items: { type: 'string' } },
     }, required: ['head', 'suite', 'core', 'examples'] },
+    smallest: SMALLEST,
     findings_left: LEFT,
     notes: { type: 'string' },
   },
-  required: ['pr', 'branch', 'head', 'base', 'commits', 'examples', 'validated', 'findings_left', 'notes'],
+  required: ['pr', 'branch', 'head', 'base', 'commits', 'examples', 'validated', 'smallest', 'findings_left', 'notes'],
 }
 
 const FILED = { type: 'object', properties: {
@@ -160,6 +172,7 @@ if (implemented?.pr) {
     review = await workflow({ scriptPath: REVIEW }, {
       pr: implemented.pr, branch: implemented.branch, head: implemented.head, base: implemented.base,
       scratch: a.scratch, validated, examples: implemented.examples, focus: a.focus || a.notes,
+      smallest: implemented.smallest,
       effort: a.effort, model: a.model, push: a.push, repo: a.repo, sudo: a.sudo, gh: a.gh,
     })
   } catch (e) {

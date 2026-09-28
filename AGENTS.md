@@ -483,7 +483,9 @@ last stage, each under its severity label or appended to the open issue it belon
 waits on a session to copy it out and the numbers come back with the result. An entry quotes the
 contract its severity was read against, which the issue carries as a `Contract:` line: #1287 was filed
 as medium for a table the documentation of `set.new` never accepted, and the maintainer had to ask what
-the contract was.
+the contract was. The implementer's answer and the review's hunt each carry the smallest shape beside
+the size of the diff and what every mechanism past it buys, and the hand-back shows it: #1339 reached
+the maintainer as a builder, a typedef and a struct around what became a two-line refusal.
 
 ### Running a script
 
