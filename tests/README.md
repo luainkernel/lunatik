@@ -195,6 +195,13 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   each read what they wrote; a file that wrote nothing reads nothing; release
   receives the file its open numbered, which a callback written without the
   file reads back.
+- **mode**: `device.new()` reads the driver's optional `mode` into the node it
+  creates. A device without one gets devtmpfs's default, 0600, and one with
+  `linux.stat`'s `IRUGO` a node of 0444; a `mode` that holds a string, a
+  numeric one included, or a boolean is refused with an error naming the
+  field, before the device registers anything: `/proc/devices` does not list
+  the refused name while the script's collector, stopped, keeps every refused
+  object alive.
 
 ### cli
 
@@ -521,9 +528,11 @@ after the watch is stopped.
   the bus carries, and registers again after every refusal; the accepted
   drivers reach `/sys/bus/hid/drivers` and leave it with the runtime. A
   longer table, a length a `__len` metamethod fabricates, a length that is
-  not an integer, an entry that is not a table and an entry that raises
-  while it is read are each refused, and each refusal forces the refused
-  driver's finalizer. A name filling `NAME_MAX` with no room for its
+  not an integer, an entry that is not a table, an entry that raises
+  while it is read and an entry whose `bus`, `group`, `vendor`, `product` or
+  `driver_data` holds a string, a numeric one included, or a boolean are each
+  refused, the last with an error naming the field, and each refusal forces
+  the refused driver's finalizer. A name filling `NAME_MAX` with no room for its
   terminator is refused too, and the longest that does leave room reaches
   the bus intact. Skips when the kernel has no HID bus.
 - **idtable_leak**: an `id_table` whose entries raise from `__index` leaves
@@ -640,6 +649,10 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
   the packet, which a later hook on that mark then drops. Each case reads back the
   line its callback printed, so a packet that went through is an answer and not
   a hook that never ran.
+- **register**: what `netfilter.register()` refuses in the table it is given,
+  before any hook is registered, each with an error naming the field: a `mark`
+  that holds a string, a numeric one included, or a boolean, and a `pf`,
+  `hooknum` or `priority` that is missing or holds a string.
 
 ### netlink
 

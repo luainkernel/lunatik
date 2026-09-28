@@ -381,6 +381,7 @@ static int luadevice_stop(lua_State *L)
 *   This object can be used to explicitly stop the device using the `:stop()` method.
 * @raise Error if the device cannot be allocated or registered in the kernel,
 *   if the `name` field is missing or not a string, or if called from a percpu runtime;
+*   `bad field 'mode' (number expected, got <type>)` if `mode` is present and not a number;
 *   `'device': process-context class in interrupt-context runtime` in a softirq or
 *   hardirq runtime (run it in process context, the default of `lunatik run`).
 * @usage
@@ -437,6 +438,7 @@ static int luadevice_new(lua_State *L)
 	kref_init(&luadev->kref);
 	INIT_LIST_HEAD(&luadev->entry); /* a raise before the device is listed deletes it unlisted */
 	object->private = luadev;
+	lunatik_optinteger(L, 1, luadev, mode, 0);
 
 	lunatik_setruntime(L, device, luadev);
 	lunatik_getobject(luadev->runtime);
@@ -446,8 +448,6 @@ static int luadevice_new(lua_State *L)
 	luadev->cdev = lunatik_checknull(L, cdev_alloc());
 	luadev->cdev->ops = &luadevice_fops;
 	lunatik_try(L, cdev_add, luadev->cdev, luadev->devt, 1);
-
-	lunatik_optinteger(L, 1, luadev, mode, 0);
 
 	luadevice_listadd(luadev);
 	lunatik_registerobject(L, 1, object); /* driver */
