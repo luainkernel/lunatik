@@ -284,7 +284,7 @@
     <dl class="function">
     <dt id="attach"><a name="attach"></a><strong>attach (callback)</strong></dt>
     <dd>
-    <p>Registers a Lua callback function to be invoked by a TC/eBPF program.
+    Registers a Lua callback function to be invoked by a TC/eBPF program.
  When a TC program calls the <code>bpf_luatc_run</code> kfunc, Lunatik will execute
  the registered Lua <code>callback</code> associated with the current Lunatik runtime.
  The runtime must be softirq, <code>lunatik run -c softirq &lt;script&gt;</code>.</p>
@@ -302,6 +302,12 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
 <li><code>arg_sz</code>: The size of the <code>arg</code> data.</li>
 </ul>
 
+
+<p> In the callback, the skb methods that would linearize a packet raise on a non-linear one instead,
+ such as a locally sent TCP segment or a GRO-merged one: the verifier keeps the program&rsquo;s packet
+ pointers across a kfunc, and linearizing can move the packet out from under them. A program whose
+ callback reads the whole packet calls <code>bpf_skb_pull_data(skb, skb-&gt;len)</code> before <code>bpf_luatc_run</code>,
+ after which the verifier has it reload its packet pointers.
 
 
     <h3>Parameters</h3>
@@ -387,7 +393,7 @@ tc.<span class="function-name">attach</span>(my_traffic_shaper)
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 13:47:06</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 13:58:14</span>
 </div>
 </footer>
 </body>

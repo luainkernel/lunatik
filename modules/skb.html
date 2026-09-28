@@ -325,7 +325,8 @@ netfilter.register{
     <dd>
     Returns an independent copy of the skb with its own data buffer.
  The skb is linearized before copying to avoid failures on fragmented skbs
- (e.g. bridged traffic with paged data).
+ (e.g. bridged traffic with paged data). In a tc callback the skb is not
+ linearized, and a non-linear one raises.
 
 
 
@@ -337,7 +338,8 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-    if skb is FRAGLIST GSO, linearization fails, or copy allocation fails
+    if skb is FRAGLIST GSO, if the skb is not linear, in a tc callback or after a failed
+ linearization, or if copy allocation fails
 
 
 
@@ -347,7 +349,7 @@ netfilter.register{
     Linearizes the skb and returns a view from where <code>layer</code> starts to the end of
  the packet.  &ldquo;net&rdquo; starts at <code>skb-&gt;data</code>, which is the network header in a
  netfilter hook and the MAC header in a tc callback; &ldquo;mac&rdquo; starts at the MAC
- header.
+ header. In a tc callback the skb is not linearized, and a non-linear one raises.
 
 
     <h3>Parameters</h3>
@@ -367,7 +369,8 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-    if linearization fails, MAC header is not set or is past the tail, or layer is invalid
+    if the skb is not linear, in a tc callback or after a failed linearization, if the MAC
+ header is not set or is past the tail, or if layer is invalid
 
 
 
@@ -458,7 +461,8 @@ netfilter.register{
     <dd>
     Expands (skb_put) or shrinks (skb_trim) the skb data area.
  The skb is linearized first, so <code>n</code> is the length of the whole packet, which
- <code>#skb</code> returns afterwards.
+ <code>#skb</code> returns afterwards. In a tc callback the skb is not linearized, and a
+ non-linear one raises.
 
 
     <h3>Parameters</h3>
@@ -471,7 +475,8 @@ netfilter.register{
 
 
     <h3>Raises</h3>
-    if linearization fails, or insufficient tailroom for expansion
+    if the skb is not linear, in a tc callback or after a failed linearization, or if the
+ tailroom is insufficient for expansion
 
 
 
@@ -507,7 +512,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 13:47:06</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 13:58:14</span>
 </div>
 </footer>
 </body>
