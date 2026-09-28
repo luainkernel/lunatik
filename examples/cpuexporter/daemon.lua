@@ -20,20 +20,17 @@ server:listen()
 local last_stats = {}
 local last_total_stats = {}
 
--- Scale integer to decimal with high precision
--- Converts a ratio (metric/total) to percentage format with 16 decimal places
+-- Converts a ratio (metric/total) to a percentage with 2 decimal places: remainder * 100 fits where total * 100 does
 local function format_percentage(metric, total)
 	if total == 0 then
-		return "0.0000000000000000"
+		return "0.00"
 	end
 
 	local int_part = (metric * 100) // total
 	local remainder = (metric * 100) % total
-	local frac_high = (remainder * 100000000) // total
-	local remainder2 = (remainder * 100000000) % total
-	local frac_low = (remainder2 * 100000000) // total
+	local frac = (remainder * 100) // total
 
-	return string.format("%d.%08d%08d", int_part, frac_high, frac_low)
+	return string.format("%d.%02d", int_part, frac)
 end
 
 -- Helper function to sum all stats values in a table
