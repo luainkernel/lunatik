@@ -1,5 +1,5 @@
 /*
-* SPDX-FileCopyrightText: (c) 2023-2024 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
@@ -21,7 +21,7 @@ static int __init lunatik_run_init(void)
 	if ((lunatik_env = luarcu_newtable(LUARCU_DEFAULT_SIZE, LUNATIK_OPT_NONE)) == NULL)
 		return -ENOMEM;
 
-	if ((ret = lunatik_runtime(&runtime, "driver", LUNATIK_OPT_NONE)) < 0) {
+	if ((ret = lunatik_runtime(&runtime, "lunatik/driver", LUNATIK_OPT_NONE)) < 0) {
 		pr_err("couldn't create driver runtime\n");
 		lunatik_putobject(lunatik_env);
 	}
