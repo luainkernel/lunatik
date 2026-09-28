@@ -171,7 +171,8 @@ the last one.
 `tools/checks/` holds the mechanical checks: comment and LDoc style on framework files
 (`module-conventions.sh`), the comment rules below read over C, Lua and shell, the history, a
 release named with what changed in it or above a table, the counterfactual, the multi-line note
-inside code and the trailing comment past the width
+inside code, the trailing comment past the width, a comment on a signature line or above an internal
+`static inline` and one naming the file or function that reads a value
 (`comment-style.sh`), the branches, argument tables, inline functions and repeated blocks the Lua style
 rules settle (`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script
 skips (`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
