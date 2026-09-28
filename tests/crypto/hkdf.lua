@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -37,6 +37,11 @@ test("HKDF test vectors from RFC 5869, Appendix A", function()
 		42
 	)
 	assert(result == expected, "RFC5869 3 mismatch")
+end)
+
+test("HKDF extract without a salt", function()
+	local h = new"sha256"
+	assert(h:extract(nil, "") == h:extract("", ""), "extract without a salt should match an empty salt")
 end)
 
 test("HKDF-Expand-Label examples from https://quic.xargs.org/#client-initial-keys-calc", function()
