@@ -27,11 +27,10 @@ local BACKLOG    <const> = 1
 local TIMEOUT_MS <const> = 500
 -- ARPHRD_LOOPBACK, which no autogen table carries (<uapi/linux/if_arp.h>)
 local HATYPE     <const> = 772
--- struct sockaddr_ll past the family, unbound and bound to a loopback interface
-local PACKET_UNBOUND  <const> = 10
-local PACKET_BOUND    <const> = 16
--- packet_recvmsg widens a sockaddr_ll short of the whole struct
-local PACKET_RECEIVED <const> = 18
+-- PACKET_HOST, which no autogen table carries (<uapi/linux/if_packet.h>)
+local PKTTYPE    <const> = 0
+-- the ETH_ALEN zeros of the loopback device's address
+local HWADDR     <const> = string.rep("\0", 6)
 -- struct sockaddr_in6 past the family: port, flow info, address, scope id
 local INET6_LEN    <const> = 26
 local IN6_LOOPBACK <const> = string.rep("\0", 15) .. "\1"
@@ -39,6 +38,14 @@ local IN6_ANYPORT  <const> = string.pack(">I2", 0) .. string.pack("=I4", 0) .. I
 
 local function say(what)
 	print("socket address: " .. what)
+end
+
+local function expectaddress(what, expected, ...)
+	local address = pack(...)
+	assert(address.n == #expected, what .. " answered " .. address.n .. " values")
+	for i, value in ipairs(expected) do
+		assert(address[i] == value, what .. " answered " .. string.format("%q", address[i]) .. " as value " .. i)
+	end
 end
 
 local function supported(family, type, proto)
@@ -129,21 +136,19 @@ else
 end
 
 if supported(sk.af.PACKET, sk.sock.RAW, eth.ALL) then
+	local unbound = {eth.ALL, 0, 0, 0, ""}
+	local loopback = {PROTO, ifindex, PKTTYPE, HATYPE, HWADDR}
+
 	local packet = socket.new(sk.af.PACKET, sk.sock.RAW, eth.ALL)
-	local unbound = packet:getsockname()
-	assert(#unbound == PACKET_UNBOUND, "an unbound packet getsockname answered " .. #unbound .. " bytes")
-	local _, index, hatype, pkttype, halen = string.unpack(">I2=i4I2BB", unbound)
-	assert(index == 0 and hatype == 0 and pkttype == 0 and halen == 0,
-		"unexpected unbound packet address on interface " .. index)
+	expectaddress("an unbound packet getsockname", unbound, packet:getsockname())
 	say("packet getsockname unbound ok")
 
+	ok, err = pcall(packet.getpeername, packet)
+	assert(not ok and err == "EOPNOTSUPP", "a packet getpeername answered: " .. tostring(err))
+	say("packet getpeername refused")
+
 	packet:bind(PROTO, ifindex)
-	local address = packet:getsockname()
-	assert(#address == PACKET_BOUND, "a bound packet getsockname answered " .. #address .. " bytes")
-	local proto, index, hatype, pkttype, halen, hwaddr = string.unpack(">I2=i4I2BBc6", address)
-	assert(proto == PROTO and index == ifindex and hatype == HATYPE and pkttype == 0,
-		"unexpected bound packet address on interface " .. index)
-	assert(halen == #hwaddr and hwaddr == string.rep("\0", #hwaddr), "unexpected hardware address")
+	expectaddress("a bound packet getsockname", loopback, packet:getsockname())
 	say("packet getsockname bound ok")
 	packet:close()
 
@@ -151,11 +156,7 @@ if supported(sk.af.PACKET, sk.sock.RAW, eth.ALL) then
 	local transmitter = socket.new(sk.af.PACKET, sk.sock.DGRAM, 0)
 	transmitter:send(PAYLOAD, PROTO, ifindex)
 	transmitter:close()
-	local frame = pack(receiver:receive(MTU, 0, true))
-	assert(frame.n == 2, "receivefrom answered " .. frame.n .. " values")
-	assert(#frame[2] == PACKET_RECEIVED, "a packet receivefrom answered " .. #frame[2] .. " bytes")
-	local source, index = string.unpack(">I2=i4", frame[2])
-	assert(source == PROTO and index == ifindex, "unexpected frame source on interface " .. index)
+	expectaddress("a packet receivefrom", loopback, select(2, receiver:receive(MTU, 0, true)))
 	say("packet receivefrom ok")
 	receiver:close()
 else

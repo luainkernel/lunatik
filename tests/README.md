@@ -1192,9 +1192,13 @@ command and a pid, and what a valid call does.
 
 - **address**: what `getsockname()`, `getpeername()` and `receive(..., true)`
   answer with, per family. The kernel reports how many bytes it filled and the
-  answer is those bytes: 16 for an AF_PACKET socket bound to loopback, 10 for an
-  unbound one, 18 for a received frame and 26 for an AF_INET6 socket, each
-  unpacked field by field, against the 126 of the whole storage. AF_INET and
+  answer is those bytes: 26 for an AF_INET6 socket, unpacked field by field,
+  against the 126 of the whole storage. An AF_PACKET address is five values, the
+  protocol in host order, the interface, the packet type, the hardware type and
+  the hardware address, compared on an unbound socket, on one bound to loopback
+  and on a received frame, whose 6-byte hardware address is the length the
+  kernel names and not the 8 of the name it widens; its `getpeername()` is
+  refused with `EOPNOTSUPP`. AF_INET and
   AF_NETLINK guard the arms that answer with integers, an unconnected
   `getpeername()` is refused with `ENOTCONN`, and a connected TCP socket, which
   names no sender, answers with the message alone. The AF_PACKET and AF_INET6

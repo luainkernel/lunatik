@@ -104,6 +104,9 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 
 #define luasocket_ispathname(addr_un, len)	((len) > 0 && (addr_un)->sun_path[0] != '\0')
 
+#define luasocket_halen(addr_ll, size)	\
+	min_t(size_t, (addr_ll)->sll_halen, (size) - offsetof(struct sockaddr_ll, sll_addr))
+
 static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr, size_t size)
 {
 	int n;
@@ -125,6 +128,15 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr, size_
 		n = 1;
 	}
 #endif
+	else if (addr->ss_family == AF_PACKET) {
+		struct sockaddr_ll *addr_ll = (struct sockaddr_ll *)addr;
+		lua_pushinteger(L, (lua_Integer)ntohs(addr_ll->sll_protocol));
+		lua_pushinteger(L, (lua_Integer)addr_ll->sll_ifindex);
+		lua_pushinteger(L, (lua_Integer)addr_ll->sll_pkttype);
+		lua_pushinteger(L, (lua_Integer)addr_ll->sll_hatype);
+		lua_pushlstring(L, (const char *)addr_ll->sll_addr, luasocket_halen(addr_ll, size));
+		n = 5;
+	}
 	else if (addr->ss_family == AF_NETLINK) {
 		struct sockaddr_nl *addr_nl = (struct sockaddr_nl *)addr;
 		lua_pushinteger(L, (lua_Integer)addr_nl->nl_pid);
@@ -186,8 +198,11 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 * - `AF_UNIX`: a string, a filesystem path or, with a leading NUL, an abstract name.
 * - Other families: a packed string of the address bytes past the family.
 *
-* A method that returns an address returns it the same way, except for `AF_PACKET`, which returns
-* the packed string.
+* A method that returns an address returns it the same way. An `AF_PACKET` one carries three more
+* values after the interface index: the packet type (`PACKET_HOST` and the others of
+* `<linux/if_packet.h>`), the hardware type (`ARPHRD_ETHER` and the others of `<linux/if_arp.h>`)
+* and the hardware address, a string of the length the kernel reports: the interface's own for
+* `getsockname`, the sender's for `receive`.
 * @type socket
 */
 
@@ -260,19 +275,23 @@ static int luasocket_send(lua_State *L)
 * @tparam[opt=0] integer flags Optional message flags (e.g., `linux.socket.msg.PEEK`).
 *   See the `linux.socket.msg` table for available flags. These can be OR'd together.
 * @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
-*   (two values for `AF_INET` and `AF_NETLINK`). This is typically used with connectionless
-*   sockets (`SOCK_DGRAM`).
+*   (two values for `AF_INET` and `AF_NETLINK`, five for `AF_PACKET`). This is typically used with
+*   connectionless sockets (`SOCK_DGRAM`).
 * @treturn string received message (as a string of bytes).
 * @treturn[opt] integer|string addr If `from` is true and the protocol named a sender, its address.
 *   TCP names none, and neither does an `AF_UNIX` peer that never bound; nothing follows the message
 *   then.
 *   - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
+*   - For `AF_PACKET`: The frame's ethertype, in host byte order.
 *   - For `AF_UNIX`: The sender's name, carrying its leading NUL when the name is an abstract one.
 *   - For `AF_NETLINK`: The sender's port id.
 *   - For other families: A packed string of the sender's address past the family, of the length the
 *     protocol reports.
-* @treturn[opt] integer port If `from` is true, the sender's port number for `AF_INET`, and its
-*   multicast groups for `AF_NETLINK`.
+* @treturn[opt] integer port If `from` is true, the sender's port number for `AF_INET`, the index of
+*   the interface the frame arrived on for `AF_PACKET`, and its multicast groups for `AF_NETLINK`.
+* @treturn[opt] integer pkttype For `AF_PACKET`, the frame's packet type.
+* @treturn[opt] integer hatype For `AF_PACKET`, the interface's hardware type.
+* @treturn[opt] string hwaddr For `AF_PACKET`, the sender's hardware address.
 * @raise Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
 *   callback.
 * @usage
@@ -448,13 +467,17 @@ static int luasocket_get##what(lua_State *L)					\
 * @treturn integer|string addr local address.
 *
 * - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
+* - For `AF_PACKET`: The ethertype the socket was created or bound with, in host byte order.
 * - For `AF_UNIX`: The bound name, carrying its leading NUL when the name is an abstract one, and the
 *   empty string when the socket is unbound.
 * - For `AF_NETLINK`: The port id.
 * - For other families: A packed string of the address bytes past the family, of the length the kernel
-*   reports, which for `AF_PACKET` follows the interface's hardware address length.
-* @treturn[opt] integer port The local port number for `AF_INET`, and the multicast groups for
-*   `AF_NETLINK`.
+*   reports.
+* @treturn[opt] integer port The local port number for `AF_INET`, the interface index for `AF_PACKET`,
+*   0 when unbound, and the multicast groups for `AF_NETLINK`.
+* @treturn[opt] integer pkttype For `AF_PACKET`, 0.
+* @treturn[opt] integer hatype For `AF_PACKET`, the interface's hardware type, 0 when unbound.
+* @treturn[opt] string hwaddr For `AF_PACKET`, the interface's hardware address, empty when unbound.
 * @raise Error if the operation fails.
 * @usage
 *   -- an AF_INET socket
@@ -480,7 +503,8 @@ LUASOCKET_NEWGETTER(sockname);
 *   reports.
 * @treturn[opt] integer port The peer's port number for `AF_INET`, and its multicast groups for
 *   `AF_NETLINK`.
-* @raise Error if the operation fails (e.g., socket not connected).
+* @raise Error if the operation fails (e.g., socket not connected); `EOPNOTSUPP` on an `AF_PACKET`
+*   socket, which names no peer.
 * @usage
 *   -- a connected AF_INET socket
 *   local peer_ip_int, peer_port = connected_socket:getpeername()
