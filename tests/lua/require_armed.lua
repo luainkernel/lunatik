@@ -8,6 +8,7 @@
 local util = require("util")
 
 local MISSING <const> = "lunatik_no_such_module"
+local BINDING <const> = "device"
 local REFUSAL <const> = "not allowed after module load"
 
 package.path = "" -- a build without the refusal opens no file from the callback either
@@ -24,6 +25,7 @@ assert(path == nil and notfound:find("no file", 1, true), "searchpath in the bod
 
 return function()
 	assert(require("util") == util, "a module the body loaded is not returned")
+	assert(type(require(BINDING).new) == "function", "a binding the body did not load is not found")
 	refused(require, MISSING)
 	refused(package.searchpath, MISSING, package.path)
 end
