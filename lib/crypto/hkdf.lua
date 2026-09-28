@@ -15,63 +15,57 @@ local char, rep, sub = string.char, string.rep, string.sub
 --- HKDF operations.
 -- This table provides the `new` method to create HKDF instances and also
 -- serves as the prototype for these instances.
-local HKDF = {}
+local hkdf = {}
 
 --- Closes the HKDF instance and releases the underlying HMAC transform.
 -- It also runs when a to-be-closed variable holding the instance goes out of scope. Without it, the
 -- transform is freed when it is collected.
--- @function HKDF:close
-function HKDF:close()
+-- @function hkdf:close
+function hkdf:close()
 	self.tfm:__close()
 end
 
-HKDF.__close = HKDF.close
-HKDF.__index = HKDF
+hkdf.__close = hkdf.close
+hkdf.__index = hkdf
 
-function HKDF.__len(self)
+function hkdf.__len(self)
 	return self.tfm:digestsize()
 end
 
 --- Creates a new HKDF instance for a given hash algorithm.
--- @function HKDF.new
+-- @function hkdf.new
+-- @static
 -- @tparam string alg base hash algorithm name (e.g., "sha256", "sha512").
 -- The "hmac(" prefix will be added automatically.
--- @treturn HKDF An HKDF instance table with methods for key derivation.
+-- @treturn hkdf An HKDF instance table with methods for key derivation.
 -- @usage local hkdf_sha256 = require("crypto.hkdf").new("sha256")
-function HKDF.new(alg)
-	local hmac = setmetatable({}, HKDF)
-	hmac.tfm = shash("hmac(" .. alg .. ")")
-	hmac.salt = rep("\0", #hmac)
-
-	return hmac
+function hkdf.new(alg)
+	local tfm = shash("hmac(" .. alg .. ")")
+	return setmetatable({tfm = tfm, salt = rep("\0", tfm:digestsize())}, hkdf)
 end
 
---- Performs an HMAC calculation using the instance's algorithm.
--- @tparam string key HMAC key.
--- @tparam string data data to hash.
--- @treturn string HMAC digest.
-function HKDF:hmac(key, data)
+local function hmac(self, key, data)
 	self.tfm:setkey(key)
 	return self.tfm:digest(data)
 end
 
 --- Performs the HKDF Extract step.
--- @function HKDF:extract
+-- @function hkdf:extract
 -- @tparam[opt] string salt Optional salt value. If nil or not provided, a salt of `hash_len` zeros is used.
 -- @tparam string ikm Input Keying Material.
 -- @treturn string Pseudorandom Key (PRK).
-function HKDF:extract(salt, ikm)
-	return self:hmac((salt or self.salt), ikm)
+function hkdf:extract(salt, ikm)
+	return hmac(self, (salt or self.salt), ikm)
 end
 
 --- Performs the HKDF Expand step.
--- @function HKDF:expand
+-- @function hkdf:expand
 -- @tparam string prk Pseudorandom Key.
 -- @tparam[opt] string info Optional context and application-specific information. Defaults to an empty string if nil.
 -- @tparam number length desired length in bytes for the Output Keying Material (OKM), at most 255
 --   times the digest size.
 -- @treturn string Output Keying Material of the specified `length`.
-function HKDF:expand(prk, info, length)
+function hkdf:expand(prk, info, length)
 	info = info or ""
 	local hash_len = #self
 	local n = length / hash_len
@@ -79,22 +73,22 @@ function HKDF:expand(prk, info, length)
 
 	local okm, t = "", ""
 	for i = 1, n do
-		t = self:hmac(prk, t .. info .. char(i))
+		t = hmac(self, prk, t .. info .. char(i))
 		okm = okm .. t
 	end
 	return sub(okm, 1, length)
 end
 
 --- Performs the full HKDF (Extract and Expand) operation.
--- @function HKDF:hkdf
+-- @function hkdf:hkdf
 -- @tparam[opt] string salt Optional salt value.
 -- @tparam string ikm Input Keying Material.
 -- @tparam[opt] string info Optional context and application-specific information.
 -- @tparam number length desired length in bytes for the Output Keying Material.
 -- @treturn string Output Keying Material.
-function HKDF:hkdf(salt, ikm, info, length)
+function hkdf:hkdf(salt, ikm, info, length)
 	return self:expand(self:extract(salt, ikm), info, length)
 end
 
-return HKDF
+return hkdf
 

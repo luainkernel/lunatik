@@ -104,9 +104,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   with or without additional input, and `getbytes`, also after a reset with or
   without a seed, refuses 0 bytes as out of bounds and an additional input or
   a seed that is not a string, and reports a seed size of 0, a DRBG's.
-- **hkdf**: `hkdf` matches the SHA-256 vectors of RFC 5869, and `extract` and
-  `expand` match the client initial secret, key and IV of the QUIC worked
-  example at quic.xargs.org.
+- **hkdf**: `hkdf` matches the SHA-256 vectors of RFC 5869, `extract` without
+  a salt matches it with an empty one, and `extract` and `expand` match the
+  client initial secret, key and IV of the QUIC worked example at
+  quic.xargs.org.
 - **comp**: `lz4` compresses to fewer bytes and decompresses back into an
   exact or a larger buffer; an empty string with a size of 0 is refused as out
   of bounds, and a buffer one byte short of the output with `EINVAL`. Skipped
