@@ -237,7 +237,11 @@ asked for: a `luaL_argerror` as the body of an `if`, which is a wrong value at a
 `luaL_argcheck`'s; a check followed by `lunatik_throw` with nothing between, which `lunatik_try`
 already spells when nothing is held; a `luaL_argcheck` condition repeated across methods, which is
 one helper; and a version a feature needs written as one release, "needs a 6.10 kernel", where the
-message means that release and every one after it. It annotates rather than fails, since the
+message means that release and every one after it. It also names an `is` or `has` predicate written
+as a `static inline` whose body is one `return`, which the tree spells as a macro, and an `if` whose
+two arms call one function, which is a ternary: #1358 and #1383 passed their reviews in those shapes
+and the maintainer asked for both, while the check ran only when a skill called it, so it now runs at
+edit time and over a pull request's diff too. It annotates rather than fails, since the
 release-then-throw shape is not `lunatik_try`'s and the line between the check and the throw is
 what the reader decides on.
 
