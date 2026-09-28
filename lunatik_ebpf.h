@@ -14,7 +14,7 @@ static lunatik_object_t *lunatik_ebpf_runtimes = NULL;
 static inline lunatik_object_t *lunatik_ebpf_getruntimes(void)
 {
 	static const char runtimes_key[] = "runtimes";
-	if (lunatik_ebpf_runtimes == NULL)
+	if (lunatik_ebpf_runtimes == NULL && lunatik_env != NULL)
 		lunatik_ebpf_runtimes = luarcu_getobject(lunatik_env, runtimes_key, sizeof(runtimes_key) - 1);
 	return lunatik_ebpf_runtimes;
 }
