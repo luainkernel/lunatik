@@ -204,15 +204,15 @@ static int lualinux_ifindex(lua_State *L)
 * Resolved in the initial network namespace: a device of another namespace raises "device not
 * found" (see `linux.netns`).
 *
-* @function ifaddr
+* @function hwaddr
 * @tparam integer ifindex interface index number.
 * @treturn string interface HW address.
 * @raise Error if the device is not found.
 * @usage
-*   local addr = linux.ifaddr(index)
+*   local addr = linux.hwaddr(index)
 *   print(string.byte(addr,1,6))
 */
-static int lualinux_ifaddr(lua_State *L)
+static int lualinux_hwaddr(lua_State *L)
 {
 	int ifindex = luaL_checkinteger(L, 1);
 	luaL_Buffer B;
@@ -300,7 +300,7 @@ static const luaL_Reg lualinux_lib[] = {
 	{"time", lualinux_time},
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
-	{"ifaddr", lualinux_ifaddr},
+	{"hwaddr", lualinux_hwaddr},
 	{"netns", lualinux_netns},
 	{"errname", lualinux_errname},
 	{"numcpus", lualinux_numcpus},
