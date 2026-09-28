@@ -192,7 +192,6 @@
     <span class="keyword">const</span> <span class="keyword">char</span>        *name;
     <span class="keyword">const</span> luaL_Reg    *methods;
     lunatik_release_t  release;
-    lua_CFunction      opener;
     lunatik_opt_t      opt;
 } lunatik_class_t;
 </pre>
@@ -201,9 +200,7 @@
 <p>Describes a Lunatik object class.</p>
 
 <ul>
-<li><code>name</code>: the class&rsquo;s type name, quoted by type errors and <code>__name</code>; <code>lunatik_require</code> also
-registers the library under it when an object of the class enters another state, so a script&rsquo;s
-own <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> of the library may open it a second time, which keeps the classes already opened.</li>
+<li><code>name</code>: the class&rsquo;s type name, quoted by type errors and <code>__name</code>.</li>
 <li><code>methods</code>: <code>NULL</code>-terminated array of Lua methods registered in the metatable. It carries
 <code>{&quot;__gc&quot;, lunatik_deleteobject}</code>, which drops the reference the userdata holds: without it, the
 object and its private are never released. <code>{&quot;__close&quot;, lunatik_closeobject}</code> and
@@ -214,11 +211,6 @@ object and its private are never released. <code>{&quot;__close&quot;, lunatik_c
 <code>lunatik_stop</code> run, and the drop of the last reference; Lunatik then frees the private, unless
 the class is <code>LUNATIK_OPT_EXTERNAL</code>. It runs on the task that closed the object or dropped that
 reference. May be <code>NULL</code>.</li>
-<li><code>opener</code>: the library&rsquo;s <code>luaopen_&lt;libname&gt;</code>, declared ahead of the class with
-<a href="#lunatik_opener"><code>LUNATIK_OPENER</code></a>. <code>lunatik_cloneobject</code>, and so <code>lunatik_pushobject</code> and
-<code>lunatik_copyobjects</code>, runs it through <code>lunatik_require(L, class)</code>, so the metatable exists in a
-state whose script never required the library; with <code>NULL</code>, cloning into such a state raises
-<code>&apos;&lt;name&gt;&apos;: metatable not found</code>.</li>
 <li><code>opt</code>: bitmask of <code>LUNATIK_OPT_*</code> flags controlling class behaviour. Flags are inherited by
 every instance via <code>object-&gt;opt = opt | class-&gt;opt</code> (see <code>lunatik_newobject</code>). Flags differ
 in whether they act as <strong>constraints</strong> or <strong>capabilities</strong>:
@@ -456,8 +448,7 @@ instead.</p>
 be negative to count from <code>Lfrom</code>&rsquo;s top. It carries objects and nothing else: a value that is not a
 Lunatik object fails it with <code>invalid object</code>; an object marked <code>SINGLE</code> with
 <code>&apos;&lt;class&gt;&apos;: cannot share SINGLE object</code>; a process-context object copied into a softirq or
-hardirq runtime with <code>&apos;&lt;class&gt;&apos;: process-context class in interrupt-context runtime</code>; an object
-whose class&rsquo;s library cannot be opened in <code>Lto</code> with <code>&apos;&lt;class&gt;&apos;: metatable not found</code>; and more
+hardirq runtime with <code>&apos;&lt;class&gt;&apos;: process-context class in interrupt-context runtime</code>; and more
 objects than <code>Lto</code>&rsquo;s stack takes with <code>too many objects</code>. On failure it returns the status of the
 <a href="https://www.lua.org/manual/5.5/manual.html#lua_pcall">protected call</a> and leaves the message on
 <code>Lto</code>, which the caller pops; on success it returns <code>LUA_OK</code>.</p>
@@ -880,8 +871,8 @@ zeroed and comes from the runtime&rsquo;s allocator, <code>GFP_ATOMIC</code> in 
 it is armed; it is freed with <code>kvfree</code> after <code>release</code>.</p>
 
 <p>Raises <code>&apos;&lt;name&gt;&apos;: process-context class in interrupt-context runtime</code>; <code>'&lt;name&gt;': metatable not
-found</code> when the class&rsquo;s library was not opened in this state, which
-<code>lunatik_require(L, class)</code> opens beforehand; and <code>not enough memory</code>.</p>
+found</code> when the class&rsquo;s metatables are not in this state&rsquo;s registry, which
+<a href="#lunatik_require"><code>lunatik_require</code></a> creates beforehand; and <code>not enough memory</code>.</p>
 
 <h3 id="lunatik_createobject">lunatik_createobject</h3>
 
@@ -901,6 +892,19 @@ only where the caller may sleep. The private is <code>size</code> zeroed bytes; 
 <code>LUNATIK_OPT_EXTERNAL</code> class, whose private it would allocate and never free.
 Returns a pointer to the <code>lunatik_object_t</code> on success, or <code>NULL</code> if memory allocation fails.</p>
 
+<h3 id="lunatik_require">lunatik_require</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_require</span>(lua_State *L, <span class="keyword">const</span> lunatik_class_t *<span class="keyword">class</span>);
+</pre>
+
+
+<p>Creates the class&rsquo;s metatables in the registry of <code>L</code> from its <code>methods</code>, the monitored one too
+for a <code>LUNATIK_OPT_MONITOR</code> class, unless <code>L</code> has them already. It opens no library and adds no
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.loaded">package.loaded</a> entry. A function that creates an object of its class in a state whose script
+may not have required the library calls it before <a href="#lunatik_newobject"><code>lunatik_newobject</code></a>, as
+<code>luadata_new</code> does. Raises <code>not enough memory</code>.</p>
+
 <h3 id="lunatik_cloneobject">lunatik_cloneobject</h3>
 
 <pre>
@@ -911,12 +915,12 @@ Returns a pointer to the <code>lunatik_object_t</code> on success, or <code>NULL
 <p><em>lunatik_cloneobject()</em> pushes <code>object</code> onto the Lua stack as a userdata with the correct
 metatable, and takes no reference: the userdata&rsquo;s <code>__gc</code> drops one, which the caller hands over
 or takes, as <a href="#lunatik_pushobject"><code>lunatik_pushobject</code></a> does. It calls
-<code>lunatik_require(L, class)</code> internally to ensure the class metatable is registered even if the
-script never called <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> itself.
+<a href="#lunatik_require"><code>lunatik_require</code></a> first, so the object reaches a state whose script never
+required its library.
 Raises <code>&apos;&lt;name&gt;&apos;: cannot share SINGLE object</code> for a <code>LUNATIK_OPT_SINGLE</code> object,
 <code>&apos;&lt;name&gt;&apos;: process-context class in interrupt-context runtime</code>, <code>&apos;&lt;name&gt;&apos;: metatable not found</code>
-for a class with no <code>opener</code> whose library <code>L</code> never opened, and <code>not enough memory</code>; so it runs
-under a protected call.</p>
+for a <code>LUNATIK_OPT_MONITOR</code> object of a class that does not carry the flag, and <code>not enough
+memory</code>; so it runs under a protected call.</p>
 
 <h3 id="lunatik_pushobject">lunatik_pushobject</h3>
 
@@ -1476,8 +1480,9 @@ raises, it drops that reference first.</p>
 
 
 <p>Declares <code>int luaopen_&lt;libname&gt;(lua_State *L)</code>, the opener
-<a href="#lunatik_newlib"><code>LUNATIK_NEWLIB</code></a> defines, so a class written before it can name it in its
-<code>opener</code>: <code>LUNATIK_OPENER(foo);</code> ahead of <code>.opener = luaopen_foo</code>.</p>
+<a href="#lunatik_newlib"><code>LUNATIK_NEWLIB</code></a> defines, for code that names it ahead of its definition; with
+a body, it defines an opener written by hand, whose declaration is <code>LUNATIK_OPENER(foo);</code> ahead
+of it.</p>
 
 <h3 id="lunatik_classes">LUNATIK_CLASSES</h3>
 
@@ -1547,7 +1552,7 @@ not a requirement of <code>LUNATIK_NEWLIB</code>: any NULL-terminated array work
 
 
 <p>When <code>classes != NULL</code>, <code>LUNATIK_NEWLIB</code> registers the metatable(s) for every
-class in the array.</p>
+class in the array through <a href="#lunatik_require"><code>lunatik_require</code></a>.</p>
 
 <p>Metatable registration is context-agnostic: a module may expose classes of
 different execution contexts (e.g. a HARDIRQ class alongside a process-context
@@ -1598,8 +1603,8 @@ its <code>opt</code>; the constructor enforces this via
 <h3 id="writing-a-binding">Writing a binding</h3>
 
 <p>A kernel module exposing a Lua library <code>foo</code> whose objects count: the private structure, its
-checker, a method table carrying <code>__gc</code> and <code>__close</code>, the class with its <code>opener</code>, a constructor,
-and the module&rsquo;s entry points.</p>
+checker, a method table carrying <code>__gc</code> and <code>__close</code>, the class, a constructor, and the module&rsquo;s
+entry points.</p>
 
 <pre>
 #include &lt;linux/module.h&gt;
@@ -1630,11 +1635,9 @@ and the module&rsquo;s entry points.</p>
     {NULL, NULL}
 };
 
-<span class="function-name">LUNATIK_OPENER</span>(foo);
 <span class="keyword">static</span> <span class="keyword">const</span> lunatik_class_t luafoo_class = {
     .name = <span class="string">"foo"</span>,
     .methods = luafoo_mt,
-    .opener = luaopen_foo,
     .opt = LUNATIK_OPT_MONITOR,
 };
 
@@ -1855,7 +1858,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:37:35</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:46:51</span>
 </div>
 </footer>
 </body>

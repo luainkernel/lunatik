@@ -544,6 +544,7 @@ window.LUNATIK_SEARCH = [
 ["Object Lifecycle","topics/capi.md.html#object-lifecycle","Guide · Lunatik C API"],
 ["lunatik_newobject","topics/capi.md.html#lunatik_newobject","Guide · Lunatik C API"],
 ["lunatik_createobject","topics/capi.md.html#lunatik_createobject","Guide · Lunatik C API"],
+["lunatik_require","topics/capi.md.html#lunatik_require","Guide · Lunatik C API"],
 ["lunatik_cloneobject","topics/capi.md.html#lunatik_cloneobject","Guide · Lunatik C API"],
 ["lunatik_pushobject","topics/capi.md.html#lunatik_pushobject","Guide · Lunatik C API"],
 ["lunatik_getobject","topics/capi.md.html#lunatik_getobject","Guide · Lunatik C API"],
