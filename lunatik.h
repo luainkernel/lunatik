@@ -17,7 +17,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-#define LUNATIK_RELEASE	"4.4"
+#define LUNATIK_RELEASE	"5.0"
 #define LUNATIK_VERSION	"Lunatik " LUNATIK_RELEASE
 
 typedef u8 __bitwise lunatik_opt_t;

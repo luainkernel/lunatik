@@ -94,7 +94,7 @@ Install Lunatik from our [package feed](https://github.com/luainkernel/openwrt_f
 
 ```
 sudo lunatik # execute Lunatik REPL
-Lunatik 4.4  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
+Lunatik 5.0  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 > return 42 -- execute this line in the kernel
 42
 ```

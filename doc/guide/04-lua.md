@@ -1,6 +1,6 @@
 # Lua in the kernel
 
-Lunatik 4.4 is based on
+Lunatik 5.0 is based on
 [Lua 5.5 adapted](https://github.com/luainkernel/lua)
 to run in the kernel.
 
