@@ -7,12 +7,16 @@
 local hid  = require("hid")
 local test = require("util").test
 local insert = table.insert
+local format = string.format
 
 local BUS      <const> = 0x03   -- BUS_USB
 local VENDOR   <const> = 0xf055 -- no device on the hid bus carries this vendor, so nothing binds
 local MAXIDS   <const> = 4096   -- LUAHID_MAXIDS, the longest id_table hid.register serves
 local MAXNAME  <const> = 255    -- NAME_MAX, the buffer the driver name and its terminator share
 local HUGE_IDS <const> = 1 << 40
+
+local idfields   = {"bus", "group", "vendor", "product", "driver_data"}
+local notnumbers = {"abc", "3", true}
 
 local function hugelen()
 	return HUGE_IDS
@@ -36,6 +40,12 @@ local function ids(n)
 		insert(id_table, {bus = BUS, vendor = VENDOR, product = i})
 	end
 	return id_table
+end
+
+local function badids(field, value)
+	local entry = {vendor = VENDOR}
+	entry[field] = value
+	return {{vendor = VENDOR}, entry} -- the second entry, so the walk raises past a filled one
 end
 
 local function register(name, id_table)
@@ -64,6 +74,15 @@ test("hid.register refuses an entry it cannot read", function()
 	refuses("lunatik_hid_entry", {{vendor = VENDOR}, 42}, "invalid id_table")
 	refuses("lunatik_hid_raise", {setmetatable({}, {__index = raise})}, "id_table entry")
 	refuses("lunatik_hid_walk", setmetatable({}, {__len = onelen, __index = raise}), "id_table entry")
+end)
+
+test("hid.register refuses an id field that is not a number", function()
+	for _, field in ipairs(idfields) do
+		for _, value in ipairs(notnumbers) do
+			local expected = format("bad field '%s' %%(number expected, got %s%%)", field, type(value))
+			refuses("lunatik_hid_" .. field, badids(field, value), expected)
+		end
+	end
 end)
 
 test("hid.register refuses a name that fills its buffer", function()

@@ -11,8 +11,10 @@
 # an __index metamethod answers however it likes. It registers the id_tables the
 # binding serves, one entry and LUAHID_MAXIDS of them, under a vendor no device on
 # the bus carries, and refuses a longer table, a fabricated length, a length that
-# is not an integer, an entry that is not a table and an entry that raises while it
-# is read. It also refuses a name that fills NAME_MAX with no room for its
+# is not an integer, an entry that is not a table, an entry that raises while it
+# is read, and an entry whose bus, group, vendor, product or driver_data holds a
+# string, a numeric one included, or a boolean, with an error naming the field. It
+# also refuses a name that fills NAME_MAX with no room for its
 # terminator, and accepts the longest one that does leave room. The accepted ones
 # are read back from /sys/bus/hid/drivers, since a driver that raised nothing has
 # still not necessarily reached the bus, and read again after the runtime stops,

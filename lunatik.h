@@ -187,12 +187,19 @@ static inline int lunatik_catch(lua_State *L, lua_CFunction f, void *ud, const c
 	return 0;
 }
 
-static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
+static inline bool lunatik_optfield(lua_State *L, int idx, const char *field, int type)
 {
 	int _type = lua_getfield(L, idx, field);
-	if (_type != type)
+	if (_type != type && _type != LUA_TNIL)
 		luaL_error(L, "bad field '%s' (%s expected, got %s)", field,
 			lua_typename(L, type), lua_typename(L, _type));
+	return _type == type;
+}
+
+static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, int type)
+{
+	if (!lunatik_optfield(L, idx, field, type))
+		luaL_error(L, "bad field '%s' (%s expected, got nil)", field, lua_typename(L, type));
 }
 
 #define LUNATIK_ERR_NULLPTR	"null pointer dereference"
@@ -477,11 +484,10 @@ do {								\
 	lua_pop(L, 1);						\
 } while (0)
 
-#define lunatik_optinteger(L, idx, priv, field, opt)			\
-do {									\
-	lua_getfield(L, idx, #field);					\
-	priv->field = lua_isnil(L, -1) ? opt : lua_tointeger(L, -1);	\
-	lua_pop(L, 1);							\
+#define lunatik_optinteger(L, idx, priv, field, opt)						\
+do {												\
+	priv->field = lunatik_optfield(L, idx, #field, LUA_TNUMBER) ? lua_tointeger(L, -1) : opt;	\
+	lua_pop(L, 1);										\
 } while (0)
 
 static inline void lunatik_optcfunction(lua_State *L, int idx, const char *field, lua_CFunction default_func)
