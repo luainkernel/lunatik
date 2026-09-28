@@ -10,9 +10,8 @@
 -- @module socket.raw
 -- @see socket
 --
-local socket    = require("socket")
-local eth       = require("linux.eth")
-local byteorder = require("byteorder")
+local socket = require("socket")
+local eth    = require("linux.eth")
 
 local af   = require("linux.socket").af
 local sock = require("linux.socket").sock
@@ -36,7 +35,7 @@ local raw = {}
 function raw.bind(proto, ifindex)
 	local proto = proto or eth.ALL
 	local ifindex = ifindex or 0
-	local s = socket.new(af.PACKET, sock.RAW, byteorder.hton16(proto))
+	local s = socket.new(af.PACKET, sock.RAW, proto)
 	s:bind(proto, ifindex)
 	return s
 end

@@ -1185,9 +1185,10 @@ command and a pid, and what a valid call does.
   kernel reads the rest of `struct sockaddr_ll` from the same storage: the frame,
   read back on a `SOCK_RAW` socket bound to the same ethertype, must carry as its
   destination hardware address the zeros the binding declares. The same frame
-  pins the protocol `socket.new` takes, which reaches `packet_create` as a
-  `__be16`: an unbound socket created with the ethertype in network order
-  receives it, one created with it in host order does not.
+  pins the protocol `socket.new` takes in host order and converts to the
+  `__be16` `packet_create` reads: an unbound socket created with the ethertype
+  receives it, one created with it already in network order does not, and a
+  protocol past 16 bits is refused as out of bounds.
 
 - **address**: what `getsockname()`, `getpeername()` and `receive(..., true)`
   answer with, per family. The kernel reports how many bytes it filled and the
