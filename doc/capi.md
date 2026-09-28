@@ -319,8 +319,9 @@ checks it with `lunatik_checkobjectclass(L, ix, &lunatik_class)`.
 extern lunatik_object_t *lunatik_env;
 ```
 The `rcu.table` every runtime shares as `lunatik._ENV`, through which scripts exchange objects.
-`lunatik_run.ko`, the module that runs the `/dev/lunatik` driver, creates it when it loads; it is
-`NULL` before.
+`lunatik_run.ko`, the module that runs the `/dev/lunatik` driver, creates it when it loads and
+clears it when it unloads; it is `NULL` while that module is not loaded, and a runtime created then
+has no `lunatik._ENV`.
 
 ### lunatik\_isready
 ```C

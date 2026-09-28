@@ -23,7 +23,8 @@
 
 /***
 * Shared `rcu.table` through which scripts exchange objects, as the runner does with its
-* `runtimes` and `threads` tables. It is present once the `lunatik_run` module is loaded.
+* `runtimes` and `threads` tables. It is present in a runtime created while the `lunatik_run`
+* module is loaded.
 * @field _ENV
 * @within lunatik
 */
