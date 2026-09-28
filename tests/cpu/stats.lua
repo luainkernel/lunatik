@@ -23,7 +23,9 @@ local function answers(id)
 end
 
 test("cpu.stats answers every online CPU", function()
-	cpu.foreach_online(answers)
+	for id in cpu.online() do
+		answers(id)
+	end
 end)
 
 test("cpu.stats refuses an id outside the possible ones", function()

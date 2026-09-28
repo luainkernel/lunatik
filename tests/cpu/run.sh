@@ -15,6 +15,12 @@
 # runs against carries the refusal: the bound is inline, so no symbol of its own
 # is in /proc/kallsyms, and the message is what the installed luacpu.ko has.
 #
+# ids: cpu.possible(), cpu.present() and cpu.online() each yield their CPUs in
+# ascending order, as many as cpu.num_possible(), cpu.num_present() and
+# cpu.num_online() count, and the step they return refuses a CPU id outside the
+# possible ones as out of bounds: -2, 2^32 and the integer extremes. A step that
+# yields one id twice fails at the second yield rather than looping.
+#
 # Usage: sudo bash tests/cpu/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -24,7 +30,7 @@ REFUSAL="out of bounds"
 
 source "$DIR/../lib.sh"
 
-TESTS="stats"
+TESTS="stats ids"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {
