@@ -495,7 +495,9 @@ A runtime is created in one of three contexts, and this decides what its code ma
 | softirq | `lunatik run --context=softirq <script>` | `GFP_ATOMIC` | `spin_lock_bh`; `spin_lock_irqsave` with IRQs already off | no |
 | hardirq | `lunatik run --context=hardirq <script>` | `GFP_ATOMIC` | `spin_lock_irqsave`, always | no |
 
-Netfilter and XDP hooks fire in softirq, kprobes in hardirq; those scripts need the matching context.
+Netfilter and XDP hooks need a softirq runtime, kprobes a hardirq one: a kprobe fires wherever the
+probed code runs, an interrupt handler included, and there it would spin forever on a runtime lock
+its own CPU holds unless that lock turns interrupts off.
 A softirq object reached with IRQs already off, as an `rcu.table` written from a kprobe handler is,
 locks with `spin_lock_irqsave`: a bottom-half unlock there runs the pending softirqs inline, inside
 the probe.
