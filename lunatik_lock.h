@@ -65,22 +65,5 @@ static inline void lunatik_unlock(lunatik_object_t *object)
 		spin_unlock_bh(&object->spin);
 }
 
-static inline int lunatik_trylock(lunatik_object_t *object)
-{
-	int locked;
-
-	if (likely(!lunatik_ismonitor(object->opt)))
-		return 1;
-	if (!lunatik_isirq(object->opt))
-		locked = mutex_trylock(&object->mutex);
-	else if (lunatik_isirqsave(object))
-		locked = spin_trylock_irqsave(&object->spin, object->flags);
-	else
-		locked = spin_trylock_bh(&object->spin);
-	if (locked)
-		lunatik_setowner(object, current);
-	return locked;
-}
-
 #endif
 
