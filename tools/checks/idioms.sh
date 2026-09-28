@@ -3,7 +3,10 @@
 # the tree spells with one call, a guard repeated across methods, a version a feature
 # needs named as one release, a kernel version guard whose first arm is the older
 # kernel's, which raising the floor would have to rewrite rather than delete, and a pid
-# cast from luaL_checkinteger, which #1140's linux.netns truncated. Takes file
+# cast from luaL_checkinteger, which #1140's linux.netns truncated. A static inline
+# is or has predicate whose body is one return is a macro, and an if whose two arms
+# call one function is a ternary: #1358 and #1383 passed their reviews in those shapes,
+# and the maintainer asked for both. Takes file
 # paths; silent on files that carry none, and on the Lua fork under lua/, whose guards
 # keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -13,6 +16,11 @@ for file in "$@"; do
 	case "$file" in */lua/*|lua/*) continue ;; *.c|*.h) ;; *) continue ;; esac
 	awk -v f="$file" '
 	function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+	# the function a statement of one call calls, "" for any other statement
+	function callee(s) {
+		sub(/^return /, "", s)
+		return s ~ /^[A-Za-z_][A-Za-z0-9_]*\(.*\);$/ ? substr(s, 1, index(s, "(") - 1) : ""
+	}
 	{
 		line = trim($0)
 		if (line ~ /^#[ \t]*if/) {
@@ -40,6 +48,21 @@ for file in "$@"; do
 			printf "%s:%d: a version a feature needs reads as that one release: \"kernel X.Y or later\"\n", f, NR
 		if (line ~ /\(pid_t\)[ \t]*luaL_(check|opt)integer\(/)
 			printf "%s:%d: a pid cast from luaL_checkinteger truncates before the kernel sees it: lunatik_checkinteger(L, ix, 1, PID_MAX_LIMIT), as socket.new bounds it\n", f, NR
+		if ($0 ~ /^static inline bool [a-z0-9_]*_(is|has)[a-z0-9_]*\(/) {
+			pred = NR
+			body = ""
+		}
+		else if (pred && $0 ~ /^\}/) {
+			if (body ~ /^return [^;{]*;$/)
+				printf "%s:%d: a predicate of one expression is a macro, in the lunatik_isirq family'"'"'s shape\n", f, pred
+			pred = 0
+		}
+		else if (pred && line != "{")
+			body = body (body == "" ? "" : " ") line
+		arm[NR] = line
+		if (NR > 3 && arm[NR - 1] == "else" && arm[NR - 3] ~ /^if \(.*\)([ \t]*\/\*.*\*\/)?$/ && callee(arm[NR - 2]) != "" &&
+		    callee(arm[NR - 2]) == callee(line) && arm[NR - 4] != "else")
+			printf "%s:%d: both arms call %s: two short exclusive calls are a ternary\n", f, NR - 3, callee(line)
 		prev = line
 	}' "$file"
 done
