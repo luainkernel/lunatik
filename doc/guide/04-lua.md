@@ -44,6 +44,15 @@ A coroutine's Lua stack holds at most 200 slots (`LUAI_MAXSTACK`), which bounds 
 values `table.unpack` and a vararg carry: past it, recursion raises `stack overflow` and
 `table.unpack` raises `too many results to unpack`.
 
+## Reserved names
+
+Scripts and the modules they require share one root, `/lib/modules/lua/`, whose top-level names are
+Lunatik's: the top-level name of every module this reference documents, a binding such as `socket` or
+a Lua library such as `util`; `lunatik`, `linux`, `examples` and `tests`, which hold the runtime's own
+scripts, the `linux.*` constants, the examples and the test suites; and `light`, the key `lighten`
+requires, which the user supplies. A product's scripts live in a directory of their own,
+`/lib/modules/lua/<product>/`, and run as `<product>/<script>`.
+
 ## Softirq and hardirq runtimes
 
 In a runtime created in softirq or hardirq context, `io` is nil and the `lunatik` table holds only
