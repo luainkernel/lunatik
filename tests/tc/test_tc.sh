@@ -8,6 +8,15 @@
 # namespace, so a ping from the namespace traverses the hook regardless
 # of the host setup.
 #
+# The non-linear case sends a TCP segment from the host to a listener in the
+# namespace instead: tcp_sendmsg keeps the payload in page fragments, so the skb
+# the classifier sees is non-linear. The program hands it to bpf_luatc_run, where
+# skb:data(), copy() and resize() raise "skb is not linear", then pulls it with
+# bpf_skb_pull_data and hands it again, where the callback reads, copies and
+# shrinks the whole packet and drops it; TCP sends it again. The sender's
+# SO_PRIORITY picks the segment, a value outside 0..6, which only a process with
+# CAP_NET_ADMIN or CAP_NET_RAW may set. The case skips without socat.
+#
 # Usage: sudo bash tests/tc/test_tc.sh
 
 MODULE="luatc"
@@ -17,6 +26,11 @@ NETNS="lunatik_tc"
 HOST="10.198.0.1"
 TARGET="10.198.0.2"
 PIN="/sys/fs/bpf/lunatik_tc"
+PORT=5569
+PAYLOAD=1024             # PAYLOAD in nonlinear.lua
+PRIORITY=$((0x13690000)) # PRIORITY in nonlinear.lua
+REFUSED="tc nonlinear: data, copy and resize refuse a non-linear skb"
+PULLED="tc nonlinear: a pulled skb is read, copied and resized whole"
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
@@ -38,7 +52,7 @@ tc_unload()
 }
 
 ktap_header
-ktap_plan 7
+ktap_plan 9
 
 skip_all()
 {
@@ -50,6 +64,8 @@ skip_all()
 	ktap_skip "tc attach: refuses a sleepable runtime"
 	ktap_skip "tc zero-key: a zero-sized key is rejected without a crash"
 	ktap_skip "tc data: the net and mac views end at the frame's tail"
+	ktap_skip "$REFUSED"
+	ktap_skip "$PULLED"
 	ktap_totals
 	exit 0
 }
@@ -70,6 +86,8 @@ cleanup()
 	lunatik stop tests/tc/detach > /dev/null 2>&1
 	lunatik stop tests/tc/attach_sleepable > /dev/null 2>&1
 	lunatik stop tests/tc/data > /dev/null 2>&1
+	lunatik stop tests/tc/nonlinear > /dev/null 2>&1
+	pkill -f "TCP-LISTEN:$PORT," 2>/dev/null
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
 }
@@ -168,6 +186,61 @@ zerokey_case()
 	ktap_pass "tc zero-key: a zero-sized key is rejected without a crash"
 }
 
+nonlinear_verdict()
+{
+	local title="$1" cell lines
+	shift
+	for cell in "$@"; do
+		lines=$(dmesg_since | grep -F "tc nonlinear: $cell ")
+		if [ -z "$lines" ] || echo "$lines" | grep -q " FAIL "; then
+			ktap_fail "$title"
+			comment "${lines:-no $cell report}"
+			return 1
+		fi
+	done
+	ktap_pass "$title"
+}
+
+nonlinear_case()
+{
+	if ! command -v socat > /dev/null 2>&1; then
+		echo "# SKIP: socat not available"
+		ktap_skip "$REFUSED"
+		ktap_skip "$PULLED"
+		return 0
+	fi
+
+	tc_load tc_nonlinear.bpf.o ||
+		{ ktap_fail "$REFUSED: failed to load/attach TC program"; ktap_fail "$PULLED"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/tc/nonlinear"
+
+	ip netns exec "$NETNS" socat -u "TCP-LISTEN:$PORT,reuseaddr" OPEN:/dev/null &
+	local listener=$!
+	for _ in $(seq 20); do
+		ip netns exec "$NETNS" ss -Hltn "sport = :$PORT" | grep -q . && break
+		sleep 0.1
+	done
+	head -c "$PAYLOAD" /dev/zero | timeout 5 socat -u - "TCP:$TARGET:$PORT,priority=$PRIORITY" 2>/dev/null
+	for _ in $(seq 20); do
+		dmesg_since | grep -qF "tc nonlinear: pulled " && break
+		sleep 0.5
+	done
+	for _ in $(seq 20); do # the listener exits once TCP delivered the dropped segment again
+		kill -0 "$listener" 2>/dev/null || break
+		sleep 0.5
+	done
+
+	tc_unload
+	lunatik stop tests/tc/nonlinear > /dev/null 2>&1
+	kill "$listener" 2>/dev/null
+
+	check_dmesg || { ktap_fail "$REFUSED"; ktap_fail "$PULLED"; return 1; }
+	nonlinear_verdict "$REFUSED" data copy resize
+	nonlinear_verdict "$PULLED" pulled
+}
+
 run_case tc_pass.bpf.o pass.lua yes "tc pass" \
 	"tc pass test pass: packet and argument content verified" --context=softirq
 run_case tc_drop.bpf.o drop.lua no "tc drop" \
@@ -186,6 +259,8 @@ zerokey_case
 
 run_case tc_data.bpf.o data.lua yes "tc data" \
 	"tc data: the net and mac views end at the frame's tail" --context=softirq
+
+nonlinear_case
 
 ktap_totals
 

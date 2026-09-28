@@ -118,23 +118,25 @@ static int luaskb_vlan(lua_State *L)
 	return 1;
 }
 
-#define luaskb_checklinearize(L, lskb, ix)	\
-	luaL_argcheck(L, skb_linearize((lskb)->skb) == 0, (ix), "skb linearization failed")
+#define luaskb_checklinear(L, lskb, ix)								\
+	luaL_argcheck((L), (lskb)->kfunc ? !skb_is_nonlinear((lskb)->skb) : !skb_linearize((lskb)->skb),	\
+		(ix), "skb is not linear")
 
 /***
 * Linearizes the skb and returns a view from where `layer` starts to the end of
 * the packet. "net" starts at `skb->data`, which is the network header in a
 * netfilter hook and the MAC header in a tc callback; "mac" starts at the MAC
-* header.
+* header. In a tc callback the skb is not linearized, and a non-linear one raises.
 * @function data
 * @tparam[opt] string layer "net" (default) or "mac"
 * @treturn data
-* @raise if linearization fails, MAC header is not set or is past the tail, or layer is invalid
+* @raise if the skb is not linear, in a tc callback or after a failed linearization, if the MAC
+* header is not set or is past the tail, or if layer is invalid
 */
 static int luaskb_data(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	luaskb_checklinearize(L, lskb, 1);
+	luaskb_checklinear(L, lskb, 1);
 
 	lunatik_object_t *data = lskb->data;
 	struct sk_buff *skb = lskb->skb;
@@ -160,17 +162,19 @@ static int luaskb_data(lua_State *L)
 /***
 * Expands (skb_put) or shrinks (skb_trim) the skb data area.
 * The skb is linearized first, so `n` is the length of the whole packet, which
-* `#skb` returns afterwards.
+* `#skb` returns afterwards. In a tc callback the skb is not linearized, and a
+* non-linear one raises.
 * @function resize
 * @tparam integer n desired size in bytes
-* @raise if linearization fails, or insufficient tailroom for expansion
+* @raise if the skb is not linear, in a tc callback or after a failed linearization, or if the
+* tailroom is insufficient for expansion
 */
 static int luaskb_resize(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct sk_buff *skb = lskb->skb;
 	size_t new_size = (size_t)luaL_checkinteger(L, 2);
-	luaskb_checklinearize(L, lskb, 1);
+	luaskb_checklinear(L, lskb, 1);
 	size_t cur_size = skb->len;
 
 	if (new_size > cur_size) {
@@ -337,16 +341,18 @@ static const lunatik_class_t luaskb_class = {
 /***
 * Returns an independent copy of the skb with its own data buffer.
 * The skb is linearized before copying to avoid failures on fragmented skbs
-* (e.g. bridged traffic with paged data).
+* (e.g. bridged traffic with paged data). In a tc callback the skb is not
+* linearized, and a non-linear one raises.
 * @function copy
 * @treturn skb
-* @raise if skb is FRAGLIST GSO, linearization fails, or copy allocation fails
+* @raise if skb is FRAGLIST GSO, if the skb is not linear, in a tc callback or after a failed
+* linearization, or if copy allocation fails
 */
 static int luaskb_copy(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	luaskb_checkfraglist(L, lskb, 1);
-	luaskb_checklinearize(L, lskb, 1);
+	luaskb_checklinear(L, lskb, 1);
 
 	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *copy = (luaskb_t *)object->private;
@@ -354,11 +360,12 @@ static int luaskb_copy(lua_State *L)
 	return 1;
 }
 
-lunatik_object_t *luaskb_new(lua_State *L)
+lunatik_object_t *luaskb_new(lua_State *L, bool kfunc)
 {
 	lunatik_require(L, &luaskb_class);
 	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *lskb = (luaskb_t *)object->private;
+	lskb->kfunc = kfunc;
 	lskb->data = luadata_new(L, LUNATIK_OPT_SINGLE);
 	lunatik_getobject(lskb->data);
 	lunatik_register(L, -1, lskb->data);
