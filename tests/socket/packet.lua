@@ -15,6 +15,7 @@ local eth       = require("linux.eth")
 local timeval = struct(sk.layout.timeval)
 
 local PROTO      <const> = eth["802_EX1"]
+local PROTO_MAX  <const> = 0xFFFF
 local IFNAME     <const> = "lo"
 local PAYLOAD    <const> = "lunatikpacket"
 local ETH_HLEN   <const> = 14
@@ -27,10 +28,10 @@ local ifindex = linux.ifindex(IFNAME)
 local rx <close> = raw.bind(PROTO, ifindex)
 rx:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
 
-local listening <close> = socket.new(sk.af.PACKET, sk.sock.RAW, byteorder.hton16(PROTO))
+local listening <close> = socket.new(sk.af.PACKET, sk.sock.RAW, PROTO)
 listening:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
 
-local swapped <close> = socket.new(sk.af.PACKET, sk.sock.RAW, PROTO)
+local swapped <close> = socket.new(sk.af.PACKET, sk.sock.RAW, byteorder.hton16(PROTO))
 swapped:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
 
 local tx <close> = socket.new(sk.af.PACKET, sk.sock.DGRAM, 0)
@@ -45,6 +46,12 @@ print("socket packet: frame carries " .. string.sub(frame, ETH_HLEN + 1))
 print("socket packet: destination " .. string.format(string.rep("%02x", ETH_ALEN, ":"),
 	string.byte(frame, 1, ETH_ALEN)))
 assert(#reached >= ETH_HLEN, "short frame on the unbound socket: " .. #reached .. " bytes")
-print("socket packet: network order reaches the unbound socket")
-print("socket packet: host order " .. (missed and "misses it" or "reaches it too"))
+print("socket packet: host order reaches the unbound socket")
+print("socket packet: network order " .. (missed and "misses it" or "reaches it too"))
+
+local ok, wide = pcall(socket.new, sk.af.PACKET, sk.sock.RAW, PROTO_MAX + 1)
+if ok then
+	wide:close()
+end
+print("socket packet: a protocol past 16 bits " .. (ok and "is taken" or "raises " .. wide))
 

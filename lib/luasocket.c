@@ -59,6 +59,8 @@ static int luasocket_accept(lua_State *L);
 /* these families spell an address with two arguments, the rest with one */
 #define luasocket_ispair(family)	((family) == AF_INET || (family) == AF_PACKET || (family) == AF_NETLINK)
 
+#define luasocket_checkethertype(L, ix)	htons((u16)lunatik_checkinteger((L), (ix), 0, U16_MAX))
+
 static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr_storage *addr, int ix)
 {
 	memset(addr, 0, sizeof(*addr));
@@ -81,7 +83,7 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 #endif
 	else if (addr->ss_family == AF_PACKET) {
 		struct sockaddr_ll *addr_ll = (struct sockaddr_ll *)addr;
-		addr_ll->sll_protocol = htons((u16)lunatik_checkinteger(L, ix, 0, U16_MAX));
+		addr_ll->sll_protocol = luasocket_checkethertype(L, ix);
 		addr_ll->sll_ifindex = (int)lunatik_checkinteger(L, ix + 1, 0, INT_MAX);;
 		return sizeof(struct sockaddr_ll);
 	}
@@ -664,8 +666,8 @@ static int luasocket_accept(lua_State *L)
 * @tparam integer family address family (e.g., `linux.socket.af.INET`).
 * @tparam integer type socket type (e.g., `linux.socket.sock.STREAM`).
 * @tparam integer protocol protocol (e.g., `linux.socket.ipproto.TCP`).
-*   For `AF_PACKET` sockets, `protocol` is typically an `ETH_P_*` value in network byte order
-*   (e.g., `byteorder.hton16(0x0003)` for `ETH_P_ALL`).
+*   For `AF_PACKET` sockets, `protocol` is an ethertype in host byte order, as `bind` takes it
+*   (e.g., `linux.eth.ALL` for every frame).
 * @tparam[opt] integer pid a task whose network namespace the socket is created in, instead of the
 *   initial one. The pid is resolved in the pid namespace of the task making the call: the `lunatik`
 *   process for a script's body, the initial one for a kernel thread. The socket holds its network
@@ -674,8 +676,9 @@ static int luasocket_accept(lua_State *L)
 *   `netfilter`) keeps to the initial network namespace.
 * @treturn socket A new socket object. A socket a netdevice callback may collect is closed by the
 *   script first, not dropped: its release cannot refuse where the collector drops it.
-* @raise Error if socket creation fails, `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel
-*   whose sockets cannot hold a namespace of their own, or
+* @raise Error if socket creation fails, "out of bounds" for an `AF_PACKET` protocol past 16 bits,
+*   `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace
+*   of their own, or
 *   `'socket': process-context class in interrupt-context runtime` in a softirq or hardirq runtime.
 * @usage
 *   -- TCP/IPv4 socket
@@ -692,7 +695,7 @@ static int luasocket_lnew(lua_State *L)
 {
 	int family = luaL_checkinteger(L, 1);
 	int type = luaL_checkinteger(L, 2);
-	int proto = luaL_checkinteger(L, 3);
+	int proto = family == AF_PACKET ? (__force u16)luasocket_checkethertype(L, 3) : luaL_checkinteger(L, 3);
 	pid_t pid = lua_isnoneornil(L, 4) ? LUASOCKET_PID_NONE : (pid_t)lunatik_checkinteger(L, 4, 1, PID_MAX_LIMIT);
 	lunatik_object_t *object = luasocket_new(L);
 	struct socket **psocket = luasocket_psocket(object);
