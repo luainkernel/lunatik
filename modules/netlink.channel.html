@@ -183,7 +183,7 @@
  dedicated kernel object.
     <h2 id="usage">Usage</h2>
         <pre class="example">-- lunatik run -c softirq &lt;script&gt;: multicasts a notice for each IPv4 packet the host receives
-local netlink   = require(&quot;netlink&quot;)
+local channel   = require(&quot;netlink.channel&quot;)
 local message   = require(&quot;netlink.message&quot;)
 local netfilter = require(&quot;netfilter&quot;)
 local nf        = require(&quot;linux.nf&quot;)
@@ -191,11 +191,11 @@ local nf        = require(&quot;linux.nf&quot;)
 local CMD &lt;const&gt;    = 1
 local NOTICE &lt;const&gt; = 1
 
-local channel = netlink.channel(&quot;mychannel&quot;)
-local notice  = message.attrs{[NOTICE] = &quot;packet&quot;}
+local family = channel.new(&quot;mychannel&quot;)
+local notice = message.attrs{[NOTICE] = &quot;packet&quot;}
 
 local function notify(skb)
-  channel:multicast(CMD, notice)
+  family:multicast(CMD, notice)
   return nf.action.ACCEPT
 end
 
@@ -230,7 +230,7 @@ netfilter.register{
 
           <div class="section-description">
           A generic netlink channel.
- Returned by <code>netlink.channel()</code>. Backed by a generic netlink family with one
+ Returned by <code>netlink.channel.new()</code>. Backed by a generic netlink family with one
  multicast group; <a href="../modules/netlink.channel.html#netlink.channel:multicast">multicast</a> and <a href="../modules/netlink.channel.html#netlink.channel:unicast">unicast</a> are safe from softirq (netfilter
  hooks, XDP) and deliver to userspace subscribers of the family.
           </div>
@@ -357,7 +357,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:46:51</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:49:02</span>
 </div>
 </footer>
 </body>

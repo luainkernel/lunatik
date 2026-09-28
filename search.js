@@ -232,7 +232,6 @@ window.LUNATIK_SEARCH = [
 ["genl:family (name)","modules/netlink.genl.html#genl:family","netlink.genl · Resolves a generic netlink family name to its (dynamically assigned) id."],
 ["genl:new ([o])","modules/netlink.genl.html#genl:new","netlink.genl · Derives a class from the generic netlink session, as netlink.nl80211.object is, or wraps a table in it."],
 ["netlink","modules/netlink.html","Module · The netlink namespace."],
-["channel (name)","modules/netlink.html#channel","netlink · Registers a generic netlink family with one multicast group; the returned channel's multicast/unicast are softirq-safe."],
 ["genl","modules/netlink.html#genl","netlink · Generic netlink session specialization."],
 ["nl80211","modules/netlink.html#nl80211","netlink · The nl80211 (wireless) namespace; groups the nl80211 object classes."],
 ["rt","modules/netlink.html#rt","netlink · The rtnetlink namespace; groups the NETLINK_ROUTE object classes."],
