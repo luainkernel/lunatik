@@ -6,8 +6,8 @@
 /***
 * Various Linux kernel facilities.
 * This library includes functions for random number generation, sleeping, tracing,
-* time retrieval, kernel symbol lookup, network interface and namespace ids, errno
-* names and the CPU count. Kernel constants live in the `linux.*` modules, as
+* time retrieval, kernel symbol lookup, network interface and namespace ids and errno
+* names. Kernel constants live in the `linux.*` modules, as
 * `require("linux.stat")` for file modes and `require("linux.task")` for task states.
 *
 * @module linux
@@ -294,21 +294,6 @@ static int lualinux_errname(lua_State *L)
     return 1;
 }
 
-/***
-* Returns the number of possible CPU ids.
-* CPU ids range from `0` to `numcpus() - 1`; the online ones are a subset,
-* so an id in that range may be offline.
-* @function numcpus
-* @treturn integer number of possible CPU ids
-* @usage
-* for cpu = 0, linux.numcpus() - 1 do print(cpu) end
-*/
-static int lualinux_numcpus(lua_State *L)
-{
-	lua_pushinteger(L, nr_cpu_ids);
-	return 1;
-}
-
 static const luaL_Reg lualinux_lib[] = {
 	{"random", lualinux_random},
 	{"schedule", lualinux_schedule},
@@ -320,7 +305,6 @@ static const luaL_Reg lualinux_lib[] = {
 	{"ifaddr", lualinux_ifaddr},
 	{"netns", lualinux_netns},
 	{"errname", lualinux_errname},
-	{"numcpus", lualinux_numcpus},
 	{NULL, NULL}
 };
 

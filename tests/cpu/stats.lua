@@ -5,10 +5,9 @@
 -- Kernel-side script for the cpu stats test (see run.sh).
 
 local cpu   = require("cpu")
-local linux = require("linux")
 local test  = require("util").test
 
-local refused <const> = {-1, linux.numcpus(), 1 << 32, math.maxinteger, math.mininteger}
+local refused <const> = {-1, cpu.maxid() + 1, 1 << 32, math.maxinteger, math.mininteger}
 
 local function refuses(id)
 	local ok, err = pcall(cpu.stats, id)

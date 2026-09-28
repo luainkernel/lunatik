@@ -5,7 +5,7 @@
 -- Driver script for the percpu resume test (see resume_percpu.sh).
 
 local lunatik = require("lunatik")
-local linux   = require("linux")
+local cpu     = require("cpu")
 local rcu     = require("rcu")
 local test    = require("util").test
 
@@ -18,12 +18,12 @@ test("resume delivers the same object to every runtime", function()
 	local seen = rcu.table()
 	local runtimes <close> = lunatik.percpu(SCRIPT)
 	runtimes:resume(seen)
-	for cpu = 0, linux.numcpus() - 1 do
-		assert(seen[tostring(cpu)], "runtime " .. cpu .. " did not receive the object")
+	for id in cpu.possible() do
+		assert(seen[tostring(id)], "runtime " .. id .. " did not receive the object")
 	end
 	assert(select("#", runtimes:resume()) == 0, "resume returned what a runtime yielded")
-	for cpu = 0, linux.numcpus() - 1 do
-		assert(seen[tostring(cpu)] == nil, "runtime " .. cpu .. " was not resumed past its yield")
+	for id in cpu.possible() do
+		assert(seen[tostring(id)] == nil, "runtime " .. id .. " was not resumed past its yield")
 	end
 end)
 
@@ -31,8 +31,8 @@ test("resume delivers to the runtimes of a softirq set", function()
 	local seen = rcu.table()
 	local runtimes <close> = lunatik.percpu(SCRIPT, "softirq")
 	runtimes:resume(seen)
-	for cpu = 0, linux.numcpus() - 1 do
-		assert(seen[tostring(cpu)], "softirq runtime " .. cpu .. " did not receive the object")
+	for id in cpu.possible() do
+		assert(seen[tostring(id)], "softirq runtime " .. id .. " did not receive the object")
 	end
 end)
 
@@ -40,9 +40,9 @@ test("resume delivers every object it is given, in order", function()
 	local first, second = rcu.table(), rcu.table()
 	local runtimes <close> = lunatik.percpu(SCRIPT)
 	runtimes:resume(first, second)
-	for cpu = 0, linux.numcpus() - 1 do
-		local id = tostring(cpu)
-		assert(first[id] == 1 and second[id] == 2, "runtime " .. cpu .. " did not receive both objects in order")
+	for id in cpu.possible() do
+		local key = tostring(id)
+		assert(first[key] == 1 and second[key] == 2, "runtime " .. id .. " did not receive both objects in order")
 	end
 end)
 

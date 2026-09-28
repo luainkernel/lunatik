@@ -237,7 +237,7 @@ status the CLI exits by.
 ### cpu
 
 - **stats**: `cpu.stats()` answers every online CPU with its counters and
-  refuses an id outside `[0, linux.numcpus())` as out of bounds: -1, the first
+  refuses an id outside `[0, cpu.maxid()]` as out of bounds: -1, the first
   id past the possible ones, 2^32, whose low 32 bits are CPU 0, and the
   integer extremes. The refusal comes before `cpu_online()`, whose bit
   lookup reads past the mask for an id the cast leaves at or past `NR_CPUS`, as
@@ -246,9 +246,10 @@ status the CLI exits by.
   runs against carries the `out of bounds` refusal.
 - **ids**: `cpu.possible()`, `cpu.present()` and `cpu.online()` each yield
   their CPUs in ascending order, as many as the matching `cpu.num_*()` counts,
-  and the step they return refuses a CPU id outside the possible ones as out of
-  bounds: -2, 2^32 and the integer extremes. A step that yields one id twice
-  fails at the second yield rather than looping.
+  and the step they return refuses an id outside `[-1, cpu.maxid()]` as out of
+  bounds: -2, `cpu.maxid() + 1`, 2^32 and the integer extremes. A step that
+  yields one id twice fails at the second yield rather than looping.
+  `cpu.maxid()` is the last possible CPU.
 
 ### examples
 

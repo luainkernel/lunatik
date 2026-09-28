@@ -8,7 +8,7 @@ local cpu  = require("cpu")
 local test = require("util").test
 
 local counts <const> = {possible = cpu.num_possible, present = cpu.num_present, online = cpu.num_online}
-local refused <const> = {-2, 1 << 32, math.maxinteger, math.mininteger}
+local refused <const> = {-2, cpu.maxid() + 1, 1 << 32, math.maxinteger, math.mininteger}
 
 local function walk(mask)
 	local count, last = 0, nil
@@ -34,6 +34,12 @@ test("each iterator yields its CPUs in ascending order, as many as its count", f
 		local yielded, expected = walk(mask), count()
 		assert(yielded == expected, "cpu." .. mask .. "() yielded " .. yielded .. " ids, its count is " .. expected)
 	end
+end)
+
+test("maxid is the last possible CPU", function()
+	local _, last = walk("possible")
+	local maxid = cpu.maxid()
+	assert(last == maxid, "the last possible CPU is " .. last .. ", cpu.maxid() is " .. maxid)
 end)
 
 test("each iterator's step refuses an id outside the possible ones", function()

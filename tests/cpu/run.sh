@@ -6,7 +6,7 @@
 # Runs cpu regression tests and reports aggregated KTAP results.
 #
 # stats: cpu.stats() takes a CPU id from Lua. It answers every online CPU with
-# its counters, and refuses an id outside [0, linux.numcpus()) as out of bounds:
+# its counters, and refuses an id outside [0, cpu.maxid()] as out of bounds:
 # -1, the first id past the possible ones, 2^32 (whose low 32 bits are CPU 0),
 # and the integer extremes. The refusal comes before the online test, whose bit
 # lookup reads past the mask for an id the cast leaves at or past NR_CPUS, as it
@@ -17,9 +17,10 @@
 #
 # ids: cpu.possible(), cpu.present() and cpu.online() each yield their CPUs in
 # ascending order, as many as cpu.num_possible(), cpu.num_present() and
-# cpu.num_online() count, and the step they return refuses a CPU id outside the
-# possible ones as out of bounds: -2, 2^32 and the integer extremes. A step that
-# yields one id twice fails at the second yield rather than looping.
+# cpu.num_online() count, and the step they return refuses an id outside
+# [-1, cpu.maxid()] as out of bounds: -2, cpu.maxid() + 1, 2^32 and the integer
+# extremes. A step that yields one id twice fails at the second yield rather
+# than looping. cpu.maxid() is the last possible CPU.
 #
 # Usage: sudo bash tests/cpu/run.sh
 

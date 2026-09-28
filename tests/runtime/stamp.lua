@@ -5,7 +5,7 @@
 -- The stamp each runtime of tests/runtime/percpu leaves, and its check (see percpu.sh and percpu_object.sh).
 
 local lunatik = require("lunatik")
-local linux   = require("linux")
+local cpu     = require("cpu")
 
 local PREFIX <const> = "percpu_cpu:"
 
@@ -19,10 +19,10 @@ end
 
 -- clears the stamps it checks, so the script can run again
 function stamp.check()
-	assert(env[PREFIX .. linux.numcpus()] == nil, "a runtime ran beyond the last CPU id")
-	for cpu = 0, linux.numcpus() - 1 do
-		assert(env[PREFIX .. cpu], "no runtime stamped CPU " .. cpu)
-		env[PREFIX .. cpu] = nil
+	assert(env[PREFIX .. cpu.maxid() + 1] == nil, "a runtime ran beyond the last CPU id")
+	for id in cpu.possible() do
+		assert(env[PREFIX .. id], "no runtime stamped CPU " .. id)
+		env[PREFIX .. id] = nil
 	end
 end
 

@@ -6,8 +6,8 @@
 /***
 * Lua interface to Linux CPU abstractions.
 * A possible CPU is one the system can ever bring up, a present one is plugged in, and an online
-* one runs tasks. `linux.numcpus()` is one past the highest possible CPU id, the same count as
-* `num_possible` when those ids have no gaps.
+* one runs tasks. `maxid()` is the highest possible CPU id, one less than `num_possible` when
+* those ids have no gaps.
 * @module cpu
 */
 
@@ -45,6 +45,17 @@ LUACPU_NUM(present)
 */
 LUACPU_NUM(online)
 
+/***
+* Returns the highest possible CPU id, the kernel's `nr_cpu_ids - 1`.
+* @function maxid
+* @treturn integer the highest possible CPU id
+*/
+static int luacpu_maxid(lua_State *L)
+{
+	lua_pushinteger(L, nr_cpu_ids - 1);
+	return 1;
+}
+
 #define luacpu_setstat(L, idx, kcs, name, NAME)				\
 do {									\
 	lua_pushinteger(L, (lua_Integer)kcs.cpustat[CPUTIME_##NAME]);	\
@@ -56,7 +67,7 @@ do {									\
 * `idle` and `iowait` are what the tick accounts, which lags `/proc/stat` on a
 * tickless CPU while it idles.
 * @function stats
-* @tparam integer cpu CPU number, from `0` to `linux.numcpus() - 1`
+* @tparam integer cpu CPU number, from `0` to `maxid()`
 * @treturn table fields: `user`, `nice`, `system`, `idle`, `iowait`, `irq`,
 *   `softirq`, `steal`, `guest`, `guest_nice`, `forceidle` (if CONFIG_SCHED_CORE)
 * @raise "out of bounds" if cpu is outside that range, "CPU is offline" if it is not online
@@ -136,6 +147,7 @@ static const luaL_Reg luacpu_lib[] = {
 	{"num_possible", luacpu_num_possible},
 	{"num_present", luacpu_num_present},
 	{"num_online", luacpu_num_online},
+	{"maxid", luacpu_maxid},
 	{"stats", luacpu_stats},
 	{"possible", luacpu_possible},
 	{"present", luacpu_present},
