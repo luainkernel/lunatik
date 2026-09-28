@@ -5,15 +5,21 @@
 #
 # Tests the address getsockname(), getpeername() and receive(..., true) answer with,
 # for the families a single script can exercise. The kernel reports how many bytes it
-# filled, and the assertion is that the answer is those bytes and no more: an
-# AF_PACKET socket bound to loopback names 16, an unbound one 10, a received frame 18
-# and an AF_INET6 socket 26, each unpacked field by field. A protocol that names no
-# sender, a TCP receive among them, must answer with the message alone.
+# filled, and the assertion is that the answer is those bytes and no more: an AF_INET6
+# socket names 26, unpacked field by field. An AF_PACKET address is five values, the
+# protocol in host order, the interface, the packet type, the hardware type and the
+# hardware address, compared one by one on an unbound socket, on one bound to
+# loopback and on a received frame, and its getpeername is refused, as packet_getname
+# names no peer. A protocol that names no sender, a TCP receive among them, must
+# answer with the message alone.
 #
 # Every case that counts bytes or values discriminates: an address pushed as the whole
 # storage is 126 bytes whatever the family wrote, and a receive that reads a family
-# nobody set answers with a second value built from the stack. The AF_INET and
-# AF_NETLINK cases do not; they guard the arms this leaves alone.
+# nobody set answers with a second value built from the stack. The AF_PACKET cases
+# also read the protocol back through both conversions, the unbound one as socket.new
+# took it and the bound one as bind did, and the received frame's hardware address as
+# the 6 bytes its length names rather than the 8 of the name packet_recvmsg widens.
+# The AF_INET and AF_NETLINK cases do not; they guard the arms this leaves alone.
 #
 # Usage: sudo bash tests/socket/address.sh
 
@@ -36,7 +42,7 @@ expect() { # expect <line> <description> [<family>]
 }
 
 ktap_header
-ktap_plan 11
+ktap_plan 12
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -56,9 +62,10 @@ expect "inet receive names no sender" "socket receive: a connected TCP socket an
 expect "netlink getsockname ok" "socket getsockname: an AF_NETLINK socket answers with its pid and group mask"
 expect "netlink receivefrom ok" "socket receive: a netlink datagram names the sending pid and group mask"
 expect "inet6 getsockname ok" "socket getsockname: an AF_INET6 socket answers with the 26 bytes past the family" inet6
-expect "packet getsockname unbound ok" "socket getsockname: an unbound AF_PACKET socket answers with 10 bytes" packet
-expect "packet getsockname bound ok" "socket getsockname: a bound AF_PACKET socket answers with the interface's 16 bytes" packet
-expect "packet receivefrom ok" "socket receive: a frame names the 18 bytes of sockaddr_ll the kernel filled" packet
+expect "packet getsockname unbound ok" "socket getsockname: an unbound AF_PACKET socket answers with the protocol socket.new took" packet
+expect "packet getpeername refused" "socket getpeername: an AF_PACKET socket names no peer and is refused with EOPNOTSUPP" packet
+expect "packet getsockname bound ok" "socket getsockname: a bound AF_PACKET socket answers with the interface and its hardware address" packet
+expect "packet receivefrom ok" "socket receive: a frame names its protocol, interface, packet type and sender" packet
 
 cleanup
 check_dmesg || { ktap_totals; exit 1; }
