@@ -230,9 +230,10 @@ netfilter.register{
    <a href="../modules/linux.nf.html#inet">linux.nf.inet</a> or <a href="../modules/linux.nf.html#br">linux.nf.br</a> list them, and <code>priority</code> a <code>linux.nf.ip.pri</code> or
    <code>linux.nf.br.pri</code> value.</p>
 
-<p>   <code>hook(skb)</code> returns the packet&rsquo;s verdict, a <a href="../modules/linux.nf.html#action">linux.nf.action</a> value, and optionally a mark
-   to set on the packet. A callback that returns no verdict, or a value outside
-   <a href="../modules/linux.nf.html#action">linux.nf.action</a>, or that raises, accepts the packet.
+<p>   <code>hook(skb)</code> returns the packet&rsquo;s verdict, <code>DROP</code>, <code>ACCEPT</code> or <code>QUEUE</code> of <a href="../modules/linux.nf.html#action">linux.nf.action</a>,
+   and optionally a mark to set on the packet. A callback that returns no verdict, or that
+   raises, accepts the packet; one that returns any other value, <code>STOLEN</code>, <code>REPEAT</code> and <code>STOP</code>
+   included, accepts it too and logs <code>invalid verdict</code>.
         </li>
     </ul>
 
@@ -284,7 +285,7 @@ netfilter.<span class="function-name">register</span>{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:49:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:50:24</span>
 </div>
 </footer>
 </body>
