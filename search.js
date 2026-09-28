@@ -470,8 +470,6 @@ window.LUNATIK_SEARCH = [
 ["crypto_skcipher:encrypt (iv, data)","classes/crypto_skcipher.html#crypto_skcipher:encrypt","crypto_skcipher · Encrypts data."],
 ["crypto_skcipher:ivsize ()","classes/crypto_skcipher.html#crypto_skcipher:ivsize","crypto_skcipher · Returns the required IV size in bytes."],
 ["crypto_skcipher:setkey (key)","classes/crypto_skcipher.html#crypto_skcipher:setkey","crypto_skcipher · Sets the cipher key."],
-["skb.attr","classes/skb.attr.html","Class · Attribute view over an skb: reads and writes packet fields as table keys (view.mark, view.priority) instead of method calls."],
-["skb.attr.new (skb)","classes/skb.attr.html#skb.attr.new","skb.attr · Wraps an skb in an attribute view."],
 ["Getting started","topics/01-getting-started.md.html","Guide"],
 ["Check the install","topics/01-getting-started.md.html#check-the-install","Guide · Getting started"],
 ["After a kernel upgrade","topics/01-getting-started.md.html#after-a-kernel-upgrade","Guide · Getting started"],
