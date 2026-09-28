@@ -257,6 +257,8 @@
 
 <ul>
 <li><code>AF_INET</code>: two integers, the IPv4 address (e.g. from <code>net.aton()</code>) and the port.</li>
+<li><code>AF_INET6</code>: a packed string of <code>struct sockaddr_in6</code> past the family: the port and the flow
+information in network byte order, the address, and the scope id.</li>
 <li><code>AF_PACKET</code>: two integers, the ethertype in host byte order and the interface index.</li>
 <li><code>AF_NETLINK</code>: two optional integers, the port id and the multicast groups, both 0 by default.</li>
 <li><code>AF_UNIX</code>: a string, a filesystem path or, with a leading NUL, an abstract name.</li>
@@ -264,8 +266,11 @@
 </ul>
 
 
-<p> A method that returns an address returns it the same way, except for <code>AF_PACKET</code>, which returns
- the packed string.
+<p> A method that returns an address returns it the same way. An <code>AF_PACKET</code> one carries three more
+ values after the interface index: the packet type (<code>PACKET_HOST</code> and the others of
+ <code>&lt;linux/if_packet.h&gt;</code>), the hardware type (<code>ARPHRD_ETHER</code> and the others of <code>&lt;linux/if_arp.h&gt;</code>)
+ and the hardware address, a string of the length the kernel reports: the interface&rsquo;s own for
+ <a href="../modules/socket.html#socket:getsockname">getsockname</a>, the sender&rsquo;s for <a href="../modules/socket.html#socket:receive">receive</a>.
           </div>
     <dl class="function">
     <dt id="socket:accept"><a name="socket:accept"></a><strong>socket:accept ([flags=0])</strong></dt>
@@ -475,7 +480,8 @@ reports.</li>
     </ol>
 
     <h3>Raises</h3>
-    Error if the operation fails (e.g., socket not connected).
+    Error if the operation fails (e.g., socket not connected); <code>EOPNOTSUPP</code> on an <code>AF_PACKET</code>
+   socket, which names no peer.
 
 
     <h3>Usage</h3>
@@ -498,17 +504,27 @@ reports.</li>
 
 <ul>
 <li>For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).</li>
+<li>For <code>AF_PACKET</code>: The ethertype the socket was created or bound with, in host byte order.</li>
 <li>For <code>AF_UNIX</code>: The bound name, carrying its leading NUL when the name is an abstract one, and the
 empty string when the socket is unbound.</li>
 <li>For <code>AF_NETLINK</code>: The port id.</li>
 <li>For other families: A packed string of the address bytes past the family, of the length the kernel
-reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware address length.</li>
+reports.</li>
 </ul>
 </li>
         <li>
            <span class="types"><span class="type">integer</span></span>
-        port The local port number for <code>AF_INET</code>, and the multicast groups for
-   <code>AF_NETLINK</code>.</li>
+        port The local port number for <code>AF_INET</code>, the interface index for <code>AF_PACKET</code>,
+   0 when unbound, and the multicast groups for <code>AF_NETLINK</code>.</li>
+        <li>
+           <span class="types"><span class="type">integer</span></span>
+        pkttype For <code>AF_PACKET</code>, 0.</li>
+        <li>
+           <span class="types"><span class="type">integer</span></span>
+        hatype For <code>AF_PACKET</code>, the interface&rsquo;s hardware type, 0 when unbound.</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+        hwaddr For <code>AF_PACKET</code>, the interface&rsquo;s hardware address, empty when unbound.</li>
     </ol>
 
     <h3>Raises</h3>
@@ -578,8 +594,8 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
         <li><span class="parameter">from</span>
             <span class="types"><span class="type">boolean</span></span>
          If <code>true</code>, the function also returns the sender&rsquo;s address
-   (two values for <code>AF_INET</code> and <code>AF_NETLINK</code>). This is typically used with connectionless
-   sockets (<code>SOCK_DGRAM</code>).
+   (two values for <code>AF_INET</code> and <code>AF_NETLINK</code>, five for <code>AF_PACKET</code>). This is typically used with
+   connectionless sockets (<code>SOCK_DGRAM</code>).
          (<em>default</em> false)
         </li>
     </ul>
@@ -588,21 +604,32 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
     <ol>
         <li>
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        received message (as a string of bytes).</li>
+        received message (as a string of bytes); on a stream socket, the empty string is
+   the end of file, once the peer has shut down its side.</li>
         <li>
            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          addr If <code>from</code> is true and the protocol named a sender, its address.
    TCP names none, and neither does an <code>AF_UNIX</code> peer that never bound; nothing follows the message
    then.
    - For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).
+   - For <code>AF_PACKET</code>: The frame&rsquo;s ethertype, in host byte order.
    - For <code>AF_UNIX</code>: The sender&rsquo;s name, carrying its leading NUL when the name is an abstract one.
    - For <code>AF_NETLINK</code>: The sender&rsquo;s port id.
    - For other families: A packed string of the sender&rsquo;s address past the family, of the length the
      protocol reports.</li>
         <li>
            <span class="types"><span class="type">integer</span></span>
-        port If <code>from</code> is true, the sender&rsquo;s port number for <code>AF_INET</code>, and its
-   multicast groups for <code>AF_NETLINK</code>.</li>
+        port If <code>from</code> is true, the sender&rsquo;s port number for <code>AF_INET</code>, the index of
+   the interface the frame arrived on for <code>AF_PACKET</code>, and its multicast groups for <code>AF_NETLINK</code>.</li>
+        <li>
+           <span class="types"><span class="type">integer</span></span>
+        pkttype For <code>AF_PACKET</code>, the frame&rsquo;s packet type.</li>
+        <li>
+           <span class="types"><span class="type">integer</span></span>
+        hatype For <code>AF_PACKET</code>, the interface&rsquo;s hardware type.</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+        hwaddr For <code>AF_PACKET</code>, the sender&rsquo;s hardware address.</li>
     </ol>
 
     <h3>Raises</h3>
@@ -746,8 +773,8 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
         <li><span class="parameter">protocol</span>
             <span class="types"><span class="type">integer</span></span>
          protocol (e.g., <code>linux.socket.ipproto.TCP</code>).
-   For <code>AF_PACKET</code> sockets, <code>protocol</code> is typically an <code>ETH_P_*</code> value in network byte order
-   (e.g., <code>byteorder.hton16(0x0003)</code> for <code>ETH_P_ALL</code>).
+   For <code>AF_PACKET</code> sockets, <code>protocol</code> is an ethertype in host byte order, as <a href="../modules/socket.html#socket:bind">bind</a> takes it
+   (e.g., <code>linux.eth.ALL</code> for every frame).
         </li>
         <li><span class="parameter">pid</span>
             <span class="types"><span class="type">integer</span></span>
@@ -770,8 +797,9 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
     </ol>
 
     <h3>Raises</h3>
-     Error if socket creation fails, <code>ESRCH</code> if no task has that pid, <code>EOPNOTSUPP</code> on a kernel
-   whose sockets cannot hold a namespace of their own, or
+     Error if socket creation fails, &ldquo;out of bounds&rdquo; for an <code>AF_PACKET</code> protocol past 16 bits,
+   <code>ESRCH</code> if no task has that pid, <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a namespace
+   of their own, or
    <code>&apos;socket&apos;: process-context class in interrupt-context runtime</code> in a softirq or hardirq runtime.
 
     <h3>See also</h3>
@@ -803,7 +831,7 @@ reports, which for <code>AF_PACKET</code> follows the interface&rsquo;s hardware
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 14:00:51</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 14:06:28</span>
 </div>
 </footer>
 </body>
