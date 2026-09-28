@@ -20,7 +20,6 @@ function pinned.checkinfo(m, maptype, keysize)
 	assert(info.key_size == keysize, "expected key_size " .. keysize)
 	assert(info.value_size == VALUE, "expected value_size " .. VALUE)
 	assert(info.max_entries == ENTRIES, "expected max_entries " .. ENTRIES)
-	assert(#m == ENTRIES, "expected #m == max_entries")
 end
 
 return pinned

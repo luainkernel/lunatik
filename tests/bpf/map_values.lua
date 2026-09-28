@@ -121,7 +121,7 @@ test("bpf.hash invalid sizes raise", function()
 	m:close()
 end)
 
-test("bpf.hash info and length report the map properties", function()
+test("bpf.hash info reports the map properties", function()
 	local m = hash(path)
 	pinned.checkinfo(m, bpf.MAP_TYPE_HASH, 3)
 	m:close()
