@@ -65,7 +65,6 @@ file = {
 	'./lib/luaset.c',
 	'./lib/luasignal.c',
 	'./lib/luaskb.c',
-	'./lib/skb/attr.lua',
 	'./lib/luasocket.c',
 	'./lib/socket/inet.lua',
 	'./lib/socket/raw.lua',
