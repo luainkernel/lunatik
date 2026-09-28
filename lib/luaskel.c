@@ -104,5 +104,6 @@ static void __exit luaskel_exit(void)
 module_init(luaskel_init);
 module_exit(luaskel_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 

@@ -160,5 +160,6 @@ static void __exit luacompletion_exit(void)
 module_init(luacompletion_init);
 module_exit(luacompletion_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Savio Sena <savio.sena@gmail.com>");
 

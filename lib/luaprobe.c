@@ -435,5 +435,6 @@ static void __exit luaprobe_exit(void)
 module_init(luaprobe_init);
 module_exit(luaprobe_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 

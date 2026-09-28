@@ -303,5 +303,6 @@ static void __exit luasched_exit(void)
 module_init(luasched_init);
 module_exit(luasched_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>");
 

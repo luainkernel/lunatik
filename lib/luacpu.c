@@ -169,6 +169,7 @@ static void __exit luacpu_exit(void)
 module_init(luacpu_init);
 module_exit(luacpu_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Enderson Maia <endersonmaia@gmail.com>");
 MODULE_DESCRIPTION("Lunatik interface to Linux's CPU abstractions.");
 

@@ -168,5 +168,6 @@ static void __exit luatask_exit(void)
 module_init(luatask_init);
 module_exit(luatask_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>");
 

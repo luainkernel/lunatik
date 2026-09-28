@@ -264,5 +264,6 @@ LUNATIK_EBPF_EXIT(xdp);
 module_init(luaxdp_init);
 module_exit(luaxdp_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 

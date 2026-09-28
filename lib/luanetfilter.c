@@ -310,5 +310,6 @@ static void __exit luanetfilter_exit(void)
 module_init(luanetfilter_init);
 module_exit(luanetfilter_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>");
 
