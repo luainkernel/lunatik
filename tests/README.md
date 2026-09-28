@@ -246,6 +246,11 @@ status the CLI exits by.
   it does -1 and `math.maxinteger`. A build without the bound reads past the
   mask for -1 rather than failing, so the suite skips unless the `luacpu` it
   runs against carries the `out of bounds` refusal.
+- **ids**: `cpu.possible()`, `cpu.present()` and `cpu.online()` each yield
+  their CPUs in ascending order, as many as the matching `cpu.num_*()` counts,
+  and the step they return refuses a CPU id outside the possible ones as out of
+  bounds: -2, 2^32 and the integer extremes. A step that yields one id twice
+  fails at the second yield rather than looping.
 
 ### examples
 

@@ -54,11 +54,11 @@ local function cpu_stats()
 	--TODO: add cpu-total with accumulated values for all cpus
 	local stats = {}
 	local total_stats = {}
-	cpu.foreach_online(function(id)
+	for id in cpu.online() do
 		stats[id] = {}
 		stats[id] = cpu.stats(id)
 		total_stats[id] = sum_stats(stats[id])
-	end)
+	end
 	return stats, total_stats
 end
 

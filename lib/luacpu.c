@@ -88,48 +88,58 @@ static int luacpu_stats(lua_State *L)
 	return 1;
 }
 
-#define LUACPU_FOREACH(name)				\
-static int luacpu_foreach_##name(lua_State *L)		\
-{							\
-	unsigned int cpu;				\
-	luaL_checktype(L, 1, LUA_TFUNCTION);		\
-	for_each_##name##_cpu(cpu) {			\
-		lua_pushvalue(L, 1);			\
-		lua_pushinteger(L, cpu);		\
-		lua_call(L, 1, 0);			\
-	}						\
-	return 0;					\
+#define LUACPU_ITERATOR(name)								\
+static int luacpu_next##name(lua_State *L)						\
+{											\
+	int cpu = (int)lunatik_checkinteger(L, 2, LUNATIK_CPU_NONE, nr_cpu_ids - 1);	\
+	unsigned int next = cpumask_next(cpu, cpu_##name##_mask);			\
+	lunatik_pushoptinteger(L, next < nr_cpu_ids, next);				\
+	return 1;									\
+}											\
+											\
+static int luacpu_##name(lua_State *L)							\
+{											\
+	lua_pushcfunction(L, luacpu_next##name);					\
+	lua_pushnil(L);									\
+	lua_pushinteger(L, LUNATIK_CPU_NONE);						\
+	return 3;									\
 }
 
 /***
-* Calls a function for each possible CPU.
-* @function foreach_possible
-* @tparam function callback called with the CPU number
+* Iterates over the possible CPUs, in ascending order.
+* @function possible
+* @treturn function iterator for the generic `for`, yielding each possible CPU id
+* @usage
+*   for id in cpu.possible() do print(id) end
 */
-LUACPU_FOREACH(possible)
+LUACPU_ITERATOR(possible)
 
 /***
-* Calls a function for each present CPU.
-* @function foreach_present
-* @tparam function callback called with the CPU number
+* Iterates over the present CPUs, in ascending order.
+* @function present
+* @treturn function iterator for the generic `for`, yielding each present CPU id
+* @usage
+*   for id in cpu.present() do print(id) end
 */
-LUACPU_FOREACH(present)
+LUACPU_ITERATOR(present)
 
 /***
-* Calls a function for each online CPU.
-* @function foreach_online
-* @tparam function callback called with the CPU number
+* Iterates over the online CPUs, in ascending order.
+* @function online
+* @treturn function iterator for the generic `for`, yielding each online CPU id
+* @usage
+*   for id in cpu.online() do print(id) end
 */
-LUACPU_FOREACH(online)
+LUACPU_ITERATOR(online)
 
 static const luaL_Reg luacpu_lib[] = {
 	{"num_possible", luacpu_num_possible},
 	{"num_present", luacpu_num_present},
 	{"num_online", luacpu_num_online},
 	{"stats", luacpu_stats},
-	{"foreach_possible", luacpu_foreach_possible},
-	{"foreach_present", luacpu_foreach_present},
-	{"foreach_online", luacpu_foreach_online},
+	{"possible", luacpu_possible},
+	{"present", luacpu_present},
+	{"online", luacpu_online},
 	{NULL, NULL}
 };
 
