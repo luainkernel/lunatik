@@ -171,8 +171,9 @@ any kernel complaint in dmesg.
 
 const LEFT = { type: 'array', items: { type: 'object', properties: {
   title: { type: 'string' }, body: { type: 'string' }, severity: { type: 'string', enum: ['high', 'medium', 'low'] },
+  contract: { type: 'string', description: 'what the documentation promises for the stimulus, quoted with its file, or "undocumented"; the severity is read against it' },
   home: { type: 'integer', description: 'the open issue this finding belongs to' },
-}, required: ['title', 'body', 'severity'] } }
+}, required: ['title', 'body', 'severity', 'contract'] } }
 
 const FINDINGS = {
   type: 'object',
