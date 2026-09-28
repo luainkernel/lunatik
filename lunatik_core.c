@@ -271,7 +271,7 @@ static int lunatik_searchbinding(lua_State *L) /* the fork's C searcher raises o
 {
 	lua_pushvalue(L, lua_upvalueindex(1));
 	lua_insert(L, 1);
-	return lua_pcall(L, lua_gettop(L) - 1, 2, 0) == LUA_OK ? 2 : 1; /* a miss returns its message */
+	return lua_pcall(L, lua_gettop(L) - 1, 2, 0) == LUA_OK ? 2 : 1;
 }
 
 static void lunatik_ordersearchers(lua_State *L) /* a binding is found before a Lua file of its name */
