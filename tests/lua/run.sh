@@ -20,7 +20,11 @@
 #              module load", since opening a file sleeps; the body allows
 #              both. The body empties package.path, so a build without the
 #              refusal opens no file from the callback and answers "not
-#              found" there, as the body's own require does.
+#              found" there, as the body's own require does. The body and
+#              the callback are refused require("io") with "'io':
+#              process-context class in interrupt-context runtime"; without
+#              that refusal the body of a module build answers "not found"
+#              and that of a built-in one gets io.
 #
 # Usage: sudo bash tests/lua/run.sh
 

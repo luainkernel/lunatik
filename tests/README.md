@@ -570,6 +570,10 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   search `package.path` and `package.searchpath`, since opening a file
   sleeps; the body allows both. The body empties `package.path`, so a build
   without the refusal opens no file from the callback and answers `not found`.
+  The body and the callback are refused `require("io")` with `'io':
+  process-context class in interrupt-context runtime`; without that refusal
+  the body of a module build answers `not found` and that of a built-in one
+  gets `io`.
 
 ### luac
 
