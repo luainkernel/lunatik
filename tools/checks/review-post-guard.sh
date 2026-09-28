@@ -21,7 +21,10 @@
 # saying an agent wrote it, since the account it posts under is the
 # maintainer's. The raw input is not scanned: it carries the working directory
 # on every command, so a scan of it would fire on every post. Text the guard
-# cannot read, passed inline or on stdin, is refused rather than skipped.
+# cannot read, passed inline or on stdin, is refused rather than skipped, and so
+# is a comment given to gh's close or reopen, which no file carries. A post held
+# for the marker is recorded for its session (gh_held in commands.sh), where
+# pr-body-guard refuses carrying it into the body of the same issue instead.
 
 input=$(cat)
 
@@ -33,7 +36,13 @@ esac
 
 . "$(dirname "$0")/commands.sh"
 
-posts=$(gh_writes "$(commands "$input")" 'pr (review|comment)|issue comment' \
+cmds=$(commands "$input")
+if gh_writes "$cmds" '(issue|pr) (close|reopen)' '^$' | grep -qE -- ' (-c|--comment)([ =]|$)'; then
+	echo "review-post-guard: a comment given to a close or a reopen is text no file carries: post it through the comments endpoint, where this guard reads it, then close." >&2
+	exit 2
+fi
+
+posts=$(gh_writes "$cmds" 'pr (review|comment)|issue comment' \
 	'^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/(pulls|issues)/([0-9]+/)?(reviews|comments)(/|$)')
 [ -n "$posts" ] || exit 0
 
@@ -116,6 +125,10 @@ isownpull() {
 	[ -n "$author" ] && [ "$author" = "$login" ]
 }
 isownpull && exit 0
+
+# what is held here waits for the OK, and pr-body-guard refuses carrying it into a body in the meantime
+held=$(gh_held "$input")
+mkdir -p "$(dirname "$held")" && while IFS= read -r post; do gh_number "$post"; done <<< "$posts" >> "$held"
 
 echo "review-post-guard: on a pull request the posting account did not open, show the exact text, get the maintainer's OK, then re-run with REVIEW_POST_OK=1 as a command prefix." >&2
 exit 2

@@ -283,6 +283,35 @@ gh_token() {
 		sed -E 's/^GH_TOKEN=\$\(cat (.*)\)$/\1/')" 2>/dev/null
 }
 
+# the issue or pull request the gh write <post> targets, by its number; nothing when it names none
+gh_number() {
+	printf '%s\n' "$1" | awk '
+	$2 == "api" {
+		for (i = 3; i <= NF; i++)
+			if (match($i, /repos\/[^\/]+\/[^\/]+\/(issues|pulls)\/[0-9]+/)) {
+				s = substr($i, RSTART, RLENGTH)
+				sub(/.*\//, "", s)
+				print s
+			}
+		exit
+	}
+	{
+		verb = 3
+		while ($verb ~ /^(-R|--repo)$/ || $verb ~ /^--repo=/)
+			verb += $verb ~ /^--repo=/ ? 1 : 2
+		if ($(verb + 1) ~ /^[0-9]+$/)
+			print $(verb + 1)
+	}' | head -n 1
+}
+
+# the file listing, a number a line, the issues and pull requests review-post-guard held a post on
+# in the session the hook input <input> comes from
+gh_held() {
+	local session
+	session=$(printf '%s' "$1" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
+	printf '%s/held-%s' "${LUNATIK_GUARD_DIR:-/tmp/lunatik-guards}" "${session:-none}"
+}
+
 # what carries the text of the gh write <post>: "file <path>", "input <path>" for the JSON gh api sends
 # whole, "inline" for text on the command line, nothing for a write without text; the flags are the
 # form's, since -F names a file to gh pr and gh issue and a field to gh api

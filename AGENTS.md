@@ -411,7 +411,12 @@ the marker is read, since the marker approves the wording and not what the wordi
 the guard cannot read, passed inline or on stdin, is refused rather than skipped. Every text it lets
 through opens with `(posted by an agent, not by @<handle>)`, the review body and each inline comment
 alike, since the account is the maintainer's: the review of #854 went out with the line on the body
-and on none of its five inline comments, which stand alone in the conversation.
+and on none of its five inline comments, which stand alone in the conversation. A post it holds for
+the marker is recorded for the session, and `pr-body-guard.sh` refuses an edit that adds text other
+than a task to the body of the same issue or pull request until the marker is set: a comment held on
+#1407 went into the issue's body instead, the approval it waited for skipped by another route. A
+comment given to gh's `close` or `reopen` is refused as text no file carries, since that route has no
+file to read.
 
 `untraced.sh` reads a text about to be published, a review, a comment, a pull request body, for the
 word that names a failure nobody read: a failure that comes and goes is read in the journal around the
