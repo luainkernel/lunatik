@@ -257,8 +257,9 @@
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          list of address tables, each with <code>family</code>, <code>prefix_len</code>, <code>scope</code>, <code>ifindex</code>,
-   <code>address</code> and <code>label</code>; <code>address</code> is the address bytes in network byte order; a field whose
-   attribute the reply lacks is nil.
+   <code>address</code>, <code>peer</code> and <code>label</code>; <code>address</code> is the interface&rsquo;s own address and <code>peer</code>, only on an
+   address configured with one, the other end of a point-to-point link, both as bytes in network
+   byte order; a field whose attribute the reply lacks is nil.
     </ol>
 
 
@@ -309,7 +310,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:36:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:37:35</span>
 </div>
 </footer>
 </body>
