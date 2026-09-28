@@ -106,7 +106,8 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/bpf
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/linux
 	${MKDIR} ${LUA_PATH}/lunatik
-	$(call INSTALL_LUA,driver.lua,${SCRIPTS_INSTALL_PATH}/)
+	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
+	$(call INSTALL_LUA,driver.lua,${SCRIPTS_INSTALL_PATH}/lunatik)
 	$(call INSTALL_LUA,lib/class.lua,${SCRIPTS_INSTALL_PATH}/)
 	$(call INSTALL_LUA,lib/mailbox.lua,${SCRIPTS_INSTALL_PATH}/)
 	$(call INSTALL_LUA,lib/net.lua,${SCRIPTS_INSTALL_PATH}/)

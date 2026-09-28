@@ -8,7 +8,7 @@
 -- using the `darken` C module.
 --
 -- The key is the module `light`, `/lib/modules/lua/light.lua`, which returns the hex-encoded
--- 32-byte key; without it, `require("lighten")` raises "error loading module 'light' from file 'light'".
+-- 32-byte key; without it, `require("lighten")` raises "module 'light' not found".
 -- `tools/shade.sh darken [-s <secret>] <script>.lua` encrypts a script into `<script>.dark.lua`,
 -- which calls `lighten.run`, and prints the secret, 64 hex characters;
 -- `tools/shade.sh lighten <secret>` writes `light.lua` from it. With `-t` both derive the key from

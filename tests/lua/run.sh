@@ -13,9 +13,11 @@
 # identifiers: _VERSION, collectgarbage("count") in bytes, package.path, no
 #              cpath and require through the kernel symbol table, the io
 #              shape, and the entry points a module cannot carry.
-# require:     a softirq and a hardirq runtime resumed past their body, the
-#              armed state a hook calls from, get back a module the body
-#              loaded and are refused a require that would search
+# require:     a require finds a binding before a Lua file of its name,
+#              device.lua in this directory. A softirq and a hardirq runtime
+#              resumed past their body, the armed state a hook calls from,
+#              get back a module the body loaded, find a binding the body did
+#              not load, and are refused a require that would search
 #              package.path, and package.searchpath, with "not allowed after
 #              module load", since opening a file sleeps; the body allows
 #              both. The body empties package.path, so a build without the

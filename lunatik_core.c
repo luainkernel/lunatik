@@ -264,7 +264,27 @@ static int lunatik_callsleepable(lua_State *L)
 	return lua_gettop(L);
 }
 
-#define LUNATIK_SEARCHER_LUA	2	/* package.searchers: preload, Lua, C */
+#define LUNATIK_SEARCHER_C	2	/* package.searchers: preload, C, Lua; the fork's is preload, Lua, C */
+#define LUNATIK_SEARCHER_LUA	3
+
+static int lunatik_searchbinding(lua_State *L) /* the fork's C searcher raises on a miss, ending the search */
+{
+	lua_pushvalue(L, lua_upvalueindex(1));
+	lua_insert(L, 1);
+	return lua_pcall(L, lua_gettop(L) - 1, 2, 0) == LUA_OK ? 2 : 1;
+}
+
+static void lunatik_ordersearchers(lua_State *L) /* a binding is found before a Lua file of its name */
+{
+	lua_getglobal(L, LUA_LOADLIBNAME);
+	lua_getfield(L, -1, "searchers");
+	lua_rawgeti(L, -1, LUNATIK_SEARCHER_C);
+	lua_rawgeti(L, -2, LUNATIK_SEARCHER_LUA);
+	lua_pushcclosure(L, lunatik_searchbinding, 1);
+	lua_rawseti(L, -3, LUNATIK_SEARCHER_C);
+	lua_rawseti(L, -2, LUNATIK_SEARCHER_LUA);
+	lua_pop(L, 2); /* searchers and package */
+}
 
 static void lunatik_guardpackage(lua_State *L) /* the entries that reach readable(), which opens a file */
 {
@@ -289,10 +309,12 @@ static int lunatik_runscript(lua_State *L)
 
 	if (!(lunatik_isirq(lunatik_toruntime(L)->opt))) {
 		luaL_openlibs(L);
+		lunatik_ordersearchers(L);
 		luaL_requiref(L, "lunatik", luaopen_lunatik, 0);
 	}
 	else {
 		luaL_openselectedlibs(L, ~LUA_IOLIBK, 0);
+		lunatik_ordersearchers(L);
 		lunatik_guardpackage(L);
 		luaL_requiref(L, "lunatik", luaopen_lunatik_stub, 0);
 	}
