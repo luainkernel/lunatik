@@ -152,22 +152,6 @@ static int lualinux_time(lua_State *L)
 }
 
 /***
-* Calculates the difference between two timestamps.
-*
-* @function difftime
-* @tparam integer t2 later timestamp (e.g., from `linux.time()`).
-* @tparam integer t1 earlier timestamp (e.g., from `linux.time()`).
-* @treturn integer difference `t2 - t1` in nanoseconds.
-*/
-static int lualinux_difftime(lua_State *L)
-{
-	u64 t2 = (u64) luaL_checkinteger(L, 1);
-	u64 t1 = (u64) luaL_checkinteger(L, 2);
-	lua_pushinteger(L, (lua_Integer)(t2 - t1));
-	return 1;
-}
-
-/***
 * Looks up a kernel symbol by name.
 * Uses `kallsyms_lookup_name` (potentially via kprobes) to find the address
 * of a kernel symbol. In a module build, the usual one, that function is resolved through a
@@ -314,7 +298,6 @@ static const luaL_Reg lualinux_lib[] = {
 	{"schedule", lualinux_schedule},
 	{"tracing", lualinux_tracing},
 	{"time", lualinux_time},
-	{"difftime", lualinux_difftime},
 	{"lookup", lualinux_lookup},
 	{"ifindex", lualinux_ifindex},
 	{"ifaddr", lualinux_ifaddr},
