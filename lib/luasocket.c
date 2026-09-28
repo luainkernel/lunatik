@@ -193,6 +193,8 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 * A method that takes an address reads it the way the family the socket was created with spells it:
 *
 * - `AF_INET`: two integers, the IPv4 address (e.g. from `net.aton()`) and the port.
+* - `AF_INET6`: a packed string of `struct sockaddr_in6` past the family: the port and the flow
+*   information in network byte order, the address, and the scope id.
 * - `AF_PACKET`: two integers, the ethertype in host byte order and the interface index.
 * - `AF_NETLINK`: two optional integers, the port id and the multicast groups, both 0 by default.
 * - `AF_UNIX`: a string, a filesystem path or, with a leading NUL, an abstract name.
@@ -277,7 +279,8 @@ static int luasocket_send(lua_State *L)
 * @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
 *   (two values for `AF_INET` and `AF_NETLINK`, five for `AF_PACKET`). This is typically used with
 *   connectionless sockets (`SOCK_DGRAM`).
-* @treturn string received message (as a string of bytes).
+* @treturn string received message (as a string of bytes); on a stream socket, the empty string is
+*   the end of file, once the peer has shut down its side.
 * @treturn[opt] integer|string addr If `from` is true and the protocol named a sender, its address.
 *   TCP names none, and neither does an `AF_UNIX` peer that never bound; nothing follows the message
 *   then.
