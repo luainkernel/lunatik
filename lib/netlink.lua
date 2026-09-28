@@ -7,21 +7,11 @@
 -- The netlink namespace. Groups the netlink factories.
 -- @module netlink
 
-local channel = require("netlink.channel")
 local rt      = require("netlink.rt")
 local genl    = require("netlink.genl")
 local nl80211 = require("netlink.nl80211")
 
 local netlink = {}
-
----
--- Registers a generic netlink family with one multicast group; the returned
--- channel's `multicast`/`unicast` are softirq-safe.
--- @function netlink.channel
--- @tparam string name Generic netlink family name (up to `GENL_NAMSIZ-1` bytes).
--- @treturn netlink.channel A new channel object.
--- @see netlink.channel
-netlink.channel = channel.new
 
 ---
 -- The rtnetlink namespace; groups the `NETLINK_ROUTE` object classes.

@@ -11,7 +11,7 @@
 
 local linux    = require("linux")
 local notifier = require("notifier")
-local netlink  = require("netlink")
+local channel  = require("netlink.channel")
 local message  = require("netlink.message")
 local netdev   = require("linux.netdev")
 local notify   = require("linux.notify")
@@ -26,7 +26,7 @@ local IFNAME <const> = 1                -- event attribute types
 local COUNT  <const> = 2
 local home   <const> = linux.netns()    -- the namespace the announced names belong to
 
-local channel  = netlink.channel("linkflap")
+local family   = channel.new("linkflap")
 local history  = {}  -- ifname -> { transition timestamps }
 local flapping = {}  -- ifname -> true while in a flap episode
 
@@ -44,7 +44,7 @@ local function record(name)
 end
 
 local function announce(name, count)
-	channel:multicast(FLAP, message.attrs{[IFNAME] = name, [COUNT] = count})
+	family:multicast(FLAP, message.attrs{[IFNAME] = name, [COUNT] = count})
 end
 
 local function callback(event, name, netns)

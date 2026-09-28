@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the netlink rtnl test (see rtnl.sh).
 
-local netlink  = require("netlink")
+local channel  = require("netlink.channel")
 local notifier = require("notifier")
 local notify   = require("linux.notify")
 
@@ -25,11 +25,11 @@ local probed = false
 local function cb()
 	if not probed then
 		probed = true
-		report("create " .. verdict(pcall(netlink.channel, FAMILY)))
+		report("create " .. verdict(pcall(channel.new, FAMILY)))
 	end
 	return notify.OK
 end
 
 notifier.netdevice(cb)
-report("after " .. verdict(pcall(netlink.channel, FAMILY)))
+report("after " .. verdict(pcall(channel.new, FAMILY)))
 

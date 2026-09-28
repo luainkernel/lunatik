@@ -14,7 +14,7 @@
 * @module netlink.channel
 * @usage
 *   -- lunatik run -c softirq <script>: multicasts a notice for each IPv4 packet the host receives
-*   local netlink   = require("netlink")
+*   local channel   = require("netlink.channel")
 *   local message   = require("netlink.message")
 *   local netfilter = require("netfilter")
 *   local nf        = require("linux.nf")
@@ -22,11 +22,11 @@
 *   local CMD <const>    = 1
 *   local NOTICE <const> = 1
 *
-*   local channel = netlink.channel("mychannel")
-*   local notice  = message.attrs{[NOTICE] = "packet"}
+*   local family = channel.new("mychannel")
+*   local notice = message.attrs{[NOTICE] = "packet"}
 *
 *   local function notify(skb)
-*     channel:multicast(CMD, notice)
+*     family:multicast(CMD, notice)
 *     return nf.action.ACCEPT
 *   end
 *
@@ -68,7 +68,7 @@ static void luanetlink_channel_release(void *private)
 
 /***
 * A generic netlink channel.
-* Returned by `netlink.channel()`. Backed by a generic netlink family with one
+* Returned by `netlink.channel.new()`. Backed by a generic netlink family with one
 * multicast group; `multicast` and `unicast` are safe from softirq (netfilter
 * hooks, XDP) and deliver to userspace subscribers of the family.
 * @type netlink.channel

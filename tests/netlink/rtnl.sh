@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# netlink.channel from a netdevice callback is refused, and accepted once the
+# netlink.channel.new from a netdevice callback is refused, and accepted once the
 # callback returned.
 #
 # A netdevice callback runs on the task that holds RTNL, and registering a
