@@ -11,7 +11,9 @@
 # body the guard cannot read, passed inline, is refused rather than skipped. An issue
 # edit is read for the lines it adds to the body GitHub has, asked with the credential the
 # command carries: what the reporter posted, a build log and its paths, is not the edit's
-# to rewrite. The whole body is read when the current one cannot be.
+# to rewrite. The whole body is read when the current one cannot be. An edit that adds
+# text other than a task to an issue or pull request review-post-guard held a post on in
+# the same session waits for the same REVIEW_POST_OK, as the held post by another route.
 
 input=$(cat)
 
@@ -195,8 +197,37 @@ severity() {
 	done <<< "$1"
 }
 
+# a post review-post-guard held in this session for the maintainer's OK does not reach the same issue or pull
+# request as an edit of its body: #1407's decision went into the issue's body after its comment was held
+held() {
+	local list post body file number
+	list=$(gh_held "$input")
+	[ -f "$list" ] || return 0
+	while IFS= read -r post; do
+		[ -n "$post" ] || continue
+		body=$(gh_body "$post")
+		[ -n "$body" ] || continue
+		number=$(gh_number "$post")
+		[ -n "$number" ] && grep -qx "$number" "$list" || continue
+		file=${body#* }
+		if [ "${body%% *}" = input ]; then
+			jq -r '.body // empty' "$file" > "$tmp/held" 2> /dev/null
+			file=$tmp/held
+		fi
+		# a task ticked or added is the body's own bookkeeping, not the held text
+		[ "$body" != inline ] && [ -f "$file" ] && ! added "$post" "$file" | grep -qvE '^[[:space:]]*(- \[[ xX]\] .*)?$' &&
+			continue
+		echo "pr-body-guard: review-post-guard held a post (#$number) in this session until the maintainer approves its text, and an edit of that body is the same post by another route: show the text, get the OK, and post it where it was held, with REVIEW_POST_OK=1." >&2
+		exit 2
+	done <<< "$1"
+}
+
 cmds=$(commands "$input")
 repo='^(https://api\.github\.com)?/?repos/[^/]+/[^/]+'
+case "$(command_text "$input")" in
+	*REVIEW_POST_OK=1*) ;;
+	*) held "$(gh_writes "$cmds" '(issue|pr) edit' "$repo/(issues|pulls)/[0-9]+\$")" ;;
+esac
 # a review or a comment is review-post-guard's, on an endpoint below the pull request's or the issue's
 check "$(gh_writes "$cmds" 'pr (create|new|edit)' "$repo/pulls(/[0-9]+)?\$")" pr-body.sh
 case "$(command_text "$input")" in
