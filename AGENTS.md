@@ -480,7 +480,10 @@ none: every agent loads this file, and a rule pasted into a prompt is a copy the
 does not reach.
 What the implementer and the review leave as issues, their `findings_left`, the workflow files as its
 last stage, each under its severity label or appended to the open issue it belongs to, so no finding
-waits on a session to copy it out and the numbers come back with the result.
+waits on a session to copy it out and the numbers come back with the result. An entry quotes the
+contract its severity was read against, which the issue carries as a `Contract:` line: #1287 was filed
+as medium for a table the documentation of `set.new` never accepted, and the maintainer had to ask what
+the contract was.
 
 ### Running a script
 

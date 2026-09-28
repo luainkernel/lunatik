@@ -79,7 +79,8 @@ again only what it does not carry, so a head that moved after the run, or a run 
 head empty for the review to build.
 What you leave, a defect found on the way that is not this pull request's or a cell of the matrix no test
 covers, goes in findings_left with a body that can be filed as it stands, its severity the label AGENTS.md
-"Findings" names, and its home the open issue it belongs to, where one exists; nothing is left in prose alone.
+"Findings" names, read against the contract the entry quotes, and its home the open issue it belongs to,
+where one exists; nothing is left in prose alone.
 `
 
 const FILE = (entries, source) => `
@@ -100,7 +101,9 @@ For each entry:
 - an entry that reports what an open issue already reports, read in that issue and not guessed from its
   title, goes to it the same way;
 - any other entry opens an issue with its title, its body as it stands and the label
-  \`severity: <its severity>\`.
+  \`severity: <its severity>\`;
+- the body carries the entry's contract on a line of its own, \`Contract: <contract>\`, the promise its
+  severity was read against.
 
 Your answer names, for every entry by its index, the issue that now holds it.
 
@@ -110,8 +113,9 @@ ${JSON.stringify(entries.map((entry, index) => ({ index, ...entry })), null, 2)}
 
 const LEFT = { type: 'array', items: { type: 'object', properties: {
   title: { type: 'string' }, body: { type: 'string' }, severity: { type: 'string', enum: ['high', 'medium', 'low'] },
+  contract: { type: 'string', description: 'what the documentation promises for the stimulus, quoted with its file, or "undocumented"; the severity is read against it' },
   home: { type: 'integer', description: 'the open issue this finding belongs to' },
-}, required: ['title', 'body', 'severity'] } }
+}, required: ['title', 'body', 'severity', 'contract'] } }
 
 const IMPLEMENTED = {
   type: 'object',
