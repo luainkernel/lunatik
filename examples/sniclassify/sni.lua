@@ -7,7 +7,6 @@
 
 local tc      = require("tc")
 local action  = require("linux.tc")
-local skbattr = require("skb.attr")
 local set     = require("set")
 local sni     = require("examples.common.sni")
 
@@ -25,9 +24,8 @@ local function log(host, priority)
 end
 
 local function sniclassify(ctx)
-	local raw     = ctx:skb()
-	local skb     = skbattr.new(raw)
-	local packet  = raw:data()
+	local skb     = ctx:skb()
+	local packet  = skb:data()
 	local payload = ctx:argument():getuint32(0)
 	local host    = sni(packet, payload)
 
@@ -35,7 +33,7 @@ local function sniclassify(ctx)
 		local classid = policy:match(host)
 		if classid ~= 0 then
 			log(host, classid)
-			skb.priority = classid
+			skb:priority(classid)
 		end
 	end
 

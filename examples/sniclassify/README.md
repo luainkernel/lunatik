@@ -4,7 +4,7 @@
 a TC/eBPF classifier program attached on egress,
 a Lua kernel script to classify [SNI](https://datatracker.ietf.org/doc/html/rfc3546#section-3.1) traffic.
 This kernel extension extracts server name and assigns traffic
-classes according to a Lua [policy table](sni.lua#L18): `netflix.com` and its subdomains go to class
+classes according to a Lua [policy table](sni.lua#L17): `netflix.com` and its subdomains go to class
 1:30 (20 mbit guaranteed, prio 3), `zoom.com` and its subdomains to 1:10 (50 mbit guaranteed, prio 1),
 and everything else to the HTB default, 1:20 (30 mbit guaranteed, prio 2); each class borrows up to the
 100 mbit ceiling when the others leave it room.
