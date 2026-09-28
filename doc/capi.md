@@ -38,7 +38,9 @@ Describes a Lunatik object class.
     `GFP_KERNEL`. Use for classes whose handlers fire in softirq context (netfilter, XDP). Because
     this flag is always inherited, a SOFTIRQ class can never produce a non-SOFTIRQ instance.
   - `LUNATIK_OPT_HARDIRQ` *(constraint)*: like `SOFTIRQ`, but always `spin_lock_irqsave`, whatever
-    the interrupt state. Required for classes whose handlers fire in hardirq context (e.g. kprobes).
+    the interrupt state. Required for classes whose handlers can fire inside an interrupt handler or
+    with interrupts off (e.g. kprobes): an interrupt on the CPU that holds a lock taken with
+    interrupts on would spin on it forever.
   - `LUNATIK_OPT_MONITOR` *(capability)*: the class supports a monitored metatable that wraps Lua
     method calls with the object lock, enabling safe concurrent access from multiple runtimes.
     Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`. A
