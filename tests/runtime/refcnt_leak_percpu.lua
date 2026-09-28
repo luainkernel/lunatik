@@ -7,7 +7,7 @@
 -- has hooks of earlier runtimes to release.
 
 local lunatik   = require("lunatik")
-local linux     = require("linux")
+local cpu       = require("cpu")
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
 
@@ -23,7 +23,7 @@ netfilter.register{
 	mark     = 0,
 }
 
-if lunatik.cpu() == linux.numcpus() - 1 then
+if lunatik.cpu() == cpu.maxid() then
 	error("intentional error on the last runtime")
 end
 
