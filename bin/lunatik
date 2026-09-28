@@ -52,8 +52,8 @@ local function readall(handle)
 	return h and h:read("a") or ""
 end
 
-local function holders()
-	return readall(io.popen("ls /sys/module/lunatik/holders 2>/dev/null"))
+local function loaded_modules()
+	return readall(io.popen("ls /sys/module/lunatik/holders 2>/dev/null && echo lunatik")):gmatch("%S+")
 end
 
 local function refcount(module)
@@ -62,7 +62,7 @@ end
 
 local function stale_modules()
 	local stale = {}
-	for m in (holders() .. " lunatik"):gmatch("%S+") do
+	for m in loaded_modules() do
 		local loaded = readall(io.open("/sys/module/" .. m .. "/srcversion"))
 		local installed = readall(io.popen("modinfo -F srcversion " .. m .. " 2>/dev/null"))
 		if loaded ~= installed then
@@ -74,7 +74,7 @@ end
 
 local function unload_unused()
 	local removed = 0
-	for m in (holders() .. " lunatik"):gmatch("%S+") do
+	for m in loaded_modules() do
 		if refcount(m) == 0 and sh("rmmod $MODULE", m, true) then
 			removed = removed + 1
 		end

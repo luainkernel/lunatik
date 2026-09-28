@@ -187,8 +187,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 
 ### cli
 
-Tests for `bin/lunatik`, the command line tool: its usage, its exit status and
-its REPL.
+Tests for `bin/lunatik`, the command line tool: its usage, its exit status, its
+REPL and the builds `status` and `reload` compare.
 
 - **usage**: `-h` and `--help` print the usage on stdout, exit 0; an unknown
   option, an unknown command, a verb without its script, `list` with one, a
@@ -216,6 +216,13 @@ its REPL.
   session prints what its lines return and nothing else, no banner and no
   prompt, and a line that raises prints its message on stderr and the session
   goes on; `-i` after `-e` enters the REPL with what the chunk left.
+- **builds**: with the modules loaded from the installed build, `status` exits
+  0, names the core loaded and no module as another build; against another
+  build, which a `modinfo` first on the `PATH` stands for, `status` names each
+  loaded module as not the installed build and `reload` exits 1, couldn't
+  replace, naming the core; with the modules unloaded, `status` against another
+  build exits 0, names the core not loaded and no module as another build, and
+  `unload` exits 0 with nothing printed.
 
 ### control
 
