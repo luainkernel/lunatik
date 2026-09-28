@@ -40,10 +40,14 @@ end)
 
 test("cpu() reports a valid online CPU index", function()
 	local t = task.current()
-	local online = cpu.num_online()
 	local c = t:cpu()
 	assert(type(c) == "number", "cpu(): expected number, got " .. type(c))
-	assert(c >= 0 and c < online, "cpu(): out of range [0, " .. online .. "): " .. c)
+	for id in cpu.online() do
+		if id == c then
+			return
+		end
+	end
+	error("cpu(): not an online CPU: " .. c)
 end)
 
 test("independent current() calls agree and survive garbage collection", function()
