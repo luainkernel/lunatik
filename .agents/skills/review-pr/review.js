@@ -21,6 +21,7 @@
 //               them over the changed files; the build phase runs whichever of them
 //               validated does not carry
 //   focus       what this round is for, in the maintainer's words
+//   smallest    the implementer's smallest shape, when implement-issue launches the review
 //   effort      per-phase reasoning effort, default "high"
 //   model       the model each phase runs on, default the session's
 //   push        false where a push from an agent is refused on this machine, so a fixup stays a
@@ -103,8 +104,11 @@ which record what the maintainer cares about.
 Hunt the smallest shape first: for every mechanism the diff adds (a registration path, a new API argument,
 a helper, a name), write the smaller change that would leave the same defect unreachable and why it was not
 taken; where correctness is equal and the shape is smaller, that is a finding, shipped as the fixup that
-makes it. For every mechanism the diff builds over a kernel primitive, name the kernel's own answer to the
-problem it solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's
+makes it. Your answer's smallest is that reading of the whole diff: the smallest shape, its size beside the
+diff's, and what each mechanism past it buys, as #1339's builder, typedef and struct were read only when the
+maintainer asked why a two-line refusal needed them.${a.smallest ? `
+The implementer's own reading, which yours is not bound by: ${JSON.stringify(a.smallest)}` : ''}
+For every mechanism the diff builds over a kernel primitive, name the kernel's own answer to the problem it solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's
 shape and not that one; a facility the kernel provides, written again, is a finding, as #1158's snapshot,
 re-lookup and deferred-free list were SRCU. For every field the diff adds beside an embedded kernel object, say what the
 object already records, as an hlist_node does through hlist_unhashed_lockless. For every read the
@@ -175,6 +179,15 @@ const LEFT = { type: 'array', items: { type: 'object', properties: {
   home: { type: 'integer', description: 'the open issue this finding belongs to' },
 }, required: ['title', 'body', 'severity', 'contract'] } }
 
+const SMALLEST = { type: 'object', properties: {
+  shape: { type: 'string', description: 'the smallest change that makes the defect unreachable, or meets the need' },
+  lines: { type: 'integer', description: 'the lines that change adds and removes' },
+  diff: { type: 'integer', description: 'the lines the pull request adds and removes' },
+  beyond: { type: 'array', items: { type: 'object', properties: {
+    mechanism: { type: 'string' }, buys: { type: 'string', description: 'what it buys that the smallest shape does not' },
+  }, required: ['mechanism', 'buys'] } },
+}, required: ['shape', 'lines', 'diff', 'beyond'] }
+
 const FINDINGS = {
   type: 'object',
   properties: {
@@ -183,10 +196,11 @@ const FINDINGS = {
       file: { type: 'string' }, line: { type: 'integer' }, what: { type: 'string' }, disposition: { type: 'string' },
     }, required: ['file', 'what', 'disposition'] } },
     fixups: { type: 'array', items: { type: 'string' } },
+    smallest: SMALLEST,
     findings_left: LEFT,
     notes: { type: 'string' },
   },
-  required: ['ready', 'findings', 'fixups', 'findings_left', 'notes'],
+  required: ['ready', 'findings', 'fixups', 'smallest', 'findings_left', 'notes'],
 }
 
 const RULES_OUT = {
