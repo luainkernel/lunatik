@@ -8,6 +8,7 @@
 local util = require("util")
 
 local MISSING <const> = "lunatik_no_such_module"
+local BINDING <const> = "device"
 local REFUSAL <const> = "not allowed once the runtime is armed"
 local IO <const> = "io"
 local IO_REFUSAL <const> = "'io': process-context class in interrupt-context runtime"
@@ -29,6 +30,7 @@ assert(chunk == nil and unopened:find("cannot open", 1, true), "loadfile in the 
 
 return function()
 	assert(require("util") == util, "a module the body loaded is not returned")
+	assert(type(require(BINDING).new) == "function", "a binding the body did not load is not found")
 	refused(REFUSAL, require, MISSING)
 	refused(REFUSAL, package.searchpath, MISSING, package.path)
 	refused(IO_REFUSAL, require, IO)

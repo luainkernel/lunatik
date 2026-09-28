@@ -38,7 +38,7 @@ Lunatik **modifies** the following identifiers:
 * [\_VERSION](https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION): is defined as `"Lua 5.5-kernel"`.
 * [`collectgarbage("count")`](https://www.lua.org/manual/5.5/manual.html#pdf-collectgarbage): returns the total memory in use by Lua in **bytes**, instead of _Kbytes_.
 * [package.path](https://www.lua.org/manual/5.5/manual.html#pdf-package.path): is defined as `"/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua"`.
-* [require](https://www.lua.org/manual/5.5/manual.html#pdf-require): finds a Lua file on `package.path`, or the opener `luaopen_<name>` a loaded Lunatik module exports; it **cannot** load kernel modules. The CLI loads every module the build produced, and `CONFIG_LUNATIK_<NAME> := n` in the Makefile leaves one out; requiring a C module that is not loaded raises an error naming `luaopen_<name> not found in kernel symbol table`.
+* [require](https://www.lua.org/manual/5.5/manual.html#pdf-require): finds the opener `luaopen_<name>` a loaded Lunatik module exports, and then a Lua file on `package.path`, so a file named like a binding does not shadow it; it **cannot** load kernel modules. The CLI loads every module the build produced, and `CONFIG_LUNATIK_<NAME> := n` in the Makefile leaves one out; requiring a C module that is not loaded raises an error naming `luaopen_<name> not found in kernel symbol table`.
 * [print](https://www.lua.org/manual/5.5/manual.html#pdf-print): writes to the kernel log (`dmesg -w` or `journalctl -k -f`), not to a terminal, and [warn](https://www.lua.org/manual/5.5/manual.html#pdf-warn) writes there too, as `Lua warning: <message>` at `KERN_ERR`. The REPL and `-e` bring back only what a chunk returns.
 
 Lunatik **adds** the global `_LUNATIK_VERSION`, the Lunatik release.
@@ -69,8 +69,9 @@ In a runtime created in softirq or hardirq context, `io` is nil, `require("io")`
 `'io': process-context class in interrupt-context runtime`, and the `lunatik` table holds only
 `cpu()` and `_ENV`, so `lunatik.runtime` and `lunatik.percpu` are absent. A Lua library is required
 at the top level of the script, since opening a file sleeps: once the runtime is armed, a `require`
-of a module the body did not load,
+of a Lua library the body did not load,
 [package.searchpath](https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath) and `dofile`
-raise `not allowed once the runtime is armed`, and `loadfile` returns it as its error.
+raise `not allowed once the runtime is armed`, and `loadfile` returns it as its error. A binding is
+found in the kernel symbol table, so a hook may require one the body did not load.
 
 

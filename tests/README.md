@@ -762,9 +762,11 @@ the `util` module to its documentation on that Lua's stack.
   and `debug.debug` are absent, `io` has no default stream, pipe or
   `setvbuf`, and `package` has no `cpath` and resolves a C module in the
   kernel symbol table.
-- **require**: a `softirq` and a `hardirq` runtime resumed past their body,
-  the armed state a hook calls from, get back a module the body loaded and
-  are refused, with `not allowed once the runtime is armed`, a `require` that
+- **require**: a `require` finds a binding before a Lua file of its name,
+  `device.lua` in the suite's directory. A `softirq` and a `hardirq` runtime
+  resumed past their body, the armed state a hook calls from, get back a
+  module the body loaded, find a binding the body did not load, and are
+  refused, with `not allowed once the runtime is armed`, a `require` that
   would search `package.path` and `package.searchpath`, since opening a file
   sleeps; the body allows both. The body empties `package.path`, so a build
   without the refusal opens no file from the callback and answers `not found`.
