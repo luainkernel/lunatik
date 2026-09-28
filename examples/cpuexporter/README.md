@@ -10,11 +10,11 @@ sudo make install                 	# installs Lunatik and the examples
 sudo lunatik spawn examples/cpuexporter/daemon # runs cpuexporter
 sudo socat - ABSTRACT-CONNECT:cpuexporter <<<""
 # TYPE cpu_usage_system gauge
-cpu_usage_system{cpu="cpu1"} 0.0000000000000000 1764094519529162
-cpu_usage_system{cpu="cpu0"} 0.0000000000000000 1764094519529162
+cpu_usage_system{cpu="cpu1"} 0.00 1764094519529162
+cpu_usage_system{cpu="cpu0"} 0.00 1764094519529162
 # TYPE cpu_usage_idle gauge
-cpu_usage_idle{cpu="cpu1"} 100.0000000000000000 1764094519529162
-cpu_usage_idle{cpu="cpu0"} 100.0000000000000000 1764094519529162
+cpu_usage_idle{cpu="cpu1"} 100.00 1764094519529162
+cpu_usage_idle{cpu="cpu0"} 100.00 1764094519529162
 ...
 ```
 
