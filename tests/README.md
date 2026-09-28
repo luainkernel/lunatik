@@ -610,7 +610,7 @@ Regression tests for `lunatik_monitor` (spinlock + GC interaction).
 Tests for netlink: the `AF_NETLINK` address family in `socket`, and the
 higher-level `netlink.*` modules built on top of it.
 
-- **rtnl**: `netlink.channel` from a netdevice callback is refused, probed
+- **rtnl**: `netlink.channel.new` from a netdevice callback is refused, probed
   from the replay of a `notifier.netdevice` registration: registering the
   family takes a lock a request holds while its handler may wait on the RTNL
   that task holds. A channel is accepted once the registration returned. A
@@ -678,7 +678,7 @@ higher-level `netlink.*` modules built on top of it.
   the group and unicasts to a fixed port id; a userspace subscriber bound to
   that port id and joined to the group receives both, proving kernel-to-
   userspace multicast and unicast delivery from softirq; on its first packet the
-  hook calls `netlink.channel`, which must raise there, and the same script run
+  hook calls `netlink.channel.new`, which must raise there, and the same script run
   percpu is refused at load (skips without `gcc`/`genl`).
 - **nl80211**: loads `mac80211_hwsim` (simulated wifi), then
   `netlink.nl80211.interface` lists the simulated `wlan` interfaces over the

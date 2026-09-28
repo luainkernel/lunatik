@@ -5,6 +5,7 @@
 
 local lunatik = require("lunatik")
 local netlink = require("netlink")
+local channel = require("netlink.channel")
 local thread  = require("thread")
 local linux   = require("linux")
 local af      = require("linux.socket").af
@@ -30,7 +31,7 @@ local backup = {
 	scope   = scope.LINK,
 }
 
-local channel = netlink.channel(NAME)
+local family = channel.new(NAME)
 
 local reroute = {}
 
@@ -51,7 +52,7 @@ end
 
 local function announce(state, change)
 	local event = format("%s %s: %s", WATCHED, state, change)
-	channel:multicast(CMD, event)
+	family:multicast(CMD, event)
 	print("netfailover: " .. event)
 end
 

@@ -10,7 +10,7 @@
 # to a fixed port id. A userspace subscriber (built with gcc) binds to that port
 # id and joins the group, and receives both messages, proving kernel-to-
 # userspace multicast and unicast delivery from softirq. On its first packet the
-# hook also calls netlink.channel, which registers a family and sleeps, and must
+# hook also calls netlink.channel.new, which registers a family and sleeps, and must
 # be refused there; the name is empty so that a build without that refusal raises
 # on the name instead of registering a family from softirq. The same script run
 # percpu is refused at load, since every runtime would register the one family.
@@ -85,8 +85,8 @@ ktap_pass "channel: userspace received a multicast sent from a softirq hook"
 grep -q "channel unicast ok" "$SUB_OUT" || fail "subscriber did not receive the softirq unicast"
 ktap_pass "channel: userspace received a unicast sent from a softirq hook"
 
-dmesg_since | grep -q "netlink channel: new from a hook is refused" || fail "netlink.channel was not refused from a hook"
-ktap_pass "channel: netlink.channel from a softirq hook raises"
+dmesg_since | grep -q "netlink channel: new from a hook is refused" || fail "netlink.channel.new was not refused from a hook"
+ktap_pass "channel: netlink.channel.new from a softirq hook raises"
 
 ktap_totals
 
