@@ -121,7 +121,6 @@ static struct bpf_map *luabpf_map_get(lua_State *L, const char *pathname, enum b
 * Represents an open key-value map handle.
 * This is a userdata object returned by `bpf.hash()`, `bpf.array()` and
 * `bpf.lru_hash()`. It holds a reference to a pinned `struct bpf_map`.
-* The length operator (`#t`) returns the map's `max_entries`.
 * @type bpf_hash
 */
 
@@ -268,8 +267,7 @@ static int luabpf_map_next(lua_State *L)
 
 /***
 * Represents an open queue or stack handle, as returned by `bpf.queue()`
-* and `bpf.stack()`. It also exposes `info`, `close` and the length
-* operator, as `bpf_hash`.
+* and `bpf.stack()`. It also exposes `info` and `close`, as `bpf_hash`.
 * @type bpf_queue
 */
 
@@ -346,13 +344,6 @@ static int luabpf_map_info(lua_State *L)
 	return 1;
 }
 
-static int luabpf_map_len(lua_State *L)
-{
-	struct bpf_map *map = luabpf_map_check(L, 1);
-	lua_pushinteger(L, map->max_entries);
-	return 1;
-}
-
 static void luabpf_map_release(void *private)
 {
 	bpf_map_put((struct bpf_map *)private);
@@ -366,7 +357,6 @@ static const luaL_Reg luabpf_hash_mt[] = {
 	{"next",    luabpf_map_next},
 	{"info",    luabpf_map_info},
 	{"close",   lunatik_closeobject},
-	{"__len",   luabpf_map_len},
 	{"__close", lunatik_closeobject},
 	{"__gc",    lunatik_deleteobject},
 	{NULL, NULL}
@@ -378,7 +368,6 @@ static const luaL_Reg luabpf_queue_mt[] = {
 	{"peek",    luabpf_map_peek},
 	{"info",    luabpf_map_info},
 	{"close",   lunatik_closeobject},
-	{"__len",   luabpf_map_len},
 	{"__close", lunatik_closeobject},
 	{"__gc",    lunatik_deleteobject},
 	{NULL, NULL}

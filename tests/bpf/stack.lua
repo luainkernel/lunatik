@@ -59,7 +59,7 @@ end)
 test("bpf.stack push full stack returns false", function()
 	local m = stack(path)
 	pinned.drain(m)
-	for i = 1, #m do
+	for i = 1, m:info().max_entries do
 		assert(m:push("abc"))
 	end
 	assert(m:push("abc") == false, "expected false when stack is full")
@@ -68,14 +68,15 @@ end)
 
 test("bpf.stack push BPF_EXIST overwrites the bottom when full", function()
 	local m = stack(path)
+	local entries = m:info().max_entries
 	pinned.drain(m)
 	assert(m:push("aaa"))
-	for i = 2, #m do
+	for i = 2, entries do
 		assert(m:push("bbb"))
 	end
 	assert(m:push("ccc", bpf.EXIST))
 	assert(m:pop() == "ccc", "expected the new value on top")
-	for i = 2, #m do
+	for i = 2, entries do
 		assert(m:pop() == "bbb", "expected bottom 'aaa' dropped")
 	end
 	assert(m:pop() == nil, "expected empty stack")

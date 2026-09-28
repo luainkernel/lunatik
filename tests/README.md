@@ -56,7 +56,7 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 
 - **map_values**: creates a pinned hash map with `bpftool`, then exercises
   `lookup`, `update` (flag semantics included), `delete`, `remove`, `next`
-  driving a generic `for`, `info`/`#` and the lifecycle after `close`;
+  driving a generic `for`, `info` and the lifecycle after `close`;
   also asserts that the key-value handle carries no queue methods, and
   that `bpf.hash` rejects non-map paths, every other map type and
   mismatched key/value sizes.

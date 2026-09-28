@@ -58,13 +58,14 @@ end)
 
 test("bpf.array next iterates all indexes", function()
 	local m = array(path)
-	assert(m:info().type == bpf.MAP_TYPE_ARRAY, "expected array map type")
+	local info = m:info()
+	assert(info.type == bpf.MAP_TYPE_ARRAY, "expected array map type")
 	local count = 0
 	for _ in m.next, m do
 		count = count + 1
-		assert(count <= #m, "iterated past max_entries")
+		assert(count <= info.max_entries, "iterated past max_entries")
 	end
-	assert(count == #m, "expected all " .. #m .. " indexes, counted: " .. count)
+	assert(count == info.max_entries, "expected all " .. info.max_entries .. " indexes, counted: " .. count)
 	m:close()
 end)
 
