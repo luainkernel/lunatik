@@ -37,7 +37,7 @@ static int luacrypto_rng_generate(lua_State *L)
 	unsigned int num_bytes = (unsigned int)lunatik_checkinteger(L, 2, 1, UINT_MAX);
 
 	size_t seed_len = 0;
-	const char *seed_data = lua_tolstring(L, 3, &seed_len);
+	const char *seed_data = luaL_optlstring(L, 3, NULL, &seed_len);
 
 	luaL_Buffer B;
 	char *buffer = luaL_buffinitsize(L, &B, num_bytes);
@@ -50,14 +50,14 @@ static int luacrypto_rng_generate(lua_State *L)
 /***
 * Reseeds the RNG.
 * @function reset
-* @tparam string seed
+* @tparam[opt] string seed
 * @raise on reseed failure
 */
 static int luacrypto_rng_reset(lua_State *L)
 {
 	struct crypto_rng *tfm = luacrypto_rng_check(L, 1);
 	size_t seed_len = 0;
-	const char *seed_data = lua_tolstring(L, 2, &seed_len);
+	const char *seed_data = luaL_optlstring(L, 2, NULL, &seed_len);
 	lunatik_try(L, crypto_rng_reset, tfm, (const u8 *)seed_data, (unsigned int)seed_len);
 	return 0;
 }
@@ -83,22 +83,14 @@ static int luacrypto_rng_getbytes(lua_State *L)
 }
 
 /***
-* Returns algorithm information.
-* @function info
-* @treturn table with fields `driver_name` (string) and `seedsize` (integer)
+* Returns the size in bytes of the seed `reset` takes, 0 for an algorithm that requires none.
+* @function seedsize
+* @treturn integer
 */
-static int luacrypto_rng_info(lua_State *L)
+static int luacrypto_rng_seedsize(lua_State *L)
 {
 	struct crypto_rng *tfm = luacrypto_rng_check(L, 1);
-	const struct rng_alg *alg = crypto_rng_alg(tfm);
-
-	lua_createtable(L, 0, 2);
-
-	lua_pushstring(L, alg->base.cra_driver_name);
-	lua_setfield(L, -2, "driver_name");
-
-	lua_pushinteger(L, alg->seedsize);
-	lua_setfield(L, -2, "seedsize");
+	lua_pushinteger(L, crypto_rng_seedsize(tfm));
 	return 1;
 }
 
@@ -119,7 +111,7 @@ static const luaL_Reg luacrypto_rng_mt[] = {
 	{"generate", luacrypto_rng_generate},
 	{"reset", luacrypto_rng_reset},
 	{"getbytes", luacrypto_rng_getbytes},
-	{"info", luacrypto_rng_info},
+	{"seedsize", luacrypto_rng_seedsize},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
 	{NULL, NULL}
