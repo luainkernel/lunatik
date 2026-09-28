@@ -54,12 +54,15 @@ jobs:
         echo "CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y" >> .config
         echo "CONFIG_DEBUG_INFO_BTF=y" >> .config
         echo "CONFIG_SCHED_CLASS_EXT=y" >> .config
-        make modules_prepare -j$(nproc)
+        # v7.2 and later: the rng API luacrypto calls is built only for a user, here DRBG, its default stdrng
+        echo "CONFIG_CRYPTO_DRBG=y" >> .config
+        # modpost resolves our modules' symbols against the Module.symvers this full build writes
+        make -j$(nproc) vmlinux modules
         echo "KERNEL_DIR=$(pwd)" >> $GITHUB_ENV
     - name: Build Lunatik
       run: |
         make clean MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}" || true
-        make -j$(nproc) MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}" KBUILD_MODPOST_WARN=1
+        make -j$(nproc) MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
     - name: Verify modules built
       run: |
         test -f lunatik.ko || { echo "Build failed" ; exit 1; }
