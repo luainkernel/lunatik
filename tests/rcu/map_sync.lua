@@ -33,7 +33,7 @@ return function()
 
 		if entry and now - last_print > 1000 then
 			last_print = now
-			print(string.format("map_sync: reader found entry written %dms ago", now - entry:getnumber(0)))
+			print(string.format("map_sync: reader found entry written %dms ago", now - entry:getint64(0)))
 		end
 
 		pace.yield()

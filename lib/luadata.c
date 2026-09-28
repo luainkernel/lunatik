@@ -23,8 +23,6 @@ typedef struct luadata_s {
 	uint8_t opt;
 } luadata_t;
 
-#define LUADATA_NUMBER_SZ	(sizeof(lua_Integer))
-
 static int luadata_lnew(lua_State *L);
 
 static const lunatik_class_t luadata_class;
@@ -352,22 +350,6 @@ static const luaL_Reg luadata_mt[] = {
 * @raise if out of bounds or read-only
 */
 	{"setint64", luadata_setint64},
-/***
-* Reads a signed 64-bit integer at `offset`; an alias of `getint64`.
-* @function getnumber
-* @tparam integer offset
-* @treturn integer
-* @raise if out of bounds
-*/
-	{"getnumber", luadata_getint64},
-/***
-* Writes a signed 64-bit integer at `offset`; an alias of `setint64`.
-* @function setnumber
-* @tparam integer offset
-* @tparam integer value
-* @raise if out of bounds or read-only
-*/
-	{"setnumber", luadata_setint64},
 	{"getstring", luadata_getstring},
 	{"setstring", luadata_setstring},
 	{"resize", luadata_resize},

@@ -21,7 +21,7 @@ test("rcu.map walks on after a grace period the callback let pass", function()
 	local visits = 0
 	rcu.map(t, function(k, v)
 		visits = visits + 1
-		v:getnumber(0)
+		v:getint64(0)
 		for _, o in ipairs(keys) do
 			if o ~= k then
 				t[o] = nil

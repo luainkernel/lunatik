@@ -21,7 +21,7 @@ return function()
 	while not thread.shouldstop() and pace.milliseconds() < deadline do
 		n = n + 1
 		local d = data.new(SIZE)
-		d:setnumber(0, n)
+		d:setint64(0, n)
 		grace[KEY] = d
 		pace.yield()
 	end
