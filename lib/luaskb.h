@@ -12,6 +12,7 @@
 typedef struct {
 	struct sk_buff *skb;
 	lunatik_object_t *data;
+	bool kfunc;
 } luaskb_t;
 
 #define luaskb_reset(object, skb)	(((luaskb_t *)(object)->private)->skb = (skb))
@@ -29,9 +30,9 @@ static inline void luaskb_close(lunatik_object_t *object)
 	lunatik_putobject(object);
 }
 
-lunatik_object_t *luaskb_new(lua_State *L);
+lunatik_object_t *luaskb_new(lua_State *L, bool kfunc);
 
-#define luaskb_attach(L, obj, field)	lunatik_attach(L, obj, field, luaskb_new)
+#define luaskb_attach(L, obj, field)	lunatik_attach(L, obj, field, luaskb_new, false)
 
 #endif
 
