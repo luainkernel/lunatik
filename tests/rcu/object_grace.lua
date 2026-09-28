@@ -16,13 +16,13 @@ local KEY <const> = "slot"
 local RUN_MS <const> = 10000
 
 local function touch(_, d)
-	d:getnumber(0)
+	d:getint64(0)
 end
 
 local function read(grace)
 	local d = grace[KEY]
 	rcu.map(grace, touch)
-	return d ~= nil and d:getnumber(0) or nil
+	return d ~= nil and d:getint64(0) or nil
 end
 
 return function()

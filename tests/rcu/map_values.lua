@@ -30,12 +30,12 @@ end)
 test("rcu.map iterates userdata values (regression)", function()
 	local t = rcu.table(4)
 	local d = data.new(8)
-	d:setnumber(0, 99)
+	d:setint64(0, 99)
 	t["obj"] = d
 	local found = false
 	rcu.map(t, function(k, v)
 		if k == "obj" then
-			assert(v:getnumber(0) == 99, "wrong value in userdata")
+			assert(v:getint64(0) == 99, "wrong value in userdata")
 			found = true
 		end
 	end)

@@ -16,7 +16,7 @@ local hits = data.new(8)
 for symbol, address in pairs(systab) do
 	local function handler()
 		track[symbol] = (track[symbol] or 0) + 1
-		hits:setnumber(0, hits:getnumber(0) + 1)
+		hits:setint64(0, hits:getint64(0) + 1)
 	end
 	probe.new(address, {pre = handler})
 end

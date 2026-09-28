@@ -17,11 +17,11 @@ return function()
 	while (not thread.shouldstop()) and (now - start < 60000) do
 		now = pace.milliseconds()
 		local d = whitelist[now] or data.new(32)
-		d:setnumber(0, now)
+		d:setint64(0, now)
 		whitelist[now] = d
 
 		rcu.map(whitelist, function(k, v)
-			if now > v:getnumber(0) + 500 then
+			if now > v:getint64(0) + 500 then
 				whitelist[k] = nil
 			end
 		end)
