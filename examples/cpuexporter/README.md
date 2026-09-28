@@ -10,17 +10,15 @@ sudo make install                 	# installs Lunatik and the examples
 sudo lunatik spawn examples/cpuexporter/daemon # runs cpuexporter
 sudo socat - ABSTRACT-CONNECT:cpuexporter <<<""
 # TYPE cpu_usage_system gauge
-cpu_usage_system{cpu="cpu1"} 0.00 1764094519529162
-cpu_usage_system{cpu="cpu0"} 0.00 1764094519529162
+cpu_usage_system{cpu="cpu1"} 0.00 1764094519529
+cpu_usage_system{cpu="cpu0"} 0.00 1764094519529
 # TYPE cpu_usage_idle gauge
-cpu_usage_idle{cpu="cpu1"} 100.00 1764094519529162
-cpu_usage_idle{cpu="cpu0"} 100.00 1764094519529162
+cpu_usage_idle{cpu="cpu1"} 100.00 1764094519529
+cpu_usage_idle{cpu="cpu0"} 100.00 1764094519529
 ...
 ```
 
-The timestamps are microseconds, where the format asks for milliseconds
-([#1267](https://github.com/luainkernel/lunatik/issues/1267)). For a scraper, bridge a TCP port to the
-socket and ask for `/metrics`:
+For a scraper, bridge a TCP port to the socket and ask for `/metrics`:
 
 ```shell
 socat TCP-LISTEN:9100,bind=127.0.0.1,fork ABSTRACT-CONNECT:cpuexporter &

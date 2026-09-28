@@ -89,7 +89,7 @@ end
 
 local function cpu_metrics()
 	local metrics = ""
-	local ts_ms = linux.time() // 1000  -- convert nanoseconds to milliseconds
+	local ts_ms = linux.time() // 1000000  -- convert nanoseconds to milliseconds
 	local usage_data = cpu_usage()  -- Call once and store the result
 
 	-- Collect all unique metric names from the first available CPU
