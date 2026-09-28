@@ -50,8 +50,9 @@ Scripts and the modules they require share one root, `/lib/modules/lua/`, whose 
 Lunatik's: the top-level name of every module this reference documents, a binding such as `socket` or
 a Lua library such as `util`; `lunatik`, `linux`, `examples` and `tests`, which hold the runtime's own
 scripts, the `linux.*` constants, the examples and the test suites; and `light`, the key `lighten`
-requires, which the user supplies. A product's scripts live in a directory of their own,
-`/lib/modules/lua/<product>/`, and run as `<product>/<script>`.
+requires, which the user supplies. A binding's name followed by a hyphen, `socket-<x>`, is the
+binding's as well: `require` loads `luaopen_socket` for it. A product's scripts live in a directory
+of their own, `/lib/modules/lua/<product>/`, and run as `<product>/<script>`.
 
 ## Softirq and hardirq runtimes
 
