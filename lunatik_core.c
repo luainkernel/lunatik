@@ -6,7 +6,7 @@
 /***
 * Manages Lunatik runtimes — isolated Lua states running in the kernel.
 * In a softirq or hardirq runtime the module holds only `cpu` and `_ENV`: `runtime` and `percpu`
-* exist in a process runtime alone, and the `io` library is not opened there.
+* exist in a process runtime alone, and the `io` library is not opened there and `require` refuses it.
 * @module lunatik
 */
 
@@ -279,6 +279,19 @@ static void lunatik_guardpackage(lua_State *L) /* the entries that reach readabl
 	lua_pop(L, 2); /* searchers and package */
 }
 
+static int lunatik_refuseio(lua_State *L)
+{
+	return luaL_error(L, "'%s': %s", LUA_IOLIBNAME, LUNATIK_ERR_CONTEXT);
+}
+
+static void lunatik_guardio(lua_State *L)
+{
+	luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
+	lua_pushcfunction(L, lunatik_refuseio);
+	lua_setfield(L, -2, LUA_IOLIBNAME);
+	lua_pop(L, 1); /* preload table */
+}
+
 static int lunatik_runscript(lua_State *L)
 {
 	const char *script = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, lua_touserdata(L, 1));
@@ -293,6 +306,7 @@ static int lunatik_runscript(lua_State *L)
 	else {
 		luaL_openselectedlibs(L, ~LUA_IOLIBK, 0);
 		lunatik_guardpackage(L);
+		lunatik_guardio(L);
 		luaL_requiref(L, "lunatik", luaopen_lunatik_stub, 0);
 	}
 

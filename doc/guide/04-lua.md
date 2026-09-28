@@ -46,7 +46,8 @@ values `table.unpack` and a vararg carry: past it, recursion raises `stack overf
 
 ## Softirq and hardirq runtimes
 
-In a runtime created in softirq or hardirq context, `io` is nil and the `lunatik` table holds only
+In a runtime created in softirq or hardirq context, `io` is nil, `require("io")` raises
+`'io': process-context class in interrupt-context runtime`, and the `lunatik` table holds only
 `cpu()` and `_ENV`, so `lunatik.runtime` and `lunatik.percpu` are absent. A Lua library is required
 at the top level of the script, since opening a file sleeps: once the runtime is armed, a `require`
 of a module the body did not load, and
