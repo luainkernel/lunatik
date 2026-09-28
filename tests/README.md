@@ -1152,6 +1152,18 @@ command and a pid, and what a valid call does.
   view, so a build without the refusals fails without an out-of-bounds access. The
   tunnel runs over loopback; skips without `ipip`.
 
+- **copy**: a veth pair joins the initial namespace to one of the test's own, the
+  initial end aggregating UDP with fraglist GRO and the other segmenting UDP in
+  software. A datagram sent there with `UDP_SEGMENT` leaves as its segments in one
+  transmit and arrives at `PRE_ROUTING` as one FRAGLIST GSO skb: `skb:copy()`
+  raises "FRAGLIST GSO skbs cannot be copied", where a build without the check
+  raises "not enough memory" after skb_copy's `WARN_ON_ONCE`. A lone datagram
+  arrives as a plain skb, and its copy has the length of the original. With the
+  segmentation turned back on, a datagram crosses the veth as one UDP GSO skb of
+  another type, which GRO passes as it came, and its copy has the length of the
+  original too. Skips without veth, `socat` or `ethtool`, or on a veth without
+  fraglist GRO.
+
 ### socket
 
 - **setsockopt**: `socket:setsockopt()` sets an integer option (`SO_RCVBUF`)
