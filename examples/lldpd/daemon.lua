@@ -66,7 +66,7 @@ local function build_lldp_frame(chassis_id)
 end
 
 local ifindex = linux.ifindex(config.interface)
-local src_mac = linux.ifaddr(ifindex)
+local src_mac = linux.hwaddr(ifindex)
 local lldp_frame = build_lldp_frame(src_mac)
 
 local function worker()
