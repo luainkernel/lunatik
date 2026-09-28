@@ -176,10 +176,8 @@
 <h1>thread<span class="kind">Module</span></h1>
 <p class="lead">Kernel thread primitives.</p>
  Thread objects are created in a process runtime alone: in a softirq or hardirq runtime
- <a href="../modules/thread.html#current">thread.current</a> raises &ldquo;&lsquo;thread&rsquo;: process-context class in interrupt-context runtime&rdquo;, and
- <a href="../modules/thread.html#run">thread.run</a> has no runtime object to take there. <a href="../modules/thread.html#shouldstop">shouldstop</a> answers <code>false</code> outside a kernel
- thread, and <a href="../modules/thread.html#thread:stop">stop</a> on an object from <a href="../modules/thread.html#current">thread.current</a>, or on a thread already stopped, only logs
- a warning.
+ <a href="../modules/thread.html#run">thread.run</a> has no runtime object to take. <a href="../modules/thread.html#shouldstop">shouldstop</a> answers <code>false</code> outside a kernel
+ thread, and <a href="../modules/thread.html#thread:stop">stop</a> on a thread already stopped only logs a warning.
     <h2 id="usage">Usage</h2>
         <pre class="example">-- body.lua, run with `lunatik spawn body`
 local thread = require(&quot;thread&quot;)
@@ -206,10 +204,6 @@ return body
 </table></div>
 <h2 id="thread">thread</h2>
 <div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#current">current ()</a></td>
-	<td class="summary">Gets a thread object representing the current kernel task.</td>
-	</tr>
 	<tr>
 	<td class="name"><a href="#run">run (runtime, name, ...)</a></td>
 	<td class="summary">Creates and starts a new kernel thread to run a Lua task.</td>
@@ -282,27 +276,6 @@ return body
     <h2 class="section-header" id="thread-details"><a name="thread"></a>thread in detail</h2>
 
     <dl class="function">
-    <dt id="current"><a name="current"></a><strong>current ()</strong></dt>
-    <dd>
-    Gets a thread object representing the current kernel task.
- If the current task was not created by <code>thread.run()</code>, the returned
- object will not have an associated Lunatik runtime.
-
-
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/thread.html#thread">thread</a></span>
-        A thread object for the current task.
-    </ol>
-
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> t = thread.<span class="function-name">current</span>()</pre>
-
-</dd>
     <dt id="run"><a name="run"></a><strong>run (runtime, name, ...)</strong></dt>
     <dd>
     Creates and starts a new kernel thread to run a Lua task.
@@ -389,7 +362,7 @@ return body
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:14:29</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:36:47</span>
 </div>
 </footer>
 </body>

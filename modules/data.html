@@ -212,10 +212,6 @@
 	<td class="summary">Reads a signed 8-bit integer at <code>offset</code>.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#data:getnumber">data:getnumber (offset)</a></td>
-	<td class="summary">Reads a signed 64-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:getint64">getint64</a>.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#data:getstring">data:getstring (offset[, length])</a></td>
 	<td class="summary">Reads <code>length</code> bytes at <code>offset</code> as a string.</td>
 	</tr>
@@ -254,10 +250,6 @@
 	<tr>
 	<td class="name"><a href="#data:setint8">data:setint8 (offset, value)</a></td>
 	<td class="summary">Writes a signed 8-bit integer at <code>offset</code>.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#data:setnumber">data:setnumber (offset, value)</a></td>
-	<td class="summary">Writes a signed 64-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:setint64">setint64</a>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#data:setstring">data:setstring (offset, s)</a></td>
@@ -477,32 +469,6 @@
     <dt id="data:getint8"><a name="data:getint8"></a><strong>data:getint8 (offset)</strong></dt>
     <dd>
     Reads a signed 8-bit integer at <code>offset</code>.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-
-    </ol>
-
-    <h3>Raises</h3>
-    if out of bounds
-
-
-
-</dd>
-    <dt id="data:getnumber"><a name="data:getnumber"></a><strong>data:getnumber (offset)</strong></dt>
-    <dd>
-    Reads a signed 64-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:getint64">getint64</a>.
 
 
     <h3>Parameters</h3>
@@ -775,30 +741,6 @@
 
 
 </dd>
-    <dt id="data:setnumber"><a name="data:setnumber"></a><strong>data:setnumber (offset, value)</strong></dt>
-    <dd>
-    Writes a signed 64-bit integer at <code>offset</code>; an alias of <a href="../modules/data.html#data:setint64">setint64</a>.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">offset</span>
-            <span class="types"><span class="type">integer</span></span>
-
-        </li>
-        <li><span class="parameter">value</span>
-            <span class="types"><span class="type">integer</span></span>
-
-        </li>
-    </ul>
-
-
-    <h3>Raises</h3>
-    if out of bounds or read-only
-
-
-
-</dd>
     <dt id="data:setstring"><a name="data:setstring"></a><strong>data:setstring (offset, s)</strong></dt>
     <dd>
     Writes the bytes of <code>s</code> at <code>offset</code>.
@@ -945,7 +887,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:14:29</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:36:47</span>
 </div>
 </footer>
 </body>

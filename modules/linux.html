@@ -183,15 +183,11 @@
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#difftime">difftime (t2, t1)</a></td>
-	<td class="summary">Calculates the difference between two timestamps.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#errname">errname (err)</a></td>
 	<td class="summary">Returns the symbolic name of a kernel error number.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#ifaddr">ifaddr (ifindex)</a></td>
+	<td class="name"><a href="#hwaddr">hwaddr (ifindex)</a></td>
 	<td class="summary">Gets the HW address for the network interface index.</td>
 	</tr>
 	<tr>
@@ -232,34 +228,6 @@
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
-    <dt id="difftime"><a name="difftime"></a><strong>difftime (t2, t1)</strong></dt>
-    <dd>
-    Calculates the difference between two timestamps.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">t2</span>
-            <span class="types"><span class="type">integer</span></span>
-         later timestamp (e.g., from <code>linux.time()</code>).
-        </li>
-        <li><span class="parameter">t1</span>
-            <span class="types"><span class="type">integer</span></span>
-         earlier timestamp (e.g., from <code>linux.time()</code>).
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">integer</span></span>
-        difference <code>t2 - t1</code> in nanoseconds.
-    </ol>
-
-
-
-
-</dd>
     <dt id="errname"><a name="errname"></a><strong>errname (err)</strong></dt>
     <dd>
     Returns the symbolic name of a kernel error number.
@@ -289,7 +257,7 @@
 <span class="global">print</span>(<span class="string">"Error name:"</span>, name) <span class="comment">-- "ENOENT"</span></pre>
 
 </dd>
-    <dt id="ifaddr"><a name="ifaddr"></a><strong>ifaddr (ifindex)</strong></dt>
+    <dt id="hwaddr"><a name="hwaddr"></a><strong>hwaddr (ifindex)</strong></dt>
     <dd>
     Gets the HW address for the network interface index.
  Resolved in the initial network namespace: a device of another namespace raises &ldquo;device not
@@ -316,7 +284,7 @@
 
 
     <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> addr = linux.<span class="function-name">ifaddr</span>(index)
+        <pre class="example"><span class="keyword">local</span> addr = linux.<span class="function-name">hwaddr</span>(index)
 <span class="global">print</span>(<span class="global">string</span>.<span class="function-name">byte</span>(addr,<span class="number">1</span>,<span class="number">6</span>))</pre>
 
 </dd>
@@ -585,7 +553,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:14:29</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 12:36:47</span>
 </div>
 </footer>
 </body>
