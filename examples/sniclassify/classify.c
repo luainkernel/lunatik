@@ -54,6 +54,9 @@ int classify(struct __sk_buff *skb)
 		goto pass;
 
 	__u32 offset = payload - data;
+	if (bpf_skb_pull_data(skb, skb->len) < 0)
+		goto pass;
+
 	int action = bpf_luatc_run(runtime, sizeof(runtime), skb, &offset, sizeof(offset));
 	if (action < 0)
 		return TC_ACT_OK;
