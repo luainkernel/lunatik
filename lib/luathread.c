@@ -6,10 +6,8 @@
 /***
 * Kernel thread primitives.
 * Thread objects are created in a process runtime alone: in a softirq or hardirq runtime
-* `thread.current` raises "'thread': process-context class in interrupt-context runtime", and
-* `thread.run` has no runtime object to take there. `shouldstop` answers `false` outside a kernel
-* thread, and `stop` on an object from `thread.current`, or on a thread already stopped, only logs
-* a warning.
+* `thread.run` has no runtime object to take. `shouldstop` answers `false` outside a kernel
+* thread, and `stop` on a thread already stopped only logs a warning.
 * @module thread
 * @usage
 *   -- body.lua, run with `lunatik spawn body`
@@ -44,7 +42,6 @@ typedef struct luathread_s {
 } luathread_t;
 
 static int luathread_run(lua_State *L);
-static int luathread_current(lua_State *L);
 static void luathread_popargs(lunatik_object_t *runtime, int nargs);
 static const lunatik_class_t luathread_class;
 
@@ -114,9 +111,7 @@ static int luathread_stop(lua_State *L)
 	lunatik_object_t *runtime = thread->runtime;
 	struct task_struct *task = thread->task;
 
-	if (runtime == NULL)
-		pr_warn("[%p] thread wasn't created by us\n", thread);
-	else if (task != NULL) {
+	if (task != NULL) {
 		lunatik_checkowner(L, runtime); /* the body runs under its lock */
 		int result = kthread_stop(task);
 
@@ -168,7 +163,6 @@ static void luathread_release(void *private)
 static const luaL_Reg luathread_lib[] = {
 	{"run", luathread_run},
 	{"shouldstop", luathread_shouldstop},
-	{"current", luathread_current},
 	{NULL, NULL}
 };
 
@@ -274,27 +268,6 @@ static int luathread_run(lua_State *L)
 	get_task_struct(task); /* kthread_stop reads the task after the body returned */
 	wake_up_process(task);
 
-	return 1; /* object */
-}
-
-/***
-* Gets a thread object representing the current kernel task.
-* If the current task was not created by `thread.run()`, the returned
-* object will not have an associated Lunatik runtime.
-* @function current
-* @within thread
-* @treturn thread A thread object for the current task.
-* @usage
-* local t = thread.current()
-*/
-static int luathread_current(lua_State *L)
-{
-	lunatik_object_t *object = luathread_new(L);
-	luathread_t *thread = object->private;
-
-	thread->runtime = NULL;
-	thread->task = current;
-	get_task_struct(thread->task);
 	return 1; /* object */
 }
 

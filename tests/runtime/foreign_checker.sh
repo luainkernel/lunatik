@@ -9,17 +9,20 @@
 # another class naming both classes, which proves the metatables carry __name,
 # refuses nil and a userdata of another library (io's) as no object at all;
 # rcu.map refuses nil the same way; and a method on a closed runtime or fifo,
-# whose private is gone, is refused instead of dereferencing NULL.
+# whose private is gone, is refused instead of dereferencing NULL. The thread
+# object is a spawned body's, since thread.run is refused from a script body.
 #
 # Usage: sudo bash tests/runtime/foreign_checker.sh
 
 SCRIPT="tests/runtime/foreign_checker"
+BODY="tests/runtime/my_body"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup()
 {
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
+	lunatik stop "$BODY" > /dev/null 2>&1
 }
 
 trap cleanup EXIT
@@ -29,7 +32,10 @@ ktap_header
 ktap_plan 1
 
 mark_dmesg
+output=$(lunatik spawn "$BODY" 2>&1)
+[ -n "$output" ] && fail "spawn failed: $output"
 run_script "$SCRIPT"
+lunatik stop "$BODY" > /dev/null 2>&1
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 ktap_pass "every checker refuses another class, nil, a foreign userdata and a closed object"
