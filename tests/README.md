@@ -1356,9 +1356,8 @@ Regression tests for `luathread`.
 - **name**: the name `thread.run()` is given reaches the kernel task as
   written, conversions included, instead of being taken as the format.
 
-- **task**: `thread:task()` returns a `task` object: a usable one for
-  `thread.current()` (`pid`, `comm`, `tgid`); for a spawned thread, reached
-  through `lunatik._ENV.threads`, one reporting that thread (its `comm` is the
+- **task**: `thread:task()` returns a `task` object: for a spawned thread,
+  reached through `lunatik._ENV.threads`, one reporting that thread (its `comm` is the
   thread name, its `pid` is not the caller's); and for a thread whose body has
   returned, one still reporting that thread, since `thread.run` holds a
   reference to the task until the thread object is collected. Stopping that

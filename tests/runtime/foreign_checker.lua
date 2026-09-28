@@ -10,11 +10,14 @@ local fifo       = require("fifo")
 local completion = require("completion")
 local set        = require("set")
 local crypto     = require("crypto")
-local thread     = require("thread")
+local task       = require("task")
 local rcu        = require("rcu")
 local test       = require("util").test
 
 local SCRIPT <const> = "tests/runtime/resume_shared_recv"
+local BODY   <const> = "tests/runtime/my_body"
+
+local spawned = lunatik._ENV.threads[BODY]
 
 local cases = {
 	{name = "data",         object = data.new(8),                 foreign = fifo.new(16), method = "getuint8",   args = {0},
@@ -23,9 +26,9 @@ local cases = {
 	{name = "completion",   object = completion.new(),            foreign = data.new(8),  method = "complete",   args = {}},
 	{name = "set",          object = set.new{"a"},                foreign = data.new(8),  method = "has",        args = {"a"}},
 	{name = "crypto_shash", object = crypto.shash("sha256"),  foreign = data.new(8),  method = "digestsize", args = {}},
-	{name = "task",         object = thread.current():task(),     foreign = data.new(8),  method = "pid",        args = {}},
-	{name = "thread",       object = thread.current(),            foreign = data.new(8),  method = "stop",       args = {}},
-	{name = "thread",       object = thread.current(),            foreign = data.new(8),  method = "task",       args = {}},
+	{name = "task",         object = task.current(),              foreign = data.new(8),  method = "pid",        args = {}},
+	{name = "thread",       object = spawned,                     foreign = data.new(8),  method = "stop",       args = {}},
+	{name = "thread",       object = spawned,                     foreign = data.new(8),  method = "task",       args = {}},
 	{name = "runtime",      object = lunatik.runtime(SCRIPT),     foreign = data.new(8),  method = "resume",     args = {1}},
 }
 
