@@ -380,7 +380,9 @@ EXPORT_SYMBOL(lunatik_runtime);
 *   GFP\_KERNEL, mutex), `"softirq"` (atomic, GFP\_ATOMIC, spinlock), or `"hardirq"`
 *   (atomic, GFP\_ATOMIC, spinlock with IRQs disabled).
 *   Use `"softirq"` for hooks that fire in softirq context (netfilter, XDP).
-*   Use `"hardirq"` for hooks that fire in hardirq context (kprobes).
+*   Use `"hardirq"` for hooks that can fire inside an interrupt handler or with interrupts off
+*   (kprobes), since only a lock that turns interrupts off cannot be taken again by an
+*   interrupt on the CPU that holds it.
 * @treturn runtime
 * @raise if allocation fails or the script errors on load
 * @within lunatik

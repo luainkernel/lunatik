@@ -13,8 +13,10 @@
 * handler that raises goes to the kernel log. `dump()` prints the registers of the
 * probed CPU to the kernel log.
 *
-* Handlers run in hardirq context, so the script runs with
-* `lunatik run -c hardirq <script>` and its handlers must not sleep.
+* A probe fires wherever the probed code runs, inside an interrupt handler too, with
+* preemption or interrupts off, so the script runs in a hardirq runtime,
+* `lunatik run -c hardirq <script>`, whose lock turns interrupts off, and its handlers
+* must not sleep.
 *
 * See `examples/systrack` and `examples/dropreason`.
 * @usage
@@ -266,8 +268,8 @@ LUNATIK_PRIVATECHECKER(luaprobe_checkowned, luaprobe_t *, &luaprobe_class,
 * the script owns, and the kprobe is unregistered when the runtime stops.
 * @function stop
 * @raise if the percpu object owns this probe, or `not allowed after module load` once the
-*   runtime is armed (its script body has returned): unregister_kprobe sleeps, and the
-*   runtime is in hardirq by then
+*   runtime is armed (its script body has returned): unregister_kprobe sleeps, and an
+*   armed runtime runs with its lock held and interrupts off
 */
 static int luaprobe_stop(lua_State *L)
 {
@@ -283,7 +285,8 @@ static int luaprobe_stop(lua_State *L)
 * @tparam boolean flag true to enable, false to disable
 * @raise if the probe has been stopped, if the percpu object owns this probe, or
 *   `not allowed after module load` once the runtime is armed (its script body has
-*   returned): enable_kprobe and disable_kprobe sleep, and the runtime is in hardirq by then
+*   returned): enable_kprobe and disable_kprobe sleep, and an armed runtime runs with its
+*   lock held and interrupts off
 */
 static int luaprobe_enable(lua_State *L)
 {
@@ -329,7 +332,7 @@ static int luaprobe_new(lua_State *L);
 *   percpu script, if this runtime already registered the same symbol or address, or if another
 *   runtime of the set registered this target with a different post handler; or
 *   `not allowed after module load` once the runtime is armed (its script body has returned):
-*   register_kprobe sleeps, and the runtime is in hardirq by then
+*   register_kprobe sleeps, and an armed runtime runs with its lock held and interrupts off
 * @within probe
 */
 static const luaL_Reg luaprobe_lib[] = {
