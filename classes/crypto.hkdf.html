@@ -182,35 +182,34 @@
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#HKDF.new">HKDF.new (alg)</a></td>
+	<td class="name"><a href="#crypto.hkdf.new">crypto.hkdf.new (alg)</a></td>
 	<td class="summary">Creates a new HKDF instance for a given hash algorithm.</td>
 	</tr>
+</table></div>
+<h2 id="Methods">Methods</h2>
+<div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#HKDF:close">HKDF:close ()</a></td>
+	<td class="name"><a href="#crypto.hkdf:close">crypto.hkdf:close ()</a></td>
 	<td class="summary">Closes the HKDF instance and releases the underlying HMAC transform.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#HKDF:expand">HKDF:expand (prk[, info], length)</a></td>
+	<td class="name"><a href="#crypto.hkdf:expand">crypto.hkdf:expand (prk[, info], length)</a></td>
 	<td class="summary">Performs the HKDF Expand step.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#HKDF:extract">HKDF:extract ([salt], ikm)</a></td>
+	<td class="name"><a href="#crypto.hkdf:extract">crypto.hkdf:extract ([salt], ikm)</a></td>
 	<td class="summary">Performs the HKDF Extract step.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#HKDF:hkdf">HKDF:hkdf ([salt], ikm[, info], length)</a></td>
+	<td class="name"><a href="#crypto.hkdf:hkdf">crypto.hkdf:hkdf ([salt], ikm[, info], length)</a></td>
 	<td class="summary">Performs the full HKDF (Extract and Expand) operation.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#HKDF:hmac">HKDF:hmac (key, data)</a></td>
-	<td class="summary">Performs an HMAC calculation using the instance&rsquo;s algorithm.</td>
 	</tr>
 </table></div>
 
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
-    <dt id="HKDF.new"><a name="HKDF.new"></a><strong>HKDF.new (alg)</strong></dt>
+    <dt id="crypto.hkdf.new"><a name="crypto.hkdf.new"></a><strong>crypto.hkdf.new (alg)</strong></dt>
     <dd>
     Creates a new HKDF instance for a given hash algorithm.
 
@@ -227,7 +226,7 @@
     <h3>Returns</h3>
     <ol>
 
-           <span class="types"><span class="type">HKDF</span></span>
+           <span class="types"><a class="type" href="../classes/crypto.hkdf.html">hkdf</a></span>
         An HKDF instance table with methods for key derivation.
     </ol>
 
@@ -237,7 +236,11 @@
         <pre class="example"><span class="keyword">local</span> hkdf_sha256 = <span class="global">require</span>(<span class="string">"crypto.hkdf"</span>).<span class="function-name">new</span>(<span class="string">"sha256"</span>)</pre>
 
 </dd>
-    <dt id="HKDF:close"><a name="HKDF:close"></a><strong>HKDF:close ()</strong></dt>
+</dl>
+    <h2 class="section-header" id="Methods-details"><a name="Methods"></a>Methods in detail</h2>
+
+    <dl class="function">
+    <dt id="crypto.hkdf:close"><a name="crypto.hkdf:close"></a><strong>crypto.hkdf:close ()</strong></dt>
     <dd>
     Closes the HKDF instance and releases the underlying HMAC transform.
  It also runs when a to-be-closed variable holding the instance goes out of scope. Without it, the
@@ -250,7 +253,7 @@
 
 
 </dd>
-    <dt id="HKDF:expand"><a name="HKDF:expand"></a><strong>HKDF:expand (prk[, info], length)</strong></dt>
+    <dt id="crypto.hkdf:expand"><a name="crypto.hkdf:expand"></a><strong>crypto.hkdf:expand (prk[, info], length)</strong></dt>
     <dd>
     Performs the HKDF Expand step.
 
@@ -284,7 +287,7 @@
 
 
 </dd>
-    <dt id="HKDF:extract"><a name="HKDF:extract"></a><strong>HKDF:extract ([salt], ikm)</strong></dt>
+    <dt id="crypto.hkdf:extract"><a name="crypto.hkdf:extract"></a><strong>crypto.hkdf:extract ([salt], ikm)</strong></dt>
     <dd>
     Performs the HKDF Extract step.
 
@@ -313,7 +316,7 @@
 
 
 </dd>
-    <dt id="HKDF:hkdf"><a name="HKDF:hkdf"></a><strong>HKDF:hkdf ([salt], ikm[, info], length)</strong></dt>
+    <dt id="crypto.hkdf:hkdf"><a name="crypto.hkdf:hkdf"></a><strong>crypto.hkdf:hkdf ([salt], ikm[, info], length)</strong></dt>
     <dd>
     Performs the full HKDF (Extract and Expand) operation.
 
@@ -351,34 +354,6 @@
 
 
 </dd>
-    <dt id="HKDF:hmac"><a name="HKDF:hmac"></a><strong>HKDF:hmac (key, data)</strong></dt>
-    <dd>
-    Performs an HMAC calculation using the instance&rsquo;s algorithm.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">key</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         HMAC key.
-        </li>
-        <li><span class="parameter">data</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         data to hash.
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        HMAC digest.
-    </ol>
-
-
-
-
-</dd>
 </dl>
 
 
@@ -393,7 +368,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 13:58:14</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 14:00:51</span>
 </div>
 </footer>
 </body>

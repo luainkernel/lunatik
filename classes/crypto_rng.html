@@ -192,12 +192,12 @@
 	<td class="summary">Generates random bytes with no additional input.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#crypto_rng:info">crypto_rng:info ()</a></td>
-	<td class="summary">Returns algorithm information.</td>
+	<td class="name"><a href="#crypto_rng:reset">crypto_rng:reset ([seed])</a></td>
+	<td class="summary">Reseeds the RNG.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#crypto_rng:reset">crypto_rng:reset (seed)</a></td>
-	<td class="summary">Reseeds the RNG.</td>
+	<td class="name"><a href="#crypto_rng:seedsize">crypto_rng:seedsize ()</a></td>
+	<td class="summary">Returns the size in bytes of the seed <a href="../classes/crypto_rng.html#crypto_rng:reset">reset</a> takes, 0 for an algorithm that requires none.</td>
 	</tr>
 </table></div>
 
@@ -280,24 +280,7 @@
 
 
 </dd>
-    <dt id="crypto_rng:info"><a name="crypto_rng:info"></a><strong>crypto_rng:info ()</strong></dt>
-    <dd>
-    Returns algorithm information.
-
-
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        with fields <code>driver_name</code> (string) and <code>seedsize</code> (integer)
-    </ol>
-
-
-
-
-</dd>
-    <dt id="crypto_rng:reset"><a name="crypto_rng:reset"></a><strong>crypto_rng:reset (seed)</strong></dt>
+    <dt id="crypto_rng:reset"><a name="crypto_rng:reset"></a><strong>crypto_rng:reset ([seed])</strong></dt>
     <dd>
     Reseeds the RNG.
 
@@ -307,12 +290,30 @@
         <li><span class="parameter">seed</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
 
+         (<em>optional</em>)
         </li>
     </ul>
 
 
     <h3>Raises</h3>
     on reseed failure
+
+
+
+</dd>
+    <dt id="crypto_rng:seedsize"><a name="crypto_rng:seedsize"></a><strong>crypto_rng:seedsize ()</strong></dt>
+    <dd>
+    Returns the size in bytes of the seed <a href="../classes/crypto_rng.html#crypto_rng:reset">reset</a> takes, 0 for an algorithm that requires none.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+
+    </ol>
+
 
 
 
@@ -331,7 +332,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 13:58:14</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-28 14:00:51</span>
 </div>
 </footer>
 </body>
