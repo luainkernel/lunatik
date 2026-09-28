@@ -512,6 +512,7 @@ static void __exit luabpf_exit(void)
 module_init(luabpf_init);
 module_exit(luabpf_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>");
 MODULE_DESCRIPTION("Lunatik interface to eBPF");
 

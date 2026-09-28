@@ -284,5 +284,6 @@ static void __exit luathread_exit(void)
 module_init(luathread_init);
 module_exit(luathread_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 

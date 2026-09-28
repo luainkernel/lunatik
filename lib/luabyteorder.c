@@ -197,5 +197,6 @@ static void __exit luabyteorder_exit(void)
 module_init(luabyteorder_init);
 module_exit(luabyteorder_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>");
 

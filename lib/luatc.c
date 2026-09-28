@@ -277,5 +277,6 @@ LUNATIK_EBPF_EXIT(tc);
 module_init(luatc_init);
 module_exit(luatc_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>");
 

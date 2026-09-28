@@ -14,16 +14,25 @@
 #   value given to --percpu, and a context or percpu given to stop or list each
 #   exit 2 with a line naming it and the usage on stderr, and nothing on stdout;
 # - -V and --version print the loaded version, exit 0, and with the modules
-#   unloaded -V exits 1, not loaded; the modules are loaded again after it.
+#   unloaded -V exits 1, not loaded; the modules are loaded again after it;
+# - each module status reports as loaded carries as its version the release -V
+#   prints: modpost writes the srcversion reload compares only for a module that
+#   declares a version, unless the kernel sets CONFIG_MODULE_SRCVERSION_ALL;
+# - status prints through a modinfo that takes no option, as OpenWrt's does,
+#   what it prints through the host's;
+# - status through a modinfo that reads every installed module as another build
+#   names each loaded module as not the installed build.
 #
 # Usage: sudo bash tests/cli/usage.sh
 
 USAGE="usage: lunatik"
+STALE=" is not the installed build"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() {
 	lunatik load 2>/dev/null
+	[ -z "$SHIM" ] || rm -rf "$SHIM"
 }
 trap cleanup EXIT
 cleanup
@@ -38,7 +47,7 @@ misused() {
 }
 
 ktap_header
-ktap_plan 5
+ktap_plan 8
 
 mark_dmesg
 
@@ -75,6 +84,32 @@ for flag in -V --version; do
 	[ "$status" -eq 0 ] && [ "$out" = "$version" ] || fail "lunatik $flag exited $status with '$out', not '$version'"
 done
 ktap_pass "-V and --version print the loaded version, exit 0"
+
+release=${version#Lunatik }
+cli status
+modules=$(printf '%s\n' "$out" | sed -n 's/ is loaded$//p')
+[ -n "$modules" ] || fail "status named no loaded module: '$out'"
+for m in $modules; do
+	loaded=$(cat "/sys/module/$m/version" 2>/dev/null)
+	[ "$loaded" = "$release" ] || fail "$m carries version '$loaded', not '$release'"
+done
+ktap_pass "each loaded module carries as its version the release -V prints"
+
+cli status
+plain=$out
+SHIM=$(mktemp -d)
+printf '#!/bin/sh\n[ "$#" -eq 1 ] && exec %s "$1"\nexit 1\n' "$(command -v modinfo)" > "$SHIM/modinfo"
+chmod +x "$SHIM/modinfo"
+PATH="$SHIM:$PATH" cli status
+[ "$out" = "$plain" ] || fail "status through a modinfo that takes no option printed '$out', not '$plain'"
+ktap_pass "status prints the same through a modinfo that takes no option"
+
+printf '#!/bin/sh\n%s "$@" | sed "s/^srcversion:.*/srcversion: 0/"\n' "$(command -v modinfo)" > "$SHIM/modinfo"
+PATH="$SHIM:$PATH" cli status
+for m in $modules; do
+	printf '%s\n' "$out" | grep -qxF "$m$STALE" || fail "status over another build did not name $m: '$out'"
+done
+ktap_pass "status names each module modinfo reads as another build"
 
 lunatik unload || fail "the modules did not unload"
 cli -V

@@ -63,8 +63,9 @@ end
 local function stale_modules()
 	local stale = {}
 	for m in loaded_modules() do
-		local loaded = readall(io.open("/sys/module/" .. m .. "/srcversion"))
-		local installed = readall(io.popen("modinfo -F srcversion " .. m .. " 2>/dev/null"))
+		local loaded = readall(io.open("/sys/module/" .. m .. "/srcversion")):match("%S*")
+		local info = readall(io.popen("modinfo " .. m .. " 2>/dev/null")) -- OpenWrt's modinfo takes no option
+		local installed = info:match("\nsrcversion:%s*(%S+)") or ""
 		if loaded ~= installed then
 			table.insert(stale, m)
 		end

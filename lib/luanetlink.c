@@ -220,5 +220,6 @@ static void __exit luanetlink_exit(void)
 module_init(luanetlink_init);
 module_exit(luanetlink_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 

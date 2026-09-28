@@ -216,7 +216,12 @@ REPL and the builds `status` and `reload` compare.
   context, a value given to `--percpu`, and a context or percpu given to `stop`
   or `list` each exit 2 with a line naming it and the usage on stderr; `-V`
   and `--version` print the loaded version, and with the modules unloaded `-V`
-  exits 1, not loaded.
+  exits 1, not loaded; each module `status` reports as loaded carries as its
+  version the release `-V` prints, which gives it the srcversion `reload`
+  compares on a kernel without `CONFIG_MODULE_SRCVERSION_ALL`; `status`
+  prints through a `modinfo` that takes no option, as OpenWrt's does, what it
+  prints through the host's, and through one that reads every installed module
+  as another build names each loaded module as not the installed build.
 - **verbs**: a run or a spawn of a script that is missing, and a run of one
   that raises at load, exit 1 with its error on stderr and nothing on stdout;
   a run exits 0 with nothing printed, and a second exits 1, already running,
