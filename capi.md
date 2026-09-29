@@ -895,6 +895,15 @@ Pushes the field named `field` of the table at `idx` and raises
 `bad field '<field>' (<type> expected, got <type>)` when its Lua type differs from the one given.
 The field stays on the stack for the caller to read and pop.
 
+### lunatik\_optfield
+```C
+bool lunatik_optfield(lua_State *L, int idx, const char *field, int type);
+```
+Pushes the field named `field` of the table at `idx` and returns `true` when it holds the Lua type
+given and `false` when it is nil or absent; any other type raises
+`bad field '<field>' (<type> expected, got <type>)`. The field stays on the stack for the caller to
+read and pop.
+
 ### lunatik\_optcfunction
 ```C
 void lunatik_optcfunction(lua_State *L, int idx, const char *field, lua_CFunction default_func);
@@ -914,11 +923,11 @@ Raises a Lua error if the field is missing or not a number.
 ```C
 void lunatik_optinteger(lua_State *L, int idx, priv, field, opt);
 ```
-Reads an optional integer field named `field` from the table at `idx` into `priv->field`.
-Falls back to `opt` when the field is nil or absent. Any other value goes through
-`lua_tointeger`: a numeric string is converted, anything else that is not a number stores `0`
-without an error, and the value is not bounded, so a field narrower than `lua_Integer` is checked
-with [`lunatik_checkbounds`](#lunatik_checkbounds).
+Reads an optional integer field named `field` from the table at `idx` into `priv->field`,
+through [`lunatik_optfield`](#lunatik_optfield). Falls back to `opt` when the field is nil or
+absent, and raises `bad field '<field>' (number expected, got <type>)` when it holds anything
+other than a number, a numeric string included. The value is not bounded: a field narrower than
+`lua_Integer` keeps its low bits.
 
 ### lunatik\_setstring
 ```C

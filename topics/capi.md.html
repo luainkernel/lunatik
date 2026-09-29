@@ -1361,6 +1361,18 @@ handler, a <code>BUG()</code>. After a protected call or a resume fails, the err
 <code>bad field &apos;&lt;field&gt;&apos; (&lt;type&gt; expected, got &lt;type&gt;)</code> when its Lua type differs from the one given.
 The field stays on the stack for the caller to read and pop.</p>
 
+<h3 id="lunatik_optfield">lunatik_optfield</h3>
+
+<pre>
+<span class="keyword">bool</span> <span class="function-name">lunatik_optfield</span>(lua_State *L, <span class="keyword">int</span> idx, <span class="keyword">const</span> <span class="keyword">char</span> *field, <span class="keyword">int</span> <span class="global">type</span>);
+</pre>
+
+
+<p>Pushes the field named <code>field</code> of the table at <code>idx</code> and returns <code>true</code> when it holds the Lua type
+given and <code>false</code> when it is nil or absent; any other type raises
+<code>bad field &apos;&lt;field&gt;&apos; (&lt;type&gt; expected, got &lt;type&gt;)</code>. The field stays on the stack for the caller to
+read and pop.</p>
+
 <h3 id="lunatik_optcfunction">lunatik_optcfunction</h3>
 
 <pre>
@@ -1389,11 +1401,11 @@ Raises a Lua error if the field is missing or not a number.</p>
 </pre>
 
 
-<p>Reads an optional integer field named <code>field</code> from the table at <code>idx</code> into <code>priv-&gt;field</code>.
-Falls back to <code>opt</code> when the field is nil or absent. Any other value goes through
-<code>lua_tointeger</code>: a numeric string is converted, anything else that is not a number stores <code>0</code>
-without an error, and the value is not bounded, so a field narrower than <code>lua_Integer</code> is checked
-with <a href="#lunatik_checkbounds"><code>lunatik_checkbounds</code></a>.</p>
+<p>Reads an optional integer field named <code>field</code> from the table at <code>idx</code> into <code>priv-&gt;field</code>,
+through <a href="#lunatik_optfield"><code>lunatik_optfield</code></a>. Falls back to <code>opt</code> when the field is nil or
+absent, and raises <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> when it holds anything
+other than a number, a numeric string included. The value is not bounded: a field narrower than
+<code>lua_Integer</code> keeps its low bits.</p>
 
 <h3 id="lunatik_setstring">lunatik_setstring</h3>
 
@@ -1865,7 +1877,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:49:40</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:55:27</span>
 </div>
 </footer>
 </body>
