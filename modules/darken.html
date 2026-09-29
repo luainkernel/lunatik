@@ -221,10 +221,11 @@
     </ol>
 
     <h3>Raises</h3>
-     &ldquo;IV must be 16 bytes&rdquo;, &ldquo;key must be 32 bytes&rdquo;, the errno name of a failed transform
-   allocation, key setting or decryption, &ldquo;not enough memory&rdquo;, the load error of the decrypted
-   text (a syntax error from &ldquo;darken&rdquo; when the key or IV is wrong, &ldquo;attempt to load a binary chunk
-   (mode is &rsquo;t')&rdquo; for a precompiled script), or the error the script raises.
+     &ldquo;IV must be 16 bytes&rdquo;, &ldquo;key must be 32 bytes&rdquo;, &ldquo;not allowed after module load&rdquo; from an
+   interrupt-context runtime past its body, the errno name of a failed transform allocation, key
+   setting or decryption, &ldquo;not enough memory&rdquo;, the load error of the decrypted text (a syntax
+   error from &ldquo;darken&rdquo; when the key or IV is wrong, &ldquo;attempt to load a binary chunk (mode is &rsquo;t')&rdquo;
+   for a precompiled script), or the error the script raises.
 
 
 
@@ -243,7 +244,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 02:32:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:23:59</span>
 </div>
 </footer>
 </body>

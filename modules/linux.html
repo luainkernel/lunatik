@@ -374,7 +374,9 @@
     </ol>
 
     <h3>Raises</h3>
-    <code>ESRCH</code> if no task has that pid.
+     <code>ESRCH</code> if no task has that pid, and &ldquo;not allowed after module load&rdquo; for a pid from an
+   interrupt-context runtime past its body, where the task&rsquo;s lock would be taken in softirq or
+   hardirq.
 
 
     <h3>Usage</h3>
@@ -527,7 +529,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 02:32:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:23:59</span>
 </div>
 </footer>
 </body>
