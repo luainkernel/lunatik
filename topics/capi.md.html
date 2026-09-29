@@ -234,7 +234,9 @@ this flag is always inherited, a SOFTIRQ class can never produce a non-SOFTIRQ i
 
 
 <pre>
-the interrupt state. Required <span class="keyword">for</span> classes whose handlers fire <span class="keyword">in</span> hardirq <span class="function-name">context</span> (e.g. kprobes).
+the interrupt state. Required <span class="keyword">for</span> classes whose handlers can fire inside an interrupt handler <span class="keyword">or</span>
+with interrupts <span class="function-name">off</span> (e.g. kprobes): an interrupt on the CPU that holds a lock taken with
+interrupts on would spin on it forever.
 </pre>
 
 
@@ -1857,7 +1859,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 02:31:09</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 02:32:02</span>
 </div>
 </footer>
 </body>

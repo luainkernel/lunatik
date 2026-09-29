@@ -321,7 +321,9 @@
    GFP_KERNEL, mutex), <code>&quot;softirq&quot;</code> (atomic, GFP_ATOMIC, spinlock), or <code>&quot;hardirq&quot;</code>
    (atomic, GFP_ATOMIC, spinlock with IRQs disabled).
    Use <code>&quot;softirq&quot;</code> for hooks that fire in softirq context (netfilter, XDP).
-   Use <code>&quot;hardirq&quot;</code> for hooks that fire in hardirq context (kprobes).
+   Use <code>&quot;hardirq&quot;</code> for hooks that can fire inside an interrupt handler or with interrupts off
+   (kprobes), since only a lock that turns interrupts off cannot be taken again by an
+   interrupt on the CPU that holds it.
          (<em>default</em> "process")
         </li>
     </ul>
@@ -482,7 +484,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 02:31:09</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 02:32:02</span>
 </div>
 </footer>
 </body>
