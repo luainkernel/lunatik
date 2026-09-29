@@ -512,29 +512,21 @@ It is defined as a macro.</p>
     <span class="keyword">return</span> <span class="number">0</span>;
 }
 
-<span class="keyword">static</span> ssize_t <span class="function-name">p_read</span>(lua_State *L, myread_t *ctx)
-{
-    <span class="keyword">if</span> (<span class="function-name">lunatik_cpcall</span>(L, l_read, ctx) != LUA_OK) {
-        <span class="function-name">pr_err</span>(<span class="string">"%s\n"</span>, <span class="function-name">lunatik_errmsg</span>(L));
-        <span class="keyword">return</span> -ECANCELED;
-    }
-    <span class="keyword">return</span> ctx-&gt;ret;
-}
-
 <span class="keyword">static</span> ssize_t <span class="function-name">mydevice_read</span>(<span class="keyword">struct</span> file *f, <span class="keyword">char</span> __user *buf, size_t len, loff_t *off)
 {
     ssize_t ret;
     lunatik_object_t *runtime = (lunatik_object_t *)f-&gt;private_data;
     myread_t ctx = {.buf = buf, .len = len, .off = off};
 
-    <span class="function-name">lunatik_run</span>(runtime, p_read, ret, &amp;ctx);
-    <span class="keyword">return</span> ret;
+    <span class="function-name">lunatik_run</span>(runtime, lunatik_catch, ret, l_read, &amp;ctx, <span class="string">"read"</span>);
+    <span class="keyword">return</span> ret == <span class="number">0</span> ? ctx.ret : ret;
 }
 </pre>
 
 
-<p>Everything that can raise, the callback, reading what it returned and any allocation, runs inside <code>l_read</code>,
-under the protected call: a raise with no handler is a <code>BUG()</code>.</p>
+<p>Everything that can raise, the callback, pushing its arguments, reading what it returned and any
+allocation, runs inside <code>l_read</code>, under the protected call <a href="#lunatik_catch"><code>lunatik_catch</code></a> makes: a
+raise with no handler is a <code>BUG()</code>.</p>
 
 <h3 id="lunatik_handle">lunatik_handle</h3>
 
@@ -560,7 +552,21 @@ Lua 5.1&rsquo;s <code>lua_cpcall</code> did, and returns the status of the
 <a href="https://www.lua.org/manual/5.5/manual.html#lua_pcall">protected call</a>, leaving the error on the
 stack when it fails; what <code>f</code> returns is dropped. A handler of <code>lunatik_run</code> whose work can raise passes its
 arguments and its result in a context <code>ud</code> points to and does that work in <code>f</code>, as the example of
-<code>lunatik_run</code> does.</p>
+<code>lunatik_run</code> does through <a href="#lunatik_catch"><code>lunatik_catch</code></a>.</p>
+
+<h3 id="lunatik_catch">lunatik_catch</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_catch</span>(lua_State *L, lua_CFunction f, <span class="keyword">void</span> *ud, <span class="keyword">const</span> <span class="keyword">char</span> *name);
+</pre>
+
+
+<p>Calls <code>f</code> with <code>ud</code> through <a href="#lunatik_cpcall"><code>lunatik_cpcall</code></a> and returns <code>0</code>; when <code>f</code> raises, it logs
+the error read through <a href="#lunatik_errmsg"><code>lunatik_errmsg</code></a> followed by <code>name</code>, rate limited and under the
+<code>pr_fmt</code> of the file that calls it, and returns <code>-ECANCELED</code>. It is the handler a binding gives
+<code>lunatik_run</code> or <code>lunatik_handle</code> for a callback: <code>f</code> pushes the callback&rsquo;s arguments, calls it and reads
+what it returns, taking its input from <code>ud</code> and leaving its result there, and <code>name</code> says which callback
+failed, as <code>read</code> does in the example of <code>lunatik_run</code>.</p>
 
 <h3 id="lunatik_toruntime">lunatik_toruntime</h3>
 
@@ -1859,7 +1865,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:23:59</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:34:09</span>
 </div>
 </footer>
 </body>

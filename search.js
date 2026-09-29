@@ -516,6 +516,7 @@ window.LUNATIK_SEARCH = [
 ["lunatik_run","topics/capi.md.html#lunatik_run","Guide · Lunatik C API"],
 ["lunatik_handle","topics/capi.md.html#lunatik_handle","Guide · Lunatik C API"],
 ["lunatik_cpcall","topics/capi.md.html#lunatik_cpcall","Guide · Lunatik C API"],
+["lunatik_catch","topics/capi.md.html#lunatik_catch","Guide · Lunatik C API"],
 ["lunatik_toruntime","topics/capi.md.html#lunatik_toruntime","Guide · Lunatik C API"],
 ["lunatik_getstate","topics/capi.md.html#lunatik_getstate","Guide · Lunatik C API"],
 ["lunatik_class","topics/capi.md.html#lunatik_class","Guide · Lunatik C API"],
