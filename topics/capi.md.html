@@ -606,8 +606,9 @@ checks it with <code>lunatik_checkobjectclass(L, ix, &amp;lunatik_class)</code>.
 
 
 <p>The <a href="../modules/rcu.html#table">rcu.table</a> every runtime shares as <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a>, through which scripts exchange objects.
-<code>lunatik_run.ko</code>, the module that runs the <code>/dev/lunatik</code> driver, creates it when it loads; it is
-<code>NULL</code> before.</p>
+<code>lunatik_run.ko</code>, the module that runs the <code>/dev/lunatik</code> driver, creates it when it loads and
+clears it when it unloads; it is <code>NULL</code> while that module is not loaded, and a runtime created then
+has no <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a>.</p>
 
 <h3 id="lunatik_isready">lunatik_isready</h3>
 
@@ -1787,7 +1788,9 @@ lunatik_object_t *<span class="function-name">lunatik_ebpf_lookupruntime</span>(
 <code>lunatik._ENV.runtimes</code>, where <code>lunatik run</code> keeps the runtimes it starts by script name, and
 <code>LUNATIK_EBPF_RUN</code> runs <code>handler(L, ctxp)</code> on it with <a href="#lunatik_run"><code>lunatik_run</code></a>, then drops
 the reference the lookup took. <code>key_sz</code> counts the terminator, which the lookup writes at
-<code>key[key_sz - 1]</code>. A key with no runtime, and a process runtime, which it logs, run nothing.</p>
+<code>key[key_sz - 1]</code>. A key with no runtime, and a process runtime, which it logs, run nothing. The
+binding keeps the <code>runtimes</code> table the first lookup to find one returns; until then, a lookup made
+while <code>lunatik_run.ko</code> is not loaded runs nothing, which it logs.</p>
 
 <h3 id="lunatik_ebpf_bind">lunatik_ebpf_bind</h3>
 
@@ -1877,7 +1880,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:56:54</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 12:28:37</span>
 </div>
 </footer>
 </body>

@@ -315,8 +315,9 @@ checks it with `lunatik_checkobjectclass(L, ix, &lunatik_class)`.
 extern lunatik_object_t *lunatik_env;
 ```
 The `rcu.table` every runtime shares as `lunatik._ENV`, through which scripts exchange objects.
-`lunatik_run.ko`, the module that runs the `/dev/lunatik` driver, creates it when it loads; it is
-`NULL` before.
+`lunatik_run.ko`, the module that runs the `/dev/lunatik` driver, creates it when it loads and
+clears it when it unloads; it is `NULL` while that module is not loaded, and a runtime created then
+has no `lunatik._ENV`.
 
 ### lunatik\_isready
 ```C
@@ -1242,7 +1243,9 @@ The kfunc's body: `lunatik_ebpf_lookupruntime` finds the runtime stored at `key`
 `lunatik._ENV.runtimes`, where `lunatik run` keeps the runtimes it starts by script name, and
 `LUNATIK_EBPF_RUN` runs `handler(L, ctxp)` on it with [`lunatik_run`](#lunatik_run), then drops
 the reference the lookup took. `key_sz` counts the terminator, which the lookup writes at
-`key[key_sz - 1]`. A key with no runtime, and a process runtime, which it logs, run nothing.
+`key[key_sz - 1]`. A key with no runtime, and a process runtime, which it logs, run nothing. The
+binding keeps the `runtimes` table the first lookup to find one returns; until then, a lookup made
+while `lunatik_run.ko` is not loaded runs nothing, which it logs.
 
 ### lunatik\_ebpf\_bind
 ```C
