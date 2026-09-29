@@ -326,6 +326,8 @@ netfilter.register{
  The skb is linearized before copying to avoid failures on fragmented skbs
  (e.g. bridged traffic with paged data). In a tc callback the skb is not
  linearized, and a non-linear one raises.
+ Each <code>data()</code> call on the copy returns a new view that keeps the copy alive,
+ so a view stays valid after the copy itself is dropped.
 
 
 
@@ -511,7 +513,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:47:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:49:40</span>
 </div>
 </footer>
 </body>

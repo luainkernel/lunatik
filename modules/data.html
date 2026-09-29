@@ -288,9 +288,8 @@
  object a binding hands to a callback, or <code>skb:data()</code> returns for that
  callback&rsquo;s skb, views kernel memory only while that callback runs: afterwards
  its length is 0 and every access raises &ldquo;out of bounds&rdquo;, so copy what you keep
- with <a href="../modules/data.html#data:getstring">getstring</a>. <code>skb:copy():data()</code> views the copy&rsquo;s own buffer, valid only
- while the copy lives. A write to a view a binding marks read only raises
- &ldquo;read only&rdquo;.
+ with <a href="../modules/data.html#data:getstring">getstring</a>. <code>skb:copy():data()</code> views the copy&rsquo;s own buffer and keeps the
+ copy alive. A write to a view a binding marks read only raises &ldquo;read only&rdquo;.
           </div>
     <dl class="function">
     <dt id="data:__len"><a name="data:__len"></a><strong>data:__len ()</strong></dt>
@@ -886,7 +885,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:47:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 11:49:40</span>
 </div>
 </footer>
 </body>
