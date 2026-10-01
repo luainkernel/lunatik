@@ -923,6 +923,11 @@ from a pid namespace other than the initial one, whose pids are not the ones
   runtime holds its teardown reaches the block a second runtime registered
   after it.
 
+- **vt**: `notifier.vt` from a `hardirq` runtime hands its callback a
+  character written to `/dev/tty1` twice, as a `linux.vt` `PREWRITE` and as a
+  `WRITE`, each with the character and console 0, inside the write (skips
+  without a `/dev/tty1`, which only `CONFIG_VT` registers).
+
 ### probe
 
 - **aggregate**: a target another kprobe already holds is aggregated by the
