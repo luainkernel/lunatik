@@ -39,8 +39,10 @@
 # key's derivation turns its info string into hex; darken -s and lighten run
 # with a secret of three hex digits and with one of 64 characters whose pairs
 # each open with a hex digit, which hex2bin's printf takes; darken runs once
-# more with an option it does not take. Skips below OpenSSL 3, where darken
-# stops at its probe for openssl mac before any step.
+# more with an option it does not take, and lighten with -t after the secret,
+# which getopts leaves as an operand, and with -s, which only darken takes.
+# Skips below OpenSSL 3, where darken stops at its probe for openssl mac before
+# any step.
 #
 # Usage: sudo bash tests/darken/run.sh
 
@@ -96,7 +98,8 @@ shade_error() {
 		PATH="$TMP/bin:$PATH" XXD_FAIL=-p refuses lighten "$hex" &&
 		refuses darken -s abc script.lua && refuses lighten abc &&
 		refuses darken -s "$nothex" script.lua && refuses lighten "$nothex" &&
-		refuses darken -x script.lua
+		refuses darken -x script.lua && refuses lighten "$hex" -t &&
+		refuses lighten -s "$hex" "$hex"
 }
 
 ktap_header

@@ -96,7 +96,7 @@ cmd_darken() {
 }
 
 cmd_lighten() {
-	[ $# -ge 1 ] || die "usage: shade.sh lighten [-t] <secret>"
+	[[ $# -eq 1 && -z $SECRET ]] || die "usage: shade.sh lighten [-t] <secret>"
 
 	local secret="$1" key
 
