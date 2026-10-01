@@ -35,8 +35,8 @@ check_dmesg || { ktap_totals; exit 1; }
 dmesg | grep -q "netlink route_list: routes found" || fail "no routes returned by route_list"
 ktap_pass "route_list: at least one route returned"
 
-dmesg | grep -q "netlink route_list: fields ok" || fail "route entry missing family/scope/rtype"
-ktap_pass "route_list: route entry has family, scope, rtype fields"
+dmesg | grep -q "netlink route_list: fields ok" || fail "route entry missing family/scope/type"
+ktap_pass "route_list: route entry has family, scope, type fields"
 
 ktap_totals
 

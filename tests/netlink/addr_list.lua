@@ -36,7 +36,7 @@ end
 local loopback = find(LOOPBACK)
 if loopback then
 	say("127.0.0.1 found")
-	if loopback.prefix_len == 8 then say("prefix_len ok") end
+	if loopback.prefixlen == 8 then say("prefixlen ok") end
 	if loopback.peer == nil then say("loopback without peer") end
 end
 

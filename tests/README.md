@@ -902,7 +902,7 @@ higher-level `netlink.*` modules built on top of it.
   `dump()` that lists every family (with `nlctrl` among them), and an unknown
   family raising.
 - **link_list**: `rt.link():list()` lists interfaces; asserts loopback (`lo`,
-  ifindex 1) is present with a non-zero MTU.
+  ifindex 1) is present with a non-zero MTU and the `type` `ARPHRD_LOOPBACK`.
 - **link_updown**: `rt.link():set()` brings a down dummy interface up and
   asserts `IFF_UP` appears in its dump flags, then brings it down and asserts
   the flag is cleared.
@@ -923,18 +923,19 @@ higher-level `netlink.*` modules built on top of it.
   namespace with `EOPNOTSUPP`, the script says so and the five namespace cases
   skip on that message.
 - **addr_list**: `rt.addr():list()` lists addresses; asserts `127.0.0.1` is
-  present on loopback with `prefix_len == 8` and no `peer`. On a dummy
+  present on loopback with `prefixlen == 8` and no `peer`. On a dummy
   interface, `192.0.2.1 peer 192.0.2.2` and `2001:db8::1 peer 2001:db8::2`
   report the local address as `address` and the other end as `peer`;
   `192.0.2.3 peer 0.0.0.0`, which the kernel dumps without `IFA_ADDRESS`, and
   `2001:db8::3/64`, which it dumps without `IFA_LOCAL`, report their address
   without a `peer` (skips without the dummy driver or IPv6).
 - **route_list**: `rt.route():list()` returns at least one route with its
-  `family`, `scope` and `rtype` fields populated.
+  `family`, `scope` and `type` fields populated.
 - **route_adddel**: `rt.route():add()` creates a dummy `192.0.2.0/24` route via
   `lo` in an isolated table whose id is > 255 (exercising the `RTA_TABLE`
   attribute path), confirms it in a dump, asserts a duplicate add raises
-  (`NLM_F_EXCL`), then `del()` removes it.
+  (`NLM_F_EXCL`), then `del()` removes it; the same prefix added with `type`
+  `RTN_BLACKHOLE` lists that type.
 - **rule_adddel**: `rt.rule():add()` creates a FIB rule directing lookups to an
   isolated table whose id is > 255 (exercising the `FRA_TABLE` attribute),
   confirms it in a dump, asserts a duplicate add raises (`NLM_F_EXCL`), then

@@ -49,8 +49,8 @@ check_dmesg || { ktap_totals; exit 1; }
 dmesg | grep -q "netlink addr_list: 127.0.0.1 found" || fail "127.0.0.1 not found in addr_list"
 ktap_pass "addr_list: 127.0.0.1 present on loopback"
 
-dmesg | grep -q "netlink addr_list: prefix_len ok" || fail "loopback prefix_len != 8"
-ktap_pass "addr_list: loopback prefix_len == 8"
+dmesg | grep -q "netlink addr_list: prefixlen ok" || fail "loopback prefixlen != 8"
+ktap_pass "addr_list: loopback prefixlen == 8"
 
 dmesg | grep -q "netlink addr_list: loopback without peer" || fail "loopback reports a peer"
 ktap_pass "addr_list: loopback reports no peer"

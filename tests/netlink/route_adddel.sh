@@ -7,7 +7,8 @@
 # (192.0.2.0/24 via lo) in an isolated table whose id is > 255 (so it exercises
 # the RTA_TABLE attribute path, not the u8 rtm_table), confirms it appears in a
 # dump, asserts a duplicate add raises (NLM_F_EXCL -> EEXIST via check_error),
-# deletes it, and confirms it is gone.
+# deletes it, and confirms it is gone; then adds the same prefix with the type
+# RTN_BLACKHOLE and confirms the dump lists that type.
 #
 # Usage: sudo bash tests/netlink/route_adddel.sh
 
@@ -25,7 +26,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 3
+ktap_plan 4
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -45,6 +46,9 @@ ktap_pass "route_add: duplicate add raises (NLM_F_EXCL)"
 
 dmesg | grep -q "netlink route_adddel: deleted" || fail "route_del did not remove the route"
 ktap_pass "route_del: dummy route removed"
+
+dmesg | grep -q "netlink route_adddel: type added" || fail "route_add did not pass the route type"
+ktap_pass "route_add: a route added with a type lists that type"
 
 ktap_totals
 

@@ -6,7 +6,9 @@
 
 local netlink = require("netlink")
 local af = require("linux.socket").af
-local scope = require("linux.rtnetlink").scope
+local rtnl = require("linux.rtnetlink")
+
+local scope, rtn = rtnl.scope, rtnl.rtn
 
 local TABLE   = 1000                      -- isolated table; id > 255 exercises RTA_TABLE
 local DST     = string.char(192, 0, 2, 0) -- 192.0.2.0 (TEST-NET-1), network byte order
@@ -15,18 +17,19 @@ local LO      = 1                          -- loopback ifindex
 
 local route <close> = netlink.rt.route()
 
-local function present()
+local blackhole = {family = af.INET, dst = DST, dst_len = DST_LEN, table = TABLE, type = rtn.BLACKHOLE}
+
+local function find()
 	for _, entry in ipairs(route:list{family = af.INET}) do
 		if entry.table == TABLE and entry.dst == DST and entry.dst_len == DST_LEN then
-			return true
+			return entry
 		end
 	end
-	return false
 end
 
 route:add{family = af.INET, dst = DST, dst_len = DST_LEN, oif = LO,
 	table = TABLE, scope = scope.LINK}
-assert(present(), "route not found after add")
+assert(find(), "route not found after add")
 print("netlink route_adddel: added")
 
 -- route_add sends NLM_F_EXCL, so adding the same route again must raise
@@ -36,6 +39,12 @@ assert(not pcall(route.add, route, {family = af.INET, dst = DST, dst_len = DST_L
 print("netlink route_adddel: duplicate add raises")
 
 route:del{family = af.INET, dst = DST, dst_len = DST_LEN, oif = LO, table = TABLE}
-assert(not present(), "route still present after del")
+assert(not find(), "route still present after del")
 print("netlink route_adddel: deleted")
+
+route:add(blackhole)
+local entry = find()
+route:del(blackhole)
+assert(entry and entry.type == rtn.BLACKHOLE, "a route added with a type should list it")
+print("netlink route_adddel: type added")
 

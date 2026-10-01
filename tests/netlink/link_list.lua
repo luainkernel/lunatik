@@ -6,6 +6,8 @@
 
 local netlink = require("netlink")
 
+local ARPHRD_LOOPBACK <const> = 772 -- uapi/linux/if_arp.h
+
 local link <close> = netlink.rt.link()
 for _, iface in ipairs(link:list()) do
 	if iface.name == "lo" then
@@ -13,6 +15,9 @@ for _, iface in ipairs(link:list()) do
 		print("netlink link_list: lo found")
 		if iface.mtu and iface.mtu > 0 then
 			print("netlink link_list: mtu ok")
+		end
+		if iface.type == ARPHRD_LOOPBACK then
+			print("netlink link_list: type ok")
 		end
 		break
 	end

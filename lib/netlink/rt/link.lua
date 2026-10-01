@@ -49,7 +49,7 @@ function link:decode(body)
 	local fam, ltype, ifindex, flags, change = ifinfomsg:unpack(body)
 	local attrs = message.attrs(body, IFINFO_LEN + 1)
 	return {
-		family = fam, ltype = ltype, ifindex = ifindex,
+		family = fam, type = ltype, ifindex = ifindex,
 		flags = flags, change = change,
 		name = str(attrs[rtnl.ifla.IFNAME]),
 		mtu = u32(attrs[rtnl.ifla.MTU]),
@@ -70,7 +70,7 @@ end
 -- Lists all network interfaces from the kernel.
 -- @function link:list
 -- @tparam[opt] table opts list options, of which a link takes none.
--- @treturn table list of link tables, each with `family`, `ltype`, `ifindex`, `flags`, `change`,
+-- @treturn table list of link tables, each with `family`, `type`, `ifindex`, `flags`, `change`,
 --   `name` and `mtu`; a field whose attribute the reply lacks is nil.
 
 ---
