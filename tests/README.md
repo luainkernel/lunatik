@@ -938,7 +938,10 @@ higher-level `netlink.*` modules built on top of it.
   percpu is refused at load (skips without `gcc`/`genl`). The script's body
   refuses as out of bounds a port id past 32 bits or negative and a command past
   8 bits or negative, by values whose low bits a truncating build would send
-  to, and takes both at the top of their range.
+  to, and takes both at the top of their range; it refuses a unicast to port id
+  0 and a family named with the empty string, with `GENL_NAMSIZ` bytes or with
+  the name it registered (`EEXIST`), and registers the longest name. Once the
+  script stops, `genl` finds neither family.
 - **nl80211**: loads `mac80211_hwsim` (simulated wifi), then
   `netlink.nl80211.interface` lists the simulated `wlan` interfaces over the
   nl80211 generic netlink family
