@@ -664,6 +664,10 @@ settled (#1292); a binding or a Lua module follows them whichever language it is
   it, under the module's own name, as `fsnotify.action` is.
 * A top-level name belongs to a binding or to Lunatik (`lunatik`, `linux`, `examples`, `tests`), and
   the guide lists them; a script of a product lives in a directory of its own.
+* A major release keeps no path for what it replaces: a word, a name or a shim the replacement made
+  redundant goes in the release that replaces it, and a compatibility the tree keeps is one the
+  maintainer asked for. #1484 first read `run`'s 4.4 words through every 5.x release, from a
+  recommendation approved with the rest of a review, until the maintainer asked where that came from.
 
 ## C style
 
