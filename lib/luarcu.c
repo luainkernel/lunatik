@@ -13,7 +13,11 @@
 * Reading an object returns a new handle on the same kernel object; from a softirq or
 * hardirq runtime, one whose class needs process context raises
 * `'<class>': process-context class in interrupt-context runtime`. A read that
-* meets a writer releasing the entry's object sees the entry gone.
+* meets a writer releasing the entry's object sees the entry gone. An entry holds its
+* object until the entry is overwritten or deleted or the table goes, so objects that
+* hold each other through tables, a table stored in itself or two stored in each other,
+* are never released: a reference count does not see a cycle, and breaking one is the
+* script's, by deleting an entry of it.
 *
 * See `examples/shared/daemon.lua` for a practical example.
 * @module rcu
