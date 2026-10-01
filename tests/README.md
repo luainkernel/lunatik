@@ -935,7 +935,10 @@ higher-level `netlink.*` modules built on top of it.
   that port id and joined to the group receives both, proving kernel-to-
   userspace multicast and unicast delivery from softirq; on its first packet the
   hook calls `netlink.channel.new`, which must raise there, and the same script run
-  percpu is refused at load (skips without `gcc`/`genl`).
+  percpu is refused at load (skips without `gcc`/`genl`). The script's body
+  refuses as out of bounds a port id past 32 bits or negative and a command past
+  8 bits or negative, by values whose low bits a truncating build would send
+  to, and takes both at the top of their range.
 - **nl80211**: loads `mac80211_hwsim` (simulated wifi), then
   `netlink.nl80211.interface` lists the simulated `wlan` interfaces over the
   nl80211 generic netlink family
