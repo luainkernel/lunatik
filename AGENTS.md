@@ -447,8 +447,10 @@ ends on and sends one that fails back once, passing the stop after it (`stop_hoo
 holds no capture for. `tools/prereboot.sh` saves what a reboot erases for every session on the host,
 and the others learn of the reboot when it is done, so the session that asks runs it: a session asked
 for one on 2026-10-01, and the reboot took another session's cycle scripts and drafts from `/tmp`. It
-keys on the phrase that asks, "só um reboot resolve", "needs a reboot", and passes when
-`scratch/reboot-*` holds a capture taken in the last hour.
+keys on the phrase that asks, "preciso que você reinicie", "can you reboot"; one that says what only a
+reboot clears, "só um reboot resolve", "needs a reboot", counts only while the host is stuck, a module
+`pinned.sh` names or a `lunatik` process in D state, since on a sound host it describes what a bug
+would leave. It passes when `scratch/reboot-*` holds a capture taken in the last hour.
 
 `push-guard.sh`, wired before a shell call, refuses a `git push` in a command that also runs a
 rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any of those in progress:
