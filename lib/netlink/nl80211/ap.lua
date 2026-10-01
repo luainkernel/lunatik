@@ -53,7 +53,7 @@ local ap = object:new{START = cmd.START_AP, STOP = cmd.STOP_AP}
 -- @raise on a netlink error (e.g. the interface is not an AP, is down, or the
 --   beacon or channel is rejected).
 function ap:start(opts)
-	self:call(self.id, self.START, 0, message.attrs{
+	self:talk(self.id, self.START, message.attrs{
 		[attr.IFINDEX]         = opts.ifindex,
 		[attr.WIPHY_FREQ]      = opts.freq,
 		[attr.BEACON_INTERVAL] = opts.beacon_interval,
@@ -69,7 +69,7 @@ end
 -- @tparam table opts AP parameters: `ifindex`.
 -- @raise on a netlink error.
 function ap:stop(opts)
-	self:call(self.id, self.STOP, 0, message.attrs{[attr.IFINDEX] = opts.ifindex})
+	self:talk(self.id, self.STOP, message.attrs{[attr.IFINDEX] = opts.ifindex})
 end
 
 return ap

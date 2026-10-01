@@ -71,7 +71,7 @@ end
 --   `listen_interval` and `supported_rates` (raw rate bytes).
 -- @raise on a netlink error.
 function station:add(opts)
-	self:call(self.id, self.NEW, 0, message.attrs{
+	self:talk(self.id, self.NEW, message.attrs{
 		[attr.IFINDEX]             = opts.ifindex,
 		[attr.MAC]                 = opts.mac,
 		[attr.STA_AID]             = pack("=I2", opts.aid),
@@ -85,7 +85,7 @@ end
 -- @tparam table opts station parameters: `ifindex`, `mac` and `authorized`.
 -- @raise on a netlink error.
 function station:set(opts)
-	self:call(self.id, self.SET, 0, message.attrs{
+	self:talk(self.id, self.SET, message.attrs{
 		[attr.IFINDEX]    = opts.ifindex,
 		[attr.MAC]        = opts.mac,
 		[attr.STA_FLAGS2] = pack("=I4I4", AUTHORIZED, opts.authorized and AUTHORIZED or 0),
@@ -97,7 +97,7 @@ end
 -- @tparam table opts station parameters: `ifindex` and `mac`.
 -- @raise on a netlink error.
 function station:del(opts)
-	self:call(self.id, self.DEL, 0, message.attrs{
+	self:talk(self.id, self.DEL, message.attrs{
 		[attr.IFINDEX] = opts.ifindex,
 		[attr.MAC]     = opts.mac,
 	})

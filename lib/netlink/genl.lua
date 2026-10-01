@@ -70,12 +70,12 @@ end
 -- Sends a single generic netlink command and returns the decoded reply messages.
 -- @tparam integer family_id family id (from `family`).
 -- @tparam integer cmd command number.
+-- @tparam string payload serialized attributes.
 -- @tparam[opt=0] integer flags additional NLM_F_* flags.
--- @tparam[opt] string payload serialized attributes.
 -- @treturn table list of `{cmd, attrs}` response messages.
 -- @raise on netlink error.
-function genl:call(family_id, cmd, flags, payload)
-	return decode(self:talk(family_id, command(cmd, payload), flags))
+function genl:talk(family_id, cmd, payload, flags)
+	return decode(session.talk(self, family_id, command(cmd, payload), flags))
 end
 
 ---
@@ -96,7 +96,7 @@ end
 -- @raise the name of the errno the controller answers: `ENOENT` when no family has that name,
 --   `EINVAL` when the name is longer than `GENL_NAMSIZ - 1` bytes.
 function genl:family(name)
-	for _, msg in ipairs(self:call(ctrl.id.CTRL, ctrl.cmd.GETFAMILY, nil,
+	for _, msg in ipairs(self:talk(ctrl.id.CTRL, ctrl.cmd.GETFAMILY,
 			message.attrs{[ctrl.attr.FAMILY_NAME] = pack("z", name)})) do
 		local fid = msg.attrs[ctrl.attr.FAMILY_ID]
 		if fid then return unpack("=I2", fid) end

@@ -13,14 +13,14 @@ local id = genl:family("nlctrl")
 assert(id == ctrl.id.CTRL, "expected nlctrl id == " .. ctrl.id.CTRL .. ", got " .. tostring(id))
 print("netlink genl_family: nlctrl resolved")
 
--- a second operation on the SAME instance must work: family() and call() must
+-- a second operation on the SAME instance must work: family() and talk() must
 -- drain the NLM_F_ACK so the socket stays in sync (regression for orphaned ACK)
-local msgs = genl:call(ctrl.id.CTRL, ctrl.cmd.GETFAMILY, 0,
+local msgs = genl:talk(ctrl.id.CTRL, ctrl.cmd.GETFAMILY,
 	message.attrs{[ctrl.attr.FAMILY_NAME] = string.pack("z", "nlctrl")})
 local fid
 for _, m in ipairs(msgs) do fid = fid or m.attrs[ctrl.attr.FAMILY_ID] end
-assert(fid and string.unpack("=I2", fid) == id, "call() GETFAMILY did not return the family id")
-print("netlink genl_family: call round-trip ok")
+assert(fid and string.unpack("=I2", fid) == id, "talk() GETFAMILY did not return the family id")
+print("netlink genl_family: talk round-trip ok")
 
 -- dump: a GETFAMILY with no family name lists every registered family; nlctrl
 -- must be among them, and each entry carries its decoded attributes

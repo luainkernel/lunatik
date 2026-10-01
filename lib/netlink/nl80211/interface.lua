@@ -72,7 +72,7 @@ end
 -- @treturn integer the new interface's `ifindex`.
 -- @raise on a netlink error (e.g. the name is taken or the iftype unsupported).
 function interface:add(opts)
-	for _, msg in ipairs(self:call(self.id, self.NEW, 0, message.attrs{
+	for _, msg in ipairs(self:talk(self.id, self.NEW, message.attrs{
 		[attr.WIPHY]  = opts.wiphy,
 		[attr.IFNAME] = pack("z", opts.name),
 		[attr.IFTYPE] = opts.iftype,
@@ -87,7 +87,7 @@ end
 -- @tparam table opts interface parameters: `ifindex`.
 -- @raise on a netlink error.
 function interface:del(opts)
-	self:call(self.id, self.DEL, 0, message.attrs{[attr.IFINDEX] = opts.ifindex})
+	self:talk(self.id, self.DEL, message.attrs{[attr.IFINDEX] = opts.ifindex})
 end
 
 return interface
