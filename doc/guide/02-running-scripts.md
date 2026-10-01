@@ -48,6 +48,12 @@ usage: lunatik [-h | -V]
 An operation the kernel refuses exits 1 with `lunatik: <message>` on stderr and nothing on stdout,
 and a wrong invocation exits 2 with the usage on stderr.
 
+The CLI reaches the kernel through `/dev/lunatik`, whose protocol is internal to it: a tool drives
+Lunatik through the `lunatik` command, not through the device. A driver whose reply carries no
+status, as the one a release before 5.0 loads, fails every command that reaches it with
+`lunatik: couldn't read /dev/lunatik: loaded from another build`; unload that release with its own
+CLI before installing another over it, or reboot.
+
 ## Execution contexts
 
 A runtime is created in one of three contexts, and this decides what its code may do:

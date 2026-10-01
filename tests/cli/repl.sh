@@ -6,7 +6,8 @@
 # The REPL and -e: a chunk runs in the kernel and prints what it returns, and a
 # session on a pipe prints only what its lines return.
 #
-# - -e and --eval= run a chunk and print its values tab-separated, exit 0;
+# - -e and --eval= run a chunk and print its values tab-separated, exit 0, and an
+#   empty chunk prints nothing;
 # - -e of a chunk that raises, or that does not load, exits 1 with the message on
 #   stderr and nothing on stdout;
 # - a piped session, n = 40 + 2, then n, then n + 1, prints 42 and 43 and
@@ -33,7 +34,10 @@ cli -e "return 40 + 2"
 [ "$status" -eq 0 ] && [ "$out" = 42 ] && [ -z "$err" ] || fail "-e exited $status with '$out' and '$err'"
 cli --eval="return 1, 'a'"
 [ "$status" -eq 0 ] && [ "$out" = "1${TAB}a" ] || fail "--eval= exited $status with '$out'"
-ktap_pass "-e and --eval= print the chunk's values, exit 0"
+cli -e ""
+[ "$status" -eq 0 ] && [ -z "$out" ] && [ -z "$err" ] ||
+	fail "-e of an empty chunk exited $status with '$out' on stdout and '$err' on stderr"
+ktap_pass "-e and --eval= print the chunk's values, exit 0, and an empty chunk prints nothing"
 
 cli -e 'error("boom", 0)'
 [ "$status" -eq 1 ] && [ -z "$out" ] && [ "$err" = "lunatik: boom" ] ||
