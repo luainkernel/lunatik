@@ -21,9 +21,9 @@
 # the same script probes as a plain hardirq runtime, arming its own kprobe and
 # unregistering it when it stops; a plain runtime stops its own probe, twice with
 # no effect, is refused an enable and a disable afterwards, and refuses a probe on
-# a symbol the kernel does not have; and a set whose last runtime errors releases
-# the kprobe the earlier ones shared, leaving no kprobe armed, no script
-# registered and no use-count on the probe module.
+# a symbol the kernel does not have with ENOENT; and a set whose last runtime
+# errors releases the kprobe the earlier ones shared, leaving no kprobe armed, no
+# script registered and no use-count on the probe module.
 #
 # Usage: sudo bash tests/probe/percpu_probe.sh
 

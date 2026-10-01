@@ -15,7 +15,9 @@
 # is read, and an entry whose bus, group, vendor, product or driver_data holds a
 # string, a numeric one included, or a boolean, with an error naming the field. It
 # also refuses a name that fills NAME_MAX with no room for its
-# terminator, and accepts the longest one that does leave room. The accepted ones
+# terminator, and accepts the longest one that does leave room, and refuses a name
+# a driver it registered already holds with EBUSY, the errno driver_register
+# returns, leaving that driver on the bus. The accepted ones
 # are read back from /sys/bus/hid/drivers, since a driver that raised nothing has
 # still not necessarily reached the bus, and read again after the runtime stops,
 # since they leave the bus with it.

@@ -14,6 +14,7 @@ local VENDOR   <const> = 0xf055 -- no device on the hid bus carries this vendor,
 local MAXIDS   <const> = 4096   -- LUAHID_MAXIDS, the longest id_table hid.register serves
 local MAXNAME  <const> = 255    -- NAME_MAX, the buffer the driver name and its terminator share
 local HUGE_IDS <const> = 1 << 40
+local HELD     <const> = "lunatik_hid_one" -- on the bus from the first case until the runtime stops
 
 local idfields   = {"bus", "group", "vendor", "product", "driver_data"}
 local notnumbers = {"abc", "3", true}
@@ -60,7 +61,7 @@ local function refuses(name, id_table, expected)
 end
 
 test("hid.register accepts an id_table it serves", function()
-	register("lunatik_hid_one", ids(1))
+	register(HELD, ids(1))
 	register("lunatik_hid_max", ids(MAXIDS))
 end)
 
@@ -90,6 +91,10 @@ test("hid.register refuses a name that fills its buffer", function()
 	assert(not ok, "hid.register accepted a name with no room for its terminator")
 	assert(err:match("'name' is too long"), "hid.register raised something else: " .. err)
 	register(string.rep("x", MAXNAME - 1), ids(1))
+end)
+
+test("hid.register refuses a name another driver holds with the kernel's errno", function()
+	refuses(HELD, ids(1), "^EBUSY$")
 end)
 
 test("hid.register serves the next driver after a refusal", function()

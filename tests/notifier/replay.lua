@@ -12,6 +12,10 @@ local events = {[netdev.REGISTER] = "register", [netdev.UP] = "up", [netdev.UNRE
 
 local loading = true
 
+local function refuse()
+	return notify.BAD
+end
+
 local function cb(event, name)
 	local kind = events[event]
 	if kind then
@@ -19,6 +23,9 @@ local function cb(event, name)
 	end
 	return notify.OK
 end
+
+local _, err = pcall(notifier.netdevice, refuse)
+print("replay: refused " .. tostring(err))
 
 notifier.netdevice(cb)
 loading = false

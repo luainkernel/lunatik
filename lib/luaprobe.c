@@ -225,7 +225,7 @@ static luaprobe_t *luaprobe_register(lua_State *L, lunatik_object_t *runtime, co
 	if ((ret = register_kprobe(kp)) != 0) {
 		kfree(kp->symbol_name);
 		lunatik_free(probe);
-		luaL_error(L, "failed to register probe (%d)", ret);
+		lunatik_throw(L, ret);
 	}
 	return probe;
 }
@@ -347,9 +347,10 @@ static int luaprobe_new(lua_State *L);
 *   afterwards does
 * @treturn probe
 * @raise `runtime context mismatch` unless the runtime is hardirq; `not allowed while the runtime
-*   closes` from a finalizer that runs at its close; if registration fails; in a
-*   percpu script, if this runtime already registered the same symbol or address, or if another
-*   runtime of the set registered this target with a different post handler; or
+*   closes` from a finalizer that runs at its close; the kernel's errno if it refuses the
+*   registration, `ENOENT` for a symbol it does not have; in a percpu script, if this runtime
+*   already registered the same symbol or address, or if another runtime of the set registered
+*   this target with a different post handler; or
 *   `not allowed once the runtime is armed` (its script body has returned):
 *   register_kprobe sleeps, and an armed runtime runs with its lock held and interrupts off
 * @within probe
