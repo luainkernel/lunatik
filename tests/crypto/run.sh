@@ -9,6 +9,8 @@
 # allocated, measured on the reference a tfm holds on the module implementing
 # the algorithm, for the two constructors that allocated one before the object.
 #
+# async: skcipher and aead refuse an asynchronous implementation, cryptd's.
+#
 # comp is served only where the kernel still has the crypto_comp API, which
 # Linux 6.15 removed: lib/luacrypto_comp.c compiles to nothing there and
 # crypto.comp is nil. hascomp asks the runtime for the binding, so the suite
@@ -58,5 +60,7 @@ ktap_totals || RESULT=1
 
 echo ""
 bash "$DIR/context.sh" || RESULT=1
+echo ""
+bash "$DIR/async.sh" || RESULT=1
 exit $RESULT
 

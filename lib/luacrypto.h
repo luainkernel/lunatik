@@ -65,7 +65,7 @@ int luacrypto_##name##_new(lua_State *L)							\
 	lunatik_object_t *object = lunatik_newobject(L, &class,				\
 		sizeof(luacrypto_ctx_t), LUNATIK_OPT_NONE);					\
 	luacrypto_ctx_t *ctx = (luacrypto_ctx_t *)object->private;				\
-	T *tfm = alloc(algname, 0, 0);								\
+	T *tfm = alloc(algname, 0, CRYPTO_ALG_ASYNC);						\
 	if (IS_ERR(tfm))									\
 		lunatik_throw(L, PTR_ERR(tfm));							\
 	ctx->tfm = tfm;										\

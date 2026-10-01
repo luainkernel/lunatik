@@ -121,6 +121,12 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   had. Skips when no module backs either, and when the loaded `luacrypto` cannot
   be shown to be the build this case was installed with, since only that one is
   known to refuse before allocating.
+- **async**: `skcipher` and `aead` refuse an asynchronous implementation with
+  `ENOENT`, `EEXIST` on 6.12 and later, since their requests carry no completion
+  callback. The stimulus is a `cryptd` instance over the null cipher and over an
+  `authenc` of it, names no script asks for; `/proc/crypto` listing each instance
+  as asynchronous shows the refusal answered one and not an unknown name. Skips
+  when the kernel registered none, and unloads `cryptd` when the test loaded it.
 
 ### darken
 

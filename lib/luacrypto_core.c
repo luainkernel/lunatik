@@ -28,11 +28,14 @@
 
 /***
 * Creates a symmetric-key cipher transform.
+* Only a synchronous implementation is chosen: an asynchronous one, such as a hardware engine's
+* or a `cryptd(...)` instance, is passed over.
 * @function skcipher
 * @tparam string algname algorithm name (e.g., "cbc(aes)", "ctr(aes)")
 * @treturn crypto_skcipher
-* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
-*   failure
+* @raise "ENOENT" for an unknown algorithm or one no synchronous implementation serves ("EEXIST"
+*   on 6.12 and later for a template whose instance is asynchronous, such as `cryptd(...)`),
+*   "ENOMEM" or "not enough memory" on allocation failure
 * @usage
 *   local skcipher = require("crypto").skcipher
 *   local cipher = skcipher("cbc(aes)")
@@ -40,11 +43,14 @@
 
 /***
 * Creates an AEAD cipher transform.
+* Only a synchronous implementation is chosen: an asynchronous one, such as a hardware engine's
+* or a `cryptd(...)` instance, is passed over.
 * @function aead
 * @tparam string algname algorithm name (e.g., "gcm(aes)", "ccm(aes)")
 * @treturn crypto_aead
-* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
-*   failure
+* @raise "ENOENT" for an unknown algorithm or one no synchronous implementation serves ("EEXIST"
+*   on 6.12 and later for a template whose instance is asynchronous, such as `cryptd(...)`),
+*   "ENOMEM" or "not enough memory" on allocation failure
 * @usage
 *   local aead = require("crypto").aead
 *   local cipher = aead("gcm(aes)")
