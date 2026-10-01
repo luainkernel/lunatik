@@ -75,7 +75,7 @@ end
 -- @treturn table list of `{cmd, attrs}` response messages.
 -- @raise on netlink error.
 function genl:call(family_id, cmd, flags, payload)
-	return decode(self:talk(family_id, flags, command(cmd, payload)))
+	return decode(self:talk(family_id, command(cmd, payload), flags))
 end
 
 ---

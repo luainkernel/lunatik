@@ -95,7 +95,7 @@ end
 --   `table`, `priority`, `fwmark`, `protocol`, `action` (default `FR_ACT_TO_TBL`).
 -- @raise the name of the errno a netlink error reply carries, `EEXIST` when the rule exists.
 function rule:add(opts)
-	self:talk(self.NEW, nl.flag.CREATE | nl.flag.EXCL, rule_message(self, opts))
+	self:talk(self.NEW, rule_message(self, opts), nl.flag.CREATE | nl.flag.EXCL)
 end
 
 ---
@@ -104,7 +104,7 @@ end
 --   `table`, `priority`, `fwmark`.
 -- @raise the name of the errno a netlink error reply carries, `ENOENT` when no rule matches.
 function rule:del(opts)
-	self:talk(self.DEL, nil, rule_message(self, opts))
+	self:talk(self.DEL, rule_message(self, opts))
 end
 
 return rule
