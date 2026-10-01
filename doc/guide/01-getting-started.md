@@ -43,7 +43,7 @@ sudo make install
 
 `sudo make btf_install` copies the running kernel's BTF, `/sys/kernel/btf/vmlinux`, into the
 headers the modules build against. Without it the modules are built with no BTF of their own:
-`xdp` and `tc`, and `sched` on a kernel with sched_ext, still load, but log `missing module BTF` in
+`xdp` and `tc`, and `scx` on a kernel with sched_ext, still load, but log `missing module BTF` in
 the kernel log and leave their kfunc unregistered, so an eBPF program that calls one, such as
 `bpf_luaxdp_run`, fails to load.
 

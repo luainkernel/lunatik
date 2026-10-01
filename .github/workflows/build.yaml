@@ -48,7 +48,7 @@ jobs:
         echo "CONFIG_WERROR=n" >> .config
         echo "CONFIG_BPF_SYSCALL=y" >> .config
         # sched_ext depends on BPF_JIT and DEBUG_INFO_BTF; without them
-        # syncconfig drops SCHED_CLASS_EXT and luasched builds its stub
+        # syncconfig drops SCHED_CLASS_EXT and luascx builds its stub
         echo "CONFIG_BPF_JIT=y" >> .config
         echo "CONFIG_DEBUG_INFO_REDUCED=n" >> .config
         echo "CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y" >> .config

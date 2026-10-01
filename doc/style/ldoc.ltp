@@ -43,7 +43,7 @@
 #   {'^socket', '^net$', '^netlink'},
 #   'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18'},
 #  {'tracing', 'Tracing and scheduling', 'Kprobes, system call addresses and sched_ext.',
-#   {'^probe$', '^syscall', '^sched$'},
+#   {'^probe$', '^syscall', '^scx$'},
 #   'M3 12h4l3-7 4 14 3-7h4'},
 #  {'devices', 'Devices and events', 'Character devices, HID drivers, notifier chains and fsnotify.',
 #   {'^device$', '^hid$', '^notifier$', '^fsnotify$'},

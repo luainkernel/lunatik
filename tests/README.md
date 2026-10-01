@@ -10,8 +10,8 @@ Integration tests for lunatik kernel modules. Output follows
 
 Optional tools, without which the suites that need them skip:
 
-- `bpftool`, from `linux-tools-$(uname -r)`: bpf, sched, tc, xdp
-- `clang`: sched, tc, xdp
+- `bpftool`, from `linux-tools-$(uname -r)`: bpf, scx, tc, xdp
+- `clang`: scx, tc, xdp
 - `tc`: tc
 - `gcc`, which builds the userspace peers: device, examples, netlink, socket
 - `genl`: netlink
@@ -22,7 +22,7 @@ Optional tools, without which the suites that need them skip:
 - `taskset`: probe, xdp
 - `lunatic`: luac
 
-The sched, tc and xdp suites also need the modules built with the kernel's
+The scx, tc and xdp suites also need the modules built with the kernel's
 BTF: run `sudo make btf_install` before `make`.
 
 ## Running
@@ -1309,20 +1309,20 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   on the stop from under the lock; that stop also runs only after the first
   two cases passed, which such a build fails once the holder lets go.
 
-### sched
+### scx
 
-Regression tests for `luasched`: the attach guards, and the dispatch path
-through a struct_ops scheduler whose `enqueue` calls `bpf_luasched_run`.
+Regression tests for `luascx`: the attach guards, and the dispatch path
+through a struct_ops scheduler whose `enqueue` calls `bpf_luascx_run`.
 Skipped when the kernel has no sched_ext (`/sys/kernel/sched_ext`), the
 module lacks BTF, or `bpftool` or `clang` is unavailable.
 
-- **sched attach**: `sched.attach()` refuses a sleepable runtime with
-  `runtime context mismatch: sched.ctx needs hardirq`.
+- **scx attach**: `scx.attach()` refuses a sleepable runtime with
+  `runtime context mismatch: scx.ctx needs hardirq`.
 
-- **sched reattach**: a hardirq runtime attaches, re-attaches (replacing the
+- **scx reattach**: a hardirq runtime attaches, re-attaches (replacing the
   callback) and detaches without a Lua error.
 
-- **sched pass**: registering the scheduler routes every enqueue on the host
+- **scx pass**: registering the scheduler routes every enqueue on the host
   through the Lua callback, which returns the dispatch queue and slice and
   reports once; the report in `dmesg`, with no Lua error, is the proof. The
   scheduler is unregistered before its runtime stops.
