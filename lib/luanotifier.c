@@ -33,7 +33,7 @@ typedef int (*luanotifier_handler_t)(lua_State *L, void *data);
 /***
 * Represents a kernel notifier object.
 * This is a userdata object returned by functions like `notifier.keyboard()`,
-* `notifier.netdevice()`, or `notifier.vterm()`. It encapsulates a
+* `notifier.netdevice()`, or `notifier.vt()`. It encapsulates a
 * `struct notifier_block` and the associated Lua callback.
 * @type notifier
 */
@@ -228,7 +228,7 @@ static int luanotifier_vt_handler(lua_State *L, void *data)
 * Registers a virtual-terminal notifier. Must be called from a `hardirq` runtime.
 * Only available when the kernel is built with `CONFIG_VT`.
 *
-* @function vterm
+* @function vt
 * @tparam function callback invoked as `callback(event, c, vc_num)` —
 *   `event` is a `linux.vt` code, `c` is the character value, and
 *   `vc_num` is the virtual console number. Returns a `linux.notify`
@@ -246,7 +246,7 @@ static const luaL_Reg luanotifier_lib[] = {
 	{"netdevice", luanotifier_netdevice},
 #ifdef CONFIG_VT
 	{"keyboard", luanotifier_keyboard},
-	{"vterm", luanotifier_vt},
+	{"vt", luanotifier_vt},
 #endif
 	{NULL, NULL}
 };
