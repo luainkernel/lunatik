@@ -21,7 +21,7 @@ local nl80211 = require("linux.nl80211")
 local cmd     = nl80211.cmd
 local attr    = nl80211.attr
 
-local insert = table.insert
+local insert, sort = table.insert, table.sort
 local u32, str = message.u32, message.str
 
 ---
@@ -36,6 +36,10 @@ local u32, str = message.u32, message.str
 -- @see class
 local wiphy = object:new{GET = cmd.GET_WIPHY, NEW = cmd.NEW_WIPHY}
 
+local function byindex(a, b)
+	return a.wiphy < b.wiphy
+end
+
 ---
 -- Opens a session, calling the class: `netlink.nl80211.wiphy([pid])`.
 -- @function wiphy:__call
@@ -49,7 +53,7 @@ local wiphy = object:new{GET = cmd.GET_WIPHY, NEW = cmd.NEW_WIPHY}
 ---
 -- Lists the wireless PHYs (wiphys) known to the kernel.
 -- @tparam[opt] table opts list options, of which a wiphy takes none.
--- @treturn table list of `{wiphy, name}` tables.
+-- @treturn table list of `{wiphy, name}` tables, in wiphy index order.
 function wiphy:list()
 	local byidx = {}
 	for _, msg in ipairs(self:dump(self.id, self.GET)) do
@@ -64,6 +68,7 @@ function wiphy:list()
 	end
 	local phys = {}
 	for _, phy in pairs(byidx) do insert(phys, phy) end
+	sort(phys, byindex)
 	return phys
 end
 
