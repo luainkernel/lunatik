@@ -1,7 +1,8 @@
 #!/bin/bash
-# Stop adapter: reads the reply a turn ends on through tools/checks/decision.sh and sends it back
-# once when it hands the maintainer a decision without the question, the options and a
-# recommendation; the check is a plain path-taking script (AGENTS.md, "Checks"), this only translates.
+# Stop adapter: reads the reply a turn ends on through tools/checks/decision.sh and
+# tools/checks/reboot-capture.sh and sends it back once when it hands the maintainer a decision
+# without the question, the options and a recommendation, or asks for a reboot nothing captured
+# for; the checks are plain path-taking scripts (AGENTS.md, "Checks"), this only translates.
 
 input=$(cat)
 command -v jq > /dev/null || exit 0
@@ -18,7 +19,9 @@ if [ ! -s "$reply" ]; then
 fi
 [ -s "$reply" ] || exit 0
 
-findings=$(bash "$(dirname "$0")/../../tools/checks/decision.sh" "$reply") && exit 0
+checks="$(dirname "$0")/../../tools/checks"
+findings=$(bash "$checks/decision.sh" "$reply"; bash "$checks/reboot-capture.sh" "$reply")
+[ -n "$findings" ] || exit 0
 jq -n --arg reason "${findings//$reply/the reply}" '{decision: "block", reason: $reason}'
 exit 0
 

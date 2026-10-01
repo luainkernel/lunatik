@@ -45,9 +45,12 @@ echo "pid $$ ($USER): $*" > "$LOCK.holder"
 trap 'rm -f "$LOCK.holder"' EXIT
 bash "$(dirname "$0")/checks/disk.sh" >&2 # a warning: a suite needs no space, an install and a build do
 if ! bash "$(dirname "$0")/checks/pinned.sh" >&2 && [ -z "$LUNATIK_PINNED_OK" ]; then
-	echo "lunatik host is pinned, not running: a cycle only adds references, and a reboot, the maintainer's, clears it" >&2
+	echo "lunatik host is pinned, not running: a cycle only adds references, and a reboot, the maintainer's, clears it once tools/prereboot.sh saved what it erases" >&2
 	exit 1
 fi
+for arg; do
+	case $arg in /tmp/*.sh) echo "lunatik-host: $arg is lost to the reboot a crash forces; keep a script a cycle reruns under scratch/" >&2 ;; esac
+done
 "$@"
 status=$?
 bash "$(dirname "$0")/checks/pinned.sh" > /dev/null || echo "lunatik host: this cycle left the host pinned" >&2

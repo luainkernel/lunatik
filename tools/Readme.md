@@ -40,6 +40,17 @@ tools/oops.sh > scratch/oops-$(date +%F).txt
 A saved dump, `journalctl -k -b -1 -o cat` after the reboot where the journal is persistent,
 is read the same way: `tools/oops.sh <dump>`.
 
+## prereboot.sh
+
+Saves what a reboot erases into `scratch/reboot-<time>/` of the checkout, for every session on the
+host: the last oops, the Lunatik modules loaded with what holds them and the build they came from,
+the processes in D state, and the files each session keeps under `/tmp`. The session that asks for
+a reboot runs it first.
+
+```sh
+bash tools/prereboot.sh
+```
+
 ## pr-status.sh
 
 Reports the open pull requests as GitHub has them: base and mergeability, commits and unsquashed
