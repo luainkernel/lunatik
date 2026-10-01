@@ -268,16 +268,17 @@ static int lualinux_netns(lua_State *L)
 * For example, it converts `2` to `"ENOENT"`.
 *
 * @function errname
-* @tparam integer err error number (e.g., 2).
+* @tparam integer err error number (e.g., 2), from `-INT_MAX` to `INT_MAX`.
 * @treturn string symbolic error name (e.g., "ENOENT"), or "unknown" if the name cannot be
 * resolved. The sign of `err` is ignored.
+* @raise "out of bounds" for an `err` outside that range.
 * @usage
 * local name = linux.errname(2)
 * print("Error name:", name) -- "ENOENT"
 */
 static int lualinux_errname(lua_State *L)
 {
-    int e = (int)luaL_checkinteger(L, 1);
+    int e = (int)lunatik_checkinteger(L, 1, -INT_MAX, INT_MAX);
     lunatik_pusherrname(L, e);
     return 1;
 }

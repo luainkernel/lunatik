@@ -16,13 +16,18 @@
 # the runtime's lock in process context, which cannot have interrupted a holder of
 # the task's lock on its CPU, so such a build resolves the pid and fails, not spins.
 #
+# errname: linux.errname names an errno given with either sign and answers "unknown"
+# for INT_MAX and -INT_MAX; it refuses INT_MIN, whose absolute value an int cannot
+# hold, and a number past an int, as out of bounds, where a truncating build names
+# (1 << 32) | ENOENT as ENOENT.
+#
 # Usage: sudo bash tests/linux/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fsnotify notifier lookup constants schedule netns"
+TESTS="random fsnotify notifier lookup constants schedule netns errname"
 TOTAL=$(echo $TESTS | wc -w)
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil
