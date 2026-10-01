@@ -12,8 +12,10 @@
 #   -s  reuse an existing secret (darken only)
 #
 # darken needs OpenSSL 3 or later, for openssl mac.
+# Both need bash 4.4 or later, for inherit_errexit.
 
 set -euo pipefail
+shopt -s inherit_errexit
 
 die() { echo "error: $1" >&2; exit 1; }
 
@@ -38,31 +40,31 @@ gf128_mul() {
 
 # openssl enc refuses GCM: its ciphertext is CTR from IV || 2, its tag GMAC(ciphertext) ^ H * (len || len)
 gcm_encrypt() {
-	local key="$1" iv="$2"
-	local ct=$(openssl enc -aes-256-ctr -K "$key" -iv "${iv}00000002" -nosalt -in "$3" | xxd -p | tr -d '\n')
-	local gmac=$(echo -n "$ct" | xxd -r -p | openssl mac -cipher AES-256-GCM -macopt "hexkey:${key}" \
+	local key="$1" iv="$2" ct gmac h len fix
+	ct=$(openssl enc -aes-256-ctr -K "$key" -iv "${iv}00000002" -nosalt -in "$3" | xxd -p | tr -d '\n')
+	gmac=$(echo -n "$ct" | xxd -r -p | openssl mac -cipher AES-256-GCM -macopt "hexkey:${key}" \
 		-macopt "hexiv:${iv}" GMAC)
-	local h=$(head -c 16 /dev/zero | openssl enc -aes-256-ecb -K "$key" -nopad | xxd -p)
-	local len=$(printf '%016x' $(( ${#ct} * 4 )))
-	local fix=$(gf128_mul "${len}${len}" "$h")
+	h=$(head -c 16 /dev/zero | openssl enc -aes-256-ecb -K "$key" -nopad | xxd -p)
+	len=$(printf '%016x' $(( ${#ct} * 4 )))
+	fix=$(gf128_mul "${len}${len}" "$h")
 	printf '%s%016x%016x' "$ct" $(( 16#${gmac:0:16} ^ 16#${fix:0:16} )) $(( 16#${gmac:16:16} ^ 16#${fix:16:16} ))
 }
 
 hkdf_sha256() {
-	local secret="$1"
-	local salt="${2:-$(printf '%064x' 0)}"
-	local prk=$(echo -n "$secret" | hex2bin | openssl dgst -sha256 -mac HMAC \
+	local secret="$1" salt prk info
+	salt="${2:-$(printf '%064x' 0)}"
+	prk=$(echo -n "$secret" | hex2bin | openssl dgst -sha256 -mac HMAC \
 		-macopt "hexkey:${salt}" -hex 2>/dev/null | sed 's/.*= //')
 
-	local info=$(printf 'lunatik-darken' | xxd -p | tr -d '\n')
+	info=$(printf 'lunatik-darken' | xxd -p | tr -d '\n')
 	echo -n "${info}01" | hex2bin | openssl dgst -sha256 -mac HMAC \
 		-macopt "hexkey:${prk}" -hex 2>/dev/null | sed 's/.*= //'
 }
 
 derive_key() {
-	local secret="$1"
+	local secret="$1" salt
 	if $OTP; then
-		local salt=$(printf '%016x' "$(( $(date +%s) / 30 ))")
+		salt=$(printf '%016x' "$(( $(date +%s) / 30 ))")
 		hkdf_sha256 "$secret" "$salt"
 	else
 		hkdf_sha256 "$secret"
@@ -76,12 +78,13 @@ cmd_darken() {
 
 	local script="$1"
 	local dark="${script%.lua}.dark.lua"
+	local secret iv key ct
 
-	local secret="${SECRET:-$(openssl rand -hex 32)}"
-	local iv=$(openssl rand -hex 12)
-	local key=$(derive_key "$secret")
+	secret="${SECRET:-$(openssl rand -hex 32)}"
+	iv=$(openssl rand -hex 12)
+	key=$(derive_key "$secret")
 
-	local ct=$(gcm_encrypt "$key" "$iv" "$script")
+	ct=$(gcm_encrypt "$key" "$iv" "$script")
 
 	cat > "$dark" <<-EOF
 	local lighten = require("lighten")
@@ -94,10 +97,10 @@ cmd_darken() {
 cmd_lighten() {
 	[ $# -ge 1 ] || die "usage: shade.sh lighten [-t] <secret>"
 
-	local secret="$1"
+	local secret="$1" key
 	[ ${#secret} -eq 64 ] || die "secret must be 64 hex characters (32 bytes)"
 
-	local key=$(derive_key "$secret")
+	key=$(derive_key "$secret")
 
 	cat > light.lua <<-EOF
 	return "${key}"
