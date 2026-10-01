@@ -6,7 +6,7 @@
 -- mark without FS_EVENT_ON_CHILD, which reports the directory and not its files.
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local SCRATCH <const> = "/tmp/lunatik-fsnotify"
 

@@ -5,7 +5,7 @@
 -- Kernel-side script for the fsnotify exec test (see exec.sh).
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local PROG <const> = "/tmp/lunatik-fsnotify/mnt/prog"
 

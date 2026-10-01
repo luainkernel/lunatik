@@ -6,7 +6,7 @@
 
 local fsnotify = require("fsnotify")
 local device   = require("device")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local SCRATCH  <const> = "/tmp/lunatik-fsnotify"
 local VANISHED <const> = SCRATCH .. "/vanished"
