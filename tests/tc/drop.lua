@@ -5,11 +5,11 @@
 -- Kernel-side script for the tc verdict test (see test_tc.sh).
 
 local tc    = require("tc")
-local action = require("linux.tc")
+local action = require("linux.tc").action
 
 local function test_drop(ctx)
 	print("tc drop test pass: verdict set to drop")
-	return action.ACT_SHOT
+	return action.SHOT
 end
 
 tc.attach(test_drop)

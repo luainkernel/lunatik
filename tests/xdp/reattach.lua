@@ -5,7 +5,7 @@
 -- Kernel-side script for the xdp re-attach test (see test_xdp.sh).
 
 local xdp    = require("xdp")
-local action = require("linux.xdp")
+local action = require("linux.xdp").action
 
 local function replaced(ctx)
 	print("xdp reattach test fail: the replaced callback ran")

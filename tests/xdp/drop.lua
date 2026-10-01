@@ -5,7 +5,7 @@
 -- Kernel-side script for the xdp verdict test (see test_xdp.sh).
 
 local xdp    = require("xdp")
-local action = require("linux.xdp")
+local action = require("linux.xdp").action
 
 local function test_drop(ctx)
 	print("xdp drop test pass: verdict set to drop")

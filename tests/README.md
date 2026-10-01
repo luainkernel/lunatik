@@ -1430,13 +1430,13 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc pass**: the callback inspects `ctx:skb()` (IPv4 ethertype and the
   ICMP protocol byte of the ping) and `ctx:argument()` (a magic word the
-  eBPF program passed through), and the `action.ACT_OK` it returns lets the
+  eBPF program passed through), and the `action.OK` it returns lets the
   packet reach its destination; the runtime is plain, covering the plain-name
   kfunc lookup.
   Every callback that reads the packet acts only on the ping, through the
   suite's `packet.isping`, since the namespace emits autoconf traffic of its own.
 
-- **tc drop**: a returned `action.ACT_SHOT` blocks the ping; the runtime is percpu,
+- **tc drop**: a returned `action.SHOT` blocks the ping; the runtime is percpu,
   covering the dispatch to a percpu runtime.
 
 - **tc reattach**: the script attaches one callback and then a second in the
@@ -1476,8 +1476,8 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc verdict**: one ping per case, whose payload size picks what the callback
   returns for its echo reply: nothing, a value that is not a number, an action
-  as a string, a number past `ACT_VALUE_MAX` or below `ACT_UNSPEC`, one whose low 32 bits
-  are `ACT_SHOT`, or a raise. Each makes `bpf_luatc_run` return `-1`, on which the
+  as a string, a number past `TRAP` or below `UNSPEC`, one whose low 32 bits
+  are `SHOT`, or a raise. Each makes `bpf_luatc_run` return `-1`, on which the
   program lets the reply out; it returns anything else as it came, so a value the
   kfunc let through would drop the reply or go unlogged. The five that are not
   an action log "invalid action" and the raise logs its message.

@@ -99,7 +99,7 @@ end)
 
 test("bpf.queue info reports map properties", function()
 	local m = queue(path)
-	pinned.checkinfo(m, bpf.MAP_TYPE_QUEUE, 0)
+	pinned.checkinfo(m, bpf.map_type.QUEUE, 0)
 	m:close()
 end)
 

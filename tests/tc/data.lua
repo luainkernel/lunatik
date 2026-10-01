@@ -5,7 +5,7 @@
 -- Kernel-side script for the tc data test (see test_tc.sh).
 
 local tc     = require("tc")
-local action = require("linux.tc")
+local action = require("linux.tc").action
 local packet = require("tests.tc.packet")
 
 local function test_data(ctx)
@@ -18,7 +18,7 @@ local function test_data(ctx)
 			print(string.format("tc data test fail: frame %d, net view %d, mac view %d", frame, net, mac))
 		end
 	end
-	return action.ACT_OK
+	return action.OK
 end
 
 tc.attach(test_data)

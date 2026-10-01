@@ -193,7 +193,7 @@ static int luaxdp_detach(lua_State *L)
 *
 *   `ctx`: An `xdp_ctx` context object used to inspect the packet.
 *
-*   It returns the verdict, an XDP action from `linux.xdp`, which `bpf_luaxdp_run`
+*   It returns the verdict, a value of `linux.xdp.action`, which `bpf_luaxdp_run`
 *   returns to the eBPF program. When it returns nothing or nil, or raises,
 *   `bpf_luaxdp_run` returns `-1` and the verdict is left to the eBPF program; a value
 *   that is not an XDP action is logged as `invalid action` and answered the same way.
@@ -202,7 +202,7 @@ static int luaxdp_detach(lua_State *L)
 * @usage
 *   -- Lua script my_xdp_handler.lua, run with `lunatik run -c softirq my_xdp_handler`
 *   local xdp = require("xdp")
-*   local action = require("linux.xdp")
+*   local action = require("linux.xdp").action
 *
 *   local function my_packet_processor(ctx)
 *     local pkt = ctx:packet()

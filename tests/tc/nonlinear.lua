@@ -5,7 +5,7 @@
 -- Kernel-side script for the tc non-linear test (see test_tc.sh).
 
 local tc     = require("tc")
-local action = require("linux.tc")
+local action = require("linux.tc").action
 
 local PRIORITY <const> = 0x13690000 -- PRIORITY in test_tc.sh
 local PAYLOAD  <const> = 1024 -- PAYLOAD in test_tc.sh
@@ -37,7 +37,7 @@ local function pulled(skb)
 	report("pulled", view == len and copy == len and resized == len - DELTA, "skb %d, view %d, copy %d, resized view %d",
 		len, view, copy, resized)
 	done = true
-	return action.ACT_SHOT -- the resized segment is not sent; TCP sends it again
+	return action.SHOT -- the resized segment is not sent; TCP sends it again
 end
 
 local function test_nonlinear(ctx)

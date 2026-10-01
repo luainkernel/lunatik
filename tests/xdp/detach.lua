@@ -5,7 +5,7 @@
 -- Kernel-side script for the xdp verdict test (see test_xdp.sh).
 
 local xdp    = require("xdp")
-local action = require("linux.xdp")
+local action = require("linux.xdp").action
 local packet = require("tests.xdp.packet")
 
 local function drop_then_detach(ctx)

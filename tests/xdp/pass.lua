@@ -5,7 +5,7 @@
 -- Kernel-side script for the xdp verdict test (see test_xdp.sh).
 
 local xdp    = require("xdp")
-local action = require("linux.xdp")
+local action = require("linux.xdp").action
 local packet = require("tests.xdp.packet")
 
 local MAGIC <const> = 0x4C554E41 -- matches xdp_pass.bpf.c

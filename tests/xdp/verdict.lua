@@ -5,7 +5,7 @@
 -- Kernel-side script for the xdp verdict cases (see test_xdp.sh).
 
 local xdp    = require("xdp")
-local action = require("linux.xdp")
+local action = require("linux.xdp").action
 local packet = require("tests.xdp.packet")
 
 local PREFIX  <const> = "xdp verdict: "

@@ -59,7 +59,7 @@ end)
 test("bpf.array next iterates all indexes", function()
 	local m = array(path)
 	local info = m:info()
-	assert(info.type == bpf.MAP_TYPE_ARRAY, "expected array map type")
+	assert(info.type == bpf.map_type.ARRAY, "expected array map type")
 	local count = 0
 	for _ in m.next, m do
 		count = count + 1

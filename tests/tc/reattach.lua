@@ -5,16 +5,16 @@
 -- Kernel-side script for the tc re-attach test (see test_tc.sh).
 
 local tc     = require("tc")
-local action = require("linux.tc")
+local action = require("linux.tc").action
 
 local function replaced(ctx)
 	print("tc reattach test fail: the replaced callback ran")
-	return action.ACT_SHOT
+	return action.SHOT
 end
 
 local function current(ctx)
 	print("tc reattach test pass: re-attach installed the last callback")
-	return action.ACT_OK
+	return action.OK
 end
 
 tc.attach(replaced)

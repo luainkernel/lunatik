@@ -5,7 +5,7 @@
 -- Kernel-side script for the tc verdict test (see test_tc.sh).
 
 local tc      = require("tc")
-local action  = require("linux.tc")
+local action  = require("linux.tc").action
 local packet  = require("tests.tc.packet")
 
 local MAGIC <const> = 0x4C554E41 -- matches tc_pass.bpf.c
@@ -23,7 +23,7 @@ local function test_pass(ctx)
 			print("tc pass test fail: argument does not carry the magic")
 		end
 	end
-	return action.ACT_OK
+	return action.OK
 end
 
 tc.attach(test_pass)
