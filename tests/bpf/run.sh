@@ -6,8 +6,9 @@
 # Runs all bpf tests and reports aggregated KTAP results.
 #
 # Creates pinned maps with bpftool (hash, array, lru_hash, queue, stack, a
-# second hash for the bpf.map layer and a percpu hash for the unsupported-type
-# check), seeds the first hash map, then exercises the bpf module API and the
+# second hash for the bpf.map layer, a hash of two entries that the full-map
+# cases fill and a percpu hash for the unsupported-type check), seeds the first
+# hash map, then exercises the bpf module API and the
 # bpf.map layer from kernel Lua scripts: per-type coverage in process context,
 # a softirq-runtime script, and a Lua-to-bpftool interop check.
 #
@@ -25,6 +26,7 @@ TBL_MAP=$BPF_FS/test_map_tbl
 PERCPU_MAP=$BPF_FS/test_map_percpu
 QUEUE_MAP=$BPF_FS/test_map_queue
 STACK_MAP=$BPF_FS/test_map_stack
+FULL_MAP=$BPF_FS/test_map_full
 SOFTIRQ_SCRIPT=tests/bpf/map_softirq
 
 skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
@@ -36,7 +38,7 @@ create_map() { bpftool map create "$@" > /dev/null || skip "bpf: cannot create p
 cleanup()
 {
 	lunatik stop "$SOFTIRQ_SCRIPT" 2>/dev/null
-	rm -f "$MAP" "$ARRAY_MAP" "$LRU_MAP" "$TBL_MAP" "$PERCPU_MAP" "$QUEUE_MAP" "$STACK_MAP"
+	rm -f "$MAP" "$ARRAY_MAP" "$LRU_MAP" "$TBL_MAP" "$PERCPU_MAP" "$QUEUE_MAP" "$STACK_MAP" "$FULL_MAP"
 }
 
 trap cleanup EXIT
@@ -54,6 +56,7 @@ create_map "$TBL_MAP" type hash key 4 value 4 entries 16 name test_tbl
 create_map "$PERCPU_MAP" type percpu_hash key 3 value 3 entries 128 name test_percpu
 create_map "$QUEUE_MAP" type queue key 0 value 3 entries 128 name test_queue
 create_map "$STACK_MAP" type stack key 0 value 3 entries 128 name test_stack
+create_map "$FULL_MAP" type hash key 4 value 4 entries 2 name test_full
 
 bpftool map update pinned "$MAP" key hex 66 6f 6f value hex 62 61 72 || skip "bpf: cannot seed the pinned map"
 

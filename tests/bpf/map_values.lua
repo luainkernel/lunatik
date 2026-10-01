@@ -9,8 +9,11 @@ local bpf = require("linux.bpf")
 local test = require("tests.lib").test
 local pinned = require("tests.bpf.pinned")
 
+local pack = string.pack
+
 local path = "/sys/fs/bpf/test_map"
 local percpu_path = "/sys/fs/bpf/test_map_percpu"
+local full_path = "/sys/fs/bpf/test_map_full"
 
 test("bpf.hash lookup returns inserted value", function()
 	local m = hash(path)
@@ -64,6 +67,21 @@ test("bpf.hash update flag condition met succeeds", function()
 	assert(m:update("flg", "two", bpf.EXIST), "expected overwrite on EXIST for existing key")
 	assert(m:lookup("flg") == "two", "expected 'two', got: " .. tostring(m:lookup("flg")))
 	m:delete("flg")
+	m:close()
+end)
+
+test("bpf.hash update of a new key on a full map returns false", function()
+	local m = hash(full_path)
+	local entries = m:info().max_entries
+	local beyond = pack("I4", entries + 1)
+	for i = 1, entries do
+		assert(m:update(pack("I4", i), pack("I4", i)), "expected an insert below max_entries")
+	end
+	assert(m:update(beyond, pack("I4", 0)) == false, "expected false on a full map")
+	assert(m:update(pack("I4", 1), pack("I4", 0)), "expected an overwrite of a present key on a full map")
+	assert(m:delete(pack("I4", 1)))
+	assert(m:update(beyond, pack("I4", 0)), "expected an insert once a delete made room")
+	pinned.clear(m)
 	m:close()
 end)
 

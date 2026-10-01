@@ -2,7 +2,7 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- What the bpf scripts share about the maps run.sh pins: the sizes it creates them with, a drain,
+-- What the bpf scripts share about the maps run.sh pins: the sizes it creates them with, a drain, a clear,
 -- and the class names a handle carries.
 
 local data = require("data")
@@ -15,6 +15,14 @@ local CLASSES <const> = "bpf.hash or bpf.queue"
 
 function pinned.drain(m)
 	while m:pop() do
+	end
+end
+
+function pinned.clear(m)
+	local key = m:next()
+	while key do
+		m:delete(key)
+		key = m:next()
 	end
 end
 
