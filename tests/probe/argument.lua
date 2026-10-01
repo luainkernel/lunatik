@@ -9,6 +9,7 @@ local probe = require("probe")
 local getupvalue = debug.getupvalue
 
 local COUNT <const> = 8191 -- the size argument.sh reads
+local CLOSED <const> = "closed object"
 
 local staledump, staleargument
 local done = false
@@ -29,7 +30,8 @@ local function pre(_, dump, argument)
 
 	if staleargument ~= nil then
 		done = true
-		if not pcall(staleargument, 2) and dropped(staledump) then
+		local ok, err = pcall(staleargument, 2)
+		if not ok and err:find(CLOSED, 1, true) and dropped(staledump) then
 			pass("stale")
 		end
 		return

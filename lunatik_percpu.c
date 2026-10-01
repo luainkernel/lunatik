@@ -133,7 +133,7 @@ static inline void lunatik_checkowners(lua_State *L, lunatik_percpu_t *percpu)
 * back: a broadcast has no single set of values to return, so what a runtime yields is dropped.
 * @function resume
 * @param ... objects passed to each runtime's function, or returned by its `coroutine.yield()`
-* @raise "null pointer dereference" if the object has been stopped; otherwise the error of the
+* @raise "closed object" if the object has been stopped; otherwise the error of the
 *   first runtime that refuses a value it cannot carry or raises on resumption, naming its CPU,
 *   with the runtimes after it not resumed. A runtime that refuses a value stays where it yielded;
 *   one that raises is dead, so every later resume delivers to the CPUs before it again and fails
@@ -155,7 +155,7 @@ static int lunatik_resumepercpu(lua_State *L)
 	lunatik_foreachruntime(percpu, cpu, runtime) {
 		int status = lunatik_resumeruntime(L, runtime, nargs, error);
 
-		luaL_argcheck(L, status != -ENXIO, 1, LUNATIK_ERR_NULLPTR);
+		luaL_argcheck(L, status != -ENXIO, 1, LUNATIK_ERR_CLOSED);
 		if (status < 0)
 			luaL_error(L, "cpu %d: %s", cpu, error);
 	}

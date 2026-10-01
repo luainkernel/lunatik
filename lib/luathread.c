@@ -135,7 +135,7 @@ static int luathread_stop(lua_State *L)
 * The thread holds a reference to it, so the object stays readable after the
 * body returned, reporting the task as it ended. `stop` releases that
 * reference: the object returned after a stop has no task, and its methods
-* raise "null pointer dereference".
+* raise "closed object".
 * @function task
 * @treturn task
 * @usage

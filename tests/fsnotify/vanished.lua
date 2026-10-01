@@ -31,7 +31,7 @@ function trigger:read()
 
 	ok, err = pcall(mark.mask, mark)
 	check("the handle is dead after the failed re-add",
-		not ok and tostring(err):match("null pointer dereference") ~= nil)
+		not ok and tostring(err):match("closed object") ~= nil)
 
 	check("the watch no longer marks the moved inode", watch:find(MOVED) == nil)
 	return ""

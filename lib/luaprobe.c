@@ -63,7 +63,7 @@ static int luaprobe_dump(lua_State *L)
 {
 	struct pt_regs *regs = lua_touserdata(L, lua_upvalueindex(1));
 	if (regs == NULL)
-		luaL_error(L, LUNATIK_ERR_NULLPTR);
+		luaL_error(L, LUNATIK_ERR_CLOSED);
 
 	luaprobe_showregs(regs);
 	return 0;
@@ -76,7 +76,7 @@ static int luaprobe_argument(lua_State *L)
 	unsigned int n = (unsigned int)lunatik_checkinteger(L, 1, 0, UINT_MAX);
 
 	if (regs == NULL)
-		luaL_error(L, LUNATIK_ERR_NULLPTR);
+		luaL_error(L, LUNATIK_ERR_CLOSED);
 
 	lua_pushinteger(L, (lua_Integer)regs_get_kernel_argument(regs, n));
 	return 1;
@@ -302,7 +302,7 @@ static int luaprobe_enable(lua_State *L)
 	struct kprobe *kp = &probe->kp;
 	bool enable = lua_toboolean(L, 2);
 
-	luaL_argcheck(L, kp->pre_handler != NULL, 1, LUNATIK_ERR_NULLPTR);
+	luaL_argcheck(L, kp->pre_handler != NULL, 1, LUNATIK_ERR_CLOSED);
 
 	if (enable)
 		enable_kprobe(kp);

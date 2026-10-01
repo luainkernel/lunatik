@@ -20,7 +20,7 @@ test("a plain runtime stops its probe once and enables it while it lives", funct
 	p:stop() -- stopping again is a no-op
 	local ok, err = pcall(p.enable, p, true)
 	assert(not ok, "enable was accepted after stop")
-	assert(err:match("null pointer"), "enable raised something else: " .. tostring(err))
+	assert(err:match("closed object"), "enable raised something else: " .. tostring(err))
 end)
 
 test("a probe on a symbol the kernel does not have is refused", function()

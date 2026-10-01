@@ -22,7 +22,7 @@ local ok, err = pcall(kept.mask, kept, fs.MODIFY)
 err = tostring(err)
 if ok then
 	print("fsnotify marks test fail: a mark outlived the watch that placed it")
-elseif not err:match("null pointer dereference") then
+elseif not err:match("closed object") then
 	print("fsnotify marks test fail: " .. err)
 else
 	print("fsnotify marks test pass: stop takes every mark with it")
