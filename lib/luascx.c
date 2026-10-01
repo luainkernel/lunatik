@@ -9,18 +9,18 @@
 * It enables sched_ext/eBPF programs to call Lua functions for task scheduling,
 * providing a flexible way to implement custom scheduling logic in Lua.
 *
-* The primary mechanism involves an sched_ext program calling the `bpf_luasched_run`
+* The primary mechanism involves an sched_ext program calling the `bpf_luascx_run`
 * kfunc, which in turn invokes a Lua callback function previously registered
-* using `sched.attach()`.
+* using `scx.attach()`.
 *
 * Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`; without it the module loads
-* and exports nothing, so `sched.attach` is `nil`. The kfunc needs the module's BTF:
+* and exports nothing, so `scx.attach` is `nil`. The kfunc needs the module's BTF:
 * run `sudo make btf_install` before `make`, or the kernel logs
 * `missing module BTF, cannot register kfuncs` and an eBPF program that calls
-* `bpf_luasched_run` does not load. The eBPF side is a sched_ext `struct_ops`
-* scheduler; `tests/sched/sched_pass.bpf.c` with `tests/sched/pass.lua` is a worked
+* `bpf_luascx_run` does not load. The eBPF side is a sched_ext `struct_ops`
+* scheduler; `tests/scx/scx_pass.bpf.c` with `tests/scx/pass.lua` is a worked
 * pair.
-* @module sched
+* @module scx
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -40,29 +40,29 @@
 
 LUNATIK_EBPF_START();
 
-struct task_class {
+struct luascx_task_class {
 	u64 dsq;
 	u64 slice;
 };
 
-typedef struct luasched_ctx_s {
+typedef struct luascx_ctx_s {
 	struct task_struct *task;
 	lunatik_object_t   *task_obj;
-	struct task_class  *cls;
+	struct luascx_task_class *cls;
 	int                cb;
-} luasched_ctx_t;
+} luascx_ctx_t;
 
-static const lunatik_class_t luasched_class;
+static const lunatik_class_t luascx_class;
 
-LUNATIK_PRIVATECHECKER(luasched_ctx_check, luasched_ctx_t *, &luasched_class,
+LUNATIK_PRIVATECHECKER(luascx_ctx_check, luascx_ctx_t *, &luascx_class,
 	luaL_argcheck(L, private->task != NULL, ix, "ctx is not set");
 );
 
 /***
-* Sched callback context, valid only while the callback runs.
-* It is handed to the callback registered with `sched.attach`; its methods raise
+* sched_ext callback context, valid only while the callback runs.
+* It is handed to the callback registered with `scx.attach`; its methods raise
 * once the callback returns.
-* @type sched_ctx
+* @type scx_ctx
 */
 
 /***
@@ -70,46 +70,46 @@ LUNATIK_PRIVATECHECKER(luasched_ctx_check, luasched_ctx_t *, &luasched_class,
 * The same task object is reused for every callback: it is valid only during the
 * callback that returned it, and later it raises or reads the task of the callback
 * then running.
-* @function sched_ctx:task
+* @function scx_ctx:task
 * @treturn task
 */
-static int luasched_task(lua_State *L)
+static int luascx_task(lua_State *L)
 {
-	luasched_ctx_t *ctx = luasched_ctx_check(L, 1);
+	luascx_ctx_t *ctx = luascx_ctx_check(L, 1);
 	lunatik_getregistry(L, ctx->task_obj);
 	return 1;
 }
 
-static const luaL_Reg luasched_mt[] = {
+static const luaL_Reg luascx_mt[] = {
 	{"__gc", lunatik_deleteobject},
-	{"task", luasched_task},
+	{"task", luascx_task},
 	{NULL, NULL}
 };
 
-static void luasched_release(void *private)
+static void luascx_release(void *private)
 {
-	luasched_ctx_t *lctx = (luasched_ctx_t *)private;
+	luascx_ctx_t *lctx = (luascx_ctx_t *)private;
 	if (lctx->task_obj)
 		luatask_close(lctx->task_obj);
 }
 
-static const lunatik_class_t luasched_class = {
-	.name    = "sched.ctx",
-	.methods = luasched_mt,
-	.release = luasched_release,
+static const lunatik_class_t luascx_class = {
+	.name    = "scx.ctx",
+	.methods = luascx_mt,
+	.release = luascx_release,
 	.opt     = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
 	.owner   = THIS_MODULE,
 };
 
-static void luasched_handler_cleanup(luasched_ctx_t *lctx)
+static void luascx_handler_cleanup(luascx_ctx_t *lctx)
 {
 	luatask_clear(lctx->task_obj);
 	lctx->task = NULL;
 }
 
-#define luasched_isoptional(type)	((type) == LUA_TNIL || (type) == LUA_TNUMBER)
+#define luascx_isoptional(type)	((type) == LUA_TNIL || (type) == LUA_TNUMBER)
 
-static int luasched_decision(lua_State *L, luasched_ctx_t *ctx)
+static int luascx_decision(lua_State *L, luascx_ctx_t *ctx)
 {
 	int dsq = lua_type(L, -2);
 	int slice = lua_type(L, -1);
@@ -117,7 +117,7 @@ static int luasched_decision(lua_State *L, luasched_ctx_t *ctx)
 	if (dsq == LUA_TNIL && slice == LUA_TNIL)
 		return -1;
 
-	if (!luasched_isoptional(dsq) || !luasched_isoptional(slice)) {
+	if (!luascx_isoptional(dsq) || !luascx_isoptional(slice)) {
 		pr_err_ratelimited("invalid task class\n");
 		return -1;
 	}
@@ -127,9 +127,9 @@ static int luasched_decision(lua_State *L, luasched_ctx_t *ctx)
 	return 0;
 }
 
-static int luasched_handler(lua_State *L, luasched_ctx_t *ctx)
+static int luascx_handler(lua_State *L, luascx_ctx_t *ctx)
 {
-	luasched_ctx_t *lctx = lunatik_ebpf_getctx(L);
+	luascx_ctx_t *lctx = lunatik_ebpf_getctx(L);
 	int ret = 0;
 
 	if (lctx == NULL)
@@ -142,43 +142,43 @@ static int luasched_handler(lua_State *L, luasched_ctx_t *ctx)
 	lctx->task = ctx->task;
 
 	ret = lunatik_ebpf_invoke(L, lctx->cb, 2);
-	luasched_handler_cleanup(lctx);
-	return ret < 0 ? ret : luasched_decision(L, ctx);
+	luascx_handler_cleanup(lctx);
+	return ret < 0 ? ret : luascx_decision(L, ctx);
 }
 
-__bpf_kfunc int bpf_luasched_run(char *key, size_t key__sz, struct task_struct *task, struct task_class *cls)
+__bpf_kfunc int bpf_luascx_run(char *key, size_t key__sz, struct task_struct *task, struct luascx_task_class *cls)
 {
 	int ret = -1;
 
 	if (!cls)
 		return -1;
 
-	luasched_ctx_t ctx = {
+	luascx_ctx_t ctx = {
 		.task = task,
 		.cls  = cls,
 	};
 
-	LUNATIK_EBPF_RUN(key, key__sz, luasched_handler, ret, &ctx);
+	LUNATIK_EBPF_RUN(key, key__sz, luascx_handler, ret, &ctx);
 	return ret;
 }
 
 LUNATIK_EBPF_END();
 
-LUNATIK_EBPF_KFUNC_DEFINE_SET(sched, bpf_luasched_run);
+LUNATIK_EBPF_KFUNC_DEFINE_SET(scx, bpf_luascx_run);
 
 /***
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
-* After calling this, `bpf_luasched_run` calls targeting this runtime invoke no Lua function:
+* After calling this, `bpf_luascx_run` calls targeting this runtime invoke no Lua function:
 * they log `no callback attached`, return -1 and leave the decision to the eBPF program.
 * @function detach
 * @treturn nil
 * @usage
-*   sched.detach()
-* @within sched
+*   scx.detach()
+* @within scx
 */
-static int luasched_detach(lua_State *L)
+static int luascx_detach(lua_State *L)
 {
-	luasched_ctx_t *lctx = lunatik_ebpf_findctx(L);
+	luascx_ctx_t *lctx = lunatik_ebpf_findctx(L);
 
 	if (lctx == NULL)
 		return 0;
@@ -190,15 +190,15 @@ static int luasched_detach(lua_State *L)
 
 /***
 * Registers a Lua callback function to be invoked by a sched_ext eBPF program.
-* When a sched_ext program calls the `bpf_luasched_run` kfunc, Lunatik will execute
+* When a sched_ext program calls the `bpf_luascx_run` kfunc, Lunatik will execute
 * the registered Lua `callback` associated with the current Lunatik runtime.
 * The runtime must be a hardirq one (`lunatik run -c hardirq <script>`).
 * Calling it again replaces the previous callback.
 *
 * The eBPF program declares the kfunc as:
 *
-*     extern int bpf_luasched_run(const char *key, size_t key__sz,
-*         struct task_struct *task, struct task_class *cls) __ksym;
+*     extern int bpf_luascx_run(char *key, size_t key__sz,
+*         struct task_struct *task, struct luascx_task_class *cls) __ksym;
 *
 * - `key`: the name of the Lunatik runtime, the script as given to `lunatik run`
 *   without `.lua` (e.g. "sched/policy"; a path keeps its directory). It is looked up
@@ -214,11 +214,11 @@ static int luasched_detach(lua_State *L)
 * @function attach
 * @tparam function callback Lua function to call. It receives one argument:
 *
-*   `ctx`: An `sched_ctx` context object used to inspect the task.
+*   `ctx`: An `scx_ctx` context object used to inspect the task.
 *
 *   It returns the decision, the dispatch queue and then the slice in nanoseconds,
-*   which `bpf_luasched_run` writes to `cls`; a nil one takes `SCX_DSQ_GLOBAL` or
-*   `SCX_SLICE_DFL`. When it returns neither, or raises, `bpf_luasched_run` returns -1
+*   which `bpf_luascx_run` writes to `cls`; a nil one takes `SCX_DSQ_GLOBAL` or
+*   `SCX_SLICE_DFL`. When it returns neither, or raises, `bpf_luascx_run` returns -1
 *   and the decision is left to the eBPF program; a value that is not a number is logged
 *   as `invalid task class` and answered the same way.
 * @treturn nil
@@ -226,31 +226,31 @@ static int luasched_detach(lua_State *L)
 *   closes` from a finalizer that runs at its close; or on allocation failure.
 * @usage
 *   -- sched/policy.lua, run with `lunatik run -c hardirq sched/policy`
-*   local sched = require("sched")
-*   local scx = require("linux.scx")
+*   local scx = require("scx")
+*   local ext = require("linux.scx")
 *
 *   local function my_scheduler(ctx)
 *     local task = ctx:task()
 *     if task:comm() == "bash" then
-*       return scx.DSQ_LOCAL, scx.SLICE_DFL
+*       return ext.DSQ_LOCAL, ext.SLICE_DFL
 *     end
 *   end
-*   sched.attach(my_scheduler)
+*   scx.attach(my_scheduler)
 *
 *   -- In eBPF C code, to call the above Lua function:
 *   -- char rt_key[] = "sched/policy"; // the script, without .lua
-*   -- int ret = bpf_luasched_run(rt_key, sizeof(rt_key), p, cls);
+*   -- int ret = bpf_luascx_run(rt_key, sizeof(rt_key), p, cls);
 * @see task
-* @within sched
+* @within scx
 */
-static int luasched_attach(lua_State *L)
+static int luascx_attach(lua_State *L)
 {
-	lunatik_checkruntime(L, luasched_class.name, LUNATIK_OPT_HARDIRQ);
+	lunatik_checkruntime(L, luascx_class.name, LUNATIK_OPT_HARDIRQ);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
-	luasched_detach(L); /* re-attaching replaces the previous callback */
+	luascx_detach(L); /* re-attaching replaces the previous callback */
 
-	lunatik_object_t *object = lunatik_newobject(L, &luasched_class, sizeof(luasched_ctx_t), LUNATIK_OPT_NONE);
-	luasched_ctx_t *ctx = (luasched_ctx_t *)object->private;
+	lunatik_object_t *object = lunatik_newobject(L, &luascx_class, sizeof(luascx_ctx_t), LUNATIK_OPT_NONE);
+	luascx_ctx_t *ctx = (luascx_ctx_t *)object->private;
 
 	lunatik_ebpf_attach(L, ctx, task_obj, luatask_new, NULL);
 
@@ -258,36 +258,36 @@ static int luasched_attach(lua_State *L)
 	return 0;
 }
 
-static const luaL_Reg luasched_lib[] = {
-	{"attach", luasched_attach},
-	{"detach", luasched_detach},
+static const luaL_Reg luascx_lib[] = {
+	{"attach", luascx_attach},
+	{"detach", luascx_detach},
 	{NULL, NULL}
 };
 
-LUNATIK_EBPF_NEWLIB(sched, luasched_lib, &luasched_class);
+LUNATIK_EBPF_NEWLIB(scx, luascx_lib, &luascx_class);
 
-LUNATIK_EBPF_KFUNC_INIT(sched, BPF_PROG_TYPE_STRUCT_OPS);
+LUNATIK_EBPF_KFUNC_INIT(scx, BPF_PROG_TYPE_STRUCT_OPS);
 
-LUNATIK_EBPF_EXIT(sched);
+LUNATIK_EBPF_EXIT(scx);
 #else
-static const luaL_Reg luasched_lib[] = {
+static const luaL_Reg luascx_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_NEWLIB(sched, luasched_lib, NULL);
+LUNATIK_NEWLIB(scx, luascx_lib, NULL);
 
-static int __init luasched_init(void)
+static int __init luascx_init(void)
 {
 	return 0;
 }
 
-static void __exit luasched_exit(void)
+static void __exit luascx_exit(void)
 {
 }
 #endif
 
-module_init(luasched_init);
-module_exit(luasched_exit);
+module_init(luascx_init);
+module_exit(luascx_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>");

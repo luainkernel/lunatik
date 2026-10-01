@@ -163,7 +163,7 @@ config LUNATIK_CPU
 	help
 	  CPU management and information.
 
-config LUNATIK_SCHED
+config LUNATIK_SCX
 	tristate "Lunatik Scheduler Support"
 	default m
 	select LUNATIK_TASK
