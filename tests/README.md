@@ -1606,6 +1606,16 @@ Regression tests for `luathread`.
   the collector releases it. A build that puts the runtime as the body returns
   fails the first case before the stop.
 
+- **module**: a thread whose body ends after its handle is gone gives
+  `luathread` back. A spawned driver threads a runtime whose body waits for a
+  go and leaves a sentinel that completes a completion when the runtime closes,
+  drops and collects the thread's handle, and gives the go: the kernel
+  thread's put is the thread's last, which releases it and closes the runtime,
+  and the reference the kernel thread takes before that put is given back as
+  it exits. Once the driver is stopped, `luathread`'s refcnt, read after the
+  CLI's driver collects the handles `lunatik stop` drops, is back where it was
+  before the driver ran, which a thread that keeps that reference fails.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call
