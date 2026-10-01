@@ -603,6 +603,17 @@ after the watch is stopped.
   allowed once the runtime is armed", since registering a driver sleeps.
   Skips unless the loaded `luahid` is the installed one and carries the
   refusal.
+- **device**: a driver's callbacks, driven by devices a C peer creates
+  through `/dev/uhid` after `hid.register()` returns. A probe receives the
+  device's table and the matching `id_table` entry, and two devices bound at
+  once each get one table, the one their `report_fixup`, `raw_event` and
+  `remove` receive. `report_fixup` edits the descriptor sysfs then shows; a
+  report `raw_event` returns on reaches hidraw, and one it raises on does not
+  and is logged. A probe that raises fails the bind with `ECANCELED`, logs
+  and gets no `remove`; one whose descriptor then fails to parse gets it. A
+  raw_event raising on a burst of reports logs fewer errors than the burst,
+  and a runtime stopped while it holds a device stops and lets the device
+  go. Skips without `/dev/uhid` (`CONFIG_UHID`), `CONFIG_HIDRAW` or gcc.
 
 ### io
 

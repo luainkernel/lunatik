@@ -16,8 +16,8 @@ local function debug(fmt, ...)
 	print(string.format(fmt, ...))
 end
 
-function driver:probe(id)
-	self.state = {x = 0, count = 0, lock = false}
+function driver:probe(hdev)
+	hdev.state = {x = 0, count = 0, lock = false}
 end
 
 local function forward(x0, x1)
@@ -37,7 +37,7 @@ local function count(state, direction)
 end
 
 function driver:raw_event(hdev, report, raw)
-	local state = self.state
+	local state = hdev.state
 	local button = raw:getbyte(0)
 
 	local left_down = (button & 1) == 1
