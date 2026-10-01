@@ -5,13 +5,16 @@
 -- Kernel-side script for the netlink session test (see session.sh).
 
 local session = require("netlink.session")
+local genl    = require("netlink.genl")
 local message = require("netlink.message")
 local struct  = require("struct")
 local nl      = require("linux.netlink")
 
-local nlmsgerr = struct(nl.layout.nlmsgerr)
+local nlmsgerr   = struct(nl.layout.nlmsgerr)
+local genlmsghdr = struct(require("linux.genl").layout.genlmsghdr)
 
 local MTYPE  = 16 -- arbitrary message-type token
+local CMD    = 3  -- arbitrary genl command token
 local ENOENT = -2
 
 local function sock_send(self, msg)
@@ -23,16 +26,21 @@ local function sock_receive(self)
 	return self.chunks[self.i] or ""
 end
 
+local function fake(class, chunks)
+	return class:new{sequence = 0, socket = {chunks = chunks, i = 0, send = sock_send, receive = sock_receive}}
+end
+
 local function fakesession(chunks)
-	return session:new{sequence = 0, socket = {chunks = chunks, i = 0, send = sock_send, receive = sock_receive}}
+	return fake(session, chunks)
 end
 
 local function errmsg(code)
 	return message.encode(nl.type.ERROR, 0, 1, nlmsgerr:pack(code))
 end
 
-local function sent(fake)
-	return message.parse(fake.socket.sent)[1].flags
+local function sent(o)
+	local msg = message.parse(o.socket.sent)[1]
+	return msg.flags, msg.body
 end
 
 -- dump must terminate (not hang) on an empty read
@@ -65,4 +73,12 @@ s = fakesession{errmsg(0)}
 s:talk(MTYPE, "", nl.flag.CREATE)
 assert(sent(s) == nl.flag.REQUEST | nl.flag.ACK | nl.flag.CREATE, "talk should send the flags it is given")
 print("netlink session: flags last and optional")
+
+-- genl's talk takes the command before the payload and the flags last
+local g = fake(genl, {errmsg(0)})
+g:talk(MTYPE, CMD, "", nl.flag.CREATE)
+local flags, body = sent(g)
+assert(flags == nl.flag.REQUEST | nl.flag.ACK | nl.flag.CREATE and genlmsghdr:unpack(body) == CMD,
+	"genl talk should send its command and the flags it is given")
+print("netlink session: genl talk sends command and flags")
 

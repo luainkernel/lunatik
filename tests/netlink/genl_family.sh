@@ -5,7 +5,7 @@
 #
 # Tests netlink.genl: resolves the always-present generic netlink controller
 # family ("nlctrl") to GENL_ID_CTRL; then, on the SAME instance, a GETFAMILY
-# call() round-trip (regression: family()/call() must drain the ACK so the
+# talk() round-trip (regression: family()/talk() must drain the ACK so the
 # socket stays in sync); a GETFAMILY dump() listing every family (nlctrl among
 # them); and that an unknown family raises.
 #
@@ -38,8 +38,8 @@ check_dmesg || { ktap_totals; exit 1; }
 dmesg | grep -q "netlink genl_family: nlctrl resolved" || fail "nlctrl family not resolved"
 ktap_pass "genl_family: nlctrl resolves to GENL_ID_CTRL"
 
-dmesg | grep -q "netlink genl_family: call round-trip ok" || fail "call() on the same instance failed (orphaned ACK?)"
-ktap_pass "genl_family: GETFAMILY call() round-trip on the same instance"
+dmesg | grep -q "netlink genl_family: talk round-trip ok" || fail "talk() on the same instance failed (orphaned ACK?)"
+ktap_pass "genl_family: GETFAMILY talk() round-trip on the same instance"
 
 dmesg | grep -q "netlink genl_family: dump lists families" || fail "dump() did not list the families"
 ktap_pass "genl_family: GETFAMILY dump() lists the families"

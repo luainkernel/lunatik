@@ -9,7 +9,8 @@
 # keeping a data reply and passing a zero error code; talk() raises the bare
 # symbolic error name on a kernel error reply; and the flags come last and
 # optional, request() sending NLM_F_REQUEST alone without them and talk()
-# sending the ones it is given beside NLM_F_ACK.
+# sending the ones it is given beside NLM_F_ACK; netlink.genl's talk() sends
+# its command in the generic netlink header and the flags it is given.
 #
 # Usage: sudo bash tests/netlink/session.sh
 
@@ -25,7 +26,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 5
+ktap_plan 6
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -51,6 +52,9 @@ ktap_pass "session: talk raises on a netlink error"
 
 dmesg | grep -q "netlink session: flags last and optional" || fail "request or talk sent the wrong flags"
 ktap_pass "session: flags come last and optional in request and talk"
+
+dmesg | grep -q "netlink session: genl talk sends command and flags" || fail "genl talk sent the wrong command or flags"
+ktap_pass "session: genl talk takes the command, the payload and the flags last"
 
 ktap_totals
 
