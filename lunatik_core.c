@@ -220,7 +220,7 @@ static const luaL_Reg lunatik_stub_lib[] = {
 *   calling kernel thread, or a fatal signal to any other task, ends its wait for the runtime's
 *   lock
 */
-int lunatik_lstop(lua_State *L)
+static int lunatik_lstop(lua_State *L)
 {
 	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_class);
 

@@ -91,7 +91,8 @@ static int luathread_shouldstop(lua_State *L)
 /***
 * Stops a running kernel thread.
 * Signals the thread to stop and waits for it to exit. A body waiting for a runtime's lock,
-* or for the lock a shared object's method takes, leaves that wait with "EINTR".
+* or for the lock a shared object's method takes, leaves that wait with "EINTR". A
+* to-be-closed variable holding the thread stops it the same way.
 * @function stop
 * @treturn nil
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
@@ -99,7 +100,8 @@ static int luathread_shouldstop(lua_State *L)
 *   sends a netlink request or joins a multicast group waits on the RTNL that task holds;
 *   "not allowed from the runtime itself" from under the lock of the thread's runtime, the
 *   contexts `runtime:stop` names, the thread's own body among them, where the stop would wait
-*   on a body that runs under that lock
+*   on a body that runs under that lock; "EINTR" if the stop of the calling kernel thread, or a
+*   fatal signal to any other task, ends its wait for another stop of the same thread
 * @usage
 * my_thread:stop()
 */
@@ -109,10 +111,15 @@ static int luathread_stop(lua_State *L)
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luathread_class);
 	luathread_t *thread = (luathread_t *)object->private;
 	lunatik_object_t *runtime = thread->runtime;
+
+	lunatik_try(L, lunatik_lockkillable, object); /* a sharer's stop waits for this one */
 	struct task_struct *task = thread->task;
+	if (task != NULL && lunatik_isowner(runtime)) { /* the body runs under its lock */
+		lunatik_unlock(object);
+		luaL_error(L, LUNATIK_ERR_OWNER);
+	}
 
 	if (task != NULL) {
-		lunatik_checkowner(L, runtime); /* the body runs under its lock */
 		int result = kthread_stop(task);
 
 		thread->task = NULL;
@@ -128,6 +135,7 @@ static int luathread_stop(lua_State *L)
 	}
 	else
 		pr_warn("[%p] thread has already stopped\n", thread);
+	lunatik_unlock(object);
 	return 0;
 }
 
@@ -170,6 +178,7 @@ static const luaL_Reg luathread_lib[] = {
 
 static const luaL_Reg luathread_mt[] = {
 	{"__gc", lunatik_deleteobject},
+	{"__close", luathread_stop},
 	{"stop", luathread_stop},
 	{"task", luathread_task},
 	{NULL, NULL}
@@ -229,7 +238,9 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 * @tparam runtime runtime A sleepable Lunatik runtime whose script returns a function.
 * @tparam string name A descriptive name for the kernel thread.
 * @param ... Lunatik objects passed to the thread body.
-* @treturn thread A new thread object.
+* @treturn thread the thread, which this call does not keep: dropping it stops nothing, the
+*   thread runs until its body returns or `stop`, and once the handle is collected nothing can
+*   stop it.
 * @raise "not allowed while the runtime closes" from a finalizer that runs at its close; "not
 *   allowed before the runtime is armed" from a script body; "IRQ runtime cannot spawn threads" for
 *   a softirq or hardirq runtime; "stopped runtime"; "invalid object" or "cannot share SINGLE
