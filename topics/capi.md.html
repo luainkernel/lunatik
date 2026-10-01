@@ -1620,6 +1620,20 @@ Each class can only be instantiated from a runtime whose context matches
 its <code>opt</code>; the constructor enforces this via
 <a href="#lunatik_checkruntime"><code>lunatik_checkruntime</code></a>.</p>
 
+<h3 id="lunatik_release">LUNATIK_RELEASE</h3>
+
+<pre>
+#define LUNATIK_RELEASE "&lt;major&gt;.&lt;minor&gt;"
+#define LUNATIK_VERSION "Lunatik " LUNATIK_RELEASE
+</pre>
+
+
+<p><code>LUNATIK_RELEASE</code> is the release, spelled as a module version takes it, and <code>LUNATIK_VERSION</code> the
+string a script reads as <code>_LUNATIK_VERSION</code> and <code>lunatik -V</code> prints. A module declares
+<code>MODULE_VERSION(LUNATIK_RELEASE)</code> beside its license: modpost writes the <code>srcversion</code> that
+<code>lunatik reload</code> compares only for a module that declares a version, unless the kernel sets
+<code>CONFIG_MODULE_SRCVERSION_ALL</code>.</p>
+
 <h3 id="writing-a-binding">Writing a binding</h3>
 
 <p>A kernel module exposing a Lua library <code>foo</code> whose objects count: the private structure, its
@@ -1687,6 +1701,7 @@ entry points.</p>
 <span class="function-name">module_init</span>(luafoo_init);
 <span class="function-name">module_exit</span>(luafoo_exit);
 <span class="function-name">MODULE_LICENSE</span>(<span class="string">"Dual MIT/GPL"</span>);
+<span class="function-name">MODULE_VERSION</span>(LUNATIK_RELEASE);
 </pre>
 
 
@@ -1880,7 +1895,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-09-29 12:28:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:20:56</span>
 </div>
 </footer>
 </body>

@@ -593,6 +593,7 @@ window.LUNATIK_SEARCH = [
 ["LUNATIK_OPENER","topics/capi.md.html#lunatik_opener","Guide · Lunatik C API"],
 ["LUNATIK_CLASSES","topics/capi.md.html#lunatik_classes","Guide · Lunatik C API"],
 ["LUNATIK_NEWLIB","topics/capi.md.html#lunatik_newlib","Guide · Lunatik C API"],
+["LUNATIK_RELEASE","topics/capi.md.html#lunatik_release","Guide · Lunatik C API"],
 ["Writing a binding","topics/capi.md.html#writing-a-binding","Guide · Lunatik C API"],
 ["Memory","topics/capi.md.html#memory","Guide · Lunatik C API"],
 ["lunatik_malloc","topics/capi.md.html#lunatik_malloc","Guide · Lunatik C API"],

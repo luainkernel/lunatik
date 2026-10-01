@@ -1103,6 +1103,17 @@ Each class can only be instantiated from a runtime whose context matches
 its `opt`; the constructor enforces this via
 [`lunatik_checkruntime`](#lunatik_checkruntime).
 
+### LUNATIK\_RELEASE
+```C
+#define LUNATIK_RELEASE	"<major>.<minor>"
+#define LUNATIK_VERSION	"Lunatik " LUNATIK_RELEASE
+```
+`LUNATIK_RELEASE` is the release, spelled as a module version takes it, and `LUNATIK_VERSION` the
+string a script reads as `_LUNATIK_VERSION` and `lunatik -V` prints. A module declares
+`MODULE_VERSION(LUNATIK_RELEASE)` beside its license: modpost writes the `srcversion` that
+`lunatik reload` compares only for a module that declares a version, unless the kernel sets
+`CONFIG_MODULE_SRCVERSION_ALL`.
+
 ### Writing a binding
 A kernel module exposing a Lua library `foo` whose objects count: the private structure, its
 checker, a method table carrying `__gc` and `__close`, the class, a constructor, and the module's
@@ -1168,6 +1179,7 @@ static void __exit luafoo_exit(void)
 module_init(luafoo_init);
 module_exit(luafoo_exit);
 MODULE_LICENSE("Dual MIT/GPL");
+MODULE_VERSION(LUNATIK_RELEASE);
 ```
 A script then runs `local foo = require("foo")` and `foo.new():inc()`.
 
