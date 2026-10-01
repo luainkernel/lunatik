@@ -5,7 +5,8 @@
 #
 # Holds the vendored Lua to the contract the README documents, which the kernel
 # patch produces and no other suite asserts: a lost guard compiles and the rest
-# of the suite stays green, so a bump of lua/ is read against these.
+# of the suite stays green, so a bump of lua/ is read against these. util holds
+# the util module to its documentation on that Lua's stack.
 #
 # floats:      no float literal, no '^', integer '/' on constants, registers
 #              and coerced strings, no __div or __pow, no libm, no float
@@ -35,6 +36,9 @@
 #              not open, loadfile returns, and dofile raises, "cannot open
 #              <file>: " and the errno's name, ENOENT for a missing file and
 #              ENOTDIR for one under a regular file.
+# util:        bin2hex encodes every byte value in a string of 2048 bytes,
+#              past the 200 slots of LUAI_MAXSTACK, and returns the string
+#              alone, the empty string included.
 #
 # Usage: sudo bash tests/lua/run.sh
 
@@ -42,7 +46,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="floats identifiers require loadfile"
+TESTS="floats identifiers require loadfile util"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup()
