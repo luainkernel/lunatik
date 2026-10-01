@@ -6,6 +6,7 @@
 local comp = require("crypto").comp
 local data = require("data")
 local test = require("tests.lib").test
+local closing = require("tests.crypto.closing")
 
 test("COMP compress empty string (error)", function()
 	local c = comp"lz4"
@@ -60,5 +61,9 @@ test("COMP refuses an object of another class, naming crypto.comp", function()
 	local status, err = pcall(c.compress, data.new(8), "x", 16)
 	assert(not status, "compress accepted an object of another class")
 	assert(err:find("crypto.comp expected, got data", 1, true), "compress raised something else: " .. err)
+end)
+
+test("COMP close releases the transform, and __close is close", function()
+	closing.check(comp("lz4"), "compress", "data", 64)
 end)
 

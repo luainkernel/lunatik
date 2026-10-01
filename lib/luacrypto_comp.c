@@ -62,11 +62,19 @@ LUACRYPTO_COMP_OPERATION(compress);
 */
 LUACRYPTO_COMP_OPERATION(decompress);
 
+/***
+* Releases the transform.
+* A to-be-closed variable holding the object releases it the same way. Calling it again does
+* nothing, and every other method raises "closed object" afterwards.
+* @function close
+* @treturn nil
+*/
 static const luaL_Reg luacrypto_comp_mt[] = {
 	{"compress", luacrypto_comp_compress},
 	{"decompress", luacrypto_comp_decompress},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
+	{"close", lunatik_closeobject},
 	{NULL, NULL}
 };
 

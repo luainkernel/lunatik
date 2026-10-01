@@ -22,7 +22,7 @@ local hkdf = {}
 -- transform is freed when it is collected.
 -- @function hkdf:close
 function hkdf:close()
-	self.tfm:__close()
+	self.tfm:close()
 end
 
 hkdf.__close = hkdf.close

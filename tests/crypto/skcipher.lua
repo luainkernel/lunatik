@@ -5,6 +5,7 @@
 
 local skcipher = require("crypto").skcipher
 local util = require("util")
+local closing = require("tests.crypto.closing")
 local test = require("tests.lib").test
 local hex2bin = util.hex2bin
 
@@ -101,5 +102,9 @@ test("SKCIPHER AES-128-ECB round-trip without IV", function()
 	local ciphertext = c:encrypt("", plaintext)
 	local decrypted = c:decrypt("", ciphertext)
 	assert(decrypted == plaintext, "ECB round-trip mismatch")
+end)
+
+test("SKCIPHER close releases the transform, and __close is close", function()
+	closing.check(skcipher("cbc(aes)"), "ivsize")
 end)
 
