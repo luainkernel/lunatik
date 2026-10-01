@@ -631,6 +631,11 @@ after the watch is stopped.
   and the composite and private names the curated `include` list drops
   (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_IN_IGNORED`,
   `FS_DN_MULTISHOT`) are absent.
+- **notifier**: `linux.netdev` carries the events of `enum netdev_cmd` and
+  `linux.vt` the notifier events of `<linux/vt.h>`, and neither carries
+  another name sharing its prefix: the netdev netlink attributes, transmit
+  codes and LAG types under `NETDEV_`, and the uapi ioctls, `vt_mode` values
+  and `VT_WAITEVENT` bits under `VT_`.
 
 - **lookup**: `linux.lookup` answers `nil` for a symbol kallsyms does not
   carry and a lightuserdata for one it does, and rejects a non-string
