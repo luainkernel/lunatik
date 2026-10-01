@@ -6,7 +6,7 @@
 /***
 * Filesystem notification.
 * Places marks on filesystem objects and hands the events they report to a Lua
-* callback. Event masks are the `linux.fs` bits, named without the `FS_` prefix:
+* callback. Event masks are the `linux.fsnotify` bits, named without the `FS_` prefix:
 * `ACCESS`, `MODIFY`, `ATTRIB`, `CLOSE_WRITE`, `CLOSE_NOWRITE`, `OPEN`, `MOVED_FROM`,
 * `MOVED_TO`, `CREATE`, `DELETE`, `DELETE_SELF`, `MOVE_SELF`, `OPEN_EXEC`, `UNMOUNT`,
 * `Q_OVERFLOW`, `ERROR` and `RENAME`; the flags `EVENT_ON_CHILD` and `ISDIR`; and the
@@ -320,7 +320,7 @@ static luafsnotify_mark_t *luafsnotify_attachmark(lua_State *L, luafsnotify_t *w
 * Resolves `path` and marks what `kind` names for the events in `mask`: the
 * inode it resolves to, the mount it is on, or its whole filesystem. An inode
 * mark on a directory reports events on the files directly inside it only when
-* `mask` carries `linux.fs.EVENT_ON_CHILD`, and never on anything deeper; a
+* `mask` carries `linux.fsnotify.EVENT_ON_CHILD`, and never on anything deeper; a
 * mount or superblock mark reports every file it covers without it.
 *
 * `EVENT_ON_CHILD` reaches a file through its parent in the directory cache. A
@@ -330,7 +330,7 @@ static luafsnotify_mark_t *luafsnotify_attachmark(lua_State *L, luafsnotify_t *w
 * never the directory's.
 * @function mark
 * @tparam string path path of the object to mark
-* @tparam integer mask event mask, a combination of `linux.fs` bits
+* @tparam integer mask event mask, a combination of `linux.fsnotify` bits
 * @tparam[opt] string kind `"inode"` (default), `"mount"` or `"sb"`; `"mount"`
 *   needs kernel 6.10 or later
 * @treturn fsnotify_mark the mark, which the watch keeps until it is removed
@@ -427,7 +427,7 @@ static int luafsnotify_stop(lua_State *L)
 * recalculates: `path` is resolved once more, and an event in between is not
 * reported. The handle stays the same.
 * @function mask
-* @tparam[opt] integer mask the new event mask, a combination of `linux.fs` bits
+* @tparam[opt] integer mask the new event mask, a combination of `linux.fsnotify` bits
 * @treturn integer the mark's event mask
 * @raise if the mark has been removed, if `mask` carries a permission event on
 *   a kernel built without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`, or if the mark
@@ -463,7 +463,7 @@ static int luafsnotify_mask(lua_State *L)
 * event mask carries, and the ignore mask a script sets holds until it sets
 * another: a write to the object does not clear it.
 * @function ignore
-* @tparam[opt] integer mask the events to ignore, a combination of `linux.fs` bits
+* @tparam[opt] integer mask the events to ignore, a combination of `linux.fsnotify` bits
 * @treturn integer the mark's ignore mask
 * @raise if the mark has been removed
 * @usage mark:ignore(fs.OPEN)
@@ -518,7 +518,7 @@ static void luafsnotify_releasemark(void *private)
 * Returns the directory entry name the event is about.
 * Carried by the directory entry events (`CREATE`, `DELETE`, `MOVED_FROM`,
 * `MOVED_TO`, and `RENAME`, whose name is the old one) and by an event a parent
-* directory marked with `linux.fs.EVENT_ON_CHILD` is interested in; an event
+* directory marked with `linux.fsnotify.EVENT_ON_CHILD` is interested in; an event
 * only the object's own mark reports carries none.
 * @function name
 * @treturn string entry name, or `nil` when the event carries none
@@ -573,7 +573,7 @@ static int luafsnotify_dir(lua_State *L)
 
 /***
 * Tells whether the event is about a directory.
-* Reads `linux.fs.ISDIR` off the mask, so it answers for every event.
+* Reads `linux.fsnotify.ISDIR` off the mask, so it answers for every event.
 * @function isdir
 * @treturn boolean
 * @raise if the event is used after its callback returned
@@ -677,7 +677,7 @@ static luafsnotify_t *luafsnotify_newwatch(lua_State *L, lunatik_object_t *runti
 * Allocates an `fsnotify` group whose events are delivered to `callback`.
 * Nothing arrives until `watch:mark` places a mark. An event reaches the
 * callback once per watch, however many of its marks match it: when a file and
-* its parent directory, marked with `linux.fs.EVENT_ON_CHILD`, are both marked
+* its parent directory, marked with `linux.fsnotify.EVENT_ON_CHILD`, are both marked
 * by the same watch, an event on the file arrives once, tagged
 * `EVENT_ON_CHILD` and carrying the entry's `name` and `dir`.
 *
@@ -687,7 +687,7 @@ static luafsnotify_t *luafsnotify_newwatch(lua_State *L, lunatik_object_t *runti
 * the same runtime.
 * @function watch
 * @tparam function callback invoked as `callback(mask, event)`, where `mask` is
-*   the event mask that fired, testable against `linux.fs` bits, and `event` is
+*   the event mask that fired, testable against `linux.fsnotify` bits, and `event` is
 *   an `fsnotify_event` valid only for the length of the call. For a permission
 *   event its return value is the verdict, an `fsnotify.action`; for every other
 *   event it is ignored.

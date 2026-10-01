@@ -5,7 +5,7 @@
 -- Kernel-side script for the fsnotify upgrade test (see upgrade.sh).
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local GATED <const> = "/tmp/lunatik-fsnotify/mnt/gated"
 

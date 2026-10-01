@@ -2,10 +2,10 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- Kernel-side script for the linux.fs test (see run.sh).
+-- Kernel-side script for the linux.fsnotify test (see run.sh).
 --
 
-local fs = require("linux.fs")
+local fs = require("linux.fsnotify")
 local test = require("util").test
 local check = require("tests.linux.check")
 
@@ -24,11 +24,11 @@ local masks = {
 -- composites and private names the include list leaves out
 local dropped = { "MOVE", "IN_IGNORED", "DN_MULTISHOT", "EVENTS_POSS_ON_CHILD" }
 
-test("linux.fs carries every event mask at its uapi value", function()
-	check.carries("fs", fs, masks)
+test("linux.fsnotify carries every event mask at its uapi value", function()
+	check.carries("fsnotify", fs, masks)
 end)
 
-test("every linux.fs entry is one bit and no bit repeats", function()
+test("every linux.fsnotify entry is one bit and no bit repeats", function()
 	local bits = 0
 	for name, value in pairs(fs) do
 		assert(value ~= 0 and value & (value - 1) == 0, name .. " is not a single bit: " .. value)
@@ -37,7 +37,7 @@ test("every linux.fs entry is one bit and no bit repeats", function()
 	end
 end)
 
-test("linux.fs carries no composite or private name", function()
+test("linux.fsnotify carries no composite or private name", function()
 	for _, name in ipairs(dropped) do
 		assert(fs[name] == nil, name .. " is present")
 	end

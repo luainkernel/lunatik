@@ -5,7 +5,7 @@
 -- Kernel-side kthread body for the fsnotify thread test (see thread.sh).
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local WATCHED <const> = "/tmp/lunatik-fsnotify/watched"
 

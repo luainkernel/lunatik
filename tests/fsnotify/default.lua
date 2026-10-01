@@ -5,7 +5,7 @@
 -- Kernel-side script for the fsnotify default test (see default.sh).
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local MOUNT     <const> = "/tmp/lunatik-fsnotify/mnt"
 local MAX_ERRNO <const> = 4095

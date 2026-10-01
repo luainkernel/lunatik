@@ -6,7 +6,7 @@
 -- that is never stopped, so its group is released from the object's release.
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local SCRATCH <const> = "/tmp/lunatik-fsnotify"
 

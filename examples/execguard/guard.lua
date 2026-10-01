@@ -11,7 +11,7 @@
 -- LSM that decides the exec later, as AppArmor does, can still refuse it.
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 local set      = require("set")
 
 local format = string.format

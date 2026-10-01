@@ -5,7 +5,7 @@
 -- Kernel-side script for the fsnotify child test (see child.sh).
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local SCRATCH <const> = "/tmp/lunatik-fsnotify"
 

@@ -5,7 +5,7 @@
 -- Kernel-side script for the fsnotify deny test (see deny.sh).
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local MOUNT     <const> = "/tmp/lunatik-fsnotify/mnt"
 local GATED     <const> = MOUNT .. "/gated"

@@ -7,7 +7,7 @@
 -- own lock is never the one the guarded runtime holds.
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local SCRATCH <const> = "/tmp/lunatik-fsnotify"
 

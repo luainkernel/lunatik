@@ -5,7 +5,7 @@
 -- Kernel-side script for the fsnotify overlap test (see overlap.sh).
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local SCRATCH <const> = "/tmp/lunatik-fsnotify"
 local WATCHED <const> = SCRATCH .. "/watched"

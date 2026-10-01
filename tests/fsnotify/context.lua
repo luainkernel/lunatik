@@ -5,7 +5,7 @@
 -- Kernel-side script for the fsnotify context test (see context.sh).
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 local test     = require("util").test
 
 local SCRATCH <const> = "/tmp/lunatik-fsnotify"

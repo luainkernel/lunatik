@@ -25,7 +25,7 @@ return {
 		desc = "Ethernet protocol IDs." },
 	{ header = "linux/stat.h", prefix = "S_", module = "stat",
 		desc = "File mode bits." },
-	{ header = "linux/fsnotify_backend.h", prefix = "FS_", module = "fs",
+	{ header = "linux/fsnotify_backend.h", prefix = "FS_", module = "fsnotify",
 		desc = "Filesystem notification event masks and flags.",
 		include = { "ACCESS", "MODIFY", "ATTRIB", "CLOSE_WRITE", "CLOSE_NOWRITE", "OPEN",
 			"MOVED_FROM", "MOVED_TO", "CREATE", "DELETE", "DELETE_SELF", "MOVE_SELF",

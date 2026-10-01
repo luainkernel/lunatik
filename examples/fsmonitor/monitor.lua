@@ -7,7 +7,7 @@
 -- pid of whoever did it.
 
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 
 local format = string.format
 
