@@ -8,7 +8,7 @@
 local util = require("util")
 
 local MISSING <const> = "lunatik_no_such_module"
-local REFUSAL <const> = "not allowed after module load"
+local REFUSAL <const> = "not allowed once the runtime is armed"
 local IO <const> = "io"
 local IO_REFUSAL <const> = "'io': process-context class in interrupt-context runtime"
 

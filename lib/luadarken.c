@@ -109,12 +109,12 @@ static void luadarken_decrypt(lua_State *L, luadarken_request_t *r, char *buf)
 * @tparam string iv 12-byte initialization vector (binary).
 * @tparam string key 32-byte AES-256 key (binary).
 * @return The return values from the executed script.
-* @raise "IV must be 12 bytes", "key must be 32 bytes", "not allowed after module load" from an
-*   interrupt-context runtime past its body, "EBADMSG" when the tag does not match (a wrong key or
-*   IV, or a ciphertext altered or shorter than the tag), the errno name of a failed transform
-*   allocation, key setting or decryption, "not enough memory", the load error of the decrypted
-*   text ("attempt to load a binary chunk (mode is 't')" for a precompiled script), or the error
-*   the script raises.
+* @raise "IV must be 12 bytes", "key must be 32 bytes", "not allowed once the runtime is armed" from
+*   an interrupt-context runtime past its body, "EBADMSG" when the tag does not match (a wrong key
+*   or IV, or a ciphertext altered or shorter than the tag), the errno name of a failed transform
+*   allocation, key setting or decryption, "not enough memory", the load error of the decrypted text
+*   ("attempt to load a binary chunk (mode is 't')" for a precompiled script), or the error the
+*   script raises.
 */
 static int luadarken_run(lua_State *L)
 {

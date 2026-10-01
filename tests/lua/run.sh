@@ -16,10 +16,10 @@
 # require:     a softirq and a hardirq runtime resumed past their body, the
 #              armed state a hook calls from, get back a module the body
 #              loaded and are refused a require that would search
-#              package.path, and package.searchpath, with "not allowed after
-#              module load", since opening a file sleeps; the body allows
-#              both. The body empties package.path, so a build without the
-#              refusal opens no file from the callback and answers "not
+#              package.path, and package.searchpath, with "not allowed once
+#              the runtime is armed", since opening a file sleeps; the body
+#              allows both. The body empties package.path, so a build without
+#              the refusal opens no file from the callback and answers "not
 #              found" there, as the body's own require does. The body and
 #              the callback are refused require("io") with "'io':
 #              process-context class in interrupt-context runtime"; without

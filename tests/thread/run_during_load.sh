@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Regression test: calling runner.spawn() during module load must not hang,
+# Regression test: calling runner.spawn() from a script body must not hang,
 # and the runtime the refused spawn created must not stay registered.
 #
 # Prior to the fix, thread.run() (invoked by runner.spawn) called kthread_run()
@@ -31,16 +31,16 @@ ktap_plan 1
 
 mark_dmesg
 output=$(timeout $TIMEOUT lunatik run "$SCRIPT" 2>&1)
-[ $? -eq 124 ] && fail "thread.run() hung during module load"
+[ $? -eq 124 ] && fail "thread.run() hung in the script body"
 echo "$output" | sed 's/^/# (expected) /'
 
-echo "$output" | grep -q "not allowed during module load" || \
-	fail "expected 'not allowed during module load' error not found"
+echo "$output" | grep -q "not allowed before the runtime is armed" || \
+	fail "expected 'not allowed before the runtime is armed' error not found"
 listed=$(lunatik list)
 case "$listed" in
 	*"$DUMMY"*) fail "the refused spawn left the runtime registered: $listed" ;;
 esac
-ktap_pass "runner.spawn() during module load returns error instead of hanging"
+ktap_pass "runner.spawn() from a script body returns error instead of hanging"
 
 ktap_totals
 

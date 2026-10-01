@@ -68,7 +68,7 @@ hardirq runtime raises `'<class>': process-context class in interrupt-context ru
 The script body itself runs once, in process context, before the runtime is armed, so registering
 hooks at its top level may sleep. Everything that runs later, from a hook, may not. A runtime is
 armed once its script body returns; from then on, in a softirq or hardirq runtime, a call that
-sleeps, such as creating or stopping a kprobe, raises `not allowed after module load`.
+sleeps, such as creating or stopping a kprobe, raises `not allowed once the runtime is armed`.
 
 ## Kernel threads
 

@@ -52,7 +52,7 @@ In a runtime created in softirq or hardirq context, `io` is nil, `require("io")`
 at the top level of the script, since opening a file sleeps: once the runtime is armed, a `require`
 of a module the body did not load, and
 [package.searchpath](https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath), raise
-`not allowed after module load`, and `loadfile` fails, and `dofile` raises, with
+`not allowed once the runtime is armed`, and `loadfile` fails, and `dofile` raises, with
 `cannot load file on non-sleepable runtime`.
 
 

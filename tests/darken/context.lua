@@ -8,7 +8,7 @@ local lunatik = require("lunatik")
 local test    = require("util").test
 
 local RECEIVER <const> = "tests/darken/context_recv"
-local REFUSAL  <const> = "not allowed after module load"
+local REFUSAL  <const> = "not allowed once the runtime is armed"
 
 local function resume(context)
 	local runtime <close> = lunatik.runtime(RECEIVER, context)

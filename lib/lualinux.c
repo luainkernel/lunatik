@@ -86,8 +86,8 @@ static int lualinux_random(lua_State *L)
 * default), `UNINTERRUPTIBLE`, `KILLABLE` or `IDLE`; any other raises "invalid task state".
 * @treturn integer remaining time in milliseconds
 * if the sleep was interrupted before the full timeout, or 0 if the full timeout elapsed.
-* @raise Error if an invalid task state is provided, and "not allowed after module load" from an
-*   interrupt-context runtime past its body.
+* @raise Error if an invalid task state is provided, and "not allowed once the runtime is armed"
+*   from an interrupt-context runtime past its body.
 * @usage
 *   local task = require("linux.task")
 *   linux.schedule(1000) -- Sleep for 1 second (interruptible)
@@ -239,9 +239,9 @@ static int lualinux_hwaddr(lua_State *L)
 *   namespace of the task making the call: the `lunatik` process for a script's body, the
 *   initial one for a kernel thread.
 * @treturn integer inode number of the namespace.
-* @raise `ESRCH` if no task has that pid, and "not allowed after module load" for a pid from an
-*   interrupt-context runtime past its body, where the task's lock would be taken in softirq or
-*   hardirq.
+* @raise `ESRCH` if no task has that pid, and "not allowed once the runtime is armed" for a pid
+*   from an interrupt-context runtime past its body, where the task's lock would be taken in
+*   softirq or hardirq.
 * @usage
 *   local home = linux.netns()
 */

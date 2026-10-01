@@ -12,7 +12,7 @@ local nf        = require("linux.nf")
 local CMD, PAYLOAD = 1, 1        -- arbitrary genl command and attribute type
 local UNICAST_PORT = 0x4c554e41  -- fixed port id the subscriber binds to
 local ABSENT_PORT  = 0x7fffffff  -- unbound port id: a unicast to it must drop
-local ARMED = "not allowed after module load"
+local ARMED = "not allowed once the runtime is armed"
 
 local family = channel.new("lunatiktest")
 local mcast = message.attrs{[PAYLOAD] = "channel multicast ok"}

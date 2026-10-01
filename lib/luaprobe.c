@@ -274,8 +274,8 @@ LUNATIK_PRIVATECHECKER(luaprobe_checkowned, luaprobe_t *, &luaprobe_class,
 * From a handler this raises: the way to stop delivering there is to return early on a flag
 * the script owns, and the kprobe is unregistered when the runtime stops.
 * @function stop
-* @raise if the percpu object owns this probe, or `not allowed after module load` once the
-*   runtime is armed (its script body has returned): unregister_kprobe sleeps, and an
+* @raise if the percpu object owns this probe, or `not allowed once the runtime is armed`
+*   (its script body has returned): unregister_kprobe sleeps, and an
 *   armed runtime runs with its lock held and interrupts off
 */
 static int luaprobe_stop(lua_State *L)
@@ -291,7 +291,7 @@ static int luaprobe_stop(lua_State *L)
 * @function enable
 * @tparam boolean flag true to enable, false to disable
 * @raise if the probe has been stopped, if the percpu object owns this probe, or
-*   `not allowed after module load` once the runtime is armed (its script body has
+*   `not allowed once the runtime is armed` (its script body has
 *   returned): enable_kprobe and disable_kprobe sleep, and an armed runtime runs with its
 *   lock held and interrupts off
 */
@@ -338,7 +338,7 @@ static int luaprobe_new(lua_State *L);
 * @raise `runtime context mismatch` unless the runtime is hardirq; if registration fails; in a
 *   percpu script, if this runtime already registered the same symbol or address, or if another
 *   runtime of the set registered this target with a different post handler; or
-*   `not allowed after module load` once the runtime is armed (its script body has returned):
+*   `not allowed once the runtime is armed` (its script body has returned):
 *   register_kprobe sleeps, and an armed runtime runs with its lock held and interrupts off
 * @within probe
 */

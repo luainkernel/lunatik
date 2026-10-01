@@ -6,7 +6,7 @@
 # Regression test for the thread.run class check: an object of another class
 # (a data buffer here) must be refused as the runtime argument, instead of
 # having its private data used as a Lua state. The call runs in a spawned
-# thread body because thread.run is not allowed during module load.
+# thread body because thread.run is not allowed before the runtime is armed.
 #
 # Usage: sudo bash tests/thread/foreign_object.sh
 
