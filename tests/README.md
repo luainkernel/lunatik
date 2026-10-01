@@ -396,6 +396,9 @@ permission mark allows and only asks whether the mask is taken.
   a second mark carrying both events and ignoring `FS_OPEN` reports only the
   write, so the ignore mask suppresses what it names and nothing else, and a
   read after that write is silent too, so a write does not clear it.
+  `watch:mark`, `mark:mask` and `mark:ignore` refuse a mask negative or past 32
+  bits as out of bounds, leaving the mark's mask as it was; both masks read back
+  0 once set to it, and the ignore mask all 32 bits.
 
 - **marks**: the mark as an object. `watch:find` returns the mark the watch
   placed, `nil` where it has none and `nil` after `remove`, a second mark on
