@@ -90,8 +90,8 @@ local function replies(sock, last)
 end
 
 -- Sends one request and drains its complete reply, up to the message that matches `last`.
-local function transact(session, mtype, flags, payload, last)
-	session:request(mtype, flags, payload)
+local function transact(session, mtype, payload, flags, last)
+	session:request(mtype, payload, flags)
 	return replies(session.socket, last)
 end
 
@@ -113,11 +113,11 @@ end
 ---
 -- Sends one request (`NLM_F_REQUEST` plus `flags`) with a fresh sequence number, without waiting for a reply.
 -- @tparam integer mtype message type.
--- @tparam integer flags additional NLM_F_* flags.
 -- @tparam string payload the family header and attributes.
-function session:request(mtype, flags, payload)
+-- @tparam[opt=0] integer flags additional NLM_F_* flags.
+function session:request(mtype, payload, flags)
 	self.sequence = self.sequence + 1
-	self.socket:send(message.encode(mtype, nl.flag.REQUEST | flags, self.sequence, payload))
+	self.socket:send(message.encode(mtype, nl.flag.REQUEST | (flags or 0), self.sequence, payload))
 end
 
 ---
@@ -127,19 +127,19 @@ end
 -- @treturn table the parsed reply messages (the trailing `NLMSG_DONE` included; see `netlink.message.parse`).
 -- @raise on a netlink error reply.
 function session:dump(mtype, payload)
-	return transact(self, mtype, nl.flag.DUMP, payload, isdone)
+	return transact(self, mtype, payload, nl.flag.DUMP, isdone)
 end
 
 ---
 -- Sends a request with `NLM_F_ACK` and drains the reply up to the kernel
 -- acknowledgment, keeping the socket in sync.
 -- @tparam integer mtype message type.
--- @tparam[opt=0] integer flags extra NLM_F_* flags.
 -- @tparam string payload the family header and attributes.
+-- @tparam[opt=0] integer flags extra NLM_F_* flags.
 -- @treturn table the parsed reply messages (the trailing ack included).
 -- @raise on a netlink error reply.
-function session:talk(mtype, flags, payload)
-	return transact(self, mtype, nl.flag.ACK | (flags or 0), payload, isack)
+function session:talk(mtype, payload, flags)
+	return transact(self, mtype, payload, nl.flag.ACK | (flags or 0), isack)
 end
 
 ---

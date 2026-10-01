@@ -78,7 +78,7 @@ end
 -- @raise on a netlink error.
 function link:set(opts)
 	local flags = opts.up and rtnl.iff.UP or 0
-	self:talk(self.SET, nil, ifinfomsg:pack(sk.af.UNSPEC, 0, opts.ifindex, flags, rtnl.iff.UP))
+	self:talk(self.SET, ifinfomsg:pack(sk.af.UNSPEC, 0, opts.ifindex, flags, rtnl.iff.UP))
 end
 
 return link

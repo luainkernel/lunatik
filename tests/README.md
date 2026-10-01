@@ -896,8 +896,10 @@ higher-level `netlink.*` modules built on top of it.
   starts at the body's first byte.
 - **session**: over a fake socket, `dump()` terminates (does not hang) on an
   empty read; `talk()` drains the reply up to the kernel acknowledgment,
-  keeping a data reply and passing a zero error code; and `talk()` raises the
-  bare symbolic error name on a kernel error reply.
+  keeping a data reply and passing a zero error code; `talk()` raises the
+  bare symbolic error name on a kernel error reply; and the flags come last and
+  optional: `request()` without them sends `NLM_F_REQUEST` alone, and `talk()`
+  sends the ones it is given beside `NLM_F_ACK`.
 - **genl_family**: `genl.family("nlctrl")` resolves the generic netlink
   controller family to `GENL_ID_CTRL`; then on the same instance a `GETFAMILY`
   `call()` round-trip (regression for the orphaned-ACK desync), a `GETFAMILY`

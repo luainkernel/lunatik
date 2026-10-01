@@ -99,7 +99,7 @@ function route:add(opts)
 	local header = rtmsg:pack(opts.family or sk.af.INET, opts.dst_len or 0, 0, 0,
 		self:headertable(opts.table or rtnl.table.MAIN), opts.protocol or rtnl.rtprot.STATIC,
 		opts.scope or rtnl.scope.UNIVERSE, opts.rtype or rtnl.rtn.UNICAST, 0)
-	self:talk(self.NEW, nl.flag.CREATE | nl.flag.EXCL, header .. route_attrs(self, opts))
+	self:talk(self.NEW, header .. route_attrs(self, opts), nl.flag.CREATE | nl.flag.EXCL)
 end
 
 ---
@@ -111,7 +111,7 @@ function route:del(opts)
 	-- scope NOWHERE is the deletion wildcard: match the route whatever its scope
 	local header = rtmsg:pack(opts.family or sk.af.INET, opts.dst_len or 0, 0, 0,
 		self:headertable(opts.table or rtnl.table.MAIN), 0, rtnl.scope.NOWHERE, 0, 0)
-	self:talk(self.DEL, nil, header .. route_attrs(self, opts))
+	self:talk(self.DEL, header .. route_attrs(self, opts))
 end
 
 return route

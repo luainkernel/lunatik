@@ -6,8 +6,10 @@
 # Tests netlink.session over a fake socket: dump() terminates (does not hang)
 # on an empty read; dump() drains a MULTI reply that never sends DONE down to
 # the empty read; talk() drains the reply up to the kernel acknowledgment,
-# keeping a data reply and passing a zero error code; and talk() raises the
-# bare symbolic error name on a kernel error reply.
+# keeping a data reply and passing a zero error code; talk() raises the bare
+# symbolic error name on a kernel error reply; and the flags come last and
+# optional, request() sending NLM_F_REQUEST alone without them and talk()
+# sending the ones it is given beside NLM_F_ACK.
 #
 # Usage: sudo bash tests/netlink/session.sh
 
@@ -23,7 +25,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 4
+ktap_plan 5
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -46,6 +48,9 @@ ktap_pass "session: talk drains the trailing ack"
 
 dmesg | grep -q "netlink session: talk raises on error" || fail "talk did not raise on error"
 ktap_pass "session: talk raises on a netlink error"
+
+dmesg | grep -q "netlink session: flags last and optional" || fail "request or talk sent the wrong flags"
+ktap_pass "session: flags come last and optional in request and talk"
 
 ktap_totals
 
