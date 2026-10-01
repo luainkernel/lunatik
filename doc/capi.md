@@ -682,7 +682,8 @@ Methods for a class's `methods` table. `lunatik_closeobject`, for `close` and `_
 the object at index `1` through [`lunatik_closeprivate`](#lunatik_closeprivate); its userdata
 stays, holding its reference. `lunatik_deleteobject`, for `__gc`, drops the reference the
 userdata holds and releases the object when it was the last. Both raise `invalid object` when
-index `1` holds no Lunatik object.
+index `1` holds no Lunatik object, and `lunatik_closeobject` raises `object of another class` when
+the object's own `__close` is not `lunatik_closeobject`.
 
 ---
 
