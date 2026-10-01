@@ -15,12 +15,16 @@ local function accept(skb)
 end
 
 local hook = nfcount.localin(accept)
+local zero = nfcount.localin(accept, 0)
 local marked = nfcount.localin(accept, MARK)
 
 netfilter.register(hook)
-netfilter.register(marked) -- a second hook in the same set, this one told apart by its mark
+netfilter.register(zero) -- a second hook in the same set, told apart by a mark of 0 from one without a mark
+netfilter.register(marked) -- a third, this one told apart by its mark
 
-print("percpu netfilter twice: two targets armed")
+print("percpu netfilter twice: three targets armed")
 
+local ok, err = pcall(netfilter.register, hook)
+assert(not ok and err:find("hook already registered", 1, true), "a hook without a mark was registered twice")
 netfilter.register(marked)
 

@@ -46,6 +46,7 @@ typedef struct luanetfilter_hook_s {
 	lunatik_object_t *runtime;
 	struct nf_hook_ops nfops;
 	u32 mark;
+	bool marked;
 } luanetfilter_hook_t;
 
 typedef struct luanetfilter_s {
@@ -124,7 +125,7 @@ static inline unsigned int luanetfilter_docall(luanetfilter_hook_t *hook, struct
 	int ret;
 	int policy = NF_ACCEPT;
 
-	if (likely(hook->mark != skb->mark))
+	if (hook->marked && likely(hook->mark != skb->mark))
 		return policy;
 
 	lunatik_run(hook->runtime, luanetfilter_hook_cb, ret, hook, skb);
@@ -141,7 +142,7 @@ static luanetfilter_hook_t *luanetfilter_find(struct hlist_head *hooks, const lu
 	luanetfilter_hook_t *hook;
 
 	hlist_for_each_entry(hook, hooks, node) {
-		if (hook->mark == spec->mark && hook->nfops.pf == spec->nfops.pf &&
+		if (hook->marked == spec->marked && hook->mark == spec->mark && hook->nfops.pf == spec->nfops.pf &&
 		    hook->nfops.hooknum == spec->nfops.hooknum && hook->nfops.priority == spec->nfops.priority)
 			return hook;
 	}
@@ -178,7 +179,9 @@ static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *sp
 	lunatik_setinteger(L, ix, (&spec->nfops), pf);
 	lunatik_setinteger(L, ix, (&spec->nfops), hooknum);
 	lunatik_setinteger(L, ix, (&spec->nfops), priority);
-	lunatik_optinteger(L, ix, spec, mark, 0);
+	spec->marked = lunatik_optfield(L, ix, "mark", LUA_TNUMBER);
+	spec->mark = spec->marked ? lua_tointeger(L, -1) : 0;
+	lua_pop(L, 1);
 }
 
 static luanetfilter_hook_t *luanetfilter_share(lua_State *L, lunatik_object_t *percpu, const luanetfilter_hook_t *spec)
@@ -222,10 +225,10 @@ static const lunatik_class_t luanetfilter_class = {
 * others attach their callbacks, and a packet reaches the runtime of the CPU it arrived on.
 * @function register
 * @tparam table opts Hook options: `hook` (function), `pf`, `hooknum`, `priority` (integers),
-*   and optionally `mark` (integer, default 0), which selects the packets the hook sees: the
-*   callback runs only for a packet whose `skb:mark()` equals it, and every other packet is
-*   accepted without reaching Lua, so with the default 0 a packet something else marked skips
-*   the hook. `pf` takes a `linux.nf.proto` value, `hooknum` a hook of that family, as
+*   and optionally `mark` (integer), a prefilter that keeps a packet out of Lua: given a
+*   `mark`, 0 included, only a packet whose `skb:mark()` equals it reaches the callback, and
+*   the hook accepts every other packet; without a `mark`, the callback runs for every
+*   packet. `pf` takes a `linux.nf.proto` value, `hooknum` a hook of that family, as
 *   `linux.nf.inet`, `linux.nf.arp` or `linux.nf.br` list them, and `priority` a
 *   `linux.nf.ip.pri` or `linux.nf.br.pri` value.
 *
@@ -241,7 +244,7 @@ static const lunatik_class_t luanetfilter_class = {
 *   `bad field '<field>' (number expected, got <type>)` if `pf`, `hooknum` or `priority` is missing
 *   or not a number, or if `mark` is present and not a number; if the hook cannot be registered;
 *   in a percpu script, if this runtime already registered the same `pf`, `hooknum`, `priority`
-*   and `mark`
+*   and `mark`, or the same three both times without a `mark`
 * @usage
 *   local netfilter = require("netfilter")
 *   local nf        = require("linux.nf")
