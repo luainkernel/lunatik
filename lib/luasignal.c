@@ -44,7 +44,7 @@ static int luasignal_kill(lua_State *L)
 	rcu_read_unlock();
 
 	if (ret)
-		lunatik_throw(L, -ret);
+		lunatik_throw(L, ret);
 
 	return 0;
 }
