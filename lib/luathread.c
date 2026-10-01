@@ -66,7 +66,6 @@ static int luathread_func(void *data)
 
 	lunatik_run(thread->runtime, luathread_resume, ret, thread);
 
-	lunatik_putobject(thread->runtime);
 	lunatik_putobject(object);
 	return ret;
 }
@@ -119,12 +118,12 @@ static int luathread_stop(lua_State *L)
 		put_task_struct(task);
 		if (result == -EINTR) {
 			luathread_popargs(runtime, thread->nargs);
-			lunatik_putobject(thread->runtime);
 			lunatik_putobject(object);
 			pr_warn("[%p] thread has never run\n", thread);
 		}
 		else if (result == -ENOEXEC)
 			pr_warn("[%p] thread has failed to execute\n", thread);
+		lunatik_putobject(runtime);
 	}
 	else
 		pr_warn("[%p] thread has already stopped\n", thread);
@@ -156,8 +155,10 @@ static void luathread_release(void *private)
 {
 	luathread_t *thread = (luathread_t *)private;
 
-	if (thread->task != NULL)
+	if (thread->task != NULL) {
 		put_task_struct(thread->task);
+		lunatik_putobject(thread->runtime);
+	}
 }
 
 static const luaL_Reg luathread_lib[] = {
@@ -220,7 +221,8 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 * The runtime must be sleepable; the script it loaded must return a function,
 * which becomes the thread body, called with the objects given here. A thread a
 * netdevice callback would stop is stopped off RTNL instead: from the script body,
-* a later resume or another thread.
+* a later resume or another thread. The thread holds a reference to the runtime until
+* `stop` releases it or the thread is collected, even once its body has returned.
 * @function run
 * @tparam runtime runtime A sleepable Lunatik runtime whose script returns a function.
 * @tparam string name A descriptive name for the kernel thread.
