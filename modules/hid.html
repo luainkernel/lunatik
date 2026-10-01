@@ -248,10 +248,11 @@ hid.register({
     </ol>
 
     <h3>Raises</h3>
-     if called after module load or from a percpu runtime; if required fields are missing,
-   <code>id_table</code> is invalid or too long, or driver registration fails; <code>bad field &apos;&lt;field&gt;&apos; (number
-   expected, got &lt;type&gt;)</code> if an entry&rsquo;s <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code> or <code>driver_data</code> is
-   present and not a number; <code>runtime context mismatch</code> unless the runtime is softirq
+     &ldquo;not allowed once the runtime is armed&rdquo; past the script body; from a percpu runtime; if
+   required fields are missing, <code>id_table</code> is invalid or too long, or driver registration fails;
+   <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if an entry&rsquo;s <code>bus</code>, <code>group</code>, <code>vendor</code>,
+   <code>product</code> or <code>driver_data</code> is present and not a number; <code>runtime context mismatch</code> unless the
+   runtime is softirq
 
 
 
@@ -270,7 +271,7 @@ hid.register({
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:48:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:53:25</span>
 </div>
 </footer>
 </body>

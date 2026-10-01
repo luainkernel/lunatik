@@ -61,14 +61,15 @@ A runtime is created in one of three contexts, and this decides what its code ma
 | hardirq | `lunatik run --context=hardirq <script>` | `GFP_ATOMIC` | `spin_lock_irqsave`, always | no |
 
 A binding that registers a hook checks that the runtime registering it has the context the hook
-fires in, and raises `runtime context mismatch` from a runtime of another context. A class whose
-objects may sleep is a process-context class, and creating one of its objects from a softirq or
-hardirq runtime raises `'<class>': process-context class in interrupt-context runtime`.
+fires in, and raises `runtime context mismatch: <class> needs <context>` from a runtime of another
+context. A class whose objects may sleep is a process-context class, and creating one of its
+objects from a softirq or hardirq runtime raises `'<class>': process-context class in
+interrupt-context runtime`.
 
 The script body itself runs once, in process context, before the runtime is armed, so registering
 hooks at its top level may sleep. Everything that runs later, from a hook, may not. A runtime is
 armed once its script body returns; from then on, in a softirq or hardirq runtime, a call that
-sleeps, such as creating or stopping a kprobe, raises `not allowed after module load`.
+sleeps, such as creating or stopping a kprobe, raises `not allowed once the runtime is armed`.
 
 ## Kernel threads
 

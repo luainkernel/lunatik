@@ -325,7 +325,7 @@ bool lunatik_isready(lunatik_object_t *runtime);
 ```
 Returns `true` once `runtime` is armed, its script body returned, and until it is closed.
 `thread.run` uses it to refuse creating a thread from the script body of the runtime that calls
-it, with `not allowed during module load`.
+it, with `not allowed before the runtime is armed`.
 
 ### lunatik\_isowner
 ```C
@@ -378,21 +378,23 @@ and `thread.shouldstop` asks `kthread_should_stop` only there. Defined as a macr
 
 ### lunatik\_checkruntime
 ```C
-lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt);
+lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *name, lunatik_opt_t opt);
 ```
-Returns the runtime associated with `L` and raises `runtime context mismatch` if its context does
-not match `opt`. Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a
-`softirq` runtime, a HARDIRQ class in a `hardirq` runtime, and a process-context class in a
-process runtime. A binding's constructor calls it, directly or through `lunatik_setruntime`, to
-enforce that a class is only instantiated in a compatible runtime.
+Returns the runtime associated with `L` and raises `runtime context mismatch: <name> needs
+<context>` if its context does not match `opt`, where `name` names what needs the context, the
+class a constructor creates, and `<context>` is `process`, `softirq` or `hardirq`, as `opt` says.
+Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a `softirq` runtime,
+a HARDIRQ class in a `hardirq` runtime, and a process-context class in a process runtime. A
+binding's constructor calls it, directly or through `lunatik_setruntime`, to enforce that a class
+is only instantiated in a compatible runtime.
 
 ### lunatik\_setruntime
 ```C
 lunatik_object_t *lunatik_setruntime(lua_State *L, libname, priv);
 ```
-Stores `lunatik_checkruntime(L, lua<libname>_class.opt)` in `priv->runtime` and returns it: the
-class is read by its name, `lua<libname>_class`, so `lunatik_setruntime(L, device, luadev)` checks
-against `luadevice_class`. Defined as a macro.
+Stores `lunatik_checkruntime(L, lua<libname>_class.name, lua<libname>_class.opt)` in
+`priv->runtime` and returns it: the class is read by its name, `lua<libname>_class`, so
+`lunatik_setruntime(L, device, luadev)` checks against `luadevice_class`. Defined as a macro.
 
 ### lunatik\_checkcontext
 ```C
@@ -422,12 +424,12 @@ would sleep when `s` holds tests it and refuses rather than deadlocking the mach
 ```C
 void lunatik_checkarmed(lua_State *L);
 ```
-Raises a Lua error, `"not allowed after module load"`, when `L` belongs to an interrupt-context
-runtime that has finished loading. An IRQ runtime is process context only while its script body
-runs, so a call that may sleep is allowed there and must be refused afterwards, when the runtime
-lock is a spinlock: from a hook or a handler, and from the `resume` of such a runtime. Use it in
-an entry point that reaches a sleeping kernel call, where `lunatik_checkruntime` answers the
-different question of whether the class matches the runtime at all.
+Raises a Lua error, `"not allowed once the runtime is armed"`, when `L` belongs to an
+interrupt-context runtime whose script body returned. An IRQ runtime is process context only while
+its script body runs, so a call that may sleep is allowed there and must be refused afterwards,
+when the runtime lock is a spinlock: from a hook or a handler, and from the `resume` of such a
+runtime. Use it in an entry point that reaches a sleeping kernel call, where `lunatik_checkruntime`
+answers the different question of whether the class matches the runtime at all.
 
 ### lunatik\_checkrtnl
 ```C

@@ -588,7 +588,7 @@ flow:<span class="function-name">close</span>()</pre>
 
     <h3>Raises</h3>
      Error if the path does not resolve to a pinned eBPF hash map, or
- <code>not allowed after module load</code> once the runtime is armed (its script body has
+ <code>not allowed once the runtime is armed</code> (its script body has
  returned): the path lookup sleeps, so on an interrupt-context runtime
  (softirq/hardirq) the constructors are only allowed while the script body runs;
  the returned handle can then be used from handlers.
@@ -711,7 +711,7 @@ counter:<span class="function-name">close</span>()</pre>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:48:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:53:25</span>
 </div>
 </footer>
 </body>

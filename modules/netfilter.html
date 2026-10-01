@@ -247,11 +247,11 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-     if called after module load; <code>runtime context mismatch</code> outside a softirq runtime;
-   <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if <code>pf</code>, <code>hooknum</code> or <code>priority</code> is missing
-   or not a number, or if <code>mark</code> is present and not a number; if the hook cannot be registered;
-   in a percpu script, if this runtime already registered the same <code>pf</code>, <code>hooknum</code>, <code>priority</code>
-   and <code>mark</code>, or the same three both times without a <code>mark</code>
+     &ldquo;not allowed once the runtime is armed&rdquo; past the script body; <code>runtime context mismatch</code>
+   outside a softirq runtime; <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if <code>pf</code>,
+   <code>hooknum</code> or <code>priority</code> is missing or not a number, or if <code>mark</code> is present and not a number;
+   if the hook cannot be registered; in a percpu script, if this runtime already registered the
+   same <code>pf</code>, <code>hooknum</code>, <code>priority</code> and <code>mark</code>, or the same three both times without a <code>mark</code>
 
 
     <h3>Usage</h3>
@@ -286,7 +286,7 @@ netfilter.<span class="function-name">register</span>{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:48:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:53:25</span>
 </div>
 </footer>
 </body>

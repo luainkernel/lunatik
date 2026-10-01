@@ -271,14 +271,15 @@ naming the option that replaces it.</p>
 
 
 <p>A binding that registers a hook checks that the runtime registering it has the context the hook
-fires in, and raises <code>runtime context mismatch</code> from a runtime of another context. A class whose
-objects may sleep is a process-context class, and creating one of its objects from a softirq or
-hardirq runtime raises <code>&apos;&lt;class&gt;&apos;: process-context class in interrupt-context runtime</code>.</p>
+fires in, and raises <code>runtime context mismatch: &lt;class&gt; needs &lt;context&gt;</code> from a runtime of another
+context. A class whose objects may sleep is a process-context class, and creating one of its
+objects from a softirq or hardirq runtime raises <code>'&lt;class&gt;': process-context class in
+interrupt-context runtime</code>.</p>
 
 <p>The script body itself runs once, in process context, before the runtime is armed, so registering
 hooks at its top level may sleep. Everything that runs later, from a hook, may not. A runtime is
 armed once its script body returns; from then on, in a softirq or hardirq runtime, a call that
-sleeps, such as creating or stopping a kprobe, raises <code>not allowed after module load</code>.</p>
+sleeps, such as creating or stopping a kprobe, raises <code>not allowed once the runtime is armed</code>.</p>
 
 <p><a name="Kernel_threads"></a></p>
 
@@ -348,7 +349,7 @@ instead of source, so an error raised from one of them reads <code>?:?:</code>.<
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:48:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:53:25</span>
 </div>
 </footer>
 </body>

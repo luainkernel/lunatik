@@ -50,9 +50,8 @@ In a runtime created in softirq or hardirq context, `io` is nil, `require("io")`
 `'io': process-context class in interrupt-context runtime`, and the `lunatik` table holds only
 `cpu()` and `_ENV`, so `lunatik.runtime` and `lunatik.percpu` are absent. A Lua library is required
 at the top level of the script, since opening a file sleeps: once the runtime is armed, a `require`
-of a module the body did not load, and
-[package.searchpath](https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath), raise
-`not allowed after module load`, and `loadfile` fails, and `dofile` raises, with
-`cannot load file on non-sleepable runtime`.
+of a module the body did not load,
+[package.searchpath](https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath) and `dofile`
+raise `not allowed once the runtime is armed`, and `loadfile` returns it as its error.
 
 

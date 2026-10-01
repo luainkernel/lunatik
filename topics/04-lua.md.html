@@ -229,10 +229,9 @@ values <a href="https://www.lua.org/manual/5.5/manual.html#pdf-table.unpack">tab
 <code>&apos;io&apos;: process-context class in interrupt-context runtime</code>, and the <a href="../modules/lunatik.html#">lunatik</a> table holds only
 <code>cpu()</code> and <code>_ENV</code>, so <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> and <a href="../modules/lunatik.html#percpu">lunatik.percpu</a> are absent. A Lua library is required
 at the top level of the script, since opening a file sleeps: once the runtime is armed, a <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>
-of a module the body did not load, and
-<a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath">package.searchpath</a>, raise
-<code>not allowed after module load</code>, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-loadfile">loadfile</a> fails, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-dofile">dofile</a> raises, with
-<code>cannot load file on non-sleepable runtime</code>.</p>
+of a module the body did not load,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath">package.searchpath</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-dofile">dofile</a>
+raise <code>not allowed once the runtime is armed</code>, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-loadfile">loadfile</a> returns it as its error.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/03-percpu.md.html"><span>Previous</span>Per-CPU scripts</a>
     <a class="next" href="../topics/05-examples.md.html"><span>Next</span>Examples</a>
@@ -250,7 +249,7 @@ of a module the body did not load, and
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:48:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:53:25</span>
 </div>
 </footer>
 </body>

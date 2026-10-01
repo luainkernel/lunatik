@@ -619,7 +619,7 @@ has no <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a>.</p>
 
 <p>Returns <code>true</code> once <code>runtime</code> is armed, its script body returned, and until it is closed.
 <a href="../modules/thread.html#run">thread.run</a> uses it to refuse creating a thread from the script body of the runtime that calls
-it, with <code>not allowed during module load</code>.</p>
+it, with <code>not allowed before the runtime is armed</code>.</p>
 
 <h3 id="lunatik_isowner">lunatik_isowner</h3>
 
@@ -682,15 +682,17 @@ and <a href="../modules/thread.html#shouldstop">thread.shouldstop</a> asks <code
 <h3 id="lunatik_checkruntime">lunatik_checkruntime</h3>
 
 <pre>
-lunatik_object_t *<span class="function-name">lunatik_checkruntime</span>(lua_State *L, lunatik_opt_t opt);
+lunatik_object_t *<span class="function-name">lunatik_checkruntime</span>(lua_State *L, <span class="keyword">const</span> <span class="keyword">char</span> *name, lunatik_opt_t opt);
 </pre>
 
 
-<p>Returns the runtime associated with <code>L</code> and raises <code>runtime context mismatch</code> if its context does
-not match <code>opt</code>. Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a
-<code>softirq</code> runtime, a HARDIRQ class in a <code>hardirq</code> runtime, and a process-context class in a
-process runtime. A binding&rsquo;s constructor calls it, directly or through <code>lunatik_setruntime</code>, to
-enforce that a class is only instantiated in a compatible runtime.</p>
+<p>Returns the runtime associated with <code>L</code> and raises <code>runtime context mismatch: &lt;name&gt; needs
+&lt;context&gt;&lt;code&gt; if its context does not match &lt;/code&gt;opt&lt;code&gt;, where &lt;/code&gt;name</code> names what needs the context, the
+class a constructor creates, and <code>&lt;context&gt;</code> is <code>process</code>, <code>softirq</code> or <code>hardirq</code>, as <code>opt</code> says.
+Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a <code>softirq</code> runtime,
+a HARDIRQ class in a <code>hardirq</code> runtime, and a process-context class in a process runtime. A
+binding&rsquo;s constructor calls it, directly or through <code>lunatik_setruntime</code>, to enforce that a class
+is only instantiated in a compatible runtime.</p>
 
 <h3 id="lunatik_setruntime">lunatik_setruntime</h3>
 
@@ -699,9 +701,9 @@ lunatik_object_t *<span class="function-name">lunatik_setruntime</span>(lua_Stat
 </pre>
 
 
-<p>Stores <code>lunatik_checkruntime(L, lua&lt;libname&gt;_class.opt)</code> in <code>priv-&gt;runtime</code> and returns it: the
-class is read by its name, <code>lua&lt;libname&gt;_class</code>, so <code>lunatik_setruntime(L, device, luadev)</code> checks
-against <code>luadevice_class</code>. Defined as a macro.</p>
+<p>Stores <code>lunatik_checkruntime(L, lua&lt;libname&gt;_class.name, lua&lt;libname&gt;_class.opt)</code> in
+<code>priv-&gt;runtime</code> and returns it: the class is read by its name, <code>lua&lt;libname&gt;_class</code>, so
+<code>lunatik_setruntime(L, device, luadev)</code> checks against <code>luadevice_class</code>. Defined as a macro.</p>
 
 <h3 id="lunatik_checkcontext">lunatik_checkcontext</h3>
 
@@ -743,12 +745,12 @@ would sleep when <code>s</code> holds tests it and refuses rather than deadlocki
 </pre>
 
 
-<p>Raises a Lua error, <code>&quot;not allowed after module load&quot;</code>, when <code>L</code> belongs to an interrupt-context
-runtime that has finished loading. An IRQ runtime is process context only while its script body
-runs, so a call that may sleep is allowed there and must be refused afterwards, when the runtime
-lock is a spinlock: from a hook or a handler, and from the <code>resume</code> of such a runtime. Use it in
-an entry point that reaches a sleeping kernel call, where <code>lunatik_checkruntime</code> answers the
-different question of whether the class matches the runtime at all.</p>
+<p>Raises a Lua error, <code>&quot;not allowed once the runtime is armed&quot;</code>, when <code>L</code> belongs to an
+interrupt-context runtime whose script body returned. An IRQ runtime is process context only while
+its script body runs, so a call that may sleep is allowed there and must be refused afterwards,
+when the runtime lock is a spinlock: from a hook or a handler, and from the <code>resume</code> of such a
+runtime. Use it in an entry point that reaches a sleeping kernel call, where <code>lunatik_checkruntime</code>
+answers the different question of whether the class matches the runtime at all.</p>
 
 <h3 id="lunatik_checkrtnl">lunatik_checkrtnl</h3>
 
@@ -1895,7 +1897,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:48:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:53:25</span>
 </div>
 </footer>
 </body>

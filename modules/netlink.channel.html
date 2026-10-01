@@ -334,10 +334,11 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-     if called after module load or in a percpu runtime; &ldquo;not allowed under RTNL&rdquo;
-   from a netdevice callback, in whatever runtime or coroutine its task runs, since the
-   registration takes a lock a request holds while it waits on RTNL; if the name is
-   empty or too long, or if family registration fails.
+     &ldquo;not allowed once the runtime is armed&rdquo; from an interrupt-context runtime past its body;
+   &ldquo;not allowed in a percpu runtime&rdquo;; &ldquo;not allowed under RTNL&rdquo; from a netdevice callback, in
+   whatever runtime or coroutine its task runs, since the registration takes a lock a request
+   holds while it waits on RTNL; if the name is empty or too long, or if family registration
+   fails.
 
 
 
@@ -356,7 +357,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:48:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:53:25</span>
 </div>
 </footer>
 </body>

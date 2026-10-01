@@ -372,7 +372,7 @@
     </ol>
 
     <h3>Raises</h3>
-     &ldquo;null pointer dereference&rdquo; if the runtime has been stopped; &ldquo;invalid object&rdquo; or
+     &ldquo;closed object&rdquo; if the runtime has been stopped; &ldquo;invalid object&rdquo; or
    &ldquo;cannot share SINGLE object&rdquo; if a value cannot cross, numbering the
    arguments on the way in and the yielded values on the way back, or the error raised on
    resumption; &ldquo;not allowed from the runtime itself&rdquo; from under the runtime&rsquo;s own lock, the
@@ -441,7 +441,7 @@
 
 
     <h3>Raises</h3>
-     &ldquo;null pointer dereference&rdquo; if the object has been stopped; otherwise the error of the
+     &ldquo;closed object&rdquo; if the object has been stopped; otherwise the error of the
    first runtime that refuses a value it cannot carry or raises on resumption, naming its CPU,
    with the runtimes after it not resumed. A runtime that refuses a value stays where it yielded;
    one that raises is dead, so every later resume delivers to the CPUs before it again and fails
@@ -485,7 +485,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:48:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:53:25</span>
 </div>
 </footer>
 </body>
