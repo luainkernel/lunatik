@@ -22,10 +22,10 @@ ip netns add $NETNS
 ip link add $VETH_HOST type veth peer name $VETH_NS
 ip link set $VETH_NS netns $NETNS
 ip addr add $HOST_ADDR/24 dev $VETH_HOST
-ip -6 addr add $HOST_ADDR6/64 dev $VETH_HOST
+ip -6 addr add $HOST_ADDR6/64 dev $VETH_HOST nodad
 ip link set $VETH_HOST up
 ip -n $NETNS addr add $NS_ADDR/24 dev $VETH_NS
-ip -n $NETNS -6 addr add $NS_ADDR6/64 dev $VETH_NS
+ip -n $NETNS -6 addr add $NS_ADDR6/64 dev $VETH_NS nodad
 ip -n $NETNS link set $VETH_NS up
 ip -n $NETNS link set lo up
 ip -n $NETNS route add default via $HOST_ADDR
