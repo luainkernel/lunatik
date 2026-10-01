@@ -11,7 +11,7 @@
 #
 # Usage: bash tools/checks/decision.sh <file>...
 
-handoff='decis(a|ã)o (e |é )?(sua|dele|do maintainer)|fica (para|com) (voc(e|ê)|ele|o maintainer)|voc(e|ê) decide|a escolha (e|é) (sua|dele)|cabe a (voc(e|ê)|ele)|levo (isso |isto )?(a|para) (voc(e|ê)|ele)|aguardo (a )?(sua )?decis|maintainer.s (call|decision)|is the maintainer.s|left to the maintainer|up to the maintainer|for the maintainer to (decide|choose|pick)|(your|his) (call|decision)[.,;:]|bring (it|this) (back )?to the maintainer'
+handoff='decis(a|ã)o (e |é )?(sua|dele|do maintainer)|fica (para|com) (voc(e|ê)|o maintainer)|a decis(a|ã)o fica (para|com) ele|voc(e|ê) decide|a escolha (e|é) (sua|dele)|cabe a (voc(e|ê)|ele)|levo (isso |isto )?(a|para) (voc(e|ê)|ele)|aguardo (a )?(sua )?decis|maintainer.s (call|decision)|is the maintainer.s|left to the maintainer|up to the maintainer|for the maintainer to (decide|choose|pick)|(your|his) (call|decision)[.,;:]|bring (it|this) (back )?to the maintainer'
 question='o que decidir|a decidir:|decis(a|ã)o:|to decide:|decision:'
 option='^[[:space:]>*-]*(\*\*)?(\(?[a-e]\)|op(c|ç)(a|ã)o [a-e1-9]|option [a-e1-9])'
 recommend='recomend|recommend'
