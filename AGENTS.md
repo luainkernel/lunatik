@@ -83,13 +83,14 @@ BTF`, and every BPF program that calls it fails to load; and the `bpftool` wrapp
 `linux-tools-$(uname -r)`, or every BPF program fails to load.
 
 A wedged device — a `lunatik` process that stays in D state, usually below an oops in `dmesg` — is
-cleared only by a reboot, and the reboot is the maintainer's to trigger: other sessions share the
-host. Before asking, capture what the reboot erases with `tools/oops.sh`, write down which suites
-were pending and which build was installed, and run nothing else against the device. After it, the
-suite that oopsed runs twice: a second oops is a bug to trace, a clean pair is a symptom without its
-cause, said as such. The lunatik-cycle skill orders both halves. One process in D on one look is not
-that: an ordinary `lunatik stop` sits there while the kernel works, so what names a wedge is the one
-still in D on the next look.
+cleared only by a reboot, as a pinned module is, and the reboot is the maintainer's to trigger: other
+sessions share the host. Before asking, capture what the reboot erases with `tools/prereboot.sh`,
+which saves the oops, the modules and what holds them, and every session's files under `/tmp` into
+`scratch/reboot-<time>/`, write down which suites were pending and which build was installed, and
+run nothing else against the device. After it, the suite that oopsed runs twice: a second oops is a
+bug to trace, a clean pair is a symptom without its cause, said as such. The lunatik-cycle skill
+orders both halves. One process in D on one look is not that: an ordinary `lunatik stop` sits there
+while the kernel works, so what names a wedge is the one still in D on the next look.
 
 What reaches a terminal after a machine dies is a fragment. The previous boot's kernel log survives in
 the journal, `journalctl -b -1 -k`, and it carries the registers of every oops in the cascade, which is
@@ -134,7 +135,8 @@ waits on a question is a crash any session can trigger. An edit is built, instal
 step, or reverted before the session pauses; the reshape of `rcu.map` on #1158 sat built and unrun
 while its author reported, a cycle from outside the session installed it, and its write through a
 NULL buffer took the host down. A session's scratch worktrees live under `scratch/wt/`, since the
-reboot such a crash forces clears `/tmp` and every tree it held.
+reboot such a crash forces clears `/tmp` and every tree it held, and a script a cycle reruns lives
+under `scratch/` for the same reason; `tools/lunatik-host` names one it runs from `/tmp`.
 
 A tree with a conflict pending (`git status` showing `UU`) is not a test subject: a suite run over a
 half-applied rebase or cherry-pick measures neither side. Resolve and commit, then build.
@@ -440,6 +442,13 @@ keys on the phrase that hands one over, "the maintainer's call", "é decisão su
 você", and asks the text around it for the three. A reply in the session is where the maintainer
 read "é decisão sua", so `.claude/hooks/on-stop.sh`, the Stop hook, runs it over the reply a turn
 ends on and sends one that fails back once, passing the stop after it (`stop_hook_active`).
+
+`reboot-capture.sh` reads the same reply in the same hook, for a request for a reboot the checkout
+holds no capture for. `tools/prereboot.sh` saves what a reboot erases for every session on the host,
+and the others learn of the reboot when it is done, so the session that asks runs it: a session asked
+for one on 2026-10-01, and the reboot took another session's cycle scripts and drafts from `/tmp`. It
+keys on the phrase that asks, "só um reboot resolve", "needs a reboot", and passes when
+`scratch/reboot-*` holds a capture taken in the last hour.
 
 `push-guard.sh`, wired before a shell call, refuses a `git push` in a command that also runs a
 rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any of those in progress:
