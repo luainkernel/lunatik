@@ -57,13 +57,10 @@ function inet:close()
 end
 
 ---
--- Receives data from the socket.
--- With `from` true it also returns the sender, its IPv4 address as an integer and its port;
--- `inet.udp:receivefrom` returns the address as a string.
+-- Receives data from the socket; `inet.udp:receivefrom` also returns the sender.
 -- @param ... Varargs passed directly to the underlying `socket:receive()`:
--- `(len[, flags[, from]])`.
--- @return Varargs returned by the underlying `socket:receive()`:
--- `(data[, ip_address, port])`.
+-- `(len[, flags])`.
+-- @return The data the underlying `socket:receive()` returns.
 -- @raise error on failure
 -- @see socket.receive
 function inet:receive(...)
@@ -183,7 +180,7 @@ inet.udp = inet:new{type = sock.DGRAM, proto = ipproto.UDP}
 
 ---
 -- Receives data from a UDP socket, along with the sender's address.
--- This is a wrapper around `inet:receive` that converts the raw IP address
+-- This is a wrapper around `socket:receivefrom` that converts the raw IP address
 -- from `net.aton` format to a string using `net.ntoa`.
 -- @param len (number) The maximum number of bytes to receive.
 -- @param flags (number) [optional] Flags for the receive operation.
@@ -191,9 +188,9 @@ inet.udp = inet:new{type = sock.DGRAM, proto = ipproto.UDP}
 -- @return (string) The sender's IP address.
 -- @return (number) The sender's port number.
 -- @raise error on failure
--- @see socket.receive
+-- @see socket.receivefrom
 function inet.udp:receivefrom(len, flags)
-	local msg, ip, port = self:receive(len, flags, true)
+	local msg, ip, port = self.socket:receivefrom(len, flags)
 	return msg, net.ntoa(ip), port
 end
 

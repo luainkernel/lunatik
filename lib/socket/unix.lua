@@ -152,9 +152,9 @@ unix.dgram = unix:new{type = sock.DGRAM}
 -- @return (string) The received data.
 -- @return (string) The sender's path, carrying its leading NUL when the name is an abstract one;
 --   nothing follows the message when the peer never bound.
--- @see socket.receive
+-- @see socket.receivefrom
 function unix.dgram:receivefrom(len, flags)
-	return self:receive(len, flags, true)
+	return self.socket:receivefrom(len, flags)
 end
 
 ---

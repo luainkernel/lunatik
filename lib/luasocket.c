@@ -204,7 +204,7 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 * values after the interface index: the packet type (`PACKET_HOST` and the others of
 * `<linux/if_packet.h>`), the hardware type (`ARPHRD_ETHER` and the others of `<linux/if_arp.h>`)
 * and the hardware address, a string of the length the kernel reports: the interface's own for
-* `getsockname`, the sender's for `receive`.
+* `getsockname`, the sender's for `receivefrom`.
 * @type socket
 */
 
@@ -264,6 +264,24 @@ static int luasocket_send(lua_State *L)
 	return 1;
 }
 
+static void luasocket_receivemsg(lua_State *L, struct msghdr *msg)
+{
+	struct socket *socket = luasocket_check(L, 1);
+	size_t len = (size_t)luaL_checkinteger(L, 2);
+	int flags = luaL_optinteger(L, 3, 0);
+	luaL_Buffer B;
+	struct kvec vec;
+	int ret;
+
+	luasocket_checkrtnl(L, socket);
+
+	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
+	vec.iov_len = len;
+
+	lunatik_tryret(L, ret, kernel_recvmsg, socket, msg, &vec, 1, len, flags);
+	luaL_pushresultsize(&B, ret);
+}
+
 /***
 * Receives a message from the socket.
 * The call blocks until a message arrives, with no timeout of its own, unless `flags` carries
@@ -276,64 +294,69 @@ static int luasocket_send(lua_State *L)
 * @tparam integer length maximum number of bytes to receive.
 * @tparam[opt=0] integer flags Optional message flags (e.g., `linux.socket.msg.PEEK`).
 *   See the `linux.socket.msg` table for available flags. These can be OR'd together.
-* @tparam[opt=false] boolean from If `true`, the function also returns the sender's address
-*   (two values for `AF_INET` and `AF_NETLINK`, five for `AF_PACKET`). This is typically used with
-*   connectionless sockets (`SOCK_DGRAM`).
 * @treturn string received message (as a string of bytes); on a stream socket, the empty string is
 *   the end of file, once the peer has shut down its side.
-* @treturn[opt] integer|string addr If `from` is true and the protocol named a sender, its address.
-*   TCP names none, and neither does an `AF_UNIX` peer that never bound; nothing follows the message
-*   then.
+* @raise Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
+*   callback.
+* @usage
+*   -- For a connected TCP socket:
+*   local data = tcp_conn_sock:receive(1024)
+*   print("Received:", data)
+* @see receivefrom
+* @see linux.socket.msg
+*/
+static int luasocket_receive(lua_State *L)
+{
+	struct msghdr msg;
+
+	luasocket_setmsg(msg);
+	luasocket_receivemsg(L, &msg);
+	return 1;
+}
+
+/***
+* Receives a message from the socket, and the address of its sender.
+* It waits as `receive` does. A connectionless socket (`SOCK_DGRAM`) names the sender of each
+* message; TCP names none, and neither does an `AF_UNIX` peer that never bound, and nothing follows
+* the message then.
+*
+* @function receivefrom
+* @tparam integer length maximum number of bytes to receive.
+* @tparam[opt=0] integer flags message flags, as `receive` takes them.
+* @treturn string received message, as `receive` returns it.
+* @treturn[opt] integer|string addr the sender's address (two values for `AF_INET` and `AF_NETLINK`,
+*   five for `AF_PACKET`).
 *   - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
 *   - For `AF_PACKET`: The frame's ethertype, in host byte order.
 *   - For `AF_UNIX`: The sender's name, carrying its leading NUL when the name is an abstract one.
 *   - For `AF_NETLINK`: The sender's port id.
 *   - For other families: A packed string of the sender's address past the family, of the length the
 *     protocol reports.
-* @treturn[opt] integer port If `from` is true, the sender's port number for `AF_INET`, the index of
-*   the interface the frame arrived on for `AF_PACKET`, and its multicast groups for `AF_NETLINK`.
+* @treturn[opt] integer port the sender's port number for `AF_INET`, the index of the interface the
+*   frame arrived on for `AF_PACKET`, and its multicast groups for `AF_NETLINK`.
 * @treturn[opt] integer pkttype For `AF_PACKET`, the frame's packet type.
 * @treturn[opt] integer hatype For `AF_PACKET`, the interface's hardware type.
 * @treturn[opt] string hwaddr For `AF_PACKET`, the sender's hardware address.
 * @raise Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
 *   callback.
 * @usage
-*   -- For a connected TCP socket:
-*   local data = tcp_conn_sock:receive(1024)
-*   if data then print("Received:", data) end
-*
 *   -- For a UDP socket, getting sender info:
-*   local data, sender_ip_int, sender_port = udp_sock:receive(1500, 0, true)
-*   if data then print("Received from " .. net.ntoa(sender_ip_int) .. ":" .. sender_port .. ": " .. data) end
-* @see linux.socket.msg
+*   local data, sender_ip_int, sender_port = udp_sock:receivefrom(1500)
+*   print("Received from " .. net.ntoa(sender_ip_int) .. ":" .. sender_port .. ": " .. data)
+* @see receive
 * @see net.ntoa
 */
-static int luasocket_receive(lua_State *L)
+static int luasocket_receivefrom(lua_State *L)
 {
-	struct socket *socket = luasocket_check(L, 1);
-	size_t len = (size_t)luaL_checkinteger(L, 2);
-	luaL_Buffer B;
-	struct kvec vec;
 	struct msghdr msg;
 	struct sockaddr_storage addr;
-	int flags = luaL_optinteger(L, 3, 0);
-	int from = lua_toboolean(L, 4);
-	int ret;
 
-	luasocket_checkrtnl(L, socket);
 	luasocket_setmsg(msg);
-
-	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
-	vec.iov_len = len;
-
-	if (unlikely(from))
-		msg.msg_name = &addr;
-
-	lunatik_tryret(L, ret, kernel_recvmsg, socket, &msg, &vec, 1, len, flags);
-	luaL_pushresultsize(&B, ret);
+	msg.msg_name = &addr;
+	luasocket_receivemsg(L, &msg);
 
 	/* msg_namelen is an output: zero means the protocol named no address */
-	return unlikely(from) ? luasocket_pushaddr(L, &addr, msg.msg_namelen) + 1 : 1;
+	return luasocket_pushaddr(L, &addr, msg.msg_namelen) + 1;
 }
 
 /***
@@ -612,6 +635,7 @@ static const luaL_Reg luasocket_mt[] = {
 	{"close", luasocket_close},
 	{"send", luasocket_send},
 	{"receive", luasocket_receive},
+	{"receivefrom", luasocket_receivefrom},
 	{"bind", luasocket_bind},
 	{"listen", luasocket_listen},
 	{"accept", luasocket_accept},

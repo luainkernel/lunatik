@@ -80,11 +80,11 @@ assert(peer[1] == PEER, "a pathname peer was named '" .. peer[1] .. "'")
 say("pathname getpeername ok")
 
 caller:send(PAYLOAD)
-local streamed = pack(session:receive(BUFSIZE, sk.msg.DONTWAIT, true))
+local streamed = pack(session:receivefrom(BUFSIZE, sk.msg.DONTWAIT))
 assert(streamed.n == 2, "a connected stream answered " .. streamed.n .. " values")
 assert(streamed[1] == PAYLOAD and streamed[2] == CALLER,
 	"a connected stream's peer was named '" .. tostring(streamed[2]) .. "'")
-say("receive names a connected stream's peer")
+say("receivefrom names a connected stream's peer")
 
 session:close()
 caller:close()
@@ -97,10 +97,10 @@ assert(name[1] == "", "an unbound peer was named " .. #name[1] .. " bytes")
 say("unbound getpeername is empty")
 
 nameless:send(PAYLOAD)
-streamed = pack(silent:receive(BUFSIZE, sk.msg.DONTWAIT, true))
+streamed = pack(silent:receivefrom(BUFSIZE, sk.msg.DONTWAIT))
 assert(streamed.n == 1, "a stream from an unbound peer answered " .. streamed.n .. " values")
 assert(streamed[1] == PAYLOAD, "unexpected message: " .. streamed[1])
-say("receive names no unbound stream peer")
+say("receivefrom names no unbound stream peer")
 
 silent:close()
 nameless:close()
