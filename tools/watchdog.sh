@@ -35,7 +35,7 @@ while [ "${1#-}" != "$1" ]; do
 	options+=("$1")
 	shift
 done
-lunatik "$VERB" "${options[@]}" "$SCRIPT" "$@" || exit $? # the CLI reads a word after the script for one release
+lunatik "$VERB" "${options[@]}" "$SCRIPT" "$@" || exit $?
 sleep "$GRACE"
 
 lost=""

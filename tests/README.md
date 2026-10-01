@@ -240,12 +240,11 @@ REPL and the builds `status` and `reload` compare.
 - **verbs**: a run or a spawn of a script that is missing, and a run of one
   that raises at load, exit 1 with its error on stderr and nothing on stdout;
   a run exits 0 with nothing printed, and a second exits 1, already running,
-  with no position of the runner's; a context `run` cannot read, as `-c` or as
-  the word after the script, and a context, `percpu` or any other word given
-  to `spawn`, exit 2 and never reach the kernel; `-c` and `-p`, `--context=`
-  and `--percpu`, and `--` before the script run it, listed once; the words
-  after the script still run it, each with a line on stderr naming the option
-  that replaces it; `list` prints one script a line, in order of name; a stop
+  with no position of the runner's; a context `run` cannot read as `-c`, a
+  word after the script of `run`, and a context, `percpu` or any other word
+  given to `spawn`, exit 2 and never reach the kernel; `-c` and `-p`,
+  `--context=` and `--percpu`, and `--` before the script run it, listed once;
+  `list` prints one script a line, in order of name; a stop
   of two running scripts removes both, and a stop of one nothing runs exits 1,
   not running, after stopping the others it was given; a spawn exits 0, `list`
   names it, and its stop exits 0 and removes it.
