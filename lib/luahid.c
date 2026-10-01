@@ -209,10 +209,32 @@ static int luahid_doprobe(lua_State *L)
 {
 	luahid_ctx_t *ctx = lua_touserdata(L, 1);
 
+	luahid_pushhdev(L, ctx->hdev);
+	lua_pushvalue(L, -1);
 	luahid_pushid(L, ctx->id, driver_data);
-	luahid_op(L, ctx, 1, 1);
+	luahid_op(L, ctx, 2, 1);
 	ctx->ret = lunatik_opterrno(L, -1);
+	if (ctx->ret == 0)
+		lunatik_register(L, -2, ctx->hdev); /* a probe that fails gets no remove to drop it */
 	return 0;
+}
+
+static int luahid_doremove(lua_State *L)
+{
+	luahid_ctx_t *ctx = lua_touserdata(L, 1);
+
+	lunatik_getregistry(L, ctx->hdev); /* hdev */
+	lunatik_unregister(L, ctx->hdev); /* before the callback, which may raise */
+	luahid_op(L, ctx, 1, 0);
+	return 0;
+}
+
+static void luahid_detach(luahid_t *hid, struct hid_device *hdev)
+{
+	luahid_ctx_t ctx = {0};
+	int ret;
+
+	luahid_run(remove, &ctx, hid, hdev, ret);
 }
 
 static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
@@ -222,19 +244,26 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	int ret;
 
 	luahid_run(probe, &ctx, hid, hdev, ret);
-	if (ret != 0 || (ret = hid_parse(hdev)) != 0)
+	if (ret != 0)
 		return ret;
 
 	hid_set_drvdata(hdev, hid);
-	return hid_hw_start(hdev, HID_CONNECT_DEFAULT);
+	if ((ret = hid_parse(hdev)) != 0 || (ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT)) != 0)
+		luahid_detach(hid, hdev); /* the HID core calls no remove after a failed probe */
+	return ret;
+}
+
+static void luahid_remove(struct hid_device *hdev)
+{
+	hid_hw_stop(hdev);
+	luahid_detach(luahid_gethid(hdev), hdev);
 }
 
 static int luahid_doreport_fixup(lua_State *L)
 {
 	luahid_ctx_t *ctx = lua_touserdata(L, 1);
-	const struct hid_device *hdev = ctx->hdev;
 
-	luahid_pushhdev(L, hdev);
+	lunatik_getregistry(L, ctx->hdev); /* hdev */
 	lunatik_object_t *data = luahid_pushdata(L, ctx);
 	luahid_op(L, ctx, 2, 0);
 	luadata_clear(data);
@@ -260,9 +289,8 @@ static luahid_rdesc_t luahid_report_fixup(struct hid_device *hdev, __u8 *rdesc, 
 static int luahid_doraw_event(lua_State *L)
 {
 	luahid_ctx_t *ctx = lua_touserdata(L, 1);
-	const struct hid_device *hdev = ctx->hdev;
 
-	luahid_pushhdev(L, hdev);
+	lunatik_getregistry(L, ctx->hdev); /* hdev */
 	luahid_pushreport(L, ctx->report);
 	lunatik_object_t *data = luahid_pushdata(L, ctx);
 	luahid_op(L, ctx, 3, 0);
@@ -289,8 +317,9 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   each with optional integer fields `bus`, `group`, `vendor`, `product`, `driver_data`),
 *   and the optional callbacks:
 *
-*   - `probe(driver, id)`: a device matched; `id` is the matching entry, with `bus`,
-*     `group`, `vendor`, `product` and `driver_data`. Returning a negative errno,
+*   - `probe(driver, hdev, id)`: a device matched; `hdev` is the device's table, made here
+*     and handed to every later callback of the device, and `id` is the matching entry, with
+*     `bus`, `group`, `vendor`, `product` and `driver_data`. Returning a negative errno,
 *     `-errno.ENODEV` say, with `linux.errno`, fails the probe with it; an error, or a
 *     return that is neither nothing, zero nor an errno, logged as `invalid errno`, fails
 *     it with `ECANCELED`.
@@ -299,10 +328,14 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   - `raw_event(driver, hdev, report, raw)`: `raw` is a `data` over the report, edited
 *     in place and valid only during the call. An error makes the HID core drop the
 *     report.
+*   - `remove(driver, hdev)`: the device left the driver, or the HID core failed its probe
+*     after `probe` returned, so each `probe` that returned gets one `remove`; a device the
+*     driver still holds when its runtime stops gets none.
 *
-*   `hdev` carries `bus`, `group`, `vendor`, `product`, `version` and `name`; `report`
-*   carries `id`, `type`, `size`, `application` and `maxfield`. What `report_fixup` and
-*   `raw_event` return is ignored, and a callback's error goes to the kernel log.
+*   `hdev` carries `bus`, `group`, `vendor`, `product`, `version` and `name`, and keeps what
+*   the callbacks store in it; `report` carries `id`, `type`, `size`, `application` and
+*   `maxfield`. What `report_fixup`, `raw_event` and `remove` return is ignored, and a
+*   callback's error goes to the kernel log.
 * @treturn hid_driver
 * @raise "not allowed once the runtime is armed" past the script body; from a percpu runtime; if
 *   required fields are missing, `id_table` is invalid or too long, or driver registration fails;
@@ -329,6 +362,7 @@ static int luahid_register(lua_State *L)
 	driver->probe = luahid_probe;
 	driver->report_fixup = luahid_report_fixup;
 	driver->raw_event = luahid_raw_event;
+	driver->remove = luahid_remove;
 
 	lunatik_setruntime(L, hid, hid);
 	lunatik_getobject(hid->runtime);
