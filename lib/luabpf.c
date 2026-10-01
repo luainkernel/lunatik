@@ -379,6 +379,7 @@ static const lunatik_class_t luabpf_hash_class = {
 	.methods = luabpf_hash_mt,
 	.release = luabpf_map_release,
 	.opt = LUNATIK_OPT_EXTERNAL | LUNATIK_OPT_HARDIRQ,
+	.owner = THIS_MODULE,
 };
 
 static const lunatik_class_t luabpf_queue_class = {
@@ -386,6 +387,7 @@ static const lunatik_class_t luabpf_queue_class = {
 	.methods = luabpf_queue_mt,
 	.release = luabpf_map_release,
 	.opt = LUNATIK_OPT_EXTERNAL | LUNATIK_OPT_HARDIRQ,
+	.owner = THIS_MODULE,
 };
 
 static int luabpf_open(lua_State *L, const lunatik_class_t *class, enum bpf_map_type type,

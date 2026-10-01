@@ -217,6 +217,7 @@ static const lunatik_class_t luanetfilter_class = {
 	.methods = luanetfilter_mt,
 	.release = luanetfilter_release,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
+	.owner = THIS_MODULE,
 };
 
 /***

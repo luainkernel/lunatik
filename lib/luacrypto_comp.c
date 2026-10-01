@@ -75,6 +75,7 @@ const lunatik_class_t luacrypto_comp_class = {
 	.methods = luacrypto_comp_mt,
 	.release = luacrypto_comp_release,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 
 LUACRYPTO_NEW(comp, struct crypto_comp, crypto_alloc_comp, luacrypto_comp_class);

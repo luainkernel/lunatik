@@ -209,6 +209,7 @@ const lunatik_class_t luacrypto_aead_class = {
 	.methods = luacrypto_aead_mt,
 	.release = luacrypto_aead_release,
 	.opt = LUNATIK_OPT_MONITOR,
+	.owner = THIS_MODULE,
 };
 
 LUACRYPTO_NEWCTX(aead, struct crypto_aead, crypto_alloc_aead, luacrypto_aead_class);

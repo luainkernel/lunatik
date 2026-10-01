@@ -196,6 +196,7 @@ const lunatik_class_t lunatik_percpu_class = {
 	.methods = lunatik_percpu_mt,
 	.release = lunatik_releasepercpu,
 	.opt = LUNATIK_OPT_PERCPU,
+	.owner = THIS_MODULE,
 };
 
 /***

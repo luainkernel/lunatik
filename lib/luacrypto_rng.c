@@ -122,6 +122,7 @@ const lunatik_class_t luacrypto_rng_class = {
 	.methods = luacrypto_rng_mt,
 	.release = luacrypto_rng_release,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 
 int luacrypto_rng_new(lua_State *L)

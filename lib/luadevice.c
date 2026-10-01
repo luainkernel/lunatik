@@ -419,6 +419,7 @@ static const lunatik_class_t luadevice_class = {
 	.methods = luadevice_mt,
 	.release = luadevice_release,
 	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 
 static int luadevice_new(lua_State *L)

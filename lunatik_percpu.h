@@ -66,6 +66,7 @@ static void prefix##_release(void *private)					\
 static const lunatik_class_t prefix##_class = {					\
 	.name = cname,								\
 	.release = prefix##_release,						\
+	.owner = THIS_MODULE,							\
 }
 
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"

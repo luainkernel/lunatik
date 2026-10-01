@@ -337,6 +337,7 @@ static const lunatik_class_t luarcu_class = {
 	.methods = luarcu_mt,
 	.release = luarcu_release,
 	.opt = LUNATIK_OPT_SOFTIRQ,
+	.owner = THIS_MODULE,
 };
 
 lunatik_object_t *luarcu_newtable(size_t size, lunatik_opt_t opt)

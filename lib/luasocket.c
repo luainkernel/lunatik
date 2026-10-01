@@ -627,6 +627,7 @@ static const lunatik_class_t luasocket_class = {
 	.methods = luasocket_mt,
 	.release = luasocket_release,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 
 #define luasocket_new(L)		(lunatik_newobject((L), &luasocket_class, 0, LUNATIK_OPT_NONE))

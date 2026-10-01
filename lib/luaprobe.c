@@ -360,6 +360,7 @@ static const lunatik_class_t luaprobe_class = {
 	.methods = luaprobe_mt,
 	.release = luaprobe_release,
 	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 
 static void luaprobe_checkspec(lua_State *L, int ix, luaprobe_t *spec)

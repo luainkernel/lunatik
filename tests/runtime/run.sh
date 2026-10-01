@@ -24,6 +24,7 @@ TESTS=(
 	opt_skb_single.sh
 	require_cloneobject.sh
 	require_reopen.sh
+	module_owner.sh
 	percpu.sh
 	percpu_object.sh
 	percpu_refuse.sh

@@ -11,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/mm.h>
 #include <linux/kref.h>
+#include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/version.h>
 
@@ -81,6 +82,7 @@ typedef struct lunatik_class_s {
 	const luaL_Reg *methods;
 	lunatik_release_t release;
 	lunatik_opt_t opt;
+	struct module *owner;
 } lunatik_class_t;
 
 typedef struct lunatik_object_s {
@@ -300,6 +302,7 @@ static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, 
 
 static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, lunatik_opt_t opt)
 {
+	__module_get(class->owner); /* the code creating the object holds its module already */
 	kref_init(&object->kref);
 	object->private = NULL;
 	object->class = class;

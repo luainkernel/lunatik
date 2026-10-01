@@ -104,6 +104,7 @@ static const lunatik_class_t luatc_class = {
 	.methods = luatc_mt,
 	.release = luatc_release,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
+	.owner   = THIS_MODULE,
 };
 
 static inline void luatc_handler_cleanup(luatc_ctx_t *lctx)

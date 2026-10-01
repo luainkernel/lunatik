@@ -98,6 +98,7 @@ static const lunatik_class_t luasched_class = {
 	.methods = luasched_mt,
 	.release = luasched_release,
 	.opt     = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+	.owner   = THIS_MODULE,
 };
 
 static void luasched_handler_cleanup(luasched_ctx_t *lctx)

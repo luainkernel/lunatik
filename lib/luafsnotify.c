@@ -754,12 +754,14 @@ static const lunatik_class_t luafsnotify_class = {
 	.methods = luafsnotify_mt,
 	.release = luafsnotify_release,
 	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 
 static const lunatik_class_t luafsnotify_event_class = {
 	.name = "fsnotify.event",
 	.methods = luafsnotify_event_mt,
 	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 
 static const lunatik_class_t luafsnotify_mark_class = {
@@ -767,6 +769,7 @@ static const lunatik_class_t luafsnotify_mark_class = {
 	.methods = luafsnotify_mark_mt,
 	.release = luafsnotify_releasemark,
 	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 
 LUNATIK_CLASSES(fsnotify, &luafsnotify_class, &luafsnotify_event_class, &luafsnotify_mark_class);

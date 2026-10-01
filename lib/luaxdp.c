@@ -102,6 +102,7 @@ static const lunatik_class_t luaxdp_class = {
 	.methods = luaxdp_mt,
 	.release = luaxdp_release,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
+	.owner   = THIS_MODULE,
 };
 
 static inline void luaxdp_handler_cleanup(luaxdp_ctx_t *lctx)

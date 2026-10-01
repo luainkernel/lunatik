@@ -262,6 +262,7 @@ static const lunatik_class_t luanotifier_process_class = {
 	.methods = luanotifier_mt,
 	.release = luanotifier_release,
 	.opt = LUNATIK_OPT_SINGLE,
+	.owner = THIS_MODULE,
 };
 
 static const lunatik_class_t luanotifier_hardirq_class = {
@@ -269,6 +270,7 @@ static const lunatik_class_t luanotifier_hardirq_class = {
 	.methods = luanotifier_mt,
 	.release = luanotifier_release,
 	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+	.owner = THIS_MODULE,
 };
 
 static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, luanotifier_register_t unregister_fn,

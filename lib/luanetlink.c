@@ -155,6 +155,7 @@ static const lunatik_class_t luanetlink_channel_class = {
 	.methods = luanetlink_channel_mt,
 	.release = luanetlink_channel_release,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
+	.owner   = THIS_MODULE,
 };
 
 /***

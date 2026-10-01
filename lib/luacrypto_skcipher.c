@@ -167,6 +167,7 @@ const lunatik_class_t luacrypto_skcipher_class = {
 	.methods = luacrypto_skcipher_mt,
 	.release = luacrypto_skcipher_release,
 	.opt = LUNATIK_OPT_MONITOR,
+	.owner = THIS_MODULE,
 };
 
 LUACRYPTO_NEWCTX(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class);

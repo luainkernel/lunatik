@@ -140,6 +140,7 @@ static const lunatik_class_t luatask_class = {
 	.methods = luatask_mt,
 	.release = luatask_release,
 	.opt     = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_EXTERNAL,
+	.owner   = THIS_MODULE,
 };
 
 lunatik_object_t *luatask_new(lua_State *L, struct task_struct *task)
