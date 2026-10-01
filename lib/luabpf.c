@@ -37,7 +37,8 @@
 static const lunatik_class_t luabpf_hash_class;
 static const lunatik_class_t luabpf_queue_class;
 
-LUNATIK_PRIVATECHECKERS(luabpf_map_check, struct bpf_map *, "bpf.map", &luabpf_hash_class, &luabpf_queue_class);
+LUNATIK_PRIVATECHECKERS(luabpf_map_check, struct bpf_map *, "bpf.hash or bpf.queue", &luabpf_hash_class,
+	&luabpf_queue_class);
 
 #define luabpf_map_istype(map, type)	((map) != NULL && (map)->map_type == (type))
 
@@ -375,14 +376,14 @@ static const luaL_Reg luabpf_queue_mt[] = {
 };
 
 static const lunatik_class_t luabpf_hash_class = {
-	.name = "bpf_hash",
+	.name = "bpf.hash",
 	.methods = luabpf_hash_mt,
 	.release = luabpf_map_release,
 	.opt = LUNATIK_OPT_EXTERNAL | LUNATIK_OPT_HARDIRQ,
 };
 
 static const lunatik_class_t luabpf_queue_class = {
-	.name = "bpf_queue",
+	.name = "bpf.queue",
 	.methods = luabpf_queue_mt,
 	.release = luabpf_map_release,
 	.opt = LUNATIK_OPT_EXTERNAL | LUNATIK_OPT_HARDIRQ,

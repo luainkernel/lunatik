@@ -57,9 +57,11 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 - **map_values**: creates a pinned hash map with `bpftool`, then exercises
   `lookup`, `update` (flag semantics included), `delete`, `remove`, `next`
   driving a generic `for`, `info` and the lifecycle after `close`;
-  also asserts that the key-value handle carries no queue methods, and
-  that `bpf.hash` rejects non-map paths, every other map type and
-  mismatched key/value sizes.
+  also asserts that the key-value handle carries no queue methods, that
+  a type error names it `bpf.hash` and that its methods refuse another
+  class's object naming `bpf.hash or bpf.queue`, and that `bpf.hash`
+  rejects non-map paths, every other map type and mismatched key/value
+  sizes.
 - **array**: array map coverage — update/lookup by packed index,
   zero-filled reads of unwritten indexes, out-of-range lookup and
   update, `delete`/`remove` rejection, full index iteration and the
@@ -68,8 +70,10 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
   cross-type constructor rejection.
 - **queue**: queue map coverage — push/peek/pop in FIFO order, empty-map
   `nil`, full-map `false` and `BPF_EXIST` overwriting the oldest, invalid
-  push flags, the absence of key-value methods on the handle, the
-  cross-type constructor rejection and metadata with `key_size` 0.
+  push flags, the absence of key-value methods on the handle, the class
+  name `bpf.queue` a type error quotes and the refusal of another class's
+  object, the cross-type constructor rejection and metadata with
+  `key_size` 0.
 - **stack**: the same for LIFO stack maps.
 - **map**: the `bpf.map` layer — scalar, multi-value and `struct` codec
   specs, the table proxy (assignment, `nil` delete, `pairs`, `<close>`
@@ -110,12 +114,14 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   quic.xargs.org.
 - **comp**: `lz4` compresses to fewer bytes and decompresses back into an
   exact or a larger buffer; an empty string with a size of 0 is refused as out
-  of bounds, and a buffer one byte short of the output with `EINVAL`. Skipped
-  where `crypto.comp` is not built: `hascomp` asks the runtime for the
+  of bounds, and a buffer one byte short of the output with `EINVAL`; a
+  method called on another class's object is refused naming `crypto.comp`.
+  Skipped where `crypto.comp` is not built: `hascomp` asks the runtime for the
   binding, instead of the suite reading the kernel version.
 - **context**: an object refused for its execution context leaves nothing
   allocated. `crypto.shash("sha256")` and `crypto.comp("lz4")` from an armed
-  softirq runtime are refused, and the modules backing those algorithms -
+  softirq runtime are refused naming their class, `crypto.shash` and
+  `crypto.comp`, and the modules backing those algorithms -
   named by holding one object of each kind alive and watching which of
   `/proc/crypto`'s modules gain a reference - keep the reference counts they
   had. Skips when no module backs either, and when the loaded `luacrypto` cannot
@@ -1075,12 +1081,13 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   `probe:enable` and the `rcu.table` index metamethods refuse an object of
   another class instead of reading its private data as their own.
 
-- **foreign_checker**: a method of every class a process runtime can
-  construct (`data`, `fifo`, `completion`, `set`, `crypto_shash`, `task`,
-  `thread`, `runtime`), called through the class's metatable, refuses an
-  object of another class naming both classes, refuses `nil` and refuses a
-  userdata of another library; `rcu.foreach` refuses `nil`; and a method on a
-  closed runtime or fifo is refused instead of dereferencing its NULL private.
+- **foreign_checker**: a method of every class a process runtime can construct
+  (`data`, `fifo`, `completion`, `set`, `crypto.shash`, `crypto.skcipher`,
+  `crypto.aead`, `crypto.rng`, `task`, `thread`, `lunatik.runtime`,
+  `fsnotify.watch`), called through the class's metatable, refuses an object
+  of another class naming both classes, refuses `nil` and refuses a userdata
+  of another library; `rcu.foreach` refuses `nil`; and a method on a closed
+  runtime or fifo is refused instead of dereferencing its NULL private.
 
 - **resume_percpu**: `percpu:resume()` delivers the objects it is given to
   every runtime of a process set and of a softirq one, each marking its own
@@ -1114,7 +1121,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   without opening the library or adding a `package.loaded` entry: `data`
   into a softirq runtime, where the clone must not sleep, and
   `set.labeled`, the crypto classes and the `bpf` maps into a process
-  one. The `crypto_comp` case skips where the kernel has no crypto_comp
+  one. The `crypto.comp` case skips where the kernel has no crypto_comp
   API (6.15 and later), the `bpf` one where bpftool cannot pin a map.
 
 - **require_reopen**: a library opened in a state that already has its
@@ -1133,7 +1140,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **percpu_object**: `lunatik.percpu()` runs the script once per possible
   CPU id, each runtime stamping its own id; `stop` closes every runtime
   and the object can be created again; and `stop` refuses an object of
-  another class.
+  another class, a runtime, naming `lunatik.percpu` and `lunatik.runtime`.
 
 - **percpu_refuse**: a registration a percpu runtime cannot own fails
   at load, naming percpu, with a clean rollback, and the same script

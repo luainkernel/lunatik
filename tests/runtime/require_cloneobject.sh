@@ -59,20 +59,20 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	exit 0
 }
 
-clones "$SCRIPT" "data, set.labeled and crypto_shash, skcipher, aead and rng reach a runtime that never required them"
+clones "$SCRIPT" "data, set.labeled and crypto.shash, skcipher, aead and rng reach a runtime that never required them"
 
 if grep -qw luacrypto_comp_new /proc/kallsyms; then
-	clones "$COMP" "crypto_comp reaches a runtime that never required crypto"
+	clones "$COMP" "crypto.comp reaches a runtime that never required crypto"
 else
-	ktap_skip "crypto_comp: the binding is not built on this kernel"
+	ktap_skip "crypto.comp: the binding is not built on this kernel"
 fi
 
 mountpoint -q "$BPF_FS" || mount -t bpf bpf "$BPF_FS"
 if bpftool map create "$HASH_MAP" type hash key 4 value 4 entries 1 name test_clone_hash > /dev/null 2>&1 &&
 	bpftool map create "$QUEUE_MAP" type queue key 0 value 4 entries 1 name test_clone_queue > /dev/null 2>&1; then
-	clones "$BPF" "bpf_hash and bpf_queue reach a runtime that never required bpf"
+	clones "$BPF" "bpf.hash and bpf.queue reach a runtime that never required bpf"
 else
-	ktap_skip "bpf_hash and bpf_queue: bpftool cannot pin the maps"
+	ktap_skip "bpf.hash and bpf.queue: bpftool cannot pin the maps"
 fi
 
 ktap_totals

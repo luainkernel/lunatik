@@ -127,6 +127,12 @@ test("bpf.hash info reports the map properties", function()
 	m:close()
 end)
 
+test("bpf.hash names its class and refuses another", function()
+	local m = hash(path)
+	pinned.checkclass(m, "bpf.hash")
+	m:close()
+end)
+
 test("bpf.hash handle has no queue operations", function()
 	local m = hash(path)
 	assert(m.push == nil and m.pop == nil and m.peek == nil, "expected no queue methods on a key-value handle")

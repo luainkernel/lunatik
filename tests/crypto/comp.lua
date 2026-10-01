@@ -1,9 +1,10 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
 local comp = require("crypto").comp
+local data = require("data")
 local test = require("util").test
 
 test("COMP compress empty string (error)", function()
@@ -52,5 +53,12 @@ test("COMP decompress with too small buffer (expect error)", function()
 	local status, err = pcall(c.decompress, c, compressed, #original_data - 1)
 	assert(not status, "Decompression with too small buffer should fail")
 	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
+end)
+
+test("COMP refuses an object of another class, naming crypto.comp", function()
+	local c = comp"lz4"
+	local status, err = pcall(c.compress, data.new(8), "x", 16)
+	assert(not status, "compress accepted an object of another class")
+	assert(err:find("crypto.comp expected, got data", 1, true), "compress raised something else: " .. err)
 end)
 

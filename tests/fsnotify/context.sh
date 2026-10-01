@@ -64,8 +64,8 @@ passed=$(echo "$refusals" | grep -c "PASS	")
 	fail "$passed of $CASES cases passed: $(echo "$refusals" | grep "FAIL	")"
 ktap_pass "watch, mark, mask and find report what they reject and still take a directory"
 
-echo "$softirq" | grep -qF "runtime context mismatch: fsnotify needs process" || \
-	fail "expected 'runtime context mismatch: fsnotify needs process' from a softirq runtime, got: $softirq"
+echo "$softirq" | grep -qF "runtime context mismatch: fsnotify.watch needs process" || \
+	fail "expected 'runtime context mismatch: fsnotify.watch needs process' from a softirq runtime, got: $softirq"
 ktap_pass "fsnotify.watch refuses a softirq runtime"
 
 echo "$percpu" | grep -qF "not allowed in a percpu runtime" || \

@@ -750,7 +750,7 @@ static const luaL_Reg luafsnotify_event_mt[] = {
 
 LUNATIK_OPENER(fsnotify);
 static const lunatik_class_t luafsnotify_class = {
-	.name = "fsnotify",
+	.name = "fsnotify.watch",
 	.methods = luafsnotify_mt,
 	.release = luafsnotify_release,
 	.opt = LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,

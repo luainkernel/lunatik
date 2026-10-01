@@ -118,7 +118,7 @@ static const luaL_Reg luacrypto_rng_mt[] = {
 };
 
 const lunatik_class_t luacrypto_rng_class = {
-	.name = "crypto_rng",
+	.name = "crypto.rng",
 	.methods = luacrypto_rng_mt,
 	.release = luacrypto_rng_release,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,

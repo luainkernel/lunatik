@@ -71,7 +71,7 @@ static const luaL_Reg luacrypto_comp_mt[] = {
 };
 
 const lunatik_class_t luacrypto_comp_class = {
-	.name = "crypto_comp",
+	.name = "crypto.comp",
 	.methods = luacrypto_comp_mt,
 	.release = luacrypto_comp_release,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
