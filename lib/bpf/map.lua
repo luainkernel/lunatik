@@ -166,8 +166,8 @@ function view.__newindex(proxy, key, value)
 	local rawkey = state.key:encode(key)
 	if value == nil then
 		state.map:delete(rawkey)
-	else
-		state.map:update(rawkey, state.value:encode(value))
+	elseif not state.map:update(rawkey, state.value:encode(value)) then -- without flags, only a full map refuses
+		error("E2BIG", 0)
 	end
 end
 
@@ -195,6 +195,7 @@ end
 
 ---
 -- Opens a pinned hash map as a table.
+-- Assigning a key the map does not hold raises `E2BIG` once the map is full.
 -- @function hash
 -- @tparam string pathname Path to the pinned map.
 -- @tparam string|table keyspec `string.pack` format or `struct` codec for the key.

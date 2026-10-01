@@ -55,7 +55,9 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 `bpftool`; skipped when it is not available.
 
 - **map_values**: creates a pinned hash map with `bpftool`, then exercises
-  `lookup`, `update` (flag semantics included), `delete`, `remove`, `next`
+  `lookup`, `update` (flag semantics included, and `false` for a new key on a
+  full map, which an overwrite and an insert after a delete are not),
+  `delete`, `remove`, `next`
   driving a generic `for`, `info` and the lifecycle after `close`;
   also asserts that the key-value handle carries no queue methods, that
   a type error names it `bpf.hash` and that its methods refuse another
@@ -76,7 +78,8 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
   `key_size` 0.
 - **stack**: the same for LIFO stack maps.
 - **map**: the `bpf.map` layer — scalar, multi-value and `struct` codec
-  specs, the table proxy (assignment, `nil` delete, `pairs`, `<close>`
+  specs, the table proxy (assignment, `E2BIG` for a new key assigned to a
+  full hash, `nil` delete, `pairs`, `<close>`
   and function-named keys as plain map keys) over hash, array and
   lru_hash, the queue and stack objects (`push`/`pop`/`peek`, FIFO and
   LIFO order, empty `nil`, full `false`, `info`), spec size validation

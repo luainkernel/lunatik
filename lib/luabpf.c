@@ -83,9 +83,13 @@ static inline void luabpf_map_checkop(lua_State *L, const void *op)
 		lunatik_throw(L, -EOPNOTSUPP);
 }
 
-static int luabpf_map_pushresult(lua_State *L, long ret)
+/* an array answers E2BIG for an index past its end, which no delete makes room for */
+#define luabpf_map_isfull(map, ret)	((ret) == -E2BIG && !luabpf_map_istype((map), BPF_MAP_TYPE_ARRAY))
+
+static int luabpf_map_pushresult(lua_State *L, struct bpf_map *map, long ret)
 {
-	luabpf_map_checkret(L, ret);
+	if (!luabpf_map_isfull(map, ret))
+		luabpf_map_checkret(L, ret);
 	lua_pushboolean(L, ret == 0);
 	return 1;
 }
@@ -165,9 +169,9 @@ static int luabpf_map_lookup(lua_State *L)
 *   - `BPF_NOEXIST`: Create a new element only if the key does not exist.
 *   - `BPF_EXIST`: Update an existing element only if the key exists.
 * @treturn boolean success; `false` when the flag condition is not met
-* (`BPF_EXIST` on an absent key, `BPF_NOEXIST` on a present one).
+* (`BPF_EXIST` on an absent key, `BPF_NOEXIST` on a present one) or a hash map is full.
 * @raise `invalid key size` or `invalid value size` when a string does not match the map, or
-*   the kernel's errno, such as `E2BIG` when a hash map is full or `EINVAL` for bad flags.
+*   the kernel's errno, such as `E2BIG` for an array index past its end or `EINVAL` for bad flags.
 */
 static int luabpf_map_update(lua_State *L)
 {
@@ -178,7 +182,7 @@ static int luabpf_map_update(lua_State *L)
 
 	long ret;
 	luabpf_map_call(ret, map->ops->map_update_elem(map, (void *)key, (void *)value, flags));
-	return luabpf_map_pushresult(L, ret);
+	return luabpf_map_pushresult(L, map, ret);
 }
 
 /***
@@ -196,7 +200,7 @@ static int luabpf_map_delete(lua_State *L)
 
 	long ret;
 	luabpf_map_call(ret, map->ops->map_delete_elem(map, (void *)key));
-	return luabpf_map_pushresult(L, ret);
+	return luabpf_map_pushresult(L, map, ret);
 }
 
 /***
@@ -294,11 +298,7 @@ static int luabpf_map_push(lua_State *L)
 
 	long ret;
 	luabpf_map_call(ret, map->ops->map_push_elem(map, (void *)value, flags));
-	if (ret == -E2BIG) {
-		lua_pushboolean(L, 0);
-		return 1;
-	}
-	return luabpf_map_pushresult(L, ret);
+	return luabpf_map_pushresult(L, map, ret);
 }
 
 #define LUABPF_MAP_GETTER(name, op)						\

@@ -16,6 +16,7 @@ local array_path = "/sys/fs/bpf/test_map_array"
 local lru_path   = "/sys/fs/bpf/test_map_lru"
 local queue_path = "/sys/fs/bpf/test_map_queue"
 local stack_path = "/sys/fs/bpf/test_map_stack"
+local full_path  = "/sys/fs/bpf/test_map_full"
 
 test("bpf.map hash scalar integer round-trip", function()
 	local t <close> = map.hash(tbl_path, "I4", "I4")
@@ -23,6 +24,21 @@ test("bpf.map hash scalar integer round-trip", function()
 	assert(t[1] == 42, "expected 42, got: " .. tostring(t[1]))
 	t[1] = nil
 	assert(t[1] == nil, "expected nil after delete")
+end)
+
+test("bpf.map hash assignment of a new key to a full map raises E2BIG", function()
+	local t <close> = map.hash(full_path, "I4", "I4")
+	local entries = map.info(t).max_entries
+	for i = 1, entries do
+		t[i] = i
+	end
+	local ok, err = pcall(getmetatable(t).__newindex, t, entries + 1, 0)
+	assert(not ok and err == "E2BIG", "expected E2BIG, got: " .. tostring(err))
+	t[1] = 0
+	assert(t[1] == 0, "expected an overwrite of a present key on a full map")
+	for i = 1, entries do
+		t[i] = nil
+	end
 end)
 
 test("bpf.map hash byte-string keys read the seeded map", function()
