@@ -8,7 +8,7 @@
 # name's bytes alone, so a bound pathname comes back as the script spelled it, an
 # abstract name keeps its leading NUL, an autobound one is the NUL and five
 # hexadecimal digits the kernel picked, and an unbound socket is the empty string.
-# getpeername() answers with those same names read across a connection, and a receive
+# getpeername() answers with those same names read across a connection, and a receivefrom
 # from a peer the kernel names no address for must answer with the message alone. A
 # connected AF_UNIX stream is not TCP: it names its sender whenever that peer bound.
 #
@@ -62,10 +62,10 @@ expect "pathname getsockname ok" "unix getsockname: a pathname comes back withou
 expect "abstract getsockname ok" "unix getsockname: an abstract name comes back with its leading NUL"
 expect "autobind getsockname ok" "unix getsockname: an autobound name is the NUL and the digits the kernel picked"
 expect "pathname getpeername ok" "unix getpeername: a connected socket names the path its peer bound"
-expect "receive names a connected stream's peer" "unix receive: a connected stream names the path its peer bound"
+expect "receivefrom names a connected stream's peer" "unix receivefrom: a connected stream names the path its peer bound"
 expect "unbound getpeername is empty" "unix getpeername: a peer that never bound is the empty string"
 expect "abstract getpeername ok" "unix getpeername: an abstract peer comes back with its leading NUL"
-expect "receive names no unbound stream peer" "unix receive: a stream from an unbound peer answers with the message alone"
+expect "receivefrom names no unbound stream peer" "unix receivefrom: a stream from an unbound peer answers with the message alone"
 expect "receivefrom names a pathname peer" "unix receivefrom: a datagram names the path its peer bound"
 expect "receivefrom names no unbound peer" "unix receivefrom: a datagram from an unbound peer answers with the message alone"
 expect "receivefrom names an abstract peer" "unix receivefrom: a datagram names the abstract name its peer bound"

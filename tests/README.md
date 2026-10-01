@@ -1389,7 +1389,7 @@ pid, and what a valid call does.
   receives it, one created with it already in network order does not, and a
   protocol past 16 bits is refused as out of bounds.
 
-- **address**: what `getsockname()`, `getpeername()` and `receive(..., true)`
+- **address**: what `getsockname()`, `getpeername()` and `receivefrom()`
   answer with, per family. The kernel reports how many bytes it filled and the
   answer is those bytes: 26 for an AF_INET6 socket, unpacked field by field,
   against the 126 of the whole storage. An AF_PACKET address is five values, the
@@ -1400,7 +1400,9 @@ pid, and what a valid call does.
   refused with `EOPNOTSUPP`. AF_INET and
   AF_NETLINK guard the arms that answer with integers, an unconnected
   `getpeername()` is refused with `ENOTCONN`, and a connected TCP socket, which
-  names no sender, answers with the message alone. The AF_PACKET and AF_INET6
+  names no sender, answers with the message alone, as `receive()` does on a
+  datagram that names one; `socket.inet`'s `udp:receivefrom()` answers with
+  the sender's address as a string. The AF_PACKET and AF_INET6
   cases skip where the kernel does not carry the family.
 
 - **connect**: which argument `socket:connect()` reads as its flags. An AF_INET
@@ -1470,8 +1472,9 @@ pid, and what a valid call does.
   abstract name keeps its leading NUL, an autobound one is the NUL and the five
   hexadecimal digits the kernel picked, and an unbound socket is the empty string.
   `getpeername()` answers with those same names read across a connection, and a
-  connected stream, unlike TCP, names its sender whenever that peer bound. A receive
-  from a peer the kernel names no address for answers with the message alone.
+  connected stream, unlike TCP, names its sender whenever that peer bound. A
+  `receivefrom()` from a peer the kernel names no address for answers with the
+  message alone.
 
 ### struct
 
