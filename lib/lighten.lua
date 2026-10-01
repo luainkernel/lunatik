@@ -31,7 +31,8 @@ local lighten = {}
 -- @tparam string ct Hex-encoded ciphertext followed by its 16-byte tag.
 -- @tparam string iv Hex-encoded 12-byte IV.
 -- @return The return values of the decrypted script.
--- @raise Error if `darken.run` fails.
+-- @raise `"invalid hexadecimal string"` when `ct`, `iv` or the key is not hexadecimal of an even length,
+-- or the error `darken.run` raises.
 -- @see darken.run
 function lighten.run(ct, iv)
 	return darken.run(hex2bin(ct), hex2bin(iv), hex2bin(light))
