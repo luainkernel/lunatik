@@ -1794,6 +1794,14 @@ Regression tests for `luathread`.
   CLI's driver collects the handles `lunatik stop` drops, is back where it was
   before the driver ran, which a thread that keeps that reference fails.
 
+- **stop**: a thread's `__close` is its `stop`, and a to-be-closed variable
+  holding a thread stops it at the end of its scope. A spawned driver threads a
+  runtime whose body returns at once, finds one function under `__close` and
+  `stop` in the thread's metatable, which the monitor of this shared class
+  leaves unwrapped under both names, lets a to-be-closed variable holding the
+  thread go out of scope, and reads the task gone afterwards, as after a stop;
+  a second stop does nothing.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call
