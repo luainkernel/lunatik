@@ -98,7 +98,7 @@ static int luafifo_new(lua_State *L);
 * @function new
 * @tparam integer size desired capacity of the FIFO in bytes, from 2 up to `KMALLOC_MAX_SIZE`.
 * @treturn fifo A new fifo object.
-* @raise Error if `size` is out of bounds, or if kfifo allocation fails (e.g., due to insufficient memory).
+* @raise Error if `size` is out of bounds; `ENOMEM` if the kernel cannot allocate the buffer.
 * @usage
 *   local myfifo = fifo.new(1024) -- Creates a FIFO with a capacity of 1024 bytes
 * @within fifo
@@ -137,10 +137,8 @@ static int luafifo_new(lua_State *L)
 	size_t size = (size_t)lunatik_checkinteger(L, 1, 2, KMALLOC_MAX_SIZE);
 	lunatik_object_t *object = lunatik_newobject(L, &luafifo_class, sizeof(struct kfifo), LUNATIK_OPT_NONE);
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
-	int ret;
 
-	if ((ret = kfifo_alloc((struct kfifo *)object->private, size, gfp)) != 0)
-		luaL_error(L, "failed to allocate kfifo (%d)", ret);
+	lunatik_try(L, kfifo_alloc, (struct kfifo *)object->private, size, gfp);
 	return 1; /* object */
 }
 

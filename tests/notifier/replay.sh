@@ -16,7 +16,9 @@
 # before the script runs is replayed as a REGISTER and an UP, both printed with
 # the flag set; one created, brought up and deleted afterwards is reported live,
 # with the flag clear; and the count of flagged events does not grow once the
-# registration has returned.
+# registration has returned. A callback that returns notify.BAD for a replayed
+# REGISTER fails the registration, which raises EPERM, the errno
+# notifier_to_errno makes of it.
 #
 # Usage: sudo bash tests/notifier/replay.sh
 
@@ -37,7 +39,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 7
+ktap_plan 8
 
 skip_all()
 {
@@ -48,6 +50,7 @@ skip_all()
 	ktap_skip "live up is not marked"
 	ktap_skip "live unregister is not marked"
 	ktap_skip "no event is marked once the registration has returned"
+	ktap_skip "a refused replay fails the registration with EPERM"
 	ktap_skip "no Lua errors in kernel"
 	ktap_totals
 	exit 0
@@ -92,6 +95,9 @@ ktap_pass "live unregister is not marked"
 
 [ "$(marked)" = "$replayed" ] || fail "$(( $(marked) - replayed )) events were marked after the registration returned"
 ktap_pass "no event is marked once the registration has returned"
+
+[ "$(reported "refused EPERM")" = 1 ] || fail "the refused replay raised $(dmesg_since | grep -o 'replay: refused .*')"
+ktap_pass "a refused replay fails the registration with EPERM"
 
 check_dmesg && ktap_pass "no Lua errors in kernel"
 

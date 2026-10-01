@@ -591,7 +591,9 @@ after the watch is stopped.
   refused, the last with an error naming the field, and each refusal forces
   the refused driver's finalizer. A name filling `NAME_MAX` with no room for its
   terminator is refused too, and the longest that does leave room reaches
-  the bus intact. Skips when the kernel has no HID bus.
+  the bus intact. A name a driver it registered already holds is refused with
+  `EBUSY`, the errno `driver_register` returns, and that driver stays on the
+  bus. Skips when the kernel has no HID bus.
 - **idtable_leak**: an `id_table` whose entries raise from `__index` leaves
   nothing allocated behind. The refusal is repeated until what a leak would
   hold is tens of MiB in `SUnreclaim`, and the script then holds as many
@@ -886,7 +888,9 @@ from a pid namespace other than the initial one, whose pids are not the ones
   devices the namespace already has from the live ones: a dummy device brought
   up before the script runs is replayed as a `REGISTER` and an `UP`, both under
   the flag; one created, brought up and deleted afterwards is reported live,
-  none under it; and none is flagged once the registration has returned.
+  none under it; and none is flagged once the registration has returned. A
+  callback that returns `notify.BAD` for a replayed `REGISTER` fails the
+  registration, which raises `EPERM`, the errno `notifier_to_errno` makes of it.
 
 - **inside**: `notifier.netdevice` from inside a netdevice callback is refused,
   in both the contexts the callback runs in: the replay the registration
@@ -1000,7 +1004,7 @@ from a pid namespace other than the initial one, whose pids are not the ones
   script probes as a plain hardirq runtime, arming its own kprobe and
   unregistering it when it stops; a plain runtime stops its own probe, twice
   with no effect, is refused an `enable` and a `disable` afterwards, and refuses
-  a probe on a symbol the kernel does not have;
+  a probe on a symbol the kernel does not have with `ENOENT`;
   and a set whose last runtime errors releases the kprobe the earlier ones
   shared, leaving no kprobe armed, no script registered and no use-count on the
   probe module.

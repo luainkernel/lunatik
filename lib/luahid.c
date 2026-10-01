@@ -341,7 +341,8 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   goes to the kernel log.
 * @treturn hid_driver
 * @raise "not allowed once the runtime is armed" past the script body; from a percpu runtime; if
-*   required fields are missing, `id_table` is invalid or too long, or driver registration fails;
+*   required fields are missing, or `id_table` is invalid or too long; the kernel's errno if it
+*   refuses the driver, `EBUSY` for a name another driver holds on the bus;
 *   `bad field '<field>' (number expected, got <type>)` if an entry's `bus`, `group`, `vendor`,
 *   `product` or `driver_data` is present and not a number; `runtime context mismatch` unless the
 *   runtime is softirq; `not allowed while the runtime closes` from a finalizer that runs at its
@@ -372,9 +373,10 @@ static int luahid_register(lua_State *L)
 	luadata_attach(L, hid, data, LUNATIK_OPT_SINGLE);
 	lunatik_registerobject(L, 1, object);
 
-	if (hid_register_driver(driver) != 0) {
+	int ret = hid_register_driver(driver);
+	if (ret != 0) {
 		lunatik_unregisterobject(L, object);
-		luaL_error(L, "failed to register hid driver: %s", driver->name);
+		lunatik_throw(L, ret);
 	}
 
 	hid->registered = true;

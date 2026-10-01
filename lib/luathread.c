@@ -233,11 +233,11 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 * @raise "not allowed while the runtime closes" from a finalizer that runs at its close; "not
 *   allowed before the runtime is armed" from a script body; "IRQ runtime cannot spawn threads" for
 *   a softirq or hardirq runtime; "stopped runtime"; "invalid object" or "cannot share SINGLE
-*   object" for a value passed to the body; "couldn't pass the thread arguments"; "failed to create
-*   a new thread"; "not allowed from the runtime itself" from under the runtime's own lock, the
-*   contexts `runtime:stop` names, where passing the arguments would wait on it; "EINTR" if the
-*   stop of the calling kernel thread, or a fatal signal to any other task, ends its wait for the
-*   runtime's lock.
+*   object" for a value passed to the body; "couldn't pass the thread arguments"; the kernel's
+*   errno if it cannot create the thread; "not allowed from the runtime itself" from under the
+*   runtime's own lock, the contexts `runtime:stop` names, where passing the arguments would wait
+*   on it; "EINTR" if the stop of the calling kernel thread, or a fatal signal to any other task,
+*   ends its wait for the runtime's lock.
 * @see lunatik.runtime
 * @within thread
 */
@@ -263,7 +263,7 @@ static int luathread_run(lua_State *L)
 	struct task_struct *task = kthread_create(luathread_func, object, "%s", name);
 	if (IS_ERR(task)) {
 		luathread_popargs(runtime, nargs);
-		luaL_error(L, "failed to create a new thread");
+		lunatik_throw(L, PTR_ERR(task));
 	}
 
 	lunatik_getobject(object);

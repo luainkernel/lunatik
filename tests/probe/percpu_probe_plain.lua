@@ -28,6 +28,6 @@ end)
 test("a probe on a symbol the kernel does not have is refused", function()
 	local ok, err = pcall(probe.new, UNKNOWN, {pre = nop})
 	assert(not ok, "a probe on an unknown symbol was accepted")
-	assert(err:match("failed to register probe"), "probe.new raised something else: " .. tostring(err))
+	assert(err == "ENOENT", "probe.new raised something else: " .. tostring(err))
 end)
 

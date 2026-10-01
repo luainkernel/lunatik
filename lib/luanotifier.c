@@ -175,7 +175,8 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 *   callback, and from any runtime or coroutine the callback runs;
 *   `'notifier': process-context class in interrupt-context runtime` in a softirq or hardirq
 *   runtime; `not allowed while the runtime closes` from a finalizer that runs at its close;
-*   `couldn't create notifier` when the kernel refuses the registration
+*   the kernel's errno when it refuses the registration, `EPERM` when the callback returns
+*   `notify.BAD` for a replayed `REGISTER`
 * @within notifier
 */
 static int luanotifier_netdevice(lua_State *L)
@@ -210,7 +211,7 @@ static int luanotifier_keyboard_handler(lua_State *L, void *data)
 * @treturn notifier
 * @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
 *   `not allowed while the runtime closes` from a finalizer that runs at its close;
-*   `couldn't create notifier` when the kernel refuses the registration
+*   the kernel's errno when it refuses the registration
 * @within notifier
 */
 LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
@@ -236,7 +237,7 @@ static int luanotifier_vt_handler(lua_State *L, void *data)
 * @treturn notifier
 * @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
 *   `not allowed while the runtime closes` from a finalizer that runs at its close;
-*   `couldn't create notifier` when the kernel refuses the registration
+*   the kernel's errno when it refuses the registration
 * @within notifier
 */
 LUANOTIFIER_NEWCHAIN(vt, &luanotifier_hardirq_class);
@@ -295,7 +296,7 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	notifier->registrant = NULL;
 	if (err != 0) {
 		lunatik_unregisterobject(L, object);
-		luaL_error(L, "couldn't create notifier");
+		lunatik_throw(L, err);
 	}
 
 	notifier->unregister = unregister_fn; /* release skips a block register_fn did not take */
