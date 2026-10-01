@@ -58,16 +58,29 @@ static inline void *lunatik_ebpf_getctx(lua_State *L)
 	return ctx;
 }
 
-static inline int lunatik_ebpf_invoke(lua_State *L, int cb)
+static inline int lunatik_ebpf_invoke(lua_State *L, int cb, int nresults)
 {
 	lua_rawgeti(L, LUA_REGISTRYINDEX, cb);
 	lua_insert(L, -2);
-	if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
+	if (lua_pcall(L, 1, nresults, 0) != LUA_OK) {
 		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
 		lua_pop(L, 1);
 		return -1;
 	}
 	return 0;
+}
+
+static inline int lunatik_ebpf_action(lua_State *L, int cb, lua_Integer min, lua_Integer max)
+{
+	if (lunatik_ebpf_invoke(L, cb, 1) != 0 || lua_isnil(L, -1))
+		return -1;
+
+	lua_Integer action = lua_tointeger(L, -1);
+	if (lua_type(L, -1) == LUA_TNUMBER && action >= min && action <= max)
+		return (int)action;
+
+	pr_err_ratelimited("invalid action\n");
+	return -1;
 }
 
 #define lunatik_ebpf_attach(L, obj, field, new_fn, ...)	\
@@ -97,13 +110,14 @@ static inline void lunatik_ebpf_unbind(lua_State *L, int *cb)
 	lua_pop(L, 1);
 }
 
-#define LUNATIK_EBPF_RUN(key, key_sz, handler, ctxp) \
+#define LUNATIK_EBPF_RUN(key, key_sz, handler, ret, ctxp) \
 do { \
 	lunatik_object_t *__runtime = lunatik_ebpf_lookupruntime((key), (key_sz)); \
 	if (__runtime != NULL) { \
 		int __ret; \
 		lunatik_run(__runtime, (handler), __ret, (ctxp)); \
 		lunatik_putobject(__runtime); \
+		(ret) = __ret < 0 ? -1 : __ret; /* lunatik_run's -ENXIO or -EDEADLK included */ \
 	} \
 } while (0)
 

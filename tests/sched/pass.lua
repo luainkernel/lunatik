@@ -12,12 +12,11 @@ local DSQ_DEFAULT <const> = 0
 local reported = false
 
 local function workload(ctx)
-	ctx:dsq(DSQ_DEFAULT)
-	ctx:slice(scx.SLICE_DFL)
 	if not reported then
 		reported = true
 		print("sched pass test pass: task class assigned")
 	end
+	return DSQ_DEFAULT, scx.SLICE_DFL
 end
 
 sched.attach(workload)

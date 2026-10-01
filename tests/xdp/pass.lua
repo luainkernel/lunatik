@@ -18,7 +18,7 @@ local function test_pass(ctx)
 			print("xdp pass test fail: argument does not carry the magic")
 		end
 	end
-	ctx:action(action.PASS)
+	return action.PASS
 end
 
 xdp.attach(test_pass)

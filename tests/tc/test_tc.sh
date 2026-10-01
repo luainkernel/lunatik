@@ -23,6 +23,14 @@
 # three data objects; a build whose skb leaves its views registered frees one. The
 # case skips where the kprobe cannot be placed.
 #
+# The verdict cases send one ping each, whose payload size picks what the callback
+# of verdict.lua answers to the echo reply: nothing, a value that is not a number, an
+# action as a string, a number past the TC actions, one below them, one whose low 32
+# bits are SHOT, or a raise. Each makes bpf_luatc_run return -1, on which the program
+# lets the reply out and returns anything else as it came, so a value the kfunc let
+# through reaches the kernel; the five that are not an action log "invalid action",
+# which no other case logs, and each case reads back the line its callback printed.
+#
 # Usage: sudo bash tests/tc/test_tc.sh
 
 MODULE="luatc"
@@ -40,6 +48,23 @@ PULLED="tc nonlinear: a pulled skb is read, copied and resized whole"
 REPLACED="tc reattach: the replaced context frees its skb's views and its argument"
 FREED="lunatik_tc/luadata_release"
 REPLACED_OBJECTS=3 # the replaced context's two views and its argument
+PREFIX="tc verdict: "
+INVALID="$MODULE: invalid action"
+RAISED="${PREFIX}raised"
+
+# the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
+VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
+VERDICT_CASES=(none boolean string range wrap raise below)
+VERDICT_LOGS=("" "$INVALID" "$INVALID" "$INVALID" "$INVALID" "$RAISED" "$INVALID")
+VERDICT_TITLES=(
+	"tc verdict: a callback that returns nothing leaves the verdict to the program"
+	"tc verdict: a value that is not a number is refused and logged"
+	"tc verdict: an action as a string is refused and logged"
+	"tc verdict: a number past the TC actions is refused and logged"
+	"tc verdict: a number whose low 32 bits are SHOT is refused and logged"
+	"tc verdict: a callback that raises leaves the verdict to the program"
+	"tc verdict: a number below the TC actions is refused and logged"
+)
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
@@ -61,7 +86,7 @@ tc_unload()
 }
 
 ktap_header
-ktap_plan 10
+ktap_plan 17
 
 skip_all()
 {
@@ -76,6 +101,9 @@ skip_all()
 	ktap_skip "tc data: the net and mac views end at the frame's tail"
 	ktap_skip "$REFUSED"
 	ktap_skip "$PULLED"
+	for title in "${VERDICT_TITLES[@]}"; do
+		ktap_skip "$title"
+	done
 	ktap_totals
 	exit 0
 }
@@ -97,6 +125,7 @@ cleanup()
 	lunatik stop tests/tc/attach_sleepable > /dev/null 2>&1
 	lunatik stop tests/tc/data > /dev/null 2>&1
 	lunatik stop tests/tc/nonlinear > /dev/null 2>&1
+	lunatik stop tests/tc/verdict > /dev/null 2>&1
 	pkill -f "TCP-LISTEN:$PORT," 2>/dev/null
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
@@ -271,6 +300,51 @@ nonlinear_case()
 	nonlinear_verdict "$PULLED" pulled
 }
 
+verdict_fail()
+{
+	local title
+	for title in "${VERDICT_TITLES[@]}"; do
+		ktap_fail "$title: $1"
+	done
+}
+
+# verdict_check <i> <reached> <log>: the callback of case i ran, the ping passed, and it logged what it should
+verdict_check()
+{
+	local case="${VERDICT_CASES[$1]}" expected="${VERDICT_LOGS[$1]}" title="${VERDICT_TITLES[$1]}"
+
+	grep -qE "${PREFIX}${case}\$" <<< "$3" || { ktap_fail "$title: the callback did not run"; return; }
+	grep -qE "$KTAP_ERRORS" <<< "$3" && { ktap_fail "$title: script raised an error"; return; }
+	[ "$2" -eq 0 ] || { ktap_fail "$title: the ping was dropped"; return; }
+	[ -z "$expected" ] || grep -qF "$expected" <<< "$3" || { ktap_fail "$title: \"$expected\" not logged"; return; }
+	[ "$expected" = "$INVALID" ] || ! grep -qF "$INVALID" <<< "$3" || { ktap_fail "$title: logged as invalid"; return; }
+	ktap_pass "$title"
+}
+
+verdict_case()
+{
+	local i
+	local -a reached logs
+
+	tc_load tc_verdict.bpf.o || { verdict_fail "failed to load/attach TC program"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/tc/verdict"
+	for i in "${!VERDICT_CASES[@]}"; do
+		ip netns exec "$NETNS" ping -c 1 -W 2 -s "${VERDICT_PAYLOADS[$i]}" "$HOST" > /dev/null 2>&1
+		reached[$i]=$?
+		logs[$i]=$(dmesg_since)
+		mark_dmesg
+	done
+
+	tc_unload
+	lunatik stop tests/tc/verdict > /dev/null 2>&1
+
+	for i in "${!VERDICT_CASES[@]}"; do
+		verdict_check "$i" "${reached[$i]}" "${logs[$i]}"
+	done
+}
+
 run_case tc_pass.bpf.o pass.lua yes "tc pass" \
 	"tc pass test pass: packet and argument content verified" --context=softirq
 run_case tc_drop.bpf.o drop.lua no "tc drop" \
@@ -292,6 +366,7 @@ run_case tc_data.bpf.o data.lua yes "tc data" \
 	"tc data: the net and mac views end at the frame's tail" --context=softirq
 
 nonlinear_case
+verdict_case
 
 ktap_totals
 

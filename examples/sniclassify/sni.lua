@@ -37,7 +37,7 @@ local function sniclassify(ctx)
 		end
 	end
 
-	ctx:action(action.ACT_OK)
+	return action.ACT_OK
 end
 
 tc.attach(sniclassify)

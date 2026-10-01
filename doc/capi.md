@@ -1250,14 +1250,16 @@ program that calls the kfunc fails to load.
 
 ### LUNATIK\_EBPF\_RUN
 ```C
-#define LUNATIK_EBPF_RUN(key, key_sz, handler, ctxp)
+#define LUNATIK_EBPF_RUN(key, key_sz, handler, ret, ctxp)
 lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key_sz);
 ```
 The kfunc's body: `lunatik_ebpf_lookupruntime` finds the runtime stored at `key` in
 `lunatik._ENV.runtimes`, where `lunatik run` keeps the runtimes it starts by script name, and
-`LUNATIK_EBPF_RUN` runs `handler(L, ctxp)` on it with [`lunatik_run`](#lunatik_run), then drops
-the reference the lookup took. `key_sz` counts the terminator, which the lookup writes at
-`key[key_sz - 1]`. A key with no runtime, and a process runtime, which it logs, run nothing. The
+`LUNATIK_EBPF_RUN` runs `handler(L, ctxp)` on it with [`lunatik_run`](#lunatik_run), sets `ret`
+with its result, a negative one, `lunatik_run`'s `-ENXIO` and `-EDEADLK` included, as `-1`, then
+drops the reference the lookup took. `key_sz` counts the terminator, which the lookup writes at
+`key[key_sz - 1]`. A key with no runtime, and a process runtime, which it logs, run nothing and
+leave `ret` as it was. The
 binding keeps the `runtimes` table the first lookup to find one returns; until then, a lookup made
 while `lunatik_run.ko` is not loaded runs nothing, which it logs.
 
@@ -1267,7 +1269,8 @@ void lunatik_ebpf_bind(lua_State *L, int ix, int *cb);
 void lunatik_ebpf_unbind(lua_State *L, int *cb);
 void *lunatik_ebpf_findctx(lua_State *L);
 void *lunatik_ebpf_getctx(lua_State *L);
-int lunatik_ebpf_invoke(lua_State *L, int cb);
+int lunatik_ebpf_invoke(lua_State *L, int cb, int nresults);
+int lunatik_ebpf_action(lua_State *L, int cb, lua_Integer min, lua_Integer max);
 ```
 A runtime has one callback context, the userdata of an object of the binding's class, kept in
 its registry. `lunatik_ebpf_bind`, called with that userdata on top of the stack, references the
@@ -1275,7 +1278,10 @@ callback at `ix` in `cb`, stores the userdata and pops it. `lunatik_ebpf_findctx
 userdata and returns its private, or pops and returns `NULL` when the runtime has none;
 `lunatik_ebpf_getctx` also logs `no callback attached` then. `lunatik_ebpf_invoke` calls the
 callback `cb` with the value on top of the stack, the userdata `findctx` pushed, in a protected
-call, and returns `-1` after logging the error, `0` otherwise. `lunatik_ebpf_unbind` releases
+call, and returns `-1` after logging the error, `0` otherwise, with its `nresults` results on the
+stack. `lunatik_ebpf_action` invokes it for one result and returns that result when it is an
+integer from `min` to `max`, and `-1` when the callback raised or returned nil, or, logging
+`invalid action`, anything else. `lunatik_ebpf_unbind` releases
 `cb`, clears the stored userdata, and pops the one `findctx` pushed.
 
 ### lunatik\_ebpf\_attach

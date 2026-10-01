@@ -41,7 +41,6 @@ typedef struct luatc_ctx_s {
 	struct __sk_buff *skb;
 	void             *arg;
 	size_t            arg__sz;
-	int              *action;
 	lunatik_object_t *skb_obj;
 	lunatik_object_t *argument;
 	int              cb;
@@ -84,23 +83,10 @@ static int luatc_argument(lua_State *L)
 	return 1;
 }
 
-/***
-* Sets the TC verdict action for this packet.
-* @function tc_ctx:action
-* @tparam integer action TC action constant (e.g. `TC_ACT_OK`, `TC_ACT_SHOT`, ...)
-*/
-static int luatc_action(lua_State *L)
-{
-	luatc_ctx_t *ctx = luatc_ctx_check(L, 1);
-	*ctx->action = luaL_checkinteger(L, 2);
-	return 0;
-}
-
 static const luaL_Reg luatc_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"skb", luatc_skb},
 	{"argument", luatc_argument},
-	{"action", luatc_action},
 	{NULL, NULL}
 };
 
@@ -125,7 +111,6 @@ static inline void luatc_handler_cleanup(luatc_ctx_t *lctx)
 	luaskb_clear(lctx->skb_obj);
 	luadata_clear(lctx->argument);
 	lctx->skb = NULL;
-	lctx->action = NULL;
 }
 
 static int luatc_handler(lua_State *L, luatc_ctx_t *ctx)
@@ -143,10 +128,9 @@ static int luatc_handler(lua_State *L, luatc_ctx_t *ctx)
 	lctx->skb     = ctx->skb;
 	lctx->arg     = ctx->arg;
 	lctx->arg__sz = ctx->arg__sz;
-	lctx->action  = ctx->action;
 	luadata_reset(lctx->argument, lctx->arg, lctx->arg__sz, LUADATA_OPT_KEEP);
 
-	ret = lunatik_ebpf_invoke(L, lctx->cb);
+	ret = lunatik_ebpf_action(L, lctx->cb, TC_ACT_UNSPEC, TC_ACT_VALUE_MAX);
 	luatc_handler_cleanup(lctx);
 	return ret;
 }
@@ -159,10 +143,9 @@ __bpf_kfunc int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *skb, 
 		.skb     = skb,
 		.arg     = arg,
 		.arg__sz = arg__sz,
-		.action  = &action,
 	};
 
-	LUNATIK_EBPF_RUN(key, key__sz, luatc_handler, &ctx);
+	LUNATIK_EBPF_RUN(key, key__sz, luatc_handler, action, &ctx);
 	return action;
 }
 
@@ -219,11 +202,12 @@ static int luatc_detach(lua_State *L)
 * @function attach
 * @tparam function callback Lua function to call. It receives one argument:
 *
-*   `ctx`: A `tc_ctx` context object used to inspect the packet
-*   and control the TC verdict via `tc_ctx:action`.
+*   `ctx`: A `tc_ctx` context object used to inspect the packet.
 *
-*   The callback need not return a value. If it sets no action, `bpf_luatc_run`
-*   returns `-1` and the verdict is left to the eBPF program.
+*   It returns the verdict, a TC action from `linux.tc`, which `bpf_luatc_run`
+*   returns to the eBPF program. When it returns nothing or nil, or raises,
+*   `bpf_luatc_run` returns `-1` and the verdict is left to the eBPF program; a value
+*   that is not a TC action is logged as `invalid action` and answered the same way.
 * @treturn nil
 * @raise `runtime context mismatch` outside a softirq runtime, or if internal setup fails.
 * @usage
@@ -234,8 +218,7 @@ static int luatc_detach(lua_State *L)
 *   local function my_traffic_shaper(ctx)
 *     local skb = ctx:skb()
 *     print("Packet received, size:", #skb)
-*     ctx:action(action.ACT_OK)
-*     return
+*     return action.ACT_OK
 *   end
 *   tc.attach(my_traffic_shaper)
 *

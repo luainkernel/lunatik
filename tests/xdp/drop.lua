@@ -9,7 +9,7 @@ local action = require("linux.xdp")
 
 local function test_drop(ctx)
 	print("xdp drop test pass: verdict set to drop")
-	ctx:action(action.DROP)
+	return action.DROP
 end
 
 xdp.attach(test_drop)

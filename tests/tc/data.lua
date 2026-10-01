@@ -18,7 +18,7 @@ local function test_data(ctx)
 			print(string.format("tc data test fail: frame %d, net view %d, mac view %d", frame, net, mac))
 		end
 	end
-	ctx:action(action.ACT_OK)
+	return action.ACT_OK
 end
 
 tc.attach(test_data)

@@ -40,11 +40,15 @@
 
 LUNATIK_EBPF_START();
 
+struct task_class {
+	u64 dsq;
+	u64 slice;
+};
+
 typedef struct luasched_ctx_s {
 	struct task_struct *task;
 	lunatik_object_t   *task_obj;
-	u64                *dsq;
-	u64                *slice;
+	struct task_class  *cls;
 	int                cb;
 } luasched_ctx_t;
 
@@ -76,35 +80,9 @@ static int luasched_task(lua_State *L)
 	return 1;
 }
 
-/***
-* Sets the sched_ext dispatch queue for this task.
-* @function sched_ctx:dsq
-* @tparam integer dsq dispatch queue to set for the task
-*/
-static int luasched_dsq(lua_State *L)
-{
-	luasched_ctx_t *ctx = luasched_ctx_check(L, 1);
-	*ctx->dsq = luaL_checkinteger(L, 2);
-	return 0;
-}
-
-/***
-* Sets the sched_ext slice in nanoseconds for this task.
-* @function sched_ctx:slice
-* @tparam integer slice slice in ns to set for the task
-*/
-static int luasched_slice(lua_State *L)
-{
-	luasched_ctx_t *ctx = luasched_ctx_check(L, 1);
-	*ctx->slice = luaL_checkinteger(L, 2);
-	return 0;
-}
-
 static const luaL_Reg luasched_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"task", luasched_task},
-	{"dsq", luasched_dsq},
-	{"slice", luasched_slice},
 	{NULL, NULL}
 };
 
@@ -126,8 +104,26 @@ static void luasched_handler_cleanup(luasched_ctx_t *lctx)
 {
 	luatask_clear(lctx->task_obj);
 	lctx->task = NULL;
-	lctx->dsq = NULL;
-	lctx->slice = NULL;
+}
+
+#define luasched_isoptional(type)	((type) == LUA_TNIL || (type) == LUA_TNUMBER)
+
+static int luasched_decision(lua_State *L, luasched_ctx_t *ctx)
+{
+	int dsq = lua_type(L, -2);
+	int slice = lua_type(L, -1);
+
+	if (dsq == LUA_TNIL && slice == LUA_TNIL)
+		return -1;
+
+	if (!luasched_isoptional(dsq) || !luasched_isoptional(slice)) {
+		pr_err_ratelimited("invalid task class\n");
+		return -1;
+	}
+
+	ctx->cls->dsq = dsq == LUA_TNUMBER ? lua_tointeger(L, -2) : SCX_DSQ_GLOBAL;
+	ctx->cls->slice = slice == LUA_TNUMBER ? lua_tointeger(L, -1) : SCX_SLICE_DFL;
+	return 0;
 }
 
 static int luasched_handler(lua_State *L, luasched_ctx_t *ctx)
@@ -142,38 +138,27 @@ static int luasched_handler(lua_State *L, luasched_ctx_t *ctx)
 
 	luatask_reset(lctx->task_obj, task);
 
-	lctx->task  = ctx->task;
-	lctx->dsq   = ctx->dsq;
-	lctx->slice = ctx->slice;
+	lctx->task = ctx->task;
 
-	ret = lunatik_ebpf_invoke(L, lctx->cb);
+	ret = lunatik_ebpf_invoke(L, lctx->cb, 2);
 	luasched_handler_cleanup(lctx);
-	return ret;
+	return ret < 0 ? ret : luasched_decision(L, ctx);
 }
-
-struct task_class {
-	u64 dsq;
-	u64 slice;
-};
 
 __bpf_kfunc int bpf_luasched_run(char *key, size_t key__sz, struct task_struct *task, struct task_class *cls)
 {
-	u64 dsq = SCX_DSQ_GLOBAL;
-	u64 slice = SCX_SLICE_DFL;
+	int ret = -1;
 
 	if (!cls)
 		return -1;
 
 	luasched_ctx_t ctx = {
-		.task  = task,
-		.dsq   = &dsq,
-		.slice = &slice,
+		.task = task,
+		.cls  = cls,
 	};
 
-	LUNATIK_EBPF_RUN(key, key__sz, luasched_handler, &ctx);
-	cls->dsq = dsq;
-	cls->slice = slice;
-	return 0;
+	LUNATIK_EBPF_RUN(key, key__sz, luasched_handler, ret, &ctx);
+	return ret;
 }
 
 LUNATIK_EBPF_END();
@@ -183,8 +168,7 @@ LUNATIK_EBPF_KFUNC_DEFINE_SET(sched, bpf_luasched_run);
 /***
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
 * After calling this, `bpf_luasched_run` calls targeting this runtime invoke no Lua function:
-* they log `no callback attached`, set SCX_DSQ_GLOBAL and SCX_SLICE_DFL, and leave the verdict
-* to the eBPF program.
+* they log `no callback attached`, return -1 and leave the decision to the eBPF program.
 * @function detach
 * @treturn nil
 * @usage
@@ -223,17 +207,19 @@ static int luasched_detach(lua_State *L)
 * - `cls`: where the decision is written, a struct of two `u64`, the dispatch queue
 *   and then the slice.
 *
-* It returns 0 once `cls` is filled, whether or not a callback ran, and -1 when `cls`
-* is NULL.
+* It returns 0 once the callback decided and `cls` is filled, and -1, leaving `cls` as
+* it was, when `cls` is NULL or no callback decided.
 *
 * @function attach
 * @tparam function callback Lua function to call. It receives one argument:
 *
-*   `ctx`: An `sched_ctx` context object used to inspect the task
-*   and control the sched_ext dispatch queue via `sched_ctx:dsq`.
+*   `ctx`: An `sched_ctx` context object used to inspect the task.
 *
-*   The callback need not return a value. If it sets no dispatch queue, `bpf_luasched_run`
-*   sets SCX_DSQ_GLOBAL and the verdict is left to the eBPF program.
+*   It returns the decision, the dispatch queue and then the slice in nanoseconds,
+*   which `bpf_luasched_run` writes to `cls`; a nil one takes `SCX_DSQ_GLOBAL` or
+*   `SCX_SLICE_DFL`. When it returns neither, or raises, `bpf_luasched_run` returns -1
+*   and the decision is left to the eBPF program; a value that is not a number is logged
+*   as `invalid task class` and answered the same way.
 * @treturn nil
 * @raise `runtime context mismatch` unless the runtime is hardirq, or on allocation failure.
 * @usage
@@ -244,10 +230,8 @@ static int luasched_detach(lua_State *L)
 *   local function my_scheduler(ctx)
 *     local task = ctx:task()
 *     if task:comm() == "bash" then
-*       ctx:dsq(scx.DSQ_LOCAL)
-*       ctx:slice(scx.SLICE_DFL)
+*       return scx.DSQ_LOCAL, scx.SLICE_DFL
 *     end
-*     return
 *   end
 *   sched.attach(my_scheduler)
 *

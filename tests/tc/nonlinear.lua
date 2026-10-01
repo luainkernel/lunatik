@@ -29,7 +29,7 @@ local function unpulled(skb)
 	refuses(skb, "resize", #skb - DELTA)
 end
 
-local function pulled(ctx, skb)
+local function pulled(skb)
 	local len = #skb
 	local view, copy = #skb:data(), #skb:copy()
 	skb:resize(len - DELTA)
@@ -37,7 +37,7 @@ local function pulled(ctx, skb)
 	report("pulled", view == len and copy == len and resized == len - DELTA, "skb %d, view %d, copy %d, resized view %d",
 		len, view, copy, resized)
 	done = true
-	ctx:action(action.ACT_SHOT) -- the resized segment is not sent; TCP sends it again
+	return action.ACT_SHOT -- the resized segment is not sent; TCP sends it again
 end
 
 local function test_nonlinear(ctx)
@@ -48,7 +48,7 @@ local function test_nonlinear(ctx)
 	if ctx:argument():getuint32(0) == 0 then
 		unpulled(skb)
 	else
-		pulled(ctx, skb)
+		return pulled(skb)
 	end
 end
 
