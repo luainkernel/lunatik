@@ -19,6 +19,7 @@ local SOFTIRQ <const> = 2700
 local HARDIRQ <const> = 3000
 local PROCESS <const> = 3300
 local AFTER   <const> = 3600
+local STRING  <const> = 3900
 
 local function resume(context, length)
 	local runtime <close> = lunatik.runtime(RAISE, context)
@@ -26,6 +27,7 @@ local function resume(context, length)
 end
 
 data.new(DATA):getstring(0)
+tostring(data.new(STRING))
 
 local queue <close> = fifo.new(FIFO)
 queue:push(rep(FILL, FIFO))

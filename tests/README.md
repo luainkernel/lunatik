@@ -670,9 +670,10 @@ allocates with).
   runtime; `f:pop()` allocates inside `spin_lock_bh`, forcing GC that
   finalizes a dropped AF_PACKET socket. Must not trigger "scheduling
   while atomic".
-- **gfp**: a process runtime reads a shared `data` buffer, pops a `fifo`, and resumes a
-  process, a softirq and a hardirq runtime that read the buffer they are handed and raise a
-  message resume copies back, each case at a length of its own, then allocates once more.
+- **gfp**: a process runtime reads a shared `data` buffer, converts one to a string through
+  its `__tostring`, pops a `fifo`, and resumes a process, a softirq and a hardirq runtime
+  that read the buffer they are handed and raise a message resume copies back, each case at
+  a length of its own, then allocates once more.
   A `kmem:kmalloc` tracepoint in a trace instance of its own records the gfp and the
   context of each allocation: with a spinlock held every one asks for `GFP_ATOMIC`, an
   interrupt-context runtime's after its own monitored method included, and under the

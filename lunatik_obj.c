@@ -11,10 +11,10 @@
 
 #ifdef LUNATIK_RUNTIME
 
-#define lunatik_ismetamethod(reg)          \
-	((!strncmp(reg->name, "__", 2)) ||     \
-	(!strcmp(reg->name, "close")) ||       \
-	(reg)->func == lunatik_lstop)
+#define lunatik_iswrapped(reg)							\
+	(strncmp((reg)->name, "__", 2) ?					\
+		strcmp((reg)->name, "close") && (reg)->func != lunatik_lstop :	\
+		!strcmp((reg)->name, "__tostring"))
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt)
 {
@@ -186,7 +186,7 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class)
 {
 	const luaL_Reg *reg;
 	for (reg = class->methods; reg->name != NULL; reg++) {
-		if (!lunatik_ismetamethod(reg)) {
+		if (lunatik_iswrapped(reg)) {
 			lua_getfield(L, -1, reg->name);
 			lua_pushstring(L, reg->name);
 			lua_pushcclosure(L, lunatik_monitor, 2); /* stack: mt, method, method name*/
