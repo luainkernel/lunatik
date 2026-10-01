@@ -11,14 +11,18 @@
 # a device plugged in. The probe stamps the device's table, and every callback of
 # the device counts itself on that table; remove prints the count, so a table
 # made anew for a call, or one shared by two devices, prints another number. On
-# each device the peer binds, it sends five reports, on the last of which
-# raw_event raises, and reads which of them reached its hidraw node:
+# each device the peer binds, it sends seven reports whose first byte selects
+# what raw_event answers, nothing, zero, a negative errno, a positive number, a
+# numeric string, a number below every errno or a raise, and reads which of them
+# reached its hidraw node:
 #
 # - a probe receives the device's table and the matching id_table entry;
 # - report_fixup edits the descriptor the device is then parsed with, which
 #   sysfs shows;
-# - a report raw_event returns on reaches hidraw, and one it raises on does
-#   not, the error logged with the callback;
+# - a report raw_event answers with nothing or zero reaches hidraw, and one it
+#   answers with a negative errno does not;
+# - a report raw_event answers with any other value, or raises on, does not
+#   either, and each is logged with the callback;
 # - two devices bound at once each get a table of their own, the one their
 #   report_fixup, raw_event and remove receive, and remove runs when the
 #   device goes;
@@ -44,9 +48,10 @@ SECOND="0002"
 RAISE="0003"   # its probe raises
 BREAK="0004"   # its report_fixup breaks the descriptor
 STORM=30       # reports raw_event raises on in the burst
+INVALID=6      # returns raw_event refuses, three on each of the two devices
 FIXED="06 00 ff 09 01 a1 01 09 03 15 00 26 ff 00 75 08 95 02 81 02 c0"
-PASSED="report 00 00|report 01 01|report 02 02|report 03 03"
-SEEN=8         # probe, report_fixup, five raw_events and remove
+PASSED="report 00 00|report 01 01"
+SEEN=10        # probe, report_fixup, seven raw_events and remove
 BROKEN=3       # probe, report_fixup and remove
 ECANCELED=-125
 RAISED="raised"
@@ -100,7 +105,7 @@ callback() { logged "luahid: $1: $2"; }
 probefailed() { dmesg_since | grep -qE "0003:$VENDOR:$1\.[0-9A-F]+.* failed with error $2"; }
 
 ktap_header
-ktap_plan 9
+ktap_plan 10
 
 mark_dmesg
 run_script --context=softirq "$SCRIPT"
@@ -118,8 +123,12 @@ ktap_pass "report_fixup edits the descriptor the device is parsed with"
 for product in "$SOUND" "$SECOND"; do
 	[ "$(reports "$product")" = "$PASSED" ] || fail "device $product reached hidraw with: $(reports "$product")"
 done
-callback "$RAISED" raw_event || fail "raw_event's raise is not in the kernel log"
-ktap_pass "a report raw_event returns on passes, and one it raises on is dropped and the error logged"
+ktap_pass "a report raw_event answers with nothing or zero passes, and one it answers with a negative errno is dropped"
+
+invalid=$(dmesg_since | grep -c "luahid: invalid errno: raw_event")
+[ "$invalid" -eq "$INVALID" ] && callback "$RAISED" raw_event ||
+	fail "raw_event logged $invalid of its $INVALID invalid returns, or not its raise"
+ktap_pass "a report raw_event answers with any other value, or raises on, is dropped and the error logged"
 
 peer_stop
 for product in "$SOUND" "$SECOND"; do
