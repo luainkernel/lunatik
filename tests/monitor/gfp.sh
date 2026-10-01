@@ -9,7 +9,8 @@
 # hardirq object, and the calling runtime's state allocates under it: with the GFP_KERNEL
 # of a process runtime the allocation may sleep, and one past a page that falls back to
 # vmalloc hits its BUG_ON(in_interrupt()) with bottom halves off. gfp.lua, a process
-# runtime, reads a shared data buffer and pops a fifo, each into a string of a length of
+# runtime, reads a shared data buffer, converts one to a string through __tostring, which
+# the monitor wraps as it wraps a method, and pops a fifo, each into a string of a length of
 # its own, and resumes a process, a softirq and a hardirq runtime of gfp_raise.lua, which
 # reads the buffer it is handed, a monitored method of its own, and raises a message as long
 # as the buffer: resume copies the message into the caller under that runtime's lock. Last,
@@ -38,6 +39,7 @@ SOFTIRQ=2700
 HARDIRQ=3000
 PROCESS=3300
 AFTER=3600
+STRING=3900
 WIDTH=64
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -88,11 +90,11 @@ trap cleanup EXIT
 cleanup
 
 mkdir "$INSTANCE" 2>/dev/null &&
-	echo "bytes_req >= $DATA && bytes_req < $((AFTER + WIDTH))" > "$EVENT/filter" &&
+	echo "bytes_req >= $DATA && bytes_req < $((STRING + WIDTH))" > "$EVENT/filter" &&
 	echo 1 > "$EVENT/enable" || skip_all "couldn't trace kmem:kmalloc in an instance of its own"
 
 ktap_header
-ktap_plan 8
+ktap_plan 9
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -100,6 +102,7 @@ echo 0 > "$EVENT/enable"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 
 atomic $DATA "data: getstring on a shared buffer allocates with GFP_ATOMIC under its lock"
+atomic $STRING "data: __tostring of a shared buffer allocates with GFP_ATOMIC under its lock"
 atomic $FIFO "fifo: pop allocates with GFP_ATOMIC under its lock"
 atomic $PROCESS "data: a process runtime's getstring inside a resume allocates with GFP_ATOMIC under its lock"
 sleepable $PROCESS "runtime: resume copies a process runtime's error with GFP_KERNEL under its mutex"

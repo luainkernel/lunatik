@@ -44,9 +44,10 @@ Describes a Lunatik object class.
   - `LUNATIK_OPT_MONITOR` *(capability)*: the class supports a monitored metatable that wraps Lua
     method calls with the object lock, enabling safe concurrent access from multiple runtimes.
     Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`. A
-    metamethod, a method named `close`, and a method bound to `lunatik_lstop`, the runtime's
-    `stop`, are left unwrapped: a close takes the lock itself, through `lunatik_closeprivate`, and
-    would wait on the one the wrapper holds. The wrapper waits for the lock with
+    metamethod other than `__tostring`, which reads the object as a method does, a method named
+    `close`, and a method bound to `lunatik_lstop`, the runtime's `stop`, are left unwrapped: a
+    close takes the lock itself, through `lunatik_closeprivate`, and would wait on the one the
+    wrapper holds. The wrapper waits for the lock with
     `lunatik_lockkillable`: the stop of a kernel thread, or a fatal signal to any other task, ends
     the wait and the call raises `EINTR`. While the method runs, the calling runtime allocates with
     the object's `gfp`.
