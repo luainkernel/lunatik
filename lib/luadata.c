@@ -362,6 +362,7 @@ static const lunatik_class_t luadata_class = {
 	.methods = luadata_mt,
 	.release = luadata_release,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_MONITOR,
+	.owner = THIS_MODULE,
 };
 
 static inline void luadata_set(luadata_t *data, void *ptr, size_t size, uint8_t opt)

@@ -129,6 +129,7 @@ static const lunatik_class_t luafifo_class = {
 	.methods = luafifo_mt,
 	.release = luafifo_release,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_MONITOR,
+	.owner = THIS_MODULE,
 };
 
 static int luafifo_new(lua_State *L)

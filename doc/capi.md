@@ -15,6 +15,7 @@ typedef struct lunatik_class_s {
 	const luaL_Reg    *methods;
 	lunatik_release_t  release;
 	lunatik_opt_t      opt;
+	struct module     *owner;
 } lunatik_class_t;
 ```
 Describes a Lunatik object class.
@@ -60,6 +61,11 @@ Describes a Lunatik object class.
   - `LUNATIK_OPT_PERCPU`: marks the `percpu` class, whose private holds one runtime per CPU;
     internal to the core.
   - `LUNATIK_OPT_NONE`: `0`, no flag.
+- `owner`: the module the class's methods and `release` live in, `THIS_MODULE`, as a
+  `struct file_operations` names its own; a class that leaves it `NULL`, as `THIS_MODULE` is in a
+  built-in build, holds nothing. Every object of the class holds a reference to it from
+  its creation to its release, so the module stays loaded while an object is left, in an
+  `rcu.table` such as `_ENV` or in a runtime that never required its library.
 
 ### lunatik\_object\_t
 ```C
@@ -1125,12 +1131,12 @@ LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes);
 ```C
 static const lunatik_class_t luafoo_process_class = {
 	.name = "foo", .methods = luafoo_mt, .release = luafoo_release,
-	.opt = LUNATIK_OPT_SINGLE,
+	.opt = LUNATIK_OPT_SINGLE, .owner = THIS_MODULE,
 };
 
 static const lunatik_class_t luafoo_hardirq_class = {
 	.name = "foo", .methods = luafoo_mt, .release = luafoo_release,
-	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE, .owner = THIS_MODULE,
 };
 
 LUNATIK_CLASSES(foo, &luafoo_process_class, &luafoo_hardirq_class);
@@ -1190,6 +1196,7 @@ static const lunatik_class_t luafoo_class = {
 	.name = "foo",
 	.methods = luafoo_mt,
 	.opt = LUNATIK_OPT_MONITOR,
+	.owner = THIS_MODULE,
 };
 
 static int luafoo_new(lua_State *L)

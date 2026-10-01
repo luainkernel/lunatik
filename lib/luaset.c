@@ -387,6 +387,7 @@ static const lunatik_class_t luaset_class = {
 	.methods = luaset_mt,
 	.release = luaset_release,
 	.opt = LUNATIK_OPT_SOFTIRQ,
+	.owner = THIS_MODULE,
 };
 
 static const lunatik_class_t luaset_labeled_class = {
@@ -394,6 +395,7 @@ static const lunatik_class_t luaset_labeled_class = {
 	.methods = luaset_labeled_mt,
 	.release = luaset_release,
 	.opt = LUNATIK_OPT_SOFTIRQ,
+	.owner = THIS_MODULE,
 };
 
 LUNATIK_CLASSES(set, &luaset_class, &luaset_labeled_class);

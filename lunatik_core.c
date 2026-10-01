@@ -245,6 +245,7 @@ const lunatik_class_t lunatik_class = {
 	.methods = lunatik_mt,
 	.release = lunatik_releaseruntime,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 EXPORT_SYMBOL(lunatik_class);
 

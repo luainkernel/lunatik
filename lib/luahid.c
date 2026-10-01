@@ -94,6 +94,7 @@ static const lunatik_class_t luahid_class = {
 	.methods = luahid_mt,
 	.release = luahid_release,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
+	.owner = THIS_MODULE,
 };
 
 #define LUAHID_MAXIDS	(4096)

@@ -373,6 +373,7 @@ static const lunatik_class_t luaskb_class = {
 	.methods = luaskb_mt,
 	.release = luaskb_release,
 	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
+	.owner   = THIS_MODULE,
 };
 
 /***

@@ -125,6 +125,7 @@ static const lunatik_class_t luacompletion_class = {
 	.name = "completion",
 	.methods = luacompletion_mt,
 	.opt = LUNATIK_OPT_SOFTIRQ,
+	.owner = THIS_MODULE,
 };
 
 /***

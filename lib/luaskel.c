@@ -79,6 +79,7 @@ static const lunatik_class_t luaskel_class = {
 	.methods = luaskel_mt,
 	.release = luaskel_release,
 	.opt = LUNATIK_OPT_MONITOR,
+	.owner = THIS_MODULE,
 };
 
 static int luaskel_new(lua_State *L)

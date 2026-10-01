@@ -211,6 +211,7 @@ const lunatik_class_t luacrypto_shash_class = {
 	.methods = luacrypto_shash_mt,
 	.release = luacrypto_shash_release,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
 };
 
 int luacrypto_shash_new(lua_State *L)

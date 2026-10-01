@@ -179,6 +179,7 @@ static const lunatik_class_t luathread_class = {
 	.methods = luathread_mt,
 	.release = luathread_release,
 	.opt = LUNATIK_OPT_MONITOR,
+	.owner = THIS_MODULE,
 };
 
 #define luathread_new(L)	(lunatik_newobject((L), &luathread_class, sizeof(luathread_t), LUNATIK_OPT_NONE))

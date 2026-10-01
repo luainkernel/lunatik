@@ -129,6 +129,7 @@ void lunatik_releaseobject(struct kref *kref)
 	if (private != NULL)
 		lunatik_releaseprivate(object->class, private);
 
+	module_put(object->class->owner); /* release runs in the module */
 	lunatik_freelock(object);
 	kfree_rcu(object, rcu); /* a reader that found the object under rcu_read_lock may still read its count */
 }
