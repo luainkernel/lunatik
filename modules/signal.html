@@ -173,18 +173,13 @@
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-system">System</a></div>
 <h1>signal<span class="kind">Module</span></h1>
-<p class="lead">Reads and changes the signal state of the calling task, and sends signals.</p>
- <a href="../modules/signal.html#sigmask">sigmask</a>, <a href="../modules/signal.html#sigpending">sigpending</a> and <a href="../modules/signal.html#sigstate">sigstate</a> act on the calling task, which is meaningful in a process
- runtime, typically in a kernel thread&rsquo;s body. In a softirq or hardirq callback the calling task is
- whichever one the interrupt found running, and <a href="../modules/signal.html#sigmask">sigmask</a> must not be called there. <a href="../modules/signal.html#kill">kill</a>
- resolves the pid in the calling task&rsquo;s pid namespace.
+<p class="lead">Sends signals to processes.</p>
+
     <h2 id="usage">Usage</h2>
         <pre class="example">local signal = require(&quot;signal&quot;)
 local sig    = require(&quot;linux.signal&quot;)
 
-signal.sigmask(sig.USR1)                 -- block SIGUSR1
-print(signal.sigstate(sig.USR1))         -- true
-signal.sigmask(sig.USR1, sig._UNBLOCK)
+signal.kill(1234, sig.TERM)
 </pre>
 
 <h2 id="Functions">Functions</h2>
@@ -192,18 +187,6 @@ signal.sigmask(sig.USR1, sig._UNBLOCK)
 	<tr>
 	<td class="name"><a href="#kill">kill (pid[, sig])</a></td>
 	<td class="summary">Sends a signal to a process.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#sigmask">sigmask (sig[, cmd])</a></td>
-	<td class="summary">Modifies signal mask for current task.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#sigpending">sigpending ()</a></td>
-	<td class="summary">Checks if the current task has pending signals.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#sigstate">sigstate (sig[, state])</a></td>
-	<td class="summary">Checks signal state for current task.</td>
 	</tr>
 </table></div>
 
@@ -219,7 +202,8 @@ signal.sigmask(sig.USR1, sig._UNBLOCK)
     <ul>
         <li><span class="parameter">pid</span>
             <span class="types"><span class="type">integer</span></span>
-         Target process ID, 1 to <code>PID_MAX_LIMIT</code>.
+         Target process ID, 1 to <code>PID_MAX_LIMIT</code>, in the initial pid namespace: the
+   number <code>task:pid()</code> returns, whichever task makes the call.
         </li>
         <li><span class="parameter">sig</span>
             <span class="types"><span class="type">integer</span></span>
@@ -229,99 +213,12 @@ signal.sigmask(sig.USR1, sig._UNBLOCK)
         </li>
     </ul>
 
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-        <code>true</code> on success.
-    </ol>
 
     <h3>Raises</h3>
     Error if the pid or the signal is out of bounds; &ldquo;ESRCH&rdquo; if no process has that pid. The
    signal is sent with the kernel&rsquo;s privilege, so no permission check applies.
 
 
-
-</dd>
-    <dt id="sigmask"><a name="sigmask"></a><strong>sigmask (sig[, cmd])</strong></dt>
-    <dd>
-    Modifies signal mask for current task.
- Unlike the system call, it blocks <code>SIGKILL</code> and <code>SIGSTOP</code> too.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number, 1 to <code>_NSIG</code>.
-        </li>
-        <li><span class="parameter">cmd</span>
-            <span class="types"><span class="type">integer</span></span>
-         SIG_BLOCK (0, default) or SIG_UNBLOCK (1).
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-
-    <h3>Raises</h3>
-    Error if the signal or the command is out of bounds.
-
-
-
-</dd>
-    <dt id="sigpending"><a name="sigpending"></a><strong>sigpending ()</strong></dt>
-    <dd>
-    Checks if the current task has pending signals.
-
-
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-
-    </ol>
-
-
-
-
-</dd>
-    <dt id="sigstate"><a name="sigstate"></a><strong>sigstate (sig[, state])</strong></dt>
-    <dd>
-    Checks signal state for current task.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">sig</span>
-            <span class="types"><span class="type">integer</span></span>
-         Signal number, 1 to <code>_NSIG</code>.
-        </li>
-        <li><span class="parameter">state</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         <code>&quot;blocked&quot;</code> (default), <code>&quot;pending&quot;</code>, or <code>&quot;allowed&quot;</code>. <code>&quot;pending&quot;</code> reads
-   the thread&rsquo;s private pending set: a signal sent to the process, as <a href="../modules/signal.html#kill">kill</a> sends it, sits in the
-   shared set and reads as not pending, so <a href="../modules/signal.html#sigpending">sigpending</a> is the check for it.
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">boolean</span></span>
-
-    </ol>
-
-    <h3>Raises</h3>
-    Error if the signal is out of bounds.
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> signal = <span class="global">require</span>(<span class="string">"signal"</span>)
-<span class="keyword">local</span> sig    = <span class="global">require</span>(<span class="string">"linux.signal"</span>)
-signal.<span class="function-name">sigstate</span>(sig.TERM) <span class="comment">-- check if SIGTERM is blocked
-</span>signal.<span class="function-name">sigstate</span>(sig.TERM, <span class="string">"pending"</span>)</pre>
 
 </dd>
 </dl>
@@ -338,7 +235,7 @@ signal.<span class="function-name">sigstate</span>(sig.TERM) <span class="commen
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:39</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:44:23</span>
 </div>
 </footer>
 </body>

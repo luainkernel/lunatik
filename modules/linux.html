@@ -359,9 +359,8 @@
     <ul>
         <li><span class="parameter">pid</span>
             <span class="types"><span class="type">integer</span></span>
-         a task whose network namespace to identify, resolved in the pid
-   namespace of the task making the call: the <a href="../modules/lunatik.html#">lunatik</a> process for a script&rsquo;s body, the
-   initial one for a kernel thread.
+         a task whose network namespace to identify, in the initial pid
+   namespace: the number <code>task:pid()</code> returns, whichever task makes the call.
          (<em>optional</em>)
         </li>
     </ul>
@@ -529,7 +528,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:39</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:44:23</span>
 </div>
 </footer>
 </body>
