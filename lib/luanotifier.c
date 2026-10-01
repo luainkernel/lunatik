@@ -110,7 +110,8 @@ static void luanotifier_release(void *private)
 * kernel chain until the owning runtime is torn down, but firings become
 * silent no-ops. This keeps `stop()` safe in any context (including hardirq)
 * since it performs no sleeping operations; the real unregistration happens
-* in `release`, which always runs in process context.
+* in `release`, which always runs in process context. A to-be-closed variable
+* holding the notifier stops it the same way.
 * @function stop
 * @treturn nil
 * @usage my_notifier:stop()
@@ -170,7 +171,8 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 *   with a flag it clears once this call returns, since no live event reaches
 *   the callback before the script body ends. Returns a `linux.notify` status
 *   code.
-* @treturn notifier
+* @treturn notifier the notifier, which this call keeps for its runtime: dropping it
+*   stops nothing, and the callback runs until `stop` or the end of the runtime
 * @raise if called from a percpu runtime, or under RTNL: from a netdevice
 *   callback, and from any runtime or coroutine the callback runs;
 *   `'notifier': process-context class in interrupt-context runtime` in a softirq or hardirq
@@ -208,7 +210,8 @@ static int luanotifier_keyboard_handler(lua_State *L, unsigned long event, void 
 *   — `event` is a `linux.kbd` code, `down` is a boolean (key pressed),
 *   `shift` is a boolean (modifier held), and `value` is the keycode or
 *   keysym depending on `event`. Returns a `linux.notify` status code.
-* @treturn notifier
+* @treturn notifier the notifier, which this call keeps for its runtime: dropping it
+*   stops nothing, and the callback runs until `stop` or the end of the runtime
 * @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
 *   `not allowed while the runtime closes` from a finalizer that runs at its close;
 *   the kernel's errno when it refuses the registration
@@ -237,7 +240,8 @@ static int luanotifier_vt_handler(lua_State *L, unsigned long event, void *data)
 *   `event` is a `linux.vt` code, `c` is the character value a `WRITE` or
 *   `PREWRITE` carries and nil for any other event, and `vc_num` is the
 *   virtual console number. Returns a `linux.notify` status code.
-* @treturn notifier
+* @treturn notifier the notifier, which this call keeps for its runtime: dropping it
+*   stops nothing, and the callback runs until `stop` or the end of the runtime
 * @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
 *   `not allowed while the runtime closes` from a finalizer that runs at its close;
 *   the kernel's errno when it refuses the registration
@@ -257,6 +261,7 @@ static const luaL_Reg luanotifier_lib[] = {
 
 static const luaL_Reg luanotifier_mt[] = {
 	{"__gc", lunatik_deleteobject},
+	{"__close", luanotifier_stop},
 	{"stop", luanotifier_stop},
 	{NULL, NULL}
 };

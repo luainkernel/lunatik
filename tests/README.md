@@ -1376,6 +1376,15 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   on the stop from under the lock; that stop also runs only after the first
   two cases passed, which such a build fails once the holder lets go.
 
+- **close**: a device, a notifier, an fsnotify watch and a probe each offer
+  `__close` equal to their `stop`, and a to-be-closed variable holding one
+  stops it at the end of its scope. Each handle's metatable holds one function
+  under both names; after the scope, a device of the same name is created
+  again, which `device_create` refuses while the first holds the name, a watch
+  refuses a mark with "closed object", and a notifier takes a second stop. The
+  probe is stopped by a hardirq runtime while its body loads, where its stop
+  may sleep, and its kprobe refuses an enable with "closed object".
+
 ### scx
 
 Regression tests for `luascx`: the attach guards, and the dispatch path
