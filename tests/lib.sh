@@ -42,7 +42,8 @@ build_peer() { command -v gcc > /dev/null 2>&1 && gcc -O2 -o "$2" "$1" 2>/dev/nu
 
 # counts how often a function runs: kprobe_place <group>/<event> <symbol> arms a kprobe in a
 # tracing instance named for the group, and fails where tracing or the symbol is unavailable;
-# kprobe_hits <group>/<event> reads its count from kprobe_profile; kprobe_remove <group>/<event>
+# kprobe_hits <group>/<event> reads its count from kprobe_profile, misses included, which is how
+# the kernel counts a run inside another kprobe's handler; kprobe_remove <group>/<event>
 # takes it down, and the instance with it once no event of the group is enabled there
 TRACING="/sys/kernel/tracing"
 kprobe_place() {
@@ -50,7 +51,7 @@ kprobe_place() {
 	echo "p:$1 $2" >> "$TRACING/kprobe_events" 2>/dev/null &&
 		mkdir -p "$instance" 2>/dev/null && echo 1 > "$instance/events/$1/enable" 2>/dev/null
 }
-kprobe_hits() { awk -v event="${1#*/}" '$1 == event { print $2 }' "$TRACING/kprobe_profile"; }
+kprobe_hits() { awk -v event="${1#*/}" '$1 == event { print $2 + $3 }' "$TRACING/kprobe_profile"; }
 kprobe_remove() {
 	local instance="$TRACING/instances/${1%%/*}"
 	[ -d "$instance" ] && echo 0 > "$instance/events/$1/enable" 2>/dev/null && rmdir "$instance" 2>/dev/null
