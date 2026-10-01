@@ -349,9 +349,10 @@ netfilter.register{
     <dt id="skb:data"><a name="skb:data"></a><strong>skb:data ([layer])</strong></dt>
     <dd>
     Linearizes the skb and returns a view from where <code>layer</code> starts to the end of
- the packet.  &ldquo;net&rdquo; starts at <code>skb-&gt;data</code>, which is the network header in a
- netfilter hook and the MAC header in a tc callback; &ldquo;mac&rdquo; starts at the MAC
- header. In a tc callback the skb is not linearized, and a non-linear one raises.</p>
+ the packet.  &ldquo;net&rdquo; starts at <code>skb-&gt;data</code>, which is the network header in an
+ IPv4 or IPv6 netfilter hook and the MAC header in a tc callback; &ldquo;mac&rdquo; starts
+ at the MAC header. In a tc callback the skb is not linearized, and a non-linear
+ one raises.</p>
 
 <p> The skb keeps one view per layer: the &ldquo;net&rdquo; and &ldquo;mac&rdquo; views are two objects, and a
  second call for a layer returns the same view, ending at the tail as it is then: a
@@ -521,7 +522,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:26:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:28:10</span>
 </div>
 </footer>
 </body>
