@@ -222,7 +222,7 @@ static const luaL_Reg lunatik_stub_lib[] = {
 */
 int lunatik_lstop(lua_State *L)
 {
-	lunatik_object_t *runtime = lunatik_checkobject(L, 1);
+	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_class);
 
 	lunatik_checkrtnl(L);
 	lunatik_checkowner(L, runtime);

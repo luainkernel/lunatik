@@ -120,7 +120,11 @@ int lunatik_closekillable(lunatik_object_t *object)
 
 int lunatik_closeobject(lua_State *L)
 {
-	lunatik_closeprivate(lunatik_checkobject(L, 1));
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
+
+	luaL_argcheck(L, luaL_getmetafield(L, 1, "__close") != LUA_TNIL &&
+		lua_tocfunction(L, -1) == lunatik_closeobject, 1, "object of another class");
+	lunatik_closeprivate(object);
 	return 0;
 }
 EXPORT_SYMBOL(lunatik_closeobject);

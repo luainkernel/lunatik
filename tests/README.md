@@ -1163,6 +1163,12 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   of another class naming both classes, refuses `nil` and refuses a userdata
   of another library; `rcu.foreach` refuses `nil`; and a method on a closed
   runtime or fifo is refused instead of dereferencing its NULL private.
+  A close of another class, `fifo`'s `close` on a thread, a device and a
+  runtime, and the runtime's `stop` on a thread, a device and a fifo, is
+  refused, and each object then answers its own methods; a `crypto.shash`
+  closes through its `__close`. The close case skips unless the loaded core is
+  the installed `lunatik.ko` and that file carries the refusal, since a build
+  without it closes the thread under a stop that dereferences NULL.
 
 - **resume_percpu**: `percpu:resume()` delivers the objects it is given to
   every runtime of a process set and of a softirq one, each marking its own
