@@ -321,7 +321,8 @@ static void luadevice_release(void *private)
 * device file (`/dev/<name>`) and its region go with it. Without `stop`, the
 * device lives until its runtime stops, since `device.new` keeps the object for
 * the runtime. A file still open on the device gets ENXIO from read and write
-* until it is closed.
+* until it is closed. A to-be-closed variable holding the device stops it the
+* same way.
 * @function stop
 * @treturn nil Does not return any value to Lua.
 * @raise if the argument is not a device.
@@ -393,8 +394,8 @@ static int luadevice_stop(lua_State *L)
 *
 *   - `mode` (integer): Optional file mode flags (e.g., permissions) for the device file.
 *     Use constants from `linux.stat` (e.g., `stat.IRUGO`).
-* @treturn device A Lunatik object representing the newly created device.
-*   This object can be used to explicitly stop the device using the `:stop()` method.
+* @treturn device the device, which `device.new` keeps for its runtime: dropping it
+*   stops nothing, and the device stays until `stop` or the end of the runtime.
 * @raise Error if the device cannot be allocated or registered in the kernel,
 *   if the `name` field is missing or not a string, or if called from a percpu runtime;
 *   `bad field 'mode' (number expected, got <type>)` if `mode` is present and not a number;
@@ -426,6 +427,7 @@ static const luaL_Reg luadevice_lib[] = {
 
 static const luaL_Reg luadevice_mt[] = {
 	{"__gc", lunatik_deleteobject},
+	{"__close", luadevice_stop},
 	{"stop", luadevice_stop},
 	{NULL, NULL}
 };

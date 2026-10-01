@@ -38,6 +38,7 @@ TESTS=(
 	self_stop.sh
 	errobj.sh
 	killable.sh
+	close.sh
 )
 
 SEP=""

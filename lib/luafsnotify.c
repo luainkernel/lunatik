@@ -396,7 +396,8 @@ static int luafsnotify_find(lua_State *L)
 /***
 * Stops the watch.
 * Removes every mark it placed and releases its group, so no further event
-* reaches the callback. Calling it again does nothing.
+* reaches the callback. Calling it again does nothing. A to-be-closed variable
+* holding the watch stops it the same way.
 * @function stop
 * @treturn nil
 * @usage watch:stop()
@@ -694,7 +695,8 @@ static luafsnotify_t *luafsnotify_newwatch(lua_State *L, lunatik_object_t *runti
 *   an `fsnotify_event` valid only for the length of the call. For a permission
 *   event its return value is the verdict, an `fsnotify.action`; for every other
 *   event it is ignored.
-* @treturn fsnotify_watch
+* @treturn fsnotify_watch the watch, which `fsnotify.watch` keeps for its runtime:
+*   dropping it stops nothing, and its marks stay until `stop` or the end of the runtime
 * @raise if the group cannot be allocated, if called from an interrupt-context
 *   runtime, or if called from a percpu runtime;
 *   `not allowed while the runtime closes` from a finalizer that runs at its close
@@ -726,6 +728,7 @@ static const luaL_Reg luafsnotify_lib[] = {
 
 static const luaL_Reg luafsnotify_mt[] = {
 	{"__gc", lunatik_deleteobject},
+	{"__close", luafsnotify_stop},
 	{"find", luafsnotify_find},
 	{"mark", luafsnotify_mark},
 	{"stop", luafsnotify_stop},

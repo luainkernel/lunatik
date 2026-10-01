@@ -250,7 +250,8 @@ LUNATIK_PRIVATECHECKER(luaprobe_checkowned, luaprobe_t *, &luaprobe_class,
 /***
 * Unregisters and stops the probe.
 * From a handler this raises: the way to stop delivering there is to return early on a flag
-* the script owns, and the kprobe is unregistered when the runtime stops.
+* the script owns, and the kprobe is unregistered when the runtime stops. A to-be-closed
+* variable holding the probe stops it the same way.
 * @function stop
 * @raise if the percpu object owns this probe, or `not allowed once the runtime is armed`
 *   (its script body has returned): unregister_kprobe sleeps, and an
@@ -368,7 +369,9 @@ static int luaprobe_new(lua_State *L);
 *   `probe.regs` of the hit. The table is read once, to decide whether the kernel
 *   installs a post handler, so a `post` added to it afterwards never fires; a `pre` added
 *   afterwards does
-* @treturn probe
+* @treturn probe the probe, which `probe.new` keeps for its runtime: dropping it stops
+*   nothing, and the kprobe stays until `stop` or the end of the runtime, or of the set
+*   in a percpu script
 * @raise `runtime context mismatch` unless the runtime is hardirq; `not allowed while the runtime
 *   closes` from a finalizer that runs at its close; the kernel's errno if it refuses the
 *   registration, `ENOENT` for a symbol it does not have; in a percpu script, if this runtime
@@ -385,6 +388,7 @@ static const luaL_Reg luaprobe_lib[] = {
 
 static const luaL_Reg luaprobe_mt[] = {
 	{"__gc",   lunatik_deleteobject},
+	{"__close", luaprobe_stop},
 	{"stop",   luaprobe_stop},
 	{"enable", luaprobe_enable},
 	{"disable", luaprobe_disable},
