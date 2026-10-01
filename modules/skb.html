@@ -241,7 +241,8 @@ netfilter.register{
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:resize">skb:resize (n)</a></td>
-	<td class="summary">Expands (skb_put) or shrinks (skb_trim) the skb data area.</td>
+	<td class="summary">Expands (skb_put_zero) or shrinks (skb_trim) the skb data area; the bytes an
+ expansion adds read as zeros.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:vlan">skb:vlan ()</a></td>
@@ -469,10 +470,10 @@ netfilter.register{
 </dd>
     <dt id="skb:resize"><a name="skb:resize"></a><strong>skb:resize (n)</strong></dt>
     <dd>
-    Expands (skb_put) or shrinks (skb_trim) the skb data area.
- The skb is linearized first, so <code>n</code> is the length of the whole packet, which
- <code>#skb</code> returns afterwards. In a tc callback the skb is not linearized, and a
- non-linear one raises.
+    Expands (skb_put_zero) or shrinks (skb_trim) the skb data area; the bytes an
+ expansion adds read as zeros.  The skb is linearized first, so <code>n</code> is the
+ length of the whole packet, which <code>#skb</code> returns afterwards. In a tc callback
+ the skb is not linearized, and a non-linear one raises.
 
 
     <h3>Parameters</h3>
@@ -522,7 +523,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:28:10</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:07</span>
 </div>
 </footer>
 </body>
