@@ -17,6 +17,9 @@ do
 			if iface.iftype == iftype.STATION then station = true end
 		end
 	end
+	if #interface:list{} > 0 then
+		print("netlink nl80211: interface lists given an options table")
+	end
 end
 if station then
 	print("netlink nl80211: interface is STATION")

@@ -945,6 +945,10 @@ higher-level `netlink.*` modules built on top of it.
   confirms it in a dump, asserts a duplicate add raises (`NLM_F_EXCL`), then
   `del()` removes it; a second add/del round uses a table id that fits the u8
   header field, exercising the header-side id path (no `FRA_TABLE`).
+- **list_family**: `list{family = ...}` on `rt.addr`, `rt.route` and `rt.rule`
+  lists, given `AF_INET` or `AF_INET6`, at least one record and only records
+  of that family, where a dump without a family carries both (skips where `lo`
+  holds no `::1` and where the kernel keeps no FIB rules of a family).
 - **channel**: a softirq runtime registers a generic netlink family, unicasts
   to an absent port id (which returns `false`), and installs a `PRE_ROUTING`
   netfilter hook that, on received traffic (NET_RX softirq), both multicasts to
@@ -962,8 +966,9 @@ higher-level `netlink.*` modules built on top of it.
 - **nl80211**: loads `mac80211_hwsim` (simulated wifi), then
   `netlink.nl80211.interface` lists the simulated `wlan` interfaces over the
   nl80211 generic netlink family
-  (asserting one is present, in `STATION` mode and with its fields decoded) and
-  asserts both simulated wiphys come out of `netlink.nl80211.wiphy`'s
+  (asserting one is present, in `STATION` mode and with its fields decoded),
+  lists them given an options table too, of which an interface reads nothing,
+  and asserts both simulated wiphys come out of `netlink.nl80211.wiphy`'s
   fragmented `GET_WIPHY` dump (skips without `mac80211_hwsim`).
 - **nl80211_iface**: `netlink.nl80211.interface():add()` creates an AP interface
   on the first simulated wiphy, asserts it returns the new `ifindex` and the

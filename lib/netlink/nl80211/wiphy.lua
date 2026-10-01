@@ -48,6 +48,7 @@ local wiphy = object:new{GET = cmd.GET_WIPHY, NEW = cmd.NEW_WIPHY}
 
 ---
 -- Lists the wireless PHYs (wiphys) known to the kernel.
+-- @tparam[opt] table opts list options, of which a wiphy takes none.
 -- @treturn table list of `{wiphy, name}` tables.
 function wiphy:list()
 	local byidx = {}

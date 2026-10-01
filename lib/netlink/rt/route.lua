@@ -73,7 +73,8 @@ end
 ---
 -- Lists all routes from the kernel routing tables.
 -- @function route:list
--- @tparam[opt=AF_UNSPEC] integer family address family.
+-- @tparam[opt] table opts list options: `family`, the address family of the records listed
+--   (default `AF_UNSPEC`, every family).
 -- @treturn table list of route tables, each with `family`, `dst_len`, `src_len`, `tos`, `table`,
 --   `protocol`, `scope`, `rtype`, `flags`, `dst`, `gateway`, `oif` and `priority`; `dst` and
 --   `gateway` are the address bytes in network byte order; `table` is the header's when the reply

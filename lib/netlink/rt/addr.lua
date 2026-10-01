@@ -68,7 +68,8 @@ end
 ---
 -- Lists all interface addresses from the kernel.
 -- @function addr:list
--- @tparam[opt=AF_UNSPEC] integer family address family.
+-- @tparam[opt] table opts list options: `family`, the address family of the records listed
+--   (default `AF_UNSPEC`, every family).
 -- @treturn table list of address tables, each with `family`, `prefix_len`, `scope`, `ifindex`,
 --   `address`, `peer` and `label`; `address` is the interface's own address and `peer`, only on an
 --   address configured with one, the other end of a point-to-point link, both as bytes in network
