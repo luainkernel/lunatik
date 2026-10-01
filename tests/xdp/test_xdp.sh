@@ -7,6 +7,14 @@
 # attaching it to a veth pair whose peer sits in a network namespace, so a
 # ping from the namespace traverses the hook regardless of the host setup.
 #
+# The verdict cases send one ping each, whose payload size picks what the callback
+# of verdict.lua answers: nothing, a value that is not a number, an action as a
+# string, a number past the XDP actions, one below them, one whose low 32 bits are
+# DROP, or a raise. Each makes bpf_luaxdp_run return -1, on which the program passes
+# the ping and returns anything else as it came, so a value the kfunc let through
+# reaches the kernel; the five that are not an action log "invalid action", which
+# no other case logs, and each case reads back the line its callback printed.
+#
 # Usage: sudo bash tests/xdp/test_xdp.sh
 
 MODULE="luaxdp"
@@ -15,13 +23,30 @@ PEER="lunatik1"
 NETNS="lunatik_xdp"
 PIN="/sys/fs/bpf/xdp"
 TARGET="10.199.0.1"
+PREFIX="xdp verdict: "
+INVALID="$MODULE: invalid action"
+RAISED="${PREFIX}raised"
+
+# the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
+VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
+VERDICT_CASES=(none boolean string range wrap raise below)
+VERDICT_LOGS=("" "$INVALID" "$INVALID" "$INVALID" "$INVALID" "$RAISED" "$INVALID")
+VERDICT_TITLES=(
+	"xdp verdict: a callback that returns nothing leaves the verdict to the program"
+	"xdp verdict: a value that is not a number is refused and logged"
+	"xdp verdict: an action as a string is refused and logged"
+	"xdp verdict: a number past the XDP actions is refused and logged"
+	"xdp verdict: a number whose low 32 bits are DROP is refused and logged"
+	"xdp verdict: a callback that raises leaves the verdict to the program"
+	"xdp verdict: a number below the XDP actions is refused and logged"
+)
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 8
+ktap_plan 15
 
 skip_all()
 {
@@ -34,6 +59,9 @@ skip_all()
 	ktap_skip "xdp zero-key: a zero-sized key is rejected without a crash"
 	ktap_skip "xdp process: a process-context runtime under the key is not dispatched"
 	ktap_skip "xdp percpu: the callback runs on the instance of the receiving CPU"
+	for title in "${VERDICT_TITLES[@]}"; do
+		ktap_skip "$title"
+	done
 	ktap_totals
 	exit 0
 }
@@ -47,6 +75,7 @@ cleanup()
 {
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
 	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_reattach" "${PIN}_detach" "${PIN}_zerokey" "${PIN}_process" "${PIN}_percpu"
+	rm -f "${PIN}_verdict"
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
 	lunatik stop tests/xdp/reattach > /dev/null 2>&1
@@ -54,6 +83,7 @@ cleanup()
 	lunatik stop tests/xdp/attach_sleepable > /dev/null 2>&1
 	lunatik stop tests/xdp/process > /dev/null 2>&1
 	lunatik stop tests/xdp/percpu > /dev/null 2>&1
+	lunatik stop tests/xdp/verdict > /dev/null 2>&1
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
 }
@@ -212,6 +242,55 @@ percpu_case()
 	ktap_pass "$title"
 }
 
+verdict_fail()
+{
+	local title
+	for title in "${VERDICT_TITLES[@]}"; do
+		ktap_fail "$title: $1"
+	done
+}
+
+# verdict_check <i> <reached> <log>: the callback of case i ran, the ping passed, and it logged what it should
+verdict_check()
+{
+	local case="${VERDICT_CASES[$1]}" expected="${VERDICT_LOGS[$1]}" title="${VERDICT_TITLES[$1]}"
+
+	grep -qE "${PREFIX}${case}\$" <<< "$3" || { ktap_fail "$title: the callback did not run"; return; }
+	grep -qE "$KTAP_ERRORS" <<< "$3" && { ktap_fail "$title: script raised an error"; return; }
+	[ "$2" -eq 0 ] || { ktap_fail "$title: the ping was dropped"; return; }
+	[ -z "$expected" ] || grep -qF "$expected" <<< "$3" || { ktap_fail "$title: \"$expected\" not logged"; return; }
+	[ "$expected" = "$INVALID" ] || ! grep -qF "$INVALID" <<< "$3" || { ktap_fail "$title: logged as invalid"; return; }
+	ktap_pass "$title"
+}
+
+verdict_case()
+{
+	local i
+	local -a reached logs
+
+	bpftool prog load "$DIR/xdp_verdict.bpf.o" "${PIN}_verdict" type xdp ||
+		{ verdict_fail "failed to load XDP program"; return 1; }
+	bpftool net attach xdp pinned "${PIN}_verdict" dev "$IFACE" ||
+		{ verdict_fail "failed to attach XDP program"; bpftool prog unpin "${PIN}_verdict"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/xdp/verdict"
+	for i in "${!VERDICT_CASES[@]}"; do
+		ip netns exec "$NETNS" ping -c 1 -W 2 -s "${VERDICT_PAYLOADS[$i]}" "$TARGET" > /dev/null 2>&1
+		reached[$i]=$?
+		logs[$i]=$(dmesg_since)
+		mark_dmesg
+	done
+
+	bpftool net detach xdp dev "$IFACE" 2>/dev/null
+	rm -f "${PIN}_verdict"
+	lunatik stop tests/xdp/verdict > /dev/null 2>&1
+
+	for i in "${!VERDICT_CASES[@]}"; do
+		verdict_check "$i" "${reached[$i]}" "${logs[$i]}"
+	done
+}
+
 run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass" \
 	"xdp pass: verdict enforced, packet and argument content verified" --context=softirq
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop" \
@@ -229,6 +308,7 @@ ktap_pass "xdp attach: refuses a sleepable runtime"
 zerokey_case
 process_case
 percpu_case
+verdict_case
 
 ktap_totals
 

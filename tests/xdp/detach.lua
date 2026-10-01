@@ -10,12 +10,11 @@ local packet = require("tests.xdp.packet")
 
 local function drop_then_detach(ctx)
 	if not packet.isping(ctx:packet()) then
-		ctx:action(action.PASS)
-		return
+		return action.PASS
 	end
-	ctx:action(action.DROP)
 	xdp.detach()
-	print("xdp detach test pass: verdict set and callback detached")
+	print("xdp detach test pass: verdict returned and callback detached")
+	return action.DROP
 end
 
 xdp.attach(drop_then_detach)

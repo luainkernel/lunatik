@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 
-all: xdp_pass.bpf.o xdp_drop.bpf.o xdp_reattach.bpf.o xdp_detach.bpf.o xdp_zerokey.bpf.o xdp_process.bpf.o xdp_percpu.bpf.o
+all: xdp_pass.bpf.o xdp_drop.bpf.o xdp_reattach.bpf.o xdp_detach.bpf.o xdp_zerokey.bpf.o xdp_process.bpf.o xdp_percpu.bpf.o xdp_verdict.bpf.o
 
 vmlinux.h: /sys/kernel/btf/vmlinux
 	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@
@@ -27,6 +27,10 @@ xdp_process.bpf.o: xdp_process.bpf.c vmlinux.h
 xdp_percpu.bpf.o: xdp_percpu.bpf.c vmlinux.h
 	clang -target bpf -Wall -O2 -c -g $<
 
+xdp_verdict.bpf.o: xdp_verdict.bpf.c vmlinux.h
+	clang -target bpf -Wall -O2 -c -g $<
+
 clean:
-	rm -f vmlinux.h xdp_pass.bpf.o xdp_drop.bpf.o xdp_reattach.bpf.o xdp_detach.bpf.o xdp_zerokey.bpf.o xdp_process.bpf.o xdp_percpu.bpf.o
+	rm -f vmlinux.h xdp_pass.bpf.o xdp_drop.bpf.o xdp_reattach.bpf.o xdp_detach.bpf.o xdp_zerokey.bpf.o xdp_process.bpf.o xdp_percpu.bpf.o \
+		xdp_verdict.bpf.o
 

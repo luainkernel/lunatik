@@ -39,7 +39,6 @@ typedef struct luaxdp_ctx_s {
 	struct xdp_buff  *xdp;
 	void             *arg;
 	size_t            arg__sz;
-	int              *action;
 	lunatik_object_t *packet;
 	lunatik_object_t *argument;
 	int              cb;
@@ -82,23 +81,10 @@ static int luaxdp_argument(lua_State *L)
 	return 1;
 }
 
-/***
-* Sets the XDP verdict action for this packet.
-* @function xdp_ctx:action
-* @tparam integer action XDP action constant (e.g. `XDP_PASS`, `XDP_DROP`, ...)
-*/
-static int luaxdp_action(lua_State *L)
-{
-	luaxdp_ctx_t *ctx = luaxdp_ctx_check(L, 1);
-	*ctx->action = luaL_checkinteger(L, 2);
-	return 0;
-}
-
 static const luaL_Reg luaxdp_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"packet", luaxdp_packet},
 	{"argument", luaxdp_argument},
-	{"action", luaxdp_action},
 	{NULL, NULL}
 };
 
@@ -123,7 +109,6 @@ static inline void luaxdp_handler_cleanup(luaxdp_ctx_t *lctx)
 	luadata_clear(lctx->packet);
 	luadata_clear(lctx->argument);
 	lctx->xdp = NULL;
-	lctx->action = NULL;
 }
 
 static int luaxdp_handler(lua_State *L, luaxdp_ctx_t *ctx)
@@ -137,11 +122,10 @@ static int luaxdp_handler(lua_State *L, luaxdp_ctx_t *ctx)
 	lctx->xdp     = ctx->xdp;
 	lctx->arg     = ctx->arg;
 	lctx->arg__sz = ctx->arg__sz;
-	lctx->action  = ctx->action;
 	luadata_reset(lctx->packet, lctx->xdp->data, lctx->xdp->data_end - lctx->xdp->data, LUADATA_OPT_KEEP);
 	luadata_reset(lctx->argument, lctx->arg, lctx->arg__sz, LUADATA_OPT_KEEP);
 
-	ret = lunatik_ebpf_invoke(L, lctx->cb);
+	ret = lunatik_ebpf_action(L, lctx->cb, XDP_ABORTED, XDP_REDIRECT);
 	luaxdp_handler_cleanup(lctx);
 	return ret;
 }
@@ -154,10 +138,9 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 		.xdp     = (struct xdp_buff *)xdp_ctx,
 		.arg     = arg,
 		.arg__sz = arg__sz,
-		.action  = &action,
 	};
 
-	LUNATIK_EBPF_RUN(key, key__sz, luaxdp_handler, &ctx);
+	LUNATIK_EBPF_RUN(key, key__sz, luaxdp_handler, action, &ctx);
 	return action;
 }
 
@@ -208,11 +191,12 @@ static int luaxdp_detach(lua_State *L)
 * @function attach
 * @tparam function callback Lua function to call. It receives one argument:
 *
-*   `ctx`: An `xdp_ctx` context object used to inspect the packet
-*   and control the XDP verdict via `xdp_ctx:action`.
+*   `ctx`: An `xdp_ctx` context object used to inspect the packet.
 *
-*   The callback need not return a value. If it sets no action, `bpf_luaxdp_run`
-*   returns `-1` and the verdict is left to the eBPF program.
+*   It returns the verdict, an XDP action from `linux.xdp`, which `bpf_luaxdp_run`
+*   returns to the eBPF program. When it returns nothing or nil, or raises,
+*   `bpf_luaxdp_run` returns `-1` and the verdict is left to the eBPF program; a value
+*   that is not an XDP action is logged as `invalid action` and answered the same way.
 * @treturn nil
 * @raise `runtime context mismatch` outside a softirq runtime; `not allowed while the runtime
 *   closes` from a finalizer that runs at its close; or if internal setup fails.
@@ -224,7 +208,7 @@ static int luaxdp_detach(lua_State *L)
 *   local function my_packet_processor(ctx)
 *     local pkt = ctx:packet()
 *     print("Packet received, size:", #pkt)
-*     ctx:action(action.PASS)
+*     return action.PASS
 *   end
 *   xdp.attach(my_packet_processor)
 *

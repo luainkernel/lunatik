@@ -23,7 +23,7 @@ local function test_pass(ctx)
 			print("tc pass test fail: argument does not carry the magic")
 		end
 	end
-	ctx:action(action.ACT_OK)
+	return action.ACT_OK
 end
 
 tc.attach(test_pass)

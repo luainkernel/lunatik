@@ -10,12 +10,11 @@ local packet = require("tests.tc.packet")
 
 local function drop_then_detach(ctx)
 	if not packet.isping(ctx:skb():data()) then
-		ctx:action(action.ACT_OK)
-		return
+		return action.ACT_OK
 	end
-	ctx:action(action.ACT_SHOT)
 	tc.detach()
-	print("tc detach test pass: verdict set and callback detached")
+	print("tc detach test pass: verdict returned and callback detached")
+	return action.ACT_SHOT
 end
 
 tc.attach(drop_then_detach)

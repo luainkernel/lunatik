@@ -1236,7 +1236,7 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
   callback) and detaches without a Lua error.
 
 - **sched pass**: registering the scheduler routes every enqueue on the host
-  through the Lua callback, which sets the dispatch queue and slice and
+  through the Lua callback, which returns the dispatch queue and slice and
   reports once; the report in `dmesg`, with no Lua error, is the proof. The
   scheduler is unregistered before its runtime stops.
 
@@ -1475,12 +1475,13 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc pass**: the callback inspects `ctx:skb()` (IPv4 ethertype and the
   ICMP protocol byte of the ping) and `ctx:argument()` (a magic word the
-  eBPF program passed through), and `action.ACT_OK` lets the packet reach
-  its destination; the runtime is plain, covering the plain-name kfunc lookup.
+  eBPF program passed through), and the `action.ACT_OK` it returns lets the
+  packet reach its destination; the runtime is plain, covering the plain-name
+  kfunc lookup.
   Every callback that reads the packet acts only on the ping, through the
   suite's `packet.isping`, since the namespace emits autoconf traffic of its own.
 
-- **tc drop**: `action.ACT_SHOT` blocks the ping; the runtime is percpu,
+- **tc drop**: a returned `action.ACT_SHOT` blocks the ping; the runtime is percpu,
   covering the dispatch to a percpu runtime.
 
 - **tc reattach**: the script attaches one callback and then a second in the
@@ -1517,6 +1518,14 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   handed again after the program's `bpf_skb_pull_data(skb, skb->len)`, the
   callback reads and copies the whole packet and shrinks it, then drops it,
   and TCP sends it again. Skips without `socat`.
+
+- **tc verdict**: one ping per case, whose payload size picks what the callback
+  returns for its echo reply: nothing, a value that is not a number, an action
+  as a string, a number past `ACT_VALUE_MAX` or below `ACT_UNSPEC`, one whose low 32 bits
+  are `ACT_SHOT`, or a raise. Each makes `bpf_luatc_run` return `-1`, on which the
+  program lets the reply out; it returns anything else as it came, so a value the
+  kfunc let through would drop the reply or go unlogged. The five that are not
+  an action log "invalid action" and the raise logs its message.
 
 ### thread
 
@@ -1592,10 +1601,10 @@ bound before, and a first attach, which finds nothing, logs nothing.
 
 - **xdp pass**: the callback inspects `ctx:packet()` (IPv4 ethertype and the
   ICMP protocol byte of the ping) and `ctx:argument()` (a magic passed by the
-  eBPF program), and `action.PASS` lets the packet reach its destination; the
-  runtime is plain, covering the plain-name kfunc lookup.
+  eBPF program), and the `action.PASS` it returns lets the packet reach its
+  destination; the runtime is plain, covering the plain-name kfunc lookup.
 
-- **xdp drop**: `action.DROP` blocks the ping; the runtime is percpu,
+- **xdp drop**: a returned `action.DROP` blocks the ping; the runtime is percpu,
   covering the dispatch to a percpu runtime.
 
 - **xdp reattach**: the script attaches one callback and then a second in the
@@ -1624,4 +1633,12 @@ bound before, and a first attach, which finds nothing, logs nothing.
 - **xdp percpu**: with the ping pinned to the last online CPU, which is where
   the veth runs the receive softirq, the callback of a percpu script reports
   that CPU as its own id, and no other; skipped on a single CPU.
+
+- **xdp verdict**: one ping per case, whose payload size picks what the callback
+  returns: nothing, a value that is not a number, an action as a string, a
+  number past `REDIRECT` or below `ABORTED`, one whose low 32 bits are `DROP`,
+  or a raise. Each makes `bpf_luaxdp_run` return `-1`, on which the program
+  passes the ping; it returns anything else as it came, so a value the kfunc
+  let through would drop the ping or go unlogged. The five that are not an
+  action log "invalid action" and the raise logs its message.
 

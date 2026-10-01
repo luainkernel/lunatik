@@ -9,7 +9,7 @@ local action = require("linux.tc")
 
 local function test_drop(ctx)
 	print("tc drop test pass: verdict set to drop")
-	ctx:action(action.ACT_SHOT)
+	return action.ACT_SHOT
 end
 
 tc.attach(test_drop)

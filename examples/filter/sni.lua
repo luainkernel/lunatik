@@ -30,10 +30,9 @@ local function filter_sni(ctx)
 	if host then
 		local verdict = blacklist[host] and "DROP" or "PASS"
 		log(host, verdict)
-		ctx:action(action[verdict])
-		return
+		return action[verdict]
 	end
-	ctx:action(action.PASS)
+	return action.PASS
 end
 
 xdp.attach(filter_sni)

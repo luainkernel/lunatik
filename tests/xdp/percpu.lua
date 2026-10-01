@@ -15,7 +15,7 @@ local function test_percpu(ctx)
 	if packet.isping(ctx:packet()) then
 		print("xdp percpu test hit: cpu " .. cpu)
 	end
-	ctx:action(action.PASS)
+	return action.PASS
 end
 
 xdp.attach(test_percpu)
