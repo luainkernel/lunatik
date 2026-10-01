@@ -898,7 +898,7 @@ Inside a CLI dostring, require once at startup and call by name afterwards:
     lunatik.foo.method(...)
 
 Never `require("foo").method()`. A kernel script does the same with a local:
-`local genl = require("linux.genl")` once, then `genl.id`, `genl.cmd` and `genl.attr`, never a
+`local genl = require("linux.genl")` once, then `genl.id`, `genl.ctrl` and `genl.layout`, never a
 `require` per field.
 
 ## Comments and documentation
