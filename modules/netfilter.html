@@ -222,10 +222,10 @@ netfilter.register{
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          Hook options: <code>hook</code> (function), <code>pf</code>, <code>hooknum</code>, <code>priority</code> (integers),
-   and optionally <code>mark</code> (integer, default 0), which selects the packets the hook sees: the
-   callback runs only for a packet whose <code>skb:mark()</code> equals it, and every other packet is
-   accepted without reaching Lua, so with the default 0 a packet something else marked skips
-   the hook. <code>pf</code> takes a <a href="../modules/linux.nf.html#proto">linux.nf.proto</a> value, <code>hooknum</code> a hook of that family, as
+   and optionally <code>mark</code> (integer), a prefilter that keeps a packet out of Lua: given a
+   <code>mark</code>, 0 included, only a packet whose <code>skb:mark()</code> equals it reaches the callback, and
+   the hook accepts every other packet; without a <code>mark</code>, the callback runs for every
+   packet. <code>pf</code> takes a <a href="../modules/linux.nf.html#proto">linux.nf.proto</a> value, <code>hooknum</code> a hook of that family, as
    <a href="../modules/linux.nf.html#inet">linux.nf.inet</a>, <a href="../modules/linux.nf.html#arp">linux.nf.arp</a> or <a href="../modules/linux.nf.html#br">linux.nf.br</a> list them, and <code>priority</code> a
    <code>linux.nf.ip.pri</code> or <code>linux.nf.br.pri</code> value.</p>
 
@@ -251,7 +251,7 @@ netfilter.register{
    <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if <code>pf</code>, <code>hooknum</code> or <code>priority</code> is missing
    or not a number, or if <code>mark</code> is present and not a number; if the hook cannot be registered;
    in a percpu script, if this runtime already registered the same <code>pf</code>, <code>hooknum</code>, <code>priority</code>
-   and <code>mark</code>
+   and <code>mark</code>, or the same three both times without a <code>mark</code>
 
 
     <h3>Usage</h3>
@@ -286,7 +286,7 @@ netfilter.<span class="function-name">register</span>{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:42:00</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:47:25</span>
 </div>
 </footer>
 </body>
