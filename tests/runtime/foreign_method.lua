@@ -5,6 +5,7 @@
 -- Kernel-side script for the method class check test (see foreign_method.sh).
 
 local device   = require("device")
+local channel  = require("netlink.channel")
 local notifier = require("notifier")
 local rcu      = require("rcu")
 local stat     = require("linux.stat")
@@ -28,6 +29,12 @@ test("notifier:stop refuses an object of another class", function()
 	local n = notifier.netdevice(nop)
 	check.refused("notifier:stop", getmetatable(n).stop)
 	n:stop()
+end)
+
+test("netlink.channel:stop refuses an object of another class", function()
+	local family = channel.new("lunatik_foreign")
+	check.refused("netlink.channel:stop", getmetatable(family).stop)
+	family:stop()
 end)
 
 test("rcu.table index and newindex refuse an object of another class", function()

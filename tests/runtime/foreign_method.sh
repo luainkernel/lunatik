@@ -6,7 +6,9 @@
 # Regression test for the class check in methods that read private as their own
 # type: device:stop, notifier:stop, probe:stop, probe:enable, probe:disable and the
 # rcu.table index and newindex metamethods, each called on a data object through
-# the class's metatable, must be refused instead of reading the buffer as the class.
+# the class's metatable, must be refused instead of reading the buffer as the class;
+# netlink.channel:stop, which closes the object it is given, must be refused
+# instead of closing the buffer.
 # The probe methods run in their own hardirq script, the context probe.new requires.
 #
 # Usage: sudo bash tests/runtime/foreign_method.sh
@@ -32,7 +34,7 @@ mark_dmesg
 run_script "$SCRIPT"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$SCRIPT" > /dev/null 2>&1
-ktap_pass "the methods of device, notifier and rcu.table refuse an object of another class"
+ktap_pass "the methods of device, netlink.channel, notifier and rcu.table refuse an object of another class"
 
 mark_dmesg
 run_script --context=hardirq "$PROBE"
