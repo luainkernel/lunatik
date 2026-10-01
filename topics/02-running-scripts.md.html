@@ -224,9 +224,13 @@ registered from a script started with <code>lunatik run --context=&lt;context&gt
 
 
 <p>An operation the kernel refuses exits 1 with <code>lunatik: &lt;message&gt;</code> on stderr and nothing on stdout,
-and a wrong invocation exits 2 with the usage on stderr. The words <code>process</code>, <code>softirq</code>, <code>hardirq</code>
-and <code>percpu</code> after the script of <code>run</code> are still read for one release, each with a line on stderr
-naming the option that replaces it.</p>
+and a wrong invocation exits 2 with the usage on stderr.</p>
+
+<p>The CLI reaches the kernel through <code>/dev/lunatik</code>, whose protocol is internal to it: a tool drives
+Lunatik through the <a href="../modules/lunatik.html#">lunatik</a> command, not through the device. A driver whose reply carries no
+status, as the one a release before 5.0 loads, fails every command that reaches it with
+<code>lunatik: couldn&apos;t read /dev/lunatik: loaded from another build</code>; unload that release with its own
+CLI before installing another over it, or reboot.</p>
 
 <p><a name="Execution_contexts"></a></p>
 
@@ -349,7 +353,7 @@ instead of source, so an error raised from one of them reads <code>?:?:</code>.<
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:53:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 13:00:33</span>
 </div>
 </footer>
 </body>
