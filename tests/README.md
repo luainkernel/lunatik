@@ -729,8 +729,10 @@ after the watch is stopped.
 - **hwaddr**: `linux.ifindex` and `linux.hwaddr` resolve a device in the
   initial network namespace: `lo` is index 1 with six zero bytes, and a dummy
   device has the index and the address sysfs gives it. The name and index of a
-  dummy moved into a namespace of the test's own each answer `nil` (skips
-  without dummy devices or network namespaces).
+  dummy moved into a namespace of the test's own each answer `nil`;
+  `linux.hwaddr` raises "out of bounds" for an index outside 1 to `INT_MAX`,
+  `lo`'s past 32 bits among them (skips without dummy devices or network
+  namespaces).
 
 ### lua
 
