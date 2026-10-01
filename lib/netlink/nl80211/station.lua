@@ -18,14 +18,15 @@
 local object  = require("netlink.nl80211.object")
 local message = require("netlink.message")
 
-local cmd     = require("linux.nl80211").cmd
-local attr    = require("linux.nl80211").attr
-local staflag = require("linux.nl80211").staflag
+local nl80211  = require("linux.nl80211")
+local cmd      = nl80211.cmd
+local attr     = nl80211.attr
+local sta_flag = nl80211.sta_flag
 
 local pack = string.pack
 
 -- STA_FLAGS2 carries bit positions from the station-flag enum (§ NL80211_STA_FLAG_)
-local AUTHORIZED = 1 << staflag.AUTHORIZED
+local AUTHORIZED = 1 << sta_flag.AUTHORIZED
 
 ---
 -- @type station

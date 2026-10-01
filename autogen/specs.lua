@@ -205,7 +205,7 @@ return {
 			"SSID", "BEACON_INTERVAL", "DTIM_PERIOD", "BEACON_HEAD", "BEACON_TAIL",
 			"STA_AID", "STA_LISTEN_INTERVAL", "STA_SUPPORTED_RATES", "STA_FLAGS2",
 			"GENERATION", "WDEV", "STA_INFO", "SCAN_SSIDS", "BSS" } },
-	{ header = "uapi/linux/nl80211.h", prefix = "NL80211_STA_FLAG_", module = "nl80211.staflag",
+	{ header = "uapi/linux/nl80211.h", prefix = "NL80211_STA_FLAG_", module = "nl80211.sta_flag",
 		desc = "nl80211 station flags (NL80211_STA_FLAG_*), bit positions for STA_FLAGS2.",
 		include = { "AUTHORIZED", "SHORT_PREAMBLE", "WME", "MFP", "AUTHENTICATED",
 			"TDLS_PEER", "ASSOCIATED" } },
