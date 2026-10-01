@@ -298,28 +298,28 @@ static struct kprobe *luaprobe_checkkprobe(lua_State *L)
 /***
 * Enables the probe: a hit runs its handlers, as it does from `new` until a `disable`.
 * @function enable
-* @raise if the probe has been stopped, if the percpu object owns this probe, or
+* @raise if the probe has been stopped, if the percpu object owns this probe,
 *   `not allowed once the runtime is armed` (its script body has
 *   returned): enable_kprobe sleeps, and an armed runtime runs with its
-*   lock held and interrupts off
+*   lock held and interrupts off; or the error enable_kprobe returns
 */
 static int luaprobe_enable(lua_State *L)
 {
-	enable_kprobe(luaprobe_checkkprobe(L));
+	lunatik_try(L, enable_kprobe, luaprobe_checkkprobe(L));
 	return 0;
 }
 
 /***
 * Disables the probe: it stays registered, and a hit runs no handler until `enable`.
 * @function disable
-* @raise if the probe has been stopped, if the percpu object owns this probe, or
+* @raise if the probe has been stopped, if the percpu object owns this probe,
 *   `not allowed once the runtime is armed` (its script body has
 *   returned): disable_kprobe sleeps, and an armed runtime runs with its
-*   lock held and interrupts off
+*   lock held and interrupts off; or the error disable_kprobe returns
 */
 static int luaprobe_disable(lua_State *L)
 {
-	disable_kprobe(luaprobe_checkkprobe(L));
+	lunatik_try(L, disable_kprobe, luaprobe_checkkprobe(L));
 	return 0;
 }
 
