@@ -10,9 +10,12 @@
 # the index sysfs gives it; linux.hwaddr answers lo's six zero bytes and DEV's
 # address as sysfs spells it, its addr_len bytes. MOVED's name and index, which
 # only the other namespace holds, each answer nil, as tests/linux/ifindex pins
-# for a name and an index no device has. The moved device keeps its index when the
-# other namespace has none by that number, and the test skips when the initial
-# namespace gave it to another device meanwhile.
+# for a name and an index no device has. linux.hwaddr refuses as out of bounds
+# an index outside 1 to INT_MAX: 0, -1, INT_MAX + 1, and lo's index past 32 bits,
+# which a build that reads the index into an int answers with lo's address. The
+# moved device keeps its index when the other namespace has none by that number,
+# and the test skips when the initial namespace gave it to another device
+# meanwhile.
 #
 # Usage: sudo bash tests/linux/hwaddr.sh
 
@@ -51,8 +54,8 @@ ip link set "$MOVED" netns "$NETNS" 2>/dev/null || skip "linux/hwaddr: cannot mo
 ip -o link show | cut -d: -f1 | grep -qx "$moved" && skip "linux/hwaddr: index $moved was given to another device"
 echo "return {moved = $moved}" > "$INDEXMOD"
 
-run_test "$SCRIPT" || fail "linux.ifindex or linux.hwaddr answered a device wrong"
-ktap_pass "linux/hwaddr: ifindex and hwaddr answer a device of the initial namespace, and nil for one of another"
+run_test "$SCRIPT" || fail "linux.ifindex or linux.hwaddr answered a device wrong, or answered an index out of bounds"
+ktap_pass "linux/hwaddr: ifindex and hwaddr answer a device of the initial namespace, nil for one of another, and refuse an index out of bounds"
 
 cleanup
 check_dmesg && ktap_pass "no Lua errors, kernel warnings or oopses"

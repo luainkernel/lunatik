@@ -15,7 +15,7 @@ local LOOPBACK  <const> = "lo"
 local LOOPINDEX <const> = 1 -- LOOPBACK_IFINDEX
 local ETH_ALEN  <const> = 6
 local ABSENT    <const> = "lunatiknodev" -- fits IFNAMSIZ, and no host names a device so
-local NOINDEX   <const> = 0 -- the kernel numbers devices from 1
+local NOINDEX   <const> = (1 << 31) - 1 -- INT_MAX, in range and no device's index
 
 local function none(f, arg)
 	local answer = pack(f(arg))

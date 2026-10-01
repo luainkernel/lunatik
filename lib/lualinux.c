@@ -205,15 +205,16 @@ static int lualinux_ifindex(lua_State *L)
 * (see `linux.netns`).
 *
 * @function hwaddr
-* @tparam integer ifindex interface index number.
+* @tparam integer ifindex interface index number, from 1 to `INT_MAX`.
 * @treturn string interface HW address, or `nil` if no device has that index.
+* @raise "out of bounds" for an index outside that range.
 * @usage
 *   local addr = linux.hwaddr(index)
 *   print(string.byte(addr,1,6))
 */
 static int lualinux_hwaddr(lua_State *L)
 {
-	int ifindex = luaL_checkinteger(L, 1);
+	int ifindex = (int)lunatik_checkinteger(L, 1, 1, INT_MAX);
 	luaL_Buffer B;
 	char *addr = luaL_buffinitsize(L, &B, MAX_ADDR_LEN);
 	struct net_device *dev = dev_get_by_index(&init_net, ifindex);

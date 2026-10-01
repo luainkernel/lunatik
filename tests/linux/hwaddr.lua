@@ -19,9 +19,19 @@ local DEV       <const> = "lunatikhw0" -- DEV in hwaddr.sh, in the initial names
 local MOVED     <const> = "lunatikhw1" -- MOVED in hwaddr.sh, in a namespace of its own
 local ETH_ALEN  <const> = 6
 
+local MAXINDEX    <const> = (1 << 31) - 1 -- INT_MAX
+local OUTOFBOUNDS <const> = "out of bounds"
+local U32         <const> = 1 << 32 -- past the int an index is read into
+
 local function none(what, f, arg)
 	local answer = pack(f(arg))
 	assert(answer.n == 1 and answer[1] == nil, format("%s answered %d values, the first %s", what, answer.n, tostring(answer[1])))
+end
+
+local function refuses(what, expected, f, ...)
+	local ok, err = pcall(f, ...)
+	assert(not ok, what .. " was answered")
+	assert(tostring(err):find(expected, 1, true), what .. " raised something else: " .. tostring(err))
 end
 
 local function sysfs(name, attribute)
@@ -51,5 +61,12 @@ end)
 test("linux.ifindex and linux.hwaddr answer nil for a device of another namespace", function()
 	none("the moved device's name", linux.ifindex, MOVED)
 	none("the moved device's index", linux.hwaddr, moved)
+end)
+
+test("linux.hwaddr refuses an index outside 1 to INT_MAX", function()
+	refuses("lo's index past 32 bits", OUTOFBOUNDS, linux.hwaddr, LOOPINDEX | U32)
+	refuses("an index of 0", OUTOFBOUNDS, linux.hwaddr, 0)
+	refuses("a negative index", OUTOFBOUNDS, linux.hwaddr, -1)
+	refuses("an index past INT_MAX", OUTOFBOUNDS, linux.hwaddr, MAXINDEX + 1)
 end)
 
