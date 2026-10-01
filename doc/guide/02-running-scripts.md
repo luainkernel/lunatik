@@ -68,7 +68,9 @@ A binding that registers a hook checks that the runtime registering it has the c
 fires in, and raises `runtime context mismatch: <class> needs <context>` from a runtime of another
 context. A class whose objects may sleep is a process-context class, and creating one of its
 objects from a softirq or hardirq runtime raises `'<class>': process-context class in
-interrupt-context runtime`.
+interrupt-context runtime`. A method of a shared object whose lock is a spinlock, a softirq or
+hardirq one, runs under that lock, and the runtime that calls it allocates with `GFP_ATOMIC` until
+it returns, a process runtime included.
 
 The script body itself runs once, in process context, before the runtime is armed, so registering
 hooks at its top level may sleep. Everything that runs later, from a hook, may not. A runtime is

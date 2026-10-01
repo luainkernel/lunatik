@@ -160,15 +160,19 @@ static int lunatik_monitor(lua_State *L)
 {
 	int ret, n = lua_gettop(L);
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
+	lunatik_object_t *runtime = lunatik_toruntime(L);
+	gfp_t gfp = lunatik_gfp(runtime);
 
 	lunatik_checkowner(L, object); /* the runtime's resume runs Lua that can reach this handle again */
 	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
 	lua_insert(L, 1); /* stack: method, object, args */
 
 	lunatik_try(L, lunatik_lockkillable, object);
+	runtime->gfp = lunatik_gfp(object); /* the method allocates under the object's lock */
 	lua_gc(L, LUA_GCSTOP);
 	ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	lunatik_unlock(object);
+	runtime->gfp = gfp;
 	lua_gc(L, LUA_GCRESTART);
 
 	if (ret != LUA_OK) {
