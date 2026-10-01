@@ -8,6 +8,11 @@
 # bounds: data.new() and data:resize() take the buffer size from Lua. Both accept
 # the sizes they serve, round-trip a byte at the far end of the buffer, and refuse
 # zero, a negative and anything past INT_MAX, which the allocator cannot serve.
+# Each integer setter of 8, 16 and 32 bits, signed or unsigned, takes its width read
+# either way, from the signed minimum to the unsigned maximum, and both getters of the
+# width read back the same bytes; past that range it raises "out of bounds" and leaves
+# the bytes, where 2^32 plus the value already stored is what a truncating build
+# writes without an error. setint64 takes every integer.
 #
 # zeroed: what an owned buffer holds before the script writes to it. data.new() and a
 # data:resize() that grows come back zeroed, on the krealloc and the kvmalloc arm of the
