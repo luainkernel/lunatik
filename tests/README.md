@@ -172,7 +172,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 - **bounds**: `data.new()` and `data:resize()` accept the sizes they serve,
   round-trip a byte at the far end of the buffer, and refuse zero, a
   negative and anything past `INT_MAX`; a refused resize leaves the object
-  on its old buffer.
+  on its old buffer. Each integer setter of 8, 16 and 32 bits takes its width
+  read signed or unsigned, from the signed minimum to the unsigned maximum,
+  which both getters read back, and refuses a value past it as out of bounds,
+  leaving the bytes; `setint64` takes every integer.
 - **resize_atomic**: a failed reallocation must not look like a success. A
   vmalloc-backed buffer grown from a `GFP_ATOMIC` runtime asks the page
   allocator for an order past `MAX_PAGE_ORDER`, so the allocation fails by

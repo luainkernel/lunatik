@@ -48,28 +48,28 @@ static int luadata_get##T(lua_State *L) 						\
 	return 1;									\
 }
 
-#define LUADATA_NEWINT_SETTER(T)						\
+#define LUADATA_NEWINT_SETTER(T, min, max)					\
 static int luadata_set##T(lua_State *L)						\
 {										\
 	luadata_t *data = luadata_check(L, 1);					\
 	lua_Integer offset = luaL_checkinteger(L, 2);				\
 	T##_t *ptr = luadata_checkbounds(L, 2, data, offset, sizeof(T##_t));	\
 	luadata_checkwritable(L, data);						\
-	*ptr = (T##_t)luaL_checkinteger(L, 3);					\
+	*ptr = (T##_t)lunatik_checkinteger(L, 3, min, max);			\
 	return 0;								\
 }
 
-#define LUADATA_NEWINT(T)		\
-	LUADATA_NEWINT_GETTER(T); 	\
-	LUADATA_NEWINT_SETTER(T);
+#define LUADATA_NEWINT(T, min, max)		\
+	LUADATA_NEWINT_GETTER(T); 		\
+	LUADATA_NEWINT_SETTER(T, min, max);
 
-LUADATA_NEWINT(int8);
-LUADATA_NEWINT(uint8);
-LUADATA_NEWINT(int16);
-LUADATA_NEWINT(uint16);
-LUADATA_NEWINT(int32);
-LUADATA_NEWINT(uint32);
-LUADATA_NEWINT(int64);
+LUADATA_NEWINT(int8, S8_MIN, U8_MAX);
+LUADATA_NEWINT(uint8, S8_MIN, U8_MAX);
+LUADATA_NEWINT(int16, S16_MIN, U16_MAX);
+LUADATA_NEWINT(uint16, S16_MIN, U16_MAX);
+LUADATA_NEWINT(int32, S32_MIN, U32_MAX);
+LUADATA_NEWINT(uint32, S32_MIN, U32_MAX);
+LUADATA_NEWINT(int64, LUA_MININTEGER, LUA_MAXINTEGER);
 
 /***
 * Represents a byte buffer.
@@ -85,6 +85,10 @@ LUADATA_NEWINT(int64);
 * with `getstring`. `skb:copy():data()` views the copy's own buffer until the copy
 * is collected, and is then cleared the same way. A write to a view a binding marks
 * read only raises "read only".
+*
+* An integer setter takes a value of its width read either signed or unsigned, so
+* `setint8` and `setuint8` both store -1 and 255 as the same byte, and raises "out of
+* bounds" for a value past it.
 * @type data
 */
 
@@ -234,7 +238,7 @@ static const luaL_Reg luadata_mt[] = {
 * Writes an 8-bit integer at `offset`; an alias of `setuint8`.
 * @function setbyte
 * @tparam integer offset
-* @tparam integer value
+* @tparam integer value from -128 to 255
 * @raise if out of bounds or read-only
 */
 	{"setbyte", luadata_setuint8},
@@ -250,7 +254,7 @@ static const luaL_Reg luadata_mt[] = {
 * Writes a signed 8-bit integer at `offset`.
 * @function setint8
 * @tparam integer offset
-* @tparam integer value
+* @tparam integer value from -128 to 255
 * @raise if out of bounds or read-only
 */
 	{"setint8", luadata_setint8},
@@ -266,7 +270,7 @@ static const luaL_Reg luadata_mt[] = {
 * Writes an unsigned 8-bit integer at `offset`.
 * @function setuint8
 * @tparam integer offset
-* @tparam integer value
+* @tparam integer value from -128 to 255
 * @raise if out of bounds or read-only
 */
 	{"setuint8", luadata_setuint8},
@@ -282,7 +286,7 @@ static const luaL_Reg luadata_mt[] = {
 * Writes a signed 16-bit integer at `offset`.
 * @function setint16
 * @tparam integer offset
-* @tparam integer value
+* @tparam integer value from -32768 to 65535
 * @raise if out of bounds or read-only
 */
 	{"setint16", luadata_setint16},
@@ -298,7 +302,7 @@ static const luaL_Reg luadata_mt[] = {
 * Writes an unsigned 16-bit integer at `offset`.
 * @function setuint16
 * @tparam integer offset
-* @tparam integer value
+* @tparam integer value from -32768 to 65535
 * @raise if out of bounds or read-only
 */
 	{"setuint16", luadata_setuint16},
@@ -314,7 +318,7 @@ static const luaL_Reg luadata_mt[] = {
 * Writes a signed 32-bit integer at `offset`.
 * @function setint32
 * @tparam integer offset
-* @tparam integer value
+* @tparam integer value from -2^31 to 2^32 - 1
 * @raise if out of bounds or read-only
 */
 	{"setint32", luadata_setint32},
@@ -330,7 +334,7 @@ static const luaL_Reg luadata_mt[] = {
 * Writes an unsigned 32-bit integer at `offset`.
 * @function setuint32
 * @tparam integer offset
-* @tparam integer value
+* @tparam integer value from -2^31 to 2^32 - 1
 * @raise if out of bounds or read-only
 */
 	{"setuint32", luadata_setuint32},
