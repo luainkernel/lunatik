@@ -240,11 +240,11 @@ static const lunatik_class_t luanetfilter_class = {
 *   runtime, so dropping it does not unregister the hook: the hook stays until the runtime closes,
 *   which `stop()` does, and the one hook a percpu script's runtimes share goes when the percpu set
 *   stops.
-* @raise if called after module load; `runtime context mismatch` outside a softirq runtime;
-*   `bad field '<field>' (number expected, got <type>)` if `pf`, `hooknum` or `priority` is missing
-*   or not a number, or if `mark` is present and not a number; if the hook cannot be registered;
-*   in a percpu script, if this runtime already registered the same `pf`, `hooknum`, `priority`
-*   and `mark`, or the same three both times without a `mark`
+* @raise "not allowed once the runtime is armed" past the script body; `runtime context mismatch`
+*   outside a softirq runtime; `bad field '<field>' (number expected, got <type>)` if `pf`,
+*   `hooknum` or `priority` is missing or not a number, or if `mark` is present and not a number;
+*   if the hook cannot be registered; in a percpu script, if this runtime already registered the
+*   same `pf`, `hooknum`, `priority` and `mark`, or the same three both times without a `mark`
 * @usage
 *   local netfilter = require("netfilter")
 *   local nf        = require("linux.nf")

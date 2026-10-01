@@ -325,7 +325,7 @@ bool lunatik_isready(lunatik_object_t *runtime);
 ```
 Returns `true` once `runtime` is armed, its script body returned, and until it is closed.
 `thread.run` uses it to refuse creating a thread from the script body of the runtime that calls
-it, with `not allowed during module load`.
+it, with `not allowed before the runtime is armed`.
 
 ### lunatik\_isowner
 ```C
@@ -422,12 +422,12 @@ would sleep when `s` holds tests it and refuses rather than deadlocking the mach
 ```C
 void lunatik_checkarmed(lua_State *L);
 ```
-Raises a Lua error, `"not allowed after module load"`, when `L` belongs to an interrupt-context
-runtime that has finished loading. An IRQ runtime is process context only while its script body
-runs, so a call that may sleep is allowed there and must be refused afterwards, when the runtime
-lock is a spinlock: from a hook or a handler, and from the `resume` of such a runtime. Use it in
-an entry point that reaches a sleeping kernel call, where `lunatik_checkruntime` answers the
-different question of whether the class matches the runtime at all.
+Raises a Lua error, `"not allowed once the runtime is armed"`, when `L` belongs to an
+interrupt-context runtime whose script body returned. An IRQ runtime is process context only while
+its script body runs, so a call that may sleep is allowed there and must be refused afterwards,
+when the runtime lock is a spinlock: from a hook or a handler, and from the `resume` of such a
+runtime. Use it in an entry point that reaches a sleeping kernel call, where `lunatik_checkruntime`
+answers the different question of whether the class matches the runtime at all.
 
 ### lunatik\_checkrtnl
 ```C

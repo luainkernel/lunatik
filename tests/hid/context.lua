@@ -8,7 +8,7 @@ local lunatik = require("lunatik")
 local test    = require("util").test
 
 local RECEIVER <const> = "tests/hid/context_recv"
-local REFUSAL  <const> = "not allowed after module load"
+local REFUSAL  <const> = "not allowed once the runtime is armed"
 
 -- a softirq runtime is armed past its body, which is the state a callback runs in; resume reaches it
 test("hid.register refuses an armed softirq runtime", function()

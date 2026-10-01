@@ -208,7 +208,8 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_METATABLE	"metatable not found"
 #define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
-#define LUNATIK_ERR_ARMED	"not allowed after module load"
+#define LUNATIK_ERR_ARMED	"not allowed once the runtime is armed"
+#define LUNATIK_ERR_UNARMED	"not allowed before the runtime is armed"
 #define LUNATIK_ERR_RTNL	"not allowed under RTNL"
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 

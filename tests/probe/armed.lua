@@ -7,7 +7,7 @@
 local probe = require("probe")
 
 local SYMBOL <const> = "vfs_read"
-local ARMED <const> = "not allowed after module load"
+local ARMED <const> = "not allowed once the runtime is armed"
 
 local handle
 local done = false

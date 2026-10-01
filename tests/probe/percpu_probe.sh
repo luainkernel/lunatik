@@ -187,7 +187,7 @@ trigger "$cpu"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$LATE" > /dev/null 2>&1
 dmesg_since | grep -qF "percpu probe late: " || fail "the handler did not run"
-dmesg_since | grep -q "percpu probe late: not allowed after module load" || \
+dmesg_since | grep -q "percpu probe late: not allowed once the runtime is armed" || \
 	fail "the late probe was not refused: $(dmesg_since | grep 'percpu probe late')"
 ktap_pass "a probe from a handler, after load, is refused"
 

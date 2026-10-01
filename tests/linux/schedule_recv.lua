@@ -8,7 +8,7 @@
 local linux = require("linux")
 
 local NAP_MS  <const> = 1
-local REFUSAL <const> = "not allowed after module load"
+local REFUSAL <const> = "not allowed once the runtime is armed"
 
 assert(linux.schedule(NAP_MS) == 0, "the script body, which runs in process context, could not sleep")
 

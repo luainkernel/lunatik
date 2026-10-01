@@ -413,7 +413,7 @@ static int luabpf_##name##_open(lua_State *L)						\
 * @tparam string path Path to a pinned eBPF hash map.
 * @treturn bpf_hash Opened map handle.
 * @raise Error if the path does not resolve to a pinned eBPF hash map, or
-* `not allowed after module load` once the runtime is armed (its script body has
+* `not allowed once the runtime is armed` (its script body has
 * returned): the path lookup sleeps, so on an interrupt-context runtime
 * (softirq/hardirq) the constructors are only allowed while the script body runs;
 * the returned handle can then be used from handlers.

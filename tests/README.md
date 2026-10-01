@@ -133,9 +133,9 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 - **context**: `darken.run` decrypts and runs a chunk in a process runtime,
   in its body and resumed past it, and in the body of a `softirq` and a
   `hardirq` runtime, which runs in process context; resumed past the body,
-  the armed state a hook calls from, each refuses with "not allowed after
-  module load", since allocating the transform sleeps. Skips unless the
-  loaded `luadarken` is the installed one and carries the refusal.
+  the armed state a hook calls from, each refuses with "not allowed once
+  the runtime is armed", since allocating the transform sleeps. Skips unless
+  the loaded `luadarken` is the installed one and carries the refusal.
 - **decrypt**: `darken.run` reads what `crypto.aead`'s `gcm(aes)` seals: a
   script runs and returns its values, and an empty one, a ciphertext that is
   only its 16-byte tag, returns none; a wrong key or IV, a flipped byte of the
@@ -570,8 +570,9 @@ after the watch is stopped.
 - **context**: `hid.register()` registers from the body of a `softirq`
   runtime, which runs in process context; resumed past the body, the armed
   state a `probe` or `raw_event` callback runs in, it refuses with "not
-  allowed after module load", since registering a driver sleeps. Skips
-  unless the loaded `luahid` is the installed one and carries the refusal.
+  allowed once the runtime is armed", since registering a driver sleeps.
+  Skips unless the loaded `luahid` is the installed one and carries the
+  refusal.
 
 ### io
 
@@ -601,9 +602,9 @@ after the watch is stopped.
   sign; and one within `INT_MAX` is unchanged.
 - **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, and in
   the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
-  body, the armed state a hook calls from, each refuses with "not allowed after module load". A
-  build without the refusal sleeps under the armed runtime's spinlock, so the test skips unless
-  the loaded `lualinux` is the installed one and carries it.
+  body, the armed state a hook calls from, each refuses with "not allowed once the runtime is
+  armed". A build without the refusal sleeps under the armed runtime's spinlock, so the test skips
+  unless the loaded `lualinux` is the installed one and carries it.
 - **netns**: `linux.netns` resolves pid 1 to the initial namespace in a
   process runtime, in its body and resumed past it, and in the body of a
   `softirq` and a `hardirq` runtime, which runs in process context; resumed
@@ -630,8 +631,8 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   kernel symbol table.
 - **require**: a `softirq` and a `hardirq` runtime resumed past their body,
   the armed state a hook calls from, get back a module the body loaded and
-  are refused, with `not allowed after module load`, a `require` that would
-  search `package.path` and `package.searchpath`, since opening a file
+  are refused, with `not allowed once the runtime is armed`, a `require` that
+  would search `package.path` and `package.searchpath`, since opening a file
   sleeps; the body allows both. The body empties `package.path`, so a build
   without the refusal opens no file from the callback and answers `not found`.
   The body and the callback are refused `require("io")` with `'io':

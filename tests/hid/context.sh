@@ -19,7 +19,7 @@
 
 SCRIPT="tests/hid/context"
 MODULE="luahid"
-REFUSAL="not allowed after module load"
+REFUSAL="not allowed once the runtime is armed"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 

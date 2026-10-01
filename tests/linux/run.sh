@@ -25,7 +25,7 @@ TOTAL=$(echo $TESTS | wc -w)
 CONFIG=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
 
 MODULE=lualinux
-REFUSAL="not allowed after module load"
+REFUSAL="not allowed once the runtime is armed"
 
 # a lualinux without the refusal sleeps under an armed runtime's spinlock, and a run by hand reaches what is loaded
 carries_refusal() {

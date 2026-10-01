@@ -228,19 +228,20 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 * @tparam string name A descriptive name for the kernel thread.
 * @param ... Lunatik objects passed to the thread body.
 * @treturn thread A new thread object.
-* @raise "not allowed during module load" from a script body; "IRQ runtime cannot spawn threads"
-*   for a softirq or hardirq runtime; "stopped runtime"; "invalid object" or "cannot share SINGLE
-*   object" for a value passed to the body; "couldn't pass the thread arguments"; "failed to create
-*   a new thread"; "not allowed from the runtime itself" from
-*   under the runtime's own lock, the contexts `runtime:stop` names, where passing the arguments
-*   would wait on it; "EINTR" if the stop of the calling kernel thread, or a fatal signal to any
-*   other task, ends its wait for the runtime's lock.
+* @raise "not allowed before the runtime is armed" from a script body; "IRQ runtime cannot spawn
+*   threads" for a softirq or hardirq runtime; "stopped runtime"; "invalid object" or "cannot share
+*   SINGLE object" for a value passed to the body; "couldn't pass the thread arguments"; "failed to
+*   create a new thread"; "not allowed from the runtime itself" from under the runtime's own lock,
+*   the contexts `runtime:stop` names, where passing the arguments would wait on it; "EINTR" if the
+*   stop of the calling kernel thread, or a fatal signal to any other task, ends its wait for the
+*   runtime's lock.
 * @see lunatik.runtime
 * @within thread
 */
 static int luathread_run(lua_State *L)
 {
-	luaL_argcheck(L, lunatik_isready(lunatik_toruntime(L)), 1, "not allowed during module load");
+	if (!lunatik_isready(lunatik_toruntime(L)))
+		luaL_error(L, LUNATIK_ERR_UNARMED);
 	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_class);
 	luaL_argcheck(L, !lunatik_isirq(runtime->opt), 1, "IRQ runtime cannot spawn threads");
 	lunatik_checkowner(L, runtime); /* the arguments cross under its lock */
