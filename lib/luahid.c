@@ -120,6 +120,7 @@ static const lunatik_class_t luahid_class = {
 };
 
 #define LUAHID_MAXIDS	(4096)
+#define LUAHID_MAXDATA	((lua_Integer)min_t(u64, ULONG_MAX, LUA_MAXINTEGER))
 
 static void luahid_setidtable(lua_State *L, int idx, struct hid_driver *driver)
 {
@@ -137,11 +138,11 @@ static void luahid_setidtable(lua_State *L, int idx, struct hid_driver *driver)
 	for (i = 0; i < len; i++, cur_id++) {
 		luaL_argcheck(L, lua_geti(L, -1, i + 1) == LUA_TTABLE, idx, "invalid id_table"); /* table entry */
 
-		lunatik_optinteger(L, -1, cur_id, bus, HID_BUS_ANY);
-		lunatik_optinteger(L, -1, cur_id, group, HID_GROUP_ANY);
-		lunatik_optinteger(L, -1, cur_id, vendor, HID_ANY_ID);
-		lunatik_optinteger(L, -1, cur_id, product, HID_ANY_ID);
-		lunatik_optinteger(L, -1, cur_id, driver_data, 0);
+		lunatik_optinteger(L, -1, cur_id, bus, 0, U16_MAX, HID_BUS_ANY);
+		lunatik_optinteger(L, -1, cur_id, group, 0, U16_MAX, HID_GROUP_ANY);
+		lunatik_optinteger(L, -1, cur_id, vendor, 0, U32_MAX, HID_ANY_ID);
+		lunatik_optinteger(L, -1, cur_id, product, 0, U32_MAX, HID_ANY_ID);
+		lunatik_optinteger(L, -1, cur_id, driver_data, 0, LUAHID_MAXDATA, 0);
 
 		lua_pop(L, 1); /* table entry */
 	}
@@ -338,8 +339,8 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 * argument, and one it does not carry does nothing.
 * @function register
 * @tparam table opts driver options: `name` (string), `id_table` (array of device ID tables,
-*   each with optional integer fields `bus`, `group`, `vendor`, `product`, `driver_data`),
-*   and the optional callbacks:
+*   each with optional integer fields `bus` and `group`, from 0 to `0xffff`, `vendor` and
+*   `product`, from 0 to `0xffffffff`, and `driver_data`, from 0), and the optional callbacks:
 *
 *   - `probe(driver, hdev, id)`: a device matched; `hdev` is the device's table, made here
 *     and handed to every later callback of the device, and `id` is the matching entry, with
@@ -367,9 +368,10 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   required fields are missing, or `id_table` is invalid or too long; the kernel's errno if it
 *   refuses the driver, `EBUSY` for a name another driver holds on the bus;
 *   `bad field '<field>' (number expected, got <type>)` if an entry's `bus`, `group`, `vendor`,
-*   `product` or `driver_data` is present and not a number; `runtime context mismatch` unless the
-*   runtime is softirq; `not allowed while the runtime closes` from a finalizer that runs at its
-*   close
+*   `product` or `driver_data` is present and not a number, and
+*   `bad field '<field>' (out of bounds)` if it is past its range; `runtime context mismatch`
+*   unless the runtime is softirq; `not allowed while the runtime closes` from a finalizer that
+*   runs at its close
 * @within hid
 */
 static int luahid_register(lua_State *L)

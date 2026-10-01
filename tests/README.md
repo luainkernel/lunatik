@@ -256,12 +256,15 @@ after it.
   receives the file its open numbered, which a callback written without the
   file reads back.
 - **mode**: `device.new()` reads the driver's optional `mode` into the node it
-  creates. A device without one gets devtmpfs's default, 0600, and one with
-  `linux.stat`'s `IRUGO` a node of 0444; a `mode` that holds a string, a
-  numeric one included, or a boolean is refused with an error naming the
-  field, before the device registers anything: `/proc/devices` does not list
-  the refused name while the script's collector, stopped, keeps every refused
-  object alive.
+  creates. A device without one gets devtmpfs's default, 0600, one with
+  `linux.stat`'s `IRUGO` a node of 0444, and one with the setuid, setgid and
+  sticky bits over it, which `S_IALLUGO` adds to the permissions, a character
+  node of 7444; a
+  `mode` that holds a string, a numeric one included, or a boolean, and one past
+  `S_IALLUGO`, a file type that devtmpfs would turn into a block node included,
+  are refused with an error naming the field, before the device registers
+  anything: `/proc/devices` does not list the refused name, nor `/dev` a node of
+  it, while the script's collector, stopped, keeps every refused object alive.
 
 ### cli
 
@@ -628,7 +631,12 @@ after the watch is stopped.
   while it is read and an entry whose `bus`, `group`, `vendor`, `product` or
   `driver_data` holds a string, a numeric one included, or a boolean are each
   refused, the last with an error naming the field, and each refusal forces
-  the refused driver's finalizer. A name filling `NAME_MAX` with no room for its
+  the refused driver's finalizer. Each of those fields is refused past its
+  type, below 0 or past 16 bits for `bus` and `group` and 32 for `vendor` and
+  `product`, with `out of bounds` and its name, by values whose low bits a
+  truncating build would register, and an entry under the test's vendor with
+  every other field at the top of its range reaches the bus. A name filling
+  `NAME_MAX` with no room for its
   terminator is refused too, and the longest that does leave room reaches
   the bus intact. A name a driver it registered already holds is refused with
   `EBUSY`, the errno `driver_register` returns, and that driver stays on the
@@ -816,8 +824,10 @@ allocates with).
   a hook that never ran.
 - **register**: what `netfilter.register()` refuses in the table it is given,
   before any hook is registered, each with an error naming the field: a `mark`
-  that holds a string, a numeric one included, or a boolean, and a `pf`,
-  `hooknum` or `priority` that is missing or holds a string.
+  that holds a string, a numeric one included, or a boolean, a `pf`, `hooknum`
+  or `priority` that is missing or holds a string, and any of the four past its
+  type, by a value whose low bits a truncating build would register; a `mark` at
+  the top of its range and a `priority` at either end of an `int` are accepted.
 - **mark**: which packets a hook's mark lets reach its callback. Two `LOCAL_OUT`
   hooks, one registered without a mark and one with a mark of 0, and two pings to
   a loopback address, one marked and one not: the hook without a mark runs for

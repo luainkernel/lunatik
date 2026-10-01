@@ -174,11 +174,11 @@ LUNATIK_PERCPUDATA(luanetfilter_hooks, "netfilter.hooks", luanetfilter_hook_t, l
 static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *spec)
 {
 	luaL_checktype(L, ix, LUA_TTABLE);
-	lunatik_setinteger(L, ix, (&spec->nfops), pf);
-	lunatik_setinteger(L, ix, (&spec->nfops), hooknum);
-	lunatik_setinteger(L, ix, (&spec->nfops), priority);
+	lunatik_setinteger(L, ix, (&spec->nfops), pf, 0, U8_MAX);
+	lunatik_setinteger(L, ix, (&spec->nfops), hooknum, 0, UINT_MAX);
+	lunatik_setinteger(L, ix, (&spec->nfops), priority, INT_MIN, INT_MAX);
 	spec->marked = lunatik_optfield(L, ix, "mark", LUA_TNUMBER);
-	spec->mark = spec->marked ? lua_tointeger(L, -1) : 0;
+	spec->mark = spec->marked ? lunatik_checkfieldinteger(L, "mark", 0, U32_MAX) : 0;
 	lua_pop(L, 1);
 }
 
@@ -270,9 +270,11 @@ static const lunatik_class_t luanetfilter_class = {
 * @raise "not allowed once the runtime is armed" past the script body; `runtime context mismatch`
 *   outside a softirq runtime; `not allowed while the runtime closes` from a finalizer that runs at
 *   its close; `bad field '<field>' (number expected, got <type>)` if `pf`, `hooknum` or
-*   `priority` is missing or not a number, or if `mark` is present and not a number; if the hook
-*   cannot be registered; in a percpu script, if this runtime already registered the same `pf`,
-*   `hooknum`, `priority` and `mark`, or the same three both times without a `mark`
+*   `priority` is missing or not a number, or if `mark` is present and not a number;
+*   `bad field '<field>' (out of bounds)` if `pf` is negative or past 8 bits, `hooknum` or `mark`
+*   negative or past 32 bits, or `priority` past an `int`; if the hook cannot be registered; in a
+*   percpu script, if this runtime already registered the same `pf`, `hooknum`, `priority` and
+*   `mark`, or the same three both times without a `mark`
 * @usage
 *   local netfilter = require("netfilter")
 *   local nf        = require("linux.nf")

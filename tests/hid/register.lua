@@ -15,9 +15,23 @@ local MAXIDS   <const> = 4096   -- LUAHID_MAXIDS, the longest id_table hid.regis
 local MAXNAME  <const> = 255    -- NAME_MAX, the buffer the driver name and its terminator share
 local HUGE_IDS <const> = 1 << 40
 local HELD     <const> = "lunatik_hid_one" -- on the bus from the first case until the runtime stops
+local U16      <const> = 1 << 16 -- past the __u16 bus and group
+local U32      <const> = 1 << 32 -- past the __u32 vendor and product
 
 local idfields   = {"bus", "group", "vendor", "product", "driver_data"}
 local notnumbers = {"abc", "3", true}
+
+-- past each field's type, with low bits that keep a truncating build's driver under VENDOR, where no device binds
+local pastrange = {
+	bus         = {BUS - U16, BUS | U16},
+	group       = {-U16, U16},
+	vendor      = {VENDOR - U32, VENDOR | U32},
+	product     = {1 - U32, 1 | U32},
+	driver_data = {-1},
+}
+
+-- under VENDOR, a bus of HID_BUS_ANY and a product of HID_ANY_ID match only its devices
+local toprange = {bus = U16 - 1, group = U16 - 1, vendor = VENDOR, product = U32 - 1, driver_data = math.maxinteger}
 
 local function hugelen()
 	return HUGE_IDS
@@ -84,6 +98,19 @@ test("hid.register refuses an id field that is not a number", function()
 			refuses("lunatik_hid_" .. field, badids(field, value), expected)
 		end
 	end
+end)
+
+test("hid.register refuses an id field past its range", function()
+	for field, values in pairs(pastrange) do
+		local expected = format("bad field '%s' %%(out of bounds%%)", field)
+		for _, value in ipairs(values) do
+			refuses("lunatik_hid_" .. field, badids(field, value), expected)
+		end
+	end
+end)
+
+test("hid.register accepts an id field at the top of its range", function()
+	register("lunatik_hid_top", {toprange})
 end)
 
 test("hid.register refuses a name that fills its buffer", function()
