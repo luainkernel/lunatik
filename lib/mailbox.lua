@@ -111,15 +111,16 @@ local sizeoft = string.packsize("T")
 -- @function MailBox:receive
 -- @tparam[opt] number timeout maximum time to wait in milliseconds.
 --   If omitted or negative, waits indefinitely. If 0, returns immediately.
--- @treturn string|nil the message, or `nil` if the event fired with the queue empty.
+-- @treturn string|nil the message, or `nil` if the wait elapsed, timeout 0 on an empty mailbox
+--   included, or the event fired with the queue empty.
 -- @treturn integer the message's length, beside a message.
--- @raise "send-only mailbox" on an outbox; an error ending in "timeout" when the wait elapses,
---   timeout 0 on an empty mailbox included, or in "interrupt" when a signal or `thread:stop()`
---   interrupts it; "malformed message" on a truncated header; "runtime context mismatch" from a
---   softirq or hardirq runtime.
+-- @raise "send-only mailbox" on an outbox; `ERESTARTSYS` when a signal or `thread:stop()`
+--   interrupts the wait; "malformed message" on a truncated header; "runtime context mismatch"
+--   from a softirq or hardirq runtime.
 function MailBox:receive(timeout)
-	local ok, err = self.event:wait(timeout)
-	if not ok then error(err) end
+	if not self.event:wait(timeout) then
+		return nil
+	end
 
 	local queue = self.queue
 	local header, header_size = queue:pop(sizeoft)

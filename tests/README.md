@@ -298,6 +298,17 @@ REPL and the builds `status` and `reload` compare.
   build exits 0, names the core not loaded and no module as another build, and
   `unload` exits 0 with nothing printed.
 
+### completion
+
+- **wait**: `completion:wait` answers `true` for a completion signaled before
+  it, with a timeout and with timeout 0, and `false`, alone, when the timeout
+  elapses first.
+- **mailbox**: `mailbox:receive` answers `nil`, alone, when its wait elapses,
+  timeout 0 included, and the message a send queued before it.
+- **stop**: the stop of a spawned thread interrupts its `completion:wait`,
+  which raises `ERESTARTSYS`; the body bounds its wait, so it ends on its own
+  when no stop comes.
+
 ### control
 
 Tests for `/dev/lunatik`, the device the CLI manages Lunatik through, and the
