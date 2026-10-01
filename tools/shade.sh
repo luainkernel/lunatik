@@ -117,6 +117,7 @@ while getopts "ts:" opt; do
 	case $opt in
 		t) OTP=true ;;
 		s) SECRET="$OPTARG" ;;
+		*) exit 1 ;;
 	esac
 done
 shift $((OPTIND - 1))

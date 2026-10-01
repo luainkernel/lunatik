@@ -36,8 +36,9 @@
 # xxd ahead of the real one in PATH that fails where the encryption turns the
 # ciphertext back into bytes for its GMAC, and darken -s and lighten with a
 # secret of 64 characters that are not hex, which hex2bin's printf refuses
-# inside the command substitution that derives the key. Skips below OpenSSL 3,
-# where darken stops at its probe for openssl mac before any step.
+# inside the command substitution that derives the key; darken runs once more
+# with an option it does not take. Skips below OpenSSL 3, where darken stops
+# at its probe for openssl mac before any step.
 #
 # Usage: sudo bash tests/darken/run.sh
 
@@ -89,7 +90,8 @@ shade_error() {
 	chmod +x "$TMP/bin/xxd"
 	PATH="$TMP/bin:$PATH" refuses darken script.lua &&
 		refuses darken -s "$nothex" script.lua &&
-		refuses lighten "$nothex"
+		refuses lighten "$nothex" &&
+		refuses darken -x script.lua
 }
 
 ktap_header
