@@ -478,14 +478,14 @@ netfilter.register{
     <ul>
         <li><span class="parameter">n</span>
             <span class="types"><span class="type">integer</span></span>
-         desired size in bytes
+         desired size in bytes, from 0 up to <code>UINT_MAX</code>
         </li>
     </ul>
 
 
     <h3>Raises</h3>
-    if the skb is not linear, in a tc callback or after a failed linearization, or if the
- tailroom is insufficient for expansion
+    if out of bounds, if the skb is not linear, in a tc callback or after a failed
+ linearization, or if the tailroom is insufficient for expansion
 
 
 
@@ -521,7 +521,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 14:55:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:26:47</span>
 </div>
 </footer>
 </body>
