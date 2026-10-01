@@ -17,13 +17,14 @@ local session = require("netlink.session")
 local message = require("netlink.message")
 local struct  = require("struct")
 
-local nl   = require("linux.netlink")
-local ctrl = require("linux.genl")
+local nl        = require("linux.netlink")
+local genetlink = require("linux.genl")
 
 local insert       = table.insert
 local pack, unpack = string.pack, string.unpack
 
-local genlmsghdr   = struct(ctrl.layout.genlmsghdr)
+local ctrl         = genetlink.ctrl
+local genlmsghdr   = struct(genetlink.layout.genlmsghdr)
 local GENL_HDRLEN  = genlmsghdr.size
 -- genlmsghdr version stamped into requests; each family declares its own and
 -- the genl core does not check it (no header constant exists for it)
@@ -96,7 +97,7 @@ end
 -- @raise the name of the errno the controller answers: `ENOENT` when no family has that name,
 --   `EINVAL` when the name is longer than `GENL_NAMSIZ - 1` bytes.
 function genl:family(name)
-	for _, msg in ipairs(self:talk(ctrl.id.CTRL, ctrl.cmd.GETFAMILY,
+	for _, msg in ipairs(self:talk(genetlink.id.CTRL, ctrl.cmd.GETFAMILY,
 			message.attrs{[ctrl.attr.FAMILY_NAME] = pack("z", name)})) do
 		local fid = msg.attrs[ctrl.attr.FAMILY_ID]
 		if fid then return unpack("=I2", fid) end

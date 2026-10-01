@@ -7,7 +7,9 @@
 # family ("nlctrl") to GENL_ID_CTRL; then, on the SAME instance, a GETFAMILY
 # talk() round-trip (regression: family()/talk() must drain the ACK so the
 # socket stays in sync); a GETFAMILY dump() listing every family (nlctrl among
-# them); and that an unknown family raises.
+# them); that linux.genl.ctrl.attr holds the controller's attributes and none
+# of the nested CTRL_ATTR_OP_, MCAST_GRP_ and POLICY_ ones; and that an unknown
+# family raises.
 #
 # Usage: sudo bash tests/netlink/genl_family.sh
 
@@ -23,7 +25,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 4
+ktap_plan 5
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -43,6 +45,9 @@ ktap_pass "genl_family: GETFAMILY talk() round-trip on the same instance"
 
 dmesg | grep -q "netlink genl_family: dump lists families" || fail "dump() did not list the families"
 ktap_pass "genl_family: GETFAMILY dump() lists the families"
+
+dmesg | grep -q "netlink genl_family: ctrl.attr holds the controller's attributes" || fail "linux.genl.ctrl.attr holds a nested attribute"
+ktap_pass "genl_family: linux.genl.ctrl.attr holds the controller's attributes only"
 
 dmesg | grep -q "netlink genl_family: missing family errors" || fail "missing family did not raise"
 ktap_pass "genl_family: unknown family raises"
