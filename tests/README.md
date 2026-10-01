@@ -1414,6 +1414,16 @@ pid, and what a valid call does.
   receives it, one created with it already in network order does not, and a
   protocol past 16 bits is refused as out of bounds.
 
+- **raw**: `socket.raw`'s `new` binds the socket it creates to the ethertype
+  and the interface it names, and in place of one it does not name to every
+  ethertype or every interface, as `getsockname()` reads them back. When the
+  bind raises, `ENODEV` on an interface index no device holds or the refusal of
+  one out of bounds, it raises that error unchanged once it has closed the
+  socket: `new` creates it with no ethertype for the bind to name, so one left
+  open stays listed in `/proc/net/packet` as a `SOCK_RAW` socket with no
+  ethertype and no interface until it is collected, and the test reads the
+  sockets listed that way before and after the run.
+
 - **address**: what `getsockname()`, `getpeername()` and `receivefrom()`
   answer with, per family. The kernel reports how many bytes it filled and the
   answer is those bytes: 26 for an AF_INET6 socket, unpacked field by field,
@@ -1469,7 +1479,10 @@ pid, and what a valid call does.
   IPv4 group through `SOL_IP`, whose release ends in `inet_release`, are
   refused, the last two skipped where no group can be joined; the bind of a
   generic netlink socket to a group is refused and of an rtnetlink one
-  accepted; and every socket the callback leaves open is closed once the
+  accepted; `socket.raw`'s `new`, whose bind to an absent interface fails
+  there, raises the bind's `ENODEV` and leaves to the collector the socket
+  whose close the callback refuses; and every other
+  socket the callback leaves open is closed once the
   registration returned. A tree without the
   refusal wedges the host, so the test skips unless the loaded `luanotifier`
   lists `luanotifier_netdevice_call`, which sets the task the refusal reads, in

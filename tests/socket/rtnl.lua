@@ -5,12 +5,14 @@
 -- Kernel-side script for the socket rtnl test (see rtnl.sh).
 
 local socket   = require("socket")
+local raw      = require("socket.raw")
 local notifier = require("notifier")
 local rt       = require("netlink.rt")
 local net      = require("net")
 local notify   = require("linux.notify")
 local sk       = require("linux.socket")
 local nl       = require("linux.netlink")
+local eth      = require("linux.eth")
 
 local insert = table.insert
 
@@ -25,6 +27,8 @@ local TTL      <const> = 64
 local RCVBUF   <const> = 32768
 local LOOPBACK <const> = "127.0.0.1"
 local DISCARD  <const> = 9
+local PROTO    <const> = eth["802_EX1"]
+local ABSENT   <const> = 0x7FFFFFFF -- the largest interface index the binding takes, which no device holds
 
 local function report(what)
 	print(PREFIX .. what)
@@ -113,6 +117,7 @@ local function cb()
 		report("route bind " .. bind(nl.proto.ROUTE))
 		local packet = close(sk.af.PACKET, sk.sock.RAW, 0)
 		report("packet close " .. packet)
+		report("raw new " .. verdict(pcall(raw.new, PROTO, ABSENT)))
 		-- a close the loaded luasocket does not refuse waits on a lock, or wedges the host
 		if packet == REFUSAL then
 			report("genl close " .. close(sk.af.NETLINK, sk.sock.RAW, nl.proto.GENERIC))

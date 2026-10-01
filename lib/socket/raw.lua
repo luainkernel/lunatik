@@ -25,7 +25,9 @@ local raw = {}
 -- @param proto (number) EtherType (defaults to ETH_P_ALL).
 -- @param ifindex (number) [optional] Interface index (defaults to listen all interfaces).
 -- @return A new raw packet socket bound for proto and ifindex.
--- @raise Error if socket.new() or socket.bind() fail.
+-- @raise Error if socket.new() or socket.bind() fail; a socket whose bind fails is closed first,
+--   or, from a netdevice callback, which refuses that close, left to the collector, receiving
+--   nothing.
 -- @usage
 --   local rx <close> = raw.new(0x0003)
 --   local tx <close> = raw.new(0x88cc, ifindex)
@@ -35,8 +37,12 @@ local raw = {}
 function raw.new(proto, ifindex)
 	local proto = proto or eth.ALL
 	local ifindex = ifindex or 0
-	local s = socket.new(af.PACKET, sock.RAW, proto)
-	s:bind(proto, ifindex)
+	local s = socket.new(af.PACKET, sock.RAW, 0) -- no frame reaches it until the bind names the ethertype
+	local ok, err = pcall(s.bind, s, proto, ifindex)
+	if not ok then
+		pcall(s.close, s) -- a netdevice callback refuses it: the bind's error is the one to raise
+		error(err, 0)
+	end
 	return s
 end
 

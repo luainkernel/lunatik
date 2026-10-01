@@ -29,7 +29,9 @@
 # refused, or skipped where no group could be joined; that socket closes once
 # the registration returned. An AF_INET6 socket that joined an IPv4 group
 # through SOL_IP is refused the same way, its release ending in inet_release,
-# and skipped where it could not join.
+# and skipped where it could not join. socket.raw's new, whose bind to an
+# interface index no device holds fails there, raises the bind's ENODEV, and
+# leaves to the collector the socket whose close the callback refuses.
 #
 # A tree without the refusal of the request wedges the host rather than failing
 # the test: the handler waits on the RTNL its own task holds. So this test runs
@@ -65,7 +67,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 12
+ktap_plan 13
 
 for module in luasocket luanotifier; do
 	cat /sys/module/$module/refcnt > /dev/null 2>&1 || {
@@ -116,6 +118,9 @@ ktap_pass "a close, a <close> scope, and both on one socket, of a UDP socket wit
 [ "$(reported "packet close $REFUSAL")" = 1 ] || fail "closing an AF_PACKET socket from a netdevice callback was not refused"
 [ "$(reported "genl close $REFUSAL")" = 1 ] || fail "closing a NETLINK_GENERIC socket from a netdevice callback was not refused"
 ktap_pass "a close of an AF_PACKET or a NETLINK_GENERIC socket from a netdevice callback is refused"
+
+[ "$(reported "raw new ENODEV")" = 1 ] || fail "socket.raw's new whose bind failed from a netdevice callback did not raise the bind's error"
+ktap_pass "socket.raw's new whose bind fails from a netdevice callback raises the bind's error"
 
 [ "$(reported "genl bind $REFUSAL")" = 1 ] || fail "binding a NETLINK_GENERIC socket to a group from a netdevice callback was not refused"
 [ "$(reported "route bind accepted")" = 1 ] || fail "binding a NETLINK_ROUTE socket to a group from a netdevice callback was refused"
