@@ -13,7 +13,7 @@ local crypto     = require("crypto")
 local task       = require("task")
 local rcu        = require("rcu")
 local fsnotify   = require("fsnotify")
-local test       = require("util").test
+local test       = require("tests.lib").test
 
 local SCRIPT <const> = "tests/runtime/resume_shared_recv"
 local BODY   <const> = "tests/runtime/my_body"

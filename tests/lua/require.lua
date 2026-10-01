@@ -6,7 +6,7 @@
 --
 
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local SCRIPT <const> = "tests/lua/require_armed"
 

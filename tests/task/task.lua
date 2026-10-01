@@ -9,7 +9,7 @@
 
 local task = require("task")
 local cpu  = require("cpu")
-local test = require("util").test
+local test = require("tests.lib").test
 
 test("task.current() returns a task object", function()
 	local t = task.current()

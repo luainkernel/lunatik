@@ -7,7 +7,7 @@
 
 local linux = require("linux")
 local lunatik = require("lunatik")
-local test = require("util").test
+local test = require("tests.lib").test
 
 local UNNAMEABLE <const> = "lunatik no such symbol" -- a space, which no compiler emits into a symbol
 local ABSENT     <const> = "lunatik_no_such_symbol_926"

@@ -4,7 +4,7 @@
 --
 
 local set = require("set")
-local test = require("util").test
+local test = require("tests.lib").test
 
 test("set.new sorts unsorted input", function()
 	local s = set.new({"delta", "alpha", "charlie", "bravo"})

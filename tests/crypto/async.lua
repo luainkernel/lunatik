@@ -5,7 +5,7 @@
 -- Kernel-side script for the crypto async test (see async.sh).
 
 local crypto = require("crypto")
-local test   = require("util").test
+local test   = require("tests.lib").test
 
 local SKCIPHER <const> = "cryptd(ecb-cipher_null)"
 local AEAD     <const> = "cryptd(authenc(digest_null-generic,ecb-cipher_null))"

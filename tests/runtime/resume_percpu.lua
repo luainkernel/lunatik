@@ -7,7 +7,7 @@
 local lunatik = require("lunatik")
 local cpu     = require("cpu")
 local rcu     = require("rcu")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local SCRIPT <const> = "tests/runtime/resume_percpu_recv"
 local FAILING <const> = "tests/runtime/resume_percpu_fail"

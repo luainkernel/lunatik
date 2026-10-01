@@ -5,7 +5,7 @@
 -- Kernel-side script for the hid id_table test (see run.sh).
 
 local hid  = require("hid")
-local test = require("util").test
+local test = require("tests.lib").test
 local insert = table.insert
 local format = string.format
 

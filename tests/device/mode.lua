@@ -6,7 +6,7 @@
 
 local device = require("device")
 local stat   = require("linux.stat")
-local test   = require("util").test
+local test   = require("tests.lib").test
 local format = string.format
 
 local refused  = {name = "lunatik_mode_refused"}

@@ -5,7 +5,7 @@
 -- Kernel-side script for the rcu.table bounds test (see run.sh).
 
 local rcu  = require("rcu")
-local test = require("util").test
+local test = require("tests.lib").test
 
 local MAXSIZE <const> = 1 << 60 -- LUARCU_MAXSIZE, past which sizing the table wraps on a 64-bit kernel
 local UNSERVED <const> = 1 << 58 -- sizeable, and past what any allocator serves

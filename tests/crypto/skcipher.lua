@@ -5,7 +5,7 @@
 
 local skcipher = require("crypto").skcipher
 local util = require("util")
-local test = util.test
+local test = require("tests.lib").test
 local hex2bin = util.hex2bin
 
 test("SKCIPHER AES-128-CBC encrypt", function()

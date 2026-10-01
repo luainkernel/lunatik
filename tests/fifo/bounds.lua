@@ -5,7 +5,7 @@
 -- Kernel-side script for the fifo bounds test (see run.sh).
 
 local fifo = require("fifo")
-local test = require("util").test
+local test = require("tests.lib").test
 
 local CAPACITY <const> = 16
 local MESSAGE  <const> = "hello"

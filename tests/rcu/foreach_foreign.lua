@@ -6,7 +6,7 @@
 
 local rcu  = require("rcu")
 local data = require("data")
-local test = require("util").test
+local test = require("tests.lib").test
 
 test("rcu.foreach refuses an object of another class", function()
 	local ok, err = pcall(rcu.foreach, data.new(8), function() end)

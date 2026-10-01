@@ -5,7 +5,7 @@
 -- Kernel-side script for the lua/loadfile test (see run.sh).
 --
 
-local test = require("util").test
+local test = require("tests.lib").test
 
 local PARENT <const> = "/lib/modules/"
 local DIRECTORY <const> = "lua"

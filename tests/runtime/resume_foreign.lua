@@ -6,7 +6,7 @@
 
 local lunatik = require("lunatik")
 local data    = require("data")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local SCRIPT <const> = "tests/runtime/resume_shared_recv"
 

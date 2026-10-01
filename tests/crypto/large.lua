@@ -5,10 +5,9 @@
 -- Kernel-side script for the crypto large test (see large.sh).
 
 local crypto = require("crypto")
-local util = require("util")
+local test = require("tests.lib").test
 local sizes = require("tests.crypto.large_sizes")
 
-local test = util.test
 local concat, insert = table.concat, table.insert
 local char, rep, sub = string.char, string.rep, string.sub
 

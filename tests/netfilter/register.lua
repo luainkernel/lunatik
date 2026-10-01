@@ -6,7 +6,7 @@
 
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
-local test      = require("util").test
+local test      = require("tests.lib").test
 local format    = string.format
 
 local notnumbers = {"x", "16", true}

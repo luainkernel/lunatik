@@ -6,7 +6,7 @@
 
 local lru_hash = require("bpf").lru_hash
 local bpf = require("linux.bpf")
-local test = require("util").test
+local test = require("tests.lib").test
 
 local path = "/sys/fs/bpf/test_map_lru"
 

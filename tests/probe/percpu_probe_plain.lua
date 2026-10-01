@@ -6,7 +6,7 @@
 
 local probe  = require("probe")
 local systab = require("syscall.table")
-local test   = require("util").test
+local test   = require("tests.lib").test
 
 local UNKNOWN <const> = "lunatik_no_such_symbol"
 

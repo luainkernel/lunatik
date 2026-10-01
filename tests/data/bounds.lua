@@ -5,7 +5,7 @@
 -- Kernel-side script for the data bounds test (see run.sh).
 
 local data = require("data")
-local test = require("util").test
+local test = require("tests.lib").test
 
 local PAGE    <const> = 4096
 local MAXSIZE <const> = 0x7fffffff -- INT_MAX, the largest size data.new and data:resize serve

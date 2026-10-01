@@ -5,7 +5,7 @@
 -- Kernel-side script for the lua/floats test (see run.sh).
 --
 
-local test = require("util").test
+local test = require("tests.lib").test
 
 local floats <const> = {"1.5", "1e3", "0x1p4", ".5", "1."}
 local pow <const> = "return 2 ^ 3"

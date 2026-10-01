@@ -5,7 +5,7 @@
 -- Kernel-side script for the newobject_oom test (see newobject_oom.sh).
 
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local SCRIPT <const> = "tests/rcu/newobject_oom_atomic"
 

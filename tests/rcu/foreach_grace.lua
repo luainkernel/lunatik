@@ -8,7 +8,7 @@
 local rcu   = require("rcu")
 local data  = require("data")
 local linux = require("linux")
-local test  = require("util").test
+local test  = require("tests.lib").test
 
 local keys = {"a", "b", "c"}
 local NAP_MS <const> = 100

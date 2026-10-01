@@ -7,7 +7,7 @@
 local map = require("bpf.map")
 local struct = require("struct")
 local bpf = require("linux.bpf")
-local test = require("util").test
+local test = require("tests.lib").test
 local pinned = require("tests.bpf.pinned")
 
 local tbl_path   = "/sys/fs/bpf/test_map_tbl"

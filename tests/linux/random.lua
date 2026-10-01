@@ -6,7 +6,7 @@
 --
 
 local linux = require("linux")
-local test = require("util").test
+local test = require("tests.lib").test
 
 test("linux.random(m, n) stays within [m, n]", function()
 	for i = 1, 10000 do

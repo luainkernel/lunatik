@@ -7,7 +7,7 @@
 
 local netdev = require("linux.netdev")
 local vt     = require("linux.vt")
-local test   = require("util").test
+local test   = require("tests.lib").test
 
 -- enum netdev_cmd
 local netdevs = {
