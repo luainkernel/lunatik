@@ -179,7 +179,8 @@
  its class. Errors are raised as errno names: &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;EINVAL&rdquo; for a
  wrong IV, key or state length or a block cipher input that is not a multiple of <code>blocksize()</code>,
  &ldquo;EBADMSG&rdquo; for an AEAD tag mismatch, &ldquo;ENOMEM&rdquo; when the kernel cannot allocate the transform, and
- &ldquo;not enough memory&rdquo; when the binding cannot allocate its own state or output.
+ &ldquo;not enough memory&rdquo; when the binding cannot allocate its own state, its output or the copy of its
+ input.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -380,7 +381,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:07</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:23</span>
 </div>
 </footer>
 </body>

@@ -266,7 +266,8 @@
     </ol>
 
     <h3>Raises</h3>
-    on decryption failure or incorrect IV length
+    on decryption failure or incorrect IV length, &ldquo;not enough memory&rdquo; when one kmalloc block
+   cannot be allocated for the data, always past <code>KMALLOC_MAX_SIZE</code>
 
 
 
@@ -296,7 +297,8 @@
     </ol>
 
     <h3>Raises</h3>
-    on encryption failure or incorrect IV length
+    on encryption failure or incorrect IV length, &ldquo;not enough memory&rdquo; when one kmalloc block
+   cannot be allocated for the data, always past <code>KMALLOC_MAX_SIZE</code>
 
 
 
@@ -352,7 +354,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:07</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:23</span>
 </div>
 </footer>
 </body>
