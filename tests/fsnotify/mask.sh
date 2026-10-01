@@ -17,6 +17,12 @@
 # kernel clears a mark's ignore mask on every FS_MODIFY unless the mark asks
 # to keep it, and only the read that follows the write tells the two apart.
 #
+# watch:mark, mark:mask and mark:ignore each refuse a mask that is negative or
+# past 32 bits with "out of bounds", and a refused mask leaves the mark's as it
+# was; the one past 32 bits carries an event in its low bits, which a truncating
+# build takes without an error. Both masks read back 0 once set to it, and the
+# ignore mask all 32 bits set.
+#
 # Usage: sudo bash tests/fsnotify/mask.sh
 
 SCRIPT="tests/fsnotify/mask"
@@ -57,9 +63,9 @@ reopened=$(dmesg_since)
 lunatik stop "$SCRIPT" 2>/dev/null
 
 checks=$(echo "$opened" | grep -cF "fsnotify mask test pass:")
-[ "$checks" -eq 4 ] || \
+[ "$checks" -eq 15 ] || \
 	fail "the mask accessors: $(echo "$opened" | grep -F 'fsnotify mask test' | tr '\n' ';')"
-ktap_pass "mask and ignore read back what they were set to"
+ktap_pass "mask and ignore read back what they were set to, and refuse a mask past 32 bits"
 
 echo "$opened" | grep -qF "mask test: $SCRATCH/widened" && \
 	fail "an event removed from a live mark still arrived"

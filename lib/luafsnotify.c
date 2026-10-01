@@ -275,7 +275,7 @@ static unsigned int luafsnotify_checkkind(lua_State *L, int ix)
 
 static inline __u32 luafsnotify_checkmask(lua_State *L, int ix)
 {
-	__u32 mask = (__u32)luaL_checkinteger(L, ix);
+	__u32 mask = (__u32)lunatik_checkinteger(L, ix, 0, U32_MAX);
 
 	/* from 6.8 the permission hooks compile out without the config */
 	luaL_argcheck(L, IS_ENABLED(CONFIG_FANOTIFY_ACCESS_PERMISSIONS) || !(mask & ALL_FSNOTIFY_PERM_EVENTS),
@@ -338,7 +338,8 @@ static luafsnotify_mark_t *luafsnotify_attachmark(lua_State *L, luafsnotify_t *w
 *   callback and the directory cache alone cannot answer it, if `kind` is not
 *   one this kernel offers, if this watch already marks the object, if the
 *   watch has been stopped, or if `mask` carries a permission event on a kernel
-*   built without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`
+*   built without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`; "out of bounds" if
+*   `mask` is negative or past 32 bits
 * @usage local mark = watch:mark("/tmp/scratch", fs.OPEN | fs.MODIFY, "mount")
 */
 static int luafsnotify_mark(lua_State *L)
@@ -429,8 +430,9 @@ static int luafsnotify_stop(lua_State *L)
 * @function mask
 * @tparam[opt] integer mask the new event mask, a combination of `linux.fsnotify` bits
 * @treturn integer the mark's event mask
-* @raise if the mark has been removed, if `mask` carries a permission event on
-*   a kernel built without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`, or if the mark
+* @raise if the mark has been removed, "out of bounds" if `mask` is negative or
+*   past 32 bits, if `mask` carries a permission event on a kernel built
+*   without `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`, or if the mark
 *   cannot be added again, because the path no longer resolves, `EAGAIN` when a
 *   callback resolving it finds the directory cache alone cannot answer it, or
 *   the kernel refuses it, which leaves the mark removed
@@ -465,7 +467,8 @@ static int luafsnotify_mask(lua_State *L)
 * @function ignore
 * @tparam[opt] integer mask the events to ignore, a combination of `linux.fsnotify` bits
 * @treturn integer the mark's ignore mask
-* @raise if the mark has been removed
+* @raise if the mark has been removed, or "out of bounds" if `mask` is negative
+*   or past 32 bits
 * @usage mark:ignore(fs.OPEN)
 */
 static int luafsnotify_ignore(lua_State *L)
@@ -473,7 +476,7 @@ static int luafsnotify_ignore(lua_State *L)
 	luafsnotify_mark_t *mark = luafsnotify_checkmark(L, 1);
 
 	if (!lua_isnoneornil(L, 2))
-		mark->mark.ignore_mask = (__u32)luaL_checkinteger(L, 2);
+		mark->mark.ignore_mask = (__u32)lunatik_checkinteger(L, 2, 0, U32_MAX);
 
 	lua_pushinteger(L, (lua_Integer)mark->mark.ignore_mask);
 	return 1;
