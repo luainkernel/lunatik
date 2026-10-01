@@ -66,7 +66,14 @@ modules. Before that refusal existed, a notifier build pinned on the shared host
 through seven minutes of other sessions' reloads, their suites ran against its core, and a test
 written for its successor ran against it and hung the host on RTNL. A kernel thread outliving its
 runtime is one way to pin a module, and nothing short of a reboot gets it back, so a test that
-spawns one gives its body work that ends rather than a loop waiting to be stopped.
+spawns one gives its body work that ends rather than a loop waiting to be stopped. A reference an
+object leaks is another: #1462's first batch of examples left luarcu and lunatik with references no
+state held, and the cycles that kept running on the host took them from 2 and 9 to 25 and 33 while
+every other session's reload failed on its symbols. `tools/lunatik-host` refuses a cycle on a host
+pinned that way, reading through `tools/checks/pinned.sh` the references a module keeps past its
+holders once `lunatik_run` is gone, and names the cycle that leaves the host so; the state is
+captured for the maintainer, whose reboot clears it, and `LUNATIK_PINNED_OK=1` runs a recovery that
+knows what it holds.
 
 After a kernel upgrade the installed modules were built for the previous kernel and fail to load with
 `Exec format error` (a vermagic mismatch). Reinstall the headers, `make clean && make`, and reinstall
