@@ -14,23 +14,24 @@ local lunatik   = require("lunatik")
 
 local triggered = false
 
+local function refuses(key, what, object)
+	local ok, err = pcall(function() lunatik._ENV[key] = object end)
+	if ok then
+		lunatik._ENV[key] = nil -- not left behind: a shared view would hold its module past the test
+	end
+	assert(not ok and err:find("cannot share SINGLE object"),
+		"expected SINGLE rejection for " .. what .. ": " .. tostring(err))
+end
+
 local function hook(skb)
 	if triggered then
 		return action.ACCEPT
 	end
 	triggered = true
 
-	local ok, err = pcall(function()
-		lunatik._ENV["opt_skb_single"] = skb
-	end)
-	assert(not ok and err:find("cannot share SINGLE object"),
-		"expected SINGLE rejection for skb: " .. tostring(err))
-
-	local ok2, err2 = pcall(function()
-		lunatik._ENV["opt_data_single"] = skb:data()
-	end)
-	assert(not ok2 and err2:find("cannot share SINGLE object"),
-		"expected SINGLE rejection for skb:data(): " .. tostring(err2))
+	refuses("opt_skb_single", "skb", skb)
+	refuses("opt_data_single", "skb:data()", skb:data())
+	refuses("opt_copy_single", "skb:copy():data()", skb:copy():data())
 
 	return action.ACCEPT
 end

@@ -1039,9 +1039,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **opt_guards**: `lunatik_opt_t` guards reject `SINGLE` objects in
   `resume()` / `_ENV[key] = obj` and accept `MONITOR`/`NONE`.
 
-- **opt_skb_single**: `skb` and `skb:data()` are `SINGLE`, cannot be
-  stored in `_ENV`; exercised through a `LOCAL_OUT` netfilter hook on
-  loopback.
+- **opt_skb_single**: `skb`, `skb:data()` and `skb:copy():data()` are
+  `SINGLE`, cannot be stored in `_ENV`; exercised through a `LOCAL_OUT`
+  netfilter hook on loopback.
 
 - **require_cloneobject**: an object resumed into a runtime that never
   called `require()` for its module arrives with its class metatables,
@@ -1225,10 +1225,15 @@ command and a pid, and what a valid call does.
   packet, which has no MAC header yet, `skb:data("mac")` raises "MAC header not
   set". The outer packet has its MAC header at the inner IPv4 header: `#skb:data()`
   equals `#skb` and `#skb:data("mac")` is shorter by the outer header, both views
-  ending at the tail; trimmed below the outer header with `skb:resize`, it makes
-  `skb:data("mac")` raise "MAC header past the tail". The hook never reads a "mac"
-  view, so a build without the refusals fails without an out-of-bounds access. The
-  tunnel runs over loopback; skips without `ipip`.
+  ending at the tail. Taken together, the two are two views: the "net" view keeps
+  its length and the outer header's protocol after the "mac" view is taken, on the
+  packet and on a copy of it. Trimmed below the outer header with `skb:resize`, the
+  packet makes `skb:data("mac")` raise "MAC header past the tail". A second ping's
+  first callback finds both views of the outer packet with length 0, and, after a
+  full collection, both views of the copy it dropped, reading their lengths alone,
+  so a build that leaves one set fails without reading the packet it viewed. The
+  hook never reads a "mac" view, so a build without the refusals fails without an
+  out-of-bounds access. The tunnel runs over loopback; skips without `ipip`.
 
 - **copy**: a veth pair joins the initial namespace to one of the test's own, the
   initial end aggregating UDP with fraglist GRO and the other segmenting UDP in
@@ -1241,16 +1246,20 @@ command and a pid, and what a valid call does.
   another type, which GRO passes as it came, and its copy has the length of the
   original too. Skips without veth, `socat` or `ethtool`, or on a veth without
   fraglist GRO.
-- **copy_view**: a data view of an skb copy keeps the copy alive. A `LOCAL_OUT`
-  netfilter hook takes one step per marked ping, each ending in a full
-  collection, and a kprobe on `luaskb_release` counts the skb objects freed: a
-  copy dropped with no view goes at once, which shows the kprobe counts it; a
-  copy kept while its view is dropped stays, and so does that copy when it is
-  dropped while two new views of it are kept; each view then reads the bytes the
-  copy held, and the copy goes when the last of them is dropped; a copy whose
-  view is kept goes when the runtime stops. A build whose view holds no
-  reference fails at the step that drops the copy and sends no further ping, so
-  no view of a freed copy is read.
+- **copy_view**: a data view of an skb copy is valid while the copy lives, and is
+  cleared when the copy goes. A `LOCAL_OUT` netfilter hook takes one step per
+  marked ping, with a full collection after what a step drops, and kprobes on
+  `luaskb_release` and `luadata_release` count the skb objects and the data
+  objects freed: a copy dropped with no view goes at once, which shows the kprobe
+  counts it; a copy kept while its view is dropped stays, and a view taken again
+  reads its bytes; trimmed, the copy returns on a second `data()` call the object
+  the first returned, which ends at the new tail; dropped while its view is kept,
+  the copy goes, the view then has length 0 and raises "out of bounds", and goes
+  once it is dropped too; a copy kept with its view goes when the runtime stops,
+  with its view and the hook's own skb and views. A build whose view keeps the
+  copy alive, or whose copy leaves its view set, fails at the step that drops the
+  copy, on the view's length, so no view of a freed copy is read; one whose skb
+  keeps a dropped view registered fails there on the data count.
 
 ### socket
 
@@ -1395,7 +1404,11 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc reattach**: the script attaches one callback and then a second in the
   same runtime; the ping passes because only the last callback runs, exercising
-  the re-attach path.
+  the re-attach path. The same script first runs without a program, with a kprobe
+  on `luadata_release` counting the data objects freed: its body collects twice
+  after the second attach, and the context the re-attach replaced frees its skb's
+  two views and its argument, three objects; a build whose skb leaves its views
+  registered frees one. That case skips where the kprobe cannot be placed.
 
 - **tc detach**: the callback drops the first ping and calls `tc.detach()`
   from inside the callback, letting other traffic through; traffic resumes
