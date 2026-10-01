@@ -48,7 +48,8 @@ Describes a Lunatik object class.
     `stop`, are left unwrapped: a close takes the lock itself, through `lunatik_closeprivate`, and
     would wait on the one the wrapper holds. The wrapper waits for the lock with
     `lunatik_lockkillable`: the stop of a kernel thread, or a fatal signal to any other task, ends
-    the wait and the call raises `EINTR`.
+    the wait and the call raises `EINTR`. While the method runs, the calling runtime allocates with
+    the object's `gfp`.
   - `LUNATIK_OPT_SINGLE` *(constraint)*: all instances are private and non-shareable by default.
     Like `SOFTIRQ`, this is always inherited and cannot be overridden per instance.
   - `LUNATIK_OPT_EXTERNAL` *(constraint)*: `object->private` holds an external pointer — Lunatik
@@ -1194,9 +1195,9 @@ A script then runs `local foo = require("foo")` and `foo.new():inc()`.
 void *lunatik_malloc(lua_State *L, size_t size);
 ```
 Allocates `size` bytes using the Lua allocator. Returns `NULL` on failure. The allocator asks for
-the runtime's `gfp`, [`lunatik_gfp`](#lunatik_gfp), without an allocation warning: `GFP_ATOMIC`
-in a softirq or hardirq runtime once it is armed, and `GFP_KERNEL` otherwise, where a block
-larger than a page may come from `vmalloc`. Free it with `lunatik_free`, never `kfree`.
+the runtime's `gfp`, [`lunatik_gfp`](#lunatik_gfp), without an allocation warning; with
+`GFP_KERNEL`, a block larger than a page may come from `vmalloc`. Free it with `lunatik_free`,
+never `kfree`.
 
 ### lunatik\_realloc
 ```C
@@ -1231,7 +1232,8 @@ raising when it is `NULL`. `lunatik_enomem` raises the error itself.
 gfp_t lunatik_gfp(lunatik_object_t *object);
 ```
 Returns the `gfp_t` `object` allocates with: `GFP_ATOMIC` for a SOFTIRQ or HARDIRQ object and
-`GFP_KERNEL` otherwise. A runtime's is its allocator's, `GFP_KERNEL` while its script body runs.
+`GFP_KERNEL` otherwise. A runtime's is its allocator's, `GFP_KERNEL` while its script body runs
+and the object's while it calls a monitored method.
 A binding that allocates outside the Lua allocator passes `lunatik_gfp(lunatik_toruntime(L))`.
 Defined as a macro.
 
