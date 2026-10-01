@@ -1830,16 +1830,18 @@ program that calls the kfunc fails to load.</p>
 <h3 id="lunatik_ebpf_run">LUNATIK_EBPF_RUN</h3>
 
 <pre>
-#define LUNATIK_EBPF_RUN(key, key_sz, handler, ctxp)
+#define LUNATIK_EBPF_RUN(key, key_sz, handler, ret, ctxp)
 lunatik_object_t *<span class="function-name">lunatik_ebpf_lookupruntime</span>(<span class="keyword">char</span> *key, size_t key_sz);
 </pre>
 
 
 <p>The kfunc&rsquo;s body: <code>lunatik_ebpf_lookupruntime</code> finds the runtime stored at <code>key</code> in
 <code>lunatik._ENV.runtimes</code>, where <code>lunatik run</code> keeps the runtimes it starts by script name, and
-<code>LUNATIK_EBPF_RUN</code> runs <code>handler(L, ctxp)</code> on it with <a href="#lunatik_run"><code>lunatik_run</code></a>, then drops
-the reference the lookup took. <code>key_sz</code> counts the terminator, which the lookup writes at
-<code>key[key_sz - 1]</code>. A key with no runtime, and a process runtime, which it logs, run nothing. The
+<code>LUNATIK_EBPF_RUN</code> runs <code>handler(L, ctxp)</code> on it with <a href="#lunatik_run"><code>lunatik_run</code></a>, sets <code>ret</code>
+with its result, a negative one, <code>lunatik_run</code>&rsquo;s <code>-ENXIO</code> and <code>-EDEADLK</code> included, as <code>-1</code>, then
+drops the reference the lookup took. <code>key_sz</code> counts the terminator, which the lookup writes at
+<code>key[key_sz - 1]</code>. A key with no runtime, and a process runtime, which it logs, run nothing and
+leave <code>ret</code> as it was. The
 binding keeps the <code>runtimes</code> table the first lookup to find one returns; until then, a lookup made
 while <code>lunatik_run.ko</code> is not loaded runs nothing, which it logs.</p>
 
@@ -1850,7 +1852,8 @@ while <code>lunatik_run.ko</code> is not loaded runs nothing, which it logs.</p>
 <span class="keyword">void</span> <span class="function-name">lunatik_ebpf_unbind</span>(lua_State *L, <span class="keyword">int</span> *cb);
 <span class="keyword">void</span> *<span class="function-name">lunatik_ebpf_findctx</span>(lua_State *L);
 <span class="keyword">void</span> *<span class="function-name">lunatik_ebpf_getctx</span>(lua_State *L);
-<span class="keyword">int</span> <span class="function-name">lunatik_ebpf_invoke</span>(lua_State *L, <span class="keyword">int</span> cb);
+<span class="keyword">int</span> <span class="function-name">lunatik_ebpf_invoke</span>(lua_State *L, <span class="keyword">int</span> cb, <span class="keyword">int</span> nresults);
+<span class="keyword">int</span> <span class="function-name">lunatik_ebpf_action</span>(lua_State *L, <span class="keyword">int</span> cb, lua_Integer min, lua_Integer max);
 </pre>
 
 
@@ -1860,7 +1863,10 @@ callback at <code>ix</code> in <code>cb</code>, stores the userdata and pops it.
 userdata and returns its private, or pops and returns <code>NULL</code> when the runtime has none;
 <code>lunatik_ebpf_getctx</code> also logs <code>no callback attached</code> then. <code>lunatik_ebpf_invoke</code> calls the
 callback <code>cb</code> with the value on top of the stack, the userdata <code>findctx</code> pushed, in a protected
-call, and returns <code>-1</code> after logging the error, <code>0</code> otherwise. <code>lunatik_ebpf_unbind</code> releases
+call, and returns <code>-1</code> after logging the error, <code>0</code> otherwise, with its <code>nresults</code> results on the
+stack. <code>lunatik_ebpf_action</code> invokes it for one result and returns that result when it is an
+integer from <code>min</code> to <code>max</code>, and <code>-1</code> when the callback raised or returned nil, or, logging
+<code>invalid action</code>, anything else. <code>lunatik_ebpf_unbind</code> releases
 <code>cb</code>, clears the stored userdata, and pops the one <code>findctx</code> pushed.</p>
 
 <h3 id="lunatik_ebpf_attach">lunatik_ebpf_attach</h3>
@@ -1931,7 +1937,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:39</span>
 </div>
 </footer>
 </body>

@@ -175,14 +175,52 @@
 <h1>linux.tc<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.tc.html#">linux.tc</a>.</p>
  Values are populated at build time from the kernel headers.
- TC verdicts and flags.
- Mirrors <code>TC_*</code> defines in <code>&lt;uapi/linux/pkt_cls.h&gt;</code>.
- Keys are the kernel names with the prefix stripped: <code>TC_&lt;NAME&gt;</code> is <code>linux.tc.&lt;NAME&gt;</code>.
     <h2 id="usage">Usage</h2>
         <pre class="example">local tc = require(&quot;linux.tc&quot;)
 </pre>
 
+<h2 id="Tables">Tables</h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#action">action</a></td>
+	<td class="summary">TC verdicts, what a <a href="../modules/tc.html#">tc</a> callback returns.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#h">h</a></td>
+	<td class="summary">TC handles.</td>
+	</tr>
+</table></div>
 
+    <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
+
+    <dl class="function">
+    <dt id="action"><a name="action"></a><strong>action</strong></dt>
+    <dd>
+    TC verdicts, what a <a href="../modules/tc.html#">tc</a> callback returns.
+ Mirrors <code>TC_ACT_*</code> defines in <code>&lt;uapi/linux/pkt_cls.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>TC_ACT_&lt;NAME&gt;</code> is <code>linux.tc.action.&lt;NAME&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt id="h"><a name="h"></a><strong>h</strong></dt>
+    <dd>
+    TC handles.
+ Mirrors <code>TC_H_*</code> defines in <code>&lt;uapi/linux/pkt_sched.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>TC_H_&lt;NAME&gt;</code> is <code>linux.tc.h.&lt;NAME&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+</dl>
 
 
 </main>
@@ -196,7 +234,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:39</span>
 </div>
 </footer>
 </body>

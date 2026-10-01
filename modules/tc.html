@@ -193,10 +193,6 @@
 <h2 id="Class_tc_ctx">Class tc_ctx </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#tc_ctx:action">tc_ctx:action (action)</a></td>
-	<td class="summary">Sets the TC verdict action for this packet.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#tc_ctx:argument">tc_ctx:argument ()</a></td>
 	<td class="summary">Returns the argument data buffer passed from eBPF.</td>
 	</tr>
@@ -225,24 +221,6 @@
  once the callback returns.
           </div>
     <dl class="function">
-    <dt id="tc_ctx:action"><a name="tc_ctx:action"></a><strong>tc_ctx:action (action)</strong></dt>
-    <dd>
-    Sets the TC verdict action for this packet.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">action</span>
-            <span class="types"><span class="type">integer</span></span>
-         TC action constant (e.g. <code>TC_ACT_OK</code>, <code>TC_ACT_SHOT</code>, &hellip;)
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
     <dt id="tc_ctx:argument"><a name="tc_ctx:argument"></a><strong>tc_ctx:argument ()</strong></dt>
     <dd>
     Returns the argument data buffer passed from eBPF.
@@ -315,11 +293,12 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
             <span class="types"><span class="type">function</span></span>
          Lua function to call. It receives one argument:</p>
 
-<p>   <code>ctx</code>: A <a href="../modules/tc.html#tc_ctx">tc_ctx</a> context object used to inspect the packet
-   and control the TC verdict via <a href="../modules/tc.html#tc_ctx:action">tc_ctx:action</a>.</p>
+<p>   <code>ctx</code>: A <a href="../modules/tc.html#tc_ctx">tc_ctx</a> context object used to inspect the packet.</p>
 
-<p>   The callback need not return a value. If it sets no action, <code>bpf_luatc_run</code>
-   returns <code>-1</code> and the verdict is left to the eBPF program.
+<p>   It returns the verdict, a value of <a href="../modules/linux.tc.html#action">linux.tc.action</a>, which <code>bpf_luatc_run</code>
+   returns to the eBPF program. When it returns nothing or nil, or raises,
+   <code>bpf_luatc_run</code> returns <code>-1</code> and the verdict is left to the eBPF program; a value
+   that is not a TC action is logged as <code>invalid action</code> and answered the same way.
         </li>
     </ul>
 
@@ -343,13 +322,12 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
     <h3>Usage</h3>
         <pre class="example"><span class="comment">-- Lua script my_tc_handler.lua, run with <code>lunatik run -c softirq my_tc_handler</code>
 </span><span class="keyword">local</span> tc = <span class="global">require</span>(<span class="string">"tc"</span>)
-<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.tc"</span>)
+<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.tc"</span>).action
 
 <span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">my_traffic_shaper</span>(ctx)
   <span class="keyword">local</span> skb = ctx:<span class="function-name">skb</span>()
   <span class="global">print</span>(<span class="string">"Packet received, size:"</span>, #skb)
-  ctx:<span class="function-name">action</span>(action.ACT_OK)
-  <span class="keyword">return</span>
+  <span class="keyword">return</span> action.OK
 <span class="keyword">end</span>
 tc.<span class="function-name">attach</span>(my_traffic_shaper)
 
@@ -393,7 +371,7 @@ tc.<span class="function-name">attach</span>(my_traffic_shaper)
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:39</span>
 </div>
 </footer>
 </body>

@@ -175,14 +175,38 @@
 <h1>linux.bpf<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.bpf.html#">linux.bpf</a>.</p>
  Values are populated at build time from the kernel headers.
- BPF map types and update flags.
+ BPF map update flags.
  Mirrors <code>BPF_*</code> defines in <code>&lt;uapi/linux/bpf.h&gt;</code>.
  Keys are the kernel names with the prefix stripped: <code>BPF_&lt;NAME&gt;</code> is <code>linux.bpf.&lt;NAME&gt;</code>.
     <h2 id="usage">Usage</h2>
         <pre class="example">local bpf = require(&quot;linux.bpf&quot;)
 </pre>
 
+<h2 id="Tables">Tables</h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#map_type">map_type</a></td>
+	<td class="summary">BPF map types.</td>
+	</tr>
+</table></div>
 
+    <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
+
+    <dl class="function">
+    <dt id="map_type"><a name="map_type"></a><strong>map_type</strong></dt>
+    <dd>
+    BPF map types.
+ Mirrors <code>BPF_MAP_TYPE_*</code> defines in <code>&lt;uapi/linux/bpf.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>BPF_MAP_TYPE_&lt;NAME&gt;</code> is <code>linux.bpf.map_type.&lt;NAME&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+</dl>
 
 
 </main>
@@ -196,7 +220,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:39</span>
 </div>
 </footer>
 </body>

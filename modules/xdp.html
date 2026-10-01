@@ -192,10 +192,6 @@
 <h2 id="Class_xdp_ctx">Class xdp_ctx </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#xdp_ctx:action">xdp_ctx:action (action)</a></td>
-	<td class="summary">Sets the XDP verdict action for this packet.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#xdp_ctx:argument">xdp_ctx:argument ()</a></td>
 	<td class="summary">Returns the argument data buffer passed from eBPF.</td>
 	</tr>
@@ -224,24 +220,6 @@
  once the callback returns.
           </div>
     <dl class="function">
-    <dt id="xdp_ctx:action"><a name="xdp_ctx:action"></a><strong>xdp_ctx:action (action)</strong></dt>
-    <dd>
-    Sets the XDP verdict action for this packet.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">action</span>
-            <span class="types"><span class="type">integer</span></span>
-         XDP action constant (e.g. <code>XDP_PASS</code>, <code>XDP_DROP</code>, &hellip;)
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
     <dt id="xdp_ctx:argument"><a name="xdp_ctx:argument"></a><strong>xdp_ctx:argument ()</strong></dt>
     <dd>
     Returns the argument data buffer passed from eBPF.
@@ -308,11 +286,12 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
             <span class="types"><span class="type">function</span></span>
          Lua function to call. It receives one argument:</p>
 
-<p>   <code>ctx</code>: An <a href="../modules/xdp.html#xdp_ctx">xdp_ctx</a> context object used to inspect the packet
-   and control the XDP verdict via <a href="../modules/xdp.html#xdp_ctx:action">xdp_ctx:action</a>.</p>
+<p>   <code>ctx</code>: An <a href="../modules/xdp.html#xdp_ctx">xdp_ctx</a> context object used to inspect the packet.</p>
 
-<p>   The callback need not return a value. If it sets no action, <code>bpf_luaxdp_run</code>
-   returns <code>-1</code> and the verdict is left to the eBPF program.
+<p>   It returns the verdict, a value of <a href="../modules/linux.xdp.html#action">linux.xdp.action</a>, which <code>bpf_luaxdp_run</code>
+   returns to the eBPF program. When it returns nothing or nil, or raises,
+   <code>bpf_luaxdp_run</code> returns <code>-1</code> and the verdict is left to the eBPF program; a value
+   that is not an XDP action is logged as <code>invalid action</code> and answered the same way.
         </li>
     </ul>
 
@@ -335,12 +314,12 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
     <h3>Usage</h3>
         <pre class="example"><span class="comment">-- Lua script my_xdp_handler.lua, run with <code>lunatik run -c softirq my_xdp_handler</code>
 </span><span class="keyword">local</span> xdp = <span class="global">require</span>(<span class="string">"xdp"</span>)
-<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>)
+<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
 
 <span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">my_packet_processor</span>(ctx)
   <span class="keyword">local</span> pkt = ctx:<span class="function-name">packet</span>()
   <span class="global">print</span>(<span class="string">"Packet received, size:"</span>, #pkt)
-  ctx:<span class="function-name">action</span>(action.PASS)
+  <span class="keyword">return</span> action.PASS
 <span class="keyword">end</span>
 xdp.<span class="function-name">attach</span>(my_packet_processor)
 
@@ -384,7 +363,7 @@ xdp.<span class="function-name">attach</span>(my_packet_processor)
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:39</span>
 </div>
 </footer>
 </body>

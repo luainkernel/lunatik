@@ -193,14 +193,6 @@
 <h2 id="Class_sched_ctx">Class sched_ctx </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#sched_ctx:dsq">sched_ctx:dsq (dsq)</a></td>
-	<td class="summary">Sets the sched_ext dispatch queue for this task.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#sched_ctx:slice">sched_ctx:slice (slice)</a></td>
-	<td class="summary">Sets the sched_ext slice in nanoseconds for this task.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#sched_ctx:task">sched_ctx:task ()</a></td>
 	<td class="summary">Returns the object for the current task.</td>
 	</tr>
@@ -225,42 +217,6 @@
  once the callback returns.
           </div>
     <dl class="function">
-    <dt id="sched_ctx:dsq"><a name="sched_ctx:dsq"></a><strong>sched_ctx:dsq (dsq)</strong></dt>
-    <dd>
-    Sets the sched_ext dispatch queue for this task.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">dsq</span>
-            <span class="types"><span class="type">integer</span></span>
-         dispatch queue to set for the task
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt id="sched_ctx:slice"><a name="sched_ctx:slice"></a><strong>sched_ctx:slice (slice)</strong></dt>
-    <dd>
-    Sets the sched_ext slice in nanoseconds for this task.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">slice</span>
-            <span class="types"><span class="type">integer</span></span>
-         slice in ns to set for the task
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
     <dt id="sched_ctx:task"><a name="sched_ctx:task"></a><strong>sched_ctx:task ()</strong></dt>
     <dd>
     Returns the object for the current task.
@@ -310,8 +266,8 @@ and then the slice.</li>
 </ul>
 
 
-<p> It returns 0 once <code>cls</code> is filled, whether or not a callback ran, and -1 when <code>cls</code>
- is NULL.
+<p> It returns 0 once the callback decided and <code>cls</code> is filled, and -1, leaving <code>cls</code> as
+ it was, when <code>cls</code> is NULL or no callback decided.
 
 
     <h3>Parameters</h3>
@@ -320,11 +276,13 @@ and then the slice.</li>
             <span class="types"><span class="type">function</span></span>
          Lua function to call. It receives one argument:</p>
 
-<p>   <code>ctx</code>: An <a href="../modules/sched.html#sched_ctx">sched_ctx</a> context object used to inspect the task
-   and control the sched_ext dispatch queue via <a href="../modules/sched.html#sched_ctx:dsq">sched_ctx:dsq</a>.</p>
+<p>   <code>ctx</code>: An <a href="../modules/sched.html#sched_ctx">sched_ctx</a> context object used to inspect the task.</p>
 
-<p>   The callback need not return a value. If it sets no dispatch queue, <code>bpf_luasched_run</code>
-   sets SCX_DSQ_GLOBAL and the verdict is left to the eBPF program.
+<p>   It returns the decision, the dispatch queue and then the slice in nanoseconds,
+   which <code>bpf_luasched_run</code> writes to <code>cls</code>; a nil one takes <code>SCX_DSQ_GLOBAL</code> or
+   <code>SCX_SLICE_DFL</code>. When it returns neither, or raises, <code>bpf_luasched_run</code> returns -1
+   and the decision is left to the eBPF program; a value that is not a number is logged
+   as <code>invalid task class</code> and answered the same way.
         </li>
     </ul>
 
@@ -352,10 +310,8 @@ and then the slice.</li>
 <span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">my_scheduler</span>(ctx)
   <span class="keyword">local</span> task = ctx:<span class="function-name">task</span>()
   <span class="keyword">if</span> task:<span class="function-name">comm</span>() == <span class="string">"bash"</span> <span class="keyword">then</span>
-    ctx:<span class="function-name">dsq</span>(scx.DSQ_LOCAL)
-    ctx:<span class="function-name">slice</span>(scx.SLICE_DFL)
+    <span class="keyword">return</span> scx.DSQ_LOCAL, scx.SLICE_DFL
   <span class="keyword">end</span>
-  <span class="keyword">return</span>
 <span class="keyword">end</span>
 sched.<span class="function-name">attach</span>(my_scheduler)
 
@@ -368,8 +324,7 @@ sched.<span class="function-name">attach</span>(my_scheduler)
     <dd>
     Unregisters the Lua callback function associated with the current Lunatik runtime.
  After calling this, <code>bpf_luasched_run</code> calls targeting this runtime invoke no Lua function:
- they log <code>no callback attached</code>, set SCX_DSQ_GLOBAL and SCX_SLICE_DFL, and leave the verdict
- to the eBPF program.
+ they log <code>no callback attached</code>, return -1 and leave the decision to the eBPF program.
 
 
 
@@ -400,7 +355,7 @@ sched.<span class="function-name">attach</span>(my_scheduler)
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:43:39</span>
 </div>
 </footer>
 </body>
