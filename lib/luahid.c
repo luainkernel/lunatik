@@ -293,8 +293,9 @@ static int luahid_doraw_event(lua_State *L)
 	lunatik_getregistry(L, ctx->hdev); /* hdev */
 	luahid_pushreport(L, ctx->report);
 	lunatik_object_t *data = luahid_pushdata(L, ctx);
-	luahid_op(L, ctx, 3, 0);
+	luahid_op(L, ctx, 3, 1);
 	luadata_clear(data);
+	ctx->ret = lunatik_opterrno(L, -1);
 	return 0;
 }
 
@@ -305,7 +306,7 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 	int ret;
 
 	luahid_run(raw_event, &ctx, hid, hdev, ret);
-	return ret;
+	return ret != 0 ? ret : ctx.ret;
 }
 
 /***
@@ -326,16 +327,17 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   - `report_fixup(driver, hdev, rdesc)`: `rdesc` is a `data` over the report
 *     descriptor, edited in place, of fixed size and valid only during the call.
 *   - `raw_event(driver, hdev, report, raw)`: `raw` is a `data` over the report, edited
-*     in place and valid only during the call. An error makes the HID core drop the
-*     report.
+*     in place and valid only during the call. Returning nothing or zero passes the report
+*     on and a negative errno drops it; an error, or any other return, drops it with
+*     `ECANCELED`.
 *   - `remove(driver, hdev)`: the device left the driver, or the HID core failed its probe
 *     after `probe` returned, so each `probe` that returned gets one `remove`; a device the
 *     driver still holds when its runtime stops gets none.
 *
 *   `hdev` carries `bus`, `group`, `vendor`, `product`, `version` and `name`, and keeps what
 *   the callbacks store in it; `report` carries `id`, `type`, `size`, `application` and
-*   `maxfield`. What `report_fixup`, `raw_event` and `remove` return is ignored, and a
-*   callback's error goes to the kernel log.
+*   `maxfield`. What `report_fixup` and `remove` return is ignored, and a callback's error
+*   goes to the kernel log.
 * @treturn hid_driver
 * @raise "not allowed once the runtime is armed" past the script body; from a percpu runtime; if
 *   required fields are missing, `id_table` is invalid or too long, or driver registration fails;

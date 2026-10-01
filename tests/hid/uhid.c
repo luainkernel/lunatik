@@ -7,7 +7,7 @@
 * Userspace peer for the hid device test (see device.sh): creates a uhid device
 * for each product given, and for each one a driver binds prints the report
 * descriptor the device then has, sends it the reports whose first byte is 0 to
-* 4, the last one <count> times, and prints those its hidraw node received:
+* 6, the last one <count> times, and prints those its hidraw node received:
 * "<product> rdesc <bytes>", "<product> report <bytes>", or "<product> unbound".
 * It then prints "ready" and holds the devices until it is killed.
 *
@@ -30,7 +30,7 @@
 #define BIND_MS		2000
 #define STEP_MS		50
 #define DRAIN_MS	500
-#define NREPORTS	5
+#define NREPORTS	7
 #define MAXDEVS		8
 #define SYSFS_MAX	128	/* /sys/bus/hid/devices/BBBB:VVVV:PPPP.NNNN */
 

@@ -608,8 +608,10 @@ after the watch is stopped.
   device's table and the matching `id_table` entry, and two devices bound at
   once each get one table, the one their `report_fixup`, `raw_event` and
   `remove` receive. `report_fixup` edits the descriptor sysfs then shows; a
-  report `raw_event` returns on reaches hidraw, and one it raises on does not
-  and is logged. A probe that raises fails the bind with `ECANCELED`, logs
+  report `raw_event` answers with nothing or zero reaches hidraw, and one it
+  answers with a negative errno does not, nor one it answers with a positive
+  number, a numeric string or a number below every errno, or raises on, each of
+  which is logged. A probe that raises fails the bind with `ECANCELED`, logs
   and gets no `remove`; one whose descriptor then fails to parse gets it. A
   raw_event raising on a burst of reports logs fewer errors than the burst,
   and a runtime stopped while it holds a device stops and lets the device

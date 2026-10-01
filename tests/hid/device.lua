@@ -15,12 +15,38 @@ local BREAK          <const> = 0x0004 -- the product whose descriptor report_fix
 local USAGE          <const> = 8      -- offset of the collection's usage in the peer's descriptor
 local FIXED_USAGE    <const> = 0x03
 local END_COLLECTION <const> = 0xc0
-local RAISING        <const> = 4      -- the first byte of the report raw_event raises on
+local EPROTO         <const> = 71
+local MAX_ERRNO      <const> = 4095
 local RAISED         <const> = "raised"
 
 local function raises()
 	error(RAISED, 0) -- no position, so the harness tells the case's raise from a failed assertion
 end
+
+local function passes()
+end
+
+local function zero()
+	return 0
+end
+
+local function errno()
+	return -EPROTO
+end
+
+local function positive()
+	return 1
+end
+
+local function numeral()
+	return tostring(-EPROTO)
+end
+
+local function beyond()
+	return -(MAX_ERRNO + 1)
+end
+
+local answers = {[0] = passes, zero, errno, positive, numeral, beyond, raises} -- by the report's first byte
 
 local function fix(rdesc)
 	rdesc:setbyte(USAGE, FIXED_USAGE)
@@ -50,9 +76,7 @@ end
 
 local function raw_event(driver, hdev, report, raw)
 	seen(hdev)
-	if raw:getbyte(0) == RAISING then
-		raises()
-	end
+	return answers[raw:getbyte(0)]()
 end
 
 local function remove(driver, hdev)
