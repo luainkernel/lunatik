@@ -116,12 +116,13 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   client initial secret, key and IV of the QUIC worked example at
   quic.xargs.org; an instance closed twice raises "closed object" from
   `extract`, its HMAC transform released.
-- **comp**: `lz4` compresses to fewer bytes and decompresses back into an
-  exact or a larger buffer; an empty string with a size of 0 is refused as out
-  of bounds, and a buffer one byte short of the output with `EINVAL`; a
-  method called on another class's object is refused naming `crypto.comp`.
-  Skipped where `crypto.comp` is not built: `hascomp` asks the runtime for the
-  binding, instead of the suite reading the kernel version.
+- **comp**: `lz4` names itself through `algname`, compresses to fewer bytes
+  and decompresses back into an exact or a larger buffer; an empty string with
+  a size of 0 is refused as out of bounds, and a buffer one byte short of the
+  output with `EINVAL`; a method called on another class's object is refused
+  naming `crypto.comp`. Skipped where `crypto.comp` is not built: `hascomp`
+  asks the runtime for the binding, instead of the suite reading the kernel
+  version.
 - **context**: an object refused for its execution context leaves nothing
   allocated. `crypto.shash("sha256")` and `crypto.comp("lz4")` from an armed
   softirq runtime are refused naming their class, `crypto.shash` and
