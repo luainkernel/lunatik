@@ -169,7 +169,7 @@ if supported(sk.af.PACKET, sk.sock.RAW, eth.ALL) then
 	say("packet getsockname bound ok")
 	packet:close()
 
-	local receiver = bounded(raw.bind(PROTO, ifindex))
+	local receiver = bounded(raw.new(PROTO, ifindex))
 	local transmitter = socket.new(sk.af.PACKET, sk.sock.DGRAM, 0)
 	transmitter:send(PAYLOAD, PROTO, ifindex)
 	transmitter:close()

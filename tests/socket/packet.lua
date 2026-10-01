@@ -25,7 +25,7 @@ local TIMEOUT_MS <const> = 500
 
 local ifindex = linux.ifindex(IFNAME)
 
-local rx <close> = raw.bind(PROTO, ifindex)
+local rx <close> = raw.new(PROTO, ifindex)
 rx:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
 
 local listening <close> = socket.new(sk.af.PACKET, sk.sock.RAW, PROTO)

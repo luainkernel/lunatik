@@ -12,7 +12,7 @@ local MTU       = 1500
 local s = require("linux.stat")
 local tap = {name = "tap", mode = s.IRUGO}
 
-local socket = raw.bind()
+local socket = raw.new()
 
 function tap:read()
 	local frame = socket:receive(MTU)

@@ -70,7 +70,7 @@ local src_mac = linux.hwaddr(ifindex)
 local lldp_frame = build_lldp_frame(src_mac)
 
 local function worker()
-	local tx <close> = raw.bind(eth.LLDP, ifindex)
+	local tx <close> = raw.new(eth.LLDP, ifindex)
 
 	while (not shouldstop()) do
 		tx:send(lldp_frame)
