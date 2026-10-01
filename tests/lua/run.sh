@@ -24,7 +24,11 @@
 #              the callback are refused require("io") with "'io':
 #              process-context class in interrupt-context runtime"; without
 #              that refusal the body of a module build answers "not found"
-#              and that of a built-in one gets io.
+#              and that of a built-in one gets io. The callback's loadfile
+#              returns the armed refusal and its dofile raises it; both are
+#              called without a name, which the body answers with "cannot
+#              open" and for which a build without the refusal opens no file
+#              either.
 #
 # Usage: sudo bash tests/lua/run.sh
 

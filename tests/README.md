@@ -635,6 +635,9 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   would search `package.path` and `package.searchpath`, since opening a file
   sleeps; the body allows both. The body empties `package.path`, so a build
   without the refusal opens no file from the callback and answers `not found`.
+  The callback's `loadfile` returns the armed refusal and its `dofile` raises
+  it; both are called without a name, which the body answers with `cannot
+  open` and for which a build without the refusal opens no file either.
   The body and the callback are refused `require("io")` with `'io':
   process-context class in interrupt-context runtime`; without that refusal
   the body of a module build answers `not found` and that of a built-in one

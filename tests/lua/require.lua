@@ -13,7 +13,7 @@ local SCRIPT <const> = "tests/lua/require_armed"
 local contexts <const> = {"softirq", "hardirq"}
 
 for _, context in ipairs(contexts) do
-	test("a " .. context .. " callback requires only what the script body loaded", function()
+	test("a " .. context .. " callback loads only what the script body loaded", function()
 		local runtime <close> = lunatik.runtime(SCRIPT, context)
 		runtime:resume()
 	end)
