@@ -65,7 +65,7 @@ local function build_lldp_frame(chassis_id)
 	return table.concat(pdu)
 end
 
-local ifindex = linux.ifindex(config.interface)
+local ifindex = assert(linux.ifindex(config.interface), config.interface .. ": device not found")
 local src_mac = linux.hwaddr(ifindex)
 local lldp_frame = build_lldp_frame(src_mac)
 

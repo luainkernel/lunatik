@@ -20,6 +20,8 @@
 # for INT_MAX and -INT_MAX; it refuses INT_MIN, whose absolute value an int cannot
 # hold, and a number past an int, as out of bounds, where a truncating build names
 # (1 << 32) | ENOENT as ENOENT.
+# ifindex: linux.ifindex resolves lo to its index and linux.hwaddr that index to
+# lo's address, and each answers nil, alone, for a name or an index no device has.
 #
 # Usage: sudo bash tests/linux/run.sh
 
@@ -27,7 +29,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fsnotify notifier lookup constants schedule netns errname"
+TESTS="random fsnotify notifier lookup constants schedule netns errname ifindex"
 TOTAL=$(echo $TESTS | wc -w)
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil
