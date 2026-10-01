@@ -28,12 +28,12 @@ local raw = {}
 -- @return A new raw packet socket bound for proto and ifindex.
 -- @raise Error if socket.new() or socket.bind() fail.
 -- @usage
---   local rx <close> = raw.bind(0x0003)
---   local tx <close> = raw.bind(0x88cc, ifindex)
+--   local rx <close> = raw.new(0x0003)
+--   local tx <close> = raw.new(0x88cc, ifindex)
 --   tx:send(frame, 0x88cc, ifindex)
 -- @see socket.new
 -- @see socket.bind
-function raw.bind(proto, ifindex)
+function raw.new(proto, ifindex)
 	local proto = proto or eth.ALL
 	local ifindex = ifindex or 0
 	local s = socket.new(af.PACKET, sock.RAW, proto)
