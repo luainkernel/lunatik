@@ -32,6 +32,7 @@ TESTS=(
 	spawn_name.sh
 	percpu_netfilter.sh
 	collected.sh
+	closing.sh
 	self_stop.sh
 	errobj.sh
 	killable.sh

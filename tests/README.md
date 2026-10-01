@@ -1164,6 +1164,15 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   creates a runtime and a percpu set of it, keeps neither handle and collects
   leaves it where it was when its body returns.
 
+- **closing**: a finalizer that runs as its runtime closes registers nothing.
+  A sentinel that registers a netfilter hook in a softirq runtime, an fsnotify
+  watch or a kernel thread in a process one as `lunatik stop` closes it gets
+  "not allowed while the runtime closes", and so does the thread when the
+  collector closes its runtime through its last reference. Without the
+  refusal the hook or the watch outlives the runtime into its module's unload,
+  so those cases skip unless the loaded module is the installed one and that
+  file carries the message.
+
 - **self_stop**: a runtime cannot be stopped, resumed, threaded or dispatched
   to from under its own lock. A child resumed with its own handle, and a percpu
   set resumed with its own, call `stop()` and `resume()` on it from the resumed

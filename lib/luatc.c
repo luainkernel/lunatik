@@ -225,7 +225,8 @@ static int luatc_detach(lua_State *L)
 *   The callback need not return a value. If it sets no action, `bpf_luatc_run`
 *   returns `-1` and the verdict is left to the eBPF program.
 * @treturn nil
-* @raise `runtime context mismatch` outside a softirq runtime, or if internal setup fails.
+* @raise `runtime context mismatch` outside a softirq runtime; `not allowed while the runtime
+*   closes` from a finalizer that runs at its close; or if internal setup fails.
 * @usage
 *   -- Lua script my_tc_handler.lua, run with `lunatik run -c softirq my_tc_handler`
 *   local tc = require("tc")

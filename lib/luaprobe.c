@@ -335,7 +335,8 @@ static int luaprobe_new(lua_State *L);
 *   installs a post handler, so a `post` added to it afterwards never fires; a `pre` added
 *   afterwards does
 * @treturn probe
-* @raise `runtime context mismatch` unless the runtime is hardirq; if registration fails; in a
+* @raise `runtime context mismatch` unless the runtime is hardirq; `not allowed while the runtime
+*   closes` from a finalizer that runs at its close; if registration fails; in a
 *   percpu script, if this runtime already registered the same symbol or address, or if another
 *   runtime of the set registered this target with a different post handler; or
 *   `not allowed once the runtime is armed` (its script body has returned):

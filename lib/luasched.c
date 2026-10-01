@@ -235,7 +235,8 @@ static int luasched_detach(lua_State *L)
 *   The callback need not return a value. If it sets no dispatch queue, `bpf_luasched_run`
 *   sets SCX_DSQ_GLOBAL and the verdict is left to the eBPF program.
 * @treturn nil
-* @raise `runtime context mismatch` unless the runtime is hardirq, or on allocation failure.
+* @raise `runtime context mismatch` unless the runtime is hardirq; `not allowed while the runtime
+*   closes` from a finalizer that runs at its close; or on allocation failure.
 * @usage
 *   -- sched/policy.lua, run with `lunatik run -c hardirq sched/policy`
 *   local sched = require("sched")
