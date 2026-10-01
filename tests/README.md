@@ -252,7 +252,8 @@ REPL and the builds `status` and `reload` compare.
   the message on stderr for a chunk that raises or does not load; a piped
   session prints what its lines return and nothing else, no banner and no
   prompt, and a line that raises prints its message on stderr and the session
-  goes on; `-i` after `-e` enters the REPL with what the chunk left.
+  goes on; `-i` after `-e` enters the REPL with what the chunk left; `-e` of an
+  empty chunk exits 0 with nothing on stdout or stderr.
 - **builds**: with the modules loaded from the installed build, `status` exits
   0, names the core loaded and no module as another build; against another
   build, which a `modinfo` first on the `PATH` stands for, `status` names each
@@ -276,7 +277,11 @@ status the CLI exits by.
   script that does not exist exits 1 with its error on stderr and nothing on
   stdout; a run exits 0 with nothing on either; a second run exits 1, already
   running; `list` exits 0 and names a running script, and a stop exits 0 and
-  removes it; the REPL prints a value longer than one read whole.
+  removes it; the REPL prints a value longer than one read whole; a reply
+  without a status, which `/dev/null` bound over `/dev/lunatik` in a mount
+  namespace of its own stands for, fails `-e`, `-V`, `load` and `unload` with
+  exit 1, couldn't read, and nothing on stdout, and the unload removes no
+  module.
 
 ### cpu
 

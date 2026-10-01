@@ -15,15 +15,14 @@ local function probe()
 end
 
 local function dostring(chunk)
+	if chunk == "" then return true, "" end -- an empty write never reaches the driver
 	local session <close> = assert(io.open(device, "r+"))
 	session:setvbuf("no") -- the driver runs each write as a chunk
 	assert(session:write(chunk))
 	session:flush()
 	local reply = assert(session:read("a"))
 	local status, result = reply:match("^(%a+)\t(.*)$")
-	if status == nil then -- a driver loaded from a build that replies without the status
-		return true, reply
-	end
+	if status == nil then error("couldn't read " .. device .. ": loaded from another build", 0) end
 	return status == "true", result
 end
 
