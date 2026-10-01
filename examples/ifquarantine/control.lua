@@ -13,7 +13,6 @@ local notify   = require("linux.notify")
 local stat     = require("linux.stat")
 
 local filter      <const> = "examples/ifquarantine/filter"
-local percpu      <const> = true
 local home        <const> = linux.netns() -- the namespace linux.ifindex resolves a name in
 local quarantined         = rcu.table()   -- tostring(ifindex) -> true
 local known               = {}            -- name -> ifindex
@@ -94,7 +93,7 @@ end
 
 device.new(driver)
 
-local runtimes = runner.run(filter, "softirq", percpu)
+local runtimes = runner.run(filter, {context = "softirq", percpu = true})
 
 local function stopfilter()
 	runner.stop(filter)

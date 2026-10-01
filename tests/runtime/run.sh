@@ -28,6 +28,7 @@ TESTS=(
 	percpu_object.sh
 	percpu_refuse.sh
 	spawn_refuse.sh
+	run_context.sh
 	spawn_suffix.sh
 	spawn_name.sh
 	percpu_netfilter.sh
