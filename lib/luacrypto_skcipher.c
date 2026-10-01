@@ -163,7 +163,7 @@ static const luaL_Reg luacrypto_skcipher_mt[] = {
 };
 
 const lunatik_class_t luacrypto_skcipher_class = {
-	.name = "crypto_skcipher",
+	.name = "crypto.skcipher",
 	.methods = luacrypto_skcipher_mt,
 	.release = luacrypto_skcipher_release,
 	.opt = LUNATIK_OPT_MONITOR,

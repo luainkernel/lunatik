@@ -192,7 +192,7 @@ static const luaL_Reg lunatik_percpu_mt[] = {
 };
 
 const lunatik_class_t lunatik_percpu_class = {
-	.name = "percpu",
+	.name = "lunatik.percpu",
 	.methods = lunatik_percpu_mt,
 	.release = lunatik_releasepercpu,
 	.opt = LUNATIK_OPT_PERCPU,

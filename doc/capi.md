@@ -327,7 +327,7 @@ Returns the Lua state of `runtime`, `NULL` once the runtime is closed. Defined a
 ```C
 extern const lunatik_class_t lunatik_class;
 ```
-The class of a runtime, `runtime` in type errors. A binding that takes a runtime as an argument
+The class of a runtime, `lunatik.runtime` in type errors. A binding that takes a runtime as an argument
 checks it with `lunatik_checkobjectclass(L, ix, &lunatik_class)`.
 
 ### lunatik\_env

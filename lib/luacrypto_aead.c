@@ -205,7 +205,7 @@ static const luaL_Reg luacrypto_aead_mt[] = {
 };
 
 const lunatik_class_t luacrypto_aead_class = {
-	.name = "crypto_aead",
+	.name = "crypto.aead",
 	.methods = luacrypto_aead_mt,
 	.release = luacrypto_aead_release,
 	.opt = LUNATIK_OPT_MONITOR,

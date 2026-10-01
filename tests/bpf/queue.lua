@@ -85,6 +85,12 @@ test("bpf.queue push NOEXIST raises", function()
 	m:close()
 end)
 
+test("bpf.queue names its class and refuses another", function()
+	local m = queue(path)
+	pinned.checkclass(m, "bpf.queue")
+	m:close()
+end)
+
 test("bpf.queue handle has no key-value operations", function()
 	local m = queue(path)
 	assert(m.lookup == nil and m.update == nil and m.delete == nil and m.remove == nil and m.next == nil,

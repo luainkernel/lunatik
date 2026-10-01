@@ -5,7 +5,8 @@
 #
 # Regression test for the percpu object: lunatik.percpu() runs the script once per
 # possible CPU id, each runtime seeing its own id; stop closes every runtime and
-# the object can be created again; and stop refuses an object of another class.
+# the object can be created again; and stop refuses an object of another class,
+# a runtime, naming lunatik.percpu and lunatik.runtime.
 #
 # Usage: sudo bash tests/runtime/percpu_object.sh
 

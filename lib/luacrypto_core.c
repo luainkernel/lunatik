@@ -6,7 +6,7 @@
 /***
 * Lua interface to the Linux Crypto API.
 * Crypto objects are created in a process runtime alone: in a softirq or hardirq runtime a
-* constructor raises "'crypto_shash': process-context class in interrupt-context runtime", naming
+* constructor raises "'crypto.shash': process-context class in interrupt-context runtime", naming
 * its class. Errors are raised as errno names: "ENOENT" for an unknown algorithm, "EINVAL" for a
 * wrong IV, key or state length or a block cipher input that is not a multiple of `blocksize()`,
 * "EBADMSG" for an AEAD tag mismatch, "ENOMEM" when the kernel cannot allocate the transform, and

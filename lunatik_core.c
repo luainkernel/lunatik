@@ -241,7 +241,7 @@ static const luaL_Reg lunatik_mt[] = {
 LUNATIK_OPENER(lunatik);
 LUNATIK_OPENER(lunatik_stub);
 const lunatik_class_t lunatik_class = {
-	.name = "runtime",
+	.name = "lunatik.runtime",
 	.methods = lunatik_mt,
 	.release = lunatik_releaseruntime,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,

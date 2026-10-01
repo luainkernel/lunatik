@@ -7,6 +7,7 @@
 local crypto = require("crypto")
 
 local ATTEMPTS <const> = 16
+local REFUSAL  <const> = "'crypto%.%l+': process%-context class in interrupt%-context runtime"
 
 local constructors = {sha256 = crypto.shash}
 if crypto.comp then -- the binding has no comp from 6.15 on
@@ -18,7 +19,7 @@ local function refuse()
 		for algname, new in pairs(constructors) do
 			local ok, err = pcall(new, algname)
 			assert(not ok, "crypto served an interrupt-context runtime: " .. algname)
-			assert(err:match("interrupt%-context runtime"), "crypto raised something else: " .. err)
+			assert(err:match(REFUSAL), "crypto raised something else: " .. err)
 		end
 	end
 end

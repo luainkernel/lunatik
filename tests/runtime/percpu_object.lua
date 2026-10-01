@@ -30,6 +30,6 @@ test("stop refuses an object of another class", function()
 	local runtime <close> = lunatik.runtime(failing)
 	local ok, err = pcall(getmetatable(percpu).stop, runtime)
 	assert(not ok, "stop accepted a runtime")
-	assert(err:match("percpu expected"), "stop raised something else: " .. err)
+	assert(err:find("lunatik.percpu expected, got lunatik.runtime", 1, true), "stop raised something else: " .. err)
 end)
 

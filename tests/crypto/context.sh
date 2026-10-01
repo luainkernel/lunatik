@@ -12,8 +12,8 @@
 # The kernel's own refcount is the instrument. One object of each kind held
 # alive names the modules that back sha256 and lz4 here, whatever they are on
 # this architecture: those /proc/crypto lists whose reference count rose while
-# the objects lived. The refusals then have to leave those counts where they
-# found them.
+# the objects lived. The refusals then have to name the class, crypto.shash
+# or crypto.comp, and leave those counts where they found them.
 #
 # The case only runs against the build it was installed with. The refusal is a
 # static inline compiled into luacrypto, so a build from before it allocates the

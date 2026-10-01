@@ -207,7 +207,7 @@ static const luaL_Reg luacrypto_shash_mt[] = {
 };
 
 const lunatik_class_t luacrypto_shash_class = {
-	.name = "crypto_shash",
+	.name = "crypto.shash",
 	.methods = luacrypto_shash_mt,
 	.release = luacrypto_shash_release,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
