@@ -77,6 +77,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 mark_dmesg
 
 run_script --context=softirq "$SCRIPT"
+check_dmesg || { ktap_totals; exit 1; }
 
 expect 211 none passes "a callback that returns nothing accepts the packet"
 expect 212 boolean refused "a callback that returns a value that is not a number accepts the packet and logs it"
