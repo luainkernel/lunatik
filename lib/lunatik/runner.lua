@@ -44,24 +44,33 @@ end
 
 --- Runs a script in a new runtime of the given context and registers it under its name.
 -- @tparam string script path or name of the Lua script to run. The ".lua" extension will be trimmed.
--- @tparam[opt="process"] string context execution context, as in `lunatik.runtime`: `"process"`,
---   `"softirq"` (netfilter, XDP) or `"hardirq"` (kprobes).
--- @tparam[opt] boolean ispercpu create one runtime per CPU id, dispatched by the CPU a
---   callback fires on; the script runs once per runtime and can read its id with
---   `lunatik.cpu()`. The runtimes share a netfilter hook and a kprobe; constructors
---   whose registration is global refuse to run in a percpu runtime. A runtime is not a
---   connection: which one a packet reaches is the CPU the hook runs on, so the
---   packets of one flow reach several runtimes. Per-flow state belongs in something
---   the runtimes share, per-CPU state in the runtime.
--- @treturn runtime|percpu the runtime, or the percpu set when `ispercpu` is set.
+-- @tparam[opt="process"] string|table context execution context, as in `lunatik.runtime`:
+--   `"process"`, `"softirq"` (netfilter, XDP) or `"hardirq"` (kprobes); or a table of options:
+--
+--   - `context`: the execution context, as above.
+--   - `percpu`: when true, create one runtime per CPU id, dispatched by the CPU a
+--     callback fires on; the script runs once per runtime and can read its id with
+--     `lunatik.cpu()`. The runtimes share a netfilter hook and a kprobe; constructors
+--     whose registration is global refuse to run in a percpu runtime. A runtime is not a
+--     connection: which one a packet reaches is the CPU the hook runs on, so the
+--     packets of one flow reach several runtimes. Per-flow state belongs in something
+--     the runtimes share, per-CPU state in the runtime.
+-- @treturn runtime|percpu the runtime, or the percpu set when `percpu` is set.
 -- @raise `"<script> is already running"`, `"invalid option '<context>'"`, or the error the script raises on
 --   load.
-function runner.run(script, context, ispercpu)
+-- @usage
+--   runner.run("mydriver", "softirq")
+--   runner.run("myfilter", {context = "softirq", percpu = true})
+function runner.run(script, context)
 	local script = trim(script)
 	if env.runtimes[script] then
 		error(string.format("%s is already running", script), 0)
 	end
-	local runtime = ispercpu and lunatik.percpu(script, context) or lunatik.runtime(script, context)
+	local percpu = false
+	if type(context) == "table" then
+		context, percpu = context.context, context.percpu
+	end
+	local runtime = percpu and lunatik.percpu(script, context) or lunatik.runtime(script, context)
 	env.runtimes[script] = runtime
 	return runtime
 end
@@ -74,16 +83,12 @@ end
 -- @tparam string script path or name of the Lua script to spawn. The ".lua" extension will be trimmed.
 -- @tparam[opt="process"] string context execution context of the runtime; only `"process"` can
 --   spawn: a softirq or hardirq runtime raises `IRQ runtime cannot spawn threads`.
--- @tparam[opt] boolean ispercpu must be false, or spawn raises `spawn does not support percpu scripts`.
 -- @treturn thread kernel thread object.
--- @raise error if the script is already running, `percpu` is set, or the thread cannot
+-- @raise error if the script is already running, `context` is not the name of a context, or the thread cannot
 --   start, in which case the runtime it created is stopped and unregistered.
-function runner.spawn(script, context, ispercpu)
+function runner.spawn(script, context)
 	local script = trim(script)
-	if ispercpu then
-		error("spawn does not support percpu scripts", 0)
-	end
-	local runtime = runner.run(script, context)
+	local runtime = runner.run(script, {context = context})
 	local name = string.match(script, "([^/]*/?[^/]*)$")
 	local started, t = pcall(thread.run, runtime, name)
 	if not started then

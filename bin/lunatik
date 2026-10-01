@@ -342,7 +342,7 @@ function runners.run(parsed, script, ...)
 	if script == nil then misuse("run takes a script") end
 	if select("#", ...) > 0 then misuse("run takes nothing after the script") end
 	ensure_loaded()
-	request("lunatik.runner.run(%q, %q, %q)", script, parsed.context, parsed.percpu)
+	request("lunatik.runner.run(%q, {context = %q, percpu = %q})", script, parsed.context, parsed.percpu)
 end
 
 function runners.spawn(parsed, script, ...)

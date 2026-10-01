@@ -1126,7 +1126,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   runtime per possible CPU id, and runs the script once per runtime,
   each seeing its own id via `lunatik.cpu()`, which a plain runtime
   sees as `nil`; the script is listed once, by name; `stop` drops every
-  runtime and lets it run again; `spawn` refuses percpu without
+  runtime and lets it run again; `spawn`, which takes a context where
+  `run` takes its options, refuses a table asking for percpu without
   creating any runtime; and a script that fails on one runtime rolls
   back the ones already created before the run returns.
 
@@ -1144,6 +1145,11 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   `thread.run`, which cannot start a thread on an IRQ runtime, and `lunatik
   list` must be empty afterwards; the same script spawns and stops as a
   process runtime.
+
+- **run_context**: `runner.run` gives the runtime the context its second
+  argument names, spelled as a string or as the `context` field of a table. A
+  script that creates a socket is refused in a `softirq` runtime, leaving
+  nothing registered, and runs in a `process` one, in either spelling.
 
 - **spawn_suffix**: a script spawned with its `.lua` suffix registers its
   thread under the trimmed name `runner.stop` looks up, so the stop reaches

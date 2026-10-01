@@ -6,9 +6,10 @@
 # Regression test for percpu runtimes: `run --percpu <script>` registers one
 # object holding one runtime per possible CPU id, and the script runs once per
 # runtime; the script is listed once, by name; stopping it drops every
-# runtime and lets it run again; `spawn` refuses percpu without creating any
-# runtime; and a script that fails on one runtime rolls back the ones already
-# created, before the failed run returns.
+# runtime and lets it run again; `spawn`, which takes a context where `run` takes
+# its options, refuses a table asking for percpu without creating any runtime; and
+# a script that fails on one runtime rolls back the ones already created, before
+# the failed run returns.
 #
 # Usage: sudo bash tests/runtime/percpu.sh
 
@@ -56,8 +57,8 @@ run_script --percpu "$SCRIPT"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 ktap_pass "stop drops every runtime and lets the script run again"
 
-output=$(lunatik -e "lunatik.runner.spawn('$SCRIPT', nil, true)" 2>&1)
-echo "$output" | grep -q "spawn does not support percpu" || \
+output=$(lunatik -e "lunatik.runner.spawn('$SCRIPT', {percpu = true})" 2>&1)
+echo "$output" | grep -q "string expected, got table" || \
 	fail "spawn accepted percpu: $output"
 listed=$(lunatik list)
 case "$listed" in
