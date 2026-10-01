@@ -24,11 +24,9 @@ typedef struct lunatik_file {
 static const char *lunatik_loader(lua_State *L, void *ud, size_t *size)
 {
 	lunatik_file *lf = (lunatik_file *)ud;
-	ssize_t ret = kernel_read(lf->file, lf->buffer, PAGE_SIZE, &(lf->pos));
+	ssize_t ret;
 
-	if (unlikely(ret < 0))
-		luaL_error(L, "kernel_read failure %I", (lua_Integer)ret);
-
+	lunatik_tryret(L, ret, kernel_read, lf->file, lf->buffer, PAGE_SIZE, &(lf->pos));
 	*size = (size_t)ret;
 	return lf->buffer;
 }
