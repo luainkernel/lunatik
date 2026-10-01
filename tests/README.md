@@ -1242,21 +1242,17 @@ module lacks BTF, or `bpftool` or `clang` is unavailable.
 
 ### signal
 
-Covers the `signal` module (`luasignal`): the bounds on a signal number, a
-command and a pid, and what a valid call does.
-
-- **signal/mask**: `sigmask` blocks and unblocks `TERM` for the task that runs
-  the script, and `sigstate` reads it back as blocked, allowed and not pending;
-  a signal of 0 or past the set, and a command past `SIG_UNBLOCK`, raise `out
-  of bounds` instead of reaching `sigaddset`, whose shift is undefined there.
+Covers the `signal` module (`luasignal`): the bounds on a signal number and a
+pid, and what a valid call does.
 
 - **signal/kill**: with a child sleeping in the background and a pid the shell
   has reaped, `kill(child, 0)` probes the child, `kill(reaped)` raises `ESRCH`,
   a pid of 0, one past `PID_MAX_LIMIT` and one that would truncate to the
   child's, and a signal that would truncate to `TERM`, raise `out of bounds`,
-  and `kill(child, TERM)` returns true; the shell then sees the child end on
-  `SIGTERM`. The truncation cases target the child on every build, so a module
-  without the bound signals the child and fails the case, never a stranger.
+  and `kill(child, TERM)` signals the child, and the shell then sees the child
+  end on `SIGTERM`. The truncation
+  cases target the child on every build, so a module without the bound signals
+  the child and fails the case, never a stranger.
 
 ### set
 
