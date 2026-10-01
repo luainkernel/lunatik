@@ -8,7 +8,7 @@
 # thread, runtime), called through the class's metatable, refuses an object of
 # another class naming both classes, which proves the metatables carry __name,
 # refuses nil and a userdata of another library (io's) as no object at all;
-# rcu.map refuses nil the same way; and a method on a closed runtime or fifo,
+# rcu.foreach refuses nil the same way; and a method on a closed runtime or fifo,
 # whose private is gone, is refused instead of dereferencing NULL. The thread
 # object is a spawned body's, since thread.run is refused from a script body.
 #

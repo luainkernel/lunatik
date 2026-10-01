@@ -111,7 +111,7 @@ end
 -- @treturn table the names of the running scripts, sorted.
 function runner.list()
 	local list = {}
-	rcu.map(env.runtimes, function (script)
+	rcu.foreach(env.runtimes, function (script)
 		table.insert(list, script)
 	end)
 	table.sort(list)
@@ -120,9 +120,9 @@ end
 
 --- Shuts down all running scripts and their threads.
 -- Stops each script as the iteration reaches it: `runner.stop` removes the
--- entry the callback was given, which is all `rcu.map` allows.
+-- entry the callback was given, which is all `rcu.foreach` allows.
 function runner.shutdown()
-	rcu.map(env.runtimes, runner.stop)
+	rcu.foreach(env.runtimes, runner.stop)
 end
 
 local function restore(name)

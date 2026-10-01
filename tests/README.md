@@ -930,10 +930,10 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
 
 ### rcu
 
-- **map_values**: `rcu.map()` iterates booleans, integers, userdata,
+- **foreach_values**: `rcu.foreach()` iterates booleans, integers, userdata,
   mixed types, and skips nil (deleted) entries.
 
-- **map_foreign**: `rcu.map()` refuses an object of another class
+- **foreach_foreign**: `rcu.foreach()` refuses an object of another class
   instead of walking its private data as a table.
 
 - **index_whole**: an index matches the whole key. On a one-bucket table, a
@@ -941,16 +941,17 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   instead of replacing the longer one, the empty key reads `nil` until it is
   set, and two keys alike up to an embedded NUL are told apart.
 
-- **map_next**: `rcu.map()` walks inside an SRCU read-side critical section,
+- **foreach_next**: `rcu.foreach()` walks inside an SRCU read-side critical section,
   so the callback may sleep, and it skips an entry a writer unlinked under it.
   On a one-bucket table, a callback that removes the other entries on its
   first visit is called once, one that replaces them is never handed a value
   they lost, and one that adds an entry is called for the three the table had; a key with an embedded NUL reaches
-  the callback whole; an error the callback raises is `rcu.map()`'s, with no
-  visit after it; and a table nothing but the call holds stays through a
+  the callback whole; an error the callback raises is `rcu.foreach()`'s, with no
+  visit after it; one that returns false and true in turn is called for all
+  three; and a table nothing but the call holds stays through a
   collection the callback forces, which it checks through a weak reference,
   and is visited whole.
-- **map_grace**: the callback removes the other entries and sleeps past a
+- **foreach_grace**: the callback removes the other entries and sleeps past a
   grace period on its first visit, and the walk ends with that visit; skipped
   unless the loaded `luarcu` carries `luarcu_freeentry`, the SRCU callback,
   since without it the walk resumes from an entry freed under it.
@@ -961,7 +962,7 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   behind it. A key under `LUARCU_MAXKEY` bytes is stored and one at it is
   out of bounds where it arrives, not a memory error.
 
-- **map_sync**: `rcu.map()` remains safe when called while another
+- **foreach_sync**: `rcu.foreach()` remains safe when called while another
   kthread is modifying the table.
 
 - **newobject_oom**: a failed private allocation in `lunatik_newobject()`
@@ -988,7 +989,7 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   `rcu_read_lock` alone, and a writer replacing the entry puts the object's
   last reference at once: the object's memory outlives the grace period and
   the reader takes the reference unless the count is zero, reading the entry
-  as gone. A reader thread reads one key, by index and through `rcu.map`, and
+  as gone. A reader thread reads one key, by index and through `rcu.foreach`, and
   touches the object each hands it, while a writer thread replaces that key's
   `data` object on every iteration, for a few seconds; every read is a usable
   object or nil, the reader saw the entry replaced while it read, and `dmesg`
@@ -1033,7 +1034,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   construct (`data`, `fifo`, `completion`, `set`, `crypto_shash`, `task`,
   `thread`, `runtime`), called through the class's metatable, refuses an
   object of another class naming both classes, refuses `nil` and refuses a
-  userdata of another library; `rcu.map` refuses `nil`; and a method on a
+  userdata of another library; `rcu.foreach` refuses `nil`; and a method on a
   closed runtime or fifo is refused instead of dereferencing its NULL private.
 
 - **resume_percpu**: `percpu:resume()` delivers the objects it is given to

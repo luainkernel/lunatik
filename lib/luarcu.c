@@ -235,7 +235,7 @@ static inline void luarcu_inittable(luarcu_table_t *table, size_t size)
 	table->seed = luarcu_seed();
 }
 
-static int luarcu_map_handle(lua_State *L)
+static int luarcu_foreach_handle(lua_State *L)
 {
 	luarcu_entry_t *entry = (luarcu_entry_t *)lua_touserdata(L, 2);
 	lunatik_value_t *value = (lunatik_value_t *)lua_touserdata(L, 3);
@@ -252,9 +252,9 @@ static int luarcu_map_handle(lua_State *L)
 	return 0;
 }
 
-static inline int luarcu_map_call(lua_State *L, int cb, luarcu_entry_t *entry, lunatik_value_t *value)
+static inline int luarcu_foreach_call(lua_State *L, int cb, luarcu_entry_t *entry, lunatik_value_t *value)
 {
-	lua_pushcfunction(L, luarcu_map_handle);
+	lua_pushcfunction(L, luarcu_foreach_handle);
 	lua_pushvalue(L, cb);
 	lua_pushlightuserdata(L, entry);
 	lua_pushlightuserdata(L, value);
@@ -274,20 +274,21 @@ static inline void luarcu_readentry(luarcu_entry_t *entry, lunatik_value_t *valu
 
 /***
 * Iterates over the table calling `callback(key, value)` for each entry.
+* What the callback returns is ignored: it stops the walk early by raising an `error`.
 * The walk runs inside an SRCU read-side critical section, which allows the callback
 * to sleep; whether it may is its runtime's context, as for any code of a softirq or
 * hardirq runtime. A writer on any runtime may change the table meanwhile: an entry
 * removed or replaced under the walk may still be reached and is then skipped, one
 * added is visited only if its bucket is still ahead, and the order is not guaranteed.
-* @function map
+* @function foreach
 * @tparam rcu_table t the table to walk
 * @tparam function callback `function(key, value)`; an entry whose object a writer is
 *   releasing is skipped.
 * @raise Error if callback raises.
-* @usage rcu.map(t, function (key, value) print(key, value) end)
+* @usage rcu.foreach(t, function (key, value) print(key, value) end)
 * @within rcu
 */
-static int luarcu_map(lua_State *L)
+static int luarcu_lforeach(lua_State *L)
 {
 	luarcu_table_t *table = luarcu_checktable(L, 1);
 	unsigned int bucket;
@@ -305,7 +306,7 @@ static int luarcu_map(lua_State *L)
 			if (value.type == LUA_TNIL)
 				continue;
 
-			if ((ret = luarcu_map_call(L, 2, entry, &value)) != LUA_OK)
+			if ((ret = luarcu_foreach_call(L, 2, entry, &value)) != LUA_OK)
 				break;
 		}
 	srcu_read_unlock(&luarcu_srcu, idx);
@@ -316,7 +317,7 @@ static int luarcu_map(lua_State *L)
 
 static const struct luaL_Reg luarcu_lib[] = {
 	{"table", luarcu_table},
-	{"map", luarcu_map},
+	{"foreach", luarcu_lforeach},
 	{NULL, NULL}
 };
 

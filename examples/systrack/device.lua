@@ -15,7 +15,7 @@ local track
 
 local function snapshot()
 	local log = {}
-	rcu.map(track, function(symbol, count)
+	rcu.foreach(track, function(symbol, count)
 		table.insert(log, symbol .. ": " .. tostring(count))
 	end)
 	table.sort(log)
