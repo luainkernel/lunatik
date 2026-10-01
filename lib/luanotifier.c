@@ -174,7 +174,8 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 * @raise if called from a percpu runtime, or under RTNL: from a netdevice
 *   callback, and from any runtime or coroutine the callback runs;
 *   `'notifier': process-context class in interrupt-context runtime` in a softirq or hardirq
-*   runtime; `couldn't create notifier` when the kernel refuses the registration
+*   runtime; `not allowed while the runtime closes` from a finalizer that runs at its close;
+*   `couldn't create notifier` when the kernel refuses the registration
 * @within notifier
 */
 static int luanotifier_netdevice(lua_State *L)
@@ -208,6 +209,7 @@ static int luanotifier_keyboard_handler(lua_State *L, void *data)
 *   keysym depending on `event`. Returns a `linux.notify` status code.
 * @treturn notifier
 * @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
+*   `not allowed while the runtime closes` from a finalizer that runs at its close;
 *   `couldn't create notifier` when the kernel refuses the registration
 * @within notifier
 */
@@ -233,6 +235,7 @@ static int luanotifier_vt_handler(lua_State *L, void *data)
 *   status code.
 * @treturn notifier
 * @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
+*   `not allowed while the runtime closes` from a finalizer that runs at its close;
 *   `couldn't create notifier` when the kernel refuses the registration
 * @within notifier
 */

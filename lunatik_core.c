@@ -387,7 +387,9 @@ EXPORT_SYMBOL(lunatik_runtime);
 * it stays open, its hooks in place and the modules its script required loaded, until `stop()`,
 * which cannot be called once its last handle is gone. A script stops the runtimes it creates;
 * one a netdevice callback may collect it stops before, since the close runs where the collector
-* drops the handle and cannot refuse there. Only a process runtime's `lunatik` module has it.
+* drops the handle and cannot refuse there. The close runs the script's finalizers, and a
+* registration one makes raises `not allowed while the runtime closes`. Only a process runtime's
+* `lunatik` module has it.
 * @function runtime
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context: `"process"` (sleepable,

@@ -66,7 +66,8 @@ static int luacompletion_complete(lua_State *L)
 *   - `"interrupt"`: The waiting task was interrupted by a signal (e.g., `thread.stop()`).
 *   If the wait fails for other kernel internal reasons, the C code might push `"unknown"`, though typical documented returns are for timeout and interrupt.
 *   - `"unknown"`: An unexpected error occurred during the wait.
-* @raise "runtime context mismatch" from a softirq or hardirq runtime, its script body included
+* @raise "runtime context mismatch" from a softirq or hardirq runtime, its script body included;
+*   "not allowed while the runtime closes" from a finalizer that runs at its close
 * @usage
 *   -- Assuming 'c' is a completion object
 *   local success, err_msg = c:wait(1000) -- Wait for up to 1 second

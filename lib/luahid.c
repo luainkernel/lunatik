@@ -302,7 +302,8 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   required fields are missing, `id_table` is invalid or too long, or driver registration fails;
 *   `bad field '<field>' (number expected, got <type>)` if an entry's `bus`, `group`, `vendor`,
 *   `product` or `driver_data` is present and not a number; `runtime context mismatch` unless the
-*   runtime is softirq
+*   runtime is softirq; `not allowed while the runtime closes` from a finalizer that runs at its
+*   close
 * @within hid
 */
 static int luahid_register(lua_State *L)

@@ -329,6 +329,16 @@ Returns `true` once `runtime` is armed, its script body returned, and until it i
 `thread.run` uses it to refuse creating a thread from the script body of the runtime that calls
 it, with `not allowed before the runtime is armed`.
 
+### lunatik\_isclosing
+```C
+bool lunatik_isclosing(lunatik_object_t *runtime);
+```
+Returns `true` while `runtime` closes and its state runs the script's finalizers: a stop and a
+script that fails to load clear its private before `lua_close`, and the drop of its last reference
+closes it at a zero count, which a runtime has at no other time.
+[`lunatik_checkclosing`](#lunatik_checkclosing) refuses a registration there, which the closing
+runtime would never dispatch. Defined as a macro.
+
 ### lunatik\_isowner
 ```C
 bool lunatik_isowner(lunatik_object_t *object);
@@ -388,7 +398,8 @@ class a constructor creates, and `<context>` is `process`, `softirq` or `hardirq
 Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a `softirq` runtime,
 a HARDIRQ class in a `hardirq` runtime, and a process-context class in a process runtime. A
 binding's constructor calls it, directly or through `lunatik_setruntime`, to enforce that a class
-is only instantiated in a compatible runtime.
+is only instantiated in a compatible runtime. It runs [`lunatik_checkclosing`](#lunatik_checkclosing)
+too, so a finalizer that runs as the runtime closes registers nothing the runtime would dispatch.
 
 ### lunatik\_setruntime
 ```C
@@ -432,6 +443,16 @@ its script body runs, so a call that may sleep is allowed there and must be refu
 when the runtime lock is a spinlock: from a hook or a handler, and from the `resume` of such a
 runtime. Use it in an entry point that reaches a sleeping kernel call, where `lunatik_checkruntime`
 answers the different question of whether the class matches the runtime at all.
+
+### lunatik\_checkclosing
+```C
+void lunatik_checkclosing(lua_State *L);
+```
+Raises a Lua error, `"not allowed while the runtime closes"`, when
+[`lunatik_isclosing`](#lunatik_isclosing) holds for `L`'s runtime: from a finalizer its close
+runs, in whatever coroutine. A registration made there would hold a runtime that never dispatches
+again: use it in an entry point that registers one without
+[`lunatik_checkruntime`](#lunatik_checkruntime), which runs it.
 
 ### lunatik\_checkrtnl
 ```C

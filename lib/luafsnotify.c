@@ -693,7 +693,8 @@ static luafsnotify_t *luafsnotify_newwatch(lua_State *L, lunatik_object_t *runti
 *   event it is ignored.
 * @treturn fsnotify_watch
 * @raise if the group cannot be allocated, if called from an interrupt-context
-*   runtime, or if called from a percpu runtime
+*   runtime, or if called from a percpu runtime;
+*   `not allowed while the runtime closes` from a finalizer that runs at its close
 * @within fsnotify
 * @usage
 *   local watch = fsnotify.watch(function (mask, event) print(mask, event:name()) end)

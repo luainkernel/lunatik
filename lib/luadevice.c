@@ -383,7 +383,8 @@ static int luadevice_stop(lua_State *L)
 *   if the `name` field is missing or not a string, or if called from a percpu runtime;
 *   `bad field 'mode' (number expected, got <type>)` if `mode` is present and not a number;
 *   `'device': process-context class in interrupt-context runtime` in a softirq or
-*   hardirq runtime (run it in process context, the default of `lunatik run`).
+*   hardirq runtime (run it in process context, the default of `lunatik run`);
+*   `not allowed while the runtime closes` from a finalizer that runs at its close.
 * @usage
 *   local device = require("device")
 *   local stat   = require("linux.stat")

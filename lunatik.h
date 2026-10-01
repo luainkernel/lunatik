@@ -46,6 +46,7 @@ typedef u8 __bitwise lunatik_opt_t;
 #define lunatik_getstate(runtime)	((lua_State *)(runtime)->private)
 #define lunatik_isready(runtime)	\
 	((runtime)->private && lunatik_extra(lunatik_getstate(runtime))->ready)
+#define lunatik_isclosing(runtime)	(!(runtime)->private || !kref_read(&(runtime)->kref))
 
 #define lunatik_handle(runtime, handler, ret, ...)	\
 do {							\
@@ -212,8 +213,15 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_UNARMED	"not allowed before the runtime is armed"
 #define LUNATIK_ERR_RTNL	"not allowed under RTNL"
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
+#define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 
 #define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
+
+static inline void lunatik_checkclosing(lua_State *L)
+{
+	if (lunatik_isclosing(lunatik_toruntime(L)))
+		luaL_error(L, LUNATIK_ERR_CLOSING);
+}
 
 static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *name, lunatik_opt_t opt)
 {
@@ -221,6 +229,7 @@ static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *n
 	if (lunatik_context(runtime->opt) != lunatik_context(opt))
 		luaL_error(L, LUNATIK_ERR_RUNTIME ": %s needs %s", name,
 			lunatik_ishardirq(opt) ? "hardirq" : lunatik_isirq(opt) ? "softirq" : "process");
+	lunatik_checkclosing(L);
 	return runtime;
 }
 
