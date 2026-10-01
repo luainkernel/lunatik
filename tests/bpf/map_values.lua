@@ -123,7 +123,7 @@ end)
 
 test("bpf.hash info reports the map properties", function()
 	local m = hash(path)
-	pinned.checkinfo(m, bpf.MAP_TYPE_HASH, 3)
+	pinned.checkinfo(m, bpf.map_type.HASH, 3)
 	m:close()
 end)
 

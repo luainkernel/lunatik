@@ -4,7 +4,7 @@
 --
 
 local xdp    = require("xdp")
-local action = require("linux.xdp")
+local action = require("linux.xdp").action
 local sni    = require("examples.common.sni")
 
 local function set(t)

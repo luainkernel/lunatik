@@ -256,7 +256,8 @@ static int luabpf_map_next(lua_State *L)
 * Returns the map properties.
 * @function info
 * @treturn table `type`, `key_size`, `value_size` and `max_entries`,
-* named as in the kernel's `struct bpf_map_info`.
+* named as in the kernel's `struct bpf_map_info`; `type` is a value of
+* `linux.bpf.map_type`.
 */
 
 /***

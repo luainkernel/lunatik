@@ -12,7 +12,7 @@ local path = "/sys/fs/bpf/test_map_lru"
 
 test("bpf.lru_hash round-trip", function()
 	local m = lru_hash(path)
-	assert(m:info().type == bpf.MAP_TYPE_LRU_HASH, "expected LRU hash map type")
+	assert(m:info().type == bpf.map_type.LRU_HASH, "expected LRU hash map type")
 	assert(m:update("aaa", "vvv"))
 	local value = m:lookup("aaa")
 	assert(value == "vvv", "expected 'vvv', got: " .. tostring(value))

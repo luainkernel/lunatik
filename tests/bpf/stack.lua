@@ -104,7 +104,7 @@ end)
 
 test("bpf.stack info reports map properties", function()
 	local m = stack(path)
-	pinned.checkinfo(m, bpf.MAP_TYPE_STACK, 0)
+	pinned.checkinfo(m, bpf.map_type.STACK, 0)
 	m:close()
 end)
 

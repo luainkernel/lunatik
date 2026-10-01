@@ -6,7 +6,7 @@
 -- Based on https://github.com/luainkernel/lunatik/blob/master/examples/filter/sni.lua
 
 local tc      = require("tc")
-local action  = require("linux.tc")
+local action  = require("linux.tc").action
 local set     = require("set")
 local sni     = require("examples.common.sni")
 
@@ -37,7 +37,7 @@ local function sniclassify(ctx)
 		end
 	end
 
-	return action.ACT_OK
+	return action.OK
 end
 
 tc.attach(sniclassify)

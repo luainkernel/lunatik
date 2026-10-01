@@ -6,7 +6,7 @@
 
 local lunatik = require("lunatik")
 local xdp     = require("xdp")
-local action  = require("linux.xdp")
+local action  = require("linux.xdp").action
 local packet  = require("tests.xdp.packet")
 
 local cpu = lunatik.cpu()
