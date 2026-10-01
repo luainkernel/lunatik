@@ -97,6 +97,10 @@ the issue holds it.
 For each entry:
 - write its body to a file and run tools/checks/machine-leak.sh and tools/checks/untraced.sh over it; a line
   either one names is rewritten before anything is posted;
+- an entry whose body carries \`Decision:\`, or whose home is an epic (a title that starts with \`Epic:\`),
+  opens an issue of its own, whatever it reports, and its body ends with \`Part of #<home>.\` when it has a
+  home: appended to an epic's body, or a decision to another issue's, it is a finding nobody tracks and a
+  decision nobody who takes it reads;
 - an entry whose home is an open issue goes to that issue: its body is appended to the issue's own under a
   line \`Update: <title> (#${source})\`, and the issue carries one severity label, the higher of its own and
   the entry's;
