@@ -81,7 +81,7 @@ test("resume refuses a stopped object", function()
 	runtimes:stop()
 	local ok, err = pcall(runtimes.resume, runtimes, rcu.table())
 	assert(not ok, "resume accepted a stopped object")
-	assert(err:match("null pointer"), "resume raised something else: " .. tostring(err))
+	assert(err:match("closed object"), "resume raised something else: " .. tostring(err))
 end)
 
 test("resume refuses a percpu object of another class", function()

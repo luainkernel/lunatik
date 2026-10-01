@@ -15,5 +15,5 @@ spawned:stop()
 local t = spawned:task()
 local ok, err = pcall(t.pid, t)
 assert(not ok, "task():pid() after stop() should raise")
-assert(err:match("null pointer dereference"), "task():pid() after stop() raised something else: " .. err)
+assert(err:match("closed object"), "task():pid() after stop() raised something else: " .. err)
 

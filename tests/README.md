@@ -859,7 +859,8 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
 - **argument**: the `argument` closure a handler receives, on its three
   outcomes: a probe on `vfs_read` reads the byte count the caller asked for,
   a negative index raises, and both it and the `dump` closure stop reaching
-  the registers once the handler that received them returned.
+  the registers once the handler that received them returned, where the
+  `argument` closure raises `closed object`.
 
 - **armed**: `probe.new`, `stop` and `enable` all reach a kprobe call that
   sleeps, so each is allowed while the script loads, in process context, and

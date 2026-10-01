@@ -21,7 +21,7 @@ watch:stop()
 local ok, err = pcall(watch.mark, watch, SCRATCH .. "/watched", fs.OPEN)
 if ok then
 	print("fsnotify lifetime test fail: mark accepted after stop")
-elseif not tostring(err):match("null pointer dereference") then
+elseif not tostring(err):match("closed object") then
 	print("fsnotify lifetime test fail: " .. tostring(err))
 else
 	print("fsnotify lifetime test pass: a second stop is harmless")

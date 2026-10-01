@@ -59,7 +59,7 @@ test("fifo:push refuses a closed fifo", function()
 	local queue = fifo.new(16)
 	queue:close()
 	local err = refused("fifo:push", getmetatable(queue).push, queue, "x")
-	assert(err:match("null pointer"), "push raised something else: " .. err)
+	assert(err:match("closed object"), "push raised something else: " .. err)
 end)
 
 test("rcu.map refuses nil", function()
@@ -71,7 +71,7 @@ test("runtime:resume refuses a closed runtime", function()
 	local runtime = lunatik.runtime(SCRIPT)
 	runtime:stop()
 	local err = refused("runtime:resume", getmetatable(runtime).resume, runtime, 1)
-	assert(err:match("null pointer"), "resume raised something else: " .. err)
+	assert(err:match("closed object"), "resume raised something else: " .. err)
 end)
 
 for _, case in ipairs(cases) do

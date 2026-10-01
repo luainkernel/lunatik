@@ -203,7 +203,7 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 		luaL_error(L, "bad field '%s' (%s expected, got nil)", field, lua_typename(L, type));
 }
 
-#define LUNATIK_ERR_NULLPTR	"null pointer dereference"
+#define LUNATIK_ERR_CLOSED	"closed object"
 #define LUNATIK_ERR_SINGLE	"cannot share SINGLE object"
 #define LUNATIK_ERR_METATABLE	"metatable not found"
 #define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
@@ -309,7 +309,7 @@ int lunatik_lstop(lua_State *L);
 void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 
 #define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
-#define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_NULLPTR)
+#define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_CLOSED)
 #define lunatik_argcheckclass(L, ix, object, cls)	\
 	luaL_argexpected((L), (object)->class == (cls), (ix), (cls)->name)
 

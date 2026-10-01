@@ -111,7 +111,7 @@ static const luaL_Reg luafifo_lib[] = {
 /***
 * Closes and releases the FIFO object.
 * It also runs when a to-be-closed variable holding the object goes out of scope. Later calls raise
-* "null pointer dereference".
+* "closed object".
 * @function close
 * @treturn nil
 */

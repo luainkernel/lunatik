@@ -143,7 +143,7 @@ int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs)
 * @function resume
 * @param ... objects passed to the function, or returned by its `coroutine.yield()`
 * @treturn vararg objects passed to the next `coroutine.yield()`, or returned by the function
-* @raise "null pointer dereference" if the runtime has been stopped; "invalid object" or
+* @raise "closed object" if the runtime has been stopped; "invalid object" or
 *   "cannot share SINGLE object" if a value cannot cross, numbering the
 *   arguments on the way in and the yielded values on the way back, or the error raised on
 *   resumption; "not allowed from the runtime itself" from under the runtime's own lock, the

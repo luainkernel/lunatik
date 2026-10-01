@@ -27,7 +27,7 @@ local function probe(mask, event)
 	local ok, err = pcall(kept.ino, kept)
 	if ok then
 		print("fsnotify expired test fail: the kept event still answered")
-	elseif not tostring(err):match("null pointer dereference") then
+	elseif not tostring(err):match("closed object") then
 		print("fsnotify expired test fail: " .. tostring(err))
 	else
 		print("fsnotify expired test pass: the kept event raised")
