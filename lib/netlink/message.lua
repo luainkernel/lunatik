@@ -73,7 +73,12 @@ function message.parse(buf)
 	return messages
 end
 
-local function encode_attrs(attrs)
+---
+-- Serializes a `{[type] = value}` table into netlink attributes.
+-- A `number` value is packed as a `u32`; a `string` is used verbatim.
+-- @tparam table attrs attribute table.
+-- @treturn string the serialized attributes.
+function message.attrs(attrs)
 	local out = {}
 	for atype, value in pairs(attrs) do
 		if type(value) == "number" then
@@ -85,26 +90,20 @@ local function encode_attrs(attrs)
 	return concat(out)
 end
 
-local function parse_attrs(body, pos)
+---
+-- Parses the netlink attributes of a message body into a `{[type] = value}` table.
+-- A key is the raw attribute type, flag bits included: a nested attribute whose sender set
+-- `NLA_F_NESTED` appears under `type | 0x8000`. A nested payload stays a string, which
+-- `message.parseattrs(value)` parses in turn.
+-- @tparam string body message body.
+-- @tparam[opt=1] integer pos 1-based position of the first attribute.
+-- @treturn table the parsed attributes.
+function message.parseattrs(body, pos)
 	local attrs = {}
-	for value, atype in records(nlattr, body, pos) do
+	for value, atype in records(nlattr, body, pos or 1) do
 		attrs[atype] = value
 	end
 	return attrs
-end
-
----
--- Attribute codec: serializes a `{[type] = value}` table into netlink
--- attributes, or parses them back from a message body starting at `pos`.
--- A `number` value is packed as a `u32`; a `string` is used verbatim.
--- A parsed key is the raw attribute type, flag bits included: a nested attribute whose sender set
--- `NLA_F_NESTED` appears under `type | 0x8000`. A nested payload stays a string, which
--- `message.attrs(value, 1)` parses in turn.
--- @tparam table|string attrs attribute table (serialize) or message body (parse).
--- @tparam[opt=1] integer pos 1-based position of the first attribute (parse).
--- @treturn string|table the serialized attributes, or the parsed table.
-function message.attrs(attrs, pos)
-	return type(attrs) == "string" and parse_attrs(attrs, pos or 1) or encode_attrs(attrs)
 end
 
 ---

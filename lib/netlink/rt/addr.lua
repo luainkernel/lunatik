@@ -45,7 +45,7 @@ end
 
 function addr:decode(body)
 	local fam, prefixlen, _, scope, ifindex = ifaddrmsg:unpack(body)
-	local attrs = message.attrs(body, IFADDR_LEN + 1)
+	local attrs = message.parseattrs(body, IFADDR_LEN + 1)
 	local peer = attrs[rtnl.ifa.ADDRESS]
 	local address = attrs[rtnl.ifa.LOCAL] or peer
 	return {

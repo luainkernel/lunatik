@@ -16,7 +16,7 @@ local buf = message.encode(MTYPE, FLAGS, SEQ, payload)
 local msgs = message.parse(buf)
 assert(#msgs == 1 and msgs[1].type == MTYPE and msgs[1].flags == FLAGS, "message header round-trip failed")
 
-local attrs = message.attrs(msgs[1].body, 1)
+local attrs = message.parseattrs(msgs[1].body, 1)
 assert(string.unpack("=I4", attrs[U32ATTR]) == 0x01020304, "u32 attribute round-trip failed")
 assert(string.unpack("z", attrs[STRATTR]) == "eth0", "string attribute round-trip failed")
 print("netlink message: round-trip ok")
@@ -24,10 +24,10 @@ print("netlink message: round-trip ok")
 -- malformed wire data stops cleanly (never raises); invalid input raises
 assert(#message.parse("") == 0 and #message.parse(buf:sub(1, #buf - 2)) == 0,
 	"truncated buffer should parse to no messages")
-assert(message.attrs{} == "" and next(message.attrs("", 1)) == nil, "empty attribute set should round-trip empty")
+assert(message.attrs{} == "" and next(message.parseattrs("", 1)) == nil, "empty attribute set should round-trip empty")
 assert(not pcall(message.attrs, {[U32ATTR] = -1}), "non-u32 number should raise")
 print("netlink message: edge cases ok")
 
-assert(message.attrs(payload)[U32ATTR] == attrs[U32ATTR], "an omitted position should parse from the first byte")
+assert(message.parseattrs(payload)[U32ATTR] == attrs[U32ATTR], "an omitted position should parse from the first byte")
 print("netlink message: default position ok")
 
