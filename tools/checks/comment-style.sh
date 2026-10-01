@@ -10,7 +10,10 @@
 # it is one line; and it does not push the line past the tree's width. In C, an
 # internal static inline helper and a function's signature line carry none; in all
 # three, no comment names the file or function that reads a value. #1358, #1421 and
-# #1383 each carried one of the three until the maintainer asked. The file
+# #1383 each carried one of the three until the maintainer asked. A comment above
+# an is_ or has_ predicate is named too: the rule allows the one reason its name and
+# expression cannot give, and #1502's walked through what each arm of
+# lunatik_isclosing reads, which its commit body already said. The file
 # header, LDoc blocks and doc-only comments are outside the rules; so are the
 # unindented notes between Lua functions, and a shell script's narrative, which
 # the Tests rules ask for.
@@ -108,6 +111,8 @@ for file in "$@"; do
 			if (whole(line) && line ~ /\*\//) cend = NR
 			if (line ~ /^static inline / && cend == NR - 1 && !cdoc)
 				flag(cstart, "a comment above an internal static inline helper: the name says what it does, the commit body why")
+			if (line ~ /^#define [a-z0-9_]*_(is|has)[a-z0-9_]*\(/ && cend == NR - 1 && !cdoc)
+				flag(cstart, "a comment above a predicate: one reason its name and expression cannot give; how its arms read the state goes in the commit body")
 		}
 
 		# a comment of more than one line inside code (the header and doc blocks are skipped)
