@@ -253,8 +253,8 @@ REPL and the builds `status` and `reload` compare.
   prints through the host's, and through one that reads every installed module
   as another build names each loaded module as not the installed build.
 - **verbs**: a run or a spawn of a script that is missing, and a run of one
-  that raises at load, exit 1 with its error on stderr and nothing on stdout;
-  a run exits 0 with nothing printed, and a second exits 1, already running,
+  that raises at load, exit 1 with its error on stderr and nothing on stdout,
+  the missing one's naming `ENOENT`; a run exits 0 with nothing printed, and a second exits 1, already running,
   with no position of the runner's; a context `run` cannot read as `-c`, a
   word after the script of `run`, and a context, `percpu` or any other word
   given to `spawn`, exit 2 and never reach the kernel; `-c` and `-p`,
@@ -661,6 +661,9 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   process-context class in interrupt-context runtime`; without that refusal
   the body of a module build answers `not found` and that of a built-in one
   gets `io`.
+- **loadfile**: `loadfile` returns, and `dofile` raises, `cannot open <file>: `
+  and the errno's name for a path the kernel does not open: `ENOENT` for a
+  missing file and `ENOTDIR` for one under a regular file.
 
 ### luac
 
