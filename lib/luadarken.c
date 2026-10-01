@@ -28,6 +28,7 @@
 typedef struct luadarken_request_s {
 	struct crypto_skcipher *tfm;
 	struct skcipher_request *req;
+	struct scatterlist sg;
 	u8 *iv;
 } luadarken_request_t;
 
@@ -73,9 +74,8 @@ static char *luadarken_setrequest(lua_State *L, luadarken_request_t *r,
 	if (buf == NULL)
 		goto err;
 
-	struct scatterlist sg;
-	sg_init_one(&sg, buf, ct_len);
-	skcipher_request_set_crypt(r->req, &sg, &sg, ct_len, r->iv);
+	sg_init_one(&r->sg, buf, ct_len);
+	skcipher_request_set_crypt(r->req, &r->sg, &r->sg, ct_len, r->iv);
 	skcipher_request_set_callback(r->req, 0, NULL, NULL);
 
 	return buf;
