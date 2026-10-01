@@ -661,6 +661,10 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   process-context class in interrupt-context runtime`; without that refusal
   the body of a module build answers `not found` and that of a built-in one
   gets `io`.
+- **loadfile**: `loadfile` and `dofile` of `/lib/modules/lua`, and a `require`
+  whose `package.path` resolves to it, answer `EINVAL`, the errno's name, as
+  a failed kernel call raises it: the directory opens and its `kernel_read`
+  fails.
 
 ### luac
 

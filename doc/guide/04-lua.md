@@ -30,6 +30,8 @@ The available functions are `io.open`, `io.lines`, `io.type`, and the file handl
 `read`, `write`, `lines`, `flush`, `seek`, and `close`.
 On failure no errno reaches the script: `io.open` returns `nil`, `"<file>: (no extra info)"` and
 `0`, and a function that raises, such as `io.lines`, says `I/O error`.
+A file `loadfile`, `dofile` or `require` opens and cannot read fails with the errno's name:
+`EINVAL` for a directory.
 
 Lunatik **modifies** the following identifiers:
 * [\_VERSION](https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION): is defined as `"Lua 5.5-kernel"`.

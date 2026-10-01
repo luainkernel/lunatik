@@ -29,6 +29,9 @@
 #              called without a name, which the body answers with "cannot
 #              open" and for which a build without the refusal opens no file
 #              either.
+# loadfile:    loadfile, dofile and require of a directory, which the kernel
+#              opens and refuses to read, answer the errno's name, EINVAL,
+#              as a failed kernel call raises it.
 #
 # Usage: sudo bash tests/lua/run.sh
 
@@ -36,7 +39,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="floats identifiers require"
+TESTS="floats identifiers require loadfile"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup()
