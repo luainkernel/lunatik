@@ -921,6 +921,11 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   runtime holds its teardown reaches the block a second runtime registered
   after it.
 
+- **vt**: `notifier.vt` from a `hardirq` runtime hands its callback a
+  character written to `/dev/tty1` twice, as a `linux.vt` `PREWRITE` and as a
+  `WRITE`, each with the character and console 0, inside the write (skips
+  without a `/dev/tty1`, which only `CONFIG_VT` registers).
+
 ### probe
 
 - **aggregate**: a target another kprobe already holds is aggregated by the
