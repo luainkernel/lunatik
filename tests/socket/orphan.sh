@@ -15,9 +15,14 @@
 # initial namespace, WITNESS, still exists once the script is stopped, since the
 # orphans hold the namespace; when the retries run out and the kernel frees them
 # the namespace goes and takes WITNESS with it. A kernel that refuses a task's
-# namespace with EOPNOTSUPP skips the three cases. The shell has to run in the
-# initial pid namespace, the only one where the pid socket.new resolves is the
-# one signal.kill reads, and the test skips elsewhere.
+# namespace with EOPNOTSUPP skips the three cases.
+#
+# The script runs from a CLI in a pid namespace of its own, which does not hold
+# the holder's pid: socket.new reads a pid in the initial pid namespace, as
+# task:pid() returns it, whichever task makes the call, and a module that reads
+# it in the caller's raises ESRCH on the holder. The shell has to run in the
+# initial pid namespace, the only one whose pids are the ones socket.new and
+# signal.kill read, and the test skips elsewhere or without pid namespaces.
 #
 # Usage: sudo bash tests/socket/orphan.sh
 
@@ -49,6 +54,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 }
 skip() { ktap_skip "$1"; ktap_totals; exit 0; }
 command -v nsenter > /dev/null 2>&1 || skip "orphan: nsenter not available"
+unshare --pid --fork true 2> /dev/null || skip "orphan: no pid namespaces"
 initpidns || skip "orphan: suite runs in a pid namespace of its own"
 command -v nft > /dev/null 2>&1 || skip "orphan: nft not available"
 netns_up || skip "orphan: cannot create a network namespace"
@@ -70,7 +76,7 @@ echo "return {holder = $NSPID}" > "$PIDMOD"
 ip netns del "$NETNS"
 
 mark_dmesg
-run_script "$SCRIPT"
+CLI=pidns run_script "$SCRIPT"
 lunatik stop "$SCRIPT" 2> /dev/null
 HELD=$(ip link show "$WITNESS" > /dev/null 2>&1 && echo y)
 rm -f "$PIDMOD"

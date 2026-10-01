@@ -11,7 +11,9 @@
 # The wiphy goes into a network namespace of the test's own (netns.sh) and every
 # session the script opens takes the pid of the process kept there: in the
 # initial namespace the interface is one a network manager may take and bring
-# down under the test, which stops the AP and flushes its stations.
+# down under the test, which stops the AP and flushes its stations. The shell
+# has to run in the initial pid namespace, the only one whose pids are the ones
+# socket.new reads, and the test skips elsewhere.
 #
 # Usage: sudo bash tests/netlink/nl80211_station.sh
 
@@ -44,6 +46,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 }
 skip() { ktap_skip "$1"; ktap_totals; exit 0; }
 command -v iw > /dev/null 2>&1 && command -v nsenter > /dev/null 2>&1 || skip "nl80211_station: iw or nsenter not available"
+initpidns || skip "nl80211_station: suite runs in a pid namespace of its own"
 modinfo mac80211_hwsim > /dev/null 2>&1 || skip "nl80211_station: mac80211_hwsim unavailable"
 if ! lsmod | grep -q '^mac80211_hwsim'; then
 	modprobe mac80211_hwsim radios=2 2>/dev/null || skip "nl80211_station: mac80211_hwsim failed to load"
