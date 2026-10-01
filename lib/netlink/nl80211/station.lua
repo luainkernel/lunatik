@@ -47,6 +47,10 @@ function station:decode(attrs)
 	return { mac = attrs[attr.MAC] }
 end
 
+function station:filter(opts)
+	return message.attrs{[attr.IFINDEX] = opts.ifindex}
+end
+
 ---
 -- Opens a session, calling the class: `netlink.nl80211.station([pid])`.
 -- @function station:__call
@@ -59,11 +63,9 @@ end
 
 ---
 -- Lists the stations of an AP interface.
--- @tparam integer ifindex the AP interface index.
+-- @function station:list
+-- @tparam table opts list options: `ifindex`, the AP interface.
 -- @treturn table list of `{mac}` tables.
-function station:list(ifindex)
-	return object.list(self, message.attrs{[attr.IFINDEX] = ifindex})
-end
 
 ---
 -- Adds a station to an AP interface.

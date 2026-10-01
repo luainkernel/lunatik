@@ -14,7 +14,7 @@ local PRIO  = 32100 -- unusual priority so it does not clash with existing rules
 local rule <close> = netlink.rt.rule()
 
 local function present(tbl, prio)
-	for _, entry in ipairs(rule:list(af.INET)) do
+	for _, entry in ipairs(rule:list{family = af.INET}) do
 		if entry.table == tbl and entry.priority == prio then
 			return true
 		end

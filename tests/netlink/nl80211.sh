@@ -5,7 +5,8 @@
 #
 # Tests netlink.nl80211: loads mac80211_hwsim (simulated wifi radios), then the
 # module lists the simulated wlan interfaces over the nl80211 generic netlink
-# family (asserting one is present, in STATION mode and with its fields decoded)
+# family (asserting one is present, in STATION mode and with its fields decoded),
+# lists them given an options table too, of which an interface reads nothing,
 # and asserts both simulated wiphys come out of the fragmented GET_WIPHY dump.
 # Skips if mac80211_hwsim is unavailable.
 #
@@ -22,7 +23,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 3
+ktap_plan 4
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -46,6 +47,9 @@ ktap_pass "nl80211: hwsim interface listed"
 
 dmesg | grep -q "netlink nl80211: interface is STATION" || fail "interface not in STATION mode"
 ktap_pass "nl80211: interface reports STATION iftype"
+
+dmesg | grep -q "netlink nl80211: interface lists given an options table" || fail "interface:list{} did not list the interfaces"
+ktap_pass "nl80211: interface lists given an options table it reads nothing from"
 
 dmesg | grep -q "netlink nl80211: wiphys accumulated" || fail "wiphy accumulation incomplete"
 ktap_pass "nl80211: both hwsim wiphys accumulated from the fragmented dump"

@@ -7,7 +7,8 @@
 -- Base class for the nl80211 object classes (`wiphy`, `interface`, ...): a
 -- `netlink.genl` session bound to the `"nl80211"` family, caching its id and
 -- carrying the shared dump-decode loop. Each object class provides its `GET`
--- dump command, its `NEW` reply command and a `decode` for the attributes.
+-- dump command, its `NEW` reply command and a `decode` for the attributes, and
+-- a class whose dump takes attributes a `filter` serializing the list options.
 -- @module netlink.nl80211.object
 -- @see netlink.genl
 
@@ -37,17 +38,20 @@ end
 
 ---
 -- Dumps and decodes every record of the object type.
--- @tparam[opt] string payload a serialized filter (e.g. an interface index) to
---   scope the dump.
+-- @tparam[opt] table opts list options, which the class's `filter` serializes into the dump's
+--   attributes.
 -- @treturn table list of decoded record tables.
-function object:list(payload)
+function object:list(opts)
 	local records = {}
-	for _, msg in ipairs(self:dump(self.id, self.GET, payload)) do
+	for _, msg in ipairs(self:dump(self.id, self.GET, self:filter(opts))) do
 		if msg.cmd == self.NEW then
 			insert(records, self:decode(msg.attrs))
 		end
 	end
 	return records
+end
+
+function object:filter()
 end
 
 return object

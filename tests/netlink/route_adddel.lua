@@ -16,7 +16,7 @@ local LO      = 1                          -- loopback ifindex
 local route <close> = netlink.rt.route()
 
 local function present()
-	for _, entry in ipairs(route:list(af.INET)) do
+	for _, entry in ipairs(route:list{family = af.INET}) do
 		if entry.table == TABLE and entry.dst == DST and entry.dst_len == DST_LEN then
 			return true
 		end

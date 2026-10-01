@@ -69,6 +69,7 @@ end
 ---
 -- Lists all network interfaces from the kernel.
 -- @function link:list
+-- @tparam[opt] table opts list options, of which a link takes none.
 -- @treturn table list of link tables, each with `family`, `ltype`, `ifindex`, `flags`, `change`,
 --   `name` and `mtu`; a field whose attribute the reply lacks is nil.
 

@@ -39,7 +39,7 @@ ap:start{ifindex = ifindex, freq = 2412, beacon_interval = 100, dtim = 2,
 local station <close> = netlink.nl80211.station(pid)
 
 local function present()
-	for _, s in ipairs(station:list(ifindex)) do
+	for _, s in ipairs(station:list{ifindex = ifindex}) do
 		if s.mac == STA then return true end
 	end
 	return false

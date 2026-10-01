@@ -62,6 +62,7 @@ end
 ---
 -- Lists the wireless interfaces known to the kernel.
 -- @function interface:list
+-- @tparam[opt] table opts list options, of which an interface takes none.
 -- @treturn table list of `{ifindex, name, wiphy, iftype, mac}` tables (`mac`
 --   is 6 raw bytes).
 

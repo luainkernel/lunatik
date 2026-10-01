@@ -41,11 +41,11 @@ end
 
 ---
 -- Dumps and decodes every record of the object type.
--- @tparam[opt=AF_UNSPEC] integer family address family.
+-- @tparam[opt] table opts list options: `family`, the address family the class's `header` asks for.
 -- @treturn table list of decoded record tables.
-function object:list(family)
+function object:list(opts)
 	local records = {}
-	for _, msg in ipairs(self:dump(self.GET, self:header(family))) do
+	for _, msg in ipairs(self:dump(self.GET, self:header(opts and opts.family))) do
 		if msg.type == self.NEW then
 			insert(records, self:decode(msg.body))
 		end

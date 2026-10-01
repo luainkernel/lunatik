@@ -72,7 +72,8 @@ end
 ---
 -- Lists all FIB rules from the kernel.
 -- @function rule:list
--- @tparam[opt=AF_UNSPEC] integer family address family.
+-- @tparam[opt] table opts list options: `family`, the address family of the records listed
+--   (default `AF_UNSPEC`, every family).
 -- @treturn table list of rule tables, each with `family`, `action`, `flags`, `table`, `priority`
 --   and `fwmark`; `table` is the header's when the reply lacks the `TABLE` attribute, and any other
 --   field whose attribute the reply lacks is nil.
