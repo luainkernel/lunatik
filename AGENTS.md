@@ -470,7 +470,12 @@ the reasoning effort, and the maintainer's opt-in to workflows stands here: the 
 model and no effort, and three agents asked for at `xhigh` ran at the default through it, a review
 among them. `agent-guard.sh`, wired before the Agent tool, refuses every type but a read-only search
 and the Claude Code guide; `workflow-effort-guard.sh`, wired before the Workflow tool, refuses a script
-whose `agent()` calls never name an effort.
+whose `agent()` calls never name an effort. An agent a running workflow waits on is not messaged: the
+message resumes a copy of it from its transcript, which runs beside the original in its worktree and on
+the host, and #1390's and #1294's implementers each ran twice that way after a reply to their report.
+`send-guard.sh`, wired before SendMessage, refuses one whose run's journal holds no result for it; what
+its report asks for is done outside it, on the host or in an issue, or by stopping the workflow and
+relaunching it with notes.
 
 An issue goes to agents through the implement-issue skill's workflow: an implementer opens the pull
 request, and review-pr's workflow runs over it nested, so a review runs one way whoever launches it,
