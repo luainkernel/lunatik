@@ -66,8 +66,9 @@ static int luathread_func(void *data)
 
 	lunatik_run(thread->runtime, luathread_resume, ret, thread);
 
+	__module_get(THIS_MODULE); /* the put below can drop the object's, and this function runs on after it */
 	lunatik_putobject(object);
-	return ret;
+	module_put_and_kthread_exit(ret);
 }
 
 /***
