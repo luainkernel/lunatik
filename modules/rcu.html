@@ -189,7 +189,7 @@
 <h2 id="rcu">rcu</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#map">map (t, callback)</a></td>
+	<td class="name"><a href="#foreach">foreach (t, callback)</a></td>
 	<td class="summary">Iterates over the table calling <code>callback(key, value)</code> for each entry.</td>
 	</tr>
 	<tr>
@@ -201,9 +201,10 @@
     <h2 class="section-header" id="rcu-details"><a name="rcu"></a>rcu in detail</h2>
 
     <dl class="function">
-    <dt id="map"><a name="map"></a><strong>map (t, callback)</strong></dt>
+    <dt id="foreach"><a name="foreach"></a><strong>foreach (t, callback)</strong></dt>
     <dd>
     Iterates over the table calling <code>callback(key, value)</code> for each entry.
+ What the callback returns is ignored: it stops the walk early by raising an <a href="https://www.lua.org/manual/5.5/manual.html#pdf-error">error</a>.
  The walk runs inside an SRCU read-side critical section, which allows the callback
  to sleep; whether it may is its runtime&rsquo;s context, as for any code of a softirq or
  hardirq runtime. A writer on any runtime may change the table meanwhile: an entry
@@ -230,7 +231,7 @@
 
 
     <h3>Usage</h3>
-        <pre class="example">rcu.<span class="function-name">map</span>(t, <span class="keyword">function</span> (key, value) <span class="global">print</span>(key, value) <span class="keyword">end</span>)</pre>
+        <pre class="example">rcu.<span class="function-name">foreach</span>(t, <span class="keyword">function</span> (key, value) <span class="global">print</span>(key, value) <span class="keyword">end</span>)</pre>
 
 </dd>
     <dt id="table"><a name="table"></a><strong>table ([size=256])</strong></dt>
@@ -278,7 +279,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:26:49</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:47:35</span>
 </div>
 </footer>
 </body>

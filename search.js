@@ -316,7 +316,7 @@ window.LUNATIK_SEARCH = [
 ["probe:stop ()","modules/probe.html#probe:stop","probe · Unregisters and stops the probe."],
 ["new (symbol, handlers)","modules/probe.html#new","probe · Creates and registers a new kprobe."],
 ["rcu","modules/rcu.html","Module · RCU-synchronized hash table."],
-["map (t, callback)","modules/rcu.html#map","rcu · Iterates over the table calling callback(key, value) for each entry."],
+["foreach (t, callback)","modules/rcu.html#foreach","rcu · Iterates over the table calling callback(key, value) for each entry."],
 ["table ([size=256])","modules/rcu.html#table","rcu · Creates a new RCU hash table."],
 ["sched","modules/sched.html","Module · Linux Extensible Scheduler (sched_ext) integration."],
 ["sched_ctx:dsq (dsq)","modules/sched.html#sched_ctx:dsq","sched · Sets the sched_ext dispatch queue for this task."],
