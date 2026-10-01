@@ -8,6 +8,7 @@ local netfilter = require("netfilter")
 local nf        = require("linux.nf")
 local byteorder = require("byteorder")
 local net       = require("net")
+local hooks     = require("tests.netfilter.hooks")
 
 local PREFIX <const> = "netfilter mark: "
 local LENGTH <const> = 84 -- an IPv4 header and the 64 bytes of ICMP of a ping
@@ -33,16 +34,6 @@ local function zero(skb)
 	return report(skb, "zero")
 end
 
-local function localout(hook, mark)
-	return {
-		hook     = hook,
-		pf       = nf.proto.IPV4,
-		hooknum  = nf.inet.LOCAL_OUT,
-		priority = nf.ip.pri.FILTER,
-		mark     = mark,
-	}
-end
-
-netfilter.register(localout(absent))
-netfilter.register(localout(zero, 0))
+netfilter.register(hooks.localout(absent))
+netfilter.register(hooks.localout(zero, 0))
 

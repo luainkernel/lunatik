@@ -19,7 +19,7 @@ Optional tools, without which the suites that need them skip:
 - `nsenter`: netlink, notifier, socket
 - `nft`: skb, socket
 - `setarch`: probe, rcu
-- `taskset`: probe, xdp
+- `taskset`: netfilter, probe, xdp
 - `lunatic`: luac
 
 The scx, tc and xdp suites also need the modules built with the kernel's
@@ -803,6 +803,20 @@ allocates with).
   a loopback address, one marked and one not: the hook without a mark runs for
   both, and the hook with 0 runs for the unmarked one and not for the marked
   one, since a mark given selects by equality, 0 included.
+- **stop**: a hook's `stop` takes its callback off, its `__close` is that stop,
+  and a stopped hook lets its packets through without a word in the kernel log.
+  Four `LOCAL_OUT` hooks, each on its own mark: one stopped twice while the
+  body loads, one held by a to-be-closed variable whose metatable holds one
+  function under both names, one kept, and one whose callback stops its own
+  hook on its first packet, from softirq. Every marked ping goes through; the
+  kept hook and the first packet of the self-stopping one are reported, the
+  rest are not, and no line of `luanetfilter`'s reaches the log, though the
+  hooks stay registered until the runtime closes and each packet still reaches
+  the binding. The cases run on a plain runtime and on a percpu set, whose
+  runtimes share each hook and stop each their own callback, with every ping
+  sent from CPU 0 but one more to the self-stopping hook from the last CPU,
+  which the plain runtime does not report and the percpu set reports from that
+  CPU's runtime, whose callback still runs. Needs `taskset`.
 
 ### netlink
 
