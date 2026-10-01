@@ -59,10 +59,8 @@ static void luanetfilter_release(void *private);
 
 static inline bool luanetfilter_pushcb(lua_State *L, luanetfilter_t *luanf)
 {
-	if (lunatik_getregistry(L, luanf) != LUA_TTABLE) {
-		pr_err_ratelimited("couldn't find ops table\n");
-		return false;
-	}
+	if (lunatik_getregistry(L, luanf) != LUA_TTABLE)
+		return false; /* stopped: the packet takes the policy */
 
 	if (lua_getfield(L, -1, "hook") != LUA_TFUNCTION) {
 		pr_err_ratelimited("operation not defined\n");
@@ -207,8 +205,36 @@ static luanetfilter_hook_t *luanetfilter_own(lua_State *L, luanetfilter_t *nf, c
 	return nf->hook;
 }
 
+/***
+* A registered Netfilter hook.
+* Returned by `netfilter.register`.
+* @type netfilter_hook
+*/
+
+static const lunatik_class_t luanetfilter_class;
+
+LUNATIK_PRIVATECHECKER(luanetfilter_check, luanetfilter_t *, &luanetfilter_class);
+
+/***
+* Stops the hook's callback.
+* A packet the hook sees afterwards takes the `ACCEPT` policy without reaching Lua. The hook
+* stays registered until the runtime closes, since unregistering it sleeps and a stop may come
+* from a callback; in a percpu script this stops the callback of this runtime alone. Calling it
+* again does nothing, and a to-be-closed variable holding the hook stops it the same way.
+* @function stop
+* @treturn nil
+* @usage hook:stop()
+*/
+static int luanetfilter_stop(lua_State *L)
+{
+	lunatik_unregister(L, luanetfilter_check(L, 1)); /* the ops table the callback is read from */
+	return 0;
+}
+
 static const luaL_Reg luanetfilter_mt[] = {
 	{"__gc", lunatik_deleteobject},
+	{"__close", luanetfilter_stop},
+	{"stop", luanetfilter_stop},
 	{NULL, NULL}
 };
 
@@ -237,10 +263,10 @@ static const lunatik_class_t luanetfilter_class = {
 *   and optionally a mark to set on the packet. A callback that returns no verdict, or that
 *   raises, accepts the packet; one that returns any other value, `STOLEN`, `REPEAT` and `STOP`
 *   included, accepts it too and logs `invalid verdict`.
-* @treturn netfilter_hook Registered hook handle. `netfilter.register` keeps this object for its
-*   runtime, so dropping it does not unregister the hook: the hook stays until the runtime closes,
-*   which `stop()` does, and the one hook a percpu script's runtimes share goes when the percpu set
-*   stops.
+* @treturn netfilter_hook the hook, which `netfilter.register` keeps for its runtime: dropping it
+*   stops nothing, and the callback runs until `stop` or the end of the runtime. The hook stays
+*   registered until the runtime closes, and the one hook a percpu script's runtimes share until
+*   the percpu set stops.
 * @raise "not allowed once the runtime is armed" past the script body; `runtime context mismatch`
 *   outside a softirq runtime; `not allowed while the runtime closes` from a finalizer that runs at
 *   its close; `bad field '<field>' (number expected, got <type>)` if `pf`, `hooknum` or
