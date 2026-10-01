@@ -14,6 +14,8 @@
 # has closed its sockets the namespace goes, and with it the veth pair whose
 # other end, WITNESS, the test left in the initial namespace: no socket keeps
 # its reference past its close, and the one the kernel refused keeps none.
+# The shell has to run in the initial pid namespace, the only one where the pid
+# socket.new resolves is the one signal.kill reads, and the test skips elsewhere.
 #
 # Usage: sudo bash tests/netlink/link_netns.sh
 
@@ -44,6 +46,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 }
 skip() { ktap_skip "$1"; ktap_totals; exit 0; }
 command -v nsenter > /dev/null 2>&1 || skip "link_netns: nsenter not available"
+initpidns || skip "link_netns: suite runs in a pid namespace of its own"
 netns_up || skip "link_netns: cannot create a network namespace"
 ip -n "$NETNS" link add "$DEV" type dummy 2> /dev/null || skip "link_netns: cannot create a dummy device"
 ip link add "$WITNESS" type veth peer name "$WITNESS" netns "$NETNS" 2> /dev/null ||

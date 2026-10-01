@@ -57,10 +57,18 @@ kprobe_remove() {
 	grep -q ":$1 " "$TRACING/kprobe_events" 2>/dev/null && echo "-:$1" >> "$TRACING/kprobe_events"
 }
 
+# the CLI in a pid namespace of its own, which holds none of the shell's pids: CLI=pidns before
+# run_script or run_test runs the script's body from there
+pidns() { unshare --pid --fork lunatik "$@"; }
+
+# only in the initial pid namespace, whose inode is PROC_PID_INIT_INO, are the shell's pids the numbers
+# task:pid() returns
+initpidns() { [ "$(readlink /proc/self/ns/pid)" = "pid:[4026531836]" ]; }
+
 # a script that fails reports its error on the output.
 run_script() {
 	local output
-	output=$(lunatik run "$@" 2>&1)
+	output=$(${CLI:-lunatik} run "$@" 2>&1)
 	[ -z "$output" ] && return 0
 	ktap_fail "Lua error in script"
 	comment "$output"
@@ -72,7 +80,7 @@ run_script() {
 run_test() {
 	local output errs
 	mark_dmesg
-	output=$(lunatik run "$@" 2>&1)
+	output=$(${CLI:-lunatik} run "$@" 2>&1)
 	errs=$(dmesg_since | grep -E "^[^:]+: (FAIL|fail)	|$KTAP_ERRORS" || true)
 	[ -z "$output" ] && [ -z "$errs" ] && return 0
 

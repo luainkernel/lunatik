@@ -15,7 +15,9 @@
 # initial namespace, WITNESS, still exists once the script is stopped, since the
 # orphans hold the namespace; when the retries run out and the kernel frees them
 # the namespace goes and takes WITNESS with it. A kernel that refuses a task's
-# namespace with EOPNOTSUPP skips the three cases.
+# namespace with EOPNOTSUPP skips the three cases. The shell has to run in the
+# initial pid namespace, the only one where the pid socket.new resolves is the
+# one signal.kill reads, and the test skips elsewhere.
 #
 # Usage: sudo bash tests/socket/orphan.sh
 
@@ -47,6 +49,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 }
 skip() { ktap_skip "$1"; ktap_totals; exit 0; }
 command -v nsenter > /dev/null 2>&1 || skip "orphan: nsenter not available"
+initpidns || skip "orphan: suite runs in a pid namespace of its own"
 command -v nft > /dev/null 2>&1 || skip "orphan: nft not available"
 netns_up || skip "orphan: cannot create a network namespace"
 ip -n "$NETNS" link set lo up 2> /dev/null || skip "orphan: cannot bring loopback up in the namespace"

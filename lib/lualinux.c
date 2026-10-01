@@ -19,6 +19,9 @@
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
 #include <linux/netdevice.h>
+#include <linux/pid_namespace.h>
+#include <linux/nsproxy.h>
+#include <linux/sched/task.h>
 #include <net/net_namespace.h>
 
 #include <lunatik.h>
@@ -227,6 +230,24 @@ static int lualinux_hwaddr(lua_State *L)
 	return 1;
 }
 
+static struct net *lualinux_getnetbypid(pid_t pid)
+{
+	struct net *net = ERR_PTR(-ESRCH);
+
+	rcu_read_lock();
+	struct task_struct *task = pid_task(find_pid_ns(pid, &init_pid_ns), PIDTYPE_PID);
+	if (task == NULL)
+		goto unlock;
+
+	task_lock(task);
+	if (task->nsproxy != NULL)
+		net = get_net(task->nsproxy->net_ns);
+	task_unlock(task);
+unlock:
+	rcu_read_unlock();
+	return net;
+}
+
 /***
 * Gets the inode number that identifies a network namespace, the one `/proc/<pid>/ns/net`
 * links to and `lsns` prints.
@@ -235,9 +256,8 @@ static int lualinux_hwaddr(lua_State *L)
 * this one.
 *
 * @function netns
-* @tparam[opt] integer pid a task whose network namespace to identify, resolved in the pid
-*   namespace of the task making the call: the `lunatik` process for a script's body, the
-*   initial one for a kernel thread.
+* @tparam[opt] integer pid a task whose network namespace to identify, in the initial pid
+*   namespace: the number `task:pid()` returns, whichever task makes the call.
 * @treturn integer inode number of the namespace.
 * @raise `ESRCH` if no task has that pid, and "not allowed once the runtime is armed" for a pid
 *   from an interrupt-context runtime past its body, where the task's lock would be taken in
@@ -254,7 +274,7 @@ static int lualinux_netns(lua_State *L)
 
 	lunatik_checkarmed(L);
 	pid_t pid = (pid_t)lunatik_checkinteger(L, 1, 1, PID_MAX_LIMIT);
-	struct net *net = get_net_ns_by_pid(pid);
+	struct net *net = lualinux_getnetbypid(pid);
 	if (IS_ERR(net))
 		lunatik_throw(L, (int)PTR_ERR(net));
 	lua_pushinteger(L, net->ns.inum);

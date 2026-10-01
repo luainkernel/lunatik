@@ -14,6 +14,13 @@
 # The truncation cases target the child on every build, so a module without
 # the bound sends the child a signal and fails the case, never a stranger.
 #
+# The script runs from a CLI in a pid namespace of its own, which holds neither
+# pid: kill reads a pid in the initial pid namespace, as task:pid() returns it,
+# whichever task makes the call, and a module that reads it in the caller's
+# raises ESRCH on the child and fails both cases. The shell has to run in the
+# initial pid namespace, the only one whose pids are the ones kill reads, and
+# the cases skip elsewhere or without pid namespaces.
+#
 # Usage: sudo bash tests/signal/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -33,6 +40,13 @@ cleanup
 ktap_header
 ktap_plan 2
 
+if ! initpidns || ! unshare --pid --fork true 2>/dev/null; then
+	ktap_skip "signal/kill: needs to run in the initial pid namespace and to create another"
+	ktap_skip "signal/kill: the child ends on SIGTERM"
+	ktap_totals
+	exit 0
+fi
+
 sleep 30 &
 CHILD=$!
 true &
@@ -40,7 +54,7 @@ REAPED=$!
 wait "$REAPED"
 echo "return {child = $CHILD, reaped = $REAPED}" > "$PIDMOD"
 
-if run_test "$SCRIPT_KILL"; then
+if CLI=pidns run_test "$SCRIPT_KILL"; then
 	ktap_pass "signal/kill"
 else
 	ktap_fail "signal/kill"
