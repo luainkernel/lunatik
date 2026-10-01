@@ -30,7 +30,7 @@ connectivity a few seconds after the start, as in
 ## Network monitoring and control
 
 * [tap](../../examples/tap): a sniffer on an `AF_PACKET` socket, read from a character device.
-* [lldpd](../../examples/lldpd): an LLDP transmitter that periodically emits frames on an interface.
+* [lldpd](../../examples/lldpd): sends and receives LLDP, remembers neighbors, and exposes remaining TTL from the REPL.
 * [netfailover](../../examples/netfailover): installs a backup route when a watched interface goes
   down, and removes it when the link comes back.
 * [ifquarantine](../../examples/ifquarantine): an interface-level default-deny policy built from two
