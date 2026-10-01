@@ -760,9 +760,11 @@ higher-level `netlink.*` modules built on top of it.
   script has closed its sockets, the one the kernel refused having kept no
   reference, the namespace goes, and with it the veth pair the test gave it,
   whose end in the initial namespace disappears (skips without `nsenter`,
-  network namespaces, the dummy driver or veth). On a kernel where `socket.new`
-  refuses a task's namespace with `EOPNOTSUPP`, the script says so and the
-  five namespace cases skip on that message.
+  network namespaces, the dummy driver or veth, and from a pid namespace other
+  than the initial one, where the pid `socket.new` resolves is not the one
+  `signal.kill` reads). On a kernel where `socket.new` refuses a task's
+  namespace with `EOPNOTSUPP`, the script says so and the five namespace cases
+  skip on that message.
 - **addr_list**: `rt.addr():list()` lists addresses; asserts `127.0.0.1` is
   present on loopback with `prefix_len == 8` and no `peer`. On a dummy
   interface, `192.0.2.1 peer 192.0.2.2` and `2001:db8::1 peer 2001:db8::2`
@@ -829,13 +831,16 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   namespace, each with the inode number of its namespace, which `linux.netns()`
   gives for the initial one and `linux.netns(pid)` for a task's: pid 1's is the
   initial namespace's, the pid of the process kept in a second namespace gives
-  that one's, a reaped pid raises `ESRCH` and pid 0 is out of bounds. With that
-  namespace holding a homonym of every device, `lo` is replayed once per
-  namespace with its own number, a dummy device created and deleted on both
-  sides is reported on register and on unregister with the number of its side,
-  and one moved across is unregistered with the number of the namespace it
-  leaves and registered with the number of the one it joins (skips without
-  `nsenter`).
+  that one's, a reaped pid raises `ESRCH` and pid 0 is out of bounds. The script
+  runs from a CLI in a pid namespace of its own, which holds neither of those
+  pids, so the second namespace's number proves the pid is read in the initial
+  pid namespace, as `task:pid()` returns it. With that namespace holding a
+  homonym of every device, `lo` is replayed once per namespace with its own
+  number, a dummy device created and deleted on both sides is reported on
+  register and on unregister with the number of its side, and one moved across
+  is unregistered with the number of the namespace it leaves and registered
+  with the number of the one it joins (skips without `nsenter` or pid
+  namespaces, and from a pid namespace other than the initial one).
 
 - **replay**: a flag the script clears once `notifier.netdevice` returns
   tells the events `register_netdevice_notifier` delivers itself for the
@@ -1247,7 +1252,11 @@ pid, and what a valid call does.
   and `kill(child, TERM)` signals the child, and the shell then sees the child
   end on `SIGTERM`. The truncation
   cases target the child on every build, so a module without the bound signals
-  the child and fails the case, never a stranger.
+  the child and fails the case, never a stranger. The script runs from a CLI in
+  a pid namespace of its own, which holds neither pid, so reaching the child
+  proves the pid is read in the initial pid namespace, as `task:pid()` returns
+  it (skips without pid namespaces, and from a pid namespace other than the
+  initial one).
 
 ### set
 
@@ -1381,8 +1390,10 @@ pid, and what a valid call does.
   the sockets. The veth end the test left in the initial namespace still exists
   once the script is stopped, since the two orphans hold the namespace, and goes
   once the retries run out and the kernel frees them (skips without `nsenter`,
-  `nft`, network namespaces or veth; on a kernel where `socket.new` refuses a
-  task's namespace with `EOPNOTSUPP`, the three cases skip on that message).
+  `nft`, network namespaces or veth, and from a pid namespace other than the
+  initial one, where the pid `socket.new` resolves is not the one `signal.kill`
+  reads; on a kernel where `socket.new` refuses a task's namespace with
+  `EOPNOTSUPP`, the three cases skip on that message).
 
 - **rtnl**: what a socket refuses under RTNL, probed from the replay of a
   `notifier.netdevice` registration: a `netlink.rt` request, whose rtnetlink

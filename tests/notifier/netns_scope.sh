@@ -26,6 +26,13 @@
 # The assertions read the initial namespace as ground truth, so the suite has to
 # run in it, read as PID 1 sharing its namespace; elsewhere the test skips.
 #
+# The script runs from a CLI in a pid namespace of its own, which holds neither
+# the holder's pid nor the reaped one: linux.netns reads a pid in the initial pid
+# namespace, as task:pid() returns it, whichever task makes the call, and a
+# module that reads it in the caller's raises ESRCH on the holder. The shell has
+# to run in the initial pid namespace, the only one whose pids are the ones
+# linux.netns reads, and the test skips elsewhere or without pid namespaces.
+#
 # Usage: sudo bash tests/notifier/netns_scope.sh
 
 SCRIPT="tests/notifier/netns_scope"
@@ -77,6 +84,8 @@ inum()
 
 command -v ip > /dev/null 2>&1 || skip_all "ip not available"
 command -v nsenter > /dev/null 2>&1 || skip_all "nsenter not available"
+unshare --pid --fork true 2> /dev/null || skip_all "no pid namespaces"
+initpidns || skip_all "suite runs in a pid namespace of its own"
 [ "$(readlink /proc/1/ns/net)" = "$(readlink /proc/self/ns/net)" ] ||
 	skip_all "suite runs in a network namespace of its own"
 ip link add "$LIVEDEV" type dummy 2> /dev/null || skip_all "cannot create a dummy device"
@@ -93,7 +102,7 @@ wait "$REAPED"
 echo "return {holder = $NSPID, reaped = $REAPED}" > "$PIDMOD"
 
 mark_dmesg
-run_script "$SCRIPT"
+CLI=pidns run_script "$SCRIPT"
 
 [ "$(reported "home $INIT task $INIT holder $OTHER")" = 1 ] || fail "linux.netns(), linux.netns(1) or linux.netns($NSPID) is not its namespace's number"
 ktap_pass "linux.netns names the initial namespace, without a pid and with pid 1, and a task's by its pid"
