@@ -16,13 +16,18 @@
 # percpu is refused at load, since every runtime would register the one family.
 # Its body refuses, as out of bounds, a port id past 32 bits or negative and a
 # command past 8 bits or negative, each with low bits a truncating build would
-# send to, and takes both at the top of their range.
+# send to, and takes both at the top of their range; it refuses a unicast to
+# port id 0, the kernel's, and a family named with the empty string, with
+# GENL_NAMSIZ bytes, which leave no room for the terminator, or with the name it
+# registered, which genl_register_family answers with EEXIST, and registers the
+# longest name. Once the script stops, neither family it registered is left.
 #
 # Usage: sudo bash tests/netlink/channel.sh
 
 SCRIPT="tests/netlink/channel"
 MODULE="luanetlink"
 FAMILY="lunatiktest"
+LONGEST="xxxxxxxxxxxxxxx" # GENL_NAMSIZ - 1 bytes
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
@@ -40,7 +45,7 @@ SUB_OUT="$(mktemp)"
 SUB_ERR="$(mktemp)"
 
 ktap_header
-ktap_plan 6
+ktap_plan 9
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -66,6 +71,12 @@ ktap_pass "channel: unicast to an absent port id returns false"
 
 dmesg_since | grep -q "netlink channel: a port id or command past its range is refused" || fail "a port id or command past its range was not refused"
 ktap_pass "channel: a port id or command past its range is refused as out of bounds"
+
+dmesg_since | grep -q "netlink channel: unicast to port id 0 is refused" || fail "a unicast to port id 0 was not refused"
+ktap_pass "channel: a unicast to port id 0 is refused"
+
+dmesg_since | grep -q "netlink channel: new refuses an empty, too long or registered name" || fail "netlink.channel.new took a name it should refuse"
+ktap_pass "channel: new refuses an empty name, one of GENL_NAMSIZ bytes and a registered one"
 
 # the family is now registered; resolve its multicast group id (the group line
 # is the only one with an "ID-0x" token; the family id prints as "ID: 0x")
@@ -93,6 +104,11 @@ ktap_pass "channel: userspace received a unicast sent from a softirq hook"
 
 dmesg_since | grep -q "netlink channel: new from a hook is refused" || fail "netlink.channel.new was not refused from a hook"
 ktap_pass "channel: netlink.channel.new from a softirq hook raises"
+
+lunatik stop "$SCRIPT" 2>/dev/null
+genl ctrl get name "$FAMILY" > /dev/null 2>&1 && fail "$FAMILY outlived the script's stop"
+genl ctrl get name "$LONGEST" > /dev/null 2>&1 && fail "$LONGEST outlived the script's stop"
+ktap_pass "channel: a stop unregisters every family the script registered"
 
 ktap_totals
 
