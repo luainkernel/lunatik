@@ -795,7 +795,7 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
 
 - **context_mismatch**: calling a hardirq-class constructor (e.g.
   `notifier.keyboard`) from a process runtime must error with "runtime
-  context mismatch" without oopsing during `__gc`.
+  context mismatch: notifier needs hardirq" without oopsing during `__gc`.
 
 - **init_dispatch**: `notifier.netdevice(cb)` at script init must handle
   the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier`
@@ -1185,7 +1185,7 @@ Skipped when the kernel has no sched_ext (`/sys/kernel/sched_ext`), the
 module lacks BTF, or `bpftool` or `clang` is unavailable.
 
 - **sched attach**: `sched.attach()` refuses a sleepable runtime with
-  `runtime context mismatch`.
+  `runtime context mismatch: sched.ctx needs hardirq`.
 
 - **sched reattach**: a hardirq runtime attaches, re-attaches (replacing the
   callback) and detaches without a Lua error.
@@ -1449,7 +1449,7 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   attached, reports "no callback attached".
 
 - **tc attach**: `tc.attach` refuses a sleepable runtime with "runtime
-  context mismatch".
+  context mismatch: tc.ctx needs softirq".
 
 - **tc zero-key**: an eBPF program calling `bpf_luatc_run` with a
   zero-sized key (which the verifier accepts) is rejected in the kfunc
@@ -1560,7 +1560,7 @@ bound before, and a first attach, which finds nothing, logs nothing.
   attached, reports "no callback attached".
 
 - **xdp attach**: `xdp.attach` refuses a sleepable runtime with "runtime
-  context mismatch".
+  context mismatch: xdp.ctx needs softirq".
 
 - **xdp zero-key**: an eBPF program calling `bpf_luaxdp_run` with a
   zero-sized key (which the verifier accepts) is rejected in the kfunc

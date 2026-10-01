@@ -406,7 +406,7 @@ static int luaprobe_new(lua_State *L)
 	/* the kernel charges for a post handler: no optimization, an ftrace IPMODIFY reservation */
 	spec.kp.post_handler = lua_getfield(L, 2, "post") == LUA_TFUNCTION ? luaprobe_post_handler : NULL;
 	lua_pop(L, 1);
-	lunatik_object_t *runtime = lunatik_checkruntime(L, LUNATIK_OPT_HARDIRQ);
+	lunatik_object_t *runtime = lunatik_checkruntime(L, luaprobe_class.name, LUNATIK_OPT_HARDIRQ);
 	lunatik_object_t *percpu = lunatik_getpercpu(L);
 
 	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, 0, LUNATIK_OPT_NONE);

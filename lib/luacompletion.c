@@ -84,7 +84,7 @@ static int luacompletion_wait(lua_State *L)
 	unsigned long timeout_jiffies = msecs_to_jiffies((unsigned long)timeout);
 	long ret;
 
-	lunatik_checkruntime(L, LUNATIK_OPT_NONE);
+	lunatik_checkruntime(L, luacompletion_class.name, LUNATIK_OPT_NONE);
 	ret = wait_for_completion_interruptible_timeout(completion, timeout_jiffies);
 	if (ret > 0) {
 		lua_pushboolean(L, true);

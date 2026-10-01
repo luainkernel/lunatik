@@ -704,7 +704,7 @@ static int luafsnotify_watch(lua_State *L)
 	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 
-	lunatik_object_t *runtime = lunatik_checkruntime(L, luafsnotify_class.opt);
+	lunatik_object_t *runtime = lunatik_checkruntime(L, luafsnotify_class.name, luafsnotify_class.opt);
 	lunatik_seedflag(L, &luafsnotify_incallback);
 	lunatik_object_t *object = lunatik_newobject(L, &luafsnotify_class, 0, LUNATIK_OPT_NONE);
 	luafsnotify_t *watch = luafsnotify_newwatch(L, runtime);

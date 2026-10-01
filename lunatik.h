@@ -215,11 +215,12 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 
 #define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
 
-static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt)
+static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *name, lunatik_opt_t opt)
 {
 	lunatik_object_t *runtime = lunatik_toruntime(L);
 	if (lunatik_context(runtime->opt) != lunatik_context(opt))
-		luaL_error(L, LUNATIK_ERR_RUNTIME);
+		luaL_error(L, LUNATIK_ERR_RUNTIME ": %s needs %s", name,
+			lunatik_ishardirq(opt) ? "hardirq" : lunatik_isirq(opt) ? "softirq" : "process");
 	return runtime;
 }
 
@@ -231,7 +232,8 @@ static inline lunatik_opt_t lunatik_checkcontext(lua_State *L, int ix)
 	return opts[luaL_checkoption(L, ix, "process", contexts)];
 }
 
-#define lunatik_setruntime(L, libname, priv)	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.opt))
+#define lunatik_setruntime(L, libname, priv)	\
+	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.name, lua##libname##_class.opt))
 #define lunatik_monitormt(class, monitor)	((monitor) ? (const void *)&(class)->opt : (const void *)(class))
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)

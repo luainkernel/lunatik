@@ -235,7 +235,7 @@ static int luaxdp_detach(lua_State *L)
 */
 static int luaxdp_attach(lua_State *L)
 {
-	lunatik_checkruntime(L, LUNATIK_OPT_SOFTIRQ);
+	lunatik_checkruntime(L, luaxdp_class.name, LUNATIK_OPT_SOFTIRQ);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 	luaxdp_detach(L); /* re-attaching replaces the previous callback */
 

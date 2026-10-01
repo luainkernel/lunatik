@@ -378,21 +378,23 @@ and `thread.shouldstop` asks `kthread_should_stop` only there. Defined as a macr
 
 ### lunatik\_checkruntime
 ```C
-lunatik_object_t *lunatik_checkruntime(lua_State *L, lunatik_opt_t opt);
+lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *name, lunatik_opt_t opt);
 ```
-Returns the runtime associated with `L` and raises `runtime context mismatch` if its context does
-not match `opt`. Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a
-`softirq` runtime, a HARDIRQ class in a `hardirq` runtime, and a process-context class in a
-process runtime. A binding's constructor calls it, directly or through `lunatik_setruntime`, to
-enforce that a class is only instantiated in a compatible runtime.
+Returns the runtime associated with `L` and raises `runtime context mismatch: <name> needs
+<context>` if its context does not match `opt`, where `name` names what needs the context, the
+class a constructor creates, and `<context>` is `process`, `softirq` or `hardirq`, as `opt` says.
+Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a `softirq` runtime,
+a HARDIRQ class in a `hardirq` runtime, and a process-context class in a process runtime. A
+binding's constructor calls it, directly or through `lunatik_setruntime`, to enforce that a class
+is only instantiated in a compatible runtime.
 
 ### lunatik\_setruntime
 ```C
 lunatik_object_t *lunatik_setruntime(lua_State *L, libname, priv);
 ```
-Stores `lunatik_checkruntime(L, lua<libname>_class.opt)` in `priv->runtime` and returns it: the
-class is read by its name, `lua<libname>_class`, so `lunatik_setruntime(L, device, luadev)` checks
-against `luadevice_class`. Defined as a macro.
+Stores `lunatik_checkruntime(L, lua<libname>_class.name, lua<libname>_class.opt)` in
+`priv->runtime` and returns it: the class is read by its name, `lua<libname>_class`, so
+`lunatik_setruntime(L, device, luadev)` checks against `luadevice_class`. Defined as a macro.
 
 ### lunatik\_checkcontext
 ```C
