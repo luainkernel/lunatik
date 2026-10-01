@@ -179,13 +179,12 @@ static int lualinux_lookup(lua_State *L)
 
 /***
 * Gets the interface index for a network device name.
-* Resolved in the initial network namespace: a device of another namespace raises "device not
-* found" (see `linux.netns`).
+* Resolved in the initial network namespace: a device of another namespace is not found there
+* (see `linux.netns`).
 *
 * @function ifindex
 * @tparam string interface_name network interface name (e.g., "eth0").
-* @treturn integer interface index.
-* @raise Error if the device is not found.
+* @treturn integer interface index, or `nil` if no device has that name.
 * @usage
 *   local index = linux.ifindex("lo")
 *   print("Index of lo:", index)
@@ -195,21 +194,19 @@ static int lualinux_ifindex(lua_State *L)
 	const char *ifname = luaL_checkstring(L, 1);
 	struct net_device *dev = dev_get_by_name(&init_net, ifname);
 
-	luaL_argcheck(L, dev != NULL, 1, "device not found");
-	lua_pushinteger(L, dev->ifindex);
+	lunatik_pushoptinteger(L, dev != NULL, dev->ifindex);
 	dev_put(dev);
 	return 1;
 }
 
 /***
 * Gets the HW address for the network interface index.
-* Resolved in the initial network namespace: a device of another namespace raises "device not
-* found" (see `linux.netns`).
+* Resolved in the initial network namespace: a device of another namespace is not found there
+* (see `linux.netns`).
 *
 * @function hwaddr
 * @tparam integer ifindex interface index number.
-* @treturn string interface HW address.
-* @raise Error if the device is not found.
+* @treturn string interface HW address, or `nil` if no device has that index.
 * @usage
 *   local addr = linux.hwaddr(index)
 *   print(string.byte(addr,1,6))
@@ -221,7 +218,10 @@ static int lualinux_hwaddr(lua_State *L)
 	char *addr = luaL_buffinitsize(L, &B, MAX_ADDR_LEN);
 	struct net_device *dev = dev_get_by_index(&init_net, ifindex);
 
-	luaL_argcheck(L, dev != NULL, 1, "device not found");
+	if (dev == NULL) {
+		lua_pushnil(L);
+		return 1;
+	}
 	size_t len = min_t(size_t, dev->addr_len, MAX_ADDR_LEN);
 	memcpy(addr, dev->dev_addr, len);
 	dev_put(dev);

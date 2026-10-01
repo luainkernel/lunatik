@@ -697,6 +697,9 @@ after the watch is stopped.
   "unknown" for `INT_MAX` and `-INT_MAX`; it refuses `INT_MIN`, whose absolute
   value an `int` cannot hold, and a number past an `int`, as out of bounds,
   rather than naming its low 32 bits.
+- **ifindex**: `linux.ifindex` resolves `lo` to its index and `linux.hwaddr`
+  that index to `lo`'s address, and each answers `nil`, alone, for a name or an
+  index no device has.
 
 ### lua
 

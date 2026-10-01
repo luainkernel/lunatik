@@ -46,8 +46,8 @@ local function callback(event, name, netns)
 		return notify.OK
 	end
 	if event == netdev.REGISTER then
-		local ok, idx = pcall(linux.ifindex, name)
-		if ok and idx then
+		local idx = linux.ifindex(name)
+		if idx then
 			if loading then
 				record(name, idx)
 			else
