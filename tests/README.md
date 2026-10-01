@@ -137,6 +137,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   that is not 12 bytes and a key that is not 32 are refused; and a script that
   does not parse, a precompiled one and one that raises reach the caller with
   their own error.
+- **shade**: a script `tools/shade.sh` encrypted runs through `lighten` with
+  the key `shade.sh lighten` wrote for its secret. Skips below OpenSSL 3.
 
 ### data
 
