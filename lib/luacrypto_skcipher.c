@@ -61,8 +61,7 @@ static int luacrypto_skcipher_blocksize(lua_State *L)
 }
 
 typedef struct luacrypto_skcipher_request_s {
-	struct scatterlist src;
-	struct scatterlist dst;
+	struct scatterlist sg;
 	struct skcipher_request *skcipher;
 	const char *data;
 	size_t data_len;
@@ -85,10 +84,10 @@ static inline void luacrypto_skcipher_setrequest(luacrypto_skcipher_request_t *r
 	struct skcipher_request *skcipher = request->skcipher;
 	size_t data_len = request->data_len;
 
-	sg_init_one(&request->src, request->data, data_len);	/* mapped from Lua string */
-	sg_init_one(&request->dst, buffer, data_len);		/* into allocated buffer */
+	memcpy(buffer, request->data, data_len);
+	sg_init_one(&request->sg, buffer, data_len);
 
-	skcipher_request_set_crypt(skcipher, &request->src, &request->dst, data_len, request->iv);
+	skcipher_request_set_crypt(skcipher, &request->sg, &request->sg, data_len, request->iv);
 	skcipher_request_set_callback(skcipher, 0, NULL, NULL);
 }
 
@@ -98,9 +97,7 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 	luacrypto_skcipher_newrequest(L, &request);
 
 	/* extra byte for the NUL terminator written by lunatik_pushstring() */
-	char *buffer = (char *)lunatik_malloc(L, request.data_len + 1);
-	if (buffer == NULL)
-		lunatik_enomem(L);
+	char *buffer = luacrypto_newbuffer(L, request.data_len + 1);
 
 	luacrypto_skcipher_setrequest(&request, buffer);
 	int ret = crypt(request.skcipher);
@@ -119,7 +116,8 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 * @tparam string iv initialization vector
 * @tparam string data plaintext
 * @treturn string ciphertext (same length as input)
-* @raise on encryption failure or incorrect IV length
+* @raise on encryption failure or incorrect IV length, "not enough memory" when one kmalloc block
+*   cannot be allocated for the data, always past `KMALLOC_MAX_SIZE`
 */
 static int luacrypto_skcipher_encrypt(lua_State *L)
 {
@@ -132,7 +130,8 @@ static int luacrypto_skcipher_encrypt(lua_State *L)
 * @tparam string iv initialization vector
 * @tparam string data ciphertext
 * @treturn string plaintext (same length as input)
-* @raise on decryption failure or incorrect IV length
+* @raise on decryption failure or incorrect IV length, "not enough memory" when one kmalloc block
+*   cannot be allocated for the data, always past `KMALLOC_MAX_SIZE`
 */
 static int luacrypto_skcipher_decrypt(lua_State *L)
 {

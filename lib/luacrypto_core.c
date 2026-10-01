@@ -10,7 +10,8 @@
 * its class. Errors are raised as errno names: "ENOENT" for an unknown algorithm, "EINVAL" for a
 * wrong IV, key or state length or a block cipher input that is not a multiple of `blocksize()`,
 * "EBADMSG" for an AEAD tag mismatch, "ENOMEM" when the kernel cannot allocate the transform, and
-* "not enough memory" when the binding cannot allocate its own state or output.
+* "not enough memory" when the binding cannot allocate its own state, its output or the copy of its
+* input.
 * @module crypto
 */
 
@@ -84,6 +85,12 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include "luacrypto.h"
+
+char *luacrypto_newbuffer(lua_State *L, size_t size)
+{
+	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L)) | __GFP_NOWARN; /* Lua raises on a NULL */
+	return (char *)lunatik_checknull(L, kmalloc(size, gfp)); /* a scatterlist maps linear memory */
+}
 
 static const luaL_Reg luacrypto_lib[] = {
 	{"shash", luacrypto_shash_new},
