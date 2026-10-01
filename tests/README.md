@@ -1306,20 +1306,21 @@ pid, and what a valid call does.
   refusal, since a module without it panics the host.
 
 - **data**: a ping to the loopback address reaches `LOCAL_OUT` with no MAC header
-  yet, where `skb:data("mac")` raises "MAC header not set", and `PRE_ROUTING` on
-  `lo`, where `#skb:data("mac")` is `#skb` plus the Ethernet header. A ping over an
-  ipip tunnel reaches `LOCAL_OUT` with the outer packet's MAC header at the inner
-  IPv4 header: `#skb:data()` equals `#skb` and `#skb:data("mac")` is shorter by the
-  outer header, both views ending at the tail. Taken together, the two are two
-  views: the "net" view keeps its length and the outer header's protocol after the
-  "mac" view is taken, on the packet and on a copy of it. Trimmed below the outer
-  header with `skb:resize`, the packet makes `skb:data("mac")` raise "MAC header
-  past the tail". A second tunnel ping's first callback finds both views of the
-  outer packet with length 0, and, after a full collection, both views of the copy
-  it dropped, reading their lengths alone, so a build that leaves one set fails
-  without reading the packet it viewed. The hooks never read a "mac" view, so a
-  build without the refusals fails without an out-of-bounds access. The tunnel runs
-  over loopback; its cases skip without `ipip`.
+  yet, where `skb:data("mac")` is nil, and `PRE_ROUTING` on `lo`, where
+  `#skb:data("mac")` is `#skb` plus the Ethernet header. A ping over an ipip tunnel
+  reaches `LOCAL_OUT` with the outer packet's MAC header at the inner IPv4 header:
+  `#skb:data()` and `#skb:data("net")` equal `#skb` and `#skb:data("mac")` is
+  shorter by the outer header, all ending at the tail. Taken together, the three are
+  three views: the view with no layer and the "net" view keep their length, and the
+  "net" view the outer header's protocol, after the "mac" view is taken, on the
+  packet and on a copy of it. Trimmed below the outer header with `skb:resize`, the
+  packet makes `skb:data("mac")` nil. A second tunnel ping's first callback finds
+  the three views of the outer packet with length 0, and, after a full collection,
+  the three views of the copy it dropped, reading their lengths alone, so a build
+  that leaves one set fails without reading the packet it viewed. The hooks never
+  read a "mac" view, so a build that returns one where the header is absent fails
+  without an out-of-bounds access. The tunnel runs over loopback; its cases skip
+  without `ipip`.
 
 - **copy**: a veth pair joins the initial namespace to one of the test's own, the
   initial end aggregating UDP with fraglist GRO and the other segmenting UDP in
@@ -1496,7 +1497,7 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   the re-attach path. The same script first runs without a program, with a kprobe
   on `luadata_release` counting the data objects freed: its body collects twice
   after the second attach, and the context the re-attach replaced frees its skb's
-  two views and its argument, three objects; a build whose skb leaves its views
+  three views and its argument, four objects; a build whose skb leaves its views
   registered frees one. That case skips where the kprobe cannot be placed.
 
 - **tc detach**: the callback drops the first ping and calls `tc.detach()`
@@ -1516,7 +1517,10 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc data**: on the echo reply, whose `skb->data` sits at the MAC header in
   the classifier, `#skb:data()` and `#skb:data("mac")` both equal `#skb`, the
-  frame's length: each view ends at the packet's tail.
+  frame's length, and `skb:data("net")` starts at the IPv4 header, shorter by
+  the Ethernet header: each view ends at the packet's tail, and the three are
+  three objects. A copy shortened into the Ethernet header has no "net" view:
+  `data("net")` is nil.
 
 - **tc nonlinear**: the host sends a TCP segment to a listener in the
   namespace, whose payload `tcp_sendmsg` keeps in page fragments, picked by
