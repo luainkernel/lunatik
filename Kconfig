@@ -155,7 +155,7 @@ config LUNATIK_DARKEN
 	depends on LUNATIK_CRYPTO
 	default m
 	help
-	  AES-256-CTR encrypted Lua script support.
+	  AES-256-GCM encrypted Lua script support.
 
 config LUNATIK_CPU
 	tristate "Lunatik CPU Support"
