@@ -37,8 +37,10 @@
 #              <file>: " and the errno's name, ENOENT for a missing file and
 #              ENOTDIR for one under a regular file.
 # util:        bin2hex encodes every byte value in a string of 2048 bytes,
-#              past the 200 slots of LUAI_MAXSTACK, and returns the string
-#              alone, the empty string included.
+#              past the 200 slots of LUAI_MAXSTACK, and hex2bin decodes it back
+#              from either case; each returns the string alone, the empty string
+#              included, and hex2bin refuses an odd length and a character that
+#              is not a hexadecimal digit with "invalid hexadecimal string".
 #
 # Usage: sudo bash tests/lua/run.sh
 
