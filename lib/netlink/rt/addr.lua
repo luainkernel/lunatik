@@ -11,7 +11,6 @@
 -- sleepable runtime.
 --
 -- @module netlink.rt.addr
--- @see netlink.rt.object
 -- @see netlink.session
 --
 

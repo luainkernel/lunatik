@@ -11,7 +11,6 @@
 -- runtime.
 --
 -- @module netlink.rt.route
--- @see netlink.rt.object
 -- @see netlink.session
 --
 

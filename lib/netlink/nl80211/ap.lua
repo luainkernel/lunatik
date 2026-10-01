@@ -11,7 +11,6 @@
 -- sleepable runtime.
 --
 -- @module netlink.nl80211.ap
--- @see netlink.nl80211.object
 -- @see netlink.session
 --
 
@@ -42,7 +41,7 @@ local ap = object:new{START = cmd.START_AP, STOP = cmd.STOP_AP}
 -- @treturn ap a new ap object.
 -- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
 --   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
--- @see netlink.nl80211.object
+-- @see netlink.session
 
 ---
 -- Starts beaconing on an AP-mode interface (which must already be up).

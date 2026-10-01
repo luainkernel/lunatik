@@ -37,7 +37,7 @@ local NOOP, ERROR, DONE, OVERRUN = nl.type.NOOP, nl.type.ERROR, nl.type.DONE, nl
 -- @type genl
 
 ---
--- Derives a class from the generic netlink session, as `netlink.nl80211.object` is, or wraps a
+-- Derives a class from the generic netlink session, as the `netlink.nl80211` classes are, or wraps a
 -- table in it. It opens no socket: calling the class does, `netlink.genl()`.
 -- @function genl:new
 -- @tparam[opt] table o an initial object table.

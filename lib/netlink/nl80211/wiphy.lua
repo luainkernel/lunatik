@@ -10,7 +10,6 @@
 -- to-be-closed `__close`). All methods block and require a sleepable runtime.
 --
 -- @module netlink.nl80211.wiphy
--- @see netlink.nl80211.object
 -- @see netlink.session
 --
 
@@ -48,7 +47,7 @@ end
 -- @treturn wiphy a new wiphy object.
 -- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
 --   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
--- @see netlink.nl80211.object
+-- @see netlink.session
 
 ---
 -- Lists the wireless PHYs (wiphys) known to the kernel.
