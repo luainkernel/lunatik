@@ -628,8 +628,8 @@ after the watch is stopped.
   process runtime, in its body and resumed past it, and in the body of a
   `softirq` and a `hardirq` runtime, which runs in process context; resumed
   past the body, the armed state a hook calls from, each answers the call
-  without a pid and refuses one with a pid with "not allowed after module
-  load", since resolving it takes the task's lock.
+  without a pid and refuses one with a pid with "not allowed once the runtime
+  is armed", since resolving it takes the task's lock.
 
 ### lua
 
