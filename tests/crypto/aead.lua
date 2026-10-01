@@ -4,6 +4,7 @@
 --
 local aead = require("crypto").aead
 local util = require("util")
+local closing = require("tests.crypto.closing")
 local test = require("tests.lib").test
 local hex2bin = util.hex2bin
 local bin2hex = util.bin2hex
@@ -126,5 +127,9 @@ test("AEAD AES-128-GCM stress round-trip", function()
 		local decrypted = c:decrypt(iv, ciphertext, aad)
 		assert(decrypted == plaintext, "Stress round-trip mismatch")
 	end
+end)
+
+test("AEAD close releases the transform, and __close is close", function()
+	closing.check(aead("gcm(aes)"), "ivsize")
 end)
 

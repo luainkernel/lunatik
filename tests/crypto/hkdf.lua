@@ -73,3 +73,11 @@ test("HKDF-Expand-Label examples from https://quic.xargs.org/#client-initial-key
 	assert(result == expected, "HKDF-Expand-Label client_init_iv mismatch")
 end)
 
+test("HKDF close releases the HMAC transform", function()
+	local h = new("sha256")
+	h:close()
+	h:close()
+	local ok, err = pcall(h.extract, h, nil, "ikm")
+	assert(not ok and tostring(err):match("closed object"), "an HKDF instance extracted after close")
+end)
+

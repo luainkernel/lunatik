@@ -190,6 +190,13 @@ static int luacrypto_shash_algname(lua_State *L)
 	return 1;
 }
 
+/***
+* Releases the transform.
+* A to-be-closed variable holding the object releases it the same way. Calling it again does
+* nothing, and every other method raises "closed object" afterwards.
+* @function close
+* @treturn nil
+*/
 static const luaL_Reg luacrypto_shash_mt[] = {
 	{"algname", luacrypto_shash_algname},
 	{"digestsize", luacrypto_shash_digestsize},
@@ -203,6 +210,7 @@ static const luaL_Reg luacrypto_shash_mt[] = {
 	{"import", luacrypto_shash_import},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
+	{"close", lunatik_closeobject},
 	{NULL, NULL}
 };
 

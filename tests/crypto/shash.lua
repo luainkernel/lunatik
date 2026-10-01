@@ -5,6 +5,7 @@
 
 local shash = require("crypto").shash
 local util = require("util")
+local closing = require("tests.crypto.closing")
 local test = require("tests.lib").test
 local hex2bin = util.hex2bin
 
@@ -106,5 +107,9 @@ test("crypto_shash:export and import functionality", function()
 	hasher4:import(exported_state_2)
 	local digest4 = hasher4:final()
 	assert(digest4 == digest_data1, "Imported state final digest does not match digest of data1")
+end)
+
+test("crypto_shash:close releases the transform, and __close is close", function()
+	closing.check(shash("sha256"), "digestsize")
 end)
 

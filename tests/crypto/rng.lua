@@ -4,6 +4,7 @@
 --
 local rng = require("crypto").rng
 local test = require("tests.lib").test
+local closing = require("tests.crypto.closing")
 
 test("RNG generate 32 bytes", function()
 	local r = rng"stdrng"
@@ -86,5 +87,9 @@ test("RNG getbytes (different from previous)", function()
 	local bytes16 = r:getbytes(16)
 	local bytes32 = r:getbytes(32)
 	assert(bytes16 ~= bytes32, "Consecutive getbytes calls should produce different results (highly probable)")
+end)
+
+test("RNG close releases the transform, and __close is close", function()
+	closing.check(rng(), "seedsize")
 end)
 

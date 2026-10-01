@@ -106,6 +106,13 @@ static int luacrypto_rng_algname(lua_State *L)
 	return 1;
 }
 
+/***
+* Releases the transform.
+* A to-be-closed variable holding the object releases it the same way. Calling it again does
+* nothing, and every other method raises "closed object" afterwards.
+* @function close
+* @treturn nil
+*/
 static const luaL_Reg luacrypto_rng_mt[] = {
 	{"algname", luacrypto_rng_algname},
 	{"generate", luacrypto_rng_generate},
@@ -114,6 +121,7 @@ static const luaL_Reg luacrypto_rng_mt[] = {
 	{"seedsize", luacrypto_rng_seedsize},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
+	{"close", lunatik_closeobject},
 	{NULL, NULL}
 };
 

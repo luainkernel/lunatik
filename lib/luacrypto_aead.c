@@ -191,6 +191,13 @@ static int luacrypto_aead_algname(lua_State *L)
 	return 1;
 }
 
+/***
+* Releases the transform.
+* A to-be-closed variable holding the object releases it the same way. Calling it again does
+* nothing, and every other method raises "closed object" afterwards.
+* @function close
+* @treturn nil
+*/
 static const luaL_Reg luacrypto_aead_mt[] = {
 	{"algname", luacrypto_aead_algname},
 	{"setkey", luacrypto_aead_setkey},
@@ -201,6 +208,7 @@ static const luaL_Reg luacrypto_aead_mt[] = {
 	{"decrypt", luacrypto_aead_decrypt},
 	{"__gc", lunatik_deleteobject},
 	{"__close", lunatik_closeobject},
+	{"close", lunatik_closeobject},
 	{NULL, NULL}
 };
 

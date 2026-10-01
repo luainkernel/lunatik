@@ -114,7 +114,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 - **hkdf**: `hkdf` matches the SHA-256 vectors of RFC 5869, `extract` without
   a salt matches it with an empty one, and `extract` and `expand` match the
   client initial secret, key and IV of the QUIC worked example at
-  quic.xargs.org.
+  quic.xargs.org; an instance closed twice raises "closed object" from
+  `extract`, its HMAC transform released.
 - **comp**: `lz4` compresses to fewer bytes and decompresses back into an
   exact or a larger buffer; an empty string with a size of 0 is refused as out
   of bounds, and a buffer one byte short of the output with `EINVAL`; a
@@ -146,6 +147,11 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   `encrypt` and `decrypt` and as `aead`'s associated data, with no warning in
   `dmesg`. Skips unless the loaded `luacrypto` lists `luacrypto_newbuffer` in
   `/proc/kallsyms`, since a build that maps the string oopses on arm64.
+
+Each of `shash`, `skcipher`, `aead`, `rng` and `comp` also closes an object
+through `closing.lua`: its metatable holds one function under `__close` and
+`close`, a second close does nothing, and a method raises "closed object"
+after it.
 
 ### darken
 
