@@ -675,7 +675,8 @@ after the watch is stopped.
 ### lua
 
 Holds the vendored Lua to the contract the top-level README documents, so a
-bump of `lua/` that drops a kernel guard fails here instead of compiling.
+bump of `lua/` that drops a kernel guard fails here instead of compiling, and
+the `util` module to its documentation on that Lua's stack.
 
 - **floats**: no float literal, exponent, hexadecimal float or `^` compiles;
   `/` is integer division on a constant, a register and a coerced string,
@@ -708,6 +709,9 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
   fails. For a path the kernel does not open, `loadfile` returns, and `dofile`
   raises, `cannot open <file>: ` and the errno's name: `ENOENT` for a missing
   file and `ENOTDIR` for one under a regular file.
+- **util**: `util.bin2hex` encodes every byte value in a string of 2048
+  bytes, past the 200 slots of `LUAI_MAXSTACK`, and returns the string alone,
+  the empty string included.
 
 ### luac
 
