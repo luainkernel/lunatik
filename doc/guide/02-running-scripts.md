@@ -46,9 +46,7 @@ usage: lunatik [-h | -V]
   registered from a script started with `lunatik run --context=<context>`
 
 An operation the kernel refuses exits 1 with `lunatik: <message>` on stderr and nothing on stdout,
-and a wrong invocation exits 2 with the usage on stderr. The words `process`, `softirq`, `hardirq`
-and `percpu` after the script of `run` are still read for one release, each with a line on stderr
-naming the option that replaces it.
+and a wrong invocation exits 2 with the usage on stderr.
 
 ## Execution contexts
 

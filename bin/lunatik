@@ -331,16 +331,6 @@ local function parse(i, accepted, parsed)
 	return i
 end
 
--- the words after the script that options replace, still read for one release
-local function modifiers(parsed, ...)
-	for _, word in ipairs({...}) do
-		local name = word == "percpu" and "percpu" or "context"
-		local option = name == "percpu" and "-p" or "-c " .. word
-		options[name](parsed, word)
-		report(string.format("%s after the script is deprecated, use %s", word, option))
-	end
-end
-
 local function unmodified(verb, parsed, ...)
 	if parsed.context or parsed.percpu or select("#", ...) > 0 then
 		misuse(verb .. " takes no context and no percpu")
@@ -351,7 +341,7 @@ local runners = {}
 
 function runners.run(parsed, script, ...)
 	if script == nil then misuse("run takes a script") end
-	modifiers(parsed, ...)
+	if select("#", ...) > 0 then misuse("run takes nothing after the script") end
 	ensure_loaded()
 	request("lunatik.runner.run(%q, %q, %q)", script, parsed.context, parsed.percpu)
 end

@@ -11,14 +11,14 @@
 #   nothing on stdout;
 # - a run of idle.lua exits 0 with nothing on stdout or stderr, and a second
 #   run exits 1 with lunatik: and "already running", no position of the runner's;
-# - a context that is not one of the three, as -c or as the word after the
-#   script, and a context, percpu or any other word given to spawn, as options
-#   or as words, exit 2 with the reason and the usage on stderr, and nothing
-#   reaches the kernel: list does not name the script;
+# - a context that is not one of the three, as -c, and a context, percpu or any
+#   other word given to spawn, as options or as words, exit 2 with the reason
+#   and the usage on stderr, and nothing reaches the kernel: list does not name
+#   the script;
 # - -c and -p, and --context= and --percpu, run the script in that context and
 #   once per CPU id, listed once; -- ends the options before the script;
-# - the words after the script still run it, each with a line on stderr naming
-#   the option that replaces it;
+# - a word after the script of run, a context and percpu among them, exits 2
+#   with the reason and the usage on stderr, and the script does not run;
 # - list prints one script a line, in order of name;
 # - a stop of two running scripts exits 0 and removes both; a stop of a script
 #   nothing runs exits 1, not running, and of two scripts one of which runs,
@@ -71,7 +71,7 @@ ktap_pass "a run exits 0 with nothing printed, and a second exits 1, already run
 
 cli stop "$SCRIPT"
 [ "$status" -eq 0 ] || fail "a stop exited $status with '$err'"
-for args in "-c foo $SCRIPT" "--context=foo $SCRIPT" "$SCRIPT foo" "$SCRIPT softirq foo"; do
+for args in "-c foo $SCRIPT" "--context=foo $SCRIPT"; do
 	cli run $args
 	[ "$status" -eq 2 ] && [ -z "$out" ] && [[ "$err" == *"foo is not a context: process, softirq or hardirq"* ]] ||
 		fail "lunatik run $args exited $status with '$out' on stdout and '$err' on stderr"
@@ -93,18 +93,13 @@ for args in "-c softirq -p" "--context=hardirq --percpu" "-c process --"; do
 done
 ktap_pass "-c and -p, their long spellings and -- run the script, listed once"
 
-for words in "softirq" "hardirq percpu"; do
+for words in "process" "softirq" "hardirq percpu" "foo"; do
 	cli run "$SCRIPT" $words
-	[ "$status" -eq 0 ] && [ -z "$out" ] || fail "lunatik run $SCRIPT $words exited $status with '$out' and '$err'"
-	for word in $words; do
-		option="-c $word"
-		[ "$word" = percpu ] && option="-p"
-		[[ "$err" == *"lunatik: $word after the script is deprecated, use $option"* ]] ||
-			fail "lunatik run $SCRIPT $words did not name $option: '$err'"
-	done
-	lunatik stop "$SCRIPT" || fail "the script run with $words did not stop"
+	[ "$status" -eq 2 ] && [ -z "$out" ] && [[ "$err" == *"run takes nothing after the script"* ]] ||
+		fail "lunatik run $SCRIPT $words exited $status with '$out' on stdout and '$err' on stderr"
 done
-ktap_pass "the words after the script still run it, each naming the option that replaces it"
+[[ "$(lunatik list)" != *"$SCRIPT"* ]] || fail "a run with a word after the script reached the kernel: $SCRIPT is listed"
+ktap_pass "a word after the script of run exits 2 and runs nothing"
 
 cli run "$SCRIPT"
 cli run "$OTHER"
