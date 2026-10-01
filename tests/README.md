@@ -1503,8 +1503,17 @@ pid, and what a valid call does.
 
 - **setsockopt**: `socket:setsockopt()` sets an integer option (`SO_RCVBUF`)
   and a packed struct option (`SO_RCVTIMEO_NEW` built with the `timeval`
-  layout codec); with the receive timeout set, a receive with no data returns
-  (raises) instead of blocking forever.
+  layout codec); with the receive timeout set, a receive with no data answers
+  `nil` and `"EAGAIN"` instead of blocking forever.
+
+- **again**: what `socket:receive()` and `socket:accept()` answer when their
+  wait ends with nothing, which the kernel reports as `EAGAIN`: `nil` and
+  `"EAGAIN"`, alone, both for a nonblocking call (`MSG_DONTWAIT`,
+  `O_NONBLOCK`) and for one a receive timeout bounds, and through
+  `inet.udp:receivefrom()`. A wait that finds a message or a connection answers
+  it, and a failure other than `EAGAIN` still raises its errno's name:
+  `ENOTCONN` for a receive on a listener and `EINVAL` for an accept on a socket
+  that does not listen.
 
 - **packet**: the AF_PACKET address a `socket:send()` with a destination builds.
   A `SOCK_DGRAM` send on loopback names the protocol and the interface, and the

@@ -132,7 +132,8 @@ end
 ---
 -- Accepts an incoming connection on a listening STREAM socket.
 -- @param flags (number) [optional] Flags for the accept operation.
--- @return A new socket object for the accepted connection.
+-- @return A new socket object for the accepted connection, or `nil` and `"EAGAIN"` when the wait
+--   ended with no connection to accept.
 -- @see socket.accept
 function unix.stream:accept(flags)
 	return self.socket:accept(flags)
@@ -150,9 +151,9 @@ unix.dgram = unix:new{type = sock.DGRAM}
 -- Receives data from a DGRAM socket along with the sender's path.
 -- @param len (number) Maximum number of bytes to receive.
 -- @param flags (number) [optional] Receive flags.
--- @return (string) The received data.
+-- @return (string) The received data, or `nil` when the wait ended with nothing to read.
 -- @return (string) The sender's path, carrying its leading NUL when the name is an abstract one;
---   nothing follows the message when the peer never bound.
+--   nothing follows the message when the peer never bound, and `"EAGAIN"` follows that `nil`.
 -- @see socket.receivefrom
 function unix.dgram:receivefrom(len, flags)
 	return self.socket:receivefrom(len, flags)

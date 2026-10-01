@@ -6,7 +6,7 @@
 # Tests socket:setsockopt(): sets an integer option (SO_RCVBUF) and a packed
 # struct option (SO_RCVTIMEO_NEW as a struct __kernel_sock_timeval built with
 # the timeval layout codec); with the receive timeout set, a receive with no
-# data must return (raise) instead of blocking forever.
+# data must answer nil and "EAGAIN" instead of blocking forever.
 #
 # Usage: sudo bash tests/socket/setsockopt.sh
 

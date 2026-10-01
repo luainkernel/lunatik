@@ -61,11 +61,9 @@ end
 
 return function()
 	while not thread.shouldstop() do
-		local accepted, session = pcall(server.accept, server, NONBLOCK)
-		if accepted then
+		local session = server:accept(NONBLOCK)
+		if session then
 			serve(session)
-		elseif session ~= "EAGAIN" then
-			error(session)
 		end
 		linux.schedule(NAP)
 	end

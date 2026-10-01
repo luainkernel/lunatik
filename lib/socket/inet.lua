@@ -163,7 +163,8 @@ end
 ---
 -- Accepts an incoming connection on a listening TCP socket.
 -- @param flags (number) [optional] Flags for the accept operation.
--- @return (socket) The accepted connection, as a plain `socket` object.
+-- @return (socket) The accepted connection, as a plain `socket` object, or `nil` and `"EAGAIN"`
+--   when the wait ended with no connection to accept.
 -- @raise error on failure
 -- @see socket.accept
 function inet.tcp:accept(flags)
@@ -185,14 +186,14 @@ inet.udp = inet:new{type = sock.DGRAM, proto = ipproto.UDP}
 -- from `net.aton` format to a string using `net.ntoa`.
 -- @param len (number) The maximum number of bytes to receive.
 -- @param flags (number) [optional] Flags for the receive operation.
--- @return (string) The received data.
--- @return (string) The sender's IP address.
+-- @return (string) The received data, or `nil` when the wait ended with nothing to read.
+-- @return (string) The sender's IP address, or `"EAGAIN"` beside that `nil`.
 -- @return (number) The sender's port number.
 -- @raise error on failure
 -- @see socket.receivefrom
 function inet.udp:receivefrom(len, flags)
 	local msg, ip, port = self.socket:receivefrom(len, flags)
-	return msg, net.ntoa(ip), port
+	return msg, msg and net.ntoa(ip) or ip, port
 end
 
 ---

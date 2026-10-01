@@ -39,7 +39,7 @@ tx:send(PAYLOAD, PROTO, ifindex)
 
 local frame = rx:receive(MTU)
 local reached = listening:receive(MTU)
-local missed = not pcall(swapped.receive, swapped, MTU)
+local missed = swapped:receive(MTU) == nil
 
 assert(#frame >= ETH_HLEN, "short frame: " .. #frame .. " bytes")
 print("socket packet: frame carries " .. string.sub(frame, ETH_HLEN + 1))

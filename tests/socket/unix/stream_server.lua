@@ -20,8 +20,8 @@ server:listen(1)
 
 return function()
 	while not thread.shouldstop() do
-		local ok, session = pcall(server.accept, server, NONBLOCK)
-		if ok then
+		local session = server:accept(NONBLOCK)
+		if session then
 			local msg = session:receive(64)
 			assert(msg == "ping", "expected 'ping', got: " .. tostring(msg))
 			session:send("pong")
@@ -32,10 +32,8 @@ return function()
 				linux.schedule(10)
 			end
 			return
-		elseif session == "EAGAIN" then
-			linux.schedule(10)
 		else
-			error(session)
+			linux.schedule(10)
 		end
 	end
 	server:close()

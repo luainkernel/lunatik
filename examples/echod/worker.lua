@@ -23,11 +23,8 @@ local function alive(control)
 end
 
 local function echo(session)
-	local ok, message = pcall(session.receive, session, SIZE)
-	if not ok then
-		if message ~= "EAGAIN" then
-			error(message, 0)
-		end
+	local message = session:receive(SIZE)
+	if message == nil then
 		return false
 	end
 	session:send(message)

@@ -19,10 +19,10 @@ sock:setsockopt(sk.sol.SOCKET, sk.so.RCVBUF, RCVBUF)
 print("socket setsockopt: integer option set")
 
 -- string value: a packed struct payload; no data ever arrives, so a bounded
--- receive must return (raise), not hang
+-- receive must return, not hang
 sock:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
-local ok = pcall(sock.receive, sock, 16)
+local data, err = sock:receive(16)
 sock:close()
-assert(not ok, "receive should have timed out")
+assert(data == nil and err == "EAGAIN", "receive should have timed out, got: " .. tostring(err))
 print("socket setsockopt: bounded receive returned")
 

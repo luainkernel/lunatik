@@ -19,8 +19,8 @@ server:bind()
 
 return function()
 	while not thread.shouldstop() do
-		local ok, msg = pcall(server.receivefrom, server, 64, DONTWAIT)
-		if ok then
+		local msg = server:receivefrom(64, DONTWAIT)
+		if msg then
 			assert(msg == "hello dgram", "expected 'hello dgram', got: " .. tostring(msg))
 			server:close()
 			print("unix dgram: server ok")
@@ -28,10 +28,8 @@ return function()
 				linux.schedule(10)
 			end
 			return
-		elseif msg == "EAGAIN" then
-			linux.schedule(10)
 		else
-			error(msg)
+			linux.schedule(10)
 		end
 	end
 	server:close()

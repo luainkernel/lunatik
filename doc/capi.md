@@ -902,6 +902,15 @@ Pushes the name of the errno `ret` through [`lunatik_pusherrname`](#lunatik_push
 raises it with `lua_error`: `lunatik_throw(L, -ENOMEM)` raises `"ENOMEM"`. Used to convert
 negative kernel error codes into Lua errors.
 
+### lunatik\_pushfail
+```C
+int lunatik_pushfail(lua_State *L, int ret);
+```
+Pushes `nil` and the name of the errno `ret`, and returns 2, so a method answers an expected outcome
+with `return lunatik_pushfail(L, ret)`: the value counterpart of [`lunatik_throw`](#lunatik_throw),
+for the "there is none" a method answers rather than raises, as `socket:receive` answers
+`nil, "EAGAIN"` for a wait that ended with nothing to read.
+
 ### lunatik\_pusherrname
 ```C
 void lunatik_pusherrname(lua_State *L, int err);
