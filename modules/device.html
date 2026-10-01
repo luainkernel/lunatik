@@ -320,7 +320,8 @@
    if the <code>name</code> field is missing or not a string, or if called from a percpu runtime;
    <code>bad field &apos;mode&apos; (number expected, got &lt;type&gt;)</code> if <code>mode</code> is present and not a number;
    <code>&apos;device&apos;: process-context class in interrupt-context runtime</code> in a softirq or
-   hardirq runtime (run it in process context, the default of <code>lunatik run</code>).
+   hardirq runtime (run it in process context, the default of <code>lunatik run</code>);
+   <code>not allowed while the runtime closes</code> from a finalizer that runs at its close.
 
 
     <h3>Usage</h3>
@@ -355,7 +356,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:39:07</span>
 </div>
 </footer>
 </body>

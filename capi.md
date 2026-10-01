@@ -329,6 +329,15 @@ Returns `true` once `runtime` is armed, its script body returned, and until it i
 `thread.run` uses it to refuse creating a thread from the script body of the runtime that calls
 it, with `not allowed before the runtime is armed`.
 
+### lunatik\_isclosing
+```C
+bool lunatik_isclosing(lunatik_object_t *runtime);
+```
+Returns `true` while `runtime` closes and its state runs the script's finalizers: a stop and a
+script that fails to load clear its private before `lua_close`, and the drop of its last reference
+closes it at a zero count, which a runtime has at no other time. Lua arms no `__gc` on what those
+finalizers create. Defined as a macro.
+
 ### lunatik\_isowner
 ```C
 bool lunatik_isowner(lunatik_object_t *object);
@@ -388,7 +397,8 @@ class a constructor creates, and `<context>` is `process`, `softirq` or `hardirq
 Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a `softirq` runtime,
 a HARDIRQ class in a `hardirq` runtime, and a process-context class in a process runtime. A
 binding's constructor calls it, directly or through `lunatik_setruntime`, to enforce that a class
-is only instantiated in a compatible runtime.
+is only instantiated in a compatible runtime. It runs [`lunatik_checkclosing`](#lunatik_checkclosing)
+too, so a finalizer that runs as the runtime closes registers nothing the runtime would dispatch.
 
 ### lunatik\_setruntime
 ```C
@@ -432,6 +442,16 @@ its script body runs, so a call that may sleep is allowed there and must be refu
 when the runtime lock is a spinlock: from a hook or a handler, and from the `resume` of such a
 runtime. Use it in an entry point that reaches a sleeping kernel call, where `lunatik_checkruntime`
 answers the different question of whether the class matches the runtime at all.
+
+### lunatik\_checkclosing
+```C
+void lunatik_checkclosing(lua_State *L);
+```
+Raises a Lua error, `"not allowed while the runtime closes"`, when
+[`lunatik_isclosing`](#lunatik_isclosing) holds for `L`'s runtime: from a finalizer its close
+runs, in whatever coroutine. A registration made there would hold a runtime that never dispatches
+again: use it in an entry point that registers one without
+[`lunatik_checkruntime`](#lunatik_checkruntime), which runs it.
 
 ### lunatik\_checkrtnl
 ```C
@@ -532,6 +552,10 @@ It allocates `size` bytes for the object's private data, unless `LUNATIK_OPT_EXT
 zeroed and comes from the runtime's allocator, `GFP_ATOMIC` in a softirq or hardirq runtime once
 it is armed; it is freed with `kvfree` after `release`.
 
+The userdata's `__gc` drops the reference the object is created with. In a state that is closing,
+where Lua arms no `__gc` (see [`lunatik_isclosing`](#lunatik_isclosing)), the state holds that
+reference instead and drops it once `lua_close` has run every finalizer.
+
 Raises `'<name>': process-context class in interrupt-context runtime`; `'<name>': metatable not
 found` when the class's metatables are not in this state's registry, which
 [`lunatik_require`](#lunatik_require) creates beforehand; and `not enough memory`.
@@ -567,7 +591,8 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 ```
 _lunatik\_cloneobject()_ pushes `object` onto the Lua stack as a userdata with the correct
 metatable, and takes no reference: the userdata's `__gc` drops one, which the caller hands over
-or takes, as [`lunatik_pushobject`](#lunatik_pushobject) does. It calls
+or takes, as [`lunatik_pushobject`](#lunatik_pushobject) does; in a closing state the state drops
+it instead, as [`lunatik_newobject`](#lunatik_newobject) describes. It calls
 [`lunatik_require`](#lunatik_require) first, so the object reaches a state whose script never
 required its library.
 Raises `'<name>': cannot share SINGLE object` for a `LUNATIK_OPT_SINGLE` object,

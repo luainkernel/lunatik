@@ -710,8 +710,9 @@
     </ol>
 
     <h3>Raises</h3>
-    if the group cannot be allocated, if called from an interrupt-context
-   runtime, or if called from a percpu runtime
+     if the group cannot be allocated, if called from an interrupt-context
+   runtime, or if called from a percpu runtime;
+   <code>not allowed while the runtime closes</code> from a finalizer that runs at its close
 
 
     <h3>Usage</h3>
@@ -733,7 +734,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:39:07</span>
 </div>
 </footer>
 </body>

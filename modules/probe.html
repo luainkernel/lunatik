@@ -313,7 +313,8 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
     </ol>
 
     <h3>Raises</h3>
-     <code>runtime context mismatch</code> unless the runtime is hardirq; if registration fails; in a
+     <code>runtime context mismatch</code> unless the runtime is hardirq; <code>not allowed while the runtime
+   closes</code> from a finalizer that runs at its close; if registration fails; in a
    percpu script, if this runtime already registered the same symbol or address, or if another
    runtime of the set registered this target with a different post handler; or
    <code>not allowed once the runtime is armed</code> (its script body has returned):
@@ -336,7 +337,7 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:39:07</span>
 </div>
 </footer>
 </body>

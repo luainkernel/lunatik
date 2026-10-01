@@ -308,11 +308,12 @@ return body
     </ol>
 
     <h3>Raises</h3>
-     &ldquo;not allowed before the runtime is armed&rdquo; from a script body; &ldquo;IRQ runtime cannot spawn
-   threads&rdquo; for a softirq or hardirq runtime; &ldquo;stopped runtime&rdquo;; &ldquo;invalid object&rdquo; or &ldquo;cannot share
-   SINGLE object&rdquo; for a value passed to the body; &ldquo;couldn&rsquo;t pass the thread arguments&rdquo;; &ldquo;failed to
-   create a new thread&rdquo;; &ldquo;not allowed from the runtime itself&rdquo; from under the runtime&rsquo;s own lock,
-   the contexts <code>runtime:stop</code> names, where passing the arguments would wait on it; &ldquo;EINTR&rdquo; if the
+     &ldquo;not allowed while the runtime closes&rdquo; from a finalizer that runs at its close; &ldquo;not
+   allowed before the runtime is armed&rdquo; from a script body; &ldquo;IRQ runtime cannot spawn threads&rdquo; for
+   a softirq or hardirq runtime; &ldquo;stopped runtime&rdquo;; &ldquo;invalid object&rdquo; or &ldquo;cannot share SINGLE
+   object&rdquo; for a value passed to the body; &ldquo;couldn&rsquo;t pass the thread arguments&rdquo;; &ldquo;failed to create
+   a new thread&rdquo;; &ldquo;not allowed from the runtime itself&rdquo; from under the runtime&rsquo;s own lock, the
+   contexts <code>runtime:stop</code> names, where passing the arguments would wait on it; &ldquo;EINTR&rdquo; if the
    stop of the calling kernel thread, or a fatal signal to any other task, ends its wait for the
    runtime&rsquo;s lock.
 
@@ -362,7 +363,7 @@ return body
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:39:07</span>
 </div>
 </footer>
 </body>

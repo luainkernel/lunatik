@@ -307,7 +307,10 @@
  it stays open, its hooks in place and the modules its script required loaded, until <code>stop()</code>,
  which cannot be called once its last handle is gone. A script stops the runtimes it creates;
  one a netdevice callback may collect it stops before, since the close runs where the collector
- drops the handle and cannot refuse there. Only a process runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
+ drops the handle and cannot refuse there. The close runs the script&rsquo;s finalizers: an object one
+ creates or reads, as a sentinel that stops a child through <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a> does, is released by
+ the end of the close, and a registration raises <code>not allowed while the runtime closes</code>. Only a
+ process runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
 
 
     <h3>Parameters</h3>
@@ -485,7 +488,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:39:07</span>
 </div>
 </footer>
 </body>

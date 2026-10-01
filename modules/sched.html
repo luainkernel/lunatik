@@ -336,7 +336,8 @@ and then the slice.</li>
     </ol>
 
     <h3>Raises</h3>
-    <code>runtime context mismatch</code> unless the runtime is hardirq, or on allocation failure.
+    <code>runtime context mismatch</code> unless the runtime is hardirq; <code>not allowed while the runtime
+   closes</code> from a finalizer that runs at its close; or on allocation failure.
 
     <h3>See also</h3>
     <ul>
@@ -399,7 +400,7 @@ sched.<span class="function-name">attach</span>(my_scheduler)
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:33:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:39:07</span>
 </div>
 </footer>
 </body>
