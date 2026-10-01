@@ -72,7 +72,7 @@ end)
 
 test("SKCIPHER AES-128-CBC decrypt with data not multiple of blocksize", function()
 	local c = skcipher("cbc(aes)")
-	local ciphertext = hex2bin"d05e07d91a4b4cd10951f8cf195f27b5" .. "00" -- 17 bytes, not multiple of 16
+	local ciphertext = hex2bin"d05e07d91a4b4cd10951f8cf195f27b500" -- 17 bytes, not multiple of 16
 	c:setkey"0123456789abcdef"
 	local status, err = pcall(c.decrypt, c, "fedcba9876543210", ciphertext)
 	assert(not status, "decrypt with data not multiple of blocksize should fail")

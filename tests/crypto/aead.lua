@@ -75,7 +75,7 @@ test("AEAD AES-128-GCM decrypt with input data too short for tag", function()
 	local c = aead("gcm(aes)")
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
-	local short_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918" -- Missing last byte of tag
+	local short_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561a" -- 15 bytes, one short of the tag
 	local status, err = pcall(c.decrypt, c, "abcdefghijkl", short_ciphertext, "0123456789abcdef")
 	assert(not status, "decrypt with input data too short for tag should fail")
 	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
