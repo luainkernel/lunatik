@@ -62,9 +62,9 @@ test("fifo:push refuses a closed fifo", function()
 	assert(err:match("null pointer"), "push raised something else: " .. err)
 end)
 
-test("rcu.map refuses nil", function()
-	local err = refused("rcu.map", rcu.map, nil, function() end)
-	assert(err:match("invalid object"), "rcu.map raised something else: " .. err)
+test("rcu.foreach refuses nil", function()
+	local err = refused("rcu.foreach", rcu.foreach, nil, function() end)
+	assert(err:match("invalid object"), "rcu.foreach raised something else: " .. err)
 end)
 
 test("runtime:resume refuses a closed runtime", function()

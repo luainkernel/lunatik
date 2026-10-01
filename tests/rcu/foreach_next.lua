@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- Kernel-side script for the rcu.map walk test (see run.sh).
+-- Kernel-side script for the rcu.foreach walk test (see run.sh).
 
 local rcu  = require("rcu")
 local test = require("util").test
@@ -30,10 +30,10 @@ local function others(k)
 	return rest
 end
 
-test("rcu.map does not visit an entry the callback removed", function()
+test("rcu.foreach does not visit an entry the callback removed", function()
 	local t = onebucket(1)
 	local visits = 0
-	rcu.map(t, function(k)
+	rcu.foreach(t, function(k)
 		visits = visits + 1
 		for _, o in ipairs(others(k)) do
 			t[o] = nil
@@ -42,10 +42,10 @@ test("rcu.map does not visit an entry the callback removed", function()
 	assert(visits == 1, "expected 1 visit, got " .. visits)
 end)
 
-test("rcu.map never hands the callback a value an entry lost under the walk", function()
+test("rcu.foreach never hands the callback a value an entry lost under the walk", function()
 	local t = onebucket(1)
 	local visits = {}
-	rcu.map(t, function(k, v)
+	rcu.foreach(t, function(k, v)
 		for _, visit in ipairs(visits) do
 			assert(visit.key ~= k, "visited " .. k .. " twice")
 		end
@@ -61,44 +61,54 @@ test("rcu.map never hands the callback a value an entry lost under the walk", fu
 	end
 end)
 
-test("rcu.map does not visit an entry the callback added to its bucket", function()
+test("rcu.foreach does not visit an entry the callback added to its bucket", function()
 	local t = onebucket(1)
 	local visits = 0
-	rcu.map(t, function()
+	rcu.foreach(t, function()
 		visits = visits + 1
 		t.d = 1
 	end)
 	assert(visits == 3, "expected 3 visits, got " .. visits)
 end)
 
-test("rcu.map hands the callback a key with an embedded NUL whole", function()
+test("rcu.foreach hands the callback a key with an embedded NUL whole", function()
 	local t = rcu.table(1)
 	local key = "a\0b"
 	t[key] = 1
 	local seen
-	rcu.map(t, function(k)
+	rcu.foreach(t, function(k)
 		seen = k
 	end)
 	assert(seen == key, "expected the whole key, got " .. string.format("%q", tostring(seen)))
 end)
 
-test("rcu.map raises the callback's error with no visit after it", function()
+test("rcu.foreach raises the callback's error with no visit after it", function()
 	local t = onebucket(1)
 	local visits = 0
-	local ok, err = pcall(rcu.map, t, function()
+	local ok, err = pcall(rcu.foreach, t, function()
 		visits = visits + 1
 		error("boom")
 	end)
-	assert(not ok, "rcu.map swallowed the callback's error")
-	assert(err:match("boom"), "rcu.map raised something else: " .. err)
+	assert(not ok, "rcu.foreach swallowed the callback's error")
+	assert(err:match("boom"), "rcu.foreach raised something else: " .. err)
 	assert(visits == 1, "expected 1 visit, got " .. visits)
 end)
 
-test("rcu.map keeps a table nothing else holds through the walk", function()
+test("rcu.foreach walks on whatever the callback returns", function()
+	local t = onebucket(1)
+	local visits = 0
+	rcu.foreach(t, function()
+		visits = visits + 1
+		return visits % 2 == 0
+	end)
+	assert(visits == #keys, "expected " .. #keys .. " visits, got " .. visits)
+end)
+
+test("rcu.foreach keeps a table nothing else holds through the walk", function()
 	local held = setmetatable({}, {__mode = "v"})
 	held[1] = onebucket(1)
 	local visits = 0
-	rcu.map(held[1], function()
+	rcu.foreach(held[1], function()
 		visits = visits + 1
 		collectgarbage()
 		assert(held[1] ~= nil, "the table was collected under the walk")

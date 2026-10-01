@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- The reader of tests/rcu/object_grace.sh: reads one key, by index and through map, while the writer replaces it.
+-- The reader of tests/rcu/object_grace.sh: reads one key, by index and through foreach, while the writer replaces it.
 
 local lunatik = require("lunatik")
 local rcu     = require("rcu")
@@ -21,7 +21,7 @@ end
 
 local function read(grace)
 	local d = grace[KEY]
-	rcu.map(grace, touch)
+	rcu.foreach(grace, touch)
 	return d ~= nil and d:getint64(0) or nil
 end
 

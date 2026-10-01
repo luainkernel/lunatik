@@ -4,12 +4,12 @@
 --
 
 -- Usage:
--- > lunatik spawn tests/rcu/map_sync
+-- > lunatik spawn tests/rcu/foreach_sync
 --
 -- It should output a random number about every second.
 --
 -- To stop it:
--- > lunatik stop tests/rcu/map_sync ; lunatik stop tests/rcu/map_sync_clean
+-- > lunatik stop tests/rcu/foreach_sync ; lunatik stop tests/rcu/foreach_sync_clean
 
 local lunatik = require "lunatik"
 local linux = require "linux"
@@ -20,7 +20,7 @@ local pace = require("tests.rcu.pace")
 
 return function()
 	lunatik._ENV.whitelist = rcu.table(1024)
-	runner.spawn "tests/rcu/map_sync_clean"
+	runner.spawn "tests/rcu/foreach_sync_clean"
 
 	local whitelist = lunatik._ENV.whitelist
 	local start = pace.milliseconds()
@@ -33,7 +33,7 @@ return function()
 
 		if entry and now - last_print > 1000 then
 			last_print = now
-			print(string.format("map_sync: reader found entry written %dms ago", now - entry:getint64(0)))
+			print(string.format("foreach_sync: reader found entry written %dms ago", now - entry:getint64(0)))
 		end
 
 		pace.yield()

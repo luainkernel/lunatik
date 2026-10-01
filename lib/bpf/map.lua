@@ -18,7 +18,7 @@
 -- in field order.
 --
 -- Operations on a table proxy come from outside it (`close` and `info` are
--- module functions, as in Lua's `table` library or `rcu.map`), so any key the
+-- module functions, as in Lua's `table` library or `rcu.foreach`), so any key the
 -- spec can encode is a valid map key.
 --
 -- Conditional updates (`BPF_NOEXIST`/`BPF_EXIST`) and the boolean results

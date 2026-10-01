@@ -8,7 +8,7 @@
 # last reference at once: the object's memory outlives the grace period, and
 # the reader takes the reference unless the count is zero, in which case the
 # entry reads as gone. object_grace spawns a reader that reads one key, by
-# index and through rcu.map, touching the object each hands it, and
+# index and through rcu.foreach, touching the object each hands it, and
 # object_grace_writer, which replaces that key's data object on every
 # iteration, for a few seconds on two kernel threads; a value read is always a
 # usable object or nil, the reader saw the entry replaced while it read,

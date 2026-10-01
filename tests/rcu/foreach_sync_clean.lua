@@ -20,7 +20,7 @@ return function()
 		d:setint64(0, now)
 		whitelist[now] = d
 
-		rcu.map(whitelist, function(k, v)
+		rcu.foreach(whitelist, function(k, v)
 			if now > v:getint64(0) + 500 then
 				whitelist[k] = nil
 			end

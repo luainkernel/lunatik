@@ -16,7 +16,7 @@ local env = lunatik._ENV
 
 test("the marked requests were counted once, by one runtime", function()
 	local counted = {}
-	rcu.map(env, function (key, count)
+	rcu.foreach(env, function (key, count)
 		if key:sub(1, #PREFIX) == PREFIX then
 			table.insert(counted, key)
 			print("percpu netfilter: " .. key .. " " .. count)

@@ -21,7 +21,7 @@ end
 -- Every drop count, one reason per line, sorted by count.
 function drops.report()
 	local lines = {}
-	rcu.map(track(), function(reason, count)
+	rcu.foreach(track(), function(reason, count)
 		table.insert(lines, string.format("%7d  %s", count, reason))
 	end)
 	table.sort(lines)
