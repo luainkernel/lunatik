@@ -71,5 +71,10 @@ for t in $TESTS; do
 	fi
 done
 
-ktap_totals
+RESULT=0
+ktap_totals || RESULT=1
+
+echo ""
+bash "$DIR/hwaddr.sh" || RESULT=1
+exit $RESULT
 
