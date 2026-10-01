@@ -44,12 +44,12 @@ function addr:header(family)
 end
 
 function addr:decode(body)
-	local fam, prefix_len, _, scope, ifindex = ifaddrmsg:unpack(body)
+	local fam, prefixlen, _, scope, ifindex = ifaddrmsg:unpack(body)
 	local attrs = message.attrs(body, IFADDR_LEN + 1)
 	local peer = attrs[rtnl.ifa.ADDRESS]
 	local address = attrs[rtnl.ifa.LOCAL] or peer
 	return {
-		family = fam, prefix_len = prefix_len, scope = scope, ifindex = ifindex,
+		family = fam, prefixlen = prefixlen, scope = scope, ifindex = ifindex,
 		address = address, peer = peer ~= address and peer or nil,
 		label = str(attrs[rtnl.ifa.LABEL]),
 	}
@@ -70,7 +70,7 @@ end
 -- @function addr:list
 -- @tparam[opt] table opts list options: `family`, the address family of the records listed
 --   (default `AF_UNSPEC`, every family).
--- @treturn table list of address tables, each with `family`, `prefix_len`, `scope`, `ifindex`,
+-- @treturn table list of address tables, each with `family`, `prefixlen`, `scope`, `ifindex`,
 --   `address`, `peer` and `label`; `address` is the interface's own address and `peer`, only on an
 --   address configured with one, the other end of a point-to-point link, both as bytes in network
 --   byte order; a field whose attribute the reply lacks is nil.

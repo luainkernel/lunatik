@@ -53,7 +53,7 @@ function route:decode(body)
 	return {
 		family = fam, dst_len = dst_len, src_len = src_len, tos = tos,
 		table = u32(attrs[rtnl.rta.TABLE]) or tbl,
-		protocol = protocol, scope = scope, rtype = rtype, flags = flags,
+		protocol = protocol, scope = scope, type = rtype, flags = flags,
 		dst = attrs[rtnl.rta.DST], gateway = attrs[rtnl.rta.GATEWAY],
 		oif = u32(attrs[rtnl.rta.OIF]),
 		priority = u32(attrs[rtnl.rta.PRIORITY]),
@@ -76,7 +76,7 @@ end
 -- @tparam[opt] table opts list options: `family`, the address family of the records listed
 --   (default `AF_UNSPEC`, every family).
 -- @treturn table list of route tables, each with `family`, `dst_len`, `src_len`, `tos`, `table`,
---   `protocol`, `scope`, `rtype`, `flags`, `dst`, `gateway`, `oif` and `priority`; `dst` and
+--   `protocol`, `scope`, `type`, `flags`, `dst`, `gateway`, `oif` and `priority`; `dst` and
 --   `gateway` are the address bytes in network byte order; `table` is the header's when the reply
 --   lacks the `TABLE` attribute, and any other field whose attribute the reply lacks is nil.
 
@@ -92,14 +92,14 @@ end
 ---
 -- Adds a route to the kernel routing table.
 -- @tparam table opts route parameters: optional `family` (default `AF_INET`),
---   `dst_len`, `dst`, `gateway`, `oif`, `table`, `protocol`, `scope`, `rtype`. `dst` and
+--   `dst_len`, `dst`, `gateway`, `oif`, `table`, `protocol`, `scope`, `type`. `dst` and
 --   `gateway` are the address bytes in network byte order, e.g.
 --   `string.pack(">I4", net.aton("192.0.2.0"))`, never an integer.
 -- @raise the name of the errno a netlink error reply carries, `EEXIST` when the route exists.
 function route:add(opts)
 	local header = rtmsg:pack(opts.family or sk.af.INET, opts.dst_len or 0, 0, 0,
 		self:headertable(opts.table or rtnl.table.MAIN), opts.protocol or rtnl.rtprot.STATIC,
-		opts.scope or rtnl.scope.UNIVERSE, opts.rtype or rtnl.rtn.UNICAST, 0)
+		opts.scope or rtnl.scope.UNIVERSE, opts.type or rtnl.rtn.UNICAST, 0)
 	self:talk(self.NEW, header .. route_attrs(self, opts), nl.flag.CREATE | nl.flag.EXCL)
 end
 

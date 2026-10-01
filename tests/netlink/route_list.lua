@@ -14,7 +14,7 @@ if #routes > 0 then
 end
 
 local first = routes[1]
-if first and first.family ~= nil and first.scope ~= nil and first.rtype ~= nil then
+if first and first.family ~= nil and first.scope ~= nil and first.type ~= nil then
 	print("netlink route_list: fields ok")
 end
 
