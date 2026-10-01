@@ -910,6 +910,10 @@ higher-level `netlink.*` modules built on top of it.
   `linux.genl.ctrl.attr` holding the controller's attributes and none of the
   nested `CTRL_ATTR_OP_`, `MCAST_GRP_` and `POLICY_` ones, and an unknown
   family raising.
+- **umbrella**: `require("netlink")` carries `rt`, `genl` and `nl80211`
+  without loading `luanetlink`: a runtime that requires `netlink.channel` raises
+  the module's refcnt by one until its stop, and one that requires `netlink`
+  alone leaves it where it was while it runs.
 - **link_list**: `rt.link():list()` lists interfaces; asserts loopback (`lo`,
   ifindex 1) is present with a non-zero MTU and the `type` `ARPHRD_LOOPBACK`.
 - **link_updown**: `rt.link():set()` brings a down dummy interface up and
