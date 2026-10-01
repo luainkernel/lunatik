@@ -130,6 +130,13 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   the armed state a hook calls from, each refuses with "not allowed after
   module load", since allocating the transform sleeps. Skips unless the
   loaded `luadarken` is the installed one and carries the refusal.
+- **decrypt**: `darken.run` reads what `crypto.aead`'s `gcm(aes)` seals: a
+  script runs and returns its values, and an empty one, a ciphertext that is
+  only its 16-byte tag, returns none; a wrong key or IV, a flipped byte of the
+  ciphertext or of the tag, and a ciphertext cut short raise `EBADMSG`; an IV
+  that is not 12 bytes and a key that is not 32 are refused; and a script that
+  does not parse, a precompiled one and one that raises reach the caller with
+  their own error.
 
 ### data
 

@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
---- Encrypted Lua script support (AES-256-CTR).
+--- Encrypted Lua script support (AES-256-GCM).
 -- This module provides functions to run encrypted Lua scripts
 -- using the `darken` C module.
 --
@@ -28,8 +28,8 @@ local hex2bin = require("util").hex2bin
 local lighten = {}
 
 --- Decrypts and executes an encrypted Lua script.
--- @tparam string ct Hex-encoded ciphertext.
--- @tparam string iv Hex-encoded 16-byte IV.
+-- @tparam string ct Hex-encoded ciphertext followed by its 16-byte tag.
+-- @tparam string iv Hex-encoded 12-byte IV.
 -- @return The return values of the decrypted script.
 -- @raise Error if `darken.run` fails.
 -- @see darken.run
