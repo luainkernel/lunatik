@@ -349,11 +349,20 @@ static inline void *lunatik_unholdobject(void *ud, void *ptr, size_t osize, size
 	return NULL;
 }
 
-#define lunatik_holdobject(L, object)								\
+static inline void *lunatik_unholdmodule(void *ud, void *ptr, size_t osize, size_t nsize)
+{
+	module_put((struct module *)ud);
+	return NULL;
+}
+
+#define lunatik_hold(L, unhold, ud)								\
 do {												\
-	lua_pushexternalstring((L), "", 0, lunatik_unholdobject, (object)); /* freed at the end of lua_close */	\
+	lua_pushexternalstring((L), "", 0, (unhold), (ud)); /* freed at the end of lua_close */	\
 	luaL_ref((L), LUA_REGISTRYINDEX);							\
 } while (0)
+
+#define lunatik_holdobject(L, object)	lunatik_hold((L), lunatik_unholdobject, (object))
+#define lunatik_holdmodule(L, module)	lunatik_hold((L), lunatik_unholdmodule, (module))
 
 static inline void lunatik_pushobject(lua_State *L, lunatik_object_t *object)
 {

@@ -10,9 +10,10 @@ local KEY <const> = "tests.runtime.module_owner"
 
 local env = lunatik._ENV
 local object = env[KEY]
+local twin = env[KEY]
 
 env[KEY] = nil
 assert(object ~= nil, KEY .. " not found in _ENV")
-object = nil
+object, twin = nil, nil
 collectgarbage()
 
