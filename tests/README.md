@@ -726,6 +726,11 @@ after the watch is stopped.
 - **ifindex**: `linux.ifindex` resolves `lo` to its index and `linux.hwaddr`
   that index to `lo`'s address, and each answers `nil`, alone, for a name or an
   index no device has.
+- **hwaddr**: `linux.ifindex` and `linux.hwaddr` resolve a device in the
+  initial network namespace: `lo` is index 1 with six zero bytes, and a dummy
+  device has the index and the address sysfs gives it. The name and index of a
+  dummy moved into a namespace of the test's own each answer `nil` (skips
+  without dummy devices or network namespaces).
 
 ### lua
 
