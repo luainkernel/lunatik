@@ -248,11 +248,12 @@ interrupts on would spin on it forever.
 <pre>
 method calls with the object lock, enabling safe concurrent access from multiple runtimes.
 Inherited by default but cancelled when an instance is created with <span class="backtick"><code>LUNATIK_OPT_SINGLE</code></span>. A
-metamethod, a method named <span class="backtick"><code>close</code></span>, <span class="keyword">and</span> a method bound to <span class="backtick"><code>lunatik_lstop</code></span>, the <span class="function-name">runtime</span>'s
-<span class="backtick"><code>stop</code></span>, are left unwrapped: a close takes the lock itself, through <span class="backtick"><code>lunatik_closeprivate</code></span>, <span class="keyword">and</span>
-would wait on the one the wrapper holds. The wrapper waits <span class="keyword">for</span> the lock with
-<span class="backtick"><code>lunatik_lockkillable</code></span>: the stop of a kernel thread, <span class="keyword">or</span> a fatal signal to any other task, ends
-the wait <span class="keyword">and</span> the call raises <span class="backtick"><code>EINTR</code></span>.
+metamethod, a method named <span class="backtick"><code>close</code></span>, <span class="keyword">and</span> a method bound to <span class="backtick"><code>lunatik_lstop</code></span>, the <span class="function-name">runtime</span><span class="string">'s
+<code>stop</code>, are left unwrapped: a close takes the lock itself, through <code>lunatik_closeprivate</code>, and
+would wait on the one the wrapper holds. The wrapper waits for the lock with
+<code>lunatik_lockkillable</code>: the stop of a kernel thread, or a fatal signal to any other task, ends
+the wait and the call raises <code>EINTR</code>. While the method runs, the calling runtime allocates with
+the object'</span>s <span class="backtick"><code>gfp</code></span>.
 </pre>
 
 
@@ -1723,9 +1724,9 @@ entry points.</p>
 
 
 <p>Allocates <code>size</code> bytes using the Lua allocator. Returns <code>NULL</code> on failure. The allocator asks for
-the runtime&rsquo;s <code>gfp</code>, <a href="#lunatik_gfp"><code>lunatik_gfp</code></a>, without an allocation warning: <code>GFP_ATOMIC</code>
-in a softirq or hardirq runtime once it is armed, and <code>GFP_KERNEL</code> otherwise, where a block
-larger than a page may come from <code>vmalloc</code>. Free it with <code>lunatik_free</code>, never <code>kfree</code>.</p>
+the runtime&rsquo;s <code>gfp</code>, <a href="#lunatik_gfp"><code>lunatik_gfp</code></a>, without an allocation warning; with
+<code>GFP_KERNEL</code>, a block larger than a page may come from <code>vmalloc</code>. Free it with <code>lunatik_free</code>,
+never <code>kfree</code>.</p>
 
 <h3 id="lunatik_realloc">lunatik_realloc</h3>
 
@@ -1772,7 +1773,8 @@ gfp_t <span class="function-name">lunatik_gfp</span>(lunatik_object_t *object);
 
 
 <p>Returns the <code>gfp_t</code> <code>object</code> allocates with: <code>GFP_ATOMIC</code> for a SOFTIRQ or HARDIRQ object and
-<code>GFP_KERNEL</code> otherwise. A runtime&rsquo;s is its allocator&rsquo;s, <code>GFP_KERNEL</code> while its script body runs.
+<code>GFP_KERNEL</code> otherwise. A runtime&rsquo;s is its allocator&rsquo;s, <code>GFP_KERNEL</code> while its script body runs
+and the object&rsquo;s while it calls a monitored method.
 A binding that allocates outside the Lua allocator passes <code>lunatik_gfp(lunatik_toruntime(L))</code>.
 Defined as a macro.</p>
 
@@ -1897,7 +1899,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 13:01:32</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 14:53:04</span>
 </div>
 </footer>
 </body>
