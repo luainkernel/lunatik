@@ -101,7 +101,7 @@ static struct sk_buff *luanetlink_message(lua_State *L, struct genl_family *fami
 * @tparam integer cmd Generic netlink command.
 * @tparam[opt] string payload Message body (e.g. from `netlink.message`).
 * @treturn boolean whether it reached at least one subscriber.
-* @raise on an allocation error.
+* @raise "closed object" if the channel has been stopped, or on an allocation error.
 */
 static int luanetlink_multicast(lua_State *L)
 {
@@ -125,7 +125,7 @@ static int luanetlink_multicast(lua_State *L)
 * @tparam[opt] string payload Message body (e.g. from `netlink.message`).
 * @treturn boolean whether it was queued to the port id (`false` if the port
 *   id is gone or its receive buffer is full).
-* @raise if `portid` is 0, or on an allocation error.
+* @raise if `portid` is 0, "closed object" if the channel has been stopped, or on an allocation error.
 */
 static int luanetlink_unicast(lua_State *L)
 {
@@ -143,10 +143,35 @@ static int luanetlink_unicast(lua_State *L)
 	return 1;
 }
 
+/***
+* Unregisters the channel's family.
+* Userspace no longer resolves the family by name, its subscribers leave the group, and
+* `multicast` and `unicast` raise. Calling it again does nothing, and a to-be-closed variable
+* holding the channel stops it the same way.
+* @function stop
+* @treturn nil
+* @raise "not allowed once the runtime is armed" from an interrupt-context runtime past its body;
+*   "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine its task
+*   runs, since the unregistration takes a lock a request holds while it waits on RTNL.
+* @usage family:stop()
+*/
+static int luanetlink_stop(lua_State *L)
+{
+	lunatik_checkarmed(L);
+	lunatik_checkrtnl(L);
+	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luanetlink_channel_class);
+
+	lunatik_unregister(L, object);
+	lunatik_closeprivate(object);
+	return 0;
+}
+
 static const luaL_Reg luanetlink_channel_mt[] = {
 	{"__gc",      lunatik_deleteobject},
+	{"__close",   luanetlink_stop},
 	{"multicast", luanetlink_multicast},
 	{"unicast",   luanetlink_unicast},
+	{"stop",      luanetlink_stop},
 	{NULL, NULL}
 };
 
@@ -164,11 +189,11 @@ static const lunatik_class_t luanetlink_channel_class = {
 * `lunatik`; userspace resolves the family by name (e.g. via `netlink.genl`, or
 * `genl ctrl get name <name>`) to learn that group's id, and joins it with
 * `NETLINK_ADD_MEMBERSHIP`. Like a netfilter hook, it must be created at script load
-* (process context); the returned channel lives for the runtime and its
-* `multicast`/`unicast` may then be called from softirq.
+* (process context); its `multicast`/`unicast` may then be called from softirq.
 * @function new
 * @tparam string name Generic netlink family name (up to `GENL_NAMSIZ-1` bytes).
-* @treturn netlink.channel A new channel object.
+* @treturn netlink.channel the channel, which `new` keeps for its runtime: dropping it stops
+*   nothing, and the family stays registered until `stop` or the end of the runtime.
 * @raise "not allowed once the runtime is armed" from an interrupt-context runtime past its body;
 *   "not allowed in a percpu runtime"; "not allowed under RTNL" from a netdevice callback, in
 *   whatever runtime or coroutine its task runs, since the registration takes a lock a request
@@ -198,7 +223,7 @@ static int luanetlink_channel_new(lua_State *L)
 	lunatik_try(L, genl_register_family, &channel->family);
 	channel->registered = true;
 
-	lunatik_register(L, -1, object); /* pin: release sleeps, must run at teardown */
+	lunatik_register(L, -1, object); /* pin: release sleeps, must run at stop or teardown */
 	return 1; /* object */
 }
 

@@ -787,13 +787,24 @@ allocates with).
 Tests for netlink: the `AF_NETLINK` address family in `socket`, and the
 higher-level `netlink.*` modules built on top of it.
 
-- **rtnl**: `netlink.channel.new` from a netdevice callback is refused, probed
-  from the replay of a `notifier.netdevice` registration: registering the
-  family takes a lock a request holds while its handler may wait on the RTNL
-  that task holds. A channel is accepted once the registration returned. A
-  build without the refusal hangs only if such a request is in flight, which
-  the test cannot rule out, so it skips unless the loaded `luanetlink` is the
-  installed one.
+- **rtnl**: `netlink.channel.new` and a channel's `stop` from a netdevice
+  callback are refused, probed from the replay of a `notifier.netdevice`
+  registration: registering or unregistering the family takes a lock a request
+  holds while its handler may wait on the RTNL that task holds. Once the
+  registration returned, a channel is accepted, the one whose stop was refused
+  still multicasts, and its stop is accepted. A build without the refusal hangs
+  only if such a request is in flight, which the test cannot rule out, so it
+  skips unless the loaded `luanetlink` is the installed one.
+- **stop**: a channel's `stop` unregisters its family while the script body
+  loads, its `__close` is that stop, and the stop is refused once an
+  interrupt-context runtime is armed. A softirq runtime the runner keeps
+  creates three channels: one stopped twice, whose `multicast` and `unicast`
+  then raise, one held by a to-be-closed variable whose metatable holds one
+  function under both names, and one kept, whose stop from a resume past the
+  body is refused with "not allowed once the runtime is armed", since
+  unregistering sleeps. `genl ctrl` resolves the kept family alone, until its
+  runtime stops. The same script resumed past its body stops the kept channel
+  in a process runtime and is refused in a hardirq one (skips without `genl`).
 
 - **socket**: opens an `AF_NETLINK` socket; a bind/`getsockname` round-trip
   exercises the address translation, and an `RTM_GETLINK` dump exercises send
@@ -1154,7 +1165,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 - **foreign_method**: `device:stop`, `notifier:stop`, `probe:stop`,
   `probe:enable`, `probe:disable` and the `rcu.table` index metamethods refuse
-  an object of another class instead of reading its private data as their own.
+  an object of another class instead of reading its private data as their own,
+  and `netlink.channel:stop` refuses one instead of closing it.
 
 - **foreign_checker**: a method of every class a process runtime can construct
   (`data`, `fifo`, `completion`, `set`, `crypto.shash`, `crypto.skcipher`,
