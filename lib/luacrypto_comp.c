@@ -63,6 +63,18 @@ LUACRYPTO_COMP_OPERATION(compress);
 LUACRYPTO_COMP_OPERATION(decompress);
 
 /***
+* Returns the driver-independent name of the algorithm the transform was allocated with.
+* @function algname
+* @treturn string
+*/
+static int luacrypto_comp_algname(lua_State *L)
+{
+	struct crypto_comp *tfm = luacrypto_comp_check(L, 1);
+	lua_pushstring(L, crypto_comp_name(tfm));
+	return 1;
+}
+
+/***
 * Releases the transform.
 * A to-be-closed variable holding the object releases it the same way. Calling it again does
 * nothing, and every other method raises "closed object" afterwards.
@@ -70,6 +82,7 @@ LUACRYPTO_COMP_OPERATION(decompress);
 * @treturn nil
 */
 static const luaL_Reg luacrypto_comp_mt[] = {
+	{"algname", luacrypto_comp_algname},
 	{"compress", luacrypto_comp_compress},
 	{"decompress", luacrypto_comp_decompress},
 	{"__gc", lunatik_deleteobject},

@@ -63,6 +63,11 @@ test("COMP refuses an object of another class, naming crypto.comp", function()
 	assert(err:find("crypto.comp expected, got data", 1, true), "compress raised something else: " .. err)
 end)
 
+test("COMP algname", function()
+	local name = comp("lz4"):algname()
+	assert(name == "lz4", "algname should be 'lz4', got: " .. name)
+end)
+
 test("COMP close releases the transform, and __close is close", function()
 	closing.check(comp("lz4"), "compress", "data", 64)
 end)
