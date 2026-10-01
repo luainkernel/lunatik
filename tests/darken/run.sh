@@ -31,14 +31,16 @@
 # from openssl's GMAC is the one gcm(aes) checks in the kernel. Skips below
 # OpenSSL 3, whose openssl mac shade.sh needs.
 #
-# shade_error: a step of tools/shade.sh that fails stops it with a non-zero
-# status before it writes the dark script or light.lua. darken runs with an
-# xxd ahead of the real one in PATH that fails where the encryption turns the
-# ciphertext back into bytes for its GMAC, and darken -s and lighten with a
-# secret of 64 characters that are not hex, which hex2bin's printf refuses
-# inside the command substitution that derives the key; darken runs once more
-# with an option it does not take. Skips below OpenSSL 3, where darken stops
-# at its probe for openssl mac before any step.
+# shade_error: a step of tools/shade.sh that fails, a secret that is not 64 hex
+# digits and an option it does not take stop it with a non-zero status before
+# it writes the dark script or light.lua. darken runs with an xxd ahead of the
+# real one in PATH that fails where the encryption turns the ciphertext back
+# into bytes for its GMAC, and darken and lighten with one that fails where the
+# key's derivation turns its info string into hex; darken -s and lighten run
+# with a secret of three hex digits and with one of 64 characters whose pairs
+# each open with a hex digit, which hex2bin's printf takes; darken runs once
+# more with an option it does not take. Skips below OpenSSL 3, where darken
+# stops at its probe for openssl mac before any step.
 #
 # Usage: sudo bash tests/darken/run.sh
 
@@ -83,14 +85,17 @@ refuses() {
 }
 
 shade_error() {
-	local nothex
-	nothex=$(printf '%064d' 0 | tr 0 z)
+	local hex nothex
+	hex=$(printf '%064d' 0)
+	nothex=$(printf '0z%.0s' {1..32})
 	mkdir -p "$TMP/bin"
-	printf '#!/bin/sh\n[ "$1" = -r ] && exit 1\nexec %s "$@"\n' "$(command -v xxd)" > "$TMP/bin/xxd"
+	printf '#!/bin/sh\n[ "$1" = "$XXD_FAIL" ] && exit 1\nexec %s "$@"\n' "$(command -v xxd)" > "$TMP/bin/xxd"
 	chmod +x "$TMP/bin/xxd"
-	PATH="$TMP/bin:$PATH" refuses darken script.lua &&
-		refuses darken -s "$nothex" script.lua &&
-		refuses lighten "$nothex" &&
+	PATH="$TMP/bin:$PATH" XXD_FAIL=-r refuses darken script.lua &&
+		PATH="$TMP/bin:$PATH" XXD_FAIL=-p refuses darken script.lua &&
+		PATH="$TMP/bin:$PATH" XXD_FAIL=-p refuses lighten "$hex" &&
+		refuses darken -s abc script.lua && refuses lighten abc &&
+		refuses darken -s "$nothex" script.lua && refuses lighten "$nothex" &&
 		refuses darken -x script.lua
 }
 

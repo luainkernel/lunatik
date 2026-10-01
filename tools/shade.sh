@@ -63,6 +63,7 @@ hkdf_sha256() {
 
 derive_key() {
 	local secret="$1" salt
+	[[ $secret =~ ^[[:xdigit:]]{64}$ ]] || die "secret must be 64 hex characters (32 bytes)"
 	if $OTP; then
 		salt=$(printf '%016x' "$(( $(date +%s) / 30 ))")
 		hkdf_sha256 "$secret" "$salt"
@@ -98,7 +99,6 @@ cmd_lighten() {
 	[ $# -ge 1 ] || die "usage: shade.sh lighten [-t] <secret>"
 
 	local secret="$1" key
-	[ ${#secret} -eq 64 ] || die "secret must be 64 hex characters (32 bytes)"
 
 	key=$(derive_key "$secret")
 
