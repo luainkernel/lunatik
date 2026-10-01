@@ -18,14 +18,35 @@ local DSCP_MASK <const> = 0xfe000000
 local DSCP_VAL  <const> = 0xba000000
 local LOW_MASK  <const> = 0x000000ff
 local LOW_VAL   <const> = 0x000000ab
+local U32_MAX   <const> = 0xffffffff
+
+local OUTOFBOUNDS <const> = "out of bounds"
+
+local refused <const> = {-1, U32_MAX + 1, (1 << 32) | LOW_VAL}
+
+local function refuses(skb, value)
+	local ok, err = pcall(skb.connmark, skb, value)
+	return not ok and err:find(OUTOFBOUNDS, 1, true) ~= nil
+end
 
 -- connmark(value) overwrites and returns the new mark; connmark() reads it.
--- Masked updates are composed in Lua. This exercises an overwrite, a masked set
--- that preserves out-of-mask bits, and a clear. Ends at DSCP_VAL.
+-- Masked updates are composed in Lua. This exercises the smallest and the largest mark,
+-- an overwrite, refusals past 32 bits that keep the mark, a masked set that preserves
+-- out-of-mask bits, and a clear. Ends at DSCP_VAL.
 local function tracked_seq(skb)
+	if skb:connmark(0) ~= 0 or skb:connmark(U32_MAX) ~= U32_MAX then
+		print("connmark: tracked FAIL ends")
+		return
+	end
 	if skb:connmark(LOW_VAL) ~= LOW_VAL then
 		print("connmark: tracked FAIL set")
 		return
+	end
+	for _, value in ipairs(refused) do
+		if not refuses(skb, value) or skb:connmark() ~= LOW_VAL then
+			print("connmark: tracked FAIL bound")
+			return
+		end
 	end
 	skb:connmark((skb:connmark() & ~DSCP_MASK) | DSCP_VAL)
 	if skb:connmark() ~= (DSCP_VAL | LOW_VAL) then
@@ -40,9 +61,9 @@ local function tracked_seq(skb)
 	print("connmark: tracked ok")
 end
 
--- Without conntrack, connmark returns nil for both read and write.
+-- Without conntrack, connmark returns nil for both read and write, and still refuses a value past 32 bits.
 local function notrack_seq(skb)
-	if skb:connmark(DSCP_VAL) == nil and skb:connmark() == nil then
+	if skb:connmark(DSCP_VAL) == nil and skb:connmark() == nil and refuses(skb, U32_MAX + 1) then
 		print("connmark: notrack ok")
 	else
 		print("connmark: notrack FAIL")

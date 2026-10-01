@@ -7,10 +7,14 @@
 #
 # connmark(value) overwrites and returns the new mark; connmark() reads it; masked
 # updates are composed in Lua. A LOCAL_OUT netfilter hook exercises, on a tracked
-# UDP flow, an overwrite, a masked set that preserves out-of-mask bits, and a
-# clear; the final mark (0xba000000) is cross-checked from userspace with
-# `conntrack -L`, mirroring how tc act_ctinfo reads ct->mark. A second, notrack'd
-# flow checks that connmark returns nil (read and write) when there is no conntrack.
+# UDP flow, the smallest and the largest mark, 0 and 0xffffffff, an overwrite, a
+# value past 32 bits or negative, which raises "out of bounds" and leaves the mark
+# as it was, a masked set that preserves out-of-mask bits, and a clear; one past
+# 32 bits carries the mark already set as its low bits, which a truncating build
+# takes without an error. The final mark (0xba000000) is cross-checked from
+# userspace with `conntrack -L`, mirroring how tc act_ctinfo reads ct->mark. A
+# second, notrack'd flow checks that connmark returns nil (read and write) when
+# there is no conntrack, and still refuses a value past 32 bits.
 #
 # Conntrack is engaged via an nft `ct state` rule; the test skips cleanly if
 # nf_conntrack is unavailable.
@@ -65,11 +69,11 @@ sleep 1
 
 out=$(dmesg_since)
 
-# 1) overwrite + Lua-composed masked update on a tracked flow (set + preservation + clear).
+# 1) bounds, overwrite + Lua-composed masked update on a tracked flow (set + preservation + clear).
 if echo "$out" | grep -q "connmark: tracked ok"; then
-	ktap_pass "connmark overwrite + Lua-composed masked update (set/preserve/clear)"
+	ktap_pass "connmark bounds, overwrite + Lua-composed masked update (set/preserve/clear)"
 elif echo "$out" | grep -q "connmark: tracked FAIL"; then
-	fail "masked update: $(echo "$out" | grep -oE 'connmark: tracked FAIL [a-z]+' | head -1)"
+	fail "tracked flow: $(echo "$out" | grep -oE 'connmark: tracked FAIL [a-z]+' | head -1)"
 elif echo "$out" | grep -q "attempt to call a nil value"; then
 	skip_all "skb:connmark unavailable (built without CONFIG_NF_CONNTRACK_MARK?)"
 else

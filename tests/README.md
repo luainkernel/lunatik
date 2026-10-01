@@ -1355,11 +1355,17 @@ pid, and what a valid call does.
 ### skb
 
 - **connmark**: a `LOCAL_OUT` netfilter hook exercises `skb:connmark` (get/set)
-  on a tracked UDP flow — an overwrite, a Lua-composed masked set that preserves
-  out-of-mask bits, and a clear — cross-checked in the conntrack table with
-  `conntrack -L`; a second `notrack`'d flow asserts `connmark` returns nil for
-  read and write without conntrack. Conntrack is engaged via an nft `ct state`
+  on a tracked UDP flow — the smallest and the largest mark, an overwrite, a value
+  negative or past 32 bits, which raises `out of bounds` and leaves the mark, a
+  Lua-composed masked set that preserves out-of-mask bits, and a clear —
+  cross-checked in the conntrack table with `conntrack -L`; a second `notrack`'d
+  flow asserts `connmark` returns nil for read and write without conntrack, and
+  still refuses a value past 32 bits. Conntrack is engaged via an nft `ct state`
   rule; skips cleanly if `nf_conntrack` is unavailable.
+- **bounds**: a `LOCAL_OUT` netfilter hook sets `skb:mark` and `skb:priority` to 0
+  and to 0xffffffff and reads each back, and asks each for -1, 2^32 and 2^32 plus
+  the value it holds, which raise `out of bounds` and leave the field as it was,
+  where a build that keeps the low bits takes the last one without an error.
 - **resize**: a `LOCAL_OUT` netfilter hook resizes non-linear skbs, the TCP
   segments over loopback whose payload sits in page fragments, one case per
   sender picked by its `SO_PRIORITY`: a shrink inside the payload, a shrink
