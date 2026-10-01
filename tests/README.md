@@ -1690,6 +1690,11 @@ pid, and what a valid call does.
   leading zero, a sign, surrounding spaces, an empty or hexadecimal octet, a
   name and the empty string.
 
+- **inet**: `socket.inet`'s `getsockname()` and `getpeername()`: a TCP listener
+  bound to `127.0.0.1` on an ephemeral port answers with that address as a
+  string and the port, and a client connected to it answers with the same pair
+  as its peer.
+
 - **connect**: which argument `socket:connect()` reads as its flags, and what it
   answers. An AF_INET address is spelled as two arguments, so a call with no flags
   must not have its port read as one: the test connects to port 6922, whose value

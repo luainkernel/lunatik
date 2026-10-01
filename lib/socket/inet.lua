@@ -112,18 +112,7 @@ function inet:connect(addr, port, flags)
 	return self.socket:connect(net.aton(addr), port, flags)
 end
 
----
--- Internal helper function to get socket address information.
--- @param what (string) Either "sockname" or "peername".
--- @return (string) IP address in string format.
--- @return (number) Port number.
--- @local
--- @see socket.getsockname
--- @see socket.getpeername
--- @see net.ntoa
-function inet:getaddr(what)
-	local socket = self.socket
-	local ip, port = socket['get' .. what](socket)
+local function getaddr(ip, port)
 	return net.ntoa(ip), port
 end
 
@@ -133,7 +122,7 @@ end
 -- @return (number) Local port number.
 -- @see socket.getsockname
 function inet:getsockname()
-	return self:getaddr("sockname")
+	return getaddr(self.socket:getsockname())
 end
 
 ---
@@ -142,7 +131,7 @@ end
 -- @return (number) Remote port number.
 -- @see socket.getpeername
 function inet:getpeername()
-	return self:getaddr("peername")
+	return getaddr(self.socket:getpeername())
 end
 
 local sock    = sk.sock
