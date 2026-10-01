@@ -248,9 +248,10 @@ interrupts on would spin on it forever.
 <pre>
 method calls with the object lock, enabling safe concurrent access from multiple runtimes.
 Inherited by default but cancelled when an instance is created with <span class="backtick"><code>LUNATIK_OPT_SINGLE</code></span>. A
-metamethod, a method named <span class="backtick"><code>close</code></span>, <span class="keyword">and</span> a method bound to <span class="backtick"><code>lunatik_lstop</code></span>, the <span class="function-name">runtime</span><span class="string">'s
-<code>stop</code>, are left unwrapped: a close takes the lock itself, through <code>lunatik_closeprivate</code>, and
-would wait on the one the wrapper holds. The wrapper waits for the lock with
+metamethod other than <span class="backtick"><code>__tostring</code></span>, which reads the object as a method does, a method named
+<span class="backtick"><code>close</code></span>, <span class="keyword">and</span> a method bound to <span class="backtick"><code>lunatik_lstop</code></span>, the <span class="function-name">runtime</span><span class="string">'s <code>stop</code>, are left unwrapped: a
+close takes the lock itself, through <code>lunatik_closeprivate</code>, and would wait on the one the
+wrapper holds. The wrapper waits for the lock with
 <code>lunatik_lockkillable</code>: the stop of a kernel thread, or a fatal signal to any other task, ends
 the wait and the call raises <code>EINTR</code>. While the method runs, the calling runtime allocates with
 the object'</span>s <span class="backtick"><code>gfp</code></span>.
@@ -1899,7 +1900,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 14:53:04</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 14:55:25</span>
 </div>
 </footer>
 </body>
