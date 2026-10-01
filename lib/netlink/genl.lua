@@ -60,7 +60,7 @@ local function decode(messages)
 	for _, msg in ipairs(messages) do
 		local body = msg.body
 		if not iscontrol(msg.type) and #body >= GENL_HDRLEN then
-			insert(msgs, {cmd = genlmsghdr:unpack(body), attrs = message.attrs(body, GENL_HDRLEN + 1)})
+			insert(msgs, {cmd = genlmsghdr:unpack(body), attrs = message.parseattrs(body, GENL_HDRLEN + 1)})
 		end
 	end
 	return msgs

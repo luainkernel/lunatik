@@ -50,7 +50,7 @@ end
 
 function rule:decode(body)
 	local fam, _, _, _, tbl, action, flags = fib_rule:unpack(body)
-	local attrs = message.attrs(body, FIB_RULE_LEN + 1)
+	local attrs = message.parseattrs(body, FIB_RULE_LEN + 1)
 	return {
 		family = fam, action = action, flags = flags,
 		table = u32(attrs[rtnl.fra.TABLE]) or tbl,

@@ -49,7 +49,7 @@ end
 
 function route:decode(body)
 	local fam, dst_len, src_len, tos, tbl, protocol, scope, rtype, flags = rtmsg:unpack(body)
-	local attrs = message.attrs(body, RTMSG_LEN + 1)
+	local attrs = message.parseattrs(body, RTMSG_LEN + 1)
 	return {
 		family = fam, dst_len = dst_len, src_len = src_len, tos = tos,
 		table = u32(attrs[rtnl.rta.TABLE]) or tbl,

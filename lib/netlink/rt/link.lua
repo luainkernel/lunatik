@@ -47,7 +47,7 @@ end
 
 function link:decode(body)
 	local fam, ltype, ifindex, flags, change = ifinfomsg:unpack(body)
-	local attrs = message.attrs(body, IFINFO_LEN + 1)
+	local attrs = message.parseattrs(body, IFINFO_LEN + 1)
 	return {
 		family = fam, type = ltype, ifindex = ifindex,
 		flags = flags, change = change,
