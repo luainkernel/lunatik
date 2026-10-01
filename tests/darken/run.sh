@@ -31,6 +31,14 @@
 # from openssl's GMAC is the one gcm(aes) checks in the kernel. Skips below
 # OpenSSL 3, whose openssl mac shade.sh needs.
 #
+# shade_error: a step of tools/shade.sh that fails stops it with a non-zero
+# status before it writes the dark script or light.lua. darken runs with an
+# xxd ahead of the real one in PATH that fails where the encryption turns the
+# ciphertext back into bytes for its GMAC, and darken -s and lighten with a
+# secret of 64 characters that are not hex, which hex2bin's printf refuses
+# inside the command substitution that derives the key. Skips below OpenSSL 3,
+# where darken stops at its probe for openssl mac before any step.
+#
 # Usage: sudo bash tests/darken/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -57,17 +65,35 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 TMP=$(mktemp -d)
+printf 'return "shaded"\n' > "$TMP/script.lua"
 
 shade() {
 	local secret
-	printf 'return "shaded"\n' > "$TMP/script.lua"
 	secret=$(bash "$TOOL" darken "$TMP/script.lua") || return 1
 	(cd "$TMP" && bash "$TOOL" lighten "$secret") || return 1
 	cp "$TMP/script.dark.lua" "$DARK" && cp "$TMP/light.lua" "$LIGHT" && run_test "$SHADE"
 }
 
+# shade.sh run in $TMP with these arguments exits non-zero and writes neither file
+refuses() {
+	rm -f "$TMP/script.dark.lua" "$TMP/light.lua"
+	! (cd "$TMP" && bash "$TOOL" "$@" > /dev/null 2>&1) &&
+		[ ! -e "$TMP/script.dark.lua" ] && [ ! -e "$TMP/light.lua" ]
+}
+
+shade_error() {
+	local nothex
+	nothex=$(printf '%064d' 0 | tr 0 z)
+	mkdir -p "$TMP/bin"
+	printf '#!/bin/sh\n[ "$1" = -r ] && exit 1\nexec %s "$@"\n' "$(command -v xxd)" > "$TMP/bin/xxd"
+	chmod +x "$TMP/bin/xxd"
+	PATH="$TMP/bin:$PATH" refuses darken script.lua &&
+		refuses darken -s "$nothex" script.lua &&
+		refuses lighten "$nothex"
+}
+
 ktap_header
-ktap_plan 3
+ktap_plan 4
 
 if ! [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] ||
 	! grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
@@ -84,13 +110,15 @@ else
 	ktap_fail "darken/decrypt"
 fi
 
-if ! openssl mac -help > /dev/null 2>&1; then
-	ktap_skip "darken/shade: tools/shade.sh needs OpenSSL 3 or later"
-elif shade; then
-	ktap_pass "darken/shade"
-else
-	ktap_fail "darken/shade"
-fi
+for name in shade shade_error; do
+	if ! openssl mac -help > /dev/null 2>&1; then
+		ktap_skip "darken/$name: tools/shade.sh needs OpenSSL 3 or later"
+	elif $name; then
+		ktap_pass "darken/$name"
+	else
+		ktap_fail "darken/$name"
+	fi
+done
 
 ktap_totals
 

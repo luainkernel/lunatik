@@ -155,6 +155,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   their own error.
 - **shade**: a script `tools/shade.sh` encrypted runs through `lighten` with
   the key `shade.sh lighten` wrote for its secret. Skips below OpenSSL 3.
+- **shade_error**: a step of `tools/shade.sh` that fails, an `xxd` that fails
+  in the encryption or a secret that is not hex, stops `darken` and `lighten`
+  with a non-zero status before they write the dark script or `light.lua`.
+  Skips below OpenSSL 3.
 
 ### data
 
