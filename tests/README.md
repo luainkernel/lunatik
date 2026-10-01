@@ -766,8 +766,8 @@ higher-level `netlink.*` modules built on top of it.
   reference, the namespace goes, and with it the veth pair the test gave it,
   whose end in the initial namespace disappears (skips without `nsenter`,
   network namespaces, the dummy driver or veth, and from a pid namespace other
-  than the initial one, where the pid `socket.new` resolves is not the one
-  `signal.kill` reads). On a kernel where `socket.new` refuses a task's
+  than the initial one, whose pids are not the ones `socket.new` and
+  `signal.kill` read). On a kernel where `socket.new` refuses a task's
   namespace with `EOPNOTSUPP`, the script says so and the five namespace cases
   skip on that message.
 - **addr_list**: `rt.addr():list()` lists addresses; asserts `127.0.0.1` is
@@ -820,7 +820,9 @@ The three tests that create the AP interface move the simulated wiphy into a
 network namespace of their own, and every session of their scripts takes the
 pid of the process kept there, so no process of the initial namespace, a
 network manager's included, acts on the interface under the test; the wiphy
-comes back when the namespace goes (they skip without `iw` or `nsenter`).
+comes back when the namespace goes (they skip without `iw` or `nsenter`, and
+from a pid namespace other than the initial one, whose pids are not the ones
+`socket.new` reads).
 
 ### notifier
 
@@ -1394,10 +1396,12 @@ pid, and what a valid call does.
   last task in the namespace, whose name the test already deleted, and closes
   the sockets. The veth end the test left in the initial namespace still exists
   once the script is stopped, since the two orphans hold the namespace, and goes
-  once the retries run out and the kernel frees them (skips without `nsenter`,
-  `nft`, network namespaces or veth, and from a pid namespace other than the
-  initial one, where the pid `socket.new` resolves is not the one `signal.kill`
-  reads; on a kernel where `socket.new` refuses a task's namespace with
+  once the retries run out and the kernel frees them. The script runs from a CLI
+  in a pid namespace of its own, which does not hold the pid of that last task,
+  so reaching its namespace proves `socket.new` reads the pid in the initial pid
+  namespace, as `task:pid()` returns it (skips without `nsenter`, `nft`, pid or
+  network namespaces or veth, and from a pid namespace other than the initial
+  one; on a kernel where `socket.new` refuses a task's namespace with
   `EOPNOTSUPP`, the three cases skip on that message).
 
 - **rtnl**: what a socket refuses under RTNL, probed from the replay of a

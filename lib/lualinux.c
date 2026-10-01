@@ -19,12 +19,11 @@
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
 #include <linux/netdevice.h>
-#include <linux/pid_namespace.h>
-#include <linux/nsproxy.h>
-#include <linux/sched/task.h>
 #include <net/net_namespace.h>
 
 #include <lunatik.h>
+
+#include "lualinux.h"
 
 /***
 * Generates pseudo-random integers.
@@ -228,24 +227,6 @@ static int lualinux_hwaddr(lua_State *L)
 	dev_put(dev);
 	luaL_pushresultsize(&B, len);
 	return 1;
-}
-
-static struct net *lualinux_getnetbypid(pid_t pid)
-{
-	struct net *net = ERR_PTR(-ESRCH);
-
-	rcu_read_lock();
-	struct task_struct *task = pid_task(find_pid_ns(pid, &init_pid_ns), PIDTYPE_PID);
-	if (task == NULL)
-		goto unlock;
-
-	task_lock(task);
-	if (task->nsproxy != NULL)
-		net = get_net(task->nsproxy->net_ns);
-	task_unlock(task);
-unlock:
-	rcu_read_unlock();
-	return net;
 }
 
 /***

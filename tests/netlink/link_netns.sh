@@ -14,8 +14,8 @@
 # has closed its sockets the namespace goes, and with it the veth pair whose
 # other end, WITNESS, the test left in the initial namespace: no socket keeps
 # its reference past its close, and the one the kernel refused keeps none.
-# The shell has to run in the initial pid namespace, the only one where the pid
-# socket.new resolves is the one signal.kill reads, and the test skips elsewhere.
+# The shell has to run in the initial pid namespace, the only one whose pids are
+# the ones socket.new and signal.kill read, and the test skips elsewhere.
 #
 # Usage: sudo bash tests/netlink/link_netns.sh
 

@@ -38,6 +38,8 @@
 
 #include <lunatik.h>
 
+#include "lualinux.h"
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 7, 0)
 typedef int (*luasocket_setter_t)(struct socket *, int, int, sockptr_t, unsigned int);
 #endif
@@ -635,13 +637,13 @@ static const lunatik_class_t luasocket_class = {
 /* a kernel socket holds no reference on its namespace, and a TCP one outlives its release with timers armed */
 #if defined(LUNATIK_SK_NET_REFCNT_UPGRADE)
 #define luasocket_upgrade(sk)		sk_net_refcnt_upgrade(sk)
-#define luasocket_getnetbypid(pid)	get_net_ns_by_pid(pid)
+#define luasocket_getnetbypid(pid)	lualinux_getnetbypid(pid)
 #elif defined(LUNATIK_NET_PASSIVE_DEC)
 /* the upgrade drops a passive reference through net_passive_dec, which is not exported: init_net only */
 #define luasocket_upgrade(sk)
 #define luasocket_getnetbypid(pid)	ERR_PTR(-EOPNOTSUPP)
 #else
-#define luasocket_getnetbypid(pid)	get_net_ns_by_pid(pid)
+#define luasocket_getnetbypid(pid)	lualinux_getnetbypid(pid)
 /* sk_net_refcnt_upgrade as net/smc/af_smc.c open-coded it before v6.14 */
 static inline void luasocket_upgrade(struct sock *sk)
 {
@@ -694,11 +696,11 @@ static int luasocket_accept(lua_State *L)
 *   For `AF_PACKET` sockets, `protocol` is an ethertype in host byte order, as `bind` takes it
 *   (e.g., `linux.eth.ALL` for every frame).
 * @tparam[opt] integer pid a task whose network namespace the socket is created in, instead of the
-*   initial one. The pid is resolved in the pid namespace of the task making the call: the `lunatik`
-*   process for a script's body, the initial one for a kernel thread. The socket holds its network
-*   namespace until the kernel frees the socket, which for a TCP connection still shutting down comes
-*   after its close, so the namespace outlives the task. The rest of Lunatik (`linux.ifindex`,
-*   `netfilter`) keeps to the initial network namespace.
+*   initial one. The pid is read in the initial pid namespace: the number `task:pid()` returns,
+*   whichever task makes the call. The socket holds its network namespace until the kernel frees the
+*   socket, which for a TCP connection still shutting down comes after its close, so the namespace
+*   outlives the task. The rest of Lunatik (`linux.ifindex`, `netfilter`) keeps to the initial network
+*   namespace.
 * @treturn socket A new socket object. A socket a netdevice callback may collect is closed by the
 *   script first, not dropped: its release cannot refuse where the collector drops it.
 * @raise Error if socket creation fails, "out of bounds" for an `AF_PACKET` protocol past 16 bits,
