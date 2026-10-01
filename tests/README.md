@@ -1491,6 +1491,15 @@ Regression tests for `luathread`.
   exited thread leaves no kernel complaint, and the object `task()` returns
   after the stop has no task: its methods raise.
 
+- **release**: a thread holds its runtime until `stop` releases it or the
+  thread is collected, even once its body has returned. A spawned driver
+  threads a runtime whose handle it drops, and whose body leaves a sentinel
+  that completes a completion when the runtime closes: after the body returned
+  and the driver collected, the runtime stays open until the stop, which reads
+  the owner of its lock; a second thread, dropped too, closes its runtime when
+  the collector releases it. A build that puts the runtime as the body returns
+  fails the first case before the stop.
+
 ### xdp
 
 Regression tests for `luaxdp`. The suite builds real XDP programs that call
