@@ -18,7 +18,7 @@ Optional tools, without which the suites that need them skip:
 - `iw` and the `mac80211_hwsim` module: netlink
 - `nsenter`: netlink, notifier, socket
 - `nft`: skb, socket
-- `setarch`: probe
+- `setarch`: probe, rcu
 - `taskset`: probe, xdp
 - `lunatic`: luac
 
@@ -1087,6 +1087,22 @@ from a pid namespace other than the initial one, whose pids are not the ones
   size but no allocator serves is a memory error with no kernel warning
   behind it. A key under `LUARCU_MAXKEY` bytes is stored and one at it is
   out of bounds where it arrives, not a memory error.
+
+- **cycle**: storing an `rcu.table` raises `ELOOP` when it is the table it is
+  stored in or holds that table, directly, through others or as
+  `lunatik._ENV`, and the refused store leaves the table as it was; a table
+  that reaches others but not that one is stored. An entry overwritten with a
+  table, or whose table is replaced, deleted or overwritten with an integer,
+  counts what it holds after the store. The walk takes `LUARCU_MAXWALK` tables
+  that hold tables and refuses one more; a table that holds none is not
+  counted, and one held under several keys is counted once.
+
+- **cycle_release**: two tables a refused store kept apart are released once
+  their handles go, which a kprobe on `luarcu_release` counts, and a build that
+  accepts the store releases neither. From a kprobe on the `personality`
+  syscall in a hardirq runtime, the store that closes the cycle is refused, the
+  one after the edge is deleted is taken, and deleting the entry that held a
+  table's last reference releases it in the handler.
 
 - **foreach_sync**: `rcu.foreach()` remains safe when called while another
   kthread is modifying the table.
