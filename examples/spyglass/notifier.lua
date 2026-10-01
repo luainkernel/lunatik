@@ -27,7 +27,7 @@ local function callback(event, down, shift, key)
 		local keysym = key & 0xFF
 		local char = printable(keysym) and string.char(keysym) or
 			string.format("<%s>", control[keysym])
-		pcall(log.push, log, char) -- drop silently if full
+		log:push(char) -- drop silently if full
 	end
 	return notify.OK
 end

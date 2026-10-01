@@ -9,7 +9,8 @@
 # timeout and with timeout 0, and false, alone, when the timeout elapses first.
 #
 # mailbox: mailbox:receive answers nil, alone, when its wait elapses, timeout 0
-# included, and the message a send queued before it.
+# included, and the message a send queued before it; mailbox:send answers false
+# when the queue has no room for a message, which the receiver then never sees.
 #
 # stop: the stop of a spawned thread interrupts its completion:wait, which raises
 # ERESTARTSYS. The body bounds its wait, so it ends on its own when no stop comes.

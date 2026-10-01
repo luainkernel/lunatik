@@ -139,10 +139,15 @@ end
 -- Not available on inboxes.
 -- @function MailBox:send
 -- @tparam string message message to send.
--- @raise Error if called on an inbox.
+-- @treturn boolean `true` if the message was queued, `false` if the queue has no room for it.
+-- @raise "receive-only mailbox" on an inbox; "out of bounds" for a message whose length plus a
+--   `size_t` exceeds the queue's capacity.
 function MailBox:send(message)
-	self.queue:push(string.pack("s", message))
-	self.event:complete()
+	local queued = self.queue:push(string.pack("s", message))
+	if queued then
+		self.event:complete()
+	end
+	return queued
 end
 
 return mailbox

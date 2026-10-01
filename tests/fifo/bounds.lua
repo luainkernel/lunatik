@@ -9,6 +9,7 @@ local test = require("tests.lib").test
 
 local CAPACITY <const> = 16
 local MESSAGE  <const> = "hello"
+local FULL     <const> = string.rep("x", CAPACITY)
 
 local accepted   <const> = {2, 16, 4096, 1 << 20}
 -- fifo.new tops out at KMALLOC_MAX_SIZE, which follows the kernel's page size and MAX_PAGE_ORDER;
@@ -50,5 +51,16 @@ test("fifo:pop refuses a size past the capacity", function()
 	for _, size in ipairs(unpoppable) do
 		refuses("fifo:pop", pop, queue, size)
 	end
+end)
+
+test("fifo:push accepts a string up to the capacity", function()
+	local queue <close> = fifo.new(CAPACITY)
+	assert(queue:push(FULL), "a capacity-sized push into an empty fifo was refused")
+	assert(queue:pop(CAPACITY) == FULL, "a capacity-sized push lost bytes")
+end)
+
+test("fifo:push refuses a string past the capacity", function()
+	local queue <close> = fifo.new(CAPACITY)
+	refuses("fifo:push", getmetatable(queue).push, queue, FULL .. MESSAGE)
 end)
 

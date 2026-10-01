@@ -13,6 +13,7 @@ local format = string.format
 local CAPACITY <const> = 64
 local TIMEOUT  <const> = 10 -- ms
 local MESSAGE  <const> = "hello"
+local QUEUED   <const> = string.packsize("T") + #MESSAGE -- a send queues the length, then the message
 
 local function nothing(inbox, timeout)
 	local answer = pack(inbox:receive(timeout))
@@ -32,5 +33,14 @@ test("mailbox:receive answers a message sent before it", function()
 	outbox:send(MESSAGE)
 	local message, length = inbox:receive(TIMEOUT)
 	assert(message == MESSAGE and length == #MESSAGE, "receive answered " .. tostring(message))
+end)
+
+test("mailbox:send answers false when the queue has no room, and the receiver never sees it", function()
+	local inbox = mailbox.inbox(QUEUED)
+	local outbox = mailbox.outbox(inbox.queue, inbox.event)
+	assert(outbox:send(MESSAGE) == true, "a send into an empty queue was refused")
+	assert(outbox:send(MESSAGE) == false, "a send into a full queue was not refused")
+	assert(inbox:receive(TIMEOUT) == MESSAGE, "the queued message was lost")
+	nothing(inbox, 0)
 end)
 
