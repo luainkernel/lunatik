@@ -173,9 +173,9 @@
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-crypto">Cryptography</a></div>
 <h1>darken<span class="kind">Module</span></h1>
-<p class="lead">Encrypted Lua script execution using AES-256-CTR.</p>
+<p class="lead">Encrypted Lua script execution using AES-256-GCM.</p>
  This module provides functionality to decrypt and execute Lua scripts
- encrypted with AES-256 in CTR mode. Scripts are decrypted in-kernel
+ encrypted with AES-256 in GCM mode. Scripts are decrypted in-kernel
  and executed immediately, with the decrypted plaintext never written
  to persistent storage.
 
@@ -193,20 +193,21 @@
     <dt id="run"><a name="run"></a><strong>run (ciphertext, iv, key)</strong></dt>
     <dd>
     Decrypts and executes an encrypted Lua script.
- The decrypted script must be Lua source, and it runs with the runtime&rsquo;s global environment. It
- allocates a crypto transform, which may sleep: call it from a process runtime or from a script
- body, never from a softirq or hardirq callback.
+ The ciphertext carries its 16-byte tag at the end and no associated data, and nothing is loaded
+ unless the tag matches. The decrypted script must be Lua source, and it runs with the runtime&rsquo;s
+ global environment. It allocates a crypto transform, which may sleep: call it from a process
+ runtime or from a script body, never from a softirq or hardirq callback.
 
 
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">ciphertext</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         encrypted Lua script (binary).
+         encrypted Lua script followed by its 16-byte tag (binary).
         </li>
         <li><span class="parameter">iv</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         16-byte initialization vector (binary).
+         12-byte initialization vector (binary).
         </li>
         <li><span class="parameter">key</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
@@ -221,11 +222,12 @@
     </ol>
 
     <h3>Raises</h3>
-     &ldquo;IV must be 16 bytes&rdquo;, &ldquo;key must be 32 bytes&rdquo;, &ldquo;not allowed after module load&rdquo; from an
-   interrupt-context runtime past its body, the errno name of a failed transform allocation, key
-   setting or decryption, &ldquo;not enough memory&rdquo;, the load error of the decrypted text (a syntax
-   error from &ldquo;darken&rdquo; when the key or IV is wrong, &ldquo;attempt to load a binary chunk (mode is &rsquo;t')&rdquo;
-   for a precompiled script), or the error the script raises.
+     &ldquo;IV must be 12 bytes&rdquo;, &ldquo;key must be 32 bytes&rdquo;, &ldquo;not allowed after module load&rdquo; from an
+   interrupt-context runtime past its body, &ldquo;EBADMSG&rdquo; when the tag does not match (a wrong key or
+   IV, or a ciphertext altered or shorter than the tag), the errno name of a failed transform
+   allocation, key setting or decryption, &ldquo;not enough memory&rdquo;, the load error of the decrypted
+   text (&ldquo;attempt to load a binary chunk (mode is &rsquo;t')&rdquo; for a precompiled script), or the error
+   the script raises.
 
 
 
@@ -244,7 +246,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:28:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:33:07</span>
 </div>
 </footer>
 </body>

@@ -173,7 +173,7 @@
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-crypto">Cryptography</a></div>
 <h1>lighten<span class="kind">Module</span></h1>
-<p class="lead">Encrypted Lua script support (AES-256-CTR).</p>
+<p class="lead">Encrypted Lua script support (AES-256-GCM).</p>
 <p> This module provides functions to run encrypted Lua scripts
  using the <a href="../modules/darken.html#">darken</a> C module.</p>
 
@@ -212,11 +212,11 @@ sudo lunatik run hello.dark
     <ul>
         <li><span class="parameter">ct</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         Hex-encoded ciphertext.
+         Hex-encoded ciphertext followed by its 16-byte tag.
         </li>
         <li><span class="parameter">iv</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         Hex-encoded 16-byte IV.
+         Hex-encoded 12-byte IV.
         </li>
     </ul>
 
@@ -250,7 +250,7 @@ sudo lunatik run hello.dark
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:28:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:33:07</span>
 </div>
 </footer>
 </body>
