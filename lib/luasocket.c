@@ -158,6 +158,14 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *, &luasocket_class);
 
 #define luasocket_setmsg(m)		memset(&(m), 0, sizeof(m))
 
+/* EAGAIN is a wait a nonblocking flag or a receive timeout ended with nothing to answer */
+static int luasocket_pushfail(lua_State *L, int ret)
+{
+	if (ret != -EAGAIN)
+		lunatik_throw(L, ret);
+	return lunatik_pushfail(L, ret);
+}
+
 static inline void luasocket_checkrtnl(lua_State *L, struct socket *socket)
 {
 	if (luasocket_family(socket) == AF_NETLINK) /* the kernel runs a request, and a dump, on this task */
@@ -266,7 +274,7 @@ static int luasocket_send(lua_State *L)
 	return 1;
 }
 
-static void luasocket_receivemsg(lua_State *L, struct msghdr *msg)
+static int luasocket_receivemsg(lua_State *L, struct msghdr *msg)
 {
 	struct socket *socket = luasocket_check(L, 1);
 	size_t len = (size_t)luaL_checkinteger(L, 2);
@@ -280,24 +288,27 @@ static void luasocket_receivemsg(lua_State *L, struct msghdr *msg)
 	vec.iov_base = (void *)luaL_buffinitsize(L, &B, len);
 	vec.iov_len = len;
 
-	lunatik_tryret(L, ret, kernel_recvmsg, socket, msg, &vec, 1, len, flags);
-	luaL_pushresultsize(&B, ret);
+	if ((ret = kernel_recvmsg(socket, msg, &vec, 1, len, flags)) >= 0)
+		luaL_pushresultsize(&B, ret);
+	return ret;
 }
 
 /***
 * Receives a message from the socket.
 * The call blocks until a message arrives, with no timeout of its own, unless `flags` carries
 * `linux.socket.msg.DONTWAIT` or `setsockopt` set a receive timeout
-* (`linux.socket.so.RCVTIMEO_NEW`); either makes a wait with nothing to read raise `EAGAIN`.
-* A `lunatik stop` of the spawned thread that waits ends its wait; a thread nothing stops, as a
-* worker a body starts with `thread.run()`, bounds every wait.
+* (`linux.socket.so.RCVTIMEO_NEW`); either makes a wait with nothing to read answer `nil`.
+* A `lunatik stop` of the spawned thread that waits ends its wait, which raises `ERESTARTSYS`, or
+* `EINTR` under a receive timeout; a thread nothing stops, as a worker a body starts with
+* `thread.run()`, bounds every wait.
 *
 * @function receive
 * @tparam integer length maximum number of bytes to receive.
 * @tparam[opt=0] integer flags Optional message flags (e.g., `linux.socket.msg.PEEK`).
 *   See the `linux.socket.msg` table for available flags. These can be OR'd together.
 * @treturn string received message (as a string of bytes); on a stream socket, the empty string is
-*   the end of file, once the peer has shut down its side.
+*   the end of file, once the peer has shut down its side; `nil` and `"EAGAIN"` when the wait ended
+*   with nothing to read.
 * @raise Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
 *   callback.
 * @usage
@@ -312,8 +323,8 @@ static int luasocket_receive(lua_State *L)
 	struct msghdr msg;
 
 	luasocket_setmsg(msg);
-	luasocket_receivemsg(L, &msg);
-	return 1;
+	int ret = luasocket_receivemsg(L, &msg);
+	return ret < 0 ? luasocket_pushfail(L, ret) : 1;
 }
 
 /***
@@ -325,7 +336,8 @@ static int luasocket_receive(lua_State *L)
 * @function receivefrom
 * @tparam integer length maximum number of bytes to receive.
 * @tparam[opt=0] integer flags message flags, as `receive` takes them.
-* @treturn string received message, as `receive` returns it.
+* @treturn string received message, as `receive` returns it; `nil` and `"EAGAIN"`, in place of the
+*   message and the address, when the wait ended with nothing to read.
 * @treturn[opt] integer|string addr the sender's address (two values for `AF_INET` and `AF_NETLINK`,
 *   five for `AF_PACKET`).
 *   - For `AF_INET`: An integer representing the IPv4 address (can be converted with `net.ntoa()`).
@@ -355,7 +367,9 @@ static int luasocket_receivefrom(lua_State *L)
 
 	luasocket_setmsg(msg);
 	msg.msg_name = &addr;
-	luasocket_receivemsg(L, &msg);
+	int ret = luasocket_receivemsg(L, &msg);
+	if (ret < 0)
+		return luasocket_pushfail(L, ret);
 
 	/* msg_namelen is an output: zero means the protocol named no address */
 	return luasocket_pushaddr(L, &addr, msg.msg_namelen) + 1;
@@ -691,13 +705,15 @@ static inline void luasocket_upgrade(struct sock *sk)
 * This function is used with connection-oriented sockets (e.g., `SOCK_STREAM`)
 * that have been put into the listening state by `sock:listen()`.
 * The call blocks until a connection arrives, with no timeout of its own, unless `flags` carries
-* `O_NONBLOCK` or `setsockopt` set a receive timeout; `receive` says how a stop ends the wait.
+* `O_NONBLOCK` or `setsockopt` set a receive timeout; either makes a wait with no connection to
+* accept answer `nil`, and `receive` says how a stop ends the wait.
 *
 * @function accept
-* @tparam[opt=0] integer flags file status flags: `O_NONBLOCK` makes the call raise when no
+* @tparam[opt=0] integer flags file status flags: `O_NONBLOCK` makes the call answer at once when no
 *   connection is pending instead of waiting for one. `linux.socket.sock.NONBLOCK` carries
 *   `O_NONBLOCK` on every architecture but alpha and parisc.
-* @treturn socket A new socket object representing the accepted connection.
+* @treturn socket A new socket object representing the accepted connection; `nil` and `"EAGAIN"`
+*   when the wait ended with no connection to accept.
 * @raise Error if the accept operation fails.
 */
 static int luasocket_accept(lua_State *L)
@@ -705,8 +721,10 @@ static int luasocket_accept(lua_State *L)
 	struct socket *socket = luasocket_check(L, 1);
 	int flags = luaL_optinteger(L, 2, 0);
 	lunatik_object_t *object = luasocket_new(L);
+	int ret = kernel_accept(socket, luasocket_psocket(object), flags);
 
-	lunatik_try(L, kernel_accept, socket, luasocket_psocket(object), flags);
+	if (ret < 0)
+		return luasocket_pushfail(L, ret);
 	return 1; /* object */
 }
 

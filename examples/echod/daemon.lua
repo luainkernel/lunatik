@@ -27,13 +27,13 @@ local worker = "echod/worker"
 local function daemon()
 	print("echod [daemon]: started")
 	while (not shouldstop()) do
-		local ok, session = pcall(server.accept, server, sock.NONBLOCK)
-		if ok then
+		local session = server:accept(sock.NONBLOCK)
+		if session then
 			control:setbyte(0, n) -- #workers
 			local runtime = lunatik.runtime("examples/" .. worker)
 			thread.run(runtime, worker .. n, control, session)
 			n = n + 1
-		elseif session == "EAGAIN" then
+		else
 			linux.schedule(100)
 		end
 	end

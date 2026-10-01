@@ -65,14 +65,14 @@ end
 local function daemon()
 	print("starting shared...")
 	while (not shouldstop()) do
-		local ok, session = pcall(server.accept, server, sock.NONBLOCK)
-		if ok then
+		local session = server:accept(sock.NONBLOCK)
+		if session then
 			local handled, err = pcall(handle, session)
 			if not handled then
 				print("shared: " .. err)
 			end
 			session:close()
-		elseif session == "EAGAIN" then
+		else
 			linux.schedule(100)
 		end
 	end

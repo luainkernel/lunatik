@@ -165,6 +165,13 @@ static inline void lunatik_throw(lua_State *L, int ret)
 	lua_error(L);
 }
 
+static inline int lunatik_pushfail(lua_State *L, int ret)
+{
+	lua_pushnil(L);
+	lunatik_pusherrname(L, ret);
+	return 2;
+}
+
 #define lunatik_tryret(L, ret, op, ...)		\
 do {						\
 	if ((ret = op(__VA_ARGS__)) < 0)	\

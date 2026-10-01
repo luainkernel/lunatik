@@ -152,14 +152,14 @@ last_stats, last_total_stats = cpu_stats()
 local function daemon()
 	print("cpud [daemon]: started")
 	while (not shouldstop()) do
-		local ok, session = pcall(server.accept, server, NONBLOCK)
-		if ok then
+		local session = server:accept(NONBLOCK)
+		if session then
 			local ok, err = pcall(handle_client, session)
 			if not ok then
 				print("cpud [daemon]: error handling client: " .. tostring(err))
 			end
 			session:close()
-		elseif session == "EAGAIN" then
+		else
 			linux.schedule(100)
 		end
 	end
