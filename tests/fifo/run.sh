@@ -9,7 +9,10 @@
 # capacities it serves and refuses zero, one (kfifo's own floor), a negative and
 # anything past KMALLOC_MAX_SIZE, including a value that __kfifo_alloc()'s unsigned
 # int truncated into a small fifo; pop() refuses a size past the capacity, which it
-# could never return.
+# could never return, and push() a string past it, which no pop makes room for.
+#
+# push: fifo:push() answers true, alone, while the fifo has room for every byte,
+# and false when it has not, taking none of them.
 #
 # Usage: sudo bash tests/fifo/run.sh
 
@@ -17,7 +20,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="bounds"
+TESTS="bounds push"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {

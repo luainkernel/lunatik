@@ -304,7 +304,9 @@ REPL and the builds `status` and `reload` compare.
   it, with a timeout and with timeout 0, and `false`, alone, when the timeout
   elapses first.
 - **mailbox**: `mailbox:receive` answers `nil`, alone, when its wait elapses,
-  timeout 0 included, and the message a send queued before it.
+  timeout 0 included, and the message a send queued before it; `mailbox:send`
+  answers `false` when the queue has no room for a message, which the receiver
+  then never sees.
 - **stop**: the stop of a spawned thread interrupts its `completion:wait`,
   which raises `ERESTARTSYS`; the body bounds its wait, so it ends on its own
   when no stop comes.
@@ -367,7 +369,10 @@ status the CLI exits by.
   zero, one (kfifo's own floor), a negative and anything past
   `KMALLOC_MAX_SIZE`, including a value `__kfifo_alloc()`'s `unsigned int`
   truncated into a small fifo; `fifo:pop()` refuses a size past the
-  capacity, which it could never return.
+  capacity, which it could never return, and `fifo:push()` a string past it,
+  which no pop makes room for.
+- **push**: `fifo:push()` answers `true`, alone, while the fifo has room for
+  every byte, and `false` when it has not, taking none of them.
 
 ### fsnotify
 

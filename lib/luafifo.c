@@ -32,14 +32,16 @@ LUNATIK_PRIVATECHECKER(luafifo_check, struct kfifo *, &luafifo_class);
 
 /***
 * Pushes data into the FIFO.
-* Copies a string of bytes into the FIFO.
+* Copies a string of bytes into the FIFO, whole or not at all.
 * @function push
-* @tparam string data bytes to push into the FIFO.
-* @treturn nil
-* @raise Error if the provided data string is larger than the available space in the FIFO.
+* @tparam string data bytes to push into the FIFO, up to its capacity.
+* @treturn boolean `true` if the FIFO took the bytes, `false` if it has no room for them all.
+* @raise "out of bounds" for a string longer than the FIFO's capacity, which no pop makes room for.
 * @usage
 *   -- Assuming 'myfifo' is a fifo object
-*   myfifo:push("hello")
+*   if not myfifo:push("hello") then
+*     print("full")
+*   end
 * @see fifo.pop
 */
 static int luafifo_push(lua_State *L)
@@ -48,9 +50,12 @@ static int luafifo_push(lua_State *L)
 	size_t size;
 	const char *buf = luaL_checklstring(L, 2, &size);
 
-	luaL_argcheck(L, size <= kfifo_avail(fifo), 2, "not enough space");
-	kfifo_in(fifo, buf, size);
-	return 0;
+	lunatik_checkbounds(L, 2, size, 0, kfifo_size(fifo));
+	bool fits = size <= kfifo_avail(fifo);
+	if (fits)
+		kfifo_in(fifo, buf, size);
+	lua_pushboolean(L, fits);
+	return 1;
 }
 
 /***
