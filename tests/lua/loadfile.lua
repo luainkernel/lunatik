@@ -11,6 +11,13 @@ local PARENT <const> = "/lib/modules/"
 local DIRECTORY <const> = "lua"
 local PATH <const> = PARENT .. DIRECTORY
 local ERRNO <const> = "EINVAL"
+local SUITE <const> = PATH .. "/tests/lua/"
+local SCRIPT <const> = SUITE .. "loadfile.lua"
+
+local unopened <const> = {
+	[SUITE .. "missing.lua"] = "ENOENT",
+	[SCRIPT .. "/chunk.lua"] = "ENOTDIR",
+}
 
 test("loadfile of a directory returns the errno's name", function()
 	local chunk, err = loadfile(PATH)
@@ -29,4 +36,16 @@ test("require of a directory raises the errno's name", function()
 	package.path = path
 	assert(not ok and err:find("\t" .. ERRNO, 1, true), "require: " .. tostring(err))
 end)
+
+for path, errno in pairs(unopened) do
+	local message = "cannot open " .. path .. ": " .. errno
+	test("loadfile of a path it cannot open returns " .. errno, function()
+		local chunk, err = loadfile(path)
+		assert(chunk == nil and err == message, "loadfile: " .. tostring(err))
+	end)
+	test("dofile of a path it cannot open raises " .. errno, function()
+		local ok, err = pcall(dofile, path)
+		assert(not ok and err == message, "dofile: " .. tostring(err))
+	end)
+end
 
