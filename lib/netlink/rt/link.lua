@@ -11,7 +11,6 @@
 -- block and require a sleepable runtime.
 --
 -- @module netlink.rt.link
--- @see netlink.rt.object
 -- @see netlink.session
 --
 

@@ -11,7 +11,6 @@
 -- sleepable runtime.
 --
 -- @module netlink.rt.rule
--- @see netlink.rt.object
 -- @see netlink.session
 --
 

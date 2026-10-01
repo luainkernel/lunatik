@@ -42,7 +42,7 @@ local BUFSIZE = 65536
 -- @type session
 
 ---
--- Derives a protocol class from the session, as `netlink.genl` and `netlink.rt.object` are, or
+-- Derives a protocol class from the session, as `netlink.genl` and the `netlink.rt` classes are, or
 -- wraps a table in it. It opens no socket: calling a derived class does, e.g. `netlink.rt.route()`
 -- or `netlink.genl()`.
 -- @function session:new

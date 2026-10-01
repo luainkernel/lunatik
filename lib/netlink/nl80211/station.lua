@@ -11,7 +11,6 @@
 -- require a sleepable runtime.
 --
 -- @module netlink.nl80211.station
--- @see netlink.nl80211.object
 -- @see netlink.session
 --
 
@@ -59,7 +58,7 @@ end
 -- @treturn station a new station object.
 -- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
 --   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
--- @see netlink.nl80211.object
+-- @see netlink.session
 
 ---
 -- Lists the stations of an AP interface.
