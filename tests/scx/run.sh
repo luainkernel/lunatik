@@ -5,18 +5,21 @@
 #
 # Runs the scx tests and reports aggregated KTAP results.
 #
-# Two guard cases need no scheduler: a sleepable runtime is refused, and a
-# hardirq runtime attaches, re-attaches and detaches. The pass case registers a
-# struct_ops scheduler whose enqueue calls bpf_luascx_run, so every enqueue on
-# the host reaches the Lua callback while it is registered; the callback reports
-# once, and that line in dmesg with no Lua error is the proof. The scheduler is
-# unregistered before its runtime stops. Skipped when the kernel has no
-# sched_ext (its kset is /sys/kernel/sched_ext), the module lacks BTF, or
+# On a kernel without sched_ext (its kset is /sys/kernel/sched_ext) the module
+# offers attach and detach, and the unsupported case checks that attach raises
+# EOPNOTSUPP and that detach returns nothing; it skips on a kernel with sched_ext. Two guard cases need no scheduler: a
+# sleepable runtime is refused, and a hardirq runtime attaches, re-attaches and
+# detaches. The pass case registers a struct_ops scheduler whose enqueue calls
+# bpf_luascx_run, so every enqueue on the host reaches the Lua callback while it
+# is registered; the callback reports once, and that line in dmesg with no Lua
+# error is the proof. The scheduler is unregistered before its runtime stops.
+# These three skip when the kernel has no sched_ext, the module lacks BTF, or
 # bpftool or clang is unavailable.
 #
 # Usage: sudo bash tests/scx/run.sh
 
 MODULE="luascx"
+UNSUPPORTED="tests/scx/unsupported"
 SLEEPABLE="tests/scx/attach_sleepable"
 REATTACH="tests/scx/reattach"
 PASS="tests/scx/pass"
@@ -28,33 +31,47 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 3
+ktap_plan 4
 
-skip_all()
+skip_rest()
 {
 	echo "# SKIP: $1"
 	ktap_skip "scx attach: refuses a sleepable runtime"
 	ktap_skip "scx reattach: a hardirq runtime attaches, re-attaches and detaches"
 	ktap_skip "scx pass: the callback runs from the scheduler's enqueue"
 	ktap_totals
-	exit 0
+	exit
 }
 
-[ -d /sys/kernel/sched_ext ] || skip_all "kernel without sched_ext"
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_all "$MODULE not loaded"
-[ -f /sys/kernel/btf/$MODULE ] || skip_all "$MODULE built without BTF (make btf_install, rebuild)"
-command -v bpftool > /dev/null 2>&1 || skip_all "bpftool not available"
-command -v clang > /dev/null 2>&1 || skip_all "clang not available"
+if ! cat /sys/module/$MODULE/refcnt > /dev/null 2>&1; then
+	ktap_skip "scx unsupported: attach raises EOPNOTSUPP and detach does nothing without sched_ext"
+	skip_rest "$MODULE not loaded"
+fi
 
 cleanup()
 {
 	bpftool struct_ops unregister name "$OPS" 2>/dev/null
+	lunatik stop "$UNSUPPORTED" 2>/dev/null
 	lunatik stop "$SLEEPABLE" 2>/dev/null
 	lunatik stop "$REATTACH" 2>/dev/null
 	lunatik stop "$PASS" 2>/dev/null
 }
 trap cleanup EXIT
 cleanup
+
+if [ -d /sys/kernel/sched_ext ]; then
+	echo "# SKIP: kernel with sched_ext"
+	ktap_skip "scx unsupported: attach raises EOPNOTSUPP and detach does nothing without sched_ext"
+elif run_test "$UNSUPPORTED"; then
+	ktap_pass "scx unsupported: attach raises EOPNOTSUPP and detach does nothing without sched_ext"
+else
+	ktap_fail "scx unsupported: attach raises EOPNOTSUPP and detach does nothing without sched_ext"
+fi
+
+[ -d /sys/kernel/sched_ext ] || skip_rest "kernel without sched_ext"
+[ -f /sys/kernel/btf/$MODULE ] || skip_rest "$MODULE built without BTF (make btf_install, rebuild)"
+command -v bpftool > /dev/null 2>&1 || skip_rest "bpftool not available"
+command -v clang > /dev/null 2>&1 || skip_rest "clang not available"
 
 make -C "$DIR" || { ktap_fail "failed to build the sched_ext program"; ktap_totals; exit 1; }
 

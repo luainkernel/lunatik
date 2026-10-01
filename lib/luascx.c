@@ -14,8 +14,8 @@
 * using `scx.attach()`.
 *
 * Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`; without it the module loads
-* and exports nothing, so `scx.attach` is `nil`. The kfunc needs the module's BTF:
-* run `sudo make btf_install` before `make`, or the kernel logs
+* and offers `attach`, which raises `EOPNOTSUPP`, and `detach`, which does nothing.
+* The kfunc needs the module's BTF: run `sudo make btf_install` before `make`, or the kernel logs
 * `missing module BTF, cannot register kfuncs` and an eBPF program that calls
 * `bpf_luascx_run` does not load. The eBPF side is a sched_ext `struct_ops`
 * scheduler; `tests/scx/scx_pass.bpf.c` with `tests/scx/pass.lua` is a worked
@@ -222,8 +222,9 @@ static int luascx_detach(lua_State *L)
 *   and the decision is left to the eBPF program; a value that is not a number is logged
 *   as `invalid task class` and answered the same way.
 * @treturn nil
-* @raise `runtime context mismatch` unless the runtime is hardirq; `not allowed while the runtime
-*   closes` from a finalizer that runs at its close; or on allocation failure.
+* @raise `EOPNOTSUPP` on a kernel without sched_ext; `runtime context mismatch` unless the
+*   runtime is hardirq; `not allowed while the runtime closes` from a finalizer that runs at its
+*   close; or on allocation failure.
 * @usage
 *   -- sched/policy.lua, run with `lunatik run -c hardirq sched/policy`
 *   local scx = require("scx")
@@ -270,7 +271,15 @@ LUNATIK_EBPF_KFUNC_INIT(scx, BPF_PROG_TYPE_STRUCT_OPS);
 
 LUNATIK_EBPF_EXIT(scx);
 #else
+static int luascx_attach(lua_State *L)
+{
+	lunatik_throw(L, -EOPNOTSUPP);
+	return 0;
+}
+
 static const luaL_Reg luascx_lib[] = {
+	{"attach", luascx_attach},
+	{"detach", lunatik_nop},
 	{NULL, NULL}
 };
 

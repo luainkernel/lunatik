@@ -1308,8 +1308,12 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 Regression tests for `luascx`: the attach guards, and the dispatch path
 through a struct_ops scheduler whose `enqueue` calls `bpf_luascx_run`.
-Skipped when the kernel has no sched_ext (`/sys/kernel/sched_ext`), the
-module lacks BTF, or `bpftool` or `clang` is unavailable.
+The unsupported case runs only on a kernel without sched_ext
+(`/sys/kernel/sched_ext`); the others skip there, when the module lacks BTF,
+or when `bpftool` or `clang` is unavailable.
+
+- **scx unsupported**: on a kernel without sched_ext, `scx.attach()` raises
+  `EOPNOTSUPP` and `scx.detach()` returns nothing.
 
 - **scx attach**: `scx.attach()` refuses a sleepable runtime with
   `runtime context mismatch: scx.ctx needs hardirq`.
