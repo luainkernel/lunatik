@@ -27,14 +27,15 @@ local function pre()
 
 	refused("new", probe.new, SYMBOL, {})
 	refused("stop", handle.stop, handle)
-	refused("enable", handle.enable, handle, false)
+	refused("enable", handle.enable, handle)
+	refused("disable", handle.disable, handle)
 end
 
 local spare = probe.new(SYMBOL, {})
-spare:enable(false)
-spare:enable(true)
+spare:disable()
+spare:enable()
 spare:stop()
-print("probe loading: new, enable and stop")
+print("probe loading: new, disable, enable and stop")
 
 handle = probe.new(SYMBOL, {pre = pre})
 

@@ -286,29 +286,40 @@ static int luaprobe_stop(lua_State *L)
 	return 0;
 }
 
+static struct kprobe *luaprobe_checkkprobe(lua_State *L)
+{
+	lunatik_checkarmed(L);
+	struct kprobe *kp = &luaprobe_checkowned(L, 1)->kp;
+
+	luaL_argcheck(L, kp->pre_handler != NULL, 1, LUNATIK_ERR_CLOSED);
+	return kp;
+}
+
 /***
-* Enables or disables the probe.
+* Enables the probe: a hit runs its handlers, as it does from `new` until a `disable`.
 * @function enable
-* @tparam boolean flag true to enable, false to disable
 * @raise if the probe has been stopped, if the percpu object owns this probe, or
 *   `not allowed once the runtime is armed` (its script body has
-*   returned): enable_kprobe and disable_kprobe sleep, and an armed runtime runs with its
+*   returned): enable_kprobe sleeps, and an armed runtime runs with its
 *   lock held and interrupts off
 */
 static int luaprobe_enable(lua_State *L)
 {
-	lunatik_checkarmed(L);
-	luaprobe_t *probe = luaprobe_checkowned(L, 1);
-	struct kprobe *kp = &probe->kp;
-	bool enable = lua_toboolean(L, 2);
+	enable_kprobe(luaprobe_checkkprobe(L));
+	return 0;
+}
 
-	luaL_argcheck(L, kp->pre_handler != NULL, 1, LUNATIK_ERR_CLOSED);
-
-	if (enable)
-		enable_kprobe(kp);
-	else
-		disable_kprobe(kp);
-
+/***
+* Disables the probe: it stays registered, and a hit runs no handler until `enable`.
+* @function disable
+* @raise if the probe has been stopped, if the percpu object owns this probe, or
+*   `not allowed once the runtime is armed` (its script body has
+*   returned): disable_kprobe sleeps, and an armed runtime runs with its
+*   lock held and interrupts off
+*/
+static int luaprobe_disable(lua_State *L)
+{
+	disable_kprobe(luaprobe_checkkprobe(L));
 	return 0;
 }
 
@@ -352,6 +363,7 @@ static const luaL_Reg luaprobe_mt[] = {
 	{"__gc",   lunatik_deleteobject},
 	{"stop",   luaprobe_stop},
 	{"enable", luaprobe_enable},
+	{"disable", luaprobe_disable},
 	{NULL, NULL}
 };
 

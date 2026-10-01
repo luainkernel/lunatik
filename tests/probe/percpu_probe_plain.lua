@@ -12,15 +12,17 @@ local UNKNOWN <const> = "lunatik_no_such_symbol"
 
 local function nop() end
 
-test("a plain runtime stops its probe once and enables it while it lives", function()
+test("a plain runtime stops its probe once and disables and enables it while it lives", function()
 	local p = probe.new(systab["personality"], {pre = nop})
-	p:enable(false)
-	p:enable(true)
+	p:disable()
+	p:enable()
 	p:stop()
 	p:stop() -- stopping again is a no-op
-	local ok, err = pcall(p.enable, p, true)
-	assert(not ok, "enable was accepted after stop")
-	assert(err:match("closed object"), "enable raised something else: " .. tostring(err))
+	for _, method in ipairs({"enable", "disable"}) do
+		local ok, err = pcall(p[method], p)
+		assert(not ok, method .. " was accepted after stop")
+		assert(err:match("closed object"), method .. " raised something else: " .. tostring(err))
+	end
 end)
 
 test("a probe on a symbol the kernel does not have is refused", function()

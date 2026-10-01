@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Regression test for the class check in methods that read private as their own
-# type: device:stop, notifier:stop, probe:stop, probe:enable and the rcu.table
-# index and newindex metamethods, each called on a data object through the
-# class's metatable, must be refused instead of reading the buffer as the class.
+# type: device:stop, notifier:stop, probe:stop, probe:enable, probe:disable and the
+# rcu.table index and newindex metamethods, each called on a data object through
+# the class's metatable, must be refused instead of reading the buffer as the class.
 # The probe methods run in their own hardirq script, the context probe.new requires.
 #
 # Usage: sudo bash tests/runtime/foreign_method.sh

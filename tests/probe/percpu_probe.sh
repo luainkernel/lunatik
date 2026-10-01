@@ -15,15 +15,15 @@
 # the script body returned, the path where readiness is the only thing between
 # arming and the handler, since a plain runtime is published from the start; one
 # set holds a kprobe per target, and a second probe on the same symbol in one
-# runtime is refused, leaving no kprobe armed; stop and enable are refused in a
-# percpu runtime, where the object owns the kprobe; a probe from a handler, after
-# the script loaded, is refused before it could sleep in hardirq; the same script
-# probes as a plain hardirq runtime, arming its own kprobe and unregistering it
-# when it stops; a plain runtime stops its own probe, twice with no effect, is
-# refused an enable afterwards, and refuses a probe on a symbol the kernel does
-# not have; and a set whose last runtime errors releases the kprobe the earlier
-# ones shared, leaving no kprobe armed, no script registered and no use-count on
-# the probe module.
+# runtime is refused, leaving no kprobe armed; stop, enable and disable are
+# refused in a percpu runtime, where the object owns the kprobe; a probe from a
+# handler, after the script loaded, is refused before it could sleep in hardirq;
+# the same script probes as a plain hardirq runtime, arming its own kprobe and
+# unregistering it when it stops; a plain runtime stops its own probe, twice with
+# no effect, is refused an enable and a disable afterwards, and refuses a probe on
+# a symbol the kernel does not have; and a set whose last runtime errors releases
+# the kprobe the earlier ones shared, leaving no kprobe armed, no script
+# registered and no use-count on the probe module.
 #
 # Usage: sudo bash tests/probe/percpu_probe.sh
 
@@ -92,10 +92,10 @@ command -v taskset > /dev/null 2>&1 && command -v setarch > /dev/null 2>&1 || {
 	ktap_skip "a call reaching the shared kprobe before the runtimes are published is dropped"
 	ktap_skip "a call reaching a plain runtime's kprobe before the script body returns is dropped"
 	ktap_skip "one set holds a kprobe per target; a second probe on the same symbol is refused, leaving none armed"
-	ktap_skip "stop and enable are refused in a percpu runtime"
+	ktap_skip "stop, enable and disable are refused in a percpu runtime"
 	ktap_skip "a probe from a handler, after load, is refused"
 	ktap_skip "the same script probes as a plain hardirq runtime, arming and unregistering its own kprobe"
-	ktap_skip "a plain runtime stops its probe once, refuses enable afterwards and refuses an unknown symbol"
+	ktap_skip "a plain runtime stops its probe once, refuses enable and disable afterwards and an unknown symbol"
 	ktap_skip "a set whose last runtime errors releases the kprobe the earlier ones shared"
 	ktap_totals
 	exit 0
@@ -179,7 +179,7 @@ mark_dmesg
 run_script --context=hardirq --percpu "$STOP"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$STOP" > /dev/null 2>&1
-ktap_pass "stop and enable are refused in a percpu runtime"
+ktap_pass "stop, enable and disable are refused in a percpu runtime"
 
 mark_dmesg
 run_script --context=hardirq --percpu "$LATE"
@@ -211,7 +211,7 @@ mark_dmesg
 run_script --context=hardirq "$PLAIN"
 check_dmesg || { ktap_totals; exit 1; }
 lunatik stop "$PLAIN" > /dev/null 2>&1
-ktap_pass "a plain runtime stops its probe once, refuses enable afterwards and refuses an unknown symbol"
+ktap_pass "a plain runtime stops its probe once, refuses enable and disable afterwards and an unknown symbol"
 
 mark_dmesg
 idle=$(kprobes)

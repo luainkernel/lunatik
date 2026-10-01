@@ -3,17 +3,17 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Covers the refusal a probe handler gets from the three entry points that sleep.
+# Covers the refusal a probe handler gets from the four entry points that sleep.
 # register_kprobe takes kprobe_mutex, cpus_read_lock and text_mutex;
 # unregister_kprobe takes kprobe_mutex and waits on synchronize_rcu; enable_kprobe
 # and disable_kprobe take kprobe_mutex. A probe script runs in a hardirq runtime,
-# which is process context only while its body loads, so from a handler all three
+# which is process context only while its body loads, so from a handler all four
 # must be refused.
 #
 # The script exercises the other half first: while it loads, in process context,
 # it registers a probe, disables and re-enables it and stops it. Then it probes
-# vfs_read and, on its first hit, calls probe.new, stop and enable from the
-# handler, reporting each one the runtime refuses.
+# vfs_read and, on its first hit, calls probe.new, stop, enable and disable from
+# the handler, reporting each one the runtime refuses.
 #
 # Do not run this against a build without lunatik_checkarmed: unregister_kprobe
 # would reach synchronize_rcu with interrupts off and hang the machine. That is
@@ -31,7 +31,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 4
+ktap_plan 5
 
 mark_dmesg
 run_script --context=hardirq "$SCRIPT"
@@ -42,8 +42,8 @@ check_dmesg || { ktap_totals; exit 1; }
 
 reported() { dmesg_since | grep -qF "probe $1"; }
 
-reported "loading: new, enable and stop" || fail "an entry point was refused while the script loaded"
-ktap_pass "new, enable and stop are allowed while the script loads, in process context"
+reported "loading: new, disable, enable and stop" || fail "an entry point was refused while the script loaded"
+ktap_pass "new, disable, enable and stop are allowed while the script loads, in process context"
 
 reported "armed: new" || fail "probe.new from a handler was not refused"
 ktap_pass "probe.new is refused from a handler, where register_kprobe would sleep"
@@ -53,6 +53,9 @@ ktap_pass "stop is refused from a handler, where unregister_kprobe would sleep"
 
 reported "armed: enable" || fail "enable from a handler was not refused"
 ktap_pass "enable is refused from a handler, where enable_kprobe would sleep"
+
+reported "armed: disable" || fail "disable from a handler was not refused"
+ktap_pass "disable is refused from a handler, where disable_kprobe would sleep"
 
 ktap_totals
 
