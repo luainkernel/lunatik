@@ -7,7 +7,7 @@
 * Kernel thread primitives.
 * Thread objects are created in a process runtime alone: in a softirq or hardirq runtime
 * `thread.run` has no runtime object to take. `shouldstop` answers `false` outside a kernel
-* thread, and `stop` on a thread already stopped only logs a warning.
+* thread, and `stop` on a thread already stopped logs a warning and returns `true`.
 * @module thread
 * @usage
 *   -- body.lua, run with `lunatik spawn body`
@@ -94,7 +94,8 @@ static int luathread_shouldstop(lua_State *L)
 * or for the lock a shared object's method takes, leaves that wait with "EINTR". A
 * to-be-closed variable holding the thread stops it the same way.
 * @function stop
-* @treturn nil
+* @treturn boolean `false` if the body it stopped raised, `true` otherwise, for a thread
+*   already stopped too
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
 *   its task runs: the stop waits for the body, and a body that registers a netdevice notifier,
 *   sends a netlink request or joins a multicast group waits on the RTNL that task holds;
@@ -119,8 +120,9 @@ static int luathread_stop(lua_State *L)
 		luaL_error(L, LUNATIK_ERR_OWNER);
 	}
 
+	int result = 0;
 	if (task != NULL) {
-		int result = kthread_stop(task);
+		result = kthread_stop(task);
 
 		thread->task = NULL;
 		put_task_struct(task);
@@ -131,12 +133,14 @@ static int luathread_stop(lua_State *L)
 		}
 		else if (result == -ENOEXEC)
 			pr_warn("[%p] thread has failed to execute\n", thread);
-		lunatik_putobject(runtime);
 	}
 	else
 		pr_warn("[%p] thread has already stopped\n", thread);
 	lunatik_unlock(object);
-	return 0;
+	if (task != NULL)
+		lunatik_putobject(runtime); /* a last put runs its finalizers, which may stop this thread */
+	lua_pushboolean(L, result != -ENOEXEC);
+	return 1;
 }
 
 /***
