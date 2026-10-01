@@ -50,14 +50,17 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode)
 	lua_pushfstring(L, "@%s", filename); /* nothing to release is held while this can raise */
 
 	if (IS_ERR(lf.file = filp_open(filename, O_RDONLY, 0600))) {
-		lua_pushfstring(L, "cannot open %s", filename);
+		lua_pushfstring(L, "cannot open %s: ", filename);
+		lunatik_pusherrname(L, PTR_ERR(lf.file));
+		lua_concat(L, 2);
 		goto remove;
 	}
 
 	lf.buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
 	if (lf.buffer == NULL) {
 		filp_close(lf.file, NULL);
-		lua_pushfstring(L, "cannot allocate buffer for %s", filename);
+		lua_pushliteral(L, "not enough memory");
+		status = LUA_ERRMEM;
 		goto remove;
 	}
 

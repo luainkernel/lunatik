@@ -8,7 +8,7 @@
 #
 # - a run and a spawn of a script that does not exist, and a run of broken.lua,
 #   which raises at load, exit 1 with lunatik: and the message on stderr and
-#   nothing on stdout;
+#   nothing on stdout, the missing one's naming the errno, ENOENT;
 # - a run of idle.lua exits 0 with nothing on stdout or stderr, and a second
 #   run exits 1 with lunatik: and "already running", no position of the runner's;
 # - a context that is not one of the three, as -c, and a context, percpu or any
@@ -57,8 +57,8 @@ ktap_plan 9
 
 mark_dmesg
 
-refused "cannot open" run "$MISSING"
-refused "cannot open" spawn "$MISSING"
+refused "cannot open /lib/modules/lua/$MISSING.lua: ENOENT" run "$MISSING"
+refused "cannot open /lib/modules/lua/$MISSING.lua: ENOENT" spawn "$MISSING"
 refused "broken" run "$BROKEN"
 ktap_pass "a run or a spawn of a missing script, and a run that raises at load, exit 1 with the error on stderr"
 

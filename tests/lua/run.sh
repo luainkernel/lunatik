@@ -31,7 +31,10 @@
 #              either.
 # loadfile:    loadfile, dofile and require of a directory, which the kernel
 #              opens and refuses to read, answer the errno's name, EINVAL,
-#              as a failed kernel call raises it.
+#              as a failed kernel call raises it; for a path the kernel does
+#              not open, loadfile returns, and dofile raises, "cannot open
+#              <file>: " and the errno's name, ENOENT for a missing file and
+#              ENOTDIR for one under a regular file.
 #
 # Usage: sudo bash tests/lua/run.sh
 

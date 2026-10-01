@@ -253,8 +253,9 @@ REPL and the builds `status` and `reload` compare.
   prints through the host's, and through one that reads every installed module
   as another build names each loaded module as not the installed build.
 - **verbs**: a run or a spawn of a script that is missing, and a run of one
-  that raises at load, exit 1 with its error on stderr and nothing on stdout;
-  a run exits 0 with nothing printed, and a second exits 1, already running,
+  that raises at load, exit 1 with its error on stderr and nothing on stdout,
+  the missing one's naming `ENOENT`; a run exits 0 with nothing printed, and a
+  second exits 1, already running,
   with no position of the runner's; a context `run` cannot read as `-c`, a
   word after the script of `run`, and a context, `percpu` or any other word
   given to `spawn`, exit 2 and never reach the kernel; `-c` and `-p`,
@@ -664,7 +665,9 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling.
 - **loadfile**: `loadfile` and `dofile` of `/lib/modules/lua`, and a `require`
   whose `package.path` resolves to it, answer `EINVAL`, the errno's name, as
   a failed kernel call raises it: the directory opens and its `kernel_read`
-  fails.
+  fails. For a path the kernel does not open, `loadfile` returns, and `dofile`
+  raises, `cannot open <file>: ` and the errno's name: `ENOENT` for a missing
+  file and `ENOTDIR` for one under a regular file.
 
 ### luac
 
