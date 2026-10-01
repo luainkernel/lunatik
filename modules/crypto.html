@@ -211,6 +211,8 @@
     <dt id="aead"><a name="aead"></a><strong>aead (algname)</strong></dt>
     <dd>
     Creates an AEAD cipher transform.
+ Only a synchronous implementation is chosen: an asynchronous one, such as a hardware engine&rsquo;s
+ or a <code>cryptd(...)</code> instance, is passed over.
 
 
     <h3>Parameters</h3>
@@ -229,8 +231,9 @@
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation
-   failure
+     &ldquo;ENOENT&rdquo; for an unknown algorithm or one no synchronous implementation serves (&ldquo;EEXIST&rdquo;
+   on 6.12 and later for a template whose instance is asynchronous, such as <code>cryptd(...)</code>),
+   &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation failure
 
 
     <h3>Usage</h3>
@@ -333,6 +336,8 @@
     <dt id="skcipher"><a name="skcipher"></a><strong>skcipher (algname)</strong></dt>
     <dd>
     Creates a symmetric-key cipher transform.
+ Only a synchronous implementation is chosen: an asynchronous one, such as a hardware engine&rsquo;s
+ or a <code>cryptd(...)</code> instance, is passed over.
 
 
     <h3>Parameters</h3>
@@ -351,8 +356,9 @@
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation
-   failure
+     &ldquo;ENOENT&rdquo; for an unknown algorithm or one no synchronous implementation serves (&ldquo;EEXIST&rdquo;
+   on 6.12 and later for a template whose instance is asynchronous, such as <code>cryptd(...)</code>),
+   &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation failure
 
 
     <h3>Usage</h3>
@@ -374,7 +380,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:47:35</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:48:25</span>
 </div>
 </footer>
 </body>
