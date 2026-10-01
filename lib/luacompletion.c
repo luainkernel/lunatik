@@ -60,21 +60,16 @@ static int luacompletion_complete(lua_State *L)
 *
 * @function wait
 * @tparam[opt] integer timeout Optional timeout in milliseconds. If omitted or set to `MAX_SCHEDULE_TIMEOUT` (a large kernel-defined constant), waits indefinitely.
-* @treturn boolean `true` if the completion was signaled successfully before timeout or interruption.
-* @treturn nil,string `nil` and an error message if the wait did not complete successfully. The message will be one of:
-*   - `"timeout"`: The specified timeout elapsed.
-*   - `"interrupt"`: The waiting task was interrupted by a signal (e.g., `thread.stop()`).
-*   If the wait fails for other kernel internal reasons, the C code might push `"unknown"`, though typical documented returns are for timeout and interrupt.
-*   - `"unknown"`: An unexpected error occurred during the wait.
-* @raise "runtime context mismatch" from a softirq or hardirq runtime, its script body included;
+* @treturn boolean `true` if the completion was signaled, `false` if the timeout elapsed first.
+* @raise `ERESTARTSYS` when a signal or the stop of the thread that waits interrupts the wait;
+*   "runtime context mismatch" from a softirq or hardirq runtime, its script body included;
 *   "not allowed while the runtime closes" from a finalizer that runs at its close
 * @usage
 *   -- Assuming 'c' is a completion object
-*   local success, err_msg = c:wait(1000) -- Wait for up to 1 second
-*   if success then
+*   if c:wait(1000) then -- Wait for up to 1 second
 *     print("Completion received!")
 *   else
-*     print("Wait failed: " .. err_msg)
+*     print("Timed out")
 *   end
 * @see completion.new
 */
@@ -82,29 +77,13 @@ static int luacompletion_wait(lua_State *L)
 {
 	struct completion *completion = luacompletion_check(L, 1);
 	lua_Integer timeout = luaL_optinteger(L, 2, MAX_SCHEDULE_TIMEOUT);
-	unsigned long timeout_jiffies = msecs_to_jiffies((unsigned long)timeout);
 	long ret;
 
 	lunatik_checkruntime(L, luacompletion_class.name, LUNATIK_OPT_NONE);
-	ret = wait_for_completion_interruptible_timeout(completion, timeout_jiffies);
-	if (ret > 0) {
-		lua_pushboolean(L, true);
-		return 1;
-	}
-
-	lua_pushnil(L);
-	switch (ret) {
-	case 0:
-		lua_pushliteral(L, "timeout");
-		break;
-	case -ERESTARTSYS:
-		lua_pushliteral(L, "interrupt");
-		break;
-	default:
-		lua_pushliteral(L, "unknown");
-		break;
-	}
-	return 2;
+	unsigned long timeout_jiffies = msecs_to_jiffies((unsigned long)timeout);
+	lunatik_tryret(L, ret, wait_for_completion_interruptible_timeout, completion, timeout_jiffies);
+	lua_pushboolean(L, ret > 0);
+	return 1;
 }
 
 static int luacompletion_new(lua_State *L);
