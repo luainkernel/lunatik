@@ -25,6 +25,12 @@
 # refused; and a script that does not parse, a precompiled one and one that
 # raises reach the caller with their own error.
 #
+# shade: tools/shade.sh, installed beside this script, encrypts a script and
+# writes the key for its secret, and shade.lua runs the dark script through
+# lighten with that key in place of light.lua, so the tag shade.sh derives
+# from openssl's GMAC is the one gcm(aes) checks in the kernel. Skips below
+# OpenSSL 3, whose openssl mac shade.sh needs.
+#
 # Usage: sudo bash tests/darken/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -33,17 +39,35 @@ source "$DIR/../lib.sh"
 
 SCRIPT="tests/darken/context"
 DECRYPT="tests/darken/decrypt"
+SHADE="tests/darken/shade"
 MODULE="luadarken"
 REFUSAL="not allowed after module load"
+SCRIPTS="/lib/modules/lua/tests/darken"
+DARK="$SCRIPTS/shade_dark.lua"
+LIGHT="$SCRIPTS/shade_light.lua"
+TOOL="$DIR/shade.sh"
+[ -e "$TOOL" ] || TOOL="$DIR/../../tools/shade.sh"
+TMP=""
 
 cleanup() {
-	for s in "$SCRIPT" "$DECRYPT"; do lunatik stop "$s" > /dev/null 2>&1; done
+	for s in "$SCRIPT" "$DECRYPT" "$SHADE"; do lunatik stop "$s" > /dev/null 2>&1; done
+	rm -f "$DARK" "$LIGHT"
+	[ -z "${TMP:-}" ] || rm -rf "$TMP"
 }
 trap cleanup EXIT
 cleanup
+TMP=$(mktemp -d)
+
+shade() {
+	local secret
+	printf 'return "shaded"\n' > "$TMP/script.lua"
+	secret=$(bash "$TOOL" darken "$TMP/script.lua") || return 1
+	(cd "$TMP" && bash "$TOOL" lighten "$secret") || return 1
+	cp "$TMP/script.dark.lua" "$DARK" && cp "$TMP/light.lua" "$LIGHT" && run_test "$SHADE"
+}
 
 ktap_header
-ktap_plan 2
+ktap_plan 3
 
 if ! [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] ||
 	! grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
@@ -58,6 +82,14 @@ if run_test "$DECRYPT"; then
 	ktap_pass "darken/decrypt"
 else
 	ktap_fail "darken/decrypt"
+fi
+
+if ! openssl mac -help > /dev/null 2>&1; then
+	ktap_skip "darken/shade: tools/shade.sh needs OpenSSL 3 or later"
+elif shade; then
+	ktap_pass "darken/shade"
+else
+	ktap_fail "darken/shade"
 fi
 
 ktap_totals
