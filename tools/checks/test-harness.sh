@@ -24,7 +24,7 @@ checkcases() {
 		line = $0; sub(/--.*$/, "", line); d = indent(line)
 		while (n > 0 && line ~ /[^[:space:]]/ && d <= open[n] && line !~ /^[[:space:]]*(else|elseif)([^A-Za-z0-9_]|$)/) n--
 		if (line ~ /^[[:space:]]*if[[:space:]].*[[:space:]]then[[:space:]]*$/) { open[++n] = d; next }
-		if (n > 0 && line ~ /^[[:space:]]*(util\.)?test[[:space:]]*\(/) {
+		if (n > 0 && line ~ /^[[:space:]]*test[[:space:]]*\(/) {
 			printf "%s:%d: a case run under a condition, which the script'\''s KTAP line counts as passed when it does not run; skip it in the .sh\n", file, NR
 			found = 1
 		}
