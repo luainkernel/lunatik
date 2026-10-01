@@ -19,11 +19,28 @@ local U32         <const> = 1 << 32 -- past an int, a u32 and an unsigned int al
 local INT_MAX     <const> = (1 << 31) - 1
 local INT_MIN     <const> = -(1 << 31)
 local OUTOFBOUNDS <const> = "out of bounds"
+local INVALID     <const> = "invalid IPv4 address"
+
+local addresses = {
+	["0.0.0.0"]         = 0,
+	["127.0.0.1"]       = 0x7f000001,
+	["10.20.30.40"]     = 0x0a141e28,
+	["255.255.255.255"] = 0xffffffff,
+}
+
+local notaddresses = {"300.1.1.1", "256.0.0.0", "1.2.3", "1.2.3.4.5", "1.2.3.04", "-1.2.3.4", " 1.2.3.4",
+	"1.2.3.4 ", "1..2.3", "0x7f.0.0.1", "localhost", ""}
 
 local function refuses(what, f, ...)
 	local ok, err = pcall(f, ...)
 	assert(not ok, what .. " was accepted")
 	assert(tostring(err):match(OUTOFBOUNDS), what .. " raised something else: " .. tostring(err))
+end
+
+local function invalid(addr)
+	local ok, err = pcall(net.aton, addr)
+	assert(not ok, ("net.aton accepted %q"):format(addr))
+	assert(tostring(err):find(INVALID, 1, true), ("net.aton raised something else for %q: %s"):format(addr, err))
 end
 
 local function udp()
@@ -87,5 +104,18 @@ test("setsockopt takes an unsigned option's 32 bits, past INT_MAX", function()
 	local sock <close> = udp()
 	sock:setsockopt(sk.sol.SOCKET, sk.so.MARK, U32 - 1)
 	sock:setsockopt(sk.sol.SOCKET, sk.so.MARK, INT_MIN)
+end)
+
+test("net.aton reads four decimal octets from 0 to 255", function()
+	for addr, ip in pairs(addresses) do
+		local got = net.aton(addr)
+		assert(got == ip, ("net.aton read %q as %d"):format(addr, got))
+	end
+end)
+
+test("net.aton refuses anything but four decimal octets from 0 to 255", function()
+	for _, addr in ipairs(notaddresses) do
+		invalid(addr)
+	end
 end)
 
