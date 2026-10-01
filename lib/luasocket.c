@@ -16,6 +16,9 @@
 * protocols, message flags and option levels and names are in `linux.socket`
 * (`af`, `sock`, `ipproto`, `msg`, `sol`, `so`).
 *
+* An integer argument is bounded to the kernel type that takes it, an `int` unless a method
+* says otherwise: one past it raises "out of bounds" instead of reaching the kernel truncated.
+*
 * Sockets sleep: a script creates and uses them in a process runtime, the default, or in a
 * spawned thread. In a softirq or hardirq runtime, `socket.new` and `accept` raise
 * `'socket': process-context class in interrupt-context runtime`.
@@ -62,6 +65,8 @@ static int luasocket_accept(lua_State *L);
 #define luasocket_ispair(family)	((family) == AF_INET || (family) == AF_PACKET || (family) == AF_NETLINK)
 
 #define luasocket_checkethertype(L, ix)	htons((u16)lunatik_checkinteger((L), (ix), 0, U16_MAX))
+#define luasocket_checkint(L, ix)	((int)lunatik_checkinteger((L), (ix), INT_MIN, INT_MAX))
+#define luasocket_checku32(L, ix)	((u32)lunatik_checkinteger((L), (ix), 0, U32_MAX))
 
 static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct sockaddr_storage *addr, int ix)
 {
@@ -69,7 +74,7 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 	addr->ss_family = luasocket_family(socket);
 	if (addr->ss_family == AF_INET) {
 		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
-		addr_in->sin_addr.s_addr = htonl((u32)luaL_checkinteger(L, ix));
+		addr_in->sin_addr.s_addr = htonl(luasocket_checku32(L, ix));
 		addr_in->sin_port = htons((u16)lunatik_checkinteger(L, ix + 1, 0, U16_MAX));
 		return sizeof(struct sockaddr_in);
 	}
@@ -91,8 +96,8 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 	}
 	else if (addr->ss_family == AF_NETLINK) {
 		struct sockaddr_nl *addr_nl = (struct sockaddr_nl *)addr;
-		addr_nl->nl_pid = (u32)luaL_optinteger(L, ix, 0);
-		addr_nl->nl_groups = (u32)luaL_optinteger(L, ix + 1, 0);
+		addr_nl->nl_pid = luaL_opt(L, luasocket_checku32, ix, 0);
+		addr_nl->nl_groups = luaL_opt(L, luasocket_checku32, ix + 1, 0);
 		return sizeof(struct sockaddr_nl);
 	}
 	else {
@@ -199,11 +204,14 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 *
 * A method that takes an address reads it the way the family the socket was created with spells it:
 *
-* - `AF_INET`: two integers, the IPv4 address (e.g. from `net.aton()`) and the port.
+* - `AF_INET`: two integers, the IPv4 address (e.g. from `net.aton()`), within 32 bits, and the port,
+*   within 16.
 * - `AF_INET6`: a packed string of `struct sockaddr_in6` past the family: the port and the flow
 *   information in network byte order, the address, and the scope id.
-* - `AF_PACKET`: two integers, the ethertype in host byte order and the interface index.
-* - `AF_NETLINK`: two optional integers, the port id and the multicast groups, both 0 by default.
+* - `AF_PACKET`: two integers, the ethertype in host byte order, within 16 bits, and the interface
+*   index, from 0.
+* - `AF_NETLINK`: two optional integers, the port id and the multicast groups, both 0 by default and
+*   within 32 bits.
 * - `AF_UNIX`: a string, a filesystem path or, with a leading NUL, an abstract name.
 * - Other families: a packed string of the address bytes past the family.
 *
@@ -285,8 +293,8 @@ static int luasocket_send(lua_State *L)
 static int luasocket_receivemsg(lua_State *L, struct msghdr *msg)
 {
 	struct socket *socket = luasocket_check(L, 1);
-	size_t len = (size_t)luaL_checkinteger(L, 2);
-	int flags = luaL_optinteger(L, 3, 0);
+	size_t len = (size_t)lunatik_checkinteger(L, 2, 0, INT_MAX);
+	int flags = luaL_opt(L, luasocket_checkint, 3, 0);
 	luaL_Buffer B;
 	struct kvec vec;
 	int ret;
@@ -311,7 +319,7 @@ static int luasocket_receivemsg(lua_State *L, struct msghdr *msg)
 * `thread.run()`, bounds every wait.
 *
 * @function receive
-* @tparam integer length maximum number of bytes to receive.
+* @tparam integer length maximum number of bytes to receive, from 0 to `INT_MAX`.
 * @tparam[opt=0] integer flags Optional message flags (e.g., `linux.socket.msg.PEEK`).
 *   See the `linux.socket.msg` table for available flags. These can be OR'd together.
 * @treturn string received message (as a string of bytes); on a stream socket, the empty string is
@@ -342,7 +350,7 @@ static int luasocket_receive(lua_State *L)
 * the message then.
 *
 * @function receivefrom
-* @tparam integer length maximum number of bytes to receive.
+* @tparam integer length maximum number of bytes to receive, as `receive` takes it.
 * @tparam[opt=0] integer flags message flags, as `receive` takes them.
 * @treturn string received message, as `receive` returns it; `nil` and `"EAGAIN"`, in place of the
 *   message and the address, when the wait ended with nothing to read.
@@ -454,7 +462,7 @@ static int luasocket_bind(lua_State *L)
 static int luasocket_listen(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
-	int backlog = luaL_optinteger(L, 2, SOMAXCONN);
+	int backlog = luaL_opt(L, luasocket_checkint, 2, SOMAXCONN);
 
 	lunatik_try(L, kernel_listen, socket, backlog);
 	return 0;
@@ -494,7 +502,7 @@ static int luasocket_connect(lua_State *L)
 	struct socket *socket = luasocket_check(L, 1);
 	struct sockaddr_storage addr;
 	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
-	int flags = luaL_optinteger(L, luasocket_ispair(luasocket_family(socket)) ? 4 : 3, 0);
+	int flags = luaL_opt(L, luasocket_checkint, luasocket_ispair(luasocket_family(socket)) ? 4 : 3, 0);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0))
 	int ret = kernel_connect(socket, (struct sockaddr_unsized *)&addr, size, flags);
 #else
@@ -580,7 +588,8 @@ LUASOCKET_NEWGETTER(peername);
 * @tparam integer level option level (e.g., `linux.socket.sol.SOCKET`).
 * @tparam integer optname option name (e.g., `linux.socket.so.RCVTIMEO_NEW`).
 * @tparam integer|string value option value: an integer for the common `int`
-*   payload, or a string carrying the option's packed binary payload.
+*   payload, from `INT_MIN` to `UINT_MAX`, since an unsigned option such as `SO_MARK` reads
+*   those 32 bits as a `u32`, or a string carrying the option's packed binary payload.
 * @raise Error if the operation fails, or at a level other than `SOL_SOCKET` under RTNL, as from a
 *   netdevice callback; `unsupported option level` on a kernel before 6.7, at a level the socket's
 *   protocol has no `setsockopt` for.
@@ -591,8 +600,8 @@ LUASOCKET_NEWGETTER(peername);
 static int luasocket_setsockopt(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
-	int level = (int)luaL_checkinteger(L, 2);
-	int optname = (int)luaL_checkinteger(L, 3);
+	int level = luasocket_checkint(L, 2);
+	int optname = luasocket_checkint(L, 3);
 	int value;
 	size_t len;
 	const char *optval;
@@ -603,7 +612,7 @@ static int luasocket_setsockopt(lua_State *L)
 	if (lua_type(L, 4) == LUA_TSTRING)
 		optval = lua_tolstring(L, 4, &len);
 	else {
-		value = (int)luaL_checkinteger(L, 4);
+		value = (int)lunatik_checkinteger(L, 4, INT_MIN, UINT_MAX); /* unsigned options read a u32 */
 		optval = (const char *)&value;
 		len = sizeof(value);
 	}
@@ -735,7 +744,7 @@ static inline void luasocket_upgrade(struct sock *sk)
 static int luasocket_accept(lua_State *L)
 {
 	struct socket *socket = luasocket_check(L, 1);
-	int flags = luaL_optinteger(L, 2, 0);
+	int flags = luaL_opt(L, luasocket_checkint, 2, 0);
 	lunatik_object_t *object = luasocket_new(L);
 	int ret = kernel_accept(socket, luasocket_psocket(object), flags);
 
@@ -764,7 +773,8 @@ static int luasocket_accept(lua_State *L)
 * @treturn socket A new socket object. A socket a netdevice callback may collect is closed by the
 *   script first, not dropped: its release cannot refuse where the collector drops it.
 * @raise Error if socket creation fails, "unsupported socket type" for `linux.socket.sock.PACKET`,
-*   "out of bounds" for an `AF_PACKET` protocol past 16 bits,
+*   "out of bounds" for an argument past an `int`, an `AF_PACKET` protocol past 16 bits or a pid
+*   outside 1 to `PID_MAX_LIMIT`,
 *   `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace
 *   of their own, or
 *   `'socket': process-context class in interrupt-context runtime` in a softirq or hardirq runtime.
@@ -781,10 +791,10 @@ static int luasocket_accept(lua_State *L)
 */
 static int luasocket_lnew(lua_State *L)
 {
-	int family = luaL_checkinteger(L, 1);
-	int type = luaL_checkinteger(L, 2);
+	int family = luasocket_checkint(L, 1);
+	int type = luasocket_checkint(L, 2);
 	luaL_argcheck(L, type != SOCK_PACKET, 2, "unsupported socket type");
-	int proto = family == AF_PACKET ? (__force u16)luasocket_checkethertype(L, 3) : luaL_checkinteger(L, 3);
+	int proto = family == AF_PACKET ? (__force u16)luasocket_checkethertype(L, 3) : luasocket_checkint(L, 3);
 	pid_t pid = lua_isnoneornil(L, 4) ? LUASOCKET_PID_NONE : (pid_t)lunatik_checkinteger(L, 4, 1, PID_MAX_LIMIT);
 	lunatik_object_t *object = luasocket_new(L);
 	struct socket **psocket = luasocket_psocket(object);

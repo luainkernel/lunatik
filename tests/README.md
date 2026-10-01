@@ -1649,6 +1649,17 @@ pid, and what a valid call does.
   the sender's address as a string. The AF_PACKET and AF_INET6
   cases skip where the kernel does not carry the family.
 
+- **bounds**: an integer a socket hands the kernel is refused as out of bounds
+  past the type that takes it, not passed on with its low bits: `socket.new`'s
+  family, type and protocol either side of an `int`; an AF_INET address past 32
+  bits or negative, through `bind`, `connect` and `send`; an AF_NETLINK port id
+  or group mask past 32 bits or negative, through `bind` and `connect`; a
+  `receive` length below 0 or past `INT_MAX`;
+  the flags of `receive`, `connect` and `accept` and the backlog of `listen` past
+  an `int`; and `setsockopt`'s level, name and integer value past 32 bits. Each
+  value past 32 bits carries low bits a truncating build accepts. `SO_MARK`
+  takes a value past `INT_MAX`, up to the `u32` it is, and one below 0.
+
 - **connect**: which argument `socket:connect()` reads as its flags, and what it
   answers. An AF_INET address is spelled as two arguments, so a call with no flags
   must not have its port read as one: the test connects to port 6922, whose value
