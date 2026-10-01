@@ -44,7 +44,7 @@ static void luadarken_freerequest(luadarken_request_t *r)
 
 static struct crypto_aead *luadarken_setkey(lua_State *L, const char *key)
 {
-	struct crypto_aead *tfm = crypto_alloc_aead(LUADARKEN_ALG, 0, 0);
+	struct crypto_aead *tfm = crypto_alloc_aead(LUADARKEN_ALG, 0, CRYPTO_ALG_ASYNC);
 	if (IS_ERR(tfm))
 		lunatik_throw(L, PTR_ERR(tfm));
 
