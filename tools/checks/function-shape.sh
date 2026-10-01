@@ -61,7 +61,7 @@ for file in "$@"; do
 		depth += opens; if (depth > maxdepth) maxdepth = depth; depth -= closes
 		if (match(line, /(rcu_read_lock|lunatik_lock|spin_lock[a-z_]*|mutex_lock|read_lock|write_lock)\(/))
 			sites[substr(line, RSTART, RLENGTH - 1)]++
-		if (match(line, /(kfree|kvfree|lunatik_free|kfree_rcu|kvfree_rcu)\([^,)]+/)) { buf = substr(line, RSTART, RLENGTH); sub(/.*\(/, "", buf); frees[buf]++ }
+		if (match(line, /(kfree|kvfree|kfree_sensitive|kvfree_sensitive|lunatik_free|kfree_rcu|kvfree_rcu)\([^,)]+/)) { buf = substr(line, RSTART, RLENGTH); sub(/.*\(/, "", buf); frees[buf]++ }
 		if (match(line, /\*[ \t]*[A-Za-z_]*(MAX|BUFFERSIZE)[A-Za-z_]*/) && slot == "") { slot = substr(line, RSTART + 1, RLENGTH - 1); sub(/^[ \t]+/, "", slot) }
 	}
 	' "$file"
