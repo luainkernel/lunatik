@@ -281,7 +281,8 @@ return body
  The runtime must be sleepable; the script it loaded must return a function,
  which becomes the thread body, called with the objects given here. A thread a
  netdevice callback would stop is stopped off RTNL instead: from the script body,
- a later resume or another thread.
+ a later resume or another thread. The thread holds a reference to the runtime until
+ <a href="../modules/thread.html#thread:stop">stop</a> releases it or the thread is collected, even once its body has returned.
 
 
     <h3>Parameters</h3>
@@ -361,7 +362,7 @@ return body
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:33:07</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:38:42</span>
 </div>
 </footer>
 </body>
