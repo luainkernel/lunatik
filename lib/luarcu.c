@@ -14,10 +14,11 @@
 * hardirq runtime, one whose class needs process context raises
 * `'<class>': process-context class in interrupt-context runtime`. A read that
 * meets a writer releasing the entry's object sees the entry gone. An entry holds its
-* object until the entry is overwritten or deleted or the table goes, so objects that
-* hold each other through tables, a table stored in itself or two stored in each other,
-* are never released: a reference count does not see a cycle, and breaking one is the
-* script's, by deleting an entry of it.
+* object until the entry is overwritten or deleted or the table goes, and a reference
+* count does not see a cycle, so storing an `rcu.table` raises `ELOOP` when it is the
+* table it is stored in or reaches that table, directly or through the tables it holds;
+* it raises `ELOOP` too when it reaches more than 16 tables that hold tables, itself
+* included.
 *
 * See `examples/shared/daemon.lua` for a practical example.
 * @module rcu
@@ -67,6 +68,7 @@ typedef struct luarcu_entry_s {
 typedef struct luarcu_table_s {
 	size_t size;
 	unsigned int seed;
+	size_t ntables;
 	struct hlist_head hlist[];
 } luarcu_table_t;
 
@@ -84,7 +86,11 @@ typedef struct luarcu_table_s {
 			pos && ({ n = luarcu_entry(hlist_next_rcu(&(pos)->hlist), pos); 1; });	\
 			pos = n)
 
+#define luarcu_istable(value)		(lunatik_isuserdata(value) && (value)->object->class == &luarcu_class)
+#define luarcu_holdstable(entry)	((entry) != NULL && luarcu_istable(&(entry)->value))
+
 DEFINE_STATIC_SRCU(luarcu_srcu);
+static DEFINE_SPINLOCK(luarcu_walklock);
 
 static int luarcu_table(lua_State *L);
 
@@ -162,7 +168,77 @@ void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lu
 }
 EXPORT_SYMBOL(luarcu_getvalue);
 
-int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value)
+typedef struct luarcu_walk_s {
+	lunatik_object_t *target;
+	size_t n;
+	luarcu_table_t *queue[LUARCU_MAXWALK];
+} luarcu_walk_t;
+
+static inline bool luarcu_isqueued(luarcu_walk_t *walk, luarcu_table_t *table)
+{
+	size_t n = walk->n;
+
+	while (n--)
+		if (walk->queue[n] == table)
+			return true;
+	return false;
+}
+
+static int luarcu_queue(luarcu_walk_t *walk, lunatik_object_t *object)
+{
+	luarcu_table_t *table = (luarcu_table_t *)object->private;
+
+	if (object == walk->target)
+		return -ELOOP;
+	if (READ_ONCE(table->ntables) == 0 || luarcu_isqueued(walk, table))
+		return 0;
+	if (walk->n == LUARCU_MAXWALK)
+		return -ELOOP;
+	walk->queue[walk->n++] = table;
+	return 0;
+}
+
+static int luarcu_scan(luarcu_walk_t *walk, luarcu_table_t *table)
+{
+	unsigned int bucket;
+	luarcu_entry_t *next, *entry;
+	int ret = 0;
+
+	luarcu_foreach(table, bucket, next, entry)
+		if (luarcu_istable(&entry->value) && (ret = luarcu_queue(walk, entry->value.object)) < 0)
+			break;
+	return ret;
+}
+
+static int luarcu_walk(lunatik_object_t *object, lunatik_object_t *target)
+{
+	luarcu_walk_t walk = {.target = target};
+	int ret = luarcu_queue(&walk, object);
+
+	rcu_read_lock();
+	for (size_t i = 0; i < walk.n && ret == 0; i++)
+		ret = luarcu_scan(&walk, walk.queue[i]);
+	rcu_read_unlock();
+	return ret;
+}
+
+static inline void luarcu_waitwalk(void)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&luarcu_walklock, flags);
+	spin_unlock_irqrestore(&luarcu_walklock, flags);
+}
+
+static inline void luarcu_count(luarcu_table_t *table, luarcu_entry_t *old, luarcu_entry_t *new)
+{
+	int delta = luarcu_holdstable(new) - luarcu_holdstable(old);
+
+	if (delta != 0)
+		WRITE_ONCE(table->ntables, table->ntables + delta);
+}
+
+static luarcu_entry_t *luarcu_link(lunatik_object_t *table, const char *key, size_t keylen, luarcu_entry_t *new)
 {
 	luarcu_table_t *tab = (luarcu_table_t *)table->private;
 	luarcu_entry_t *old;
@@ -172,22 +248,41 @@ int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lun
 	rcu_read_lock();
 	old = luarcu_lookup(tab, index, key, keylen);
 	rcu_read_unlock();
-	if (value->type != LUA_TNIL) {
-		luarcu_entry_t *new = luarcu_newentry(key, keylen, value);
-		if (new == NULL) {
-			lunatik_unlock(table);
-			return -ENOMEM;
-		}
-
-		if (!old)
-			hlist_add_head_rcu(&new->hlist, tab->hlist + index);
-		else
-			luarcu_unlink(old, new);
-	}
-	else if (old)
-		luarcu_unlink(old, NULL);
+	if (old)
+		luarcu_unlink(old, new);
+	else if (new)
+		hlist_add_head_rcu(&new->hlist, tab->hlist + index);
+	luarcu_count(tab, old, new);
 	lunatik_unlock(table);
+	return old;
+}
 
+static luarcu_entry_t *luarcu_linktable(lunatik_object_t *table, const char *key, size_t keylen, luarcu_entry_t *new)
+{
+	unsigned long flags;
+	luarcu_entry_t *old;
+	int ret;
+
+	spin_lock_irqsave(&luarcu_walklock, flags); /* two stores closing one cycle would miss each other */
+	ret = luarcu_walk(new->value.object, table);
+	old = ret < 0 ? ERR_PTR(ret) : luarcu_link(table, key, keylen, new);
+	spin_unlock_irqrestore(&luarcu_walklock, flags);
+	return old;
+}
+
+int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value)
+{
+	luarcu_entry_t *new = NULL;
+
+	if (value->type != LUA_TNIL && (new = luarcu_newentry(key, keylen, value)) == NULL)
+		return -ENOMEM;
+
+	luarcu_entry_t *old = luarcu_istable(value) ?
+		luarcu_linktable(table, key, keylen, new) : luarcu_link(table, key, keylen, new);
+	if (IS_ERR(old)) {
+		luarcu_free(new);
+		return PTR_ERR(old);
+	}
 	if (old != NULL)
 		luarcu_free(old); /* the value's put may close a runtime or a socket, which sleeps */
 	return 0;
@@ -215,8 +310,11 @@ static int luarcu_newindex(lua_State *L)
 
 	lunatik_value_t value;
 	lunatik_checkvalue(L, 3, &value);
-	if (luarcu_setvalue(table, key, keylen, &value) < 0)
-		luaL_error(L, "not enough memory");
+	int ret = luarcu_setvalue(table, key, keylen, &value);
+	if (ret == -ENOMEM)
+		lunatik_enomem(L);
+	else if (ret < 0)
+		lunatik_throw(L, ret);
 	return 0;
 }
 
@@ -226,6 +324,7 @@ static void luarcu_release(void *private)
 	unsigned int bucket;
 	luarcu_entry_t *n, *entry;
 
+	luarcu_waitwalk(); /* a store's walk that reached this table reads it until the walk ends */
 	luarcu_foreach(table, bucket, n, entry) {
 		hlist_del_rcu(&entry->hlist);
 		luarcu_free(entry);

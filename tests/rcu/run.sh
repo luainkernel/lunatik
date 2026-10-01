@@ -29,13 +29,21 @@
 # memory error, with no kernel warning behind it. A key under LUARCU_MAXKEY bytes
 # is stored and one at it is out of bounds where it arrives, not a memory error.
 #
+# cycle: storing an rcu.table raises ELOOP when it is the table it is stored in or holds
+# that table, directly, through others or as lunatik._ENV, and leaves the table as it
+# was; a table that reaches others but not that one is stored. An entry overwritten
+# with a table, or whose table is replaced, deleted or overwritten with an integer,
+# counts what it holds after the store. The walk takes LUARCU_MAXWALK tables that hold
+# tables and refuses one more, a table that holds none is not counted, and one held
+# under several keys is counted once.
+#
 # Usage: sudo bash tests/rcu/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="foreach_values foreach_foreign bounds index_whole foreach_next"
+TESTS="foreach_values foreach_foreign bounds index_whole foreach_next cycle"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {
@@ -74,5 +82,7 @@ echo ""
 bash "$DIR/object_grace.sh" || RESULT=1
 echo ""
 bash "$DIR/foreach_grace.sh" || RESULT=1
+echo ""
+bash "$DIR/cycle_release.sh" || RESULT=1
 exit $RESULT
 

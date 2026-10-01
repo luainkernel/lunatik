@@ -9,6 +9,7 @@
 #define LUARCU_DEFAULT_SIZE	(256)
 #define LUARCU_MAXSIZE		(rounddown_pow_of_two(SIZE_MAX / sizeof(struct hlist_head))) /* luarcu_sizeoftable() wraps above it */
 #define LUARCU_MAXKEY		(LUAL_BUFFERSIZE)
+#define LUARCU_MAXWALK		(16)
 
 lunatik_object_t *luarcu_newtable(size_t size, lunatik_opt_t opt);
 void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value);
