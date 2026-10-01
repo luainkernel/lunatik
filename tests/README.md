@@ -650,6 +650,14 @@ after the watch is stopped.
   raw_event raising on a burst of reports logs fewer errors than the burst,
   and a runtime stopped while it holds a device stops and lets the device
   go. Skips without `/dev/uhid` (`CONFIG_UHID`), `CONFIG_HIDRAW` or gcc.
+- **stop**: a driver's `stop` unregisters it while the script body loads, its
+  `__close` is that stop, and the stop is refused once the runtime is armed. A
+  softirq runtime the runner keeps registers three drivers under a vendor no
+  device carries: one stopped twice, one held by a to-be-closed variable whose
+  metatable holds one function under both names, and one kept, whose stop from
+  a resume past the body is refused with "not allowed once the runtime is
+  armed", since unregistering sleeps. `/sys/bus/hid/drivers` holds the kept
+  driver alone, until its runtime stops. Skips when the kernel has no HID bus.
 
 ### io
 

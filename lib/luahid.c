@@ -10,7 +10,8 @@
 * The driver's runtime is softirq: the script runs with
 * `lunatik run -c softirq <script>`, other contexts raise
 * `runtime context mismatch`, and the callbacks, which run under that runtime's
-* lock, must not sleep. The driver stays registered until the runtime stops.
+* lock, must not sleep. The driver stays registered until its `stop` or the end of
+* the runtime.
 *
 * See `examples/gesture` and `examples/xiaomi`.
 * @usage
@@ -84,8 +85,35 @@ static const luaL_Reg luahid_lib[] = {
 	{NULL, NULL},
 };
 
+static const lunatik_class_t luahid_class;
+
+/***
+* Unregisters the driver.
+* The devices it drives are released from it, and no callback of it runs again. Calling it
+* again does nothing, and a to-be-closed variable holding the driver stops it the same way.
+* @function stop
+* @treturn nil
+* @raise "not allowed once the runtime is armed" past the script body: hid_unregister_driver
+*   sleeps, and an armed runtime runs under its spinlock
+* @usage driver:stop()
+*/
+static int luahid_stop(lua_State *L)
+{
+	lunatik_checkarmed(L);
+	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luahid_class);
+
+	if (object->private == NULL) /* already stopped */
+		return 0;
+
+	lunatik_unregisterobject(L, object);
+	lunatik_closeprivate(object);
+	return 0;
+}
+
 static const luaL_Reg luahid_mt[] = {
 	{"__gc", lunatik_deleteobject},
+	{"__close", luahid_stop},
+	{"stop", luahid_stop},
 	{NULL, NULL},
 };
 
@@ -339,7 +367,8 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   the callbacks store in it; `report` carries `id`, `type`, `size`, `application` and
 *   `maxfield`. What `report_fixup` and `remove` return is ignored, and a callback's error
 *   goes to the kernel log.
-* @treturn hid_driver
+* @treturn hid_driver the driver, which `hid.register` keeps for its runtime: dropping it stops
+*   nothing, and the driver stays registered until `stop` or the end of the runtime
 * @raise "not allowed once the runtime is armed" past the script body; from a percpu runtime; if
 *   required fields are missing, or `id_table` is invalid or too long; the kernel's errno if it
 *   refuses the driver, `EBUSY` for a name another driver holds on the bus;
