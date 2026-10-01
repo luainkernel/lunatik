@@ -677,6 +677,10 @@ after the watch is stopped.
   past the body, the armed state a hook calls from, each answers the call
   without a pid and refuses one with a pid with "not allowed once the runtime
   is armed", since resolving it takes the task's lock.
+- **errname**: `linux.errname` names an errno given with either sign and answers
+  "unknown" for `INT_MAX` and `-INT_MAX`; it refuses `INT_MIN`, whose absolute
+  value an `int` cannot hold, and a number past an `int`, as out of bounds,
+  rather than naming its low 32 bits.
 
 ### lua
 
