@@ -99,6 +99,8 @@ static inline u8 *luacrypto_checkiv(lua_State *L, int idx, u8 *iv, size_t expect
 	return iv;
 }
 
+char *luacrypto_newbuffer(lua_State *L, size_t size);
+
 extern const lunatik_class_t luacrypto_shash_class;
 extern const lunatik_class_t luacrypto_skcipher_class;
 extern const lunatik_class_t luacrypto_aead_class;

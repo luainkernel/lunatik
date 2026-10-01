@@ -11,6 +11,9 @@
 #
 # async: skcipher and aead refuse an asynchronous implementation, cryptd's.
 #
+# large: skcipher and aead cipher a copy of their input in one kmalloc block, and refuse one past
+# KMALLOC_MAX_SIZE, the size past which a string is always vmalloc memory.
+#
 # comp is served only where the kernel still has the crypto_comp API, which
 # Linux 6.15 removed: lib/luacrypto_comp.c compiles to nothing there and
 # crypto.comp is nil. hascomp asks the runtime for the binding, so the suite
@@ -62,5 +65,7 @@ echo ""
 bash "$DIR/context.sh" || RESULT=1
 echo ""
 bash "$DIR/async.sh" || RESULT=1
+echo ""
+bash "$DIR/large.sh" || RESULT=1
 exit $RESULT
 

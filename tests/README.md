@@ -127,6 +127,16 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   `authenc` of it, names no script asks for; `/proc/crypto` listing each instance
   as asynchronous shows the refusal answered one and not an unknown name. Skips
   when the kernel registered none, and unloads `cryptd` when the test loaded it.
+- **large**: `skcipher` and `aead` cipher a copy of their input in one kmalloc
+  block, since a scatterlist maps linear memory and a string past a page may be
+  vmalloc's. Data of two pages and a block, and associated data of two pages and
+  a byte, go through it whole: `cbc(aes)` matches its pages chained by their last
+  block, `gcm(aes)` seals into what `ctr(aes)` gives from the second counter and
+  opens back, and a byte flipped in the last page of either fails the tag. A string past `KMALLOC_MAX_SIZE`,
+  always vmalloc's, is refused with "not enough memory" as the data of each
+  `encrypt` and `decrypt` and as `aead`'s associated data, with no warning in
+  `dmesg`. Skips unless the loaded `luacrypto` lists `luacrypto_newbuffer` in
+  `/proc/kallsyms`, since a build that maps the string oopses on arm64.
 
 ### darken
 

@@ -75,8 +75,7 @@ static int luacrypto_aead_authsize(lua_State *L)
 }
 
 typedef struct luacrypto_aead_request_s {
-	struct scatterlist src[2];	/* AAD + data */
-	struct scatterlist dst[2];	/* AAD prefix + output */
+	struct scatterlist sg;
 	struct aead_request *aead;
 	const char *data;
 	const char *aad;
@@ -100,39 +99,25 @@ static inline void luacrypto_aead_newrequest(lua_State *L, luacrypto_aead_reques
 	request->aead = (struct aead_request *)ctx->request;
 }
 
-static inline void luacrypto_aead_setrequest(luacrypto_aead_request_t *request, char *buffer, size_t output_len)
+static inline void luacrypto_aead_setrequest(luacrypto_aead_request_t *request, char *buffer, size_t buffer_len)
 {
 	struct aead_request *aead = request->aead;
-	struct scatterlist *src = request->src;
-	struct scatterlist *dst = request->dst;
-	unsigned int n = request->aad_len ? 2 : 1;
 
-	/* src maps the Lua input strings directly (no copy). */
-	sg_init_table(src, n);
-	if (request->aad_len)
-		sg_set_buf(&src[0], request->aad, request->aad_len);
-	sg_set_buf(&src[n - 1], request->data, request->crypt_len);
-
-	/* dst mirrors the AAD prefix and reserves room for the output. */
-	if (request->aad_len)
-		memcpy(buffer, request->aad, request->aad_len);
-	sg_init_table(dst, n);
-	if (request->aad_len)
-		sg_set_buf(&dst[0], buffer, request->aad_len);
-	sg_set_buf(&dst[n - 1], buffer + request->aad_len, output_len ? output_len : 1);
+	memcpy(buffer, request->aad, request->aad_len);
+	memcpy(buffer + request->aad_len, request->data, request->crypt_len);
+	sg_init_one(&request->sg, buffer, buffer_len);
 
 	aead_request_set_ad(aead, request->aad_len);
-	aead_request_set_crypt(aead, src, dst, request->crypt_len, request->iv);
+	aead_request_set_crypt(aead, &request->sg, &request->sg, request->crypt_len, request->iv);
 	aead_request_set_callback(aead, 0, NULL, NULL);
 }
 
 static inline char *luacrypto_aead_prepare(lua_State *L, luacrypto_aead_request_t *request, size_t output_len)
 {
-	size_t buffer_len = request->aad_len + (output_len ? output_len : 1);
-	char *buffer = (char *)lunatik_malloc(L, buffer_len);
-	if (buffer == NULL)
-		lunatik_enomem(L);
-	luacrypto_aead_setrequest(request, buffer, output_len);
+	/* never kmalloc(0), whose ZERO_SIZE_PTR has no page to map */
+	size_t buffer_len = request->aad_len + max3(request->crypt_len, output_len, (size_t)1);
+	char *buffer = luacrypto_newbuffer(L, buffer_len);
+	luacrypto_aead_setrequest(request, buffer, buffer_len);
 	return buffer;
 }
 
@@ -156,7 +141,9 @@ static inline int luacrypto_aead_finish(lua_State *L, luacrypto_aead_request_t *
 * @tparam string plaintext data to encrypt
 * @tparam[opt] string aad additional authenticated data (default: empty string)
 * @treturn string ciphertext concatenated with authentication tag
-* @raise on encryption failure or incorrect IV length
+* @raise on encryption failure or incorrect IV length, "not enough memory" when one kmalloc block
+*   cannot be allocated for the associated data, the plaintext and the tag, always past
+*   `KMALLOC_MAX_SIZE`
 */
 static int luacrypto_aead_encrypt(lua_State *L)
 {
@@ -176,7 +163,9 @@ static int luacrypto_aead_encrypt(lua_State *L)
 * @tparam string ciphertext_with_tag ciphertext concatenated with authentication tag
 * @tparam[opt] string aad additional authenticated data (default: empty string)
 * @treturn string decrypted plaintext
-* @raise on authentication failure (EBADMSG), incorrect IV length, or input too short
+* @raise on authentication failure (EBADMSG), incorrect IV length, or input too short, "not enough
+*   memory" when one kmalloc block cannot be allocated for the associated data and the ciphertext,
+*   always past `KMALLOC_MAX_SIZE`
 */
 static int luacrypto_aead_decrypt(lua_State *L)
 {
