@@ -8,8 +8,9 @@
 # runtime of the CPU that received it, which is where the loopback delivers the
 # pinned ping; a marked packet reaching that hook while the runtimes are still
 # being created finds none published on its CPU, and is accepted without being
-# counted; one set holds a hook per target, and a second registration of the
-# same one in a runtime is refused; a registration from a callback, after the
+# counted; one set holds a hook per target, a hook without a mark and one with a
+# mark of 0 being two, and a second registration of the same one in a runtime is
+# refused; a registration from a callback, after the
 # script loaded, is refused before it could sleep in softirq, in a percpu script
 # and in a plain softirq runtime alike, and so is one from the body a process
 # driver resumes, which runs under the resumed runtime's spinlock; and the same
@@ -32,7 +33,7 @@ EARLY="tests/runtime/percpu_netfilter_early"
 RESUME="tests/runtime/percpu_netfilter_resume"
 ARMED="percpu netfilter early: armed"
 REFUSAL="not allowed after module load"
-TARGETS="percpu netfilter twice: two targets armed"
+TARGETS="percpu netfilter twice: three targets armed"
 MODULE="luanetfilter"
 MARK=208
 COUNT=5
