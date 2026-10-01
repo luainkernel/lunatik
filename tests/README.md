@@ -1800,7 +1800,12 @@ Regression tests for `luathread`.
   `stop` in the thread's metatable, which the monitor of this shared class
   leaves unwrapped under both names, lets a to-be-closed variable holding the
   thread go out of scope, and reads the task gone afterwards, as after a stop;
-  a second stop does nothing.
+  a second stop does nothing. The stop returns `true` for a thread whose body
+  returns at once, whether it ran or not, and for one already stopped, and
+  `false` for one whose body raised, stopped once the body told the driver it
+  runs. A stop that drops the last reference to the thread's runtime closes it
+  outside the thread's lock: a finalizer of that runtime that stops the thread
+  again, through a table the driver stored it in, gets `true`.
 
 ### xdp
 
