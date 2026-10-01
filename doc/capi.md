@@ -65,7 +65,9 @@ Describes a Lunatik object class.
   `struct file_operations` names its own; a class that leaves it `NULL`, as `THIS_MODULE` is in a
   built-in build, holds nothing. Every object of the class holds a reference to it from
   its creation to its release, so the module stays loaded while an object is left, in an
-  `rcu.table` such as `_ENV` or in a runtime that never required its library.
+  `rcu.table` such as `_ENV` or in a runtime that never required its library. A state that
+  [`lunatik_cloneobject`](#lunatik_cloneobject) creates the class's metatables in holds another
+  until it closes.
 
 ### lunatik\_object\_t
 ```C
@@ -600,7 +602,8 @@ metatable, and takes no reference: the userdata's `__gc` drops one, which the ca
 or takes, as [`lunatik_pushobject`](#lunatik_pushobject) does; in a closing state the state drops
 it instead, as [`lunatik_newobject`](#lunatik_newobject) describes. It calls
 [`lunatik_require`](#lunatik_require) first, so the object reaches a state whose script never
-required its library.
+required its library; where that creates the metatables, `L` holds the class's `owner` until it
+closes, as `require` holds the module of a library it opens.
 Raises `'<name>': cannot share SINGLE object` for a `LUNATIK_OPT_SINGLE` object,
 `'<name>': process-context class in interrupt-context runtime`, `'<name>': metatable not found`
 for a `LUNATIK_OPT_MONITOR` object of a class that does not carry the flag, and `not enough

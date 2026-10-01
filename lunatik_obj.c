@@ -64,7 +64,11 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_SINGLE);
 
 	lunatik_checkclass(L, class);
-	lunatik_require(L, class);
+	if (!lunatik_hasclass(L, class)) {
+		__module_get(class->owner); /* the object being cloned holds it */
+		lunatik_holdmodule(L, class->owner); /* no require of this state holds what the metatables call */
+		lunatik_require(L, class);
+	}
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
 
 	lunatik_setclass(L, class, lunatik_ismonitor(object->opt));

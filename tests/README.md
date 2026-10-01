@@ -1123,12 +1123,14 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   metatables the clone created, and `package.loaded` has no `rcu.table`.
 
 - **module_owner**: an object holds the module of its class from its creation
-  to its release. A set left in `lunatik._ENV` by a runtime that required `set`
-  and stopped keeps `luaset`'s refcnt one above where it was, and once a
-  runtime that never required `set` takes it out, clears the entry, collects
-  and stops, the refcnt is back. The test reads the refcnt and removes no
-  module, since a build without the reference would run the set's release in
-  a removed module.
+  to its release, and a state that a clone creates the class's metatables in
+  holds it until it closes. A set left in `lunatik._ENV` by a runtime that
+  required `set` and stopped keeps `luaset`'s refcnt one above where it was; a
+  runtime that never required `set` takes it out twice, clears the entry and
+  collects, and keeps the refcnt one above while it runs, for the metatables
+  the first clone created there and the second found; once it stops, the
+  refcnt is back. The test reads the refcnt and removes no module, since a
+  build without the references would run the set's release in a removed module.
 
 - **percpu**: `run --percpu <script>` registers one object holding a
   runtime per possible CPU id, and runs the script once per runtime,
