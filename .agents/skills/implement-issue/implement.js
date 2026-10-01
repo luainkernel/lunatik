@@ -16,7 +16,9 @@
 //   model       the model every agent runs on, default the session's
 //   push        false where a push from an agent is refused on this machine: the implementer leaves
 //               its commits on the branch and opens nothing, and no review runs
-//   repo, sudo, gh   as review.js takes them, and passed to it; with gh false the agents write nothing to
+//   repo        the checkout's absolute path, where review.js is read and its phases work; required, since
+//               a relative path resolves against the session's directory when the review starts
+//   sudo, gh    as review.js takes them, and passed to it; with gh false the agents write nothing to
 //               GitHub, and the pull request and the filing are the session's
 //
 // Its last stage files findings_left, what either one leaves as an issue, and it returns the
@@ -29,14 +31,14 @@ export const meta = {
 }
 
 const a = args || {}
-for (const key of ['issue', 'effort', 'scratch'])
+for (const key of ['issue', 'effort', 'scratch', 'repo'])
   if (!a[key]) throw new Error(`implement-issue: args.${key} is required`)
 
 const base = a.base || 'master'
 const model = a.model ? { model: a.model } : {}
 const checkpoint = `${a.scratch}/issue${a.issue}/IMPLEMENT.md`
 const fileCheckpoint = `${a.scratch}/issue${a.issue}/FILED.md`
-const REVIEW = '.agents/skills/review-pr/review.js'
+const REVIEW = `${a.repo}/.agents/skills/review-pr/review.js`
 // where gh is absent curl reads GitHub and writes nothing to it, since no guard reads a write through curl
 const github = a.gh === false
   ? 'curl against https://api.github.com with `Authorization: Bearer $GH_TOKEN`, as the review-pr skill spells it, to read only'
