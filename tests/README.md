@@ -899,7 +899,9 @@ higher-level `netlink.*` modules built on top of it.
 - **genl_family**: `genl.family("nlctrl")` resolves the generic netlink
   controller family to `GENL_ID_CTRL`; then on the same instance a `GETFAMILY`
   `talk()` round-trip (regression for the orphaned-ACK desync), a `GETFAMILY`
-  `dump()` that lists every family (with `nlctrl` among them), and an unknown
+  `dump()` that lists every family (with `nlctrl` among them),
+  `linux.genl.ctrl.attr` holding the controller's attributes and none of the
+  nested `CTRL_ATTR_OP_`, `MCAST_GRP_` and `POLICY_` ones, and an unknown
   family raising.
 - **link_list**: `rt.link():list()` lists interfaces; asserts loopback (`lo`,
   ifindex 1) is present with a non-zero MTU and the `type` `ARPHRD_LOOPBACK`.
