@@ -34,6 +34,7 @@ MARK=1275 # MARK in copy_view.lua
 LOCAL="127.0.0.1"
 RELEASES="lunatik_skb/luaskb_release"
 FREED="lunatik_skb/luadata_release"
+HOOK_VIEWS=3 # the hook's skb views: data(), "net" and "mac"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -91,7 +92,8 @@ step stop
 [ "$(releases)" -eq $((base + 2)) ] || fail "a copy was released while it was kept"
 lunatik stop "$SCRIPT" 2>/dev/null
 [ "$(releases)" -eq $((base + 4)) ] || fail "the stop released $(( $(releases) - base - 2 )) skb objects, not the kept copy and the hook's own"
-[ "$(freed)" -eq $((views + 4)) ] || fail "the stop freed $(( $(freed) - views - 1 )) data objects, not the kept copy's view and the hook's two"
+[ "$(freed)" -eq $((views + 2 + HOOK_VIEWS)) ] ||
+	fail "the stop freed $(( $(freed) - views - 1 )) data objects, not the kept copy's view and the hook's $HOOK_VIEWS"
 ktap_pass "a copy kept with its view goes when the runtime stops, with its view and the hook's own"
 
 check_dmesg && ktap_pass "no Lua errors in kernel"

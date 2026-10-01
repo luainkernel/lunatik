@@ -132,24 +132,39 @@ static lunatik_object_t *luaskb_pushview(lua_State *L, lunatik_object_t **view)
 	return *view;
 }
 
+#define luaskb_ispresent(skb, start)	((start) != NULL && (start) <= skb_tail_pointer(skb))
+
+static unsigned char *luaskb_start(struct sk_buff *skb, int layer)
+{
+	switch (layer) {
+	case LUASKB_NET:
+		return skb_network_header(skb);
+	case LUASKB_MAC:
+		return skb_mac_header_was_set(skb) ? skb_mac_header(skb) : NULL;
+	default:
+		return skb->data;
+	}
+}
+
 /***
 * Linearizes the skb and returns a view from where `layer` starts to the end of
-* the packet. "net" starts at `skb->data`, which is the network header in an
-* IPv4 or IPv6 netfilter hook and the MAC header in a tc callback; "mac" starts
-* at the MAC header. In a tc callback the skb is not linearized, and a non-linear
-* one raises.
+* the packet: "net" at the network header and "mac" at the MAC header, or, with no
+* `layer`, at `skb->data`, where the packet starts as the hook sees it: the network
+* header in an IPv4 or IPv6 netfilter hook and the MAC header in a tc callback. In a
+* tc callback the skb is not linearized, and a non-linear one raises.
 *
-* The skb keeps one view per layer: the "net" and "mac" views are two objects, and a
-* second call for a layer returns the same view, ending at the tail as it is then: a
-* `resize` alone does not move a view's end. The skb stays linear once a view is taken,
-* so no later call moves the bytes a view reads. A view is valid until the callback that
-* received the skb returns, or, for a copy, until the copy is collected: afterwards
-* its length is 0 and every access raises "out of bounds".
+* The skb keeps one view per start: the view with no layer and the "net" and "mac"
+* views are three objects, and a second call returns the same view, ending at the
+* tail as it is then: a `resize` alone does not move a view's end. The skb stays
+* linear once a view is taken, so no later call moves the bytes a view reads. A view
+* is valid until the callback that received the skb returns, or, for a copy, until
+* the copy is collected: afterwards its length is 0 and every access raises "out of
+* bounds".
 * @function data
-* @tparam[opt] string layer "net" (default) or "mac"
-* @treturn data
-* @raise if the skb is not linear, in a tc callback or after a failed linearization, if the MAC
-* header is not set or is past the tail, or if layer is invalid
+* @tparam[opt] string layer "net" or "mac"
+* @treturn data the view, or nil when the layer's header is not set or lies past the tail
+* @raise if the skb is not linear, in a tc callback or after a failed linearization, or if
+* layer is invalid
 */
 static int luaskb_data(lua_State *L)
 {
@@ -158,18 +173,14 @@ static int luaskb_data(lua_State *L)
 
 	struct sk_buff *skb = lskb->skb;
 	static const char *const layers[] = {"net", "mac", NULL};
-	bool mac = luaL_checkoption(L, 2, "net", layers);
+	int layer = lua_isnoneornil(L, 2) ? LUASKB_DATA : luaL_checkoption(L, 2, NULL, layers);
+	unsigned char *start = luaskb_start(skb, layer);
 
-	if (mac) {
-		luaL_argcheck(L, skb_mac_header_was_set(skb), 2, "MAC header not set");
-		luaL_argcheck(L, skb_mac_header(skb) <= skb_tail_pointer(skb), 2, "MAC header past the tail");
-	}
-
-	unsigned char *ptr = mac ? skb_mac_header(skb) : skb->data;
-	size_t size = skb_tail_pointer(skb) - ptr;
-
-	lunatik_object_t *view = luaskb_pushview(L, mac ? &lskb->mac : &lskb->net);
-	luadata_reset(view, ptr, size, LUADATA_OPT_NONE);
+	if (luaskb_ispresent(skb, start))
+		luadata_reset(luaskb_pushview(L, &lskb->view[layer]), start, skb_tail_pointer(skb) - start,
+			LUADATA_OPT_NONE);
+	else
+		lua_pushnil(L);
 	return 1;
 }
 
@@ -317,10 +328,9 @@ static int luaskb_copy(lua_State *L);
 static void luaskb_release(void *private)
 {
 	luaskb_t *lskb = (luaskb_t *)private;
-	if (lskb->net)
-		luadata_close(lskb->net);
-	if (lskb->mac)
-		luadata_close(lskb->mac);
+	lunatik_object_t *view;
+	luaskb_foreachview(lskb, layer, view)
+		luadata_close(view);
 	if (lskb->skb)
 		kfree_skb(lskb->skb);
 }
@@ -329,12 +339,10 @@ static int luaskb_gc(lua_State *L)
 {
 	luaskb_t *lskb = (luaskb_t *)lunatik_checkobjectclass(L, 1, &luaskb_class)->private;
 
-	if (lskb != NULL) { /* a constructor that raised left no private */
-		if (lskb->net != NULL)
-			lunatik_unregister(L, lskb->net);
-		if (lskb->mac != NULL)
-			lunatik_unregister(L, lskb->mac);
-	}
+	lunatik_object_t *view;
+	if (lskb != NULL) /* a constructor that raised left no private */
+		luaskb_foreachview(lskb, layer, view)
+			lunatik_unregister(L, view);
 	return lunatik_deleteobject(L);
 }
 
@@ -397,9 +405,9 @@ lunatik_object_t *luaskb_new(lua_State *L, bool kfunc)
 	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *lskb = (luaskb_t *)object->private;
 	lskb->kfunc = kfunc;
-	luaskb_pushview(L, &lskb->net);
-	luaskb_pushview(L, &lskb->mac);
-	lua_pop(L, 2);
+	luaskb_foreachlayer(layer)
+		luaskb_pushview(L, &lskb->view[layer]);
+	lua_pop(L, LUASKB_VIEWS);
 	return object;
 }
 EXPORT_SYMBOL(luaskb_new);

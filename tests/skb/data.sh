@@ -3,26 +3,26 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Tests where skb:data() views end in a netfilter hook, that its "net" and "mac" views are two,
-# and what "mac" refuses.
+# Tests where skb:data() views end in a netfilter hook, that its views with no layer, "net" and
+# "mac" are three, and when "mac" is nil.
 #
-# A ping to the loopback address reaches LOCAL_OUT with no MAC header yet, and "mac" refuses
-# it with "MAC header not set"; it then reaches PRE_ROUTING on lo with its MAC header before
-# skb->data, where the "mac" view is longer than the packet by the Ethernet header. A ping
-# over an ipip tunnel reaches LOCAL_OUT twice, the inner packet refused as the loopback one
-# is. The outer packet has its MAC header at the inner IPv4 header, past skb->data by the
-# outer header: its "net" view is as long as the packet and its "mac" view is shorter by the
-# outer header, both ending at the tail.
-# Taken together, the two views stay two: the "net" view taken first keeps its length and still
-# reads the outer header's protocol after the "mac" view is taken, on the packet and on a copy
-# of it. The hook then trims that packet below the outer header with skb:resize, where "mac"
-# refuses it with "MAC header past the tail", and drops it. A second tunnel ping's first
-# callback finds the two views the outer packet's callback took with length 0, and, after a
-# full collection, the two views of the copy it dropped too; it reads their lengths alone, so a
-# build that leaves one set after the callback or the copy fails with no read of the packet it
-# viewed. The hooks never read a "mac" view, so a build without the refusals fails the cases
-# with no out-of-bounds access. The tunnel runs over loopback and needs only the ipip module;
-# its cases skip without it.
+# A ping to the loopback address reaches LOCAL_OUT with no MAC header yet, where "mac" is nil;
+# it then reaches PRE_ROUTING on lo with its MAC header before skb->data, where the "mac" view
+# is longer than the packet by the Ethernet header. A ping over an ipip tunnel reaches
+# LOCAL_OUT twice, the inner packet's "mac" nil as the loopback one's is. The outer packet has
+# its MAC header at the inner IPv4 header, past skb->data by the outer header: its view with no
+# layer and its "net" view are as long as the packet and its "mac" view is shorter by the outer
+# header, all ending at the tail.
+# Taken together, the views stay three: the view with no layer and the "net" view keep their
+# length, and the "net" view still reads the outer header's protocol, after the "mac" view is
+# taken, on the packet and on a copy of it. The hook then trims that packet below the outer
+# header with skb:resize, where "mac" is nil, and drops it. A second tunnel ping's first
+# callback finds the three views the outer packet's callback took with length 0, and, after a
+# full collection, the three views of the copy it dropped too; it reads their lengths alone, so
+# a build that leaves one set after the callback or the copy fails with no read of the packet
+# it viewed. The hooks never read a "mac" view, so a build that returns one where the header is
+# absent fails the cases with no out-of-bounds access. The tunnel runs over loopback and needs
+# only the ipip module; its cases skip without it.
 #
 # Usage: sudo bash tests/skb/data.sh
 
@@ -34,13 +34,13 @@ INNER="10.199.0.1"
 PEER="10.199.0.2"
 MARK=1278 # MARK in data.lua
 TAIL="data: a netfilter view ends at the packet's tail"
-LAYERS="data: the \"net\" and \"mac\" views of one skb are two views"
-COPY="data: the \"net\" and \"mac\" views of a copy are two views"
+LAYERS="data: the views of one skb with no layer, \"net\" and \"mac\" are three views"
+COPY="data: the views of a copy with no layer, \"net\" and \"mac\" are three views"
 CLEARED="data: the views of a hook's skb have length 0 once its callback returns"
-COLLECTED="data: the \"net\" and \"mac\" views of a copy have length 0 once the copy is collected"
-UNSET="data: \"mac\" refuses a packet whose MAC header is not set"
+COLLECTED="data: the views of a copy have length 0 once the copy is collected"
+UNSET="data: \"mac\" is nil for a packet whose MAC header is not set"
 RECEIVED="data: a received frame's \"mac\" view starts at its MAC header"
-PAST="data: \"mac\" refuses a MAC header past the tail"
+PAST="data: \"mac\" is nil for a MAC header past the tail"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 

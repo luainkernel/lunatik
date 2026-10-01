@@ -19,8 +19,8 @@
 #
 # The reattach script also runs without a program, with a kprobe on luadata_release
 # counting the data objects freed: its body attaches twice and collects twice, and
-# the context the second attach replaces frees its skb's two views and its argument,
-# three data objects; a build whose skb leaves its views registered frees one. The
+# the context the second attach replaces frees its skb's three views and its argument,
+# four data objects; a build whose skb leaves its views registered frees one. The
 # case skips where the kprobe cannot be placed.
 #
 # The verdict cases send one ping each, whose payload size picks what the callback
@@ -47,7 +47,7 @@ REFUSED="tc nonlinear: data, copy and resize refuse a non-linear skb"
 PULLED="tc nonlinear: a pulled skb is read, copied and resized whole"
 REPLACED="tc reattach: the replaced context frees its skb's views and its argument"
 FREED="lunatik_tc/luadata_release"
-REPLACED_OBJECTS=3 # the replaced context's two views and its argument
+REPLACED_OBJECTS=4 # the replaced context's three views and its argument
 PREFIX="tc verdict: "
 INVALID="$MODULE: invalid action"
 RAISED="${PREFIX}raised"
@@ -98,7 +98,7 @@ skip_all()
 	ktap_skip "tc detach: callback stops firing and traffic resumes"
 	ktap_skip "tc attach: refuses a sleepable runtime"
 	ktap_skip "tc zero-key: a zero-sized key is rejected without a crash"
-	ktap_skip "tc data: the net and mac views end at the frame's tail"
+	ktap_skip "tc data: \"net\" starts at the IP header, and the views end at the frame's tail"
 	ktap_skip "$REFUSED"
 	ktap_skip "$PULLED"
 	for title in "${VERDICT_TITLES[@]}"; do
@@ -363,7 +363,7 @@ ktap_pass "tc attach: refuses a sleepable runtime"
 zerokey_case
 
 run_case tc_data.bpf.o data.lua yes "tc data" \
-	"tc data: the net and mac views end at the frame's tail" --context=softirq
+	"tc data: \"net\" starts at the IP header, and the views end at the frame's tail" --context=softirq
 
 nonlinear_case
 verdict_case
