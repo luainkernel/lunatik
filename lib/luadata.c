@@ -21,7 +21,6 @@ typedef struct luadata_s {
 	void *ptr;
 	size_t size;
 	uint8_t opt;
-	lunatik_object_t *owner;
 } luadata_t;
 
 static int luadata_lnew(lua_State *L);
@@ -83,8 +82,9 @@ LUADATA_NEWINT(int64);
 * object a binding hands to a callback, or `skb:data()` returns for that
 * callback's skb, views kernel memory only while that callback runs: afterwards
 * its length is 0 and every access raises "out of bounds", so copy what you keep
-* with `getstring`. `skb:copy():data()` views the copy's own buffer and keeps the
-* copy alive. A write to a view a binding marks read only raises "read only".
+* with `getstring`. `skb:copy():data()` views the copy's own buffer until the copy
+* is collected, and is then cleared the same way. A write to a view a binding marks
+* read only raises "read only".
 * @type data
 */
 
@@ -201,8 +201,6 @@ static void luadata_release(void *private)
 	luadata_t *data = (luadata_t *)private;
 	if (data->opt & LUADATA_OPT_FREE)
 		lunatik_free(data->ptr);
-	if (data->owner)
-		lunatik_putobject(data->owner);
 }
 
 /***
@@ -416,15 +414,6 @@ int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt)
 	return 0;
 }
 EXPORT_SYMBOL(luadata_reset);
-
-void luadata_setowner(lunatik_object_t *object, lunatik_object_t *owner)
-{
-	luadata_t *data = (luadata_t *)object->private;
-
-	lunatik_getobject(owner);
-	data->owner = owner;
-}
-EXPORT_SYMBOL(luadata_setowner);
 
 static int __init luadata_init(void)
 {

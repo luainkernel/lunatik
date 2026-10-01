@@ -19,4 +19,6 @@ end
 
 tc.attach(replaced)
 tc.attach(current)
+collectgarbage() -- the replaced context goes, and its skb lets go of its views
+collectgarbage() -- the views go
 

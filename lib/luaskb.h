@@ -11,7 +11,8 @@
 
 typedef struct {
 	struct sk_buff *skb;
-	lunatik_object_t *data;
+	lunatik_object_t *net;
+	lunatik_object_t *mac;
 	bool kfunc;
 } luaskb_t;
 
@@ -20,7 +21,8 @@ typedef struct {
 static inline void luaskb_clear(lunatik_object_t *object)
 {
 	luaskb_t *lskb = (luaskb_t *)object->private;
-	luadata_clear(lskb->data);
+	luadata_clear(lskb->net);
+	luadata_clear(lskb->mac);
 	lskb->skb = NULL;
 }
 

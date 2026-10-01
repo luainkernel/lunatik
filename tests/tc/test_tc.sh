@@ -17,6 +17,12 @@
 # SO_PRIORITY picks the segment, a value outside 0..6, which only a process with
 # CAP_NET_ADMIN or CAP_NET_RAW may set. The case skips without socat.
 #
+# The reattach script also runs without a program, with a kprobe on luadata_release
+# counting the data objects freed: its body attaches twice and collects twice, and
+# the context the second attach replaces frees its skb's two views and its argument,
+# three data objects; a build whose skb leaves its views registered frees one. The
+# case skips where the kprobe cannot be placed.
+#
 # Usage: sudo bash tests/tc/test_tc.sh
 
 MODULE="luatc"
@@ -31,6 +37,9 @@ PAYLOAD=1024             # PAYLOAD in nonlinear.lua
 PRIORITY=$((0x13690000)) # PRIORITY in nonlinear.lua
 REFUSED="tc nonlinear: data, copy and resize refuse a non-linear skb"
 PULLED="tc nonlinear: a pulled skb is read, copied and resized whole"
+REPLACED="tc reattach: the replaced context frees its skb's views and its argument"
+FREED="lunatik_tc/luadata_release"
+REPLACED_OBJECTS=3 # the replaced context's two views and its argument
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
@@ -52,13 +61,14 @@ tc_unload()
 }
 
 ktap_header
-ktap_plan 9
+ktap_plan 10
 
 skip_all()
 {
 	echo "# SKIP: $1"
 	ktap_skip "tc pass: verdict enforced, packet and argument content verified"
 	ktap_skip "tc drop: verdict enforced correctly"
+	ktap_skip "$REPLACED"
 	ktap_skip "tc reattach: re-attach installs the last callback"
 	ktap_skip "tc detach: callback stops firing and traffic resumes"
 	ktap_skip "tc attach: refuses a sleepable runtime"
@@ -90,6 +100,7 @@ cleanup()
 	pkill -f "TCP-LISTEN:$PORT," 2>/dev/null
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
+	kprobe_remove "$FREED"
 }
 
 trap cleanup EXIT
@@ -166,6 +177,25 @@ detach_case()
 	dmesg_since | grep -qF "tc detach test pass" || { ktap_fail "tc detach: callback did not run"; return 1; }
 	dmesg_since | grep -qF "no callback attached" || { ktap_fail "tc detach: the kfunc did not report the missing callback"; return 1; }
 	ktap_pass "tc detach: callback stops firing and traffic resumes"
+}
+
+replaced_case()
+{
+	local before freed
+	kprobe_place "$FREED" luadata_release ||
+		{ echo "# SKIP: couldn't place a kprobe on luadata_release"; ktap_skip "$REPLACED"; return 0; }
+
+	before=$(kprobe_hits "$FREED")
+	mark_dmesg
+	run_script --context=softirq "tests/tc/reattach"
+	freed=$(( $(kprobe_hits "$FREED") - before ))
+
+	lunatik stop tests/tc/reattach > /dev/null 2>&1
+	kprobe_remove "$FREED"
+
+	check_dmesg || { ktap_fail "$REPLACED: script raised an error"; return 1; }
+	[ "$freed" -eq "$REPLACED_OBJECTS" ] || { ktap_fail "$REPLACED: $freed of its $REPLACED_OBJECTS data objects freed"; return 1; }
+	ktap_pass "$REPLACED"
 }
 
 zerokey_case()
@@ -245,6 +275,7 @@ run_case tc_pass.bpf.o pass.lua yes "tc pass" \
 	"tc pass test pass: packet and argument content verified" --context=softirq
 run_case tc_drop.bpf.o drop.lua no "tc drop" \
 	"tc drop test pass: verdict set to drop" --context=softirq --percpu
+replaced_case
 run_case tc_reattach.bpf.o reattach.lua yes "tc reattach" \
 	"tc reattach test pass: re-attach installed the last callback" --context=softirq
 detach_case
