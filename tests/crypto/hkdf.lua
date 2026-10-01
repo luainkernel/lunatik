@@ -5,7 +5,7 @@
 
 local new = require("crypto.hkdf").new
 local util = require("util")
-local test = util.test
+local test = require("tests.lib").test
 local hex2bin = util.hex2bin
 
 test("HKDF test vectors from RFC 5869, Appendix A", function()

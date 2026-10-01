@@ -6,7 +6,7 @@
 
 local darken = require("darken")
 local aead   = require("crypto").aead
-local test   = require("util").test
+local test   = require("tests.lib").test
 
 local KEY      <const> = string.rep("k", 32)
 local IV       <const> = string.rep("i", 12)

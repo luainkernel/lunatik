@@ -10,7 +10,7 @@ local errno     = require("linux.errno")
 local nf        = require("linux.nf")
 local rtnetlink = require("linux.rtnetlink")
 local tc        = require("linux.tc")
-local test      = require("util").test
+local test      = require("tests.lib").test
 local check     = require("tests.linux.check")
 
 local INT_MIN <const> = -0x80000000

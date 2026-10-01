@@ -6,7 +6,7 @@
 --
 
 local fs = require("linux.fsnotify")
-local test = require("util").test
+local test = require("tests.lib").test
 local check = require("tests.linux.check")
 
 -- the FS_* bits are pinned by the FAN_* and IN_* uapi values they line up with

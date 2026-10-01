@@ -8,7 +8,7 @@ local device   = require("device")
 local notifier = require("notifier")
 local rcu      = require("rcu")
 local stat     = require("linux.stat")
-local test     = require("util").test
+local test     = require("tests.lib").test
 local check    = require("tests.runtime.check")
 
 local function nop() end

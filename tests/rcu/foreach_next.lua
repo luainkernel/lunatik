@@ -6,7 +6,7 @@
 -- Kernel-side script for the rcu.foreach walk test (see run.sh).
 
 local rcu  = require("rcu")
-local test = require("util").test
+local test = require("tests.lib").test
 
 local insert = table.insert
 

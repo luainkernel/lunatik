@@ -6,7 +6,7 @@
 
 local array = require("bpf").array
 local bpf = require("linux.bpf")
-local test = require("util").test
+local test = require("tests.lib").test
 local pack = string.pack
 
 local path = "/sys/fs/bpf/test_map_array"

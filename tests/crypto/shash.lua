@@ -1,11 +1,11 @@
 --
--- SPDX-FileCopyrightText: (c) 2025 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
 local shash = require("crypto").shash
 local util = require("util")
-local test = util.test
+local test = require("tests.lib").test
 local hex2bin = util.hex2bin
 
 test("crypto_shash.new and digestsize", function()

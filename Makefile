@@ -182,6 +182,8 @@ tests_install:
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0755 tests/run.sh ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0644 tests/lib.sh tests/netns.sh ${LUNATIK_TESTS_INSTALL_PATH}
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/tests
+	${INSTALL} -m 0644 tests/lib.lua ${SCRIPTS_INSTALL_PATH}/tests
 	for d in $(TEST_DIRS); do \
 		${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/$$d ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 		${INSTALL} -m 0755 tests/$$d/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/$$d; \

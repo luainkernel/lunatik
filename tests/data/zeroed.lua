@@ -5,7 +5,7 @@
 -- Kernel-side script for the data zeroing test (see run.sh).
 
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 local zeroing = require("tests.data.zeroing")
 
 local PAGE   <const> = 4096

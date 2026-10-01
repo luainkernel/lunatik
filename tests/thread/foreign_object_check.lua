@@ -5,7 +5,7 @@
 -- Kernel-side script for the thread.run class check test (see foreign_object.sh).
 
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local env = lunatik._ENV
 

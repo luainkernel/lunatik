@@ -6,7 +6,7 @@
 
 local probe  = require("probe")
 local systab = require("syscall.table")
-local test   = require("util").test
+local test   = require("tests.lib").test
 
 local function nop() end
 

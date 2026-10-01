@@ -5,7 +5,7 @@
 -- Kernel-side script for the hid context test (see context.sh).
 
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local RECEIVER <const> = "tests/hid/context_recv"
 local REFUSAL  <const> = "not allowed once the runtime is armed"

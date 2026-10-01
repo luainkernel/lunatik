@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the darken shade test (see run.sh).
 
-local test = require("util").test
+local test = require("tests.lib").test
 
 local ANSWER <const> = "shaded"
 

@@ -5,7 +5,7 @@
 
 local comp = require("crypto").comp
 local data = require("data")
-local test = require("util").test
+local test = require("tests.lib").test
 
 test("COMP compress empty string (error)", function()
 	local c = comp"lz4"

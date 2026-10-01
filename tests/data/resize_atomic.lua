@@ -7,7 +7,7 @@
 -- harness can measure it; stopping the script frees it.
 
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local SCRIPT <const> = "tests/data/resize_atomic_grow"
 

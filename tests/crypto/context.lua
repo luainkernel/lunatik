@@ -5,7 +5,7 @@
 -- Kernel-side script for the crypto context test (see context.sh).
 
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local SCRIPT <const> = "tests/crypto/context_atomic"
 

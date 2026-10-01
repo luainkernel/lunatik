@@ -19,7 +19,7 @@
 # route past it; context.lua checks that both are constructed and stop cleanly.
 #
 # context.lua drives all of that plus the successes they are measured against
-# through pcall and reports each with util.test. The shell counts its PASS lines
+# through pcall and reports each with tests.lib's test. The shell counts its PASS lines
 # rather than only looking for a FAIL: a case that never ran leaves neither.
 # refused.lua is a separate script because the runtime context and the percpu
 # option are chosen on the lunatik run command line; it runs once as each.

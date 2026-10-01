@@ -5,7 +5,7 @@
 -- Kernel-side script for the lua/identifiers test (see run.sh).
 --
 
-local test = require("util").test
+local test = require("tests.lib").test
 
 local root <const> = "/lib/modules/lua/"
 local streams <const> = {"stdin", "stdout", "stderr", "close", "flush", "input", "output", "popen", "read",

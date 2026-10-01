@@ -5,7 +5,7 @@
 
 local rcu = require "rcu"
 local data = require "data"
-local test = require("util").test
+local test = require("tests.lib").test
 
 test("rcu.foreach iterates boolean values", function()
 	local t = rcu.table(4)

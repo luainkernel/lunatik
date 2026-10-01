@@ -6,7 +6,7 @@
 
 local lunatik = require("lunatik")
 local rcu     = require("rcu")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 test("a library opened after a clone of its class keeps the class metatables", function()
 	assert(package.loaded["rcu.table"] == nil, "_ENV registered the library under its class name")

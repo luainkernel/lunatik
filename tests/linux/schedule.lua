@@ -7,7 +7,7 @@
 
 local linux   = require("linux")
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local NAP_MS   <const> = 1
 local RECEIVER <const> = "tests/linux/schedule_recv"

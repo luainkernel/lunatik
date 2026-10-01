@@ -5,7 +5,7 @@
 -- Kernel-side script for the darken context test (see run.sh).
 
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 
 local RECEIVER <const> = "tests/darken/context_recv"
 local REFUSAL  <const> = "not allowed once the runtime is armed"

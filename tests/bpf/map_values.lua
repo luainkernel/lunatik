@@ -6,7 +6,7 @@
 
 local hash = require("bpf").hash
 local bpf = require("linux.bpf")
-local test = require("util").test
+local test = require("tests.lib").test
 local pinned = require("tests.bpf.pinned")
 
 local path = "/sys/fs/bpf/test_map"

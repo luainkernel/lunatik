@@ -5,7 +5,7 @@
 -- Kernel-side script for the cpu ids test (see run.sh).
 
 local cpu  = require("cpu")
-local test = require("util").test
+local test = require("tests.lib").test
 
 local counts <const> = {possible = cpu.num_possible, present = cpu.num_present, online = cpu.num_online}
 local refused <const> = {-2, cpu.maxid() + 1, 1 << 32, math.maxinteger, math.mininteger}

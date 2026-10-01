@@ -4,7 +4,7 @@
 --
 local aead = require("crypto").aead
 local util = require("util")
-local test = util.test
+local test = require("tests.lib").test
 local hex2bin = util.hex2bin
 local bin2hex = util.bin2hex
 

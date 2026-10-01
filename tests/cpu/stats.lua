@@ -5,7 +5,7 @@
 -- Kernel-side script for the cpu stats test (see run.sh).
 
 local cpu   = require("cpu")
-local test  = require("util").test
+local test  = require("tests.lib").test
 
 local refused <const> = {-1, cpu.maxid() + 1, 1 << 32, math.maxinteger, math.mininteger}
 

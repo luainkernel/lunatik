@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 local rng = require("crypto").rng
-local test = require"util".test
+local test = require("tests.lib").test
 
 test("RNG generate 32 bytes", function()
 	local r = rng"stdrng"

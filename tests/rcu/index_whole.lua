@@ -6,7 +6,7 @@
 -- Kernel-side script for the rcu.table whole-key index test (see run.sh).
 
 local rcu  = require("rcu")
-local test = require("util").test
+local test = require("tests.lib").test
 
 test("rcu.table reads nil for a prefix of a key in the same bucket", function()
 	local t = rcu.table(1)

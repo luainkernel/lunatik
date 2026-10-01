@@ -5,7 +5,7 @@
 -- Kernel-side script for the percpu object test (see percpu_object.sh).
 
 local lunatik = require("lunatik")
-local test    = require("util").test
+local test    = require("tests.lib").test
 local stamp   = require("tests.runtime.stamp")
 
 local body    <const> = "tests/runtime/percpu"
