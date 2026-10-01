@@ -10,7 +10,8 @@
 # symbolic error name on a kernel error reply; and the flags come last and
 # optional, request() sending NLM_F_REQUEST alone without them and talk()
 # sending the ones it is given beside NLM_F_ACK; netlink.genl's talk() sends
-# its command in the generic netlink header and the flags it is given.
+# its command in the generic netlink header and the flags it is given; and
+# netlink.nl80211.wiphy's list(), fed wiphys 1 and 0, lists them in index order.
 #
 # Usage: sudo bash tests/netlink/session.sh
 
@@ -26,7 +27,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 6
+ktap_plan 7
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -55,6 +56,9 @@ ktap_pass "session: flags come last and optional in request and talk"
 
 dmesg | grep -q "netlink session: genl talk sends command and flags" || fail "genl talk sent the wrong command or flags"
 ktap_pass "session: genl talk takes the command, the payload and the flags last"
+
+dmesg | grep -q "netlink session: wiphy lists in index order" || fail "wiphy list out of index order"
+ktap_pass "session: wiphy lists its phys in index order"
 
 ktap_totals
 

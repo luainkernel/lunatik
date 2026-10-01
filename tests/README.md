@@ -893,7 +893,9 @@ higher-level `netlink.*` modules built on top of it.
   bare symbolic error name on a kernel error reply; and the flags come last and
   optional: `request()` without them sends `NLM_F_REQUEST` alone, and `talk()`
   sends the ones it is given beside `NLM_F_ACK`; `netlink.genl`'s `talk()`
-  sends its command in the generic netlink header and the flags it is given.
+  sends its command in the generic netlink header and the flags it is given;
+  and `netlink.nl80211.wiphy`'s `list()`, fed wiphys 1 and 0, lists them in
+  index order.
 - **genl_family**: `genl.family("nlctrl")` resolves the generic netlink
   controller family to `GENL_ID_CTRL`; then on the same instance a `GETFAMILY`
   `talk()` round-trip (regression for the orphaned-ACK desync), a `GETFAMILY`

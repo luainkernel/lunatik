@@ -6,9 +6,11 @@
 
 local session = require("netlink.session")
 local genl    = require("netlink.genl")
+local wiphy   = require("netlink.nl80211.wiphy")
 local message = require("netlink.message")
 local struct  = require("struct")
 local nl      = require("linux.netlink")
+local nl80211 = require("linux.nl80211")
 
 local nlmsgerr   = struct(nl.layout.nlmsgerr)
 local genlmsghdr = struct(require("linux.genl").layout.genlmsghdr)
@@ -36,6 +38,11 @@ end
 
 local function errmsg(code)
 	return message.encode(nl.type.ERROR, 0, 1, nlmsgerr:pack(code))
+end
+
+local function wiphyreply(idx)
+	local body = genlmsghdr:pack(nl80211.cmd.NEW_WIPHY, 1, 0) .. message.attrs{[nl80211.attr.WIPHY] = idx}
+	return message.encode(MTYPE, nl.flag.MULTI, 1, body)
 end
 
 local function sent(o)
@@ -81,4 +88,11 @@ local flags, body = sent(g)
 assert(flags == nl.flag.REQUEST | nl.flag.ACK | nl.flag.CREATE and genlmsghdr:unpack(body) == CMD,
 	"genl talk should send its command and the flags it is given")
 print("netlink session: genl talk sends command and flags")
+
+-- wiphy lists its phys in index order, whatever order the dump sent them in
+local w = fake(wiphy, {wiphyreply(1) .. wiphyreply(0) .. message.encode(nl.type.DONE, nl.flag.MULTI, 1, "")})
+w.id = MTYPE
+local phys = w:list()
+assert(#phys == 2 and phys[1].wiphy == 0 and phys[2].wiphy == 1, "wiphy should list its phys in index order")
+print("netlink session: wiphy lists in index order")
 
