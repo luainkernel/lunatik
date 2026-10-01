@@ -30,6 +30,8 @@ lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, 
 	lunatik_setobject(object, class, opt);
 	*pobject = object; /* before setclass exposes it to __gc */
 	lunatik_setclass(L, class, monitor);
+	if (lunatik_isclosing(lunatik_toruntime(L))) /* where no __gc runs */
+		lunatik_holdobject(L, object);
 
 	object->private = lunatik_isexternal(class->opt) ? NULL : lunatik_checkzalloc(L, size);
 	return object;
@@ -67,6 +69,11 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object)
 
 	lunatik_setclass(L, class, lunatik_ismonitor(object->opt));
 	*pobject = object;
+	if (lunatik_isclosing(lunatik_toruntime(L))) {
+		lunatik_getobject(object); /* the state's, which a failed hold drops */
+		lunatik_holdobject(L, object);
+		lunatik_putobject(object); /* the one the caller hands over or takes, which no __gc drops */
+	}
 }
 EXPORT_SYMBOL(lunatik_cloneobject);
 
