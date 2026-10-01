@@ -59,6 +59,15 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/workflow-effort-guard.sh\""
           }
         ]
+      },
+      {
+        "matcher": "SendMessage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/send-guard.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
