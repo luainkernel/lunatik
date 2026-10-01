@@ -254,11 +254,12 @@ netfilter.register{
           <div class="section-description">
           Represents a socket buffer (<code>sk_buff</code>).
  This is a userdata object handed to the hooks that receive packets; it is
- <code>SINGLE</code>, so it cannot be shared with another runtime.</p>
+ <code>SINGLE</code>, so it cannot be shared with another runtime, and so are the views
+ <code>skb:data()</code> returns.</p>
 
 <p> A <a href="../modules/netfilter.html#">netfilter</a> hook callback receives one and <code>tc_ctx:skb()</code> returns one, valid only while that
- callback runs: once it returns, every method raises <code>skb is not set</code>, and the <a href="../modules/data.html#">data</a> that
- <code>skb:data()</code> returned is cleared too. <code>skb:copy()</code> keeps a packet past the callback.
+ callback runs: once it returns, every method raises <code>skb is not set</code>, and the views that
+ <code>skb:data()</code> returned are cleared too. <code>skb:copy()</code> keeps a packet past the callback.
           </div>
     <dl class="function">
     <dt id="skb:__len"><a name="skb:__len"></a><strong>skb:__len ()</strong></dt>
@@ -326,8 +327,8 @@ netfilter.register{
  The skb is linearized before copying to avoid failures on fragmented skbs
  (e.g. bridged traffic with paged data). In a tc callback the skb is not
  linearized, and a non-linear one raises.
- Each <code>data()</code> call on the copy returns a new view that keeps the copy alive,
- so a view stays valid after the copy itself is dropped.
+ A view of the copy that <code>data()</code> returns is valid until the copy is collected,
+ and is then cleared as a view of a callback&rsquo;s skb is when the callback returns.
 
 
 
@@ -350,7 +351,14 @@ netfilter.register{
     Linearizes the skb and returns a view from where <code>layer</code> starts to the end of
  the packet.  &ldquo;net&rdquo; starts at <code>skb-&gt;data</code>, which is the network header in a
  netfilter hook and the MAC header in a tc callback; &ldquo;mac&rdquo; starts at the MAC
- header. In a tc callback the skb is not linearized, and a non-linear one raises.
+ header. In a tc callback the skb is not linearized, and a non-linear one raises.</p>
+
+<p> The skb keeps one view per layer: the &ldquo;net&rdquo; and &ldquo;mac&rdquo; views are two objects, and a
+ second call for a layer returns the same view, ending at the tail as it is then: a
+ <a href="../modules/skb.html#skb:resize">resize</a> alone does not move a view&rsquo;s end. The skb stays linear once a view is taken,
+ so no later call moves the bytes a view reads. A view is valid until the callback that
+ received the skb returns, or, for a copy, until the copy is collected: afterwards
+ its length is 0 and every access raises &ldquo;out of bounds&rdquo;.
 
 
     <h3>Parameters</h3>
@@ -513,7 +521,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 11:47:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 12:26:49</span>
 </div>
 </footer>
 </body>
