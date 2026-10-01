@@ -20,6 +20,10 @@
 # armed, rather than letting the first registration decide for the others. The sixth
 # needs a second runtime, so it skips where one CPU is possible.
 #
+# Whether a hit runs a handler at all is the probe's state: a seventh row disables
+# its probe on load, which stays registered and runs nothing on the hit, and an
+# eighth disables and enables it again, which runs the pre handler once.
+#
 # Only pre was covered before: nothing in the tree registered a post handler, so
 # the post half of every hit was untested. What these rows hold is the behaviour
 # around the handler lookup, not its cost: whether a hit builds the closures before
@@ -35,6 +39,8 @@ BOTH="tests/probe/handlers_both"
 NONE="tests/probe/handlers_none"
 LATE="tests/probe/handlers_late"
 SET="tests/probe/handlers_set"
+DISABLED="tests/probe/handlers_disabled"
+ENABLED="tests/probe/handlers_enabled"
 KPROBES="/sys/kernel/debug/kprobes/list"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -47,6 +53,8 @@ cleanup()
 	lunatik stop "$NONE" > /dev/null 2>&1
 	lunatik stop "$LATE" > /dev/null 2>&1
 	lunatik stop "$SET" > /dev/null 2>&1
+	lunatik stop "$DISABLED" > /dev/null 2>&1
+	lunatik stop "$ENABLED" > /dev/null 2>&1
 }
 
 # how many kprobes the kernel holds; nothing where debugfs does not say
@@ -83,7 +91,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 6
+ktap_plan 8
 
 command -v setarch > /dev/null 2>&1 || {
 	echo "# SKIP: setarch not available"
@@ -93,6 +101,8 @@ command -v setarch > /dev/null 2>&1 || {
 	ktap_skip "an empty handlers table arms a kprobe that runs nothing"
 	ktap_skip "handlers added to the table after probe.new: the pre fires, the post does not"
 	ktap_skip "a set whose runtimes disagree on the post handler is refused, leaving none armed"
+	ktap_skip "a probe disabled on load stays registered and runs nothing"
+	ktap_skip "a probe disabled and enabled again on load runs its pre handler"
 	ktap_totals
 	exit 0
 }
@@ -147,6 +157,16 @@ else
 	fi
 	ktap_pass "a set whose runtimes disagree on the post handler is refused, leaving none armed"
 fi
+
+row "$DISABLED"
+[ "$pre_hits" = "0" ] || fail "a disabled probe ran its pre handler $pre_hits times"
+armed_one "the disabled probe"
+ktap_pass "a probe disabled on load stays registered and runs nothing"
+
+row "$ENABLED"
+[ "$pre_hits" = "1" ] || fail "a probe disabled and enabled again ran its pre handler $pre_hits times on one call"
+armed_one "the enabled probe"
+ktap_pass "a probe disabled and enabled again on load runs its pre handler"
 
 ktap_totals
 

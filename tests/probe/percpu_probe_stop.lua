@@ -10,14 +10,12 @@ local test   = require("util").test
 
 local function nop() end
 
-test("stop and enable are refused in a percpu runtime", function()
+test("stop, enable and disable are refused in a percpu runtime", function()
 	local p = probe.new(systab["personality"], {pre = nop})
-	local ok, err = pcall(p.stop, p)
-	assert(not ok, "stop was accepted")
-	assert(err:match("percpu object owns this probe"), "stop raised something else: " .. tostring(err))
-	local okenable, errenable = pcall(p.enable, p, false)
-	assert(not okenable, "enable was accepted")
-	assert(errenable:match("percpu object owns this probe"),
-		"enable raised something else: " .. tostring(errenable))
+	for _, method in ipairs({"stop", "enable", "disable"}) do
+		local ok, err = pcall(p[method], p)
+		assert(not ok, method .. " was accepted")
+		assert(err:match("percpu object owns this probe"), method .. " raised something else: " .. tostring(err))
+	end
 end)
 

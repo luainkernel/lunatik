@@ -920,12 +920,13 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   the registers once the handler that received them returned, where the
   `argument` closure raises `closed object`.
 
-- **armed**: `probe.new`, `stop` and `enable` all reach a kprobe call that
-  sleeps, so each is allowed while the script loads, in process context, and
-  refused from a handler, where the runtime is in hardirq: the script registers,
-  toggles and stops a probe on the way in, then probes `vfs_read` and calls all
-  three from its own handler. Do not run it against a build without the guard,
-  which would reach `synchronize_rcu` with interrupts off.
+- **armed**: `probe.new`, `stop`, `enable` and `disable` all reach a kprobe
+  call that sleeps, so each is allowed while the script loads, in process
+  context, and refused from a handler, where the runtime is in hardirq: the
+  script registers, disables, enables and stops a probe on the way in, then
+  probes `vfs_read` and calls all four from its own handler. Do not run it
+  against a build without the guard, which would reach `synchronize_rcu` with
+  interrupts off.
 
 - **dropreason**: the kprobe target the kernel's drop path offers and the
   argument its reason arrives in, which moved together at v6.11, where
@@ -947,7 +948,9 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   Two further rows cover what `probe.new`
   reads from that table: of a `pre` and a `post` added to it after `probe.new`,
   the `pre` fires and the `post` does not, and a percpu script whose runtimes
-  disagree about one is refused, leaving no kprobe armed.
+  disagree about one is refused, leaving no kprobe armed. Two more cover the
+  probe's state: one disabled on load stays registered and runs nothing, and
+  one disabled and enabled again runs its `pre` once.
 
 - **kprobe_concurrent**: registers kprobes on every syscall, each handler
   counting into an `rcu.table` and a `data` buffer, and runs one forking
@@ -966,12 +969,13 @@ comes back when the namespace goes (they skip without `iw` or `nsenter`).
   kprobe before the script body returned, the path where readiness is the only
   thing between arming and the handler;
   one set holds a kprobe per target, and a second probe on the same
-  symbol in one runtime is refused, leaving no kprobe armed; `stop` and `enable`
-  are refused in a percpu runtime, where the object owns the kprobe; a probe from
-  a handler, after the script loaded, is refused; the same script probes as a
-  plain hardirq runtime, arming its own kprobe and unregistering it when it
-  stops; a plain runtime stops its own probe, twice with no effect, is refused an
-  `enable` afterwards, and refuses a probe on a symbol the kernel does not have;
+  symbol in one runtime is refused, leaving no kprobe armed; `stop`, `enable`
+  and `disable` are refused in a percpu runtime, where the object owns the
+  kprobe; a probe from a handler, after the script loaded, is refused; the same
+  script probes as a plain hardirq runtime, arming its own kprobe and
+  unregistering it when it stops; a plain runtime stops its own probe, twice
+  with no effect, is refused an `enable` and a `disable` afterwards, and refuses
+  a probe on a symbol the kernel does not have;
   and a set whose last runtime errors releases the kprobe the earlier ones
   shared, leaving no kprobe armed, no script registered and no use-count on the
   probe module.
@@ -1086,8 +1090,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   instead of reading its private data as a Lua state.
 
 - **foreign_method**: `device:stop`, `notifier:stop`, `probe:stop`,
-  `probe:enable` and the `rcu.table` index metamethods refuse an object of
-  another class instead of reading its private data as their own.
+  `probe:enable`, `probe:disable` and the `rcu.table` index metamethods refuse
+  an object of another class instead of reading its private data as their own.
 
 - **foreign_checker**: a method of every class a process runtime can
   construct (`data`, `fifo`, `completion`, `set`, `crypto_shash`, `task`,
