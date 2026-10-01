@@ -24,11 +24,16 @@ assert(not ok and err:find("not found", 1, true), "require in the body: " .. tos
 local path, notfound = package.searchpath(MISSING, package.path)
 assert(path == nil and notfound:find("no file", 1, true), "searchpath in the body: " .. tostring(notfound))
 refused(IO_REFUSAL, require, IO)
+local chunk, unopened = loadfile()
+assert(chunk == nil and unopened:find("cannot open", 1, true), "loadfile in the body: " .. tostring(unopened))
 
 return function()
 	assert(require("util") == util, "a module the body loaded is not returned")
 	refused(REFUSAL, require, MISSING)
 	refused(REFUSAL, package.searchpath, MISSING, package.path)
 	refused(IO_REFUSAL, require, IO)
+	local loaded, refusal = loadfile() -- no name: a build without the refusal opens no file either
+	assert(loaded == nil and refusal:find(REFUSAL, 1, true), "loadfile not refused: " .. tostring(refusal))
+	refused(REFUSAL, dofile)
 end
 
