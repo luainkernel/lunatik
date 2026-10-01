@@ -10,25 +10,27 @@
 -- @module net
 --
 
+local gmatch = string.gmatch
+
 local net = {}
 
 ---
 -- Converts an IPv4 address string to its integer representation.
 -- "Address to Number"
--- The string is not validated: each run of digits is the next octet, masked to 8 bits, and
--- anything between them is skipped; a missing trailing octet reads as 0, and a fifth one raises.
--- @param addr (string) The IPv4 address string (e.g., "127.0.0.1").
+-- @param addr (string) The IPv4 address string, four decimal octets from 0 to 255 joined by dots,
+--   with no leading zero (e.g., "127.0.0.1").
 -- @return (number) The IPv4 address as an integer.
+-- @raise "invalid IPv4 address" for any other string.
 -- @usage
 --   local ip_int = net.aton("192.168.1.1")
 function net.aton(addr)
-	local i = 1
-	local bits = { 24, 16, 8, 0 }
 	local ip = 0
-	for n in string.gmatch(addr, "(%d+)") do
-		local n = tonumber(n) & 0xFF
-		ip = ip | (n << bits[i])
-		i = i + 1
+	for octet in gmatch(addr, "%d%d?%d?") do
+		ip = (ip << 8) | tonumber(octet)
+	end
+	-- ntoa spells every address one way, four octets from 0 to 255 with no leading zero
+	if net.ntoa(ip) ~= addr then
+		error("invalid IPv4 address: " .. addr, 2)
 	end
 	return ip
 end

@@ -15,6 +15,13 @@
 # with a socket, a bind or EAGAIN rather than the refusal. An unsigned option's
 # value, SO_MARK's, is accepted past INT_MAX, up to the u32 it is, and below 0.
 #
+# net.aton, which spells the AF_INET address, reads four decimal octets from 0
+# to 255, the bounds included, and raises "invalid IPv4 address" on anything
+# else: an octet past 255, three octets or five, a leading zero, a sign, a space
+# before or after, an empty octet, a hexadecimal one, a name and the empty
+# string, each of which a parse that masks every run of digits to 8 bits reads
+# as an address or fails on with another error.
+#
 # Usage: sudo bash tests/socket/bounds.sh
 
 SCRIPT="tests/socket/bounds"
@@ -37,8 +44,8 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	exit 0
 }
 
-run_test "$SCRIPT" || fail "a socket accepted an integer past its type, or raised something else"
-ktap_pass "socket: an integer argument past its type is refused as out of bounds"
+run_test "$SCRIPT" || fail "a socket accepted an integer past its type, net.aton misread an address, or either raised something else"
+ktap_pass "socket: an integer argument past its type is refused as out of bounds, and net.aton refuses what is not an IPv4 address"
 
 cleanup
 check_dmesg && ktap_pass "no Lua errors, kernel warnings or oopses"

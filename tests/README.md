@@ -1659,6 +1659,10 @@ pid, and what a valid call does.
   an `int`; and `setsockopt`'s level, name and integer value past 32 bits. Each
   value past 32 bits carries low bits a truncating build accepts. `SO_MARK`
   takes a value past `INT_MAX`, up to the `u32` it is, and one below 0.
+  `net.aton` reads four decimal octets from 0 to 255, the bounds included, and
+  raises `invalid IPv4 address` on an octet past 255, three octets or five, a
+  leading zero, a sign, surrounding spaces, an empty or hexadecimal octet, a
+  name and the empty string.
 
 - **connect**: which argument `socket:connect()` reads as its flags, and what it
   answers. An AF_INET address is spelled as two arguments, so a call with no flags
