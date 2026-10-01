@@ -248,7 +248,7 @@ static int luatc_detach(lua_State *L)
 */
 static int luatc_attach(lua_State *L)
 {
-	lunatik_checkruntime(L, LUNATIK_OPT_SOFTIRQ);
+	lunatik_checkruntime(L, luatc_class.name, LUNATIK_OPT_SOFTIRQ);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 	luatc_detach(L); /* re-attaching replaces the previous callback */
 

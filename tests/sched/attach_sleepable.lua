@@ -6,7 +6,9 @@
 
 local sched = require("sched")
 
+local MISMATCH <const> = "runtime context mismatch: sched.ctx needs hardirq"
+
 local ok, err = pcall(sched.attach, function() end)
 assert(not ok, "attach accepted a sleepable runtime")
-assert(err:match("runtime context mismatch"), "unexpected error: " .. tostring(err))
+assert(err:find(MISMATCH, 1, true), "unexpected error: " .. tostring(err))
 

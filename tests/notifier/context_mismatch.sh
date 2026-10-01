@@ -13,8 +13,8 @@
 # which without the guard oopses on lunatik_putobject(NULL).
 #
 # The Lua script invokes notifier.keyboard() from the default process
-# runtime. Expected: Lua error "runtime context mismatch" in the script
-# output and zero kernel oops entries in dmesg.
+# runtime. Expected: Lua error "runtime context mismatch: notifier needs
+# hardirq" in the script output and zero kernel oops entries in dmesg.
 #
 # Usage: sudo bash tests/notifier/context_mismatch.sh
 
@@ -34,8 +34,8 @@ ktap_plan 2
 mark_dmesg
 
 output=$(lunatik run "$SCRIPT" 2>&1)
-echo "$output" | grep -q "runtime context mismatch" || \
-	fail "expected 'runtime context mismatch' error, got: $output"
+echo "$output" | grep -qF "runtime context mismatch: notifier needs hardirq" || \
+	fail "expected 'runtime context mismatch: notifier needs hardirq' error, got: $output"
 ktap_pass "hardirq-class constructor in process runtime errors cleanly"
 
 oops=$(dmesg_since | grep -E "Oops:|BUG:|kernel BUG at|NULL pointer dereference|general protection" || true)

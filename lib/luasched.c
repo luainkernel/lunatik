@@ -259,7 +259,7 @@ static int luasched_detach(lua_State *L)
 */
 static int luasched_attach(lua_State *L)
 {
-	lunatik_checkruntime(L, LUNATIK_OPT_HARDIRQ);
+	lunatik_checkruntime(L, luasched_class.name, LUNATIK_OPT_HARDIRQ);
 	luaL_checktype(L, 1, LUA_TFUNCTION); /* callback */
 	luasched_detach(L); /* re-attaching replaces the previous callback */
 

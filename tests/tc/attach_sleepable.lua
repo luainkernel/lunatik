@@ -6,7 +6,9 @@
 
 local tc = require("tc")
 
+local MISMATCH <const> = "runtime context mismatch: tc.ctx needs softirq"
+
 local ok, err = pcall(tc.attach, function() end)
 assert(not ok, "attach accepted a sleepable runtime")
-assert(err:match("runtime context mismatch"), "unexpected error: " .. tostring(err))
+assert(err:find(MISMATCH, 1, true), "unexpected error: " .. tostring(err))
 

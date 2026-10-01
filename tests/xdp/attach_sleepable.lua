@@ -6,7 +6,9 @@
 
 local xdp = require("xdp")
 
+local MISMATCH <const> = "runtime context mismatch: xdp.ctx needs softirq"
+
 local ok, err = pcall(xdp.attach, function() end)
 assert(not ok, "attach accepted a sleepable runtime")
-assert(err:match("runtime context mismatch"), "unexpected error: " .. tostring(err))
+assert(err:find(MISMATCH, 1, true), "unexpected error: " .. tostring(err))
 

@@ -268,7 +268,7 @@ static int luanetfilter_lregister(lua_State *L)
 	lunatik_checkarmed(L);
 	luanetfilter_hook_t spec = {.nfops = {.hook = luanetfilter_hook}};
 	luanetfilter_checkspec(L, 1, &spec);
-	lunatik_object_t *runtime = lunatik_checkruntime(L, luanetfilter_class.opt);
+	lunatik_object_t *runtime = lunatik_checkruntime(L, luanetfilter_class.name, luanetfilter_class.opt);
 	lunatik_object_t *percpu = lunatik_getpercpu(L);
 
 	lunatik_object_t *object = lunatik_newobject(L, &luanetfilter_class, sizeof(luanetfilter_t), LUNATIK_OPT_NONE);
