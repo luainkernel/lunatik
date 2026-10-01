@@ -48,6 +48,8 @@
 /* the family's sole multicast group; genl requires a non-empty group name */
 #define LUANETLINK_MCGRP	"lunatik"
 
+#define luanetlink_checkcmd(L, ix)	((u8)lunatik_checkinteger((L), (ix), 0, U8_MAX))
+
 typedef struct luanetlink_channel_s {
 	struct genl_family          family;
 	struct genl_multicast_group mcgrp;
@@ -77,7 +79,7 @@ static void luanetlink_channel_release(void *private)
 /* Builds a genl message: a `cmd` header plus the caller's `payload`, trusted
  * to be well-formed attributes framed in Lua. Raises on an allocation error. */
 static struct sk_buff *luanetlink_message(lua_State *L, struct genl_family *family,
-	int cmd, const char *payload, size_t len, gfp_t gfp)
+	u8 cmd, const char *payload, size_t len, gfp_t gfp)
 {
 	struct sk_buff *skb = genlmsg_new(len, gfp);
 	if (skb == NULL)
@@ -98,15 +100,16 @@ static struct sk_buff *luanetlink_message(lua_State *L, struct genl_family *fami
 * Multicasts a message to every subscriber of the channel's group.
 * Safe to call from softirq.
 * @function multicast
-* @tparam integer cmd Generic netlink command.
+* @tparam integer cmd Generic netlink command, from 0 to 255.
 * @tparam[opt] string payload Message body (e.g. from `netlink.message`).
 * @treturn boolean whether it reached at least one subscriber.
-* @raise "closed object" if the channel has been stopped, or on an allocation error.
+* @raise "out of bounds" if `cmd` is past 8 bits or negative, "closed object" if the channel has
+*   been stopped, or on an allocation error.
 */
 static int luanetlink_multicast(lua_State *L)
 {
 	luanetlink_channel_t *channel = luanetlink_channel_check(L, 1);
-	int cmd = (int)luaL_checkinteger(L, 2);
+	u8 cmd = luanetlink_checkcmd(L, 2);
 	size_t len;
 	const char *payload = luaL_optlstring(L, 3, "", &len);
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
@@ -120,23 +123,23 @@ static int luanetlink_multicast(lua_State *L)
 * Unicasts a message to a single userspace subscriber by port id.
 * Safe to call from softirq.
 * @function unicast
-* @tparam integer portid Destination netlink port id, of a socket in the initial network namespace.
-* @tparam integer cmd Generic netlink command.
+* @tparam integer portid Destination netlink port id, of a socket in the initial network namespace,
+*   from 1 to `0xffffffff`.
+* @tparam integer cmd Generic netlink command, from 0 to 255.
 * @tparam[opt] string payload Message body (e.g. from `netlink.message`).
 * @treturn boolean whether it was queued to the port id (`false` if the port
 *   id is gone or its receive buffer is full).
-* @raise if `portid` is 0, "closed object" if the channel has been stopped, or on an allocation error.
+* @raise "out of bounds" if `portid` is 0, negative or past 32 bits, or `cmd` is past 8 bits or
+*   negative, "closed object" if the channel has been stopped, or on an allocation error.
 */
 static int luanetlink_unicast(lua_State *L)
 {
 	luanetlink_channel_t *channel = luanetlink_channel_check(L, 1);
-	u32 portid = (u32)luaL_checkinteger(L, 2);
-	int cmd = (int)luaL_checkinteger(L, 3);
+	u32 portid = (u32)lunatik_checkinteger(L, 2, 1, U32_MAX);
+	u8 cmd = luanetlink_checkcmd(L, 3);
 	size_t len;
 	const char *payload = luaL_optlstring(L, 4, "", &len);
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
-
-	luaL_argcheck(L, portid != 0, 2, "invalid port id");
 	struct sk_buff *skb = luanetlink_message(L, &channel->family, cmd, payload, len, gfp);
 
 	lua_pushboolean(L, genlmsg_unicast(&init_net, skb, portid) >= 0);

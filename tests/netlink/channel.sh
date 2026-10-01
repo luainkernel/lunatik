@@ -14,6 +14,9 @@
 # be refused there; the name is empty so that a build without that refusal raises
 # on the name instead of registering a family from softirq. The same script run
 # percpu is refused at load, since every runtime would register the one family.
+# Its body refuses, as out of bounds, a port id past 32 bits or negative and a
+# command past 8 bits or negative, each with low bits a truncating build would
+# send to, and takes both at the top of their range.
 #
 # Usage: sudo bash tests/netlink/channel.sh
 
@@ -37,7 +40,7 @@ SUB_OUT="$(mktemp)"
 SUB_ERR="$(mktemp)"
 
 ktap_header
-ktap_plan 5
+ktap_plan 6
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -60,6 +63,9 @@ check_dmesg || { ktap_totals; exit 1; }
 
 dmesg_since | grep -q "netlink channel: unicast to absent peer returns false" || fail "unicast did not return false"
 ktap_pass "channel: unicast to an absent port id returns false"
+
+dmesg_since | grep -q "netlink channel: a port id or command past its range is refused" || fail "a port id or command past its range was not refused"
+ktap_pass "channel: a port id or command past its range is refused as out of bounds"
 
 # the family is now registered; resolve its multicast group id (the group line
 # is the only one with an "ID-0x" token; the family id prints as "ID: 0x")
