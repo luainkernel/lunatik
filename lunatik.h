@@ -228,6 +228,14 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 		luaL_error(L, "bad field '%s' (%s expected, got nil)", field, lua_typename(L, type));
 }
 
+static inline lua_Integer lunatik_checkfieldinteger(lua_State *L, const char *field, lua_Integer min, lua_Integer max)
+{
+	lua_Integer v = lua_tointeger(L, -1);
+	if (v < min || v > max)
+		luaL_error(L, "bad field '%s' (out of bounds)", field);
+	return v;
+}
+
 #define LUNATIK_ERR_CLOSED	"closed object"
 #define LUNATIK_ERR_SINGLE	"cannot share SINGLE object"
 #define LUNATIK_ERR_METATABLE	"metatable not found"
@@ -535,17 +543,18 @@ do {								\
 	lua_pop(L, 1);						\
 } while (0)
 
-#define lunatik_setinteger(L, idx, hook, field) 		\
-do {								\
-	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);	\
-	hook->field = lua_tointeger(L, -1);			\
-	lua_pop(L, 1);						\
+#define lunatik_setinteger(L, idx, hook, field, min, max) 		\
+do {									\
+	lunatik_checkfield(L, idx, #field, LUA_TNUMBER);		\
+	hook->field = lunatik_checkfieldinteger(L, #field, min, max);	\
+	lua_pop(L, 1);							\
 } while (0)
 
-#define lunatik_optinteger(L, idx, priv, field, opt)						\
-do {												\
-	priv->field = lunatik_optfield(L, idx, #field, LUA_TNUMBER) ? lua_tointeger(L, -1) : opt;	\
-	lua_pop(L, 1);										\
+#define lunatik_optinteger(L, idx, priv, field, min, max, opt)		\
+do {									\
+	priv->field = lunatik_optfield(L, idx, #field, LUA_TNUMBER) ?	\
+		lunatik_checkfieldinteger(L, #field, min, max) : opt;	\
+	lua_pop(L, 1);							\
 } while (0)
 
 static inline void lunatik_optcfunction(lua_State *L, int idx, const char *field, lua_CFunction default_func)

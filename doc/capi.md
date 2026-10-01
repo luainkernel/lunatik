@@ -980,6 +980,16 @@ given and `false` when it is nil or absent; any other type raises
 `bad field '<field>' (<type> expected, got <type>)`. The field stays on the stack for the caller to
 read and pop.
 
+### lunatik\_checkfieldinteger
+```C
+lua_Integer lunatik_checkfieldinteger(lua_State *L, const char *field, lua_Integer min, lua_Integer max);
+```
+Returns the integer on top of the stack, the field named `field` that
+[`lunatik_checkfield`](#lunatik_checkfield) or [`lunatik_optfield`](#lunatik_optfield) pushed as a
+number, and raises `bad field '<field>' (out of bounds)` unless `min <= value <= max`. A binding
+bounds with it a field it stores narrower than `lua_Integer`, which would otherwise keep the low
+bits of a number past its range.
+
 ### lunatik\_optcfunction
 ```C
 void lunatik_optcfunction(lua_State *L, int idx, const char *field, lua_CFunction default_func);
@@ -990,20 +1000,22 @@ otherwise. `lunatik_nop` returns nothing, the default a binding passes for an op
 
 ### lunatik\_setinteger
 ```C
-void lunatik_setinteger(lua_State *L, int idx, hook, field);
+void lunatik_setinteger(lua_State *L, int idx, hook, field, min, max);
 ```
 Reads a required integer field named `field` from the table at `idx` into `hook->field`.
-Raises a Lua error if the field is missing or not a number.
+Raises a Lua error if the field is missing or not a number, and
+`bad field '<field>' (out of bounds)` unless `min <= value <= max`, through
+[`lunatik_checkfieldinteger`](#lunatik_checkfieldinteger).
 
 ### lunatik\_optinteger
 ```C
-void lunatik_optinteger(lua_State *L, int idx, priv, field, opt);
+void lunatik_optinteger(lua_State *L, int idx, priv, field, min, max, opt);
 ```
 Reads an optional integer field named `field` from the table at `idx` into `priv->field`,
 through [`lunatik_optfield`](#lunatik_optfield). Falls back to `opt` when the field is nil or
 absent, and raises `bad field '<field>' (number expected, got <type>)` when it holds anything
-other than a number, a numeric string included. The value is not bounded: a field narrower than
-`lua_Integer` keeps its low bits.
+other than a number, a numeric string included, and `bad field '<field>' (out of bounds)` unless
+`min <= value <= max`, through [`lunatik_checkfieldinteger`](#lunatik_checkfieldinteger).
 
 ### lunatik\_setstring
 ```C

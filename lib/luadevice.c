@@ -392,13 +392,16 @@ static int luadevice_stop(lua_State *L)
 *
 *   It **might** also contain the field:
 *
-*   - `mode` (integer): Optional file mode flags (e.g., permissions) for the device file.
-*     Use constants from `linux.stat` (e.g., `stat.IRUGO`).
+*   - `mode` (integer): Optional permission bits of the device file, within `S_IALLUGO`:
+*     the file type is the kernel's, a character device. Use constants from `linux.stat`
+*     (e.g., `stat.IRUGO`).
 * @treturn device the device, which `device.new` keeps for its runtime: dropping it
 *   stops nothing, and the device stays until `stop` or the end of the runtime.
 * @raise Error if the device cannot be allocated or registered in the kernel,
 *   if the `name` field is missing or not a string, or if called from a percpu runtime;
 *   `bad field 'mode' (number expected, got <type>)` if `mode` is present and not a number;
+*   `bad field 'mode' (out of bounds)` if it is negative or past `S_IALLUGO`, as a mode that
+*   carries a file type is;
 *   `'device': process-context class in interrupt-context runtime` in a softirq or
 *   hardirq runtime (run it in process context, the default of `lunatik run`);
 *   `not allowed while the runtime closes` from a finalizer that runs at its close.
@@ -458,7 +461,7 @@ static int luadevice_new(lua_State *L)
 	kref_init(&luadev->kref);
 	INIT_LIST_HEAD(&luadev->entry); /* a raise before the device is listed deletes it unlisted */
 	object->private = luadev;
-	lunatik_optinteger(L, 1, luadev, mode, 0);
+	lunatik_optinteger(L, 1, luadev, mode, 0, S_IALLUGO, 0);
 
 	lunatik_setruntime(L, device, luadev);
 	lunatik_getobject(luadev->runtime);
