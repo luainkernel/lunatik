@@ -331,6 +331,18 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
 bool lunatik_getobject_rcu(lunatik_object_t *object);
 
+static inline void *lunatik_unholdobject(void *ud, void *ptr, size_t osize, size_t nsize)
+{
+	lunatik_putobject((lunatik_object_t *)ud);
+	return NULL;
+}
+
+#define lunatik_holdobject(L, object)								\
+do {												\
+	lua_pushexternalstring((L), "", 0, lunatik_unholdobject, (object)); /* freed at the end of lua_close */	\
+	luaL_ref((L), LUA_REGISTRYINDEX);							\
+} while (0)
+
 static inline void lunatik_pushobject(lua_State *L, lunatik_object_t *object)
 {
 	lunatik_cloneobject(L, object);

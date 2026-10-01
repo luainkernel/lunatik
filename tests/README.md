@@ -1154,14 +1154,21 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   creates a runtime and a percpu set of it, keeps neither handle and collects
   leaves it where it was when its body returns.
 
-- **closing**: a finalizer that runs as its runtime closes registers nothing.
-  A sentinel that registers a netfilter hook in a softirq runtime, an fsnotify
-  watch or a kernel thread in a process one as `lunatik stop` closes it gets
-  "not allowed while the runtime closes", and so does the thread when the
-  collector closes its runtime through its last reference. Without the
-  refusal the hook or the watch outlives the runtime into its module's unload,
-  so those cases skip unless the loaded module is the installed one and that
-  file carries the message.
+- **closing**: a finalizer that runs as its runtime closes registers nothing,
+  and what it creates or reads is released by the end of the close. A sentinel
+  that registers a netfilter hook in a softirq runtime, an fsnotify watch or a
+  kernel thread in a process one as `lunatik stop` closes it gets "not allowed
+  while the runtime closes", and so does the thread when the collector closes
+  its runtime through its last reference. Without the refusal the hook or the
+  watch outlives the runtime into its module's unload, so those cases skip
+  unless the loaded module is the installed one and that file carries the
+  message. Lua arms no `__gc` on what the finalizers `lua_close` runs create,
+  so the state holds the reference such a `__gc` would drop until every
+  finalizer has run: a child counts itself open and closed in `lunatik._ENV`,
+  a runtime whose sentinel reads one from an `rcu.table`, takes one back from
+  a `resume`, or creates one as a runtime or a percpu set is stopped, the
+  rcu.table case also collected, and every child counted open is counted
+  closed once the close returns.
 
 - **self_stop**: a runtime cannot be stopped, resumed, threaded or dispatched
   to from under its own lock. A child resumed with its own handle, and a percpu

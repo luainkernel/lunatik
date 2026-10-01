@@ -335,9 +335,8 @@ bool lunatik_isclosing(lunatik_object_t *runtime);
 ```
 Returns `true` while `runtime` closes and its state runs the script's finalizers: a stop and a
 script that fails to load clear its private before `lua_close`, and the drop of its last reference
-closes it at a zero count, which a runtime has at no other time.
-[`lunatik_checkclosing`](#lunatik_checkclosing) refuses a registration there, which the closing
-runtime would never dispatch. Defined as a macro.
+closes it at a zero count, which a runtime has at no other time. Lua arms no `__gc` on what those
+finalizers create. Defined as a macro.
 
 ### lunatik\_isowner
 ```C
@@ -553,6 +552,10 @@ It allocates `size` bytes for the object's private data, unless `LUNATIK_OPT_EXT
 zeroed and comes from the runtime's allocator, `GFP_ATOMIC` in a softirq or hardirq runtime once
 it is armed; it is freed with `kvfree` after `release`.
 
+The userdata's `__gc` drops the reference the object is created with. In a state that is closing,
+where Lua arms no `__gc` (see [`lunatik_isclosing`](#lunatik_isclosing)), the state holds that
+reference instead and drops it once `lua_close` has run every finalizer.
+
 Raises `'<name>': process-context class in interrupt-context runtime`; `'<name>': metatable not
 found` when the class's metatables are not in this state's registry, which
 [`lunatik_require`](#lunatik_require) creates beforehand; and `not enough memory`.
@@ -588,7 +591,8 @@ void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 ```
 _lunatik\_cloneobject()_ pushes `object` onto the Lua stack as a userdata with the correct
 metatable, and takes no reference: the userdata's `__gc` drops one, which the caller hands over
-or takes, as [`lunatik_pushobject`](#lunatik_pushobject) does. It calls
+or takes, as [`lunatik_pushobject`](#lunatik_pushobject) does; in a closing state the state drops
+it instead, as [`lunatik_newobject`](#lunatik_newobject) describes. It calls
 [`lunatik_require`](#lunatik_require) first, so the object reaches a state whose script never
 required its library.
 Raises `'<name>': cannot share SINGLE object` for a `LUNATIK_OPT_SINGLE` object,
