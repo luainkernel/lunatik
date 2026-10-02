@@ -97,7 +97,7 @@ EXPORT_SYMBOL(lunatik_stop);
 
 static int lunatik_lruntime(lua_State *L);
 
-LUNATIK_PRIVATECHECKER(lunatik_check, lua_State *, &lunatik_class);
+LUNATIK_PRIVATECHECKER(lunatik_check, lua_State *, &lunatik_runtime_class);
 
 static int lunatik_lcopyobjects(lua_State *L)
 {
@@ -223,7 +223,7 @@ static const luaL_Reg lunatik_stub_lib[] = {
 */
 static int lunatik_lstop(lua_State *L)
 {
-	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_class);
+	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_runtime_class);
 
 	lunatik_checkrtnl(L);
 	lunatik_checkowner(L, runtime);
@@ -241,14 +241,14 @@ static const luaL_Reg lunatik_mt[] = {
 
 LUNATIK_OPENER(lunatik);
 LUNATIK_OPENER(lunatik_stub);
-const lunatik_class_t lunatik_class = {
+const lunatik_class_t lunatik_runtime_class = {
 	.name = "lunatik.runtime",
 	.methods = lunatik_mt,
 	.release = lunatik_releaseruntime,
 	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
 	.owner = THIS_MODULE,
 };
-EXPORT_SYMBOL(lunatik_class);
+EXPORT_SYMBOL(lunatik_runtime_class);
 
 static inline void lunatik_setready(lunatik_object_t *runtime)
 {
@@ -344,7 +344,7 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 		return -ENOMEM;
 	}
 
-	lunatik_setobject(runtime, &lunatik_class, opt);
+	lunatik_setobject(runtime, &lunatik_runtime_class, opt);
 	lunatik_toruntime(L) = runtime;
 	lunatik_extra(L)->ready = false;
 	lunatik_extra(L)->cpu = cpu;
@@ -414,13 +414,13 @@ static int lunatik_lruntime(lua_State *L)
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
 	if (lunatik_newruntime(pruntime, L, script, opt, NULL, LUNATIK_CPU_NONE) != 0)
 		lua_error(L);
-	lunatik_setclass(L, &lunatik_class, true);
+	lunatik_setclass(L, &lunatik_runtime_class, true);
 	if (lunatik_isclosing(lunatik_toruntime(L)))
 		lunatik_holdobject(L, *pruntime);
 	return 1;
 }
 
-static const lunatik_class_t *lunatik_classes[] = { &lunatik_class, &lunatik_percpu_class, NULL };
+static const lunatik_class_t *lunatik_classes[] = { &lunatik_runtime_class, &lunatik_percpu_class, NULL };
 
 LUNATIK_NEWLIB(lunatik, lunatik_lib, lunatik_classes);
 LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL);

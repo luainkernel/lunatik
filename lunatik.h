@@ -106,7 +106,7 @@ typedef struct lunatik_object_s {
 
 extern lunatik_object_t *lunatik_env;
 extern struct task_struct *lunatik_rtnl;
-extern const lunatik_class_t lunatik_class;
+extern const lunatik_class_t lunatik_runtime_class;
 
 /* internals the C API depends on: the core's own, which doc/capi.md leaves out */
 #define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))

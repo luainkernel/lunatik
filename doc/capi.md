@@ -367,12 +367,12 @@ lua_State *lunatik_getstate(lunatik_object_t *runtime);
 ```
 Returns the Lua state of `runtime`, `NULL` once the runtime is closed. Defined as a macro.
 
-### lunatik\_class
+### lunatik\_runtime\_class
 ```C
-extern const lunatik_class_t lunatik_class;
+extern const lunatik_class_t lunatik_runtime_class;
 ```
 The class of a runtime, `lunatik.runtime` in type errors. A binding that takes a runtime as an argument
-checks it with `lunatik_checkobjectclass(L, ix, &lunatik_class)`.
+checks it with `lunatik_checkobjectclass(L, ix, &lunatik_runtime_class)`.
 
 ### lunatik\_env
 ```C
