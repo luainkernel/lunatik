@@ -24,6 +24,10 @@
 # so and exits 1, since every cycle there only adds references, and it names a cycle that leaves
 # the host that way. LUNATIK_PINNED_OK=1 runs one anyway, for a recovery that knows the state.
 #
+# It names, without stopping them, the processes a cycle leaves running: an orphan in the cycle's
+# cgroup that started after the command did, as the child a `socat ...,fork` forks for a
+# connection outlives the `kill $!` sent to the listener.
+#
 # Usage: bash tools/lunatik-host <command>...
 
 LOCK=${LUNATIK_HOST_LOCK:-/tmp/lunatik-host/lock}
@@ -51,8 +55,18 @@ fi
 for arg; do
 	case $arg in /tmp/*.sh) echo "lunatik-host: $arg is lost to the reboot a crash forces; keep a script a cycle reruns under scratch/" >&2 ;; esac
 done
+start=$(tr -d . < /proc/uptime | cut -d" " -f1) # centiseconds since boot
 "$@"
 status=$?
 bash "$(dirname "$0")/checks/pinned.sh" > /dev/null || echo "lunatik host: this cycle left the host pinned" >&2
+hz=$(getconf CLK_TCK)
+cgroup=$(cat /proc/self/cgroup)
+for stat in /proc/[0-9]*/stat; do
+	read -r stat 2> /dev/null < "$stat" || continue
+	read -ra fields <<< "${stat##*) }" # after the comm, which may hold spaces: ppid at 1, starttime at 19
+	[ "${fields[1]}" = 1 ] && [ $((fields[19] * 100 / hz)) -ge "$start" ] &&
+		[ "$(cat "/proc/${stat%% *}/cgroup" 2> /dev/null)" = "$cgroup" ] &&
+		echo "lunatik host: this cycle left ${stat%% *} running: $(tr "\\0" " " < "/proc/${stat%% *}/cmdline")" >&2
+done
 exit $status
 
