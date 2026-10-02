@@ -4,45 +4,39 @@
 --
 
 local thread = require("thread")
-local struct = require("struct")
-local sk     = require("linux.socket")
 
 local shouldstop = thread.shouldstop
-local timeval = struct(sk.layout.timeval)
 
-local SIZE       <const> = 1024
-local TIMEOUT_MS <const> = 100 -- nothing stops a worker: an idle client holds a receive this long at most
+local SIZE <const> = 1024
 
 local function info(id, message)
 	local prefix = "echod [worker #" .. id .. "]"
 	print(string.format("%s: %s", prefix, message))
 end
 
-local function alive(control)
-	return control:getbyte(1) ~= 0
-end
-
 local function echo(session)
 	local message = session:receive(SIZE)
-	if message == nil then
-		return false
-	end
 	session:send(message)
 	return message == ""
 end
 
-local function worker(control, session)
-	local id = control:getbyte(0)
-
-	info(id, "started")
-	session:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
+local function serve(session)
 	repeat
 		local ok, err = pcall(echo, session)
 		if not ok then
-			return info(id, "aborted")
+			return shouldstop()
 		end
-	until (not alive(control) or err or shouldstop())
-	info(id, "stopped")
+	until (err or shouldstop())
+	return true
+end
+
+local function worker(control, connection, done)
+	local id = control:getbyte(0)
+	local session <close> = connection -- the daemon's own handle holds the socket until it collects it
+
+	info(id, "started")
+	info(id, serve(session) and "stopped" or "aborted")
+	done:setbyte(0, 1)
 end
 
 return worker
