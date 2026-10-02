@@ -158,10 +158,10 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *, &luasocket_class);
 
 #define luasocket_setmsg(m)		memset(&(m), 0, sizeof(m))
 
-/* EAGAIN is a wait a nonblocking flag or a receive timeout ended with nothing to answer */
-static int luasocket_pushfail(lua_State *L, int ret)
+/* a nonblocking flag or a timeout ends the wait with an errno that is an outcome, not a failure */
+static int luasocket_pushfail(lua_State *L, int ret, int expected)
 {
-	if (ret != -EAGAIN)
+	if (ret != expected)
 		lunatik_throw(L, ret);
 	return lunatik_pushfail(L, ret);
 }
@@ -335,7 +335,7 @@ static int luasocket_receive(lua_State *L)
 
 	luasocket_setmsg(msg);
 	int ret = luasocket_receivemsg(L, &msg);
-	return ret < 0 ? luasocket_pushfail(L, ret) : 1;
+	return ret < 0 ? luasocket_pushfail(L, ret, -EAGAIN) : 1;
 }
 
 /***
@@ -380,7 +380,7 @@ static int luasocket_receivefrom(lua_State *L)
 	msg.msg_name = &addr;
 	int ret = luasocket_receivemsg(L, &msg);
 	if (ret < 0)
-		return luasocket_pushfail(L, ret);
+		return luasocket_pushfail(L, ret, -EAGAIN);
 
 	/* msg_namelen is an output: zero means the protocol named no address */
 	return luasocket_pushaddr(L, &addr, msg.msg_namelen) + 1;
@@ -468,6 +468,10 @@ static int luasocket_listen(lua_State *L)
 * This is typically used by client sockets to establish a connection to a server.
 * For datagram sockets, this sets the default destination address for `send` and
 * the only address from which datagrams are received.
+* A TCP connect waits for the connection, with no timeout of its own, unless `flags` carries
+* `O_NONBLOCK` or `setsockopt` set a send timeout; either makes a wait that ends with the connection
+* still in progress answer `nil`, or raise `EALREADY` when an earlier connect started it, and `send`
+* says how a stop ends the wait.
 *
 * @function connect
 * @tparam integer|string addr destination address to connect to.
@@ -480,9 +484,10 @@ static int luasocket_listen(lua_State *L)
 * @tparam[opt] integer port the address's second integer, for `AF_INET`, `AF_PACKET` and
 *   `AF_NETLINK`; for any other family, `flags` takes this place.
 * @tparam[opt=0] integer flags file status flags: `O_NONBLOCK` makes a connect that cannot
-*   complete at once raise instead of waiting for it. `linux.socket.sock.NONBLOCK` carries
+*   complete at once not wait for it. `linux.socket.sock.NONBLOCK` carries
 *   `O_NONBLOCK` on every architecture but alpha and parisc.
-* @treturn nil
+* @treturn boolean `true` once connected; `nil` and `"EINPROGRESS"` when the wait ended with the
+*   connection it started still in progress.
 * @raise Error if the connect operation fails (e.g., connection refused, host unreachable).
 * @usage
 *   tcp_client_sock:connect(net.aton("192.168.1.100"), 80)
@@ -493,13 +498,16 @@ static int luasocket_connect(lua_State *L)
 	struct sockaddr_storage addr;
 	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
 	int flags = luaL_optinteger(L, luasocket_ispair(luasocket_family(socket)) ? 4 : 3, 0);
-
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0))
-	lunatik_try(L, kernel_connect, socket, (struct sockaddr_unsized *)&addr, size, flags);
+	int ret = kernel_connect(socket, (struct sockaddr_unsized *)&addr, size, flags);
 #else
-	lunatik_try(L, kernel_connect, socket, (struct sockaddr *)&addr, size, flags);
+	int ret = kernel_connect(socket, (struct sockaddr *)&addr, size, flags);
 #endif
-	return 0;
+
+	if (ret < 0)
+		return luasocket_pushfail(L, ret, -EINPROGRESS);
+	lua_pushboolean(L, true);
+	return 1;
 }
 
 #define LUASOCKET_NEWGETTER(what) 						\
@@ -735,7 +743,7 @@ static int luasocket_accept(lua_State *L)
 	int ret = kernel_accept(socket, luasocket_psocket(object), flags);
 
 	if (ret < 0)
-		return luasocket_pushfail(L, ret);
+		return luasocket_pushfail(L, ret, -EAGAIN);
 	return 1; /* object */
 }
 

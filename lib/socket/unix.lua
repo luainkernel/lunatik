@@ -69,9 +69,10 @@ end
 -- Connects the socket to a UNIX domain path.
 -- @param path (string) [optional] Path to connect to.
 --   Defaults to the path provided at construction time.
+-- @return (boolean) `true` once connected.
 -- @see socket.connect
 function unix:connect(path)
-	self.socket:connect(path or self.path)
+	return self.socket:connect(path or self.path)
 end
 
 ---

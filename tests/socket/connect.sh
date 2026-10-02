@@ -3,12 +3,12 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Tests which argument socket:connect() reads as its flags. An AF_INET address is
-# spelled as two arguments, so a call that gives no flags must not have its port
-# read as one; an AF_UNIX address is spelled as one, so the argument past it is the
-# flags. The AF_INET port is 6922, whose value carries the O_NONBLOCK bit, so a port
-# read as flags asks for a non-blocking connect and the call answers EINPROGRESS
-# instead of connecting.
+# Tests which argument socket:connect() reads as its flags, and what it answers. An
+# AF_INET address is spelled as two arguments, so a call that gives no flags must
+# not have its port read as one; an AF_UNIX address is spelled as one, so the
+# argument past it is the flags. The AF_INET port is 6922, whose value carries the
+# O_NONBLOCK bit, so a port read as flags asks for a non-blocking connect and the
+# call answers nil and "EINPROGRESS" instead of true.
 #
 # The first case discriminates on that port; on an architecture whose O_NONBLOCK is
 # not 0o4000, alpha and parisc among them, it passes without discriminating. The
@@ -17,6 +17,9 @@
 # one-argument family's index lands past the path and not on it. A flag given to
 # such a family is uncovered: the only outcome that differs needs a full backlog,
 # and a connect that does not see the flag then waits holding the runtime lock.
+# inet:connect hands the nonblocking connect's nil and "EINPROGRESS" through, and
+# a connect to the port once nothing listens on it pins that a refusal still
+# raises its errno's name, ECONNREFUSED.
 #
 # Usage: sudo bash tests/socket/connect.sh
 
@@ -39,7 +42,7 @@ expect() { # expect <line> <description>
 }
 
 ktap_header
-ktap_plan 3
+ktap_plan 5
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -54,6 +57,8 @@ check_dmesg || { ktap_totals; exit 1; }
 
 expect "an address and a port alone connect" "socket connect: an AF_INET port is not read as the flags"
 expect "a flag past the port reaches the kernel" "socket connect: a flag given past the port reaches the kernel"
+expect "inet:connect hands the answer through" "socket connect: inet:connect answers what socket:connect answers"
+expect "a refused connect raises" "socket connect: a connect the peer refuses raises ECONNREFUSED"
 expect "a path alone connects" "socket connect: an AF_UNIX path keeps the argument past it for the flags"
 
 ktap_totals
