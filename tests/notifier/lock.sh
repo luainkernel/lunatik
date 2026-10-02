@@ -14,16 +14,18 @@
 # lock.lua resumes it from another runtime, where it runs under the holder's
 # lock on the CLI's task, and the test then spawns the holder, where it runs as
 # a thread body. In the resumed body a netlink receive and request, a second
-# registration, a netlink.channel, a generic netlink group bind, an option past
-# SOL_SOCKET, an AF_PACKET close and the stop of a runtime and of a percpu set
-# are refused with the message the test asserts, as is a receive from a
+# registration, a netlink.channel, a socket of a family the kernel has not
+# registered, a generic netlink group bind, an option past SOL_SOCKET, an
+# AF_PACKET close and the stop of a runtime and of a percpu set are refused
+# with the message the test asserts, as is a receive from a
 # coroutine made before the registration, and a receive once the notifier is
 # stopped, whose block stays in the chain until the runtime closes. A helper
 # runtime the resumed body creates runs its own body there, under the holder's
 # lock, and its code again once that body resumes it: a receive and a request
 # from each are refused, which pins the refusal on the task that holds the lock
-# and not on the runtime whose Lua makes the call. A SOL_SOCKET option, a UDP
-# send and a UDP close take no RTNL and are accepted there. The script body runs
+# and not on the runtime whose Lua makes the call. A UDP socket's creation, a
+# SOL_SOCKET option, a UDP send and a UDP close take no RTNL and are accepted
+# there, the creation since its family is registered. The script body runs
 # off the lock, so a request from it after the registration is accepted, and so
 # are the stops the finalizers of the holder's close run, the helper's among
 # them. The thread body is refused the same.
@@ -58,7 +60,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 15
+ktap_plan 16
 
 skip_all()
 {
@@ -113,6 +115,10 @@ ktap_pass "a coroutine made before the registration is refused there too"
 refused request registration channel
 ktap_pass "a netlink request, a netdevice registration and a netlink.channel are refused there"
 
+refused "unregistered new"
+accepted "registered new"
+ktap_pass "a socket of a family the kernel has not registered is refused there, and of a registered one created"
+
 refused bind "protocol option" "packet close"
 ktap_pass "a generic netlink group bind, an option past SOL_SOCKET and an AF_PACKET close are refused there"
 
@@ -146,9 +152,10 @@ for _ in $(seq $TRIES); do
 done
 lunatik stop "$HOLDER" > /dev/null 2>&1
 
-refused receive "coroutine receive" request registration channel bind "protocol option" "packet close" stop "percpu stop" \
+refused receive "coroutine receive" request registration channel "unregistered new" bind "protocol option" "packet close" \
+	stop "percpu stop" \
 	"helper body receive" "helper body request" "helper resume receive" "helper resume request" "stopped receive"
-accepted "socket option" send close nest
+accepted "socket option" send close nest "registered new"
 ktap_pass "a thread body of a runtime with a netdevice notifier, and a runtime it creates and resumes, are refused the same"
 
 accepted "close stop" "close percpu stop" "close helper stop"

@@ -18,6 +18,14 @@
 # loopback take no RTNL and are accepted there, and the same netlink.rt request
 # is accepted once the registration returned.
 #
+# socket.new loads the module of a family the kernel has not registered, and
+# the init of such a module can take RTNL, so a family nothing registered is
+# refused there, while the registered ones every other case creates are
+# accepted. AF_UNSPEC stands for it: no kernel registers it and no module
+# carries it, so once the registration returned the creation tries the load
+# and raises EAFNOSUPPORT, which a build without the refusal raises from the
+# replay too, without waiting on anything.
+#
 # A close runs the socket's release on the calling task, and the release of a
 # socket with a multicast membership takes RTNL, an AF_PACKET one for its own
 # list, and a NETLINK_GENERIC one a lock a request holds while it waits on
@@ -67,7 +75,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 13
+ktap_plan 14
 
 for module in luasocket luanotifier; do
 	cat /sys/module/$module/refcnt > /dev/null 2>&1 || {
@@ -109,6 +117,10 @@ ktap_pass "a SOL_SOCKET option from a netdevice callback is accepted"
 
 [ "$(reported "send accepted")" = 1 ] || fail "a UDP send from a netdevice callback was refused"
 ktap_pass "a UDP send from a netdevice callback is accepted"
+
+[ "$(reported "unregistered new $REFUSAL")" = 1 ] || fail "a socket of a family the kernel has not registered was not refused from a netdevice callback"
+[ "$(reported "after unregistered new EAFNOSUPPORT")" = 1 ] || fail "a socket of a family no module carries did not raise EAFNOSUPPORT once the callback returned"
+ktap_pass "a socket of a family the kernel has not registered is refused from a netdevice callback, and tries the load once it returned"
 
 [ "$(reported "close accepted")" = 1 ] || fail "closing a UDP socket with no membership from a netdevice callback was refused"
 [ "$(reported "scoped close accepted")" = 1 ] || fail "a <close> UDP socket with no membership going out of scope in a netdevice callback was refused"

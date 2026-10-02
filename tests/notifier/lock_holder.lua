@@ -65,6 +65,8 @@ local function probeall()
 	probe.report("request", probe.request)
 	probe.report("registration", notifier.netdevice, nop)
 	probe.report("channel", channel.new, FAMILY)
+	probe.report("unregistered new", probe.open, sk.af.UNSPEC, sk.sock.DGRAM, 0) -- no kernel registers AF_UNSPEC
+	probe.report("registered new", probe.open, sk.af.INET, sk.sock.DGRAM, sk.ipproto.UDP)
 	probe.report("bind", bind)
 	probe.report("protocol option", udp.setsockopt, udp, sk.sol.IP, IP_TTL, TTL)
 	probe.report("packet close", packet.close, packet)

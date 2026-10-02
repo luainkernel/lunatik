@@ -957,13 +957,15 @@ from a pid namespace other than the initial one, whose pids are not the ones
   on RTNL, closes a cycle with any netdevice event. A holder registers a
   notifier from its body and probes once resumed from another runtime, and
   again as a spawned thread body: a netlink receive and request, a second
-  registration, a `netlink.channel`, a generic netlink group bind, an option
-  past `SOL_SOCKET`, an `AF_PACKET` close and the stop of a runtime and of a
-  percpu set are refused, and so is a receive from a coroutine made before the
+  registration, a `netlink.channel`, a socket of a family the kernel has not
+  registered, a generic netlink group bind, an option past `SOL_SOCKET`, an
+  `AF_PACKET` close and the stop of a runtime and of a percpu set are refused,
+  and so is a receive from a coroutine made before the
   registration and once the notifier is stopped, whose block stays in the
   chain; a helper runtime created there is refused a receive and a request in
   its body and in its code once resumed, since it runs on the same task; a
-  `SOL_SOCKET` option, a UDP send and a UDP close are accepted. The script body
+  UDP socket's creation, a `SOL_SOCKET` option, a UDP send and a UDP close are
+  accepted. The script body
   and the finalizers of the close run off the lock, so a request from the body
   and the stops the finalizers run are accepted. A build without the refusal
   wedges the host only if a netdevice event arrives while it takes RTNL, so
@@ -1551,7 +1553,12 @@ pid, and what a valid call does.
   socket, which can continue a dump under RTNL; and an option past
   `SOL_SOCKET`, which reaches the protocol, whose multicast memberships take
   RTNL. A `SOL_SOCKET` option and a UDP send are accepted there, and the
-  request is accepted once the registration returned. A close runs the release
+  request is accepted once the registration returned. `socket.new` of a family
+  the kernel has not registered, whose module it would load, is refused there,
+  and of the registered ones the other cases create accepted; `AF_UNSPEC`
+  stands for it, which no module carries, so once the registration returned it
+  raises `EAFNOSUPPORT`, as a build without the refusal does from the replay
+  too. A close runs the release
   on the calling task, so from the replay a UDP socket with no membership
   closes, by `close()`, by a `<close>` local going out of scope, and by both
   on one socket, the second a no-op; an

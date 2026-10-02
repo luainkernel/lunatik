@@ -37,6 +37,7 @@
 #include <net/inet_sock.h>
 
 #include <lunatik.h>
+#include <lunatik_cfi.h>
 
 #include "lualinux.h"
 
@@ -691,6 +692,18 @@ static inline void luasocket_upgrade(struct sock *sk)
 #define luasocket_getnet(pid)	\
 	((pid) == LUASOCKET_PID_NONE ? get_net(&init_net) : luasocket_getnetbypid(pid))
 
+typedef bool (*luasocket_isregistered_t)(int family);
+
+static luasocket_isregistered_t luasocket_isregistered;
+
+static inline bool luasocket_loadsfamily(int family, int type)
+{
+	if (family == AF_INET && type == SOCK_PACKET) /* __sock_create creates it as PF_PACKET */
+		family = AF_PACKET;
+	return family >= 0 && family < NPROTO &&
+		(luasocket_isregistered == NULL || !lunatik_cfi_call(luasocket_isregistered(family)));
+}
+
 /***
 * Accepts a connection on a listening socket.
 * This function is used with connection-oriented sockets (e.g., `SOCK_STREAM`)
@@ -719,6 +732,13 @@ static int luasocket_accept(lua_State *L)
 * Creates a new socket object.
 * This function is the primary way to create a socket.
 *
+* Creating a socket can load a kernel module, whose init can take RTNL: the module of a family the
+* kernel has not registered, and the module of a protocol a registered family does not carry yet, as
+* a netlink protocol's. From a netdevice callback, which holds RTNL, or from under the lock of a
+* runtime with a netdevice notifier, a family the kernel has not registered is refused. A protocol is
+* not, since nothing the kernel exports tells which are loaded, so a script creates no socket there
+* whose protocol module may not be loaded.
+*
 * @function new
 * @tparam integer family address family (e.g., `linux.socket.af.INET`).
 * @tparam integer type socket type (e.g., `linux.socket.sock.STREAM`).
@@ -736,8 +756,12 @@ static int luasocket_accept(lua_State *L)
 *   release cannot refuse where the collector drops it.
 * @raise Error if socket creation fails, "out of bounds" for an `AF_PACKET` protocol past 16 bits,
 *   `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace
-*   of their own, or
-*   `'socket': process-context class in interrupt-context runtime` in a softirq or hardirq runtime.
+*   of their own,
+*   `'socket': process-context class in interrupt-context runtime` in a softirq or hardirq runtime,
+*   or, for a family the kernel has not registered, "not allowed under RTNL" from a netdevice
+*   callback and "not allowed under the lock of a runtime with a netdevice notifier" on a task that
+*   holds that lock; where Lunatik cannot look kernel symbols up, every family counts as not
+*   registered.
 * @usage
 *   -- TCP/IPv4 socket
 *   local tcp_sock = socket.new(linux.socket.af.INET, linux.socket.sock.STREAM, linux.socket.ipproto.TCP)
@@ -755,6 +779,10 @@ static int luasocket_lnew(lua_State *L)
 	int type = luaL_checkinteger(L, 2);
 	int proto = family == AF_PACKET ? (__force u16)luasocket_checkethertype(L, 3) : luaL_checkinteger(L, 3);
 	pid_t pid = lua_isnoneornil(L, 4) ? LUASOCKET_PID_NONE : (pid_t)lunatik_checkinteger(L, 4, 1, PID_MAX_LIMIT);
+
+	if (luasocket_loadsfamily(family, type)) /* the init of a family's module can take RTNL */
+		lunatik_checkrtnl(L);
+
 	lunatik_object_t *object = luasocket_new(L);
 	struct socket **psocket = luasocket_psocket(object);
 	struct net *net = luasocket_getnet(pid);
@@ -777,6 +805,7 @@ LUNATIK_NEWLIB(socket, luasocket_lib, luasocket_classes);
 
 static int __init luasocket_init(void)
 {
+	luasocket_isregistered = (luasocket_isregistered_t)lunatik_lookup("sock_is_registered");
 	return 0;
 }
 

@@ -59,6 +59,11 @@ local function send()
 	return verdict(pcall(sock.send, sock, PREFIX, net.aton(LOOPBACK), DISCARD))
 end
 
+-- no kernel registers AF_UNSPEC, and no module carries it: a build that tries the load answers EAFNOSUPPORT
+local function unregistered()
+	return verdict(pcall(socket.new, sk.af.UNSPEC, sk.sock.DGRAM, 0))
+end
+
 -- closed once the registration returned: a collector may run in a later callback, as socket.new says
 local unclosed = {}
 
@@ -111,6 +116,7 @@ local function cb()
 		report("protocol option " .. option(sk.sol.IP, IP_TTL, TTL))
 		report("socket option " .. option(sk.sol.SOCKET, sk.so.RCVBUF, RCVBUF))
 		report("send " .. send())
+		report("unregistered new " .. unregistered())
 		report("close " .. close(sk.af.INET, sk.sock.DGRAM, sk.ipproto.UDP))
 		report("scoped close " .. verdict(pcall(scope)))
 		report("closed twice " .. verdict(pcall(twice)))
@@ -131,6 +137,7 @@ end
 
 notifier.netdevice(cb)
 report("after " .. request())
+report("after unregistered new " .. unregistered())
 report("after close " .. verdict(pcall(member.close, member)))
 if joined6 then
 	report("after inet6 close " .. verdict(pcall(member6.close, member6)))
