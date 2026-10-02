@@ -6,6 +6,7 @@
 #include <linux/slab.h>
 #include <linux/fs.h>
 #include <linux/version.h>
+#include <linux/sched/task_stack.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
 #include <linux/errname.h>
 #endif
@@ -75,6 +76,28 @@ error:
 	return status;
 }
 EXPORT_SYMBOL(lunatik_loadfile);
+
+#define LUNATIK_MAXCCALLS	200
+#define LUNATIK_CSTACK		(THREAD_SIZE / 8 * 5)
+#define LUNATIK_CSTACKMIN	(THREAD_SIZE / 16)
+#define LUNATIK_CSTACKSLACK	(THREAD_SIZE / 8)
+#define LUNATIK_CSTACKFLOOR	(THREAD_SIZE / 4)
+
+/* Lua raises "C stack overflow" at count, "error in error handling" at 0, and neither at count + 1 */
+long long lunatik_maxccalls(lua_State *L, unsigned int count)
+{
+	unsigned long cstack = lunatik_cstack(lunatik_toruntime(L));
+	unsigned long room = current_stack_pointer - (unsigned long)task_stack_page(current);
+	long used = cstack != 0 ? (long)(cstack - current_stack_pointer) : 0;
+
+	if (room < THREAD_SIZE)
+		used = max(used, (long)(LUNATIK_CSTACK + LUNATIK_CSTACKFLOOR - room));
+	if (used < LUNATIK_CSTACK - LUNATIK_CSTACKMIN)
+		return LUNATIK_MAXCCALLS;
+	if (used < LUNATIK_CSTACK)
+		return count + 1;
+	return used < LUNATIK_CSTACK + LUNATIK_CSTACKSLACK ? count : 0;
+}
 
 void lunatik_pusherrname(lua_State *L, int err)
 {
