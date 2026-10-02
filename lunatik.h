@@ -3,6 +3,11 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+/*
+* The C API is what doc/capi.md documents: a lunatik_ or LUNATIK_ name this header, or one it
+* includes, defines and that page leaves out is the core's own, and any release may change it.
+*/
+
 #ifndef lunatik_h
 #define lunatik_h
 

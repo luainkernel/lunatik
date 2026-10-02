@@ -4,6 +4,14 @@
 #include <lunatik.h>
 ```
 
+This page is the C API of Lunatik: what it documents is what a binding may use, and a minor release
+only adds to it. A `lunatik_` or `LUNATIK_` name `lunatik.h`, or a header it includes, defines and
+this page leaves out is the core's own, which the API's inline functions and macros are built on
+and any release may change; those `lunatik.h` defines itself sit in a section of their own. The
+headers under `lib/` belong to the bindings beside them and are not part of the API. A binding uses
+the [Lua C API](https://www.lua.org/manual/5.5/manual.html#4) besides, and builds as
+[Building out of tree](#building-out-of-tree) says.
+
 ## Types
 
 ### lunatik\_class\_t
@@ -1270,6 +1278,25 @@ MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION(LUNATIK_RELEASE);
 ```
 A script then runs `local foo = require("foo")` and `foo.new():inc()`.
+
+### Building out of tree
+A binding kept outside this tree builds against a Lunatik tree that `make` built for the running
+kernel: its headers, and its `Module.symvers`, which lists what `lunatik.ko` exports and which
+modpost reads to resolve the binding's calls. The binding's `Kbuild` names the directories of the
+headers and defines `_KERNEL`, which configures the Lua headers for the kernel:
+```Makefile
+obj-m += luafoo.o
+ccflags-y += -D_KERNEL -I$(LUNATIK) -I$(LUNATIK)/lua -I$(LUNATIK)/include
+```
+and its build names that tree as `LUNATIK` and hands its symbols to modpost:
+```sh
+make -C /lib/modules/$(uname -r)/build M=$PWD LUNATIK=$HOME/lunatik \
+	KBUILD_EXTRA_SYMBOLS=$HOME/lunatik/Module.symvers modules
+```
+`require("foo")` finds the binding once its module is loaded, by `insmod luafoo.ko` after
+`lunatik.ko`, or by `modprobe luafoo` once it is installed under `/lib/modules/$(uname -r)`: the
+searcher looks `luaopen_foo` up among the symbols the loaded modules export, and `lunatik load`
+loads only the tree's own modules.
 
 ---
 
