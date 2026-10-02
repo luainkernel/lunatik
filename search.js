@@ -320,6 +320,8 @@ window.LUNATIK_SEARCH = [
 ["probe:disable ()","modules/probe.html#probe:disable","probe · Disables the probe: it stays registered, and a hit runs no handler until enable."],
 ["probe:enable ()","modules/probe.html#probe:enable","probe · Enables the probe: a hit runs its handlers, as it does from new until a disable."],
 ["probe:stop ()","modules/probe.html#probe:stop","probe · Unregisters and stops the probe."],
+["probe_regs:argument (n)","modules/probe.html#probe_regs:argument","probe · Reads an argument of the probed function."],
+["probe_regs:dump ()","modules/probe.html#probe_regs:dump","probe · Prints the registers to the kernel log."],
 ["new (symbol, handlers)","modules/probe.html#new","probe · Creates and registers a new kprobe."],
 ["rcu","modules/rcu.html","Module · RCU-synchronized hash table."],
 ["foreach (t, callback)","modules/rcu.html#foreach","rcu · Iterates over the table calling callback(key, value) for each entry."],

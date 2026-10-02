@@ -179,8 +179,8 @@
  <a href="../modules/syscall.table.html#">syscall.table</a> and <a href="../modules/linux.html#lookup">linux.lookup</a> return one. Its <code>pre</code> handler runs before the
  probed instruction and its <code>post</code> handler after it. What a handler returns is
  ignored, so a probe observes the function and cannot skip it, and the error of a
- handler that raises goes to the kernel log. <code>dump()</code> prints the registers of the
- probed CPU to the kernel log.</p>
+ handler that raises goes to the kernel log. A handler receives the registers of the
+ probed CPU as a <code>probe.regs</code>, whose <code>dump()</code> prints them to the kernel log.</p>
 
 <p> A probe fires wherever the probed code runs, inside an interrupt handler too, with
  preemption or interrupts off, so the script runs in a hardirq runtime,
@@ -194,11 +194,11 @@ local probe = require(&quot;probe&quot;)
 
 local reported = false
 
-local function pre(symbol, dump)
+local function pre(symbol, regs)
   if not reported then
     reported = true
     print(symbol)
-    dump()
+    regs:dump()
   end
 end
 
@@ -218,6 +218,17 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
 	<tr>
 	<td class="name"><a href="#probe:stop">probe:stop ()</a></td>
 	<td class="summary">Unregisters and stops the probe.</td>
+	</tr>
+</table></div>
+<h2 id="Class_probe_regs">Class probe_regs </h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#probe_regs:argument">probe_regs:argument (n)</a></td>
+	<td class="summary">Reads an argument of the probed function.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#probe_regs:dump">probe_regs:dump ()</a></td>
+	<td class="summary">Prints the registers to the kernel log.</td>
 	</tr>
 </table></div>
 <h2 id="probe">probe</h2>
@@ -284,6 +295,60 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
 
 </dd>
 </dl>
+    <h2 class="section-header" id="Class_probe_regs-details"><a name="Class_probe_regs"></a><a name="probe_regs"></a>Class probe_regs  in detail</h2>
+
+          <div class="section-description">
+          The registers of the CPU a probe hit, which a handler receives.
+ A userdata reused for every hit of every probe of the runtime: while a handler runs it
+ holds the registers of that hit, and it is cleared when the handler returns, so a
+ script that keeps it and reads it outside a handler gets an error rather than a
+ pointer into a frame that is gone.
+          </div>
+    <dl class="function">
+    <dt id="probe_regs:argument"><a name="probe_regs:argument"></a><strong>probe_regs:argument (n)</strong></dt>
+    <dd>
+    Reads an argument of the probed function.
+ Reads through <code>regs_get_kernel_argument()</code>, which guesses the register mapping: what it
+ returns is not the argument past the registers the architecture passes arguments in, nor
+ after a parameter 16 bytes or larger.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">n</span>
+            <span class="types"><span class="type">integer</span></span>
+         position of the argument, counting from zero
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        the argument, as the register holds it
+    </ol>
+
+    <h3>Raises</h3>
+    <code>closed object</code> outside a handler; <code>out of bounds</code> if <code>n</code> is negative; <code>EOPNOTSUPP</code>
+   where the architecture does not select <code>CONFIG_HAVE_FUNCTION_ARG_ACCESS_API</code>
+
+
+
+</dd>
+    <dt id="probe_regs:dump"><a name="probe_regs:dump"></a><strong>probe_regs:dump ()</strong></dt>
+    <dd>
+    Prints the registers to the kernel log.
+
+
+
+
+    <h3>Raises</h3>
+    <code>closed object</code> outside a handler
+
+
+
+</dd>
+</dl>
     <h2 class="section-header" id="probe-details"><a name="probe"></a>probe in detail</h2>
 
     <dl class="function">
@@ -307,13 +372,8 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
         <li><span class="parameter">handlers</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          table with optional <code>pre</code> and <code>post</code> callback functions;
-   each receives the symbol (string) or the address as given (lightuserdata), a <code>dump</code>
-   closure and, where the architecture selects <code>CONFIG_HAVE_FUNCTION_ARG_ACCESS_API</code>, an
-   <code>argument</code> closure; both closures raise once the callback returns. <code>argument(n)</code> reads
-   the n-th argument of the probed function, counting from zero, through
-   <code>regs_get_kernel_argument()</code>, which guesses the register mapping: what it returns is not
-   the argument past the registers the architecture passes arguments in, nor after a
-   parameter 16 bytes or larger. The table is read once, to decide whether the kernel
+   each receives the symbol (string) or the address as given (lightuserdata), and the
+   <code>probe.regs</code> of the hit. The table is read once, to decide whether the kernel
    installs a post handler, so a <code>post</code> added to it afterwards never fires; a <code>pre</code> added
    afterwards does
         </li>
@@ -352,7 +412,7 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:29:39</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:35:46</span>
 </div>
 </footer>
 </body>
