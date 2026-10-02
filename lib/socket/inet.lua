@@ -104,10 +104,12 @@ end
 -- @param addr (string) The remote IP address.
 -- @param port (number) The remote port.
 -- @param flags (number) [optional] Connection flags.
+-- @return (boolean) `true` once connected, or `nil` and `"EINPROGRESS"` when the connection it started is
+--   still in progress.
 -- @raise error on failure
 -- @see socket.connect
 function inet:connect(addr, port, flags)
-	self.socket:connect(net.aton(addr), port, flags)
+	return self.socket:connect(net.aton(addr), port, flags)
 end
 
 ---

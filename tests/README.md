@@ -1562,12 +1562,22 @@ pid, and what a valid call does.
   the sender's address as a string. The AF_PACKET and AF_INET6
   cases skip where the kernel does not carry the family.
 
-- **connect**: which argument `socket:connect()` reads as its flags. An AF_INET
-  address is spelled as two arguments, so a call with no flags must not have its
-  port read as one: the test connects to port 6922, whose value carries the
-  `O_NONBLOCK` bit, and a port read as flags answers `EINPROGRESS` instead. A flag
-  given past the port must still reach the kernel, and an AF_UNIX path, spelled as
-  one argument, must not have the path itself read as the flags.
+- **connect**: which argument `socket:connect()` reads as its flags, and what it
+  answers. An AF_INET address is spelled as two arguments, so a call with no flags
+  must not have its port read as one: the test connects to port 6922, whose value
+  carries the `O_NONBLOCK` bit, and a connect answers `true` where a port read as
+  flags answers `nil` and `"EINPROGRESS"`. A flag given past the port must still
+  reach the kernel, and an AF_UNIX path, spelled as one argument, must not have
+  the path itself read as the flags. `inet:connect()` hands the answer through,
+  and a connect the peer refuses still raises `ECONNREFUSED`.
+
+- **inprogress**: what a TCP socket answers when a send timeout ends its wait for
+  a handshake that does not complete, over the loopback of a namespace of the
+  test's own where an nft rule drops every segment to the port: a connect answers
+  `nil` and `"EINPROGRESS"`, and a send on the same socket, which waits for the
+  handshake before it queues anything, answers `false`. It skips without `nft`,
+  `nsenter` or a namespace, outside the initial pid namespace, and where the
+  kernel refuses a task's namespace.
 
 - **orphan**: a socket holds its network namespace for as long as the kernel
   keeps the socket, not only for as long as the script does. A TCP socket closed
