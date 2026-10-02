@@ -546,6 +546,17 @@ which locks the object it runs on and is `runtime:resume()`'s route into the loc
 which locks each runtime it resumes, and `thread.run`, which passes the body's arguments under the
 runtime's lock.
 
+### lunatik\_checkirqs
+```C
+void lunatik_checkirqs(lua_State *L);
+```
+Raises a Lua error, `"not allowed with IRQs disabled"`, when the calling CPU runs with interrupts
+off: in every callback of a hardirq runtime, a probe's handlers among them, and in a softirq
+runtime's callback reached with them already off. A lock the kernel only takes with interrupts off,
+a task's siglock among them, may then be held by the CPU itself, so an entry point whose kernel call
+takes one refuses there, as `signal.kill` does. It reads `irqs_disabled()` rather than the runtime's
+context, which says how its lock is taken and not the state of the CPU it runs on.
+
 ### lunatik\_percpudata
 ```C
 lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class, size_t size);
@@ -1065,6 +1076,7 @@ handler, a `BUG()`. After a protected call or a resume fails, the error is read 
 #define LUNATIK_ERR_RTNL	"not allowed under RTNL"
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
+#define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 ```
 The messages of the refusals this page documents. A binding that refuses one of their conditions on
