@@ -365,9 +365,6 @@ static inline lunatik_opt_t lunatik_optcontext(lua_State *L, int ix)
 	return opts[luaL_checkoption(L, ix, "process", contexts)];
 }
 
-#define lunatik_setruntime(L, libname, priv)	\
-	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.name, lua##libname##_class.opt))
-
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
 	if (lunatik_cannotsleep(L, !lunatik_isirq(class->opt)))
