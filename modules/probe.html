@@ -208,8 +208,12 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
 <h2 id="Class_probe">Class probe </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#probe:enable">probe:enable (flag)</a></td>
-	<td class="summary">Enables or disables the probe.</td>
+	<td class="name"><a href="#probe:disable">probe:disable ()</a></td>
+	<td class="summary">Disables the probe: it stays registered, and a hit runs no handler until <a href="../modules/probe.html#probe:enable">enable</a>.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#probe:enable">probe:enable ()</a></td>
+	<td class="summary">Enables the probe: a hit runs its handlers, as it does from <a href="../modules/probe.html#new">new</a> until a <a href="../modules/probe.html#probe:disable">disable</a>.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#probe:stop">probe:stop ()</a></td>
@@ -230,25 +234,34 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
           Represents a registered kprobe.
           </div>
     <dl class="function">
-    <dt id="probe:enable"><a name="probe:enable"></a><strong>probe:enable (flag)</strong></dt>
+    <dt id="probe:disable"><a name="probe:disable"></a><strong>probe:disable ()</strong></dt>
     <dd>
-    Enables or disables the probe.
+    Disables the probe: it stays registered, and a hit runs no handler until <a href="../modules/probe.html#probe:enable">enable</a>.
 
 
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">flag</span>
-            <span class="types"><span class="type">boolean</span></span>
-         true to enable, false to disable
-        </li>
-    </ul>
 
 
     <h3>Raises</h3>
-     if the probe has been stopped, if the percpu object owns this probe, or
+     if the probe has been stopped, if the percpu object owns this probe,
    <code>not allowed once the runtime is armed</code> (its script body has
-   returned): enable_kprobe and disable_kprobe sleep, and an armed runtime runs with its
-   lock held and interrupts off
+   returned): disable_kprobe sleeps, and an armed runtime runs with its
+   lock held and interrupts off; or the error disable_kprobe returns
+
+
+
+</dd>
+    <dt id="probe:enable"><a name="probe:enable"></a><strong>probe:enable ()</strong></dt>
+    <dd>
+    Enables the probe: a hit runs its handlers, as it does from <a href="../modules/probe.html#new">new</a> until a <a href="../modules/probe.html#probe:disable">disable</a>.
+
+
+
+
+    <h3>Raises</h3>
+     if the probe has been stopped, if the percpu object owns this probe,
+   <code>not allowed once the runtime is armed</code> (its script body has
+   returned): enable_kprobe sleeps, and an armed runtime runs with its
+   lock held and interrupts off; or the error enable_kprobe returns
 
 
 
@@ -338,7 +351,7 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:23:16</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:26:36</span>
 </div>
 </footer>
 </body>

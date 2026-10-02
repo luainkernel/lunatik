@@ -228,8 +228,12 @@
 	<td class="summary">Puts a connection-oriented socket into the listening state.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#socket:receive">socket:receive (length[, flags=0[, from=false]])</a></td>
+	<td class="name"><a href="#socket:receive">socket:receive (length[, flags=0])</a></td>
 	<td class="summary">Receives a message from the socket.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#socket:receivefrom">socket:receivefrom (length[, flags=0])</a></td>
+	<td class="summary">Receives a message from the socket, and the address of its sender.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#socket:send">socket:send (message[, addr[, port]])</a></td>
@@ -270,7 +274,7 @@ information in network byte order, the address, and the scope id.</li>
  values after the interface index: the packet type (<code>PACKET_HOST</code> and the others of
  <code>&lt;linux/if_packet.h&gt;</code>), the hardware type (<code>ARPHRD_ETHER</code> and the others of <code>&lt;linux/if_arp.h&gt;</code>)
  and the hardware address, a string of the length the kernel reports: the interface&rsquo;s own for
- <a href="../modules/socket.html#socket:getsockname">getsockname</a>, the sender&rsquo;s for <a href="../modules/socket.html#socket:receive">receive</a>.
+ <a href="../modules/socket.html#socket:getsockname">getsockname</a>, the sender&rsquo;s for <a href="../modules/socket.html#socket:receivefrom">receivefrom</a>.
           </div>
     <dl class="function">
     <dt id="socket:accept"><a name="socket:accept"></a><strong>socket:accept ([flags=0])</strong></dt>
@@ -569,7 +573,7 @@ reports.</li>
         <pre class="example">tcp_server_sock:<span class="function-name">listen</span>(<span class="number">10</span>)</pre>
 
 </dd>
-    <dt id="socket:receive"><a name="socket:receive"></a><strong>socket:receive (length[, flags=0[, from=false]])</strong></dt>
+    <dt id="socket:receive"><a name="socket:receive"></a><strong>socket:receive (length[, flags=0])</strong></dt>
     <dd>
     Receives a message from the socket.
  The call blocks until a message arrives, with no timeout of its own, unless <code>flags</code> carries
@@ -591,12 +595,50 @@ reports.</li>
    See the <a href="../modules/linux.socket.html#msg">linux.socket.msg</a> table for available flags. These can be OR&rsquo;d together.
          (<em>default</em> 0)
         </li>
-        <li><span class="parameter">from</span>
-            <span class="types"><span class="type">boolean</span></span>
-         If <code>true</code>, the function also returns the sender&rsquo;s address
-   (two values for <code>AF_INET</code> and <code>AF_NETLINK</code>, five for <code>AF_PACKET</code>). This is typically used with
-   connectionless sockets (<code>SOCK_DGRAM</code>).
-         (<em>default</em> false)
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+        received message (as a string of bytes); on a stream socket, the empty string is
+   the end of file, once the peer has shut down its side.
+    </ol>
+
+    <h3>Raises</h3>
+    Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
+   callback.
+
+    <h3>See also</h3>
+    <ul>
+         <li><a href="../modules/socket.html#socket:receivefrom">receivefrom</a></li>
+         <li><a href="../modules/linux.socket.html#msg">linux.socket.msg</a></li>
+    </ul>
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="comment">-- For a connected TCP socket:
+</span><span class="keyword">local</span> data = tcp_conn_sock:<span class="function-name">receive</span>(<span class="number">1024</span>)
+<span class="global">print</span>(<span class="string">"Received:"</span>, data)</pre>
+
+</dd>
+    <dt id="socket:receivefrom"><a name="socket:receivefrom"></a><strong>socket:receivefrom (length[, flags=0])</strong></dt>
+    <dd>
+    Receives a message from the socket, and the address of its sender.
+ It waits as <a href="../modules/socket.html#socket:receive">receive</a> does. A connectionless socket (<code>SOCK_DGRAM</code>) names the sender of each
+ message; TCP names none, and neither does an <code>AF_UNIX</code> peer that never bound, and nothing follows
+ the message then.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">length</span>
+            <span class="types"><span class="type">integer</span></span>
+         maximum number of bytes to receive.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         message flags, as <a href="../modules/socket.html#socket:receive">receive</a> takes them.
+         (<em>default</em> 0)
         </li>
     </ul>
 
@@ -604,13 +646,11 @@ reports.</li>
     <ol>
         <li>
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        received message (as a string of bytes); on a stream socket, the empty string is
-   the end of file, once the peer has shut down its side.</li>
+        received message, as <a href="../modules/socket.html#socket:receive">receive</a> returns it.</li>
         <li>
            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         addr If <code>from</code> is true and the protocol named a sender, its address.
-   TCP names none, and neither does an <code>AF_UNIX</code> peer that never bound; nothing follows the message
-   then.
+         addr the sender&rsquo;s address (two values for <code>AF_INET</code> and <code>AF_NETLINK</code>,
+   five for <code>AF_PACKET</code>).
    - For <code>AF_INET</code>: An integer representing the IPv4 address (can be converted with <code>net.ntoa()</code>).
    - For <code>AF_PACKET</code>: The frame&rsquo;s ethertype, in host byte order.
    - For <code>AF_UNIX</code>: The sender&rsquo;s name, carrying its leading NUL when the name is an abstract one.
@@ -619,8 +659,8 @@ reports.</li>
      protocol reports.</li>
         <li>
            <span class="types"><span class="type">integer</span></span>
-        port If <code>from</code> is true, the sender&rsquo;s port number for <code>AF_INET</code>, the index of
-   the interface the frame arrived on for <code>AF_PACKET</code>, and its multicast groups for <code>AF_NETLINK</code>.</li>
+        port the sender&rsquo;s port number for <code>AF_INET</code>, the index of the interface the
+   frame arrived on for <code>AF_PACKET</code>, and its multicast groups for <code>AF_NETLINK</code>.</li>
         <li>
            <span class="types"><span class="type">integer</span></span>
         pkttype For <code>AF_PACKET</code>, the frame&rsquo;s packet type.</li>
@@ -638,18 +678,14 @@ reports.</li>
 
     <h3>See also</h3>
     <ul>
-         <li><a href="../modules/linux.socket.html#msg">linux.socket.msg</a></li>
+         <li><a href="../modules/socket.html#socket:receive">receive</a></li>
          <li><a href="../modules/net.html#ntoa">net.ntoa</a></li>
     </ul>
 
     <h3>Usage</h3>
-        <pre class="example"><span class="comment">-- For a connected TCP socket:
-</span><span class="keyword">local</span> data = tcp_conn_sock:<span class="function-name">receive</span>(<span class="number">1024</span>)
-<span class="keyword">if</span> data <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Received:"</span>, data) <span class="keyword">end</span>
-
-<span class="comment">-- For a UDP socket, getting sender info:
-</span><span class="keyword">local</span> data, sender_ip_int, sender_port = udp_sock:<span class="function-name">receive</span>(<span class="number">1500</span>, <span class="number">0</span>, <span class="keyword">true</span>)
-<span class="keyword">if</span> data <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Received from "</span> .. net.<span class="function-name">ntoa</span>(sender_ip_int) .. <span class="string">":"</span> .. sender_port .. <span class="string">": "</span> .. data) <span class="keyword">end</span></pre>
+        <pre class="example"><span class="comment">-- For a UDP socket, getting sender info:
+</span><span class="keyword">local</span> data, sender_ip_int, sender_port = udp_sock:<span class="function-name">receivefrom</span>(<span class="number">1500</span>)
+<span class="global">print</span>(<span class="string">"Received from "</span> .. net.<span class="function-name">ntoa</span>(sender_ip_int) .. <span class="string">":"</span> .. sender_port .. <span class="string">": "</span> .. data)</pre>
 
 </dd>
     <dt id="socket:send"><a name="socket:send"></a><strong>socket:send (message[, addr[, port]])</strong></dt>
@@ -831,7 +867,7 @@ reports.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:23:16</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:26:36</span>
 </div>
 </footer>
 </body>

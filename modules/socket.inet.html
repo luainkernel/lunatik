@@ -242,7 +242,7 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#inet:receive">inet:receive (...)</a></td>
-	<td class="summary">Receives data from the socket.</td>
+	<td class="summary">Receives data from the socket; <a href="../modules/socket.inet.html#inet.udp:receivefrom">inet.udp:receivefrom</a> also returns the sender.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#inet:send">inet:send (msg, addr, port)</a></td>
@@ -354,7 +354,7 @@
     <dt id="inet.udp:receivefrom"><a name="inet.udp:receivefrom"></a><strong>inet.udp:receivefrom (len, flags)</strong></dt>
     <dd>
     Receives data from a UDP socket, along with the sender&rsquo;s address.
- This is a wrapper around <a href="../modules/socket.inet.html#inet:receive">inet:receive</a> that converts the raw IP address
+ This is a wrapper around <a href="../modules/socket.html#socket:receivefrom">socket:receivefrom</a> that converts the raw IP address
  from <a href="../modules/net.html#aton">net.aton</a> format to a string using <a href="../modules/net.html#ntoa">net.ntoa</a>.
 
 
@@ -383,7 +383,7 @@
 
     <h3>See also</h3>
     <ul>
-         <a href="../modules/socket.html#socket:receive">socket.receive</a>
+         <a href="../modules/socket.html#socket:receivefrom">socket.receivefrom</a>
     </ul>
 
 
@@ -594,24 +594,21 @@
 </dd>
     <dt id="inet:receive"><a name="inet:receive"></a><strong>inet:receive (...)</strong></dt>
     <dd>
-    Receives data from the socket.
- With <code>from</code> true it also returns the sender, its IPv4 address as an integer and its port;
- <a href="../modules/socket.inet.html#inet.udp:receivefrom">inet.udp:receivefrom</a> returns the address as a string.
+    Receives data from the socket; <a href="../modules/socket.inet.html#inet.udp:receivefrom">inet.udp:receivefrom</a> also returns the sender.
 
 
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">...</span>
          Varargs passed directly to the underlying <code>socket:receive()</code>:
- <code>(len[, flags[, from]])</code>.
+ <code>(len[, flags])</code>.
         </li>
     </ul>
 
     <h3>Returns</h3>
     <ol>
 
-        Varargs returned by the underlying <code>socket:receive()</code>:
- <code>(data[, ip_address, port])</code>.
+        The data the underlying <code>socket:receive()</code> returns.
     </ol>
 
     <h3>Raises</h3>
@@ -674,7 +671,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:23:16</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:26:36</span>
 </div>
 </footer>
 </body>
