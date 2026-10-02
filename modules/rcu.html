@@ -184,10 +184,11 @@
  hardirq runtime, one whose class needs process context raises
  <code>&apos;&lt;class&gt;&apos;: process-context class in interrupt-context runtime</code>. A read that
  meets a writer releasing the entry&rsquo;s object sees the entry gone. An entry holds its
- object until the entry is overwritten or deleted or the table goes, so objects that
- hold each other through tables, a table stored in itself or two stored in each other,
- are never released: a reference count does not see a cycle, and breaking one is the
- script&rsquo;s, by deleting an entry of it.</p>
+ object until the entry is overwritten or deleted or the table goes, and a reference
+ count does not see a cycle, so storing an <a href="../modules/rcu.html#table">rcu.table</a> raises <code>ELOOP</code> when it is the
+ table it is stored in or reaches that table, directly or through the tables it holds;
+ it raises <code>ELOOP</code> too when it reaches more than 16 tables that hold tables, itself
+ included.</p>
 
 <p> See <code>examples/shared/daemon.lua</code> for a practical example.
 
@@ -284,7 +285,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:47:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 15:47:21</span>
 </div>
 </footer>
 </body>
