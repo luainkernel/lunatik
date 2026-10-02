@@ -1165,6 +1165,18 @@ from a pid namespace other than the initial one, whose pids are not the ones
   carries no refcount warning or oops. A stress, not a forced window; skips
   unless the loaded core carries `lunatik_getobject_rcu`.
 
+- **foreach_overflow**: `rcu.foreach()` takes its reference on an entry's
+  object inside the handle's protected call, so a call that overflows the
+  200-slot Lua stack before the callback is reached leaves none held. One
+  `data` object in a one-bucket table is walked from a function carrying a
+  swept count of stack slots, from zero to past where the call itself
+  overflows, so the walk's own entry fits while the handle's does not at some
+  counts; a kprobe on `luadata_release` counts a release for every object,
+  since the script keeps no handle on it, and kprobes on `luarcu_lforeach`
+  and `luarcu_foreach_handle` show a walk entered whose handle never ran, the
+  window where a build that takes the reference before the pcall leaves it
+  held and pins `luadata`.
+
 ### runtime
 
 Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
