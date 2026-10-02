@@ -18,10 +18,9 @@
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt)
 {
-	bool monitor = lunatik_ismonitor(lunatik_inheritopt(class, opt));
-
 	/* SOFTIRQ runtime requires a SOFTIRQ class */
 	lunatik_checkclass(L, class);
+	bool monitor = lunatik_ismonitor(lunatik_inheritopt(class, opt));
 	lunatik_checkmetatable(L, class, monitor);
 
 	lunatik_object_t **pobject = lunatik_newpobject(L, 1);
@@ -173,13 +172,13 @@ static int lunatik_monitor(lua_State *L)
 	int ret, n = lua_gettop(L);
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
 	lunatik_object_t *runtime = lunatik_toruntime(L);
-	gfp_t gfp = lunatik_gfp(runtime);
 
 	lunatik_checkowner(L, object); /* the runtime's resume runs Lua that can reach this handle again */
 	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
 	lua_insert(L, 1); /* stack: method, object, args */
 
 	lunatik_try(L, lunatik_lockkillable, object);
+	gfp_t gfp = lunatik_gfp(runtime);
 	runtime->gfp = lunatik_gfp(object); /* the method allocates under the object's lock */
 	lua_gc(L, LUA_GCSTOP);
 	ret = lua_pcall(L, n, LUA_MULTRET, 0);
