@@ -225,6 +225,10 @@ and the errno&rsquo;s name, <code>ENOENT</code> for a missing one.</p>
 values <a href="https://www.lua.org/manual/5.5/manual.html#pdf-table.unpack">table.unpack</a> and a vararg carry: past it, recursion raises <code>stack overflow</code> and
 <a href="https://www.lua.org/manual/5.5/manual.html#pdf-table.unpack">table.unpack</a> raises <code>too many results to unpack</code>.</p>
 
+<p>A string pattern nests at most 32 levels deep: the match takes one, each capture two, and each
+position capture <code>()</code> and each item with <code>?</code>, <code>*</code>, <code>+</code> or <code>-</code> that matches one more. Past it,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.find">string.find</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.match">string.match</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.gmatch">string.gmatch</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.gsub">string.gsub</a> raise <code>pattern too complex</code>.</p>
+
 <p><a name="Softirq_and_hardirq_runtimes"></a></p>
 
 <h2 id="softirq-and-hardirq-runtimes">Softirq and hardirq runtimes</h2>
@@ -253,7 +257,7 @@ raise <code>not allowed once the runtime is armed</code>, and <a href="https://w
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:08:11</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:11:05</span>
 </div>
 </footer>
 </body>
