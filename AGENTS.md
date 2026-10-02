@@ -350,8 +350,9 @@ D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_
 what it lists is known to be stale. What a command runs is read by `commands.sh`, which the command
 guards share: a CLI verb, `make install`, a test script or `watchdog.sh` counts when it is the command,
 read through `sudo` and `env` with their options, `tools/lunatik-host` and a shell's `-c` string, and
-not when it is handed to `git`, `grep` or a check or written into a file by a heredoc, which the bare
-substring read as an operation four times in one afternoon. The post guards read through it too, the
+not when it is handed to `git`, `grep` or a check, to a shell's `-n`, which reads it and runs nothing,
+or written into a file by a heredoc, which the bare substring read as an operation four times in one
+afternoon; a `bash -n` over a test was refused as a suite run while the host was busy. The post guards read through it too, the
 `gh` command that writes and not the raw input, where a search chained after a read of an issue's
 comments read as a comment posted and a heredoc editing a guard read as a pull request body; the
 approval marker counts only in the command. A cycle a script file runs names nothing a

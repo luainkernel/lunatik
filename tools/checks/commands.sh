@@ -57,7 +57,7 @@ commands() {
 		delim = d; tab = t; shell = h
 	}
 	# prints the command W holds; returns whether it is a shell that reads its commands from stdin
-	function command(   i, k, c, stdin, line) {
+	function command(   i, k, c, stdin, noexec, line) {
 		word()
 		for (i = 1; i <= n; i++) {
 			k = W[i]
@@ -79,13 +79,18 @@ commands() {
 				return 0
 			}
 			else if (k ~ /^(ba|da)?sh$/) {
-				for (c = stdin = 0; ++i <= n && W[i] ~ /^[-+]./ && W[i] != "--"; ) {
+				for (c = stdin = noexec = 0; ++i <= n && W[i] ~ /^[-+]./ && W[i] != "--"; ) {
 					c = c || W[i] ~ /^-[^-]*c/
 					stdin = stdin || W[i] ~ /^-[^-]*s/
+					noexec = noexec || W[i] ~ /^-[^-]*n/
 					if (W[i] ~ /^[-+][^-]*[oO]$/)
 						i++
 				}
 				i += i <= n && W[i] == "--"
+				if (noexec) { # a syntax check reads the script and runs nothing
+					n = 0
+					return 0
+				}
 				line = i <= n ? W[i] : ""
 				if (c || stdin || i > n) {
 					n = 0
