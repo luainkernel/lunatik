@@ -621,11 +621,11 @@ The thread body runs holding the runtime lock, and `stop()` waits for it to retu
 that reads signals: `kthread_stop()` sets `TIF_NOTIFY_SIGNAL` on the task before it wakes it, so a
 `sock:receive()` with no timeout returns `ERESTARTSYS`, a `linux.schedule()` returns early, and a wait
 for another runtime's lock, in `resume`, `stop`, `thread.run` and every monitored method, raises
-`EINTR`. Two things it does not end, and each makes the thread unstoppable: a wait that goes back to
-sleep without reading a signal, the lock a `device` file operation or a kernel call takes among them,
-and a thread nothing stops at all, as a worker another body starts with `thread.run()` and drops is.
-Such a worker bounds each wait, a receive timeout or `MSG_DONTWAIT`, and reads what tells it to end
-between them, the way `examples/echod`'s workers read the byte their daemon clears.
+`EINTR`. One thing it does not end, and it makes the thread unstoppable: a wait that goes back to
+sleep without reading a signal, the lock a `device` file operation or a kernel call takes among them.
+The runtime that calls `thread.run()` keeps the thread and stops it as it ends, so a worker another
+body starts and drops ends with that body's runtime, as `examples/echod`'s workers do; an end made
+on the thread's own body leaves the thread to run until that body returns.
 
 A body that races another thread, a stress, pauses once per slice of its running rather than once
 per turn: `linux.schedule()` sleeps until a timer fires whatever the timeout, 0 included, and a
