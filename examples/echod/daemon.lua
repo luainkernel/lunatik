@@ -14,7 +14,6 @@ local shouldstop = thread.shouldstop
 local task = require("linux.task")
 local sock = require("linux.socket").sock
 
-local control = data.new(1)
 local workers = {}
 
 local server = inet.tcp()
@@ -38,10 +37,11 @@ local function daemon()
 	while (not shouldstop()) do
 		local session = server:accept(sock.NONBLOCK)
 		if session then
-			control:setbyte(0, n) -- #workers
+			local number = data.new(8)
+			number:setint64(0, n)
 			local runtime = lunatik.runtime("examples/" .. worker)
 			local done = data.new(1)
-			workers[thread.run(runtime, worker .. n, control, session, done)] = done
+			workers[thread.run(runtime, worker .. n, number, session, done)] = done
 			n = n + 1
 		else
 			linux.schedule(100)
