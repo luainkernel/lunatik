@@ -12,10 +12,11 @@ local pids   = require("tests.signal.pids")
 local PAST_LIMIT <const> = (4 << 20) + 1 -- one past PID_MAX_LIMIT where it is largest, 64-bit
 local WRAP <const> = 1 << 32
 
-signal.kill(pids.child, 0)
+assert(signal.kill(pids.child, 0) == true, "kill(child, 0) should find the child")
 
-local ok, err = pcall(signal.kill, pids.reaped, 0)
-assert(not ok and err == "ESRCH", "a reaped pid should raise ESRCH, got " .. tostring(err))
+local found, err = signal.kill(pids.reaped, 0)
+assert(found == nil and err == "ESRCH",
+	"a reaped pid should answer nil and ESRCH, got " .. tostring(found) .. ", " .. tostring(err))
 
 local function refused(f, ...)
 	local ok, err = pcall(f, ...)
@@ -31,5 +32,5 @@ for _, n in ipairs({-1, WRAP + sig.TERM}) do
 	assert(ok, "signal " .. n .. " should be out of bounds, got " .. tostring(err))
 end
 
-signal.kill(pids.child, sig.TERM)
+assert(signal.kill(pids.child, sig.TERM) == true, "kill(child, TERM) should send the signal")
 

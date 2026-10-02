@@ -16,20 +16,22 @@
 # script prints the namespace number with each event, and the test reads the
 # initial namespace's from /proc/1/ns/net and the second namespace's from the
 # process netns_up keeps there, whose pid the script resolves too, beside pid
-# 1's, a reaped pid, which raises ESRCH, and pid 0, which is out of bounds: lo
-# is replayed once per namespace, each with its own number, a dummy device
-# created and deleted on both sides is reported on register and on unregister
-# with the number of the side it was on, and one moved across is unregistered
-# with the number of the namespace it leaves and registered with the number of
-# the one it joins, the name unchanged.
+# 1's, a reaped pid and a zombie, a child its parent never reaps, which has left
+# its namespaces though it keeps its pid, both of which answer nil and ESRCH,
+# and pid 0, one past PID_MAX_LIMIT and one that would truncate to the holder's,
+# which are out of bounds: lo is replayed once per namespace, each with its own
+# number, a dummy device created and deleted on both sides is reported on
+# register and on unregister with the number of the side it was on, and one
+# moved across is unregistered with the number of the namespace it leaves and
+# registered with the number of the one it joins, the name unchanged.
 #
 # The assertions read the initial namespace as ground truth, so the suite has to
 # run in it, read as PID 1 sharing its namespace; elsewhere the test skips.
 #
-# The script runs from a CLI in a pid namespace of its own, which holds neither
-# the holder's pid nor the reaped one: linux.netns reads a pid in the initial pid
+# The script runs from a CLI in a pid namespace of its own, which holds none of
+# the pids the test hands it: linux.netns reads a pid in the initial pid
 # namespace, as task:pid() returns it, whichever task makes the call, and a
-# module that reads it in the caller's raises ESRCH on the holder. The shell has
+# module that reads it in the caller's answers ESRCH for the holder. The shell has
 # to run in the initial pid namespace, the only one whose pids are the ones
 # linux.netns reads, and the test skips elsewhere or without pid namespaces.
 #
@@ -46,6 +48,7 @@ cleanup()
 {
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
 	ip link del "$LIVEDEV" 2> /dev/null
+	[ -n "${PARENT:-}" ] && kill "$PARENT" 2> /dev/null
 	netns_down
 }
 
@@ -59,7 +62,7 @@ skip_all()
 {
 	echo "# SKIP: $1"
 	ktap_skip "linux.netns names the initial namespace, without a pid and with pid 1, and a task's by its pid"
-	ktap_skip "linux.netns raises ESRCH for a pid no task has and refuses one out of bounds"
+	ktap_skip "linux.netns answers nil and ESRCH for a pid no task has and for a zombie, and refuses one out of bounds"
 	ktap_skip "replay reports lo once per namespace, each with its own number"
 	ktap_skip "live register reports a device of the initial namespace with its number"
 	ktap_skip "live register reports a homonym in another namespace with that namespace's number"
@@ -99,7 +102,17 @@ OTHER=$(readlink "/proc/$NSPID/ns/net" | inum)
 true &
 REAPED=$!
 wait "$REAPED"
-echo "return {holder = $NSPID, reaped = $REAPED}" > "$PIDMOD"
+sh -c 'true & exec sleep 30' & # the sleep inherits the child, and never waits for it
+PARENT=$!
+disown "$PARENT"
+for _ in $(seq 1 50); do
+	ZOMBIE=$(ps -o pid= --ppid "$PARENT" | tr -d ' ')
+	[ -n "$ZOMBIE" ] && [[ "$(ps -o stat= -p "$ZOMBIE")" == Z* ]] && break
+	ZOMBIE=
+	sleep 0.1
+done
+[ -n "$ZOMBIE" ] || skip_all "cannot keep a zombie"
+echo "return {holder = $NSPID, reaped = $REAPED, zombie = $ZOMBIE}" > "$PIDMOD"
 
 mark_dmesg
 CLI=pidns run_script "$SCRIPT"
@@ -107,8 +120,8 @@ CLI=pidns run_script "$SCRIPT"
 [ "$(reported "home $INIT task $INIT holder $OTHER")" = 1 ] || fail "linux.netns(), linux.netns(1) or linux.netns($NSPID) is not its namespace's number"
 ktap_pass "linux.netns names the initial namespace, without a pid and with pid 1, and a task's by its pid"
 
-[ "$(reported "reaped pid raises ESRCH, pid 0 is out of bounds")" = 1 ] || fail "a reaped pid or pid 0 did not raise"
-ktap_pass "linux.netns raises ESRCH for a pid no task has and refuses one out of bounds"
+[ "$(reported "reaped pid and zombie answer nil and ESRCH, pids out of bounds raise")" = 1 ] || fail "a reaped pid or a zombie did not answer nil and ESRCH, or a pid out of bounds did not raise"
+ktap_pass "linux.netns answers nil and ESRCH for a pid no task has and for a zombie, and refuses one out of bounds"
 
 [ "$(reported "register lo $INIT")" = 1 ] || fail "lo of the initial namespace was reported $(reported "register lo $INIT") times on the replay"
 [ "$(reported "register lo $OTHER")" = 1 ] || fail "lo of $NETNS was reported $(reported "register lo $OTHER") times on the replay"

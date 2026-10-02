@@ -239,10 +239,11 @@ static int lualinux_hwaddr(lua_State *L)
 * @function netns
 * @tparam[opt] integer pid a task whose network namespace to identify, 1 to `PID_MAX_LIMIT`, in
 *   the initial pid namespace: the number `task:pid()` returns, whichever task makes the call.
-* @treturn integer inode number of the namespace.
-* @raise Error if the pid is out of bounds, `ESRCH` if no task has that pid, and "not allowed once
-*   the runtime is armed" for a pid from an interrupt-context runtime past its body, where the
-*   task's lock would be taken in softirq or hardirq.
+* @treturn integer inode number of the namespace; `nil` and `"ESRCH"` if no task has that pid,
+*   or the task has exited.
+* @raise Error if the pid is out of bounds, and "not allowed once the runtime is armed" for a pid
+*   from an interrupt-context runtime past its body, where the task's lock would be taken in
+*   softirq or hardirq.
 * @usage
 *   local home = linux.netns()
 */
@@ -257,7 +258,7 @@ static int lualinux_netns(lua_State *L)
 	pid_t pid = (pid_t)lunatik_checkinteger(L, 1, 1, PID_MAX_LIMIT);
 	struct net *net = lualinux_getnetbypid(pid);
 	if (IS_ERR(net))
-		lunatik_throw(L, (int)PTR_ERR(net));
+		return lunatik_pushfail(L, (int)PTR_ERR(net));
 	lua_pushinteger(L, net->ns.inum);
 	put_net(net);
 	return 1;

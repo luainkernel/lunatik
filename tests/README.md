@@ -923,9 +923,11 @@ from a pid namespace other than the initial one, whose pids are not the ones
   namespace, each with the inode number of its namespace, which `linux.netns()`
   gives for the initial one and `linux.netns(pid)` for a task's: pid 1's is the
   initial namespace's, the pid of the process kept in a second namespace gives
-  that one's, a reaped pid raises `ESRCH` and pid 0 is out of bounds. The script
-  runs from a CLI in a pid namespace of its own, which holds neither of those
-  pids, so the second namespace's number proves the pid is read in the initial
+  that one's, a reaped pid and a zombie, which has left its namespaces though
+  it keeps its pid, answer `nil` and `ESRCH`, and pid 0, one past
+  `PID_MAX_LIMIT` and one that would truncate to the holder's are out of bounds.
+  The script runs from a CLI in a pid namespace of its own, which holds none of
+  those pids, so the second namespace's number proves the pid is read in the initial
   pid namespace, as `task:pid()` returns it. With that namespace holding a
   homonym of every device, `lo` is replayed once per namespace with its own
   number, a dummy device created and deleted on both sides is reported on
@@ -1402,11 +1404,12 @@ Covers the `signal` module (`luasignal`): the bounds on a signal number and a
 pid, and what a valid call does.
 
 - **signal/kill**: with a child sleeping in the background and a pid the shell
-  has reaped, `kill(child, 0)` probes the child, `kill(reaped)` raises `ESRCH`,
-  a pid of 0, one past `PID_MAX_LIMIT` and one that would truncate to the
-  child's, and a signal that would truncate to `TERM`, raise `out of bounds`,
-  and `kill(child, TERM)` signals the child, and the shell then sees the child
-  end on `SIGTERM`. The truncation
+  has reaped, `kill(child, 0)` finds the child and answers `true`,
+  `kill(reaped, 0)` answers `nil` and `ESRCH`, a pid of 0, one past
+  `PID_MAX_LIMIT` and one that would truncate to the child's, and a signal that
+  would truncate to `TERM`, raise `out of bounds`, and `kill(child, TERM)`
+  answers `true` and signals the child, and the shell then sees the child end
+  on `SIGTERM`. The truncation
   cases target the child on every build, so a module without the bound signals
   the child and fails the case, never a stranger. The script runs from a CLI in
   a pid namespace of its own, which holds neither pid, so reaching the child
