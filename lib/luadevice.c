@@ -82,7 +82,7 @@ static noinline void luadevice_free(struct kref *kref) /* tests/device counts fr
 {
 	luadevice_t *luadev = container_of(kref, luadevice_t, kref);
 
-	if (luadev->runtime) /* NULL if setruntime errored in init */
+	if (luadev->runtime) /* NULL if lunatik_checkruntime errored in init */
 		lunatik_putobject(luadev->runtime);
 	lunatik_free(luadev);
 }
@@ -463,7 +463,7 @@ static int luadevice_new(lua_State *L)
 	object->private = luadev;
 	lunatik_optinteger(L, 1, luadev, mode, 0, S_IALLUGO, 0);
 
-	lunatik_setruntime(L, device, luadev);
+	luadev->runtime = lunatik_checkruntime(L, luadevice_class.name, luadevice_class.opt);
 	lunatik_getobject(luadev->runtime);
 
 	lunatik_try(L, alloc_chrdev_region, &luadev->devt, 0, 1, name);

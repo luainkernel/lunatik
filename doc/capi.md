@@ -470,18 +470,9 @@ lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *name, lunatik_o
 ```
 Returns the runtime associated with `L` after
 [`lunatik_checkcontext`](#lunatik_checkcontext) and then
-[`lunatik_checkclosing`](#lunatik_checkclosing) pass for it. A binding's constructor calls it,
-directly or through `lunatik_setruntime`, to enforce that a class is only instantiated in a
-compatible runtime, and that a finalizer that runs as the runtime closes registers nothing the
-runtime would dispatch.
-
-### lunatik\_setruntime
-```C
-lunatik_object_t *lunatik_setruntime(lua_State *L, libname, priv);
-```
-Stores `lunatik_checkruntime(L, lua<libname>_class.name, lua<libname>_class.opt)` in
-`priv->runtime` and returns it: the class is read by its name, `lua<libname>_class`, so
-`lunatik_setruntime(L, device, luadev)` checks against `luadevice_class`. Defined as a macro.
+[`lunatik_checkclosing`](#lunatik_checkclosing) pass for it. A binding's constructor calls it to
+enforce that a class is only instantiated in a compatible runtime, and that a finalizer that runs
+as the runtime closes registers nothing the runtime would dispatch.
 
 ### lunatik\_optcontext
 ```C

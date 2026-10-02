@@ -32,7 +32,7 @@
 # script forces after each refusal is where that lands.
 #
 # hid.register needs a softirq runtime: its class is LUNATIK_OPT_SOFTIRQ and
-# lunatik_setruntime() refuses any other context.
+# lunatik_checkruntime() refuses any other context.
 #
 # Usage: sudo bash tests/hid/run.sh
 
