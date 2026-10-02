@@ -24,7 +24,5 @@ static inline void luadata_close(lunatik_object_t *object)
 	lunatik_putobject(object);
 }
 
-#define luadata_attach(L, obj, field, opt)	lunatik_attach(L, obj, field, luadata_new, opt)
-
 #endif
 
