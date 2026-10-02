@@ -80,11 +80,15 @@ end
 -- use `sendto()` to send to the stored path or an explicit destination.
 -- @param msg (string) The message to send.
 -- @param path (string) [optional] Explicit destination socket path.
--- @return (number) Number of bytes sent on success.
+-- @return (number|boolean) Number of bytes sent, or `false` when a send timeout ended the wait with
+--   nothing queued.
 -- @raise error on failure.
 -- @see socket.send
 function unix:send(msg, path)
-	return path and self.socket:send(msg, path) or self.socket:send(msg)
+	if path then
+		return self.socket:send(msg, path)
+	end
+	return self.socket:send(msg)
 end
 
 ---
@@ -164,12 +168,12 @@ end
 -- If `path` is omitted, uses the path provided at construction time.
 -- @param msg (string) The message to send.
 -- @param path (string) [optional] Destination socket path.
--- @return (number) Number of bytes sent on success.
+-- @return (number|boolean) Number of bytes sent, or `false` when a send timeout ended the wait with
+--   nothing queued.
 -- @raise error on failure.
 -- @see unix.send
 function unix.dgram:sendto(msg, path)
-	local dest = path or self.path
-	return dest and self.socket:send(msg, dest) or self.socket:send(msg)
+	return self:send(msg, path or self.path)
 end
 
 return unix
