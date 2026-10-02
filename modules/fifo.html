@@ -274,26 +274,26 @@
     <dt id="fifo:push"><a name="fifo:push"></a><strong>fifo:push (data)</strong></dt>
     <dd>
     Pushes data into the FIFO.
- Copies a string of bytes into the FIFO.
+ Copies a string of bytes into the FIFO, whole or not at all.
 
 
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">data</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         bytes to push into the FIFO.
+         bytes to push into the FIFO, up to its capacity.
         </li>
     </ul>
 
     <h3>Returns</h3>
     <ol>
 
-           <span class="types"><span class="type">nil</span></span>
-
+           <span class="types"><span class="type">boolean</span></span>
+        <code>true</code> if the FIFO took the bytes, <code>false</code> if it has no room for them all.
     </ol>
 
     <h3>Raises</h3>
-    Error if the provided data string is larger than the available space in the FIFO.
+    &ldquo;out of bounds&rdquo; for a string longer than the FIFO&rsquo;s capacity, which no pop makes room for.
 
     <h3>See also</h3>
     <ul>
@@ -302,7 +302,9 @@
 
     <h3>Usage</h3>
         <pre class="example"><span class="comment">-- Assuming 'myfifo' is a fifo object
-</span>myfifo:<span class="function-name">push</span>(<span class="string">"hello"</span>)</pre>
+</span><span class="keyword">if</span> <span class="keyword">not</span> myfifo:<span class="function-name">push</span>(<span class="string">"hello"</span>) <span class="keyword">then</span>
+  <span class="global">print</span>(<span class="string">"full"</span>)
+<span class="keyword">end</span></pre>
 
 </dd>
 </dl>
@@ -354,7 +356,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
 </div>
 </footer>
 </body>

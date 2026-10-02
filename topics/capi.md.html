@@ -1361,6 +1361,18 @@ the Lua state may already be closed (e.g., from <code>release</code> after <code
 raises it with <code>lua_error</code>: <code>lunatik_throw(L, -ENOMEM)</code> raises <code>&quot;ENOMEM&quot;</code>. Used to convert
 negative kernel error codes into Lua errors.</p>
 
+<h3 id="lunatik_pushfail">lunatik_pushfail</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_pushfail</span>(lua_State *L, <span class="keyword">int</span> ret);
+</pre>
+
+
+<p>Pushes <code>nil</code> and the name of the errno <code>ret</code>, and returns 2, so a method answers an expected outcome
+with <code>return lunatik_pushfail(L, ret)</code>: the value counterpart of <a href="#lunatik_throw"><code>lunatik_throw</code></a>,
+for the &ldquo;there is none&rdquo; a method answers rather than raises, as <a href="../modules/socket.html#socket:receive">socket:receive</a> answers
+<code>nil, &quot;EAGAIN&quot;</code> for a wait that ended with nothing to read.</p>
+
 <h3 id="lunatik_pusherrname">lunatik_pusherrname</h3>
 
 <pre>
@@ -1961,7 +1973,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
 </div>
 </footer>
 </body>

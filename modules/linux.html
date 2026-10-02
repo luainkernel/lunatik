@@ -258,8 +258,8 @@
     <dt id="hwaddr"><a name="hwaddr"></a><strong>hwaddr (ifindex)</strong></dt>
     <dd>
     Gets the HW address for the network interface index.
- Resolved in the initial network namespace: a device of another namespace raises &ldquo;device not
- found&rdquo; (see <a href="../modules/linux.html#netns">linux.netns</a>).
+ Resolved in the initial network namespace: a device of another namespace is not found there
+ (see <a href="../modules/linux.html#netns">linux.netns</a>).
 
 
     <h3>Parameters</h3>
@@ -274,11 +274,9 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        interface HW address.
+        interface HW address, or <code>nil</code> if no device has that index.
     </ol>
 
-    <h3>Raises</h3>
-    Error if the device is not found.
 
 
     <h3>Usage</h3>
@@ -289,8 +287,8 @@
     <dt id="ifindex"><a name="ifindex"></a><strong>ifindex (interface_name)</strong></dt>
     <dd>
     Gets the interface index for a network device name.
- Resolved in the initial network namespace: a device of another namespace raises &ldquo;device not
- found&rdquo; (see <a href="../modules/linux.html#netns">linux.netns</a>).
+ Resolved in the initial network namespace: a device of another namespace is not found there
+ (see <a href="../modules/linux.html#netns">linux.netns</a>).
 
 
     <h3>Parameters</h3>
@@ -305,11 +303,9 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        interface index.
+        interface index, or <code>nil</code> if no device has that name.
     </ol>
 
-    <h3>Raises</h3>
-    Error if the device is not found.
 
 
     <h3>Usage</h3>
@@ -531,7 +527,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
 </div>
 </footer>
 </body>

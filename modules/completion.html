@@ -255,20 +255,14 @@
 
     <h3>Returns</h3>
     <ol>
-        <li>
+
            <span class="types"><span class="type">boolean</span></span>
-        <code>true</code> if the completion was signaled successfully before timeout or interruption.</li>
-        <li>
-           <span class="types"><span class="type">nil,string</span></span>
-         <code>nil</code> and an error message if the wait did not complete successfully. The message will be one of:
-   - <code>&quot;timeout&quot;</code>: The specified timeout elapsed.
-   - <code>&quot;interrupt&quot;</code>: The waiting task was interrupted by a signal (e.g., <code>thread.stop()</code>).
-   If the wait fails for other kernel internal reasons, the C code might push <code>&quot;unknown&quot;</code>, though typical documented returns are for timeout and interrupt.
-   - <code>&quot;unknown&quot;</code>: An unexpected error occurred during the wait.</li>
+        <code>true</code> if the completion was signaled, <code>false</code> if the timeout elapsed first.
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;runtime context mismatch&rdquo; from a softirq or hardirq runtime, its script body included;
+     <code>ERESTARTSYS</code> when a signal or the stop of the thread that waits interrupts the wait;
+   &ldquo;runtime context mismatch&rdquo; from a softirq or hardirq runtime, its script body included;
    &ldquo;not allowed while the runtime closes&rdquo; from a finalizer that runs at its close
 
     <h3>See also</h3>
@@ -278,11 +272,10 @@
 
     <h3>Usage</h3>
         <pre class="example"><span class="comment">-- Assuming 'c' is a completion object
-</span><span class="keyword">local</span> success, err_msg = c:<span class="function-name">wait</span>(<span class="number">1000</span>) <span class="comment">-- Wait for up to 1 second
-</span><span class="keyword">if</span> success <span class="keyword">then</span>
-  <span class="global">print</span>(<span class="string">"Completion received!"</span>)
+</span><span class="keyword">if</span> c:<span class="function-name">wait</span>(<span class="number">1000</span>) <span class="keyword">then</span> <span class="comment">-- Wait for up to 1 second
+</span>  <span class="global">print</span>(<span class="string">"Completion received!"</span>)
 <span class="keyword">else</span>
-  <span class="global">print</span>(<span class="string">"Wait failed: "</span> .. err_msg)
+  <span class="global">print</span>(<span class="string">"Timed out"</span>)
 <span class="keyword">end</span></pre>
 
 </dd>
@@ -325,7 +318,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
 </div>
 </footer>
 </body>

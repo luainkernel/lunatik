@@ -283,14 +283,15 @@ information in network byte order, the address, and the scope id.</li>
  This function is used with connection-oriented sockets (e.g., <code>SOCK_STREAM</code>)
  that have been put into the listening state by <code>sock:listen()</code>.
  The call blocks until a connection arrives, with no timeout of its own, unless <code>flags</code> carries
- <code>O_NONBLOCK</code> or <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> set a receive timeout; <a href="../modules/socket.html#socket:receive">receive</a> says how a stop ends the wait.
+ <code>O_NONBLOCK</code> or <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> set a receive timeout; either makes a wait with no connection to
+ accept answer <code>nil</code>, and <a href="../modules/socket.html#socket:receive">receive</a> says how a stop ends the wait.
 
 
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">flags</span>
             <span class="types"><span class="type">integer</span></span>
-         file status flags: <code>O_NONBLOCK</code> makes the call raise when no
+         file status flags: <code>O_NONBLOCK</code> makes the call answer at once when no
    connection is pending instead of waiting for one. <code>linux.socket.sock.NONBLOCK</code> carries
    <code>O_NONBLOCK</code> on every architecture but alpha and parisc.
          (<em>default</em> 0)
@@ -301,7 +302,8 @@ information in network byte order, the address, and the scope id.</li>
     <ol>
 
            <span class="types"><a class="type" href="../modules/socket.html#socket">socket</a></span>
-        A new socket object representing the accepted connection.
+        A new socket object representing the accepted connection; <code>nil</code> and <code>&quot;EAGAIN&quot;</code>
+   when the wait ended with no connection to accept.
     </ol>
 
     <h3>Raises</h3>
@@ -578,9 +580,10 @@ reports.</li>
     Receives a message from the socket.
  The call blocks until a message arrives, with no timeout of its own, unless <code>flags</code> carries
  <code>linux.socket.msg.DONTWAIT</code> or <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> set a receive timeout
- (<code>linux.socket.so.RCVTIMEO_NEW</code>); either makes a wait with nothing to read raise <code>EAGAIN</code>.
- A <code>lunatik stop</code> of the spawned thread that waits ends its wait; a thread nothing stops, as a
- worker a body starts with <code>thread.run()</code>, bounds every wait.
+ (<code>linux.socket.so.RCVTIMEO_NEW</code>); either makes a wait with nothing to read answer <code>nil</code>.
+ A <code>lunatik stop</code> of the spawned thread that waits ends its wait, which raises <code>ERESTARTSYS</code>, or
+ <code>EINTR</code> under a receive timeout; a thread nothing stops, as a worker a body starts with
+ <code>thread.run()</code>, bounds every wait.
 
 
     <h3>Parameters</h3>
@@ -601,8 +604,9 @@ reports.</li>
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        received message (as a string of bytes); on a stream socket, the empty string is
-   the end of file, once the peer has shut down its side.
+         received message (as a string of bytes); on a stream socket, the empty string is
+   the end of file, once the peer has shut down its side; <code>nil</code> and <code>&quot;EAGAIN&quot;</code> when the wait ended
+   with nothing to read.
     </ol>
 
     <h3>Raises</h3>
@@ -646,7 +650,8 @@ reports.</li>
     <ol>
         <li>
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        received message, as <a href="../modules/socket.html#socket:receive">receive</a> returns it.</li>
+        received message, as <a href="../modules/socket.html#socket:receive">receive</a> returns it; <code>nil</code> and <code>&quot;EAGAIN&quot;</code>, in place of the
+   message and the address, when the wait ended with nothing to read.</li>
         <li>
            <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          addr the sender&rsquo;s address (two values for <code>AF_INET</code> and <code>AF_NETLINK</code>,
@@ -867,7 +872,7 @@ reports.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
 </div>
 </footer>
 </body>

@@ -261,17 +261,17 @@ return send
     <ol>
         <li>
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <span class="type">nil</span></span>
-        the message, or <code>nil</code> if the event fired with the queue empty.</li>
+        the message, or <code>nil</code> if the wait elapsed, timeout 0 on an empty mailbox
+   included, or the event fired with the queue empty.</li>
         <li>
            <span class="types"><span class="type">integer</span></span>
         the message&rsquo;s length, beside a message.</li>
     </ol>
 
     <h3>Raises</h3>
-     &ldquo;send-only mailbox&rdquo; on an outbox; an error ending in &ldquo;timeout&rdquo; when the wait elapses,
-   timeout 0 on an empty mailbox included, or in &ldquo;interrupt&rdquo; when a signal or <code>thread:stop()</code>
-   interrupts it; &ldquo;malformed message&rdquo; on a truncated header; &ldquo;runtime context mismatch&rdquo; from a
-   softirq or hardirq runtime.
+     &ldquo;send-only mailbox&rdquo; on an outbox; <code>ERESTARTSYS</code> when a signal or <code>thread:stop()</code>
+   interrupts the wait; &ldquo;malformed message&rdquo; on a truncated header; &ldquo;runtime context mismatch&rdquo;
+   from a softirq or hardirq runtime.
 
 
 
@@ -290,9 +290,16 @@ return send
         </li>
     </ul>
 
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        <code>true</code> if the message was queued, <code>false</code> if the queue has no room for it.
+    </ol>
 
     <h3>Raises</h3>
-    Error if called on an inbox.
+    &ldquo;receive-only mailbox&rdquo; on an inbox; &ldquo;out of bounds&rdquo; for a message whose length plus a
+   <code>size_t</code> exceeds the queue&rsquo;s capacity.
 
 
 
@@ -375,7 +382,7 @@ return send
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
 </div>
 </footer>
 </body>

@@ -293,7 +293,8 @@
     <h3>Returns</h3>
     <ol>
 
-        (socket) The accepted connection, as a plain <a href="../modules/socket.html#">socket</a> object.
+        (socket) The accepted connection, as a plain <a href="../modules/socket.html#">socket</a> object, or <code>nil</code> and <code>&quot;EAGAIN&quot;</code>
+   when the wait ended with no connection to accept.
     </ol>
 
     <h3>Raises</h3>
@@ -371,9 +372,9 @@
     <h3>Returns</h3>
     <ol>
         <li>
-        (string) The received data.</li>
+        (string) The received data, or <code>nil</code> when the wait ended with nothing to read.</li>
         <li>
-        (string) The sender&rsquo;s IP address.</li>
+        (string) The sender&rsquo;s IP address, or <code>&quot;EAGAIN&quot;</code> beside that <code>nil</code>.</li>
         <li>
         (number) The sender&rsquo;s port number.</li>
     </ol>
@@ -671,7 +672,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
 </div>
 </footer>
 </body>

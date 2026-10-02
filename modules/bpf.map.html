@@ -331,6 +331,7 @@ print(events:pop())
     <dt id="hash"><a name="hash"></a><strong>hash (pathname, keyspec, valuespec)</strong></dt>
     <dd>
     Opens a pinned hash map as a table.
+ Assigning a key the map does not hold raises <code>E2BIG</code> once the map is full.
 
 
     <h3>Parameters</h3>
@@ -591,7 +592,7 @@ print(events:pop())
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
 </div>
 </footer>
 </body>

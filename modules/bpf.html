@@ -449,12 +449,12 @@ flow:<span class="function-name">close</span>()</pre>
 
            <span class="types"><span class="type">boolean</span></span>
         success; <code>false</code> when the flag condition is not met
- (<code>BPF_EXIST</code> on an absent key, <code>BPF_NOEXIST</code> on a present one).
+ (<code>BPF_EXIST</code> on an absent key, <code>BPF_NOEXIST</code> on a present one) or a hash map is full.
     </ol>
 
     <h3>Raises</h3>
     <code>invalid key size</code> or <code>invalid value size</code> when a string does not match the map, or
-   the kernel&rsquo;s errno, such as <code>E2BIG</code> when a hash map is full or <code>EINVAL</code> for bad flags.
+   the kernel&rsquo;s errno, such as <code>E2BIG</code> for an array index past its end or <code>EINVAL</code> for bad flags.
 
 
 
@@ -713,7 +713,7 @@ counter:<span class="function-name">close</span>()</pre>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
 </div>
 </footer>
 </body>
