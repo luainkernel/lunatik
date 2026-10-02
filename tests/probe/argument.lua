@@ -5,48 +5,75 @@
 -- Kernel-side script for the probe argument test (see argument.sh).
 
 local probe = require("probe")
-
-local getupvalue = debug.getupvalue
+local data  = require("data")
+local rcu   = require("rcu")
 
 local COUNT <const> = 8191 -- the size argument.sh reads
 local CLOSED <const> = "closed object"
+local FOREIGN <const> = "probe.regs expected"
+local SINGLE <const> = "cannot share SINGLE object"
 
-local staledump, staleargument
-local done = false
+local foreign = data.new(1)
+local exported = rcu.table()
+local kept
+local handlers = {}
 
 local function pass(what)
 	print("probe argument: " .. what)
 end
 
-local function dropped(closure)
-	local _, regs = getupvalue(closure, 1)
-	return regs == nil
+local function raises(expected, method, object, ...)
+	local ok, err = pcall(method, object, ...)
+	return not ok and err:find(expected, 1, true) ~= nil
 end
 
-local function pre(_, dump, argument)
-	if done then
-		return
-	end
+local function refused(regs)
+	local methods = getmetatable(regs)
+	return raises(FOREIGN, methods.dump, foreign) and raises(FOREIGN, methods.argument, foreign, 2)
+end
 
-	if staleargument ~= nil then
-		done = true
-		local ok, err = pcall(staleargument, 2)
-		if not ok and err:find(CLOSED, 1, true) and dropped(staledump) then
-			pass("stale")
+local function export(regs)
+	exported.regs = regs
+end
+
+local function pre(_, regs)
+	if kept ~= nil then
+		handlers.pre = nil -- the hits left find no handler, and must not leave the object pointing at them
+		if rawequal(kept, regs) then
+			pass("shared")
 		end
 		return
 	end
 
-	if argument(2) ~= COUNT then
+	if regs:argument(2) ~= COUNT then
 		return
 	end
 
 	pass("read")
-	if not pcall(argument, -1) then
+	if not pcall(regs.argument, regs, -1) then
 		pass("bounds")
 	end
-	staledump, staleargument = dump, argument
+	if refused(regs) then
+		pass("foreign")
+	end
+	if raises(SINGLE, export, regs) then
+		pass("single")
+	end
+	regs:dump()
+	kept = regs
 end
 
-probe.new("vfs_read", {pre = pre})
+local function stale()
+	if kept == nil then
+		return
+	end
+	local closed = raises(CLOSED, kept.argument, kept, -1) -- the object is checked first, so -1 reads no register
+	if closed and raises(CLOSED, kept.dump, kept) then
+		pass("stale")
+	end
+end
+
+handlers.pre = pre
+probe.new("vfs_read", handlers)
+handlers.sentinel = setmetatable({}, {__gc = stale}) -- marked after the regs, so the close finalizes it first
 

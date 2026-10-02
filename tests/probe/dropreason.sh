@@ -46,7 +46,7 @@ skip_all() {
 }
 
 CONFIG=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
-# lunatik_lookup reaches kallsyms_lookup_name through a kprobe, and the argument closure needs its own API
+# lunatik_lookup reaches kallsyms_lookup_name through a kprobe, and regs:argument needs its own API
 for option in CONFIG_KPROBES CONFIG_HAVE_FUNCTION_ARG_ACCESS_API; do
 	if [ -n "$CONFIG" ] && ! grep -q "^$option=y" <<< "$CONFIG"; then
 		skip_all "needs $option"

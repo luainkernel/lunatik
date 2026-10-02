@@ -10,13 +10,14 @@
 # raise.lua registers two probes on the personality syscall, which nothing else
 # on an idle host calls, and two setarch call it once each:
 #
-# - a pre and a post handler that each raise on their first hit, the pre keeping
-#   the dump closure it was handed: each error is logged once, followed by the
-#   handler's name, and on the second hit the kept closure no longer reaches the
-#   registers, so they are dropped on the path that raised too. dump is read
-#   through debug.getupvalue rather than called, so a build that stopped
-#   clearing it is reported instead of running show_regs on a pt_regs that is
-#   gone;
+# - a pre handler that raises on its first hit and a post handler that raises on
+#   its second: each error is logged once, followed by the handler's name, and the
+#   regs the post kept on the raising hit, the last handler the runtime runs, no
+#   longer reach the registers once no handler runs, so they are cleared on the
+#   path that raised too. A finalizer reads them at the stop, before the close
+#   finalizes them, through argument(-1), which checks the object before the
+#   index, so a build that stopped clearing them raises out of bounds and is
+#   reported without reading a pt_regs that is gone;
 # - a handlers table whose __index raises when the first hit looks up pre: the
 #   error is logged once, followed by the handler's name, and the second hit
 #   finds the handler and runs it.
@@ -45,7 +46,7 @@ ktap_plan 3
 skip_all()
 {
 	echo "# SKIP: $1"
-	ktap_skip "a pre or post handler that raises is logged with its name, and its closures are dropped"
+	ktap_skip "a pre or post handler that raises is logged with its name, and its regs are cleared"
 	ktap_skip "a handler lookup that raises is logged with the handler's name, and the next hit runs it"
 	ktap_skip "no Lua errors in kernel"
 	ktap_totals
@@ -71,8 +72,8 @@ for handler in pre post; do
 	[ "$logged" = 1 ] || fail "the $handler handler's raise was logged $logged times with its name, expected 1"
 done
 dropped=$(reported "${PREFIX}dropped")
-[ "$dropped" = 1 ] || fail "the closure kept from the raising hit was reported dropped $dropped times, expected 1"
-ktap_pass "a pre or post handler that raises is logged with its name, and its closures are dropped"
+[ "$dropped" = 1 ] || fail "the regs kept from the raising hit were reported cleared $dropped times, expected 1"
+ktap_pass "a pre or post handler that raises is logged with its name, and its regs are cleared"
 
 logged=$(reported "$MODULE: ${PREFIX}lookup: pre")
 [ "$logged" = 1 ] || fail "the lookup's raise was logged $logged times with the handler's name, expected 1"

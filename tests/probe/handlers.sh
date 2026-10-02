@@ -26,10 +26,8 @@
 #
 # Only pre was covered before: nothing in the tree registered a post handler, so
 # the post half of every hit was untested. What these rows hold is the behaviour
-# around the handler lookup, not its cost: whether a hit builds the closures before
-# it knows there is a handler to pass them to is not observable from Lua, and none
-# of the cases below measures it. A build that ran the handler the table does not
-# have, or stopped running the one it does, is what they catch.
+# around the handler lookup, not its cost. A build that ran the handler the table
+# does not have, or stopped running the one it does, is what they catch.
 #
 # Usage: sudo bash tests/probe/handlers.sh
 

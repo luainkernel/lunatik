@@ -20,7 +20,7 @@ is what names the drop site.
 
 Needs a kernel with `CONFIG_KPROBES` on an architecture that selects
 `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`, as x86 and arm64 do, since the script reads
-the reason through the probe's `argument`. The trigger line is a bash
+the reason through `regs:argument`. The trigger line is a bash
 redirection.
 
 ```
