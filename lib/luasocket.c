@@ -159,9 +159,9 @@ LUNATIK_PRIVATECHECKER(luasocket_check, struct socket *, &luasocket_class);
 #define luasocket_setmsg(m)		memset(&(m), 0, sizeof(m))
 
 /* a nonblocking flag or a timeout ends the wait with an errno that is an outcome, not a failure */
-static int luasocket_pushfail(lua_State *L, int ret, int expected)
+static int luasocket_pushfail(lua_State *L, int ret, bool outcome)
 {
-	if (ret != expected)
+	if (!outcome)
 		lunatik_throw(L, ret);
 	return lunatik_pushfail(L, ret);
 }
@@ -335,7 +335,7 @@ static int luasocket_receive(lua_State *L)
 
 	luasocket_setmsg(msg);
 	int ret = luasocket_receivemsg(L, &msg);
-	return ret < 0 ? luasocket_pushfail(L, ret, -EAGAIN) : 1;
+	return ret < 0 ? luasocket_pushfail(L, ret, ret == -EAGAIN) : 1;
 }
 
 /***
@@ -380,7 +380,7 @@ static int luasocket_receivefrom(lua_State *L)
 	msg.msg_name = &addr;
 	int ret = luasocket_receivemsg(L, &msg);
 	if (ret < 0)
-		return luasocket_pushfail(L, ret, -EAGAIN);
+		return luasocket_pushfail(L, ret, ret == -EAGAIN);
 
 	/* msg_namelen is an output: zero means the protocol named no address */
 	return luasocket_pushaddr(L, &addr, msg.msg_namelen) + 1;
@@ -470,8 +470,8 @@ static int luasocket_listen(lua_State *L)
 * the only address from which datagrams are received.
 * A TCP connect waits for the connection, with no timeout of its own, unless `flags` carries
 * `O_NONBLOCK` or `setsockopt` set a send timeout; either makes a wait that ends with the connection
-* still in progress answer `nil`, or raise `EALREADY` when an earlier connect started it, and `send`
-* says how a stop ends the wait.
+* still in progress answer `nil`, whether this connect or an earlier one started it, and `send` says
+* how a stop ends the wait.
 *
 * @function connect
 * @tparam integer|string addr destination address to connect to.
@@ -487,7 +487,7 @@ static int luasocket_listen(lua_State *L)
 *   complete at once not wait for it. `linux.socket.sock.NONBLOCK` carries
 *   `O_NONBLOCK` on every architecture but alpha and parisc.
 * @treturn boolean `true` once connected; `nil` and `"EINPROGRESS"` when the wait ended with the
-*   connection it started still in progress.
+*   connection it started still in progress, or `"EALREADY"` with one an earlier connect started.
 * @raise Error if the connect operation fails (e.g., connection refused, host unreachable).
 * @usage
 *   tcp_client_sock:connect(net.aton("192.168.1.100"), 80)
@@ -505,7 +505,7 @@ static int luasocket_connect(lua_State *L)
 #endif
 
 	if (ret < 0)
-		return luasocket_pushfail(L, ret, -EINPROGRESS);
+		return luasocket_pushfail(L, ret, ret == -EINPROGRESS || ret == -EALREADY);
 	lua_pushboolean(L, true);
 	return 1;
 }
@@ -743,7 +743,7 @@ static int luasocket_accept(lua_State *L)
 	int ret = kernel_accept(socket, luasocket_psocket(object), flags);
 
 	if (ret < 0)
-		return luasocket_pushfail(L, ret, -EAGAIN);
+		return luasocket_pushfail(L, ret, ret == -EAGAIN);
 	return 1; /* object */
 }
 
