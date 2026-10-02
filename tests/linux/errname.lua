@@ -6,7 +6,7 @@
 --
 
 local linux = require("linux")
-local test  = require("util").test
+local test  = require("tests.lib").test
 
 local ENOENT      <const> = 2
 local INT_MAX     <const> = 0x7FFFFFFF
