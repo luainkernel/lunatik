@@ -131,6 +131,21 @@ The type of the `LUNATIK_OPT_*` flags, of a class's `opt` and of an object's. It
 sparse (`make C=1`) warns on a plain integer mixed into it: flags combine with `|`, and a cast
 into the type carries `__force`, as the `LUNATIK_OPT_*` definitions do.
 
+### lunatik\_isirq
+```C
+bool lunatik_isirq(lunatik_opt_t opt);
+bool lunatik_ishardirq(lunatik_opt_t opt);
+bool lunatik_ismonitor(lunatik_opt_t opt);
+bool lunatik_issingle(lunatik_opt_t opt);
+bool lunatik_isexternal(lunatik_opt_t opt);
+bool lunatik_ispercpu(lunatik_opt_t opt);
+```
+Test `opt`, a class's or an object's, for a flag: `lunatik_isirq` holds for `LUNATIK_OPT_SOFTIRQ`
+and `LUNATIK_OPT_HARDIRQ` alike, through the `LUNATIK_OPT_IRQ` bit both carry,
+`lunatik_ishardirq` for `LUNATIK_OPT_HARDIRQ` alone, and each of the others for the flag it names:
+`lunatik_ispercpu` tells the `percpu` set [`lunatik_getpercpu`](#lunatik_getpercpu) returns from a
+runtime. Defined as macros.
+
 ---
 
 ## Runtime
@@ -165,7 +180,7 @@ once the script has loaded.
 _lunatik\_runtime()_ opens the Lua standard libraries
 [present on Lunatik](guide/04-lua.md).
 A softirq or hardirq runtime opens every one of them but `io`, and its `lunatik` library carries
-only `lunatik.cpu`.
+only `lunatik.cpu` and `lunatik._ENV`.
 If successful, _lunatik\_runtime()_ sets the address pointed by `pruntime` and
 [Lua's extra space](https://www.lua.org/manual/5.5/manual.html#lua_getextraspace)
 with a pointer for the new created `runtime` environment,
@@ -244,10 +259,9 @@ does not run either; otherwise, `ret` is set with the result of `handler(L, ...)
 Then, it restores the Lua stack and unlocks the `runtime` environment.
 A process runtime is locked with a mutex, so _lunatik\_run()_ on it is called from a context that
 may sleep.
-A `percpu` object, which the caller keeps referenced across the call, is resolved first, through
-`lunatik_pin`, to the runtime of the CPU the caller runs on, and the caller stays on that CPU
-until `lunatik_unpin` after the call returns: with preemption off for a softirq or hardirq set,
-with migration off for a process one.
+A `percpu` object, which the caller keeps referenced across the call, is resolved first to the
+runtime of the CPU the caller runs on, and the caller stays on that CPU until the call returns:
+with preemption off for a softirq or hardirq set, with migration off for a process one.
 It is defined as a macro.
 
 #### Example: lunatik\_run
@@ -375,7 +389,7 @@ bool lunatik_isready(lunatik_object_t *runtime);
 ```
 Returns `true` once `runtime` is armed, its script body returned, and until it is closed.
 `thread.run` uses it to refuse creating a thread from the script body of the runtime that calls
-it, with `not allowed before the runtime is armed`.
+it, with `not allowed before the runtime is armed`. Defined as a macro.
 
 ### lunatik\_isclosing
 ```C
@@ -401,8 +415,8 @@ its own task holds; a binding that dispatches without `lunatik_run` reads it its
 The answer is exact for a process-context object, whose mutex is task-owned; a SOFTIRQ or
 HARDIRQ class takes a spinlock, owned by a CPU and not by a task, and records whichever task
 the softirq or hardirq interrupted. It answers about the object it is given: a percpu set's own
-lock, which no dispatch takes, so `lunatik_run` reads it on the per-CPU instance `lunatik_pin`
-returns and `percpu:stop()` asks each runtime of the set in turn. And it sees the calling task
+lock, which no dispatch takes, so `lunatik_run` reads it on the runtime of the CPU it resolves
+and `percpu:stop()` asks each runtime of the set in turn. And it sees the calling task
 only — Lua that blocks under the lock on a second task which then reaches the same lock is a
 cycle no owner check can name. The entries a script reaches, the monitor, `stop`, `resume` and
 `thread.run`, take a runtime's lock with `lunatik_lockkillable`, so the stop of a kernel thread
@@ -413,10 +427,13 @@ in that cycle, or a fatal signal to another task in it, ends its wait; a dispatc
 ```C
 bool lunatik_isrtnl(void);
 void lunatik_setrtnl(struct task_struct *task);
+extern struct task_struct *lunatik_rtnl;
 ```
 `lunatik_isrtnl` returns `true` if the calling task is dispatching a callback under RTNL. A binding
 whose kernel callback runs with RTNL held, as `notifier.netdevice`'s does, sets the task with
-`lunatik_setrtnl(current)` before it runs Lua there and clears it with `lunatik_setrtnl(NULL)` after.
+`lunatik_setrtnl(current)` before it runs Lua there, and after it writes back the task
+`lunatik_rtnl` held before, read with `READ_ONCE(lunatik_rtnl)`, so a dispatch nested in another on
+the same task leaves the outer one's in place.
 RTNL is held by one task at a time, so one pointer serves every runtime and every coroutine, and
 the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
 kernel call that takes RTNL, such as `register_netdevice_notifier`, which would wait on the lock its
@@ -532,8 +549,9 @@ the following ones get the same object, so every runtime sees one. The `percpu` 
 context) before closing the runtimes, then drops it, and an object with such data outstanding is
 released by `stop`, never by collection. A registration a script makes once for all its runtimes,
 a netfilter hook, say, lives in the private of such an object, with the class's `release`
-unregistering it. Only the script body may ask, while the runtime loads; it raises a Lua error
-afterwards. Returns `NULL` on a plain runtime, which has no runtimes to share with;
+unregistering it. Only the script body may ask, while the runtime loads: afterwards it raises
+`not allowed once the runtime is armed`. It raises `not enough memory` too. Returns `NULL` on a
+plain runtime, which has no runtimes to share with;
 [`lunatik_getpercpu`](#lunatik_getpercpu) tells the two apart.
 
 ### LUNATIK\_PERCPUDATA (macro)
@@ -626,12 +644,15 @@ Returns a pointer to the `lunatik_object_t` on success, or `NULL` if memory allo
 ### lunatik\_require
 ```C
 void lunatik_require(lua_State *L, const lunatik_class_t *class);
+void lunatik_newclasses(lua_State *L, const lunatik_class_t **classes);
 ```
 Creates the class's metatables in the registry of `L` from its `methods`, the monitored one too
 for a `LUNATIK_OPT_MONITOR` class, unless `L` has them already. It opens no library and adds no
 `package.loaded` entry. A function that creates an object of its class in a state whose script
 may not have required the library calls it before [`lunatik_newobject`](#lunatik_newobject), as
-`luadata_new` does. Raises `not enough memory`.
+`luadata_new` does. `lunatik_newclasses` requires each class of a `NULL`-terminated array, as the
+opener [`LUNATIK_NEWLIB`](#lunatik_newlib) defines does, and an opener written by hand calls it.
+Raises `not enough memory`.
 
 ### lunatik\_cloneobject
 ```C
@@ -987,6 +1008,24 @@ for any other value, never `NULL`. It does not convert a number: `lua_tostring` 
 place, which allocates, and an allocation that fails outside a protected call raises with no
 handler, a `BUG()`. After a protected call or a resume fails, the error is read through it.
 
+### LUNATIK\_ERR\_CLOSED
+```C
+#define LUNATIK_ERR_CLOSED	"closed object"
+#define LUNATIK_ERR_SINGLE	"cannot share SINGLE object"
+#define LUNATIK_ERR_METATABLE	"metatable not found"
+#define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
+#define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
+#define LUNATIK_ERR_ARMED	"not allowed once the runtime is armed"
+#define LUNATIK_ERR_UNARMED	"not allowed before the runtime is armed"
+#define LUNATIK_ERR_RTNL	"not allowed under RTNL"
+#define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
+#define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
+#define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
+```
+The messages of the refusals this page documents. A binding that refuses one of their conditions on
+its own raises the same message through them, as `thread.run` raises `LUNATIK_ERR_UNARMED` from a
+script body, so a script reads one message for one condition.
+
 ---
 
 ## Table Fields
@@ -1100,13 +1139,15 @@ typedef struct lunatik_value_s {
 
 void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value);
 void lunatik_pushvalue(lua_State *L, lunatik_value_t *value);
+bool lunatik_isuserdata(lunatik_value_t *value);
 ```
 A Lua value that can cross runtimes: `nil`, a boolean, an integer, or a Lunatik object, as an
 `rcu.table` stores it. `lunatik_checkvalue` reads the value at `ix` into `value`, taking no
 reference on an object, and raises `unsupported type` for any other type and
 `cannot share SINGLE object` for a `LUNATIK_OPT_SINGLE` object. `lunatik_pushvalue` pushes
 `value`, handing the reference the caller holds on its object to the new userdata; when the push
-raises, it drops that reference first.
+raises, it drops that reference first. `lunatik_isuserdata` tells a value that holds an object, and
+is a macro.
 
 ---
 
