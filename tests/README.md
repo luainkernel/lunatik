@@ -958,7 +958,8 @@ from a pid namespace other than the initial one, whose pids are not the ones
 
 - **context_mismatch**: calling a hardirq-class constructor (e.g.
   `notifier.keyboard`) from a process runtime must error with "runtime
-  context mismatch: notifier needs hardirq" without oopsing during `__gc`.
+  context mismatch: notifier needs hardirq" without oopsing during `__gc`
+  (skips without a `/sys/class/tty/tty0`, which only `CONFIG_VT` creates).
 
 - **init_dispatch**: `notifier.netdevice(cb)` at script init must handle
   the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier`
