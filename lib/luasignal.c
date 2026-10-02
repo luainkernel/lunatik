@@ -32,11 +32,16 @@
 *   0 sends nothing and checks that the process exists.
 * @treturn boolean `true` once the signal is sent, or the process found for signal 0; `nil` and
 *   `"ESRCH"` if no process has that pid.
-* @raise Error if the pid or the signal is out of bounds. The signal is sent with the kernel's
-*   privilege, so no permission check applies.
+* @raise Error if the pid or the signal is out of bounds, and "not allowed with IRQs disabled"
+*   when called with IRQs disabled, as in every callback of a hardirq runtime, a probe's handlers
+*   among them, where the CPU may already hold a lock the signal takes. The signal is sent with the
+*   kernel's privilege, so no permission check applies.
 */
 static int luasignal_kill(lua_State *L)
 {
+	if (irqs_disabled())
+		luaL_error(L, "not allowed with IRQs disabled");
+
 	pid_t nr = lunatik_checkinteger(L, 1, 1, PID_MAX_LIMIT);
 	lua_Integer sig = luaL_optinteger(L, 2, SIGKILL);
 	lunatik_checkbounds(L, 2, sig, 0, _NSIG);

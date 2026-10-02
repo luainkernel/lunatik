@@ -18,7 +18,7 @@ Optional tools, without which the suites that need them skip:
 - `iw` and the `mac80211_hwsim` module: netlink
 - `nsenter`: netlink, notifier, socket
 - `nft`: skb, socket
-- `setarch`: probe, rcu
+- `setarch`: probe, rcu, signal
 - `taskset`: probe, xdp
 - `lunatic`: luac
 
@@ -1401,7 +1401,7 @@ or when `bpftool` or `clang` is unavailable.
 ### signal
 
 Covers the `signal` module (`luasignal`): the bounds on a signal number and a
-pid, and what a valid call does.
+pid, what a valid call does, and where it refuses to run.
 
 - **signal/kill**: with a child sleeping in the background and a pid the shell
   has reaped, `kill(child, 0)` finds the child and answers `true`,
@@ -1416,6 +1416,18 @@ pid, and what a valid call does.
   proves the pid is read in the initial pid namespace, as `task:pid()` returns
   it (skips without pid namespaces, and from a pid namespace other than the
   initial one).
+
+- **signal/softirq**: a softirq runtime resumed past its body, with bottom
+  halves off and IRQs on as in a netfilter or XDP hook, finds pid 1 with
+  `kill(1, 0)`, which a refusal keyed on the context rather than on IRQs would
+  raise.
+
+- **signal/probe**: a hardirq runtime's body, which runs with IRQs on, finds
+  pid 1 with `kill(1, 0)`, and the pre handler of a kprobe on the personality
+  syscall, which `setarch` makes, sees the same call raise `not allowed with
+  IRQs disabled`. Signal 0 never reaches the target's siglock, so a module
+  without the refusal answers in the handler and fails the case rather than
+  spinning (skips without `CONFIG_KPROBES` or `setarch`).
 
 ### set
 
