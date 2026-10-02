@@ -214,10 +214,17 @@ signal.kill(1234, sig.TERM)
         </li>
     </ul>
 
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        <code>true</code> once the signal is sent, or the process found for signal 0; <code>nil</code> and
+   <code>&quot;ESRCH&quot;</code> if no process has that pid.
+    </ol>
 
     <h3>Raises</h3>
-    Error if the pid or the signal is out of bounds; &ldquo;ESRCH&rdquo; if no process has that pid. The
-   signal is sent with the kernel&rsquo;s privilege, so no permission check applies.
+    Error if the pid or the signal is out of bounds. The signal is sent with the kernel&rsquo;s
+   privilege, so no permission check applies.
 
 
 
@@ -236,7 +243,7 @@ signal.kill(1234, sig.TERM)
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
 </div>
 </footer>
 </body>

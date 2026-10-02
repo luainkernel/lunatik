@@ -358,8 +358,8 @@
     <ul>
         <li><span class="parameter">pid</span>
             <span class="types"><span class="type">integer</span></span>
-         a task whose network namespace to identify, in the initial pid
-   namespace: the number <code>task:pid()</code> returns, whichever task makes the call.
+         a task whose network namespace to identify, 1 to <code>PID_MAX_LIMIT</code>, in
+   the initial pid namespace: the number <code>task:pid()</code> returns, whichever task makes the call.
          (<em>optional</em>)
         </li>
     </ul>
@@ -368,11 +368,12 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        inode number of the namespace.
+        inode number of the namespace; <code>nil</code> and <code>&quot;ESRCH&quot;</code> if no task has that pid,
+   or the task has exited.
     </ol>
 
     <h3>Raises</h3>
-     <code>ESRCH</code> if no task has that pid, and &ldquo;not allowed once the runtime is armed&rdquo; for a pid
+     Error if the pid is out of bounds, and &ldquo;not allowed once the runtime is armed&rdquo; for a pid
    from an interrupt-context runtime past its body, where the task&rsquo;s lock would be taken in
    softirq or hardirq.
 
@@ -527,7 +528,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
 </div>
 </footer>
 </body>
