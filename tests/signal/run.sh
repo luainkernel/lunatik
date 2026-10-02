@@ -6,18 +6,18 @@
 # Runs the signal tests and reports KTAP results.
 #
 # signal/kill: with a child sleeping in the background and a pid the shell has
-# already reaped, kill(child, 0) probes the child, kill(reaped) raises ESRCH,
-# a pid of 0, one past PID_MAX_LIMIT and one that would truncate to the
-# child's, and a signal that would truncate to TERM, raise "out of bounds", and
-# kill(child, TERM) signals the child, and the shell then sees the child end on
-# SIGTERM.
+# already reaped, kill(child, 0) finds the child and answers true,
+# kill(reaped, 0) answers nil and ESRCH, a pid of 0, one past PID_MAX_LIMIT and
+# one that would truncate to the child's, and a signal that would truncate to
+# TERM, raise "out of bounds", and kill(child, TERM) answers true and signals
+# the child, and the shell then sees the child end on SIGTERM.
 # The truncation cases target the child on every build, so a module without
 # the bound sends the child a signal and fails the case, never a stranger.
 #
 # The script runs from a CLI in a pid namespace of its own, which holds neither
 # pid: kill reads a pid in the initial pid namespace, as task:pid() returns it,
 # whichever task makes the call, and a module that reads it in the caller's
-# raises ESRCH on the child and fails both cases. The shell has to run in the
+# answers ESRCH for the child and fails both cases. The shell has to run in the
 # initial pid namespace, the only one whose pids are the ones kill reads, and
 # the cases skip elsewhere or without pid namespaces.
 #

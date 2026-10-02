@@ -30,8 +30,10 @@
 *   number `task:pid()` returns, whichever task makes the call.
 * @tparam[opt] integer sig Signal to send, 0 to `_NSIG` (default: `KILL`, from `linux.signal`);
 *   0 sends nothing and checks that the process exists.
-* @raise Error if the pid or the signal is out of bounds; "ESRCH" if no process has that pid. The
-*   signal is sent with the kernel's privilege, so no permission check applies.
+* @treturn boolean `true` once the signal is sent, or the process found for signal 0; `nil` and
+*   `"ESRCH"` if no process has that pid.
+* @raise Error if the pid or the signal is out of bounds. The signal is sent with the kernel's
+*   privilege, so no permission check applies.
 */
 static int luasignal_kill(lua_State *L)
 {
@@ -43,10 +45,13 @@ static int luasignal_kill(lua_State *L)
 	int ret = kill_pid(find_pid_ns(nr, &init_pid_ns), sig, 1); /* a pid no task holds is NULL: -ESRCH */
 	rcu_read_unlock();
 
+	if (ret == -ESRCH)
+		return lunatik_pushfail(L, ret);
 	if (ret)
 		lunatik_throw(L, ret);
 
-	return 0;
+	lua_pushboolean(L, true);
+	return 1;
 }
 
 static const luaL_Reg luasignal_lib[] = {

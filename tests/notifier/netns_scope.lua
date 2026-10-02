@@ -11,6 +11,8 @@ local notify   = require("linux.notify")
 local pids     = require("tests.netns_pid")
 
 local INIT <const> = 1 -- pid 1 lives in the initial namespace, so its netns is linux.netns()
+local PAST_LIMIT <const> = (4 << 20) + 1 -- one past PID_MAX_LIMIT where it is largest, 64-bit
+local WRAP <const> = 1 << 32
 
 local events = {[netdev.REGISTER] = "register", [netdev.UNREGISTER] = "unregister"}
 
@@ -23,10 +25,15 @@ local function cb(event, name, netns)
 end
 
 print(("netns scope: home %d task %d holder %d"):format(linux.netns(), linux.netns(INIT), linux.netns(pids.holder)))
-local ok, err = pcall(linux.netns, pids.reaped)
-assert(not ok and err == "ESRCH", "a reaped pid should raise ESRCH, got " .. tostring(err))
-ok, err = pcall(linux.netns, 0)
-assert(not ok and err:match("out of bounds"), "pid 0 should be out of bounds, got " .. tostring(err))
-print("netns scope: reaped pid raises ESRCH, pid 0 is out of bounds")
+for _, pid in ipairs({pids.reaped, pids.zombie}) do
+	local inum, err = linux.netns(pid)
+	assert(inum == nil and err == "ESRCH",
+		("pid %d should answer nil and ESRCH, got %s, %s"):format(pid, tostring(inum), tostring(err)))
+end
+for _, pid in ipairs({0, PAST_LIMIT, WRAP + pids.holder}) do
+	local ok, err = pcall(linux.netns, pid)
+	assert(not ok and err:match("out of bounds"), "pid " .. pid .. " should be out of bounds, got " .. tostring(err))
+end
+print("netns scope: reaped pid and zombie answer nil and ESRCH, pids out of bounds raise")
 notifier.netdevice(cb)
 
