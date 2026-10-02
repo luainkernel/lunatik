@@ -673,6 +673,14 @@ the state, where a boolean stored on an existing node cannot.
 The public API freezes at each major release: a minor only adds. These are the rules the v5.0 freeze
 settled (#1292); a binding or a Lua module follows them whichever language it is written in.
 
+They serve a smaller API and a smaller core, never a larger one. A reading of one of them that
+multiplies names or threads a mechanism through the core is read again for what the rule is for, and
+the smallest shape that keeps that purpose is the one taken: #1537 split `linux.tracing` into three
+functions to avoid a boolean that is the very value the call writes, and the RTNL a netdevice callback
+runs under grew a flag on the runtime, an error and a check in the core and refusals in `socket`,
+`netlink`, `thread` and a runtime's `stop`, before the maintainer chose to defer the callback off RTNL
+and remove them all.
+
 * A module whose object is its own type constructs it with `.new`; a module of several types names a
   factory for each (`crypto.shash`, `bpf.hash`, `rcu.table`); a kernel registration takes the verb it
   mirrors (`netfilter.register`, `hid.register`, `fsnotify.watch`, `thread.run`); a hook a kfunc
@@ -691,7 +699,9 @@ settled (#1292); a binding or a Lua module follows them whichever language it is
   (`rcu.table`, `crypto.aead`, `lunatik.runtime`): what a script types to reach it.
 * Required arguments come first and optional ones last; a set of named fields is a table; a choice the
   binding defines is a string read by `luaL_checkoption`; a kernel value is an integer a `linux.*` table
-  names; no positional boolean changes what a call does or how many values it returns.
+  names; no positional boolean changes what a call does or how many values it returns. A boolean
+  that is the value an accessor writes selects no mode: `linux.tracing([on])` reads given none or
+  nil, writes given a boolean, refuses anything else, and is one function.
 * A duration a script hands a wait is in milliseconds, a clock or an accounting read is in
   nanoseconds, and every `@tparam` and `@treturn` of a time names its unit.
 * A `linux.*` table holds only names a kernel header defines, keyed by the name without its prefix,
@@ -1135,7 +1145,10 @@ named, not one discovered at that consumer's build.
   he takes in one read: `Decision:` and the question in a line, the options lettered `A)`, `B)`, each
   with what it changes, and `Recommendation:` with the option and its reason. "Its rewording is the
   maintainer's" names who decides and not what: #1205 was filed that way, the reply that reported it
-  said "é decisão sua", and the maintainer had to ask what his decision was.
+  said "é decisão sua", and the maintainer had to ask what his decision was. The options include the
+  smallest change that makes the defect unreachable, and each larger one says what it buys over it:
+  #1537 offered three functions or a string choice for `linux.tracing`, and the change that fixed its
+  defect, a read on none or nil, was in neither.
 * A fact the maintainer states is taken as given and acted on, not verified back: "#736 is merged"
   ends a question rather than opening one, and re-arguing the point it settles spends the exchange
   on what is already decided. A state you assert yourself is the other way round, and rule 1 governs
