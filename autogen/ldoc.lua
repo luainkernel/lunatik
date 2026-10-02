@@ -53,6 +53,9 @@ end
 
 local function keyrule(spec, name)
 	if spec.struct then return nil end
+	if spec.strip == false then
+		return ("Keys are the kernel names: `%s<NAME>` is `%s.%s<NAME>`."):format(spec.prefix, name, spec.prefix)
+	end
 	return ("Keys are the kernel names with the prefix stripped: `%s<NAME>` is `%s.<NAME>`.")
 		:format(spec.prefix, name)
 end

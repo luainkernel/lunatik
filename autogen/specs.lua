@@ -4,7 +4,7 @@
 --
 -- Input for autogen.lua. A spec is one of two kinds. A constant spec carries
 -- a `prefix` and produces a table of integer constants (keyed by the constant
--- name with `prefix` stripped). A struct spec carries `struct` and `fields`
+-- name with `prefix` stripped, unless `strip` is false). A struct spec carries `struct` and `fields`
 -- and produces a layout descriptor (per-field offset/size/signedness + total
 -- size); `lib/struct.lua` turns that into a `string.pack` codec. Each entry
 -- feeds one autogen/linux/<module>.lua.
@@ -13,6 +13,7 @@
 -- @field module name of the resulting Lua module
 -- @field desc   short LDoc description used by autogen/ldoc.lua
 -- @field prefix constant prefix (constant specs)
+-- @field strip  false keeps `prefix` in the keys (constant specs)
 -- @field struct kernel struct name (struct specs)
 -- @field as     Lua key for the layout (struct specs); defaults to `struct`
 -- @field fields the struct's scalar fields (struct specs); order is free
@@ -57,6 +58,8 @@ return {
 		desc = "TC handles." },
 	{ header = "linux/sched.h", prefix = "TASK_", module = "task",
 		desc = "Task state flags." },
+	{ header = "uapi/linux/errno.h", prefix = "E", module = "errno", strip = false,
+		desc = "Error numbers, positive, keyed by the name `linux.errname` gives them." },
 	{ header = "linux/sched/ext.h", prefix = "SCX_", module = "scx", optional = true,
 		desc = "Extensible Scheduler (sched_ext) flags, from 6.12 on." },
 	{ header = "linux/net.h", prefix = "SOCK_", module = "socket.sock",

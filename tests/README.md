@@ -618,7 +618,10 @@ after the watch is stopped.
   (`TC_H_ROOT`, `TC_H_INGRESS`, `TC_H_MAJ_MASK`) and from an enum
   (`RT_TABLE_MAX`), is positive; a signed one below zero (`TC_ACT_UNSPEC`,
   the `NF_IP_PRI_*` and `NF_BR_PRI_*` priorities down to `INT_MIN`) keeps its
-  sign; and one within `INT_MAX` is unchanged.
+  sign; and one within `INT_MAX` is unchanged. `linux.errno` holds each errno
+  positive, under the name `linux.errname` gives its value (`EPERM`, `ENOENT`,
+  `EAGAIN`, `ENOMEM`, `EACCES` and `EINVAL` read the uapi values), an alias
+  such as `EWOULDBLOCK` beside the name it shares a value with.
 - **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, and in
   the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
   body, the armed state a hook calls from, each refuses with "not allowed once the runtime is
