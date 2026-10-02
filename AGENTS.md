@@ -838,6 +838,12 @@ settled (#1292); a binding or a Lua module follows them whichever language it is
   result with `== nil`; a looked-up constructor is named `new`, never the same name as what it builds.
 * `cond and f() or g()` only when `f` is guaranteed to return a truthy value: if `f()` returns nil or
   false, `g()` runs too. Side effects and doubtful returns take if/else.
+* Two returns that differ in one value are one return whose value is that choice: `return msg, msg
+  and net.ntoa(ip) or ip, port` in `inet.udp:receivefrom`, where an `if` returned `nil, ip` above a
+  second `return`, the `and`/`or` held to the rule above (`net.ntoa` answers a string). The trailing
+  `nil` the shorter arm left off reads the same to every caller but `select("#", ...)`, so a test
+  reads the values and not their count. `lua-style.sh` names the `if` that returns `nil` above a
+  return of what it tested.
 * Name variables by role, not by structure: `proxy`, not `tbl`; `openproxy` to pair with `openqueue`,
   not `opentable`.
 * A module that makes objects returns a class or namespace table named for the module, never `M` and
