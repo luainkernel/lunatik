@@ -8,6 +8,9 @@
 # call one function is a ternary: #1358 and #1383 passed their reviews in those shapes,
 # and the maintainer asked for both. A predicate macro spelled with ?: reads as two rules,
 # and a loop header a file spells twice is a foreach macro: #1504 and #1539 carried those.
+# A value a function computes before a check that raises and does not read it decides before
+# validating, and is computed after the checks: #1584's fifo:push spelled `bool fits` above
+# its lunatik_checkbounds until the maintainer asked why.
 # Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
 # guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -17,6 +20,19 @@ for file in "$@"; do
 	case "$file" in */lua/*|lua/*) continue ;; *.c|*.h) ;; *) continue ;; esac
 	awk -v f="$file" '
 	function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+	function reads(s, name) { return match(s, "(^|[^A-Za-z0-9_])" name "([^A-Za-z0-9_]|$)") }
+	# the name a declaration computes into, "" for one that only copies, casts or names a constant
+	# or that calls with the Lua state, which validates rather than computes
+	function computed(s,   lhs, init) {
+		if (s !~ /^(const |struct |unsigned |signed )*[A-Za-z_][A-Za-z0-9_]*[ \t*]+[A-Za-z_*][A-Za-z0-9_]*[ \t]*=[ \t]*[^=].*;$/)
+			return ""
+		lhs = trim(substr(s, 1, index(s, "=") - 1))
+		init = trim(substr(s, index(s, "=") + 1)); sub(/;$/, "", init)
+		if (init ~ /\(L[,)]/ || init ~ /^(\([^()]*\))?[ \t]*&?[A-Za-z_][A-Za-z0-9_]*$/ || init ~ /^(-?[0-9]+|0x[0-9a-fA-F]+|\{.*\})$/)
+			return ""
+		match(lhs, /[A-Za-z_][A-Za-z0-9_]*$/)
+		return substr(lhs, RSTART, RLENGTH)
+	}
 	# the function a statement of one call calls, "" for any other statement
 	function callee(s) {
 		sub(/^return /, "", s)
@@ -80,6 +96,21 @@ for file in "$@"; do
 				printf "%s:%d: the loop of line %d again: a foreach macro names a walk over one domain, as lunatik_foreachruntime does\n", f, NR, loops[loop]
 			else
 				loops[loop] = NR
+		}
+		if ($0 ~ /^[{}]/)
+			split("", pending)
+		else {
+			if (line ~ /^(lunatik_checkbounds|luaL_argcheck|luaL_argerror|luaL_check[a-z]*|lunatik_check[a-z]*|lunatik_argcheck[a-z]*)\(/)
+				for (name in pending)
+					if (!reads(line, name)) {
+						printf "%s:%d: %s is computed before the check of line %d, which does not read it: compute it after the checks\n", f, pending[name], name, NR
+						delete pending[name]
+					}
+			for (name in pending)
+				if (reads(line, name))
+					delete pending[name]
+			if ((name = computed(line)) != "")
+				pending[name] = NR
 		}
 		arm[NR] = line
 		if (NR > 3 && arm[NR - 1] == "else" && arm[NR - 3] ~ /^if \(.*\)([ \t]*\/\*.*\*\/)?$/ && callee(arm[NR - 2]) != "" &&

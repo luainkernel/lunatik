@@ -255,7 +255,10 @@ edit time and over a pull request's diff too. It names an `is` or `has` predicat
 with `?:`, which reads as two rules where an `||` of the exception and the rule reads as one, and a
 loop header a file spells twice, which a foreach macro names, as `lunatik_foreachruntime` does:
 #1504 landed `lunatik_iswrapped` as a ternary the maintainer found too complex (#1530), and #1539
-walked its views with one `for` in four places until he asked for `luaskb_foreachview`. It
+walked its views with one `for` in four places until he asked for `luaskb_foreachview`. It names
+a value a function computes before a check that raises and does not read it, which decides before
+validating: #1584's `fifo:push` computed whether the string fits above the `lunatik_checkbounds`
+that refuses one past the capacity, and the maintainer asked why. It
 annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
 between the check and the throw is what the reader decides on.
 
@@ -758,7 +761,8 @@ settled (#1292); a binding or a Lua module follows them whichever language it is
 * A sentinel value gets a name as soon as it appears in more than one place: `cpu != LUNATIK_CPU_NONE`
   says what `cpu >= 0` only implies, and ties the definition, the default and every test of it.
 * For every raise after acquiring a resource, know what is already held and who releases it; validate
-  before acquiring whenever the check does not need the resource. The mirror holds too: a reference the
+  before acquiring whenever the check does not need the resource, and compute a value after the checks
+  that do not read it, which `tools/checks/idioms.sh` names. The mirror holds too: a reference the
   `release` will drop is taken before the first call that can raise, and a registration made before the
   object is complete is undone on every error path out of the constructor.
 * An assignment used as a value inside a condition is parenthesised: `<` binds tighter than `=`, so
