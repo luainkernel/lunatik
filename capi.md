@@ -912,6 +912,14 @@ Pushes the name of the errno `ret` through [`lunatik_pusherrname`](#lunatik_push
 raises it with `lua_error`: `lunatik_throw(L, -ENOMEM)` raises `"ENOMEM"`. Used to convert
 negative kernel error codes into Lua errors.
 
+### lunatik\_unsupported
+```C
+int lunatik_unsupported(lua_State *L);
+```
+A `lua_CFunction` that raises `EOPNOTSUPP` through [`lunatik_throw`](#lunatik_throw): the entry a
+binding registers in place of one the kernel it is built for lacks, so the name stays in the module
+and a script that calls it learns why.
+
 ### lunatik\_pushfail
 ```C
 int lunatik_pushfail(lua_State *L, int ret);

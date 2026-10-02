@@ -247,7 +247,6 @@
     <dt id="keyboard"><a name="keyboard"></a><strong>keyboard (callback)</strong></dt>
     <dd>
     Registers a keyboard-event notifier.  Must be called from a <code>hardirq</code> runtime.
- Only available when the kernel is built with <code>CONFIG_VT</code>.
 
 
     <h3>Parameters</h3>
@@ -270,7 +269,8 @@
     </ol>
 
     <h3>Raises</h3>
-     if called from a percpu runtime; <code>runtime context mismatch</code> outside a hardirq runtime;
+     <code>EOPNOTSUPP</code> on a kernel built without <code>CONFIG_VT</code>;
+   if called from a percpu runtime; <code>runtime context mismatch</code> outside a hardirq runtime;
    <code>not allowed while the runtime closes</code> from a finalizer that runs at its close;
    the kernel&rsquo;s errno when it refuses the registration
 
@@ -325,7 +325,6 @@
     <dt id="vt"><a name="vt"></a><strong>vt (callback)</strong></dt>
     <dd>
     Registers a virtual-terminal notifier.  Must be called from a <code>hardirq</code> runtime.
- Only available when the kernel is built with <code>CONFIG_VT</code>.
 
 
     <h3>Parameters</h3>
@@ -348,7 +347,8 @@
     </ol>
 
     <h3>Raises</h3>
-     if called from a percpu runtime; <code>runtime context mismatch</code> outside a hardirq runtime;
+     <code>EOPNOTSUPP</code> on a kernel built without <code>CONFIG_VT</code>;
+   if called from a percpu runtime; <code>runtime context mismatch</code> outside a hardirq runtime;
    <code>not allowed while the runtime closes</code> from a finalizer that runs at its close;
    the kernel&rsquo;s errno when it refuses the registration
 
@@ -369,7 +369,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:19:34</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:24:23</span>
 </div>
 </footer>
 </body>

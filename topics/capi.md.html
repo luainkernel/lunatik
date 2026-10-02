@@ -1374,6 +1374,17 @@ the Lua state may already be closed (e.g., from <code>release</code> after <code
 raises it with <code>lua_error</code>: <code>lunatik_throw(L, -ENOMEM)</code> raises <code>&quot;ENOMEM&quot;</code>. Used to convert
 negative kernel error codes into Lua errors.</p>
 
+<h3 id="lunatik_unsupported">lunatik_unsupported</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_unsupported</span>(lua_State *L);
+</pre>
+
+
+<p>A <code>lua_CFunction</code> that raises <code>EOPNOTSUPP</code> through <a href="#lunatik_throw"><code>lunatik_throw</code></a>: the entry a
+binding registers in place of one the kernel it is built for lacks, so the name stays in the module
+and a script that calls it learns why.</p>
+
 <h3 id="lunatik_pushfail">lunatik_pushfail</h3>
 
 <pre>
@@ -1986,7 +1997,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:19:34</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:24:23</span>
 </div>
 </footer>
 </body>
