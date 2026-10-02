@@ -110,7 +110,7 @@ static int luatask_cpu(lua_State *L)
 */
 static int luatask_current(lua_State *L)
 {
-	luatask_new(L, current);
+	luatask_attach(L, current);
 	return 1;
 }
 
@@ -143,7 +143,7 @@ static const lunatik_class_t luatask_class = {
 	.owner   = THIS_MODULE,
 };
 
-lunatik_object_t *luatask_new(lua_State *L, struct task_struct *task)
+lunatik_object_t *luatask_attach(lua_State *L, struct task_struct *task)
 {
 	lunatik_require(L, &luatask_class);
 	lunatik_object_t *object = lunatik_newobject(L, &luatask_class, 0, LUNATIK_OPT_NONE);
@@ -152,7 +152,7 @@ lunatik_object_t *luatask_new(lua_State *L, struct task_struct *task)
 	object->private = task;
 	return object;
 }
-EXPORT_SYMBOL(luatask_new);
+EXPORT_SYMBOL(luatask_attach);
 
 LUNATIK_CLASSES(task, &luatask_class);
 LUNATIK_NEWLIB(task, luatask_lib, luatask_classes);

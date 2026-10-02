@@ -843,7 +843,7 @@ exposing them to the GC:
 
 ```C
 /* registration, once, at hook setup */
-lunatik_attach(L, obj, field, luafoo_new, opt);
+lunatik_attach(L, obj, field, luafoo_attach, opt);
 
 /* use, on each callback */
 lunatik_object_t *o = lunatik_getregistryobject(L, obj->field);

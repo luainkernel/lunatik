@@ -306,7 +306,7 @@ static int luanetfilter_lregister(lua_State *L)
 	nf->runtime = runtime;
 
 	luanetfilter_hook_t *hook = percpu != NULL ? luanetfilter_share(L, percpu, &spec) : luanetfilter_own(L, nf, &spec);
-	luaskb_attach(L, nf, skb);
+	lunatik_attach(L, nf, skb, luaskb_attach, false);
 	lunatik_registerobject(L, 1, object);
 	lunatik_register(L, -1, hook); /* the callback finds this runtime's registration by the hook they share */
 	return 1;

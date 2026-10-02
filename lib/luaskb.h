@@ -45,9 +45,7 @@ static inline void luaskb_close(lunatik_object_t *object)
 	lunatik_putobject(object);
 }
 
-lunatik_object_t *luaskb_new(lua_State *L, bool kfunc);
-
-#define luaskb_attach(L, obj, field)	lunatik_attach(L, obj, field, luaskb_new, false)
+lunatik_object_t *luaskb_attach(lua_State *L, bool kfunc);
 
 #endif
 
