@@ -678,7 +678,8 @@ settled (#1292); a binding or a Lua module follows them whichever language it is
 * A duration a script hands a wait is in milliseconds, a clock or an accounting read is in
   nanoseconds, and every `@tparam` and `@treturn` of a time names its unit.
 * A `linux.*` table holds only names a kernel header defines, keyed by the name without its prefix,
-  one table per kernel family; a hook's verdict table is `action`. A constant with no kernel name
+  one table per kernel family; a hook's verdict table is `action`. `linux.errno` keeps the `E`, the
+  name `linux.errname` gives, and its spec says so with `strip = false`. A constant with no kernel name
   behind it, one the binding defines itself, is built at the binding's opener beside the C that reads
   it, under the module's own name, as `fsnotify.action` is.
 * A top-level name belongs to a binding or to Lunatik (`lunatik`, `linux`, `examples`, `tests`), and
