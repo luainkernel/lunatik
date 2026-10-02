@@ -1968,24 +1968,28 @@ Regression tests for `luathread`.
   exited thread leaves no kernel complaint, and the object `task()` returns
   after the stop has no task: its methods raise.
 
-- **release**: a thread holds its runtime until `stop` releases it or the
-  thread is collected, even once its body has returned. A spawned driver
-  threads a runtime whose handle it drops, and whose body leaves a sentinel
-  that completes a completion when the runtime closes: after the body returned
-  and the driver collected, the runtime stays open until the stop, which reads
-  the owner of its lock; a second thread, dropped too, closes its runtime when
-  the collector releases it. A build that puts the runtime as the body returns
-  fails the first case before the stop.
+- **release**: a thread holds its runtime until `stop` releases it, even once
+  its body has returned, and the runtime that started the thread keeps it. A
+  spawned driver threads a runtime whose handle it drops, and whose body leaves
+  a sentinel that completes a completion and logs when the runtime closes:
+  after the body returned and the driver collected, the runtime stays open
+  until the stop, which reads the owner of its lock; a second thread, whose
+  handle the driver drops, keeps its runtime through a collect, and the
+  driver's end closes it. A build that puts the runtime as the body returns
+  fails the first case before the stop, and one that does not keep the thread
+  fails the second at the collect.
 
-- **module**: a thread whose body ends after its handle is gone gives
-  `luathread` back. A spawned driver threads a runtime whose body waits for a
-  go and leaves a sentinel that completes a completion when the runtime closes,
-  drops and collects the thread's handle, and gives the go: the kernel
-  thread's put is the thread's last, which releases it and closes the runtime,
-  and the reference the kernel thread takes before that put is given back as
-  it exits. Once the driver is stopped, `luathread`'s refcnt, read after the
+- **module**: a thread whose body ends the runtime that started it runs on
+  until its body returns, and gives `luathread` back as it exits. A spawned
+  driver has a creator runtime thread a runtime whose body leaves a sentinel
+  that completes a completion when the runtime closes, waits for a go and stops
+  the creator; the driver drops and collects the thread and that runtime's
+  handle, and gives the go. The creator's end, made on the thread's own body
+  under its runtime's lock, leaves the thread to that body, which returns, and
+  the kernel thread's put is the thread's last, which releases it and closes its
+  runtime. Once the driver is stopped, `luathread`'s refcnt, read after the
   CLI's driver collects the handles `lunatik stop` drops, is back where it was
-  before the driver ran, which a thread that keeps that reference fails.
+  before the driver ran, which a thread that keeps the reference it took fails.
 
 - **stop**: a thread's `__close` is its `stop`, and a to-be-closed variable
   holding a thread stops it at the end of its scope. A spawned driver threads a
@@ -2005,6 +2009,33 @@ Regression tests for `luathread`.
   stop, reads no task from the thread and stops it again before releasing it;
   the body is released before its bound, and the first stop returns `true` once
   the thread has exited.
+
+- **keep**: `thread.run` keeps the thread for the runtime that calls it. A
+  spawned driver threads a runtime whose body returns at once into a weak
+  table: a collect leaves it there, and after the driver stops it a second
+  collect takes it. A second handle of a thread the driver started, read back
+  from an `rcu.table`, is collected without stopping the thread, whose body
+  waits three seconds at most for a stop. A creator runtime threads a runtime
+  with that body and hands the thread to the driver: the creator's end stops
+  the thread before the driver's stop of it, which then returns `true`. A
+  thread the driver stops from outside its creator stops, and the creator's
+  end then finds it stopped. A build that does not keep the thread fails at
+  the first collect, one that stops it when any of its handles there is
+  collected fails the second case, and one whose end does not stop it fails
+  the third before the driver's stop ends the body.
+
+- **atomic**: the end of a runtime that started a thread, when a softirq or
+  hardirq runtime's write drops its last reference, stops the thread, and
+  nothing sleeps under that write. A spawned driver has a creator runtime start
+  a thread whose body waits three seconds at most for a stop, stores the
+  creator in an `rcu.table`, drops its own handles, and resumes a softirq
+  runtime, then a hardirq one, that removes the entry: the put runs under that
+  runtime's lock, with BH off and then with IRQs off, so the creator closes on
+  a kernel worker, where its end stops the thread, and the body sees the stop.
+  The kernel log carries no "BUG: scheduling while atomic", which a stop made
+  under that lock prints as it waits for the body; a core that closes the
+  creator there makes that stop, so the test skips unless the loaded `lunatik`
+  lists `lunatik_deferirq` in `/proc/kallsyms`.
 
 ### xdp
 

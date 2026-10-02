@@ -3,20 +3,24 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# A thread whose body ends after its handle is gone gives luathread back.
+# A thread whose body ends the runtime that started it runs on until its body
+# returns, and gives luathread back as it exits.
 #
 # The kernel thread holds its thread object, which holds luathread, so its put
 # can drop the module's last reference while the thread still runs luathread's
 # code; it takes one of its own before that put and gives it back as it exits.
-# module.lua is spawned, since thread.run is refused while a script loads. It
-# threads a runtime whose body waits for a go and leaves a sentinel whose
-# finalizer completes a completion when that runtime closes, drops the thread's
-# handle, collects, and gives the go: the body returns, and the kernel thread's
-# put is the thread's last, which releases it and closes its runtime. Once the
-# driver is stopped, luathread's refcnt is back where it was before the driver
-# ran, which a thread that keeps the reference it took fails. A thread handle
-# lunatik stop drops stays in the CLI's driver, holding luathread, until that
-# state collects, so the test collects there before each read.
+# module.lua is spawned, since thread.run is refused while a script loads. A
+# creator runtime it makes threads a runtime whose body leaves a sentinel whose
+# finalizer completes a completion when that runtime closes, waits for a go and
+# stops the creator; the driver drops the thread and that runtime's handle,
+# collects, and gives the go. The creator's end, made on the thread's own body,
+# under its runtime's lock, leaves the thread to that body, which returns, and
+# the kernel thread's put is the thread's last, which releases it and closes
+# its runtime. Once the driver is stopped, luathread's refcnt is back where it
+# was before the driver ran, which a thread that keeps the reference it took
+# fails. A thread handle lunatik stop drops stays in the CLI's driver, holding
+# luathread, until that state collects, so the test collects there before each
+# read.
 #
 # Usage: sudo bash tests/thread/module.sh
 
@@ -60,7 +64,7 @@ done
 
 released || fail "the runtime of a thread whose handle was collected did not close"
 settled || fail "$MODULE refcnt $before -> $(refcnt) after a thread released by its own exit"
-ktap_pass "a thread released as its body ends gives $MODULE back"
+ktap_pass "a thread whose body ends its creator runs on, and gives $MODULE back as it exits"
 
 check_dmesg && ktap_pass "no Lua errors in kernel"
 

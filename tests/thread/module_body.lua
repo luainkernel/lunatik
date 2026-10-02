@@ -10,9 +10,10 @@ local function close(sentinel)
 	sentinel.closed:complete()
 end
 
-local function body(go, closed)
+local function body(creator, go, closed)
 	sentinel = setmetatable({closed = closed}, {__gc = close})
 	go:wait(TIMEOUT)
+	creator:stop()
 end
 
 return body
