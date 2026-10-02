@@ -29,11 +29,11 @@
 #include <net/xdp.h>
 
 #include <lunatik.h>
-#include <lunatik_ebpf.h>
 
 #include "luadata.h"
+#include "luakfunc.h"
 
-LUNATIK_EBPF_START();
+LUAKFUNC_START();
 
 typedef struct luaxdp_ctx_s {
 	struct xdp_buff  *xdp;
@@ -114,7 +114,7 @@ static inline void luaxdp_handler_cleanup(luaxdp_ctx_t *lctx)
 
 static int luaxdp_handler(lua_State *L, luaxdp_ctx_t *ctx)
 {
-	luaxdp_ctx_t *lctx = lunatik_ebpf_getctx(L);
+	luaxdp_ctx_t *lctx = luakfunc_getctx(L);
 	int ret = 0;
 
 	if (lctx == NULL)
@@ -126,7 +126,7 @@ static int luaxdp_handler(lua_State *L, luaxdp_ctx_t *ctx)
 	luadata_reset(lctx->packet, lctx->xdp->data, lctx->xdp->data_end - lctx->xdp->data, LUADATA_OPT_KEEP);
 	luadata_reset(lctx->argument, lctx->arg, lctx->arg__sz, LUADATA_OPT_KEEP);
 
-	ret = lunatik_ebpf_action(L, lctx->cb, XDP_ABORTED, XDP_REDIRECT);
+	ret = luakfunc_action(L, lctx->cb, XDP_ABORTED, XDP_REDIRECT);
 	luaxdp_handler_cleanup(lctx);
 	return ret;
 }
@@ -141,13 +141,13 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 		.arg__sz = arg__sz,
 	};
 
-	LUNATIK_EBPF_RUN(key, key__sz, luaxdp_handler, action, &ctx);
+	LUAKFUNC_RUN(key, key__sz, luaxdp_handler, action, &ctx);
 	return action;
 }
 
-LUNATIK_EBPF_END();
+LUAKFUNC_END();
 
-LUNATIK_EBPF_KFUNC_DEFINE_SET(xdp, bpf_luaxdp_run);
+LUAKFUNC_DEFINE_SET(xdp, bpf_luaxdp_run);
 
 /***
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
@@ -161,14 +161,14 @@ LUNATIK_EBPF_KFUNC_DEFINE_SET(xdp, bpf_luaxdp_run);
 */
 static int luaxdp_detach(lua_State *L)
 {
-	luaxdp_ctx_t *lctx = lunatik_ebpf_findctx(L);
+	luaxdp_ctx_t *lctx = luakfunc_findctx(L);
 
 	if (lctx == NULL)
 		return 0;
 
-	lunatik_ebpf_unbind(L, &lctx->cb);
-	lunatik_ebpf_detach(L, lctx, packet);
-	lunatik_ebpf_detach(L, lctx, argument);
+	luakfunc_unbind(L, &lctx->cb);
+	luakfunc_detach(L, lctx, packet);
+	luakfunc_detach(L, lctx, argument);
 	return 0;
 }
 
@@ -228,10 +228,10 @@ static int luaxdp_attach(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luaxdp_class, sizeof(luaxdp_ctx_t), LUNATIK_OPT_NONE);
 	luaxdp_ctx_t *ctx = (luaxdp_ctx_t *)object->private;
 
-	lunatik_ebpf_attach(L, ctx, packet, luadata_new, LUNATIK_OPT_SINGLE);
-	lunatik_ebpf_attach(L, ctx, argument, luadata_new, LUNATIK_OPT_SINGLE);
+	luakfunc_attach(L, ctx, packet, luadata_new, LUNATIK_OPT_SINGLE);
+	luakfunc_attach(L, ctx, argument, luadata_new, LUNATIK_OPT_SINGLE);
 
-	lunatik_ebpf_bind(L, 1, &ctx->cb);
+	luakfunc_bind(L, 1, &ctx->cb);
 	return 0;
 }
 
@@ -241,11 +241,11 @@ static const luaL_Reg luaxdp_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_EBPF_NEWLIB(xdp, luaxdp_lib, &luaxdp_class);
+LUAKFUNC_NEWLIB(xdp, luaxdp_lib, &luaxdp_class);
 
-LUNATIK_EBPF_KFUNC_INIT(xdp, BPF_PROG_TYPE_XDP);
+LUAKFUNC_INIT(xdp, BPF_PROG_TYPE_XDP);
 
-LUNATIK_EBPF_EXIT(xdp);
+LUAKFUNC_EXIT(xdp);
 
 module_init(luaxdp_init);
 module_exit(luaxdp_exit);

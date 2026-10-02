@@ -27,8 +27,8 @@
 #include <linux/bpf.h>
 
 #include <lunatik.h>
-#include <lunatik_ebpf.h>
 
+#include "luakfunc.h"
 #include "luarcu.h"
 #include "luatask.h"
 
@@ -38,7 +38,7 @@
 #include <linux/sched.h>
 #include <linux/sched/ext.h>
 
-LUNATIK_EBPF_START();
+LUAKFUNC_START();
 
 struct luascx_task_class {
 	u64 dsq;
@@ -129,7 +129,7 @@ static int luascx_decision(lua_State *L, luascx_ctx_t *ctx)
 
 static int luascx_handler(lua_State *L, luascx_ctx_t *ctx)
 {
-	luascx_ctx_t *lctx = lunatik_ebpf_getctx(L);
+	luascx_ctx_t *lctx = luakfunc_getctx(L);
 	int ret = 0;
 
 	if (lctx == NULL)
@@ -141,7 +141,7 @@ static int luascx_handler(lua_State *L, luascx_ctx_t *ctx)
 
 	lctx->task = ctx->task;
 
-	ret = lunatik_ebpf_invoke(L, lctx->cb, 2);
+	ret = luakfunc_invoke(L, lctx->cb, 2);
 	luascx_handler_cleanup(lctx);
 	return ret < 0 ? ret : luascx_decision(L, ctx);
 }
@@ -158,13 +158,13 @@ __bpf_kfunc int bpf_luascx_run(char *key, size_t key__sz, struct task_struct *ta
 		.cls  = cls,
 	};
 
-	LUNATIK_EBPF_RUN(key, key__sz, luascx_handler, ret, &ctx);
+	LUAKFUNC_RUN(key, key__sz, luascx_handler, ret, &ctx);
 	return ret;
 }
 
-LUNATIK_EBPF_END();
+LUAKFUNC_END();
 
-LUNATIK_EBPF_KFUNC_DEFINE_SET(scx, bpf_luascx_run);
+LUAKFUNC_DEFINE_SET(scx, bpf_luascx_run);
 
 /***
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
@@ -178,13 +178,13 @@ LUNATIK_EBPF_KFUNC_DEFINE_SET(scx, bpf_luascx_run);
 */
 static int luascx_detach(lua_State *L)
 {
-	luascx_ctx_t *lctx = lunatik_ebpf_findctx(L);
+	luascx_ctx_t *lctx = luakfunc_findctx(L);
 
 	if (lctx == NULL)
 		return 0;
 
-	lunatik_ebpf_unbind(L, &lctx->cb);
-	lunatik_ebpf_detach(L, lctx, task_obj);
+	luakfunc_unbind(L, &lctx->cb);
+	luakfunc_detach(L, lctx, task_obj);
 	return 0;
 }
 
@@ -253,9 +253,9 @@ static int luascx_attach(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luascx_class, sizeof(luascx_ctx_t), LUNATIK_OPT_NONE);
 	luascx_ctx_t *ctx = (luascx_ctx_t *)object->private;
 
-	lunatik_ebpf_attach(L, ctx, task_obj, luatask_new, NULL);
+	luakfunc_attach(L, ctx, task_obj, luatask_new, NULL);
 
-	lunatik_ebpf_bind(L, 1, &ctx->cb);
+	luakfunc_bind(L, 1, &ctx->cb);
 	return 0;
 }
 
@@ -265,11 +265,11 @@ static const luaL_Reg luascx_lib[] = {
 	{NULL, NULL}
 };
 
-LUNATIK_EBPF_NEWLIB(scx, luascx_lib, &luascx_class);
+LUAKFUNC_NEWLIB(scx, luascx_lib, &luascx_class);
 
-LUNATIK_EBPF_KFUNC_INIT(scx, BPF_PROG_TYPE_STRUCT_OPS);
+LUAKFUNC_INIT(scx, BPF_PROG_TYPE_STRUCT_OPS);
 
-LUNATIK_EBPF_EXIT(scx);
+LUAKFUNC_EXIT(scx);
 #else
 static const luaL_Reg luascx_lib[] = {
 	{"attach", lunatik_unsupported},
