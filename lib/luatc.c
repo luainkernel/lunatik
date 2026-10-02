@@ -16,9 +16,10 @@
 * using `tc.attach()`.
 *
 * The module registers its kfunc through BTF: it needs a kernel built with `CONFIG_DEBUG_INFO_BTF`
-* and a build made after `make btf_install`, and without the module BTF it does not load. The
-* eBPF program is loaded apart, with bpftool, as a SCHED_CLS (`classifier`) program that declares
-* `bpf_luatc_run` as a `__ksym`, as
+* and a build made after `make btf_install`. Without the module BTF it loads with its kfunc
+* unregistered, logging `missing module BTF`, and an eBPF program that calls the kfunc fails to
+* load. The eBPF program is loaded apart, with bpftool, as a SCHED_CLS (`classifier`) program
+* that declares `bpf_luatc_run` as a `__ksym`, as
 * [examples/sniclassify](https://github.com/luainkernel/lunatik/blob/master/examples/sniclassify) does.
 * @module tc
 */

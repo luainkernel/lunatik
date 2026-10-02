@@ -15,8 +15,9 @@
 * using `xdp.attach`.
 *
 * The module registers its kfunc through BTF: it needs a kernel built with `CONFIG_DEBUG_INFO_BTF`
-* and a build made after `make btf_install`, and without the module BTF it does not load. The
-* eBPF program is loaded apart, with bpftool, as an XDP program that declares
+* and a build made after `make btf_install`. Without the module BTF it loads with its kfunc
+* unregistered, logging `missing module BTF`, and an eBPF program that calls the kfunc fails to
+* load. The eBPF program is loaded apart, with bpftool, as an XDP program that declares
 * `bpf_luaxdp_run` as a `__ksym`, as
 * [examples/filter](https://github.com/luainkernel/lunatik/blob/master/examples/filter) does.
 * @module xdp
