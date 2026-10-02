@@ -23,16 +23,17 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <linux/netlink.h>
 #include <linux/uhid.h>
 
 #define BUS		0x03	/* BUS_USB */
 #define VENDOR		0xf055	/* no device on the hid bus carries it, so only the test's driver binds */
 #define BIND_MS		2000
-#define STEP_MS		50
 #define DRAIN_MS	500
 #define NREPORTS	7
 #define MAXDEVS		8
-#define SYSFS_MAX	128	/* /sys/bus/hid/devices/BBBB:VVVV:PPPP.NNNN */
+#define BIND		"bind@"	/* the uevent's action, followed by the device's path under /sys */
 
 static const unsigned char rdesc[] = {
 	0x06, 0x00, 0xff,	/* Usage Page (Vendor Defined 0xff00) */
@@ -50,7 +51,8 @@ static const unsigned char rdesc[] = {
 typedef struct peer_s {
 	unsigned int product;
 	int uhid;
-	char sysfs[SYSFS_MAX];
+	int bound;
+	char sysfs[PATH_MAX];
 } peer_t;
 
 static int create(unsigned int product)
@@ -76,33 +78,68 @@ static int create(unsigned int product)
 	return fd;
 }
 
-/* linked once the probe returned: a report sent during the probe finds the input lock taken */
-static int bound(peer_t *peer)
+static int subscribe(void)
 {
-	char pattern[PATH_MAX], driver[PATH_MAX];
-	glob_t found;
+	struct sockaddr_nl addr = {.nl_family = AF_NETLINK, .nl_groups = 1};	/* the kernel's own uevents */
+	int fd = socket(AF_NETLINK, SOCK_DGRAM | SOCK_CLOEXEC, NETLINK_KOBJECT_UEVENT);
 
-	snprintf(pattern, sizeof(pattern), "/sys/bus/hid/devices/%04X:%04X:%04X.*", BUS, VENDOR, peer->product);
-	if (glob(pattern, 0, NULL, &found) != 0)
-		return 0;
-	snprintf(peer->sysfs, sizeof(peer->sysfs), "%s", found.gl_pathv[0]);
-	globfree(&found);
-
-	snprintf(driver, sizeof(driver), "%s/driver", peer->sysfs);
-	return access(driver, F_OK) == 0;
+	if (fd >= 0 && bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+		close(fd);
+		return -1;
+	}
+	return fd;
 }
 
-static void await(peer_t *peers, int n)
+/* a bind is sent once the probe returned: a report sent during the probe finds the input lock taken */
+static void match(peer_t *peers, int n, const char *uevent)
 {
-	struct timespec step = {0, STEP_MS * 1000000L};
-	int waited, i, pending;
+	const char *name = strrchr(uevent, '/');
+	char prefix[sizeof("BBBB:VVVV:PPPP.")];
+	int i;
 
-	for (waited = 0; waited < BIND_MS; waited += STEP_MS) {
-		for (i = 0, pending = 0; i < n; i++)
-			pending += !bound(&peers[i]);
-		if (pending == 0)
-			return;
-		nanosleep(&step, NULL);
+	if (strncmp(uevent, BIND, strlen(BIND)) != 0 || name == NULL)
+		return;
+	for (i = 0; i < n; i++) {
+		snprintf(prefix, sizeof(prefix), "%04X:%04X:%04X.", BUS, VENDOR, peers[i].product);
+		if (strncmp(name + 1, prefix, strlen(prefix)) == 0) {
+			snprintf(peers[i].sysfs, sizeof(peers[i].sysfs), "/sys%s", uevent + strlen(BIND));
+			peers[i].bound = 1;
+		}
+	}
+}
+
+static int elapsed(const struct timespec *start)
+{
+	struct timespec now;
+
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	return (now.tv_sec - start->tv_sec) * 1000 + (now.tv_nsec - start->tv_nsec) / 1000000;
+}
+
+static int pending(peer_t *peers, int n)
+{
+	int i, count = 0;
+
+	for (i = 0; i < n; i++)
+		count += !peers[i].bound;
+	return count;
+}
+
+static void await(int uevents, peer_t *peers, int n)
+{
+	struct pollfd pfd = {.fd = uevents, .events = POLLIN};
+	char uevent[PATH_MAX];
+	struct timespec start;
+	int waited;
+
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	while ((waited = elapsed(&start)) < BIND_MS && pending(peers, n) && poll(&pfd, 1, BIND_MS - waited) > 0) {
+		ssize_t len = recv(uevents, uevent, sizeof(uevent) - 1, 0);
+
+		if (len > 0) {
+			uevent[len] = '\0';
+			match(peers, n, uevent);
+		}
 	}
 }
 
@@ -191,7 +228,7 @@ int main(int argc, char *argv[])
 	peer_t peers[MAXDEVS];
 	int count = 1;
 	int n = 0;
-	int opt, i;
+	int opt, i, uevents;
 
 	while ((opt = getopt(argc, argv, "r:")) != -1) {
 		if (opt != 'r')
@@ -199,17 +236,23 @@ int main(int argc, char *argv[])
 		count = atoi(optarg);
 	}
 
+	if ((uevents = subscribe()) < 0) {
+		perror("uevent socket");
+		return 1;
+	}
 	for (i = optind; i < argc && n < MAXDEVS; i++, n++) {
 		peers[n].product = strtoul(argv[i], NULL, 16);
+		peers[n].bound = 0;
 		if ((peers[n].uhid = create(peers[n].product)) < 0) {
 			perror("uhid create");
 			return 1;
 		}
 	}
 
-	await(peers, n);
+	await(uevents, peers, n);
+	close(uevents);
 	for (i = 0; i < n; i++) {
-		if (!bound(&peers[i])) {
+		if (!peers[i].bound) {
 			printf("%04x unbound\n", peers[i].product);
 			continue;
 		}
