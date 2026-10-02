@@ -333,7 +333,7 @@
     </ol>
 
     <h3>Raises</h3>
-    Error if <code>size</code> is out of bounds, or if kfifo allocation fails (e.g., due to insufficient memory).
+    Error if <code>size</code> is out of bounds; <code>ENOMEM</code> if the kernel cannot allocate the buffer.
 
 
     <h3>Usage</h3>
@@ -354,7 +354,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:16:45</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:17:33</span>
 </div>
 </footer>
 </body>

@@ -270,7 +270,7 @@
     <h3>Raises</h3>
      if called from a percpu runtime; <code>runtime context mismatch</code> outside a hardirq runtime;
    <code>not allowed while the runtime closes</code> from a finalizer that runs at its close;
-   <code>couldn&apos;t create notifier</code> when the kernel refuses the registration
+   the kernel&rsquo;s errno when it refuses the registration
 
 
 
@@ -313,7 +313,8 @@
    callback, and from any runtime or coroutine the callback runs;
    <code>&apos;notifier&apos;: process-context class in interrupt-context runtime</code> in a softirq or hardirq
    runtime; <code>not allowed while the runtime closes</code> from a finalizer that runs at its close;
-   <code>couldn&apos;t create notifier</code> when the kernel refuses the registration
+   the kernel&rsquo;s errno when it refuses the registration, <code>EPERM</code> when the callback returns
+   <code>notify.BAD</code> for a replayed <code>REGISTER</code>
 
 
 
@@ -345,7 +346,7 @@
     <h3>Raises</h3>
      if called from a percpu runtime; <code>runtime context mismatch</code> outside a hardirq runtime;
    <code>not allowed while the runtime closes</code> from a finalizer that runs at its close;
-   <code>couldn&apos;t create notifier</code> when the kernel refuses the registration
+   the kernel&rsquo;s errno when it refuses the registration
 
 
 
@@ -364,7 +365,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:16:45</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:17:33</span>
 </div>
 </footer>
 </body>
