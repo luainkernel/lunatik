@@ -216,7 +216,7 @@ static inline int lunatik_cpcall(lua_State *L, lua_CFunction f, void *ud)
 	return lua_pcall(L, 1, 0, 0);
 }
 
-static inline const char *lunatik_pushstring(lua_State *L, char *s, size_t len)
+static inline const char *lunatik_pushexternalstring(lua_State *L, char *s, size_t len)
 {
 	LUNATIK_ALLOC(L, alloc, ud);
 	s[len] = '\0';

@@ -1111,9 +1111,9 @@ same way and returns it. A size, a length or a count that arrives from Lua is bo
 for what the binding can serve, and an integer that names a kernel identity, a pid, before the
 cast to the kernel's type.
 
-### lunatik\_pushstring
+### lunatik\_pushexternalstring
 ```C
-const char *lunatik_pushstring(lua_State *L, char *s, size_t len);
+const char *lunatik_pushexternalstring(lua_State *L, char *s, size_t len);
 ```
 Pushes the `len` bytes at `s` as a Lua string without copying them: `s` is a buffer of `len + 1`
 bytes from [`lunatik_malloc`](#lunatik_malloc), whose last byte it sets to `'\0'`, and Lua owns

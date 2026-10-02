@@ -96,7 +96,7 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 	luacrypto_skcipher_request_t request;
 	luacrypto_skcipher_newrequest(L, &request);
 
-	/* extra byte for the NUL terminator written by lunatik_pushstring() */
+	/* extra byte for the NUL terminator written by lunatik_pushexternalstring() */
 	char *buffer = luacrypto_newbuffer(L, request.data_len + 1);
 
 	luacrypto_skcipher_setrequest(&request, buffer);
@@ -106,7 +106,7 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 		lunatik_throw(L, ret);
 	}
 
-	lunatik_pushstring(L, buffer, request.data_len);
+	lunatik_pushexternalstring(L, buffer, request.data_len);
 	return 1;
 }
 
