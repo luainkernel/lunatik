@@ -200,6 +200,13 @@ netfilter.register{
 }
 </pre>
 
+<h2 id="Class_netfilter_hook">Class netfilter_hook </h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#netfilter_hook:stop">netfilter_hook:stop ()</a></td>
+	<td class="summary">Stops the hook&rsquo;s callback.</td>
+	</tr>
+</table></div>
 <h2 id="netfilter">netfilter</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
@@ -208,6 +215,37 @@ netfilter.register{
 	</tr>
 </table></div>
 
+    <h2 class="section-header" id="Class_netfilter_hook-details"><a name="Class_netfilter_hook"></a><a name="netfilter_hook"></a>Class netfilter_hook  in detail</h2>
+
+          <div class="section-description">
+          A registered Netfilter hook.
+ Returned by <a href="../modules/netfilter.html#register">netfilter.register</a>.
+          </div>
+    <dl class="function">
+    <dt id="netfilter_hook:stop"><a name="netfilter_hook:stop"></a><strong>netfilter_hook:stop ()</strong></dt>
+    <dd>
+    Stops the hook&rsquo;s callback.
+ A packet the hook sees afterwards takes the <code>ACCEPT</code> policy without reaching Lua. The hook
+ stays registered until the runtime closes, since unregistering it sleeps and a stop may come
+ from a callback; in a percpu script this stops the callback of this runtime alone. Calling it
+ again does nothing, and a to-be-closed variable holding the hook stops it the same way.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+    </ol>
+
+
+
+    <h3>Usage</h3>
+        <pre class="example">hook:<span class="function-name">stop</span>()</pre>
+
+</dd>
+</dl>
     <h2 class="section-header" id="netfilter-details"><a name="netfilter"></a>netfilter in detail</h2>
 
     <dl class="function">
@@ -241,10 +279,10 @@ netfilter.register{
     <ol>
 
            <span class="types"><span class="type">netfilter_hook</span></span>
-         Registered hook handle. <a href="../modules/netfilter.html#register">netfilter.register</a> keeps this object for its
-   runtime, so dropping it does not unregister the hook: the hook stays until the runtime closes,
-   which <code>stop()</code> does, and the one hook a percpu script&rsquo;s runtimes share goes when the percpu set
-   stops.
+         the hook, which <a href="../modules/netfilter.html#register">netfilter.register</a> keeps for its runtime: dropping it
+   stops nothing, and the callback runs until <a href="../modules/netfilter.html#netfilter_hook:stop">stop</a> or the end of the runtime. The hook stays
+   registered until the runtime closes, and the one hook a percpu script&rsquo;s runtimes share until
+   the percpu set stops.
     </ol>
 
     <h3>Raises</h3>
@@ -288,7 +326,7 @@ netfilter.<span class="function-name">register</span>{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:01:54</span>
 </div>
 </footer>
 </body>

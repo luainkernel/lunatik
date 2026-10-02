@@ -221,7 +221,8 @@
  device file (<code>/dev/&lt;name&gt;</code>) and its region go with it. Without <a href="../modules/device.html#device:stop">stop</a>, the
  device lives until its runtime stops, since <a href="../modules/device.html#new">device.new</a> keeps the object for
  the runtime. A file still open on the device gets ENXIO from read and write
- until it is closed.
+ until it is closed. A to-be-closed variable holding the device stops it the
+ same way.
 
 
 
@@ -318,8 +319,8 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/device.html#device">device</a></span>
-        A Lunatik object representing the newly created device.
-   This object can be used to explicitly stop the device using the <code>:stop()</code> method.
+        the device, which <a href="../modules/device.html#new">device.new</a> keeps for its runtime: dropping it
+   stops nothing, and the device stays until <a href="../modules/device.html#device:stop">stop</a> or the end of the runtime.
     </ol>
 
     <h3>Raises</h3>
@@ -363,7 +364,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:01:54</span>
 </div>
 </footer>
 </body>

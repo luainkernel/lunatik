@@ -281,7 +281,8 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
     <dd>
     Unregisters and stops the probe.
  From a handler this raises: the way to stop delivering there is to return early on a flag
- the script owns, and the kprobe is unregistered when the runtime stops.
+ the script owns, and the kprobe is unregistered when the runtime stops. A to-be-closed
+ variable holding the probe stops it the same way.
 
 
 
@@ -383,7 +384,9 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
     <ol>
 
            <span class="types"><a class="type" href="../modules/probe.html#probe">probe</a></span>
-
+         the probe, which <a href="../modules/probe.html#new">probe.new</a> keeps for its runtime: dropping it stops
+   nothing, and the kprobe stays until <a href="../modules/probe.html#probe:stop">stop</a> or the end of the runtime, or of the set
+   in a percpu script
     </ol>
 
     <h3>Raises</h3>
@@ -412,7 +415,7 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:01:54</span>
 </div>
 </footer>
 </body>

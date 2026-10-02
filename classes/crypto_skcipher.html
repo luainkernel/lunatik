@@ -188,6 +188,10 @@
 	<td class="summary">Returns the cipher block size in bytes.</td>
 	</tr>
 	<tr>
+	<td class="name"><a href="#crypto_skcipher:close">crypto_skcipher:close ()</a></td>
+	<td class="summary">Releases the transform.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#crypto_skcipher:decrypt">crypto_skcipher:decrypt (iv, data)</a></td>
 	<td class="summary">Decrypts data.</td>
 	</tr>
@@ -235,6 +239,25 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt id="crypto_skcipher:close"><a name="crypto_skcipher:close"></a><strong>crypto_skcipher:close ()</strong></dt>
+    <dd>
+    Releases the transform.
+ A to-be-closed variable holding the object releases it the same way. Calling it again does
+ nothing, and every other method raises &ldquo;closed object&rdquo; afterwards.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
 
     </ol>
 
@@ -355,7 +378,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:01:54</span>
 </div>
 </footer>
 </body>

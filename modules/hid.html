@@ -179,7 +179,8 @@
  The driver&rsquo;s runtime is softirq: the script runs with
  <code>lunatik run -c softirq &lt;script&gt;</code>, other contexts raise
  <code>runtime context mismatch</code>, and the callbacks, which run under that runtime&rsquo;s
- lock, must not sleep. The driver stays registered until the runtime stops.</p>
+ lock, must not sleep. The driver stays registered until its <a href="../modules/hid.html#hid_driver:stop">stop</a> or the end of
+ the runtime.</p>
 
 <p> See <code>examples/gesture</code> and <code>examples/xiaomi</code>.
     <h2 id="usage">Usage</h2>
@@ -197,6 +198,13 @@ hid.register({
 })
 </pre>
 
+<h2 id="Class_hid_driver">Class hid_driver </h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#hid_driver:stop">hid_driver:stop ()</a></td>
+	<td class="summary">Unregisters the driver.</td>
+	</tr>
+</table></div>
 <h2 id="hid">hid</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
@@ -205,6 +213,37 @@ hid.register({
 	</tr>
 </table></div>
 
+    <h2 class="section-header" id="Class_hid_driver-details"><a name="Class_hid_driver"></a><a name="hid_driver"></a>Class hid_driver  in detail</h2>
+
+          <div class="section-description">
+          Represents a registered HID driver.
+          </div>
+    <dl class="function">
+    <dt id="hid_driver:stop"><a name="hid_driver:stop"></a><strong>hid_driver:stop ()</strong></dt>
+    <dd>
+    Unregisters the driver.
+ The devices it drives are released from it, and no callback of it runs again. Calling it
+ again does nothing, and a to-be-closed variable holding the driver stops it the same way.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+    </ol>
+
+    <h3>Raises</h3>
+    &ldquo;not allowed once the runtime is armed&rdquo; past the script body: hid_unregister_driver
+   sleeps, and an armed runtime runs under its spinlock
+
+
+    <h3>Usage</h3>
+        <pre class="example">driver:<span class="function-name">stop</span>()</pre>
+
+</dd>
+</dl>
     <h2 class="section-header" id="hid-details"><a name="hid"></a>hid in detail</h2>
 
     <dl class="function">
@@ -253,7 +292,8 @@ hid.register({
     <ol>
 
            <span class="types"><span class="type">hid_driver</span></span>
-
+        the driver, which <a href="../modules/hid.html#register">hid.register</a> keeps for its runtime: dropping it stops
+   nothing, and the driver stays registered until <a href="../modules/hid.html#hid_driver:stop">stop</a> or the end of the runtime
     </ol>
 
     <h3>Raises</h3>
@@ -282,7 +322,7 @@ hid.register({
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:01:54</span>
 </div>
 </footer>
 </body>

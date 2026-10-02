@@ -184,6 +184,10 @@
 	<td class="summary">Returns the driver-independent name of the algorithm the transform was allocated with.</td>
 	</tr>
 	<tr>
+	<td class="name"><a href="#crypto_shash:close">crypto_shash:close ()</a></td>
+	<td class="summary">Releases the transform.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#crypto_shash:digest">crypto_shash:digest (data)</a></td>
 	<td class="summary">Computes the digest of data in a single call.</td>
 	</tr>
@@ -234,6 +238,25 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt id="crypto_shash:close"><a name="crypto_shash:close"></a><strong>crypto_shash:close ()</strong></dt>
+    <dd>
+    Releases the transform.
+ A to-be-closed variable holding the object releases it the same way. Calling it again does
+ nothing, and every other method raises &ldquo;closed object&rdquo; afterwards.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
 
     </ol>
 
@@ -433,7 +456,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:01:54</span>
 </div>
 </footer>
 </body>

@@ -250,13 +250,13 @@ interrupts on would spin on it forever.
 <pre>
 method calls with the object lock, enabling safe concurrent access from multiple runtimes.
 Inherited by default but cancelled when an instance is created with <span class="backtick"><code>LUNATIK_OPT_SINGLE</code></span>. A
-metamethod other than <span class="backtick"><code>__tostring</code></span>, which reads the object as a method does, a method named
-<span class="backtick"><code>close</code></span>, <span class="keyword">and</span> a method bound to <span class="backtick"><code>lunatik_lstop</code></span>, the <span class="function-name">runtime</span><span class="string">'s <code>stop</code>, are left unwrapped: a
-close takes the lock itself, through <code>lunatik_closeprivate</code>, and would wait on the one the
-wrapper holds. The wrapper waits for the lock with
-<code>lunatik_lockkillable</code>: the stop of a kernel thread, or a fatal signal to any other task, ends
-the wait and the call raises <code>EINTR</code>. While the method runs, the calling runtime allocates with
-the object'</span>s <span class="backtick"><code>gfp</code></span>.
+metamethod other than <span class="backtick"><code>__tostring</code></span>, which reads the object as a method does, <span class="keyword">and</span> a method
+named <span class="backtick"><code>close</code></span> <span class="keyword">or</span> <span class="backtick"><code>stop</code></span> are left unwrapped: a close <span class="keyword">or</span> a stop takes the lock itself, as
+<span class="backtick"><code>lunatik_closeprivate</code></span> does, <span class="keyword">and</span> would wait on the one the wrapper holds. The wrapper waits <span class="keyword">for</span>
+the lock with
+<span class="backtick"><code>lunatik_lockkillable</code></span>: the stop of a kernel thread, <span class="keyword">or</span> a fatal signal to any other task, ends
+the wait <span class="keyword">and</span> the call raises <span class="backtick"><code>EINTR</code></span>. While the method runs, the calling runtime allocates with
+the <span class="function-name">object</span>'s <span class="backtick"><code>gfp</code></span>.
 </pre>
 
 
@@ -1267,6 +1267,18 @@ after <code>lunatik_newobject</code>.</p>
 <p>Clears the registry entries keyed by <code>object-&gt;private</code> and by <code>object</code>, so the userdata may be
 collected.</p>
 
+<h3 id="lunatik_stopobject">lunatik_stopobject</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_stopobject</span>(lua_State *L, lunatik_object_t *object);
+</pre>
+
+
+<p>Stops an object <code>lunatik_registerobject</code> anchored: clears its registry entries, as
+<a href="#lunatik_unregisterobject"><code>lunatik_unregisterobject</code></a> does, and closes its private through
+<a href="#lunatik_closeprivate"><code>lunatik_closeprivate</code></a>. An object already stopped, whose private is
+<code>NULL</code>, is left as it is, so a <code>stop</code> built on it is idempotent.</p>
+
 <h3 id="lunatik_getregistry">lunatik_getregistry</h3>
 
 <pre>
@@ -1974,7 +1986,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:01:54</span>
 </div>
 </footer>
 </body>

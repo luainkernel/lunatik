@@ -379,7 +379,8 @@
     <dd>
     Stops the watch.
  Removes every mark it placed and releases its group, so no further event
- reaches the callback. Calling it again does nothing.
+ reaches the callback. Calling it again does nothing. A to-be-closed variable
+ holding the watch stops it the same way.
 
 
 
@@ -710,7 +711,8 @@
     <ol>
 
            <span class="types"><span class="type">fsnotify_watch</span></span>
-
+        the watch, which <a href="../modules/fsnotify.html#watch">fsnotify.watch</a> keeps for its runtime:
+   dropping it stops nothing, and its marks stay until <a href="../modules/fsnotify.html#fsnotify_watch:stop">stop</a> or the end of the runtime
     </ol>
 
     <h3>Raises</h3>
@@ -738,7 +740,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:01:54</span>
 </div>
 </footer>
 </body>

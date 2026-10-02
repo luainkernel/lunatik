@@ -177,7 +177,7 @@
 <p class="lead">Kernel thread primitives.</p>
  Thread objects are created in a process runtime alone: in a softirq or hardirq runtime
  <a href="../modules/thread.html#run">thread.run</a> has no runtime object to take. <a href="../modules/thread.html#shouldstop">shouldstop</a> answers <code>false</code> outside a kernel
- thread, and <a href="../modules/thread.html#thread:stop">stop</a> on a thread already stopped only logs a warning.
+ thread, and <a href="../modules/thread.html#thread:stop">stop</a> on a thread already stopped logs a warning and returns <code>true</code>.
     <h2 id="usage">Usage</h2>
         <pre class="example">-- body.lua, run with `lunatik spawn body`
 local thread = require(&quot;thread&quot;)
@@ -224,15 +224,17 @@ return body
     <dd>
     Stops a running kernel thread.
  Signals the thread to stop and waits for it to exit. A body waiting for a runtime&rsquo;s lock,
- or for the lock a shared object&rsquo;s method takes, leaves that wait with &ldquo;EINTR&rdquo;.
+ or for the lock a shared object&rsquo;s method takes, leaves that wait with &ldquo;EINTR&rdquo;. A
+ to-be-closed variable holding the thread stops it the same way.
 
 
 
     <h3>Returns</h3>
     <ol>
 
-           <span class="types"><span class="type">nil</span></span>
-
+           <span class="types"><span class="type">boolean</span></span>
+        <code>false</code> if the body it stopped raised, <code>true</code> otherwise, for a thread
+   already stopped too
     </ol>
 
     <h3>Raises</h3>
@@ -241,7 +243,8 @@ return body
    sends a netlink request or joins a multicast group waits on the RTNL that task holds;
    &ldquo;not allowed from the runtime itself&rdquo; from under the lock of the thread&rsquo;s runtime, the
    contexts <code>runtime:stop</code> names, the thread&rsquo;s own body among them, where the stop would wait
-   on a body that runs under that lock
+   on a body that runs under that lock; &ldquo;EINTR&rdquo; if the stop of the calling kernel thread, or a
+   fatal signal to any other task, ends its wait for another stop of the same thread
 
 
     <h3>Usage</h3>
@@ -305,7 +308,9 @@ return body
     <ol>
 
            <span class="types"><a class="type" href="../modules/thread.html#thread">thread</a></span>
-        A new thread object.
+         the thread, which this call does not keep: dropping it stops nothing, the
+   thread runs until its body returns or <a href="../modules/thread.html#thread:stop">stop</a>, and once the handle is collected nothing can
+   stop it.
     </ol>
 
     <h3>Raises</h3>
@@ -364,7 +369,7 @@ return body
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:01:54</span>
 </div>
 </footer>
 </body>

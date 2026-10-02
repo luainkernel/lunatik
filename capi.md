@@ -45,10 +45,10 @@ Describes a Lunatik object class.
   - `LUNATIK_OPT_MONITOR` *(capability)*: the class supports a monitored metatable that wraps Lua
     method calls with the object lock, enabling safe concurrent access from multiple runtimes.
     Inherited by default but cancelled when an instance is created with `LUNATIK_OPT_SINGLE`. A
-    metamethod other than `__tostring`, which reads the object as a method does, a method named
-    `close`, and a method bound to `lunatik_lstop`, the runtime's `stop`, are left unwrapped: a
-    close takes the lock itself, through `lunatik_closeprivate`, and would wait on the one the
-    wrapper holds. The wrapper waits for the lock with
+    metamethod other than `__tostring`, which reads the object as a method does, and a method
+    named `close` or `stop` are left unwrapped: a close or a stop takes the lock itself, as
+    `lunatik_closeprivate` does, and would wait on the one the wrapper holds. The wrapper waits for
+    the lock with
     `lunatik_lockkillable`: the stop of a kernel thread, or a fatal signal to any other task, ends
     the wait and the call raises `EINTR`. While the method runs, the calling runtime allocates with
     the object's `gfp`.
@@ -833,6 +833,15 @@ void lunatik_unregisterobject(lua_State *L, lunatik_object_t *object);
 ```
 Clears the registry entries keyed by `object->private` and by `object`, so the userdata may be
 collected.
+
+### lunatik\_stopobject
+```C
+void lunatik_stopobject(lua_State *L, lunatik_object_t *object);
+```
+Stops an object `lunatik_registerobject` anchored: clears its registry entries, as
+[`lunatik_unregisterobject`](#lunatik_unregisterobject) does, and closes its private through
+[`lunatik_closeprivate`](#lunatik_closeprivate). An object already stopped, whose private is
+`NULL`, is left as it is, so a `stop` built on it is idempotent.
 
 ### lunatik\_getregistry
 ```C
