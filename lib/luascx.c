@@ -271,14 +271,8 @@ LUNATIK_EBPF_KFUNC_INIT(scx, BPF_PROG_TYPE_STRUCT_OPS);
 
 LUNATIK_EBPF_EXIT(scx);
 #else
-static int luascx_attach(lua_State *L)
-{
-	lunatik_throw(L, -EOPNOTSUPP);
-	return 0;
-}
-
 static const luaL_Reg luascx_lib[] = {
-	{"attach", luascx_attach},
+	{"attach", lunatik_unsupported},
 	{"detach", lunatik_nop},
 	{NULL, NULL}
 };

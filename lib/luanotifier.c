@@ -249,14 +249,8 @@ static int luanotifier_vt_handler(lua_State *L, unsigned long event, void *data)
 */
 LUANOTIFIER_NEWCHAIN(vt, &luanotifier_hardirq_class);
 #else
-static int luanotifier_novt(lua_State *L)
-{
-	lunatik_throw(L, -EOPNOTSUPP);
-	return 0;
-}
-
-#define luanotifier_keyboard	luanotifier_novt
-#define luanotifier_vt		luanotifier_novt
+#define luanotifier_keyboard	lunatik_unsupported
+#define luanotifier_vt		lunatik_unsupported
 #endif
 
 static const luaL_Reg luanotifier_lib[] = {

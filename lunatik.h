@@ -165,6 +165,12 @@ static inline void lunatik_throw(lua_State *L, int ret)
 	lua_error(L);
 }
 
+static inline int lunatik_unsupported(lua_State *L)
+{
+	lunatik_throw(L, -EOPNOTSUPP);
+	return 0;
+}
+
 static inline int lunatik_pushfail(lua_State *L, int ret)
 {
 	lua_pushnil(L);
