@@ -8,7 +8,9 @@
 # helper; one table of arguments spelled at two call sites, which is declared
 # once; a function of more than one statement written inline as a table field,
 # which is a named local function; an if that returns nil and a value above a return of what it
-# tested, which is one return whose value is the choice, as inet.udp:receivefrom took on #1584; and
+# tested, which is one return whose value is the choice, as inet.udp:receivefrom took on #1584; a
+# module a file requires twice, which one local holds, as lib/socket and lib/netlink/nl80211 did
+# for each field of a linux.* table they read; and
 # a block of four lines or more that the change adds against CHECK_BASE and a script beside it
 # carries too, which is a module both require: #1198 first spelled one pause in the four kernel
 # thread bodies of tests/rcu.
@@ -115,6 +117,15 @@ for file in "$@"; do
 		}
 	}
 	{
+		code = $0; sub(/^[[:space:]]*--.*$/, "", code); sub(/[[:space:]]--[^"\047]*$/, "", code)
+		while (match(code, /require[[:space:]]*\(?[[:space:]]*"[^"]+"/)) {
+			module = substr(code, RSTART, RLENGTH); sub(/^[^"]*"/, "", module); sub(/"$/, "", module)
+			if (module in required)
+				flag(NR, "requires " module " again, as line " required[module] " does; one local holds the module (AGENTS.md, Lua style)")
+			else
+				required[module] = NR
+			code = substr(code, RSTART + RLENGTH)
+		}
 		line = $0
 		gsub(/"([^"\\]|\\.)*"/, "\"\"", line); gsub(/\047([^\047\\]|\\.)*\047/, "\"\"", line)
 		sub(/--.*$/, "", line)

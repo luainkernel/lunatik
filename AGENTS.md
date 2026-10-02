@@ -283,6 +283,10 @@ share three fields can be two different hooks. It also names a block of four lin
 change adds, read against `CHECK_BASE`, and a script beside it already carries: #1198 spelled one
 pause in the four kernel thread bodies of `tests/rcu`, through its own pre-publication pass, and
 went into a module they share only when the maintainer asked why the code was copied.
+It names a module a file requires twice, which one local holds, as Lua style asks of `linux.genl`:
+`lib/socket` and `lib/netlink/nl80211` spelled a `require` per field of a `linux.*` table, and
+#1531 renamed one of those fields in place, keeping the shape, until the maintainer asked for the
+local.
 
 `test-harness.sh` reads a test's Lua script as well as its `.sh`, for a case the script runs under a
 condition: when the condition is false the case reports nothing and the script's one KTAP line
