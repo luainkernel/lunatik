@@ -243,7 +243,8 @@ function extract.write(dumps, candidates)
 		if spec.struct then
 			table.insert(parts, struct_probes(spec))
 		else
-			table.insert(parts, ('\tCOMMENT("module %s %s");\n'):format(spec.module, spec.prefix))
+			local strip = spec.strip == false and 0 or #spec.prefix
+			table.insert(parts, ('\tCOMMENT("module %s %s %d");\n'):format(spec.module, spec.prefix, strip))
 			for _, name in ipairs(candidates[spec]) do
 				-- an immediate is printed sign-extended from its type's width
 				table.insert(parts, ("\tDEFINE(%s, (long long)(%s));\n"):format(name, name))
@@ -336,13 +337,14 @@ function extract.parse()
 	for line in io.lines(BASE .. "/extract.s") do
 		local ascii = line:match('%.ascii%s*"(.-)"')
 		if ascii then
-			local mname, mprefix = ascii:match('^%-%>#module%s+(%S+)%s+(%S+)$')
+			local mname, mprefix, mstrip = ascii:match('^%-%>#module%s+(%S+)%s+(%S+)%s+(%d+)$')
 			local smod, sname, skey = ascii:match('^%-%>#struct%s+(%S+)%s+(%S+)%s+(%S+)$')
 			if mname then
 				flush_struct(modules, order, struct)
 				struct = nil
 				current = get_module(modules, order, mname)
 				current.prefix = mprefix
+				current.strip = tonumber(mstrip)
 			elseif smod then
 				flush_struct(modules, order, struct)
 				current = nil
@@ -354,7 +356,7 @@ function extract.parse()
 				elseif sym and val and current and current.prefix
 						and sym:sub(1, #current.prefix) == current.prefix then
 					table.insert(current.entries, {
-						key = sym:sub(#current.prefix + 1),
+						key = sym:sub(current.strip + 1),
 						value = val,
 					})
 				end
