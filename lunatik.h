@@ -189,6 +189,15 @@ static inline int lunatik_catch(lua_State *L, lua_CFunction f, void *ud, const c
 	return 0;
 }
 
+static inline int lunatik_opterrno(lua_State *L, int ix)
+{
+	lua_Integer err = lua_tointeger(L, ix);
+
+	if (!lua_isnoneornil(L, ix) && (lua_type(L, ix) != LUA_TNUMBER || err > 0 || err < -MAX_ERRNO))
+		luaL_error(L, "invalid errno");
+	return (int)err;
+}
+
 static inline bool lunatik_optfield(lua_State *L, int idx, const char *field, int type)
 {
 	int _type = lua_getfield(L, idx, field);

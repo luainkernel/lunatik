@@ -14,9 +14,12 @@
 * callback may sleep. It runs under the lock of the runtime that made the device,
 * so one the runtime's own code performs, a
 * callback or a `thread` body opening the node it made, fails with `EDEADLK`:
-* it would wait on the lock its task holds. A callback that raises, or that
-* returns a length or an offset that is not an integer, fails its operation
-* with `ECANCELED`, and the error goes to the kernel log.
+* it would wait on the lock its task holds. An `open`, `read` or `write`
+* callback fails its operation with an errno by returning it negated, as
+* `-errno.EBUSY` does with `linux.errno`. A callback that raises, or that
+* returns a length or an offset that is not an integer, or an errno that is not
+* one, `invalid errno` in the log, fails its operation with `ECANCELED`, and the
+* error goes to the kernel log.
 *
 * @module device
 */
@@ -147,8 +150,8 @@ static int luadevice_doopen(lua_State *L)
 
 	lua_newtable(L); /* file */
 	lua_pushvalue(L, -1);
-	if ((ctx->ret = luadevice_fop(L, ctx, 1, 0)) == 0)
-		lunatik_register(L, -1, ctx->f); /* a failed open gets no release to drop it */
+	if ((ctx->ret = luadevice_fop(L, ctx, 1, 1)) == 0 && (ctx->ret = lunatik_opterrno(L, -1)) == 0)
+		lunatik_register(L, -2, ctx->f); /* a failed open gets no release to drop it */
 	return 0;
 }
 
@@ -164,6 +167,11 @@ static int luadevice_doread(lua_State *L)
 	lunatik_getregistry(L, ctx->f); /* file */
 	if ((ctx->ret = luadevice_fop(L, ctx, 3, 2)) != 0)
 		return 0;
+
+	if (lua_type(L, -2) == LUA_TNUMBER) {
+		ctx->ret = lunatik_opterrno(L, -2);
+		return 0;
+	}
 
 	lbuf = lua_tolstring(L, -2, &llen);
 	llen = min(ctx->len, llen);
@@ -182,6 +190,7 @@ static int luadevice_dowrite(lua_State *L)
 {
 	luadevice_ctx_t *ctx = lua_touserdata(L, 1);
 	luaL_Buffer B;
+	lua_Integer n;
 	size_t llen;
 	char *lbuf;
 
@@ -199,8 +208,12 @@ static int luadevice_dowrite(lua_State *L)
 	if ((ctx->ret = luadevice_fop(L, ctx, 3, 2)) != 0)
 		return 0;
 
-	llen = (size_t)luadevice_optinteger(L, -2, "length", ctx->len);
-	llen = min(ctx->len, llen);
+	if ((n = luadevice_optinteger(L, -2, "length", ctx->len)) < 0) {
+		ctx->ret = lunatik_opterrno(L, -2);
+		return 0;
+	}
+
+	llen = min(ctx->len, (size_t)n);
 	*ctx->off = (loff_t)luadevice_optinteger(L, -1, "offset", *ctx->off + llen);
 	ctx->ret = (ssize_t)llen;
 	return 0;
@@ -352,18 +365,21 @@ static int luadevice_stop(lua_State *L)
 *   open.
 *
 *   - `open` (function): Callback for the `open(2)` system call.
-*     Signature: `function(driver_table, file)`. Expected to return nothing.
+*     Signature: `function(driver_table, file) -> [errno]`. Returning nothing or zero opens
+*     the file, and returning a negative errno, `-errno.EBUSY` say, fails the open with it.
 *   - `read` (function): Callback for the `read(2)` system call.
 *     Signature: `function(driver_table, length, offset, file) -> string [, updated_offset]`.
 *     Receives the driver table, the requested read length (integer), and the current
 *     file offset (integer). Should return the data as a string and optionally the
-*     updated file offset (integer). If `updated_offset` is not returned, the offset
+*     updated file offset (integer), or a negative errno, `-errno.EAGAIN` say, which
+*     fails the read with it. If `updated_offset` is not returned, the offset
 *     is advanced by the length of the returned string (or the requested length if
 *     the string is longer).
 *   - `write` (function): Callback for the `write(2)` system call.
 *     Signature: `function(driver_table, buffer_string, offset, file) -> [written_length] [, updated_offset]`.
 *     Receives the driver table, the data to write as a string, and the current file
-*     offset (integer). May return the number of bytes successfully written (integer)
+*     offset (integer). May return the number of bytes successfully written (integer),
+*     or a negative errno, `-errno.ENOSPC` say, which fails the write with it,
 *     and optionally the updated file offset (integer). If `written_length` is not
 *     returned, it's assumed all provided data was written. If `updated_offset` is
 *     not returned, the offset is advanced by the `written_length`.
@@ -371,7 +387,7 @@ static int luadevice_stop(lua_State *L)
 *     the final close(2). Signature: `function(driver_table, file)`.
 *     Expected to return nothing.
 *
-*   A read returns end of file when its callback returns an empty string or `nil`.
+*   A read returns end of file when its callback returns an empty string, `nil` or zero.
 *
 *   It **might** also contain the field:
 *
