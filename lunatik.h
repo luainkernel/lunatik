@@ -39,7 +39,6 @@ typedef u8 __bitwise lunatik_opt_t;
 #define lunatik_ispercpu(opt)		((opt) & LUNATIK_OPT_PERCPU)
 #define lunatik_iskthread()		(current->flags & PF_KTHREAD)
 
-#define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
@@ -104,6 +103,96 @@ extern lunatik_object_t *lunatik_env;
 extern struct task_struct *lunatik_rtnl;
 extern const lunatik_class_t lunatik_class;
 
+/* internals the C API depends on: the core's own, which doc/capi.md leaves out */
+#define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
+#define LUNATIK_ALLOC(L, a, u)	void *u = NULL; lua_Alloc a = lua_getallocf(L, &u)
+#define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
+#define lunatik_monitormt(class, monitor)	((monitor) ? (const void *)&(class)->opt : (const void *)(class))
+#define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_CLOSED)
+
+void lunatik_releaseobject(struct kref *kref);
+void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
+
+static inline bool lunatik_hasindex(lua_State *L, int index)
+{
+	bool hasindex = lua_getfield(L, index, "__index") != LUA_TNIL;
+	lua_pop(L, 1);
+	return hasindex;
+}
+
+static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, bool monitored)
+{
+	lua_newtable(L); /* mt = {} */
+	luaL_setfuncs(L, class->methods, 0);
+	lua_pushstring(L, class->name);
+	lua_setfield(L, -2, "__name"); /* names the class in type errors and tostring */
+	if (monitored)
+		lunatik_monitorobject(L, class);
+	if (!lunatik_hasindex(L, -1)) {
+		lua_pushvalue(L, -1);  /* push mt */
+		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
+	}
+	lua_rawsetp(L, LUA_REGISTRYINDEX, lunatik_monitormt(class, monitored)); /* registry[key] = mt */
+}
+
+static inline bool lunatik_hasclass(lua_State *L, const lunatik_class_t *class)
+{
+	int type = lua_rawgetp(L, LUA_REGISTRYINDEX, lunatik_monitormt(class, false));
+	lua_pop(L, 1); /* mt or nil */
+	return type != LUA_TNIL;
+}
+
+static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)
+{
+	lunatik_class_t *class = NULL;
+
+	if (lua_type(L, ix) == LUA_TUSERDATA) {
+		lua_getiuservalue(L, ix, 1); /* pushes nil when the userdata has no such value */
+		class = (lunatik_class_t *)lua_touserdata(L, -1);
+		lua_pop(L, 1); /* class */
+	}
+	return class;
+}
+
+static inline bool lunatik_isobject(lua_State *L, int ix, lunatik_object_t *object)
+{
+	lunatik_class_t *class = lunatik_getclass(L, ix);
+	return class && object && object->class == class;
+}
+
+static inline lunatik_object_t **lunatik_testobject(lua_State *L, int ix)
+{
+	lunatik_object_t **pobject = (lunatik_object_t **)lua_touserdata(L, ix);
+	return (pobject && lunatik_isobject(L, ix, *pobject)) ? pobject : NULL;
+}
+
+static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
+{
+	lunatik_object_t **pobject = lunatik_testobject(L, ix);
+	luaL_argcheck(L, pobject != NULL, ix, "invalid object");
+	return pobject;
+}
+
+#define LUNATIK_CHECKER(checker, T, argcheckclass, ...)		\
+static inline T checker(lua_State *L, int ix)			\
+{								\
+	lunatik_object_t *object = lunatik_checkobject(L, ix);	\
+	argcheckclass;						\
+	T private = (T)object->private;				\
+	lunatik_argchecknull(L, private, ix); /* closed */	\
+	__VA_ARGS__						\
+	return private;						\
+}
+
+static inline bool lunatik_isoneof(const lunatik_class_t *class, const lunatik_class_t *const *classes)
+{
+	for (; *classes != NULL; classes++)
+		if (*classes == class)
+			return true;
+	return false;
+}
+/* end of internals */
+
 #include "lunatik_lock.h"
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);
@@ -122,7 +211,6 @@ static inline int lunatik_cpcall(lua_State *L, lua_CFunction f, void *ud)
 	return lua_pcall(L, 1, 0, 0);
 }
 
-#define LUNATIK_ALLOC(L, a, u)	void *u = NULL; lua_Alloc a = lua_getallocf(L, &u)
 static inline const char *lunatik_pushstring(lua_State *L, char *s, size_t len)
 {
 	LUNATIK_ALLOC(L, alloc, ud);
@@ -236,8 +324,6 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 
-#define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
-
 static inline void lunatik_checkclosing(lua_State *L)
 {
 	if (lunatik_isclosing(lunatik_toruntime(L)))
@@ -264,7 +350,6 @@ static inline lunatik_opt_t lunatik_checkcontext(lua_State *L, int ix)
 
 #define lunatik_setruntime(L, libname, priv)	\
 	((priv)->runtime = lunatik_checkruntime((L), lua##libname##_class.name, lua##libname##_class.opt))
-#define lunatik_monitormt(class, monitor)	((monitor) ? (const void *)&(class)->opt : (const void *)(class))
 
 static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class)
 {
@@ -293,55 +378,13 @@ static inline void lunatik_checkowner(lua_State *L, lunatik_object_t *runtime)
 		luaL_error(L, LUNATIK_ERR_OWNER);
 }
 
-static inline lunatik_opt_t lunatik_inheritopt(const lunatik_class_t *class, lunatik_opt_t opt)
-{
-	lunatik_opt_t inherited = opt | class->opt;
-	return lunatik_issingle(opt) ? inherited & ~LUNATIK_OPT_MONITOR : inherited;
-}
-
-static inline void lunatik_pushmetatable(lua_State *L, const lunatik_class_t *class, bool monitor)
-{
-	if (lua_rawgetp(L, LUA_REGISTRYINDEX, lunatik_monitormt(class, monitor)) == LUA_TNIL)
-		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_METATABLE);
-}
-
-static inline void lunatik_checkmetatable(lua_State *L, const lunatik_class_t *class, bool monitor)
-{
-	lunatik_pushmetatable(L, class, monitor);
-	lua_pop(L, 1); /* metatable */
-}
-
-static inline void lunatik_setclass(lua_State *L, const lunatik_class_t *class, bool monitor)
-{
-	lunatik_pushmetatable(L, class, monitor);
-	lua_setmetatable(L, -2);
-	lua_pushlightuserdata(L, (void *)class);
-	lua_setiuservalue(L, -2, 1); /* pop class */
-}
-
-static inline void lunatik_setobject(lunatik_object_t *object, const lunatik_class_t *class, lunatik_opt_t opt)
-{
-	__module_get(class->owner); /* the code creating the object holds its module already */
-	kref_init(&object->kref);
-	object->private = NULL;
-	object->class = class;
-	object->opt = lunatik_inheritopt(class, opt);
-	object->gfp = lunatik_isirq(object->opt) ? GFP_ATOMIC : GFP_KERNEL;
-	lunatik_newlock(object);
-	object->owner = NULL;
-}
-
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
 lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size, lunatik_opt_t opt);
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
-void lunatik_releaseobject(struct kref *kref);
 void lunatik_closeprivate(lunatik_object_t *object);
 int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
-void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 
-#define lunatik_newpobject(L, n)	(lunatik_object_t **)lua_newuserdatauv((L), sizeof(lunatik_object_t *), (n))
-#define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_CLOSED)
 #define lunatik_argcheckclass(L, ix, object, cls)	\
 	luaL_argexpected((L), (object)->class == (cls), (ix), (cls)->name)
 
@@ -351,84 +394,10 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
 bool lunatik_getobject_rcu(lunatik_object_t *object);
 
-static inline void *lunatik_unholdobject(void *ud, void *ptr, size_t osize, size_t nsize)
-{
-	lunatik_putobject((lunatik_object_t *)ud);
-	return NULL;
-}
-
-static inline void *lunatik_unholdmodule(void *ud, void *ptr, size_t osize, size_t nsize)
-{
-	module_put((struct module *)ud);
-	return NULL;
-}
-
-#define lunatik_hold(L, unhold, ud)								\
-do {												\
-	lua_pushexternalstring((L), "", 0, (unhold), (ud)); /* freed at the end of lua_close */	\
-	luaL_ref((L), LUA_REGISTRYINDEX);							\
-} while (0)
-
-#define lunatik_holdobject(L, object)	lunatik_hold((L), lunatik_unholdobject, (object))
-#define lunatik_holdmodule(L, module)	lunatik_hold((L), lunatik_unholdmodule, (module))
-
 static inline void lunatik_pushobject(lua_State *L, lunatik_object_t *object)
 {
 	lunatik_cloneobject(L, object);
 	lunatik_getobject(object);
-}
-
-static inline bool lunatik_hasindex(lua_State *L, int index)
-{
-	bool hasindex = lua_getfield(L, index, "__index") != LUA_TNIL;
-	lua_pop(L, 1);
-	return hasindex;
-}
-
-static inline void lunatik_newclass(lua_State *L, const lunatik_class_t *class, bool monitored)
-{
-	lua_newtable(L); /* mt = {} */
-	luaL_setfuncs(L, class->methods, 0);
-	lua_pushstring(L, class->name);
-	lua_setfield(L, -2, "__name"); /* names the class in type errors and tostring */
-	if (monitored)
-		lunatik_monitorobject(L, class);
-	if (!lunatik_hasindex(L, -1)) {
-		lua_pushvalue(L, -1);  /* push mt */
-		lua_setfield(L, -2, "__index");  /* mt.__index = mt */
-	}
-	lua_rawsetp(L, LUA_REGISTRYINDEX, lunatik_monitormt(class, monitored)); /* registry[key] = mt */
-}
-
-static inline lunatik_class_t *lunatik_getclass(lua_State *L, int ix)
-{
-	lunatik_class_t *class = NULL;
-
-	if (lua_type(L, ix) == LUA_TUSERDATA) {
-		lua_getiuservalue(L, ix, 1); /* pushes nil when the userdata has no such value */
-		class = (lunatik_class_t *)lua_touserdata(L, -1);
-		lua_pop(L, 1); /* class */
-	}
-	return class;
-}
-
-static inline bool lunatik_isobject(lua_State *L, int ix, lunatik_object_t *object)
-{
-	lunatik_class_t *class = lunatik_getclass(L, ix);
-	return class && object && object->class == class;
-}
-
-static inline lunatik_object_t **lunatik_testobject(lua_State *L, int ix)
-{
-	lunatik_object_t **pobject = (lunatik_object_t **)lua_touserdata(L, ix);
-	return (pobject && lunatik_isobject(L, ix, *pobject)) ? pobject : NULL;
-}
-
-static inline lunatik_object_t **lunatik_checkpobject(lua_State *L, int ix)
-{
-	lunatik_object_t **pobject = lunatik_testobject(L, ix);
-	luaL_argcheck(L, pobject != NULL, ix, "invalid object");
-	return pobject;
 }
 
 static inline lunatik_object_t *lunatik_checkshareable(lua_State *L, int ix)
@@ -449,13 +418,6 @@ static inline lunatik_object_t *lunatik_checkobjectclass(lua_State *L, int ix, c
 
 #define LUNATIK_CLASSES(name, ...)	\
 static const lunatik_class_t *lua##name##_classes[] = { __VA_ARGS__, NULL }
-
-static inline bool lunatik_hasclass(lua_State *L, const lunatik_class_t *class)
-{
-	int type = lua_rawgetp(L, LUA_REGISTRYINDEX, lunatik_monitormt(class, false));
-	lua_pop(L, 1); /* mt or nil */
-	return type != LUA_TNIL;
-}
 
 static inline void lunatik_require(lua_State *L, const lunatik_class_t *class)
 {
@@ -486,27 +448,8 @@ int luaopen_##libname(lua_State *L)						\
 }										\
 EXPORT_SYMBOL_GPL(luaopen_##libname)
 
-#define LUNATIK_CHECKER(checker, T, argcheckclass, ...)		\
-static inline T checker(lua_State *L, int ix)			\
-{								\
-	lunatik_object_t *object = lunatik_checkobject(L, ix);	\
-	argcheckclass;						\
-	T private = (T)object->private;				\
-	lunatik_argchecknull(L, private, ix); /* closed */	\
-	__VA_ARGS__						\
-	return private;						\
-}
-
 #define LUNATIK_PRIVATECHECKER(checker, T, cls, ...)	\
 	LUNATIK_CHECKER(checker, T, lunatik_argcheckclass(L, ix, object, cls), ##__VA_ARGS__)
-
-static inline bool lunatik_isoneof(const lunatik_class_t *class, const lunatik_class_t *const *classes)
-{
-	for (; *classes != NULL; classes++)
-		if (*classes == class)
-			return true;
-	return false;
-}
 
 #define LUNATIK_PRIVATECHECKERS(checker, T, tname, ...)						\
 static const lunatik_class_t *const checker##_classes[] = { __VA_ARGS__, NULL };		\
