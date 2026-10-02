@@ -34,8 +34,8 @@ local NO_SOCKET <const> = dropreason.NO_SOCKET
 
 local dropped = 0
 
-local function pre(_, _, argument)
-	if dropped >= BATCH or argument(REASON) ~= NO_SOCKET then
+local function pre(_, regs)
+	if dropped >= BATCH or regs:argument(REASON) ~= NO_SOCKET then
 		return
 	end
 

@@ -10,8 +10,8 @@
 * `syscall.table` and `linux.lookup` return one. Its `pre` handler runs before the
 * probed instruction and its `post` handler after it. What a handler returns is
 * ignored, so a probe observes the function and cannot skip it, and the error of a
-* handler that raises goes to the kernel log. `dump()` prints the registers of the
-* probed CPU to the kernel log.
+* handler that raises goes to the kernel log. A handler receives the registers of the
+* probed CPU as a `probe.regs`, whose `dump()` prints them to the kernel log.
 *
 * A probe fires wherever the probed code runs, inside an interrupt handler too, with
 * preemption or interrupts off, so the script runs in a hardirq runtime,
@@ -25,11 +25,11 @@
 *
 *   local reported = false
 *
-*   local function pre(symbol, dump)
+*   local function pre(symbol, regs)
 *     if not reported then
 *       reported = true
 *       print(symbol)
-*       dump()
+*       regs:dump()
 *     end
 *   end
 *
@@ -59,47 +59,36 @@ typedef struct luaprobe_s {
 
 static void (*luaprobe_showregs)(struct pt_regs *);
 
-static int luaprobe_dump(lua_State *L)
-{
-	struct pt_regs *regs = lua_touserdata(L, lua_upvalueindex(1));
-	if (regs == NULL)
-		luaL_error(L, LUNATIK_ERR_CLOSED);
+static const char luaprobe_regs_key;
 
-	luaprobe_showregs(regs);
-	return 0;
+static const lunatik_class_t luaprobe_regs_class;
+
+LUNATIK_PRIVATECHECKER(luaprobe_checkregs, struct pt_regs *, &luaprobe_regs_class);
+
+static inline bool luaprobe_hasregs(lua_State *L)
+{
+	int type = lunatik_getregistry(L, &luaprobe_regs_key);
+
+	lua_pop(L, 1);
+	return type != LUA_TNIL;
 }
 
-#ifdef CONFIG_HAVE_FUNCTION_ARG_ACCESS_API
-static int luaprobe_argument(lua_State *L)
+static inline void luaprobe_newregs(lua_State *L)
 {
-	struct pt_regs *regs = lua_touserdata(L, lua_upvalueindex(1));
-	unsigned int n = (unsigned int)lunatik_checkinteger(L, 1, 0, UINT_MAX);
-
-	if (regs == NULL)
-		luaL_error(L, LUNATIK_ERR_CLOSED);
-
-	lua_pushinteger(L, (lua_Integer)regs_get_kernel_argument(regs, n));
-	return 1;
-}
-#endif
-
-static const lua_CFunction luaprobe_closures[] = {
-	luaprobe_dump,
-#ifdef CONFIG_HAVE_FUNCTION_ARG_ACCESS_API
-	luaprobe_argument,
-#endif
-};
-
-static inline void luaprobe_pushregs(lua_State *L, lua_CFunction closure, struct pt_regs *regs)
-{
-	lua_pushlightuserdata(L, regs);
-	lua_pushcclosure(L, closure, 1);
+	lunatik_newobject(L, &luaprobe_regs_class, 0, LUNATIK_OPT_NONE);
+	lunatik_register(L, -1, &luaprobe_regs_key);
+	lua_pop(L, 1);
 }
 
-static inline void luaprobe_dropregs(lua_State *L, int ix)
+static inline lunatik_object_t *luaprobe_pushregs(lua_State *L, struct pt_regs *regs)
 {
-	lua_pushnil(L);
-	lua_setupvalue(L, ix, 1);
+	lunatik_object_t *object = lunatik_getregistryobject(L, &luaprobe_regs_key);
+
+	if (unlikely(object == NULL))
+		luaL_error(L, "couldn't find regs");
+
+	object->private = regs;
+	return object;
 }
 
 typedef struct luaprobe_ctx_s {
@@ -117,30 +106,19 @@ static int luaprobe_dohandler(lua_State *L)
 
 	if (lunatik_getregistry(L, probe) != LUA_TTABLE)
 		luaL_error(L, "couldn't find probe table");
-	int base = lua_gettop(L);
-	int nclosures = ARRAY_SIZE(luaprobe_closures);
-	int i;
 
-	if (lua_getfield(L, base, ctx->handler) != LUA_TFUNCTION) /* base + 1 */
+	if (lua_getfield(L, -1, ctx->handler) != LUA_TFUNCTION)
 		return 0;
-
-	for (i = 0; i < nclosures; i++)
-		luaprobe_pushregs(L, luaprobe_closures[i], ctx->regs); /* base + 2 + i */
-
-	lua_pushvalue(L, base + 1);
 
 	if (symbol != NULL)
 		lua_pushstring(L, symbol);
 	else
 		lua_pushlightuserdata(L, probe->requested);
 
-	for (i = 0; i < nclosures; i++)
-		lua_pushvalue(L, base + 2 + i);
+	lunatik_object_t *object = luaprobe_pushregs(L, ctx->regs);
+	int status = lua_pcall(L, 2, 0, 0); /* handler(symbol | addr, regs) */
 
-	int status = lua_pcall(L, 1 + nclosures, 0, 0); /* handler(symbol | addr, dump[, argument]) */
-
-	for (i = 0; i < nclosures; i++)
-		luaprobe_dropregs(L, base + 2 + i); /* regs are only live while the probed function is trapped */
+	object->private = NULL; /* regs are only live while the probed function is trapped */
 	if (status != LUA_OK)
 		lua_error(L);
 	return 0;
@@ -323,6 +301,56 @@ static int luaprobe_disable(lua_State *L)
 	return 0;
 }
 
+/***
+* The registers of the CPU a probe hit, which a handler receives.
+* A userdata reused for every hit of every probe of the runtime: while a handler runs it
+* holds the registers of that hit, and it is cleared when the handler returns, so a
+* script that keeps it and reads it outside a handler gets an error rather than a
+* pointer into a frame that is gone.
+* @type probe_regs
+*/
+
+/***
+* Prints the registers to the kernel log.
+* @function dump
+* @raise `closed object` outside a handler
+*/
+static int luaprobe_dump(lua_State *L)
+{
+	luaprobe_showregs(luaprobe_checkregs(L, 1));
+	return 0;
+}
+
+#ifdef CONFIG_HAVE_FUNCTION_ARG_ACCESS_API
+#define luaprobe_getargument(L, regs, n)	regs_get_kernel_argument((regs), (n))
+#else
+static inline unsigned long luaprobe_getargument(lua_State *L, struct pt_regs *regs, unsigned int n)
+{
+	lunatik_throw(L, -EOPNOTSUPP);
+	return 0;
+}
+#endif
+
+/***
+* Reads an argument of the probed function.
+* Reads through `regs_get_kernel_argument()`, which guesses the register mapping: what it
+* returns is not the argument past the registers the architecture passes arguments in, nor
+* after a parameter 16 bytes or larger.
+* @function argument
+* @tparam integer n position of the argument, counting from zero
+* @treturn integer the argument, as the register holds it
+* @raise `closed object` outside a handler; `out of bounds` if `n` is negative; `EOPNOTSUPP`
+*   where the architecture does not select `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`
+*/
+static int luaprobe_argument(lua_State *L)
+{
+	struct pt_regs *regs = luaprobe_checkregs(L, 1);
+	unsigned int n = (unsigned int)lunatik_checkinteger(L, 2, 0, UINT_MAX);
+
+	lua_pushinteger(L, (lua_Integer)luaprobe_getargument(L, regs, n));
+	return 1;
+}
+
 static int luaprobe_new(lua_State *L);
 
 /***
@@ -336,13 +364,8 @@ static int luaprobe_new(lua_State *L);
 * @function new
 * @tparam string|lightuserdata symbol kernel symbol name or address
 * @tparam table handlers table with optional `pre` and `post` callback functions;
-*   each receives the symbol (string) or the address as given (lightuserdata), a `dump`
-*   closure and, where the architecture selects `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`, an
-*   `argument` closure; both closures raise once the callback returns. `argument(n)` reads
-*   the n-th argument of the probed function, counting from zero, through
-*   `regs_get_kernel_argument()`, which guesses the register mapping: what it returns is not
-*   the argument past the registers the architecture passes arguments in, nor after a
-*   parameter 16 bytes or larger. The table is read once, to decide whether the kernel
+*   each receives the symbol (string) or the address as given (lightuserdata), and the
+*   `probe.regs` of the hit. The table is read once, to decide whether the kernel
 *   installs a post handler, so a `post` added to it afterwards never fires; a `pre` added
 *   afterwards does
 * @treturn probe
@@ -372,6 +395,20 @@ static const lunatik_class_t luaprobe_class = {
 	.name = "probe",
 	.methods = luaprobe_mt,
 	.release = luaprobe_release,
+	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
+	.owner = THIS_MODULE,
+};
+
+static const luaL_Reg luaprobe_regs_mt[] = {
+	{"__gc", lunatik_deleteobject},
+	{"dump", luaprobe_dump},
+	{"argument", luaprobe_argument},
+	{NULL, NULL}
+};
+
+static const lunatik_class_t luaprobe_regs_class = {
+	.name = "probe.regs",
+	.methods = luaprobe_regs_mt,
 	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE | LUNATIK_OPT_EXTERNAL,
 	.owner = THIS_MODULE,
 };
@@ -424,6 +461,9 @@ static int luaprobe_new(lua_State *L)
 	lunatik_object_t *runtime = lunatik_checkruntime(L, luaprobe_class.name, LUNATIK_OPT_HARDIRQ);
 	lunatik_object_t *percpu = lunatik_getpercpu(L);
 
+	if (!luaprobe_hasregs(L))
+		luaprobe_newregs(L);
+
 	lunatik_object_t *object = lunatik_newobject(L, &luaprobe_class, 0, LUNATIK_OPT_NONE);
 
 	object->private = percpu != NULL ? luaprobe_share(L, percpu, &spec) : luaprobe_own(L, runtime, &spec);
@@ -433,7 +473,7 @@ static int luaprobe_new(lua_State *L)
 	return 1; /* object */
 }
 
-LUNATIK_CLASSES(probe, &luaprobe_class);
+LUNATIK_CLASSES(probe, &luaprobe_class, &luaprobe_regs_class);
 LUNATIK_NEWLIB(probe, luaprobe_lib, luaprobe_classes);
 
 static int __init luaprobe_init(void)

@@ -956,11 +956,15 @@ from a pid namespace other than the initial one, whose pids are not the ones
   target is the same address twice, not two names the kernel resolves to one,
   which is arm64-specific and needs an unimplemented syscall.
 
-- **argument**: the `argument` closure a handler receives, on its three
-  outcomes: a probe on `vfs_read` reads the byte count the caller asked for,
-  a negative index raises, and both it and the `dump` closure stop reaching
-  the registers once the handler that received them returned, where the
-  `argument` closure raises `closed object`.
+- **argument**: the `probe.regs` a handler receives: on a probe on `vfs_read`,
+  `regs:argument` reads the byte count the caller asked for and raises on a
+  negative index, `regs:dump` prints the registers with the reader's task line,
+  both methods refuse a `data` object, an `rcu.table` refuses the object, the
+  next hit receives the same object and takes the handler out of the table, and
+  a finalizer at the stop, which runs outside any handler and after hits that
+  found none, finds both methods raising `closed object`, read through
+  `argument(-1)`, which checks the object before the index and so reads no
+  register, before `dump` is called.
 
 - **armed**: `probe.new`, `stop`, `enable` and `disable` all reach a kprobe
   call that sleeps, so each is allowed while the script loads, in process
@@ -1024,9 +1028,10 @@ from a pid namespace other than the initial one, whose pids are not the ones
 
 - **raise**: a hit looks its handler up, pushes the handler's arguments and
   runs it in one protected call. Two probes on the `personality` syscall, which
-  two `setarch` call once each: a `pre` and a `post` handler that raise on the
-  first hit have each error logged once with the handler's name, and the `dump`
-  closure the `pre` kept no longer reaches the registers on the second; a
+  two `setarch` call once each: a `pre` handler that raises on the first hit and
+  a `post` handler that raises on the second have each error logged once with
+  the handler's name, and the regs the `post` kept on the raising hit, the last
+  handler the runtime runs, raise `closed object` in a finalizer at the stop; a
   handlers table whose `__index` raises when the first hit looks up `pre` has
   its error logged once with the handler's name, and the second hit runs the
   handler. A build that looks the handler up outside a protected call raises

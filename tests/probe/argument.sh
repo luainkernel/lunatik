@@ -3,20 +3,29 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Covers the closures a probe handler receives, on three outcomes: argument reads
-# the n-th argument of the probed function, argument rejects an index it cannot
-# use, and both argument and dump stop reaching the registers once the handler
-# that received them returned.
+# Covers the probe.regs a probe handler receives: argument reads the n-th argument
+# of the probed function and rejects an index it cannot use, dump prints the
+# registers of the hit, both refuse an object of another class, the object cannot
+# be shared with another runtime, every hit of the runtime receives the same object,
+# and that object stops reaching the registers once no handler runs, a hit that finds
+# no handler included.
 #
 # The probe is on vfs_read(file, buf, count, pos), so argument(2) is the byte count
 # the caller asked for. The shell reads exactly COUNT bytes from /dev/zero, a size
 # nothing else on the host is likely to ask for, and the script reports only when it
 # sees that size: another reader cannot make the case pass for the wrong reason. On
-# that same call it also checks that a negative index raises, then keeps both closures
-# for the next call to prove the handler that received them no longer reaches the
-# registers: argument raises, and dump is read through debug.getupvalue rather than
-# called, so a build that stopped clearing it is reported instead of running show_regs
-# on a pt_regs that is gone.
+# that same call it also checks that a negative index and a data object raise and that
+# an rcu.table refuses the object, dumps the registers, whose task line names dd, and
+# keeps the object for the next call to compare with the one it receives. That next
+# call also takes the handler out of the table, so the hits left before the stop, the
+# reads lunatik stop makes of its own script among them, find no handler and must leave
+# the object cleared. Every hit hands its handler that same object, so it is read
+# outside a handler by a finalizer at the stop: the close finalizes in reverse order
+# of marking, and the finalizer marked after the object reads it whole. There
+# argument(-1) must raise closed object before dump is called: argument checks the
+# object before the index, so a build that stopped clearing the object raises out of
+# bounds there without reading a register, and is reported instead of reading or
+# dumping a pt_regs that is gone.
 #
 # Usage: sudo bash tests/probe/argument.sh
 
@@ -30,12 +39,14 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 3
+ktap_plan 7
 
 CONFIG="/boot/config-$(uname -r)"
 if [ -r "$CONFIG" ] && ! grep -q '^CONFIG_HAVE_FUNCTION_ARG_ACCESS_API=y' "$CONFIG"; then
-	for what in "reads the n-th argument" "rejects a negative index" "goes stale once the handler returned"; do
-		ktap_skip "argument: $what needs CONFIG_HAVE_FUNCTION_ARG_ACCESS_API"
+	for what in "reads the n-th argument" "rejects a negative index" "prints the registers" \
+		"refuses another class" "cannot be shared" "is one object per runtime" \
+		"goes stale outside a handler"; do
+		ktap_skip "regs: $what needs CONFIG_HAVE_FUNCTION_ARG_ACCESS_API"
 	done
 	ktap_totals
 	exit 0
@@ -51,14 +62,26 @@ check_dmesg || { ktap_totals; exit 1; }
 
 reported() { dmesg_since | grep -qF "probe argument: $1"; }
 
-reported read || fail "argument(2) never returned the size the reader asked for"
-ktap_pass "argument(n) reads the n-th argument of the probed function"
+reported read || fail "regs:argument(2) never returned the size the reader asked for"
+ktap_pass "regs:argument(n) reads the n-th argument of the probed function"
 
-reported bounds || fail "argument(-1) did not raise"
-ktap_pass "argument(n) rejects an index below zero"
+reported bounds || fail "regs:argument(-1) did not raise"
+ktap_pass "regs:argument(n) rejects an index below zero"
 
-reported stale || fail "the closures still reached the registers after the handler that received them returned"
-ktap_pass "the argument and dump closures go stale once their handler returned"
+dmesg_since | grep -qF "Comm: dd " || fail "regs:dump() printed no task line for the reader"
+ktap_pass "regs:dump() prints the registers of the hit"
+
+reported foreign || fail "a regs method accepted a data object"
+ktap_pass "the regs methods refuse an object of another class"
+
+reported single || fail "an rcu.table took the regs, which another runtime could read"
+ktap_pass "regs cannot be shared with another runtime"
+
+reported shared || fail "the next hit received another regs object"
+ktap_pass "every hit of the runtime receives the same regs"
+
+reported stale || fail "the regs still reached the registers once no handler ran"
+ktap_pass "regs raises closed object outside a handler, after hits that found none"
 
 ktap_totals
 

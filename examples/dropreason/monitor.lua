@@ -59,8 +59,8 @@ env.dropreason = track
 
 local caught = false
 
-local function pre(_, dump, argument)
-	local reason = argument(REASON)
+local function pre(_, regs)
+	local reason = regs:argument(REASON)
 	if reason == CONSUMED then
 		return
 	end
@@ -71,7 +71,7 @@ local function pre(_, dump, argument)
 	if name == WATCH and not caught then
 		caught = true
 		print("dropreason: caught " .. WATCH)
-		dump()
+		regs:dump()
 	end
 end
 

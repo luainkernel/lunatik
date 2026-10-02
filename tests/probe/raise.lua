@@ -7,12 +7,12 @@
 local probe  = require("probe")
 local systab = require("syscall.table")
 
-local getupvalue = debug.getupvalue
-
 local PREFIX <const> = "probe raise test: "
 local RAISED <const> = "raised"
+local CLOSED <const> = "closed object"
 
 local kept
+local raised = false
 local posted = false
 local looked = false
 
@@ -24,20 +24,28 @@ local function raise(what)
 	error(PREFIX .. what, 0) -- a position in the message would fail check_dmesg
 end
 
-local function pre(_, dump)
-	if kept == nil then
-		kept = dump
+local function pre()
+	if not raised then
+		raised = true
 		raise(RAISED)
 	end
-	local _, regs = getupvalue(kept, 1)
-	report(regs == nil and "dropped" or "kept")
 end
 
-local function post()
-	if not posted then
-		posted = true
+-- the second hit's post runs last, so the regs it keeps can only have been cleared on the path that raised
+local function post(_, regs)
+	if posted then
+		kept = regs
 		raise(RAISED)
 	end
+	posted = true
+end
+
+local function stale()
+	if kept == nil then
+		return
+	end
+	local ok, err = pcall(kept.argument, kept, -1) -- the object is checked before the index: -1 reads no register
+	report(not ok and err:find(CLOSED, 1, true) and "dropped" or "kept")
 end
 
 local function answered()
@@ -55,6 +63,8 @@ local function lookup(_, key)
 end
 
 local target = systab["personality"]
-probe.new(target, {pre = pre, post = post})
+local handlers = {pre = pre, post = post}
+probe.new(target, handlers)
 probe.new(target, setmetatable({}, {__index = lookup}))
+handlers.sentinel = setmetatable({}, {__gc = stale}) -- marked after the regs, so the close finalizes it first
 
