@@ -23,13 +23,19 @@
 # ifindex: linux.ifindex resolves lo to its index and linux.hwaddr that index to
 # lo's address, and each answers nil, alone, for a name or an index no device has.
 #
+# tracing: linux.tracing turns kernel tracing off and on given false and true, and answers the
+# state it leaves, in a process, a softirq and a hardirq runtime resumed past their body, the armed
+# state a hook calls from; given nothing or nil it reads the state and changes nothing, and it
+# refuses any other value as boolean expected, changing nothing. The script leaves tracing as it
+# found it. Skipped without CONFIG_TRACING, where the kernel's three are stubs.
+#
 # Usage: sudo bash tests/linux/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fsnotify notifier lookup constants schedule netns errname ifindex"
+TESTS="random fsnotify notifier lookup constants schedule netns errname ifindex tracing"
 TOTAL=$(echo $TESTS | wc -w)
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil
@@ -58,6 +64,10 @@ ktap_plan $TOTAL
 for t in $TESTS; do
 	if [ "$t" = lookup ] && [ -n "$CONFIG" ] && ! grep -q '^CONFIG_KPROBES=y' <<< "$CONFIG"; then
 		ktap_skip "linux/$t: needs CONFIG_KPROBES"
+		continue
+	fi
+	if [ "$t" = tracing ] && [ -n "$CONFIG" ] && ! grep -q '^CONFIG_TRACING=y' <<< "$CONFIG"; then
+		ktap_skip "linux/$t: needs CONFIG_TRACING"
 		continue
 	fi
 	if [ "$t" = schedule ] && ! carries_refusal; then
