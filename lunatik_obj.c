@@ -143,11 +143,11 @@ void lunatik_releaseobject(struct kref *kref)
 }
 EXPORT_SYMBOL(lunatik_releaseobject);
 
-bool lunatik_getobject_rcu(lunatik_object_t *object)
+bool lunatik_trygetobject(lunatik_object_t *object)
 {
 	return kref_get_unless_zero(&object->kref);
 }
-EXPORT_SYMBOL(lunatik_getobject_rcu);
+EXPORT_SYMBOL(lunatik_trygetobject);
 
 int lunatik_deleteobject(lua_State *L)
 {

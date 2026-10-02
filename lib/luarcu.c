@@ -149,7 +149,7 @@ LUNATIK_PRIVATECHECKER(luarcu_checktable, luarcu_table_t *, &luarcu_class);
 static inline void luarcu_readvalue(luarcu_entry_t *entry, lunatik_value_t *value)
 {
 	*value = entry->value;
-	if (lunatik_isuserdata(value) && !lunatik_getobject_rcu(value->object))
+	if (lunatik_isuserdata(value) && !lunatik_trygetobject(value->object))
 		value->type = LUA_TNIL;
 }
 

@@ -16,7 +16,7 @@
 # warning or oops. The window is not forced: the case is a stress, and the
 # proof of the mechanism is the trace in the commit.
 #
-# Skips unless the loaded core carries lunatik_getobject_rcu, since on a core
+# Skips unless the loaded core carries lunatik_trygetobject, since on a core
 # without it the same stress reads freed memory.
 #
 # Usage: sudo bash tests/rcu/object_grace.sh
@@ -39,8 +39,8 @@ cleanup
 ktap_header
 ktap_plan 1
 
-if ! grep -qE ' lunatik_getobject_rcu(\s|$)' /proc/kallsyms; then
-	ktap_skip "rcu/object_grace: the loaded core has no lunatik_getobject_rcu"
+if ! grep -qE ' lunatik_trygetobject(\s|$)' /proc/kallsyms; then
+	ktap_skip "rcu/object_grace: the loaded core has no lunatik_trygetobject"
 	ktap_totals
 	exit 0
 fi

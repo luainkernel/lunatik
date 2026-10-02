@@ -98,7 +98,7 @@ A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` throug
 [`lunatik_gfp`](#lunatik_gfp); the other fields are the core's.
 
 - `kref`: the count of the object's references, `1` at its creation, taken and dropped through
-  [`lunatik_getobject`](#lunatik_getobject), [`lunatik_getobject_rcu`](#lunatik_getobject_rcu) and
+  [`lunatik_getobject`](#lunatik_getobject), [`lunatik_trygetobject`](#lunatik_trygetobject) and
   [`lunatik_putobject`](#lunatik_putobject), whose drop to zero runs the release. It changes
   atomically, under no lock.
 - `class`: the class the object was created with, set at its creation and never changed.
@@ -707,9 +707,9 @@ void lunatik_getobject(lunatik_object_t *object);
 ```
 Increments the [reference counter](https://docs.kernel.org/core-api/kref.html) of `object`.
 
-### lunatik\_getobject\_rcu
+### lunatik\_trygetobject
 ```C
-bool lunatik_getobject_rcu(lunatik_object_t *object);
+bool lunatik_trygetobject(lunatik_object_t *object);
 ```
 Takes a reference on an object found under `rcu_read_lock()` without one held, as an
 `rcu.table` entry hands its readers, and returns `true`; returns `false`, taking none, when the
