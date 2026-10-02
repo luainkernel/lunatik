@@ -18,6 +18,7 @@
 local socket = require("socket")
 local net    = require("net")
 local class  = require("class")
+local sk     = require("linux.socket")
 
 ---
 -- Base class for socket types.
@@ -33,7 +34,7 @@ local class  = require("class")
 -- @see class
 local inet = class{localhost = '127.0.0.1'}
 
-local af = require("linux.socket").af
+local af = sk.af
 
 ---
 -- Metamethod to create a new socket instance when `inet()` or `inet.tcp()` or `inet.udp()` is called.
@@ -138,8 +139,8 @@ function inet:getpeername()
 	return self:getaddr("peername")
 end
 
-local sock    = require("linux.socket").sock
-local ipproto = require("linux.socket").ipproto
+local sock    = sk.sock
+local ipproto = sk.ipproto
 
 ---
 -- TCP socket specialization.

@@ -18,8 +18,9 @@
 local object  = require("netlink.nl80211.object")
 local message = require("netlink.message")
 
-local cmd  = require("linux.nl80211").cmd
-local attr = require("linux.nl80211").attr
+local nl80211 = require("linux.nl80211")
+local cmd     = nl80211.cmd
+local attr    = nl80211.attr
 
 ---
 -- @type ap

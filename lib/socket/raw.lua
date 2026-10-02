@@ -13,8 +13,9 @@
 local socket = require("socket")
 local eth    = require("linux.eth")
 
-local af   = require("linux.socket").af
-local sock = require("linux.socket").sock
+local sk   = require("linux.socket")
+local af   = sk.af
+local sock = sk.sock
 
 local raw = {}
 
