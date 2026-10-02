@@ -1069,7 +1069,8 @@ the calling task; the object&rsquo;s memory is freed after an RCU grace period.<
 the object at index <code>1</code> through <a href="#lunatik_closeprivate"><code>lunatik_closeprivate</code></a>; its userdata
 stays, holding its reference. <code>lunatik_deleteobject</code>, for <code>__gc</code>, drops the reference the
 userdata holds and releases the object when it was the last. Both raise <code>invalid object</code> when
-index <code>1</code> holds no Lunatik object.</p>
+index <code>1</code> holds no Lunatik object, and <code>lunatik_closeobject</code> raises <code>object of another class</code> when
+the object&rsquo;s own <code>__close</code> is not <code>lunatik_closeobject</code>.</p>
 
 <hr />
 
@@ -1973,7 +1974,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:35:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:38:51</span>
 </div>
 </footer>
 </body>
