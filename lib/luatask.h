@@ -30,7 +30,7 @@ static inline void luatask_close(lunatik_object_t *object)
 	lunatik_putobject(object);
 }
 
-lunatik_object_t *luatask_new(lua_State *L, struct task_struct *task);
+lunatik_object_t *luatask_attach(lua_State *L, struct task_struct *task);
 
 #endif
 

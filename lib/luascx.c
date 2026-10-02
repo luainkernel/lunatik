@@ -253,7 +253,7 @@ static int luascx_attach(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luascx_class, sizeof(luascx_ctx_t), LUNATIK_OPT_NONE);
 	luascx_ctx_t *ctx = (luascx_ctx_t *)object->private;
 
-	luakfunc_attach(L, ctx, task_obj, luatask_new, NULL);
+	luakfunc_attach(L, ctx, task_obj, luatask_attach, NULL);
 
 	luakfunc_bind(L, 1, &ctx->cb);
 	return 0;

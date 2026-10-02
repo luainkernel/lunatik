@@ -167,7 +167,7 @@ static int luathread_task(lua_State *L)
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luathread_class);
 	luathread_t *thread = (luathread_t *)object->private;
 
-	luatask_new(L, thread->task);
+	luatask_attach(L, thread->task);
 	return 1;
 }
 

@@ -123,7 +123,7 @@ static lunatik_object_t *luaskb_pushview(lua_State *L, lunatik_object_t **view)
 {
 	if (*view != NULL)
 		lunatik_getregistry(L, *view);
-	else { /* luaskb_new, or a copy's first call for the layer */
+	else { /* luaskb_attach, or a copy's first call for the layer */
 		lunatik_object_t *object = luadata_new(L, LUNATIK_OPT_SINGLE);
 		lunatik_register(L, -1, object);
 		lunatik_getobject(object);
@@ -403,7 +403,7 @@ static int luaskb_copy(lua_State *L)
 	return 1;
 }
 
-lunatik_object_t *luaskb_new(lua_State *L, bool kfunc)
+lunatik_object_t *luaskb_attach(lua_State *L, bool kfunc)
 {
 	lunatik_require(L, &luaskb_class);
 	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
@@ -414,7 +414,7 @@ lunatik_object_t *luaskb_new(lua_State *L, bool kfunc)
 	lua_pop(L, LUASKB_VIEWS);
 	return object;
 }
-EXPORT_SYMBOL(luaskb_new);
+EXPORT_SYMBOL(luaskb_attach);
 
 LUNATIK_CLASSES(skb, &luaskb_class);
 LUNATIK_NEWLIB(skb, luaskb_lib, luaskb_classes);
