@@ -78,8 +78,11 @@ do {										\
 			ret = -EDEADLK; /* a dispatch from under the lock it would take */	\
 		else {								\
 			lunatik_lock(_runtime);					\
-			if (likely(lunatik_isready(_runtime)))			\
+			if (likely(lunatik_isready(_runtime))) {		\
+				lunatik_cstack(_runtime) = current_stack_pointer;	\
 				lunatik_handle(_runtime, handler, ret, ## __VA_ARGS__);	\
+				lunatik_cstack(_runtime) = 0;			\
+			}							\
 			lunatik_unlock(_runtime);				\
 		}								\
 	}									\
@@ -132,9 +135,11 @@ typedef struct lunatik_runtime_s {
 	lunatik_object_t *percpu;
 	int cpu;
 	bool ready;
+	unsigned long cstack;
 } lunatik_runtime_t;
 
 #define lunatik_runtimeof(runtime)	container_of(runtime, lunatik_runtime_t, object)
+#define lunatik_cstack(runtime)		(lunatik_runtimeof(runtime)->cstack)
 
 extern lunatik_object_t *lunatik_env;
 extern struct task_struct *lunatik_rtnl;
