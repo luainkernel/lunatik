@@ -193,6 +193,7 @@
     <span class="keyword">const</span> luaL_Reg    *methods;
     lunatik_release_t  release;
     lunatik_opt_t      opt;
+    <span class="keyword">struct</span> <span class="global">module</span>     *owner;
 } lunatik_class_t;
 </pre>
 
@@ -301,6 +302,13 @@ internal to the core.
 
 <ul>
 <li><code>LUNATIK_OPT_NONE</code>: <code>0</code>, no flag.</li>
+<li><code>owner</code>: the module the class&rsquo;s methods and <code>release</code> live in, <code>THIS_MODULE</code>, as a
+<code>struct file_operations</code> names its own; a class that leaves it <code>NULL</code>, as <code>THIS_MODULE</code> is in a
+built-in build, holds nothing. Every object of the class holds a reference to it from
+its creation to its release, so the module stays loaded while an object is left, in an
+<a href="../modules/rcu.html#table">rcu.table</a> such as <code>_ENV</code> or in a runtime that never required its library. A state that
+<a href="#lunatik_cloneobject"><code>lunatik_cloneobject</code></a> creates the class&rsquo;s metatables in holds another
+until it closes.</li>
 </ul>
 
 
@@ -973,7 +981,8 @@ metatable, and takes no reference: the userdata&rsquo;s <code>__gc</code> drops 
 or takes, as <a href="#lunatik_pushobject"><code>lunatik_pushobject</code></a> does; in a closing state the state drops
 it instead, as <a href="#lunatik_newobject"><code>lunatik_newobject</code></a> describes. It calls
 <a href="#lunatik_require"><code>lunatik_require</code></a> first, so the object reaches a state whose script never
-required its library.
+required its library; where that creates the metatables, <code>L</code> holds the class&rsquo;s <code>owner</code> until it
+closes, as <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> holds the module of a library it opens.
 Raises <code>&apos;&lt;name&gt;&apos;: cannot share SINGLE object</code> for a <code>LUNATIK_OPT_SINGLE</code> object,
 <code>&apos;&lt;name&gt;&apos;: process-context class in interrupt-context runtime</code>, <code>&apos;&lt;name&gt;&apos;: metatable not found</code>
 for a <code>LUNATIK_OPT_MONITOR</code> object of a class that does not carry the flag, and <code>not enough
@@ -1651,12 +1660,12 @@ can only instantiate the ones whose context matches its own.</p>
 <pre>
 <span class="keyword">static</span> <span class="keyword">const</span> lunatik_class_t luafoo_process_class = {
     .name = <span class="string">"foo"</span>, .methods = luafoo_mt, .release = luafoo_release,
-    .opt = LUNATIK_OPT_SINGLE,
+    .opt = LUNATIK_OPT_SINGLE, .owner = THIS_MODULE,
 };
 
 <span class="keyword">static</span> <span class="keyword">const</span> lunatik_class_t luafoo_hardirq_class = {
     .name = <span class="string">"foo"</span>, .methods = luafoo_mt, .release = luafoo_release,
-    .opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+    .opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE, .owner = THIS_MODULE,
 };
 
 <span class="function-name">LUNATIK_CLASSES</span>(foo, &amp;luafoo_process_class, &amp;luafoo_hardirq_class);
@@ -1722,6 +1731,7 @@ entry points.</p>
     .name = <span class="string">"foo"</span>,
     .methods = luafoo_mt,
     .opt = LUNATIK_OPT_MONITOR,
+    .owner = THIS_MODULE,
 };
 
 <span class="keyword">static</span> <span class="keyword">int</span> <span class="function-name">luafoo_new</span>(lua_State *L)
@@ -1951,7 +1961,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:34:32</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:46:08</span>
 </div>
 </footer>
 </body>

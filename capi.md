@@ -15,6 +15,7 @@ typedef struct lunatik_class_s {
 	const luaL_Reg    *methods;
 	lunatik_release_t  release;
 	lunatik_opt_t      opt;
+	struct module     *owner;
 } lunatik_class_t;
 ```
 Describes a Lunatik object class.
@@ -60,6 +61,13 @@ Describes a Lunatik object class.
   - `LUNATIK_OPT_PERCPU`: marks the `percpu` class, whose private holds one runtime per CPU;
     internal to the core.
   - `LUNATIK_OPT_NONE`: `0`, no flag.
+- `owner`: the module the class's methods and `release` live in, `THIS_MODULE`, as a
+  `struct file_operations` names its own; a class that leaves it `NULL`, as `THIS_MODULE` is in a
+  built-in build, holds nothing. Every object of the class holds a reference to it from
+  its creation to its release, so the module stays loaded while an object is left, in an
+  `rcu.table` such as `_ENV` or in a runtime that never required its library. A state that
+  [`lunatik_cloneobject`](#lunatik_cloneobject) creates the class's metatables in holds another
+  until it closes.
 
 ### lunatik\_object\_t
 ```C
@@ -604,7 +612,8 @@ metatable, and takes no reference: the userdata's `__gc` drops one, which the ca
 or takes, as [`lunatik_pushobject`](#lunatik_pushobject) does; in a closing state the state drops
 it instead, as [`lunatik_newobject`](#lunatik_newobject) describes. It calls
 [`lunatik_require`](#lunatik_require) first, so the object reaches a state whose script never
-required its library.
+required its library; where that creates the metatables, `L` holds the class's `owner` until it
+closes, as `require` holds the module of a library it opens.
 Raises `'<name>': cannot share SINGLE object` for a `LUNATIK_OPT_SINGLE` object,
 `'<name>': process-context class in interrupt-context runtime`, `'<name>': metatable not found`
 for a `LUNATIK_OPT_MONITOR` object of a class that does not carry the flag, and `not enough
@@ -1125,12 +1134,12 @@ LUNATIK_NEWLIB(foo, luafoo_lib, luafoo_classes);
 ```C
 static const lunatik_class_t luafoo_process_class = {
 	.name = "foo", .methods = luafoo_mt, .release = luafoo_release,
-	.opt = LUNATIK_OPT_SINGLE,
+	.opt = LUNATIK_OPT_SINGLE, .owner = THIS_MODULE,
 };
 
 static const lunatik_class_t luafoo_hardirq_class = {
 	.name = "foo", .methods = luafoo_mt, .release = luafoo_release,
-	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE,
+	.opt = LUNATIK_OPT_HARDIRQ | LUNATIK_OPT_SINGLE, .owner = THIS_MODULE,
 };
 
 LUNATIK_CLASSES(foo, &luafoo_process_class, &luafoo_hardirq_class);
@@ -1190,6 +1199,7 @@ static const lunatik_class_t luafoo_class = {
 	.name = "foo",
 	.methods = luafoo_mt,
 	.opt = LUNATIK_OPT_MONITOR,
+	.owner = THIS_MODULE,
 };
 
 static int luafoo_new(lua_State *L)
