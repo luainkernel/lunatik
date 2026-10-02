@@ -36,6 +36,11 @@
 #              not open, loadfile returns, and dofile raises, "cannot open
 #              <file>: " and the errno's name, ENOENT for a missing file and
 #              ENOTDIR for one under a regular file.
+# patterns:    a pattern nests at most 32 levels: 31 optional items match in
+#              string.find, match, gmatch and gsub, and 32 raise "pattern too
+#              complex" in each; 15 captures and an optional item match and
+#              16 captures raise, a capture taking two levels. A build without
+#              the bound recurses 33 levels, harmlessly, and matches.
 # util:        bin2hex encodes every byte value in a string of 2048 bytes,
 #              past the 200 slots of LUAI_MAXSTACK, and hex2bin decodes it back
 #              from either case; each returns the string alone, the empty string
@@ -48,7 +53,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="floats identifiers require loadfile util"
+TESTS="floats identifiers require loadfile patterns util"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup()

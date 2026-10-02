@@ -47,6 +47,10 @@ A coroutine's Lua stack holds at most 200 slots (`LUAI_MAXSTACK`), which bounds 
 values `table.unpack` and a vararg carry: past it, recursion raises `stack overflow` and
 `table.unpack` raises `too many results to unpack`.
 
+A string pattern nests at most 32 levels deep: the match takes one, each capture two, and each
+position capture `()` and each item with `?`, `*`, `+` or `-` that matches one more. Past it,
+`string.find`, `string.match`, `string.gmatch` and `string.gsub` raise `pattern too complex`.
+
 ## Softirq and hardirq runtimes
 
 In a runtime created in softirq or hardirq context, `io` is nil, `require("io")` raises
