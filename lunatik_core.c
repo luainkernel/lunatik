@@ -19,6 +19,7 @@
 #include <lualib.h>
 
 #include "lunatik.h"
+#include "lunatik_core.h"
 #include "lunatik_sym.h"
 
 /***

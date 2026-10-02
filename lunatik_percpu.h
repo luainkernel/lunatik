@@ -47,9 +47,6 @@ static inline void lunatik_unpin(lunatik_object_t *object)
 		migrate_enable();
 }
 
-extern const lunatik_class_t lunatik_percpu_class;
-
-int lunatik_percpu(lua_State *L);
 lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class, size_t size);
 
 #define LUNATIK_PERCPUDATA(prefix, cname, T, free)					\

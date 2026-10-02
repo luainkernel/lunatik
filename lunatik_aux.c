@@ -14,6 +14,7 @@
 #include <lauxlib.h>
 
 #include <lunatik.h>
+#include "lunatik_core.h"
 
 typedef struct lunatik_file {
 	struct file *file;

@@ -8,6 +8,7 @@
 #include <lauxlib.h>
 
 #include "lunatik.h"
+#include "lunatik_core.h"
 
 #ifdef LUNATIK_RUNTIME
 

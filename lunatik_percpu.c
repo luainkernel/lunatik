@@ -11,6 +11,7 @@
 #include <linux/percpu.h>
 
 #include <lunatik.h>
+#include "lunatik_core.h"
 
 /***
 * Set of runtimes, one per CPU id, running the same script. A callback dispatched
