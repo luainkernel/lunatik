@@ -15,10 +15,12 @@
 # The Lua script invokes notifier.keyboard() from the default process
 # runtime. Expected: Lua error "runtime context mismatch: notifier needs
 # hardirq" in the script output and zero kernel oops entries in dmesg.
+# Skips on a kernel without CONFIG_VT, which has no hardirq-class notifier.
 #
 # Usage: sudo bash tests/notifier/context_mismatch.sh
 
 SCRIPT="tests/notifier/context_mismatch"
+VT="/sys/class/tty/tty0" # only vty_init, under CONFIG_VT, creates it
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -30,6 +32,14 @@ cleanup
 
 ktap_header
 ktap_plan 2
+
+if [ ! -e "$VT" ]; then
+	echo "# SKIP: kernel without CONFIG_VT"
+	ktap_skip "hardirq-class constructor in process runtime errors cleanly"
+	ktap_skip "no kernel oops during context-mismatch cleanup"
+	ktap_totals
+	exit 0
+fi
 
 mark_dmesg
 
