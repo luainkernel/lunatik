@@ -7,9 +7,11 @@
 # if/elseif whose branches repeat the same steps, which is a dispatch table or a
 # helper; one table of arguments spelled at two call sites, which is declared
 # once; a function of more than one statement written inline as a table field,
-# which is a named local function; and a block of four lines or more that the change adds against
-# CHECK_BASE and a script beside it carries too, which is a module both require:
-# #1198 first spelled one pause in the four kernel thread bodies of tests/rcu.
+# which is a named local function; an if that returns nil and a value above a return of what it
+# tested, which is one return whose value is the choice, as inet.udp:receivefrom took on #1584; and
+# a block of four lines or more that the change adds against CHECK_BASE and a script beside it
+# carries too, which is a module both require: #1198 first spelled one pause in the four kernel
+# thread bodies of tests/rcu.
 #
 # Heuristic: it nudges at edit time and in review, it does not rewrite. Prints
 # one finding per line and exits 1 when there are any; files outside its scope
@@ -117,6 +119,20 @@ for file in "$@"; do
 		gsub(/"([^"\\]|\\.)*"/, "\"\"", line); gsub(/\047([^\047\\]|\\.)*\047/, "\"\"", line)
 		sub(/--.*$/, "", line)
 		d = indent(line)
+
+		# if x == nil then return nil, y end, then return x, ...: one return whose value is the choice
+		if (line ~ /^[[:space:]]*$/) ;
+		else if (match(line, /^[[:space:]]*if[[:space:]]+(not[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*([[:space:]]*==[[:space:]]*nil)?[[:space:]]+then[[:space:]]*$/)) {
+			tested = line; sub(/^[[:space:]]*if[[:space:]]+(not[[:space:]]+)?/, "", tested); sub(/[^A-Za-z0-9_].*$/, "", tested)
+			chosen = 1; chose = NR
+		}
+		else if (chosen == 1 && line ~ /^[[:space:]]*return[[:space:]]+nil[[:space:]]*,/) chosen = 2
+		else if (chosen == 2 && line ~ /^[[:space:]]*end[[:space:]]*$/) chosen = 3
+		else {
+			if (chosen == 3 && line ~ ("^[[:space:]]*return[[:space:]]+" tested "[[:space:]]*,"))
+				flag(chose, "an if that returns nil above a return of " tested " is one return whose value is the choice, " tested " and f(v) or v (AGENTS.md, Lua style)")
+			chosen = 0
+		}
 
 		# a function written as the value of a table field, read at its end: a body of one statement stays
 		if (inline && d == inlined && line ~ /^[[:space:]]*end([^A-Za-z0-9_]|$)/) {
