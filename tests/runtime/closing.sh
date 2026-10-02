@@ -4,7 +4,8 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # A finalizer that runs as its runtime closes registers nothing, and what it
-# creates or reads is released by the end of the close.
+# creates or reads is released by the end of the close; a wait, which
+# registers nothing, answers there.
 #
 # A runtime closes through a stop, which clears its private before lua_close,
 # or through the drop of its last reference, which closes it at a zero count.
@@ -17,6 +18,12 @@
 # file carries the message: the check is inline, so no symbol of its own is in
 # /proc/kallsyms. closing_thread calls thread.run with no arguments, which
 # raises before it creates anything on any build.
+#
+# closing_completion waits on a completion from a sentinel as `lunatik stop`
+# closes it: in a process runtime the wait answers, and in a softirq or a
+# hardirq one it raises the runtime context mismatch it raises anywhere in that
+# runtime. A build that refuses the wait at close as it refuses a registration
+# reports "not allowed while the runtime closes" for the process runtime.
 #
 # lua_close runs a script's finalizers after it stops arming new ones, so the
 # userdata they create or clone gets no __gc, and the state holds the reference
@@ -31,13 +38,15 @@
 # close returned. A child a close leaves referenced stays open, which is what a
 # build without the hold reports, and a case that opens none, a finalizer that
 # never ran, reports that. The driver then collects closing_thread, whose
-# sentinel is refused at the last put too.
+# sentinel is refused at the last put too, and closing_completion, whose wait
+# answers there.
 #
 # Usage: sudo bash tests/runtime/closing.sh
 
 SCRIPT="tests/runtime/closing"
 REGISTER="tests/runtime/closing_"
 REFUSAL="not allowed while the runtime closes"
+MISMATCH="runtime context mismatch: completion needs process"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -47,13 +56,14 @@ cleanup()
 	lunatik stop "${REGISTER}netfilter" > /dev/null 2>&1
 	lunatik stop "${REGISTER}fsnotify" > /dev/null 2>&1
 	lunatik stop "${REGISTER}thread" > /dev/null 2>&1
+	lunatik stop "${REGISTER}completion" > /dev/null 2>&1
 }
 
 trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 7
+ktap_plan 10
 
 reported()
 {
@@ -68,12 +78,17 @@ carries()
 		grep -qaF "$REFUSAL" "$(modinfo -n "$module" 2> /dev/null)" 2> /dev/null
 }
 
+stopped()
+{
+	run_script --context="$2" "$REGISTER$1"
+	lunatik stop "$REGISTER$1" > /dev/null 2>&1
+}
+
 refused()
 {
 	local name=$1 context=$2
 
-	run_script --context="$context" "$REGISTER$name"
-	lunatik stop "$REGISTER$name" > /dev/null 2>&1
+	stopped "$name" "$context"
 	[ "$(reported "$name $REFUSAL")" = 1 ] || {
 		comment "$(dmesg_since | grep -F "closing test: $name")"
 		fail "a $name a finalizer made while its $context runtime stopped was not refused"
@@ -94,6 +109,21 @@ mark_dmesg
 guarded netfilter softirq
 guarded fsnotify process
 refused thread process
+
+stopped completion process
+[ "$(reported "completion accepted")" = 1 ] || {
+	comment "$(dmesg_since | grep -F "closing test: completion")"
+	fail "a completion:wait a finalizer made while its process runtime stopped did not answer"
+}
+ktap_pass "a completion:wait a finalizer makes while its process runtime stops answers"
+
+stopped completion softirq
+stopped completion hardirq
+[ "$(reported "completion $MISMATCH")" = 2 ] || {
+	comment "$(dmesg_since | grep -F "closing test: completion")"
+	fail "a completion:wait a finalizer made while its softirq or hardirq runtime stopped raised no mismatch"
+}
+ktap_pass "a completion:wait a finalizer makes while its softirq or hardirq runtime stops raises $MISMATCH"
 
 run_script "$SCRIPT"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
@@ -117,6 +147,12 @@ ktap_pass "a child a finalizer reads closes with the runtime the collector close
 	fail "a thread a finalizer made while the collector closed its runtime was not refused"
 }
 ktap_pass "a thread a finalizer makes while the collector closes its runtime is refused"
+
+[ "$(reported "completion accepted")" = 2 ] || {
+	comment "$(dmesg_since | grep -F "closing test: completion")"
+	fail "a completion:wait a finalizer made while the collector closed its runtime did not answer"
+}
+ktap_pass "a completion:wait a finalizer makes while the collector closes its runtime answers"
 
 check_dmesg && ktap_pass "no Lua errors in kernel"
 

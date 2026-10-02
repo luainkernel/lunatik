@@ -8,6 +8,7 @@ local lunatik = require("lunatik")
 
 local OBJECTS <const> = "tests/runtime/closing_objects"
 local THREAD  <const> = "tests/runtime/closing_thread"
+local WAIT    <const> = "tests/runtime/closing_completion"
 local CASE    <const> = "tests/runtime/closing.case"
 local OPENED  <const> = "tests/runtime/closing.opened"
 local CLOSED  <const> = "tests/runtime/closing.closed"
@@ -55,5 +56,6 @@ env[OPENED] = nil
 env[CLOSED] = nil
 
 lunatik.runtime(THREAD)
+lunatik.runtime(WAIT)
 collectgarbage()
 

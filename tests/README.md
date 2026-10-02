@@ -1372,7 +1372,11 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   its runtime through its last reference. Without the refusal the hook or the
   watch outlives the runtime into its module's unload, so those cases skip
   unless the loaded module is the installed one and that file carries the
-  message. Lua arms no `__gc` on what the finalizers `lua_close` runs create,
+  message. A `completion:wait`, which registers nothing, answers from a
+  sentinel as `lunatik stop` closes a process runtime and as the collector
+  closes one through its last reference, and raises "runtime context mismatch:
+  completion needs process" as a softirq or a hardirq one stops. Lua arms no
+  `__gc` on what the finalizers `lua_close` runs create,
   so the state holds the reference such a `__gc` would drop until every
   finalizer has run: a child counts itself open and closed in `lunatik._ENV`,
   a runtime whose sentinel reads one from an `rcu.table`, takes one back from
