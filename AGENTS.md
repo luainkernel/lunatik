@@ -291,7 +291,10 @@ local.
 `test-harness.sh` reads a test's Lua script as well as its `.sh`, for a case the script runs under a
 condition: when the condition is false the case reports nothing and the script's one KTAP line
 counts it as passed, which `tests/runtime/percpu_object` did on a single CPU, as #1166 found, so
-the skip is decided in the `.sh`, where it is a `# SKIP` line. `kthread.sh` names a loop on
+the skip is decided in the `.sh`, where it is a `# SKIP` line. It also names a script that takes
+`test` from a module other than `tests.lib`: `tests/linux/errname` reached master taking it from
+`util` after #1550 had moved it, in a merge that did not conflict, and the case called nil; the
+same line sat in the new tests of seventeen open pull requests. `kthread.sh` names a loop on
 `thread.shouldstop()` whose body has no pause it can see, the shape of the four `tests/rcu` bodies
 #1167 found; it knows a pause by its name, in the loop or in a function of the same file the loop
 calls, so one behind another module reads as none, and the review decides.
