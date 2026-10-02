@@ -98,6 +98,7 @@ peer_start() {
 
 # what the peer printed of a device's reports, one per line
 reports() { grep "^$1 report" "$OUT" | cut -d' ' -f2- | paste -sd'|'; }
+wrote() { paste -sd'|' "$OUT"; }
 
 logged() { dmesg_since | grep -qF "$1"; }
 callback() { logged "luahid: $1: $2"; }
@@ -121,7 +122,7 @@ grep -qxF "$SOUND rdesc $FIXED" "$OUT" || fail "the descriptor is not the one re
 ktap_pass "report_fixup edits the descriptor the device is parsed with"
 
 for product in "$SOUND" "$SECOND"; do
-	[ "$(reports "$product")" = "$PASSED" ] || fail "device $product reached hidraw with: $(reports "$product")"
+	[ "$(reports "$product")" = "$PASSED" ] || fail "device $product reached hidraw with: $(reports "$product"), the peer wrote: $(wrote)"
 done
 ktap_pass "a report raw_event answers with nothing or zero passes, and one it answers with a negative errno is dropped"
 
@@ -147,7 +148,7 @@ ktap_pass "a device whose probe returned and whose descriptor fails to parse get
 
 raised=$(dmesg_since | grep -c "luahid: $RAISED: raw_event")
 peer_start -r "$STORM" "$SOUND" || fail "the peer did not report: $(cat "$OUT")"
-[ "$(reports "$SOUND")" = "$PASSED" ] || fail "the burst reached hidraw with: $(reports "$SOUND")"
+[ "$(reports "$SOUND")" = "$PASSED" ] || fail "the burst reached hidraw with: $(reports "$SOUND"), the peer wrote: $(wrote)"
 peer_stop
 raised=$(($(dmesg_since | grep -c "luahid: $RAISED: raw_event") - raised))
 [ "$raised" -lt "$STORM" ] || fail "raw_event logged $raised errors for $STORM raises"
