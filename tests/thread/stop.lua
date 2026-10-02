@@ -12,11 +12,17 @@ local rcu        = require("rcu")
 local EXIT      <const> = "tests/thread/exit"
 local RAISE     <const> = "tests/thread/stop_raise"
 local FINALIZED <const> = "tests/thread/stop_finalized"
+local LINGER    <const> = "tests/thread/stop_linger"
+local FIRSTSTOP <const> = "tests/thread/stop_first"
 local NAME      <const> = "lunatik_stop"
 local PREFIX    <const> = "thread stop test: "
+local CLOSED    <const> = "closed object"
 local TIMEOUT   <const> = 3000
 local THREAD    <const> = "thread"
 local STOPPED   <const> = "stopped"
+local RELEASED  <const> = "released"
+local LINGERED  <const> = "lingered"
+local FIRST     <const> = "first"
 
 local function start(body, ...)
 	return thread.run(lunatik.runtime(body), NAME, ...)
@@ -34,7 +40,7 @@ local function closed()
 	scope(t)
 	local task = t:task()
 	local ok, err = pcall(task.pid, task)
-	assert(not ok and tostring(err):match("closed object"), "a to-be-closed thread was not stopped")
+	assert(not ok and tostring(err):match(CLOSED), "a to-be-closed thread was not stopped")
 	t:stop()
 end
 
@@ -64,6 +70,26 @@ local function finalized()
 	assert(shared[STOPPED] == true, "the stop from a finalizer of the thread's runtime did not return true")
 end
 
+local function concurrent()
+	local shared, running, stopping, stopped = rcu.table(1), completion.new(), completion.new(), completion.new()
+	local t = start(LINGER, shared, running, stopping)
+	local ran = running:wait(TIMEOUT)
+	local first = start(FIRSTSTOP, t, shared, stopped)
+	local reached = stopping:wait(TIMEOUT)
+	local task = t:task()
+	local read, err = pcall(task.pid, task)
+	local second = t:stop()
+	shared[RELEASED] = true
+	local returned = stopped:wait(TIMEOUT)
+	first:stop()
+	assert(ran, "the body that outlasts its stop did not run")
+	assert(reached, "the first stop did not reach the thread")
+	assert(not read and tostring(err):match(CLOSED), "task read the task of a thread another stop holds")
+	assert(second == true, "the stop of a thread another stop holds did not return true")
+	assert(shared[LINGERED] == true, "the stop of a thread another stop holds waited for the thread to exit")
+	assert(returned and shared[FIRST] == true, "the first stop did not return true once the thread exited")
+end
+
 -- a failed case reports its error and the next one runs
 local function check(name, case)
 	local ok, err = pcall(case)
@@ -75,6 +101,7 @@ local function driver()
 	check("returned", returned)
 	check("raised", raised)
 	check("finalized", finalized)
+	check("concurrent", concurrent)
 end
 
 return driver
