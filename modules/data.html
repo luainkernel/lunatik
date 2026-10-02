@@ -291,7 +291,11 @@
  its length is 0 and every access raises &ldquo;out of bounds&rdquo;, so copy what you keep
  with <a href="../modules/data.html#data:getstring">getstring</a>. <code>skb:copy():data()</code> views the copy&rsquo;s own buffer until the copy
  is collected, and is then cleared the same way. A write to a view a binding marks
- read only raises &ldquo;read only&rdquo;.
+ read only raises &ldquo;read only&rdquo;.</p>
+
+<p> An integer setter takes a value of its width read either signed or unsigned, so
+ <a href="../modules/data.html#data:setint8">setint8</a> and <a href="../modules/data.html#data:setuint8">setuint8</a> both store -1 and 255 as the same byte, and raises &ldquo;out of
+ bounds&rdquo; for a value past it.
           </div>
     <dl class="function">
     <dt id="data:__len"><a name="data:__len"></a><strong>data:__len ()</strong></dt>
@@ -634,7 +638,7 @@
         </li>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-
+         from -128 to 255
         </li>
     </ul>
 
@@ -658,7 +662,7 @@
         </li>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-
+         from -32768 to 65535
         </li>
     </ul>
 
@@ -682,7 +686,7 @@
         </li>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-
+         from -2<sup>31</sup> to 2<sup>32</sup> - 1
         </li>
     </ul>
 
@@ -730,7 +734,7 @@
         </li>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-
+         from -128 to 255
         </li>
     </ul>
 
@@ -778,7 +782,7 @@
         </li>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-
+         from -32768 to 65535
         </li>
     </ul>
 
@@ -802,7 +806,7 @@
         </li>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-
+         from -2<sup>31</sup> to 2<sup>32</sup> - 1
         </li>
     </ul>
 
@@ -826,7 +830,7 @@
         </li>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-
+         from -128 to 255
         </li>
     </ul>
 
@@ -887,7 +891,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:44:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:45:25</span>
 </div>
 </footer>
 </body>

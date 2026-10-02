@@ -309,7 +309,7 @@ netfilter.register{
     <ul>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-         32-bit mark to set
+         32-bit mark to set, from 0 up to <code>U32_MAX</code>
          (<em>optional</em>)
         </li>
     </ul>
@@ -321,6 +321,8 @@ netfilter.register{
         32-bit connmark, or nil if no conntrack is associated
     </ol>
 
+    <h3>Raises</h3>
+    if <code>value</code> is out of bounds
 
 
 
@@ -431,7 +433,7 @@ netfilter.register{
     <ul>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-         the new packet mark
+         the new packet mark, from 0 up to <code>U32_MAX</code>
          (<em>optional</em>)
         </li>
     </ul>
@@ -443,6 +445,8 @@ netfilter.register{
         the packet mark
     </ol>
 
+    <h3>Raises</h3>
+    if <code>value</code> is out of bounds
 
 
 
@@ -456,7 +460,7 @@ netfilter.register{
     <ul>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span></span>
-         the new packet priority
+         the new packet priority, from 0 up to <code>U32_MAX</code>
          (<em>optional</em>)
         </li>
     </ul>
@@ -468,6 +472,8 @@ netfilter.register{
         the packet priority
     </ol>
 
+    <h3>Raises</h3>
+    if <code>value</code> is out of bounds
 
 
 
@@ -527,7 +533,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:44:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:45:25</span>
 </div>
 </footer>
 </body>
