@@ -59,6 +59,7 @@ static int luasocket_lnew(lua_State *L);
 static int luasocket_accept(lua_State *L);
 
 #define LUASOCKET_ISUNIX(family)	((family) == AF_UNIX || (family) == AF_LOCAL)
+#define LUASOCKET_ISINET(family)	((family) == AF_INET || (family) == AF_INET6)
 #define luasocket_family(socket)	((socket)->sk->sk_family)
 
 /* these families spell an address with two arguments, the rest with one */
@@ -199,6 +200,11 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 	(luasocket_family(socket) == AF_NETLINK && (socket)->sk->sk_protocol == NETLINK_GENERIC && \
 	((struct sockaddr_nl *)(addr))->nl_groups != 0)
 
+/* only a protocol with get_port binds a port, the one inet_num holds */
+#define luasocket_isunbound(socket)	\
+	(LUASOCKET_ISINET(luasocket_family(socket)) && (socket)->sk->sk_prot->get_port != NULL && \
+	data_race(!inet_sk((socket)->sk)->inet_num))
+
 /***
 * A kernel socket, returned by `socket.new()`.
 *
@@ -249,7 +255,8 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 *   whose wait ended with part of it queued; `false` when a send timeout ended the wait with
 *   nothing queued.
 * @raise Error if the send operation fails or if address parameters are incorrect for the socket type,
-*   or on a netlink socket under RTNL, as from a netdevice callback.
+*   or on a netlink socket under RTNL, as from a netdevice callback; `EAGAIN` when the kernel finds
+*   no free port to bind an unbound `AF_INET` or `AF_INET6` socket to before it sends.
 * @usage
 *   -- For a connected TCP socket:
 *   local bytes_sent = tcp_conn_sock:send("Hello, server!")
@@ -280,8 +287,9 @@ static int luasocket_send(lua_State *L)
 		luasocket_msgaddr(msg, addr, size);
 	}
 
+	bool unbound = luasocket_isunbound(socket); /* the send binds it, or fails with EAGAIN */
 	ret = kernel_sendmsg(socket, &msg, &vec, 1, len);
-	if (ret == -EAGAIN)
+	if (ret == -EAGAIN && !(unbound && luasocket_isunbound(socket)))
 		lua_pushboolean(L, false);
 	else if (ret < 0)
 		lunatik_throw(L, ret);

@@ -20,9 +20,12 @@
 # no destination still raises EDESTADDRREQ under a send timeout.
 #
 # socket:connect() answers false where its EAGAIN is an AF_UNIX listener's full
-# backlog (connect.sh), and still raises it where it names a failure: the implicit
-# bind of an AF_INET datagram socket whose port range, narrowed with
-# IP_LOCAL_PORT_RANGE to the one port another socket holds, finds no port free.
+# backlog (connect.sh), and socket:connect() and socket:send() still raise it where
+# it names a failure: the implicit bind of an AF_INET datagram socket whose port
+# range, narrowed with IP_LOCAL_PORT_RANGE to the one port another socket holds,
+# finds no port free. Once that socket closes, the send binds the port and answers
+# the message's length. An AF_INET6 send raises the same EAGAIN, a case of its own
+# that skips where the kernel does not carry the family.
 #
 # Usage: sudo bash tests/socket/again.sh
 
@@ -38,7 +41,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 1
+ktap_plan 2
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -50,6 +53,15 @@ if run_test "$SCRIPT"; then
 	ktap_pass "socket again: receive and accept answer nil and EAGAIN, and send answers false, for a wait that ends with nothing"
 else
 	ktap_fail "socket again: receive and accept answer nil and EAGAIN, and send answers false, for a wait that ends with nothing"
+fi
+
+INET6="socket again: an AF_INET6 send whose implicit bind finds no free port raises EAGAIN"
+if dmesg_since | grep -q "socket again: inet6 unsupported"; then
+	ktap_skip "$INET6"
+elif dmesg_since | grep -q "socket again: inet6 ok"; then
+	ktap_pass "$INET6"
+else
+	ktap_fail "$INET6"
 fi
 
 ktap_totals

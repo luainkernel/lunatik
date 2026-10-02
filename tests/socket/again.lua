@@ -4,6 +4,7 @@
 --
 -- Kernel-side script for the socket again test (see again.sh).
 
+local socket = require("socket")
 local inet   = require("socket.inet")
 local unix   = require("socket.unix")
 local struct = require("struct")
@@ -12,6 +13,7 @@ local test   = require("tests.lib").test
 
 local pack   = table.pack
 local format = string.format
+local unpack = string.unpack
 
 local SIZE       <const> = 64
 local MESSAGE    <const> = "again"
@@ -28,6 +30,8 @@ local FLOOD      <const> = string.rep("x", 1 << 20)
 -- more sends than a datagram queue or a send buffer takes while nobody reads
 local ATTEMPTS   <const> = 1024
 local IP_LOCAL_PORT_RANGE <const> = 51 -- uapi/linux/in.h
+-- struct sockaddr_in6 past the family, zeroed: the unspecified address and any port
+local IN6_ANY    <const> = string.rep("\0", 26)
 
 local timeval = struct(sk.layout.timeval)
 
@@ -120,14 +124,35 @@ test("socket:receive, socket:accept and socket:send raise a failure other than E
 	udp:close()
 end)
 
-test("socket:connect raises the EAGAIN of an implicit bind that finds no free port", function()
+test("socket:send and socket:connect raise the EAGAIN of an implicit bind that finds no free port", function()
 	local holder = bound(inet.udp)
 	local _, port = holder:getsockname()
 	local udp = inet.udp()
 	udp.socket:setsockopt(sk.sol.IP, IP_LOCAL_PORT_RANGE, port << 16 | port)
+	raises("a send with no free port to bind", "EAGAIN", udp.send, udp, MESSAGE, inet.localhost, port)
 	raises("a connect with no free port to bind", "EAGAIN", udp.connect, udp, inet.localhost, port)
+	holder:close()
+	local sent = udp:send(MESSAGE, inet.localhost, port)
+	assert(sent == #MESSAGE, "a send with a free port to bind answered " .. tostring(sent))
+	udp:close()
+end)
+
+test("socket:send raises the EAGAIN of an AF_INET6 socket's implicit bind that finds no free port", function()
+	local ok, holder = pcall(socket.new, sk.af.INET6, sk.sock.DGRAM, 0)
+	if not ok then
+		assert(holder == "EAFNOSUPPORT", "an AF_INET6 socket.new raised " .. tostring(holder))
+		print("socket again: inet6 unsupported")
+		return
+	end
+	holder:bind(IN6_ANY)
+	local address = holder:getsockname()
+	local port = unpack(">I2", address)
+	local udp = socket.new(sk.af.INET6, sk.sock.DGRAM, 0)
+	udp:setsockopt(sk.sol.IP, IP_LOCAL_PORT_RANGE, port << 16 | port)
+	raises("an AF_INET6 send with no free port to bind", "EAGAIN", udp.send, udp, MESSAGE, address)
 	udp:close()
 	holder:close()
+	print("socket again: inet6 ok")
 end)
 
 test("socket:send answers false when a send timeout ends the wait with nothing queued", function()
