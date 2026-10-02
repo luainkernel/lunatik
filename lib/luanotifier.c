@@ -44,6 +44,7 @@ typedef struct luanotifier_s {
 	luanotifier_handler_t handler;
 	luanotifier_register_t unregister;
 	struct task_struct *registrant;
+	lunatik_rtnlnode_t rtnl;
 } luanotifier_t;
 
 static const lunatik_class_t luanotifier_process_class;
@@ -100,6 +101,7 @@ static void luanotifier_release(void *private)
 	/* release runs from lua_close, in process context, where unregister may sleep */
 	if (notifier->unregister)
 		notifier->unregister(&notifier->nb);
+	lunatik_delrtnl(&notifier->rtnl);
 	if (notifier->runtime) /* NULL if checkruntime errored in init */
 		lunatik_putobject(notifier->runtime);
 }
@@ -158,7 +160,14 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 * each with the inode number of its namespace: `linux.ifindex` resolves a name
 * in the initial namespace only, so a script keeps the devices that name
 * resolves by comparing that number with `linux.netns()`. The callback runs
-* under RTNL.
+* under RTNL and takes the runtime's lock there, so from the registration until
+* the runtime closes, a stopped notifier's included, Lua on a task that holds
+* that lock, a `thread` body, a resumed body, another callback or a runtime they
+* create or resume, raises `not allowed under the lock of a runtime with a
+* netdevice notifier` at an entry point that takes RTNL, or a lock a request
+* holds while it waits on RTNL: a `netlink.rt` request, `netlink.channel.new`,
+* `runtime:stop` and `thread:stop` among them. The script body runs off that
+* lock and is not refused, nor is a runtime of the script's own on another task.
 *
 * @function netdevice
 * @tparam function callback invoked as `callback(event, name, netns)` — `event`
@@ -173,6 +182,8 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 * @treturn notifier
 * @raise if called from a percpu runtime, or under RTNL: from a netdevice
 *   callback, and from any runtime or coroutine the callback runs;
+*   `not allowed under the lock of a runtime with a netdevice notifier` on a
+*   task that holds the lock of a runtime that already holds one;
 *   `'notifier': process-context class in interrupt-context runtime` in a softirq or hardirq
 *   runtime; `not allowed while the runtime closes` from a finalizer that runs at its close;
 *   the kernel's errno when it refuses the registration, `EPERM` when the callback returns
@@ -184,8 +195,11 @@ static int luanotifier_netdevice(lua_State *L)
 	/* register_netdevice_notifier waits on the namespace rwsem and RTNL this task already holds */
 	lunatik_checkrtnl(L);
 
-	return luanotifier_new(L, register_netdevice_notifier, unregister_netdevice_notifier,
+	luanotifier_new(L, register_netdevice_notifier, unregister_netdevice_notifier,
 		luanotifier_netdevice_handler, luanotifier_netdevice_call, &luanotifier_process_class);
+	luanotifier_t *notifier = luanotifier_check(L, -1);
+	lunatik_addrtnl(&notifier->rtnl, notifier->runtime); /* the chain takes this runtime's lock under RTNL */
+	return 1; /* notifier */
 }
 
 #ifdef CONFIG_VT

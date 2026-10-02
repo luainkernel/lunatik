@@ -172,8 +172,10 @@ static const lunatik_class_t luanetlink_channel_class = {
 * @raise "not allowed once the runtime is armed" from an interrupt-context runtime past its body;
 *   "not allowed in a percpu runtime"; "not allowed under RTNL" from a netdevice callback, in
 *   whatever runtime or coroutine its task runs, since the registration takes a lock a request
-*   holds while it waits on RTNL; if the name is empty or too long, or if family registration
-*   fails.
+*   holds while it waits on RTNL; "not allowed under the lock of a runtime with a netdevice
+*   notifier" on a task that holds that lock, in whatever runtime or coroutine it runs, since a
+*   netdevice callback holds RTNL while it waits on that lock; if the name is empty or too long, or
+*   if family registration fails.
 * @within netlink.channel
 */
 static int luanetlink_channel_new(lua_State *L)

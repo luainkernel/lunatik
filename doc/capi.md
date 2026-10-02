@@ -393,7 +393,37 @@ kernel call that takes RTNL, such as `register_netdevice_notifier`, which would 
 own task holds: refuse the call with `lunatik_checkrtnl`. A `release` cannot refuse, so the entry
 point that runs one on the calling task, a `stop()` or a `close()` and its `__close`, refuses
 instead under RTNL. It sees the calling task only: Lua on a second task that waits for
-RTNL while this one waits for that task is a cycle it cannot name. Defined as macros.
+RTNL while this one waits for that task is a cycle it cannot name, and
+[`lunatik_blocksrtnl`](#lunatik_blocksrtnl) names the one where that task holds the lock of the
+runtime this callback runs. Defined as macros.
+
+### lunatik\_addrtnl
+```C
+typedef struct lunatik_rtnlnode_s {
+	struct hlist_node node;
+	lunatik_object_t *runtime;
+} lunatik_rtnlnode_t;
+
+void lunatik_addrtnl(lunatik_rtnlnode_t *node, lunatik_object_t *runtime);
+void lunatik_delrtnl(lunatik_rtnlnode_t *node);
+```
+`lunatik_addrtnl` lists `runtime` as one whose lock a callback dispatched under RTNL takes, through a
+`node` the binding embeds in its registration's private. The binding adds it once the registration
+returns, as `notifier.netdevice` does, and removes it with `lunatik_delrtnl` in the `release`, once
+the unregistration returned and before it drops its reference on `runtime`; a node never added,
+zeroed as `lunatik_newobject` leaves it, is left as it is. Both run in process context: the list is
+written under a spinlock and read under RCU by [`lunatik_blocksrtnl`](#lunatik_blocksrtnl), and
+`lunatik_delrtnl` waits for a grace period, since the `release` frees the node once it returns.
+
+### lunatik\_blocksrtnl
+```C
+bool lunatik_blocksrtnl(void);
+```
+Returns `true` if the calling task holds the lock of a runtime [`lunatik_addrtnl`](#lunatik_addrtnl)
+listed, in whatever runtime or coroutine its Lua runs: the runtime's own callback, `thread` body or
+resumed body, and the code of a runtime that Lua creates or resumes, which runs on the same task.
+The script body and the finalizers a close runs hold no runtime lock and are not seen. The scan takes
+no lock, under `rcu_read_lock`, and is safe in any context. Refuse the call with `lunatik_checkrtnl`.
 
 ### lunatik\_iskthread
 ```C
@@ -476,8 +506,11 @@ again: use it in an entry point that registers one without
 void lunatik_checkrtnl(lua_State *L);
 ```
 Raises a Lua error, `"not allowed under RTNL"`, when [`lunatik_isrtnl`](#lunatik_isrtnl) holds: from
-a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs. Use it in
-an entry point that reaches a kernel call taking RTNL.
+a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs; and
+`"not allowed under the lock of a runtime with a netdevice notifier"` when
+[`lunatik_blocksrtnl`](#lunatik_blocksrtnl) holds: on a task that holds the lock of a runtime such a
+callback locks, in whatever runtime or coroutine it runs. Use it in an entry point that reaches a
+kernel call taking RTNL, or a lock a request holds while it waits on RTNL.
 
 ### lunatik\_checkowner
 ```C

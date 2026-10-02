@@ -13,6 +13,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
 #include <linux/mm.h>
+#include <linux/rculist.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -35,6 +36,44 @@ EXPORT_SYMBOL(lunatik_env);
 struct task_struct *lunatik_rtnl;	/* one task holds RTNL at a time */
 EXPORT_SYMBOL(lunatik_rtnl);
 EXPORT_SYMBOL(luaS_hash);	/* required by luarcu */
+
+static HLIST_HEAD(lunatik_rtnlnodes);
+static DEFINE_SPINLOCK(lunatik_rtnllock); /* the writers'; a scan reads under RCU, in any context */
+
+void lunatik_addrtnl(lunatik_rtnlnode_t *node, lunatik_object_t *runtime)
+{
+	node->runtime = runtime;
+	spin_lock(&lunatik_rtnllock);
+	hlist_add_head_rcu(&node->node, &lunatik_rtnlnodes);
+	spin_unlock(&lunatik_rtnllock);
+}
+EXPORT_SYMBOL(lunatik_addrtnl);
+
+void lunatik_delrtnl(lunatik_rtnlnode_t *node)
+{
+	if (hlist_unhashed_lockless(&node->node)) /* never added: no scan reads it */
+		return;
+
+	spin_lock(&lunatik_rtnllock);
+	hlist_del_init_rcu(&node->node);
+	spin_unlock(&lunatik_rtnllock);
+	synchronize_rcu(); /* the caller frees the node once this returns */
+}
+EXPORT_SYMBOL(lunatik_delrtnl);
+
+bool lunatik_blocksrtnl(void)
+{
+	lunatik_rtnlnode_t *node;
+	bool owner = false;
+
+	rcu_read_lock();
+	hlist_for_each_entry_rcu(node, &lunatik_rtnlnodes, node)
+		if ((owner = lunatik_isowner(node->runtime)))
+			break;
+	rcu_read_unlock();
+	return owner;
+}
+EXPORT_SYMBOL(lunatik_blocksrtnl);
 
 static inline void lunatik_setversion(lua_State *L)
 {
@@ -214,7 +253,10 @@ static const luaL_Reg lunatik_stub_lib[] = {
 * @function stop
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
 *   its task runs: the releases the close runs cannot refuse, and a netdevice block's
-*   unregistration waits on the lock that task holds; "not allowed from the runtime itself"
+*   unregistration waits on the lock that task holds; "not allowed under the lock of a runtime
+*   with a netdevice notifier" on a task that holds that lock, in whatever runtime or coroutine
+*   it runs, where those releases would wait on RTNL while a netdevice callback waits on that
+*   lock; "not allowed from the runtime itself"
 *   from the runtime's own callback, a `device` file operation, a `thread` body or a resumed
 *   body, where the close would wait on the lock that task holds; "EINTR" if the stop of the
 *   calling kernel thread, or a fatal signal to any other task, ends its wait for the runtime's
@@ -387,11 +429,12 @@ EXPORT_SYMBOL(lunatik_runtime);
 * reference to the runtime, so dropping the handle does not close a runtime a hook still holds:
 * it stays open, its hooks in place and the modules its script required loaded, until `stop()`,
 * which cannot be called once its last handle is gone. A script stops the runtimes it creates;
-* one a netdevice callback may collect it stops before, since the close runs where the collector
-* drops the handle and cannot refuse there. The close runs the script's finalizers: an object one
-* creates or reads, as a sentinel that stops a child through `lunatik._ENV` does, is released by
-* the end of the close, and a registration raises `not allowed while the runtime closes`. Only a
-* process runtime's `lunatik` module has it.
+* one a netdevice callback, or Lua under the lock of a runtime with a netdevice notifier, may
+* collect it stops before, since the close runs where the collector drops the handle and cannot
+* refuse there. The close runs the script's finalizers: an object one creates or reads, as a
+* sentinel that stops a child through `lunatik._ENV` does, is released by the end of the close,
+* and a registration raises `not allowed while the runtime closes`. Only a process runtime's
+* `lunatik` module has it.
 * @function runtime
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context: `"process"` (sleepable,

@@ -9,8 +9,10 @@
 -- drain its complete reply, raising on a kernel error reply (`NLMSG_ERROR`).
 -- Protocol modules (rtnetlink, generic netlink) derive from this class.
 -- All methods block and require a sleepable runtime. From a `notifier.netdevice` callback, in
--- whatever runtime or coroutine its task runs, every request raises `not allowed under RTNL`:
--- a script defers it to a thread, or to after the callback returns.
+-- whatever runtime or coroutine its task runs, every request raises `not allowed under RTNL`, and
+-- on a task that holds the lock of a runtime with a `notifier.netdevice`, in whatever runtime or
+-- coroutine it runs, `not allowed under the lock of a runtime with a netdevice notifier`: a script
+-- sends it from the script body, or from a runtime of its own on another task.
 --
 -- @module netlink.session
 -- @see socket

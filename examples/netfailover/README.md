@@ -11,8 +11,9 @@ sent as the raw generic netlink body of command 1 to the one multicast group of 
 callback runs under RTNL, where a `netlink.rt` request is refused, so it only
 records the link state in an `rcu.table`; [reactor](reactor.lua),
 a spawned thread, polls that table and reprograms the route. They are two
-runtimes because one would deadlock: the reactor holding the runtime lock while
-it waits for RTNL, as the callback holds RTNL waiting for the runtime lock.
+runtimes because the notifier's runtime refuses the reactor's request: the
+reactor would hold the runtime lock while it waits for RTNL, as the callback
+holds RTNL waiting for the runtime lock.
 
 ## Usage
 

@@ -230,7 +230,8 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 *   `AF_INET`, the interface index for `AF_PACKET`, the multicast groups for `AF_NETLINK`.
 * @treturn integer number of bytes sent.
 * @raise Error if the send operation fails or if address parameters are incorrect for the socket type,
-*   or on a netlink socket under RTNL, as from a netdevice callback.
+*   or on a netlink socket under RTNL, as from a netdevice callback, or from under the lock of a
+*   runtime with a netdevice notifier.
 * @usage
 *   -- For a connected TCP socket:
 *   local bytes_sent = tcp_conn_sock:send("Hello, server!")
@@ -299,7 +300,7 @@ static void luasocket_receivemsg(lua_State *L, struct msghdr *msg)
 * @treturn string received message (as a string of bytes); on a stream socket, the empty string is
 *   the end of file, once the peer has shut down its side.
 * @raise Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
-*   callback.
+*   callback, or from under the lock of a runtime with a netdevice notifier.
 * @usage
 *   -- For a connected TCP socket:
 *   local data = tcp_conn_sock:receive(1024)
@@ -340,7 +341,7 @@ static int luasocket_receive(lua_State *L)
 * @treturn[opt] integer hatype For `AF_PACKET`, the interface's hardware type.
 * @treturn[opt] string hwaddr For `AF_PACKET`, the sender's hardware address.
 * @raise Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
-*   callback.
+*   callback, or from under the lock of a runtime with a netdevice notifier.
 * @usage
 *   -- For a UDP socket, getting sender info:
 *   local data, sender_ip_int, sender_port = udp_sock:receivefrom(1500)
@@ -390,7 +391,8 @@ static int luasocket_receivefrom(lua_State *L)
 * @treturn nil
 * @raise Error if the bind operation fails (e.g., address already in use, invalid address), or
 *   "not allowed under RTNL" on a generic netlink socket bound to a group from a netdevice
-*   callback: that bind takes a lock a request holds while it waits on RTNL.
+*   callback: that bind takes a lock a request holds while it waits on RTNL; "not allowed under
+*   the lock of a runtime with a netdevice notifier" for that bind on a task that holds that lock.
 * @usage
 *   -- Bind TCP/IPv4 socket to localhost, port 8080
 *   tcp_server_sock:bind(net.aton("127.0.0.1"), 8080)
@@ -552,7 +554,8 @@ LUASOCKET_NEWGETTER(peername);
 * @tparam integer|string value option value: an integer for the common `int`
 *   payload, or a string carrying the option's packed binary payload.
 * @raise Error if the operation fails, or at a level other than `SOL_SOCKET` under RTNL, as from a
-*   netdevice callback; `unsupported option level` on a kernel before 6.7, at a level the socket's
+*   netdevice callback, or from under the lock of a runtime with a netdevice notifier;
+*   `unsupported option level` on a kernel before 6.7, at a level the socket's
 *   protocol has no `setsockopt` for.
 * @usage
 *   -- bound blocking receives to 500 ms (a `struct __kernel_sock_timeval`)
@@ -606,7 +609,9 @@ static void luasocket_release(void *private)
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
 *   its task runs, on a socket whose release takes RTNL, which that task holds, or a lock a
 *   request holds while it waits on RTNL: an `AF_INET` or `AF_INET6` socket with a multicast or
-*   anycast membership, an `AF_PACKET` socket, and a `NETLINK_GENERIC` one
+*   anycast membership, an `AF_PACKET` socket, and a `NETLINK_GENERIC` one; "not allowed under
+*   the lock of a runtime with a netdevice notifier" on such a socket, on a task that holds that
+*   lock, in whatever runtime or coroutine it runs
 */
 static int luasocket_close(lua_State *L)
 {
@@ -614,9 +619,9 @@ static int luasocket_close(lua_State *L)
 
 	lunatik_lock(object); /* one hold reads the membership and takes the socket: no sharer's join between */
 	struct socket *socket = (struct socket *)object->private;
-	if (socket != NULL && luasocket_takesrtnl(socket) && lunatik_isrtnl()) {
+	if (socket != NULL && luasocket_takesrtnl(socket) && (lunatik_isrtnl() || lunatik_blocksrtnl())) {
 		lunatik_unlock(object);
-		luaL_error(L, LUNATIK_ERR_RTNL);
+		lunatik_checkrtnl(L); /* raises the refusal that holds */
 	}
 	object->private = NULL;
 	lunatik_unlock(object);
@@ -726,8 +731,9 @@ static int luasocket_accept(lua_State *L)
 *   socket, which for a TCP connection still shutting down comes after its close, so the namespace
 *   outlives the task. The rest of Lunatik (`linux.ifindex`, `netfilter`) keeps to the initial network
 *   namespace.
-* @treturn socket A new socket object. A socket a netdevice callback may collect is closed by the
-*   script first, not dropped: its release cannot refuse where the collector drops it.
+* @treturn socket A new socket object. A socket a netdevice callback, or Lua under the lock of a
+*   runtime with a netdevice notifier, may collect is closed by the script first, not dropped: its
+*   release cannot refuse where the collector drops it.
 * @raise Error if socket creation fails, "out of bounds" for an `AF_PACKET` protocol past 16 bits,
 *   `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace
 *   of their own, or

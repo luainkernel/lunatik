@@ -223,6 +223,7 @@ static inline void lunatik_checkfield(lua_State *L, int idx, const char *field, 
 #define LUNATIK_ERR_ARMED	"not allowed once the runtime is armed"
 #define LUNATIK_ERR_UNARMED	"not allowed before the runtime is armed"
 #define LUNATIK_ERR_RTNL	"not allowed under RTNL"
+#define LUNATIK_ERR_NETDEVICE	"not allowed under the lock of a runtime with a netdevice notifier"
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 
@@ -268,6 +269,15 @@ static inline void lunatik_checkarmed(lua_State *L)
 		luaL_error(L, LUNATIK_ERR_ARMED);
 }
 
+typedef struct lunatik_rtnlnode_s {
+	struct hlist_node node;
+	lunatik_object_t *runtime;
+} lunatik_rtnlnode_t;
+
+void lunatik_addrtnl(lunatik_rtnlnode_t *node, lunatik_object_t *runtime);
+void lunatik_delrtnl(lunatik_rtnlnode_t *node);
+bool lunatik_blocksrtnl(void);
+
 #define lunatik_setrtnl(task)	WRITE_ONCE(lunatik_rtnl, (task))
 #define lunatik_isrtnl()	(READ_ONCE(lunatik_rtnl) == current)
 
@@ -275,6 +285,8 @@ static inline void lunatik_checkrtnl(lua_State *L)
 {
 	if (lunatik_isrtnl())
 		luaL_error(L, LUNATIK_ERR_RTNL);
+	if (lunatik_blocksrtnl())
+		luaL_error(L, LUNATIK_ERR_NETDEVICE);
 }
 
 static inline void lunatik_checkowner(lua_State *L, lunatik_object_t *runtime)
