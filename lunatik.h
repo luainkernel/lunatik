@@ -107,9 +107,6 @@ extern const lunatik_class_t lunatik_class;
 #include "lunatik_lock.h"
 
 int lunatik_runtime(lunatik_object_t **pruntime, const char *script, lunatik_opt_t opt);
-int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char *script, lunatik_opt_t opt,
-	lunatik_object_t *percpu, int cpu);
-int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs);
 int lunatik_stop(lunatik_object_t *runtime);
 int lunatik_copyobjects(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nobjects);
 
@@ -339,7 +336,6 @@ lunatik_object_t *lunatik_createobject(const lunatik_class_t *class, size_t size
 void lunatik_cloneobject(lua_State *L, lunatik_object_t *object);
 void lunatik_releaseobject(struct kref *kref);
 void lunatik_closeprivate(lunatik_object_t *object);
-int lunatik_closekillable(lunatik_object_t *object);
 int lunatik_closeobject(lua_State *L);
 int lunatik_deleteobject(lua_State *L);
 void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
