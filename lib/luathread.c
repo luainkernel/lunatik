@@ -97,6 +97,9 @@ static int luathread_shouldstop(lua_State *L)
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
 *   its task runs: the stop waits for the body, and a body that registers a netdevice notifier,
 *   sends a netlink request or joins a multicast group waits on the RTNL that task holds;
+*   "not allowed under the lock of a runtime with a netdevice notifier" on a task that holds that
+*   lock, in whatever runtime or coroutine it runs, where that body would wait on RTNL while a
+*   netdevice callback waits on the lock;
 *   "not allowed from the runtime itself" from under the lock of the thread's runtime, the
 *   contexts `runtime:stop` names, the thread's own body among them, where the stop would wait
 *   on a body that runs under that lock
@@ -222,8 +225,10 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 * Creates and starts a new kernel thread to run a Lua task.
 * The runtime must be sleepable; the script it loaded must return a function,
 * which becomes the thread body, called with the objects given here. A thread a
-* netdevice callback would stop is stopped off RTNL instead: from the script body,
-* a later resume or another thread. The thread holds a reference to the runtime until
+* netdevice callback would stop is stopped off RTNL and off the lock of that
+* callback's runtime instead: from the script body, or from a runtime of its own
+* on another task.
+* The thread holds a reference to the runtime until
 * `stop` releases it or the thread is collected, even once its body has returned.
 * @function run
 * @tparam runtime runtime A sleepable Lunatik runtime whose script returns a function.

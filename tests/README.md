@@ -950,6 +950,28 @@ from a pid namespace other than the initial one, whose pids are not the ones
   `lunatik_lstop` in `/proc/kallsyms`. The child is started through the
   runner, so the cleanup stops it by name whatever a case leaves.
 
+- **lock**: what a task that holds the lock of a runtime with a netdevice
+  notifier is refused, in whatever runtime its Lua runs, on a task that does
+  not hold RTNL, and what it still does: the chain takes that lock under RTNL,
+  so Lua there that waits on RTNL, or on a lock a request holds while it waits
+  on RTNL, closes a cycle with any netdevice event. A holder registers a
+  notifier from its body and probes once resumed from another runtime, and
+  again as a spawned thread body: a netlink receive and request, a second
+  registration, a `netlink.channel`, a generic netlink group bind, an option
+  past `SOL_SOCKET`, an `AF_PACKET` close and the stop of a runtime and of a
+  percpu set are refused, and so is a receive from a coroutine made before the
+  registration and once the notifier is stopped, whose block stays in the
+  chain; a helper runtime created there is refused a receive and a request in
+  its body and in its code once resumed, since it runs on the same task; a
+  `SOL_SOCKET` option, a UDP send and a UDP close are accepted. The script body
+  and the finalizers of the close run off the lock, so a request from the body
+  and the stops the finalizers run are accepted. A build without the refusal
+  wedges the host only if a netdevice event arrives while it takes RTNL, so
+  the test skips unless every module the probes reach is the installed one and
+  carries the refusal and the loaded core has `lunatik_blocksrtnl`, and the
+  probes that take RTNL run only once a receive, which cannot wedge, was
+  refused.
+
 - **chain_continues**: a netdevice block whose runtime is being torn down
   returns `notify.DONE`, not the `-ENXIO` of `lunatik_run`, whose
   `NOTIFY_STOP_MASK` bit stopped the chain: a device created while one
@@ -1689,12 +1711,15 @@ Regression tests for `luathread`.
   (kthread) context when stop is requested.
 
 - **rtnl**: `thread:stop()` from a netdevice callback is refused, probed from
-  the replay of a `notifier.netdevice` registration by a spawned driver, since
-  a thread is started from a thread: the stop waits for the body, and a body
-  may wait on the RTNL that task holds. The stop is accepted once the
-  registration returned. The body polls `shouldstop` and takes no
-  RTNL, so a build without the refusal accepts the stop from the callback and
-  fails the assertion rather than hanging; the test runs on any build.
+  the replay of a `notifier.netdevice` registration, since the stop waits for
+  the body, and a body may wait on the RTNL that task holds; so is the stop
+  from under the lock of the runtime that holds the notifier, which the
+  callback takes under RTNL. A spawned driver, since a thread is started from a
+  thread, hands the thread to a second runtime that registers and asks for
+  both, and its own stop, from a runtime without a notifier, is accepted. The
+  body polls `shouldstop` and takes no RTNL, so a build without the refusals
+  accepts the stops and fails the assertions rather than hanging; the test
+  runs on any build.
 
 - **self_stop**: `thread:stop()` from under the lock of the thread's runtime is
   refused, since the body runs under that lock and the stop waits for it. A

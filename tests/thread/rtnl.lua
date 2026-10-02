@@ -10,6 +10,7 @@ local thread   = require("thread")
 local notifier = require("notifier")
 local notify   = require("linux.notify")
 
+local SCRIPT <const> = "tests/thread/rtnl"
 local BODY   <const> = "tests/thread/rtnl_body"
 local NAME   <const> = "lunatik_rtnl"
 local PREFIX <const> = "thread rtnl test: "
@@ -34,13 +35,29 @@ local function cb()
 	return notify.OK
 end
 
-local function driver()
-	local runtime = lunatik.runtime(BODY)
-	t = thread.run(runtime, NAME)
+local function watch(running)
+	t = running
 	notifier.netdevice(cb)
-	report("after " .. verdict(pcall(t.stop, t)))
+	report("held " .. verdict(pcall(t.stop, t)))
+end
+
+local function drive()
+	local watcher <close> = lunatik.runtime(SCRIPT)
+	local runtime = lunatik.runtime(BODY)
+	local running = thread.run(runtime, NAME)
+	report("watch " .. verdict(pcall(watcher.resume, watcher, running))) -- the stop below runs whatever it raised
+	report("after " .. verdict(pcall(running.stop, running)))
 	runtime:stop()
 end
 
-return driver
+-- spawned, it drives; resumed by the driver with the thread, it watches from a runtime of its own
+local function main(running)
+	if running then
+		watch(running)
+	else
+		drive()
+	end
+end
+
+return main
 
