@@ -13,7 +13,7 @@ dir=$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2>/dev/null)
 [ -n "$dir" ] && [ -d "$dir/tools/checks" ] || exit 0
 
 # a tree older than a check lacks it, and runs the checks it has
-findings=$(for check in machine-leak module-conventions comment-style idioms lua-style kthread test-harness cppcheck-tests extraspace guard-removed; do
+findings=$(for check in machine-leak module-conventions comment-style idioms core-helper lua-style kthread test-harness cppcheck-tests extraspace guard-removed; do
 	[ -f "$dir/tools/checks/$check.sh" ] && bash "$dir/tools/checks/$check.sh" "$file" 2>&1
 done)
 

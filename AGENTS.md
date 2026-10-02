@@ -182,7 +182,8 @@ the last one.
 release named with what changed in it or above a table, the counterfactual, the multi-line note
 inside code, the trailing comment past the width, a comment on a signature line or above an internal
 `static inline` and one naming the file or function that reads a value
-(`comment-style.sh`), the branches, argument tables, inline functions and repeated blocks the Lua style
+(`comment-style.sh`), a sequence of calls a change adds that another C file already makes
+(`core-helper.sh`), the branches, argument tables, inline functions and repeated blocks the Lua style
 rules settle (`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script
 skips (`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
@@ -270,6 +271,16 @@ sites with an allocation between, freed its buffer on the raise path and sized a
 and the review's rules phase read the C style rules and not the function. The check annotates: a lock
 retaken after a wait is a shape the reader decides on, and the review answers each line it prints with
 the function's jobs listed and the fixup that splits them or the reason they are one.
+
+`core-helper.sh` reads the lines a change adds to a C file, against `CHECK_BASE`, for three in a row
+inside a function whose calls another C file of the tree already makes in the same order, read with
+the arguments left out: the sequence is one helper, in `lunatik.h` when its calls are the core's.
+#1584 and #1595 each wrote `lua_pushnil`, `lunatik_pusherrname` and `return 2`, in three files
+between them, until the maintainer asked for `lunatik_pushfail`, a rule this file already carried
+and two implementers and their reviews passed over. It runs at edit time and over a pull request's
+diff and annotates, since two encryptions that set up one request each are two callers of the
+kernel's API and not a helper missing; the review answers each line it prints with the helper or
+the reason the calls are the kernel's sequence.
 
 `lua-style.sh` reads a Lua file for the shape rules of "Lua style" that a review of #618 passed over
 and called ready: an `if`/`elseif` whose branches repeat the same steps, which is a dispatch table
@@ -720,7 +731,9 @@ settled (#1292); a binding or a Lua module follows them whichever language it is
   already turns an errno into `EINVAL`, and `autogen`'s emitter already writes the config a Makefile
   was about to write a second time.
 * Prefer a named `static inline` helper over an open coded repetition, and do not inline an existing
-  named helper into its callers while refactoring; they exist for readability and symmetry.
+  named helper into its callers while refactoring; they exist for readability and symmetry. A
+  sequence two bindings spell is that helper too, in the core when its calls are the core's, and
+  `tools/checks/core-helper.sh` names the sequence a change adds that another file already spells.
 * A function does one thing; whether to do it is its caller's decision. An early return added at the
   top of a function that creates something, guarded by a lookup with its own stack juggling, moves
   that decision into the wrong place: the lookup becomes a `has`/`is` predicate beside the ones the
