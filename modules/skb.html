@@ -221,7 +221,9 @@ netfilter.register{
 	<tr>
 	<td class="name"><a href="#skb:data">skb:data ([layer])</a></td>
 	<td class="summary">Linearizes the skb and returns a view from where <code>layer</code> starts to the end of
- the packet.</td>
+ the packet: &ldquo;net&rdquo; at the network header and &ldquo;mac&rdquo; at the MAC header, or, with no
+ <code>layer</code>, at <code>skb-&gt;data</code>, where the packet starts as the hook sees it: the network
+ header in an IPv4 or IPv6 netfilter hook and the MAC header in a tc callback.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:forward">skb:forward ()</a></td>
@@ -350,24 +352,25 @@ netfilter.register{
     <dt id="skb:data"><a name="skb:data"></a><strong>skb:data ([layer])</strong></dt>
     <dd>
     Linearizes the skb and returns a view from where <code>layer</code> starts to the end of
- the packet.  &ldquo;net&rdquo; starts at <code>skb-&gt;data</code>, which is the network header in an
- IPv4 or IPv6 netfilter hook and the MAC header in a tc callback; &ldquo;mac&rdquo; starts
- at the MAC header. In a tc callback the skb is not linearized, and a non-linear
- one raises.</p>
+ the packet: &ldquo;net&rdquo; at the network header and &ldquo;mac&rdquo; at the MAC header, or, with no
+ <code>layer</code>, at <code>skb-&gt;data</code>, where the packet starts as the hook sees it: the network
+ header in an IPv4 or IPv6 netfilter hook and the MAC header in a tc callback.  In a
+ tc callback the skb is not linearized, and a non-linear one raises.</p>
 
-<p> The skb keeps one view per layer: the &ldquo;net&rdquo; and &ldquo;mac&rdquo; views are two objects, and a
- second call for a layer returns the same view, ending at the tail as it is then: a
- <a href="../modules/skb.html#skb:resize">resize</a> alone does not move a view&rsquo;s end. The skb stays linear once a view is taken,
- so no later call moves the bytes a view reads. A view is valid until the callback that
- received the skb returns, or, for a copy, until the copy is collected: afterwards
- its length is 0 and every access raises &ldquo;out of bounds&rdquo;.
+<p> The skb keeps one view per start: the view with no layer and the &ldquo;net&rdquo; and &ldquo;mac&rdquo;
+ views are three objects, and a second call returns the same view, ending at the
+ tail as it is then: a <a href="../modules/skb.html#skb:resize">resize</a> alone does not move a view&rsquo;s end. The skb stays
+ linear once a view is taken, so no later call moves the bytes a view reads. A view
+ is valid until the callback that received the skb returns, or, for a copy, until
+ the copy is collected: afterwards its length is 0 and every access raises &ldquo;out of
+ bounds&rdquo;.
 
 
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">layer</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         &ldquo;net&rdquo; (default) or &ldquo;mac&rdquo;
+         &ldquo;net&rdquo; or &ldquo;mac&rdquo;
          (<em>optional</em>)
         </li>
     </ul>
@@ -376,12 +379,12 @@ netfilter.register{
     <ol>
 
            <span class="types"><a class="type" href="../modules/skb.html#skb:data">data</a></span>
-
+        the view, or nil when the layer&rsquo;s header is not set or lies past the tail
     </ol>
 
     <h3>Raises</h3>
-    if the skb is not linear, in a tc callback or after a failed linearization, if the MAC
- header is not set or is past the tail, or if layer is invalid
+    if the skb is not linear, in a tc callback or after a failed linearization, or if
+ layer is invalid
 
 
 
@@ -523,7 +526,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-01 15:44:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 11:46:18</span>
 </div>
 </footer>
 </body>
