@@ -343,14 +343,18 @@ static inline void lunatik_checkclosing(lua_State *L)
 		luaL_error(L, LUNATIK_ERR_CLOSING);
 }
 
-static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *name, lunatik_opt_t opt)
+static inline void lunatik_checkcontext(lua_State *L, const char *name, lunatik_opt_t opt)
 {
-	lunatik_object_t *runtime = lunatik_toruntime(L);
-	if (lunatik_context(runtime->opt) != lunatik_context(opt))
+	if (lunatik_context(lunatik_toruntime(L)->opt) != lunatik_context(opt))
 		luaL_error(L, LUNATIK_ERR_RUNTIME ": %s needs %s", name,
 			lunatik_ishardirq(opt) ? "hardirq" : lunatik_isirq(opt) ? "softirq" : "process");
+}
+
+static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *name, lunatik_opt_t opt)
+{
+	lunatik_checkcontext(L, name, opt);
 	lunatik_checkclosing(L);
-	return runtime;
+	return lunatik_toruntime(L);
 }
 
 static inline lunatik_opt_t lunatik_optcontext(lua_State *L, int ix)

@@ -62,8 +62,7 @@ static int luacompletion_complete(lua_State *L)
 * @tparam[opt] integer timeout Optional timeout in milliseconds. If omitted or set to `MAX_SCHEDULE_TIMEOUT` (a large kernel-defined constant), waits indefinitely.
 * @treturn boolean `true` if the completion was signaled, `false` if the timeout elapsed first.
 * @raise `ERESTARTSYS` when a signal or the stop of the thread that waits interrupts the wait;
-*   "runtime context mismatch" from a softirq or hardirq runtime, its script body included;
-*   "not allowed while the runtime closes" from a finalizer that runs at its close
+*   "runtime context mismatch" from a softirq or hardirq runtime, its script body included
 * @usage
 *   -- Assuming 'c' is a completion object
 *   if c:wait(1000) then -- Wait for up to 1 second
@@ -79,7 +78,7 @@ static int luacompletion_wait(lua_State *L)
 	lua_Integer timeout = luaL_optinteger(L, 2, MAX_SCHEDULE_TIMEOUT);
 	long ret;
 
-	lunatik_checkruntime(L, luacompletion_class.name, LUNATIK_OPT_NONE);
+	lunatik_checkcontext(L, luacompletion_class.name, LUNATIK_OPT_NONE);
 	unsigned long timeout_jiffies = msecs_to_jiffies((unsigned long)timeout);
 	lunatik_tryret(L, ret, wait_for_completion_interruptible_timeout, completion, timeout_jiffies);
 	lua_pushboolean(L, ret > 0);
