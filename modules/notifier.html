@@ -330,9 +330,9 @@
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
          invoked as <code>callback(event, c, vc_num)</code> —
-   <code>event</code> is a <a href="../modules/linux.vt.html#">linux.vt</a> code, <code>c</code> is the character value, and
-   <code>vc_num</code> is the virtual console number. Returns a <a href="../modules/linux.notify.html#">linux.notify</a>
-   status code.
+   <code>event</code> is a <a href="../modules/linux.vt.html#">linux.vt</a> code, <code>c</code> is the character value a <code>WRITE</code> or
+   <code>PREWRITE</code> carries and nil for any other event, and <code>vc_num</code> is the
+   virtual console number. Returns a <a href="../modules/linux.notify.html#">linux.notify</a> status code.
         </li>
     </ul>
 
@@ -365,7 +365,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:27:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:29:01</span>
 </div>
 </footer>
 </body>
