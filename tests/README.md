@@ -1861,7 +1861,13 @@ Regression tests for `luathread`.
   `false` for one whose body raised, stopped once the body told the driver it
   runs. A stop that drops the last reference to the thread's runtime closes it
   outside the thread's lock: a finalizer of that runtime that stops the thread
-  again, through a table the driver stored it in, gets `true`.
+  again, through a table the driver stored it in, gets `true`. A stop of a
+  thread another stop holds returns `true` at once: a body that outlasts its
+  stop, sleeping uninterruptibly until the driver releases it or three seconds
+  pass, is stopped by a second thread, and the driver, once the body sees that
+  stop, reads no task from the thread and stops it again before releasing it;
+  the body is released before its bound, and the first stop returns `true` once
+  the thread has exited.
 
 ### xdp
 

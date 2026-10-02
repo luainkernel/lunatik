@@ -88,21 +88,37 @@ static int luathread_shouldstop(lua_State *L)
 	return 1;
 }
 
+static struct task_struct *luathread_claim(lua_State *L, lunatik_object_t *object)
+{
+	luathread_t *thread = (luathread_t *)object->private;
+
+	lunatik_try(L, lunatik_lockkillable, object);
+	struct task_struct *task = thread->task;
+	if (task != NULL && lunatik_isowner(thread->runtime)) { /* the body runs under its lock */
+		lunatik_unlock(object);
+		luaL_error(L, LUNATIK_ERR_OWNER);
+	}
+	thread->task = NULL; /* the exit kthread_stop waits for is completed once */
+	lunatik_unlock(object);
+	return task;
+}
+
 /***
 * Stops a running kernel thread.
 * Signals the thread to stop and waits for it to exit. A body waiting for a runtime's lock,
 * or for the lock a shared object's method takes, leaves that wait with "EINTR". A
-* to-be-closed variable holding the thread stops it the same way.
+* to-be-closed variable holding the thread stops it the same way. A stop made while another
+* stop of the same thread waits for it returns at once, before the thread has exited.
 * @function stop
 * @treturn boolean `false` if the body it stopped raised, `true` otherwise, for a thread
-*   already stopped too
+*   already stopped or being stopped too
 * @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
 *   its task runs: the stop waits for the body, and a body that registers a netdevice notifier,
 *   sends a netlink request or joins a multicast group waits on the RTNL that task holds;
 *   "not allowed from the runtime itself" from under the lock of the thread's runtime, the
 *   contexts `runtime:stop` names, the thread's own body among them, where the stop would wait
 *   on a body that runs under that lock; "EINTR" if the stop of the calling kernel thread, or a
-*   fatal signal to any other task, ends its wait for another stop of the same thread
+*   fatal signal to any other task, ends its wait for the thread's lock
 * @usage
 * my_thread:stop()
 */
@@ -112,19 +128,12 @@ static int luathread_stop(lua_State *L)
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luathread_class);
 	luathread_t *thread = (luathread_t *)object->private;
 	lunatik_object_t *runtime = thread->runtime;
-
-	lunatik_try(L, lunatik_lockkillable, object); /* a sharer's stop waits for this one */
-	struct task_struct *task = thread->task;
-	if (task != NULL && lunatik_isowner(runtime)) { /* the body runs under its lock */
-		lunatik_unlock(object);
-		luaL_error(L, LUNATIK_ERR_OWNER);
-	}
+	struct task_struct *task = luathread_claim(L, object);
 
 	int result = 0;
 	if (task != NULL) {
 		result = kthread_stop(task);
 
-		thread->task = NULL;
 		put_task_struct(task);
 		if (result == -EINTR) {
 			luathread_popargs(runtime, thread->nargs);
@@ -133,12 +142,10 @@ static int luathread_stop(lua_State *L)
 		}
 		else if (result == -ENOEXEC)
 			pr_warn("[%p] thread has failed to execute\n", thread);
+		lunatik_putobject(runtime); /* a last put runs its finalizers, which may stop this thread */
 	}
 	else
 		pr_warn("[%p] thread has already stopped\n", thread);
-	lunatik_unlock(object);
-	if (task != NULL)
-		lunatik_putobject(runtime); /* a last put runs its finalizers, which may stop this thread */
 	lua_pushboolean(L, result != -ENOEXEC);
 	return 1;
 }
@@ -147,8 +154,8 @@ static int luathread_stop(lua_State *L)
 * Returns a task object for the kernel task associated with the thread.
 * The thread holds a reference to it, so the object stays readable after the
 * body returned, reporting the task as it ended. `stop` releases that
-* reference: the object returned after a stop has no task, and its methods
-* raise "closed object".
+* reference: the object returned once a stop began, before the thread has
+* exited too, has no task, and its methods raise "closed object".
 * @function task
 * @treturn task
 * @usage

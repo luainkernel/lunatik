@@ -4,7 +4,8 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # A thread's __close is its stop, a to-be-closed variable holding a thread
-# stops it at the end of its scope, and the stop says whether the body raised.
+# stops it at the end of its scope, the stop says whether the body raised, and
+# a stop of a thread another stop holds returns at once.
 #
 # stop.lua is spawned, since thread.run is refused while a script loads. It
 # threads a runtime whose body returns at once, so no failure leaves a thread
@@ -25,6 +26,17 @@
 # build that closes the runtime under the thread's lock leaves that stop
 # waiting on a lock its own task holds, until the driver's stop interrupts it,
 # and a build whose monitor wraps the stop refuses it: the case fails on both.
+# Then a body that outlasts its stop: once it sees the stop it tells the
+# driver, and sleeps uninterruptibly, since the stop's signal ends an
+# interruptible sleep at once, until the driver releases it or three seconds
+# pass; it waits for the stop no longer, so a failure before the stop leaves no
+# thread running. A second thread stops it, and the driver, told the body sees
+# that stop, reads the thread's task and stops the thread again while the first
+# stop waits: the task object has no task, the second stop returns true, the
+# body is released before its bound, and the first stop returns true, which it
+# does once the thread has exited. A build that holds the thread's lock across
+# kthread_stop keeps the driver's read waiting until the body's bound passes,
+# so the case fails without a wedge.
 #
 # Usage: sudo bash tests/thread/stop.sh
 
@@ -39,7 +51,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 5
+ktap_plan 6
 
 reported()
 {
@@ -67,13 +79,14 @@ awaited()
 mark_dmesg
 output=$(lunatik spawn "$SCRIPT" 2>&1)
 [ -z "$output" ] || fail "$output"
-awaited "finalized"
+awaited "concurrent"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 
 verdict "closed" "a to-be-closed variable stops a thread, through the stop it holds as __close"
 verdict "returned" "stop returns true when the body did not raise, and on a thread already stopped"
 verdict "raised" "stop returns false when the body raised"
 verdict "finalized" "a stop from a finalizer of the runtime the stop closes returns true"
+verdict "concurrent" "a stop of a thread another stop holds returns true at once, and task reads no task"
 
 check_dmesg && ktap_pass "no Lua errors in kernel"
 
