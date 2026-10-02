@@ -94,12 +94,34 @@ typedef struct lunatik_object_s {
 	struct rcu_head rcu;
 } lunatik_object_t;
 ```
-A Lunatik object. A binding reads `private`, the data of its class, `NULL` once the object is
-closed; `object->class`, the class it was created with; `opt`, as
-[`lunatik_newobject`](#lunatik_newobject) computes it; and `gfp`, through
-[`lunatik_gfp`](#lunatik_gfp). The other fields are the core's: `kref` belongs to
-[`lunatik_getobject`](#lunatik_getobject) and [`lunatik_putobject`](#lunatik_putobject), the lock
-union, `owner` and `flags` to [`lunatik_lock`](#lunatik_lock), and the `rcu_head` to the release.
+A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` through
+[`lunatik_gfp`](#lunatik_gfp); the other fields are the core's.
+
+- `kref`: the count of the object's references, `1` at its creation, taken and dropped through
+  [`lunatik_getobject`](#lunatik_getobject), [`lunatik_getobject_rcu`](#lunatik_getobject_rcu) and
+  [`lunatik_putobject`](#lunatik_putobject), whose drop to zero runs the release. It changes
+  atomically, under no lock.
+- `class`: the class the object was created with, set at its creation and never changed.
+- `private`: the data of the class. [`lunatik_newobject`](#lunatik_newobject) and
+  [`lunatik_createobject`](#lunatik_createobject) allocate it zeroed, and the binding sets it for a
+  `LUNATIK_OPT_EXTERNAL` class. [`lunatik_closeprivate`](#lunatik_closeprivate) clears it under the
+  object's lock, so `NULL` is a closed object, and a method the monitor does not wrap, a `close` or the
+  runtime's `stop`, reads it under that lock.
+- `mutex` and `spin`: the object's lock, a mutex for a process-context object and a spinlock for a
+  `LUNATIK_OPT_SOFTIRQ` or `LUNATIK_OPT_HARDIRQ` one, taken through [`lunatik_lock`](#lunatik_lock),
+  set up at the object's creation and torn down at its release.
+- `owner`: the task that holds the lock, `NULL` while none does. [`lunatik_lock`](#lunatik_lock)
+  writes it once it holds the lock and `lunatik_unlock` clears it before letting go;
+  [`lunatik_isowner`](#lunatik_isowner) reads it without the lock, since only the holder writes it.
+- `opt`: the `LUNATIK_OPT_*` flags of the object, its class's and those it was created with, as
+  [`lunatik_newobject`](#lunatik_newobject) computes them, set at its creation and never changed.
+- `gfp`: the flags the object allocates with, `GFP_ATOMIC` for a `LUNATIK_OPT_SOFTIRQ` or
+  `LUNATIK_OPT_HARDIRQ` object and `GFP_KERNEL` otherwise, set at its creation. A runtime's changes
+  as [`lunatik_gfp`](#lunatik_gfp) says, written by the code that runs in it.
+- `flags`: the interrupt state `spin_lock_irqsave` saves, which `lunatik_lock` writes once it holds
+  the lock and `lunatik_unlock` restores.
+- `rcu`: the head the release frees the object through, after a grace period, so a reader that
+  found it under `rcu_read_lock()` can still read its count.
 
 ### lunatik\_opt\_t
 ```C
