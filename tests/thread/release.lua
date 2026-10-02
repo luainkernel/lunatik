@@ -32,8 +32,8 @@ local function driver()
 	t, closed = start()
 	t = nil
 	collectgarbage()
-	assert(closed:wait(TIMEOUT), "collecting the thread did not release the runtime")
-	print(PREFIX .. "collected")
+	assert(not closed:wait(PAUSE), "a dropped thread released its runtime while the driver runs")
+	print(PREFIX .. "kept")
 end
 
 return driver

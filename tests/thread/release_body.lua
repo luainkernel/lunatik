@@ -4,8 +4,11 @@
 --
 -- Thread body for the thread release test (see release.sh).
 
+local PREFIX <const> = "thread release test: "
+
 local function close(sentinel)
 	sentinel.closed:complete()
+	print(PREFIX .. "closed")
 end
 
 local function body(done, closed)
