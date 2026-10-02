@@ -203,7 +203,6 @@ static int luanotifier_keyboard_handler(lua_State *L, unsigned long event, void 
 
 /***
 * Registers a keyboard-event notifier. Must be called from a `hardirq` runtime.
-* Only available when the kernel is built with `CONFIG_VT`.
 *
 * @function keyboard
 * @tparam function callback invoked as `callback(event, down, shift, value)`
@@ -212,7 +211,8 @@ static int luanotifier_keyboard_handler(lua_State *L, unsigned long event, void 
 *   keysym depending on `event`. Returns a `linux.notify` status code.
 * @treturn notifier the notifier, which this call keeps for its runtime: dropping it
 *   stops nothing, and the callback runs until `stop` or the end of the runtime
-* @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
+* @raise `EOPNOTSUPP` on a kernel built without `CONFIG_VT`;
+*   if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
 *   `not allowed while the runtime closes` from a finalizer that runs at its close;
 *   the kernel's errno when it refuses the registration
 * @within notifier
@@ -233,7 +233,6 @@ static int luanotifier_vt_handler(lua_State *L, unsigned long event, void *data)
 
 /***
 * Registers a virtual-terminal notifier. Must be called from a `hardirq` runtime.
-* Only available when the kernel is built with `CONFIG_VT`.
 *
 * @function vt
 * @tparam function callback invoked as `callback(event, c, vc_num)` —
@@ -242,20 +241,28 @@ static int luanotifier_vt_handler(lua_State *L, unsigned long event, void *data)
 *   virtual console number. Returns a `linux.notify` status code.
 * @treturn notifier the notifier, which this call keeps for its runtime: dropping it
 *   stops nothing, and the callback runs until `stop` or the end of the runtime
-* @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
+* @raise `EOPNOTSUPP` on a kernel built without `CONFIG_VT`;
+*   if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
 *   `not allowed while the runtime closes` from a finalizer that runs at its close;
 *   the kernel's errno when it refuses the registration
 * @within notifier
 */
 LUANOTIFIER_NEWCHAIN(vt, &luanotifier_hardirq_class);
+#else
+static int luanotifier_novt(lua_State *L)
+{
+	lunatik_throw(L, -EOPNOTSUPP);
+	return 0;
+}
+
+#define luanotifier_keyboard	luanotifier_novt
+#define luanotifier_vt		luanotifier_novt
 #endif
 
 static const luaL_Reg luanotifier_lib[] = {
 	{"netdevice", luanotifier_netdevice},
-#ifdef CONFIG_VT
 	{"keyboard", luanotifier_keyboard},
 	{"vt", luanotifier_vt},
-#endif
 	{NULL, NULL}
 };
 

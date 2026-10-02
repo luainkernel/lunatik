@@ -1036,6 +1036,10 @@ from a pid namespace other than the initial one, whose pids are not the ones
   `/dev/tty1`, which only `CONFIG_VT` registers, and the allocation cases
   without `deallocvt` or with `/dev/tty63` held by the host).
 
+- **unsupported**: on a kernel without `CONFIG_VT`, `notifier.keyboard` and
+  `notifier.vt` raise `EOPNOTSUPP` from a `hardirq` runtime (runs only without
+  a `/sys/class/tty/tty0`, which only `CONFIG_VT` creates).
+
 ### probe
 
 - **aggregate**: a target another kprobe already holds is aggregated by the
