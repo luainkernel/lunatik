@@ -815,11 +815,11 @@ reports.</li>
         <li><span class="parameter">pid</span>
             <span class="types"><span class="type">integer</span></span>
          a task whose network namespace the socket is created in, instead of the
-   initial one. The pid is resolved in the pid namespace of the task making the call: the <a href="../modules/lunatik.html#">lunatik</a>
-   process for a script&rsquo;s body, the initial one for a kernel thread. The socket holds its network
-   namespace until the kernel frees the socket, which for a TCP connection still shutting down comes
-   after its close, so the namespace outlives the task. The rest of Lunatik (<a href="../modules/linux.html#ifindex">linux.ifindex</a>,
-   <a href="../modules/netfilter.html#">netfilter</a>) keeps to the initial network namespace.
+   initial one. The pid is read in the initial pid namespace: the number <code>task:pid()</code> returns,
+   whichever task makes the call. The socket holds its network namespace until the kernel frees the
+   socket, which for a TCP connection still shutting down comes after its close, so the namespace
+   outlives the task. The rest of Lunatik (<a href="../modules/linux.html#ifindex">linux.ifindex</a>, <a href="../modules/netfilter.html#">netfilter</a>) keeps to the initial network
+   namespace.
          (<em>optional</em>)
         </li>
     </ul>
@@ -867,7 +867,7 @@ reports.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:46:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:48:43</span>
 </div>
 </footer>
 </body>
