@@ -424,8 +424,6 @@ window.LUNATIK_SEARCH = [
 ["util","modules/util.html","Module · Utility functions."],
 ["bin2hex (str)","modules/util.html#bin2hex","util · Converts a binary string to its hexadecimal representation."],
 ["hex2bin (hex)","modules/util.html#hex2bin","util · Converts a hexadecimal string to its binary representation."],
-["log (what, ...)","modules/util.html#log","util · Logs a message with a specific prefix."],
-["test (test_name, func)","modules/util.html#test","util · Runs a test function and prints the result."],
 ["xdp","modules/xdp.html","Module · eXpress Data Path (XDP) integration."],
 ["xdp_ctx:argument ()","modules/xdp.html#xdp_ctx:argument","xdp · Returns the argument data buffer passed from eBPF."],
 ["xdp_ctx:packet ()","modules/xdp.html#xdp_ctx:packet","xdp · Returns the packet data buffer for the current XDP context."],

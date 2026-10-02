@@ -175,7 +175,7 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-other">Other</a></div>
 <h1>util<span class="kind">Module</span></h1>
 <p class="lead">Utility functions.</p>
- <a href="../modules/util.html#bin2hex">bin2hex</a> and <a href="../modules/util.html#hex2bin">hex2bin</a> convert binary strings; <a href="../modules/util.html#log">log</a> and <a href="../modules/util.html#test">test</a> are helpers for test scripts.
+ <a href="../modules/util.html#bin2hex">bin2hex</a> and <a href="../modules/util.html#hex2bin">hex2bin</a> convert between a binary string and its hexadecimal representation.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -186,14 +186,6 @@
 	<tr>
 	<td class="name"><a href="#hex2bin">hex2bin (hex)</a></td>
 	<td class="summary">Converts a hexadecimal string to its binary representation.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#log">log (what, ...)</a></td>
-	<td class="summary">Logs a message with a specific prefix.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#test">test (test_name, func)</a></td>
-	<td class="summary">Runs a test function and prints the result.</td>
 	</tr>
 </table></div>
 
@@ -217,7 +209,7 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        hexadecimal representation of the input.
+        hexadecimal representation of the input, two lowercase digits per byte.
     </ol>
 
 
@@ -233,7 +225,7 @@
     <ul>
         <li><span class="parameter">hex</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         hexadecimal string to convert.
+         hexadecimal string to convert, two digits per byte in either case.
         </li>
     </ul>
 
@@ -244,56 +236,10 @@
         binary representation of the input.
     </ol>
 
+    <h3>Raises</h3>
+    <code>&quot;invalid hexadecimal string&quot;</code> when <code>hex</code> has an odd length or a character that is not a hexadecimal digit.
 
 
-
-</dd>
-    <dt id="log"><a name="log"></a><strong>log (what, ...)</strong></dt>
-    <dd>
-    Logs a message with a specific prefix.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">what</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         prefix for the log message (e.g., &ldquo;info&rdquo;, &ldquo;error&rdquo;).
-        </li>
-        <li><span class="parameter">...</span>
-         additional values to log, concatenated with tabs.
-        </li>
-    </ul>
-
-
-
-
-    <h3>Usage</h3>
-        <pre class="example">util.<span class="function-name">log</span>(<span class="string">"info"</span>, <span class="string">"This is a message"</span>)</pre>
-        <pre class="example">util.<span class="function-name">log</span>(<span class="string">"error"</span>, <span class="string">"An error occurred"</span>, <span class="string">"Error message"</span>)</pre>
-
-</dd>
-    <dt id="test"><a name="test"></a><strong>test (test_name, func)</strong></dt>
-    <dd>
-    Runs a test function and prints the result.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">test_name</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         test name.
-        </li>
-        <li><span class="parameter">func</span>
-            <span class="types"><span class="type">function</span></span>
-         test function to run.
-        </li>
-    </ul>
-
-
-
-
-    <h3>Usage</h3>
-        <pre class="example">util.<span class="function-name">test</span>(<span class="string">"Test Name"</span>, <span class="keyword">function</span>() ... <span class="keyword">end</span>)</pre>
 
 </dd>
 </dl>
@@ -310,7 +256,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:45:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:47:01</span>
 </div>
 </footer>
 </body>
