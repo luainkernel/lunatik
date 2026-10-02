@@ -27,6 +27,7 @@ local BUFSIZE    <const> = 4096
 local FLOOD      <const> = string.rep("x", 1 << 20)
 -- more sends than a datagram queue or a send buffer takes while nobody reads
 local ATTEMPTS   <const> = 1024
+local IP_LOCAL_PORT_RANGE <const> = 51 -- uapi/linux/in.h
 
 local timeval = struct(sk.layout.timeval)
 
@@ -117,6 +118,16 @@ test("socket:receive, socket:accept and socket:send raise a failure other than E
 	local udp = bounded(inet.udp(), SNDTIMEO)
 	raises("a send with no destination", "EDESTADDRREQ", udp.send, udp, MESSAGE)
 	udp:close()
+end)
+
+test("socket:connect raises the EAGAIN of an implicit bind that finds no free port", function()
+	local holder = bound(inet.udp)
+	local _, port = holder:getsockname()
+	local udp = inet.udp()
+	udp.socket:setsockopt(sk.sol.IP, IP_LOCAL_PORT_RANGE, port << 16 | port)
+	raises("a connect with no free port to bind", "EAGAIN", udp.connect, udp, inet.localhost, port)
+	udp:close()
+	holder:close()
 end)
 
 test("socket:send answers false when a send timeout ends the wait with nothing queued", function()

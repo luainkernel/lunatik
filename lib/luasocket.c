@@ -476,7 +476,8 @@ static int luasocket_listen(lua_State *L)
 * A TCP connect waits for the connection, with no timeout of its own, unless `flags` carries
 * `O_NONBLOCK` or `setsockopt` set a send timeout; either makes a wait that ends with the connection
 * still in progress answer `nil`, whether this connect or an earlier one started it, and `send` says
-* how a stop ends the wait.
+* how a stop ends the wait. An `AF_UNIX` connect waits the same way for room in the backlog of the
+* listener it reaches, and a wait that ends with none answers `false`.
 *
 * @function connect
 * @tparam integer|string addr destination address to connect to.
@@ -492,7 +493,8 @@ static int luasocket_listen(lua_State *L)
 *   complete at once not wait for it. `linux.socket.sock.NONBLOCK` carries
 *   `O_NONBLOCK` on every architecture but alpha and parisc.
 * @treturn boolean `true` once connected; `nil` and `"EINPROGRESS"` when the wait ended with the
-*   connection it started still in progress, or `"EALREADY"` with one an earlier connect started.
+*   connection it started still in progress, or `"EALREADY"` with one an earlier connect started;
+*   `false` when it ended with no room in an `AF_UNIX` listener's backlog.
 * @raise Error if the connect operation fails (e.g., connection refused, host unreachable).
 * @usage
 *   tcp_client_sock:connect(net.aton("192.168.1.100"), 80)
@@ -509,9 +511,12 @@ static int luasocket_connect(lua_State *L)
 	int ret = kernel_connect(socket, (struct sockaddr *)&addr, size, flags);
 #endif
 
-	if (ret < 0)
+	if (ret == -EAGAIN && LUASOCKET_ISUNIX(luasocket_family(socket))) /* inet's is a failed autobind */
+		lua_pushboolean(L, false);
+	else if (ret < 0)
 		return luasocket_pushfail(L, ret, ret == -EINPROGRESS || ret == -EALREADY);
-	lua_pushboolean(L, true);
+	else
+		lua_pushboolean(L, true);
 	return 1;
 }
 

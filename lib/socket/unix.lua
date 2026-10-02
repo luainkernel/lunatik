@@ -69,7 +69,8 @@ end
 -- Connects the socket to a UNIX domain path.
 -- @param path (string) [optional] Path to connect to.
 --   Defaults to the path provided at construction time.
--- @return (boolean) `true` once connected.
+-- @return (boolean) `true` once connected, or `false` when a send timeout ended the wait for room in the
+--   listener's backlog.
 -- @see socket.connect
 function unix:connect(path)
 	return self.socket:connect(path or self.path)

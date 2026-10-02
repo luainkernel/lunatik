@@ -19,6 +19,11 @@
 # answers that part's length, one with room answers the message's, and one with
 # no destination still raises EDESTADDRREQ under a send timeout.
 #
+# socket:connect() answers false where its EAGAIN is an AF_UNIX listener's full
+# backlog (connect.sh), and still raises it where it names a failure: the implicit
+# bind of an AF_INET datagram socket whose port range, narrowed with
+# IP_LOCAL_PORT_RANGE to the one port another socket holds, finds no port free.
+#
 # Usage: sudo bash tests/socket/again.sh
 
 SCRIPT="tests/socket/again"
