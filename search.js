@@ -377,7 +377,7 @@ window.LUNATIK_SEARCH = [
 ["inet:receive (...)","modules/socket.inet.html#inet:receive","socket.inet · Receives data from the socket; inet.udp:receivefrom also returns the sender."],
 ["inet:send (msg, addr, port)","modules/socket.inet.html#inet:send","socket.inet · Sends data through the socket."],
 ["socket.raw","modules/socket.raw.html","Module · RAW AF_PACKET socket operations."],
-["bind (proto, ifindex)","modules/socket.raw.html#bind","socket.raw · Creates a raw packet socket bound to an EtherType and an interface."],
+["new (proto, ifindex)","modules/socket.raw.html#new","socket.raw · Creates a raw packet socket bound to an EtherType and an interface."],
 ["socket.unix","modules/socket.unix.html","Module · UNIX domain socket (AF_UNIX) operations."],
 ["unix.dgram","modules/socket.unix.html#unix.dgram","socket.unix · DGRAM socket specialization (connectionless)."],
 ["unix.dgram:receivefrom (len, flags)","modules/socket.unix.html#unix.dgram:receivefrom","socket.unix · Receives data from a DGRAM socket along with the sender's path."],
