@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>completion · Lunatik</title>
+    <title>linux.errno · Lunatik</title>
     <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
@@ -56,7 +56,7 @@
 <h2>Lua API</h2>
 <h3>Runtime</h3>
 <ul class="mono">
-  <li><a href="../modules/completion.html" aria-current="page">completion</a></li>
+  <li><a href="../modules/completion.html">completion</a></li>
   <li><a href="../modules/fifo.html">fifo</a></li>
   <li><a href="../modules/lunatik.html">lunatik</a></li>
   <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
@@ -143,7 +143,7 @@
 <ul class="mono">
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
-  <li><a href="../modules/linux.errno.html">linux.errno</a></li>
+  <li><a href="../modules/linux.errno.html" aria-current="page">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fs.html">linux.fs</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
@@ -172,146 +172,18 @@
 
 <main class="content" id="content">
 
-<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-runtime">Runtime</a></div>
-<h1>completion<span class="kind">Module</span></h1>
-<p class="lead">Lua bindings for kernel completion mechanisms.</p>
- This library allows Lua scripts to create, signal, and wait on
- kernel completion objects.</p>
-
-<p> Task completion is a synchronization mechanism used to coordinate the
- execution of multiple threads. It allows threads to wait for a specific
- event to occur before proceeding, ensuring certain tasks are complete.
-
-<h2 id="Class_completion">Class completion </h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#completion:complete">completion:complete ()</a></td>
-	<td class="summary">Signals a completion.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#completion:wait">completion:wait ([timeout])</a></td>
-	<td class="summary">Waits for a completion to be signaled.</td>
-	</tr>
-</table></div>
-<h2 id="completion">completion</h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#new">new ()</a></td>
-	<td class="summary">Creates a new kernel completion object.</td>
-	</tr>
-</table></div>
-
-    <h2 class="section-header" id="Class_completion-details"><a name="Class_completion"></a>Class completion  in detail</h2>
-
-          <div class="section-description">
-          Represents a kernel completion object.
- This is a userdata object returned by <code>completion.new()</code>, wrapping a
- <code>struct completion</code> used to wait for and signal an event.
-          </div>
-    <dl class="function">
-    <dt id="completion:complete"><a name="completion:complete"></a><strong>completion:complete ()</strong></dt>
-    <dd>
-    Signals a completion.
- This wakes up one task waiting on this completion object.
- Corresponds to the kernel&rsquo;s <code>complete()</code> function. It may be called from any runtime.
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-constants">Constants</a></div>
+<h1>linux.errno<span class="kind">Module</span></h1>
+<p class="lead">Linux kernel constants exposed under <a href="../modules/linux.errno.html#">linux.errno</a>.</p>
+ Values are populated at build time from the kernel headers.
+ Error numbers, positive, keyed by the name <a href="../modules/linux.html#errname">linux.errname</a> gives them.
+ Mirrors <code>E*</code> defines in <code>&lt;uapi/linux/errno.h&gt;</code>.
+ Keys are the kernel names: <code>E&lt;NAME&gt;</code> is <code>linux.errno.E&lt;NAME&gt;</code>.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">local errno = require(&quot;linux.errno&quot;)
+</pre>
 
 
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><span class="type">nil</span></span>
-
-    </ol>
-
-
-    <h3>See also</h3>
-    <ul>
-         <a href="../modules/completion.html#new">completion.new</a>
-    </ul>
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="comment">-- Assuming 'c' is a completion object returned by completion.new()
-</span>c:<span class="function-name">complete</span>()</pre>
-
-</dd>
-    <dt id="completion:wait"><a name="completion:wait"></a><strong>completion:wait ([timeout])</strong></dt>
-    <dd>
-    Waits for a completion to be signaled.
- This function will block the current Lua runtime until the completion
- is signaled, an optional timeout occurs, or the wait is interrupted.
- The Lunatik runtime invoking this method must be sleepable.
- Corresponds to the kernel&rsquo;s <code>wait_for_completion_interruptible_timeout()</code>.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">timeout</span>
-            <span class="types"><span class="type">integer</span></span>
-         Optional timeout in milliseconds. If omitted or set to <code>MAX_SCHEDULE_TIMEOUT</code> (a large kernel-defined constant), waits indefinitely.
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-        <li>
-           <span class="types"><span class="type">boolean</span></span>
-        <code>true</code> if the completion was signaled successfully before timeout or interruption.</li>
-        <li>
-           <span class="types"><span class="type">nil,string</span></span>
-         <code>nil</code> and an error message if the wait did not complete successfully. The message will be one of:
-   - <code>&quot;timeout&quot;</code>: The specified timeout elapsed.
-   - <code>&quot;interrupt&quot;</code>: The waiting task was interrupted by a signal (e.g., <code>thread.stop()</code>).
-   If the wait fails for other kernel internal reasons, the C code might push <code>&quot;unknown&quot;</code>, though typical documented returns are for timeout and interrupt.
-   - <code>&quot;unknown&quot;</code>: An unexpected error occurred during the wait.</li>
-    </ol>
-
-    <h3>Raises</h3>
-    &ldquo;runtime context mismatch&rdquo; from a softirq or hardirq runtime, its script body included;
-   &ldquo;not allowed while the runtime closes&rdquo; from a finalizer that runs at its close
-
-    <h3>See also</h3>
-    <ul>
-         <a href="../modules/completion.html#new">completion.new</a>
-    </ul>
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="comment">-- Assuming 'c' is a completion object
-</span><span class="keyword">local</span> success, err_msg = c:<span class="function-name">wait</span>(<span class="number">1000</span>) <span class="comment">-- Wait for up to 1 second
-</span><span class="keyword">if</span> success <span class="keyword">then</span>
-  <span class="global">print</span>(<span class="string">"Completion received!"</span>)
-<span class="keyword">else</span>
-  <span class="global">print</span>(<span class="string">"Wait failed: "</span> .. err_msg)
-<span class="keyword">end</span></pre>
-
-</dd>
-</dl>
-    <h2 class="section-header" id="completion-details"><a name="completion"></a>completion in detail</h2>
-
-    <dl class="function">
-    <dt id="new"><a name="new"></a><strong>new ()</strong></dt>
-    <dd>
-    Creates a new kernel completion object.
- Initializes a <code>struct completion</code> and returns it wrapped as a Lua userdata
- object of type <a href="../modules/completion.html#">completion</a>.
-
-
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/completion.html#completion">completion</a></span>
-        A new completion object.
-    </ol>
-
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> c = completion.<span class="function-name">new</span>()</pre>
-
-</dd>
-</dl>
 
 
 </main>

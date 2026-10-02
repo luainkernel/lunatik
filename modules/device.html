@@ -143,6 +143,7 @@
 <ul class="mono">
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fs.html">linux.fs</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
@@ -182,9 +183,12 @@
  callback may sleep. It runs under the lock of the runtime that made the device,
  so one the runtime&rsquo;s own code performs, a
  callback or a <a href="../modules/thread.html#">thread</a> body opening the node it made, fails with <code>EDEADLK</code>:
- it would wait on the lock its task holds. A callback that raises, or that
- returns a length or an offset that is not an integer, fails its operation
- with <code>ECANCELED</code>, and the error goes to the kernel log.
+ it would wait on the lock its task holds. An <code>open</code>, <code>read</code> or <code>write</code>
+ callback fails its operation with an errno by returning it negated, as
+ <code>-errno.EBUSY</code> does with <a href="../modules/linux.errno.html#">linux.errno</a>. A callback that raises, or that
+ returns a length or an offset that is not an integer, or an errno that is not
+ one, <code>invalid errno</code> in the log, fails its operation with <code>ECANCELED</code>, and the
+ error goes to the kernel log.
 
 <h2 id="Class_device">Class device </h2>
 <div class="tbl"><table class="function_list">
@@ -274,18 +278,21 @@
 
 <ul>
 <li> <code>open</code> (function): Callback for the <code>open(2)</code> system call.
- Signature: <code>function(driver_table, file)</code>. Expected to return nothing.</li>
+ Signature: <code>function(driver_table, file) -&gt; [errno]</code>. Returning nothing or zero opens
+ the file, and returning a negative errno, <code>-errno.EBUSY</code> say, fails the open with it.</li>
 <li> <code>read</code> (function): Callback for the <code>read(2)</code> system call.
  Signature: <code>function(driver_table, length, offset, file) -&gt; string [, updated_offset]</code>.
  Receives the driver table, the requested read length (integer), and the current
  file offset (integer). Should return the data as a string and optionally the
- updated file offset (integer). If <code>updated_offset</code> is not returned, the offset
+ updated file offset (integer), or a negative errno, <code>-errno.EAGAIN</code> say, which
+ fails the read with it. If <code>updated_offset</code> is not returned, the offset
  is advanced by the length of the returned string (or the requested length if
  the string is longer).</li>
 <li> <code>write</code> (function): Callback for the <code>write(2)</code> system call.
  Signature: <code>function(driver_table, buffer_string, offset, file) -&gt; [written_length] [, updated_offset]</code>.
  Receives the driver table, the data to write as a string, and the current file
- offset (integer). May return the number of bytes successfully written (integer)
+ offset (integer). May return the number of bytes successfully written (integer),
+ or a negative errno, <code>-errno.ENOSPC</code> say, which fails the write with it,
  and optionally the updated file offset (integer). If <code>written_length</code> is not
  returned, it&rsquo;s assumed all provided data was written. If <code>updated_offset</code> is
  not returned, the offset is advanced by the <code>written_length</code>.</li>
@@ -295,7 +302,7 @@
 </ul>
 
 
-<p>   A read returns end of file when its callback returns an empty string or <code>nil</code>.</p>
+<p>   A read returns end of file when its callback returns an empty string, <code>nil</code> or zero.</p>
 
 <p>   It <strong>might</strong> also contain the field:</p>
 
@@ -356,7 +363,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 11:46:18</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:04:44</span>
 </div>
 </footer>
 </body>

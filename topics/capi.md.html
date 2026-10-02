@@ -143,6 +143,7 @@
 <ul class="mono">
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fs.html">linux.fs</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
@@ -569,6 +570,19 @@ the error read through <a href="#lunatik_errmsg"><code>lunatik_errmsg</code></a>
 <code>lunatik_run</code> or <code>lunatik_handle</code> for a callback: <code>f</code> pushes the callback&rsquo;s arguments, calls it and reads
 what it returns, taking its input from <code>ud</code> and leaving its result there, and <code>name</code> says which callback
 failed, as <code>read</code> does in the example of <code>lunatik_run</code>.</p>
+
+<h3 id="lunatik_opterrno">lunatik_opterrno</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">lunatik_opterrno</span>(lua_State *L, <span class="keyword">int</span> ix);
+</pre>
+
+
+<p>Returns the errno a callback answered with at <code>ix</code>: <code>0</code> for nil or none, and the value itself for an
+integer from <code>-MAX_ERRNO</code> to <code>0</code>; any other value raises <code>invalid errno</code>, which
+<a href="#lunatik_catch"><code>lunatik_catch</code></a> turns into <code>-ECANCELED</code>. A binding whose callback fails an operation
+the kernel asked for by returning a negative errno reads that return through it, in the <code>f</code> it gives
+<code>lunatik_catch</code>, and hands the result to the kernel.</p>
 
 <h3 id="lunatik_toruntime">lunatik_toruntime</h3>
 
@@ -1937,7 +1951,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 11:46:18</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:04:44</span>
 </div>
 </footer>
 </body>

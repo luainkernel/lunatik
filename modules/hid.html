@@ -143,6 +143,7 @@
 <ul class="mono">
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fs.html">linux.fs</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
@@ -224,8 +225,10 @@ hid.register({
 
 <ul>
 <li> <code>probe(driver, id)</code>: a device matched; <code>id</code> is the matching entry, with <code>bus</code>,
- <code>group</code>, <code>vendor</code>, <code>product</code> and <code>driver_data</code>. An error fails the probe with
- <code>ECANCELED</code>.</li>
+ <code>group</code>, <code>vendor</code>, <code>product</code> and <code>driver_data</code>. Returning a negative errno,
+ <code>-errno.ENODEV</code> say, with <a href="../modules/linux.errno.html#">linux.errno</a>, fails the probe with it; an error, or a
+ return that is neither nothing, zero nor an errno, logged as <code>invalid errno</code>, fails
+ it with <code>ECANCELED</code>.</li>
 <li> <code>report_fixup(driver, hdev, rdesc)</code>: <code>rdesc</code> is a <a href="../modules/data.html#">data</a> over the report
  descriptor, edited in place, of fixed size and valid only during the call.</li>
 <li> <code>raw_event(driver, hdev, report, raw)</code>: <code>raw</code> is a <a href="../modules/data.html#">data</a> over the report, edited
@@ -235,8 +238,8 @@ hid.register({
 
 
 <p>   <code>hdev</code> carries <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code>, <code>version</code> and <code>name</code>; <code>report</code>
-   carries <code>id</code>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>, <code>size</code>, <code>application</code> and <code>maxfield</code>. What a callback returns is
-   ignored, and its error goes to the kernel log.
+   carries <code>id</code>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>, <code>size</code>, <code>application</code> and <code>maxfield</code>. What <code>report_fixup</code> and
+   <code>raw_event</code> return is ignored, and a callback&rsquo;s error goes to the kernel log.
         </li>
     </ul>
 
@@ -272,7 +275,7 @@ hid.register({
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 11:46:18</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:04:44</span>
 </div>
 </footer>
 </body>
