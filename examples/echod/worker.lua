@@ -30,8 +30,8 @@ local function serve(session)
 	return true
 end
 
-local function worker(control, connection, done)
-	local id = control:getbyte(0)
+local function worker(number, connection, done)
+	local id = number:getint64(0)
 	local session <close> = connection -- the daemon's own handle holds the socket until it collects it
 
 	info(id, "started")
