@@ -9,17 +9,25 @@ local vt       = require("linux.vt")
 
 local MARK    <const> = string.byte("`") -- the character vt.sh writes
 local CONSOLE <const> = 0 -- /dev/tty1
+local SPARE   <const> = 62 -- /dev/tty63, the console vt.sh allocates and deallocates
 
-local names = { [vt.PREWRITE] = "prewrite", [vt.WRITE] = "write" }
+-- the console each event vt.sh causes reaches, and the character a write is told apart by
+local events = {
+	[vt.PREWRITE]   = {name = "prewrite", console = CONSOLE, c = MARK},
+	[vt.WRITE]      = {name = "write", console = CONSOLE, c = MARK},
+	[vt.UPDATE]     = {name = "update", console = CONSOLE},
+	[vt.ALLOCATE]   = {name = "allocate", console = SPARE},
+	[vt.DEALLOCATE] = {name = "deallocate", console = SPARE},
+}
 local reported = {}
 
 local function report(event, c, console)
-	local name = names[event]
-	if name == nil or c ~= MARK or console ~= CONSOLE or reported[name] then
+	local caused = events[event]
+	if caused == nil or console ~= caused.console or (caused.c ~= nil and c ~= caused.c) or reported[event] then
 		return
 	end
-	reported[name] = true
-	print("notifier vt: " .. name)
+	reported[event] = true
+	print("notifier vt: " .. caused.name .. " " .. tostring(c))
 end
 
 notifier.vt(report)

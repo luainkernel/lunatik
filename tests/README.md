@@ -958,8 +958,13 @@ from a pid namespace other than the initial one, whose pids are not the ones
 
 - **vt**: `notifier.vt` from a `hardirq` runtime hands its callback a
   character written to `/dev/tty1` twice, as a `linux.vt` `PREWRITE` and as a
-  `WRITE`, each with the character and console 0, inside the write (skips
-  without a `/dev/tty1`, which only `CONFIG_VT` registers).
+  `WRITE`, each with the character and console 0, inside the write, and the
+  `UPDATE` that ends the write with no character. Opening `/dev/tty63` and
+  `deallocvt` reach it as an `ALLOCATE` and a `DEALLOCATE` of console 62, each
+  with no character: the kernel leaves it uninitialized for those two, 0 on a
+  kernel that zeroes its stack, so the case asserts nil (skips without a
+  `/dev/tty1`, which only `CONFIG_VT` registers, and the allocation cases
+  without `deallocvt` or with `/dev/tty63` held by the host).
 
 ### probe
 

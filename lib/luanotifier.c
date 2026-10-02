@@ -28,7 +28,7 @@
 #include <lunatik.h>
 
 typedef int (*luanotifier_register_t)(struct notifier_block *nb);
-typedef int (*luanotifier_handler_t)(lua_State *L, void *data);
+typedef int (*luanotifier_handler_t)(lua_State *L, unsigned long event, void *data);
 
 /***
 * Represents a kernel notifier object.
@@ -72,7 +72,7 @@ static int luanotifier_docall(lua_State *L)
 
 	lua_pushinteger(L, (lua_Integer)ctx->event);
 
-	int nargs = notifier->handler(L, ctx->data);
+	int nargs = notifier->handler(L, ctx->event, ctx->data);
 	lua_call(L, nargs + 1, 1); /* callback(event, ...) */
 	ctx->ret = lua_tointeger(L, -1);
 	return 0;
@@ -134,7 +134,7 @@ static int luanotifier_##name(lua_State *L)					\
 		luanotifier_call, (class));					\
 }
 
-static int luanotifier_netdevice_handler(lua_State *L, void *data)
+static int luanotifier_netdevice_handler(lua_State *L, unsigned long event, void *data)
 {
 	struct net_device *dev = netdev_notifier_info_to_dev(data);
 
@@ -189,7 +189,7 @@ static int luanotifier_netdevice(lua_State *L)
 }
 
 #ifdef CONFIG_VT
-static int luanotifier_keyboard_handler(lua_State *L, void *data)
+static int luanotifier_keyboard_handler(lua_State *L, unsigned long event, void *data)
 {
 	struct keyboard_notifier_param *param = (struct keyboard_notifier_param *)data;
 
@@ -216,11 +216,14 @@ static int luanotifier_keyboard_handler(lua_State *L, void *data)
 */
 LUANOTIFIER_NEWCHAIN(keyboard,  &luanotifier_hardirq_class);
 
-static int luanotifier_vt_handler(lua_State *L, void *data)
+/* vc_allocate and vc_deallocate leave c uninitialized */
+#define luanotifier_iswrite(event)	((event) == VT_WRITE || (event) == VT_PREWRITE)
+
+static int luanotifier_vt_handler(lua_State *L, unsigned long event, void *data)
 {
 	struct vt_notifier_param *param = data;
 
-	lua_pushinteger(L, param->c);
+	lunatik_pushoptinteger(L, luanotifier_iswrite(event), param->c);
 	lua_pushinteger(L, param->vc->vc_num);
 	return 2;
 }
@@ -231,9 +234,9 @@ static int luanotifier_vt_handler(lua_State *L, void *data)
 *
 * @function vt
 * @tparam function callback invoked as `callback(event, c, vc_num)` —
-*   `event` is a `linux.vt` code, `c` is the character value, and
-*   `vc_num` is the virtual console number. Returns a `linux.notify`
-*   status code.
+*   `event` is a `linux.vt` code, `c` is the character value a `WRITE` or
+*   `PREWRITE` carries and nil for any other event, and `vc_num` is the
+*   virtual console number. Returns a `linux.notify` status code.
 * @treturn notifier
 * @raise if called from a percpu runtime; `runtime context mismatch` outside a hardirq runtime;
 *   `not allowed while the runtime closes` from a finalizer that runs at its close;
