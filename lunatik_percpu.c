@@ -97,7 +97,7 @@ static void lunatik_releasepercpu(void *private)
 		return;
 
 	lunatik_foreachruntime(percpu, cpu, runtime)
-		lunatik_putobject(runtime); /* may run in softirq: a put, never a stop */
+		lunatik_putobject(runtime);
 	free_percpu(percpu->runtimes);
 }
 

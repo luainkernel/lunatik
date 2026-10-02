@@ -129,9 +129,8 @@ int lunatik_closeobject(lua_State *L)
 }
 EXPORT_SYMBOL(lunatik_closeobject);
 
-void lunatik_releaseobject(struct kref *kref)
+static void lunatik_freeobject(lunatik_object_t *object)
 {
-	lunatik_object_t *object = container_of(kref, lunatik_object_t, kref);
 	void *private = object->private;
 
 	if (private != NULL)
@@ -140,6 +139,26 @@ void lunatik_releaseobject(struct kref *kref)
 	module_put(object->class->owner); /* release runs in the module */
 	lunatik_freelock(object);
 	kfree_rcu(object, rcu); /* a reader that found the object under rcu_read_lock may still read its count */
+}
+
+static void lunatik_freedeferred(struct work_struct *work)
+{
+	lunatik_object_t *object = container_of(work, lunatik_object_t, defer.work);
+
+	irq_work_sync(&object->defer.irq); /* the first hop writes the item after it queues this work */
+	lunatik_freeobject(object);
+}
+
+void lunatik_releaseobject(struct kref *kref)
+{
+	lunatik_object_t *object = container_of(kref, lunatik_object_t, kref);
+
+	if (lunatik_isatomic()) {
+		lunatik_initdefer(&object->defer, lunatik_freedeferred);
+		lunatik_defer(&object->defer);
+	}
+	else
+		lunatik_freeobject(object);
 }
 EXPORT_SYMBOL(lunatik_releaseobject);
 

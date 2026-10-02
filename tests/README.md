@@ -1228,7 +1228,8 @@ from a pid namespace other than the initial one, whose pids are not the ones
   accepts the store releases neither. From a kprobe on the `personality`
   syscall in a hardirq runtime, the store that closes the cycle is refused, the
   one after the edge is deleted is taken, and deleting the entry that held a
-  table's last reference releases it in the handler.
+  table's last reference releases it on a kernel worker once the handler
+  returns.
 
 - **foreach_sync**: `rcu.foreach()` remains safe when called while another
   kthread is modifying the table.
@@ -1453,6 +1454,18 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   rcu.table case also collected, and every child counted open is counted
   closed once the close returns.
 
+- **deferred**: a runtime whose last reference drops in atomic context closes
+  on a kernel worker, where its finalizers may sleep. A child that requires
+  `byteorder`, held only by an `rcu.table` entry, is dropped by a softirq
+  runtime, then a hardirq one, resumed to remove the entry under its own lock:
+  a kprobe on `lunatik_releaseruntime` reads both closes on a kworker with
+  bottom halves on, and the module's use count comes back. The children run
+  nothing as they close, so a build that closes them under the writer's lock
+  fails that read and not the host. Children whose finalizer sleeps in
+  `linux.schedule` are then dropped the same way and report a kworker; that
+  case runs only after the first passed, and the test skips unless the loaded
+  core carries `lunatik_deferirq`.
+
 - **self_stop**: a runtime cannot be stopped, resumed, threaded or dispatched
   to from under its own lock. A child resumed with its own handle, and a percpu
   set resumed with its own, call `stop()` and `resume()` on it from the resumed
@@ -1620,7 +1633,8 @@ pid, and what a valid call does.
   cleared when the copy goes. A `LOCAL_OUT` netfilter hook takes one step per
   marked ping, with a full collection after what a step drops, and kprobes on
   `luaskb_release` and `luadata_release` count the skb objects and the data
-  objects freed: a copy dropped with no view goes at once, which shows the kprobe
+  objects freed, once the releases that collection hands to a kernel worker
+  have run: a copy dropped with no view goes, which shows the kprobe
   counts it; a copy kept while its view is dropped stays, and a view taken again
   reads its bytes; trimmed, the copy returns on a second `data()` call the object
   the first returned, which ends at the new tail; dropped while its view is kept,

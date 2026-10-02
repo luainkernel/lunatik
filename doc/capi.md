@@ -38,7 +38,8 @@ Describes a Lunatik object class.
   [`lunatik_closeprivate`](#lunatik_closeprivate), which an object's `close` or `stop` and
   `lunatik_stop` run, and the drop of the last reference; Lunatik then frees the private, unless
   the class is `LUNATIK_OPT_EXTERNAL`. It runs on the task that closed the object or dropped that
-  reference. May be `NULL`.
+  reference, or, when that drop runs in atomic context, on a kernel worker through
+  [`lunatik_defer`](#lunatik_defer), so a release may sleep. May be `NULL`.
 - `opt`: bitmask of `LUNATIK_OPT_*` flags controlling class behaviour. Flags are inherited by
   every instance via `object->opt = opt | class->opt` (see `lunatik_newobject`). Flags differ
   in whether they act as **constraints** or **capabilities**:
@@ -92,6 +93,7 @@ typedef struct lunatik_object_s {
 	gfp_t gfp;
 	unsigned long flags;
 	struct rcu_head rcu;
+	lunatik_defer_t defer;
 } lunatik_object_t;
 ```
 A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` through
@@ -122,6 +124,8 @@ A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` throug
   the lock and `lunatik_unlock` restores.
 - `rcu`: the head the release frees the object through, after a grace period, so a reader that
   found it under `rcu_read_lock()` can still read its count.
+- `defer`: the item the release runs on a kernel worker through, when the last reference drops in
+  atomic context, as [`lunatik_putobject`](#lunatik_putobject) says.
 
 ### lunatik\_opt\_t
 ```C
@@ -722,8 +726,45 @@ memory outlives the grace period after its release, which is what lets the count
 int lunatik_putobject(lunatik_object_t *object);
 ```
 Decrements the [reference counter](https://docs.kernel.org/core-api/kref.html) of `object`.
-If the object has been released, returns `1`; otherwise returns `0`. The release runs at once, on
-the calling task; the object's memory is freed after an RCU grace period.
+Returns `1` when it dropped the last reference, and `0` otherwise. The release runs at once, on the
+calling task, unless [`lunatik_isatomic`](#lunatik_isatomic) holds there: it then runs on a kernel
+worker, through the object's `defer`. The object's memory is freed after an RCU grace period once
+the release has run.
+
+### lunatik\_defer
+```C
+typedef struct lunatik_defer_s {
+	struct irq_work irq;
+	struct work_struct work;
+} lunatik_defer_t;
+
+void lunatik_initdefer(lunatik_defer_t *defer, work_func_t func);
+bool lunatik_defer(lunatik_defer_t *defer);
+```
+Runs `func` on a kernel worker, in process context, for a caller that cannot: one in softirq or
+hardirq context, with bottom halves or interrupts off, or in a probe handler on code the scheduler
+runs under its runqueue lock. `lunatik_defer` queues `irq`, an irq_work the CPU raises on itself
+without a lock, whose handler queues `work` on the core's
+[workqueue](https://docs.kernel.org/core-api/workqueue.html), unbound, allocated when `lunatik`
+loads and drained when it unloads: queuing `work` directly wakes a kworker, and the wakeup takes the
+runqueue lock. It may be called from any context and returns `false` when the item was already
+queued.
+
+The item lives in what defers, so deferring allocates nothing: `lunatik_initdefer` sets it up before
+the first `lunatik_defer`, and `func` finds what defers through `container_of` on `work`. Calls made
+before `func` starts run it once, and one made while it runs runs it again after it returns, so what
+each call hands `func` goes on a list `func` drains. A `func` that frees the item calls
+`irq_work_sync` on `irq` first, since the first hop still writes it after queuing `work`. Both are
+macros, and `lunatik_initdefer` gives each call site a lockdep class of its own, as `INIT_WORK` does.
+
+### lunatik\_isatomic
+```C
+bool lunatik_isatomic(void);
+```
+Returns `true` when the calling task runs in softirq or hardirq context, or with bottom halves or
+interrupts off, as under every lock of a softirq or hardirq object: `irq_count() || irqs_disabled()`.
+A plain spinlock or `preempt_disable()` in process context, which no lock of the core takes, does not
+count. Defined as a macro.
 
 ### lunatik\_closeobject
 ```C

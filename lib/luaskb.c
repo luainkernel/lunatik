@@ -344,8 +344,10 @@ static int luaskb_gc(lua_State *L)
 
 	lunatik_object_t *view;
 	if (lskb != NULL) /* a constructor that raised left no private */
-		luaskb_foreachview(lskb, layer, view)
+		luaskb_foreachview(lskb, layer, view) {
+			luadata_clear(view); /* the release may run on a kernel worker, beside the view's reader */
 			lunatik_unregister(L, view);
+		}
 	return lunatik_deleteobject(L);
 }
 

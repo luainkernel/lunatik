@@ -52,9 +52,9 @@ typedef struct luarcu_entry_s {
 * takes up to 255 bytes, and a longer one raises `out of bounds`; a failed
 * allocation raises `not enough memory`. The value an assignment replaces or removes
 * is released on the assigning task once the table's lock is dropped, so a runtime or a
-* socket whose last reference the entry held closes there, in the writer's own
-* context: in softirq when a softirq runtime writes the table, with IRQs off when a
-* hardirq one does.
+* socket whose last reference the entry held closes there; when the writer holds a softirq
+* or hardirq runtime's lock, which keeps bottom halves or IRQs off, it closes on a
+* kernel worker instead.
 * @type rcu_table
 * @usage
 *  local t = rcu.table()
