@@ -33,7 +33,7 @@ local function pre()
 	b.a = a
 	b.a = nil
 	report("stored")
-	a.temporary = nil -- the table's release runs here, in the handler
+	a.temporary = nil -- the table's release runs on a kernel worker, after the handler
 end
 
 probe.new(systab["personality"], {pre = pre})

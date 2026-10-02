@@ -391,8 +391,10 @@ EXPORT_SYMBOL(lunatik_runtime);
 * one a netdevice callback may collect it stops before, since the close runs where the collector
 * drops the handle and cannot refuse there. The close runs the script's finalizers: an object one
 * creates or reads, as a sentinel that stops a child through `lunatik._ENV` does, is released by
-* the end of the close, and a registration raises `not allowed while the runtime closes`. Only a
-* process runtime's `lunatik` module has it.
+* the end of the close, and a registration raises `not allowed while the runtime closes`. A last
+* reference dropped with bottom halves or IRQs off, as a softirq or hardirq runtime's `rcu.table`
+* write drops an entry's, closes it on a kernel worker after the drop, where its finalizers may
+* sleep. Only a process runtime's `lunatik` module has it.
 * @function runtime
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context: `"process"` (sleepable,
@@ -426,14 +428,24 @@ LUNATIK_NEWLIB(lunatik, lunatik_lib, lunatik_classes);
 LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL);
 #endif /* LUNATIK_RUNTIME */
 
+static struct workqueue_struct *lunatik_wq;
+
+void lunatik_deferirq(struct irq_work *irq)
+{
+	queue_work(lunatik_wq, &container_of(irq, lunatik_defer_t, irq)->work);
+}
+EXPORT_SYMBOL(lunatik_deferirq);
+
 static int __init lunatik_init(void)
 {
 	lunatik_resolve(); /* register_kprobe sleeps; lunatik_lookup must not */
-	return 0;
+	lunatik_wq = alloc_workqueue("lunatik", WQ_UNBOUND, 0);
+	return lunatik_wq != NULL ? 0 : -ENOMEM;
 }
 
 static void __exit lunatik_exit(void)
 {
+	destroy_workqueue(lunatik_wq);
 }
 
 module_init(lunatik_init);

@@ -19,6 +19,8 @@
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/version.h>
+#include <linux/irq_work.h>
+#include <linux/workqueue.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -43,6 +45,7 @@ typedef u8 __bitwise lunatik_opt_t;
 #define lunatik_isexternal(opt)		((opt) & LUNATIK_OPT_EXTERNAL)
 #define lunatik_ispercpu(opt)		((opt) & LUNATIK_OPT_PERCPU)
 #define lunatik_iskthread()		(current->flags & PF_KTHREAD)
+#define lunatik_isatomic()		(irq_count() || irqs_disabled())
 
 #define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
 
@@ -81,6 +84,21 @@ do {										\
 
 typedef void (*lunatik_release_t)(void *);
 
+typedef struct lunatik_defer_s {
+	struct irq_work irq;
+	struct work_struct work;
+} lunatik_defer_t;
+
+void lunatik_deferirq(struct irq_work *irq);
+
+#define lunatik_initdefer(defer, func)					\
+do {									\
+	init_irq_work(&(defer)->irq, lunatik_deferirq);			\
+	INIT_WORK(&(defer)->work, (func));				\
+} while (0)
+
+#define lunatik_defer(defer)	irq_work_queue(&(defer)->irq)
+
 typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
@@ -102,6 +120,7 @@ typedef struct lunatik_object_s {
 	gfp_t gfp;
 	unsigned long flags;
 	struct rcu_head rcu;
+	lunatik_defer_t defer;
 } lunatik_object_t;
 
 extern lunatik_object_t *lunatik_env;

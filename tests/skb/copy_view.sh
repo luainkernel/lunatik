@@ -8,7 +8,8 @@
 # copy_view.lua takes one step per echo request marked MARK in a LOCAL_OUT netfilter
 # hook, with a full collection after what a step drops, and kprobes on luaskb_release and
 # luadata_release, read from kprobe_profile, count the skb objects and the data objects
-# freed; the hook passes the echo reply, which carries the ping's mark where
+# freed, once the releases a collection in the hook hands to a kernel worker have run;
+# the hook passes the echo reply, which carries the ping's mark where
 # net.ipv4.fwmark_reflect is set:
 #
 # - plain: a copy dropped with no view goes at the collection, which is also what
@@ -35,6 +36,7 @@ LOCAL="127.0.0.1"
 RELEASES="lunatik_skb/luaskb_release"
 FREED="lunatik_skb/luadata_release"
 HOOK_VIEWS=3 # the hook's skb views: data(), "net" and "mac"
+TRIES=50
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -53,6 +55,8 @@ kprobe_place "$FREED" luadata_release || skip_all "couldn't place a kprobe on lu
 
 releases() { kprobe_hits "$RELEASES"; }
 freed() { kprobe_hits "$FREED"; }
+# waits for a count to reach <n>: a collection in the hook releases on a kernel worker
+reaches() { for _ in $(seq $TRIES); do [ "$($1)" -ge "$2" ] && return; sleep 0.1; done; }
 
 # sends the ping the hook takes <cell> on, and fails unless the hook reports it ok
 step() {
@@ -72,6 +76,7 @@ base=$(releases)
 views=$(freed)
 
 step plain
+reaches releases $((base + 1))
 [ "$(releases)" -eq $((base + 1)) ] || fail "a copy dropped with no view was not released at the collection"
 ktap_pass "a copy dropped with no view goes at the next collection"
 
@@ -84,7 +89,9 @@ step again
 ktap_pass "a second data() call on a copy returns the view the first one did, at the copy's new tail"
 
 step dropped
+reaches releases $((base + 2))
 [ "$(releases)" -eq $((base + 2)) ] || fail "a copy dropped while its view was kept was not released at the collection"
+reaches freed $((views + 1))
 [ "$(freed)" -eq $((views + 1)) ] || fail "the view of a dropped copy was not freed once it was dropped too"
 ktap_pass "a copy dropped while its view is kept goes, its view raises \"out of bounds\" and goes once dropped"
 
