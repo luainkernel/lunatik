@@ -11,6 +11,7 @@ local struct    = require("struct")
 local byteorder = require("byteorder")
 local sk        = require("linux.socket")
 local eth       = require("linux.eth")
+local attempt   = require("tests.socket.attempt")
 
 local timeval = struct(sk.layout.timeval)
 
@@ -24,6 +25,11 @@ local MTU        <const> = 1500
 local TIMEOUT_MS <const> = 500
 
 local ifindex = linux.ifindex(IFNAME)
+
+local function answer(...)
+	local ok, err = attempt.new(socket.new, ...)
+	return ok and "is taken" or "raises " .. err
+end
 
 local rx <close> = raw.new(PROTO, ifindex)
 rx:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
@@ -49,9 +55,7 @@ assert(#reached >= ETH_HLEN, "short frame on the unbound socket: " .. #reached .
 print("socket packet: host order reaches the unbound socket")
 print("socket packet: network order " .. (missed and "misses it" or "reaches it too"))
 
-local ok, wide = pcall(socket.new, sk.af.PACKET, sk.sock.RAW, PROTO_MAX + 1)
-if ok then
-	wide:close()
-end
-print("socket packet: a protocol past 16 bits " .. (ok and "is taken" or "raises " .. wide))
+print("socket packet: a protocol past 16 bits " .. answer(sk.af.PACKET, sk.sock.RAW, PROTO_MAX + 1))
+print("socket packet: SOCK_PACKET on AF_PACKET " .. answer(sk.af.PACKET, sk.sock.PACKET, PROTO))
+print("socket packet: SOCK_PACKET on AF_INET " .. answer(sk.af.INET, sk.sock.PACKET, PROTO))
 

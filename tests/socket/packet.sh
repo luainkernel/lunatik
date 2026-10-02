@@ -21,6 +21,11 @@
 # because the frame carries only one ethertype. A protocol past 16 bits is
 # refused rather than cut to the low half packet_create's cast would keep.
 #
+# The last two cases pin the refusal of SOCK_PACKET, whose address is a struct
+# sockaddr_pkt no method spells, on AF_PACKET and on AF_INET, which __sock_create
+# turns into AF_PACKET: the kernel creates the socket in both, and a refusal keyed
+# on the family would pass the first case and fail the second.
+#
 # Usage: sudo bash tests/socket/packet.sh
 
 SCRIPT="tests/socket/packet"
@@ -36,7 +41,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 5
+ktap_plan 7
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -68,6 +73,12 @@ ktap_pass "packet: a socket created with the ethertype in network order does not
 
 dmesg_since | grep -q "socket packet: a protocol past 16 bits raises .*out of bounds" || fail "unexpected answer: $(dmesg_since | grep 'socket packet: a protocol past')"
 ktap_pass "packet: socket.new refuses an AF_PACKET protocol past 16 bits"
+
+dmesg_since | grep -q "socket packet: SOCK_PACKET on AF_PACKET raises .*unsupported socket type" || fail "unexpected answer: $(dmesg_since | grep 'socket packet: SOCK_PACKET on AF_PACKET')"
+ktap_pass "packet: socket.new refuses SOCK_PACKET on AF_PACKET"
+
+dmesg_since | grep -q "socket packet: SOCK_PACKET on AF_INET raises .*unsupported socket type" || fail "unexpected answer: $(dmesg_since | grep 'socket packet: SOCK_PACKET on AF_INET')"
+ktap_pass "packet: socket.new refuses SOCK_PACKET on AF_INET, which the kernel makes an AF_PACKET socket"
 
 ktap_totals
 

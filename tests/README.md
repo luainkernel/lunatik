@@ -1529,7 +1529,9 @@ pid, and what a valid call does.
   pins the protocol `socket.new` takes in host order and converts to the
   `__be16` `packet_create` reads: an unbound socket created with the ethertype
   receives it, one created with it already in network order does not, and a
-  protocol past 16 bits is refused as out of bounds.
+  protocol past 16 bits is refused as out of bounds. `socket.new` refuses
+  `SOCK_PACKET`, whose address is a `struct sockaddr_pkt` no method spells, on
+  `AF_PACKET` and on `AF_INET`, which `__sock_create` turns into `AF_PACKET`.
 
 - **raw**: `socket.raw`'s `new` binds the socket it creates to the ethertype
   and the interface it names, and in place of one it does not name to every

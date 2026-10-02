@@ -13,6 +13,7 @@ local net    = require("net")
 local sk     = require("linux.socket")
 local nl     = require("linux.netlink")
 local eth    = require("linux.eth")
+local attempt = require("tests.socket.attempt")
 
 local pack = table.pack
 
@@ -47,14 +48,6 @@ local function expectaddress(what, expected, ...)
 	for i, value in ipairs(expected) do
 		assert(address[i] == value, what .. " answered " .. string.format("%q", address[i]) .. " as value " .. i)
 	end
-end
-
-local function supported(family, type, proto)
-	local ok, sock = pcall(socket.new, family, type, proto)
-	if ok then
-		sock:close()
-	end
-	return ok
 end
 
 -- a receive that never returns holds the runtime lock for as long as it waits
@@ -138,7 +131,7 @@ assert(unicast[2] == netlink[1] and unicast[3] == 0, "unexpected netlink sender:
 say("netlink receivefrom ok")
 nlsock:close()
 
-if supported(sk.af.INET6, sk.sock.DGRAM, 0) then
+if attempt.new(socket.new, sk.af.INET6, sk.sock.DGRAM, 0) then
 	local udp6 = socket.new(sk.af.INET6, sk.sock.DGRAM, 0)
 	udp6:bind(IN6_ANYPORT)
 	local address = pack(udp6:getsockname())
@@ -152,7 +145,7 @@ else
 	say("inet6 unsupported")
 end
 
-if supported(sk.af.PACKET, sk.sock.RAW, eth.ALL) then
+if attempt.new(socket.new, sk.af.PACKET, sk.sock.RAW, eth.ALL) then
 	local unbound = {eth.ALL, 0, 0, 0, ""}
 	local loopback = {PROTO, ifindex, PKTTYPE, HATYPE, HWADDR}
 
