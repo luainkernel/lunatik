@@ -114,29 +114,27 @@ static int lualinux_schedule(lua_State *L)
 }
 
 /***
-* Controls kernel tracing.
-* Turns kernel tracing on or off via `tracing_on()` and `tracing_off()`.
+* Reads or sets whether kernel tracing is on.
+* Given a boolean, turns tracing on through `tracing_on()` or off through `tracing_off()`, which
+* stops the top-level ring buffer and keeps what it holds, so a hook can end the trace where the
+* event it looks for happens. Given none or `nil`, changes nothing. Either way it returns
+* `tracing_is_on()`, the state `/sys/kernel/tracing/tracing_on` shows.
+* Safe to call from softirq and hardirq.
 *
 * @function tracing
-* @tparam[opt] boolean enable If `true`, turns tracing on. If `false`, turns tracing off.
-* If omitted, does not change the state.
-* @treturn boolean current kernel tracing state (`true` if on, `false` if off) *after* any change.
+* @tparam[opt] boolean on `true` turns tracing on, `false` turns it off; omitted or `nil` reads it.
+* @treturn boolean `true` if tracing is on, `false` if it is off, after any change.
+* @raise "boolean expected" if `on` is neither a boolean nor `nil`
 * @usage
-*   local is_on = linux.tracing(true) -- Enable tracing
-*   if is_on then print("Tracing is now on") end
-*   local current_state = linux.tracing()   -- Get current state
-*   linux.tracing(false)                    -- Disable tracing
+*   linux.tracing(false) -- end the trace here
+*   if linux.tracing() then print("tracing is on") end
 */
 static int lualinux_tracing(lua_State *L)
 {
-	if (lua_gettop(L) == 0)
-		goto out;
-
-	if (lua_toboolean(L, 1))
-		tracing_on();
-	else
-		tracing_off();
-out:
+	if (!lua_isnoneornil(L, 1)) {
+		luaL_checktype(L, 1, LUA_TBOOLEAN);
+		lua_toboolean(L, 1) ? tracing_on() : tracing_off();
+	}
 	lua_pushboolean(L, tracing_is_on());
 	return 1;
 }

@@ -733,6 +733,13 @@ after the watch is stopped.
   `linux.hwaddr` raises "out of bounds" for an index outside 1 to `INT_MAX`,
   `lo`'s past 32 bits among them (skips without dummy devices or network
   namespaces).
+- **tracing**: `linux.tracing` turns kernel tracing off and on given
+  `false` and `true`, and answers the state it leaves, in a process, a
+  `softirq` and a `hardirq` runtime resumed past their body, the armed state a
+  hook calls from; given nothing or `nil` it reads the state and changes
+  nothing, and it refuses any other value as `boolean expected`, changing
+  nothing. The script leaves tracing as it found it. Skipped without
+  `CONFIG_TRACING`, where the kernel's three are stubs.
 
 ### lua
 
