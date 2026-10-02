@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>sched · Lunatik</title>
+    <title>scx · Lunatik</title>
     <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
@@ -100,7 +100,7 @@
 <h3>Tracing and scheduling</h3>
 <ul class="mono">
   <li><a href="../modules/probe.html">probe</a></li>
-  <li><a href="../modules/sched.html" aria-current="page">sched</a></li>
+  <li><a href="../modules/scx.html" aria-current="page">scx</a></li>
   <li><a href="../modules/syscall.html">syscall</a></li>
   <li><a href="../modules/syscall.table.html">syscall.table</a></li>
 </ul>
@@ -173,32 +173,32 @@
 <main class="content" id="content">
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-tracing">Tracing and scheduling</a></div>
-<h1>sched<span class="kind">Module</span></h1>
+<h1>scx<span class="kind">Module</span></h1>
 <p class="lead">Linux Extensible Scheduler (sched_ext) integration.</p>
  This library allows Lua scripts to interact with the kernel&rsquo;s sched_ext subsystem.
  It enables sched_ext/eBPF programs to call Lua functions for task scheduling,
  providing a flexible way to implement custom scheduling logic in Lua.</p>
 
-<p> The primary mechanism involves an sched_ext program calling the <code>bpf_luasched_run</code>
+<p> The primary mechanism involves an sched_ext program calling the <code>bpf_luascx_run</code>
  kfunc, which in turn invokes a Lua callback function previously registered
- using <code>sched.attach()</code>.</p>
+ using <code>scx.attach()</code>.</p>
 
 <p> Needs 6.12 and later, with <code>CONFIG_SCHED_CLASS_EXT</code>; without it the module loads
- and exports nothing, so <a href="../modules/sched.html#attach">sched.attach</a> is <code>nil</code>. The kfunc needs the module&rsquo;s BTF:
- run <code>sudo make btf_install</code> before <code>make</code>, or the kernel logs
+ and offers <a href="../modules/scx.html#attach">attach</a>, which raises <code>EOPNOTSUPP</code>, and <a href="../modules/scx.html#detach">detach</a>, which does nothing.
+ The kfunc needs the module&rsquo;s BTF: run <code>sudo make btf_install</code> before <code>make</code>, or the kernel logs
  <code>missing module BTF, cannot register kfuncs</code> and an eBPF program that calls
- <code>bpf_luasched_run</code> does not load. The eBPF side is a sched_ext <code>struct_ops</code>
- scheduler; <code>tests/sched/sched_pass.bpf.c</code> with <code>tests/sched/pass.lua</code> is a worked
+ <code>bpf_luascx_run</code> does not load. The eBPF side is a sched_ext <code>struct_ops</code>
+ scheduler; <code>tests/scx/scx_pass.bpf.c</code> with <code>tests/scx/pass.lua</code> is a worked
  pair.
 
-<h2 id="Class_sched_ctx">Class sched_ctx </h2>
+<h2 id="Class_scx_ctx">Class scx_ctx </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#sched_ctx:task">sched_ctx:task ()</a></td>
+	<td class="name"><a href="#scx_ctx:task">scx_ctx:task ()</a></td>
 	<td class="summary">Returns the object for the current task.</td>
 	</tr>
 </table></div>
-<h2 id="sched">sched</h2>
+<h2 id="scx">scx</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
 	<td class="name"><a href="#attach">attach (callback)</a></td>
@@ -210,15 +210,15 @@
 	</tr>
 </table></div>
 
-    <h2 class="section-header" id="Class_sched_ctx-details"><a name="Class_sched_ctx"></a><a name="sched_ctx"></a>Class sched_ctx  in detail</h2>
+    <h2 class="section-header" id="Class_scx_ctx-details"><a name="Class_scx_ctx"></a><a name="scx_ctx"></a>Class scx_ctx  in detail</h2>
 
           <div class="section-description">
-          Sched callback context, valid only while the callback runs.
- It is handed to the callback registered with <a href="../modules/sched.html#attach">sched.attach</a>; its methods raise
+          sched_ext callback context, valid only while the callback runs.
+ It is handed to the callback registered with <a href="../modules/scx.html#attach">scx.attach</a>; its methods raise
  once the callback returns.
           </div>
     <dl class="function">
-    <dt id="sched_ctx:task"><a name="sched_ctx:task"></a><strong>sched_ctx:task ()</strong></dt>
+    <dt id="scx_ctx:task"><a name="scx_ctx:task"></a><strong>scx_ctx:task ()</strong></dt>
     <dd>
     Returns the object for the current task.
  The same task object is reused for every callback: it is valid only during the
@@ -230,7 +230,7 @@
     <h3>Returns</h3>
     <ol>
 
-           <span class="types"><a class="type" href="../modules/sched.html#sched_ctx:task">task</a></span>
+           <span class="types"><a class="type" href="../modules/scx.html#scx_ctx:task">task</a></span>
 
     </ol>
 
@@ -239,21 +239,21 @@
 
 </dd>
 </dl>
-    <h2 class="section-header" id="sched-details"><a name="sched"></a>sched in detail</h2>
+    <h2 class="section-header" id="scx-details"><a name="scx"></a>scx in detail</h2>
 
     <dl class="function">
     <dt id="attach"><a name="attach"></a><strong>attach (callback)</strong></dt>
     <dd>
     Registers a Lua callback function to be invoked by a sched_ext eBPF program.
- When a sched_ext program calls the <code>bpf_luasched_run</code> kfunc, Lunatik will execute
+ When a sched_ext program calls the <code>bpf_luascx_run</code> kfunc, Lunatik will execute
  the registered Lua <code>callback</code> associated with the current Lunatik runtime.
  The runtime must be a hardirq one (<code>lunatik run -c hardirq &lt;script&gt;</code>).
  Calling it again replaces the previous callback.</p>
 
 <p> The eBPF program declares the kfunc as:</p>
 
-<pre><code> extern int bpf_luasched_run(const char *key, size_t key__sz,
-     struct task_struct *task, struct task_class *cls) __ksym;
+<pre><code> extern int bpf_luascx_run(char *key, size_t key__sz,
+     struct task_struct *task, struct luascx_task_class *cls) __ksym;
 </code></pre>
 
 <ul>
@@ -277,11 +277,11 @@ and then the slice.</li>
             <span class="types"><span class="type">function</span></span>
          Lua function to call. It receives one argument:</p>
 
-<p>   <code>ctx</code>: An <a href="../modules/sched.html#sched_ctx">sched_ctx</a> context object used to inspect the task.</p>
+<p>   <code>ctx</code>: An <a href="../modules/scx.html#scx_ctx">scx_ctx</a> context object used to inspect the task.</p>
 
 <p>   It returns the decision, the dispatch queue and then the slice in nanoseconds,
-   which <code>bpf_luasched_run</code> writes to <code>cls</code>; a nil one takes <code>SCX_DSQ_GLOBAL</code> or
-   <code>SCX_SLICE_DFL</code>. When it returns neither, or raises, <code>bpf_luasched_run</code> returns -1
+   which <code>bpf_luascx_run</code> writes to <code>cls</code>; a nil one takes <code>SCX_DSQ_GLOBAL</code> or
+   <code>SCX_SLICE_DFL</code>. When it returns neither, or raises, <code>bpf_luascx_run</code> returns -1
    and the decision is left to the eBPF program; a value that is not a number is logged
    as <code>invalid task class</code> and answered the same way.
         </li>
@@ -295,8 +295,9 @@ and then the slice.</li>
     </ol>
 
     <h3>Raises</h3>
-    <code>runtime context mismatch</code> unless the runtime is hardirq; <code>not allowed while the runtime
-   closes</code> from a finalizer that runs at its close; or on allocation failure.
+     <code>EOPNOTSUPP</code> on a kernel without sched_ext; <code>runtime context mismatch</code> unless the
+   runtime is hardirq; <code>not allowed while the runtime closes</code> from a finalizer that runs at its
+   close; or on allocation failure.
 
     <h3>See also</h3>
     <ul>
@@ -305,26 +306,26 @@ and then the slice.</li>
 
     <h3>Usage</h3>
         <pre class="example"><span class="comment">-- sched/policy.lua, run with <code>lunatik run -c hardirq sched/policy</code>
-</span><span class="keyword">local</span> sched = <span class="global">require</span>(<span class="string">"sched"</span>)
-<span class="keyword">local</span> scx = <span class="global">require</span>(<span class="string">"linux.scx"</span>)
+</span><span class="keyword">local</span> scx = <span class="global">require</span>(<span class="string">"scx"</span>)
+<span class="keyword">local</span> ext = <span class="global">require</span>(<span class="string">"linux.scx"</span>)
 
 <span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">my_scheduler</span>(ctx)
   <span class="keyword">local</span> task = ctx:<span class="function-name">task</span>()
   <span class="keyword">if</span> task:<span class="function-name">comm</span>() == <span class="string">"bash"</span> <span class="keyword">then</span>
-    <span class="keyword">return</span> scx.DSQ_LOCAL, scx.SLICE_DFL
+    <span class="keyword">return</span> ext.DSQ_LOCAL, ext.SLICE_DFL
   <span class="keyword">end</span>
 <span class="keyword">end</span>
-sched.<span class="function-name">attach</span>(my_scheduler)
+scx.<span class="function-name">attach</span>(my_scheduler)
 
 <span class="comment">-- In eBPF C code, to call the above Lua function:
 </span><span class="comment">-- char rt_key[] = "sched/policy"; // the script, without .lua
-</span><span class="comment">-- int ret = bpf_luasched_run(rt_key, sizeof(rt_key), p, cls);</span></pre>
+</span><span class="comment">-- int ret = bpf_luascx_run(rt_key, sizeof(rt_key), p, cls);</span></pre>
 
 </dd>
     <dt id="detach"><a name="detach"></a><strong>detach ()</strong></dt>
     <dd>
     Unregisters the Lua callback function associated with the current Lunatik runtime.
- After calling this, <code>bpf_luasched_run</code> calls targeting this runtime invoke no Lua function:
+ After calling this, <code>bpf_luascx_run</code> calls targeting this runtime invoke no Lua function:
  they log <code>no callback attached</code>, return -1 and leave the decision to the eBPF program.
 
 
@@ -339,7 +340,7 @@ sched.<span class="function-name">attach</span>(my_scheduler)
 
 
     <h3>Usage</h3>
-        <pre class="example">sched.<span class="function-name">detach</span>()</pre>
+        <pre class="example">scx.<span class="function-name">detach</span>()</pre>
 
 </dd>
 </dl>
@@ -356,7 +357,7 @@ sched.<span class="function-name">attach</span>(my_scheduler)
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:35:46</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:40:38</span>
 </div>
 </footer>
 </body>

@@ -100,7 +100,7 @@
 <h3>Tracing and scheduling</h3>
 <ul class="mono">
   <li><a href="../modules/probe.html">probe</a></li>
-  <li><a href="../modules/sched.html">sched</a></li>
+  <li><a href="../modules/scx.html">scx</a></li>
   <li><a href="../modules/syscall.html">syscall</a></li>
   <li><a href="../modules/syscall.table.html">syscall.table</a></li>
 </ul>
@@ -221,7 +221,7 @@ sudo make install
 
 <p><code>sudo make btf_install</code> copies the running kernel&rsquo;s BTF, <code>/sys/kernel/btf/vmlinux</code>, into the
 headers the modules build against. Without it the modules are built with no BTF of their own:
-<a href="../modules/xdp.html#">xdp</a> and <a href="../modules/tc.html#">tc</a>, and <a href="../modules/sched.html#">sched</a> on a kernel with sched_ext, still load, but log <code>missing module BTF</code> in
+<a href="../modules/xdp.html#">xdp</a> and <a href="../modules/tc.html#">tc</a>, and <a href="../modules/scx.html#">scx</a> on a kernel with sched_ext, still load, but log <code>missing module BTF</code> in
 the kernel log and leave their kfunc unregistered, so an eBPF program that calls one, such as
 <code>bpf_luaxdp_run</code>, fails to load.</p>
 
@@ -306,7 +306,7 @@ and remove <code>/etc/kernel/postinst.d/zz-update-lunatik</code> if you installe
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:35:46</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 14:40:38</span>
 </div>
 </footer>
 </body>
