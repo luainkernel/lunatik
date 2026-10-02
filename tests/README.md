@@ -207,12 +207,23 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   file's hold reads freed memory in each held case, so the test skips unless
   the loaded `luadevice` lists `luadevice_free` in `/proc/kallsyms`.
 - **returns**: a callback that raises, or whose return the binding cannot use,
-  fails its operation, and the runtime answers the next one. A read or a write
+  fails its operation, one that returns a negative errno fails it with that
+  errno, and the runtime answers the next one. A read or a write
   whose callback returns an offset that is not an integer, and a write whose
   callback returns such a length, each fail with `ECANCELED` and log the error
   naming the value and the operation; a read or a write whose callback raises
   fails with `ECANCELED`, and its error and the release's are logged with the
-  operation; where `gcc` is there to build `fault.c`, which passes one, a read
+  operation; an open whose callback returns `-EBUSY`, and a read `-EAGAIN`
+  and a write `-ENOSPC` past an open whose callback returned zero, fail with
+  that errno; a read whose callback returns zero ends the file; an open
+  whose callback returns an errno not negated or `true`,
+  a read whose callback returns an errno not negated, and a write whose
+  callback returns a length below `-MAX_ERRNO`, fail with `ECANCELED` and log
+  `invalid errno` with the operation, read once the window of the log's rate
+  limit, which the cases before them used, has passed; a write of three bytes
+  whose callback takes one is a short write, so the writer writes the rest
+  again and the device is given `abc`, `bc` and `c`; where `gcc` is there to
+  build `fault.c`, which passes one, a read
   or a write through a buffer at an unmapped address fails with `EFAULT`; a
   read and a write of
   the same runtime's other device, whose callbacks return an offset and a

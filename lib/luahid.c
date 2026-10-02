@@ -57,6 +57,7 @@ typedef struct luahid_ctx_s {
 	const struct hid_device_id *id;
 	u8 *data;
 	size_t size;
+	int ret;
 } luahid_ctx_t;
 
 static void luahid_release(void *private)
@@ -137,6 +138,8 @@ do {										\
 	(ctx)->cb = #op; (ctx)->hid = hid; (ctx)->hdev = hdev;			\
 	lunatik_run(hid->runtime, lunatik_catch, ret, luahid_do##op, ctx,	\
 		(ctx)->cb);							\
+	if (ret == 0)								\
+		ret = (ctx)->ret;						\
 } while (0)
 
 #define luahid_pushid(L, id, extra)		\
@@ -185,7 +188,7 @@ static inline lunatik_object_t *luahid_pushdata(lua_State *L, luahid_ctx_t *ctx)
 	return obj;
 }
 
-static void luahid_op(lua_State *L, luahid_ctx_t *ctx, int nargs)
+static void luahid_op(lua_State *L, luahid_ctx_t *ctx, int nargs, int nresults)
 {
 	luahid_t *hid = ctx->hid;
 	int base = lua_gettop(L) - nargs;
@@ -199,7 +202,7 @@ static void luahid_op(lua_State *L, luahid_ctx_t *ctx, int nargs)
 	lua_insert(L, base + 2); /* hid */
 	lua_settop(L, base + 2 + nargs); /* stack: hid.cb, hid, args */
 
-	lua_call(L, nargs + 1, 0); /* ops.cb(hid, args) */
+	lua_call(L, nargs + 1, nresults); /* ops.cb(hid, args) */
 }
 
 static int luahid_doprobe(lua_State *L)
@@ -207,7 +210,8 @@ static int luahid_doprobe(lua_State *L)
 	luahid_ctx_t *ctx = lua_touserdata(L, 1);
 
 	luahid_pushid(L, ctx->id, driver_data);
-	luahid_op(L, ctx, 1);
+	luahid_op(L, ctx, 1, 1);
+	ctx->ret = lunatik_opterrno(L, -1);
 	return 0;
 }
 
@@ -232,7 +236,7 @@ static int luahid_doreport_fixup(lua_State *L)
 
 	luahid_pushhdev(L, hdev);
 	lunatik_object_t *data = luahid_pushdata(L, ctx);
-	luahid_op(L, ctx, 2);
+	luahid_op(L, ctx, 2, 0);
 	luadata_clear(data);
 	return 0;
 }
@@ -261,7 +265,7 @@ static int luahid_doraw_event(lua_State *L)
 	luahid_pushhdev(L, hdev);
 	luahid_pushreport(L, ctx->report);
 	lunatik_object_t *data = luahid_pushdata(L, ctx);
-	luahid_op(L, ctx, 3);
+	luahid_op(L, ctx, 3, 0);
 	luadata_clear(data);
 	return 0;
 }
@@ -286,8 +290,10 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   and the optional callbacks:
 *
 *   - `probe(driver, id)`: a device matched; `id` is the matching entry, with `bus`,
-*     `group`, `vendor`, `product` and `driver_data`. An error fails the probe with
-*     `ECANCELED`.
+*     `group`, `vendor`, `product` and `driver_data`. Returning a negative errno,
+*     `-errno.ENODEV` say, with `linux.errno`, fails the probe with it; an error, or a
+*     return that is neither nothing, zero nor an errno, logged as `invalid errno`, fails
+*     it with `ECANCELED`.
 *   - `report_fixup(driver, hdev, rdesc)`: `rdesc` is a `data` over the report
 *     descriptor, edited in place, of fixed size and valid only during the call.
 *   - `raw_event(driver, hdev, report, raw)`: `raw` is a `data` over the report, edited
@@ -295,8 +301,8 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *     report.
 *
 *   `hdev` carries `bus`, `group`, `vendor`, `product`, `version` and `name`; `report`
-*   carries `id`, `type`, `size`, `application` and `maxfield`. What a callback returns is
-*   ignored, and its error goes to the kernel log.
+*   carries `id`, `type`, `size`, `application` and `maxfield`. What `report_fixup` and
+*   `raw_event` return is ignored, and a callback's error goes to the kernel log.
 * @treturn hid_driver
 * @raise "not allowed once the runtime is armed" past the script body; from a percpu runtime; if
 *   required fields are missing, `id_table` is invalid or too long, or driver registration fails;
