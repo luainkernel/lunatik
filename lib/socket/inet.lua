@@ -75,12 +75,16 @@ end
 -- @param msg (string) The message to send.
 -- @param addr (string) [optional] The destination IP address (e.g., for UDP).
 -- @param port (number) [optional] The destination port (e.g., for UDP).
--- @return (number) Number of bytes sent on success
+-- @return (number|boolean) Number of bytes sent, or `false` when a send timeout ended the wait with
+--   nothing queued.
 -- @raise error on failure
 -- @see socket.send
 function inet:send(msg, addr, port)
 	local sock = self.socket
-	return not addr and sock:send(msg) or sock:send(msg, net.aton(addr), port)
+	if not addr then
+		return sock:send(msg)
+	end
+	return sock:send(msg, net.aton(addr), port)
 end
 
 ---
@@ -202,7 +206,8 @@ end
 -- @param msg (string) The message to send.
 -- @param addr (string) The destination IP address.
 -- @param port (number) The destination port.
--- @return (number) Number of bytes sent.
+-- @return (number|boolean) Number of bytes sent, or `false` when a send timeout ended the wait with
+--   nothing queued.
 -- @raise error on failure
 -- @see inet.send
 -- @see socket.send

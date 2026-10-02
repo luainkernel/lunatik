@@ -11,6 +11,14 @@
 # failure other than EAGAIN still raises its errno's name: ENOTCONN for a receive on
 # a listener and EINVAL for an accept on a socket that does not listen.
 #
+# socket:send() answers false when a send timeout (SO_SNDTIMEO) ends its wait with
+# nothing queued, which the kernel reports as EAGAIN as well: on an AF_UNIX
+# datagram socket sending to a peer whose queue is full, through
+# unix.dgram:sendto(), and on a TCP stream whose send and receive buffers are full,
+# through inet:send(). A send that queued part of its message before the timeout
+# answers that part's length, one with room answers the message's, and one with
+# no destination still raises EDESTADDRREQ under a send timeout.
+#
 # Usage: sudo bash tests/socket/again.sh
 
 SCRIPT="tests/socket/again"
@@ -34,9 +42,9 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 }
 
 if run_test "$SCRIPT"; then
-	ktap_pass "socket again: receive and accept answer nil and EAGAIN for a wait that ends with nothing"
+	ktap_pass "socket again: receive and accept answer nil and EAGAIN, and send answers false, for a wait that ends with nothing"
 else
-	ktap_fail "socket again: receive and accept answer nil and EAGAIN for a wait that ends with nothing"
+	ktap_fail "socket again: receive and accept answer nil and EAGAIN, and send answers false, for a wait that ends with nothing"
 fi
 
 ktap_totals

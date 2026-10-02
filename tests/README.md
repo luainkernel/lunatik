@@ -1519,7 +1519,12 @@ pid, and what a valid call does.
   `inet.udp:receivefrom()`. A wait that finds a message or a connection answers
   it, and a failure other than `EAGAIN` still raises its errno's name:
   `ENOTCONN` for a receive on a listener and `EINVAL` for an accept on a socket
-  that does not listen.
+  that does not listen. `socket:send()` answers `false` when a send timeout ends
+  its wait with nothing queued, sending to an AF_UNIX datagram peer whose queue is
+  full through `unix.dgram:sendto()` and on a TCP stream whose buffers are full
+  through `inet:send()`, and the length of what it queued when the timeout left
+  part of the message queued; a UDP send with no destination still raises
+  `EDESTADDRREQ`.
 
 - **packet**: the AF_PACKET address a `socket:send()` with a destination builds.
   A `SOCK_DGRAM` send on loopback names the protocol and the interface, and the

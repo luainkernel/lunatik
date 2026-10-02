@@ -226,6 +226,10 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 * For connectionless sockets (`SOCK_DGRAM`), `addr` and `port` (if applicable for the
 * address family) specify the destination.
 * A netlink socket always sends to an address, the kernel's (port id 0) when none is given.
+* The call waits for room in the send buffer, with no timeout of its own, unless `setsockopt` set a
+* send timeout (`linux.socket.so.SNDTIMEO_NEW`), which makes a wait it ends with nothing queued
+* answer `false`. A `lunatik stop` of the spawned thread that waits ends its wait, which raises
+* `ERESTARTSYS`, or `EINTR` under a send timeout, when nothing was queued.
 *
 * @function send
 * @tparam string message message to send.
@@ -236,7 +240,9 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 * - For `AF_NETLINK`: the destination port id.
 * @tparam[opt] integer port the address's second integer: the destination port number for
 *   `AF_INET`, the interface index for `AF_PACKET`, the multicast groups for `AF_NETLINK`.
-* @treturn integer number of bytes sent.
+* @treturn integer|boolean number of bytes sent, short of the message's length on a stream socket
+*   whose wait ended with part of it queued; `false` when a send timeout ended the wait with
+*   nothing queued.
 * @raise Error if the send operation fails or if address parameters are incorrect for the socket type,
 *   or on a netlink socket under RTNL, as from a netdevice callback.
 * @usage
@@ -269,8 +275,13 @@ static int luasocket_send(lua_State *L)
 		luasocket_msgaddr(msg, addr, size);
 	}
 
-	lunatik_tryret(L, ret, kernel_sendmsg, socket, &msg, &vec, 1, len);
-	lua_pushinteger(L, ret);
+	ret = kernel_sendmsg(socket, &msg, &vec, 1, len);
+	if (ret == -EAGAIN)
+		lua_pushboolean(L, false);
+	else if (ret < 0)
+		lunatik_throw(L, ret);
+	else
+		lua_pushinteger(L, ret);
 	return 1;
 }
 
