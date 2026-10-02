@@ -584,6 +584,14 @@ static inline void lunatik_unregisterobject(lua_State *L, lunatik_object_t *obje
 	lunatik_unregister(L, object); /* remove object, now it might be GC'ed */
 }
 
+static inline void lunatik_stopobject(lua_State *L, lunatik_object_t *object)
+{
+	if (object->private != NULL) {
+		lunatik_unregisterobject(L, object);
+		lunatik_closeprivate(object);
+	}
+}
+
 static inline void lunatik_setflag(lua_State *L, const void *key, bool on)
 {
 	lua_pushboolean(L, on);

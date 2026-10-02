@@ -834,6 +834,15 @@ void lunatik_unregisterobject(lua_State *L, lunatik_object_t *object);
 Clears the registry entries keyed by `object->private` and by `object`, so the userdata may be
 collected.
 
+### lunatik\_stopobject
+```C
+void lunatik_stopobject(lua_State *L, lunatik_object_t *object);
+```
+Stops an object `lunatik_registerobject` anchored: clears its registry entries, as
+[`lunatik_unregisterobject`](#lunatik_unregisterobject) does, and closes its private through
+[`lunatik_closeprivate`](#lunatik_closeprivate). An object already stopped, whose private is
+`NULL`, is left as it is, so a `stop` built on it is idempotent.
+
 ### lunatik\_getregistry
 ```C
 int lunatik_getregistry(lua_State *L, const void *key);
