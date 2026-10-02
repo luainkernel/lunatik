@@ -410,7 +410,8 @@
     <h3>Returns</h3>
     <ol>
 
-        (number) Number of bytes sent.
+        (number|boolean) Number of bytes sent, or <code>false</code> when a send timeout ended the wait with
+   nothing queued.
     </ol>
 
     <h3>Raises</h3>
@@ -508,6 +509,12 @@
         </li>
     </ul>
 
+    <h3>Returns</h3>
+    <ol>
+
+        (boolean) <code>true</code> once connected, or <code>nil</code> and <code>&quot;EINPROGRESS&quot;</code> when the connection it started is
+   still in progress.
+    </ol>
 
     <h3>Raises</h3>
     error on failure
@@ -645,7 +652,8 @@
     <h3>Returns</h3>
     <ol>
 
-        (number) Number of bytes sent on success
+        (number|boolean) Number of bytes sent, or <code>false</code> when a send timeout ended the wait with
+   nothing queued.
     </ol>
 
     <h3>Raises</h3>
@@ -672,7 +680,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:38:51</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:03</span>
 </div>
 </footer>
 </body>

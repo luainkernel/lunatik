@@ -408,6 +408,10 @@ information in network byte order, the address, and the scope id.</li>
  This is typically used by client sockets to establish a connection to a server.
  For datagram sockets, this sets the default destination address for <a href="../modules/socket.html#socket:send">send</a> and
  the only address from which datagrams are received.
+ A TCP connect waits for the connection, with no timeout of its own, unless <code>flags</code> carries
+ <code>O_NONBLOCK</code> or <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> set a send timeout; either makes a wait that ends with the connection
+ still in progress answer <code>nil</code>, or raise <code>EALREADY</code> when an earlier connect started it, and <a href="../modules/socket.html#socket:send">send</a>
+ says how a stop ends the wait.
 
 
     <h3>Parameters</h3>
@@ -434,7 +438,7 @@ information in network byte order, the address, and the scope id.</li>
         <li><span class="parameter">flags</span>
             <span class="types"><span class="type">integer</span></span>
          file status flags: <code>O_NONBLOCK</code> makes a connect that cannot
-   complete at once raise instead of waiting for it. <code>linux.socket.sock.NONBLOCK</code> carries
+   complete at once not wait for it. <code>linux.socket.sock.NONBLOCK</code> carries
    <code>O_NONBLOCK</code> on every architecture but alpha and parisc.
          (<em>default</em> 0)
         </li>
@@ -443,8 +447,9 @@ information in network byte order, the address, and the scope id.</li>
     <h3>Returns</h3>
     <ol>
 
-           <span class="types"><span class="type">nil</span></span>
-
+           <span class="types"><span class="type">boolean</span></span>
+        <code>true</code> once connected; <code>nil</code> and <code>&quot;EINPROGRESS&quot;</code> when the wait ended with the
+   connection it started still in progress.
     </ol>
 
     <h3>Raises</h3>
@@ -702,6 +707,10 @@ reports.</li>
  For connectionless sockets (<code>SOCK_DGRAM</code>), <code>addr</code> and <code>port</code> (if applicable for the
  address family) specify the destination.
  A netlink socket always sends to an address, the kernel&rsquo;s (port id 0) when none is given.
+ The call waits for room in the send buffer, with no timeout of its own, unless <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> set a
+ send timeout (<code>linux.socket.so.SNDTIMEO_NEW</code>), which makes a wait it ends with nothing queued
+ answer <code>false</code>. A <code>lunatik stop</code> of the spawned thread that waits ends its wait, which raises
+ <code>ERESTARTSYS</code>, or <code>EINTR</code> under a send timeout, when nothing was queued.
 
 
     <h3>Parameters</h3>
@@ -733,8 +742,10 @@ reports.</li>
     <h3>Returns</h3>
     <ol>
 
-           <span class="types"><span class="type">integer</span></span>
-        number of bytes sent.
+           <span class="types"><span class="type">integer</span> or <span class="type">boolean</span></span>
+         number of bytes sent, short of the message&rsquo;s length on a stream socket
+   whose wait ended with part of it queued; <code>false</code> when a send timeout ended the wait with
+   nothing queued.
     </ol>
 
     <h3>Raises</h3>
@@ -872,7 +883,7 @@ reports.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 16:38:51</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 22:31:03</span>
 </div>
 </footer>
 </body>
