@@ -73,7 +73,11 @@ every other session's reload failed on its symbols. `tools/lunatik-host` refuses
 pinned that way, reading through `tools/checks/pinned.sh` the references a module keeps past its
 holders once `lunatik_run` is gone, and names the cycle that leaves the host so; the state is
 captured for the maintainer, whose reboot clears it, and `LUNATIK_PINNED_OK=1` runs a recovery that
-knows what it holds.
+knows what it holds. It also names a process a cycle leaves running, an orphan in its cgroup started
+after the command: a `socat ...,fork` stopped with `kill $!` keeps the child it forked for a
+connection, and a child whose peer sat in a namespace the cycle deleted holds its socket open for
+good. Nine such children of review scripts each kept a page of a veth's XDP `page_pool`, which
+`page_pool_release_retry` reported every minute until they were killed.
 
 After a kernel upgrade the installed modules were built for the previous kernel and fail to load with
 `Exec format error` (a vermagic mismatch). Reinstall the headers, `make clean && make`, and reinstall
