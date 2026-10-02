@@ -268,7 +268,7 @@ static int luathread_run(lua_State *L)
 	lunatik_checkclosing(L);
 	if (!lunatik_isready(lunatik_toruntime(L)))
 		luaL_error(L, LUNATIK_ERR_UNARMED);
-	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_class);
+	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_runtime_class);
 	luaL_argcheck(L, !lunatik_isirq(runtime->opt), 1, "IRQ runtime cannot spawn threads");
 	lunatik_checkowner(L, runtime); /* the arguments cross under its lock */
 	const char *name = luaL_checkstring(L, 2);
