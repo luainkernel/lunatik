@@ -145,7 +145,7 @@
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
-  <li><a href="../modules/linux.fs.html">linux.fs</a></li>
+  <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
@@ -176,7 +176,7 @@
 <h1>fsnotify<span class="kind">Module</span></h1>
 <p class="lead">Filesystem notification.</p>
  Places marks on filesystem objects and hands the events they report to a Lua
- callback. Event masks are the <a href="../modules/linux.fs.html#">linux.fs</a> bits, named without the <code>FS_</code> prefix:
+ callback. Event masks are the <a href="../modules/linux.fsnotify.html#">linux.fsnotify</a> bits, named without the <code>FS_</code> prefix:
  <code>ACCESS</code>, <code>MODIFY</code>, <code>ATTRIB</code>, <code>CLOSE_WRITE</code>, <code>CLOSE_NOWRITE</code>, <code>OPEN</code>, <code>MOVED_FROM</code>,
  <code>MOVED_TO</code>, <code>CREATE</code>, <code>DELETE</code>, <code>DELETE_SELF</code>, <code>MOVE_SELF</code>, <code>OPEN_EXEC</code>, <code>UNMOUNT</code>,
  <code>Q_OVERFLOW</code>, <code>ERROR</code> and <code>RENAME</code>; the flags <code>EVENT_ON_CHILD</code> and <code>ISDIR</code>; and the
@@ -327,7 +327,7 @@
  Resolves <a href="../modules/fsnotify.html#fsnotify_event:path">path</a> and marks what <code>kind</code> names for the events in <a href="../modules/fsnotify.html#fsnotify_mark:mask">mask</a>: the
  inode it resolves to, the mount it is on, or its whole filesystem. An inode
  mark on a directory reports events on the files directly inside it only when
- <a href="../modules/fsnotify.html#fsnotify_mark:mask">mask</a> carries <code>linux.fs.EVENT_ON_CHILD</code>, and never on anything deeper; a
+ <a href="../modules/fsnotify.html#fsnotify_mark:mask">mask</a> carries <code>linux.fsnotify.EVENT_ON_CHILD</code>, and never on anything deeper; a
  mount or superblock mark reports every file it covers without it.</p>
 
 <p> <code>EVENT_ON_CHILD</code> reaches a file through its parent in the directory cache. A
@@ -345,7 +345,7 @@
         </li>
         <li><span class="parameter">mask</span>
             <span class="types"><span class="type">integer</span></span>
-         event mask, a combination of <a href="../modules/linux.fs.html#">linux.fs</a> bits
+         event mask, a combination of <a href="../modules/linux.fsnotify.html#">linux.fsnotify</a> bits
         </li>
         <li><span class="parameter">kind</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
@@ -417,7 +417,7 @@
     <ul>
         <li><span class="parameter">mask</span>
             <span class="types"><span class="type">integer</span></span>
-         the events to ignore, a combination of <a href="../modules/linux.fs.html#">linux.fs</a> bits
+         the events to ignore, a combination of <a href="../modules/linux.fsnotify.html#">linux.fsnotify</a> bits
          (<em>optional</em>)
         </li>
     </ul>
@@ -450,7 +450,7 @@
     <ul>
         <li><span class="parameter">mask</span>
             <span class="types"><span class="type">integer</span></span>
-         the new event mask, a combination of <a href="../modules/linux.fs.html#">linux.fs</a> bits
+         the new event mask, a combination of <a href="../modules/linux.fsnotify.html#">linux.fsnotify</a> bits
          (<em>optional</em>)
         </li>
     </ul>
@@ -559,7 +559,7 @@
     <dt id="fsnotify_event:isdir"><a name="fsnotify_event:isdir"></a><strong>fsnotify_event:isdir ()</strong></dt>
     <dd>
     Tells whether the event is about a directory.
- Reads <code>linux.fs.ISDIR</code> off the mask, so it answers for every event.
+ Reads <code>linux.fsnotify.ISDIR</code> off the mask, so it answers for every event.
 
 
 
@@ -581,7 +581,7 @@
     Returns the directory entry name the event is about.
  Carried by the directory entry events (<code>CREATE</code>, <code>DELETE</code>, <code>MOVED_FROM</code>,
  <code>MOVED_TO</code>, and <code>RENAME</code>, whose name is the old one) and by an event a parent
- directory marked with <code>linux.fs.EVENT_ON_CHILD</code> is interested in; an event
+ directory marked with <code>linux.fsnotify.EVENT_ON_CHILD</code> is interested in; an event
  only the object&rsquo;s own mark reports carries none.
 
 
@@ -681,7 +681,7 @@
  Allocates an <a href="../modules/fsnotify.html#">fsnotify</a> group whose events are delivered to <code>callback</code>.
  Nothing arrives until <code>watch:mark</code> places a mark. An event reaches the
  callback once per watch, however many of its marks match it: when a file and
- its parent directory, marked with <code>linux.fs.EVENT_ON_CHILD</code>, are both marked
+ its parent directory, marked with <code>linux.fsnotify.EVENT_ON_CHILD</code>, are both marked
  by the same watch, an event on the file arrives once, tagged
  <code>EVENT_ON_CHILD</code> and carrying the entry&rsquo;s <a href="../modules/fsnotify.html#fsnotify_event:name">name</a> and <a href="../modules/fsnotify.html#fsnotify_event:dir">dir</a>.</p>
 
@@ -696,7 +696,7 @@
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
          invoked as <code>callback(mask, event)</code>, where <a href="../modules/fsnotify.html#fsnotify_mark:mask">mask</a> is
-   the event mask that fired, testable against <a href="../modules/linux.fs.html#">linux.fs</a> bits, and <code>event</code> is
+   the event mask that fired, testable against <a href="../modules/linux.fsnotify.html#">linux.fsnotify</a> bits, and <code>event</code> is
    an <a href="../modules/fsnotify.html#fsnotify_event">fsnotify_event</a> valid only for the length of the call. For a permission
    event its return value is the verdict, an <a href="../modules/fsnotify.html#action">fsnotify.action</a>; for every other
    event it is ignored.
@@ -735,7 +735,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:48:43</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:14:07</span>
 </div>
 </footer>
 </body>

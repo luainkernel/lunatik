@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>linux.fs · Lunatik</title>
+    <title>linux.fsnotify · Lunatik</title>
     <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
@@ -145,7 +145,7 @@
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
-  <li><a href="../modules/linux.fs.html" aria-current="page">linux.fs</a></li>
+  <li><a href="../modules/linux.fsnotify.html" aria-current="page">linux.fsnotify</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
@@ -173,14 +173,14 @@
 <main class="content" id="content">
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-constants">Constants</a></div>
-<h1>linux.fs<span class="kind">Module</span></h1>
-<p class="lead">Linux kernel constants exposed under <a href="../modules/linux.fs.html#">linux.fs</a>.</p>
+<h1>linux.fsnotify<span class="kind">Module</span></h1>
+<p class="lead">Linux kernel constants exposed under <a href="../modules/linux.fsnotify.html#">linux.fsnotify</a>.</p>
  Values are populated at build time from the kernel headers.
  Filesystem notification event masks and flags.
  Mirrors <code>FS_*</code> defines in <code>&lt;linux/fsnotify_backend.h&gt;</code>.
- Keys are the kernel names with the prefix stripped: <code>FS_&lt;NAME&gt;</code> is <code>linux.fs.&lt;NAME&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>FS_&lt;NAME&gt;</code> is <code>linux.fsnotify.&lt;NAME&gt;</code>.
     <h2 id="usage">Usage</h2>
-        <pre class="example">local fs = require(&quot;linux.fs&quot;)
+        <pre class="example">local fsnotify = require(&quot;linux.fsnotify&quot;)
 </pre>
 
 
@@ -197,7 +197,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:48:43</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:14:07</span>
 </div>
 </footer>
 </body>
