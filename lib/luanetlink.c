@@ -159,10 +159,7 @@ static int luanetlink_stop(lua_State *L)
 {
 	lunatik_checkarmed(L);
 	lunatik_checkrtnl(L);
-	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luanetlink_channel_class);
-
-	lunatik_unregister(L, object);
-	lunatik_closeprivate(object);
+	lunatik_stopobject(L, lunatik_checkobjectclass(L, 1, &luanetlink_channel_class));
 	return 0;
 }
 
