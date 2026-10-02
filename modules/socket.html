@@ -820,7 +820,8 @@ reports.</li>
         </li>
         <li><span class="parameter">type</span>
             <span class="types"><span class="type">integer</span></span>
-         socket type (e.g., <code>linux.socket.sock.STREAM</code>).
+         socket type (e.g., <code>linux.socket.sock.STREAM</code>). <code>linux.socket.sock.PACKET</code> is
+   refused; <code>SOCK_RAW</code> and <code>SOCK_DGRAM</code> replace it on <code>AF_PACKET</code>.
         </li>
         <li><span class="parameter">protocol</span>
             <span class="types"><span class="type">integer</span></span>
@@ -849,7 +850,8 @@ reports.</li>
     </ol>
 
     <h3>Raises</h3>
-     Error if socket creation fails, &ldquo;out of bounds&rdquo; for an <code>AF_PACKET</code> protocol past 16 bits,
+     Error if socket creation fails, &ldquo;unsupported socket type&rdquo; for <code>linux.socket.sock.PACKET</code>,
+   &ldquo;out of bounds&rdquo; for an <code>AF_PACKET</code> protocol past 16 bits,
    <code>ESRCH</code> if no task has that pid, <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a namespace
    of their own, or
    <code>&apos;socket&apos;: process-context class in interrupt-context runtime</code> in a softirq or hardirq runtime.
@@ -883,7 +885,7 @@ reports.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:03:46</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:08:11</span>
 </div>
 </footer>
 </body>
