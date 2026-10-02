@@ -176,7 +176,7 @@
 <h1>crypto<span class="kind">Module</span></h1>
 <p class="lead">Lua interface to the Linux Crypto API.</p>
  Crypto objects are created in a process runtime alone: in a softirq or hardirq runtime a
- constructor raises &ldquo;&lsquo;crypto_shash&rsquo;: process-context class in interrupt-context runtime&rdquo;, naming
+ constructor raises &ldquo;&lsquo;crypto.shash&rsquo;: process-context class in interrupt-context runtime&rdquo;, naming
  its class. Errors are raised as errno names: &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;EINVAL&rdquo; for a
  wrong IV, key or state length or a block cipher input that is not a multiple of <code>blocksize()</code>,
  &ldquo;EBADMSG&rdquo; for an AEAD tag mismatch, &ldquo;ENOMEM&rdquo; when the kernel cannot allocate the transform, and
@@ -382,7 +382,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:26:06</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:29:39</span>
 </div>
 </footer>
 </body>
