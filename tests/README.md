@@ -1245,7 +1245,7 @@ from a pid namespace other than the initial one, whose pids are not the ones
   `data` object on every iteration, for a few seconds; every read is a usable
   object or nil, the reader saw the entry replaced while it read, and `dmesg`
   carries no refcount warning or oops. A stress, not a forced window; skips
-  unless the loaded core carries `lunatik_getobject_rcu`.
+  unless the loaded core carries `lunatik_trygetobject`.
 
 - **foreach_overflow**: `rcu.foreach()` takes its reference on an entry's
   object inside the handle's protected call, so a call that overflows the

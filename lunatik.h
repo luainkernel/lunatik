@@ -406,7 +406,7 @@ int lunatik_deleteobject(lua_State *L);
 #define lunatik_toobject(L, i)		(*(lunatik_object_t **)lua_touserdata((L), (i)))
 #define lunatik_getobject(o)		kref_get(&(o)->kref)
 #define lunatik_putobject(o)		kref_put(&(o)->kref, lunatik_releaseobject)
-bool lunatik_getobject_rcu(lunatik_object_t *object);
+bool lunatik_trygetobject(lunatik_object_t *object);
 
 static inline void lunatik_pushobject(lua_State *L, lunatik_object_t *object)
 {
