@@ -404,13 +404,7 @@ static int luafsnotify_find(lua_State *L)
 */
 static int luafsnotify_stop(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luafsnotify_class);
-
-	if (object->private == NULL) /* already stopped */
-		return 0;
-
-	lunatik_unregisterobject(L, object);
-	lunatik_closeprivate(object);
+	lunatik_stopobject(L, lunatik_checkobjectclass(L, 1, &luafsnotify_class));
 	return 0;
 }
 

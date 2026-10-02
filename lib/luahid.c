@@ -100,13 +100,7 @@ static const lunatik_class_t luahid_class;
 static int luahid_stop(lua_State *L)
 {
 	lunatik_checkarmed(L);
-	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luahid_class);
-
-	if (object->private == NULL) /* already stopped */
-		return 0;
-
-	lunatik_unregisterobject(L, object);
-	lunatik_closeprivate(object);
+	lunatik_stopobject(L, lunatik_checkobjectclass(L, 1, &luahid_class));
 	return 0;
 }
 
