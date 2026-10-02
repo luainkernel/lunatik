@@ -1650,9 +1650,12 @@ pid, and what a valid call does.
   full through `unix.dgram:sendto()` and on a TCP stream whose buffers are full
   through `inet:send()`, and the length of what it queued when the timeout left
   part of the message queued; a UDP send with no destination still raises
-  `EDESTADDRREQ`. `socket:connect()` still raises `EAGAIN` where it names a
-  failure: the implicit bind of a UDP socket whose port range,
-  `IP_LOCAL_PORT_RANGE`, is the one port another socket holds.
+  `EDESTADDRREQ`. `socket:connect()` and `socket:send()` still raise `EAGAIN`
+  where it names a failure: the implicit bind of a UDP socket whose port range,
+  `IP_LOCAL_PORT_RANGE`, is the one port another socket holds, and once that
+  socket closes the send binds the port and answers the message's length. An
+  AF_INET6 send raises the same `EAGAIN`, a case of its own that skips where the
+  kernel does not carry the family.
 
 - **packet**: the AF_PACKET address a `socket:send()` with a destination builds.
   A `SOCK_DGRAM` send on loopback names the protocol and the interface, and the
