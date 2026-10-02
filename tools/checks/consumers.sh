@@ -2,29 +2,24 @@
 # Names the out-of-tree scripts that require a binding the given files change.
 # A product built on Lunatik is a consumer this tree cannot grep: point the check
 # at the clones with LUNATIK_CONSUMERS, a colon separated list of directories,
-# and it reports which of their scripts load what is being changed. Silent when
-# the variable is unset, when nothing under lib/ is touched, or when no consumer
-# script requires it.
+# and it reports which of their scripts load what is being changed, or reach it
+# through what tools/checks/modules.sh names. Silent when the variable is unset,
+# when no file defines a module, or when no consumer script requires one.
 #
 # Usage: LUNATIK_CONSUMERS=/path/a:/path/b bash tools/checks/consumers.sh <files...>
 
 [ -n "$LUNATIK_CONSUMERS" ] || exit 0
 
-modules=""
-for f in "$@"; do
-	case "$f" in
-		lib/lua*.c)   modules="$modules $(basename "$f" .c | sed 's/^lua//')" ;;
-		lib/*.lua)    modules="$modules $(basename "$f" .lua)" ;;
-		lib/*/*.lua)  modules="$modules $(echo "$f" | sed 's|^lib/||; s|\.lua$||')" ;;
-	esac
-done
+source "$(dirname "$0")/modules.sh"
+
+modules=$(for f in "$@"; do reaching_modules "$f"; done | sort -u)
 [ -n "$modules" ] || exit 0
 
 found=""
 for m in $modules; do
 	for dir in $(echo "$LUNATIK_CONSUMERS" | tr ':' ' '); do
 		[ -d "$dir" ] || continue
-		hits=$(grep -rln "require(\"$m\")\|require('$m')" "$dir" --include='*.lua' 2>/dev/null)
+		hits=$(grep -rlE "require\([\"']${m//./\\.}(\.[a-z0-9_.]+)?[\"']\)" "$dir" --include='*.lua' 2>/dev/null)
 		[ -n "$hits" ] && found="$found\n  $m: $(echo $hits | tr '\n' ' ')"
 	done
 done

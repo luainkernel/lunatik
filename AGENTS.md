@@ -377,6 +377,16 @@ read from that build's own configuration before any mechanism is theorised: an o
 alphabetical module list explained an unload that failed three times running, after three patches had
 been written against a refcount that was never the cause.
 
+`examples-touched.sh` and `consumers.sh` read what a change reaches through `modules.sh`: the module a
+file defines, read from the base when the change deletes it, and every module a script reaches it
+through without requiring it, a library that requires it, as `netlink` reaches `netlink.rt.route`, and
+a binding that builds its objects for a callback, as `netfilter` and `tc` hand an `skb`. A change to the
+runner adds the examples a README starts with the CLI verb whose function it touches, and one to autogen
+the `linux.*` tables its specs feed. Each grepped for a `require` of the changed module alone, and
+#1264 gathered eight changes that reached examples neither named, the `skb` of #1539 among them. The CI
+annotation reads the files a pull request adds or modifies, so a deleted module is named by the guard
+and the pull request's preparation, which read the whole diff.
+
 `machine-leak.sh` reads a tracked file for what belongs to the machine it was written on: an absolute
 path in a home directory, a password handed to sudo, a credential read out of a file or carried inside a
 URL, a literal shaped like a token, and the name of a private repository, which it takes from

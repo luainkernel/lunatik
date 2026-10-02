@@ -10,36 +10,43 @@
 # which arms a kprobe on every syscall and counts into an rcu table from each
 # hit; its first run on the merged code took the host down.
 #
-# For each file given that defines a Lua module (lib/lua<name>.c through
-# LUNATIK_NEWLIB, or LUNATIK_OPENER where the binding builds its library by hand
-# as fsnotify does, or a Lua library under lib/), prints the examples that require
-# that module, directly or through a script they run, so the reviewer and the
-# Build phase know what to run. Exits 1 when there is something to run.
+# For each file given that defines a Lua module, a binding, a library under lib/,
+# the core or a linux.* table autogen builds, prints the examples that require it
+# or reach it through what tools/checks/modules.sh names, a library or a binding
+# that hands its objects to a callback, so the reviewer and the Build phase know
+# what to run. A deleted module is named from the base, which lists the examples
+# the change left on it. Exits 1 when there is something to run.
 #
 # Usage: bash tools/checks/examples-touched.sh <file>...
 
-status=0
+source "$(dirname "$0")/modules.sh"
 
-module() {
-	case "$1" in
-		lib/luacrypto_*.c) echo crypto ;;
-		lib/lua*.c) sed -nE 's/^LUNATIK_(EBPF_)?NEWLIB\(([a-z0-9_]+),.*/\2/p; s/^LUNATIK_OPENER\(([a-z0-9_]+)\);.*/\1/p' "$1" | head -1 ;;
-		lib/*.lua) local m=${1#lib/}; m=${m%.lua}; echo "${m//\//.}" ;;
-	esac
-}
+status=0
 
 runnable() { # the directory of a multi-file example, the script of a single-file one
 	local f=${1%.lua}
 	case "$f" in examples/*/*) dirname "$f" ;; *) echo "$f" ;; esac
 }
 
+# the examples a README starts with the CLI verb whose runner function a change to the runner touches,
+# both when it names neither: the CLI calls lunatik.runner.run or .spawn for them, and none of their
+# scripts requires it (#1341)
+started() {
+	local verbs
+	verbs=$(git diff -U0 "$CHECK_BASE" -- "$1" 2>/dev/null | grep -oE 'runner\.(run|spawn)\b' | sed 's/^runner\.//' | sort -u | paste -sd'|')
+	grep -lE "lunatik (${verbs:-run|spawn})( |$)" examples/*/README.md 2>/dev/null | xargs -r -n 1 dirname
+}
+
 for file in "$@"; do
-	[ -f "$file" ] || continue
-	mod=$(module "$file")
-	[ -n "$mod" ] || continue
-	examples=$(grep -rlE "require\(\"$mod(\.[a-z0-9_.]+)?\"\)" examples/ 2>/dev/null | while IFS= read -r f; do runnable "$f"; done | sort -u | tr '\n' ' ')
+	mods=$(reaching_modules "$file")
+	[ -n "$mods" ] || continue
+	required=$(printf '%s\n' $mods | sed 's/\./\\./g' | paste -sd'|')
+	examples=$({
+		grep -rlE "require\(\"($required)(\.[a-z0-9_.]+)?\"\)" examples/ 2>/dev/null | while IFS= read -r f; do runnable "$f"; done
+		[ "$file" = lib/lunatik/runner.lua ] && started "$file"
+	} | sort -u | tr '\n' ' ')
 	[ -n "$examples" ] || continue
-	echo "$file: run the examples that use $mod, through tools/watchdog.sh: ${examples% }"
+	echo "$file: run the examples that use $(echo $mods | sed 's/ /, /g'), through tools/watchdog.sh: ${examples% }"
 	status=1
 done
 
