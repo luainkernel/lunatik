@@ -106,9 +106,6 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 
 #define luasocket_ispathname(addr_un, len)	((len) > 0 && (addr_un)->sun_path[0] != '\0')
 
-#define luasocket_halen(addr_ll, size)	\
-	min_t(size_t, (addr_ll)->sll_halen, (size) - offsetof(struct sockaddr_ll, sll_addr))
-
 static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr, size_t size)
 {
 	int n;
@@ -136,7 +133,7 @@ static int luasocket_pushaddr(lua_State *L, struct sockaddr_storage *addr, size_
 		lua_pushinteger(L, (lua_Integer)addr_ll->sll_ifindex);
 		lua_pushinteger(L, (lua_Integer)addr_ll->sll_pkttype);
 		lua_pushinteger(L, (lua_Integer)addr_ll->sll_hatype);
-		lua_pushlstring(L, (const char *)addr_ll->sll_addr, luasocket_halen(addr_ll, size));
+		lua_pushlstring(L, (const char *)addr_ll->sll_addr, addr_ll->sll_halen);
 		n = 5;
 	}
 	else if (addr->ss_family == AF_NETLINK) {
@@ -753,7 +750,8 @@ static int luasocket_accept(lua_State *L)
 *
 * @function new
 * @tparam integer family address family (e.g., `linux.socket.af.INET`).
-* @tparam integer type socket type (e.g., `linux.socket.sock.STREAM`).
+* @tparam integer type socket type (e.g., `linux.socket.sock.STREAM`). `linux.socket.sock.PACKET` is
+*   refused; `SOCK_RAW` and `SOCK_DGRAM` replace it on `AF_PACKET`.
 * @tparam integer protocol protocol (e.g., `linux.socket.ipproto.TCP`).
 *   For `AF_PACKET` sockets, `protocol` is an ethertype in host byte order, as `bind` takes it
 *   (e.g., `linux.eth.ALL` for every frame).
@@ -765,7 +763,8 @@ static int luasocket_accept(lua_State *L)
 *   namespace.
 * @treturn socket A new socket object. A socket a netdevice callback may collect is closed by the
 *   script first, not dropped: its release cannot refuse where the collector drops it.
-* @raise Error if socket creation fails, "out of bounds" for an `AF_PACKET` protocol past 16 bits,
+* @raise Error if socket creation fails, "unsupported socket type" for `linux.socket.sock.PACKET`,
+*   "out of bounds" for an `AF_PACKET` protocol past 16 bits,
 *   `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace
 *   of their own, or
 *   `'socket': process-context class in interrupt-context runtime` in a softirq or hardirq runtime.
@@ -784,6 +783,7 @@ static int luasocket_lnew(lua_State *L)
 {
 	int family = luaL_checkinteger(L, 1);
 	int type = luaL_checkinteger(L, 2);
+	luaL_argcheck(L, type != SOCK_PACKET, 2, "unsupported socket type");
 	int proto = family == AF_PACKET ? (__force u16)luasocket_checkethertype(L, 3) : luaL_checkinteger(L, 3);
 	pid_t pid = lua_isnoneornil(L, 4) ? LUASOCKET_PID_NONE : (pid_t)lunatik_checkinteger(L, 4, 1, PID_MAX_LIMIT);
 	lunatik_object_t *object = luasocket_new(L);

@@ -7,6 +7,7 @@
 local raw   = require("socket.raw")
 local linux = require("linux")
 local eth   = require("linux.eth")
+local attempt = require("tests.socket.attempt")
 
 local format = string.format
 
@@ -25,10 +26,7 @@ local function binds(...)
 end
 
 local function raises(...)
-	local ok, s = pcall(raw.new, ...)
-	if ok then
-		s:close()
-	end
+	local ok, s = attempt.new(raw.new, ...)
 	return ok and "binds" or "raises " .. tostring(s)
 end
 
