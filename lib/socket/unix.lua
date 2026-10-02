@@ -19,8 +19,9 @@
 local socket = require("socket")
 local class  = require("class")
 
-local af   = require("linux.socket").af
-local sock = require("linux.socket").sock
+local sk   = require("linux.socket")
+local af   = sk.af
+local sock = sk.sock
 
 ---
 -- Base class for UNIX domain socket objects.
