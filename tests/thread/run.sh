@@ -11,7 +11,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in "$DIR"/shouldstop.sh "$DIR"/run_during_load.sh "$DIR"/foreign_object.sh "$DIR"/run_args.sh "$DIR"/task.sh "$DIR"/name.sh "$DIR"/self_stop.sh "$DIR"/release.sh "$DIR"/module.sh "$DIR"/stop.sh; do
+for t in "$DIR"/shouldstop.sh "$DIR"/run_during_load.sh "$DIR"/foreign_object.sh "$DIR"/run_args.sh "$DIR"/task.sh "$DIR"/name.sh "$DIR"/self_stop.sh "$DIR"/release.sh "$DIR"/module.sh "$DIR"/stop.sh "$DIR"/keep.sh "$DIR"/atomic.sh; do
 	echo "${SEP}# --- $(basename "$t") ---"
 	SEP=$'\n'
 	bash "$t" || FAILED=$((FAILED+1))

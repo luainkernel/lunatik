@@ -8,6 +8,7 @@ local lunatik    = require("lunatik")
 local thread     = require("thread")
 local completion = require("completion")
 local rcu        = require("rcu")
+local test       = require("tests.lib").test
 
 local EXIT      <const> = "tests/thread/exit"
 local RAISE     <const> = "tests/thread/stop_raise"
@@ -15,7 +16,6 @@ local FINALIZED <const> = "tests/thread/stop_finalized"
 local LINGER    <const> = "tests/thread/stop_linger"
 local FIRSTSTOP <const> = "tests/thread/stop_first"
 local NAME      <const> = "lunatik_stop"
-local PREFIX    <const> = "thread stop test: "
 local CLOSED    <const> = "closed object"
 local TIMEOUT   <const> = 3000
 local THREAD    <const> = "thread"
@@ -90,18 +90,12 @@ local function concurrent()
 	assert(returned and shared[FIRST] == true, "the first stop did not return true once the thread exited")
 end
 
--- a failed case reports its error and the next one runs
-local function check(name, case)
-	local ok, err = pcall(case)
-	print(ok and PREFIX .. name or err)
-end
-
 local function driver()
-	check("closed", closed)
-	check("returned", returned)
-	check("raised", raised)
-	check("finalized", finalized)
-	check("concurrent", concurrent)
+	test("closed", closed)
+	test("returned", returned)
+	test("raised", raised)
+	test("finalized", finalized)
+	test("concurrent", concurrent)
 end
 
 return driver

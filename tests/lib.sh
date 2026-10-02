@@ -37,6 +37,10 @@ check_dmesg() {
 
 comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
 
+# polls a condition the kernel reaches on another task after the stimulus returns, a deferred
+# callback or release: awaited <command...> runs it ten times a second, up to $TRIES times (50)
+awaited() { for _ in $(seq "${TRIES:-50}"); do "$@" && return 0; sleep 0.1; done; return 1; }
+
 # builds the C peer <source> into <binary>; fails where there is no gcc or it does not build
 build_peer() { command -v gcc > /dev/null 2>&1 && gcc -O2 -o "$2" "$1" 2>/dev/null; }
 
