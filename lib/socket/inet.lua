@@ -105,7 +105,7 @@ end
 -- @param port (number) The remote port.
 -- @param flags (number) [optional] Connection flags.
 -- @return (boolean) `true` once connected, or `nil` and `"EINPROGRESS"` when the connection it started is
---   still in progress.
+--   still in progress, `"EALREADY"` when an earlier connect started it.
 -- @raise error on failure
 -- @see socket.connect
 function inet:connect(addr, port, flags)

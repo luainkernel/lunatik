@@ -8,12 +8,13 @@
 # of a network namespace of the test's own, where an nft rule drops every segment
 # to the port, so the SYN never draws an answer. A connect bounded by the timeout
 # answers nil and "EINPROGRESS" once the timeout ends its wait, as a nonblocking
-# one does at once (connect.sh), and a send on the same socket, which waits for
-# the handshake before it queues anything, answers false once the timeout ends
-# that wait. A kernel that refuses a task's namespace with EOPNOTSUPP skips both
-# cases. The shell has to run in the initial pid namespace, the only one where the
-# pid socket.new resolves is the one the test hands it, and the test skips
-# elsewhere.
+# one does at once (connect.sh). Called again while the handshake still runs, it
+# answers nil and "EALREADY", once the timeout ends its wait and at once under
+# O_NONBLOCK. A send on the same socket, which waits for the handshake before it
+# queues anything, answers false once the timeout ends that wait. A kernel that
+# refuses a task's namespace with EOPNOTSUPP skips every case. The shell has to
+# run in the initial pid namespace, the only one where the pid socket.new
+# resolves is the one the test hands it, and the test skips elsewhere.
 #
 # Usage: sudo bash tests/socket/inprogress.sh
 
@@ -38,7 +39,7 @@ expect() { # expect <line> <description>
 }
 
 ktap_header
-ktap_plan 2
+ktap_plan 4
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -67,12 +68,14 @@ cleanup
 check_dmesg || { ktap_totals; exit 1; }
 
 if dmesg_since | grep -q "socket inprogress: a task's namespace is refused: EOPNOTSUPP"; then
-	for _ in 1 2; do ktap_skip "a task's namespace: this kernel refuses it"; done
+	for _ in 1 2 3 4; do ktap_skip "a task's namespace: this kernel refuses it"; done
 	ktap_totals
 	exit 0
 fi
 
 expect "a timed connect answers nil and EINPROGRESS" "socket inprogress: a connect a send timeout ends answers nil and EINPROGRESS"
+expect "a timed connect called again answers nil and EALREADY" "socket inprogress: a connect called again that a send timeout ends answers nil and EALREADY"
+expect "a nonblocking connect called again answers nil and EALREADY" "socket inprogress: a nonblocking connect called again answers nil and EALREADY"
 expect "a timed send while connecting answers false" "socket inprogress: a send a send timeout ends before the handshake answers false"
 
 ktap_totals

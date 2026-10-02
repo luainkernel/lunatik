@@ -17,11 +17,17 @@ local LOOPBACK   <const> = net.aton("127.0.0.1")
 local PORT       <const> = 6924
 local MESSAGE    <const> = "inprogress"
 local TIMEOUT_MS <const> = 100
+local NONBLOCK   <const> = sk.sock.NONBLOCK
 
 local timeval = struct(sk.layout.timeval)
 
 local function say(what)
 	print("socket inprogress: " .. what)
+end
+
+local function pending(what, expected, connected, err)
+	assert(connected == nil and err == expected, format("%s answered %s, %s", what, connected, err))
+	say(what .. " answers nil and " .. expected)
 end
 
 local ok, client = pcall(socket.new, sk.af.INET, sk.sock.STREAM, 0, pids.holder)
@@ -32,9 +38,9 @@ end
 assert(ok, "a socket in the holder's namespace was refused: " .. tostring(client))
 client:setsockopt(sk.sol.SOCKET, sk.so.SNDTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
 
-local connected, err = client:connect(LOOPBACK, PORT)
-assert(connected == nil and err == "EINPROGRESS", format("a timed connect answered %s, %s", connected, err))
-say("a timed connect answers nil and EINPROGRESS")
+pending("a timed connect", "EINPROGRESS", client:connect(LOOPBACK, PORT))
+pending("a timed connect called again", "EALREADY", client:connect(LOOPBACK, PORT))
+pending("a nonblocking connect called again", "EALREADY", client:connect(LOOPBACK, PORT, NONBLOCK))
 
 local sent, extra = client:send(MESSAGE)
 assert(sent == false and extra == nil, format("a timed send while connecting answered %s, %s", sent, extra))

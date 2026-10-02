@@ -1717,15 +1717,19 @@ pid, and what a valid call does.
   flags answers `nil` and `"EINPROGRESS"`. A flag given past the port must still
   reach the kernel, and an AF_UNIX path, spelled as one argument, must not have
   the path itself read as the flags. `inet:connect()` hands the answer through,
-  and a connect the peer refuses still raises `ECONNREFUSED`.
+  and a connect the peer refuses still raises `ECONNREFUSED`. A connect called
+  again on a socket a nonblocking one left connecting answers `true` once the
+  handshake completes, and raises `ECONNREFUSED` once the peer refused it.
 
 - **inprogress**: what a TCP socket answers when a send timeout ends its wait for
   a handshake that does not complete, over the loopback of a namespace of the
   test's own where an nft rule drops every segment to the port: a connect answers
-  `nil` and `"EINPROGRESS"`, and a send on the same socket, which waits for the
-  handshake before it queues anything, answers `false`. It skips without `nft`,
-  `nsenter` or a namespace, outside the initial pid namespace, and where the
-  kernel refuses a task's namespace.
+  `nil` and `"EINPROGRESS"`, a connect called again while the handshake runs
+  answers `nil` and `"EALREADY"`, under the timeout as under `O_NONBLOCK`, and a
+  send on the same socket, which waits for the handshake before it queues
+  anything, answers `false`. It skips without `nft`, `nsenter` or a namespace,
+  outside the initial pid namespace, and where the kernel refuses a task's
+  namespace.
 
 - **orphan**: a socket holds its network namespace for as long as the kernel
   keeps the socket, not only for as long as the script does. A TCP socket closed
