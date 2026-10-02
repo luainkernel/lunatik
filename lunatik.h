@@ -251,7 +251,7 @@ static inline lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *n
 	return runtime;
 }
 
-static inline lunatik_opt_t lunatik_checkcontext(lua_State *L, int ix)
+static inline lunatik_opt_t lunatik_optcontext(lua_State *L, int ix)
 {
 	static const char *const contexts[] = {"process", "softirq", "hardirq", NULL};
 	static const lunatik_opt_t opts[] = {LUNATIK_OPT_NONE, LUNATIK_OPT_SOFTIRQ, LUNATIK_OPT_HARDIRQ};
