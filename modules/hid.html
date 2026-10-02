@@ -224,22 +224,28 @@ hid.register({
    and the optional callbacks:</p>
 
 <ul>
-<li> <code>probe(driver, id)</code>: a device matched; <code>id</code> is the matching entry, with <code>bus</code>,
- <code>group</code>, <code>vendor</code>, <code>product</code> and <code>driver_data</code>. Returning a negative errno,
+<li> <code>probe(driver, hdev, id)</code>: a device matched; <code>hdev</code> is the device&rsquo;s table, made here
+ and handed to every later callback of the device, and <code>id</code> is the matching entry, with
+ <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code> and <code>driver_data</code>. Returning a negative errno,
  <code>-errno.ENODEV</code> say, with <a href="../modules/linux.errno.html#">linux.errno</a>, fails the probe with it; an error, or a
  return that is neither nothing, zero nor an errno, logged as <code>invalid errno</code>, fails
  it with <code>ECANCELED</code>.</li>
 <li> <code>report_fixup(driver, hdev, rdesc)</code>: <code>rdesc</code> is a <a href="../modules/data.html#">data</a> over the report
  descriptor, edited in place, of fixed size and valid only during the call.</li>
 <li> <code>raw_event(driver, hdev, report, raw)</code>: <code>raw</code> is a <a href="../modules/data.html#">data</a> over the report, edited
- in place and valid only during the call. An error makes the HID core drop the
- report.</li>
+ in place and valid only during the call. Returning nothing or zero passes the report
+ on and a negative errno drops it; an error, or any other return, drops it with
+ <code>ECANCELED</code>.</li>
+<li> <code>remove(driver, hdev)</code>: the device left the driver, or the HID core failed its probe
+ after <a href="../modules/probe.html#">probe</a> returned, so each <a href="../modules/probe.html#">probe</a> that returned gets one <code>remove</code>; a device the
+ driver still holds when its runtime stops gets none.</li>
 </ul>
 
 
-<p>   <code>hdev</code> carries <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code>, <code>version</code> and <code>name</code>; <code>report</code>
-   carries <code>id</code>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>, <code>size</code>, <code>application</code> and <code>maxfield</code>. What <code>report_fixup</code> and
-   <code>raw_event</code> return is ignored, and a callback&rsquo;s error goes to the kernel log.
+<p>   <code>hdev</code> carries <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code>, <code>version</code> and <code>name</code>, and keeps what
+   the callbacks store in it; <code>report</code> carries <code>id</code>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>, <code>size</code>, <code>application</code> and
+   <code>maxfield</code>. What <code>report_fixup</code> and <code>remove</code> return is ignored, and a callback&rsquo;s error
+   goes to the kernel log.
         </li>
     </ul>
 
@@ -275,7 +281,7 @@ hid.register({
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:26:36</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 12:34:32</span>
 </div>
 </footer>
 </body>
