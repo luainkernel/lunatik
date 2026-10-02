@@ -9,8 +9,10 @@
 # tests/rcu/entry_release first claimed. In a test's Lua script, it names a case
 # run under a condition, which reports nothing when the condition is false while
 # the script's one KTAP line counts it as passed, the way tests/runtime/percpu_object
-# ran its failing case only on more than one CPU, as #1166 found. Heuristic: it nudges
-# a review, it does not rewrite.
+# ran its failing case only on more than one CPU, as #1166 found; and a case harness
+# taken from a module other than tests.lib, which calls nil once the module holds no
+# test: tests/linux/errname reached master taking it from util after #1550 had moved it,
+# in a merge that did not conflict. Heuristic: it nudges a review, it does not rewrite.
 # Usage: test-harness.sh <file>...
 # Prints the findings; exits 1 when there are any. Files outside its scope
 # are skipped silently, so callers can pass any path.
@@ -23,6 +25,10 @@ checkcases() {
 	{
 		line = $0; sub(/--.*$/, "", line); d = indent(line)
 		while (n > 0 && line ~ /[^[:space:]]/ && d <= open[n] && line !~ /^[[:space:]]*(else|elseif)([^A-Za-z0-9_]|$)/) n--
+		if (line ~ /require[[:space:]]*\(?[[:space:]]*"[^"]*"[[:space:]]*\)?\.test([^A-Za-z0-9_]|$)/ && line !~ /"tests\.lib"/) {
+			printf "%s:%d: takes test from a module other than tests.lib, which holds the case harness\n", file, NR
+			found = 1
+		}
 		if (line ~ /^[[:space:]]*if[[:space:]].*[[:space:]]then[[:space:]]*$/) { open[++n] = d; next }
 		if (n > 0 && line ~ /^[[:space:]]*test[[:space:]]*\(/) {
 			printf "%s:%d: a case run under a condition, which the script'\''s KTAP line counts as passed when it does not run; skip it in the .sh\n", file, NR
