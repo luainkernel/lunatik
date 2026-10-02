@@ -207,7 +207,10 @@ no default input/output (<a href="https://www.lua.org/manual/5.5/manual.html#pdf
 The available functions are <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.open">io.open</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.lines">io.lines</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.type">io.type</a>, and the file handle methods
 <code>read</code>, <code>write</code>, <code>lines</code>, <code>flush</code>, <code>seek</code>, and <code>close</code>.
 On failure no errno reaches the script: <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.open">io.open</a> returns <code>nil</code>, <code>&quot;&lt;file&gt;: (no extra info)&quot;</code> and
-<code>0</code>, and a function that raises, such as <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.lines">io.lines</a>, says <code>I/O error</code>.</p>
+<code>0</code>, and a function that raises, such as <a href="https://www.lua.org/manual/5.5/manual.html#pdf-io.lines">io.lines</a>, says <code>I/O error</code>.
+A file <a href="https://www.lua.org/manual/5.5/manual.html#pdf-loadfile">loadfile</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-dofile">dofile</a> or <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> opens and cannot read fails with the errno&rsquo;s name:
+<code>EINVAL</code> for a directory. A file <a href="https://www.lua.org/manual/5.5/manual.html#pdf-loadfile">loadfile</a> or <a href="https://www.lua.org/manual/5.5/manual.html#pdf-dofile">dofile</a> cannot open fails with <code>cannot open &lt;file&gt;: </code>
+and the errno&rsquo;s name, <code>ENOENT</code> for a missing one.</p>
 
 <p>Lunatik <strong>modifies</strong> the following identifiers:
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION">_VERSION</a>: is defined as <code>&quot;Lua 5.5-kernel&quot;</code>.
@@ -250,7 +253,7 @@ raise <code>not allowed once the runtime is armed</code>, and <a href="https://w
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:17:33</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 13:26:06</span>
 </div>
 </footer>
 </body>
