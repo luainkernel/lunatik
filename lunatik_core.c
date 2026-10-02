@@ -409,7 +409,7 @@ EXPORT_SYMBOL(lunatik_runtime);
 static int lunatik_lruntime(lua_State *L)
 {
 	const char *script = luaL_checkstring(L, 1);
-	lunatik_opt_t opt = lunatik_checkcontext(L, 2);
+	lunatik_opt_t opt = lunatik_optcontext(L, 2);
 
 	lunatik_object_t **pruntime = lunatik_newpobject(L, 1);
 	if (lunatik_newruntime(pruntime, L, script, opt, NULL, LUNATIK_CPU_NONE) != 0)

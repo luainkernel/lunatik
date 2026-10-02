@@ -473,9 +473,9 @@ Stores `lunatik_checkruntime(L, lua<libname>_class.name, lua<libname>_class.opt)
 `priv->runtime` and returns it: the class is read by its name, `lua<libname>_class`, so
 `lunatik_setruntime(L, device, luadev)` checks against `luadevice_class`. Defined as a macro.
 
-### lunatik\_checkcontext
+### lunatik\_optcontext
 ```C
-lunatik_opt_t lunatik_checkcontext(lua_State *L, int ix);
+lunatik_opt_t lunatik_optcontext(lua_State *L, int ix);
 ```
 Reads the context name at `ix`, `"process"`, the default, `"softirq"` or `"hardirq"`, and returns
 `LUNATIK_OPT_NONE`, `LUNATIK_OPT_SOFTIRQ` or `LUNATIK_OPT_HARDIRQ`. Raises

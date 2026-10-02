@@ -219,7 +219,7 @@ const lunatik_class_t lunatik_percpu_class = {
 int lunatik_percpu(lua_State *L)
 {
 	const char *script = luaL_checkstring(L, 1);
-	lunatik_opt_t opt = lunatik_checkcontext(L, 2);
+	lunatik_opt_t opt = lunatik_optcontext(L, 2);
 	int cpu;
 
 	lunatik_object_t *object = lunatik_newobject(L, &lunatik_percpu_class, sizeof(lunatik_percpu_t), opt);
