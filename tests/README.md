@@ -1527,7 +1527,9 @@ pid, and what a valid call does.
   full through `unix.dgram:sendto()` and on a TCP stream whose buffers are full
   through `inet:send()`, and the length of what it queued when the timeout left
   part of the message queued; a UDP send with no destination still raises
-  `EDESTADDRREQ`.
+  `EDESTADDRREQ`. `socket:connect()` still raises `EAGAIN` where it names a
+  failure: the implicit bind of a UDP socket whose port range,
+  `IP_LOCAL_PORT_RANGE`, is the one port another socket holds.
 
 - **packet**: the AF_PACKET address a `socket:send()` with a destination builds.
   A `SOCK_DGRAM` send on loopback names the protocol and the interface, and the
@@ -1574,7 +1576,11 @@ pid, and what a valid call does.
   the path itself read as the flags. `inet:connect()` hands the answer through,
   and a connect the peer refuses still raises `ECONNREFUSED`. A connect called
   again on a socket a nonblocking one left connecting answers `true` once the
-  handshake completes, and raises `ECONNREFUSED` once the peer refused it.
+  handshake completes, and raises `ECONNREFUSED` once the peer refused it. The
+  AF_UNIX listener's backlog is 0, which the connect to a path fills, and a
+  connect past it finds no room and answers `false`: at once with `O_NONBLOCK`
+  given past the path, which pins that the flag reaches the kernel, and through
+  `unix:connect()` once a send timeout ends its wait.
 
 - **inprogress**: what a TCP socket answers when a send timeout ends its wait for
   a handshake that does not complete, over the loopback of a namespace of the
