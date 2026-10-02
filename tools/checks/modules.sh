@@ -44,7 +44,7 @@ linux_tables() {
 defined_modules() {
 	case "$1" in
 		lib/luacrypto_*.c) echo crypto ;;
-		lib/lua*.c) head_or_base "$1" | sed -nE 's/^LUNATIK_(EBPF_)?NEWLIB\(([a-z0-9_]+),.*/\2/p;
+		lib/lua*.c) head_or_base "$1" | sed -nE 's/^(LUNATIK|LUAKFUNC)_NEWLIB\(([a-z0-9_]+),.*/\2/p;
 			s/^LUNATIK_OPENER\(([a-z0-9_]+)\);.*/\1/p' | head -1 | tr _ . ;;
 		lib/*.lua) local m=${1#lib/}; m=${m%.lua}; echo "${m//\//.}" ;;
 		lunatik.h|lunatik_*.[ch]) echo lunatik ;;

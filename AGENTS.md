@@ -657,7 +657,7 @@ read only through the main state, as `ready` is: `lunatik_isready` reads it thro
 `lunatik_getstate`, never through a coroutine's copy. A fact a coroutine may read while it changes
 lives where its writer can reach it: on the runtime object beside `owner` when the core sets it on
 every route, as the lock does, and in the registry under the binding's own static key when only
-that binding sets and reads it, as `lunatik_ebpf_env_key` and `fsnotify`'s callback flag do; the
+that binding sets and reads it, as `luakfunc_env_key` and `fsnotify`'s callback flag do; the
 registry is one per state and every coroutine shares it. A core field the core neither sets nor
 reads is a contract the core cannot keep. #851 put the callback flag in the extra space, where a
 coroutine made before the callback read it clear and one made inside kept it set, then on the
@@ -839,7 +839,7 @@ and remove them all.
 * An errno crosses the C code negative, as the kernel returns it: `lunatik_throw(L, -EINVAL)`, or the
   raw return of the call that failed. The single normalisation is at the Lua boundary, where
   `lunatik_pusherrname` takes the absolute value.
-* A `pr_err` on a path a callback reaches is `pr_err_ratelimited`, as `lunatik_ebpf.h` uses throughout:
+* A `pr_err` on a path a callback reaches is `pr_err_ratelimited`, as `lib/luakfunc.h` uses throughout:
   a handler that logs per packet or per syscall is a printk storm the moment a script starts failing,
   and it competes with the log that would explain the failure.
 * A log or error message is one terse line naming the condition, in the tree's voice — `couldn't find
