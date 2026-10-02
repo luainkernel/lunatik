@@ -1359,7 +1359,10 @@ make -C /lib/modules/$(uname -r)/build M=$PWD LUNATIK=$HOME/lunatik \
 `require("foo")` finds the binding once its module is loaded, by `insmod luafoo.ko` after
 `lunatik.ko`, or by `modprobe luafoo` once it is installed under `/lib/modules/$(uname -r)`: the
 searcher looks `luaopen_foo` up among the symbols the loaded modules export, and `lunatik load`
-loads only the tree's own modules.
+loads only the tree's own modules. A binding that registers a kfunc needs the running kernel's BTF
+at build time, which the tree's `sudo make btf_install` copies where the build reads it; without it
+the module loads with its kfunc unregistered, logging `missing module BTF, cannot register kfunc`
+(`kfuncs` on v6.8 and earlier), and an eBPF program that calls the kfunc fails to load.
 
 ---
 
@@ -1411,82 +1414,6 @@ Returns the `gfp_t` `object` allocates with: `GFP_ATOMIC` for a SOFTIRQ or HARDI
 and the object's while it calls a monitored method.
 A binding that allocates outside the Lua allocator passes `lunatik_gfp(lunatik_toruntime(L))`.
 Defined as a macro.
-
----
-
-## eBPF bindings
-
-```C
-#include <lunatik_ebpf.h>
-```
-The helpers of a binding whose kfunc an eBPF program calls to run a Lua callback, as
-[`lib/luaxdp.c`](../lib/luaxdp.c) does. Building one needs the running kernel's BTF,
-`sudo make btf_install` before `make`; without it the module loads with its kfunc unregistered,
-logging `missing module BTF, cannot register kfunc` (`kfuncs` on v6.8 and earlier), and an eBPF
-program that calls the kfunc fails to load.
-
-### LUNATIK\_EBPF\_RUN
-```C
-#define LUNATIK_EBPF_RUN(key, key_sz, handler, ret, ctxp)
-lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key_sz);
-```
-The kfunc's body: `lunatik_ebpf_lookupruntime` finds the runtime stored at `key` in
-`lunatik._ENV.runtimes`, where `lunatik run` keeps the runtimes it starts by script name, and
-`LUNATIK_EBPF_RUN` runs `handler(L, ctxp)` on it with [`lunatik_run`](#lunatik_run), sets `ret`
-with its result, a negative one, `lunatik_run`'s `-ENXIO` and `-EDEADLK` included, as `-1`, then
-drops the reference the lookup took. `key_sz` counts the terminator, which the lookup writes at
-`key[key_sz - 1]`. A key with no runtime, and a process runtime, which it logs, run nothing and
-leave `ret` as it was. The
-binding keeps the `runtimes` table the first lookup to find one returns; until then, a lookup made
-while `lunatik_run.ko` is not loaded runs nothing, which it logs.
-
-### lunatik\_ebpf\_bind
-```C
-void lunatik_ebpf_bind(lua_State *L, int ix, int *cb);
-void lunatik_ebpf_unbind(lua_State *L, int *cb);
-void *lunatik_ebpf_findctx(lua_State *L);
-void *lunatik_ebpf_getctx(lua_State *L);
-int lunatik_ebpf_invoke(lua_State *L, int cb, int nresults);
-int lunatik_ebpf_action(lua_State *L, int cb, lua_Integer min, lua_Integer max);
-```
-A runtime has one callback context, the userdata of an object of the binding's class, kept in
-its registry. `lunatik_ebpf_bind`, called with that userdata on top of the stack, references the
-callback at `ix` in `cb`, stores the userdata and pops it. `lunatik_ebpf_findctx` pushes the
-userdata and returns its private, or pops and returns `NULL` when the runtime has none;
-`lunatik_ebpf_getctx` also logs `no callback attached` then. `lunatik_ebpf_invoke` calls the
-callback `cb` with the value on top of the stack, the userdata `findctx` pushed, in a protected
-call, and returns `-1` after logging the error, `0` otherwise, with its `nresults` results on the
-stack. `lunatik_ebpf_action` invokes it for one result and returns that result when it is an
-integer from `min` to `max`, and `-1` when the callback raised or returned nil, or, logging
-`invalid action`, anything else. `lunatik_ebpf_unbind` releases
-`cb`, clears the stored userdata, and pops the one `findctx` pushed.
-
-### lunatik\_ebpf\_attach
-```C
-void lunatik_ebpf_attach(lua_State *L, obj, field, new_fn, ...);
-void lunatik_ebpf_detach(lua_State *L, obj, field);
-```
-Like [`lunatik_attach`](#lunatik_attach), and it also takes a reference on the new object, which
-the context's `release` drops; `lunatik_ebpf_detach` removes the registry entry and leaves
-`obj->field` for that release. Defined as macros.
-
-### LUNATIK\_EBPF\_NEWLIB
-```C
-#define LUNATIK_EBPF_START()
-#define LUNATIK_EBPF_END()
-#define LUNATIK_EBPF_KFUNC_DEFINE_SET(subsys, kfunc)
-#define LUNATIK_EBPF_NEWLIB(subsys, lib, class)
-#define LUNATIK_EBPF_KFUNC_INIT(subsys, prog_type)
-#define LUNATIK_EBPF_EXIT(subsys)
-```
-The module around the kfunc. `LUNATIK_EBPF_START()` and `LUNATIK_EBPF_END()` enclose the kfunc's
-definition; `LUNATIK_EBPF_KFUNC_DEFINE_SET` puts `kfunc` in the BTF set `bpf_lua<subsys>_set`
-and defines `bpf_lua<subsys>_kfunc_set`, the id set that wraps it; `LUNATIK_EBPF_NEWLIB` is
-[`LUNATIK_CLASSES`](#lunatik_classes) and [`LUNATIK_NEWLIB`](#lunatik_newlib) for the one class;
-`LUNATIK_EBPF_KFUNC_INIT` defines `lua<subsys>_init`, registering `bpf_lua<subsys>_kfunc_set`
-for the program type `prog_type`, and
-`LUNATIK_EBPF_EXIT` defines `lua<subsys>_exit`. The binding then names both in `module_init` and
-`module_exit`.
 
 ---
 
