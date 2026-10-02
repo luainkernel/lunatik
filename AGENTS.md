@@ -251,9 +251,13 @@ message means that release and every one after it. It also names an `is` or `has
 as a `static inline` whose body is one `return`, which the tree spells as a macro, and an `if` whose
 two arms call one function, which is a ternary: #1358 and #1383 passed their reviews in those shapes
 and the maintainer asked for both, while the check ran only when a skill called it, so it now runs at
-edit time and over a pull request's diff too. It annotates rather than fails, since the
-release-then-throw shape is not `lunatik_try`'s and the line between the check and the throw is
-what the reader decides on.
+edit time and over a pull request's diff too. It names an `is` or `has` predicate macro spelled
+with `?:`, which reads as two rules where an `||` of the exception and the rule reads as one, and a
+loop header a file spells twice, which a foreach macro names, as `lunatik_foreachruntime` does:
+#1504 landed `lunatik_iswrapped` as a ternary the maintainer found too complex (#1530), and #1539
+walked its views with one `for` in four places until he asked for `luaskb_foreachview`. It
+annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
+between the check and the throw is what the reader decides on.
 
 `function-shape.sh` reads a C file for the shapes of a function the review of #1158 passed and the
 maintainer then called out, in the functions the diff against `CHECK_BASE` touches: a lock taken at

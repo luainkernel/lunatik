@@ -6,9 +6,10 @@
 # cast from luaL_checkinteger, which #1140's linux.netns truncated. A static inline
 # is or has predicate whose body is one return is a macro, and an if whose two arms
 # call one function is a ternary: #1358 and #1383 passed their reviews in those shapes,
-# and the maintainer asked for both. Takes file
-# paths; silent on files that carry none, and on the Lua fork under lua/, whose guards
-# keep upstream first. The report is read, not obeyed: a check-then-throw that releases
+# and the maintainer asked for both. A predicate macro spelled with ?: reads as two rules,
+# and a loop header a file spells twice is a foreach macro: #1504 and #1539 carried those.
+# Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
+# guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
 # looks at.
 
@@ -59,6 +60,27 @@ for file in "$@"; do
 		}
 		else if (pred && line != "{")
 			body = body (body == "" ? "" : " ") line
+		if ($0 ~ /^#define [a-z0-9_]*_(is|has)[a-z0-9_]*\(/) {
+			macro = NR
+			definition = ""
+		}
+		if (macro) {
+			definition = definition $0
+			if ($0 !~ /\\$/) {
+				if (definition ~ /\?/)
+					printf "%s:%d: a predicate spelled with ?: reads as two rules: an || of the exception and the rule, or an && of the conditions\n", f, macro
+				macro = 0
+			}
+		}
+		if (line ~ /^for \(/) {
+			loop = line
+			sub(/[ \t]*\{$/, "", loop)
+			gsub(/[ \t]+/, " ", loop)
+			if (loop in loops)
+				printf "%s:%d: the loop of line %d again: a foreach macro names a walk over one domain, as lunatik_foreachruntime does\n", f, NR, loops[loop]
+			else
+				loops[loop] = NR
+		}
 		arm[NR] = line
 		if (NR > 3 && arm[NR - 1] == "else" && arm[NR - 3] ~ /^if \(.*\)([ \t]*\/\*.*\*\/)?$/ && callee(arm[NR - 2]) != "" &&
 		    callee(arm[NR - 2]) == callee(line) && arm[NR - 4] != "else")
