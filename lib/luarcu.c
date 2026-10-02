@@ -338,33 +338,6 @@ static inline void luarcu_inittable(luarcu_table_t *table, size_t size)
 	table->seed = luarcu_seed();
 }
 
-static int luarcu_foreach_handle(lua_State *L)
-{
-	luarcu_entry_t *entry = (luarcu_entry_t *)lua_touserdata(L, 2);
-	lunatik_value_t *value = (lunatik_value_t *)lua_touserdata(L, 3);
-
-	BUG_ON(!entry || !value);
-
-	lua_pop(L, 2); /* entry, value */
-
-	lunatik_pushvalue(L, value); /* first, so that a raise below leaves the reference with the clone */
-	lua_pushlstring(L, entry->key, entry->keylen);
-	lua_insert(L, -2); /* key, value */
-	lua_call(L, 2, 0);
-
-	return 0;
-}
-
-static inline int luarcu_foreach_call(lua_State *L, int cb, luarcu_entry_t *entry, lunatik_value_t *value)
-{
-	lua_pushcfunction(L, luarcu_foreach_handle);
-	lua_pushvalue(L, cb);
-	lua_pushlightuserdata(L, entry);
-	lua_pushlightuserdata(L, value);
-
-	return lua_pcall(L, 3, 0, 0); /* handle(cb, entry, value) */
-}
-
 static inline void luarcu_readentry(luarcu_entry_t *entry, lunatik_value_t *value)
 {
 	rcu_read_lock(); /* an unhashed entry's object is freed behind the unhash, after this section */
@@ -373,6 +346,36 @@ static inline void luarcu_readentry(luarcu_entry_t *entry, lunatik_value_t *valu
 	else
 		luarcu_readvalue(entry, value);
 	rcu_read_unlock();
+}
+
+static int luarcu_foreach_handle(lua_State *L)
+{
+	luarcu_entry_t *entry = (luarcu_entry_t *)lua_touserdata(L, 2);
+	lunatik_value_t value;
+
+	BUG_ON(!entry);
+
+	lua_pop(L, 1); /* entry */
+
+	luarcu_readentry(entry, &value); /* a pcall failing before this runs takes no reference */
+	if (value.type == LUA_TNIL)
+		return 0;
+
+	lunatik_pushvalue(L, &value); /* first, so that a raise below leaves the reference with the clone */
+	lua_pushlstring(L, entry->key, entry->keylen);
+	lua_insert(L, -2); /* key, value */
+	lua_call(L, 2, 0);
+
+	return 0;
+}
+
+static inline int luarcu_foreach_call(lua_State *L, int cb, luarcu_entry_t *entry)
+{
+	lua_pushcfunction(L, luarcu_foreach_handle);
+	lua_pushvalue(L, cb);
+	lua_pushlightuserdata(L, entry);
+
+	return lua_pcall(L, 2, 0, 0); /* handle(cb, entry) */
 }
 
 /***
@@ -402,16 +405,9 @@ static int luarcu_lforeach(lua_State *L)
 
 	idx = srcu_read_lock(&luarcu_srcu);
 	for (bucket = 0; bucket < table->size && ret == LUA_OK; bucket++)
-		hlist_for_each_entry_srcu(entry, table->hlist + bucket, hlist, srcu_read_lock_held(&luarcu_srcu)) {
-			lunatik_value_t value;
-
-			luarcu_readentry(entry, &value);
-			if (value.type == LUA_TNIL)
-				continue;
-
-			if ((ret = luarcu_foreach_call(L, 2, entry, &value)) != LUA_OK)
+		hlist_for_each_entry_srcu(entry, table->hlist + bucket, hlist, srcu_read_lock_held(&luarcu_srcu))
+			if ((ret = luarcu_foreach_call(L, 2, entry)) != LUA_OK)
 				break;
-		}
 	srcu_read_unlock(&luarcu_srcu, idx);
 	if (ret != LUA_OK)
 		lua_error(L);
