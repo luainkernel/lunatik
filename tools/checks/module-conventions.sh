@@ -95,7 +95,7 @@ check() {
 			add "calls a raw kernel allocator; lunatik wraps these (lunatik_malloc / lunatik_checkalloc / lunatik_checkzalloc / lunatik_realloc / lunatik_free). Confirm there is no framework API in lunatik.h for what you are introducing before using the kernel one directly"
 		grep -nE '#define[[:space:]]+lua[a-z]+_pushoptinteger' "$file" >/dev/null 2>&1 && \
 			add "defines its own *_pushoptinteger macro; use the shared lunatik_pushoptinteger from lunatik.h"
-		if grep -q 'LUNATIK_NEWLIB' "$file" && ! grep -q '@module' "$file"; then
+		if grep -qE '^(LUNATIK|LUAKFUNC)_NEWLIB\(' "$file" && ! grep -q '@module' "$file"; then
 			add "is a module but has no @module LDoc header"
 		fi
 		# @classmod documents the whole file as the class (as crypto does), so it
