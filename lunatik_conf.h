@@ -76,6 +76,8 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode);
 #undef LUAI_MAXSTACK
 #define LUAI_MAXSTACK  200
 
+#define MAXCCALLS  32	/* lstrlib's pattern nesting, sized for the kernel stack */
+
 /* stored in L's extraspace; gates lunatik_run */
 struct lunatik_object_s;
 typedef struct lunatik_runtime_s {
