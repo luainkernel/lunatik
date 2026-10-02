@@ -214,6 +214,10 @@ netfilter.register{
 	<td class="summary">Multicasts a message to every subscriber of the channel&rsquo;s group.</td>
 	</tr>
 	<tr>
+	<td class="name"><a href="#netlink.channel:stop">netlink.channel:stop ()</a></td>
+	<td class="summary">Unregisters the channel&rsquo;s family.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#netlink.channel:unicast">netlink.channel:unicast (portid, cmd[, payload])</a></td>
 	<td class="summary">Unicasts a message to a single userspace subscriber by port id.</td>
 	</tr>
@@ -262,9 +266,35 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-    on an allocation error.
+    &ldquo;closed object&rdquo; if the channel has been stopped, or on an allocation error.
 
 
+
+</dd>
+    <dt id="netlink.channel:stop"><a name="netlink.channel:stop"></a><strong>netlink.channel:stop ()</strong></dt>
+    <dd>
+    Unregisters the channel&rsquo;s family.
+ Userspace no longer resolves the family by name, its subscribers leave the group, and
+ <a href="../modules/netlink.channel.html#netlink.channel:multicast">multicast</a> and <a href="../modules/netlink.channel.html#netlink.channel:unicast">unicast</a> raise. Calling it again does nothing, and a to-be-closed variable
+ holding the channel stops it the same way.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+
+    </ol>
+
+    <h3>Raises</h3>
+     &ldquo;not allowed once the runtime is armed&rdquo; from an interrupt-context runtime past its body;
+   &ldquo;not allowed under RTNL&rdquo; from a netdevice callback, in whatever runtime or coroutine its task
+   runs, since the unregistration takes a lock a request holds while it waits on RTNL.
+
+
+    <h3>Usage</h3>
+        <pre class="example">family:<span class="function-name">stop</span>()</pre>
 
 </dd>
     <dt id="netlink.channel:unicast"><a name="netlink.channel:unicast"></a><strong>netlink.channel:unicast (portid, cmd[, payload])</strong></dt>
@@ -299,7 +329,7 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-    if <code>portid</code> is 0, or on an allocation error.
+    if <code>portid</code> is 0, &ldquo;closed object&rdquo; if the channel has been stopped, or on an allocation error.
 
 
 
@@ -315,8 +345,7 @@ netfilter.register{
  <a href="../modules/lunatik.html#">lunatik</a>; userspace resolves the family by name (e.g. via <a href="../modules/netlink.genl.html#">netlink.genl</a>, or
  <code>genl ctrl get name &lt;name&gt;</code>) to learn that group&rsquo;s id, and joins it with
  <code>NETLINK_ADD_MEMBERSHIP</code>. Like a netfilter hook, it must be created at script load
- (process context); the returned channel lives for the runtime and its
- <a href="../modules/netlink.channel.html#netlink.channel:multicast">multicast</a>/<a href="../modules/netlink.channel.html#netlink.channel:unicast">unicast</a> may then be called from softirq.
+ (process context); its <a href="../modules/netlink.channel.html#netlink.channel:multicast">multicast</a>/<a href="../modules/netlink.channel.html#netlink.channel:unicast">unicast</a> may then be called from softirq.
 
 
     <h3>Parameters</h3>
@@ -331,7 +360,8 @@ netfilter.register{
     <ol>
 
            <span class="types"><a class="type" href="../modules/netlink.channel.html#netlink.channel">netlink.channel</a></span>
-        A new channel object.
+        the channel, which <a href="../modules/netlink.channel.html#new">new</a> keeps for its runtime: dropping it stops
+   nothing, and the family stays registered until <a href="../modules/netlink.channel.html#netlink.channel:stop">stop</a> or the end of the runtime.
     </ol>
 
     <h3>Raises</h3>
@@ -358,7 +388,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:11:05</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:14:38</span>
 </div>
 </footer>
 </body>

@@ -231,6 +231,7 @@ window.LUNATIK_SEARCH = [
 ["register (opts)","modules/netfilter.html#register","netfilter · Registers a Netfilter hook."],
 ["netlink.channel","modules/netlink.channel.html","Module · Generic netlink channel: a generic netlink family with one multicast group whose multicast/unicast are safe from softirq (netfilter hooks, XDP), for kernel-to-userspace delivery."],
 ["netlink.channel:multicast (cmd[, payload])","modules/netlink.channel.html#netlink.channel:multicast","netlink.channel · Multicasts a message to every subscriber of the channel's group."],
+["netlink.channel:stop ()","modules/netlink.channel.html#netlink.channel:stop","netlink.channel · Unregisters the channel's family."],
 ["netlink.channel:unicast (portid, cmd[, payload])","modules/netlink.channel.html#netlink.channel:unicast","netlink.channel · Unicasts a message to a single userspace subscriber by port id."],
 ["new (name)","modules/netlink.channel.html#new","netlink.channel · Creates a generic netlink channel."],
 ["netlink.genl","modules/netlink.genl.html","Module · Generic netlink (NETLINK_GENERIC) interface."],
