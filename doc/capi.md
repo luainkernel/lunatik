@@ -733,7 +733,9 @@ The item lives in what defers, so deferring allocates nothing: `lunatik_initdefe
 the first `lunatik_defer`, and `func` finds what defers through `container_of` on `work`. Calls made
 before `func` starts run it once, and one made while it runs runs it again after it returns, so what
 each call hands `func` goes on a list `func` drains. A `func` that frees the item calls
-`irq_work_sync` on `irq` first, since the first hop still writes it after queuing `work`.
+`irq_work_sync` on `irq` first, since the first hop still writes it after queuing `work`. An item
+whose call takes a reference on what embeds it, which `func` drops, is never freed while queued, and
+its release, run by that put inside `func` or by a later one, waits on nothing.
 `lunatik_initdefer` and `lunatik_defer` are macros, and `lunatik_initdefer` gives each call site a
 lockdep class of its own, as `INIT_WORK` does.
 

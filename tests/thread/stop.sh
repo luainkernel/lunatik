@@ -41,9 +41,9 @@
 # Usage: sudo bash tests/thread/stop.sh
 
 SCRIPT="tests/thread/stop"
-PREFIX="thread stop test: "
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
+source "$(dirname "$(readlink -f "$0")")/driver.sh"
 
 cleanup() { lunatik stop "$SCRIPT" > /dev/null 2>&1; }
 trap cleanup EXIT
@@ -51,21 +51,6 @@ cleanup
 
 ktap_header
 ktap_plan 6
-
-reported()
-{
-	dmesg_since | grep -qE "$PREFIX$1\$"
-}
-
-# verdict <case> <description>: each case reports its name once it passed, or its error
-verdict()
-{
-	if reported "$1"; then
-		ktap_pass "$2"
-	else
-		ktap_fail "$2"
-	fi
-}
 
 mark_dmesg
 output=$(lunatik spawn "$SCRIPT" 2>&1)

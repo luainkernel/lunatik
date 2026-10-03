@@ -39,6 +39,8 @@ typedef struct luathread_s {
 	struct task_struct *task;
 	lunatik_object_t *runtime;
 	int nargs;
+	lunatik_object_t *object;
+	lunatik_defer_t defer;
 } luathread_t;
 
 static int luathread_run(lua_State *L);
@@ -88,27 +90,54 @@ static int luathread_shouldstop(lua_State *L)
 	return 1;
 }
 
+static inline struct task_struct *luathread_take(luathread_t *thread)
+{
+	struct task_struct *task = thread->task;
+
+	thread->task = NULL; /* the exit kthread_stop waits for is completed once */
+	return task;
+}
+
 static struct task_struct *luathread_claim(lua_State *L, lunatik_object_t *object)
 {
 	luathread_t *thread = (luathread_t *)object->private;
 
 	lunatik_try(L, lunatik_lockkillable, object);
-	struct task_struct *task = thread->task;
-	if (task != NULL && lunatik_isowner(thread->runtime)) { /* the body runs under its lock */
+	if (thread->task != NULL && lunatik_isowner(thread->runtime)) { /* the body runs under its lock */
 		lunatik_unlock(object);
 		luaL_error(L, LUNATIK_ERR_OWNER);
 	}
-	thread->task = NULL; /* the exit kthread_stop waits for is completed once */
+	struct task_struct *task = luathread_take(thread);
 	lunatik_unlock(object);
 	return task;
+}
+
+static int luathread_stoptask(lunatik_object_t *object, struct task_struct *task)
+{
+	luathread_t *thread = (luathread_t *)object->private;
+	lunatik_object_t *runtime = thread->runtime;
+	int result = kthread_stop(task);
+
+	put_task_struct(task);
+	if (result == -EINTR) {
+		luathread_popargs(runtime, thread->nargs);
+		lunatik_putobject(object);
+		pr_warn("[%p] thread has never run\n", thread);
+	}
+	else if (result == -ENOEXEC)
+		pr_warn("[%p] thread has failed to execute\n", thread);
+	lunatik_putobject(runtime); /* a last put runs its finalizers, which may stop this thread */
+	return result;
 }
 
 /***
 * Stops a running kernel thread.
 * Signals the thread to stop and waits for it to exit. A body waiting for a runtime's lock,
 * or for the lock a shared object's method takes, leaves that wait with "EINTR". A
-* to-be-closed variable holding the thread stops it the same way. A stop made while another
-* stop of the same thread waits for it returns at once, before the thread has exited.
+* to-be-closed variable holding the thread stops it the same way, and so does the end of the
+* runtime that called `thread.run`, which keeps the thread until a stop called there and leaves
+* the wait to a kernel worker where it cannot wait, as `thread.run` says. A stop made while
+* another stop of the same thread waits for it returns at once, before the thread has exited.
 * @function stop
 * @treturn boolean `false` if the body it stopped raised, `true` otherwise, for a thread
 *   already stopped or being stopped too
@@ -122,26 +151,14 @@ static struct task_struct *luathread_claim(lua_State *L, lunatik_object_t *objec
 static int luathread_stop(lua_State *L)
 {
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luathread_class);
-	luathread_t *thread = (luathread_t *)object->private;
-	lunatik_object_t *runtime = thread->runtime;
 	struct task_struct *task = luathread_claim(L, object);
 
 	int result = 0;
-	if (task != NULL) {
-		result = kthread_stop(task);
-
-		put_task_struct(task);
-		if (result == -EINTR) {
-			luathread_popargs(runtime, thread->nargs);
-			lunatik_putobject(object);
-			pr_warn("[%p] thread has never run\n", thread);
-		}
-		else if (result == -ENOEXEC)
-			pr_warn("[%p] thread has failed to execute\n", thread);
-		lunatik_putobject(runtime); /* a last put runs its finalizers, which may stop this thread */
-	}
+	if (task != NULL)
+		result = luathread_stoptask(object, task);
 	else
-		pr_warn("[%p] thread has already stopped\n", thread);
+		pr_warn("[%p] thread has already stopped\n", object->private);
+	lunatik_unregister(L, object);
 	lua_pushboolean(L, result != -ENOEXEC);
 	return 1;
 }
@@ -167,6 +184,53 @@ static int luathread_task(lua_State *L)
 	return 1;
 }
 
+static inline bool luathread_iskept(lua_State *L, lunatik_object_t *object)
+{
+	lunatik_getregistry(L, object);
+	bool kept = lua_rawequal(L, 1, -1);
+
+	lua_pop(L, 1);
+	return kept;
+}
+
+static void luathread_work(struct work_struct *work)
+{
+	luathread_t *thread = container_of(work, luathread_t, defer.work);
+	lunatik_object_t *object = thread->object;
+
+	irq_work_sync(&thread->defer.irq); /* the first hop writes the item after it queues this work */
+	lunatik_lock(object);
+	struct task_struct *task = luathread_take(thread);
+	lunatik_unlock(object);
+
+	if (task != NULL)
+		luathread_stoptask(object, task);
+	lunatik_putobject(object);
+}
+
+static void luathread_defer(lunatik_object_t *object)
+{
+	luathread_t *thread = (luathread_t *)object->private;
+
+	thread->object = object;
+	lunatik_initdefer(&thread->defer, luathread_work);
+	lunatik_getobject(object); /* the work's */
+	lunatik_defer(&thread->defer);
+}
+
+static int luathread_gc(lua_State *L)
+{
+	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luathread_class);
+
+	if (luathread_iskept(L, object)) {
+		lua_pushcfunction(L, luathread_stop);
+		lua_pushvalue(L, 1);
+		if (lua_pcall(L, 1, 0, 0) != LUA_OK) /* stop raises before it claims the task */
+			luathread_defer(object);
+	}
+	return lunatik_deleteobject(L);
+}
+
 static void luathread_release(void *private)
 {
 	luathread_t *thread = (luathread_t *)private;
@@ -184,7 +248,7 @@ static const luaL_Reg luathread_lib[] = {
 };
 
 static const luaL_Reg luathread_mt[] = {
-	{"__gc", lunatik_deleteobject},
+	{"__gc", luathread_gc},
 	{"__close", luathread_stop},
 	{"stop", luathread_stop},
 	{"task", luathread_task},
@@ -238,15 +302,17 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 * Creates and starts a new kernel thread to run a Lua task.
 * The runtime must be sleepable; the script it loaded must return a function,
 * which becomes the thread body, called with the objects given here. The thread holds a
-* reference to the runtime until `stop` releases it or the thread is collected, even once its
-* body has returned.
+* reference to the runtime until `stop`, or the end of the runtime that called `thread.run`,
+* releases it, even once its body has returned, so a runtime that keeps starting threads stops
+* each one whose body returned.
 * @function run
 * @tparam runtime runtime A sleepable Lunatik runtime whose script returns a function.
 * @tparam string name A descriptive name for the kernel thread.
 * @param ... Lunatik objects passed to the thread body.
-* @treturn thread the thread, which this call does not keep: dropping it stops nothing, the
-*   thread runs until its body returns or `stop`, and once the handle is collected nothing can
-*   stop it.
+* @treturn thread the thread, which this call keeps for the runtime that calls it: dropping it
+*   stops nothing, and the thread runs until its body returns, `stop` or the end of that runtime,
+*   which stops it as `stop` does; an end that cannot wait for the body, where `stop` raises, hands
+*   the stop to a kernel worker and returns before the thread has exited.
 * @raise "not allowed while the runtime closes" from a finalizer that runs at its close; "not
 *   allowed before the runtime is armed" from a script body; "IRQ runtime cannot spawn threads" for
 *   a softirq or hardirq runtime; "stopped runtime"; "invalid object" or "cannot share SINGLE
@@ -290,6 +356,7 @@ static int luathread_run(lua_State *L)
 	get_task_struct(task); /* kthread_stop reads the task after the body returned */
 	wake_up_process(task);
 
+	lunatik_register(L, -1, object);
 	return 1; /* object */
 }
 
@@ -303,6 +370,7 @@ static int __init luathread_init(void)
 
 static void __exit luathread_exit(void)
 {
+	lunatik_flushdefer();
 }
 
 module_init(luathread_init);

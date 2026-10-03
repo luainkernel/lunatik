@@ -3,7 +3,7 @@
 **echod**
 is an echo server implemented as kernel scripts.
 The [daemon](daemon.lua) listens on 127.0.0.1:1337 and hands each connection to a kernel thread running
-[worker.lua](worker.lua); the workers end within 100 ms of the daemon's stop.
+[worker.lua](worker.lua); the daemon stops each worker whose client left, and its own stop ends the rest.
 
 ## Usage
 

@@ -287,9 +287,8 @@ static int luasocket_receivemsg(lua_State *L, struct msghdr *msg)
 * The call blocks until a message arrives, with no timeout of its own, unless `flags` carries
 * `linux.socket.msg.DONTWAIT` or `setsockopt` set a receive timeout
 * (`linux.socket.so.RCVTIMEO_NEW`); either makes a wait with nothing to read answer `nil`.
-* A `lunatik stop` of the spawned thread that waits ends its wait, which raises `ERESTARTSYS`, or
-* `EINTR` under a receive timeout; a thread nothing stops, as a worker a body starts with
-* `thread.run()`, bounds every wait.
+* A stop of the thread that waits ends its wait, which raises `ERESTARTSYS`, or `EINTR` under a
+* receive timeout.
 *
 * @function receive
 * @tparam integer length maximum number of bytes to receive, from 0 to `INT_MAX`.

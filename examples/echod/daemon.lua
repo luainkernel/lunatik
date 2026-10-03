@@ -14,8 +14,8 @@ local shouldstop = thread.shouldstop
 local task = require("linux.task")
 local sock = require("linux.socket").sock
 
-local control = data.new(2)
-control:setbyte(1, 1) -- alive
+local control = data.new(1)
+local workers = {}
 
 local server = inet.tcp()
 server:bind(inet.localhost, 1337)
@@ -24,6 +24,15 @@ server:listen()
 local n = 1
 local worker = "echod/worker"
 
+local function reap()
+	for t, done in pairs(workers) do
+		if done:getbyte(0) ~= 0 then
+			t:stop()
+			workers[t] = nil
+		end
+	end
+end
+
 local function daemon()
 	print("echod [daemon]: started")
 	while (not shouldstop()) do
@@ -31,13 +40,14 @@ local function daemon()
 		if session then
 			control:setbyte(0, n) -- #workers
 			local runtime = lunatik.runtime("examples/" .. worker)
-			thread.run(runtime, worker .. n, control, session)
+			local done = data.new(1)
+			workers[thread.run(runtime, worker .. n, control, session, done)] = done
 			n = n + 1
 		else
 			linux.schedule(100)
 		end
+		reap()
 	end
-	control:setbyte(1, 0) -- dead
 	print("echod [daemon]: stopped")
 end
 
