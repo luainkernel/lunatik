@@ -607,8 +607,12 @@ LUASOCKET_NEWGETTER(peername);
 *   netdevice callback; `unsupported option level` on a kernel before 6.7, at a level the socket's
 *   protocol has no `setsockopt` for.
 * @usage
+*   local struct = require("struct")
+*   local sk     = require("linux.socket")
+*
 *   -- bound blocking receives to 500 ms (a `struct __kernel_sock_timeval`)
-*   sock:setsockopt(sol.SOCKET, so.RCVTIMEO_NEW, timeval:pack(0, 500000))
+*   local timeval = struct(sk.layout.timeval)
+*   sock:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, 500000))
 */
 static int luasocket_setsockopt(lua_State *L)
 {
@@ -792,11 +796,15 @@ static int luasocket_accept(lua_State *L)
 *   of their own, or
 *   `'socket': process-context class in interrupt-context runtime` in a softirq or hardirq runtime.
 * @usage
+*   local socket = require("socket")
+*   local sk     = require("linux.socket")
+*   local nl     = require("linux.netlink")
+*
 *   -- TCP/IPv4 socket
-*   local tcp_sock = socket.new(linux.socket.af.INET, linux.socket.sock.STREAM, linux.socket.ipproto.TCP)
+*   local tcp_sock = socket.new(sk.af.INET, sk.sock.STREAM, sk.ipproto.TCP)
 *
 *   -- rtnetlink socket in the network namespace of the task 1234
-*   local rtnl = socket.new(linux.socket.af.NETLINK, linux.socket.sock.RAW, linux.netlink.proto.ROUTE, 1234)
+*   local rtnl = socket.new(sk.af.NETLINK, sk.sock.RAW, nl.proto.ROUTE, 1234)
 * @see linux.socket.af
 * @see linux.socket.sock
 * @see linux.socket.ipproto
