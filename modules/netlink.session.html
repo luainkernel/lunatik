@@ -82,13 +82,11 @@
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html" aria-current="page">netlink.session</a></li>
@@ -203,15 +201,15 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#session:new">session:new ([o])</a></td>
-	<td class="summary">Derives a protocol class from the session, as <a href="../modules/netlink.genl.html#">netlink.genl</a> and <a href="../modules/netlink.rt.object.html#">netlink.rt.object</a> are, or
+	<td class="summary">Derives a protocol class from the session, as <a href="../modules/netlink.genl.html#">netlink.genl</a> and the <a href="../modules/netlink.rt.html#">netlink.rt</a> classes are, or
  wraps a table in it.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#session:request">session:request (mtype, flags, payload)</a></td>
+	<td class="name"><a href="#session:request">session:request (mtype, payload[, flags=0])</a></td>
 	<td class="summary">Sends one request (<code>NLM_F_REQUEST</code> plus <code>flags</code>) with a fresh sequence number, without waiting for a reply.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#session:talk">session:talk (mtype[, flags=0], payload)</a></td>
+	<td class="name"><a href="#session:talk">session:talk (mtype, payload[, flags=0])</a></td>
 	<td class="summary">Sends a request with <code>NLM_F_ACK</code> and drains the reply up to the kernel
  acknowledgment, keeping the socket in sync.</td>
 	</tr>
@@ -299,7 +297,7 @@
 </dd>
     <dt id="session:new"><a name="session:new"></a><strong>session:new ([o])</strong></dt>
     <dd>
-    Derives a protocol class from the session, as <a href="../modules/netlink.genl.html#">netlink.genl</a> and <a href="../modules/netlink.rt.object.html#">netlink.rt.object</a> are, or
+    Derives a protocol class from the session, as <a href="../modules/netlink.genl.html#">netlink.genl</a> and the <a href="../modules/netlink.rt.html#">netlink.rt</a> classes are, or
  wraps a table in it.  It opens no socket: calling a derived class does, e.g. <code>netlink.rt.route()</code>
  or <code>netlink.genl()</code>.
 
@@ -328,7 +326,7 @@
 
 
 </dd>
-    <dt id="session:request"><a name="session:request"></a><strong>session:request (mtype, flags, payload)</strong></dt>
+    <dt id="session:request"><a name="session:request"></a><strong>session:request (mtype, payload[, flags=0])</strong></dt>
     <dd>
     Sends one request (<code>NLM_F_REQUEST</code> plus <code>flags</code>) with a fresh sequence number, without waiting for a reply.
 
@@ -339,13 +337,14 @@
             <span class="types"><span class="type">integer</span></span>
          message type.
         </li>
-        <li><span class="parameter">flags</span>
-            <span class="types"><span class="type">integer</span></span>
-         additional NLM_F_* flags.
-        </li>
         <li><span class="parameter">payload</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          the family header and attributes.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         additional NLM_F_* flags.
+         (<em>default</em> 0)
         </li>
     </ul>
 
@@ -354,7 +353,7 @@
 
 
 </dd>
-    <dt id="session:talk"><a name="session:talk"></a><strong>session:talk (mtype[, flags=0], payload)</strong></dt>
+    <dt id="session:talk"><a name="session:talk"></a><strong>session:talk (mtype, payload[, flags=0])</strong></dt>
     <dd>
     Sends a request with <code>NLM_F_ACK</code> and drains the reply up to the kernel
  acknowledgment, keeping the socket in sync.
@@ -366,14 +365,14 @@
             <span class="types"><span class="type">integer</span></span>
          message type.
         </li>
+        <li><span class="parameter">payload</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         the family header and attributes.
+        </li>
         <li><span class="parameter">flags</span>
             <span class="types"><span class="type">integer</span></span>
          extra NLM_F_* flags.
          (<em>default</em> 0)
-        </li>
-        <li><span class="parameter">payload</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         the family header and attributes.
         </li>
     </ul>
 
@@ -404,7 +403,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:08:05</span>
 </div>
 </footer>
 </body>

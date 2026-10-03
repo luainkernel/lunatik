@@ -39,7 +39,7 @@ local station <close> = netlink.nl80211.station()
 station:add{ifindex = idx, mac = mac, aid = 1,
             listen_interval = 10, supported_rates = rates}
 station:set{ifindex = idx, mac = mac, authorized = true}   -- open the controlled port
-for _, s in ipairs(station:list(idx)) do
+for _, s in ipairs(station:list{ifindex = idx}) do
     -- { mac, aid, flags, ... }
 end
 station:del{ifindex = idx, mac = mac}

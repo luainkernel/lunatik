@@ -82,13 +82,11 @@
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html" aria-current="page">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -182,8 +180,7 @@
  sleepable runtime.
     <h3>See also</h3>
     <ul>
-         <li><a href="../modules/netlink.rt.object.html#">netlink.rt.object</a></li>
-         <li><a href="../modules/netlink.session.html#">netlink.session</a></li>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
     </ul>
 
 <h2 id="Class_addr">Class addr </h2>
@@ -193,7 +190,7 @@
 	<td class="summary">Opens a session, calling the class: <code>netlink.rt.addr([pid])</code>.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#addr:list">addr:list ([family=AF_UNSPEC])</a></td>
+	<td class="name"><a href="#addr:list">addr:list ([opts])</a></td>
 	<td class="summary">Lists all interface addresses from the kernel.</td>
 	</tr>
 	<tr>
@@ -238,17 +235,18 @@
 
 
 </dd>
-    <dt id="addr:list"><a name="addr:list"></a><strong>addr:list ([family=AF_UNSPEC])</strong></dt>
+    <dt id="addr:list"><a name="addr:list"></a><strong>addr:list ([opts])</strong></dt>
     <dd>
     Lists all interface addresses from the kernel.
 
 
     <h3>Parameters</h3>
     <ul>
-        <li><span class="parameter">family</span>
-            <span class="types"><span class="type">integer</span></span>
-         address family.
-         (<em>default</em> AF_UNSPEC)
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         list options: <code>family</code>, the address family of the records listed
+   (default <code>AF_UNSPEC</code>, every family).
+         (<em>optional</em>)
         </li>
     </ul>
 
@@ -256,7 +254,7 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-         list of address tables, each with <code>family</code>, <code>prefix_len</code>, <code>scope</code>, <code>ifindex</code>,
+         list of address tables, each with <code>family</code>, <code>prefixlen</code>, <code>scope</code>, <code>ifindex</code>,
    <code>address</code>, <code>peer</code> and <code>label</code>; <code>address</code> is the interface&rsquo;s own address and <code>peer</code>, only on an
    address configured with one, the other end of a point-to-point link, both as bytes in network
    byte order; a field whose attribute the reply lacks is nil.
@@ -310,7 +308,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:08:05</span>
 </div>
 </footer>
 </body>

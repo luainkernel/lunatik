@@ -82,13 +82,11 @@
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -183,11 +181,11 @@
 <h2 id="Tables">Tables</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#attr">attr</a></td>
+	<td class="name"><a href="#ctrl.attr">ctrl.attr</a></td>
 	<td class="summary">Generic netlink controller attributes (CTRL_ATTR_*).</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#cmd">cmd</a></td>
+	<td class="name"><a href="#ctrl.cmd">ctrl.cmd</a></td>
 	<td class="summary">Generic netlink controller commands (CTRL_CMD_*).</td>
 	</tr>
 	<tr>
@@ -203,11 +201,11 @@
     <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
 
     <dl class="function">
-    <dt id="attr"><a name="attr"></a><strong>attr</strong></dt>
+    <dt id="ctrl.attr"><a name="ctrl.attr"></a><strong>ctrl.attr</strong></dt>
     <dd>
     Generic netlink controller attributes (CTRL_ATTR_<em>).
  Mirrors <code>CTRL_ATTR_</em></code> defines in <code>&lt;uapi/linux/genetlink.h&gt;</code>.
- Keys are the kernel names with the prefix stripped: <code>CTRL_ATTR_&lt;NAME&gt;</code> is <code>linux.genl.attr.&lt;NAME&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>CTRL_ATTR_&lt;NAME&gt;</code> is <code>linux.genl.ctrl.attr.&lt;NAME&gt;</code>.
 
 
 
@@ -216,11 +214,11 @@
 
 
 </dd>
-    <dt id="cmd"><a name="cmd"></a><strong>cmd</strong></dt>
+    <dt id="ctrl.cmd"><a name="ctrl.cmd"></a><strong>ctrl.cmd</strong></dt>
     <dd>
     Generic netlink controller commands (CTRL_CMD_<em>).
  Mirrors <code>CTRL_CMD_</em></code> defines in <code>&lt;uapi/linux/genetlink.h&gt;</code>.
- Keys are the kernel names with the prefix stripped: <code>CTRL_CMD_&lt;NAME&gt;</code> is <code>linux.genl.cmd.&lt;NAME&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>CTRL_CMD_&lt;NAME&gt;</code> is <code>linux.genl.ctrl.cmd.&lt;NAME&gt;</code>.
 
 
 
@@ -268,7 +266,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:08:05</span>
 </div>
 </footer>
 </body>

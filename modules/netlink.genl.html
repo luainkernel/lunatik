@@ -82,13 +82,11 @@
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -187,10 +185,6 @@
 <h2 id="Class_genl">Class genl </h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#genl:call">genl:call (family_id, cmd[, flags=0[, payload]])</a></td>
-	<td class="summary">Sends a single generic netlink command and returns the decoded reply messages.</td>
-	</tr>
-	<tr>
 	<td class="name"><a href="#genl:dump">genl:dump (family_id, cmd[, payload])</a></td>
 	<td class="summary">Sends a dump command and collects the full multipart response.</td>
 	</tr>
@@ -200,8 +194,12 @@
 	</tr>
 	<tr>
 	<td class="name"><a href="#genl:new">genl:new ([o])</a></td>
-	<td class="summary">Derives a class from the generic netlink session, as <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a> is, or wraps a
+	<td class="summary">Derives a class from the generic netlink session, as the <a href="../modules/netlink.nl80211.html#">netlink.nl80211</a> classes are, or wraps a
  table in it.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#genl:talk">genl:talk (family_id, cmd, payload[, flags=0])</a></td>
+	<td class="summary">Sends a single generic netlink command and returns the decoded reply messages.</td>
 	</tr>
 </table></div>
 
@@ -211,46 +209,6 @@
           Generic netlink session.
           </div>
     <dl class="function">
-    <dt id="genl:call"><a name="genl:call"></a><strong>genl:call (family_id, cmd[, flags=0[, payload]])</strong></dt>
-    <dd>
-    Sends a single generic netlink command and returns the decoded reply messages.
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">family_id</span>
-            <span class="types"><span class="type">integer</span></span>
-         family id (from <a href="../modules/netlink.genl.html#genl:family">family</a>).
-        </li>
-        <li><span class="parameter">cmd</span>
-            <span class="types"><span class="type">integer</span></span>
-         command number.
-        </li>
-        <li><span class="parameter">flags</span>
-            <span class="types"><span class="type">integer</span></span>
-         additional NLM_F_* flags.
-         (<em>default</em> 0)
-        </li>
-        <li><span class="parameter">payload</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         serialized attributes.
-         (<em>optional</em>)
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        list of <code>{cmd, attrs}</code> response messages.
-    </ol>
-
-    <h3>Raises</h3>
-    on netlink error.
-
-
-
-</dd>
     <dt id="genl:dump"><a name="genl:dump"></a><strong>genl:dump (family_id, cmd[, payload])</strong></dt>
     <dd>
     Sends a dump command and collects the full multipart response.
@@ -315,7 +273,7 @@
 </dd>
     <dt id="genl:new"><a name="genl:new"></a><strong>genl:new ([o])</strong></dt>
     <dd>
-    Derives a class from the generic netlink session, as <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a> is, or wraps a
+    Derives a class from the generic netlink session, as the <a href="../modules/netlink.nl80211.html#">netlink.nl80211</a> classes are, or wraps a
  table in it.  It opens no socket: calling the class does, <code>netlink.genl()</code>.
 
 
@@ -343,6 +301,45 @@
 
 
 </dd>
+    <dt id="genl:talk"><a name="genl:talk"></a><strong>genl:talk (family_id, cmd, payload[, flags=0])</strong></dt>
+    <dd>
+    Sends a single generic netlink command and returns the decoded reply messages.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">family_id</span>
+            <span class="types"><span class="type">integer</span></span>
+         family id (from <a href="../modules/netlink.genl.html#genl:family">family</a>).
+        </li>
+        <li><span class="parameter">cmd</span>
+            <span class="types"><span class="type">integer</span></span>
+         command number.
+        </li>
+        <li><span class="parameter">payload</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         serialized attributes.
+        </li>
+        <li><span class="parameter">flags</span>
+            <span class="types"><span class="type">integer</span></span>
+         additional NLM_F_* flags.
+         (<em>default</em> 0)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        list of <code>{cmd, attrs}</code> response messages.
+    </ol>
+
+    <h3>Raises</h3>
+    on netlink error.
+
+
+
+</dd>
 </dl>
 
 
@@ -357,7 +354,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:08:05</span>
 </div>
 </footer>
 </body>

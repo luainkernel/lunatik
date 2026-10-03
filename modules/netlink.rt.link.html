@@ -82,13 +82,11 @@
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html" aria-current="page">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -182,8 +180,7 @@
  block and require a sleepable runtime.
     <h3>See also</h3>
     <ul>
-         <li><a href="../modules/netlink.rt.object.html#">netlink.rt.object</a></li>
-         <li><a href="../modules/netlink.session.html#">netlink.session</a></li>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
     </ul>
 
 <h2 id="Class_link">Class link </h2>
@@ -193,7 +190,7 @@
 	<td class="summary">Opens a session, calling the class: <code>netlink.rt.link([pid])</code>.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#link:list">link:list ()</a></td>
+	<td class="name"><a href="#link:list">link:list ([opts])</a></td>
 	<td class="summary">Lists all network interfaces from the kernel.</td>
 	</tr>
 	<tr>
@@ -242,17 +239,25 @@
 
 
 </dd>
-    <dt id="link:list"><a name="link:list"></a><strong>link:list ()</strong></dt>
+    <dt id="link:list"><a name="link:list"></a><strong>link:list ([opts])</strong></dt>
     <dd>
     Lists all network interfaces from the kernel.
 
 
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         list options, of which a link takes none.
+         (<em>optional</em>)
+        </li>
+    </ul>
 
     <h3>Returns</h3>
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        list of link tables, each with <code>family</code>, <code>ltype</code>, <code>ifindex</code>, <code>flags</code>, <code>change</code>,
+        list of link tables, each with <code>family</code>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>, <code>ifindex</code>, <code>flags</code>, <code>change</code>,
    <code>name</code> and <code>mtu</code>; a field whose attribute the reply lacks is nil.
     </ol>
 
@@ -324,7 +329,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:08:05</span>
 </div>
 </footer>
 </body>

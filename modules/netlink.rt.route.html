@@ -82,13 +82,11 @@
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="../modules/netlink.rt.route.html" aria-current="page">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -182,8 +180,7 @@
  runtime.
     <h3>See also</h3>
     <ul>
-         <li><a href="../modules/netlink.rt.object.html#">netlink.rt.object</a></li>
-         <li><a href="../modules/netlink.session.html#">netlink.session</a></li>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
     </ul>
 
 <h2 id="Class_route">Class route </h2>
@@ -201,7 +198,7 @@
 	<td class="summary">Deletes a route from the kernel routing table.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#route:list">route:list ([family=AF_UNSPEC])</a></td>
+	<td class="name"><a href="#route:list">route:list ([opts])</a></td>
 	<td class="summary">Lists all routes from the kernel routing tables.</td>
 	</tr>
 	<tr>
@@ -256,7 +253,7 @@
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          route parameters: optional <code>family</code> (default <code>AF_INET</code>),
-   <code>dst_len</code>, <code>dst</code>, <code>gateway</code>, <code>oif</code>, <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a>, <code>protocol</code>, <code>scope</code>, <code>rtype</code>. <code>dst</code> and
+   <code>dst_len</code>, <code>dst</code>, <code>gateway</code>, <code>oif</code>, <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a>, <code>protocol</code>, <code>scope</code>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>. <code>dst</code> and
    <code>gateway</code> are the address bytes in network byte order, e.g.
    <code>string.pack(&quot;&gt;I4&quot;, net.aton(&quot;192.0.2.0&quot;))</code>, never an integer.
         </li>
@@ -290,17 +287,18 @@
 
 
 </dd>
-    <dt id="route:list"><a name="route:list"></a><strong>route:list ([family=AF_UNSPEC])</strong></dt>
+    <dt id="route:list"><a name="route:list"></a><strong>route:list ([opts])</strong></dt>
     <dd>
     Lists all routes from the kernel routing tables.
 
 
     <h3>Parameters</h3>
     <ul>
-        <li><span class="parameter">family</span>
-            <span class="types"><span class="type">integer</span></span>
-         address family.
-         (<em>default</em> AF_UNSPEC)
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         list options: <code>family</code>, the address family of the records listed
+   (default <code>AF_UNSPEC</code>, every family).
+         (<em>optional</em>)
         </li>
     </ul>
 
@@ -309,7 +307,7 @@
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          list of route tables, each with <code>family</code>, <code>dst_len</code>, <code>src_len</code>, <code>tos</code>, <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a>,
-   <code>protocol</code>, <code>scope</code>, <code>rtype</code>, <code>flags</code>, <code>dst</code>, <code>gateway</code>, <code>oif</code> and <code>priority</code>; <code>dst</code> and
+   <code>protocol</code>, <code>scope</code>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-type">type</a>, <code>flags</code>, <code>dst</code>, <code>gateway</code>, <code>oif</code> and <code>priority</code>; <code>dst</code> and
    <code>gateway</code> are the address bytes in network byte order; <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a> is the header&rsquo;s when the reply
    lacks the <code>TABLE</code> attribute, and any other field whose attribute the reply lacks is nil.
     </ol>
@@ -362,7 +360,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:08:05</span>
 </div>
 </footer>
 </body>

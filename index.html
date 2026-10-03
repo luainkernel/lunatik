@@ -53,7 +53,7 @@ kernel threads and more. A command line tool loads and manages them from user sp
         <a class="btn" href="https://github.com/luainkernel/lunatik">GitHub</a>
     </div>
     <ul class="facts">
-        <li><strong>78</strong> Lua modules</li>
+        <li><strong>76</strong> Lua modules</li>
         <li>Linux <strong>6.6</strong> and later</li>
         <li>Process, softirq and hardirq hooks</li>
     </ul>
@@ -134,13 +134,11 @@ kernel threads and more. A command line tool loads and manages them from user sp
   <li><a href="modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
   <li><a href="modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="modules/netlink.session.html">netlink.session</a></li>
@@ -261,7 +259,7 @@ kernel threads and more. A command line tool loads and manages them from user sp
             <span>netlink.channel</span>
             <span>netlink.genl</span>
             <span>netlink.message</span>
-            <span class="more">+17</span>
+            <span class="more">+15</span>
         </div>
     </a>
     <a class="area" href="#api-tracing">
@@ -506,12 +504,6 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 		<td class="summary">Wireless interface management.</td>
 	</tr>
 	<tr>
-		<td class="name"><a href="modules/netlink.nl80211.object.html">netlink.nl80211.object</a></td>
-		<td class="summary">Base class for the nl80211 object classes (<code>wiphy</code>, <code>interface</code>, &hellip;): a
- <a href="modules/netlink.genl.html#">netlink.genl</a> session bound to the <code>&quot;nl80211&quot;</code> family, caching its id and
- carrying the shared dump-decode loop.</td>
-	</tr>
-	<tr>
 		<td class="name"><a href="modules/netlink.nl80211.station.html">netlink.nl80211.station</a></td>
 		<td class="summary">Station management.</td>
 	</tr>
@@ -530,12 +522,6 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 	<tr>
 		<td class="name"><a href="modules/netlink.rt.link.html">netlink.rt.link</a></td>
 		<td class="summary">Network interface (link) management.</td>
-	</tr>
-	<tr>
-		<td class="name"><a href="modules/netlink.rt.object.html">netlink.rt.object</a></td>
-		<td class="summary">Base class for the rtnetlink object classes (<code>route</code>, <code>link</code>, <code>addr</code>,
- <code>rule</code>): a <a href="modules/netlink.session.html#">netlink.session</a> over the <code>NETLINK_ROUTE</code> protocol carrying the
- shared dump loop and the routing-table id split.</td>
 	</tr>
 	<tr>
 		<td class="name"><a href="modules/netlink.rt.route.html">netlink.rt.route</a></td>
@@ -801,7 +787,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:08:05</span>
 </div>
 </footer>
 </body>

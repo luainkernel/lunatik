@@ -82,13 +82,11 @@
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -182,9 +180,8 @@
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#attrs">attrs (attrs[, pos=1])</a></td>
-	<td class="summary">Attribute codec: serializes a <code>{[type] = value}</code> table into netlink
- attributes, or parses them back from a message body starting at <code>pos</code>.</td>
+	<td class="name"><a href="#attrs">attrs (attrs)</a></td>
+	<td class="summary">Serializes a <code>{[type] = value}</code> table into netlink attributes.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#encode">encode (mtype, flags, seq, payload)</a></td>
@@ -194,6 +191,10 @@
 	<td class="name"><a href="#parse">parse (buf)</a></td>
 	<td class="summary">Parses a buffer into a list of <code>{type, flags, body}</code> messages, where <code>body</code>
  holds the bytes after the <code>nlmsghdr</code> (family header and attributes).</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#parseattrs">parseattrs (body[, pos=1])</a></td>
+	<td class="summary">Parses the netlink attributes of a message body into a <code>{[type] = value}</code> table.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#str">str ([value])</a></td>
@@ -208,34 +209,25 @@
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
-    <dt id="attrs"><a name="attrs"></a><strong>attrs (attrs[, pos=1])</strong></dt>
+    <dt id="attrs"><a name="attrs"></a><strong>attrs (attrs)</strong></dt>
     <dd>
-    Attribute codec: serializes a <code>{[type] = value}</code> table into netlink
- attributes, or parses them back from a message body starting at <code>pos</code>.
+    Serializes a <code>{[type] = value}</code> table into netlink attributes.
  A <code>number</code> value is packed as a <a href="../modules/netlink.message.html#u32">u32</a>; a <a href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> is used verbatim.
- A parsed key is the raw attribute type, flag bits included: a nested attribute whose sender set
- <code>NLA_F_NESTED</code> appears under <code>type | 0x8000</code>. A nested payload stays a string, which
- <code>message.attrs(value, 1)</code> parses in turn.
 
 
     <h3>Parameters</h3>
     <ul>
         <li><span class="parameter">attrs</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         attribute table (serialize) or message body (parse).
-        </li>
-        <li><span class="parameter">pos</span>
-            <span class="types"><span class="type">integer</span></span>
-         1-based position of the first attribute (parse).
-         (<em>default</em> 1)
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         attribute table.
         </li>
     </ul>
 
     <h3>Returns</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        the serialized attributes, or the parsed table.
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+        the serialized attributes.
     </ol>
 
 
@@ -297,6 +289,38 @@
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
         list of messages.
+    </ol>
+
+
+
+
+</dd>
+    <dt id="parseattrs"><a name="parseattrs"></a><strong>parseattrs (body[, pos=1])</strong></dt>
+    <dd>
+    Parses the netlink attributes of a message body into a <code>{[type] = value}</code> table.
+ A key is the raw attribute type, flag bits included: a nested attribute whose sender set
+ <code>NLA_F_NESTED</code> appears under <code>type | 0x8000</code>. A nested payload stays a string, which
+ <code>message.parseattrs(value)</code> parses in turn.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">body</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         message body.
+        </li>
+        <li><span class="parameter">pos</span>
+            <span class="types"><span class="type">integer</span></span>
+         1-based position of the first attribute.
+         (<em>default</em> 1)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        the parsed attributes.
     </ol>
 
 
@@ -367,7 +391,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:08:05</span>
 </div>
 </footer>
 </body>

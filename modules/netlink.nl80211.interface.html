@@ -82,13 +82,11 @@
   <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html" aria-current="page">netlink.nl80211.interface</a></li>
-  <li><a href="../modules/netlink.nl80211.object.html">netlink.nl80211.object</a></li>
   <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
   <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
   <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
   <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
   <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
-  <li><a href="../modules/netlink.rt.object.html">netlink.rt.object</a></li>
   <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
   <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
   <li><a href="../modules/netlink.session.html">netlink.session</a></li>
@@ -182,8 +180,7 @@
  require a sleepable runtime.
     <h3>See also</h3>
     <ul>
-         <li><a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a></li>
-         <li><a href="../modules/netlink.session.html#">netlink.session</a></li>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
     </ul>
 
 <h2 id="Class_interface">Class interface </h2>
@@ -201,7 +198,7 @@
 	<td class="summary">Deletes a virtual interface.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#interface:list">interface:list ()</a></td>
+	<td class="name"><a href="#interface:list">interface:list ([opts])</a></td>
 	<td class="summary">Lists the wireless interfaces known to the kernel.</td>
 	</tr>
 	<tr>
@@ -241,7 +238,7 @@
 
     <h3>See also</h3>
     <ul>
-         <a href="../modules/netlink.nl80211.object.html#">netlink.nl80211.object</a>
+         <a href="../modules/netlink.session.html#">netlink.session</a>
     </ul>
 
 
@@ -293,11 +290,19 @@
 
 
 </dd>
-    <dt id="interface:list"><a name="interface:list"></a><strong>interface:list ()</strong></dt>
+    <dt id="interface:list"><a name="interface:list"></a><strong>interface:list ([opts])</strong></dt>
     <dd>
     Lists the wireless interfaces known to the kernel.
 
 
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         list options, of which an interface takes none.
+         (<em>optional</em>)
+        </li>
+    </ul>
 
     <h3>Returns</h3>
     <ol>
@@ -355,7 +360,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:08:05</span>
 </div>
 </footer>
 </body>
