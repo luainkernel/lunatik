@@ -13,6 +13,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
 #include <linux/mm.h>
+#include <linux/wait_bit.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -33,8 +34,6 @@
 #ifdef LUNATIK_RUNTIME
 lunatik_object_t *lunatik_env;
 EXPORT_SYMBOL(lunatik_env);
-struct task_struct *lunatik_rtnl;	/* one task holds RTNL at a time */
-EXPORT_SYMBOL(lunatik_rtnl);
 EXPORT_SYMBOL(luaS_hash);	/* required by luarcu */
 
 static inline void lunatik_setversion(lua_State *L)
@@ -214,19 +213,15 @@ static const luaL_Reg lunatik_stub_lib[] = {
 /***
 * Stops the runtime and releases all associated kernel resources.
 * @function stop
-* @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
-*   its task runs: the releases the close runs cannot refuse, and a netdevice block's
-*   unregistration waits on the lock that task holds; "not allowed from the runtime itself"
-*   from the runtime's own callback, a `device` file operation, a `thread` body or a resumed
-*   body, where the close would wait on the lock that task holds; "EINTR" if the stop of the
-*   calling kernel thread, or a fatal signal to any other task, ends its wait for the runtime's
-*   lock
+* @raise "not allowed from the runtime itself" from the runtime's own callback, a `device` file
+*   operation, a `thread` body or a resumed body, where the close would wait on the lock that task
+*   holds; "EINTR" if the stop of the calling kernel thread, or a fatal signal to any other task,
+*   ends its wait for the runtime's lock
 */
 static int lunatik_lstop(lua_State *L)
 {
 	lunatik_object_t *runtime = lunatik_checkobjectclass(L, 1, &lunatik_runtime_class);
 
-	lunatik_checkrtnl(L);
 	lunatik_checkowner(L, runtime);
 	lunatik_try(L, lunatik_closekillable, runtime);
 	return 0;
@@ -251,11 +246,18 @@ const lunatik_class_t lunatik_runtime_class = {
 };
 EXPORT_SYMBOL(lunatik_runtime_class);
 
+static inline void lunatik_wakeloaded(lunatik_object_t *runtime)
+{
+	smp_mb(); /* wake_up_var reads its waiters unlocked, after the store that ended the load */
+	wake_up_var(runtime);
+}
+
 static inline void lunatik_setready(lunatik_object_t *runtime)
 {
 	lunatik_lock(runtime); /* publish ready under the same lock readers take */
 	WRITE_ONCE(lunatik_runtimeof(runtime)->ready, true);
 	lunatik_unlock(runtime);
+	lunatik_wakeloaded(runtime);
 }
 
 static int lunatik_callsleepable(lua_State *L)
@@ -361,6 +363,7 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 	if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
 		lunatik_runerror(Lfrom, lunatik_errmsg(L));
 		runtime->private = NULL;
+		lunatik_wakeloaded(runtime);
 		lua_close(L); /* hooks hold extra krefs; putobject alone won't reach 0 */
 		lunatik_putobject(runtime);
 		return -ENOEXEC;
@@ -388,14 +391,13 @@ EXPORT_SYMBOL(lunatik_runtime);
 * when its last reference is dropped. A hook its script registers with the kernel holds a
 * reference to the runtime, so dropping the handle does not close a runtime a hook still holds:
 * it stays open, its hooks in place and the modules its script required loaded, until `stop()`,
-* which cannot be called once its last handle is gone. A script stops the runtimes it creates;
-* one a netdevice callback may collect it stops before, since the close runs where the collector
-* drops the handle and cannot refuse there. A sentinel stops a child with its creator: a table
-* whose `__gc` stops the child, reachable from what the creator's runtime keeps until it closes,
-* as the driver table `device.new` keeps in `examples/systrack/device.lua`, since what only a local
-* of the script body references can be collected once the body returns. The close runs the script's
-* finalizers, the sentinel's among them: an object one creates or reads is released by the end
-* of the close, and a registration raises `not allowed while the runtime closes`. A last
+* which cannot be called once its last handle is gone. A script stops the runtimes it creates. A
+* sentinel stops a child with its creator: a table whose `__gc` stops the child, reachable from what
+* the creator's runtime keeps until it closes, as the driver table `device.new` keeps in
+* `examples/systrack/device.lua`, since what only a local of the script body references can be
+* collected once the body returns. The close runs the script's finalizers, the sentinel's among
+* them: an object one creates or reads is released by the end of the close, and a registration
+* raises `not allowed while the runtime closes`. A last
 * reference dropped with bottom halves or IRQs off, as a softirq or hardirq runtime's `rcu.table`
 * write drops an entry's, closes it on a kernel worker after the drop, where its finalizers may
 * sleep. Only a process runtime's `lunatik` module has it.
@@ -439,6 +441,12 @@ void lunatik_deferirq(struct irq_work *irq)
 	queue_work(lunatik_wq, &container_of(irq, lunatik_defer_t, irq)->work);
 }
 EXPORT_SYMBOL(lunatik_deferirq);
+
+void lunatik_flushdefer(void)
+{
+	flush_workqueue(lunatik_wq);
+}
+EXPORT_SYMBOL(lunatik_flushdefer);
 
 static int __init lunatik_init(void)
 {

@@ -94,6 +94,7 @@ typedef struct lunatik_defer_s {
 } lunatik_defer_t;
 
 void lunatik_deferirq(struct irq_work *irq);
+void lunatik_flushdefer(void);
 
 #define lunatik_initdefer(defer, func)					\
 do {									\
@@ -137,7 +138,6 @@ typedef struct lunatik_runtime_s {
 #define lunatik_runtimeof(runtime)	container_of(runtime, lunatik_runtime_t, object)
 
 extern lunatik_object_t *lunatik_env;
-extern struct task_struct *lunatik_rtnl;
 extern const lunatik_class_t lunatik_runtime_class;
 
 /* internals the C API depends on: the core's own, which doc/capi.md leaves out */
@@ -364,7 +364,6 @@ static inline lua_Integer lunatik_checkfieldinteger(lua_State *L, const char *fi
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
 #define LUNATIK_ERR_ARMED	"not allowed once the runtime is armed"
 #define LUNATIK_ERR_UNARMED	"not allowed before the runtime is armed"
-#define LUNATIK_ERR_RTNL	"not allowed under RTNL"
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 
@@ -406,15 +405,6 @@ static inline void lunatik_checkarmed(lua_State *L)
 {
 	if (unlikely(lunatik_cannotsleep(L, lunatik_isready(lunatik_toruntime(L)))))
 		luaL_error(L, LUNATIK_ERR_ARMED);
-}
-
-#define lunatik_setrtnl(task)	WRITE_ONCE(lunatik_rtnl, (task))
-#define lunatik_isrtnl()	(READ_ONCE(lunatik_rtnl) == current)
-
-static inline void lunatik_checkrtnl(lua_State *L)
-{
-	if (lunatik_isrtnl())
-		luaL_error(L, LUNATIK_ERR_RTNL);
 }
 
 static inline void lunatik_checkowner(lua_State *L, lunatik_object_t *runtime)

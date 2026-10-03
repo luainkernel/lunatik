@@ -9,10 +9,9 @@
 # the number is what tells a device from its homonym elsewhere, and what a
 # script compares with linux.netns() to keep the devices linux.ifindex resolves.
 #
-# The path is the global chain, which the devices of every namespace reach: the
-# replay is delivered inside register_netdevice_notifier, and a live REGISTER or
-# UNREGISTER is delivered under RTNL before the ip command that caused it
-# returns, so each assertion reads what the callback already printed. The
+# The path is the global chain, which the devices of every namespace reach, and
+# each event reaches the callback on a kernel worker after the ip command that
+# caused it returns, so each assertion waits for the line it reads. The
 # script prints the namespace number with each event, and the test reads the
 # initial namespace's from /proc/1/ns/net and the second namespace's from the
 # process netns_up keeps there, whose pid the script resolves too, beside pid
@@ -80,6 +79,11 @@ reported()
 	dmesg_since | grep -cF "netns scope: $1"
 }
 
+reports()
+{
+	[ "$(reported "$1")" = "$2" ]
+}
+
 inum()
 {
 	tr -dc '0-9'
@@ -123,34 +127,34 @@ ktap_pass "linux.netns names the initial namespace, without a pid and with pid 1
 [ "$(reported "reaped pid and zombie answer nil and ESRCH, pids out of bounds raise")" = 1 ] || fail "a reaped pid or a zombie did not answer nil and ESRCH, or a pid out of bounds did not raise"
 ktap_pass "linux.netns answers nil and ESRCH for a pid no task has and for a zombie, and refuses one out of bounds"
 
-[ "$(reported "register lo $INIT")" = 1 ] || fail "lo of the initial namespace was reported $(reported "register lo $INIT") times on the replay"
-[ "$(reported "register lo $OTHER")" = 1 ] || fail "lo of $NETNS was reported $(reported "register lo $OTHER") times on the replay"
+awaited reports "register lo $INIT" 1 || fail "lo of the initial namespace was reported $(reported "register lo $INIT") times on the replay"
+awaited reports "register lo $OTHER" 1 || fail "lo of $NETNS was reported $(reported "register lo $OTHER") times on the replay"
 ktap_pass "replay reports lo once per namespace, each with its own number"
 
 ip link add "$LIVEDEV" type dummy || fail "cannot create $LIVEDEV"
-[ "$(reported "register $LIVEDEV $INIT")" = 1 ] || fail "$LIVEDEV of the initial namespace was not reported with its number"
+awaited reports "register $LIVEDEV $INIT" 1 || fail "$LIVEDEV of the initial namespace was not reported with its number"
 ktap_pass "live register reports a device of the initial namespace with its number"
 
 ip -n "$NETNS" link add "$LIVEDEV" type dummy || fail "cannot create $LIVEDEV in $NETNS"
-[ "$(reported "register $LIVEDEV $OTHER")" = 1 ] || fail "$LIVEDEV of $NETNS was not reported with its number"
+awaited reports "register $LIVEDEV $OTHER" 1 || fail "$LIVEDEV of $NETNS was not reported with its number"
 ktap_pass "live register reports a homonym in another namespace with that namespace's number"
 
 ip -n "$NETNS" link del "$LIVEDEV" || fail "cannot delete $LIVEDEV from $NETNS"
-[ "$(reported "unregister $LIVEDEV $OTHER")" = 1 ] || fail "the unregister of $LIVEDEV in $NETNS was not reported with its number"
+awaited reports "unregister $LIVEDEV $OTHER" 1 || fail "the unregister of $LIVEDEV in $NETNS was not reported with its number"
 ktap_pass "live unregister reports the device of another namespace with its number"
 
 ip link set "$LIVEDEV" netns "$NETNS" || fail "cannot move $LIVEDEV to $NETNS"
-[ "$(reported "unregister $LIVEDEV $INIT")" = 1 ] || fail "the move of $LIVEDEV to $NETNS was not reported as an unregister with the initial namespace's number"
-[ "$(reported "register $LIVEDEV $OTHER")" = 2 ] || fail "the move of $LIVEDEV to $NETNS was not reported as a register with $NETNS's number"
+awaited reports "unregister $LIVEDEV $INIT" 1 || fail "the move of $LIVEDEV to $NETNS was not reported as an unregister with the initial namespace's number"
+awaited reports "register $LIVEDEV $OTHER" 2 || fail "the move of $LIVEDEV to $NETNS was not reported as a register with $NETNS's number"
 ktap_pass "a move to another namespace is an unregister with the number left and a register with the one joined"
 
 ip -n "$NETNS" link set "$LIVEDEV" netns 1 || fail "cannot move $LIVEDEV back from $NETNS"
-[ "$(reported "unregister $LIVEDEV $OTHER")" = 2 ] || fail "the move of $LIVEDEV back was not reported as an unregister with $NETNS's number"
-[ "$(reported "register $LIVEDEV $INIT")" = 2 ] || fail "the move of $LIVEDEV back was not reported as a register with the initial namespace's number"
+awaited reports "unregister $LIVEDEV $OTHER" 2 || fail "the move of $LIVEDEV back was not reported as an unregister with $NETNS's number"
+awaited reports "register $LIVEDEV $INIT" 2 || fail "the move of $LIVEDEV back was not reported as a register with the initial namespace's number"
 ktap_pass "a move back to the initial namespace is reported the same way"
 
 ip link del "$LIVEDEV" || fail "cannot delete $LIVEDEV"
-[ "$(reported "unregister $LIVEDEV $INIT")" = 2 ] || fail "the unregister of $LIVEDEV was not reported with its number"
+awaited reports "unregister $LIVEDEV $INIT" 2 || fail "the unregister of $LIVEDEV was not reported with its number"
 ktap_pass "live unregister reports the device of the initial namespace with its number"
 
 check_dmesg && ktap_pass "no Lua errors in kernel"

@@ -394,7 +394,11 @@ bool lunatik_isready(lunatik_object_t *runtime);
 Returns `true` once `runtime` is armed, its script body returned, and until it is closed.
 It reads only the object, so a task that holds a reference calls it without the runtime's lock.
 `thread.run` uses it to refuse creating a thread from the script body of the runtime that calls
-it, with `not allowed before the runtime is armed`. Defined as a macro.
+it, with `not allowed before the runtime is armed`. Once the body returns, armed or failed, the
+core calls `wake_up_var(runtime)`: work a binding deferred while the body ran, which
+[`lunatik_run`](#lunatik_run) would answer with `-ENXIO`, waits for it with
+`wait_var_event(runtime, lunatik_isready(runtime) || lunatik_isclosing(runtime))`, as
+`notifier.netdevice` does for the replay of a registration made in the body.
 
 ### lunatik\_isclosing
 ```C
@@ -427,25 +431,6 @@ cycle no owner check can name. The entries a script reaches, the monitor, `stop`
 `thread.run`, take a runtime's lock with `lunatik_lockkillable`, so the stop of a kernel thread
 in that cycle, or a fatal signal to another task in it, ends its wait; a dispatch through
 `lunatik_run` is not one of them and waits for the lock regardless.
-
-### lunatik\_isrtnl
-```C
-bool lunatik_isrtnl(void);
-void lunatik_setrtnl(struct task_struct *task);
-extern struct task_struct *lunatik_rtnl;
-```
-`lunatik_isrtnl` returns `true` if the calling task is dispatching a callback under RTNL. A binding
-whose kernel callback runs with RTNL held, as `notifier.netdevice`'s does, sets the task with
-`lunatik_setrtnl(current)` before it runs Lua there, and after it writes back the task
-`lunatik_rtnl` held before, read with `READ_ONCE(lunatik_rtnl)`, so a dispatch nested in another on
-the same task leaves the outer one's in place.
-RTNL is held by one task at a time, so one pointer serves every runtime and every coroutine, and
-the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
-kernel call that takes RTNL, such as `register_netdevice_notifier`, which would wait on the lock its
-own task holds: refuse the call with `lunatik_checkrtnl`. A `release` cannot refuse, so the entry
-point that runs one on the calling task, a `stop()` or a `close()` and its `__close`, refuses
-instead under RTNL. It sees the calling task only: Lua on a second task that waits for
-RTNL while this one waits for that task is a cycle it cannot name. Defined as macros.
 
 ### lunatik\_iskthread
 ```C
@@ -523,14 +508,6 @@ Raises a Lua error, `"not allowed while the runtime closes"`, when
 runs, in whatever coroutine. A registration made there would hold a runtime that never dispatches
 again: use it in an entry point that registers one without
 [`lunatik_checkruntime`](#lunatik_checkruntime), which runs it.
-
-### lunatik\_checkrtnl
-```C
-void lunatik_checkrtnl(lua_State *L);
-```
-Raises a Lua error, `"not allowed under RTNL"`, when [`lunatik_isrtnl`](#lunatik_isrtnl) holds: from
-a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs. Use it in
-an entry point that reaches a kernel call taking RTNL.
 
 ### lunatik\_checkowner
 ```C
@@ -741,6 +718,7 @@ typedef struct lunatik_defer_s {
 
 void lunatik_initdefer(lunatik_defer_t *defer, work_func_t func);
 bool lunatik_defer(lunatik_defer_t *defer);
+void lunatik_flushdefer(void);
 ```
 Runs `func` on a kernel worker, in process context, for a caller that cannot: one in softirq or
 hardirq context, with bottom halves or interrupts off, or in a probe handler on code the scheduler
@@ -755,8 +733,14 @@ The item lives in what defers, so deferring allocates nothing: `lunatik_initdefe
 the first `lunatik_defer`, and `func` finds what defers through `container_of` on `work`. Calls made
 before `func` starts run it once, and one made while it runs runs it again after it returns, so what
 each call hands `func` goes on a list `func` drains. A `func` that frees the item calls
-`irq_work_sync` on `irq` first, since the first hop still writes it after queuing `work`. Both are
-macros, and `lunatik_initdefer` gives each call site a lockdep class of its own, as `INIT_WORK` does.
+`irq_work_sync` on `irq` first, since the first hop still writes it after queuing `work`.
+`lunatik_initdefer` and `lunatik_defer` are macros, and `lunatik_initdefer` gives each call site a
+lockdep class of its own, as `INIT_WORK` does.
+
+A binding whose `func` may drop the last reference to its own module, through an object of one of
+its classes, calls `lunatik_flushdefer` from its module's exit: `func` returns into the module's text
+after that put, and the flush waits for what the core's workqueue holds, the item that runs
+included, before the exit lets the module go.
 
 ### lunatik\_isatomic
 ```C
@@ -1060,7 +1044,6 @@ handler, a `BUG()`. After a protected call or a resume fails, the error is read 
 #define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
 #define LUNATIK_ERR_ARMED	"not allowed once the runtime is armed"
 #define LUNATIK_ERR_UNARMED	"not allowed before the runtime is armed"
-#define LUNATIK_ERR_RTNL	"not allowed under RTNL"
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"

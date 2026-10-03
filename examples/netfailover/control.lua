@@ -4,37 +4,62 @@
 --
 
 local linux    = require("linux")
-local lunatik  = require("lunatik")
+local netlink  = require("netlink")
+local channel  = require("netlink.channel")
 local notifier = require("notifier")
-local rcu      = require("rcu")
 local netdev   = require("linux.netdev")
-local notify   = require("linux.notify")
+local af       = require("linux.socket").af
+local scope    = require("linux.rtnetlink").scope
 
-local NAME <const> = "netfailover" -- the shared table the reactor reads
-local home <const> = linux.netns() -- the namespace the reactor reroutes in
+local format = string.format
 
-local events = rcu.table()   -- ifname -> true while the link is down
+local NAME    <const> = "netfailover"             -- the channel family
+local WATCHED <const> = "dummy0"                  -- primary uplink to watch
+local TABLE   <const> = 200                       -- backup routing table id
+local DST     <const> = string.char(192, 0, 2, 1) -- 192.0.2.1
+local DST_LEN <const> = 32
+local LO      <const> = 1                         -- loopback ifindex
+local CMD     <const> = 1                         -- channel genl command
 
-lunatik._ENV[NAME] = events
+local home <const> = linux.netns() -- the namespace the backup route is installed in
 
-local function unpublish()
-	lunatik._ENV[NAME] = nil
+local backup = {
+	family  = af.INET,
+	dst     = DST,
+	dst_len = DST_LEN,
+	oif     = LO,
+	table   = TABLE,
+	scope   = scope.LINK,
+}
+
+local states = {[netdev.DOWN] = "down", [netdev.UP] = "up"}
+
+local family = channel.new(NAME)
+local route  = netlink.rt.route()
+
+local reroute = {}
+
+function reroute.down()
+	route:add(backup)
+	return "backup route installed"
 end
 
-local sentinel = setmetatable({}, {__gc = unpublish})
+function reroute.up()
+	route:del(backup)
+	return "backup route removed"
+end
 
--- runs under RTNL, where rtnetlink is refused, so the reactor reroutes from its own runtime
-local function callback(event, name, netns)
-	local _ = sentinel   -- keep the sentinel reachable from the notifier
-	if netns ~= home then -- a homonym in another namespace is not the watched link
-		return notify.OK
+local function announce(state, change)
+	local event = format("%s %s: %s", WATCHED, state, change)
+	family:multicast(CMD, event)
+	print("netfailover: " .. event)
+end
+
+local function callback(event, name, netns, replayed)
+	local state = states[event]
+	if state ~= nil and name == WATCHED and netns == home and not replayed then
+		announce(state, reroute[state]())
 	end
-	if event == netdev.DOWN then
-		events[name] = true
-	elseif event == netdev.UP then
-		events[name] = nil
-	end
-	return notify.OK
 end
 
 notifier.netdevice(callback)

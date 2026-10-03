@@ -30,7 +30,6 @@ BLOCKED="tests/runtime/killable_blocked"
 NODE="/dev/lunatik_killable"
 MODULE="lunatik"
 FIX="lunatik_closekillable"
-TRIES=50
 SETTLE=0.5
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -65,18 +64,15 @@ reported()
 	dmesg_since | grep -cF "killable test: $1"
 }
 
-awaited()
+reports()
 {
-	for _ in $(seq $TRIES); do
-		[ "$(reported "$1")" -ge 1 ] && return
-		sleep 0.1
-	done
+	[ "$(reported "$1")" -ge 1 ]
 }
 
 mark_dmesg
 output=$(lunatik spawn "$HOLDER" 2>&1)
 [ -z "$output" ] || fail "$output"
-awaited "held"
+awaited reports "held"
 [ "$(reported "held")" = 1 ] || fail "the holder did not take the locks"
 
 output=$(lunatik spawn "$WAITER" 2>&1)
@@ -94,7 +90,7 @@ reader=$!
 sleep $SETTLE
 kill -9 $reader
 wait $reader 2> /dev/null
-awaited "fop resume"
+awaited reports "fop resume"
 [ "$(reported "fop resume EINTR")" = 1 ] || fail "a killed reader did not leave its wait on a runtime's lock"
 ktap_pass "a killed task leaves its wait on a runtime's lock"
 

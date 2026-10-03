@@ -3,28 +3,31 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# A script tells the events the registration replays from the live ones with a
-# flag it clears once notifier.netdevice returns: register_netdevice_notifier
-# delivers a REGISTER, and an UP for a device that is up, for every device the
-# namespace already has, inside the registration call and under the same name
-# and code a live event carries, and no live event reaches the callback before
-# the script body ends, so the flag is exact. ifquarantine relies on it.
+# A netdevice callback receives, as its fourth argument, whether the event is
+# one the registration replays: register_netdevice_notifier delivers a
+# REGISTER, and an UP for a device that is up, for every device the namespace
+# already has, under the same name and code a live event carries, and
+# notifier.netdevice marks each as it queues it, by the task that registered.
 #
-# The replay is delivered inside register_netdevice_notifier and a live
-# event under RTNL before the ip command that caused it returns, so each
-# assertion reads what the callback already printed. A dummy device brought up
-# before the script runs is replayed as a REGISTER and an UP, both printed with
-# the flag set; one created, brought up and deleted afterwards is reported live,
-# with the flag clear; and the count of flagged events does not grow once the
-# registration has returned. A callback that returns notify.BAD for a replayed
-# REGISTER fails the registration, which raises EPERM, the errno
-# notifier_to_errno makes of it.
+# Each event reaches the callback on a kernel worker after the ip command that
+# caused it returns, so each assertion waits for the line it reads. A dummy
+# device brought up before the script runs is replayed as a REGISTER and an
+# UP, both marked; one created, brought up and deleted afterwards is reported
+# live, unmarked, and in the order its events came; and the count of marked
+# events does not grow once the replay has reached the callback, which the live
+# REGISTER that follows it in the queue tells.
+# The fifth argument is the device's index: the live REGISTER of a new dummy
+# carries the index sysfs gives it, and so does the REGISTER of a dummy renamed
+# right after its creation, which reaches the callback after the rename under
+# the name the event carried.
 #
 # Usage: sudo bash tests/notifier/replay.sh
 
 SCRIPT="tests/notifier/replay"
 OLDDEV="replay0"
 NEWDEV="replay1"
+RENDEV="replay2"
+RENAMED="replay3"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -33,13 +36,15 @@ cleanup()
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
 	ip link del "$OLDDEV" 2> /dev/null
 	ip link del "$NEWDEV" 2> /dev/null
+	ip link del "$RENDEV" 2> /dev/null
+	ip link del "$RENAMED" 2> /dev/null
 }
 
 trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 8
+ktap_plan 10
 
 skip_all()
 {
@@ -49,8 +54,10 @@ skip_all()
 	ktap_skip "live register is not marked"
 	ktap_skip "live up is not marked"
 	ktap_skip "live unregister is not marked"
+	ktap_skip "the live events reach the callback in the order they came"
 	ktap_skip "no event is marked once the registration has returned"
-	ktap_skip "a refused replay fails the registration with EPERM"
+	ktap_skip "the callback receives the index of the device it reports"
+	ktap_skip "a device renamed before its REGISTER reaches the callback keeps its index"
 	ktap_skip "no Lua errors in kernel"
 	ktap_totals
 	exit 0
@@ -59,6 +66,16 @@ skip_all()
 reported()
 {
 	dmesg_since | grep -cF "replay: $1"
+}
+
+reports()
+{
+	[ "$(reported "$1")" = 1 ]
+}
+
+reports_index()
+{
+	dmesg_since | grep -qxE ".*index: $1"
 }
 
 marked()
@@ -73,31 +90,40 @@ ip link set "$OLDDEV" up || fail "cannot bring $OLDDEV up"
 mark_dmesg
 run_script "$SCRIPT"
 
-[ "$(reported "register $OLDDEV true")" = 1 ] || fail "the REGISTER of $OLDDEV was not marked as replayed"
+awaited reports "register $OLDDEV true" || fail "the REGISTER of $OLDDEV was not marked as replayed"
 ktap_pass "replay marks the REGISTER of a device that already exists"
 
-[ "$(reported "up $OLDDEV true")" = 1 ] || fail "the UP of $OLDDEV was not marked as replayed"
+awaited reports "up $OLDDEV true" || fail "the UP of $OLDDEV was not marked as replayed"
 ktap_pass "replay marks the UP of a device that is already up"
 
-replayed=$(marked)
-
 ip link add "$NEWDEV" type dummy || fail "cannot create $NEWDEV"
-[ "$(reported "register $NEWDEV false")" = 1 ] || fail "the live REGISTER of $NEWDEV was not reported unmarked"
+awaited reports "register $NEWDEV false" || fail "the live REGISTER of $NEWDEV was not reported unmarked"
 ktap_pass "live register is not marked"
 
+index=$(cat "/sys/class/net/$NEWDEV/ifindex")
+awaited reports_index "register $NEWDEV $index" || fail "the REGISTER of $NEWDEV did not carry its index $index"
+ktap_pass "the callback receives the index of the device it reports"
+replayed=$(marked) # every replay was queued before this REGISTER, and the callback takes them in order
+
 ip link set "$NEWDEV" up || fail "cannot bring $NEWDEV up"
-[ "$(reported "up $NEWDEV false")" = 1 ] || fail "the live UP of $NEWDEV was not reported unmarked"
+awaited reports "up $NEWDEV false" || fail "the live UP of $NEWDEV was not reported unmarked"
 ktap_pass "live up is not marked"
 
 ip link del "$NEWDEV" || fail "cannot delete $NEWDEV"
-[ "$(reported "unregister $NEWDEV false")" = 1 ] || fail "the live UNREGISTER of $NEWDEV was not reported unmarked"
+awaited reports "unregister $NEWDEV false" || fail "the live UNREGISTER of $NEWDEV was not reported unmarked"
 ktap_pass "live unregister is not marked"
+
+order=$(dmesg_since | grep -oE "replay: [a-z]+ $NEWDEV" | cut -d' ' -f2 | paste -sd' ')
+[ "$order" = "register up unregister" ] || fail "the events of $NEWDEV reached the callback as: $order"
+ktap_pass "the live events reach the callback in the order they came"
 
 [ "$(marked)" = "$replayed" ] || fail "$(( $(marked) - replayed )) events were marked after the registration returned"
 ktap_pass "no event is marked once the registration has returned"
 
-[ "$(reported "refused EPERM")" = 1 ] || fail "the refused replay raised $(dmesg_since | grep -o 'replay: refused .*')"
-ktap_pass "a refused replay fails the registration with EPERM"
+ip link add "$RENDEV" type dummy && ip link set "$RENDEV" name "$RENAMED" || fail "cannot create and rename $RENDEV"
+index=$(cat "/sys/class/net/$RENAMED/ifindex")
+awaited reports_index "register $RENDEV $index" || fail "the REGISTER of $RENDEV, renamed $RENAMED, did not carry its index $index"
+ktap_pass "a device renamed before its REGISTER reaches the callback keeps its index"
 
 check_dmesg && ktap_pass "no Lua errors in kernel"
 
