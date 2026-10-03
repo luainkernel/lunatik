@@ -9,12 +9,17 @@ local linux     = require("linux")
 local errno     = require("linux.errno")
 local nf        = require("linux.nf")
 local rtnetlink = require("linux.rtnetlink")
+local syscall   = require("linux.syscall")
 local tc        = require("linux.tc")
 local test      = require("tests.lib").test
 local check     = require("tests.linux.check")
 
 local INT_MIN <const> = -0x80000000
 local INT_MAX <const> = 0x7FFFFFFF
+
+-- asm-generic/unistd.h defines each as the name of its __NR3264_ number
+local aliases = { "fcntl", "statfs", "fstatfs", "truncate", "ftruncate", "lseek", "sendfile", "newfstatat", "fstat",
+	"mmap", "fadvise64" }
 
 test("an unsigned 32-bit constant past INT_MAX keeps its unsigned value", function()
 	check.carries("tc.h", tc.h, { ROOT = 0xFFFFFFFF, INGRESS = 0xFFFFFFF1, MAJ_MASK = 0xFFFF0000 })
@@ -31,6 +36,12 @@ test("a constant within INT_MAX keeps its value", function()
 	check.carries("tc.h", tc.h, { MIN_MASK = 0xFFFF })
 	check.carries("rtnetlink.table", rtnetlink.table, { MAIN = 254 })
 	check.carries("nf.ip.pri", nf.ip.pri, { LAST = INT_MAX })
+end)
+
+test("a constant defined as the name of an integer define is carried", function()
+	for _, name in ipairs(aliases) do
+		assert(syscall.numbers[name] ~= nil, ("linux.syscall.numbers.%s is missing"):format(name))
+	end
 end)
 
 test("linux.errno holds each errno positive, keyed by the name linux.errname gives it", function()
