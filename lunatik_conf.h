@@ -76,18 +76,6 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode);
 
 #define MAXCCALLS  32	/* lstrlib's pattern nesting, sized for the kernel stack */
 
-/* stored in L's extraspace; gates lunatik_run */
-struct lunatik_object_s;
-typedef struct lunatik_runtime_s {
-	struct lunatik_object_s *runtime;
-	bool ready;
-	int cpu;	/* the CPU this runtime serves; LUNATIK_CPU_NONE on a plain runtime */
-	struct lunatik_object_s *percpu;	/* the object owning this runtime; NULL on a plain runtime */
-} lunatik_runtime_t;
-
-#undef LUA_EXTRASPACE
-#define LUA_EXTRASPACE	sizeof(lunatik_runtime_t)
-
 #ifdef LUNATIK_RUNTIME
 unsigned int luaS_hash(const char *str, size_t l, unsigned int seed); /* required by luarcu */
 #define	lunatik_hash(str, l, seed)	luaS_hash((str), (l), (seed))

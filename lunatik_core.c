@@ -254,7 +254,7 @@ EXPORT_SYMBOL(lunatik_runtime_class);
 static inline void lunatik_setready(lunatik_object_t *runtime)
 {
 	lunatik_lock(runtime); /* publish ready under the same lock readers take */
-	lunatik_extra(lunatik_getstate(runtime))->ready = true;
+	WRITE_ONCE(lunatik_runtimeof(runtime)->ready, true);
 	lunatik_unlock(runtime);
 }
 
@@ -339,7 +339,7 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 		return -ENOMEM;
 	}
 
-	if ((runtime = kmalloc(sizeof(lunatik_object_t), GFP_KERNEL)) == NULL) {
+	if ((runtime = kmalloc(sizeof(lunatik_runtime_t), GFP_KERNEL)) == NULL) {
 		lunatik_runerror(Lfrom, "failed to allocate runtime");
 		lua_close(L);
 		return -ENOMEM;
@@ -347,9 +347,9 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 
 	lunatik_setobject(runtime, &lunatik_runtime_class, opt);
 	lunatik_toruntime(L) = runtime;
-	lunatik_extra(L)->ready = false;
-	lunatik_extra(L)->cpu = cpu;
-	lunatik_extra(L)->percpu = percpu;
+	lunatik_runtimeof(runtime)->ready = false;
+	lunatik_runtimeof(runtime)->cpu = cpu;
+	lunatik_runtimeof(runtime)->percpu = percpu;
 
 	runtime->gfp = GFP_KERNEL; /* might use kvmalloc while running in process */
 	lua_setallocf(L, lunatik_alloc, runtime);

@@ -51,13 +51,13 @@ typedef u8 __bitwise lunatik_opt_t;
 #define lunatik_iskthread()		(current->flags & PF_KTHREAD)
 #define lunatik_isatomic()		(irq_count() || irqs_disabled())
 
-#define lunatik_toruntime(L)	(lunatik_extra(L)->runtime)
+#define lunatik_toruntime(L)	(*(lunatik_object_t **)lua_getextraspace(L))
 
 #define lunatik_cannotsleep(L, s)	((s) && lunatik_isirq(lunatik_toruntime(L)->opt))
 
 #define lunatik_getstate(runtime)	((lua_State *)(runtime)->private)
 #define lunatik_isready(runtime)	\
-	((runtime)->private && lunatik_extra(lunatik_getstate(runtime))->ready)
+	((runtime)->private && READ_ONCE(lunatik_runtimeof(runtime)->ready))
 #define lunatik_isclosing(runtime)	(!(runtime)->private || !kref_read(&(runtime)->kref))
 
 #define lunatik_handle(runtime, handler, ret, ...)	\
@@ -127,12 +127,20 @@ typedef struct lunatik_object_s {
 	lunatik_defer_t defer;
 } lunatik_object_t;
 
+typedef struct lunatik_runtime_s {
+	lunatik_object_t object;
+	lunatik_object_t *percpu;
+	int cpu;
+	bool ready;
+} lunatik_runtime_t;
+
+#define lunatik_runtimeof(runtime)	container_of(runtime, lunatik_runtime_t, object)
+
 extern lunatik_object_t *lunatik_env;
 extern struct task_struct *lunatik_rtnl;
 extern const lunatik_class_t lunatik_runtime_class;
 
 /* internals the C API depends on: the core's own, which doc/capi.md leaves out */
-#define lunatik_extra(L)	((lunatik_runtime_t *)lua_getextraspace(L))
 #define LUNATIK_ALLOC(L, a, u)	void *u = NULL; lua_Alloc a = lua_getallocf(L, &u)
 #define lunatik_context(opt)	((opt) & (LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_HARDIRQ))
 #define lunatik_monitormt(class, monitor)	((monitor) ? (const void *)&(class)->opt : (const void *)(class))
