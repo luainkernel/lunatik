@@ -207,7 +207,8 @@ const lunatik_class_t lunatik_percpu_class = {
 * the last reference to the set is dropped. A hook its script registers with the kernel is one
 * the runtimes share, and it holds the set until `stop()`, so dropping the handle does not close a
 * set whose script registered one, and `stop()` cannot be called once its last handle is gone. A
-* script stops the sets it creates. Only a process runtime's `lunatik` module has it.
+* script stops the sets it creates, as it stops a runtime: see `lunatik.runtime`. Only a process
+* runtime's `lunatik` module has it.
 * @function percpu
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
 * @tparam[opt="process"] string context execution context, as in `lunatik.runtime`

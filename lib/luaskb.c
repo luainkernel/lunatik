@@ -221,7 +221,7 @@ static inline void luaskb_csum(struct sk_buff *skb, u8 proto, __sum16 csum)
 }
 
 /***
-* Recomputes IP and transport-layer (TCP/UDP) checksums.
+* Recomputes IP and transport-layer (TCP/UDP) checksums and writes them into the packet.
 * On IPv4 it recomputes the header checksum and the TCP or UDP checksum; on IPv6, the TCP or UDP
 * checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, and an
 * IPv6 packet with extension headers, is left unchanged.
@@ -248,9 +248,9 @@ static int luaskb_checksum(lua_State *L)
 }
 
 /***
-* Forwards the skb out through its ingress device.
-* It transmits a clone out of `skb->dev`; the original is untouched and still takes the hook's
-* verdict, so a callback that forwards a packet returns `DROP` to not send it twice.
+* Transmits a clone of the skb out of `skb->dev`, the device `skb:ifindex()` names.
+* The original is untouched and still takes the hook's verdict, so a callback that forwards a
+* packet returns `DROP` to not send it twice.
 * @function forward
 * @raise if skb has no device, MAC header is not set or is past the data, or clone fails
 */

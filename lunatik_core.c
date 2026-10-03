@@ -23,9 +23,9 @@
 #include "lunatik_sym.h"
 
 /***
-* Shared `rcu.table` through which scripts exchange objects, as the runner does with its
-* `runtimes` and `threads` tables. It is present in a runtime created while the `lunatik_run`
-* module is loaded.
+* Shared `rcu.table` through which scripts exchange objects. Its keys `runtimes` and `threads`
+* are reserved for `lunatik.runner`, which records there the scripts it runs and spawns. It is
+* present in a runtime created while the `lunatik_run` module is loaded.
 * @field _ENV
 * @within lunatik
 */
@@ -137,7 +137,8 @@ int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs)
 }
 
 /***
-* Resumes a yielded runtime, analogous to `coroutine.resume`.
+* Resumes a runtime as the function `coroutine.wrap` returns resumes a coroutine: an error is
+* raised, not returned.
 * The runtime's script returns a function: the first resume calls it with the objects as its
 * arguments, and each later one delivers them as the return values of the `coroutine.yield()` it
 * is suspended in. Only Lunatik objects cross between the runtimes, in either direction.
@@ -389,9 +390,12 @@ EXPORT_SYMBOL(lunatik_runtime);
 * it stays open, its hooks in place and the modules its script required loaded, until `stop()`,
 * which cannot be called once its last handle is gone. A script stops the runtimes it creates;
 * one a netdevice callback may collect it stops before, since the close runs where the collector
-* drops the handle and cannot refuse there. The close runs the script's finalizers: an object one
-* creates or reads, as a sentinel that stops a child through `lunatik._ENV` does, is released by
-* the end of the close, and a registration raises `not allowed while the runtime closes`. A last
+* drops the handle and cannot refuse there. A sentinel stops a child with its creator: a table
+* whose `__gc` stops the child, reachable from what the creator's runtime keeps until it closes,
+* as the driver table `device.new` keeps in `examples/systrack/device.lua`, since what only a local
+* of the script body references can be collected once the body returns. The close runs the script's
+* finalizers, the sentinel's among them: an object one creates or reads is released by the end
+* of the close, and a registration raises `not allowed while the runtime closes`. A last
 * reference dropped with bottom halves or IRQs off, as a softirq or hardirq runtime's `rcu.table`
 * write drops an entry's, closes it on a kernel worker after the drop, where its finalizers may
 * sleep. Only a process runtime's `lunatik` module has it.

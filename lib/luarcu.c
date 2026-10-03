@@ -6,11 +6,13 @@
 /***
 * RCU-synchronized hash table.
 * Provides a concurrent hash table using Read-Copy-Update (RCU) synchronization.
-* Reads are lockless; writes are serialized. Keys are strings, values can be
+* Reads are lockless; writes are serialized. Keys are strings, and a number key is its
+* decimal string, so `t[1]` and `t["1"]` are one entry; values can be
 * booleans, integers, shareable lunatik objects, or `nil` (to delete an entry). A
 * SINGLE object, such as a `device`, a `probe` or a `hid` driver, raises
 * `cannot share SINGLE object`, and a string or a table raises `unsupported type`.
-* Reading an object returns a new handle on the same kernel object; from a softirq or
+* Reading an object returns a new handle on the same kernel object, so two reads of an
+* entry compare unequal; from a softirq or
 * hardirq runtime, one whose class needs process context raises
 * `'<class>': process-context class in interrupt-context runtime`. A read that
 * meets a writer releasing the entry's object sees the entry gone. An entry holds its
