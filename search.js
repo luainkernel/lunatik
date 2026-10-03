@@ -142,7 +142,7 @@ window.LUNATIK_SEARCH = [
 ["random ([m[, n]])","modules/linux.html#random","linux · Generates pseudo-random integers."],
 ["schedule ([timeout[, state]])","modules/linux.html#schedule","linux · Puts the current task to sleep."],
 ["time ()","modules/linux.html#time","linux · Gets the current real time."],
-["tracing ([enable])","modules/linux.html#tracing","linux · Controls kernel tracing."],
+["tracing ([on])","modules/linux.html#tracing","linux · Reads or sets whether kernel tracing is on."],
 ["linux.kbd","modules/linux.kbd.html","Module · Linux kernel constants exposed under linux.kbd."],
 ["linux.netdev","modules/linux.netdev.html","Module · Linux kernel constants exposed under linux.netdev."],
 ["linux.netlink","modules/linux.netlink.html","Module · Linux kernel constants exposed under linux.netlink."],

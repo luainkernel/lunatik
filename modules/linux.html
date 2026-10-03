@@ -216,8 +216,8 @@
 	<td class="summary">Gets the current real time.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#tracing">tracing ([enable])</a></td>
-	<td class="summary">Controls kernel tracing.</td>
+	<td class="name"><a href="#tracing">tracing ([on])</a></td>
+	<td class="summary">Reads or sets whether kernel tracing is on.</td>
 	</tr>
 </table></div>
 
@@ -484,18 +484,21 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 
 
 </dd>
-    <dt id="tracing"><a name="tracing"></a><strong>tracing ([enable])</strong></dt>
+    <dt id="tracing"><a name="tracing"></a><strong>tracing ([on])</strong></dt>
     <dd>
-    Controls kernel tracing.
- Turns kernel tracing on or off via <code>tracing_on()</code> and <code>tracing_off()</code>.
+    Reads or sets whether kernel tracing is on.
+ Given a boolean, turns tracing on through <code>tracing_on()</code> or off through <code>tracing_off()</code>, which
+ stops the top-level ring buffer and keeps what it holds, so a hook can end the trace where the
+ event it looks for happens. Given none or <code>nil</code>, changes nothing. Either way it returns
+ <code>tracing_is_on()</code>, the state <code>/sys/kernel/tracing/tracing_on</code> shows.
+ Safe to call from softirq and hardirq.
 
 
     <h3>Parameters</h3>
     <ul>
-        <li><span class="parameter">enable</span>
+        <li><span class="parameter">on</span>
             <span class="types"><span class="type">boolean</span></span>
-         If <code>true</code>, turns tracing on. If <code>false</code>, turns tracing off.
- If omitted, does not change the state.
+         <code>true</code> turns tracing on, <code>false</code> turns it off; omitted or <code>nil</code> reads it.
          (<em>optional</em>)
         </li>
     </ul>
@@ -504,16 +507,16 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
     <ol>
 
            <span class="types"><span class="type">boolean</span></span>
-        current kernel tracing state (<code>true</code> if on, <code>false</code> if off) <em>after</em> any change.
+        <code>true</code> if tracing is on, <code>false</code> if it is off, after any change.
     </ol>
 
+    <h3>Raises</h3>
+    &ldquo;boolean expected&rdquo; if <code>on</code> is neither a boolean nor <code>nil</code>
 
 
     <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> is_on = linux.<span class="function-name">tracing</span>(<span class="keyword">true</span>) <span class="comment">-- Enable tracing
-</span><span class="keyword">if</span> is_on <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"Tracing is now on"</span>) <span class="keyword">end</span>
-<span class="keyword">local</span> current_state = linux.<span class="function-name">tracing</span>()   <span class="comment">-- Get current state
-</span>linux.<span class="function-name">tracing</span>(<span class="keyword">false</span>)                    <span class="comment">-- Disable tracing</span></pre>
+        <pre class="example">linux.<span class="function-name">tracing</span>(<span class="keyword">false</span>) <span class="comment">-- end the trace here
+</span><span class="keyword">if</span> linux.<span class="function-name">tracing</span>() <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"tracing is on"</span>) <span class="keyword">end</span></pre>
 
 </dd>
 </dl>
@@ -530,7 +533,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:57:06</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:02:23</span>
 </div>
 </footer>
 </body>
