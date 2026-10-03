@@ -11,9 +11,9 @@
 #include <linux/preempt.h>
 
 #define LUNATIK_CPU_NONE	(-1)
-#define lunatik_getcpu(L)	(lunatik_extra(L)->cpu)
+#define lunatik_getcpu(L)	(lunatik_runtimeof(lunatik_toruntime(L))->cpu)
 #define lunatik_hascpu(L)	(lunatik_getcpu(L) != LUNATIK_CPU_NONE)
-#define lunatik_getpercpu(L)	(lunatik_extra(L)->percpu)
+#define lunatik_getpercpu(L)	(lunatik_runtimeof(lunatik_toruntime(L))->percpu)
 
 typedef struct lunatik_percpu_s {
 	lunatik_object_t * __percpu *runtimes;
