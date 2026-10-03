@@ -24,6 +24,7 @@ local IP6_ADDRSLEN <const> = 32
 local IP6_HDRLEN   <const> = 40
 local TCP_CHECK <const> = 16
 local UDP_CHECK <const> = 6
+local UDP_HDRLEN <const> = 8
 local TCP <const> = 6
 local UDP <const> = 17
 
@@ -36,6 +37,7 @@ local pending = {
 	[PRIORITY + 6] = "ext6",
 	[PRIORITY + 7] = "short4",
 	[PRIORITY + 8] = "ihl4",
+	[PRIORITY + 9] = "zero6",
 }
 
 local function iphlen(data)
@@ -81,6 +83,18 @@ function prepare.fits6(skb)
 	return data
 end
 
+-- the first payload word takes the value that makes the datagram's sum fold to 0
+function prepare.zero6(skb)
+	local data = prepare.fits6(skb)
+	local word = IP6_HDRLEN + UDP_HDRLEN
+	local len = #data - IP6_HDRLEN
+	data:setuint16(word, 0)
+	local sum = (ONES - data:checksum(IP6_ADDRS, IP6_ADDRSLEN)) + (ONES - data:checksum(IP6_HDRLEN, len)) +
+		byteorder.hton16(UDP) + byteorder.hton16(len)
+	data:setuint16(word, ONES - fold(sum))
+	return data
+end
+
 function prepare.below4(skb)
 	local data = skb:data()
 	data:setuint16(IP_TOTLEN, byteorder.hton16(iphlen(data) - 1))
@@ -123,6 +137,10 @@ end
 
 function verify.fits6(data)
 	return summed(data, IP6_ADDRS, IP6_ADDRSLEN, IP6_HDRLEN, UDP)
+end
+
+function verify.zero6(data)
+	return data:getuint16(IP6_HDRLEN + UDP_CHECK) == ONES and verify.fits6(data)
 end
 
 local function checksum_hook(skb)

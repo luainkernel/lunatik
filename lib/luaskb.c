@@ -251,14 +251,14 @@ static int luaskb_checksum(lua_State *L)
 			return 0;
 		ip_send_check(iph);
 		luaskb_csum(skb, iph->protocol, 0);
-		luaskb_csum(skb, iph->protocol, luaskb_csum4(skb, iph, ip_hdrlen(skb)));
+		luaskb_csum(skb, iph->protocol, luaskb_csum4(skb, iph, ip_hdrlen(skb)) ?: CSUM_MANGLED_0);
 	}
 	else if (skb->protocol == htons(ETH_P_IPV6)) {
 		struct ipv6hdr *ip6h = ipv6_hdr(skb);
 		if (!luaskb_iswhole6(skb, ip6h))
 			return 0;
 		luaskb_csum(skb, ip6h->nexthdr, 0);
-		luaskb_csum(skb, ip6h->nexthdr, luaskb_csum6(skb, ip6h));
+		luaskb_csum(skb, ip6h->nexthdr, luaskb_csum6(skb, ip6h) ?: CSUM_MANGLED_0);
 	}
 	return 0;
 }

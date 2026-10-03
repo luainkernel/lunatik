@@ -1617,7 +1617,9 @@ pid, and what a valid call does.
   end, and a UDP datagram carrying a destination options header, whose
   `payload_len` counts that header past where the UDP sum starts, are left
   unchanged, as are a TCP segment shrunk to 30 bytes with `tot_len` rewritten to
-  fit, short of its check field, and one whose IHL reads 4. A build that sums a length past the packet hits `skb_checksum`'s
+  fit, short of its check field, and one whose IHL reads 4. A UDP datagram over
+  `::1` whose sum folds to 0 gets the check field `0xffff`, `CSUM_MANGLED_0`,
+  which an IPv6 receiver accepts where it drops a 0. A build that sums a length past the packet hits `skb_checksum`'s
   `BUG_ON` and panics the host, and its check has no symbol or message, so the
   packets past their end are sent only once the loaded `luaskb` left the short
   `tot_len` unchanged, a stimulus such a build sums and survives. Skips
