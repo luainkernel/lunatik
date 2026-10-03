@@ -4,6 +4,14 @@
 #include <lunatik.h>
 ```
 
+This page is the C API of Lunatik: what it documents is what a binding may use, and a minor release
+only adds to it. A `lunatik_` or `LUNATIK_` name `lunatik.h`, or a header it includes, defines and
+this page leaves out is the core's own, which the API's inline functions and macros are built on
+and any release may change; those `lunatik.h` defines itself sit in a section of their own. The
+headers under `lib/` belong to the bindings beside them and are not part of the API. A binding uses
+the [Lua C API](https://www.lua.org/manual/5.5/manual.html#4) besides, and builds as
+[Building out of tree](#building-out-of-tree) says.
+
 ## Types
 
 ### lunatik\_class\_t
@@ -86,12 +94,34 @@ typedef struct lunatik_object_s {
 	struct rcu_head rcu;
 } lunatik_object_t;
 ```
-A Lunatik object. A binding reads `private`, the data of its class, `NULL` once the object is
-closed; `object->class`, the class it was created with; `opt`, as
-[`lunatik_newobject`](#lunatik_newobject) computes it; and `gfp`, through
-[`lunatik_gfp`](#lunatik_gfp). The other fields are the core's: `kref` belongs to
-[`lunatik_getobject`](#lunatik_getobject) and [`lunatik_putobject`](#lunatik_putobject), the lock
-union, `owner` and `flags` to [`lunatik_lock`](#lunatik_lock), and the `rcu_head` to the release.
+A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` through
+[`lunatik_gfp`](#lunatik_gfp); the other fields are the core's.
+
+- `kref`: the count of the object's references, `1` at its creation, taken and dropped through
+  [`lunatik_getobject`](#lunatik_getobject), [`lunatik_getobject_rcu`](#lunatik_getobject_rcu) and
+  [`lunatik_putobject`](#lunatik_putobject), whose drop to zero runs the release. It changes
+  atomically, under no lock.
+- `class`: the class the object was created with, set at its creation and never changed.
+- `private`: the data of the class. [`lunatik_newobject`](#lunatik_newobject) and
+  [`lunatik_createobject`](#lunatik_createobject) allocate it zeroed, and the binding sets it for a
+  `LUNATIK_OPT_EXTERNAL` class. [`lunatik_closeprivate`](#lunatik_closeprivate) clears it under the
+  object's lock, so `NULL` is a closed object, and a method the monitor does not wrap, a `close` or the
+  runtime's `stop`, reads it under that lock.
+- `mutex` and `spin`: the object's lock, a mutex for a process-context object and a spinlock for a
+  `LUNATIK_OPT_SOFTIRQ` or `LUNATIK_OPT_HARDIRQ` one, taken through [`lunatik_lock`](#lunatik_lock),
+  set up at the object's creation and torn down at its release.
+- `owner`: the task that holds the lock, `NULL` while none does. [`lunatik_lock`](#lunatik_lock)
+  writes it once it holds the lock and `lunatik_unlock` clears it before letting go;
+  [`lunatik_isowner`](#lunatik_isowner) reads it without the lock, since only the holder writes it.
+- `opt`: the `LUNATIK_OPT_*` flags of the object, its class's and those it was created with, as
+  [`lunatik_newobject`](#lunatik_newobject) computes them, set at its creation and never changed.
+- `gfp`: the flags the object allocates with, `GFP_ATOMIC` for a `LUNATIK_OPT_SOFTIRQ` or
+  `LUNATIK_OPT_HARDIRQ` object and `GFP_KERNEL` otherwise, set at its creation. A runtime's changes
+  as [`lunatik_gfp`](#lunatik_gfp) says, written by the code that runs in it.
+- `flags`: the interrupt state `spin_lock_irqsave` saves, which `lunatik_lock` writes once it holds
+  the lock and `lunatik_unlock` restores.
+- `rcu`: the head the release frees the object through, after a grace period, so a reader that
+  found it under `rcu_read_lock()` can still read its count.
 
 ### lunatik\_opt\_t
 ```C
@@ -100,6 +130,21 @@ typedef u8 __bitwise lunatik_opt_t;
 The type of the `LUNATIK_OPT_*` flags, of a class's `opt` and of an object's. It is `__bitwise`, so
 sparse (`make C=1`) warns on a plain integer mixed into it: flags combine with `|`, and a cast
 into the type carries `__force`, as the `LUNATIK_OPT_*` definitions do.
+
+### lunatik\_isirq
+```C
+bool lunatik_isirq(lunatik_opt_t opt);
+bool lunatik_ishardirq(lunatik_opt_t opt);
+bool lunatik_ismonitor(lunatik_opt_t opt);
+bool lunatik_issingle(lunatik_opt_t opt);
+bool lunatik_isexternal(lunatik_opt_t opt);
+bool lunatik_ispercpu(lunatik_opt_t opt);
+```
+Test `opt`, a class's or an object's, for a flag: `lunatik_isirq` holds for `LUNATIK_OPT_SOFTIRQ`
+and `LUNATIK_OPT_HARDIRQ` alike, through the `LUNATIK_OPT_IRQ` bit both carry,
+`lunatik_ishardirq` for `LUNATIK_OPT_HARDIRQ` alone, and each of the others for the flag it names:
+`lunatik_ispercpu` tells the `percpu` set [`lunatik_getpercpu`](#lunatik_getpercpu) returns from a
+runtime. Defined as macros.
 
 ---
 
@@ -135,7 +180,7 @@ once the script has loaded.
 _lunatik\_runtime()_ opens the Lua standard libraries
 [present on Lunatik](guide/04-lua.md).
 A softirq or hardirq runtime opens every one of them but `io`, and its `lunatik` library carries
-only `lunatik.cpu`.
+only `lunatik.cpu` and `lunatik._ENV`.
 If successful, _lunatik\_runtime()_ sets the address pointed by `pruntime` and
 [Lua's extra space](https://www.lua.org/manual/5.5/manual.html#lua_getextraspace)
 with a pointer for the new created `runtime` environment,
@@ -214,10 +259,9 @@ does not run either; otherwise, `ret` is set with the result of `handler(L, ...)
 Then, it restores the Lua stack and unlocks the `runtime` environment.
 A process runtime is locked with a mutex, so _lunatik\_run()_ on it is called from a context that
 may sleep.
-A `percpu` object, which the caller keeps referenced across the call, is resolved first, through
-`lunatik_pin`, to the runtime of the CPU the caller runs on, and the caller stays on that CPU
-until `lunatik_unpin` after the call returns: with preemption off for a softirq or hardirq set,
-with migration off for a process one.
+A `percpu` object, which the caller keeps referenced across the call, is resolved first to the
+runtime of the CPU the caller runs on, and the caller stays on that CPU until the call returns:
+with preemption off for a softirq or hardirq set, with migration off for a process one.
 It is defined as a macro.
 
 #### Example: lunatik\_run
@@ -345,7 +389,7 @@ bool lunatik_isready(lunatik_object_t *runtime);
 ```
 Returns `true` once `runtime` is armed, its script body returned, and until it is closed.
 `thread.run` uses it to refuse creating a thread from the script body of the runtime that calls
-it, with `not allowed before the runtime is armed`.
+it, with `not allowed before the runtime is armed`. Defined as a macro.
 
 ### lunatik\_isclosing
 ```C
@@ -371,8 +415,8 @@ its own task holds; a binding that dispatches without `lunatik_run` reads it its
 The answer is exact for a process-context object, whose mutex is task-owned; a SOFTIRQ or
 HARDIRQ class takes a spinlock, owned by a CPU and not by a task, and records whichever task
 the softirq or hardirq interrupted. It answers about the object it is given: a percpu set's own
-lock, which no dispatch takes, so `lunatik_run` reads it on the per-CPU instance `lunatik_pin`
-returns and `percpu:stop()` asks each runtime of the set in turn. And it sees the calling task
+lock, which no dispatch takes, so `lunatik_run` reads it on the runtime of the CPU it resolves
+and `percpu:stop()` asks each runtime of the set in turn. And it sees the calling task
 only — Lua that blocks under the lock on a second task which then reaches the same lock is a
 cycle no owner check can name. The entries a script reaches, the monitor, `stop`, `resume` and
 `thread.run`, take a runtime's lock with `lunatik_lockkillable`, so the stop of a kernel thread
@@ -383,10 +427,13 @@ in that cycle, or a fatal signal to another task in it, ends its wait; a dispatc
 ```C
 bool lunatik_isrtnl(void);
 void lunatik_setrtnl(struct task_struct *task);
+extern struct task_struct *lunatik_rtnl;
 ```
 `lunatik_isrtnl` returns `true` if the calling task is dispatching a callback under RTNL. A binding
 whose kernel callback runs with RTNL held, as `notifier.netdevice`'s does, sets the task with
-`lunatik_setrtnl(current)` before it runs Lua there and clears it with `lunatik_setrtnl(NULL)` after.
+`lunatik_setrtnl(current)` before it runs Lua there, and after it writes back the task
+`lunatik_rtnl` held before, read with `READ_ONCE(lunatik_rtnl)`, so a dispatch nested in another on
+the same task leaves the outer one's in place.
 RTNL is held by one task at a time, so one pointer serves every runtime and every coroutine, and
 the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
 kernel call that takes RTNL, such as `register_netdevice_notifier`, which would wait on the lock its
@@ -502,8 +549,9 @@ the following ones get the same object, so every runtime sees one. The `percpu` 
 context) before closing the runtimes, then drops it, and an object with such data outstanding is
 released by `stop`, never by collection. A registration a script makes once for all its runtimes,
 a netfilter hook, say, lives in the private of such an object, with the class's `release`
-unregistering it. Only the script body may ask, while the runtime loads; it raises a Lua error
-afterwards. Returns `NULL` on a plain runtime, which has no runtimes to share with;
+unregistering it. Only the script body may ask, while the runtime loads: afterwards it raises
+`not allowed once the runtime is armed`. It raises `not enough memory` too. Returns `NULL` on a
+plain runtime, which has no runtimes to share with;
 [`lunatik_getpercpu`](#lunatik_getpercpu) tells the two apart.
 
 ### LUNATIK\_PERCPUDATA (macro)
@@ -596,12 +644,15 @@ Returns a pointer to the `lunatik_object_t` on success, or `NULL` if memory allo
 ### lunatik\_require
 ```C
 void lunatik_require(lua_State *L, const lunatik_class_t *class);
+void lunatik_newclasses(lua_State *L, const lunatik_class_t **classes);
 ```
 Creates the class's metatables in the registry of `L` from its `methods`, the monitored one too
 for a `LUNATIK_OPT_MONITOR` class, unless `L` has them already. It opens no library and adds no
 `package.loaded` entry. A function that creates an object of its class in a state whose script
 may not have required the library calls it before [`lunatik_newobject`](#lunatik_newobject), as
-`luadata_new` does. Raises `not enough memory`.
+`luadata_new` does. `lunatik_newclasses` requires each class of a `NULL`-terminated array, as the
+opener [`LUNATIK_NEWLIB`](#lunatik_newlib) defines does, and an opener written by hand calls it.
+Raises `not enough memory`.
 
 ### lunatik\_cloneobject
 ```C
@@ -957,6 +1008,24 @@ for any other value, never `NULL`. It does not convert a number: `lua_tostring` 
 place, which allocates, and an allocation that fails outside a protected call raises with no
 handler, a `BUG()`. After a protected call or a resume fails, the error is read through it.
 
+### LUNATIK\_ERR\_CLOSED
+```C
+#define LUNATIK_ERR_CLOSED	"closed object"
+#define LUNATIK_ERR_SINGLE	"cannot share SINGLE object"
+#define LUNATIK_ERR_METATABLE	"metatable not found"
+#define LUNATIK_ERR_CONTEXT	"process-context class in interrupt-context runtime"
+#define LUNATIK_ERR_RUNTIME	"runtime context mismatch"
+#define LUNATIK_ERR_ARMED	"not allowed once the runtime is armed"
+#define LUNATIK_ERR_UNARMED	"not allowed before the runtime is armed"
+#define LUNATIK_ERR_RTNL	"not allowed under RTNL"
+#define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
+#define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
+#define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
+```
+The messages of the refusals this page documents. A binding that refuses one of their conditions on
+its own raises the same message through them, as `thread.run` raises `LUNATIK_ERR_UNARMED` from a
+script body, so a script reads one message for one condition.
+
 ---
 
 ## Table Fields
@@ -1070,13 +1139,15 @@ typedef struct lunatik_value_s {
 
 void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value);
 void lunatik_pushvalue(lua_State *L, lunatik_value_t *value);
+bool lunatik_isuserdata(lunatik_value_t *value);
 ```
 A Lua value that can cross runtimes: `nil`, a boolean, an integer, or a Lunatik object, as an
 `rcu.table` stores it. `lunatik_checkvalue` reads the value at `ix` into `value`, taking no
 reference on an object, and raises `unsupported type` for any other type and
 `cannot share SINGLE object` for a `LUNATIK_OPT_SINGLE` object. `lunatik_pushvalue` pushes
 `value`, handing the reference the caller holds on its object to the new userdata; when the push
-raises, it drops that reference first.
+raises, it drops that reference first. `lunatik_isuserdata` tells a value that holds an object, and
+is a macro.
 
 ---
 
@@ -1271,6 +1342,28 @@ MODULE_VERSION(LUNATIK_RELEASE);
 ```
 A script then runs `local foo = require("foo")` and `foo.new():inc()`.
 
+### Building out of tree
+A binding kept outside this tree builds against a Lunatik tree that `make` built for the running
+kernel: its headers, and its `Module.symvers`, which lists what `lunatik.ko` exports and which
+modpost reads to resolve the binding's calls. The binding's `Kbuild` names the directories of the
+headers and defines `_KERNEL`, which configures the Lua headers for the kernel:
+```Makefile
+obj-m += luafoo.o
+ccflags-y += -D_KERNEL -I$(LUNATIK) -I$(LUNATIK)/lua -I$(LUNATIK)/include
+```
+and its build names that tree as `LUNATIK` and hands its symbols to modpost:
+```sh
+make -C /lib/modules/$(uname -r)/build M=$PWD LUNATIK=$HOME/lunatik \
+	KBUILD_EXTRA_SYMBOLS=$HOME/lunatik/Module.symvers modules
+```
+`require("foo")` finds the binding once its module is loaded, by `insmod luafoo.ko` after
+`lunatik.ko`, or by `modprobe luafoo` once it is installed under `/lib/modules/$(uname -r)`: the
+searcher looks `luaopen_foo` up among the symbols the loaded modules export, and `lunatik load`
+loads only the tree's own modules. A binding that registers a kfunc needs the running kernel's BTF
+at build time, which the tree's `sudo make btf_install` copies where the build reads it; without it
+the module loads with its kfunc unregistered, logging `missing module BTF, cannot register kfunc`
+(`kfuncs` on v6.8 and earlier), and an eBPF program that calls the kfunc fails to load.
+
 ---
 
 ## Memory
@@ -1321,82 +1414,6 @@ Returns the `gfp_t` `object` allocates with: `GFP_ATOMIC` for a SOFTIRQ or HARDI
 and the object's while it calls a monitored method.
 A binding that allocates outside the Lua allocator passes `lunatik_gfp(lunatik_toruntime(L))`.
 Defined as a macro.
-
----
-
-## eBPF bindings
-
-```C
-#include <lunatik_ebpf.h>
-```
-The helpers of a binding whose kfunc an eBPF program calls to run a Lua callback, as
-[`lib/luaxdp.c`](../lib/luaxdp.c) does. Building one needs the running kernel's BTF,
-`sudo make btf_install` before `make`; without it the module loads with its kfunc unregistered,
-logging `missing module BTF, cannot register kfunc` (`kfuncs` on v6.8 and earlier), and an eBPF
-program that calls the kfunc fails to load.
-
-### LUNATIK\_EBPF\_RUN
-```C
-#define LUNATIK_EBPF_RUN(key, key_sz, handler, ret, ctxp)
-lunatik_object_t *lunatik_ebpf_lookupruntime(char *key, size_t key_sz);
-```
-The kfunc's body: `lunatik_ebpf_lookupruntime` finds the runtime stored at `key` in
-`lunatik._ENV.runtimes`, where `lunatik run` keeps the runtimes it starts by script name, and
-`LUNATIK_EBPF_RUN` runs `handler(L, ctxp)` on it with [`lunatik_run`](#lunatik_run), sets `ret`
-with its result, a negative one, `lunatik_run`'s `-ENXIO` and `-EDEADLK` included, as `-1`, then
-drops the reference the lookup took. `key_sz` counts the terminator, which the lookup writes at
-`key[key_sz - 1]`. A key with no runtime, and a process runtime, which it logs, run nothing and
-leave `ret` as it was. The
-binding keeps the `runtimes` table the first lookup to find one returns; until then, a lookup made
-while `lunatik_run.ko` is not loaded runs nothing, which it logs.
-
-### lunatik\_ebpf\_bind
-```C
-void lunatik_ebpf_bind(lua_State *L, int ix, int *cb);
-void lunatik_ebpf_unbind(lua_State *L, int *cb);
-void *lunatik_ebpf_findctx(lua_State *L);
-void *lunatik_ebpf_getctx(lua_State *L);
-int lunatik_ebpf_invoke(lua_State *L, int cb, int nresults);
-int lunatik_ebpf_action(lua_State *L, int cb, lua_Integer min, lua_Integer max);
-```
-A runtime has one callback context, the userdata of an object of the binding's class, kept in
-its registry. `lunatik_ebpf_bind`, called with that userdata on top of the stack, references the
-callback at `ix` in `cb`, stores the userdata and pops it. `lunatik_ebpf_findctx` pushes the
-userdata and returns its private, or pops and returns `NULL` when the runtime has none;
-`lunatik_ebpf_getctx` also logs `no callback attached` then. `lunatik_ebpf_invoke` calls the
-callback `cb` with the value on top of the stack, the userdata `findctx` pushed, in a protected
-call, and returns `-1` after logging the error, `0` otherwise, with its `nresults` results on the
-stack. `lunatik_ebpf_action` invokes it for one result and returns that result when it is an
-integer from `min` to `max`, and `-1` when the callback raised or returned nil, or, logging
-`invalid action`, anything else. `lunatik_ebpf_unbind` releases
-`cb`, clears the stored userdata, and pops the one `findctx` pushed.
-
-### lunatik\_ebpf\_attach
-```C
-void lunatik_ebpf_attach(lua_State *L, obj, field, new_fn, ...);
-void lunatik_ebpf_detach(lua_State *L, obj, field);
-```
-Like [`lunatik_attach`](#lunatik_attach), and it also takes a reference on the new object, which
-the context's `release` drops; `lunatik_ebpf_detach` removes the registry entry and leaves
-`obj->field` for that release. Defined as macros.
-
-### LUNATIK\_EBPF\_NEWLIB
-```C
-#define LUNATIK_EBPF_START()
-#define LUNATIK_EBPF_END()
-#define LUNATIK_EBPF_KFUNC_DEFINE_SET(subsys, kfunc)
-#define LUNATIK_EBPF_NEWLIB(subsys, lib, class)
-#define LUNATIK_EBPF_KFUNC_INIT(subsys, prog_type)
-#define LUNATIK_EBPF_EXIT(subsys)
-```
-The module around the kfunc. `LUNATIK_EBPF_START()` and `LUNATIK_EBPF_END()` enclose the kfunc's
-definition; `LUNATIK_EBPF_KFUNC_DEFINE_SET` puts `kfunc` in the BTF set `bpf_lua<subsys>_set`
-and defines `bpf_lua<subsys>_kfunc_set`, the id set that wraps it; `LUNATIK_EBPF_NEWLIB` is
-[`LUNATIK_CLASSES`](#lunatik_classes) and [`LUNATIK_NEWLIB`](#lunatik_newlib) for the one class;
-`LUNATIK_EBPF_KFUNC_INIT` defines `lua<subsys>_init`, registering `bpf_lua<subsys>_kfunc_set`
-for the program type `prog_type`, and
-`LUNATIK_EBPF_EXIT` defines `lua<subsys>_exit`. The binding then names both in `module_init` and
-`module_exit`.
 
 ---
 
