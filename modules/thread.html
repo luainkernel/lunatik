@@ -225,7 +225,8 @@ return body
     Stops a running kernel thread.
  Signals the thread to stop and waits for it to exit. A body waiting for a runtime&rsquo;s lock,
  or for the lock a shared object&rsquo;s method takes, leaves that wait with &ldquo;EINTR&rdquo;. A
- to-be-closed variable holding the thread stops it the same way.
+ to-be-closed variable holding the thread stops it the same way. A stop made while another
+ stop of the same thread waits for it returns at once, before the thread has exited.
 
 
 
@@ -234,7 +235,7 @@ return body
 
            <span class="types"><span class="type">boolean</span></span>
         <code>false</code> if the body it stopped raised, <code>true</code> otherwise, for a thread
-   already stopped too
+   already stopped or being stopped too
     </ol>
 
     <h3>Raises</h3>
@@ -244,7 +245,7 @@ return body
    &ldquo;not allowed from the runtime itself&rdquo; from under the lock of the thread&rsquo;s runtime, the
    contexts <code>runtime:stop</code> names, the thread&rsquo;s own body among them, where the stop would wait
    on a body that runs under that lock; &ldquo;EINTR&rdquo; if the stop of the calling kernel thread, or a
-   fatal signal to any other task, ends its wait for another stop of the same thread
+   fatal signal to any other task, ends its wait for the thread&rsquo;s lock
 
 
     <h3>Usage</h3>
@@ -256,8 +257,8 @@ return body
     Returns a task object for the kernel task associated with the thread.
  The thread holds a reference to it, so the object stays readable after the
  body returned, reporting the task as it ended. <a href="../modules/thread.html#thread:stop">stop</a> releases that
- reference: the object returned after a stop has no task, and its methods
- raise &ldquo;closed object&rdquo;.
+ reference: the object returned once a stop began, before the thread has
+ exited too, has no task, and its methods raise &ldquo;closed object&rdquo;.
 
 
 
@@ -369,7 +370,7 @@ return body
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:19:46</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:52:41</span>
 </div>
 </footer>
 </body>
