@@ -664,19 +664,19 @@ found this by dereferencing a NULL slot on every CPU at once and taking the mach
 The registry pattern for a reusable per hook object (`lunatik_getregistry`, reset, pass to Lua, clear
 afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than inventing a variant.
 
-A fact about a runtime has two homes, and which one is decided by who reads it. The Lua extra
-space, `lunatik_runtime_t` in `lunatik_conf.h`, is a block `lua_newthread` copies into every
-coroutine, so a field there is either fixed at creation, as `runtime`, `cpu` and `percpu` are, or
-read only through the main state, as `ready` is: `lunatik_isready` reads it through
-`lunatik_getstate`, never through a coroutine's copy. A fact a coroutine may read while it changes
-lives where its writer can reach it: on the runtime object beside `owner` when the core sets it on
-every route, as the lock does, and in the registry under the binding's own static key when only
-that binding sets and reads it, as `luakfunc_env_key` and `fsnotify`'s callback flag do; the
-registry is one per state and every coroutine shares it. A core field the core neither sets nor
-reads is a contract the core cannot keep. #851 put the callback flag in the extra space, where a
-coroutine made before the callback read it clear and one made inside kept it set, then on the
-object, before it went back to the registry; `tools/checks/extraspace.sh` names a line added to
-the struct. The home of a field is part of the design that was agreed, not a detail below it:
+A fact about a runtime has two homes, and which one is decided by who sets it. The core's live in
+`lunatik_runtime_t` (`lunatik.h`), which embeds the runtime's object as its first member, so the
+object's free frees it, and which every task that holds a reference reaches through
+`lunatik_runtimeof`: the CPU, the percpu set and `ready` are there, and what only a runtime holds
+costs no other object anything. One only a binding sets and reads lives in the registry under the
+binding's own static key, as `luakfunc_env_key` and `fsnotify`'s callback flag do; the registry is
+one per state and every coroutine shares it. Lua's extra space holds the runtime's pointer alone,
+which `lunatik_toruntime` reads: `lua_newthread` copies it into every coroutine when it is made and
+`lua_close` frees it with the state, so a fact kept there is right only while fixed and only while
+the state lives. A core field the core neither sets nor reads is a contract the core cannot keep.
+#851 put the callback flag in the extra space, where a coroutine made before the callback read it
+clear and one made inside kept it set, then on the object, before it went back to the registry;
+`tools/checks/extraspace.sh` names a change that sizes the extra space again. The home of a field is part of the design that was agreed, not a detail below it:
 proposed beside `owner` and landed in the extra space, it was a decision reversed alone. A
 registry slot a callback writes is seeded where a protected call runs, the constructor: the
 dispatch path runs outside one, and a first insertion that rehashes and fails to allocate aborts
