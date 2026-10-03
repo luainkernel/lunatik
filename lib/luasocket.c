@@ -200,9 +200,8 @@ static inline bool luasocket_takesrtnl(struct socket *socket)
 	(luasocket_family(socket) == AF_NETLINK && (socket)->sk->sk_protocol == NETLINK_GENERIC && \
 	((struct sockaddr_nl *)(addr))->nl_groups != 0)
 
-/* only a protocol with get_port binds a port, the one inet_num holds */
 #define luasocket_isunbound(socket)	\
-	(LUASOCKET_ISINET(luasocket_family(socket)) && (socket)->sk->sk_prot->get_port != NULL && \
+	(LUASOCKET_ISINET(luasocket_family(socket)) && !(socket)->sk->sk_prot->no_autobind && \
 	data_race(!inet_sk((socket)->sk)->inet_num))
 
 /***
