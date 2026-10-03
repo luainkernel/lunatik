@@ -741,6 +741,7 @@ typedef struct lunatik_defer_s {
 
 void lunatik_initdefer(lunatik_defer_t *defer, work_func_t func);
 bool lunatik_defer(lunatik_defer_t *defer);
+void lunatik_syncdefer(lunatik_defer_t *defer);
 ```
 Runs `func` on a kernel worker, in process context, for a caller that cannot: one in softirq or
 hardirq context, with bottom halves or interrupts off, or in a probe handler on code the scheduler
@@ -755,8 +756,11 @@ The item lives in what defers, so deferring allocates nothing: `lunatik_initdefe
 the first `lunatik_defer`, and `func` finds what defers through `container_of` on `work`. Calls made
 before `func` starts run it once, and one made while it runs runs it again after it returns, so what
 each call hands `func` goes on a list `func` drains. A `func` that frees the item calls
-`irq_work_sync` on `irq` first, since the first hop still writes it after queuing `work`. Both are
-macros, and `lunatik_initdefer` gives each call site a lockdep class of its own, as `INIT_WORK` does.
+`irq_work_sync` on `irq` first, since the first hop still writes it after queuing `work`. A binding
+that frees an item outside `func`, or unloads while one may be queued, calls `lunatik_syncdefer`
+first, which waits for the first hop and then for `func`: an irq_work still raised on a CPU with
+interrupts off queues `work` after a wait made on `work` alone. All three are macros, and
+`lunatik_initdefer` gives each call site a lockdep class of its own, as `INIT_WORK` does.
 
 ### lunatik\_isatomic
 ```C
