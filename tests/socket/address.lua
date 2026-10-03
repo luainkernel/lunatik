@@ -13,6 +13,8 @@ local net    = require("net")
 local sk     = require("linux.socket")
 local nl     = require("linux.netlink")
 local eth    = require("linux.eth")
+local arphrd = require("linux.arphrd")
+local pkttype = require("linux.pkttype")
 local attempt = require("tests.socket.attempt")
 
 local pack = table.pack
@@ -27,10 +29,6 @@ local BUFSIZE    <const> = 64
 local MTU        <const> = 1500
 local BACKLOG    <const> = 1
 local TIMEOUT_MS <const> = 500
--- ARPHRD_LOOPBACK, which no autogen table carries (<uapi/linux/if_arp.h>)
-local HATYPE     <const> = 772
--- PACKET_HOST, which no autogen table carries (<uapi/linux/if_packet.h>)
-local PKTTYPE    <const> = 0
 -- the ETH_ALEN zeros of the loopback device's address
 local HWADDR     <const> = string.rep("\0", 6)
 -- struct sockaddr_in6 past the family: port, flow info, address, scope id
@@ -147,7 +145,7 @@ end
 
 if attempt.new(socket.new, sk.af.PACKET, sk.sock.RAW, eth.ALL) then
 	local unbound = {eth.ALL, 0, 0, 0, ""}
-	local loopback = {PROTO, ifindex, PKTTYPE, HATYPE, HWADDR}
+	local loopback = {PROTO, ifindex, pkttype.HOST, arphrd.LOOPBACK, HWADDR}
 
 	local packet = socket.new(sk.af.PACKET, sk.sock.RAW, eth.ALL)
 	expectaddress("an unbound packet getsockname", unbound, packet:getsockname())

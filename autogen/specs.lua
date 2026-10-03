@@ -23,6 +23,11 @@
 return {
 	{ header = "uapi/linux/if_ether.h", prefix = "ETH_P_", module = "eth",
 		desc = "Ethernet protocol IDs." },
+	{ header = "uapi/linux/if_arp.h", prefix = "ARPHRD_", module = "arphrd",
+		desc = "Network device hardware types (ARPHRD_*)." },
+	{ header = "uapi/linux/if_packet.h", prefix = "PACKET_", module = "pkttype",
+		desc = "Packet types (PACKET_HOST, ...).",
+		include = { "HOST", "BROADCAST", "MULTICAST", "OTHERHOST", "OUTGOING", "LOOPBACK", "USER", "KERNEL" } },
 	{ header = "linux/stat.h", prefix = "S_", module = "stat",
 		desc = "File mode bits." },
 	{ header = "linux/fsnotify_backend.h", prefix = "FS_", module = "fsnotify",
