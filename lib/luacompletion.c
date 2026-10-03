@@ -21,9 +21,15 @@
 
 #include <lunatik.h>
 
+typedef struct luacompletion_s {
+	struct completion completion;
+	lunatik_defer_t defer;
+	atomic_t deferred;
+} luacompletion_t;
+
 static const lunatik_class_t luacompletion_class;
 
-LUNATIK_PRIVATECHECKER(luacompletion_check, struct completion *, &luacompletion_class);
+LUNATIK_PRIVATECHECKER(luacompletion_check, luacompletion_t *, &luacompletion_class);
 
 /***
 * Represents a kernel completion object.
@@ -35,7 +41,9 @@ LUNATIK_PRIVATECHECKER(luacompletion_check, struct completion *, &luacompletion_
 /***
 * Signals a completion.
 * This wakes up one task waiting on this completion object.
-* Corresponds to the kernel's `complete()` function. It may be called from any runtime.
+* Corresponds to the kernel's `complete()` function. It may be called from any runtime. With IRQs
+* disabled, as in every callback of a hardirq runtime, a probe's handlers among them, the wakeup
+* runs on a kernel worker after the call, once for each such call; with IRQs on, it runs in place.
 * @function complete
 * @treturn nil
 * @usage
@@ -45,9 +53,14 @@ LUNATIK_PRIVATECHECKER(luacompletion_check, struct completion *, &luacompletion_
 */
 static int luacompletion_complete(lua_State *L)
 {
-	struct completion *completion = luacompletion_check(L, 1);
+	luacompletion_t *completion = luacompletion_check(L, 1);
 
-	complete(completion);
+	if (irqs_disabled()) { /* the wakeup takes a runqueue lock this CPU may hold */
+		atomic_inc(&completion->deferred);
+		lunatik_defer(&completion->defer);
+	}
+	else
+		complete(&completion->completion);
 	return 0;
 }
 
@@ -74,15 +87,30 @@ static int luacompletion_complete(lua_State *L)
 */
 static int luacompletion_wait(lua_State *L)
 {
-	struct completion *completion = luacompletion_check(L, 1);
+	luacompletion_t *completion = luacompletion_check(L, 1);
 	lua_Integer timeout = luaL_optinteger(L, 2, MAX_SCHEDULE_TIMEOUT);
 	long ret;
 
 	lunatik_checkcontext(L, luacompletion_class.name, LUNATIK_OPT_NONE);
 	unsigned long timeout_jiffies = msecs_to_jiffies((unsigned long)timeout);
-	lunatik_tryret(L, ret, wait_for_completion_interruptible_timeout, completion, timeout_jiffies);
+	lunatik_tryret(L, ret, wait_for_completion_interruptible_timeout, &completion->completion, timeout_jiffies);
 	lua_pushboolean(L, ret > 0);
 	return 1;
+}
+
+static void luacompletion_drain(struct work_struct *work)
+{
+	luacompletion_t *completion = container_of(work, luacompletion_t, defer.work);
+
+	for (int deferred = atomic_xchg(&completion->deferred, 0); deferred > 0; deferred--)
+		complete(&completion->completion);
+}
+
+static void luacompletion_release(void *private)
+{
+	luacompletion_t *completion = (luacompletion_t *)private;
+
+	lunatik_syncdefer(&completion->defer);
 }
 
 static int luacompletion_new(lua_State *L);
@@ -102,6 +130,7 @@ static const luaL_Reg luacompletion_mt[] = {
 static const lunatik_class_t luacompletion_class = {
 	.name = "completion",
 	.methods = luacompletion_mt,
+	.release = luacompletion_release,
 	.opt = LUNATIK_OPT_SOFTIRQ,
 	.owner = THIS_MODULE,
 };
@@ -118,10 +147,11 @@ static const lunatik_class_t luacompletion_class = {
 */
 static int luacompletion_new(lua_State *L)
 {
-	lunatik_object_t *object = lunatik_newobject(L, &luacompletion_class, sizeof(struct completion), LUNATIK_OPT_NONE);
-	struct completion *completion = (struct completion *)object->private;
+	lunatik_object_t *object = lunatik_newobject(L, &luacompletion_class, sizeof(luacompletion_t), LUNATIK_OPT_NONE);
+	luacompletion_t *completion = (luacompletion_t *)object->private;
 
-	init_completion(completion);
+	init_completion(&completion->completion);
+	lunatik_initdefer(&completion->defer, luacompletion_drain);
 	return 1;
 }
 

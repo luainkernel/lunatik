@@ -323,6 +323,18 @@ REPL and the builds `status` and `reload` compare.
 - **stop**: the stop of a spawned thread interrupts its `completion:wait`,
   which raises `ERESTARTSYS`; the body bounds its wait, so it ends on its own
   when no stop comes.
+- **deferred**: a hardirq runtime's callback, which runs with IRQs off,
+  completes a completion twice, and so does a softirq runtime's, which runs
+  with them on: the waiter wakes twice for each, the softirq's at once and the
+  hardirq's within a second, and not a third time. A second hardirq callback
+  then completes the same completion twice after the worker drained the first
+  two, and wakes the waiter twice again, not four times.
+- **drained**: a kprobe on `luacompletion_drain`, armed before the cases,
+  counts one run on the kernel worker for each hardirq callback, its two
+  completes merged into it: IRQs stay off across the callback, so the irq_work
+  the first raises runs after the second. Every other complete wakes in place;
+  a build that completes in place with IRQs off fails here (skips when the
+  kprobe cannot be placed).
 
 ### control
 
