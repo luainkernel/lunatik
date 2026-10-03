@@ -13,8 +13,9 @@
 #   a command, an option on the wrong side of the verb, -c without a context, a
 #   value given to --percpu, and a context or percpu given to stop or list each
 #   exit 2 with a line naming it and the usage on stderr, and nothing on stdout;
-# - -V and --version print the loaded version, exit 0, and with the modules
-#   unloaded -V exits 1, not loaded; the modules are loaded again after it;
+# - -V and --version print the loaded version, "Lunatik <major>.<minor>", exit 0,
+#   and with the modules unloaded -V exits 1, not loaded; the modules are loaded
+#   again after it;
 # - each module status reports as loaded carries as its version the release -V
 #   prints: modpost writes the srcversion reload compares only for a module that
 #   declares a version, unless the kernel sets CONFIG_MODULE_SRCVERSION_ALL;
@@ -79,11 +80,12 @@ misused "list takes no context and no percpu" list -c softirq
 ktap_pass "what the CLI cannot read exits 2 with a line naming it and the usage on stderr"
 
 version=$(lunatik -e "return _LUNATIK_VERSION")
+[[ "$version" =~ ^Lunatik\ [0-9]+\.[0-9]+$ ]] || fail "_LUNATIK_VERSION is '$version', not Lunatik <major>.<minor>"
 for flag in -V --version; do
 	cli "$flag"
 	[ "$status" -eq 0 ] && [ "$out" = "$version" ] || fail "lunatik $flag exited $status with '$out', not '$version'"
 done
-ktap_pass "-V and --version print the loaded version, exit 0"
+ktap_pass "-V and --version print the loaded version, Lunatik <major>.<minor>, exit 0"
 
 release=${version#Lunatik }
 cli status

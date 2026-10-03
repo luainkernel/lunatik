@@ -278,7 +278,7 @@ REPL and the builds `status` and `reload` compare.
   with a command, an option on the wrong side of the verb, `-c` without a
   context, a value given to `--percpu`, and a context or percpu given to `stop`
   or `list` each exit 2 with a line naming it and the usage on stderr; `-V`
-  and `--version` print the loaded version, and with the modules unloaded `-V`
+  and `--version` print the loaded version, `Lunatik <major>.<minor>`, and with the modules unloaded `-V`
   exits 1, not loaded; each module `status` reports as loaded carries as its
   version the release `-V` prints, which gives it the srcversion `reload`
   compares on a kernel without `CONFIG_MODULE_SRCVERSION_ALL`; `status`
