@@ -414,8 +414,9 @@ within 32 bits.</li>
  the only address from which datagrams are received.
  A TCP connect waits for the connection, with no timeout of its own, unless <code>flags</code> carries
  <code>O_NONBLOCK</code> or <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> set a send timeout; either makes a wait that ends with the connection
- still in progress answer <code>nil</code>, or raise <code>EALREADY</code> when an earlier connect started it, and <a href="../modules/socket.html#socket:send">send</a>
- says how a stop ends the wait.
+ still in progress answer <code>nil</code>, whether this connect or an earlier one started it, and <a href="../modules/socket.html#socket:send">send</a> says
+ how a stop ends the wait. An <code>AF_UNIX</code> connect waits the same way for room in the backlog of the
+ listener it reaches, and a wait that ends with none answers <code>false</code>.
 
 
     <h3>Parameters</h3>
@@ -452,8 +453,9 @@ within 32 bits.</li>
     <ol>
 
            <span class="types"><span class="type">boolean</span></span>
-        <code>true</code> once connected; <code>nil</code> and <code>&quot;EINPROGRESS&quot;</code> when the wait ended with the
-   connection it started still in progress.
+         <code>true</code> once connected; <code>nil</code> and <code>&quot;EINPROGRESS&quot;</code> when the wait ended with the
+   connection it started still in progress, or <code>&quot;EALREADY&quot;</code> with one an earlier connect started;
+   <code>false</code> when it ended with no room in an <code>AF_UNIX</code> listener&rsquo;s backlog.
     </ol>
 
     <h3>Raises</h3>
@@ -891,7 +893,7 @@ reports.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:10:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:11:39</span>
 </div>
 </footer>
 </body>
