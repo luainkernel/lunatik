@@ -157,6 +157,12 @@ local function is_integer_expr(value)
 	return not value:gsub("0[xX][%x]+[uUlL]*", ""):match("[a-z]")
 end
 
+-- Is the #define value the name of an integer #define in the dump, as asm-generic's __NR_mmap is?
+local function is_integer_alias(text, value)
+	local target = value:match("^[%a_][%w_]*$") and text:match("\n#define[ \t]+" .. value .. "[ \t]+([^\n]+)")
+	return target ~= nil and is_integer_expr(target)
+end
+
 --- Extract candidate names from a spec's preprocessed dump file.
 -- Two sources: #define lines with integer values, and identifiers appearing
 -- inside `enum { ... }` bodies (enum values are always integer constants).
@@ -176,7 +182,7 @@ function enumerate.candidates(spec)
 	local define_pattern = "^#define%s+(" .. spec.prefix .. "[%w_]+)%s+(.+)$"
 	for line in text:gmatch("[^\n]+") do
 		local name, value = line:match(define_pattern)
-		if name and is_integer_expr(value) then
+		if name and (is_integer_expr(value) or is_integer_alias(text, value)) then
 			seen[name] = true
 		end
 	end

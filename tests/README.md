@@ -707,7 +707,10 @@ after the watch is stopped.
   sign; and one within `INT_MAX` is unchanged. `linux.errno` holds each errno
   positive, under the name `linux.errname` gives its value (`EPERM`, `ENOENT`,
   `EAGAIN`, `ENOMEM`, `EACCES` and `EINVAL` read the uapi values), an alias
-  such as `EWOULDBLOCK` beside the name it shares a value with.
+  such as `EWOULDBLOCK` beside the name it shares a value with. A constant
+  whose `#define` names another integer define is carried: the system calls
+  `asm-generic/unistd.h` defines as their `__NR3264_` numbers, `mmap` among
+  them, are in `linux.syscall.numbers`.
 - **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, and in
   the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
   body, the armed state a hook calls from, each refuses with "not allowed once the runtime is
