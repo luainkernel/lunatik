@@ -768,6 +768,21 @@ differs by the answer: a kernel thread is stopped, which sets the flag an interr
 and no fatal signal, so <code>lunatik_lockkillable</code> waits interruptibly there and killably elsewhere,
 and <a href="../modules/thread.html#shouldstop">thread.shouldstop</a> asks <code>kthread_should_stop</code> only there. Defined as a macro.</p>
 
+<h3 id="lunatik_checkcontext">lunatik_checkcontext</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_checkcontext</span>(lua_State *L, <span class="keyword">const</span> <span class="keyword">char</span> *name, lunatik_opt_t opt);
+</pre>
+
+
+<p>Raises <code>runtime context mismatch: &lt;name&gt; needs &lt;context&gt;</code> if the context of <code>L</code>&rsquo;s runtime does not
+match <code>opt</code>, where <code>name</code> names what needs the context, the class whose constructor or method calls
+it, and <code>&lt;context&gt;</code> is <code>process</code>, <code>softirq</code> or <code>hardirq</code>, as <code>opt</code> says. Context is determined by
+the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a <code>softirq</code> runtime, a HARDIRQ class in a
+<code>hardirq</code> runtime, and a process-context class in a process runtime. Use it alone in an entry point
+that needs the context and registers nothing, which a finalizer may then call as the runtime
+closes.</p>
+
 <h3 id="lunatik_checkruntime">lunatik_checkruntime</h3>
 
 <pre>
@@ -775,14 +790,12 @@ lunatik_object_t *<span class="function-name">lunatik_checkruntime</span>(lua_St
 </pre>
 
 
-<p>Returns the runtime associated with <code>L</code> and raises <code>runtime context mismatch: &lt;name&gt; needs
-&lt;context&gt;&lt;code&gt; if its context does not match &lt;/code&gt;opt&lt;code&gt;, where &lt;/code&gt;name</code> names what needs the context, the
-class a constructor creates, and <code>&lt;context&gt;</code> is <code>process</code>, <code>softirq</code> or <code>hardirq</code>, as <code>opt</code> says.
-Context is determined by the SOFTIRQ/HARDIRQ bits: a SOFTIRQ class must run in a <code>softirq</code> runtime,
-a HARDIRQ class in a <code>hardirq</code> runtime, and a process-context class in a process runtime. A
-binding&rsquo;s constructor calls it, directly or through <code>lunatik_setruntime</code>, to enforce that a class
-is only instantiated in a compatible runtime. It runs <a href="#lunatik_checkclosing"><code>lunatik_checkclosing</code></a>
-too, so a finalizer that runs as the runtime closes registers nothing the runtime would dispatch.</p>
+<p>Returns the runtime associated with <code>L</code> after
+<a href="#lunatik_checkcontext"><code>lunatik_checkcontext</code></a> and then
+<a href="#lunatik_checkclosing"><code>lunatik_checkclosing</code></a> pass for it. A binding&rsquo;s constructor calls it,
+directly or through <code>lunatik_setruntime</code>, to enforce that a class is only instantiated in a
+compatible runtime, and that a finalizer that runs as the runtime closes registers nothing the
+runtime would dispatch.</p>
 
 <h3 id="lunatik_setruntime">lunatik_setruntime</h3>
 
@@ -795,10 +808,10 @@ lunatik_object_t *<span class="function-name">lunatik_setruntime</span>(lua_Stat
 <code>priv-&gt;runtime</code> and returns it: the class is read by its name, <code>lua&lt;libname&gt;_class</code>, so
 <code>lunatik_setruntime(L, device, luadev)</code> checks against <code>luadevice_class</code>. Defined as a macro.</p>
 
-<h3 id="lunatik_checkcontext">lunatik_checkcontext</h3>
+<h3 id="lunatik_optcontext">lunatik_optcontext</h3>
 
 <pre>
-lunatik_opt_t <span class="function-name">lunatik_checkcontext</span>(lua_State *L, <span class="keyword">int</span> ix);
+lunatik_opt_t <span class="function-name">lunatik_optcontext</span>(lua_State *L, <span class="keyword">int</span> ix);
 </pre>
 
 
@@ -2029,7 +2042,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:52:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:57:06</span>
 </div>
 </footer>
 </body>
