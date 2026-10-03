@@ -8,13 +8,10 @@
 
 local linux    = require("linux")
 local notifier = require("notifier")
-local notify   = require("linux.notify")
 
 local HOLD <const> = 5000
 
-local function callback()
-	return notify.OK
-end
+local function callback() end
 
 local function hold()
 	linux.schedule(HOLD)

@@ -3,23 +3,24 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# A block whose runtime cannot take an event returned lunatik_run's -ENXIO as
-# its verdict, and a negative errno has NOTIFY_STOP_MASK set, so the chain
-# stopped at Lunatik's block and every notifier registered after it missed the
-# event. The path exercised is the teardown: lunatik_closeprivate clears the
-# runtime's private before lua_close runs the finalizers, and the block is
-# unregistered by the notifier's own finalizer, so while an earlier finalizer
-# holds lua_close the block is registered and the runtime is not ready. The
-# body of a script past notifier.netdevice() is the other window, but reaching
-# it takes a second lunatik operation while the first is in progress, which is
-# not allowed.
+# A netdevice block whose runtime is held in its teardown leaves the chain to
+# the blocks registered after it: notifier.netdevice queues every event and
+# returns NOTIFY_DONE whatever the runtime's state, and the drain drops what it
+# queued for a runtime that no longer takes events. The window is the teardown:
+# lunatik_closeprivate clears the runtime's private before lua_close runs the
+# finalizers, and the block is unregistered by the notifier's own finalizer, so
+# while an earlier finalizer holds lua_close the block is registered and the
+# runtime is not ready.
 #
 # Two runtimes register in order: chain_continues_held first, whose sentinel
 # finalizer sleeps at teardown, and chain_continues_after, which prints every
 # REGISTER it is given. The first is stopped in the background and a dummy
 # device is created inside its hold; the second must report it. The test checks
 # that the stop was still running when the device was created, so a pass is
-# never the hold having ended before the event.
+# never the hold having ended before the event. The second runtime's callback
+# runs on a kernel worker after the event, so the test waits for its line. The
+# -ENXIO verdict luanotifier_call turns into NOTIFY_DONE is reached by keyboard
+# and vt, which dispatch in place, and no case here holds them to it (#1685).
 #
 # Usage: sudo bash tests/notifier/chain_continues.sh
 
@@ -35,6 +36,11 @@ cleanup()
 	lunatik stop "$AFTER" > /dev/null 2>&1
 	lunatik stop "$HELD" > /dev/null 2>&1
 	ip link del "$DEV" 2> /dev/null
+}
+
+registered()
+{
+	dmesg_since | grep -qF "chain continues: register $DEV"
 }
 
 trap cleanup EXIT
@@ -69,7 +75,7 @@ wait "$STOP"
 [ "$held" = 0 ] || fail "the hold ended before $DEV was created"
 ktap_pass "the device is created while the first runtime holds its teardown"
 
-dmesg_since | grep -qF "chain continues: register $DEV" || fail "the runtime registered after missed $DEV"
+awaited registered || fail "the runtime registered after missed $DEV"
 ktap_pass "the runtime registered after sees the device"
 
 check_dmesg && ktap_pass "no Lua errors in kernel"

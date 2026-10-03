@@ -25,7 +25,6 @@
 SCRIPT="tests/thread/self_stop"
 SELF="tests/thread/self_stop_self"
 REFUSAL="not allowed from the runtime itself"
-TRIES=50
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -46,25 +45,22 @@ reported()
 	dmesg_since | grep -cF "thread self_stop test: $1"
 }
 
-awaited()
+reports()
 {
-	for _ in $(seq $TRIES); do
-		[ "$(reported "$1")" = 1 ] && return
-		sleep 0.1
-	done
+	[ "$(reported "$1")" = 1 ]
 }
 
 mark_dmesg
 output=$(lunatik spawn "$SCRIPT" 2>&1)
 [ -z "$output" ] || fail "$output"
-awaited "driver stop"
+awaited reports "driver stop"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 [ "$(reported "resumed stop $REFUSAL")" = 1 ] || fail "a thread stop from a resumed body of its runtime was not refused"
 ktap_pass "a thread stop from a resumed body of its runtime is refused"
 
 output=$(lunatik spawn "$SELF" 2>&1)
 [ -z "$output" ] || fail "$output"
-awaited "self stop"
+awaited reports "self stop"
 [ "$(reported "self stop $REFUSAL")" = 1 ] || fail "a thread stop from its own body was not refused"
 ktap_pass "a thread stop from its own body is refused"
 

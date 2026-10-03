@@ -14,7 +14,6 @@ local notifier = require("notifier")
 local channel  = require("netlink.channel")
 local message  = require("netlink.message")
 local netdev   = require("linux.netdev")
-local notify   = require("linux.notify")
 
 local insert = table.insert
 local remove = table.remove
@@ -49,7 +48,7 @@ end
 
 local function callback(event, name, netns)
 	if netns ~= home then -- the event carries the name alone, which another namespace can repeat
-		return notify.OK
+		return
 	end
 	if transitions[event] then
 		local count = record(name)
@@ -60,7 +59,6 @@ local function callback(event, name, netns)
 			announce(name, count)
 		end
 	end
-	return notify.OK
 end
 
 notifier.netdevice(callback)

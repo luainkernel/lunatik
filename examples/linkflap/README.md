@@ -7,9 +7,8 @@ would announce under the same name, and once one interface reaches 5 it
 multicasts a flapping event, the interface name and the transition count as
 generic netlink attributes, on the `linkflap` family of a `netlink.channel`.
 [subscriber](subscriber.c) joins that family's multicast group
-from userspace and prints each event. The callback runs holding RTNL, which a
-multicast does not take, so one runtime does both. Registering the notifier
-replays an `UP` for each interface that already exists, one transition each.
+from userspace and prints each event. Registering the notifier replays an `UP`
+for each interface that already exists, one transition each.
 
 ## Usage
 

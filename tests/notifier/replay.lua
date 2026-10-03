@@ -6,27 +6,16 @@
 
 local notifier = require("notifier")
 local netdev   = require("linux.netdev")
-local notify   = require("linux.notify")
 
 local events = {[netdev.REGISTER] = "register", [netdev.UP] = "up", [netdev.UNREGISTER] = "unregister"}
 
-local loading = true
-
-local function refuse()
-	return notify.BAD
-end
-
-local function cb(event, name)
+local function cb(event, name, netns, replayed, ifindex)
 	local kind = events[event]
 	if kind then
-		print(string.format("replay: %s %s %s", kind, name, tostring(loading)))
+		print(string.format("replay: %s %s %s", kind, name, tostring(replayed)))
+		print(string.format("index: %s %s %d", kind, name, ifindex))
 	end
-	return notify.OK
 end
 
-local _, err = pcall(notifier.netdevice, refuse)
-print("replay: refused " .. tostring(err))
-
 notifier.netdevice(cb)
-loading = false
 

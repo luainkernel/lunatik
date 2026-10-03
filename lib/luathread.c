@@ -112,10 +112,7 @@ static struct task_struct *luathread_claim(lua_State *L, lunatik_object_t *objec
 * @function stop
 * @treturn boolean `false` if the body it stopped raised, `true` otherwise, for a thread
 *   already stopped or being stopped too
-* @raise "not allowed under RTNL" from a netdevice callback, in whatever runtime or coroutine
-*   its task runs: the stop waits for the body, and a body that registers a netdevice notifier,
-*   sends a netlink request or joins a multicast group waits on the RTNL that task holds;
-*   "not allowed from the runtime itself" from under the lock of the thread's runtime, the
+* @raise "not allowed from the runtime itself" from under the lock of the thread's runtime, the
 *   contexts `runtime:stop` names, the thread's own body among them, where the stop would wait
 *   on a body that runs under that lock; "EINTR" if the stop of the calling kernel thread, or a
 *   fatal signal to any other task, ends its wait for the thread's lock
@@ -124,7 +121,6 @@ static struct task_struct *luathread_claim(lua_State *L, lunatik_object_t *objec
 */
 static int luathread_stop(lua_State *L)
 {
-	lunatik_checkrtnl(L);
 	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luathread_class);
 	luathread_t *thread = (luathread_t *)object->private;
 	lunatik_object_t *runtime = thread->runtime;
@@ -241,10 +237,9 @@ static void luathread_popargs(lunatik_object_t *runtime, int nargs)
 /***
 * Creates and starts a new kernel thread to run a Lua task.
 * The runtime must be sleepable; the script it loaded must return a function,
-* which becomes the thread body, called with the objects given here. A thread a
-* netdevice callback would stop is stopped off RTNL instead: from the script body,
-* a later resume or another thread. The thread holds a reference to the runtime until
-* `stop` releases it or the thread is collected, even once its body has returned.
+* which becomes the thread body, called with the objects given here. The thread holds a
+* reference to the runtime until `stop` releases it or the thread is collected, even once its
+* body has returned.
 * @function run
 * @tparam runtime runtime A sleepable Lunatik runtime whose script returns a function.
 * @tparam string name A descriptive name for the kernel thread.

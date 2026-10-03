@@ -25,13 +25,17 @@ sudo lunatik stop examples/ifquarantine/control    # stops both scripts
 ```
 
 The interfaces that already exist are recorded and allowed, not quarantined:
-`register_netdevice_notifier` synchronously replays `NETDEV_REGISTER` (and
-`NETDEV_UP`) for each netdev every namespace already has when the notifier
-block is registered, inside `notifier.netdevice`, so the script records what
-arrives before that call returns, and a policy that denied those would take the
-machine off the network, `lo` and the uplink included. They are listed by `cat
+`register_netdevice_notifier` replays `NETDEV_REGISTER` (and `NETDEV_UP`) for
+each netdev every namespace already has when the notifier block is registered,
+and the callback receives those with `replayed` set, so the script records them,
+where a policy that denied them would take the machine off the network, `lo`
+and the uplink included. They are listed by `cat
 /dev/ifquarantine` and can be quarantined with `deny=<name>`. The callback is
-handed each device's namespace with its name, and the script keeps the devices
-of its own, which `linux.netns()` names: a container's `lo` is reported too,
-and its name would resolve onto the host's through `linux.ifindex`.
+handed each device's namespace and index with its name, and the script keeps
+the devices of its own, which `linux.netns()` names: a container's `lo` is
+reported too, with an index that names another device in the namespace the
+filter reads. The callback runs after the event, so a device renamed before it
+runs, as udev renames a new one, is still quarantined by its index, and the
+script follows `NETDEV_CHANGENAME` so that `allow=` and `deny=` take the
+current name.
 
