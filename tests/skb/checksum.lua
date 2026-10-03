@@ -1,0 +1,122 @@
+--
+-- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+-- Kernel-side script for the checksum test (see checksum.sh).
+
+local netfilter = require("netfilter")
+local byteorder = require("byteorder")
+local nf        = require("linux.nf")
+
+local PRIORITY <const> = 0x12370000 -- checksum.sh's senders take PRIORITY plus their case's place in CASES
+local PAYLOAD  <const> = 256
+local DELTA    <const> = 16
+
+local IP_TOTLEN   <const> = 2
+local IP_CHECK    <const> = 10
+local IP_ADDRS    <const> = 12
+local IP_ADDRSLEN <const> = 8
+local IP6_ADDRS    <const> = 8
+local IP6_ADDRSLEN <const> = 32
+local IP6_HDRLEN   <const> = 40
+local TCP_CHECK <const> = 16
+local UDP_CHECK <const> = 6
+local TCP <const> = 6
+local UDP <const> = 17
+
+local pending = {
+	[PRIORITY + 1] = "fits4",
+	[PRIORITY + 2] = "fits6",
+	[PRIORITY + 3] = "below4",
+	[PRIORITY + 4] = "past4",
+	[PRIORITY + 5] = "past6",
+}
+
+local function iphlen(data)
+	return (data:getuint8(0) & 0x0f) * 4
+end
+
+local function fold(sum)
+	while sum > 0xffff do
+		sum = (sum & 0xffff) + (sum >> 16)
+	end
+	return sum
+end
+
+-- data:checksum complements the folded sum; a segment and its pseudo-header that verify fold to 0xffff
+local function summed(data, addrs, addrslen, offset, proto)
+	local len = #data - offset
+	local sum = (0xffff - data:checksum(addrs, addrslen)) + (0xffff - data:checksum(offset, len)) +
+		byteorder.hton16(proto) + byteorder.hton16(len)
+	return fold(sum) == 0xffff
+end
+
+local function unchanged(data, before)
+	return data:getstring(0, #data) == before
+end
+
+local function shrink(skb)
+	skb:resize(#skb - DELTA)
+	return skb:data()
+end
+
+local prepare = {}
+
+function prepare.fits4(skb)
+	local data = skb:data()
+	data:setuint16(IP_CHECK, 0)
+	data:setuint16(iphlen(data) + TCP_CHECK, 0)
+	return data
+end
+
+function prepare.fits6(skb)
+	local data = skb:data()
+	data:setuint16(IP6_HDRLEN + UDP_CHECK, 0)
+	return data
+end
+
+function prepare.below4(skb)
+	local data = skb:data()
+	data:setuint16(IP_TOTLEN, byteorder.hton16(iphlen(data) - 1))
+	return data
+end
+
+prepare.past4 = shrink
+prepare.past6 = shrink
+
+local verify = {
+	below4 = unchanged,
+	past4  = unchanged,
+	past6  = unchanged,
+}
+
+function verify.fits4(data)
+	local hlen = iphlen(data)
+	return data:checksum(0, hlen) == 0 and summed(data, IP_ADDRS, IP_ADDRSLEN, hlen, TCP)
+end
+
+function verify.fits6(data)
+	return summed(data, IP6_ADDRS, IP6_ADDRSLEN, IP6_HDRLEN, UDP)
+end
+
+local function checksum_hook(skb)
+	local priority = skb:priority()
+	local name = pending[priority]
+	if name == nil or #skb < PAYLOAD then
+		return nf.action.ACCEPT
+	end
+	pending[priority] = nil
+	local data = prepare[name](skb)
+	local before = data:getstring(0, #data)
+	skb:checksum()
+	print("skb checksum: " .. name .. (verify[name](data, before) and " ok" or " FAIL"))
+	return nf.action.DROP
+end
+
+netfilter.register{
+	hook     = checksum_hook,
+	pf       = nf.proto.INET,
+	hooknum  = nf.inet.LOCAL_OUT,
+	priority = nf.ip.pri.FILTER,
+}
+

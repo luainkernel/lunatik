@@ -1588,6 +1588,17 @@ pid, and what a valid call does.
   one is shrunk and grown back over its own payload. Each resize reads back
   `#skb` and `#skb:data()` at the requested length, a grow reads the bytes it
   added as zeros, and dmesg carries no `WARNING`. Skips without `socat`.
+- **checksum**: a `LOCAL_OUT` netfilter hook calls `skb:checksum()` on one packet
+  per sender, picked by its `SO_PRIORITY`. A TCP segment over `127.0.0.1` and a
+  UDP datagram over `::1`, their checksum fields zeroed, are summed: the IPv4
+  header sums to 0 and each segment verifies against its pseudo-header. A TCP
+  segment whose `tot_len` is one byte short of its header, and a TCP segment and
+  a UDP datagram shrunk with `skb:resize`, whose IP length then runs past their
+  end, are left unchanged. A build that sums a length past the packet hits
+  `skb_checksum`'s `BUG_ON` and panics the host, and its check has no symbol or
+  message, so the shrunk packets are sent only once the loaded `luaskb` left the
+  short `tot_len` unchanged, a stimulus such a build sums and survives. Skips
+  without `socat`, and the IPv6 cases where `lo` has no `::1`.
 
 - **forward**: a ping over an ipip tunnel reaches `LOCAL_OUT` with the outer
   packet's MAC header at the inner IPv4 header, past `skb->data`: `skb:forward()`

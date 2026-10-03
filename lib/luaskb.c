@@ -223,8 +223,9 @@ static inline void luaskb_csum(struct sk_buff *skb, u8 proto, __sum16 csum)
 /***
 * Recomputes IP and transport-layer (TCP/UDP) checksums.
 * On IPv4 it recomputes the header checksum and the TCP or UDP checksum; on IPv6, the TCP or UDP
-* checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, and an
-* IPv6 packet with extension headers, is left unchanged.
+* checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, an IPv6
+* packet with extension headers, and a packet whose IP header gives a length past its end, or on
+* IPv4 shorter than the header, are left unchanged; `resize` does not rewrite that length.
 * @function checksum
 */
 static int luaskb_checksum(lua_State *L)
@@ -235,12 +236,17 @@ static int luaskb_checksum(lua_State *L)
 	if (skb->protocol == htons(ETH_P_IP)) {
 		struct iphdr *iph = ip_hdr(skb);
 		unsigned int iphlen = ip_hdrlen(skb);
+		unsigned int totlen = ntohs(iph->tot_len);
+		if (totlen < iphlen || skb_network_offset(skb) + totlen > skb->len)
+			return 0;
 		ip_send_check(iph);
 		luaskb_csum(skb, iph->protocol, 0);
 		luaskb_csum(skb, iph->protocol, luaskb_csum4(skb, iph, iphlen));
 	}
 	else if (skb->protocol == htons(ETH_P_IPV6)) {
 		struct ipv6hdr *ip6h = ipv6_hdr(skb);
+		if (skb_transport_offset(skb) + ntohs(ip6h->payload_len) > skb->len)
+			return 0;
 		luaskb_csum(skb, ip6h->nexthdr, 0);
 		luaskb_csum(skb, ip6h->nexthdr, luaskb_csum6(skb, ip6h));
 	}
