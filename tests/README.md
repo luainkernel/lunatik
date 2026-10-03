@@ -323,6 +323,18 @@ REPL and the builds `status` and `reload` compare.
 - **stop**: the stop of a spawned thread interrupts its `completion:wait`,
   which raises `ERESTARTSYS`; the body bounds its wait, so it ends on its own
   when no stop comes.
+- **deferred**: a hardirq runtime's callback, which runs with IRQs off,
+  completes a completion twice, and so does a softirq runtime's, which runs
+  with them on: the waiter wakes twice for each, the softirq's at once and the
+  hardirq's within a second, and not a third time. A second hardirq callback
+  then completes the same completion twice after the worker drained the first
+  two, and wakes the waiter twice again, not four times.
+- **drained**: a kprobe on `luacompletion_drain`, armed before the cases,
+  counts one run on the kernel worker for each hardirq callback, its two
+  completes merged into it: IRQs stay off across the callback, so the irq_work
+  the first raises runs after the second. Every other complete wakes in place;
+  a build that completes in place with IRQs off fails here (skips when the
+  kprobe cannot be placed).
 
 ### control
 
@@ -1537,7 +1549,8 @@ or when `bpftool` or `clang` is unavailable.
 ### signal
 
 Covers the `signal` module (`luasignal`): the bounds on a signal number and a
-pid, and what a valid call does.
+pid, and what a valid call does, in place with IRQs on and deferred with them
+off.
 
 - **signal/kill**: with a child sleeping in the background and a pid the shell
   has reaped, `kill(child, 0)` finds the child and answers `true`,
@@ -1547,11 +1560,20 @@ pid, and what a valid call does.
   answers `true` and signals the child, and the shell then sees the child end
   on `SIGTERM`. The truncation
   cases target the child on every build, so a module without the bound signals
-  the child and fails the case, never a stranger. The script runs from a CLI in
-  a pid namespace of its own, which holds neither pid, so reaching the child
-  proves the pid is read in the initial pid namespace, as `task:pid()` returns
-  it (skips without pid namespaces, and from a pid namespace other than the
-  initial one).
+  the child and fails the case, never a stranger. Before that last kill, a
+  softirq runtime's callback, with IRQs on, sends the child `CONT` twice, both
+  `true` in place, and a hardirq runtime's callback, with IRQs off, defers a
+  `TERM` to a second child: the call answers `true`, a second `TERM` answers
+  `false` while its CPU holds the first, `kill(second, 0)` answers `true` and
+  the reaped pid `nil` and `ESRCH` at the call, and the shell sees the second
+  child end on that `SIGTERM`. Once the worker has sent it, a hardirq
+  runtime's callback on the same CPU, to which the CLI is pinned, defers `CONT`
+  to the child, retried for a second while the CPU still holds the `TERM`, so a
+  build whose worker leaves the CPU's slot taken fails. The script runs from a
+  CLI in a pid namespace of its own, which holds neither pid, so reaching the
+  child proves the pid is read in the initial pid namespace, as `task:pid()`
+  returns it (skips without pid namespaces or `taskset`, and from a pid
+  namespace other than the initial one).
 
 ### set
 

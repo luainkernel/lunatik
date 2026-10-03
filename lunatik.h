@@ -99,6 +99,12 @@ do {									\
 
 #define lunatik_defer(defer)	irq_work_queue(&(defer)->irq)
 
+#define lunatik_syncdefer(defer)					\
+do {									\
+	irq_work_sync(&(defer)->irq);					\
+	flush_work(&(defer)->work);					\
+} while (0)
+
 typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
