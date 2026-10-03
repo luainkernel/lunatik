@@ -186,7 +186,8 @@ the last one.
 release named with what changed in it or above a table, the counterfactual, the multi-line note
 inside code, the trailing comment past the width, a comment on a signature line or above an internal
 `static inline` and one naming the file or function that reads a value
-(`comment-style.sh`), a sequence of calls a change adds that another C file already makes
+(`comment-style.sh`), a comment a change adds to one definition of a block whose others carry none
+(`comment-siblings.sh`), a sequence of calls a change adds that another C file already makes
 (`core-helper.sh`), the branches, argument tables, inline functions and repeated blocks the Lua style
 rules settle (`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script
 skips (`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
@@ -288,6 +289,15 @@ and two implementers and their reviews passed over. It runs at edit time and ove
 diff and annotates, since two encryptions that set up one request each are two callers of the
 kernel's API and not a helper missing; the review answers each line it prints with the helper or
 the reason the calls are the kernel's sequence.
+
+`comment-siblings.sh` reads the lines a change adds, against `CHECK_BASE`, for a comment on one
+definition of a block whose other definitions carry none: a run of `#define` lines, the members of a
+struct or a union, or a run of Lua `local NAME <const>` lines. Either each has a reason worth a line
+or none does, and the reason they share goes in the commit body. #1670 put a line above
+`lunatik_isatomic` among predicates that carry none, and #1669 one on the first member of a struct
+whose second had none, until the maintainer asked what was special about them. It runs at edit time
+and over a pull request's diff and annotates, since a definition can hold the one constraint its
+siblings do not.
 
 `lua-style.sh` reads a Lua file for the shape rules of "Lua style" that a review of #618 passed over
 and called ready: an `if`/`elseif` whose branches repeat the same steps, which is a dispatch table
