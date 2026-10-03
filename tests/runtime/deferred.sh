@@ -51,8 +51,6 @@ slept() { dmesg_since | grep -c "deferred test: slept on kworker/"; }
 closed() { [ "$(deferred | wc -l)" -ge "$CHILDREN" ]; }
 released() { [ "$(refcnt)" -eq "$before" ]; }
 reported() { [ "$(slept)" -ge "$CHILDREN" ]; }
-# polls a condition the deferred closes reach after the script returns
-awaited() { for _ in $(seq $TRIES); do "$1" && return; sleep 0.1; done; }
 
 trap cleanup EXIT
 cleanup

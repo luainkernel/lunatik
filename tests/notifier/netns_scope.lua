@@ -7,7 +7,6 @@
 local notifier = require("notifier")
 local linux    = require("linux")
 local netdev   = require("linux.netdev")
-local notify   = require("linux.notify")
 local pids     = require("tests.netns_pid")
 
 local INIT <const> = 1 -- pid 1 lives in the initial namespace, so its netns is linux.netns()
@@ -21,7 +20,6 @@ local function cb(event, name, netns)
 	if kind then
 		print(("netns scope: %s %s %d"):format(kind, name, netns))
 	end
-	return notify.OK
 end
 
 print(("netns scope: home %d task %d holder %d"):format(linux.netns(), linux.netns(INIT), linux.netns(pids.holder)))

@@ -9,14 +9,12 @@ local notifier = require("notifier")
 local rcu      = require("rcu")
 local runner   = require("lunatik.runner")
 local netdev   = require("linux.netdev")
-local notify   = require("linux.notify")
 local stat     = require("linux.stat")
 
 local filter      <const> = "examples/ifquarantine/filter"
-local home        <const> = linux.netns() -- the namespace linux.ifindex resolves a name in
+local home        <const> = linux.netns() -- the namespace whose device indexes the filter reads
 local quarantined         = rcu.table()   -- tostring(ifindex) -> true
 local known               = {}            -- name -> ifindex
-local loading             = true
 
 local function info(...)
 	print("ifquarantine: " .. string.format(...))
@@ -33,32 +31,36 @@ local function quarantine(name, idx)
 	info("%s (ifindex=%d) quarantined", name, idx)
 end
 
-local function release(name)
-	local idx = known[name]
-	if idx then
-		quarantined[tostring(idx)] = nil
-		info("%s released", name)
+local function registered(name, idx, replayed)
+	if replayed then
+		record(name, idx)
+	else
+		quarantine(name, idx)
 	end
 end
 
-local function callback(event, name, netns)
-	if netns ~= home then -- a device of another namespace: its name resolves onto the wrong one here
-		return notify.OK
-	end
-	if event == netdev.REGISTER then
-		local idx = linux.ifindex(name)
-		if idx then
-			if loading then
-				record(name, idx)
-			else
-				quarantine(name, idx)
-			end
+local function renamed(name, idx)
+	for old, known_idx in pairs(known) do
+		if known_idx == idx then
+			known[old] = nil
 		end
-	elseif event == netdev.UNREGISTER then
-		release(name)
-		known[name] = nil
 	end
-	return notify.OK
+	known[name] = idx
+end
+
+local function unregistered(name, idx)
+	quarantined[tostring(idx)] = nil
+	known[name] = nil
+	info("%s released", name)
+end
+
+local handlers = {[netdev.REGISTER] = registered, [netdev.CHANGENAME] = renamed, [netdev.UNREGISTER] = unregistered}
+
+local function callback(event, name, netns, replayed, ifindex)
+	local handler = handlers[event]
+	if handler ~= nil and netns == home then -- an index of another namespace names another device here
+		handler(name, ifindex, replayed)
+	end
 end
 
 local driver = {name = "ifquarantine", mode = stat.IRUGO | stat.IWUGO}
@@ -104,5 +106,4 @@ driver.sentinel = setmetatable({}, {__gc = stopfilter})
 runtimes:resume(quarantined)
 
 notifier.netdevice(callback)
-loading = false
 

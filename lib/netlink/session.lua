@@ -8,9 +8,7 @@
 -- the transaction discipline on it: `talk` and `dump` send one request and
 -- drain its complete reply, raising on a kernel error reply (`NLMSG_ERROR`).
 -- Protocol modules (rtnetlink, generic netlink) derive from this class.
--- All methods block and require a sleepable runtime. From a `notifier.netdevice` callback, in
--- whatever runtime or coroutine its task runs, every request raises `not allowed under RTNL`:
--- a script defers it to a thread, or to after the callback returns.
+-- All methods block and require a sleepable runtime.
 --
 -- @module netlink.session
 -- @see socket

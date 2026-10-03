@@ -867,14 +867,6 @@ allocates with).
 Tests for netlink: the `AF_NETLINK` address family in `socket`, and the
 higher-level `netlink.*` modules built on top of it.
 
-- **rtnl**: `netlink.channel.new` and a channel's `stop` from a netdevice
-  callback are refused, probed from the replay of a `notifier.netdevice`
-  registration: registering or unregistering the family takes a lock a request
-  holds while its handler may wait on the RTNL that task holds. Once the
-  registration returned, a channel is accepted, the one whose stop was refused
-  still multicasts, and its stop is accepted. A build without the refusal hangs
-  only if such a request is in flight, which the test cannot rule out, so it
-  skips unless the loaded `luanetlink` is the installed one.
 - **stop**: a channel's `stop` unregisters its family while the script body
   loads, its `__close` is that stop, and the stop is refused once an
   interrupt-context runtime is armed. A softirq runtime the runner keeps
@@ -1008,9 +1000,16 @@ from a pid namespace other than the initial one, whose pids are not the ones
   context mismatch: notifier needs hardirq" without oopsing during `__gc`
   (skips without a `/sys/class/tty/tty0`, which only `CONFIG_VT` creates).
 
-- **init_dispatch**: `notifier.netdevice(cb)` at script init must handle
-  the synchronous `NETDEV_REGISTER` replay `register_netdevice_notifier`
-  performs for the devices the namespace already has.
+- **init_dispatch**: the `NETDEV_REGISTER` replay `register_netdevice_notifier`
+  performs for the devices the namespace already has, when `notifier.netdevice`
+  is called from the script body, reaches the callback once the body returns.
+  The body sleeps after the registration, so the kernel worker that runs the
+  callback reaches the runtime while it is not ready yet, and a build that
+  dispatches there drops the replay: `lo` is never reported. A body that
+  raises after registering wakes that worker with the failed load, and its
+  notifier is released, `luanotifier`'s use count coming back, without the
+  callback running; a build the failed load does not wake keeps the notifier,
+  so that case skips unless the loaded `luanotifier` lists `luanotifier_drain`.
 
 - **netns_scope**: `notifier.netdevice` reports the devices of every network
   namespace, each with the inode number of its namespace, which `linux.netns()`
@@ -1029,49 +1028,46 @@ from a pid namespace other than the initial one, whose pids are not the ones
   with the number of the one it joins (skips without `nsenter` or pid
   namespaces, and from a pid namespace other than the initial one).
 
-- **replay**: a flag the script clears once `notifier.netdevice` returns
-  tells the events `register_netdevice_notifier` delivers itself for the
-  devices the namespace already has from the live ones: a dummy device brought
-  up before the script runs is replayed as a `REGISTER` and an `UP`, both under
-  the flag; one created, brought up and deleted afterwards is reported live,
-  none under it; and none is flagged once the registration has returned. A
-  callback that returns `notify.BAD` for a replayed `REGISTER` fails the
-  registration, which raises `EPERM`, the errno `notifier_to_errno` makes of it.
+- **replay**: the fourth argument of a netdevice callback, `replayed`, tells
+  the events `register_netdevice_notifier` delivers itself for the devices the
+  namespace already has from the live ones: a dummy device brought up before
+  the script runs is replayed as a `REGISTER` and an `UP`, both marked; one
+  created, brought up and deleted afterwards is reported live, none marked, and
+  its events reach the callback in the order they came; and none is marked once
+  the replay has reached the callback. The fifth argument, `ifindex`, is the
+  device's index, which the live `REGISTER` of a new dummy carries, as does the
+  `REGISTER` of a dummy renamed right after its creation, reported after the
+  rename under the name the event carried. Each event reaches it on a kernel
+  worker after the command that caused it returns, so each case waits for its
+  line.
 
-- **inside**: `notifier.netdevice` from inside a netdevice callback is refused,
-  in both the contexts the callback runs in: the replay the registration
-  delivers on its own task, and a live event on another task. A coroutine
-  resumed from the callback, the body of a runtime the callback creates and a
-  runtime the callback resumes are refused too, since the refusal keys on the
-  task that holds RTNL and not on a Lua state; a registration made once the
-  callback has returned, or raised, is accepted, and `notifier:stop()` from
-  inside the callback is accepted and ends delivery.
-  A tree without the guard wedges the host rather than failing the test, so it
-  never runs against one: the discrimination is the message it asserts, and those
-  last three cases; it skips unless the loaded `luanotifier` lists
-  `luanotifier_netdevice_call`, which sets the task, in `/proc/kallsyms`. The
-  runtimes it resumes register only once resumed, so they hold no block, which
-  would keep them alive past the script: stopping the script leaves
-  `luanotifier`'s use count as it was.
+- **inside**: what takes RTNL is accepted inside a netdevice callback, which
+  runs on a kernel worker, off RTNL, on the replay and on a live event alike: a
+  registration, a `netlink.rt` dump, a `netlink.channel` created and stopped, a
+  runtime whose body registers, created and stopped there, and a runtime
+  resumed to register and stopped there, the stop unregistering its block.
+  `notifier:stop()` from inside the callback ends delivery, and a callback
+  that raised is logged and called again for the next event. A tree
+  that runs the callback under RTNL wedges the host rather than failing the
+  test, so it skips unless the loaded `luanotifier` lists `luanotifier_drain`
+  in `/proc/kallsyms`. Every runtime it creates is stopped where it is created,
+  so stopping the script leaves `luanotifier`'s use count as it was, once the
+  releases the workers run have run.
 
-- **stop**: `runtime:stop()`, and the `__close` of a runtime held by a `<close>`
-  local, from inside a netdevice callback are refused, on the replay and on a
-  live event, since the close runs every release of the state on the callback's
-  task and a netdevice block's unregistration waits on the RTNL that task
-  holds; the child it would have stopped reports the event that follows, and a
-  stop once the callback returned is accepted. A percpu set's `stop()` and
-  `__close` are refused from the same callbacks and accepted afterwards; its
-  runtimes hold no block, so a build without that refusal closes them without
-  wedging and the message is what discriminates. A tree without the runtime's
-  refusal wedges the host, so the test skips unless the loaded `lunatik` lists
-  `lunatik_lstop` in `/proc/kallsyms`. The child is started through the
-  runner, so the cleanup stops it by name whatever a case leaves.
+- **lock**: a netdevice event waits on no runtime's lock under RTNL. A spawned
+  script registers a netdevice notifier from its body, and its thread body,
+  which holds the runtime's lock for as long as it runs, waits for a dummy
+  device the test creates and brings it up through `netlink.rt`, a request
+  served under RTNL: the `ip` command that creates the device returns, the
+  request is answered, and the `REGISTER` and the `UP` reach the callback after
+  the body returns, in that order. A tree that runs the callback under RTNL
+  wedges RTNL rather than failing, so the test skips unless the loaded
+  `luanotifier` lists `luanotifier_drain` in `/proc/kallsyms`.
 
 - **chain_continues**: a netdevice block whose runtime is being torn down
-  returns `notify.DONE`, not the `-ENXIO` of `lunatik_run`, whose
-  `NOTIFY_STOP_MASK` bit stopped the chain: a device created while one
-  runtime holds its teardown reaches the block a second runtime registered
-  after it.
+  leaves the chain to the blocks after it, since `notifier.netdevice` queues
+  every event and returns `NOTIFY_DONE`: a device created while one runtime
+  holds its teardown reaches the block a second runtime registered after it.
 
 - **vt**: `notifier.vt` from a `hardirq` runtime hands its callback a
   character written to `/dev/tty1` twice, as a `linux.vt` `PREWRITE` and as a
@@ -1771,32 +1767,6 @@ pid, and what a valid call does.
   one; on a kernel where `socket.new` refuses a task's namespace with
   `EOPNOTSUPP`, the three cases skip on that message).
 
-- **rtnl**: what a socket refuses under RTNL, probed from the replay of a
-  `notifier.netdevice` registration: a `netlink.rt` request, whose rtnetlink
-  handler runs on the sending task and takes RTNL; a receive on a netlink
-  socket, which can continue a dump under RTNL; and an option past
-  `SOL_SOCKET`, which reaches the protocol, whose multicast memberships take
-  RTNL. A `SOL_SOCKET` option and a UDP send are accepted there, and the
-  request is accepted once the registration returned. A close runs the release
-  on the calling task, so from the replay a UDP socket with no membership
-  closes, by `close()`, by a `<close>` local going out of scope, and by both
-  on one socket, the second a no-op; an
-  `AF_PACKET` socket, a `NETLINK_GENERIC` one, a UDP socket that joined a
-  multicast group before the registration and an `AF_INET6` one that joined an
-  IPv4 group through `SOL_IP`, whose release ends in `inet_release`, are
-  refused, the last two skipped where no group can be joined; the bind of a
-  generic netlink socket to a group is refused and of an rtnetlink one
-  accepted; `socket.raw`'s `new`, whose bind to an absent interface fails
-  there, raises the bind's `ENODEV` and leaves to the collector the socket
-  whose close the callback refuses; and every other
-  socket the callback leaves open is closed once the
-  registration returned. A tree without the
-  refusal wedges the host, so the test skips unless the loaded `luanotifier`
-  lists `luanotifier_netdevice_call`, which sets the task the refusal reads, in
-  `/proc/kallsyms`, and unless the loaded `luasocket`, whose refusal has no
-  symbol of its own, is the installed one; the request is sent only once the
-  receive, which cannot wedge, was refused by the `luasocket` that is loaded.
-
 - **unix/stream**: `socket.unix` STREAM server (bind/listen/accept) and
   client (connect/send/receive), both using the path stored at
   construction.
@@ -1919,14 +1889,6 @@ Regression tests for `luathread`.
 - **shouldstop**: `thread.shouldstop()` returns `false` in a `run`
   (non-kthread) context without crashing, and `true` in a `spawn`
   (kthread) context when stop is requested.
-
-- **rtnl**: `thread:stop()` from a netdevice callback is refused, probed from
-  the replay of a `notifier.netdevice` registration by a spawned driver, since
-  a thread is started from a thread: the stop waits for the body, and a body
-  may wait on the RTNL that task holds. The stop is accepted once the
-  registration returned. The body polls `shouldstop` and takes no
-  RTNL, so a build without the refusal accepts the stop from the callback and
-  fails the assertion rather than hanging; the test runs on any build.
 
 - **self_stop**: `thread:stop()` from under the lock of the thread's runtime is
   refused, since the body runs under that lock and the stop waits for it. A
