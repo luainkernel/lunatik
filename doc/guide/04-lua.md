@@ -47,6 +47,18 @@ A coroutine's Lua stack holds at most 200 slots (`LUAI_MAXSTACK`), which bounds 
 values `table.unpack` and a vararg carry: past it, recursion raises `stack overflow` and
 `table.unpack` raises `too many results to unpack`.
 
+A call that crosses C, through `pcall`, a metamethod, a callback a binding makes, a coroutine
+resumed inside another or a runtime a script creates or resumes, nests on the kernel stack instead,
+which Lunatik bounds in bytes (`LUAI_MAXCCALLS`): past five eighths of it (`THREAD_SIZE`), counted
+from where the kernel entered Lua, at a hook, a thread's start, the CLI's write or the close that
+runs a runtime's finalizers, such a call raises `C stack overflow`, as a chunk whose syntax nests
+that deep does. A runtime a script creates or resumes counts from where its creator or resumer was
+entered, so a script that creates itself runs out too. Under `xpcall`, a message handler called past
+the bound raises in turn, and the call ends with `error in error handling`. On the task stack the
+call also raises once a quarter of the stack is all that is left, so a hook entered deep, as a
+kprobe in the network stack is, or a runtime another script closes, gets what remains; a hook on an
+interrupt stack is bounded from its entry alone.
+
 A string pattern nests at most 32 levels deep: the match takes one, each capture two, and each
 position capture `()` and each item with `?`, `*`, `+` or `-` that matches one more. Past it,
 `string.find`, `string.match`, `string.gmatch` and `string.gsub` raise `pattern too complex`.

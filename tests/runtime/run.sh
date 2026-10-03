@@ -40,6 +40,7 @@ TESTS=(
 	errobj.sh
 	killable.sh
 	close.sh
+	cstack.sh
 )
 
 SEP=""

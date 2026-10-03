@@ -1512,6 +1512,23 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   probe is stopped by a hardirq runtime while its body loads, where its stop
   may sleep, and its kprobe refuses an enable with "closed object".
 
+- **cstack**: a recursion that crosses C raises "C stack overflow" once it has
+  used the kernel stack the core allows past where it entered Lua. The driver's
+  body recurses through `pcall`, through `coroutine.wrap`, whose coroutines each
+  hold a Lua stack of their own, through an `__index` function and through
+  `rcu.foreach`; loads a chunk whose parentheses nest past the budget; recurses
+  through an `__index` function that collects garbage with a finalizer at each
+  level, where some level's collection runs within a finalizer's frames of the
+  budget, and checks that every finalizer ran once it is over; creates a
+  runtime whose script creates itself, each a new state
+  whose count of C levels starts over; and resumes a child whose body recurses
+  through `pcall`. Under `xpcall`, a message handler that recurses through C
+  past the budget ends the call with "error in error handling". A spawned
+  thread's body, which the core enters through `lunatik_run`, recurses through
+  `pcall` and returns. Each reports whether the error it caught is the expected
+  one. A build without the budget overflows the kernel stack instead, so the
+  test skips unless the loaded core has `lunatik_maxccalls`.
+
 ### scx
 
 Regression tests for `luascx`: the attach guards, and the dispatch path

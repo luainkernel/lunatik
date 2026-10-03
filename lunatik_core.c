@@ -85,6 +85,8 @@ static inline void lunatik_runerror(lua_State *L, const char *errmsg)
 static void lunatik_releaseruntime(void *private)
 {
 	lua_State *L = (lua_State *)private;
+
+	lunatik_cstack(lunatik_toruntime(L)) = current_stack_pointer;
 	lua_close(L);
 }
 
@@ -129,11 +131,16 @@ EXPORT_SYMBOL(lunatik_copyobjects);
 
 int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs)
 {
+	lunatik_object_t *runtime = lunatik_toruntime(Lto);
 	int nresults;
 
-	if (lunatik_copyobjects(Lto, Lfrom, ixfrom, nargs) != LUA_OK)
-		return -ECANCELED;
-	return lua_resume(Lto, Lfrom, nargs, &nresults) > LUA_YIELD ? -ECANCELED : nresults;
+	lunatik_cstack(runtime) = lunatik_cstack(lunatik_toruntime(Lfrom));
+	int status = lunatik_copyobjects(Lto, Lfrom, ixfrom, nargs);
+
+	if (status == LUA_OK)
+		status = lua_resume(Lto, Lfrom, nargs, &nresults);
+	lunatik_cstack(runtime) = 0;
+	return status > LUA_YIELD ? -ECANCELED : nresults;
 }
 
 /***
@@ -345,6 +352,7 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 	}
 
 	lunatik_setobject(runtime, &lunatik_runtime_class, opt);
+	lunatik_cstack(runtime) = Lfrom ? lunatik_cstack(lunatik_toruntime(Lfrom)) : current_stack_pointer;
 	lunatik_toruntime(L) = runtime;
 	lunatik_runtimeof(runtime)->ready = false;
 	lunatik_runtimeof(runtime)->cpu = cpu;
@@ -364,6 +372,7 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 		lunatik_putobject(runtime);
 		return -ENOEXEC;
 	}
+	lunatik_cstack(runtime) = 0;
 
 	if (lunatik_isirq(opt))
 		runtime->gfp = GFP_ATOMIC;

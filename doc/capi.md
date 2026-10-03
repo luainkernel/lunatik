@@ -260,6 +260,8 @@ the script body is still running, as it is when a hook armed from the body fires
 `percpu` object, when the runtime of this CPU is not published yet; if the calling task already
 holds the runtime's lock, a dispatch from the runtime's own code, with `-EDEADLK`, and the handler
 does not run either; otherwise, `ret` is set with the result of `handler(L, ...)` call.
+Around that call it records the stack pointer in the runtime's `cstack`, from which Lua's bound on
+nested C calls counts, raising `C stack overflow` past five eighths of the kernel stack.
 Then, it restores the Lua stack and unlocks the `runtime` environment.
 A process runtime is locked with a mutex, so _lunatik\_run()_ on it is called from a context that
 may sleep.
@@ -321,9 +323,9 @@ raise with no handler is a `BUG()`.
 void lunatik_handle(lunatik_object_t *runtime, <inttype> (*handler)(...), <inttype> &ret, ...);
 ```
 Runs `handler(L, ...)` on `runtime`'s state and restores the stack. Unlike `lunatik_run`, it
-takes no lock, does not resolve a `percpu` object, and does not check that the state is open or
-ready: the caller already runs inside the runtime, holding its lock or in its script body, and
-passes a plain runtime whose state it knows is open. Defined as a macro.
+takes no lock, does not resolve a `percpu` object, does not check that the state is open or
+ready, and records no stack pointer: the caller already runs inside the runtime, holding its lock
+or in its script body, and passes a plain runtime whose state it knows is open. Defined as a macro.
 
 ### lunatik\_cpcall
 ```C
