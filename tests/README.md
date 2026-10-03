@@ -364,6 +364,12 @@ status the CLI exits by.
 
 ### examples
 
+- **echod**: drives the spawned `examples/echod/daemon` past 256 connections
+  from the shell, in rounds of 32 clients that connect at once, so the daemon
+  accepts the connections of a round back to back while the workers it started
+  for the ones before may not have read their number yet. Every client gets its
+  line back, and the workers log the numbers 1 to 320 once each: a number kept
+  in a byte stops at 255, and one the workers share can be read twice.
 - **shared**: drives the spawned `examples/shared/daemon` over its own port with
   a kernel-side client: a GET of a key that was never assigned and a GET of a
   key a SET removed each answer with an empty line, instead of taking the thread
