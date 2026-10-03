@@ -5,8 +5,7 @@
 -- Kernel-side script for the netlink link_list test (see link_list.sh).
 
 local netlink = require("netlink")
-
-local ARPHRD_LOOPBACK <const> = 772 -- uapi/linux/if_arp.h
+local arphrd  = require("linux.arphrd")
 
 local link <close> = netlink.rt.link()
 for _, iface in ipairs(link:list()) do
@@ -16,7 +15,7 @@ for _, iface in ipairs(link:list()) do
 		if iface.mtu and iface.mtu > 0 then
 			print("netlink link_list: mtu ok")
 		end
-		if iface.type == ARPHRD_LOOPBACK then
+		if iface.type == arphrd.LOOPBACK then
 			print("netlink link_list: type ok")
 		end
 		break
