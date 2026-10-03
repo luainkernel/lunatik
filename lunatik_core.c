@@ -23,9 +23,9 @@
 #include "lunatik_sym.h"
 
 /***
-* Shared `rcu.table` through which scripts exchange objects, as the runner does with its
-* `runtimes` and `threads` tables. It is present in a runtime created while the `lunatik_run`
-* module is loaded.
+* Shared `rcu.table` through which scripts exchange objects. Its keys `runtimes` and `threads`
+* are reserved for `lunatik.runner`, which records there the scripts it runs and spawns. It is
+* present in a runtime created while the `lunatik_run` module is loaded.
 * @field _ENV
 * @within lunatik
 */
