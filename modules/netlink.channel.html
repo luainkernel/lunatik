@@ -249,7 +249,7 @@ netfilter.register{
     <ul>
         <li><span class="parameter">cmd</span>
             <span class="types"><span class="type">integer</span></span>
-         Generic netlink command.
+         Generic netlink command, from 0 to 255.
         </li>
         <li><span class="parameter">payload</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
@@ -266,7 +266,8 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;closed object&rdquo; if the channel has been stopped, or on an allocation error.
+    &ldquo;out of bounds&rdquo; if <code>cmd</code> is past 8 bits or negative, &ldquo;closed object&rdquo; if the channel has
+   been stopped, or on an allocation error.
 
 
 
@@ -307,11 +308,12 @@ netfilter.register{
     <ul>
         <li><span class="parameter">portid</span>
             <span class="types"><span class="type">integer</span></span>
-         Destination netlink port id, of a socket in the initial network namespace.
+         Destination netlink port id, of a socket in the initial network namespace,
+   from 1 to <code>0xffffffff</code>.
         </li>
         <li><span class="parameter">cmd</span>
             <span class="types"><span class="type">integer</span></span>
-         Generic netlink command.
+         Generic netlink command, from 0 to 255.
         </li>
         <li><span class="parameter">payload</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
@@ -329,7 +331,8 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-    if <code>portid</code> is 0, &ldquo;closed object&rdquo; if the channel has been stopped, or on an allocation error.
+    &ldquo;out of bounds&rdquo; if <code>portid</code> is 0, negative or past 32 bits, or <code>cmd</code> is past 8 bits or
+   negative, &ldquo;closed object&rdquo; if the channel has been stopped, or on an allocation error.
 
 
 
@@ -388,7 +391,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:24:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:15:56</span>
 </div>
 </footer>
 </body>

@@ -186,6 +186,9 @@
  protocols, message flags and option levels and names are in <a href="../modules/linux.socket.html#">linux.socket</a>
  (<code>af</code>, <code>sock</code>, <code>ipproto</code>, <code>msg</code>, <code>sol</code>, <code>so</code>).</p>
 
+<p> An integer argument is bounded to the kernel type that takes it, an <code>int</code> unless a method
+ says otherwise: one past it raises &ldquo;out of bounds&rdquo; instead of reaching the kernel truncated.</p>
+
 <p> Sockets sleep: a script creates and uses them in a process runtime, the default, or in a
  spawned thread. In a softirq or hardirq runtime, <a href="../modules/socket.html#new">socket.new</a> and <a href="../modules/socket.html#socket:accept">accept</a> raise
  <code>&apos;socket&apos;: process-context class in interrupt-context runtime</code>.</p>
@@ -260,11 +263,14 @@
 <p> A method that takes an address reads it the way the family the socket was created with spells it:</p>
 
 <ul>
-<li><code>AF_INET</code>: two integers, the IPv4 address (e.g. from <code>net.aton()</code>) and the port.</li>
+<li><code>AF_INET</code>: two integers, the IPv4 address (e.g. from <code>net.aton()</code>), within 32 bits, and the port,
+within 16.</li>
 <li><code>AF_INET6</code>: a packed string of <code>struct sockaddr_in6</code> past the family: the port and the flow
 information in network byte order, the address, and the scope id.</li>
-<li><code>AF_PACKET</code>: two integers, the ethertype in host byte order and the interface index.</li>
-<li><code>AF_NETLINK</code>: two optional integers, the port id and the multicast groups, both 0 by default.</li>
+<li><code>AF_PACKET</code>: two integers, the ethertype in host byte order, within 16 bits, and the interface
+index, from 0.</li>
+<li><code>AF_NETLINK</code>: two optional integers, the port id and the multicast groups, both 0 by default and
+within 32 bits.</li>
 <li><code>AF_UNIX</code>: a string, a filesystem path or, with a leading NUL, an abstract name.</li>
 <li>Other families: a packed string of the address bytes past the family.</li>
 </ul>
@@ -595,7 +601,7 @@ reports.</li>
     <ul>
         <li><span class="parameter">length</span>
             <span class="types"><span class="type">integer</span></span>
-         maximum number of bytes to receive.
+         maximum number of bytes to receive, from 0 to <code>INT_MAX</code>.
         </li>
         <li><span class="parameter">flags</span>
             <span class="types"><span class="type">integer</span></span>
@@ -642,7 +648,7 @@ reports.</li>
     <ul>
         <li><span class="parameter">length</span>
             <span class="types"><span class="type">integer</span></span>
-         maximum number of bytes to receive.
+         maximum number of bytes to receive, as <a href="../modules/socket.html#socket:receive">receive</a> takes it.
         </li>
         <li><span class="parameter">flags</span>
             <span class="types"><span class="type">integer</span></span>
@@ -786,7 +792,8 @@ reports.</li>
         <li><span class="parameter">value</span>
             <span class="types"><span class="type">integer</span> or <a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          option value: an integer for the common <code>int</code>
-   payload, or a string carrying the option&rsquo;s packed binary payload.
+   payload, from <code>INT_MIN</code> to <code>UINT_MAX</code>, since an unsigned option such as <code>SO_MARK</code> reads
+   those 32 bits as a <code>u32</code>, or a string carrying the option&rsquo;s packed binary payload.
         </li>
     </ul>
 
@@ -851,7 +858,8 @@ reports.</li>
 
     <h3>Raises</h3>
      Error if socket creation fails, &ldquo;unsupported socket type&rdquo; for <code>linux.socket.sock.PACKET</code>,
-   &ldquo;out of bounds&rdquo; for an <code>AF_PACKET</code> protocol past 16 bits,
+   &ldquo;out of bounds&rdquo; for an argument past an <code>int</code>, an <code>AF_PACKET</code> protocol past 16 bits or a pid
+   outside 1 to <code>PID_MAX_LIMIT</code>,
    <code>ESRCH</code> if no task has that pid, <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a namespace
    of their own, or
    <code>&apos;socket&apos;: process-context class in interrupt-context runtime</code> in a softirq or hardirq runtime.
@@ -885,7 +893,7 @@ reports.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:24:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:15:56</span>
 </div>
 </footer>
 </body>

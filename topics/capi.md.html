@@ -1468,6 +1468,19 @@ given and <code>false</code> when it is nil or absent; any other type raises
 <code>bad field &apos;&lt;field&gt;&apos; (&lt;type&gt; expected, got &lt;type&gt;)</code>. The field stays on the stack for the caller to
 read and pop.</p>
 
+<h3 id="lunatik_checkfieldinteger">lunatik_checkfieldinteger</h3>
+
+<pre>
+lua_Integer <span class="function-name">lunatik_checkfieldinteger</span>(lua_State *L, <span class="keyword">const</span> <span class="keyword">char</span> *field, lua_Integer min, lua_Integer max);
+</pre>
+
+
+<p>Returns the integer on top of the stack, the field named <code>field</code> that
+<a href="#lunatik_checkfield"><code>lunatik_checkfield</code></a> or <a href="#lunatik_optfield"><code>lunatik_optfield</code></a> pushed as a
+number, and raises <code>bad field &apos;&lt;field&gt;&apos; (out of bounds)</code> unless <code>min &lt;= value &lt;= max</code>. A binding
+bounds with it a field it stores narrower than <code>lua_Integer</code>, which would otherwise keep the low
+bits of a number past its range.</p>
+
 <h3 id="lunatik_optcfunction">lunatik_optcfunction</h3>
 
 <pre>
@@ -1482,25 +1495,27 @@ otherwise. <code>lunatik_nop</code> returns nothing, the default a binding passe
 <h3 id="lunatik_setinteger">lunatik_setinteger</h3>
 
 <pre>
-<span class="keyword">void</span> <span class="function-name">lunatik_setinteger</span>(lua_State *L, <span class="keyword">int</span> idx, hook, field);
+<span class="keyword">void</span> <span class="function-name">lunatik_setinteger</span>(lua_State *L, <span class="keyword">int</span> idx, hook, field, min, max);
 </pre>
 
 
 <p>Reads a required integer field named <code>field</code> from the table at <code>idx</code> into <code>hook-&gt;field</code>.
-Raises a Lua error if the field is missing or not a number.</p>
+Raises a Lua error if the field is missing or not a number, and
+<code>bad field &apos;&lt;field&gt;&apos; (out of bounds)</code> unless <code>min &lt;= value &lt;= max</code>, through
+<a href="#lunatik_checkfieldinteger"><code>lunatik_checkfieldinteger</code></a>.</p>
 
 <h3 id="lunatik_optinteger">lunatik_optinteger</h3>
 
 <pre>
-<span class="keyword">void</span> <span class="function-name">lunatik_optinteger</span>(lua_State *L, <span class="keyword">int</span> idx, priv, field, opt);
+<span class="keyword">void</span> <span class="function-name">lunatik_optinteger</span>(lua_State *L, <span class="keyword">int</span> idx, priv, field, min, max, opt);
 </pre>
 
 
 <p>Reads an optional integer field named <code>field</code> from the table at <code>idx</code> into <code>priv-&gt;field</code>,
 through <a href="#lunatik_optfield"><code>lunatik_optfield</code></a>. Falls back to <code>opt</code> when the field is nil or
 absent, and raises <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> when it holds anything
-other than a number, a numeric string included. The value is not bounded: a field narrower than
-<code>lua_Integer</code> keeps its low bits.</p>
+other than a number, a numeric string included, and <code>bad field &apos;&lt;field&gt;&apos; (out of bounds)</code> unless
+<code>min &lt;= value &lt;= max</code>, through <a href="#lunatik_checkfieldinteger"><code>lunatik_checkfieldinteger</code></a>.</p>
 
 <h3 id="lunatik_setstring">lunatik_setstring</h3>
 
@@ -1997,7 +2012,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:24:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:15:56</span>
 </div>
 </footer>
 </body>

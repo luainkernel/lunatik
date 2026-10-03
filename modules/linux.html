@@ -266,7 +266,7 @@
     <ul>
         <li><span class="parameter">ifindex</span>
             <span class="types"><span class="type">integer</span></span>
-         interface index number.
+         interface index number, from 1 to <code>INT_MAX</code>.
         </li>
     </ul>
 
@@ -277,6 +277,8 @@
         interface HW address, or <code>nil</code> if no device has that index.
     </ol>
 
+    <h3>Raises</h3>
+    &ldquo;out of bounds&rdquo; for an index outside that range.
 
 
     <h3>Usage</h3>
@@ -528,7 +530,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:24:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:15:56</span>
 </div>
 </footer>
 </body>

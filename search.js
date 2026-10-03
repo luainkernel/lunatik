@@ -595,6 +595,7 @@ window.LUNATIK_SEARCH = [
 ["Table Fields","topics/capi.md.html#table-fields","Guide · Lunatik C API"],
 ["lunatik_checkfield","topics/capi.md.html#lunatik_checkfield","Guide · Lunatik C API"],
 ["lunatik_optfield","topics/capi.md.html#lunatik_optfield","Guide · Lunatik C API"],
+["lunatik_checkfieldinteger","topics/capi.md.html#lunatik_checkfieldinteger","Guide · Lunatik C API"],
 ["lunatik_optcfunction","topics/capi.md.html#lunatik_optcfunction","Guide · Lunatik C API"],
 ["lunatik_setinteger","topics/capi.md.html#lunatik_setinteger","Guide · Lunatik C API"],
 ["lunatik_optinteger","topics/capi.md.html#lunatik_optinteger","Guide · Lunatik C API"],

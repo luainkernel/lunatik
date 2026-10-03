@@ -259,8 +259,8 @@ hid.register({
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          driver options: <code>name</code> (string), <code>id_table</code> (array of device ID tables,
-   each with optional integer fields <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code>, <code>driver_data</code>),
-   and the optional callbacks:</p>
+   each with optional integer fields <code>bus</code> and <code>group</code>, from 0 to <code>0xffff</code>, <code>vendor</code> and
+   <code>product</code>, from 0 to <code>0xffffffff</code>, and <code>driver_data</code>, from 0), and the optional callbacks:</p>
 
 <ul>
 <li> <code>probe(driver, hdev, id)</code>: a device matched; <code>hdev</code> is the device&rsquo;s table, made here
@@ -301,9 +301,10 @@ hid.register({
    required fields are missing, or <code>id_table</code> is invalid or too long; the kernel&rsquo;s errno if it
    refuses the driver, <code>EBUSY</code> for a name another driver holds on the bus;
    <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if an entry&rsquo;s <code>bus</code>, <code>group</code>, <code>vendor</code>,
-   <code>product</code> or <code>driver_data</code> is present and not a number; <code>runtime context mismatch</code> unless the
-   runtime is softirq; <code>not allowed while the runtime closes</code> from a finalizer that runs at its
-   close
+   <code>product</code> or <code>driver_data</code> is present and not a number, and
+   <code>bad field &apos;&lt;field&gt;&apos; (out of bounds)</code> if it is past its range; <code>runtime context mismatch</code>
+   unless the runtime is softirq; <code>not allowed while the runtime closes</code> from a finalizer that
+   runs at its close
 
 
 
@@ -322,7 +323,7 @@ hid.register({
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-02 23:24:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 12:15:56</span>
 </div>
 </footer>
 </body>
