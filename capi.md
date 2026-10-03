@@ -98,7 +98,7 @@ A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` throug
 [`lunatik_gfp`](#lunatik_gfp); the other fields are the core's.
 
 - `kref`: the count of the object's references, `1` at its creation, taken and dropped through
-  [`lunatik_getobject`](#lunatik_getobject), [`lunatik_getobject_rcu`](#lunatik_getobject_rcu) and
+  [`lunatik_getobject`](#lunatik_getobject), [`lunatik_trygetobject`](#lunatik_trygetobject) and
   [`lunatik_putobject`](#lunatik_putobject), whose drop to zero runs the release. It changes
   atomically, under no lock.
 - `class`: the class the object was created with, set at its creation and never changed.
@@ -367,12 +367,12 @@ lua_State *lunatik_getstate(lunatik_object_t *runtime);
 ```
 Returns the Lua state of `runtime`, `NULL` once the runtime is closed. Defined as a macro.
 
-### lunatik\_class
+### lunatik\_runtime\_class
 ```C
-extern const lunatik_class_t lunatik_class;
+extern const lunatik_class_t lunatik_runtime_class;
 ```
 The class of a runtime, `lunatik.runtime` in type errors. A binding that takes a runtime as an argument
-checks it with `lunatik_checkobjectclass(L, ix, &lunatik_class)`.
+checks it with `lunatik_checkobjectclass(L, ix, &lunatik_runtime_class)`.
 
 ### lunatik\_env
 ```C
@@ -470,18 +470,9 @@ lunatik_object_t *lunatik_checkruntime(lua_State *L, const char *name, lunatik_o
 ```
 Returns the runtime associated with `L` after
 [`lunatik_checkcontext`](#lunatik_checkcontext) and then
-[`lunatik_checkclosing`](#lunatik_checkclosing) pass for it. A binding's constructor calls it,
-directly or through `lunatik_setruntime`, to enforce that a class is only instantiated in a
-compatible runtime, and that a finalizer that runs as the runtime closes registers nothing the
-runtime would dispatch.
-
-### lunatik\_setruntime
-```C
-lunatik_object_t *lunatik_setruntime(lua_State *L, libname, priv);
-```
-Stores `lunatik_checkruntime(L, lua<libname>_class.name, lua<libname>_class.opt)` in
-`priv->runtime` and returns it: the class is read by its name, `lua<libname>_class`, so
-`lunatik_setruntime(L, device, luadev)` checks against `luadevice_class`. Defined as a macro.
+[`lunatik_checkclosing`](#lunatik_checkclosing) pass for it. A binding's constructor calls it to
+enforce that a class is only instantiated in a compatible runtime, and that a finalizer that runs
+as the runtime closes registers nothing the runtime would dispatch.
 
 ### lunatik\_optcontext
 ```C
@@ -716,9 +707,9 @@ void lunatik_getobject(lunatik_object_t *object);
 ```
 Increments the [reference counter](https://docs.kernel.org/core-api/kref.html) of `object`.
 
-### lunatik\_getobject\_rcu
+### lunatik\_trygetobject
 ```C
-bool lunatik_getobject_rcu(lunatik_object_t *object);
+bool lunatik_trygetobject(lunatik_object_t *object);
 ```
 Takes a reference on an object found under `rcu_read_lock()` without one held, as an
 `rcu.table` entry hands its readers, and returns `true`; returns `false`, taking none, when the
@@ -852,7 +843,7 @@ exposing them to the GC:
 
 ```C
 /* registration, once, at hook setup */
-lunatik_attach(L, obj, field, luafoo_new, opt);
+lunatik_attach(L, obj, field, luafoo_attach, opt);
 
 /* use, on each callback */
 lunatik_object_t *o = lunatik_getregistryobject(L, obj->field);
@@ -1120,9 +1111,9 @@ same way and returns it. A size, a length or a count that arrives from Lua is bo
 for what the binding can serve, and an integer that names a kernel identity, a pid, before the
 cast to the kernel's type.
 
-### lunatik\_pushstring
+### lunatik\_pushexternalstring
 ```C
-const char *lunatik_pushstring(lua_State *L, char *s, size_t len);
+const char *lunatik_pushexternalstring(lua_State *L, char *s, size_t len);
 ```
 Pushes the `len` bytes at `s` as a Lua string without copying them: `s` is a buffer of `len + 1`
 bytes from [`lunatik_malloc`](#lunatik_malloc), whose last byte it sets to `'\0'`, and Lua owns

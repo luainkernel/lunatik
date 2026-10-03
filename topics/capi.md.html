@@ -345,7 +345,7 @@ until it closes.</li>
 
 <ul>
 <li><code>kref</code>: the count of the object&rsquo;s references, <code>1</code> at its creation, taken and dropped through
-<a href="#lunatik_getobject"><code>lunatik_getobject</code></a>, <a href="#lunatik_getobject_rcu"><code>lunatik_getobject_rcu</code></a> and
+<a href="#lunatik_getobject"><code>lunatik_getobject</code></a>, <a href="#lunatik_trygetobject"><code>lunatik_trygetobject</code></a> and
 <a href="#lunatik_putobject"><code>lunatik_putobject</code></a>, whose drop to zero runs the release. It changes
 atomically, under no lock.</li>
 <li><a href="../modules/class.html#">class</a>: the class the object was created with, set at its creation and never changed.</li>
@@ -662,15 +662,15 @@ lua_State *<span class="function-name">lunatik_getstate</span>(lunatik_object_t 
 
 <p>Returns the Lua state of <code>runtime</code>, <code>NULL</code> once the runtime is closed. Defined as a macro.</p>
 
-<h3 id="lunatik_class">lunatik_class</h3>
+<h3 id="lunatik_runtime_class">lunatik_runtime_class</h3>
 
 <pre>
-<span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t lunatik_class;
+<span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t lunatik_runtime_class;
 </pre>
 
 
 <p>The class of a runtime, <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> in type errors. A binding that takes a runtime as an argument
-checks it with <code>lunatik_checkobjectclass(L, ix, &amp;lunatik_class)</code>.</p>
+checks it with <code>lunatik_checkobjectclass(L, ix, &amp;lunatik_runtime_class)</code>.</p>
 
 <h3 id="lunatik_env">lunatik_env</h3>
 
@@ -792,21 +792,9 @@ lunatik_object_t *<span class="function-name">lunatik_checkruntime</span>(lua_St
 
 <p>Returns the runtime associated with <code>L</code> after
 <a href="#lunatik_checkcontext"><code>lunatik_checkcontext</code></a> and then
-<a href="#lunatik_checkclosing"><code>lunatik_checkclosing</code></a> pass for it. A binding&rsquo;s constructor calls it,
-directly or through <code>lunatik_setruntime</code>, to enforce that a class is only instantiated in a
-compatible runtime, and that a finalizer that runs as the runtime closes registers nothing the
-runtime would dispatch.</p>
-
-<h3 id="lunatik_setruntime">lunatik_setruntime</h3>
-
-<pre>
-lunatik_object_t *<span class="function-name">lunatik_setruntime</span>(lua_State *L, libname, priv);
-</pre>
-
-
-<p>Stores <code>lunatik_checkruntime(L, lua&lt;libname&gt;_class.name, lua&lt;libname&gt;_class.opt)</code> in
-<code>priv-&gt;runtime</code> and returns it: the class is read by its name, <code>lua&lt;libname&gt;_class</code>, so
-<code>lunatik_setruntime(L, device, luadev)</code> checks against <code>luadevice_class</code>. Defined as a macro.</p>
+<a href="#lunatik_checkclosing"><code>lunatik_checkclosing</code></a> pass for it. A binding&rsquo;s constructor calls it to
+enforce that a class is only instantiated in a compatible runtime, and that a finalizer that runs
+as the runtime closes registers nothing the runtime would dispatch.</p>
 
 <h3 id="lunatik_optcontext">lunatik_optcontext</h3>
 
@@ -1103,10 +1091,10 @@ returns, since <code>lunatik_cpcall</code> drops what it returns.</p>
 
 <p>Increments the <a href="https://docs.kernel.org/core-api/kref.html">reference counter</a> of <code>object</code>.</p>
 
-<h3 id="lunatik_getobject_rcu">lunatik_getobject_rcu</h3>
+<h3 id="lunatik_trygetobject">lunatik_trygetobject</h3>
 
 <pre>
-<span class="keyword">bool</span> <span class="function-name">lunatik_getobject_rcu</span>(lunatik_object_t *object);
+<span class="keyword">bool</span> <span class="function-name">lunatik_trygetobject</span>(lunatik_object_t *object);
 </pre>
 
 
@@ -1281,7 +1269,7 @@ exposing them to the GC:</p>
 
 <pre>
 <span class="comment">/* registration, once, at hook setup */</span>
-<span class="function-name">lunatik_attach</span>(L, obj, field, luafoo_new, opt);
+<span class="function-name">lunatik_attach</span>(L, obj, field, luafoo_attach, opt);
 
 <span class="comment">/* use, on each callback */</span>
 lunatik_object_t *o = <span class="function-name">lunatik_getregistryobject</span>(L, obj-&gt;field);
@@ -1640,10 +1628,10 @@ same way and returns it. A size, a length or a count that arrives from Lua is bo
 for what the binding can serve, and an integer that names a kernel identity, a pid, before the
 cast to the kernel&rsquo;s type.</p>
 
-<h3 id="lunatik_pushstring">lunatik_pushstring</h3>
+<h3 id="lunatik_pushexternalstring">lunatik_pushexternalstring</h3>
 
 <pre>
-<span class="keyword">const</span> <span class="keyword">char</span> *<span class="function-name">lunatik_pushstring</span>(lua_State *L, <span class="keyword">char</span> *s, size_t len);
+<span class="keyword">const</span> <span class="keyword">char</span> *<span class="function-name">lunatik_pushexternalstring</span>(lua_State *L, <span class="keyword">char</span> *s, size_t len);
 </pre>
 
 
@@ -2042,7 +2030,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:02:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:07:08</span>
 </div>
 </footer>
 </body>
