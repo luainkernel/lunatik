@@ -14,8 +14,10 @@
 # header past where the UDP sum starts, are left unchanged byte for byte, as are a TCP segment
 # shrunk to 30 bytes with its tot_len rewritten to fit, which no longer holds its check field, and
 # one whose IHL reads 4, below the 5 ip_rcv_core requires; a build without those refusals rewrites
-# the IPv4 header checksum of both. The hook drops every packet it takes; TCP resends it untouched,
-# and the UDP send fails with EPERM, so the senders' errors are discarded.
+# the IPv4 header checksum of both. A UDP datagram over ::1 whose first payload word makes its sum
+# fold to 0 gets the check field 0xffff, CSUM_MANGLED_0, where a build that stores the sum as it
+# comes leaves 0, which an IPv6 receiver drops. The hook drops every packet it takes; TCP resends
+# it untouched, and the UDP send fails with EPERM, so the senders' errors are discarded.
 #
 # A luaskb that sums a length past the packet ends skb_checksum on BUG_ON and panics the host, and
 # its check has no symbol or message of its own. The packets past their end are therefore sent
@@ -37,7 +39,8 @@ PRIORITY=$((0x12370000)) # PRIORITY in checksum.lua
 FITS="fits4 fits6"
 GATE="below4"
 PAST="past4 past6 ext6 short4 ihl4"
-CASES="$FITS $GATE $PAST" # in the order of pending in checksum.lua
+ZERO="zero6"
+CASES="$FITS $GATE $PAST $ZERO" # in the order of pending in checksum.lua
 DSTOPTS="41:59:x0000010400000000" # IPPROTO_IPV6, IPV6_DSTOPTS: an 8-byte header holding one PadN
 NCASES=$(echo $CASES | wc -w)
 
@@ -99,7 +102,7 @@ socat -u "TCP-LISTEN:$PORT,reuseaddr,fork" OPEN:/dev/null &
 LISTENER=$!
 for _ in $(seq 20); do [ -n "$(ss -tHln "sport = :$PORT" 2>/dev/null)" ] && break; sleep 0.1; done
 
-send $FITS $GATE
+send $FITS $GATE $ZERO
 if dmesg_since | grep -q "skb checksum: $GATE ok"; then
 	send $PAST
 else
