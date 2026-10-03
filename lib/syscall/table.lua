@@ -1,5 +1,5 @@
 --
--- SPDX-FileCopyrightText: (c) 2024 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-FileCopyrightText: (c) 2024-2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
@@ -8,6 +8,7 @@
 -- This module provides a pre-populated Lua table where each key
 -- is a system call name (string, e.g., "openat") and its corresponding
 -- value is the kernel address of that system call (lightuserdata).
+-- A name `linux.syscall.numbers` does not carry is `nil`, as `open` is on arm64.
 --
 -- @module syscall.table
 -- @see syscall
@@ -16,12 +17,10 @@
 -- @usage
 --   local syscall_addrs = require("syscall.table")
 --
---   if syscall_addrs.openat then
---     print("Address of 'openat':", syscall_addrs.openat)
---   end
+--   print("Address of 'openat':", syscall_addrs.openat)
 --
---   if syscall_addrs.close then
---     print("Address of 'close':", syscall_addrs.close)
+--   if syscall_addrs.open then
+--     print("Address of 'open':", syscall_addrs.open)
 --   end
 --
 
