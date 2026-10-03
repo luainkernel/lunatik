@@ -43,6 +43,8 @@ local function stop(registry, script)
 end
 
 --- Runs a script in a new runtime of the given context and registers it under its name.
+-- The runtime runs until `runner.stop`, which a sentinel ties to the close of the runtime that
+-- calls `run`: see `lunatik.runtime`.
 -- @tparam string script path or name of the Lua script to run. The ".lua" extension will be trimmed.
 -- @tparam[opt="process"] string|table context execution context, as in `lunatik.runtime`:
 --   `"process"`, `"softirq"` (netfilter, XDP) or `"hardirq"` (kprobes); or a table of options:
