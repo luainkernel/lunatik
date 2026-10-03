@@ -69,7 +69,7 @@ end
 ---
 -- Adds a station to an AP interface.
 -- @tparam table opts station parameters: `ifindex`, `mac`, `aid`,
---   `listen_interval` and `supported_rates` (raw rate bytes).
+--   `listen_interval` (in beacon intervals) and `supported_rates` (raw rate bytes).
 -- @raise on a netlink error.
 function station:add(opts)
 	self:talk(self.id, self.NEW, message.attrs{

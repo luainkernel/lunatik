@@ -46,9 +46,9 @@ local ap = object:new{START = cmd.START_AP, STOP = cmd.STOP_AP}
 ---
 -- Starts beaconing on an AP-mode interface (which must already be up).
 -- @tparam table opts AP parameters: `ifindex` (an AP interface), `freq`
---   (channel frequency in MHz), `beacon_interval`, `dtim` and `head` (the raw
---   beacon frame up to the TIM element); optional `ssid` and `tail` (the raw
---   beacon frame after the TIM).
+--   (channel frequency in MHz), `beacon_interval` (in TU, 1024 microseconds), `dtim` (in
+--   beacon intervals) and `head` (the raw beacon frame up to the TIM element); optional
+--   `ssid` and `tail` (the raw beacon frame after the TIM).
 -- @raise on a netlink error (e.g. the interface is not an AP, is down, or the
 --   beacon or channel is rejected).
 function ap:start(opts)
