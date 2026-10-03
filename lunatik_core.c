@@ -137,7 +137,8 @@ int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs)
 }
 
 /***
-* Resumes a yielded runtime, analogous to `coroutine.resume`.
+* Resumes a runtime as the function `coroutine.wrap` returns resumes a coroutine: an error is
+* raised, not returned.
 * The runtime's script returns a function: the first resume calls it with the objects as its
 * arguments, and each later one delivers them as the return values of the `coroutine.yield()` it
 * is suspended in. Only Lunatik objects cross between the runtimes, in either direction.
