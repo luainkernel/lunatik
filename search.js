@@ -556,6 +556,8 @@ window.LUNATIK_SEARCH = [
 ["lunatik_getobject","topics/capi.md.html#lunatik_getobject","Guide · Lunatik C API"],
 ["lunatik_trygetobject","topics/capi.md.html#lunatik_trygetobject","Guide · Lunatik C API"],
 ["lunatik_putobject","topics/capi.md.html#lunatik_putobject","Guide · Lunatik C API"],
+["lunatik_defer","topics/capi.md.html#lunatik_defer","Guide · Lunatik C API"],
+["lunatik_isatomic","topics/capi.md.html#lunatik_isatomic","Guide · Lunatik C API"],
 ["lunatik_closeobject","topics/capi.md.html#lunatik_closeobject","Guide · Lunatik C API"],
 ["Object Access","topics/capi.md.html#object-access","Guide · Lunatik C API"],
 ["lunatik_checkobject","topics/capi.md.html#lunatik_checkobject","Guide · Lunatik C API"],

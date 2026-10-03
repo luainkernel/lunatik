@@ -308,8 +308,10 @@
  one a netdevice callback may collect it stops before, since the close runs where the collector
  drops the handle and cannot refuse there. The close runs the script&rsquo;s finalizers: an object one
  creates or reads, as a sentinel that stops a child through <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a> does, is released by
- the end of the close, and a registration raises <code>not allowed while the runtime closes</code>. Only a
- process runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
+ the end of the close, and a registration raises <code>not allowed while the runtime closes</code>. A last
+ reference dropped with bottom halves or IRQs off, as a softirq or hardirq runtime&rsquo;s <a href="../modules/rcu.html#table">rcu.table</a>
+ write drops an entry&rsquo;s, closes it on a kernel worker after the drop, where its finalizers may
+ sleep. Only a process runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
 
 
     <h3>Parameters</h3>
@@ -378,7 +380,7 @@
    &ldquo;cannot share SINGLE object&rdquo; if a value cannot cross, numbering the
    arguments on the way in and the yielded values on the way back, or the error raised on
    resumption; &ldquo;not allowed from the runtime itself&rdquo; from under the runtime&rsquo;s own lock, the
-   contexts <a href="../modules/lunatik.html#runtime:stop">stop</a> names, where the resumption would wait on it; &ldquo;EINTR&rdquo; if the stop of the
+   contexts <a href="../modules/lunatik.html#percpu:stop">stop</a> names, where the resumption would wait on it; &ldquo;EINTR&rdquo; if the stop of the
    calling kernel thread, or a fatal signal to any other task, ends its wait for the runtime&rsquo;s
    lock
 
@@ -448,7 +450,7 @@
    with the runtimes after it not resumed. A runtime that refuses a value stays where it yielded;
    one that raises is dead, so every later resume delivers to the CPUs before it again and fails
    on it again; &ldquo;not allowed from the runtime itself&rdquo; from under the lock of one of the set&rsquo;s
-   runtimes, the contexts <a href="../modules/lunatik.html#runtime:stop">stop</a> names, where its resumption would wait on that lock;
+   runtimes, the contexts <a href="../modules/lunatik.html#percpu:stop">stop</a> names, where its resumption would wait on that lock;
    &ldquo;EINTR&rdquo; if the stop of the calling kernel thread, or a fatal signal to any other task,
    ends its wait for the lock of one of the set&rsquo;s runtimes, the runtimes after it not resumed
 
@@ -464,7 +466,7 @@
 
     <h3>Raises</h3>
      &ldquo;not allowed under RTNL&rdquo; from a netdevice callback, in whatever runtime or coroutine
-   its task runs, as the runtime&rsquo;s <a href="../modules/lunatik.html#runtime:stop">stop</a> does: the releases the close runs cannot refuse;
+   its task runs, as the runtime&rsquo;s <a href="../modules/lunatik.html#percpu:stop">stop</a> does: the releases the close runs cannot refuse;
    &ldquo;not allowed from the runtime itself&rdquo; from a callback or a resumed body of one of the
    set&rsquo;s runtimes, where its close would wait on the lock that task holds;
    &ldquo;EINTR&rdquo; if the stop of the calling kernel thread, or a fatal signal to any other task,
@@ -487,7 +489,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:11:39</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:52:45</span>
 </div>
 </footer>
 </body>

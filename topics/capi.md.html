@@ -217,7 +217,8 @@ object and its private are never released. <code>{&quot;__close&quot;, lunatik_c
 <a href="#lunatik_closeprivate"><code>lunatik_closeprivate</code></a>, which an object&rsquo;s <code>close</code> or <code>stop</code> and
 <code>lunatik_stop</code> run, and the drop of the last reference; Lunatik then frees the private, unless
 the class is <code>LUNATIK_OPT_EXTERNAL</code>. It runs on the task that closed the object or dropped that
-reference. May be <code>NULL</code>.</li>
+reference, or, when that drop runs in atomic context, on a kernel worker through
+<a href="#lunatik_defer"><code>lunatik_defer</code></a>, so a release may sleep. May be <code>NULL</code>.</li>
 <li><code>opt</code>: bitmask of <code>LUNATIK_OPT_*</code> flags controlling class behaviour. Flags are inherited by
 every instance via <code>object-&gt;opt = opt | class-&gt;opt</code> (see <code>lunatik_newobject</code>). Flags differ
 in whether they act as <strong>constraints</strong> or <strong>capabilities</strong>:
@@ -334,6 +335,7 @@ until it closes.</li>
     gfp_t gfp;
     <span class="keyword">unsigned</span> <span class="keyword">long</span> flags;
     <span class="keyword">struct</span> rcu_head rcu;
+    lunatik_defer_t defer;
 } lunatik_object_t;
 </pre>
 
@@ -367,6 +369,8 @@ as <a href="#lunatik_gfp"><code>lunatik_gfp</code></a> says, written by the code
 the lock and <code>lunatik_unlock</code> restores.</li>
 <li><a href="../modules/rcu.html#">rcu</a>: the head the release frees the object through, after a grace period, so a reader that
 found it under <code>rcu_read_lock()</code> can still read its count.</li>
+<li><code>defer</code>: the item the release runs on a kernel worker through, when the last reference drops in
+atomic context, as <a href="#lunatik_putobject"><code>lunatik_putobject</code></a> says.</li>
 </ul>
 
 
@@ -1110,8 +1114,51 @@ memory outlives the grace period after its release, which is what lets the count
 
 
 <p>Decrements the <a href="https://docs.kernel.org/core-api/kref.html">reference counter</a> of <code>object</code>.
-If the object has been released, returns <code>1</code>; otherwise returns <code>0</code>. The release runs at once, on
-the calling task; the object&rsquo;s memory is freed after an RCU grace period.</p>
+Returns <code>1</code> when it dropped the last reference, and <code>0</code> otherwise. The release runs at once, on the
+calling task, unless <a href="#lunatik_isatomic"><code>lunatik_isatomic</code></a> holds there: it then runs on a kernel
+worker, through the object&rsquo;s <code>defer</code>. The object&rsquo;s memory is freed after an RCU grace period once
+the release has run.</p>
+
+<h3 id="lunatik_defer">lunatik_defer</h3>
+
+<pre>
+<span class="keyword">typedef</span> <span class="keyword">struct</span> <span class="function-name">lunatik_defer_s</span> {
+    <span class="keyword">struct</span> irq_work irq;
+    <span class="keyword">struct</span> work_struct work;
+} lunatik_defer_t;
+
+<span class="keyword">void</span> <span class="function-name">lunatik_initdefer</span>(lunatik_defer_t *defer, work_func_t func);
+<span class="keyword">bool</span> <span class="function-name">lunatik_defer</span>(lunatik_defer_t *defer);
+</pre>
+
+
+<p>Runs <code>func</code> on a kernel worker, in process context, for a caller that cannot: one in softirq or
+hardirq context, with bottom halves or interrupts off, or in a probe handler on code the scheduler
+runs under its runqueue lock. <code>lunatik_defer</code> queues <code>irq</code>, an irq_work the CPU raises on itself
+without a lock, whose handler queues <code>work</code> on the core&rsquo;s
+<a href="https://docs.kernel.org/core-api/workqueue.html">workqueue</a>, unbound, allocated when <a href="../modules/lunatik.html#">lunatik</a>
+loads and drained when it unloads: queuing <code>work</code> directly wakes a kworker, and the wakeup takes the
+runqueue lock. It may be called from any context and returns <code>false</code> when the item was already
+queued.</p>
+
+<p>The item lives in what defers, so deferring allocates nothing: <code>lunatik_initdefer</code> sets it up before
+the first <code>lunatik_defer</code>, and <code>func</code> finds what defers through <code>container_of</code> on <code>work</code>. Calls made
+before <code>func</code> starts run it once, and one made while it runs runs it again after it returns, so what
+each call hands <code>func</code> goes on a list <code>func</code> drains. A <code>func</code> that frees the item calls
+<code>irq_work_sync</code> on <code>irq</code> first, since the first hop still writes it after queuing <code>work</code>. Both are
+macros, and <code>lunatik_initdefer</code> gives each call site a lockdep class of its own, as <code>INIT_WORK</code> does.</p>
+
+<h3 id="lunatik_isatomic">lunatik_isatomic</h3>
+
+<pre>
+<span class="keyword">bool</span> <span class="function-name">lunatik_isatomic</span>(<span class="keyword">void</span>);
+</pre>
+
+
+<p>Returns <code>true</code> when the calling task runs in softirq or hardirq context, or with bottom halves or
+interrupts off, as under every lock of a softirq or hardirq object: <code>irq_count() || irqs_disabled()</code>.
+A plain spinlock or <code>preempt_disable()</code> in process context, which no lock of the core takes, does not
+count. Defined as a macro.</p>
 
 <h3 id="lunatik_closeobject">lunatik_closeobject</h3>
 
@@ -2028,7 +2075,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:11:39</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-03 13:52:45</span>
 </div>
 </footer>
 </body>
