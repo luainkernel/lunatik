@@ -1196,6 +1196,11 @@ named, not one discovered at that consumer's build.
   that, each found while fixing the one before, and #1065, #1107 and #1130 answered them with a
   Lua-internal header in the core, a `debug` stripped of one function and a list on every object,
   before the family was read as one and #1065 reverted.
+* A change that puts a route out of contract, a prohibition the binding's documentation now states,
+  reads the open issues filed on that route in the same breath: one whose stimulus the prohibition
+  covers is a capability and not a defect, relabelled or closed with the reason. #1694 forbade a
+  probe on code the scheduler runs under its runqueue lock, and #1690, filed on that route, stayed
+  `severity: high` until the maintainer asked why.
 * A decision taken with the maintainer is not reversed alone. When the investigation that follows points
   the other way, that is a question to bring back, not a conclusion to announce: a rename agreed as
   runtime came back as its opposite, argued from a name collision found on the way, and was published as
