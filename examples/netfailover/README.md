@@ -8,18 +8,17 @@ sent as the raw generic netlink body of command 1 to the one multicast group of 
 `netfailover` family of a `netlink.channel`, and printed to `dmesg` as
 `netfailover: dummy0 down: backup route installed`, the easiest place to watch it.
 [control](control.lua) owns `notifier.netdevice`, whose
-callback runs under RTNL, where a `netlink.rt` request is refused, so it only
-records the link state in an `rcu.table`; [reactor](reactor.lua),
-a spawned thread, polls that table and reprograms the route. They are two
-runtimes because one would deadlock: the reactor holding the runtime lock while
-it waits for RTNL, as the callback holds RTNL waiting for the runtime lock.
+callback runs in a softirq runtime, the context the notifier requires, where a
+`netlink.rt` request, which sleeps, cannot be made, so it only records the link
+state in an `rcu.table`; [reactor](reactor.lua), a spawned thread, polls that
+table and reprograms the route.
 
 ## Usage
 
 ```
 sudo make install                                  # installs Lunatik and the examples
 sudo ip link add dummy0 type dummy && sudo ip link set dummy0 up
-sudo lunatik run examples/netfailover/control       # records the link state
+sudo lunatik run --context=softirq examples/netfailover/control  # records the link state
 sudo lunatik spawn examples/netfailover/reactor     # reroutes on it
 sudo ip link set dummy0 down                        # installs the backup route
 ip route show table 200

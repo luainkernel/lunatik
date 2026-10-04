@@ -12,11 +12,12 @@
 # and reads it stopped: a device of the same name is created again, which a
 # device left in place refuses; a watch refuses a mark with "closed object"; a
 # notifier, whose stop only takes the callback off, takes a second stop as it
-# takes any. A probe needs a hardirq runtime, and its stop sleeps, so
-# close_probe.lua does the same while its body loads, and its kprobe refuses an
-# enable with "closed object"; an assertion it fails raises from the runtime
-# close.lua creates. A build without the __close fails at the to-be-closed
-# variable, which Lua refuses for a value with no __close.
+# takes any. A notifier needs a softirq runtime, so close_notifier.lua checks it
+# while its body loads; a probe needs a hardirq runtime, and its stop sleeps, so
+# close_probe.lua does the same, and its kprobe refuses an enable with "closed
+# object"; an assertion either fails raises from the runtime close.lua creates.
+# A build without the __close fails at the to-be-closed variable, which Lua
+# refuses for a value with no __close.
 #
 # Usage: sudo bash tests/runtime/close.sh
 

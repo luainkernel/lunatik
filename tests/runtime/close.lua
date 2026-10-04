@@ -7,11 +7,11 @@
 local lunatik  = require("lunatik")
 local device   = require("device")
 local fsnotify = require("fsnotify")
-local notifier = require("notifier")
 local fs       = require("linux.fs")
 local test     = require("tests.lib").test
 
 local DEVICE <const> = "lunatik_close"
+local BLOCK  <const> = "tests/runtime/close_notifier"
 local PROBE  <const> = "tests/runtime/close_probe"
 local MARKED <const> = "/tmp"
 
@@ -35,10 +35,7 @@ test("device: a to-be-closed device is stopped, through the stop it holds as __c
 end)
 
 test("notifier: a to-be-closed notifier is stopped, through the stop it holds as __close", function()
-	local block = notifier.netdevice(ignore)
-	stops(block)
-	scope(block)
-	block:stop()
+	local runtime <close> = lunatik.runtime(BLOCK, "softirq") -- raises what the notifier's body asserts
 end)
 
 test("fsnotify: a to-be-closed watch is stopped, through the stop it holds as __close", function()

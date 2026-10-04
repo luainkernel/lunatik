@@ -52,8 +52,8 @@ command -v ip > /dev/null 2>&1 || {
 	exit 0
 }
 
-run_script "$HELD"
-run_script "$AFTER"
+run_script --context=softirq "$HELD"
+run_script --context=softirq "$AFTER"
 
 mark_dmesg
 lunatik stop "$HELD" > /dev/null 2>&1 &

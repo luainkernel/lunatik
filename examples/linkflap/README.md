@@ -7,15 +7,16 @@ would announce under the same name, and once one interface reaches 5 it
 multicasts a flapping event, the interface name and the transition count as
 generic netlink attributes, on the `linkflap` family of a `netlink.channel`.
 [subscriber](subscriber.c) joins that family's multicast group
-from userspace and prints each event. The callback runs holding RTNL, which a
-multicast does not take, so one runtime does both. Registering the notifier
+from userspace and prints each event. The callback runs in a softirq runtime,
+which `notifier.netdevice` requires, and a multicast is safe there, so one
+runtime does both. Registering the notifier
 replays an `UP` for each interface that already exists, one transition each.
 
 ## Usage
 
 ```
 sudo make install                                     # installs Lunatik and the examples
-sudo lunatik run examples/linkflap/watch               # arms the notifier
+sudo lunatik run --context=softirq examples/linkflap/watch  # arms the notifier
 cc -O2 examples/linkflap/subscriber.c -o linkflap-sub  # builds the subscriber
 GRP=$(genl ctrl get name linkflap | grep -oiE 'ID-0x[0-9a-f]+' | sed 's/^ID-//i')
 sudo ./linkflap-sub "$GRP" &                           # prints each event

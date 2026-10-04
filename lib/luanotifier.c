@@ -46,10 +46,10 @@ typedef struct luanotifier_s {
 	struct task_struct *registrant;
 } luanotifier_t;
 
-static const lunatik_class_t luanotifier_process_class;
+static const lunatik_class_t luanotifier_softirq_class;
 static const lunatik_class_t luanotifier_hardirq_class;
 
-LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanotifier_process_class,
+LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanotifier_softirq_class,
 	&luanotifier_hardirq_class);
 
 /* an event delivered inside register_fn, on the task that registered the block */
@@ -154,12 +154,12 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 }
 
 /***
-* Registers a network-device notifier. Must be called from a process
-* runtime (the default). The devices of every network namespace are reported,
-* each with the inode number of its namespace: `linux.ifindex` resolves a name
-* in the initial namespace only, so a script keeps the devices that name
-* resolves by comparing that number with `linux.netns()`. The callback runs
-* under RTNL.
+* Registers a network-device notifier. Must be called from a `softirq` runtime,
+* `lunatik run --context=softirq <script>`: the callback runs under RTNL, where nothing it reaches
+* may wait on RTNL, and a softirq runtime takes no call that sleeps once it is armed. The devices
+* of every network namespace are reported, each with the inode number of its namespace:
+* `linux.ifindex` resolves a name in the initial namespace only, so a script keeps the devices that
+* name resolves by comparing that number with `linux.netns()`.
 *
 * @function netdevice
 * @tparam function callback invoked as `callback(event, name, netns)` — `event`
@@ -174,20 +174,19 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 * @treturn notifier the notifier, which this call keeps for its runtime: dropping it
 *   stops nothing, and the callback runs until `stop` or the end of the runtime
 * @raise if called from a percpu runtime, or under RTNL: from a netdevice
-*   callback, and from any runtime or coroutine the callback runs;
-*   `'notifier': process-context class in interrupt-context runtime` in a softirq or hardirq
-*   runtime; `not allowed while the runtime closes` from a finalizer that runs at its close;
-*   the kernel's errno when it refuses the registration, `EPERM` when the callback returns
-*   `notify.BAD` for a replayed `REGISTER`
+*   callback, the replay this call delivers included, and from any coroutine the callback runs;
+*   `runtime context mismatch` outside a softirq runtime; `not allowed once the runtime is armed`
+*   past the script body, since the registration sleeps; `not allowed while the runtime closes`
+*   from a finalizer that runs at its close; the kernel's errno when it refuses the registration,
+*   `EPERM` when the callback returns `notify.BAD` for a replayed `REGISTER`
 * @within notifier
 */
 static int luanotifier_netdevice(lua_State *L)
 {
-	/* register_netdevice_notifier waits on the namespace rwsem and RTNL this task already holds */
-	lunatik_checkrtnl(L);
+	lunatik_checkarmed(L);
 
 	return luanotifier_new(L, register_netdevice_notifier, unregister_netdevice_notifier,
-		luanotifier_netdevice_handler, luanotifier_netdevice_call, &luanotifier_process_class);
+		luanotifier_netdevice_handler, luanotifier_netdevice_call, &luanotifier_softirq_class);
 }
 
 #ifdef CONFIG_VT
@@ -267,11 +266,11 @@ static const luaL_Reg luanotifier_mt[] = {
 	{NULL, NULL}
 };
 
-static const lunatik_class_t luanotifier_process_class = {
+static const lunatik_class_t luanotifier_softirq_class = {
 	.name = "notifier",
 	.methods = luanotifier_mt,
 	.release = luanotifier_release,
-	.opt = LUNATIK_OPT_SINGLE,
+	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_SINGLE,
 	.owner = THIS_MODULE,
 };
 
@@ -312,7 +311,7 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 	return 1; /* object */
 }
 
-LUNATIK_CLASSES(notifier, &luanotifier_process_class, &luanotifier_hardirq_class);
+LUNATIK_CLASSES(notifier, &luanotifier_softirq_class, &luanotifier_hardirq_class);
 LUNATIK_NEWLIB(notifier, luanotifier_lib, luanotifier_classes);
 
 static int __init luanotifier_init(void)

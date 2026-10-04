@@ -56,7 +56,7 @@ reported()
 }
 
 mark_dmesg
-run_script "$SCRIPT"
+run_script --context=softirq "$SCRIPT"
 
 [ "$(reported "create $REFUSAL")" = 1 ] || fail "a channel created from a netdevice callback was not refused"
 ktap_pass "a channel created from a netdevice callback is refused"

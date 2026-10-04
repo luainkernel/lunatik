@@ -6,13 +6,10 @@
 
 local device   = require("device")
 local channel  = require("netlink.channel")
-local notifier = require("notifier")
 local rcu      = require("rcu")
 local stat     = require("linux.stat")
 local test     = require("tests.lib").test
 local check    = require("tests.runtime.check")
-
-local function nop() end
 
 local function empty()
 	return ""
@@ -23,12 +20,6 @@ test("device:stop refuses an object of another class", function()
 	local dev = device.new(driver)
 	check.refused("device:stop", getmetatable(dev).stop)
 	dev:stop()
-end)
-
-test("notifier:stop refuses an object of another class", function()
-	local n = notifier.netdevice(nop)
-	check.refused("notifier:stop", getmetatable(n).stop)
-	n:stop()
 end)
 
 test("netlink.channel:stop refuses an object of another class", function()

@@ -161,7 +161,6 @@ static int luanetlink_unicast(lua_State *L)
 static int luanetlink_stop(lua_State *L)
 {
 	lunatik_checkarmed(L);
-	lunatik_checkrtnl(L);
 	lunatik_stopobject(L, lunatik_checkobjectclass(L, 1, &luanetlink_channel_class));
 	return 0;
 }
@@ -205,7 +204,6 @@ static int luanetlink_channel_new(lua_State *L)
 {
 	lunatik_checkarmed(L);
 	lunatik_checkpercpu(L);
-	lunatik_checkrtnl(L);
 	size_t len;
 	const char *name = luaL_checklstring(L, 1, &len);
 	luaL_argcheck(L, len > 0 && len < GENL_NAMSIZ, 1, "invalid family name length");

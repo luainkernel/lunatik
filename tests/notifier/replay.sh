@@ -71,7 +71,7 @@ ip link add "$OLDDEV" type dummy 2> /dev/null || skip_all "cannot create a dummy
 ip link set "$OLDDEV" up || fail "cannot bring $OLDDEV up"
 
 mark_dmesg
-run_script "$SCRIPT"
+run_script --context=softirq "$SCRIPT"
 
 [ "$(reported "register $OLDDEV true")" = 1 ] || fail "the REGISTER of $OLDDEV was not marked as replayed"
 ktap_pass "replay marks the REGISTER of a device that already exists"

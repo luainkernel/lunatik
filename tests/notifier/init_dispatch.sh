@@ -32,7 +32,7 @@ ktap_plan 2
 
 mark_dmesg
 
-output=$(lunatik run "$SCRIPT" 2>&1)
+output=$(lunatik run --context=softirq "$SCRIPT" 2>&1)
 [ -n "$output" ] && fail "Lua error during init-time notifier registration: $output"
 ktap_pass "notifier.netdevice() at script init runs without Lua error"
 
