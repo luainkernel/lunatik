@@ -104,6 +104,20 @@ test("an integer setter refuses a value past its width and keeps the bytes", fun
 	end
 end)
 
+test("getstring answers an empty string, and setstring writes nothing, for a zero length up to the end", function()
+	local d = data.new(8)
+	d:setbyte(7, MARK)
+	for offset = 0, #d do
+		assert(d:getstring(offset, 0) == "", "getstring(" .. offset .. ", 0) did not answer an empty string")
+		d:setstring(offset, "")
+	end
+	assert(d:getstring(#d) == "", "getstring at the end did not answer an empty string")
+	assert(d:getbyte(7) == MARK, "an empty setstring changed the bytes")
+	refuses("getstring past the end", d.getstring, d, #d + 1)
+	refuses("getstring with a negative length", d.getstring, d, 0, -1)
+	refuses("setstring past the end", d.setstring, d, #d + 1, "")
+end)
+
 test("setint64 takes every integer", function()
 	local d = data.new(8)
 	for _, value in ipairs({math.mininteger, -1, math.maxinteger}) do

@@ -31,7 +31,7 @@ LUNATIK_PRIVATECHECKER(luadata_check, luadata_t *, &luadata_class);
 
 static inline void *luadata_checkbounds(lua_State *L, int ix, luadata_t *data, lua_Integer offset, lua_Integer length)
 {
-	int bounds = offset >= 0 && length > 0 && offset + length <= data->size;
+	int bounds = offset >= 0 && length >= 0 && offset + length <= data->size;
 	luaL_argcheck(L, bounds, ix, "out of bounds");
 	return (data->ptr + offset);
 }
@@ -97,8 +97,8 @@ LUADATA_NEWINT(int64, LUA_MININTEGER, LUA_MAXINTEGER);
 * @function getstring
 * @tparam integer offset
 * @tparam[opt] integer length number of bytes; default: from offset to end
-* @treturn string
-* @raise "out of bounds", a zero length included, as at an offset equal to the size
+* @treturn string the bytes, empty for a zero length at any offset up to the size, the end included
+* @raise "out of bounds" for an offset or a length that reaches past the size, or a negative one
 */
 static int luadata_getstring(lua_State *L)
 {
@@ -116,7 +116,8 @@ static int luadata_getstring(lua_State *L)
 * @function setstring
 * @tparam integer offset
 * @tparam string s
-* @raise "out of bounds", an empty `s` included, or "read only"
+* @raise "out of bounds" for bytes past the size or a negative offset, or "read only"; an empty `s`
+*   writes nothing at any offset up to the size
 */
 static int luadata_setstring(lua_State *L)
 {

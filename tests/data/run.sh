@@ -12,7 +12,10 @@
 # either way, from the signed minimum to the unsigned maximum, and both getters of the
 # width read back the same bytes; past that range it raises "out of bounds" and leaves
 # the bytes, where 2^32 plus the value already stored is what a truncating build
-# writes without an error. setint64 takes every integer.
+# writes without an error. setint64 takes every integer. getstring answers an empty
+# string, and setstring writes nothing, for a zero length at any offset up to the
+# size, the end included, as string.sub answers there; past the end, and for a
+# negative length, both raise "out of bounds".
 #
 # zeroed: what an owned buffer holds before the script writes to it. data.new() and a
 # data:resize() that grows come back zeroed, on the krealloc and the kvmalloc arm of the
