@@ -188,8 +188,9 @@ inside code, the trailing comment past the width, a comment on a signature line 
 `static inline` and one naming the file or function that reads a value
 (`comment-style.sh`), a comment a change adds to one definition of a block whose others carry none
 (`comment-siblings.sh`), a sequence of calls a change adds that another C file already makes
-(`core-helper.sh`), the branches, argument tables, inline functions and repeated blocks the Lua style
-rules settle (`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script
+(`core-helper.sh`), a deferral a change adds to the core or a binding (`deferral.sh`), the
+branches, argument tables, inline functions and repeated blocks the Lua style rules settle
+(`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script
 skips (`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
@@ -290,6 +291,15 @@ diff and annotates, since two encryptions that set up one request each are two c
 kernel's API and not a helper missing; the review answers each line it prints with the helper or
 the reason the calls are the kernel's sequence.
 
+`deferral.sh` reads the lines a change adds to the C of the core or a binding, against `CHECK_BASE`,
+for a deferral: an item of `lunatik_defer`, a work, an irq_work or a tasklet. A hazard is refused in
+its context before it is engineered around (*Deciding what to change*), and #1622 carried a thread's
+stop handed to `lunatik_defer`, a back reference and a flush of the core's queue at its module's
+exit after #1719 had written that rule, until the maintainer asked why the flush was needed. It runs
+at edit time and over a pull request's diff and annotates, since the core's deferred close is the
+kernel's answer to a release in atomic context; the commit body names the refusal each line it
+prints was weighed against.
+
 `comment-siblings.sh` reads the lines a change adds, against `CHECK_BASE`, for a comment on one
 definition of a block whose other definitions carry none: a run of `#define` lines, the members of a
 struct or a union, or a run of Lua `local NAME <const>` lines. Either each has a reason worth a line
@@ -337,7 +347,10 @@ A rule is what remains when nothing else can catch the mistake. Where the error 
 is the answer and the rule is that gate's documentation: a pull request that only writes down what went
 wrong, over rules that were already written and already broken, adds a paragraph and changes nothing.
 What an investigation teaches lands here, in a skill or in a check, in the same breath as the work that
-taught it; a lesson kept in one assistant's notes is one the next contributor pays for again.
+taught it; a lesson kept in one assistant's notes is one the next contributor pays for again. A rule or
+a check that lands is run that day over the open pull requests it reaches, and each one it names gets
+a fixup or a reason: #1719 wrote the hazard rule while #1622 carried the deferral it weighs, and
+nobody read #1622 against it until the maintainer asked.
 
 `pr-body.sh` takes a pull request body file and fails it on more than three paragraphs, an em dash,
 a "Test plan" section or an assistant's footer, which #1119 carried past it while the script skipped
