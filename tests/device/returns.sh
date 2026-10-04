@@ -15,7 +15,9 @@
 # and write -ENOSPC, lunatik_ended, whose read returns zero,
 # lunatik_unnegated, whose open returns EBUSY not negated,
 # lunatik_notnumber, whose open returns true, lunatik_invalid, whose read
-# returns EAGAIN not negated and write a length below -MAX_ERRNO, and
+# returns EAGAIN not negated and write a length below -MAX_ERRNO,
+# lunatik_internal, whose read returns -EIOCBQUEUED, an errno of the kernel's
+# own block that io_uring reads as a request queued, and
 # lunatik_short, whose write takes one byte of what it is given and whose read
 # returns what each write was given:
 #
@@ -30,7 +32,8 @@
 #   returned zero;
 # - a read whose callback returns zero ends the file;
 # - an open whose callback returns an errno not negated or a value that is not
-#   a number, a read whose callback returns an errno not negated, and a write
+#   a number, a read whose callback returns an errno not negated or one of the
+#   kernel's own, from ERESTARTSYS on, and a write
 #   whose callback returns a length below -MAX_ERRNO, each fail with ECANCELED
 #   and log "invalid errno" with the operation, read once the window of the
 #   log's rate limit the cases before them used has passed;
@@ -64,6 +67,7 @@ ENDED="lunatik_ended"
 UNNEGATED="lunatik_unnegated"
 NOTNUMBER="lunatik_notnumber"
 INVALID="lunatik_invalid"
+INTERNAL="lunatik_internal"
 SHORT="lunatik_short"
 CONTENT="returns"
 WRITTEN="abc,bc,c"
@@ -115,7 +119,7 @@ ktap_plan 11
 
 mark_dmesg
 run_script "$SCRIPT"
-for dev in "$OFFSET" "$LENGTH" "$RAISED" "$SOUND" "$REFUSING" "$FAILING" "$ENDED" "$UNNEGATED" "$NOTNUMBER" "$INVALID" "$SHORT"; do
+for dev in "$OFFSET" "$LENGTH" "$RAISED" "$SOUND" "$REFUSING" "$FAILING" "$ENDED" "$UNNEGATED" "$NOTNUMBER" "$INVALID" "$INTERNAL" "$SHORT"; do
 	[ -c "/dev/$dev" ] || fail "the script's device $dev did not appear"
 done
 
@@ -148,6 +152,7 @@ sleep "$RATELIMIT" # the cases above and held.sh's refused open used up the log'
 refuses "$ECANCELED" cat "/dev/$UNNEGATED" || fail "an open whose callback returns an errno not negated did not fail with ECANCELED"
 refuses "$ECANCELED" cat "/dev/$NOTNUMBER" || fail "an open whose callback returns true did not fail with ECANCELED"
 refuses "$ECANCELED" readfrom "$INVALID" || fail "a read whose callback returns an errno not negated did not fail with ECANCELED"
+refuses "$ECANCELED" readfrom "$INTERNAL" || fail "a read whose callback returns -EIOCBQUEUED did not fail with ECANCELED"
 refuses "$ECANCELED" writeto "$INVALID" || fail "a write whose callback returns a length below -MAX_ERRNO did not fail with ECANCELED"
 [ "$(dmesg_since | grep -c "luadevice: invalid errno: open$")" -eq 2 ] &&
 	logged "invalid errno" read && logged "invalid errno" write ||

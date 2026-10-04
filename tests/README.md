@@ -239,8 +239,9 @@ after it.
   and a write `-ENOSPC` past an open whose callback returned zero, fail with
   that errno; a read whose callback returns zero ends the file; an open
   whose callback returns an errno not negated or `true`,
-  a read whose callback returns an errno not negated, and a write whose
-  callback returns a length below `-MAX_ERRNO`, fail with `ECANCELED` and log
+  a read whose callback returns an errno not negated or `-EIOCBQUEUED`, of the
+  kernel's own block, and a write whose callback returns a length below
+  `-MAX_ERRNO`, fail with `ECANCELED` and log
   `invalid errno` with the operation, read once the window of the log's rate
   limit, which the cases before them used, has passed; a write of three bytes
   whose callback takes one is a short write, so the writer writes the rest
@@ -591,6 +592,10 @@ after the watch is stopped.
   a second open still reaches the callback, so the first case cannot pass
   because the watch was gone. Its kernel log carries a Lua error on purpose,
   as `raise`'s does.
+
+- **internal**: a callback answering `-EIOCBQUEUED`, of the kernel's own errno
+  block, which io_uring reads as a request queued, allows the open and logs
+  `invalid errno`, where a build that passes it on fails the open with 529.
 
 - **sleep**: a callback that calls `linux.schedule` finishes and the open waits
   for it, which is what makes a process-context runtime the right one for a

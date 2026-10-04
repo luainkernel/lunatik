@@ -18,8 +18,9 @@
 * callback fails its operation with an errno by returning it negated, as
 * `-errno.EBUSY` does with `linux.errno`. A callback that raises, or that
 * returns a length or an offset that is not an integer, or an errno that is not
-* one, `invalid errno` in the log, fails its operation with `ECANCELED`, and the
-* error goes to the kernel log.
+* one, the kernel's own from `ERESTARTSYS` on included, `invalid errno` in the
+* log, fails its operation with `ECANCELED`, and the error goes to the kernel
+* log.
 *
 * @module device
 */
