@@ -30,6 +30,10 @@
 #   gets no remove;
 # - a device whose probe returned and whose descriptor the HID core then fails
 #   to parse gets the remove, with the table report_fixup saw;
+# - the report raw_event is handed is closed once the callback returns, also
+#   after the last report of the seven, which it raises on: remove reads the
+#   view raw_event kept and finds it closed, where a view left on the kernel's
+#   buffer still reads its first byte;
 # - a raw_event that raises on every report of a burst logs fewer errors than
 #   the burst has reports, the log being rate limited;
 # - stopping the runtime while it holds a device returns, and the device
@@ -106,7 +110,7 @@ callback() { logged "luahid: $1: $2"; }
 probefailed() { dmesg_since | grep -qE "0003:$VENDOR:$1\.[0-9A-F]+.* failed with error $2"; }
 
 ktap_header
-ktap_plan 10
+ktap_plan 11
 
 mark_dmesg
 run_script --context=softirq "$SCRIPT"
@@ -136,6 +140,11 @@ for product in "$SOUND" "$SECOND"; do
 	logged "hid/device: remove lunatik_hid_$product $SEEN" || fail "device $product's remove did not see the table its callbacks shared"
 done
 ktap_pass "two devices bound at once each get one table, which every callback and remove receive"
+
+for product in "$SOUND" "$SECOND"; do
+	logged "hid/device: view lunatik_hid_$product closed" || fail "device $product's report stayed readable after raw_event raised on it"
+done
+ktap_pass "the report raw_event is handed is closed once the callback returns, also when it raises"
 
 grep -qx "$RAISE unbound" "$OUT" && callback "$RAISED" probe &&
 	probefailed "$RAISE" "$ECANCELED" || fail "a probe that raised did not fail with ECANCELED and log"

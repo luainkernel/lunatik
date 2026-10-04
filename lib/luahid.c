@@ -58,6 +58,7 @@ typedef struct luahid_ctx_s {
 	const struct hid_device_id *id;
 	u8 *data;
 	size_t size;
+	lunatik_object_t *view;
 	int ret;
 } luahid_ctx_t;
 
@@ -201,7 +202,7 @@ static luahid_t *luahid_gethid(struct hid_device *hdev)
 
 #define luahid_checkdriver(L, hid)	(lunatik_getregistry(L, hid) != LUA_TTABLE)
 
-static inline lunatik_object_t *luahid_pushdata(lua_State *L, luahid_ctx_t *ctx)
+static inline void luahid_pushdata(lua_State *L, luahid_ctx_t *ctx)
 {
 	lunatik_object_t *obj = lunatik_getregistryobject(L, ctx->hid->data);
 
@@ -209,7 +210,7 @@ static inline lunatik_object_t *luahid_pushdata(lua_State *L, luahid_ctx_t *ctx)
 		luaL_error(L, "couldn't find data");
 
 	luadata_reset(obj, ctx->data, ctx->size, LUADATA_OPT_NONE);
-	return obj;
+	ctx->view = obj;
 }
 
 static void luahid_op(lua_State *L, luahid_ctx_t *ctx, int nargs, int nresults)
@@ -226,7 +227,11 @@ static void luahid_op(lua_State *L, luahid_ctx_t *ctx, int nargs, int nresults)
 	lua_insert(L, base + 2); /* hid */
 	lua_settop(L, base + 2 + nargs); /* stack: hid.cb, hid, args */
 
-	lua_call(L, nargs + 1, nresults); /* ops.cb(hid, args) */
+	int status = lua_pcall(L, nargs + 1, nresults, 0); /* ops.cb(hid, args) */
+	if (ctx->view != NULL)
+		luadata_clear(ctx->view); /* the buffer is the kernel's, also when the callback raised */
+	if (status != LUA_OK)
+		lua_error(L);
 }
 
 static int luahid_doprobe(lua_State *L)
@@ -288,9 +293,8 @@ static int luahid_doreport_fixup(lua_State *L)
 	luahid_ctx_t *ctx = lua_touserdata(L, 1);
 
 	lunatik_getregistry(L, ctx->hdev); /* hdev */
-	lunatik_object_t *data = luahid_pushdata(L, ctx);
+	luahid_pushdata(L, ctx);
 	luahid_op(L, ctx, 2, 0);
-	luadata_clear(data);
 	return 0;
 }
 
@@ -316,9 +320,8 @@ static int luahid_doraw_event(lua_State *L)
 
 	lunatik_getregistry(L, ctx->hdev); /* hdev */
 	luahid_pushreport(L, ctx->report);
-	lunatik_object_t *data = luahid_pushdata(L, ctx);
+	luahid_pushdata(L, ctx);
 	luahid_op(L, ctx, 3, 1);
-	luadata_clear(data);
 	ctx->ret = lunatik_opterrno(L, -1);
 	return 0;
 }

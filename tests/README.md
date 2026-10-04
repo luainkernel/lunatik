@@ -671,8 +671,10 @@ after the watch is stopped.
   report `raw_event` answers with nothing or zero reaches hidraw, and one it
   answers with a negative errno does not, nor one it answers with a positive
   number, a numeric string or a number below every errno, or raises on, each of
-  which is logged. A probe that raises fails the bind with `ECANCELED`, logs
-  and gets no `remove`; one whose descriptor then fails to parse gets it. A
+  which is logged; the report it is handed is closed once it returns, also after
+  the one it raises on, which `remove` reads. A probe that raises fails the bind
+  with `ECANCELED`, logs and gets no `remove`; one whose descriptor then fails to
+  parse gets it. A
   raw_event raising on a burst of reports logs fewer errors than the burst,
   and a runtime stopped while it holds a device stops and lets the device
   go. Skips without `/dev/uhid` (`CONFIG_UHID`), `CONFIG_HIDRAW` or gcc.
