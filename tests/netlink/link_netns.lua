@@ -27,11 +27,13 @@ local function listed(link)
 end
 
 local function reachable(pid)
-	local ok, session = pcall(netlink.rt.link, pid)
-	if ok then
-		session:close()
-	end
-	return ok
+	local session <close> = netlink.rt.link(pid)
+	return session ~= nil
+end
+
+local function absent(name, value, err)
+	assert(value == nil and err == "ESRCH",
+		name .. " should answer nil and ESRCH for a reaped pid, got " .. tostring(value) .. ", " .. tostring(err))
 end
 
 do
@@ -52,11 +54,12 @@ local names = listed(link)
 assert(names.lo and names[DEV], "the holder's namespace should list lo and " .. DEV)
 print("netlink link_netns: holder's namespace lists " .. DEV)
 
-local ok, err = pcall(netlink.rt.link, pids.reaped)
-assert(not ok and err == "ESRCH", "a reaped pid should raise ESRCH, got " .. tostring(err))
-print("netlink link_netns: reaped pid raises ESRCH")
+absent("socket.new", socket.new(sk.af.NETLINK, sk.sock.RAW, nl.proto.ROUTE, pids.reaped))
+absent("rt.link", netlink.rt.link(pids.reaped))
+absent("nl80211.interface", netlink.nl80211.interface(pids.reaped))
+print("netlink link_netns: reaped pid answers nil and ESRCH")
 
-ok, err = pcall(socket.new, sk.af.NETLINK, sk.sock.RAW, nl.proto.ROUTE, 0)
+local ok, err = pcall(socket.new, sk.af.NETLINK, sk.sock.RAW, nl.proto.ROUTE, 0)
 assert(not ok and err:match("out of bounds"), "pid 0 should be out of bounds, got " .. tostring(err))
 ok, err = pcall(socket.new, sk.af.NETLINK, sk.sock.RAW, PROTO, pids.holder)
 assert(not ok and err == "EPROTONOSUPPORT", "a protocol past MAX_LINKS should raise, got " .. tostring(err))

@@ -26,12 +26,16 @@ local object = genl:new{}
 -- Opens the genl socket, then resolves and caches the `"nl80211"` family id.
 -- @tparam[opt] integer pid a task whose network namespace the object reaches, which holds the wiphys
 --   and interfaces nl80211 answers for; the initial network namespace when absent.
--- @treturn object a new nl80211 object.
--- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
---   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
+-- @treturn object a new nl80211 object; `nil` and `"ESRCH"` if no task has that pid, or the task
+--   has exited.
+-- @raise `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace of their own, or `ENOENT`
+--   when the nl80211 family is not registered.
 -- @see netlink.session
 function object:__call(pid)
-	local o = session.__call(self, pid)
+	local o, err = session.__call(self, pid)
+	if o == nil then
+		return nil, err
+	end
 	o.id = o:family("nl80211")
 	return o
 end

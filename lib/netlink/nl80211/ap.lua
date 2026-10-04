@@ -38,9 +38,10 @@ local ap = object:new{START = cmd.START_AP, STOP = cmd.STOP_AP}
 -- @function ap:__call
 -- @tparam[opt] integer pid a task whose network namespace the object reaches, which holds the wiphys
 --   and interfaces nl80211 answers for; the initial network namespace when absent.
--- @treturn ap a new ap object.
--- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
---   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
+-- @treturn ap a new ap object; `nil` and `"ESRCH"` if no task has that pid, or the task
+--   has exited.
+-- @raise `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace of their own, or `ENOENT`
+--   when the nl80211 family is not registered.
 -- @see netlink.session
 
 ---

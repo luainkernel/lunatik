@@ -716,12 +716,12 @@ static int luasocket_accept(lua_State *L)
 *   socket, which for a TCP connection still shutting down comes after its close, so the namespace
 *   outlives the task. The rest of Lunatik (`linux.ifindex`, `netfilter`) keeps to the initial network
 *   namespace.
-* @treturn socket A new socket object.
+* @treturn socket A new socket object; `nil` and `"ESRCH"` if no task has that pid, or the task
+*   has exited.
 * @raise Error if socket creation fails, "unsupported socket type" for `linux.socket.sock.PACKET`,
 *   "out of bounds" for an argument past an `int`, an `AF_PACKET` protocol past 16 bits or a pid
 *   outside 1 to `PID_MAX_LIMIT`,
-*   `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace
-*   of their own, or
+*   `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace of their own, or
 *   `'socket': process-context class in interrupt-context runtime` in a softirq or hardirq runtime.
 * @usage
 *   local socket = require("socket")
@@ -750,6 +750,8 @@ static int luasocket_lnew(lua_State *L)
 	struct net *net = luasocket_getnet(pid);
 	int ret;
 
+	if (PTR_ERR(net) == -ESRCH)
+		return lunatik_pushfail(L, -ESRCH);
 	if (IS_ERR(net))
 		lunatik_throw(L, PTR_ERR(net));
 
