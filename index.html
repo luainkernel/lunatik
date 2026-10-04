@@ -53,7 +53,7 @@ kernel threads and more. A command line tool loads and manages them from user sp
         <a class="btn" href="https://github.com/luainkernel/lunatik">GitHub</a>
     </div>
     <ul class="facts">
-        <li><strong>76</strong> Lua modules</li>
+        <li><strong>78</strong> Lua modules</li>
         <li>Linux <strong>6.6</strong> and later</li>
         <li>Process, softirq and hardirq hooks</li>
     </ul>
@@ -191,6 +191,7 @@ kernel threads and more. A command line tool loads and manages them from user sp
 </ul>
 <h3>Constants</h3>
 <ul class="mono">
+  <li><a href="modules/linux.arphrd.html">linux.arphrd</a></li>
   <li><a href="modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="modules/linux.errno.html">linux.errno</a></li>
@@ -203,6 +204,7 @@ kernel threads and more. A command line tool loads and manages them from user sp
   <li><a href="modules/linux.nf.html">linux.nf</a></li>
   <li><a href="modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="modules/linux.pkttype.html">linux.pkttype</a></li>
   <li><a href="modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="modules/linux.scx.html">linux.scx</a></li>
   <li><a href="modules/linux.signal.html">linux.signal</a></li>
@@ -326,12 +328,12 @@ kernel threads and more. A command line tool loads and manages them from user sp
         <h3>Constants</h3>
         <p>Kernel constants, generated from its headers at build time.</p>
         <div class="mods">
+            <span>linux.arphrd</span>
             <span>linux.bpf</span>
             <span>linux.dropreason</span>
             <span>linux.errno</span>
             <span>linux.eth</span>
-            <span>linux.fsnotify</span>
-            <span class="more">+17</span>
+            <span class="more">+19</span>
         </div>
     </a>
 </div>
@@ -680,6 +682,10 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 <h3 id="api-constants">Constants</h3>
 <div class="tbl"><table class="module_list">
 	<tr>
+		<td class="name"><a href="modules/linux.arphrd.html">linux.arphrd</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.arphrd.html#">linux.arphrd</a>.</td>
+	</tr>
+	<tr>
 		<td class="name"><a href="modules/linux.bpf.html">linux.bpf</a></td>
 		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.bpf.html#">linux.bpf</a>.</td>
 	</tr>
@@ -726,6 +732,10 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 	<tr>
 		<td class="name"><a href="modules/linux.notify.html">linux.notify</a></td>
 		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.notify.html#">linux.notify</a>.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/linux.pkttype.html">linux.pkttype</a></td>
+		<td class="summary">Linux kernel constants exposed under <a href="modules/linux.pkttype.html#">linux.pkttype</a>.</td>
 	</tr>
 	<tr>
 		<td class="name"><a href="modules/linux.rtnetlink.html">linux.rtnetlink</a></td>
@@ -787,7 +797,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:41:15</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:42:15</span>
 </div>
 </footer>
 </body>

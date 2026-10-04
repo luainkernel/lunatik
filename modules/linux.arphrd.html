@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>netlink.nl80211 · Lunatik</title>
+    <title>linux.arphrd · Lunatik</title>
     <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
@@ -79,7 +79,7 @@
   <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
   <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
   <li><a href="../modules/netlink.message.html">netlink.message</a></li>
-  <li><a href="../modules/netlink.nl80211.html" aria-current="page">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
   <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
   <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
   <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
@@ -139,7 +139,7 @@
 </ul>
 <h3>Constants</h3>
 <ul class="mono">
-  <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
+  <li><a href="../modules/linux.arphrd.html" aria-current="page">linux.arphrd</a></li>
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
@@ -172,102 +172,18 @@
 
 <main class="content" id="content">
 
-<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-network">Sockets and netlink</a></div>
-<h1>netlink.nl80211<span class="kind">Module</span></h1>
-<p class="lead">The nl80211 (wireless) namespace.</p>
- Groups the nl80211 object classes, each a
- <a href="../modules/netlink.genl.html#">netlink.genl</a> session bound to the <code>&quot;nl80211&quot;</code> family. It needs a kernel with cfg80211
- (<code>CONFIG_CFG80211</code>), which the kernel loads on the family lookup when it is a module; without
- it, creating an object raises <code>ENOENT</code>.
-
-<h2 id="Tables">Tables</h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#netlink.nl80211.ap">netlink.nl80211.ap</a></td>
-	<td class="summary">Access Point control class.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#netlink.nl80211.interface">netlink.nl80211.interface</a></td>
-	<td class="summary">Wireless interface class.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#netlink.nl80211.station">netlink.nl80211.station</a></td>
-	<td class="summary">Station management class.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#netlink.nl80211.wiphy">netlink.nl80211.wiphy</a></td>
-	<td class="summary">Wireless PHY (wiphy) class.</td>
-	</tr>
-</table></div>
-
-    <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
-
-    <dl class="function">
-    <dt id="netlink.nl80211.ap"><a name="netlink.nl80211.ap"></a><strong>netlink.nl80211.ap</strong></dt>
-    <dd>
-    Access Point control class.
- Open sessions using <code>netlink.nl80211.ap()</code>.
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-constants">Constants</a></div>
+<h1>linux.arphrd<span class="kind">Module</span></h1>
+<p class="lead">Linux kernel constants exposed under <a href="../modules/linux.arphrd.html#">linux.arphrd</a>.</p>
+ Values are populated at build time from the kernel headers.
+ Network device hardware types (ARPHRD_<em>).
+ Mirrors <code>ARPHRD_</em></code> defines in <code>&lt;uapi/linux/if_arp.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>ARPHRD_&lt;NAME&gt;</code> is <code>linux.arphrd.&lt;NAME&gt;</code>.
+    <h2 id="usage">Usage</h2>
+        <pre class="example">local arphrd = require(&quot;linux.arphrd&quot;)
+</pre>
 
 
-
-
-
-    <h3>See also</h3>
-    <ul>
-         <a href="../modules/netlink.nl80211.ap.html#">netlink.nl80211.ap</a>
-    </ul>
-
-
-</dd>
-    <dt id="netlink.nl80211.interface"><a name="netlink.nl80211.interface"></a><strong>netlink.nl80211.interface</strong></dt>
-    <dd>
-    Wireless interface class.
- Open sessions using <code>netlink.nl80211.interface()</code>.
-
-
-
-
-
-    <h3>See also</h3>
-    <ul>
-         <a href="../modules/netlink.nl80211.interface.html#">netlink.nl80211.interface</a>
-    </ul>
-
-
-</dd>
-    <dt id="netlink.nl80211.station"><a name="netlink.nl80211.station"></a><strong>netlink.nl80211.station</strong></dt>
-    <dd>
-    Station management class.
- Open sessions using <code>netlink.nl80211.station()</code>.
-
-
-
-
-
-    <h3>See also</h3>
-    <ul>
-         <a href="../modules/netlink.nl80211.station.html#">netlink.nl80211.station</a>
-    </ul>
-
-
-</dd>
-    <dt id="netlink.nl80211.wiphy"><a name="netlink.nl80211.wiphy"></a><strong>netlink.nl80211.wiphy</strong></dt>
-    <dd>
-    Wireless PHY (wiphy) class.
- Open sessions using <code>netlink.nl80211.wiphy()</code>.
-
-
-
-
-
-    <h3>See also</h3>
-    <ul>
-         <a href="../modules/netlink.nl80211.wiphy.html#">netlink.nl80211.wiphy</a>
-    </ul>
-
-
-</dd>
-</dl>
 
 
 </main>
