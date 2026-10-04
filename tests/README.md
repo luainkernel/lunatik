@@ -439,10 +439,12 @@ permission mark allows and only asks whether the mask is taken.
   0 once set to it, and the ignore mask all 32 bits.
 
 - **marks**: the mark as an object. `watch:find` returns the mark the watch
-  placed, `nil` where it has none and `nil` after `remove`, a second mark on
-  the same object is refused with `EEXIST`, a removed mark's handle raises and
-  the mark delivers nothing while its neighbour does, and `stop` takes every
-  mark with it and leaves no usable handle. The whole test runs twice in a row
+  placed, `nil` where it has none and `nil` after its `stop`, a second mark on
+  the same object is refused with `EEXIST`, a stopped mark's handle raises but
+  for a second `stop`, which does nothing, the mark delivers nothing while its
+  neighbour does, a mark in a to-be-closed variable is stopped at the end of its
+  scope, and the watch's `stop` takes every mark with it and leaves no usable
+  handle but for the mark's own `stop`. The whole test runs twice in a row
   and counts the events of each round, so a mark or a group the first round
   leaked shows as a second line rather than passing a presence test.
 
@@ -453,10 +455,10 @@ permission mark allows and only asks whether the mask is taken.
   any callback, where the walk is not confined to the directory cache and the
   missing name answers `ENOENT` whatever the filesystem keeps of it.
 
-- **inside**: a mark removed, and a mark's mask set, from inside the callback,
+- **inside**: a mark stopped, and a mark's mask set, from inside the callback,
   which runs in fsnotify's SRCU read section and takes the group's mark mutex
   there, the path inotify's one-shot watch takes to destroy its own mark. The
-  mark removed on its first event delivers once; the mark set from `FS_OPEN`
+  mark stopped on its first event delivers once; the mark set from `FS_OPEN`
   to `FS_MODIFY` on its first event delivers that open once, nothing for the
   read after it, and the write. Both resolve a path, and a callback's task may
   hold the lock of the directory the event is about, so a path resolved there

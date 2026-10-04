@@ -412,7 +412,8 @@ static int luafsnotify_stop(lua_State *L)
 * A mark on a filesystem object.
 * A userdata `watch:mark` returns and `watch:find` hands back. The watch owns
 * the mark: dropping the handle leaves the mark in place, and `watch:stop`
-* removes every mark the watch placed. A handle whose mark is gone raises.
+* removes every mark the watch placed. A handle whose mark is gone raises,
+* but for `stop`.
 * @type fsnotify_mark
 */
 
@@ -478,18 +479,20 @@ static int luafsnotify_ignore(lua_State *L)
 }
 
 /***
-* Removes the mark.
+* Stops the mark.
 * No further event reaches the callback through it, and the watch drops it.
-* @function remove
+* Calling it again, or after `watch:stop`, does nothing. A to-be-closed
+* variable holding the mark stops it the same way.
+* @function stop
 * @treturn nil
-* @raise if the mark has already been removed
-* @usage mark:remove()
+* @usage mark:stop()
 */
-static int luafsnotify_remove(lua_State *L)
+static int luafsnotify_stopmark(lua_State *L)
 {
-	luafsnotify_mark_t *mark = luafsnotify_checkmark(L, 1);
+	luafsnotify_mark_t *mark = lunatik_checkobjectclass(L, 1, &luafsnotify_mark_class)->private;
 
-	luafsnotify_removemark(L, mark);
+	if (mark != NULL)
+		luafsnotify_removemark(L, mark);
 	return 0;
 }
 
@@ -730,10 +733,11 @@ static const luaL_Reg luafsnotify_mt[] = {
 };
 
 static const luaL_Reg luafsnotify_mark_mt[] = {
+	{"__close", luafsnotify_stopmark},
 	{"__gc", lunatik_deleteobject},
 	{"ignore", luafsnotify_ignore},
 	{"mask", luafsnotify_mask},
-	{"remove", luafsnotify_remove},
+	{"stop", luafsnotify_stopmark},
 	{NULL, NULL}
 };
 

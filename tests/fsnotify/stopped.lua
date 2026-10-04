@@ -24,6 +24,8 @@ if ok then
 	print("fsnotify marks test fail: a mark outlived the watch that placed it")
 elseif not err:match("closed object") then
 	print("fsnotify marks test fail: " .. err)
+elseif not pcall(kept.stop, kept) then
+	print("fsnotify marks test fail: a mark's stop after the watch's raised")
 else
 	print("fsnotify marks test pass: stop takes every mark with it")
 end

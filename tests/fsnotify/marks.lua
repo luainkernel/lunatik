@@ -29,9 +29,15 @@ check("find returns nil where the watch has no mark", watch:find(SCRATCH) == nil
 local ok, err = pcall(watch.mark, watch, KEPT, fs.OPEN)
 check("a second mark on the same object is refused", not ok and tostring(err):match("EEXIST") ~= nil)
 
-dropped:remove()
-check("find returns nil for a removed mark", watch:find(DROPPED) == nil)
+dropped:stop()
+check("find returns nil for a stopped mark", watch:find(DROPPED) == nil)
 
 ok, err = pcall(dropped.mask, dropped)
-check("a removed mark's handle raises", not ok and tostring(err):match("closed object") ~= nil)
+check("a stopped mark's handle raises", not ok and tostring(err):match("closed object") ~= nil)
+check("a second stop does nothing", pcall(dropped.stop, dropped))
+
+do
+	local closing <close> = watch:mark(SCRATCH, fs.OPEN)
+end
+check("a to-be-closed mark is stopped at the end of its scope", watch:find(SCRATCH) == nil)
 
