@@ -957,7 +957,9 @@ Never `require("foo").method()`. A kernel script does the same with a local:
   give it one in the `lunatik_isirq` family's shape, one expression over one argument, defined where
   its reader is, with the line of reason on the definition and nothing on the use. #797 carried
   `if (in_task() && notifier->registrant == current) /* the replay... */` until the maintainer asked
-  for `luanotifier_isreplay(notifier)`.
+  for `luanotifier_isreplay(notifier)`. So is a condition of three tests or more, or one that runs
+  onto the next line, comment or not: #1705's `checksum()` spelled two until the maintainer asked
+  for `luaskb_iswhole4` and `luaskb_iswhole6`, and `tools/checks/idioms.sh` names them.
 * A comment on a definition says what the definition is, not what its one caller concludes from it;
   when the name already says the subject, it takes no comment at all.
 * An internal `static inline` helper carries no block comment — `lunatik.h` keeps none on any of its
