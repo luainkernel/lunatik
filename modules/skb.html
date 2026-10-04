@@ -287,8 +287,10 @@ netfilter.register{
     <dd>
     Recomputes IP and transport-layer (TCP/UDP) checksums and writes them into the packet.
  On IPv4 it recomputes the header checksum and the TCP or UDP checksum; on IPv6, the TCP or UDP
- checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, and an
- IPv6 packet with extension headers, is left unchanged.
+ checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, an IPv6
+ packet with extension headers, a packet whose IP header gives a length past its end, or on IPv4
+ shorter than the header or an IHL below 5, and one too short to hold its TCP or UDP checksum
+ field are left unchanged; <a href="../modules/skb.html#skb:resize">resize</a> does not rewrite that length.
 
 
 
@@ -533,7 +535,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:49:12</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:58:52</span>
 </div>
 </footer>
 </body>
