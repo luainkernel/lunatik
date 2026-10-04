@@ -174,11 +174,13 @@
 <h1>rcu<span class="kind">Module</span></h1>
 <p class="lead">RCU-synchronized hash table.</p>
  Provides a concurrent hash table using Read-Copy-Update (RCU) synchronization.
- Reads are lockless; writes are serialized. Keys are strings, values can be
+ Reads are lockless; writes are serialized. Keys are strings, and a number key is its
+ decimal string, so <code>t[1]</code> and <code>t[&quot;1&quot;]</code> are one entry; values can be
  booleans, integers, shareable lunatik objects, or <code>nil</code> (to delete an entry). A
  SINGLE object, such as a <a href="../modules/device.html#">device</a>, a <a href="../modules/probe.html#">probe</a> or a <a href="../modules/hid.html#">hid</a> driver, raises
  <code>cannot share SINGLE object</code>, and a string or a table raises <code>unsupported type</code>.
- Reading an object returns a new handle on the same kernel object; from a softirq or
+ Reading an object returns a new handle on the same kernel object, so two reads of an
+ entry compare unequal; from a softirq or
  hardirq runtime, one whose class needs process context raises
  <code>&apos;&lt;class&gt;&apos;: process-context class in interrupt-context runtime</code>. A read that
  meets a writer releasing the entry&rsquo;s object sees the entry gone. An entry holds its
@@ -283,7 +285,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:39:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:41:15</span>
 </div>
 </footer>
 </body>

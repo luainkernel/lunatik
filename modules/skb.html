@@ -206,7 +206,7 @@ netfilter.register{
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:checksum">skb:checksum ()</a></td>
-	<td class="summary">Recomputes IP and transport-layer (TCP/UDP) checksums.</td>
+	<td class="summary">Recomputes IP and transport-layer (TCP/UDP) checksums and writes them into the packet.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:connmark">skb:connmark ([value])</a></td>
@@ -226,7 +226,7 @@ netfilter.register{
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:forward">skb:forward ()</a></td>
-	<td class="summary">Forwards the skb out through its ingress device.</td>
+	<td class="summary">Transmits a clone of the skb out of <code>skb-&gt;dev</code>, the device <code>skb:ifindex()</code> names.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:ifindex">skb:ifindex ()</a></td>
@@ -283,7 +283,7 @@ netfilter.register{
 </dd>
     <dt id="skb:checksum"><a name="skb:checksum"></a><strong>skb:checksum ()</strong></dt>
     <dd>
-    Recomputes IP and transport-layer (TCP/UDP) checksums.
+    Recomputes IP and transport-layer (TCP/UDP) checksums and writes them into the packet.
  On IPv4 it recomputes the header checksum and the TCP or UDP checksum; on IPv6, the TCP or UDP
  checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, and an
  IPv6 packet with extension headers, is left unchanged.
@@ -392,9 +392,9 @@ netfilter.register{
 </dd>
     <dt id="skb:forward"><a name="skb:forward"></a><strong>skb:forward ()</strong></dt>
     <dd>
-    Forwards the skb out through its ingress device.
- It transmits a clone out of <code>skb-&gt;dev</code>; the original is untouched and still takes the hook&rsquo;s
- verdict, so a callback that forwards a packet returns <code>DROP</code> to not send it twice.
+    Transmits a clone of the skb out of <code>skb-&gt;dev</code>, the device <code>skb:ifindex()</code> names.
+ The original is untouched and still takes the hook&rsquo;s verdict, so a callback that forwards a
+ packet returns <code>DROP</code> to not send it twice.
 
 
 
@@ -531,7 +531,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:39:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:41:15</span>
 </div>
 </footer>
 </body>

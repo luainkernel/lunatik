@@ -180,8 +180,7 @@
 <div class="tbl"><table class="function_list">
 	<tr>
 	<td class="name"><a href="#_ENV">_ENV</a></td>
-	<td class="summary">Shared <a href="../modules/rcu.html#table">rcu.table</a> through which scripts exchange objects, as the runner does with its
- <code>runtimes</code> and <code>threads</code> tables.</td>
+	<td class="summary">Shared <a href="../modules/rcu.html#table">rcu.table</a> through which scripts exchange objects.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#cpu">cpu ()</a></td>
@@ -200,7 +199,8 @@
 <div class="tbl"><table class="function_list">
 	<tr>
 	<td class="name"><a href="#runtime:resume">runtime:resume (...)</a></td>
-	<td class="summary">Resumes a yielded runtime, analogous to <a href="https://www.lua.org/manual/5.5/manual.html#pdf-coroutine.resume">coroutine.resume</a>.</td>
+	<td class="summary">Resumes a runtime as the function <a href="https://www.lua.org/manual/5.5/manual.html#pdf-coroutine.wrap">coroutine.wrap</a> returns resumes a coroutine: an error is
+ raised, not returned.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#runtime:stop">runtime:stop ()</a></td>
@@ -224,9 +224,9 @@
     <dl class="function">
     <dt id="_ENV"><a name="_ENV"></a><strong>_ENV</strong></dt>
     <dd>
-    Shared <a href="../modules/rcu.html#table">rcu.table</a> through which scripts exchange objects, as the runner does with its
- <code>runtimes</code> and <code>threads</code> tables.  It is present in a runtime created while the <code>lunatik_run</code>
- module is loaded.
+    Shared <a href="../modules/rcu.html#table">rcu.table</a> through which scripts exchange objects.  Its keys <code>runtimes</code> and <code>threads</code>
+ are reserved for <a href="../modules/lunatik.runner.html#">lunatik.runner</a>, which records there the scripts it runs and spawns. It is
+ present in a runtime created while the <code>lunatik_run</code> module is loaded.
 
 
     <h3>Parameters</h3>
@@ -267,7 +267,8 @@
  the last reference to the set is dropped. A hook its script registers with the kernel is one
  the runtimes share, and it holds the set until <code>stop()</code>, so dropping the handle does not close a
  set whose script registered one, and <code>stop()</code> cannot be called once its last handle is gone. A
- script stops the sets it creates. Only a process runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
+ script stops the sets it creates, as it stops a runtime: see <a href="../modules/lunatik.html#runtime">lunatik.runtime</a>. Only a process
+ runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
 
 
     <h3>Parameters</h3>
@@ -306,9 +307,12 @@
  it stays open, its hooks in place and the modules its script required loaded, until <code>stop()</code>,
  which cannot be called once its last handle is gone. A script stops the runtimes it creates;
  one a netdevice callback may collect it stops before, since the close runs where the collector
- drops the handle and cannot refuse there. The close runs the script&rsquo;s finalizers: an object one
- creates or reads, as a sentinel that stops a child through <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a> does, is released by
- the end of the close, and a registration raises <code>not allowed while the runtime closes</code>. A last
+ drops the handle and cannot refuse there. A sentinel stops a child with its creator: a table
+ whose <code>__gc</code> stops the child, reachable from what the creator&rsquo;s runtime keeps until it closes,
+ as the driver table <a href="../modules/device.html#new">device.new</a> keeps in <code>examples/systrack/device.lua</code>, since what only a local
+ of the script body references can be collected once the body returns. The close runs the script&rsquo;s
+ finalizers, the sentinel&rsquo;s among them: an object one creates or reads is released by the end
+ of the close, and a registration raises <code>not allowed while the runtime closes</code>. A last
  reference dropped with bottom halves or IRQs off, as a softirq or hardirq runtime&rsquo;s <a href="../modules/rcu.html#table">rcu.table</a>
  write drops an entry&rsquo;s, closes it on a kernel worker after the drop, where its finalizers may
  sleep. Only a process runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
@@ -355,7 +359,8 @@
     <dl class="function">
     <dt id="runtime:resume"><a name="runtime:resume"></a><strong>runtime:resume (...)</strong></dt>
     <dd>
-    Resumes a yielded runtime, analogous to <a href="https://www.lua.org/manual/5.5/manual.html#pdf-coroutine.resume">coroutine.resume</a>.
+    Resumes a runtime as the function <a href="https://www.lua.org/manual/5.5/manual.html#pdf-coroutine.wrap">coroutine.wrap</a> returns resumes a coroutine: an error is
+ raised, not returned.
  The runtime&rsquo;s script returns a function: the first resume calls it with the objects as its
  arguments, and each later one delivers them as the return values of the <code>coroutine.yield()</code> it
  is suspended in. Only Lunatik objects cross between the runtimes, in either direction.
@@ -489,7 +494,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:39:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:41:15</span>
 </div>
 </footer>
 </body>

@@ -214,7 +214,8 @@
     <ol>
 
            <span class="types"><span class="type">lightuserdata</span></span>
-        the <code>sys_call_table</code> entry for the number.
+        the <code>sys_call_table</code> entry for the number, never <code>nil</code>: every number the
+   kernel leaves unassigned holds the wrapper of <code>sys_ni_syscall</code>, so they share one address.
     </ol>
 
     <h3>Raises</h3>
@@ -241,7 +242,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:39:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:41:15</span>
 </div>
 </footer>
 </body>

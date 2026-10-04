@@ -176,6 +176,7 @@
  This module provides a pre-populated Lua table where each key
  is a system call name (string, e.g., &ldquo;openat&rdquo;) and its corresponding
  value is the kernel address of that system call (lightuserdata).
+ A name <a href="../modules/linux.syscall.html#numbers">linux.syscall.numbers</a> does not carry is <code>nil</code>, as <code>open</code> is on arm64.
     <h3>See also</h3>
     <ul>
          <li><a href="../modules/syscall.html#">syscall</a></li>
@@ -185,12 +186,10 @@
     <h2 id="usage">Usage</h2>
         <pre class="example">local syscall_addrs = require(&quot;syscall.table&quot;)
 
-if syscall_addrs.openat then
-  print(&quot;Address of &apos;openat&apos;:&quot;, syscall_addrs.openat)
-end
+print(&quot;Address of &apos;openat&apos;:&quot;, syscall_addrs.openat)
 
-if syscall_addrs.close then
-  print(&quot;Address of &apos;close&apos;:&quot;, syscall_addrs.close)
+if syscall_addrs.open then
+  print(&quot;Address of &apos;open&apos;:&quot;, syscall_addrs.open)
 end
 </pre>
 
@@ -208,7 +207,7 @@ end
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:39:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:41:15</span>
 </div>
 </footer>
 </body>

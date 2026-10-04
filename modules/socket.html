@@ -806,8 +806,12 @@ reports.</li>
 
 
     <h3>Usage</h3>
-        <pre class="example"><span class="comment">-- bound blocking receives to 500 ms (a <code>struct __kernel_sock_timeval</code>)
-</span>sock:<span class="function-name">setsockopt</span>(sol.SOCKET, so.RCVTIMEO_NEW, timeval:<span class="function-name">pack</span>(<span class="number">0</span>, <span class="number">500000</span>))</pre>
+        <pre class="example"><span class="keyword">local</span> struct = <span class="global">require</span>(<span class="string">"struct"</span>)
+<span class="keyword">local</span> sk     = <span class="global">require</span>(<span class="string">"linux.socket"</span>)
+
+<span class="comment">-- bound blocking receives to 500 ms (a <code>struct __kernel_sock_timeval</code>)
+</span><span class="keyword">local</span> timeval = <span class="function-name">struct</span>(sk.layout.timeval)
+sock:<span class="function-name">setsockopt</span>(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:<span class="function-name">pack</span>(<span class="number">0</span>, <span class="number">500000</span>))</pre>
 
 </dd>
 </dl>
@@ -873,11 +877,15 @@ reports.</li>
     </ul>
 
     <h3>Usage</h3>
-        <pre class="example"><span class="comment">-- TCP/IPv4 socket
-</span><span class="keyword">local</span> tcp_sock = socket.<span class="function-name">new</span>(linux.socket.af.INET, linux.socket.sock.STREAM, linux.socket.ipproto.TCP)
+        <pre class="example"><span class="keyword">local</span> socket = <span class="global">require</span>(<span class="string">"socket"</span>)
+<span class="keyword">local</span> sk     = <span class="global">require</span>(<span class="string">"linux.socket"</span>)
+<span class="keyword">local</span> nl     = <span class="global">require</span>(<span class="string">"linux.netlink"</span>)
+
+<span class="comment">-- TCP/IPv4 socket
+</span><span class="keyword">local</span> tcp_sock = socket.<span class="function-name">new</span>(sk.af.INET, sk.sock.STREAM, sk.ipproto.TCP)
 
 <span class="comment">-- rtnetlink socket in the network namespace of the task 1234
-</span><span class="keyword">local</span> rtnl = socket.<span class="function-name">new</span>(linux.socket.af.NETLINK, linux.socket.sock.RAW, linux.netlink.proto.ROUTE, <span class="number">1234</span>)</pre>
+</span><span class="keyword">local</span> rtnl = socket.<span class="function-name">new</span>(sk.af.NETLINK, sk.sock.RAW, nl.proto.ROUTE, <span class="number">1234</span>)</pre>
 
 </dd>
 </dl>
@@ -894,7 +902,7 @@ reports.</li>
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:39:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:41:15</span>
 </div>
 </footer>
 </body>
