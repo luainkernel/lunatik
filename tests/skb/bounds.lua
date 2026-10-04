@@ -42,6 +42,10 @@ local function check(skb, accessor)
 		end
 	end
 	skb[accessor](skb, KEPT)
+	local read = skb[accessor](skb, nil)
+	if read ~= KEPT or skb[accessor](skb) ~= KEPT then
+		return "FAIL nil read " .. tostring(read)
+	end
 	for _, value in ipairs(refused) do
 		local failure = refusal(skb, accessor, value)
 		if failure ~= nil then

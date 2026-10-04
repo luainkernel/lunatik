@@ -5,7 +5,8 @@
 #
 # Tests skb:connmark (conntrack mark get/set).
 #
-# connmark(value) overwrites and returns the new mark; connmark() reads it; masked
+# connmark(value) overwrites and returns the new mark; connmark() and
+# connmark(nil) read it; masked
 # updates are composed in Lua. A LOCAL_OUT netfilter hook exercises, on a tracked
 # UDP flow, the smallest and the largest mark, 0 and 0xffffffff, an overwrite, a
 # value past 32 bits or negative, which raises "out of bounds" and leaves the mark

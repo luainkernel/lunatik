@@ -294,7 +294,7 @@ static int luaskb_forward(lua_State *L)
 
 #if defined(CONFIG_NF_CONNTRACK_MARK)
 /***
-* Gets or sets the conntrack mark: with no argument reads it, with `value` sets
+* Gets or sets the conntrack mark: with no argument or nil reads it, with `value` sets
 * it. Returns the current (or new) mark, or nil if no conntrack is associated.
 * Present only on a kernel built with `CONFIG_NF_CONNTRACK_MARK`: elsewhere the method is nil,
 * and a script that may run there tests `skb.connmark` before calling it.
@@ -306,7 +306,7 @@ static int luaskb_forward(lua_State *L)
 static int luaskb_connmark(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	bool set = !lua_isnone(L, 2);
+	bool set = !lua_isnoneornil(L, 2);
 	u32 value = set ? (u32)lunatik_checkinteger(L, 2, 0, U32_MAX) : 0;
 	enum ip_conntrack_info ctinfo;
 	struct nf_conn *ct = nf_ct_get(lskb->skb, &ctinfo);
@@ -323,14 +323,14 @@ static int luaskb_##name(lua_State *L) \
 { \
 	luaskb_t *lskb = luaskb_check(L, 1); \
 	struct sk_buff *skb = lskb->skb; \
-	if (!lua_isnone(L, 2)) \
+	if (!lua_isnoneornil(L, 2)) \
 		skb->field = (typeof(skb->field))lunatik_checkinteger(L, 2, 0, U32_MAX); \
 	lua_pushinteger(L, skb->field); \
 	return 1; \
 }
 
 /***
-* Gets or sets the packet mark: with no argument reads it, with `value` sets it.
+* Gets or sets the packet mark: with no argument or nil reads it, with `value` sets it.
 * @function mark
 * @tparam[opt] integer value the new packet mark, from 0 up to `U32_MAX`
 * @treturn integer the packet mark
@@ -339,7 +339,7 @@ static int luaskb_##name(lua_State *L) \
 luaskb_integer(mark, mark);
 
 /***
-* Gets or sets the packet priority: with no argument reads it, with `value` sets it.
+* Gets or sets the packet priority: with no argument or nil reads it, with `value` sets it.
 * @function priority
 * @tparam[opt] integer value the new packet priority, from 0 up to `U32_MAX`
 * @treturn integer the packet priority

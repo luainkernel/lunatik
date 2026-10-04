@@ -7,9 +7,10 @@
 # and refuse one past them as out of bounds, instead of storing its low bits.
 #
 # A LOCAL_OUT netfilter hook takes the first UDP datagram to PORT and, for each
-# accessor, sets 0 and 0xffffffff and reads each back, then sets a known value and
-# asks for -1, 2^32 and 2^32 plus that value: each raises "out of bounds" and the
-# field still reads the known value. A truncating build takes the last one as the
+# accessor, sets 0 and 0xffffffff and reads each back, then sets a known value,
+# reads it back given nil, as given no argument, and asks for -1, 2^32 and 2^32
+# plus that value: each raises "out of bounds" and the field still reads the
+# known value. A truncating build takes the last one as the
 # known value itself, so it answers with no error rather than the refusal.
 #
 # Usage: sudo bash tests/skb/bounds.sh
