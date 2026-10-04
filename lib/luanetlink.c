@@ -9,7 +9,10 @@
 * kernel-to-userspace delivery. The message body is built in Lua (e.g. with
 * `netlink.message`) and sent as-is; request/response netlink is otherwise done
 * in Lua over the `socket` module. Only this softirq-capable send path needs a
-* dedicated kernel object.
+* dedicated kernel object. A channel is created and used from a process or softirq
+* runtime only, never from a hardirq one: with an nlmon tap up, a send hands a copy of
+* the message to `dev_queue_xmit`, which re-enables bottom halves, and the kernel warns
+* when that happens in a hardirq.
 *
 * @module netlink.channel
 * @usage
