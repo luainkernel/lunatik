@@ -178,7 +178,11 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 *   up; a script that means the devices appearing afterwards tells them apart
 *   with a flag it clears once this call returns, since no live event reaches
 *   the callback before the script body ends. Returns a `linux.notify` status
-*   code.
+*   code. `notify.STOP` and `notify.BAD` end the chain, so the kernel's own blocks
+*   after this one never see the event: a callback returns them only for an event
+*   whose result the kernel reads to refuse a change, as it reads `PRE_UP`'s, and
+*   never for `UNREGISTER`, whose device then waits for good on what 8021q and the
+*   other blocks after it would have released.
 * @treturn notifier the notifier, which this call keeps for its runtime: dropping it
 *   stops nothing, and the callback runs until `stop` or the end of the runtime
 * @raise if called from a percpu runtime, or under RTNL: from a netdevice
