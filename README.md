@@ -59,6 +59,13 @@ Dependencies, OpenWRT and the first steps are in [Getting started](doc/guide/01-
 * [Lua API reference](https://luainkernel.github.io/lunatik/#api-reference) and [C API](doc/capi.md)
 * [Development](doc/guide/06-development.md) and [Resources](doc/guide/07-resources.md): tests, contributing, talks and papers
 
+## Support
+
+Donations to Lunatik go through Lua's account at Software in the Public Interest (SPI): use the
+[PayPal button](https://www.paypal.com/donate/?hosted_button_id=CM4ETXNAA8T68) and write
+**Lunatik** in its optional note, so the donation is marked for this project. Starring the
+repository on GitHub helps too.
+
 ## License
 
 Lunatik is dual-licensed under [MIT](LICENSE-MIT) or [GPL-2.0-only](LICENSE-GPL).
