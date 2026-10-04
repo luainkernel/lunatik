@@ -16,10 +16,14 @@
 * A probe fires wherever the probed code runs, inside an interrupt handler too, with
 * preemption or interrupts off, so the script runs in a hardirq runtime,
 * `lunatik run -c hardirq <script>`, whose lock turns interrupts off, and its handlers
-* must not sleep. A probe must not be placed on a function the scheduler runs under a
-* runqueue lock, `enqueue_task_fair` or `activate_task` among them: an allocation the
-* handler's Lua makes can wake kswapd, and `print` can wake a console's waiter, and either
-* wakeup takes that lock again on a CPU that already holds it.
+* must not sleep. A probe must not be placed where the probed CPU holds a lock its handler's
+* Lua takes again, since the handler then spins on it with interrupts off: a function the
+* scheduler runs under a runqueue lock, `enqueue_task_fair` or `activate_task` among them,
+* where an allocation the handler makes can wake kswapd and `print` can wake a console's
+* waiter, and either wakeup takes that lock; a function that runs under the allocator's own
+* locks, a zone's `lock` or a slab node's `list_lock`, where the handler's allocation takes
+* them; and a function the timekeeping update runs while it holds the clock's sequence for
+* write, `update_vsyscall` among them, where `linux.time` waits on that sequence.
 *
 * See `examples/systrack` and `examples/dropreason`.
 * @usage
