@@ -693,7 +693,7 @@ the smallest shape that keeps that purpose is the one taken: #1537 split `linux.
 functions to avoid a boolean that is the very value the call writes, and the RTNL a netdevice callback
 runs under grew a flag on the runtime, an error and a check in the core and refusals in `socket`,
 `netlink`, `thread` and a runtime's `stop`, before the maintainer asked for a softirq runtime, where
-nothing waits on RTNL, and removed all but the two the replay inside the registration needs.
+nothing waits on RTNL, and removed them for `lunatik_checkarmed`, which refuses under RTNL too.
 
 * A module whose object is its own type constructs it with `.new`; a module of several types names a
   factory for each (`crypto.shash`, `bpf.hash`, `rcu.table`); a kernel registration takes the verb it
@@ -1150,8 +1150,8 @@ named, not one discovered at that consumer's build.
   deferral of the callback to a worker, which cost the reaction at the event that the notifier exists
   for, and `kill` and `complete` drew deferred items of their own, until the maintainer asked why the
   callers were not refused instead: in a softirq runtime nothing sleeps, so nothing waits on RTNL, and
-  the rule the core already enforces closes the family but for the replay the registration delivers,
-  where two checks of the core still refuse.
+  the rule the core already enforces closes the family, with `lunatik_checkarmed` refusing under RTNL
+  the replay the registration delivers before the runtime is armed.
 * A prohibition and a capability are two things. Where the safe form of an operation needs a facility
   a later kernel adds, the binding refuses the operation where the facility is missing and uses it
   where it exists, behind a version guard, and does not reimplement it: a copy of the kernel's answer
