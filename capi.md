@@ -1305,9 +1305,17 @@ its `opt`; the constructor enforces this via
 
 ### LUNATIK\_RELEASE
 ```C
+#define LUNATIK_VERSION_MAJOR_N	<major>
+#define LUNATIK_VERSION_MINOR_N	<minor>
+#define LUNATIK_VERSION_NUM	(LUNATIK_VERSION_MAJOR_N * 100 + LUNATIK_VERSION_MINOR_N)
+
 #define LUNATIK_RELEASE	"<major>.<minor>"
 #define LUNATIK_VERSION	"Lunatik " LUNATIK_RELEASE
 ```
+`LUNATIK_VERSION_NUM` is the release as a number a binding tests with `#if`, `500` for 5.0; 4.4
+and earlier do not define it, and the kernel builds with `-Wundef`, so a binding that also builds
+there tests `defined(LUNATIK_VERSION_NUM)` first.
+
 `LUNATIK_RELEASE` is the release, spelled as a module version takes it, and `LUNATIK_VERSION` the
 string a script reads as `_LUNATIK_VERSION` and `lunatik -V` prints. A module declares
 `MODULE_VERSION(LUNATIK_RELEASE)` beside its license: modpost writes the `srcversion` that

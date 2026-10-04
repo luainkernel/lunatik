@@ -1860,10 +1860,18 @@ its <code>opt</code>; the constructor enforces this via
 <h3 id="lunatik_release">LUNATIK_RELEASE</h3>
 
 <pre>
+#define LUNATIK_VERSION_MAJOR_N &lt;major&gt;
+#define LUNATIK_VERSION_MINOR_N &lt;minor&gt;
+#define LUNATIK_VERSION_NUM (LUNATIK_VERSION_MAJOR_N * 100 + LUNATIK_VERSION_MINOR_N)
+
 #define LUNATIK_RELEASE "&lt;major&gt;.&lt;minor&gt;"
 #define LUNATIK_VERSION "Lunatik " LUNATIK_RELEASE
 </pre>
 
+
+<p><code>LUNATIK_VERSION_NUM</code> is the release as a number a binding tests with <code>#if</code>, <code>500</code> for 5.0; 4.4
+and earlier do not define it, and the kernel builds with <code>-Wundef</code>, so a binding that also builds
+there tests <code>defined(LUNATIK_VERSION_NUM)</code> first.</p>
 
 <p><code>LUNATIK_RELEASE</code> is the release, spelled as a module version takes it, and <code>LUNATIK_VERSION</code> the
 string a script reads as <code>_LUNATIK_VERSION</code> and <code>lunatik -V</code> prints. A module declares
@@ -2077,7 +2085,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:42:15</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 11:43:12</span>
 </div>
 </footer>
 </body>
