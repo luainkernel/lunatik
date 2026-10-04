@@ -11,7 +11,7 @@ local nf        = require("linux.nf")
 local PRIORITY <const> = 0x12370000
 local PAYLOAD  <const> = 256
 local DELTA    <const> = 16
-local SHORT    <const> = 30
+local SHORT    <const> = 26
 local IHL4     <const> = 4
 local ONES     <const> = 0xffff
 

@@ -1618,12 +1618,15 @@ pid, what a valid call does, and where it refuses to run.
 - **resize**: a `LOCAL_OUT` netfilter hook resizes non-linear skbs, the TCP
   segments over loopback whose payload sits in page fragments, one case per
   sender picked by its `SO_PRIORITY`: a shrink inside the payload, a shrink
-  below the linear head, a grow, a grow past any tailroom, which raises
-  `insufficient tailroom`, and a negative length, which raises `out of bounds`;
-  a linear skb, a UDP datagram of the same size, takes a shrink, and a second
-  one is shrunk and grown back over its own payload. Each resize reads back
-  `#skb` and `#skb:data()` at the requested length, a grow reads the bytes it
-  added as zeros, and dmesg carries no `WARNING`. Skips without `socat`.
+  below the linear head, a grow, a grow past any tailroom, which answers `false`,
+  a negative length, which raises `out of bounds`, and a shrink to the IPv4
+  header alone, which answers `false` too, since the segment leaves
+  `CHECKSUM_PARTIAL` and `pskb_trim_rcsum` refuses to cut the check field the
+  stack still fills; a linear skb, a UDP datagram of the same size, takes a
+  shrink, and a second one is shrunk and grown back over its own payload. Each
+  resize that answers `true` reads back `#skb` and `#skb:data()` at the
+  requested length, a grow reads the bytes it added as zeros, one that answers
+  `false` leaves `#skb` as it was, and dmesg carries no `WARNING`. Skips without `socat`.
 - **checksum**: a `LOCAL_OUT` netfilter hook calls `skb:checksum()` on one packet
   per sender, picked by its `SO_PRIORITY`. A TCP segment over `127.0.0.1` and a
   UDP datagram over `::1`, their checksum fields zeroed, are summed: the IPv4
@@ -1632,8 +1635,9 @@ pid, what a valid call does, and where it refuses to run.
   UDP datagram shrunk with `skb:resize`, whose IP length then runs past their
   end, and a UDP datagram carrying a destination options header, whose
   `payload_len` counts that header past where the UDP sum starts, are left
-  unchanged, as are a TCP segment shrunk to 30 bytes with `tot_len` rewritten to
-  fit, short of its check field, and one whose IHL reads 4. A UDP datagram over
+  unchanged, as are a UDP datagram over `127.0.0.1`, sent without a checksum so
+  that `resize` may cut it, shrunk to 26 bytes with `tot_len` rewritten to fit,
+  short of its check field, and a TCP segment whose IHL reads 4. A UDP datagram over
   `::1` whose sum folds to 0 gets the check field `0xffff`, `CSUM_MANGLED_0`,
   which an IPv6 receiver accepts where it drops a 0. A build that sums a length past the packet hits `skb_checksum`'s
   `BUG_ON` and panics the host, and its check has no symbol or message, so the

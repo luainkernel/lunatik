@@ -12,6 +12,7 @@ local PAYLOAD  <const> = 2048
 local DELTA    <const> = 16
 local HEAD     <const> = 38 -- through the TCP checksum field, short of the TCP/IP headers in the linear head
 local OVERGROW <const> = 65536 -- more than any head holds past its tail
+local CUT      <const> = 20 -- the IPv4 header alone, before the TCP checksum field the stack still fills
 
 local cases = {}
 
@@ -35,6 +36,10 @@ function cases.negative()
 	return -1
 end
 
+function cases.checksum()
+	return CUT
+end
+
 cases.linear = cases.shrink
 
 function cases.regrow(len, skb)
@@ -43,8 +48,13 @@ function cases.regrow(len, skb)
 end
 
 local refusals = {
-	overgrow = "insufficient tailroom",
 	negative = "out of bounds",
+}
+
+-- what does not fit: resize answers false and leaves the skb as it was
+local unfit = {
+	overgrow = true,
+	checksum = true,
 }
 
 local pending = {
@@ -55,14 +65,20 @@ local pending = {
 	[PRIORITY + 5] = "linear",
 	[PRIORITY + 6] = "negative",
 	[PRIORITY + 7] = "regrow",
+	[PRIORITY + 8] = "checksum",
 }
 
-local function verdict(skb, name, from, want, ok, err)
+local function verdict(skb, name, from, want, ok, result)
 	local refusal = refusals[name]
 	if refusal ~= nil then
-		return (not ok and err:find(refusal, 1, true)) and "ok" or ("FAIL did not refuse: " .. tostring(err))
+		return (not ok and result:find(refusal, 1, true)) and "ok" or ("FAIL did not refuse: " .. tostring(result))
 	elseif not ok then
-		return "FAIL " .. err
+		return "FAIL " .. result
+	elseif unfit[name] then
+		local len = #skb
+		return (result == false and len == from) and "ok" or ("FAIL answered " .. tostring(result) .. ", length " .. len)
+	elseif result ~= true then
+		return "FAIL answered " .. tostring(result)
 	end
 	local data = skb:data()
 	local len, datalen = #skb, #data
@@ -84,8 +100,8 @@ local function resize_hook(skb)
 	pending[priority] = nil
 	local want = cases[name](len, skb)
 	local from = #skb
-	local ok, err = pcall(skb.resize, skb, want)
-	print("skb resize: " .. name .. " " .. verdict(skb, name, from, want, ok, err))
+	local ok, result = pcall(skb.resize, skb, want)
+	print("skb resize: " .. name .. " " .. verdict(skb, name, from, want, ok, result))
 	return nf.action.DROP
 end
 

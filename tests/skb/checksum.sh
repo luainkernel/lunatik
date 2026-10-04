@@ -11,10 +11,13 @@
 # verifies against its pseudo-header. A TCP segment whose tot_len is one byte short of its header,
 # a TCP segment and a UDP datagram shrunk with skb:resize, whose IP length then runs past their
 # end, and a UDP datagram carrying a destination options header, whose payload_len counts that
-# header past where the UDP sum starts, are left unchanged byte for byte, as are a TCP segment
-# shrunk to 30 bytes with its tot_len rewritten to fit, which no longer holds its check field, and
-# one whose IHL reads 4, below the 5 ip_rcv_core requires; a build without those refusals rewrites
-# the IPv4 header checksum of both. A UDP datagram over ::1 whose first payload word makes its sum
+# header past where the UDP sum starts, are left unchanged byte for byte, as are a UDP datagram
+# over 127.0.0.1 shrunk to 26 bytes with its tot_len rewritten to fit, which no longer holds its
+# check field, and a TCP segment whose IHL reads 4, below the 5 ip_rcv_core requires; a build
+# without those refusals rewrites the IPv4 header checksum of both. The short datagram's socket
+# sends without a checksum (SO_NO_CHECK, socket option 11 of SOL_SOCKET, 1), so it leaves
+# CHECKSUM_NONE, which resize may cut short of the check field; a TCP segment leaves
+# CHECKSUM_PARTIAL, whose check field resize refuses to cut. A UDP datagram over ::1 whose first payload word makes its sum
 # fold to 0 gets the check field 0xffff, CSUM_MANGLED_0, where a build that stores the sum as it
 # comes leaves 0, which an IPv6 receiver drops. The hook drops every packet it takes; TCP resends
 # it untouched, and the UDP send fails with EPERM, so the senders' errors are discarded.
@@ -42,6 +45,7 @@ PAST="past4 past6 ext6 short4 ihl4"
 ZERO="zero6"
 CASES="$FITS $GATE $PAST $ZERO" # in the order of pending in checksum.lua
 DSTOPTS="41:59:x0000010400000000" # IPPROTO_IPV6, IPV6_DSTOPTS: an 8-byte header holding one PadN
+NOCHECK="1:11:1"                  # SOL_SOCKET, SO_NO_CHECK: the datagram leaves without a checksum
 NCASES=$(echo $CASES | wc -w)
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -85,6 +89,7 @@ send() {
 			target="UDP6:[::1]:$PORT" ;;
 		esac
 		[ "$c" = ext6 ] && target="$target,setsockopt=$DSTOPTS"
+		[ "$c" = short4 ] && target="UDP:127.0.0.1:$PORT,setsockopt-int=$NOCHECK"
 		head -c "$PAYLOAD" /dev/zero | tr '\0' x |
 			timeout 5 socat -u - "$target,priority=$((PRIORITY + i))" 2>/dev/null
 		sent=$((sent + 1))
