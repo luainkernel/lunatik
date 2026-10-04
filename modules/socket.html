@@ -366,9 +366,7 @@ within 32 bits.</li>
     </ol>
 
     <h3>Raises</h3>
-     Error if the bind operation fails (e.g., address already in use, invalid address), or
-   &ldquo;not allowed under RTNL&rdquo; on a generic netlink socket bound to a group from a netdevice
-   callback: that bind takes a lock a request holds while it waits on RTNL.
+    Error if the bind operation fails (e.g., address already in use, invalid address).
 
     <h3>See also</h3>
     <ul>
@@ -389,7 +387,7 @@ within 32 bits.</li>
     Closes the socket.
  This shuts down the socket for both reading and writing and releases
  associated kernel resources. A to-be-closed variable holding the socket closes it the
- same way; a collected socket runs the release with no close, and no refusal.
+ same way, and dropping its last reference does too.
 
 
 
@@ -400,11 +398,6 @@ within 32 bits.</li>
 
     </ol>
 
-    <h3>Raises</h3>
-     &ldquo;not allowed under RTNL&rdquo; from a netdevice callback, in whatever runtime or coroutine
-   its task runs, on a socket whose release takes RTNL, which that task holds, or a lock a
-   request holds while it waits on RTNL: an <code>AF_INET</code> or <code>AF_INET6</code> socket with a multicast or
-   anycast membership, an <code>AF_PACKET</code> socket, and a <code>NETLINK_GENERIC</code> one
 
 
 
@@ -624,8 +617,7 @@ reports.</li>
     </ol>
 
     <h3>Raises</h3>
-    Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
-   callback.
+    Error if the receive operation fails.
 
     <h3>See also</h3>
     <ul>
@@ -692,8 +684,7 @@ reports.</li>
     </ol>
 
     <h3>Raises</h3>
-    Error if the receive operation fails, or on a netlink socket under RTNL, as from a netdevice
-   callback.
+    Error if the receive operation fails.
 
     <h3>See also</h3>
     <ul>
@@ -758,9 +749,9 @@ reports.</li>
     </ol>
 
     <h3>Raises</h3>
-     Error if the send operation fails or if address parameters are incorrect for the socket type,
-   or on a netlink socket under RTNL, as from a netdevice callback; <code>EAGAIN</code> when the kernel finds
-   no free port to bind an unbound <code>AF_INET</code> or <code>AF_INET6</code> socket to before it sends.
+     Error if the send operation fails or if address parameters are incorrect for the socket type;
+   <code>EAGAIN</code> when the kernel finds no free port to bind an unbound <code>AF_INET</code> or <code>AF_INET6</code> socket to
+   before it sends.
 
     <h3>See also</h3>
     <ul>
@@ -803,9 +794,8 @@ reports.</li>
 
 
     <h3>Raises</h3>
-     Error if the operation fails, or at a level other than <code>SOL_SOCKET</code> under RTNL, as from a
-   netdevice callback; <code>unsupported option level</code> on a kernel before 6.7, at a level the socket&rsquo;s
-   protocol has no <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> for.
+    Error if the operation fails; <code>unsupported option level</code> on a kernel before 6.7, at a level
+   the socket&rsquo;s protocol has no <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> for.
 
 
     <h3>Usage</h3>
@@ -860,8 +850,7 @@ sock:<span class="function-name">setsockopt</span>(sk.sol.SOCKET, sk.so.RCVTIMEO
     <ol>
 
            <span class="types"><a class="type" href="../modules/socket.html#socket">socket</a></span>
-        A new socket object. A socket a netdevice callback may collect is closed by the
-   script first, not dropped: its release cannot refuse where the collector drops it.
+        A new socket object.
     </ol>
 
     <h3>Raises</h3>
@@ -905,7 +894,7 @@ sock:<span class="function-name">setsockopt</span>(sk.sol.SOCKET, sk.so.RCVTIMEO
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 14:08:42</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 14:11:20</span>
 </div>
 </footer>
 </body>

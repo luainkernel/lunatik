@@ -759,10 +759,9 @@ the same task leaves the outer one&rsquo;s in place.
 RTNL is held by one task at a time, so one pointer serves every runtime and every coroutine, and
 the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
 kernel call that takes RTNL, such as <code>register_netdevice_notifier</code>, which would wait on the lock its
-own task holds: refuse the call with <code>lunatik_checkrtnl</code>. A <code>release</code> cannot refuse, so the entry
-point that runs one on the calling task, a <code>stop()</code> or a <code>close()</code> and its <code>__close</code>, refuses
-instead under RTNL. It sees the calling task only: Lua on a second task that waits for
-RTNL while this one waits for that task is a cycle it cannot name. Defined as macros.</p>
+own task holds: <code>lunatik_checkarmed</code> refuses every call that may sleep there. It sees the calling
+task only, which is what a softirq runtime leaves to see: nothing that holds its lock sleeps, so no
+second task waits for RTNL under it. Defined as macros.</p>
 
 <h3 id="lunatik_iskthread">lunatik_iskthread</h3>
 
@@ -850,7 +849,10 @@ interrupt-context runtime whose script body returned. An IRQ runtime is process 
 its script body runs, so a call that may sleep is allowed there and must be refused afterwards,
 when the runtime lock is a spinlock: from a hook or a handler, and from the <code>resume</code> of such a
 runtime. Use it in an entry point that reaches a sleeping kernel call, where <code>lunatik_checkruntime</code>
-answers the different question of whether the class matches the runtime at all.</p>
+answers the different question of whether the class matches the runtime at all. It calls
+<a href="#lunatik_checkrtnl"><code>lunatik_checkrtnl</code></a> first, so the same entry point refuses under RTNL in any
+runtime, the replay a netdevice registration delivers in a script body that has not armed yet
+included.</p>
 
 <h3 id="lunatik_checkclosing">lunatik_checkclosing</h3>
 
@@ -873,8 +875,8 @@ again: use it in an entry point that registers one without
 
 
 <p>Raises a Lua error, <code>&quot;not allowed under RTNL&quot;</code>, when <a href="#lunatik_isrtnl"><code>lunatik_isrtnl</code></a> holds: from
-a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs. Use it in
-an entry point that reaches a kernel call taking RTNL.</p>
+a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs.
+<a href="#lunatik_checkarmed"><code>lunatik_checkarmed</code></a> calls it, so every entry point that may sleep refuses there.</p>
 
 <h3 id="lunatik_checkowner">lunatik_checkowner</h3>
 
@@ -2105,7 +2107,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 14:08:42</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 14:11:20</span>
 </div>
 </footer>
 </body>

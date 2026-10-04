@@ -181,9 +181,7 @@
  the transaction discipline on it: <a href="../modules/netlink.session.html#session:talk">talk</a> and <a href="../modules/netlink.session.html#session:dump">dump</a> send one request and
  drain its complete reply, raising on a kernel error reply (<code>NLMSG_ERROR</code>).
  Protocol modules (rtnetlink, generic netlink) derive from this class.
- All methods block and require a sleepable runtime. From a <a href="../modules/notifier.html#netdevice">notifier.netdevice</a> callback, in
- whatever runtime or coroutine its task runs, every request raises <code>not allowed under RTNL</code>:
- a script defers it to a thread, or to after the callback returns.
+ All methods block and require a sleepable runtime.
     <h3>See also</h3>
     <ul>
          <a href="../modules/socket.html#">socket</a>
@@ -407,7 +405,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 14:08:42</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 14:11:20</span>
 </div>
 </footer>
 </body>
