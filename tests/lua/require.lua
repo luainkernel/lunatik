@@ -14,7 +14,7 @@ local STRAY <const> = "/lib/modules/lua/tests/lua/?.lua" -- holds device.lua
 local contexts <const> = {"softirq", "hardirq"}
 
 for _, context in ipairs(contexts) do
-	test("a " .. context .. " callback requires a binding, and loads no Lua file the body did not load", function()
+	test("a " .. context .. " callback requires no binding or Lua file the body did not load", function()
 		local runtime <close> = lunatik.runtime(SCRIPT, context)
 		runtime:resume()
 	end)

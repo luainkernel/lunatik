@@ -771,10 +771,11 @@ the `util` module to its documentation on that Lua's stack.
 - **require**: a `require` finds a binding before a Lua file of its name,
   `device.lua` in the suite's directory. A `softirq` and a `hardirq` runtime
   resumed past their body, the armed state a hook calls from, get back a
-  module the body loaded, find a binding the body did not load, and are
-  refused, with `not allowed once the runtime is armed`, a `require` that
-  would search `package.path` and `package.searchpath`, since opening a file
-  sleeps; the body allows both. The body empties `package.path`, so a build
+  module the body loaded and are refused, with `not allowed once the runtime
+  is armed`, a `require` of a binding or of a Lua library the body did not
+  load, `package.loadlib` and `package.searchpath`, since opening a file
+  sleeps and loading a binding takes a module reference an atomic allocation
+  can leak; the body allows them. The body empties `package.path`, so a build
   without the refusal opens no file from the callback and answers `not found`.
   The callback's `loadfile` returns the armed refusal and its `dofile` raises
   it; both are called without a name, which the body answers with `cannot
