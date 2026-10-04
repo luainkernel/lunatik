@@ -260,7 +260,9 @@ doc-stubs:
 	"$(LUA)" autogen/ldoc.lua
 
 doc-site: doc-stubs
+	git tag --merged HEAD --list 'v*' > doc/.tags 2>/dev/null || true
 	ldoc .
+	${RM} doc/.tags
 	cp doc/style/site.js doc/site.js
 	cp -r doc/style/fonts doc/
 	"$(LUA)" doc/style/search.lua doc
