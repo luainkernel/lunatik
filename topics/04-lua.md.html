@@ -225,6 +225,18 @@ and the errno&rsquo;s name, <code>ENOENT</code> for a missing one.</p>
 values <a href="https://www.lua.org/manual/5.5/manual.html#pdf-table.unpack">table.unpack</a> and a vararg carry: past it, recursion raises <code>stack overflow</code> and
 <a href="https://www.lua.org/manual/5.5/manual.html#pdf-table.unpack">table.unpack</a> raises <code>too many results to unpack</code>.</p>
 
+<p>A call that crosses C, through <a href="https://www.lua.org/manual/5.5/manual.html#pdf-pcall">pcall</a>, a metamethod, a callback a binding makes, a coroutine
+resumed inside another or a runtime a script creates or resumes, nests on the kernel stack instead,
+which Lunatik bounds in bytes (<code>LUAI_MAXCCALLS</code>): past five eighths of it (<code>THREAD_SIZE</code>), counted
+from where the kernel entered Lua, at a hook, a thread&rsquo;s start, the CLI&rsquo;s write or the close that
+runs a runtime&rsquo;s finalizers, such a call raises <code>C stack overflow</code>, as a chunk whose syntax nests
+that deep does. A runtime a script creates or resumes counts from where its creator or resumer was
+entered, so a script that creates itself runs out too. Under <a href="https://www.lua.org/manual/5.5/manual.html#pdf-xpcall">xpcall</a>, a message handler called past
+the bound raises in turn, and the call ends with <code>error in error handling</code>. On the task stack the
+call also raises once a quarter of the stack is all that is left, so a hook entered deep, as a
+kprobe in the network stack is, or a runtime another script closes, gets what remains; a hook on an
+interrupt stack is bounded from its entry alone.</p>
+
 <p>A string pattern nests at most 32 levels deep: the match takes one, each capture two, and each
 position capture <code>()</code> and each item with <code>?</code>, <code>*</code>, <code>+</code> or <code>-</code> that matches one more. Past it,
 <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.find">string.find</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.match">string.match</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.gmatch">string.gmatch</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.gsub">string.gsub</a> raise <code>pattern too complex</code>.</p>
@@ -257,7 +269,7 @@ raise <code>not allowed once the runtime is armed</code>, and <a href="https://w
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 12:01:49</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 12:10:35</span>
 </div>
 </footer>
 </body>

@@ -534,6 +534,8 @@ the script body is still running, as it is when a hook armed from the body fires
 <code>percpu</code> object, when the runtime of this CPU is not published yet; if the calling task already
 holds the runtime&rsquo;s lock, a dispatch from the runtime&rsquo;s own code, with <code>-EDEADLK</code>, and the handler
 does not run either; otherwise, <code>ret</code> is set with the result of <code>handler(L, ...)</code> call.
+Around that call it records the stack pointer in the runtime&rsquo;s <code>cstack</code>, from which Lua&rsquo;s bound on
+nested C calls counts, raising <code>C stack overflow</code> past five eighths of the kernel stack.
 Then, it restores the Lua stack and unlocks the <code>runtime</code> environment.
 A process runtime is locked with a mutex, so <em>lunatik_run()</em> on it is called from a context that
 may sleep.
@@ -601,9 +603,9 @@ raise with no handler is a <code>BUG()</code>.</p>
 
 
 <p>Runs <code>handler(L, ...)</code> on <code>runtime</code>&rsquo;s state and restores the stack. Unlike <code>lunatik_run</code>, it
-takes no lock, does not resolve a <code>percpu</code> object, and does not check that the state is open or
-ready: the caller already runs inside the runtime, holding its lock or in its script body, and
-passes a plain runtime whose state it knows is open. Defined as a macro.</p>
+takes no lock, does not resolve a <code>percpu</code> object, does not check that the state is open or
+ready, and records no stack pointer: the caller already runs inside the runtime, holding its lock
+or in its script body, and passes a plain runtime whose state it knows is open. Defined as a macro.</p>
 
 <h3 id="lunatik_cpcall">lunatik_cpcall</h3>
 
@@ -2086,7 +2088,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 12:01:49</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 12:10:35</span>
 </div>
 </footer>
 </body>
