@@ -71,7 +71,7 @@ static char *luadarken_setrequest(lua_State *L, luadarken_request_t *r,
 	if (r->iv == NULL)
 		goto err;
 
-	char *buf = kmemdup(ct, ct_len, gfp);
+	char *buf = kmemdup(ct, ct_len, gfp | __GFP_NOWARN); /* the script sizes it, and a NULL raises */
 	if (buf == NULL)
 		goto err;
 

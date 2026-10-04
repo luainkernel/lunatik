@@ -12,6 +12,7 @@ local KEY      <const> = string.rep("k", 32)
 local IV       <const> = string.rep("i", 12)
 local TAGLEN   <const> = 16
 local MISMATCH <const> = "EBADMSG"
+local LARGE    <const> = 64 << 20
 
 local gcm = aead("gcm(aes)")
 gcm:setkey(KEY)
@@ -78,6 +79,12 @@ end)
 
 test("darken.run refuses a precompiled script", function()
 	raises("attempt to load a binary chunk (mode is 't')", seal("\27Lua"), IV, KEY)
+end)
+
+test("darken.run raises, and warns nothing, for a ciphertext past kmalloc's largest block", function()
+	local ok, err = pcall(darken.run, string.rep("x", LARGE), IV, KEY)
+	assert(not ok, "darken.run ran a ciphertext of " .. LARGE .. " bytes")
+	assert(err:find("not enough memory", 1, true) or err:find(MISMATCH, 1, true), "darken.run raised " .. tostring(err))
 end)
 
 test("darken.run raises the error the script raises", function()

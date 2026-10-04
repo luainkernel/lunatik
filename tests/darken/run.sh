@@ -21,7 +21,10 @@
 # empty one, a ciphertext that is only its 16-byte tag, runs and returns none;
 # a wrong key or IV, a flipped byte of the ciphertext or of the tag, and a
 # ciphertext cut short, by one byte or below the tag, raise EBADMSG before
-# anything loads; an IV that is not 12 bytes and a key that is not 32 are
+# anything loads; a ciphertext of 64 MiB, past kmalloc's largest block with 4K
+# pages (KMALLOC_MAX_SIZE, 32 MiB at MAX_PAGE_ORDER 13), raises "not enough
+# memory" and leaves no allocator WARN for the run's dmesg read, as a copy
+# without __GFP_NOWARN does once per boot; an IV that is not 12 bytes and a key that is not 32 are
 # refused; and a script that does not parse, a precompiled one and one that
 # raises reach the caller with their own error.
 #

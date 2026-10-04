@@ -165,7 +165,9 @@ after it.
 - **decrypt**: `darken.run` reads what `crypto.aead`'s `gcm(aes)` seals: a
   script runs and returns its values, and an empty one, a ciphertext that is
   only its 16-byte tag, returns none; a wrong key or IV, a flipped byte of the
-  ciphertext or of the tag, and a ciphertext cut short raise `EBADMSG`; an IV
+  ciphertext or of the tag, and a ciphertext cut short raise `EBADMSG`; one of
+  64 MiB, past kmalloc's largest block with 4K pages, raises "not enough memory"
+  and leaves no allocator WARN; an IV
   that is not 12 bytes and a key that is not 32 are refused; and a script that
   does not parse, a precompiled one and one that raises reach the caller with
   their own error.
