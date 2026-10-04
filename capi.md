@@ -392,6 +392,7 @@ has no `lunatik._ENV`.
 bool lunatik_isready(lunatik_object_t *runtime);
 ```
 Returns `true` once `runtime` is armed, its script body returned, and until it is closed.
+It reads only the object, so a task that holds a reference calls it without the runtime's lock.
 `thread.run` uses it to refuse creating a thread from the script body of the runtime that calls
 it, with `not allowed before the runtime is armed`. Defined as a macro.
 
