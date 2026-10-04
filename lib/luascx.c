@@ -13,6 +13,13 @@
 * kfunc, which in turn invokes a Lua callback function previously registered
 * using `scx.attach()`.
 *
+* The callback runs inside the sched_ext operation that calls the kfunc, and `ops.enqueue`
+* runs with the runqueue lock of its CPU held, so a callback must not call `print`, a
+* completion's `complete` or a mailbox's `send`: each can wake a task, and the wakeup takes
+* that lock again on a CPU that already holds it. An allocation the callback's Lua makes
+* under memory pressure, which can wake kswapd, and the log of an error the callback raises
+* can wake a task the same way.
+*
 * Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`; without it the module loads
 * and offers `attach`, which raises `EOPNOTSUPP`, and `detach`, which does nothing.
 * The kfunc needs the module's BTF: run `sudo make btf_install` before `make`, or the kernel logs
