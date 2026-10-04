@@ -23,7 +23,7 @@ end
 
 local sentinel = setmetatable({}, {__gc = unpublish})
 
--- runs under RTNL, where rtnetlink is refused, so the reactor reroutes from its own runtime
+-- a softirq runtime makes no rtnetlink request, which sleeps, so the reactor reroutes from its own runtime
 local function callback(event, name, netns)
 	local _ = sentinel   -- keep the sentinel reachable from the notifier
 	if netns ~= home then -- a homonym in another namespace is not the watched link

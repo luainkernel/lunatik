@@ -3,72 +3,34 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
-local device   = require("device")
-local linux    = require("linux")
-local notifier = require("notifier")
-local rcu      = require("rcu")
-local runner   = require("lunatik.runner")
-local netdev   = require("linux.netdev")
-local notify   = require("linux.notify")
-local stat     = require("linux.stat")
+local device  = require("device")
+local lunatik = require("lunatik")
+local rcu     = require("rcu")
+local runner  = require("lunatik.runner")
+local stat    = require("linux.stat")
 
-local filter      <const> = "examples/ifquarantine/filter"
-local home        <const> = linux.netns() -- the namespace linux.ifindex resolves a name in
+local FILTER      <const> = "examples/ifquarantine/filter"
+local WATCH       <const> = "examples/ifquarantine/watch"
+local KNOWN       <const> = "ifquarantine.known"
+local QUARANTINED <const> = "ifquarantine.quarantined"
 local quarantined         = rcu.table()   -- tostring(ifindex) -> true
-local known               = {}            -- name -> ifindex
-local loading             = true
+local known               = rcu.table()   -- name -> ifindex
+local lines
 
 local function info(...)
 	print("ifquarantine: " .. string.format(...))
 end
 
-local function record(name, idx)
-	known[name] = idx
-	info("%s (ifindex=%d) already present", name, idx)
-end
-
-local function quarantine(name, idx)
-	known[name] = idx
-	quarantined[tostring(idx)] = true
-	info("%s (ifindex=%d) quarantined", name, idx)
-end
-
-local function release(name)
-	local idx = known[name]
-	if idx then
-		quarantined[tostring(idx)] = nil
-		info("%s released", name)
-	end
-end
-
-local function callback(event, name, netns)
-	if netns ~= home then -- a device of another namespace: its name resolves onto the wrong one here
-		return notify.OK
-	end
-	if event == netdev.REGISTER then
-		local idx = linux.ifindex(name)
-		if idx then
-			if loading then
-				record(name, idx)
-			else
-				quarantine(name, idx)
-			end
-		end
-	elseif event == netdev.UNREGISTER then
-		release(name)
-		known[name] = nil
-	end
-	return notify.OK
+local function list(name, idx)
+	local state = quarantined[tostring(idx)] and "DROP" or "ALLOW"
+	table.insert(lines, string.format("%s %d %s", name, idx, state))
 end
 
 local driver = {name = "ifquarantine", mode = stat.IRUGO | stat.IWUGO}
 
 function driver:read(len, off)
-	local lines = {}
-	for name, idx in pairs(known) do
-		local state = quarantined[tostring(idx)] and "DROP" or "ALLOW"
-		table.insert(lines, string.format("%s %d %s", name, idx, state))
-	end
+	lines = {}
+	rcu.foreach(known, list)
 	if #lines == 0 then
 		return ""
 	end
@@ -91,18 +53,20 @@ function driver:write(buf)
 	end
 end
 
-device.new(driver)
-
-local runtimes = runner.run(filter, {context = "softirq", percpu = true})
-
-local function stopfilter()
-	runner.stop(filter)
+local function stop()
+	runner.stop(FILTER)
+	runner.stop(WATCH)
+	lunatik._ENV[KNOWN] = nil
+	lunatik._ENV[QUARANTINED] = nil
 end
 
-driver.sentinel = setmetatable({}, {__gc = stopfilter})
+device.new(driver)
+driver.sentinel = setmetatable({}, {__gc = stop})
 
+lunatik._ENV[KNOWN] = known
+lunatik._ENV[QUARANTINED] = quarantined
+runner.run(WATCH, {context = "softirq"})
+
+local runtimes = runner.run(FILTER, {context = "softirq", percpu = true})
 runtimes:resume(quarantined)
-
-notifier.netdevice(callback)
-loading = false
 

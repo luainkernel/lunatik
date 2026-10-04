@@ -7,27 +7,29 @@ a netfilter hook uses to decide the verdict on each packet. An interface is
 released from quarantine by writing `allow=<name>` to `/dev/ifquarantine`;
 re-denied with `deny=<name>`; inspected with `cat /dev/ifquarantine`.
 
-The control runtime (process context) owns `notifier.netdevice` and the
-device; it runs the netfilter hook as a softirq percpu script, one runtime
-per CPU sharing the hook, and hands each the quarantine set via `rcu.table`
-through `percpu:resume()`. Illustrates cross-subsystem composition between
-two notifier chains of different execution contexts.
+The control runtime (process context) owns the device and the two `rcu.table`s,
+the known interfaces and the quarantine set, which it publishes in `lunatik._ENV`;
+it runs [watch](watch.lua), a softirq script, the context `notifier.netdevice`
+requires, which records each interface and quarantines a new one, and the
+netfilter hook as a softirq percpu script, one runtime per CPU sharing the hook,
+and hands each the quarantine set through `percpu:resume()`. Illustrates
+cross-subsystem composition between two notifier chains of different execution
+contexts.
 
 ## Usage
 
 ```
 sudo make install                                 # installs Lunatik and the examples
-sudo lunatik run examples/ifquarantine/control     # starts control+filter
+sudo lunatik run examples/ifquarantine/control     # starts control, watch and filter
 sudo cat /dev/ifquarantine                         # lists known interfaces and verdict
 sudo sh -c "echo 'deny=eth0'  > /dev/ifquarantine" # quarantine eth0
 sudo sh -c "echo 'allow=eth0' > /dev/ifquarantine" # lift the quarantine
-sudo lunatik stop examples/ifquarantine/control    # stops both scripts
+sudo lunatik stop examples/ifquarantine/control    # stops the three scripts
 ```
 
 The interfaces that already exist are recorded and allowed, not quarantined:
-`register_netdevice_notifier` synchronously replays `NETDEV_REGISTER` (and
-`NETDEV_UP`) for each netdev every namespace already has when the notifier
-block is registered, inside `notifier.netdevice`, so the script records what
+`notifier.netdevice` delivers, inside the call, a `NETDEV_REGISTER` (and a
+`NETDEV_UP`) for each netdev every namespace already has, so watch records what
 arrives before that call returns, and a policy that denied those would take the
 machine off the network, `lo` and the uplink included. They are listed by `cat
 /dev/ifquarantine` and can be quarantined with `deny=<name>`. The callback is

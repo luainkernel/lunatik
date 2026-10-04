@@ -444,10 +444,9 @@ the same task leaves the outer one's in place.
 RTNL is held by one task at a time, so one pointer serves every runtime and every coroutine, and
 the read takes no lock: only the task that wrote the pointer can find itself there. Use it before a
 kernel call that takes RTNL, such as `register_netdevice_notifier`, which would wait on the lock its
-own task holds: refuse the call with `lunatik_checkrtnl`. A `release` cannot refuse, so the entry
-point that runs one on the calling task, a `stop()` or a `close()` and its `__close`, refuses
-instead under RTNL. It sees the calling task only: Lua on a second task that waits for
-RTNL while this one waits for that task is a cycle it cannot name. Defined as macros.
+own task holds: `lunatik_checkarmed` refuses every call that may sleep there. It sees the calling
+task only, which is what a softirq runtime leaves to see: nothing that holds its lock sleeps, so no
+second task waits for RTNL under it. Defined as macros.
 
 ### lunatik\_iskthread
 ```C
@@ -514,7 +513,10 @@ interrupt-context runtime whose script body returned. An IRQ runtime is process 
 its script body runs, so a call that may sleep is allowed there and must be refused afterwards,
 when the runtime lock is a spinlock: from a hook or a handler, and from the `resume` of such a
 runtime. Use it in an entry point that reaches a sleeping kernel call, where `lunatik_checkruntime`
-answers the different question of whether the class matches the runtime at all.
+answers the different question of whether the class matches the runtime at all. It calls
+[`lunatik_checkrtnl`](#lunatik_checkrtnl) first, so the same entry point refuses under RTNL in any
+runtime, the replay a netdevice registration delivers in a script body that has not armed yet
+included.
 
 ### lunatik\_checkclosing
 ```C
@@ -531,8 +533,8 @@ again: use it in an entry point that registers one without
 void lunatik_checkrtnl(lua_State *L);
 ```
 Raises a Lua error, `"not allowed under RTNL"`, when [`lunatik_isrtnl`](#lunatik_isrtnl) holds: from
-a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs. Use it in
-an entry point that reaches a kernel call taking RTNL.
+a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs.
+[`lunatik_checkarmed`](#lunatik_checkarmed) calls it, so every entry point that may sleep refuses there.
 
 ### lunatik\_checkowner
 ```C

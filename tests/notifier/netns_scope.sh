@@ -10,7 +10,7 @@
 # script compares with linux.netns() to keep the devices linux.ifindex resolves.
 #
 # The path is the global chain, which the devices of every namespace reach: the
-# replay is delivered inside register_netdevice_notifier, and a live REGISTER or
+# replay is delivered inside notifier.netdevice, and a live REGISTER or
 # UNREGISTER is delivered under RTNL before the ip command that caused it
 # returns, so each assertion reads what the callback already printed. The
 # script prints the namespace number with each event, and the test reads the
@@ -115,7 +115,7 @@ done
 echo "return {holder = $NSPID, reaped = $REAPED, zombie = $ZOMBIE}" > "$PIDMOD"
 
 mark_dmesg
-CLI=pidns run_script "$SCRIPT"
+CLI=pidns run_script --context=softirq "$SCRIPT"
 
 [ "$(reported "home $INIT task $INIT holder $OTHER")" = 1 ] || fail "linux.netns(), linux.netns(1) or linux.netns($NSPID) is not its namespace's number"
 ktap_pass "linux.netns names the initial namespace, without a pid and with pid 1, and a task's by its pid"

@@ -408,12 +408,6 @@ static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class
 		luaL_error(L, "'%s': %s", class->name, LUNATIK_ERR_CONTEXT);
 }
 
-static inline void lunatik_checkarmed(lua_State *L)
-{
-	if (unlikely(lunatik_cannotsleep(L, lunatik_isready(lunatik_toruntime(L)))))
-		luaL_error(L, LUNATIK_ERR_ARMED);
-}
-
 #define lunatik_setrtnl(task)	WRITE_ONCE(lunatik_rtnl, (task))
 #define lunatik_isrtnl()	(READ_ONCE(lunatik_rtnl) == current)
 
@@ -421,6 +415,13 @@ static inline void lunatik_checkrtnl(lua_State *L)
 {
 	if (lunatik_isrtnl())
 		luaL_error(L, LUNATIK_ERR_RTNL);
+}
+
+static inline void lunatik_checkarmed(lua_State *L)
+{
+	lunatik_checkrtnl(L);
+	if (unlikely(lunatik_cannotsleep(L, lunatik_isready(lunatik_toruntime(L)))))
+		luaL_error(L, LUNATIK_ERR_ARMED);
 }
 
 static inline void lunatik_checkowner(lua_State *L, lunatik_object_t *runtime)
