@@ -83,6 +83,7 @@ static inline lunatik_object_t *luanetfilter_pushskb(lua_State *L, luanetfilter_
 }
 
 #define luanetfilter_isverdict(v)	((v) == NF_DROP || (v) == NF_ACCEPT || (v) == NF_QUEUE)
+#define luanetfilter_ismark(m)		((m) >= 0 && (m) <= U32_MAX)
 
 static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct sk_buff *skb)
 {
@@ -105,8 +106,11 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct 
 		goto clear;
 	}
 
-	if (!lua_isnil(L, -1))
-		skb->mark = (u32)lua_tointeger(L, -1);
+	lua_Integer mark = lua_tointeger(L, -1);
+	if (lua_type(L, -1) == LUA_TNUMBER && luanetfilter_ismark(mark))
+		skb->mark = (u32)mark;
+	else if (!lua_isnil(L, -1))
+		pr_err_ratelimited("invalid mark\n");
 	lua_Integer verdict = lua_tointeger(L, -2);
 	if (lua_type(L, -2) == LUA_TNUMBER && luanetfilter_isverdict(verdict))
 		ret = (int)verdict;
@@ -262,7 +266,8 @@ static const lunatik_class_t luanetfilter_class = {
 *   `hook(skb)` returns the packet's verdict, `DROP`, `ACCEPT` or `QUEUE` of `linux.nf.action`,
 *   and optionally a mark to set on the packet. A callback that returns no verdict, or that
 *   raises, accepts the packet; one that returns any other value, `STOLEN`, `REPEAT` and `STOP`
-*   included, accepts it too and logs `invalid verdict`.
+*   included, accepts it too and logs `invalid verdict`. A mark that is not an integer from 0 to
+*   2^32 - 1 leaves the packet's mark as it was and logs `invalid mark`.
 * @treturn netfilter_hook the hook, which `netfilter.register` keeps for its runtime: dropping it
 *   stops nothing, and the callback runs until `stop` or the end of the runtime. The hook stays
 *   registered until the runtime closes, and the one hook a percpu script's runtimes share until
