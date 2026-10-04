@@ -69,15 +69,19 @@ do {									\
 * @function stats
 * @tparam integer cpu CPU number, from `0` to `maxid()`
 * @treturn table fields: `user`, `nice`, `system`, `idle`, `iowait`, `irq`,
-*   `softirq`, `steal`, `guest`, `guest_nice`, `forceidle` (if CONFIG_SCHED_CORE)
-* @raise "out of bounds" if cpu is outside that range, "CPU is offline" if it is not online
+*   `softirq`, `steal`, `guest`, `guest_nice`, `forceidle` (if CONFIG_SCHED_CORE), or nil for a
+*   CPU that is not online, which hotplug can take away between `online()` and this call
+* @raise "out of bounds" if cpu is outside that range
 */
 static int luacpu_stats(lua_State *L)
 {
 	unsigned int cpu = (unsigned int)lunatik_checkinteger(L, 1, 0, nr_cpu_ids - 1);
 	struct kernel_cpustat kcs;
 
-	luaL_argcheck(L, cpu_online(cpu), 1, "CPU is offline");
+	if (!cpu_online(cpu)) {
+		lua_pushnil(L);
+		return 1;
+	}
 
 	kcpustat_cpu_fetch(&kcs, cpu);
 

@@ -360,6 +360,9 @@ status the CLI exits by.
   and the step they return refuses an id outside `[-1, cpu.maxid()]` as out of
   bounds: -2, `cpu.maxid() + 1`, 2^32 and the integer extremes. A step that
   yields one id twice fails at the second yield rather than looping.
+- **offline**: `cpu.stats()` answers `nil` for a possible CPU that is not
+  online, which hotplug can take away between `cpu.online()` and the call.
+  Skips on a host whose possible CPUs are all online.
   `cpu.maxid()` is the last possible CPU.
 
 ### examples
