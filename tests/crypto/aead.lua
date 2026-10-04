@@ -77,9 +77,9 @@ test("AEAD AES-128-GCM decrypt with input data too short for tag", function()
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
 	local short_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561a" -- 15 bytes, one short of the tag
-	local status, err = pcall(c.decrypt, c, "abcdefghijkl", short_ciphertext, "0123456789abcdef")
-	assert(not status, "decrypt with input data too short for tag should fail")
-	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
+	local plain, err = c:decrypt("abcdefghijkl", short_ciphertext, "0123456789abcdef")
+	assert(plain == nil, "decrypt with input data too short for tag should answer nil")
+	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. tostring(err))
 end)
 
 test("AEAD AES-128-GCM decrypt with authentication failure", function()
@@ -87,9 +87,9 @@ test("AEAD AES-128-GCM decrypt with authentication failure", function()
 	c:setkey"0123456789abcdef"
 	c:setauthsize(16)
 	local tampered_ciphertext = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918f" -- Last byte of tag tampered
-	local status, err = pcall(c.decrypt, c, "abcdefghijkl", tampered_ciphertext)
-	assert(not status, "decrypt with tampered data should fail")
-	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. err)
+	local plain, err = c:decrypt("abcdefghijkl", tampered_ciphertext)
+	assert(plain == nil, "decrypt with tampered data should answer nil")
+	assert(err == "EBADMSG", "Error code should be 'EBADMSG', got: " .. tostring(err))
 end)
 
 -- Round-trip without the optional AAD argument; covers aad_len = 0.

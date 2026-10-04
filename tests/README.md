@@ -105,7 +105,7 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
 - **aead**: `gcm(aes)` encrypts and decrypts a known vector with associated
   data and reports a 12-byte IV and the tag size it was set to, refuses a
   short key, an invalid tag size and a short IV with `EINVAL`, answers a
-  truncated or tampered tag with `EBADMSG`, and round-trips without associated
+  truncated or tampered tag with nil and `EBADMSG`, and round-trips without associated
   data, with an empty plaintext, and 5000 times.
 - **rng**: `stdrng` gives the number of bytes asked for through `generate`,
   with or without additional input, and `getbytes`, also after a reset with or
@@ -143,7 +143,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   vmalloc's. Data of two pages and a block, and associated data of two pages and
   a byte, go through it whole: `cbc(aes)` matches its pages chained by their last
   block, `gcm(aes)` seals into what `ctr(aes)` gives from the second counter and
-  opens back, and a byte flipped in the last page of either fails the tag. A string past `KMALLOC_MAX_SIZE`,
+  opens back, and a byte flipped in the last page of either answers nil and
+  `EBADMSG`. A string past `KMALLOC_MAX_SIZE`,
   always vmalloc's, is refused with "not enough memory" as the data of each
   `encrypt` and `decrypt` and as `aead`'s associated data, with no warning in
   `dmesg`. Skips unless the loaded `luacrypto` lists `luacrypto_newbuffer` in

@@ -52,6 +52,11 @@ local function flipped(data, at)
 	return sub(data, 1, at - 1) .. char(data:byte(at) ~ 1) .. sub(data, at + 1)
 end
 
+local function unauthentic(name, plain, err)
+	assert(plain == nil and err == EBADMSG, name .. ": expected nil and '" .. EBADMSG .. "', got: " ..
+		tostring(plain) .. ", " .. tostring(err))
+end
+
 local function refused(expected, name, method, c, ...)
 	local ok, err = pcall(method, c, ...)
 	assert(not ok, name .. " should be refused")
@@ -74,9 +79,8 @@ test("AEAD AES-128-GCM data and associated data spanning pages", function()
 	assert(sub(sealed, 1, #spanning) == ctr:encrypt(GCM_COUNTER, spanning), "ciphertext differs from ctr(aes)")
 	assert(c:decrypt(NONCE, sealed, associated) == spanning, "round-trip mismatch")
 
-	refused(EBADMSG, "a flip in the data's last page", c.decrypt, c, NONCE, flipped(sealed, 2 * page + 1), associated)
-	refused(EBADMSG, "a flip in the associated data's last page", c.decrypt, c, NONCE, sealed,
-		flipped(associated, #associated))
+	unauthentic("a flip in the data's last page", c:decrypt(NONCE, flipped(sealed, 2 * page + 1), associated))
+	unauthentic("a flip in the associated data's last page", c:decrypt(NONCE, sealed, flipped(associated, #associated)))
 end)
 
 test("SKCIPHER AES-128-CBC data past KMALLOC_MAX_SIZE", function()
