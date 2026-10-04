@@ -11,7 +11,10 @@ local action = nf.action
 
 local PREFIX   <const> = "netfilter verdict: "
 local RAISED   <const> = PREFIX .. "raised"
+local KEPT     <const> = PREFIX .. "kept "
 local REMARKED <const> = 219
+local UNMARKED <const> = 225
+local WIDEMARK <const> = 226
 local WRAPPED  <const> = 1 << 32 -- DROP in its low 32 bits
 
 local cases = {}
@@ -71,6 +74,14 @@ function cases.remarked()
 	return action.DROP
 end
 
+function cases.unmarked()
+	return action.ACCEPT, true
+end
+
+function cases.widemark()
+	return action.ACCEPT, WRAPPED | REMARKED
+end
+
 local marks = {
 	[211]      = "none",
 	[212]      = "boolean",
@@ -86,10 +97,14 @@ local marks = {
 	[222]      = "repeated",
 	[223]      = "stop",
 	[224]      = "queue",
+	[UNMARKED] = "unmarked",
+	[WIDEMARK] = "widemark",
 }
 
--- a hook later than the one that stores the mark, so the packet reaches it marked
-local priorities = {remarked = nf.ip.pri.FILTER + 1}
+-- a hook later than the one that may store a mark, so the packet reaches it with the mark left
+local LATER <const> = nf.ip.pri.FILTER + 1
+
+local priorities = {remarked = LATER}
 
 local function verdict(skb)
 	local case = marks[skb:mark()]
@@ -97,13 +112,25 @@ local function verdict(skb)
 	return cases[case]()
 end
 
-for mark, case in pairs(marks) do
+local function kept(skb)
+	print(KEPT .. skb:mark())
+end
+
+local function register(hook, mark, priority)
 	netfilter.register{
-		hook     = verdict,
+		hook     = hook,
 		pf       = nf.proto.INET,
 		hooknum  = nf.inet.LOCAL_OUT,
-		priority = priorities[case] or nf.ip.pri.FILTER,
+		priority = priority,
 		mark     = mark,
 	}
+end
+
+for mark, case in pairs(marks) do
+	register(verdict, mark, priorities[case] or nf.ip.pri.FILTER)
+end
+
+for _, mark in ipairs({UNMARKED, WIDEMARK}) do
+	register(kept, mark, LATER)
 end
 

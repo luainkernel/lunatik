@@ -12,9 +12,11 @@
 # it through too and logs "invalid verdict", which no other case logs; DROP drops
 # it; QUEUE hands it to queue 0, which drops it when nothing listens there, and
 # the case skips when something does; and a mark returned beside the verdict is
-# stored in the packet, which a later hook matching that mark then drops. Each
-# case also reads back the line its callback printed, so a ping that went through
-# proves an answer and not a hook that never ran.
+# stored in the packet, which a later hook matching that mark then drops. A mark
+# that is not a number, or one past 32 bits whose low bits are that mark, leaves
+# the packet's own mark, which a later hook matching it reads back, and logs
+# "invalid mark". Each case also reads back the line its callback printed, so a
+# ping that went through proves an answer and not a hook that never ran.
 #
 # Usage: sudo bash tests/netfilter/verdict.sh
 
@@ -23,6 +25,7 @@ MODULE="luanetfilter"
 PREFIX="netfilter verdict: "
 RAISED="${PREFIX}raised"
 INVALID="$MODULE: invalid verdict"
+UNMARKED="$MODULE: invalid mark"
 QUEUES="/proc/net/netfilter/nfnetlink_queue"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -65,8 +68,21 @@ expect() {
 	ktap_pass "$desc"
 }
 
+# expect_mark <mark> <case> <description>: the packet passes, keeps its mark and UNMARKED is logged
+expect_mark() {
+	local mark="$1" case="$2" desc="$3"
+
+	mark_dmesg
+	ping_marked "$mark" || fail "$desc: the packet was dropped"
+	dmesg_since | grep -qE "${PREFIX}${case}\$" || fail "$desc: the callback did not run"
+	dmesg_since | grep -qE "${PREFIX}kept ${mark}\$" || fail "$desc: the packet lost its mark"
+	dmesg_since | grep -qF "$UNMARKED" || fail "$desc: the mark was not logged"
+	check_dmesg || { ktap_totals; exit 1; }
+	ktap_pass "$desc"
+}
+
 ktap_header
-ktap_plan 14
+ktap_plan 16
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -101,6 +117,8 @@ else
 fi
 
 expect 218 remarked drops "a mark returned beside the verdict is stored in the packet"
+expect_mark 225 unmarked "a mark that is not a number leaves the packet's mark and logs it"
+expect_mark 226 widemark "a mark past 32 bits leaves the packet's mark and logs it"
 
 lunatik stop "$SCRIPT" 2>/dev/null
 check_dmesg || { ktap_totals; exit 1; }

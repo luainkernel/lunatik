@@ -844,9 +844,11 @@ allocates with).
   too and logs `invalid verdict`, which no other case logs; `DROP` drops it;
   `QUEUE` hands it to queue 0, which drops it when nothing listens there, and the
   case skips when something does; a mark returned beside the verdict is stored in
-  the packet, which a later hook on that mark then drops. Each case reads back the
-  line its callback printed, so a packet that went through is an answer and not
-  a hook that never ran.
+  the packet, which a later hook on that mark then drops; and a mark that is not a
+  number, or one past 32 bits whose low bits are that mark, leaves the packet's own
+  mark, which a later hook on it reads back, and logs `invalid mark`. Each case
+  reads back the line its callback printed, so a packet that went through is an
+  answer and not a hook that never ran.
 - **register**: what `netfilter.register()` refuses in the table it is given,
   before any hook is registered, each with an error naming the field: a `mark`
   that holds a string, a numeric one included, or a boolean, a `pf`, `hooknum`
