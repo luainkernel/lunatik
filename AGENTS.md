@@ -1183,7 +1183,10 @@ named, not one discovered at that consumer's build.
   acquires it, `lunatik_lock`, `lunatik_closeprivate`, `lunatik_run` or the kernel call, and each
   route names its refusal or why it needs none. #1135 refused `runtime:stop()` for the runtime's own
   lock and left `runtime:resume()`, `percpu:resume()` and `thread.run`, which take it too, for the
-  review to find.
+  review to find. The routes are everything the path runs while it holds the lock, the binding's
+  own calls among them, not only what a script calls: #1718's first answer for v5.0 took kswapd's
+  wakeup out of an sched_ext callback's allocator, which turned it into a raise that the dispatch
+  logs through the printk `print` reaches, under the same runqueue lock.
 * A guard in the core is for the honest mistake: the wrong object at an index, a size no binding can
   serve, a call that sleeps from a hook. The registry, a class metatable and an object's `__gc` are
   the runtime's own bookkeeping, and a script that reaches into them, `obj:__gc()`,
