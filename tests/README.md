@@ -185,7 +185,9 @@ after it.
   on its old buffer. Each integer setter of 8, 16 and 32 bits takes its width
   read signed or unsigned, from the signed minimum to the unsigned maximum,
   which both getters read back, and refuses a value past it as out of bounds,
-  leaving the bytes; `setint64` takes every integer.
+  leaving the bytes; `setint64` takes every integer. A zero length at any offset
+  up to the size, the end included, reads an empty string and writes nothing,
+  and one past the end raises `out of bounds`.
 - **resize_atomic**: a failed reallocation must not look like a success. A
   vmalloc-backed buffer grown from a `GFP_ATOMIC` runtime asks the page
   allocator for an order past `MAX_PAGE_ORDER`, so the allocation fails by
