@@ -273,7 +273,8 @@ netfilter.register{
 <p>   <code>hook(skb)</code> returns the packet&rsquo;s verdict, <code>DROP</code>, <code>ACCEPT</code> or <code>QUEUE</code> of <a href="../modules/linux.nf.html#action">linux.nf.action</a>,
    and optionally a mark to set on the packet. A callback that returns no verdict, or that
    raises, accepts the packet; one that returns any other value, <code>STOLEN</code>, <code>REPEAT</code> and <code>STOP</code>
-   included, accepts it too and logs <code>invalid verdict</code>.
+   included, accepts it too and logs <code>invalid verdict</code>. A mark that is not an integer from 0 to
+   2<sup>32</sup> - 1 leaves the packet&rsquo;s mark as it was and logs <code>invalid mark</code>.
         </li>
     </ul>
 
@@ -330,7 +331,7 @@ netfilter.<span class="function-name">register</span>{
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 17:02:10</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 17:14:40</span>
 </div>
 </footer>
 </body>
