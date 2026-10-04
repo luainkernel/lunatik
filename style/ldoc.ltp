@@ -105,6 +105,11 @@
 # local istopic = module and ldoc.body ~= nil
 # local current = module and areaof(module.name)
 # local title = module and (istopic and display_name(module) or module.name) or nil
+# -- the release lunatik.h declares, and whether a tag in this commit's history names it
+# local header = ldoc.include_file('lunatik.h')
+# local RELEASE = header:match('LUNATIK_VERSION_MAJOR_N%s+(%d+)') .. '.' .. header:match('LUNATIK_VERSION_MINOR_N%s+(%d+)')
+# local released = ('\n' .. ldoc.include_file('doc/.tags')):find('\nv' .. RELEASE:gsub('%.', '%%.') .. '[.\n]') ~= nil
+# local VERSION = RELEASE .. (released and '' or ' development')
 # -- the home page: the README's first paragraph leads the hero, and an example shows what a script looks like
 # local SHOWCASE = 'examples/systrack/probe.lua'
 # local home, intro, floor, showcase, nmodules = nil, nil, nil, nil, 0
@@ -148,6 +153,7 @@
         <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="$(LOGO)"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
         <span>$(ldoc.project)</span>
     </a>
+    <a class="release" href="$(GITHUB)/releases" title="The release these pages document">$(VERSION)</a>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
         <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
@@ -462,7 +468,7 @@ $(anchor(home or ''))
 
 <footer class="site-footer">
 <div>
-<span>$(ldoc.project) · MIT or GPL-2.0-only · <a href="$(GITHUB)">$((GITHUB:gsub('^https://', '')))</a></span>
+<span>$(ldoc.project) $(VERSION) · MIT or GPL-2.0-only · <a href="$(GITHUB)">$((GITHUB:gsub('^https://', '')))</a></span>
 <span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc $(ldoc.version)</a> · $(ldoc.updatetime)</span>
 </div>
 </footer>
