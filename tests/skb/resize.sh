@@ -10,8 +10,13 @@
 # fragments and keeps only the headers in the linear head, so every such segment
 # is non-linear. Each sender sets its own SO_PRIORITY, which picks the case: a
 # shrink inside the payload, a shrink below the linear head, a grow, a grow past
-# any tailroom, which raises "insufficient tailroom", and a negative length, which
-# raises "out of bounds". A UDP datagram of the same size is linear, since
+# any tailroom, which answers false, a negative length, which raises "out of
+# bounds", and a shrink to the IPv4 header alone, which answers false too: a TCP
+# segment leaves the socket CHECKSUM_PARTIAL, its checksum field for the device
+# or skb_checksum_help to fill, and pskb_trim_rcsum refuses to cut it, where a
+# trim past it reaches skb_checksum_help's WARN on a device without checksum
+# offload (net/core/dev.c at 6.8). What does not fit leaves #skb as it was, and
+# a resize that does answers true. A UDP datagram of the same size is linear, since
 # ip_append_data keeps a datagram under SKB_MAX_ALLOC in the head, and takes a
 # shrink; a second one is shrunk and grown back over its own payload, which is
 # never zero, so a grow that leaves those bytes in place fails whether or not the
@@ -32,7 +37,7 @@ SCRIPT="tests/skb/resize"
 PORT=5564
 PAYLOAD=2048          # PAYLOAD in resize.lua
 PRIORITY=$((0x12360000)) # PRIORITY in resize.lua
-CASES="shrink head grow overgrow linear negative regrow"
+CASES="shrink head grow overgrow linear negative regrow checksum"
 NCASES=$(echo $CASES | wc -w)
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"

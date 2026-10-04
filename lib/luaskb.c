@@ -185,14 +185,17 @@ static int luaskb_data(lua_State *L)
 }
 
 /***
-* Expands (skb_put_zero) or shrinks (skb_trim) the skb data area; the bytes an
-* expansion adds read as zeros. The skb is linearized first, so `n` is the
-* length of the whole packet, which `#skb` returns afterwards. In a tc callback
-* the skb is not linearized, and a non-linear one raises.
+* Expands (skb_put_zero) or shrinks (pskb_trim_rcsum) the skb data area; the bytes an
+* expansion adds read as zeros, and a shrink keeps the checksum a received skb carries. The
+* skb is linearized first, so `n` is the length of the whole packet, which `#skb` returns
+* afterwards. In a tc callback the skb is not linearized, and a non-linear one raises.
 * @function resize
 * @tparam integer n desired size in bytes, from 0 up to `UINT_MAX`
+* @treturn boolean `true` once resized, and `false`, with the skb as it was, when an expansion
+*   does not fit in the tailroom or a shrink would cut the checksum field the stack has yet to
+*   fill, as a TCP segment's on the way out
 * @raise if out of bounds, if the skb is not linear, in a tc callback or after a failed
-* linearization, or if the tailroom is insufficient for expansion
+* linearization
 */
 static int luaskb_resize(lua_State *L)
 {
@@ -202,14 +205,16 @@ static int luaskb_resize(lua_State *L)
 	luaskb_checklinear(L, lskb, 1);
 	size_t cur_size = skb->len;
 
-	if (new_size > cur_size) {
-		size_t needed = new_size - cur_size;
-		luaL_argcheck(L, skb_tailroom(skb) >= needed, 2, "insufficient tailroom");
-		skb_put_zero(skb, needed);
+	if (new_size <= cur_size) {
+		lua_pushboolean(L, pskb_trim_rcsum(skb, new_size) == 0);
+		return 1;
 	}
-	else if (new_size < cur_size)
-		skb_trim(skb, new_size);
-	return 0;
+	size_t needed = new_size - cur_size;
+	bool fits = skb_tailroom(skb) >= needed;
+	if (fits)
+		skb_put_zero(skb, needed);
+	lua_pushboolean(L, fits);
+	return 1;
 }
 
 #define luaskb_csumend(skb, proto)						\
