@@ -9,9 +9,10 @@
 * constructor raises "'crypto.shash': process-context class in interrupt-context runtime", naming
 * its class. Errors are raised as errno names: "ENOENT" for an unknown algorithm, "EINVAL" for a
 * wrong IV, key or state length or a block cipher input that is not a multiple of `blocksize()`,
-* "EBADMSG" for an AEAD tag mismatch, "ENOMEM" when the kernel cannot allocate the transform, and
+* "ENOMEM" when the kernel cannot allocate the transform, and
 * "not enough memory" when the binding cannot allocate its own state, its output or the copy of its
-* input.
+* input. An AEAD message that does not authenticate is no error: `decrypt` answers nil and
+* "EBADMSG" for it.
 * @module crypto
 */
 

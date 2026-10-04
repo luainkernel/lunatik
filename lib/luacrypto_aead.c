@@ -157,25 +157,30 @@ static int luacrypto_aead_encrypt(lua_State *L)
 
 /***
 * Decrypts and authenticates ciphertext.
-* IV length must match `ivsize()`. Raises EBADMSG on authentication failure.
+* IV length must match `ivsize()`. A message that does not authenticate, a forged or corrupted
+* one, is the outcome the call reports, as nil and "EBADMSG".
 * @function decrypt
 * @tparam string iv initialization vector
 * @tparam string ciphertext_with_tag ciphertext concatenated with authentication tag
 * @tparam[opt] string aad additional authenticated data (default: empty string)
-* @treturn string decrypted plaintext
-* @raise on authentication failure (EBADMSG), incorrect IV length, or input too short, "not enough
-*   memory" when one kmalloc block cannot be allocated for the associated data and the ciphertext,
-*   always past `KMALLOC_MAX_SIZE`
+* @treturn string decrypted plaintext, or nil and "EBADMSG" when the tag does not authenticate the
+*   message or the input is shorter than the tag
+* @raise on incorrect IV length, "not enough memory" when one kmalloc block cannot be allocated for
+*   the associated data and the ciphertext, always past `KMALLOC_MAX_SIZE`
 */
 static int luacrypto_aead_decrypt(lua_State *L)
 {
 	luacrypto_aead_request_t request;
 	luacrypto_aead_newrequest(L, &request);
 	if (request.crypt_len < request.authsize)
-		lunatik_throw(L, -EBADMSG);
+		return lunatik_pushfail(L, -EBADMSG);
 	size_t output_len = request.crypt_len - request.authsize;
 	char *buffer = luacrypto_aead_prepare(L, &request, output_len);
 	int ret = crypto_aead_decrypt(request.aead);
+	if (ret == -EBADMSG) {
+		lunatik_free(buffer);
+		return lunatik_pushfail(L, ret);
+	}
 	return luacrypto_aead_finish(L, &request, buffer, ret, output_len);
 }
 
