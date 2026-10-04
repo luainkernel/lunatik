@@ -6,10 +6,15 @@
 # Runs completion regression tests and reports aggregated KTAP results.
 #
 # wait: completion:wait answers true for a completion signaled before it, with a
-# timeout and with timeout 0, and false, alone, when the timeout elapses first.
+# timeout and with timeout 0, and false, alone, when the timeout elapses first;
+# a timeout outside 0 to 2^31 - 1 raises "out of bounds". The first one asked
+# is past msecs_to_jiffies's unsigned int, which a build without the bound
+# truncates and waits on, so it fails there before -1 and 2^31, which that
+# build reads as forever and would wait on until a signal.
 #
 # mailbox: mailbox:receive answers nil, alone, when its wait elapses, timeout 0
-# included, and the message a send queued before it; mailbox:send answers false
+# included, and the message a send queued before it, and refuses a timeout
+# outside 0 to 2^31 - 1, in the same order; mailbox:send answers false
 # when the queue has no room for a message, which the receiver then never sees.
 #
 # stop: the stop of a spawned thread interrupts its completion:wait, which raises

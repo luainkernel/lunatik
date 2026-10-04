@@ -82,14 +82,14 @@ static int lualinux_random(lua_State *L)
 * or it is woken up.
 *
 * @function schedule
-* @tparam[opt] integer timeout Duration in milliseconds to sleep.
-* Defaults to `MAX_SCHEDULE_TIMEOUT` (effectively indefinite sleep until woken).
+* @tparam[opt] integer timeout Duration in milliseconds to sleep, from 0 to `2^31 - 1`; omitted or
+* nil, the sleep lasts until the task is woken.
 * @tparam[opt] integer state task state to set before sleeping: `linux.task.INTERRUPTIBLE` (the
 * default), `UNINTERRUPTIBLE`, `KILLABLE` or `IDLE`; any other raises "invalid task state".
 * @treturn integer remaining time in milliseconds
 * if the sleep was interrupted before the full timeout, or 0 if the full timeout elapsed.
-* @raise Error if an invalid task state is provided, and "not allowed once the runtime is armed"
-*   from an interrupt-context runtime past its body.
+* @raise Error if an invalid task state is provided, "out of bounds" for a timeout outside its range,
+*   and "not allowed once the runtime is armed" from an interrupt-context runtime past its body.
 * @usage
 *   local task = require("linux.task")
 *   linux.schedule(1000) -- Sleep for 1 second (interruptible)
@@ -99,11 +99,8 @@ static int lualinux_schedule(lua_State *L)
 {
 	lunatik_checkarmed(L);
 
-	lua_Integer timeout = luaL_optinteger(L, 1, MAX_SCHEDULE_TIMEOUT);
+	long timeout = lunatik_opttimeout(L, 1);
 	lua_Integer state = luaL_optinteger(L, 2, TASK_INTERRUPTIBLE);
-
-	if (timeout != MAX_SCHEDULE_TIMEOUT)
-		timeout = msecs_to_jiffies(timeout);
 
 	luaL_argcheck(L, state == TASK_INTERRUPTIBLE || state == TASK_UNINTERRUPTIBLE ||
 		state == TASK_KILLABLE || state == TASK_IDLE, 2, "invalid task state");

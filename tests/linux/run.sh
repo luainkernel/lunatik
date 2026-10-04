@@ -23,6 +23,10 @@
 # ifindex: linux.ifindex resolves lo to its index and linux.hwaddr that index to
 # lo's address, and each answers nil, alone, for a name or an index no device has.
 #
+# schedule: linux.schedule refuses a timeout outside 0 to 2^31 - 1 as out of bounds, asking first
+# for one past msecs_to_jiffies's unsigned int, which a build without the bound truncates and naps
+# on, so that build fails there before -1 and 2^31, which it reads as forever and sleeps on.
+#
 # tracing: linux.tracing turns kernel tracing off and on given false and true, and answers the
 # state it leaves, in a process, a softirq and a hardirq runtime resumed past their body, the armed
 # state a hook calls from; given nothing or nil it reads the state and changes nothing, and it

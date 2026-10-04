@@ -18,6 +18,7 @@
 #include <linux/kref.h>
 #include <linux/module.h>
 #include <linux/sched.h>
+#include <linux/jiffies.h>
 #include <linux/version.h>
 #include <linux/irq_work.h>
 #include <linux/workqueue.h>
@@ -565,6 +566,12 @@ static inline lua_Integer lunatik_checkinteger(lua_State *L, int idx, lua_Intege
 	lua_Integer v = luaL_checkinteger(L, idx);
 	lunatik_checkbounds(L, idx, v, min, max);
 	return v;
+}
+
+static inline long lunatik_opttimeout(lua_State *L, int idx)
+{
+	return lua_isnoneornil(L, idx) ? MAX_SCHEDULE_TIMEOUT :
+		(long)msecs_to_jiffies((unsigned int)lunatik_checkinteger(L, idx, 0, INT_MAX));
 }
 
 static inline void lunatik_register(lua_State *L, int ix, const void *key)
