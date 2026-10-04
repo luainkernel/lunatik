@@ -554,6 +554,14 @@ static inline void lunatik_optcfunction(lua_State *L, int idx, const char *field
 	}
 }
 
+static inline void lunatik_checkcallbacks(lua_State *L, int idx, const char *const *fields)
+{
+	for (; *fields != NULL; fields++) {
+		lunatik_optfield(L, idx, *fields, LUA_TFUNCTION);
+		lua_pop(L, 1);
+	}
+}
+
 #define lunatik_checkbounds(L, idx, val, min, max)	\
 	luaL_argcheck(L, val >= min && val <= max, idx, "out of bounds")
 

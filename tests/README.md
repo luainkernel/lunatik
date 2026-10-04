@@ -265,6 +265,8 @@ after it.
   are refused with an error naming the field, before the device registers
   anything: `/proc/devices` does not list the refused name, nor `/dev` a node of
   it, while the script's collector, stopped, keeps every refused object alive.
+  An `open`, `read`, `write` or `release` that holds a string or a boolean is
+  refused the same way, with `function expected` and the field's name.
 
 ### cli
 
@@ -646,7 +648,9 @@ after the watch is stopped.
   terminator is refused too, and the longest that does leave room reaches
   the bus intact. A name a driver it registered already holds is refused with
   `EBUSY`, the errno `driver_register` returns, and that driver stays on the
-  bus. Skips when the kernel has no HID bus.
+  bus. A `probe`, `report_fixup`, `raw_event` or `remove` that holds a string
+  or a boolean is refused with `function expected` and the field's name.
+  Skips when the kernel has no HID bus.
 - **idtable_leak**: an `id_table` whose entries raise from `__index` leaves
   nothing allocated behind. The refusal is repeated until what a leak would
   hold is tens of MiB in `SUnreclaim`, and the script then holds as many
@@ -1139,7 +1143,9 @@ from a pid namespace other than the initial one, whose pids are not the ones
   the `pre` fires and the `post` does not, and a percpu script whose runtimes
   disagree about one is refused, leaving no kprobe armed. Two more cover the
   probe's state: one disabled on load stays registered and runs nothing, and
-  one disabled and enabled again runs its `pre` once.
+  one disabled and enabled again runs its `pre` once. A last row asks
+  `probe.new` for a `pre` and a `post` that are a number, a string and a
+  table, each refused with `function expected` and the field's name.
 
 - **kprobe_concurrent**: registers kprobes on every syscall, each handler
   counting into an `rcu.table` and a `data` buffer, and runs one forking

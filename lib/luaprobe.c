@@ -375,7 +375,9 @@ static int luaprobe_new(lua_State *L);
 * @treturn probe the probe, which `probe.new` keeps for its runtime: dropping it stops
 *   nothing, and the kprobe stays until `stop` or the end of the runtime, or of the set
 *   in a percpu script
-* @raise `runtime context mismatch` unless the runtime is hardirq; `not allowed while the runtime
+* @raise `bad field '<field>' (function expected, got <type>)` if `pre` or `post` is present
+*   and not a function;
+*   `runtime context mismatch` unless the runtime is hardirq; `not allowed while the runtime
 *   closes` from a finalizer that runs at its close; the kernel's errno if it refuses the
 *   registration, `ENOENT` for a symbol it does not have; in a percpu script, if this runtime
 *   already registered the same symbol or address, or if another runtime of the set registered
@@ -456,12 +458,15 @@ static luaprobe_t *luaprobe_own(lua_State *L, lunatik_object_t *runtime, const l
 	return probe;
 }
 
+static const char *const luaprobe_handlers[] = {"pre", "post", NULL};
+
 static int luaprobe_new(lua_State *L)
 {
 	lunatik_checkarmed(L);
 	luaprobe_t spec = {.kp = {.pre_handler = luaprobe_pre_handler}};
 	luaprobe_checkspec(L, 1, &spec);
 	luaL_checktype(L, 2, LUA_TTABLE); /* handlers */
+	lunatik_checkcallbacks(L, 2, luaprobe_handlers);
 	/* the kernel charges for a post handler: no optimization, an ftrace IPMODIFY reservation */
 	spec.kp.post_handler = lua_getfield(L, 2, "post") == LUA_TFUNCTION ? luaprobe_post_handler : NULL;
 	lua_pop(L, 1);

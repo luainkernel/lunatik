@@ -333,6 +333,8 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 	return ret != 0 ? ret : ctx.ret;
 }
 
+static const char *const luahid_callbacks[] = {"probe", "report_fixup", "raw_event", "remove", NULL};
+
 /***
 * Registers a new HID driver.
 * The `opts` table is the driver: each callback it carries receives it as its first
@@ -369,7 +371,9 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *   refuses the driver, `EBUSY` for a name another driver holds on the bus;
 *   `bad field '<field>' (number expected, got <type>)` if an entry's `bus`, `group`, `vendor`,
 *   `product` or `driver_data` is present and not a number, and
-*   `bad field '<field>' (out of bounds)` if it is past its range; `runtime context mismatch`
+*   `bad field '<field>' (out of bounds)` if it is past its range;
+*   `bad field '<field>' (function expected, got <type>)` if `probe`, `report_fixup`, `raw_event`
+*   or `remove` is present and not a function; `runtime context mismatch`
 *   unless the runtime is softirq; `not allowed while the runtime closes` from a finalizer that
 *   runs at its close
 * @within hid
@@ -379,6 +383,7 @@ static int luahid_register(lua_State *L)
 	lunatik_checkarmed(L);
 	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE);
+	lunatik_checkcallbacks(L, 1, luahid_callbacks);
 
 	lunatik_object_t *object = lunatik_newobject(L, &luahid_class, sizeof(luahid_t), LUNATIK_OPT_NONE);
 	luahid_t *hid = (luahid_t *)object->private;

@@ -33,6 +33,19 @@ test("device.new refuses a mode that is not a number", function()
 	end
 end)
 
+test("device.new refuses a callback that is not a function", function()
+	refused.mode = nil
+	for _, field in ipairs({"open", "read", "write", "release"}) do
+		for _, value in ipairs(notnumbers) do
+			refused[field] = value
+			local ok, err = pcall(device.new, refused)
+			local expected = format("bad field '%s' %%(function expected, got %s%%)", field, type(value))
+			assert(not ok and err:match(expected), "device.new took " .. field .. " = " .. tostring(value))
+		end
+		refused[field] = nil
+	end
+end)
+
 test("device.new refuses a mode past S_IALLUGO", function()
 	for _, mode in ipairs(pastrange) do
 		refuses(mode, "bad field 'mode' %(out of bounds%)")

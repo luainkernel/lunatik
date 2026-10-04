@@ -1126,6 +1126,15 @@ int lunatik_nop(lua_State *L);
 Pushes the field named `field` of the table at `idx` when it is a function, and `default_func`
 otherwise. `lunatik_nop` returns nothing, the default a binding passes for an optional callback.
 
+### lunatik\_checkcallbacks
+```C
+void lunatik_checkcallbacks(lua_State *L, int idx, const char *const *fields);
+```
+Raises `bad field '<field>' (function expected, got <type>)` for each name of the NULL-terminated
+`fields` the table at `idx` holds as something other than a function or nil. A constructor runs it
+over the optional callbacks it documents before it acquires anything, so a callback written as a
+value it would ignore at dispatch is refused where the script gave it.
+
 ### lunatik\_setinteger
 ```C
 void lunatik_setinteger(lua_State *L, int idx, hook, field, min, max);

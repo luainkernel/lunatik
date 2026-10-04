@@ -400,6 +400,8 @@ static int luadevice_stop(lua_State *L)
 * @raise Error if the device cannot be allocated or registered in the kernel,
 *   if the `name` field is missing or not a string, or if called from a percpu runtime;
 *   `bad field 'mode' (number expected, got <type>)` if `mode` is present and not a number;
+*   `bad field '<field>' (function expected, got <type>)` if `open`, `read`, `write` or
+*   `release` is present and not a function;
 *   `bad field 'mode' (out of bounds)` if it is negative or past `S_IALLUGO`, as a mode that
 *   carries a file type is;
 *   `'device': process-context class in interrupt-context runtime` in a softirq or
@@ -443,6 +445,8 @@ static const lunatik_class_t luadevice_class = {
 	.owner = THIS_MODULE,
 };
 
+static const char *const luadevice_callbacks[] = {"open", "read", "write", "release", NULL};
+
 static int luadevice_new(lua_State *L)
 {
 	lunatik_object_t *object;
@@ -452,6 +456,7 @@ static int luadevice_new(lua_State *L)
 
 	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE); /* driver */
+	lunatik_checkcallbacks(L, 1, luadevice_callbacks);
 
 	lunatik_checkfield(L, 1, "name", LUA_TSTRING);
 	name = lua_tostring(L, -1);

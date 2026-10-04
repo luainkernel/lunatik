@@ -15,6 +15,7 @@ local kept
 local raised = false
 local posted = false
 local looked = false
+local armed  = false
 
 local function report(what)
 	print(PREFIX .. what)
@@ -55,7 +56,7 @@ end
 local answers = {pre = answered}
 
 local function lookup(_, key)
-	if key == "pre" and not looked then
+	if armed and key == "pre" and not looked then
 		looked = true
 		raise("lookup")
 	end
@@ -66,5 +67,6 @@ local target = systab["personality"]
 local handlers = {pre = pre, post = post}
 probe.new(target, handlers)
 probe.new(target, setmetatable({}, {__index = lookup}))
+armed = true -- probe.new looks pre up too, to refuse one that is not a function
 handlers.sentinel = setmetatable({}, {__gc = stale}) -- marked after the regs, so the close finalizes it first
 
