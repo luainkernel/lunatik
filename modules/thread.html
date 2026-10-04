@@ -227,8 +227,10 @@ return body
     Stops a running kernel thread.
  Signals the thread to stop and waits for it to exit. A body waiting for a runtime&rsquo;s lock,
  or for the lock a shared object&rsquo;s method takes, leaves that wait with &ldquo;EINTR&rdquo;. A
- to-be-closed variable holding the thread stops it the same way. A stop made while another
- stop of the same thread waits for it returns at once, before the thread has exited.
+ to-be-closed variable holding the thread stops it the same way, and so does the end of the
+ runtime that called <a href="../modules/thread.html#run">thread.run</a>, which keeps the thread until a stop called there, as
+ <a href="../modules/thread.html#run">thread.run</a> says. A stop made while another stop of the same thread waits for it returns at
+ once, before the thread has exited.
 
 
 
@@ -284,8 +286,9 @@ return body
     Creates and starts a new kernel thread to run a Lua task.
  The runtime must be sleepable; the script it loaded must return a function,
  which becomes the thread body, called with the objects given here. The thread holds a
- reference to the runtime until <a href="../modules/thread.html#thread:stop">stop</a> releases it or the thread is collected, even once its
- body has returned.
+ reference to the runtime until <a href="../modules/thread.html#thread:stop">stop</a>, or the end of the runtime that called <a href="../modules/thread.html#run">thread.run</a>,
+ releases it, even once its body has returned, so a runtime that keeps starting threads stops
+ each one whose body returned.
 
 
     <h3>Parameters</h3>
@@ -307,9 +310,10 @@ return body
     <ol>
 
            <span class="types"><a class="type" href="../modules/thread.html#thread">thread</a></span>
-         the thread, which this call does not keep: dropping it stops nothing, the
-   thread runs until its body returns or <a href="../modules/thread.html#thread:stop">stop</a>, and once the handle is collected nothing can
-   stop it.
+         the thread, which this call keeps for the runtime that calls it: dropping it
+   stops nothing, and the thread runs until its body returns, <a href="../modules/thread.html#thread:stop">stop</a> or the end of that runtime,
+   which stops it as <a href="../modules/thread.html#thread:stop">stop</a> does; an end made under the lock of the thread&rsquo;s runtime, as one the
+   thread&rsquo;s own body makes, leaves the thread to run until its body returns.
     </ol>
 
     <h3>Raises</h3>
@@ -368,7 +372,7 @@ return body
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 14:14:11</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 16:55:23</span>
 </div>
 </footer>
 </body>

@@ -588,9 +588,8 @@ reports.</li>
  The call blocks until a message arrives, with no timeout of its own, unless <code>flags</code> carries
  <code>linux.socket.msg.DONTWAIT</code> or <a href="../modules/socket.html#socket:setsockopt">setsockopt</a> set a receive timeout
  (<code>linux.socket.so.RCVTIMEO_NEW</code>); either makes a wait with nothing to read answer <code>nil</code>.
- A <code>lunatik stop</code> of the spawned thread that waits ends its wait, which raises <code>ERESTARTSYS</code>, or
- <code>EINTR</code> under a receive timeout; a thread nothing stops, as a worker a body starts with
- <code>thread.run()</code>, bounds every wait.
+ A stop of the thread that waits ends its wait, which raises <code>ERESTARTSYS</code>, or <code>EINTR</code> under a
+ receive timeout.
 
 
     <h3>Parameters</h3>
@@ -894,7 +893,7 @@ sock:<span class="function-name">setsockopt</span>(sk.sol.SOCKET, sk.so.RCVTIMEO
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 14:14:11</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 16:55:23</span>
 </div>
 </footer>
 </body>
