@@ -693,7 +693,7 @@ the smallest shape that keeps that purpose is the one taken: #1537 split `linux.
 functions to avoid a boolean that is the very value the call writes, and the RTNL a netdevice callback
 runs under grew a flag on the runtime, an error and a check in the core and refusals in `socket`,
 `netlink`, `thread` and a runtime's `stop`, before the maintainer asked for a softirq runtime, where
-nothing waits on RTNL, and removed them all.
+nothing waits on RTNL, and removed all but the two the replay inside the registration needs.
 
 * A module whose object is its own type constructs it with `.new`; a module of several types names a
   factory for each (`crypto.shash`, `bpf.hash`, `rcu.table`); a kernel registration takes the verb it
@@ -1128,6 +1128,14 @@ named, not one discovered at that consumer's build.
   a bad value anyway is a second reason, not the trace. A binding's Lua half establishes invariants
   the same way: where it guarantees a precondition, the C takes it, and what stays in C is the check
   whose absence crashes the kernel. That is what the split is for, and re-validating in C undoes it.
+  A context that makes a family of refusals unreachable removes those it covers, route by route, and
+  keeps the ones its rule leaves open: #1721 first moved `notifier.netdevice` to softirq and removed
+  `lunatik_checkrtnl` everywhere, the two refusals the replay inside the registration still needed
+  among them, then built a list that recorded the replay to deliver it off RTNL, and the maintainer
+  asked for the two checks back instead. A mechanism a removal makes necessary is the removal going
+  past what the trace showed. `guards.sh` counts the context checks, `lunatik_checkarmed`,
+  `lunatik_checkrtnl`, `lunatik_checkowner` and `lunatik_checkirqs`, so `guard-removed.sh` names one
+  a change drops.
 * A function's contract — that it only reads, that it never sleeps, what it returns — is read from its
   body, not inferred from its name or its place in a method table. `connmark` reads and writes through
   one overloaded method despite sitting among read-only accessors; calling it read-only from where it
@@ -1142,7 +1150,8 @@ named, not one discovered at that consumer's build.
   deferral of the callback to a worker, which cost the reaction at the event that the notifier exists
   for, and `kill` and `complete` drew deferred items of their own, until the maintainer asked why the
   callers were not refused instead: in a softirq runtime nothing sleeps, so nothing waits on RTNL, and
-  the rule the core already enforces closes the whole family.
+  the rule the core already enforces closes the family but for the replay the registration delivers,
+  where two checks of the core still refuse.
 * A prohibition and a capability are two things. Where the safe form of an operation needs a facility
   a later kernel adds, the binding refuses the operation where the facility is missing and uses it
   where it exists, behind a version guard, and does not reimplement it: a copy of the kernel's answer
