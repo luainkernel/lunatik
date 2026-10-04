@@ -315,9 +315,10 @@ REPL and the builds `status` and `reload` compare.
 
 - **wait**: `completion:wait` answers `true` for a completion signaled before
   it, with a timeout and with timeout 0, and `false`, alone, when the timeout
-  elapses first.
+  elapses first; a timeout outside 0 to 2^31 - 1 raises `out of bounds`.
 - **mailbox**: `mailbox:receive` answers `nil`, alone, when its wait elapses,
-  timeout 0 included, and the message a send queued before it; `mailbox:send`
+  timeout 0 included, and the message a send queued before it, and refuses a
+  timeout outside 0 to 2^31 - 1; `mailbox:send`
   answers `false` when the queue has no room for a message, which the receiver
   then never sees.
 - **stop**: the stop of a spawned thread interrupts its `completion:wait`,
@@ -717,7 +718,8 @@ after the watch is stopped.
   whose `#define` names another integer define is carried: the system calls
   `asm-generic/unistd.h` defines as their `__NR3264_` numbers, `mmap` among
   them, are in `linux.syscall.numbers`.
-- **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, and in
+- **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, refuses a
+  timeout outside 0 to 2^31 - 1 with `out of bounds` and takes 0, and in
   the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
   body, the armed state a hook calls from, each refuses with "not allowed once the runtime is
   armed". A build without the refusal sleeps under the armed runtime's spinlock, so the test skips

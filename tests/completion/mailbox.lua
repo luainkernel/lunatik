@@ -15,6 +15,9 @@ local TIMEOUT  <const> = 10 -- ms
 local MESSAGE  <const> = "hello"
 local QUEUED   <const> = string.packsize("T") + #MESSAGE -- a send queues the length, then the message
 
+-- past msecs_to_jiffies's unsigned int, which a build without the bound waits on, before one it reads as forever
+local refused <const> = {(1 << 32) | TIMEOUT, -1}
+
 local function nothing(inbox, timeout)
 	local answer = pack(inbox:receive(timeout))
 	assert(answer.n == 1 and answer[1] == nil,
@@ -25,6 +28,14 @@ test("mailbox:receive answers nil when the wait elapses", function()
 	local inbox = mailbox.inbox(CAPACITY)
 	nothing(inbox, TIMEOUT)
 	nothing(inbox, 0)
+end)
+
+test("mailbox:receive refuses a timeout outside 0 to 2^31 - 1", function()
+	local inbox = mailbox.inbox(CAPACITY)
+	for _, timeout in ipairs(refused) do
+		local ok, err = pcall(inbox.receive, inbox, timeout)
+		assert(not ok and err:find("out of bounds", 1, true), format("receive(%d) answered %s", timeout, tostring(err)))
+	end
 end)
 
 test("mailbox:receive answers a message sent before it", function()

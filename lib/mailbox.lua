@@ -109,12 +109,13 @@ local sizeoft = string.packsize("T")
 -- This function will block until a message is available or the timeout expires.
 -- Not available on outboxes.
 -- @function MailBox:receive
--- @tparam[opt] number timeout maximum time to wait in milliseconds.
---   If omitted or negative, waits indefinitely. If 0, returns immediately.
+-- @tparam[opt] number timeout maximum time to wait in milliseconds, from 0 to `2^31 - 1`.
+--   If omitted or nil, waits indefinitely. If 0, returns immediately.
 -- @treturn string|nil the message, or `nil` if the wait elapsed, timeout 0 on an empty mailbox
 --   included, or the event fired with the queue empty.
 -- @treturn integer the message's length, beside a message.
--- @raise "send-only mailbox" on an outbox; `ERESTARTSYS` when a signal or `thread:stop()`
+-- @raise "send-only mailbox" on an outbox; "out of bounds" for a timeout outside its range;
+--   `ERESTARTSYS` when a signal or `thread:stop()`
 --   interrupts the wait; "malformed message" on a truncated header; "runtime context mismatch"
 --   from a softirq or hardirq runtime.
 function MailBox:receive(timeout)
