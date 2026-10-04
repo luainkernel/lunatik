@@ -10,7 +10,9 @@
 # and a loop header a file spells twice is a foreach macro: #1504 and #1539 carried those.
 # A value a function computes before a check that raises and does not read it decides before
 # validating, and is computed after the checks: #1584's fifo:push spelled `bool fits` above
-# its lunatik_checkbounds until the maintainer asked why.
+# its lunatik_checkbounds until the maintainer asked why. A condition of three tests or more,
+# or one that runs onto the next line, is a predicate the file names: #1705's checksum() spelled
+# two until the maintainer asked for luaskb_iswhole4 and luaskb_iswhole6.
 # Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
 # guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -65,6 +67,12 @@ for file in "$@"; do
 			printf "%s:%d: a version a feature needs reads as that one release: \"kernel X.Y or later\"\n", f, NR
 		if (line ~ /\(pid_t\)[ \t]*luaL_(check|opt)integer\(/)
 			printf "%s:%d: a pid cast from luaL_checkinteger truncates before the kernel sees it: lunatik_checkinteger(L, ix, 1, PID_MAX_LIMIT), as socket.new bounds it\n", f, NR
+		if (line ~ /^(else )?(if|while) \(/) {
+			cond = line
+			joins = gsub(/\|\||&&/, "&", cond)
+			if (joins >= 2 || line ~ /(\|\||&&)[ \t]*\\?$/)
+				printf "%s:%d: a condition of three tests or more, or one that runs onto the next line, is a predicate: name it, in the is or has family\n", f, NR
+		}
 		if ($0 ~ /^static inline bool [a-z0-9_]*_(is|has)[a-z0-9_]*\(/) {
 			pred = NR
 			body = ""
