@@ -218,7 +218,7 @@ and the errno&rsquo;s name, <code>ENOENT</code> for a missing one.</p>
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-_VERSION">_VERSION</a>: is defined as <code>&quot;Lua 5.5-kernel&quot;</code>.
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-collectgarbage"><code>collectgarbage(&quot;count&quot;)</code></a>: returns the total memory in use by Lua in <strong>bytes</strong>, instead of <em>Kbytes</em>.
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a>: is defined as <code>&quot;/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua&quot;</code>.
-* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>: finds a Lua file on <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a>, or the opener <code>luaopen_&lt;name&gt;</code> a loaded Lunatik module exports; it <strong>cannot</strong> load kernel modules. The CLI loads every module the build produced, and <code>CONFIG_LUNATIK_&lt;NAME&gt; := n</code> in the Makefile leaves one out; requiring a C module that is not loaded raises an error naming <code>luaopen_&lt;name&gt; not found in kernel symbol table</code>.
+* <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>: finds the opener <code>luaopen_&lt;name&gt;</code> a loaded Lunatik module exports, and then a Lua file on <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a>, so a file named like a binding does not shadow it; it <strong>cannot</strong> load kernel modules. The CLI loads every module the build produced, and <code>CONFIG_LUNATIK_&lt;NAME&gt; := n</code> in the Makefile leaves one out; requiring a C module that is not loaded raises an error naming <code>luaopen_&lt;name&gt; not found in kernel symbol table</code>.
 * <a href="https://www.lua.org/manual/5.5/manual.html#pdf-print">print</a>: writes to the kernel log (<code>dmesg -w</code> or <code>journalctl -k -f</code>), not to a terminal, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-warn">warn</a> writes there too, as <code>Lua warning: &lt;message&gt;</code> at <code>KERN_ERR</code>. The REPL and <code>-e</code> bring back only what a chunk returns.</p>
 
 <p>Lunatik <strong>adds</strong> the global <code>_LUNATIK_VERSION</code>, the Lunatik release.</p>
@@ -243,6 +243,18 @@ interrupt stack is bounded from its entry alone.</p>
 position capture <code>()</code> and each item with <code>?</code>, <code>*</code>, <code>+</code> or <code>-</code> that matches one more. Past it,
 <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.find">string.find</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.match">string.match</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.gmatch">string.gmatch</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.gsub">string.gsub</a> raise <code>pattern too complex</code>.</p>
 
+<p><a name="Reserved_names"></a></p>
+
+<h2 id="reserved-names">Reserved names</h2>
+
+<p>Scripts and the modules they require share one root, <code>/lib/modules/lua/</code>, whose top-level names are
+Lunatik&rsquo;s: the top-level name of every module this reference documents, a binding such as <a href="../modules/socket.html#">socket</a> or
+a Lua library such as <a href="../modules/util.html#">util</a>; <a href="../modules/lunatik.html#">lunatik</a>, <a href="../modules/linux.html#">linux</a>, <code>examples</code> and <code>tests</code>, which hold the runtime&rsquo;s own
+scripts, the <code>linux.*</code> constants, the examples and the test suites; and <code>light</code>, the key <a href="../modules/lighten.html#">lighten</a>
+requires, which the user supplies. A binding&rsquo;s name followed by a hyphen, <code>socket-&lt;x&gt;</code>, is the
+binding&rsquo;s as well: <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> loads <code>luaopen_socket</code> for it. A product&rsquo;s scripts live in a directory
+of their own, <code>/lib/modules/lua/&lt;product&gt;/</code>, and run as <code>&lt;product&gt;/&lt;script&gt;</code>.</p>
+
 <p><a name="Softirq_and_hardirq_runtimes"></a></p>
 
 <h2 id="softirq-and-hardirq-runtimes">Softirq and hardirq runtimes</h2>
@@ -251,9 +263,10 @@ position capture <code>()</code> and each item with <code>?</code>, <code>*</cod
 <code>&apos;io&apos;: process-context class in interrupt-context runtime</code>, and the <a href="../modules/lunatik.html#">lunatik</a> table holds only
 <code>cpu()</code> and <code>_ENV</code>, so <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> and <a href="../modules/lunatik.html#percpu">lunatik.percpu</a> are absent. A Lua library is required
 at the top level of the script, since opening a file sleeps: once the runtime is armed, a <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>
-of a module the body did not load,
+of a Lua library the body did not load,
 <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath">package.searchpath</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-dofile">dofile</a>
-raise <code>not allowed once the runtime is armed</code>, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-loadfile">loadfile</a> returns it as its error.</p>
+raise <code>not allowed once the runtime is armed</code>, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-loadfile">loadfile</a> returns it as its error. A binding is
+found in the kernel symbol table, so a hook may require one the body did not load.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/03-percpu.md.html"><span>Previous</span>Per-CPU scripts</a>
     <a class="next" href="../topics/05-examples.md.html"><span>Next</span>Examples</a>
@@ -271,7 +284,7 @@ raise <code>not allowed once the runtime is armed</code>, and <a href="https://w
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 17:00:49</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 17:02:10</span>
 </div>
 </footer>
 </body>

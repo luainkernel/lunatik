@@ -181,7 +181,7 @@
  using the <a href="../modules/darken.html#">darken</a> C module.</p>
 
 <p> The key is the module <code>light</code>, <code>/lib/modules/lua/light.lua</code>, which returns the hex-encoded
- 32-byte key; without it, <code>require(&quot;lighten&quot;)</code> raises &ldquo;error loading module &lsquo;light&rsquo; from file &lsquo;light&rsquo;&rdquo;.
+ 32-byte key; without it, <code>require(&quot;lighten&quot;)</code> raises &ldquo;module &lsquo;light&rsquo; not found&rdquo;.
  <code>tools/shade.sh darken [-s &lt;secret&gt;] &lt;script&gt;.lua</code> encrypts a script into <code>&lt;script&gt;.dark.lua</code>,
  which calls <a href="../modules/lighten.html#run">lighten.run</a>, and prints the secret, 64 hex characters;
  <code>tools/shade.sh lighten &lt;secret&gt;</code> writes <code>light.lua</code> from it. With <code>-t</code> both derive the key from
@@ -254,7 +254,7 @@ sudo lunatik run hello.dark
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 17:00:49</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 17:02:10</span>
 </div>
 </footer>
 </body>

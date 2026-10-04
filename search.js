@@ -492,6 +492,7 @@ window.LUNATIK_SEARCH = [
 ["Lua in the kernel","topics/04-lua.md.html","Guide"],
 ["Floating-point numbers","topics/04-lua.md.html#floating-point-numbers","Guide · Lua in the kernel"],
 ["Lua API","topics/04-lua.md.html#lua-api","Guide · Lua in the kernel"],
+["Reserved names","topics/04-lua.md.html#reserved-names","Guide · Lua in the kernel"],
 ["Softirq and hardirq runtimes","topics/04-lua.md.html#softirq-and-hardirq-runtimes","Guide · Lua in the kernel"],
 ["Examples","topics/05-examples.md.html","Guide"],
 ["Packet filtering and classification","topics/05-examples.md.html#packet-filtering-and-classification","Guide · Examples"],
