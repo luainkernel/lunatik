@@ -1073,6 +1073,12 @@ from a pid namespace other than the initial one, whose pids are not the ones
   `/proc/kallsyms`. Stopping the script leaves `luanotifier`'s use count as it
   was.
 
+- **code**: a netdevice callback's return reaches the chain only when it is a
+  `linux.notify` code. A number past the codes, 5000, which `notifier_to_errno`
+  would turn into an errno past `MAX_ERRNO`, `notify.BAD` spelled as a string,
+  one past `notify.BAD` and -1 each let a dummy device register and log
+  `invalid notify code`, and `notify.BAD` still vetoes one.
+
 - **chain_continues**: a netdevice block whose runtime is being torn down
   returns `notify.DONE`, not the `-ENXIO` of `lunatik_run`, whose
   `NOTIFY_STOP_MASK` bit stopped the chain: a device created while one

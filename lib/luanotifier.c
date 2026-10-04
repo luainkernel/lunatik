@@ -8,10 +8,11 @@
 * This library allows Lua scripts to register callback functions that are
 * invoked when specific kernel events occur, such as keyboard input,
 * network device status changes, or virtual terminal events.
-* A callback returns a `linux.notify` code; anything else, a callback that
-* raises, which is logged, and an event that reaches a runtime not ready to take
-* it, or that the runtime's own code raises from under its lock, counts as
-* `notify.DONE`.
+* A callback returns a `linux.notify` code. No value, a callback that raises,
+* which is logged, and an event that reaches a runtime not ready to take it, or
+* that the runtime's own code raises from under its lock, count as
+* `notify.DONE`, and so does any other value, which is logged as `invalid notify
+* code`.
 *
 * @module notifier
 */
@@ -62,6 +63,9 @@ typedef struct luanotifier_ctx_s {
 	int ret;
 } luanotifier_ctx_t;
 
+#define luanotifier_iscode(r)	(((r) >= NOTIFY_DONE && (r) <= NOTIFY_OK) || \
+				 ((r) >= NOTIFY_STOP_MASK && (r) <= NOTIFY_BAD))
+
 static int luanotifier_docall(lua_State *L)
 {
 	luanotifier_ctx_t *ctx = lua_touserdata(L, 1);
@@ -74,7 +78,11 @@ static int luanotifier_docall(lua_State *L)
 
 	int nargs = notifier->handler(L, ctx->event, ctx->data);
 	lua_call(L, nargs + 1, 1); /* callback(event, ...) */
-	ctx->ret = lua_tointeger(L, -1);
+	lua_Integer ret = lua_tointeger(L, -1);
+	if (lua_type(L, -1) == LUA_TNUMBER && luanotifier_iscode(ret))
+		ctx->ret = (int)ret;
+	else if (!lua_isnil(L, -1))
+		pr_err_ratelimited("invalid notify code\n");
 	return 0;
 }
 
@@ -90,7 +98,7 @@ static int luanotifier_call(struct notifier_block *nb, unsigned long event, void
 		lunatik_run(notifier->runtime, lunatik_catch, ret, luanotifier_docall, &ctx, "callback");
 
 	(void)ret; /* not ready, under its own lock or raised: the callback returned nothing */
-	return max(ctx.ret, NOTIFY_DONE); /* a negative return would set NOTIFY_STOP_MASK */
+	return ctx.ret;
 }
 
 static void luanotifier_release(void *private)
