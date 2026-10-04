@@ -225,8 +225,10 @@ signal.kill(1234, sig.TERM)
     </ol>
 
     <h3>Raises</h3>
-    Error if the pid or the signal is out of bounds. The signal is sent with the kernel&rsquo;s
-   privilege, so no permission check applies.
+     Error if the pid or the signal is out of bounds, and &ldquo;not allowed with IRQs disabled&rdquo;
+   when called with IRQs disabled, as in every callback of a hardirq runtime, a probe&rsquo;s handlers
+   among them, where the CPU may already hold a lock the signal takes. The signal is sent with the
+   kernel&rsquo;s privilege, so no permission check applies.
 
 
 
@@ -246,7 +248,7 @@ signal.kill(1234, sig.TERM)
 <div>
 <span><a href="https://www.paypal.com/donate/?hosted_button_id=CM4ETXNAA8T68">Donate</a> through PayPal and write Lunatik in the note</span>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 13:23:29</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 13:31:10</span>
 </div>
 </footer>
 </body>

@@ -544,6 +544,7 @@ window.LUNATIK_SEARCH = [
 ["lunatik_checkclosing","topics/capi.md.html#lunatik_checkclosing","Guide · Lunatik C API"],
 ["lunatik_checkrtnl","topics/capi.md.html#lunatik_checkrtnl","Guide · Lunatik C API"],
 ["lunatik_checkowner","topics/capi.md.html#lunatik_checkowner","Guide · Lunatik C API"],
+["lunatik_checkirqs","topics/capi.md.html#lunatik_checkirqs","Guide · Lunatik C API"],
 ["lunatik_percpudata","topics/capi.md.html#lunatik_percpudata","Guide · Lunatik C API"],
 ["LUNATIK_PERCPUDATA (macro)","topics/capi.md.html#lunatik_percpudata-macro","Guide · Lunatik C API"],
 ["lunatik_getpercpu","topics/capi.md.html#lunatik_getpercpu","Guide · Lunatik C API"],
