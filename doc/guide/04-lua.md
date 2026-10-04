@@ -77,11 +77,12 @@ of their own, `/lib/modules/lua/<product>/`, and run as `<product>/<script>`.
 
 In a runtime created in softirq or hardirq context, `io` is nil, `require("io")` raises
 `'io': process-context class in interrupt-context runtime`, and the `lunatik` table holds only
-`cpu()` and `_ENV`, so `lunatik.runtime` and `lunatik.percpu` are absent. A Lua library is required
-at the top level of the script, since opening a file sleeps: once the runtime is armed, a `require`
-of a Lua library the body did not load,
+`cpu()` and `_ENV`, so `lunatik.runtime` and `lunatik.percpu` are absent. A module is required at
+the top level of the script, since opening a Lua library's file sleeps and loading a binding takes
+a reference on its kernel module that an atomic allocation failing after it would leak: once the
+runtime is armed, a `require` of a binding or a Lua library the body did not load,
+[package.loadlib](https://www.lua.org/manual/5.5/manual.html#pdf-package.loadlib),
 [package.searchpath](https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath) and `dofile`
-raise `not allowed once the runtime is armed`, and `loadfile` returns it as its error. A binding is
-found in the kernel symbol table, so a hook may require one the body did not load.
+raise `not allowed once the runtime is armed`, and `loadfile` returns it as its error.
 
 

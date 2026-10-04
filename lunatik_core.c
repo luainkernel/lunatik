@@ -292,17 +292,26 @@ static void lunatik_ordersearchers(lua_State *L)
 	lua_pop(L, 2); /* searchers and package */
 }
 
-static void lunatik_guardpackage(lua_State *L) /* the entries that reach readable(), which opens a file */
+static void lunatik_guardpackage(lua_State *L)
 {
+	/* the entries that open a file or load a binding, as the searchers below do */
+	static const char *const fields[] = {"searchpath", "loadlib", NULL};
+	const char *const *field;
+	int ix;
+
 	lua_getglobal(L, LUA_LOADLIBNAME);
-	lua_getfield(L, -1, "searchpath");
-	lua_pushcclosure(L, lunatik_callsleepable, 1);
-	lua_setfield(L, -2, "searchpath");
+	for (field = fields; *field != NULL; field++) {
+		lua_getfield(L, -1, *field);
+		lua_pushcclosure(L, lunatik_callsleepable, 1);
+		lua_setfield(L, -2, *field);
+	}
 
 	lua_getfield(L, -1, "searchers");
-	lua_rawgeti(L, -1, LUNATIK_SEARCHER_LUA);
-	lua_pushcclosure(L, lunatik_callsleepable, 1);
-	lua_rawseti(L, -2, LUNATIK_SEARCHER_LUA);
+	for (ix = LUNATIK_SEARCHER_C; ix <= LUNATIK_SEARCHER_LUA; ix++) {
+		lua_rawgeti(L, -1, ix);
+		lua_pushcclosure(L, lunatik_callsleepable, 1);
+		lua_rawseti(L, -2, ix);
+	}
 	lua_pop(L, 2); /* searchers and package */
 }
 

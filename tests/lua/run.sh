@@ -17,14 +17,15 @@
 # require:     a require finds a binding before a Lua file of its name,
 #              device.lua in this directory. A softirq and a hardirq runtime
 #              resumed past their body, the armed state a hook calls from,
-#              get back a module the body loaded, find a binding the body did
-#              not load, and are refused a require that would search
-#              package.path, and package.searchpath, with "not allowed once
-#              the runtime is armed", since opening a file sleeps; the body
-#              allows both. The body empties package.path, so a build without
-#              the refusal opens no file from the callback and answers "not
-#              found" there, as the body's own require does. The body and
-#              the callback are refused require("io") with "'io':
+#              get back a module the body loaded and are refused, with "not
+#              allowed once the runtime is armed", a require of a binding or
+#              of a Lua library the body did not load, package.loadlib and
+#              package.searchpath, since opening a file sleeps and loading a
+#              binding takes a module reference an atomic allocation can
+#              leak; the body allows them. The body empties package.path, so a
+#              build without the refusal opens no file from the callback and
+#              answers "not found" there, as the body's own require does. The
+#              body and the callback are refused require("io") with "'io':
 #              process-context class in interrupt-context runtime"; without
 #              that refusal the body of a module build answers "not found"
 #              and that of a built-in one gets io. The callback's loadfile
