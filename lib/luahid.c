@@ -346,8 +346,9 @@ static int luahid_raw_event(struct hid_device *hdev, struct hid_report *report, 
 *     and handed to every later callback of the device, and `id` is the matching entry, with
 *     `bus`, `group`, `vendor`, `product` and `driver_data`. Returning a negative errno,
 *     `-errno.ENODEV` say, with `linux.errno`, fails the probe with it; an error, or a
-*     return that is neither nothing, zero nor an errno, logged as `invalid errno`, fails
-*     it with `ECANCELED`.
+*     return that is neither nothing, zero nor an errno a user program is given, the
+*     kernel's own from `ERESTARTSYS` on, logged as `invalid errno`, fails it with
+*     `ECANCELED`.
 *   - `report_fixup(driver, hdev, rdesc)`: `rdesc` is a `data` over the report
 *     descriptor, edited in place, of fixed size and valid only during the call.
 *   - `raw_event(driver, hdev, report, raw)`: `raw` is a `data` over the report, edited

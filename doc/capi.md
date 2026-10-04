@@ -354,7 +354,8 @@ failed, as `read` does in the example of `lunatik_run`.
 int lunatik_opterrno(lua_State *L, int ix);
 ```
 Returns the errno a callback answered with at `ix`: `0` for nil or none, and the value itself for an
-integer from `-MAX_ERRNO` to `0`; any other value raises `invalid errno`, which
+integer from `-MAX_ERRNO` to `0` outside the kernel's own block, `-ERESTARTSYS` to `-ENOGRACE`, which
+include/linux/errno.h keeps from user programs; any other value raises `invalid errno`, which
 [`lunatik_catch`](#lunatik_catch) turns into `-ECANCELED`. A binding whose callback fails an operation
 the kernel asked for by returning a negative errno reads that return through it, in the `f` it gives
 `lunatik_catch`, and hands the result to the kernel.

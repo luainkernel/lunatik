@@ -330,11 +330,14 @@ static inline int lunatik_catch(lua_State *L, lua_CFunction f, void *ud, const c
 	return 0;
 }
 
+#define lunatik_isinternalerrno(e)	((e) <= -ERESTARTSYS && (e) >= -ENOGRACE)
+#define lunatik_iserrno(e)		((e) <= 0 && (e) >= -MAX_ERRNO && !lunatik_isinternalerrno(e))
+
 static inline int lunatik_opterrno(lua_State *L, int ix)
 {
 	lua_Integer err = lua_tointeger(L, ix);
 
-	if (!lua_isnoneornil(L, ix) && (lua_type(L, ix) != LUA_TNUMBER || err > 0 || err < -MAX_ERRNO))
+	if (!lua_isnoneornil(L, ix) && (lua_type(L, ix) != LUA_TNUMBER || !lunatik_iserrno(err)))
 		luaL_error(L, "invalid errno");
 	return (int)err;
 }

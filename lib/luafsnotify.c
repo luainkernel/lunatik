@@ -26,7 +26,9 @@
 * A permission event parks the syscall in the callback and takes its return
 * value as the answer: `fsnotify.action.ALLOW` lets the access happen,
 * `fsnotify.action.DENY` fails it with `EPERM`, and any other negative errno
-* fails it with that errno. Anything else allows, a callback that returns
+* fails it with that errno, but for the kernel's own, from `ERESTARTSYS` on,
+* which no user program is given: those allow and log `invalid errno`.
+* Anything else allows, a callback that returns
 * nothing or raises included, so a rule that fails, or forgets to answer,
 * takes nothing away. An exec asks twice, `OPEN_EXEC_PERM` and then
 * `OPEN_PERM`, each through the marks that carry it, and a denial on the
@@ -126,6 +128,10 @@ static inline int luafsnotify_toverdict(lua_State *L)
 	/* lua_tointeger would convert a string, e.g. "-1" */
 	lua_Integer verdict = lua_type(L, -1) == LUA_TNUMBER ? lua_tointeger(L, -1) : LUAFSNOTIFY_ALLOW;
 
+	if (lunatik_isinternalerrno(verdict)) {
+		pr_err_ratelimited("invalid errno\n");
+		return LUAFSNOTIFY_ALLOW;
+	}
 	return IS_ERR_VALUE(verdict) ? (int)verdict : LUAFSNOTIFY_ALLOW;
 }
 

@@ -9,7 +9,7 @@
 
 DIR="$(dirname "$(readlink -f "$0")")"
 TESTS="open nomask child kinds mask marks vanished inside raise identity overlap expired reentrancy thread lifetime context\
-	allow deny default exec access error sleep upgrade directory fsmonitor execguard"
+	allow deny default exec access error internal sleep upgrade directory fsmonitor execguard"
 FAILED=0
 
 source "$DIR/../lib.sh"

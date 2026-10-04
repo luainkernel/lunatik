@@ -11,9 +11,10 @@ local CONTENT <const> = "returns"
 local BAD     <const> = "end"
 local RAISED  <const> = "raised"
 
-local SEP       <const> = ","
-local SHORT     <const> = 1
-local MAX_ERRNO <const> = 4095 -- include/linux/err.h
+local SEP         <const> = ","
+local SHORT       <const> = 1
+local MAX_ERRNO   <const> = 4095 -- include/linux/err.h
+local EIOCBQUEUED <const> = 529  -- include/linux/errno.h, kept from user programs
 
 local offset = {name = "lunatik_offset"}
 local length = {name = "lunatik_length"}
@@ -26,6 +27,7 @@ local ended     = {name = "lunatik_ended"}
 local unnegated = {name = "lunatik_unnegated"}
 local notnumber = {name = "lunatik_notnumber"}
 local invalid   = {name = "lunatik_invalid"}
+local internal  = {name = "lunatik_internal"}
 local short     = {name = "lunatik_short"}
 local written   = {}
 
@@ -98,6 +100,10 @@ function invalid:write()
 	return -(MAX_ERRNO + 1)
 end
 
+function internal:read()
+	return -EIOCBQUEUED
+end
+
 function short:write(buf)
 	table.insert(written, buf)
 	return SHORT
@@ -117,5 +123,6 @@ device.new(ended)
 device.new(unnegated)
 device.new(notnumber)
 device.new(invalid)
+device.new(internal)
 device.new(short)
 
