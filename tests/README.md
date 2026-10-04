@@ -935,8 +935,9 @@ higher-level `netlink.*` modules built on top of it.
 - **link_netns**: the pid a session takes (`socket.new`'s fourth argument):
   `rt.link()` without one lists the initial namespace, `lo` and not the dummy
   device the test put in a namespace of its own; `rt.link(pid)` with the pid of
-  a process kept there lists that dummy; the pid of a reaped process raises
-  `ESRCH`, a pid out of range raises, and so does a protocol past `MAX_LINKS`
+  a process kept there lists that dummy; the pid of a reaped process answers
+  `nil` and `ESRCH`, from `socket.new`, `rt.link` and `nl80211.interface`, a
+  pid out of range raises, and so does a protocol past `MAX_LINKS`
   in that namespace. The script then kills the process, the last task in a
   namespace whose name the test already deleted, and lists the dummy again
   through the session it holds: the socket keeps its namespace alive. Once the

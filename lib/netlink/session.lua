@@ -97,13 +97,17 @@ end
 -- Creates a session backed by an `AF_NETLINK` socket of the class's `proto`.
 -- @tparam[opt] integer pid a task whose network namespace the session talks to, as `socket.new` takes
 --   it; the initial network namespace when absent.
--- @treturn session a new session object.
--- @raise `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel whose sockets cannot hold a
---   namespace of their own.
+-- @treturn session a new session object; `nil` and `"ESRCH"` if no task has that pid, or the task
+--   has exited.
+-- @raise `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace of their own.
 -- @see socket.new
 function session:__call(pid)
+	local sock, err = socket.new(sk.af.NETLINK, sk.sock.RAW, self.proto, pid)
+	if sock == nil then
+		return nil, err
+	end
 	local o = self:new()
-	o.socket = socket.new(sk.af.NETLINK, sk.sock.RAW, self.proto, pid)
+	o.socket = sock
 	o.sequence = 0
 	return o
 end

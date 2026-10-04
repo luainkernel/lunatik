@@ -60,9 +60,9 @@ end
 -- @function link:__call
 -- @tparam[opt] integer pid a task whose network namespace the session talks to, as `socket.new`
 --   takes it; the initial network namespace when absent.
--- @treturn link a new link object.
--- @raise `ESRCH` if no task has that pid, or `EOPNOTSUPP` on a kernel whose sockets cannot hold a
---   namespace of their own.
+-- @treturn link a new link object; `nil` and `"ESRCH"` if no task has that pid, or the task
+--   has exited.
+-- @raise `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace of their own.
 -- @see netlink.session
 
 ---

@@ -20,7 +20,7 @@
 # The script runs from a CLI in a pid namespace of its own, which does not hold
 # the holder's pid: socket.new reads a pid in the initial pid namespace, as
 # task:pid() returns it, whichever task makes the call, and a module that reads
-# it in the caller's raises ESRCH on the holder. The shell has to run in the
+# it in the caller's answers nil and ESRCH for the holder. The shell has to run in the
 # initial pid namespace, the only one whose pids are the ones socket.new and
 # signal.kill read, and the test skips elsewhere or without pid namespaces.
 #

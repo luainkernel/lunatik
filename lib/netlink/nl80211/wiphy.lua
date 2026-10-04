@@ -44,9 +44,10 @@ end
 -- @function wiphy:__call
 -- @tparam[opt] integer pid a task whose network namespace the object reaches, which holds the wiphys
 --   and interfaces nl80211 answers for; the initial network namespace when absent.
--- @treturn wiphy a new wiphy object.
--- @raise `ESRCH` if no task has that pid, `EOPNOTSUPP` on a kernel whose sockets cannot hold a
---   namespace of their own, or `ENOENT` when the nl80211 family is not registered.
+-- @treturn wiphy a new wiphy object; `nil` and `"ESRCH"` if no task has that pid, or the task
+--   has exited.
+-- @raise `EOPNOTSUPP` on a kernel whose sockets cannot hold a namespace of their own, or `ENOENT`
+--   when the nl80211 family is not registered.
 -- @see netlink.session
 
 ---

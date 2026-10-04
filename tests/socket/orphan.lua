@@ -26,19 +26,16 @@ local function tcpsocket()
 end
 
 local function reachable()
-	local ok, probe = pcall(tcpsocket)
-	if ok then
-		probe:close()
-	end
-	return ok
+	local probe <close> = tcpsocket()
+	return probe ~= nil
 end
 
-local ok, listener = pcall(tcpsocket)
+local ok, listener, err = pcall(tcpsocket)
 if not ok and listener == "EOPNOTSUPP" then
 	say("a task's namespace is refused: EOPNOTSUPP")
 	return
 end
-assert(ok, "a socket in the holder's namespace was refused: " .. tostring(listener))
+assert(ok and listener ~= nil, "a socket in the holder's namespace was refused: " .. tostring(err or listener))
 listener:bind(LOOPBACK, PORT)
 listener:listen(BACKLOG)
 

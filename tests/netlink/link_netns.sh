@@ -6,8 +6,9 @@
 # Tests the pid a netlink session takes: rt.link() without one lists the links
 # of the initial network namespace; with the pid of a process in a namespace of
 # the test's own it lists that namespace's, where the test put a dummy device
-# the initial namespace does not have; the pid of a reaped process raises ESRCH,
-# a pid out of range raises and so does a socket the kernel refuses to create
+# the initial namespace does not have; the pid of a reaped process answers nil
+# and ESRCH, from socket.new, rt.link and nl80211.interface, whose session adds
+# a family lookup to the socket; a pid out of range raises and so does a socket the kernel refuses to create
 # there. Then the script kills that process, the last task in the namespace,
 # whose name the test already deleted, and lists the device again through the
 # session it still holds: the socket keeps its namespace alive. Once the script
@@ -76,8 +77,8 @@ fi
 dmesg | grep -q "netlink link_netns: holder's namespace lists $DEV" || fail "the holder's pid did not reach its namespace"
 ktap_pass "rt.link(pid) lists the namespace of that pid"
 
-dmesg | grep -q "netlink link_netns: reaped pid raises ESRCH" || fail "a reaped pid did not raise ESRCH"
-ktap_pass "rt.link(pid) raises ESRCH for a pid no task has"
+dmesg | grep -q "netlink link_netns: reaped pid answers nil and ESRCH" || fail "a reaped pid did not answer ESRCH"
+ktap_pass "socket.new and the netlink sessions answer nil and ESRCH for a pid no task has"
 
 dmesg | grep -q "netlink link_netns: pid out of range and refused socket raise" || fail "a bad pid or socket did not raise"
 ktap_pass "socket.new raises on a pid out of range and on a socket refused in the namespace"
