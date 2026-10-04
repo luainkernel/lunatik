@@ -692,8 +692,8 @@ multiplies names or threads a mechanism through the core is read again for what 
 the smallest shape that keeps that purpose is the one taken: #1537 split `linux.tracing` into three
 functions to avoid a boolean that is the very value the call writes, and the RTNL a netdevice callback
 runs under grew a flag on the runtime, an error and a check in the core and refusals in `socket`,
-`netlink`, `thread` and a runtime's `stop`, before the maintainer chose to defer the callback off RTNL
-and remove them all.
+`netlink`, `thread` and a runtime's `stop`, before the maintainer asked for a softirq runtime, where
+nothing waits on RTNL, and removed them all.
 
 * A module whose object is its own type constructs it with `.new`; a module of several types names a
   factory for each (`crypto.shash`, `bpf.hash`, `rcu.table`); a kernel registration takes the verb it
@@ -1135,6 +1135,20 @@ named, not one discovered at that consumer's build.
 * Refusing is a legitimate outcome. When a combination has no sound semantics yet, refuse it where it
   is registered, with an error that names the reason, rather than shipping an approximation. Lifting
   the refusal afterwards is one line and a test.
+* A hazard is refused before it is engineered around. Where a context makes an operation unsafe, the
+  operation is refused in that context, and a context is made where none names it yet; a deferral, a
+  queue or a worker that keeps the unsafe call working buys a capability, and is weighed as one against
+  the refusal that makes the hazard unreachable. The RTNL a netdevice callback runs under drew a
+  deferral of the callback to a worker, which cost the reaction at the event that the notifier exists
+  for, and `kill` and `complete` drew deferred items of their own, until the maintainer asked why the
+  callers were not refused instead: in a softirq runtime nothing sleeps, so nothing waits on RTNL, and
+  the rule the core already enforces closes the whole family.
+* A prohibition and a capability are two things. Where the safe form of an operation needs a facility
+  a later kernel adds, the binding refuses the operation where the facility is missing and uses it
+  where it exists, behind a version guard, and does not reimplement it: a copy of the kernel's answer
+  written here is a mechanism every later change serves, and it outlives the releases it was written
+  for. `print` under the runqueue lock is refused, not buffered and flushed from a worker, since no
+  release through 6.17 exports `printk_deferred` to modules.
 * A guard keys on a property that is true by construction where it is enforced, never on a proxy that
   merely correlates. That a registration is global is such a property. A netfilter hook number is not:
   the same hook runs in softirq or in process context depending on the path the packet took.
