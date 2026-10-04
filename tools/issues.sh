@@ -1,11 +1,12 @@
 #!/bin/bash
 # Reports the issues an epic tracks as GitHub has them, so what a merge closed is read rather
-# than remembered: the epic and each issue whose body says it is part of it, its state, and the
-# pull requests whose body names it, open or merged, with what each body does to it. An issue
-# closes, and its card on the project board moves with it, only when a merged pull request
-# closes it with a keyword or someone closes it by hand, so this flags an open issue a merged
-# pull request names, and a merged pull request tied to an issue in the words pr-body.sh reads
-# that closes none and does not say which it leaves open (tools/checks/closing.sh has the forms).
+# than remembered: the epic and each issue whose body says it is part of it or that the epic's
+# task list names, `- [ ] #N`, its state, and the pull requests whose body names it, open or
+# merged, with what each body does to it. An issue closes, and its card on the project board
+# moves with it, only when a merged pull request closes it with a keyword or someone closes it
+# by hand, so this flags an open issue a merged pull request names, and a merged pull request
+# tied to an issue in the words pr-body.sh reads that closes none and does not say which it
+# leaves open (tools/checks/closing.sh has the forms).
 #
 # Usage: GH_TOKEN=... bash tools/issues.sh <epic number>
 
@@ -15,14 +16,21 @@ repo=${LUNATIK_REPO:-luainkernel/lunatik}
 epic=$1
 [ -n "$epic" ] || { echo "usage: $0 <epic number>"; exit 1; }
 
-# the epic, then the issues whose body says they are part of it: number, state, title
+# the epic, then the issues whose body says they are part of it or that its task list names:
+# number, state, title
 members() {
 	gh api "repos/$repo/issues/$epic" -q '[.number, .state, .title] | @tsv'
-	gh api --paginate "repos/$repo/issues/$epic/timeline?per_page=100" -q "
-		.[] | select(.event == \"cross-referenced\") | .source.issue
-		| select(.pull_request == null and .repository.full_name == \"$repo\")
-		| select((.body // \"\") | test(\"Part of[^.#]*#$epic([^0-9]|\$)\"))
-		| [.number, .state, .title] | @tsv" | sort -un
+	{
+		gh api --paginate "repos/$repo/issues/$epic/timeline?per_page=100" -q "
+			.[] | select(.event == \"cross-referenced\") | .source.issue
+			| select(.pull_request == null and .repository.full_name == \"$repo\")
+			| select((.body // \"\") | test(\"Part of[^.#]*#$epic([^0-9]|\$)\"))
+			| [.number, .state, .title] | @tsv"
+		gh api "repos/$repo/issues/$epic" -q '.body // ""' | tr -d '\r' |
+			sed -n 's/^[[:space:]]*[-*] \[[ xX]\] #\([0-9][0-9]*\).*/\1/p' | while read -r n; do
+				gh api "repos/$repo/issues/$n" -q 'select(.pull_request == null) | [.number, .state, .title] | @tsv'
+			done
+	} | sort -un
 }
 
 # the pull requests whose body names issue $1: number, state, and what the body does to it

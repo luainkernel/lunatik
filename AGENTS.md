@@ -445,9 +445,10 @@ had no second reader. Which pull requests are open, reviewed or ready is read fr
 a list called ready was assembled from memory here and was wrong on two of three.
 
 `tools/issues.sh <epic>` prints the issues an epic tracks as GitHub has them: the epic and each issue
-whose body says it is part of it, its state, and the pull requests whose body names it with what each
-does to it, flagging an open issue a merged pull request names and a merged pull request that closes
-none. An issue closes, and its card on the project board moves to Done, only when a merged pull request
+whose body says it is part of it or that the epic's task list names, its state, and the pull
+requests whose body names it with what each does to it, flagging an open issue a merged pull
+request names and a merged pull request that closes none. An issue closes, and its card on the
+project board moves to Done, only when a merged pull request
 says `Closes #N` or someone closes it by hand: the ten pull requests of the fsnotify stack said they
 were part of #657 and answered its phases, and #659 to #664 stayed open on Todo after every one of
 them merged, as #1001 did after #1005. A pull request that finishes a phase carries `Closes #<phase
@@ -456,6 +457,9 @@ that says Part of, Top of, Bottom of, Answers or reported as and does neither. A
 reports a merge, the session runs `tools/issues.sh` over the epic, closes what the merge finished and
 GitHub left open, an issue the pull request only named or an epic whose issues are all closed, and
 hands him in the same message what closed and what stays open; the board moves a card with its issue.
+What a release still lacks is read from the same report: #1279 sat in #1292's task list with a body
+that named no epic, the tool read only the bodies, and the answer to what v5.0 still needed left it
+out until the epic was read for its closing.
 
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments on a
