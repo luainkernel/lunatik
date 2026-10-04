@@ -15,6 +15,12 @@
 # runs against carries the refusal: the bound is inline, so no symbol of its own
 # is in /proc/kallsyms, and the message is what the installed luacpu.ko has.
 #
+# offline: cpu.stats() answers nil for a possible CPU that is not online, which
+# hotplug can take away between cpu.online() and the call, where a raise would
+# end the loop of a sampler such as examples/cpuexporter. It skips on a host
+# whose possible CPUs are all online, since taking one away there would disturb
+# whatever else runs on it.
+#
 # ids: cpu.possible(), cpu.present() and cpu.online() each yield their CPUs in
 # ascending order, as many as cpu.num_possible(), cpu.num_present() and
 # cpu.num_online() count, and the step they return refuses an id outside
@@ -31,7 +37,9 @@ REFUSAL="out of bounds"
 
 source "$DIR/../lib.sh"
 
-TESTS="stats ids"
+TESTS="stats ids offline"
+POSSIBLE=/sys/devices/system/cpu/possible
+ONLINE=/sys/devices/system/cpu/online
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {
@@ -56,7 +64,9 @@ ktap_plan $TOTAL
 }
 
 for t in $TESTS; do
-	if run_test "tests/cpu/$t"; then
+	if [ "$t" = offline ] && [ "$(cat $POSSIBLE)" = "$(cat $ONLINE)" ]; then
+		ktap_skip "cpu/$t: every possible CPU is online"
+	elif run_test "tests/cpu/$t"; then
 		ktap_pass "cpu/$t"
 	else
 		ktap_fail "cpu/$t"
