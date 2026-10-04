@@ -35,7 +35,7 @@ local function report(mask, event)
 	print(string.format("fsnotify inside test: %s mask %x", path, mask))
 	if path == ONESHOT then
 		outcome("uncached", pcall(watch.find, watch, UNCACHED))
-		watch:find(ONESHOT):remove()
+		watch:find(ONESHOT):stop()
 	elseif path == REMASKED and mask & fs.OPEN ~= 0 then
 		remasked:mask(fs.MODIFY)
 	elseif path == RESOLVER then

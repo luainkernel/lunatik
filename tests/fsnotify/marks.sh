@@ -3,16 +3,17 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# The mark as an object: found by path, removed on its own, and taken by the
+# The mark as an object: found by path, stopped on its own, and taken by the
 # watch that placed it.
 #
 # marks.lua marks two files, asks the watch for each of them back, marks one
-# of them a second time and expects the refusal, and removes the other, whose
-# handle must raise afterwards; the shell then reads both, so a mark that
-# survived its removal shows as an event and the remaining one proves the
-# watch is still delivering.
+# of them a second time and expects the refusal, and stops the other, whose
+# handle must raise afterwards but for a second stop, which does nothing; a
+# mark held in a to-be-closed variable is gone once its scope ends. The shell
+# then reads both files, so a mark that survived its stop shows as an event and
+# the remaining one proves the watch is still delivering.
 # stopped.lua marks two files and stops the watch, which must leave neither the
-# marks nor a usable handle.
+# marks nor a usable handle, and a mark's stop afterwards does nothing.
 #
 # Both run twice in a row, and each round counts the events rather than looking
 # for one: a mark or a group leaked by the first round delivers a second line
@@ -57,17 +58,17 @@ for round in 1 2; do
 	lunatik stop "$STOPPED" 2>/dev/null
 
 	found=$(echo "$marked" | grep -cF "fsnotify marks test pass:")
-	[ "$found" -eq 5 ] || \
+	[ "$found" -eq 7 ] || \
 		fail "round $round: find: $(echo "$marked" | grep -F 'fsnotify marks test' | tr '\n' ';')"
-	ktap_pass "round $round: find returns the mark, nil where there is none, nil after remove; a second mark is refused; a removed mark's handle raises"
+	ktap_pass "round $round: find returns the mark, nil where there is none, nil after stop; a second mark is refused; a stopped mark's handle raises, a second stop does nothing, and a to-be-closed mark is stopped"
 
 	kept=$(echo "$marked" | grep -cF "marks test: open $SCRATCH/kept")
 	[ "$kept" -eq 1 ] || fail "round $round: the kept mark delivered $kept events, expected 1"
 	ktap_pass "round $round: the mark that stays delivers once"
 
 	echo "$marked" | grep -qF "marks test: open $SCRATCH/dropped" && \
-		fail "round $round: a removed mark still delivered"
-	ktap_pass "round $round: a removed mark delivers nothing"
+		fail "round $round: a stopped mark still delivered"
+	ktap_pass "round $round: a stopped mark delivers nothing"
 
 	echo "$stopped" | grep -qF "fsnotify marks test pass: stop takes every mark" || \
 		fail "round $round: stop: $(echo "$stopped" | grep -F 'fsnotify marks test' | tr '\n' ';')"

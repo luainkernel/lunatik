@@ -3,12 +3,12 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# A mark removed, a mark's mask changed, marks placed, and a watch stopped, from
+# A mark stopped, a mark's mask changed, marks placed, and a watch stopped, from
 # inside the callback.
 #
 # The callback runs inside fsnotify's SRCU read section, and both operations
 # take the group's mark mutex there; inotify's one-shot watch destroys its mark
-# from the same place, so the path is the kernel's own. inside.lua removes the
+# from the same place, so the path is the kernel's own. inside.lua stops the
 # oneshot mark on its first event and sets the remasked mark from FS_OPEN to
 # FS_MODIFY on its first event, so the shell's second read of each must be
 # silent, and its write to the second must arrive.
@@ -117,7 +117,7 @@ listed=$(lunatik list)
 
 seen=$(echo "$oneshot" | grep -cF "inside test: $SCRATCH/oneshot")
 [ "$seen" -eq 1 ] || fail "the oneshot mark delivered $seen events, expected 1"
-ktap_pass "a mark removed from inside its callback delivers once"
+ktap_pass "a mark stopped from inside its callback delivers once"
 
 seen=$(echo "$opened" | grep -cF "inside test: $SCRATCH/remasked mask 20")
 [ "$seen" -eq 1 ] || fail "the remasked mark delivered $seen opens, expected 1"
