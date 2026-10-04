@@ -190,9 +190,11 @@ kbd { font-family: var(--mono); font-size: .72rem; color: var(--faint); border: 
 .top-links { display: flex; align-items: center; gap: 1.1rem; font-size: .92rem; }
 .top-links a { color: var(--muted); }
 .top-links a:hover { color: var(--text); text-decoration: none; }
-.star { display: inline-flex; align-items: center; gap: .35rem; }
+.star, .donate { display: inline-flex; align-items: center; gap: .35rem; }
 .star svg { width: 1rem; height: 1rem; fill: none; stroke: var(--moon); stroke-width: 1.8; stroke-linejoin: round; }
 .star:hover svg { fill: var(--moon); }
+.donate svg { width: 1rem; height: 1rem; fill: none; stroke: var(--moon); stroke-width: 1.8; stroke-linejoin: round; }
+.donate:hover svg { fill: var(--moon); }
 .icon-btn { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
 .icon-btn:hover { background: var(--raised); color: var(--text); }
 .icon-btn svg { width: 1.15rem; height: 1.15rem; stroke: currentColor; fill: none; stroke-width: 1.8; }
