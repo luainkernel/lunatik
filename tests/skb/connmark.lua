@@ -29,7 +29,7 @@ local function refuses(skb, value)
 	return not ok and err:find(OUTOFBOUNDS, 1, true) ~= nil
 end
 
--- connmark(value) overwrites and returns the new mark; connmark() reads it.
+-- connmark(value) overwrites and returns the new mark; connmark() and connmark(nil) read it.
 -- Masked updates are composed in Lua. This exercises the smallest and the largest mark,
 -- an overwrite, refusals past 32 bits that keep the mark, a masked set that preserves
 -- out-of-mask bits, and a clear. Ends at DSCP_VAL.
@@ -40,6 +40,10 @@ local function tracked_seq(skb)
 	end
 	if skb:connmark(LOW_VAL) ~= LOW_VAL then
 		print("connmark: tracked FAIL set")
+		return
+	end
+	if skb:connmark(nil) ~= LOW_VAL or skb:connmark() ~= LOW_VAL then
+		print("connmark: tracked FAIL nil")
 		return
 	end
 	for _, value in ipairs(refused) do
