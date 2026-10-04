@@ -76,12 +76,17 @@ end
 
 local function raw_event(driver, hdev, report, raw)
 	seen(hdev)
+	hdev.view = raw
 	return answers[raw:getbyte(0)]()
 end
 
 local function remove(driver, hdev)
 	seen(hdev)
 	print(format("hid/device: remove %s %d", hdev.name, hdev.seen))
+	if hdev.view ~= nil then
+		local open = pcall(hdev.view.getbyte, hdev.view, 0)
+		print(format("hid/device: view %s %s", hdev.name, open and "open" or "closed"))
+	end
 end
 
 hid.register({
