@@ -22,6 +22,11 @@
 * it raises `ELOOP` too when it reaches more than 16 tables that hold tables, itself
 * included.
 *
+* A table a probe handler writes is not written from another runtime with interrupts on:
+* the writer takes the table's lock with interrupts off only when they already are, so a
+* probe that fires inside an interrupt handler on the CPU of a process or softirq writer
+* spins on the lock that writer holds.
+*
 * See `examples/shared/daemon.lua` for a practical example.
 * @module rcu
 */
