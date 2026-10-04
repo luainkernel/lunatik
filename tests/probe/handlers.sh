@@ -22,7 +22,10 @@
 #
 # Whether a hit runs a handler at all is the probe's state: a seventh row disables
 # its probe on load, which stays registered and runs nothing on the hit, and an
-# eighth disables and enables it again, which runs the pre handler once.
+# eighth disables and enables it again, which runs the pre handler once. A ninth
+# asks probe.new for a pre and a post that are a number, a string and a table,
+# each refused with "bad field" naming it, where a build that ignores them arms a
+# kprobe that runs nothing.
 #
 # Only pre was covered before: nothing in the tree registered a post handler, so
 # the post half of every hit was untested. What these rows hold is the behaviour
@@ -39,6 +42,7 @@ LATE="tests/probe/handlers_late"
 SET="tests/probe/handlers_set"
 DISABLED="tests/probe/handlers_disabled"
 ENABLED="tests/probe/handlers_enabled"
+REFUSED="tests/probe/handlers_refused"
 KPROBES="/sys/kernel/debug/kprobes/list"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -53,6 +57,7 @@ cleanup()
 	lunatik stop "$SET" > /dev/null 2>&1
 	lunatik stop "$DISABLED" > /dev/null 2>&1
 	lunatik stop "$ENABLED" > /dev/null 2>&1
+	lunatik stop "$REFUSED" > /dev/null 2>&1
 }
 
 # how many kprobes the kernel holds; nothing where debugfs does not say
@@ -89,7 +94,7 @@ trap cleanup EXIT
 cleanup
 
 ktap_header
-ktap_plan 8
+ktap_plan 9
 
 command -v setarch > /dev/null 2>&1 || {
 	echo "# SKIP: setarch not available"
@@ -101,6 +106,7 @@ command -v setarch > /dev/null 2>&1 || {
 	ktap_skip "a set whose runtimes disagree on the post handler is refused, leaving none armed"
 	ktap_skip "a probe disabled on load stays registered and runs nothing"
 	ktap_skip "a probe disabled and enabled again on load runs its pre handler"
+	ktap_skip "probe.new refuses a pre or a post that is not a function"
 	ktap_totals
 	exit 0
 }
@@ -165,6 +171,10 @@ row "$ENABLED"
 [ "$pre_hits" = "1" ] || fail "a probe disabled and enabled again ran its pre handler $pre_hits times on one call"
 armed_one "the enabled probe"
 ktap_pass "a probe disabled and enabled again on load runs its pre handler"
+
+run_test --context=hardirq "$REFUSED" || fail "probe.new took a handler that is not a function"
+lunatik stop "$REFUSED" > /dev/null 2>&1
+ktap_pass "probe.new refuses a pre or a post that is not a function"
 
 ktap_totals
 

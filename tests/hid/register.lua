@@ -91,6 +91,17 @@ test("hid.register refuses an entry it cannot read", function()
 	refuses("lunatik_hid_walk", setmetatable({}, {__len = onelen, __index = raise}), "id_table entry")
 end)
 
+test("hid.register refuses a callback that is not a function", function()
+	for _, field in ipairs({"probe", "report_fixup", "raw_event", "remove"}) do
+		for _, value in ipairs(notnumbers) do
+			local driver = {name = "lunatik_hid_" .. field, id_table = ids(1), [field] = value}
+			local ok, err = pcall(hid.register, driver)
+			local expected = format("bad field '%s' %%(function expected, got %s%%)", field, type(value))
+			assert(not ok and err:match(expected), "hid.register took " .. field .. " = " .. tostring(value))
+		end
+	end
+end)
+
 test("hid.register refuses an id field that is not a number", function()
 	for _, field in ipairs(idfields) do
 		for _, value in ipairs(notnumbers) do
