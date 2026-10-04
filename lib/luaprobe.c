@@ -23,7 +23,9 @@
 * waiter, and either wakeup takes that lock; a function that runs under the allocator's own
 * locks, a zone's `lock` or a slab node's `list_lock`, where the handler's allocation takes
 * them; and a function the timekeeping update runs while it holds the clock's sequence for
-* write, `update_vsyscall` among them, where `linux.time` waits on that sequence.
+* write, `update_vsyscall` among them, where `linux.time` waits on that sequence. Nor may it
+* be placed on code that runs in NMI, the perf overflow path among it, where an allocation
+* can take a slab or zone lock the interrupted code holds.
 *
 * See `examples/systrack` and `examples/dropreason`.
 * @usage
