@@ -853,8 +853,11 @@ allocates with).
   before any hook is registered, each with an error naming the field: a `mark`
   that holds a string, a numeric one included, or a boolean, a `pf`, `hooknum`
   or `priority` that is missing or holds a string, and any of the four past its
-  type, by a value whose low bits a truncating build would register; a `mark` at
-  the top of its range and a `priority` at either end of an `int` are accepted.
+  type, by a value whose low bits a truncating build would register; a family
+  netfilter keeps no hook table for is refused naming `pf`, and a hook past its
+  family's table, the kernel's WARN in `nf_hook_entry_head`, naming `hooknum`; a
+  `mark` at the top of its range and a `priority` at either end of an `int` are
+  accepted.
 - **mark**: which packets a hook's mark lets reach its callback. Two `LOCAL_OUT`
   hooks, one registered without a mark and one with a mark of 0, and two pings to
   a loopback address, one marked and one not: the hook without a mark runs for

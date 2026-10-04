@@ -9,8 +9,12 @@
 # hooknum or priority that is missing or holds a string. Each of the four is
 # refused past its type as well, out of bounds: pf below 0 or past 8 bits,
 # hooknum and mark below 0 or past 32, priority past an int, each by a value
-# whose low bits a truncating build would register as a hook of its own; a mark
-# at the top of its range and a priority at either end of an int are accepted.
+# whose low bits a truncating build would register as a hook of its own; a
+# family netfilter keeps no hook table for, UNSPEC or NETDEV, is refused naming
+# pf, and a hook past its family's table, INGRESS of INET, NUMHOOKS of IPV4, IPV6
+# and ARP and BROUTING of BRIDGE, naming hooknum, where nf_hook_entry_head
+# (net/netfilter/core.c) would WARN, which run_test reads from dmesg; a mark at
+# the top of its range and a priority at either end of an int are accepted.
 # The script asks for a LOCAL_OUT hook with each of those from a softirq
 # runtime, the context the binding serves; verdict.sh covers the marks that are
 # numbers.

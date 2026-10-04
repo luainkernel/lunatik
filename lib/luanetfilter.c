@@ -175,11 +175,35 @@ static void luanetfilter_free(luanetfilter_hook_t *hook)
 
 LUNATIK_PERCPUDATA(luanetfilter_hooks, "netfilter.hooks", luanetfilter_hook_t, luanetfilter_free);
 
+static unsigned int luanetfilter_numhooks(u8 pf)
+{
+	switch (pf) {
+	case NFPROTO_INET:
+	case NFPROTO_IPV4:
+		return ARRAY_SIZE(init_net.nf.hooks_ipv4);
+	case NFPROTO_IPV6:
+		return ARRAY_SIZE(init_net.nf.hooks_ipv6);
+#ifdef CONFIG_NETFILTER_FAMILY_ARP
+	case NFPROTO_ARP:
+		return ARRAY_SIZE(init_net.nf.hooks_arp);
+#endif
+#ifdef CONFIG_NETFILTER_FAMILY_BRIDGE
+	case NFPROTO_BRIDGE:
+		return ARRAY_SIZE(init_net.nf.hooks_bridge);
+#endif
+	default:
+		return 0;
+	}
+}
+
 static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *spec)
 {
 	luaL_checktype(L, ix, LUA_TTABLE);
 	lunatik_setinteger(L, ix, (&spec->nfops), pf, 0, U8_MAX);
-	lunatik_setinteger(L, ix, (&spec->nfops), hooknum, 0, UINT_MAX);
+	unsigned int numhooks = luanetfilter_numhooks(spec->nfops.pf);
+	if (numhooks == 0)
+		luaL_error(L, "bad field 'pf' (out of bounds)");
+	lunatik_setinteger(L, ix, (&spec->nfops), hooknum, 0, numhooks - 1);
 	lunatik_setinteger(L, ix, (&spec->nfops), priority, INT_MIN, INT_MAX);
 	spec->marked = lunatik_optfield(L, ix, "mark", LUA_TNUMBER);
 	spec->mark = spec->marked ? lunatik_checkfieldinteger(L, "mark", 0, U32_MAX) : 0;
@@ -276,8 +300,9 @@ static const lunatik_class_t luanetfilter_class = {
 *   outside a softirq runtime; `not allowed while the runtime closes` from a finalizer that runs at
 *   its close; `bad field '<field>' (number expected, got <type>)` if `pf`, `hooknum` or
 *   `priority` is missing or not a number, or if `mark` is present and not a number;
-*   `bad field '<field>' (out of bounds)` if `pf` is negative or past 8 bits, `hooknum` or `mark`
-*   negative or past 32 bits, or `priority` past an `int`; if the hook cannot be registered; in a
+*   `bad field '<field>' (out of bounds)` if `pf` is not a family whose hooks netfilter keeps
+*   in a table, `hooknum` is not a hook of that table, `mark` is negative or past 32 bits, or
+*   `priority` is past an `int`; if the hook cannot be registered; in a
 *   percpu script, if this runtime already registered the same `pf`, `hooknum`, `priority` and
 *   `mark`, or the same three both times without a `mark`
 * @usage

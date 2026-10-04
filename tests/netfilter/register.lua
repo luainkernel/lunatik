@@ -46,6 +46,17 @@ local function refuses(field, value, expected)
 	assert(err:match(expected), "netfilter.register raised something else: " .. err)
 end
 
+-- a family netfilter keeps no hook table for, and a hook past its family's table, which the kernel WARNs on
+local notable = {
+	{pf = nf.proto.UNSPEC, hooknum = nf.inet.LOCAL_OUT, field = "pf"},
+	{pf = nf.proto.NETDEV, hooknum = nf.netdev.INGRESS, field = "pf"},
+	{pf = nf.proto.INET,   hooknum = nf.inet.INGRESS,   field = "hooknum"},
+	{pf = nf.proto.IPV4,   hooknum = nf.inet.NUMHOOKS,  field = "hooknum"},
+	{pf = nf.proto.IPV6,   hooknum = nf.inet.NUMHOOKS,  field = "hooknum"},
+	{pf = nf.proto.ARP,    hooknum = nf.arp.NUMHOOKS,   field = "hooknum"},
+	{pf = nf.proto.BRIDGE, hooknum = nf.br.BROUTING,    field = "hooknum"},
+}
+
 local function nonumber(field, value)
 	refuses(field, value, format("bad field '%s' %%(number expected, got %s%%)", field, type(value)))
 end
@@ -69,6 +80,17 @@ test("netfilter.register refuses a field past its range", function()
 		for _, value in ipairs(values) do
 			refuses(field, value, expected)
 		end
+	end
+end)
+
+test("netfilter.register refuses a family with no hook table and a hook past its family's table", function()
+	for _, case in ipairs(notable) do
+		local opts = spec("pf", case.pf)
+		opts.hooknum = case.hooknum
+		local ok, err = pcall(netfilter.register, opts)
+		assert(not ok, format("netfilter.register accepted pf %d, hooknum %d", case.pf, case.hooknum))
+		local expected = format("bad field '%s' %%(out of bounds%%)", case.field)
+		assert(err:match(expected), format("pf %d, hooknum %d raised %s", case.pf, case.hooknum, err))
 	end
 end)
 
