@@ -69,8 +69,12 @@ The preferred way to donate to Lunatik is in crypto, to one of these wallets:
 
 Donations can also go through Lua's account at Software in the Public Interest (SPI): use the
 [PayPal button](https://www.paypal.com/donate/?hosted_button_id=CM4ETXNAA8T68) and write
-**Lunatik** in its optional note, so the donation is marked for this project. Starring the
-repository on GitHub helps too.
+**Lunatik** in its optional note, so the donation is marked for this project.
+
+Spreading the word about Lunatik is another way to contribute, and so is telling us how you use
+it: an [issue](https://github.com/luainkernel/lunatik/issues) describing what you run on Lunatik,
+in production or in a lab, helps shape what comes next. Starring the repository on GitHub helps
+too.
 
 ## License
 
