@@ -1,3 +1,8 @@
+/*
+* SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+* SPDX-License-Identifier: MIT OR GPL-2.0-only
+*/
+
 // An issue implemented and then reviewed as one workflow: an implementer that traces the issue,
 // commits, runs the host and opens the pull request, then review.js over that pull request as a
 // nested workflow, so there is one review workflow. What the implementer ran on the head it hands

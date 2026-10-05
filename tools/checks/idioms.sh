@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Names the idioms a C diff is read for and a review round passed over on #850: a raise
 # the tree spells with one call, a guard repeated across methods, a version a feature
 # needs named as one release, a kernel version guard whose first arm is the older

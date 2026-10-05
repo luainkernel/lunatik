@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Bash) hook: a pull request that changes a binding is not opened
 # before the out-of-tree scripts that load it were read. Reads the tool command
 # on stdin, runs consumers.sh over the branch's own diff, and blocks (exit 2)

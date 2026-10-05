@@ -1,3 +1,8 @@
+#
+# SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
+
 # Based on https://gist.github.com/domenic/ec8b0fc8ab45f39403dd
 name: Build Docs
 on:

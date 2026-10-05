@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PostToolUse (Write|Edit) adapter: run the tools/checks file checks over the
 # edited file and hand their findings back through the hook protocol, so the
 # model is nudged at edit time. The checks are plain path-taking scripts

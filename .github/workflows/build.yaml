@@ -1,3 +1,9 @@
+#
+# SPDX-FileCopyrightText: (c) 2025-2026 Physic69 <162324988+Physic69@users.noreply.github.com>
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
+
 # Based on https://gist.github.com/domenic/ec8b0fc8ab45f39403dd
 name: Build Modules
 on:

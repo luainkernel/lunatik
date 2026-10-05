@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Bash) hook: an install, reload or run over a tree that drops a crash
 # guard reproduces the crash the guard prevents, and on the shared host that is a
 # forced reboot. This blocks (exit 2) make install, lunatik reload/run/spawn/test and

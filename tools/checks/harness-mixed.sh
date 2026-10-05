@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # The harness is the rules, the checks, the workflows and the skills. A commit that
 # carries one of those together with code or tests hides it: the reviewer reads the
 # feature, the rule lands unread, and a maintainer who wants one without the other

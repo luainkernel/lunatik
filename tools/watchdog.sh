@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Runs a Lunatik script and stops it if the host loses the connectivity it had
 # before the run: a script that cuts the machine off cannot be stopped by hand
 # afterwards, since the terminal that would type the command is gone.

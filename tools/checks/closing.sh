@@ -1,3 +1,7 @@
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Sourced by pr-body.sh and tools/issues.sh: how a pull request body closes an issue, with the
 # keyword GitHub closes it on when the pull request merges, and how it names one it leaves open.
 # Each takes the issue number, any when none is given, and prints an extended regex matched

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Bash) hook: a push publishes whatever HEAD is when it runs. A rebase, a
 # merge, a cherry-pick, an am or a revert that stops on a conflict leaves HEAD on the
 # base with the branch's commits still to apply, and a push chained after it in the same

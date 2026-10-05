@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Names the crash guards a C file drops against HEAD, for an editor or assistant to
 # see at edit time: removing one and running the test that covers it reproduces the
 # crash the guard prevents. Takes file paths; silent on files that drop none.

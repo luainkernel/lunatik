@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Bash) hook: a GitHub review, a review body, or a PR comment on a
 # pull request the posting account did not open is posted only after its exact
 # text was shown to the maintainer and approved, and a fixup it references is a

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # A build stops with "No space left on device" halfway through autogen, and the install that
 # follows fails unseen while the previous one stays in place; on the shared host it is the
 # worktrees, each with a build of its own, that fill the disk. Takes a threshold in MB (default

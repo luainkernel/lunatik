@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Bash) hook: a pull request opened on a base other than master opens as a draft, and
 # one moved onto such a base is a draft already. GitHub does not merge a draft, and a stacked pull
 # request merged before its base goes into the base's branch and not into master. This blocks

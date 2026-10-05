@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Bash) hook: a pull request body is posted only when pr-body.sh passes on
 # it, and an issue body only when untraced.sh does, since the paragraphs and the Closes
 # line are a pull request's. This blocks (exit 2) a gh write to pulls or issues whose

@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Reports the issues an epic tracks as GitHub has them, so what a merge closed is read rather
 # than remembered: the epic and each issue whose body says it is part of it or that the epic's
 # task list names, `- [ ] #N`, its state, and the pull requests whose body names it, open or

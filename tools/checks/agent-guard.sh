@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Agent) hook: an agent that works on this tree runs through the Workflow tool, whose
 # agent() takes the model and the reasoning effort; the Agent tool takes a model and no effort, so
 # what it launches runs at the default effort whatever was asked. Blocks (exit 2) every Agent call

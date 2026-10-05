@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Runs cppcheck on a userspace test C file (tests/**/*.c). These are the
 # standalone helpers (e.g. tests/netlink/channel_subscriber.c) that parse
 # netlink wire data; cppcheck catches the resource-leak / uninitialized /

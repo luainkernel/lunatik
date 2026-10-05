@@ -1,3 +1,7 @@
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Sourced by guard-removed.sh and crash-guard.sh: the lines that carry a crash guard, and
 # the ones a tree drops against HEAD. A guard that only moved, into a helper, onto another
 # index or into a LUNATIK_PRIVATECHECKER, is paired with the added line that took it in and
