@@ -233,12 +233,12 @@
     <ol>
 
            <span class="types"><a class="type" href="../modules/netlink.rt.rule.html#rule">rule</a></span>
-        a new rule object.
+        a new rule object; <code>nil</code> and <code>&quot;ESRCH&quot;</code> if no task has that pid, or the task
+   has exited.
     </ol>
 
     <h3>Raises</h3>
-    <code>ESRCH</code> if no task has that pid, or <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a
-   namespace of their own.
+    <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a namespace of their own.
 
     <h3>See also</h3>
     <ul>
@@ -361,7 +361,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:39:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:43:37</span>
 </div>
 </footer>
 </body>

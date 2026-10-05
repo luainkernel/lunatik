@@ -849,15 +849,15 @@ sock:<span class="function-name">setsockopt</span>(sk.sol.SOCKET, sk.so.RCVTIMEO
     <ol>
 
            <span class="types"><a class="type" href="../modules/socket.html#socket">socket</a></span>
-        A new socket object.
+        A new socket object; <code>nil</code> and <code>&quot;ESRCH&quot;</code> if no task has that pid, or the task
+   has exited.
     </ol>
 
     <h3>Raises</h3>
      Error if socket creation fails, &ldquo;unsupported socket type&rdquo; for <code>linux.socket.sock.PACKET</code>,
    &ldquo;out of bounds&rdquo; for an argument past an <code>int</code>, an <code>AF_PACKET</code> protocol past 16 bits or a pid
    outside 1 to <code>PID_MAX_LIMIT</code>,
-   <code>ESRCH</code> if no task has that pid, <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a namespace
-   of their own, or
+   <code>EOPNOTSUPP</code> on a kernel whose sockets cannot hold a namespace of their own, or
    <code>&apos;socket&apos;: process-context class in interrupt-context runtime</code> in a softirq or hardirq runtime.
 
     <h3>See also</h3>
@@ -893,7 +893,7 @@ sock:<span class="function-name">setsockopt</span>(sk.sol.SOCKET, sk.so.RCVTIMEO
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:39:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:43:37</span>
 </div>
 </footer>
 </body>
