@@ -61,7 +61,13 @@ Dependencies, OpenWRT and the first steps are in [Getting started](doc/guide/01-
 
 ## Support
 
-Donations to Lunatik go through Lua's account at Software in the Public Interest (SPI): use the
+The preferred way to donate to Lunatik is in crypto, to one of these wallets:
+
+* Bitcoin: `bc1qx2quy25nx7g2akkxur2p3lyujager7zt2p6whu`
+* USDT on Solana: `Ci8sWwmCHhHYspaEiBUG7X25Ba94tXKxh3cfuycXBUu1`
+* USDT on Ethereum: `0x16c028E873A6E2aD87e81b4782D455AB470C09b4`
+
+Donations can also go through Lua's account at Software in the Public Interest (SPI): use the
 [PayPal button](https://www.paypal.com/donate/?hosted_button_id=CM4ETXNAA8T68) and write
 **Lunatik** in its optional note, so the donation is marked for this project. Starring the
 repository on GitHub helps too.
