@@ -1,3 +1,9 @@
+--
+-- SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
+-- SPDX-FileCopyrightText: (c) 2025-2026 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- LDoc configuration file for the Lunatik project
 -- Place this file at the root of your project and run 'ldoc .'
 
