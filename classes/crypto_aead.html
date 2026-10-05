@@ -274,7 +274,8 @@
     <dt id="crypto_aead:decrypt"><a name="crypto_aead:decrypt"></a><strong>crypto_aead:decrypt (iv, ciphertext_with_tag[, aad])</strong></dt>
     <dd>
     Decrypts and authenticates ciphertext.
- IV length must match <code>ivsize()</code>. Raises EBADMSG on authentication failure.
+ IV length must match <code>ivsize()</code>. A message that does not authenticate, a forged or corrupted
+ one, is the outcome the call reports, as nil and &ldquo;EBADMSG&rdquo;.
 
 
     <h3>Parameters</h3>
@@ -298,13 +299,13 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        decrypted plaintext
+        decrypted plaintext, or nil and &ldquo;EBADMSG&rdquo; when the tag does not authenticate the
+   message or the input is shorter than the tag
     </ol>
 
     <h3>Raises</h3>
-     on authentication failure (EBADMSG), incorrect IV length, or input too short, &ldquo;not enough
-   memory&rdquo; when one kmalloc block cannot be allocated for the associated data and the ciphertext,
-   always past <code>KMALLOC_MAX_SIZE</code>
+    on incorrect IV length, &ldquo;not enough memory&rdquo; when one kmalloc block cannot be allocated for
+   the associated data and the ciphertext, always past <code>KMALLOC_MAX_SIZE</code>
 
 
 
@@ -418,7 +419,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:35:46</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:39:08</span>
 </div>
 </footer>
 </body>

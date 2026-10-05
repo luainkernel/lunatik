@@ -181,9 +181,10 @@
  constructor raises &ldquo;&lsquo;crypto.shash&rsquo;: process-context class in interrupt-context runtime&rdquo;, naming
  its class. Errors are raised as errno names: &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;EINVAL&rdquo; for a
  wrong IV, key or state length or a block cipher input that is not a multiple of <code>blocksize()</code>,
- &ldquo;EBADMSG&rdquo; for an AEAD tag mismatch, &ldquo;ENOMEM&rdquo; when the kernel cannot allocate the transform, and
+ &ldquo;ENOMEM&rdquo; when the kernel cannot allocate the transform, and
  &ldquo;not enough memory&rdquo; when the binding cannot allocate its own state, its output or the copy of its
- input.
+ input. An AEAD message that does not authenticate is no error: <code>decrypt</code> answers nil and
+ &ldquo;EBADMSG&rdquo; for it.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -384,7 +385,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:35:46</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:39:08</span>
 </div>
 </footer>
 </body>
