@@ -187,10 +187,16 @@
 <p> A probe fires wherever the probed code runs, inside an interrupt handler too, with
  preemption or interrupts off, so the script runs in a hardirq runtime,
  <code>lunatik run -c hardirq &lt;script&gt;</code>, whose lock turns interrupts off, and its handlers
- must not sleep. A probe must not be placed on a function the scheduler runs under a
- runqueue lock, <code>enqueue_task_fair</code> or <code>activate_task</code> among them: an allocation the
- handler&rsquo;s Lua makes can wake kswapd, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-print">print</a> can wake a console&rsquo;s waiter, and either
- wakeup takes that lock again on a CPU that already holds it.</p>
+ must not sleep. A probe must not be placed where the probed CPU holds a lock its handler&rsquo;s
+ Lua takes again, since the handler then spins on it with interrupts off: a function the
+ scheduler runs under a runqueue lock, <code>enqueue_task_fair</code> or <code>activate_task</code> among them,
+ where an allocation the handler makes can wake kswapd and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-print">print</a> can wake a console&rsquo;s
+ waiter, and either wakeup takes that lock; a function that runs under the allocator&rsquo;s own
+ locks, a zone&rsquo;s <code>lock</code> or a slab node&rsquo;s <code>list_lock</code>, where the handler&rsquo;s allocation takes
+ them; and a function the timekeeping update runs while it holds the clock&rsquo;s sequence for
+ write, <code>update_vsyscall</code> among them, where <a href="../modules/linux.html#time">linux.time</a> waits on that sequence. Nor may it
+ be placed on code that runs in NMI, the perf overflow path among it, where an allocation
+ can take a slab or zone lock the interrupted code holds.</p>
 
 <p> See <code>examples/systrack</code> and <code>examples/dropreason</code>.
     <h2 id="usage">Usage</h2>
@@ -422,7 +428,7 @@ probe.new(&quot;do_sys_openat2&quot;, {pre = pre})
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:32</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:51</span>
 </div>
 </footer>
 </body>

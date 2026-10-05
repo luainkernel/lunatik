@@ -182,7 +182,10 @@
  The message body is built in Lua (e.g. with
  <a href="../modules/netlink.message.html#">netlink.message</a>) and sent as-is; request/response netlink is otherwise done
  in Lua over the <a href="../modules/socket.html#">socket</a> module. Only this softirq-capable send path needs a
- dedicated kernel object.
+ dedicated kernel object. A channel is created and used from a process or softirq
+ runtime only, never from a hardirq one: with an nlmon tap up, a send hands a copy of
+ the message to <code>dev_queue_xmit</code>, which re-enables bottom halves, and the kernel warns
+ when that happens in a hardirq.
     <h2 id="usage">Usage</h2>
         <pre class="example">-- lunatik run -c softirq &lt;script&gt;: multicasts a notice for each IPv4 packet the host receives
 local channel   = require(&quot;netlink.channel&quot;)
@@ -393,7 +396,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:32</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:51</span>
 </div>
 </footer>
 </body>

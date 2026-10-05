@@ -302,7 +302,11 @@
    up; a script that means the devices appearing afterwards tells them apart
    with a flag it clears once this call returns, since no live event reaches
    the callback before the script body ends. Returns a <a href="../modules/linux.notify.html#">linux.notify</a> status
-   code.
+   code. <code>notify.STOP</code> and <code>notify.BAD</code> end the chain, so the kernel&rsquo;s own blocks
+   after this one never see the event: a callback returns them only for an event
+   whose result the kernel reads to refuse a change, as it reads <code>PRE_UP</code>&rsquo;s, and
+   never for <code>UNREGISTER</code>, whose device then waits for good on what 8021q and the
+   other blocks after it would have released.
         </li>
     </ul>
 
@@ -372,7 +376,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:32</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:51</span>
 </div>
 </footer>
 </body>

@@ -194,6 +194,11 @@
  it raises <code>ELOOP</code> too when it reaches more than 16 tables that hold tables, itself
  included.</p>
 
+<p> A table a probe handler writes is not written from another runtime with interrupts on:
+ the writer takes the table&rsquo;s lock with interrupts off only when they already are, so a
+ probe that fires inside an interrupt handler on the CPU of a process or softirq writer
+ spins on the lock that writer holds.</p>
+
 <p> See <code>examples/shared/daemon.lua</code> for a practical example.
 
 <h2 id="rcu">rcu</h2>
@@ -289,7 +294,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:32</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:51</span>
 </div>
 </footer>
 </body>
