@@ -1,7 +1,7 @@
 /*
- * SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
- * SPDX-License-Identifier: MIT OR GPL-2.0-only
- */
+* SPDX-FileCopyrightText: (c) 2025-2026 jperon <cataclop@hotmail.com>
+* SPDX-License-Identifier: MIT OR GPL-2.0-only
+*/
 
 #ifndef _LUACRYPTO_H
 #define _LUACRYPTO_H

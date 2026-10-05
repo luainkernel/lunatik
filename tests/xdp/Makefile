@@ -1,5 +1,7 @@
+#
 # SPDX-FileCopyrightText: (c) 2026 Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 
 all: xdp_pass.bpf.o xdp_drop.bpf.o xdp_reattach.bpf.o xdp_detach.bpf.o xdp_zerokey.bpf.o xdp_process.bpf.o xdp_percpu.bpf.o xdp_verdict.bpf.o
 
