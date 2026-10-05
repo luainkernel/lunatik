@@ -235,8 +235,8 @@
 	<td class="summary">Reads the mark&rsquo;s event mask, or sets it.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#fsnotify_mark:remove">fsnotify_mark:remove ()</a></td>
-	<td class="summary">Removes the mark.</td>
+	<td class="name"><a href="#fsnotify_mark:stop">fsnotify_mark:stop ()</a></td>
+	<td class="summary">Stops the mark.</td>
 	</tr>
 </table></div>
 <h2 id="Class_fsnotify_event">Class fsnotify_event </h2>
@@ -408,7 +408,8 @@
           A mark on a filesystem object.
  A userdata <code>watch:mark</code> returns and <code>watch:find</code> hands back. The watch owns
  the mark: dropping the handle leaves the mark in place, and <code>watch:stop</code>
- removes every mark the watch placed. A handle whose mark is gone raises.
+ removes every mark the watch placed. A handle whose mark is gone raises,
+ but for <a href="../modules/fsnotify.html#fsnotify_watch:stop">stop</a>.
           </div>
     <dl class="function">
     <dt id="fsnotify_mark:ignore"><a name="fsnotify_mark:ignore"></a><strong>fsnotify_mark:ignore ([mask])</strong></dt>
@@ -482,10 +483,12 @@
         <pre class="example">mark:<span class="function-name">mask</span>(mark:<span class="function-name">mask</span>() | fs.MODIFY)</pre>
 
 </dd>
-    <dt id="fsnotify_mark:remove"><a name="fsnotify_mark:remove"></a><strong>fsnotify_mark:remove ()</strong></dt>
+    <dt id="fsnotify_mark:stop"><a name="fsnotify_mark:stop"></a><strong>fsnotify_mark:stop ()</strong></dt>
     <dd>
-    Removes the mark.
+    Stops the mark.
  No further event reaches the callback through it, and the watch drops it.
+ Calling it again, or after <code>watch:stop</code>, does nothing. A to-be-closed
+ variable holding the mark stops it the same way.
 
 
 
@@ -496,12 +499,10 @@
 
     </ol>
 
-    <h3>Raises</h3>
-    if the mark has already been removed
 
 
     <h3>Usage</h3>
-        <pre class="example">mark:<span class="function-name">remove</span>()</pre>
+        <pre class="example">mark:<span class="function-name">stop</span>()</pre>
 
 </dd>
 </dl>
@@ -744,7 +745,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:48:57</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:32</span>
 </div>
 </footer>
 </body>

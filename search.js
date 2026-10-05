@@ -108,7 +108,7 @@ window.LUNATIK_SEARCH = [
 ["fsnotify_watch:stop ()","modules/fsnotify.html#fsnotify_watch:stop","fsnotify · Stops the watch."],
 ["fsnotify_mark:ignore ([mask])","modules/fsnotify.html#fsnotify_mark:ignore","fsnotify · Reads the mark's ignore mask, or sets it."],
 ["fsnotify_mark:mask ([mask])","modules/fsnotify.html#fsnotify_mark:mask","fsnotify · Reads the mark's event mask, or sets it."],
-["fsnotify_mark:remove ()","modules/fsnotify.html#fsnotify_mark:remove","fsnotify · Removes the mark."],
+["fsnotify_mark:stop ()","modules/fsnotify.html#fsnotify_mark:stop","fsnotify · Stops the mark."],
 ["fsnotify_event:dir ()","modules/fsnotify.html#fsnotify_event:dir","fsnotify · Returns the inode number of the directory the entry the event names lives in."],
 ["fsnotify_event:ino ()","modules/fsnotify.html#fsnotify_event:ino","fsnotify · Returns the inode number of the object the event is about."],
 ["fsnotify_event:isdir ()","modules/fsnotify.html#fsnotify_event:isdir","fsnotify · Tells whether the event is about a directory."],
