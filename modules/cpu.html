@@ -364,12 +364,13 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        fields: <code>user</code>, <code>nice</code>, <code>system</code>, <code>idle</code>, <code>iowait</code>, <code>irq</code>,
-   <code>softirq</code>, <code>steal</code>, <code>guest</code>, <code>guest_nice</code>, <code>forceidle</code> (if CONFIG_SCHED_CORE)
+         fields: <code>user</code>, <code>nice</code>, <code>system</code>, <code>idle</code>, <code>iowait</code>, <code>irq</code>,
+   <code>softirq</code>, <code>steal</code>, <code>guest</code>, <code>guest_nice</code>, <code>forceidle</code> (if CONFIG_SCHED_CORE), or nil for a
+   CPU that is not online, which hotplug can take away between <code>online()</code> and this call
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;out of bounds&rdquo; if cpu is outside that range, &ldquo;CPU is offline&rdquo; if it is not online
+    &ldquo;out of bounds&rdquo; if cpu is outside that range
 
 
 
@@ -388,7 +389,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:30:56</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:33:20</span>
 </div>
 </footer>
 </body>
