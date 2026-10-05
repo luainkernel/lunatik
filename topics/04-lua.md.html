@@ -261,12 +261,13 @@ of their own, <code>/lib/modules/lua/&lt;product&gt;/</code>, and run as <code>&
 
 <p>In a runtime created in softirq or hardirq context, <a href="https://www.lua.org/manual/5.5/manual.html#6.8">io</a> is nil, <code>require(&quot;io&quot;)</code> raises
 <code>&apos;io&apos;: process-context class in interrupt-context runtime</code>, and the <a href="../modules/lunatik.html#">lunatik</a> table holds only
-<code>cpu()</code> and <code>_ENV</code>, so <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> and <a href="../modules/lunatik.html#percpu">lunatik.percpu</a> are absent. A Lua library is required
-at the top level of the script, since opening a file sleeps: once the runtime is armed, a <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a>
-of a Lua library the body did not load,
+<code>cpu()</code> and <code>_ENV</code>, so <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> and <a href="../modules/lunatik.html#percpu">lunatik.percpu</a> are absent. A module is required at
+the top level of the script, since opening a Lua library&rsquo;s file sleeps and loading a binding takes
+a reference on its kernel module that an atomic allocation failing after it would leak: once the
+runtime is armed, a <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> of a binding or a Lua library the body did not load,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.loadlib">package.loadlib</a>,
 <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.searchpath">package.searchpath</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-dofile">dofile</a>
-raise <code>not allowed once the runtime is armed</code>, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-loadfile">loadfile</a> returns it as its error. A binding is
-found in the kernel symbol table, so a hook may require one the body did not load.</p>
+raise <code>not allowed once the runtime is armed</code>, and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-loadfile">loadfile</a> returns it as its error.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/03-percpu.md.html"><span>Previous</span>Per-CPU scripts</a>
     <a class="next" href="../topics/05-examples.md.html"><span>Next</span>Examples</a>
@@ -284,7 +285,7 @@ found in the kernel symbol table, so a hook may require one the body did not loa
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:56:42</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 13:03:32</span>
 </div>
 </footer>
 </body>
