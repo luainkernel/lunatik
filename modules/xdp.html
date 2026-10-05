@@ -187,8 +187,9 @@
  using <a href="../modules/xdp.html#attach">xdp.attach</a>.</p>
 
 <p> The module registers its kfunc through BTF: it needs a kernel built with <code>CONFIG_DEBUG_INFO_BTF</code>
- and a build made after <code>make btf_install</code>, and without the module BTF it does not load. The
- eBPF program is loaded apart, with bpftool, as an XDP program that declares
+ and a build made after <code>make btf_install</code>. Without the module BTF it loads with its kfunc
+ unregistered, logging <code>missing module BTF</code>, and an eBPF program that calls the kfunc fails to
+ load. The eBPF program is loaded apart, with bpftool, as an XDP program that declares
  <code>bpf_luaxdp_run</code> as a <code>__ksym</code>, as
  <a href="https://github.com/luainkernel/lunatik/blob/master/examples/filter">examples/filter</a> does.
 
@@ -366,7 +367,7 @@ xdp.<span class="function-name">attach</span>(my_packet_processor)
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 13:04:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 13:11:12</span>
 </div>
 </footer>
 </body>
