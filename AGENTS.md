@@ -198,9 +198,10 @@ userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the 
 (`blast-radius.sh`), the examples that use a binding the change touches, which a review runs
 (`examples-touched.sh`), a commit that carries a rule or a check inside a change of its own
 (`harness-mixed.sh`), the machine a tracked file carries (`machine-leak.sh`), and the trailing blank
-line rule, the refusal of a staged conflict marker and of a string function the kernel removed
-(`pre-commit`). Each takes file paths and skips what does not apply, so any editor, assistant, or CI
-can run them. The `Checks` workflow runs them over a pull request's diff: `pre-commit` and
+line rule, the refusal of a staged conflict marker, of a source file without its copyright and
+license header and of a string function the kernel removed (`pre-commit`). Each takes file paths and
+skips what does not apply, so any editor, assistant, or CI can run them. The `Checks` workflow runs
+them over a pull request's diff: `pre-commit` and
 `machine-leak.sh` fail the run, the heuristic checks annotate it. Install the commit gate with:
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
@@ -1333,7 +1334,10 @@ named, not one discovered at that consumer's build.
 * Copyright years: a new file carries the current year; a modified file extends its range to include
   it; and a file that factors code out of another carries that file's first year, found with
   `git log -S` on the moved lines. `lib/class.lua` took the `:new` that `lib/socket/inet.lua` had
-  carried since 2023.
+  carried since 2023. Every source file opens with `SPDX-FileCopyrightText` and
+  `SPDX-License-Identifier`, the holder being who created it, and a file that cannot carry a header,
+  Markdown, data or a font, is declared in `REUSE.toml`: 47 scripts of the harness and the tree had
+  none until the maintainer noticed, and `pre-commit` now refuses a source file staged without one.
 
 ## Reviewing your own change
 

@@ -5,8 +5,9 @@
 #
 # Pre-commit hook: reject staged text files (C, Lua, Makefile, shell scripts)
 # missing the trailing blank line the tree requires, any staged file that carries
-# the machine it was written on (machine-leak.sh), and kernel code calling a
-# string function the kernel has removed.
+# the machine it was written on (machine-leak.sh), a staged source file without
+# its copyright and license header, and kernel code calling a string function the
+# kernel has removed.
 # Install with: ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
 conflicted=$(git diff --cached --name-only --diff-filter=ACM -G'^(<{7}|={7}|>{7})( |$)')
@@ -49,6 +50,29 @@ if [ -n "$bad" ]; then
 		echo "  $f"
 	done
 	echo "Fix with: printf '\\n' >> <file>"
+	exit 1
+fi
+
+# a file that cannot carry a header, Markdown, data or a font, is declared in REUSE.toml instead
+unlicensed=""
+for f in $staged; do
+	case "$f" in
+		*.c|*.h|*.lua|*.ld|*.sh|*.js|*.toml|Makefile|Kbuild|bin/*|tools/checks/*|.github/workflows/*)
+			header=$(git show ":$f" | head -15)
+			if ! grep -q 'SPDX-License-Identifier' <<< "$header" ||
+			   ! grep -qE 'SPDX-FileCopyrightText|Copyright' <<< "$header"; then
+				unlicensed="$unlicensed $f"
+			fi
+			;;
+	esac
+done
+
+if [ -n "$unlicensed" ]; then
+	echo "ERROR: Files missing their copyright and license header:"
+	for f in $unlicensed; do
+		echo "  $f"
+	done
+	echo "Open them with SPDX-FileCopyrightText and SPDX-License-Identifier, as the tree's other files do."
 	exit 1
 fi
 
