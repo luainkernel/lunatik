@@ -253,8 +253,8 @@ return send
     <ul>
         <li><span class="parameter">timeout</span>
             <span class="types"><span class="type">number</span></span>
-         maximum time to wait in milliseconds.
-   If omitted or negative, waits indefinitely. If 0, returns immediately.
+         maximum time to wait in milliseconds, from 0 to <code>2<sup>31</sup> - 1</code>.
+   If omitted or nil, waits indefinitely. If 0, returns immediately.
          (<em>optional</em>)
         </li>
     </ul>
@@ -271,7 +271,8 @@ return send
     </ol>
 
     <h3>Raises</h3>
-     &ldquo;send-only mailbox&rdquo; on an outbox; <code>ERESTARTSYS</code> when a signal or <code>thread:stop()</code>
+     &ldquo;send-only mailbox&rdquo; on an outbox; &ldquo;out of bounds&rdquo; for a timeout outside its range;
+   <code>ERESTARTSYS</code> when a signal or <code>thread:stop()</code>
    interrupts the wait; &ldquo;malformed message&rdquo; on a truncated header; &ldquo;runtime context mismatch&rdquo;
    from a softirq or hardirq runtime.
 
@@ -384,7 +385,7 @@ return send
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:45:33</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:46:22</span>
 </div>
 </footer>
 </body>

@@ -1698,6 +1698,18 @@ same way and returns it. A size, a length or a count that arrives from Lua is bo
 for what the binding can serve, and an integer that names a kernel identity, a pid, before the
 cast to the kernel&rsquo;s type.</p>
 
+<h3 id="lunatik_opttimeout">lunatik_opttimeout</h3>
+
+<pre>
+<span class="keyword">long</span> <span class="function-name">lunatik_opttimeout</span>(lua_State *L, <span class="keyword">int</span> idx);
+</pre>
+
+
+<p>Reads the timeout a script hands a wait at <code>idx</code>, in milliseconds, and returns it in jiffies:
+<code>MAX_SCHEDULE_TIMEOUT</code> for nil or none, a wait with no bound, and an integer from 0 to <code>INT_MAX</code>
+converted by <code>msecs_to_jiffies</code>, whose <code>unsigned int</code> would keep the low bits of a larger one and
+read a negative one as forever; any other integer raises <code>out of bounds</code>.</p>
+
 <h3 id="lunatik_pushexternalstring">lunatik_pushexternalstring</h3>
 
 <pre>
@@ -2108,7 +2120,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:45:33</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:46:22</span>
 </div>
 </footer>
 </body>

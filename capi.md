@@ -1170,6 +1170,15 @@ same way and returns it. A size, a length or a count that arrives from Lua is bo
 for what the binding can serve, and an integer that names a kernel identity, a pid, before the
 cast to the kernel's type.
 
+### lunatik\_opttimeout
+```C
+long lunatik_opttimeout(lua_State *L, int idx);
+```
+Reads the timeout a script hands a wait at `idx`, in milliseconds, and returns it in jiffies:
+`MAX_SCHEDULE_TIMEOUT` for nil or none, a wait with no bound, and an integer from 0 to `INT_MAX`
+converted by `msecs_to_jiffies`, whose `unsigned int` would keep the low bits of a larger one and
+read a negative one as forever; any other integer raises `out of bounds`.
+
 ### lunatik\_pushexternalstring
 ```C
 const char *lunatik_pushexternalstring(lua_State *L, char *s, size_t len);

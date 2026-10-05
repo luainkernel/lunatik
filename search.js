@@ -606,6 +606,7 @@ window.LUNATIK_SEARCH = [
 ["lunatik_setstring","topics/capi.md.html#lunatik_setstring","Guide · Lunatik C API"],
 ["Values","topics/capi.md.html#values","Guide · Lunatik C API"],
 ["lunatik_checkbounds","topics/capi.md.html#lunatik_checkbounds","Guide · Lunatik C API"],
+["lunatik_opttimeout","topics/capi.md.html#lunatik_opttimeout","Guide · Lunatik C API"],
 ["lunatik_pushexternalstring","topics/capi.md.html#lunatik_pushexternalstring","Guide · Lunatik C API"],
 ["lunatik_pushoptinteger","topics/capi.md.html#lunatik_pushoptinteger","Guide · Lunatik C API"],
 ["lunatik_value_t","topics/capi.md.html#lunatik_value_t","Guide · Lunatik C API"],
