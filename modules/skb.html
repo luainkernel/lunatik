@@ -246,8 +246,8 @@ netfilter.register{
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:resize">skb:resize (n)</a></td>
-	<td class="summary">Expands (skb_put_zero) or shrinks (skb_trim) the skb data area; the bytes an
- expansion adds read as zeros.</td>
+	<td class="summary">Expands (skb_put_zero) or shrinks (pskb_trim_rcsum) the skb data area; the bytes an
+ expansion adds read as zeros, and a shrink keeps the checksum a received skb carries.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:vlan">skb:vlan ()</a></td>
@@ -484,10 +484,10 @@ netfilter.register{
 </dd>
     <dt id="skb:resize"><a name="skb:resize"></a><strong>skb:resize (n)</strong></dt>
     <dd>
-    Expands (skb_put_zero) or shrinks (skb_trim) the skb data area; the bytes an
- expansion adds read as zeros.  The skb is linearized first, so <code>n</code> is the
- length of the whole packet, which <code>#skb</code> returns afterwards. In a tc callback
- the skb is not linearized, and a non-linear one raises.
+    Expands (skb_put_zero) or shrinks (pskb_trim_rcsum) the skb data area; the bytes an
+ expansion adds read as zeros, and a shrink keeps the checksum a received skb carries.  The
+ skb is linearized first, so <code>n</code> is the length of the whole packet, which <code>#skb</code> returns
+ afterwards. In a tc callback the skb is not linearized, and a non-linear one raises.
 
 
     <h3>Parameters</h3>
@@ -498,10 +498,18 @@ netfilter.register{
         </li>
     </ul>
 
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+         <code>true</code> once resized, and <code>false</code>, with the skb as it was, when an expansion
+   does not fit in the tailroom or a shrink would cut the checksum field the stack has yet to
+   fill, as a TCP segment&rsquo;s on the way out
+    </ol>
 
     <h3>Raises</h3>
     if out of bounds, if the skb is not linear, in a tc callback or after a failed
- linearization, or if the tailroom is insufficient for expansion
+ linearization
 
 
 
@@ -537,7 +545,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 11:09:30</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:06:31</span>
 </div>
 </footer>
 </body>

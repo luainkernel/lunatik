@@ -348,7 +348,7 @@ window.LUNATIK_SEARCH = [
 ["skb:ifindex ()","modules/skb.html#skb:ifindex","skb · "],
 ["skb:mark ([value])","modules/skb.html#skb:mark","skb · Gets or sets the packet mark: with no argument reads it, with value sets it."],
 ["skb:priority ([value])","modules/skb.html#skb:priority","skb · Gets or sets the packet priority: with no argument reads it, with value sets it."],
-["skb:resize (n)","modules/skb.html#skb:resize","skb · Expands (skb_put_zero) or shrinks (skb_trim) the skb data area; the bytes an expansion adds read as zeros."],
+["skb:resize (n)","modules/skb.html#skb:resize","skb · Expands (skb_put_zero) or shrinks (pskb_trim_rcsum) the skb data area; the bytes an expansion adds read as zeros, and a shrink keeps the checksum a received skb carries."],
 ["skb:vlan ()","modules/skb.html#skb:vlan","skb · "],
 ["socket","modules/socket.html","Module · Low-level Lua interface for kernel networking sockets."],
 ["socket:accept ([flags=0])","modules/socket.html#socket:accept","socket · Accepts a connection on a listening socket."],
