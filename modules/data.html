@@ -520,11 +520,11 @@
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-
+        the bytes, empty for a zero length at any offset up to the size, the end included
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;out of bounds&rdquo;, a zero length included, as at an offset equal to the size
+    &ldquo;out of bounds&rdquo; for an offset or a length that reaches past the size, or a negative one
 
 
 
@@ -766,7 +766,8 @@
 
 
     <h3>Raises</h3>
-    &ldquo;out of bounds&rdquo;, an empty <code>s</code> included, or &ldquo;read only&rdquo;
+    &ldquo;out of bounds&rdquo; for bytes past the size or a negative offset, or &ldquo;read only&rdquo;; an empty <code>s</code>
+   writes nothing at any offset up to the size
 
 
 
@@ -893,7 +894,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:44:09</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:45:33</span>
 </div>
 </footer>
 </body>
