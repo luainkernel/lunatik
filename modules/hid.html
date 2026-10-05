@@ -269,8 +269,9 @@ hid.register({
  and handed to every later callback of the device, and <code>id</code> is the matching entry, with
  <code>bus</code>, <code>group</code>, <code>vendor</code>, <code>product</code> and <code>driver_data</code>. Returning a negative errno,
  <code>-errno.ENODEV</code> say, with <a href="../modules/linux.errno.html#">linux.errno</a>, fails the probe with it; an error, or a
- return that is neither nothing, zero nor an errno, logged as <code>invalid errno</code>, fails
- it with <code>ECANCELED</code>.</li>
+ return that is neither nothing, zero nor an errno a user program is given, the
+ kernel&rsquo;s own from <code>ERESTARTSYS</code> on, logged as <code>invalid errno</code>, fails it with
+ <code>ECANCELED</code>.</li>
 <li> <code>report_fixup(driver, hdev, rdesc)</code>: <code>rdesc</code> is a <a href="../modules/data.html#">data</a> over the report
  descriptor, edited in place, of fixed size and valid only during the call.</li>
 <li> <code>raw_event(driver, hdev, report, raw)</code>: <code>raw</code> is a <a href="../modules/data.html#">data</a> over the report, edited
@@ -325,7 +326,7 @@ hid.register({
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:43:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:44:09</span>
 </div>
 </footer>
 </body>

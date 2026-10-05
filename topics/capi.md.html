@@ -645,7 +645,8 @@ failed, as <code>read</code> does in the example of <code>lunatik_run</code>.</p
 
 
 <p>Returns the errno a callback answered with at <code>ix</code>: <code>0</code> for nil or none, and the value itself for an
-integer from <code>-MAX_ERRNO</code> to <code>0</code>; any other value raises <code>invalid errno</code>, which
+integer from <code>-MAX_ERRNO</code> to <code>0</code> outside the kernel&rsquo;s own block, <code>-ERESTARTSYS</code> to <code>-ENOGRACE</code>, which
+include/linux/errno.h keeps from user programs; any other value raises <code>invalid errno</code>, which
 <a href="#lunatik_catch"><code>lunatik_catch</code></a> turns into <code>-ECANCELED</code>. A binding whose callback fails an operation
 the kernel asked for by returning a negative errno reads that return through it, in the <code>f</code> it gives
 <code>lunatik_catch</code>, and hands the result to the kernel.</p>
@@ -2107,7 +2108,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:43:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:44:09</span>
 </div>
 </footer>
 </body>

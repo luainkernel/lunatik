@@ -198,7 +198,9 @@
 <p> A permission event parks the syscall in the callback and takes its return
  value as the answer: <code>fsnotify.action.ALLOW</code> lets the access happen,
  <code>fsnotify.action.DENY</code> fails it with <code>EPERM</code>, and any other negative errno
- fails it with that errno. Anything else allows, a callback that returns
+ fails it with that errno, but for the kernel&rsquo;s own, from <code>ERESTARTSYS</code> on,
+ which no user program is given: those allow and log <code>invalid errno</code>.
+ Anything else allows, a callback that returns
  nothing or raises included, so a rule that fails, or forgets to answer,
  takes nothing away. An exec asks twice, <code>OPEN_EXEC_PERM</code> and then
  <code>OPEN_PERM</code>, each through the marks that carry it, and a denial on the
@@ -742,7 +744,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:43:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:44:09</span>
 </div>
 </footer>
 </body>

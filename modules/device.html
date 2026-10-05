@@ -189,8 +189,9 @@
  callback fails its operation with an errno by returning it negated, as
  <code>-errno.EBUSY</code> does with <a href="../modules/linux.errno.html#">linux.errno</a>. A callback that raises, or that
  returns a length or an offset that is not an integer, or an errno that is not
- one, <code>invalid errno</code> in the log, fails its operation with <code>ECANCELED</code>, and the
- error goes to the kernel log.
+ one, the kernel&rsquo;s own from <code>ERESTARTSYS</code> on included, <code>invalid errno</code> in the
+ log, fails its operation with <code>ECANCELED</code>, and the error goes to the kernel
+ log.
 
 <h2 id="Class_device">Class device </h2>
 <div class="tbl"><table class="function_list">
@@ -369,7 +370,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:43:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:44:09</span>
 </div>
 </footer>
 </body>
