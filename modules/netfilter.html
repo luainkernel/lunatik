@@ -293,8 +293,9 @@ netfilter.register{
    outside a softirq runtime; <code>not allowed while the runtime closes</code> from a finalizer that runs at
    its close; <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if <code>pf</code>, <code>hooknum</code> or
    <code>priority</code> is missing or not a number, or if <code>mark</code> is present and not a number;
-   <code>bad field &apos;&lt;field&gt;&apos; (out of bounds)</code> if <code>pf</code> is negative or past 8 bits, <code>hooknum</code> or <code>mark</code>
-   negative or past 32 bits, or <code>priority</code> past an <code>int</code>; if the hook cannot be registered; in a
+   <code>bad field &apos;&lt;field&gt;&apos; (out of bounds)</code> if <code>pf</code> is not a family whose hooks netfilter keeps
+   in a table, <code>hooknum</code> is not a hook of that table, <code>mark</code> is negative or past 32 bits, or
+   <code>priority</code> is past an <code>int</code>; if the hook cannot be registered; in a
    percpu script, if this runtime already registered the same <code>pf</code>, <code>hooknum</code>, <code>priority</code> and
    <code>mark</code>, or the same three both times without a <code>mark</code>
 
@@ -331,7 +332,7 @@ netfilter.<span class="function-name">register</span>{
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-04 17:14:40</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 11:08:15</span>
 </div>
 </footer>
 </body>
