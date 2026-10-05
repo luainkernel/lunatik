@@ -601,6 +601,7 @@ window.LUNATIK_SEARCH = [
 ["lunatik_optfield","topics/capi.md.html#lunatik_optfield","Guide · Lunatik C API"],
 ["lunatik_checkfieldinteger","topics/capi.md.html#lunatik_checkfieldinteger","Guide · Lunatik C API"],
 ["lunatik_optcfunction","topics/capi.md.html#lunatik_optcfunction","Guide · Lunatik C API"],
+["lunatik_checkcallbacks","topics/capi.md.html#lunatik_checkcallbacks","Guide · Lunatik C API"],
 ["lunatik_setinteger","topics/capi.md.html#lunatik_setinteger","Guide · Lunatik C API"],
 ["lunatik_optinteger","topics/capi.md.html#lunatik_optinteger","Guide · Lunatik C API"],
 ["lunatik_setstring","topics/capi.md.html#lunatik_setstring","Guide · Lunatik C API"],

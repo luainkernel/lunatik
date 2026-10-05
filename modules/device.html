@@ -331,6 +331,8 @@
      Error if the device cannot be allocated or registered in the kernel,
    if the <code>name</code> field is missing or not a string, or if called from a percpu runtime;
    <code>bad field &apos;mode&apos; (number expected, got &lt;type&gt;)</code> if <code>mode</code> is present and not a number;
+   <code>bad field &apos;&lt;field&gt;&apos; (function expected, got &lt;type&gt;)</code> if <code>open</code>, <code>read</code>, <code>write</code> or
+   <code>release</code> is present and not a function;
    <code>bad field &apos;mode&apos; (out of bounds)</code> if it is negative or past <code>S_IALLUGO</code>, as a mode that
    carries a file type is;
    <code>&apos;device&apos;: process-context class in interrupt-context runtime</code> in a softirq or
@@ -370,7 +372,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:46:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:47:53</span>
 </div>
 </footer>
 </body>

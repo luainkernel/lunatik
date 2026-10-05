@@ -1641,6 +1641,18 @@ bits of a number past its range.</p>
 <p>Pushes the field named <code>field</code> of the table at <code>idx</code> when it is a function, and <code>default_func</code>
 otherwise. <code>lunatik_nop</code> returns nothing, the default a binding passes for an optional callback.</p>
 
+<h3 id="lunatik_checkcallbacks">lunatik_checkcallbacks</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_checkcallbacks</span>(lua_State *L, <span class="keyword">int</span> idx, <span class="keyword">const</span> <span class="keyword">char</span> *<span class="keyword">const</span> *fields);
+</pre>
+
+
+<p>Raises <code>bad field &apos;&lt;field&gt;&apos; (function expected, got &lt;type&gt;)</code> for each name of the NULL-terminated
+<code>fields</code> the table at <code>idx</code> holds as something other than a function or nil. A constructor runs it
+over the optional callbacks it documents before it acquires anything, so a callback written as a
+value it would ignore at dispatch is refused where the script gave it.</p>
+
 <h3 id="lunatik_setinteger">lunatik_setinteger</h3>
 
 <pre>
@@ -2120,7 +2132,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:46:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:47:53</span>
 </div>
 </footer>
 </body>
