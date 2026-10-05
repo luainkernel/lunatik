@@ -114,8 +114,8 @@ static inline void luacrypto_aead_setrequest(luacrypto_aead_request_t *request, 
 
 static inline char *luacrypto_aead_prepare(lua_State *L, luacrypto_aead_request_t *request, size_t output_len)
 {
-	/* never kmalloc(0), whose ZERO_SIZE_PTR has no page to map */
-	size_t buffer_len = request->aad_len + max3(request->crypt_len, output_len, (size_t)1);
+	/* a byte past the output for the NUL lunatik_pushexternalstring writes, and never kmalloc(0) */
+	size_t buffer_len = request->aad_len + max(request->crypt_len, output_len + 1);
 	char *buffer = luacrypto_newbuffer(L, buffer_len);
 	luacrypto_aead_setrequest(request, buffer, buffer_len);
 	return buffer;
@@ -128,8 +128,8 @@ static inline int luacrypto_aead_finish(lua_State *L, luacrypto_aead_request_t *
 		lunatik_free(buffer);
 		lunatik_throw(L, ret);
 	}
-	lua_pushlstring(L, buffer + request->aad_len, output_len);
-	lunatik_free(buffer);
+	memmove(buffer, buffer + request->aad_len, output_len); /* the string frees the buffer from its start */
+	lunatik_pushexternalstring(L, buffer, output_len);
 	return 1;
 }
 
