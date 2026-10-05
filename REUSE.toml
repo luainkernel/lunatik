@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+
+# The copyright and license of the files that cannot carry a header of their own:
+# Markdown, data and configuration files, and the fonts the documentation site ships.
+version = 1
+
+[[annotations]]
+path = "**/*.md"
+SPDX-FileCopyrightText = "(c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA"
+SPDX-License-Identifier = "MIT OR GPL-2.0-only"
+
+[[annotations]]
+path = "tools/Readme.md"
+SPDX-FileCopyrightText = "(c) 2024-2026 jperon <cataclop@hotmail.com>"
+SPDX-License-Identifier = "MIT OR GPL-2.0-only"
+
+[[annotations]]
+path = ".gitignore"
+SPDX-FileCopyrightText = "(c) 2020-2026 Ring Zero Desenvolvimento de Software LTDA"
+SPDX-License-Identifier = "MIT OR GPL-2.0-only"
+
+[[annotations]]
+path = ".gitmodules"
+SPDX-FileCopyrightText = "(c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA"
+SPDX-License-Identifier = "MIT OR GPL-2.0-only"
+
+[[annotations]]
+path = [
+	".claude/.gitignore",
+	".claude/settings.json",
+	".github/FUNDING.yml",
+	"autogen/.gitignore",
+	"autogen/lunatik/.gitignore",
+]
+SPDX-FileCopyrightText = "(c) 2026 Ring Zero Desenvolvimento de Software LTDA"
+SPDX-License-Identifier = "MIT OR GPL-2.0-only"
+
+[[annotations]]
+path = "autogen/linux/.gitignore"
+SPDX-FileCopyrightText = "(c) 2026 Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>"
+SPDX-License-Identifier = "MIT OR GPL-2.0-only"
+
+[[annotations]]
+path = ".editorconfig"
+SPDX-FileCopyrightText = "(c) 2025 glk0 <hotkatz32@gmail.com>"
+SPDX-License-Identifier = "MIT OR GPL-2.0-only"
+
+[[annotations]]
+path = ["doc/style/fonts/IBMPlex*.woff2", "doc/style/fonts/OFL-IBM-Plex.txt"]
+SPDX-FileCopyrightText = "2017 IBM Corp. with Reserved Font Name \"Plex\""
+SPDX-License-Identifier = "OFL-1.1"
+
+[[annotations]]
+path = ["doc/style/fonts/Fraunces*.woff2", "doc/style/fonts/OFL-Fraunces.txt"]
+SPDX-FileCopyrightText = "2018 The Fraunces Project Authors"
+SPDX-License-Identifier = "OFL-1.1"
+
