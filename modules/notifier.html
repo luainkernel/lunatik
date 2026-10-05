@@ -180,10 +180,11 @@
  This library allows Lua scripts to register callback functions that are
  invoked when specific kernel events occur, such as keyboard input,
  network device status changes, or virtual terminal events.
- A callback returns a <a href="../modules/linux.notify.html#">linux.notify</a> code; anything else, a callback that
- raises, which is logged, and an event that reaches a runtime not ready to take
- it, or that the runtime&rsquo;s own code raises from under its lock, counts as
- <code>notify.DONE</code>.
+ A callback returns a <a href="../modules/linux.notify.html#">linux.notify</a> code. No value, a callback that raises,
+ which is logged, and an event that reaches a runtime not ready to take it, or
+ that the runtime&rsquo;s own code raises from under its lock, count as
+ <code>notify.DONE</code>, and so does any other value, which is logged as <code>invalid notify
+ code</code>.
 
 <h2 id="Class_notifier">Class notifier </h2>
 <div class="tbl"><table class="function_list">
@@ -371,7 +372,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:06:31</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:08:43</span>
 </div>
 </footer>
 </body>
