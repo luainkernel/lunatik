@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # A pull request whose change touches a binding says, in its body, what each example that uses the
 # binding did: ran, only loaded, or was not run and why (AGENTS.md, "Before opening a pull request",
 # item 6). tools/checks/examples-touched.sh lists them from the changed files; #1140 changed the

@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Names the out-of-tree scripts that require a binding the given files change.
 # A product built on Lunatik is a consumer this tree cannot grep: point the check
 # at the clones with LUNATIK_CONSUMERS, a colon separated list of directories,

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Checks a pull request body against AGENTS.md, "Patches and commits": at most three
 # paragraphs, the first one the failure or the need, no em dash, no "Test plan" section,
 # no failure named as a flake (untraced.sh), and a body tied to an issue in words GitHub

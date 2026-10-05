@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Stop adapter: reads the reply a turn ends on through tools/checks/decision.sh and
 # tools/checks/reboot-capture.sh and sends it back once when it hands the maintainer a decision
 # without the question, the options and a recommendation, or asks for a reboot nothing captured

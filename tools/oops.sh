@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Captures the last kernel oops before a reboot takes it away: the dmesg block from the fault
 # to "end trace", the instructions around the faulting one in the installed module, and the
 # processes left in D state. Prints to stdout; keep it under scratch/, not /tmp, which the

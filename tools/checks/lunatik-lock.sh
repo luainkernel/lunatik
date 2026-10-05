@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Bash) hook: one lunatik operation at a time. Concurrent ones wedge
 # /dev/lunatik and leave processes in D state, which only a reboot clears, so a
 # command that touches the device is refused (exit 2) while another is running:

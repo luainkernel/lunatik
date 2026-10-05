@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Workflow) hook: the effort is why an agent runs through a workflow here, so a script
 # whose agent() calls name none runs every agent at the session's default, the mistake agent-guard.sh
 # exists for. Blocks (exit 2) a workflow script, inline or by scriptPath, that calls agent() and never

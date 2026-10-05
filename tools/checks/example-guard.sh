@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (Bash) hook: an example is loaded through tools/watchdog.sh, which
 # stops it when the host loses the connectivity it had. An example arms real
 # hooks on the machine that runs it, and one that cuts the network off cannot be

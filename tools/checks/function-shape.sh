@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Names the shapes of a C function a review round on #1158 passed over and the maintainer
 # then called out: a lock taken at more than one site of one function, where the section
 # between is a helper of its own; one buffer freed at more than one site of one function, the

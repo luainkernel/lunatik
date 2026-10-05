@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Checks a test script under tests/ for what it cannot detect: a script run with
 # `lunatik run` whose failure to load nothing reads, neither the exit status nor
 # the output, so a broken require reports as a pass, a dmesg check alone included;

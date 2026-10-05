@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # A guard in the core is for the honest mistake, and a script that reaches into the runtime's own
 # bookkeeping, the registry, a class metatable or an object's __gc, is out of contract (AGENTS.md,
 # "Deciding what to change"): a finding whose stimulus is such a script closes as not a defect.

@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Checks a lunatik framework file (lib/lua*.c|h or the core lunatik.h /
 # lunatik_*.h|c) for comment/LDoc style deviations from the framework.
 # Heuristic: it nudges a review, it does not rewrite.

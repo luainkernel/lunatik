@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # A failure that comes and goes is read in the journal and named by its mechanism, or carried
 # as a hypothesis; "flake" is the word for a symptom nobody read, and a review that used it for
 # tests/netlink/nl80211_station passed over NetworkManager taking the test's interface (#1010).

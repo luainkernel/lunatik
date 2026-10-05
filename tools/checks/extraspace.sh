@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Names a change that sizes Lua's extra space again, which holds the runtime's pointer alone:
 # lua_newthread copies it into each coroutine when it is made and lua_close frees it with the
 # state, so a fact kept there is right only while fixed and only while the state lives. #851 put

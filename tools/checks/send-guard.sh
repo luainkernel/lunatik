@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # PreToolUse (SendMessage) hook: an agent a workflow launched is not messaged while the workflow waits
 # on it. The message resumes a copy of the agent from its transcript, and the copy runs beside the
 # original, in its worktree and on the host: #1390's and #1294's implementers ran twice that way, two

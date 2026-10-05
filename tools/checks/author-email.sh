@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 # Names a commit whose author email is not the one the base uses most for that author's
 # name: a rebase or a squash done from another checkout signs the result with that
 # checkout's git identity, and #850 reached its review under an address the history knows
