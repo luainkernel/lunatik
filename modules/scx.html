@@ -185,6 +185,13 @@
  kfunc, which in turn invokes a Lua callback function previously registered
  using <code>scx.attach()</code>.</p>
 
+<p> The callback runs inside the sched_ext operation that calls the kfunc, and <code>ops.enqueue</code>
+ runs with the runqueue lock of its CPU held, so a callback must not call <a href="https://www.lua.org/manual/5.5/manual.html#pdf-print">print</a>, a
+ completion&rsquo;s <code>complete</code> or a mailbox&rsquo;s <code>send</code>: each can wake a task, and the wakeup takes
+ that lock again on a CPU that already holds it. An allocation the callback&rsquo;s Lua makes
+ under memory pressure, which can wake kswapd, and the log of an error the callback raises
+ can wake a task the same way.</p>
+
 <p> Needs 6.12 and later, with <code>CONFIG_SCHED_CLASS_EXT</code>; without it the module loads
  and offers <a href="../modules/scx.html#attach">attach</a>, which raises <code>EOPNOTSUPP</code>, and <a href="../modules/scx.html#detach">detach</a>, which does nothing.
  The kfunc needs the module&rsquo;s BTF: run <code>sudo make btf_install</code> before <code>make</code>, or the kernel logs
@@ -359,7 +366,7 @@ scx.<span class="function-name">attach</span>(my_scheduler)
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:55:51</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:56:16</span>
 </div>
 </footer>
 </body>
