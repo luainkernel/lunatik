@@ -1,5 +1,7 @@
+#
 # SPDX-FileCopyrightText: (c) 2023-2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
 
 KERNEL_RELEASE ?= ${shell uname -r}
 MODULES_PATH := /lib/modules
