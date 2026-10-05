@@ -214,7 +214,7 @@ netfilter.register{
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:connmark">skb:connmark ([value])</a></td>
-	<td class="summary">Gets or sets the conntrack mark: with no argument reads it, with <code>value</code> sets
+	<td class="summary">Gets or sets the conntrack mark: with no argument or nil reads it, with <code>value</code> sets
  it.</td>
 	</tr>
 	<tr>
@@ -238,11 +238,11 @@ netfilter.register{
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:mark">skb:mark ([value])</a></td>
-	<td class="summary">Gets or sets the packet mark: with no argument reads it, with <code>value</code> sets it.</td>
+	<td class="summary">Gets or sets the packet mark: with no argument or nil reads it, with <code>value</code> sets it.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:priority">skb:priority ([value])</a></td>
-	<td class="summary">Gets or sets the packet priority: with no argument reads it, with <code>value</code> sets it.</td>
+	<td class="summary">Gets or sets the packet priority: with no argument or nil reads it, with <code>value</code> sets it.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:resize">skb:resize (n)</a></td>
@@ -303,7 +303,7 @@ netfilter.register{
 </dd>
     <dt id="skb:connmark"><a name="skb:connmark"></a><strong>skb:connmark ([value])</strong></dt>
     <dd>
-    Gets or sets the conntrack mark: with no argument reads it, with <code>value</code> sets
+    Gets or sets the conntrack mark: with no argument or nil reads it, with <code>value</code> sets
  it.  Returns the current (or new) mark, or nil if no conntrack is associated.
  Present only on a kernel built with <code>CONFIG_NF_CONNTRACK_MARK</code>: elsewhere the method is nil,
  and a script that may run there tests <a href="../modules/skb.html#skb:connmark">skb.connmark</a> before calling it.
@@ -430,7 +430,7 @@ netfilter.register{
 </dd>
     <dt id="skb:mark"><a name="skb:mark"></a><strong>skb:mark ([value])</strong></dt>
     <dd>
-    Gets or sets the packet mark: with no argument reads it, with <code>value</code> sets it.
+    Gets or sets the packet mark: with no argument or nil reads it, with <code>value</code> sets it.
 
 
     <h3>Parameters</h3>
@@ -457,7 +457,7 @@ netfilter.register{
 </dd>
     <dt id="skb:priority"><a name="skb:priority"></a><strong>skb:priority ([value])</strong></dt>
     <dd>
-    Gets or sets the packet priority: with no argument reads it, with <code>value</code> sets it.
+    Gets or sets the packet priority: with no argument or nil reads it, with <code>value</code> sets it.
 
 
     <h3>Parameters</h3>
@@ -545,7 +545,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 development · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:08:43</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-05 12:30:56</span>
 </div>
 </footer>
 </body>
