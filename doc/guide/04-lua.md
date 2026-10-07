@@ -52,7 +52,8 @@ resumed inside another or a runtime a script creates or resumes, nests on the ke
 which Lunatik bounds in bytes (`LUAI_MAXCCALLS`): past five eighths of it (`THREAD_SIZE`), counted
 from where the kernel entered Lua, at a hook, a thread's start, the CLI's write or the close that
 runs a runtime's finalizers, such a call raises `C stack overflow`, as a chunk whose syntax nests
-that deep does. A runtime a script creates or resumes counts from where its creator or resumer was
+that deep does, and a function whose nested functions do, loaded from a binary chunk or dumped by
+`string.dump`. A runtime a script creates or resumes counts from where its creator or resumer was
 entered, so a script that creates itself runs out too. Under `xpcall`, a message handler called past
 the bound raises in turn, and the call ends with `error in error handling`. On the task stack the
 call also raises once a quarter of the stack is all that is left, so a hook entered deep, as a

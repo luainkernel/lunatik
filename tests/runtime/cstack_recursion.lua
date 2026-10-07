@@ -49,6 +49,24 @@ local function collect()
 	return collector.key
 end
 
+local function undump(chunk)
+	return load(chunk, "=nested", "b")
+end
+
+local reached = false
+
+local function atedge(f, ...)
+	local ok, result, err = pcall(atedge, f, ...)
+	if ok then
+		return result, err
+	end
+	if reached then -- f raised at the edge
+		error(result, 0)
+	end
+	reached = true
+	return f(...)
+end
+
 function recursion.throughpcall()
 	return select(2, pcall(recursion.throughpcall))
 end
@@ -67,6 +85,22 @@ end
 
 function recursion.throughload()
 	assert(load("return " .. ("("):rep(NESTING) .. "0" .. (")"):rep(NESTING)))
+end
+
+function recursion.throughundump(chunk)
+	reached = false
+	local loaded, err = atedge(undump, chunk)
+	error(loaded == nil and err or "a chunk nested past the budget loaded", 0)
+end
+
+function recursion.throughdump(nested)
+	reached = false
+	atedge(string.dump, nested)
+	error("a function nested past the budget dumped", 0)
+end
+
+function recursion.undumps(nested, chunk)
+	return type(undump(chunk)) == "function" and string.dump(nested) == chunk
 end
 
 function recursion.throughcollect()

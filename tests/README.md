@@ -1572,8 +1572,15 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   past the budget ends the call with "error in error handling". A spawned
   thread's body, which the core enters through `lunatik_run`, recurses through
   `pcall` and returns. Each reports whether the error it caught is the expected
-  one. A build without the budget overflows the kernel stack instead, so the
-  test skips unless the loaded core has `lunatik_maxccalls`.
+  one. At the deepest level a `pcall` still enters, the driver loads a chunk
+  whose functions nest ten deep and dumps the function it came from with
+  `string.dump`, both of which raise, and checks that the chunk loads and
+  dumps where the stack is shallow; and the CLI runs a chunk `lunatic` compiled
+  with functions nested 98 deep, which the core refuses at its load on a 16 KB
+  stack, a case that runs only after the load at the deepest level raised and
+  skips without `lunatic` or where the stack holds the chunk, a 64 KB or a
+  KASAN one. A build without the budget overflows the kernel stack instead, so
+  the test skips unless the loaded core has `lunatik_maxccalls`.
 
 ### scx
 
