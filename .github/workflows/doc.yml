@@ -10,10 +10,22 @@ on:
   push:
     branches:
     - master
+  release:
+    types:
+    - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release to serve at the site's root
+        required: true
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && github.ref || 'gh-pages' }}
 jobs:
   build:
     name: Build docs
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -32,11 +44,39 @@ jobs:
         luarocks install ldoc
         luarocks install discount DISCOUNT_INCDIR=/usr/include/$(gcc -print-multiarch) DISCOUNT_LIBDIR=/usr/lib/$(gcc -print-multiarch)
     - name: Build docs
-      run: make doc-site LUA=lua
-    - name: Deploy
+      if: ${{ env.TAG == '' }}
+      run: make doc-site LUA=lua DOC_TAGS=
+    - name: Deploy master
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: doc
+        destination_dir: master
+    - name: Check the latest release
+      id: latest
+      if: ${{ env.TAG != '' }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        latest=$(gh api repos/${{ github.repository }}/releases/latest --jq .tag_name)
+        if [ "$latest" = "$TAG" ]; then echo "deploy=true" >> "$GITHUB_OUTPUT"
+        else echo "::notice::$TAG is not the latest release, $latest is, and keeps the site's root"
+        fi
+    - name: Build the release and master
+      if: ${{ steps.latest.outputs.deploy == 'true' }}
+      run: |
+        git worktree add "$RUNNER_TEMP/release" "$TAG"
+        # the release's content, under the header and style of the commit running this workflow
+        git -C "$RUNNER_TEMP/release" checkout "$GITHUB_SHA" -- doc/style
+        git worktree add "$RUNNER_TEMP/master" origin/master
+        make -C "$RUNNER_TEMP/release" doc-site LUA=lua
+        make -C "$RUNNER_TEMP/master" doc-site LUA=lua DOC_TAGS=
+        mv "$RUNNER_TEMP/master/doc" "$RUNNER_TEMP/release/doc/master"
+    - name: Deploy the release
+      if: ${{ steps.latest.outputs.deploy == 'true' }}
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ${{ runner.temp }}/release/doc
 

@@ -146,8 +146,10 @@ a:hover { color: var(--accent-hover); text-decoration: underline; text-underline
 .brand { display: flex; align-items: center; gap: .55rem; color: var(--text); font-family: var(--display); font-weight: 600; font-size: 1.35rem; letter-spacing: -.01em; }
 .brand:hover { color: var(--text); text-decoration: none; }
 .brand svg { width: 2.2rem; height: 2.2rem; flex: none; }
-.release { font: 500 .75rem var(--mono); color: var(--muted); background: var(--raised); border: 1px solid var(--border); border-radius: 999px; padding: .1rem .55rem; white-space: nowrap; }
-.release:hover { color: var(--text); text-decoration: none; }
+.versions { display: inline-flex; font: 500 .75rem var(--mono); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; white-space: nowrap; }
+.versions > * { padding: .1rem .55rem; color: var(--muted); }
+.versions [aria-current] { color: var(--text); background: var(--raised); }
+.versions a:hover { color: var(--text); text-decoration: none; }
 .logo-mark { fill: var(--logo); }
 .logo-orbit { fill: none; stroke: var(--faint); stroke-width: 3.5; stroke-dasharray: 7 4.5; }
 .search { position: relative; flex: 1; max-width: 26rem; margin-left: auto; }
@@ -474,7 +476,7 @@ pre.example { margin: .4rem 0 0; }
 	.layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
 	.nav-toggle { display: inline-grid; }
 	.top-links a { display: none; }
-	.release { display: none; }
+	.versions { display: none; }
 	.sidebar {
 		position: fixed;
 		top: var(--header-h);
