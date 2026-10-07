@@ -6,9 +6,9 @@
 /***
 * Encrypted Lua script execution using AES-256-GCM.
 *
-* This module provides functionality to decrypt and execute Lua scripts
+* This module provides functionality to decrypt and load or execute Lua scripts
 * encrypted with AES-256 in GCM mode. Scripts are decrypted in-kernel
-* and executed immediately, with the decrypted plaintext never written
+* and loaded immediately, with the decrypted plaintext never written
 * to persistent storage.
 *
 * @module darken
@@ -99,23 +99,26 @@ static void luadarken_decrypt(lua_State *L, luadarken_request_t *r, char *buf)
 }
 
 /***
-* Decrypts and executes an encrypted Lua script.
+* Decrypts an encrypted Lua script and loads it without running it.
 * The ciphertext carries its 16-byte tag at the end and no associated data, and nothing is loaded
-* unless the tag matches. The decrypted script is Lua source or a chunk `lunatic` compiled, and it
-* runs with the runtime's global environment. It allocates a crypto transform, which may sleep: call
-* it from a process runtime or from a script body, never from a softirq or hardirq callback.
-* @function run
+* unless the tag matches. The decrypted script is Lua source or a chunk `lunatic` compiled, and the
+* function it loads into has the runtime's global environment. A script that calls the function as
+* it returns it, `return darken.load(...)(...)`, runs it as a tail call, at the depth of the
+* script itself, where one that `darken.run` runs nests below a C call. It allocates a crypto
+* transform, which may sleep: call it from a process runtime or from a script body, never from a
+* softirq or hardirq callback.
+* @function load
 * @tparam string ciphertext encrypted Lua script followed by its 16-byte tag (binary).
 * @tparam string iv 12-byte initialization vector (binary).
 * @tparam string key 32-byte AES-256 key (binary).
-* @return The return values from the executed script.
+* @treturn function the loaded script.
 * @raise "IV must be 12 bytes", "key must be 32 bytes", "not allowed once the runtime is armed" from
 *   an interrupt-context runtime past its body, "EBADMSG" when the tag does not match (a wrong key
 *   or IV, or a ciphertext altered or shorter than the tag), the errno name of a failed transform
-*   allocation, key setting or decryption, "not enough memory", the load error of the decrypted
-*   script, or the error the script raises.
+*   allocation, key setting or decryption, "not enough memory", or the load error of the decrypted
+*   script.
 */
-static int luadarken_run(lua_State *L)
+static int luadarken_load(lua_State *L)
 {
 	lunatik_checkarmed(L);
 
@@ -138,13 +141,28 @@ static int luadarken_run(lua_State *L)
 
 	if (ret != LUA_OK)
 		lua_error(L);
+	return 1;
+}
 
+/***
+* Decrypts and executes an encrypted Lua script: `darken.load` followed by a call of what it loads.
+* @function run
+* @tparam string ciphertext encrypted Lua script followed by its 16-byte tag (binary).
+* @tparam string iv 12-byte initialization vector (binary).
+* @tparam string key 32-byte AES-256 key (binary).
+* @return The return values from the executed script.
+* @raise what `darken.load` raises, or the error the script raises.
+*/
+static int luadarken_run(lua_State *L)
+{
+	luadarken_load(L);
 	int base = lua_gettop(L);
 	lua_call(L, 0, LUA_MULTRET);
 	return lua_gettop(L) - base + 1;
 }
 
 static const luaL_Reg luadarken_lib[] = {
+	{"load", luadarken_load},
 	{"run", luadarken_run},
 	{NULL, NULL}
 };

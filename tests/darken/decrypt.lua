@@ -38,6 +38,13 @@ test("darken.run runs a script and returns its values", function()
 	assert(one == 1 and two == "two", "darken.run returned " .. tostring(one) .. ", " .. tostring(two))
 end)
 
+test("darken.load returns the script loaded and not run", function()
+	local script = darken.load(seal("error('ran', 0)"), IV, KEY)
+	assert(type(script) == "function", "darken.load returned " .. tostring(script))
+	local ok, err = pcall(script)
+	assert(not ok and err == "ran", "the loaded script raised " .. tostring(err))
+end)
+
 test("darken.run runs an empty script, a ciphertext that is only its tag", function()
 	local empty = seal("")
 	assert(#empty == TAGLEN, "an empty script sealed to " .. #empty .. " bytes")

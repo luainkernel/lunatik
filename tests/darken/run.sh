@@ -18,8 +18,9 @@
 #
 # decrypt: decrypt.lua seals each script with crypto.aead's gcm(aes), the
 # format darken.run reads. A script runs and hands back its values, as a chunk
-# string.dump stripped of it does, and an empty one, a ciphertext that is only
-# its 16-byte tag, runs and returns none;
+# string.dump stripped of it does, darken.load hands one back loaded and not
+# run, and an empty one, a ciphertext that is only its 16-byte tag, runs and
+# returns none;
 # a wrong key or IV, a flipped byte of the ciphertext or of the tag, and a
 # ciphertext cut short, by one byte or below the tag, raise EBADMSG before
 # anything loads; a ciphertext of 64 MiB, past kmalloc's largest block with 4K
@@ -32,8 +33,13 @@
 # shade: tools/shade.sh, installed beside this script, encrypts a script and
 # writes the key for its secret, and shade.lua runs the dark script through
 # lighten with that key in place of light.lua, so the tag shade.sh derives
-# from openssl's GMAC is the one gcm(aes) checks in the kernel. Skips below
-# OpenSSL 3, whose openssl mac shade.sh needs.
+# from openssl's GMAC is the one gcm(aes) checks in the kernel. The script walks
+# the stack and answers "shaded" only when neither darken.load nor darken.run is
+# on it: the dark script calls what lighten.load returns as a tail call, so an
+# encrypted module nests no deeper than a plain one. The same ciphertext run
+# through lighten.run answers "nested", since darken.run calls the script from
+# C, so the walk tells the two apart on every run. Skips below OpenSSL 3, whose
+# openssl mac shade.sh needs.
 #
 # shade_chunk: the same script compiled by lunatic -s, the host compiler a
 # product ships stripped chunks with, and then encrypted by tools/shade.sh, runs
@@ -66,26 +72,40 @@ REFUSAL="not allowed once the runtime is armed"
 SCRIPTS="/lib/modules/lua/tests/darken"
 DARK="$SCRIPTS/shade_dark.lua"
 LIGHT="$SCRIPTS/shade_light.lua"
+RUN="$SCRIPTS/shade_run.lua"
 TOOL="$DIR/shade.sh"
 [ -e "$TOOL" ] || TOOL="$DIR/../../tools/shade.sh"
 TMP=""
 
 cleanup() {
 	for s in "$SCRIPT" "$DECRYPT" "$SHADE"; do lunatik stop "$s" > /dev/null 2>&1; done
-	rm -f "$DARK" "$LIGHT"
+	rm -f "$DARK" "$LIGHT" "$RUN"
 	[ -z "${TMP:-}" ] || rm -rf "$TMP"
 }
 trap cleanup EXIT
 cleanup
 TMP=$(mktemp -d)
-printf 'return "shaded"\n' > "$TMP/script.lua"
+cat > "$TMP/script.lua" <<'EOF'
+local darken = require("darken")
+local level = 2
+while true do
+	local info = debug.getinfo(level, "f")
+	if info == nil then
+		return "shaded"
+	elseif info.func == darken.load or info.func == darken.run then
+		return "nested"
+	end
+	level = level + 1
+end
+EOF
 
 shade() {
 	local name="${1:-script}" secret
 	lunatik stop "$SHADE" > /dev/null 2>&1
 	secret=$(bash "$TOOL" darken "$TMP/$name.lua") || return 1
 	(cd "$TMP" && bash "$TOOL" lighten "$secret") || return 1
-	cp "$TMP/$name.dark.lua" "$DARK" && cp "$TMP/light.lua" "$LIGHT" && run_test "$SHADE"
+	sed 's/lighten\.load(\(.*\))(\.\.\.)$/lighten.run(\1)/' "$TMP/$name.dark.lua" > "$RUN" &&
+		cp "$TMP/$name.dark.lua" "$DARK" && cp "$TMP/light.lua" "$LIGHT" && run_test "$SHADE"
 }
 
 shade_chunk() {
