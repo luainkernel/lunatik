@@ -101,9 +101,9 @@ static void luadarken_decrypt(lua_State *L, luadarken_request_t *r, char *buf)
 /***
 * Decrypts and executes an encrypted Lua script.
 * The ciphertext carries its 16-byte tag at the end and no associated data, and nothing is loaded
-* unless the tag matches. The decrypted script must be Lua source, and it runs with the runtime's
-* global environment. It allocates a crypto transform, which may sleep: call it from a process
-* runtime or from a script body, never from a softirq or hardirq callback.
+* unless the tag matches. The decrypted script is Lua source or a chunk `lunatic` compiled, and it
+* runs with the runtime's global environment. It allocates a crypto transform, which may sleep: call
+* it from a process runtime or from a script body, never from a softirq or hardirq callback.
 * @function run
 * @tparam string ciphertext encrypted Lua script followed by its 16-byte tag (binary).
 * @tparam string iv 12-byte initialization vector (binary).
@@ -112,9 +112,8 @@ static void luadarken_decrypt(lua_State *L, luadarken_request_t *r, char *buf)
 * @raise "IV must be 12 bytes", "key must be 32 bytes", "not allowed once the runtime is armed" from
 *   an interrupt-context runtime past its body, "EBADMSG" when the tag does not match (a wrong key
 *   or IV, or a ciphertext altered or shorter than the tag), the errno name of a failed transform
-*   allocation, key setting or decryption, "not enough memory", the load error of the decrypted text
-*   ("attempt to load a binary chunk (mode is 't')" for a precompiled script), or the error the
-*   script raises.
+*   allocation, key setting or decryption, "not enough memory", the load error of the decrypted
+*   script, or the error the script raises.
 */
 static int luadarken_run(lua_State *L)
 {
@@ -134,7 +133,7 @@ static int luadarken_run(lua_State *L)
 	char *buf = luadarken_setrequest(L, &r, ct, ct_len, iv, key);
 	luadarken_decrypt(L, &r, buf);
 
-	int ret = luaL_loadbufferx(L, buf, ct_len - LUADARKEN_TAGLEN, "=darken", "t");
+	int ret = luaL_loadbuffer(L, buf, ct_len - LUADARKEN_TAGLEN, "=darken");
 	kfree_sensitive(buf);
 
 	if (ret != LUA_OK)

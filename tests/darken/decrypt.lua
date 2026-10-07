@@ -77,8 +77,13 @@ test("darken.run raises the load error of a script that does not parse", functio
 	raises("darken:1:", seal("return return"), IV, KEY)
 end)
 
-test("darken.run refuses a precompiled script", function()
-	raises("attempt to load a binary chunk (mode is 't')", seal("\27Lua"), IV, KEY)
+test("darken.run raises the load error of a chunk that does not load", function()
+	raises("darken: bad binary format", seal("\27Lua"), IV, KEY)
+end)
+
+test("darken.run runs a stripped chunk and returns its values", function()
+	local one, two = darken.run(seal(string.dump(load("return 1, 'two'"), true)), IV, KEY)
+	assert(one == 1 and two == "two", "darken.run returned " .. tostring(one) .. ", " .. tostring(two))
 end)
 
 test("darken.run raises, and warns nothing, for a ciphertext past kmalloc's largest block", function()

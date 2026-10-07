@@ -164,16 +164,20 @@ after it.
   the runtime is armed", since allocating the transform sleeps. Skips unless
   the loaded `luadarken` is the installed one and carries the refusal.
 - **decrypt**: `darken.run` reads what `crypto.aead`'s `gcm(aes)` seals: a
-  script runs and returns its values, and an empty one, a ciphertext that is
-  only its 16-byte tag, returns none; a wrong key or IV, a flipped byte of the
+  script runs and returns its values, as a stripped chunk of it does, and an
+  empty one, a ciphertext that is only its 16-byte tag, returns none; a wrong
+  key or IV, a flipped byte of the
   ciphertext or of the tag, and a ciphertext cut short raise `EBADMSG`; one of
   64 MiB, past kmalloc's largest block with 4K pages, raises "not enough memory"
   and leaves no allocator WARN; an IV
   that is not 12 bytes and a key that is not 32 are refused; and a script that
-  does not parse, a precompiled one and one that raises reach the caller with
-  their own error.
+  does not parse, a chunk that does not load and one that raises reach the
+  caller with their own error.
 - **shade**: a script `tools/shade.sh` encrypted runs through `lighten` with
   the key `shade.sh lighten` wrote for its secret. Skips below OpenSSL 3.
+- **shade_chunk**: the same script compiled by `lunatic -s` and then encrypted
+  by `tools/shade.sh` runs through `lighten`. Skips without `lunatic` or below
+  OpenSSL 3.
 - **shade_error**: a step of `tools/shade.sh` that fails, an `xxd` that fails
   in the key's derivation or in the encryption, a secret that is not 64 hex
   digits, an option it does not take and one after the secret stop `darken` and

@@ -17,22 +17,27 @@
 # carries the refusal, which is inline and has no symbol of its own.
 #
 # decrypt: decrypt.lua seals each script with crypto.aead's gcm(aes), the
-# format darken.run reads. A script runs and hands back its values, and an
-# empty one, a ciphertext that is only its 16-byte tag, runs and returns none;
+# format darken.run reads. A script runs and hands back its values, as a chunk
+# string.dump stripped of it does, and an empty one, a ciphertext that is only
+# its 16-byte tag, runs and returns none;
 # a wrong key or IV, a flipped byte of the ciphertext or of the tag, and a
 # ciphertext cut short, by one byte or below the tag, raise EBADMSG before
 # anything loads; a ciphertext of 64 MiB, past kmalloc's largest block with 4K
 # pages (KMALLOC_MAX_SIZE, 32 MiB at MAX_PAGE_ORDER 13), raises "not enough
 # memory" and leaves no allocator WARN for the run's dmesg read, as a copy
 # without __GFP_NOWARN does once per boot; an IV that is not 12 bytes and a key that is not 32 are
-# refused; and a script that does not parse, a precompiled one and one that
-# raises reach the caller with their own error.
+# refused; and a script that does not parse, a chunk that does not load and
+# one that raises reach the caller with their own error.
 #
 # shade: tools/shade.sh, installed beside this script, encrypts a script and
 # writes the key for its secret, and shade.lua runs the dark script through
 # lighten with that key in place of light.lua, so the tag shade.sh derives
 # from openssl's GMAC is the one gcm(aes) checks in the kernel. Skips below
 # OpenSSL 3, whose openssl mac shade.sh needs.
+#
+# shade_chunk: the same script compiled by lunatic -s, the host compiler a
+# product ships stripped chunks with, and then encrypted by tools/shade.sh, runs
+# the same way. Skips without lunatic, and below OpenSSL 3.
 #
 # shade_error: a step of tools/shade.sh that fails, a secret that is not 64 hex
 # digits and an option it does not take stop it with a non-zero status before
@@ -76,10 +81,15 @@ TMP=$(mktemp -d)
 printf 'return "shaded"\n' > "$TMP/script.lua"
 
 shade() {
-	local secret
-	secret=$(bash "$TOOL" darken "$TMP/script.lua") || return 1
+	local name="${1:-script}" secret
+	lunatik stop "$SHADE" > /dev/null 2>&1
+	secret=$(bash "$TOOL" darken "$TMP/$name.lua") || return 1
 	(cd "$TMP" && bash "$TOOL" lighten "$secret") || return 1
-	cp "$TMP/script.dark.lua" "$DARK" && cp "$TMP/light.lua" "$LIGHT" && run_test "$SHADE"
+	cp "$TMP/$name.dark.lua" "$DARK" && cp "$TMP/light.lua" "$LIGHT" && run_test "$SHADE"
+}
+
+shade_chunk() {
+	lunatic -s -o "$TMP/chunk.lua" "$TMP/script.lua" && shade chunk
 }
 
 # shade.sh run in $TMP with these arguments exits non-zero and writes neither file
@@ -106,7 +116,7 @@ shade_error() {
 }
 
 ktap_header
-ktap_plan 4
+ktap_plan 5
 
 if ! [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] ||
 	! grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
@@ -123,9 +133,11 @@ else
 	ktap_fail "darken/decrypt"
 fi
 
-for name in shade shade_error; do
+for name in shade shade_chunk shade_error; do
 	if ! openssl mac -help > /dev/null 2>&1; then
 		ktap_skip "darken/$name: tools/shade.sh needs OpenSSL 3 or later"
+	elif [ "$name" = shade_chunk ] && ! command -v lunatic > /dev/null; then
+		ktap_skip "darken/$name: lunatic not installed"
 	elif $name; then
 		ktap_pass "darken/$name"
 	else
