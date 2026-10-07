@@ -15,8 +15,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        # recursion.sh compiles the Lua the kernel links, which lives in the lua/ submodule
+        submodules: true
     - name: Install dependencies
-      run: sudo apt-get install -yq cppcheck
+      run: sudo apt-get install -yq cppcheck gawk
     - name: Stage the pull request's diff
       # pre-commit reads the index, so the diff against the base is staged as a commit would be
       run: git reset -q --soft "origin/${{ github.base_ref }}"
@@ -29,7 +31,7 @@ jobs:
       # heuristics that nudge a review; they annotate the run and do not fail it
       run: |
         files=$(git diff --cached --name-only --diff-filter=ACM)
-        for check in module-conventions comment-style comment-siblings idioms lua-style kthread function-shape core-helper deferral terminator shadowed-readers blast-radius examples-touched test-harness cppcheck-tests rename-orphaned; do
+        for check in module-conventions comment-style comment-siblings idioms lua-style kthread function-shape core-helper deferral terminator shadowed-readers blast-radius examples-touched test-harness cppcheck-tests rename-orphaned recursion; do
           out=$(bash "tools/checks/$check.sh" $files 2>&1) || true
           test -n "$out" && echo "::warning title=$check::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
         done

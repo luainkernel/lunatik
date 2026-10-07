@@ -198,7 +198,8 @@ branches, argument tables, inline functions and repeated blocks the Lua style ru
 (`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script
 skips (`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
-(`rename-orphaned.sh`), the readers of a field the change keeps its own copy of
+(`rename-orphaned.sh`), a recursion in the Lua the kernel links that counts no C level and no bound
+names (`recursion.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
 (`blast-radius.sh`), the examples that use a binding the change touches, which a review runs
 (`examples-touched.sh`), a commit that carries a rule or a check inside a change of its own
@@ -344,6 +345,16 @@ same line sat in the new tests of seventeen open pull requests. `kthread.sh` nam
 `thread.shouldstop()` whose body has no pause it can see, the shape of the four `tests/rcu` bodies
 #1167 found; it knows a pause by its name, in the loop or in a function of the same file the loop
 calls, so one behind another module reads as none, and the review decides.
+
+`recursion.sh` compiles the objects `Kbuild` links from `lua/` with the host compiler and the
+configuration `lunatic` takes, reads GCC's call graph (`-fcallgraph-info`) for its cycles, and names a
+recursion that never reaches `luaE_checkcstack` or `luaE_incCstack` and that its ledger does not bound,
+with what one level costs on the host; each ledger entry says what bounds a recursion, read in its
+source. It runs when a change touches `lua/`, `lunatik_conf.h` or `lunatik_aux.c`. #1669 priced a C
+level in bytes, read where `LUAI_MAXCCALLS` is compared and measured the stack at every check, so a
+recursion that compares nothing was invisible to both: lundump's `loadFunction` recursed once per
+nested function of a chunk, and `lunatic` compiled one nested 98 deep from valid source, past the
+guard page (#1775). The check named it, and seven others the ledger now bounds, the first time it ran.
 
 `author-email.sh` reads a rev-range and names a commit whose author email is not the one the base
 uses most for that author's name: a rebase or a squash done from another checkout signs the result
@@ -1152,7 +1163,10 @@ the tree's own tools ship a script in as well as over the suite as installed: ch
 compiles, which `BYTECODE=1` installs, and modules `tools/shade.sh` encrypted, required in chains.
 03e208b66 measured its budget over the suite and the examples, where no encrypted module requires
 another, and `darken.run` called each one from C, a level a plain module does not pay, so a chain
-that loaded as plain modules raised "C stack overflow" once encrypted (#1768).
+that loaded as plain modules raised "C stack overflow" once encrypted (#1768). Such a bound holds
+where the resource is spent, not where the bound is read: a recursion that consults nothing is outside
+it whatever the measurement showed, and `tools/checks/recursion.sh` lists the ones in the Lua the
+kernel links.
 
 The kernel a consumer builds on bounds what a change may use, and not every consumer sits inside
 the range this file declares: a product built on Lunatik can ship on an older vendor kernel, and
