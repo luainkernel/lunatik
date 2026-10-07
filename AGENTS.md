@@ -271,7 +271,9 @@ loop header a file spells twice, which a foreach macro names, as `lunatik_foreac
 walked its views with one `for` in four places until he asked for `luaskb_foreachview`. It names
 a value a function computes before a check that raises and does not read it, which decides before
 validating: #1584's `fifo:push` computed whether the string fits above the `lunatik_checkbounds`
-that refuses one past the capacity, and the maintainer asked why. It
+that refuses one past the capacity, and the maintainer asked why. It names a load of one mode,
+which refuses what `require` and `load` take: `darken.run` loaded text only from its first commit,
+with no reason written beside it, until a stripped chunk had to ship encrypted (#1767). It
 annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
 between the check and the throw is what the reader decides on.
 
@@ -1176,7 +1178,12 @@ named, not one discovered at that consumer's build.
   sits is a guess, not a trace.
 * Refusing is a legitimate outcome. When a combination has no sound semantics yet, refuse it where it
   is registered, with an error that names the reason, rather than shipping an approximation. Lifting
-  the refusal afterwards is one line and a test.
+  the refusal afterwards is one line and a test. The reason is written where the refusal is made, so
+  the change that removes it finds the refusal and lifts it: `darken.run` loaded text only from its
+  first commit, under AES-CTR, with no reason beside it, and the move to GCM, after which a decrypted
+  chunk is as trusted as the key, pinned that refusal in a case of its own, after `lunatic`'s commit
+  had said the kernel loads chunks everywhere and a documentation audit had written it down as the
+  contract. `tools/checks/idioms.sh` names a load of one mode.
 * A hazard is refused before it is engineered around. Where a context makes an operation unsafe, the
   operation is refused in that context, and a context is made where none names it yet; a deferral, a
   queue or a worker that keeps the unsafe call working buys a capability, and is weighed as one against
