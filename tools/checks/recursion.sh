@@ -40,8 +40,11 @@ for file in "$@"; do
 done
 $applies || exit 0
 
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
 missing=""
-gcc -fcallgraph-info=su -x c -c -o /dev/null /dev/null 2> /dev/null || missing="$missing GCC 10 or later"
+gcc -fcallgraph-info=su -x c -c -o /dev/null -dumpbase "$tmp/probe" /dev/null 2> /dev/null ||
+	missing="$missing GCC 10 or later"
 command -v gawk > /dev/null || missing="$missing gawk"
 [ -f "$root/lua/lundump.c" ] || missing="$missing the lua/ submodule"
 if [ -n "$missing" ]; then
@@ -49,8 +52,6 @@ if [ -n "$missing" ]; then
 	exit 0
 fi
 
-tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT
 for object in $(grep -o 'lua/[a-z]*\.o' "$root/Kbuild"); do
 	unit=$(basename "$object" .o)
 	(cd "$root" && gcc -std=gnu99 -O2 -w -D_KERNEL -DLUA_USE_LINUX -I. -Ilua -fcallgraph-info=su \
