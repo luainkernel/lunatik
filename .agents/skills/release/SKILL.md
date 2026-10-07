@@ -69,18 +69,19 @@ imperative, and then:
 
 # 6. The site
 
-The site names the release only once a tag in the built commit's history says so
-(`doc/style/ldoc.ltp`, from `doc/.tags`), and `doc.yml` runs on a push to master and takes no
-`workflow_dispatch`, so after the publish the push run of master's tip runs again, the run whose
-`head_sha` is that tip and no other, since a listing by branch answered v5.0's cut with runs weeks older:
+The site serves the latest release at its root and master under `master/`. Publishing the release
+runs `doc.yml` on the `release` event, which builds the tag at the root with master beside it and
+replaces the site; it takes the root only for the release GitHub marks as latest, which the publish
+above sets. The run is read by the cut's SHA, and one that failed or was cancelled, behind a push to
+master in the `gh-pages` concurrency group, is replaced by a dispatch naming the tag:
 
-    gh api "repos/<owner>/<repo>/actions/workflows/doc.yml/runs?head_sha=<master tip>&event=push" \
-        --jq '.workflow_runs[] | select(.head_sha == "<master tip>") | .id'
-    gh api -X POST repos/<owner>/<repo>/actions/runs/<run>/rerun
+    gh api "repos/<owner>/<repo>/actions/workflows/doc.yml/runs?event=release&head_sha=<cut>" \
+        --jq '.workflow_runs[] | select(.head_sha == "<cut>") | [.id, .status, .conclusion] | @tsv'
+    gh api -X POST repos/<owner>/<repo>/actions/workflows/doc.yml/dispatches -f ref=master -f 'inputs[tag]=<tag>'
 
-Once pages deploys, the footer names the release without "development":
+Once pages deploys, the root's footer names the release and links master's pages:
 
-    curl -s https://luainkernel.github.io/lunatik/ | grep -oE 'Lunatik [0-9]+\.[0-9]+( development)?'
+    curl -s https://luainkernel.github.io/lunatik/ | grep -oE 'Lunatik [0-9.]+ · <a href="master/index.html">'
 
 # 7. The milestone closes
 
