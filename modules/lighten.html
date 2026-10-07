@@ -177,13 +177,14 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-crypto">Cryptography</a></div>
 <h1>lighten<span class="kind">Module</span></h1>
 <p class="lead">Encrypted Lua script support (AES-256-GCM).</p>
-<p> This module provides functions to run encrypted Lua scripts
+<p> This module provides functions to load and run encrypted Lua scripts
  using the <a href="../modules/darken.html#">darken</a> C module.</p>
 
 <p> The key is the module <code>light</code>, <code>/lib/modules/lua/light.lua</code>, which returns the hex-encoded
  32-byte key; without it, <code>require(&quot;lighten&quot;)</code> raises &ldquo;module &lsquo;light&rsquo; not found&rdquo;.
  <code>tools/shade.sh darken [-s &lt;secret&gt;] &lt;script&gt;.lua</code> encrypts a script into <code>&lt;script&gt;.dark.lua</code>,
- which calls <a href="../modules/lighten.html#run">lighten.run</a>, and prints the secret, 64 hex characters;
+ which calls what <a href="../modules/lighten.html#load">lighten.load</a> returns with its own arguments, and prints the secret, 64 hex
+ characters;
  <code>tools/shade.sh lighten &lt;secret&gt;</code> writes <code>light.lua</code> from it. With <code>-t</code> both derive the key from
  the current 30 second step, so <code>light.lua</code> and the dark script are generated in the same step:</p>
 
@@ -198,6 +199,10 @@ sudo lunatik run hello.dark
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
+	<td class="name"><a href="#load">load (ct, iv)</a></td>
+	<td class="summary">Decrypts and loads an encrypted Lua script without running it.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#run">run (ct, iv)</a></td>
 	<td class="summary">Decrypts and executes an encrypted Lua script.</td>
 	</tr>
@@ -206,6 +211,41 @@ sudo lunatik run hello.dark
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
+    <dt id="load"><a name="load"></a><strong>load (ct, iv)</strong></dt>
+    <dd>
+    Decrypts and loads an encrypted Lua script without running it.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">ct</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         Hex-encoded ciphertext followed by its 16-byte tag.
+        </li>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         Hex-encoded 12-byte IV.
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        the loaded script.
+    </ol>
+
+    <h3>Raises</h3>
+    <code>&quot;invalid hexadecimal string&quot;</code> when <code>ct</code>, <code>iv</code> or the key is not hexadecimal of an even length,
+ or the error <a href="../modules/darken.html#load">darken.load</a> raises.
+
+    <h3>See also</h3>
+    <ul>
+         <a href="../modules/darken.html#load">darken.load</a>
+    </ul>
+
+
+</dd>
     <dt id="run"><a name="run"></a><strong>run (ct, iv)</strong></dt>
     <dd>
     Decrypts and executes an encrypted Lua script.
@@ -254,7 +294,7 @@ sudo lunatik run hello.dark
 <footer class="site-footer">
 <div>
 <span>Lunatik 5.0 · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 14:21:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 14:25:05</span>
 </div>
 </footer>
 </body>
