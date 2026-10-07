@@ -4,9 +4,11 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # PreToolUse (Bash) hook: a pull request body is posted only when pr-body.sh passes on
-# it, and an issue body only when untraced.sh does, since the paragraphs and the Closes
-# line are a pull request's. This blocks (exit 2) a gh write to pulls or issues whose
-# body, a file named by -F body=@, --body-file, -F or --input, the check fails on,
+# it, an issue body only when untraced.sh does, since the paragraphs and the Closes
+# line are a pull request's, and a release's notes only when release-body.sh does, since
+# they run as long as the release. This blocks (exit 2) a gh write to pulls, issues or
+# releases whose body, a file named by -F body=@, --body-file, --notes-file, -F or
+# --input, the check fails on,
 # printing the findings; silent (exit 0) on everything else. It also blocks a write to
 # GitHub whose text no guard reads, curl's and a GraphQL mutation's.
 # Reads the command field of the raw hook input through commands.sh: the description
@@ -23,7 +25,7 @@ input=$(cat)
 
 # a cheap bail on the raw input, which carries the description too; the command itself decides below
 case "$input" in
-	*"gh api"*|*"gh pr "*|*"gh issue "*|*curl*api.github.com*) ;;
+	*"gh api"*|*"gh pr "*|*"gh issue "*|*"gh release "*|*curl*api.github.com*) ;;
 	*) exit 0 ;;
 esac
 
@@ -66,7 +68,11 @@ check() {
 		"")
 			continue ;;
 		inline)
-			[ "$(printf '%s' "$post" | awk '{ print $2 }')" = api ] && body='-F body=@<file>' || body='--body-file <file>'
+			case $(printf '%s' "$post" | awk '{ print $2 }') in
+			api) body='-F body=@<file>' ;;
+			release) body='--notes-file <file>' ;;
+			*) body='--body-file <file>' ;;
+			esac
 			echo "pr-body-guard: a body is read from a file: pass it as $body." >&2
 			exit 2 ;;
 		esac
@@ -246,6 +252,7 @@ case "$(command_text "$input")" in
 	*) check "$(gh_writes "$cmds" 'issue (create|new)' "$repo/issues\$")" contract.sh ;;
 esac
 severity "$(gh_writes "$cmds" 'issue (create|new)' "$repo/issues\$")"
+check "$(gh_writes "$cmds" 'release (create|new|edit)' "$repo/releases(/[0-9]+)?\$")" release-body.sh
 unread "$cmds"
 exit 0
 

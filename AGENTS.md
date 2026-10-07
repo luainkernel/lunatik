@@ -368,11 +368,16 @@ runs past three paragraphs by design, and #851's held a rewrite of its own verdi
 was read for what it was. A write to issues takes this guard too, since the implement-issue workflow
 opens and edits issues from what its agents leave and its prompt asking for the checks enforced none;
 `untraced.sh` stands in there for `pr-body.sh`, whose paragraphs and Closes line are a pull request's.
+A release takes it as well, through `release-body.sh`, which keeps the em dash, `untraced.sh` and
+`decision.sh`, adds the maintainer's rule for public notes, nothing promised of the API or of a release
+to come, and drops the three paragraphs, since notes run as long as the release: v5.0's went out
+through `gh api` while no guard named a release, read by hand.
 An edit is read for the lines it adds to the body GitHub has, asked with the credential the command
 carries: an update appended to #418 was refused over the build log its reporter had posted, which is
 no edit's to rewrite. When GitHub does not answer, the whole body is read. This guard and the review
 guard read a write in every spelling gh takes of it: `new` beside `create`, `-R` before the verb, `-F`
-and `-b` on `gh pr` and `gh issue`, a field attached to its flag, and the JSON `gh api --input` sends,
+and `-b` on `gh pr` and `gh issue`, `--notes-file` and `-n` on `gh release`, a field attached to its
+flag, and the JSON `gh api --input` sends,
 whose other fields go through `machine-leak.sh` too; `gh issue comment` is the review guard's. A
 write whose text no guard reads is refused: one through curl to GitHub's API, and a GraphQL mutation
 other than the textless ones the skills run. GitHub is written through gh, and where gh is absent the

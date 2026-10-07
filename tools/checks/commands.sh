@@ -323,7 +323,7 @@ gh_held() {
 
 # what carries the text of the gh write <post>: "file <path>", "input <path>" for the JSON gh api sends
 # whole, "inline" for text on the command line, nothing for a write without text; the flags are the
-# form's, since -F names a file to gh pr and gh issue and a field to gh api
+# form's, since -F names a file to gh pr, gh issue and gh release and a field to gh api
 gh_body() {
 	printf '%s\n' "$1" | awk '
 	function bare(s) {
@@ -370,7 +370,15 @@ gh_body() {
 				print "file " bare(substr($i, 13))
 				exit
 			}
-			else if ($i ~ /^(-b|--body)$/ || $i ~ /^(-b.|--body=)/) {
+			else if ($i == "--notes-file") {
+				print "file " bare($(i + 1))
+				exit
+			}
+			else if ($i ~ /^--notes-file=/) {
+				print "file " bare(substr($i, 14))
+				exit
+			}
+			else if ($i ~ /^(-b|--body|-n|--notes)$/ || $i ~ /^(-b.|--body=|-n.|--notes=)/) {
 				print "inline"
 				exit
 			}
