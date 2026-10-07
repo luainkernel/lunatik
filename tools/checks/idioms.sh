@@ -16,7 +16,9 @@
 # validating, and is computed after the checks: #1584's fifo:push spelled `bool fits` above
 # its lunatik_checkbounds until the maintainer asked why. A condition of three tests or more,
 # or one that runs onto the next line, is a predicate the file names: #1705's checksum() spelled
-# two until the maintainer asked for luaskb_iswhole4 and luaskb_iswhole6.
+# two until the maintainer asked for luaskb_iswhole4 and luaskb_iswhole6. A load of one mode
+# refuses what require and load take, and darken.run loaded text only, with no reason written,
+# from its first commit until a stripped chunk had to ship encrypted (#1767).
 # Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
 # guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -69,6 +71,8 @@ for file in "$@"; do
 		}
 		if (line ~ /needs an? [0-9]+\.[0-9]+ kernel/)
 			printf "%s:%d: a version a feature needs reads as that one release: \"kernel X.Y or later\"\n", f, NR
+		if (line ~ /(luaL_loadbufferx|luaL_loadfilex|lua_load)[ \t]*\(.*,[ \t]*"[tb]"[ \t]*\)/)
+			printf "%s:%d: a load of one mode refuses what require and load take: say beside it what the refusal protects\n", f, NR
 		if (line ~ /\(pid_t\)[ \t]*luaL_(check|opt)integer\(/)
 			printf "%s:%d: a pid cast from luaL_checkinteger truncates before the kernel sees it: lunatik_checkinteger(L, ix, 1, PID_MAX_LIMIT), as socket.new bounds it\n", f, NR
 		if (line ~ /^(else )?(if|while) \(/) {
