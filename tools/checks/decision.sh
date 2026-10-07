@@ -20,6 +20,8 @@ status=0
 for file in "$@"; do
 	[ -f "$file" ] || continue
 	said=$(sed -E 's/"[^"]*"//g; s/`[^`]*`//g' "$file") # a phrase quoted is one talked about, not one said
+	# a decision reported as taken hands nothing over
+	said=$(printf '%s\n' "$said" | sed -E "s/\b(foi|por|was)( a| the)? ($handoff)//gI")
 	printf '%s\n' "$said" | grep -qiE "$handoff" || continue
 	missing=""
 	grep -qiE "$question" "$file" || missing="$missing, what is to be decided"

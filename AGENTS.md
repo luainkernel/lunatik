@@ -519,7 +519,9 @@ maintainer without the question, two options and a recommendation (*Deciding wha
 keys on the phrase that hands one over, "the maintainer's call", "é decisão sua", "levo isso a
 você", and asks the text around it for the three. A reply in the session is where the maintainer
 read "é decisão sua", so `.claude/hooks/on-stop.sh`, the Stop hook, runs it over the reply a turn
-ends on and sends one that fails back once, passing the stop after it (`stop_hook_active`).
+ends on and sends one that fails back once, passing the stop after it (`stop_hook_active`). A
+decision reported as taken, "foi decisão sua", "por decisão sua", hands nothing over and passes: the
+hook sent back two sessions' replies on one in the days after v5.0.
 
 `reboot-capture.sh` reads the same reply in the same hook, for a request for a reboot the checkout
 holds no capture for. `tools/prereboot.sh` saves what a reboot erases for every session on the host,
