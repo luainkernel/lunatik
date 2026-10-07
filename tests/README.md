@@ -164,7 +164,8 @@ after it.
   the runtime is armed", since allocating the transform sleeps. Skips unless
   the loaded `luadarken` is the installed one and carries the refusal.
 - **decrypt**: `darken.run` reads what `crypto.aead`'s `gcm(aes)` seals: a
-  script runs and returns its values, as a stripped chunk of it does, and an
+  script runs and returns its values, as a stripped chunk of it does,
+  `darken.load` returns one loaded and not run, and an
   empty one, a ciphertext that is only its 16-byte tag, returns none; a wrong
   key or IV, a flipped byte of the
   ciphertext or of the tag, and a ciphertext cut short raise `EBADMSG`; one of
@@ -174,7 +175,10 @@ after it.
   does not parse, a chunk that does not load and one that raises reach the
   caller with their own error.
 - **shade**: a script `tools/shade.sh` encrypted runs through `lighten` with
-  the key `shade.sh lighten` wrote for its secret. Skips below OpenSSL 3.
+  the key `shade.sh lighten` wrote for its secret, with neither `darken.load`
+  nor `darken.run` on its stack, since the dark script tail-calls what
+  `lighten.load` returns; run through `lighten.run`, it finds `darken.run`
+  there. Skips below OpenSSL 3.
 - **shade_chunk**: the same script compiled by `lunatic -s` and then encrypted
   by `tools/shade.sh` runs through `lighten`. Skips without `lunatic` or below
   OpenSSL 3.

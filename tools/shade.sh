@@ -90,7 +90,7 @@ cmd_darken() {
 
 	cat > "$dark" <<-EOF
 	local lighten = require("lighten")
-	return lighten.run("${ct}", "${iv}")
+	return lighten.load("${ct}", "${iv}")(...)
 	EOF
 
 	echo "$secret"
