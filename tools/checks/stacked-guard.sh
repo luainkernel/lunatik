@@ -27,13 +27,15 @@ moves=$(gh_writes "$cmds" 'pr edit' '^(https://api\.github\.com)?/?repos/[^/]+/[
 [ -n "$creates$moves" ] || exit 0
 
 quote="[\"'\\\\]*"
+field="(-f|-F|--field|--raw-field)[ =]?"
 
-# the base the gh write <write> names: --base or -B on gh pr, base= on gh api
+# the base the gh write <write> names: --base or -B on gh pr, a base= field on gh api, never the
+# text of a --jq expression
 base() {
 	if [ "$(printf '%s' "$1" | awk '{ print $2 }')" = pr ]; then
 		printf '%s' "$1" | grep -oE "(--base[ =]|-B )$quote[^[:space:]\"'\\\\]+" | sed -E "s/^(--base[ =]|-B )$quote//"
 	else
-		printf '%s' "$1" | grep -oE "(^|[ =])${quote}base=$quote[^[:space:]\"'\\\\]+" | sed -E "s/^[ =]?${quote}base=$quote//"
+		printf '%s' "$1" | grep -oE "${field}${quote}base=$quote[^[:space:]\"'\\\\]+" | sed -E "s/^${field}${quote}base=$quote//"
 	fi
 }
 
@@ -62,7 +64,7 @@ while IFS= read -r create; do
 		draft=$(printf '%s' "$create" | grep -E "(^| )(--draft|-d)( |$)")
 		;;
 	*)
-		draft=$(printf '%s' "$create" | grep -E "(^|[ =])${quote}draft=${quote}true")
+		draft=$(printf '%s' "$create" | grep -E "${field}${quote}draft=${quote}true")
 		;;
 	esac
 	[ -z "$base" ] || [ "$base" = master ] || [ -n "$draft" ] && continue
