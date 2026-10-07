@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>device · Lunatik</title>
+    <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+    <script>try { var t = localStorage.getItem('lunatik-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }</script>
+    <script src="../search.js" defer=""></script>
+    <script src="../site.js" defer=""></script>
+</head>
+<body data-root="../">
+
+<header class="topbar">
+    <button class="icon-btn nav-toggle" id="nav" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="../index.html">
+        <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
+        <span>Lunatik</span>
+    </a>
+    <nav class="versions" aria-label="Documentation version">
+        <a href="../../modules/device.html" title="This page in the latest release">release</a><span aria-current="page">master</span>
+    </nav>
+    <div class="search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <kbd>/</kbd>
+        <ul class="results" id="results" hidden=""></ul>
+    </div>
+    <nav class="top-links" aria-label="Site">
+        <a href="../topics/01-getting-started.md.html">Guide</a>
+        <a href="../index.html#api-reference">API</a>
+        <a class="star" href="https://github.com/luainkernel/lunatik" title="Star Lunatik on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>Star on GitHub</a>
+        <a class="donate" href="../index.html#support"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>Donate</a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">
+            <svg class="theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="theme-icon-dark" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+    </nav>
+</header>
+
+
+<div class="layout">
+
+<aside class="sidebar" id="sidebar" aria-label="Documentation">
+<h2>Guide</h2>
+<ul>
+  <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
+  <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
+  <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+  <li><a href="../topics/04-lua.md.html">Lua in the kernel</a></li>
+  <li><a href="../topics/05-examples.md.html">Examples</a></li>
+  <li><a href="../topics/06-development.md.html">Development</a></li>
+  <li><a href="../topics/07-resources.md.html">Resources</a></li>
+  <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
+</ul>
+<h2>Lua API</h2>
+<h3>Runtime</h3>
+<ul class="mono">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+</ul>
+<h3>Packets and eBPF</h3>
+<ul class="mono">
+  <li><a href="../modules/bpf.html">bpf</a></li>
+  <li><a href="../modules/bpf.map.html">bpf.map</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h3>Sockets and netlink</h3>
+<ul class="mono">
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+</ul>
+<h3>Tracing and scheduling</h3>
+<ul class="mono">
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/scx.html">scx</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+</ul>
+<h3>Devices and events</h3>
+<ul class="mono">
+  <li><a href="../modules/device.html" aria-current="page">device</a></li>
+  <li><a href="../modules/fsnotify.html">fsnotify</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+</ul>
+<h3>Data</h3>
+<ul class="mono">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+</ul>
+<h3>Cryptography</h3>
+<ul class="mono">
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h3>System</h3>
+<ul class="mono">
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+</ul>
+<h3>Constants</h3>
+<ul class="mono">
+  <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.errno.html">linux.errno</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.pkttype.html">linux.pkttype</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.scx.html">linux.scx</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+</ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+</aside>
+
+<main class="content" id="content">
+
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-devices">Devices and events</a></div>
+<h1>device<span class="kind">Module</span></h1>
+<p class="lead">Low-level Lua interface for creating Linux character device drivers.</p>
+ This module allows Lua scripts to implement character device drivers
+ by providing callback functions for standard file operations like
+ <code>open</code>, <code>read</code>, <code>write</code>, and <code>release</code>.</p>
+
+<p> A file operation runs on the task performing it, in process context, so its
+ callback may sleep. It runs under the lock of the runtime that made the device,
+ so one the runtime&rsquo;s own code performs, a
+ callback or a <a href="../modules/thread.html#">thread</a> body opening the node it made, fails with <code>EDEADLK</code>:
+ it would wait on the lock its task holds. An <code>open</code>, <code>read</code> or <code>write</code>
+ callback fails its operation with an errno by returning it negated, as
+ <code>-errno.EBUSY</code> does with <a href="../modules/linux.errno.html#">linux.errno</a>. A callback that raises, or that
+ returns a length or an offset that is not an integer, or an errno that is not
+ one, the kernel&rsquo;s own from <code>ERESTARTSYS</code> on included, <code>invalid errno</code> in the
+ log, fails its operation with <code>ECANCELED</code>, and the error goes to the kernel
+ log.
+
+<h2 id="Class_device">Class device </h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#device:stop">device:stop ()</a></td>
+	<td class="summary">Stops a character device driver and removes it from the system.</td>
+	</tr>
+</table></div>
+<h2 id="device">device</h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#new">new (driver)</a></td>
+	<td class="summary">Creates and installs a new character device driver in the system.</td>
+	</tr>
+</table></div>
+
+    <h2 class="section-header" id="Class_device-details"><a name="Class_device"></a>Class device  in detail</h2>
+
+          <div class="section-description">
+          Represents a character device implemented in Lua.
+ This is a userdata object returned by <code>device.new()</code>. It encapsulates
+ the necessary kernel structures (<code>struct cdev</code>, <code>dev_t</code>) to manage a
+ character device, linking file operations to Lua callback functions.
+          </div>
+    <dl class="function">
+    <dt id="device:stop"><a name="device:stop"></a><strong>device:stop ()</strong></dt>
+    <dd>
+    Stops a character device driver and removes it from the system.
+ This method is called on a device object returned by <code>device.new()</code>: the
+ device file (<code>/dev/&lt;name&gt;</code>) and its region go with it. Without <a href="../modules/device.html#device:stop">stop</a>, the
+ device lives until its runtime stops, since <a href="../modules/device.html#new">device.new</a> keeps the object for
+ the runtime. A file still open on the device gets ENXIO from read and write
+ until it is closed. A to-be-closed variable holding the device stops it the
+ same way.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">nil</span></span>
+        Does not return any value to Lua.
+    </ol>
+
+    <h3>Raises</h3>
+    if the argument is not a device.
+
+    <h3>See also</h3>
+    <ul>
+         <a href="../modules/device.html#new">device.new</a>
+    </ul>
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="comment">-- Assuming 'dev' is a device object:
+</span>dev:<span class="function-name">stop</span>()</pre>
+
+</dd>
+</dl>
+    <h2 class="section-header" id="device-details"><a name="device"></a>device in detail</h2>
+
+    <dl class="function">
+    <dt id="new"><a name="new"></a><strong>new (driver)</strong></dt>
+    <dd>
+    Creates and installs a new character device driver in the system.
+ This function binds a Lua table (the <code>driver</code> table) to a new
+ character device file (<code>/dev/&lt;name&gt;</code>), allowing Lua functions
+ to handle file operations on that device.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">driver</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        <p> A table defining the device driver&rsquo;s properties and callbacks.
+   It <strong>must</strong> contain the field:</p>
+
+<ul>
+<li> <code>name</code> (string): The name of the device. This name will be used to create
+ the device file <code>/dev/&lt;name&gt;</code>.</li>
+</ul>
+
+
+<p>   It <strong>might</strong> optionally contain the following fields (callback functions),
+   each of which receives, after its own arguments, <code>file</code>: a table private to
+   one open of the device, the same in every callback that open reaches from
+   its <code>open</code> to its <code>release</code>, where the driver keeps what belongs to that
+   open.</p>
+
+<ul>
+<li> <code>open</code> (function): Callback for the <code>open(2)</code> system call.
+ Signature: <code>function(driver_table, file) -&gt; [errno]</code>. Returning nothing or zero opens
+ the file, and returning a negative errno, <code>-errno.EBUSY</code> say, fails the open with it.</li>
+<li> <code>read</code> (function): Callback for the <code>read(2)</code> system call.
+ Signature: <code>function(driver_table, length, offset, file) -&gt; string [, updated_offset]</code>.
+ Receives the driver table, the requested read length (integer), and the current
+ file offset (integer). Should return the data as a string and optionally the
+ updated file offset (integer), or a negative errno, <code>-errno.EAGAIN</code> say, which
+ fails the read with it. If <code>updated_offset</code> is not returned, the offset
+ is advanced by the length of the returned string (or the requested length if
+ the string is longer).</li>
+<li> <code>write</code> (function): Callback for the <code>write(2)</code> system call.
+ Signature: <code>function(driver_table, buffer_string, offset, file) -&gt; [written_length] [, updated_offset]</code>.
+ Receives the driver table, the data to write as a string, and the current file
+ offset (integer). May return the number of bytes successfully written (integer),
+ or a negative errno, <code>-errno.ENOSPC</code> say, which fails the write with it,
+ and optionally the updated file offset (integer). If <code>written_length</code> is not
+ returned, it&rsquo;s assumed all provided data was written. If <code>updated_offset</code> is
+ not returned, the offset is advanced by the <code>written_length</code>.</li>
+<li> <code>release</code> (function): runs when the last reference to an open file is closed,
+ the final close(2). Signature: <code>function(driver_table, file)</code>.
+ Expected to return nothing.</li>
+</ul>
+
+
+<p>   A read returns end of file when its callback returns an empty string, <code>nil</code> or zero.</p>
+
+<p>   It <strong>might</strong> also contain the field:</p>
+
+<ul>
+<li> <code>mode</code> (integer): Optional permission bits of the device file, within <code>S_IALLUGO</code>:
+ the file type is the kernel&rsquo;s, a character device. Use constants from <a href="../modules/linux.stat.html#">linux.stat</a>
+ (e.g., <code>stat.IRUGO</code>).</li>
+</ul>
+
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/device.html#device">device</a></span>
+        the device, which <a href="../modules/device.html#new">device.new</a> keeps for its runtime: dropping it
+   stops nothing, and the device stays until <a href="../modules/device.html#device:stop">stop</a> or the end of the runtime.
+    </ol>
+
+    <h3>Raises</h3>
+     Error if the device cannot be allocated or registered in the kernel,
+   if the <code>name</code> field is missing or not a string, or if called from a percpu runtime;
+   <code>bad field &apos;mode&apos; (number expected, got &lt;type&gt;)</code> if <code>mode</code> is present and not a number;
+   <code>bad field &apos;&lt;field&gt;&apos; (function expected, got &lt;type&gt;)</code> if <code>open</code>, <code>read</code>, <code>write</code> or
+   <code>release</code> is present and not a function;
+   <code>bad field &apos;mode&apos; (out of bounds)</code> if it is negative or past <code>S_IALLUGO</code>, as a mode that
+   carries a file type is;
+   <code>&apos;device&apos;: process-context class in interrupt-context runtime</code> in a softirq or
+   hardirq runtime (run it in process context, the default of <code>lunatik run</code>);
+   <code>not allowed while the runtime closes</code> from a finalizer that runs at its close.
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">local</span> device = <span class="global">require</span>(<span class="string">"device"</span>)
+<span class="keyword">local</span> stat   = <span class="global">require</span>(<span class="string">"linux.stat"</span>)
+
+<span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">read</span>(drv, len, off)
+  <span class="keyword">local</span> data = <span class="string">"Hello from "</span> .. drv.name .. <span class="string">"!\n"</span>
+  <span class="keyword">return</span> data:<span class="function-name">sub</span>(off + <span class="number">1</span>, off + len)
+<span class="keyword">end</span>
+
+<span class="keyword">local</span> my_driver = {
+  name = <span class="string">"my_lua_device"</span>,
+  mode = stat.IRUGO, <span class="comment">-- Read-only for all
+</span>  read = read,
+}
+<span class="keyword">local</span> dev_obj = device.<span class="function-name">new</span>(my_driver)
+<span class="comment">-- To remove it: dev_obj:stop(), or stop the runtime.</span></pre>
+
+</dd>
+</dl>
+
+
+</main>
+
+<aside class="toc" aria-label="On this page">
+<nav id="toc"><h2>On this page</h2></nav>
+</aside>
+
+</div>
+
+<footer class="site-footer">
+<div>
+<span>Lunatik master · <a href="../../modules/device.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:00:56</span>
+</div>
+</footer>
+</body>
+</html>
+

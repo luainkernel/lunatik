@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>skb · Lunatik</title>
+    <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+    <script>try { var t = localStorage.getItem('lunatik-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }</script>
+    <script src="../search.js" defer=""></script>
+    <script src="../site.js" defer=""></script>
+</head>
+<body data-root="../">
+
+<header class="topbar">
+    <button class="icon-btn nav-toggle" id="nav" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="../index.html">
+        <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
+        <span>Lunatik</span>
+    </a>
+    <nav class="versions" aria-label="Documentation version">
+        <a href="../../modules/skb.html" title="This page in the latest release">release</a><span aria-current="page">master</span>
+    </nav>
+    <div class="search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <kbd>/</kbd>
+        <ul class="results" id="results" hidden=""></ul>
+    </div>
+    <nav class="top-links" aria-label="Site">
+        <a href="../topics/01-getting-started.md.html">Guide</a>
+        <a href="../index.html#api-reference">API</a>
+        <a class="star" href="https://github.com/luainkernel/lunatik" title="Star Lunatik on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>Star on GitHub</a>
+        <a class="donate" href="../index.html#support"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>Donate</a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">
+            <svg class="theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="theme-icon-dark" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+    </nav>
+</header>
+
+
+<div class="layout">
+
+<aside class="sidebar" id="sidebar" aria-label="Documentation">
+<h2>Guide</h2>
+<ul>
+  <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
+  <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
+  <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+  <li><a href="../topics/04-lua.md.html">Lua in the kernel</a></li>
+  <li><a href="../topics/05-examples.md.html">Examples</a></li>
+  <li><a href="../topics/06-development.md.html">Development</a></li>
+  <li><a href="../topics/07-resources.md.html">Resources</a></li>
+  <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
+</ul>
+<h2>Lua API</h2>
+<h3>Runtime</h3>
+<ul class="mono">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+</ul>
+<h3>Packets and eBPF</h3>
+<ul class="mono">
+  <li><a href="../modules/bpf.html">bpf</a></li>
+  <li><a href="../modules/bpf.map.html">bpf.map</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/skb.html" aria-current="page">skb</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h3>Sockets and netlink</h3>
+<ul class="mono">
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+</ul>
+<h3>Tracing and scheduling</h3>
+<ul class="mono">
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/scx.html">scx</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+</ul>
+<h3>Devices and events</h3>
+<ul class="mono">
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fsnotify.html">fsnotify</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+</ul>
+<h3>Data</h3>
+<ul class="mono">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+</ul>
+<h3>Cryptography</h3>
+<ul class="mono">
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h3>System</h3>
+<ul class="mono">
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+</ul>
+<h3>Constants</h3>
+<ul class="mono">
+  <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.errno.html">linux.errno</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.pkttype.html">linux.pkttype</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.scx.html">linux.scx</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+</ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+</aside>
+
+<main class="content" id="content">
+
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-packets">Packets and eBPF</a></div>
+<h1>skb<span class="kind">Module</span></h1>
+<p class="lead">Linux socket buffer interface.</p>
+
+    <h2 id="usage">Usage</h2>
+        <pre class="example">-- lunatik run -c softirq &lt;script&gt;: raises the priority of the UDP packets the host sends
+local netfilter = require(&quot;netfilter&quot;)
+local nf        = require(&quot;linux.nf&quot;)
+
+local PROTOCOL &lt;const&gt; = 9
+local UDP &lt;const&gt;      = 17
+local PRIORITY &lt;const&gt; = 6
+
+local function prioritize(skb)
+  if skb:data():getuint8(PROTOCOL) == UDP then
+    skb:priority(PRIORITY)
+  end
+  return nf.action.ACCEPT
+end
+
+netfilter.register{
+  hook     = prioritize,
+  pf       = nf.proto.IPV4,
+  hooknum  = nf.inet.LOCAL_OUT,
+  priority = nf.ip.pri.FILTER,
+}
+</pre>
+
+<h2 id="Class_skb">Class skb </h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#skb:__len">skb:__len ()</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:checksum">skb:checksum ()</a></td>
+	<td class="summary">Recomputes IP and transport-layer (TCP/UDP) checksums and writes them into the packet.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:connmark">skb:connmark ([value])</a></td>
+	<td class="summary">Gets or sets the conntrack mark: with no argument or nil reads it, with <code>value</code> sets
+ it.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:copy">skb:copy ()</a></td>
+	<td class="summary">Returns an independent copy of the skb with its own data buffer.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:data">skb:data ([layer])</a></td>
+	<td class="summary">Linearizes the skb and returns a view from where <code>layer</code> starts to the end of
+ the packet: &ldquo;net&rdquo; at the network header and &ldquo;mac&rdquo; at the MAC header, or, with no
+ <code>layer</code>, at <code>skb-&gt;data</code>, where the packet starts as the hook sees it: the network
+ header in an IPv4 or IPv6 netfilter hook and the MAC header in a tc callback.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:forward">skb:forward ()</a></td>
+	<td class="summary">Transmits a clone of the skb out of <code>skb-&gt;dev</code>, the device <code>skb:ifindex()</code> names.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:ifindex">skb:ifindex ()</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:mark">skb:mark ([value])</a></td>
+	<td class="summary">Gets or sets the packet mark: with no argument or nil reads it, with <code>value</code> sets it.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:priority">skb:priority ([value])</a></td>
+	<td class="summary">Gets or sets the packet priority: with no argument or nil reads it, with <code>value</code> sets it.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:resize">skb:resize (n)</a></td>
+	<td class="summary">Expands (skb_put_zero) or shrinks (pskb_trim_rcsum) the skb data area; the bytes an
+ expansion adds read as zeros, and a shrink keeps the checksum a received skb carries.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#skb:vlan">skb:vlan ()</a></td>
+	<td class="summary"></td>
+	</tr>
+</table></div>
+
+    <h2 class="section-header" id="Class_skb-details"><a name="Class_skb"></a><a name="skb"></a>Class skb  in detail</h2>
+
+          <div class="section-description">
+          Represents a socket buffer (<code>sk_buff</code>).
+ This is a userdata object handed to the hooks that receive packets; it is
+ <code>SINGLE</code>, so it cannot be shared with another runtime, and so are the views
+ <code>skb:data()</code> returns.</p>
+
+<p> A <a href="../modules/netfilter.html#">netfilter</a> hook callback receives one and <code>tc_ctx:skb()</code> returns one, valid only while that
+ callback runs: once it returns, every method raises <code>skb is not set</code>, and the views that
+ <code>skb:data()</code> returned are cleared too. <code>skb:copy()</code> keeps a packet past the callback.
+          </div>
+    <dl class="function">
+    <dt id="skb:__len"><a name="skb:__len"></a><strong>skb:__len ()</strong></dt>
+    <dd>
+
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        skb length in bytes
+    </ol>
+
+
+
+
+</dd>
+    <dt id="skb:checksum"><a name="skb:checksum"></a><strong>skb:checksum ()</strong></dt>
+    <dd>
+    Recomputes IP and transport-layer (TCP/UDP) checksums and writes them into the packet.
+ On IPv4 it recomputes the header checksum and the TCP or UDP checksum; on IPv6, the TCP or UDP
+ checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, an IPv6
+ packet with extension headers, a packet whose IP header gives a length past its end, or on IPv4
+ shorter than the header or an IHL below 5, and one too short to hold its TCP or UDP checksum
+ field are left unchanged; <a href="../modules/skb.html#skb:resize">resize</a> does not rewrite that length.
+
+
+
+
+
+
+
+</dd>
+    <dt id="skb:connmark"><a name="skb:connmark"></a><strong>skb:connmark ([value])</strong></dt>
+    <dd>
+    Gets or sets the conntrack mark: with no argument or nil reads it, with <code>value</code> sets
+ it.  Returns the current (or new) mark, or nil if no conntrack is associated.
+ Present only on a kernel built with <code>CONFIG_NF_CONNTRACK_MARK</code>: elsewhere the method is nil,
+ and a script that may run there tests <a href="../modules/skb.html#skb:connmark">skb.connmark</a> before calling it.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+         32-bit mark to set, from 0 up to <code>U32_MAX</code>
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        32-bit connmark, or nil if no conntrack is associated
+    </ol>
+
+    <h3>Raises</h3>
+    if <code>value</code> is out of bounds
+
+
+
+</dd>
+    <dt id="skb:copy"><a name="skb:copy"></a><strong>skb:copy ()</strong></dt>
+    <dd>
+    Returns an independent copy of the skb with its own data buffer.
+ The skb is linearized before copying to avoid failures on fragmented skbs
+ (e.g. bridged traffic with paged data). In a tc callback the skb is not
+ linearized, and a non-linear one raises.
+ A view of the copy that <code>data()</code> returns is valid until the copy is collected,
+ and is then cleared as a view of a callback&rsquo;s skb is when the callback returns.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/skb.html#skb">skb</a></span>
+
+    </ol>
+
+    <h3>Raises</h3>
+    if skb is FRAGLIST GSO, if the skb is not linear, in a tc callback or after a failed
+ linearization, or if copy allocation fails
+
+
+
+</dd>
+    <dt id="skb:data"><a name="skb:data"></a><strong>skb:data ([layer])</strong></dt>
+    <dd>
+    Linearizes the skb and returns a view from where <code>layer</code> starts to the end of
+ the packet: &ldquo;net&rdquo; at the network header and &ldquo;mac&rdquo; at the MAC header, or, with no
+ <code>layer</code>, at <code>skb-&gt;data</code>, where the packet starts as the hook sees it: the network
+ header in an IPv4 or IPv6 netfilter hook and the MAC header in a tc callback.  In a
+ tc callback the skb is not linearized, and a non-linear one raises.</p>
+
+<p> The skb keeps one view per start: the view with no layer and the &ldquo;net&rdquo; and &ldquo;mac&rdquo;
+ views are three objects, and a second call returns the same view, ending at the
+ tail as it is then: a <a href="../modules/skb.html#skb:resize">resize</a> alone does not move a view&rsquo;s end. The skb stays
+ linear once a view is taken, so no later call moves the bytes a view reads. A view
+ is valid until the callback that received the skb returns, or, for a copy, until
+ the copy is collected: afterwards its length is 0 and every access raises &ldquo;out of
+ bounds&rdquo;.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">layer</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         &ldquo;net&rdquo; or &ldquo;mac&rdquo;
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/skb.html#skb:data">data</a></span>
+        the view, or nil when the layer&rsquo;s header is not set or lies past the tail
+    </ol>
+
+    <h3>Raises</h3>
+    if the skb is not linear, in a tc callback or after a failed linearization, or if
+ layer is invalid
+
+
+
+</dd>
+    <dt id="skb:forward"><a name="skb:forward"></a><strong>skb:forward ()</strong></dt>
+    <dd>
+    Transmits a clone of the skb out of <code>skb-&gt;dev</code>, the device <code>skb:ifindex()</code> names.
+ The original is untouched and still takes the hook&rsquo;s verdict, so a callback that forwards a
+ packet returns <code>DROP</code> to not send it twice.
+
+
+
+
+    <h3>Raises</h3>
+    if skb has no device, MAC header is not set or is past the data, or clone fails
+
+
+
+</dd>
+    <dt id="skb:ifindex"><a name="skb:ifindex"></a><strong>skb:ifindex ()</strong></dt>
+    <dd>
+
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        network interface index, or nil if not available
+    </ol>
+
+
+
+
+</dd>
+    <dt id="skb:mark"><a name="skb:mark"></a><strong>skb:mark ([value])</strong></dt>
+    <dd>
+    Gets or sets the packet mark: with no argument or nil reads it, with <code>value</code> sets it.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+         the new packet mark, from 0 up to <code>U32_MAX</code>
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        the packet mark
+    </ol>
+
+    <h3>Raises</h3>
+    if <code>value</code> is out of bounds
+
+
+
+</dd>
+    <dt id="skb:priority"><a name="skb:priority"></a><strong>skb:priority ([value])</strong></dt>
+    <dd>
+    Gets or sets the packet priority: with no argument or nil reads it, with <code>value</code> sets it.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">integer</span></span>
+         the new packet priority, from 0 up to <code>U32_MAX</code>
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        the packet priority
+    </ol>
+
+    <h3>Raises</h3>
+    if <code>value</code> is out of bounds
+
+
+
+</dd>
+    <dt id="skb:resize"><a name="skb:resize"></a><strong>skb:resize (n)</strong></dt>
+    <dd>
+    Expands (skb_put_zero) or shrinks (pskb_trim_rcsum) the skb data area; the bytes an
+ expansion adds read as zeros, and a shrink keeps the checksum a received skb carries.  The
+ skb is linearized first, so <code>n</code> is the length of the whole packet, which <code>#skb</code> returns
+ afterwards. In a tc callback the skb is not linearized, and a non-linear one raises.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">n</span>
+            <span class="types"><span class="type">integer</span></span>
+         desired size in bytes, from 0 up to <code>UINT_MAX</code>
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+         <code>true</code> once resized, and <code>false</code>, with the skb as it was, when an expansion
+   does not fit in the tailroom or a shrink would cut the checksum field the stack has yet to
+   fill, as a TCP segment&rsquo;s on the way out
+    </ol>
+
+    <h3>Raises</h3>
+    if out of bounds, if the skb is not linear, in a tc callback or after a failed
+ linearization
+
+
+
+</dd>
+    <dt id="skb:vlan"><a name="skb:vlan"></a><strong>skb:vlan ()</strong></dt>
+    <dd>
+
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        VLAN tag ID, or nil if not present
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</main>
+
+<aside class="toc" aria-label="On this page">
+<nav id="toc"><h2>On this page</h2></nav>
+</aside>
+
+</div>
+
+<footer class="site-footer">
+<div>
+<span>Lunatik master · <a href="../../modules/skb.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:00:56</span>
+</div>
+</footer>
+</body>
+</html>
+
