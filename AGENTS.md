@@ -1146,7 +1146,13 @@ the commit body, naming what moves, never in a footnote of the pull request. #89
 fixed a kprobe handler writing an `rcu.table` by moving every softirq hook, netfilter and XDP
 included, from bottom halves off to interrupts off; the second keyed the choice on `irqs_disabled()`,
 the kernel's own rule, and left those hooks untouched. `tools/checks/blast-radius.sh` lists what a
-changed primitive reaches, on the file it left as well as the file it arrived in.
+changed primitive reaches, on the file it left as well as the file it arrived in. A bound on what
+every script shares, the kernel stack the C budget prices among them, is measured over the forms
+the tree's own tools ship a script in as well as over the suite as installed: chunks `lunatic`
+compiles, which `BYTECODE=1` installs, and modules `tools/shade.sh` encrypted, required in chains.
+03e208b66 measured its budget over the suite and the examples, where no encrypted module requires
+another, and `darken.run` called each one from C, a level a plain module does not pay, so a chain
+that loaded as plain modules raised "C stack overflow" once encrypted (#1768).
 
 The kernel a consumer builds on bounds what a change may use, and not every consumer sits inside
 the range this file declares: a product built on Lunatik can ship on an older vendor kernel, and
