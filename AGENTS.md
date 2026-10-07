@@ -26,6 +26,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | `lunatik_*.c`, `lunatik.h` | core runtime, object model, C API |
 | `lua/` | the Lua fork (luainkernel/lua): upstream's git mirror plus the `_KERNEL` patch, which only modifies, `#ifndef _KERNEL` with upstream first; code the kernel side needs is added on the Lunatik side, `luac/` included, never to the fork |
 | `luac/` | the luac fork (luainkernel/luac): the release tarball's `luac.c`, which the git mirror does not carry, plus the `_KERNEL` patch; a bump is an "update to Lua x.y.z" commit made from the tarball |
+| `klibc/` | the klibc fork (luainkernel/klibc): upstream's tags mirrored, and per release a `klibc-x.y.z-kernel` branch, upstream's tag plus Lunatik's two setjmp patches (arm64 saves x18, x86_64 returns through the retpoline and rethunk thunks), which the fork's `lunatik` branch follows; the tree links only each architecture's `setjmp.S`, `archsetjmp.h` and `archconfig.h` and libgcc's 64-bit division helpers, so a bump is read against those files |
 | `lib/lua*.c` | kernel modules, one `.ko` each, exposing a Lua module |
 | `lib/*.lua`, `lib/*/*.lua` | kernel side Lua libraries, installed to `/lib/modules/lua/` |
 | `autogen/` | build time generation of `linux.*` constant tables from kernel headers |
@@ -84,7 +85,11 @@ After a kernel upgrade the installed modules were built for the previous kernel 
 before the next `reload`. The eBPF modules also need the running kernel's BTF at build time,
 `sudo make btf_install` before `make`, or they load without their kfunc, logging `missing module
 BTF`, and every BPF program that calls it fails to load; and the `bpftool` wrapper needs
-`linux-tools-$(uname -r)`, or every BPF program fails to load.
+`linux-tools-$(uname -r)`, or every BPF program fails to load. `examples/filter` and
+`examples/sniclassify` load the objects `make ebpf` builds in the checkout, which `make` does not:
+run from a worktree without them, filter fails its attach and sniclassify its setup, and the run
+measures nothing, as the release review's run and two of the v5.0 batches did before their
+worktrees had them.
 
 A wedged device — a `lunatik` process that stays in D state, usually below an oops in `dmesg` — is
 cleared only by a reboot, as a pinned module is, and the reboot is the maintainer's to trigger: other
@@ -1062,6 +1067,10 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   deferred unregistration of a netdevice notifier was first exercised against the build without it,
   and `tests/runtime/self_stop` first skipped on `srcversion`, copied from a sibling.
   `tools/checks/test-harness.sh` names a skip that reads `srcversion` and nothing else;
+* a case whose stimulus the defective build would wait on forever asks first for a value that build
+  gets wrong and returns from, so the discrimination proof fails there instead of hanging the cycle:
+  #1757's timeout cases ask for `2^32` plus a few milliseconds, which a build without the bound
+  truncates and waits briefly on, before `-1`, which it reads as forever;
 * a case whose stimulus only exists on a busy machine is forced, not waited for: the probe test picks a
   syscall an idle host never makes, which is why it never hit the creation window that crashed the host,
   and covering that window meant pinning the call to the CPU whose runtime is published last. A test
