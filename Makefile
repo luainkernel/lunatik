@@ -26,6 +26,7 @@ LUA_API = lua/lua.h lua/lauxlib.h lua/lualib.h
 RM = rm -f
 MKDIR = mkdir -p -m 0755
 LN = ln -sf
+DOC_TAGS ?= ${shell git tag --points-at HEAD --list 'v*' 2>/dev/null}
 INSTALL = install -o root -g root
 
 # luac built with the host compiler from the same lua/ sources and _KERNEL configuration as lunatik.ko
@@ -263,7 +264,7 @@ doc-stubs:
 	"$(LUA)" autogen/ldoc.lua
 
 doc-site: doc-stubs
-	git tag --merged HEAD --list 'v*' > doc/.tags 2>/dev/null || true
+	printf '%s\n' ${DOC_TAGS} > doc/.tags
 	ldoc .
 	${RM} doc/.tags
 	cp doc/style/site.js doc/site.js
