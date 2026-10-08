@@ -30,8 +30,7 @@ writes each per-CPU slot last, after that runtime's script body has run, so a ho
 from the first body fires while the other slots are still NULL — and the body is where it must be armed,
 since `lunatik_percpudata` refuses to create shared data once the runtime is ready. Whatever dispatches
 through a percpu object therefore has to survive a runtime that is not published yet: `lunatik_run`
-answers `-ENXIO`, as it already does for a runtime whose script is still loading. A kprobe on a syscall
-found this by dereferencing a NULL slot on every CPU at once and taking the machine down.
+answers `-ENXIO`, as it already does for a runtime whose script is still loading.
 
 The registry pattern for a reusable per hook object (`lunatik_getregistry`, reset, pass to Lua, clear
 afterwards) is used by `lib/luanetfilter.c` for its `skb`. Follow it rather than inventing a variant.
@@ -45,12 +44,10 @@ binding's own static key, as `luakfunc_env_key` and `fsnotify`'s callback flag d
 one per state and every coroutine shares it. Lua's extra space holds the runtime's pointer alone,
 which `lunatik_toruntime` reads: `lua_newthread` copies it into every coroutine when it is made and
 `lua_close` frees it with the state, so a fact kept there is right only while fixed and only while
-the state lives. A core field the core neither sets nor reads is a contract the core cannot keep.
-#851 put the callback flag in the extra space, where a coroutine made before the callback read it
-clear and one made inside kept it set, then on the object, before it went back to the registry;
-`tools/checks/extraspace.sh` names a change that sizes the extra space again. The home of a field is part of the design that was agreed, not a detail below it:
-proposed beside `owner` and landed in the extra space, it was a decision reversed alone. A
-registry slot a callback writes is seeded where a protected call runs, the constructor: the
+the state lives. A core field the core neither sets nor reads is a contract the core cannot keep: a flag kept in the
+extra space reads clear in a coroutine made before it was set and stays set in one made inside, and
+`tools/checks/extraspace.sh` names a change that sizes the extra space again. The home of a field is
+part of the design that was agreed, not a detail below it. A registry slot a callback writes is seeded where a protected call runs, the constructor: the
 dispatch path runs outside one, and a first insertion that rehashes and fails to allocate aborts
 the state, where a boolean stored on an existing node cannot.
 
@@ -91,8 +88,8 @@ the state, where a boolean stored on an existing node cannot.
 * A function does one thing; whether to do it is its caller's decision. An early return added at the
   top of a function that creates something, guarded by a lookup with its own stack juggling, moves
   that decision into the wrong place: the lookup becomes a `has`/`is` predicate beside the ones the
-  header already has, and the caller that loops over the work tests it. `lunatik_newclass` grew such
-  a guard and gave it back to `lunatik_newclasses` through `lunatik_hasclass`.
+  header already has, and the caller that loops over the work tests it, as `lunatik_newclasses` tests
+  `lunatik_hasclass`.
 * When a two line pattern repeats in every method, collapse it into one helper or macro.
 * A pointer-keyed registry slot is read with `lua_rawgetp` and written with `lua_rawsetp`, never
   with `lua_pushlightuserdata` followed by `lua_rawget` or `lua_rawset`. The pair spells one
@@ -130,16 +127,14 @@ the state, where a boolean stored on an existing node cannot.
   `release` will drop is taken before the first call that can raise, and a registration made before the
   object is complete is undone on every error path out of the constructor.
 * An assignment used as a value inside a condition is parenthesised: `<` binds tighter than `=`, so
-  `n = f() < 0` stores the comparison and not the count. That one went unnoticed for two years and left
-  `runtime:resume` returning nothing while its documentation promised the values.
+  `n = f() < 0` stores the comparison and not the count.
 * An integer that names a kernel identity, a pid, is bounded with `lunatik_checkinteger` before the
   cast the kernel's type takes, as `socket.new` bounds the pid it resolves a namespace by:
   `(pid_t)luaL_optinteger` read `2^32 + 1` as pid 1 in `linux.netns`, and `tools/checks/idioms.sh`
   names the cast.
 * A method the monitor leaves unwrapped, a `close` or a `stop`, reads the object's private under the
-  object lock, and what it decides on that read it does under the same hold: `luasocket_close` first
-  read the socket outside the lock, where a sharer's close had freed it, then under a hold of its
-  own and closed under `lunatik_closeprivate`'s, where a sharer's join slipped between the two.
+  object lock, and what it decides on that read it does under the same hold: a read outside it can find what a
+  sharer's close freed, and a read and a close under two holds let a sharer's join slip between them.
 * A size, length or count that arrives from Lua is bounded with `lunatik_checkbounds`, for what the
   binding itself can serve: `roundup_pow_of_two` is undefined at zero, `__kfifo_alloc` truncates to an
   unsigned int, and the multiplication that sizes an object wraps before any allocator sees it. What
@@ -149,9 +144,8 @@ the state, where a boolean stored on an existing node cannot.
 * The minimal representation: a raw pointer where a struct would wrap one field, a fresh allocation
   where a cache would need invalidating, a function where a macro is not clearer. A structure earns
   its place by what it buys, not by looking more complete. A macro that grows an arm or an operation
-  to carry a new rule is the moment to write the functions instead: `lunatik_locker` took three
-  operations and four macros over it, and the rule came out as five functions and one predicate,
-  `lunatik_isirqsave`. A rule that takes one sentence to state takes one predicate to code.
+  to carry a new rule is the moment to write the functions instead, as the lock functions of
+  `lunatik_lock.h` are, over one predicate, `lunatik_isirqsave`. A rule that takes one sentence to state takes one predicate to code.
 * A field that stores what its reader can compute when it runs is a copy, not a field: the fsnotify
   event's frame kept the accessing task's pid for an accessor that only ever runs inside the callback,
   in that task, where `current` answers. The same holds for a wrapper written to fit a macro whose
@@ -159,8 +153,7 @@ the state, where a boolean stored on an existing node cannot.
 * A field beside an embedded kernel object is asked first what the object already records:
   `hlist_del_init_rcu` leaves `pprev` NULL for `hlist_unhashed_lockless` to read, `list_del_init`
   leaves the node empty for `list_empty`, a `kref` carries its count and a timer answers
-  `timer_pending`. #1179's first shape kept a `bool unlinked` beside the `hlist_node` that says it;
-  `tools/checks/kernel-answer.sh` names such a field.
+  `timer_pending`; `tools/checks/kernel-answer.sh` names such a field.
 * A kernel version guard puts the current kernel's code in its `#if` arm and the older kernel's in
   `#else`, tested with `>=` on the version that introduced the API, or on the macro that arrived
   with it where a stable series backports the change: raising the floor then deletes `#else` arms
@@ -170,10 +163,9 @@ the state, where a boolean stored on an existing node cannot.
 * Every arm of a version guard or a header probe is safe on the kernels it selects: where a kernel
   lacks what the safe shape needs, that arm refuses with an errno the script sees rather than taking
   the unsafe path, and what each arm does is said in the binding's documentation, where the author
-  of a script reads, and not only in the commit body. #1038's first shape called
-  `sk_net_refcnt_upgrade` under an `#ifdef`, and its other arm left a closed TCP socket without a
-  reference on its namespace, where an orphan's timer can run on a freed one, on kernels inside
-  the tree's own floor.
+  of a script reads, and not only in the commit body: an `#ifdef` arm without `sk_net_refcnt_upgrade` would
+  leave a closed TCP socket without a reference on its namespace, where an orphan's timer can run on a
+  freed one.
 * An errno crosses the C code negative, as the kernel returns it: `lunatik_throw(L, -EINVAL)`, or the
   raw return of the call that failed. The single normalisation is at the Lua boundary, where
   `lunatik_pusherrname` takes the absolute value.

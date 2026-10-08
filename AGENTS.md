@@ -69,9 +69,7 @@ starts a second later, so a build-install-run cycle takes the lock instead:
     bash tools/lunatik-host bash tools/watchdog.sh examples/systrack/device
 
 It runs the command with the lock held, names the holder while it waits, and releases on exit
-however the command ends. The lock lives in a directory of its own under `/tmp`, not in `/tmp`
-itself, where `protected_regular` denies root a file another user created: the wrapper runs as the
-user in one session and under `sudo` in the next, and the second must find the first's lock. The installed tree under `/lib/modules/lua` is shared too: a suite run
+however the command ends. The installed tree under `/lib/modules/lua` is shared too: a suite run
 whose totals do not match the tests in your own worktree is a mixed install, one session's modules
 against another's scripts, and it measures neither.
 
@@ -92,9 +90,7 @@ conflicts over your tree. Set work aside with a commit, and compare two revision
 `git show <ref>:<path>`. What a worktree holds built and not run is code nobody ran: a cycle run in
 a worktree not your own installs its author's untested edit, and an edit left built while its author
 waits on a question is a crash any session can trigger. An edit is built, installed and run in one
-step, or reverted before the session pauses; the reshape of `rcu.map` on #1158 sat built and unrun
-while its author reported, a cycle from outside the session installed it, and its write through a
-NULL buffer took the host down. A session's scratch worktrees live under `scratch/wt/`, since the
+step, or reverted before the session pauses. A session's scratch worktrees live under `scratch/wt/`, since the
 reboot such a crash forces clears `/tmp` and every tree it held, and a script a cycle reruns lives
 under `scratch/` for the same reason; `tools/lunatik-host` names one it runs from `/tmp`.
 
@@ -124,18 +120,15 @@ loads, this file, the skills and the guards, so it follows master: `checkout-beh
 `.claude/settings.json` runs as a session starts, prints how far its HEAD is behind `origin/master`
 and the `git merge --ff-only origin/master` that brings it level, and the session runs that merge
 when the checkout has no commit of its own and nothing tracked changed. It fetches nothing, since the
-remote-tracking ref is shared by every worktree's fetch. The checkout once sat 114 commits behind
-master while every workflow of a day ran from it, its agents reading a stale AGENTS.md and running
-stale guards.
+remote-tracking ref is shared by every worktree's fetch.
 
 An agent that works on this tree runs through the Workflow tool, whose `agent()` takes the model and
 the reasoning effort, and the maintainer's opt-in to workflows stands here: the Agent tool takes a
-model and no effort, and three agents asked for at `xhigh` ran at the default through it, a review
-among them. `agent-guard.sh`, wired before the Agent tool, refuses every type but a read-only search
+model and no effort, so what it launches runs at the default effort whatever was asked. `agent-guard.sh`, wired before the Agent tool, refuses every type but a read-only search
 and the Claude Code guide; `workflow-effort-guard.sh`, wired before the Workflow tool, refuses a script
 whose `agent()` calls never name an effort. An agent a running workflow waits on is not messaged: the
 message resumes a copy of it from its transcript, which runs beside the original in its worktree and on
-the host, and #1390's and #1294's implementers each ran twice that way after a reply to their report.
+the host.
 `send-guard.sh`, wired before SendMessage, refuses one whose run's journal holds no result for it; what
 its report asks for is done outside it, on the host or in an issue, or by stopping the workflow and
 relaunching it with notes.
@@ -149,11 +142,9 @@ does not reach.
 What the implementer and the review leave as issues, their `findings_left`, the workflow files as its
 last stage, each under its severity label or appended to the open issue it belongs to, so no finding
 waits on a session to copy it out and the numbers come back with the result. An entry quotes the
-contract its severity was read against, which the issue carries as a `Contract:` line: #1287 was filed
-as medium for a table the documentation of `set.new` never accepted, and the maintainer had to ask what
-the contract was. The implementer's answer and the review's hunt each carry the smallest shape beside
-the size of the diff and what every mechanism past it buys, and the hand-back shows it: #1339 reached
-the maintainer as a builder, a typedef and a struct around what became a two-line refusal.
+contract its severity was read against, which the issue carries as a `Contract:` line. The implementer's
+answer and the review's hunt each carry the smallest shape beside the size of the diff and what every
+mechanism past it buys, and the hand-back shows it.
 
 ### Running a script
 
@@ -223,9 +214,8 @@ body starts and drops ends with that body's runtime, as `examples/echod`'s worke
 on the thread's own body leaves the thread to run until that body returns.
 
 A body that races another thread, a stress, pauses once per slice of its running rather than once
-per turn: `linux.schedule()` sleeps until a timer fires whatever the timeout, 0 included, and a
-pause per turn left `tests/rcu/object_grace` without a single read of the zero count it stresses,
-where one per 10 ms kept about as many as a loop with none.
+per turn: `linux.schedule()` sleeps until a timer fires whatever the timeout, 0 included, so a pause
+per turn starves the race the stress is for.
 
 ## Rules by path
 
@@ -243,11 +233,9 @@ the body.
 
 The first shape of a fix is the smallest change that makes the observed defect unreachable, and
 every mechanism past it is named with what it buys that the small one does not. A structural
-answer the kernel offers is not the smaller one by being structural: #797 answered a foreign
-namespace's `lo` reaching a callback by moving the netdevice block to the per-namespace chain,
-which took a macro signature, two wrappers, an API newer than the tree's floor and a wider reach
-for a script's `notify.STOP`, when four lines that decline a device of another namespace in the
-handler fix the same defect with master's chain, and it took four review rounds to ask. Write the
+answer the kernel offers is not the smaller one by being structural: four lines that decline a device
+of another namespace in the handler fixed #797, where moving the netdevice block to the per-namespace
+chain took a macro signature, two wrappers and an API newer than the tree's floor. Write the
 small shape down first, even when the larger one is chosen, so the choice is a comparison and not a
 default.
 
@@ -256,18 +244,13 @@ kernel's own answer to the same problem is read, `Documentation/` for the family
 users under `lib/` and `kernel/`, and the commit body names the facility the shape was compared with,
 or the page that offers none: a reader that must block has SRCU, a walk that drops the lock has the
 contract the comment on `rhashtable_walk_enter` states, and a deferral of frees while readers sleep,
-written by hand, is SRCU again. #1158's walk went through a per-bucket snapshot, a re-lookup per key
-and a pending list before anyone opened `whatisRCU.rst`; `tools/checks/kernel-answer.sh` names a
-commit whose body carries no such comparison.
+written by hand, is SRCU again. `tools/checks/kernel-answer.sh` names a commit whose body carries no
+such comparison.
 
 Reshaping or renaming an API means updating every consumer, grepped for — including consumers in
 stacked or sibling pull requests that will rebase onto the change. A caller left on the old shape
-compiles against a Lua module and only fails when its code path runs: `skb.attr` became a class with
-`.new` and a pure attribute view, and `sniclassify`'s `skbattr(...)` / `skb:data()` — written for the
-old factory — kept building and broke at the first packet. The grep is taken on the branch's own
-base when the change is written, not from a read made earlier in the session: #1140 changed what a
-netdevice callback is handed with a grep two merges older than `linkflap` and `netfailover`, and
-updated one example of the three that read the name. Every example
+compiles against a Lua module and only fails when its code path runs. The grep is taken on the
+branch's own base when the change is written, not from a read made earlier in the session. Every example
 `tools/checks/examples-touched.sh` lists for the changed files is named in the pull request body
 with what it did, ran, only loaded or not run and why; `tools/checks/examples-named.sh` fails a
 body that leaves one unnamed, and `pr-body-guard.sh` runs it when a pull request opens.
@@ -276,33 +259,26 @@ The same holds for a value, not only a name. A change that keeps its own copy of
 field carries, because the kernel rewrites the original, has decided the two can differ:
 `luaprobe_t` keeps the address the script gave in `requested` because `register_kprobe` rewrites
 `kp.addr`, on x86 with IBT past the ENDBR. From then on every reader of the original is a decision,
-which of the two it wants, and proving why the copy exists is where a review tends to stop; the
-handler four lines above kept handing the script `kp.addr`. Grep the readers of what the change
+which of the two it wants. Grep the readers of what the change
 duplicates and settle each one, and read an architecture the host cannot run for every use, not only
 the one the diff touches. `tools/checks/shadowed-readers.sh` lists the readers.
 
 A primitive every class inherits, the lock, the allocator, the context check, is changed for the
 caller that needs it, in the arm that caller takes. Widening it to every arm because that is simpler
 is a contract change for the callers that were already correct, and it belongs in the first line of
-the commit body, naming what moves, never in a footnote of the pull request. #891's first shape
-fixed a kprobe handler writing an `rcu.table` by moving every softirq hook, netfilter and XDP
-included, from bottom halves off to interrupts off; the second keyed the choice on `irqs_disabled()`,
-the kernel's own rule, and left those hooks untouched. `tools/checks/blast-radius.sh` lists what a
-changed primitive reaches, on the file it left as well as the file it arrived in. A bound on what
-every script shares, the kernel stack the C budget prices among them, is measured over the forms
-the tree's own tools ship a script in as well as over the suite as installed: chunks `lunatic`
-compiles, which `BYTECODE=1` installs, and modules `tools/shade.sh` encrypted, required in chains.
-03e208b66 measured its budget over the suite and the examples, where no encrypted module requires
-another, and `darken.run` called each one from C, a level a plain module does not pay, so a chain
-that loaded as plain modules raised "C stack overflow" once encrypted (#1768). Such a bound holds
-where the resource is spent, not where the bound is read: a recursion that consults nothing is outside
-it whatever the measurement showed, and `tools/checks/recursion.sh` lists the ones in the Lua the
-kernel links.
+the commit body, naming what moves, never in a footnote of the pull request. A kprobe handler writing an
+`rcu.table` needs interrupts off, and #891 keyed that on `irqs_disabled()`, the kernel's own rule,
+leaving netfilter and XDP under bottom halves. `tools/checks/blast-radius.sh` lists what a changed
+primitive reaches, on the file it left as well as the file it arrived in. A bound on what every
+script shares, the kernel stack the C budget prices among them, is measured over the forms the tree's
+own tools ship a script in as well as over the suite as installed: chunks `lunatic` compiles, which
+`BYTECODE=1` installs, and modules `tools/shade.sh` encrypted, required in chains. It holds where the
+resource is spent, not where the bound is read: a recursion that consults nothing is outside it
+whatever the measurement showed, and `tools/checks/recursion.sh` lists the ones in the Lua the kernel
+links.
 
 The kernel a consumer builds on bounds what a change may use, and not every consumer sits inside
-the range this file declares: a product built on Lunatik can ship on an older vendor kernel, and
-`register_netdevice_notifier_net`, which arrived in v5.5, does not exist on the 5.4 one of them runs
-on. An API newer than a known consumer's kernel is a decision taken here, with the floor it sets
+the range this file declares: a product built on Lunatik can ship on an older vendor kernel. An API newer than a known consumer's kernel is a decision taken here, with the floor it sets
 named, not one discovered at that consumer's build.
 
 * Do not land an implementation you already intend to replace. A guarantee that holds only on some
@@ -316,11 +292,8 @@ named, not one discovered at that consumer's build.
   the same way: where it guarantees a precondition, the C takes it, and what stays in C is the check
   whose absence crashes the kernel. That is what the split is for, and re-validating in C undoes it.
   A context that makes a family of refusals unreachable removes those it covers, route by route, and
-  keeps the ones its rule leaves open: #1721 first moved `notifier.netdevice` to softirq and removed
-  `lunatik_checkrtnl` everywhere, the two refusals the replay inside the registration still needed
-  among them, then built a list that recorded the replay to deliver it off RTNL, and the maintainer
-  asked for the two checks back instead. A mechanism a removal makes necessary is the removal going
-  past what the trace showed. `guards.sh` counts the context checks, `lunatik_checkarmed`,
+  keeps the ones its rule leaves open; a mechanism a removal makes necessary is the removal going past
+  what the trace showed. `guards.sh` counts the context checks, `lunatik_checkarmed`,
   `lunatik_checkrtnl`, `lunatik_checkowner` and `lunatik_checkirqs`, so `guard-removed.sh` names one
   a change drops.
 * A function's contract — that it only reads, that it never sleeps, what it returns — is read from its
@@ -330,20 +303,14 @@ named, not one discovered at that consumer's build.
 * Refusing is a legitimate outcome. When a combination has no sound semantics yet, refuse it where it
   is registered, with an error that names the reason, rather than shipping an approximation. Lifting
   the refusal afterwards is one line and a test. The reason is written where the refusal is made, so
-  the change that removes it finds the refusal and lifts it: `darken.run` loaded text only from its
-  first commit, under AES-CTR, with no reason beside it, and the move to GCM, after which a decrypted
-  chunk is as trusted as the key, pinned that refusal in a case of its own, after `lunatic`'s commit
-  had said the kernel loads chunks everywhere and a documentation audit had written it down as the
-  contract. `tools/checks/idioms.sh` names a load of one mode.
+  the change that removes it finds the refusal and lifts it; `tools/checks/idioms.sh` names a load of
+  one mode.
 * A hazard is refused before it is engineered around. Where a context makes an operation unsafe, the
   operation is refused in that context, and a context is made where none names it yet; a deferral, a
   queue or a worker that keeps the unsafe call working buys a capability, and is weighed as one against
-  the refusal that makes the hazard unreachable. The RTNL a netdevice callback runs under drew a
-  deferral of the callback to a worker, which cost the reaction at the event that the notifier exists
-  for, and `kill` and `complete` drew deferred items of their own, until the maintainer asked why the
-  callers were not refused instead: in a softirq runtime nothing sleeps, so nothing waits on RTNL, and
-  the rule the core already enforces closes the family, with `lunatik_checkarmed` refusing under RTNL
-  the replay the registration delivers before the runtime is armed.
+  the refusal that makes the hazard unreachable. A netdevice callback runs under RTNL, and a softirq
+  runtime closes that family: nothing in it sleeps, so nothing waits on RTNL, and `lunatik_checkarmed`
+  refuses under RTNL the replay the registration delivers before the runtime is armed.
 * A prohibition and a capability are two things. Where the safe form of an operation needs a facility
   a later kernel adds, the binding refuses the operation where the facility is missing and uses it
   where it exists, behind a version guard, and does not reimplement it: a copy of the kernel's answer
@@ -356,38 +323,26 @@ named, not one discovered at that consumer's build.
 * A refusal is written for the resource, not for the entry point that showed the hang: the matrix it
   is held to lists every route from Lua to the lock or the call it protects, found by grepping what
   acquires it, `lunatik_lock`, `lunatik_closeprivate`, `lunatik_run` or the kernel call, and each
-  route names its refusal or why it needs none. #1135 refused `runtime:stop()` for the runtime's own
-  lock and left `runtime:resume()`, `percpu:resume()` and `thread.run`, which take it too, for the
-  review to find. The routes are everything the path runs while it holds the lock, the binding's
-  own calls among them, not only what a script calls: #1718's first answer for v5.0 took kswapd's
-  wakeup out of an sched_ext callback's allocator, which turned it into a raise that the dispatch
-  logs through the printk `print` reaches, under the same runqueue lock.
+  route names its refusal or why it needs none. A refusal of `runtime:stop()` for the
+  runtime's own lock covers `runtime:resume()`, `percpu:resume()` and `thread.run` too, which take
+  it. The routes are everything the path runs while it holds the lock, the binding's own calls among
+  them, not only what a script calls: a raise the dispatch logs is a printk under that lock.
 * A guard in the core is for the honest mistake: the wrong object at an index, a size no binding can
   serve, a call that sleeps from a hook. The registry, a class metatable and an object's `__gc` are
   the runtime's own bookkeeping, and a script that reaches into them, `obj:__gc()`,
   `debug.getregistry()`, `getmetatable(obj).__gc = nil`, is out of contract, as one that spins in a
   hook is: root loaded it on the machine it breaks, and no guard closes that. A finding whose stimulus
-  is such a script closes as not a defect, whatever it traces from there. #1054, #1067 and #1106 were
-  that, each found while fixing the one before, and #1065, #1107 and #1130 answered them with a
-  Lua-internal header in the core, a `debug` stripped of one function and a list on every object,
-  before the family was read as one and #1065 reverted.
+  is such a script closes as not a defect, whatever it traces from there.
 * A change that puts a route out of contract, a prohibition the binding's documentation now states,
   reads the open issues filed on that route in the same breath: one whose stimulus the prohibition
-  covers is a capability and not a defect, relabelled or closed with the reason. #1694 forbade a
-  probe on code the scheduler runs under its runqueue lock, and #1690, filed on that route, stayed
-  `severity: high` until the maintainer asked why.
+  covers is a capability and not a defect, relabelled or closed with the reason.
 * A decision taken with the maintainer is not reversed alone. When the investigation that follows points
-  the other way, that is a question to bring back, not a conclusion to announce: a rename agreed as
-  runtime came back as its opposite, argued from a name collision found on the way, and was published as
-  a pull request before anyone said so. Bring the finding, say what it would change, and wait.
+  the other way, that is a question to bring back, not a conclusion to announce. Bring the finding, say what it would change, and wait.
 * A decision brought to the maintainer, in a reply as in an issue, a review or a pull request, is one
   he takes in one read: `Decision:` and the question in a line, the options lettered `A)`, `B)`, each
-  with what it changes, and `Recommendation:` with the option and its reason. "Its rewording is the
-  maintainer's" names who decides and not what: #1205 was filed that way, the reply that reported it
-  said "é decisão sua", and the maintainer had to ask what his decision was. The options include the
-  smallest change that makes the defect unreachable, and each larger one says what it buys over it:
-  #1537 offered three functions or a string choice for `linux.tracing`, and the change that fixed its
-  defect, a read on none or nil, was in neither.
+  with what it changes, and `Recommendation:` with the option and its reason; "the maintainer's call"
+  names who decides and not what. The options include the smallest change that makes the defect
+  unreachable, and each larger one says what it buys over it.
 * A fact the maintainer states is taken as given and acted on, not verified back: "#736 is merged"
   ends a question rather than opening one, and re-arguing the point it settles spends the exchange
   on what is already decided. A state you assert yourself is the other way round, and rule 1 governs
@@ -403,9 +358,7 @@ named, not one discovered at that consumer's build.
 * The core and its bindings are not shaped by a consumer or by an example. An example that cannot
   be written, or that reaches what it needs through a channel no contract states, is evidence of a
   gap in the API; what fills that gap is decided from what the binding is for, and the commit and
-  the pull request argue it that way. Narrowing `notifier.netdevice` to the initial namespace fixed
-  the `ifquarantine` example, whose callback resolved a reported name there, and took away the
-  script that watches containers.
+  the pull request argue it that way.
 
 ## Patches and commits
 
@@ -416,17 +369,15 @@ named, not one discovered at that consumer's build.
 * A change to a function is read against the whole function, not the lines it touches: re-read it
   and take the simplification the change enables. A guard left standing that the new shape made
   redundant — `!cond || check(cond)` where the call now sits inside `if (cond)` — is a partial fix.
-* A change that removes the last reader of a value removes what was written for it: the walk on
-  #1179 stopped reading the entry's key as a C string and left the NUL terminator and the byte
-  allocated for it. For every read the diff removes, ask what was stored, sized or kept only for that
+* A change that removes the last reader of a value removes what was written for it, as the NUL
+  terminator and its byte go with the last read of a key as a C string. For every read the diff removes, ask what was stored, sized or kept only for that
   read; `tools/checks/terminator.sh` names the NUL case.
 * Read the commit before pushing it, not only the working tree: `git show` the diff that is about to
   be published. Instrumentation added while debugging — a `pr_err`, a hardcoded branch — is invisible
   in a passing test and lands in the pull request.
 * After resolving a rebase or a merge, `git grep -n '^<<<<<<< '` before committing. `git add -A`
   stages a conflict marker without complaining, and `git rebase --continue` runs no pre-commit hook,
-  so the markers reach the branch and surface far from the resolution: a `tests/run.sh` carrying one
-  dies at ``syntax error near unexpected token `<<<'``.
+  so the markers reach the branch and surface far from the resolution.
 * Change only what the task requires. Do not reformat untouched lines, do not move code, do not
   rename variables in passing. Compare `git diff` against `git diff -w` before committing to catch
   stray whitespace.
@@ -447,12 +398,11 @@ named, not one discovered at that consumer's build.
 * A pull request that replaces another says so in the body, `Alternative to #N`, and the merge of
   the replacement closes #N in the same breath: one left open is a claim about the queue nobody made.
   `tools/pr-status.sh` marks an open pull request a merged body names that way as superseded and
-  keeps it out of `--ready`. #742 stayed open after #743 merged.
+  keeps it out of `--ready`.
 * A pull request is one mechanism, read in one screen of diff and one paragraph of body. A body that
   needs a section per mechanism describes several pull requests: stack them, each on the one below.
   The harness is the exception: the checks, rules and skill steps one incident produces travel in one
-  pull request, because they carry one reason and the CI line that runs them is one push. One
-  incident's four, opened separately, each needed a merge and a CI push of its own. They travel with
+  pull request, because they carry one reason and the CI line that runs them is one push. They travel with
   each other, never inside an implementation: a rule that rides in a feature's commit lands unread,
   and a maintainer who wants the fix and not the rule has nothing to pick.
   `tools/checks/harness-mixed.sh` names a commit that mixes them.
@@ -462,8 +412,7 @@ named, not one discovered at that consumer's build.
   chain, not a correlated log line or a plausible mechanism. Until it is traced it is a hypothesis,
   labelled as one; a fix may land on the observed behaviour without naming a cause it has not proven.
   A release note, a changelog or any summary derived from commits is held to the same rule against
-  its source: read each commit and use its words, since "deferred via a workqueue", written for a
-  switch to `LUNATIK_OPT_HARDIRQ`, is a claim about code nobody wrote.
+  its source: read each commit and use its words.
 * Corrections to a commit on your own branch are `git commit --fixup=<hash>`, not a standalone
   "address review comments" commit. Never fixup a commit that is already on `master`; that becomes a
   new commit on a new branch.
@@ -478,9 +427,7 @@ named, not one discovered at that consumer's build.
 * Work an agent does for a workflow outlives the agent. Its branch is pushed at each commit, pull
   request or not, and what it measured and decided goes to a checkpoint file, a line per step, that
   the agent relaunched in its place reads before anything else; the workflow then resumes with the
-  finished agents from its cache and the unfinished ones from their branch and checkpoint. A hang
-  that took the shared host down cost four reviews in progress, which had written nothing down, and
-  no commit.
+  finished agents from its cache and the unfinished ones from their branch and checkpoint.
 * If a branch adds something in one commit and removes it in another, the second is a fixup of the
   first.
 * After squashing, re read the comments, the commit bodies and the identifiers so they describe the
@@ -493,9 +440,8 @@ named, not one discovered at that consumer's build.
 * Naming an existing literal is done by visiting every call site of what carries it: sweep for the
   function's callers or the field's users, not for the literal, which misses positional arguments.
 * Changing the value of a field visits every reader of it, in the code and in the field's doc, and
-  asks what each does with the value: `class->name` is the type name a type error quotes and was the
-  key a clone registered the class's library under, and renaming `rcu` to `rcu.table` for the
-  first opened `luarcu` twice in every runtime through the second. A reader that merely compiles
+  asks what each does with the value: `class->name` is the type name a type error quotes and the
+  name every context error prints. A reader that merely compiles
   against the new value is not accounted for.
 * A force-push that restructures a branch is not done until the pull request title and body are
   re-read against it. They describe the branch; a rewrite that drops or replaces a mechanism turns
@@ -510,8 +456,7 @@ named, not one discovered at that consumer's build.
   `git log -S` on the moved lines. `lib/class.lua` took the `:new` that `lib/socket/inet.lua` had
   carried since 2023. Every source file opens with `SPDX-FileCopyrightText` and
   `SPDX-License-Identifier`, the holder being who created it, and a file that cannot carry a header,
-  Markdown, data or a font, is declared in `REUSE.toml`: 47 scripts of the harness and the tree had
-  none until the maintainer noticed, and `pre-commit` now refuses a source file staged without one.
+  Markdown, data or a font, is declared in `REUSE.toml`; `pre-commit` refuses a source file staged without one.
 
 ## Reviewing your own change
 
@@ -538,8 +483,7 @@ removed. The maintainer reading a function and finding it dirtier than before is
 
 The hand-back lists each finding of your own review that the change does not apply, with the
 reason. A finding dropped in silence is found again by the maintainer, who then doubts the whole
-review; and "few sites" is not a reason against a rule that collapses a repeated pattern — three
-class tests written by hand where the checker takes the classes were that.
+review; and "few sites" is not a reason against a rule that collapses a repeated pattern.
 
 A review comment names a principle, not a token. Read the words as written, say which principle they
 invoke, and fix that: a note that an `enum` is formatted inline asks for the formatting, not for a
@@ -550,8 +494,7 @@ invoke, and fix that: a note that an `enum` is formatted inline asks for the for
 1. `make` is clean, with no new warnings, and a change that touches a `__percpu` pointer, or any
    other address-space annotated one, is clean under `make C=1` too: sparse models the annotation as
    an address space, as GCC 14 on x86 does for `__percpu` (`__seg_gs`), so a `void *` holding one, or
-   a cast between the two, is a warning here and a build error there. The `lunatik_percpuruntimes`
-   cast and `object->private = runtimes` were both;
+   a cast between the two, is a warning here and a build error there;
 2. `sudo make install && sudo lunatik reload && sudo lunatik test` passes;
 3. new API is documented and listed in `config.ld`, and `make doc-site LUA=lua5.5`,
    the CI target, exits zero: a C file that contributes to a module another file declares carries
@@ -565,8 +508,7 @@ invoke, and fix that: a note that an `enum` is formatted inline asks for the for
 6. every example that uses a binding the change touches is run, not only loaded, through the
    example's own `setup.sh` and `cleanup.sh` where it has them, and the hand-back says of each
    one whether it ran, only loaded, or was not run, and why. A loaded script that never fired
-   its hook is the green build the review rule warns about; "loads as percpu" said of
-   `tcpreject` and `dnsdoctor` after #785 merged was that;
+   its hook is the green build the review rule warns about;
 7. commits are small, ordered, and none of them undoes another;
 8. every helper the change introduces has a caller. A helper extracted to remove duplication but
    left unused, while the duplication it replaces still stands, is the refactor half-done. Grep the
