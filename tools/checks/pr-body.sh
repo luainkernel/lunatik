@@ -13,9 +13,16 @@
 
 . "$(dirname "$0")/closing.sh"
 
+[ $# -gt 0 ] || { echo "usage: pr-body.sh <body file>..." >&2; exit 2; }
+
 status=0
 for file in "$@"; do
-	body=$(cat "$file")
+	# a body the check cannot read passes nothing, as it would pass an empty one
+	if ! body=$(cat "$file" 2> /dev/null); then
+		echo "$file: cannot be read"
+		status=1
+		continue
+	fi
 	paragraphs=$(printf '%s\n' "$body" | awk 'BEGIN{n=0; blank=1} /^[[:space:]]*$/{blank=1; next} {if (blank) n++; blank=0} END{print n}')
 	if [ "$paragraphs" -gt 3 ]; then
 		echo "$file: $paragraphs paragraphs; a body is the failure, the change and what it depends on, three at most"
