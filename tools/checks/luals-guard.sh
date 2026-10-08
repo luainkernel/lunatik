@@ -19,30 +19,14 @@ esac
 
 . "$(dirname "$0")/commands.sh"
 
-# git past its global options, as push-guard.sh reads it
-git='^([^ ]*/)?git( -C [^ ]+| -c [^ =]+=([^ -][^ ]*( [^ -][^ ]*)*)?| -[^ ]+)*'
 cmds=$(commands "$input")
-printf '%s\n' "$cmds" | grep -Eq "$git push( |\$)" || exit 0
+printf '%s\n' "$cmds" | grep -Eq "$GIT_COMMAND push( |\$)" || exit 0
 case "$(command_text "$input")" in
 	*LUALS_OK=1*) exit 0 ;;
 esac
 
-# the directory the push runs in, resolved as push-guard.sh resolves it
 cwd=$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
-tree=$(printf '%s\n' "$cmds" | awk -v dir="$cwd" -v push="$git push( |\$)" '
-	function under(base, path) {
-		return path ~ /^\// ? path : base "/" path
-	}
-	$1 == "cd" && NF > 1 {
-		dir = under(dir, $2)
-	}
-	$0 ~ push {
-		d = dir
-		for (i = 2; $i != "push"; i++)
-			if ($i == "-C")
-				d = under(d, $++i)
-		print d
-	}' | tail -n 1)
+tree=$(git_pushes "$cmds" "$cwd" | tail -n 1 | cut -f 1)
 root=$(git -C "$tree" rev-parse --show-toplevel 2>/dev/null) || exit 0
 [ -f "$root/tools/checks/luals.sh" ] && [ -f "$root/.luarc.json" ] || exit 0
 base=$(git -C "$root" merge-base HEAD origin/master 2>/dev/null) || exit 0

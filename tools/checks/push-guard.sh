@@ -24,9 +24,7 @@ esac
 . "$(dirname "$0")/commands.sh"
 
 cmds=$(commands "$input")
-# git past its global options, -C with its word and -c with its key=value, a value commands prints
-# with the quotes taken off and so with any space it held
-git='^([^ ]*/)?git( -C [^ ]+| -c [^ =]+=([^ -][^ ]*( [^ -][^ ]*)*)?| -[^ ]+)*'
+git=$GIT_COMMAND
 printf '%s\n' "$cmds" | grep -Eq "$git push( |\$)" || exit 0
 
 if printf '%s\n' "$cmds" | grep -Eq "$git (rebase|merge|cherry-pick|am|revert)( |\$)"; then
