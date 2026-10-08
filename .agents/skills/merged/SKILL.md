@@ -3,7 +3,7 @@ name: merged
 description: After the maintainer reports a pull request merged, retarget the pull requests stacked on its branch to the default branch, restack them onto it, and report the queue and the issues the merge closed. Use when told a pull request was merged.
 ---
 
-AGENTS.md, "Patches and commits" and "Comments and the verdict", is the authority; this card orders
+AGENTS.md, "Patches and commits", and the review-pr skill's process.md, "Comments and the verdict", are the authority; this card orders
 the steps. A merge reported by the maintainer is taken as given.
 
 # 1. Read the merge

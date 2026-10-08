@@ -101,7 +101,7 @@ repeated() {
 		if (fresh && (w in seen)) {
 			split(seen[w], p, ":")
 			if (!((p[1], w) in told) && !(p[1] in last && at[n - K + 1] - last[p[1]] < K)) {
-				printf "%s:%d: spells %s as %s does; a sequence two places spell is one helper, in lunatik.h when its calls are the core'"'"'s (AGENTS.md, C style)\n", file, at[n - K + 1], w, seen[w]
+				printf "%s:%d: spells %s as %s does; a sequence two places spell is one helper, in lunatik.h when its calls are the core'"'"'s (.agents/rules/c.md)\n", file, at[n - K + 1], w, seen[w]
 				told[p[1], w] = 1; found = 1
 			}
 			last[p[1]] = at[n - K + 1]

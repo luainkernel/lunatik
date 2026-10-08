@@ -74,7 +74,7 @@ a phase that dies. If it exists, read it and continue from it; do not redo what 
 finding the moment you close it, one line each:
 \`file:line | what | disposition\` where disposition is \`fixup <sha>\`, \`stays: <reason>\` or \`issue: <title>\`.
 An \`issue:\` line is also an entry of your answer's findings_left, whose body can be filed as it stands: what
-the code does and where, the trace, the fix where there is one; its severity is the label AGENTS.md "Findings"
+the code does and where, the trace, the fix where there is one; its severity is the label .agents/skills/review-pr/process.md "Findings"
 names, and its home the open issue it belongs to, where one exists.
 Your final answer is assembled from that file, not the other way round, and goes back into it under a heading
 for your phase before you return, so a death between your last tool call and the runner's record still leaves
@@ -141,8 +141,8 @@ Write each finding to the checkpoint as you close it. Fix what you can as fixups
 const RULES = COMMON + `
 PHASE: RULES. The Hunt phase's findings are in the checkpoint; read them first and do not repeat them.
 
-Go through AGENTS.md section by section (Object model, C style, Lua style, Comments and documentation,
-Tests, Deciding what to change, Patches and commits, Before opening a pull request) and for each rule say
+Go through the rules section by section (.agents/rules/ for the files the diff touches, then AGENTS.md
+Deciding what to change, Patches and commits, Before opening a pull request) and for each rule say
 applies or not, and if it applies, pass or fail, with the line. Where a rule can be checked by a grep or a
 script, run it rather than read for it. Run every check in tools/checks/ over the full changeset
 (\`git diff --name-only ${a.base}..${a.head}\`), function-shape.sh among them with CHECK_BASE=${a.base}, and

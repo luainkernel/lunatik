@@ -45,7 +45,7 @@ every known issue documented while #1260 was not.
 
 Known issues lists the open issues the release ships with, read from GitHub and not from memory, each
 with what a script meets today. The notes promise nothing to come: not the API freeze, which stays
-the tree's own rule (AGENTS.md, *The API a script sees*), and not the release that fixes a known
+the tree's own rule (`.agents/rules/api.md`), and not the release that fixes a known
 issue. Contributors are the authors of the range, `git shortlog -sn <previous tag>..<sha>`, with their
 handles, and the first contributions with their pull requests. The body ends with
 `**Full Changelog**: https://github.com/<owner>/<repo>/compare/<previous tag>...<tag>`, and not with

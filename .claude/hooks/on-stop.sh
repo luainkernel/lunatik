@@ -6,7 +6,7 @@
 # Stop adapter: reads the reply a turn ends on through tools/checks/decision.sh and
 # tools/checks/reboot-capture.sh and sends it back once when it hands the maintainer a decision
 # without the question, the options and a recommendation, or asks for a reboot nothing captured
-# for; the checks are plain path-taking scripts (AGENTS.md, "Checks"), this only translates.
+# for; the checks are plain path-taking scripts (.agents/rules/checks.md), this only translates.
 
 input=$(cat)
 command -v jq > /dev/null || exit 0

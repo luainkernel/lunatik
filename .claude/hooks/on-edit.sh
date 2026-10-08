@@ -6,7 +6,7 @@
 # PostToolUse (Write|Edit) adapter: run the tools/checks file checks over the
 # edited file and hand their findings back through the hook protocol, so the
 # model is nudged at edit time. The checks are plain path-taking scripts
-# (AGENTS.md, "Checks"); this wrapper only translates.
+# (.agents/rules/checks.md); this wrapper only translates.
 
 input=$(cat)
 file=$(printf '%s' "$input" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)

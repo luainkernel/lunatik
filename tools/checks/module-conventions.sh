@@ -70,7 +70,7 @@ check() {
 		END { exit !found }
 	' "$file" 2>/dev/null | head -3)
 	while read -r line; do
-		[ -n "$line" ] && add "$line lines of body; a step of it wants a name as a helper (AGENTS.md, C style)"
+		[ -n "$line" ] && add "$line lines of body; a step of it wants a name as a helper (.agents/rules/c.md)"
 	done <<< "$long"
 	# (a) a comment right after a preprocessor branch usually restates the condition.
 	awk '

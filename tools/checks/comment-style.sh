@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# The comment rules of AGENTS.md, "Comments and documentation", read over C, Lua
+# The comment rules of .agents/rules/comments.md read over C, Lua
 # and shell alike: a comment describes the present, not the history; a release it
 # names is the range the code serves, above the entry it applies to; it says why
 # the code is what it is, not what would happen if something changed; inside code

@@ -3,7 +3,7 @@ name: review-pr
 description: Review a Lunatik pull request end to end. Use when asked to review a PR or prepare review feedback.
 ---
 
-The process is AGENTS.md, "Reviewing a pull request" — before the verdict, findings, fixups,
+The process is `process.md` beside this card — before the verdict, findings, fixups,
 comments, after a round. Follow it whole; this card is only the GitHub mechanics.
 
 # Reading and driving the branch
@@ -107,7 +107,7 @@ zero on a provider error and nothing counted the restarts.
 # Posting the review (only when asked; placement is decided BEFORE posting)
 
 Each finding goes inline on its line; the review body is only the verdict, opening with the
-author's @handle (AGENTS.md, "Comments and the verdict"). The posting account authors the pull
+author's @handle (`process.md`, "Comments and the verdict"). The posting account authors the pull
 requests here, and GitHub answers 422 to `APPROVE` or `REQUEST_CHANGES` on one's own, so `event` is
 `COMMENT` and the verdict is the body's first line. Because that account is the maintainer's, every
 text an agent posts under it, the body and each inline comment, opens with
