@@ -97,8 +97,9 @@ implementer's memory of the change. The run reported:
 ${JSON.stringify(failed, null, 2)}
 
 Trace the failure before you change anything (AGENTS.md rule 1): the test's prints, the errno, the journal
-window the lunatik-cycle skill names. A failure the change causes is fixed as \`git commit --fixup=<the commit
-that introduced it>\`, \`make\` clean, and pushed; one it does not cause, a host process or a test already
+window the lunatik-cycle skill names. A failure the change causes is fixed in the commit that introduced it,
+\`git commit --fixup\` folded at once with \`git rebase -i --autosquash ${base === 'master' ? 'origin/master' : base}\`, since the pull
+request opens squashed, \`make\` clean, and pushed with \`--force-with-lease\`; one it does not cause, a host process or a test already
 failing on master, is said as such with its evidence and fixes nothing. Run no install, reload, suite or
 example: the host run that follows is another agent's. Append what you traced and committed to the checkpoint,
 and remove the worktree you worked in once the fix is pushed.

@@ -62,9 +62,15 @@ const FIXUP = a.push === false
   ? `A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on the local
 branch ${unit}-fixups, taken from \`${a.branch}\`. Push nothing: the session that launched this
 review pushes, and your answer names every SHA it made.`
-  : `A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on
+  : a.pr
+  ? `A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on
 \`${a.branch}\`, pushed as soon as made (\`git push origin ${a.branch}:${a.branch}\`; where \`origin\`
 is not writable from this machine, CLAUDE.local.md says how it pushes).`
+  : `A finding you can fix is \`git commit --fixup=<the commit that introduced it>\` on \`${a.branch}\`, folded
+into that commit before you return (\`git rebase -i --autosquash ${a.base}\`), since no pull request exists yet
+and the maintainer's first review reads it squashed; push the branch with
+\`--force-with-lease=refs/heads/${a.branch}:<the head you started from>\` (where \`origin\` is not writable from
+this machine, CLAUDE.local.md says how it pushes), and your answer's tip is the head after the fold.`
 
 const COMMON = `
 You are reviewing ${a.pr ? `pull request #${a.pr}` : `the branch \`${a.branch}\`, which has no pull request yet,`} of
