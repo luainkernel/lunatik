@@ -51,7 +51,10 @@ posts=$(gh_writes "$cmds" 'pr (review|comment)|issue comment' \
 [ -n "$posts" ] || exit 0
 
 files=
+# a private repository's name is a leak only where the text is published to this one
+private=
 while IFS= read -r post; do
+	gh_ours "$post" && private=$LUNATIK_CONSUMERS
 	body=$(gh_body "$post")
 	case $body in
 	"") ;;
@@ -70,7 +73,7 @@ for f in $files; do
 	exit 2
 done
 
-leaked=$(for f in $files; do bash "$(dirname "$0")/machine-leak.sh" "$f"; done)
+leaked=$(for f in $files; do LUNATIK_CONSUMERS=$private bash "$(dirname "$0")/machine-leak.sh" "$f"; done)
 if [ -n "$leaked" ]; then
 	echo "review-post-guard: the text carries what belongs to the machine it was written on:" >&2
 	echo "$leaked" >&2

@@ -189,7 +189,9 @@ out of contract by the honest-mistake bullet of AGENTS.md, *Deciding what to cha
 documented reaches the same path. A new issue carries its severity as the repository's label, which
 the guard refuses to open it without. The examples, the contract and the severity label are this tree's
 and this tracker's, so they bind a write to this repository or a fork of it; a write to another
-repository answers to that repository's own guards.
+repository answers to that repository's own guards. So does the name of a private repository: the
+guards hold a text to `LUNATIK_CONSUMERS` only where it is published to this repository, since an issue
+filed on the private one names it by right.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
