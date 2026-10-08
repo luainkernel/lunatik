@@ -24,7 +24,7 @@ for commit in $(git rev-list --no-walk "${@:-HEAD}"); do
 		case "$f" in
 			"") ;;
 			tools/shade.sh|tools/debian_kernel_postinst_lunatik.sh) other=$f ;; # a user's tool, not the harness
-			AGENTS.md|CLAUDE.md|tools/*|.agents/*|.github/*|.claude/*) harness="$harness  $f
+			AGENTS.md|CLAUDE.md|.luarc.json|tools/*|.agents/*|.github/*|.claude/*) harness="$harness  $f
 " ;;
 			.gitignore|.gitmodules|.editorconfig|LICENSE) ;; # neither, and in both kinds of commit
 			*) other=$f ;;

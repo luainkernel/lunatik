@@ -30,7 +30,7 @@ report() {
 	fi
 }
 
-for check in module-conventions comment-style comment-siblings idioms lua-style kthread function-shape core-helper deferral terminator shadowed-readers blast-radius examples-touched test-harness cppcheck-tests rename-orphaned recursion; do
+for check in module-conventions comment-style comment-siblings idioms lua-style kthread function-shape core-helper deferral terminator shadowed-readers blast-radius examples-touched test-harness cppcheck-tests rename-orphaned recursion luals; do
 	report "$check" "$(CHECK_BASE=$base bash "$dir/$check.sh" $files 2>&1)"
 done
 

@@ -22,7 +22,8 @@ branches, argument tables, inline functions and repeated blocks the Lua style ru
 skips (`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), a recursion in the Lua the kernel links that counts no C level and no bound
-names (`recursion.sh`), the readers of a field the change keeps its own copy of
+names (`recursion.sh`), a local, a function or a global lua-language-server reads as a slip
+(`luals.sh`), the readers of a field the change keeps its own copy of
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
 (`blast-radius.sh`), the examples that use a binding the change touches, which a review runs
 (`examples-touched.sh`), a commit that carries a rule or a check inside a change of its own
@@ -141,6 +142,12 @@ recursion that never reaches `luaE_checkcstack` or `luaE_incCstack` and that its
 with what one level costs on the host; each ledger entry says what bounds a recursion, read in its
 source. It runs when a change touches `lua/`, `lunatik_conf.h` or `lunatik_aux.c`: a recursion that
 compares nothing is invisible to a budget read where `LUAI_MAXCCALLS` is compared.
+
+`luals.sh` reads the Lua files given with lua-language-server and the tree's `.luarc.json`, and names a
+local or a function declared and never read and a global assigned where a local was meant; a `require` nobody reads loads its module into the kernel and keeps
+it there for the runtime's life. The configuration turns off what the server infers about types the
+bindings' C never declares to it, and says why beside each. It runs at edit time and over a pull
+request's diff, and says so where the server is absent.
 
 `author-email.sh` reads a rev-range and names a commit whose author email is not the one the base
 uses most for that author's name: a rebase or a squash done from another checkout signs the result

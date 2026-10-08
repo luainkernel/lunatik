@@ -1,0 +1,31 @@
+// SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+// SPDX-License-Identifier: MIT OR GPL-2.0-only
+//
+// lua-language-server's reading of the tree, which tools/checks/luals.sh runs as a check and an
+// editor reads as it is; a comment takes a line of its own, which the check strips.
+{
+	"runtime.version": "Lua 5.5",
+	"workspace.ignoreDir": ["lua", "klibc", "luac", "doc"],
+
+	// a test keeps a sentinel global so that its __gc runs when the state closes
+	"diagnostics.globals": ["sentinel"],
+
+	// these read types the server infers and the bindings' C never declares to it: a field of a
+	// binding, a nil the contract rules out, a wrong type a test passes on purpose, a value a test
+	// discards on purpose, an argument a base method ignores and a subclass reads, and a module the
+	// kernel resolves by two names; and a local declared again over one in scope, which is how the
+	// tree gives a parameter its default, local x = x or default, so no assignment makes a global
+	"diagnostics.disable": [
+		"undefined-field", "need-check-nil", "param-type-mismatch", "discard-returns",
+		"redundant-parameter", "different-requires", "redefined-local"
+	],
+
+	// a name declared and never read is a hint by default; "!" promotes it to what the check reports
+	"diagnostics.severity": {
+		"unused-local": "Warning!",
+		"unused-function": "Warning!",
+		"unused-vararg": "Warning!",
+		"lowercase-global": "Warning!"
+	}
+}
+
