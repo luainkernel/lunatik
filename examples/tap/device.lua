@@ -5,7 +5,6 @@
 
 local device = require("device")
 local raw    = require("socket.raw")
-local linux  = require("linux")
 
 local MTU       = 1500
 

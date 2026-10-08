@@ -58,7 +58,7 @@ local mi_silent_mouse_rdesc_fixed = {
 	0xC0       --  End Collection
 }
 
-function driver:report_fixup(hdev, report, data)
+function driver:report_fixup(hdev, report)
 	if hdev.product == 0x5014 and #report == mi_silent_mouse_orig_rdesc_length then
 		print("Fixing Xiaomi Silent Mouse report descriptor")
 		for i = 1, #mi_silent_mouse_rdesc_fixed do

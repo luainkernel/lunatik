@@ -15,7 +15,7 @@ end
 local notify = require("linux.notify")
 local kbd    = require("linux.kbd")
 local enable = true
-local function locker(event, down, shift, key)
+local function locker(event, down, _, key)
 	if not down and event == kbd.KEYCODE and konami:completion(key) then
 		enable = not enable
 	end

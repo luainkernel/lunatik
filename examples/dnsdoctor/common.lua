@@ -1,12 +1,11 @@
 --
--- SPDX-FileCopyrightText: (c) 2024 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
+-- SPDX-FileCopyrightText: (c) 2024-2026 Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
 -- Common code for new netfilter framework and legacy iptables dns doctoring example
 
 local nf = require("linux.nf")
-local linux = require("linux")
 local byteorder = require("byteorder")
 local action = nf.action
 local dns = 0x35
@@ -34,7 +33,7 @@ function common.hook(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
 		if domainname == target_dns then
 			dnsoff = dnsoff + nameoff + 4 -- skip over type, label fields
 			-- iterate over answers
-			for i = 1, nanswers do
+			for _ = 1, nanswers do
 				local atype = byteorder.hton16(skb:getuint16(dnsoff + 2))
 				if atype == 1 then
 					skb:setuint32(dnsoff + 12, byteorder.hton32(target_ip))

@@ -5,13 +5,11 @@
 
 local lunatik = require("lunatik")
 local thread  = require("thread")
-local socket  = require("socket")
 local inet    = require("socket.inet")
 local linux   = require("linux")
 local data    = require("data")
 
 local shouldstop = thread.shouldstop
-local task = require("linux.task")
 local sock = require("linux.socket").sock
 
 local workers = {}

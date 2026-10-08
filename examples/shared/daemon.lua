@@ -4,7 +4,6 @@
 --
 
 local thread = require("thread")
-local socket = require("socket")
 local inet   = require("socket.inet")
 local rcu    = require("rcu")
 local data   = require("data")
@@ -17,7 +16,6 @@ server:bind(inet.localhost, 90)
 server:listen()
 
 local shouldstop = thread.shouldstop
-local task = require("linux.task")
 local sock = require("linux.socket").sock
 
 local size = 1024
