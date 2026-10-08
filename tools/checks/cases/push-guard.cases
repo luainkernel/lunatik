@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+block	git rebase origin/master && git push origin HEAD
+block	git rebase --onto master abc 2>&1 | tail -2 && git push
+block	git -c core.editor=true rebase -i master; git push origin x
+block	git -c user.name="A B" rebase master && git push
+block	git merge --ff-only origin/master && git push
+block	git cherry-pick abc; git push
+block	bash -c 'git rebase master && git push'
+pass	git push origin claude_x
+pass	git status && git log -1
+pass	echo 'git rebase x && git push'
+pass	git log --grep 'rebase' && git push origin x
