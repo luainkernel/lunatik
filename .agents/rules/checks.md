@@ -35,6 +35,10 @@ them over a pull request's diff: `pre-commit` and
 
     ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
+`advisory.sh` runs the heuristic checks over a change, the file checks over the files it adds or
+modifies and the commit checks over its commits: the list the `Checks` workflow annotates a pull request
+with, and the one `tools/review-packet.sh` hands a review.
+
 `core-subject.sh` reads commits rather than files, since a subject belongs to a commit: it takes
 commits or a rev-range (`bash tools/checks/core-subject.sh origin/master..HEAD`) and flags one that
 changes the core under a subject naming only a binding. The rule is not that core and a binding

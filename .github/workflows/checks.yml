@@ -29,20 +29,4 @@ jobs:
       run: bash tools/checks/pre-commit
     - name: Advisory checks
       # heuristics that nudge a review; they annotate the run and do not fail it
-      run: |
-        files=$(git diff --cached --name-only --diff-filter=ACM)
-        for check in module-conventions comment-style comment-siblings idioms lua-style kthread function-shape core-helper deferral terminator shadowed-readers blast-radius examples-touched test-harness cppcheck-tests rename-orphaned recursion; do
-          out=$(bash "tools/checks/$check.sh" $files 2>&1) || true
-          test -n "$out" && echo "::warning title=$check::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
-        done
-        # core-subject reads commits: the staged diff above is the whole pull request
-        for commit in $(git rev-list "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"); do
-          out=$(bash tools/checks/core-subject.sh "$commit" 2>&1) || true
-          test -n "$out" && echo "::warning title=core-subject::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
-        done
-        # kernel-answer reads the same commits, for a mechanism over a kernel primitive whose body names no kernel answer
-        for commit in $(git rev-list "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"); do
-          out=$(bash tools/checks/kernel-answer.sh "$commit" 2>&1) || true
-          test -n "$out" && echo "::warning title=kernel-answer::$(printf '%s' "$out" | sed ':a;N;$!ba;s/\n/%0A/g')"
-        done
-        true
+      run: bash tools/checks/advisory.sh --github "origin/${{ github.base_ref }}" "${{ github.event.pull_request.head.sha }}"
