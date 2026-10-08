@@ -45,6 +45,7 @@ const base = a.base || 'master'
 const model = a.model ? { model: a.model } : {}
 const checkpoint = `${a.scratch}/issue${a.issue}/IMPLEMENT.md`
 const fileCheckpoint = `${a.scratch}/issue${a.issue}/FILED.md`
+const bodyFile = `${a.scratch}/issue${a.issue}/pull-request.md`
 const REVIEW = `${a.repo}/.agents/skills/review-pr/review.js`
 const MACHINE = a.machine ? `THIS MACHINE: ${a.machine}\n` : ''
 const FIXES = 2
@@ -100,19 +101,25 @@ Trace the failure before you change anything (AGENTS.md rule 1): the test's prin
 window the lunatik-cycle skill names. A failure the change causes is fixed in the commit that introduced it,
 \`git commit --fixup\` folded at once with \`git rebase -i --autosquash ${base === 'master' ? 'origin/master' : base}\`, since the pull
 request opens squashed, \`make\` clean, and pushed with \`--force-with-lease\`; one it does not cause, a host process or a test already
-failing on master, is said as such with its evidence and fixes nothing. Run no install, reload, suite or
+failing on master, is said as such with its evidence and the open issue that reports it, and fixes nothing. Run no install, reload, suite or
 example: the host run that follows is another agent's. Append what you traced and committed to the checkpoint,
 and remove the worktree you worked in once the fix is pushed.
 `
 
-const OPEN = (impl, head) => `
+const OPEN = (impl, head, unrelated) => `
 ${MACHINE}Open a pull request on luainkernel/lunatik from the branch \`${impl.branch}\` against \`${base}\`, whose head is
 \`${head}\`; push the branch first if GitHub's tip of it is not that SHA. Title: ${JSON.stringify(impl.title)}
+A pull request GitHub already has for the branch is that one, read with
+\`gh api "repos/luainkernel/lunatik/pulls?head=luainkernel:${impl.branch}&state=open"\`, and is not opened twice.
 
-Body, as it stands:
+Body, as it stands${unrelated.length ? `, with one sentence added to its last paragraph naming the failure a host
+run showed and the change does not cause, and the issue that reports it, from this record:
+${JSON.stringify(unrelated)}` : ''}:
 ${JSON.stringify(impl.body)}
 
-The body goes through tools/checks/pr-body.sh before the command that opens it. Then label the pull request
+Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it, and pass that
+path spelled out in the command that opens the pull request (\`-F body=@${bodyFile}\`): the guards before a shell
+call read the file the command names, and refuse a path a shell variable holds. Then label the pull request
 \`workflow-reviewed\`, since the review ran over this head. Your answer is the pull request's number.
 `
 
@@ -126,8 +133,10 @@ title it records, since an entry filed twice is a duplicate someone closes by ha
 the issue holds it.
 
 For each entry:
-- write its body to a file and run tools/checks/machine-leak.sh and tools/checks/untraced.sh over it; a line
-  either one names is rewritten before anything is posted;
+- write its body with your Write tool to exactly ${a.scratch}/issue${a.issue}/entry<index>.md and run
+  tools/checks/machine-leak.sh and tools/checks/untraced.sh over it; a line either one names is rewritten before
+  anything is posted, and the command that posts it spells that path out (\`-F body=@<that path>\`), since the
+  guards refuse a path a shell variable holds;
 - an entry whose body carries \`Decision:\`, or whose home is an epic (a title that starts with \`Epic:\`),
   opens an issue of its own, whatever it reports, and its body ends with \`Part of #<home>.\` when it has a
   home;
@@ -222,8 +231,9 @@ if (implemented?.branch && a.push !== false) {
       label: `fix:${a.issue}:${fixes.length + 1}`, phase: 'Fix', effort: a.effort, schema: FIXED, ...model,
     })
     fixes.push(fix)
-    if (!fix?.caused) break
-    head = fix.head
+    if (!fix) break
+    // a failure the change does not cause, a test that fails on a busy host among them, is read once more
+    head = fix.head || head
     const rerun = await workflow({ scriptPath: REVIEW }, reviewArgs(implemented, { head, hunt: false }))
     build = rerun?.build
     head = build?.head || head
@@ -231,7 +241,8 @@ if (implemented?.branch && a.push !== false) {
   const missing = unrun(implemented, build)
   if (passed(build) && !missing.length && a.gh !== false) {
     phase('Open')
-    const opened = await agent(OPEN(implemented, head), {
+    const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
+    const opened = await agent(OPEN(implemented, head, unrelated), {
       label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', effort: 'low', schema: OPENED,
     })
     pr = opened?.pr || 0
