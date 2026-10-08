@@ -81,16 +81,15 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
   srcversion and the examples run on it go in the briefing (`args.validated`), and the build phase
   runs only when a fixup changed a file the build, the install or the suite reads, or an example
   the change touches (`tools/checks/examples-touched.sh` over the changed files, passed as
-  `args.examples`) is not among them. The suite is not the examples: #795 and #837 passed the probe
-  suite and neither ran systrack, whose first run on the merged code took the host down.
+  `args.examples`) is not among them. The suite is not the examples, and an example is the binding at
+  the rate a user drives it.
 - A phase writes its own answer back into the checkpoint before it returns, not only the findings as
   it closes them, so an agent dropped between its last tool call and the runner's record still leaves
   the verdict on disk.
 - A fixup is a commit before it is anything else. Where the host refuses a push from an agent
   (`args.push: false`), it stays a commit on `review<pr>-fixups` and the session that launched the
   review pushes it, naming the SHAs the phase reported. A refused command is written down and not
-  tried again: six retries of one refused push is how a nine hour run returned nothing for the third
-  pull request it was reviewing.
+  tried again.
 
 What a dead run left is read before it is launched again: `<transcriptDir>/journal.jsonl` carries a
 `result` line for every phase that finished, the checkpoints carry what each one wrote, and the fixup
@@ -100,9 +99,8 @@ again to be safe, which is the cost the checkpoint exists to avoid.
 
 A fan-out of agents is bounded before it is launched, not after: one unit as a pilot and timed, a
 wall-clock cap, and an inactivity monitor over the agents' own logs with the launching session left
-idle so it can stop them. Report what a run cost before launching another. A survey that was never
-bounded spent twelve hours and produced nothing, because the workflow runner restarts an agent from
-zero on a provider error and nothing counted the restarts.
+idle so it can stop them. Report what a run cost before launching another, since the workflow runner
+restarts an agent from zero on a provider error and nothing else counts the restarts.
 
 # Posting the review (only when asked; placement is decided BEFORE posting)
 

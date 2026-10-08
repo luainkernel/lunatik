@@ -26,8 +26,7 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
 2. List every file the pull request touches (`gh pr view <n> --json files`) and read from that list.
    The patch spans the repo, not the feature's folder, so a claim that the PR contains or lacks a file
    is grounded in that changeset, never in a directory listing scoped to where you assumed it would
-   live — "no README in the PR", from an `ls` of the example directory while the PR edited the
-   repo-root `README.md`, is the shape of that error.
+   live.
 3. Read the PR's own conversation, not only its diff. An author's comment may raise a question or
    propose an alternative the review has to engage; a verdict that ignores an open author thread is
    incomplete.
@@ -53,9 +52,7 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
 * A symptom seen while poking by hand is not a finding until a clean run reproduces it. Reload to a
   fresh slate, run once, apply one stimulus, read the result — that is authoritative; a scratch
   fighting leftover state is not. An absence of errors counts only if you exercised the path that
-  raises them: zero because the code never ran is not zero because it ran clean. A "serious bug"
-  escalated from stale-environment noise and nearly filed against someone's PR is the failure this
-  guards against. Non-determinism is the tell: a symptom that shows on one run and not the next, from
+  raises them: zero because the code never ran is not zero because it ran clean. Non-determinism is the tell: a symptom that shows on one run and not the next, from
   the same inputs, is environment state, not a code path — the variable is the leftover, so control it
   (a fresh reload, a pinned CPU, the program cut down to the one call under test) rather than theorise
   a bug. The converse is a tell as well: a symptom that reproduces on every run is the code's, and the
@@ -67,11 +64,8 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   trigger of the run that failed, which was not captured. A failure the suite showed once is read in
   the journal before anything runs again: the KTAP line carries an errno and the test's own prints
   say how far it got, and the window around them, every unit and not only the kernel
-  (`tools/journal.sh`), shows who else acted on what the test created. `nl80211_station` failed
-  with `ENOENT` after "added" and before "authorized", and the journal had NetworkManager
-  registering the AP interface the test had brought up and wpa_supplicant taking it down, which
-  flushes the station; a rerun that passed had wpa_supplicant arriving after the test deleted the
-  interface. A rerun measures the rerun; the word for a failure nobody read is what
+  (`tools/journal.sh`), shows who else acted on what the test created, a network manager taking down an interface
+  the test brought up among them. A rerun measures the rerun; the word for a failure nobody read is what
   `untraced.sh` refuses.
 * A defect found on the way is fixed, not reported and left: a pre-existing one, in code the change
   does not touch, becomes a commit of its own, or a pull request of its own when it stands apart, and
@@ -80,7 +74,7 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   owed: the finding leaves with a branch or an issue and the report carries its number, since a defect
   handed back as prose is a defect nobody owns. Before the fix is written, `tools/pr-status.sh` says
   whether an open pull request already carries one: a second fix of the same defect collides with the
-  first and is dropped, and #976 wrote two of them, at a review round each.
+  first and is dropped.
 * A finding is resolved, not parked. When something looks wrong, run it to ground — reproduce it, find
   the cause, then fix it or dismiss it. "I'll flag it to the author", "let's look into it separately",
   or asking whether to investigate is dropping it, not handling it. Deferral is for work that belongs
@@ -99,12 +93,10 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
 * A review runs the passes of AGENTS.md, *Before opening a pull request*, over the diff as passes of its own, not
   only the rules it can cite: the simplification pass, field by field and helper by helper, asking
   what each buys over the minimal shape, and the shape pass, grepping the file's own siblings for the
-  form the tree uses. The first round on #848 and #849 ran only the rules and left for a second round
-  a predicate written as a function in a header of macros, a comment on one member of a struct whose
-  members carry none, a wrapper a vararg made unnecessary, and a frame field the accessor could read
-  from `current`. A guard added to the core for one binding is read against every binding with the
-  same shape before the verdict, module by module, and a consumer found leaves as an issue: `device`
-  dispatches its file operations the way `fsnotify` dispatches events, and #959 says so.
+  form the tree uses: a predicate written as a function in a header of macros, a comment on one
+  member of a struct whose members carry none, a wrapper a vararg made unnecessary, a field the
+  accessor could read from `current`. A guard added to the core for one binding is read against every binding with the
+  same shape before the verdict, module by module, and a consumer found leaves as an issue.
 * A review holds new code to the conventions AGENTS.md and `.agents/rules/` record; it does not impose preferences beyond
   them. Where the tree itself is inconsistent and a style seems worth settling, that is an exclusive
   pull request that fixes the whole tree and records the convention here — never a finding on someone's
@@ -196,8 +188,8 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   branch, the base pull request grows a commit nobody reviewed there, and the stacked one closes
   as merged with nothing on `master`. A verdict on a stacked pull request says "after #N", and until
   then it stays the draft it opened as, which the merged skill marks ready once it retargets it. After its
-  base merges it waits too, until it is retargeted: GitHub leaves it on the merged branch, and
-  #1041, merged seconds after #1040, landed there and not on `master`. `tools/pr-status.sh` names
+  base merges it waits too, until it is retargeted: GitHub leaves it on the merged branch, where a
+  merge lands it instead of on `master`. `tools/pr-status.sh` names
   a base that merged, and the merged skill retargets and restacks what a merge leaves behind.
 * Approving is the reviewer's to state; merging is the maintainer's to trigger. Even a clean, approved
   PR is not merged on the reviewer's initiative — pushing or merging to `master` is irreversible and

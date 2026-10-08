@@ -38,31 +38,23 @@ them over a pull request's diff: `pre-commit` and
 `core-subject.sh` reads commits rather than files, since a subject belongs to a commit: it takes
 commits or a rev-range (`bash tools/checks/core-subject.sh origin/master..HEAD`) and flags one that
 changes the core under a subject naming only a binding. The rule is not that core and a binding
-never mix, which AGENTS.md, *Patches and commits*, sanctions, but that the subject says so. A review of #848
-found the lock-owner scheme, `lunatik.h` and `doc/capi.md` both, inside a commit whose subject named
-only the binding.
+never mix, which AGENTS.md, *Patches and commits*, sanctions, but that the subject says so.
 
 `body-identifiers.sh` reads commits the same way and names the identifiers a body carries that appear
 neither in the commit's diff nor in the code at that commit: what a folded fixup removed, the body
-written before the squash still explains. #848's body kept a paragraph on a `FSNOTIFY_GROUP_USER`
-guard the fixup had dropped, and the re-read after the squash passed it. A kernel symbol a body cites
+written before the squash still explains. A kernel symbol a body cites
 for what the code does not do is named too, so the report is read, not obeyed.
 
 `kernel-answer.sh` reads commits the same way and names one that builds a mechanism over a kernel
 primitive, RCU, a lock, a reference count or deferred work, with a new function or field, in a body
 that cites neither a `Documentation/` page nor one of that family's own facilities: the kernel has
-usually answered the problem already, and the comparison belongs in the body where the reviewer reads.
-#1158 answered a walk whose callback sleeps under RCU with a snapshot of the keys, a re-lookup of each
-and then a deferred-free list, over four review rounds and a crashed host, when
-`Documentation/RCU/whatisRCU.rst` says "Will readers need to block? If so, you need SRCU" and
-`lib/rhashtable.c` states what a walk that drops the lock between elements gets. It annotates, since
+usually answered the problem already, and the comparison belongs in the body where the reviewer reads:
+`Documentation/RCU/whatisRCU.rst` says "Will readers need to block? If so, you need SRCU". It annotates, since
 a body can cite the page and still not read it.
 
 `terminator.sh` reads a C file for a store that terminates an array, `x[n] = '\0'`, and names it when
 no call in the file that reads a C string takes that array: a byte written for one reader stays
-written after the reader goes. #1179's walk stopped reading the entry's key through `strscpy` and
-left the NUL the entry stored after it, and the byte allocated for it, through two review passes that
-read the store as part of the entry and not as a value with a reader. It annotates, since the reader
+written after the reader goes. It annotates, since the reader
 can sit in another file behind a pointer the array is handed to.
 
 `guard-removed.sh` names the crash guards a C file drops against `HEAD` (a checker, an
@@ -76,58 +68,41 @@ and a review says its run was blocked rather than overriding a guard that was no
 A guard that only moved, into a helper the methods now share, onto another index or into a
 `LUNATIK_PRIVATECHECKER` that checks its class and reads the object as `private`, is paired with
 the added line that took it in and not reported; both checks read `guards.sh`, where the pattern
-and the pairing live, since the argcheck #850's review folded into one helper read as two guards
-dropped until the commit cleared it.
+and the pairing live.
 
-`idioms.sh` reads a C file for what a review round on #850 passed over and the maintainer then
-asked for: a `luaL_argerror` as the body of an `if`, which is a wrong value at an index and
+`idioms.sh` reads a C file for idioms the tree settled: a `luaL_argerror` as the body of an `if`, which is a wrong value at an index and
 `luaL_argcheck`'s; a check followed by `lunatik_throw` with nothing between, which `lunatik_try`
 already spells when nothing is held; a `luaL_argcheck` condition repeated across methods, which is
 one helper; and a version a feature needs written as one release, "needs a 6.10 kernel", where the
 message means that release and every one after it. It also names an `is` or `has` predicate written
 as a `static inline` whose body is one `return`, which the tree spells as a macro, and an `if` whose
-two arms call one function, which is a ternary: #1358 and #1383 passed their reviews in those shapes
-and the maintainer asked for both, while the check ran only when a skill called it, so it now runs at
-edit time and over a pull request's diff too. It names an `is` or `has` predicate macro spelled
+two arms call one function, which is a ternary. It runs at edit time and over a pull request's diff.
+It names an `is` or `has` predicate macro spelled
 with `?:`, which reads as two rules where an `||` of the exception and the rule reads as one, and a
-loop header a file spells twice, which a foreach macro names, as `lunatik_foreachruntime` does:
-#1504 landed `lunatik_iswrapped` as a ternary the maintainer found too complex (#1530), and #1539
-walked its views with one `for` in four places until he asked for `luaskb_foreachview`. It names
+loop header a file spells twice, which a foreach macro names, as `lunatik_foreachruntime` does. It names
 a value a function computes before a check that raises and does not read it, which decides before
-validating: #1584's `fifo:push` computed whether the string fits above the `lunatik_checkbounds`
-that refuses one past the capacity, and the maintainer asked why. It names a load of one mode,
-which refuses what `require` and `load` take: `darken.run` loaded text only from its first commit,
-with no reason written beside it, until a stripped chunk had to ship encrypted (#1767). It
-annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
+validating, and a load of one mode, which refuses what `require` and `load` take. It annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
 between the check and the throw is what the reader decides on.
 
-`function-shape.sh` reads a C file for the shapes of a function the review of #1158 passed and the
-maintainer then called out, in the functions the diff against `CHECK_BASE` touches: a lock taken at
+`function-shape.sh` reads a C file for the shapes of a function that is more than one job, in the functions the diff against `CHECK_BASE` touches: a lock taken at
 more than one site of one function, where the section between is a helper of its own; an allocation
 and a raise in one function, where a buffer a raise passes is freed on every raise path and a
 userdata the collector frees is the shape; a function past forty lines or nested past two blocks,
-which is more than one job; and a per-item buffer sized by a maximum, `n * LUARCU_MAXKEY`, which is
-packed by each item's length. The walk of `rcu.map` on #1158 carried all four, took the lock at two
-sites with an allocation between, freed its buffer on the raise path and sized a kilobyte per key,
-and the review's rules phase read the C style rules and not the function. The check annotates: a lock
+which is more than one job; and a per-item buffer sized by a maximum, `n * LUARCU_MAXKEY`, which is packed by each item's length. The check annotates: a lock
 retaken after a wait is a shape the reader decides on, and the review answers each line it prints with
 the function's jobs listed and the fixup that splits them or the reason they are one.
 
 `core-helper.sh` reads the lines a change adds to a C file, against `CHECK_BASE`, for three in a row
 inside a function whose calls another C file of the tree already makes in the same order, read with
-the arguments left out: the sequence is one helper, in `lunatik.h` when its calls are the core's.
-#1584 and #1595 each wrote `lua_pushnil`, `lunatik_pusherrname` and `return 2`, in three files
-between them, until the maintainer asked for `lunatik_pushfail`, a rule `.agents/rules/c.md` already carried
-and two implementers and their reviews passed over. It runs at edit time and over a pull request's
+the arguments left out: the sequence is one helper, in `lunatik.h` when its calls are the core's, as `lunatik_pushfail`
+spells `lua_pushnil`, `lunatik_pusherrname` and `return 2`. It runs at edit time and over a pull request's
 diff and annotates, since two encryptions that set up one request each are two callers of the
 kernel's API and not a helper missing; the review answers each line it prints with the helper or
 the reason the calls are the kernel's sequence.
 
 `deferral.sh` reads the lines a change adds to the C of the core or a binding, against `CHECK_BASE`,
 for a deferral: an item of `lunatik_defer`, a work, an irq_work or a tasklet. A hazard is refused in
-its context before it is engineered around (AGENTS.md, *Deciding what to change*), and #1622 carried a thread's
-stop handed to `lunatik_defer`, a back reference and a flush of the core's queue at its module's
-exit after #1719 had written that rule, until the maintainer asked why the flush was needed. It runs
+its context before it is engineered around (AGENTS.md, *Deciding what to change*). It runs
 at edit time and over a pull request's diff and annotates, since the core's deferred close is the
 kernel's answer to a release in atomic context; the commit body names the refusal each line it
 prints was weighed against.
@@ -135,54 +110,37 @@ prints was weighed against.
 `comment-siblings.sh` reads the lines a change adds, against `CHECK_BASE`, for a comment on one
 definition of a block whose other definitions carry none: a run of `#define` lines, the members of a
 struct or a union, or a run of Lua `local NAME <const>` lines. Either each has a reason worth a line
-or none does, and the reason they share goes in the commit body. #1670 put a line above
-`lunatik_isatomic` among predicates that carry none, and #1669 one on the first member of a struct
-whose second had none, until the maintainer asked what was special about them. It runs at edit time
+or none does, and the reason they share goes in the commit body. It runs at edit time
 and over a pull request's diff and annotates, since a definition can hold the one constraint its
 siblings do not.
 
-`lua-style.sh` reads a Lua file for the shape rules of `.agents/rules/lua.md` that a review of #618 passed over
-and called ready: an `if`/`elseif` whose branches repeat the same steps, which is a dispatch table
+`lua-style.sh` reads a Lua file for the shape rules of `.agents/rules/lua.md` a line-based read can find: an `if`/`elseif` whose branches repeat the same steps, which is a dispatch table
 or a helper; one table of arguments spelled at two call sites, which is declared once; and a
 function of more than one statement written inline as a table field, which is a named local
-function. The example's reactor
-added and deleted one route through two branches that each spelled the route and a message, and
-the maintainer asked for `reroute.down` and `reroute.up` over one `backup` table. It runs at edit
+function. It runs at edit
 time and over a pull request's diff and annotates rather than fails, since two registrations that
 share three fields can be two different hooks. It also names a block of four lines or more that a
-change adds, read against `CHECK_BASE`, and a script beside it already carries: #1198 spelled one
-pause in the four kernel thread bodies of `tests/rcu`, through its own pre-publication pass, and
-went into a module they share only when the maintainer asked why the code was copied.
-It names a module a file requires twice, which one local holds, as `.agents/rules/lua.md` asks of `linux.genl`:
-`lib/socket` and `lib/netlink/nl80211` spelled a `require` per field of a `linux.*` table, and
-#1531 renamed one of those fields in place, keeping the shape, until the maintainer asked for the
-local.
+change adds, read against `CHECK_BASE`, and a script beside it already carries, which is a module they share.
+It names a module a file requires twice, which one local holds, as `.agents/rules/lua.md` asks of `linux.genl`.
 
 `test-harness.sh` reads a test's Lua script as well as its `.sh`, for a case the script runs under a
 condition: when the condition is false the case reports nothing and the script's one KTAP line
-counts it as passed, which `tests/runtime/percpu_object` did on a single CPU, as #1166 found, so
-the skip is decided in the `.sh`, where it is a `# SKIP` line. It also names a script that takes
-`test` from a module other than `tests.lib`: `tests/linux/errname` reached master taking it from
-`util` after #1550 had moved it, in a merge that did not conflict, and the case called nil; the
-same line sat in the new tests of seventeen open pull requests. `kthread.sh` names a loop on
-`thread.shouldstop()` whose body has no pause it can see, the shape of the four `tests/rcu` bodies
-#1167 found; it knows a pause by its name, in the loop or in a function of the same file the loop
+counts it as passed, so the skip is decided in the `.sh`, where it is a `# SKIP` line. It also names a script that takes
+`test` from a module other than `tests.lib`, which a merge that does not conflict leaves calling nil.
+`kthread.sh` names a loop on
+`thread.shouldstop()` whose body has no pause it can see; it knows a pause by its name, in the loop or in a function of the same file the loop
 calls, so one behind another module reads as none, and the review decides.
 
 `recursion.sh` compiles the objects `Kbuild` links from `lua/` with the host compiler and the
 configuration `lunatic` takes, reads GCC's call graph (`-fcallgraph-info`) for its cycles, and names a
 recursion that never reaches `luaE_checkcstack` or `luaE_incCstack` and that its ledger does not bound,
 with what one level costs on the host; each ledger entry says what bounds a recursion, read in its
-source. It runs when a change touches `lua/`, `lunatik_conf.h` or `lunatik_aux.c`. #1669 priced a C
-level in bytes, read where `LUAI_MAXCCALLS` is compared and measured the stack at every check, so a
-recursion that compares nothing was invisible to both: lundump's `loadFunction` recursed once per
-nested function of a chunk, and `lunatic` compiled one nested 98 deep from valid source, past the
-guard page (#1775). The check named it, and seven others the ledger now bounds, the first time it ran.
+source. It runs when a change touches `lua/`, `lunatik_conf.h` or `lunatik_aux.c`: a recursion that
+compares nothing is invisible to a budget read where `LUAI_MAXCCALLS` is compared.
 
 `author-email.sh` reads a rev-range and names a commit whose author email is not the one the base
 uses most for that author's name: a rebase or a squash done from another checkout signs the result
-with that checkout's identity, and #850 reached its review under an address the history knows from
-three commits against several hundred. A review and a pull request's preparation run it over
+with that checkout's identity. A review and a pull request's preparation run it over
 `origin/master..HEAD` before anything is pushed.
 
 A rule is what remains when nothing else can catch the mistake. Where the error is mechanical, the gate
@@ -191,26 +149,21 @@ wrong, over rules that were already written and already broken, adds a paragraph
 What an investigation teaches lands here, in a skill or in a check, in the same breath as the work that
 taught it; a lesson kept in one assistant's notes is one the next contributor pays for again. A rule or
 a check that lands is run that day over the open pull requests it reaches, and each one it names gets
-a fixup or a reason: #1719 wrote the hazard rule while #1622 carried the deferral it weighs, and
-nobody read #1622 against it until the maintainer asked.
+a fixup or a reason.
 
 `pr-body.sh` takes a pull request body file and fails it on more than three paragraphs, an em dash,
-a "Test plan" section or an assistant's footer, which #1119 carried past it while the script skipped
-the line; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
+a "Test plan" section or an assistant's footer; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
 blocks a `gh` write to pulls that carries a body file the check fails on, or that `machine-leak.sh`
 finds the machine in; a body it cannot read is refused rather than skipped, as in the review guard below.
-A write to a pull request's reviews or comments is that guard's and not this one's: a review body
-runs past three paragraphs by design, and #851's held a rewrite of its own verdict until the path
-was read for what it was. A write to issues takes this guard too, since the implement-issue workflow
+A write to a pull request's reviews or comments is that guard's and not this one's, since a review body
+runs past three paragraphs by design. A write to issues takes this guard too, since the implement-issue workflow
 opens and edits issues from what its agents leave and its prompt asking for the checks enforced none;
 `untraced.sh` stands in there for `pr-body.sh`, whose paragraphs and Closes line are a pull request's.
 A release takes it as well, through `release-body.sh`, which keeps the em dash, `untraced.sh` and
 `decision.sh`, adds the maintainer's rule for public notes, nothing promised of the API or of a release
-to come, and drops the three paragraphs, since notes run as long as the release: v5.0's went out
-through `gh api` while no guard named a release, read by hand.
+to come, and drops the three paragraphs, since notes run as long as the release.
 An edit is read for the lines it adds to the body GitHub has, asked with the credential the command
-carries: an update appended to #418 was refused over the build log its reporter had posted, which is
-no edit's to rewrite. When GitHub does not answer, the whole body is read. This guard and the review
+carries, so text a reporter posted is no edit's to rewrite. When GitHub does not answer, the whole body is read. This guard and the review
 guard read a write in every spelling gh takes of it: `new` beside `create`, `-R` before the verb, `-F`
 and `-b` on `gh pr` and `gh issue`, `--notes-file` and `-n` on `gh release`, a field attached to its
 flag, and the JSON `gh api --input` sends,
@@ -219,11 +172,9 @@ write whose text no guard reads is refused: one through curl to GitHub's API, an
 other than the textless ones the skills run. GitHub is written through gh, and where gh is absent the
 implement-issue workflow reads through curl and writes nothing. An issue a write opens is read by
 `contract.sh` too, which refuses a finding whose stimulus reaches into the runtime's own bookkeeping,
-out of contract by the honest-mistake bullet of AGENTS.md, *Deciding what to change*: #1067 and #1106 were filed
-that way and each drew a pull request. `CONTRACT_OK=1` opens it where a script using the API as
+out of contract by the honest-mistake bullet of AGENTS.md, *Deciding what to change*. `CONTRACT_OK=1` opens it where a script using the API as
 documented reaches the same path. A new issue carries its severity as the repository's label, which
-the guard refuses to open it without: 129 issues were open with none when the maintainer asked for
-one on every issue.
+the guard refuses to open it without.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
@@ -232,15 +183,12 @@ list is known to be stale.
 
 `stacked-guard.sh`, wired before a shell call, refuses opening a pull request on a base other than
 `master` unless it opens as a draft. GitHub does not merge a draft, and nothing else stops a stacked
-pull request merged before its base from going into the base's branch: #1103 did, after the CI check
-#1047 added for #1041 went in #1064 for failing every stacked push. A pull request moved onto such a
-base is a draft already, which the guard asks GitHub, `gh pr ready --undo <n>` first: #1168 was moved
-onto #1187's branch after it opened, and nothing made it a draft.
+pull request merged before its base from going into the base's branch. A pull request moved onto such a
+base is made a draft first, `gh pr ready --undo <n>`, which the guard asks GitHub.
 
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
 it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
-catches it. This file's own gate spent its first version skipping `lua/` and `klibc/` in a loop over
-the staged list, where a submodule is a gitlink and its files never appear.
+catches it.
 
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run, a `list`, `-V`, the REPL on a pipe or with `-e`, or a suite, while another operation is on
@@ -250,11 +198,7 @@ what it lists is known to be stale. What a command runs is read by `commands.sh`
 guards share: a CLI verb, `make install`, a test script or `watchdog.sh` counts when it is the command,
 read through `sudo` and `env` with their options, `tools/lunatik-host` and a shell's `-c` string, and
 not when it is handed to `git`, `grep` or a check, to a shell's `-n`, which reads it and runs nothing,
-or written into a file by a heredoc, which the bare substring read as an operation four times in one
-afternoon; a `bash -n` over a test was refused as a suite run while the host was busy. The post guards read through it too, the
-`gh` command that writes and not the raw input, where a search chained after a read of an issue's
-comments read as a comment posted and a heredoc editing a guard read as a pull request body; the
-approval marker counts only in the command. A cycle a script file runs names nothing a
+or written into a file by a heredoc. The post guards read through it too, the `gh` command that writes and not the raw input; the approval marker counts only in the command. A cycle a script file runs names nothing a
 text can read, so it goes through `tools/lunatik-host`, whose lock orders it against the cycles that
 take it too.
 
@@ -270,21 +214,15 @@ typed. The guard keys on loading an example, not on the name of one already know
 `consumers.sh` names the out-of-tree scripts that load a binding the changed files touch, reading the
 clones listed in `LUNATIK_CONSUMERS`; `consumers-guard.sh`, wired before a shell call, blocks opening or
 editing a pull request that changes such a binding until the command carries `CONSUMERS_OK=1`, set once
-those scripts were read. A product built on Lunatik is a consumer this tree cannot grep, and narrowing
-what a binding reports was proposed here as a fix until the script that reads that notifier turned up in
-another repository, using exactly what the change removed. A failure reported from a consumer's build is
-read from that build's own configuration before any mechanism is theorised: an out-of-tree feed's
-alphabetical module list explained an unload that failed three times running, after three patches had
-been written against a refcount that was never the cause.
+those scripts were read. A product built on Lunatik is a consumer this tree cannot grep. A failure reported from a consumer's
+build is read from that build's own configuration before any mechanism is theorised.
 
 `examples-touched.sh` and `consumers.sh` read what a change reaches through `modules.sh`: the module a
 file defines, read from the base when the change deletes it, and every module a script reaches it
 through without requiring it, a library that requires it, as `netlink` reaches `netlink.rt.route`, and
 a binding that builds its objects for a callback, as `netfilter` and `tc` hand an `skb`. A change to the
 runner adds the examples a README starts with the CLI verb whose function it touches, and one to autogen
-the `linux.*` tables its specs feed. Each grepped for a `require` of the changed module alone, and
-#1264 gathered eight changes that reached examples neither named, the `skb` of #1539 among them. The CI
-annotation reads the files a pull request adds or modifies, so a deleted module is named by the guard
+the `linux.*` tables its specs feed. The CI annotation reads the files a pull request adds or modifies, so a deleted module is named by the guard
 and the pull request's preparation, which read the whole diff.
 
 `machine-leak.sh` reads a tracked file for what belongs to the machine it was written on: an absolute
@@ -301,25 +239,20 @@ log. What belongs to one machine lives in that machine's environment or in its u
 commits and how many are unsquashed fixups, the size, the CI conclusion, and the labels; `--ready` keeps
 the ones a maintainer can pick up. What GitHub cannot see is whether anyone read one, so the review
 workflow labels what it finished with `workflow-reviewed`, and a pull request without that label has
-had no second reader. Which pull requests are open, reviewed or ready is read from it, not from memory:
-a list called ready was assembled from memory here and was wrong on two of three.
+had no second reader. Which pull requests are open, reviewed or ready is read from it, not from memory.
 
 `tools/issues.sh <epic>` prints the issues an epic tracks as GitHub has them: the epic and each issue
 whose body says it is part of it or that the epic's task list names, its state, and the pull
 requests whose body names it with what each does to it, flagging an open issue a merged pull
 request names and a merged pull request that closes none. An issue closes, and its card on the
 project board moves to Done, only when a merged pull request
-says `Closes #N` or someone closes it by hand: the ten pull requests of the fsnotify stack said they
-were part of #657 and answered its phases, and #659 to #664 stayed open on Todo after every one of
-them merged, as #1001 did after #1005. A pull request that finishes a phase carries `Closes #<phase
+says `Closes #N` or someone closes it by hand. A pull request that finishes a phase carries `Closes #<phase
 issue>`, one that finishes none says `#<epic>, which it does not close`, and `pr-body.sh` fails a body
 that says Part of, Top of, Bottom of, Answers or reported as and does neither. After the maintainer
 reports a merge, the session runs `tools/issues.sh` over the epic, closes what the merge finished and
 GitHub left open, an issue the pull request only named or an epic whose issues are all closed, and
 hands him in the same message what closed and what stays open; the board moves a card with its issue.
-What a release still lacks is read from the same report: #1279 sat in #1292's task list with a body
-that named no epic, the tool read only the bodies, and the answer to what v5.0 still needed left it
-out until the epic was read for its closing.
+What a release still lacks is read from the same report, the epic's task list included.
 
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments on a
@@ -333,11 +266,9 @@ the marker whenever it cannot tell. The text goes through `machine-leak.sh` befo
 the marker is read, since the marker approves the wording and not what the wording carries, and text
 the guard cannot read, passed inline or on stdin, is refused rather than skipped. Every text it lets
 through opens with `(posted by an agent, not by @<handle>)`, the review body and each inline comment
-alike, since the account is the maintainer's: the review of #854 went out with the line on the body
-and on none of its five inline comments, which stand alone in the conversation. A post it holds for
+alike, since the account is the maintainer's and an inline comment stands alone in the conversation. A post it holds for
 the marker is recorded for the session, and `pr-body-guard.sh` refuses an edit that adds text other
-than a task to the body of the same issue or pull request until the marker is set: a comment held on
-#1407 went into the issue's body instead, the approval it waited for skipped by another route. A
+than a task to the body of the same issue or pull request until the marker is set, so the approval is not skipped by another route. A
 comment given to gh's `close` or `reopen` is refused as text no file carries, since that route has no
 file to read.
 
@@ -345,24 +276,18 @@ file to read.
 word that names a failure nobody read: a failure that comes and goes is read in the journal around the
 failing run, `tools/journal.sh` prints every unit's lines in that window, and the text names the
 mechanism or carries a hypothesis with what was not captured. `pr-body.sh`, `review-post-guard.sh`
-and, on an issue body, `pr-body-guard.sh` run it. The review of #1016 called `nl80211_station`'s
-failure a flake on the strength of a rerun that
-passed; the journal had NetworkManager and wpa_supplicant taking the interface the test had just
-brought up.
+and, on an issue body, `pr-body-guard.sh` run it.
 
 `decision.sh` reads the same texts, where the same three run it, for a decision handed to the
 maintainer without the question, two options and a recommendation (AGENTS.md, *Deciding what to change*): it
 keys on the phrase that hands one over, "the maintainer's call", "é decisão sua", "levo isso a
 você", and asks the text around it for the three. A reply in the session is where the maintainer
 read "é decisão sua", so `.claude/hooks/on-stop.sh`, the Stop hook, runs it over the reply a turn
-ends on and sends one that fails back once, passing the stop after it (`stop_hook_active`). A
-decision reported as taken, "foi decisão sua", "por decisão sua", hands nothing over and passes: the
-hook sent back two sessions' replies on one in the days after v5.0.
+ends on and sends one that fails back once, passing the stop after it (`stop_hook_active`). A decision reported as taken, "foi decisão sua", "por decisão sua", hands nothing over and passes.
 
 `reboot-capture.sh` reads the same reply in the same hook, for a request for a reboot the checkout
 holds no capture for. `tools/prereboot.sh` saves what a reboot erases for every session on the host,
-and the others learn of the reboot when it is done, so the session that asks runs it: a session asked
-for one on 2026-10-01, and the reboot took another session's cycle scripts and drafts from `/tmp`. It
+and the others learn of the reboot when it is done, so the session that asks runs it. It
 keys on the phrase that asks, "preciso que você reinicie", "can you reboot"; one that says what only a
 reboot clears, "só um reboot resolve", "needs a reboot", counts only while the host is stuck, a module
 `pinned.sh` names or a `lunatik` process in D state, since on a sound host it describes what a bug
@@ -371,9 +296,7 @@ would leave. It passes when `scratch/reboot-*` holds a capture taken in the last
 `push-guard.sh`, wired before a shell call, refuses a `git push` in a command that also runs a
 rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any of those in progress:
 the one that stops on a conflict leaves HEAD on the base with the branch's commits still to apply,
-and a push chained after it publishes that base as the branch. `git rebase --onto master <parent>
-2>&1 | tail -2 && git push` did that to #1012, the pipe hiding the stop, and the pull request's
-branch was `master` until the next push. The push is a command of its own, after `git status` has
+and a push chained after it publishes that base as the branch. The push is a command of its own, after `git status` has
 been read; `PUSH_OK=1` overrides the guard for a push meant while a rebase stays paused in another
 tree.
 

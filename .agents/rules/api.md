@@ -9,15 +9,13 @@ paths:
 # The API a script sees
 
 The public API freezes at each major release: a minor only adds. These are the rules the v5.0 freeze
-settled (#1292); a binding or a Lua module follows them whichever language it is written in.
+settled; a binding or a Lua module follows them whichever language it is written in.
 
 They serve a smaller API and a smaller core, never a larger one. A reading of one of them that
 multiplies names or threads a mechanism through the core is read again for what the rule is for, and
-the smallest shape that keeps that purpose is the one taken: #1537 split `linux.tracing` into three
-functions to avoid a boolean that is the very value the call writes, and the RTNL a netdevice callback
-runs under grew a flag on the runtime, an error and a check in the core and refusals in `socket`,
-`netlink`, `thread` and a runtime's `stop`, before the maintainer asked for a softirq runtime, where
-nothing waits on RTNL, and removed them for `lunatik_checkarmed`, which refuses under RTNL too.
+the smallest shape that keeps that purpose is the one taken: `linux.tracing` is one function and
+not three, since its boolean is the value the call writes, and RTNL is answered by a softirq runtime,
+where nothing waits on it, and not by a flag on the runtime and refusals in every binding.
 
 * A module whose object is its own type constructs it with `.new`; a module of several types names a
   factory for each (`crypto.shash`, `bpf.hash`, `rcu.table`); a kernel registration takes the verb it
@@ -51,6 +49,5 @@ nothing waits on RTNL, and removed them for `lunatik_checkarmed`, which refuses 
   the guide lists them; a script of a product lives in a directory of its own.
 * A major release keeps no path for what it replaces: a word, a name or a shim the replacement made
   redundant goes in the release that replaces it, and a compatibility the tree keeps is one the
-  maintainer asked for. #1484 first read `run`'s 4.4 words through every 5.x release, from a
-  recommendation approved with the rest of a review, until the maintainer asked where that came from.
+  maintainer asked for.
 

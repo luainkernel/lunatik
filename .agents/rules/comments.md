@@ -26,19 +26,17 @@ paths:
 * A comment about a specific call goes on that call's line, not above the function signature, and
   the call is the one the fact is about: `%pe keeps the sign` is about the `snprintf` that formats
   the errno, and the `buf + 1` on the line below reads on from it; put on the `lua_pushstring`
-  instead, it reads as a note about pushing a string, and #990 merged that way before it was
-  noticed.
+  instead, it reads as a note about pushing a string.
 * Code that serves a range of kernels says the range, above the line it applies to: `-- v6.11 and
   later: sk_skb_reason_drop(sk, skb, reason)` above that entry of a table, `-- v6.10 and earlier:
   kfree_skb_reason(skb, reason)` above the other. What changed at the release, `v6.11 turned
   kfree_skb_reason into a static inline over sk_skb_reason_drop`, is history and goes in the commit
-  body; written above the table instead, with an order its entries did not need, it left the reader
-  to work out which entry served which kernel, and the review of #929 called it ready to merge before
-  the maintainer asked for the range on each entry. `comment-style.sh` names a comment that pairs a
+  body; written above the table instead, it leaves the reader to work out which entry serves which
+  kernel. `comment-style.sh` names a comment that pairs a
   release with a verb of change, and one that names a release above the opening of a table.
 * A literal in a comment is either the rule or marked as one instance of it. `/* "-ENOENT":
-  errname keeps the sign */` read as a case special to that errno until the maintainer asked
-  whether it was only an example; `/* %pe keeps the sign, e.g. "-ENOENT" */` says the rule and
+  errname keeps the sign */` reads as a case special to that errno; `/* %pe keeps the sign, e.g.
+  "-ENOENT" */` says the rule and
   shows one value of it. A bare example reads as the whole.
 * When the surprise is the call itself, a `put` where the tree would `stop`, the comment on the
   call's line gives the one reason it is not the expected call, `/* last reference: a stop would
@@ -50,11 +48,10 @@ paths:
   cannot be made to say, not what a clearer shape would.
 * A condition that needs a comment to say what it tests is a predicate that has not been named yet:
   give it one in the `lunatik_isirq` family's shape, one expression over one argument, defined where
-  its reader is, with the line of reason on the definition and nothing on the use. #797 carried
-  `if (in_task() && notifier->registrant == current) /* the replay... */` until the maintainer asked
-  for `luanotifier_isreplay(notifier)`. So is a condition of three tests or more, or one that runs
-  onto the next line, comment or not: #1705's `checksum()` spelled two until the maintainer asked
-  for `luaskb_iswhole4` and `luaskb_iswhole6`, and `tools/checks/idioms.sh` names them.
+  its reader is, with the line of reason on the definition and nothing on the use:
+  `luanotifier_isreplay(notifier)`, not `if (in_task() && notifier->registrant == current) /* the
+  replay... */`. So is a condition of three tests or more, or one that runs onto the next line,
+  comment or not, as `luaskb_iswhole4` names one; `tools/checks/idioms.sh` names them.
 * A comment on a definition says what the definition is, not what its one caller concludes from it;
   when the name already says the subject, it takes no comment at all.
 * An internal `static inline` helper carries no block comment — `lunatik.h` keeps none on any of its

@@ -23,8 +23,8 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   not running the fix: building and running a tree that adds or restores one is the ordinary cycle
   and asks nobody;
 * the message a crash test asserts is read from the kernel that prints it, not from a generic error
-  pattern: `check_dmesg` matched `WARNING` and `UBSAN` and no oops at all, so the kprobe crash of
-  #843 killed the probed task and left the suite green. arm64 heads an oops with `Internal error:`
+  pattern: a crash that kills the probed task and prints no `WARNING` leaves a generic match green.
+  arm64 heads an oops with `Internal error:`
   (`arch/arm64/kernel/traps.c`) and an unclaimed debug trap with `Unexpected kernel BRK exception at
   EL1` (`debug-monitors.c`);
 * a case tears down before it reads its verdict: every program it attached, pin it made and script it
@@ -45,27 +45,22 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   `too many arguments`, the suite then runs against the modules already installed, and that green run
   reads as a test that does not discriminate. The proof is run, not argued: a message the header
   says `check_dmesg` reads is one `KTAP_ERRORS` in `tests/lib.sh` matches, and the line the
-  defective build prints is one that build printed. `tests/rcu/entry_release` said `check_dmesg`
-  would read the BUG line of a sleep under the table's lock, which the pattern does not carry and
-  the case never provokes, and proved nothing until a kprobe read where each release ran;
-  `tools/checks/test-harness.sh` names a claimed message the pattern does not match;
+  defective build prints is one that build printed; `tools/checks/test-harness.sh` names a claimed message the pattern does not match;
 * a test that wedges the host when the fix is absent, rather than failing, checks before its stimulus
   that the loaded module carries the fix, by a symbol only the fixed build has in `/proc/kallsyms`,
   or, where the check is inline and has no symbol, by its message read from the module file
   (`grep -aF "$REFUSAL" "$(modinfo -n <module>)"`), and skips when it does not: `lunatik reload`
   refuses a module it could not replace, but a test run by hand runs against whatever is loaded. A
   comparison of `srcversion` alone proves that the loaded module is the installed file and nothing
-  about the file, so a checkout ahead of its install runs the case against the old module; the
-  deferred unregistration of a netdevice notifier was first exercised against the build without it,
-  and `tests/runtime/self_stop` first skipped on `srcversion`, copied from a sibling.
+  about the file, so a checkout ahead of its install runs the case against the old module.
   `tools/checks/test-harness.sh` names a skip that reads `srcversion` and nothing else;
 * a case whose stimulus the defective build would wait on forever asks first for a value that build
-  gets wrong and returns from, so the discrimination proof fails there instead of hanging the cycle:
-  #1757's timeout cases ask for `2^32` plus a few milliseconds, which a build without the bound
-  truncates and waits briefly on, before `-1`, which it reads as forever;
-* a case whose stimulus only exists on a busy machine is forced, not waited for: the probe test picks a
-  syscall an idle host never makes, which is why it never hit the creation window that crashed the host,
-  and covering that window meant pinning the call to the CPU whose runtime is published last. A test
+  gets wrong and returns from, so the discrimination proof fails there instead of hanging the cycle: a
+  timeout of `2^32` plus a few milliseconds, which a build without the bound truncates and waits
+  briefly on, before `-1`, which it reads as forever;
+* a case whose stimulus only exists on a busy machine is forced, not waited for: a race with the
+  percpu creation window is covered by pinning the call to the CPU whose runtime is published last,
+  not by a syscall an idle host never makes. A test
   that passes because the race is rare is not covering the race;
 * a test for an exactly once property runs on the path where that property is structural, and the
   header says which path and why. The same assertion on a path that can migrate CPUs mid way passes

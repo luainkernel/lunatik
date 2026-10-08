@@ -91,22 +91,17 @@ run long operations one at a time and wait for completion.
 the new file beside the one still loaded. After loading, `reload` compares each loaded module's
 `srcversion` with the installed file's and refuses with `couldn't replace <modules>: loaded from
 another build`, which stops `lunatik test` before the suite; `lunatik status` names the same
-modules. Before that refusal existed, a notifier build pinned on the shared host stayed loaded
-through seven minutes of other sessions' reloads, their suites ran against its core, and a test
-written for its successor ran against it and hung the host on RTNL. A kernel thread outliving its
+modules. A kernel thread outliving its
 runtime is one way to pin a module, and nothing short of a reboot gets it back, so a test that
 spawns one gives its body work that ends rather than a loop waiting to be stopped. A reference an
-object leaks is another: #1462's first batch of examples left luarcu and lunatik with references no
-state held, and the cycles that kept running on the host took them from 2 and 9 to 25 and 33 while
-every other session's reload failed on its symbols. `tools/lunatik-host` refuses a cycle on a host
+object leaks is another, and every cycle after it adds to the count. `tools/lunatik-host` refuses a cycle on a host
 pinned that way, reading through `tools/checks/pinned.sh` the references a module keeps past its
 holders once `lunatik_run` is gone, and names the cycle that leaves the host so; the state is
 captured for the maintainer, whose reboot clears it, and `LUNATIK_PINNED_OK=1` runs a recovery that
 knows what it holds. It also names a process a cycle leaves running, an orphan in its cgroup started
 after the command: a `socat ...,fork` stopped with `kill $!` keeps the child it forked for a
 connection, and a child whose peer sat in a namespace the cycle deleted holds its socket open for
-good. Nine such children of review scripts each kept a page of a veth's XDP `page_pool`, which
-`page_pool_release_retry` reported every minute until they were killed.
+good, a page of a veth's XDP `page_pool` among what it keeps.
 
 After a kernel upgrade the installed modules were built for the previous kernel and fail to load with
 `Exec format error` (a vermagic mismatch). Reinstall the headers, `make clean && make`, and reinstall
@@ -116,8 +111,7 @@ BTF`, and every BPF program that calls it fails to load; and the `bpftool` wrapp
 `linux-tools-$(uname -r)`, or every BPF program fails to load. `examples/filter` and
 `examples/sniclassify` load the objects `make ebpf` builds in the checkout, which `make` does not:
 run from a worktree without them, filter fails its attach and sniclassify its setup, and the run
-measures nothing, as the release review's run and two of the v5.0 batches did before their
-worktrees had them.
+measures nothing.
 
 A wedged device — a `lunatik` process that stays in D state, usually below an oops in `dmesg` — is
 cleared only by a reboot, as a pinned module is, and the reboot is the maintainer's to trigger: other
@@ -125,8 +119,7 @@ sessions share the host. Before asking, capture what the reboot erases with `too
 which saves the oops, the modules and what holds them, and every session's files under `/tmp` into
 `scratch/reboot-<time>/`, write down which suites were pending and which build was installed, and
 run nothing else against the device. After it, the suite that oopsed runs twice: a second oops is a
-bug to trace, a clean pair is a symptom without its cause, said as such. The lunatik-cycle skill
-orders both halves. One process in D on one look is not that: an ordinary `lunatik stop` sits there
+bug to trace, a clean pair is a symptom without its cause, said as such; "A wedged device" below orders both halves. One process in D on one look is not that: an ordinary `lunatik stop` sits there
 while the kernel works, so what names a wedge is the one still in D on the next look.
 
 What reaches a terminal after a machine dies is a fragment. The previous boot's kernel log survives in
@@ -136,7 +129,7 @@ the faulting `pc` against the disassembly of the module that was loaded — the 
 matches the build word for word, so it also proves which build crashed. A name in the trace is
 resolved too, never read: `Comm:` is the task's own `comm`, which a thread sets for itself with
 `PR_SET_NAME`, so `ps` or `/proc/<pid>/exe` says what ran it, and a symbol is confirmed in
-`/proc/kallsyms`. A thread name read as a JVM's belonged to the assistant's own process.
+`/proc/kallsyms`.
 
 
 `lunatik reload` unloads only the modules the installed CLI lists. A module loaded from another
