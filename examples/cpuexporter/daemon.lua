@@ -50,7 +50,6 @@ local function cpu_stats()
 	local stats = {}
 	local total_stats = {}
 	for id in cpu.online() do
-		stats[id] = {}
 		stats[id] = cpu.stats(id)
 		total_stats[id] = sum_stats(stats[id])
 	end
@@ -103,9 +102,8 @@ local function cpu_metrics()
 	for metric, _ in pairs(cpu_metric_names) do
 		metrics = metrics .. string.format('# TYPE cpu_usage_%s gauge\n', metric)
 		for cpu_id, percents in pairs(usage_data) do
-			local value = percents[metric] or "0"
 			metrics = metrics .. string.format('cpu_usage_%s{cpu="cpu%d"} %s %d\n',
-				metric, cpu_id, value, ts_ms)
+				metric, cpu_id, percents[metric], ts_ms)
 		end
 	end
 
