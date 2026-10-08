@@ -220,6 +220,32 @@ commands() {
 	}'
 }
 
+# git past its global options, -C with its word and -c with its key=value, a value commands prints
+# with the quotes taken off and so with any space it held
+GIT_COMMAND='^([^ ]*/)?git( -C [^ ]+| -c [^ =]+=([^ -][^ ]*( [^ -][^ ]*)*)?| -[^ ]+)*'
+
+# each git push among <cmds>, run from the directory <cwd>: the directory it runs in, resolved against
+# every cd before it and its own -C, a tab, and its words past `push`
+git_pushes() {
+	printf '%s\n' "$1" | awk -v dir="${2:-.}" -v push="$GIT_COMMAND push( |\$)" '
+	function under(base, path) {
+		return path ~ /^\// ? path : base "/" path
+	}
+	$1 == "cd" && NF > 1 {
+		dir = under(dir, $2)
+	}
+	$0 ~ push {
+		d = dir
+		for (i = 2; $i != "push"; i++)
+			if ($i == "-C")
+				d = under(d, $++i)
+		rest = ""
+		for (i++; i <= NF; i++)
+			rest = rest (rest == "" ? "" : " ") $i
+		print d "\t" rest
+	}'
+}
+
 # the CLI as the command, with a verb and what follows it matching the extended regex <rest>
 runs_lunatik() {
 	printf '%s\n' "$1" | grep -Eq "^([^ ]*/)?lunatik $2"
