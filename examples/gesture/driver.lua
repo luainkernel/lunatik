@@ -36,7 +36,7 @@ local function count(state, direction)
 	return state.count
 end
 
-function driver:raw_event(hdev, report, raw)
+function driver:raw_event(hdev, _, raw)
 	local state = hdev.state
 	local button = raw:getbyte(0)
 

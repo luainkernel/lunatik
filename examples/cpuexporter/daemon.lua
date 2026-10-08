@@ -3,12 +3,10 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
-local lunatik = require("lunatik")
 local thread  = require("thread")
 local unix    = require("socket.unix")
 local linux   = require("linux")
 local cpu     = require("cpu")
-local socket  = require("socket")
 
 local shouldstop = thread.shouldstop
 local NONBLOCK   = require("linux.socket").sock.NONBLOCK
@@ -40,7 +38,7 @@ local function sum_stats(stats)
 	local sum = 0
 	stats["guest"] = 0
 	stats["guest_nice"] = 0
-	for key, value in pairs(stats) do
+	for _, value in pairs(stats) do
 		sum = sum + value
 	end
 	return sum
@@ -94,8 +92,8 @@ local function cpu_metrics()
 
 	-- Collect all unique metric names from the first available CPU
 	local cpu_metric_names = {}
-	for _, cpu_metrics in pairs(usage_data) do
-		for key, _ in pairs(cpu_metrics) do
+	for _, percents in pairs(usage_data) do
+		for key, _ in pairs(percents) do
 			cpu_metric_names[key] = true
 		end
 		break  -- Only need one CPU to get all metric names
@@ -104,8 +102,8 @@ local function cpu_metrics()
 	-- Output grouped by metric name
 	for metric, _ in pairs(cpu_metric_names) do
 		metrics = metrics .. string.format('# TYPE cpu_usage_%s gauge\n', metric)
-		for cpu_id, cpu_metrics in pairs(usage_data) do
-			local value = cpu_metrics[metric] or "0"
+		for cpu_id, percents in pairs(usage_data) do
+			local value = percents[metric] or "0"
 			metrics = metrics .. string.format('cpu_usage_%s{cpu="cpu%d"} %s %d\n',
 				metric, cpu_id, value, ts_ms)
 		end

@@ -22,7 +22,7 @@ local function printable(keysym)
 	return keysym >= 32 and keysym <= 126
 end
 
-local function callback(event, down, shift, key)
+local function callback(event, down, _, key)
 	if not down and event == kbd.KEYSYM then
 		local keysym = key & 0xFF
 		local char = printable(keysym) and string.char(keysym) or

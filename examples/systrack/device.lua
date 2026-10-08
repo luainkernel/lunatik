@@ -3,7 +3,6 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 
 local device = require("device")
-local linux  = require("linux")
 local rcu    = require("rcu")
 local runner = require("lunatik.runner")
 
