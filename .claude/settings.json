@@ -30,6 +30,10 @@
           },
           {
             "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/fixup-guard.sh\""
+          },
+          {
+            "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/consumers-guard.sh\""
           },
           {

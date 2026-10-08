@@ -197,6 +197,11 @@ list is known to be stale.
 pull request merged before its base from going into the base's branch. A pull request moved onto such a
 base is made a draft first, `gh pr ready --undo <n>`, which the guard asks GitHub.
 
+`fixup-guard.sh`, wired before a shell call, refuses opening a pull request whose head, compared on GitHub
+with its base, carries a `fixup!`, `amend!` or `squash!` commit: a pull request reaches the maintainer's first
+review squashed, and a fixup is how he reads what changed after it. `FIXUPS_OK=1` opens one that is not the
+first he reads.
+
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
 it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
 catches it.
