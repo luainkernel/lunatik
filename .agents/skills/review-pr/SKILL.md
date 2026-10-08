@@ -74,9 +74,12 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
   that can be filed as they stand, its severity and the open issue it belongs to where there is one;
   `review.js` returns them together, so they are filed from its answer and not copied out of the
   checkpoint.
-- A review is phases, not one agent: hunt the findings, check the rules and the harness, then build
-  and run. Each phase returns a `schema`, so a crash loses one phase and the cache replays the ones
-  that completed under `resumeFromRunId`.
+- A review is phases, not one agent: hunt the findings, then build and run. The hunt reads first what
+  `tools/review-packet.sh` gathers, the commits, the files, every check's lines over the change and the
+  diff with each function it touches whole, and answers each check's line; the build runs in the
+  `lunatik-host` agent, which loads no CLAUDE.md, so `args.machine` says how this machine gets root.
+  Each phase returns a `schema`, so a crash loses one phase and the cache replays the ones that
+  completed under `resumeFromRunId`.
 - A head the suite already passed is not built again by the review: the totals, the core
   srcversion and the examples run on it go in the briefing (`args.validated`), and the build phase
   runs only when a fixup changed a file the build, the install or the suite reads, or an example
