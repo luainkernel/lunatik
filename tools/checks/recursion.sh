@@ -23,10 +23,8 @@
 
 declare -A bounded=(
 	[auxsort]="recurses into the smaller half, so its depth is the log of the table's length"
-	[dumpFunction]="the nesting of a function the kernel loaded, which its parser or lunatic bounded"
 	[findfield]="pushglobalfuncname searches two levels"
 	[lexerror]="the lexer's error path, which raises"
-	[loadFunction]="the nesting of a chunk, which lunatic bounds to what the kernel undumps (#1779)"
 	[match]="lstrlib's MAXCCALLS, 32 in the kernel (#1662)"
 	[reallymarkobject]="an upvalue's content or a userdata's metatable, which goes on the gray list"
 	[save]="the lexer's error path, which raises"

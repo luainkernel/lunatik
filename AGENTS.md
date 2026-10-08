@@ -354,7 +354,8 @@ source. It runs when a change touches `lua/`, `lunatik_conf.h` or `lunatik_aux.c
 level in bytes, read where `LUAI_MAXCCALLS` is compared and measured the stack at every check, so a
 recursion that compares nothing was invisible to both: lundump's `loadFunction` recursed once per
 nested function of a chunk, and `lunatic` compiled one nested 98 deep from valid source, past the
-guard page (#1775). The check named it, and seven others the ledger now bounds, the first time it ran.
+guard page (#1775). The check named it, and seven others, the first time it ran; `lua/` now counts a
+level in it and in ldump's `dumpFunction` (#1779), and the ledger bounds the other six.
 
 `author-email.sh` reads a rev-range and names a commit whose author email is not the one the base
 uses most for that author's name: a rebase or a squash done from another checkout signs the result
