@@ -10,7 +10,7 @@ set -eux
 if [[ -f /etc/resolv.conf.lunatik ]]; then
 	echo "Restoring dns config from resolv.conf.lunatik"
 	sudo rm /etc/resolv.conf
-	sudo cp /etc/resolv.conf.lunatik /etc/resolv.conf
+	sudo cp -P /etc/resolv.conf.lunatik /etc/resolv.conf
 	sudo rm /etc/resolv.conf.lunatik
 fi
 
