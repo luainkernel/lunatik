@@ -23,10 +23,10 @@
 
 declare -A bounded=(
 	[auxsort]="recurses into the smaller half, so its depth is the log of the table's length"
-	[dumpFunction]="the nesting of a function the kernel loaded, which its parser or lunatic bounded"
+	[dumpFunction]="the nesting of the function dumped, out of contract past ten functions as a chunk is (#1786)"
 	[findfield]="pushglobalfuncname searches two levels"
 	[lexerror]="the lexer's error path, which raises"
-	[loadFunction]="the nesting of a chunk, which lunatic bounds to what the kernel undumps (#1779)"
+	[loadFunction]="the nesting of a chunk, out of contract past ten functions (doc/guide/04-lua.md, #1786)"
 	[match]="lstrlib's MAXCCALLS, 32 in the kernel (#1662)"
 	[reallymarkobject]="an upvalue's content or a userdata's metatable, which goes on the gray list"
 	[save]="the lexer's error path, which raises"
