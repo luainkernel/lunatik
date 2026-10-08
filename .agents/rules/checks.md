@@ -224,7 +224,8 @@ inherited is not the push's to fix. `LUALS_OK=1` pushes a name that is the code'
 
 `question.sh` reads a message the maintainer sends for a question, a question mark or an opening
 interrogative, and `.claude/hooks/on-prompt.sh`, run as the message arrives (`UserPromptSubmit`), tells
-the turn that it answers and changes nothing: "what is left?" drew seven implement-issue workflows that
+the turn that it answers and changes nothing, and reads no background task's notification, which reaches
+the turn as a prompt the maintainer did not write: "what is left?" drew seven implement-issue workflows that
 had to be stopped, when it asked for the list.
 
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
