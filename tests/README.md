@@ -997,12 +997,14 @@ higher-level `netlink.*` modules built on top of it.
   `lo` in an isolated table whose id is > 255 (exercising the `RTA_TABLE`
   attribute path), confirms it in a dump, asserts a duplicate add raises
   (`NLM_F_EXCL`), then `del()` removes it; the same prefix added with `type`
-  `RTN_BLACKHOLE` lists that type.
+  `RTN_BLACKHOLE` lists that type (skips where the kernel keeps no IPv4 FIB
+  rules, and so no table but local and main).
 - **rule_adddel**: `rt.rule():add()` creates a FIB rule directing lookups to an
   isolated table whose id is > 255 (exercising the `FRA_TABLE` attribute),
   confirms it in a dump, asserts a duplicate add raises (`NLM_F_EXCL`), then
   `del()` removes it; a second add/del round uses a table id that fits the u8
-  header field, exercising the header-side id path (no `FRA_TABLE`).
+  header field, exercising the header-side id path (no `FRA_TABLE`); it skips
+  where the kernel keeps no IPv4 FIB rules.
 - **list_family**: `list{family = ...}` on `rt.addr`, `rt.route` and `rt.rule`
   lists, given `AF_INET` or `AF_INET6`, at least one record and only records
   of that family, where a dump without a family carries both (skips where `lo`
