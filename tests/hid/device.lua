@@ -60,7 +60,7 @@ local function seen(hdev)
 	hdev.seen = hdev.seen + 1
 end
 
-local function probe(driver, hdev, id)
+local function probe(_, hdev, id)
 	if hdev.product == RAISE then
 		raises()
 	end
@@ -68,19 +68,19 @@ local function probe(driver, hdev, id)
 	print(format("hid/device: probe %s %04x %d", hdev.name, id.vendor, id.driver_data))
 end
 
-local function report_fixup(driver, hdev, rdesc)
+local function report_fixup(_, hdev, rdesc)
 	seen(hdev)
 	local fixup = hdev.product == BREAK and corrupt or fix
 	fixup(rdesc)
 end
 
-local function raw_event(driver, hdev, report, raw)
+local function raw_event(_, hdev, _, raw)
 	seen(hdev)
 	hdev.view = raw
 	return answers[raw:getbyte(0)]()
 end
 
-local function remove(driver, hdev)
+local function remove(_, hdev)
 	seen(hdev)
 	print(format("hid/device: remove %s %d", hdev.name, hdev.seen))
 	if hdev.view ~= nil then

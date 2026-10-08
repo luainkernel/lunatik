@@ -16,7 +16,7 @@
 local notifier = require("notifier")
 local seen = 0
 
-local function cb(event, name)
+local function cb()
 	seen = seen + 1
 	return 0
 end

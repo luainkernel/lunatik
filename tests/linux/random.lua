@@ -9,7 +9,7 @@ local linux = require("linux")
 local test = require("tests.lib").test
 
 test("linux.random(m, n) stays within [m, n]", function()
-	for i = 1, 10000 do
+	for _ = 1, 10000 do
 		local r = linux.random(32, 126)
 		assert(type(r) == "number", "expected number")
 		assert(r >= 32 and r <= 126, "out of range: " .. r)
@@ -17,14 +17,14 @@ test("linux.random(m, n) stays within [m, n]", function()
 end)
 
 test("linux.random(n) stays within [1, n]", function()
-	for i = 1, 1000 do
+	for _ = 1, 1000 do
 		local r = linux.random(1000)
 		assert(r >= 1 and r <= 1000, "out of range: " .. r)
 	end
 end)
 
 test("linux.random(m, n) stays within a negative range", function()
-	for i = 1, 1000 do
+	for _ = 1, 1000 do
 		local r = linux.random(-126, -32)
 		assert(r >= -126 and r <= -32, "out of range: " .. r)
 	end

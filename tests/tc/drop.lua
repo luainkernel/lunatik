@@ -7,7 +7,7 @@
 local tc    = require("tc")
 local action = require("linux.tc").action
 
-local function test_drop(ctx)
+local function test_drop()
 	print("tc drop test pass: verdict set to drop")
 	return action.SHOT
 end

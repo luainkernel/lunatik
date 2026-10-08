@@ -55,7 +55,7 @@ refuses("a registered name", "EEXIST", channel.new, FAMILY)
 channel.new(LONGEST)
 print("netlink channel: new refuses an empty, too long or registered name")
 
-local function channel_hook(skb)
+local function channel_hook()
 	if not done then
 		done = true
 		local ok, err = pcall(channel.new, "")

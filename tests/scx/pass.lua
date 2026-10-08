@@ -11,7 +11,7 @@ local DSQ_DEFAULT <const> = 0
 
 local reported = false
 
-local function workload(ctx)
+local function workload()
 	if not reported then
 		reported = true
 		print("scx pass test pass: task class assigned")

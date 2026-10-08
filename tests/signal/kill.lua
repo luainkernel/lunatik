@@ -14,9 +14,9 @@ local WRAP <const> = 1 << 32
 
 assert(signal.kill(pids.child, 0) == true, "kill(child, 0) should find the child")
 
-local found, err = signal.kill(pids.reaped, 0)
-assert(found == nil and err == "ESRCH",
-	"a reaped pid should answer nil and ESRCH, got " .. tostring(found) .. ", " .. tostring(err))
+local found, reason = signal.kill(pids.reaped, 0)
+assert(found == nil and reason == "ESRCH",
+	"a reaped pid should answer nil and ESRCH, got " .. tostring(found) .. ", " .. tostring(reason))
 
 local function refused(f, ...)
 	local ok, err = pcall(f, ...)

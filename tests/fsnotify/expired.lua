@@ -13,12 +13,12 @@ local PROBE   <const> = SCRATCH .. "/probe"
 
 local kept
 
-local function keep(mask, event)
+local function keep(_, event)
 	kept = event
 	print(string.format("fsnotify expired test note: kept the event for ino %s", event:ino()))
 end
 
-local function probe(mask, event)
+local function probe()
 	if kept == nil then
 		print("fsnotify expired test fail: the keeper never ran")
 		return

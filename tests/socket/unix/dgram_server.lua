@@ -7,7 +7,6 @@
 -- DONTWAIT loop, asserts the expected message.
 
 local unix   = require("socket.unix")
-local socket = require("socket")
 local thread = require("thread")
 local linux  = require("linux")
 

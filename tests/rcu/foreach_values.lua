@@ -49,7 +49,7 @@ test("rcu.foreach iterates mixed types", function()
 	local d = data.new(4)
 	t["obj"] = d
 	local count = 0
-	rcu.foreach(t, function(k, v) count = count + 1 end)
+	rcu.foreach(t, function() count = count + 1 end)
 	assert(count == 3, "expected 3 entries, got: " .. count)
 end)
 
@@ -59,7 +59,7 @@ test("rcu.foreach skips nil (deleted) entries", function()
 	t["y"] = 2
 	t["x"] = nil  -- delete
 	local count = 0
-	rcu.foreach(t, function(k, v) count = count + 1 end)
+	rcu.foreach(t, function() count = count + 1 end)
 	assert(count == 1, "expected 1 entry after deletion, got: " .. count)
 end)
 

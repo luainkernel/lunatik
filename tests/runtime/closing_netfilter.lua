@@ -10,7 +10,7 @@ local verdict   = require("tests.runtime.verdict")
 
 local PREFIX <const> = "closing test: "
 
-local function accept(skb)
+local function accept()
 	return nf.action.ACCEPT
 end
 

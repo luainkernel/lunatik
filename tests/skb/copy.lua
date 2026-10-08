@@ -25,7 +25,7 @@ local cases = {
 
 local verdicts = {}
 
-function verdicts.fraglist(skb, ok, err)
+function verdicts.fraglist(_, ok, err)
 	if ok then
 		return "FAIL copied"
 	end

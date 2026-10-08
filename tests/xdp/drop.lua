@@ -7,7 +7,7 @@
 local xdp    = require("xdp")
 local action = require("linux.xdp").action
 
-local function test_drop(ctx)
+local function test_drop()
 	print("xdp drop test pass: verdict set to drop")
 	return action.DROP
 end

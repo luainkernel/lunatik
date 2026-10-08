@@ -80,14 +80,14 @@ local function concurrent()
 	local read, err = pcall(task.pid, task)
 	local second = t:stop()
 	shared[RELEASED] = true
-	local returned = stopped:wait(TIMEOUT)
+	local finished = stopped:wait(TIMEOUT)
 	first:stop()
 	assert(ran, "the body that outlasts its stop did not run")
 	assert(reached, "the first stop did not reach the thread")
 	assert(not read and tostring(err):match(CLOSED), "task read the task of a thread another stop holds")
 	assert(second == true, "the stop of a thread another stop holds did not return true")
 	assert(shared[LINGERED] == true, "the stop of a thread another stop holds waited for the thread to exit")
-	assert(returned and shared[FIRST] == true, "the first stop did not return true once the thread exited")
+	assert(finished and shared[FIRST] == true, "the first stop did not return true once the thread exited")
 end
 
 local function driver()

@@ -10,7 +10,7 @@ local fs       = require("linux.fsnotify")
 local MOUNT   <const> = "/tmp/lunatik-fsnotify/mnt"
 local REFUSAL <const> = "\"mount\" needs kernel 6.10 or later"
 
-local function report(mask, event)
+local function report(_, event)
 	print(string.format("fsnotify kinds test: nomount open %s", event:path() or "?"))
 end
 
