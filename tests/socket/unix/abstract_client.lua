@@ -5,12 +5,19 @@
 -- Client side of the socket.unix abstract address test (see abstract.sh).
 
 local unix = require("socket.unix")
+local struct = require("struct")
+local sk = require("linux.socket")
 
 local PEER    <const> = "\0lunatikpeer"
 local DGRAM   <const> = "\0lunatikpeerdgram"
 local BUFSIZE <const> = 64
+local TIMEOUT <const> = 2
+
+local timeval = struct(sk.layout.timeval)
 
 local client = unix.stream(PEER)
+-- a peer that never answers fails the case instead of parking the client in its receive
+client.socket:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(TIMEOUT, 0))
 
 client:connect()
 client:send("ping")

@@ -7,9 +7,17 @@
 -- sends "ping", asserts "pong" reply.
 
 local unix = require("socket.unix")
+local struct = require("struct")
+local sk = require("linux.socket")
+
+local TIMEOUT <const> = 2
+
+local timeval = struct(sk.layout.timeval)
 
 local PATH   = "/tmp/lunatik_unix_stream.sock"
 local client = unix.stream(PATH)
+-- a server that never answers fails the case instead of parking the client in its receive
+client.socket:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(TIMEOUT, 0))
 
 client:connect()         -- uses stored PATH
 client:send("ping")
