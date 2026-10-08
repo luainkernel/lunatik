@@ -386,16 +386,16 @@ local emit = {}
 -- themselves specs are skipped -- their own `write_submodule` will
 -- init them.
 local function intermediate_paths(mods)
-	local specs, needs = {}, {}
+	local spec_names, needs = {}, {}
 	for _, mod in ipairs(mods) do
-		specs[mod.name] = true
+		spec_names[mod.name] = true
 		local parts = {}
 		for p in mod.name:gmatch("[^.]+") do table.insert(parts, p) end
 		for i = 2, #parts - 1 do
 			needs[table.concat(parts, ".", 1, i)] = true
 		end
 	end
-	for name in pairs(specs) do needs[name] = nil end
+	for name in pairs(spec_names) do needs[name] = nil end
 	return util.sorted(needs)
 end
 
