@@ -78,11 +78,11 @@ end
 --   field whose attribute the reply lacks is nil.
 
 -- add and delete send the same rule; only the message type and flags differ
-local function rule_message(rule, opts)
+local function rule_message(self, opts)
 	local header = fib_rule:pack(opts.family or sk.af.INET, 0, 0, 0,
-		rule:headertable(opts.table or rtnl.table.MAIN), opts.action or rtnl.fr_act.TO_TBL, 0)
+		self:headertable(opts.table or rtnl.table.MAIN), opts.action or rtnl.fr_act.TO_TBL, 0)
 	return header .. message.attrs{
-		[rtnl.fra.TABLE]    = rule:attrtable(opts.table),
+		[rtnl.fra.TABLE]    = self:attrtable(opts.table),
 		[rtnl.fra.PRIORITY] = opts.priority,
 		[rtnl.fra.FWMARK]   = opts.fwmark,
 		[rtnl.fra.PROTOCOL] = opts.protocol and pack("B", opts.protocol) or nil,

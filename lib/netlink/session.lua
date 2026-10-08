@@ -88,9 +88,9 @@ local function replies(sock, last)
 end
 
 -- Sends one request and drains its complete reply, up to the message that matches `last`.
-local function transact(session, mtype, payload, flags, last)
-	session:request(mtype, payload, flags)
-	return replies(session.socket, last)
+local function transact(self, mtype, payload, flags, last)
+	self:request(mtype, payload, flags)
+	return replies(self.socket, last)
 end
 
 ---
