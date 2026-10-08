@@ -132,7 +132,8 @@ CHECKPOINT: ${fileCheckpoint} records every entry already filed, one line each,
 title it records, since an entry filed twice is a duplicate someone closes by hand; append the line the moment
 the issue holds it.
 
-For each entry:
+Two entries that report one defect, the implementer's and the review's, are one: file the fuller
+once and name both indexes against the issue that holds it. For each other entry:
 - write its body with your Write tool to exactly ${a.scratch}/issue${a.issue}/entry<index>.md and run
   tools/checks/machine-leak.sh and tools/checks/untraced.sh over it; a line either one names is rewritten before
   anything is posted, and the command that posts it spells that path out (\`-F body=@<that path>\`), since the
@@ -141,8 +142,8 @@ For each entry:
   opens an issue of its own, whatever it reports, and its body ends with \`Part of #<home>.\` when it has a
   home;
 - an entry whose home is an open issue goes to that issue: its body is appended to the issue's own under a
-  line \`Update: <title> (#${source})\`, and the issue carries one severity label, the higher of its own and
-  the entry's;
+  line \`Update: <title> (#${source})\`, with that number as it stands, and the issue carries one severity
+  label, the higher of its own and the entry's;
 - an entry that reports what an open issue already reports, read in that issue and not guessed from its
   title, goes to it the same way;
 - any other entry opens an issue with its title, its body as it stands and the label
