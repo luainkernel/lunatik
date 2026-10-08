@@ -202,6 +202,10 @@ with its base, carries a `fixup!`, `amend!` or `squash!` commit: a pull request 
 review squashed, and a fixup is how he reads what changed after it. `FIXUPS_OK=1` opens one that is not the
 first he reads.
 
+`fixups.sh` names the `fixup!`, `amend!` and `squash!` commits of a rev-range, and the `Checks` workflow
+fails on a pull request that carries one, so a pull request merged before its squash shows red rather
+than landing its fixups on master.
+
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
 it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
 catches it.
