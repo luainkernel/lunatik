@@ -239,7 +239,11 @@ entered, so a script that creates itself runs out too. Under <a href="https://ww
 the bound raises in turn, and the call ends with <code>error in error handling</code>. On the task stack the
 call also raises once a quarter of the stack is all that is left, so a hook entered deep, as a
 kprobe in the network stack is, or a runtime another script closes, gets what remains; a hook on an
-interrupt stack is bounded from its entry alone.</p>
+interrupt stack is bounded from its entry alone. Loading a binary chunk and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.dump">string.dump</a> recurse once
+per function the chunk nests, and nothing counts that against the bound, so a chunk whose functions
+nest more than ten deep is out of contract: loaded or dumped where the stack is already deep, it can
+run the kernel stack into its guard page instead of raising. <code>lunatic</code> compiles such a chunk all the
+same.</p>
 
 <p>A string pattern nests at most 32 levels deep: the match takes one, each capture two, and each
 position capture <code>()</code> and each item with <code>?</code>, <code>*</code>, <code>+</code> or <code>-</code> that matches one more. Past it,
@@ -287,7 +291,7 @@ raise <code>not allowed once the runtime is armed</code>, and <a href="https://w
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../topics/04-lua.md.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:51:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-08 11:58:13</span>
 </div>
 </footer>
 </body>
