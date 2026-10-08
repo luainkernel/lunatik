@@ -36,6 +36,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | `tools/` | maintenance scripts, and the mechanical convention checks in `tools/checks/` |
 | `.agents/skills/` | the recurring workflows packaged as agent skills (open `SKILL.md` format) |
 | `.agents/rules/` | the rules for a kind of file, loaded by the paths each one names |
+| `.agents/agents/` | the agents a workflow runs a narrow job in, the host's and GitHub's |
 | `doc/` | all documentation: the guide pages (`doc/guide/`), the hand written C API reference (`doc/capi.md`), design notes (`doc/design/`), the site's style (`doc/style/`), and generated LDoc output (everything else, gitignored) |
 | `doc/design/` | design notes for work in progress: gap analysis, proposed APIs, verified kernel references, test strategy |
 
@@ -133,10 +134,12 @@ the host.
 its report asks for is done outside it, on the host or in an issue, or by stopping the workflow and
 relaunching it with notes.
 
-An issue goes to agents through the implement-issue skill's workflow: an implementer opens the pull
-request, and review-pr's workflow runs over it nested, so a review runs one way whoever launches it,
-handed what the implementer already ran on the host so that it runs again only what a fixup changed or
-the implementer did not run. The implementer's prompt names the rule a step needs and restates
+An issue goes to agents through the implement-issue skill's workflow: an implementer commits the
+change, review-pr's workflow runs over the branch nested, so a review runs one way whoever launches it,
+and its build is the one run on the host, in an agent of its own, before the pull request opens. An
+agent's context is paid for on every turn it takes, so the work that only waits on the host, or only
+writes to GitHub, runs in the agents `.agents/agents/` defines, which load no CLAUDE.md and run on a
+smaller model. The implementer's prompt names the rule a step needs and restates
 none: every agent loads this file, and a rule pasted into a prompt is a copy the next change here
 does not reach.
 What the implementer and the review leave as issues, their `findings_left`, the workflow files as its
