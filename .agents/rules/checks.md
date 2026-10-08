@@ -206,6 +206,11 @@ first he reads.
 fails on a pull request that carries one, so a pull request merged before its squash shows red rather
 than landing its fixups on master.
 
+`stage-guard.sh`, wired before a shell call, refuses staging the whole tree, `git add -A`, `--all`, `-u`,
+`--update`, `.` or `:/`, and `git commit -a`: a commit is staged by purpose, and a tree an edit left with
+several changes in it otherwise fuses them under a message that explains one. `STAGE_OK=1` stages a tree
+that holds one change only.
+
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
 it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
 catches it.

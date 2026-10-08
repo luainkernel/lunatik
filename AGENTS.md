@@ -367,7 +367,9 @@ named, not one discovered at that consumer's build.
 
 * Small, auditable, incremental commits. Each one stands alone and adds value.
 * A commit is one change and everything that change entails, even across modules: a new core check
-  adopted by four bindings is one commit. Independent fixes are separate commits, even when a single
+  adopted by four bindings is one commit. It is staged by purpose, the files of that change named and
+  `git diff --cached` read against the message, never the whole tree an edit left behind;
+  `tools/checks/stage-guard.sh` refuses `git add -A` and its kin. Independent fixes are separate commits, even when a single
   review finding uncovered them all; the finding is the reviewer's unit, not the committer's.
 * A change to a function is read against the whole function, not the lines it touches: re-read it
   and take the simplification the change enables. A guard left standing that the new shape made
