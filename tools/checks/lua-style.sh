@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# The shape rules of AGENTS.md, "Lua style", that a line-based read can find: an
+# The shape rules of .agents/rules/lua.md that a line-based read can find: an
 # if/elseif whose branches repeat the same steps, which is a dispatch table or a
 # helper; one table of arguments spelled at two call sites, which is declared
 # once; a function of more than one statement written inline as a table field,
@@ -64,7 +64,7 @@ repeated() {
 		if (fresh && (w in seen)) {
 			split(seen[w], where, ":")
 			if (!(where[1] in told)) {
-				printf "%s:%d: repeats %s; a block two scripts share goes in a module beside them (AGENTS.md, Lua style)\n", file, at[n - K + 1], seen[w]
+				printf "%s:%d: repeats %s; a block two scripts share goes in a module beside them (.agents/rules/lua.md)\n", file, at[n - K + 1], seen[w]
 				told[where[1]] = 1; found = 1
 			}
 		}
@@ -101,7 +101,7 @@ for file in "$@"; do
 			common = 0; n = (len[d, i] < len[d, j] ? len[d, i] : len[d, j])
 			for (k = 1; k <= n; k++) if (step[d, i, k] == step[d, j, k]) common++
 			if (common >= 3 && common >= n - 1) {
-				flag(start[d], "if/elseif branches repeat the same " common " steps; a dispatch table or a helper (AGENTS.md, Lua style)")
+				flag(start[d], "if/elseif branches repeat the same " common " steps; a dispatch table or a helper (.agents/rules/lua.md)")
 				return
 			}
 		}
@@ -121,7 +121,7 @@ for file in "$@"; do
 		while (match(code, /require[[:space:]]*\(?[[:space:]]*"[^"]+"/)) {
 			module = substr(code, RSTART, RLENGTH); sub(/^[^"]*"/, "", module); sub(/"$/, "", module)
 			if (module in required)
-				flag(NR, "requires " module " again, as line " required[module] " does; one local holds the module (AGENTS.md, Lua style)")
+				flag(NR, "requires " module " again, as line " required[module] " does; one local holds the module (.agents/rules/lua.md)")
 			else
 				required[module] = NR
 			code = substr(code, RSTART + RLENGTH)
@@ -141,14 +141,14 @@ for file in "$@"; do
 		else if (chosen == 2 && line ~ /^[[:space:]]*end[[:space:]]*$/) chosen = 3
 		else {
 			if (chosen == 3 && line ~ ("^[[:space:]]*return[[:space:]]+" tested "[[:space:]]*,"))
-				flag(chose, "an if that returns nil above a return of " tested " is one return whose value is the choice, " tested " and f(v) or v (AGENTS.md, Lua style)")
+				flag(chose, "an if that returns nil above a return of " tested " is one return whose value is the choice, " tested " and f(v) or v (.agents/rules/lua.md)")
 			chosen = 0
 		}
 
 		# a function written as the value of a table field, read at its end: a body of one statement stays
 		if (inline && d == inlined && line ~ /^[[:space:]]*end([^A-Za-z0-9_]|$)/) {
 			if (NR - inline > 2)
-				flag(inline, "a function of more than one statement inline in a table field; a named local function referenced by name (AGENTS.md, Lua style)")
+				flag(inline, "a function of more than one statement inline in a table field; a named local function referenced by name (.agents/rules/lua.md)")
 			inline = 0
 		}
 		if (line ~ /[{,][[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*function[[:space:]]*\(/ &&

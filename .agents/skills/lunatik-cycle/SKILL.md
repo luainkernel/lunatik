@@ -3,7 +3,8 @@ name: lunatik-cycle
 description: Build, install, reload and run the Lunatik test suites, and recover from a wedged /dev/lunatik, an orphan module, stale autogen output, a vermagic mismatch or a shadowed script. Use when building the tree, running tests, or debugging a module that will not load or unload.
 ---
 
-AGENTS.md, "Build, install, test", is the authority; this skill orders the workflow.
+AGENTS.md, "Build, install, test", is the authority on the cycle; this skill orders it and carries what
+the shared host does to it.
 
 # The cycle
 
@@ -84,9 +85,97 @@ A lunatik command that timed out in your tool did not die: the sudo child keeps 
 device, and killing the wrapper does not kill it. Confirm the child is gone before relaunching;
 run long operations one at a time and wait for completion.
 
+# What the shared host does
+
+`lunatik reload` cannot replace a module while something still holds it, and `make install` writes
+the new file beside the one still loaded. After loading, `reload` compares each loaded module's
+`srcversion` with the installed file's and refuses with `couldn't replace <modules>: loaded from
+another build`, which stops `lunatik test` before the suite; `lunatik status` names the same
+modules. Before that refusal existed, a notifier build pinned on the shared host stayed loaded
+through seven minutes of other sessions' reloads, their suites ran against its core, and a test
+written for its successor ran against it and hung the host on RTNL. A kernel thread outliving its
+runtime is one way to pin a module, and nothing short of a reboot gets it back, so a test that
+spawns one gives its body work that ends rather than a loop waiting to be stopped. A reference an
+object leaks is another: #1462's first batch of examples left luarcu and lunatik with references no
+state held, and the cycles that kept running on the host took them from 2 and 9 to 25 and 33 while
+every other session's reload failed on its symbols. `tools/lunatik-host` refuses a cycle on a host
+pinned that way, reading through `tools/checks/pinned.sh` the references a module keeps past its
+holders once `lunatik_run` is gone, and names the cycle that leaves the host so; the state is
+captured for the maintainer, whose reboot clears it, and `LUNATIK_PINNED_OK=1` runs a recovery that
+knows what it holds. It also names a process a cycle leaves running, an orphan in its cgroup started
+after the command: a `socat ...,fork` stopped with `kill $!` keeps the child it forked for a
+connection, and a child whose peer sat in a namespace the cycle deleted holds its socket open for
+good. Nine such children of review scripts each kept a page of a veth's XDP `page_pool`, which
+`page_pool_release_retry` reported every minute until they were killed.
+
+After a kernel upgrade the installed modules were built for the previous kernel and fail to load with
+`Exec format error` (a vermagic mismatch). Reinstall the headers, `make clean && make`, and reinstall
+before the next `reload`. The eBPF modules also need the running kernel's BTF at build time,
+`sudo make btf_install` before `make`, or they load without their kfunc, logging `missing module
+BTF`, and every BPF program that calls it fails to load; and the `bpftool` wrapper needs
+`linux-tools-$(uname -r)`, or every BPF program fails to load. `examples/filter` and
+`examples/sniclassify` load the objects `make ebpf` builds in the checkout, which `make` does not:
+run from a worktree without them, filter fails its attach and sniclassify its setup, and the run
+measures nothing, as the release review's run and two of the v5.0 batches did before their
+worktrees had them.
+
+A wedged device — a `lunatik` process that stays in D state, usually below an oops in `dmesg` — is
+cleared only by a reboot, as a pinned module is, and the reboot is the maintainer's to trigger: other
+sessions share the host. Before asking, capture what the reboot erases with `tools/prereboot.sh`,
+which saves the oops, the modules and what holds them, and every session's files under `/tmp` into
+`scratch/reboot-<time>/`, write down which suites were pending and which build was installed, and
+run nothing else against the device. After it, the suite that oopsed runs twice: a second oops is a
+bug to trace, a clean pair is a symptom without its cause, said as such. The lunatik-cycle skill
+orders both halves. One process in D on one look is not that: an ordinary `lunatik stop` sits there
+while the kernel works, so what names a wedge is the one still in D on the next look.
+
+What reaches a terminal after a machine dies is a fragment. The previous boot's kernel log survives in
+the journal, `journalctl -b -1 -k`, and it carries the registers of every oops in the cascade, which is
+what tells one faulting pointer from another. Read that before theorising from the excerpt, and resolve
+the faulting `pc` against the disassembly of the module that was loaded — the `Code:` line in the oops
+matches the build word for word, so it also proves which build crashed. A name in the trace is
+resolved too, never read: `Comm:` is the task's own `comm`, which a thread sets for itself with
+`PR_SET_NAME`, so `ps` or `/proc/<pid>/exe` says what ran it, and a symbol is confirmed in
+`/proc/kallsyms`. A thread name read as a JVM's belonged to the assistant's own process.
+
+
+`lunatik reload` unloads only the modules the installed CLI lists. A module loaded from another
+branch's install escapes it and pins the core: `rmmod` reports `Module lunatik is in use by ...`
+while `lunatik list` is empty. Diff `lsmod` against the installed `lunatik/config.lua` to find the
+orphan and `rmmod` it — the one case where a manual `rmmod` is the fix.
+
+The autogen output (`autogen/linux/*.lua`, `autogen/.config`, `autogen/.stamp`) is untracked build
+state and does not follow a branch switch. The symptom is a runtime `attempt to index a nil value`
+on a `linux.*` constant, not a build error. Regenerate cleanly with
+`rm -f autogen/.stamp autogen/linux/*.lua && make`; autogen recreates the files, not the directory.
+
+A worktree that has not run `make` cannot install: `scripts_install` needs the autogen output and
+fails, and an install whose output was silenced fails unseen while the previous install stays in
+place, so every run after it tests the wrong tree. A silenced `make` does the same one step earlier:
+the chain stops at the build and the suite run next reports on the modules already installed. Keep the
+build's and the install's output visible, and before reading a result confirm that what sits under
+`/lib/modules/lua/` is the tree under test: its timestamp, or a grep for a symbol only the branch has.
+
+`lunatik test` reloads the modules before the suite and unloads them after it. A test script run
+directly afterwards (`bash tests/<suite>/<test>.sh`) skips with `not loaded` until the next
+`lunatik reload`; that unload is the CLI's, not a leak.
+
+`make install` never removes a stray file from `/lib/modules/lua/`. A scratch script left there
+shadows the module of the same name: `require` returns `true` and the failure surfaces later as
+`attempt to index a boolean value`, far from its cause. Remove a scratch script right after
+running it.
+
+Trust the formal test over manual poking. Iterating by hand — `lunatik run`/`stop`, `iw`, `ip`,
+`rmmod`, `modprobe` — leaves stale state that wedges the next run: an interface in the wrong mode, an
+orphan `.ko` still pinning the core, a script still registered. A test's `.sh` does its own setup and
+teardown; a green formal test is the authoritative result, not a red manual scratch fighting leftover
+state. A known-clean baseline is a precondition for a valid observation, not an afterthought: restore
+it before a run and again after, so what the next run sees is the code under test, not the residue of
+the last one.
+
 # When something will not load or unload
 
-The recovery paths are in AGENTS.md, "Build, install, test": the orphan module that escapes
+The recovery paths are under "What the shared host does" above: the orphan module that escapes
 reload, the stale autogen output after a branch switch, the scratch script shadowing an
 installed module, the pinned core, the vermagic mismatch after a kernel upgrade. Match the
 symptom there before improvising.
@@ -99,7 +188,7 @@ require-pins; `refcnt` is the complete in-degree.
 # A wedged device: before and after the reboot
 
 A `lunatik` process in D state does not come back, and the reboot that clears it is the
-maintainer's call (AGENTS.md, "Build, install, test"). Before asking for it:
+maintainer's call ("What the shared host does" above). Before asking for it:
 
     ps -eo pid,stat,etime,cmd | awk '$2 ~ /D/'          # confirm, and note the PID
     bash tools/prereboot.sh                              # oops, modules and holders, D-state processes, every session's /tmp

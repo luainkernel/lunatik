@@ -189,7 +189,7 @@ examples() {
 	done <<< "$1"
 }
 
-# a new issue carries its severity as the repository's label (AGENTS.md, "Findings"): passed as a field of gh
+# a new issue carries its severity as the repository's label (.agents/skills/review-pr/process.md, "Findings"): passed as a field of gh
 # api, labels[]=, as gh issue's --label or -l, or in the JSON gh api sends
 severity() {
 	local post body
@@ -202,7 +202,7 @@ severity() {
 		elif printf '%s' "$post" | grep -qE '(labels\[\]=|--label[ =]|(^| )-l )([^ ,]*,)*severity: (low|medium|high)( |,|$)'; then
 			continue
 		fi
-		echo "pr-body-guard: a new issue carries its severity as a label, severity: low, medium or high (AGENTS.md, \"Findings\"): pass -f 'labels[]=severity: <level>' to gh api, or --label to gh issue." >&2
+		echo "pr-body-guard: a new issue carries its severity as a label, severity: low, medium or high (.agents/skills/review-pr/process.md, \"Findings\"): pass -f 'labels[]=severity: <level>' to gh api, or --label to gh issue." >&2
 		exit 2
 	done <<< "$1"
 }

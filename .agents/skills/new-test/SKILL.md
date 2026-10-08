@@ -3,7 +3,7 @@ name: new-test
 description: Write or extend a Lunatik KTAP test suite under tests/<suite>/. Use when adding or materially changing tests.
 ---
 
-The rules are AGENTS.md, "Tests" (shape, dmesg marking, cleanup in a trap, host independence,
+The rules are `.agents/rules/tests.md` (shape, dmesg marking, cleanup in a trap, host independence,
 the coverage matrix, proving the test discriminates, the docs and run.sh wiring) plus the
 exit-0 blind spot under "Running a script". This skill is the mechanics:
 

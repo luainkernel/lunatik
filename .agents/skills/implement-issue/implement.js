@@ -87,8 +87,8 @@ Your answer's validated is what passed on the head you return, with that head's 
 again only what it does not carry, so a head that moved after the run, or a run that failed, leaves its
 head empty for the review to build.
 What you leave, a defect found on the way that is not this pull request's or a cell of the matrix no test
-covers, goes in findings_left with a body that can be filed as it stands, its severity the label AGENTS.md
-"Findings" names, read against the contract the entry quotes, and its home the open issue it belongs to,
+covers, goes in findings_left with a body that can be filed as it stands, its severity the label
+.agents/skills/review-pr/process.md "Findings" names, read against the contract the entry quotes, and its home the open issue it belongs to,
 where one exists; nothing is left in prose alone.
 `
 
