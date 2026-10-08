@@ -6,7 +6,7 @@
 
 set -eux
 
-# backup resolv config
+# restore resolv config
 if [[ -f /etc/resolv.conf.lunatik ]]; then
 	echo "Restoring dns config from resolv.conf.lunatik"
 	sudo rm /etc/resolv.conf
