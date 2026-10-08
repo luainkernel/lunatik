@@ -346,6 +346,9 @@ named, not one discovered at that consumer's build.
   with what it changes, and `Recommendation:` with the option and its reason; "the maintainer's call"
   names who decides and not what. The options include the smallest change that makes the defect
   unreachable, and each larger one says what it buys over it.
+* A question from the maintainer is answered, and the turn changes nothing: what the answer
+  recommends is proposed with its decision, not done. "What is left?" asks for the list, not for the
+  work on it; `.claude/hooks/on-prompt.sh` reminds a turn that reads a question.
 * A fact the maintainer states is taken as given and acted on, not verified back: "#736 is merged"
   ends a question rather than opening one, and re-arguing the point it settles spends the exchange
   on what is already decided. A state you assert yourself is the other way round, and rule 1 governs
