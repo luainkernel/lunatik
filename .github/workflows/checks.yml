@@ -35,6 +35,9 @@ jobs:
     - name: Fixups pending
       # a fixup! waits for the squash, so the run stays red until the pull request is folded
       run: bash tools/checks/fixups.sh "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"
+    - name: Guard cases
+      # each command guard read again against the cases it was proved on, its own change or one beneath it
+      run: bash tools/checks/cases.sh
     - name: Advisory checks
       # heuristics that nudge a review; they annotate the run and do not fail it
       run: bash tools/checks/advisory.sh --github "origin/${{ github.base_ref }}" "${{ github.event.pull_request.head.sha }}"

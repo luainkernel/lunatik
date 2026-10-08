@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+block	git add -A
+block	git add --all
+block	git add -u
+block	git add --update
+block	git add .
+block	git add :/
+block	git commit -a -m x
+block	git commit -am x
+block	cd tools && git add . && git commit -m x
+pass	git add tools/checks/cases.sh
+pass	git add -p lib/luarcu.c
+pass	git commit -m 'git add -A'
+pass	STAGE_OK=1 git add -A
+pass	git commit --amend --no-edit

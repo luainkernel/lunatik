@@ -224,7 +224,10 @@ had to be stopped, when it asked for the list.
 
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
 it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
-catches it.
+catches it. A command guard whose verdict the command alone decides keeps those cases in
+`tools/checks/cases/<guard>.cases`, which `cases.sh` runs and the Checks workflow runs on every pull
+request, so a change to the guard or to `commands.sh` beneath it is read against them again: the
+`git -c` whose value held a space passed push-guard.sh for as long as nothing ran its cases a second time.
 
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run, a `list`, `-V`, the REPL on a pipe or with `-e`, or a suite, while another operation is on

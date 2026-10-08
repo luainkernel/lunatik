@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+block	sudo lunatik run examples/filter/sni softirq
+block	sudo lunatik spawn examples/echod/daemon
+block	lunatik run --context=softirq examples/dnsblock/nf_dnsblock
+block	sudo env PWD=x bash -c 'lunatik run examples/tcpreject/main'
+pass	sudo bash tools/watchdog.sh examples/filter/sni --context=softirq
+pass	NETWORK_LOSS_OK=1 sudo lunatik run examples/filter/sni
+pass	sudo lunatik run tests/runtime/self_stop
+pass	git grep 'lunatik run examples/filter'
+pass	bash -n tests/run.sh
