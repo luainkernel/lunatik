@@ -38,6 +38,14 @@ started() {
 }
 
 for file in "$@"; do
+	# a change to an example's own files is a change to that example
+	case "$file" in
+		examples/*/*|examples/*.lua)
+			echo "$file: run the example it changes, through tools/watchdog.sh: $(runnable "$file")"
+			status=1
+			continue
+			;;
+	esac
 	mods=$(reaching_modules "$file")
 	[ -n "$mods" ] || continue
 	required=$(printf '%s\n' $mods | sed 's/\./\\./g' | paste -sd'|')
