@@ -18,7 +18,8 @@
 # packet_create as the __be16 it reads: an unbound socket created with the
 # ethertype receives the frame, one created with it already in network order is
 # registered for the swapped number and hears nothing. The pair discriminates
-# because the frame carries only one ethertype. A protocol past 16 bits is
+# because the frame carries only one ethertype. On a big-endian host the two
+# orders are one and the second case skips. A protocol past 16 bits is
 # refused rather than cut to the low half packet_create's cast would keep.
 #
 # The last two cases pin the refusal of SOCK_PACKET, whose address is a struct
@@ -68,8 +69,12 @@ ktap_pass "packet: the destination hardware address is the one the binding decla
 dmesg_since | grep -q "socket packet: host order reaches the unbound socket" || fail "the host order socket did not receive the frame"
 ktap_pass "packet: a socket created with the ethertype in host order receives it"
 
-dmesg_since | grep -q "socket packet: network order misses it" || fail "the network order socket received a frame it is not registered for"
-ktap_pass "packet: a socket created with the ethertype in network order does not"
+if dmesg_since | grep -q "socket packet: network order is host order"; then
+	ktap_skip "packet: a socket created with the ethertype in network order does not (big-endian host)"
+else
+	dmesg_since | grep -q "socket packet: network order misses it" || fail "the network order socket received a frame it is not registered for"
+	ktap_pass "packet: a socket created with the ethertype in network order does not"
+fi
 
 dmesg_since | grep -q "socket packet: a protocol past 16 bits raises .*out of bounds" || fail "unexpected answer: $(dmesg_since | grep 'socket packet: a protocol past')"
 ktap_pass "packet: socket.new refuses an AF_PACKET protocol past 16 bits"
