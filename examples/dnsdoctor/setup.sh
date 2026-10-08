@@ -29,7 +29,7 @@ sudo ip link set veth2 up
 sudo ip link set veth4 up
 
 # backup resolv config
-echo "Backing up resolver config to /etc/resolver.conf.lunatik"
+echo "Backing up resolver config to /etc/resolv.conf.lunatik"
 sudo cp -fP /etc/resolv.conf /etc/resolv.conf.lunatik && \
 sudo sed -i 's/nameserver/#nameserver/g' /etc/resolv.conf && \
 echo "nameserver 10.1.1.3" | sudo tee -a /etc/resolv.conf && \
