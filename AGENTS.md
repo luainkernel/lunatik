@@ -416,10 +416,14 @@ named, not one discovered at that consumer's build.
   labelled as one; a fix may land on the observed behaviour without naming a cause it has not proven.
   A release note, a changelog or any summary derived from commits is held to the same rule against
   its source: read each commit and use its words.
-* Corrections to a commit on your own branch are `git commit --fixup=<hash>`, not a standalone
-  "address review comments" commit. Never fixup a commit that is already on `master`; that becomes a
-  new commit on a new branch.
-* A fixup is pushed as soon as it is made, onto the pull request's own branch. It adds a commit, so it
+* A pull request reaches the maintainer's first review squashed: until he has read it, a correction
+  folds into the commit it corrects, `git commit --fixup=<hash>` and `git rebase -i --autosquash` at
+  once, and the branch goes up with `--force-with-lease`. After his review, a correction is
+  `git commit --fixup=<hash>`, not a standalone "address review comments" commit, so what changed
+  since he read it is a commit of its own. Never fixup a commit that is already on `master`; that
+  becomes a new commit on a new branch.
+* A fixup after the maintainer's review is pushed as soon as it is made, onto the pull request's own
+  branch. It adds a commit, so it
   fast-forwards the branch and moves nothing a reviewer already read; what waits for the maintainer is
   the squash, and a rewrite is said out loud. A fixup that lives only on the machine that wrote it is
   outside the review, and a cleared worktree or a reboot takes it; one that lives only on `review/<n>`
