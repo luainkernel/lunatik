@@ -276,7 +276,11 @@ gate and not a nudge, so it fails the commit and the run rather than annotating 
 is read by everyone who clones, and a credential committed once is a credential rotated. It reports the
 file, the line and the rule, never the text it matched, which would otherwise reach a terminal and a CI
 log. What belongs to one machine lives in that machine's environment or in its untracked
-`CLAUDE.local.md`, and reaches the tree as an argument whose default names no host.
+`CLAUDE.local.md`, and reaches the tree as an argument whose default names no host. `leak-guard.sh`,
+wired before a shell call, reads with it what a push publishes besides the files, the messages of the
+commits past `origin/master` and the names its refspec carries, word by word, and refuses the push
+that leaks; a branch pushed with a private clone's name in its messages and in its own name was read by
+nothing until it was public.
 
 `tools/pr-status.sh` prints the open pull requests as GitHub has them: base and whether it still merges,
 commits and how many are unsquashed fixups, the size, the CI conclusion, and the labels; `--ready` keeps
