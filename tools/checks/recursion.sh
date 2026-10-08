@@ -17,7 +17,8 @@
 # the review reads the bound.
 #
 # Runs when a path given names lua/, lunatik_conf.h or lunatik_aux.c, where the budget and what it
-# counts live; needs GCC 10 or later, gawk and the lua/ submodule, and says which is missing.
+# counts live, or this file, whose ledger it reads; needs GCC 10 or later, gawk and the lua/ submodule,
+# and says which is missing.
 #
 # Usage: bash tools/checks/recursion.sh <file>...
 
@@ -36,7 +37,7 @@ declare -A bounded=(
 root=$(git rev-parse --show-toplevel 2> /dev/null) || exit 0
 applies=false
 for file in "$@"; do
-	case "$file" in lua|lua/*|*/lua/*|lunatik_conf.h|lunatik_aux.c) applies=true ;; esac
+	case "$file" in lua|lua/*|*/lua/*|lunatik_conf.h|lunatik_aux.c|tools/checks/recursion.sh) applies=true ;; esac
 done
 $applies || exit 0
 

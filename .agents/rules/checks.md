@@ -139,7 +139,7 @@ calls, so one behind another module reads as none, and the review decides.
 configuration `lunatic` takes, reads GCC's call graph (`-fcallgraph-info`) for its cycles, and names a
 recursion that never reaches `luaE_checkcstack` or `luaE_incCstack` and that its ledger does not bound,
 with what one level costs on the host; each ledger entry says what bounds a recursion, read in its
-source. It runs when a change touches `lua/`, `lunatik_conf.h` or `lunatik_aux.c`: a recursion that
+source. It runs when a change touches `lua/`, `lunatik_conf.h`, `lunatik_aux.c` or its ledger: a recursion that
 compares nothing is invisible to a budget read where `LUAI_MAXCCALLS` is compared.
 
 `author-email.sh` reads a rev-range and names a commit whose author email is not the one the base
