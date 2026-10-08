@@ -8,7 +8,9 @@
 # the RTA_TABLE attribute path, not the u8 rtm_table), confirms it appears in a
 # dump, asserts a duplicate add raises (NLM_F_EXCL -> EEXIST via check_error),
 # deletes it, and confirms it is gone; then adds the same prefix with the type
-# RTN_BLACKHOLE and confirms the dump lists that type.
+# RTN_BLACKHOLE and confirms the dump lists that type. Skips where the kernel
+# keeps no IPv4 FIB rules (CONFIG_IP_MULTIPLE_TABLES), since it then keeps no
+# table but local and main, and files a route for table 1000 in main.
 #
 # Usage: sudo bash tests/netlink/route_adddel.sh
 
@@ -30,6 +32,12 @@ ktap_plan 4
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
+	ktap_totals
+	exit 0
+}
+
+ip -4 rule show > /dev/null 2>&1 || {
+	echo "# SKIP: the kernel keeps no IPv4 routing table but local and main"
 	ktap_totals
 	exit 0
 }

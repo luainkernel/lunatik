@@ -8,7 +8,8 @@
 # not the u8 header field), confirms it appears in a dump, asserts a duplicate
 # add raises (NLM_F_EXCL -> EEXIST via check_error), deletes it, and confirms it
 # is gone; then repeats add/del with a table id that fits the u8 header field,
-# exercising the header-side id path (no FRA_TABLE).
+# exercising the header-side id path (no FRA_TABLE). Skips where the kernel
+# keeps no IPv4 FIB rules (CONFIG_IP_MULTIPLE_TABLES), whose add it refuses.
 #
 # Usage: sudo bash tests/netlink/rule_adddel.sh
 
@@ -32,6 +33,12 @@ ktap_plan 5
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
+	ktap_totals
+	exit 0
+}
+
+ip -4 rule show > /dev/null 2>&1 || {
+	echo "# SKIP: the kernel keeps no IPv4 FIB rules"
 	ktap_totals
 	exit 0
 }
