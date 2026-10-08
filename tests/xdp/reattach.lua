@@ -7,12 +7,12 @@
 local xdp    = require("xdp")
 local action = require("linux.xdp").action
 
-local function replaced(ctx)
+local function replaced()
 	print("xdp reattach test fail: the replaced callback ran")
 	return action.DROP
 end
 
-local function current(ctx)
+local function current()
 	print("xdp reattach test pass: re-attach installed the last callback")
 	return action.PASS
 end

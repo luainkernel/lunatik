@@ -7,12 +7,12 @@
 local tc     = require("tc")
 local action = require("linux.tc").action
 
-local function replaced(ctx)
+local function replaced()
 	print("tc reattach test fail: the replaced callback ran")
 	return action.SHOT
 end
 
-local function current(ctx)
+local function current()
 	print("tc reattach test pass: re-attach installed the last callback")
 	return action.OK
 end

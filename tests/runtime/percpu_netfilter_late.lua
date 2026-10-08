@@ -11,7 +11,7 @@ local verdict   = require("tests.runtime.verdict")
 
 local PREFIX <const> = "percpu netfilter late: "
 
-local function accept(skb)
+local function accept()
 	return nf.action.ACCEPT
 end
 
@@ -22,7 +22,7 @@ local late = {
 	priority = nf.ip.pri.FILTER,
 }
 
-local function register_late(skb)
+local function register_late()
 	verdict.report(PREFIX, "register", pcall(netfilter.register, late))
 	return nf.action.ACCEPT
 end

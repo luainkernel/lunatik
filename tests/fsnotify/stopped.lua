@@ -9,7 +9,7 @@ local fs       = require("linux.fsnotify")
 
 local SCRATCH <const> = "/tmp/lunatik-fsnotify"
 
-local function report(mask, event)
+local function report(_, event)
 	print(string.format("fsnotify marks test fail: event after stop, %s", event:path() or "?"))
 end
 

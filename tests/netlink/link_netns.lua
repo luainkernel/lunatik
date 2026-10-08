@@ -43,12 +43,12 @@ do
 	print("netlink link_netns: initial namespace lists lo, not " .. DEV)
 end
 
-local ok, session = pcall(netlink.rt.link, pids.holder)
-if not ok and session == "EOPNOTSUPP" then
+local reached, session = pcall(netlink.rt.link, pids.holder)
+if not reached and session == "EOPNOTSUPP" then
 	print("netlink link_netns: a task's namespace is refused: EOPNOTSUPP")
 	return
 end
-assert(ok, "the holder's namespace should be reached, got " .. tostring(session))
+assert(reached, "the holder's namespace should be reached, got " .. tostring(session))
 local link <close> = session
 local names = listed(link)
 assert(names.lo and names[DEV], "the holder's namespace should list lo and " .. DEV)

@@ -14,7 +14,7 @@ local refused  = {name = "lunatik_refused"}
 local selfstop = {name = "lunatik_selfstop"}
 local dev, selfdev
 
-function held:read(len, off)
+function held:read(_, off)
 	return CONTENT:sub(off + 1)
 end
 

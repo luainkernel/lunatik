@@ -55,7 +55,7 @@ function raised:release()
 	error(RAISED, 0)
 end
 
-function sound:read(len, off)
+function sound:read(_, off)
 	local data = CONTENT:sub(off + 1)
 	return data, off + #data
 end
@@ -109,7 +109,7 @@ function short:write(buf)
 	return SHORT
 end
 
-function short:read(len, off)
+function short:read(_, off)
 	return table.concat(written, SEP):sub(off + 1)
 end
 

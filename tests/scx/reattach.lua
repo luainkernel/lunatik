@@ -6,10 +6,10 @@
 
 local scx = require("scx")
 
-local function replaced(ctx)
+local function replaced()
 end
 
-local function current(ctx)
+local function current()
 end
 
 scx.attach(replaced)

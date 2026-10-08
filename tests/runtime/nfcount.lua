@@ -15,7 +15,7 @@ local nfcount = {
 local env = lunatik._ENV
 local key = nfcount.PREFIX .. tostring(lunatik.cpu() or "plain")
 
-function nfcount.count(skb)
+function nfcount.count()
 	env[key] = (env[key] or 0) + 1
 	return nf.action.ACCEPT
 end

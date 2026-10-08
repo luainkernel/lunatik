@@ -11,7 +11,7 @@ local SCRATCH <const> = "/tmp/lunatik-fsnotify"
 local KEPT    <const> = SCRATCH .. "/kept"
 local DROPPED <const> = SCRATCH .. "/dropped"
 
-local function report(mask, event)
+local function report(_, event)
 	print(string.format("fsnotify marks test: open %s", event:path() or "?"))
 end
 

@@ -10,7 +10,7 @@ local nfcount   = require("tests.runtime.nfcount")
 
 local MARK <const> = 209
 
-local function accept(skb)
+local function accept()
 	return nf.action.ACCEPT
 end
 

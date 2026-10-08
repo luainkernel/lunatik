@@ -18,11 +18,11 @@ function files:open(file)
 	file.id = opened
 end
 
-function files:write(buf, off, file)
+function files:write(buf, _, file)
 	file.data = buf
 end
 
-function files:read(len, off, file)
+function files:read(_, _, file)
 	local data = file.data or ""
 	file.data = nil
 	return data
@@ -32,7 +32,7 @@ function files:release(file)
 	table.insert(released, file.id)
 end
 
-function closed:read(len, off)
+function closed:read(_, off)
 	return table.concat(released, SEP):sub(off + 1)
 end
 

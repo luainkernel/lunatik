@@ -57,7 +57,7 @@ end)
 test("bpf.queue push full queue returns false", function()
 	local m = queue(path)
 	pinned.drain(m)
-	for i = 1, m:info().max_entries do
+	for _ = 1, m:info().max_entries do
 		assert(m:push("xyz"))
 	end
 	assert(m:push("ovr") == false, "expected false when queue is full")
@@ -68,7 +68,7 @@ test("bpf.queue push BPF_EXIST overwrites the oldest when full", function()
 	local m = queue(path)
 	pinned.drain(m)
 	assert(m:push("aaa"))
-	for i = 2, m:info().max_entries do
+	for _ = 2, m:info().max_entries do
 		assert(m:push("bbb"))
 	end
 	assert(m:push("ccc", bpf.EXIST))

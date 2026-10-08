@@ -11,7 +11,7 @@ local action    = nf.action
 local hooks     = nf.inet
 local priority  = nf.ip.pri
 
-local function hook(skb)
+local function hook()
 	return action.ACCEPT
 end
 

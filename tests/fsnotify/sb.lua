@@ -9,7 +9,7 @@ local fs       = require("linux.fsnotify")
 
 local MOUNT <const> = "/tmp/lunatik-fsnotify/mnt"
 
-local function report(mask, event)
+local function report(_, event)
 	print(string.format("fsnotify kinds test: sb open %s", event:path() or "?"))
 end
 

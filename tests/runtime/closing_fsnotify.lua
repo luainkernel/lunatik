@@ -9,7 +9,7 @@ local verdict  = require("tests.runtime.verdict")
 
 local PREFIX <const> = "closing test: "
 
-local function callback(mask, event)
+local function callback()
 end
 
 local function watch()

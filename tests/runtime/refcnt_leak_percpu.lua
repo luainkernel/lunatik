@@ -11,7 +11,7 @@ local cpu       = require("cpu")
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
 
-local function hook(skb)
+local function hook()
 	return nf.action.ACCEPT
 end
 

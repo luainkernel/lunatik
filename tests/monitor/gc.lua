@@ -23,7 +23,7 @@ return function()
 		collectgarbage("stop")
 		f:push(string.rep("x", 256))
 
-		for i = 1, 10 do
+		for _ = 1, 10 do
 			socket.new(af.PACKET, sock.RAW, 0)
 		end
 

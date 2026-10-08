@@ -13,7 +13,7 @@ local object = env[KEY]
 local twin = env[KEY]
 
 env[KEY] = nil
-assert(object ~= nil, KEY .. " not found in _ENV")
+assert(object ~= nil and twin ~= nil, KEY .. " not found in _ENV")
 object, twin = nil, nil
 collectgarbage()
 

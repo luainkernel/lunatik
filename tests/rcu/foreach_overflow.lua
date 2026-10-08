@@ -19,6 +19,7 @@ end
 
 local function noop() end
 
+---@diagnostic disable-next-line: unused-vararg
 local function walk(t, ...) -- the varargs sit on the stack, so the walk's handle pcall overflows near the top
 	rcu.foreach(t, noop)
 end

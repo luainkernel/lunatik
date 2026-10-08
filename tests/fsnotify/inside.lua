@@ -51,7 +51,7 @@ local function report(mask, event)
 	end
 end
 
-local function halt(mask, event)
+local function halt(_, event)
 	print(string.format("fsnotify inside test: halting on %s", event:path() or "?"))
 	stopper:stop()
 	print("fsnotify inside test: stop returned")
