@@ -14,8 +14,7 @@ local udp = 0x11
 local dns = 0x35
 
 local blacklist = {
-	"github.com",
-	"gitlab.com",
+	"example.net",
 }
 
 local function get_domain(skb, off)
