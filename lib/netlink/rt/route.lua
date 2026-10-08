@@ -79,12 +79,12 @@ end
 --   `gateway` are the address bytes in network byte order; `table` is the header's when the reply
 --   lacks the `TABLE` attribute, and any other field whose attribute the reply lacks is nil.
 
-local function route_attrs(route, opts)
+local function route_attrs(self, opts)
 	return message.attrs{
 		[rtnl.rta.DST]     = opts.dst,
 		[rtnl.rta.GATEWAY] = opts.gateway,
 		[rtnl.rta.OIF]     = opts.oif,
-		[rtnl.rta.TABLE]   = route:attrtable(opts.table),
+		[rtnl.rta.TABLE]   = self:attrtable(opts.table),
 	}
 end
 

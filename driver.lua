@@ -7,7 +7,7 @@ local device = require("device")
 
 local driver = {name = "lunatik"}
 
-function driver:read(len, off, file)
+function driver:read(len, _, file)
 	local result = file.result or ""
 	file.result = result:sub(len + 1)
 	return result:sub(1, len)
@@ -22,7 +22,7 @@ local function result(ok, ...)
 	return tostring(ok) .. '\t' .. table.concat(t, '\t')
 end
 
-function driver:write(buf, off, file)
+function driver:write(buf, _, file)
 	local chunk, err = load(buf)
 	file.result = chunk and result(pcall(chunk)) or result(false, err)
 end
