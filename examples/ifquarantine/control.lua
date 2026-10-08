@@ -28,14 +28,18 @@ end
 
 local driver = {name = "ifquarantine", mode = stat.IRUGO | stat.IWUGO}
 
-function driver:read(len, off)
+local function snapshot()
 	lines = {}
 	rcu.foreach(known, list)
 	if #lines == 0 then
 		return ""
 	end
-	local text = table.concat(lines, "\n") .. "\n"
-	return text:sub(off + 1, off + len)
+	return table.concat(lines, "\n") .. "\n"
+end
+
+function driver:read(len, off, file)
+	file.text = file.text or snapshot()
+	return file.text:sub(off + 1, off + len)
 end
 
 function driver:write(buf)
