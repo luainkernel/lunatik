@@ -434,4 +434,5 @@ module_exit(luahid_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Jieming Zhou <qrsikno@gmail.com>");
+MODULE_DESCRIPTION("Lunatik interface to HID drivers");
 

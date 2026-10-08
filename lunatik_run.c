@@ -40,4 +40,5 @@ module_exit(lunatik_run_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
+MODULE_DESCRIPTION("Lunatik driver runtime, which runs Lua scripts in the kernel");
 

@@ -79,4 +79,5 @@ module_exit(luasignal_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("L Venkata Subramanyam <202301280@dau.ac.in>");
+MODULE_DESCRIPTION("Lunatik interface to signals");
 
