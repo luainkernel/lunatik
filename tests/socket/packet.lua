@@ -17,6 +17,7 @@ local timeval = struct(sk.layout.timeval)
 
 local PROTO      <const> = eth["802_EX1"]
 local PROTO_MAX  <const> = 0xFFFF
+local PROTO_NET  <const> = byteorder.hton16(PROTO)
 local IFNAME     <const> = "lo"
 local PAYLOAD    <const> = "lunatikpacket"
 local ETH_HLEN   <const> = 14
@@ -37,7 +38,7 @@ rx:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 10
 local listening <close> = socket.new(sk.af.PACKET, sk.sock.RAW, PROTO)
 listening:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
 
-local swapped <close> = socket.new(sk.af.PACKET, sk.sock.RAW, byteorder.hton16(PROTO))
+local swapped <close> = socket.new(sk.af.PACKET, sk.sock.RAW, PROTO_NET)
 swapped:setsockopt(sk.sol.SOCKET, sk.so.RCVTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
 
 local tx <close> = socket.new(sk.af.PACKET, sk.sock.DGRAM, 0)
@@ -53,7 +54,8 @@ print("socket packet: destination " .. string.format(string.rep("%02x", ETH_ALEN
 	string.byte(frame, 1, ETH_ALEN)))
 assert(#reached >= ETH_HLEN, "short frame on the unbound socket: " .. #reached .. " bytes")
 print("socket packet: host order reaches the unbound socket")
-print("socket packet: network order " .. (missed and "misses it" or "reaches it too"))
+print("socket packet: network order " .. (PROTO_NET == PROTO and "is host order" or
+	missed and "misses it" or "reaches it too"))
 
 print("socket packet: a protocol past 16 bits " .. answer(sk.af.PACKET, sk.sock.RAW, PROTO_MAX + 1))
 print("socket packet: SOCK_PACKET on AF_PACKET " .. answer(sk.af.PACKET, sk.sock.PACKET, PROTO))
