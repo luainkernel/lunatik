@@ -5,9 +5,10 @@
 #
 # A tracked file carries the tree, not the machine it was written on: an absolute
 # path in a home directory, a password handed to sudo, a credential read out of a
-# file or carried inside a URL, a literal shaped like a token, or the name of a
-# private repository this tree cannot see. Whatever is committed is read by
-# everyone who clones, and a credential committed once is a credential rotated.
+# file or carried inside a URL, a literal shaped like a token, the name of a
+# private repository this tree cannot see, or a generated artifact forced past
+# .gitignore. Whatever is committed is read by everyone who clones, and a
+# credential committed once is a credential rotated.
 #
 # A gate, not a heuristic: any finding exits 1 and the commit fails. It prints the
 # file, the line and the rule, never the text that matched, which would otherwise
@@ -19,7 +20,11 @@
 # live on the machine holding the clones, the only one that can leak them.
 #
 # The working tree is read by default; CHECK_STAGED=1 reads the index instead, so
-# the commit gate sees what is committed and not a file edited after staging.
+# the commit gate sees what is committed and not a file edited after staging. The
+# ignored-artifact rule is a fact about the path rather than a line, and reads the
+# index only: .gitignore keeps a build output out of the tree, and only git add -f
+# puts one back. --no-index is what lets it fire, since git stops reporting a path
+# as ignored once the index carries it.
 #
 # Usage: bash tools/checks/machine-leak.sh <file>...
 #        CHECK_STAGED=1 bash tools/checks/machine-leak.sh <file>...
@@ -59,6 +64,10 @@ for file in "$@"; do
 	if [ -n "$CHECK_STAGED" ]; then
 		git show ":$file" > "$staged" 2>/dev/null || continue
 		src=$staged
+		if git check-ignore -q --no-index "$file" 2>/dev/null; then
+			echo "$file: ignored-artifact: .gitignore keeps this path out of the tree; a generated artifact is rebuilt, never committed"
+			status=1
+		fi
 	else
 		[ -f "$file" ] || continue
 		src=$file

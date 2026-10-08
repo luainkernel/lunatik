@@ -27,7 +27,8 @@ names (`recursion.sh`), a local, a function or a global lua-language-server read
 (`shadowed-readers.sh`), the classes and callers a changed core primitive reaches
 (`blast-radius.sh`), the examples that use a binding the change touches, which a review runs
 (`examples-touched.sh`), a commit that carries a rule or a check inside a change of its own
-(`harness-mixed.sh`), the machine a tracked file carries (`machine-leak.sh`), and the trailing blank
+(`harness-mixed.sh`), the machine a tracked file carries and a generated artifact forced past
+`.gitignore` (`machine-leak.sh`), and the trailing blank
 line rule, the refusal of a staged conflict marker, of a source file without its copyright and
 license header and of a string function the kernel removed (`pre-commit`). Each takes file paths and
 skips what does not apply, so any editor, assistant, or CI can run them. The `Checks` workflow runs
@@ -261,7 +262,8 @@ and the pull request's preparation, which read the whole diff.
 
 `machine-leak.sh` reads a tracked file for what belongs to the machine it was written on: an absolute
 path in a home directory, a password handed to sudo, a credential read out of a file or carried inside a
-URL, a literal shaped like a token, and the name of a private repository, which it takes from
+URL, a literal shaped like a token, a staged path `.gitignore` keeps out, which only `git add -f` puts
+back, and the name of a private repository, which it takes from
 `LUNATIK_CONSUMERS` and never spells itself, so that rule is silent where the variable is unset. It is a
 gate and not a nudge, so it fails the commit and the run rather than annotating them: what is committed
 is read by everyone who clones, and a credential committed once is a credential rotated. It reports the
