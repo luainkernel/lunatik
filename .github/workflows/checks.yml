@@ -18,7 +18,12 @@ jobs:
         # recursion.sh compiles the Lua the kernel links, which lives in the lua/ submodule
         submodules: true
     - name: Install dependencies
-      run: sudo apt-get install -yq cppcheck gawk
+      run: |
+        sudo apt-get install -yq cppcheck gawk
+        # luals.sh reads the Lua files a pull request touches with lua-language-server, which no package carries
+        curl -fsSL https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-linux-x64.tar.gz -o /tmp/luals.tar.gz
+        sudo mkdir -p /opt/lua-language-server && sudo tar -xzf /tmp/luals.tar.gz -C /opt/lua-language-server
+        sudo ln -s /opt/lua-language-server/bin/lua-language-server /usr/local/bin/lua-language-server
     - name: Stage the pull request's diff
       # pre-commit reads the index, so the diff against the base is staged as a commit would be
       run: git reset -q --soft "origin/${{ github.base_ref }}"
