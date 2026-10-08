@@ -103,7 +103,9 @@ again to be safe, which is the cost the checkpoint exists to avoid.
 A fan-out of agents is bounded before it is launched, not after: one unit as a pilot and timed, a
 wall-clock cap, and an inactivity monitor over the agents' own logs with the launching session left
 idle so it can stop them. Report what a run cost before launching another, since the workflow runner
-restarts an agent from zero on a provider error and nothing else counts the restarts.
+restarts an agent from zero on a provider error and nothing else counts the restarts. What the reviews
+catch is read with `tools/review-stat.sh`: the commits and the comments each reviewed pull request
+still took after its label.
 
 # Posting the review (only when asked; placement is decided BEFORE posting)
 
