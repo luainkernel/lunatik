@@ -23,6 +23,7 @@
 SCRIPT="tests/luac/hello_bc"
 SCRIPTS_PATH="/lib/modules/lua"
 SRC="$SCRIPTS_PATH/tests/luac"
+TMP=""
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
