@@ -60,7 +60,7 @@ added() {
 # each body among the writes <writes> goes through machine-leak.sh, then through the check <check>;
 # with <added>, only what an edit adds to the body GitHub has
 check() {
-	local post body file shown scan leaked findings
+	local post body file shown scan leaked findings private
 	while IFS= read -r post; do
 		[ -n "$post" ] || continue
 		body=$(gh_body "$post")
@@ -77,6 +77,9 @@ check() {
 			exit 2 ;;
 		esac
 		file=${body#* }
+		# a private repository's name is a leak only where the text is published to this one
+		private=$LUNATIK_CONSUMERS
+		gh_ours "$post" || private=
 		if [ ! -f "$file" ]; then
 			echo "pr-body-guard: a body is read from a file, and $file is not one. A path written as a shell variable arrives here unexpanded: spell it out." >&2
 			exit 2
@@ -89,7 +92,7 @@ check() {
 				exit 2
 			fi
 			jq 'del(.body)' "$file" > "$tmp/fields"
-			leaked=$(bash "$(dirname "$0")/machine-leak.sh" "$tmp/fields")
+			leaked=$(LUNATIK_CONSUMERS=$private bash "$(dirname "$0")/machine-leak.sh" "$tmp/fields")
 			if [ -n "$leaked" ]; then
 				echo "pr-body-guard: the fields of $file carry what belongs to the machine they were written on:" >&2
 				echo "${leaked//"$tmp/fields"/$file}" >&2
@@ -103,7 +106,7 @@ check() {
 
 		scan=$file
 		[ -z "$3" ] || { scan=$tmp/added; added "$post" "$file" > "$scan"; }
-		leaked=$(bash "$(dirname "$0")/machine-leak.sh" "$scan")
+		leaked=$(LUNATIK_CONSUMERS=$private bash "$(dirname "$0")/machine-leak.sh" "$scan")
 		findings=$(bash "$(dirname "$0")/$2" "$scan")
 		leaked=${leaked//$scan/$shown}
 		findings=${findings//$scan/$shown}
@@ -235,19 +238,10 @@ held() {
 # the writes of <writes> to this repository, or a fork of it: the examples, the contract and the
 # severity labels are its tree's and its tracker's, and a write to another repository answers to its own
 ours() {
-	printf '%s\n' "$1" | awk '
-	NF {
-		repo = ""
-		for (i = 1; i <= NF; i++)
-			if ($i ~ /^(-R|--repo)$/)
-				repo = $(i + 1)
-			else if ($i ~ /^--repo=/)
-				repo = substr($i, 8)
-			else if (match($i, /repos\/[^\/]+\/[^\/]+/))
-				repo = substr($i, RSTART + 6, RLENGTH - 6)
-		if (repo == "" || repo ~ /\/lunatik$/)
-			print
-	}'
+	local post
+	while IFS= read -r post; do
+		[ -n "$post" ] && gh_ours "$post" && printf '%s\n' "$post"
+	done <<< "$1"
 }
 
 cmds=$(commands "$input")

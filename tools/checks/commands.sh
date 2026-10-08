@@ -318,6 +318,31 @@ gh_token() {
 		sed -E 's/^GH_TOKEN=\$\(cat (.*)\)$/\1/')" 2>/dev/null
 }
 
+# the repository the gh write <post> targets, owner/name, from -R or the endpoint; nothing when it names none
+gh_repo() {
+	printf '%s\n' "$1" | awk '
+	{
+		for (i = 1; i <= NF; i++)
+			if ($i ~ /^(-R|--repo)$/)
+				repo = $(i + 1)
+			else if ($i ~ /^--repo=/)
+				repo = substr($i, 8)
+			else if (match($i, /repos\/[^\/]+\/[^\/]+/))
+				repo = substr($i, RSTART + 6, RLENGTH - 6)
+	}
+	END {
+		print repo
+	}'
+}
+
+# whether the gh write <post> publishes to this repository or a fork of it, as one that names no other does
+gh_ours() {
+	case "$(gh_repo "$1")" in
+		""|*/lunatik) return 0 ;;
+	esac
+	return 1
+}
+
 # the issue or pull request the gh write <post> targets, by its number; nothing when it names none
 gh_number() {
 	printf '%s\n' "$1" | awk '
