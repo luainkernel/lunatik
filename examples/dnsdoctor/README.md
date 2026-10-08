@@ -7,11 +7,9 @@ The domain, the address it rewrites to and the client are set in [nf_dnsdoctor.l
 
 ## Usage
 
-Needs `dnsmasq` and `dig`. `setup.sh` points the host's `/etc/resolv.conf` at `10.1.1.3`, saving its
-contents as `/etc/resolv.conf.lunatik`, and only `cleanup.sh` puts them back: run `cleanup.sh` even after
-stopping `setup.sh` with Ctrl-C, or the host keeps resolving through a server that is gone. Where
-`/etc/resolv.conf` is a symlink, as systemd-resolved makes it, both scripts leave a regular file in its
-place ([#1269](https://github.com/luainkernel/lunatik/issues/1269)).
+Needs `dnsmasq` and `dig`. `setup.sh` points the host's `/etc/resolv.conf` at `10.1.1.3`, saving it
+as `/etc/resolv.conf.lunatik`, and only `cleanup.sh` puts it back: run `cleanup.sh` even after
+stopping `setup.sh` with Ctrl-C, or the host keeps resolving through a server that is gone.
 `setup.sh` keeps dnsmasq in the foreground and does not return, so the rest runs in a second terminal.
 
 In the first terminal:
