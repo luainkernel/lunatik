@@ -211,6 +211,10 @@ than landing its fixups on master.
 several changes in it otherwise fuses them under a message that explains one. `STAGE_OK=1` stages a tree
 that holds one change only.
 
+`luals-guard.sh`, wired before a shell call, refuses a push whose tree adds, on a line its branch
+introduced against the merge base with `origin/master`, what `luals.sh` reads as a slip; what the branch
+inherited is not the push's to fix. `LUALS_OK=1` pushes a name that is the code's on purpose.
+
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
 it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
 catches it.
