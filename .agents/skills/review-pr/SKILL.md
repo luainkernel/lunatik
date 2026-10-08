@@ -93,6 +93,10 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
   (`args.push: false`), it stays a commit on `review<pr>-fixups` and the session that launched the
   review pushes it, naming the SHAs the phase reported. A refused command is written down and not
   tried again.
+- A pull request of another repository that runs on Lunatik is reviewed the same way: `args.github`
+  names the repository the threads are read from, `args.packet` this tree's `tools/review-packet.sh`
+  by its absolute path where that tree carries none, and `args.build` what its host run is, or false
+  where nothing runs on the host.
 
 What a dead run left is read before it is launched again: `<transcriptDir>/journal.jsonl` carries a
 `result` line for every phase that finished, the checkpoints carry what each one wrote, and the fixup

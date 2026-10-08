@@ -34,6 +34,12 @@
 //   machine     how this machine gets root and authenticates gh, for the build phase, whose agent
 //               loads no CLAUDE.local.md; the launching session copies it from there
 //   gh          false where the gh CLI is absent, so the REST calls go through curl
+//   github      the repository on GitHub, owner/name, default luainkernel/lunatik; another one is
+//               reviewed with this tree's packet and its own build
+//   packet      the script that writes the packet, default tools/review-packet.sh of the tree under
+//               review; an absolute path to this tree's where that tree carries none
+//   build       what the build phase runs instead of the suite, for a tree that is not Lunatik, or
+//               false where nothing runs on the host
 //
 // It returns each phase's answer and findings_left, every finding a phase leaves as an issue,
 // with a title and a body that can be filed as they stand.
@@ -47,7 +53,11 @@ export const meta = {
 const a = args
 const effort = a.effort || 'high'
 const model = a.model ? { model: a.model } : {}
-const unit = a.pr ? `review${a.pr}` : `review-${a.branch}`
+const github = a.github || 'luainkernel/lunatik'
+const lunatik = github === 'luainkernel/lunatik'
+const packetTool = a.packet || 'tools/review-packet.sh'
+// a pull request of another repository shares no numbering with this one's checkpoints
+const unit = a.pr ? (lunatik ? `review${a.pr}` : `review-${github.split('/')[1]}-${a.pr}`) : `review-${a.branch}`
 const checkpoint = `${a.scratch}/${unit}/REVIEW.md`
 const packet = `${a.scratch}/${unit}/packet.txt`
 // the prompt is read by an agent with a shell, so the default resolves on the machine that runs it
@@ -74,7 +84,7 @@ this machine, CLAUDE.local.md says how it pushes), and your answer's tip is the 
 
 const COMMON = `
 You are reviewing ${a.pr ? `pull request #${a.pr}` : `the branch \`${a.branch}\`, which has no pull request yet,`} of
-Lunatik (Lua in the Linux kernel), in the checkout at \`${repo}\`: branch \`${a.branch}\`, head \`${a.head}\`,
+${lunatik ? 'Lunatik (Lua in the Linux kernel)' : `${github}, which runs on Lunatik (Lua in the Linux kernel)`}, in the checkout at \`${repo}\`: branch \`${a.branch}\`, head \`${a.head}\`,
 base \`${a.base}\`.
 
 CHECKPOINT, before anything else: the file ${checkpoint} is the review's memory across phases and across
@@ -103,12 +113,12 @@ const HUNT = COMMON + `
 PHASE: HUNT. The process is .agents/skills/review-pr/process.md; read its "Findings" and "Fixups" first.
 
 Then, in your worktree at \`${a.head}\`, write the packet the machine gathers for you, and read it whole
-before anything else: \`bash tools/review-packet.sh ${a.base} ${a.head} > ${packet}\`. It carries the commits
+before anything else: \`bash ${packetTool} ${a.base} ${a.head} > ${packet}\`. It carries the commits
 with their bodies, the files, what every check says and the diff with each function it touches whole, so
 open a file beyond it only for what it does not show: a caller, a sibling, the kernel. The rules for the
 files you read load with them, from .agents/rules/.${a.pr ? `
-Read the pull request's threads too (\`${api(`repos/luainkernel/lunatik/pulls/${a.pr}/comments`)}\` and
-\`${api(`repos/luainkernel/lunatik/issues/${a.pr}/comments`)}\`), which record what the maintainer cares about,
+Read the pull request's threads too (\`${api(`repos/${github}/pulls/${a.pr}/comments`)}\` and
+\`${api(`repos/${github}/issues/${a.pr}/comments`)}\`), which record what the maintainer cares about,
 and run tools/checks/pr-body.sh over its body.` : ''}
 
 Every line under "# Checks" is answered in the checkpoint: a fixup, or why the code stays; a line of
@@ -147,13 +157,13 @@ const unrun = (a.examples || []).filter(e => !(a.validated?.examples || []).incl
 const UNBUILT = 'a Markdown file, or a path under doc/, .agents/, .claude/, .github/ or tools/checks/, or config.ld'
 
 const BUILD = (tip) => `
-PHASE: BUILD of ${a.pr ? `pull request #${a.pr}` : `the branch \`${a.branch}\``} of Lunatik, in the checkout at \`${repo}\`.
+PHASE: BUILD of ${a.pr ? `pull request #${a.pr}` : `the branch \`${a.branch}\``} of ${github}, in the checkout at \`${repo}\`.
 ${a.machine ? 'THIS MACHINE: ' + a.machine : 'Root commands run as `sudo <cmd>`; confirm that works without a prompt (`sudo -n true`) and, where it does not, skip the build and say so.'}
 
 In a worktree of your own under ${a.scratch}/ at \`${tip}\`, the tip of \`${a.branch}\` with every fixup
-(\`git -C ${repo} worktree add --detach <abs path> ${tip}\`, then \`git submodule update --init\`): \`make\` clean, then install, reload and the whole suite through tools/lunatik-host as the
+(\`git -C ${repo} worktree add --detach <abs path> ${tip}\`, then \`git submodule update --init\`): ${typeof a.build === 'string' ? a.build : `\`make\` clean, then install, reload and the whole suite through tools/lunatik-host as the
 lunatik-cycle skill orders it, then the examples the change touches through tools/watchdog.sh, each one
-driven as its README says and stopped, with dmesg read after.
+driven as its README says and stopped, with dmesg read after.`}
 ${(a.examples || []).length ? `The examples the change touches: ${a.examples.join(', ')}. Your answer's examples names
 the ones that ran clean, spelled as they are listed here.` : 'The change touches no example.'}
 ${unrun.length ? 'These have not been run on this head: ' + unrun.join(', ') + '.' : ''}
@@ -215,7 +225,9 @@ if (a.hunt !== false) {
 
 const changed = a.hunt !== false && (!hunt || hunt.fixups.length > 0)
 let build = null
-if (!a.validated || changed || unrun.length) {
+if (a.build === false)
+  log('build skipped: nothing runs on the host for this tree')
+else if (!a.validated || changed || unrun.length) {
   phase('Build')
   build = await agent(BUILD(hunt?.tip || a.head), { label: `build:${a.pr || a.branch}`, phase: 'Build', agentType: 'lunatik-host', effort: 'medium', schema: BUILD_OUT })
   if (build?.skipped)
