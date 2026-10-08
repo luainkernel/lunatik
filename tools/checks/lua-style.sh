@@ -10,7 +10,8 @@
 # which is a named local function; an if that returns nil and a value above a return of what it
 # tested, which is one return whose value is the choice, as inet.udp:receivefrom took on #1584; a
 # module a file requires twice, which one local holds, as lib/socket and lib/netlink/nl80211 did
-# for each field of a linux.* table they read; and
+# for each field of a linux.* table they read; an append spelled t[#t + 1] = v, which is
+# table.insert; and
 # a block of four lines or more that the change adds against CHECK_BASE and a script beside it
 # carries too, which is a module both require: #1198 first spelled one pause in the four kernel
 # thread bodies of tests/rcu.
@@ -130,6 +131,9 @@ for file in "$@"; do
 		gsub(/"([^"\\]|\\.)*"/, "\"\"", line); gsub(/\047([^\047\\]|\\.)*\047/, "\"\"", line)
 		sub(/--.*$/, "", line)
 		d = indent(line)
+
+		if (line ~ /\[[[:space:]]*#[[:space:]]*[A-Za-z_][A-Za-z0-9_.]*[[:space:]]*\+[[:space:]]*1[[:space:]]*\][[:space:]]*=[^=]/)
+			flag(NR, "an append is table.insert, never t[#t + 1] = v (.agents/rules/lua.md)")
 
 		# if x == nil then return nil, y end, then return x, ...: one return whose value is the choice
 		if (line ~ /^[[:space:]]*$/) ;
