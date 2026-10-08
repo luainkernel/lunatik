@@ -82,6 +82,8 @@ you take it, what you read, decided, committed and measured, and your answer bef
 5. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
    passes the body, which carries \`Closes #${a.issue}\` on a line of its own and names each example as run:
    the pull request opens only on a head the host run passed with every one of them. Open nothing.
+6. Remove your worktree (\`rm -rf <tree> && git worktree prune\`) once the branch is pushed: the review, the host
+   run and a fix each work in one of their own.
 
 What you leave, a defect found on the way that is not this change's or a cell of the matrix no test covers,
 goes in findings_left with a body that can be filed as it stands, its severity the label
@@ -98,7 +100,8 @@ Trace the failure before you change anything (AGENTS.md rule 1): the test's prin
 window the lunatik-cycle skill names. A failure the change causes is fixed as \`git commit --fixup=<the commit
 that introduced it>\`, \`make\` clean, and pushed; one it does not cause, a host process or a test already
 failing on master, is said as such with its evidence and fixes nothing. Run no install, reload, suite or
-example: the host run that follows is another agent's. Append what you traced and committed to the checkpoint.
+example: the host run that follows is another agent's. Append what you traced and committed to the checkpoint,
+and remove the worktree you worked in once the fix is pushed.
 `
 
 const OPEN = (impl, head) => `
