@@ -524,4 +524,5 @@ module_exit(luadevice_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
+MODULE_DESCRIPTION("Lunatik interface to character devices");
 

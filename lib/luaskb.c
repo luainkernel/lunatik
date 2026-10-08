@@ -458,4 +458,5 @@ MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Lourival Vieira Neto <lourival.neto@ringzero.com.br>");
 MODULE_AUTHOR("Carlos Carvalho <carloslack@gmail.com>");
 MODULE_AUTHOR("Mohammad Shehar Yaar Tausif <sheharyaar48@gmail.com>");
+MODULE_DESCRIPTION("Lunatik interface to socket buffers");
 

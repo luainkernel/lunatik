@@ -301,4 +301,5 @@ module_exit(luascx_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION(LUNATIK_RELEASE);
 MODULE_AUTHOR("Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>");
+MODULE_DESCRIPTION("Lunatik interface to sched_ext");
 

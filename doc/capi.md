@@ -1425,6 +1425,7 @@ module_init(luafoo_init);
 module_exit(luafoo_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION(LUNATIK_RELEASE);
+MODULE_DESCRIPTION("Lunatik foo binding");
 ```
 A script then runs `local foo = require("foo")` and `foo.new():inc()`.
 
