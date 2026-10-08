@@ -187,7 +187,9 @@ implement-issue workflow reads through curl and writes nothing. An issue a write
 `contract.sh` too, which refuses a finding whose stimulus reaches into the runtime's own bookkeeping,
 out of contract by the honest-mistake bullet of AGENTS.md, *Deciding what to change*. `CONTRACT_OK=1` opens it where a script using the API as
 documented reaches the same path. A new issue carries its severity as the repository's label, which
-the guard refuses to open it without.
+the guard refuses to open it without. The examples, the contract and the severity label are this tree's
+and this tracker's, so they bind a write to this repository or a fork of it; a write to another
+repository answers to that repository's own guards.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate

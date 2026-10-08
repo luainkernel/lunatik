@@ -232,6 +232,24 @@ held() {
 	done <<< "$1"
 }
 
+# the writes of <writes> to this repository, or a fork of it: the examples, the contract and the
+# severity labels are its tree's and its tracker's, and a write to another repository answers to its own
+ours() {
+	printf '%s\n' "$1" | awk '
+	NF {
+		repo = ""
+		for (i = 1; i <= NF; i++)
+			if ($i ~ /^(-R|--repo)$/)
+				repo = $(i + 1)
+			else if ($i ~ /^--repo=/)
+				repo = substr($i, 8)
+			else if (match($i, /repos\/[^\/]+\/[^\/]+/))
+				repo = substr($i, RSTART + 6, RLENGTH - 6)
+		if (repo == "" || repo ~ /\/lunatik$/)
+			print
+	}'
+}
+
 cmds=$(commands "$input")
 repo='^(https://api\.github\.com)?/?repos/[^/]+/[^/]+'
 case "$(command_text "$input")" in
@@ -242,16 +260,16 @@ esac
 check "$(gh_writes "$cmds" 'pr (create|new|edit)' "$repo/pulls(/[0-9]+)?\$")" pr-body.sh
 case "$(command_text "$input")" in
 	*EXAMPLES_OK=1*) ;;
-	*) examples "$(gh_writes "$cmds" 'pr (create|new)' "$repo/pulls\$")" ;;
+	*) examples "$(ours "$(gh_writes "$cmds" 'pr (create|new)' "$repo/pulls\$")")" ;;
 esac
 check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" untraced.sh added
 check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" decision.sh added
 # a new issue is a finding, read for a stimulus out of contract; an edit or a comment may argue about one
 case "$(command_text "$input")" in
 	*CONTRACT_OK=1*) ;;
-	*) check "$(gh_writes "$cmds" 'issue (create|new)' "$repo/issues\$")" contract.sh ;;
+	*) check "$(ours "$(gh_writes "$cmds" 'issue (create|new)' "$repo/issues\$")")" contract.sh ;;
 esac
-severity "$(gh_writes "$cmds" 'issue (create|new)' "$repo/issues\$")"
+severity "$(ours "$(gh_writes "$cmds" 'issue (create|new)' "$repo/issues\$")")"
 check "$(gh_writes "$cmds" 'release (create|new|edit)' "$repo/releases(/[0-9]+)?\$")" release-body.sh
 unread "$cmds"
 exit 0
