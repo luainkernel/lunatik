@@ -57,7 +57,11 @@ entered, so a script that creates itself runs out too. Under `xpcall`, a message
 the bound raises in turn, and the call ends with `error in error handling`. On the task stack the
 call also raises once a quarter of the stack is all that is left, so a hook entered deep, as a
 kprobe in the network stack is, or a runtime another script closes, gets what remains; a hook on an
-interrupt stack is bounded from its entry alone.
+interrupt stack is bounded from its entry alone. Loading a binary chunk and `string.dump` recurse once
+per function the chunk nests, and nothing counts that against the bound, so a chunk whose functions
+nest more than ten deep is out of contract: loaded or dumped where the stack is already deep, it can
+run the kernel stack into its guard page instead of raising. `lunatic` compiles such a chunk all the
+same.
 
 A string pattern nests at most 32 levels deep: the match takes one, each capture two, and each
 position capture `()` and each item with `?`, `*`, `+` or `-` that matches one more. Past it,
