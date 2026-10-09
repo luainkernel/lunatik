@@ -189,7 +189,7 @@ static int luasocket_pushfail(lua_State *L, int ret, bool outcome)
 * - Other families: a packed string of the address bytes past the family.
 *
 * A method that returns an address returns it the same way. An `AF_PACKET` one carries three more
-* values after the interface index: the packet type (a `linux.pkttype` value), the hardware type (a
+* values after the interface index: the packet type (a `linux.packet.type` value), the hardware type (a
 * `linux.arphrd` value) and the hardware address, a string of the length the kernel reports: the
 * interface's own for `getsockname`, the sender's for `receivefrom`.
 * @type socket
