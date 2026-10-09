@@ -788,6 +788,11 @@ after the watch is stopped.
   nothing, and it refuses any other value as `boolean expected`, changing
   nothing. The script leaves tracing as it found it. Skipped without
   `CONFIG_TRACING`, where the kernel's three are stubs.
+- **socket**: `linux.socket.ip` carries the `IP_` options
+  `net/ipv4/ip_sockglue.c` takes, at their `uapi/linux/in.h` values, and no
+  other `IP_` name: not the `IP_MTU_DISCOVER` values or the multicast
+  defaults, nor `IP_ORIGDSTADDR`, the control message `IP_RECVORIGDSTADDR`
+  asks for, or `IP_RECVRETOPTS`, BSD's name for `IP_RETOPTS`.
 
 ### lua
 

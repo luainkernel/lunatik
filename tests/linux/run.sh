@@ -33,13 +33,18 @@
 # refuses any other value as boolean expected, changing nothing. The script leaves tracing as it
 # found it. Skipped without CONFIG_TRACING, where the kernel's three are stubs.
 #
+# socket: linux.socket.ip carries the IP_ options net/ipv4/ip_sockglue.c takes, at their
+# uapi/linux/in.h values, and no other IP_ name: not the IP_MTU_DISCOVER values or the multicast
+# defaults, nor IP_ORIGDSTADDR, the control message IP_RECVORIGDSTADDR asks for, or IP_RECVRETOPTS,
+# BSD's name for IP_RETOPTS.
+#
 # Usage: sudo bash tests/linux/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fsnotify notifier lookup constants schedule netns errname ifindex tracing"
+TESTS="random fsnotify notifier lookup constants schedule netns errname ifindex tracing socket"
 TOTAL=$(echo $TESTS | wc -w)
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil

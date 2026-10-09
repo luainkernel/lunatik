@@ -29,7 +29,6 @@ local BUFSIZE    <const> = 4096
 local FLOOD      <const> = string.rep("x", 1 << 20)
 -- more sends than a datagram queue or a send buffer takes while nobody reads
 local ATTEMPTS   <const> = 1024
-local IP_LOCAL_PORT_RANGE <const> = 51 -- uapi/linux/in.h
 -- struct sockaddr_in6 past the family, zeroed: the unspecified address and any port
 local IN6_ANY    <const> = string.rep("\0", 26)
 
@@ -128,7 +127,7 @@ test("socket:send and socket:connect raise the EAGAIN of an implicit bind that f
 	local holder = bound(inet.udp)
 	local _, port = holder:getsockname()
 	local udp = inet.udp()
-	udp.socket:setsockopt(sk.sol.IP, IP_LOCAL_PORT_RANGE, port << 16 | port)
+	udp.socket:setsockopt(sk.sol.IP, sk.ip.LOCAL_PORT_RANGE, port << 16 | port)
 	raises("a send with no free port to bind", "EAGAIN", udp.send, udp, MESSAGE, inet.localhost, port)
 	raises("a connect with no free port to bind", "EAGAIN", udp.connect, udp, inet.localhost, port)
 	holder:close()
@@ -148,7 +147,7 @@ test("socket:send raises the EAGAIN of an AF_INET6 socket's implicit bind that f
 	local address = holder:getsockname()
 	local port = unpack(">I2", address)
 	local udp = socket.new(sk.af.INET6, sk.sock.DGRAM, 0)
-	udp:setsockopt(sk.sol.IP, IP_LOCAL_PORT_RANGE, port << 16 | port)
+	udp:setsockopt(sk.sol.IP, sk.ip.LOCAL_PORT_RANGE, port << 16 | port)
 	raises("an AF_INET6 send with no free port to bind", "EAGAIN", udp.send, udp, MESSAGE, address)
 	udp:close()
 	holder:close()
