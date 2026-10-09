@@ -7,7 +7,7 @@
 local lunatik  = require("lunatik")
 local device   = require("device")
 local fsnotify = require("fsnotify")
-local fs       = require("linux.fs")
+local fs       = require("linux.fsnotify")
 local test     = require("tests.lib").test
 
 local DEVICE <const> = "lunatik_close"
