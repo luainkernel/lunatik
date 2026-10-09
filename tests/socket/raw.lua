@@ -6,7 +6,7 @@
 
 local raw   = require("socket.raw")
 local linux = require("linux")
-local eth   = require("linux.eth")
+local eth   = require("linux.eth").proto
 local attempt = require("tests.socket.attempt")
 
 local format = string.format

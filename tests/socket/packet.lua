@@ -10,7 +10,7 @@ local linux     = require("linux")
 local struct    = require("struct")
 local byteorder = require("byteorder")
 local sk        = require("linux.socket")
-local eth       = require("linux.eth")
+local eth       = require("linux.eth").proto
 local attempt   = require("tests.socket.attempt")
 
 local timeval = struct(sk.layout.timeval)

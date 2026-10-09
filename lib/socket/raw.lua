@@ -11,7 +11,7 @@
 -- @see socket
 --
 local socket = require("socket")
-local eth    = require("linux.eth")
+local eth    = require("linux.eth").proto
 
 local sk   = require("linux.socket")
 local af   = sk.af

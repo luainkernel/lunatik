@@ -21,7 +21,7 @@
 --   non-scalar fields fail the build
 
 return {
-	{ header = "uapi/linux/if_ether.h", prefix = "ETH_P_", module = "eth",
+	{ header = "uapi/linux/if_ether.h", prefix = "ETH_P_", module = "eth.proto",
 		desc = "Ethernet protocol IDs." },
 	{ header = "uapi/linux/if_arp.h", prefix = "ARPHRD_", module = "arphrd",
 		desc = "Network device hardware types (ARPHRD_*)." },
