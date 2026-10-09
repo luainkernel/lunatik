@@ -900,10 +900,11 @@ allocates with, and the collector state it leaves).
   reads back the line its callback printed, so a packet that went through is an
   answer and not a hook that never ran.
 - **register**: what `netfilter.register()` refuses in the table it is given,
-  before any hook is registered, each with an error naming the field: a `mark`
-  that holds a string, a numeric one included, or a boolean, a `pf`, `hooknum`
-  or `priority` that is missing or holds a string, and any of the four past its
-  type, by a value whose low bits a truncating build would register; a family
+  before any hook is registered, each with an error naming the field: a `hook`
+  that is missing, as a misspelled one is, or holds a string, a `mark` that holds
+  a string, a numeric one included, or a boolean, a `pf`, `hooknum` or
+  `priority` that is missing or holds a string, and any of the four numbers past
+  its type, by a value whose low bits a truncating build would register; a family
   netfilter keeps no hook table for is refused naming `pf`, and a hook past its
   family's table, the kernel's WARN in `nf_hook_entry_head`, naming `hooknum`; a
   `mark` at the top of its range and a `priority` at either end of an `int` are

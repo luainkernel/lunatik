@@ -5,8 +5,9 @@
 #
 # Tests what netfilter.register refuses in the table it is given, before any
 # hook is registered, each with an error naming the field and the type it got:
-# a mark that holds a string, a numeric one included, or a boolean, and a pf,
-# hooknum or priority that is missing or holds a string. Each of the four is
+# a hook that is missing, as a misspelled one is, or holds a string, a mark
+# that holds a string, a numeric one included, or a boolean, and a pf, hooknum
+# or priority that is missing or holds a string. Each of the four numbers is
 # refused past its type as well, out of bounds: pf below 0 or past 8 bits,
 # hooknum and mark below 0 or past 32, priority past an int, each by a value
 # whose low bits a truncating build would register as a hook of its own; a
@@ -40,7 +41,7 @@ ktap_header
 ktap_plan 2
 
 run_test --context=softirq "$SCRIPT" || fail "netfilter.register accepted a field it should refuse, or raised something else"
-ktap_pass "a mark that is not a number, a required field missing or not a number, and a field past its range are refused, naming the field"
+ktap_pass "a hook that is missing or not a function, a mark that is not a number, a required field missing or not a number, and a field past its range are refused, naming the field"
 
 lunatik stop "$SCRIPT" > /dev/null
 check_dmesg && ktap_pass "no Lua errors, kernel warnings or oopses"

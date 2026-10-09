@@ -61,6 +61,11 @@ local function nonumber(field, value)
 	refuses(field, value, format("bad field '%s' %%(number expected, got %s%%)", field, type(value)))
 end
 
+test("netfilter.register refuses a hook that is missing or not a function", function()
+	refuses("hook", nil, "bad field 'hook' %(function expected, got nil%)")
+	refuses("hook", "accept", "bad field 'hook' %(function expected, got string%)")
+end)
+
 test("netfilter.register refuses a mark that is not a number", function()
 	for _, mark in ipairs(notnumbers) do
 		nonumber("mark", mark)
