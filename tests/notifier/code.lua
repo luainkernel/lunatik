@@ -5,7 +5,7 @@
 -- Kernel-side script for the notifier code test (see code.sh).
 
 local notifier = require("notifier")
-local netdev   = require("linux.netdev")
+local netdev   = require("linux.netdev").cmd
 local notify   = require("linux.notify")
 
 local WIDE <const> = 5000 -- past MAX_ERRNO once notifier_to_errno reads it

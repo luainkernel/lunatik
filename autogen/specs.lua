@@ -47,7 +47,7 @@ return {
 	{ header = "linux/vt.h", prefix = "VT_", module = "vt",
 		desc = "Virtual terminal notifier event types.",
 		include = { "ALLOCATE", "DEALLOCATE", "WRITE", "UPDATE", "PREWRITE" } },
-	{ header = "linux/netdevice.h", prefix = "NETDEV_", module = "netdev",
+	{ header = "linux/netdevice.h", prefix = "NETDEV_", module = "netdev.cmd",
 		desc = "Network device notifier event types.",
 		include = { "UP", "DOWN", "REBOOT", "CHANGE", "REGISTER", "UNREGISTER", "CHANGEMTU",
 			"CHANGEADDR", "PRE_CHANGEADDR", "GOING_DOWN", "CHANGENAME", "FEAT_CHANGE",

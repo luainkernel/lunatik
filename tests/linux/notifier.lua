@@ -5,7 +5,7 @@
 -- Kernel-side script for the linux.notifier test (see run.sh).
 --
 
-local netdev = require("linux.netdev")
+local netdev = require("linux.netdev").cmd
 local vt     = require("linux.vt")
 local test   = require("tests.lib").test
 local check  = require("tests.linux.check")
@@ -24,8 +24,8 @@ local netdevs = {
 -- the events of <linux/vt.h>, beside the names of <uapi/linux/vt.h> that share their prefix
 local vts = { "ALLOCATE", "DEALLOCATE", "WRITE", "UPDATE", "PREWRITE" }
 
-test("linux.netdev carries the netdevice notifier events and nothing else", function()
-	check.holds("netdev", netdev, netdevs)
+test("linux.netdev.cmd carries the netdevice notifier events and nothing else", function()
+	check.holds("netdev.cmd", netdev, netdevs)
 end)
 
 test("linux.vt carries the vt notifier events and nothing else", function()

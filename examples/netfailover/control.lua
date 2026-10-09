@@ -7,7 +7,7 @@ local linux    = require("linux")
 local lunatik  = require("lunatik")
 local notifier = require("notifier")
 local rcu      = require("rcu")
-local netdev   = require("linux.netdev")
+local netdev   = require("linux.netdev").cmd
 local notify   = require("linux.notify")
 
 local NAME <const> = "netfailover" -- the shared table the reactor reads

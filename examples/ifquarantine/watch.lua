@@ -6,7 +6,7 @@
 local linux    = require("linux")
 local lunatik  = require("lunatik")
 local notifier = require("notifier")
-local netdev   = require("linux.netdev")
+local netdev   = require("linux.netdev").cmd
 local notify   = require("linux.notify")
 
 local home        <const> = linux.netns() -- the namespace linux.ifindex resolves a name in

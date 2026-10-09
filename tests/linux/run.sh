@@ -5,7 +5,7 @@
 #
 # Runs all linux tests and reports aggregated KTAP results.
 #
-# notifier: linux.netdev carries the events of enum netdev_cmd and linux.vt the notifier events of
+# notifier: linux.netdev.cmd carries the events of enum netdev_cmd and linux.vt the notifier events of
 # <linux/vt.h>, and neither carries another name under its prefix. The case reads the names and no
 # value: enum netdev_cmd is internal, and the kernel renumbers it when it inserts an event.
 #

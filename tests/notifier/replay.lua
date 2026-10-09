@@ -5,7 +5,7 @@
 -- Kernel-side script for the notifier replay test (see replay.sh).
 
 local notifier = require("notifier")
-local netdev   = require("linux.netdev")
+local netdev   = require("linux.netdev").cmd
 local notify   = require("linux.notify")
 
 local events = {[netdev.REGISTER] = "register", [netdev.UP] = "up", [netdev.UNREGISTER] = "unregister"}
