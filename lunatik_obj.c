@@ -204,11 +204,13 @@ static int lunatik_monitor(lua_State *L)
 	lunatik_try(L, lunatik_lockkillable, object);
 	gfp_t gfp = lunatik_gfp(runtime);
 	runtime->gfp = lunatik_gfp(object); /* the method allocates under the object's lock */
+	int running = lua_gc(L, LUA_GCISRUNNING);
 	lua_gc(L, LUA_GCSTOP);
 	ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	lunatik_unlock(object);
 	runtime->gfp = gfp;
-	lua_gc(L, LUA_GCRESTART);
+	if (running)
+		lua_gc(L, LUA_GCRESTART);
 
 	if (ret != LUA_OK) {
 		const char *method = lua_tostring(L, lua_upvalueindex(2));
