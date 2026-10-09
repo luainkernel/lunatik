@@ -9,6 +9,10 @@
 # <linux/vt.h>, and neither carries another name under its prefix. The case reads the names and no
 # value: enum netdev_cmd is internal, and the kernel renumbers it when it inserts an event.
 #
+# signal: linux.signal carries the signals, HUP, KILL and TERM at their uapi numbers, and none of the
+# names that share the SIG prefix: the how of sigprocmask (SIG_BLOCK), the sigevent notifications
+# (SIGEV_*) and the signal stack size (SIGSTKSZ).
+#
 # netns: linux.netns resolves pid 1 in a process runtime, in its body and resumed
 # past it, and in the body of a softirq and a hardirq runtime; resumed past theirs,
 # the armed state a hook calls from, each answers the call without a pid and
@@ -44,7 +48,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fsnotify notifier lookup constants schedule netns errname ifindex tracing socket"
+TESTS="random fsnotify notifier signal lookup constants schedule netns errname ifindex tracing socket"
 TOTAL=$(echo $TESTS | wc -w)
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil

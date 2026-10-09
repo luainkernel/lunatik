@@ -737,6 +737,10 @@ after the watch is stopped.
   another name sharing its prefix: the netdev netlink attributes, transmit
   codes and LAG types under `NETDEV_`, and the uapi ioctls, `vt_mode` values
   and `VT_WAITEVENT` bits under `VT_`.
+- **signal**: `linux.signal` carries the signals, `HUP`, `KILL` and `TERM` at
+  their uapi numbers, and no other name under `SIG`: the `how` of
+  `sigprocmask` (`SIG_BLOCK` and its siblings), the `sigevent` notifications
+  (`SIGEV_*`) and the signal stack size (`SIGSTKSZ`).
 
 - **lookup**: `linux.lookup` answers `nil` for a symbol kallsyms does not
   carry and a lightuserdata for one it does, and rejects a non-string
