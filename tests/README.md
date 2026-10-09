@@ -108,9 +108,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   truncated or tampered tag with nil and `EBADMSG`, and round-trips without associated
   data, with an empty plaintext, and 5000 times.
 - **rng**: `stdrng` gives the number of bytes asked for through `generate`,
-  with or without additional input, and `getbytes`, also after a reset with or
-  without a seed, refuses 0 bytes as out of bounds and an additional input or
-  a seed that is not a string, and reports a seed size of 0, a DRBG's.
+  with or without additional input, and `getbytes`, also after a reset without
+  a seed, refuses 0 bytes as out of bounds and an additional input or a seed
+  that is not a string; `drbg_nopr_hmac_sha512`, a DRBG named by its driver,
+  gives bytes after a reset with a seed and reports a seed size of 0.
 - **hkdf**: `hkdf` matches the SHA-256 vectors of RFC 5869, `extract` without
   a salt matches it with an empty one, and `extract` and `expand` match the
   client initial secret, key and IV of the QUIC worked example at

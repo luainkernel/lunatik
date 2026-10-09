@@ -6,6 +6,8 @@ local rng = require("crypto").rng
 local test = require("tests.lib").test
 local closing = require("tests.crypto.closing")
 
+local DRBG <const> = "drbg_nopr_hmac_sha512"
+
 test("RNG generate 32 bytes", function()
 	local r = rng"stdrng"
 	assert(r, "Failed to create RNG TFM object")
@@ -38,7 +40,7 @@ test("RNG reset without seed", function()
 end)
 
 test("RNG reset with seed", function()
-	local r = rng"stdrng"
+	local r = rng(DRBG)
 	local status, err = pcall(r.reset, r, "new_seed_material")
 	assert(status, "rng:reset('new_seed_material') should not error: " .. tostring(err))
 	local random = r:generate(16)
@@ -56,9 +58,9 @@ test("RNG additional input or seed that is not a string (error)", function()
 end)
 
 test("RNG seedsize", function()
-	local r = rng"stdrng"
+	local r = rng(DRBG)
 	local size = r:seedsize()
-	assert(size == 0, "stdrng is a DRBG, which requires no seed, got a seed size of " .. tostring(size))
+	assert(size == 0, "a DRBG requires no seed, got a seed size of " .. tostring(size))
 end)
 
 test("RNG getbytes 0 bytes (error)", function()
