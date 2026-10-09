@@ -247,7 +247,7 @@ static int luanotifier_vt_handler(lua_State *L, unsigned long event, void *data)
 *
 * @function vt
 * @tparam function callback invoked as `callback(event, c, vc_num)` —
-*   `event` is a `linux.vt` code, `c` is the character value a `WRITE` or
+*   `event` is a `linux.vt.event` code, `c` is the character value a `WRITE` or
 *   `PREWRITE` carries and nil for any other event, and `vc_num` is the
 *   virtual console number. Returns a `linux.notify` status code.
 * @treturn notifier the notifier, which this call keeps for its runtime: dropping it

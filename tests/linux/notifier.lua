@@ -6,7 +6,7 @@
 --
 
 local netdev = require("linux.netdev").cmd
-local vt     = require("linux.vt")
+local vt     = require("linux.vt").event
 local test   = require("tests.lib").test
 local check  = require("tests.linux.check")
 
@@ -28,7 +28,7 @@ test("linux.netdev.cmd carries the netdevice notifier events and nothing else", 
 	check.holds("netdev.cmd", netdev, netdevs)
 end)
 
-test("linux.vt carries the vt notifier events and nothing else", function()
-	check.holds("vt", vt, vts)
+test("linux.vt.event carries the vt notifier events and nothing else", function()
+	check.holds("vt.event", vt, vts)
 end)
 

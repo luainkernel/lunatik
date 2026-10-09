@@ -44,7 +44,7 @@ return {
 		desc = "Return codes for kernel notifier chains." },
 	{ header = "linux/notifier.h", prefix = "KBD_", module = "kbd",
 		desc = "Keyboard notifier event types." },
-	{ header = "linux/vt.h", prefix = "VT_", module = "vt",
+	{ header = "linux/vt.h", prefix = "VT_", module = "vt.event",
 		desc = "Virtual terminal notifier event types.",
 		include = { "ALLOCATE", "DEALLOCATE", "WRITE", "UPDATE", "PREWRITE" } },
 	{ header = "linux/netdevice.h", prefix = "NETDEV_", module = "netdev.cmd",

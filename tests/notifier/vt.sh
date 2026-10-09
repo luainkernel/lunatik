@@ -5,7 +5,7 @@
 #
 # notifier.vt, registered from a hardirq runtime, hands its callback the event,
 # the character and the console of a write to a virtual terminal: a character
-# written to /dev/tty1, console 0, reaches it as a linux.vt PREWRITE before
+# written to /dev/tty1, console 0, reaches it as a linux.vt.event PREWRITE before
 # con_write draws it and as a WRITE once drawn, and the UPDATE that ends the
 # write carries no character, all inside the write. Opening /dev/tty63, console
 # 62, allocates it and deallocvt deallocates it, each inside the call, and the

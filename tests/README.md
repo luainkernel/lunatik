@@ -733,7 +733,7 @@ after the watch is stopped.
   (`FS_MOVE`, `FS_EVENTS_POSS_ON_CHILD`, `FS_IN_IGNORED`,
   `FS_DN_MULTISHOT`) are absent.
 - **notifier**: `linux.netdev.cmd` carries the events of `enum netdev_cmd` and
-  `linux.vt` the notifier events of `<linux/vt.h>`, and neither carries
+  `linux.vt.event` the notifier events of `<linux/vt.h>`, and neither carries
   another name sharing its prefix: the netdev netlink attributes, transmit
   codes and LAG types under `NETDEV_`, and the uapi ioctls, `vt_mode` values
   and `VT_WAITEVENT` bits under `VT_`.
@@ -1147,7 +1147,7 @@ from a pid namespace other than the initial one, whose pids are not the ones
   after it.
 
 - **vt**: `notifier.vt` from a `hardirq` runtime hands its callback a
-  character written to `/dev/tty1` twice, as a `linux.vt` `PREWRITE` and as a
+  character written to `/dev/tty1` twice, as a `linux.vt.event` `PREWRITE` and as a
   `WRITE`, each with the character and console 0, inside the write, and the
   `UPDATE` that ends the write with no character. Opening `/dev/tty63` and
   `deallocvt` reach it as an `ALLOCATE` and a `DEALLOCATE` of console 62, each
