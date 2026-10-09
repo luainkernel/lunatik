@@ -13,5 +13,16 @@ function check.carries(name, constants, values)
 	end
 end
 
+function check.holds(name, constants, names)
+	local expected = {}
+	for _, key in ipairs(names) do
+		assert(constants[key] ~= nil, ("linux.%s.%s is missing"):format(name, key))
+		expected[key] = true
+	end
+	for key in pairs(constants) do
+		assert(expected[key], ("linux.%s.%s is outside its family"):format(name, key))
+	end
+end
+
 return check
 

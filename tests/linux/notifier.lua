@@ -8,6 +8,7 @@
 local netdev = require("linux.netdev")
 local vt     = require("linux.vt")
 local test   = require("tests.lib").test
+local check  = require("tests.linux.check")
 
 -- enum netdev_cmd
 local netdevs = {
@@ -23,22 +24,11 @@ local netdevs = {
 -- the events of <linux/vt.h>, beside the names of <uapi/linux/vt.h> that share their prefix
 local vts = { "ALLOCATE", "DEALLOCATE", "WRITE", "UPDATE", "PREWRITE" }
 
-local function holds(name, constants, events)
-	local expected = {}
-	for _, event in ipairs(events) do
-		assert(constants[event] ~= nil, ("linux.%s.%s is missing"):format(name, event))
-		expected[event] = true
-	end
-	for key in pairs(constants) do
-		assert(expected[key], ("linux.%s.%s is not an event"):format(name, key))
-	end
-end
-
 test("linux.netdev carries the netdevice notifier events and nothing else", function()
-	holds("netdev", netdev, netdevs)
+	check.holds("netdev", netdev, netdevs)
 end)
 
 test("linux.vt carries the vt notifier events and nothing else", function()
-	holds("vt", vt, vts)
+	check.holds("vt", vt, vts)
 end)
 
