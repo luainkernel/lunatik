@@ -19,6 +19,7 @@ local message = require("netlink.message")
 local struct  = require("struct")
 
 local rtnl = require("linux.rtnetlink")
+local iff  = require("linux.iff")
 local sk   = require("linux.socket")
 
 local u32, str = message.u32, message.str
@@ -77,8 +78,8 @@ end
 -- @tparam table opts link parameters: `ifindex` and `up` (boolean).
 -- @raise on a netlink error.
 function link:set(opts)
-	local flags = opts.up and rtnl.iff.UP or 0
-	self:talk(self.SET, ifinfomsg:pack(sk.af.UNSPEC, 0, opts.ifindex, flags, rtnl.iff.UP))
+	local flags = opts.up and iff.UP or 0
+	self:talk(self.SET, ifinfomsg:pack(sk.af.UNSPEC, 0, opts.ifindex, flags, iff.UP))
 end
 
 return link

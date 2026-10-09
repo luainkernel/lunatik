@@ -5,7 +5,7 @@
 -- Kernel-side script for the netlink link_updown test (see link_updown.sh).
 
 local netlink = require("netlink")
-local iff     = require("linux.rtnetlink").iff
+local iff     = require("linux.iff")
 
 local NAME <const> = "lunatikdummy0"
 

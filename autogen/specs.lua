@@ -174,7 +174,7 @@ return {
 		desc = "rtnetlink route scopes (RT_SCOPE_*)." },
 	{ header = "uapi/linux/rtnetlink.h", prefix = "RT_TABLE_", module = "rtnetlink.table",
 		desc = "rtnetlink routing table ids (RT_TABLE_*)." },
-	{ header = "uapi/linux/if.h", prefix = "IFF_", module = "rtnetlink.iff",
+	{ header = "uapi/linux/if.h", prefix = "IFF_", module = "iff",
 		desc = "Network device flags (IFF_*).",
 		include = { "UP", "BROADCAST", "LOOPBACK", "POINTOPOINT", "RUNNING", "MULTICAST" } },
 	{ header = "uapi/linux/if_link.h", prefix = "IFLA_", module = "rtnetlink.ifla",
