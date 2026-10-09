@@ -14,7 +14,7 @@
 * It allows operations such as creating sockets, binding, listening, connecting,
 * sending, and receiving data. The constants for address families, socket types,
 * protocols, message flags and option levels and names are in `linux.socket`
-* (`af`, `sock`, `ipproto`, `msg`, `sol`, `so`).
+* (`af`, `sock`, `ipproto`, `msg`, `sol`, `so`, `ip`).
 *
 * An integer argument is bounded to the kernel type that takes it, an `int` unless a method
 * says otherwise: one past it raises "out of bounds" instead of reaching the kernel truncated.
