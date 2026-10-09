@@ -228,6 +228,12 @@ the turn that it answers and changes nothing, and reads no background task's not
 the turn as a prompt the maintainer did not write: "what is left?" drew seven implement-issue workflows that
 had to be stopped, when it asked for the list.
 
+`table.sh` reads the same message for a request for a table, "tabela" or "table", and `on-prompt.sh`
+tells the turn how much a cell holds: Claude Code wraps each cell to the width its column gets and, when
+one runs past four lines or the table past the terminal, prints every row as `Header: value` lines. A
+reply that answered "numa tabela" with a paragraph in each cell reached the maintainer as no table at
+all, in four sessions.
+
 A check ships proved, the way a test does: run it against the mistake it is for, and against a case
 it must pass. A condition that cannot fire reads as protection and is none, and nothing downstream
 catches it. A command guard whose verdict the command alone decides keeps those cases in
