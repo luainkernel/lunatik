@@ -74,7 +74,7 @@ test("bpf.stack push BPF_EXIST overwrites the bottom when full", function()
 	for _ = 2, entries do
 		assert(m:push("bbb"))
 	end
-	assert(m:push("ccc", bpf.EXIST))
+	assert(m:push("ccc", bpf.update.EXIST))
 	assert(m:pop() == "ccc", "expected the new value on top")
 	for _ = 2, entries do
 		assert(m:pop() == "bbb", "expected bottom 'aaa' dropped")
@@ -86,7 +86,7 @@ end)
 test("bpf.stack push NOEXIST raises", function()
 	local m = stack(path)
 	pinned.drain(m)
-	assert(not pcall(m.push, m, "abc", bpf.NOEXIST), "expected error: NOEXIST is not a push flag")
+	assert(not pcall(m.push, m, "abc", bpf.update.NOEXIST), "expected error: NOEXIST is not a push flag")
 	m:close()
 end)
 

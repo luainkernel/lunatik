@@ -71,7 +71,7 @@ test("bpf.queue push BPF_EXIST overwrites the oldest when full", function()
 	for _ = 2, m:info().max_entries do
 		assert(m:push("bbb"))
 	end
-	assert(m:push("ccc", bpf.EXIST))
+	assert(m:push("ccc", bpf.update.EXIST))
 	local value = m:pop()
 	assert(value == "bbb", "expected oldest 'aaa' dropped, got: " .. tostring(value))
 	pinned.drain(m)
@@ -81,7 +81,7 @@ end)
 test("bpf.queue push NOEXIST raises", function()
 	local m = queue(path)
 	pinned.drain(m)
-	assert(not pcall(m.push, m, "xyz", bpf.NOEXIST), "expected error: NOEXIST is not a push flag")
+	assert(not pcall(m.push, m, "xyz", bpf.update.NOEXIST), "expected error: NOEXIST is not a push flag")
 	m:close()
 end)
 
