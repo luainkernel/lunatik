@@ -709,7 +709,7 @@ static int luasocket_accept(lua_State *L)
 *   refused; `SOCK_RAW` and `SOCK_DGRAM` replace it on `AF_PACKET`.
 * @tparam integer protocol protocol (e.g., `linux.socket.ipproto.TCP`).
 *   For `AF_PACKET` sockets, `protocol` is an ethertype in host byte order, as `bind` takes it
-*   (e.g., `linux.eth.ALL` for every frame).
+*   (e.g., `linux.eth.proto.ALL` for every frame).
 * @tparam[opt] integer pid a task whose network namespace the socket is created in, instead of the
 *   initial one. The pid is read in the initial pid namespace: the number `task:pid()` returns,
 *   whichever task makes the call. The socket holds its network namespace until the kernel frees the

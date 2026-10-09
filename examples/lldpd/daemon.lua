@@ -7,7 +7,7 @@
 local raw    = require("socket.raw")
 local linux  = require("linux")
 local thread = require("thread")
-local eth    = require("linux.eth")
+local eth    = require("linux.eth").proto
 
 local shouldstop = thread.shouldstop
 
