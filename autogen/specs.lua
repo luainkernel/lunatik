@@ -61,7 +61,7 @@ return {
 	{ header = "uapi/linux/bpf.h", prefix = "XDP_", module = "xdp.action",
 		desc = "XDP verdicts (`enum xdp_action`), what an `xdp` callback returns.",
 		include = { "ABORTED", "DROP", "PASS", "TX", "REDIRECT" } },
-	{ header = "uapi/linux/bpf.h", prefix = "BPF_", module = "bpf",
+	{ header = "uapi/linux/bpf.h", prefix = "BPF_", module = "bpf.update",
 		desc = "BPF map update flags.",
 		include = { "ANY", "NOEXIST", "EXIST" } },
 	{ header = "uapi/linux/bpf.h", prefix = "BPF_MAP_TYPE_", module = "bpf.map_type",
