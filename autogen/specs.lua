@@ -132,7 +132,7 @@ return {
 		desc = "TCP conntrack states (SYN_SENT2 is the live name for the obsolete LISTEN).",
 		include = { "NONE", "SYN_SENT", "SYN_RECV", "ESTABLISHED", "FIN_WAIT", "CLOSE_WAIT",
 			"LAST_ACK", "TIME_WAIT", "CLOSE", "LISTEN", "SYN_SENT2" } },
-	{ header = "uapi/linux/netlink.h", prefix = "NLMSG_", module = "netlink",
+	{ header = "uapi/linux/netlink.h", prefix = "NLMSG_", module = "netlink.align",
 		desc = "Netlink wire alignment (NLMSG_ALIGNTO).",
 		include = { "ALIGNTO" } },
 	{ header = "uapi/linux/netlink.h", prefix = "NETLINK_", module = "netlink.proto",

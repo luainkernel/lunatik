@@ -25,7 +25,7 @@ local NLA_HDRLEN   = nlattr.size
 
 local U32 = "=I4"
 
-local ALIGNMASK = nl.ALIGNTO - 1
+local ALIGNMASK = nl.align.ALIGNTO - 1
 
 local function align(len)
 	return (len + ALIGNMASK) & ~ALIGNMASK
