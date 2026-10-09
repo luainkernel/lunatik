@@ -171,7 +171,7 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 *
 * @function netdevice
 * @tparam function callback invoked as `callback(event, name, netns)` — `event`
-*   is a `linux.netdev` code, `name` is the device name (e.g. `"eth0"`) and
+*   is a `linux.netdev.cmd` code, `name` is the device name (e.g. `"eth0"`) and
 *   `netns` the inode number of its network namespace, as `linux.netns` gives it.
 *   The registration itself delivers, inside this call, a `REGISTER` for each
 *   device every namespace already has, and an `UP` for each of those that is

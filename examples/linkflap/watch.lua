@@ -13,7 +13,7 @@ local linux    = require("linux")
 local notifier = require("notifier")
 local channel  = require("netlink.channel")
 local message  = require("netlink.message")
-local netdev   = require("linux.netdev")
+local netdev   = require("linux.netdev").cmd
 local notify   = require("linux.notify")
 
 local insert = table.insert

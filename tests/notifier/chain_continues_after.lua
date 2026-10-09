@@ -6,7 +6,7 @@
 -- registered after chain_continues_held's. See tests/notifier/chain_continues.sh.
 
 local notifier = require("notifier")
-local netdev   = require("linux.netdev")
+local netdev   = require("linux.netdev").cmd
 local notify   = require("linux.notify")
 
 local function callback(event, name)

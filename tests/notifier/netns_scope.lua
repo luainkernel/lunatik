@@ -6,7 +6,7 @@
 
 local notifier = require("notifier")
 local linux    = require("linux")
-local netdev   = require("linux.netdev")
+local netdev   = require("linux.netdev").cmd
 local notify   = require("linux.notify")
 local pids     = require("tests.netns_pid")
 
