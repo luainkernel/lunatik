@@ -59,7 +59,7 @@
 */
 
 /***
-* Creates a random number generator.
+* Creates a random number generator and seeds it as `reset` does without a seed.
 * @function rng
 * @tparam[opt="stdrng"] string algname algorithm name
 * @treturn crypto_rng

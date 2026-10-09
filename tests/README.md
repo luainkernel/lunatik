@@ -149,6 +149,13 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   `encrypt` and `decrypt` and as `aead`'s associated data, with no warning in
   `dmesg`. Skips unless the loaded `luacrypto` lists `luacrypto_newbuffer` in
   `/proc/kallsyms`, since a build that maps the string oopses on arm64.
+- **seed**: `rng` and `reset` without a seed seed an algorithm with `seedsize()`
+  random bytes the kernel draws. `ansi_cprng`, which refuses a seed under 32
+  bytes with `EINVAL`, is created, reports a seed size of 48 and gives other
+  bytes than a second one created beside it; two generators reset with one seed
+  give the same bytes, and other bytes once each is reset again without a seed;
+  a seed of 31 bytes and an empty one are refused with `EINVAL`. Skips where the
+  kernel has no `ansi_cprng`, and unloads it when the test loaded it.
 
 Each of `shash`, `skcipher`, `aead`, `rng` and `comp` also closes an object
 through `closing.lua`: its metatable holds one function under `__close` and

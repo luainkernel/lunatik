@@ -49,6 +49,7 @@ static int luacrypto_rng_generate(lua_State *L)
 
 /***
 * Reseeds the RNG.
+* Without a seed, the kernel draws one of `seedsize()` random bytes.
 * @function reset
 * @tparam[opt] string seed
 * @raise on reseed failure
@@ -58,6 +59,8 @@ static int luacrypto_rng_reset(lua_State *L)
 	struct crypto_rng *tfm = luacrypto_rng_check(L, 1);
 	size_t seed_len = 0;
 	const char *seed_data = luaL_optlstring(L, 2, NULL, &seed_len);
+	if (!seed_data)
+		seed_len = crypto_rng_seedsize(tfm);
 	lunatik_try(L, crypto_rng_reset, tfm, (const u8 *)seed_data, (unsigned int)seed_len);
 	return 0;
 }
@@ -143,7 +146,7 @@ int luacrypto_rng_new(lua_State *L)
 		lunatik_throw(L, PTR_ERR(tfm));
 
 	object->private = tfm;
-	lunatik_try(L, crypto_rng_reset, tfm, NULL, 0);
+	lunatik_try(L, crypto_rng_reset, tfm, NULL, crypto_rng_seedsize(tfm));
 	return 1;
 }
 
