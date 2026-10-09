@@ -25,7 +25,7 @@ return {
 		desc = "Ethernet protocol IDs." },
 	{ header = "uapi/linux/if_arp.h", prefix = "ARPHRD_", module = "arphrd",
 		desc = "Network device hardware types (ARPHRD_*)." },
-	{ header = "uapi/linux/if_packet.h", prefix = "PACKET_", module = "pkttype",
+	{ header = "uapi/linux/if_packet.h", prefix = "PACKET_", module = "packet.type",
 		desc = "Packet types (PACKET_HOST, ...).",
 		include = { "HOST", "BROADCAST", "MULTICAST", "OTHERHOST", "OUTGOING", "LOOPBACK", "USER", "KERNEL" } },
 	{ header = "linux/stat.h", prefix = "S_", module = "stat",
