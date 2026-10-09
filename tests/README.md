@@ -741,6 +741,10 @@ after the watch is stopped.
   their uapi numbers, and no other name under `SIG`: the `how` of
   `sigprocmask` (`SIG_BLOCK` and its siblings), the `sigevent` notifications
   (`SIGEV_*`) and the signal stack size (`SIGSTKSZ`).
+- **task**: `linux.task` carries the task states of `<linux/sched.h>` and
+  nothing else: not its bounds, `TASK_STATE_MAX` and `TASK_REPORT_MAX`, nor
+  `TASK_COMM_LEN`, nor an architecture's `TASK_SIZE`. The case reads the names
+  and no value, since the states are internal to the kernel.
 
 - **lookup**: `linux.lookup` answers `nil` for a symbol kallsyms does not
   carry and a lightuserdata for one it does, and rejects a non-string

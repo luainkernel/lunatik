@@ -13,6 +13,10 @@
 # names that share the SIG prefix: the how of sigprocmask (SIG_BLOCK), the sigevent notifications
 # (SIGEV_*) and the signal stack size (SIGSTKSZ).
 #
+# task: linux.task carries the task states of <linux/sched.h> and nothing else: not its bounds,
+# TASK_STATE_MAX and TASK_REPORT_MAX, nor TASK_COMM_LEN, nor an architecture's TASK_SIZE. The case
+# reads the names and no value: the states are internal to the kernel.
+#
 # netns: linux.netns resolves pid 1 in a process runtime, in its body and resumed
 # past it, and in the body of a softirq and a hardirq runtime; resumed past theirs,
 # the armed state a hook calls from, each answers the call without a pid and
@@ -48,7 +52,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fsnotify notifier signal lookup constants schedule netns errname ifindex tracing socket"
+TESTS="random fsnotify notifier signal task lookup constants schedule netns errname ifindex tracing socket"
 TOTAL=$(echo $TESTS | wc -w)
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil
