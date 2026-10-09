@@ -16,7 +16,7 @@ local function workload()
 		reported = true
 		print("scx pass test pass: task class assigned")
 	end
-	return DSQ_DEFAULT, ext.SLICE_DFL
+	return DSQ_DEFAULT, ext.slice.DFL
 end
 
 scx.attach(workload)
