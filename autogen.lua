@@ -361,7 +361,7 @@ function extract.parse()
 				current = nil
 				struct = { module = smod, name = sname, key = skey, fields = {}, total = 0 }
 			else
-				local sym, val = ascii:match('^%-%>(%S+)%s+%$?(%-?%d+)%s+.+$')
+				local sym, val = ascii:match('^%-%>(%S+)%s+[%$#]?(%-?%d+)%s+.+$')
 				if sym and val and struct then
 					record_probe(struct, sym, val)
 				elseif sym and val and current and current.prefix
