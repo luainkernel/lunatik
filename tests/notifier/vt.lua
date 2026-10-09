@@ -5,7 +5,7 @@
 -- Kernel-side script for the notifier vt test (see vt.sh).
 
 local notifier = require("notifier")
-local vt       = require("linux.vt")
+local vt       = require("linux.vt").event
 
 local MARK    <const> = string.byte("`") -- the character vt.sh writes
 local CONSOLE <const> = 0 -- /dev/tty1
