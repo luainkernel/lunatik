@@ -10,7 +10,7 @@
 * `netlink.message`) and sent as-is; request/response netlink is otherwise done
 * in Lua over the `socket` module. Only this softirq-capable send path needs a
 * dedicated kernel object. A channel is created and used from a process or softirq
-* runtime only, never from a hardirq one: with an nlmon tap up, a send hands a copy of
+* runtime only, and `new` refuses a hardirq one: with an nlmon tap up, a send hands a copy of
 * the message to `dev_queue_xmit`, which re-enables bottom halves, and the kernel warns
 * when that happens in a hardirq.
 *
@@ -197,7 +197,8 @@ static const lunatik_class_t luanetlink_channel_class = {
 * @treturn netlink.channel the channel, which `new` keeps for its runtime: dropping it stops
 *   nothing, and the family stays registered until `stop` or the end of the runtime.
 * @raise "not allowed once the runtime is armed" from an interrupt-context runtime past its body;
-*   "not allowed in a percpu runtime"; "not allowed under RTNL" from a netdevice callback, in
+*   "not allowed in a percpu runtime"; "not allowed in a hardirq runtime";
+*   "not allowed under RTNL" from a netdevice callback, in
 *   whatever runtime or coroutine its task runs, since the registration takes a lock a request
 *   holds while it waits on RTNL; if the name is empty or too long, or if family registration
 *   fails.
@@ -207,6 +208,7 @@ static int luanetlink_channel_new(lua_State *L)
 {
 	lunatik_checkarmed(L);
 	lunatik_checkpercpu(L);
+	lunatik_checkhardirq(L);
 	size_t len;
 	const char *name = luaL_checklstring(L, 1, &len);
 	luaL_argcheck(L, len > 0 && len < GENL_NAMSIZ, 1, "invalid family name length");

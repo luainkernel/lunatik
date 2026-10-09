@@ -13,7 +13,9 @@
 # hook also calls netlink.channel.new, which registers a family and sleeps, and must
 # be refused there; the name is empty so that a build without that refusal raises
 # on the name instead of registering a family from softirq. The same script run
-# percpu is refused at load, since every runtime would register the one family.
+# percpu is refused at load, since every runtime would register the one family,
+# and the same script run in a hardirq runtime is refused by netlink.channel.new,
+# before the netfilter registration that would raise there too.
 # Its body refuses, as out of bounds, a port id past 32 bits or negative and a
 # command past 8 bits or negative, each with low bits a truncating build would
 # send to, and takes both at the top of their range; it refuses a unicast to
@@ -45,7 +47,7 @@ SUB_OUT="$(mktemp)"
 SUB_ERR="$(mktemp)"
 
 ktap_header
-ktap_plan 9
+ktap_plan 10
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
@@ -61,6 +63,11 @@ output=$(lunatik run --context=softirq --percpu "$SCRIPT" 2>&1)
 echo "$output" | grep -q "not allowed in a percpu runtime" || fail "percpu run did not refuse the channel: $output"
 genl ctrl get name "$FAMILY" > /dev/null 2>&1 && fail "the refused percpu run left $FAMILY registered"
 ktap_pass "channel: a percpu runtime is refused at load"
+
+output=$(lunatik run --context=hardirq "$SCRIPT" 2>&1)
+echo "$output" | grep -q "not allowed in a hardirq runtime" || fail "hardirq run did not refuse the channel: $output"
+genl ctrl get name "$FAMILY" > /dev/null 2>&1 && fail "the refused hardirq run left $FAMILY registered"
+ktap_pass "channel: a hardirq runtime is refused at load"
 
 mark_dmesg
 run_script --context=softirq "$SCRIPT"

@@ -945,7 +945,7 @@ higher-level `netlink.*` modules built on top of it.
   body is refused with "not allowed once the runtime is armed", since
   unregistering sleeps. `genl ctrl` resolves the kept family alone, until its
   runtime stops. The same script resumed past its body stops the kept channel
-  in a process runtime and is refused in a hardirq one (skips without `genl`).
+  in a process runtime (skips without `genl`).
 
 - **socket**: opens an `AF_NETLINK` socket; a bind/`getsockname` round-trip
   exercises the address translation, and an `RTM_GETLINK` dump exercises send
@@ -1029,7 +1029,8 @@ higher-level `netlink.*` modules built on top of it.
   that port id and joined to the group receives both, proving kernel-to-
   userspace multicast and unicast delivery from softirq; on its first packet the
   hook calls `netlink.channel.new`, which must raise there, and the same script run
-  percpu is refused at load (skips without `gcc`/`genl`). The script's body
+  percpu or in a hardirq runtime is refused at load (skips without
+  `gcc`/`genl`). The script's body
   refuses as out of bounds a port id past 32 bits or negative and a command past
   8 bits or negative, by values whose low bits a truncating build would send
   to, and takes both at the top of their range; it refuses a unicast to port id

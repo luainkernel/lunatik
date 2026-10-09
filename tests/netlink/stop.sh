@@ -11,14 +11,13 @@
 # multicast and unicast then raise, which it reports, one held by a to-be-closed
 # variable that goes out of scope, whose metatable holds one function under
 # __close and stop, and one it keeps. stop.lua runs it in a process runtime,
-# then in a hardirq one, and last in a softirq one through the runner, which
-# keeps it under its name, and resumes each past its body, the armed state a
-# callback runs in. Stopping the kept channel there is accepted in the process
-# runtime and refused in the other two with the message the case asserts, since
-# genl_unregister_family sleeps; the first two runtimes are closed after their
-# case. genl ctrl then resolves the softirq runtime's kept family and neither of
-# the others, and the kept one leaves with its runtime, with no error or warning
-# in the kernel log.
+# then in a softirq one through the runner, which keeps it under its name, and
+# resumes each past its body, the armed state a callback runs in. Stopping the
+# kept channel there is accepted in the process runtime and refused in the
+# softirq one with the message the case asserts, since genl_unregister_family
+# sleeps; the process runtime is closed after its case. genl ctrl then resolves
+# the softirq runtime's kept family and not the process runtime's, and the kept
+# one leaves with its runtime, with no error or warning in the kernel log.
 #
 # Usage: sudo bash tests/netlink/stop.sh
 

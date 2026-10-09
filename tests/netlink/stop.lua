@@ -22,11 +22,6 @@ test("netlink: stop is accepted once a process runtime is armed", function()
 	channels:resume()
 end)
 
-test("netlink: stop is refused once a hardirq runtime is armed", function()
-	local channels <close> = lunatik.runtime(CHANNELS, "hardirq")
-	refused(channels)
-end)
-
 -- the runner keeps the channels' runtime under its name, which the cleanup stops
 test("netlink: stop is refused once a softirq runtime is armed", function()
 	refused(runner.run(CHANNELS, "softirq"))

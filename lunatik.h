@@ -377,6 +377,7 @@ static inline lua_Integer lunatik_checkfieldinteger(lua_State *L, const char *fi
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
+#define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
 
 static inline void lunatik_checkclosing(lua_State *L)
 {
@@ -438,6 +439,12 @@ static inline void lunatik_checkirqs(lua_State *L)
 {
 	if (irqs_disabled())
 		luaL_error(L, LUNATIK_ERR_IRQS);
+}
+
+static inline void lunatik_checkhardirq(lua_State *L)
+{
+	if (lunatik_ishardirq(lunatik_toruntime(L)->opt))
+		luaL_error(L, LUNATIK_ERR_HARDIRQ);
 }
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt);

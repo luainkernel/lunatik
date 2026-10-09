@@ -561,6 +561,15 @@ a task's siglock among them, may then be held by the CPU itself, so an entry poi
 takes one refuses there, as `signal.kill` does. It reads `irqs_disabled()` rather than the runtime's
 context, which says how its lock is taken and not the state of the CPU it runs on.
 
+### lunatik\_checkhardirq
+```C
+void lunatik_checkhardirq(lua_State *L);
+```
+Raises a Lua error, `"not allowed in a hardirq runtime"`, when `L`'s runtime is a hardirq one. A
+constructor whose object no callback of such a runtime can use calls it, as `netlink.channel.new`
+does, whose send re-enables bottom halves where an nlmon tap is up. It reads the runtime's context
+rather than the CPU's state, so the refusal comes from the script body, which runs with interrupts on.
+
 ### lunatik\_percpudata
 ```C
 lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class, size_t size);
@@ -1081,6 +1090,7 @@ handler, a `BUG()`. After a protected call or a resume fails, the error is read 
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
+#define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 ```
 The messages of the refusals this page documents. A binding that refuses one of their conditions on
