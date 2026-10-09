@@ -199,6 +199,7 @@ static unsigned int luanetfilter_numhooks(u8 pf)
 static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *spec)
 {
 	luaL_checktype(L, ix, LUA_TTABLE);
+	lunatik_checkfield(L, ix, "hook", LUA_TFUNCTION);
 	lunatik_setinteger(L, ix, (&spec->nfops), pf, 0, U8_MAX);
 	unsigned int numhooks = luanetfilter_numhooks(spec->nfops.pf);
 	if (numhooks == 0)
@@ -207,7 +208,7 @@ static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *sp
 	lunatik_setinteger(L, ix, (&spec->nfops), priority, INT_MIN, INT_MAX);
 	spec->marked = lunatik_optfield(L, ix, "mark", LUA_TNUMBER);
 	spec->mark = spec->marked ? lunatik_checkfieldinteger(L, "mark", 0, U32_MAX) : 0;
-	lua_pop(L, 1);
+	lua_pop(L, 2); /* hook and mark */
 }
 
 static luanetfilter_hook_t *luanetfilter_share(lua_State *L, lunatik_object_t *percpu, const luanetfilter_hook_t *spec)
@@ -298,7 +299,8 @@ static const lunatik_class_t luanetfilter_class = {
 *   the percpu set stops.
 * @raise "not allowed once the runtime is armed" past the script body; `runtime context mismatch`
 *   outside a softirq runtime; `not allowed while the runtime closes` from a finalizer that runs at
-*   its close; `bad field '<field>' (number expected, got <type>)` if `pf`, `hooknum` or
+*   its close; `bad field 'hook' (function expected, got <type>)` if `hook` is missing or not a
+*   function; `bad field '<field>' (number expected, got <type>)` if `pf`, `hooknum` or
 *   `priority` is missing or not a number, or if `mark` is present and not a number;
 *   `bad field '<field>' (out of bounds)` if `pf` is not a family whose hooks netfilter keeps
 *   in a table, `hooknum` is not a hook of that table, `mark` is negative or past 32 bits, or
