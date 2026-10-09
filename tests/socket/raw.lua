@@ -37,6 +37,8 @@ say("new with no interface " .. binds(PROTO))
 say("new with no ethertype " .. binds(nil, ifindex))
 say("new with no argument " .. binds())
 
+collectgarbage("stop") -- a socket a failed bind left open stays in /proc/net/packet until the runtime stops
+
 say("new on an absent interface " .. raises(PROTO, ABSENT))
 say("new on a negative interface " .. raises(PROTO, -1))
 

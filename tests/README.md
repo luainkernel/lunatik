@@ -848,8 +848,8 @@ the `util` module to its documentation on that Lua's stack.
 
 ### monitor
 
-Regression tests for `lunatik_monitor` (spinlock + GC interaction, and the gfp its caller
-allocates with).
+Regression tests for `lunatik_monitor` (spinlock + GC interaction, the gfp its caller
+allocates with, and the collector state it leaves).
 
 - **gc**: a spawned thread uses a `sleep=false` fifo from a `sleep=true`
   runtime; `f:pop()` allocates inside `spin_lock_bh`, forcing GC that
@@ -864,6 +864,11 @@ allocates with).
   interrupt-context runtime's after its own monitored method included, and under the
   process runtime's mutex and after the hardirq runtime's raise, `GFP_KERNEL`. Skips where
   tracefs has no instance with that event.
+- **collector**: a process runtime stops its collector and calls a `fifo`'s `push`, which
+  returns, and its `pop` past the capacity, which raises, then restarts the collector and
+  calls `pop` both ways again. `collectgarbage("isrunning")` reads stopped after the calls
+  made while stopped and running after the others: the monitor stops the collector around
+  the method and restarts only one it found running.
 
 ### netfilter
 
@@ -1789,9 +1794,9 @@ pid, what a valid call does, and where it refuses to run.
   bind raises, `ENODEV` on an interface index no device holds or the refusal of
   one out of bounds, it raises that error unchanged once it has closed the
   socket: `new` creates it with no ethertype for the bind to name, so one left
-  open stays listed in `/proc/net/packet` as a `SOCK_RAW` socket with no
-  ethertype and no interface until it is collected, and the test reads the
-  sockets listed that way before and after the run.
+  to the collector, which the script stops, stays listed in `/proc/net/packet`
+  as a `SOCK_RAW` socket with no ethertype and no interface, and the test reads
+  the sockets listed that way before and after the run.
 
 - **address**: what `getsockname()`, `getpeername()` and `receivefrom()`
   answer with, per family. The kernel reports how many bytes it filled and the

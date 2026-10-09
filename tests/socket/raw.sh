@@ -12,10 +12,9 @@
 # bounds the binding takes, new raises that error unchanged once it has closed the
 # socket. new creates the socket with no ethertype and the bind names it, so a socket
 # a failed bind leaves is listed in /proc/net/packet as SOCK_RAW with no ethertype and
-# no interface until it is collected, and the test reads the sockets listed that way
-# before the run and after it: one that appeared during the run and is still listed is
-# one new left open. The script does not stop its collector, which every monitored
-# method restarts, so a collection during the run would hide such a socket.
+# no interface. The script stops its collector, which keeps such a socket alive until
+# the runtime stops, and the test reads the sockets listed that way before the run and
+# after it: one that appeared during the run and is still listed is one new left open.
 #
 # Usage: sudo bash tests/socket/raw.sh
 
