@@ -60,7 +60,8 @@ Describes a Lunatik object class.
     the lock with
     `lunatik_lockkillable`: the stop of a kernel thread, or a fatal signal to any other task, ends
     the wait and the call raises `EINTR`. While the method runs, the calling runtime allocates with
-    the object's `gfp`.
+    the object's `gfp` and its collector is stopped, so no finalizer runs under the lock; the
+    wrapper restarts the collector afterwards only if it was running.
   - `LUNATIK_OPT_SINGLE` *(constraint)*: all instances are private and non-shareable by default.
     Like `SOFTIRQ`, this is always inherited and cannot be overridden per instance.
   - `LUNATIK_OPT_EXTERNAL` *(constraint)*: `object->private` holds an external pointer — Lunatik

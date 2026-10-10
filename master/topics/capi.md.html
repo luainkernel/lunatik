@@ -269,7 +269,8 @@ named <span class="backtick"><code>close</code></span> <span class="keyword">or<
 the lock with
 <span class="backtick"><code>lunatik_lockkillable</code></span>: the stop of a kernel thread, <span class="keyword">or</span> a fatal signal to any other task, ends
 the wait <span class="keyword">and</span> the call raises <span class="backtick"><code>EINTR</code></span>. While the method runs, the calling runtime allocates with
-the <span class="function-name">object</span>'s <span class="backtick"><code>gfp</code></span>.
+the <span class="function-name">object</span>'s <span class="backtick"><code>gfp</code></span> <span class="keyword">and</span> its collector is stopped, so no finalizer runs under the lock; the
+wrapper restarts the collector afterwards only <span class="keyword">if</span> it was running.
 </pre>
 
 
@@ -2135,7 +2136,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../topics/capi.md.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-09 11:54:47</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 11:34:24</span>
 </div>
 </footer>
 </body>
