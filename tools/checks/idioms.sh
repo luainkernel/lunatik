@@ -18,7 +18,10 @@
 # or one that runs onto the next line, is a predicate the file names: #1705's checksum() spelled
 # two until the maintainer asked for luaskb_iswhole4 and luaskb_iswhole6. A load of one mode
 # refuses what require and load take, and darken.run loaded text only, with no reason written,
-# from its first commit until a stripped chunk had to ship encrypted (#1767).
+# from its first commit until a stripped chunk had to ship encrypted (#1767). A refusal raised
+# with the family's wording as a literal, "not allowed ...", is a context check outside the
+# lunatik_check helpers guards.sh counts: #1818's netlink.channel.new refused a hardirq runtime
+# that way until the maintainer asked for lunatik_checkhardirq.
 # Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
 # guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -73,6 +76,8 @@ for file in "$@"; do
 			printf "%s:%d: a version a feature needs reads as that one release: \"kernel X.Y or later\"\n", f, NR
 		if (line ~ /(luaL_loadbufferx|luaL_loadfilex|lua_load)[ \t]*\(.*,[ \t]*"[tb]"[ \t]*\)/)
 			printf "%s:%d: a load of one mode refuses what require and load take: say beside it what the refusal protects\n", f, NR
+		if (line ~ /luaL_error\(L,[ \t]*"not allowed/)
+			printf "%s:%d: a refusal spelled inline: its message is a LUNATIK_ERR_ constant and its check a lunatik_check helper beside the family, which guards.sh counts\n", f, NR
 		if (line ~ /\(pid_t\)[ \t]*luaL_(check|opt)integer\(/)
 			printf "%s:%d: a pid cast from luaL_checkinteger truncates before the kernel sees it: lunatik_checkinteger(L, ix, 1, PID_MAX_LIMIT), as socket.new bounds it\n", f, NR
 		if (line ~ /^(else )?(if|while) \(/) {
