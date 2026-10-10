@@ -211,8 +211,9 @@ tests_uninstall:
 	${RM} -r ${LUNATIK_TESTS_INSTALL_PATH}
 
 modules_install:
+	${RM} -r ${MODULES_INSTALL_PATH}/lunatik
 	${MKDIR} ${MODULES_INSTALL_PATH}/lunatik
-	${INSTALL} -m 0644 *.ko lib/*.ko ${MODULES_INSTALL_PATH}/lunatik
+	${INSTALL} -m 0644 $$(sed 's/\.o$$/.ko/' modules.order) ${MODULES_INSTALL_PATH}/lunatik
 
 btf_install:
 	cp /sys/kernel/btf/vmlinux ${BTF_INSTALL_PATH}
