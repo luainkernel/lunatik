@@ -139,12 +139,13 @@ orphan and `rmmod` it — the one case where a manual `rmmod` is the fix.
 
 The autogen output (`autogen/linux/*.lua`, `autogen/.config`, `autogen/.stamp`) is untracked build
 state and does not follow a branch switch. The symptom is a runtime `attempt to index a nil value`
-on a `linux.*` constant, not a build error. Regenerate cleanly with
-`rm -f autogen/.stamp autogen/linux/*.lua && make`; autogen recreates the files, not the directory.
+on a `linux.*` constant, not a build error. Regenerate cleanly with `rm -f autogen/.stamp && make`:
+the stamp's recipe clears `autogen/linux/*.lua` itself.
 
 A worktree that has not run `make` cannot install: `scripts_install` needs the autogen output and
-fails, and an install whose output was silenced fails unseen while the previous install stays in
-place, so every run after it tests the wrong tree. A silenced `make` does the same one step earlier:
+stops there, once it has rewritten the libraries and emptied `linux/`, with the previous install's
+`lunatik/`, modules, examples and tests still in place. An install whose output was silenced
+fails unseen, so every run after it tests that mix. A silenced `make` does the same one step earlier:
 the chain stops at the build and the suite run next reports on the modules already installed. Keep the
 build's and the install's output visible, and before reading a result confirm that what sits under
 `/lib/modules/lua/` is the tree under test: its timestamp, or a grep for a symbol only the branch has.
@@ -153,7 +154,8 @@ build's and the install's output visible, and before reading a result confirm th
 directly afterwards (`bash tests/<suite>/<test>.sh`) skips with `not loaded` until the next
 `lunatik reload`; that unload is the CLI's, not a leak.
 
-`make install` never removes a stray file from `/lib/modules/lua/`. A scratch script left there
+`make install` clears each directory it writes under `/lib/modules/lua/` before writing it, and
+leaves a scratch script at the top level in place. A scratch script left there
 shadows the module of the same name: `require` returns `true` and the failure surfaces later as
 `attempt to index a boolean value`, far from its cause. Remove a scratch script right after
 running it.
