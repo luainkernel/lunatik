@@ -180,28 +180,33 @@ int lunatik_deleteobject(lua_State *L)
 }
 EXPORT_SYMBOL(lunatik_deleteobject);
 
-static int lunatik_monitor(lua_State *L)
+static int lunatik_pcallobject(lua_State *L, lunatik_object_t *object, int n)
 {
-	int ret, n = lua_gettop(L);
-	lunatik_object_t *object = lunatik_checkobject(L, 1);
 	lunatik_object_t *runtime = lunatik_toruntime(L);
-
-	lunatik_checkowner(L, object); /* the runtime's resume runs Lua that can reach this handle again */
-	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
-	lua_insert(L, 1); /* stack: method, object, args */
 
 	lunatik_try(L, lunatik_lockkillable, object);
 	gfp_t gfp = lunatik_gfp(runtime);
 	runtime->gfp = lunatik_gfp(object); /* the method allocates under the object's lock */
 	int running = lua_gc(L, LUA_GCISRUNNING);
 	lua_gc(L, LUA_GCSTOP);
-	ret = lua_pcall(L, n, LUA_MULTRET, 0);
-	lunatik_unlock(object);
-	runtime->gfp = gfp;
+	int ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	if (running)
 		lua_gc(L, LUA_GCRESTART);
+	runtime->gfp = gfp;
+	lunatik_unlock(object);
+	return ret;
+}
 
-	if (ret != LUA_OK) {
+static int lunatik_monitor(lua_State *L)
+{
+	int n = lua_gettop(L);
+	lunatik_object_t *object = lunatik_checkobject(L, 1);
+
+	lunatik_checkowner(L, object); /* the runtime's resume runs Lua that can reach this handle again */
+	lua_pushvalue(L, lua_upvalueindex(1)); /* method */
+	lua_insert(L, 1); /* stack: method, object, args */
+
+	if (lunatik_pcallobject(L, object, n) != LUA_OK) {
 		const char *method = lua_tostring(L, lua_upvalueindex(2));
 		luaL_gsub(L, lua_tostring(L, -1), "?", method);
 		lua_error(L);
