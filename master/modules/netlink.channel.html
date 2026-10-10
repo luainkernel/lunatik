@@ -188,7 +188,9 @@
  dedicated kernel object. A channel is created and used from a process or softirq
  runtime only, and <a href="../modules/netlink.channel.html#new">new</a> refuses a hardirq one: with an nlmon tap up, a send hands a copy of
  the message to <code>dev_queue_xmit</code>, which re-enables bottom halves, and the kernel warns
- when that happens in a hardirq.
+ when that happens in a hardirq. <a href="../modules/netlink.channel.html#netlink.channel:multicast">multicast</a> and <a href="../modules/netlink.channel.html#netlink.channel:unicast">unicast</a> refuse a call with IRQs disabled,
+ where a softirq runtime&rsquo;s callback can run too, as <a href="../modules/hid.html#">hid</a>&rsquo;s <code>raw_event</code> does behind a USB host
+ controller that completes in its interrupt handler.
     <h2 id="usage">Usage</h2>
         <pre class="example">-- lunatik run -c softirq &lt;script&gt;: multicasts a notice for each IPv4 packet the host receives
 local channel   = require(&quot;netlink.channel&quot;)
@@ -274,8 +276,8 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;out of bounds&rdquo; if <code>cmd</code> is past 8 bits or negative, &ldquo;closed object&rdquo; if the channel has
-   been stopped, or on an allocation error.
+    &ldquo;not allowed with IRQs disabled&rdquo;; &ldquo;out of bounds&rdquo; if <code>cmd</code> is past 8 bits or negative,
+   &ldquo;closed object&rdquo; if the channel has been stopped, or on an allocation error.
 
 
 
@@ -339,8 +341,9 @@ netfilter.register{
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;out of bounds&rdquo; if <code>portid</code> is 0, negative or past 32 bits, or <code>cmd</code> is past 8 bits or
-   negative, &ldquo;closed object&rdquo; if the channel has been stopped, or on an allocation error.
+     &ldquo;not allowed with IRQs disabled&rdquo;; &ldquo;out of bounds&rdquo; if <code>portid</code> is 0, negative or past 32
+   bits, or <code>cmd</code> is past 8 bits or negative, &ldquo;closed object&rdquo; if the channel has been stopped, or
+   on an allocation error.
 
 
 
@@ -400,7 +403,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../modules/netlink.channel.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:19:04</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:28:22</span>
 </div>
 </footer>
 </body>
