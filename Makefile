@@ -106,6 +106,7 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/syscall
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/crypto
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/bpf
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/linux
 	${MKDIR} ${LUA_PATH}/lunatik
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
@@ -242,6 +243,7 @@ $(AUTOGEN_CONFIG): FORCE
 		printf '%s\n' '$(AUTOGEN_KEY)' > $@
 
 $(AUTOGEN_STAMP): autogen.lua autogen/specs.lua $(AUTOGEN_CONFIG)
+	${RM} autogen/linux/*.lua
 	CC='$(CC)' "$(LUA)" autogen.lua "$(MODULES_BUILD_PATH)" "$(KERNEL_RELEASE)" "$(LUNATIK_MODULES)"
 	@touch $@
 
