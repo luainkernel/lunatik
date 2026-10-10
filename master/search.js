@@ -65,7 +65,7 @@ window.LUNATIK_SEARCH = [
 ["crypto","modules/crypto.html","Module · Lua interface to the Linux Crypto API."],
 ["aead (algname)","modules/crypto.html#aead","crypto · Creates an AEAD cipher transform."],
 ["comp (algname)","modules/crypto.html#comp","crypto · Creates a compression transform."],
-["rng ([algname=\"stdrng\"])","modules/crypto.html#rng","crypto · Creates a random number generator."],
+["rng ([algname=\"stdrng\"])","modules/crypto.html#rng","crypto · Creates a random number generator and seeds it as reset does without a seed."],
 ["shash (algname)","modules/crypto.html#shash","crypto · Creates a synchronous hash transform."],
 ["skcipher (algname)","modules/crypto.html#skcipher","crypto · Creates a symmetric-key cipher transform."],
 ["darken","modules/darken.html","Module · Encrypted Lua script execution using AES-256-GCM."],
