@@ -103,6 +103,7 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink/rt
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink/nl80211
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/skb
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/syscall
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/crypto
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/bpf
@@ -145,6 +146,7 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/lunatik
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/socket
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/netlink
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/skb
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/syscall
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/crypto
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/bpf
