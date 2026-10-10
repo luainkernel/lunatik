@@ -12,7 +12,9 @@
 * dedicated kernel object. A channel is created and used from a process or softirq
 * runtime only, and `new` refuses a hardirq one: with an nlmon tap up, a send hands a copy of
 * the message to `dev_queue_xmit`, which re-enables bottom halves, and the kernel warns
-* when that happens in a hardirq.
+* when that happens in a hardirq. `multicast` and `unicast` refuse a call with IRQs disabled,
+* where a softirq runtime's callback can run too, as `hid`'s `raw_event` does behind a USB host
+* controller that completes in its interrupt handler.
 *
 * @module netlink.channel
 * @usage
@@ -106,11 +108,12 @@ static struct sk_buff *luanetlink_message(lua_State *L, struct genl_family *fami
 * @tparam integer cmd Generic netlink command, from 0 to 255.
 * @tparam[opt] string payload Message body (e.g. from `netlink.message`).
 * @treturn boolean whether it reached at least one subscriber.
-* @raise "out of bounds" if `cmd` is past 8 bits or negative, "closed object" if the channel has
-*   been stopped, or on an allocation error.
+* @raise "not allowed with IRQs disabled"; "out of bounds" if `cmd` is past 8 bits or negative,
+*   "closed object" if the channel has been stopped, or on an allocation error.
 */
 static int luanetlink_multicast(lua_State *L)
 {
+	lunatik_checkirqs(L);
 	luanetlink_channel_t *channel = luanetlink_channel_check(L, 1);
 	u8 cmd = luanetlink_checkcmd(L, 2);
 	size_t len;
@@ -132,11 +135,13 @@ static int luanetlink_multicast(lua_State *L)
 * @tparam[opt] string payload Message body (e.g. from `netlink.message`).
 * @treturn boolean whether it was queued to the port id (`false` if the port
 *   id is gone or its receive buffer is full).
-* @raise "out of bounds" if `portid` is 0, negative or past 32 bits, or `cmd` is past 8 bits or
-*   negative, "closed object" if the channel has been stopped, or on an allocation error.
+* @raise "not allowed with IRQs disabled"; "out of bounds" if `portid` is 0, negative or past 32
+*   bits, or `cmd` is past 8 bits or negative, "closed object" if the channel has been stopped, or
+*   on an allocation error.
 */
 static int luanetlink_unicast(lua_State *L)
 {
+	lunatik_checkirqs(L);
 	luanetlink_channel_t *channel = luanetlink_channel_check(L, 1);
 	u32 portid = (u32)lunatik_checkinteger(L, 2, 1, U32_MAX);
 	u8 cmd = luanetlink_checkcmd(L, 3);
