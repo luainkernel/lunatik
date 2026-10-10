@@ -180,17 +180,6 @@ int lunatik_deleteobject(lua_State *L)
 }
 EXPORT_SYMBOL(lunatik_deleteobject);
 
-inline static void lunatik_fixerror(lua_State *L, const char *method)
-{
-	if (method) {
-		const char *error = lua_tostring(L, -1);
-		luaL_gsub(L, error, "?", method);
-		lua_remove(L, -2); /* error */
-	}
-	lua_remove(L, -2); /* fixed error */
-	lua_error(L);
-}
-
 static int lunatik_monitor(lua_State *L)
 {
 	int ret, n = lua_gettop(L);
@@ -214,7 +203,8 @@ static int lunatik_monitor(lua_State *L)
 
 	if (ret != LUA_OK) {
 		const char *method = lua_tostring(L, lua_upvalueindex(2));
-		lunatik_fixerror(L, method);
+		luaL_gsub(L, lua_tostring(L, -1), "?", method);
+		lua_error(L);
 	}
 	return lua_gettop(L);
 }
