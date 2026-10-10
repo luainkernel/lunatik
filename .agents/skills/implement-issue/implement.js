@@ -29,7 +29,7 @@
 //               the filing are the session's
 //
 // It returns the implementer's answer, the review's, the pull request, the issues that now hold each
-// entry of findings_left, and any entry left unfiled.
+// entry of findings_left the filing did not skip, and any entry left unfiled.
 
 export const meta = {
   name: 'implement-issue',
@@ -124,14 +124,21 @@ call read the file the command names, and refuse a path a shell variable holds. 
 \`workflow-reviewed\`, since the review ran over this head. Your answer is the pull request's number.
 `
 
-const FILE = (entries, source) => `
+const FILE = (entries, source, findings, fixes) => `
 ${MACHINE}File what the implementation of issue #${a.issue} and its review left, as issues of luainkernel/lunatik.
-You post nothing on a pull request, no review and no comment.
+You post nothing on a pull request, no review and no comment, and no entry goes to one: the issues endpoint
+answers for a pull request too, and \`gh api repos/luainkernel/lunatik/issues/<n>\` carries a \`pull_request\`
+field when <n> is one.
 
-CHECKPOINT: ${fileCheckpoint} records every entry already filed, one line each,
-\`<index> | <title> | #<issue> | created\` or \`... | updated\`. Read it first and skip an entry whose index and
-title it records, since an entry filed twice is a duplicate someone closes by hand; append the line the moment
+CHECKPOINT: ${fileCheckpoint} records every entry already filed, one line each under its title in ENTRIES,
+\`<index> | <title> | #<issue> | created\`, \`... | updated\` or \`... | skipped\`. Read it first and leave an entry whose index and
+title it records as its line says, since an entry filed twice is a duplicate someone closes by hand; append the line the moment
 the issue holds it.
+
+An entry was written before the run went on, so what the branch did since is read before it is filed. An
+entry a finding of the review below fixed with a commit, or a fix below traced and committed, is skipped, and
+one the branch fixes in part is cut to the part it leaves. A failure a fix read as not caused by the change and
+fixed by an open pull request is skipped too. A skipped entry is held by that pull request, or by #${source}.
 
 Two entries that report one defect, the implementer's and the review's, are one: file the fuller
 once and name both indexes against the issue that holds it. For each other entry:
@@ -152,7 +159,13 @@ once and name both indexes against the issue that holds it. For each other entry
 - the body carries the entry's contract on a line of its own, \`Contract: <contract>\`, the promise its
   severity was read against.
 
-Your answer names, for every entry by its index, the issue that now holds it.
+Your answer names, for every entry by its index, the issue or the pull request that now holds it.
+
+THE REVIEW'S FINDINGS, each with its disposition:
+${JSON.stringify(findings, null, 2)}
+
+THE FIXES of the host run, each with whether the change caused what it traced:
+${JSON.stringify(fixes, null, 2)}
 
 ENTRIES:
 ${JSON.stringify(entries.map((entry, index) => ({ index, ...entry })), null, 2)}
@@ -200,7 +213,7 @@ const OPENED = { type: 'object', properties: { pr: { type: 'integer' }, notes: {
 
 const FILED = { type: 'object', properties: {
   filed: { type: 'array', items: { type: 'object', properties: {
-    index: { type: 'integer' }, number: { type: 'integer' }, action: { type: 'string', enum: ['created', 'updated'] },
+    index: { type: 'integer' }, number: { type: 'integer' }, action: { type: 'string', enum: ['created', 'updated', 'skipped'] },
   }, required: ['index', 'number', 'action'] } },
 }, required: ['filed'] }
 
@@ -263,7 +276,7 @@ if (a.gh === false && findings_left.length)
   log('gh is absent: the session files what the agents left')
 else if (findings_left.length) {
   phase('File')
-  const filing = await agent(FILE(findings_left, pr || a.issue), {
+  const filing = await agent(FILE(findings_left, pr || a.issue, review?.hunt?.findings || [], fixes), {
     label: `file:${a.issue}`, phase: 'File', agentType: 'lunatik-github', effort: 'low', schema: FILED,
   })
   filed = filing?.filed || []
@@ -272,6 +285,6 @@ const unfiled = findings_left.filter((_, index) => !filed.some(f => f.index === 
 if (unfiled.length) {
   log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}`)
 }
-const issues = [...new Set(filed.map(f => f.number))]
+const issues = [...new Set(filed.filter(f => f.action !== 'skipped').map(f => f.number))]
 return { issue: a.issue, pr, implemented, review, fixes, findings_left, filed, issues, unfiled }
 
