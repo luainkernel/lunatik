@@ -93,11 +93,16 @@ change in the facts behind it can reopen it.
 
 Four artefacts, none of them a kernel module:
 
-* **the translator**, Lua run by `lunatikc`: it loads the program file, captures the functions it
+* **the translator**, a Lua library, `luaebpf/`, a peer of `lib/` and `autogen/` rather than a
+  part of `lunatikc`: `luaebpf.compile(chunk)` loads the program file, captures the functions it
   declares, reads their bytecode and emits `bpf_insn`, `.BTF`, `.BTF.ext` and the map definitions
-  into a BPF ELF object, then links the runtime library into it;
-* **the runtime library**, C under `lunatikc/rt/`, compiled by clang at `make`, shipped as one
-  BPF object;
+  into a BPF ELF object. The BTF reader and the ELF writer are Lua inside the library, so compiling
+  needs no C. `lunatikc` hosts it: a subcommand that stands up the kernel-configured Lua with the
+  standard libraries and a prototype accessor and calls `luaebpf.compile`. The library is what the
+  tests exercise and what any other host reuses; the driver is a dozen lines;
+* **the runtime library**, C under `luaebpf/rt/`, compiled by clang at `make`, shipped as one
+  BPF object and linked into each program by libbpf's static linker as a step `make` runs, not
+  code `lunatikc` links;
 * **the loader**, a libbpf C extension for the CLI's Lua: open, load, pin maps by name under a
   root, attach, pin the link, and the reverse;
 * **the tests**, `tests/luaebpf/`, plus the existing `xdp` and `tc` suites gaining compiled
@@ -186,13 +191,16 @@ a packet generator, reporting packets per second and CPU. The script lives under
 numbers go into these documents, and the same script measures every later phase.
 
 Settle, with the maintainer: that `lunatikc` lands in #742's shape (a C driver in the tree, which
-this design extends), and that #561 lands before phase 4 (the escape hatch calls whatever name the
-module publishes, so phases 1 to 3 do not wait for it).
+this design extends by one subcommand; with the translator a library, the driver's whole job is to
+stand up the state and `require` it, which #742 gives in a dozen lines and #743's upstream `luac.c`
+cannot host), and that #561 lands before phase 4 (the escape hatch calls whatever name the module
+publishes, so phases 1 to 3 do not wait for it).
 
 ### Phase 1: the translator and the object
 
-`lunatikc` gains the standard libraries and a way to hand a function's prototype to Lua; the
-translator gains a type lattice (integer, boolean, constant, and the proxies of later phases),
+`luaebpf/` is created as a library with its own tests; `lunatikc` gains the standard libraries, a
+way to hand a function's prototype to Lua, and the subcommand that calls the library, and nothing
+else of the compiler lives in it. The translator gains a type lattice (integer, boolean, constant, and the proxies of later phases),
 arithmetic with Lua's floor semantics, comparisons, jumps, numeric `for` (bounded, or `may_goto`
 when the bound is not constant), calls to functions the program file declares (subprograms, no
 recursion), `return`; and an object writer for `.text`, `license`, `.BTF` and `.BTF.ext` with
@@ -297,6 +305,7 @@ from it on, a user runs one.
 | The verification budget is exhausted by `may_goto` loops in a real program | Measured in phase 1 with the budget line the log prints ("processed N insns"); global subprograms and iterators are the documented remedies |
 | The subset proves too small for the programs the maintainer wants | The escape hatch keeps the whole language one call away; a program that calls Lua on every packet is the status quo generated instead of hand written, and the compiler reports every such call |
 | `lunatikc` lands in #743's shape, or not at all | Phase 0 settles it; the translator needs a host state running the kernel's Lua with the libraries, which #742's driver provides in a dozen lines |
+| The compiler grows into `lunatikc` and the two become one tool | The translator is a library with its own API and tests, `luaebpf/`; `lunatikc` hosts it through one subcommand. A separate binary was weighed and declined: it would be a second host build of the kernel's Lua to keep in step with the kernel configuration, for a boundary the library already draws |
 | libbpf on the target lacks `bpf_program__attach_tcx` (1.3.0) | The loader reports the missing attach as an error naming the version; the suite skips |
 | A stale pinned program or link survives a failed run | `lunatik stop` and the suite cleanup unpin everything under the script's root, up front and in the trap |
 | The compiled and the interpreted program disagree on an edge (division by zero, out-of-bounds) | The differential tests in `testing.md` run both on the same inputs; the failure path is specified as the program type's default verdict, and the interpreted side raises where the compiled side takes that path |
