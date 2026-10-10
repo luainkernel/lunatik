@@ -117,8 +117,11 @@ the state, where a boolean stored on an existing node cannot.
 * Function pointers get a named typedef: `lua<libname>_<role>_t`.
 * A check on the runtime or the execution context raises with `luaL_error` and is named for what it
   examines, as `lunatik_checkruntime` and `lunatik_checkclass` are; the polarity belongs in the
-  message, not in the identifier. `luaL_argcheck` is for a value that arrived at an index and is
-  wrong: using it for a context error blames argument #1 for something no argument could have fixed.
+  message, not in the identifier. Its message is a `LUNATIK_ERR_*` constant, and a condition the
+  family has no check for gets its `lunatik_check*` helper beside the others in `lunatik.h`, which
+  `guards.sh` counts, so a change that drops it is named; `tools/checks/idioms.sh` names a refusal
+  spelled as a literal. `luaL_argcheck` is for a value that arrived at an index and is wrong: using it
+  for a context error blames argument #1 for something no argument could have fixed.
 * A sentinel value gets a name as soon as it appears in more than one place: `cpu != LUNATIK_CPU_NONE`
   says what `cpu >= 0` only implies, and ties the definition, the default and every test of it.
 * For every raise after acquiring a resource, know what is already held and who releases it; validate
