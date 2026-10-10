@@ -412,7 +412,7 @@
  A userdata <code>watch:mark</code> returns and <code>watch:find</code> hands back. The watch owns
  the mark: dropping the handle leaves the mark in place, and <code>watch:stop</code>
  removes every mark the watch placed. A handle whose mark is gone raises,
- but for <a href="../modules/fsnotify.html#fsnotify_mark:stop">stop</a>.
+ but for <a href="../modules/fsnotify.html#fsnotify_watch:stop">stop</a>.
           </div>
     <dl class="function">
     <dt id="fsnotify_mark:ignore"><a name="fsnotify_mark:ignore"></a><strong>fsnotify_mark:ignore ([mask])</strong></dt>
@@ -720,7 +720,7 @@
 
            <span class="types"><span class="type">fsnotify_watch</span></span>
         the watch, which <a href="../modules/fsnotify.html#watch">fsnotify.watch</a> keeps for its runtime:
-   dropping it stops nothing, and its marks stay until <a href="../modules/fsnotify.html#fsnotify_mark:stop">stop</a> or the end of the runtime
+   dropping it stops nothing, and its marks stay until <a href="../modules/fsnotify.html#fsnotify_watch:stop">stop</a> or the end of the runtime
     </ol>
 
     <h3>Raises</h3>
@@ -748,7 +748,7 @@ watch:<span class="function-name">mark</span>(<span class="string">"/tmp/scratch
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../modules/fsnotify.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:10:36</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:19:04</span>
 </div>
 </footer>
 </body>

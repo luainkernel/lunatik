@@ -186,7 +186,7 @@
  <a href="../modules/netlink.message.html#">netlink.message</a>) and sent as-is; request/response netlink is otherwise done
  in Lua over the <a href="../modules/socket.html#">socket</a> module. Only this softirq-capable send path needs a
  dedicated kernel object. A channel is created and used from a process or softirq
- runtime only, never from a hardirq one: with an nlmon tap up, a send hands a copy of
+ runtime only, and <a href="../modules/netlink.channel.html#new">new</a> refuses a hardirq one: with an nlmon tap up, a send hands a copy of
  the message to <code>dev_queue_xmit</code>, which re-enables bottom halves, and the kernel warns
  when that happens in a hardirq.
     <h2 id="usage">Usage</h2>
@@ -377,7 +377,8 @@ netfilter.register{
 
     <h3>Raises</h3>
      &ldquo;not allowed once the runtime is armed&rdquo; from an interrupt-context runtime past its body;
-   &ldquo;not allowed in a percpu runtime&rdquo;; &ldquo;not allowed under RTNL&rdquo; from a netdevice callback, in
+   &ldquo;not allowed in a percpu runtime&rdquo;; &ldquo;not allowed in a hardirq runtime&rdquo;;
+   &ldquo;not allowed under RTNL&rdquo; from a netdevice callback, in
    whatever runtime or coroutine its task runs, since the registration takes a lock a request
    holds while it waits on RTNL; if the name is empty or too long, or if family registration
    fails.
@@ -399,7 +400,7 @@ netfilter.register{
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../modules/netlink.channel.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:10:36</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:19:04</span>
 </div>
 </footer>
 </body>

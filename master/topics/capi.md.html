@@ -912,6 +912,18 @@ a task&rsquo;s siglock among them, may then be held by the CPU itself, so an ent
 takes one refuses there, as <a href="../modules/signal.html#kill">signal.kill</a> does. It reads <code>irqs_disabled()</code> rather than the runtime&rsquo;s
 context, which says how its lock is taken and not the state of the CPU it runs on.</p>
 
+<h3 id="lunatik_checkhardirq">lunatik_checkhardirq</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_checkhardirq</span>(lua_State *L);
+</pre>
+
+
+<p>Raises a Lua error, <code>&quot;not allowed in a hardirq runtime&quot;</code>, when <code>L</code>&rsquo;s runtime is a hardirq one. A
+constructor whose object no callback of such a runtime can use calls it, as <a href="../modules/netlink.channel.html#new">netlink.channel.new</a>
+does, whose send re-enables bottom halves where an nlmon tap is up. It reads the runtime&rsquo;s context
+rather than the CPU&rsquo;s state, so the refusal comes from the script body, which runs with interrupts on.</p>
+
 <h3 id="lunatik_percpudata">lunatik_percpudata</h3>
 
 <pre>
@@ -1582,6 +1594,7 @@ handler, a <code>BUG()</code>. After a protected call or a resume fails, the err
 #define LUNATIK_ERR_OWNER   "not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING "not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS    "not allowed with IRQs disabled"
+#define LUNATIK_ERR_HARDIRQ "not allowed in a hardirq runtime"
 #define LUNATIK_ERR_PERCPU  "not allowed in a percpu runtime"
 </pre>
 
@@ -2137,7 +2150,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../topics/capi.md.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:10:36</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:19:04</span>
 </div>
 </footer>
 </body>
