@@ -857,7 +857,7 @@ the `util` module to its documentation on that Lua's stack.
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction, the gfp its caller
-allocates with, and the collector state it leaves).
+allocates with, the collector state it leaves, and the method its raise names).
 
 - **gc**: a spawned thread uses a `sleep=false` fifo from a `sleep=true`
   runtime; `f:pop()` allocates inside `spin_lock_bh`, forcing GC that
@@ -877,6 +877,10 @@ allocates with, and the collector state it leaves).
   calls `pop` both ways again. `collectgarbage("isrunning")` reads stopped after the calls
   made while stopped and running after the others: the monitor stops the collector around
   the method and restarts only one it found running.
+- **name**: a process runtime calls a `fifo`'s `pop` past the capacity and reads the raise
+  whole, `bad argument #2 to 'pop' (out of bounds)`: the method runs under a protected call
+  from C, where `luaL_argerror` writes `?` for its name, and the monitor rewrites the `?`
+  into the name of the method it wraps.
 
 ### netfilter
 
