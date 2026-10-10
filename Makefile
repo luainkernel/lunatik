@@ -261,6 +261,7 @@ moontastik_uninstall_%:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/$*
 
 doc-stubs:
+	${RM} -r lib/linux
 	"$(LUA)" autogen/ldoc.lua
 
 doc-site: doc-stubs
