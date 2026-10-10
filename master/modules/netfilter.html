@@ -294,7 +294,8 @@ netfilter.register{
     <h3>Raises</h3>
      &ldquo;not allowed once the runtime is armed&rdquo; past the script body; <code>runtime context mismatch</code>
    outside a softirq runtime; <code>not allowed while the runtime closes</code> from a finalizer that runs at
-   its close; <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if <code>pf</code>, <code>hooknum</code> or
+   its close; <code>bad field &apos;hook&apos; (function expected, got &lt;type&gt;)</code> if <code>hook</code> is missing or not a
+   function; <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if <code>pf</code>, <code>hooknum</code> or
    <code>priority</code> is missing or not a number, or if <code>mark</code> is present and not a number;
    <code>bad field &apos;&lt;field&gt;&apos; (out of bounds)</code> if <code>pf</code> is not a family whose hooks netfilter keeps
    in a table, <code>hooknum</code> is not a hook of that table, <code>mark</code> is negative or past 32 bits, or
@@ -335,7 +336,7 @@ netfilter.<span class="function-name">register</span>{
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../modules/netfilter.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:36:12</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:39:02</span>
 </div>
 </footer>
 </body>
