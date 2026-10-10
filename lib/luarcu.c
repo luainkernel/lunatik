@@ -8,9 +8,9 @@
 * Provides a concurrent hash table using Read-Copy-Update (RCU) synchronization.
 * Reads are lockless; writes are serialized. Keys are strings, and a number key is its
 * decimal string, so `t[1]` and `t["1"]` are one entry; values can be
-* booleans, integers, shareable lunatik objects, or `nil` (to delete an entry). A
+* booleans, integers, strings, shareable lunatik objects, or `nil` (to delete an entry). A
 * SINGLE object, such as a `device`, a `probe` or a `hid` driver, raises
-* `cannot share SINGLE object`, and a string or a table raises `unsupported type`.
+* `cannot share SINGLE object`, and a table raises `unsupported type`.
 * Reading an object returns a new handle on the same kernel object, so two reads of an
 * entry compare unequal; from a softirq or
 * hardirq runtime, one whose class needs process context raises
@@ -122,8 +122,7 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 	memcpy(entry->key, key, keylen);
 	entry->keylen = keylen;
 	entry->value = *value;
-	if (lunatik_isuserdata(value))
-		lunatik_getobject(value->object);
+	lunatik_holdvalue(value);
 	return entry;
 }
 
@@ -134,8 +133,7 @@ static void luarcu_freeentry(struct rcu_head *head)
 
 static inline void luarcu_free(luarcu_entry_t *entry)
 {
-	if (lunatik_isuserdata(&entry->value))
-		lunatik_putobject(entry->value.object);
+	lunatik_dropvalue(&entry->value);
 	call_srcu(&luarcu_srcu, &entry->rcu, luarcu_freeentry);
 }
 
@@ -157,6 +155,8 @@ static inline void luarcu_readvalue(luarcu_entry_t *entry, lunatik_value_t *valu
 {
 	*value = entry->value;
 	if (lunatik_isuserdata(value) && !lunatik_trygetobject(value->object))
+		value->type = LUA_TNIL;
+	else if (lunatik_isstring(value) && !lunatik_trygetstring(value->string))
 		value->type = LUA_TNIL;
 }
 
@@ -305,6 +305,7 @@ static int luarcu_index(lua_State *L)
 
 	luarcu_getvalue(table, key, keylen, &value);
 	lunatik_pushvalue(L, &value);
+	lunatik_putvalue(&value);
 	return 1; /* value */
 }
 
@@ -318,6 +319,7 @@ static int luarcu_newindex(lua_State *L)
 	lunatik_value_t value;
 	lunatik_checkvalue(L, 3, &value);
 	int ret = luarcu_setvalue(table, key, keylen, &value);
+	lunatik_putvalue(&value);
 	if (ret == -ENOMEM)
 		lunatik_enomem(L);
 	else if (ret < 0)
@@ -369,6 +371,7 @@ static int luarcu_foreach_handle(lua_State *L)
 		return 0;
 
 	lunatik_pushvalue(L, &value); /* first, so that a raise below leaves the reference with the clone */
+	lunatik_putvalue(&value); /* a string is copied, so its reference is ours to drop */
 	lua_pushlstring(L, entry->key, entry->keylen);
 	lua_insert(L, -2); /* key, value */
 	lua_call(L, 2, 0);
