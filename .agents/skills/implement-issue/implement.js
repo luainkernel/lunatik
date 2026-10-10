@@ -56,6 +56,7 @@ const github = a.gh === false
 const PUSH = a.push === false
   ? 'Push nothing: the session that launched this workflow pushes the branch.'
   : 'Push each commit as a command of its own, as you make it.'
+const DRAFT = base === 'master' ? '' : ' It opens as a draft (`-F draft=true`), which GitHub will not merge before its base.'
 
 const IMPLEMENT = `
 You implement issue #${a.issue} of Lunatik, in a worktree of your own under ${a.scratch}/ on
@@ -108,7 +109,7 @@ and remove the worktree you worked in once the fix is pushed.
 
 const OPEN = (impl, head, unrelated) => `
 ${MACHINE}Open a pull request on luainkernel/lunatik from the branch \`${impl.branch}\` against \`${base}\`, whose head is
-\`${head}\`; push the branch first if GitHub's tip of it is not that SHA. Title: ${JSON.stringify(impl.title)}
+\`${head}\`; push the branch first if GitHub's tip of it is not that SHA.${DRAFT} Title: ${JSON.stringify(impl.title)}
 A pull request GitHub already has for the branch is that one, read with
 \`gh api "repos/luainkernel/lunatik/pulls?head=luainkernel:${impl.branch}&state=open"\`, and is not opened twice.
 
