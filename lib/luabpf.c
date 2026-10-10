@@ -20,7 +20,7 @@
 * have no keys, so only `value_size` applies to them.
 *
 * Needs `CONFIG_BPF_SYSCALL` and a map pinned on bpffs, as `bpftool map pin`
-* leaves one. The flags `update` and `push` take come from `require("linux.bpf")`:
+* leaves one. The flags `update` and `push` take come from `linux.bpf.update`:
 * `ANY`, `NOEXIST` and `EXIST`.
 *
 * @module bpf

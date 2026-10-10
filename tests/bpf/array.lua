@@ -40,7 +40,7 @@ end)
 
 test("bpf.array update NOEXIST returns false", function()
 	local m = array(path)
-	assert(m:update(pack("I4", 0), pack("I4", 7), bpf.NOEXIST) == false, "array elements always exist")
+	assert(m:update(pack("I4", 0), pack("I4", 7), bpf.update.NOEXIST) == false, "array elements always exist")
 	m:close()
 end)
 
