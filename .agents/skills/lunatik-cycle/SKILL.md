@@ -1,6 +1,6 @@
 ---
 name: lunatik-cycle
-description: Build, install, reload and run the Lunatik test suites, and recover from a wedged /dev/lunatik, an orphan module, stale autogen output, a vermagic mismatch or a shadowed script. Use when building the tree, running tests, or debugging a module that will not load or unload.
+description: Build, install, reload and run the Lunatik test suites, and recover from a wedged /dev/lunatik, an orphan module, stale autogen output or a vermagic mismatch. Use when building the tree, running tests, or debugging a module that will not load or unload.
 ---
 
 AGENTS.md, "Build, install, test", is the authority on the cycle; this skill orders it and carries what
@@ -155,10 +155,7 @@ directly afterwards (`bash tests/<suite>/<test>.sh`) skips with `not loaded` unt
 `lunatik reload`; that unload is the CLI's, not a leak.
 
 `make install` clears each directory it writes under `/lib/modules/lua/` before writing it, and
-leaves a scratch script at the top level in place. A scratch script left there
-shadows the module of the same name: `require` returns `true` and the failure surfaces later as
-`attempt to index a boolean value`, far from its cause. Remove a scratch script right after
-running it.
+leaves a scratch script at the top level in place.
 
 Trust the formal test over manual poking. Iterating by hand — `lunatik run`/`stop`, `iw`, `ip`,
 `rmmod`, `modprobe` — leaves stale state that wedges the next run: an interface in the wrong mode, an
@@ -171,9 +168,8 @@ the last one.
 # When something will not load or unload
 
 The recovery paths are under "What the shared host does" above: the orphan module that escapes
-reload, the stale autogen output after a branch switch, the scratch script shadowing an
-installed module, the pinned core, the vermagic mismatch after a kernel upgrade. Match the
-symptom there before improvising.
+reload, the stale autogen output after a branch switch, the pinned core, the vermagic mismatch
+after a kernel upgrade. Match the symptom there before improvising.
 
 Normal readings, not leaks: `lsmod` showing luathread/luadevice/lualinux with refcnt=1 on an
 idle system is the driver runtime's require-pins (a kernel `require()` pins the owning module
