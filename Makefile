@@ -98,20 +98,23 @@ clean:
 
 scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/lunatik
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/socket
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/socket
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/netlink
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink/rt
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/netlink/nl80211
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/skb
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/syscall
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/syscall
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/crypto
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/crypto
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/bpf
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/bpf
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/linux
 	${MKDIR} ${LUA_PATH}/lunatik
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
-	$(call INSTALL_LUA,driver.lua,${SCRIPTS_INSTALL_PATH}/lunatik)
 	$(call INSTALL_LUA,lib/class.lua,${SCRIPTS_INSTALL_PATH}/)
 	$(call INSTALL_LUA,lib/mailbox.lua,${SCRIPTS_INSTALL_PATH}/)
 	$(call INSTALL_LUA,lib/net.lua,${SCRIPTS_INSTALL_PATH}/)
@@ -119,7 +122,6 @@ scripts_install:
 	$(call INSTALL_LUA,lib/netlink.lua,${SCRIPTS_INSTALL_PATH}/)
 	$(call INSTALL_LUA,lib/util.lua,${SCRIPTS_INSTALL_PATH}/)
 	$(call INSTALL_LUA,lib/lighten.lua,${SCRIPTS_INSTALL_PATH}/)
-	$(call INSTALL_LUA,lib/lunatik/*.lua,${SCRIPTS_INSTALL_PATH}/lunatik)
 	$(call INSTALL_LUA,lib/socket/*.lua,${SCRIPTS_INSTALL_PATH}/socket)
 	$(call INSTALL_LUA,lib/netlink/*.lua,${SCRIPTS_INSTALL_PATH}/netlink)
 	$(call INSTALL_LUA,lib/netlink/rt/*.lua,${SCRIPTS_INSTALL_PATH}/netlink/rt)
@@ -129,6 +131,10 @@ scripts_install:
 	$(call INSTALL_LUA,lib/bpf/*.lua,${SCRIPTS_INSTALL_PATH}/bpf)
 	# NOTE: `lib/linux/` exists only as LDoc stubs (see doc-stubs); never install it.
 	$(call INSTALL_LUA,autogen/linux/*.lua,${SCRIPTS_INSTALL_PATH}/linux)
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/lunatik # last, so an install that stops earlier keeps the CLI's library
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/lunatik
+	$(call INSTALL_LUA,driver.lua,${SCRIPTS_INSTALL_PATH}/lunatik)
+	$(call INSTALL_LUA,lib/lunatik/*.lua,${SCRIPTS_INSTALL_PATH}/lunatik)
 	${INSTALL} -m 0644 autogen/lunatik/*.lua ${SCRIPTS_INSTALL_PATH}/lunatik
 	${LN} ${SCRIPTS_INSTALL_PATH}/lunatik/config.lua ${LUA_PATH}/lunatik/config.lua
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
