@@ -68,13 +68,32 @@ jobs:
     - name: Build Lunatik
       run: |
         make clean MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}" || true
+        # a table an earlier build left and no spec generates, which make must not install
+        touch autogen/linux/stale.lua
         make -j$(nproc) MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
-    - name: Verify modules built
+    - name: Verify install
       run: |
+        dest="$RUNNER_TEMP/install"
+        prefix=(INSTALL=install MODULES_INSTALL_PATH="$dest/kernel" SCRIPTS_INSTALL_PATH="$dest/lua" LUA_PATH="$dest/share" LUNATIK_INSTALL_PATH="$dest/bin")
+        # what an earlier build and install leave: a module the tree dropped and a file in each directory it owns
+        mkdir -p "$dest/kernel/lunatik"
+        touch "$dest/kernel/lunatik/stale.ko" lib/stale.ko
+        for d in lunatik socket netlink syscall crypto bpf skb linux; do mkdir -p "$dest/lua/$d"; touch "$dest/lua/$d/stale.lua"; done
+        make modules_install scripts_install "${prefix[@]}"
         # the modules the CLI loads, which autogen lists from the Makefile's configuration
         modules=$(lua5.5 -e 'print(table.concat(dofile("autogen/lunatik/config.lua").modules, " "))')
         for m in $modules; do
-          nm "$m.ko" "lib/$m.ko" 2>/dev/null | grep -q ' [Tt] ' || { echo "couldn't find code in $m.ko"; exit 1; }
+          nm "$dest/kernel/lunatik/$m.ko" | grep -q ' [Tt] ' || { echo "couldn't find code in $m.ko"; exit 1; }
         done
+        left=$(find "$dest" -name 'stale.*')
+        test -z "$left" || { echo "make install left $left"; exit 1; }
+        # an install from a tree autogen has not run stops before it clears the CLI's library
+        rm autogen/linux/*.lua autogen/lunatik/*.lua
+        if make scripts_install "${prefix[@]}"; then echo "make install did not stop without autogen's output"; exit 1; fi
+        test -f "$dest/lua/lunatik/config.lua" || { echo "make install cleared lunatik/ before it stopped"; exit 1; }
+        # the skb directory an earlier install left, which make uninstall removes too
+        mkdir -p "$dest/lua/skb"
+        make scripts_uninstall "${prefix[@]}"
+        test ! -e "$dest/lua/skb" || { echo "make uninstall left skb/"; exit 1; }
         echo "Lunatik built successfully for kernel ${{ matrix.kernel-version }}"
 
