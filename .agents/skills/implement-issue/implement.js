@@ -100,7 +100,7 @@ ${JSON.stringify(failed, null, 2)}
 
 Trace the failure before you change anything (AGENTS.md rule 1): the test's prints, the errno, the journal
 window the lunatik-cycle skill names. A failure the change causes is fixed in the commit that introduced it,
-\`git commit --fixup\` folded at once with \`git rebase -i --autosquash ${base === 'master' ? 'origin/master' : base}\`, since the pull
+\`git commit --fixup\` folded at once with \`git rebase -i --autosquash ${implemented.base}\`, since the pull
 request opens squashed, \`make\` clean, and pushed with \`--force-with-lease\`; one it does not cause, a host process or a test already
 failing on master, is said as such with its evidence and the open issue that reports it, and fixes nothing. Run no install, reload, suite or
 example: the host run that follows is another agent's. Append what you traced and committed to the checkpoint,
