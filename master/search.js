@@ -149,6 +149,7 @@ window.LUNATIK_SEARCH = [
 ["linux.kbd","modules/linux.kbd.html","Module · Linux kernel constants exposed under linux.kbd."],
 ["linux.netdev","modules/linux.netdev.html","Module · Linux kernel constants exposed under linux.netdev."],
 ["linux.netlink","modules/linux.netlink.html","Module · Linux kernel constants exposed under linux.netlink."],
+["align","modules/linux.netlink.html#align","linux.netlink · Netlink wire alignment (NLMSG_ALIGNTO)."],
 ["flag","modules/linux.netlink.html#flag","linux.netlink · Netlink message flags (NLM_F_*)."],
 ["layout","modules/linux.netlink.html#layout","linux.netlink · Netlink header layouts."],
 ["proto","modules/linux.netlink.html#proto","linux.netlink · Netlink protocol numbers."],

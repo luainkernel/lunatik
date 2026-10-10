@@ -180,15 +180,16 @@
 <h1>linux.netlink<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.netlink.html#">linux.netlink</a>.</p>
  Values are populated at build time from the kernel headers.
- Netlink wire alignment (NLMSG_ALIGNTO).
- Mirrors <code>NLMSG_*</code> defines in <code>&lt;uapi/linux/netlink.h&gt;</code>.
- Keys are the kernel names with the prefix stripped: <code>NLMSG_&lt;NAME&gt;</code> is <code>linux.netlink.&lt;NAME&gt;</code>.
     <h2 id="usage">Usage</h2>
         <pre class="example">local netlink = require(&quot;linux.netlink&quot;)
 </pre>
 
 <h2 id="Tables">Tables</h2>
 <div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#align">align</a></td>
+	<td class="summary">Netlink wire alignment (NLMSG_ALIGNTO).</td>
+	</tr>
 	<tr>
 	<td class="name"><a href="#flag">flag</a></td>
 	<td class="summary">Netlink message flags (NLM_F_*).</td>
@@ -210,6 +211,19 @@
     <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
 
     <dl class="function">
+    <dt id="align"><a name="align"></a><strong>align</strong></dt>
+    <dd>
+    Netlink wire alignment (NLMSG_ALIGNTO).
+ Mirrors <code>NLMSG_*</code> defines in <code>&lt;uapi/linux/netlink.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>NLMSG_&lt;NAME&gt;</code> is <code>linux.netlink.align.&lt;NAME&gt;</code>.
+
+
+
+
+
+
+
+</dd>
     <dt id="flag"><a name="flag"></a><strong>flag</strong></dt>
     <dd>
     Netlink message flags (NLM_F_<em>).
@@ -275,7 +289,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../modules/linux.netlink.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:04:59</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:05:39</span>
 </div>
 </footer>
 </body>
