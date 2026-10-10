@@ -14,7 +14,7 @@ local sk     = require("linux.socket")
 local nl     = require("linux.netlink")
 local eth    = require("linux.eth")
 local arphrd = require("linux.arphrd")
-local pkttype = require("linux.pkttype")
+local pkttype = require("linux.packet").type
 local attempt = require("tests.socket.attempt")
 
 local pack = table.pack
