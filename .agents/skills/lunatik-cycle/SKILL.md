@@ -1,6 +1,6 @@
 ---
 name: lunatik-cycle
-description: Build, install, reload and run the Lunatik test suites, and recover from a wedged /dev/lunatik, an orphan module, stale autogen output, a vermagic mismatch or a shadowed script. Use when building the tree, running tests, or debugging a module that will not load or unload.
+description: Build, install, reload and run the Lunatik test suites, and recover from a wedged /dev/lunatik, an orphan module, stale autogen output or a vermagic mismatch. Use when building the tree, running tests, or debugging a module that will not load or unload.
 ---
 
 AGENTS.md, "Build, install, test", is the authority on the cycle; this skill orders it and carries what
@@ -139,12 +139,13 @@ orphan and `rmmod` it — the one case where a manual `rmmod` is the fix.
 
 The autogen output (`autogen/linux/*.lua`, `autogen/.config`, `autogen/.stamp`) is untracked build
 state and does not follow a branch switch. The symptom is a runtime `attempt to index a nil value`
-on a `linux.*` constant, not a build error. Regenerate cleanly with
-`rm -f autogen/.stamp autogen/linux/*.lua && make`; autogen recreates the files, not the directory.
+on a `linux.*` constant, not a build error. Regenerate cleanly with `rm -f autogen/.stamp && make`:
+the stamp's recipe clears `autogen/linux/*.lua` itself.
 
 A worktree that has not run `make` cannot install: `scripts_install` needs the autogen output and
-fails, and an install whose output was silenced fails unseen while the previous install stays in
-place, so every run after it tests the wrong tree. A silenced `make` does the same one step earlier:
+stops there, once it has rewritten the libraries and emptied `linux/`, with the previous install's
+`lunatik/`, modules, examples and tests still in place. An install whose output was silenced
+fails unseen, so every run after it tests that mix. A silenced `make` does the same one step earlier:
 the chain stops at the build and the suite run next reports on the modules already installed. Keep the
 build's and the install's output visible, and before reading a result confirm that what sits under
 `/lib/modules/lua/` is the tree under test: its timestamp, or a grep for a symbol only the branch has.
@@ -153,10 +154,8 @@ build's and the install's output visible, and before reading a result confirm th
 directly afterwards (`bash tests/<suite>/<test>.sh`) skips with `not loaded` until the next
 `lunatik reload`; that unload is the CLI's, not a leak.
 
-`make install` never removes a stray file from `/lib/modules/lua/`. A scratch script left there
-shadows the module of the same name: `require` returns `true` and the failure surfaces later as
-`attempt to index a boolean value`, far from its cause. Remove a scratch script right after
-running it.
+`make install` clears each directory it writes under `/lib/modules/lua/` before writing it, and
+leaves a scratch script at the top level in place.
 
 Trust the formal test over manual poking. Iterating by hand — `lunatik run`/`stop`, `iw`, `ip`,
 `rmmod`, `modprobe` — leaves stale state that wedges the next run: an interface in the wrong mode, an
@@ -169,9 +168,8 @@ the last one.
 # When something will not load or unload
 
 The recovery paths are under "What the shared host does" above: the orphan module that escapes
-reload, the stale autogen output after a branch switch, the scratch script shadowing an
-installed module, the pinned core, the vermagic mismatch after a kernel upgrade. Match the
-symptom there before improvising.
+reload, the stale autogen output after a branch switch, the pinned core, the vermagic mismatch
+after a kernel upgrade. Match the symptom there before improvising.
 
 Normal readings, not leaks: `lsmod` showing luathread/luadevice/lualinux with refcnt=1 on an
 idle system is the driver runtime's require-pins (a kernel `require()` pins the owning module

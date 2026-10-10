@@ -4,9 +4,10 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # A build stops with "No space left on device" halfway through autogen, and the install that
-# follows fails unseen while the previous one stays in place; on the shared host it is the
-# worktrees, each with a build of its own, that fill the disk. Takes a threshold in MB (default
-# 1024); prints the free space and the largest worktrees and exits 1 below it, silent otherwise.
+# follows mixes what the build left with the previous one, unseen when its output is silenced; on
+# the shared host it is the worktrees, each with a build of its own, that fill the disk. Takes a
+# threshold in MB (default 1024); prints the free space and the largest worktrees and exits 1 below
+# it, silent otherwise.
 
 min=${1:-1024}
 common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
