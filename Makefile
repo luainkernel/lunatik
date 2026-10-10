@@ -265,6 +265,7 @@ doc-stubs:
 	"$(LUA)" autogen/ldoc.lua
 
 doc-site: doc-stubs
+	${RM} -r doc/classes doc/modules doc/topics
 	printf '%s\n' ${DOC_TAGS} > doc/.tags
 	ldoc .
 	${RM} doc/.tags
