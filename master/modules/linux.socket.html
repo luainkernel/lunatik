@@ -192,6 +192,10 @@
 	<td class="summary">Socket address families.</td>
 	</tr>
 	<tr>
+	<td class="name"><a href="#ip">ip</a></td>
+	<td class="summary">IP-level option names (IP_*).</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#ipproto">ipproto</a></td>
 	<td class="summary">IP-layer protocol numbers.</td>
 	</tr>
@@ -225,6 +229,19 @@
     Socket address families.
  Mirrors <code>AF_*</code> defines in <code>&lt;linux/socket.h&gt;</code>.
  Keys are the kernel names with the prefix stripped: <code>AF_&lt;NAME&gt;</code> is <code>linux.socket.af.&lt;NAME&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt id="ip"><a name="ip"></a><strong>ip</strong></dt>
+    <dd>
+    IP-level option names (IP_<em>).
+ Mirrors <code>IP_</em></code> defines in <code>&lt;uapi/linux/in.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>IP_&lt;NAME&gt;</code> is <code>linux.socket.ip.&lt;NAME&gt;</code>.
 
 
 
@@ -324,7 +341,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../modules/linux.socket.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:28:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-10 12:36:12</span>
 </div>
 </footer>
 </body>

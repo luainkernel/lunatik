@@ -191,6 +191,7 @@ window.LUNATIK_SEARCH = [
 ["linux.signal","modules/linux.signal.html","Module · Linux kernel constants exposed under linux.signal."],
 ["linux.socket","modules/linux.socket.html","Module · Linux kernel constants exposed under linux.socket."],
 ["af","modules/linux.socket.html#af","linux.socket · Socket address families."],
+["ip","modules/linux.socket.html#ip","linux.socket · IP-level option names (IP_*)."],
 ["ipproto","modules/linux.socket.html#ipproto","linux.socket · IP-layer protocol numbers."],
 ["layout","modules/linux.socket.html#layout","linux.socket · Socket option payload layouts."],
 ["msg","modules/linux.socket.html#msg","linux.socket · Message flags for send/recv."],
