@@ -240,7 +240,7 @@ static int luascx_detach(lua_State *L)
 *   local function my_scheduler(ctx)
 *     local task = ctx:task()
 *     if task:comm() == "bash" then
-*       return ext.DSQ_LOCAL, ext.SLICE_DFL
+*       return ext.dsq.LOCAL, ext.slice.DFL
 *     end
 *   end
 *   scx.attach(my_scheduler)
