@@ -3,10 +3,11 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Stop adapter: reads the reply a turn ends on through tools/checks/decision.sh and
-# tools/checks/reboot-capture.sh and sends it back once when it hands the maintainer a decision
-# without the question, the options and a recommendation, or asks for a reboot nothing captured
-# for; the checks are plain path-taking scripts (.agents/rules/checks.md), this only translates.
+# Stop adapter: reads the reply a turn ends on through tools/checks/decision.sh,
+# tools/checks/reboot-capture.sh and tools/checks/handoff.sh and sends it back once when it hands the
+# maintainer a decision without the question, the options and a recommendation, asks for a reboot
+# nothing captured for, or hands him a long command to copy; the checks are plain path-taking scripts
+# (.agents/rules/checks.md), this only translates.
 
 input=$(cat)
 command -v jq > /dev/null || exit 0
@@ -24,7 +25,7 @@ fi
 [ -s "$reply" ] || exit 0
 
 checks="$(dirname "$0")/../../tools/checks"
-findings=$(bash "$checks/decision.sh" "$reply"; bash "$checks/reboot-capture.sh" "$reply")
+findings=$(bash "$checks/decision.sh" "$reply"; bash "$checks/reboot-capture.sh" "$reply"; bash "$checks/handoff.sh" "$reply")
 [ -n "$findings" ] || exit 0
 jq -n --arg reason "${findings//$reply/the reply}" '{decision: "block", reason: $reason}'
 exit 0
