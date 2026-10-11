@@ -9,7 +9,7 @@
 # AGENTS.md covers a branch checked out elsewhere and the body a rewrite invalidates;
 # this covers the branches based on it, which is what `git push --force` cannot see.
 # Blocks (exit 2) a forced push, --force, --force-with-lease, -f or a refspec opening with +, of a
-# branch other refs descend from, the refspec's destination where a local branch carries that name
+# branch other branches descend from, the refspec's destination where a local branch carries that name
 # and its source otherwise. Reads the command field of the raw hook input through commands.sh, so
 # a command that only mentions a push passes. REWRITE_OK=1 runs it once the list below is known to
 # be stale.
@@ -53,7 +53,7 @@ while IFS=$'\t' read -r tree words; do
 		git -C "$tree" rev-parse --verify --quiet "refs/heads/$branch" > /dev/null || branch=${spec%%:*}
 		[ "$branch" = HEAD ] && branch=$(git -C "$tree" symbolic-ref -q --short HEAD)
 		git -C "$tree" rev-parse --verify --quiet "$branch^{commit}" > /dev/null || continue
-		based=$(git -C "$tree" branch --format='%(refname:short)' --contains "$branch" | grep -vx "$branch" | grep -vx "$dst")
+		based=$(git -C "$tree" for-each-ref --format='%(refname:short)' --contains "$branch" refs/heads | grep -vx "$branch" | grep -vx "$dst")
 		[ -n "$based" ] || continue
 		{
 			echo "rewrite-guard: these branches are based on '$branch' and keep what this push drops:"
