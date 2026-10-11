@@ -127,6 +127,7 @@ window.LUNATIK_SEARCH = [
 ["linux.arphrd","modules/linux.arphrd.html","Module · Linux kernel constants exposed under linux.arphrd."],
 ["linux.bpf","modules/linux.bpf.html","Module · Linux kernel constants exposed under linux.bpf."],
 ["map_type","modules/linux.bpf.html#map_type","linux.bpf · BPF map types."],
+["update","modules/linux.bpf.html#update","linux.bpf · BPF map update flags."],
 ["linux.dropreason","modules/linux.dropreason.html","Module · Linux kernel constants exposed under linux.dropreason."],
 ["linux.errno","modules/linux.errno.html","Module · Linux kernel constants exposed under linux.errno."],
 ["linux.eth","modules/linux.eth.html","Module · Linux kernel constants exposed under linux.eth."],
