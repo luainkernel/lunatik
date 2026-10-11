@@ -9,10 +9,12 @@
 # AGENTS.md covers a branch checked out elsewhere and the body a rewrite invalidates;
 # this covers the branches based on it, which is what `git push --force` cannot see.
 # Blocks (exit 2) a forced push, --force, --force-with-lease, -f or a refspec opening with +, of a
-# branch other branches descend from, the refspec's destination where a local branch carries that name
-# and its source otherwise. Reads the command field of the raw hook input through commands.sh, so
-# a command that only mentions a push passes. REWRITE_OK=1 runs it once the list below is known to
-# be stale.
+# branch other branches descend from. What they descend from is the head the push replaces, which a
+# restack has already moved the local branch away from: the head the lease names for the refspec's
+# destination, else the remote-tracking ref, else the local branch of that name. A push that keeps that
+# head, a fixup on it, drops nothing, and so does one whose lease expects no branch there. Reads the
+# command field of the raw hook input through commands.sh, so a command that only mentions a push
+# passes. REWRITE_OK=1 runs it once the list below is known to be stale.
 
 input=$(cat)
 
@@ -47,16 +49,24 @@ while IFS=$'\t' read -r tree words; do
 	[ $forced -eq 1 ] || continue
 	# the first word that is not an option is the remote
 	for spec in "${refspecs[@]:1}"; do
+		src=${spec%%:*}
 		dst=${spec#*:}
 		dst=${dst#refs/heads/}
-		branch=$dst
-		git -C "$tree" rev-parse --verify --quiet "refs/heads/$branch" > /dev/null || branch=${spec%%:*}
-		[ "$branch" = HEAD ] && branch=$(git -C "$tree" symbolic-ref -q --short HEAD)
-		git -C "$tree" rev-parse --verify --quiet "$branch^{commit}" > /dev/null || continue
-		based=$(git -C "$tree" for-each-ref --format='%(refname:short)' --contains "$branch" refs/heads | grep -vx "$branch" | grep -vx "$dst")
+		[ "$dst" = HEAD ] && dst=$(git -C "$tree" symbolic-ref -q --short HEAD)
+		old=refs/remotes/${refspecs[0]}/$dst
+		for word; do
+			case "$word" in
+				--force-with-lease="$dst":*|--force-with-lease=refs/heads/"$dst":*) old=${word#*:} ;;
+			esac
+		done
+		[ -n "$old" ] || continue
+		git -C "$tree" rev-parse --verify --quiet "$old^{commit}" > /dev/null || old=refs/heads/$dst
+		git -C "$tree" rev-parse --verify --quiet "$old^{commit}" > /dev/null || continue
+		git -C "$tree" merge-base --is-ancestor "$old" "$src" 2> /dev/null && continue
+		based=$(git -C "$tree" for-each-ref --format='%(refname:short)' --contains "$old" refs/heads | grep -vx "$dst")
 		[ -n "$based" ] || continue
 		{
-			echo "rewrite-guard: these branches are based on '$branch' and keep what this push drops:"
+			echo "rewrite-guard: these branches are based on '$dst' and keep what this push drops:"
 			printf '  %s\n' $based
 			echo "rewrite-guard: rebase them onto the rewritten branch, or re-run with REWRITE_OK=1 once that list is stale."
 		} >&2
