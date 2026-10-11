@@ -197,6 +197,14 @@ static int lunatik_pcallobject(lua_State *L, lunatik_object_t *object, int n)
 	return ret;
 }
 
+static inline void lunatik_fixerror(lua_State *L)
+{
+	const char *msg = lua_tostring(L, -1);
+	const char *method = lua_tostring(L, lua_upvalueindex(2));
+	const char *name = lua_pushfstring(L, "to '%s'", method);
+	luaL_gsub(L, msg, "to '?'", name);
+}
+
 static int lunatik_monitor(lua_State *L)
 {
 	int n = lua_gettop(L);
@@ -207,8 +215,7 @@ static int lunatik_monitor(lua_State *L)
 	lua_insert(L, 1); /* stack: method, object, args */
 
 	if (lunatik_pcallobject(L, object, n) != LUA_OK) {
-		const char *method = lua_tostring(L, lua_upvalueindex(2));
-		luaL_gsub(L, lua_tostring(L, -1), "?", method);
+		lunatik_fixerror(L);
 		lua_error(L);
 	}
 	return lua_gettop(L);

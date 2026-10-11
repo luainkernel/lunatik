@@ -892,8 +892,10 @@ allocates with, the collector state it leaves, and the method its raise names).
   the method and restarts only one it found running.
 - **name**: a process runtime calls a `fifo`'s `pop` past the capacity and reads the raise
   whole, `bad argument #2 to 'pop' (out of bounds)`: the method runs under a protected call
-  from C, where `luaL_argerror` writes `?` for its name, and the monitor rewrites the `?`
-  into the name of the method it wraps.
+  from C, where `luaL_argerror` writes `to '?'` for its name, and the monitor rewrites that
+  text into the name of the method it wraps. It then resumes a runtime whose body raises
+  `ready?` and reads the raise of `resume`, a monitored method, whole, `ready?` and the
+  newline `resume` appends: the monitor leaves any other `?` as the message wrote it.
 
 ### netfilter
 
