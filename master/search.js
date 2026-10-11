@@ -192,6 +192,8 @@ window.LUNATIK_SEARCH = [
 ["scope","modules/linux.rtnetlink.html#scope","linux.rtnetlink · rtnetlink route scopes (RT_SCOPE_*)."],
 ["table","modules/linux.rtnetlink.html#table","linux.rtnetlink · rtnetlink routing table ids (RT_TABLE_*)."],
 ["linux.scx","modules/linux.scx.html","Module · Linux kernel constants exposed under linux.scx."],
+["dsq","modules/linux.scx.html#dsq","linux.scx · sched_ext dispatch queues an scx callback returns (LOCAL_ON ORed with a CPU), from 6.12 on."],
+["slice","modules/linux.scx.html#slice","linux.scx · sched_ext time slices in nanoseconds an scx callback returns, from 6.12 on."],
 ["linux.signal","modules/linux.signal.html","Module · Linux kernel constants exposed under linux.signal."],
 ["linux.socket","modules/linux.socket.html","Module · Linux kernel constants exposed under linux.socket."],
 ["af","modules/linux.socket.html#af","linux.socket · Socket address families."],

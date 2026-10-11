@@ -324,7 +324,7 @@ and then the slice.</li>
 <span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">my_scheduler</span>(ctx)
   <span class="keyword">local</span> task = ctx:<span class="function-name">task</span>()
   <span class="keyword">if</span> task:<span class="function-name">comm</span>() == <span class="string">"bash"</span> <span class="keyword">then</span>
-    <span class="keyword">return</span> ext.DSQ_LOCAL, ext.SLICE_DFL
+    <span class="keyword">return</span> ext.dsq.LOCAL, ext.slice.DFL
   <span class="keyword">end</span>
 <span class="keyword">end</span>
 scx.<span class="function-name">attach</span>(my_scheduler)
@@ -369,7 +369,7 @@ scx.<span class="function-name">attach</span>(my_scheduler)
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../modules/scx.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-11 13:12:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-11 13:16:13</span>
 </div>
 </footer>
 </body>

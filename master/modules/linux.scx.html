@@ -181,15 +181,54 @@
 <h1>linux.scx<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.scx.html#">linux.scx</a>.</p>
  Values are populated at build time from the kernel headers.
- Extensible Scheduler (sched_ext) flags, from 6.12 on.
- Mirrors <code>SCX_*</code> defines in <code>&lt;linux/sched/ext.h&gt;</code>.
- Keys are the kernel names with the prefix stripped: <code>SCX_&lt;NAME&gt;</code> is <code>linux.scx.&lt;NAME&gt;</code>.
- Empty on a kernel without <code>&lt;linux/sched/ext.h&gt;</code>.
     <h2 id="usage">Usage</h2>
         <pre class="example">local scx = require(&quot;linux.scx&quot;)
 </pre>
 
+<h2 id="Tables">Tables</h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#dsq">dsq</a></td>
+	<td class="summary">sched_ext dispatch queues an <a href="../modules/scx.html#">scx</a> callback returns (<code>LOCAL_ON</code> ORed with a CPU), from 6.12 on.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#slice">slice</a></td>
+	<td class="summary">sched_ext time slices in nanoseconds an <a href="../modules/scx.html#">scx</a> callback returns, from 6.12 on.</td>
+	</tr>
+</table></div>
 
+    <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
+
+    <dl class="function">
+    <dt id="dsq"><a name="dsq"></a><strong>dsq</strong></dt>
+    <dd>
+    sched_ext dispatch queues an <a href="../modules/scx.html#">scx</a> callback returns (<code>LOCAL_ON</code> ORed with a CPU), from 6.12 on.
+ Mirrors <code>SCX_DSQ_*</code> defines in <code>&lt;linux/sched/ext.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>SCX_DSQ_&lt;NAME&gt;</code> is <code>linux.scx.dsq.&lt;NAME&gt;</code>.
+ Empty on a kernel without <code>&lt;linux/sched/ext.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt id="slice"><a name="slice"></a><strong>slice</strong></dt>
+    <dd>
+    sched_ext time slices in nanoseconds an <a href="../modules/scx.html#">scx</a> callback returns, from 6.12 on.
+ Mirrors <code>SCX_SLICE_*</code> defines in <code>&lt;linux/sched/ext.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>SCX_SLICE_&lt;NAME&gt;</code> is <code>linux.scx.slice.&lt;NAME&gt;</code>.
+ Empty on a kernel without <code>&lt;linux/sched/ext.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+</dl>
 
 
 </main>
@@ -203,7 +242,7 @@
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../modules/linux.scx.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-11 13:12:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-11 13:16:13</span>
 </div>
 </footer>
 </body>
