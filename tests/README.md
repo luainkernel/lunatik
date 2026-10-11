@@ -870,7 +870,8 @@ the `util` module to its documentation on that Lua's stack.
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction, the gfp its caller
-allocates with, the collector state it leaves, and the method its raise names).
+allocates with, the collector state it leaves, the method its raise names, and the debug
+hooks it keeps off the object's lock).
 
 - **gc**: a spawned thread uses a `sleep=false` fifo from a `sleep=true`
   runtime; `f:pop()` allocates inside `spin_lock_bh`, forcing GC that
@@ -896,6 +897,15 @@ allocates with, the collector state it leaves, and the method its raise names).
   text into the name of the method it wraps. It then resumes a runtime whose body raises
   `ready?` and reads the raise of `resume`, a monitored method, whole, `ready?` and the
   newline `resume` appends: the monitor leaves any other `?` as the message wrote it.
+- **hook**: a process runtime sets a call hook, a return hook and one of each with
+  `debug.sethook`, pushes and pops a `fifo`, and reads what each hook saw of the C functions it
+  called: the call and return of `push` and `pop`, the wrappers, and never the method the
+  monitor calls under the lock, since the monitor clears a call or return hook for the method.
+  A hook set across a `pop` past the capacity, which raises, sees the `push` after it, and a
+  count hook set over a loop of pushes and pops fires: the monitor leaves it set, its countdown
+  running on. Last, a call and return hook that sleeps with `linux.schedule` on every event,
+  set once a hook that does not sleep has read the events from outside the lock, leaves no
+  `BUG: scheduling while atomic`.
 
 ### netfilter
 

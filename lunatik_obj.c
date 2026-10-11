@@ -193,6 +193,28 @@ static inline void lunatik_restartgc(lua_State *L, int running)
 		lua_gc(L, LUA_GCRESTART);
 }
 
+#define lunatik_iscallhook(mask)	((mask) & (LUA_MASKCALL | LUA_MASKRET)) /* the only hooks a C method fires */
+
+typedef struct lunatik_hook_s {
+	lua_Hook func;
+	int mask;
+	int count;
+} lunatik_hook_t;
+
+static inline lunatik_hook_t lunatik_unhook(lua_State *L)
+{
+	lunatik_hook_t hook = {lua_gethook(L), lua_gethookmask(L), lua_gethookcount(L)};
+	if (lunatik_iscallhook(hook.mask))
+		lua_sethook(L, NULL, 0, 0);
+	return hook;
+}
+
+static inline void lunatik_rehook(lua_State *L, lunatik_hook_t hook)
+{
+	if (lunatik_iscallhook(hook.mask))
+		lua_sethook(L, hook.func, hook.mask, hook.count);
+}
+
 static int lunatik_pcallobject(lua_State *L, lunatik_object_t *object, int n)
 {
 	lunatik_object_t *runtime = lunatik_toruntime(L);
@@ -201,7 +223,9 @@ static int lunatik_pcallobject(lua_State *L, lunatik_object_t *object, int n)
 	gfp_t gfp = lunatik_gfp(runtime);
 	runtime->gfp = lunatik_gfp(object); /* the method allocates under the object's lock */
 	int running = lunatik_stopgc(L);
+	lunatik_hook_t hook = lunatik_unhook(L);
 	int ret = lua_pcall(L, n, LUA_MULTRET, 0);
+	lunatik_rehook(L, hook);
 	lunatik_restartgc(L, running);
 	runtime->gfp = gfp;
 	lunatik_unlock(object);
