@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the repository rewrite-guard.fixture.sh builds
+pass	git push --force-with-lease origin restacked
+pass	git push origin +restacked
+pass	git push https://example.invalid/r.git restacked.new:refs/heads/restacked --force-with-lease=refs/heads/restacked:restacked.old
+pass	git push "https://example.invalid/$(printf %s r).git" restacked.new:refs/heads/restacked --force-with-lease=refs/heads/restacked:restacked.old
+block	git push --force-with-lease origin kept
+block	git push --force-with-lease=kept origin kept
+block	git -C on-kept push --force-with-lease origin HEAD
+block	git push -f origin kept:kept
+block	git push -f origin HEAD:kept
+block	git push https://example.invalid/r.git kept:refs/heads/kept --force-with-lease=refs/heads/kept:kept.old
+block	git push https://example.invalid/r.git local.new:refs/heads/local --force-with-lease=refs/heads/local:local.old
+block	git push "https://example.invalid/$(printf %s r).git" local.new:refs/heads/local --force-with-lease=refs/heads/local:local.old
+block	git push -f https://example.invalid/r.git local.new:local
+pass	git push https://example.invalid/r.git local.new:refs/heads/local --force-with-lease=refs/heads/local:
+pass	git push https://example.invalid/r.git detached.new:refs/heads/detached --force-with-lease=refs/heads/detached:detached.old
+pass	git push --force-with-lease origin ahead
+block	git push --force-with-lease=ahead:ahead.old origin ahead.new:ahead
+pass	git push -f origin HEAD
+pass	git push origin kept
+pass	REWRITE_OK=1 git push -f origin kept
+pass	echo git push -f origin kept
