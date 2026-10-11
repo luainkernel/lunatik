@@ -1,6 +1,6 @@
 ---
 name: merged
-description: After the maintainer reports a pull request merged, retarget the pull requests stacked on its branch to the default branch, restack them onto it, and report the queue and the issues the merge closed. Use when told a pull request was merged.
+description: After the maintainer reports a pull request merged, retarget the pull requests stacked on its branch to the default branch, restack them onto it, delete the merged branch, and report the queue and the issues the merge closed. Use when told a pull request was merged.
 ---
 
 AGENTS.md, "Patches and commits", and the review-pr skill's process.md, "Comments and the verdict", are the authority; this card orders
@@ -53,9 +53,22 @@ it, said in the report. Then, a command of its own:
 
 The report names the ref it moved and, apart, what it was rebased onto.
 
-# 4. Report
+# 4. Delete the merged branch
+
+Once no open pull request is based on it, the merged branch goes, from this repository and from the
+checkout, unless a worktree holds it checked out:
+
+    git push <url> --delete <head.ref>
+    git branch -D <head.ref>
+
+Its commits are on master under new SHAs, and GitHub keeps the old head as `refs/pull/<N>/head`. A
+delete the session's permissions refuse goes to the maintainer as a script under `/tmp` and the line
+that runs it (AGENTS.md, *Deciding what to change*).
+
+# 5. Report
 
 The new master tip; for each stacked pull request, retargeted, restacked, the patch verdict and the
-push; `bash tools/pr-status.sh` for the queue that follows; and the issues the merge closed, with
-any it names only as "Part of" that it finished.
+push; the branches deleted, and a branch a worktree kept with whose it is; `bash tools/pr-status.sh`
+for the queue that follows; and the issues the merge closed, with any it names only as "Part of" that
+it finished.
 
