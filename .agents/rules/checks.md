@@ -352,6 +352,13 @@ reboot clears, "só um reboot resolve", "needs a reboot", counts only while the 
 `pinned.sh` names or a `lunatik` process in D state, since on a sound host it describes what a bug
 would leave. It passes when `scratch/reboot-*` holds a capture taken in the last hour.
 
+`handoff.sh` reads the same reply in the same hook, for a command handed to the maintainer to copy: a
+line opening with `! `, Claude Code's prefix for a command he runs in the session, longer than 60
+characters or continued on the next. A step only he can take reaches him as a script under `/tmp` and
+the one line that runs it (AGENTS.md, *Deciding what to change*); on 2026-10-11 a reply handed him the
+delete of the 21 branches a merge left as one line of 600 characters. A command handed without the
+prefix is not read.
+
 `push-guard.sh`, wired before a shell call, refuses a `git push` in a command that also runs a
 rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any of those in progress:
 the one that stops on a conflict leaves HEAD on the base with the branch's commits still to apply,

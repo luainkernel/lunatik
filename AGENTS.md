@@ -346,6 +346,11 @@ named, not one discovered at that consumer's build.
   with what it changes, and `Recommendation:` with the option and its reason; "the maintainer's call"
   names who decides and not what. The options include the smallest change that makes the defect
   unreachable, and each larger one says what it buys over it.
+* A step the session can take it takes. One only the maintainer can, a command the session's
+  permissions refuse or his own terminal must run, reaches him as a script the session writes under
+  `/tmp` and the one short line that runs it, `! bash /tmp/<name>.sh` in Claude Code: a command spelled
+  out in the reply is one he copies by hand, and the terminal wraps it where the copy breaks.
+  `tools/checks/handoff.sh` names a reply that hands him one.
 * A question from the maintainer is answered, and the turn changes nothing: what the answer
   recommends is proposed with its decision, not done. "What is left?" asks for the list, not for the
   work on it; `.claude/hooks/on-prompt.sh` reminds a turn that reads a question.
