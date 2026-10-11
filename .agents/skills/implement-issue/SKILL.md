@@ -29,7 +29,7 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   fix is not reviewed again, which the hand-back says.
 - The pull request opens, in the `lunatik-github` agent, only on a head that passed with every example
   the change touches, with the implementer's body, and takes the `workflow-reviewed` label. A run that
-  did not pass returns its branch for the session to read.
+  did not pass returns its branch and its last build for the session to read.
 - `machine` says how this machine gets root and authenticates gh, copied by the session from its
   CLAUDE.local.md: the host's and GitHub's agents load no CLAUDE.md, which keeps the instructions they
   start with to what their job reads, so the prompt is where they learn it.
@@ -38,7 +38,8 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
 - Where gh is absent (`gh: false`), the agents read GitHub through curl and write nothing to it, since no
   guard reads a write through curl: the implementer opens no pull request, and the filing stage leaves
   every entry `unfiled` for the session.
-- The last stage files `findings_left`, what the implementer and the review leave as issues: an entry
+- The last stage files `findings_left`, what the implementer, the review and each build run again after
+  a fix leave as issues: an entry
   opens an issue with its `severity:` label, or goes under an `Update:` line into the open issue it
   names as its home or reports again. It posts nothing on a pull request, and skips, `skipped` in
   `filed`, what the branch fixed after the entry was written, a review's commit or a fix's, and a host

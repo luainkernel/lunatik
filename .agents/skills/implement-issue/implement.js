@@ -28,8 +28,9 @@
 //   gh          false where gh is absent: the agents write nothing to GitHub, and the pull request and
 //               the filing are the session's
 //
-// It returns the implementer's answer, the review's, the pull request, the issues that now hold each
-// entry of findings_left the filing did not skip, and any entry left unfiled.
+// It returns the implementer's answer, the review's, the last host run's build, the pull request, the
+// issues that now hold each entry of findings_left the filing did not skip, and any entry left unfiled.
+// findings_left holds what the implementer, the review and each build run again after a fix left.
 
 export const meta = {
   name: 'implement-issue',
@@ -140,8 +141,8 @@ entry a finding of the review below fixed with a commit, or a fix below traced a
 one the branch fixes in part is cut to the part it leaves. A failure a fix read as not caused by the change and
 fixed by an open pull request is skipped too. A skipped entry is held by that pull request, or by #${source}.
 
-Two entries that report one defect, the implementer's and the review's, are one: file the fuller
-once and name both indexes against the issue that holds it. For each other entry:
+Entries that report one defect, the implementer's and the review's or those of builds that fail on it again,
+are one: file the fullest once and name every index against the issue that holds it. For each other entry:
 - write its body with your Write tool to exactly ${a.scratch}/issue${a.issue}/entry<index>.md and run
   tools/checks/machine-leak.sh and tools/checks/untraced.sh over it; a line either one names is rewritten before
   anything is posted, and the command that posts it spells that path out (\`-F body=@<that path>\`), since the
@@ -230,15 +231,15 @@ const implemented = await agent(IMPLEMENT, {
   label: `implement:${a.issue}`, phase: 'Implement', effort: a.effort, schema: IMPLEMENTED, ...model,
 })
 
-let review = null, pr = 0
-const fixes = []
+let review = null, build = null, pr = 0
+const fixes = [], reruns = []
 if (implemented?.branch && a.push !== false) {
   try {
     review = await workflow({ scriptPath: REVIEW }, reviewArgs(implemented, { head: implemented.head }))
   } catch (e) {
     log(`the review of ${implemented.branch} did not run: ${e.message}`)
   }
-  let build = review?.build
+  build = review?.build
   let head = build?.head || review?.hunt?.tip || implemented.head
   while (review && !passed(build) && fixes.length < FIXES) {
     phase('Fix')
@@ -250,6 +251,7 @@ if (implemented?.branch && a.push !== false) {
     // a failure the change does not cause, a test that fails on a busy host among them, is read once more
     head = fix.head || head
     const rerun = await workflow({ scriptPath: REVIEW }, reviewArgs(implemented, { head, hunt: false }))
+    reruns.push(rerun)
     build = rerun?.build
     head = build?.head || head
   }
@@ -270,7 +272,7 @@ if (implemented?.branch && a.push !== false) {
   log(`no review for #${a.issue}: ${why}`)
 }
 
-const findings_left = [implemented, review].flatMap(r => r?.findings_left || [])
+const findings_left = [implemented, review, ...reruns].flatMap(r => r?.findings_left || [])
 let filed = []
 if (a.gh === false && findings_left.length)
   log('gh is absent: the session files what the agents left')
@@ -286,5 +288,5 @@ if (unfiled.length) {
   log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}`)
 }
 const issues = [...new Set(filed.filter(f => f.action !== 'skipped').map(f => f.number))]
-return { issue: a.issue, pr, implemented, review, fixes, findings_left, filed, issues, unfiled }
+return { issue: a.issue, pr, implemented, review, build, fixes, findings_left, filed, issues, unfiled }
 
