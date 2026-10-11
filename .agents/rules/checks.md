@@ -245,6 +245,10 @@ catches it. A command guard whose verdict the command alone decides keeps those 
 `tools/checks/cases/<guard>.cases`, which `cases.sh` runs and the Checks workflow runs on every pull
 request, so a change to the guard or to `commands.sh` beneath it is read against them again: the
 `git -c` whose value held a space passed push-guard.sh for as long as nothing ran its cases a second time.
+A command guard whose verdict also reads the repository the command runs in keeps its cases there
+too, beside `<guard>.fixture.sh`, which builds that repository in a scratch directory the cases run
+in: `rewrite-guard.sh` refused a restack's push naming the branches already rebased onto it, and
+another naming a detached HEAD as four branches, with no case to read either against.
 
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run, a `list`, `-V`, the REPL on a pipe or with `-e`, or a suite, while another operation is on
