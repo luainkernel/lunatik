@@ -208,7 +208,8 @@ static int lunatik_monitor(lua_State *L)
 
 	if (lunatik_pcallobject(L, object, n) != LUA_OK) {
 		const char *method = lua_tostring(L, lua_upvalueindex(2));
-		luaL_gsub(L, lua_tostring(L, -1), "?", method);
+		const char *name = lua_pushfstring(L, "to '%s'", method);
+		luaL_gsub(L, lua_tostring(L, -2), "to '?'", name);
 		lua_error(L);
 	}
 	return lua_gettop(L);
