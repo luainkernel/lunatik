@@ -79,6 +79,9 @@ jobs:
         mkdir -p "$dest/kernel/lunatik"
         touch "$dest/kernel/lunatik/stale.ko" lib/stale.ko
         for d in lunatik socket netlink syscall crypto bpf skb linux; do mkdir -p "$dest/lua/$d"; touch "$dest/lua/$d/stale.lua"; done
+        # what other installs put in each prefix, which make keeps: a file beside the tree's and a directory it does not own
+        kept=("$dest/lua/kept.lua" "$dest/lua/kept/kept.lua" "$dest/kernel/kept/kept.ko" "$dest/share/kept.lua" "$dest/bin/kept")
+        mkdir -p "${kept[@]%/*}"; touch "${kept[@]}"
         make modules_install scripts_install "${prefix[@]}"
         # the modules the CLI loads, which autogen lists from the Makefile's configuration
         modules=$(lua5.5 -e 'print(table.concat(dofile("autogen/lunatik/config.lua").modules, " "))')
@@ -95,5 +98,6 @@ jobs:
         mkdir -p "$dest/lua/skb"
         make scripts_uninstall "${prefix[@]}"
         test ! -e "$dest/lua/skb" || { echo "make uninstall left skb/"; exit 1; }
+        for f in "${kept[@]}"; do test -f "$f" || { echo "make install or uninstall removed $f"; exit 1; }; done
         echo "Lunatik built successfully for kernel ${{ matrix.kernel-version }}"
 
