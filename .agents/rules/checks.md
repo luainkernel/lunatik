@@ -199,8 +199,10 @@ filed on the private one names it by right.
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
 of a commit that no longer exists, in a pull request nobody edited. It reads the push through
-`commands.sh`, since the raw text read an `rm -f` beside a quoted push as one. `REWRITE_OK=1` runs it
-once that list is known to be stale.
+`commands.sh`, since the raw text read an `rm -f` beside a quoted push as one, and reads those branches
+against the head the push replaces, the one its lease names, else the remote-tracking ref, else the
+local branch: a restack moves the local branch to the new head before the push, and the branches based
+on that are the ones already rebased. `REWRITE_OK=1` runs it once that list is known to be stale.
 
 `stacked-guard.sh`, wired before a shell call, refuses opening a pull request on a base other than
 `master` unless it opens as a draft. GitHub does not merge a draft, and nothing else stops a stacked
