@@ -895,7 +895,10 @@ allocates with, the collector state it leaves, and the method its raise names).
   from C, where `luaL_argerror` writes `to '?'` for its name, and the monitor rewrites that
   text into the name of the method it wraps. It then resumes a runtime whose body raises
   `ready?` and reads the raise of `resume`, a monitored method, whole, `ready?` and the
-  newline `resume` appends: the monitor leaves any other `?` as the message wrote it.
+  newline `resume` appends: the monitor leaves any other `?` as the message wrote it. Last,
+  a call hook raises on `pop`'s call, inside the monitor's protected call, a number and then
+  a table, and each reaches the caller as raised: the monitor rewrites only a string. The
+  number comes first, so a build that rewrites any raise fails on it before the table.
 
 ### netfilter
 
