@@ -51,6 +51,10 @@ it, said in the report. Then, a command of its own:
 
     git push <url> <new head>:refs/heads/<branch> --force-with-lease=refs/heads/<branch>:<old head>
 
+Both SHAs are read, never typed: the old head from `git ls-remote <url> refs/heads/<branch>` and the
+new one from `git rev-parse HEAD`. A full SHA completed from its short form by hand named no commit
+and failed the lease in the restack under #1879.
+
 The report names the ref it moved and, apart, what it was rebased onto.
 
 # 4. Delete the merged branch
