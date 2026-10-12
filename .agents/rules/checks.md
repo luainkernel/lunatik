@@ -97,7 +97,10 @@ between the check and the throw is what the reader decides on.
 more than one site of one function, where the section between is a helper of its own; an allocation
 and a raise in one function, where a buffer a raise passes is freed on every raise path and a
 userdata the collector frees is the shape; a function past forty lines or nested past two blocks,
-which is more than one job; and a per-item buffer sized by a maximum, `n * LUARCU_MAXKEY`, which is packed by each item's length. The check annotates: a lock
+which is more than one job; a per-item buffer sized by a maximum, `n * LUARCU_MAXKEY`, which is packed by each item's length;
+a function that existed before the change and grows by five lines or more of it, whose new step is
+a helper of its own; and one condition tested at two sites of one function, the bracket of a guard,
+which is a pair of helpers that mirror. The check annotates: a lock
 retaken after a wait is a shape the reader decides on, and the review answers each line it prints with
 the function's jobs listed and the fixup that splits them or the reason they are one.
 

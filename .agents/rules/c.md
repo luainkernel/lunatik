@@ -90,6 +90,12 @@ the state, where a boolean stored on an existing node cannot.
   that decision into the wrong place: the lookup becomes a `has`/`is` predicate beside the ones the
   header already has, and the caller that loops over the work tests it, as `lunatik_newclasses` tests
   `lunatik_hasclass`.
+* A guard a change adds to a function that exists, a state read, changed and given back around a call,
+  is a pair of helpers that mirror, a `stop` and its `restart`, and the function that calls reads as
+  the pairs it nests: lines added inline grow a function that the next guard grows again. #1879 first
+  cleared its hook in eight lines inside `lunatik_pcallobject`, beside the collector stop inlined
+  there before it; both are pairs now. `tools/checks/function-shape.sh` names a function a change
+  grows by five lines or more, and one condition tested at two sites of one function.
 * When a two line pattern repeats in every method, collapse it into one helper or macro.
 * A pointer-keyed registry slot is read with `lua_rawgetp` and written with `lua_rawsetp`, never
   with `lua_pushlightuserdata` followed by `lua_rawget` or `lua_rawset`. The pair spells one
