@@ -70,7 +70,9 @@ the state, where a boolean stored on an existing node cannot.
   `luacrypto_aead_newrequest` beside `luacrypto_aead_new` — or when the mirror it pairs with
   carries one, as `luadarken_freerequest` does beside `luadarken_setrequest`; it does not when it
   only repeats what the type already says, which is what `luanetfilter_findhook` did in a file
-  whose only list holds hooks.
+  whose only list holds hooks. The name says what the helper does to what it changes, not the
+  piece it inserts: the helper that rewrites a monitored method's raise is `lunatik_fixerror`,
+  where `namemethod` named only the name it puts in.
 * Kernel headers first, then a blank line, then `#include <lunatik.h>`. Do not remove that blank line.
 * `<lua.h>` and `<lauxlib.h>` are already pulled in by `lunatik.h`.
 * Every file ends with a trailing blank line. `tools/checks/pre-commit` rejects a commit that does
@@ -82,7 +84,9 @@ the state, where a boolean stored on an existing node cannot.
   already turns an errno into `EINVAL`, and `autogen`'s emitter already writes the config a Makefile
   was about to write a second time.
 * Prefer a named `static inline` helper over an open coded repetition, and do not inline an existing
-  named helper into its callers while refactoring; they exist for readability and symmetry. A
+  named helper into its callers while refactoring; they exist for readability and symmetry. Nor a
+  named local into the expression that reads it to save a line: #1867 folded `const char *method`
+  into the `luaL_gsub` that reads it, and the review asked for the name back. A
   sequence two bindings spell is that helper too, in the core when its calls are the core's, and
   `tools/checks/core-helper.sh` names the sequence a change adds that another file already spells.
 * A function does one thing; whether to do it is its caller's decision. An early return added at the
@@ -155,6 +159,10 @@ the state, where a boolean stored on an existing node cannot.
   its place by what it buys, not by looking more complete. A macro that grows an arm or an operation
   to carry a new rule is the moment to write the functions instead, as the lock functions of
   `lunatik_lock.h` are, over one predicate, `lunatik_isirqsave`. A rule that takes one sentence to state takes one predicate to code.
+  Work moved off a path that runs on a failure onto one every runtime runs is weighed in what each
+  runtime then keeps, a percpu script's CPUs multiplying it, against what it saves where the failure
+  happens: #1867 kept its raise building the method's quoted name, which costs nothing until a method
+  fails, over a string built for every wrapped method of every runtime at class creation.
 * A field that stores what its reader can compute when it runs is a copy, not a field: the fsnotify
   event's frame kept the accessing task's pid for an accessor that only ever runs inside the callback,
   in that task, where `current` answers. The same holds for a wrapper written to fit a macro whose
