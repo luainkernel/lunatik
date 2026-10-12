@@ -275,11 +275,13 @@ doc-stubs:
 	${RM} -r lib/linux
 	"$(LUA)" autogen/ldoc.lua
 
+# DOC_RELEASES lists the release tags the site serves, latest first, for the header's version switch
 doc-site: doc-stubs
 	${RM} -r doc/classes doc/modules doc/topics
 	printf '%s\n' ${DOC_TAGS} > doc/.tags
+	printf '%s\n' ${DOC_RELEASES} > doc/.releases
 	ldoc .
-	${RM} doc/.tags
+	${RM} doc/.tags doc/.releases
 	cp doc/style/site.js doc/site.js
 	cp -r doc/style/fonts doc/
 	"$(LUA)" doc/style/search.lua doc
